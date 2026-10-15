@@ -1,0 +1,648 @@
+<title>LeapSwitch Staging Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Schibsted+Grotesk:wght@600;700;800&display=swap">
+<style>
+/* Layout: one reading column with a sticky section nav; answers and roadmap lead, reference sections follow, tables for anything compared. */
+:root{
+  --bg:#f5f7f8; --surface:#ffffff; --fg:#14202b; --muted:#566573; --line:#d8e0e5;
+  --accent:#0b6e8a; --accent-soft:#e1f1f6; --accent-fg:#ffffff;
+  --good:#1a7f4b; --good-soft:#e2f4ea; --warn:#9a6200; --warn-soft:#fdf1d8; --bad:#b3261e; --bad-soft:#fbe5e3;
+  --code-bg:#eaeff2;
+  --f-display:'Schibsted Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f171d; --surface:#17232b; --fg:#e6edf1; --muted:#9db0bc; --line:#2a3a45;
+  --accent:#55c0dd; --accent-soft:#16333d; --accent-fg:#0b1a20;
+  --good:#5ccf94; --good-soft:#15382a; --warn:#f0bb59; --warn-soft:#3a2d12; --bad:#ff8d85; --bad-soft:#3d1b19;
+  --code-bg:#1f2e38; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f171d; --surface:#17232b; --fg:#e6edf1; --muted:#9db0bc; --line:#2a3a45;
+  --accent:#55c0dd; --accent-soft:#16333d; --accent-fg:#0b1a20;
+  --good:#5ccf94; --good-soft:#15382a; --warn:#f0bb59; --warn-soft:#3a2d12; --bad:#ff8d85; --bad-soft:#3d1b19;
+  --code-bg:#1f2e38; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--f-body);margin:0;
+  padding-block:0 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:980px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,5vw,3rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.65rem;font-weight:700;letter-spacing:-.01em;margin-top:56px;padding-top:8px}
+h3{font-size:1.15rem;font-weight:700;margin-top:28px}
+p{margin:.7em 0;max-width:72ch}
+ul,ol{padding-left:1.25em;margin:.6em 0} li{margin:.3em 0;max-width:80ch}
+a{color:var(--accent)} a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code{font-family:var(--f-mono);font-size:.86em;background:var(--code-bg);padding:.1em .35em;border-radius:4px;overflow-wrap:anywhere}
+pre{font-family:var(--f-mono);font-size:.84rem;background:var(--code-bg);padding:14px;border-radius:8px;overflow-x:auto;margin:.8em 0;line-height:1.5}
+.eyebrow{font:500 .75rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+header.top{padding-block:40px 8px}
+.lede{font-size:1.15rem;color:var(--muted);max-width:62ch}
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-top:20px;padding:10px 0;display:flex;gap:8px;overflow-x:auto}
+nav.toc a{white-space:nowrap;text-decoration:none;font-size:.85rem;padding:5px 11px;border:1px solid var(--line);border-radius:999px;color:var(--fg);background:var(--surface)}
+nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+.verdict{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-top:22px}
+.verdict h2{margin:0 0 6px;padding:0;font-size:1.2rem}
+.verdict ul{margin:.4em 0 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.card h3{margin:0 0 6px;font-size:1.02rem}
+.card p{margin:.3em 0;font-size:.95rem}
+.pill{display:inline-block;font:500 .72rem var(--f-mono);letter-spacing:.04em;text-transform:uppercase;padding:2px 9px;border-radius:999px;vertical-align:middle}
+.pill.good{background:var(--good-soft);color:var(--good)} .pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.info{background:var(--accent-soft);color:var(--accent)}
+.tbl{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th,td{padding:9px 13px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{font:600 .74rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0} td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.hl td{background:var(--accent-soft);font-weight:500}
+.callout{border-left:4px solid var(--accent);background:var(--accent-soft);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;max-width:80ch}
+.callout.warn{border-color:var(--warn);background:var(--warn-soft)} .callout.bad{border-color:var(--bad);background:var(--bad-soft)} .callout.good{border-color:var(--good);background:var(--good-soft)}
+.callout p{margin:.3em 0}
+.bar{display:grid;grid-template-columns:minmax(120px,230px) 1fr 90px;gap:12px;align-items:center;margin:10px 0;font-size:.92rem}
+.bar .track{background:var(--code-bg);border-radius:6px;height:22px;overflow:hidden}
+.bar .fill{height:100%;background:var(--accent);border-radius:6px}
+.bar .fill.alt{background:var(--muted)} .bar .fill.hi{background:var(--good)}
+.bar .v{font-variant-numeric:tabular-nums;text-align:right;font-family:var(--f-mono);font-size:.85rem}
+.mem{display:flex;height:34px;border-radius:8px;overflow:hidden;border:1px solid var(--line);margin:12px 0 6px;font:500 .7rem var(--f-mono)}
+.mem span{display:flex;align-items:center;justify-content:center;color:#fff;white-space:nowrap;overflow:hidden;min-width:0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.82rem;color:var(--muted)}
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:14px 0;padding:0 18px}
+summary{cursor:pointer;font:600 1.02rem var(--f-display);padding:14px 0}
+details[open] summary{border-bottom:1px solid var(--line);margin-bottom:8px}
+details .inner{padding-bottom:14px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps>li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--line);margin:0;max-width:none}
+.steps>li:last-child{border-bottom:0}
+.steps>li::before{content:counter(s);position:absolute;left:0;top:10px;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-fg);font:600 .85rem var(--f-mono);display:flex;align-items:center;justify-content:center}
+.steps ul{margin:.3em 0}
+.phase{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+.phase .when{font:500 .78rem var(--f-mono);color:var(--muted);letter-spacing:.04em}
+.copybox{position:relative}
+.copybtn{position:absolute;top:10px;right:10px;font:500 .78rem var(--f-body);padding:5px 12px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.copybtn:hover{border-color:var(--accent)}
+.copybox pre{padding-right:90px;white-space:pre-wrap}
+.small{font-size:.86rem;color:var(--muted)}
+.dq{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.dq .id{font:600 .8rem var(--f-mono);color:var(--accent-fg);background:var(--accent);border-radius:6px;padding:2px 9px}
+footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line)}
+@media (max-width:560px){.bar{grid-template-columns:1fr 80px}.bar .track{grid-column:1/-1;order:3}}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Unifolio · infrastructure · version 4, 15 Oct 2026</div>
+  <h1>Moving staging to LeapSwitch (CloudPe)</h1>
+  <p class="lede">Staging only, running 24/7. Production stays on AWS. This version answers your follow-up questions on each open decision, backups, who to email, and why we copy the app and data but cannot copy the AWS infrastructure itself.</p>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#short">Short version</a><a href="#answers">Your questions answered</a><a href="#roadmap">Roadmap</a><a href="#form">VM form</a>
+  <a href="#price">Prices</a><a href="#contact">Who to email</a><a href="#pick">Sizing</a><a href="#aws">Protecting AWS</a><a href="#services">What moves</a>
+  <a href="#auto">API &amp; Terraform</a><a href="#code">Code changes</a><a href="#risks">Risks &amp; decisions</a>
+</nav>
+
+<section id="short">
+<div class="verdict">
+  <h2>The short version</h2>
+  <ul>
+    <li><strong>Region:</strong> Mumbai DC3 (<code>IN-WEST3</code>), the same site as the object storage.</li>
+    <li><strong>Buy:</strong> one Linux <code>a.gp1.12g</code> VM (3 vCPU, 12 GB), Ubuntu 24.04, running 24/7, plus a 100 GB Standard NVMe data volume, a public IP and two object-storage buckets.</li>
+    <li><strong>Copy what can be copied, rebuild the plumbing.</strong> The Docker image, the database, the files and the settings all transfer. The AWS infrastructure (Fargate, RDS, load balancer, EventBridge) cannot, so a small deploy folder replaces it. Details in "Why not copy the infrastructure".</li>
+    <li><strong>Cost:</strong> about <strong>₹2,865/mo</strong> before GST for the single-VM build, against about ₹7,400/mo for AWS staging running 24/7 (my estimate). Mirroring the full AWS layout costs ₹5,999.</li>
+    <li><strong>Keep on AWS:</strong> SES email, Route 53 DNS, and the existing staging environment (parked, untouched).</li>
+    <li><strong>Waiting on:</strong> your answer on D2 (how recompute runs) and CloudPe's answer on encryption (D4).</li>
+  </ul>
+</div>
+</section>
+
+<section id="answers">
+<h2>Your questions answered</h2>
+
+<h3 class="dq"><span class="id">D1</span> Business KYC <span class="pill good">Resolved</span></h3>
+<p>The account already has Business KYC, so nothing more to do. Two follow-ups for CloudPe (in the billing email below): confirm invoices carry GST, and whether GST input credit applies to your GSTIN.</p>
+
+<h3 class="dq"><span class="id">D2</span> Running recompute "exactly like AWS", and the risk <span class="pill warn">Needs your go</span></h3>
+<p><strong>What AWS does today.</strong> After a CAS import the backend calls ECS <code>RunTask</code>. AWS starts a brand-new container from the same image (0.5 vCPU, 1 GB), runs <code>python scripts/run_analytics_recompute.py --household &lt;id&gt;</code>, and the container disappears. Four properties matter:</p>
+<ul>
+  <li>It is a separate process with its own memory, so a heavy recompute cannot slow or crash the API.</li>
+  <li>Several households can recompute at the same time.</li>
+  <li>The code only counts the dispatch as successful if AWS actually placed the task. If not, it releases the claim, as it does now.</li>
+  <li>A daily 06:30 job (<code>--all</code>) backs it up, and a stuck claim clears itself after 15 minutes.</li>
+</ul>
+<p><strong>No VM setup is literally identical</strong>, because ECS does not exist on LeapSwitch. There are three ways to get close:</p>
+<div class="tbl"><table>
+<tr><th>Way</th><th>How it works</th><th>Closeness to AWS</th><th>Risk</th></tr>
+<tr class="hl"><td><strong>1. Worker container</strong> (my recommendation)</td><td>A second container from the same image sits on the VM's internal Docker network. The backend asks it to run the recompute. It starts the same command, as its own process, with a 1 GB memory cap and 0.5 CPU cap, the same limits as the AWS task.</td><td>Same image, same command, same memory and CPU limits, same success and failure rules. Differs: it shares the VM's CPUs, and runs at most 2 at a time instead of unlimited.</td><td><span class="pill warn">Low to medium</span></td></tr>
+<tr><td>2. <code>docker run</code> per recompute</td><td>The backend starts a fresh container for every job, the nearest thing to Fargate.</td><td>Closest to AWS</td><td><span class="pill bad">High</span> The backend would need the Docker socket, which means anyone who breaks into the backend gets root on the VM. Not acceptable with PAN data.</td></tr>
+<tr><td>3. Subprocess inside the backend container</td><td>The backend runs the script as a child process.</td><td>Shares memory with the API. Departs from your written spec.</td><td><span class="pill warn">Medium</span></td></tr>
+</table></div>
+<p><strong>How much risk is option 1?</strong></p>
+<ul>
+  <li><strong>New code on the import path.</strong> About 100 to 150 lines plus tests, behind the existing <code>RecomputeDispatcher</code> protocol. The AWS dispatcher stays the default, so AWS staging and production are unaffected.</li>
+  <li><strong>Worst realistic failure:</strong> the worker is down or busy, so analytics are stale after an import until the claim clears (15 minutes) or the 06:30 job runs. No data is lost or corrupted. The existing "release the claim if dispatch failed" rule covers it.</li>
+  <li><strong>Memory:</strong> a household too big for 1 GB gets killed, exactly as on AWS today.</li>
+  <li><strong>Blast radius:</strong> LeapSwitch staging only.</li>
+</ul>
+<p>I still need your go, because CLAUDE.md says to stop when a build departs from a written spec, and option 1 does (the spec says ECS). Reply "D2 go: worker container" and I start.</p>
+
+<h3 class="dq"><span class="id">D3</span> Why new keys, and why not reuse the old ones? <span class="pill info">Your call</span></h3>
+<p>You can reuse them. New keys are a precaution, not a requirement. The real trade-off:</p>
+<div class="tbl"><table>
+<tr><th></th><th>Reuse AWS staging keys</th><th>New keys</th></tr>
+<tr><td>Copy user accounts and PAN data from AWS</td><td><span class="pill good">Works</span> Encrypted PANs and lookup hashes still decrypt and match.</td><td><span class="pill bad">Impossible</span> Old encrypted PANs become unreadable. LeapSwitch starts with empty user tables.</td></tr>
+<tr><td>If the CloudPe VM is broken into</td><td>The same keys that protect AWS staging are exposed. You would need to rotate both.</td><td>AWS staging stays safe.</td></tr>
+<tr><td>Keys in more places</td><td>Two places: AWS Secrets Manager and the VM's <code>.env</code></td><td>Separate, one each</td></tr>
+</table></div>
+<p><strong>Recommendation, since you want to copy the data across:</strong> reuse the staging keys, on two conditions. They are staging-only keys that production never uses, and they live only in the VM's root-only <code>.env</code> (mode 600). If you decide to start with reference data only, use new keys instead.</p>
+
+<h3 class="dq"><span class="id">D4</span> Encryption <span class="pill warn">Waiting on CloudPe</span></h3>
+<p>Agreed: no in-app encryption. CloudPe's object storage docs do not mention server-side encryption, so the email asks them to confirm it for object storage and for volumes. Until they confirm, <strong>do not upload real CAS PDFs</strong>. Use the synthetic ones in <code>Docs/CAS Files/synthetic/pdfs/</code>. If CloudPe says no, this decision comes back to you.</p>
+
+<h3 class="dq"><span class="id">D5</span> "Real stakeholder data" in detail <span class="pill info">Explained</span></h3>
+<p><strong>What it means.</strong> During QA, stakeholders and testers upload their <em>own real</em> CAS statements. Those hold PANs, folio numbers, holdings and transactions. That is personal financial data. Putting it on LeapSwitch means a new company is storing it for you.</p>
+<p><strong>Why it needs a decision.</strong></p>
+<ul>
+  <li>Under India's DPDP Act you are the data fiduciary, and a hosting company that stores the data is your processor. A processor should be bound by a written agreement (a data processing agreement) covering security and breach notice.</li>
+  <li>Your privacy policy and consent text may name where data is stored. Check whether they name AWS.</li>
+  <li>Copying real users' data from AWS to CloudPe is itself a transfer of personal data to that processor, so it falls under the same question.</li>
+  <li>Encryption confirmation (D4) must come first.</li>
+</ul>
+<p><strong>Options:</strong></p>
+<ul>
+  <li><strong>A. Synthetic only</strong> on LeapSwitch: the synthetic CAS set and test accounts. No agreement needed.</li>
+  <li><strong>B. Real data after</strong> the data processing agreement is signed, CloudPe confirms encryption, and the consent text is checked.</li>
+</ul>
+<p><strong>Recommendation:</strong> start with A. Move to B when those three are in hand. This also affects D3: reuse the keys only if you will copy real user data, which needs B.</p>
+
+<h3 class="dq"><span class="id">D6</span> 24/7, no shelving <span class="pill good">Resolved</span></h3>
+<p>All shelving, night-stop and "save money at night" material is removed from this page. For 24/7 use, the billing period is the only choice left:</p>
+<div class="tbl"><table>
+<tr><th>Period</th><th class="n">VM ₹/mo</th><th>Notes</th></tr>
+<tr class="hl"><td><strong>Hourly</strong> (recommended to start)</td><td class="n">1,630</td><td>Same as monthly at 24/7. No commitment. Cannot be changed after launch.</td></tr>
+<tr><td>Monthly</td><td class="n">1,630</td><td>No discount over hourly at 24/7</td></tr>
+<tr><td>Quarterly</td><td class="n">about 1,467</td><td>About 10% off, paid for the whole quarter</td></tr>
+<tr><td>Annual</td><td class="n">1,434</td><td>12% off, ₹17,213 paid for the year</td></tr>
+</table></div>
+<p>Because the period cannot change after launch, start Hourly while the platform is unproven. If you later want the discount, create a new VM on Annual from the volumes you kept (the data volume is set to survive deletion). That route is my inference, not a documented procedure. Ask CloudPe whether a reserved plan can be resized.</p>
+
+<h3>Why can't we automate backups?</h3>
+<p>We can, and the plan does. My earlier wording was misleading. What is manual is only the dashboard button "Create backup now". The docs describe no schedule for it. We cover this two ways:</p>
+<ul>
+  <li><strong>Database backups: fully automatic.</strong> A systemd timer on the VM runs <code>pg_dump</code> every night, uploads it to object storage, keeps 7 days, and emails an alert through SES if it fails.</li>
+  <li><strong>Volume backups: automatable through the API.</strong> The same OpenStack credentials the dashboard uses can start a volume backup from a scheduled script. I have not confirmed CloudPe exposes it, so the email asks. If it is not available, the nightly <code>pg_dump</code> remains the real backup.</li>
+  <li><strong>The one manual part</strong> is a restore test in week one, to prove the dump actually restores.</li>
+</ul>
+
+<h3>Which email address? (answered in "Who to email" below)</h3>
+<p>Technical questions go to <code>support@cloudpe.com</code>, billing questions to <code>billing@cloudpe.com</code>, and compliance and discount questions to <code>sales@cloudpe.com</code>. Three ready-to-send messages are below.</p>
+
+<h3 id="whycopy">Why not copy the infrastructure from AWS? Why build from scratch?</h3>
+<p>First a correction: AWS staging has no 3 vCPU machine. It is made of small pieces: the backend task (0.5 vCPU, 1 GB), the database (<code>db.t4g.small</code>, 2 vCPU, 2 GB), and short-lived job tasks (0.5 vCPU, 1 or 2 GB each). The 3 vCPU / 12 GB VM is my sizing for putting all of that on one server.</p>
+<p>The infrastructure itself cannot be transferred. These are AWS-managed services, and AWS gives no way to export them to another cloud:</p>
+<div class="tbl"><table>
+<tr><th>AWS piece</th><th>Can it be transferred?</th><th>Why</th></tr>
+<tr><td>Fargate backend and job tasks</td><td><span class="pill bad">No</span></td><td>There is no server to copy. AWS runs your container on hardware you never see.</td></tr>
+<tr><td>RDS database server</td><td><span class="pill bad">No</span></td><td>RDS has no machine image to download. Snapshots restore only on AWS.</td></tr>
+<tr><td>Load balancer, EventBridge, KMS, Secrets Manager, CloudFront</td><td><span class="pill bad">No</span></td><td>AWS-only services</td></tr>
+<tr><td>Your Terraform (about 1,700 lines)</td><td><span class="pill bad">No</span></td><td>It describes AWS resources (<code>aws_ecs_*</code>, <code>aws_lb</code>, <code>aws_db_instance</code>). The AWS provider cannot create anything on CloudPe.</td></tr>
+<tr><td><strong>Docker image</strong> (the application)</td><td><span class="pill good">Yes</span></td><td>Pull from ECR and run, or rebuild from the same code</td></tr>
+<tr><td><strong>Database contents</strong></td><td><span class="pill good">Yes</span></td><td><code>pg_dump</code> then restore into Postgres 16</td></tr>
+<tr><td><strong>S3 files</strong></td><td><span class="pill good">Yes</span></td><td><code>rclone</code> copy to CloudPe object storage</td></tr>
+<tr><td><strong>Settings</strong></td><td><span class="pill good">Yes</span></td><td>The same variable names in a <code>.env</code> file</td></tr>
+<tr><td><strong>Domain names</strong></td><td><span class="pill good">Yes</span></td><td>Point the DNS records at the new IP</td></tr>
+</table></div>
+<div class="callout good"><p><strong>So the plan already is a copy.</strong> The application, its data, its files and its settings are copied. Only the plumbing around them (VM setup, Docker Compose, Caddy, job timers, backup script) is new. It is written once, kept in git, and re-runnable. With D3 (reuse keys) and D5 (real data allowed), the database copy is a <strong>full</strong> copy including user accounts, which is the closest to "the same as AWS" that exists. Rebuilding the AWS layout piece by piece (Option A in the price section) is possible, but it costs about the same as AWS, is not an exact copy either, and adds a second VM and a load balancer to maintain.</p></div>
+</section>
+
+<section id="roadmap">
+<h2>End-to-end roadmap</h2>
+<p class="small">Day numbers count from the day you start building. Check your trial expiry date first. If you signed up on 15 Oct, day 14 is 29 Oct and the delete-everything day is 4 Nov.</p>
+
+<details open><summary><span class="phase"><span>Phase 0 · Today, before touching a VM</span><span class="when">about 1 hour</span></span></summary><div class="inner">
+<ol class="steps">
+<li><strong>Note the trial expiry date</strong> from the dashboard. Put calendar reminders at day 10 and day 13.</li>
+<li><strong>Send the three emails</strong> (see "Who to email"). The answers that matter most: encryption (support), postpaid vs wallet and GST (billing), the data processing agreement (sales).</li>
+<li><strong>Measure the database.</strong> Through your usual tunnel run <code>SELECT pg_size_pretty(pg_database_size('unifolio'));</code> on AWS staging. If it is under 20 GB, 50 GB for the data volume is enough.</li>
+<li><strong>Generate an SSH key</strong> in PowerShell: <code>ssh-keygen -t ed25519 -C "unifolio-staging"</code>. Keep the private key private.</li>
+<li><strong>Reply on D2</strong> (worker container) and D3 (reuse keys or not). D2 blocks the code work.</li>
+</ol></div></details>
+
+<details open><summary><span class="phase"><span>Phase 1 · Account setup in the dashboard</span><span class="when">day 1 · about 1.5 hours</span></span></summary><div class="inner">
+<ol class="steps">
+<li><strong>Confirm KYC shows verified</strong> and a project exists (<em>Billing &amp; Account → Projects</em>). Name it <code>unifolio-staging</code>.</li>
+<li><strong>Upload your SSH public key</strong> (<em>Billing → SSH Keys</em>). Paste the contents of <code>id_ed25519.pub</code>. Name it <code>unifolio-admin</code>.</li>
+<li><strong>Create the private network</strong> if none exists in <code>IN-WEST3</code>. A single VM with the public toggle does not strictly need it, but keep one for later.</li>
+<li><strong>Create the security group</strong> (<em>Networks → Security Groups → Create</em>) named <code>unifolio-web</code>. Add inbound rules, IPv4 only:
+  <ul><li>TCP 22 from your office IP <code>/32</code> and your home IP <code>/32</code>. Not <code>0.0.0.0/0</code>.</li><li>TCP 80 from <code>0.0.0.0/0</code> (Caddy needs it to get certificates).</li><li>TCP 443 from <code>0.0.0.0/0</code>.</li></ul>
+  Outbound stays allow-all. Rules cannot be edited, only deleted and recreated, so add every admin's IP now.</li>
+<li><strong>Object storage:</strong> <em>Object Storage → Access Keys → Generate New Key</em>. Save the key ID and secret in your password manager (the secret is shown once). Create buckets <code>unifolio-staging-cas-files</code> and <code>unifolio-staging-disclosure-failed</code>.</li>
+<li><strong>OpenStack credentials</strong> (for scripts and Terraform): profile icon → <em>My Account → OpenStack Credentials → Generate Credentials</em>. Choose the project and region <code>IN-WEST3</code>, set an expiry about 60 days out, and note the renewal date.</li>
+</ol></div></details>
+
+<details open><summary><span class="phase"><span>Phase 2 · Create and harden the VM</span><span class="when">day 1 to 2 · about 2 hours</span></span></summary><div class="inner">
+<ol class="steps">
+<li><strong>Create the VM</strong> with the values in "The VM form".</li>
+<li><strong>Save the root password</strong> if the dashboard shows one. It is shown once.</li>
+<li><strong>Connect:</strong> <code>ssh -i $HOME\.ssh\id_ed25519 root@&lt;public-ip&gt;</code> from PowerShell. The CloudPe guide uses <code>root</code>. If it refuses, try <code>ubuntu</code>.</li>
+<li><strong>Create an admin user</strong> <code>deploy</code> with sudo, copy your key to it, confirm you can log in as <code>deploy</code>, then disable root and password SSH login.</li>
+<li><strong>Mount the data volume</strong> at <code>/srv/data</code> (format ext4, add to <code>fstab</code> by UUID). Create a 4 GB swap file.</li>
+<li><strong>Base setup:</strong> timezone <code>Asia/Kolkata</code>, automatic security updates, <code>ufw</code> (22, 80, 443 only), fail2ban, Docker Engine and the compose plugin. I write this as <code>bootstrap-vm.sh</code> so it can be re-run.</li>
+</ol>
+<div class="callout"><p>Send me the public IP and the S3 endpoint when this phase is done. Never the secrets.</p></div>
+</div></details>
+
+<details open><summary><span class="phase"><span>Phase 3 · Code and deploy folder</span><span class="when">day 2 · I do this</span></span></summary><div class="inner">
+<ol class="steps">
+<li>Branch <code>feat/leapswitch-staging</code>. Make the small, default-off code changes (see "Code changes") and run only the tests those files touch.</li>
+<li>Write <code>deploy/leapswitch/</code>: <code>docker-compose.yml</code> (Postgres, backend, recompute worker, Caddy), <code>Caddyfile</code>, <code>.env.example</code>, systemd timers for 11 jobs plus the backup timer, <code>deploy.sh</code>, <code>backup.sh</code>, <code>restore.sh</code>, <code>job-alert.sh</code>, and a runbook with every command labelled by terminal.</li>
+</ol></div></details>
+
+<details open><summary><span class="phase"><span>Phase 4 · AWS-side items and DNS</span><span class="when">day 2 · about 45 minutes</span></span></summary><div class="inner">
+<ol class="steps">
+<li>AWS IAM: create <code>leapswitch-ses-sender</code> allowed only <code>ses:SendEmail</code> and <code>ses:SendRawEmail</code> on your SES identity. Create one access key.</li>
+<li>Route 53: add A records <code>ls-staging.unifolio.in</code> and <code>ls-staging-api.unifolio.in</code> to the VM's public IP, TTL 60.</li>
+<li>Google Cloud console: add <code>https://ls-staging.unifolio.in</code> to the OAuth client's authorized JavaScript origins.</li>
+</ol></div></details>
+
+<details open><summary><span class="phase"><span>Phase 5 · Deploy the application and copy the data</span><span class="when">day 2 to 3 · about 4 hours</span></span></summary><div class="inner">
+<ol class="steps">
+<li>Create <code>/srv/unifolio/.env</code> (root-only, mode 600): DB password, PAN keys (per D3), CloudPe S3 key, AWS SES key, origins, Google client ID.</li>
+<li>Start Postgres 16 on the data volume and run <code>alembic upgrade head</code> (staging is on migration <code>0041</code>).</li>
+<li><strong>Copy the data</strong> from AWS through the usual tunnel, off-hours:
+  <ul><li>Reference tables (schemes, NAV history, TER, AAUM, benchmarks, fund scores, disclosures, market caps): always.</li><li>User tables: only if D3 is "reuse keys" and D5 is option B.</li><li>S3 files with <code>rclone</code>, keeping object keys identical. Only needed alongside user data, since CAS files expire after 30 days anyway.</li></ul></li>
+<li>Build the backend image on the VM and start everything. Caddy gets the HTTPS certificate.</li>
+<li>Build the frontend on your laptop with the new API URL and Google client ID, and copy <code>dist/</code> to the VM.</li>
+<li>Install the 11 job timers and the nightly backup timer. Run one job by hand to confirm.</li>
+</ol></div></details>
+
+<details open><summary><span class="phase"><span>Phase 6 · Test</span><span class="when">day 3 to 5</span></span></summary><div class="inner">
+<ol class="steps">
+<li>Sign up with email OTP (proves SES from CloudPe).</li>
+<li>Upload a synthetic CAS PDF (proves S3 save, then expiry delete).</li>
+<li>Check that analytics recompute after import, using the worker, and that PDF export works.</li>
+<li>Run the portfolio-disclosure, stock-fundamentals and fund-manager jobs from this Indian IP and record which AMC sites respond. This is new evidence for the Priority 1 factsheet question.</li>
+<li><strong>Restore test:</strong> restore last night's dump into a scratch database.</li>
+<li>Run Part 2 of the Sub-project 2 QA guide against the new URL.</li>
+</ol></div></details>
+
+<details open><summary><span class="phase"><span>Phase 7 · Decide, upgrade, cut over</span><span class="when">day 6 to 12</span></span></summary><div class="inner">
+<ol class="steps">
+<li>Review Billing History and export the CSV. Compare with the estimate.</li>
+<li><strong>By trial day 12, upgrade</strong> (signup.cloudpe.com/upgrade, UPI or net banking). Resources stay intact.</li>
+<li>Run both environments in parallel for a few days.</li>
+<li>Cutover: point <code>staging</code> and <code>staging-api</code> at the VM, add those origins in Google, and park AWS staging.</li>
+<li>Update <code>session.md</code>, <code>decisions.md</code> and the deploy guides so they name the LeapSwitch runbook.</li>
+</ol></div></details>
+</section>
+
+<section id="form">
+<h2>The VM form, field by field</h2>
+<p>From <em>Compute → Virtual Machines → + Create VM</em> in the CMP dashboard. Field names come from CloudPe's own "Creating a Virtual Machine" guide. Your screen may differ slightly, so send me a screenshot if a field does not match.</p>
+<div class="tbl"><table>
+<tr><th>Field</th><th>Select</th><th>Why</th></tr>
+<tr><td>VM Name</td><td><code>unifolio-staging-1</code></td><td>Letters, numbers, hyphens, underscores only</td></tr>
+<tr><td>Number of instances</td><td>1</td><td></td></tr>
+<tr><td>Region</td><td><strong>Mumbai DC3 (IN-WEST3)</strong></td><td>Recommended for new builds. Same site as object storage.</td></tr>
+<tr><td>Project</td><td><code>unifolio-staging</code></td><td></td></tr>
+<tr><td>Size · tab</td><td><strong>General Purpose</strong></td><td>1 vCPU : 4 GB RAM</td></tr>
+<tr><td>Size · tile</td><td><strong><code>a.gp1.12g</code></strong> (3 vCPU, 12 GB)</td><td>Expect about ₹2.23/hr, ₹1,630/mo. If the summary shows a very different figure, stop and ask.</td></tr>
+<tr><td>Operating system</td><td><strong>Ubuntu 24.04 LTS</strong></td><td>Pre-selected. Not Windows.</td></tr>
+<tr><td>Billing period</td><td><strong>Hourly</strong> to start</td><td>Same price as monthly at 24/7, no lock-in. Cannot be changed after launch. See D6.</td></tr>
+<tr><td>Storage policy</td><td><strong>Standard NVMe</strong></td><td>25,000 IOPS, 3× replication, can upgrade to Pro without downtime</td></tr>
+<tr><td>Boot volume</td><td>30 GB (the included size)</td><td>OS, Docker images, logs</td></tr>
+<tr><td>+ Add Volume</td><td><strong>100 GB</strong> (or 50 GB if the DB is small), Standard, <strong>Keep on termination</strong></td><td>Postgres data. Survives a VM rebuild.</td></tr>
+<tr><td>Public Network</td><td><strong>On</strong></td><td>Assigns a public IP directly. No router needed.</td></tr>
+<tr><td>Private Network</td><td>On (default)</td><td>Harmless for one VM</td></tr>
+<tr><td>Security group</td><td><strong><code>unifolio-web</code></strong></td><td>Never <code>default</code> (it allows all traffic)</td></tr>
+<tr><td>Root password</td><td>Click Generate, save it</td><td>Shown once</td></tr>
+<tr><td>SSH key</td><td><code>unifolio-admin</code></td><td>Added at first boot</td></tr>
+<tr><td>Advanced · User data</td><td>Leave empty</td><td>I provide a bootstrap script to run after first login</td></tr>
+<tr><td>Advanced · Tags</td><td><code>env=staging</code></td><td>Optional</td></tr>
+</table></div>
+<p>Check the pricing summary, then click <strong>Create VM</strong>. Provisioning takes about 60 to 120 seconds (Building → Active). The public IP appears once the VM is Active.</p>
+
+<h3>What the CloudPe docs confirmed</h3>
+<div class="tbl"><table>
+<tr><th>Finding</th><th>Effect</th></tr>
+<tr><td>The Public Network toggle gives a direct public IP. Routers and floating IPs are only for private-only VMs.</td><td>No router for the single-VM build.</td></tr>
+<tr><td>Billing is postpaid, invoiced on the 1st of the next month, though the VM guide mentions a wallet. There are <strong>no budgets or spending alerts</strong>.</td><td>Check Billing History weekly and export the CSV. The billing email asks which model applies.</td></tr>
+<tr><td>A new security group denies all inbound. The project's <code>default</code> group allows everything. Rules cannot be edited. Changing a VM's group later is done in the Advanced Dashboard.</td><td>Create <code>unifolio-web</code> before the VM.</td></tr>
+<tr><td>Object storage: <code>https://s3.in-west3.purestore.io</code>, region <code>in-west3</code>, SigV4, path-style. Lifecycle, encryption, versioning not documented. First 1 TB egress free.</td><td>Code forces path-style. The 30-day expiry is done by your own job.</td></tr>
+<tr><td>The platform is OpenStack. CloudPe's Terraform sample uses the standard OpenStack provider.</td><td>Infrastructure as code is possible later.</td></tr>
+<tr><td>VM resize is supported with a brief power-off. Console access and Rescue Mode exist.</td><td>Start at 12 GB, move to 16 GB if needed. A firewall mistake does not lock you out for good.</td></tr>
+<tr><td>Docs and pricing page disagree on some prices (<code>a.cpu1.4g</code>: ₹491 in the guide, ₹931 on the pricing page).</td><td>The summary panel on the VM form is the authority.</td></tr>
+</table></div>
+</section>
+
+<section id="price">
+<h2>Pricing, 24/7</h2>
+<p class="small">All ₹ per month, before GST, assuming every resource runs all month. LeapSwitch figures are from cloudpe.com/pricing and the VM guide. A public IP is assumed at ₹200, the same as the listed floating and static IPv4. Backups are assumed at ₹2/GB.</p>
+
+<h3>Option B: single VM, copy the app and data (recommended)</h3>
+<div class="tbl"><table>
+<tr><th>Line</th><th>Basis</th><th class="n">₹/mo</th></tr>
+<tr><td>VM <code>a.gp1.12g</code></td><td>Linux, hourly rate × 730</td><td class="n">1,630</td></tr>
+<tr><td>Data volume 100 GB</td><td>Standard NVMe ₹6.20/GB</td><td class="n">620</td></tr>
+<tr><td>Public IPv4</td><td>Assumed ₹200</td><td class="n">200</td></tr>
+<tr><td>Object storage 50 GB</td><td>₹3.10/GB</td><td class="n">155</td></tr>
+<tr><td>Volume backups ~130 GB</td><td>Assumed ₹2/GB</td><td class="n">260</td></tr>
+<tr><td>Router, load balancer, VPN, Kubernetes</td><td>Not used</td><td class="n">0</td></tr>
+<tr class="hl"><td>Total before GST</td><td></td><td class="n">2,865</td></tr>
+<tr><td>With annual billing on the VM (12% off)</td><td>VM 1,434</td><td class="n">2,669</td></tr>
+<tr><td>With 18% GST (assumed)</td><td></td><td class="n">3,381</td></tr>
+</table></div>
+
+<h3>Option A: recreate the whole AWS layout, line by line</h3>
+<p>This mirrors every AWS piece that has a CloudPe equivalent. The left column is what <code>infra/envs/staging</code> builds today.</p>
+<div class="tbl"><table>
+<tr><th>AWS component</th><th>CloudPe equivalent</th><th class="n">₹/mo</th></tr>
+<tr><td>ECS Fargate backend, 0.5 vCPU / 1 GB</td><td>App VM <code>a.gp1.8g</code> (2 vCPU / 8 GB)</td><td class="n">1,182</td></tr>
+<tr><td>11 scheduled ECS jobs and the on-demand recompute task</td><td>Run on the app VM (systemd timers and the worker). Peak 4 GB from two jobs fits in 8 GB with swap.</td><td class="n">0</td></tr>
+<tr><td>RDS <code>db.t4g.small</code> (2 vCPU, 2 GB), 20 GB gp3</td><td>DB VM <code>a.gp1.8g</code></td><td class="n">1,182</td></tr>
+<tr><td>RDS storage, auto-scale to 100 GB</td><td>Volume 100 GB Standard NVMe</td><td class="n">620</td></tr>
+<tr><td>Application Load Balancer</td><td>CloudPe load balancer (listed price)</td><td class="n">2,000</td></tr>
+<tr><td>3 Elastic IPs: NAT, plus 2 for the ALB</td><td>2 public IPs (load balancer, app VM as jump host)</td><td class="n">400</td></tr>
+<tr><td><code>fck-nat</code> NAT instance and bastion</td><td>Router with SNAT for the private DB VM. Bastion merged into the app VM.</td><td class="n">200</td></tr>
+<tr><td>S3 buckets: CAS files, failed disclosures, archive</td><td>Object storage 50 GB</td><td class="n">155</td></tr>
+<tr><td>S3 and CloudFront frontend</td><td>Static files served by Caddy on the app VM</td><td class="n">0</td></tr>
+<tr><td>RDS 3-day backups, EBS snapshots</td><td>Volume backups ~130 GB</td><td class="n">260</td></tr>
+<tr><td>ECR, KMS, Secrets Manager</td><td>GitHub Container Registry or build on the VM, and a <code>.env</code> file</td><td class="n">0</td></tr>
+<tr><td>CloudWatch, SNS, EventBridge</td><td>Docker logs, systemd timers, SES alert script</td><td class="n">0</td></tr>
+<tr><td>Data transfer</td><td>Egress not documented. Ask.</td><td class="n">unknown</td></tr>
+<tr class="hl"><td>Total on CloudPe before GST</td><td></td><td class="n">5,999</td></tr>
+<tr><td>With 18% GST (assumed)</td><td></td><td class="n">7,079</td></tr>
+</table></div>
+
+<div class="bar"><div>AWS staging running 24/7 (estimate)</div><div class="track"><div class="fill alt" style="width:100%"></div></div><div class="v">≈ 7,400</div></div>
+<div class="bar"><div>A: full mirror on CloudPe</div><div class="track"><div class="fill alt" style="width:81%"></div></div><div class="v">5,999</div></div>
+<div class="bar"><div>B: single VM on CloudPe</div><div class="track"><div class="fill hi" style="width:39%"></div></div><div class="v">2,865</div></div>
+<p class="small"><strong>How the AWS figure is built.</strong> AWS staging today is $68.46/mo, but that includes the 9 PM to 5 AM night-stop, which you do not want on LeapSwitch. Putting the always-on usage lines from <code>Docs/2026-09-29-aws-staging-cost-analysis-and-reduction-plan.md</code> back (Fargate 0.5 vCPU / 1 GB $18.67, RDS $32.82, ALB $17.21, Elastic IPs $10.80, two nano instances $4.03, and the small lines) gives about $87, or ₹7,400 at an assumed ₹85/$. That is my estimate, not an AWS bill. The ₹170 of Route 53 and SES charges stays on AWS in every case.</p>
+<div class="callout"><p><strong>Reading the result.</strong> Recreating the AWS shape on CloudPe saves little: the load balancer and the second VM add back most of the difference. The saving comes from consolidating onto one VM.</p></div>
+
+<h3>Price levers</h3>
+<div class="tbl"><table>
+<tr><th>Change</th><th class="n">Effect on Option B</th></tr>
+<tr><td>Annual billing on the VM</td><td class="n">−196</td></tr>
+<tr><td>Quarterly billing on the VM</td><td class="n">about −163</td></tr>
+<tr><td>Step up to <code>a.gp1.16g</code> (4 vCPU / 16 GB)</td><td class="n">+449</td></tr>
+<tr><td>50 GB data volume instead of 100 GB</td><td class="n">−310</td></tr>
+<tr><td>Eco NVMe instead of Standard (cannot be migrated in place)</td><td class="n">−170</td></tr>
+<tr><td>Windows instead of Linux</td><td class="n">+1,200</td></tr>
+<tr><td>Memory Optimized 3 vCPU / 24 GB</td><td class="n">+1,352</td></tr>
+</table></div>
+<div class="callout warn"><p><strong>Not priced anywhere in the docs:</strong> egress on VMs, the exact price of a public IP, backup pricing, and any support plan. Treat the totals as ±₹300 until you see the first Billing History export.</p></div>
+</section>
+
+<section id="contact">
+<h2>Who to email, and what to send</h2>
+<p>CloudPe's contact page lists three addresses and promises a reply within 24 hours. Send each question to the team that owns it, in the same week, and mention the account email <code>siddharth.surve@unifolio.in</code> in each.</p>
+<div class="tbl"><table>
+<tr><th>Address</th><th>Their remit</th><th>What goes there</th></tr>
+<tr class="hl"><td><code>support@cloudpe.com</code></td><td>Infrastructure setup, configuration, troubleshooting</td><td>Encryption, S3 behaviour, backups, resize, ports, shelve, IP behaviour. Start here, it is the one that unblocks you.</td></tr>
+<tr><td><code>billing@cloudpe.com</code></td><td>Invoices, payments, subscription management</td><td>Trial expiry date, postpaid vs wallet, GST, upgrade, price discrepancies, public IP price</td></tr>
+<tr><td><code>sales@cloudpe.com</code></td><td>Custom pricing, enterprise plans, volume discounts</td><td>Data processing agreement and compliance certificates, discounts for 24/7 annual use</td></tr>
+</table></div>
+<p class="small">The contact page also has a web form (name, email, phone, message). Use the same text there if email does not get a reply. A WhatsApp button and the phone number +91 9599656657 are also listed.</p>
+
+<h3>1. Technical support</h3>
+<div class="copybox">
+<button class="copybtn" type="button" data-copy="msg1">Copy</button>
+<pre id="msg1">To: support@cloudpe.com
+Subject: Unifolio (business account) - staging on IN-WEST3 - technical questions
+
+Hello, we are Unifolio, a business account (siddharth.surve@unifolio.in, Business KYC complete). We are building a staging environment that runs 24/7 on one Ubuntu 24.04 VM (a.gp1.12g) in IN-WEST3, with a 100 GB Standard NVMe data volume, a public IP and object storage (s3.in-west3.purestore.io). Our data includes PAN-linked financial records, so encryption matters to us. Could you please confirm:
+
+ENCRYPTION (most important)
+1. Is encryption at rest available for volumes? Is it on by default, or how do we enable it?
+2. Does object storage support server-side encryption at rest? Is it on by default?
+
+BACKUPS
+3. Can volume backups be created and scheduled through the OpenStack API or CLI (not only the dashboard button "Create backup now")?
+4. What is the backup retention, and are backups stored in a different failure domain from the volume?
+
+OBJECT STORAGE
+5. Is bucket lifecycle expiry supported? Is versioning supported? Do you recommend path-style addressing only?
+
+VM AND NETWORK
+6. Can a VM be resized in place (12 GB to 16 GB), including on a reserved (annual) plan?
+7. Does the public IP stay the same across a stop and start or a resize?
+8. Are there default outbound port restrictions (25, 465, 587) on VMs?
+9. If we put the VM in security group unifolio-web, is there anything else filtering inbound traffic that we should know about?
+
+Thank you,
+Siddharth Surve, Unifolio</pre>
+</div>
+
+<h3>2. Billing</h3>
+<div class="copybox">
+<button class="copybtn" type="button" data-copy="msg2">Copy</button>
+<pre id="msg2">To: billing@cloudpe.com
+Subject: Unifolio (business account) - trial, billing and GST questions
+
+Hello, we are Unifolio (siddharth.surve@unifolio.in, Business KYC complete). We plan to upgrade after the trial and run one VM 24/7. Please confirm:
+
+TRIAL AND UPGRADE
+1. The exact expiry date of our trial. Your pages say both 14 and 15 days.
+2. Do all resources (VM, volumes, public IP, object storage) carry over unchanged on upgrade at signup.cloudpe.com/upgrade?
+
+BILLING MODEL
+3. Is our account postpaid (billed on the 1st of the next month) or wallet-based? The VM guide mentions a wallet balance. Is there a minimum balance, minimum charge or credit limit?
+4. Is there any way to set a spending alert or limit?
+
+GST AND INVOICES
+5. Do invoices show our GSTIN and GST separately, so we can claim input credit?
+6. Which payment methods are accepted for a business account, and is a TDS deduction possible?
+
+PRICES
+7. What is the monthly price of a public IPv4 attached to a VM, and is any VM outbound data transfer charged?
+8. The knowledge base lists a.cpu1.4g at Rs 491/month while the pricing page shows Rs 931. Which is current? Is a.gp1.12g Rs 1,630/month on a Linux hourly plan?
+9. What is the price of automated or API-triggered volume backups per GB per month?
+
+Thank you,
+Siddharth Surve, Unifolio</pre>
+</div>
+
+<h3>3. Sales and compliance</h3>
+<div class="copybox">
+<button class="copybtn" type="button" data-copy="msg3">Copy</button>
+<pre id="msg3">To: sales@cloudpe.com
+Subject: Unifolio (business account) - data processing agreement and annual pricing
+
+Hello, we are Unifolio, an Indian fintech (siddharth.surve@unifolio.in, Business KYC complete). We are moving our staging environment to CloudPe in IN-WEST3 and will run at least one 3 vCPU / 12 GB VM 24/7. Could you please:
+
+1. Share your SOC 2 report or attestation and ISO 27001 certificate.
+2. Provide a data processing agreement. Our environment can hold PAN-linked personal financial data, and we are subject to India's DPDP Act.
+3. Confirm all our data stays within India, including backups, and list any sub-processors.
+4. Tell us what discount is available for annual or multi-year billing on a General Purpose VM, plus block and object storage.
+5. Offer a named contact or account manager for onboarding.
+
+Thank you,
+Siddharth Surve, Unifolio</pre>
+</div>
+</section>
+
+<section id="pick">
+<h2>Sizing and product choice</h2>
+<h3>Which pricing categories</h3>
+<div class="tbl"><table>
+<tr><th>Category</th><th>Use?</th><th>Why</th></tr>
+<tr><td>Compute</td><td><span class="pill good">Yes</span></td><td>Backend, database, jobs, web server</td></tr>
+<tr><td>Storage</td><td><span class="pill good">Yes</span></td><td>Block volume for Postgres, object storage for CAS files and backups</td></tr>
+<tr><td>Networking</td><td><span class="pill good">Minimal</span></td><td>Public IP and security group. No router, load balancer or VPN for the single-VM build.</td></tr>
+<tr><td>GPU</td><td><span class="pill bad">No</span></td><td>Cheapest plan is ₹26,180/mo and nothing needs one</td></tr>
+<tr><td>Kubernetes</td><td><span class="pill bad">No</span></td><td>You self-manage it on VMs. Too much work for 5 to 10 users.</td></tr>
+</table></div>
+
+<h3>Linux, not Windows</h3>
+<p>Linux costs ₹1,200/mo less (₹1,630 against ₹2,830). The backend image is <code>python:3.12-slim</code>, the entrypoint is a <code>sh</code> script, and the build runs <code>playwright install --with-deps chromium</code>. You do not need a Linux machine: the VM is reached over SSH from PowerShell, and you already work in WSL.</p>
+
+<h3>General Purpose</h3>
+<p>From your own AWS metrics: database about 4% CPU, backend 0.2 to 0.4% CPU, and the heaviest jobs memory-bound (937 MB peak PDF parsing, the reason they have 2 GB). Memory matters, CPU does not.</p>
+<div class="tbl"><table>
+<tr><th>Family</th><th>Closest to 12 GB</th><th class="n">₹/mo</th><th>Verdict</th></tr>
+<tr class="hl"><td>General Purpose (1:4)</td><td><code>a.gp1.12g</code> · 3 vCPU / 12 GB</td><td class="n">1,630</td><td>Best fit</td></tr>
+<tr><td>CPU Optimized (1:2)</td><td><code>a.cpu1.12g</code> · 6 vCPU / 12 GB</td><td class="n">2,145</td><td>+₹515 for CPUs you would not use</td></tr>
+<tr><td>Memory Optimized (1:8)</td><td><code>a.mem1.24g</code> · 3 vCPU / 24 GB</td><td class="n">2,982</td><td>+₹1,352 for RAM you would not use</td></tr>
+</table></div>
+
+<h3>Is <code>a.gp1.12g</code> right? Yes.</h3>
+<div class="mem" role="img" aria-label="Memory budget: OS 0.8, Postgres 3, API 1, Chromium 1, two jobs 4, free 2.2 of 12 GB">
+  <span style="width:6.7%;background:#5b6b78">OS</span>
+  <span style="width:25%;background:#0b6e8a">Postgres 3</span>
+  <span style="width:8.3%;background:#2d7f5e">API 1</span>
+  <span style="width:8.3%;background:#7a5aa6">PDF 1</span>
+  <span style="width:33.3%;background:#b8672a">2 jobs × 2 GB</span>
+  <span style="width:18.4%;background:var(--code-bg);color:var(--fg)">free 2.2</span>
+</div>
+<div class="legend"><span>About 9.8 GB of 12 GB at 05:45 IST, the busiest moment (the recompute worker adds up to 1 GB on top)</span></div>
+<ul>
+  <li><code>portfolio-disclosures-daily</code> and <code>stock-fundamentals-daily</code> both fire at 05:45. Move one to 05:55.</li>
+  <li>Add 4 GB of swap and per-container memory limits.</li>
+  <li>The included 30 GB boot disk is too small for Postgres, hence the separate volume.</li>
+  <li>If out-of-memory kills appear, resize to <code>a.gp1.16g</code> (+₹449). With the recompute worker in the mix, 16 GB is a reasonable starting point if you want margin. Ask support whether resize works on a reserved plan.</li>
+</ul>
+</section>
+
+<section id="aws">
+<h2>Protecting the AWS setup</h2>
+<p>The rule is <strong>additive only</strong>. Nothing in AWS is changed, replaced or re-pointed until LeapSwitch has proven itself.</p>
+<div class="tbl"><table>
+<tr><th>AWS item</th><th>What we do</th><th>Risk</th></tr>
+<tr><td>Terraform (<code>infra/envs/staging</code>, state, modules)</td><td>Nothing. No <code>terraform apply</code> for this project.</td><td><span class="pill good">None</span></td></tr>
+<tr><td>Route 53 zone <code>unifolio.in</code></td><td>Add <code>ls-staging</code> and <code>ls-staging-api</code> only</td><td><span class="pill good">None</span></td></tr>
+<tr><td>IAM</td><td>One new SES-only user</td><td><span class="pill good">None</span></td></tr>
+<tr><td>Google OAuth client</td><td>Add the new origin. Existing ones stay.</td><td><span class="pill good">None</span></td></tr>
+<tr><td>RDS and S3</td><td>Read-only: a dump and a file copy, off-hours</td><td><span class="pill warn">Low</span> The dump adds load on a small database.</td></tr>
+<tr><td>Secrets (PAN keys)</td><td>Read once to place in the VM's <code>.env</code> if D3 is reuse. Nothing changed in AWS.</td><td><span class="pill good">None</span></td></tr>
+<tr><td>Night-stop schedules on AWS</td><td>Leave as is</td><td><span class="pill good">None</span></td></tr>
+</table></div>
+<p>Each new code setting defaults to today's AWS behaviour, so AWS staging and later production run exactly as before. Cutover is a DNS edit with a 60-second TTL, so rollback is the same edit reversed.</p>
+</section>
+
+<section id="services">
+<h2>What moves and what stays</h2>
+<div class="tbl"><table>
+<tr><th>On AWS today</th><th>Where it goes</th></tr>
+<tr><td>ECS Fargate backend</td><td><span class="pill info">Moves</span> Docker container on the VM</td></tr>
+<tr><td>RDS PostgreSQL 16</td><td><span class="pill info">Moves</span> Postgres container on the data volume. CloudPe lists no managed database.</td></tr>
+<tr><td>ALB and ACM certificate</td><td><span class="pill info">Moves</span> Caddy with automatic Let's Encrypt certificates</td></tr>
+<tr><td>S3 and CloudFront frontend</td><td><span class="pill info">Moves</span> Static files served by Caddy</td></tr>
+<tr><td>11 EventBridge scheduled jobs</td><td><span class="pill info">Moves</span> systemd timers, timezone Asia/Kolkata</td></tr>
+<tr><td>On-demand analytics recompute (ECS RunTask)</td><td><span class="pill warn">Needs code</span> Worker container (D2)</td></tr>
+<tr><td>S3 buckets</td><td><span class="pill warn">Moves</span> CloudPe object storage, path-style. Encryption pending CloudPe (D4).</td></tr>
+<tr><td>ECR</td><td><span class="pill info">Moves</span> Build on the VM or GitHub Container Registry</td></tr>
+<tr><td>Secrets Manager, KMS</td><td><span class="pill warn">Replaced</span> Root-only <code>.env</code>, plus CloudPe encryption once confirmed</td></tr>
+<tr><td>NAT instance, bastion, subnets</td><td><span class="pill info">Not needed</span> Public IP plus security group</td></tr>
+<tr><td>CloudWatch alarms, SNS</td><td><span class="pill warn">Replaced</span> Alert script that emails through SES on <code>FUND_MANAGER_ALERT</code>, <code>PORTFOLIO_DISCLOSURE_ALERT</code> and the other patterns</td></tr>
+<tr class="hl"><td><strong>Amazon SES</strong></td><td><span class="pill good">Stays on AWS</span> API over HTTPS port 443</td></tr>
+<tr class="hl"><td><strong>Route 53</strong></td><td><span class="pill good">Stays on AWS</span></td></tr>
+<tr class="hl"><td><strong>Existing AWS staging</strong></td><td><span class="pill good">Stays, parked</span></td></tr>
+</table></div>
+<p><strong>Why SES stays:</strong> <code>email_provider.py</code> calls <code>boto3.client("ses")</code> over HTTPS, so it works from any network. SPF, DKIM and the sender identity are untouched, so no DNS change. It needs one code change so S3 and SES can use different credentials.</p>
+</section>
+
+<section id="auto">
+<h2>API and Terraform</h2>
+<p>CloudPe is OpenStack, so everything in the dashboard has an API. This is optional for staging, but it makes the VM rebuildable in minutes if anything is lost.</p>
+<div class="tbl"><table>
+<tr><th>Item</th><th>Value from the docs</th></tr>
+<tr><td>Auth endpoint (IN-WEST3)</td><td><code>https://in-west3.controlcloud.app:5000/v3</code></td></tr>
+<tr><td>Auth method</td><td>Application credential: ID and secret, generated under <em>My Account → OpenStack Credentials</em></td></tr>
+<tr><td>Token</td><td>Returned in the <code>X-Subject-Token</code> header, valid 1 hour. Rate limits apply (HTTP 429).</td></tr>
+<tr><td>Services</td><td>Compute :8774, images :9292, block storage :8776, network :9696</td></tr>
+<tr><td>Terraform provider</td><td><code>terraform-provider-openstack/openstack</code> <code>~&gt; 1.53.0</code>, region <code>RegionOne</code></td></tr>
+<tr><td>CloudPe sample</td><td>Creates VMs with a boot volume from an image on the <code>public</code> network. No security group or data volume in the sample.</td></tr>
+<tr><td>S3 keys</td><td>Separate: <em>Object Storage → Access Keys</em> in the dashboard</td></tr>
+</table></div>
+<ul>
+  <li><strong>Suggested split:</strong> create the first VM through the dashboard now. Later, write <code>deploy/leapswitch/terraform/</code> for the network, security group, data volume and VM, then import what already exists.</li>
+  <li>Store the credential secret like any other secret. Expired credentials make Terraform and scripts fail with an auth error, so note the expiry date.</li>
+</ul>
+</section>
+
+<section id="code">
+<h2>Code changes needed</h2>
+<p>All small, and all default to current AWS behaviour.</p>
+<div class="tbl"><table>
+<tr><th>File</th><th>Change</th></tr>
+<tr><td><code>backend/app/services/import_/file_storage.py</code> (line 62, <code>boto3.client("s3")</code>)</td><td>Optional settings for endpoint URL, region, access key, secret, and <strong>path-style addressing</strong> with SigV4 (boto3 defaults to virtual-host style, which CloudPe's endpoint does not use)</td></tr>
+<tr><td><code>backend/app/services/analytics/portfolio_disclosure_retention.py</code> (line 51)</td><td>Use the same client factory</td></tr>
+<tr><td><code>backend/app/services/auth/email_provider.py</code> (line 65)</td><td>Optional separate SES key pair, so S3 uses CloudPe keys and SES uses AWS keys</td></tr>
+<tr><td><code>backend/app/services/analytics/dispatch.py</code></td><td>A worker-based implementation of <code>RecomputeDispatcher</code> for non-ECS hosts (D2). The ECS dispatcher stays the default.</td></tr>
+<tr><td><code>backend/app/config.py</code></td><td>The new settings, including <code>analytics_dispatch_mode</code></td></tr>
+</table></div>
+<p>Without the dispatcher change, the on-demand recompute logs "ECS not configured" and does nothing, so analytics would only refresh at the 06:30 daily backstop. The Dockerfile, migrations, requirements and frontend need no change beyond two <code>VITE_*</code> build values. The image is x86 and CloudPe VMs are x86.</p>
+</section>
+
+<section id="risks">
+<h2>Decisions and risks</h2>
+<h3>Decision status</h3>
+<div class="tbl"><table>
+<tr><th>#</th><th>Decision</th><th>Status</th></tr>
+<tr><td>D1</td><td>Business KYC</td><td><span class="pill good">Done</span> Business account already verified.</td></tr>
+<tr><td>D2</td><td>How recompute runs without ECS</td><td><span class="pill warn">Your go needed</span> Recommended: worker container. Reply "D2 go: worker container".</td></tr>
+<tr><td>D3</td><td>PAN keys</td><td><span class="pill info">Your call</span> Reuse the staging keys if you copy user data. New keys if you start with reference data only.</td></tr>
+<tr><td>D4</td><td>Encryption</td><td><span class="pill warn">Waiting on CloudPe</span> No in-app encryption. No real CAS PDFs until confirmed.</td></tr>
+<tr><td>D5</td><td>Real stakeholder data</td><td><span class="pill info">Your call</span> Start with synthetic data. Allow real data after the agreement, encryption confirmation and consent check.</td></tr>
+<tr><td>D6</td><td>Billing</td><td><span class="pill good">Done</span> 24/7, no shelving. Hourly to start.</td></tr>
+</table></div>
+
+<h3>Risks</h3>
+<div class="tbl"><table>
+<tr><th>Risk</th><th>Level</th><th>Mitigation</th></tr>
+<tr><td>Trial data deleted at day 20</td><td><span class="pill bad">High if missed</span></td><td>Upgrade by day 12. Reminders at day 10 and 13.</td></tr>
+<tr><td>No spending alerts on CloudPe</td><td><span class="pill warn">Medium</span></td><td>Weekly Billing History check, export CSV</td></tr>
+<tr><td>Single VM: no automatic failover</td><td><span class="pill warn">Medium</span></td><td>Acceptable for staging. Automatic nightly <code>pg_dump</code> to object storage, restore test in week one.</td></tr>
+<tr><td>SSH rule is IP-based, and rules cannot be edited</td><td><span class="pill warn">Medium</span></td><td>Allow every admin's IP. Console access is the fallback.</td></tr>
+<tr><td>Security group left on <code>default</code></td><td><span class="pill bad">High if it happens</span></td><td>Pick <code>unifolio-web</code> at creation. Verify with a port scan from outside.</td></tr>
+<tr><td>Encryption not available on CloudPe</td><td><span class="pill warn">Medium</span></td><td>Synthetic data only until confirmed (D4, D5)</td></tr>
+<tr><td>Recompute worker is new code on the import path</td><td><span class="pill warn">Low to medium</span></td><td>Tests, the existing claim-release rule, and the 06:30 daily backstop. Staging only.</td></tr>
+<tr><td>Staging no longer proves the AWS production stack</td><td><span class="pill warn">Medium</span></td><td>Keep AWS staging parked. Rehearse once on AWS before launch.</td></tr>
+</table></div>
+
+<h3>Unverified</h3>
+<ul>
+  <li>The dashboard itself: I cannot sign in, so the form above comes from CloudPe's guide, not your screen.</li>
+  <li>Public IP price, egress, backup price and retention, S3 lifecycle and encryption, volume encryption.</li>
+  <li>The default SSH user on the Ubuntu image (the guide shows <code>root</code> and, for AlmaLinux, <code>almalinux</code>).</li>
+  <li>Your real database size.</li>
+</ul>
+</section>
+
+<footer class="small">
+  <p><strong>Sources.</strong> CloudPe knowledge base: <a href="https://www.cloudpe.com/knowledge-base/cmpv2-creating-a-virtual-machine">creating a VM</a>, <a href="https://www.cloudpe.com/knowledge-base/cloudpe-regions-overview-in-west2-in-west3">regions</a>, <a href="https://www.cloudpe.com/knowledge-base/cloudpe-billing-guide">billing guide</a>, <a href="https://www.cloudpe.com/knowledge-base/managing-security-groups">security groups</a>, <a href="https://www.cloudpe.com/knowledge-base/create-virtual-router">router</a>, <a href="https://www.cloudpe.com/knowledge-base/assign-a-public-ip-to-virtual-machine">public IP</a>, <a href="https://www.cloudpe.com/knowledge-base/creating-backup-from-volume">backups</a>, <a href="https://www.cloudpe.com/knowledge-base/cloudpe-object-storage-integration-guide">object storage</a>, <a href="https://www.cloudpe.com/knowledge-base/managing-cloudpe-using-api/">managing via API</a>, <a href="https://www.cloudpe.com/knowledge-base/how-to-create-a-virtual-machine-vm-in-cloudpe-using-api/">create a VM with the API</a>, <a href="https://www.cloudpe.com/knowledge-base/how-to-generate-openstack-credentials/">OpenStack credentials</a>, <a href="https://www.cloudpe.com/knowledge-base/how-to-use-terraform-to-deploy-bulk-vms-deployments-on-cloudpe/">Terraform</a> (with its downloadable sample), <a href="https://www.cloudpe.com/knowledge-base/cloudpe-trial-account-expiry-and-resource-limits">trial expiry</a>, <a href="https://app.cloudpe.com/help/identity-kyc-verification">KYC</a>, <a href="https://cloudpe.com/pricing">pricing</a>, <a href="https://cloudpe.com/contact/">contact page</a>; the CloudPe brochure; and in this repo <code>infra/envs/staging/main.tf</code>, <code>infra/modules/*</code>, <code>backend/Dockerfile</code>, <code>backend/app/config.py</code>, the dispatch, file-storage and email-provider services, and the 29 Sep AWS cost analysis.</p>
+</footer>
+</div>
+
+<script>
+document.querySelectorAll('.copybtn').forEach(function(b){
+  b.addEventListener('click',function(){
+    var el=document.getElementById(b.dataset.copy);var t=el.innerText;
+    function sel(){var r=document.createRange();r.selectNodeContents(el);var s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Selected, press Ctrl+C';}
+    try{navigator.clipboard.writeText(t).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1800)},sel)}catch(e){sel()}
+  });
+});
+</script>
