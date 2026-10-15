@@ -278,13 +278,15 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line)}
 <h2>End-to-end roadmap</h2>
 <p class="small">Day numbers count from the day you start building. The trial is confirmed at 15 days, and it does not delete your resources at expiry &mdash; it auto-converts the account to paid/billed if no action is taken (see "What the welcome email already confirmed"). If you signed up on 15 Oct, day 15 is 30 Oct: decide by then whether to upgrade or actively cancel, otherwise billing starts on its own.</p>
 
-<details open><summary><span class="phase"><span>Phase 0 · Today, before touching a VM</span><span class="when">about 1 hour</span></span></summary><div class="inner">
+<details open><summary><span class="phase"><span>Phase 0 · Today, before touching a VM <span class="pill good">Done 16 Oct 2026</span></span><span class="when">about 1 hour</span></span></summary><div class="inner">
 <ol class="steps">
 <li><strong>Note the trial-to-paid conversion date</strong> from the dashboard (day 15). Put calendar reminders at day 10 and day 13 to actively decide &mdash; upgrade on purpose, or cancel &mdash; rather than letting it convert by default.</li>
-<li><strong>Send the one consolidated email</strong> (see "Who to email") to Priya Borkar (<code>priya.borkar@leapswitch.com</code>). It opens with our AWS setup for context, then the categorised questions: encryption, backups, object storage, VM/network, trial/billing, compliance.</li>
+<li><strong>Send the one consolidated email</strong> (see "Who to email") to Priya Borkar (<code>priya.borkar@leapswitch.com</code>). It opens with our AWS setup for context, then the categorised questions: encryption, backups, object storage, VM/network, trial/billing, compliance. <strong>Sent</strong> &mdash; cc Siddharth Surve and Khushbu Sancheti.</li>
 <li><strong>Measure the database.</strong> Through your usual tunnel run <code>SELECT pg_size_pretty(pg_database_size('unifolio'));</code> on AWS staging. If it is under 20 GB, 50 GB for the data volume is enough.</li>
-<li><strong>Generate an SSH key</strong> in PowerShell: <code>ssh-keygen -t ed25519 -C "unifolio-staging"</code>. Keep the private key private.</li>
-</ol></div></details>
+<li><strong>Generate an SSH key</strong>: <code>ssh-keygen -t ed25519 -C "unifolio-staging"</code>. Keep the private key private. <strong>Done</strong> &mdash; generated in WSL (<code>~/.ssh/id_ed25519</code>, mode 600), not Windows PowerShell as originally worded here. Phase 2's SSH step below should be run from the same WSL shell, not PowerShell, unless a Windows-side key is generated separately later.</li>
+</ol>
+<div class="callout"><p><strong>All four items confirmed done, 16 Oct 2026.</strong> Next: Phase 1.</p></div>
+</div></details>
 
 <details open><summary><span class="phase"><span>Phase 1 · Account setup in the dashboard</span><span class="when">day 1 · about 1.5 hours</span></span></summary><div class="inner">
 <ol class="steps">
@@ -302,7 +304,7 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line)}
 <ol class="steps">
 <li><strong>Create the VM</strong> with the values in "The VM form".</li>
 <li><strong>Save the root password</strong> if the dashboard shows one. It is shown once.</li>
-<li><strong>Connect:</strong> <code>ssh -i $HOME\.ssh\id_ed25519 root@&lt;public-ip&gt;</code> from PowerShell. The CloudPe guide uses <code>root</code>. If it refuses, try <code>ubuntu</code>.</li>
+<li><strong>Connect:</strong> <code>ssh -i ~/.ssh/id_ed25519 root@&lt;public-ip&gt;</code> from WSL (the key generated in Phase 0 lives there, not Windows). The CloudPe guide uses <code>root</code>. If it refuses, try <code>ubuntu</code>.</li>
 <li><strong>Create an admin user</strong> <code>deploy</code> with sudo, copy your key to it, confirm you can log in as <code>deploy</code>, then disable root and password SSH login.</li>
 <li><strong>Mount the data volume</strong> at <code>/srv/data</code> (format ext4, add to <code>fstab</code> by UUID). Create a 4 GB swap file.</li>
 <li><strong>Base setup:</strong> timezone <code>Asia/Kolkata</code>, automatic security updates, <code>ufw</code> (22, 80, 443 only), fail2ban, Docker Engine and the compose plugin. I write this as <code>bootstrap-vm.sh</code> so it can be re-run.</li>
@@ -527,7 +529,7 @@ Siddharth Surve, Unifolio</pre>
 </table></div>
 
 <h3>Linux, not Windows</h3>
-<p>Linux costs ₹1,200/mo less (₹1,630 against ₹2,830). The backend image is <code>python:3.12-slim</code>, the entrypoint is a <code>sh</code> script, and the build runs <code>playwright install --with-deps chromium</code>. You do not need a Linux machine: the VM is reached over SSH from PowerShell, and you already work in WSL.</p>
+<p>Linux costs ₹1,200/mo less (₹1,630 against ₹2,830). The backend image is <code>python:3.12-slim</code>, the entrypoint is a <code>sh</code> script, and the build runs <code>playwright install --with-deps chromium</code>. You do not need a separate Linux machine: the VM is reached over SSH from WSL, which you already work in.</p>
 
 <h3>General Purpose</h3>
 <p>From your own AWS metrics: database about 4% CPU, backend 0.2 to 0.4% CPU, and the heaviest jobs memory-bound (937 MB peak PDF parsing, the reason they have 2 GB). Memory matters, CPU does not.</p>
