@@ -6,8 +6,11 @@
 #
 # `worker` is D2's option 1 (go received 2026-10-15): a long-lived sibling
 # container on this compose network running app/worker_server.py, capped at
-# the same 0.5 CPU / 1 GB as the AWS ECS task it replaces. The backend talks
-# to it over this network, never via the Docker socket.
+# 1 GB (unchanged from the AWS ECS task it replaces -- that's not the
+# bottleneck, see the plan's D2/"spare capacity" discussion) and 1.0 CPU
+# (raised from 0.5 16 Oct 2026 -- cheap given 4 idle vCPUs most of the day,
+# removes a throttle that served no resource-sharing purpose). The backend
+# talks to it over this network, never via the Docker socket.
 
 services:
   postgres:
@@ -19,6 +22,17 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    # postgres:16-alpine's defaults (shared_buffers ~128MB) assume a shared
+    # host, not a container with 3 GB budgeted to it -- these flags are the
+    # same "use the RAM we already pay for" idea as the worker CPU bump
+    # above, applied to the one service most likely to actually benefit
+    # (query speed, not job throughput).
+    command: >
+      postgres
+      -c shared_buffers=768MB
+      -c effective_cache_size=2GB
+      -c work_mem=16MB
+      -c maintenance_work_mem=128MB
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
       interval: 5s
@@ -38,6 +52,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # 2 uvicorn workers (vs. AWS's 1-per-task), since the VM has vCPUs to
+    # spare for this and a 2nd worker means one slow dashboard request
+    # doesn't block other testers' requests behind it.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
     expose:
       - "8000"
 

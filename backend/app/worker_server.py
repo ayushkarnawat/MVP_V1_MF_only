@@ -23,11 +23,13 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# Matches the 3-container AWS "bump" shape this plan sizes against (see
-# leapswitch-staging-plan.html's D2 and "Which VM size" sections). A 4th
-# concurrent recompute queues behind these 3 rather than running unbounded,
-# as ECS RunTask effectively does on AWS.
-MAX_CONCURRENT_RECOMPUTES = 3
+# 5, not the 3-container AWS "bump" shape this plan otherwise sizes against
+# (see leapswitch-staging-plan.html's D2 and "Which VM size" sections) --
+# raised 16 Oct 2026 to use spare daytime VM memory, since each job's own
+# memory/CPU use is unchanged (see docstring below) and queuing only ever
+# happens under genuine overlap, not back-to-back sequential recomputes. A
+# 6th concurrent recompute queues behind these 5.
+MAX_CONCURRENT_RECOMPUTES = 5
 _pool = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_RECOMPUTES)
 
 # Matches EcsRunTaskDispatcher's own staleness ceiling (dispatch.py / the
@@ -62,8 +64,10 @@ def _run_recompute(user_id: str) -> None:
 def recompute(user_id: uuid.UUID) -> dict[str, str]:
     """Queues the recompute and returns immediately. Accepting here is the
     worker's equivalent of ECS RunTask reporting a task placed -- actual
-    execution may wait behind the 3-slot pool, exactly as a 4th simultaneous
-    AWS "bump"-scenario container would wait for a free slot."""
+    execution may wait behind the 5-slot pool, which only happens under
+    genuine time-overlap between recomputes, not sequential back-to-back
+    ones (each prior job's slot frees up before a merely-sequential next one
+    would need it)."""
     _pool.submit(_run_recompute, str(user_id))
     return {"status": "accepted"}
 
