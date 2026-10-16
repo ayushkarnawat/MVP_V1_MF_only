@@ -46,6 +46,18 @@ here changes AWS staging or production.
 frontend bundle, restarts anything that changed. Postgres data persists in
 the `pgdata` named volume across this.
 
+## Resetting before a real-data test round
+
+`scripts/clean-db.sh` implements D5's third standing condition (see the
+plan): wipes all user-domain data (users, household members, imports,
+folios, transactions, etc.) so every signup during the round is genuinely
+new, leaving reference/platform data untouched. Run on the VM before each
+real-data round starts:
+
+```
+sudo ./scripts/clean-db.sh
+```
+
 ## Backups
 
 `scripts/backup.sh` is a logical (`pg_dump`) backup, independent of whatever
