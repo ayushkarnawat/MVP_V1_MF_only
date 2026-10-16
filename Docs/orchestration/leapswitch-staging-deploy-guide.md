@@ -11,6 +11,15 @@ one feature: re-run it, unchanged, for every future push to
 CloudPe's `unifolio-web` security group — see the plan's Troubleshooting
 section if SSH times out), the repo cloned locally to run `git push` from.
 
+**Not yet exercised live, as of 16 Oct 2026:** the `:previous` tagging in
+`deploy.sh` and `rollback.sh` itself were written and pulled onto the VM,
+but deliberately not run against the live stack to test them — testers are
+already using this environment, and a live rehearsal would mean an
+unnecessary restart. Their first real exercise will be whatever deploy
+(Step 3/5 below) and, if ever needed, whatever rollback actually come next.
+If that first real run of either doesn't match "Good looks like" below,
+treat this note as the reason why, not the script.
+
 **When:** any time — there's no bastion to start, no scheduled-job window to
 dodge the way AWS staging has. Just avoid the 00:55–06:35 IST cron window
 (`crontab.leapswitch`) if you can, since a restart there could land mid-job.
