@@ -15,6 +15,12 @@
 CRON_TZ=Asia/Kolkata
 RUN=/opt/unifolio/deploy/leapswitch/scripts/run-job.sh
 CHECK_MEM=/opt/unifolio/deploy/leapswitch/scripts/check-memory.sh
+BACKUP=/opt/unifolio/deploy/leapswitch/scripts/backup.sh
+
+# Nightly pg_dump, before the 05:45 batch-job window starts. This line was
+# planned (see the staging plan doc) but never actually added here -- caught
+# by the Phase 6 restore test finding no dump to restore.
+0  1  *  *  *              $BACKUP >> /var/log/unifolio-backup.log 2>&1
 
 0  6  *  *  *              $RUN nav-daily                    scripts/jobs/refresh_nav_daily.py
 15 6  *  *  *              $RUN scheme-master-daily           scripts/jobs/refresh_scheme_master_daily.py
