@@ -67,6 +67,21 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 systemctl enable --now docker
 
+echo "== AWS CLI v2 (backup.sh's S3-compatible upload to CloudPe object storage) =="
+if ! command -v aws >/dev/null 2>&1; then
+  apt-get install -yqq unzip
+  tmp_dir=$(mktemp -d)
+  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "${tmp_dir}/awscliv2.zip"
+  unzip -q "${tmp_dir}/awscliv2.zip" -d "${tmp_dir}"
+  "${tmp_dir}/aws/install"
+  rm -rf "${tmp_dir}"
+fi
+# The `cloudpe` profile itself (access key, secret, multipart_threshold=5GB --
+# CloudPe's S3-compatible storage returns AccessDenied on multipart UploadPart,
+# confirmed 16 Oct 2026) still needs `aws configure set ... --profile cloudpe`
+# run once by hand from .env's OBJECT_STORAGE_* values; not scripted here since
+# it reads secrets out of .env, which this script runs before .env even exists.
+
 echo "== done =="
 echo "Data volume: $(findmnt -no SOURCE,FSTYPE,SIZE ${DATA_MOUNT})"
 echo "Swap: $(swapon --show)"
