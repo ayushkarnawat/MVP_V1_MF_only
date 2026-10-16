@@ -10,24 +10,72 @@
 # OBJECT_STORAGE_ENDPOINT_URL with the OBJECT_STORAGE_* credentials from .env
 # -- kept as a separate named profile (not the default/env-var AWS
 # credentials) so it never collides with the real-AWS credentials SES uses
-# on this same VM.
+# on this same VM. Also needs the profile's `s3.multipart_threshold` raised
+# past this dump's size: CloudPe's object storage returns AccessDenied on
+# multipart UploadPart (confirmed 16 Oct 2026), so `aws configure set
+# s3.multipart_threshold 5GB --profile cloudpe` forces a single-PUT upload.
+#
+# On any failed step, emails through the same SES-based alert path
+# run-job.sh uses for the scheduled jobs (scripts/send_job_failure_alert.py)
+# -- a silent backup failure is only discovered the one day it matters, so
+# this is not optional the way a log line would be.
 #
 # Usage: backup.sh (run from deploy/leapswitch/, or via cron with an
 # absolute path and `cd` first)
-set -eu
+set -u
 cd "$(dirname "$0")/.."
 
 # shellcheck disable=SC1091
 . ./.env
 
-timestamp=$(date -u +%Y%m%dT%H%M%SZ)
-dump_file="/tmp/unifolio-${timestamp}.sql.gz"
+RETENTION_DAYS=7
 
-docker compose exec -T postgres pg_dump -U "$DB_USERNAME" "$DB_NAME" | gzip > "$dump_file"
+alert() {
+	# $1 = exit code; reads the failure output from stdin
+	docker compose run --rm -T backend python scripts/send_job_failure_alert.py backup "$1"
+}
+
+timestamp=$(date -u +%Y%m%dT%H%M%SZ)
+sql_file="/tmp/unifolio-${timestamp}.sql"
+dump_file="${sql_file}.gz"
+
+if ! docker compose exec -T postgres pg_dump -U "$DB_USERNAME" "$DB_NAME" \
+	> "$sql_file" 2>/tmp/unifolio-backup-error.log; then
+	status=$?
+	cat /tmp/unifolio-backup-error.log | alert "$status"
+	rm -f /tmp/unifolio-backup-error.log "$sql_file"
+	exit "$status"
+fi
+rm -f /tmp/unifolio-backup-error.log
+gzip -f "$sql_file"
 
 if [ -n "${BACKUP_BUCKET_NAME:-}" ]; then
-	aws --profile cloudpe --endpoint-url "$OBJECT_STORAGE_ENDPOINT_URL" \
-		s3 cp "$dump_file" "s3://${BACKUP_BUCKET_NAME}/postgres/$(basename "$dump_file")"
+	if ! upload_output=$(aws --profile cloudpe --endpoint-url "$OBJECT_STORAGE_ENDPOINT_URL" \
+		s3 cp "$dump_file" "s3://${BACKUP_BUCKET_NAME}/postgres/$(basename "$dump_file")" 2>&1); then
+		status=$?
+		printf '%s\n' "$upload_output" | alert "$status"
+		rm -f "$dump_file"
+		exit "$status"
+	fi
+
+	# Retention: delete dumps older than RETENTION_DAYS from object storage.
+	# ISO-8601 LastModified timestamps sort/compare correctly as plain strings
+	# against a YYYY-MM-DD cutoff, so no date parsing is needed here.
+	cutoff=$(date -u -d "-${RETENTION_DAYS} days" +%Y-%m-%d)
+	if ! old_keys=$(aws --profile cloudpe --endpoint-url "$OBJECT_STORAGE_ENDPOINT_URL" \
+		s3api list-objects-v2 --bucket "$BACKUP_BUCKET_NAME" --prefix "postgres/" \
+		--query "Contents[?LastModified<='${cutoff}'].Key" --output text 2>&1); then
+		status=$?
+		printf '%s\n' "$old_keys" | alert "$status"
+		rm -f "$dump_file"
+		exit "$status"
+	fi
+	if [ -n "$old_keys" ] && [ "$old_keys" != "None" ]; then
+		printf '%s\n' "$old_keys" | tr '\t' '\n' | while IFS= read -r key; do
+			[ -n "$key" ] && aws --profile cloudpe --endpoint-url "$OBJECT_STORAGE_ENDPOINT_URL" \
+				s3 rm "s3://${BACKUP_BUCKET_NAME}/${key}"
+		done
+	fi
 fi
 
 rm -f "$dump_file"
