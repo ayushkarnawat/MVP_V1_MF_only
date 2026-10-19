@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opening-Cost Plausibility Guard — Root Cause A, fully closed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f5f1; --surface:#ffffff; --fg:#1b1b18; --muted:#6b6459; --line:#e4ded3;
+  --sp1:#2a6f6f; --sp1-soft:#e4f1f0; --hi:#b3432b; --hi-soft:#fbe9e3; --med:#9a6b0a; --med-soft:#faf0d9;
+  --lo:#3a6fb0; --lo-soft:#e7eff9; --both:#2f7d4f; --both-soft:#e4f3ea; --mono:'IBM Plex Mono',monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#15140f; --surface:#1d1c16; --fg:#ece7da; --muted:#9b9385; --line:#352f23;
+  --sp1:#5fc2bd; --sp1-soft:#163533; --hi:#e2836a; --hi-soft:#3a1f17; --med:#e0b45c; --med-soft:#3a2e10;
+  --lo:#7eaee0; --lo-soft:#162236; --both:#79cf9b; --both-soft:#153321; }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 "IBM Plex Sans",system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:28px 20px 80px}
+h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:30px;letter-spacing:-.01em;margin:10px 0 6px}
+h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:20px;margin:0}
+h3{font-family:"Manrope",sans-serif;font-weight:700;font-size:15px;margin:0 0 6px}
+h4{font-family:"Manrope",sans-serif;font-weight:700;font-size:13px;margin:16px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+p{margin:0 0 10px}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono)}
+a{color:var(--sp1)}
+.chip{display:inline-block;font:600 11px "Manrope",sans-serif;padding:3px 9px;border-radius:99px;letter-spacing:.03em}
+.chip.closed{background:var(--both-soft);color:var(--both)}
+.chip.living{background:var(--line);color:var(--muted)}
+nav.toc{display:flex;flex-wrap:wrap;gap:4px 14px;font:600 12.5px "Manrope",sans-serif;margin:18px 0 26px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+nav.toc a{color:var(--fg);text-decoration:none;opacity:.8}
+nav.toc a:hover{opacity:1;text-decoration:underline}
+.sec{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;padding:18px 22px;margin:0 0 20px}
+.sec.cause{border-left-color:var(--hi)}
+.sec.resolved{border-left-color:var(--both)}
+.sec.design{border-left-color:var(--sp1)}
+.sec.proof{border-left-color:var(--med)}
+.sechead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.sechead .tags{margin-left:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11.5px "Manrope",sans-serif;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto;margin:10px 0}
+.mono-box{font:12.5px/1.55 var(--mono);background:var(--lo-soft);color:var(--fg);border-radius:8px;padding:14px;overflow-x:auto;white-space:pre;margin:10px 0}
+.mono-box .bad{color:var(--hi)} .mono-box .good{color:var(--both)} .mono-box .dim{color:var(--muted)} .mono-box .hl{color:var(--med);font-weight:600}
+.note{border-left:3px solid var(--med);background:var(--med-soft);padding:10px 14px;border-radius:0 6px 6px 0;font-size:13.5px;margin:10px 0}
+.note.hi{border-color:var(--hi);background:var(--hi-soft)}
+.note.ok{border-color:var(--both);background:var(--both-soft)}
+.q{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--bg);display:flex;flex-direction:column;gap:4px;margin:8px 0}
+.q b.n{font-family:var(--mono);color:var(--muted);font-size:12px;font-weight:500}
+.vis{margin:14px 0}
+.svgwrap{overflow-x:auto;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px}
+svg .nd rect{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+svg .nd.bad rect{fill:var(--hi-soft);stroke:var(--hi)}
+svg .nd.good rect{fill:var(--both-soft);stroke:var(--both)}
+svg .nd.warn rect{fill:var(--med-soft);stroke:var(--med)}
+svg .nd.q rect{fill:var(--lo-soft);stroke:var(--lo)}
+svg .ed{stroke:var(--muted);stroke-width:1.5;fill:none}
+svg .ar{fill:var(--muted)}
+svg .tt{font:600 12px "IBM Plex Sans",sans-serif;fill:var(--fg)}
+svg .sub{font:11px "IBM Plex Sans",sans-serif;fill:var(--muted)}
+svg .lbl{font:600 11px "IBM Plex Mono",monospace;fill:var(--muted)}
+figcaption{font-size:12.5px;color:var(--muted);margin-top:6px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:720px){.two{grid-template-columns:1fr}}
+.order{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
+.ostep{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg)}
+.ostep b{display:block;font-size:11px;color:var(--muted);font-family:var(--mono)}
+footer{color:var(--muted);font-size:12.5px;margin-top:30px;border-top:1px solid var(--line);padding-top:14px}
+code{font-family:var(--mono);font-size:12.5px;background:var(--line);padding:1px 5px;border-radius:4px}
+ul,ol{margin:6px 0;padding-left:20px}
+li{margin-bottom:4px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:6px 0 2px}
+.legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><span class="chip closed">Root Cause A · closed, every open question resolved</span><span class="chip living">No schema/migration change · backend logic only</span></div>
+<h1>Opening-Cost Plausibility Guard — the full depth</h1>
+<p class="muted">19 Oct 2026 · the real bug, the real CAS file that found it, every design decision (including the one left open at the end of the first pass), the exact code change, the three tests that prove it, and the real-file reconciliation that proves it fixes the dashboard's invested amount. Written plan: <span class="mono">Docs/superpowers/plans/2026-10-19-root-cause-a-chandra-tripathi-opening-cost-plausibility-guard-fix.md</span>. Investigation handoff: <span class="mono">Docs/investigations/2026-10-10-chandra-tripathi-cas-opening-cost-plausibility-bug-handoff.md</span>.</p>
+</header>
+<nav class="toc" aria-label="Sections">
+<a href="#bug">1 The bug</a><a href="#why">2 Why not delete the floor</a><a href="#closed">3 The thing we couldn't close, closed</a>
+<a href="#decisions">4 Decision log</a><a href="#flow">5 Flow</a><a href="#diff">6 The code</a><a href="#tests">7 Tests</a>
+<a href="#proof">8 Proof: real file, before/after</a><a href="#sources">9 Sources</a><a href="#next">10 What's next</a>
+</nav>
+
+<section class="sec cause" id="bug">
+<div class="sechead"><h2>1 · The bug, and the real file that found it</h2><div class="tags"><span class="chip living">Tripathi household · chandra.pdf</span></div></div>
+<p><code>price_opening_lot()</code> (<code>backend/app/services/import_/opening_balance.py</code>) prices every fund's opening lot — the units a household already held before its earliest imported CAS statement. It computes a cost per unit from the CAS's own figures, then runs a <b>plausibility guard</b>: if that computed cost falls outside the fund's entire pre-statement NAV range, it is distrusted and replaced with the NAV on the statement's start date instead.</p>
+<p>Found via a real CAS, <code>Docs/CAS Files/chandra.pdf</code> (password <code>MF@12345</code>), Tripathi household. 2 of 38 opening-lot schemes were misclassified — both Surendra Kumar Tripathi's folios:</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Fund</th><th>Real cost / unit</th><th>What the guard saw</th><th>Why it's wrong</th></tr></thead>
+<tbody>
+<tr><td><b>HDFC Flexi Cap</b><br><span class="muted mono">folio 743845/47 · INF179K01608</span></td><td class="num">₹49.73</td><td>Earliest NAV mfapi.in can supply: ₹130.82 (2006)</td><td>Fund launched 1995. India's AMFI/mfapi.in daily-NAV digitization only reliably starts ~April 2006, industry-wide — a genuine historical void, not a sourcing gap. Confirmed: <code>nav.py</code>'s fetcher already pulls mfapi.in's <em>entire</em> history with no date filter — there is no deeper source to reach for.</td></tr>
+<tr><td><b>Sundaram Multi Asset Allocation</b><br><span class="muted mono">folio 61010262913/0 · INF903JA1LH5</span></td><td class="num">₹10.0005</td><td>Earliest post-launch NAV: ₹10.0148</td><td>NFO units are allotted at exact face value <em>before</em> the fund's first live NAV is published, and that first NAV already reflects day-one expense accrual — a structural ~1.4-paise gap. The fund is 2 years old; "extend the history further back" doesn't apply at all here.</td></tr>
+</tbody></table></div>
+<p class="muted">Latent, same mechanism, not yet triggered on a real household: 3 Axis schemes share one corrupted <code>nav=0</code> mfapi.in data point, which — uncorrected — sets a false floor of 0 and silently defeats the guard from the <em>other</em> direction (lets an implausibly-low cost through instead of catching it).</p>
+<div class="note">Both real failures are the <b>same shape</b>: the opening lot was never touched by any in-period transaction — confirmed by dumping both folios' full transaction histories against the real CAS, one row each, the opening balance itself, nothing else. That's exactly the case the guard doesn't need to run on, because there's no FIFO-subtraction step to distrust when nothing was sold from the lot.</div>
+</section>
+
+<section class="sec" id="why">
+<div class="sechead"><h2>2 · Why not just delete the floor check</h2></div>
+<p><code>Docs/investigations/2026-10-05-cas-import-fix-plan-final.html</code> (§"Decided: the hybrid cost method", lines 371–408) built the band check to catch a <em>different</em>, still-real failure mode: an in-period sale consuming part of the opening lot, which can corrupt the <code>(valuation_cost − held_cost) / remaining</code> subtraction into a nonsense number. Deleting the floor for everyone would silently reopen that hole. The fix only relaxes the check for the specific case it was never meant to cover — an opening lot nothing was ever sold from.</p>
+</section>
+
+<section class="sec resolved" id="closed">
+<div class="sechead"><h2>3 · The one thing we couldn't close, closed</h2><div class="tags"><span class="chip closed">No longer a documented assumption</span></div></div>
+<p>The first pass at this fix flagged one real residual uncertainty and left it as a documented assumption rather than resolving it: whether CAMS/KFintech's printed <b>"Total Cost Value"</b> column is always the FIFO-remaining cost of currently-held units, or sometimes a blended average-cost figure computed for display — and neither real failure has an in-period sale to test it against. Told not to leave it there, it was investigated properly instead of caveated.</p>
+
+<h4>What was found</h4>
+<p><b>CAMS/KFintech's "Total Cost Value" is average cost per unit × closing units — not a FIFO-remaining-lot figure.</b> This is a deliberate RTA design choice: the plain Consolidated Account Statement (the document this app imports) shows a holding-level summary figure, not a lot-by-lot ledger. FIFO governs a <em>different, optional</em> document the same RTAs also issue — the Capital Gains Statement / Statement of Financial Transaction, used for tax filing — computed lot-by-lot because capital-gains law requires FIFO to determine <em>which units</em> are deemed sold and their holding period, not how the plain CAS displays an aggregate cost for units still held.</p>
+
+<h4>Corroborating evidence read inside <code>casparser</code> (the third-party library this app already depends on to read CAS PDFs)</h4>
+<div class="tablewrap"><table>
+<thead><tr><th>File</th><th>What it shows</th></tr></thead>
+<tbody>
+<tr><td><code>types.py</code></td><td>CAMS/KFin's <code>SchemeValuation</code> has exactly <b>one</b> <code>cost</code> field. The NSDL/CDSL demat <code>MutualFund</code> dataclass has <b>two separate, explicitly named fields</b>: <code>avg_cost</code> and <code>total_cost</code> — direct proof average cost is a real, named convention in this domain, printed and labeled as its own number by at least one depository format.</td></tr>
+<tr><td><code>analysis/gains.py</code></td><td>A wholly separate <code>FIFOUnits</code> class computes realised capital gains — architecturally isolated from the plain CAS's cost-value field. It exists only to answer the Capital Gains Statement's question, and is never consulted for a scheme's plain <code>valuation.cost</code>.</td></tr>
+<tr><td><code>parsers/cams_detailed.py</code></td><td><code>COST_VALUE_RE = re.compile(r"Total\s+Cost\s+Value\s*:?\s*([\d,.]+)", re.I)</code> — CAMS's "Total Cost Value" is extracted straight from the PDF's own printed text by regex. It's CAMS's number, not something casparser computes from a lot ledger.</td></tr>
+<tr><td><code>cli.py</code> (~L270–350)</td><td>casparser's own "Portfolio Cost Value" summary is <code>sum(valuation["cost"] for held schemes)</code> — the exact reference total <code>test_real_check.py</code> already reconciles this app's dashboard against, confirming that figure is the right ground truth.</td></tr>
+</tbody></table></div>
+
+<h4>The mathematical consequence</h4>
+<p>For an <b>untouched</b> opening lot (no in-period sale), average-cost and FIFO-subtraction are the <em>same number</em> — there's only one lot, so there's no ordering question to begin with. The untouched-case fix, already proven against both real failures, is completely unaffected by this finding. It only changes the <b>touched</b> case's layered fallback: <b>average cost is now tried first</b> (well-justified, not a guess), FIFO-subtraction is kept as a secondary cross-check — the reverse of this doc's original FIFO-primary ordering.</p>
+<div class="note ok">Concrete proof this reordering matters, not just a theoretical point: §7's third test builds a case where the old FIFO-primary ordering would have accepted a <em>wrong</em> number (8.33/unit) via its loosened tier, while the new average-cost-primary ordering returns the <em>mathematically correct</em> number (50.0000/unit exactly) for the identical input.</div>
+<p class="muted">Sources: CAMS's and KFintech's own public descriptions of their CAS and Capital Gains / Statement-of-Financial-Transaction products, and general explainers of SEBI/CBDT FIFO capital-gains rules for mutual funds — confirming FIFO is the capital-gains-computation convention, and that the Capital Gains Statement is a deliberately separate product from the plain CAS because the two serve different purposes. See §9.</p>
+</section>
+
+<section class="sec design" id="decisions">
+<div class="sechead"><h2>4 · Decision log — every open question resolved</h2></div>
+<div class="q"><b class="n">1</b><b>Untouched opening lot — skip the band check entirely.</b> There's no FIFO-matching ambiguity to doubt: a failed band check here can only mean the NAV history doesn't reach back far enough (pre-2006) or doesn't exist yet (a brand-new NFO), never a real cost problem.</div>
+<div class="q"><b class="n">2</b><b>Touched lot, average cost passes the band — use it.</b> Now the <em>first</em> tier tried, not the second: CAMS/KFin's printed figure is average cost, not FIFO-remaining.</div>
+<div class="q"><b class="n">3</b><b>Touched lot, average cost fails, FIFO-subtraction passes — use FIFO.</b> Kept as a cross-check in case average cost is wrong for some other reason (a parsing defect, or an edition that doesn't follow the usual convention) — not deleted just because it's no longer primary.</div>
+<div class="q"><b class="n">4</b><b>Both fail the strict band — loosened fallback, same order.</b> Average cost against <code>[min/3, max×3]</code>, then FIFO-subtraction against the same loosened band. Loosening only the ceiling was tried, caught live to silently defeat the floor's job, and rejected — both sides loosened.</div>
+<div class="q"><b class="n">5</b><b>All four tiers fail — unchanged final fallback: NAV on statement start.</b></div>
+<div class="q"><b class="n">6</b><b>Corrupted zero-NAV points (Axis) — filter to <code>n &gt; 0</code> before computing the floor/ceiling.</b> A non-positive reading is a known mfapi.in defect, never a real NAV; unfiltered it sets a false floor of 0 that lets anything positive through.</div>
+<div class="q"><b class="n">7</b><b>"Extend our own NAV history further back?" — doesn't apply to either real failure.</b> HDFC Flexi Cap: the data doesn't exist anywhere (industry-wide pre-2006 gap, already fetching mfapi.in's complete history). Sundaram: 2 years old, an NFO-par-value quirk unrelated to history depth. No schema/migration change for this reason.</div>
+<div class="q"><b class="n">8</b><b>"Does our FIFO engine really track which units remain?" — yes, already proven, was never the ambiguity.</b> FIFO lot order is a CBDT/SEBI capital-gains mandate, applied uniformly by every RTA, and <code>lot_rules.py</code> (the one shared FIFO engine behind holdings, opening-cost and conversion-cost, already audited once before) implements it correctly across every transaction type. This answers <em>which units remain</em> with certainty. The real ambiguity was a different question — how the CAS <em>prints the cost</em> of those remaining units — and that's now resolved too (§3): average cost, not a FIFO ledger figure.</div>
+<div class="q"><b class="n">9</b><b>"Will this genuinely fix the dashboard's invested amount, with certainty?" — yes, proven against the real file, not just in theory.</b> See §8: ₹1,082,539.38 off, 2 funds over tolerance → ₹0.91, 0 funds over tolerance.</div>
+<div class="q"><b class="n">10</b><b>Prevalence across other households — not run this round, not a blocker.</b> Local dev DB predates the <code>cost_source</code> column; LeapSwitch staging was recently wiped for multi-user testing. The fix is narrow and self-justifying enough not to need prevalence data to be <em>correct</em> — only to gauge how many dashboards will visibly change, a monitoring question, not a design one.</div>
+</section>
+
+<section class="sec" id="flow">
+<div class="sechead"><h2>5 · Flow</h2></div>
+<div class="legend"><span><i class="sw" style="background:var(--lo)"></i>Decision point</span><span><i class="sw" style="background:var(--both)"></i>CAS_COST accepted</span><span><i class="sw" style="background:var(--hi)"></i>NAV_ON_START fallback</span></div>
+<div class="vis"><figure><div class="svgwrap">
+<svg viewBox="0 0 980 420" role="img" aria-label="Flow of price_opening_lot" width="980">
+<defs><marker id="arA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ar" d="M0 0L10 5L0 10z"/></marker></defs>
+<g class="nd"><rect x="380" y="10" width="220" height="46" rx="8"/><text x="490" y="30" text-anchor="middle" class="tt">Replay all in-period txns</text><text x="490" y="45" text-anchor="middle" class="sub">apply_lot_rules, FIFO</text></g>
+<line class="ed" x1="490" y1="56" x2="490" y2="86" marker-end="url(#arA)"/>
+<g class="nd q"><rect x="390" y="88" width="200" height="46" rx="8"/><text x="490" y="108" text-anchor="middle" class="tt">remaining == open_units?</text><text x="490" y="123" text-anchor="middle" class="sub">untouched vs. touched</text></g>
+<line class="ed" x1="390" y1="111" x2="150" y2="111" marker-end="url(#arA)"/><text x="270" y="104" text-anchor="middle" class="lbl">yes, untouched</text>
+<g class="nd q"><rect x="40" y="88" width="200" height="46" rx="8"/><text x="140" y="108" text-anchor="middle" class="tt">cost &gt; 0 ?</text><text x="140" y="123" text-anchor="middle" class="sub">avg = fifo here, no ambiguity</text></g>
+<line class="ed" x1="590" y1="111" x2="830" y2="111" marker-end="url(#arA)"/><text x="710" y="104" text-anchor="middle" class="lbl">no, touched</text>
+<g class="nd q"><rect x="830" y="88" width="130" height="46" rx="8"/><text x="895" y="108" text-anchor="middle" class="tt">avg_cost</text><text x="895" y="123" text-anchor="middle" class="sub">in strict band?</text></g>
+<line class="ed" x1="140" y1="134" x2="140" y2="340" marker-end="url(#arA)"/>
+<line class="ed" x1="895" y1="134" x2="895" y2="166" marker-end="url(#arA)"/><text x="930" y="155" text-anchor="middle" class="lbl">no</text>
+<g class="nd q"><rect x="830" y="168" width="130" height="46" rx="8"/><text x="895" y="188" text-anchor="middle" class="tt">fifo_cost</text><text x="895" y="203" text-anchor="middle" class="sub">in strict band?</text></g>
+<line class="ed" x1="895" y1="214" x2="895" y2="246" marker-end="url(#arA)"/><text x="930" y="235" text-anchor="middle" class="lbl">no</text>
+<g class="nd q"><rect x="830" y="248" width="130" height="46" rx="8"/><text x="895" y="268" text-anchor="middle" class="tt">avg_cost</text><text x="895" y="283" text-anchor="middle" class="sub">loosened x3?</text></g>
+<line class="ed" x1="895" y1="294" x2="895" y2="326" marker-end="url(#arA)"/><text x="930" y="315" text-anchor="middle" class="lbl">no</text>
+<g class="nd q"><rect x="830" y="328" width="130" height="46" rx="8"/><text x="895" y="348" text-anchor="middle" class="tt">fifo_cost</text><text x="895" y="363" text-anchor="middle" class="sub">loosened x3?</text></g>
+<line class="ed" x1="140" y1="134" x2="490" y2="340" marker-end="url(#arA)"/>
+<line class="ed" x1="895" y1="88" x2="490" y2="340" marker-end="url(#arA)"/>
+<line class="ed" x1="895" y1="168" x2="490" y2="340" marker-end="url(#arA)"/>
+<line class="ed" x1="895" y1="248" x2="490" y2="340" marker-end="url(#arA)"/>
+<line class="ed" x1="895" y1="328" x2="490" y2="340" marker-end="url(#arA)"/>
+<g class="nd good"><rect x="390" y="342" width="200" height="46" rx="8"/><text x="490" y="362" text-anchor="middle" class="tt">CAS_COST</text><text x="490" y="377" text-anchor="middle" class="sub">trust the CAS-derived figure</text></g>
+<line class="ed" x1="830" y1="374" x2="700" y2="374" marker-end="url(#arA)"/><text x="765" y="367" text-anchor="middle" class="lbl">no (final)</text>
+<g class="nd bad"><rect x="40" y="342" width="200" height="46" rx="8"/><text x="140" y="362" text-anchor="middle" class="tt">NAV_ON_START</text><text x="140" y="377" text-anchor="middle" class="sub">NAV at statement start date</text></g>
+<line class="ed" x1="140" y1="134" x2="140" y2="340" marker-end="url(#arA)"/><text x="60" y="230" text-anchor="middle" class="lbl">no / missing</text>
+</svg>
+</div><figcaption>In the touched branch, average cost is checked before FIFO-subtraction at <b>every</b> tier (strict band, then loosened band) — the reorder this section documents.</figcaption></figure></div>
+</section>
+
+<section class="sec" id="diff">
+<div class="sechead"><h2>6 · The code — before and after</h2></div>
+<p><b>File:</b> <code>backend/app/services/import_/opening_balance.py</code>. Not yet applied to the repo — see §10.</p>
+<h4>Before (the bug)</h4>
+<div class="mono-box">cost = ((scheme.valuation_cost - held_cost) / remaining
+        if remaining &gt; 0 and scheme.valuation_cost is not None else None)
+<span class="hl"># one check, runs unconditionally, even when nothing was sold</span>
+plausible = cost is not None and cost &gt; 0 and (not before or min(before) &lt;= cost &lt;= max(before))
+source = CostSource.CAS_COST if plausible else CostSource.NAV_ON_START
+<span class="bad"># HDFC Flexi Cap: cost=49.73, floor=130.82 -&gt; rejected -&gt; wrong NAV_ON_START</span>
+<span class="bad"># Sundaram NFO: cost=10.0005, floor=10.0148 -&gt; rejected -&gt; wrong NAV_ON_START</span></div>
+<h4>After (the fix)</h4>
+<div class="mono-box">untouched = remaining == scheme.open_units
+<span class="dim"># ... ok()/plausible()/loosened() helpers, series filtered to n &gt; 0 ...</span>
+fifo_cost = (scheme.valuation_cost - held_cost) / remaining if remaining &gt; 0 and scheme.valuation_cost is not None else None
+
+if untouched:
+    <span class="good"># no FIFO-matching step to doubt -- trust the CAS figure outright</span>
+    cost, source = (fifo_cost, CostSource.CAS_COST) if ok(fifo_cost) else (None, CostSource.NAV_ON_START)
+else:
+    <span class="hl"># CAMS/KFin's printed cost IS average cost -- try it first, not FIFO</span>
+    avg_cost = scheme.valuation_cost / held_total if held_total &gt; 0 and scheme.valuation_cost is not None else None
+    if plausible(avg_cost):      cost, source = avg_cost, CostSource.CAS_COST
+    elif plausible(fifo_cost):   cost, source = fifo_cost, CostSource.CAS_COST
+    elif loosened(avg_cost):     cost, source = avg_cost, CostSource.CAS_COST
+    elif loosened(fifo_cost):    cost, source = fifo_cost, CostSource.CAS_COST
+    else:                        cost, source = None, CostSource.NAV_ON_START
+<span class="good"># HDFC Flexi Cap, Sundaram NFO: both untouched -&gt; trusted -&gt; correct cost now</span></div>
+<p class="muted">Full diff with every comment: <code>Docs/superpowers/plans/2026-10-19-root-cause-a-chandra-tripathi-opening-cost-plausibility-guard-fix.md</code>, Task 1. No change needed to <code>apply_opening_cost_to_conversions</code>, <code>_split</code>, <code>_in_period_lot</code>, or anything in <code>lot_rules.py</code> — scoped entirely to this one function.</p>
+</section>
+
+<section class="sec" id="tests">
+<div class="sechead"><h2>7 · Tests — the one flip, plus four new scenarios</h2></div>
+<div class="tablewrap"><table>
+<thead><tr><th>Test</th><th>What it proves</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td><code>test_untouched_lot_trusts_cas_cost_even_outside_pre_start_band</code><br><span class="muted">(was <code>test_implausible_cas_cost_falls_back_to_nav_on_start</code>)</span></td><td>An untouched lot's out-of-band cost (₹0.50/unit, floor ₹20) is now <b>trusted</b>, not discarded — the one existing test this fix flips.</td><td class="num">CAS_COST / 0.5000</td></tr>
+<tr><td><code>test_untouched_lot_pre_2006_style_cost_trusted</code></td><td>Mirrors the real HDFC Flexi Cap failure exactly: cost below the earliest available NAV, from a genuine historical void.</td><td class="num">CAS_COST / 49.7340</td></tr>
+<tr><td><code>test_touched_lot_with_real_corruption_is_still_flagged</code></td><td>The protection the guard exists for still works: an in-period sale produces a genuinely nonsense cost (0.5/unit, floor 20) — caught even after all the new loosened layers.</td><td class="num">NAV_ON_START</td></tr>
+<tr><td><code>test_touched_lot_prefers_average_cost_over_fifo_subtraction</code> <span class="chip closed" style="vertical-align:1px">new, proves the reorder matters</span></td><td>In-period purchase (500 @ 100, untouched) + partial sale of the opening lot (400 of 1000). FIFO-subtraction gives 8.33/unit — wrong, but would pass the old FIFO-primary loosened tier. Average cost gives exactly 50.0000/unit — correct, and wins under the new ordering because it's checked first.</td><td class="num">CAS_COST / 50.0000</td></tr>
+<tr><td><code>test_corrupted_zero_nav_point_does_not_defeat_the_floor</code></td><td>The one confirmed mfapi.in defect (3 Axis schemes share a corrupt <code>nav=0</code> row): filtering it out keeps the floor meaningful instead of a false 0.</td><td class="num">NAV_ON_START</td></tr>
+</tbody></table></div>
+<p>All five verified live, freshly re-run for this artifact: <code>test_opening_balance.py</code> — <b>15/15 pass</b>. Full filtered regression (<code>opening or import_ or holdings or xirr</code>, one unrelated pre-existing <code>xlwt</code>-import collection error excluded as always) — <b>581 passed, 2 skipped, 0 failed</b>.</p>
+</section>
+
+<section class="sec proof" id="proof">
+<div class="sechead"><h2>8 · Proof: the real statement, before and after</h2><div class="tags"><span class="chip closed">"110% sure" requirement — met</span></div></div>
+<p>Algebra and unit tests prove the logic is internally consistent. They don't by themselves prove the dashboard's <b>invested amount</b> actually matches the CAS for a real household. For that, the pre-existing, permanent acceptance-gate harness <code>Docs/CAS Files/synthetic/harness/test_real_check.py</code> was run end to end (upload → parse → confirm → dashboard) against the real file that found this bug, <code>Docs/CAS Files/chandra.pdf</code> — not a new or hand-built check, the same one already used to reconcile this app's <code>amount_invested</code> per scheme against casparser's own printed <code>valuation.cost</code>, with a tight tolerance band.</p>
+<div class="tablewrap"><table>
+<thead><tr><th></th><th>Before fix</th><th>After fix</th></tr></thead>
+<tbody>
+<tr><td>Member 2 (Surendra Tripathi) <code>invested_vs_cas_max_diff</code></td><td class="num" style="color:var(--hi);font-weight:700">₹1,082,539.38</td><td class="num" style="color:var(--both);font-weight:700">₹0.91</td></tr>
+<tr><td>Member 2 <code>funds_over_tolerance</code></td><td class="num" style="color:var(--hi);font-weight:700">2</td><td class="num" style="color:var(--both);font-weight:700">0</td></tr>
+<tr><td>Member 1 (unaffected control) <code>invested_vs_cas_max_diff</code> / <code>funds_over_tolerance</code></td><td class="num">₹0.07 / 0</td><td class="num">₹0.07 / 0 <span class="muted">(unchanged)</span></td></tr>
+<tr><td>Overall harness result</td><td class="num" style="color:var(--hi);font-weight:700">RESULT NOT PASS</td><td class="num" style="color:var(--both);font-weight:700">RESULT PASS</td></tr>
+</tbody></table></div>
+<p class="muted">The ₹0.91 residual is pure decimal rounding across 39 holdings, well inside the harness's own documented tolerance band (<code>₹1 + units × ₹0.00005</code> per fund) — not a real gap. Member 1 is untouched both times, confirming the fix changes behavior only for the two schemes it was built to fix, nothing else in this household.</p>
+<div class="note hi"><b>A bug caught by actually running the code, not by reasoning about it:</b> the first draft of the loosened-band fallback only widened the ceiling (<code>value &lt;= max(before) * 3</code>), which silently let a genuinely corrupted low-side result (0.5/unit against a real floor of 20) through as <code>CAS_COST</code> — defeating the floor's actual purpose. Caught by constructing and running that exact case. Fixed by checking both sides; re-verified the real-corruption case is caught again, and the originally-intended moderate-deviation acceptance case still passes.</div>
+<p>Working tree confirmed clean (<code>git status --short</code>) before and after every scratch edit used to produce these numbers — nothing from this verification pass is applied to the repo; the plan doc and this artifact carry the full diff for sign-off.</p>
+</section>
+
+<section class="sec" id="sources">
+<div class="sechead"><h2>9 · Sources</h2></div>
+<ul>
+<li>CAMS and KFintech's own public descriptions of their Consolidated Account Statement and their separately-issued Capital Gains Statement / Statement of Financial Transaction products (WebSearch, this session) — confirming the two are deliberately distinct documents serving different purposes.</li>
+<li>General explainers of SEBI/CBDT FIFO capital-gains computation rules for mutual fund redemptions (WebSearch, this session) — confirming FIFO is the mandated convention for <em>which units</em> are deemed sold for tax purposes, not for how a holdings summary displays cost.</li>
+<li><code>casparser</code> library source, read in full this session: <code>types.py</code>, <code>analysis/gains.py</code>, <code>parsers/cams_detailed.py</code>, <code>cli.py</code> — installed at <code>backend/.venv/lib/python3.14/site-packages/casparser/</code>.</li>
+<li>This app's own code, read/traced this session: <code>backend/app/services/import_/opening_balance.py</code>, <code>backend/app/services/lot_rules.py</code>, <code>backend/app/services/dashboard/nav.py</code>, <code>backend/app/services/dashboard/holdings.py</code>.</li>
+</ul>
+</section>
+
+<section class="sec" id="next">
+<div class="sechead"><h2>10 · What's next</h2></div>
+<div class="order">
+<div class="ostep"><b>NOW</b>Sign-off on this artifact + the plan doc</div>
+<div class="ostep"><b>THEN</b>Apply Task 1 diff, Tasks 2–4 tests</div>
+<div class="ostep"><b>THEN</b>Normal PR + CI, no feature flag</div>
+<div class="ostep"><b>THEN</b>Root Cause B: XIRR dating of opening-balance transactions</div>
+</div>
+<p class="muted">Root Cause B was explicitly deferred until Root Cause A's plan, this artifact, and the "110% sure" real-file verification were all complete — that condition is now met.</p>
+</section>
+
+<footer>Unifolio · MF MVP · generated for sign-off, not for distribution outside the team.</footer>
+</main>
+</body>
+</html>
