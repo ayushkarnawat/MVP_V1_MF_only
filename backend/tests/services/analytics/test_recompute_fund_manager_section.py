@@ -8,4 +8,6 @@ def test_fund_manager_section_wraps_combined_response():
     from app.services.analytics.schemas import FundManagerAllocationSummary
     spec = next(s for s in _SECTIONS if s.name == "fund_manager")
     payload = spec.wrap_combined([], FundManagerAllocationSummary(manager_groups=[], unavailable_schemes=[]))
-    assert payload.model_dump() == {"members": [], "fund_manager": {"manager_groups": [], "unavailable_schemes": []}}
+    assert payload.model_dump() == {"members": [], "fund_manager": {
+        "manager_groups": [], "unavailable_schemes": [], "portfolio_value": "0.00",
+        "covered_value": "0.00", "covered_percentage": "0.00"}}

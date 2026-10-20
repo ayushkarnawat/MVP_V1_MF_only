@@ -4,7 +4,7 @@ from __future__ import annotations
 import uuid
 from collections import defaultdict
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
 
 from sqlalchemy.orm import Session
 
@@ -27,6 +27,15 @@ def _oldest_period_shown(today: date) -> date:
     # "Older than 3 months" is unavailable: this month and the two before are shown
     # (in October: October, September, August).
     return _months_back(today.replace(day=1), 2)
+
+
+def _split_equally(value: Decimal, parts: int) -> list[Decimal]:
+    if parts < 1:
+        raise ValueError("parts must be at least one")
+    share = (value / parts).quantize(Decimal("0.01"), rounding=ROUND_DOWN)
+    shares = [share] * parts
+    shares[0] += value - sum(shares, Decimal("0"))
+    return shares
 
 
 async def compute_fund_manager_allocation(
@@ -57,7 +66,7 @@ async def compute_fund_manager_allocation(
         if row.reference_period == latest_period_by_scheme.get(row.scheme_id) and row.reference_period >= oldest_shown:
             rows_by_scheme[row.scheme_id].append(row)
 
-    groups: dict[str, dict] = {}
+    groups: dict[tuple[str, str], dict] = {}
     unavailable: list[UnavailableScheme] = []
 
     # compute_holdings returns one row per member per scheme; a manager card lists each
@@ -77,24 +86,35 @@ async def compute_fund_manager_allocation(
             ))
             continue
         value = value_by_scheme[scheme_id_str]
-        for row in sorted(manager_rows_for_scheme, key=lambda r: r.sequence_order):
-            group = groups.setdefault(row.manager_name, {"roles": set(), "total": Decimal("0"), "funds": []})
+        ordered_rows = sorted(manager_rows_for_scheme, key=lambda r: r.sequence_order)
+        for row, share in zip(ordered_rows, _split_equally(value, len(ordered_rows))):
+            group = groups.setdefault((row.manager_name, holding.amc_name), {"roles": set(), "total": Decimal("0"), "funds": []})
             group["roles"].add(row.role)
-            group["total"] += value
+            group["total"] += share
             group["funds"].append(ManagerFundRow(
                 scheme_id=holding.scheme_id, scheme_name=holding.scheme_name,
-                household_value=str(value), sequence_order=row.sequence_order, role=row.role,
+                household_value=f"{share:.2f}", sequence_order=row.sequence_order, role=row.role,
             ))
+
+    portfolio_value = sum(value_by_scheme.values(), Decimal("0"))
+
+    def percentage(value: Decimal) -> str:
+        return str((value / portfolio_value * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)) if portfolio_value else "0.00"
 
     manager_groups = sorted(
         (
             # The card badge only when every fund agrees; otherwise each fund row carries its own
             # role (a manager can lead one fund and assist on another -- review, 9 Oct).
-            ManagerGroup(manager_name=name, role=next(iter(g["roles"])) if len(g["roles"]) == 1 else None,
-                         total_household_value=str(g["total"]), funds=g["funds"])
-            for name, g in groups.items()
+            ManagerGroup(manager_name=name, amc_name=amc, percentage=percentage(g["total"]),
+                         role=next(iter(g["roles"])) if len(g["roles"]) == 1 else None,
+                         total_household_value=f"{g['total']:.2f}", funds=g["funds"])
+            for (name, amc), g in groups.items()
         ),
-        key=lambda mg: Decimal(mg.total_household_value),
-        reverse=True,
+        key=lambda mg: (-Decimal(mg.total_household_value), mg.manager_name),
     )
-    return FundManagerAllocationSummary(manager_groups=manager_groups, unavailable_schemes=unavailable)
+    covered_value = sum((g["total"] for g in groups.values()), Decimal("0"))
+    return FundManagerAllocationSummary(
+        manager_groups=manager_groups, unavailable_schemes=unavailable,
+        portfolio_value=f"{portfolio_value:.2f}", covered_value=f"{covered_value:.2f}",
+        covered_percentage=percentage(covered_value),
+    )

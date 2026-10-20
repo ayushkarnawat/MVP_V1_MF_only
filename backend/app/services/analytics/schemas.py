@@ -389,6 +389,8 @@ class ManagerFundRow(BaseModel):
 
 class ManagerGroup(BaseModel):
     manager_name: str
+    amc_name: str = ""
+    percentage: str = "0.00"
     role: str | None
     total_household_value: str
     funds: list[ManagerFundRow]
@@ -403,6 +405,9 @@ class UnavailableScheme(BaseModel):
 class FundManagerAllocationSummary(BaseModel):
     manager_groups: list[ManagerGroup]
     unavailable_schemes: list[UnavailableScheme]
+    portfolio_value: str = "0.00"
+    covered_value: str = "0.00"
+    covered_percentage: str = "0.00"
 
 
 class AggregateFundManagerAllocationResponse(BaseModel):
