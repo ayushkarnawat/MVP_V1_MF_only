@@ -8,6 +8,8 @@ export interface BarChartDatum {
   period: string;
   invested: number;
   withdrawn: number;
+  switchedIn?: number;
+  switchedOut?: number;
 }
 
 export interface BarChartProps {
@@ -37,23 +39,29 @@ function BarChartSvg({ data, selectedPeriod, onBarClick, formatLabel = (p) => p,
   // on a phone would be an unreadable smear.
   const maxLabels = Math.max(1, Math.floor(plotWidth / MIN_LABEL_SPACING));
   const labelStep = Math.max(1, Math.ceil(data.length / maxLabels));
-  const maxValue = Math.max(1, ...data.map((d) => Math.max(d.invested, d.withdrawn)));
+  const maxUp = Math.max(1, ...data.map(d => Math.max(0, d.invested) + (d.switchedIn ?? 0)));
+  const maxDown = Math.max(0, ...data.map(d => d.withdrawn + (d.switchedOut ?? 0)));
+  const scale = plotHeight / (maxUp + maxDown);
+  const baselineY = MARGIN.top + maxUp * scale;
   const slot = data.length ? plotWidth / data.length : 0;
   // Two bars and the gap always fit inside their slot.
   const barWidth = Math.max(0.5, Math.min(slot * 0.35, (slot - GAP) / 2));
   // A negative bucket (a bounced SIP's reversal posted in a later month) draws
   // as a zero-height bar on purpose; its transactions still show on tap.
-  const barHeight = (value: number) => Math.round((Math.max(0, value) / maxValue) * plotHeight);
+  const barHeight = (value: number) => Math.max(0, value) * scale;
 
   return (
     // role="group", not "img": an image hides its children from assistive tech,
     // and each period inside is a button.
     <svg width={width} height={height} style={{ display: "block" }} role="group" aria-label="Invested and withdrawn by period">
-      <Group left={MARGIN.left} top={MARGIN.top}>
+      <Group left={MARGIN.left}>
+        <line data-testid="bar-baseline" x1={0} x2={plotWidth} y1={baselineY} y2={baselineY} stroke="var(--color-border)" strokeWidth={1} />
         {data.map((d, i) => {
           const x = i * slot + (slot - (2 * barWidth + GAP)) / 2;
           const investedHeight = barHeight(d.invested);
           const withdrawnHeight = barHeight(d.withdrawn);
+          const switchedInHeight = barHeight(d.switchedIn ?? 0);
+          const switchedOutHeight = barHeight(d.switchedOut ?? 0);
           const dimmed = !!selectedPeriod && selectedPeriod !== d.period;
           const label = formatLabel(d.period);
           return (
@@ -74,11 +82,11 @@ function BarChartSvg({ data, selectedPeriod, onBarClick, formatLabel = (p) => p,
               style={{ cursor: onBarClick ? "pointer" : "default", opacity: dimmed ? 0.4 : 1 }}
             >
               {/* Full-height transparent hit area, so a zero-height period is still tappable. */}
-              <rect x={i * slot} y={0} width={slot} height={plotHeight} fill="transparent" />
+              <rect x={i * slot} y={MARGIN.top} width={slot} height={plotHeight} fill="transparent" />
               <Bar
                 data-testid={`bar-invested-${d.period}`}
                 x={x}
-                y={plotHeight - investedHeight}
+                y={baselineY - investedHeight}
                 width={barWidth}
                 height={investedHeight}
                 fill="var(--color-positive)"
@@ -86,15 +94,33 @@ function BarChartSvg({ data, selectedPeriod, onBarClick, formatLabel = (p) => p,
               <Bar
                 data-testid={`bar-withdrawn-${d.period}`}
                 x={x + barWidth + GAP}
-                y={plotHeight - withdrawnHeight}
+                y={baselineY}
                 width={barWidth}
                 height={withdrawnHeight}
                 fill="var(--color-negative)"
               />
+              <Bar
+                data-testid={`bar-switched-in-${d.period}`}
+                x={x}
+                y={baselineY - investedHeight - switchedInHeight}
+                width={barWidth}
+                height={switchedInHeight}
+                fill="var(--color-positive)"
+                fillOpacity={0.45}
+              />
+              <Bar
+                data-testid={`bar-switched-out-${d.period}`}
+                x={x + barWidth + GAP}
+                y={baselineY + withdrawnHeight}
+                width={barWidth}
+                height={switchedOutHeight}
+                fill="var(--color-negative)"
+                fillOpacity={0.45}
+              />
               {i % labelStep === 0 && (
                 <text
                   x={i === 0 ? 0 : i * slot + slot / 2}
-                  y={plotHeight + 13}
+                  y={MARGIN.top + plotHeight + 13}
                   textAnchor={i === 0 ? "start" : "middle"}
                   fontSize={10}
                   fill="var(--color-text-secondary)"

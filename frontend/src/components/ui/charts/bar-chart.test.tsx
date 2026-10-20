@@ -40,9 +40,55 @@ describe("BarChart", () => {
       />
     );
     // plot height = 234 - 8 top - 8 bottom - 18 label band = 200
-    expect(screen.getByTestId("bar-invested-2026-01").getAttribute("height")).toBe("200");
-    expect(screen.getByTestId("bar-withdrawn-2026-01").getAttribute("height")).toBe("100");
+    expect(Number(screen.getByTestId("bar-invested-2026-01").getAttribute("height"))).toBeCloseTo(200 * 2 / 3);
+    expect(Number(screen.getByTestId("bar-withdrawn-2026-01").getAttribute("height"))).toBeCloseTo(200 / 3);
     expect(screen.getByTestId("bar-invested-2026-02").getAttribute("height")).toBe("0");
+  });
+
+  it("draws withdrawals below the baseline", () => {
+    render(<BarChart width={600} height={234} data={[{ period: "p", invested: 10000, withdrawn: 5000 }]} />);
+    const baseline = Number(screen.getByTestId("bar-baseline").getAttribute("y1"));
+    const invested = screen.getByTestId("bar-invested-p");
+    const withdrawn = screen.getByTestId("bar-withdrawn-p");
+    expect(Number(invested.getAttribute("y")) + Number(invested.getAttribute("height"))).toBeCloseTo(baseline);
+    expect(Number(withdrawn.getAttribute("y"))).toBeGreaterThanOrEqual(baseline);
+    expect(Number(withdrawn.getAttribute("y")) + Number(withdrawn.getAttribute("height"))).toBeCloseTo(208);
+  });
+
+  it("puts the baseline at the bottom when nothing was withdrawn", () => {
+    render(<BarChart width={600} height={234} data={[{ period: "p", invested: 10000, withdrawn: 0 }]} />);
+    expect(Number(screen.getByTestId("bar-baseline").getAttribute("y1"))).toBe(208);
+    expect(Number(screen.getByTestId("bar-invested-p").getAttribute("y"))).toBe(8);
+  });
+
+  it("stacks lighter switch segments beyond the cash bars", () => {
+    render(<BarChart width={600} height={234} data={[{ period: "p", invested: 100, withdrawn: 50, switchedIn: 100, switchedOut: 50 }]} />);
+    const invested = screen.getByTestId("bar-invested-p");
+    const withdrawn = screen.getByTestId("bar-withdrawn-p");
+    const incoming = screen.getByTestId("bar-switched-in-p");
+    const outgoing = screen.getByTestId("bar-switched-out-p");
+    expect(Number(incoming.getAttribute("y")) + Number(incoming.getAttribute("height"))).toBeCloseTo(Number(invested.getAttribute("y")));
+    expect(Number(outgoing.getAttribute("y"))).toBeCloseTo(Number(withdrawn.getAttribute("y")) + Number(withdrawn.getAttribute("height")));
+    expect(incoming).toHaveAttribute("fill-opacity", "0.45");
+    expect(outgoing).toHaveAttribute("fill-opacity", "0.45");
+  });
+
+  it("a period with no movement has no bar but is still tappable", () => {
+    const onBarClick = vi.fn();
+    render(<BarChart width={320} data={[{ period: "quiet", invested: 0, withdrawn: 0 }]} onBarClick={onBarClick} />);
+    for (const kind of ["invested", "withdrawn", "switched-in", "switched-out"]) {
+      expect(screen.getByTestId(`bar-${kind}-quiet`)).toHaveAttribute("height", "0");
+    }
+    fireEvent.click(screen.getByTestId("bar-group-quiet"));
+    expect(onBarClick).toHaveBeenCalledWith("quiet");
+  });
+
+  it("clamps reversal bars without letting a positive switch extend outside the plot", () => {
+    render(<BarChart width={320} height={234} data={[{ period: "p", invested: -5000, withdrawn: 0, switchedIn: 2000 }]} />);
+    expect(screen.getByTestId("bar-invested-p")).toHaveAttribute("height", "0");
+    const segment = screen.getByTestId("bar-switched-in-p");
+    expect(Number(segment.getAttribute("y"))).toBeCloseTo(8);
+    expect(Number(segment.getAttribute("height"))).toBeCloseTo(200);
   });
 
   it("labels periods under the bars, thinning labels when they would overlap", () => {
