@@ -19,7 +19,79 @@ anything by re-reading the whole repo.**
 - Must be settled before the first automatic run on **10 Nov 2026**: (1) first staging import + record alerts; (2) decide on any fund house AWS blocks; (3) build a missed-month alert; (4) admin upload screen instead of the CLI; (5) test HDFC's passive file; (6) decide the long-term fix (ask AMCs for access / vendor data quote); (7) confirm the ops-alerts email subscriptions; (8) the monthly routine itself.
 - Detail and the ordered to-do table: `DEFERRED_FEATURES.md` (top section). Background and options: `Docs/orchestration/subproject1-execution/a04-factsheet-access-gaps.html` (https://claude.ai/artifact/STCA9eNZwWZ4ZYYGzmpkTL).
 
-## Latest (2026-10-13): Sub-project 2 sixth-pass audit closed + attribute 15's P/E/P/B fully resolved (110% — nothing deferred, revised same day) + full attribute-coverage audit closed + integration architecture speced + AMFI re-verified to 110% + ToS call finalized
+## Latest (2026-10-20): Chandra Tripathi XIRR/opening-cost fix — intern pre-execution review found 3 real gaps in the "fully signed-off" plans; fixed in discussion, not yet in the plan docs; still zero code changed
+
+**Context:** two documentation-only plans exist — Root Cause A (opening-cost plausibility
+guard, `backend/app/services/import_/opening_balance.py`) and Root Cause B (XIRR
+opening-balance-dating disclaimer, `backend/app/services/dashboard/xirr.py`). Both were
+previously declared fully planned and signed off; `a15f07c` (2026-10-19) updated Root Cause
+B's plan/HTML to drop the old `opening_cost_share >= 25%` trigger floor after a 27-scenario
+empirical grid run against the real `portfolio_xirr()` code found it silently missed cases
+where a 10–24% opening-lineage cost share still swings a blended XIRR 2–8x past its true
+rate — the new trigger compares `alt_rate` (XIRR with the undated opening lineage excluded)
+directly against the same 35% sanity ceiling, no share floor. Ship-immediately (no staged
+rollout) was also locked in for the frontend disclaimer popup per Ayush's explicit override,
+since Unifolio has no real users yet and the DB is routinely wiped.
+
+**What happened next:** the intern's own Claude Code session, reviewing both plans before
+executing them, surfaced three questions this session had NOT flagged as open:
+1. Whether `test_real_check.py` (the real-CAS acceptance gate, run against the real
+   `Docs/CAS Files/chandra.pdf`) needs re-running after implementation as a named acceptance
+   step — it wasn't written into either plan as an explicit task.
+2. A real correctness gap in Root Cause B: `_opening_lineage()`'s FIFO lot replay runs on
+   `transaction_rows`, which is filtered to `_FUND_RELEVANT_TYPES` for a different purpose
+   (building XIRR cash flows) — that filter excludes `DIVIDEND_REINVEST`/`BONUS`/
+   `SEGREGATION`, all genuine `LOT_ADDING_TYPES` in `lot_rules.py`. Since `REVERSAL` consumes
+   newest-lot-first (not oldest-first like every other consuming type), a missing newer lot
+   could make the lineage tracer misattribute units/cost to the opening lot. Confirmed real
+   via direct code reading, not hypothetical.
+3. Root Cause A's plan doc has two genuine test-count arithmetic errors: "14/14 (10+1 flip)"
+   doesn't sum (should be 11), and "15/15 (11+1+3)" omits Task 4's fourth new test despite
+   the same sentence claiming Tasks 2–4 are all applied (should be 16/16 if Task 4 ships).
+
+Asked directly whether both plans were "110% solid" with no open questions as previously
+claimed — the honest answer was no. Two of the three (the lineage gap, the arithmetic
+errors) were real misses in this session's own work, not natural implementer questions; the
+third (no named re-verification step) was a real omission from the acceptance criteria.
+
+**Second-order catch, same pattern, one level down:** this session's own proposed one-line
+fix for the lineage gap (widen the DB query's type filter to include the three missing
+types) was itself under-audited — it didn't account for `current_transactions` having no
+independent type filter of its own (it silently relies on the SQL query already being
+narrow). Widening the query naively would have let those three types flow into
+`current_transactions` and corrupt `current_holdings_xirr` for any household with such a
+row. The intern's Claude session caught this during its own implementation-prep pass, not
+this session. Agreed fix: add `_LINEAGE_QUERY_TYPES = _FUND_RELEVANT_TYPES | {DIVIDEND_REINVEST, BONUS, SEGREGATION}`
+for the query only; explicitly re-filter `transactions` and `current_transactions` back down
+to `_FUND_RELEVANT_TYPES` in Python; only `_opening_lineage_by_scheme` sees the unfiltered
+rows; add tests proving `current_holdings_xirr` is unchanged by a bonus/reinvest row, and
+that a `REVERSAL` after one attributes to the correct lot.
+
+**Status — still documentation only, by design:** per the standing rule that Root Cause A
+and B's actual code fixes land together only once both are fully signed off, **this session
+made no edits to either plan doc or to `opening_balance.py`/`xirr.py`.** The three fixes
+above (lineage-query widening + re-filter, A's count corrections, the named real-file-gate
+task) were handed to the intern's own Claude Code session as the detail to apply to the plan
+docs and then execute — a separate checkout, not this one. Full detail of the exchange
+(exact code, exact reasoning): this session's transcript; nothing new was written to
+`Docs/superpowers/plans/` from this side.
+
+**What this does and doesn't fix, for the actual Chandra Tripathi household:** Root Cause A
+should make the portfolio's total value/cost basis correct again (the opening-lot cost
+plausibility guard). Root Cause B does **not** make the headline lifetime XIRR number
+numerically "correct" — the true purchase dates behind an old opening balance are
+fundamentally unknowable from a CAS statement — it makes a probably-distorted number visibly
+flagged via a disclaimer instead of silently wrong. The real-file gate
+(`test_real_check.py` against `chandra.pdf`) is the step that will actually confirm both
+land correctly on the real data; it hasn't been re-run since either plan changed.
+
+**Lesson logged to memory** ([[feedback_planning_closing_audit_discipline]]): validating a
+plan's headline design decision rigorously (the 27-scenario grid) is not the same as the
+plan being solid — every variable a new code block reuses or widens needs its own
+downstream-consumer audit, repeated for every subsequent patch to that code, not just the
+original block.
+
+## Previous (2026-10-13): Sub-project 2 sixth-pass audit closed + attribute 15's P/E/P/B fully resolved (110% — nothing deferred, revised same day) + full attribute-coverage audit closed + integration architecture speced + AMFI re-verified to 110% + ToS call finalized
 
 **Context:** a zero-open-items audit pass over the entire look-through ingestion system
 (continuing straight from the 2026-10-12 session below), followed by the two items that
