@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { Modal } from "@/components/Modal";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getMemberMonthDetail, getAggregateMonthDetail } from "../dashboard/api";
+import type { MonthDetail } from "../dashboard/types";
+import { HistoryDetailModal } from "./HistoryDetailModal";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { formatMonthYear } from "@/lib/dateRange";
 import { cn } from "@/lib/utils";
 import { fetchHistory, type HistoryPoint } from "./api";
 import { HistoryChart } from "./HistoryChart";
@@ -7,8 +13,7 @@ type Range = "1Y" | "3Y" | "5Y" | "All";
 const MONTHS: Record<Range, number | null> = { "1Y": 12, "3Y": 36, "5Y": 60, All: null };
 
 function monthLabel(iso: string): string {
-  return new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric", timeZone: "UTC" })
-    .format(new Date(`${iso}T00:00:00Z`));
+  return (formatMonthYear(iso) ?? iso).replace(/^([A-Za-z]{3})[a-z]+ /, "$1 ");
 }
 
 export interface HistoryViewProps {
@@ -22,17 +27,42 @@ export interface HistoryViewProps {
 export function HistoryView({ viewMode, memberId, memberName, ranges = ["1Y", "3Y", "5Y", "All"] }: HistoryViewProps) {
   const [points, setPoints] = useState<HistoryPoint[] | null>(null);
   const [error, setError] = useState(false);
+  const scopeKey = JSON.stringify([viewMode, memberId]);
+  const [selection, setSelection] = useState<{ scope: string; month: string } | null>(null);
+  const selectedMonth = selection?.scope === scopeKey ? selection.month : null;
+  const [attempt, setAttempt] = useState(0);
+  const setSelectedMonth = useCallback((month: string | null) => {
+    setSelection(month ? { scope: scopeKey, month } : null);
+    if (month) setAttempt(value => value + 1);
+  }, [scopeKey]);
+  const [monthResult, setMonthResult] = useState<{ key: string; detail: MonthDetail | null; error: boolean } | null>(null);
+  const requestKey = JSON.stringify([viewMode, memberId, selectedMonth, attempt]);
+  const detail = monthResult?.key === requestKey ? monthResult.detail : null;
+  const detailError = monthResult?.key === requestKey && monthResult.error;
   const [range, setRange] = useState<Range>("All");
 
   useEffect(() => {
     let alive = true;
     setPoints(null);
+    setSelectedMonth(null);
     setError(false);
     fetchHistory(viewMode, memberId)
       .then((p) => { if (alive) setPoints(p); })
       .catch(() => { if (alive) setError(true); });
     return () => { alive = false; };
-  }, [viewMode, memberId]);
+  }, [viewMode, memberId, setSelectedMonth]);
+
+  useEffect(() => {
+    if (!selectedMonth) return;
+    const controller = new AbortController();
+    let alive = true;
+    const request = viewMode === "aggregate"
+      ? getAggregateMonthDetail(selectedMonth, controller.signal)
+      : memberId ? getMemberMonthDetail(memberId, selectedMonth, controller.signal) : Promise.reject(new Error("No member selected"));
+    request.then(value => { if (alive) setMonthResult({ key: requestKey, detail: value, error: false }); })
+      .catch(() => { if (alive) setMonthResult({ key: requestKey, detail: null, error: true }); });
+    return () => { alive = false; controller.abort(); };
+  }, [viewMode, memberId, selectedMonth, attempt, requestKey]);
 
   const shown = useMemo(() => {
     if (!points) return [];
@@ -66,12 +96,18 @@ export function HistoryView({ viewMode, memberId, memberName, ranges = ["1Y", "3
       )}
       {shown.length > 0 && (
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-          <HistoryChart points={shown} />
+          <HistoryChart points={shown} selectedMonth={selectedMonth} onSelectMonth={setSelectedMonth} />
           <p className="mt-3 text-xs text-[var(--color-text-secondary)]">
             History starts {monthLabel(points![0].month)} (earliest statement uploaded). Hollow dot = a fund had no price that month.
           </p>
         </div>
       )}
+      {selectedMonth && (detail
+        ? <HistoryDetailModal key={requestKey} detail={detail} viewMode={viewMode} onClose={() => setSelectedMonth(null)} />
+        : <Modal isOpen variant="sheet" title={formatMonthYear(selectedMonth) ?? selectedMonth} onClose={() => setSelectedMonth(null)}>
+          {detailError ? <div><p role="alert">Couldn't load this month. Try again.</p><button type="button" className="mt-3 min-h-11 rounded-md border border-[var(--color-border)] px-4" onClick={() => setAttempt(value => value + 1)}>Retry</button></div>
+            : <div className="space-y-3"><p role="status">Loading month…</p><Skeleton className="h-20 w-full" /><Skeleton className="h-40 w-full" /></div>}
+        </Modal>)}
     </section>
   );
 }
