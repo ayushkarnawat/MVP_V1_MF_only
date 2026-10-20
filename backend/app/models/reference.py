@@ -7,7 +7,7 @@ from datetime import date as date_, datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy.dialects import postgresql
-from sqlalchemy import Text, JSON, Date, UniqueConstraint, CheckConstraint, Boolean, Index, true, DateTime, ForeignKey, Integer, Numeric, String, Uuid
+from sqlalchemy import Text, JSON, Date, UniqueConstraint, CheckConstraint, Boolean, Index, text, true, DateTime, ForeignKey, Integer, Numeric, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -198,6 +198,11 @@ class Scenario(Base):
         CheckConstraint(
             "scenario_type IN ('CRASH', 'BULL_RUN', 'POLICY_RATE', 'HYPOTHETICAL')",
             name="ck_scenarios_type",
+        ),
+        Index(
+            "uq_scenarios_top_level_name", "name", unique=True,
+            postgresql_where=text("parent_scenario_id IS NULL"),
+            sqlite_where=text("parent_scenario_id IS NULL"),
         ),
     )
 

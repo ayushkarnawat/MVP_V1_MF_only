@@ -5,6 +5,98 @@ from pathlib import Path
 import pytest
 
 
+def test_0043_unique_top_level_name_roundtrip(tmp_path, monkeypatch):
+    import sqlite3
+    import uuid
+
+    path = tmp_path / "unique-scenarios.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+    up = _alembic("upgrade", "0043")
+    assert up.returncode == 0, up.stderr
+    with sqlite3.connect(path) as conn:
+        parents = [row[0] for row in conn.execute("SELECT id FROM scenarios WHERE parent_scenario_id IS NULL LIMIT 2")]
+        name = conn.execute("SELECT name FROM scenarios WHERE id=?", (parents[0],)).fetchone()[0]
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute("INSERT INTO scenarios(id,name,description) VALUES(?,?, 'duplicate')", (uuid.uuid4().hex, name))
+        for parent in parents:
+            conn.execute("INSERT INTO scenarios(id,name,description,parent_scenario_id) VALUES(?,?,'phase',?)", (uuid.uuid4().hex, name, parent))
+        sql = conn.execute("SELECT sql FROM sqlite_master WHERE name='uq_scenarios_top_level_name'").fetchone()[0]
+        assert "UNIQUE" in sql and "WHERE parent_scenario_id IS NULL" in sql
+    down = _alembic("downgrade", "0042")
+    assert down.returncode == 0, down.stderr
+    with sqlite3.connect(path) as conn:
+        assert not conn.execute("SELECT name FROM sqlite_master WHERE name='uq_scenarios_top_level_name'").fetchall()
+        conn.execute("INSERT INTO scenarios(id,name,description) VALUES(?,?, 'allowed after downgrade')", (uuid.uuid4().hex, name))
+
+
+def test_0043_refuses_to_run_while_duplicates_exist(tmp_path, monkeypatch):
+    import sqlite3
+    import uuid
+
+    path = tmp_path / "duplicate-scenarios.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+    up = _alembic("upgrade", "0042")
+    assert up.returncode == 0, up.stderr
+    with sqlite3.connect(path) as conn:
+        name = conn.execute("SELECT name FROM scenarios WHERE parent_scenario_id IS NULL LIMIT 1").fetchone()[0]
+        conn.execute("INSERT INTO scenarios(id,name,description) VALUES(?,?, 'duplicate')", (uuid.uuid4().hex, name))
+    up = _alembic("upgrade", "0043")
+    assert up.returncode != 0
+    assert "Duplicate top-level scenario names exist; run scripts/dedupe_scenarios.py --apply first" in up.stderr
+    with sqlite3.connect(path) as conn:
+        assert conn.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "0042"
+        assert not conn.execute("SELECT name FROM sqlite_master WHERE name='uq_scenarios_top_level_name'").fetchall()
+
+
+@pytest.mark.postgres
+def test_0043_postgres_unique_top_level_name_roundtrip(monkeypatch):
+    import os
+    import uuid
+
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL unset")
+    import psycopg2
+
+    monkeypatch.setenv("DATABASE_URL", url)
+    up = _alembic("upgrade", "head")
+    assert up.returncode == 0, up.stderr
+    ids = [str(uuid.uuid4()) for _ in range(4)]
+    name = f"0043 roundtrip {ids[0]}"
+    conn = psycopg2.connect(url.replace("postgresql+psycopg2://", "postgresql://"))
+    try:
+        with conn.cursor() as cur:
+            for index in range(2):
+                cur.execute("INSERT INTO scenarios(id,name,description) VALUES(%s,%s,'test')", (ids[index], f"{name} {index}"))
+            cur.execute("SAVEPOINT duplicate_name")
+            with pytest.raises(psycopg2.IntegrityError):
+                cur.execute("INSERT INTO scenarios(id,name,description) VALUES(%s,%s,'duplicate')", (str(uuid.uuid4()), f"{name} 0"))
+            cur.execute("ROLLBACK TO SAVEPOINT duplicate_name")
+            for index in range(2):
+                cur.execute("INSERT INTO scenarios(id,name,description,parent_scenario_id) VALUES(%s,%s,'phase',%s)", (ids[index + 2], name, ids[index]))
+            cur.execute("SELECT indexdef FROM pg_indexes WHERE indexname='uq_scenarios_top_level_name'")
+            definition = cur.fetchone()[0]
+            assert "UNIQUE" in definition and "parent_scenario_id IS NULL" in definition
+        conn.commit()
+    finally:
+        conn.rollback()
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM scenarios WHERE id IN (%s,%s)", tuple(ids[2:]))
+            cur.execute("DELETE FROM scenarios WHERE id IN (%s,%s)", tuple(ids[:2]))
+        conn.commit()
+        conn.close()
+    down = _alembic("downgrade", "0042")
+    assert down.returncode == 0, down.stderr
+    conn = psycopg2.connect(url.replace("postgresql+psycopg2://", "postgresql://"))
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM pg_indexes WHERE indexname='uq_scenarios_top_level_name'")
+            assert cur.fetchone() is None
+    finally:
+        conn.close()
+    assert _alembic("upgrade", "head").returncode == 0
+
+
 def test_0042_us_iran_phase_dates_roundtrip(tmp_path, monkeypatch):
     import sqlite3
     import uuid
