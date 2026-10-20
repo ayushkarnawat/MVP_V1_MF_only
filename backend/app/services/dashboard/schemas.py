@@ -42,6 +42,16 @@ class OpeningLotInfo(BaseModel):
     cost_source: Literal["cas_cost", "nav_on_start", "manual"]
 
 
+class XirrDisclaimerOut(BaseModel):
+    # Root Cause B: opening-balance transactions are dated at the statement's
+    # own start, not their real purchase date, which can inflate/deflate XIRR
+    # when a large share of cost basis is opening-dated. alt_xirr excludes
+    # that opening-lineage cost/value entirely (None if nothing's left to
+    # compute a rate from).
+    alt_xirr: str | None
+    opening_cost_share: str
+
+
 class HoldingRow(BaseModel):
     stale_nav: bool = False
     # A fund in no master (CAS-only): valued at the NAV its statement printed.
@@ -228,6 +238,8 @@ class AggregateHoldingsResponse(BaseModel):
     holdings: list[HoldingRow]
     lifetime_xirr: str | None = None
     current_holdings_xirr: str | None = None
+    lifetime_xirr_disclaimer: XirrDisclaimerOut | None = None
+    current_holdings_xirr_disclaimer: XirrDisclaimerOut | None = None
 
 
 class MemberHoldingsResponse(BaseModel):
@@ -235,6 +247,8 @@ class MemberHoldingsResponse(BaseModel):
     holdings: list[HoldingRow]
     lifetime_xirr: str | None
     current_holdings_xirr: str | None
+    lifetime_xirr_disclaimer: XirrDisclaimerOut | None = None
+    current_holdings_xirr_disclaimer: XirrDisclaimerOut | None = None
 
 
 class AggregateAllocationResponse(BaseModel):

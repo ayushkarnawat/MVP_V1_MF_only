@@ -58,6 +58,8 @@ async def get_aggregate_holdings(db: Session, user_id: uuid.UUID) -> AggregateHo
         holdings=holdings,
         lifetime_xirr=xirr_summary.lifetime_xirr,
         current_holdings_xirr=xirr_summary.current_holdings_xirr,
+        lifetime_xirr_disclaimer=xirr_summary.lifetime_xirr_disclaimer and xirr_summary.lifetime_xirr_disclaimer.to_schema(),
+        current_holdings_xirr_disclaimer=xirr_summary.current_holdings_xirr_disclaimer and xirr_summary.current_holdings_xirr_disclaimer.to_schema(),
     )
 
 

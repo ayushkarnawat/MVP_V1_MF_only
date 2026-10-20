@@ -45,14 +45,63 @@ def price_opening_lot(
         apply_lot_rules(lots, row.txn_type, row.units, cost_per_unit(row.units, row.nav, row.amount, row.stamp_duty), _in_period_lot)
     remaining = sum((u for u, n, opening in lots if opening), Decimal("0"))
     held_cost = sum((u * n for u, n, opening in lots if not opening), Decimal("0"))
-    series = sorted(nav_series or [])
+    held_total = remaining + sum((u for u, n, opening in lots if not opening), Decimal("0"))
+    untouched = remaining == scheme.open_units
+    # A non-positive reading is never a real NAV (one confirmed mfapi.in
+    # defect: 3 Axis schemes share a corrupt nav=0 row) -- drop it before it
+    # can become a false floor/ceiling.
+    series = sorted((d, n) for d, n in (nav_series or []) if n > 0)
     before = [n for d, n in series if d < start]
-    cost = ((scheme.valuation_cost - held_cost) / remaining
-            if remaining > 0 and scheme.valuation_cost is not None else None)
-    # Artifact #1: use the whole pre-start NAV range to reject implausible CAS cost.
-    plausible = cost is not None and cost > 0 and (not before or min(before) <= cost <= max(before))
-    source = CostSource.CAS_COST if plausible else CostSource.NAV_ON_START
-    if not plausible:
+
+    def plausible(value):
+        return value is not None and value > 0 and (not before or min(before) <= value <= max(before))
+
+    def ok(value):
+        return value is not None and value > 0
+
+    def loosened(value):
+        # ponytail: 3x is a round number, not a derived one -- revisit once a
+        # real case exercises this branch. Loosened on BOTH sides: a too-low
+        # result is exactly the corruption (in-period sale eating the wrong
+        # lot) the guard exists to catch, so the floor can't simply be
+        # dropped here.
+        return ok(value) and (not before or min(before) / 3 <= value <= max(before) * 3)
+
+    fifo_cost = ((scheme.valuation_cost - held_cost) / remaining
+                 if remaining > 0 and scheme.valuation_cost is not None else None)
+
+    if untouched:
+        # Nothing was sold from the opening lot: average-cost and
+        # FIFO-subtraction are the same number here (no units were removed to
+        # tell the two conventions apart), so there is no ambiguity to
+        # guard against -- a failed band check can only mean the NAV history
+        # doesn't reach back far enough (pre-2006 funds) or doesn't exist yet
+        # (a brand-new NFO), never a real cost problem. Trust it outright.
+        cost, source = (fifo_cost, CostSource.CAS_COST) if ok(fifo_cost) else (None, CostSource.NAV_ON_START)
+    else:
+        # Some of the opening lot WAS sold in-period, so the two conventions
+        # can disagree. CAMS/KFin's printed "Total Cost Value" is average
+        # cost per unit times closing units (confirmed externally -- it is
+        # not a FIFO-remaining-lot figure; FIFO only governs the separate,
+        # optional Capital Gains Statement, not the plain CAS). Average cost
+        # is therefore the primary, well-justified reading here; the
+        # FIFO-subtraction figure (which lot-matching law does mandate, for
+        # *which units* remain -- just not for how their cost is displayed)
+        # is kept only as a secondary cross-check, in case of a parsing
+        # anomaly or an edition that doesn't follow this convention.
+        avg_cost = scheme.valuation_cost / held_total if held_total > 0 and scheme.valuation_cost is not None else None
+        if plausible(avg_cost):
+            cost, source = avg_cost, CostSource.CAS_COST
+        elif plausible(fifo_cost):
+            cost, source = fifo_cost, CostSource.CAS_COST
+        elif loosened(avg_cost):
+            cost, source = avg_cost, CostSource.CAS_COST
+        elif loosened(fifo_cost):
+            cost, source = fifo_cost, CostSource.CAS_COST
+        else:
+            cost, source = None, CostSource.NAV_ON_START
+
+    if source == CostSource.NAV_ON_START:
         on_start = [n for d, n in series if d <= start]
         first_nav = next((t.nav for t in sorted(txns, key=lambda t: t.txn_date) if t.nav and t.nav > 0), None)
         cost = on_start[-1] if on_start else first_nav or scheme.valuation_nav or Decimal("0")

@@ -53,6 +53,8 @@ export async function getMemberHoldings(memberId: string, signal?: AbortSignal):
   return Object.assign(response.holdings, {
     lifetime_xirr: response.lifetime_xirr,
     current_holdings_xirr: response.current_holdings_xirr,
+    lifetime_xirr_disclaimer: response.lifetime_xirr_disclaimer ?? null,
+    current_holdings_xirr_disclaimer: response.current_holdings_xirr_disclaimer ?? null,
     realized_summary: response.realized_summary,
   });
 }

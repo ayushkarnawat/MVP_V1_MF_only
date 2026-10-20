@@ -36,9 +36,59 @@ def test_cas_cost_minus_in_period_purchases_still_held():
     assert lot.nav == Decimal("40.0000")        # (45000 - 5000) / 1000
 
 
-def test_implausible_cas_cost_falls_back_to_nav_on_start():
-    lot = price_opening_lot(_s("1000", "500"), [], START, SERIES)   # 0.50/unit, below the pre-start min 20
-    assert lot.cost_source == CostSource.NAV_ON_START and lot.nav == Decimal("90.0000")
+def test_untouched_lot_trusts_cas_cost_even_outside_pre_start_band():
+    # Was test_implausible_cas_cost_falls_back_to_nav_on_start: an untouched
+    # opening lot has no FIFO-subtraction step to distrust, so an out-of-band
+    # result (e.g. a pre-2006 fund, or an NFO) is trusted, not discarded.
+    lot = price_opening_lot(_s("1000", "500"), [], START, SERIES)
+    assert lot.cost_source == CostSource.CAS_COST and lot.nav == Decimal("0.5000")
+
+
+def test_untouched_lot_pre_2006_style_cost_trusted():
+    # Mirrors the real HDFC Flexi Cap failure: a fund whose true cost predates
+    # the pre-start NAV window entirely (earliest available NAV is 20, real
+    # cost was ~49.73/unit -- a genuine historical void, not a data error).
+    lot = price_opening_lot(_s("603.209", "30000"), [], START, SERIES)
+    assert lot.cost_source == CostSource.CAS_COST
+    assert lot.nav == Decimal("49.7340")   # 30000 / 603.209, below the pre-start floor of 20
+
+
+def test_touched_lot_with_real_corruption_is_still_flagged():
+    # The protection the band check exists for: an in-period sale consumes
+    # part of the opening lot, and the resulting subtraction is genuinely
+    # nonsense (0.5/unit against a pre-start floor of 20) -- not a
+    # historical-void case, a real corrupted number. Must still fall back to
+    # NAV_ON_START, even after the loosened touched-case layers (avg-cost,
+    # x3 band).
+    txns = [_t(date(2017, 1, 1), TransactionType.REDEMPTION, "500", "50")]
+    lot = price_opening_lot(_s("1000", "250"), txns, START, SERIES)
+    assert lot.cost_source == CostSource.NAV_ON_START
+
+
+def test_touched_lot_prefers_average_cost_over_fifo_subtraction():
+    # Demonstrates why average-cost must be tried BEFORE the FIFO-subtraction
+    # band/loosened checks, not after: with an in-period purchase (500 @ 100,
+    # untouched) and a partial sale of the opening lot (400 of 1000), the
+    # FIFO-subtraction reading is 8.33/unit -- outside the normal band, but
+    # inside the x3 loosened band, so an older FIFO-primary ordering would
+    # have accepted it as CAS_COST at 8.33, which is wrong. The CAS's own
+    # "Total Cost Value" is actually average cost (confirmed externally): 50
+    # exactly here, squarely in-band, and correct.
+    txns = [_t(date(2018, 1, 1), TransactionType.PURCHASE_SIP, "500", "100"),
+            _t(date(2019, 1, 1), TransactionType.REDEMPTION, "400", "120")]
+    lot = price_opening_lot(_s("1000", "55000"), txns, START, SERIES)
+    assert lot.cost_source == CostSource.CAS_COST
+    assert lot.nav == Decimal("50.0000")
+
+
+def test_corrupted_zero_nav_point_does_not_defeat_the_floor():
+    # One confirmed mfapi.in defect (3 Axis schemes share this exact corrupt
+    # point): an unfiltered 0 reading sets a false floor of 0, so anything
+    # positive -- including a real corruption -- passes. Must stay caught.
+    series_with_zero = [(date(2005, 1, 1), Decimal("0"))] + SERIES
+    txns = [_t(date(2017, 1, 1), TransactionType.REDEMPTION, "500", "50")]
+    lot = price_opening_lot(_s("1000", "250"), txns, START, series_with_zero)
+    assert lot.cost_source == CostSource.NAV_ON_START
 
 
 def test_opening_consumed_falls_back_to_nav_on_start():
@@ -114,3 +164,18 @@ def test_opening_lot_does_not_absorb_in_period_stamp_duty():
                                 stamp_duty=Decimal("0.25"))
     lot = price_opening_lot(scheme, [sip], date(2025, 4, 1), None)
     assert lot.amount == Decimal("10000.00")
+
+
+def test_touched_lot_accepted_by_loosened_band_only():
+    # Pre-start NAVs span 20..85. A cost of 10/unit is below the strict floor
+    # but inside the loosened floor (20/3 = 6.67), so only the x3 tier accepts it.
+    txns = [_t(date(2017, 1, 1), TransactionType.REDEMPTION, "500", "50")]
+    lot = price_opening_lot(_s("1000", "5000"), txns, START, SERIES)
+    assert lot.cost_source == CostSource.CAS_COST and lot.nav == Decimal("10.0000")
+
+
+def test_touched_lot_above_the_loosened_ceiling_still_falls_back():
+    # 85 * 3 = 255 ceiling; 300/unit is beyond even the loosened band.
+    txns = [_t(date(2017, 1, 1), TransactionType.REDEMPTION, "500", "50")]
+    lot = price_opening_lot(_s("1000", "150000"), txns, START, SERIES)
+    assert lot.cost_source == CostSource.NAV_ON_START

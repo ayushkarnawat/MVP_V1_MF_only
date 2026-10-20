@@ -733,6 +733,62 @@ describe("MobileDashboardView — Phase 6 (#9, #11, #12, #14, #18)", () => {
     expect(screen.getByText("XIRR").parentElement).toHaveTextContent("15.34%");
   });
 
+  it("has no XIRR disclaimer affordance when the API sends none", async () => {
+    render(<MobileDashboardView />);
+    await screen.findByText("Realised gain");
+    expect(screen.queryByRole("button", { name: "Why this return may be misleading" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Tap to see why/)).not.toBeInTheDocument();
+  });
+
+  it("does not reopen the popup when the member filter is switched away and back (PR review)", async () => {
+    vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
+      holdings: [row, { ...row, scheme_id: "t", scheme_name: "Spouse Fund", household_member_id: "m-2", household_member_name: "Spouse" }],
+      members: [{ id: "m-1", name: "John", has_data: true }, { id: "m-2", name: "Spouse", has_data: true }],
+      lifetime_xirr: "1.9397", current_holdings_xirr: "0.1821",
+      lifetime_xirr_disclaimer: { alt_xirr: "-0.0353", opening_cost_share: "0.9785" },
+      current_holdings_xirr_disclaimer: null,
+      realized_summary: { total: "5000", funds: [] },
+    });
+    render(<MobileDashboardView />);
+    await screen.findByText(/98% of this return is based on an undated opening balance/);
+    fireEvent.click(screen.getByRole("button", { name: "Why this return may be misleading" }));
+    await screen.findByRole("dialog");
+
+    // The popup unmounts while a single member is filtered (XIRR shows a dash); back to "all" must not reopen it.
+    fireEvent.keyDown(screen.getByLabelText("Filter holdings by family member"), { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: "Spouse" }));
+    await waitFor(() => expect(screen.getByText("XIRR").parentElement).toHaveTextContent("—"));
+    fireEvent.keyDown(screen.getByLabelText("Filter holdings by family member"), { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: /All|Family/ }));
+    await screen.findByText(/98% of this return is based on an undated opening balance/);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows the XIRR disclaimer affordance, opens the popup, and hides it with a single-member filter", async () => {
+    vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
+      holdings: [row, { ...row, scheme_id: "t", scheme_name: "Spouse Fund", household_member_id: "m-2", household_member_name: "Spouse" }],
+      members: [{ id: "m-1", name: "John", has_data: true }, { id: "m-2", name: "Spouse", has_data: true }],
+      lifetime_xirr: "1.9397", current_holdings_xirr: "0.1821",
+      lifetime_xirr_disclaimer: { alt_xirr: "-0.0353", opening_cost_share: "0.9785" },
+      current_holdings_xirr_disclaimer: null,
+      realized_summary: { total: "5000", funds: [] },
+    });
+    render(<MobileDashboardView />);
+    expect(await screen.findByText(/98% of this return is based on an undated opening balance/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Why this return may be misleading" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Shown Lifetime XIRR")).toBeInTheDocument();
+    expect(within(dialog).getByText("193.97%")).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Got it" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    fireEvent.keyDown(screen.getByLabelText("Filter holdings by family member"), { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: "Spouse" }));
+    await waitFor(() => expect(screen.getByText("XIRR").parentElement).toHaveTextContent("—"));
+    expect(screen.queryByText(/Tap to see why/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Why this return may be misleading" })).not.toBeInTheDocument();
+  });
+
   it("today’s gain leaves out funds whose NAV is stale", async () => {
     vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
       holdings: [row, { ...row, scheme_id: "w", scheme_name: "Written Off", today_gain: "-469646", stale_nav: true }],

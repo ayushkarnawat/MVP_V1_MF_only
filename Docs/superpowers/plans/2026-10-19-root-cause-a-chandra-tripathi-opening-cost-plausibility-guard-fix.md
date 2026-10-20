@@ -174,7 +174,7 @@ def test_untouched_lot_trusts_cas_cost_even_outside_pre_start_band():
     assert lot.cost_source == CostSource.CAS_COST and lot.nav == Decimal("0.5000")
 ```
 
-Verified live: running the full `test_opening_balance.py` suite with the Task 1 diff applied and this one test updated — 14/14 pass (10 pre-existing unchanged + this flip). Every other pre-existing test in the file (including the two "opening lot consumed by in-period redemption, falls back to NAV_ON_START" and "opening lot partially consumed by a gift-out" cases) passes unchanged, because the fix only changes behavior for the untouched case or the touched-and-still-implausible case, neither of which any other pre-existing test exercises.
+Verified live: running the full `test_opening_balance.py` suite with the Task 1 diff applied and this one test updated — 11/11 pass (10 pre-existing unchanged + this flip, which replaces the eleventh; the earlier "14/14" was an arithmetic error). Every other pre-existing test in the file (including the two "opening lot consumed by in-period redemption, falls back to NAV_ON_START" and "opening lot partially consumed by a gift-out" cases) passes unchanged, because the fix only changes behavior for the untouched case or the touched-and-still-implausible case, neither of which any other pre-existing test exercises.
 
 - [ ] Replace that one test as above.
 
@@ -259,7 +259,7 @@ def test_corrupted_zero_nav_point_does_not_defeat_the_floor():
 
 ## Verification (fresh, live, re-run for this revision of the doc — not recalled from an earlier pass)
 
-1. **Unit tests, with the Task 1 diff and all of Tasks 2–4 applied:** `backend/tests/services/import_/test_opening_balance.py` — **15/15 pass** (11 pre-existing + 1 flip + 3 new).
+1. **Unit tests, with the Task 1 diff and all of Tasks 2–4 applied:** `backend/tests/services/import_/test_opening_balance.py` — **15/15 pass** when this plan was written (11 pre-existing, one of them replaced by the flip, + 3 Task 3 + 1 Task 4); **17/17 as built**, after PR #8 review added two loosened-band tests.
 2. **Full filtered regression:** `pytest -k "opening or import_ or holdings or xirr"` (one pre-existing, unrelated `xlwt`-import collection error excluded, as always) — **581 passed, 2 skipped, 0 failed** — no regressions anywhere the fix could plausibly reach.
 3. **The user's "110% sure" requirement — proven against the real statement, not algebra alone.** Using the pre-existing, permanent acceptance-gate harness `Docs/CAS Files/synthetic/harness/test_real_check.py` (not a new or hand-built check — it already reconciles the dashboard's `amount_invested` per scheme against casparser's own `valuation.cost` for every currently-held fund, with a tight tolerance band), run against `Docs/CAS Files/chandra.pdf` end to end (upload → parse → confirm → dashboard):
 
