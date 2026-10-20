@@ -1,5 +1,5 @@
 # Handoff: ux-fixes (Analytics UX fixes, phases P1–P6)
-**Status:** IN_PROGRESS — Runs 1 DONE; Runs 2 and 3 committed (6fec37a, fbf58b9, 54a0d71, 414b5b6), one batched review pending; Run 4 (P1-T6 score explainer) ready, 2026-10-20
+**Status:** IN_PROGRESS — Phase P1 built and committed (Runs 1-4); P1 batched adversarial review pending; P2 (Run 5 = plan R4) next, 2026-10-20
 **Parent plan:** `Docs/superpowers/plans/2026-10-19-analytics-ux-fixes-plan.md` (binding; read "Global Constraints", "Locked decisions", "Review Focus" first, then only the run's tasks)
 **Spec copies:** `Docs/orchestration/analytics-ux-changes-spec/` (`analytics-ux-changes-v18.html`, `other-fixes.html`)
 **Orchestrator:** Claude Code · **Worker:** Codex (manual relay, one run per prompt)
@@ -48,6 +48,10 @@ Built by Codex, verified by the orchestrator (9 files, 58 tests in WSL; Codex ra
 
 ## Run 4 — P1-T6 (score explainer), Steps 3 to 7
 Steps 1 (doc/code check) and 2 (copy approval) are done; see "P1-T6 approved copy" below and `2026-10-20-score-explainer-check.md`. Implement the plan's **Task P1-T6 from Step 3**, exactly, test-first, frontend only: `scoreExplainerCopy.ts` holds the approved text verbatim (no wording edits), `ScoreExplainer.tsx` is collapsed by default (`<button aria-expanded>` plus a region, no new dependency), the toggle in `ScorerSection.tsx` is hidden in `printMode`. Report extras: the exact strings the tests assert, and confirm the copy file matches the approved text word for word.
+
+## Run 4 result (2026-10-20)
+Built by Codex, verified by the orchestrator (ScoreExplainer + ScorerSection tests, 15 pass in WSL; Codex 69 pass, tsc clean; the copy file matches the approved text). Committed as P1-T6 `fd0d1c2`. Codex added an optional `printMode` prop (default false) to `ScorerSection`; the toggle is hidden in print.
+**P1 gate (orchestrator):** `tsc -b` clean; `oxlint` on all 43 touched .ts/.tsx files: 4 warnings only (react only-export-components on exported helpers in `BenchmarkSection`, `ScenarioPicker`, `ResultParts` x2; same pattern as the existing `rupees` export), no errors. Pending: one batched adversarial review over `6fec37a`, `fbf58b9`, `54a0d71`, `414b5b6`, `fd0d1c2`; user browser check (tier badges light/dark, allocation toggle, scenario header dates).
 
 ## P1-T6 approved copy (D7 approved by the user, 2026-10-20) — used in its own run after Run 3
 Option A (explain the code as it is). The explainer text, verbatim; `scoreExplainerCopy.ts` holds exactly this, no edits:
