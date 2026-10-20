@@ -366,6 +366,8 @@ class FundRankingRow(BaseModel):
     ranked_as: str | None         # the series ranked when it isn't the held one (e.g. IDCW -> Growth)
     neighbors: list[FundRankingNeighbor]
     components: FundRankingComponents
+    horizons: dict[str, PeriodReturn] = Field(default_factory=dict)
+    plan_type: str | None = None
 
 
 class FundRankingSummary(BaseModel):

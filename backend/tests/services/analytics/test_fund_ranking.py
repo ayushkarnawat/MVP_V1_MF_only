@@ -45,7 +45,10 @@ def test_ranking_weights_singleton_defaults():
 
 # append to backend/tests/services/analytics/test_fund_ranking.py
 import asyncio
+from contextlib import ExitStack
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from app.services.analytics.fund_ranking import (
     _DEFAULT_WEIGHTS,
@@ -89,6 +92,109 @@ def test_get_ranking_weights_reads_singleton_row_when_present():
 
 
 from app.services.analytics.fund_ranking import compute_fund_ranking, compute_portfolio_ranking
+
+
+def _horizon_fixture(n=4, *, missing_5y=False):
+    import app.services.analytics.fund_ranking as module
+    from app.models.enums import SchemePlanType
+
+    module._category_ranking_cache.clear()
+    db = _session()
+    schemes = [Scheme(id=uuid.uuid4(), name=f"Horizon Fund {i}", amc_name=f"AMC {i}", sebi_category="Equity Scheme - Contra Fund", plan_type=SchemePlanType.DIRECT) for i in range(n)]
+    db.add_all(schemes)
+    db.commit()
+    detailed = {scheme.id: (Decimal("0.10"), Decimal("0.12"), None if missing_5y else Decimal("0.14"), Decimal("0.132")) if index == 0
+                else (Decimal("0.20"), Decimal("0.22"), Decimal("0.24"), Decimal("0.232")) for index, scheme in enumerate(schemes)}
+    patches = (
+        patch.object(module, "get_category_peers", new=AsyncMock(return_value=_peers(schemes))),
+        patch.object(module, "_compute_category_returns_detailed", new=AsyncMock(return_value=detailed)),
+        patch.object(module, "_latest_aaum_by_scheme", return_value={s.id: Decimal("300") if i == 0 else Decimal("100") for i, s in enumerate(schemes)}),
+        patch.object(module, "_latest_ter_for_scheme", return_value=None),
+        patch.object(module, "build_monthly_series_bulk", return_value={s.id: [] for s in schemes}),
+    )
+    return db, schemes, patches
+
+
+def _horizon_row(n=4, *, missing_5y=False):
+    db, schemes, patches = _horizon_fixture(n, missing_5y=missing_5y)
+    with ExitStack() as stack:
+        for context in patches:
+            stack.enter_context(context)
+        row = asyncio.run(compute_fund_ranking(db, schemes[0]))
+    db.close()
+    return row
+
+
+def test_ranking_row_carries_horizons_with_the_shared_category_averages():
+    row = _horizon_row()
+    assert row.plan_type == "direct"
+    assert row.horizons["1y"].model_dump() == {"fund_return": "0.10", "category_avg": "0.15", "peers": 4}
+    assert row.horizons["3y"].model_dump() == {"fund_return": "0.12", "category_avg": "0.17", "peers": 4}
+    assert row.horizons["5y"].model_dump() == {"fund_return": "0.14", "category_avg": "0.19", "peers": 4}
+
+
+def test_too_few_peers_row_has_own_returns_but_no_category_average():
+    row = _horizon_row(2)
+    assert row.too_few_peers is True
+    assert row.plan_type == "direct"
+    assert row.horizons["3y"].fund_return == "0.12"
+    assert all(h.category_avg is None and h.peers == 2 for h in row.horizons.values())
+    assert row.category_rank is None
+
+
+def test_five_year_missing_gives_no_fund_return_but_a_category_average():
+    row = _horizon_row(missing_5y=True)
+    assert row.horizons["5y"].model_dump() == {"fund_return": None, "category_avg": "0.24", "peers": 3}
+
+
+@pytest.mark.parametrize("unavailable", [True, False])
+def test_horizons_are_empty_for_unavailable_and_insufficient_history_rows(unavailable):
+    import app.services.analytics.fund_ranking as module
+    from app.models.enums import SchemePlanType
+
+    module._category_ranking_cache.clear()
+    db = _session()
+    scheme = Scheme(id=uuid.uuid4(), name="New Fund", amc_name="AMC", sebi_category="" if unavailable else "Equity Scheme - Contra Fund", plan_type=SchemePlanType.REGULAR)
+    db.add(scheme)
+    db.commit()
+    with patch.object(module, "get_category_peers", new=AsyncMock(return_value=_peers([scheme]))), \
+         patch.object(module, "_compute_category_returns_detailed", new=AsyncMock(return_value={})):
+        row = asyncio.run(compute_fund_ranking(db, scheme))
+    assert row.horizons == {}
+    assert row.plan_type == "regular"
+    assert row.category_unavailable is unavailable
+    assert row.insufficient_history is (not unavailable)
+    db.close()
+
+
+def test_the_stored_ranking_row_is_unchanged():
+    db, schemes, patches = _horizon_fixture()
+    columns = list(SchemeRanking.__table__.columns.keys())
+    assert set(columns) == {"scheme_id", "computed_at", "composite_score", "category_rank", "category_size", "percentile", "return_1y", "return_3y", "return_5y", "category_relative", "downside_deviation", "ter_value", "return_3y_percentile", "return_5y_percentile", "category_relative_percentile", "volatility_percentile", "ter_percentile"}
+    with ExitStack() as stack:
+        for context in patches:
+            stack.enter_context(context)
+        first = asyncio.run(compute_fund_ranking(db, schemes[0]))
+        stored = db.query(SchemeRanking).one()
+        before = {name: getattr(stored, name) for name in columns}
+        second = asyncio.run(compute_fund_ranking(db, schemes[0]))
+    after = {name: getattr(db.query(SchemeRanking).one(), name) for name in columns}
+    assert before == after
+    assert before["return_1y"] == Decimal("0.10")
+    assert before["return_3y"] == Decimal("0.12")
+    assert before["return_5y"] == Decimal("0.14")
+    assert before["category_relative"] == Decimal("-0.05")
+    assert before["composite_score"] == Decimal("0.00")
+    assert first.model_dump() == second.model_dump()
+    db.close()
+
+
+def test_old_fund_ranking_payload_defaults():
+    from app.services.analytics.schemas import FundRankingRow
+
+    original = _horizon_row().model_dump(exclude={"horizons", "plan_type"})
+    restored = FundRankingRow.model_validate(original)
+    assert restored.horizons == {} and restored.plan_type is None
 
 # append to backend/tests/services/analytics/test_fund_ranking.py
 def _peers(schemes, fund_count=None):
