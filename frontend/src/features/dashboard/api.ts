@@ -6,6 +6,7 @@ import type {
   SipMonthlyRow,
   CashFlowEntry,
   SnapshotRow,
+  MonthDetail,
   AggregateHoldingsResponse,
   AggregateAllocationResponse,
   AggregateSipsResponse,
@@ -35,6 +36,14 @@ async function authFetch(path: string, options: RequestInit = {}): Promise<Respo
   }
 
   return res;
+}
+
+export async function getMemberMonthDetail(memberId: string, month: string, signal?: AbortSignal): Promise<MonthDetail> {
+  return (await authFetch(`/household-members/${encodeURIComponent(memberId)}/snapshots/${encodeURIComponent(month)}`, { signal })).json();
+}
+
+export async function getAggregateMonthDetail(month: string, signal?: AbortSignal): Promise<MonthDetail> {
+  return (await authFetch(`/household/aggregate/snapshots/${encodeURIComponent(month)}`, { signal })).json();
 }
 
 /* Per-member Dashboard API */

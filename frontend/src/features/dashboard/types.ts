@@ -78,6 +78,43 @@ export interface CashFlowEntry {
   household_member_name: string;
 }
 
+export interface MonthFundRow {
+  scheme_id: string;
+  scheme_name: string;
+  household_member_id: string;
+  household_member_name: string;
+  units: string;
+  nav: string | null;
+  nav_date: string | null;
+  value: string | null;
+  cost: string;
+  change_in_value: string | null;
+  new_money: string;
+  opening_holdings?: string;
+  switched_net?: string;
+  gifts_net?: string;
+  market_movement: string | null;
+  priced: boolean;
+}
+
+export interface MonthDetail {
+  month: string;
+  previous_month: string | null;
+  total_value: string;
+  previous_value: string;
+  change: string | null;
+  new_money: string;
+  opening_holdings?: string;
+  switches_net?: string;
+  gifts_net?: string;
+  market_movement: string | null;
+  switched_in: string;
+  switched_out: string;
+  is_partial: boolean;
+  missing_scheme_names: string[];
+  funds: MonthFundRow[];
+}
+
 export interface SnapshotRow {
   household_member_id: string;
   household_member_name: string;

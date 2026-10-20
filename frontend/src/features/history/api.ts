@@ -7,6 +7,8 @@ export interface HistoryPoint {
   month: string;          // ISO month-end date
   value: number;
   invested: number | null;
+  valueText: string;
+  investedText: string | null;
   partial: boolean;       // a held fund had no NAV that month
   missing: string[];      // the funds that had no NAV
 }
@@ -28,6 +30,8 @@ function toPoints(rows: SnapshotRow[]): HistoryPoint[] {
       month,
       value: parseFloat(sumDecimalStrings(m.values)),
       invested: m.invested === null ? null : parseFloat(sumDecimalStrings(m.invested)),
+      valueText: sumDecimalStrings(m.values),
+      investedText: m.invested === null ? null : sumDecimalStrings(m.invested),
       partial: m.partial,
       missing: m.missing,
     }))

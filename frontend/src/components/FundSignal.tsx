@@ -1,3 +1,4 @@
+import { indexFromClientX } from "@/lib/chartPointer";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { area as d3Area, curveMonotoneX, line as d3Line } from "d3-shape";
@@ -83,22 +84,6 @@ function formatDate(value: string): string {
   );
 }
 
-// Maps a pointer's screen X back to the nearest plotted index. Points are laid out
-// linearly by index (see `coords` below), so this is a closed-form inverse rather
-// than a distance scan — cheap even at the 400-point downsample cap.
-function indexFromClientX(
-  clientX: number,
-  rect: { left: number; width: number },
-  pointCount: number,
-  chartWidth: number,
-): number {
-  if (pointCount <= 1) return 0;
-  const ratio = rect.width === 0 ? 0 : Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
-  const viewBoxX = ratio * chartWidth;
-  const plotWidth = chartWidth - CHART_PAD_X * 2;
-  const relative = (viewBoxX - CHART_PAD_X) / plotWidth;
-  return Math.min(Math.max(Math.round(relative * (pointCount - 1)), 0), pointCount - 1);
-}
 
 export function FundSignalGraph({ schemeId, period = "1Y" }: FundSignalGraphProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<NavHistoryPeriod>(period);
@@ -189,7 +174,7 @@ export function FundSignalGraph({ schemeId, period = "1Y" }: FundSignalGraphProp
 
   function handleScrubberPointerMove(event: PointerEvent<SVGRectElement>) {
     if (points.length === 0) return;
-    setActiveIndex(indexFromClientX(event.clientX, event.currentTarget.getBoundingClientRect(), points.length, chartWidth));
+    setActiveIndex(indexFromClientX(event.clientX, event.currentTarget.getBoundingClientRect(), points.length, chartWidth, CHART_PAD_X));
   }
 
   function handleScrubberKeyDown(event: KeyboardEvent<SVGRectElement>) {

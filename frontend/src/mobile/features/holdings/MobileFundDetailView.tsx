@@ -1,3 +1,4 @@
+import { indexFromClientX } from "@/lib/chartPointer";
 import { PlanBadge } from "@/features/dashboard/PlanBadge";
 import { useState, useMemo, useRef, useLayoutEffect, useEffect } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
@@ -39,18 +40,6 @@ const SVG_HEIGHT = 140;
 const PADDING_X = 16;
 const PADDING_Y = 16;
 
-// Maps a pointer's screen X back to the nearest plotted index. Points are laid out
-// linearly by index (see the x calc below), so this is a closed-form inverse rather
-// than a distance scan — cheap even at the backend's 400-point downsample cap.
-// Mirrors FundSignal.tsx's `indexFromClientX` (web), scaled to this chart's viewBox.
-function indexFromClientX(clientX: number, rect: { left: number; width: number }, pointCount: number): number {
-  if (pointCount <= 1) return 0;
-  const ratio = rect.width === 0 ? 0 : Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
-  const viewBoxX = ratio * SVG_WIDTH;
-  const plotWidth = SVG_WIDTH - PADDING_X * 2;
-  const relative = (viewBoxX - PADDING_X) / plotWidth;
-  return Math.min(Math.max(Math.round(relative * (pointCount - 1)), 0), pointCount - 1);
-}
 
 export function MobileFundDetailView({
   holding,
@@ -178,7 +167,7 @@ export function MobileFundDetailView({
 
   function handleScrubberPointerMove(event: PointerEvent<SVGRectElement>) {
     if (chartData.length === 0) return;
-    setActiveIndex(indexFromClientX(event.clientX, event.currentTarget.getBoundingClientRect(), chartData.length));
+    setActiveIndex(indexFromClientX(event.clientX, event.currentTarget.getBoundingClientRect(), chartData.length, SVG_WIDTH, PADDING_X));
   }
 
   function handleScrubberKeyDown(event: KeyboardEvent<SVGRectElement>) {

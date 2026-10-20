@@ -23,8 +23,8 @@ describe("fetchHistory", () => {
     ] });
     const points = await fetchHistory("aggregate", null);
     expect(points).toEqual([
-      { month: "2024-01-31", value: 150, invested: 130, partial: true, missing: ["X Fund"] },
-      { month: "2024-02-29", value: 60, invested: 40, partial: false, missing: [] },
+      { month: "2024-01-31", value: 150, invested: 130, valueText: "150", investedText: "130", partial: true, missing: ["X Fund"] },
+      { month: "2024-02-29", value: 60, invested: 40, valueText: "60", investedText: "40", partial: false, missing: [] },
     ]);
   });
 
@@ -37,4 +37,26 @@ describe("fetchHistory", () => {
     expect(point.value).toBe(0.3);
     expect(point.invested).toBe(0.3);
   });
+});
+
+
+it("keeps the exact money text including paise", async () => {
+  vi.mocked(dashboardApi.getAggregateSnapshots).mockResolvedValue({ members: [], snapshots: [
+    { household_member_id: "a", household_member_name: "A", snapshot_month: "2024-01-31", total_value: "1234.40", invested_value: "1000.00" },
+    { household_member_id: "b", household_member_name: "B", snapshot_month: "2024-01-31", total_value: "0.10", invested_value: "0.10" },
+  ] });
+  const [point] = await fetchHistory("aggregate", null);
+  expect(point.valueText).toBe("1234.50");
+  expect(point.investedText).toBe("1000.10");
+});
+
+it("month-detail fetchers use the member and aggregate URLs", async () => {
+  const actual = await vi.importActual<typeof dashboardApi>("../dashboard/api");
+  const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response(JSON.stringify({ month: "2024-03-31" }), { status: 200 }));
+  try {
+    await actual.getMemberMonthDetail("history-member", "2024-03-31");
+    await actual.getAggregateMonthDetail("2024-03-31");
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(/household-members\/history-member\/snapshots\/2024-03-31$/);
+    expect(String(fetchMock.mock.calls[1][0])).toMatch(/household\/aggregate\/snapshots\/2024-03-31$/);
+  } finally { fetchMock.mockRestore(); }
 });
