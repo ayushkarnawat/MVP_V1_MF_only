@@ -184,6 +184,8 @@ class MonthDetail(BaseModel):
     market_movement: str | None = "0.00"
     switched_in: str = "0.00"
     switched_out: str = "0.00"
+    # is_partial / missing_scheme_names: funds with no COMPARABLE price: no price at this month-end,
+    # or held at the previous month-end without one (priced now, or sold out in the month).
     is_partial: bool = False
     missing_scheme_names: list[str] = Field(default_factory=list)
     funds: list[MonthFundRow] = Field(default_factory=list)
