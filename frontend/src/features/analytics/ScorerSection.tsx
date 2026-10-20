@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { AlertCircle, ChevronRight, HelpCircle, Star } from "lucide-react";
 import type { PortfolioScoreSummary } from "./types";
 import { displayTierFromBackendTier } from "./fundScoreVerdicts";
+import { portfolioVerdict, tierBadgeStyle } from "./tierStyle";
 
 export interface ScorerSectionProps {
   scoreSummary: PortfolioScoreSummary | null;
@@ -46,6 +47,7 @@ export function ScorerSection({
   }
 
   const weightedScoreNum = parseScoreNum(scoreSummary?.weighted_score ?? null);
+  const verdict = weightedScoreNum !== null ? portfolioVerdict(weightedScoreNum) : null;
   const funds = scoreSummary?.funds ?? [];
   const hasFunds = funds.length > 0;
   const hasUncovered = scoreSummary?.uncovered_schemes && scoreSummary.uncovered_schemes.length > 0;
@@ -84,8 +86,8 @@ export function ScorerSection({
                 {weightedScoreNum.toFixed(1)}
               </span>
               <span className="text-xs text-[var(--color-text-secondary)]">/ 100</span>
-              <span className="text-xs font-semibold text-[var(--color-positive)] ml-2">
-                {weightedScoreNum >= 70 ? "High Quality Portfolio" : weightedScoreNum >= 50 ? "Moderate Quality Portfolio" : "Needs Review"}
+              <span className="text-xs font-semibold ml-2" style={{ color: verdict!.color }}>
+                {verdict!.label}
               </span>
             </div>
           ) : (
@@ -159,7 +161,7 @@ export function ScorerSection({
                 {/* Row Title Bar */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
-                    <div className="h-8 w-8 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center font-display font-bold text-xs text-[var(--color-accent)] shadow-2xs group-hover:scale-105 transition-transform">
+                    <div style={displayTier !== null ? tierBadgeStyle(displayTier) : undefined} className="h-8 w-8 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center font-display font-bold text-xs shadow-2xs group-hover:scale-105 transition-transform">
                       {displayTier !== null ? `T${displayTier}` : "—"}
                     </div>
                     <div>
@@ -205,7 +207,7 @@ export function ScorerSection({
                           <span className="text-[11px] font-medium text-[var(--color-text-secondary)]">/ 100</span>
                         </div>
                       </div>
-                      <Badge className="bg-[var(--color-accent)] text-white font-bold text-xs px-2.5 py-1 shadow-2xs">
+                      <Badge style={displayTier !== null ? tierBadgeStyle(displayTier) : undefined} className="font-bold text-xs px-2.5 py-1 shadow-2xs">
                         Tier {displayTier}
                       </Badge>
                       <ChevronRight className="h-4 w-4 text-[var(--color-text-secondary)] group-hover:translate-x-0.5 transition-transform" />

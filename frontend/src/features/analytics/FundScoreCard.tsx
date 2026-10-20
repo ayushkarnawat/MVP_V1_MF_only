@@ -4,6 +4,7 @@ import type { FundScoreRow } from "./types";
 import { ShieldAlert, Info, Sparkles, CheckCircle2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toPercentString } from "@/lib/decimal";
+import { tierBadgeStyle } from "./tierStyle";
 import {
   FACTOR_KEYS,
   FACTOR_LABELS,
@@ -296,7 +297,7 @@ export function FundScoreCard({ data, printMode = false }: FundScoreCardProps) {
           </div>
           {displayTier !== null && (
             <div className="text-right">
-              <Badge className="bg-[var(--color-accent)] text-white font-bold text-xs px-3 py-1 shadow-xs">
+              <Badge style={tierBadgeStyle(displayTier)} className="font-bold text-xs px-3 py-1 shadow-xs">
                 Tier {displayTier} of 5
               </Badge>
               <span className="text-[10px] text-[var(--color-text-secondary)] block mt-1">

@@ -24,6 +24,13 @@ const baseRow: FundScoreRow = {
 };
 
 describe("FundScoreCard", () => {
+  it.each([[1, 5], [5, 1]])("colours backend tier %s as display tier %s", (backendTier, displayTier) => {
+    render(<FundScoreCard data={{ ...baseRow, risk_adjusted_tier: backendTier }} />);
+    const badge = screen.getByText(`Tier ${displayTier} of 5`);
+    expect(badge.getAttribute("style")).toContain(`--tier-${displayTier}-bg`);
+    expect(badge.getAttribute("style")).toContain(`--tier-${displayTier}-fg`);
+  });
+
   it("renders the score out of 10, flipped tier, and the why sentence", () => {
     render(<FundScoreCard data={baseRow} />);
     expect(screen.getByText("7.8")).toBeInTheDocument();

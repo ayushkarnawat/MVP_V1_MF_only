@@ -13,6 +13,18 @@
   --color-hypo: #7C3AED;
   --color-freeze: #0284C7;
 
+  /* Fund tiers: display tier 1 is strongest. */
+  --tier-1-bg: #22C55E;
+  --tier-1-fg: #111111;
+  --tier-2-bg: #85DFA6;
+  --tier-2-fg: #111111;
+  --tier-3-bg: #94A3B8;
+  --tier-3-fg: #111111;
+  --tier-4-bg: #F59E0B;
+  --tier-4-fg: #111111;
+  --tier-5-bg: #EF4444;
+  --tier-5-fg: #111111;
+
   /* shadcn/ui Theme Variables (Light Mode) */
   --background: 0 0% 99%;
   --foreground: 0 0% 7%;
@@ -140,6 +152,18 @@
     --color-hypo: #A78BFA;
     --color-freeze: #38BDF8;
 
+    /* Fund tiers: display tier 1 is strongest. */
+    --tier-1-bg: #22C55E;
+    --tier-1-fg: #111111;
+    --tier-2-bg: #1E783F;
+    --tier-2-fg: #F5F5F5;
+    --tier-3-bg: #475569;
+    --tier-3-fg: #F5F5F5;
+    --tier-4-bg: #F59E0B;
+    --tier-4-fg: #111111;
+    --tier-5-bg: #F87171;
+    --tier-5-fg: #111111;
+
     --background: 0 0% 6%;
     --foreground: 0 0% 96%;
     --card: 0 0% 10%;
@@ -180,6 +204,18 @@
   --color-hypo: #A78BFA;
   --color-freeze: #38BDF8;
 
+  /* Fund tiers: display tier 1 is strongest. */
+  --tier-1-bg: #22C55E;
+  --tier-1-fg: #111111;
+  --tier-2-bg: #1E783F;
+  --tier-2-fg: #F5F5F5;
+  --tier-3-bg: #475569;
+  --tier-3-fg: #F5F5F5;
+  --tier-4-bg: #F59E0B;
+  --tier-4-fg: #111111;
+  --tier-5-bg: #F87171;
+  --tier-5-fg: #111111;
+
   --background: 0 0% 6%;
   --foreground: 0 0% 96%;
   --card: 0 0% 10%;
@@ -214,6 +250,18 @@
   --color-warning: #F59E0B;
   --color-hypo: #7C3AED;
   --color-freeze: #0284C7;
+
+  /* Fund tiers: display tier 1 is strongest. */
+  --tier-1-bg: #22C55E;
+  --tier-1-fg: #111111;
+  --tier-2-bg: #85DFA6;
+  --tier-2-fg: #111111;
+  --tier-3-bg: #94A3B8;
+  --tier-3-fg: #111111;
+  --tier-4-bg: #F59E0B;
+  --tier-4-fg: #111111;
+  --tier-5-bg: #EF4444;
+  --tier-5-fg: #111111;
 
   --background: 0 0% 99%;
   --foreground: 0 0% 7%;

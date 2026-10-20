@@ -51,6 +51,23 @@ const sampleScoreSummary: PortfolioScoreSummary = {
 };
 
 describe("ScorerSection", () => {
+  it.each([
+    ["70", "High Quality Portfolio", "var(--color-positive)"],
+    ["50", "Moderate Quality Portfolio", "var(--color-text-secondary)"],
+    ["49.9", "Needs Review", "var(--color-warning)"],
+  ])("colours the portfolio verdict for score %s", (weighted_score, label, color) => {
+    render(<ScorerSection scoreSummary={{ ...sampleScoreSummary, weighted_score }} />);
+    expect(screen.getByText(label)).toHaveStyle({ color });
+  });
+
+  it.each([[1, 5], [5, 1]])("colours both tier markers for backend tier %s", (backendTier, displayTier) => {
+    render(<ScorerSection scoreSummary={{ ...sampleScoreSummary, funds: [{ ...sampleScoreSummary.funds[0], risk_adjusted_tier: backendTier }] }} />);
+    for (const text of [`T${displayTier}`, `Tier ${displayTier}`]) {
+      expect(screen.getByText(text).getAttribute("style")).toContain(`--tier-${displayTier}-bg`);
+      expect(screen.getByText(text).getAttribute("style")).toContain(`--tier-${displayTier}-fg`);
+    }
+  });
+
   it("renders portfolio weighted score and fund rows with tier badges and breakdown lines", () => {
     const handleSelect = vi.fn();
     render(<ScorerSection scoreSummary={sampleScoreSummary} onSelectFundScore={handleSelect} />);
