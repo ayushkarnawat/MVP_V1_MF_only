@@ -39,11 +39,17 @@ the key path is right.
 Block B1: where things are.
 
 ```bash
-crontab -l | grep -E '^(CRON_TZ|RUN=)|portfolio|fund-managers|scheme-master|analytics-recompute'
-cd /opt/unifolio/deploy/leapswitch 2>/dev/null || cd /srv/unifolio/deploy/leapswitch; pwd; docker compose ps
+sudo crontab -l | grep -E '^(CRON_TZ|RUN=)|portfolio|fund-managers|scheme-master|analytics-recompute'
+crontab -l 2>&1 | head -3
+cd /opt/unifolio/deploy/leapswitch 2>/dev/null || cd /srv/unifolio/deploy/leapswitch; pwd
+sudo docker compose ps
 ls -la /var/log/unifolio* 2>&1 | head
-grep -c '^OPS_ALERT_EMAIL=.' .env; grep -c '^EMAIL_DELIVERY_MODE=ses' .env
+sudo grep -c '^OPS_ALERT_EMAIL=.' .env; sudo grep -c '^EMAIL_DELIVERY_MODE=ses' .env
 ```
+
+Why `sudo`: the jobs are in **root's** crontab, and docker and `.env` need root on this VM
+(the repo's own scripts say so). The second line (`deploy`'s own crontab) is a check only: it
+should say "no crontab for deploy".
 
 **Good looks like:** the cron lines for the jobs; `pwd` printing the repo path; the services
 (postgres, backend, worker, caddy) up; two numbers, ideally `1` and `1`. A `0` on either means
@@ -52,6 +58,7 @@ the failure email cannot be sent.
 Block B2: the database questions (stay in the same shell as B1).
 
 ```bash
+sudo -s
 set -a; . ./.env; set +a
 C=$(docker compose ps -q postgres)
 q() { docker exec -e PGPASSWORD="$DB_PASSWORD" -i "$C" psql -U "$DB_USERNAME" -d "$DB_NAME" -c "$1"; }
@@ -66,6 +73,9 @@ q "SELECT name FROM schemes WHERE name ILIKE '%Smallcap250 Momentum%' OR name IL
 - the second shows each AMC's latest factsheet month;
 - the third is about 14,000 (AMFI's list is 14,390);
 - the fourth lists funds, which shows the scheme master is current.
+
+`sudo -s` opens a root shell in the same folder (the `.env` file is root-only). Type `exit` when
+done, and again to leave the VM.
 
 **Run `echo $DB_NAME` first** if you are unsure which database you are in. On the VM it is the
 local staging database, so there is no tunnel to open.
