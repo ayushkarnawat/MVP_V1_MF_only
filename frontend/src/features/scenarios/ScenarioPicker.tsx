@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { formatDateRange } from "@/lib/dateRange";
 import type { ScenarioSummary, ScenarioType } from "./types";
 
 export interface ScenarioPickerProps {
@@ -26,6 +27,7 @@ function ScenarioCard({ scenario, select }: { scenario: ScenarioSummary; select:
   const hypothetical = scenario.scenario_type === "HYPOTHETICAL";
   const frozen = Boolean(scenario.had_redemption_freeze_schemes?.length);
   const preview = hypothetical || frozen || scenario.has_phases ? null : quickStatLine(scenario);
+  const dates = formatDateRange(scenario.start_date, scenario.end_date, scenario.is_ongoing);
   return (
     <button type="button" onClick={() => select(scenario.scenario_id)} className={cn(
       "min-h-28 rounded-xl border bg-[var(--color-surface)] p-4 text-left space-y-3 hover:bg-[var(--color-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
@@ -35,7 +37,7 @@ function ScenarioCard({ scenario, select }: { scenario: ScenarioSummary; select:
         <span className="font-display font-bold text-[var(--color-ink)]">{scenario.name}</span>
         {frozen ? <Badge variant="outline" className="border-[var(--color-freeze)]">Freeze</Badge> : scenario.is_ongoing ? <Badge variant="outline"><span aria-hidden="true" className="mr-1 h-2 w-2 rounded-full bg-[var(--color-negative)] motion-safe:animate-pulse" />ongoing</Badge> : null}
       </div>
-      {scenario.start_date && <p className="text-xs text-[var(--color-text-secondary)]">{scenario.start_date} – {scenario.end_date ?? "ongoing"}</p>}
+      {dates && <p className="text-xs text-[var(--color-text-secondary)]">{dates}</p>}
       {hypothetical && <p className="text-xs text-[var(--color-hypo)]">Assumption-based</p>}
       {preview && <p className="text-xs tabular-nums text-[var(--color-text-secondary)]" title={scenario.quick_weight_quarter ? `Fund moves weighted by fund size in the quarter ending ${scenario.quick_weight_quarter}` : undefined}>{preview}</p>}
     </button>

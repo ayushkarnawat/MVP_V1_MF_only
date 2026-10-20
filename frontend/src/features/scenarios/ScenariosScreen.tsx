@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { formatDateRange } from "@/lib/dateRange";
 import { getScenarioResult, listScenarios } from "./api";
 import { HypotheticalResultView } from "./HypotheticalResultView";
 import { MultiPhaseResultView } from "./MultiPhaseResultView";
@@ -58,6 +59,7 @@ export function ScenariosScreen() {
     <button type="button" onClick={retry} className={actionClass}>Try again</button>
   </div>;
   const shape = result ? resolveResultShape(result.scenario) : null;
+  const dates = result ? formatDateRange(result.scenario.start_date, result.scenario.end_date, result.scenario.is_ongoing) : null;
 
   return <div className="space-y-6 text-[var(--color-ink)]">
     <h1 ref={headingRef} tabIndex={-1} className="font-display text-2xl font-bold focus:outline-none">Scenarios</h1>
@@ -65,6 +67,7 @@ export function ScenariosScreen() {
       <button type="button" onClick={() => select(null)} className={actionClass}>← Back to scenarios</button>
       {resultError ? errorCard(resultError, () => setResultAttempt(value => value + 1)) : result ? <>
         <h2 className="font-display text-xl font-semibold">{result.scenario.name}</h2>
+        {dates && <p data-testid="scenario-dates" className="text-sm text-[var(--color-text-secondary)]">{dates}</p>}
         {shape === "standard" && <StandardResultView result={result} />}
         {shape === "multi_phase" && <MultiPhaseResultView result={result} />}
         {shape === "redemption_freeze" && <RedemptionFreezeResultView result={result} />}

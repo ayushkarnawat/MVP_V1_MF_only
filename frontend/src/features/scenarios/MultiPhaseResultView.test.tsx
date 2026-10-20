@@ -10,6 +10,7 @@ it("keeps the whole-event headline, coverage and members apart from current-phas
   expect(screen.getByText(/Based on ₹20,00,000/)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /Ayush/ })).toBeInTheDocument();
   expect(screen.getByText("Current phase")).toBeInTheDocument();
+  expect(screen.getByText("28 February 2026 – 2 April 2026")).toBeInTheDocument();
   expect(screen.getByText("-3.00%")).toBeInTheDocument();
   expect(screen.getByText("-10.00%")).toBeInTheDocument();
   expect(screen.getByText(/Numbers will update as the event continues/)).toBeInTheDocument();

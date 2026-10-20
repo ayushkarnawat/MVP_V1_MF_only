@@ -10,6 +10,11 @@ const hypothetical: ScenarioSummary = { ...freeze, scenario_id: "h", name: "Poss
 const other: ScenarioSummary = { ...historical, scenario_id: "b", name: "Bull run", scenario_type: "BULL_RUN", display_rank: null };
 
 describe("ScenarioPicker", () => {
+  it("shows exact dates instead of ISO text on cards", () => {
+    render(<ScenarioPicker curated={[historical]} all={[]} isLoading={false} onSelectScenario={vi.fn()} />);
+    expect(screen.getByText("20 January 2020 – 31 March 2020")).toBeInTheDocument();
+    expect(screen.queryByText(/2020-01-20/)).toBeNull();
+  });
   it("shows labelled quick figures, freeze and ongoing states", () => {
     render(<ScenarioPicker curated={[historical, freeze, ongoing, hypothetical]} all={[]} isLoading={false} onSelectScenario={vi.fn()} />);
     expect(screen.getByText("Nifty 50 −38.00% · Equity funds −35.20% · Debt funds +1.10%")).toBeInTheDocument();

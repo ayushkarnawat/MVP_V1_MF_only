@@ -12,6 +12,14 @@ beforeEach(() => {
   vi.mocked(api.getScenarioResult).mockResolvedValue(historicalResult);
 });
 
+it.each(["standard", "freeze", "multi-phase"])("shows exact header dates for a %s scenario", async shape => {
+  const scenario = { ...historical, has_phases: shape === "multi-phase", had_redemption_freeze_schemes: shape === "freeze" ? ["Frozen Fund"] : null };
+  vi.mocked(api.getScenarioResult).mockResolvedValue({ ...historicalResult, scenario });
+  render(<ScenariosScreen />);
+  fireEvent.click(await screen.findByRole("button", { name: /COVID crash/ }));
+  expect(await screen.findByTestId("scenario-dates")).toHaveTextContent("20 January 2020 – 31 March 2020");
+});
+
 it("loads server lists, selects a real result and returns to the picker", async () => {
   render(<ScenariosScreen />);
   expect(screen.getByRole("status")).toBeInTheDocument();
@@ -24,13 +32,14 @@ it("loads server lists, selects a real result and returns to the picker", async 
 });
 
 it("dispatches a hypothetical with null fields to the assumptions-not-set state", async () => {
-  const scenario = { ...historical, scenario_type: "HYPOTHETICAL" as const };
+  const scenario = { ...historical, scenario_type: "HYPOTHETICAL" as const, start_date: null, end_date: null };
   vi.mocked(api.getScenarioResult).mockResolvedValue({ ...historicalResult, scenario, assumptions_not_set: true,
     portfolio_impact_pct: null, rupee_impact: null, covered_value: null, total_value: null, no_data_funds: null });
   render(<ScenariosScreen />);
   fireEvent.click(await screen.findByRole("button", { name: /COVID crash/ }));
   expect(await screen.findByText("We haven't set an assumption for this scenario yet — check back soon.")).toBeInTheDocument();
   expect(screen.queryByText(/₹|0\.00%/)).not.toBeInTheDocument();
+  expect(screen.queryByTestId("scenario-dates")).toBeNull();
 });
 
 it("keeps Back usable after a result error and supports retry", async () => {
