@@ -81,3 +81,15 @@
     opacity: 1;
   }
 }
+
+@media (max-width: 640px) {
+  .sheetBackdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .sheet {
+    max-width: 100%;
+    max-height: 92dvh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+}

@@ -40,3 +40,12 @@ describe("Modal", () => {
     expect(handleClose).toHaveBeenCalledTimes(2);
   });
 });
+
+
+it("default variant stays centered and sheet is opt-in", async () => {
+  const styles = (await import("./Modal.module.css")).default;
+  const { rerender } = render(<Modal isOpen onClose={vi.fn()} title="Variant">Body</Modal>);
+  expect(screen.getByRole("dialog")).not.toHaveClass(styles.sheet);
+  rerender(<Modal isOpen onClose={vi.fn()} title="Variant" variant="sheet">Body</Modal>);
+  expect(screen.getByRole("dialog")).toHaveClass(styles.sheet);
+});
