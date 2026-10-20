@@ -78,6 +78,9 @@ Implement the plan's **Tasks P3-T3 (bar chart: baseline, negative bars, switch s
 ## Run 7 result (2026-10-20)
 Built by Codex (124 frontend tests on Windows), verified by the orchestrator in WSL (4 files, 49 pass; after the rename 3 files 42 pass; tsc clean). Orchestrator change: the component file `PeriodBreakdown.tsx` was renamed `PeriodBreakdownTable.tsx` (and its test) because it differed from the logic file `periodBreakdown.ts` only by letter case, which Codex had to work around with explicit `.tsx` imports and would break on case-insensitive filesystems. Commits: P3-T3 `b4be207`, P3-T4 `3cdd173`. Codex found and fixed a real layout bug in self-review (a negative invested amount must be clamped before computing the upward scale, or a reversal plus an incoming switch drew outside the plot). The toggle appears on desktop and mobile through the shared section and is absent in print. P3-T5 (synthetic checks, orchestrator via a Sonnet subagent) is in progress; the browser check of the toggle is the user's.
 
+## Run 7 review (2026-10-20)
+Reviewer (Codex, manual, `/codex:adversarial-review` unavailable): **CHANGES NEEDED, one P2**: the chart scale used raw negative `withdrawn`/switch values while bars were drawn from clamped values, so with `invested 100, withdrawn -100, switchedOut 50` a segment drew past the plot bottom. Fixed by the orchestrator (small diff, file loaded): both extents now come from the same clamped values; regression test added (failed before, passes after; 35 tests in the chart and section files pass). A **scoped re-review of the fix commit** is folded into the next Codex review prompt instead of a separate relay.
+
 ## P1-T6 approved copy (D7 approved by the user, 2026-10-20) — used in its own run after Run 3
 Option A (explain the code as it is). The explainer text, verbatim; `scoreExplainerCopy.ts` holds exactly this, no edits:
 
