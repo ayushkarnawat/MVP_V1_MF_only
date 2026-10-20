@@ -474,6 +474,11 @@ moved, renumber both files and their `down_revision` values.
 
 ---
 
+### P2 execution notes
+**Added during execution (2026-10-20, user decision after the Opus review):** `dedupe_scenarios` also carries a data-loss guard. `ScenarioCopy` gained `assumption_count`; the diagnose table shows an `Assumptions` column; `DedupeReport.blocked` lists any group where a copy to remove holds more phases or hypothetical assumptions than the copy to keep, the dry run prints them as `BLOCKED`, and `--apply` raises `DedupeBlocked` (exit code 1, nothing deleted) until the user resolves that group by hand. The keep rule itself (Q17) is unchanged.
+**Not verified locally:** the two migrations on PostgreSQL (Docker access was denied in this environment); the Postgres roundtrip test is written (`test_0043_postgres_unique_top_level_name_roundtrip`, uses `head`) and must run before deploy.
+**Deploy-guide steps this phase needs (in order):** diagnose on each database and review the output with the user; `dedupe_scenarios.py` dry run; `--apply` (only if nothing is BLOCKED); `alembic upgrade head`; **`python scripts/compute_all_scenarios.py`** (the daily NAV job only recomputes `is_ongoing` scenarios, and Shock/Partial recovery are settled).
+
 ### P2 verification gate
 
 - [ ] Both migrations run up and down on a fresh SQLite database; on the local Postgres container too: `docker compose up postgres`, then the two migration tests against it (follow the `test_0028_postgres_…` pattern in `test_migrations.py`), because the partial index syntax differs.

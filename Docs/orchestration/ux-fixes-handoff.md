@@ -1,5 +1,5 @@
 # Handoff: ux-fixes (Analytics UX fixes, phases P1–P6)
-**Status:** IN_PROGRESS — Phase P1 DONE (review PASS, 9 commits); Run 5 = plan R4 (P2-T1, P2-T2, migrations 0042/0043) ready, 2026-10-20
+**Status:** IN_PROGRESS — P1 DONE; P2 DONE (Run 5, Opus review done, commits 8787390, c83ef2b); Run 6 = plan R5 (P3-T1, T2, T6) ready, 2026-10-20
 **Parent plan:** `Docs/superpowers/plans/2026-10-19-analytics-ux-fixes-plan.md` (binding; read "Global Constraints", "Locked decisions", "Review Focus" first, then only the run's tasks)
 **Spec copies:** `Docs/orchestration/analytics-ux-changes-spec/` (`analytics-ux-changes-v18.html`, `other-fixes.html`)
 **Orchestrator:** Claude Code · **Worker:** Codex (manual relay, one run per prompt)
@@ -61,6 +61,13 @@ Implement the plan's **Tasks P2-T1 (migration 0042, US-Iran phase end dates) and
 **Orchestrator finding (P2-T1 Step 5, done):** `refresh_nav_daily.py` only recomputes `is_ongoing=True` scenarios; the Shock and Partial recovery phases are `is_ongoing=False` (0037 lines 87-88), so the daily job will **not** refresh them after 0042. The deploy guide must run `python scripts/compute_all_scenarios.py` after the migration. Nothing for Codex to do; do not change the job.
 Reviewer: **Opus** (migrations and row deletion; D5 approved), run by the orchestrator.
 Report extras: the migration filenames and revision ids, the exact `dedupe_scenarios` keep rule as implemented, and every existing test you had to rename a scenario in.
+
+## Run 5 result (2026-10-20)
+Built by Codex (Windows: 128 tests in six files), verified by the orchestrator in WSL (27 targeted tests pass after the fixes below). **Opus review: CHANGES NEEDED, all addressed.** (1) MEDIUM: the keep rule ignored phase rows and hypothetical assumptions, which are unrecoverable seed data. User chose "refuse and show counts": diagnose shows an assumptions column, `--apply` refuses (exit 1, nothing deleted) when a copy to remove holds more phases or assumptions than the kept one. (2) LOW: stale phase results after 0042, so the deploy guide must run `compute_all_scenarios.py` (already recorded). (3) LOW: case/whitespace near-duplicates are not caught; accepted as a documented limitation, matches the spec. (4) LOW: Postgres roundtrip test now uses `head`. (5) LOW: test assertions strengthened (distinct decoy dates for the top-level same-named rows, contiguity of phases, kept copy's results survive). Fixes were made by the orchestrator (small diff, files loaded). **Not verified:** the migrations on PostgreSQL (no Docker access here). Commits: P2-T1 `8787390`, P2-T2 `c83ef2b`. Staging steps are separate user-confirmed deploy-guide steps (D3).
+
+## Run 6 (plan R5) — P3-T1, P3-T2, P3-T6
+Implement the plan's **Tasks P3-T1 (classification, totals and schema, backend), P3-T2 (frontend types and pure logic), P3-T6 (prove the benchmark XIRR uses each transaction's own date)** exactly, test-first, in that order. No migration, no new table. Locked decisions: Q1 (switches shown as their own pair; "Include switches" adds switched-in to Invested and switched-out to Withdrawn; Net invested and Gain unchanged; mergers and face-value conversions excluded), Q11 (opening holdings leave the bars; shown as a figure above the chart; the Invested tile still includes them). New schema fields all have defaults so saved payloads still load; `total_invested = sum of buckets + opening_holdings`. `is_conversion_description` and `direction_for` are consumed later by P6, so keep the signatures exactly as the plan states. Money is `Decimal` on the backend and decimal strings on the frontend. Backend on Windows from `backend\`; frontend from `frontend\`. Reviewer: **Opus** (money classification; D5 approved), run by the orchestrator.
+Report extras: the exact rules `direction_for` applies for each transaction type (a table), every existing test whose expected totals changed and why, and the results of the P3-T6 characterisation tests.
 
 ## P1-T6 approved copy (D7 approved by the user, 2026-10-20) — used in its own run after Run 3
 Option A (explain the code as it is). The explainer text, verbatim; `scoreExplainerCopy.ts` holds exactly this, no edits:
