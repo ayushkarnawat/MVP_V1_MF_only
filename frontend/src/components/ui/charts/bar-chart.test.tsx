@@ -91,6 +91,25 @@ describe("BarChart", () => {
     expect(Number(segment.getAttribute("height"))).toBeCloseTo(200);
   });
 
+  it("keeps every segment inside the plot when withdrawn or a switch value is negative", () => {
+    // plot spans y=8..208 at height 234 (8 margin top and bottom, 18 label band)
+    render(<BarChart width={320} height={234} data={[
+      { period: "a", invested: 100, withdrawn: -100, switchedOut: 50 },
+      { period: "b", invested: 100, withdrawn: 0, switchedIn: -50 },
+    ]} />);
+    for (const id of ["bar-invested-a", "bar-withdrawn-a", "bar-switched-out-a", "bar-invested-b", "bar-switched-in-b"]) {
+      const bar = screen.queryByTestId(id);
+      if (!bar) continue;
+      const y = Number(bar.getAttribute("y"));
+      const height = Number(bar.getAttribute("height"));
+      expect(y).toBeGreaterThanOrEqual(8 - 0.001);
+      expect(y + height).toBeLessThanOrEqual(208 + 0.001);
+    }
+    // one shared scale from the clamped values only: 100 up and 50 down fill the 200px plot
+    expect(Number(screen.getByTestId("bar-invested-a").getAttribute("height"))).toBeCloseTo(200 * 100 / 150);
+    expect(Number(screen.getByTestId("bar-invested-b").getAttribute("height"))).toBeCloseTo(200 * 100 / 150);
+  });
+
   it("labels periods under the bars, thinning labels when they would overlap", () => {
     const data = Array.from({ length: 24 }, (_, i) => ({ period: `p${i}`, invested: 1, withdrawn: 0 }));
     render(<BarChart width={600} height={200} data={data} formatLabel={(p) => p.toUpperCase()} />);

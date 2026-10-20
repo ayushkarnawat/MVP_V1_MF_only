@@ -39,8 +39,10 @@ function BarChartSvg({ data, selectedPeriod, onBarClick, formatLabel = (p) => p,
   // on a phone would be an unreadable smear.
   const maxLabels = Math.max(1, Math.floor(plotWidth / MIN_LABEL_SPACING));
   const labelStep = Math.max(1, Math.ceil(data.length / maxLabels));
-  const maxUp = Math.max(1, ...data.map(d => Math.max(0, d.invested) + (d.switchedIn ?? 0)));
-  const maxDown = Math.max(0, ...data.map(d => d.withdrawn + (d.switchedOut ?? 0)));
+  // Extents come from the same individually clamped values the bars are drawn
+  // from, so a negative withdrawn or switch value can't stretch the scale past the plot.
+  const maxUp = Math.max(1, ...data.map(d => Math.max(0, d.invested) + Math.max(0, d.switchedIn ?? 0)));
+  const maxDown = Math.max(0, ...data.map(d => Math.max(0, d.withdrawn) + Math.max(0, d.switchedOut ?? 0)));
   const scale = plotHeight / (maxUp + maxDown);
   const baselineY = MARGIN.top + maxUp * scale;
   const slot = data.length ? plotWidth / data.length : 0;
