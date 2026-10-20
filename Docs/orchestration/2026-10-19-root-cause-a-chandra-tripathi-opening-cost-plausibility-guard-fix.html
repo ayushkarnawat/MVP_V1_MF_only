@@ -224,7 +224,7 @@ else:
 <tr><td><code>test_touched_lot_prefers_average_cost_over_fifo_subtraction</code> <span class="chip closed" style="vertical-align:1px">new, proves the reorder matters</span></td><td>In-period purchase (500 @ 100, untouched) + partial sale of the opening lot (400 of 1000). FIFO-subtraction gives 8.33/unit — wrong, but would pass the old FIFO-primary loosened tier. Average cost gives exactly 50.0000/unit — correct, and wins under the new ordering because it's checked first.</td><td class="num">CAS_COST / 50.0000</td></tr>
 <tr><td><code>test_corrupted_zero_nav_point_does_not_defeat_the_floor</code></td><td>The one confirmed mfapi.in defect (3 Axis schemes share a corrupt <code>nav=0</code> row): filtering it out keeps the floor meaningful instead of a false 0.</td><td class="num">NAV_ON_START</td></tr>
 </tbody></table></div>
-<p>All five verified live, freshly re-run for this artifact: <code>test_opening_balance.py</code> — <b>15/15 pass</b>. Full filtered regression (<code>opening or import_ or holdings or xirr</code>, one unrelated pre-existing <code>xlwt</code>-import collection error excluded as always) — <b>581 passed, 2 skipped, 0 failed</b>.</p>
+<p>All five verified live, freshly re-run for this artifact: <code>test_opening_balance.py</code> — <b>15/15 pass</b> (17/17 as built, after PR #8 review added two loosened-band tests). Full filtered regression (<code>opening or import_ or holdings or xirr</code>, one unrelated pre-existing <code>xlwt</code>-import collection error excluded as always) — <b>581 passed, 2 skipped, 0 failed</b>.</p>
 </section>
 
 <section class="sec proof" id="proof">

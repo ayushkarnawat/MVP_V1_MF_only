@@ -147,11 +147,20 @@ export interface FamilyMemberStatus {
   has_data: boolean;
 }
 
+/** Present only when a headline XIRR is likely inflated by an undated opening
+ * balance. Both fields are decimal-fraction strings ("0.9785" = 98%). */
+export interface XirrDisclaimer {
+  alt_xirr: string | null;
+  opening_cost_share: string;
+}
+
 export interface AggregateHoldingsResponse {
   members: FamilyMemberStatus[];
   holdings: HoldingRow[];
   lifetime_xirr?: string | null;
   current_holdings_xirr?: string | null;
+  lifetime_xirr_disclaimer?: XirrDisclaimer | null;
+  current_holdings_xirr_disclaimer?: XirrDisclaimer | null;
   realized_summary?: RealizedSummary;
 }
 
@@ -159,12 +168,16 @@ export interface MemberHoldingsResponse {
   holdings: HoldingRow[];
   lifetime_xirr: string | null;
   current_holdings_xirr: string | null;
+  lifetime_xirr_disclaimer?: XirrDisclaimer | null;
+  current_holdings_xirr_disclaimer?: XirrDisclaimer | null;
   realized_summary?: RealizedSummary;
 }
 
 export type MemberHoldingsRows = HoldingRow[] & {
   lifetime_xirr?: string | null;
   current_holdings_xirr?: string | null;
+  lifetime_xirr_disclaimer?: XirrDisclaimer | null;
+  current_holdings_xirr_disclaimer?: XirrDisclaimer | null;
   realized_summary?: RealizedSummary;
 };
 

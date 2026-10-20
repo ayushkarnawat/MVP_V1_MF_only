@@ -743,3 +743,11 @@ ship-to-everyone-immediately call above. **Execution of all of this — the plan
 the actual code — happens in the intern's own Claude Code session/checkout, not here**, per
 Ayush's explicit instruction; this session only produced the analysis and the agreed fix
 shape. Lesson captured: [[feedback_planning_closing_audit_discipline]]'s 2026-10-20 addendum.
+
+## 2026-10-20 (later) — Chandra Tripathi fix: how undated opening-lot sale proceeds, manual opening balances and the popup's frontend scope were decided
+
+- **`alt_xirr` treats sale proceeds like cost and value:** the share of a sale that FIFO took from the CAS opening lot is removed from the alt flows (scaled by `1 - opening share`); only the dated share stays. Chosen over leaving proceeds in (which inflates `alt_xirr` and wrongly suppresses the disclaimer, the manager's PR finding). Dividend payouts stay unscaled for now (would need holdings at each payout date). Consequence accepted: a fully-sold opening lot builds no disclaimer.
+- **Only `origin == CAS_OPENING` rows are "undated":** a `MANUAL` opening balance is user-dated and stays in the alt flows.
+- **Frontend popup ships in the same PR as the backend** (not a later round), for everyone, no flag, per the 2026-10-19 decision; it closes on scope/member-filter change.
+- **Real-file gate:** run on the real `chandra.pdf` on 2026-10-20 after first being run on the synthetic reproduction while the real file was unavailable (the synthetic file proved faithful: identical numbers). Only the stale -5.59% drift baseline remains, as a separate follow-up.
+
