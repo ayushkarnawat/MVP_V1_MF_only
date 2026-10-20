@@ -295,7 +295,7 @@ export interface InvestmentWithdrawalEntry {
   date: string;
   type: string;
   amount: string;
-  direction: "invested" | "withdrawn" | "reversal";
+  direction: "invested" | "withdrawn" | "reversal" | "switched_in" | "switched_out" | "opening";
   scheme_name: string;
   household_member_id: string;
   household_member_name: string;
@@ -306,6 +306,8 @@ export interface InvestmentWithdrawalBucket {
   invested: string;
   withdrawn: string;
   entries: InvestmentWithdrawalEntry[];
+  switched_in?: string;
+  switched_out?: string;
 }
 
 export interface InvestmentWithdrawalSipSummary {
@@ -324,6 +326,10 @@ export interface InvestmentWithdrawalResult {
   yearly: InvestmentWithdrawalBucket[];
   sip_summary: InvestmentWithdrawalSipSummary;
   gifts_net: string; // value of gifts received minus given, at transfer value (ruling 9 Oct)
+  total_switched_in?: string;
+  total_switched_out?: string;
+  switch_count?: number;
+  opening_holdings?: string;
 }
 
 
