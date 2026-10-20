@@ -8,7 +8,19 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
+import pytest
+
 from app.models.reference import RankingWeight, Scheme, SchemeRanking
+import app.services.analytics.category_ranking as category_ranking_module
+
+
+@pytest.fixture(autouse=True)
+def _fresh_return_caches():
+    # Fund Ranking now reads category_ranking's shared per-day returns cache, so a mocked result
+    # left there by one test must never reach the next.
+    category_ranking_module._category_returns_cache.clear()
+    yield
+    category_ranking_module._category_returns_cache.clear()
 
 
 def _session():
@@ -107,7 +119,7 @@ def _horizon_fixture(n=4, *, missing_5y=False):
                 else (Decimal("0.20"), Decimal("0.22"), Decimal("0.24"), Decimal("0.232")) for index, scheme in enumerate(schemes)}
     patches = (
         patch.object(module, "get_category_peers", new=AsyncMock(return_value=_peers(schemes))),
-        patch.object(module, "_compute_category_returns_detailed", new=AsyncMock(return_value=detailed)),
+        patch.object(category_ranking_module, "_compute_category_returns_detailed", new=AsyncMock(return_value=detailed)),
         patch.object(module, "_latest_aaum_by_scheme", return_value={s.id: Decimal("300") if i == 0 else Decimal("100") for i, s in enumerate(schemes)}),
         patch.object(module, "_latest_ter_for_scheme", return_value=None),
         patch.object(module, "build_monthly_series_bulk", return_value={s.id: [] for s in schemes}),
@@ -158,7 +170,7 @@ def test_horizons_are_empty_for_unavailable_and_insufficient_history_rows(unavai
     db.add(scheme)
     db.commit()
     with patch.object(module, "get_category_peers", new=AsyncMock(return_value=_peers([scheme]))), \
-         patch.object(module, "_compute_category_returns_detailed", new=AsyncMock(return_value={})):
+         patch.object(category_ranking_module, "_compute_category_returns_detailed", new=AsyncMock(return_value={})):
         row = asyncio.run(compute_fund_ranking(db, scheme))
     assert row.horizons == {}
     assert row.plan_type == "regular"
@@ -235,7 +247,7 @@ def test_compute_fund_ranking_ranks_against_category_and_fills_neighbors():
 
     with (
         patch("app.services.analytics.fund_ranking.get_category_peers", new=AsyncMock(return_value=_peers(schemes))),
-        patch("app.services.analytics.fund_ranking._compute_category_returns_detailed", new=AsyncMock(return_value=detailed)),
+        patch("app.services.analytics.category_ranking._compute_category_returns_detailed", new=AsyncMock(return_value=detailed)),
         patch("app.services.analytics.fund_ranking._latest_aaum_by_scheme", return_value={}),
         patch("app.services.analytics.fund_ranking._latest_ter_for_scheme", return_value=None),
         patch("app.services.analytics.fund_ranking.build_monthly_series_bulk", return_value={s.id: [] for s in schemes}),
@@ -262,7 +274,7 @@ def test_compute_fund_ranking_top_rank_has_no_above_neighbors():
 
     with (
         patch("app.services.analytics.fund_ranking.get_category_peers", new=AsyncMock(return_value=_peers(schemes))),
-        patch("app.services.analytics.fund_ranking._compute_category_returns_detailed", new=AsyncMock(return_value=detailed)),
+        patch("app.services.analytics.category_ranking._compute_category_returns_detailed", new=AsyncMock(return_value=detailed)),
         patch("app.services.analytics.fund_ranking._latest_aaum_by_scheme", return_value={}),
         patch("app.services.analytics.fund_ranking._latest_ter_for_scheme", return_value=None),
         patch("app.services.analytics.fund_ranking.build_monthly_series_bulk", return_value={s.id: [] for s in schemes}),
@@ -295,7 +307,7 @@ def test_compute_fund_ranking_scheme_without_3y_history_is_insufficient():
 
     with (
         patch("app.services.analytics.fund_ranking.get_category_peers", new=AsyncMock(return_value=_peers([scheme]))),
-        patch("app.services.analytics.fund_ranking._compute_category_returns_detailed", new=AsyncMock(return_value={})),  # no scheme has 3y history
+        patch("app.services.analytics.category_ranking._compute_category_returns_detailed", new=AsyncMock(return_value={})),  # no scheme has 3y history
     ):
         row = asyncio.run(compute_fund_ranking(db, scheme))
 
@@ -314,7 +326,7 @@ def _ranked_fixture(n, universe_size=None):
     detailed = {s.id: (None, Decimal(f"0.{90 - i * 5:02d}"), None, Decimal(f"0.{90 - i * 5:02d}")) for i, s in enumerate(schemes)}
     patches = (
         patch("app.services.analytics.fund_ranking.get_category_peers", new=AsyncMock(return_value=_peers(schemes, universe_size))),
-        patch("app.services.analytics.fund_ranking._compute_category_returns_detailed", new=AsyncMock(return_value=detailed)),
+        patch("app.services.analytics.category_ranking._compute_category_returns_detailed", new=AsyncMock(return_value=detailed)),
         patch("app.services.analytics.fund_ranking._latest_aaum_by_scheme", return_value={}),
         patch("app.services.analytics.fund_ranking._latest_ter_for_scheme", return_value=None),
         patch("app.services.analytics.fund_ranking.build_monthly_series_bulk", return_value={s.id: [] for s in schemes}),

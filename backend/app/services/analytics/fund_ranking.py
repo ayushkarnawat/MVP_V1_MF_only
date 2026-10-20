@@ -28,6 +28,7 @@ from app.models.reference import RankingWeight, Scheme, SchemeRanking
 from app.services.analytics.category_ranking import (
     _THIN_CATEGORY_THRESHOLD,
     _aum_weighted_average,
+    _category_returns_detailed,
     _compute_category_returns_detailed,
     _latest_aaum_by_scheme,
     _rank_and_percentile,
@@ -103,9 +104,15 @@ def _renormalized_composite(
 
 
 async def _compute_category_ranking_scores(
-    db: Session, universe: list[Scheme], today: date
+    db: Session, universe: list[Scheme], today: date, *, returns_cache_key: tuple | None = None
 ) -> dict[uuid.UUID, dict]:
-    detailed = await _compute_category_returns_detailed(db, universe, today)
+    # With a key, read category_ranking's shared per-day returns cache (same key it uses for
+    # these peers), so the Fund Ranking and Category Ranking sections always show the same
+    # own return and category average for a fund even if NAVs refresh between the two calls.
+    if returns_cache_key is not None:
+        detailed = await _category_returns_detailed(db, universe, today, cache_key=("peers", *returns_cache_key))
+    else:
+        detailed = await _compute_category_returns_detailed(db, universe, today)
     if not detailed:
         return {}
 
@@ -198,7 +205,7 @@ async def _category_ranking_scores(
         if cached_today == today and now - cached_at <= _CATEGORY_RANKING_CACHE_TTL_SECONDS:
             return scores
 
-    scores = await _compute_category_ranking_scores(db, peers.schemes, today)
+    scores = await _compute_category_ranking_scores(db, peers.schemes, today, returns_cache_key=cache_key)
 
     # Empty peers usually mean AMFI was unreachable; don't hold that for 15 minutes.
     if peers.schemes:
