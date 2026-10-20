@@ -1,5 +1,5 @@
 # Handoff: ux-fixes (Analytics UX fixes, phases P1–P6)
-**Status:** IN_PROGRESS — Run 1 DONE (0efd5bf..ebccc2b, review PASS); Run 2 (P1-T5) with Codex; P1-T6 = option A, own run after R3 once copy approved, 2026-10-20
+**Status:** IN_PROGRESS — Run 1 DONE; Run 2 (P1-T5) committed, review batched with Run 3; Run 3 (P1-T7..T9) ready; P1-T6 own run after copy approval, 2026-10-20
 **Parent plan:** `Docs/superpowers/plans/2026-10-19-analytics-ux-fixes-plan.md` (binding; read "Global Constraints", "Locked decisions", "Review Focus" first, then only the run's tasks)
 **Spec copies:** `Docs/orchestration/analytics-ux-changes-spec/` (`analytics-ux-changes-v18.html`, `other-fixes.html`)
 **Orchestrator:** Claude Code · **Worker:** Codex (manual relay, one run per prompt)
@@ -36,6 +36,12 @@ DONE. Review PASS (fresh reviewer; /codex:adversarial-review unavailable in Code
 
 ## Run 2 — P1-T5 only (tier badge colours)
 Implement the plan's **Task P1-T5** exactly, frontend only: tokens in all four blocks of `tokens.css`, `tierStyle.ts` (`tierBadgeStyle`, `portfolioVerdict`, exported `PORTFOLIO_VERDICT_COLOURS`), applied to every element that renders "Tier N" and to the portfolio label. D4 decided: High green / Moderate slate / Needs Review amber. **Do not start P1-T6** (held on a doc-vs-code disagreement). Report extras: the contrast of each tier's bg/fg pair in light and dark if you can compute it, and every file where a fixed accent class was removed.
+
+## Run 2 result (2026-10-20)
+Built by Codex, verified by the orchestrator (31 tests in WSL, tokens match the plan in all four blocks), committed as the P1-T5 commit. Adversarial review is **batched with Run 3** (both frontend-only, small) to save a relay.
+
+## Run 3 — P1-T7, P1-T8, P1-T9
+Implement the plan's **Tasks P1-T7 (exact scenario dates), P1-T8 (Franklin headline when nothing was frozen), P1-T9 (AMC/Category/dashboard donut sort order)** exactly, frontend only, in that order, each with its own red/green. Locked decisions that apply: Q8 (exact dates on every scenario screen, month-only only as a fallback, read day/month/year from the ISO text, never a `Date` object), Q12 (neutral Franklin headline "None of your funds were frozen in this event", no portfolio impact figure), Q9/Q10 (AMC allocation opens smallest first, toggle to largest first, applies to the AMC tab, Category tab and the main dashboard donut on desktop and mobile; the asset-class view keeps its fixed order; slices keep their colour when the order flips). **Do not start P1-T6.** Report extras: the exact user-visible strings that changed (old → new) and every screen the sort toggle is wired into.
 
 ## Self-review (before printing the report)
 1. `git diff --stat` / `git status --porcelain`: only this run's files; `git diff --cached --stat` empty.
