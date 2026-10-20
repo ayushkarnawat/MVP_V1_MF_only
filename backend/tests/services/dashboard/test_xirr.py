@@ -185,7 +185,7 @@ def test_opening_lineage_switch_out_exits_lineage_switch_in_does_not_inherit_it(
 
 
 def _disclaimer_scenario(db_session, phone, opening_date, opening_units, opening_nav, extra_txns, current_value,
-                         typed_txns=(), units_held=None):
+                         typed_txns=(), units_held=None, manual_opening=None):
     """typed_txns: (type, date, units, nav, amount) rows of any type (bonus,
     reinvest, reversal ...); pass units_held when they change the unit count."""
     now = datetime.now(timezone.utc)
@@ -210,6 +210,13 @@ def _disclaimer_scenario(db_session, phone, opening_date, opening_units, opening
         db_session.add(Transaction(folio_id=folio.id, import_id=imp.id, type=TransactionType.PURCHASE_SIP,
                                    date=txn_date, origin=TransactionOrigin.CAS_ROW, amount=tu * tn, units=tu, nav=tn))
         total_units += tu
+    if manual_opening is not None:
+        # A user-entered opening balance (coverage-gap flow): origin MANUAL, dated by the user.
+        m_date, m_units, m_nav = manual_opening
+        mu, mn = Decimal(m_units), Decimal(m_nav)
+        db_session.add(Transaction(folio_id=folio.id, import_id=imp.id, type=TransactionType.OPENING_BALANCE,
+                                   date=m_date, origin=TransactionOrigin.MANUAL, amount=mu * mn, units=mu, nav=mn))
+        total_units += mu
     for kind, txn_date, txn_units, txn_nav, txn_amount in typed_txns:
         db_session.add(Transaction(folio_id=folio.id, import_id=imp.id, type=kind, date=txn_date,
                                    origin=TransactionOrigin.CAS_ROW, amount=Decimal(txn_amount),
@@ -319,3 +326,30 @@ def test_reversal_after_bonus_is_attributed_to_the_bonus_lot_not_the_opening_lot
     )
     assert result.lifetime_xirr_disclaimer is not None
     assert Decimal(result.lifetime_xirr_disclaimer.opening_cost_share) == Decimal("1")
+
+
+def test_opening_lineage_same_day_redemption_listed_before_opening_still_consumes_it():
+    # Same-date rows arrive in random-uuid order from SQL. Holdings sorts
+    # consuming types after adding ones; the lineage replay must too, or a
+    # redemption on the statement-start date runs on empty lots and is lost.
+    txns = [
+        _buy_txn(TransactionType.REDEMPTION, date(2020, 1, 1), "400", "15"),
+        _opening_txn(date(2020, 1, 1), "1000", "10"),
+    ]
+    units, cost = _opening_lineage(txns)
+    assert units == Decimal("600") and cost == Decimal("6000")
+
+
+def test_disclaimer_keeps_a_manual_opening_balance_in_the_alt_flows(db_session):
+    # A MANUAL opening balance carries a user-entered date, so it is a real
+    # dated flow: alt_xirr must keep it (cost AND value), not drop its cost
+    # while its units stay in the terminal value.
+    one_year_ago = date.today() - timedelta(days=365)
+    result = _disclaimer_scenario(
+        db_session, "+919500000020", one_year_ago, "1000", "10", [],
+        current_value="18000.00", manual_opening=(one_year_ago, "200", "12"),
+    )
+    assert result.lifetime_xirr is not None and Decimal(result.lifetime_xirr) > Decimal("0.35")
+    assert result.lifetime_xirr_disclaimer is not None
+    assert result.lifetime_xirr_disclaimer.alt_xirr is not None
+    assert Decimal(result.lifetime_xirr_disclaimer.alt_xirr) == pytest.approx(Decimal("0.25"), abs=Decimal("0.01"))

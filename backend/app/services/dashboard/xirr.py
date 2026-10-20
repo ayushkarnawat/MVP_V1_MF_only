@@ -14,7 +14,7 @@ from app.models.enums import TransactionOrigin, TransactionType
 from app.services.analytics.xirr import xirr
 from app.services.dashboard.cash_flow import _CREDIT_TYPES, _DEBIT_TYPES
 from app.services.dashboard.schemas import HoldingRow, XirrDisclaimerOut
-from app.services.lot_rules import apply_lot_rules, cost_per_unit, paid_amount
+from app.services.lot_rules import LOT_CONSUMING_TYPES, apply_lot_rules, cost_per_unit, paid_amount
 
 # #3: a gift isn't cash, but for returns a gift received is money put in at
 # its value and a gift given is money taken out, so neither distorts XIRR.
@@ -97,7 +97,10 @@ def _opening_lineage(folio_transactions: list[Transaction]) -> tuple[Decimal, De
     opening-lineage -- only units that have never left their original scheme
     since import still carry the statement-start placeholder date."""
     lots: list[list] = []
-    for txn in sorted(folio_transactions, key=lambda t: t.date):
+    # Same-date rows reach us in random-uuid order; sells must replay after
+    # buys (as holdings.py does) or a statement-start-day redemption would
+    # find no lots and be silently lost. sorted() is stable, so ties keep SQL order.
+    for txn in sorted(folio_transactions, key=lambda t: (t.date, t.type in LOT_CONSUMING_TYPES)):
         is_opening = txn.origin == TransactionOrigin.CAS_OPENING
         apply_lot_rules(lots, txn.type, txn.units, cost_per_unit(txn.units, txn.nav, txn.amount, txn.stamp_duty),
                          lambda u, n: [u, n, is_opening])
@@ -164,7 +167,11 @@ def _build_disclaimer(
         units_held, scheme_value = scheme_totals.get(scheme_id, (Decimal("0"), Decimal("0")))
         if units_held > 0:
             opening_value_remaining += opening_units / units_held * scheme_value
-    alt_flows = [t for t in relevant if t.type != TransactionType.OPENING_BALANCE]
+    # Only the CAS-statement opening rows are undated placeholders (matching
+    # _opening_lineage). A MANUAL opening balance carries a user-entered date,
+    # so it stays a real flow -- dropping its cost while its units remain in
+    # the terminal value would overstate alt_xirr.
+    alt_flows = [t for t in relevant if t.origin != TransactionOrigin.CAS_OPENING]
     alt_rate = portfolio_xirr(alt_flows, current_value - opening_value_remaining, extra_debit_types)
     # The actual gate: fire only if excluding the undated piece would bring
     # the number back under the ceiling (or leave nothing to compute). If
