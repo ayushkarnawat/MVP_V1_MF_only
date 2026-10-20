@@ -114,6 +114,10 @@ function MobileDashboardViewContent({
   const [lifetimeXirr, setLifetimeXirr] = useState<string | null>(null);
   const [lifetimeDisclaimer, setLifetimeDisclaimer] = useState<XirrDisclaimer | null>(null);
   const [xirrDisclaimerOpen, setXirrDisclaimerOpen] = useState(false);
+  // Close the popup when the member filter changes or the disclaimer goes away, so
+  // switching away and back never reopens it unasked.
+  const hasLifetimeDisclaimer = lifetimeDisclaimer !== null;
+  useEffect(() => { setXirrDisclaimerOpen(false); }, [holdingsMemberFilter, hasLifetimeDisclaimer]);
   const [sips, setSips] = useState<SipRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

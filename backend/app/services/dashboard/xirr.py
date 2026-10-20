@@ -76,8 +76,19 @@ def portfolio_xirr(
     transactions: list[Transaction],
     current_value: Decimal,
     extra_debit_types: frozenset[TransactionType] = frozenset(),
+    dated_share: dict[int, Decimal] | None = None,
 ) -> Decimal | None:
-    flows = [(transaction.date, _signed_amount(transaction, extra_debit_types)) for transaction in transactions]
+    """`dated_share` (keyed by id(transaction)) scales a row's cash flow to the
+    part that is NOT opening-lineage; only the disclaimer's alt_xirr passes it,
+    so the headline numbers are computed exactly as before."""
+    flows = []
+    for transaction in transactions:
+        amount = _signed_amount(transaction, extra_debit_types)
+        if dated_share is not None and id(transaction) in dated_share:
+            amount *= dated_share[id(transaction)]
+            if amount == 0:
+                continue
+        flows.append((transaction.date, amount))
     flows.append((date.today(), current_value))
     return xirr(flows)
 
@@ -90,39 +101,55 @@ def xirr_string(rate: Decimal | None) -> str | None:
     return format(rate, "f")
 
 
-def _opening_lineage(folio_transactions: list[Transaction]) -> tuple[Decimal, Decimal]:
+def _replay_opening_lineage(
+    folio_transactions: list[Transaction],
+) -> tuple[Decimal, Decimal, dict[int, Decimal]]:
     """Units/cost of one folio still sitting in their original opening lot,
-    untouched since. A switch re-anchors its units to a real, dated
-    transaction (the switch itself), so switched-away units are no longer
-    opening-lineage -- only units that have never left their original scheme
-    since import still carry the statement-start placeholder date."""
+    untouched since, plus -- for every sale-type row -- the share of its units
+    that came out of the opening lot (keyed by id(row)). A switch re-anchors
+    its units to a real, dated transaction (the switch itself), so
+    switched-away units are no longer opening-lineage -- only units that have
+    never left their original scheme since import still carry the
+    statement-start placeholder date."""
     lots: list[list] = []
+    opening_sold_share: dict[int, Decimal] = {}
     # Same-date rows reach us in random-uuid order; sells must replay after
     # buys (as holdings.py does) or a statement-start-day redemption would
     # find no lots and be silently lost. sorted() is stable, so ties keep SQL order.
     for txn in sorted(folio_transactions, key=lambda t: (t.date, t.type in LOT_CONSUMING_TYPES)):
         is_opening = txn.origin == TransactionOrigin.CAS_OPENING
+        opening_before = sum((lot[0] for lot in lots if lot[2]), Decimal("0"))
         apply_lot_rules(lots, txn.type, txn.units, cost_per_unit(txn.units, txn.nav, txn.amount, txn.stamp_duty),
                          lambda u, n: [u, n, is_opening])
+        if txn.type in LOT_CONSUMING_TYPES and txn.units:
+            opening_after = sum((lot[0] for lot in lots if lot[2]), Decimal("0"))
+            opening_sold_share[id(txn)] = min(max((opening_before - opening_after) / txn.units, Decimal("0")), Decimal("1"))
     units = sum((lot[0] for lot in lots if lot[2]), Decimal("0"))
     cost = sum((lot[0] * lot[1] for lot in lots if lot[2]), Decimal("0"))
+    return units, cost, opening_sold_share
+
+
+def _opening_lineage(folio_transactions: list[Transaction]) -> tuple[Decimal, Decimal]:
+    units, cost, _sold = _replay_opening_lineage(folio_transactions)
     return units, cost
 
 
 def _opening_lineage_by_scheme(
     transaction_rows: list[tuple[Transaction, uuid.UUID]],
-) -> dict[uuid.UUID, tuple[Decimal, Decimal]]:
+) -> tuple[dict[uuid.UUID, tuple[Decimal, Decimal]], dict[int, Decimal]]:
     by_folio: dict[uuid.UUID, list[Transaction]] = defaultdict(list)
     folio_scheme: dict[uuid.UUID, uuid.UUID] = {}
     for transaction, scheme_id in transaction_rows:
         by_folio[transaction.folio_id].append(transaction)
         folio_scheme[transaction.folio_id] = scheme_id
     result: dict[uuid.UUID, tuple[Decimal, Decimal]] = defaultdict(lambda: (Decimal("0"), Decimal("0")))
+    opening_sold_share: dict[int, Decimal] = {}
     for folio_id, folio_transactions in by_folio.items():
-        units, cost = _opening_lineage(folio_transactions)
+        units, cost, sold_share = _replay_opening_lineage(folio_transactions)
+        opening_sold_share.update(sold_share)
         prev_units, prev_cost = result[folio_scheme[folio_id]]
         result[folio_scheme[folio_id]] = (prev_units + units, prev_cost + cost)
-    return result
+    return result, opening_sold_share
 
 
 def _build_disclaimer(
@@ -134,6 +161,7 @@ def _build_disclaimer(
     lineage_by_scheme: dict[uuid.UUID, tuple[Decimal, Decimal]],
     scheme_totals: dict[uuid.UUID, tuple[Decimal, Decimal]],
     in_scope_schemes: set[uuid.UUID] | None,
+    opening_sold_share: dict[int, Decimal],
 ) -> XirrDisclaimer | None:
     # 2026-10-19: condition (b) used to be opening_cost_share >= 25% -- a proxy
     # for "would removing the undated opening lineage actually explain this
@@ -172,7 +200,12 @@ def _build_disclaimer(
     # so it stays a real flow -- dropping its cost while its units remain in
     # the terminal value would overstate alt_xirr.
     alt_flows = [t for t in relevant if t.origin != TransactionOrigin.CAS_OPENING]
-    alt_rate = portfolio_xirr(alt_flows, current_value - opening_value_remaining, extra_debit_types)
+    # Sale proceeds follow the same rule as cost and value: the part of a sale
+    # FIFO took from the opening lot belongs to undated units, so only the
+    # dated share stays in (PR review). Dividend payouts are not scaled -- they
+    # would need the holding at each payout date. dated_share = 1 - opening share.
+    dated_share = {key: Decimal("1") - share for key, share in opening_sold_share.items()}
+    alt_rate = portfolio_xirr(alt_flows, current_value - opening_value_remaining, extra_debit_types, dated_share)
     # The actual gate: fire only if excluding the undated piece would bring
     # the number back under the ceiling (or leave nothing to compute). If
     # alt_rate is ALSO implausible, the opening-balance dating isn't what's
@@ -238,17 +271,17 @@ def calculate_dashboard_xirr(
         sid = uuid.UUID(holding.scheme_id)
         u, v = scheme_totals[sid]
         scheme_totals[sid] = (u + Decimal(holding.units_held), v + (Decimal(holding.current_value) if holding.current_value is not None else Decimal("0")))
-    lineage_by_scheme = _opening_lineage_by_scheme(transaction_rows)
+    lineage_by_scheme, opening_sold_share = _opening_lineage_by_scheme(transaction_rows)
 
     return DashboardXirrSummary(
         lifetime_xirr=xirr_string(lifetime_rate),
         current_holdings_xirr=xirr_string(current_rate),
         lifetime_xirr_disclaimer=_build_disclaimer(
             transactions, _RELEVANT_TYPES, frozenset(), lifetime_value, lifetime_rate,
-            lineage_by_scheme, scheme_totals, None,
+            lineage_by_scheme, scheme_totals, None, opening_sold_share,
         ),
         current_holdings_xirr_disclaimer=_build_disclaimer(
             current_transactions, _FUND_RELEVANT_TYPES, frozenset({TransactionType.SWITCH_IN}), current_value, current_rate,
-            lineage_by_scheme, scheme_totals, current_scheme_ids,
+            lineage_by_scheme, scheme_totals, current_scheme_ids, opening_sold_share,
         ) if current_transactions else None,
     )

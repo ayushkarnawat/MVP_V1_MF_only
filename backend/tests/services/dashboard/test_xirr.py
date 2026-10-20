@@ -11,7 +11,7 @@ from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
 from app.services.dashboard.schemas import HoldingRow
-from app.services.dashboard.xirr import _opening_lineage, calculate_dashboard_xirr
+from app.services.dashboard.xirr import _opening_lineage, _replay_opening_lineage, calculate_dashboard_xirr
 
 
 def _holding(scheme_id: uuid.UUID, member_id: uuid.UUID) -> HoldingRow:
@@ -369,3 +369,48 @@ def test_current_holdings_disclaimer_is_built_from_the_current_scope(db_session)
     assert result.current_holdings_xirr_disclaimer is not None
     assert result.current_holdings_xirr_disclaimer == result.lifetime_xirr_disclaimer
     assert Decimal(result.current_holdings_xirr_disclaimer.alt_xirr) == pytest.approx(Decimal("0.2382"), abs=Decimal("0.005"))
+
+
+def test_disclaimer_excludes_redemption_proceeds_taken_from_the_opening_lot(db_session):
+    # PR review: a redemption that FIFO takes from the opening lot is proceeds
+    # of undated units. alt_xirr removes that lot's cost and value, so keeping
+    # the proceeds as an inflow (with no matching cost) inflates alt_xirr past
+    # the ceiling and wrongly suppresses the disclaimer.
+    # 1000 opening units (cost 10000, 365d ago); 600 units bought 180d ago at
+    # 12 (7200); 400 units redeemed 90d ago for 6000 (all from the opening lot,
+    # FIFO); 1200 units left worth 16000 today.
+    # By hand: alt = only the 600-unit purchase. Its half of today's value is
+    # 600/1200 * 16000 = 8000 on a 7200 cost over 180 days:
+    # (8000/7200)^(365/180) - 1 = about 23.8%, under the ceiling, so it fires.
+    result = _disclaimer_scenario(
+        db_session, "+919500000022", date.today() - timedelta(days=365), "1000", "10",
+        [(date.today() - timedelta(days=180), "600", "12")],
+        current_value="16000.00", units_held="1200",
+        typed_txns=[(TransactionType.REDEMPTION, date.today() - timedelta(days=90), "400", "15", "6000")],
+    )
+    assert Decimal(result.lifetime_xirr) > Decimal("0.35")
+    assert result.lifetime_xirr_disclaimer is not None
+    assert Decimal(result.lifetime_xirr_disclaimer.alt_xirr) == pytest.approx(Decimal("0.238"), abs=Decimal("0.01"))
+
+
+def test_replay_reports_the_opening_share_of_a_sale_that_spans_both_lots():
+    # 1000 opening units + 500 bought later; a 1200-unit sale takes all 1000
+    # opening units (FIFO) and 200 dated ones: 1000/1200 of it is opening-lineage.
+    # (Tested on the replay: once the opening lot is fully sold there is no
+    # lineage cost left, so the disclaimer itself is not built for that case.)
+    opening = _opening_txn(date(2020, 1, 1), "1000", "10")
+    buy = _buy_txn(TransactionType.PURCHASE_SIP, date(2020, 6, 1), "500", "12")
+    sale = _buy_txn(TransactionType.REDEMPTION, date(2020, 9, 1), "1200", "15")
+    units, cost, share = _replay_opening_lineage([opening, buy, sale])
+    assert units == Decimal("0") and cost == Decimal("0")
+    assert share[id(sale)] == Decimal("1000") / Decimal("1200")
+    assert id(buy) not in share and id(opening) not in share
+
+
+def test_replay_gives_a_sale_of_only_dated_units_a_zero_opening_share():
+    opening = _opening_txn(date(2020, 1, 1), "1000", "10")
+    buy = _buy_txn(TransactionType.PURCHASE_SIP, date(2020, 6, 1), "500", "12")
+    # A bounced SIP (REVERSAL) takes the newest lot, never the opening one.
+    reversal = _buy_txn(TransactionType.REVERSAL, date(2020, 6, 2), "500", "12")
+    _units, _cost, share = _replay_opening_lineage([opening, buy, reversal])
+    assert share[id(reversal)] == Decimal("0")

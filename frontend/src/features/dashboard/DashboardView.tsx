@@ -98,6 +98,11 @@ function DashboardViewContent({
   const [xirrMode, setXirrMode] = useState<"lifetime" | "current">("lifetime");
   const [xirrDisclaimers, setXirrDisclaimers] = useState<{ lifetime: XirrDisclaimer | null; current: XirrDisclaimer | null }>({ lifetime: null, current: null });
   const [xirrDisclaimerOpen, setXirrDisclaimerOpen] = useState(false);
+  // The popup belongs to the scope on screen: close it whenever the scope changes
+  // or its disclaimer goes away, so switching away and back never reopens it unasked.
+  // (Declared here, above the early returns, so the hook order never changes.)
+  const hasActiveXirrDisclaimer = (xirrMode === "lifetime" ? xirrDisclaimers.lifetime : xirrDisclaimers.current) !== null;
+  useEffect(() => { setXirrDisclaimerOpen(false); }, [xirrMode, hasActiveXirrDisclaimer]);
   const [sipTab, setSipTab] = useState<"upcoming" | "month">("upcoming");
   const today = new Date();
   const [sipMonth, setSipMonth] = useState<{ year: number; month: number }>({

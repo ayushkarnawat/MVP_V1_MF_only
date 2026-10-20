@@ -163,6 +163,23 @@ describe("DashboardView", () => {
       expect(within(dialog).getByText("Shown Current Holdings XIRR")).toBeInTheDocument();
       expect(within(dialog).getByText("Not enough dated activity left")).toBeInTheDocument();
     });
+
+    it("does not reopen the popup when the scope is switched away and back (PR review)", async () => {
+      mockWith({
+        lifetime_xirr_disclaimer: { alt_xirr: "-0.0353", opening_cost_share: "0.9785" },
+        current_holdings_xirr_disclaimer: null,
+      });
+      render(<DashboardView viewMode="member" memberId="m-1" />);
+      await screen.findByText("XIRR 193.97%");
+      fireEvent.click(screen.getByRole("button", { name: "Why this return may be misleading" }));
+      await screen.findByRole("dialog");
+
+      // Current has no disclaimer, so the popup unmounts; Lifetime again must not bring it back unasked.
+      fireEvent.click(screen.getByRole("tab", { name: "Current" }));
+      fireEvent.click(screen.getByRole("tab", { name: "Lifetime" }));
+      expect(screen.getByText(/Tap to see why/)).toBeInTheDocument();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
   });
 
   it.each([
