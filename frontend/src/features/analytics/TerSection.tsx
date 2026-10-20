@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatRupeesOrDash } from "@/lib/decimal";
+import { compareDecimalStrings, formatRupeesOrDash } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
 import { AlertCircle, Layers, Percent, TrendingDown } from "lucide-react";
 import type { DirectRegularTerComparison, WeightedTerSummary } from "./types";
@@ -10,6 +10,12 @@ export interface TerSectionProps {
   comparison: DirectRegularTerComparison | null;
   isLoading?: boolean;
   className?: string;
+}
+
+function planBarState(summary: WeightedTerSummary | undefined): "bar" | "none-held" | "no-ter" {
+  if (summary?.weighted_ter != null) return "bar";
+  if (!summary || compareDecimalStrings(summary.total_value, "0") === 0) return "none-held";
+  return "no-ter";
 }
 
 function parseTerNumber(val: string | null): number | null {
@@ -49,6 +55,8 @@ export function TerSection({
   const weightedTerNum = parseTerNumber(ter?.weighted_ter ?? null);
   const directTerNum = parseTerNumber(comparison?.direct?.weighted_ter ?? null);
   const regularTerNum = parseTerNumber(comparison?.regular?.weighted_ter ?? null);
+  const directBarState = planBarState(comparison?.direct);
+  const regularBarState = planBarState(comparison?.regular);
 
   const hasUncovered = ter?.uncovered_schemes && ter.uncovered_schemes.length > 0;
 
@@ -179,7 +187,7 @@ export function TerSection({
       </div>
 
       {/* Direct vs Regular Comparative Bar Visual */}
-      {comparison && (directTerNum !== null || regularTerNum !== null) && (
+      {comparison && (directBarState === "bar" || regularBarState === "bar") && (
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]/30 p-4 sm:p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
@@ -193,11 +201,11 @@ export function TerSection({
           {/* Comparative Bars */}
           <div className="space-y-3">
             {/* Direct Bar */}
-            <div>
+            {directBarState === "bar" ? <div>
               <div className="flex items-center justify-between text-xs font-medium mb-1">
                 <span className="text-[var(--color-ink)]">Direct Plans TER</span>
                 <span className="text-[var(--color-positive)] font-bold tabular-nums">
-                  {formatTerPercent(comparison.direct.weighted_ter)}
+                  {formatTerPercent(comparison.direct?.weighted_ter ?? null)}
                 </span>
               </div>
               <div className="h-3 w-full bg-[var(--color-bg)] rounded-full overflow-hidden border border-[var(--color-border)]/60">
@@ -206,14 +214,18 @@ export function TerSection({
                   style={{ width: `${Math.min(100, Math.max(4, ((directTerNum || 0) / maxTerVal) * 100))}%` }}
                 />
               </div>
-            </div>
+            </div> : <p className="text-xs text-[var(--color-text-secondary)]">
+              {directBarState === "none-held"
+                ? "No Direct plans in this portfolio, so there is nothing to compare against."
+                : "No TER on record for the Direct plans you hold."}
+            </p>}
 
             {/* Regular Bar */}
-            <div>
+            {regularBarState === "bar" ? <div>
               <div className="flex items-center justify-between text-xs font-medium mb-1">
                 <span className="text-[var(--color-ink)]">Regular Plans TER</span>
                 <span className="text-[var(--color-warning)] font-bold tabular-nums">
-                  {formatTerPercent(comparison.regular.weighted_ter)}
+                  {formatTerPercent(comparison.regular?.weighted_ter ?? null)}
                 </span>
               </div>
               <div className="h-3 w-full bg-[var(--color-bg)] rounded-full overflow-hidden border border-[var(--color-border)]/60">
@@ -222,7 +234,11 @@ export function TerSection({
                   style={{ width: `${Math.min(100, Math.max(4, ((regularTerNum || 0) / maxTerVal) * 100))}%` }}
                 />
               </div>
-            </div>
+            </div> : <p className="text-xs text-[var(--color-text-secondary)]">
+              {regularBarState === "none-held"
+                ? "No Regular plans in this portfolio, so there is nothing to compare against."
+                : "No TER on record for the Regular plans you hold."}
+            </p>}
           </div>
         </div>
       )}
