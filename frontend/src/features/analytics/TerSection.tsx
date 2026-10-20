@@ -1,9 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { compareDecimalStrings, formatRupeesOrDash } from "@/lib/decimal";
+import { compareDecimalStrings } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
 import { AlertCircle, Layers, Percent, TrendingDown } from "lucide-react";
 import type { DirectRegularTerComparison, WeightedTerSummary } from "./types";
+import { FundTerTable } from "./FundTerTable";
+import { movementRupees } from "./PeriodBreakdownTable";
 
 export interface TerSectionProps {
   ter: WeightedTerSummary | null;
@@ -28,6 +30,14 @@ function formatTerPercent(val: string | null): string {
   const num = parseTerNumber(val);
   if (num === null) return "N/A";
   return `${num.toFixed(2)}%`;
+}
+
+function YearlyCost({ value }: { value: string | null | undefined }) {
+  return value == null ? null : <p className="mt-2 text-xs text-[var(--color-text-secondary)] tabular-nums">{movementRupees(value)} / year at today's value</p>;
+}
+
+function exactRupeesOrDash(value: string | null | undefined): string {
+  return value == null ? "—" : movementRupees(value);
 }
 
 export function TerSection({
@@ -109,10 +119,11 @@ export function TerSection({
             )}
           </div>
 
+          <YearlyCost value={ter?.cost_1y} />
           <div className="mt-4 pt-3 border-t border-[var(--color-border)]/60 text-[11px] text-[var(--color-text-secondary)] flex items-center justify-between">
             <span>Portfolio Coverage</span>
             <span className="font-medium text-[var(--color-ink)] tabular-nums">
-              {formatRupeesOrDash(ter?.covered_value)} / {formatRupeesOrDash(ter?.total_value)}
+              {exactRupeesOrDash(ter?.covered_value)} / {exactRupeesOrDash(ter?.total_value)}
             </span>
           </div>
         </div>
@@ -143,10 +154,11 @@ export function TerSection({
             )}
           </div>
 
+          <YearlyCost value={comparison?.direct?.cost_1y} />
           <div className="mt-4 pt-3 border-t border-[var(--color-border)]/60 text-[11px] text-[var(--color-text-secondary)] flex items-center justify-between">
             <span>Direct Value</span>
             <span className="font-medium text-[var(--color-ink)] tabular-nums">
-              {formatRupeesOrDash(comparison?.direct?.total_value)}
+              {exactRupeesOrDash(comparison?.direct?.total_value)}
             </span>
           </div>
         </div>
@@ -177,10 +189,11 @@ export function TerSection({
             )}
           </div>
 
+          <YearlyCost value={comparison?.regular?.cost_1y} />
           <div className="mt-4 pt-3 border-t border-[var(--color-border)]/60 text-[11px] text-[var(--color-text-secondary)] flex items-center justify-between">
             <span>Regular Value</span>
             <span className="font-medium text-[var(--color-ink)] tabular-nums">
-              {formatRupeesOrDash(comparison?.regular?.total_value)}
+              {exactRupeesOrDash(comparison?.regular?.total_value)}
             </span>
           </div>
         </div>
@@ -242,6 +255,8 @@ export function TerSection({
           </div>
         </div>
       )}
+
+      {ter?.funds && ter.funds.length > 0 && <FundTerTable funds={ter.funds} summary={ter} />}
 
       {/* Uncovered Schemes Warning Callout */}
       {hasUncovered && (

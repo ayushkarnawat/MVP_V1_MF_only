@@ -21,12 +21,27 @@ export interface AggregateAnalyticsAllocationResponse {
   allocation: AnalyticsAllocationSummary;
 }
 
+export interface FundTerRow {
+  scheme_id: string;
+  scheme_name: string;
+  plan_type: string | null;
+  ter: string | null;
+  value: string;
+  cost_1y: string | null;
+  cost_3y: string | null;
+  cost_5y: string | null;
+}
+
 export interface WeightedTerSummary {
   weighted_ter: string | null;
   covered_value: string;
   total_value: string;
   reference_period: string | null;
   uncovered_schemes: string[];
+  cost_1y?: string | null;
+  cost_3y?: string | null;
+  cost_5y?: string | null;
+  funds?: FundTerRow[];
 }
 
 export interface DirectRegularTerComparison {
