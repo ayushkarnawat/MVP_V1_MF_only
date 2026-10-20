@@ -41,6 +41,7 @@ from app.services.analytics.schemas import (
     AggregateCategoryRankingResponse,
     CategoryRankingSummary,
     CategoryRankRow,
+    PeriodReturn,
 )
 from app.services.analytics.risk_metrics import years_ago
 from app.services.analytics.scheme_universe import CategoryPeers, canonical_category, get_category_peers
@@ -66,7 +67,7 @@ _BLEND_WEIGHT_5YR = Decimal("0.6")
 # `get_category_universe` result already shares the same category.
 _CATEGORY_RETURNS_CACHE_TTL_SECONDS = 15 * 60
 _category_returns_clock = time.monotonic
-_category_returns_cache: dict[object, tuple[float, date, dict[uuid.UUID, Decimal]]] = {}
+_category_returns_cache: dict[object, tuple[float, date, dict[uuid.UUID, tuple[Decimal | None, Decimal, Decimal | None, Decimal]]]] = {}
 _category_returns_cache_lock = threading.Lock()
 
 logger = logging.getLogger(__name__)
@@ -164,6 +165,13 @@ async def _compute_category_returns(db: Session, universe: list[Scheme], today: 
 
 
 async def _category_returns(db: Session, universe: list[Scheme], today: date, *, cache_key=None) -> dict[uuid.UUID, Decimal]:
+    detailed = await _category_returns_detailed(db, universe, today, cache_key=cache_key)
+    return {scheme_id: values[3] for scheme_id, values in detailed.items()}
+
+
+async def _category_returns_detailed(
+    db: Session, universe: list[Scheme], today: date, *, cache_key=None
+) -> dict[uuid.UUID, tuple[Decimal | None, Decimal, Decimal | None, Decimal]]:
     if not universe:
         return {}
     sebi_category = cache_key or universe[0].sebi_category
@@ -175,7 +183,7 @@ async def _category_returns(db: Session, universe: list[Scheme], today: date, *,
         if cached_today == today and now - cached_at <= _CATEGORY_RETURNS_CACHE_TTL_SECONDS:
             return returns
 
-    returns = await _compute_category_returns(db, universe, today)
+    returns = await _compute_category_returns_detailed(db, universe, today)
 
     with _category_returns_cache_lock:
         _category_returns_cache[sebi_category] = (now, today, returns)
@@ -220,6 +228,17 @@ def _latest_aaum_by_scheme(db: Session, scheme_ids: list[uuid.UUID]) -> dict[uui
     return {scheme_id: value for scheme_id, (_, value) in latest.items()}
 
 
+def category_period_averages(
+    detailed: dict[uuid.UUID, tuple[Decimal | None, Decimal, Decimal | None, Decimal]],
+    aaum_by_scheme: dict[uuid.UUID, Decimal],
+) -> dict[str, tuple[Decimal | None, int]]:
+    averages = {}
+    for period, index in (("1y", 0), ("3y", 1), ("5y", 2)):
+        pool = {sid: values[index] for sid, values in detailed.items() if values[index] is not None}
+        averages[period] = (_aum_weighted_average(pool, aaum_by_scheme), len(pool))
+    return averages
+
+
 async def compute_category_ranking(db: Session, household_member_ids: list[uuid.UUID]) -> CategoryRankingSummary:
     holdings = await compute_holdings(db, household_member_ids)
     if not holdings:
@@ -233,6 +252,7 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
 
     today = date.today()
     returns_by_category: dict[tuple, dict[uuid.UUID, Decimal]] = {}
+    detailed_by_category: dict[tuple, dict] = {}
     peers_by_category: dict[tuple, CategoryPeers] = {}
     rows: list[CategoryRankRow] = []
 
@@ -253,6 +273,7 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
                     percentile=None,
                     category_avg_return=None,
                     thin_category=False,
+                    plan_type=scheme.plan_type.value if scheme.plan_type is not None else None,
                 )
             )
             continue
@@ -261,13 +282,24 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
         if key not in returns_by_category:
             peers = await get_category_peers(db, sebi_category, scheme.plan_type)
             peers_by_category[key] = peers
-            returns_by_category[key] = await _category_returns(db, peers.schemes, today, cache_key=("peers", *key))
+            detailed_by_category[key] = await _category_returns_detailed(db, peers.schemes, today, cache_key=("peers", *key))
+            returns_by_category[key] = {sid: values[3] for sid, values in detailed_by_category[key].items()}
         returns = returns_by_category[key]
         rep_id = peers_by_category[key].representative_of.get(scheme.id)
         scheme_return = returns.get(rep_id)
         rank_info = _rank_and_percentile(returns, rep_id) if rep_id else None
         aaum_by_scheme = _latest_aaum_by_scheme(db, list(returns.keys()))
         category_avg = _aum_weighted_average(returns, aaum_by_scheme)
+        period_averages = category_period_averages(detailed_by_category[key], aaum_by_scheme)
+        own = detailed_by_category[key].get(rep_id)
+        periods = {
+            period: PeriodReturn(
+                fund_return=str(own[index]) if own[index] is not None else None,
+                category_avg=str(period_averages[period][0]) if period_averages[period][0] is not None else None,
+                peers=period_averages[period][1],
+            )
+            for period, index in (("1y", 0), ("3y", 1), ("5y", 2))
+        } if own is not None else {}
 
         rows.append(
             CategoryRankRow(
@@ -282,6 +314,8 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
                 percentile=str(rank_info[1]) if rank_info else None,
                 category_avg_return=str(category_avg) if category_avg is not None else None,
                 thin_category=len(returns) < _THIN_CATEGORY_THRESHOLD,
+                periods=periods,
+                plan_type=scheme.plan_type.value if scheme.plan_type is not None else None,
             )
         )
 

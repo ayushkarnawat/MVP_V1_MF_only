@@ -667,3 +667,80 @@ testing. **Still research/docs only, nothing implemented.**
   zero remaining research or design decisions — per Ayush's explicit end state, "the only thing
   left to do is implementation and testing."
 - **Nothing implemented**, same standing instruction.
+
+## 2026-10-19/20 — Chandra Tripathi XIRR/opening-cost fix: Root Cause B trigger redesigned on real data; intern pre-execution review then found 3 real gaps this session had missed
+
+**2026-10-19.** Root Cause A (opening-cost plausibility guard,
+`backend/app/services/import_/opening_balance.py`) and Root Cause B (XIRR opening-balance-
+dating disclaimer, `backend/app/services/dashboard/xirr.py`) both have standing, previously-
+written plans (`Docs/superpowers/plans/2026-10-19-root-cause-a-...md` /
+`...root-cause-b-...md`, plus matching HTML artifacts). Ayush raised a concern that the old
+Root Cause B trigger (`opening_cost_share >= 25%` AND XIRR > 35%) might miss cases where a
+CAS statement's window is much shorter than the fund's true holding age. A 27-scenario
+empirical grid, run against the real production `portfolio_xirr()` code (not hand-estimated),
+disproved that specific concern (distortion depends on the true-age/window-age *ratio*, not
+the window's absolute length — a 40yr lot in a 20yr window behaves identically to a 20yr lot
+in a 10yr window) but found a different, real blind spot: a 10–24% opening-lineage cost share
+can still swing a blended XIRR 2–8x past its true rate, silently, because the terminal value
+split is by units/value, not cost — a cheap, ancient lot can dominate value growth on a small
+slice of cost. Fix: drop the share floor; fire only when the headline rate exceeds 35% AND
+`alt_rate` (recomputed excluding the undated opening lineage, already being computed anyway)
+is `<= 35%` or `None`. Verified a strict improvement across all 27+4 scenarios: identical to
+the old design everywhere except the 4 previously-missed cases, zero new false positives.
+Also locked in, per Ayush's explicit override: the frontend disclaimer popup ships to
+everyone immediately, no staged rollout (no real users yet, DB routinely wiped). Both the
+plan `.md` and its HTML artifact were updated to match and committed (`a15f07c`). No code
+touched — both plans remain documentation-only, per the standing rule that Root Cause A and
+B's actual fixes land together, only once both are fully signed off.
+
+**2026-10-20.** The intern's own separate Claude Code session, reading both plans before
+executing them, raised three questions neither plan had resolved:
+1. Should `test_real_check.py` (the real-CAS gate, run against the real
+   `Docs/CAS Files/chandra.pdf`, password `MF@12345`) be re-run as a named acceptance step
+   after implementation? Confirmed from the harness code: NAV data is self-contained via the
+   `MASTER_FILE` snapshot env var, but `enrich.py`'s `MfApiClient` makes real
+   `https://api.mfapi.in` calls (24h disk cache) — a genuine external dependency the plans
+   never named as an acceptance requirement.
+2. A real correctness gap in Root Cause B: `_opening_lineage()`'s FIFO replay runs on
+   `transaction_rows`, filtered to `_FUND_RELEVANT_TYPES` for XIRR cash-flow purposes — a
+   filter that excludes `DIVIDEND_REINVEST`/`BONUS`/`SEGREGATION`, all genuine
+   `LOT_ADDING_TYPES` in `lot_rules.py`. Since `REVERSAL` (unlike every other consuming
+   transaction type) consumes newest-lot-first, a missing newer lot could make the lineage
+   tracer misattribute units/cost to the opening lot. Confirmed real by reading
+   `lot_rules.py` directly, not a hypothetical edge case.
+3. Root Cause A's plan doc has two genuine test-count arithmetic errors: "14/14 (10+1 flip)"
+   doesn't sum to 14 (should be 11), and "15/15 (11+1+3)" omits Task 4's fourth new test
+   despite the same sentence claiming Tasks 2–4 are all applied (should be 16/16 if Task 4
+   ships).
+
+Asked directly whether both plans were still "110% solid" after claiming full sign-off —
+answer: no. Items 2 and 3 were real misses in this session's own prior work (a correctness
+bug reused from a pre-filtered variable without re-auditing it for the new purpose; plain
+arithmetic errors), not natural clarifying questions an implementer would otherwise raise.
+Item 1 was a real gap in the acceptance criteria.
+
+**Second-order catch, same failure pattern, one level down:** this session's own proposed
+one-line fix for item 2 (widen the query's type filter) was itself under-audited — it missed
+that `current_transactions` has no independent type filter and silently relies on the query
+already being narrow, so widening it naively would have let the three newly-included types
+flow into `current_transactions` and corrupt `current_holdings_xirr` for any household with
+such a row. The intern's Claude Code session caught this during its own implementation-prep
+pass. Agreed fix, handed back to that session to apply: add
+`_LINEAGE_QUERY_TYPES = _FUND_RELEVANT_TYPES | {DIVIDEND_REINVEST, BONUS, SEGREGATION}` for
+the query only; explicitly re-filter `transactions` and `current_transactions` back to
+`_FUND_RELEVANT_TYPES` in Python; only `_opening_lineage_by_scheme` sees the unfiltered rows;
+add tests proving `current_holdings_xirr` is unchanged by a bonus/reinvest row and that a
+`REVERSAL` after one attributes to the correct lot.
+
+**Status: still documentation only.** No edits were made to either plan doc, to
+`opening_balance.py`, or to `xirr.py` from this side — per the standing rule, the intern's
+own Claude Code session (a separate checkout) applies the three fixes above to the plan docs
+and then executes both root causes together. What this will and won't fix for the real
+Chandra Tripathi household, once implemented: Root Cause A should correct the portfolio's
+total value/cost basis (the opening-lot plausibility guard); Root Cause B does **not** make
+the headline lifetime XIRR numerically "correct" — the true purchase dates behind an old
+opening balance are unknowable from a CAS statement alone — it makes a probably-distorted
+number visibly flagged instead of silently wrong. The real-file gate
+(`test_real_check.py` against `chandra.pdf`) is the step that actually proves both land
+correctly on the real data, and has not been re-run since either plan last changed.
+Lesson captured to memory: [[feedback_planning_closing_audit_discipline]].

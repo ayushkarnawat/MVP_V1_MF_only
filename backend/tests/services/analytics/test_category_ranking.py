@@ -552,12 +552,134 @@ def test_category_returns_cache_keeps_full_universe_and_plan_peers_separate():
     from app.models.enums import SchemePlanType
     db = _session()
     schemes = [_scheme(db, f"Fund {i}") for i in range(3)]
-    results = [{s.id: Decimal("0.1") for s in schemes}, {schemes[0].id: Decimal("0.2")}, {schemes[1].id: Decimal("0.3")}]
+    results = [{s.id: (None, Decimal("0.1"), None, Decimal("0.1")) for s in schemes},
+               {schemes[0].id: (None, Decimal("0.2"), None, Decimal("0.2"))},
+               {schemes[1].id: (None, Decimal("0.3"), None, Decimal("0.3"))}]
     category = schemes[0].sebi_category
-    with patch.object(category_ranking_module, "_compute_category_returns", new=AsyncMock(side_effect=results)):
+    with patch.object(category_ranking_module, "_compute_category_returns_detailed", new=AsyncMock(side_effect=results)):
         full = asyncio.run(_category_returns(db, schemes, _TODAY))
         direct = asyncio.run(_category_returns(db, schemes[:1], _TODAY, cache_key=("peers", category, SchemePlanType.DIRECT)))
         regular = asyncio.run(_category_returns(db, schemes[1:2], _TODAY, cache_key=("peers", category, SchemePlanType.REGULAR)))
         full_again = asyncio.run(_category_returns(db, schemes, _TODAY))
-    assert full == full_again == results[0]
-    assert direct == results[1] and regular == results[2]
+    assert full == full_again == {sid: values[3] for sid, values in results[0].items()}
+    assert direct == {sid: values[3] for sid, values in results[1].items()}
+    assert regular == {sid: values[3] for sid, values in results[2].items()}
+
+
+def test_category_period_averages_weights_each_period_by_aum():
+    from app.services.analytics.category_ranking import category_period_averages
+
+    a, b = uuid.uuid4(), uuid.uuid4()
+    detailed = {a: (Decimal("0.10"), Decimal("0.12"), Decimal("0.14"), Decimal("0.132")),
+                b: (Decimal("0.20"), Decimal("0.22"), None, Decimal("0.22"))}
+    assert category_period_averages(detailed, {a: Decimal("300"), b: Decimal("100")}) == {
+        "1y": (Decimal("0.125"), 2), "3y": (Decimal("0.145"), 2), "5y": (Decimal("0.14"), 1),
+    }
+
+
+def test_category_period_averages_are_none_without_aum_but_still_count_peers():
+    from app.services.analytics.category_ranking import category_period_averages
+
+    detailed = {uuid.uuid4(): (None, Decimal("-0.12"), None, Decimal("-0.12"))}
+    assert category_period_averages(detailed, {}) == {"1y": (None, 0), "3y": (None, 1), "5y": (None, 0)}
+
+
+def test_category_period_averages_count_return_peers_even_if_some_lack_aum():
+    from app.services.analytics.category_ranking import category_period_averages
+
+    a, b = uuid.uuid4(), uuid.uuid4()
+    detailed = {a: (Decimal("0"), Decimal("-0.12"), None, Decimal("-0.12")),
+                b: (Decimal("0.2"), Decimal("0.22"), None, Decimal("0.22"))}
+    assert category_period_averages(detailed, {a: Decimal("300")}) == {
+        "1y": (Decimal("0"), 2), "3y": (Decimal("-0.12"), 2), "5y": (None, 0),
+    }
+
+
+def _period_category_row(*, held_has_5y=True, plan_type=None, representative=False):
+    from app.models.enums import SchemePlanType
+
+    db = _session()
+    member = _household_member(db)
+    held = _scheme(db, "Held Fund")
+    held.plan_type = plan_type or SchemePlanType.DIRECT
+    _folio_with_purchase(db, member, held, Decimal("1000"), Decimal("100"), Decimal("10"), _START_3Y)
+    peer = _scheme(db, "Peer Fund")
+    rep = _scheme(db, "Held Growth") if representative else held
+    detailed = {rep.id: (Decimal("0.10"), Decimal("0.12"), Decimal("0.14") if held_has_5y else None, Decimal("0.132")),
+                peer.id: (Decimal("0.20"), Decimal("0.22"), Decimal("0.24"), Decimal("0.232"))}
+    db.add_all([SchemeAaum(scheme_id=rep.id, reference_period=_TODAY, aaum_value=Decimal("300")),
+                SchemeAaum(scheme_id=peer.id, reference_period=_TODAY, aaum_value=Decimal("100"))])
+    db.commit()
+    peers = CategoryPeers(schemes=[rep, peer], fund_count=2, representative_of={held.id: rep.id, peer.id: peer.id})
+    p1, p2, p3 = _mock_nav({held.id: {"today": Decimal("13")}})
+    with p1, p2, p3, patch.object(category_ranking_module, "get_category_peers", new=AsyncMock(return_value=peers)), \
+         patch.object(category_ranking_module, "_compute_category_returns_detailed", new=AsyncMock(return_value=detailed)):
+        row = asyncio.run(compute_category_ranking(db, [member.id])).funds[0]
+    db.close()
+    return row
+
+
+def test_compute_category_ranking_carries_the_three_periods_for_the_held_fund():
+    row = _period_category_row()
+    assert set(row.periods) == {"1y", "3y", "5y"}
+    assert row.periods["3y"].fund_return == "0.12"
+    assert row.periods["3y"].category_avg == "0.145"
+    assert row.periods["3y"].peers == 2
+    assert row.scheme_return == "0.132"  # Existing blended rank basis is unchanged.
+
+
+def test_a_fund_with_no_5y_shows_no_fund_return_but_keeps_the_category_average():
+    row = _period_category_row(held_has_5y=False)
+    assert row.periods["5y"].fund_return is None
+    assert row.periods["5y"].category_avg == "0.24"
+    assert row.periods["5y"].peers == 1
+
+
+def test_periods_follow_the_growth_representative():
+    assert _period_category_row(representative=True).periods["1y"].fund_return == "0.10"
+
+
+@pytest.mark.parametrize("plan", ["direct", "regular"])
+def test_plan_type_is_carried_as_direct_or_regular(plan):
+    from app.models.enums import SchemePlanType
+
+    assert _period_category_row(plan_type=SchemePlanType(plan)).plan_type == plan
+
+
+@pytest.mark.parametrize("unavailable", [True, False])
+def test_periods_are_empty_for_unavailable_and_insufficient_history_rows(unavailable):
+    db = _session()
+    member = _household_member(db)
+    held = _scheme(db, sebi_category="" if unavailable else "Equity Scheme - Flexi Cap Fund")
+    _folio_with_purchase(db, member, held, Decimal("1000"), Decimal("100"), Decimal("10"), _START_3Y)
+    p1, p2, p3 = _mock_nav({held.id: {"today": Decimal("13")}})
+    with p1, p2, p3, _mock_universe([held]):
+        row = asyncio.run(compute_category_ranking(db, [member.id])).funds[0]
+    assert row.periods == {}
+    assert row.category_unavailable is unavailable
+    assert row.insufficient_history is (not unavailable)
+    db.close()
+
+
+def test_detailed_returns_are_computed_once_for_the_blended_and_the_period_views():
+    from app.services.analytics.category_ranking import _category_returns_detailed
+
+    db = _session()
+    scheme = _scheme(db)
+    detailed = {scheme.id: (Decimal("0.1"), Decimal("0.12"), None, Decimal("0.12"))}
+    with patch.object(category_ranking_module, "_compute_category_returns_detailed", new=AsyncMock(return_value=detailed)) as compute:
+        blended = asyncio.run(_category_returns(db, [scheme], _TODAY))
+        periods = asyncio.run(_category_returns_detailed(db, [scheme], _TODAY))
+    assert blended == {scheme.id: Decimal("0.12")}
+    assert periods == detailed
+    assert compute.await_count == 1
+    db.close()
+
+
+def test_period_return_and_old_category_payload_defaults():
+    from app.services.analytics.schemas import CategoryRankRow, PeriodReturn
+
+    assert PeriodReturn().model_dump() == {"fund_return": None, "category_avg": None, "peers": 0}
+    original = _period_category_row().model_dump(exclude={"periods", "plan_type"})
+    restored = CategoryRankRow.model_validate(original)
+    assert restored.periods == {} and restored.plan_type is None

@@ -696,3 +696,50 @@ Both plans and all eight artifacts were revised so that the 28 decisions and the
 - **Found while applying (F17 to F21):** index-sheet workbooks whose sheets are named by scheme code (Bank of India's YB01 to YB44) would never match a scheme, which contradicts Q16's "no custom parse code" note; HTTP 200 does not prove a file (Mirae); attribute 13 depends on 02; the failed-file archive needs its own job role and environment variable (the job has `task_role_arn = null`); "any scheme written" as the done-test misses late per-scheme files. Two registry keys did not match AMFI's names (`The Wealth Company Mutual Fund`, `Monarch Mutual Fund`) and are corrected.
 - **Readings of the decisions that need your confirmation** (marked in the plans): Q12 "alert after day 10, again on day 20" as the runs of day 10 and day 20 only; Q10 retention as the newest 3 calendar months plus each scheme's newest `WRITTEN` batch; Q7's two coverage reasons derived from the registry; `stock_master` gains `pb_source` and `footnote` beyond the spec's columns; the overlap bands travel in the payload instead of a shared module; Task 2 is committed in two parts (backend, frontend); the Q6 check runs as a one-off Fargate task, not from the bastion.
 - **Still awaiting your go.** No execution has started.
+
+## 2026-10-19 — Root Cause B (XIRR opening-balance disclaimer): drop the 25% opening-cost-share floor; ship the frontend popup to everyone immediately
+
+The trigger for the XIRR distortion disclaimer changes from "`opening_cost_share >= 25%` AND
+rate > 35%" to "rate > 35% AND `alt_rate` (XIRR recomputed excluding the undated opening
+lineage) is `<= 35%` or `None`" — no share floor at all. **Why:** a 27-scenario empirical
+grid against the real `portfolio_xirr()` production code found the share-based proxy
+silently missed real cases (10–24% opening-lineage cost share still swinging a blended XIRR
+2–8x past its true rate), because the actual distortion depends on the *value* an old,
+cheaply-bought lot has grown into, not the *cost* share it started as. The grid also
+disproved Ayush's separate "deep CAS window" concern — distortion depends on the true-age/
+window-age ratio, not the window's absolute length, so no fix was needed for that part.
+Verified a strict improvement: identical to the old design on all 27+4 scenarios except the
+4 previously-missed ones, zero new false positives. **Also decided:** the frontend
+disclaimer popup ships to every user immediately on merge, no staged/phased rollout — Ayush's
+explicit override, since Unifolio has no real users yet and the staging DB is routinely
+wiped; revisit this specific call once real users exist. Detail:
+`Docs/superpowers/plans/2026-10-19-root-cause-b-chandra-tripathi-xirr-opening-balance-dating-disclaimer-fix.md`,
+committed `a15f07c`. **Still documentation only** — no code touched, per the standing rule
+that Root Causes A and B land together, only once both are fully signed off.
+
+## 2026-10-20 — Chandra Tripathi fix plans were not actually "fully signed off"; three real gaps found during the intern's pre-execution review, fixes agreed but applied by the intern's session, not here
+
+Asked directly whether both Root Cause A and B's plans were "110% solid" with zero open
+questions, as previously claimed — answer: **no.** The intern's own separate Claude Code
+session, reading both plans before executing them, found: (1) no named acceptance step
+requiring `test_real_check.py` to be re-run against the real `chandra.pdf` after
+implementation; (2) a real correctness gap in Root Cause B — `_opening_lineage()`'s lot
+replay runs on a transaction set already filtered to `_FUND_RELEVANT_TYPES`, which excludes
+`DIVIDEND_REINVEST`/`BONUS`/`SEGREGATION` (genuine lot-adding transaction types), risking a
+misattributed `REVERSAL` (the one transaction type that consumes newest-lot-first instead of
+oldest-first); (3) two genuine test-count arithmetic errors in Root Cause A's doc ("14/14"
+should be 11/11; "15/15" omits a fourth new test and should be 16/16 if that test ships).
+Items 2 and 3 were real misses in this project's own prior work, not natural implementer
+questions. **Decision: fix all three**, with the fix for item 2 going one step further than
+first proposed — widening the query that feeds `_opening_lineage()` would have also fed
+`current_transactions` (which has no type filter of its own) and silently changed
+`current_holdings_xirr`, a catch made by the intern's Claude Code session, not this one.
+Agreed final shape: a separate `_LINEAGE_QUERY_TYPES` used only for the DB query,
+`transactions`/`current_transactions` explicitly re-filtered back to `_FUND_RELEVANT_TYPES`
+in Python, only `_opening_lineage_by_scheme` sees the unfiltered rows. **Also decided:** the
+frontend disclaimer popup is built in this same execution pass (not deferred to "after
+backend sign-off" as the plan's own prose implied), consistent with the already-decided
+ship-to-everyone-immediately call above. **Execution of all of this — the plan-doc edits and
+the actual code — happens in the intern's own Claude Code session/checkout, not here**, per
+Ayush's explicit instruction; this session only produced the analysis and the agreed fix
+shape. Lesson captured: [[feedback_planning_closing_audit_discipline]]'s 2026-10-20 addendum.

@@ -31,6 +31,7 @@ from app.services.analytics.category_ranking import (
     _compute_category_returns_detailed,
     _latest_aaum_by_scheme,
     _rank_and_percentile,
+    category_period_averages,
 )
 from app.services.analytics.risk_metrics import (
     build_monthly_series_bulk,
@@ -45,6 +46,7 @@ from app.services.analytics.schemas import (
     FundRankingNeighbor,
     FundRankingRow,
     FundRankingSummary,
+    PeriodReturn,
 )
 from app.services.analytics.scheme_universe import CategoryPeers, canonical_category, get_category_peers
 from app.services.analytics.ter import _latest_ter_for_scheme
@@ -170,6 +172,16 @@ async def _compute_category_ranking_scores(
             "ter_value": ter_raw_by_scheme.get(scheme_id),
             "percentiles": percentiles,
         }
+    period_averages = category_period_averages(detailed, aaum_by_scheme)
+    for scheme_id, values in detailed.items():
+        scores[scheme_id]["horizons"] = {
+            period: PeriodReturn(
+                fund_return=str(values[index]) if values[index] is not None else None,
+                category_avg=str(period_averages[period][0]) if period_averages[period][0] is not None else None,
+                peers=period_averages[period][1],
+            )
+            for period, index in (("1y", 0), ("3y", 1), ("5y", 2))
+        }
     return scores
 
 
@@ -201,6 +213,7 @@ def _empty_ranking_row(
     empty_component = FundRankingComponent(percentile=None, raw=None)
     return FundRankingRow(
         scheme_id=str(scheme.id),
+        plan_type=scheme.plan_type.value if scheme.plan_type is not None else None,
         scheme_name=scheme.name,
         category_name=scheme.sebi_category or None,
         category_unavailable=category_unavailable,
@@ -280,6 +293,8 @@ async def _finish_fund_ranking(
         # D2: "#1 of 1" says nothing. No rank, no percentiles, no scheme_rankings row.
         return FundRankingRow(
             scheme_id=str(scheme.id), scheme_name=scheme.name, category_name=scheme.sebi_category,
+            plan_type=scheme.plan_type.value if scheme.plan_type is not None else None,
+            horizons={period: value.model_copy(update={"category_avg": None}) for period, value in scheme_scores["horizons"].items()},
             category_unavailable=False, insufficient_history=False, thin_category=True, too_few_peers=True,
             composite_score=None, category_rank=None, category_size=ranked,
             category_universe_size=peers.fund_count, percentile=None,
@@ -313,6 +328,8 @@ async def _finish_fund_ranking(
 
     return FundRankingRow(
         scheme_id=str(scheme.id), scheme_name=scheme.name, category_name=scheme.sebi_category,
+        plan_type=scheme.plan_type.value if scheme.plan_type is not None else None,
+        horizons=scheme_scores["horizons"],
         category_unavailable=False, insufficient_history=False,
         thin_category=ranked < _THIN_CATEGORY_THRESHOLD, too_few_peers=False,  # fix 3: ranked count
         composite_score=str(composite), category_rank=rank, category_size=ranked,

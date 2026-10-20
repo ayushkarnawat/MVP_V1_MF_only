@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.enums import AssetType, BenchmarkIndex, TransactionType
 from app.services.dashboard.schemas import AllocationBucket, MemberStatus
@@ -182,6 +182,12 @@ class AggregateFundVsBenchmarkResponse(BaseModel):
     comparison: FundVsBenchmarkSummary
 
 
+class PeriodReturn(BaseModel):
+    fund_return: str | None = None
+    category_avg: str | None = None
+    peers: int = 0
+
+
 class CategoryRankRow(BaseModel):
     """PRD-04 FR-3/FR-4 — one held scheme's blended-CAGR rank within its
     full SEBI-category peer universe, plus that category's AUM-weighted
@@ -199,6 +205,8 @@ class CategoryRankRow(BaseModel):
     percentile: str | None
     category_avg_return: str | None
     thin_category: bool
+    periods: dict[str, PeriodReturn] = Field(default_factory=dict)
+    plan_type: str | None = None
 
 
 class FundScoreRow(BaseModel):
@@ -358,6 +366,8 @@ class FundRankingRow(BaseModel):
     ranked_as: str | None         # the series ranked when it isn't the held one (e.g. IDCW -> Growth)
     neighbors: list[FundRankingNeighbor]
     components: FundRankingComponents
+    horizons: dict[str, PeriodReturn] = Field(default_factory=dict)
+    plan_type: str | None = None
 
 
 class FundRankingSummary(BaseModel):
