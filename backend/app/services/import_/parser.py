@@ -27,7 +27,7 @@ from casparser.types import CASData, NSDLCASData
 
 from app.core.decimal_utils import quantize_amount, quantize_nav, quantize_units, to_decimal
 from app.models.enums import TransactionType
-from app.services.lot_rules import apply_lot_rules, cost_per_unit
+from app.services.lot_rules import apply_lot_rules, cost_per_unit, is_conversion_description
 from app.services.import_.people import (
     ParsedPerson,
     extract_folio_holders,
@@ -323,7 +323,7 @@ _CONVERSION_TYPES = {"SWITCH_OUT", "SWITCH_OUT_MERGER", "SWITCH_IN", "SWITCH_IN_
 
 def _is_conversion(raw_type: str, description: str) -> bool:
     key = str(raw_type).split(".")[-1].upper()
-    return key in _CONVERSION_TYPES or any(label in (description or "").lower() for label in ("face value", "merger"))
+    return key in _CONVERSION_TYPES or is_conversion_description(description)
 
 
 def _fifo_cost(rows: list[NormalizedTransaction], opening_units: Decimal, consume: Decimal) -> tuple[Decimal, bool]:

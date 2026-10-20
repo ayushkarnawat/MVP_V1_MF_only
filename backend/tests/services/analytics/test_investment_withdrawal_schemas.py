@@ -29,3 +29,15 @@ def test_result_shape_matches_frontend_contract():
     )
     assert result.monthly[0].period == "2026-01"
     assert result.sip_summary.missed_count == 0
+
+
+def test_new_fields_default_so_old_payloads_load():
+    result = InvestmentWithdrawalResult.model_validate({
+        "total_invested": "1000.00", "total_withdrawn": "0.00", "net_invested": "1000.00",
+        "current_value": "1100.00", "absolute_gain": "100.00",
+        "monthly": [{"period": "2024-01", "invested": "1000.00", "withdrawn": "0.00", "entries": []}],
+        "yearly": [], "sip_summary": {"active_count": 0, "total_monthly_amount": "0.00", "missed_count": 0},
+    })
+    assert result.total_switched_in == result.total_switched_out == result.opening_holdings == "0.00"
+    assert result.switch_count == 0
+    assert result.monthly[0].switched_in == result.monthly[0].switched_out == "0.00"

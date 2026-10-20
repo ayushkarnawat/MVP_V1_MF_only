@@ -287,6 +287,8 @@ class InvestmentWithdrawalBucket(BaseModel):
     invested: str
     withdrawn: str
     entries: list[InvestmentWithdrawalEntry]
+    switched_in: str = "0.00"
+    switched_out: str = "0.00"
 
 
 class InvestmentWithdrawalSipSummary(BaseModel):
@@ -308,6 +310,10 @@ class InvestmentWithdrawalResult(BaseModel):
     # value. Not cash, so outside Invested/Withdrawn; absolute_gain excludes
     # it (decided 9 Oct). Non-zero drives the frontend's gift note.
     gifts_net: str = "0.00"
+    total_switched_in: str = "0.00"
+    total_switched_out: str = "0.00"
+    switch_count: int = 0
+    opening_holdings: str = "0.00"
 
 
 class AggregateInvestmentWithdrawalResponse(BaseModel):

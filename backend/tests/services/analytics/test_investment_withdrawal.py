@@ -5,6 +5,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -46,10 +47,11 @@ def _folio(db, member):
     return folio
 
 
-def _txn(db, folio, type_, on_date, amount, stamp_duty=None):
+def _txn(db, folio, type_, on_date, amount, stamp_duty=None, raw_description=None):
     db.add(Transaction(id=uuid.uuid4(), folio_id=folio.id, import_id=uuid.uuid4(), type=type_, date=on_date,
                        amount=Decimal(amount), units=Decimal("1.000"), nav=Decimal("50.0000"),
-                       stamp_duty=Decimal(stamp_duty) if stamp_duty else None))
+                       stamp_duty=Decimal(stamp_duty) if stamp_duty else None,
+                       raw_description=raw_description))
     db.commit()
 
 
@@ -63,6 +65,100 @@ def _run(db, member_ids, holdings_value="0.00", sips=()):
         patch(f"{_MODULE}.compute_active_sips", return_value=list(sips)),
     ):
         return asyncio.run(compute_investment_withdrawal(db, member_ids))
+
+
+def test_switch_legs_get_their_own_directions():
+    db = _session()
+    member = _member(db)
+    folio = _folio(db, member)
+    for kind in (TransactionType.SWITCH_OUT, TransactionType.SWITCH_IN):
+        _txn(db, folio, kind, date(2024, 3, 1), "400000.00")
+    result = _run(db, [member.id])
+    bucket = next(b for b in result.monthly if b.period == "2024-03")
+    assert (bucket.switched_out, bucket.switched_in) == ("400000.00", "400000.00")
+    assert (bucket.invested, bucket.withdrawn) == ("0.00", "0.00")
+    assert {entry.direction for entry in bucket.entries} == {"switched_in", "switched_out"}
+    assert result.switch_count == 1
+    assert (result.total_switched_out, result.total_switched_in) == ("400000.00", "400000.00")
+    assert (result.yearly[0].switched_out, result.yearly[0].switched_in) == ("400000.00", "400000.00")
+
+
+def test_switches_do_not_change_net_invested_or_gain():
+    db = _session()
+    member = _member(db)
+    folio = _folio(db, member)
+    _txn(db, folio, TransactionType.PURCHASE, date(2024, 3, 1), "10000.00")
+    before = _run(db, [member.id], holdings_value="12000.00")
+    _txn(db, folio, TransactionType.SWITCH_OUT, date(2024, 3, 2), "9000.00")
+    _txn(db, folio, TransactionType.SWITCH_IN, date(2024, 3, 3), "8500.00", stamp_duty="0.50")
+    after = _run(db, [member.id], holdings_value="12000.00")
+    assert (after.net_invested, after.absolute_gain) == (before.net_invested, before.absolute_gain)
+    assert after.total_switched_in == "8500.50"
+
+
+def test_a_merger_or_face_value_conversion_is_not_a_switch():
+    db = _session()
+    member = _member(db)
+    folio = _folio(db, member)
+    _txn(db, folio, TransactionType.PURCHASE, date(2024, 3, 1), "500.00")  # a real cash flow, so "no switch entries" is not vacuous
+    _txn(db, folio, TransactionType.SWITCH_OUT, date(2024, 3, 1), "1000.00", raw_description="Face value change")
+    _txn(db, folio, TransactionType.SWITCH_IN, date(2024, 3, 1), "1000.00", raw_description="MERGER OF X INTO Y")
+    result = _run(db, [member.id])
+    assert result.total_switched_in == result.total_switched_out == "0.00"
+    assert result.switch_count == 0
+    assert [e.direction for b in result.monthly for e in b.entries] == ["invested"]
+
+
+def test_a_switch_from_opening_holdings_counts_but_adds_nothing():
+    db = _session()
+    member = _member(db)
+    _txn(db, _folio(db, member), TransactionType.SWITCH_IN, date(2024, 3, 1), "0.00")
+    result = _run(db, [member.id])
+    [entry] = result.monthly[0].entries
+    assert (entry.direction, entry.amount) == ("switched_in", "0.00")
+    assert result.switch_count == 1
+    assert result.total_switched_in == result.total_switched_out == "0.00"
+
+
+def test_opening_holdings_are_reported_apart_and_left_out_of_the_bars():
+    db = _session()
+    member = _member(db)
+    folio = _folio(db, member)
+    _txn(db, folio, TransactionType.OPENING_BALANCE, date(2024, 1, 1), "500000.00")
+    _txn(db, folio, TransactionType.PURCHASE, date(2024, 2, 1), "10000.00")
+    result = _run(db, [member.id])
+    assert result.opening_holdings == "500000.00"
+    assert [b.invested for b in result.monthly[:2]] == ["0.00", "10000.00"]
+    assert result.monthly[0].entries[0].direction == "opening"
+    assert result.total_invested == "510000.00"
+    assert Decimal(result.total_invested) == sum(Decimal(b.invested) for b in result.monthly) + Decimal(result.opening_holdings)
+    assert (result.net_invested, result.absolute_gain) == ("510000.00", "-510000.00")
+
+
+def test_a_switch_posting_in_the_next_month_lands_in_that_month():
+    db = _session()
+    member = _member(db)
+    folio = _folio(db, member)
+    _txn(db, folio, TransactionType.SWITCH_OUT, date(2024, 3, 31), "1000.00")
+    _txn(db, folio, TransactionType.SWITCH_IN, date(2024, 4, 1), "1000.00")
+    result = _run(db, [member.id])
+    march, april = result.monthly[:2]
+    assert (march.period, march.switched_out, march.switched_in) == ("2024-03", "1000.00", "0.00")
+    assert (april.period, april.switched_out, april.switched_in) == ("2024-04", "0.00", "1000.00")
+    assert result.switch_count == 1
+
+
+@pytest.mark.parametrize("kind", list(TransactionType))
+def test_direction_for_covers_every_transaction_type(kind):
+    from app.services.analytics.investment_withdrawal import direction_for
+
+    expected = {
+        TransactionType.OPENING_BALANCE: "opening", TransactionType.REVERSAL: "reversal",
+        TransactionType.PURCHASE: "invested", TransactionType.PURCHASE_SIP: "invested",
+        TransactionType.REDEMPTION: "withdrawn", TransactionType.DIVIDEND_PAYOUT: "withdrawn",
+        TransactionType.SWITCH_IN: "switched_in", TransactionType.SWITCH_OUT: "switched_out",
+    }
+    assert direction_for(Transaction(type=kind, raw_description=None)) == expected.get(kind)
 
 
 def test_five_tile_formula_matches_worked_example():

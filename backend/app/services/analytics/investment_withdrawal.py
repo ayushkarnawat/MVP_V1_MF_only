@@ -26,12 +26,19 @@ from app.services.analytics.schemas import (
 from app.services.dashboard.cash_flow import _CREDIT_TYPES, _DEBIT_TYPES
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.sip import _references, compute_active_sips, missed_instalments
-from app.services.lot_rules import paid_amount
+from app.services.lot_rules import is_conversion_description, paid_amount
 
 _ZERO = Decimal("0.00")
 
 
-def _direction(txn_type: TransactionType) -> str | None:
+def direction_for(txn: Transaction) -> str | None:
+    txn_type = txn.type
+    if txn_type == TransactionType.OPENING_BALANCE:
+        return "opening"
+    if txn_type in (TransactionType.SWITCH_IN, TransactionType.SWITCH_OUT):
+        if is_conversion_description(txn.raw_description):
+            return None
+        return "switched_in" if txn_type == TransactionType.SWITCH_IN else "switched_out"
     # A bounced SIP's REVERSAL nets against Invested (decided 9 Oct): the money
     # never left the account, so it isn't a withdrawal. cash_flow.py keeps it a
     # credit for XIRR, where the arithmetic comes out the same.
@@ -52,6 +59,8 @@ def _bucket(period: str, entries: list[InvestmentWithdrawalEntry]) -> Investment
     invested = _sum(entries, "invested") - _sum(entries, "reversal")
     return InvestmentWithdrawalBucket(
         period=period, invested=f"{invested:.2f}", withdrawn=f"{_sum(entries, 'withdrawn'):.2f}", entries=entries,
+        switched_in=f"{_sum(entries, 'switched_in'):.2f}",
+        switched_out=f"{_sum(entries, 'switched_out'):.2f}",
     )
 
 
@@ -105,7 +114,7 @@ async def compute_investment_withdrawal(
             gifts_net += paid_amount(txn)
         elif txn.type == TransactionType.GIFT_OUT:
             gifts_net -= paid_amount(txn)
-        direction = _direction(txn.type)
+        direction = direction_for(txn)
         if direction is None:
             continue
         folio = folios[txn.folio_id]
@@ -120,7 +129,8 @@ async def compute_investment_withdrawal(
             household_member_name=members[folio.household_member_id].name,
         ))
 
-    total_invested = _sum(entries, "invested") - _sum(entries, "reversal")
+    opening_holdings = _sum(entries, "opening")
+    total_invested = _sum(entries, "invested") - _sum(entries, "reversal") + opening_holdings
     total_withdrawn = _sum(entries, "withdrawn")
 
     today = date.today()
@@ -169,6 +179,13 @@ async def compute_investment_withdrawal(
     return InvestmentWithdrawalResult(
         total_invested=f"{total_invested:.2f}",
         total_withdrawn=f"{total_withdrawn:.2f}",
+        total_switched_in=f"{_sum(entries, 'switched_in'):.2f}",
+        total_switched_out=f"{_sum(entries, 'switched_out'):.2f}",
+        switch_count=max(
+            sum(e.direction == "switched_in" for e in entries),
+            sum(e.direction == "switched_out" for e in entries),
+        ),
+        opening_holdings=f"{opening_holdings:.2f}",
         net_invested=f"{total_invested - total_withdrawn:.2f}",
         current_value=f"{current_value:.2f}",
         absolute_gain=f"{current_value + total_withdrawn - total_invested - gifts_net:.2f}",

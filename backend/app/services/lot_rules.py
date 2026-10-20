@@ -31,6 +31,11 @@ LOT_SELLING_TYPES = {TransactionType.REDEMPTION, TransactionType.SWITCH_OUT}
 LOT_CONSUMING_TYPES = LOT_SELLING_TYPES | {TransactionType.GIFT_OUT, TransactionType.REVERSAL}
 
 
+def is_conversion_description(description: str | None) -> bool:
+    text = (description or "").lower()
+    return "face value" in text or "merger" in text
+
+
 def cost_per_unit(units: Decimal, nav: Decimal, amount: Decimal | None, stamp_duty: Decimal | None) -> Decimal:
     """What a new lot cost per unit: the row's NAV, or (amount + stamp duty) ÷
     units when stamp duty was charged, so cost equals the CAS cost column
