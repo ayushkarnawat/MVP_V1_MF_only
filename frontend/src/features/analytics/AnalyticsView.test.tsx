@@ -401,12 +401,12 @@ describe("Fund Manager dashboard wiring", () => {
       scope: isAggregate ? "combined" : "m-1", recomputing: false, sections: buildSections(isAggregate),
     });
     render(<AnalyticsView viewMode={isAggregate ? "aggregate" : "member"} memberId={isAggregate ? null : "m-1"} />);
-    const card = await screen.findByRole("button", { name: /Jane Doe/ });
+    const row = (await screen.findByText("Jane Doe")).closest("tr")!;
     const heading = screen.getByRole("heading", { name: "Fund Manager Allocation" });
     const category = screen.getByRole("heading", { name: "SEBI Category Ranking & Peer Comparison" });
     expect(category.closest("section")?.nextElementSibling).toBe(heading.closest("section"));
-    fireEvent.click(card);
-    expect(screen.getByText("Manager Held Fund")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Fund manager allocation" })).toContainElement(row);
+    expect(screen.queryByText("Manager Held Fund")).not.toBeInTheDocument();
   });
 
   it("keeps PDF export disabled while fund_manager alone is pending", async () => {

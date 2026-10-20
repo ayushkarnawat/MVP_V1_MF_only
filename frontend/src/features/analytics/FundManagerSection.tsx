@@ -1,22 +1,25 @@
-import { useId, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatIndianCurrency } from "@/lib/decimal";
+import { formatDecimal } from "@/lib/decimal";
+import { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { movementRupees } from "./PeriodBreakdownTable";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, HelpCircle, Users } from "lucide-react";
+import { HelpCircle, Users } from "lucide-react";
 import type { FundManagerAllocationSummary } from "./types";
 
 export interface FundManagerSectionProps {
   data: FundManagerAllocationSummary | null;
   isLoading?: boolean;
   className?: string;
-  /** Every card open and no toggles: a static PDF can't click to reveal a manager's funds. */
+  /** The same static table is used on screen and in print. */
   printMode?: boolean;
 }
 
-export function FundManagerSection({ data, isLoading = false, className, printMode = false }: FundManagerSectionProps) {
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const sectionId = useId();
+function share(value: string | undefined): string {
+  if (value == null) return "—";
+  return `${formatDecimal(value).replace(/\.?0+$/, "")}%`;
+}
+
+export function FundManagerSection({ data, isLoading = false, className }: FundManagerSectionProps) {
 
   if (isLoading) {
     return (
@@ -54,63 +57,30 @@ export function FundManagerSection({ data, isLoading = false, className, printMo
         </div>
       ) : (
         <div className="space-y-3">
-          {managerGroups.map((group, index) => {
-            const isOpen = printMode || !!expanded[group.manager_name];
-            const fundsId = `${sectionId}-funds-${index}`;
-            return (
-              <div key={group.manager_name} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]/40">
-                {(() => {
-                  // A <button> may only hold phrasing content, so the header uses spans.
-                  const header = (
-                    <>
-                      <span className="min-w-0 flex items-center gap-2 flex-wrap break-words">
-                        <span className="font-display text-sm font-bold text-[var(--color-ink)]">{group.manager_name}</span>
-                        {group.role && (
-                          <Badge variant="outline" className="text-[10px] px-2 py-0 whitespace-normal">{group.role}</Badge>
-                        )}
-                      </span>
-                      <span className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs font-semibold text-[var(--color-ink)] tabular-nums">
-                          ₹{formatIndianCurrency(group.total_household_value)}
-                        </span>
-                        {!printMode && (isOpen ? <ChevronUp aria-hidden="true" className="h-4 w-4" /> : <ChevronDown aria-hidden="true" className="h-4 w-4" />)}
-                      </span>
-                    </>
-                  );
-                  return printMode ? (
-                    <div className="w-full flex items-center justify-between gap-3 p-4">{header}</div>
-                  ) : (
-                    <button
-                      type="button"
-                      aria-expanded={isOpen}
-                      aria-controls={fundsId}
-                      onClick={() => setExpanded((prev) => ({ ...prev, [group.manager_name]: !prev[group.manager_name] }))}
-                      className="w-full min-h-11 flex items-center justify-between gap-3 p-4 text-left rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
-                    >
-                      {header}
-                    </button>
-                  );
-                })()}
-                {isOpen && (
-                  <div id={fundsId} className="px-4 pb-4 space-y-2 border-t border-[var(--color-border)]/60 pt-3">
-                    {group.funds.map((fund) => (
-                      <div key={fund.scheme_id} className="flex items-center justify-between gap-3 text-xs">
-                        <div className="min-w-0 flex items-center gap-2 flex-wrap break-words">
-                          <span className="text-[var(--color-text-secondary)]">{fund.scheme_name}</span>
-                          {group.role === null && fund.role && (
-                            <Badge variant="outline" className="text-[10px] px-2 py-0 whitespace-normal">{fund.role}</Badge>
-                          )}
-                        </div>
-                        <span className="shrink-0 font-semibold text-[var(--color-ink)] tabular-nums">
-                          ₹{formatIndianCurrency(fund.household_value)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          <div className="min-w-0 max-w-full">
+            <Table aria-label="Fund manager allocation" className="min-w-[480px]">
+              <TableCaption>Funds with more than one manager are divided equally between them.</TableCaption>
+              <TableHeader><TableRow>
+                <TableHead scope="col">Fund manager</TableHead>
+                <TableHead scope="col">AMC</TableHead>
+                <TableHead scope="col" className="text-right">Current value</TableHead>
+                <TableHead scope="col" className="text-right">% of overall portfolio</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {managerGroups.map(group => <TableRow key={JSON.stringify([group.manager_name, group.amc_name])}>
+                  <TableHead scope="row" className="text-[var(--color-ink)]">{group.manager_name}</TableHead>
+                  <TableCell>{group.amc_name || "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums whitespace-nowrap">{movementRupees(group.total_household_value)}</TableCell>
+                  <TableCell className="text-right tabular-nums whitespace-nowrap">{share(group.percentage)}</TableCell>
+                </TableRow>)}
+              </TableBody>
+              <TableFooter><TableRow>
+                <TableHead scope="row" colSpan={2}>Covered by manager data</TableHead>
+                <TableCell className="text-right tabular-nums whitespace-nowrap">{data?.covered_value == null ? "—" : movementRupees(data.covered_value)}</TableCell>
+                <TableCell className="text-right tabular-nums whitespace-nowrap">{share(data?.covered_percentage)}</TableCell>
+              </TableRow></TableFooter>
+            </Table>
+          </div>
 
           {unavailable.length > 0 && (
             <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 flex items-start gap-2">

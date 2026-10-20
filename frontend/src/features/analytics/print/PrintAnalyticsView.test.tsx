@@ -85,17 +85,16 @@ describe("PrintAnalyticsView", () => {
     } });
     render(<PrintAnalyticsView />);
     await screen.findByText("PDF Manager");
-    expect(screen.getByText("Assistant Fund Manager")).toBeInTheDocument();
-    // The manager's total and, printed open, the fund's own value.
-    expect(screen.getAllByText("₹1,00,000")).toHaveLength(2);
-    expect(screen.getByText("PDF Held Fund")).toBeInTheDocument();
+    expect(screen.queryByText("Assistant Fund Manager")).not.toBeInTheDocument();
+    expect(screen.getByText("PDF Manager").closest("tr")).toHaveTextContent("₹1,00,000");
+    expect(screen.queryByText("PDF Held Fund")).not.toBeInTheDocument();
     expect(screen.getByText(/PDF Pending Fund/)).toHaveTextContent("Pending AMC");
     const category = screen.getByRole("heading", { name: "SEBI Category Ranking & Peer Comparison" });
     const manager = screen.getByRole("heading", { name: "Fund Manager Allocation" });
     expect(category.closest(".print-section")?.nextElementSibling).toBe(manager.closest(".print-section"));
   });
 
-  it("prints every manager's funds without a click (a PDF can't expand a card)", async () => {
+  it("prints the same manager table without roles or fund lists", async () => {
     vi.spyOn(api, "getExportPayload").mockResolvedValue({
       ...payload,
       fundManager: {
@@ -107,8 +106,10 @@ describe("PrintAnalyticsView", () => {
       },
     });
     render(<PrintAnalyticsView />);
-    expect(await screen.findByText("Printed Fund One")).toBeInTheDocument();
-    expect(screen.getByText("Assistant Fund Manager")).toBeInTheDocument();
+    await screen.findByRole("table", { name: "Fund manager allocation" });
+    expect(screen.getByText("Jane Doe").closest("tr")).toHaveTextContent("₹1,50,000");
+    expect(screen.queryByText("Printed Fund One")).not.toBeInTheDocument();
+    expect(screen.queryByText("Assistant Fund Manager")).not.toBeInTheDocument();
   });
 
   it("still prints an older export saved before fund ranking existed", async () => {

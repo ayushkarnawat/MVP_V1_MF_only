@@ -401,6 +401,8 @@ export interface ManagerFundRow {
 
 export interface ManagerGroup {
   manager_name: string;
+  amc_name?: string;
+  percentage?: string;
   role: string | null;
   total_household_value: string;
   funds: ManagerFundRow[];
@@ -415,6 +417,9 @@ export interface UnavailableScheme {
 export interface FundManagerAllocationSummary {
   manager_groups: ManagerGroup[];
   unavailable_schemes: UnavailableScheme[];
+  portfolio_value?: string;
+  covered_value?: string;
+  covered_percentage?: string;
 }
 
 export interface AggregateFundManagerAllocationResponse {
