@@ -1,102 +1,86 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { FundManagerSection } from "./FundManagerSection";
 import type { FundManagerAllocationSummary } from "./types";
 
 const summary: FundManagerAllocationSummary = {
-  manager_groups: [
-    {
-      manager_name: "Jane Doe", role: null, total_household_value: "200000",
-      funds: [{ scheme_id: "s1", scheme_name: "Fund A", household_value: "200000", sequence_order: 0, role: null }],
-    },
-    {
-      manager_name: "John Roe", role: "Assistant Fund Manager", total_household_value: "200000",
-      funds: [{ scheme_id: "s1", scheme_name: "Fund A", household_value: "200000", sequence_order: 1, role: "Assistant Fund Manager" }],
-    },
-  ],
+  manager_groups: [{ manager_name: "Anita", amc_name: "Alpha Mutual Fund", percentage: "37.50",
+    role: null, total_household_value: "150000.00", funds: [] }],
   unavailable_schemes: [{ scheme_id: "s3", scheme_name: "HDFC Balanced Fund", amc_name: "HDFC Mutual Fund" }],
+  portfolio_value: "400000.00", covered_value: "350000.00", covered_percentage: "87.50",
 };
 
 describe("FundManagerSection", () => {
-  it("renders separate co-manager cards in backend order with only source role badges", () => {
+  it("shows exactly four columns", () => {
     render(<FundManagerSection data={summary} />);
-    const cards = screen.getAllByRole("button");
-    expect(cards).toHaveLength(2);
-    expect(cards[0]).toHaveTextContent("Jane Doe");
-    expect(cards[1]).toHaveTextContent("John Roe");
-    expect(within(cards[0]).queryByText(/Manager/)).not.toBeInTheDocument();
-    expect(within(cards[1]).getByText("Assistant Fund Manager")).toBeInTheDocument();
-    expect(screen.queryByText(/Primary Manager|\+1 more/)).not.toBeInTheDocument();
-    expect(within(cards[0]).getByText("₹2,00,000")).toBeInTheDocument();
-    expect(screen.getByText("Who is actually running your money, aggregated across your whole portfolio")).toBeInTheDocument();
+    expect(screen.getAllByRole("columnheader").map(h => h.textContent)).toEqual([
+      "Fund manager", "AMC", "Current value", "% of overall portfolio",
+    ]);
   });
-
-  it("starts collapsed and independently expands and collapses co-managers' held funds", () => {
+  it("shows each manager's AMC, value and share", () => {
     render(<FundManagerSection data={summary} />);
-    const jane = screen.getByRole("button", { name: /Jane Doe/ });
-    const john = screen.getByRole("button", { name: /John Roe/ });
-    expect(jane).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("Fund A")).not.toBeInTheDocument();
-    fireEvent.click(jane);
-    expect(jane).toHaveAttribute("aria-expanded", "true");
-    expect(document.getElementById(jane.getAttribute("aria-controls")!)).toHaveTextContent("Fund A");
-    expect(screen.getAllByText("Fund A")).toHaveLength(1);
-    fireEvent.click(john);
-    expect(screen.getAllByText("Fund A")).toHaveLength(2);
-    fireEvent.click(jane);
-    expect(jane).toHaveAttribute("aria-expanded", "false");
-    expect(john).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getAllByText("Fund A")).toHaveLength(1);
+    const row = screen.getByText("Anita").closest("tr")!;
+    expect(row).toHaveTextContent("Alpha Mutual Fund");
+    expect(within(row).getByText("₹1,50,000")).toBeInTheDocument();
+    expect(within(row).getByText("37.5%")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
-
-  it("shows mixed roles on their own fund rows without a misleading card badge", () => {
-    render(<FundManagerSection data={{
-      manager_groups: [{ manager_name: "Jane Doe", role: null, total_household_value: "250000", funds: [
-        summary.manager_groups[0].funds[0],
-        { scheme_id: "s2", scheme_name: "Fund B", household_value: "50000", sequence_order: 1, role: "Assistant Fund Manager" },
-        { scheme_id: "s4", scheme_name: "Fund C", household_value: "0", sequence_order: 1, role: "Overseas Investments" },
-      ] }], unavailable_schemes: [],
-    }} />);
-    const card = screen.getByRole("button", { name: /Jane Doe/ });
-    expect(within(card).queryByText("Assistant Fund Manager")).not.toBeInTheDocument();
-    fireEvent.click(card);
-    expect(screen.getByText("Fund B").parentElement).toHaveTextContent("Assistant Fund Manager");
-    expect(screen.getByText("Fund C").parentElement).toHaveTextContent("Overseas Investments");
-    expect(screen.getByText("Fund A").parentElement).not.toHaveTextContent("Assistant Fund Manager");
-    expect(screen.queryByText("Primary Manager")).not.toBeInTheDocument();
-    expect(screen.getByText("₹50,000")).toBeInTheDocument();
-  });
-
-  it("shows the agreed role once on the card rather than repeating it on each fund", () => {
+  it("shows the covered total row and the equal-split footnote", () => {
     render(<FundManagerSection data={summary} />);
-    fireEvent.click(screen.getByRole("button", { name: /John Roe/ }));
-    expect(screen.getAllByText("Assistant Fund Manager")).toHaveLength(1);
+    const row = screen.getByText("Covered by manager data").closest("tr")!;
+    expect(row).toHaveTextContent("₹3,50,000");
+    expect(row).toHaveTextContent("87.5%");
+    expect(screen.getByText("Funds with more than one manager are divided equally between them.")).toBeInTheDocument();
   });
-
-  it("renders unresolved schemes and AMC names in the trailing unavailable block", () => {
+  it("keeps the not-available list", () => {
     render(<FundManagerSection data={summary} />);
     expect(screen.getByText("Fund manager data for these schemes isn't available yet.")).toBeInTheDocument();
     expect(screen.getByText(/HDFC Balanced Fund/)).toHaveTextContent("HDFC Balanced Fund (HDFC Mutual Fund)");
   });
-
-  it("keeps unavailable-only portfolios visible without fake manager cards", () => {
+  it("print mode shows the same table", () => {
+    const { container, rerender } = render(<FundManagerSection data={summary} />);
+    const table = screen.getByRole("table").outerHTML;
+    rerender(<FundManagerSection data={summary} printMode />);
+    expect(screen.getByRole("table").outerHTML).toBe(table);
+    expect(container.querySelector("button")).toBeNull();
+  });
+  it("an old payload without AMC and percentage renders dashes, not NaN", () => {
+    const { container } = render(<FundManagerSection data={{ manager_groups: [{
+      manager_name: "Old", role: null, total_household_value: "1234.50", funds: [],
+    }], unavailable_schemes: [] }} />);
+    const row = screen.getByText("Old").closest("tr")!;
+    expect(within(row).getAllByText("—")).toHaveLength(2);
+    expect(row).toHaveTextContent("₹1,235");
+    expect(within(screen.getByText("Covered by manager data").closest("tr")!).getAllByText("—")).toHaveLength(2);
+    expect(container.textContent).not.toMatch(/NaN|undefined/);
+  });
+  it("keeps the same manager at two AMCs in separate rows", () => {
+    render(<FundManagerSection data={{ ...summary, manager_groups: [summary.manager_groups[0], {
+      ...summary.manager_groups[0], amc_name: "Beta Mutual Fund", total_household_value: "100000.00", percentage: "25.00",
+    }] }} />);
+    expect(screen.getAllByText("Anita")).toHaveLength(2);
+    expect(screen.getByText("Beta Mutual Fund").closest("tr")).toHaveTextContent("25%");
+  });
+  it("keeps large and negative displayed money exact, with half-up rounding", () => {
+    render(<FundManagerSection data={{ ...summary, manager_groups: [{ ...summary.manager_groups[0],
+      total_household_value: "-9007199254740992.50", percentage: "-0.01",
+    }] }} />);
+    expect(screen.getByText("-₹9,00,71,99,25,47,40,993")).toBeInTheDocument();
+    expect(screen.getByText("-0.01%")).toBeInTheDocument();
+  });
+  it("keeps unavailable-only portfolios visible without fake manager rows", () => {
     render(<FundManagerSection data={{ ...summary, manager_groups: [] }} />);
-    expect(screen.getByRole("heading", { name: "Fund Manager Allocation" })).toBeInTheDocument();
     expect(screen.getByText(/isn't available yet/)).toBeInTheDocument();
     expect(screen.queryByText("No fund manager data available")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
-
-  it.each([null, { manager_groups: [], unavailable_schemes: [] }])("shows the empty state for %s", (data) => {
+  it.each([null, { manager_groups: [], unavailable_schemes: [] }])("shows the empty state for %s", data => {
     render(<FundManagerSection data={data} />);
-    expect(screen.getByRole("heading", { name: "Fund Manager Allocation" })).toBeInTheDocument();
     expect(screen.getByText("No fund manager data available")).toBeInTheDocument();
   });
-
-  it("shows skeletons rather than stale cards or an empty state while loading", () => {
+  it("skeleton while loading", () => {
     const { container } = render(<FundManagerSection data={summary} isLoading />);
     expect(container.querySelectorAll(".animate-pulse")).toHaveLength(3);
-    expect(screen.queryByText("Jane Doe")).not.toBeInTheDocument();
-    expect(screen.queryByText("No fund manager data available")).not.toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByText("Anita")).not.toBeInTheDocument();
   });
 });

@@ -65,3 +65,39 @@ describe("TerSection (#17)", () => {
     expect(container).not.toHaveTextContent(/NaN|undefined/);
   });
 });
+
+
+describe("TER projections", () => {
+  const portfolio = { ...summary("0.87"), cost_1y: "8250.00", cost_3y: "24750.00", cost_5y: "41250.00", funds: [
+    { scheme_id: "a", scheme_name: "Projected Fund", plan_type: "direct", ter: "0.65", value: "400000.00", cost_1y: "2600.00", cost_3y: "7800.00", cost_5y: "13000.00" },
+  ] };
+  it("shows portfolio, Direct and Regular rupees per year alongside percentages", () => {
+    render(<TerSection ter={portfolio} comparison={{ direct: { ...summary("0.65"), cost_1y: "2600.00" }, regular: { ...summary("1.03"), cost_1y: "5650.00" } }} />);
+    for (const value of ["₹8,250", "₹2,600", "₹5,650"]) expect(screen.getByText(`${value} / year at today's value`)).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Projected TER costs by fund" })).toBeInTheDocument();
+  });
+  it("an old payload has no table or yearly lines and no NaN or undefined", () => {
+    const { container } = render(<TerSection ter={summary("0.80")} comparison={{ direct: summary("0.60"), regular: summary("1.45") }} />);
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByText(/year at today's value/)).not.toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/NaN|undefined/);
+  });
+  it("the static section used in print exposes all cost horizons without a click", () => {
+    render(<TerSection ter={portfolio} comparison={null} />);
+    expect(screen.getByText("Projected Fund")).toBeInTheDocument();
+    for (const text of ["Next 1 year", "Next 3 years", "Next 5 years"]) expect(screen.getByRole("columnheader", { name: text })).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+  it.each(["direct", "regular"] as const)("shows only available yearly costs for a %s-only portfolio", plan => {
+    const comparison: DirectRegularTerComparison = { direct: { ...summary(null), total_value: "0" }, regular: { ...summary(null), total_value: "0" } };
+    comparison[plan] = { ...summary("0.65"), cost_1y: "2600.00" };
+    render(<TerSection ter={{ ...portfolio, cost_1y: "2600.00" }} comparison={comparison} />);
+    expect(screen.getAllByText("₹2,600 / year at today's value")).toHaveLength(2);
+  });
+});
+
+
+it("keeps card coverage money exact, with one half-up rounding", () => {
+  render(<TerSection ter={{ ...summary("0.80"), covered_value: "9007199254740992.50", total_value: "100.4999" }} comparison={null} />);
+  expect(screen.getByText("₹9,00,71,99,25,47,40,993 / ₹100")).toBeInTheDocument();
+});

@@ -212,3 +212,114 @@ def test_weighted_ter_and_comparison_never_reach_amfi():
         asyncio.run(compute_weighted_ter(db, [member.id]))
         asyncio.run(compute_direct_regular_ter_comparison(db, [member.id]))
     boom.assert_not_awaited()
+
+
+
+def _cost_summaries(specs):
+    """(name, value, TER, plan, optional shared scheme id); no database access."""
+    from types import SimpleNamespace
+    holdings = []
+    ter_values = {}
+    for name, value, ter, plan, *shared_id in specs:
+        scheme_id = shared_id[0] if shared_id else str(uuid.uuid4())
+        holdings.append(SimpleNamespace(scheme_id=scheme_id, scheme_name=name,
+                                       current_value=value, plan_type=plan))
+        if ter is not None:
+            ter_values[uuid.UUID(scheme_id)] = (Decimal(ter), date(2026, 10, 1))
+    with patch.object(ter_module, "compute_holdings", new=AsyncMock(return_value=holdings)), \
+         patch.object(ter_module, "_latest_ter_for_scheme", side_effect=lambda db, sid: ter_values.get(sid)):
+        portfolio = asyncio.run(compute_weighted_ter(None, []))
+        comparison = asyncio.run(compute_direct_regular_ter_comparison(None, []))
+    return portfolio, comparison
+
+
+def _cost_example():
+    return [("A", "400000.00", "0.65", PlanType.DIRECT),
+            ("B", "350000.00", "1.10", PlanType.REGULAR),
+            ("C", "200000.00", "0.90", PlanType.REGULAR),
+            ("Missing", "50000.00", None, PlanType.DIRECT)]
+
+
+def test_yearly_cost_is_value_times_ter_per_fund():
+    summary, _ = _cost_summaries(_cost_example()[:1])
+    assert (summary.cost_1y, summary.cost_3y, summary.cost_5y) == ("2600.00", "7800.00", "13000.00")
+    assert summary.funds[0].plan_type == "direct"
+
+
+def test_totals_equal_the_sum_of_the_fund_rows():
+    summary, _ = _cost_summaries(_cost_example())
+    assert (summary.cost_1y, summary.cost_3y, summary.cost_5y) == ("8250.00", "24750.00", "41250.00")
+    assert summary.weighted_ter == "0.87"
+    assert len(summary.funds) == 4
+    assert summary.funds[-1].ter is None
+    for field in ("cost_1y", "cost_3y", "cost_5y"):
+        assert sum(Decimal(getattr(f, field)) for f in summary.funds if getattr(f, field) is not None) == Decimal(getattr(summary, field))
+
+
+def test_direct_plus_regular_costs_add_up_to_the_portfolio():
+    summary, comparison = _cost_summaries(_cost_example())
+    assert comparison.direct.cost_1y == "2600.00"
+    assert comparison.regular.cost_1y == "5650.00"
+    for field in ("cost_1y", "cost_3y", "cost_5y"):
+        assert Decimal(getattr(comparison.direct, field)) + Decimal(getattr(comparison.regular, field)) == Decimal(getattr(summary, field))
+    assert comparison.direct.funds == comparison.regular.funds == []
+
+
+def test_a_fund_without_ter_is_listed_and_left_out_of_totals():
+    summary, _ = _cost_summaries(_cost_example())
+    row = summary.funds[-1]
+    assert row.scheme_name == "Missing"
+    assert row.value == "50000.00"
+    assert row.ter is row.cost_1y is row.cost_3y is row.cost_5y is None
+    assert Decimal(summary.covered_value) == Decimal("950000.00")
+
+
+def test_a_fund_held_by_two_members_is_one_row_with_combined_value():
+    sid = str(uuid.uuid4())
+    summary, comparison = _cost_summaries([
+        ("Shared", "0.50", "1.00", PlanType.DIRECT, sid),
+        ("Shared", "0.50", "1.00", PlanType.DIRECT, sid)])
+    assert len(summary.funds) == 1
+    assert summary.funds[0].value == "1.00"
+    # Round after combining members, not 0.005 -> 0.01 for each member.
+    assert summary.cost_1y == comparison.direct.cost_1y == "0.01"
+
+
+def test_nothing_covered_gives_no_costs():
+    summary, comparison = _cost_summaries([("Missing", "50000", None, PlanType.DIRECT)])
+    assert summary.cost_1y is summary.cost_3y is summary.cost_5y is None
+    assert len(summary.funds) == 1
+    assert comparison.direct.cost_1y is comparison.regular.cost_1y is None
+
+
+def test_rounding_adds_exactly():
+    summary, _ = _cost_summaries([("A", "333333.33", "0.75", PlanType.DIRECT)])
+    assert (summary.cost_1y, summary.cost_3y, summary.cost_5y) == ("2500.00", "7500.00", "12500.00")
+    # This distinguishes half-up from half-even and per-fund from total rounding.
+    summary, _ = _cost_summaries([("A", "0.50", "1.00", PlanType.DIRECT),
+                                ("B", "0.50", "1.00", PlanType.REGULAR)])
+    assert [f.cost_1y for f in summary.funds] == ["0.01", "0.01"]
+    assert (summary.cost_1y, summary.cost_3y, summary.cost_5y) == ("0.02", "0.06", "0.10")
+
+
+def test_new_fields_default_for_old_payloads():
+    from app.services.analytics.schemas import WeightedTerSummary
+    summary = WeightedTerSummary(weighted_ter=None, covered_value="0", total_value="0",
+                                 reference_period=None, uncovered_schemes=[])
+    assert summary.cost_1y is summary.cost_3y is summary.cost_5y is None
+    assert summary.funds == []
+
+
+def test_zero_ter_is_covered_and_single_plan_portfolios_have_costs():
+    for plan in (PlanType.DIRECT, PlanType.REGULAR):
+        summary, comparison = _cost_summaries([("Zero fee", "100.00", "0.00", plan)])
+        assert summary.cost_1y == "0.00"
+        assert summary.funds[0].ter == "0.00"
+        assert getattr(comparison, plan.value).cost_1y == "0.00"
+
+
+
+def test_fund_value_keeps_nav_precision_until_display_rounding():
+    summary, _ = _cost_summaries([("Precise NAV", "100.4999", "1.00", PlanType.DIRECT)])
+    assert summary.funds[0].value == "100.4999"
+    assert summary.cost_1y == "1.00"

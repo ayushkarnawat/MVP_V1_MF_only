@@ -232,18 +232,19 @@ describe("MobileAnalyticsView", () => {
     vi.clearAllMocks();
   });
 
-  it.each([true, false])("renders and expands fund_manager after Category Ranking (aggregate=%s)", async (isAggregate) => {
+  it.each([true, false])("renders the fund_manager table after Category Ranking (aggregate=%s)", async (isAggregate) => {
     vi.mocked(api.getAnalyticsScope).mockResolvedValue({
       scope: isAggregate ? "combined" : "m-1", recomputing: false, sections: buildSections(isAggregate),
     });
     render(<MobileAnalyticsView memberId={isAggregate ? null : "m-1"} />);
-    const card = await screen.findByRole("button", { name: /Mobile Manager/ });
+    const row = (await screen.findByText("Mobile Manager")).closest("tr")!;
     const heading = screen.getByRole("heading", { name: "Fund Manager Allocation" });
     const category = screen.getByRole("heading", { name: "SEBI Category Ranking & Peer Comparison" });
     expect(category.closest("section")?.nextElementSibling).toBe(heading.closest("section"));
-    expect(screen.getByText("Overseas Investments")).toBeInTheDocument();
-    fireEvent.click(card);
-    expect(screen.getByText("Mobile Manager Fund")).toBeInTheDocument();
+    expect(row).toHaveTextContent("Mobile Manager");
+    expect(screen.getByRole("table", { name: "Fund manager allocation" })).toContainElement(row);
+    expect(screen.queryByText("Overseas Investments")).not.toBeInTheDocument();
+    expect(screen.queryByText("Mobile Manager Fund")).not.toBeInTheDocument();
   });
 
   it("fetches and renders all 5 sections for mobile analytics dashboard", async () => {
