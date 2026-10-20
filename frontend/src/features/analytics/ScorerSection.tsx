@@ -6,12 +6,14 @@ import { AlertCircle, ChevronRight, HelpCircle, Star } from "lucide-react";
 import type { PortfolioScoreSummary } from "./types";
 import { displayTierFromBackendTier } from "./fundScoreVerdicts";
 import { portfolioVerdict, tierBadgeStyle } from "./tierStyle";
+import { ScoreExplainer } from "./ScoreExplainer";
 
 export interface ScorerSectionProps {
   scoreSummary: PortfolioScoreSummary | null;
   isLoading?: boolean;
   onSelectFundScore?: (schemeId: string, schemeName: string) => void;
   className?: string;
+  printMode?: boolean;
 }
 
 function parseScoreNum(val: string | null): number | null {
@@ -25,6 +27,7 @@ export function ScorerSection({
   isLoading = false,
   onSelectFundScore,
   className,
+  printMode = false,
 }: ScorerSectionProps) {
   if (isLoading) {
     return (
@@ -68,6 +71,8 @@ export function ScorerSection({
           </p>
         </div>
       </div>
+
+      {!printMode && <ScoreExplainer />}
 
       {/* Hero Stat: Portfolio Weighted Score */}
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]/50 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

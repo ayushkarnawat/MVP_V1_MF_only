@@ -51,6 +51,18 @@ const sampleScoreSummary: PortfolioScoreSummary = {
 };
 
 describe("ScorerSection", () => {
+  it("offers the score explainer in the section header", () => {
+    render(<ScorerSection scoreSummary={sampleScoreSummary} />);
+    fireEvent.click(screen.getByRole("button", { name: "How is this calculated?" }));
+    expect(screen.getByText("How the Unifolio Fund Score works")).toBeInTheDocument();
+  });
+
+  it("hides the score explainer in printMode", () => {
+    render(<ScorerSection scoreSummary={sampleScoreSummary} printMode />);
+    expect(screen.queryByRole("button", { name: "How is this calculated?" })).toBeNull();
+    expect(screen.queryByText("How the Unifolio Fund Score works")).toBeNull();
+  });
+
   it.each([
     ["70", "High Quality Portfolio", "var(--color-positive)"],
     ["50", "Moderate Quality Portfolio", "var(--color-text-secondary)"],
