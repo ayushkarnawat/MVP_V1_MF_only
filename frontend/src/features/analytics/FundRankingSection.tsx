@@ -6,6 +6,16 @@ import { toPercentString } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
 import { Trophy } from "lucide-react";
 import type { FundRankingComponent, FundRankingRow, FundRankingSummary } from "./types";
+import { PeriodReturnsTable } from "./PeriodReturnsTable";
+import { normalizeReturnFraction } from "./percentFormat";
+
+export const RANK_WEIGHTS = [
+  { key: "return_3y", label: "3Y return", weight: "25%", unit: "fraction" },
+  { key: "return_5y", label: "5Y return", weight: "25%", unit: "fraction" },
+  { key: "category_relative", label: "Category-relative", weight: "20%", unit: "fraction" },
+  { key: "low_volatility", label: "Low volatility", weight: "15%", unit: "fraction" },
+  { key: "low_ter", label: "Low TER", weight: "15%", unit: "percent" },
+] as const;
 
 export interface FundRankingSectionProps {
   data: FundRankingSummary | null;
@@ -27,7 +37,7 @@ function ordinal(n: number): string {
 // Returns, category-relative and downside deviation arrive as fractions ("0.241");
 // TER is already a percent ("0.75" = 0.75%, scheme_ter is Numeric(5, 2)).
 function formatRaw(raw: string, unit: "fraction" | "percent"): string {
-  return unit === "percent" ? `${raw}%` : `${toPercentString(raw)}%`;
+  return unit === "percent" ? `${raw}%` : `${toPercentString(normalizeReturnFraction(raw))}%`;
 }
 
 function shortCategory(name: string | null): string {
@@ -109,6 +119,8 @@ function FundLeaderboardCard({ fund }: { fund: FundRankingRow }) {
         <p className="text-xs font-semibold text-[var(--color-ink)] tabular-nums">
           3Y return {r3 !== null ? formatRaw(r3, "fraction") : "—"} · Expense ratio {ter !== null ? formatRaw(ter, "percent") : "—"}
         </p>
+        {(fund.plan_type === "direct" || fund.plan_type === "regular") && <p className="text-xs text-[var(--color-text-secondary)]">Compared with {fund.plan_type === "direct" ? "Direct" : "Regular"} plan peers</p>}
+        <PeriodReturnsTable periods={fund.horizons} />
       </div>
     );
   }
@@ -125,6 +137,7 @@ function FundLeaderboardCard({ fund }: { fund: FundRankingRow }) {
             <span className="block text-xs text-[var(--color-text-secondary)]">
               {fund.category_name}
             </span>
+            {(fund.plan_type === "direct" || fund.plan_type === "regular") && <span className="block text-xs text-[var(--color-text-secondary)]">Compared with {fund.plan_type === "direct" ? "Direct" : "Regular"} plan peers</span>}
             {fund.ranked_as && (
               <span className="block text-xs text-[var(--color-text-secondary)]">Ranked on {fund.ranked_as}</span>
             )}
@@ -140,6 +153,7 @@ function FundLeaderboardCard({ fund }: { fund: FundRankingRow }) {
           </span>
         )}
         <span className="block space-y-1">
+          <span className="block text-xs text-[var(--color-text-secondary)]">Composite score, 0 to 100</span>
           {above.map((n) => (
             <span key={n.scheme_id} className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
               <span>#{n.category_rank} {n.scheme_name}</span>
@@ -158,13 +172,10 @@ function FundLeaderboardCard({ fund }: { fund: FundRankingRow }) {
           ))}
         </span>
       </button>
+      {fund.horizons && Object.keys(fund.horizons).length > 0 && <div className="px-4 sm:px-5 pb-4"><PeriodReturnsTable periods={fund.horizons} /></div>}
       {expanded && (
         <div id={detailsId} className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-2 border-t border-[var(--color-border)]/60 pt-3">
-          <ComponentRow label="3Y return" weight="25%" component={fund.components.return_3y} />
-          <ComponentRow label="5Y return" weight="25%" component={fund.components.return_5y} />
-          <ComponentRow label="Category-relative" weight="20%" component={fund.components.category_relative} />
-          <ComponentRow label="Low volatility" weight="15%" component={fund.components.low_volatility} />
-          <ComponentRow label="Low TER" weight="15%" component={fund.components.low_ter} unit="percent" />
+          {RANK_WEIGHTS.map(({ key, label, weight, unit }) => <ComponentRow key={key} label={label} weight={weight} component={fund.components[key]} unit={unit} />)}
         </div>
       )}
     </div>
@@ -189,6 +200,8 @@ export function FundRankingSection({ data, isLoading = false, className }: FundR
         <h2 className="font-display text-lg font-bold tracking-tight text-[var(--color-ink)]">Fund Ranking</h2>
         <Trophy className="h-4 w-4 text-[var(--color-accent)]" />
       </div>
+
+      <p className="text-xs text-[var(--color-text-secondary)]">Overall rank = composite score: {RANK_WEIGHTS.map(({ label, weight }) => `${label[0].toLowerCase()}${label.slice(1)} ${weight}`).join(", ")}.</p>
 
       {funds.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">

@@ -49,6 +49,60 @@ const summary: FundRankingSummary = {
   ],
 };
 
+describe("fund return horizons", () => {
+  const horizons = {
+    "1y": { fund_return: "0.124", category_avg: "0.10", peers: 62 },
+    "3y": { fund_return: "0.241", category_avg: "0.20", peers: 62 },
+    "5y": { fund_return: null, category_avg: "0.18", peers: 40 },
+  };
+
+  it("names the basis of the overall rank", () => {
+    render(<FundRankingSection data={{ funds: [summary.funds[0]] }} />);
+    expect(screen.getByText("Overall rank = composite score: 3Y return 25%, 5Y return 25%, category-relative 20%, low volatility 15%, low TER 15%.")).toBeInTheDocument();
+  });
+
+  it("shows the returns table under the rank line when horizons are present", () => {
+    render(<FundRankingSection data={{ funds: [{ ...summary.funds[0], horizons }] }} />);
+    const rank = screen.getByText("#8 of 62 ranked · 70 in category · Top 13%");
+    const table = screen.getByRole("table");
+    expect(rank.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText("+12.40%")).toBeInTheDocument();
+    expect(within(table).getAllByText("—")).toHaveLength(2);
+    expect(screen.queryByText(/1Y rank|3Y rank|5Y rank/i)).not.toBeInTheDocument();
+  });
+
+  it("labels the neighbour scores", () => {
+    render(<FundRankingSection data={{ funds: [summary.funds[0]] }} />);
+    expect(screen.getByText("Composite score, 0 to 100")).toBeInTheDocument();
+  });
+
+  it.each([["direct", "Direct"], ["regular", "Regular"]])("names the %s plan type of the peers", (plan_type, label) => {
+    render(<FundRankingSection data={{ funds: [{ ...summary.funds[0], plan_type }] }} />);
+    expect(screen.getByText(`Compared with ${label} plan peers`)).toBeInTheDocument();
+  });
+
+  it("an old payload without horizons still renders", () => {
+    const { container } = render(<FundRankingSection data={{ funds: [summary.funds[0]] }} />);
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Compared with .* plan peers/)).not.toBeInTheDocument();
+    expect(screen.getByText("81.40")).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/NaN|undefined/);
+  });
+
+  it("keeps own horizons but hides category averages with fewer than three ranked funds", () => {
+    const { container } = render(<FundRankingSection data={{ funds: [{ ...summary.funds[2], horizons: {
+      "1y": { fund_return: "0.08", category_avg: null, peers: 1 },
+      "3y": { fund_return: "0.071", category_avg: null, peers: 1 },
+      "5y": { fund_return: null, category_avg: null, peers: 0 },
+    }, plan_type: "regular" }] }} />);
+    expect(screen.getByText("Not enough peers")).toBeInTheDocument();
+    expect(screen.getByText("+7.10%")).toBeInTheDocument();
+    expect(within(screen.getByRole("row", { name: /^Category average / })).getAllByText("—")).toHaveLength(3);
+    expect(within(screen.getByRole("row", { name: /^Difference / })).getAllByText("—")).toHaveLength(3);
+    expect(container.textContent).not.toMatch(/NaN|undefined/);
+  });
+});
+
 describe("FundRankingSection", () => {
   it("renders the leaderboard with (you) tagged and all 4 neighbors in rank order", () => {
     render(<FundRankingSection data={summary} isLoading={false} />);
