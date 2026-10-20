@@ -5,11 +5,13 @@ import { historicalResult } from "./testFixtures";
 
 describe("StandardResultView", () => {
   it("shows compliance, household coverage, benchmarks and distinct real/estimated/no-data states", () => {
-    render(<StandardResultView result={historicalResult} />);
+    render(<StandardResultView result={{ ...historicalResult, benchmarks: [...historicalResult.benchmarks, { name: "nifty_largemidcap_250", pct: "-35.00" }] }} />);
     expect(screen.getByText(/not a prediction of future returns/)).toBeInTheDocument();
     expect(within(screen.getByLabelText("Portfolio impact")).getByText("-32.50%")).toBeInTheDocument();
     expect(screen.getByText("Based on ₹20,00,000 of your ₹21,00,000 · 1 fund has no data for this period")).toBeInTheDocument();
     expect(screen.getByText("Nifty 50")).toBeInTheDocument();
+    expect(screen.getByText("Nifty LargeMidcap 250")).toBeInTheDocument();
+    expect(screen.queryByText("nifty_largemidcap_250")).toBeNull();
     expect(screen.getByText("-30.00%")).toBeInTheDocument();
     expect(screen.getByText("~-20.00%")).toHaveAttribute("title", historicalResult.by_fund[1].proxy_basis);
     expect(screen.getByText("Category average estimate")).toBeInTheDocument();

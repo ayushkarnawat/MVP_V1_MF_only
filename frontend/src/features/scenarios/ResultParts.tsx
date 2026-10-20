@@ -73,11 +73,16 @@ export function Members({ result }: { result: ScenarioResult }) {
   </div>)}</section>;
 }
 
+export function benchmarkLabel(name: string): string {
+  const labels: Record<string, string> = { nifty_50: "Nifty 50", nifty_500: "Nifty 500", nifty_largemidcap_250: "Nifty LargeMidcap 250", nifty_midcap_150: "Nifty Midcap 150", nifty_smallcap_250: "Nifty Smallcap 250" };
+  if (Object.hasOwn(labels, name)) return labels[name];
+  return name.includes("_") ? name.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(" ") : name;
+}
+
 export function Benchmarks({ result }: { result: ScenarioResult }) {
   if (!result.benchmarks.length) return null;
-  const labels: Record<string, string> = { nifty_50: "Nifty 50", nifty_500: "Nifty 500", nifty_midcap_150: "Nifty Midcap 150", nifty_smallcap_250: "Nifty Smallcap 250" };
   const rows = [...(result.portfolio_impact_pct === null ? [] : [{ name: "Your portfolio", pct: result.portfolio_impact_pct }]), ...result.benchmarks];
   const absoluteCents = (pct: string) => BigInt(formatDecimal(pct).replace(/[-.]/g, ""));
   const maximum = rows.reduce((max, row) => absoluteCents(row.pct) > max ? absoluteCents(row.pct) : max, 1n);
-  return <section className="space-y-3"><h2 className="font-display text-lg font-semibold">Benchmark comparison</h2>{rows.map(row => <div key={row.name} className="space-y-1"><div className="flex justify-between gap-2 text-sm"><span>{labels[row.name] ?? row.name}</span><span className="tabular-nums">{row.pct}%</span></div><div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-[var(--color-bg)]"><div className="h-full rounded-full" style={{ width: `${absoluteCents(row.pct) * 100n / maximum}%`, backgroundColor: row.name === "Your portfolio" ? `var(--color-${row.pct.startsWith("-") ? "negative" : "positive"})` : "var(--color-text-secondary)" }} /></div></div>)}</section>;
+  return <section className="space-y-3"><h2 className="font-display text-lg font-semibold">Benchmark comparison</h2>{rows.map(row => <div key={row.name} className="space-y-1"><div className="flex justify-between gap-2 text-sm"><span>{benchmarkLabel(row.name)}</span><span className="tabular-nums">{row.pct}%</span></div><div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-[var(--color-bg)]"><div className="h-full rounded-full" style={{ width: `${absoluteCents(row.pct) * 100n / maximum}%`, backgroundColor: row.name === "Your portfolio" ? `var(--color-${row.pct.startsWith("-") ? "negative" : "positive"})` : "var(--color-text-secondary)" }} /></div></div>)}</section>;
 }
