@@ -1,9 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { diffDecimalStrings, toPercentString } from "@/lib/decimal";
+import { compareDecimalStrings, diffDecimalStrings, toPercentString } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
 import { Award, HelpCircle, Info, TrendingDown, TrendingUp } from "lucide-react";
 import type { CategoryRankingSummary } from "./types";
+import { formatRawFractionPercent, normalizeReturnFraction } from "./percentFormat";
+import { PeriodReturnsTable } from "./PeriodReturnsTable";
 
 export interface CategoryRankingSectionProps {
   ranking: CategoryRankingSummary | null;
@@ -15,17 +17,6 @@ function parsePercent(val: string | null): number | null {
   if (val === null || val === undefined) return null;
   const num = parseFloat(val);
   return isNaN(num) ? null : num;
-}
-
-function formatPercentString(val: string | null): string {
-  const num = parsePercent(val);
-  if (num === null) return "N/A";
-  const sign = num > 0 ? "+" : "";
-  return `${sign}${num.toFixed(2)}%`;
-}
-
-function formatRawFractionPercent(val: string | null): string {
-  return val === null ? "N/A" : formatPercentString(toPercentString(val));
 }
 
 export function CategoryRankingSection({
@@ -79,8 +70,7 @@ export function CategoryRankingSection({
         <div className="space-y-4">
           {funds.map((fund) => {
             const percentileNum = parsePercent(fund.percentile);
-            const schemeReturnNum = parsePercent(fund.scheme_return);
-            const categoryAvgNum = parsePercent(fund.category_avg_return);
+            const schemeReturnSign = fund.scheme_return == null ? null : compareDecimalStrings(normalizeReturnFraction(fund.scheme_return), "0");
 
             const isUnavailable = fund.category_unavailable;
             const isInsufficient = fund.insufficient_history;
@@ -91,8 +81,9 @@ export function CategoryRankingSection({
             // Decimal-discipline rule (see lib/decimal.ts).
             const diff =
               fund.scheme_return !== null && fund.category_avg_return !== null
-                ? Number(toPercentString(diffDecimalStrings(fund.scheme_return, fund.category_avg_return)))
+                ? toPercentString(diffDecimalStrings(normalizeReturnFraction(fund.scheme_return), normalizeReturnFraction(fund.category_avg_return)))
                 : null;
+            const isOutperforming = diff !== null && compareDecimalStrings(diff, "0") >= 0;
 
             return (
               <div
@@ -132,7 +123,7 @@ export function CategoryRankingSection({
                   </div>
 
                   {/* Scheme Return vs Category Avg summary pill */}
-                  {!isUnavailable && !isInsufficient && schemeReturnNum !== null && (
+                  {!isUnavailable && !isInsufficient && schemeReturnSign !== null && (
                     <div className="flex items-center gap-3 self-start sm:self-auto bg-[var(--color-surface)] px-3 py-1.5 rounded-lg border border-[var(--color-border)]">
                       <div className="text-right">
                         <span className="text-[10px] text-[var(--color-text-secondary)] uppercase block font-semibold">
@@ -140,13 +131,13 @@ export function CategoryRankingSection({
                         </span>
                         <span className={cn(
                           "text-xs font-bold tabular-nums type-data",
-                          schemeReturnNum >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"
+                          schemeReturnSign >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"
                         )}>
                           {formatRawFractionPercent(fund.scheme_return)}
                         </span>
                       </div>
 
-                      {categoryAvgNum !== null && (
+                      {fund.category_avg_return !== null && (
                         <>
                           <div className="h-6 w-px bg-[var(--color-border)]" />
                           <div className="text-right">
@@ -162,6 +153,10 @@ export function CategoryRankingSection({
                     </div>
                   )}
                 </div>
+
+                {!isUnavailable && !isInsufficient && <p className="text-xs text-[var(--color-text-secondary)]">Ranked on the blended 3Y/5Y return.</p>}
+                {(fund.plan_type === "direct" || fund.plan_type === "regular") && <p className="mt-1 text-xs text-[var(--color-text-secondary)]">Compared with {fund.plan_type === "direct" ? "Direct" : "Regular"} plan peers</p>}
+                <PeriodReturnsTable periods={fund.periods} />
 
                 {/* Edge State Callouts vs Active Percentile Gauge */}
                 {isUnavailable ? (
@@ -205,15 +200,15 @@ export function CategoryRankingSection({
                     {/* Outperformance / Underperformance Indicator */}
                     {diff !== null && (
                       <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)] pt-1">
-                        {diff >= 0 ? <TrendingUp className={cn(
+                        {isOutperforming ? <TrendingUp className={cn(
                           "h-3.5 w-3.5",
-                          diff >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"
+                          isOutperforming ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"
                         )} /> : <TrendingDown className="h-3.5 w-3.5 text-[var(--color-negative)]" />}
                         <span>
-                          {diff >= 0 ? (
-                            <>Outperforming category average by <strong className="text-[var(--color-positive)] font-semibold tabular-nums">+{diff.toFixed(2)}%</strong></>
+                          {isOutperforming ? (
+                            <>Outperforming category average by <strong className="text-[var(--color-positive)] font-semibold tabular-nums">+{diff}%</strong></>
                           ) : (
-                            <>Trailing the category average by <strong className="text-[var(--color-negative)] font-semibold tabular-nums">{Math.abs(diff).toFixed(2)}%</strong></>
+                            <>Trailing the category average by <strong className="text-[var(--color-negative)] font-semibold tabular-nums">{diff.startsWith("-") ? diff.slice(1) : diff}%</strong></>
                           )}
                         </span>
                       </div>
