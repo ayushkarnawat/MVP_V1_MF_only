@@ -43,6 +43,25 @@ Built by Codex, verified by the orchestrator (31 tests in WSL, tokens match the 
 ## Run 3 — P1-T7, P1-T8, P1-T9
 Implement the plan's **Tasks P1-T7 (exact scenario dates), P1-T8 (Franklin headline when nothing was frozen), P1-T9 (AMC/Category/dashboard donut sort order)** exactly, frontend only, in that order, each with its own red/green. Locked decisions that apply: Q8 (exact dates on every scenario screen, month-only only as a fallback, read day/month/year from the ISO text, never a `Date` object), Q12 (neutral Franklin headline "None of your funds were frozen in this event", no portfolio impact figure), Q9/Q10 (AMC allocation opens smallest first, toggle to largest first, applies to the AMC tab, Category tab and the main dashboard donut on desktop and mobile; the asset-class view keeps its fixed order; slices keep their colour when the order flips). **Do not start P1-T6.** Report extras: the exact user-visible strings that changed (old → new) and every screen the sort toggle is wired into.
 
+## P1-T6 approved copy (D7 approved by the user, 2026-10-20) — used in its own run after Run 3
+Option A (explain the code as it is). The explainer text, verbatim; `scoreExplainerCopy.ts` holds exactly this, no edits:
+
+**How the Unifolio Fund Score works**
+Every fund is compared only with other funds in its own SEBI category, so a Large Cap fund is never ranked against a Mid Cap fund. Each fund gets a score out of 100 built from three things:
+- **Return (45%)**: how its returns over time rank against its category peers.
+- **Risk (30%)**: how much it loses in bad months (downside deviation). Lower is better.
+- **Consistency (25%)**: how often it has beaten its category average.
+
+A small cost adjustment is applied on top: up to 0.25 points up or down, depending on whether the fund's expense ratio is lower or higher than its category average. Differences under 0.05 percentage points are ignored.
+
+**Tiers:** Tier 1 is the top 20% of its category, Tier 2 the next 20%, down to Tier 5 for the bottom 20%.
+**Portfolio label:** 70 or more is "High Quality Portfolio", 50 to 69 is "Moderate Quality Portfolio", and below 50 is "Needs Review".
+*A modelling opinion based on past data, not a guarantee of future returns.*
+
+**Composite rating (Fund Ranking):** 25% 3-year return, 25% 5-year return, 20% performance against the category, 15% low volatility, 15% low expense ratio.
+
+The plan's P1-T6 tests assert `45%`, `30%`, `25%`, `Tier 1`, `Top 20%`, and `25%`, `20%`, `15%` in the composite section; these all appear in the copy above. Step 1 (doc/code check) and Step 2 (copy approval) of P1-T6 are DONE; Codex starts at Step 3.
+
 ## Self-review (before printing the report)
 1. `git diff --stat` / `git status --porcelain`: only this run's files; `git diff --cached --stat` empty.
 2. Hostile pass against the plan's Review Focus (negative money display, old saved payloads with missing fields, no `NaN`/`undefined`, edge accounts).

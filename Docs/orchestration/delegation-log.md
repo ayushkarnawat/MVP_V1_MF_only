@@ -564,3 +564,4 @@ fix" rule.
 - 2026-10-20 | ux-fixes — Run 1 DONE | worker=codex (manual relay) | Review PASS, 2 low pre-existing observations accepted. Run 2 (P1-T5) READY; P1-T6 HELD: methodology doc (10 components) vs code (45/30/25 + TER nudge) disagree, see Docs/orchestration/2026-10-20-score-explainer-check.md.
 - 2026-10-20 | ux-fixes — P1-T6 decision | worker=orchestrator | User chose option A (explain the code as it is). T6 becomes its own run after R3, after copy approval (D7).
 - 2026-10-20 | ux-fixes — Run 2 (P1-T5) verified + committed | worker=codex (manual relay) | Orchestrator re-ran 4 files in WSL (31 pass); Codex: 96 pass, tsc clean, contrast all >4.5:1. Review batched with Run 3. Run 3 (P1-T7..T9) READY.
+- 2026-10-20 | ux-fixes — P1-T6 copy approved | worker=orchestrator | User approved the explainer text (D7); stored in the handoff for the P1-T6 run after Run 3.
