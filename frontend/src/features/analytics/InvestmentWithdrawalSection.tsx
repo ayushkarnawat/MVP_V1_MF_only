@@ -4,7 +4,10 @@ import { BarChart } from "@/components/ui/charts/bar-chart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatIndianCurrency } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
-import type { InvestmentWithdrawalBucket, InvestmentWithdrawalEntry, InvestmentWithdrawalResult } from "./types";
+import { compareDecimalStrings } from "@/lib/decimal";
+import { tilesFor, toBarData } from "./investmentWithdrawalMath";
+import { movementRupees as rupees, PeriodBreakdown } from "./PeriodBreakdownTable";
+import type { InvestmentWithdrawalResult } from "./types";
 
 export interface InvestmentWithdrawalSectionProps {
   data: InvestmentWithdrawalResult | null;
@@ -33,11 +36,6 @@ function longPeriod(period: string): string {
   return month ? `${MONTHS_LONG[Number(month) - 1]} ${year}` : year;
 }
 
-/** "-120000.00" -> "−₹1,20,000". The sign is read from the string, not a float. */
-function rupees(value: string): string {
-  return value.startsWith("-") ? `−₹${formatIndianCurrency(value.slice(1))}` : `₹${formatIndianCurrency(value)}`;
-}
-
 function signClass(value: string): string {
   if (value.startsWith("-")) return "text-[var(--color-negative)]";
   return /[1-9]/.test(value) ? "text-[var(--color-positive)]" : "text-[var(--color-ink)]";
@@ -52,37 +50,10 @@ function Tile({ label, value, valueClass }: { label: string; value: string; valu
   );
 }
 
-function entryLabel(entry: InvestmentWithdrawalEntry): string {
-  if (entry.direction === "reversal") return "Bounced SIP (reversed)";
-  return entry.direction === "invested" ? "Invested" : "Withdrawn";
-}
-
-function PeriodTransactions({ bucket }: { bucket: InvestmentWithdrawalBucket }) {
-  if (bucket.entries.length === 0) {
-    return <p className="text-sm text-[var(--color-text-secondary)]">No transactions in this period</p>;
-  }
-  return (
-    <ul className="divide-y divide-[var(--color-border)]">
-      {bucket.entries.map((entry) => (
-        <li key={entry.transaction_id} className="flex items-start justify-between gap-3 py-2 text-sm">
-          <div className="min-w-0">
-            <p className="text-[var(--color-ink)] truncate">{entry.scheme_name}</p>
-            <p className="text-xs text-[var(--color-text-secondary)]">
-              {entry.date} · {entry.household_member_name} · {entryLabel(entry)}
-            </p>
-          </div>
-          <span className={cn("tabular-nums font-medium", entry.direction === "invested" ? "text-[var(--color-ink)]" : "text-[var(--color-negative)]")}>
-            {rupees(entry.amount)}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export function InvestmentWithdrawalSection({ data, isLoading = false, className, printMode = false }: InvestmentWithdrawalSectionProps) {
   const [granularity, setGranularity] = useState<Granularity>("monthly");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
+  const [includeSwitches, setIncludeSwitches] = useState(false);
 
   if (isLoading) {
     return (
@@ -108,18 +79,31 @@ export function InvestmentWithdrawalSection({ data, isLoading = false, className
   const buckets = granularity === "monthly" ? data.monthly : data.yearly;
   const selected = buckets.find((b) => b.period === selectedPeriod) ?? null;
   const sip = data.sip_summary;
+  const switchesIncluded = !printMode && includeSwitches;
+  const tiles = tilesFor(data, switchesIncluded);
+  const switchCount = data.switch_count ?? 0;
 
   return (
     <section className={cn(CARD, "space-y-6", className)}>
       <h2 className="font-display text-lg font-bold tracking-tight text-[var(--color-ink)]">Investment &amp; Withdrawal</h2>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <Tile label="Invested" value={data.total_invested} />
-        <Tile label="Withdrawn" value={data.total_withdrawn} valueClass="text-[var(--color-negative)]" />
-        <Tile label="Net Invested" value={data.net_invested} />
+        <Tile label="Invested" value={tiles.invested} />
+        <Tile label="Withdrawn" value={tiles.withdrawn} valueClass="text-[var(--color-negative)]" />
+        <Tile label="Net Invested" value={tiles.net} />
         <Tile label="Current Value" value={data.current_value} valueClass="text-[var(--color-accent)]" />
         <Tile label="Absolute Gain" value={data.absolute_gain} valueClass={signClass(data.absolute_gain)} />
       </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-[var(--color-text-secondary)]">{switchCount > 0
+          ? `Switched between funds: ${rupees(data.total_switched_out ?? "0")} in ${switchCount} ${switchCount === 1 ? "switch" : "switches"}`
+          : "Switched between funds: none"}</p>
+        {!printMode && <button type="button" aria-pressed={includeSwitches} onClick={() => setIncludeSwitches(current => !current)}
+          className={cn("min-h-11 rounded-md border border-[var(--color-border)] px-3 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]", includeSwitches && "bg-[var(--color-bg)]")}>
+          Include switches
+        </button>}
+      </div>
+      {switchesIncluded && <p className="text-xs text-[var(--color-text-secondary)]">Net invested and Absolute Gain exclude switches.</p>}
       {/[1-9]/.test(data.gifts_net) && (
         <p className="text-xs text-[var(--color-text-secondary)]">
           {data.gifts_net.startsWith("-")
@@ -127,6 +111,8 @@ export function InvestmentWithdrawalSection({ data, isLoading = false, className
             : `Gain excludes ₹${formatIndianCurrency(data.gifts_net)} of units received as gifts.`}
         </p>
       )}
+
+      {compareDecimalStrings(data.opening_holdings ?? "0", "0") !== 0 && <p className="text-sm text-[var(--color-text-secondary)]">Opening holdings {rupees(data.opening_holdings ?? "0")} (in Invested, not drawn as a bar)</p>}
 
       {data.monthly.length === 0 ? (
         <p className="text-sm text-[var(--color-text-secondary)]">No transactions yet</p>
@@ -149,18 +135,17 @@ export function InvestmentWithdrawalSection({ data, isLoading = false, className
             ))}
           </div>)}
           <BarChart
-            data={buckets.map((b) => ({ period: b.period, invested: Number(b.invested), withdrawn: Number(b.withdrawn) }))}
-            selectedPeriod={selectedPeriod}
+            data={toBarData(buckets, switchesIncluded)}
+            selectedPeriod={printMode ? null : selectedPeriod}
             formatLabel={shortPeriod}
-            onBarClick={setSelectedPeriod}
+            onBarClick={printMode ? undefined : setSelectedPeriod}
           />
           <p className="text-xs text-[var(--color-text-secondary)]">
-            <span className="text-[var(--color-positive)]">■</span> Invested · <span className="text-[var(--color-negative)]">■</span> Withdrawn{printMode ? "" : " · Tap a period to see its transactions"}
+            <span className="text-[var(--color-positive)]">■</span> Invested · <span className="text-[var(--color-negative)]">■</span> Withdrawn{switchesIncluded && <> · <span className="opacity-45">■</span> <span>Switched</span></>}{printMode ? "" : " · Tap a period to see its transactions"}
           </p>
-          {selected && (
+          {!printMode && selected && (
             <div className="rounded-lg border border-[var(--color-border)] p-3 space-y-2">
-              <p className="text-xs font-semibold text-[var(--color-text-secondary)]">{longPeriod(selected.period)}</p>
-              <PeriodTransactions bucket={selected} />
+              <PeriodBreakdown key={selected.period} bucket={selected} periodTitle={longPeriod(selected.period)} />
             </div>
           )}
         </div>
