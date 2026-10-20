@@ -72,6 +72,33 @@ def _add_navs(db, scheme, rows):
     db.commit()
 
 
+def test_back_to_back_phases_compound_to_the_whole_event_per_fund():
+    db = _session()
+    scheme = Scheme(name="Daily NAV Growth", amc_name="AMC", sebi_category="Equity")
+    parent = Scenario(name="Whole event", description="d", start_date=date(2026, 2, 28), end_date=date(2026, 7, 31))
+    db.add_all([scheme, parent])
+    db.commit()
+    phases = [Scenario(name=f"Phase {index}", description="d", parent_scenario_id=parent.id, phase_order=index, start_date=start, end_date=end)
+              for index, (start, end) in enumerate([
+                  (date(2026, 2, 28), date(2026, 4, 1)),
+                  (date(2026, 4, 2), date(2026, 6, 30)),
+                  (date(2026, 7, 1), date(2026, 7, 31)),
+              ], 1)]
+    db.add_all(phases)
+    db.commit()
+    first = date(2026, 2, 27)
+    _add_navs(db, scheme, [(first + timedelta(days=index), str(Decimal("100") + Decimal(index) / 10))
+                         for index in range((parent.end_date - first).days + 1)])
+    for scenario in [parent, *phases]:
+        compute_scenario_results(db, scenario)
+    changes = {row.scenario_id: row.pct_change / 100 for row in db.query(ScenarioSchemeResult).filter_by(scheme_id=scheme.id)}
+    compounded = Decimal("1")
+    for phase in phases:
+        compounded *= 1 + changes[phase.id]
+    assert abs(compounded - 1 - changes[parent.id]) < Decimal("0.0002")
+    db.close()
+
+
 @pytest.mark.parametrize("start_offset,end_offset,expected", [
     (1, 0, "-20.00"), (7, 7, "-20.00"), (8, 0, None), (1, 8, None), (0, 0, None),
 ])

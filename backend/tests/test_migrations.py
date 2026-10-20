@@ -5,6 +5,59 @@ from pathlib import Path
 import pytest
 
 
+def test_0042_us_iran_phase_dates_roundtrip(tmp_path, monkeypatch):
+    import sqlite3
+    import uuid
+
+    path = tmp_path / "phase-dates.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+    up = _alembic("upgrade", "0041")
+    assert up.returncode == 0, up.stderr
+    with sqlite3.connect(path) as conn:
+        parent = conn.execute("SELECT id FROM scenarios WHERE name='US-Iran war (2026)'").fetchone()[0]
+        before = conn.execute("SELECT start_date,end_date,is_ongoing FROM scenarios WHERE id=?", (parent,)).fetchone()
+        duplicate = uuid.uuid4().hex
+        conn.execute("INSERT INTO scenarios(id,name,description,start_date,end_date,parent_scenario_id) VALUES(?, 'US-Iran war -- Shock', 'duplicate', '2026-02-28', '2026-04-02', ?)", (duplicate, parent))
+        top_level = uuid.uuid4().hex
+        conn.execute("INSERT INTO scenarios(id,name,description,end_date) VALUES(?, 'US-Iran war -- Partial recovery', 'not a phase', '2026-01-01')", (top_level,))
+        top_shock = uuid.uuid4().hex
+        conn.execute("INSERT INTO scenarios(id,name,description,end_date) VALUES(?, 'US-Iran war -- Shock', 'not a phase', '2026-01-02')", (top_shock,))
+    up = _alembic("upgrade", "0042")
+    assert up.returncode == 0, up.stderr
+    with sqlite3.connect(path) as conn:
+        assert {row[0] for row in conn.execute("SELECT end_date FROM scenarios WHERE name='US-Iran war -- Shock' AND parent_scenario_id IS NOT NULL")} == {"2026-04-01"}
+        assert conn.execute("SELECT end_date FROM scenarios WHERE name='US-Iran war -- Partial recovery' AND parent_scenario_id IS NOT NULL").fetchone()[0] == "2026-07-07"
+        assert conn.execute("SELECT start_date,end_date FROM scenarios WHERE name='US-Iran war -- Relapse'").fetchone() == ("2026-07-08", None)
+        assert conn.execute("SELECT start_date,end_date,is_ongoing FROM scenarios WHERE id=?", (parent,)).fetchone() == before
+        assert conn.execute("SELECT end_date FROM scenarios WHERE id=?", (top_level,)).fetchone()[0] == "2026-01-01"
+        assert conn.execute("SELECT end_date FROM scenarios WHERE id=?", (top_shock,)).fetchone()[0] == "2026-01-02"
+    down = _alembic("downgrade", "0041")
+    assert down.returncode == 0, down.stderr
+    with sqlite3.connect(path) as conn:
+        assert {row[0] for row in conn.execute("SELECT end_date FROM scenarios WHERE name='US-Iran war -- Shock' AND parent_scenario_id IS NOT NULL")} == {"2026-04-02"}
+        assert conn.execute("SELECT end_date FROM scenarios WHERE name='US-Iran war -- Partial recovery' AND parent_scenario_id IS NOT NULL").fetchone()[0] == "2026-07-08"
+        assert conn.execute("SELECT end_date FROM scenarios WHERE id=?", (top_level,)).fetchone()[0] == "2026-01-01"
+        assert conn.execute("SELECT end_date FROM scenarios WHERE id=?", (top_shock,)).fetchone()[0] == "2026-01-02"
+
+
+def test_phases_of_every_scenario_never_overlap_after_0042(tmp_path, monkeypatch):
+    import sqlite3
+    from datetime import date, timedelta
+
+    path = tmp_path / "non-overlapping-phases.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+    up = _alembic("upgrade", "0042")
+    assert up.returncode == 0, up.stderr
+    with sqlite3.connect(path) as conn:
+        parents = conn.execute("SELECT DISTINCT parent_scenario_id FROM scenarios WHERE parent_scenario_id IS NOT NULL").fetchall()
+        assert parents
+        for (parent,) in parents:
+            phases = conn.execute("SELECT start_date,end_date FROM scenarios WHERE parent_scenario_id=? ORDER BY phase_order", (parent,)).fetchall()
+            for previous, following in zip(phases, phases[1:]):
+                assert previous[1] is not None
+                assert date.fromisoformat(previous[1]) + timedelta(days=1) == date.fromisoformat(following[0])  # contiguous, no shared day
+
+
 def test_0036_0037_scenarios_seed_roundtrip(tmp_path, monkeypatch):
     import json
     import sqlite3
