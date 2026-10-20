@@ -1,5 +1,5 @@
 # Handoff: ux-fixes (Analytics UX fixes, phases P1–P6)
-**Status:** IN_PROGRESS — Run 1 DONE; Run 2 (P1-T5) committed, review batched with Run 3; Run 3 (P1-T7..T9) ready; P1-T6 own run after copy approval, 2026-10-20
+**Status:** IN_PROGRESS — Runs 1 DONE; Runs 2 and 3 committed (6fec37a, fbf58b9, 54a0d71, 414b5b6), one batched review pending; Run 4 (P1-T6 score explainer) ready, 2026-10-20
 **Parent plan:** `Docs/superpowers/plans/2026-10-19-analytics-ux-fixes-plan.md` (binding; read "Global Constraints", "Locked decisions", "Review Focus" first, then only the run's tasks)
 **Spec copies:** `Docs/orchestration/analytics-ux-changes-spec/` (`analytics-ux-changes-v18.html`, `other-fixes.html`)
 **Orchestrator:** Claude Code · **Worker:** Codex (manual relay, one run per prompt)
@@ -42,6 +42,12 @@ Built by Codex, verified by the orchestrator (31 tests in WSL, tokens match the 
 
 ## Run 3 — P1-T7, P1-T8, P1-T9
 Implement the plan's **Tasks P1-T7 (exact scenario dates), P1-T8 (Franklin headline when nothing was frozen), P1-T9 (AMC/Category/dashboard donut sort order)** exactly, frontend only, in that order, each with its own red/green. Locked decisions that apply: Q8 (exact dates on every scenario screen, month-only only as a fallback, read day/month/year from the ISO text, never a `Date` object), Q12 (neutral Franklin headline "None of your funds were frozen in this event", no portfolio impact figure), Q9/Q10 (AMC allocation opens smallest first, toggle to largest first, applies to the AMC tab, Category tab and the main dashboard donut on desktop and mobile; the asset-class view keeps its fixed order; slices keep their colour when the order flips). **Do not start P1-T6.** Report extras: the exact user-visible strings that changed (old → new) and every screen the sort toggle is wired into.
+
+## Run 3 result (2026-10-20)
+Built by Codex, verified by the orchestrator (9 files, 58 tests in WSL; Codex ran 17 files, 203 tests, tsc clean). Committed as P1-T7 `fbf58b9`, P1-T8 `54a0d71`, P1-T9 `414b5b6`. Codex also fixed a real bug found in self-review: a tapped donut slice moved to another allocation after reordering (selection now follows the label). Adversarial review is batched: one review over Runs 2, 3 and 4 at the end of P1.
+
+## Run 4 — P1-T6 (score explainer), Steps 3 to 7
+Steps 1 (doc/code check) and 2 (copy approval) are done; see "P1-T6 approved copy" below and `2026-10-20-score-explainer-check.md`. Implement the plan's **Task P1-T6 from Step 3**, exactly, test-first, frontend only: `scoreExplainerCopy.ts` holds the approved text verbatim (no wording edits), `ScoreExplainer.tsx` is collapsed by default (`<button aria-expanded>` plus a region, no new dependency), the toggle in `ScorerSection.tsx` is hidden in `printMode`. Report extras: the exact strings the tests assert, and confirm the copy file matches the approved text word for word.
 
 ## P1-T6 approved copy (D7 approved by the user, 2026-10-20) — used in its own run after Run 3
 Option A (explain the code as it is). The explainer text, verbatim; `scoreExplainerCopy.ts` holds exactly this, no edits:
