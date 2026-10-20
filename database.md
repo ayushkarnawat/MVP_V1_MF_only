@@ -147,3 +147,8 @@ Landing this migration also removed every OTP/session-related route's old direct
 ## 2026-10-10 — Migration 0038: nav_history.nav NUMERIC(14,4)
 
 `0038_nav_history_wider_nav` — `nav_history.nav` NUMERIC(10,4) → NUMERIC(14,4): IL&FS infrastructure-debt units (₹10 lakh face value) overflowed and aborted the NAV backfill. No table rewrite on Postgres; no-op on SQLite; downgrade deletes NAVs ≥ 1,000,000 first. Postgres round trip clean (10 Oct). Not yet run on staging.
+
+## 2026-10-20 — Migrations 0042/0043: scenario phase dates and unique top-level names
+
+`0042_us_iran_phase_end_dates` — data only: sets `end_date` 2026-04-01 on the "US-Iran war -- Shock" phase and 2026-07-07 on "US-Iran war -- Partial recovery" (matched by name where `parent_scenario_id IS NOT NULL`); downgrade restores 2026-04-02 / 2026-07-08. Phase results are not recomputed by the migration (run `scripts/compute_all_scenarios.py`). `0043_scenarios_unique_top_level_name` — partial unique index `uq_scenarios_top_level_name` on `scenarios(name) WHERE parent_scenario_id IS NULL` (same index on the `Scenario` model); raises while duplicate top-level names exist (clean them first with `scripts/dedupe_scenarios.py`). No other schema change in the analytics UX fixes: the History month detail is computed on click and `scheme_rankings` is untouched. **Not run on PostgreSQL locally** (Docker access denied in the build environment): the Postgres roundtrip test `test_0043_postgres_unique_top_level_name_roundtrip` must run before deploy.
+

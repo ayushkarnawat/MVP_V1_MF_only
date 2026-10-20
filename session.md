@@ -19,6 +19,10 @@ anything by re-reading the whole repo.**
 - Must be settled before the first automatic run on **10 Nov 2026**: (1) first staging import + record alerts; (2) decide on any fund house AWS blocks; (3) build a missed-month alert; (4) admin upload screen instead of the CLI; (5) test HDFC's passive file; (6) decide the long-term fix (ask AMCs for access / vendor data quote); (7) confirm the ops-alerts email subscriptions; (8) the monthly routine itself.
 - Detail and the ordered to-do table: `DEFERRED_FEATURES.md` (top section). Background and options: `Docs/orchestration/subproject1-execution/a04-factsheet-access-gaps.html` (https://claude.ai/artifact/STCA9eNZwWZ4ZYYGzmpkTL).
 
+## Latest (2026-10-20, analytics UX fixes): built and committed, not deployed
+
+All six phases of `Docs/superpowers/plans/2026-10-19-analytics-ux-fixes-plan.md` are built, reviewed (Codex plus Opus on the risky runs) and committed on `feat/leapswitch-staging`, one commit per task, never pushed. **Next:** (1) the user's browser checks (tier badges light/dark, allocation toggle, scenario dates, Investment & Withdrawal toggle and bar tap, History hover/click/keyboard/phone first-and-second tap/family filter, print has no toggle); (2) run the PostgreSQL roundtrip test for migrations 0042/0043; (3) deploy via `Docs/orchestration/2026-10-20-staging-deploy-guide-analytics-ux.md` (scenario duplicate cleanup is a separate user-confirmed step; `compute_all_scenarios.py` after 0042); (4) re-measure the History month-detail click time on staging PostgreSQL (limit 1 s; stored per-month rows if over); (5) decide the score-methodology document vs code disagreement (explainer follows the code). Detail: `log.md` and `backend.md` 2026-10-20, the plan's execution notes, `Docs/orchestration/ux-fixes-handoff.md`.
+
 ## Latest (2026-10-20): Chandra Tripathi XIRR/opening-cost fix — intern pre-execution review found 3 real gaps in the "fully signed-off" plans; fixed in discussion, not yet in the plan docs; still zero code changed
 
 **Context:** two documentation-only plans exist — Root Cause A (opening-cost plausibility

@@ -204,6 +204,31 @@ true cap-wise composition and stock-level overlap: data-gated).
   TER difference between the user's Direct and Regular holdings (complements, doesn't
   duplicate, the per-holding badge already on the Main Dashboard).
 
+#### UX refinements (analytics UX fixes, 2026-10-20)
+- FR-UX-1: Investment & Withdrawal — withdrawals draw below a zero baseline; switches are their own pair
+  of lighter segments behind an "Include switches" toggle (adds switched-in to Invested and switched-out
+  to Withdrawn; Net invested and Gain never change); opening holdings leave the bars and show as a figure
+  above the chart; mergers and face-value conversions are never switches; a fund-wise table per period
+  (member filter) replaces the flat transaction list.
+- FR-UX-2: Category Ranking and Fund Ranking show 1Y/3Y/5Y trailing returns with the AUM-weighted category
+  average per period and peer counts; the blended 3Y/5Y stays the Category rank basis and the composite
+  (25/25/20/15/15) the Fund rank basis, each named on screen. Both sections read the same per-day returns.
+- FR-UX-3: Fund manager section is one table: manager, AMC, current value, % of the whole portfolio. A fund
+  with several managers is divided equally between them (footnoted); zero managers means "not available".
+- FR-UX-4: TER shows rupees as well as percent: yearly cost on the cards and a fund-wise table projecting
+  1, 3 and 5 years at today's value and TER (a projection, not a charge incurred).
+- FR-UX-5: AMC and Category allocation (and the main dashboard donut) default to smallest first with a
+  toggle; the asset-class view keeps its fixed order.
+- FR-UX-6: Quality score explainer ("How is this calculated?"): the 45/30/25 Return/Risk/Consistency mix,
+  the TER adjustment (up to 0.25), tiers, portfolio label bands (70/50) and the composite-rating weights;
+  tier badges use a five-step colour ramp.
+- FR-UX-7: Scenarios show exact dates on every screen (month-only only as a fallback); the Franklin screen
+  with no frozen fund says so; benchmark names are readable ("Total Return" labels; no raw index keys).
+- FR-UX-8: History chart is interactive (hover, keyboard, phone first-tap/second-tap) and a click opens a
+  month-detail pop-up: per-fund values and the month's change split into new money, opening holdings,
+  switches (net), gifted units and market movement; blank change in a partial month; a family view
+  with one merged fund list and member filters. Detail is computed on click (no new table).
+
 ### User Experience
 
 As with PRD-03, this document specifies what the screen computes and shows, not its
@@ -309,3 +334,4 @@ established pattern.
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-07-22 | Claude (PM partner) | Initial draft, includes research pass on data-source feasibility |
+| 1.1 | 2026-10-20 | Claude (with the user) | Analytics UX fixes: FR-UX-1 to FR-UX-8 (see `Docs/superpowers/plans/2026-10-19-analytics-ux-fixes-plan.md`) |
