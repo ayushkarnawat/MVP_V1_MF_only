@@ -15,3 +15,6 @@ What does agree: the 45/30/25 weights the UI already shows (the S20 text), the f
 
 ## Decision needed
 The explainer must describe one methodology. Options: (A) explain what the code does today (45/30/25 + cost nudge) and leave the ten-component doc as a future target; (B) treat the doc as the truth and plan a scorer change first (a separate, larger task); (C) hold the explainer until the scoring is settled. P1-T6 is on hold until then. P1-T5 (tier colours) is unaffected.
+
+## Decision (2026-10-20)
+User chose option A: the explainer describes what the code does today (45/30/25 plus the TER adjustment). The ten-component doc stays a future target. P1-T6 runs as its own run after R3, once the user approves the copy (D7).

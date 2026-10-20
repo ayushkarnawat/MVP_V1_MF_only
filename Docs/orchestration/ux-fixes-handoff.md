@@ -1,5 +1,5 @@
 # Handoff: ux-fixes (Analytics UX fixes, phases P1–P6)
-**Status:** IN_PROGRESS — Run 1 DONE (0efd5bf..ebccc2b, review PASS); Run 2 ready (P1-T5 only; P1-T6 held), 2026-10-20
+**Status:** IN_PROGRESS — Run 1 DONE (0efd5bf..ebccc2b, review PASS); Run 2 (P1-T5) with Codex; P1-T6 = option A, own run after R3 once copy approved, 2026-10-20
 **Parent plan:** `Docs/superpowers/plans/2026-10-19-analytics-ux-fixes-plan.md` (binding; read "Global Constraints", "Locked decisions", "Review Focus" first, then only the run's tasks)
 **Spec copies:** `Docs/orchestration/analytics-ux-changes-spec/` (`analytics-ux-changes-v18.html`, `other-fixes.html`)
 **Orchestrator:** Claude Code · **Worker:** Codex (manual relay, one run per prompt)
