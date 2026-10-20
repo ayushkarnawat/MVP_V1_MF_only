@@ -646,6 +646,12 @@ frontend `cd frontend && npx vitest run <files> 2>&1 | tail -20`.
 
 ---
 
+### P3 execution notes (2026-10-20, from the Opus review of R5)
+
+- **P3-T1 must not ship to staging without P3-T4/T5.** The current `InvestmentWithdrawalSection.tsx` labels every entry that is not invested or a reversal as "Withdrawn" in red, and bucket entries now include opening, switched-in and switched-out entries; until P3-T4/T5 replace that list, tapping a bar mislabels them. The branch is fine, a deploy is not.
+- **For P6-T2:** `direction_for` has its own `opening` direction. P6's `new_money` must decide explicitly whether a month's opening balance is new money; if it is not, that value surfaces as market movement in that month. Decision recorded for P6-T2: opening-balance rows are **not** new money (they are holdings that pre-date the statement), shown in the first month's detail as a separate line "Opening holdings".
+- **Known limits (accepted, documented):** `direction_for` decides from one row's description, so a conversion pair where only one leg says "merger" or "face value" is half-excluded; amount-less SWITCH pairs without that text count as real switches (the parser stores no conversion flag). `switch_count` is max(switch-in count, switch-out count); the in and out totals can legitimately differ (STT or exit load, a partner folio missing), so with the toggle on Invested minus Withdrawn is not the Net invested tile and the UI must not imply it is. `groupByFund` merges by fund name (entries carry no scheme id). Old saved payloads keep the old opening split until recomputed.
+
 ### P3 verification gate
 
 - [ ] All P3 test files together once; `npx tsc -b` clean.

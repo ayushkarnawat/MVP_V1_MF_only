@@ -1,5 +1,5 @@
 # Handoff: ux-fixes (Analytics UX fixes, phases P1–P6)
-**Status:** IN_PROGRESS — P1 DONE; P2 DONE (Run 5, Opus review done, commits 8787390, c83ef2b); Run 6 = plan R5 (P3-T1, T2, T6) ready, 2026-10-20
+**Status:** IN_PROGRESS — P1, P2 DONE; Run 6 (plan R5: P3-T1, T2, T6) built, Opus-reviewed PASS, committed; Run 7 (plan R6: P3-T3..T5) next, 2026-10-20
 **Parent plan:** `Docs/superpowers/plans/2026-10-19-analytics-ux-fixes-plan.md` (binding; read "Global Constraints", "Locked decisions", "Review Focus" first, then only the run's tasks)
 **Spec copies:** `Docs/orchestration/analytics-ux-changes-spec/` (`analytics-ux-changes-v18.html`, `other-fixes.html`)
 **Orchestrator:** Claude Code · **Worker:** Codex (manual relay, one run per prompt)
@@ -68,6 +68,9 @@ Built by Codex (Windows: 128 tests in six files), verified by the orchestrator i
 ## Run 6 (plan R5) — P3-T1, P3-T2, P3-T6
 Implement the plan's **Tasks P3-T1 (classification, totals and schema, backend), P3-T2 (frontend types and pure logic), P3-T6 (prove the benchmark XIRR uses each transaction's own date)** exactly, test-first, in that order. No migration, no new table. Locked decisions: Q1 (switches shown as their own pair; "Include switches" adds switched-in to Invested and switched-out to Withdrawn; Net invested and Gain unchanged; mergers and face-value conversions excluded), Q11 (opening holdings leave the bars; shown as a figure above the chart; the Invested tile still includes them). New schema fields all have defaults so saved payloads still load; `total_invested = sum of buckets + opening_holdings`. `is_conversion_description` and `direction_for` are consumed later by P6, so keep the signatures exactly as the plan states. Money is `Decimal` on the backend and decimal strings on the frontend. Backend on Windows from `backend\`; frontend from `frontend\`. Reviewer: **Opus** (money classification; D5 approved), run by the orchestrator.
 Report extras: the exact rules `direction_for` applies for each transaction type (a table), every existing test whose expected totals changed and why, and the results of the P3-T6 characterisation tests.
+
+## Run 6 result (2026-10-20)
+Built by Codex (417 backend + 108 frontend tests on Windows), verified by the orchestrator in WSL (backend 128 pass/1 skip; frontend 32 pass). **Opus review: PASS** with one condition (M1: P3-T1 must not deploy without P3-T4/T5, see the plan's P3 execution notes) and spec notes for P6 (M2 opening direction, decided). The vacuous merger test was hardened by the orchestrator (a real purchase added, upper-case "MERGER"). The worked check for P3-T6 is in `Docs/orchestration/2026-10-20-benchmark-xirr-check.md`.
 
 ## P1-T6 approved copy (D7 approved by the user, 2026-10-20) — used in its own run after Run 3
 Option A (explain the code as it is). The explainer text, verbatim; `scoreExplainerCopy.ts` holds exactly this, no edits:
