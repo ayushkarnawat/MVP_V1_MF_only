@@ -149,6 +149,17 @@ describe("MobileDashboardView", () => {
       expect(screen.getByText("2 holdings")).toBeInTheDocument();
     });
 
+    expect(screen.queryByRole("button", { name: "Smallest first" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "AMC" }));
+    const amcLabels = () => screen.getAllByRole("button", { name: /^(HDFC Mutual Fund|PPFAS Mutual Fund)$/ }).map(button => button.getAttribute("aria-label"));
+    expect(amcLabels()).toEqual(["PPFAS Mutual Fund", "HDFC Mutual Fund"]);
+    const colour = screen.getByRole("button", { name: "PPFAS Mutual Fund" }).querySelector("span[aria-hidden]")!.getAttribute("style");
+    fireEvent.click(screen.getByRole("button", { name: "Largest first" }));
+    expect(amcLabels()).toEqual(["HDFC Mutual Fund", "PPFAS Mutual Fund"]);
+    expect(screen.getByRole("button", { name: "PPFAS Mutual Fund" }).querySelector("span[aria-hidden]")!.getAttribute("style")).toBe(colour);
+    fireEvent.click(screen.getByRole("button", { name: "Asset" }));
+    expect(screen.queryByRole("button", { name: "Largest first" })).toBeNull();
+
     // Test dynamic search filter
     const searchInput = screen.getByPlaceholderText("Search funds or AMCs...");
     fireEvent.change(searchInput, { target: { value: "Parag" } });

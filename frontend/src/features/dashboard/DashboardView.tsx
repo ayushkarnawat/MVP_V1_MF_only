@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { HoldingsTable } from "../../components/HoldingsTable";
 import { AllocationDonut } from "../../components/AllocationDonut";
+import { AllocationSortToggle } from "@/components/AllocationSortToggle";
+import { sortAllocationItems, type SortOrder } from "@/lib/allocationSort";
 import { EmptyState } from "../../components/EmptyState";
 import { HoldingsTableSkeleton } from "../../components/Skeleton";
 import { Badge } from "../../components/Badge";
@@ -12,7 +14,7 @@ import { CoverageGapBanner } from "../import/CoverageGapBanner";
 import { OpeningBalanceModal } from "../import/OpeningBalanceModal";
 import { getMemberCoverageGaps } from "../import/api";
 import type { CoverageGapItem } from "../import/types";
-import { compareDecimalStrings, sumDecimalStrings, formatIndianCurrency, toPercentString } from "../../lib/decimal";
+import { sumDecimalStrings, formatIndianCurrency, toPercentString } from "../../lib/decimal";
 import {
   getMemberHoldings,
   getMemberAllocation,
@@ -40,7 +42,9 @@ import type {
 } from "./types";
 import { SoldFundsSection } from "./SoldFundsSection";
 import { cn } from "@/lib/utils";
-import { ArrowUpRight, ArrowDownRight, ArrowUpDown, User, Users, AlertTriangle, BarChart2 } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, User, Users, AlertTriangle, BarChart2 } from "lucide-react";
+
+const ASSET_CLASS_ORDER = ["Equity", "Debt", "Hybrid", "Other"];
 
 export interface DashboardViewProps {
   importNotice?: { text: string; details?: string[] } | null;
@@ -86,7 +90,7 @@ function DashboardViewContent({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allocationTab, setAllocationTab] = useState<"asset" | "amc">("asset");
-  const [allocationSortDirection, setAllocationSortDirection] = useState<"desc" | "asc">("desc");
+  const [allocationSortDirection, setAllocationSortDirection] = useState<SortOrder>("asc");
   const [xirrSummary, setXirrSummary] = useState<{ lifetime: string | null; current: string | null }>({ lifetime: null, current: null });
   const [xirrMode, setXirrMode] = useState<"lifetime" | "current">("lifetime");
   const [sipTab, setSipTab] = useState<"upcoming" | "month">("upcoming");
@@ -320,14 +324,9 @@ function DashboardViewContent({
     );
   }
 
-  const unsortedAllocationItems =
-    allocationTab === "asset"
-      ? allocation?.by_asset_class || []
-      : allocation?.by_amc || [];
-  const allocationItems = [...unsortedAllocationItems].sort((a, b) => {
-    const difference = compareDecimalStrings(b.current_value, a.current_value);
-    return allocationSortDirection === "desc" ? difference : -difference;
-  });
+  const allocationItems = allocationTab === "asset"
+    ? [...(allocation?.by_asset_class ?? [])].sort((a, b) => ASSET_CLASS_ORDER.indexOf(a.label) - ASSET_CLASS_ORDER.indexOf(b.label))
+    : sortAllocationItems((allocation?.by_amc ?? []).map((item, colorIndex) => ({ ...item, percentage: String(item.percentage), colorIndex })), allocationSortDirection);
 
   const isPositiveGain = totals.profitVal >= 0;
 
@@ -526,18 +525,11 @@ function DashboardViewContent({
               >
                 By AMC
               </button>
-              <button
-                type="button"
-                aria-label={`Sort allocation ${allocationSortDirection === "desc" ? "ascending" : "descending"}`}
-                onClick={() => setAllocationSortDirection((direction) => direction === "desc" ? "asc" : "desc")}
-                className="ml-1 rounded-lg p-1.5 text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-ink)]"
-              >
-                <ArrowUpDown className="h-3.5 w-3.5" />
-              </button>
             </div>
           </div>
 
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-2xs">
+            {allocationTab === "amc" && <div className="mb-4"><AllocationSortToggle order={allocationSortDirection} onChange={setAllocationSortDirection} /></div>}
             <AllocationDonut
               data={allocationItems}
               totalValue={allocation?.total_value}

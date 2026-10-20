@@ -26,6 +26,8 @@ import { ProfileNudge } from "@/features/dashboard/members/ProfileNudge";
 import { memberLabel } from "../members/memberLabel";
 import type { CoverageGapItem } from "@/features/import/types";
 import { AllocationDonut } from "@/components/AllocationDonut";
+import { AllocationSortToggle } from "@/components/AllocationSortToggle";
+import { sortAllocationItems, type SortOrder } from "@/lib/allocationSort";
 import { Badge } from "@/components/Badge";
 import { MobileHoldingCardSummary } from "../holdings/MobileHoldingCardSummary";
 import { MobileFundDetailView } from "../holdings/MobileFundDetailView";
@@ -54,8 +56,7 @@ import {
 import { motion } from "motion/react";
 import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 
-// Mobile-only legend/segment order for "By Asset Class" — web keeps the
-// backend's natural array order.
+// Fixed legend/segment order for the asset-class view.
 const ASSET_CLASS_ORDER = ["Equity", "Debt", "Hybrid", "Other"];
 
 export interface MobileDashboardViewProps {
@@ -92,6 +93,7 @@ function MobileDashboardViewContent({
   const [allocation, setAllocation] = useState<AllocationSummary | null>(null);
   const [coverageGaps, setCoverageGaps] = useState<CoverageGapItem[]>([]);
   const [allocationTab, setAllocationTab] = useState<"asset" | "amc">("asset");
+  const [allocationSortOrder, setAllocationSortOrder] = useState<SortOrder>("asc");
   // Local, display-only filter for the Holdings list in Family Combined
   // view — independent of viewMode/selectedMemberId above, which control
   // the whole screen's data-fetch context, not just what's shown in this list.
@@ -762,6 +764,7 @@ function MobileDashboardViewContent({
           </div>
 
           {/* Allocation Donut Chart */}
+          {allocationTab === "amc" && <AllocationSortToggle order={allocationSortOrder} onChange={setAllocationSortOrder} />}
           <AllocationDonut
             data={
               allocationTab === "asset"
@@ -770,7 +773,7 @@ function MobileDashboardViewContent({
                     ASSET_CLASS_ORDER.indexOf(a.label) -
                     ASSET_CLASS_ORDER.indexOf(b.label)
                 )
-                : allocation.by_amc
+                : sortAllocationItems((allocation.by_amc ?? []).map((item, colorIndex) => ({ ...item, percentage: String(item.percentage), colorIndex })), allocationSortOrder)
             }
             title={allocationTab === "asset" ? "By Asset Class" : "By AMC"}
             enableTapHighlight

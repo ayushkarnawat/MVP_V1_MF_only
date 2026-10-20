@@ -113,7 +113,7 @@ describe("DashboardView", () => {
     expect(screen.queryByText("Total Gain / Loss")).not.toBeInTheDocument();
   });
 
-  it("reverses the already-fetched allocation when sort direction is toggled", async () => {
+  it("opens AMC allocation smallest first and keeps asset-class order fixed", async () => {
     vi.mocked(api.getMemberHoldings).mockResolvedValue([{
       scheme_id: "large", scheme_name: "Large Fund", amc_name: "Large AMC",
       household_member_id: "m-1", household_member_name: "John", plan_type: "direct",
@@ -123,19 +123,23 @@ describe("DashboardView", () => {
     }]);
     vi.mocked(api.getMemberAllocation).mockResolvedValue({
       by_asset_class: [
-        { label: "Large", current_value: "9007199254740993.00", percentage: 75 },
-        { label: "Small", current_value: "9007199254740992.99", percentage: 25 },
+        { label: "Debt", current_value: "9007199254740993.00", percentage: 75 },
+        { label: "Equity", current_value: "9007199254740992.99", percentage: 25 },
       ],
-      by_amc: [], total_value: "18014398509481985.99",
+      by_amc: [{ label: "Large", current_value: "9007199254740993.00", percentage: 75 }, { label: "Small", current_value: "9007199254740992.99", percentage: 25 }], total_value: "18014398509481985.99",
     });
 
     render(<DashboardView viewMode="member" memberId="m-1" />);
-    const large = await screen.findByText("Large");
-    const small = screen.getByText("Small");
-    expect(large.compareDocumentPosition(small) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "Sort allocation ascending" }));
-    expect(small.compareDocumentPosition(large) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await screen.findByRole("button", { name: "Equity" });
+    expect(screen.getByRole("button", { name: "Equity" }).compareDocumentPosition(screen.getByRole("button", { name: "Debt" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Smallest first" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "By AMC" }));
+    const labels = () => screen.getAllByRole("button", { name: /^(Large|Small)$/ }).map(button => button.getAttribute("aria-label"));
+    expect(labels()).toEqual(["Small", "Large"]);
+    const colour = screen.getByRole("button", { name: "Small" }).querySelector("span[aria-hidden]")!.getAttribute("style");
+    fireEvent.click(screen.getByRole("button", { name: "Largest first" }));
+    expect(labels()).toEqual(["Large", "Small"]);
+    expect(screen.getByRole("button", { name: "Small" }).querySelector("span[aria-hidden]")!.getAttribute("style")).toBe(colour);
   });
 
   it("opens the shared holding drill-down from AMC and asset-class allocation rows", async () => {

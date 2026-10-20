@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { AllocationSection } from "./AllocationSection";
 import type { AnalyticsAllocationSummary } from "./types";
@@ -10,6 +10,31 @@ const summary: AnalyticsAllocationSummary = {
 };
 
 describe("AllocationSection", () => {
+  const varied: AnalyticsAllocationSummary = {
+    total_value: "100",
+    by_category: [{ label: "Category Large", percentage: "75", current_value: "75" }, { label: "Category Small", percentage: "25", current_value: "25" }],
+    by_amc: [{ label: "AMC Large", percentage: "75", current_value: "75" }, { label: "AMC Small", percentage: "25", current_value: "25" }],
+  };
+  const labels = (prefix: string) => screen.getAllByRole("button", { name: new RegExp(`^${prefix} `) }).map(button => button.getAttribute("aria-label"));
+
+  it.each(["Category", "AMC"])("opens %s smallest first and reverses without changing colours", tab => {
+    render(<AllocationSection summary={varied} />);
+    fireEvent.click(screen.getByRole("button", { name: `By ${tab}` }));
+    expect(labels(tab)).toEqual([`${tab} Small`, `${tab} Large`]);
+    const dot = () => screen.getByRole("button", { name: `${tab} Small` }).querySelector("span[aria-hidden]")!.getAttribute("style");
+    const colour = dot();
+    fireEvent.click(screen.getByRole("button", { name: "Largest first" }));
+    expect(labels(tab)).toEqual([`${tab} Large`, `${tab} Small`]);
+    expect(dot()).toBe(colour);
+  });
+
+  it("prints both lists smallest first without a sort toggle", () => {
+    render(<AllocationSection summary={varied} printMode />);
+    expect(labels("Category")).toEqual(["Category Small", "Category Large"]);
+    expect(labels("AMC")).toEqual(["AMC Small", "AMC Large"]);
+    expect(screen.queryByRole("button", { name: "Smallest first" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Largest first" })).toBeNull();
+  });
   it("printMode shows both category and AMC breakdowns with no tab toggle to click", () => {
     render(<AllocationSection summary={summary} printMode />);
 

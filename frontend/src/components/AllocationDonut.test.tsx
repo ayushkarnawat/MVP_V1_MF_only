@@ -3,6 +3,26 @@ import { describe, expect, it } from "vitest";
 import { AllocationDonut } from "./AllocationDonut";
 
 describe("AllocationDonut", () => {
+  it("keeps a tapped allocation attached to its label when items are reordered", () => {
+    const { rerender } = render(<AllocationDonut data={sampleData} enableTapHighlight />);
+    fireEvent.click(screen.getByRole("button", { name: "Equity" }));
+    expect(screen.getAllByText("Equity")).toHaveLength(2);
+    rerender(<AllocationDonut data={[...sampleData].reverse()} enableTapHighlight />);
+    expect(screen.getAllByText("Equity")).toHaveLength(2);
+    expect(screen.getAllByText("Debt")).toHaveLength(1);
+  });
+  it("uses a stable palette slot for the slice and legend regardless of position", () => {
+    const amber = { label: "Amber", current_value: "25", percentage: "25", colorIndex: 3 };
+    const other = { label: "Other", current_value: "75", percentage: "75", colorIndex: 0 };
+    const { container, rerender } = render(<AllocationDonut data={[amber, other]} animate={false} />);
+    const check = () => {
+      expect(screen.getByRole("button", { name: "Amber" }).querySelector("span[aria-hidden]")).toHaveStyle({ backgroundColor: "#F59E0B" });
+      expect(container.querySelector('path[fill="#F59E0B"]')).not.toBeNull();
+    };
+    check();
+    rerender(<AllocationDonut data={[other, amber]} animate={false} />);
+    check();
+  });
   const sampleData = [
     { label: "Equity", current_value: "150000.00", percentage: 75 },
     { label: "Debt", current_value: "50000.00", percentage: 25 },

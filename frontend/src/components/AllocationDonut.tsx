@@ -12,6 +12,7 @@ export interface AllocationItem {
   label: string;
   current_value: string;
   percentage: number | string;
+  colorIndex?: number;
 }
 
 export interface AllocationDonutProps {
@@ -59,14 +60,17 @@ export function AllocationDonut({
   animate = true,
   onSelectItem,
 }: AllocationDonutProps) {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  // Separate, persistent state for tap mode — sharing hoveredIndex with
+  const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
+  // Separate, persistent state for tap mode — sharing hover state with
   // onMouseEnter/onMouseLeave broke on touch devices: the browser's
   // synthetic mouse-event emulation for taps fires a mouseleave right after
   // the click, clearing hoveredIndex immediately (highlight flashes then
   // disappears). This state is only ever set by onClick, never by hover.
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const activeIndex = enableTapHighlight ? selectedIndex : hoveredIndex;
+  // Keep selection by identity so sorting cannot select a different slice.
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+  const activeLabel = enableTapHighlight ? selectedLabel : hoveredLabel;
+  const foundIndex = data?.findIndex(item => item.label === activeLabel) ?? -1;
+  const activeIndex = foundIndex < 0 ? null : foundIndex;
 
   if (!data || data.length === 0) {
     return (
@@ -86,7 +90,7 @@ export function AllocationDonut({
     return {
       label: item.label,
       value: val,
-      color: PALETTE[idx % PALETTE.length],
+      color: PALETTE[(item.colorIndex ?? idx) % PALETTE.length],
       formattedValue: item.current_value,
     };
   });
@@ -112,7 +116,7 @@ export function AllocationDonut({
             cornerRadius={3}
             hoverOffset={4}
             hoveredIndex={activeIndex}
-            onHoverChange={enableTapHighlight ? undefined : setHoveredIndex}
+            onHoverChange={enableTapHighlight ? undefined : index => setHoveredLabel(index === null ? null : data[index]?.label ?? null)}
             className="w-full h-full"
           >
             {pieData.map((item, idx) => (
@@ -151,7 +155,7 @@ export function AllocationDonut({
         <div className="flex flex-col space-y-1.5 w-full">
           {data.map((item, idx) => {
             const isActive = activeIndex === idx;
-            const color = PALETTE[idx % PALETTE.length];
+            const color = PALETTE[(item.colorIndex ?? idx) % PALETTE.length];
             const pct = parsePercentage(item.percentage);
 
             return (
@@ -165,11 +169,11 @@ export function AllocationDonut({
                     ? "bg-[var(--color-bg)] text-[var(--color-ink)]"
                     : "hover:bg-[var(--color-bg)]/60 text-[var(--color-ink)]"
                 )}
-                onMouseEnter={enableTapHighlight ? undefined : () => setHoveredIndex(idx)}
-                onMouseLeave={enableTapHighlight ? undefined : () => setHoveredIndex(null)}
+                onMouseEnter={enableTapHighlight ? undefined : () => setHoveredLabel(item.label)}
+                onMouseLeave={enableTapHighlight ? undefined : () => setHoveredLabel(null)}
                 onClick={() => {
                   if (enableTapHighlight) {
-                    setSelectedIndex((prev) => (prev === idx ? null : idx));
+                    setSelectedLabel((prev) => (prev === item.label ? null : item.label));
                   }
                   onSelectItem?.(item);
                 }}

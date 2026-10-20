@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { AllocationDonut } from "@/components/AllocationDonut";
+import { AllocationSortToggle } from "@/components/AllocationSortToggle";
+import { sortAllocationItems, type SortOrder } from "@/lib/allocationSort";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { AnalyticsAllocationSummary } from "./types";
@@ -21,6 +23,7 @@ export function AllocationSection({
   printMode = false,
 }: AllocationSectionProps) {
   const [tab, setTab] = useState<"category" | "amc">("category");
+  const [order, setOrder] = useState<SortOrder>("asc");
 
   if (isLoading) {
     return (
@@ -41,7 +44,9 @@ export function AllocationSection({
     );
   }
 
-  const activeData = tab === "category" ? summary?.by_category : summary?.by_amc;
+  const categoryItems = sortAllocationItems((summary?.by_category ?? []).map((item, colorIndex) => ({ ...item, colorIndex })), printMode ? "asc" : order);
+  const amcItems = sortAllocationItems((summary?.by_amc ?? []).map((item, colorIndex) => ({ ...item, colorIndex })), printMode ? "asc" : order);
+  const activeData = tab === "category" ? categoryItems : amcItems;
   const hasData = activeData && activeData.length > 0;
 
   return (
@@ -88,11 +93,12 @@ export function AllocationSection({
         )}
       </div>
 
+      {!printMode && hasData && <div className="mb-4"><AllocationSortToggle order={order} onChange={setOrder} /></div>}
       {printMode ? (
         <div className="space-y-8">
           {summary?.by_category && summary.by_category.length > 0 && (
             <AllocationDonut
-              data={summary.by_category}
+              data={categoryItems}
               totalValue={summary?.total_value}
               title="SEBI Category Distribution"
               animate={false}
@@ -100,7 +106,7 @@ export function AllocationSection({
           )}
           {summary?.by_amc && summary.by_amc.length > 0 && (
             <AllocationDonut
-              data={summary.by_amc}
+              data={amcItems}
               totalValue={summary?.total_value}
               title="Fund House (AMC) Distribution"
               animate={false}
