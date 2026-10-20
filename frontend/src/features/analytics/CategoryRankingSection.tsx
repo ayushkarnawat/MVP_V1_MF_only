@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { diffDecimalStrings, toPercentString } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
-import { Award, HelpCircle, Info, TrendingUp } from "lucide-react";
+import { Award, HelpCircle, Info, TrendingDown, TrendingUp } from "lucide-react";
 import type { CategoryRankingSummary } from "./types";
 
 export interface CategoryRankingSectionProps {
@@ -205,15 +205,15 @@ export function CategoryRankingSection({
                     {/* Outperformance / Underperformance Indicator */}
                     {diff !== null && (
                       <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)] pt-1">
-                        <TrendingUp className={cn(
+                        {diff >= 0 ? <TrendingUp className={cn(
                           "h-3.5 w-3.5",
                           diff >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"
-                        )} />
+                        )} /> : <TrendingDown className="h-3.5 w-3.5 text-[var(--color-negative)]" />}
                         <span>
                           {diff >= 0 ? (
                             <>Outperforming category average by <strong className="text-[var(--color-positive)] font-semibold tabular-nums">+{diff.toFixed(2)}%</strong></>
                           ) : (
-                            <>Trailing category average by <strong className="text-[var(--color-negative)] font-semibold tabular-nums">{diff.toFixed(2)}%</strong></>
+                            <>Trailing the category average by <strong className="text-[var(--color-negative)] font-semibold tabular-nums">{Math.abs(diff).toFixed(2)}%</strong></>
                           )}
                         </span>
                       </div>

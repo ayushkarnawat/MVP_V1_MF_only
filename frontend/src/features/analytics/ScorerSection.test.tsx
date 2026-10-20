@@ -56,6 +56,8 @@ describe("ScorerSection", () => {
     render(<ScorerSection scoreSummary={sampleScoreSummary} onSelectFundScore={handleSelect} />);
 
     expect(screen.getByText("Fund Quality Scorer & Composite Ratings")).toBeInTheDocument();
+    expect(screen.getByText("Tap for score breakdown")).toBeInTheDocument();
+    expect(screen.queryByText(/S20/)).toBeNull();
     expect(screen.getByText("85.5")).toBeInTheDocument();
     expect(screen.getByText("82.0")).toBeInTheDocument();
     expect(screen.getByText("Parag Parikh Flexi Cap Fund")).toBeInTheDocument();

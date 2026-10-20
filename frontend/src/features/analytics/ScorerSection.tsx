@@ -184,7 +184,7 @@ export function ScorerSection({
                         )}
                         {!isUnavailable && !isInsufficient && (
                           <span className="text-[11px] text-[var(--color-text-secondary)]">
-                            Tap for S20 Score Breakdown
+                            Tap for score breakdown
                           </span>
                         )}
                       </div>

@@ -277,7 +277,8 @@ describe("AnalyticsView", () => {
     fireEvent.click(scoreRowMatches[scoreRowMatches.length - 1]);
 
     await waitFor(() => {
-      expect(screen.getByText("S20 · Unifolio Fund Score")).toBeInTheDocument();
+      expect(screen.getByText("Unifolio Fund Score")).toBeInTheDocument();
+      expect(screen.queryByText(/S20/)).toBeNull();
     });
   });
 

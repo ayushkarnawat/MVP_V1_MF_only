@@ -13,7 +13,7 @@ export function rupees(value: string | null): string {
   if (!match) return NO_DATA;
   const negative = match[1] === "-";
   const rounded = BigInt(match[2]) + ((match[3] ?? "0")[0] >= "5" ? 1n : 0n);
-  return `₹${negative && rounded !== 0n ? "-" : ""}${new Intl.NumberFormat("en-IN").format(rounded)}`;
+  return `${negative && rounded !== 0n ? "-" : ""}₹${new Intl.NumberFormat("en-IN").format(rounded)}`;
 }
 
 function estimatePercent(value: string): string {

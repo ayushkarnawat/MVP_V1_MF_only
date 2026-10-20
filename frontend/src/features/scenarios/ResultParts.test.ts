@@ -20,8 +20,15 @@ describe("rupees", () => {
     // Rounding to paise first turned 1234.496 into 1234.50 and then ₹1,235.
     expect(rupees("1234.496")).toBe("₹1,234");
     expect(rupees("1234.5")).toBe("₹1,235");
-    expect(rupees("-22000.00")).toBe("₹-22,000");
+    expect(rupees("-22000.00")).toBe("-₹22,000");
     expect(rupees("-0.4")).toBe("₹0");
     expect(rupees(null)).toBe("Not enough historical data to estimate");
+  });
+  it("puts the sign before the rupee symbol with Indian grouping", () => {
+    expect(rupees("-8327040.00")).toBe("-₹83,27,040");
+    expect(rupees("240000")).toBe("₹2,40,000");
+    expect(rupees("0")).toBe("₹0");
+    expect(rupees("-1234.5")).toBe("-₹1,235");
+    expect(rupees("-0.00")).toBe("₹0");
   });
 });

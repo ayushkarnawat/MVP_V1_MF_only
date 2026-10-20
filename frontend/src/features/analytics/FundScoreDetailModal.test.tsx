@@ -41,6 +41,8 @@ describe("FundScoreDetailModal (S20)", () => {
     );
 
     expect(screen.getByText("Parag Parikh Flexi Cap Fund")).toBeInTheDocument();
+    expect(screen.getByText("Unifolio Fund Score")).toBeInTheDocument();
+    expect(screen.queryByText(/S20/)).toBeNull();
     expect(screen.getByText("How this fund compares to similar funds in its category.")).toBeInTheDocument();
     expect(screen.getByText("8.5")).toBeInTheDocument();
     expect(screen.getByText("Tier 1 of 5")).toBeInTheDocument();

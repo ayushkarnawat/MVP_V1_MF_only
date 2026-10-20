@@ -70,7 +70,7 @@ export function FundScoreDetailModal({
         <DialogHeader className="space-y-1 text-left">
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-[10px] uppercase font-bold text-[var(--color-accent)] border-[var(--color-accent)]/30">
-              S20 · Unifolio Fund Score
+              Unifolio Fund Score
             </Badge>
             {data?.thin_category && (
               <Badge variant="warning" className="text-[10px]">
