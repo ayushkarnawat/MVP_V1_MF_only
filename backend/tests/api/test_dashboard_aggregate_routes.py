@@ -39,6 +39,8 @@ def test_member_holdings_response_includes_xirr_summary(client):
         "realized_summary": {"total": "0.00", "funds": []},
         "lifetime_xirr": None,
         "current_holdings_xirr": None,
+        "lifetime_xirr_disclaimer": None,
+        "current_holdings_xirr_disclaimer": None,
     }
 
 

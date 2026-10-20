@@ -33,4 +33,6 @@ def test_holdings_route_returns_empty_list_for_member_with_no_folios(client):
         "realized_summary": {"total": "0.00", "funds": []},
         "lifetime_xirr": None,
         "current_holdings_xirr": None,
+        "lifetime_xirr_disclaimer": None,
+        "current_holdings_xirr_disclaimer": None,
     }
