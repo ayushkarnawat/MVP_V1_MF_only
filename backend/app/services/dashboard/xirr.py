@@ -181,7 +181,7 @@ def _build_disclaimer(
     # explanation, not just an unnecessary one.
     if alt_rate is not None and alt_rate > _XIRR_SANITY_CEILING:
         return None
-    return XirrDisclaimer(alt_xirr=xirr_string(alt_rate), opening_cost_share=str(opening_cost_share))
+    return XirrDisclaimer(alt_xirr=xirr_string(alt_rate), opening_cost_share=format(opening_cost_share, "f"))
 
 
 def calculate_dashboard_xirr(

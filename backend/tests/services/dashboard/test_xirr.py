@@ -234,10 +234,11 @@ def test_disclaimer_fires_when_blended_xirr_and_alt_xirr_both_cross_threshold(db
         [(date.today() - timedelta(days=180), "200", "15")],
         current_value="20000.00",
     )
+    assert Decimal(result.lifetime_xirr) > Decimal("0.35")
     assert result.lifetime_xirr_disclaimer is not None
     assert Decimal(result.lifetime_xirr_disclaimer.opening_cost_share) == pytest.approx(Decimal("0.7692"), abs=Decimal("0.001"))
     assert result.lifetime_xirr_disclaimer.alt_xirr is not None
-    assert Decimal(result.lifetime_xirr_disclaimer.alt_xirr) <= Decimal("0.35")
+    assert Decimal(result.lifetime_xirr_disclaimer.alt_xirr) == pytest.approx(Decimal("0.2382"), abs=Decimal("0.005"))
     assert Decimal(result.lifetime_xirr_disclaimer.alt_xirr) != Decimal(result.lifetime_xirr)
 
 
@@ -254,7 +255,7 @@ def test_disclaimer_fires_even_when_opening_share_is_below_the_old_25pct_floor(d
     assert result.lifetime_xirr_disclaimer is not None
     assert Decimal(result.lifetime_xirr_disclaimer.opening_cost_share) == pytest.approx(Decimal("0.186"), abs=Decimal("0.001"))
     assert result.lifetime_xirr_disclaimer.alt_xirr is not None
-    assert Decimal(result.lifetime_xirr_disclaimer.alt_xirr) <= Decimal("0.35")
+    assert Decimal(result.lifetime_xirr_disclaimer.alt_xirr) == pytest.approx(Decimal("0.2108"), abs=Decimal("0.005"))
 
 
 def test_disclaimer_absent_when_excluding_opening_doesnt_fix_the_number(db_session):
@@ -353,3 +354,18 @@ def test_disclaimer_keeps_a_manual_opening_balance_in_the_alt_flows(db_session):
     assert result.lifetime_xirr_disclaimer is not None
     assert result.lifetime_xirr_disclaimer.alt_xirr is not None
     assert Decimal(result.lifetime_xirr_disclaimer.alt_xirr) == pytest.approx(Decimal("0.25"), abs=Decimal("0.01"))
+
+
+def test_current_holdings_disclaimer_is_built_from_the_current_scope(db_session):
+    # No switches or exits here, so the current-holdings scope equals the
+    # lifetime scope and both disclaimers must agree. Covers the previously
+    # untested current_holdings_xirr_disclaimer path end to end.
+    recent_window_start = date.today() - timedelta(days=365)
+    result = _disclaimer_scenario(
+        db_session, "+919500000021", recent_window_start, "1000", "10",
+        [(date.today() - timedelta(days=180), "200", "15")],
+        current_value="20000.00",
+    )
+    assert result.current_holdings_xirr_disclaimer is not None
+    assert result.current_holdings_xirr_disclaimer == result.lifetime_xirr_disclaimer
+    assert Decimal(result.current_holdings_xirr_disclaimer.alt_xirr) == pytest.approx(Decimal("0.2382"), abs=Decimal("0.005"))

@@ -164,3 +164,18 @@ def test_opening_lot_does_not_absorb_in_period_stamp_duty():
                                 stamp_duty=Decimal("0.25"))
     lot = price_opening_lot(scheme, [sip], date(2025, 4, 1), None)
     assert lot.amount == Decimal("10000.00")
+
+
+def test_touched_lot_accepted_by_loosened_band_only():
+    # Pre-start NAVs span 20..85. A cost of 10/unit is below the strict floor
+    # but inside the loosened floor (20/3 = 6.67), so only the x3 tier accepts it.
+    txns = [_t(date(2017, 1, 1), TransactionType.REDEMPTION, "500", "50")]
+    lot = price_opening_lot(_s("1000", "5000"), txns, START, SERIES)
+    assert lot.cost_source == CostSource.CAS_COST and lot.nav == Decimal("10.0000")
+
+
+def test_touched_lot_above_the_loosened_ceiling_still_falls_back():
+    # 85 * 3 = 255 ceiling; 300/unit is beyond even the loosened band.
+    txns = [_t(date(2017, 1, 1), TransactionType.REDEMPTION, "500", "50")]
+    lot = price_opening_lot(_s("1000", "150000"), txns, START, SERIES)
+    assert lot.cost_source == CostSource.NAV_ON_START

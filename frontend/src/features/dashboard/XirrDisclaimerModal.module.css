@@ -66,12 +66,19 @@
 
 .gotIt {
   background: var(--color-accent);
-  color: var(--color-surface);
+  /* Same as the other accent buttons (onboarding): the surface token is white in
+     light mode, only ~2.2:1 on the green accent. */
+  color: #000000;
   border: none;
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-4);
   font-weight: 600;
   cursor: pointer;
+}
+
+.gotIt:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
 }
 
 @media (max-width: 640px) {
