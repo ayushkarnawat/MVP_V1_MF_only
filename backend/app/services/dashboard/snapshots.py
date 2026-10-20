@@ -235,36 +235,27 @@ def _fund_values(valued) -> dict:
     return grouped
 
 
-async def _snapshot_months(db: Session, member_ids: list[uuid.UUID]) -> list[date]:
-    """The months the History chart shows, read from the stored snapshots. Unlike `get_snapshots` it
-    does not rebuild (and rewrite) a member's rows just because some month is partial, so a click
-    stays read-only; it only falls back to `get_snapshots` when rows are missing or stale."""
-    months: set[date] = set()
-    for member_id in member_ids:
-        if db.get(HouseholdMember, member_id) is None:
-            continue
-        rows = db.query(PortfolioSnapshot.snapshot_month, PortfolioSnapshot.data_version).filter_by(household_member_id=member_id).all()
-        version = _data_version(db, member_id)
-        if not rows or any(v < version for _, v in rows) or max(m for m, _ in rows) < last_completed_month_end():
-            months.update(p.snapshot_month for p in await get_snapshots(db, [member_id]))
-        else:
-            months.update(m for m, _ in rows)
-    return sorted(months)
-
-
 async def get_month_detail(db: Session, member_ids: list[uuid.UUID], month: date) -> MonthDetail | None:
-    months = await _snapshot_months(db, member_ids)
-    if month not in months:
+    """A month is available when it is a month-end, not after the last completed month, and some member's
+    history has started by then: exactly the months the stored snapshots hold. Derived from the
+    transactions, so a click never reads a stale snapshot, rebuilds one, fetches prices or writes."""
+    if month != _month_end(month.year, month.month) or month > last_completed_month_end():
         return None
-    index = months.index(month)
-    previous_month = months[index - 1] if index else None
     members = {m.id: m for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(member_ids)).all()}
+    contexts = []
+    for member_id in member_ids:
+        if member_id not in members:
+            continue
+        context = await _prepare_months(db, member_id, warm=False, through=month)
+        if context is not None:
+            contexts.append((member_id, context))
+    first_ends = [_month_end(c[1][1][0].date.year, c[1][1][0].date.month) for c in contexts]
+    if not first_ends or min(first_ends) > month:
+        return None
+    previous_month = month.replace(day=1) - timedelta(days=1) if month > min(first_ends) else None
     rows = []
     switched_in = switched_out = previous_total = Decimal("0")
-    for member_id in member_ids:
-        context = await _prepare_months(db, member_id, warm=False, through=month)
-        if context is None:
-            continue
+    for member_id, context in contexts:
         folios, _, schemes, _, _, _ = context
         folio_schemes = {f.id: f.scheme_id for f in folios}
         previous, current, transactions = {}, {}, []

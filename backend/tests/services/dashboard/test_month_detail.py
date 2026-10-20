@@ -281,3 +281,20 @@ def test_a_click_is_read_only_even_when_some_month_is_partial(db_session, monkey
     assert result is not None and result.is_partial
     db_session.expire_all()
     assert {(r.snapshot_month, r.computed_at) for r in db_session.query(PortfolioSnapshot).all()} == stored
+
+
+def test_a_click_never_writes_even_when_no_snapshot_has_been_stored(db_session, monkeypatch):
+    from app.models.snapshot import PortfolioSnapshot
+    owner, *_ = worked(db_session)
+    assert db_session.query(PortfolioSnapshot).count() == 0  # History was never opened
+    monkeypatch.setattr(snapshots, "warm_nav_history", AsyncMock(side_effect=AssertionError("no network on a click")))
+    result = detail(db_session, [owner.id])
+    assert result is not None and result.total_value == "1460.00"
+    assert db_session.query(PortfolioSnapshot).count() == 0
+
+
+def test_months_that_are_not_month_ends_or_after_the_last_completed_month_are_absent(db_session):
+    owner, *_ = worked(db_session)
+    assert detail(db_session, [owner.id], date(2024, 2, 28)) is None  # not a month-end (2024 is a leap year)
+    assert detail(db_session, [owner.id], date(2024, 5, 31)) is None  # after the last completed month (patched to 2024-04-30)
+    assert detail(db_session, [owner.id], date(2023, 12, 31)) is None  # before this member's history began
