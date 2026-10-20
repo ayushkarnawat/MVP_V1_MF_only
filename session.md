@@ -22,7 +22,8 @@ anything by re-reading the whole repo.**
 ## Latest (2026-10-20, later): Chandra Tripathi fix BUILT — PR #8 open into `feat/leapswitch-staging`, awaiting manager review/merge
 
 **Built** on branch `fix/chandra-opening-cost-xirr-disclaimer` (worktree `..\MVP_V1_MF_only-chandra`): Root Cause A (`opening_balance.py`), Root Cause B backend (`dashboard/xirr.py` + schemas/endpoints) and the frontend popup (desktop + mobile), all in one PR. Two independent reviews and the manager's PR review each found real bugs, all fixed test-first; the deviations from the plans are listed in "Implementation record" at the end of the Root Cause B plan. Backend filtered regression 964 passed / 5 skipped; frontend typecheck clean, suite green.
-**Still open:** (1) run `test_real_check.py` on the real `chandra.pdf` (not on the build machine; only the synthetic reproduction was run); (2) the harness's -5.59% drift check prints NOT PASS because the August statement is stale: refresh that baseline; (3) merge only when the user says so; (4) known, not fixed: shared `Modal` has no focus management, the mobile info icon is 14px, a fully-sold opening lot builds no disclaimer.
+**Real-file gate run 2026-10-20 on the real `chandra.pdf`:** both root causes confirmed (invested gap 1,082,539.38 -> 0.91, 2 funds over tolerance -> 0; disclaimer fires for both members: 186.2% -> -6.6% and 127.5% -> -7.4%); identical to the synthetic reproduction.
+**Still open:** (1) the harness's -5.59% drift check prints NOT PASS because the August statement is stale: refresh that baseline as its own follow-up (no clean PASS transcript exists until then); (2) merge only when the user says so; (3) known, not fixed: shared `Modal` has no focus management, the mobile info icon is 14px, a fully-sold opening lot builds no disclaimer.
 
 ### Earlier the same day (superseded by the above): pre-execution review of the plans
 
