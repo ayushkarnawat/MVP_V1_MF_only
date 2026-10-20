@@ -25,12 +25,18 @@ export function Modal({ isOpen, onClose, title, children, variant = "center" }: 
         else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
       }
     };
+    // The sheet covers the page on a phone, so the page behind must not scroll with it.
+    const previousOverflow = document.body.style.overflow;
     if (isOpen) {
       window.addEventListener("keydown", handleKeyDown);
-      if (variant === "sheet") focusable()[0]?.focus();
+      if (variant === "sheet") {
+        focusable()[0]?.focus();
+        document.body.style.overflow = "hidden";
+      }
     }
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+      if (isOpen && variant === "sheet") document.body.style.overflow = previousOverflow;
       if (isOpen && variant === "sheet" && previousFocus?.isConnected) previousFocus.focus();
     };
   }, [isOpen, onClose, variant]);

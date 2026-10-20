@@ -88,6 +88,7 @@
     padding: 0;
   }
   .sheet {
+    overscroll-behavior: contain; /* scrolling inside the sheet never chains to the page behind */
     max-width: 100%;
     max-height: 92dvh;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;

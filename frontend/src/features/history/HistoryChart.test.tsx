@@ -88,3 +88,16 @@ it("a touch drag on the selected month does not open details", () => {
   pointer(svg, "pointerup", 500, "touch");
   expect(select).not.toHaveBeenCalled();
 });
+
+it("an out-and-back touch drag that ends where it began does not count as the second tap", () => {
+  const select = vi.fn();
+  render(<HistoryChart points={points} selectedMonth={null} onSelectMonth={select} />);
+  const svg = screen.getByRole("img");
+  pointer(svg, "pointerdown", 640, "touch");
+  pointer(svg, "pointerup", 640, "touch");
+  pointer(svg, "pointerdown", 640, "touch");
+  pointer(svg, "pointermove", 500, "touch");
+  pointer(svg, "pointermove", 640, "touch");
+  pointer(svg, "pointerup", 640, "touch");
+  expect(select).not.toHaveBeenCalled();
+});

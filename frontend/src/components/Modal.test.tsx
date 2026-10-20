@@ -49,3 +49,15 @@ it("default variant stays centered and sheet is opt-in", async () => {
   rerender(<Modal isOpen onClose={vi.fn()} title="Variant" variant="sheet">Body</Modal>);
   expect(screen.getByRole("dialog")).toHaveClass(styles.sheet);
 });
+
+it("the sheet locks background scrolling while open and restores it; the default variant leaves it alone", () => {
+  document.body.style.overflow = "auto";
+  const center = render(<Modal isOpen onClose={vi.fn()} title="Center">Body</Modal>);
+  expect(document.body.style.overflow).toBe("auto");
+  center.unmount();
+  const sheet = render(<Modal isOpen onClose={vi.fn()} title="Sheet" variant="sheet">Body</Modal>);
+  expect(document.body.style.overflow).toBe("hidden");
+  sheet.unmount();
+  expect(document.body.style.overflow).toBe("auto");
+  document.body.style.overflow = "";
+});

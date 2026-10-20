@@ -21,7 +21,7 @@ export function HistoryChart({ points, onSelectMonth, selectedMonth }: { points:
   const [activeMonth, setActiveMonth] = useState<string | null>(null);
   const touched = useRef<string | null>(null);
   const ignoreClick = useRef(false);
-  const touchStart = useRef<{ x: number; y: number; index: number } | null>(null);
+  const touchStart = useRef<{ x: number; y: number; index: number; moved: boolean } | null>(null);
   const tooltipId = useId();
   if (points.length === 0) return null;
   const active = points.findIndex(p => p.month === activeMonth);
@@ -39,17 +39,25 @@ export function HistoryChart({ points, onSelectMonth, selectedMonth }: { points:
   return <div className="w-full space-y-2">
     <p className="text-xs text-[var(--color-text-secondary)]">Month-end values · latest {formatExactDate(points[points.length - 1].month) ?? points[points.length - 1].month}</p>
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]" role="img" tabIndex={0} aria-label="Portfolio value by month" aria-describedby={current ? tooltipId : undefined}
-      onPointerMove={event => { if (event.pointerType !== "touch") setActiveMonth(points[pointerIndex(event)]?.month ?? null); }}
+      onPointerMove={event => {
+        if (event.pointerType === "touch") {
+          // Once a touch has travelled past the tap threshold it is a drag, even if it comes back.
+          const start = touchStart.current;
+          if (start && (Math.abs(event.clientX - start.x) > 8 || Math.abs(event.clientY - start.y) > 8)) start.moved = true;
+          return;
+        }
+        setActiveMonth(points[pointerIndex(event)]?.month ?? null);
+      }}
       onPointerDown={event => {
         ignoreClick.current = event.pointerType === "touch";
         if (event.pointerType !== "touch") return;
-        touchStart.current = { x: event.clientX, y: event.clientY, index: pointerIndex(event) };
+        touchStart.current = { x: event.clientX, y: event.clientY, index: pointerIndex(event), moved: false };
       }}
       onPointerCancel={() => { touchStart.current = null; }}
       onPointerUp={event => {
         const start = touchStart.current;
         touchStart.current = null;
-        if (event.pointerType !== "touch" || !start || Math.abs(event.clientX - start.x) > 8 || Math.abs(event.clientY - start.y) > 8) return;
+        if (event.pointerType !== "touch" || !start || start.moved || Math.abs(event.clientX - start.x) > 8 || Math.abs(event.clientY - start.y) > 8) return;
         const index = start.index, month = points[index]?.month;
         if (!month) return;
         setActiveMonth(month);
