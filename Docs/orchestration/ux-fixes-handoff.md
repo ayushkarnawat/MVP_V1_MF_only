@@ -1,5 +1,5 @@
 # Handoff: ux-fixes (Analytics UX fixes, phases P1–P6)
-**Status:** IN_PROGRESS — Run 1 built, verified and committed (0efd5bf..ebccc2b); adversarial review pending, 2026-10-20
+**Status:** IN_PROGRESS — Run 1 DONE (0efd5bf..ebccc2b, review PASS); Run 2 ready (P1-T5 only; P1-T6 held), 2026-10-20
 **Parent plan:** `Docs/superpowers/plans/2026-10-19-analytics-ux-fixes-plan.md` (binding; read "Global Constraints", "Locked decisions", "Review Focus" first, then only the run's tasks)
 **Spec copies:** `Docs/orchestration/analytics-ux-changes-spec/` (`analytics-ux-changes-v18.html`, `other-fixes.html`)
 **Orchestrator:** Claude Code · **Worker:** Codex (manual relay, one run per prompt)
@@ -11,7 +11,7 @@ Same loop as Sub-projects 1 and 2: the user pastes the run's prompt into Codex; 
 | Run | Tasks | Reviewer |
 |---|---|---|
 | **R1** | P1-T1…T4 (labels, benchmark names, copy fixes, Direct/Regular bar) | Codex |
-| R2 | P1-T5, P1-T6 (tier colours; explainer after Claude's doc check) | Codex |
+| R2 | P1-T5 now; P1-T6 held (doc/code disagree, see `2026-10-20-score-explainer-check.md`) | Codex |
 | R3 | P1-T7…T9 | Codex |
 | R4 | P2-T1, P2-T2 | Opus |
 | R5 | P3-T1, T2, T6 | Opus |
@@ -30,6 +30,12 @@ Same loop as Sub-projects 1 and 2: the user pastes the run's prompt into Codex; 
 Implement the plan's **Task P1-T1, P1-T2, P1-T3, P1-T4** exactly (Phase P1 in the plan; all four are frontend-only, no backend, no migration). Files per task are listed in each task. Locked decisions that apply: benchmark labels "(Total Return)"; readable benchmark label for `nifty_largemidcap_250` plus a readable fallback; "Trailing the category average by X%" with a falling arrow; negatives as `-₹2,40,000`; no "S20" in user-visible text; the empty Direct/Regular bar is hidden with the explanatory notes.
 Order: T1, T2, T3, T4, each with its own red/green. Do not start P1-T5 or later.
 Report extras: for each task, the exact user-visible strings that changed (old → new).
+
+## Run 1 result (2026-10-20)
+DONE. Review PASS (fresh reviewer; /codex:adversarial-review unavailable in Codex). Two low pre-existing observations accepted as documented limitations: TER upper cards still say "No ... Holdings" for held plans without a TER (P1-T4 leaves them unchanged); a shortfall under 0.005pp rounds to zero before the arrow is chosen and can read "Outperforming +0.00%".
+
+## Run 2 — P1-T5 only (tier badge colours)
+Implement the plan's **Task P1-T5** exactly, frontend only: tokens in all four blocks of `tokens.css`, `tierStyle.ts` (`tierBadgeStyle`, `portfolioVerdict`, exported `PORTFOLIO_VERDICT_COLOURS`), applied to every element that renders "Tier N" and to the portfolio label. D4 decided: High green / Moderate slate / Needs Review amber. **Do not start P1-T6** (held on a doc-vs-code disagreement). Report extras: the contrast of each tier's bg/fg pair in light and dark if you can compute it, and every file where a fixed accent class was removed.
 
 ## Self-review (before printing the report)
 1. `git diff --stat` / `git status --porcelain`: only this run's files; `git diff --cached --stat` empty.
