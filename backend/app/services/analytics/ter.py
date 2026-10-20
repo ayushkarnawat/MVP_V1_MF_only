@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from sqlalchemy.orm import Session
 
@@ -26,6 +26,7 @@ from app.services.analytics.schemas import (
     AggregateDirectRegularTerResponse,
     AggregateWeightedTerResponse,
     DirectRegularTerComparison,
+    FundTerRow,
     WeightedTerSummary,
 )
 from app.services.dashboard.aggregate import get_member_statuses
@@ -51,33 +52,54 @@ def _latest_ter_for_scheme(db: Session, scheme_id: uuid.UUID) -> tuple[Decimal, 
     return (row.ter_value, row.reference_period) if row else None
 
 
-def _summarize(holdings: list[HoldingRow], ter_by_scheme: dict[str, tuple[Decimal, date]]) -> WeightedTerSummary:
+def _summarize(holdings: list[HoldingRow], ter_by_scheme: dict[str, tuple[Decimal, date]], *, include_funds: bool = False) -> WeightedTerSummary:
     total_value = Decimal("0")
     covered_value = Decimal("0")
     weighted_sum = Decimal("0")
     latest_period: date | None = None
     uncovered_schemes: set[str] = set()
-
+    fund_rows: list[FundTerRow] = []
+    value_by_scheme: dict[str, Decimal] = {}
+    first_holding: dict[str, HoldingRow] = {}
     for holding in holdings:
-        value = Decimal(holding.current_value)
+        value_by_scheme[holding.scheme_id] = value_by_scheme.get(holding.scheme_id, Decimal("0")) + Decimal(holding.current_value)
+        first_holding.setdefault(holding.scheme_id, holding)
+
+    for scheme_id, holding in first_holding.items():
+        value = value_by_scheme[scheme_id]
         total_value += value
         ter_info = ter_by_scheme.get(holding.scheme_id)
+        row = FundTerRow(scheme_id=scheme_id, scheme_name=holding.scheme_name,
+                         plan_type=holding.plan_type, value=str(value))
+        fund_rows.append(row)
         if ter_info is None:
             uncovered_schemes.add(holding.scheme_name)
             continue
         ter_value, reference_period = ter_info
+        cost_1y = (value * ter_value / 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        row.ter = str(ter_value)
+        row.cost_1y = f"{cost_1y:.2f}"
+        row.cost_3y = f"{cost_1y * 3:.2f}"
+        row.cost_5y = f"{cost_1y * 5:.2f}"
         covered_value += value
         weighted_sum += value * ter_value
         if latest_period is None or reference_period > latest_period:
             latest_period = reference_period
 
     weighted_ter = (weighted_sum / covered_value) if covered_value else None
+    covered_rows = [row for row in fund_rows if row.ter is not None]
+    costs = {
+        field: f"{sum((Decimal(getattr(row, field)) for row in covered_rows), Decimal('0')):.2f}" if covered_rows else None
+        for field in ("cost_1y", "cost_3y", "cost_5y")
+    }
     return WeightedTerSummary(
         weighted_ter=str(weighted_ter.quantize(Decimal("0.01"))) if weighted_ter is not None else None,
         covered_value=str(covered_value),
         total_value=str(total_value),
         reference_period=latest_period,
         uncovered_schemes=sorted(uncovered_schemes),
+        **costs,
+        funds=sorted(fund_rows, key=lambda row: -Decimal(row.value)) if include_funds else [],
     )
 
 
@@ -92,7 +114,7 @@ async def _weighted_ter_for_holdings(db: Session, holdings: list[HoldingRow]) ->
         for scheme_id in scheme_ids
         if (info := _latest_ter_for_scheme(db, scheme_id)) is not None
     }
-    return _summarize(holdings, ter_by_scheme)
+    return _summarize(holdings, ter_by_scheme, include_funds=True)
 
 
 async def compute_weighted_ter(db: Session, household_member_ids: list[uuid.UUID]) -> WeightedTerSummary:

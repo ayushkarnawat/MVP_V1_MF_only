@@ -111,6 +111,17 @@ class AggregateAnalyticsAllocationResponse(BaseModel):
     allocation: AnalyticsAllocationSummary
 
 
+class FundTerRow(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    plan_type: str | None = None
+    ter: str | None = None
+    value: str
+    cost_1y: str | None = None
+    cost_3y: str | None = None
+    cost_5y: str | None = None
+
+
 class WeightedTerSummary(BaseModel):
     """PRD-04 FR-10 — weighted by the user's own holding value, not the
     fund's platform-wide AAUM (see amfi_aaum_client.py's docstring)."""
@@ -120,6 +131,10 @@ class WeightedTerSummary(BaseModel):
     total_value: str
     reference_period: date | None
     uncovered_schemes: list[str]
+    cost_1y: str | None = None
+    cost_3y: str | None = None
+    cost_5y: str | None = None
+    funds: list[FundTerRow] = Field(default_factory=list)
 
 
 class DirectRegularTerComparison(BaseModel):
