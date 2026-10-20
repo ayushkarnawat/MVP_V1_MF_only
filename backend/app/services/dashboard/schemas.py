@@ -146,6 +146,49 @@ class CashFlowEntry(BaseModel):
     household_member_name: str
 
 
+class MonthFundRow(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    household_member_id: str
+    household_member_name: str
+    units: str = "0"
+    nav: str | None = None
+    nav_date: date | None = None
+    value: str | None = None
+    cost: str = "0.00"
+    change_in_value: str | None = None
+    new_money: str = "0.00"
+    opening_holdings: str = "0.00"
+    switched_net: str = "0.00"
+    gifts_net: str = "0.00"
+    market_movement: str | None = None
+    priced: bool = True
+
+
+class MonthDetail(BaseModel):
+    month: date
+    previous_month: date | None = None
+    total_value: str = "0.00"
+    previous_value: str = "0.00"
+    # change and market_movement are None for a partial month (a fund without a comparable
+    # price): the headline must not jump by that fund's whole value.
+    change: str | None = "0.00"
+    new_money: str = "0.00"
+    opening_holdings: str = "0.00"
+    # Money moved between funds (switches) and units gifted in/out are kept out of both new money
+    # and market movement, so change == new_money + opening_holdings + switches_net + gifts_net
+    # + market_movement always adds up, even when a switch's legs fall in different months or
+    # differ in amount.
+    switches_net: str = "0.00"
+    gifts_net: str = "0.00"
+    market_movement: str | None = "0.00"
+    switched_in: str = "0.00"
+    switched_out: str = "0.00"
+    is_partial: bool = False
+    missing_scheme_names: list[str] = Field(default_factory=list)
+    funds: list[MonthFundRow] = Field(default_factory=list)
+
+
 class SnapshotRow(BaseModel):
     invested_value: str | None = None
     is_partial: bool = False

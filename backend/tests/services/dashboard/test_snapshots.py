@@ -179,7 +179,7 @@ def test_partial_month_kept_and_flagged():
     jan = next(r for r in rows if r.snapshot_month == date(2024,1,31))
     assert jan.is_partial and jan.missing_scheme_names == ["Missing NAV Fund"]
     assert Decimal(jan.total_value) == Decimal("200")
-    assert Decimal(jan.invested_value) == Decimal("200")
+    assert Decimal(jan.invested_value) == Decimal("100")
 
 
 def test_snapshots_after_confirm_are_fresh():
@@ -267,3 +267,76 @@ def test_written_off_fund_is_worth_zero_after_its_nav_drops_to_zero():
     feb = rows[date(2024,2,29)]
     assert Decimal(feb.total_value) == Decimal("0")
     assert not feb.is_partial
+
+
+
+def _value_month_fixture():
+    from types import SimpleNamespace
+    from app.services.dashboard.holdings import FifoState
+    sid = uuid.uuid4()
+    folio = SimpleNamespace(id=uuid.uuid4(), scheme_id=sid)
+    state = FifoState()
+    state.lots = [[Decimal("10"), Decimal("8")]]
+    schemes = {sid: SimpleNamespace(name="Valued fund")}
+    return sid, [folio], {folio.id: state}, schemes
+
+
+def test_value_month_returns_one_row_per_held_folio_with_units_nav_value_cost():
+    from app.services.dashboard.snapshots import value_month
+    sid, folios, states, schemes = _value_month_fixture()
+    # A second folio of the same fund must have its own value row.
+    from types import SimpleNamespace
+    second = SimpleNamespace(id=uuid.uuid4(), scheme_id=sid)
+    folios.append(second)
+    states[second.id] = states[folios[0].id]
+    rows = value_month(date(2024, 3, 31), folios, states, schemes,
+                       {sid: [(date(2024, 3, 28), Decimal("12"))]}, {sid: [date(2024, 3, 28)]})
+    assert len(rows) == 2
+    for row in rows:
+        assert (row.scheme_id, row.scheme_name, row.units, row.nav, row.nav_date,
+                row.value, row.cost, row.priced) == (sid, "Valued fund", Decimal("10"), Decimal("12"), date(2024, 3, 28), Decimal("120"), Decimal("80"), True)
+
+
+def test_unpriced_fund_adds_no_cost_and_no_value_and_is_flagged():
+    from app.services.dashboard.snapshots import value_month
+    sid, folios, states, schemes = _value_month_fixture()
+    row = value_month(date(2024, 3, 31), folios, states, schemes, {sid: []}, {sid: []})[0]
+    assert not row.priced
+    assert row.value == row.cost == Decimal("0")
+    assert row.nav is row.nav_date is None
+    db = _session()
+    member = _household_member(db)
+    folio, _ = _folio_with_purchase(db, member, date(2024, 1, 10), Decimal("80"), Decimal("10"), Decimal("8"))
+    january = asyncio.run(get_snapshots(db, [member.id]))[0]
+    assert january.total_value == january.invested_value == "0.00"
+    assert january.is_partial and january.missing_scheme_names == ["Test Fund"]
+    assert db.query(PortfolioSnapshot).first().missing_scheme_ids == [str(folio.scheme_id)]
+
+
+def test_fully_priced_months_unchanged_by_the_refactor():
+    db = _session()
+    member = _household_member(db)
+    folio, _ = _folio_with_purchase(db, member, date(2024, 1, 15), Decimal("5000"), Decimal("100"), Decimal("50"))
+    seed_nav(db, folio.scheme_id, date(2024, 1, 31), "55")
+    seed_nav(db, folio.scheme_id, date(2024, 2, 29), "60")
+    rows = asyncio.run(get_snapshots(db, [member.id]))
+    assert [(r.snapshot_month, r.total_value, r.invested_value, r.is_partial) for r in rows[:2]] == [
+        (date(2024, 1, 31), "5500.00", "5000.00", False),
+        (date(2024, 2, 29), "6000.00", "5000.00", False)]
+
+
+def test_month_end_that_is_not_a_trading_day_uses_the_last_earlier_nav():
+    from app.services.dashboard.snapshots import value_month
+    sid, folios, states, schemes = _value_month_fixture()
+    series = {sid: [(date(2024, 3, 28), Decimal("12")), (date(2024, 4, 1), Decimal("99"))]}
+    row = value_month(date(2024, 3, 31), folios, states, schemes, series, {sid: [v[0] for v in series[sid]]})[0]
+    assert row.nav == Decimal("12") and row.nav_date == date(2024, 3, 28)
+
+
+def test_zero_nav_is_a_real_value():
+    from app.services.dashboard.snapshots import value_month
+    sid, folios, states, schemes = _value_month_fixture()
+    row = value_month(date(2024, 2, 29), folios, states, schemes,
+                      {sid: [(date(2024, 2, 29), Decimal("0"))]}, {sid: [date(2024, 2, 29)]})[0]
+    assert row.priced and row.value == row.nav == Decimal("0")
+    assert row.cost == Decimal("80")

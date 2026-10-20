@@ -5,6 +5,7 @@ import uuid
 from bisect import bisect_right
 from calendar import monthrange
 from collections.abc import Iterator
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -13,14 +14,17 @@ from sqlalchemy.orm import Session
 
 from app.core.decimal_utils import quantize_amount
 from app.db.session import SessionLocal, commit_off_loop
-from app.models.enums import ImportStatus
+from app.models.enums import ImportStatus, TransactionType
 from app.models.imports import Import
 from app.models.reference import Scheme, NavHistory
 from app.models.snapshot import PortfolioSnapshot
 from app.models.user import HouseholdMember
 from app.services.dashboard.holdings import FifoState, _load_folio_transactions, _LOT_CONSUMING_TYPES
 from app.services.dashboard.nav import warm_nav_history
-from app.services.dashboard.schemas import SnapshotRow
+from app.services.dashboard.schemas import MonthDetail, MonthFundRow, SnapshotRow
+from app.services.dashboard.household_members import list_household_members
+from app.services.analytics.investment_withdrawal import direction_for
+from app.services.lot_rules import paid_amount
 
 
 def _month_end(year: int, month: int) -> date:
@@ -51,49 +55,98 @@ def _data_version(db: Session, member_id: uuid.UUID) -> int:
     return (delta.days*86400 + delta.seconds)*1000 + delta.microseconds//1000
 
 
-async def _compute_member_months(db: Session, member_id: uuid.UUID) -> list[PortfolioSnapshot]:
+@dataclass
+class FundMonthValue:
+    scheme_id: uuid.UUID
+    scheme_name: str
+    units: Decimal
+    nav: Decimal | None
+    nav_date: date | None
+    value: Decimal
+    cost: Decimal
+    priced: bool
+
+
+def value_month(month_end: date, folios, states: dict, schemes: dict, series: dict, dates: dict) -> list[FundMonthValue]:
+    rows = []
+    for folio in folios:
+        state = states[folio.id]
+        if state.units <= 0:
+            continue
+        index = bisect_right(dates[folio.scheme_id], month_end) - 1
+        priced = index >= 0
+        nav_date, nav = series[folio.scheme_id][index] if priced else (None, None)
+        rows.append(FundMonthValue(
+            scheme_id=folio.scheme_id, scheme_name=schemes[folio.scheme_id].name,
+            units=state.units, nav=nav, nav_date=nav_date,
+            value=state.units * nav if priced else Decimal("0"),
+            cost=state.cost if priced else Decimal("0"), priced=priced,
+        ))
+    return rows
+
+
+async def _prepare_months(db: Session, member_id: uuid.UUID, *, warm: bool = True, through: date | None = None):
+    """`warm=False, through=<month>` is the click-time path: no network price fetch and no commit
+    (the History page already warmed and stored the months), and only NAVs up to that month are read."""
     folios, by_folio = _load_folio_transactions(db, [member_id])
     if not any(by_folio.values()):
-        return []
+        return None
     schemes = {s.id:s for s in db.query(Scheme).filter(Scheme.id.in_({f.scheme_id for f in folios})).all()}
-    await warm_nav_history(db, [s for s in schemes.values() if s.amfi_code])
+    if warm:
+        await warm_nav_history(db, [s for s in schemes.values() if s.amfi_code])
     # Warming may commit and expire every ORM row. Capture the version before
     # reloading events, so a racing confirm can only make this batch stale.
     version = _data_version(db, member_id)
-    folios, by_folio = _load_folio_transactions(db, [member_id])
+    if warm:
+        folios, by_folio = _load_folio_transactions(db, [member_id])
     events = sorted((t for ts in by_folio.values() for t in ts),
                     key=lambda t:(t.date, t.type in _LOT_CONSUMING_TYPES, t.id))
     if not events:
-        return []
-    schemes = {s.id:s for s in db.query(Scheme).filter(Scheme.id.in_({f.scheme_id for f in folios})).all()}
+        return None
+    if warm:
+        schemes = {s.id:s for s in db.query(Scheme).filter(Scheme.id.in_({f.scheme_id for f in folios})).all()}
     series = {sid:[] for sid in schemes}
-    for row in db.query(NavHistory).filter(NavHistory.scheme_id.in_(schemes)).order_by(NavHistory.date).all():
+    nav_query = db.query(NavHistory).filter(NavHistory.scheme_id.in_(schemes))
+    if through is not None:
+        nav_query = nav_query.filter(NavHistory.date <= through)
+    for row in nav_query.order_by(NavHistory.date).all():
         # A 0 NAV is real (a written-off segregated portfolio, kfin_pk_10yr),
         # and the dashboard values it at 0; skipping it would carry the last
         # positive NAV forward forever (Phase 6 Task 12).
         if row.nav >= 0:
             series[row.scheme_id].append((row.date,row.nav))
     dates = {sid:[day for day,_ in values] for sid,values in series.items()}
-    states = {f.id:FifoState() for f in folios}
-    out, i = [], 0
-    for month_end in _iter_month_ends(events[0].date, last_completed_month_end()):
+    return folios, events, schemes, series, dates, version
+
+
+def _walk_months(context, through: date):
+    """The one FIFO replay used by stored snapshots and click-time details."""
+    folios, events, schemes, series, dates, _ = context
+    states = {f.id: FifoState() for f in folios}
+    i = 0
+    for month_end in _iter_month_ends(events[0].date, through):
+        start = i
         while i < len(events) and events[i].date <= month_end:
             states[events[i].folio_id].apply(events[i])
             i += 1
-        value, invested, missing = Decimal(0), Decimal(0), set()
-        for folio in folios:
-            state = states[folio.id]
-            if state.units <= 0:
-                continue
-            invested += state.cost
-            index = bisect_right(dates[folio.scheme_id], month_end)-1
-            if index < 0:
-                missing.add(str(folio.scheme_id))
-            else:
-                value += state.units * series[folio.scheme_id][index][1]
+        held = [f for f in folios if states[f.id].units > 0]
+        values = value_month(month_end, held, states, schemes, series, dates)
+        yield month_end, list(zip(held, values)), events[start:i]
+
+
+async def _compute_member_months(db: Session, member_id: uuid.UUID) -> list[PortfolioSnapshot]:
+    context = await _prepare_months(db, member_id)
+    if context is None:
+        return []
+    out = []
+    for month_end, valued, _ in _walk_months(context, last_completed_month_end()):
+        values = [row for _, row in valued]
+        value = sum((row.value for row in values), Decimal("0"))
+        invested = sum((row.cost for row in values), Decimal("0"))
+        missing = {str(row.scheme_id) for row in values if not row.priced}
         out.append(PortfolioSnapshot(household_member_id=member_id, snapshot_month=month_end,
                                      total_value=quantize_amount(value), invested_value=quantize_amount(invested), is_partial=bool(missing),
-                                     missing_scheme_ids=sorted(missing) or None, data_version=version,
+                                     missing_scheme_ids=sorted(missing) or None, data_version=context[-1],
                                      computed_at=datetime.now(timezone.utc)))
     return out
 
@@ -146,3 +199,137 @@ def invalidate_member_snapshots(db: Session, household_member_ids: list[uuid.UUI
         .filter(PortfolioSnapshot.household_member_id.in_(household_member_ids))
         .delete(synchronize_session=False)
     )
+
+
+def _money(value: Decimal) -> str:
+    return f"{quantize_amount(value):.2f}"
+
+
+def _fund_values(valued) -> dict:
+    """Combine a member's folios, retaining the snapshot's rounding total."""
+    grouped = {}
+    for _, row in valued:
+        if row.scheme_id not in grouped:
+            grouped[row.scheme_id] = FundMonthValue(row.scheme_id, row.scheme_name, row.units,
+                row.nav, row.nav_date, row.value, row.cost, row.priced)
+        else:
+            combined = grouped[row.scheme_id]
+            combined.units += row.units
+            combined.value += row.value
+            combined.cost += row.cost
+    priced = [grouped[sid] for sid in sorted(grouped) if grouped[sid].priced]
+    for field in ("value", "cost"):
+        total = quantize_amount(sum((getattr(r, field) for r in priced), Decimal("0")))
+        for row in priced:
+            setattr(row, field, quantize_amount(getattr(row, field)))
+        difference = total - sum((getattr(r, field) for r in priced), Decimal("0"))
+        # Reconcile by at most one paisa per fund, rather than making a tiny
+        # fund negative by assigning the whole rounding difference to it.
+        for row in priced:
+            if not difference:
+                break
+            adjustment = min(abs(difference), Decimal("0.01")) * (1 if difference > 0 else -1)
+            if getattr(row, field) + adjustment >= 0:
+                setattr(row, field, getattr(row, field) + adjustment)
+                difference -= adjustment
+    return grouped
+
+
+async def _snapshot_months(db: Session, member_ids: list[uuid.UUID]) -> list[date]:
+    """The months the History chart shows, read from the stored snapshots. Unlike `get_snapshots` it
+    does not rebuild (and rewrite) a member's rows just because some month is partial, so a click
+    stays read-only; it only falls back to `get_snapshots` when rows are missing or stale."""
+    months: set[date] = set()
+    for member_id in member_ids:
+        if db.get(HouseholdMember, member_id) is None:
+            continue
+        rows = db.query(PortfolioSnapshot.snapshot_month, PortfolioSnapshot.data_version).filter_by(household_member_id=member_id).all()
+        version = _data_version(db, member_id)
+        if not rows or any(v < version for _, v in rows) or max(m for m, _ in rows) < last_completed_month_end():
+            months.update(p.snapshot_month for p in await get_snapshots(db, [member_id]))
+        else:
+            months.update(m for m, _ in rows)
+    return sorted(months)
+
+
+async def get_month_detail(db: Session, member_ids: list[uuid.UUID], month: date) -> MonthDetail | None:
+    months = await _snapshot_months(db, member_ids)
+    if month not in months:
+        return None
+    index = months.index(month)
+    previous_month = months[index - 1] if index else None
+    members = {m.id: m for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(member_ids)).all()}
+    rows = []
+    switched_in = switched_out = previous_total = Decimal("0")
+    for member_id in member_ids:
+        context = await _prepare_months(db, member_id, warm=False, through=month)
+        if context is None:
+            continue
+        folios, _, schemes, _, _, _ = context
+        folio_schemes = {f.id: f.scheme_id for f in folios}
+        previous, current, transactions = {}, {}, []
+        for day, valued, events in _walk_months(context, month):
+            if day == previous_month:
+                previous = _fund_values(valued)
+            if day == month:
+                current, transactions = _fund_values(valued), events
+        cash = {}
+        for event in transactions:
+            sid = folio_schemes[event.folio_id]
+            amounts = cash.setdefault(sid, {"new": Decimal("0"), "opening": Decimal("0"), "in": Decimal("0"), "out": Decimal("0"), "gift": Decimal("0")})
+            direction = direction_for(event)
+            amount = paid_amount(event)
+            if direction == "invested":
+                amounts["new"] += amount
+            elif direction in ("withdrawn", "reversal"):
+                amounts["new"] -= amount
+            elif direction == "opening":
+                amounts["opening"] += amount
+            elif direction == "switched_in":
+                amounts["in"] += amount
+            elif direction == "switched_out":
+                amounts["out"] += amount
+            elif event.type == TransactionType.GIFT_IN:
+                amounts["gift"] += amount  # not money the user put in, but the units change the value
+            elif event.type == TransactionType.GIFT_OUT:
+                amounts["gift"] -= amount
+        previous_total += sum((r.value for r in previous.values() if r.priced), Decimal("0"))
+        for sid in sorted(current.keys() | previous.keys() | cash.keys(), key=lambda key: (schemes[key].name, str(key))):
+            now, before = current.get(sid), previous.get(sid)
+            amounts = cash.get(sid, {"new": Decimal("0"), "opening": Decimal("0"), "in": Decimal("0"), "out": Decimal("0"), "gift": Decimal("0")})
+            switched_in += amounts["in"]
+            switched_out += amounts["out"]
+            priced = now is None or now.priced
+            known_change = priced and (before is None or before.priced)
+            value = now.value if now else Decimal("0")
+            change = value - (before.value if before else Decimal("0"))
+            switched = amounts["in"] - amounts["out"]
+            rows.append(MonthFundRow(
+                scheme_id=str(sid), scheme_name=schemes[sid].name,
+                household_member_id=str(member_id), household_member_name=members[member_id].name,
+                units=str(now.units) if now else "0", nav=str(now.nav) if now and now.nav is not None else None,
+                nav_date=now.nav_date if now else None,
+                value=_money(value) if priced else None, cost=_money(now.cost) if now else "0.00",
+                change_in_value=_money(change) if known_change else None,
+                new_money=_money(amounts["new"]), opening_holdings=_money(amounts["opening"]),
+                switched_net=_money(switched), gifts_net=_money(amounts["gift"]), priced=priced,
+                market_movement=_money(change - amounts["new"] - amounts["opening"] - switched - amounts["gift"]) if known_change else None,
+            ))
+    def total(field):
+        return sum((Decimal(getattr(row, field)) for row in rows if getattr(row, field) is not None), Decimal("0"))
+    partial = any(row.market_movement is None for row in rows)
+    return MonthDetail(
+        month=month, previous_month=previous_month, total_value=_money(total("value")),
+        previous_value=_money(previous_total),
+        change=None if partial else _money(total("value") - previous_total),
+        new_money=_money(total("new_money")), opening_holdings=_money(total("opening_holdings")),
+        switches_net=_money(switched_in - switched_out), gifts_net=_money(total("gifts_net")),
+        market_movement=None if partial else _money(total("market_movement")),
+        switched_in=_money(switched_in), switched_out=_money(switched_out),
+        is_partial=partial, missing_scheme_names=sorted({r.scheme_name for r in rows if r.market_movement is None}),
+        funds=rows,
+    )
+
+
+async def get_aggregate_month_detail(db: Session, user_id: uuid.UUID, month: date) -> MonthDetail | None:
+    return await get_month_detail(db, [member.id for member in list_household_members(db, user_id)], month)

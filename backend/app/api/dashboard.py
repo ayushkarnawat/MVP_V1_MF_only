@@ -1,4 +1,5 @@
 import uuid
+import re
 from datetime import date
 from typing import Literal
 
@@ -66,10 +67,11 @@ from app.services.dashboard.schemas import (
     SipRow,
     SchemeNavHistoryResponse,
     SnapshotRow,
+    MonthDetail,
 )
 
 from app.services.dashboard.sip import compute_active_sips, compute_sips_for_month
-from app.services.dashboard.snapshots import get_snapshots
+from app.services.dashboard.snapshots import get_snapshots, get_month_detail, get_aggregate_month_detail
 
 router = APIRouter(tags=["dashboard"])
 
@@ -254,6 +256,38 @@ async def get_member_snapshots(
 ):
     require_member(db, user.id, member_id)
     return await get_snapshots(db, [member_id])
+
+#aggregate dashboard
+def _parse_snapshot_month(month: str) -> date:
+    try:
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", month):
+            raise ValueError
+        return date.fromisoformat(month)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Month must be a valid YYYY-MM-DD date.") from None
+
+
+@router.get("/household-members/{member_id}/snapshots/{month}", response_model=MonthDetail)
+async def get_member_month_detail(
+    member_id: uuid.UUID, month: str,
+    user: User = Depends(get_active_user), db: DbSession = Depends(get_db),
+):
+    require_member(db, user.id, member_id)
+    result = await get_month_detail(db, [member_id], _parse_snapshot_month(month))
+    if result is None:
+        raise HTTPException(status_code=404, detail="Snapshot month not found.")
+    return result
+
+
+@router.get("/household/aggregate/snapshots/{month}", response_model=MonthDetail)
+async def get_household_month_detail(
+    month: str, user: User = Depends(get_active_user), db: DbSession = Depends(get_db),
+):
+    result = await get_aggregate_month_detail(db, user.id, _parse_snapshot_month(month))
+    if result is None:
+        raise HTTPException(status_code=404, detail="Snapshot month not found.")
+    return result
+
 
 #aggregate dashboard
 @router.get("/household/aggregate/holdings", response_model=AggregateHoldingsResponse)
