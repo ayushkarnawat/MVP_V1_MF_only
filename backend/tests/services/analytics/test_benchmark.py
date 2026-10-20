@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from datetime import date, datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, localcontext
 from unittest.mock import AsyncMock, patch
 
 from sqlalchemy import create_engine
@@ -16,6 +16,7 @@ from app.models.user import HouseholdMember, User
 from app.services.dashboard.schemas import HoldingRow
 from app.services.analytics.benchmark import (
     _benchmark_index_for_category,
+    _benchmark_xirr_for_transactions,
     _signed_amount,
     _xirr_str,
     compute_fund_vs_benchmark,
@@ -77,6 +78,77 @@ def _mock_holdings_multi(nav_by_scheme_id):
 
 def _no_fetch():
     return patch("app.services.analytics.benchmark.ensure_index_history_fresh", new=AsyncMock(return_value=True))
+
+
+def _independent_decimal_xirr(flows):
+    """Bisection oracle: no calls to the application's Newton-Raphson solver."""
+    with localcontext() as context:
+        context.prec = 40
+        first = min(day for day, _ in flows)
+
+        def npv(rate):
+            return sum((amount / (Decimal(1) + rate) ** (Decimal((day - first).days) / Decimal(365))
+                        for day, amount in flows), Decimal(0))
+
+        low, high = Decimal(0), Decimal(10)
+        assert npv(low) > 0 and npv(high) < 0
+        for _ in range(160):
+            middle = (low + high) / 2
+            if npv(middle) > 0:
+                low = middle
+            else:
+                high = middle
+        return (low + high) / 2
+
+
+class _BenchmarkCheckDate(date):
+    @classmethod
+    def today(cls):
+        return date(2025, 1, 6)
+
+
+def test_benchmark_xirr_prices_each_transaction_on_its_own_date():
+    db = _session()
+    today = _BenchmarkCheckDate.today()
+    purchases = [(date(2024, 1, 5), Decimal("100")),
+                 (date(2024, 2, 5), Decimal("120")),
+                 (date(2024, 3, 5), Decimal("80"))]
+    amount, today_level = Decimal("10000.00"), Decimal("150")
+    transactions = [Transaction(type=TransactionType.PURCHASE_SIP, date=day, amount=amount) for day, _ in purchases]
+    for day, level in [*purchases, (today, today_level)]:
+        db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, return_type=BenchmarkReturnType.TRI, date=day, value=level))
+    db.commit()
+    terminal_value = sum((amount / level for _, level in purchases), Decimal(0)) * today_level
+    independent = _independent_decimal_xirr([(day, -amount) for day, _ in purchases] + [(today, terminal_value)])
+    with _no_fetch(), patch("app.services.analytics.benchmark.date", _BenchmarkCheckDate):
+        actual = asyncio.run(_benchmark_xirr_for_transactions(db, transactions, BenchmarkIndex.NIFTY_50))
+    assert actual is not None
+    assert abs(actual - independent) < Decimal("0.0001")
+    print(f"Three-date SIP: terminal={terminal_value}; app={actual}; independent={independent}")
+    db.close()
+
+
+def test_a_transaction_on_a_market_holiday_uses_the_previous_trading_days_level():
+    from app.services.analytics import benchmark
+
+    db = _session()
+    sunday = date(2024, 1, 7)
+    today = _BenchmarkCheckDate.today()
+    amount, friday_level, today_level = Decimal("1000.00"), Decimal("100"), Decimal("150")
+    for day, level in [(date(2024, 1, 5), friday_level), (date(2024, 1, 8), Decimal("1000")), (today, today_level)]:
+        db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, return_type=BenchmarkReturnType.TRI, date=day, value=level))
+    db.commit()
+    txn = Transaction(type=TransactionType.PURCHASE, date=sunday, amount=amount)
+    with _no_fetch(), patch("app.services.analytics.benchmark.date", _BenchmarkCheckDate), patch.object(benchmark, "xirr", wraps=benchmark.xirr) as solver:
+        actual = asyncio.run(_benchmark_xirr_for_transactions(db, [txn], BenchmarkIndex.NIFTY_50))
+    assert actual is not None
+    [flows] = solver.call_args.args
+    assert flows[0] == (sunday, -amount)  # Pricing rolls back; the cash-flow date does not.
+    assert flows[-1][0] == today
+    hypothetical_units = flows[-1][1] / today_level
+    assert hypothetical_units == amount / friday_level == Decimal("10")
+    print(f"Sunday purchase: hypothetical_units={hypothetical_units}; Friday TRI={friday_level}; Monday TRI=1000")
+    db.close()
 
 
 def test_compute_portfolio_vs_benchmarks_empty_when_no_transactions():
