@@ -317,3 +317,21 @@ def test_zero_portfolio_has_zero_percentages():
     result = _allocation_fixture([("Zero", "AMC", "0.00", ["A"])])
     assert result.manager_groups[0].percentage == result.covered_percentage == "0.00"
     assert _allocation_fixture([]).portfolio_value == "0.00"
+
+
+def test_sub_paisa_holding_values_reconcile_to_the_paisa():
+    # units x NAV carries more than two decimals; every figure shown must still add up.
+    result = _allocation_fixture([("A", "AMC", "100.005", ["Anita"]), ("B", "AMC", "100.005", ["Vikram"])])
+    assert {g.manager_name: g.total_household_value for g in result.manager_groups} == {"Anita": "100.01", "Vikram": "100.01"}
+    assert result.covered_value == result.portfolio_value == "200.02"
+    assert sum(Decimal(g.total_household_value) for g in result.manager_groups) == Decimal(result.covered_value)
+
+
+def test_shared_sub_paisa_funds_have_rows_that_add_up_to_each_manager_total():
+    result = _allocation_fixture([
+        ("A", "AMC", "100.005", ["Anita", "Vikram", "Dev"]),
+        ("B", "AMC", "100.005", ["Anita", "Vikram", "Dev"]),
+    ])
+    for group in result.manager_groups:
+        assert sum(Decimal(f.household_value) for f in group.funds) == Decimal(group.total_household_value)
+    assert sum(Decimal(g.total_household_value) for g in result.manager_groups) == Decimal(result.covered_value) == Decimal(result.portfolio_value)

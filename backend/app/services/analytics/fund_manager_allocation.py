@@ -76,6 +76,10 @@ async def compute_fund_manager_allocation(
     for holding in holdings:
         value_by_scheme[holding.scheme_id] = value_by_scheme.get(holding.scheme_id, Decimal("0")) + Decimal(holding.current_value or "0")
         first_row.setdefault(holding.scheme_id, holding)
+    # units x NAV carries sub-paisa precision. Round each fund's combined value to the paisa once,
+    # before it is split, so every share, manager total, covered value and portfolio value is a
+    # whole number of paise and the figures shown always add up.
+    value_by_scheme = {sid: v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) for sid, v in value_by_scheme.items()}
 
     for scheme_id_str, holding in first_row.items():
         scheme_id = uuid.UUID(scheme_id_str)
