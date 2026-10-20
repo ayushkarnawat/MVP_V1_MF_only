@@ -24,10 +24,10 @@ export interface BenchmarkSectionProps {
 }
 
 const INDEX_LABELS: Record<BenchmarkIndex, string> = {
-  nifty_50: "Nifty 50 (Price Return)",
-  nifty_500: "Nifty 500 (Price Return)",
-  nifty_largemidcap_250: "Nifty LargeMidcap 250 (Price Return)",
-  nifty_midcap_150: "Nifty Midcap 150 (Price Return)",
+  nifty_50: "Nifty 50 (Total Return)",
+  nifty_500: "Nifty 500 (Total Return)",
+  nifty_largemidcap_250: "Nifty LargeMidcap 250 (Total Return)",
+  nifty_midcap_150: "Nifty Midcap 150 (Total Return)",
 };
 
 // Backend XIRR values are raw decimal fractions (e.g. "0.1645" for 16.45%).
