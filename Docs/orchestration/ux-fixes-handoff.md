@@ -1,5 +1,5 @@
 # Handoff: ux-fixes (Analytics UX fixes, phases P1–P6)
-**Status:** IN_PROGRESS — P1, P2 DONE; Run 6 (plan R5: P3-T1, T2, T6) built, Opus-reviewed PASS, committed; Run 7 (plan R6: P3-T3..T5) next, 2026-10-20
+**Status:** IN_PROGRESS — P1, P2 DONE; P3-T1/T2/T6 committed (Run 6); Run 7 (plan R6: P3-T3, P3-T4 with Codex; P3-T5 synthetic check by the orchestrator) ready, 2026-10-20
 **Parent plan:** `Docs/superpowers/plans/2026-10-19-analytics-ux-fixes-plan.md` (binding; read "Global Constraints", "Locked decisions", "Review Focus" first, then only the run's tasks)
 **Spec copies:** `Docs/orchestration/analytics-ux-changes-spec/` (`analytics-ux-changes-v18.html`, `other-fixes.html`)
 **Orchestrator:** Claude Code · **Worker:** Codex (manual relay, one run per prompt)
@@ -71,6 +71,9 @@ Report extras: the exact rules `direction_for` applies for each transaction type
 
 ## Run 6 result (2026-10-20)
 Built by Codex (417 backend + 108 frontend tests on Windows), verified by the orchestrator in WSL (backend 128 pass/1 skip; frontend 32 pass). **Opus review: PASS** with one condition (M1: P3-T1 must not deploy without P3-T4/T5, see the plan's P3 execution notes) and spec notes for P6 (M2 opening direction, decided). The vacuous merger test was hardened by the orchestrator (a real purchase added, upper-case "MERGER"). The worked check for P3-T6 is in `Docs/orchestration/2026-10-20-benchmark-xirr-check.md`.
+
+## Run 7 (plan R6) — P3-T3 and P3-T4 (frontend; P3-T5 is the orchestrator's)
+Implement the plan's **Tasks P3-T3 (bar chart: baseline, negative bars, switch segments) and P3-T4 (section UI: toggle "Include switches", the "Switched between funds" line, the opening-holdings figure above the chart, the fund-wise `PeriodBreakdown` table with member filter)** exactly, test-first, frontend only, in that order. They consume the committed P3-T2 logic (`investmentWithdrawalMath.ts`, `periodBreakdown.ts`, optional fields in `types.ts`); read those first and do not change their signatures. **P3-T4 replaces the list in `InvestmentWithdrawalSection.tsx` that labels every non-invested entry "Withdrawn" in red; after P3-T4 an opening, switched-in or switched-out entry must never show as Withdrawn** (use `transactionLabel` from P3-T2; add a test per direction). Locked decisions: Q1 (switch pair, toggle adds switched-in to Invested and switched-out to Withdrawn, Net invested and Gain unchanged, line "Switched between funds ₹X in N switches" always shown, fund-wise breakdown with switched in/out columns; do not imply Invested minus Withdrawn equals Net invested when the toggle is on), Q11 (opening holdings leave the bars, shown as a figure above the chart, the Invested tile still includes them). Old saved payloads (new fields absent) must render with no `NaN` and no `undefined`; money stays decimal strings via `lib/decimal.ts`, `parseFloat` only for chart coordinates. Do not start P3-T5. Report extras: a screen-by-screen list of what renders for: opening-only, switch-only, mixed, no data, and an old payload; every file where the toggle appears (desktop, mobile, print).
 
 ## P1-T6 approved copy (D7 approved by the user, 2026-10-20) — used in its own run after Run 3
 Option A (explain the code as it is). The explainer text, verbatim; `scoreExplainerCopy.ts` holds exactly this, no edits:
