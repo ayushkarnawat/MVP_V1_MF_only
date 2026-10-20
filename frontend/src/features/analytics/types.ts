@@ -44,6 +44,12 @@ export interface AggregateDirectRegularTerResponse {
   ter: DirectRegularTerComparison;
 }
 
+export interface PeriodReturn {
+  fund_return: string | null;
+  category_avg: string | null;
+  peers: number;
+}
+
 export interface CategoryRankRow {
   scheme_id: string;
   scheme_name: string;
@@ -56,6 +62,8 @@ export interface CategoryRankRow {
   percentile: string | null;
   category_avg_return: string | null;
   thin_category: boolean;
+  periods?: Partial<Record<"1y" | "3y" | "5y", PeriodReturn>>;
+  plan_type?: string | null;
 }
 
 export interface CategoryRankingSummary {
@@ -370,6 +378,8 @@ export interface FundRankingRow {
   ranked_as: string | null;
   neighbors: FundRankingNeighbor[];
   components: FundRankingComponents;
+  horizons?: Partial<Record<"1y" | "3y" | "5y", PeriodReturn>>;
+  plan_type?: string | null;
 }
 
 export interface FundRankingSummary {
