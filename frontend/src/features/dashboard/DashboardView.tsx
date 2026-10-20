@@ -39,10 +39,13 @@ import type {
   SipRow,
   SipMonthlyRow,
   RealizedSummary,
+  XirrDisclaimer,
 } from "./types";
+import { XirrDisclaimerModal } from "./XirrDisclaimerModal";
+import { openingSharePercent } from "./xirrDisclaimerFormat";
 import { SoldFundsSection } from "./SoldFundsSection";
 import { cn } from "@/lib/utils";
-import { ArrowUpRight, ArrowDownRight, User, Users, AlertTriangle, BarChart2 } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, User, Users, AlertTriangle, BarChart2, Info } from "lucide-react";
 
 const ASSET_CLASS_ORDER = ["Equity", "Debt", "Hybrid", "Other"];
 
@@ -93,6 +96,8 @@ function DashboardViewContent({
   const [allocationSortDirection, setAllocationSortDirection] = useState<SortOrder>("asc");
   const [xirrSummary, setXirrSummary] = useState<{ lifetime: string | null; current: string | null }>({ lifetime: null, current: null });
   const [xirrMode, setXirrMode] = useState<"lifetime" | "current">("lifetime");
+  const [xirrDisclaimers, setXirrDisclaimers] = useState<{ lifetime: XirrDisclaimer | null; current: XirrDisclaimer | null }>({ lifetime: null, current: null });
+  const [xirrDisclaimerOpen, setXirrDisclaimerOpen] = useState(false);
   const [sipTab, setSipTab] = useState<"upcoming" | "month">("upcoming");
   const today = new Date();
   const [sipMonth, setSipMonth] = useState<{ year: number; month: number }>({
@@ -133,6 +138,7 @@ function DashboardViewContent({
             setHoldings(holdingsRes.holdings);
             setRealized(holdingsRes.realized_summary ?? null);
             setXirrSummary({ lifetime: holdingsRes.lifetime_xirr ?? null, current: holdingsRes.current_holdings_xirr ?? null });
+            setXirrDisclaimers({ lifetime: holdingsRes.lifetime_xirr_disclaimer ?? null, current: holdingsRes.current_holdings_xirr_disclaimer ?? null });
             setMembersStatus(holdingsRes.members);
             setAllocation(allocationRes.allocation);
             setCoverageGaps([]);
@@ -147,6 +153,7 @@ function DashboardViewContent({
             setHoldings(holdingsRes);
             setRealized(holdingsRes.realized_summary ?? null);
             setXirrSummary({ lifetime: holdingsRes.lifetime_xirr ?? null, current: holdingsRes.current_holdings_xirr ?? null });
+            setXirrDisclaimers({ lifetime: holdingsRes.lifetime_xirr_disclaimer ?? null, current: holdingsRes.current_holdings_xirr_disclaimer ?? null });
             setMembersStatus([]);
             setAllocation(allocationRes);
             setLoading(false);
@@ -330,6 +337,10 @@ function DashboardViewContent({
 
   const isPositiveGain = totals.profitVal >= 0;
 
+  // The disclaimer follows the Lifetime/Current toggle: it is only shown for the scope on screen.
+  const activeXirr = xirrMode === "lifetime" ? xirrSummary.lifetime : xirrSummary.current;
+  const activeXirrDisclaimer = xirrMode === "lifetime" ? xirrDisclaimers.lifetime : xirrDisclaimers.current;
+
   return (
     <div className="flex flex-col space-y-10 animate-in fade-in duration-200">
       {/* Coverage Gap Warning Banner */}
@@ -449,6 +460,29 @@ function DashboardViewContent({
               <span className="font-display text-lg sm:text-xl font-semibold text-[var(--color-accent)] tabular-nums type-data-large">
                 XIRR {formatXirr(xirrMode === "lifetime" ? xirrSummary.lifetime : xirrSummary.current)}
               </span>
+              {activeXirrDisclaimer && activeXirr !== null && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setXirrDisclaimerOpen(true)}
+                    aria-label="Why this return may be misleading"
+                    className="inline-flex items-start gap-1 text-left text-[11px] leading-snug text-[var(--color-text-secondary)] cursor-pointer hover:text-[var(--color-ink)]"
+                  >
+                    <Info className="h-3.5 w-3.5 flex-shrink-0 mt-px" aria-hidden="true" />
+                    <span>
+                      {openingSharePercent(activeXirrDisclaimer.opening_cost_share)} of this return is based on an undated
+                      opening balance — may be inflated. Tap to see why.
+                    </span>
+                  </button>
+                  <XirrDisclaimerModal
+                    isOpen={xirrDisclaimerOpen}
+                    onClose={() => setXirrDisclaimerOpen(false)}
+                    scopeLabel={xirrMode === "lifetime" ? "Lifetime" : "Current Holdings"}
+                    xirr={activeXirr}
+                    disclaimer={activeXirrDisclaimer}
+                  />
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -811,6 +845,7 @@ function DashboardViewContent({
             getMemberHoldings(memberId).then((response) => {
               setHoldings(response);
               setXirrSummary({ lifetime: response.lifetime_xirr ?? null, current: response.current_holdings_xirr ?? null });
+              setXirrDisclaimers({ lifetime: response.lifetime_xirr_disclaimer ?? null, current: response.current_holdings_xirr_disclaimer ?? null });
             }).catch(() => {});
             getMemberAllocation(memberId).then(setAllocation).catch(() => {});
             getMemberCoverageGaps(memberId)

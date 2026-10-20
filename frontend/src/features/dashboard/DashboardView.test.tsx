@@ -90,6 +90,81 @@ describe("DashboardView", () => {
     expect(screen.queryByText("XIRR 15.34%")).not.toBeInTheDocument();
   });
 
+  describe("XIRR disclaimer affordance", () => {
+    const xirrRow = {
+      scheme_id: "scheme-xirr", scheme_name: "XIRR Fund", amc_name: "AMC",
+      household_member_id: "m-1", household_member_name: "John", plan_type: "direct" as const,
+      units_held: "10.000", average_nav: "10.00", current_nav: "20.00",
+      amount_invested: "100.00", current_value: "200.00", current_profit_total: "100.00",
+      realized_gain: "0.00", unrealized_gain: "100.00", today_gain: "0.00",
+    };
+    const mockWith = (extra: Record<string, unknown>) => {
+      vi.mocked(api.getMemberHoldings).mockResolvedValue(Object.assign([xirrRow], {
+        lifetime_xirr: "1.9397",
+        current_holdings_xirr: "0.1821",
+        ...extra,
+      }));
+      vi.mocked(api.getMemberAllocation).mockResolvedValue({
+        by_asset_class: [{ label: "Equity", current_value: "200.00", percentage: 100 }],
+        by_amc: [{ label: "AMC", current_value: "200.00", percentage: 100 }],
+        total_value: "200.00",
+      });
+    };
+
+    it("is absent when both disclaimers are null", async () => {
+      mockWith({ lifetime_xirr_disclaimer: null, current_holdings_xirr_disclaimer: null });
+      render(<DashboardView viewMode="member" memberId="m-1" />);
+      await screen.findByText("XIRR 193.97%");
+      expect(screen.queryByRole("button", { name: "Why this return may be misleading" })).not.toBeInTheDocument();
+      expect(screen.queryByText(/Tap to see why/)).not.toBeInTheDocument();
+    });
+
+    it("is absent when the API omits the fields entirely", async () => {
+      mockWith({});
+      render(<DashboardView viewMode="member" memberId="m-1" />);
+      await screen.findByText("XIRR 193.97%");
+      expect(screen.queryByText(/Tap to see why/)).not.toBeInTheDocument();
+    });
+
+    it("shows the one-liner and opens the popup for a lifetime disclaimer, and follows the toggle", async () => {
+      mockWith({
+        lifetime_xirr_disclaimer: { alt_xirr: "-0.0353", opening_cost_share: "0.9785" },
+        current_holdings_xirr_disclaimer: null,
+      });
+      render(<DashboardView viewMode="member" memberId="m-1" />);
+      await screen.findByText("XIRR 193.97%");
+      expect(screen.getByText(/98% of this return is based on an undated opening balance — may be inflated\. Tap to see why\./)).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Why this return may be misleading" }));
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByText("Shown Lifetime XIRR")).toBeInTheDocument();
+      expect(within(dialog).getByText("193.97%")).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByRole("button", { name: "Got it" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+      // Current scope has no disclaimer: affordance disappears with the toggle.
+      fireEvent.click(screen.getByRole("tab", { name: "Current" }));
+      expect(screen.getByText("XIRR 18.21%")).toBeInTheDocument();
+      expect(screen.queryByText(/Tap to see why/)).not.toBeInTheDocument();
+    });
+
+    it("shows a current-holdings disclaimer only in Current mode", async () => {
+      mockWith({
+        lifetime_xirr_disclaimer: null,
+        current_holdings_xirr_disclaimer: { alt_xirr: null, opening_cost_share: "0.5" },
+      });
+      render(<DashboardView viewMode="member" memberId="m-1" />);
+      await screen.findByText("XIRR 193.97%");
+      expect(screen.queryByText(/Tap to see why/)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("tab", { name: "Current" }));
+      expect(screen.getByText(/50% of this return is based on an undated opening balance/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Why this return may be misleading" }));
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByText("Shown Current Holdings XIRR")).toBeInTheDocument();
+      expect(within(dialog).getByText("Not enough dated activity left")).toBeInTheDocument();
+    });
+  });
+
   it.each([
     ["10.00", "Unrealised gain"],
     ["-10.00", "Unrealised loss"],

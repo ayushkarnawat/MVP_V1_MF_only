@@ -1,5 +1,5 @@
 import { sumDecimalStrings, toPercentString } from "@/lib/decimal";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import {
   getAggregateHoldings,
   getAggregateAllocation,
@@ -16,7 +16,10 @@ import type {
   FamilyMemberStatus,
   RealizedSummary,
   SipRow,
+  XirrDisclaimer,
 } from "@/features/dashboard/types";
+import { XirrDisclaimerModal } from "@/features/dashboard/XirrDisclaimerModal";
+import { openingSharePercent } from "@/features/dashboard/xirrDisclaimerFormat";
 import type { HouseholdMember } from "@/features/auth/types";
 import { invalidateApiCache } from "@/lib/apiClient";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -51,6 +54,7 @@ import {
   UploadCloud,
   Search,
   BarChart2,
+  Info,
 } from "lucide-react";
 
 import { motion } from "motion/react";
@@ -108,6 +112,8 @@ function MobileDashboardViewContent({
   const [showHistory, setShowHistory] = useState(false);
   const [realized, setRealized] = useState<RealizedSummary | null>(null);
   const [lifetimeXirr, setLifetimeXirr] = useState<string | null>(null);
+  const [lifetimeDisclaimer, setLifetimeDisclaimer] = useState<XirrDisclaimer | null>(null);
+  const [xirrDisclaimerOpen, setXirrDisclaimerOpen] = useState(false);
   const [sips, setSips] = useState<SipRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +163,7 @@ function MobileDashboardViewContent({
             setMembersStatus(holdingsRes.members);
             setRealized(holdingsRes.realized_summary ?? null);
             setLifetimeXirr(holdingsRes.lifetime_xirr ?? null);
+            setLifetimeDisclaimer(holdingsRes.lifetime_xirr_disclaimer ?? null);
             setAllocation(allocationRes.allocation);
             setCoverageGaps([]);
             setLoading(false);
@@ -170,6 +177,7 @@ function MobileDashboardViewContent({
             setHoldings(holdingsRes);
             setRealized(holdingsRes.realized_summary ?? null);
             setLifetimeXirr(holdingsRes.lifetime_xirr ?? null);
+            setLifetimeDisclaimer(holdingsRes.lifetime_xirr_disclaimer ?? null);
             setAllocation(allocationRes);
             setLoading(false);
           }
@@ -189,6 +197,7 @@ function MobileDashboardViewContent({
             setHoldings([]);
             setRealized(null);
             setLifetimeXirr(null);
+            setLifetimeDisclaimer(null);
             setMembersStatus([]);
             setAllocation(null);
             setCoverageGaps([]);
@@ -641,10 +650,42 @@ function MobileDashboardViewContent({
         <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
           {/* The XIRR is the whole household's; with one member picked in the
               list it would mix scopes with the figures beside it (6B review #6). */}
-          <HeroStat label="XIRR" value={lifetimeXirr === null || holdingsMemberFilter !== "all" ? "—" : `${toPercentString(lifetimeXirr)}%`} />
+          <HeroStat
+            label="XIRR"
+            value={lifetimeXirr === null || holdingsMemberFilter !== "all" ? "—" : `${toPercentString(lifetimeXirr)}%`}
+            action={lifetimeXirr !== null && holdingsMemberFilter === "all" && lifetimeDisclaimer ? (
+              <button
+                type="button"
+                onClick={() => setXirrDisclaimerOpen(true)}
+                aria-label="Why this return may be misleading"
+                className="inline-flex items-center text-[var(--color-text-secondary)] cursor-pointer"
+              >
+                <Info className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            ) : undefined}
+          />
           <HeroStat label="Realised gain" value={signedRupees(totals.realizedVal)} />
           <HeroStat label="Today’s gain" value={signedRupees(totals.todayGain)} />
         </div>
+        {lifetimeXirr !== null && holdingsMemberFilter === "all" && lifetimeDisclaimer && (
+          <>
+            <button
+              type="button"
+              onClick={() => setXirrDisclaimerOpen(true)}
+              className="mt-2 block w-full text-left text-[11px] leading-snug text-[var(--color-text-secondary)] cursor-pointer"
+            >
+              {openingSharePercent(lifetimeDisclaimer.opening_cost_share)} of this return is based on an undated
+              opening balance — may be inflated. Tap to see why.
+            </button>
+            <XirrDisclaimerModal
+              isOpen={xirrDisclaimerOpen}
+              onClose={() => setXirrDisclaimerOpen(false)}
+              scopeLabel="Lifetime"
+              xirr={lifetimeXirr}
+              disclaimer={lifetimeDisclaimer}
+            />
+          </>
+        )}
         <button
           type="button"
           onClick={() => handleToggleHistory(true)}
@@ -864,11 +905,14 @@ function MobileDashboardViewContent({
   );
 }
 
-function HeroStat({ label, value }: { label: string; value: string }) {
+function HeroStat({ label, value, action }: { label: string; value: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col">
       <span className="text-[11px] text-[var(--color-text-secondary)] font-medium">{label}</span>
-      <span className="font-semibold tabular-nums text-[var(--color-ink)] mt-0.5">{value}</span>
+      <span className="font-semibold tabular-nums text-[var(--color-ink)] mt-0.5 inline-flex items-center gap-1">
+        {value}
+        {action}
+      </span>
     </div>
   );
 }
