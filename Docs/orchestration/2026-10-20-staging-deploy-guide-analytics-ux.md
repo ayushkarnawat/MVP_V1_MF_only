@@ -40,7 +40,7 @@
 - **Downtime:** the API is down from the `stop` in Step 6 until the backend comes back up at the end of Step 6 (the images are already built): a minute or two. The frontend build (the slow part, several minutes) happens after the API is back, with the old bundle still being served.
 - **Use `sudo` for `deploy.sh`, `backup.sh` and `run-job.sh`:** `.env` is root-only (`chmod 600`), and `deploy.sh` sources it. Without `sudo` it fails with "Permission denied" right after the backend was stopped.
 - **VM:** `deploy@202.66.174.251`, repo at `/opt/unifolio/deploy/leapswitch`. If SSH **times out** (not "refused") while the site still loads over HTTPS, it is the CloudPe security-group IP allowlist: add your current IP in the CloudPe dashboard (see the plan's Troubleshooting section).
-- **Ask before** any delete. The only delete here is Step 5c. `clean-db.sh` is not part of this deploy.
+- **Ask before** any delete. There are two: Step 5c (duplicate scenarios, needed for the migration) and Step 10b (`clean-db.sh`, which deletes **every user account** so QA and testers start fresh). Each waits for your explicit yes.
 
 ## Order of steps
 
@@ -56,6 +56,7 @@
 | 8 | Recompute scenario results (8) and every account's analytics (8b) | up |
 | 9 | Health check, hard refresh | up |
 | 10 | Database spot checks | up |
+| 10b | Reset all user data (`clean-db.sh`) so QA and testers start on fresh accounts (**you confirm**) | up |
 | 11 | QA part A: Chandra | up |
 | 12 | QA part B: analytics | up |
 | 13 | History click-time re-measure | up |
@@ -187,7 +188,7 @@ echo $?
 
 **Good looks like:** log lines per scenario (`real=… proxied=… no_data=…`), ending `compute_all_scenarios: done, N scenarios, 0 failed`, and `0` from `echo $?`. Run time *not pre-verified* (it reads the full NAV history; expect minutes, not seconds). On a non-zero exit `run-job.sh` emails the ops address.
 
-**Step 8b: refresh every account's saved analytics (the nightly job, run now).**
+**Step 8b: refresh every account's saved analytics (the nightly job, run now).** *(You can skip 8b if you will run the Step 10b reset: it deletes every saved analytics row anyway. It is harmless to run.)*
 
 ```bash
 sudo ./scripts/run-job.sh analytics-recompute-all scripts/run_analytics_recompute.py --all
@@ -218,6 +219,38 @@ sudo docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_
 2. three phase rows: Shock `2026-02-28` to `2026-04-01`, Partial recovery `2026-04-02` to `2026-07-07`, Relapse `2026-07-08` to empty (one set only, no duplicates);
 3. `count` of `0`.
 (`$POSTGRES_USER` and `$POSTGRES_DB` are read **inside** the postgres container, which is why the commands are wrapped in `sh -c '...'`. If either comes back empty, paste it and Claude will adapt the command; do not fall back to `$DB_USERNAME`, which is unset in your shell.)
+
+## Step 10b — Reset all user data, so QA and testers start fresh  [VM]
+
+**Why here:** the new code and migrations are live and verified (Steps 6 to 10), so the wipe happens on the final deploy; and it comes **before QA**, so every QA account is created fresh on the new code (Chandra QA-1 needs a fresh import anyway) and no old account lingers with stale analytics.
+
+**What `scripts/clean-db.sh` does:** in one transaction it deletes **every user account and everything under it**: users, household members and merges, sign-in identities, sessions, OTP requests, imports, folios, transactions, portfolio snapshots, saved analytics, recompute status and account-deletion surveys. It **keeps** reference and platform data (schemes, NAV history, TER, AAUM, benchmarks, the ARN directory, fund scores, and the scenarios). **It asks for no confirmation: it starts deleting the moment it runs.** Everyone who is logged in is logged out and every existing tester account is gone, so tell the testers first. It cannot be undone except by restoring a dump.
+
+**10b-1. Look first (read-only); write the numbers down:**
+
+```bash
+sudo docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB" -c "select (select count(*) from users) users, (select count(*) from household_members) members, (select count(*) from imports) imports, (select count(*) from transactions) transactions, (select count(*) from schemes) schemes, (select count(*) from scenarios) scenarios;"'
+```
+
+**10b-2. A fresh dump you keep** (the Step 3 dump predates the migration, so it is not enough to undo a wipe on the new schema):
+
+```bash
+sudo docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > ~/pre-wipe-$(date +%Y%m%d%H%M).sql.gz
+ls -lh ~/pre-wipe-*.sql.gz
+gunzip -t ~/pre-wipe-*.sql.gz && echo DUMP_OK
+```
+
+**Good looks like:** a `.sql.gz` of plausible size and `DUMP_OK`. Do not continue without it.
+
+**10b-3. Wipe: ASK FIRST.** Only after you have said "yes, wipe" to Claude, with 10b-1's numbers reviewed:
+
+```bash
+sudo ./scripts/clean-db.sh
+```
+
+**Good looks like:** `=== BEFORE ===` counts (matching 10b-1), `=== RUNNING CLEANUP ===`, then `=== AFTER (user-domain, should be all 0) ===` with every row `0`, then `=== AFTER (reference data, should remain intact) ===` with the reference counts non-zero and unchanged (schemes, nav_history in the millions, and so on), then `Done.`. **If a count in the "all 0" block is not 0, or a reference count dropped, stop and paste the whole output.** The script runs in one transaction with `ON_ERROR_STOP`, so a failure partway leaves the data untouched.
+
+**10b-4. Check the app:** hard-refresh https://ls-staging.unifolio.in, confirm an old tester account can no longer sign in, and that a new sign-up works. The scenario list and its results are still there (scenarios are reference data). From here on, create **new** test accounts for Steps 11 to 13.
 
 ---
 
@@ -311,6 +344,7 @@ sudo docker compose up -d backend worker
   and `git checkout <new-commit> -- frontend` when retrying forward.
 - **Migrations 0042/0043 are not undone.** Leaving them is safe: 0043 only adds an index, 0042 only moves two end dates, and the old code ignores both. A real undo is a hand-written downgrade or a restore of the Step 3 dump into a **scratch** container (Part 2 of the base guide; never into the live `postgres` service).
 - **Old backend under the new frontend:** the History pop-up's month-detail call errors until you roll forward again, and the Chandra disclaimer fields disappear (the frontend treats a missing disclaimer as "none"). Safe, but those screens look broken meanwhile.
+- **The Step 10b wipe is undone only by the `~/pre-wipe-*.sql.gz` dump** (restore into a scratch container, not the live service); rolling the code back does not bring any account back.
 - **The scenario clean-up (Step 5c) is undone only by the Step 3 dump.** `compute_all_scenarios.py` rebuilds results, not deleted seed rows.
 
 ## Report back to Claude
@@ -318,7 +352,7 @@ sudo docker compose up -d backend worker
 Paste, filled in:
 - `git log --oneline -1`, the revision at Step 2, the `ls -lh` and `DUMP_OK` from Step 3, and the `alembic current` result from Step 6.
 - Step 5a/5b output (and whether 5c was applied).
-- Step 8's and Step 8b's last log lines; Step 9's two status codes; Step 10's three results.
+- Step 8's and Step 8b's last log lines; Step 9's two status codes; Step 10's three results; Step 10b's 10b-1 numbers, `DUMP_OK`, and the AFTER blocks.
 - QA-1 to QA-5 and B1 to B11, each **pass / fail / not run**, with the QA-1 and QA-2 numbers.
 - Step 13's median and worst.
 - Anything that looked off, even if minor.
