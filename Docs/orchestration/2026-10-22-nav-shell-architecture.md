@@ -1,6 +1,6 @@
-# Navigation shell and router: structure, design and how it fits the current code (draft v1.1)
+# Navigation shell and router: structure, design and how it fits the current code (draft v1.2)
 
-**Status:** draft for review, written 2026-10-22. Planning only; nothing is built. This is the in-depth companion to `2026-10-22-nav-shell-contract-v1.md` (contract v1.1 and URL map). The contract says *what pages can rely on*; this document says *how the shell is structured and how it meets the code that exists today*. The shell's step-by-step implementation plan is written after both are agreed.
+**Status:** draft for review, written 2026-10-22. Planning only; nothing is built. This is the in-depth companion to `2026-10-22-nav-shell-contract-v1.md` (contract v1.2 and URL map). The contract says *what pages can rely on*; this document says *how the shell is structured and how it meets the code that exists today*. The shell's step-by-step implementation plan is written after both are agreed.
 
 **Scope boundaries (from the product owner, 22 Oct):**
 - **Mobile is out of scope.** The mobile app is not touched: no bottom-bar change, no new mobile routes, no mobile design.
@@ -76,7 +76,7 @@ frontend/src/shell/
   routes/                      ONE FILE PER PAGE (the only folder page owners touch)
     home.route.tsx
     portfolio.route.tsx
-    portfolio-equity.route.tsx
+    portfolio-equity.route.tsx   (group node: kind "group", no path, no page; children are separate route files)
     ...                        (one per row of the URL map)
   layout/
     AppLayout.tsx              sidebar + top bar + banners + <Outlet />
@@ -99,7 +99,7 @@ frontend/src/shell/
 
 ### 3.2 The router
 
-- **Library:** a mainstream React router (react-router), in declarative mode: a browser router, `Routes`/`Route`, `Outlet`, `NavLink`, `useNavigate`, `useLocation`. It is the one new dependency (decision F2, confirmation O1). The version is chosen at install time.
+- **Library:** a mainstream React router (react-router), in declarative mode: a browser router, `Routes`/`Route`, `Outlet`, `NavLink`, `useNavigate`, `useLocation`. It is the one new dependency (decision F2, confirmation O1). **react-router v7** (owner decision O1, 22 Oct); declarative mode is still supported in v7, so the API listed here applies, to be re-verified at install time.
 - **URL style:** real paths (`/portfolio/mutual-funds`), not hash routes. Hosting already falls back to `index.html` (section 2).
 - **Code splitting:** each route's component is a dynamic import, wrapped in `Suspense` with `PageState` loading. Only the registry metadata is loaded eagerly.
 - **Redirects:** `/` goes to `/home`; `/planning` goes to `/planning/scenarios`; unknown paths go to the shell's not-found page.
@@ -220,4 +220,4 @@ Each existing screen gets a thin wrapper route file that reads the scope and ren
 
 ## 12. Open items (from the contract, section 10)
 
-O1 router library confirmation; O2 asset-class versus instrument URLs; O4 scope in the URL; O5 Planning sub-menu; O6 Liabilities content; O9 Back destination; O10 Profile sections; O11 Help. Closed: O3, O7, O8 (mobile out of scope) and O12 (existing screens are wired by wrapper files only, decision L38).
+All answered 22 Oct (see contract section 10): O1 react-router v7; O2 Equity is an expandable group with four children, no page of its own; O4 no scope in the URL; O5 no Planning sub-menu; O6 Liabilities placeholder (assumed); O9 last non-Portfolio screen; O10 later; O11 placeholder. Still to confirm: where "FDs & bonds" sits (listed under Equity), and that "Mutual Fund and US Stock" is two items. Closed earlier: O3, O7, O8 (mobile out of scope) and O12 (existing screens are wired by wrapper files only, decision L38).
