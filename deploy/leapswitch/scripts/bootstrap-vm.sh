@@ -81,6 +81,11 @@ fi
 # confirmed 16 Oct 2026) still needs `aws configure set ... --profile cloudpe`
 # run once by hand from .env's OBJECT_STORAGE_* values; not scripted here since
 # it reads secrets out of .env, which this script runs before .env even exists.
+#
+# Must be configured under root's home, not `deploy`'s: backup.sh always runs
+# via `sudo` (confirmed by the deploy guide), so it reads root's own ~/.aws,
+# not deploy's -- a profile set up while SSH'd in as plain `deploy` is invisible
+# to it (confirmed 22 Oct 2026, root's ~/.aws didn't exist at all).
 
 echo "== done =="
 echo "Data volume: $(findmnt -no SOURCE,FSTYPE,SIZE ${DATA_MOUNT})"
