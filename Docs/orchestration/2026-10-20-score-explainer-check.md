@@ -1,5 +1,5 @@
 # Score explainer check: methodology doc vs code (P1-T6 gate)
-Date 2026-10-20. Sources: `Docs/Updated_and_Approved_Unifolio_Fund_Scoring_Methodology.md`, `backend/app/services/analytics/scorer.py`, `fund_ranking.py`, `frontend/src/features/analytics/ScorerSection.tsx`, `FundScoreCard.tsx`.
+Date 2026-10-20. Sources: `Docs/Scorer-V2/Updated_and_Approved_Unifolio_Fund_Scoring_Methodology.md`, `backend/app/services/analytics/scorer.py`, `fund_ranking.py`, `frontend/src/features/analytics/ScorerSection.tsx`, `FundScoreCard.tsx`.
 
 ## Result: THE DOC AND THE CODE DISAGREE on the Fund Quality Score. Stopped per plan; the user decides.
 

@@ -37,7 +37,7 @@ today's build, and it is the dependency for attributes 02, 04 (partially), 06, 1
 
 This was already flagged as a known gap in `Docs/PRD-04-MF-Analytics-Dashboard.md` (lines
 102-120, "Out of Scope / Data-Gated") and investigated once already for a narrower purpose in
-`Docs/orchestration/scorer-v2-pe-pb-feasibility-findings.md` (2026-08-24, written for Scorer
+`Docs/Scorer-V2/scorer-v2-pe-pb-feasibility-findings.md` (2026-08-24, written for Scorer
 v2's PE/PB component specifically). That investigation's Path A (in-house AMC-disclosure
 ingestion) is the right starting shape for this PDF's full look-through engine too, but it
 recommended pairing it with a **paid** stock-level PE/PB vendor — which conflicts with the

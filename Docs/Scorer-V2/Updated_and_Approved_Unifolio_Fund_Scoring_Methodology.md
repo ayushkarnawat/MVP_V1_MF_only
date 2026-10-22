@@ -6,7 +6,7 @@ UNIFOLIO — PROPRIETARY FUND SCORING METHODOLOGY
 
 The Unifolio Fund Score answers one question as precisely as the available data allows: how good is this fund, really — compared to its true category peers? Every fund is scored only against other funds in its own SEBI scheme category, so a Large Cap fund is never compared to a Mid Cap, Small Cap, or Flexi Cap fund. 
 
-The score is built from ten weighted components across six buckets — Return, Consistency, Downside Risk, Risk-Adjusted Efficiency, Upside Participation, Valuation, and Cost Efficiency — combined into a single 0–100 score. Every published score is shown together with its full component breakdown; the methodology is designed to be fully explainable, never a black-box number. 
+The score is built from eleven weighted components across seven buckets — Return, Consistency, Downside Risk, Risk-Adjusted Efficiency, Upside Participation, Valuation, and Cost Efficiency — combined into a single 0–100 score. Every published score is shown together with its full component breakdown; the methodology is designed to be fully explainable, never a black-box number. 
 
 ## **2. Scoring Attributes and Weights** 
 

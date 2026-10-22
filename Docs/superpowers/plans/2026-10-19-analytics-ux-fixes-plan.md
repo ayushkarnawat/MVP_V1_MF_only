@@ -306,7 +306,7 @@ screens to eyeball.
 
 **Interfaces:** Produces `export function ScoreExplainer(): JSX.Element` (no props; collapsed by default, `printMode` of the section hides it).
 
-- [ ] **Step 1 (Claude, not Codex): reconcile the doc and the code.** Read `Docs/Updated_and_Approved_Unifolio_Fund_Scoring_Methodology.md` and
+- [ ] **Step 1 (Claude, not Codex): reconcile the doc and the code.** Read `Docs/Scorer-V2/Updated_and_Approved_Unifolio_Fund_Scoring_Methodology.md` and
   `backend/app/services/analytics/scorer.py` and `fund_ranking.py`. Record in the check doc: the three score weights (shown today as 45/30/25), the five tier bands, the verdict bands (70/50),
   how `risk_adjusted_tier` and `cost_adjustment` relate to those weights, and the composite rating's five weights (25/25/20/15/15). **If the doc and the code disagree, STOP and report to the user. Do not choose.**
 - [ ] **Step 2: User approves the copy** (D7). The approved text becomes `scoreExplainerCopy.ts`.

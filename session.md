@@ -19,6 +19,22 @@ anything by re-reading the whole repo.**
 - Must be settled before the first automatic run on **10 Nov 2026**: (1) first staging import + record alerts; (2) decide on any fund house AWS blocks; (3) build a missed-month alert; (4) admin upload screen instead of the CLI; (5) test HDFC's passive file; (6) decide the long-term fix (ask AMCs for access / vendor data quote); (7) confirm the ops-alerts email subscriptions; (8) the monthly routine itself.
 - Detail and the ordered to-do table: `DEFERRED_FEATURES.md` (top section). Background and options: `Docs/orchestration/subproject1-execution/a04-factsheet-access-gaps.html` (https://claude.ai/artifact/STCA9eNZwWZ4ZYYGzmpkTL).
 
+## Latest (2026-10-22): Scorer V2 planning PAUSED, at Ayush's request
+
+Too many open judgment calls stacking up at once alongside other priorities. All four
+Scorer V2 planning docs moved into one dedicated folder, `Docs/Scorer-V2/` (was scattered
+across `Docs/` and `Docs/orchestration/`); repo-wide cross-references updated to the new
+paths. Items 1-7 and 9 of the open-questions annex are resolved; item 8 (peer-set
+widening) stopped one sub-question short of done (Sectoral/Thematic reclassifier —
+Ayush already said build it, still open whether it fixes the shared `canonical_category()`
+used by 4 other live features, or is scoped to Scorer V2 only); Section B/C of the annex
+and tasks #10-12 (frontend, data architecture, `jugaad-data`) not started at all.
+**Before resuming:** read `Docs/Scorer-V2/00-RESUME-HERE.md` first — it has the exact
+stopping point and the live decisions already made, so the next session doesn't re-derive
+any of it. One side-finding, not scorer-specific, logged separately: `DEFERRED_FEATURES.md`'s
+"Added 2026-10-22 (category-alias data bug)" — affects the live V1 scorer too, independent
+of whether/when Scorer V2 resumes.
+
 ## Latest (2026-10-20, analytics UX fixes): built and committed, not deployed
 
 All six phases of `Docs/superpowers/plans/2026-10-19-analytics-ux-fixes-plan.md` are built, reviewed (Codex plus Opus on the risky runs) and committed on `feat/leapswitch-staging`, one commit per task; pushed to `origin/feat/leapswitch-staging` on 2026-10-20 together with the merge of PR #8 (the Chandra fix), so the next deploy carries both. **Next:** (1) the user's browser checks (tier badges light/dark, allocation toggle, scenario dates, Investment & Withdrawal toggle and bar tap, History hover/click/keyboard/phone first-and-second tap/family filter, print has no toggle); (2) run the PostgreSQL roundtrip test for migrations 0042/0043; (3) deploy via `Docs/orchestration/2026-10-20-leapswitch-staging-deploy-guide-analytics-and-chandra.md` (this one guide covers the analytics work AND the Chandra fix; it replaces the Chandra-only guide) (scenario duplicate cleanup is a separate user-confirmed step; `compute_all_scenarios.py` after 0042); (4) re-measure the History month-detail click time on staging PostgreSQL (limit 1 s; stored per-month rows if over); (5) decide the score-methodology document vs code disagreement (explainer follows the code). Detail: `log.md` and `backend.md` 2026-10-20, the plan's execution notes, `Docs/orchestration/ux-fixes-handoff.md`.
