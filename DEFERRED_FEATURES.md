@@ -120,7 +120,7 @@ built**, so those are not listed here. What PRD-04 itself still defers:
 | **Release gate — the SEBI-prescribed disclosure disclaimer for attribute 11's scenario simulator must be reviewed by a SEBI/compliance consultant before going live** | Noted only inside the attribute-11 frontend spec before 2026-10-08; now also tracked in `decisions.md` | Disclaimer drafted, not consultant-reviewed | Same release-gate logic as the row above — a compliance-sensitive disclaimer shouldn't go live on a draft that's never had expert eyes on it | Release gate — tracked blocker, no committed date |
 | Deep multi-year rolling-return analysis (e.g. full rolling-return heatmaps) | PRD-04 §Out of Scope/Data-Gated | Not built | Beyond what the scorer and category comparison need; possible future enrichment once the core scorer shipped (it now has) | Future |
 | Equity-specific analytics (stock-level metrics) | PRD-04 §Non-Goals | Not built | MF-only per overall MVP scope | N/A (permanent) |
-| Scorer weighting evolution beyond the fixed v1 formula (Return 45% / Risk 30% / Consistency 25%) | PRD-04 §Future Considerations | Not built (v1 formula shipped and locked) | Explicitly framed as something to revisit once real usage data exists, not a v1 gap | Future |
+| Scorer v2 — 11-component replacement of the fixed v1 formula (Return 45% / Risk 30% / Consistency 25%) | `Docs/Scorer-V2/Updated_and_Approved_Unifolio_Fund_Scoring_Methodology.md` (approved) + `Docs/Scorer-V2/Scorer-v2-Calculation-Annex-Open-Questions.md` (9 open judgment calls, unresolved) | Fully specified and approved, not built — on hold per the 2026-10-06 decision until all 11 components have real data behind them (4 of the risk metrics have zero code anywhere in the backend; benchmark coverage is capped at 4 indices, insufficient for non-equity categories) | Not a vague "revisit once usage data exists" item — this is the already-approved replacement formula, blocked on concrete engineering gaps, not on a pending product decision | On hold; planning restarted 2026-10-20, see `session.md` |
 | Index-fund mega-category sub-bucketing (split AMFI's 1,150-scheme "Other Scheme - Index Funds" into smaller peer-groups for category-ranking/Scorer performance + comparison quality) | `Docs/superpowers/specs/2026-08-20-index-fund-mega-category-split-deferred.md` | Reviewed and deferred, not started | Investigated with a concrete bucket list (both a fine-grained per-benchmark option and a coarser AMFI-precedented asset-class option); reviewed with Ayush and finance-domain peers, who judged the only design that actually shrinks the category (bespoke per-benchmark regex buckets) as an unrecognized-by-AMFI taxonomy not worth the mis-bucketing/maintenance risk, while the AMFI-native alternative doesn't solve the size problem | Revisit only if index-fund category-ranking/Scorer load time becomes a demonstrated user-facing problem (currently mitigated by the existing BUG-001 15-min per-category cache) |
 
 ## PRD-05 — Auth Flow Redesign
@@ -264,4 +264,44 @@ Still open (all Low):
 - **Accessibility:** `aria-controls` points at panels that exist only when expanded (same known pattern as the SIP tab limitation); the overlap concentration chart does nothing if the stock section is empty or failed.
 - **A disclosure failure is not memoised**, so each of the five sections re-runs `compute_holdings` before failing.
 - **Arbitrage-as-cash banner** still counts the arbitrage fund's futures in the single `excluded_share` figure.
+
+## Added 2026-10-22 (category-alias data bug — `scheme_universe.py`, found during Scorer V2 planning, not scorer-specific)
+
+**Not applied, no file touched — found while researching Scorer V2 item #8, but this is a
+general category-matching bug that already affects the live V1 scorer and any other
+feature that groups schemes by SEBI category, so it's tracked here as the primary record
+rather than only inside the Scorer V2 annex
+(`Docs/Scorer-V2/Scorer-v2-Calculation-Annex-Open-Questions.md`, item 8).**
+
+`scheme_universe.py`'s `canonical_category()` already has an alias table
+(`_CATEGORY_ALIASES`) to merge different AMCs' free-text category headings that describe
+the same SEBI category (it already does this for several Hybrid/Debt headings). Two more
+cases of the same bug shape were found live in AMFI's `NAVAll.txt` on 2026-10-21, confirmed
+with zero AMC overlap between the two headings in each pair (i.e. definitely the same
+category under two spellings, not a real split):
+
+| Heading A | Heading B | AMCs on A | AMCs on B |
+|---|---|---|---|
+| `"Exchange Traded Funds (ETFs) - Gold ETF"` | `"Other Scheme - Gold ETF"` | 360 ONE, Axis, Baroda BNP, Choice, DSP, Groww, Invesco, Mirae, UTI, Zerodha (10 funds) | Angel One, Bandhan, Edelweiss, HDFC, HSBC, ICICI, Kotak, LIC, Motilal Oswal, Nippon, ... (15 funds) |
+| `"Children's Fund - Childrens' Fund"` (curly apostrophe) | `"Solution Oriented Scheme - Children's Fund"` | Axis only (1 fund) | 9 other AMCs (11 funds) |
+
+Fix, ready to paste into `_CATEGORY_ALIASES` whenever picked up (small, low-risk, but a
+production code change, so not applied without sign-off):
+```python
+"Exchange Traded Funds (ETFs) - Gold ETF": "Other Scheme - Gold ETF",
+"Children's Fund - Childrens' Fund": "Solution Oriented Scheme - Children's Fund",
+```
+Effect once applied: Gold ETF's true live population is 25 funds, not two separate pools
+of 10 and 15; Children's Fund's is 12, not two pools of 1 and 11.
+
+**A separate, bigger version of the same bug shape was also spotted, not fixed, and needs
+different treatment:** `"Other Scheme - Index Funds"` (280 scheme rows) and `"Other Scheme
+- Other ETFs"` (206 scheme rows) look like the same kind of AMC-specific catch-all
+heading, but — unlike the two pairs above — their actual contents mix equity, debt, and
+hybrid index funds/ETFs together rather than cleanly duplicating one real category. A
+simple string alias would wrongly merge genuinely different fund types. Fixing this needs
+holdings- or benchmark-based reclassification (look at what each fund actually tracks),
+not a dictionary entry. Flagging as unsolved; whoever picks this up should start from the
+same live-AMFI-pull method used to find it (see item 8 of the Scorer V2 annex for the
+method), not re-derive it from scratch.
 

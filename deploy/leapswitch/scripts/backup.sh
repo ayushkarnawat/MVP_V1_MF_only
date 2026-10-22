@@ -39,9 +39,14 @@ timestamp=$(date -u +%Y%m%dT%H%M%SZ)
 sql_file="/tmp/unifolio-${timestamp}.sql"
 dump_file="${sql_file}.gz"
 
-if ! docker compose exec -T postgres pg_dump -U "$DB_USERNAME" "$DB_NAME" \
-	> "$sql_file" 2>/tmp/unifolio-backup-error.log; then
-	status=$?
+docker compose exec -T postgres pg_dump -U "$DB_USERNAME" "$DB_NAME" \
+	> "$sql_file" 2>/tmp/unifolio-backup-error.log
+status=$?
+if [ "$status" -ne 0 ]; then
+	# Real exit code -- captured right after the command, not after an `if !`
+	# test, whose own `$?` is POSIX-defined as the *negated* status (always 0
+	# here), which silently turned every real failure into a reported exit 0
+	# (confirmed 22 Oct 2026: an upload failure alerted but still exited 0).
 	cat /tmp/unifolio-backup-error.log | alert "$status"
 	rm -f /tmp/unifolio-backup-error.log "$sql_file"
 	exit "$status"
@@ -50,9 +55,10 @@ rm -f /tmp/unifolio-backup-error.log
 gzip -f "$sql_file"
 
 if [ -n "${BACKUP_BUCKET_NAME:-}" ]; then
-	if ! upload_output=$(aws --profile cloudpe --endpoint-url "$OBJECT_STORAGE_ENDPOINT_URL" \
-		s3 cp "$dump_file" "s3://${BACKUP_BUCKET_NAME}/postgres/$(basename "$dump_file")" 2>&1); then
-		status=$?
+	upload_output=$(aws --profile cloudpe --endpoint-url "$OBJECT_STORAGE_ENDPOINT_URL" \
+		s3 cp "$dump_file" "s3://${BACKUP_BUCKET_NAME}/postgres/$(basename "$dump_file")" 2>&1)
+	status=$?
+	if [ "$status" -ne 0 ]; then
 		printf '%s\n' "$upload_output" | alert "$status"
 		rm -f "$dump_file"
 		exit "$status"
@@ -62,10 +68,11 @@ if [ -n "${BACKUP_BUCKET_NAME:-}" ]; then
 	# ISO-8601 LastModified timestamps sort/compare correctly as plain strings
 	# against a YYYY-MM-DD cutoff, so no date parsing is needed here.
 	cutoff=$(date -u -d "-${RETENTION_DAYS} days" +%Y-%m-%d)
-	if ! old_keys=$(aws --profile cloudpe --endpoint-url "$OBJECT_STORAGE_ENDPOINT_URL" \
+	old_keys=$(aws --profile cloudpe --endpoint-url "$OBJECT_STORAGE_ENDPOINT_URL" \
 		s3api list-objects-v2 --bucket "$BACKUP_BUCKET_NAME" --prefix "postgres/" \
-		--query "Contents[?LastModified<='${cutoff}'].Key" --output text 2>&1); then
-		status=$?
+		--query "Contents[?LastModified<='${cutoff}'].Key" --output text 2>&1)
+	status=$?
+	if [ "$status" -ne 0 ]; then
 		printf '%s\n' "$old_keys" | alert "$status"
 		rm -f "$dump_file"
 		exit "$status"
