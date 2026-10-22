@@ -305,3 +305,28 @@ not a dictionary entry. Flagging as unsolved; whoever picks this up should start
 same live-AMFI-pull method used to find it (see item 8 of the Scorer V2 annex for the
 method), not re-derive it from scratch.
 
+
+## Added 2026-10-22 (Home screen planning — sector view accuracy, not built)
+
+**"What moved today" sector view: upgrade from pro-rata to sector-index-informed (B1 option 2).**
+Decided 2026-10-22: Home ships with the pro-rata split only — each fund's exact rupee day
+change spread over its sectors by its latest disclosed holdings, labelled "estimated". It
+always reconciles to the exact headline, but every sector moves in the same direction as
+its fund, so a losing sector inside a gaining fund can't show.
+
+Revisit only if users question the sector split. The upgrade would be:
+- Fetch about 12 NSE sector index returns a day (NSE's index API first, as used for the
+  benchmarks; Yahoo chart only as a fallback — in the 2026-10-22 test it answered for the
+  sector indices but returned missing days for several).
+- Weight them by each fund's sector exposure; show the gap to the fund's exact change as an
+  "other / unexplained" row so the total still reconciles.
+- Cost: one new small table (sector index closes), a one-time sector-to-index mapping
+  (`stock_master.sector` names come from NSE "Industry"), a fallback to the pro-rata split
+  on missing days. Jobs: zero new if the daily benchmark job gets a second loop, else one
+  small job and one cron line. Keep sector indices out of the `BenchmarkIndex` enum, or
+  they appear in Analytics.
+- Before building: backtest on staging disclosure data (dev has none) to confirm it beats
+  pro-rata; accuracy is capped anyway by holdings being disclosed 10-40 days late.
+- Not recommended: stock-price-based (about 1,400 symbols a day, fragile, largest ToS risk).
+
+Detail: the planning artifact's B1 reply (`https://claude.ai/artifact/Hg7j92jMRCJqdsJw6ENQc5`).

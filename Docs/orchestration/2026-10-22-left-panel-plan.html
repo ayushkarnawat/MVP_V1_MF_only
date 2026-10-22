@@ -1,0 +1,743 @@
+<title>Left Panel Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky contents rail + one reading column of decision cards; planning workbook, not a landing page. */
+:root{
+  --bg:#f6f8f6; --surface:#ffffff; --surface-2:#eef2ee; --line:#d9e0d9;
+  --fg:#16211a; --muted:#566259; --accent:#128a4a; --accent-soft:#e1f3e8;
+  --locked:#2f5fb3; --locked-soft:#e6eefb; --open:#a8610a; --open-soft:#fbefd9;
+  --rec:#128a4a; --danger:#b3321f;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'DM Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'DM Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent)}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent)}
+nav.toc .grp{margin-top:14px}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:68ch;margin:0 0 10px}
+.rule{margin-top:18px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 16px;max-width:75ch}
+.rule b{color:var(--accent)}
+section{margin-top:52px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:72ch}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700;white-space:nowrap}
+.tag{display:inline-block;font:500 11px var(--f-mono);padding:2px 8px;border-radius:99px;letter-spacing:.03em}
+.tag.locked{background:var(--locked-soft);color:var(--locked)}
+.tag.open{background:var(--open-soft);color:var(--open)}
+.tag.done{background:var(--accent-soft);color:var(--accent)}
+.tag.rec{background:var(--accent-soft);color:var(--rec)}
+.tag.no{background:var(--surface-2);color:var(--danger);border:1px solid var(--danger)}
+.reply{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px}
+.reply b.t{color:var(--accent)}
+.reply ul,.reply ol{margin:6px 0;padding-left:20px}
+.reply li{margin:3px 0}
+.tag.later{background:var(--open-soft);color:var(--open)}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul{margin:6px 0;padding-left:20px}
+.sumbox li{margin:5px 0}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:10px 0}
+.two>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.two h4{margin:0 0 6px;font-family:var(--f-display);font-size:15px}
+.two ul{margin:4px 0;padding-left:18px}
+.two li{margin:4px 0}
+.two .pro h4{color:var(--rec)}
+.two .con h4{color:var(--danger)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}
+.chip{font:500 12px var(--f-mono);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:6px 12px;border-radius:99px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.spacer{flex:1}
+.count{font:500 12px var(--f-mono);color:var(--muted)}
+.btn{font:500 13px var(--f-body);background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+:root[data-theme="dark"] .btn{color:#06210f}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn{color:#06210f}}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:70px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:500 12px var(--f-mono);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.card p{margin:8px 0}
+.ask{font-weight:500}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--rec)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.opt .tag{margin-left:6px}
+.why{border-left:3px solid var(--rec);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--rec)}
+.risk{font-size:13.5px;color:var(--muted)}
+.risk b{color:var(--danger)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+textarea{width:100%;min-height:54px;font:14px var(--f-body);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;resize:vertical}
+.card.locked{background:var(--locked-soft);border-color:transparent}
+.card.locked .decided{font-weight:500}
+.hidden-by-filter{display:none}
+.callout{background:var(--open-soft);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:14px}
+ul.tight{margin:6px 0;padding-left:20px}
+ul.tight li{margin:3px 0}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+#out{white-space:pre-wrap;font:13px var(--f-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px;max-height:340px;overflow:auto}
+details{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:12px;padding:0 16px}
+details>summary{cursor:pointer;font-weight:700;padding:12px 0;font-family:var(--f-display);font-size:16px}
+details[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+details .body{padding-bottom:14px}
+h3.sub{font-size:17px;margin:22px 0 8px}
+blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);color:var(--muted);font-size:14px}
+.pill{display:inline-block;font:500 11px var(--f-mono);padding:1px 7px;border-radius:6px;background:var(--surface-2);color:var(--muted)}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+.flow .st{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:13px;min-width:0}
+.flow .st b{display:block;font-family:var(--f-display);font-size:14px;margin-bottom:2px}
+.flow .st .n{font:500 11px var(--f-mono);color:var(--muted)}
+.flow .st .m{color:var(--muted);font-size:12.5px}
+.flow .st.new{border-color:var(--accent)}
+.flow .st.old{border-style:dashed}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}nav.toc{position:static;max-height:none;margin-bottom:12px;columns:2}nav.toc .grp{margin-top:0;break-inside:avoid}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+.sb{width:100%;max-width:230px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 8px;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.sb .logo{font:700 17px var(--f-display);padding:2px 8px 10px}
+.sb .it{padding:6px 10px;border-radius:8px;color:var(--fg)}
+.sb .it.mute{color:var(--muted);opacity:.65}
+.sb .it.on{background:var(--accent-soft);color:var(--accent);font-weight:700;opacity:1}
+.sb .it.back{color:var(--muted)}
+.sb .it.open{font-weight:500}
+.sb .it.child{margin-left:14px;padding-left:10px;border-left:1px solid var(--line);border-radius:0 8px 8px 0}
+.sb .chev{float:right;color:var(--muted)}
+.sb .sep{height:1px;background:var(--line);margin:8px 4px}
+.sb .gap{height:36px}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <h4>Contents</h4>
+  <a href="#intro">Where we are</a>
+  <div class="grp"><h4>Research</h4>
+    <a href="#sources">1. What I looked at</a>
+    <a href="#conflicts">2. Conflicts with older documents</a>
+    <a href="#facts">3. Facts checked in the code</a></div>
+  <div class="grp"><h4>Decisions</h4>
+  <a href="#locked">Decisions you made</a>
+  <a href="#spec">Sidebar specification</a>
+  <a href="#urls">URL map changes</a></div>
+  <div class="grp"><h4>Open questions</h4>
+    <a href="#grp-A">A. Structure and contract</a><a href="#grp-B">B. Scope rule</a><a href="#grp-C">C. Look and behaviour</a><a href="#grp-D">D. Delivery and tests</a></div>
+  <div class="grp"><a href="#plan">Implementation plan</a><a href="#risks">Risks</a><a href="#verify">To verify</a><a href="#log">Conversation log</a><a href="#glossary">Glossary</a><a href="#answers">Your answers</a></div>
+</nav>
+
+<main>
+<div class="hero" id="intro">
+  <h1>Left Panel Plan</h1>
+  <p>Planning workbook for the left sidebar of the new Unifolio web app, prepared 22 Oct 2026. Nothing is built, installed or committed. Every claim is marked <span class="tag done">verified</span>, <span class="tag later">estimate</span> or <span class="tag no">unverified</span>. Pick an option on each open card or write your own, then copy your answers at the bottom.</p>
+  <div class="rule"><b>Source of truth:</b> <i>Web app UI mockups MFs.pdf</i> and your decisions in chat. Where an older document disagrees I say so and do not edit it without your yes (card A4).</div>
+  <div class="rule"><b>Scope:</b> the sidebar and what it needs from the shell (router, route files, scope rule, Back). Desktop only. Existing screens, mobile and the backend are not touched. The pages and the top bar's contents are planned separately.</div>
+
+  <div class="sumbox">
+    <h3>One-minute summary</h3>
+    <ul>
+      <li><b>What we are building:</b> a left sidebar with two modes. Main mode has Home, Portfolio, Liabilities and Planning, with Profile and Help &amp; Support at the bottom. Portfolio mode adds Back and Investments, then an Equity group that expands to Direct Stocks, Mutual Funds, US Stocks and FDs &amp; Bonds, then plain Debt, Gold, Real Estate and Others.</li>
+      <li><b>One new rule from you:</b> opening any Portfolio page always shows Family Combined. Four small questions (B1 to B4) finish it.</li>
+      <li><b>What changed against the written contract:</b> Equity used to be a page. It is now a group with three new child routes. Cards A2 to A4 handle that.</li>
+      <li><b>One surprise:</b> react-router has a newer version, 8.5, that needs a newer Node than our CI (card A1). v7 still works.</li>
+      <li><b>Effort:</b> about 8 developer-days for the sidebar part (<span class="tag later">estimate</span>), before the second PR that switches the app over.</li>
+      <li><b>Open:</b> 18 cards. Four of them (A4, D1, D2, D4) are about documents and delivery, two of those you parked.</li>
+    </ul>
+  </div>
+</div>
+
+<section id="sources">
+  <h2>1. What I looked at</h2>
+  <p class="lead">I read the handoff, the contract (v1.1) and the architecture draft in full, and rendered PDF pages 2, 9 and 12 myself. Pages 3 and 10 and the sketch came from your screenshots.</p>
+  <div class="scroll"><table>
+    <tr><th>Source</th><th>What it says about the sidebar</th><th>Status</th></tr>
+    <tr><td class="k">PDF p2</td><td>A title slide, &quot;Left side Standard Pane&quot;. Nothing else.</td><td><span class="tag done">verified</span></td></tr>
+    <tr><td class="k">PDF p3 (text)</td><td>Logo on top. Home, Portfolio, Liabilities, Planning. Profile and Help &amp; Support at the bottom.</td><td><span class="tag done">verified</span></td></tr>
+    <tr><td class="k">PDF p3 and p9 (image)</td><td>A narrow, pale panel. Wordmark on top, small icons with labels, a green pill on the active row, a divider above Profile, Help &amp; Support at the very bottom. The labels in the image are the old menu.</td><td><span class="tag done">verified</span></td></tr>
+    <tr><td class="k">PDF p9 (text)</td><td>Clicking Portfolio changes the pane to: logo, Back button, Investments, Equity, Debt, Gold, Real Estate, Others, then Profile and Help and Support.</td><td><span class="tag done">verified</span></td></tr>
+    <tr><td class="k">PDF p10 (your screenshot)</td><td>The Investments page: top bar with a search box, Ask Mira, Family Combined selector, moon (theme) toggle and an avatar; tabs Mutual Funds, Stocks, FDs, Bonds, Gold, US Stocks, Other Assets across the page.</td><td><span class="tag done">verified</span></td></tr>
+    <tr><td class="k">Siddharth's sketch (your message)</td><td>A photo of handwriting: Back, Investments, Equity with Direct Stocks, Mutual Fund and US Stock under it, then Debt, RE (real estate) and Gold. One item under Mutual Fund is hard to read.</td><td><span class="tag later">estimate</span> (my reading of handwriting)</td></tr>
+    <tr><td class="k">Your answers</td><td>Equity expands to Direct Stocks, Mutual Funds, US Stocks, FDs &amp; Bonds. Debt, Gold, Real Estate and Others are plain links. Portfolio opens Investments.</td><td><span class="tag done">verified</span></td></tr>
+  </table></div>
+  <div class="callout"><b>A thing to know:</b> the Investments page already shows Mutual Funds, Stocks, FDs, Bonds, Gold and US Stocks as tabs. The sidebar's Equity group repeats part of that list. The two should point to the same pages; deciding how is a page-planning question, not a sidebar one.</div>
+</section>
+
+<section id="conflicts">
+  <h2>2. Conflicts with older documents</h2>
+  <p class="lead">I have changed nothing. Each row is a place where your latest decision and an existing document disagree.</p>
+  <div class="scroll"><table>
+    <tr><th>Existing document</th><th>What it says</th><th>Your decision</th><th>Card</th></tr>
+    <tr><td class="k">PDF p9 text</td><td>Equity, Debt, Gold, Real Estate, Others as a flat list</td><td>Equity expands to four children</td><td>N2</td></tr>
+    <tr><td class="k">Contract, URL map</td><td><span class="mono">/portfolio/equity</span> is a placeholder page</td><td>Equity is a group; three new routes under it</td><td>A2, A4</td></tr>
+    <tr><td class="k">Contract, section 3</td><td>Everything under <span class="mono">/portfolio/mutual-funds</span> highlights Investments</td><td>The Mutual Funds row is the active one</td><td>A3</td></tr>
+    <tr><td class="k">Contract, section 10 (O4) and architecture, section 4</td><td>The scope is held in the shell and remembered for the session</td><td>Entering Portfolio always lands in Family Combined</td><td>B1 to B4</td></tr>
+    <tr><td class="k">PDF p3, p9 and p10 images</td><td>Old menu labels</td><td>PDF text and your answers win</td><td>N11</td></tr>
+    <tr><td class="k">Contract, section 10 (O1)</td><td>react-router; version not fixed</td><td>v7; v8.5 now exists</td><td>A1</td></tr>
+  </table></div>
+</section>
+
+<section id="facts">
+  <h2>3. Facts checked in the code and the web</h2>
+  <p class="lead">Checked on 22 Oct 2026 against the repository and the npm registry.</p>
+  <div class="scroll"><table>
+    <tr><th>Fact</th><th>Status</th><th>Where from</th></tr>
+    <tr><td>react-router latest on npm is 8.5.0; it needs Node 22.22 or later and React 19.2.7 or later. The v7 line's latest is 7.18.4, v6's is 6.30.6.</td><td><span class="tag done">verified</span></td><td>npm registry, <span class="mono">react-router/latest</span> and dist-tags</td></tr>
+    <tr><td>CI builds with Node 20. This machine runs Node 25.8.2. The repo's React is ^19.2.8.</td><td><span class="tag done">verified</span></td><td><span class="mono">.github/workflows/ci.yml:55</span>, <span class="mono">node -v</span>, <span class="mono">frontend/package.json</span></td></tr>
+    <tr><td>react-router 7.18.4 needs Node 20 or later and React 18 or later.</td><td><span class="tag done">verified</span></td><td>npm registry, <span class="mono">react-router/7.18.4</span></td></tr>
+    <tr><td>The frontend builds on Node 20 in two places: CI and the LeapSwitch deploy script. Vite 8.2.0 and the React plugin need Node 20.19 or later; Vitest 4.1.10 accepts Node 20. The repo has no <span class="mono">engines</span> field and no <span class="mono">.nvmrc</span>.</td><td><span class="tag done">verified</span></td><td><span class="mono">ci.yml:55</span>, <span class="mono">deploy/leapswitch/scripts/deploy.sh:29</span>, <span class="mono">node_modules</span> package files</td></tr>
+    <tr><td>Where AWS staging builds the frontend, and that the Node 20 tags resolve to 20.19 or newer.</td><td><span class="tag no">unverified</span></td><td>Not checked; the build passes today</td></tr>
+    <tr><td>Declarative mode offers BrowserRouter, MemoryRouter, Routes, Route, NavLink, Outlet, useNavigate and useLocation.</td><td><span class="tag done">verified</span></td><td>reactrouter.com, modes page</td></tr>
+    <tr><td>Declarative mode supports a route-level <span class="mono">lazy</span> property.</td><td><span class="tag no">unverified</span></td><td>The docs do not mention it. The plan avoids it: each route file loads its page with React.lazy and Suspense.</td></tr>
+    <tr><td>Vite 8.2.0 is installed. <span class="mono">import.meta.glob</span> takes literal relative patterns; <span class="mono">eager: true</span> imports statically; the default is a lazy dynamic import per file.</td><td><span class="tag done">verified</span></td><td><span class="mono">node_modules/vite</span> version; vite.dev docs</td></tr>
+    <tr><td>Only <span class="mono">MainDashboardFlow.tsx</span> touches <span class="mono">window.history</span> and popstate (lines 49 and 83 to 102). <span class="mono">App.tsx:69</span> reads <span class="mono">location.hash</span> for the <span class="mono">#/mobile</span> check. Nothing under <span class="mono">src/mobile</span> uses them.</td><td><span class="tag done">verified</span></td><td>Code search</td></tr>
+    <tr><td><span class="mono">main.tsx</span> sends <span class="mono">/print/analytics</span> and the legal pages around <span class="mono">App</span>.</td><td><span class="tag done">verified</span></td><td><span class="mono">main.tsx</span></td></tr>
+    <tr><td>These 16 icons exist in the installed lucide-react 0.475.0: Home, Briefcase, Receipt, Target, User, CircleHelp, ArrowLeft, LayoutGrid, TrendingUp, Landmark, Coins, Building2, Shapes, ChevronRight, Search, Sparkles.</td><td><span class="tag done">verified</span></td><td>Type definitions in <span class="mono">node_modules</span></td></tr>
+    <tr><td>A <span class="mono">UnifolioLogo</span> component, a <span class="mono">ThemeToggle</span> and logo images (<span class="mono">public/brand</span>) already exist.</td><td><span class="tag done">verified</span></td><td><span class="mono">NavigationShell.tsx</span> imports; folder listing</td></tr>
+    <tr><td>Dark mode works through <span class="mono">prefers-color-scheme</span> and <span class="mono">[data-theme]</span>; Tailwind uses <span class="mono">darkMode: [&quot;class&quot;, &quot;[data-theme=\&quot;dark\&quot;]&quot;]</span>. Colours are CSS variables in <span class="mono">src/styles/tokens.css</span>.</td><td><span class="tag done">verified</span></td><td><span class="mono">tokens.css</span>, <span class="mono">tailwind.config.js</span></td></tr>
+    <tr><td>A sidebar tint colour already exists in the tokens.</td><td><span class="tag no">unverified</span></td><td>I read only the first 50 lines</td></tr>
+    <tr><td>Vitest 4.1.10 with jsdom, globals and a setup file; Testing Library for React 16 is installed.</td><td><span class="tag done">verified</span></td><td><span class="mono">vitest.config.ts</span>, <span class="mono">package.json</span></td></tr>
+    <tr><td>Caddy and CloudFront already fall back to <span class="mono">index.html</span>, so deep links and refresh work.</td><td><span class="tag done">verified</span></td><td>Handoff and contract (previous session)</td></tr>
+    <tr><td>The current top navigation bar is 206 lines and <span class="mono">MainDashboardFlow</span> is 307; three test files reference the shell.</td><td><span class="tag done">verified</span></td><td>Line counts; handoff</td></tr>
+  </table></div>
+</section>
+
+<section id="locked">
+  <h2>Decisions you already made</h2>
+  <p class="lead">These came from your messages today. I treat them as fixed. Tell me if I got any wrong.</p>
+  <div id="lockedList"></div>
+</section>
+
+<section id="spec">
+  <h2>Sidebar specification</h2>
+  <p class="lead">Both modes as I understand them. Greyed rows are placeholders (L32).</p>
+  <div class="two">
+    <div><h4>Main mode</h4>
+      <div class="sb"><div class="logo">Unifolio</div>
+        <div class="it on">Home</div><div class="it">Portfolio</div><div class="it mute">Liabilities</div><div class="it mute">Planning</div>
+        <div class="gap"></div><div class="sep"></div><div class="it">Profile</div><div class="it mute">Help &amp; Support</div></div></div>
+    <div><h4>Portfolio mode (on Mutual Funds)</h4>
+      <div class="sb"><div class="logo">Unifolio</div>
+        <div class="it back">&larr; Back</div><div class="it">Investments</div>
+        <div class="it open">Equity <span class="chev">&#9662;</span></div>
+        <div class="it child mute">Direct Stocks</div><div class="it child on">Mutual Funds</div><div class="it child mute">US Stocks</div><div class="it child mute">FDs &amp; Bonds</div>
+        <div class="it mute">Debt</div><div class="it mute">Gold</div><div class="it mute">Real Estate</div><div class="it mute">Others</div>
+        <div class="sep"></div><div class="it">Profile</div><div class="it mute">Help &amp; Support</div></div></div>
+  </div>
+  <div class="scroll"><table>
+    <tr><th>Rule</th><th>Behaviour</th><th>Status</th></tr>
+    <tr><td class="k">Mode</td><td>Derived from the URL: Portfolio mode on every path under <span class="mono">/portfolio</span>, main mode elsewhere. No separate mode state.</td><td><span class="tag done">decided</span> (contract, N5)</td></tr>
+    <tr><td class="k">Tree</td><td>Built from route files by <span class="mono">parentId</span>, not by URL prefix. Mutual Funds sits under Equity although its path is <span class="mono">/portfolio/mutual-funds</span>.</td><td><span class="tag later">estimate</span> (my design)</td></tr>
+    <tr><td class="k">Active row</td><td>The route whose path matches, or the longest prefix. Mutual Funds pages light the Mutual Funds row (A3). Equity shows a quiet &quot;contains active&quot; state.</td><td>A3 open</td></tr>
+    <tr><td class="k">Equity row</td><td>A button with an arrow. It toggles and never navigates. It opens itself when a child is active (A5).</td><td>N2, A5</td></tr>
+    <tr><td class="k">Greyed rows</td><td>Muted, not clickable, with a &quot;Coming soon&quot; tooltip. They switch on by themselves when the route's status becomes live. No page edit is needed.</td><td>L32, N3, N4</td></tr>
+    <tr><td class="k">Back</td><td>Last non-Portfolio screen from the session, default Home (N7, C5).</td><td>N7</td></tr>
+    <tr><td class="k">Footer</td><td>Profile and Help &amp; Support, the same in both modes.</td><td>PDF p3, p9</td></tr>
+    <tr><td class="k">Look</td><td>About 224px, always visible, tokens only, green pill on the active row.</td><td>N6</td></tr>
+    <tr><td class="k">Scope</td><td>Family Combined on entering Portfolio (N9, B1 to B4). Lives in <span class="mono">useScope()</span>.</td><td>N9</td></tr>
+  </table></div>
+  <h3 class="sub">How the scope rule moves</h3>
+  <pre class="mermaid">
+flowchart TD
+  H["Any page outside Portfolio, scope = X"] -->|"open any /portfolio path"| P["Portfolio, scope = Family Combined"]
+  P -->|"move between Portfolio pages (B2)"| P
+  P -->|"Back, Home, Profile ... (B1)"| L["Leaving Portfolio"]
+  L -->|"option A"| R["scope restored to X"]
+  L -->|"option B"| K["scope stays as last chosen"]
+  </pre>
+</section>
+
+<section id="urls">
+  <h2>URL map changes</h2>
+  <p class="lead">Only the rows that differ from the contract's section 4. Everything else in that table stays. These are proposals until you answer A4.</p>
+  <div class="scroll"><table>
+    <tr><th>Route id</th><th>Path</th><th>Sidebar</th><th>Layout</th><th>Page</th><th>Change</th></tr>
+    <tr><td class="k"><span class="mono">portfolio-equity</span></td><td class="mono">/portfolio/equity</td><td>Group row, arrow</td><td>app</td><td>Redirect to /portfolio/mutual-funds (A2, answered)</td><td>Was a placeholder page</td></tr>
+    <tr><td class="k"><span class="mono">portfolio-equity-direct-stocks</span></td><td class="mono">/portfolio/equity/direct-stocks</td><td>Child of Equity</td><td>app</td><td>Placeholder</td><td>New</td></tr>
+    <tr><td class="k"><span class="mono">portfolio-equity-us-stocks</span></td><td class="mono">/portfolio/equity/us-stocks</td><td>Child of Equity</td><td>app</td><td>Placeholder</td><td>New</td></tr>
+    <tr><td class="k"><span class="mono">portfolio-equity-fds-bonds</span></td><td class="mono">/portfolio/equity/fds-bonds</td><td>Child of Equity</td><td>app</td><td>Placeholder</td><td>New</td></tr>
+    <tr><td class="k"><span class="mono">portfolio-mutual-funds</span></td><td class="mono">/portfolio/mutual-funds</td><td>Child of Equity</td><td>app</td><td>Existing Dashboard</td><td>Now a child row; path unchanged</td></tr>
+    <tr><td class="k"><span class="mono">portfolio-debt, -gold, -real-estate, -others</span></td><td class="mono">/portfolio/&lt;name&gt;</td><td>Plain links</td><td>app</td><td>Placeholder</td><td>Unchanged</td></tr>
+  </table></div>
+  <h3 class="sub">What a route file needs (additive field)</h3>
+  <div class="scroll"><pre class="mono" style="margin:0;padding:12px 14px">// contract section 5 (v1.1) plus two optional fields
+kind?: "page" | "group";   // group = toggles the sidebar, has no page of its own
+// parentId already exists; the sidebar tree is built from it
+// a group route sets redirectTo (A2) so its URL still resolves</pre></div>
+</section>
+
+<div class="bar" id="filterbar">
+  <button class="chip" id="f-all" aria-pressed="true">All questions</button>
+  <button class="chip" id="f-open" aria-pressed="false">Unanswered</button>
+  <button class="chip" id="f-done" aria-pressed="false">Answered</button>
+  <span class="spacer"></span>
+  <span class="count"><span id="count"></span><span id="savestate" role="status"></span></span>
+</div>
+
+<div id="questions"></div>
+
+<section id="plan">
+  <h2>Implementation plan (one plan for the whole shell)</h2>
+  <p class="lead">Written for a go from you, which has not been given. It covers the sidebar part in detail and refers to the architecture draft for the rest. Efforts are <span class="tag later">estimates</span> in developer-days. The split into PRs depends on D1.</p>
+  <div class="scroll"><table>
+    <tr><th>Step</th><th>What</th><th>Files (under frontend/src/shell/ unless noted)</th><th>Tests</th><th>Effort</th></tr>
+    <tr><td class="k">0</td><td>Answer the cards. Contract, brief and architecture draft edited (A4 yes), not committed. Done on 22 Oct; your review is next.</td><td>three documents in Docs/orchestration</td><td>none</td><td>0.5</td></tr>
+    <tr><td class="k">1</td><td>Add react-router (version per A1). Mount an empty router on an unused path. Build, tests and CI stay green.</td><td>frontend/package.json, lockfile</td><td>existing suites</td><td>0.5</td></tr>
+    <tr><td class="k">2</td><td>Route types with <span class="mono">kind</span>; the registry with <span class="mono">import.meta.glob</span>; one route file per URL-map row, including the new Equity ones.</td><td>registry/types.ts, buildRegistry.ts, routes/*.route.tsx</td><td>contract test: unique ids and paths, every URL-map row has a file, parents exist, groups have a redirect</td><td>1</td></tr>
+    <tr><td class="k">3</td><td>The sidebar: both modes, the Equity group, active rules, greyed rows with tooltip, logo, footer.</td><td>layout/Sidebar.tsx, nav/AppLink.tsx, nav/paths.ts</td><td>MemoryRouter tests per mode, group toggle and auto-open, active row, disabled links</td><td>2</td></tr>
+    <tr><td class="k">4</td><td>Back memory and the scope rule: remember the last non-Portfolio screen in the session; reset to Family Combined on entering Portfolio; restore on leaving (B1).</td><td>nav/modeMemory.ts, scope/useScope.ts</td><td>entry, move inside, leave, single member, refresh</td><td>1</td></tr>
+    <tr><td class="k">5</td><td>Layouts and placeholders: AppLayout, FocusLayout, shared Coming soon page, not-found, top bar frame with its four slots.</td><td>layout/AppLayout.tsx, FocusLayout.tsx, TopBar.tsx, PlaceholderPage.tsx</td><td>layout renders each route kind</td><td>1</td></tr>
+    <tr><td class="k">6</td><td>Run in the dev server and check both modes, light and dark, and a deep link and refresh by hand.</td><td>none</td><td>manual (D3)</td><td>0.5</td></tr>
+    <tr><td class="k">7</td><td>&quot;How to add a page&quot; note; contract v1.2 change log line.</td><td>Docs/orchestration</td><td>none</td><td>0.5</td></tr>
+    <tr><td class="k">Later</td><td>Scope provider move, wrapper files for existing screens, the switch in App.tsx and retiring the old top bar (the architecture draft's steps 4, 6 and 7).</td><td>per the architecture draft, section 10</td><td>port the three existing test files first</td><td>not estimated here</td></tr>
+  </table></div>
+  <p><b>Total for steps 0 to 7:</b> about 7 to 8 developer-days (<span class="tag later">estimate</span>, a plan sum, not measured).</p>
+  <p><b>Must not do:</b> touch mobile, change any existing screen, change the backend, install anything beyond the router, commit or push without your word.</p>
+</section>
+
+<section id="risks">
+  <h2>Risks to keep in view</h2>
+  <ul class="tight">
+    <li><b>The manager plans against an older contract.</b> Nothing is pushed yet, so fixing it now is cheap. After they build against v1.1 it costs a version bump and a rebase (A4, D4).</li>
+    <li><b>FDs &amp; Bonds under Equity.</b> This is your call and I follow it. A user may look for FDs under Debt. The route id carries the name, so moving it later changes the URL.</li>
+    <li><b>The scope rule surprises users.</b> Leaving a member view for Family Combined without notice can confuse someone mid-task. B1 and B2 are there to keep it predictable.</li>
+    <li><b>Router version.</b> v8 needs Node 22.22; CI and the deploy script use Node 20. Using v7 postpones, not removes, an upgrade (A1).</li>
+    <li><b>Placeholders reachable by URL.</b> Disabled links hide them in the sidebar only. The shared Coming soon page covers the rest (C4).</li>
+    <li><b>Duplicate navigation.</b> Equity's children overlap the Investments page's tabs. A page-planning decision, not solved here.</li>
+    <li><b>Moving state out of MainDashboardFlow</b> (later steps) can change member defaults, banners and the import notice. Port the existing tests first.</li>
+  </ul>
+</section>
+
+<section id="verify">
+  <h2>To verify before building</h2>
+  <ul class="tight">
+    <li>Where AWS staging builds the frontend and with which Node (A1).</li>
+    <li>Whether <span class="mono">&lt;Route lazy&gt;</span> works in declarative mode, in case it is simpler than React.lazy.</li>
+    <li>That a MemoryRouter test with a React.lazy page settles cleanly in Vitest (use <span class="mono">findBy</span> queries).</li>
+    <li>Whether a sidebar tint token exists in tokens.css, and its dark value; otherwise one is added.</li>
+    <li>The unreadable item under Mutual Fund in Siddharth's sketch.</li>
+    <li>That the member list still revalidates a session-stored scope after a merge or delete (B4).</li>
+    <li>Whether the Investments tabs and the Equity children should share one source of truth (page planning).</li>
+  </ul>
+</section>
+
+<section id="log">
+  <h2>Conversation log</h2>
+  <p class="lead">What was asked and decided, in order.</p>
+  <div class="scroll"><table>
+    <tr><th>When</th><th>Who</th><th>What</th></tr>
+    <tr><td class="k">Round 1</td><td>You</td><td>Handed over the left sidebar planning with the previous account's handoff. Asked for a brainstorm, then research, then an artifact like the Portfolio Snapshot one. Planning only.</td></tr>
+    <tr><td class="k">Round 1</td><td>Me</td><td>Read the handoff, contract and architecture draft. Asked about the router (O1) and about Mutual Funds versus Equity (O2).</td></tr>
+    <tr><td class="k">Round 2</td><td>You</td><td>Router: react-router v7. Equity should be a dynamic group that expands, not a page; Portfolio opens Investments by default. Shared Siddharth's sketch and the PDF screenshots.</td></tr>
+    <tr><td class="k">Round 2</td><td>Me</td><td>Pointed out the conflict with the PDF text and the contract. Offered three tree options.</td></tr>
+    <tr><td class="k">Round 3</td><td>You</td><td>Equity expands to Direct Stocks, Mutual Funds, US Stocks and FDs &amp; Bonds. New routes under /portfolio/equity. Debt, Gold, Real Estate and Others are plain greyed links.</td></tr>
+    <tr><td class="k">Round 4</td><td>You</td><td>Sidebar look and Back behaviour as recommended. Top bar: only a frame here; the pages are planned separately. PR split parked. Asked me to research and add any other open questions to the artifact.</td></tr>
+    <tr><td class="k">Round 5</td><td>You</td><td>While I was researching: entering Portfolio always lands in Family Combined, whatever Home was on.</td></tr>
+    <tr><td class="k">Round 5</td><td>Me</td><td>Checked the router versions, CI Node version, history usage, icons and test tooling. Found react-router 8.5 exists (needs Node 22.22). Built this workbook with 18 open cards, including four on the scope rule.</td></tr>
+  </table></div>
+</section>
+
+<section id="glossary">
+  <h2>Glossary</h2>
+  <div class="scroll"><table>
+    <tr><th>Term</th><th>Meaning here</th></tr>
+    <tr><td class="k">Shell</td><td>The frame around every page: sidebar, top bar, routing and the family-or-member scope.</td></tr>
+    <tr><td class="k">Route file</td><td>One small file per page that tells the shell its path, label, icon, position and page.</td></tr>
+    <tr><td class="k">Group row</td><td>A sidebar row that opens and closes children and has no page.</td></tr>
+    <tr><td class="k">Scope</td><td>Family Combined or one member. Every page re-scopes to it.</td></tr>
+    <tr><td class="k">Placeholder</td><td>A route whose page is not built. Links to it are greyed out.</td></tr>
+    <tr><td class="k">MemoryRouter</td><td>A router that keeps its location in memory, used to test routed screens without a browser.</td></tr>
+    <tr><td class="k">Declarative mode</td><td>The simplest react-router mode: routes written as components.</td></tr>
+  </table></div>
+</section>
+
+<section id="answers">
+  <h2>Your answers</h2>
+  <p class="lead">This collects every choice and note above. Copy it and paste it into the chat.</p>
+  <div class="row"><button class="btn" id="copy">Copy my answers</button><button class="btn ghost" id="clear">Clear all choices</button><span class="count" id="copied" role="status"></span></div>
+  <div id="out" aria-live="polite"></div>
+</section>
+</main>
+</div>
+<script>
+var LOCKED=[
+ ["N1","Router: react-router, version to confirm","You chose react-router v7. Its latest release, 7.18.4, fits our Node 20 builds. A newer v8.5.0 exists but needs Node 22.22 or later (see A1). (Your answer, 22 Oct.)"],
+ ["N2","Equity is a group that expands","Equity has a small arrow. Clicking it only opens or closes the group; Equity has no page of its own. It holds Direct Stocks, Mutual Funds, US Stocks and FDs &amp; Bonds. This replaces the flat Equity link in the PDF (p9) and the Equity placeholder page in the contract. (Your answers, 22 Oct.)"],
+ ["N3","URLs for the Equity children","Mutual Funds keeps <span class='mono'>/portfolio/mutual-funds</span>. The other three get <span class='mono'>/portfolio/equity/direct-stocks</span>, <span class='mono'>/portfolio/equity/us-stocks</span> and <span class='mono'>/portfolio/equity/fds-bonds</span> (the slug is <span class='mono'>direct-stocks</span> because that is what the committed contract v1.2 already uses; this page first said <span class='mono'>stocks</span>). Each starts greyed out as &quot;Coming soon&quot; (L32) and switches on when its page is built. (Your answer to Q3, 22 Oct.)"],
+ ["N4","Debt, Gold, Real Estate and Others stay plain links","Each is a plain link to its own placeholder page, greyed out until built, with no children for now. (Your answer to Q4, 22 Oct.)"],
+ ["N5","Portfolio opens Investments","Clicking Portfolio in the main menu opens the Investments page and switches the sidebar to Portfolio mode. (Your note, 22 Oct.)"],
+ ["N6","Look follows the mockup","About 224px wide (my estimate), always visible, no collapse button. Wordmark on top, small icon and label rows, a green pill on the active row, a divider above the footer, and a chevron on Equity that turns when open. Light and dark both work (L33). (Your answer to Q5, 22 Oct.)"],
+ ["N7","Back goes to the last non-Portfolio screen","The shell remembers the last screen outside Portfolio for the session and Back returns there. With nothing remembered (a link straight into Portfolio) it goes to Home. (Your answer to Q6, 22 Oct.)"],
+ ["N8","Top bar is only a frame here","The top bar holds the four locked items (search box, Ask Mira, family selector, theme toggle) and no avatar (L31). What each one does is planned with the pages, not in this plan. (Your answer to Q7, 22 Oct.)"],
+ ["N9","Entering Portfolio always lands in Family Combined","Whatever the family or member view was on Home, opening any Portfolio page shows Family Combined. This is a scope rule in the shell's <span class='mono'>useScope()</span>. It raises four follow-up questions (B1 to B4). (Your note, 22 Oct.)"],
+ ["N10","This plan covers the sidebar","The pages and their parts are planned separately. The PR split and who reviews it were parked by you for later (card D1 and D2 hold them). (Your answers, 22 Oct.)"],
+ ["N12","Your answers to the 18 cards, 22 Oct","A1 v7 (^7.18.4). A2 a typed /portfolio/equity redirects to /portfolio/mutual-funds. A3 the Mutual Funds row is highlighted and Equity stays open. A4 contract documents edited to v1.2. A5 Equity opens on child pages and otherwise remembers. B1 reset to Family Combined everywhere (wording to confirm). B2 scope holds inside Portfolio. B3 several-member households only. B4 a refresh keeps the scope for the session. C1 small icons on each child. C2 the logo goes Home. C3 basic semantics only. C4 one shared Coming soon page. C5 Back remembers only live, normal-layout screens. D1 two PRs. D2 both owners review, with CODEOWNERS. D3 Vitest and Testing Library plus one manual check. D4 contract changes allowed any time with a notice."],
+ ["N13","Contract v1.2 was revised, not bumped","Nothing is pushed, so I edited the committed v1.2 in place (contract, architecture draft and brief) and logged it in the contract's change log. No new version number. The documents are changed in the working tree and not committed."],
+ ["N11","PDF text wins over the PDF image","The sidebar mockup images (p3, p9, p10) still draw the old menu (Home, Analytics, Investments, Performance, Scenarios, Profile). The text on those pages and your later answers give the new one, and I follow those. (Your rule L8.)"]
+];
+
+var Q=[
+{g:"A",name:"Sidebar structure and the contract",items:[
+ {id:"A1",t:"Which react-router version?",
+  ask:"Use the 7.x line, or move to 8.5 and raise Node in CI and the deploy script?",
+  ctx:"Our setup today (all verified): the frontend builds on Node 20 in CI (ci.yml line 55) and in the LeapSwitch deploy script (deploy.sh line 29, node:20-alpine). Vite 8.2.0 and the React plugin need Node 20.19 or later, Vitest 4.1.10 accepts Node 20, React is 19.2.8, and the repo has no engines field and no .nvmrc. react-router 7.18.4 (latest 7.x) needs Node 20 or later and React 18 or later, so it fits as is. react-router 8.5.0 (latest) needs Node 22.22 or later and React 19.2.7 or later, so it would change Node in at least those two places, plus wherever AWS staging builds the frontend (not checked). The routing API we use is available in declarative mode in both.",
+  opts:[
+   {k:"a",l:"Use react-router ^7.18.4 (the v7 line)",d:"No change to CI, the deploy script or any image. Fits Vite 8, Vitest 4 and React 19.2.8. The lockfile fixes the exact version. Add the v8 plus Node 22 upgrade to the backlog as its own task."},
+   {k:"b",l:"Use 8.5.0 and raise Node to 22.22 or later wherever the frontend builds",d:"Changes ci.yml, deploy.sh and the AWS build (unchecked); add an engines field or .nvmrc so every build agrees. Separate infrastructure work that is not in the shell estimate."}],
+  rec:"a",
+  why:"It matches your choice and every tool we already pin, and it needs no infrastructure change. Plain routing works the same on 7.18 and 8.5. The upgrade guide says adopting v7's opt-in flags keeps the later move to v8 small.",
+  risk:"v7 will stop getting new features one day, so a v8 plus Node 22 upgrade is owed later. Not checked: where AWS staging builds the frontend and which Node it uses, and whether the 20 tags in CI and deploy.sh resolve to 20.19 or newer (the build passes today, so I expect so)."},
+ {id:"A2",t:"What does /portfolio/equity show if someone types it?",
+  ask:"Equity has no page, but its URL exists as a path. What should happen on that URL?",
+  ctx:"Equity is only a group in the sidebar. A typed or bookmarked /portfolio/equity still has to do something.",
+  opts:[
+   {k:"a",l:"Redirect to /portfolio (Investments)",d:"Sidebar returns to the Investments row; the Equity group is closed."},
+   {k:"b",l:"Redirect to /portfolio/mutual-funds",d:"The only live Equity child."},
+   {k:"c",l:"Show the not-found page",d:"Treat the URL as unknown."}],
+  rec:"a",
+  why:"Investments is the landing page for the whole Portfolio mode, so nobody ends on a surprise page.",
+  risk:"If Equity later gets its own overview page, this redirect has to be replaced."},
+ {id:"A3",t:"Which row is highlighted on Mutual Funds pages?",
+  ask:"Now that Mutual Funds is a child row, which rows light up?",
+  ctx:"The contract says every page under /portfolio/mutual-funds highlights Investments. With the new tree, that rule no longer fits.",
+  opts:[
+   {k:"a",l:"Mutual Funds is highlighted; Equity stays open; Investments is highlighted only on /portfolio itself",d:"One highlighted row at a time, and the group is open so the active row is visible."},
+   {k:"b",l:"Keep the contract rule: Investments stays highlighted on Mutual Funds pages",d:"Mutual Funds row would never light up."}],
+  rec:"a",
+  why:"A highlighted row should be the page the user is on. The contract rule was written before Equity became a tree.",
+  risk:"None for users. The contract text changes (see A4)."},
+ {id:"A4",t:"Update the contract documents before anything is pushed?",
+  ask:"May I edit the contract, the Claude brief and the architecture draft to match your decisions?",
+  ctx:"Nothing is pushed, so the manager still plans against nothing yet. The changes are: Equity becomes a group, three new routes under /portfolio/equity, the highlight rule (A3), the redirect (A2) and the scope rule (N9). Under the contract's own rule 7, changing a path or what a field means needs a version bump and both owners' approval. I will not edit any document without your yes.",
+  opts:[
+   {k:"a",l:"Yes, edit all three to v1.2 after you answer, then you review",d:"The manager gets one consistent set when you push."},
+   {k:"b",l:"Leave the documents; this workbook is the change note",d:"Less editing now; the manager must read two places."},
+   {k:"c",l:"Hold until the PR split is decided (D1)",d:"No edits yet."}],
+  rec:"a",
+  why:"Changing the contract before the manager sees it costs nothing. After they plan against v1.1 it costs a version bump and a rebase.",
+  risk:"If you push the old v1.1 first, the manager plans against the flat Equity link."},
+ {id:"A5",t:"Does Equity remember whether it was open?",
+  ask:"When the user closes Equity and moves around, what state should it have next time?",
+  ctx:"Mutual Funds opens the group automatically, because its row is active.",
+  opts:[
+   {k:"a",l:"Open when a child page is active; otherwise it keeps whatever the user last chose in this session",d:"Predictable and small to build."},
+   {k:"b",l:"Always closed unless a child page is active",d:"Never remembers."},
+   {k:"c",l:"Always open",d:"The arrow does nothing."}],
+  rec:"a",
+  why:"It follows the user's last choice but never hides the active row.",
+  risk:"Small. The remembered choice is lost on refresh unless stored in the session; I plan to store it in the session."}
+]},
+{g:"B",name:"The scope rule: Family Combined on entering Portfolio",items:[
+ {id:"B1",t:"What happens to the scope when the user leaves Portfolio?",
+  ask:"After a visit to Portfolio (where the view is Family Combined), what does Home show?",
+  ctx:"Your rule says entering Portfolio always lands in Family Combined, whatever Home was on. Example: Home is on member Aarohi, the user opens Portfolio and sees Family Combined, then switches to Siddharth and presses Back.",
+  opts:[
+   {k:"a",l:"Restore Home's earlier scope (Aarohi)",d:"Each side keeps its own choice. The shell stores the scope it had when Portfolio was entered."},
+   {k:"b",l:"Keep whatever scope the user ended on (Siddharth)",d:"One shared value that only resets when Portfolio is entered."},
+   {k:"c",l:"Reset to Family Combined everywhere",d:"Every page change shows Family Combined."}],
+  rec:"a",
+  why:"The user sees the same Home they left, and the reset stays one clear rule: it happens only when entering Portfolio.",
+  risk:"Needs one extra remembered value. If you want a single shared scope, pick B."},
+ {id:"B2",t:"Does the scope hold while moving inside Portfolio?",
+  ask:"Inside Portfolio (Investments, Mutual Funds, Holdings and so on), does a member the user picked stay picked?",
+  ctx:"The reset happens when entering from another page. Moving between Portfolio pages is not entering.",
+  opts:[
+   {k:"a",l:"Yes, it stays until the user leaves Portfolio",d:"Reset only on entry."},
+   {k:"b",l:"No, every Portfolio page opens in Family Combined",d:"Resets on every page change."}],
+  rec:"a",
+  why:"Picking a member and then losing it on the next click would feel broken.",
+  risk:"None significant."},
+ {id:"B3",t:"What about households with one member?",
+  ask:"A single-member household starts in member mode today and has no Family Combined option. Does the rule apply?",
+  ctx:"The scope code today picks member mode when there is one member and aggregate mode when there are several (verified in the architecture draft, section 4).",
+  opts:[
+   {k:"a",l:"Only when there are several members; one member stays in member mode",d:"The only view that exists is the one shown."},
+   {k:"b",l:"Show Family Combined for one member too",d:"It would equal that one member's numbers."}],
+  rec:"a",
+  why:"It keeps today's behaviour and never shows a selector choice that does not exist.",
+  risk:"Two paths to test."},
+ {id:"B4",t:"Does a refresh keep the scope?",
+  ask:"If the user refreshes inside Portfolio after picking a member, what do they see?",
+  ctx:"The scope is not in the URL (contract O4). Without extra storage a refresh would reset it.",
+  opts:[
+   {k:"a",l:"Keep it for the session (stored in the browser tab)",d:"Refresh keeps the pick; entering Portfolio from another page still resets it."},
+   {k:"b",l:"A refresh resets to Family Combined",d:"Simple; the pick is lost."}],
+  rec:"a",
+  why:"A refresh should not undo a choice. The same session store already holds the Back destination.",
+  risk:"Stale scope if members change in another tab; the shell revalidates against the member list."}
+]},
+{g:"C",name:"Look and behaviour",items:[
+ {id:"C1",t:"Icons on the Equity children?",
+  ask:"Should Direct Stocks, Mutual Funds, US Stocks and FDs & Bonds have icons?",
+  ctx:"The mockup gives icons to top-level rows only. I checked that 16 icons I proposed exist in the installed lucide-react 0.475.0 (verified). Icons for the four children are not chosen.",
+  opts:[
+   {k:"a",l:"No icons, text only, indented",d:"Clear hierarchy and nothing to design."},
+   {k:"b",l:"Small icons on each child",d:"I would pick them; you approve."}],
+  rec:"a",
+  why:"Indented text under an arrowed parent already shows the tree. It is the quietest look.",
+  risk:"Looks plainer than the top rows."},
+ {id:"C2",t:"Where does the Unifolio logo click go?",
+  ask:"Clicking the wordmark at the top of the sidebar: where?",
+  ctx:"The mockup shows the wordmark only. It exists as a component already (src/components/UnifolioLogo, verified).",
+  opts:[
+   {k:"a",l:"Home, in both modes",d:"From Portfolio mode that also leaves Portfolio."},
+   {k:"b",l:"No click",d:"A static image."}],
+  rec:"a",
+  why:"People expect the logo to go home.",
+  risk:"In Portfolio mode it behaves like Back only when Back's target is Home; the two can differ."},
+ {id:"C3",t:"How much keyboard and screen-reader support?",
+  ask:"Beyond light and dark (L33), do we add basic semantics for the sidebar?",
+  ctx:"L33 says no other accessibility rules. A tree with an arrow is the one place where plain buttons and labels cost almost nothing.",
+  opts:[
+   {k:"a",l:"Basic only: navigation landmark, current page marked, the Equity arrow is a real button with an expanded or collapsed state",d:"Small, mostly free with the right elements."},
+   {k:"b",l:"Nothing beyond default HTML",d:"Follows L33 literally."}],
+  rec:"a",
+  why:"Real buttons and links come with keyboard use for free. It adds no design work.",
+  risk:"None."},
+ {id:"C4",t:"What does a greyed page show if someone types its URL?",
+  ask:"Links to unbuilt pages are disabled, but the URL still exists. What does it show?",
+  ctx:"Every placeholder route renders something because the contract creates a file for each one.",
+  opts:[
+   {k:"a",l:"One shared Coming soon page inside the layout, with the page name and a link to Investments",d:"Same for all placeholders."},
+   {k:"b",l:"A blank page with the page title",d:"Minimal."}],
+  rec:"a",
+  why:"One shared page costs the same as a blank one and explains itself.",
+  risk:"Owners replace it per page, so wording must stay generic."},
+ {id:"C5",t:"Back edge cases",
+  ask:"What should Back do when the remembered screen is the Add data screen or a screen that no longer exists?",
+  ctx:"Add data (/import) has no sidebar. A remembered page could also be a placeholder.",
+  opts:[
+   {k:"a",l:"Remember only screens that use the normal layout and are live; otherwise Home",d:"Back never lands on a dead end."},
+   {k:"b",l:"Remember anything",d:"Back may land on Add data or a Coming soon page."}],
+  rec:"a",
+  why:"Back should always return somewhere useful.",
+  risk:"Back may skip a screen the user remembers visiting."}
+]},
+{g:"D",name:"Delivery and tests (two were parked by you)",items:[
+ {id:"D1",t:"How to split the shell into pull requests",
+  ask:"One PR or two? (Parked by you on 22 Oct; kept as a card so it is not lost.)",
+  ctx:"The risky step is moving the family-or-member logic out of MainDashboardFlow and switching App.tsx. The sidebar itself is new code that does not change what users see until that switch.",
+  opts:[
+   {k:"a",l:"Two PRs: (1) router, registry, sidebar, top bar frame, placeholders, tests, not yet switched on; (2) scope move, wrapper files, App.tsx switch",d:"Manager can add pages after PR 1."},
+   {k:"b",l:"One PR",d:"Simpler to track, bigger to review."}],
+  rec:"a",
+  why:"The part that can break today's screens ships alone and is easier to review.",
+  risk:"For a while the new shell exists but is not on screen."},
+ {id:"D2",t:"Who must review shell changes?",
+  ask:"Require both owners to review anything under frontend/src/shell/? (Parked.)",
+  ctx:"Contract section 9 suggests it as optional.",
+  opts:[
+   {k:"a",l:"Yes, both owners, enforced with a CODEOWNERS file",d:"One small file in the repo."},
+   {k:"b",l:"By agreement only",d:"No file."}],
+  rec:"a",
+  why:"The shell is shared by everyone's pages.",
+  risk:"Slower merges for shell changes."},
+ {id:"D3",t:"Test strategy for the sidebar",
+  ask:"Which tests do we write?",
+  ctx:"Vitest 4.1.10 with jsdom and Testing Library are installed (verified). MemoryRouter is documented as a declarative router, so routed tests need no browser. No end-to-end tool is installed.",
+  opts:[
+   {k:"a",l:"Vitest and Testing Library only, plus one manual check on the dev server",d:"Contract test for the registry; sidebar tests for both modes, the Equity group, active rows, disabled links, Back, and the scope rule."},
+   {k:"b",l:"Add an end-to-end tool such as Playwright",d:"A new dependency and CI setup."}],
+  rec:"a",
+  why:"It needs no new tool, and every rule in this plan can be tested without a browser.",
+  risk:"Layout and visual faults are caught only by the manual check."},
+ {id:"D4",t:"When the contract changes after the manager starts",
+  ask:"How do the manager's branches stay current?",
+  ctx:"The contract says additive changes need a log line and path or meaning changes need both owners and a version bump.",
+  opts:[
+   {k:"a",l:"Freeze the contract at v1.2 until PR 1 merges, then additive changes only",d:"The manager builds on a fixed target."},
+   {k:"b",l:"Allow changes any time with a notice",d:"More flexible, more rebasing."}],
+  rec:"a",
+  why:"Pages are built against paths and ids; changing them under a builder is the costly case.",
+  risk:"A real need to change something before PR 1 lands needs both owners' approval."}
+]}
+];
+
+/* Replies to the notes the product owner typed (22 Oct). Plain text added by Claude, shown under the card; answers are untouched. */
+var REPLIES={
+ A1:"Restructured around our actual setup. Facts: every frontend build runs Node 20 (CI and the LeapSwitch deploy script), and react-router 7.18.4 supports Node 20 and React 18 or later, so it works with no infrastructure change. v8.5 would need Node 22.22 or later in those builds. My recommendation is A (the v7 line), with the v8 plus Node 22 move logged as a later task. Still unchecked: where AWS staging builds the frontend.",
+ A2:"Recorded: a typed /portfolio/equity redirects to /portfolio/mutual-funds, the only live Equity child. Contract section 3 and the URL map now say so. Equity keeps a path only for this redirect.",
+ A4:"Done in the working tree, not committed: contract v1.2 (revised in place), the architecture draft and the Claude brief. A committed v1.2 already existed from an earlier session; I edited it rather than add a new version, since nothing is pushed. One mismatch I fixed here: that contract uses the slug direct-stocks, so this page now does too.",
+ C1:"Recorded. I proposed ChartCandlestick (Direct Stocks), ChartPie (Mutual Fund), Globe (US Stock) and PiggyBank (FDs &amp; Bonds); all four exist in the installed lucide-react. Tell me if you want different ones.",
+ D4:"Recorded as you chose: contract changes can be made any time with a notice and a change-log line. I kept one safeguard from the old rule: a change to a path, id, field meaning or the scope hook also needs the shell reviewers' approval (D2), and the notice must name the affected pages. Say if you want that safeguard dropped.",
+ B1:"<b>Your answer C reads as a conflict with B2.</b> C says every page change shows Family Combined, while B2 says the scope holds while moving inside Portfolio. I wrote the contract as: Family Combined on entering Portfolio and on leaving it, held in between. If you meant a reset on every page change everywhere, B2 would be wrong; tell me. Earlier note: entering Portfolio always lands in Family Combined, whatever view Home was in (decision N9). The rule is clear for entering. These four cards cover what it leaves open: leaving Portfolio (B1), moving inside it (B2), single-member households (B3) and refresh (B4)."
+};
+var KEY="left-panel-plan-v1";
+var state={};
+try{state=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){state={}}
+/* Answers are kept in two places: this browser (instant) and the artifact's own database
+   (survives closing the tab, clearing site data, and opening on another device).
+   Each question carries a timestamp t so the newer edit wins when the two are merged. */
+var dbDoc=null,dbTimer=null,dbSaving=false,dbDirty=false;
+function setSaveState(m){var el=document.getElementById("savestate");if(el)el.textContent=m?" · "+m:""}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+function touch(id){state[id]=state[id]||{};state[id].t=Date.now();return state[id]}
+function save(){saveLocal();scheduleDb()}
+function scheduleDb(){if(!dbDoc)return;dbDirty=true;clearTimeout(dbTimer);dbTimer=setTimeout(flushDb,600)}
+function flushDb(){
+  if(dbSaving){dbTimer=setTimeout(flushDb,300);return}
+  if(!dbDirty||!dbDoc)return;
+  dbDirty=false;dbSaving=true;setSaveState("saving");
+  dbDoc.set({state:JSON.parse(JSON.stringify(state)),updatedAt:new Date().toISOString()}).then(function(){
+    dbSaving=false;setSaveState("saved");
+  },function(){
+    dbSaving=false;dbDirty=true;setSaveState("not saved to cloud, kept in this browser");
+  });
+}
+function mergeIn(remote){
+  var changed=false;
+  Object.keys(remote||{}).forEach(function(k){
+    var r=remote[k]||{},l=state[k];
+    if(!l||(r.t||0)>(l.t||0)){state[k]=r;changed=true}
+  });
+  return changed;
+}
+function localNewer(remote){
+  return Object.keys(state).some(function(k){return !remote[k]||(state[k].t||0)>(remote[k].t||0)});
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+var ll=document.getElementById("lockedList");
+LOCKED.forEach(function(x){
+  var d=document.createElement("div");d.className="card locked";
+  d.innerHTML='<header><span class="id">'+x[0]+'</span><h3>'+x[1]+'</h3><span class="tag locked">decided by you</span></header><p class="decided">'+x[2]+'</p>';
+  ll.appendChild(d);
+});
+
+var qroot=document.getElementById("questions");
+var total=0;
+Q.forEach(function(grp){
+  var sec=document.createElement("section");sec.id="grp-"+grp.g;
+  sec.innerHTML='<h2>'+grp.g+'. '+esc(grp.name)+'</h2>';
+  grp.items.forEach(function(it){
+    total++;
+    var card=document.createElement("article");card.className="card";card.id="q-"+it.id;card.setAttribute("data-id",it.id);
+    var h='<header><span class="id">'+it.id+'</span><h3>'+esc(it.t)+'</h3><span class="tag open" data-status>unanswered</span></header>';
+    h+='<p class="ask">'+esc(it.ask)+'</p><p class="ctx">'+esc(it.ctx)+'</p><div class="opts" role="radiogroup" aria-label="'+esc(it.t)+'">';
+    it.opts.forEach(function(o){
+      var isr=o.k===it.rec;
+      h+='<label class="opt'+(isr?' isrec':'')+'"><input type="radio" name="r-'+it.id+'" value="'+o.k+'"><span><b>'+o.k.toUpperCase()+'. '+esc(o.l)+(isr?' <span class="tag rec">recommended</span>':'')+'</b><span class="d">'+esc(o.d)+'</span></span></label>';
+    });
+    h+='</div><div class="why"><b>Why I recommend '+it.rec.toUpperCase()+':</b> '+esc(it.why)+'</div><p class="risk"><b>If this goes wrong:</b> '+esc(it.risk)+'</p>'+(REPLIES[it.id]?'<div class="reply"><b class="t">Reply to your note:</b> '+REPLIES[it.id]+'</div>':'');
+    h+='<div class="row"><button class="btn ghost" data-use>Use recommended ('+it.rec.toUpperCase()+')</button><button class="btn ghost" data-reset>Reset</button></div>';
+    h+='<label for="n-'+it.id+'" class="count" style="display:block;margin-top:10px">Your own answer or notes</label><textarea id="n-'+it.id+'" placeholder="Optional. Write your own option here."></textarea>';
+    card.innerHTML=h;sec.appendChild(card);
+  });
+  qroot.appendChild(sec);
+});
+
+function cardOf(id){return document.getElementById("q-"+id)}
+function refresh(){
+  var done=0;
+  Q.forEach(function(g){g.items.forEach(function(it){
+    var c=cardOf(it.id),s=state[it.id]||{},ans=!!(s.c||(s.n&&s.n.trim()));
+    if(ans)done++;
+    var tag=c.querySelector("[data-status]");
+    tag.textContent=ans?"answered":"unanswered";tag.className="tag "+(ans?"done":"open");
+    c.setAttribute("data-answered",ans?"1":"0");
+    var radios=c.querySelectorAll("input[type=radio]");
+    radios.forEach(function(r){r.checked=(s.c===r.value)});
+    var ta=c.querySelector("textarea");if(ta&&ta.value!==(s.n||""))ta.value=s.n||"";
+  })});
+  document.getElementById("count").textContent=done+" of "+total+" answered";
+  applyFilter();buildOut();
+}
+var filter="all";
+function applyFilter(){
+  document.querySelectorAll("article.card").forEach(function(c){
+    var a=c.getAttribute("data-answered")==="1";
+    var hide=(filter==="open"&&a)||(filter==="done"&&!a);
+    c.classList.toggle("hidden-by-filter",hide);
+  });
+  ["all","open","done"].forEach(function(f){document.getElementById("f-"+f).setAttribute("aria-pressed",String(filter===f))});
+}
+["all","open","done"].forEach(function(f){document.getElementById("f-"+f).addEventListener("click",function(){filter=f;applyFilter()})});
+
+qroot.addEventListener("change",function(e){
+  var c=e.target.closest("article.card");if(!c)return;var id=c.getAttribute("data-id");
+  if(e.target.type==="radio"){touch(id).c=e.target.value;save();refresh()}
+});
+qroot.addEventListener("input",function(e){
+  if(e.target.tagName!=="TEXTAREA")return;
+  var c=e.target.closest("article.card");var id=c.getAttribute("data-id");
+  touch(id).n=e.target.value;save();
+  var s=state[id],ans=!!(s.c||(s.n&&s.n.trim()));
+  var tag=c.querySelector("[data-status]");tag.textContent=ans?"answered":"unanswered";tag.className="tag "+(ans?"done":"open");
+  c.setAttribute("data-answered",ans?"1":"0");
+  var n=document.querySelectorAll('article.card[data-answered="1"]').length;
+  document.getElementById("count").textContent=n+" of "+total+" answered";buildOut();
+});
+qroot.addEventListener("click",function(e){
+  var c=e.target.closest("article.card");if(!c)return;var id=c.getAttribute("data-id");
+  var it=null;Q.forEach(function(g){g.items.forEach(function(x){if(x.id===id)it=x})});
+  if(e.target.hasAttribute("data-use")){touch(id).c=it.rec;save();refresh()}
+  if(e.target.hasAttribute("data-reset")){state[id]={t:Date.now()};save();refresh()}
+});
+
+function buildOut(){
+  var lines=["Left Panel Plan (answers to the planning workbook)",""];
+  Q.forEach(function(g){g.items.forEach(function(it){
+    var s=state[it.id]||{},txt;
+    if(s.c){var o=it.opts.filter(function(x){return x.k===s.c})[0];txt=s.c.toUpperCase()+" - "+o.l+(s.c===it.rec?" (recommended)":"")}
+    else txt="no choice";
+    if(s.n&&s.n.trim())txt+=" | note: "+s.n.trim();
+    lines.push(it.id+" "+it.t+": "+txt);
+  })});
+  document.getElementById("out").textContent=lines.join("\n");
+}
+document.getElementById("copy").addEventListener("click",function(){
+  var t=document.getElementById("out").textContent,m=document.getElementById("copied");
+  function sel(){var r=document.createRange();r.selectNodeContents(document.getElementById("out"));var s=window.getSelection();s.removeAllRanges();s.addRange(r);m.textContent="Select and copy the text below."}
+  try{navigator.clipboard.writeText(t).then(function(){m.textContent="Copied."},sel)}catch(e){sel()}
+});
+document.getElementById("clear").addEventListener("click",function(){
+  var t=Date.now();Q.forEach(function(g){g.items.forEach(function(it){state[it.id]={t:t}})});save();refresh();
+});
+refresh();
+
+/* Connect the database once the viewer answers; the page works without it. */
+(function(){
+  if(!(window.claude&&window.claude.use))return;
+  window.claude.use("db").then(function(db){
+    if(!db){setSaveState("saved in this browser only");return}
+    dbDoc=db.doc("answers/main");
+    return dbDoc.get().then(function(snap){
+      var remote=(snap.exists&&snap.data()&&snap.data().state)||{};
+      if(mergeIn(remote)){saveLocal();refresh()}
+      if(!snap.exists||localNewer(remote))scheduleDb();else setSaveState("saved");
+      dbDoc.onSnapshot(function(s){
+        if(!s.exists||s.metadata.hasPendingWrites)return;
+        var r=(s.data()||{}).state||{};
+        if(mergeIn(r)){saveLocal();refresh()}
+      },function(){});
+    });
+  }).catch(function(){setSaveState("saved in this browser only")});
+})();
+</script>

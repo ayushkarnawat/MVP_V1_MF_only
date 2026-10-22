@@ -71,17 +71,17 @@ frontend/src/shell/
   ShellRoot.tsx                mounts router + providers, replaces DashboardPlaceholder
   registry/
     types.ts                   the ShellRoute type (contract section 5)
-    buildRegistry.ts           import.meta.glob + sorting + validation
+    buildRegistry.ts           import.meta.glob + sorting + validation (group nodes have no page, only a redirect path; every child names its group as parent)
     registry.test.ts           the contract test
   routes/                      ONE FILE PER PAGE (the only folder page owners touch)
     home.route.tsx
     portfolio.route.tsx
-    portfolio-equity.route.tsx   (group node: kind "group", no path, no page; children are separate route files)
+    portfolio-equity.route.tsx   (group node: kind "group", path /portfolio/equity only to redirect to /portfolio/mutual-funds, no page; children are separate route files)
     ...                        (one per row of the URL map)
   layout/
     AppLayout.tsx              sidebar + top bar + banners + <Outlet />
     FocusLayout.tsx            no sidebar (import)
-    Sidebar.tsx                renders main or Portfolio mode from the registry
+    Sidebar.tsx                renders main or Portfolio mode from the registry; renders group nodes (Equity) as an expand/collapse row with indented children
     TopBar.tsx                 search, Ask Mira, family selector, theme toggle
     PageLayout.tsx             standard page header (title, subtitle, actions, tabs)
     PageState.tsx              loading, empty, error
@@ -99,7 +99,7 @@ frontend/src/shell/
 
 ### 3.2 The router
 
-- **Library:** a mainstream React router (react-router), in declarative mode: a browser router, `Routes`/`Route`, `Outlet`, `NavLink`, `useNavigate`, `useLocation`. It is the one new dependency (decision F2, confirmation O1). **react-router v7** (owner decision O1, 22 Oct); declarative mode is still supported in v7, so the API listed here applies, to be re-verified at install time.
+- **Library:** a mainstream React router (react-router), in declarative mode: a browser router, `Routes`/`Route`, `Outlet`, `NavLink`, `useNavigate`, `useLocation`. It is the one new dependency (decision F2, confirmation O1). **react-router `^7.18.4`** (owner decision O1 and A1, 22 Oct). Checked: 7.18.4 needs Node 20 or later and React 18 or later, which fits our Node 20 builds in CI and `deploy.sh`; v8.5 needs Node 22.22, so a v8 upgrade is a later task. Declarative mode lists BrowserRouter, MemoryRouter, Routes, Route, NavLink, Outlet, useNavigate and useLocation. Route-level `lazy` is not documented for declarative mode, so each route file loads its page with `React.lazy` and `Suspense`.
 - **URL style:** real paths (`/portfolio/mutual-funds`), not hash routes. Hosting already falls back to `index.html` (section 2).
 - **Code splitting:** each route's component is a dynamic import, wrapped in `Suspense` with `PageState` loading. Only the registry metadata is loaded eagerly.
 - **Redirects:** `/` goes to `/home`; `/planning` goes to `/planning/scenarios`; unknown paths go to the shell's not-found page.
@@ -146,7 +146,8 @@ Today's logic moves, unchanged in behaviour, from `MainDashboardFlow` into `Scop
 - `handleMemberSelect` becomes `setMember(id)`; the "Family Combined" choice becomes `setAggregate()`.
 - `refreshMembers()` after a rename, merge or import, plus `invalidateApiCache()` where `MainDashboardFlow` calls it today.
 - The raw member (profile completion, PAN conflict) is exposed as `selectedMember` so the banners can render. The banners and `CompleteProfileDialog` move into `MemberBanners`, shown for single-member scope on every page except Profile, as today.
-- The scope is **not** in the URL (O4). It is held in the provider and remembered for the session.
+- The scope is **not** in the URL (O4). It is held in the provider and kept for the browser-tab session, so a refresh keeps it.
+- **Portfolio scope rule (owner, 22 Oct):** opening any Portfolio page from outside Portfolio shows Family Combined, whatever view Home was in. It holds while moving between Portfolio pages, and leaving Portfolio resets to Family Combined too. It applies to households with several members; one member stays in member mode. Detection: compare the previous and next path's mode (inside or outside `/portfolio`) in the provider.
 
 ## 5. How the existing screens connect without being changed (decision L38)
 
@@ -197,11 +198,11 @@ Each existing screen gets a thin wrapper route file that reads the scope and ren
 - A desktop window narrowed below 768 px switches to the mobile tree as it does today; widening it again returns to the shell at the same URL.
 - Route files carry no mobile fields.
 
-## 10. Build sequence inside the one shell PR (each step testable alone)
+## 10. Build sequence (two PRs, owner answer D1: steps 1 to 3, 5 and 8 are PR 1, not yet switched on; steps 4, 6 and 7 are PR 2; each step testable alone)
 
 1. Add the dependency; mount an empty router behind an unused path; confirm nothing changes.
 2. Registry, placeholder route files for every URL-map row, and the contract test.
-3. `AppLayout`, `FocusLayout`, `Sidebar`, `TopBar`, `PageLayout`, `PageState`.
+3. `AppLayout`, `FocusLayout`, `Sidebar` (including the expandable Equity group and its remembered open state), `TopBar`, `PageLayout`, `PageState`.
 4. `ScopeProvider` and `MemberBanners` (moved logic), with tests for default mode, switching and refresh.
 5. `paths`, `AppLink` (including disabled links), `useImport`, `MiraComingSoonDialog`, `renderInShell`.
 6. The wrapper route files for the existing screens, with tests for deep link, refresh, back and forward.
@@ -213,11 +214,12 @@ Each existing screen gets a thin wrapper route file that reads the scope and ren
 | Risk | Mitigation |
 |---|---|
 | Moving state out of `MainDashboardFlow` changes behaviour (member defaults, banners, import notice) | Move logic without rewriting it; port the existing `MainDashboardFlow` tests first; manual check against the old behaviour on staging |
-| A route file breaks the whole menu | Contract test and startup validation fail loudly |
+| A route file breaks the whole menu | Contract test and startup validation fail loudly; the test also checks that a group node has children and no page, and that `/portfolio/equity` only redirects to `/portfolio/mutual-funds` |
+| react-router v7 API differs from the declarative-mode API assumed here | Verify the installed version before step 1 and adjust this document; the scope-rule tests use `MemoryRouter` |
 | Router captures `/print/analytics` or legal pages | They bypass `App` in `main.tsx` before the router exists; add a test |
 | Real URLs break on a server without fallback | Verified for Caddy and CloudFront; add a note to the deploy guides |
 | The shell and a page PR collide | Pages touch only their route file and feature folder; shell changes are their own PR |
 
 ## 12. Open items (from the contract, section 10)
 
-All answered 22 Oct (see contract section 10): O1 react-router v7; O2 Equity is an expandable group with four children, no page of its own; O4 no scope in the URL; O5 no Planning sub-menu; O6 Liabilities placeholder (assumed); O9 last non-Portfolio screen; O10 later; O11 placeholder. Still to confirm: where "FDs & bonds" sits (listed under Equity), and that "Mutual Fund and US Stock" is two items. Closed earlier: O3, O7, O8 (mobile out of scope) and O12 (existing screens are wired by wrapper files only, decision L38).
+All answered 22 Oct (see contract section 10): O1 react-router v7; O2 Equity is an expandable group with four children, no page of its own; O4 no scope in the URL; O5 no Planning sub-menu; O6 Liabilities placeholder (assumed); O9 last non-Portfolio screen; O10 later; O11 placeholder. Confirmed in the Left Panel Plan (22 Oct): FDs & bonds sits under Equity; Equity opens on child pages and otherwise remembers its state; `/portfolio/equity` redirects to `/portfolio/mutual-funds`; the Portfolio scope rule. Still to confirm: the wording of the "leaving Portfolio" reset, and the `direct-stocks` slug. Closed earlier: O3, O7, O8 (mobile out of scope) and O12 (existing screens are wired by wrapper files only, decision L38).

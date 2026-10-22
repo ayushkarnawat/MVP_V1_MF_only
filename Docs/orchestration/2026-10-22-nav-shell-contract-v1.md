@@ -43,7 +43,8 @@ Level 3  In-page menus         belong to the page (for example the Mutual Funds 
 - **Main mode** is shown on every route except those under `/portfolio`; **Portfolio mode** on every route under `/portfolio`, with a **Back** row on top.
 - **Back (O9):** the last non-Portfolio screen the user was on; default `/home`. Remembered for the session.
 - **Portfolio entry:** clicking Portfolio in the main sidebar opens `/portfolio`, the Investments page, and switches to Portfolio mode.
-- **Equity group:** Equity has a small expand arrow. Clicking it (or the label) expands or collapses the list; it never navigates, because Equity is not a page. Its children are real routes. The group opens by itself when the current path is one of its children and its expanded state is remembered for the session.
+- **Scope rule (v1.2, revised after the Left Panel Plan answers):** opening any Portfolio page from outside Portfolio always shows **Family Combined**, whatever view Home was in. Moving between Portfolio pages keeps the choice. Leaving Portfolio resets to Family Combined as well. The rule applies to households with several members; a single member stays in member mode as today. The scope is kept for the browser-tab session, so a refresh inside Portfolio keeps it. The rule lives in `useScope()`.
+- **Equity group:** Equity has a small expand arrow. Clicking it (or the label) expands or collapses the list; it never navigates, because Equity is not a page. Its children are real routes. The group opens by itself when the current path is one of its children; otherwise it keeps whatever the user last chose, remembered for the session. A typed `/portfolio/equity` redirects to `/portfolio/mutual-funds`.
 - **Active item:** the path equals the item's path or starts with it plus `/`. Investments is active only on `/portfolio` itself. Everything under `/portfolio/mutual-funds` highlights **Equity > Mutual Fund**, and the Equity group shows as active whenever one of its children is.
 - The footer (Profile, Help & Support) is the same in both modes. No collapsed sidebar in v1.
 
@@ -57,8 +58,8 @@ Level 3  In-page menus         belong to the page (for example the Mutual Funds 
 | footer | 2 | Help & Support | `/help` | `CircleHelp` |
 | portfolio | 0 | Back | last non-Portfolio screen | `ArrowLeft` |
 | portfolio | 1 | Investments | `/portfolio` | `LayoutGrid` |
-| portfolio | 2 | Equity (expandable group, no page) | none | `TrendingUp` |
-| portfolio, child of Equity | 2.1-2.4 | Direct Stocks, Mutual Fund, US Stock, FDs & bonds | `/portfolio/equity/direct-stocks`, `/portfolio/mutual-funds`, `/portfolio/equity/us-stocks`, `/portfolio/equity/fds-bonds` | child icons optional (no icon proposed) |
+| portfolio | 2 | Equity (expandable group, no page) | `/portfolio/equity` redirects to `/portfolio/mutual-funds` | `TrendingUp` |
+| portfolio, child of Equity | 2.1-2.4 | Direct Stocks, Mutual Fund, US Stock, FDs & bonds | `/portfolio/equity/direct-stocks`, `/portfolio/mutual-funds`, `/portfolio/equity/us-stocks`, `/portfolio/equity/fds-bonds` | `ChartCandlestick`, `ChartPie`, `Globe`, `PiggyBank` (proposed; all four exist in lucide-react 0.475.0, checked 22 Oct) |
 | portfolio | 3-6 | Debt, Gold, Real Estate, Others | `/portfolio/debt`, `/gold`, `/real-estate`, `/others` | `Landmark`, `Coins`, `Building2`, `Shapes` |
 
 **Top bar:** a search box, Ask Mira, the family selector, the theme toggle. **No avatar** (decision L31); Profile is in the sidebar footer. Search (decision L39) is one box with a dropdown of three groups: Your funds, All funds, Ask Mira. In the shell's first version the box opens the shared "Mira, coming soon" popup; the real search (a new `GET /funds/search` endpoint plus the dropdown) is a follow-up PR whose owner is to be agreed. Its behaviour is specified in the Portfolio Snapshot workbook (G2 reply).
@@ -72,7 +73,7 @@ All paths are final for v1.2. A placeholder ("Coming soon") exists at every path
 | `root` | `/` | none | n/a | redirect to `/home` | n/a |
 | `home` | `/home` | main 1 | app | Portfolio Snapshot (Aditi) | none (placeholder until built) |
 | `portfolio` | `/portfolio` | main 2; "Investments" in Portfolio mode | app | Portfolio phase | none |
-| `portfolio-equity` | none (group node only; no path, no page) | Portfolio mode 2 (expandable group) | n/a | shell | n/a |
+| `portfolio-equity` | `/portfolio/equity` (group node, `kind: "group"`; no page, `redirectTo: /portfolio/mutual-funds`) | Portfolio mode 2 (expandable group) | app | shell | n/a |
 | `portfolio-equity-direct-stocks`, `portfolio-equity-us-stocks`, `portfolio-equity-fds-bonds` | `/portfolio/equity/<direct-stocks\|us-stocks\|fds-bonds>` | child of Equity | app | placeholders | none |
 | `portfolio-debt`, `-gold`, `-real-estate`, `-others` | `/portfolio/<debt\|gold\|real-estate\|others>` | Portfolio mode 3-6 | app | placeholders | none |
 | `portfolio-mutual-funds` | `/portfolio/mutual-funds` | child of Equity ("Mutual Fund"); also linked from the Investments page | app | Portfolio phase | **Dashboard** (`DashboardView`) |
@@ -92,7 +93,7 @@ All paths are final for v1.2. A placeholder ("Coming soon") exists at every path
 
 - The Mutual Funds in-page menu (Overview, Performance, Allocation, Holdings, Transactions, Overlap, Other Analytics) is built by that page's owner; its paths are fixed here so they can be linked.
 - **Profile sections** are reserved as `/profile/:section` (personal, family, connected-accounts, notifications, preferences, security, subscription, tax, data-privacy) for when Profile is redesigned. In v1 `/profile` is the existing screen.
-- **Instrument routes (O2, v1.2):** the Equity children are routes in their own right (Mutual Fund keeps `/portfolio/mutual-funds` so existing mappings do not move). Equity itself has no path: `/portfolio/equity` is not a route and shows the not-found page. The Investments page may still show instrument shortcuts, linking through `paths`.
+- **Instrument routes (O2, v1.2):** the Equity children are routes in their own right (Mutual Fund keeps `/portfolio/mutual-funds` so existing mappings do not move). Equity itself has no page: a typed or bookmarked `/portfolio/equity` redirects to `/portfolio/mutual-funds`. The Investments page may still show instrument shortcuts, linking through `paths`.
 - **Legacy mapping:** `dashboard` is `/portfolio/mutual-funds`; `history` is `/portfolio/mutual-funds/history`; `analytics` is `/portfolio/mutual-funds/analytics`; `scenarios` is `/planning/scenarios`; `profile` is `/profile`.
 
 ## 5. The route module
@@ -102,7 +103,7 @@ All paths are final for v1.2. A placeholder ("Coming soon") exists at every path
 ```ts
 export interface ShellRoute {
   id: string;                          // unique, kebab-case; equals the file name stem
-  path?: string;                       // from the URL map; absent only on a group node (Equity)
+  path?: string;                       // from the URL map; a group node (Equity) has one only so a typed URL redirects (redirectTo)
   kind?: "page" | "group";             // "group" = expandable menu node, no page (default "page")
   label: string;
   modeLabel?: string;                  // label in Portfolio mode (e.g. "Investments" for "Portfolio")
@@ -125,7 +126,7 @@ export interface ShellRoute {
 
 ## 6. What the shell gives every page
 
-1. **`useScope()`**: `{ viewMode: "aggregate" | "member"; memberId; members; selectedMember?; scopeKey; setMember(id); setAggregate(); refreshMembers() }`. Defaults keep today's rule.
+1. **`useScope()`**: `{ viewMode: "aggregate" | "member"; memberId; members; selectedMember?; scopeKey; setMember(id); setAggregate(); refreshMembers() }`. Defaults keep today's rule. It also applies the Portfolio scope rule (section 3): Family Combined on entering and on leaving Portfolio, kept while moving inside it, and kept across a refresh for the session.
 2. **`<PageLayout title subtitle actions tabs? />`**: the standard page header and content area.
 3. **`paths`**: typed link builders; pages must link through them, never hard-coded strings.
 4. **`<AppLink>` and `useAppNavigate()`**, including disabled links.
@@ -142,8 +143,8 @@ export interface ShellRoute {
 - **Landing (decision L35):** after login, authentication then `/home`. After sign-up: authentication, onboarding, CAS upload, then `/home`.
 - Member banners (PAN conflict, profile nudge) appear above page content for a single selected member on `family-or-member` pages, except Profile, as today.
 - **Page owners** may add or replace their own route files and their own feature folders. They may not edit anything else under `frontend/src/shell/`. A shell change is its own small PR labelled `shell-contract`.
-- **Changing the contract:** additive changes (a new optional field or helper) are allowed with a change-log line. Anything that changes a path, id, field meaning or the scope hook's shape needs both owners' approval and a version bump (v2). Every page plan states the version it assumes.
-- **Change log:** v1 (2026-10-22): first version. v1.1 (2026-10-22): mobile out of scope, no avatar, route status, wrapper files, three-group search, landing flow. v1.2 (2026-10-22): Equity becomes an expandable group with four children, `kind: "group"` and optional `path` added to the route module, `/portfolio/equity` removed, react-router v7 confirmed, open decisions answered.
+- **Changing the contract:** changes may be made at any time with a notice to both owners and a change-log line (owner's answer D4, 22 Oct). Every page plan states the version it assumes. A change to a path, id, field meaning or the scope hook's shape also needs the shell reviewers' approval under section 9, and the notice must say which pages it affects.
+- **Change log:** v1 (2026-10-22): first version. v1.1 (2026-10-22): mobile out of scope, no avatar, route status, wrapper files, three-group search, landing flow. v1.2 (2026-10-22): Equity becomes an expandable group with four children, `kind: "group"` and optional `path` added to the route module, `/portfolio/equity` removed, react-router v7 confirmed, open decisions answered. v1.2 revised (2026-10-22, before anything was pushed, after the Left Panel Plan answers): `/portfolio/equity` is a redirect to `/portfolio/mutual-funds`; child icons added; Portfolio scope rule; router pinned to `^7.18.4`; two-PR delivery and CODEOWNERS review; contract changes allowed with a notice.
 
 ## 8. Template for every page plan
 
@@ -162,12 +163,14 @@ export interface ShellRoute {
 
 ## 9. Branches and PRs
 
-PR 1 `feat/shell-nav` merges first into `feat/leapswitch-staging` (small; both owners review). Then, branched from updated staging: `feat/home-snapshot` and `feat/portfolio-<page>` for each page; each touches only its own route file and feature folder. A page may start stacked on `feat/shell-nav` before it merges, then retarget. Optional: require both owners to review any change under `frontend/src/shell/`.
+The shell is delivered in two PRs (owner's answer D1, 22 Oct). **PR 1** `feat/shell-nav`: router, registry, sidebar, top bar frame, placeholders and tests, not yet switched on. **PR 2**: the scope move, the wrapper files for existing screens and the `App.tsx` switch. Every change under `frontend/src/shell/` needs review by both owners, enforced with a `CODEOWNERS` file (D2). PR 1 merges first into `feat/leapswitch-staging`. Then, branched from updated staging: `feat/home-snapshot` and `feat/portfolio-<page>` for each page; each touches only its own route file and feature folder. A page may start stacked on `feat/shell-nav` before it merges, then retarget.
 
 ## 10. Decisions on the open questions (answered 22 Oct)
 
-O1 router: **react-router v7** (one new dependency). O2 portfolio menu: **Equity is an expandable group, not a page**; children Direct Stocks, Mutual Fund, US Stock, FDs & bonds; Portfolio opens Investments. O4 scope in the URL: **no**; shell state, remembered per session; only `/import` carries `?member=`. O5 Planning sub-menu: **none**. O6 Liabilities: **a placeholder page "Liabilities"** (assumed placeholder; confirm if it is to be built now). O9 Back: **the last non-Portfolio screen** (default `/home`). O10 Profile sections as routes: **later, not in v1**. O11 Help & Support: **placeholder for now**.
+O1 router: **react-router v7, `^7.18.4`** (one new dependency; v8.5 needs Node 22.22 and our CI and deploy script use Node 20; a v8 and Node 22 upgrade is a later task). O2 portfolio menu: **Equity is an expandable group, not a page**; children Direct Stocks, Mutual Fund, US Stock, FDs & bonds; Portfolio opens Investments. O4 scope in the URL: **no**; shell state, remembered per session; only `/import` carries `?member=`. O5 Planning sub-menu: **none**. O6 Liabilities: **a placeholder page "Liabilities"** (assumed placeholder; confirm if it is to be built now). O9 Back: **the last non-Portfolio screen** (default `/home`). O10 Profile sections as routes: **later, not in v1**. O11 Help & Support: **placeholder for now**.
 
-**Still to confirm (assumed in this version):** (a) "FDs & bonds" sits under Equity exactly as the owner listed it, though it reads like Debt; moving it under Debt would be a one-row change. (b) "Mutual Fund and US Stock" is read as two items. (c) Only Equity has children; Debt, Gold, Real Estate and Others are single pages. (d) Direct Stocks, US Stock and FDs & bonds are placeholders with the paths shown in section 4.
+**Confirmed by the owner (Left Panel Plan, 22 Oct):** FDs & bonds sits under Equity as listed; Debt, Gold, Real Estate and Others are plain greyed links with no children; Equity opens on child pages and otherwise remembers its last state; a typed `/portfolio/equity` redirects to `/portfolio/mutual-funds`; the Portfolio scope rule above; a shared Coming soon page for greyed URLs; the logo goes to `/home`; basic keyboard and screen-reader semantics only; Back remembers only live screens with the normal layout, otherwise `/home`.
+
+**Still to confirm:** (a) the exact wording of the "leaving Portfolio" scope reset (answer B1 reads "reset to Family Combined everywhere"; section 3 applies it on entering and leaving Portfolio and holds it inside). (b) The slug `direct-stocks` for the Direct Stocks child (an earlier workbook used `stocks`).
 
 **Closed earlier:** O3 (`/mobile` handling: mobile untouched), O7 (mobile bar: out of scope), O8 (collapsible sidebar: not in v1), O12 (existing screens: wrapper files only, decision L38).
