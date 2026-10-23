@@ -259,6 +259,7 @@ Design Schema work — that level of detail isn't specified here.
 - [ ] Should the family aggregate view be the default landing screen, or does it land on
       the primary user's own holdings with family as a switch? Functional decision, not a
       visual one — affects FR-9's default state — Owner: Ayush
+      > Resolved 2026-10-23: the landing screen is Home, in family-combined view. The Dashboard is a Portfolio page and keeps its own default state.
 
       family aggregate view be the default landing screen
 
@@ -278,3 +279,4 @@ Design Schema work — that level of detail isn't specified here.
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-07-22 | Claude (PM partner) | Initial draft |
+| 1.1 | 2026-10-23 | Claude (for the owner) | The first screen after sign-in is now **Home** (see `Docs/orchestration/2026-10-23-home-prd.md`), opening in the family-combined view. This Dashboard moves unchanged to Portfolio > Equity > Mutual Fund (`/portfolio/mutual-funds`). FR-9's default state (family aggregate versus the primary user) is answered by Home's scope rule: Family Combined on every page change. The Dashboard's calculations, tabs and behaviour are not changed by this note. |

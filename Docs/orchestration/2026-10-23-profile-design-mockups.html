@@ -1,0 +1,1138 @@
+<title>Profile Design Mockups</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky contents rail + one reading column of decision cards; planning workbook, not a landing page. */
+:root{
+  --bg:#f6f8f6; --surface:#ffffff; --surface-2:#eef2ee; --line:#d9e0d9;
+  --fg:#16211a; --muted:#566259; --accent:#128a4a; --accent-soft:#e1f3e8;
+  --locked:#2f5fb3; --locked-soft:#e6eefb; --open:#a8610a; --open-soft:#fbefd9;
+  --rec:#128a4a; --danger:#b3321f;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'DM Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'DM Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent)}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent)}
+nav.toc .grp{margin-top:14px}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:68ch;margin:0 0 10px}
+.rule{margin-top:18px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 16px;max-width:75ch}
+.rule b{color:var(--accent)}
+section{margin-top:52px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:72ch}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700;white-space:nowrap}
+.tag{display:inline-block;font:500 11px var(--f-mono);padding:2px 8px;border-radius:99px;letter-spacing:.03em}
+.tag.locked{background:var(--locked-soft);color:var(--locked)}
+.tag.open{background:var(--open-soft);color:var(--open)}
+.tag.done{background:var(--accent-soft);color:var(--accent)}
+.tag.rec{background:var(--accent-soft);color:var(--rec)}
+.tag.no{background:var(--surface-2);color:var(--danger);border:1px solid var(--danger)}
+.reply{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px}
+.reply b.t{color:var(--accent)}
+.reply ul,.reply ol{margin:6px 0;padding-left:20px}
+.reply li{margin:3px 0}
+.tag.later{background:var(--open-soft);color:var(--open)}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul{margin:6px 0;padding-left:20px}
+.sumbox li{margin:5px 0}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:10px 0}
+.two>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.two h4{margin:0 0 6px;font-family:var(--f-display);font-size:15px}
+.two ul{margin:4px 0;padding-left:18px}
+.two li{margin:4px 0}
+.two .pro h4{color:var(--rec)}
+.two .con h4{color:var(--danger)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}
+.chip{font:500 12px var(--f-mono);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:6px 12px;border-radius:99px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.spacer{flex:1}
+.count{font:500 12px var(--f-mono);color:var(--muted)}
+.btn{font:500 13px var(--f-body);background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+:root[data-theme="dark"] .btn{color:#06210f}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn{color:#06210f}}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:70px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:500 12px var(--f-mono);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.card p{margin:8px 0}
+.ask{font-weight:500}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--rec)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.opt .tag{margin-left:6px}
+.why{border-left:3px solid var(--rec);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--rec)}
+.risk{font-size:13.5px;color:var(--muted)}
+.risk b{color:var(--danger)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+textarea{width:100%;min-height:54px;font:14px var(--f-body);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;resize:vertical}
+.card.locked{background:var(--locked-soft);border-color:transparent}
+.card.locked .decided{font-weight:500}
+.hidden-by-filter{display:none}
+.callout{background:var(--open-soft);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:14px}
+ul.tight{margin:6px 0;padding-left:20px}
+ul.tight li{margin:3px 0}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+#out{white-space:pre-wrap;font:13px var(--f-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px;max-height:340px;overflow:auto}
+details{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:12px;padding:0 16px}
+details>summary{cursor:pointer;font-weight:700;padding:12px 0;font-family:var(--f-display);font-size:16px}
+details[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+details .body{padding-bottom:14px}
+h3.sub{font-size:17px;margin:22px 0 8px}
+blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);color:var(--muted);font-size:14px}
+.pill{display:inline-block;font:500 11px var(--f-mono);padding:1px 7px;border-radius:6px;background:var(--surface-2);color:var(--muted)}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+.flow .st{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:13px;min-width:0}
+.flow .st b{display:block;font-family:var(--f-display);font-size:14px;margin-bottom:2px}
+.flow .st .n{font:500 11px var(--f-mono);color:var(--muted)}
+.flow .st .m{color:var(--muted);font-size:12.5px}
+.flow .st.new{border-color:var(--accent)}
+.flow .st.old{border-style:dashed}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}nav.toc{position:static;max-height:none;margin-bottom:12px;columns:2}nav.toc .grp{margin-top:0;break-inside:avoid}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* Mockup layer: the app's own tokens (tokens.css) drive everything inside .mk; the workbook chrome above keeps the planning-doc look. */
+:root{
+  /* Unifolio Colour Palette.pdf, light */
+  --m-bg:#FCFCFC;--m-surface:#F5F5F5;--m-elev:#FFFFFF;--m-ink:#111111;--m-body:#4B4B4B;--m-sec:#717171;--m-muted:#9B9B9B;--m-ph:#C4C4C4;
+  --m-border:#ECECEC;--m-border2:#DFDFDF;--m-soft:#ECECEC;
+  --m-accent:#22C55E;--m-accent-h:#16A34A;--m-accent-p:#15803D;--m-accent-tint:#E9F9EF;
+  --m-pos:#22C55E;--m-pos-t:#15803D;--m-pos-bg:#EAFBF0;--m-pos-bd:#EAFBF0;
+  --m-neg:#E5484D;--m-neg-t:#C1272D;--m-neg-bg:#FDECEC;--m-neg-bd:#F6C6C7;
+  --m-warn:#D97706;--m-warn-t:#92400E;--m-warn-bg:#FEF3E2;--m-warn-bd:#FCE0B0;
+  --m-neu:#6B7280;--m-neu-t:#4B4B4B;--m-neu-bg:#F5F5F5;--m-neu-bd:#E0E0E0;
+  --m-info:#4F46E5;--m-info-t:#3730A3;--m-info-bg:#EEEDFC;--m-info-bd:#D2CFF6;
+  --m-bench:#2563EB;
+  --m-shadow:0 1px 2px rgba(0,0,0,.06);--m-r:12px;
+  --m-font-d:'DM Sans','Segoe UI',system-ui,sans-serif;--m-font-b:'Manrope','Segoe UI',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --m-bg:#111111;--m-surface:#1A1A1A;--m-elev:#212121;--m-ink:#FCFCFC;--m-body:#A3A3A3;--m-sec:#A3A3A3;--m-muted:#717171;--m-ph:#4B4B4B;
+  --m-border:#2E2E2E;--m-border2:#2E2E2E;--m-soft:#2E2E2E;
+  --m-accent-tint:rgba(34,197,94,.14);
+  --m-pos-t:#34D399;--m-pos-bg:rgba(34,197,94,.12);--m-pos-bd:#2E2E2E;
+  --m-neg-t:#F87171;--m-neg-bg:rgba(229,72,77,.14);--m-neg-bd:#2E2E2E;
+  --m-warn-t:#FBBF24;--m-warn-bg:rgba(217,119,6,.16);--m-warn-bd:#2E2E2E;
+  --m-neu-t:#A3A3A3;--m-neu-bg:#1A1A1A;--m-neu-bd:#2E2E2E;
+  --m-info-t:#818CF8;--m-info-bg:rgba(79,70,229,.18);--m-info-bd:#2E2E2E;
+  --m-shadow:0 1px 2px rgba(0,0,0,.4)}}
+:root[data-theme="dark"]{
+  --m-bg:#111111;--m-surface:#1A1A1A;--m-elev:#212121;--m-ink:#FCFCFC;--m-body:#A3A3A3;--m-sec:#A3A3A3;--m-muted:#717171;--m-ph:#4B4B4B;
+  --m-border:#2E2E2E;--m-border2:#2E2E2E;--m-soft:#2E2E2E;
+  --m-accent-tint:rgba(34,197,94,.14);
+  --m-pos-t:#34D399;--m-pos-bg:rgba(34,197,94,.12);--m-pos-bd:#2E2E2E;
+  --m-neg-t:#F87171;--m-neg-bg:rgba(229,72,77,.14);--m-neg-bd:#2E2E2E;
+  --m-warn-t:#FBBF24;--m-warn-bg:rgba(217,119,6,.16);--m-warn-bd:#2E2E2E;
+  --m-neu-t:#A3A3A3;--m-neu-bg:#1A1A1A;--m-neu-bd:#2E2E2E;
+  --m-info-t:#818CF8;--m-info-bg:rgba(79,70,229,.18);--m-info-bd:#2E2E2E;
+  --m-shadow:0 1px 2px rgba(0,0,0,.4)}
+.tools{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 0;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center}
+.tools .grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tools .lab{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.frame{border:1px solid var(--line);border-radius:12px;background:var(--surface-2);padding:16px;margin:12px 0;overflow-x:auto}
+.frame>.cap{font:500 11px var(--f-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.mk{background:var(--m-bg);color:var(--m-ink);font-family:var(--m-font-b);font-size:14px;line-height:1.5;border-radius:12px;padding:16px;min-width:0}
+.mk *{box-sizing:border-box}
+.mk h1,.mk h2,.mk h3,.mk .disp{font-family:var(--m-font-d);margin:0}
+.mk .card{background:var(--m-surface);border:1px solid var(--m-border);border-radius:var(--m-r);box-shadow:var(--m-shadow);padding:16px;margin:0}
+.mk .sec{color:var(--m-sec)}
+.mk .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0}
+.mk .between{justify-content:space-between}
+.mk svg.i,.mk i[data-lucide]{width:16px;height:16px;stroke-width:1.75;flex:none}
+.mk .pos{color:var(--m-pos)}.mk .neg{color:var(--m-neg)}.mk .bench{color:var(--m-bench)}
+.mk .num{font-variant-numeric:tabular-nums}
+.mk .btn2{font:500 13px var(--m-font-b);background:var(--m-surface);color:var(--m-ink);border:1px solid var(--m-border);border-radius:8px;padding:6px 12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.mk .btn2:hover{border-color:var(--m-accent)}
+.mk .btn2.primary{background:var(--m-accent);border-color:var(--m-accent);color:#06210f}
+.mk .seg{display:inline-flex;border:1px solid var(--m-border);border-radius:8px;overflow:hidden;background:var(--m-soft)}
+.mk .seg button{font:500 12.5px var(--m-font-b);border:0;background:transparent;color:var(--m-sec);padding:6px 12px;cursor:pointer}
+.mk .seg button[aria-pressed="true"]{background:var(--m-ink);color:var(--m-bg)}
+.mk select{font:500 13px var(--m-font-b);background:var(--m-surface);color:var(--m-ink);border:1px solid var(--m-border);border-radius:8px;padding:6px 10px}
+.mk .pill{font:500 11px var(--m-font-b);padding:2px 8px;border-radius:99px;background:var(--m-soft);color:var(--m-sec);display:inline-flex;gap:4px;align-items:center}
+.mk .pill.warn{background:var(--m-warn-bg);color:var(--m-warn)}
+.mk .pill.est{background:var(--m-soft);color:var(--m-sec);border:1px dashed var(--m-sec)}
+.mk .badge-pos{background:var(--m-pos-bg);color:var(--m-pos)}.mk .badge-neg{background:var(--m-neg-bg);color:var(--m-neg)}
+.mk .big{font:700 34px/1.1 var(--m-font-d);letter-spacing:-.01em}
+.mk .cap2{font:500 11px var(--m-font-b);letter-spacing:.08em;text-transform:uppercase;color:var(--m-sec)}
+.mk .dot{width:8px;height:8px;border-radius:50%;background:var(--m-accent);display:inline-block}
+.mk .sk{background:linear-gradient(90deg,var(--m-soft),var(--m-border),var(--m-soft));background-size:200% 100%;border-radius:6px;animation:sk 1.4s linear infinite;height:14px}
+@keyframes sk{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.mk .sk{animation:none}}
+.mk .notice{display:flex;gap:8px;align-items:center;border:1px dashed var(--m-border);border-radius:8px;padding:10px 12px;color:var(--m-sec)}
+.mk .err{border:1px solid var(--m-neg);color:var(--m-neg);border-radius:8px;padding:10px 12px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+.mk .legend{display:grid;gap:6px}
+.mk .legend .r{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center}
+.mk .legend .sw{width:10px;height:10px;border-radius:3px}
+.mk .legend .r.soon{opacity:.55}
+.mk .mrow{display:grid;grid-template-columns:minmax(0,1fr) 120px 92px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--m-border)}
+.mk .mrow:last-child{border-bottom:0}
+.mk .mrow .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mk .mbar{height:6px;border-radius:99px;background:var(--m-soft);position:relative}
+.mk .mbar>i{position:absolute;top:0;bottom:0;border-radius:99px}
+.mk .fam .fr{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 12px;padding:8px 0;border-bottom:1px solid var(--m-border);cursor:pointer}
+.mk .fam .fr:last-child{border-bottom:0}
+.mk .fam .fr .mbar{grid-column:1/-1}
+.mk .look{border:1px solid var(--m-warn);background:var(--m-warn-bg);border-radius:var(--m-r);padding:14px;display:grid;gap:8px}
+.mk .look h3{font-size:15px}
+.mk .cbars{display:flex;gap:18px;align-items:flex-end;height:70px}
+.mk .cbars div{width:46px;border-radius:6px 6px 0 0;display:flex;align-items:flex-start;justify-content:center;font:700 12px var(--m-font-d);padding-top:4px}
+.mk .news{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--m-border)}
+.mk .news:last-child{border-bottom:0}
+.mk .news .ic{width:44px;height:44px;border-radius:10px;background:var(--m-soft);display:grid;place-items:center;color:var(--m-ink)}
+.mk .news .ic i{width:22px;height:22px}
+.mk a.lk{color:var(--m-accent);text-decoration:none;font-weight:500;cursor:pointer}
+.mk a.lk.dis{color:var(--m-sec);cursor:not-allowed;opacity:.7}
+.mk .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start}
+.mk .stack{display:grid;gap:16px}
+.mk .chart{width:100%;height:auto;display:block;touch-action:none}
+.mk .chart text{font:11px var(--m-font-b);fill:var(--m-sec)}
+.mk .tip{position:absolute;pointer-events:none;background:var(--m-ink);color:var(--m-bg);font-size:12px;padding:6px 8px;border-radius:6px;white-space:nowrap;display:none}
+.mk .shell{display:grid;grid-template-columns:210px minmax(0,1fr);gap:0;min-width:980px;border:1px solid var(--m-border);border-radius:12px;overflow:hidden;background:var(--m-bg)}
+.mk .side{background:var(--m-surface);border-right:1px solid var(--m-border);padding:14px 10px;display:flex;flex-direction:column;gap:2px;min-height:100%}
+.mk .side .it{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;color:var(--m-sec)}
+.mk .side .it.on{background:var(--m-soft);color:var(--m-ink);font-weight:700}
+.mk .side .logo{font:700 18px var(--m-font-d);padding:6px 10px 14px}
+.mk .top{display:flex;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--m-border);background:var(--m-surface)}
+.mk .top .srch{flex:1;max-width:420px;border:1px solid var(--m-border);border-radius:8px;padding:6px 10px;color:var(--m-sec);display:flex;gap:8px;align-items:center}
+.sw3{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.sw3>div{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface);font-size:12.5px}
+.sw3 .c{height:44px}.sw3 .m{padding:6px 8px}.sw3 b{display:block}
+.iconsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.iconsgrid .mk{padding:12px;display:grid;gap:6px;justify-items:center;text-align:center;border:1px solid var(--m-border)}
+.iconsgrid .ic{width:48px;height:48px;border-radius:12px;background:var(--m-soft);display:grid;place-items:center}
+.iconsgrid .ic i{width:24px;height:24px}
+.demo{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.demo label{display:block;font:500 11px var(--f-mono);color:var(--muted);margin-bottom:3px}
+.demo input,.demo select{width:100%;font:14px var(--f-body);padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+.out2{font:13px var(--f-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:6px;overflow-wrap:anywhere}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:8px 0}
+.notes>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px;font-size:13.5px;min-width:0}
+.notes h4{margin:0 0 4px;font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.notes ul{margin:4px 0;padding-left:18px}
+.hidden-g{display:none}
+
+/* Palette rules: green is rare; semantic colours as tint + thin border; text uses the AA-safe text shades. */
+.mk .pos{color:var(--m-pos-t)}.mk .neg{color:var(--m-neg-t)}.mk .bench{color:var(--m-bench)}
+.mk .card{background:var(--m-surface)}
+.mk .mkbox,.mkbox{background:var(--m-elev)}
+.mk .btn2{background:var(--m-bg);border-color:var(--m-border2);font-weight:600}
+.mk .btn2:hover{border-color:var(--m-accent)}
+.mk .btn2.primary{background:var(--m-accent);border-color:var(--m-accent);color:#111111}
+.mk .btn2.primary:hover{background:var(--m-accent-h)}.mk .btn2.primary:active{background:var(--m-accent-p)}
+.mk .seg{background:var(--m-bg);border-color:var(--m-border2)}
+.mk .seg button{font-weight:600}
+.mk .seg button[aria-pressed="true"]{background:var(--m-accent-tint);color:var(--m-ink);box-shadow:inset 0 0 0 1px var(--m-accent)}
+.mk .pill{font-weight:600;background:var(--m-neu-bg);color:var(--m-neu-t);border:1px solid var(--m-neu-bd)}
+.mk .pill.warn{background:var(--m-warn-bg);color:var(--m-warn-t);border-color:var(--m-warn-bd)}
+.mk .pill.est{background:transparent;border:1px dashed var(--m-sec);color:var(--m-sec)}
+.mk .dot{background:var(--m-muted)}
+.mk .look{background:var(--m-warn-bg);border:1px solid var(--m-warn-bd)}
+.mk .look>i,.mk .look>svg{color:var(--m-warn)}
+.mk .look h3{color:var(--m-ink)}
+.mk .err{border-color:var(--m-neg-bd);background:var(--m-neg-bg);color:var(--m-neg-t)}
+.mk .notice{background:var(--m-neu-bg);border:1px dashed var(--m-neu-bd);color:var(--m-sec)}
+.mk .side{background:var(--m-surface)}
+.mk .side .it.on{background:transparent;color:var(--m-ink);font-weight:600;box-shadow:inset 0 -2px 0 var(--m-accent);border-radius:0}
+.mk h1,.mk h2,.mk h3{font-weight:600}.mk h1{font-weight:700}
+.mk .big{font-weight:700}
+.mk a.lk{color:var(--m-ink);text-decoration:underline;text-decoration-color:var(--m-accent);text-underline-offset:3px}
+.mk a.lk.dis{color:var(--m-muted);text-decoration-color:var(--m-border2)}
+.mk select:focus-visible,.mk button:focus-visible{outline:2px solid var(--m-accent);outline-offset:2px}
+.sw4{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin:8px 0 16px}
+.sw4>div{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface);font-size:11.5px}
+.sw4 .c{height:34px}.sw4 .m{padding:5px 7px;line-height:1.3}.sw4 b{display:block}
+.pg{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
+
+/* Interaction layer: everything that can be clicked looks clickable. */
+.mk [role="button"],.mk button,.mk select{cursor:pointer}
+.mk [role="button"]{transition:background .15s,transform .15s,box-shadow .15s,border-color .15s}
+.mk [role="button"]:focus-visible{outline:2px solid var(--m-accent);outline-offset:2px}
+.mk .card.click:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.10);border-color:var(--m-border2)}
+.mk .arr,.mk .arr2{display:inline-block;transition:transform .15s}
+.mk a.lk:hover .arr,.mk .lk:hover .arr,.mk .cta:hover .arr,.mk .wl:hover .arr{transform:translateX(4px)}
+.mk .cta:hover{border-color:var(--m-accent);background:var(--m-accent-tint)}
+.mk .chipbtn{font:600 12.5px var(--m-font-b);display:inline-flex;gap:8px;align-items:center;background:var(--m-surface);color:var(--m-ink);border:1px solid var(--m-border2);border-radius:99px;padding:5px 10px 5px 12px;cursor:pointer;transition:background .15s,border-color .15s}
+.mk .chipbtn:hover{border-color:var(--m-accent);background:var(--m-accent-tint)}
+.mk .chipbtn i{width:14px;height:14px;transition:transform .15s}.mk .chipbtn:hover i{transform:translateX(3px)}
+.mk a.inl{color:var(--m-ink);font-weight:600;text-decoration:underline;text-decoration-color:var(--m-accent);text-underline-offset:3px;cursor:pointer}
+.mk a.inl:hover{background:var(--m-accent-tint)}
+.mk a.benchlk{display:inline-flex;gap:4px;align-items:center;cursor:pointer;border-radius:6px;padding:0 4px;margin-left:-4px}
+.mk a.benchlk:hover{background:var(--m-info-bg)}
+.mk .benchlk i{width:14px;height:14px}
+.mk .news{border-radius:10px;padding:12px 8px;margin:0 -8px}
+.mk .news:hover{background:var(--m-soft)}
+.mk .news:hover .ic{background:var(--m-accent-tint)}
+.mk .side .it{cursor:pointer}.mk .side .it:hover{background:var(--m-soft);color:var(--m-ink)}
+.mk .legend .r{grid-template-columns:12px minmax(0,1fr) auto 16px;padding:5px 6px;margin:0 -6px;border-radius:8px}
+.mk .legend .r:hover{background:var(--m-soft)}
+.mk .legend .r i[data-lucide],.mk .legend .r svg{width:14px;height:14px;color:var(--m-muted);transition:transform .15s}
+.mk .legend .r:hover svg{transform:translateX(3px);color:var(--m-ink)}
+.mk .legend .r.soon{opacity:.7}
+.mk .sl{transition:opacity .15s,stroke-width .15s}.mk .sl:hover{stroke-width:26}
+.mk .viewing{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;padding:10px 12px;border:1px solid var(--m-border2);border-radius:10px;background:var(--m-bg)}
+.mk .av{width:34px;height:34px;border-radius:50%;display:inline-grid;place-items:center;font:700 14px var(--m-font-d);flex:none}
+.mk .fam{margin-top:16px;display:grid;gap:6px}
+.mk .stackbar{display:flex;gap:3px;height:12px;margin:2px 0 6px}
+.mk .stackbar .sg{display:block;border-radius:99px;transition:opacity .15s}
+.mk .fr{display:grid!important;grid-template-columns:34px minmax(0,1fr) auto auto!important;gap:10px!important;align-items:center;padding:10px 10px!important;border:1px solid var(--m-border);border-radius:12px;background:var(--m-bg);border-bottom:1px solid var(--m-border)!important}
+.mk .fr:hover{border-color:var(--m-accent);background:var(--m-accent-tint);transform:translateX(2px)}
+.mk .fr .mid,.mk .mv .mid{display:grid;min-width:0;line-height:1.3}
+.mk .sub{font-size:12px;color:var(--m-sec)}.mk .sub.pos{color:var(--m-pos-t)}
+.mk .fr .r2{display:grid;text-align:right;line-height:1.3}
+.mk .fr .go{display:inline-flex;align-items:center;gap:2px;font:600 12px var(--m-font-b);color:var(--m-sec);opacity:.0;transition:opacity .15s,transform .15s}
+.mk .fr:hover .go{opacity:1;color:var(--m-ink);transform:translateX(2px)}
+.mk .fr .go i{width:14px;height:14px}
+.mk .fam:has(.fr[data-i="0"]:hover) .sg:not([data-i="0"]),.mk .fam:has(.fr[data-i="1"]:hover) .sg:not([data-i="1"]),.mk .fam:has(.fr[data-i="2"]:hover) .sg:not([data-i="2"]){opacity:.3}
+.mk .alloc:has(.r[data-i="0"]:hover) .sl:not([data-i="0"]),.mk .alloc:has(.r[data-i="1"]:hover) .sl:not([data-i="1"]),.mk .alloc:has(.r[data-i="2"]:hover) .sl:not([data-i="2"]),.mk .alloc:has(.r[data-i="3"]:hover) .sl:not([data-i="3"]){opacity:.3}
+.mk .netbox{display:grid;grid-template-columns:auto minmax(140px,1fr);gap:16px;align-items:center;margin:12px 0 4px;padding:12px;border:1px solid var(--m-border);border-radius:12px;background:var(--m-bg)}
+.mk .net{font:700 24px var(--m-font-d)}
+.mk .bar2{display:flex;height:8px;border-radius:99px;overflow:hidden;gap:2px;margin-bottom:4px}.mk .bar2 i{display:block}
+.mk .grp{margin:12px 0 2px}
+.mk .mv{display:grid;grid-template-columns:36px minmax(0,1fr) auto 16px;gap:4px 10px;align-items:center;padding:8px;border-radius:10px;margin:0 -8px;border:0}
+.mk .mv:hover{background:var(--m-soft)}
+.mk .mv .tile{width:36px;height:36px;border-radius:10px;background:var(--m-soft);display:grid;place-items:center}
+.mk .mv:hover .tile{background:var(--m-elev)}
+.mk .mv .amt{text-align:right}
+.mk .mv>i[data-lucide],.mk .mv>svg{width:16px;height:16px;color:var(--m-muted);transition:transform .15s}
+.mk .mv:hover>svg{transform:translateX(3px);color:var(--m-ink)}
+.mk .mv .axis{grid-column:2/4;position:relative;height:6px;border-radius:99px;background:var(--m-soft)}
+.mk .mv:hover .axis{background:var(--m-border)}
+.mk .mv .axis::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--m-border2)}
+.mk .mv .axis i{position:absolute;top:0;bottom:0;border-radius:99px}
+.mk .mv.others .tile{background:transparent;border:1px dashed var(--m-border2)}
+.mk .wlgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.mk .wl{background:var(--m-surface);border:1px solid var(--m-border);border-radius:var(--m-r);padding:16px;display:grid;gap:10px;align-content:start;cursor:pointer}
+.mk .wl.wide{grid-column:1/-1}
+.mk .wl:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.10);border-color:var(--m-border2)}
+.mk .wl h3{font-size:16px;line-height:1.3}
+.mk .chip2{display:inline-flex;gap:6px;align-items:center;font:600 12px var(--m-font-b);padding:3px 10px;border-radius:99px;background:var(--m-neu-bg);color:var(--m-neu-t);border:1px solid var(--m-neu-bd)}
+.mk .chip2.warn{background:var(--m-warn-bg);color:var(--m-warn-t);border-color:var(--m-warn-bd)}
+.mk .chip2.neg{background:var(--m-neg-bg);color:var(--m-neg-t);border-color:var(--m-neg-bd)}
+.mk .chip2 i{width:14px;height:14px}
+.mk .bigpct{font:700 34px/1 var(--m-font-d)}
+.mk .tbar{display:flex;height:14px;gap:2px;border-radius:99px;overflow:hidden}
+.mk .tbar i{display:block;cursor:pointer;transition:opacity .15s}.mk .tbar:hover i:not(:hover){opacity:.55}
+.mk .lg{display:inline-flex;gap:6px;align-items:center}.mk .lg i{width:8px;height:8px;border-radius:3px;display:inline-block}
+.mk .scale{display:grid;gap:6px}
+.mk .track{position:relative;height:8px;border-radius:99px;background:var(--m-soft);margin:8px 0 2px}
+.mk .tick{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--m-ink);border-radius:2px}
+.mk .fdot{position:absolute;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--m-neg);border:3px solid var(--m-surface);box-shadow:0 0 0 1px var(--m-neg)}
+.mk .cmp{display:grid;gap:8px}.mk .cr{display:flex;gap:10px;align-items:center;font-size:13px}
+.mk .cmp .mbar{height:8px}.mk .cmp .mbar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--m-border2)}
+.mk .mbar{position:relative}
+.mktoast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--m-ink,#111);color:var(--m-bg,#fff);font:600 13px var(--m-font-b);padding:10px 16px;border-radius:99px;display:flex;gap:8px;align-items:center;z-index:40;transition:opacity .2s,transform .2s;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.mktoast.on{opacity:1;transform:translate(-50%,0)}
+.mktoast i{width:16px;height:16px}
+@media (prefers-reduced-motion:reduce){.mk [role="button"],.mk .arr,.mk .arr2,.mk .chipbtn,.mk .chipbtn i,.mktoast{transition:none}.mk .card.click:hover,.mk .wl:hover,.mk .fr:hover{transform:none}}
+.mk .w-right{min-height:32px;display:flex;align-items:center;justify-content:flex-end;min-width:200px}
+.mk .w-chart{min-height:0}
+@media (max-height:760px),(max-width:700px){.tools{position:static}}
+.mk .news{grid-template-columns:44px minmax(0,1fr)!important}
+.mk .news .nb{min-width:0;display:grid;gap:3px}
+.mk .news .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px}
+.mk .news .meta i,.mk .news .meta svg{width:13px;height:13px;color:var(--m-muted)}
+.mk .news .nt{font:600 15px/1.35 var(--m-font-d)}
+.mk .news .ns{font-size:13px}
+.mk .news:hover .nt{text-decoration:underline;text-decoration-color:var(--m-accent);text-underline-offset:3px}
+.mk .news.feat{grid-template-columns:56px minmax(0,1fr)!important;background:var(--m-bg);border:1px solid var(--m-border);border-radius:12px;padding:14px;margin:12px 0 4px}
+.mk .news.feat:hover{background:var(--m-accent-tint);border-color:var(--m-border2)}
+.mk .news .ic.big{width:56px;height:56px;border-radius:14px}.mk .news .ic.big i,.mk .news .ic.big svg{width:26px;height:26px}
+.mk .news .chip2{font-size:11px;padding:2px 8px}
+.mk .meter{display:grid;gap:3px;margin-top:6px}
+.mk .meter .mt{height:6px;border-radius:99px;background:var(--m-soft);overflow:hidden}.mk .meter .mt i{display:block;height:100%;border-radius:99px;background:var(--m-info)}
+.mk .reason{font:600 12px var(--m-font-b);display:inline-flex;gap:6px;align-items:center;background:var(--m-info-bg);color:var(--m-info-t);border:1px solid var(--m-info-bd);border-radius:99px;padding:4px 10px;cursor:pointer;text-align:left;transition:filter .15s,transform .15s}
+.mk .reason:hover{filter:brightness(.96);transform:translateY(-1px)}
+.mk .reason i,.mk .reason svg{width:13px;height:13px}
+.mk .reason.sm{font-size:11.5px;padding:3px 9px}
+.mk .btn2.sm{font-size:12px;padding:4px 10px}
+.mk .spin svg{animation:mkspin .8s linear}
+@keyframes mkspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.mk .spin svg{animation:none}}
+/* Cleaner news card: one headline, one meta line, one exposure line. */
+.mk .news{grid-template-columns:40px minmax(0,1fr)!important;padding:12px 8px;gap:12px}
+.mk .news .ic{width:40px;height:40px;border-radius:10px}.mk .news .ic i,.mk .news .ic svg{width:20px;height:20px}
+.mk .news .nb{gap:2px}
+.mk .news .nt{font:600 14.5px/1.35 var(--m-font-d)}
+.mk .news .meta{display:block;font-size:12.5px;color:var(--m-sec)}
+.mk .news .ns{font-size:12.5px;color:var(--m-sec)}
+.mk a.whylk{color:var(--m-ink);text-decoration:underline;text-decoration-color:var(--m-border2);text-underline-offset:3px;cursor:pointer}
+.mk a.whylk:hover{text-decoration-color:var(--m-accent)}
+.mk .iconbtn{border:0;background:transparent;color:var(--m-sec);width:32px;height:32px;border-radius:8px;display:grid;place-items:center;cursor:pointer}
+.mk .iconbtn:hover{background:var(--m-soft);color:var(--m-ink)}
+.mk .iconbtn svg{width:16px;height:16px}
+.mk .prevlink{border:0;background:transparent;color:var(--m-muted);font:500 11px var(--m-font-b);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.mk .prevlink:hover{color:var(--m-ink)}
+
+/* Profile layer v2: styled after page 31 of the PDF (white cards, soft borders, green tint selection, pills, outlined action buttons). Palette tokens only. */
+.mk{background:var(--m-bg);padding:18px}
+.mk .card{background:var(--m-elev);border:1px solid var(--m-border);border-radius:14px;padding:20px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+:root[data-theme="dark"] .mk .card{box-shadow:none}
+.mk .pf-h{margin-bottom:16px}.mk .pf-h h1{font-size:28px;letter-spacing:-.01em}.mk .pf-h p{margin:2px 0 0;font-size:14px}
+.mk .pf-b{display:grid;grid-template-columns:232px minmax(0,1fr);gap:20px;align-items:start}
+.mk .pc{display:grid;gap:16px;min-width:0}
+.mk .pnav{display:grid;gap:2px;position:sticky;top:8px;background:var(--m-elev);border:1px solid var(--m-border);border-radius:14px;padding:10px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.mk .pnav a{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;color:var(--m-body);cursor:pointer;font-weight:500;text-decoration:none;transition:background .15s,color .15s,transform .15s}
+.mk .pnav a svg,.mk .pnav a i{width:19px;height:19px;color:var(--m-sec)}
+.mk .pnav a:hover{background:var(--m-soft);color:var(--m-ink);transform:translateX(2px)}
+.mk .pnav a.on{background:var(--m-accent-tint);color:var(--m-ink);font-weight:600}
+.mk .pnav a.on svg{color:var(--m-accent-p)}
+.mk .pnav .dv{height:1px;background:var(--m-border);margin:8px 4px}
+.mk .pnav a.lo:hover{color:var(--m-neg-t)}.mk .pnav a.lo:hover svg{color:var(--m-neg-t)}
+.mk .av{color:var(--m-ink);transition:transform .15s,box-shadow .15s}
+.mk .av.a0{background:var(--m-accent-tint);color:var(--m-accent-p)}
+.mk .av.a1{background:var(--m-info-bg);color:var(--m-info-t)}
+.mk .av.a2{background:var(--m-warn-bg);color:var(--m-warn-t)}
+.mk .av.a3{background:var(--m-neg-bg);color:var(--m-neg-t)}
+.mk .av.s28{width:30px;height:30px;font-size:11.5px}.mk .av.s40{width:40px;height:40px;font-size:14px}.mk .av.s52{width:52px;height:52px;font-size:17px}.mk .av.s76{width:76px;height:76px;font-size:26px}
+.mk .av:hover{transform:scale(1.06);box-shadow:0 0 0 3px var(--m-accent-tint)}
+:root[data-theme="dark"] .mk .av.a0,:root[data-theme="dark"] .mk .pnav a.on svg{color:var(--m-pos-t)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .mk .av.a0,:root:not([data-theme="light"]) .mk .pnav a.on svg{color:var(--m-pos-t)}}
+
+/* Click affordances: everything interactive lifts, tints or slides on hover */
+.mk [data-say],.mk [data-nav],.mk [data-dlg],.mk [data-act]{cursor:pointer}
+.mk .hot{transition:background .15s,border-color .15s,box-shadow .15s,transform .15s}
+.mk .hot:hover{background:var(--m-accent-tint)}
+.mk .hotc:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(16,24,40,.10);border-color:var(--m-border2)}
+.mk .hotr{border-radius:10px;margin:0 -10px;padding-left:10px!important;padding-right:10px!important}
+.mk .hotr:hover{background:var(--m-soft)}
+.mk .hotr .ed{opacity:0;transition:opacity .15s,transform .15s;color:var(--m-sec)}
+.mk .hotr:hover .ed{opacity:1;transform:translateX(0);color:var(--m-ink)}
+.mk .chev{transition:transform .15s,color .15s;color:var(--m-muted)}
+.mk .hot:hover .chev,.mk .hotc:hover .chev,.mk .hotr:hover .chev{transform:translateX(4px);color:var(--m-ink)}
+.hl .mk [data-say],.hl .mk [data-nav],.hl .mk [data-dlg],.hl .mk [data-act]{outline:2px dashed var(--m-accent);outline-offset:2px}
+.mk .pulse{position:relative}
+.mk .pulse::after{content:"";position:absolute;right:-5px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--m-accent);animation:mkpulse 1.8s ease-out infinite}
+@keyframes mkpulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.55)}80%,100%{box-shadow:0 0 0 9px rgba(34,197,94,0)}}
+@media (prefers-reduced-motion:reduce){.mk .pulse::after{animation:none}.mk .hotc:hover,.mk .pnav a:hover,.mk .av:hover{transform:none}}
+
+/* Buttons as on page 31: outlined with icon; solid green for Add Member */
+.mk .btn2{font:600 13px var(--m-font-b);background:var(--m-elev);color:var(--m-ink);border:1px solid var(--m-border2);border-radius:10px;padding:8px 14px;display:inline-flex;gap:8px;align-items:center;transition:background .15s,border-color .15s,transform .15s,box-shadow .15s}
+.mk .btn2:hover{border-color:var(--m-accent);background:var(--m-accent-tint);transform:translateY(-1px)}
+.mk .btn2 svg,.mk .btn2 i{width:15px;height:15px}
+.mk .btn2.primary{background:var(--m-accent);border-color:var(--m-accent);color:#0c2a16;box-shadow:0 2px 8px rgba(34,197,94,.28)}
+.mk .btn2.primary:hover{background:var(--m-accent-h);color:#fff}
+.mk .btn2.dng{border-color:var(--m-neg);color:var(--m-neg-t);background:transparent}
+.mk .btn2.dng:hover{background:var(--m-neg-bg)}
+.mk .ttl{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap}
+.mk .ttl h3{font-size:17px}.mk .ttl .s{font-size:13px;color:var(--m-sec);margin-top:2px}
+
+/* Header card */
+.mk .hc{display:grid;gap:18px;padding:22px}
+.mk .hc .top2{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.mk .hc .id{display:flex;gap:18px;align-items:center;min-width:0}
+.mk .hc .nmv{font:700 22px var(--m-font-d)}
+.mk .hc .sm{font-size:13px;color:var(--m-sec);line-height:1.6}
+.mk .facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--m-border);padding-top:6px}
+.mk .fact{padding:10px 14px;border-radius:10px;border-right:1px solid var(--m-border);margin:0}
+.mk .fact:last-child{border-right:0}
+.mk .fl{font:500 12px var(--m-font-b);color:var(--m-sec);margin-bottom:3px}
+.mk .fv{font-weight:600}
+.mk .panf{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mk .panv{font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.mk .tl{font:600 12.5px var(--m-font-b);background:var(--m-accent-tint);border:1px solid transparent;color:var(--m-ink);cursor:pointer;padding:3px 10px 3px 8px;border-radius:99px;display:inline-flex;gap:5px;align-items:center;transition:border-color .15s,background .15s,transform .15s}
+.mk .tl:hover{border-color:var(--m-accent);transform:translateY(-1px)}
+.mk .tl svg,.mk .tl i{width:14px;height:14px}
+.mk .perr{color:var(--m-neg-t);font-size:12px}
+
+/* Personal info and ghost (coming soon) fields */
+.mk .two2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px;align-items:start}
+.mk .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:0 28px}
+.mk .kv{display:grid;grid-template-columns:118px minmax(120px,1fr) 18px;gap:8px;align-items:center;padding:11px 0;border-bottom:1px solid var(--m-border)}
+.mk .kv .k{color:var(--m-sec);font-size:13px}.mk .kv .v{font-weight:500;min-width:0;overflow-wrap:anywhere}
+.mk .kv .ed{width:15px;height:15px}
+.mk .ghost{opacity:.62}
+.mk .ghost .v{color:var(--m-muted)}
+.mk .soonb{font:600 11px var(--m-font-b);padding:3px 10px;border-radius:99px;background:var(--m-neu-bg);color:var(--m-neu-t);border:1px solid var(--m-neu-bd);display:inline-flex;gap:5px;align-items:center}
+.mk .soonb svg,.mk .soonb i{width:12px;height:12px}
+.mk .gchips{display:flex;gap:8px;flex-wrap:wrap;padding-top:10px}
+.mk .gchip{font:500 12.5px var(--m-font-b);padding:5px 12px;border-radius:99px;border:1px dashed var(--m-border2);color:var(--m-muted)}
+.mk .fin{position:relative}
+.mk .fin.hotc:hover{opacity:1}
+
+/* Family */
+.mk .strip{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;margin-top:4px}
+.mk .strip .m{display:grid;gap:3px;justify-items:center;text-align:center;font-size:13px;min-width:78px;padding:8px 6px;border-radius:12px;cursor:pointer;transition:background .15s,transform .15s}
+.mk .strip .m:hover{background:var(--m-soft);transform:translateY(-2px)}
+.mk .strip .m b{font-weight:600;margin-top:4px}
+.mk .strip .m .lb{font-size:12px;color:var(--m-sec)}.mk .strip .m .lb.pri{color:var(--m-accent-p);font-weight:600}
+:root[data-theme="dark"] .mk .strip .m .lb.pri{color:var(--m-pos-t)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .mk .strip .m .lb.pri{color:var(--m-pos-t)}}
+.mk .addtile{width:52px;height:52px;border-radius:50%;border:1.5px dashed var(--m-border2);display:grid;place-items:center;color:var(--m-sec);background:transparent;transition:all .15s}
+.mk .strip .m:hover .addtile{border-color:var(--m-accent);color:var(--m-ink);background:var(--m-accent-tint)}
+.mk table.ft{width:100%;min-width:600px;border-collapse:collapse;font-size:13.5px}
+.mk table.ft th{font:500 12px var(--m-font-b);color:var(--m-sec);text-align:left;padding:10px 12px;background:var(--m-surface);letter-spacing:0;text-transform:none;border-bottom:1px solid var(--m-border)}
+.mk table.ft th:first-child{border-radius:10px 0 0 10px}.mk table.ft th:last-child{border-radius:0 10px 10px 0}
+.mk table.ft td{padding:11px 12px;border-bottom:1px solid var(--m-border);vertical-align:middle}
+.mk table.ft tr:last-child td{border-bottom:0}
+.mk table.ft tbody tr{cursor:pointer;transition:background .15s}
+.mk table.ft tbody tr:hover{background:var(--m-accent-tint)}
+.mk table.ft tr.flash{animation:mkflash 1.6s ease}
+@keyframes mkflash{0%,60%{background:var(--m-accent-tint);box-shadow:inset 3px 0 0 var(--m-accent)}100%{background:transparent;box-shadow:none}}
+.mk .tw{overflow-x:auto}
+.mk .nm{display:flex;gap:10px;align-items:center;font-weight:600;white-space:nowrap}
+.mk .pillx{font:600 12px var(--m-font-b);padding:3px 11px;border-radius:99px;display:inline-block}
+.mk .pillx.ad{background:var(--m-accent-tint);color:var(--m-accent-p)}.mk .pillx.me{background:var(--m-info-bg);color:var(--m-info-t)}
+:root[data-theme="dark"] .mk .pillx.ad{color:var(--m-pos-t)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .mk .pillx.ad{color:var(--m-pos-t)}}
+.mk .menuw{position:relative;display:inline-block}
+.mk .menu{position:absolute;right:0;top:34px;z-index:5;background:var(--m-elev);border:1px solid var(--m-border2);border-radius:12px;box-shadow:0 12px 30px rgba(16,24,40,.18);min-width:200px;padding:5px}
+.mk .menu button{display:flex;gap:10px;align-items:center;width:100%;border:0;background:transparent;color:var(--m-ink);font:500 13px var(--m-font-b);padding:9px 10px;border-radius:8px;text-align:left}
+.mk .menu button:hover{background:var(--m-soft)}.mk .menu button.dg{color:var(--m-neg-t)}.mk .menu button.dg:hover{background:var(--m-neg-bg)}
+.mk .menu svg,.mk .menu i{width:15px;height:15px}
+
+/* Settings rows, privacy rows */
+.mk .srow{display:grid;grid-template-columns:44px minmax(0,1fr) 18px;gap:14px;align-items:center;padding:13px 10px;border-bottom:1px solid var(--m-border);text-decoration:none;color:var(--m-ink);border-radius:12px;margin:0 -10px;transition:background .15s}
+.mk .srow:last-child{border-bottom:0}
+.mk .srow:hover{background:var(--m-accent-tint)}
+.mk .srow .tile{width:44px;height:44px;border-radius:12px;background:var(--m-soft);display:grid;place-items:center;transition:background .15s,transform .15s}
+.mk .srow:hover .tile{background:var(--m-elev);transform:scale(1.06)}
+.mk .srow .t{font-weight:600}.mk .srow .d{font-size:12.5px;color:var(--m-sec)}
+.mk .srow>svg,.mk .srow>i{width:17px;height:17px}
+.mk .back{display:inline-flex;gap:6px;align-items:center;color:var(--m-sec);font-weight:600;border:0;background:transparent;padding:5px 8px;margin-left:-8px;border-radius:8px;transition:all .15s;justify-self:start}
+.mk .back:hover{background:var(--m-soft);color:var(--m-ink);transform:translateX(-2px)}
+.mk .back svg,.mk .back i{width:15px;height:15px}
+.mk .lrow{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 10px;margin:0 -10px;border-bottom:1px solid var(--m-border);border-radius:10px;transition:background .15s}
+.mk .lrow:last-child{border-bottom:0}.mk .lrow:hover{background:var(--m-soft)}
+.mk .lrow.x{flex-wrap:wrap}.mk .lrow .more{flex-basis:100%;font-size:12.5px;color:var(--m-sec);padding-top:2px}
+.mk .tick{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--m-accent-tint);color:var(--m-accent-p);flex:none}
+.mk .tick svg,.mk .tick i{width:13px;height:13px}
+.mk .danger{border:1px solid var(--m-neg-bd);background:var(--m-neg-bg)}
+.mk .danger h3{color:var(--m-neg-t)}
+.mk .iconbtn{border:0;background:transparent;color:var(--m-sec);width:34px;height:34px;border-radius:9px;display:grid;place-items:center;transition:all .15s}
+.mk .iconbtn:hover{background:var(--m-soft);color:var(--m-ink);transform:scale(1.08)}
+.mk .iconbtn.del:hover{background:var(--m-neg-bg);color:var(--m-neg-t)}
+.mk .iconbtn svg{width:17px;height:17px}
+.mk .tag2{font:600 11px var(--m-font-b);padding:2px 9px;border-radius:99px;background:var(--m-neu-bg);color:var(--m-neu-t);border:1px solid var(--m-neu-bd)}
+.mk .tag2.ok{background:var(--m-accent-tint);color:var(--m-accent-p);border-color:transparent}
+.mk .tag2.info{background:var(--m-info-bg);color:var(--m-info-t);border-color:var(--m-info-bd)}
+:root[data-theme="dark"] .mk .tag2.ok{color:var(--m-pos-t)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .mk .tag2.ok{color:var(--m-pos-t)}}
+.mk .devlink{font-size:12.5px;color:var(--m-sec);display:inline-flex;gap:8px;align-items:center;margin-top:12px;padding:6px 10px;border-radius:8px;transition:background .15s}
+.mk .devlink:hover{background:var(--m-soft);color:var(--m-ink)}
+.mk .soon{border:1px dashed var(--m-neu-bd);background:var(--m-elev);border-radius:14px;padding:40px 20px;display:grid;gap:10px;justify-items:center;text-align:center}
+.mk .soon .big2{width:60px;height:60px;border-radius:16px;background:var(--m-soft);display:grid;place-items:center}
+.mk .soon .big2 svg,.mk .soon .big2 i{width:28px;height:28px}
+.mk .soon h3{font-size:18px}
+.mk .ghostlist{display:grid;gap:2px;margin-top:8px;width:100%;max-width:520px;text-align:left}
+.mk .gl{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 10px;border-radius:10px;opacity:.7;transition:all .15s}
+.mk .gl:hover{opacity:1;background:var(--m-soft)}
+.mk .gl .tile{width:36px;height:36px;border-radius:10px;background:var(--m-soft);display:grid;place-items:center}
+.mk ul.plain{margin:6px 0;padding-left:18px}.mk ul.plain li{margin:4px 0}
+.mk .shell2{display:grid;grid-template-columns:200px minmax(0,1fr);min-width:1100px;border:1px solid var(--m-border);border-radius:14px;overflow:hidden;background:var(--m-bg)}
+.mk .shell2 .pane{padding:22px 26px;min-width:0}
+.mk .shell2 .side{background:var(--m-surface);border-right:1px solid var(--m-border);padding:16px 12px;display:flex;flex-direction:column;gap:2px}
+.mk .shell2 .side .logo{font:700 22px var(--m-font-d);padding:4px 10px 18px}
+.mk .shell2 .side .it{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;color:var(--m-body);font-weight:500;transition:background .15s,transform .15s}
+.mk .shell2 .side .it:hover{background:var(--m-soft);color:var(--m-ink);transform:translateX(2px)}
+.mk .shell2 .side .it.on2{background:var(--m-accent-tint);color:var(--m-ink);font-weight:600}
+.mk .shell2 .side .sp{flex:1}
+.mk .shell2 .top{display:flex;gap:12px;align-items:center;padding:12px 22px;border-bottom:1px solid var(--m-border);background:var(--m-elev)}
+.mk .shell2 .top .srch{flex:1;max-width:460px;border:1px solid var(--m-border);border-radius:10px;padding:8px 12px;color:var(--m-sec);display:flex;gap:8px;align-items:center;background:var(--m-bg);transition:border-color .15s}
+.mk .shell2 .top .srch:hover{border-color:var(--m-accent)}
+.mk .shell2 .top .sp2{flex:1}
+.mk .hint{display:flex;gap:10px;align-items:center;background:var(--m-info-bg);color:var(--m-info-t);border:1px solid var(--m-info-bd);border-radius:12px;padding:9px 14px;font-weight:500;margin-bottom:14px}
+.mk .hint svg,.mk .hint i{width:16px;height:16px}
+.mkmodal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px}
+.mkmodal .dlg{background:var(--m-elev);color:var(--m-ink);border:1px solid var(--m-border2);border-radius:20px;padding:24px;width:min(460px,100%);box-shadow:0 20px 60px rgba(0,0,0,.35);font-family:var(--m-font-b);font-size:14px}
+.mkmodal .dlg h3{font:600 19px var(--m-font-d);margin:0 0 10px}
+.mkmodal .dlg label{display:grid;gap:4px;font-weight:600;font-size:13px;margin:10px 0}
+.mkmodal .dlg input,.mkmodal .dlg select,.mkmodal .dlg textarea{font:14px var(--m-font-b);padding:9px 11px;border:1px solid var(--m-border2);border-radius:10px;background:var(--m-bg);color:var(--m-ink);width:100%}
+.mkmodal .dlg .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.mkmodal .dlg .opt2{display:flex;gap:10px;align-items:center;border:1px solid var(--m-border2);border-radius:10px;padding:10px 12px;margin:6px 0;font-weight:500;cursor:pointer;transition:all .15s}
+.mkmodal .dlg .opt2:hover{border-color:var(--m-accent);background:var(--m-accent-tint)}
+.mkmodal .dlg .stub{border:1px dashed var(--m-border2);border-radius:12px;padding:14px;color:var(--m-sec);font-size:13px}
+.mkmodal .btn2{font:600 13px var(--m-font-b);background:var(--m-bg);color:var(--m-ink);border:1px solid var(--m-border2);border-radius:10px;padding:8px 16px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.mkmodal .btn2:hover{border-color:var(--m-accent)}
+.mkmodal .btn2.primary{background:var(--m-accent);border-color:var(--m-accent);color:#0c2a16}
+.mkmodal .btn2.fill-dng{background:var(--m-neg);border-color:var(--m-neg);color:#fff}
+.mkmodal .btn2[disabled]{opacity:.45;cursor:not-allowed}
+.mkmodal svg,.mkmodal i{width:16px;height:16px}
+.mk .spin svg{animation:mkspin .8s linear infinite}
+.wf{font:12.5px/1.45 var(--f-mono);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto;white-space:pre;color:var(--fg)}
+
+/* Family cards: today's member cards (name, PAN, relationship, phone, email, profile-completion chip, Delete all funds) in the page-31 style */
+.mk .mlist{display:grid;gap:14px}
+.mk .mcard{border:1px solid var(--m-border);border-radius:14px;padding:16px;display:grid;gap:14px;background:var(--m-elev)}
+.mk .mcard.flash{animation:mkflash2 1.8s ease}
+@keyframes mkflash2{0%,60%{box-shadow:0 0 0 3px var(--m-accent);background:var(--m-accent-tint)}100%{box-shadow:none;background:var(--m-elev)}}
+.mk .mhead{display:flex;gap:12px;align-items:center}
+.mk .mhead .pillx{margin-left:auto}
+.mk .mname{font:600 16px var(--m-font-d)}
+.mk .mgrid{display:grid;gap:14px 20px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin:0}
+.mk .mgrid dt{font-size:12px;color:var(--m-sec);margin-bottom:2px}
+.mk .mgrid dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.mk .mutedv{color:var(--m-muted);font-weight:500}
+.mk .cap3{font-size:12px;color:var(--m-sec);margin-top:2px}
+.mk .mact{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.mk .nudge{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--m-warn);background:var(--m-warn-bg);color:var(--m-warn-t);border-radius:99px;padding:4px 14px 4px 5px;font:600 12.5px var(--m-font-b);cursor:pointer;transition:transform .15s,box-shadow .15s}
+.mk .nudge:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(217,119,6,.22)}
+.mk .nudge .arr{transition:transform .15s}.mk .nudge:hover .arr{transform:translateX(3px)}
+.mk .ringw{width:24px;height:24px;display:inline-block}
+.mk .ringw svg{width:100%;height:100%;transform:rotate(-90deg)}
+.mk .ringw .rb{stroke:var(--m-border2)}.mk .ringw .rf{stroke:var(--m-warn)}
+.mk .tl2{border:0;background:transparent;color:var(--m-ink);font:600 12.5px var(--m-font-b);text-decoration:underline;text-decoration-color:var(--m-accent);text-underline-offset:3px;cursor:pointer;padding:4px 6px;border-radius:6px}
+.mk .tl2:hover{background:var(--m-accent-tint)}
+.mk .delf{margin-left:auto;border:0;background:transparent;color:var(--m-neg-t);font:600 12.5px var(--m-font-b);display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:8px;cursor:pointer;transition:background .15s}
+.mk .delf:hover{background:var(--m-neg-bg)}.mk .delf svg,.mk .delf i{width:15px;height:15px}
+/* Financial Details live rows from onboarding */
+.mk .gchips.live{padding-top:0;gap:8px}
+.mk .gchip.on{border:1px solid var(--m-accent);background:var(--m-accent-tint);color:var(--m-ink);font-weight:600;cursor:pointer;display:inline-flex;gap:5px;align-items:center}
+.mk .gchip.on.unk{border-style:dashed;background:var(--m-neu-bg)}
+.mk .gchip.on svg,.mk .gchip.on i{width:13px;height:13px}
+.mk .gchip.add{border:1px dashed var(--m-border2);background:transparent;color:var(--m-sec);cursor:pointer;display:inline-flex;gap:5px;align-items:center;font-weight:600}
+.mk .gchip.add:hover,.mk .gchip.on:hover{transform:translateY(-1px);border-color:var(--m-accent);color:var(--m-ink)}
+.mk .gchip.add svg,.mk .gchip.add i{width:13px;height:13px}
+.mkmodal .dlg .opt2.big{align-items:flex-start;flex-direction:column;gap:2px}
+.mkmodal .dlg .opt2 .sub2{font-weight:400;color:var(--m-sec);font-size:12.5px}
+.mkmodal .dlg .opt2.on{border-color:var(--m-accent);background:var(--m-accent-tint)}
+.mkmodal .dlg .pick{display:flex;gap:12px;align-items:center;width:100%;border:1px solid var(--m-border2);border-radius:12px;background:var(--m-bg);color:var(--m-ink);padding:10px 12px;margin:6px 0;font:600 14px var(--m-font-b);cursor:pointer;text-align:left;transition:all .15s}
+.mkmodal .dlg .pick:hover{border-color:var(--m-accent);background:var(--m-accent-tint);transform:translateX(2px)}
+.mkmodal .dlg .pick .av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--m-font-d)}
+.mkmodal .av.a0{background:var(--m-accent-tint);color:var(--m-accent-p)}.mkmodal .av.a1{background:var(--m-info-bg);color:var(--m-info-t)}.mkmodal .av.a2{background:var(--m-warn-bg);color:var(--m-warn-t)}.mkmodal .av.a3{background:var(--m-neg-bg);color:var(--m-neg-t)}
+</style>
+
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <h4>Contents</h4>
+  <a href="#intro">How to use this page</a><a href="#full"><b>The page, in the shell</b></a>
+  <div class="grp"><h4>Layout</h4>
+    <a href="#layout">Page frame</a><a href="#states">State matrix</a></div>
+  <div class="grp"><h4>Design system</h4>
+    <a href="#tokens">Tokens</a><a href="#type">Type, radius, spacing</a><a href="#utils">Utilities (live)</a><a href="#components">Components: reuse and new</a></div>
+  <div class="grp"><h4>Pages</h4>
+    <a href="#p-personal">Personal Information</a><a href="#p-family">Family Members</a><a href="#p-connected">Connected Accounts</a><a href="#p-settings">Settings</a><a href="#p-subscription">Subscription &amp; Billing</a><a href="#p-tax">Tax Information</a><a href="#p-privacy">Data &amp; Privacy</a></div>
+  <div class="grp"><h4>Dialogs and full page</h4><a href="#dialogs">Dialogs</a><a href="#applied">Decisions applied</a></div>
+</nav>
+<main>
+<div class="hero" id="intro">
+  <h1>Profile design mockups</h1>
+  <p>Layout, section-wise design system, utilities and working UI mockups for the redesigned Profile (desktop, mutual funds only), built from decisions L1 to L41 in the planning workbook. The mockups follow the look of page 31 of the PDF (cards, avatars, pills, outlined buttons, green selection) using the same palette tokens as the Home mockups. All names, numbers and PANs are fictional and illustrative.</p>
+  <div class="rule"><b>Try it:</b> the bar below switches theme, data state (normal, loading, empty, error) and household size (one member or a family) for every mockup at once. Everything is clickable: the left list, family members, member cards, rows, menus, every dialog. Things that would open an existing screen show a short note. "Highlight clickable" outlines every target.</div>
+  <div class="rule"><b>Status:</b> a structural mockup for your review, not pixel-final. Nothing is built. These are companions to the layout doc, the design-system doc and the utilities list in <span class="mono">Docs/orchestration/2026-10-23-profile-*.md</span>.</div>
+</div>
+
+<div class="tools" role="toolbar" aria-label="Mockup controls">
+  <div class="grp"><span class="lab">Theme</span><button class="chip" data-t="light" aria-pressed="false">Light</button><button class="chip" data-t="dark" aria-pressed="false">Dark</button></div>
+  <div class="grp"><span class="lab">State</span><button class="chip" data-st="normal" aria-pressed="true">Normal</button><button class="chip" data-st="loading" aria-pressed="false">Loading</button><button class="chip" data-st="empty" aria-pressed="false">Empty</button><button class="chip" data-st="error" aria-pressed="false">Error</button></div>
+  <div class="grp"><span class="lab">Household</span><button class="chip" data-h="family" aria-pressed="true">Family (4)</button><button class="chip" data-h="one" aria-pressed="false">One member</button></div>
+  <div class="grp"><span class="lab">Onboarding data</span><button class="chip" data-g="two" aria-pressed="true">Two goals</button><button class="chip" data-g="all" aria-pressed="false">All four</button><button class="chip" data-g="none" aria-pressed="false">Skipped (null)</button><button class="chip" data-g="unknown" aria-pressed="false">Newer value</button></div>
+  <div class="grp"><span class="lab">Guide</span><button class="chip" data-hl="1" aria-pressed="false">Highlight clickable</button></div>
+  <div class="grp"><span class="lab">Dev tools</span><button class="chip" data-d="on" aria-pressed="true">Import health link on</button><button class="chip" data-d="off" aria-pressed="false">Off</button></div>
+</div>
+
+<section id="full"><h2>The page, in the shell</h2>
+<p class="lead">Styled after page 31 of the PDF: white cards, soft borders, green selected tint, outlined action buttons, avatar circles, Admin and Member pills. One section at a time, as you decided. Everything is clickable.</p>
+<div class="frame"><p class="cap">Mockup (scrolls sideways on narrow screens)</p><div class="mk" id="mfull" style="padding:0;background:transparent"></div></div></section>
+
+<section id="layout"><h2>Layout: the page frame</h2>
+<p class="lead">Inside the shell's app layout (sidebar and top bar belong to the shell). Profile draws a title, a left list of seven items with Logout at the foot, and one section at a time (L1, L36). Profile is not scoped: the top-bar selector does not change it.</p>
+<div class="wf">+-- shell sidebar --+--- top bar (search, Ask Mira, family selector, theme) --------+
+| Home               |                                                                |
+| Portfolio          |  Profile                                                      |
+| Liabilities        |  Manage your account, family members, preferences and data.   |
+| Planning           |  +----------------+------------------------------------------+ |
+|                    |  | Personal Info *| (section content, one page at a time)    | |
+|                    |  | Family Members |                                          | |
+|                    |  | Connected Acc. |                                          | |
+|                    |  | Settings       |                                          | |
+| Profile  *         |  | Subscription   |                                          | |
+| Help &amp; Support    |  | Tax Info       |                                          | |
+|                    |  | Data &amp; Privacy|                                          | |
+|                    |  | -------------- |                                          | |
+|                    |  | Logout         |                                          | |
++--------------------+  +----------------+------------------------------------------+ |</div>
+<div class="notes">
+<div><h4>Left list</h4>About 210 px wide, 40 px rows, 20 px icon, active row in the selected tint. Real router links, so Back and Forward work. Settings stays active on its four child pages. Logout opens the existing confirmation.</div>
+<div><h4>Content column</h4>Takes the rest, scrolls with the page, minimum about 640 px. Tables scroll sideways inside their own container. No layout below 768 px: the shell hands over to the mobile tree.</div>
+<div><h4>Page map</h4>Personal Information: header card, personal card, Coming soon block. Family: strip and table. Connected Accounts, Tax: Coming soon. Settings: four rows. Subscription: one card. Data &amp; Privacy: four cards.</div>
+<div><h4>Scope</h4>None. Member banners are not shown on Profile, as today.</div></div>
+</section>
+
+<section id="states"><h2>Layout: state matrix</h2>
+<div class="scroll"><table>
+<tr><th>Page</th><th>Loading</th><th>Empty</th><th>Error</th><th>Partial</th></tr>
+<tr><td class="k">Personal Information</td><td>Skeleton header and card</td><td>n/a (an account always exists)</td><td>Message with Retry; name, email, phone still show from the account call</td><td>PAN missing: "Not added"</td></tr>
+<tr><td class="k">Family Members</td><td>Skeleton strip and rows</td><td>"No family members yet" with Add Member</td><td>Message with Retry</td><td>Card without PAN: "Not added"</td></tr>
+<tr><td class="k">Settings and its Coming soon pages</td><td>none (static)</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+<tr><td class="k">Import History</td><td>The existing section's own states</td><td>its own</td><td>its own</td><td>n/a</td></tr>
+<tr><td class="k">Subscription, Tax, Connected</td><td>none (static)</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+<tr><td class="k">Data &amp; Privacy</td><td>Skeleton per block</td><td>Consents: "No consents recorded."</td><td>Retry per block; one failing block never hides the others</td><td>n/a</td></tr>
+</table></div>
+<div class="notes"><div><h4>PAN</h4>Always shown masked (first two and last two characters). There is no Show or Hide control and no way to see the full PAN on this screen (L49). No PAN: "Not added". A PAN held by another account: masked, with a "Held by another account" tag.</div></div>
+</section>
+
+<section id="tokens"><h2>Design system: colour tokens</h2>
+<p class="lead">Source: <span class="mono">Docs/Unifolio Colour Palette.pdf</span>, as adopted for Home and the shell (scoped tokens, tokens.css untouched). Profile adds no new colour. Values below are read live from the current theme.</p>
+<div id="swatches"></div>
+<div class="notes">
+<div><h4>Where Profile uses colour</h4>Selected tint behind the active list item and the "Admin" pill; primary green for the Add Member button and focus rings; informational tint for the "Member" pill; warning tint only if a pending PAN note is shown; neutral tint for "Coming soon" tags; negative text and border only for Delete account and errors.</div>
+<div><h4>Green is rare</h4>One or two green elements per screen: the active list item, one primary button, the focus ring.</div>
+<div><h4>Fonts</h4>DM Sans for headings, Manrope for body, tabular numerals for PAN and dates.</div></div>
+</section>
+
+<section id="type"><h2>Type, radius, spacing</h2>
+<div class="frame"><div class="mk"><div class="stack" style="gap:10px">
+ <div class="row" style="gap:24px;align-items:baseline"><h1 style="font-size:24px">Profile</h1><span class="sec">Page title 24 / 700, DM Sans</span></div>
+ <div class="row" style="gap:24px;align-items:baseline"><h2 style="font-size:20px">Siddharth Surve</h2><span class="sec">Name in the header card 20 / 600</span></div>
+ <div class="row" style="gap:24px;align-items:baseline"><h3 style="font-size:16px">Family Members</h3><span class="sec">Card title 16 / 600</span></div>
+ <div class="row" style="gap:24px;align-items:baseline"><span>siddharth@example.in</span><span class="sec">Body 14 / 400, Manrope</span></div>
+ <div class="row" style="gap:24px;align-items:baseline"><span class="fl">Date of birth</span><span class="sec">Field label 12 / 500, secondary</span></div>
+ <div class="row" style="gap:24px;align-items:baseline"><span class="panv fv">AB******4F</span><span class="sec">PAN: tabular numerals, 0.03em tracking</span></div>
+ <div class="row" style="gap:14px"><div class="card" style="width:120px;border-radius:8px">8px</div><div class="card" style="width:120px">12px (cards)</div><div class="card" style="width:120px;border-radius:20px">20px (dialogs)</div><span class="sec">Spacing: 16px card padding, 16px between cards, 20px between list and content, 8 to 12px inside rows.</span></div>
+</div></div></div></section>
+
+<section id="utils"><h2>Utilities (live)</h2>
+<p class="lead">Pure helpers that the build will unit-test (<span class="mono">profile-v2/lib</span>). Type to see the real behaviour.</p>
+<div class="demo">
+ <div><label for="u1">PAN (masking, first two and last two)</label><input id="u1" value="ABCDE1234F"><div class="out2" id="u1o"></div></div>
+ <div><label for="u2">Name (initials)</label><input id="u2" value="Siddharth Surve"><div class="out2" id="u2o"></div></div>
+ <div><label for="u3">Relationship (access level)</label><select id="u3"><option value="self">self</option><option value="spouse">spouse</option><option value="parent">parent</option><option value="child">child</option><option value="sibling">sibling</option><option value="other">other</option></select><div class="out2" id="u3o"></div></div>
+ <div><label for="u4">Members in the household (account type)</label><input id="u4" type="number" min="0" value="4"><div class="out2" id="u4o"></div></div>
+ <div><label for="u5">Member id (avatar colour)</label><input id="u5" value="m-2f9c1"><div class="out2" id="u5o"></div></div>
+ <div><label for="u7">primary_goals (JSON array from onboarding)</label><input id="u7" value='["consolidated_view","retirement_planning"]'><div class="out2" id="u7o"></div></div>
+ <div><label for="u6">Created date (member since)</label><input id="u6" value="2025-10-14T09:30:00+05:30"><div class="out2" id="u6o"></div></div>
+</div>
+<div class="notes"><div><h4>Other utilities</h4><ul><li><b>profileNav</b>: the seven items and four Settings children as one constant, used by the list, the tests and the route files.</li><li><b>maskPan</b>: always masked, so there is no reveal hook (L49).</li><li><b>goalChips / investorLabel</b>: map onboarding codes to the titles shown in onboarding (see the box above); unknown codes kept and flagged.</li><li><b>ComingSoonPage</b>: one component, copy per page.</li></ul></div></div>
+</section>
+
+<section id="components"><h2>Components: reuse and new</h2>
+<div class="scroll"><table><tr><th>Piece</th><th>Status</th><th>Used in</th></tr>
+<tr><td>Card, Badge, Button, Dialog/Modal, Tooltip, Skeleton, Table, EmptyState</td><td><span class="tag done">reuse</span></td><td>all pages</td></tr>
+<tr><td>PageLayout, PageState, AppLink, paths (shell)</td><td><span class="tag done">reuse (shell)</span></td><td>frame, links</td></tr>
+<tr><td>CompleteProfileDialog, DeletePortfolioDialog, ImportHistorySection, TermsSection, LogoutConfirmDialog</td><td><span class="tag done">reuse, unchanged</span></td><td>Personal, Family, Settings, Data &amp; Privacy</td></tr>
+<tr><td>ProfileFrame, ProfileNav, InitialsAvatar</td><td><span class="tag open">new</span></td><td>all pages</td></tr>
+<tr><td>HeaderCard, PersonalInfoCard, PanField, ComingSoonBlock</td><td><span class="tag open">new</span></td><td>Personal</td></tr>
+<tr><td>FamilyStrip, MemberCard (today's card layout, restyled), ProfileCompletionChip, AddStatementDialog</td><td><span class="tag open">new</span></td><td>Family</td></tr>
+<tr><td>FinancialDetailsCard, GoalsDialog, InvestorTypeDialog, goalChips()</td><td><span class="tag open">new</span></td><td>Personal</td></tr>
+<tr><td>ContactChangeDialog, DeleteAccountDialog</td><td><span class="tag open">new (repeats old behaviour)</span></td><td>Personal, Data &amp; Privacy</td></tr>
+<tr><td>SettingsRows, ComingSoonPage, SubscriptionCard</td><td><span class="tag open">new</span></td><td>Settings, Connected, Tax, Subscription</td></tr>
+<tr><td>ConsentList, StoredDataNote</td><td><span class="tag open">new</span></td><td>Data &amp; Privacy</td></tr>
+</table></div></section>
+
+<section id="p-personal"><h2>Personal Information</h2>
+<p class="lead">Opens here (L13). The header card carries name and PAN (so the Personal Information card no longer repeats them, L46). Financial Details now shows what onboarding already stored: investor type and goals, with an Edit that reuses the onboarding call (L43). Everything else there is Coming soon. No date of birth, address or photo (L18, L19).</p>
+<div class="frame"><p class="cap">Mockup (interactive)</p><div class="mk pfw" data-start="personal"></div></div>
+<div class="notes"><div><h4>Source</h4>Account call (name, email, phone, created date, investor type, goals); household list (PAN, members).</div><div><h4>Onboarding answers (try the "Onboarding data" buttons above)</h4>Goals are stored as a JSON array of option codes, so the card maps each code to the title shown in onboarding, in the onboarding order. A null or empty list shows "Not answered" with an Add button. A code this screen does not know yet is shown humanised in a dashed chip, never dropped. "All of it" in onboarding saves the four real codes, so all four chips show.</div><div><h4>Actions</h4>Edit Profile: existing Complete profile dialog. Change email or mobile: new contact-change dialog. Edit goals or investor type: saved with the existing <span class="mono">PATCH /auth/me</span>, so no backend change.</div></div></section>
+
+<section id="p-family"><h2>Family Members</h2>
+<p class="lead">Strip in the PDF's style (L23). Its last tile is now "Add statement": it asks who the statement is for, then opens the upload options (L45). The member list keeps today's card layout, including the profile-completion chip, instead of the PDF's table (L47). The Admin or Member label stays (L6).</p>
+<div class="frame"><p class="cap">Mockup (interactive)</p><div class="mk pfw" data-start="family"></div></div>
+<div class="notes"><div><h4>Source</h4>Household members list (name, PAN, relationship, phone, email, profile completion, missing fields).</div><div><h4>Completion chip</h4>Below 100% the card shows "60% complete · Finish profile" (or "Add email" when one field is missing) with a progress ring; at 100% it becomes an Edit profile button. Same behaviour as today.</div><div><h4>States</h4>Empty shows "No family members yet" and the tile goes straight to upload. The fourth member's PAN is held by another account, so it has no Show control.</div><div><h4>Rules</h4>Merge happens only inside Edit's possible-duplicate prompt. There is no Add Member button now: people come in through statements.</div></div></section>
+
+<section id="p-connected"><h2>Connected Accounts</h2>
+<p class="lead">Not built now; a Coming soon page in the list (L24, L33). The full design is kept in DEFERRED_FEATURES.md.</p>
+<div class="frame"><p class="cap">Mockup</p><div class="mk pfw" data-start="connected"></div></div></section>
+
+<section id="p-settings"><h2>Settings</h2>
+<p class="lead">One list item with four rows (L25, L32). Three open Coming soon pages; Import History opens the existing list, shown here with a stand-in because that component is reused unchanged.</p>
+<div class="frame"><p class="cap">Mockup (click the rows)</p><div class="mk pfw" data-start="settings"></div></div>
+<div class="notes"><div><h4>Routes</h4><span class="mono">/profile/settings</span>, then <span class="mono">notifications</span>, <span class="mono">preferences</span>, <span class="mono">security</span>, <span class="mono">import-history</span>.</div><div><h4>Dev link</h4>"Import health (staging)" shows only when dev tools are enabled (toggle above).</div></div></section>
+
+<section id="p-subscription"><h2>Subscription &amp; Billing</h2>
+<p class="lead">A placeholder card (L4, L27): "Early access", Active, one line. No price, renewal date or billing history.</p>
+<div class="frame"><p class="cap">Mockup</p><div class="mk pfw" data-start="subscription"></div></div></section>
+
+<section id="p-tax"><h2>Tax Information</h2>
+<p class="lead">Coming soon (L9).</p>
+<div class="frame"><p class="cap">Mockup</p><div class="mk pfw" data-start="tax"></div></div></section>
+
+<section id="p-privacy"><h2>Data &amp; Privacy</h2>
+<p class="lead">Four blocks (L10, L28): terms and policies, your consents, what we store, Delete account. No export, no consent withdrawal.</p>
+<div class="frame"><p class="cap">Mockup (interactive)</p><div class="mk pfw" data-start="privacy"></div></div>
+<div class="notes"><div><h4>Source</h4>Legal documents; consent history; fixed "what we store" text (lawyer to check before launch); the existing account-deletion call.</div><div><h4>Empty</h4>Switch Empty to see "No consents recorded."</div></div></section>
+
+<section id="dialogs"><h2>Dialogs</h2>
+<p class="lead">The new dialogs repeat the behaviour of the ones inside today's Profile (so the old screen is not edited). Existing dialogs are shown as stubs.</p>
+<div class="frame"><div class="mk"><div class="row">
+ <button class="btn2" data-dlg="contact-email">Change email</button>
+ <button class="btn2" data-dlg="contact-phone">Change mobile</button>
+ <button class="btn2" data-dlg="whom">Add statement for whom?</button>
+ <button class="btn2" data-dlg="goals">Edit goals</button>
+ <button class="btn2" data-dlg="investor">Edit investor type</button>
+ <button class="btn2 dng" data-dlg="delete">Delete account</button>
+ <button class="btn2" data-dlg="logout">Logout</button>
+ <button class="btn2" data-dlg="edit">Edit Profile (existing dialog)</button>
+ <button class="btn2" data-dlg="delfunds">Delete all funds (existing dialog)</button>
+</div></div></div></section>
+
+
+<section id="applied"><h2>Decisions applied</h2>
+<div class="scroll"><table><tr><th>Mockup detail</th><th>Decision</th></tr>
+<tr><td>One section visible at a time; seven list items; Logout in the footer</td><td>L1, L8, L36</td></tr>
+<tr><td>Opens on Personal Information; header card only there; strip only on Family</td><td>L13, L14</td></tr>
+<tr><td>Initials avatar, no camera, no DOB or address, derived account type</td><td>L18, L19</td></tr>
+<tr><td>PAN always masked, no Show or Hide</td><td>L49 (supersedes L34, L40, L41)</td></tr>
+<tr><td>Financial Details shows investor type and goals from onboarding; the rest Coming soon</td><td>L43, L44 (amends L31)</td></tr>
+<tr><td>Personal Information card has email and mobile only</td><td>L46</td></tr>
+<tr><td>Family strip tile is Add statement; today's member cards with the completion chip; no Add Member button</td><td>L45, L47 (amend L22, L35, L38)</td></tr>
+<tr><td>Connected Accounts and Tax as Coming soon pages</td><td>L9, L24, L33</td></tr>
+<tr><td>Settings with four rows incl. Import History; dev link</td><td>L25, L32, L37</td></tr>
+<tr><td>Early access card</td><td>L4, L27</td></tr>
+<tr><td>Data &amp; Privacy four blocks</td><td>L10, L28</td></tr>
+<tr><td>No View as Family button</td><td>L16</td></tr>
+</table></div></section>
+</main>
+</div>
+<div id="mkroot"></div>
+
+<script src="https://unpkg.com/lucide@0.475.0/dist/umd/lucide.min.js"></script>
+<script>
+(function(){
+var S={st:'normal',h:'family',dev:true,hl:false,g:'two',shown:{},loading:{},err:{},menu:null,flash:null,open:{},theme:null,importFor:null,wrap:null};
+/* Onboarding answers as the API returns them: primary_goals is a JSON array of enum strings (or null), investor_type a single enum string (or null). */
+var GOAL_OPTS=[['consolidated_view','Consolidated portfolio view','See all my mutual funds across every broker and fund house in one place'],['understand_holdings','Understand true performance','See your true returns after fees, taxes and plan type'],['family_management','Family wealth tracking','Managing investments for family members under one dashboard'],['performance_comparison','Compare distributor fees','Compare returns and costs across different distributors']];
+var INV_OPTS=[['self_directed','Mostly on my own','Direct SIPs, mutual funds, maybe some stocks'],['advisor_assisted','Through an advisor or distributor','Distributor, bank advisor or family office, alongside my own tracking'],['mixed','A mix of both','A bit of self-directed investing and a bit through an advisor'],['beginner','Just getting started',"Haven't invested much yet, building my portfolio"]];
+var ONB={two:{goals:['consolidated_view','family_management'],inv:'self_directed'},all:{goals:['consolidated_view','understand_holdings','family_management','performance_comparison'],inv:'mixed'},none:{goals:null,inv:null},unknown:{goals:['consolidated_view','retirement_planning'],inv:'beginner'}};
+function humanise(v){var s=String(v).replace(/_/g,' ');return s.charAt(0).toUpperCase()+s.slice(1)}
+/* Pure display helpers: canonical order, label from the onboarding screens, unknown values kept (humanised, flagged), null or empty means not answered. */
+function goalChips(arr){
+ if(!Array.isArray(arr)||!arr.length)return [];
+ var known=GOAL_OPTS.map(function(o){return o[0]}),out=[];
+ GOAL_OPTS.forEach(function(o){if(arr.indexOf(o[0])>=0)out.push({t:o[1],unknown:false})});
+ arr.forEach(function(v){if(known.indexOf(v)<0)out.push({t:humanise(v),unknown:true})});
+ return out;
+}
+function investorLabel(v){if(!v)return null;for(var i=0;i<INV_OPTS.length;i++)if(INV_OPTS[i][0]===v)return INV_OPTS[i][1];return humanise(v)}
+function $(i){return document.getElementById(i)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function ic(n){return '<i data-lucide="'+n+'"></i>'}
+function sk(n,w){var h='';for(var i=0;i<n;i++)h+='<div class="sk" style="width:'+(w?w[i%w.length]:'100%')+';margin:12px 0"></div>';return h}
+function say(m){return ' data-say="'+esc(m)+'"'}
+
+/* ---- utilities (pure; these are what the build unit-tests) ---- */
+function maskPan(p){if(!p)return p;if(p.length<5)return new Array(p.length+1).join('*');return p.slice(0,2)+new Array(p.length-3).join('*')+p.slice(-2)}
+function initialsOf(n){var w=String(n||'').trim().split(/\s+/).filter(Boolean);if(!w.length)return '?';if(w.length===1)return w[0][0].toUpperCase();return (w[0][0]+w[w.length-1][0]).toUpperCase()}
+function accessLevel(rel){return rel==='self'?'Admin':'Member'}
+function accountType(n){return n>1?'Family':'Individual'}
+function avatarIdx(id){var s=0;for(var i=0;i<id.length;i++)s+=id.charCodeAt(i);return s%4}
+var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function memberSince(iso){var d=new Date(iso);if(isNaN(d))return 'Invalid date';return MON[d.getMonth()]+' '+d.getFullYear()}
+
+/* ---- sample data (fictional) ---- */
+var ME={name:'Siddharth Surve',email:'siddharth@example.in',phone:'+91 98765 43210',since:'2025-10-14T09:30:00+05:30'};
+var ALL=[
+ {id:'m1',name:'Siddharth Surve',rel:'self',relLabel:'Me',pan:'ABCDE1234F',state:'ok',av:0,phone:'+91 98765 43210',email:'siddharth@example.in',pct:100,ask:''},
+ {id:'m2',name:'Aditi Surve',rel:'spouse',relLabel:'Spouse',pan:'FGHIJ5678K',state:'ok',av:1,phone:'+91 98111 22233',email:null,pct:80,ask:'Add email'},
+ {id:'m3',name:'Ramesh Surve',rel:'parent',relLabel:'Father',pan:'LMNOP9012Q',state:'pending',av:2,phone:null,email:null,pct:60,ask:'Finish profile',fromStmt:true},
+ {id:'m4',name:'Pooja Surve',rel:'parent',relLabel:'Mother',pan:'RSTUV3456W',state:'conflict',av:3,phone:null,email:'pooja@example.in',pct:80,ask:'Add phone number',fromStmt:true}];
+function members(){if(S.st==='empty')return [];return S.h==='one'?ALL.slice(0,1):ALL}
+var NAV=[['personal','user-round','Personal Information'],['family','users','Family Members'],['connected','link-2','Connected Accounts'],['settings','settings','Settings'],['subscription','credit-card','Subscription & Billing'],['tax','file-text','Tax Information'],['privacy','shield-check','Data & Privacy']];
+var COPY={
+ connected:['Connected Accounts','link-2','Connected accounts are coming. Today you add mutual fund data by importing a statement.'],
+ tax:['Tax Information','file-text','Tax information is coming.'],
+ 'set-notifications':['Notifications','bell','Notification settings are coming. Today Unifolio only emails you the code you sign in with.'],
+ 'set-preferences':['Preferences','sliders-horizontal','Display and other preferences are coming. You can switch between light and dark mode from the top bar.'],
+ 'set-security':['Security','lock','Security settings are coming. You sign in with a one-time code or your Google account, so there is no password to manage.']};
+var PLANNED=[['landmark','Bank accounts'],['chart-no-axes-column','Stocks & ETFs'],['badge-percent','Fixed deposits & bonds'],['coins','Gold'],['globe','US stocks'],['house','Real estate']];
+
+/* ---- pieces ---- */
+function avatar(name,idx,size,extra){return '<span class="av s'+size+' a'+idx+'" aria-hidden="true"'+(extra||'')+'>'+esc(initialsOf(name))+'</span>'}
+function ring(p){return '<span class="ringw" role="progressbar" aria-valuenow="'+p+'" aria-valuemin="0" aria-valuemax="100"><svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15.9" fill="none" stroke-width="4" class="rb"/><circle cx="18" cy="18" r="15.9" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray="'+p+', 100" class="rf"/></svg></span>'}
+function banner(msg){return '<div class="err" role="alert"><span style="display:flex;gap:8px;align-items:center">'+ic('triangle-alert')+esc(msg)+'</span><button class="btn2" data-act="retry">Retry</button></div>'}
+function panField(m){
+ if(!m||!m.pan)return '<span class="sec">Not added</span>';
+ var out='<span class="panf"><span class="panv fv" data-say="Your PAN is always shown masked, to protect it.">'+esc(maskPan(m.pan))+'</span>';
+ if(m.state==='conflict')out+='<span class="pill" data-say="This PAN is held by another Unifolio account.">Held by another account</span>';
+ return out+'</span>';
+}
+function soonCard(key,withBack){
+ var c=COPY[key];
+ var h=(withBack?'<button class="back" data-nav="settings">'+ic('chevron-left')+'Settings</button>':'')+'<div class="soon"><span class="big2">'+ic(c[1])+'</span><h3>'+esc(c[0])+'</h3><span class="soonb">'+ic('clock')+'Coming soon</span><p class="sec" style="max-width:50ch;margin:0">'+esc(c[2])+'</p>';
+ if(key==='connected'){h+='<div class="sec" style="font-size:12px;margin-top:10px">What we plan to connect</div><div class="ghostlist">';PLANNED.forEach(function(p){h+='<div class="gl"'+say(p[1]+' is planned. Not available yet.')+'><span class="tile">'+ic(p[0])+'</span><span class="fv">'+p[1]+'</span><span class="soonb">Coming soon</span></div>'});h+='</div>'}
+ return h+'</div>';
+}
+
+/* ---- pages ---- */
+function pPersonal(){
+ if(S.st==='loading')return '<div class="card hc">'+sk(4,['40%','60%','30%','50%'])+'</div><div class="two2"><div class="card">'+sk(6)+'</div><div class="card">'+sk(4)+'</div></div>';
+ var ms=members(),self=ms[0]||null,bad=S.st==='error';
+ var h=(bad?banner('Could not load your household. Your name, email and phone are still shown.'):'');
+ h+='<div class="card hc"><div class="top2"><div class="id">'+avatar(ME.name,0,76,say('Your avatar shows your initials. Photo upload is not planned for this release.'))+'<div style="min-width:0"><div class="nmv hot hotr" style="padding:2px 8px;margin:0 -8px" data-dlg="edit">'+esc(ME.name)+'</div><div class="sm">'+esc(ME.email)+'<br>'+esc(ME.phone)+'</div></div></div><button class="btn2" data-dlg="edit">'+ic('pencil')+'Edit Profile</button></div>'+
+ '<div class="facts"><div class="fact hot"'+say('Your PAN is always shown masked, to protect it.')+'><div class="fl">PAN</div>'+(bad?'<span class="sec">Not available</span>':panField(self))+'</div>'+
+ '<div class="fact hot"'+say('Individual when you track one person, Family when you add more.')+'><div class="fl">Account type</div><div class="fv">'+(bad?'—':accountType(ms.length||1))+'</div></div>'+
+ '<div class="fact hot"'+say('The month you joined Unifolio.')+'><div class="fl">Member since</div><div class="fv">'+memberSince(ME.since)+'</div></div></div></div>';
+ var o=ONB[S.g],chips=goalChips(o.goals),inv=investorLabel(o.inv);
+ var g=function(k,why){return '<div class="kv ghost hot hotr"'+say(why+' is coming soon.')+'><span class="k">'+k+'</span><span class="v">—</span>'+ic('lock')+'</div>'};
+ var goalsHtml=chips.length?'<div class="gchips live">'+chips.map(function(c){return '<span class="gchip on'+(c.unknown?' unk':'')+'" data-dlg="goals"'+(c.unknown?' title="A newer option this screen does not know yet"':'')+'>'+esc(c.t)+(c.unknown?' '+ic('circle-help'):'')+'</span>'}).join('')+'<button class="gchip add" data-dlg="goals">'+ic('pencil')+'Edit</button></div>':'<div class="gchips live"><span class="sec">Not answered</span><button class="gchip add" data-dlg="goals">'+ic('plus')+'Add goals</button></div>';
+ h+='<div class="two2"><div class="card"><div class="ttl"><div><h3>Personal Information</h3><div class="s">Keep your contact details up to date.</div></div></div>'+
+ '<div class="kv hot hotr" data-dlg="contact-email"><span class="k">Email address</span><span class="v">'+esc(ME.email)+'</span>'+ic('pencil').replace('<i ','<i class="ed" ')+'</div>'+
+ '<div class="kv hot hotr" data-dlg="contact-phone"><span class="k">Mobile number</span><span class="v">'+esc(ME.phone)+'</span>'+ic('pencil').replace('<i ','<i class="ed" ')+'</div></div>'+
+ '<div class="card"><div class="ttl"><div><h3>Financial Details</h3><div class="s">From your onboarding answers. Used to personalise insights.</div></div><button class="btn2" data-dlg="goals">'+ic('pencil')+'Edit</button></div>'+
+ '<div class="kv hot hotr" data-dlg="investor"><span class="k">Investor type</span><span class="v">'+(inv?esc(inv):'<span class="sec">Not answered</span>')+'</span>'+ic('pencil').replace('<i ','<i class="ed" ')+'</div>'+
+ '<div class="kv" style="grid-template-columns:118px minmax(0,1fr);align-items:start"><span class="k" style="padding-top:5px">Goals</span><span class="v">'+goalsHtml+'</span></div>'+
+ '<div class="sec" style="font-size:12px;margin:12px 0 2px">More coming soon</div><div class="ghost">'+g('Occupation','Occupation')+g('Industry','Industry')+g('Annual income range','Annual income range')+g('Net worth range','Net worth range')+g('Risk profile','Risk profile')+g('Investment experience','Investment experience')+'</div></div></div>';
+ return h;
+}
+function pFamily(){
+ if(S.st==='loading')return '<div class="card">'+sk(2,['30%','50%'])+'</div><div class="card">'+sk(6)+'</div>';
+ if(S.st==='error')return banner('Could not load your family members.');
+ var ms=members();
+ var h='<div class="card"><div class="ttl"><div><h3>Family Account</h3><div class="s">Manage family members and their access</div></div><button class="btn2" data-act="manage">'+ic('users')+'Manage Members</button></div><div class="strip">';
+ ms.forEach(function(m){var first=m.name.split(' ')[0];h+='<div class="m" data-act="flash" data-id="'+m.id+'" role="button" tabindex="0" aria-label="Show '+esc(m.name)+' in the table">'+avatar(m.name,m.av,52)+'<b>'+esc(first)+'</b><span class="lb'+(m.rel==='self'?' pri':'')+'">'+(m.rel==='self'?'Primary User':'Member')+'</span></div>'});
+ h+='<div class="m" data-act="addstmt" role="button" tabindex="0"><span class="addtile">'+ic('file-up')+'</span><b>Add statement</b><span class="lb">For a family member</span></div></div></div>';
+ h+='<div class="card" id="ftable"><div class="ttl"><div><h3>Family Members</h3><div class="s">The people whose portfolios you track. Add a statement to bring in their funds.</div></div></div>';
+ if(!ms.length)return h+'<div class="notice hot" data-act="addstmt">'+ic('file-up')+'No family members yet. Add a statement and we will find the people in it.</div></div>';
+ h+='<div class="mlist">';
+ ms.forEach(function(m){
+  var ad=accessLevel(m.rel)==='Admin',self=m.rel==='self';
+  var phone=m.phone||'Not added',email=m.email||'Not added';
+  var nudge=m.pct<100?'<button class="nudge" data-dlg="edit" aria-label="Profile '+m.pct+' percent complete">'+ring(m.pct)+'<span>'+m.pct+'% complete · '+esc(m.ask)+'</span><span class="arr" aria-hidden="true">→</span></button>':'<button class="btn2" data-dlg="edit">'+ic('pencil')+'Edit profile</button>';
+  h+='<article id="row-'+m.id+'" class="mcard hotc'+(S.flash===m.id?' flash':'')+'" aria-label="'+esc(m.name)+'">'+
+  '<div class="mhead">'+avatar(m.name,m.av,40)+'<div style="min-width:0"><div class="mname">'+esc(m.name)+'</div>'+(m.fromStmt?'<div class="sec" style="font-size:12px">from your statement</div>':'')+'</div><span class="pillx '+(ad?'ad':'me')+'" data-say="'+(ad?'Admin: the account holder. A label only, there are no roles.':'Member: a person whose portfolio you track. A label only.')+'">'+accessLevel(m.rel)+'</span></div>'+
+  '<dl class="mgrid"><div><dt>PAN</dt><dd>'+panField(m)+(m.state==='conflict'?'<div class="cap3">On another Unifolio account</div>':'')+'</dd></div><div><dt>Relationship</dt><dd class="fv">'+esc(m.relLabel)+'</dd></div><div><dt>Phone</dt><dd class="fv'+(m.phone?'':' mutedv')+'">'+esc(phone)+'</dd></div><div><dt>Email</dt><dd class="fv'+(m.email?'':' mutedv')+'">'+esc(email)+'</dd></div></dl>'+
+  '<div class="mact">'+(self?'<button class="tl2" data-nav="personal">Change in Account Info</button>':'')+nudge+'<button class="delf" data-dlg="delfunds" aria-label="Delete all funds for '+esc(m.name)+'">'+ic('trash-2')+'Delete all funds</button></div></article>';
+ });
+ return h+'</div></div>';
+}
+function pSettings(){
+ var rows=[['set-notifications','bell','Notifications','Manage how Unifolio contacts you',true],['set-preferences','sliders-horizontal','Preferences','Display and other preferences',true],['set-security','lock','Security','Sign-in and account security',true],['set-import','history','Import History','See the statements you imported, and delete one',false]];
+ var h='<div class="card"><div class="ttl"><div><h3>Settings</h3><div class="s">Manage how Unifolio works for you.</div></div></div>';
+ rows.forEach(function(r){h+='<a class="srow" href="#" data-nav="'+r[0]+'"><span class="tile">'+ic(r[1])+'</span><span><span class="t">'+r[2]+'</span>'+(r[4]?' <span class="soonb">Coming soon</span>':' <span class="tag2 ok">Live</span>')+'<br><span class="d">'+r[3]+'</span></span>'+ic('chevron-right').replace('<i ','<i class="chev" ')+'</a>'});
+ if(S.dev)h+='<div class="devlink hot" data-say="Opens the staging-only Import health screen (dev tools only).">'+ic('wrench')+'Import health <span class="tag2 info">STAGING</span> shown only when dev tools are on</div>';
+ return h+'</div>';
+}
+function pImport(){
+ var back='<button class="back" data-nav="settings">'+ic('chevron-left')+'Settings</button>';
+ if(S.st==='loading')return back+'<div class="card">'+sk(5)+'</div>';
+ if(S.st==='error')return back+banner('Could not load your import history.');
+ var rows=S.st==='empty'?[]:[['CAS statement, 1 Apr 2023 to 30 Sep 2026','Siddharth Surve','12 Oct 2026','14 funds, 212 transactions'],['CAS statement, 1 Apr 2023 to 30 Sep 2026','Aditi Surve','12 Oct 2026','9 funds, 133 transactions'],['CAS statement, 1 Jan 2020 to 31 Mar 2023','Siddharth Surve','3 Aug 2026','11 funds, 187 transactions']];
+ var h=back+'<div class="card"><div class="ttl"><div><h3>Import History</h3><div class="s">Statements you imported. Click one to see what it added.</div></div><span class="pill est">existing component, stand-in drawing</span></div>';
+ if(!rows.length)return h+'<div class="notice hot" data-nav="settings">'+ic('history')+'No imports yet.</div></div>';
+ rows.forEach(function(r,i){h+='<div class="lrow x hot" data-act="open" data-id="'+i+'"><div><div class="fv">'+r[0]+'</div><div class="sec" style="font-size:12.5px">'+r[1]+' · imported '+r[2]+'</div></div><span class="menuw"><button class="iconbtn del" data-dlg="delimport" aria-label="Delete import">'+ic('trash-2')+'</button></span>'+(S.open[i]?'<div class="more">'+r[3]+' added to '+r[1].split(' ')[0]+'\'s portfolio.</div>':'')+'</div>'});
+ return h+'</div>';
+}
+function pSub(){
+ return '<div class="card hotc" data-say="No price, renewal date or billing history: this is a placeholder."><div class="ttl"><div><h3>Subscription &amp; Billing</h3><div class="s">Your plan.</div></div><span class="tag2 ok">Active</span></div>'+
+ '<div class="facts" style="border-top:0;grid-template-columns:repeat(2,minmax(0,1fr))"><div class="fact"><div class="fl">Current plan</div><div class="fv">Early access</div></div><div class="fact"><div class="fl">Status</div><div class="fv">Active</div></div></div>'+
+ '<p class="sec" style="margin:10px 0 0">You are using Unifolio during early access.</p></div>';
+}
+function pPrivacy(){
+ if(S.st==='loading')return '<div class="card">'+sk(4)+'</div><div class="card">'+sk(3)+'</div><div class="card">'+sk(4)+'</div>';
+ var h='<div class="card"><div class="ttl"><div><h3>Terms and policies</h3><div class="s">The documents you agreed to.</div></div></div>';
+ ['Terms of Service','Privacy Policy','PAN disclaimer'].forEach(function(t){h+='<div class="lrow hot" data-say="Opens the existing document viewer for the '+t+'."><span class="fv">'+t+'</span><span class="tl">'+ic('file-text')+'View</span></div>'});
+ h+='</div><div class="card"><div class="ttl"><div><h3>Your consents</h3><div class="s">What you agreed to, and when.</div></div></div>';
+ if(S.st==='error')h+=banner('Could not load your consents.');
+ else if(S.st==='empty')h+='<div class="notice">'+ic('file-check')+'No consents recorded.</div>';
+ else [['Terms of Service','v1.0','14 Oct 2025'],['Privacy Policy','v1.0','14 Oct 2025'],['PAN disclaimer','v1.0','21 Oct 2025']].forEach(function(c){h+='<div class="lrow hot" data-say="Opens the version of the '+c[0]+' you agreed to."><span style="display:flex;gap:10px;align-items:center"><span class="tick">'+ic('check')+'</span><span><span class="fv">'+c[0]+'</span> <span class="sec">'+c[1]+'</span></span></span><span class="sec">agreed '+c[2]+'</span></div>'});
+ h+='</div><div class="card"><div class="ttl"><div><h3>What we store</h3><div class="s">In plain words.</div></div></div>';
+ ['Your PAN is stored encrypted.','The statement file you upload is kept for 30 days.','Your imported portfolio data is kept until you delete it or delete your account.','If you delete your account, your data is removed after a 30-day grace period.'].forEach(function(t){h+='<div class="lrow hot" data-say="Read more in the Privacy Policy."><span style="display:flex;gap:10px;align-items:center"><span class="tick">'+ic('shield-check')+'</span>'+t+'</span></div>'});
+ h+='<div class="sec" style="font-size:12px;margin-top:6px">Draft text: to be checked against the ADRs and by your lawyer before launch.</div></div>';
+ h+='<div class="card danger hotc"><div class="ttl" style="margin-bottom:6px"><div><h3>Delete account</h3><div class="s">Permanently remove your account and household data after a 30-day grace period.</div></div></div><button class="btn2 dng" data-dlg="delete">'+ic('trash-2')+'Delete Account</button></div>';
+ return h;
+}
+function pImportStub(){
+ return '<div class="card"><button class="back" data-nav="family">'+ic('chevron-left')+'Back to Family Members</button><div class="ttl" style="margin-top:10px"><div><h3>Add statement'+(S.importFor?' for '+esc(S.importFor):'')+'</h3><div class="s">Choose how to bring in the statement.</div></div><span class="pill est">existing import flow, stand-in drawing</span></div>'+
+ '<div class="gl hot" style="opacity:1" data-say="The existing upload screen opens here."><span class="tile">'+ic('file-up')+'</span><span><span class="fv">Upload a statement file</span><br><span class="sec" style="font-size:12.5px">A CAS PDF from CAMS or KFintech</span></span><span class="chev">'+ic('chevron-right')+'</span></div>'+
+ '<div class="sec" style="font-size:12px;margin-top:12px">Opens the existing import flow with this person already chosen (<span class="mono">/import?member=&lt;id&gt;</span>). The real upload options are the ones that screen shows today.</div></div>';
+}
+function page(id){
+ if(id==='import')return pImportStub();
+ if(id==='personal')return pPersonal();
+ if(id==='family')return pFamily();
+ if(id==='connected'||id==='tax')return soonCard(id,false);
+ if(id==='settings')return pSettings();
+ if(id==='set-import')return pImport();
+ if(id.indexOf('set-')===0)return soonCard(id,true);
+ if(id==='subscription')return pSub();
+ if(id==='privacy')return pPrivacy();
+ return '';
+}
+function frame(cur){
+ if(cur==='import')return '<div class="pc">'+pImportStub()+'</div>';
+ var act=cur.indexOf('set-')===0?'settings':cur;
+ var h='<div class="pf-h"><h1>Profile</h1><p class="sec">Manage your account, family members, preferences and data.</p></div><div class="pf-b"><nav class="pnav" aria-label="Profile sections">';
+ NAV.forEach(function(n){h+='<a href="#" data-nav="'+n[0]+'" class="'+(act===n[0]?'on':'')+'"'+(act===n[0]?' aria-current="page"':'')+'>'+ic(n[1])+esc(n[2])+'</a>'});
+ return h+'<div class="dv"></div><a href="#" class="lo" data-dlg="logout">'+ic('log-out')+'Logout</a></nav><div class="pc">'+page(cur)+'</div></div>';
+}
+function shell(cur){
+ if(cur==='import')return '<div class="shell2" style="grid-template-columns:minmax(0,1fr);min-width:0"><div><div class="top"><button class="back" data-nav="family">'+ic('chevron-left')+'Back</button><div class="sp2"></div><button class="iconbtn" data-act="theme" aria-label="Toggle theme">'+ic('moon')+'</button></div><div class="pane" style="max-width:760px;margin:0 auto">'+pImportStub()+'</div></div></div>';
+ var it=function(i,l,on,m){return '<div class="it'+(on?' on2':'')+'" role="button" tabindex="0" data-say="'+(m||l+' is part of the shell, not Profile.')+'">'+ic(i)+l+'</div>'};
+ return '<div class="shell2"><div class="side"><div class="logo">Unifolio</div>'+it('house','Home')+it('briefcase','Portfolio')+it('landmark','Liabilities')+it('target','Planning')+'<div class="sp"></div>'+it('user','Profile',true,'You are on Profile.')+it('circle-help','Help &amp; Support')+'</div><div><div class="top"><div class="srch" role="button" tabindex="0" data-say="Search is on hold for this release.">'+ic('search')+'Search for a fund, stock, or ask Mira...</div><div class="sp2"></div><button class="btn2" data-dlg="mira">'+ic('sparkles')+'Ask Mira</button><button class="btn2" data-say="Profile is not scoped, so this selector does not change this page.">'+ic('users')+'Family Combined '+ic('chevron-down')+'</button><button class="iconbtn" data-act="theme" aria-label="Toggle theme">'+ic('moon')+'</button></div><div class="pane">'+frame(cur)+'</div></div></div>';
+}
+
+/* ---- rendering ---- */
+function render(){
+ document.documentElement.classList.toggle('hl',S.hl);
+ document.querySelectorAll('.pfw').forEach(function(el){var cur=el.dataset.cur||el.dataset.start;el.dataset.cur=cur;el.innerHTML=frame(cur)});
+ var f=$('mfull');if(f){var c=f.dataset.cur||'personal';f.dataset.cur=c;f.innerHTML=shell(c)}
+ document.querySelectorAll('[data-t]').forEach(function(b){b.setAttribute('aria-pressed',String(S.theme===b.getAttribute('data-t')))});
+ document.querySelectorAll('[data-st]').forEach(function(b){b.setAttribute('aria-pressed',String(S.st===b.getAttribute('data-st')))});
+ document.querySelectorAll('[data-h]').forEach(function(b){b.setAttribute('aria-pressed',String(S.h===b.getAttribute('data-h')))});
+ document.querySelectorAll('[data-g]').forEach(function(b){b.setAttribute('aria-pressed',String(S.g===b.getAttribute('data-g')))});
+ document.querySelectorAll('[data-d]').forEach(function(b){b.setAttribute('aria-pressed',String((S.dev?'on':'off')===b.getAttribute('data-d')))});
+ var hb=document.querySelector('[data-hl]');if(hb)hb.setAttribute('aria-pressed',String(S.hl));
+ if(window.lucide)lucide.createIcons();
+ swatches();
+}
+var SW=[['bg','--m-bg'],['card','--m-elev'],['surface','--m-surface'],['ink','--m-ink'],['secondary','--m-sec'],['muted','--m-muted'],['divider','--m-border'],['brand green','--m-accent'],['selected tint','--m-accent-tint'],['positive text','--m-pos-t'],['negative','--m-neg'],['negative text','--m-neg-t'],['negative tint','--m-neg-bg'],['warning text','--m-warn-t'],['warning tint','--m-warn-bg'],['info text','--m-info-t'],['info tint','--m-info-bg'],['neutral tint','--m-neu-bg'],['neutral border','--m-neu-bd']];
+function swatches(){
+ var cs=getComputedStyle(document.documentElement),h='<div class="sw4">';
+ SW.forEach(function(s){var v=cs.getPropertyValue(s[1]).trim();h+='<div><div class="c" style="background:var('+s[1]+')"></div><div class="m"><b>'+s[0]+'</b><span class="mono">'+s[1]+'</span><br><span class="mono">'+esc(v)+'</span></div></div>'});
+ $('swatches').innerHTML=h+'</div>';
+}
+
+/* ---- toast and dialogs ---- */
+var toastEl=null,toastT=null;
+function toast(msg){
+ if(!toastEl){toastEl=document.createElement('div');toastEl.className='mktoast';toastEl.setAttribute('role','status');document.body.appendChild(toastEl)}
+ toastEl.textContent=msg;toastEl.classList.add('on');clearTimeout(toastT);toastT=setTimeout(function(){toastEl.classList.remove('on')},2600);
+}
+var DLG={name:null,step:0};
+function dlgHtml(){
+ var n=DLG.name,s=DLG.step,h='<div class="mkmodal"><div class="dlg" role="dialog" aria-modal="true" aria-label="Dialog">';
+ if(n==='whom'){
+  h+='<h3>Add statement for whom?</h3><p class="sec">Choose the person this statement belongs to.</p>';
+  members().forEach(function(m){h+='<button class="pick" data-act="pickwhom" data-name="'+esc(m.name)+'"><span class="av a'+m.av+'">'+esc(initialsOf(m.name))+'</span>'+esc(m.name)+'<span class="sec" style="margin-left:auto;font-weight:500">'+esc(m.relLabel)+'</span></button>'});
+  h+='<div class="acts"><button class="btn2" data-dc="1">Cancel</button></div>';
+ }else if(n==='goals'){
+  var sel=DLG.sel||[];
+  h+='<h3>What brings you to Unifolio?</h3><p class="sec">Pick all that apply. These are your onboarding answers.</p>';
+  GOAL_OPTS.forEach(function(o){var on=sel.indexOf(o[0])>=0;h+='<label class="opt2 big'+(on?' on':'')+'" data-gv="'+o[0]+'"><span style="display:flex;gap:10px;align-items:center"><input type="checkbox" style="width:auto" '+(on?'checked ':'')+'tabindex="-1">'+esc(o[1])+'</span><span class="sub2">'+esc(o[2])+'</span></label>'});
+  h+='<div class="row" style="margin-top:6px"><button class="tl" data-act="goalsall">Why choose? All of it.</button></div><p class="sec" style="font-size:12px;margin:10px 0 0">Saved to your account with the same call onboarding uses.</p><div class="acts"><button class="btn2" data-dc="1">Cancel</button><button class="btn2 primary" data-dd="Goals saved (mockup)">Save</button></div>';
+ }else if(n==='investor'){
+  var iv=DLG.iv===undefined?ONB[S.g].inv:DLG.iv;
+  h+='<h3>How do you invest today?</h3><p class="sec">This is your onboarding answer.</p>';
+  INV_OPTS.forEach(function(o){var on=iv===o[0];h+='<label class="opt2 big'+(on?' on':'')+'" data-iv="'+o[0]+'"><span style="display:flex;gap:10px;align-items:center"><input type="radio" style="width:auto" '+(on?'checked ':'')+'tabindex="-1">'+esc(o[1])+'</span><span class="sub2">'+esc(o[2])+'</span></label>'});
+  h+='<div class="acts"><button class="btn2" data-dc="1">Cancel</button><button class="btn2 primary" data-dd="Investor type saved (mockup)">Save</button></div>';
+ }else if(n==='contact-email'||n==='contact-phone'){
+  var ch=n==='contact-email'?'email':'mobile number';
+  h+='<h3>Change '+ch+'</h3>';
+  if(s===0)h+='<label for="dl1">New '+ch+'<input id="dl1" type="'+(n==='contact-email'?'email':'tel')+'" placeholder="'+(n==='contact-email'?'name@example.in':'+91 ...')+'"></label><div class="acts"><button class="btn2" data-dc="1">Cancel</button><button class="btn2 primary" data-ds="1">Send code</button></div>';
+  else h+='<p class="sec">We sent a code to your new '+ch+'.</p><label for="dl2">Code<input id="dl2" inputmode="numeric" placeholder="6 digits"></label><div class="acts"><button class="btn2" data-dc="1">Cancel</button><button class="btn2 primary" data-dd="Updated (mockup)">Verify</button></div>';
+ }else if(n==='add'){
+  h+='<h3>Add Member</h3><label for="dl3">Name<input id="dl3" placeholder="Full name"></label><label for="dl4">Relationship<select id="dl4"><option>Spouse</option><option>Parent</option><option>Child</option><option>Sibling</option><option>Other</option></select></label><div class="acts"><button class="btn2" data-dc="1">Cancel</button><button class="btn2 primary" data-dd="Member added (mockup)">Add member</button></div>';
+ }else if(n==='delete'){
+  if(s===0){h+='<h3>Why are you leaving?</h3><div role="radiogroup">';['Not using it enough','Missing a feature','Found an alternative','Data or trust concern','Other'].forEach(function(r){h+='<label class="opt2"><input type="radio" name="dr" style="width:auto" data-dr="1">'+r+'</label>'});
+   h+='</div><label for="dl5">Anything else? <span class="sec" style="font-weight:400">Optional</span><textarea id="dl5" rows="3"></textarea></label><div class="acts"><button class="btn2" data-dc="1">Cancel</button><button class="btn2 primary" id="dcont" data-ds="1" disabled>Continue</button></div>'}
+  else h+='<h3>Confirm account deletion</h3><p class="sec">Your account and all household data will be permanently deleted in 30 days. You can cancel anytime before then.</p><div class="acts"><button class="btn2" data-dc="1">Cancel</button><button class="btn2 fill-dng" data-dd="Deletion scheduled (mockup)">Confirm deletion</button></div>';
+ }else if(n==='logout'){
+  h+='<h3>Log out of Unifolio?</h3><p class="sec">You will need a code or your Google account to sign in again.</p><div class="acts"><button class="btn2" data-dc="1">Cancel</button><button class="btn2 primary" data-dd="Logged out (mockup)">Log out</button></div>';
+ }else if(n==='mira'){
+  h+='<h3>Mira is coming soon</h3><p class="sec">Your investing assistant is on its way. For now, explore your portfolio from the pages in the menu.</p><div class="acts"><button class="btn2 primary" data-dc="1">Got it</button></div>';
+ }else if(n==='edit'){
+  h+='<h3>Complete profile</h3><div class="stub">This is the existing Complete profile dialog, reused unchanged: name, relationship, contact, PAN when editable, and the possible-duplicate prompt that carries merge.</div><div class="acts"><button class="btn2" data-dc="1">Close</button></div>';
+ }else if(n==='delimport'){
+  h+='<h3>Delete this import?</h3><div class="stub">This is the existing delete-import dialog, reused unchanged.</div><div class="acts"><button class="btn2" data-dc="1">Close</button></div>';
+ }else{
+  h+='<h3>Delete all funds</h3><div class="stub">This is the existing Delete portfolio dialog, reused unchanged, with its option to also remove the member.</div><div class="acts"><button class="btn2" data-dc="1">Close</button></div>';
+ }
+ return h+'</div></div>';
+}
+function openDlg(n,wrap){S.wrap=wrap||S.wrap;var o=ONB[S.g];DLG={name:n,step:0,sel:(o.goals||[]).filter(function(v){return GOAL_OPTS.some(function(g){return g[0]===v})}),iv:o.inv};showDlg()}
+function showDlg(){$('mkroot').innerHTML=DLG.name?dlgHtml():'';if(window.lucide)lucide.createIcons();var f=document.querySelector('.mkmodal input,.mkmodal button.primary');if(f&&f.focus)f.focus()}
+function closeDlg(){DLG={name:null,step:0};showDlg()}
+
+/* ---- events ---- */
+document.addEventListener('click',function(e){
+ var t=e.target;
+ var b=t.closest&&t.closest('[data-t],[data-st],[data-h],[data-d],[data-hl],[data-g]');
+ if(b){
+  if(b.hasAttribute('data-t')){S.theme=b.getAttribute('data-t');document.documentElement.setAttribute('data-theme',S.theme)}
+  if(b.hasAttribute('data-st')){S.st=b.getAttribute('data-st');S.shown={};S.loading={};S.err={}}
+  if(b.hasAttribute('data-h')){S.h=b.getAttribute('data-h')}
+  if(b.hasAttribute('data-d')){S.dev=b.getAttribute('data-d')==='on'}
+  if(b.hasAttribute('data-hl')){S.hl=!S.hl}
+  if(b.hasAttribute('data-g')){S.g=b.getAttribute('data-g')}
+  render();return;
+ }
+ if(t.closest&&t.closest('.mkmodal')){
+  var gv=t.closest('[data-gv]');if(gv){var v=gv.getAttribute('data-gv'),i=DLG.sel.indexOf(v);if(i>=0)DLG.sel.splice(i,1);else DLG.sel.push(v);showDlg();return}
+  var iv=t.closest('[data-iv]');if(iv){DLG.iv=iv.getAttribute('data-iv');showDlg();return}
+  var pa=t.closest('[data-act]');
+  if(pa&&pa.getAttribute('data-act')==='goalsall'){DLG.sel=DLG.sel.length===GOAL_OPTS.length?[]:GOAL_OPTS.map(function(o){return o[0]});showDlg();return}
+  if(pa&&pa.getAttribute('data-act')==='pickwhom'){S.importFor=pa.getAttribute('data-name');var w0=S.wrap;closeDlg();if(w0){w0.dataset.cur='import';render()}return}
+  var m=t.closest('[data-dc]');if(m){closeDlg();return}
+  var d=t.closest('[data-dd]');if(d){toast(d.getAttribute('data-dd'));closeDlg();return}
+  var s=t.closest('[data-ds]');if(s&&!s.disabled){DLG.step++;showDlg();return}
+  if(t.classList.contains('mkmodal')){closeDlg()}
+  return;
+ }
+ var a=t.closest&&t.closest('a[href="#"]');if(a)e.preventDefault();
+ var el=t.closest&&t.closest('[data-nav],[data-dlg],[data-act],[data-say]');
+ if(!el){if(S.menu){S.menu=null;render()}return}
+ if(el.hasAttribute('data-nav')){var w=el.closest('.pfw,#mfull');if(w){w.dataset.cur=el.getAttribute('data-nav');S.menu=null;S.shown={};S.err={};S.flash=null;render()}return}
+ if(el.hasAttribute('data-dlg')){S.menu=null;openDlg(el.getAttribute('data-dlg'),el.closest('.pfw,#mfull'));render();return}
+ if(el.hasAttribute('data-act')){
+  var act=el.getAttribute('data-act'),id=el.getAttribute('data-id');
+  if(act==='pan'){
+   if(S.shown[id]){delete S.shown[id];render();return}
+   delete S.err[id];
+   if(S.st==='error'){S.loading[id]=true;render();setTimeout(function(){delete S.loading[id];S.err[id]=true;render()},500);return}
+   S.loading[id]=true;render();setTimeout(function(){delete S.loading[id];S.shown[id]=true;render()},500);return;
+  }
+  if(act==='menu'){S.menu=S.menu===id?null:id;render();return}
+  if(act==='manage'||act==='flash'){
+   S.flash=act==='flash'?id:'m1';S.menu=null;render();
+   var r=$('row-'+S.flash);if(r&&r.scrollIntoView)r.scrollIntoView({block:'center',behavior:'smooth'});
+   toast(act==='flash'?'Showing that person in the table':'Scrolls to the family table');return;
+  }
+  if(act==='open'){S.open[id]=!S.open[id];render();return}
+  if(act==='addstmt'){var w1=el.closest('.pfw,#mfull');if(!members().length){S.importFor=null;if(w1){w1.dataset.cur='import';render()}return}S.menu=null;openDlg('whom',w1);render();return}
+  if(act==='retry'){S.st='normal';render();return}
+  if(act==='theme'){S.theme=S.theme==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',S.theme);render();return}
+  return;
+ }
+ if(el.hasAttribute('data-say')){toast(el.getAttribute('data-say'))}
+});
+document.addEventListener('keydown',function(e){
+ if(e.key==='Escape'){if(DLG.name)closeDlg();else if(S.menu){S.menu=null;render()}}
+ if((e.key==='Enter'||e.key===' ')&&e.target&&e.target.getAttribute&&e.target.getAttribute('role')==='button'&&e.target.tagName!=='BUTTON'){e.preventDefault();e.target.click()}
+});
+document.addEventListener('change',function(e){
+ if(e.target.getAttribute&&e.target.getAttribute('data-dr')){var c=$('dcont');if(c)c.disabled=false}
+});
+
+/* ---- live utilities ---- */
+function bind(){
+ function u(){
+  $('u1o').textContent=maskPan($('u1').value)||'(empty)';
+  $('u2o').textContent=initialsOf($('u2').value);
+  $('u3o').textContent=accessLevel($('u3').value);
+  $('u4o').textContent=accountType(+$('u4').value||0);
+  $('u5o').textContent='colour a'+avatarIdx($('u5').value)+' (of 4)';
+  $('u6o').textContent=memberSince($('u6').value);
+  var g=null;try{g=JSON.parse($('u7').value)}catch(e){g='bad'}
+  $('u7o').textContent=g==='bad'?'Not valid JSON':(goalChips(g).map(function(c){return c.t+(c.unknown?' (unknown code)':'')}).join(' · ')||'Not answered');
+ }
+ ['u1','u2','u3','u4','u5','u6','u7'].forEach(function(i){$(i).addEventListener('input',u);$(i).addEventListener('change',u)});u();
+}
+bind();render();
+window.addEventListener('load',function(){if(window.lucide)lucide.createIcons()});
+})();
+
+</script>

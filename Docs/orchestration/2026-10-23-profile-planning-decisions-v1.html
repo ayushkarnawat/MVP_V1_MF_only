@@ -1,0 +1,872 @@
+<title>Profile Planning Decisions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky contents rail + one reading column of decision cards; planning workbook, not a landing page. */
+:root{
+  --bg:#f6f8f6; --surface:#ffffff; --surface-2:#eef2ee; --line:#d9e0d9;
+  --fg:#16211a; --muted:#566259; --accent:#128a4a; --accent-soft:#e1f3e8;
+  --locked:#2f5fb3; --locked-soft:#e6eefb; --open:#a8610a; --open-soft:#fbefd9;
+  --rec:#128a4a; --danger:#b3321f;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'DM Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'DM Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent)}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent)}
+nav.toc .grp{margin-top:14px}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:68ch;margin:0 0 10px}
+.rule{margin-top:18px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 16px;max-width:75ch}
+.rule b{color:var(--accent)}
+section{margin-top:52px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:72ch}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700;white-space:nowrap}
+.tag{display:inline-block;font:500 11px var(--f-mono);padding:2px 8px;border-radius:99px;letter-spacing:.03em}
+.tag.locked{background:var(--locked-soft);color:var(--locked)}
+.tag.open{background:var(--open-soft);color:var(--open)}
+.tag.done{background:var(--accent-soft);color:var(--accent)}
+.tag.rec{background:var(--accent-soft);color:var(--rec)}
+.tag.no{background:var(--surface-2);color:var(--danger);border:1px solid var(--danger)}
+.reply{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px}
+.reply b.t{color:var(--accent)}
+.reply ul,.reply ol{margin:6px 0;padding-left:20px}
+.reply li{margin:3px 0}
+.tag.later{background:var(--open-soft);color:var(--open)}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul{margin:6px 0;padding-left:20px}
+.sumbox li{margin:5px 0}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:10px 0}
+.two>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.two h4{margin:0 0 6px;font-family:var(--f-display);font-size:15px}
+.two ul{margin:4px 0;padding-left:18px}
+.two li{margin:4px 0}
+.two .pro h4{color:var(--rec)}
+.two .con h4{color:var(--danger)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}
+.chip{font:500 12px var(--f-mono);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:6px 12px;border-radius:99px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.spacer{flex:1}
+.count{font:500 12px var(--f-mono);color:var(--muted)}
+.btn{font:500 13px var(--f-body);background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+:root[data-theme="dark"] .btn{color:#06210f}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn{color:#06210f}}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:70px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:500 12px var(--f-mono);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.card p{margin:8px 0}
+.ask{font-weight:500}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--rec)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.opt .tag{margin-left:6px}
+.why{border-left:3px solid var(--rec);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--rec)}
+.risk{font-size:13.5px;color:var(--muted)}
+.risk b{color:var(--danger)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+textarea{width:100%;min-height:54px;font:14px var(--f-body);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;resize:vertical}
+.card.locked{background:var(--locked-soft);border-color:transparent}
+.card.locked .decided{font-weight:500}
+.hidden-by-filter{display:none}
+.callout{background:var(--open-soft);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:14px}
+ul.tight{margin:6px 0;padding-left:20px}
+ul.tight li{margin:3px 0}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+#out{white-space:pre-wrap;font:13px var(--f-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px;max-height:340px;overflow:auto}
+details{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:12px;padding:0 16px}
+details>summary{cursor:pointer;font-weight:700;padding:12px 0;font-family:var(--f-display);font-size:16px}
+details[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+details .body{padding-bottom:14px}
+h3.sub{font-size:17px;margin:22px 0 8px}
+blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);color:var(--muted);font-size:14px}
+.pill{display:inline-block;font:500 11px var(--f-mono);padding:1px 7px;border-radius:6px;background:var(--surface-2);color:var(--muted)}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+.flow .st{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:13px;min-width:0}
+.flow .st b{display:block;font-family:var(--f-display);font-size:14px;margin-bottom:2px}
+.flow .st .n{font:500 11px var(--f-mono);color:var(--muted)}
+.flow .st .m{color:var(--muted);font-size:12.5px}
+.flow .st.new{border-color:var(--accent)}
+.flow .st.old{border-style:dashed}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}nav.toc{position:static;max-height:none;margin-bottom:12px;columns:2}nav.toc .grp{margin-top:0;break-inside:avoid}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <h4>Contents</h4>
+  <a href="#intro">Where we are</a>
+  <div class="grp"><h4>Research</h4>
+    <a href="#pdf">1. The PDF, page by page</a>
+    <a href="#mockup">2. The Profile mockup, element by element</a>
+    <a href="#status">3. What the code has</a>
+    <a href="#reuse">4. Reuse versus new</a>
+    <a href="#privacy">5. Privacy and consent</a>
+    <a href="#conflicts">6. Conflicts to tell you about</a></div>
+  <div class="grp"><h4>Decisions</h4>
+  <a href="#locked">Decisions you made</a>
+  <a href="#blueprint">Section map</a></div>
+  <div class="grp"><h4>Open questions</h4>
+    <a href="#grp-A">A. Page shape</a><a href="#grp-B">B. Personal data</a><a href="#grp-C">C. Family, connected accounts</a>
+    <a href="#grp-D">D. Settings, billing, privacy</a><a href="#grp-E">E. Delivery</a><a href="#grp-F">F. Follow-ups (new, 23 Oct)</a></div>
+  <div class="grp"><a href="#risks">Risks</a><a href="#verify">To verify in the spec phase</a><a href="#log">Conversation log</a><a href="#glossary">Glossary</a><a href="#answers">Your answers</a></div>
+</nav>
+
+<main>
+<div class="hero" id="intro">
+  <h1>Profile Planning Decisions</h1>
+  <p>Planning workbook for the redesigned Profile section of the Unifolio desktop web app, prepared 23 Oct 2026. Nothing is built and no existing file was edited. Every open question below has options, a recommendation and the reason for it. Your answers save automatically in this page's database, so closing the tab loses nothing; the text box at the bottom collects them to paste into chat.</p>
+  <div class="rule"><b>Source of truth:</b> <i>Web app UI mockups MFs.pdf</i>, pages 30 and 31 (page 30 is a title slide; page 31 is one image, which I viewed). Where an older document or the code disagrees, the PDF wins, and section 6 lists every disagreement. I will not edit any existing document without asking you.</div>
+  <div class="rule"><b>Scope:</b> desktop web only; mobile is untouched. Mutual funds only: other asset classes show as "Coming soon". Existing screens are not changed; the shell wires them in by thin wrapper route files. Search is on hold.</div>
+  <div class="rule"><b>Where we stand (updated 23 Oct, after your answers to F1 to F8):</b> <b>every card is answered or moot</b> and the decisions are L1 to L49; the documents phase is written (see the log). Since the first round: Connected Accounts is not built (it shows as a Coming soon page, L33; the design is in <span class="mono">DEFERRED_FEATURES.md</span>, uncommitted); financial details are deferred to Coming soon (L31); Settings holds Notifications, Preferences, Security and Import History (L32); the PAN is always shown masked (L49). The final list has seven items (L36). <b>Three small assumptions of mine are in L37.</b> Nothing starts until you say go.</div>
+</div>
+
+<section id="pdf">
+  <h2>1. The PDF, page by page</h2>
+  <p class="lead">31 pages in total. These are the ones that touch Profile.</p>
+  <div class="scroll"><table>
+    <tr><th>Page</th><th>What it shows</th><th>What it means for Profile</th></tr>
+    <tr><td class="k">2</td><td>Slide titled "Left side Standard Pane" (no content).</td><td>Introduces the sidebar.</td></tr>
+    <tr><td class="k">3</td><td>Sidebar in text: Home, Portfolio, Liabilities, Planning at the top; Profile and Help &amp; Support in the footer. The mockup image on this page still draws the older menu.</td><td>Profile is a footer item in the main sidebar. In the contract it opens <span class="mono">/profile</span>. The shell's sidebar (not Profile) owns this.</td></tr>
+    <tr><td class="k">9</td><td>When Portfolio is clicked the sidebar switches to a second mode with a Back button.</td><td>Profile does not use the second mode; the footer is the same in both modes.</td></tr>
+    <tr><td class="k">27 to 29</td><td>Planning pages.</td><td>No bearing on Profile.</td></tr>
+    <tr><td class="k">30</td><td>Title slide: the word "Profile" and nothing else.</td><td>No text spec exists. All Profile requirements come from the one image on page 31 plus your answers.</td></tr>
+    <tr><td class="k">31</td><td>One image: the full Profile screen (section 2 reads it element by element). No annotations or red-pen notes, unlike the Home pages.</td><td>The image is a mockup of the whole page with every card visible at once. You told me to show them one section at a time (L1).</td></tr>
+  </table></div>
+</section>
+
+<section id="mockup">
+  <h2>2. The Profile mockup, element by element</h2>
+  <p class="lead">Page 31, left to right and top to bottom. "Verdict" says what happens to each element under your answers so far.</p>
+  <div class="scroll"><table>
+    <tr><th>Element</th><th>What the mockup shows</th><th>Verdict</th></tr>
+    <tr><td class="k">Page title</td><td>"Profile" with the line "Manage your account, family members, preferences and connected accounts."</td><td>Keep, on every section.</td></tr>
+    <tr><td class="k">Top bar</td><td>Search box, Ask Mira, "Family Combined" selector, moon (theme) button, avatar "SS".</td><td>Belongs to the shell. Search is on hold (L46 in the Home workbook) and the avatar is removed (L31 there), so this image differs from the contract.</td></tr>
+    <tr><td class="k">View as Family</td><td>A button with an eye icon, top right of the page title row.</td><td>Unexplained. Open: A4.</td></tr>
+    <tr><td class="k">Header card</td><td>Large avatar with initials and a camera badge; name, email, phone; an "Edit Profile" button; below, five facts: Date of Birth, PAN, Residential Address, Account Type ("Individual"), Member Since ("Oct 2025").</td><td>Name, email, phone, masked PAN and Member Since can be shown from what we hold. DOB, address, account type, photo: open (B2 to B5). PAN shown full in the image: open (B6).</td></tr>
+    <tr><td class="k">Family Account card</td><td>"Manage family members and their access"; a Manage Members button; four avatars (Siddharth "Primary User", Aditi, Ramesh, Pooja each "Member") and a dashed "Add Member" tile.</td><td>Possible from household members. "Primary User" and "Member" are display labels only (L6). Open: C2.</td></tr>
+    <tr><td class="k">Section list</td><td>Nine items with icons: Personal Information (selected), Family Members, Connected Accounts, Notifications, Preferences, Security, Subscription &amp; Billing, Tax Information, Data &amp; Privacy.</td><td>This is the navigation. Each item opens its own section (L1). Mapped in the section map below.</td></tr>
+    <tr><td class="k">Personal Information card</td><td>Left column: Full Name, Date of Birth, PAN Number, Email Address, Mobile Number. Right column with pencil icons: Address, Annual Income Range, Risk Profile, Investment Experience. An "Edit" button.</td><td>Left column partly possible. Right column: address, income, risk, experience are fields we do not hold (B1, B3).</td></tr>
+    <tr><td class="k">Financial Details card</td><td>Occupation, Industry, Annual Income Range, Net Worth Range, and Financial Goals as chips (Wealth Creation, Early Retirement, Buying a House, "+ Add Goal"). An "Edit" button.</td><td>Has no item in the section list, so its home is unclear. You asked to decide it later (B1).</td></tr>
+    <tr><td class="k">Family Members card</td><td>Table with Name, Relationship, Date of Birth, PAN, Access Level (Admin or Member pill), and a "..." actions menu per row; a green "Add Member" button.</td><td>Name, relationship, masked PAN, actions are possible. Access Level is a display label (L6). DOB open (B2). Add Member and the actions menu: C1.</td></tr>
+    <tr><td class="k">Connected Accounts card</td><td>Seven rows, each with an icon, a count and a green tick and an arrow: Mutual Funds (CAS / MF Central, "3 accounts connected"), Stocks &amp; ETFs, Bank Accounts, Fixed Deposits &amp; Bonds, Gold, US Stocks, Real Estate. An "Add Account" button.</td><td>All seven rows shown; six are "Coming soon" (L3). The Mutual Funds row text is open (C3), as is the Add Account button (C4).</td></tr>
+    <tr><td class="k">Account Settings card</td><td>Three rows with arrows: Notifications (email, SMS and in-app), Preferences (currency, risk profile, display), Security (password, 2FA, login).</td><td>Duplicates three list items. Open: D1.</td></tr>
+    <tr><td class="k">Subscription &amp; Billing card</td><td>"Active" badge; Current Plan "Unifolio Pro", Renewal Date "16 Oct 2026", Amount "4,999/year"; "View Billing History".</td><td>Placeholder, no billing (L4). Wording: D3. The renewal date is already in the past on 23 Oct 2026, so it is sample data.</td></tr>
+  </table></div>
+</section>
+
+<section id="status">
+  <h2>3. What the code has</h2>
+  <p class="lead">Read in the repository today (23 Oct 2026). Items marked <i>to verify</i> I have not confirmed.</p>
+  <div class="scroll"><table>
+    <tr><th>Area</th><th>What exists</th><th>Where</th></tr>
+    <tr><td class="k">Current Profile screen</td><td>One screen, four tabs: Account Info (name, email, phone with "Change" through an OTP flow, a theme toggle, a Delete Account section with a two-step survey and 30-day grace), Family Members, Import History, Terms of Service. A logout button with a confirmation dialog. A staging-only "Import health" link.</td><td><span class="mono">frontend/src/features/profile/ProfileView.tsx</span> (399 lines) and siblings</td></tr>
+    <tr><td class="k">Family members UI</td><td>A list of cards: name, relationship, masked PAN, contact, an "Edit" (Complete profile popup), "Delete all funds" (with an option to remove the member), merge into another member. No "Add member" button on the Profile tab (I found none in the file; <i>to verify</i>).</td><td><span class="mono">HouseholdMembersSection.tsx</span>, <span class="mono">FamilyMemberCard.tsx</span></td></tr>
+    <tr><td class="k">Import history</td><td>List of imports with delete.</td><td><span class="mono">ImportHistorySection.tsx</span></td></tr>
+    <tr><td class="k">Terms</td><td>Lists Terms of Service, Privacy Policy, PAN disclaimer with a viewer popup.</td><td><span class="mono">TermsSection.tsx</span>, <span class="mono">features/legal</span></td></tr>
+    <tr><td class="k">Account API</td><td><span class="mono">GET/PATCH /auth/me</span>, contact change (request and verify OTP), account deletion and reactivate.</td><td><span class="mono">backend/app/api/auth.py</span></td></tr>
+    <tr><td class="k">Household API</td><td><span class="mono">POST/GET /household-members</span>, <span class="mono">PUT /household-members/{id}/profile</span>, merge, delete portfolio. Member responses carry <span class="mono">pan_masked</span> (first two and last two characters), phone, email, relationship, completion percentage.</td><td><span class="mono">backend/app/api/dashboard.py</span>, <span class="mono">services/dashboard/schemas.py</span></td></tr>
+    <tr><td class="k">Consent and legal</td><td><span class="mono">GET /legal/documents</span> (public), <span class="mono">POST /legal/consents</span>, <span class="mono">GET /legal/consents/me</span> (document type, version, date). Append-only consent records table.</td><td><span class="mono">backend/app/api/legal.py</span>, <span class="mono">models/consent.py</span></td></tr>
+    <tr><td class="k">Sessions</td><td>A <span class="mono">sessions</span> table with auth method, created, expires, last active, device info. I found no endpoint that lists sessions and no server logout call (<i>to verify</i>).</td><td><span class="mono">models/auth.py</span></td></tr>
+    <tr><td class="k">User fields held</td><td>Users: phone, email, created date, onboarding step, investor type (self-directed, advisor-assisted, mixed, beginner), primary goals (four usage goals: consolidated view, understand holdings, family management, performance comparison), pending-deletion flags. Members: name, relationship, phone, email, PAN (encrypted, hashed), PAN source and conflict flags, origin.</td><td><span class="mono">models/user.py</span> (read in full)</td></tr>
+    <tr><td class="k">Not held anywhere (checked the models folder)</td><td>Date of birth, address, account type, profile photo, occupation, industry, income or net-worth range, risk profile, investment experience, notification settings, display preferences, subscription or billing, tax data.</td><td>no columns or tables</td></tr>
+  </table></div>
+  <div class="callout"><b>Two look-alikes that are not the same thing.</b> The mockup's "Financial Goals" (Wealth Creation, Early Retirement, Buying a House) are life goals. We hold four <i>usage</i> goals from onboarding. The mockup's "Risk Profile" and "Investment Experience" are not the same as our "investor type". They should not be mapped onto each other without your say.</div>
+</section>
+
+<section id="reuse">
+  <h2>4. Reuse versus new</h2>
+  <p class="lead">Reuse-first. No new table is proposed unless you pick an option below that needs one.</p>
+  <div class="scroll"><table>
+    <tr><th>Piece</th><th>Reuse</th><th>New</th></tr>
+    <tr><td class="k">Personal Information</td><td>Name, email, phone from <span class="mono">/auth/me</span>; OTP contact change dialog; masked PAN and "member since" (from created date).</td><td>A page component in the mockup's style. Fields we lack: only if you choose to add them (B1 to B4).</td></tr>
+    <tr><td class="k">Family Members</td><td><span class="mono">HouseholdMembersSection</span> and its dialogs, unchanged, restyled by the new page around them (restyling the inner cards is not possible without editing them; see risk R2).</td><td>Table layout from the mockup, "Access Level" pill (derived: self is Admin, others Member).</td></tr>
+    <tr><td class="k">Connected Accounts</td><td>Import history data (<span class="mono">loadImportHistory</span>) for the Mutual Funds row; <span class="mono">ImportHistorySection</span> opened from the row.</td><td>Six "Coming soon" rows; row component.</td></tr>
+    <tr><td class="k">Subscription &amp; Billing</td><td>None.</td><td>Static placeholder card.</td></tr>
+    <tr><td class="k">Data &amp; Privacy</td><td><span class="mono">TermsSection</span>, <span class="mono">GET /legal/consents/me</span>, the delete-account flow, the logout dialog.</td><td>A small read-only list of your consents; "what we store" text.</td></tr>
+    <tr><td class="k">Notifications, Preferences, Security, Tax</td><td>None.</td><td>One shared "Coming soon" page component.</td></tr>
+    <tr><td class="k">Routing</td><td>The reserved <span class="mono">/profile/:section</span> routes in the contract.</td><td>Thin route files per section.</td></tr>
+    <tr><td class="k">Database</td><td>All existing tables.</td><td>No new table and no migration. One new read endpoint returning one person's full PAN on request (L34).</td></tr>
+  </table></div>
+</section>
+
+<section id="privacy">
+  <h2>5. Privacy and consent</h2>
+  <p class="lead">Facts from the repository are verified. Statements about the law are from my own knowledge, were not checked against the official text in this session, and need your lawyer's confirmation.</p>
+  <ul class="tight">
+    <li><b>PAN (verified):</b> stored encrypted per household member (ADR-004, reopened 18 Sep 2026); the API returns only a masked form. The mockup shows full PANs for every member.</li>
+    <li><b>CAS file (verified):</b> the uploaded PDF is kept 30 days for dispute and re-parse support.</li>
+    <li><b>Consent records (verified):</b> append-only, with document version and a hash. "Withdraw consent" is not built and is waiting on your lawyer (DEFERRED_FEATURES, Q11).</li>
+    <li><b>Data minimisation (verified in decisions.md):</b> the original data decision aimed to store as little personal data as possible. Adding date of birth, address, income, net worth, occupation moves against that, which is why B1 to B5 are questions.</li>
+    <li><b>The DPDP Act, 2023 (my knowledge, unverified):</b> asks for clear notice and consent for stated purposes, a way to withdraw consent that is as easy as giving it, rights to see, correct and erase one's data, and a named grievance contact. The Data &amp; Privacy section is where these land. Today only erasure (account deletion) and consent history exist.</li>
+    <li><b>Notifications (verified):</b> the only message we send is the sign-in code by email (Amazon SES) and the phone OTP. A notifications setting needs a sender first, so "Coming soon" (L7) costs nothing.</li>
+    <li><b>Third parties:</b> none needed for the plan as it stands. A billing provider would be the first one (not planned, L4).</li>
+  </ul>
+</section>
+
+<section id="conflicts">
+  <h2>6. Conflicts to tell you about</h2>
+  <p class="lead">Where the PDF, an existing document, or the code disagree. I resolved none of them silently.</p>
+  <div class="scroll"><table>
+    <tr><th>#</th><th>PDF says</th><th>Other source says</th><th>Handling</th></tr>
+    <tr><td class="k">X1</td><td>Profile is a redesigned set of sections.</td><td>Contract v1.2 (O10): "Profile sections as routes later, not in v1"; Profile is the existing screen.</td><td>Proposal only, for you: bring the sections forward (A3). I have not edited the contract.</td></tr>
+    <tr><td class="k">X2</td><td>Existing screens are not rebuilt (your rule).</td><td>The redesign replaces the Profile screen.</td><td>Resolved by L5: new files; the old screen is left as it is.</td></tr>
+    <tr><td class="k">X3</td><td>Full PAN shown for you and every member.</td><td>ADR-004: encrypted; API returns masked only.</td><td>Your answer was full PAN always (L20). Still a conflict with the encrypted-PAN decision; F7 asks how it is delivered.</td></tr>
+    <tr><td class="k">X4</td><td>Collects DOB, address, income, net worth, occupation, risk, experience.</td><td>Original data-minimisation decision (decisions.md).</td><td>You chose to collect the financial fields (L17) and to hide DOB and address (L18). The minimisation stance is therefore partly set aside for the financial fields; F6 asks about consent.</td></tr>
+    <tr><td class="k">X11</td><td>The Account Settings card shows Notifications, Preferences and Security as three rows.</td><td>Contract reserves three separate routes; you asked for one Settings tab (L25).</td><td>F2. The contract is not edited.</td></tr>
+    <tr><td class="k">X5</td><td>"Access Level" Admin or Member; "Primary User".</td><td>Members have no logins or roles in the data model.</td><td>Resolved by L6 (display label).</td></tr>
+    <tr><td class="k">X6</td><td>Security shows password and 2FA.</td><td>Sign-in is by OTP or Google; no passwords exist.</td><td>Moot while Security is "Coming soon" (L7); revisit when built.</td></tr>
+    <tr><td class="k">X7</td><td>Paid plan, 4,999 a year, renewal date.</td><td>CLAUDE.md: free core; no billing code.</td><td>Resolved by L4.</td></tr>
+    <tr><td class="k">X8</td><td>Top-right avatar "SS" and a search box.</td><td>Home workbook: avatar removed (L31), search on hold (L46).</td><td>Shell concern; Profile does not draw the top bar.</td></tr>
+    <tr><td class="k">X9</td><td>Connected account counts for bank, brokerage, gold, real estate.</td><td>The app is mutual funds only.</td><td>Resolved by L3.</td></tr>
+    <tr><td class="k">X10</td><td>The nine sections omit Import History, Terms, Delete Account, Logout.</td><td>They exist today.</td><td>Resolved by L8 (homes assigned).</td></tr>
+  </table></div>
+</section>
+
+<section id="locked">
+  <h2>Decisions you already made</h2>
+  <p class="lead">From your answers on 23 Oct. I treat them as fixed. Tell me if I got any wrong.</p>
+  <div id="lockedList"></div>
+</section>
+
+<section id="blueprint">
+  <h2>Section map (final, 23 Oct)</h2>
+  <p class="lead">Each item in the left list opens its own page, in the mockup's style, one at a time. Route names are the contract's where it reserves them; the Settings routes are new (L37).</p>
+  <div class="scroll"><table>
+    <tr><th>Left list item</th><th>Route</th><th>Content in v1</th><th>Source</th></tr>
+    <tr><td class="k">Personal Information</td><td class="mono">/profile/personal</td><td>Opens here. Header card (initials avatar, name, email, phone, masked PAN, derived account type, member since) and the Personal Information card (name, PAN, email, phone). The Financial Details card and the income, risk and experience rows show Coming soon. No date of birth, address or photo.</td><td>L13, L14, L18 to L21, L31, L34</td></tr>
+    <tr><td class="k">Family Members</td><td class="mono">/profile/family</td><td>Family Account strip in the PDF's style with Manage Members and the Add Member tile; family table (name, relationship, masked PAN with "show", Admin or Member label, menu: Edit, Merge, Delete funds; Add Member).</td><td>L14, L22, L23, L34, L35</td></tr>
+    <tr><td class="k">Connected Accounts</td><td class="mono">/profile/connected-accounts</td><td>Coming soon page. Design kept in DEFERRED_FEATURES.md.</td><td>L24, L33</td></tr>
+    <tr><td class="k">Settings</td><td class="mono">/profile/settings</td><td>Four rows: Notifications, Preferences, Security (each a Coming soon page at <span class="mono">/profile/settings/notifications</span>, <span class="mono">/preferences</span>, <span class="mono">/security</span>) and Import History (<span class="mono">/profile/settings/import-history</span>, the real list with delete). Dev-only Import Health link at the bottom.</td><td>L7, L25, L26, L32, L37</td></tr>
+    <tr><td class="k">Subscription &amp; Billing</td><td class="mono">/profile/subscription</td><td>Placeholder card: "Early access", no price.</td><td>L4, L27</td></tr>
+    <tr><td class="k">Tax Information</td><td class="mono">/profile/tax</td><td>Coming soon.</td><td>L9, L26</td></tr>
+    <tr><td class="k">Data &amp; Privacy</td><td class="mono">/profile/data-privacy</td><td>Four blocks: Terms and policies, your consents, what we store, Delete Account.</td><td>L8, L10, L28</td></tr>
+    <tr><td class="k">(list footer)</td><td>none</td><td>Logout, with the existing confirmation dialog.</td><td>L8</td></tr>
+  </table></div>
+</section>
+
+<div class="bar" id="filterbar">
+  <button class="chip" id="f-all" aria-pressed="true">All questions</button>
+  <button class="chip" id="f-open" aria-pressed="false">Unanswered</button>
+  <button class="chip" id="f-done" aria-pressed="false">Answered</button>
+  <span class="spacer"></span>
+  <span class="count"><span id="count"></span><span id="savestate" role="status"></span></span>
+</div>
+
+<div id="questions"></div>
+
+<section id="risks">
+  <h2>Risks</h2>
+  <ul class="tight">
+    <li><b>R1.</b> Four of nine sections are "Coming soon" and one is a placeholder. The page will look thinner than the mockup. That is honest, and each fills in when its feature exists.</li>
+    <li><b>R2.</b> The family list reuses existing cards whose look is the old one. Matching the mockup's table exactly needs a new table component that calls the same dialogs; that is more code than a wrapper.</li>
+    <li><b>R3.</b> Every optional personal field we add is more personal data to protect, export and delete. Each one needs a consumer to be worth it.</li>
+    <li><b>R4.</b> Data &amp; Privacy will look incomplete next to the law's expectations (no export, no consent withdrawal, no grievance contact) until the lawyer answers.</li>
+    <li><b>R5.</b> Bringing Profile sections forward changes the contract (X1), which the shell session is also working from.</li>
+    <li><b>R7.</b> (Resolved by L49: the PAN is always masked, so there is no reveal endpoint.)</li>
+    <li><b>R8.</b> (Resolved by L31: no financial fields are stored.)</li>
+    <li><b>R9.</b> Import History inside Settings is an unusual home for a real list next to three placeholders; a user hunting for it under "Data &amp; Privacy" may not find it. A link from Data &amp; Privacy is cheap if testing shows this.</li>
+    <li><b>R6.</b> The staging-only Import health route (<span class="mono">/profile/import-health</span>) must keep working while Profile moves to section routes.</li>
+  </ul>
+</section>
+
+<section id="verify">
+  <h2>To verify in the spec phase</h2>
+  <ul class="tight">
+    <li>Whether the account holder's own name can be edited today and through which call (<span class="mono">PUT /household-members/{id}/profile</span> or <span class="mono">PATCH /auth/me</span>).</li>
+    <li>Whether any "Add member" action exists on Profile, and what the onboarding add-member call needs.</li>
+    <li>Whether a session list or a server-side logout exists (matters only when Security is built).</li>
+    <li>That "MF Central" is not integrated (we parse uploaded CAS files; I found no MF Central link).</li>
+    <li>The exact masked-PAN format and where it is built.</li>
+    <li>The consent history wording per document type, and how many consent rows a normal user has.</li>
+    <li>Exact retention wording for "what we store" (PAN, CAS file, import data) against the ADRs.</li>
+  </ul>
+</section>
+
+<section id="log">
+  <h2>Conversation log</h2>
+  <p class="lead">What was asked and decided, in order.</p>
+  <div class="scroll"><table>
+    <tr><th>When</th><th>Who</th><th>What</th></tr>
+    <tr><td class="k">23 Oct</td><td>You</td><td>Brief: plan the Profile section the way Home was planned: research, then questions in an artifact, then documents only after you say go. Source of truth is the PDF, pages 30 and 31.</td></tr>
+    <tr><td class="k">23 Oct</td><td>Me</td><td>Read the PDF pages (viewed page 31 as an image), the Home process, the shell contract and the Profile code. Asked four questions: page shape, non-MF connected accounts, financial fields, billing.</td></tr>
+    <tr><td class="k">23 Oct</td><td>You</td><td>Each list item opens its own section, looking like its card, one at a time. Non-MF rows shown as "Coming soon". Financial fields: you will come back. Billing: placeholder card.</td></tr>
+    <tr><td class="k">23 Oct</td><td>Me</td><td>Asked four more: the old screen, Access Level, settings depth, fields we do not hold.</td></tr>
+    <tr><td class="k">23 Oct</td><td>You</td><td>New screens, old one untouched. Access Level is a label. Notifications, Preferences, Security: "Coming soon". Fields we do not hold: decide per field in the artifact.</td></tr>
+    <tr><td class="k">23 Oct</td><td>Me</td><td>Asked four more: where the orphaned items go, Tax, Data &amp; Privacy, View as Family.</td></tr>
+    <tr><td class="k">23 Oct</td><td>You</td><td>Import History under Connected Accounts; Terms and Delete under Data &amp; Privacy; Logout in the list footer. Tax: "Coming soon". Data &amp; Privacy: what exists only. View as Family: put it in the artifact.</td></tr>
+    <tr><td class="k">23 Oct</td><td>Me</td><td>This workbook (21 cards).</td></tr>
+    <tr><td class="k">23 Oct, later</td><td>You</td><td>Answered all 21 cards (mostly the recommendations). Differences: financial fields all added (B1 C); full PAN (B6 C); strip like the PDF (C2 note); Connected Accounts not built now and to be written into DEFERRED_FEATURES.md (C4 note); a Settings tab with the three settings (D1 note); the Mutual Funds row wording chosen (C3 A).</td></tr>
+    <tr><td class="k">23 Oct, third round</td><td>You</td><td>F1: Import History goes inside Settings with the other three, which show Coming soon. F2 A, F3 B (Connected Accounts as a Coming soon page), F4 A and F6 A (then moot), F5 no choice (moot), F7 B, F8 A. New instruction: financial details also deferred, shown as Coming soon.</td></tr>
+    <tr><td class="k">23 Oct, third round</td><td>Me</td><td>Locked L31 to L37, marked L17, L20 and L24 as superseded or amended, rewrote the section map, removed the migration from the backend work, and listed three assumptions (L37). Did not add the financial deferral to DEFERRED_FEATURES.md without asking.</td></tr>
+    <tr><td class="k">23 Oct, documents phase</td><td>You</td><td>Go. Then answered four small questions from the spec (Q1 to Q4): no Merge menu item, add created_at, allow Show for pending claims, PAN stays visible.</td></tr>
+    <tr><td class="k">23 Oct, documents phase</td><td>Me</td><td>Wrote the spec, layout, design system, reuse-vs-new, TDD, architecture, PRD, flows and backend decisions proposal, and two implementation plans (<span class="mono">Docs/orchestration/2026-10-23-profile-*.md</span>). Locked L38 to L41. No existing file edited except the DEFERRED_FEATURES.md entry you asked for.</td></tr>
+    <tr><td class="k">23 Oct, later</td><td>You</td><td>New instructions: delete the old Profile after the new one is built (A3); Financial Details from onboarding data plus goals (B1 option B); family strip tile becomes Add statement and the green Add Member button goes; Personal Information card without name and PAN; the member list keeps today's cards with the completion chip. Also re-pasted the saved card answers (B6 A, C2 B, C4 A now).</td></tr>
+    <tr><td class="k">23 Oct, later</td><td>Me</td><td>Locked L42 to L48, updated the documents and the mockups, and raised one open item (Q5): how to add a person who is in no statement, now that Add Member is gone.</td></tr>
+    <tr><td class="k">23 Oct, later</td><td>You</td><td>PAN is always masked: no Show or Hide on the screens (L49).</td></tr>
+    <tr><td class="k">23 Oct, later</td><td>Me</td><td>Appended a Connected Accounts entry to DEFERRED_FEATURES.md (uncommitted; the file already had another session's uncommitted changes, which I left alone). Locked L13 to L30. Flagged the full-PAN conflict. Added eight follow-up cards, F1 to F8.</td></tr>
+  </table></div>
+  <div class="scroll" style="margin-top:12px"><table>
+    <tr><th>Pending</th><th>Waiting on</th></tr>
+    <tr><td class="k">Every card</td><td>Answered or moot. Waiting for your go before the documents phase (answering is not a go).</td></tr>
+    <tr><td class="k">Contract change (A3)</td><td>Your decision; I have not edited the contract.</td></tr>
+    <tr><td class="k">Consent withdrawal, grievance contact, data export</td><td>Your lawyer; not part of this plan.</td></tr>
+  </table></div>
+</section>
+
+<section id="glossary">
+  <h2>Glossary</h2>
+  <ul class="tight">
+    <li><b>CAS</b>: the consolidated account statement from CAMS or KFintech, which Unifolio imports.</li>
+    <li><b>Household member</b>: a person whose portfolio the account tracks. Not a separate login.</li>
+    <li><b>Masked PAN</b>: the PAN with the middle characters hidden.</li>
+    <li><b>Wrapper route</b>: a tiny file that mounts a screen at a URL without changing the screen.</li>
+    <li><b>Coming soon page</b>: a section that opens and says what is planned, with no working controls.</li>
+  </ul>
+</section>
+
+<section id="answers">
+  <h2>Your answers</h2>
+  <p class="lead">This collects every choice and note above. Copy it and paste it into the chat.</p>
+  <div class="row"><button class="btn" id="copy">Copy my answers</button><button class="btn ghost" id="clear">Clear all choices</button><span class="count" id="copied" role="status"></span></div>
+  <div id="out" aria-live="polite"></div>
+</section>
+</main>
+</div>
+
+<script>
+var LOCKED=[
+ ["L1","One section at a time, each looking like its mockup card","Page 31 shows every card at once. You want each left-list item to open its own section, looking the way that card looks on the page, with one section visible at a time. (Your answer, 23 Oct.)"],
+ ["L2","Standing rules carry over","Mobile is out of scope and untouched; existing screens are not changed, rebuilt or split (the shell wires them in by thin wrapper route files); search is on hold; reuse existing code and tables first; nothing is built until the plans exist and you say go."],
+ ["L3","Connected Accounts shows all seven rows; the six non-MF rows say \"Coming soon\"","Mutual Funds is live; Stocks &amp; ETFs, Bank Accounts, Fixed Deposits &amp; Bonds, Gold, US Stocks and Real Estate are greyed with a \"Coming soon\" tag and no counts. (Your answer, 23 Oct.) <b>Amended later the same day by L24: the section is not built now; this is kept for later.</b>"],
+ ["L4","Subscription &amp; Billing is a placeholder card","No payment, plans, invoices or billing history. The wording is open (D3). (Your answer, 23 Oct.)"],
+ ["L5","New Profile screens; the old one is left untouched","New section pages are new files. <span class='mono'>ProfileView</span> is not edited. The inner parts (family list, import history, terms, delete, contact-change and logout dialogs) are reused as they are. (Your answer, 23 Oct.)"],
+ ["L6","Access Level is a label","Self shows \"Admin\", every other member \"Member\". No roles, no sharing, no editing. (Your answer, 23 Oct.)"],
+ ["L7","Notifications, Preferences, Security are \"Coming soon\" pages","Each opens a page that says it is coming; no backend work. (Your answer, 23 Oct.)"],
+ ["L8","Homes for today's extras","Import History sits under Connected Accounts; Terms of Service and Delete Account sit under Data &amp; Privacy; Logout sits in the footer of the section list. The staging-only Import Health link stays a dev-only link under Connected Accounts. (Your answer, 23 Oct; the Import Health placement is my addition.) <b>Amended by L24: Import History needs another home, see F1.</b>"],
+ ["L9","Tax Information is a \"Coming soon\" page","We hold no tax data and the mockup draws no card for it. (Your answer, 23 Oct.)"],
+ ["L10","Data &amp; Privacy shows what exists today","Legal documents, your consent history, what we store, and Delete Account. No data export and no consent withdrawal (the latter waits on your lawyer). Exact layout: D4. (Your answer, 23 Oct.)"],
+ ["L11","Carried into this workbook at your request","Financial fields (B1), date of birth, address, account type and photo one by one (B2 to B5), and the View as Family button (A4). These are open, not decided."],
+ ["L12","Answering is not a go","After every card is answered I wait for your go before writing the functionality spec and the other documents."],
+ ["L13","/profile opens Personal Information","(Your answer to A1, 23 Oct.)"],
+ ["L14","Header card on Personal Information only; Family Account strip on Family Members only","Other sections start straight under the page title. (Your answer to A2, 23 Oct.)"],
+ ["L15","Profile sections become routes now; the old Profile stays reachable too","This is a change to contract v1.2 (O10 said later). Still only a proposal until you apply it: I have not edited the contract. The old screen stays reachable at a second, hidden path. (Your answer to A3, 23 Oct.)"],
+ ["L16","The View as Family button is removed","(Your answer to A4, 23 Oct.)"],
+ ["L17","Financial fields are added, all optional and user-entered (SUPERSEDED by L31)","Occupation, industry, annual income range, net worth range, risk profile, investment experience and financial goals. This needs new data and a small backend change (see E1, now amended), so the details are open: where it is stored (F4), the value lists (F5) and the consent notice (F6). (Your answer to B1, 23 Oct.)"],
+ ["L18","Date of birth and residential address are hidden","Not collected, not shown, and no DOB column in the Family table. (Your answers to B2 and B3, 23 Oct.)"],
+ ["L19","Account type is derived; the avatar is initials only","Individual if one member, Family if more; nothing stored. No camera badge or photo upload. (Your answers to B4 and B5, 23 Oct.)"],
+ ["L20","Full PAN is shown, always (SUPERSEDED by L49)","Chosen against my recommendation. This conflicts with how PAN is exposed today (stored encrypted, API returns masked only), so I need one confirmation of how it is delivered: F7. (Your answer to B6, 23 Oct.)"],
+ ["L21","Only what is editable today can be edited","(Your answer to B7, 23 Oct.) The new optional financial fields (L17) are the one addition and need their own edit control."],
+ ["L22","Family table: menu = Edit, Merge, Delete funds; Add Member opens the existing add form","(Your answer to C1, 23 Oct.)"],
+ ["L23","The Family Account strip looks like the PDF and shows the data we have","Avatars, names and the Primary User / Member labels, in the mockup's style. Whether its two buttons stay is F8. (Your note on C2, 23 Oct.)"],
+ ["L24","Connected Accounts is NOT built now (list item amended by L33)","Deferred by you on 23 Oct and written into <span class='mono'>DEFERRED_FEATURES.md</span> (an edit I made on your instruction; uncommitted). This amends L3 and L8: nothing is built for it. The Mutual Funds row wording you chose (C3: \"Mutual funds (CAS statements): 5 statements imported, last on 12 Oct\") is kept in that entry. C4 is moot. Import History needs another home: F1."],
+ ["L25","A \"Settings\" tab holds Notifications, Preferences and Security","The Account Settings card on page 31 becomes its own list item, Settings, with those three inside it. Whether the three also keep their own list items and what a row opens: F2. (Your note on D1, 23 Oct.)"],
+ ["L26","A Coming soon page is a short line on what will live there, no controls","(Your answer to D2, 23 Oct.)"],
+ ["L27","The Subscription card says \"Early access\", no price","(Your answer to D3, 23 Oct.)"],
+ ["L28","Data &amp; Privacy has four blocks","Legal documents, your consents, what we store, Delete Account; no grievance line until the lawyer supplies text. Import History may become a fifth (F1). (Your answer to D4, 23 Oct.)"],
+ ["L29","Backend: no change except for the new fields","(Your answer to E1, 23 Oct.) L17 means there is now a small backend change; see E1."],
+ ["L30","Delivered as one change after the shell lands","(Your answer to E2, 23 Oct.)"],
+ ["L31","Financial details are deferred: that area shows Coming soon","<b>Supersedes L17.</b> No financial fields are collected in v1. The Financial Details card (occupation, industry, income, net worth, goals) shows a Coming soon state, and so do the matching rows in the Personal Information card (annual income range, risk profile, investment experience). F4, F5 and F6 are therefore moot and nothing is stored. (Your instruction, 23 Oct, later.) I have <b>not</b> added this to <span class='mono'>DEFERRED_FEATURES.md</span>; say if you want it there, as for Connected Accounts."],
+ ["L32","Settings has four rows: Notifications, Preferences, Security and Import History","One list item, Settings, replaces the three. Its page lists the rows; Notifications, Preferences and Security each open their own Coming soon page; Import History opens the real import history. (Your answers to F1 and F2, 23 Oct.) Routes are my proposal: <span class='mono'>/profile/settings</span>, and under it <span class='mono'>notifications</span>, <span class='mono'>preferences</span>, <span class='mono'>security</span>, <span class='mono'>import-history</span>."],
+ ["L33","Connected Accounts stays in the list as a Coming soon page","<b>Amends L24.</b> The section is still not built and stays in DEFERRED_FEATURES.md, but the list item shows and opens a Coming soon page. (Your answer to F3, 23 Oct.)"],
+ ["L34","Full PAN: masked until the user clicks \"show\" (SUPERSEDED by L49)","<b>Amends L20.</b> Each row (and the header card) shows the masked PAN; clicking \"show\" fetches that one person's full PAN. This needs one new read endpoint and no migration. (Your answer to F7, 23 Oct.)"],
+ ["L35","The Family Account strip keeps both buttons","Manage Members and the Add Member tile stay, wired to the table's actions. (Your answer to F8, 23 Oct.)"],
+ ["L36","Final section list","Personal Information, Family Members, Connected Accounts (Coming soon), Settings (Notifications, Preferences, Security, Import History), Subscription &amp; Billing (Early access card), Tax Information (Coming soon), Data &amp; Privacy; Logout in the footer. Seven items, down from nine."],
+ ["L37","Assumptions I made, to confirm","(1) The staging-only Import Health link stays a dev-only link at the bottom of the Settings page. (2) The Financial Details Coming soon state sits on the Personal Information page where the card is on page 31, not on a page of its own. (3) The Settings route names above. Tell me if any is wrong; none is a card because each is easy to change."],
+ ["L38","Family menu is Edit and Delete funds only (amends L22)","No standalone Merge. Merge stays inside Edit's possible-duplicate prompt. (Your answer to Q1 in the spec, 23 Oct.)"],
+ ["L39","\"Member since\" is shown; <span class='mono'>created_at</span> is added to <span class='mono'>/auth/me</span>","One additive field, no table. (Your answer to Q2, 23 Oct.)"],
+ ["L40","Show PAN is allowed for a pending claim; never for another account's PAN (SUPERSEDED by L49)","(Your answer to Q3, 23 Oct.)"],
+ ["L41","A shown PAN stays visible until the user hides it or leaves the page (amends L34; SUPERSEDED by L49)","No timer and no hide on tab change. The log line (ids only, no PAN) is my assumption; you did not answer that part. (Your answer to Q4, 23 Oct.)"],
+ ["L42","Delete the old Profile once the new one is built and accepted (amends A3)","The plan gets a final task that deletes the old screen, its test, the hidden legacy route, and the old family section and card, after you accept the new Profile on staging. Components the new Profile reuses stay. It needs your explicit go at that time. (Your instruction, 23 Oct, later.)"],
+ ["L43","Financial Details shows what onboarding stored: investor type and goals (amends L31)","Both come from the account call and are edited with the existing <span class='mono'>PATCH /auth/me</span>, so there is no backend change. Occupation, industry, income, net worth, risk and experience stay Coming soon. (Your instruction, 23 Oct, later: onboarding data plus option B of B1.)"],
+ ["L44","How the stored goals are displayed","Goals are a JSON array of codes. Each known code becomes a chip with its onboarding title, in onboarding order; null or empty shows \"Not answered\"; a code this screen does not know is kept, humanised, in a dashed chip; all four codes show as four chips; the legacy single goal column is ignored. The investor type is one code shown with its onboarding title. These are my proposed rules for you to confirm."],
+ ["L45","The strip's last tile is Add statement","It asks \"Add statement for whom?\" (the household members), then opens the existing upload options for that person. With no members it goes straight to upload. The green Add Member button in the member list is removed, so there is no Add Member on Profile (amends L22, L35, L38). (Your instruction, 23 Oct, later.)"],
+ ["L46","The Personal Information card has email and mobile only","Name and PAN are in the header card above and are not repeated. (Your instruction, 23 Oct, later.)"],
+ ["L47","The member list keeps today's cards, with the profile-completion chip","Not the PDF table. Each card: name, masked PAN with Show, relationship, phone, email, the completion chip (percentage and what is missing, as today), Edit profile, Delete all funds. The Admin or Member label stays (L6) unless you say drop it. (Your instruction, 23 Oct, later.)"],
+ ["L48","Later chat instructions win over the saved card state","The card answers you pasted on 23 Oct show B1 C, C1 A, C2 B and C4 A. They differ from L42 to L47 (B1 now onboarding data, C1 and C2 now Add statement with no Add Member, C4 moot). I applied the later chat instructions. B6 A (masked) and F7 B (full PAN on click) do not conflict: masked by default, full on click."]
+ ["L49","The PAN is always shown masked; no Show or Hide","Supersedes L20, L34, L40 and L41. No reveal, no new endpoint, and F7 is moot. The only backend change left is `created_at` on `/auth/me`. (Your instruction, 23 Oct, later.)"]
+];
+
+var Q=[
+{g:"A",name:"Page shape",items:[
+ {id:"A1",t:"What does /profile open to?",
+  ask:"When someone clicks Profile in the sidebar (no section named), which section do they land on?",
+  ctx:"Under L1 only one section is visible at a time, so /profile cannot show everything the way page 31 does. The mockup shows Personal Information selected.",
+  opts:[
+   {k:"a",l:"Personal Information",d:"/profile redirects to /profile/personal, the first item in the list and the one drawn selected."},
+   {k:"b",l:"A grid of the nine sections",d:"A landing page of nine tiles; the user picks one. An extra screen that the mockup does not draw."},
+   {k:"c",l:"The last section the user visited",d:"Remembered per session. Less predictable for a rarely used page."}],
+  rec:"a",why:"It matches the mockup exactly and needs no extra screen. The list on the left already works as the menu.",
+  risk:"The page opens on a card full of personal details, which some people may not expect first. Low."},
+ {id:"A2",t:"Where do the header card and the Family Account strip show?",
+  ask:"The identity header (avatar, name, five facts) and the Family Account strip sit above the section list on page 31. With one section at a time, where should each appear?",
+  ctx:"If the header stays above every section the page is tall and repeats itself. The strip mostly duplicates the Family Members table.",
+  opts:[
+   {k:"a",l:"Header on Personal Information only; strip on Family Members only",d:"Each is the top of its own section. Other sections start straight under the page title."},
+   {k:"b",l:"Header on every section; strip on Family Members only",d:"A constant identity band, as on page 31's top."},
+   {k:"c",l:"Both on every section",d:"Closest to the image but the heaviest."},
+   {k:"d",l:"Drop the strip",d:"The family table already lists the same people."}],
+  rec:"a",why:"It follows L1 (one section's content at a time) and keeps other sections light. The strip and the table are the same data, so each is only shown where it is the subject.",
+  risk:"Someone on Security (when built) no longer sees their name above it. The top bar already shows who is selected."},
+ {id:"A3",t:"Bring the Profile section routes forward (a change to the shell contract)?",
+  ask:"The contract (O10) says Profile sections as routes come later and /profile is the existing screen in v1. L1 and L5 need the sections now. Do you approve proposing that change?",
+  ctx:"The contract already reserves /profile/:section with these nine names: personal, family, connected-accounts, notifications, preferences, security, subscription, tax, data-privacy. I would change nothing in the contract file until you say so; this card is only the proposal. The dev screen /profile/import-health stays as it is.",
+  opts:[
+   {k:"a",l:"Yes: sections as routes, contract amended (by you or with your go)",d:"Profile v2 replaces the existing Profile screen in the shell's route list; the old ProfileView stays in the repository, unrouted."},
+   {k:"b",l:"Yes, but keep the old Profile reachable too",d:"The old screen stays routed at a second path for the managers' use until Profile v2 is accepted."},
+   {k:"c",l:"No: Profile v2 is a separate later project",d:"The shell keeps wrapping the old screen; this plan waits."}],
+  rec:"b",why:"It meets L1 and L5 and keeps a fallback while the new pages settle, which costs one extra route line. A hidden path (not in the sidebar) is enough.",
+  risk:"Two Profile screens exist for a while, and a fix to one is not applied to the other."},
+ {id:"A4",t:"What does the View as Family button do?",
+  ask:"The button with an eye icon at the top right of the Profile title row has no explanation in the PDF. What should it do?",
+  ctx:"You asked me to put this here and said you would get back to me. The top bar already has a Family Combined selector that scopes the rest of the app. Profile itself is not scoped (the contract says member banners skip Profile).",
+  opts:[
+   {k:"a",l:"Set the scope to Family Combined",d:"Same as choosing Family Combined in the top-bar selector; a shortcut from Profile to the family view."},
+   {k:"b",l:"Remove it",d:"The selector already does this and Profile shows no scoped data."},
+   {k:"c",l:"Something else",d:"Describe it in the note box."}],
+  rec:"b",why:"On a page that has no scoped data, a button that changes scope does nothing visible here, which is confusing. It can be added later if you describe a use.",
+  risk:"The page differs from the mockup by one button."}
+]},
+{g:"B",name:"Personal data",items:[
+ {id:"B1",t:"The financial fields: occupation, industry, income, net worth, risk, experience, goals",
+  ask:"Page 31 has Occupation, Industry, Annual Income Range, Net Worth Range, Risk Profile, Investment Experience and Financial Goals. What do we do in v1?",
+  ctx:"You said you would get back to me. Facts: none of the first six exist in our data. Our only goals field is the onboarding usage goals (four values), which are different from the life goals on the mockup. Nothing in the app reads any of these fields today. Also, the Financial Details card has no left-list item, so it must live inside Personal Information (the mockup puts the two cards side by side).",
+  opts:[
+   {k:"a",l:"Leave them out of v1",d:"No Financial Details card. Revisit when a feature (for example suitability or goal planning) would use them."},
+   {k:"b",l:"Show the goals we do hold, nothing else",d:"A small Goals row in Personal Information showing the onboarding goals, editable with the same four choices. No new data."},
+   {k:"c",l:"Add all as optional, user-entered fields",d:"New nullable columns (no new table), a clear-this-field control and consent wording. Nothing uses them yet."}],
+  rec:"b",why:"It keeps the page recognisable without collecting data nothing consumes, which is the original data-minimisation stance. The goals are already stored.",
+  risk:"The page lacks the second card on page 31. If c is chosen later, adding fields is a small migration."},
+ {id:"B2",t:"Date of birth",
+  ask:"Show date of birth in the header, Personal Information and the Family table?",
+  ctx:"We hold no date of birth on users or members. CAS statements do not carry it. It would be personal data typed in by the user.",
+  opts:[
+   {k:"a",l:"Hide it",d:"Not shown anywhere; the Family table has no DOB column."},
+   {k:"b",l:"Optional field on household members",d:"One nullable column on the members table (self included); editable in the Complete profile popup. No new table."},
+   {k:"c",l:"Optional field on the user only",d:"Only the account holder; the family table has no DOB."}],
+  rec:"a",why:"Nothing in the app needs it, and it adds a sensitive field to store, protect and delete. It can be added in a small change when a feature needs it.",
+  risk:"Header and table look emptier than the mockup."},
+ {id:"B3",t:"Residential address",
+  ask:"Show an address, with an edit pencil?",
+  ctx:"Not held. In India an address is personal data with no use in this product today.",
+  opts:[
+   {k:"a",l:"Hide it",d:"Not collected."},
+   {k:"b",l:"Optional free-text field",d:"One nullable text column, editable, clearable."}],
+  rec:"a",why:"Same reasoning as B2: no consumer, more data to protect.",
+  risk:"The header's five-fact row has fewer entries."},
+ {id:"B4",t:"Account type",
+  ask:"The header shows Account Type \"Individual\". What do we show?",
+  ctx:"We have no such field. The mockup's own sample is inconsistent (it says Individual and lists a family of four).",
+  opts:[
+   {k:"a",l:"Hide it",d:"Not shown."},
+   {k:"b",l:"Derive it: Individual if one member, Family if more",d:"Computed from the number of household members; nothing stored."},
+   {k:"c",l:"Store a choice",d:"A new field the user sets. Nothing would use it."}],
+  rec:"b",why:"It gives the header its fifth fact from data we already hold and cannot go out of date.",
+  risk:"A user with one member who later adds a second sees the label change; that is correct."},
+ {id:"B5",t:"Profile photo",
+  ask:"The avatar has a camera badge for uploading a photo. What do we do?",
+  ctx:"There is no photo storage. Uploading a face photo means file storage, size and type checks, and deletion on account closure.",
+  opts:[
+   {k:"a",l:"Initials avatar only; no camera badge",d:"Coloured circle with initials, as for members today."},
+   {k:"b",l:"Upload a photo",d:"New storage and an upload flow; a privacy review for the extra personal data."},
+   {k:"c",l:"Choose from preset colours",d:"A stored colour per person; no file storage."}],
+  rec:"a",why:"No storage, no new personal data, and it matches how members are drawn now.",
+  risk:"Looks plainer than the mockup's camera badge."},
+ {id:"B6",t:"How is the PAN shown?",
+  ask:"Page 31 shows full PANs, for you and for every family member. What do we show?",
+  ctx:"PAN is stored encrypted and the API returns only a masked form (first two and last two characters). Showing a full PAN would need a new decrypting endpoint and widens who can see a government identifier on screen. The family table would show other people's PANs.",
+  opts:[
+   {k:"a",l:"Masked, as today",d:"For you and every member. No backend change."},
+   {k:"b",l:"Masked, with a reveal after an OTP re-check",d:"New endpoint that decrypts for the signed-in account after a fresh OTP; shown for a short time."},
+   {k:"c",l:"Full PAN always",d:"Matches the image. Conflicts with the encrypted-storage decision."}],
+  rec:"a",why:"It follows ADR-004 as reopened and needs no new endpoint. The person who needs the full number has it on their card.",
+  risk:"Some people will want to confirm the whole PAN is right; the masked form still shows both ends."},
+ {id:"B7",t:"What can be edited from Profile?",
+  ask:"The mockup has an Edit Profile button, Edit buttons on cards and pencils on rows. What do we make editable in v1?",
+  ctx:"Today you can change email and phone through an OTP flow, edit a member through the Complete profile popup (name, relationship, contact, PAN when allowed), and delete funds. To verify: whether your own name is editable and how. Name from a CAS statement may be locked.",
+  opts:[
+   {k:"a",l:"Only what is editable today",d:"Edit Profile opens the existing member-edit popup for you; email and phone use the existing change flow; nothing new is added."},
+   {k:"b",l:"View-only in v1",d:"No edit controls except the existing contact change."}],
+  rec:"a",why:"It makes the mockup's edit buttons real with existing, tested flows and no new rules.",
+  risk:"Fields we choose to add later (B1 to B3) will need their own edit path."}
+]},
+{g:"C",name:"Family and connected accounts",items:[
+ {id:"C1",t:"Family table actions and Add Member",
+  ask:"What do the \"...\" menu on each row and the green Add Member button do?",
+  ctx:"Existing member actions: Edit (Complete profile popup), Merge into another member, Delete all funds (with an option to also remove the member). The backend has a create-member call, which onboarding uses; I found no Add Member button on today's Profile (to verify).",
+  opts:[
+   {k:"a",l:"Menu = Edit, Merge, Delete funds; Add Member opens the existing add form",d:"All reuse existing flows and dialogs; the add form is the one onboarding uses, in a popup."},
+   {k:"b",l:"Menu as above; no Add Member button",d:"Members are still created by importing a CAS, which detects people."},
+   {k:"c",l:"Menu = Edit only",d:"Merge and delete stay out of the new page."}],
+  rec:"a",why:"It keeps every capability the old Profile has and makes the mockup's two controls real. Merge and delete must not be lost.",
+  risk:"If the add form is tied to onboarding, extracting it as a popup may need a small shared component (not an edit of the old screen)."},
+ {id:"C2",t:"Family Account strip buttons",
+  ask:"Manage Members and the dashed Add Member tile in the strip: what do they do?",
+  ctx:"The strip appears only on the Family Members section if A2 is a. Both controls then sit above the table that has its own Add Member button.",
+  opts:[
+   {k:"a",l:"Drop both; keep the strip as a picture of the family",d:"Avatars, names and \"Primary User\"/\"Member\" only; actions live in the table."},
+   {k:"b",l:"Keep both, wired to the same actions as the table",d:"Manage Members scrolls to the table; the tile opens the add form."},
+   {k:"c",l:"Drop the strip",d:"Only the table (also what A2 d does)."}],
+  rec:"a",why:"Two controls that do the same thing on one screen invite confusion; one place for actions is simpler.",
+  risk:"A small departure from the image."},
+ {id:"C3",t:"What does the Mutual Funds row in Connected Accounts say?",
+  ask:"The image reads \"Mutual Funds (CAS / MF Central) 3 accounts connected\". We do not connect accounts; users upload CAS statements. What should the row say?",
+  ctx:"We parse uploaded CAS PDFs; I found no MF Central link (to verify). Imports are confirmed per member. The Home workbook already uses \"n of n family members\" counts (L22 there).",
+  opts:[
+   {k:"a",l:"\"Mutual funds (CAS statements): 5 statements imported, last on 12 Oct\"",d:"From the import history already loaded. The arrow opens Import History (L8)."},
+   {k:"b",l:"\"Mutual funds: data from 2 of 4 family members\"",d:"Same wording as Home; counts members with a confirmed import."},
+   {k:"c",l:"Both lines",d:"Two lines on the row."}],
+  rec:"c",why:"The two answers differ: statements imported tells you how much you have uploaded, members covered tells you who is missing. Both come from data already loaded, so no backend change.",
+  risk:"Counts must use the same rule as Home (a confirmed import) or the numbers will disagree."},
+ {id:"C4",t:"Add Account button",
+  ask:"What does Add Account do on Connected Accounts?",
+  ctx:"The only thing a user can add today is a CAS import (the full-screen import flow at /import).",
+  opts:[
+   {k:"a",l:"Opens the CAS import",d:"Labelled \"Add statement\"; the other asset types are not offered because they are Coming soon."},
+   {k:"b",l:"Hide it",d:"The Mutual Funds row's arrow already leads to Import History."},
+   {k:"c",l:"Keep the label \"Add Account\" and open the import",d:"Matches the image's wording; slightly misleading."}],
+  rec:"a",why:"It is accurate about what happens and uses an existing flow.",
+  risk:"Label differs from the image."}
+]},
+{g:"D",name:"Settings, billing and privacy",items:[
+ {id:"D1",t:"The Account Settings card",
+  ask:"Page 31 has an Account Settings card with Notifications, Preferences and Security rows. Those are also list items. What do we do with the card?",
+  ctx:"With one section at a time (L1) and all three being Coming soon pages (L7), the card would only link to pages already in the list.",
+  opts:[
+   {k:"a",l:"Drop the card",d:"The left list is the only way in."},
+   {k:"b",l:"Show it on Personal Information as three links",d:"Matches the image; duplicates the list."}],
+  rec:"a",why:"Same destinations twice add nothing.",
+  risk:"None of substance."},
+ {id:"D2",t:"What a Coming soon page says",
+  ask:"Notifications, Preferences, Security and Tax open Coming soon pages. What is on them?",
+  ctx:"The page should be useful, not blank. A \"notify me\" button would store a user's interest, which is new data and needs a sender.",
+  opts:[
+   {k:"a",l:"A short line on what will live here, no controls",d:"For example: \"Notification settings are coming. Today we email only your sign-in code.\" Written per page."},
+   {k:"b",l:"A line plus a \"Notify me\" button",d:"Stores interest per user; needs a table and a way to send."},
+   {k:"c",l:"The page name and \"Coming soon\" only",d:"Minimal."}],
+  rec:"a",why:"It is truthful and helpful and stores nothing. The Notifications line also tells users the real situation.",
+  risk:"Copy for four pages has to be approved (I will draft it in the spec)."},
+ {id:"D3",t:"The Subscription card wording",
+  ask:"With no billing (L4), what does the Subscription & Billing card say?",
+  ctx:"The image has an Active badge, Unifolio Pro, renewal date, 4,999 a year, View Billing History. None of that is true for us today.",
+  opts:[
+   {k:"a",l:"\"Free plan\", status Active, one line that the core product is free",d:"No amounts, renewal date or billing history."},
+   {k:"b",l:"\"Early access\", no price",d:"Leaves room to charge later without promising free."},
+   {k:"c",l:"Remove Subscription & Billing from the list in v1",d:"Fewer sections; the contract's nine reduce to eight."}],
+  rec:"b",why:"CLAUDE.md calls the core free, but pricing is not decided, so \"early access\" makes no promise we may have to take back. It keeps the section as drawn.",
+  risk:"If pricing changes, the card text changes; nothing else depends on it."},
+ {id:"D4",t:"Data & Privacy layout (L10: what exists today)",
+  ask:"I propose four blocks on this page. Which do you want?",
+  ctx:"Blocks: (1) Terms of Service, Privacy Policy and PAN disclaimer, using the existing viewer; (2) Your consents: a read-only list of what you agreed to, the document version and date; (3) What we store: plain text on PAN (encrypted), the CAS file (kept 30 days), your portfolio data; (4) Delete account, the existing two-step flow with its 30-day grace. No export and no withdrawal. A grievance contact line (DPDP) needs your lawyer's text.",
+  opts:[
+   {k:"a",l:"All four blocks",d:"No grievance line until the lawyer supplies it."},
+   {k:"b",l:"All four plus a grievance contact line with a placeholder address",d:"Shows an address you must confirm; risky to ship unreviewed."},
+   {k:"c",l:"Blocks 1 and 4 only",d:"What the old Profile already had."}],
+  rec:"a",why:"Blocks 2 and 3 use data already stored and make the page honest about what we hold; they cost little. The grievance line should wait for the real text.",
+  risk:"The page may be reviewed by the lawyer before launch; the text in block 3 must match the ADRs."}
+]},
+{g:"E",name:"Delivery",items:[
+ {id:"E1",t:"Backend work for v1",
+  ask:"If B1 to B5 are answered as recommended (hide or derive), the backend needs nothing new. Confirm that principle.",
+  ctx:"The Mutual Funds row can be built from the existing import-history call; the consent list from GET /legal/consents/me; members from the existing household calls. New columns come only from B1 to B5 options that add fields.",
+  opts:[
+   {k:"a",l:"No backend change in v1 unless a field is added by your answers",d:"Front end only. Any added field is one nullable column on an existing table, never a new table."},
+   {k:"b",l:"One summary endpoint for Profile",d:"A single call returning everything the sections need; more backend code for little gain."}],
+  rec:"a",why:"Reuse first; no endpoint is needed where an existing call already carries the data.",
+  risk:"Several small calls on load instead of one; each is cheap."},
+ {id:"E2",t:"How Profile is delivered",
+  ask:"One change or several?",
+  ctx:"The shell must land first (it owns the router). Profile v2 then adds nine route files, a few components and the Coming soon page.",
+  opts:[
+   {k:"a",l:"One change after the shell lands",d:"All nine sections together; the Coming soon sections are tiny."},
+   {k:"b",l:"Two changes: Personal, Family, Connected, Data & Privacy first; the rest after",d:"The Coming soon pages and the Subscription card follow."}],
+  rec:"a",why:"The second group is a handful of static files; splitting adds review overhead for no safety.",
+  risk:"A larger single change to review."}
+]},
+{g:"F",name:"Follow-ups from your answers",items:[
+ {id:"F1",t:"Where do Import History and the Import Health link go now?",
+  ask:"Connected Accounts is deferred (L24), and L8 had put Import History under it. Where does Import History live in Profile v2?",
+  ctx:"Import History is an existing capability (list your confirmed imports, delete one). Deleting an import removes data, so it is also a privacy action. Import Health is a staging-only link that already has its own route.",
+  opts:[
+   {k:"a",l:"A fifth block in Data & Privacy: \"Your imports\"",d:"Fits \"your data\", sits beside Delete Account. Import Health stays a dev-only link at the bottom of that page."},
+   {k:"b",l:"Inside Family Members",d:"Imports are per member; the table already has Delete funds. The page gets long."},
+   {k:"c",l:"Its own list item, Import History",d:"A tenth item the PDF does not draw (you declined this in the first round, when Connected Accounts existed)."}],
+  rec:"a",why:"It keeps every existing capability with no new list item, and deleting data belongs next to the other data controls.",
+  risk:"Data & Privacy becomes the page with the most in it."},
+ {id:"F2",t:"The Settings tab: what is inside, and what a row opens",
+  ask:"You asked for a Settings tab holding Notifications, Preferences and Security. Do those three also keep their own list items, and what does each row open?",
+  ctx:"All three are Coming soon pages (L7, L26). The page 31 card shows each as a row with a description and an arrow.",
+  opts:[
+   {k:"a",l:"Settings replaces the three list items; one page with the three rows; each row opens its own Coming soon page",d:"Routes such as /profile/settings/notifications. List: Personal Information, Family Members, Settings, Subscription & Billing, Tax Information, Data & Privacy."},
+   {k:"b",l:"Settings replaces them; one Coming soon page with three labelled paragraphs",d:"Simplest; no sub-pages. Each row's description is shown in place."},
+   {k:"c",l:"Keep the three list items and also add Settings",d:"Same destinations twice; the list grows to ten."}],
+  rec:"b",why:"All three are placeholders, so three separate pages hold nothing more than one page with three paragraphs. When one is built it gets its own page then.",
+  risk:"The reserved routes for notifications, preferences and security in the contract go unused for now."},
+ {id:"F3",t:"Does Connected Accounts still appear in the list?",
+  ask:"With the section not built (L24), does the left list still show Connected Accounts?",
+  ctx:"The contract reserves the route /profile/connected-accounts.",
+  opts:[
+   {k:"a",l:"Hide it until it is built",d:"List: Personal Information, Family Members, Settings, Subscription & Billing, Tax Information, Data & Privacy."},
+   {k:"b",l:"Show it as a Coming soon page",d:"Keeps the list as the mockup draws it; the page says what is planned."}],
+  rec:"a",why:"You said not to build it; a menu item that opens an empty page invites questions. It is one line to add back.",
+  risk:"The list differs from page 31."},
+ {id:"F4",t:"Where are the new financial fields stored?",
+  ask:"L17 adds seven optional fields. Where do they live?",
+  ctx:"Reuse-first: the existing users table already holds the account holder's onboarding answers (investor type, primary goals). The mockup shows these fields only for the account holder. Alternatives are a column set on household members (one per person) or a new table.",
+  opts:[
+   {k:"a",l:"Nullable columns on the existing users table",d:"Validated pick-lists as database check constraints, like primary goals. One migration; no new table. Account holder only."},
+   {k:"b",l:"One nullable JSON column on users",d:"One migration, flexible, but no database-level validation."},
+   {k:"c",l:"Nullable columns on household members",d:"Per person, so each family member could have their own. More work and not drawn in the mockup."},
+   {k:"d",l:"A new table",d:"Separate profile-details table. Not reuse-first; needed only if you want history or per-field consent."}],
+  rec:"a",why:"Smallest change that matches the mockup and follows the pattern already used for goals.",
+  risk:"Adding per-person fields later means a second migration."},
+ {id:"F5",t:"The pick-lists for the financial fields",
+  ask:"The mockup shows values, not the full lists. Do you accept these lists (I will put them in the spec)?",
+  ctx:"Proposed. Annual income: Below 5 lakh; 5 to 10 lakh; 10 to 25 lakh; 25 to 50 lakh; 50 lakh to 1 crore; Above 1 crore. Net worth: Below 50 lakh; 50 lakh to 1 crore; 1 to 5 crore; 5 to 10 crore; Above 10 crore. Occupation: Salaried; Self-employed; Business owner; Professional; Retired; Homemaker; Student; Other. Industry: free text, up to 60 characters. Risk profile (self-declared, not an assessment): Conservative; Moderate; Aggressive. Investment experience: Less than 1 year; 1 to 3 years; 3 to 5 years; 5 to 10 years; More than 10 years. Financial goals: Wealth Creation, Early Retirement, Buying a House, Children's Education, Travel, Emergency Fund, plus up to 3 of the user's own, each under 40 characters. These are separate from the four onboarding usage goals, which stay as they are.",
+  opts:[
+   {k:"a",l:"Accept these lists",d:"Edits to the wording can come in your reply to the spec."},
+   {k:"b",l:"All free text",d:"No lists; nothing to validate, nothing comparable."},
+   {k:"c",l:"I will give you the lists",d:"Write them in the note box."}],
+  rec:"a",why:"Lists keep the data clean and cost nothing; the wording is easy to change before anything is built.",
+  risk:"A self-declared risk profile can be mistaken for advice; the page must say it is only the user's own note."},
+ {id:"F6",t:"Consent wording for the new fields",
+  ask:"How do we handle consent for personal and financial data typed into the new fields?",
+  ctx:"Today consent is recorded for four purposes (service agreement, account and authentication, portfolio tracking and analytics, CAS and PAN processing). Nothing in the app uses the new fields yet, so the purpose is vague. Legal view is mine, not checked, and needs your lawyer.",
+  opts:[
+   {k:"a",l:"A one-line notice on the form, no new consent record",d:"\"Optional. Not used anywhere yet. You can clear it at any time.\" The lawyer confirms before launch."},
+   {k:"b",l:"A new consent purpose recorded in the consent table",d:"New enum value, migration, lawyer's wording; the fields stay off until the text exists."},
+   {k:"c",l:"Drop B1 for now",d:"Revisit when a feature needs the data."}],
+  rec:"a",why:"It is proportionate to optional fields nothing reads, and it does not hold the page up on the lawyer.",
+  risk:"If the lawyer wants a recorded consent (b), the fields wait or need a retrofit."},
+ {id:"F7",t:"Full PAN: how is it delivered?",
+  ask:"You chose to show full PAN always (B6 C). Because that conflicts with how PAN is exposed today, I need to confirm how it reaches the screen.",
+  ctx:"Today: PAN is stored encrypted and the API sends only a masked form (ADR-004, reopened 18 Sep 2026). Showing it in full means a new response field that decrypts every member's PAN, on every Profile load, in the browser's memory and in any screenshot. The family table would show everyone's full PAN. No decision doc is edited; this would be a new decision for the backend decisions proposal.",
+  opts:[
+   {k:"a",l:"Full PAN in the member list response, shown always",d:"As you chose. One response; PAN is on screen whenever the page is open."},
+   {k:"b",l:"Full PAN, but fetched only when the user clicks \"show\" on a row",d:"Still full PAN on screen when wanted; not in every response or on every load. Slightly different from the image."},
+   {k:"c",l:"Go back to masked (B6 A)",d:"No new endpoint."}],
+  rec:"b",why:"You still see the full PAN, but it is not sent on every page open, which limits exposure at little cost. It is your call; a is a legitimate choice.",
+  risk:"With a, a PAN leak through logs, browser extensions or a shared screen is more likely; the backend must not log the response."},
+ {id:"F8",t:"Do the Family Account strip's buttons stay?",
+  ask:"You said the strip should look like the PDF and show the data we have. The PDF has Manage Members and an Add Member tile. Do both stay?",
+  ctx:"C2 had no option chosen; I read your note as \"look like the image\".",
+  opts:[
+   {k:"a",l:"Both stay, wired to the table's actions",d:"Manage Members scrolls to the table; the tile opens the add form."},
+   {k:"b",l:"Avatars and names only",d:"The table below holds the actions."}],
+  rec:"a",why:"It matches your note and the image, and costs two small wires to existing actions.",
+  risk:"Two places to add a member on one page."}
+]}
+];
+
+var REPLIES={};
+REPLIES.A3="<b>Not applied.</b> The contract file is unchanged. If you approve option a or b, I will give you the exact wording of the change (O10 and the registry rows for <span class='mono'>profile</span> and <span class='mono'>profile-import-health</span>) as a proposal for you to apply.";
+REPLIES.A3="<b>Recorded (L15).</b> The contract file is unchanged. When you say go, I will give you the exact wording of the change (O10, the <span class='mono'>profile</span> registry row, a hidden path for the old screen, and the new Settings route) as a proposal for you to apply.";
+REPLIES.B6="<b>Recorded (L20), then amended (L34):</b> full PAN on a click of \"show\", not always on screen. The conflict with ADR-004 (encrypted, masked-only API) is limited to one new read endpoint.";
+REPLIES.C2="<b>Recorded (L23)</b>, with one question left: whether the strip's two buttons stay (F8).";
+REPLIES.C3="<b>Recorded</b> and kept in <span class='mono'>DEFERRED_FEATURES.md</span> because Connected Accounts is not built now (L24).";
+REPLIES.C4="<b>Moot (L24):</b> Connected Accounts is deferred. Noted in <span class='mono'>DEFERRED_FEATURES.md</span>.";
+REPLIES.D1="<b>Recorded (L25):</b> a Settings tab with the three inside it. Structure is F2.";
+REPLIES.E1="<b>Final (L31, L34):</b> no new table and no migration. The one backend change is a new read endpoint that returns one person's full PAN on request (F7). Everything else is front end only.";
+REPLIES.F1="<b>Recorded (L32):</b> Import History goes inside Settings, as a fourth row beside the three Coming soon rows, and shows the real import history. Data &amp; Privacy stays at four blocks.";
+REPLIES.F2="<b>Recorded (L32).</b>";
+REPLIES.F3="<b>Recorded (L33):</b> Connected Accounts appears as a Coming soon page.";
+REPLIES.F4="<b>Moot (L31):</b> financial details are deferred, so nothing is stored.";
+REPLIES.F5="<b>Moot (L31).</b> The proposed lists stay recorded above for when this is built.";
+REPLIES.F6="<b>Moot (L31).</b> It comes back when financial details are built.";
+REPLIES.F7="<b>Moot (L49):</b> the PAN is always masked, so nothing is delivered. Earlier note:  For the spec: the endpoint checks the signed-in account owns the member; the response is never cached or logged; the value hides again on its own after a short time.";
+REPLIES.F8="<b>Recorded (L35).</b>";
+REPLIES.B1="<b>Superseded (L31):</b> you first chose all seven fields as optional (L17), then later the same day deferred them. They show as Coming soon and nothing is stored.";
+
+REPLIES.B6="<b>Final (L49):</b> masked always, no Show or Hide, no new endpoint.";
+
+var KEY="profile-decisions-v1";
+var state={};
+try{state=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){state={}}
+/* Answers are kept in two places: this browser (instant) and the artifact's own database
+   (survives closing the tab, clearing site data, and opening on another device).
+   Each question carries a timestamp t so the newer edit wins when the two are merged. */
+var dbDoc=null,dbTimer=null,dbSaving=false,dbDirty=false;
+function setSaveState(m){var el=document.getElementById("savestate");if(el)el.textContent=m?" · "+m:""}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+function touch(id){state[id]=state[id]||{};state[id].t=Date.now();return state[id]}
+function save(){saveLocal();scheduleDb()}
+function scheduleDb(){if(!dbDoc)return;dbDirty=true;clearTimeout(dbTimer);dbTimer=setTimeout(flushDb,600)}
+function flushDb(){
+  if(dbSaving){dbTimer=setTimeout(flushDb,300);return}
+  if(!dbDirty||!dbDoc)return;
+  dbDirty=false;dbSaving=true;setSaveState("saving");
+  dbDoc.set({state:JSON.parse(JSON.stringify(state)),updatedAt:new Date().toISOString()}).then(function(){
+    dbSaving=false;setSaveState("saved");
+  },function(){
+    dbSaving=false;dbDirty=true;setSaveState("not saved to cloud, kept in this browser");
+  });
+}
+function mergeIn(remote){
+  var changed=false;
+  Object.keys(remote||{}).forEach(function(k){
+    var r=remote[k]||{},l=state[k];
+    if(!l||(r.t||0)>(l.t||0)){state[k]=r;changed=true}
+  });
+  return changed;
+}
+function localNewer(remote){
+  return Object.keys(state).some(function(k){return !remote[k]||(state[k].t||0)>(remote[k].t||0)});
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+var ll=document.getElementById("lockedList");
+LOCKED.forEach(function(x){
+  var d=document.createElement("div");d.className="card locked";
+  d.innerHTML='<header><span class="id">'+x[0]+'</span><h3>'+x[1]+'</h3><span class="tag locked">decided by you</span></header><p class="decided">'+x[2]+'</p>';
+  ll.appendChild(d);
+});
+
+var qroot=document.getElementById("questions");
+var total=0;
+Q.forEach(function(grp){
+  var sec=document.createElement("section");sec.id="grp-"+grp.g;
+  sec.innerHTML='<h2>'+grp.g+'. '+esc(grp.name)+'</h2>';
+  grp.items.forEach(function(it){
+    total++;
+    var card=document.createElement("article");card.className="card";card.id="q-"+it.id;card.setAttribute("data-id",it.id);
+    var h='<header><span class="id">'+it.id+'</span><h3>'+esc(it.t)+'</h3><span class="tag open" data-status>unanswered</span></header>';
+    h+='<p class="ask">'+esc(it.ask)+'</p><p class="ctx">'+esc(it.ctx)+'</p><div class="opts" role="radiogroup" aria-label="'+esc(it.t)+'">';
+    it.opts.forEach(function(o){
+      var isr=o.k===it.rec;
+      h+='<label class="opt'+(isr?' isrec':'')+'"><input type="radio" name="r-'+it.id+'" value="'+o.k+'"><span><b>'+o.k.toUpperCase()+'. '+esc(o.l)+(isr?' <span class="tag rec">recommended</span>':'')+'</b><span class="d">'+esc(o.d)+'</span></span></label>';
+    });
+    h+='</div><div class="why"><b>Why I recommend '+it.rec.toUpperCase()+':</b> '+esc(it.why)+'</div><p class="risk"><b>If this goes wrong:</b> '+esc(it.risk)+'</p>'+(REPLIES[it.id]?'<div class="reply"><b class="t">Reply to your note:</b> '+REPLIES[it.id]+'</div>':'');
+    h+='<div class="row"><button class="btn ghost" data-use>Use recommended ('+it.rec.toUpperCase()+')</button><button class="btn ghost" data-reset>Reset</button></div>';
+    h+='<label for="n-'+it.id+'" class="count" style="display:block;margin-top:10px">Your own answer or notes</label><textarea id="n-'+it.id+'" placeholder="Optional. Write your own option here."></textarea>';
+    card.innerHTML=h;sec.appendChild(card);
+  });
+  qroot.appendChild(sec);
+});
+
+function cardOf(id){return document.getElementById("q-"+id)}
+function refresh(){
+  var done=0;
+  Q.forEach(function(g){g.items.forEach(function(it){
+    var c=cardOf(it.id),s=state[it.id]||{},ans=!!(s.c||(s.n&&s.n.trim()));
+    if(ans)done++;
+    var tag=c.querySelector("[data-status]");
+    tag.textContent=ans?"answered":"unanswered";tag.className="tag "+(ans?"done":"open");
+    c.setAttribute("data-answered",ans?"1":"0");
+    var radios=c.querySelectorAll("input[type=radio]");
+    radios.forEach(function(r){r.checked=(s.c===r.value)});
+    var ta=c.querySelector("textarea");if(ta&&ta.value!==(s.n||""))ta.value=s.n||"";
+  })});
+  document.getElementById("count").textContent=done+" of "+total+" answered";
+  applyFilter();buildOut();
+}
+var filter="all";
+function applyFilter(){
+  document.querySelectorAll("article.card").forEach(function(c){
+    var a=c.getAttribute("data-answered")==="1";
+    var hide=(filter==="open"&&a)||(filter==="done"&&!a);
+    c.classList.toggle("hidden-by-filter",hide);
+  });
+  ["all","open","done"].forEach(function(f){document.getElementById("f-"+f).setAttribute("aria-pressed",String(filter===f))});
+}
+["all","open","done"].forEach(function(f){document.getElementById("f-"+f).addEventListener("click",function(){filter=f;applyFilter()})});
+
+qroot.addEventListener("change",function(e){
+  var c=e.target.closest("article.card");if(!c)return;var id=c.getAttribute("data-id");
+  if(e.target.type==="radio"){touch(id).c=e.target.value;save();refresh()}
+});
+qroot.addEventListener("input",function(e){
+  if(e.target.tagName!=="TEXTAREA")return;
+  var c=e.target.closest("article.card");var id=c.getAttribute("data-id");
+  touch(id).n=e.target.value;save();
+  var s=state[id],ans=!!(s.c||(s.n&&s.n.trim()));
+  var tag=c.querySelector("[data-status]");tag.textContent=ans?"answered":"unanswered";tag.className="tag "+(ans?"done":"open");
+  c.setAttribute("data-answered",ans?"1":"0");
+  var n=document.querySelectorAll('article.card[data-answered="1"]').length;
+  document.getElementById("count").textContent=n+" of "+total+" answered";buildOut();
+});
+qroot.addEventListener("click",function(e){
+  var c=e.target.closest("article.card");if(!c)return;var id=c.getAttribute("data-id");
+  var it=null;Q.forEach(function(g){g.items.forEach(function(x){if(x.id===id)it=x})});
+  if(e.target.hasAttribute("data-use")){touch(id).c=it.rec;save();refresh()}
+  if(e.target.hasAttribute("data-reset")){state[id]={t:Date.now()};save();refresh()}
+});
+
+function buildOut(){
+  var lines=["Profile planning decisions (answers to the planning workbook)",""];
+  Q.forEach(function(g){g.items.forEach(function(it){
+    var s=state[it.id]||{},txt;
+    if(s.c){var o=it.opts.filter(function(x){return x.k===s.c})[0];txt=s.c.toUpperCase()+" - "+o.l+(s.c===it.rec?" (recommended)":"")}
+    else txt="no choice";
+    if(s.n&&s.n.trim())txt+=" | note: "+s.n.trim();
+    lines.push(it.id+" "+it.t+": "+txt);
+  })});
+  document.getElementById("out").textContent=lines.join("\n");
+}
+document.getElementById("copy").addEventListener("click",function(){
+  var t=document.getElementById("out").textContent,m=document.getElementById("copied");
+  function sel(){var r=document.createRange();r.selectNodeContents(document.getElementById("out"));var s=window.getSelection();s.removeAllRanges();s.addRange(r);m.textContent="Select and copy the text below."}
+  try{navigator.clipboard.writeText(t).then(function(){m.textContent="Copied."},sel)}catch(e){sel()}
+});
+document.getElementById("clear").addEventListener("click",function(){
+  var t=Date.now();Q.forEach(function(g){g.items.forEach(function(it){state[it.id]={t:t}})});save();refresh();
+});
+refresh();
+
+/* Connect the database once the viewer answers; the page works without it. */
+(function(){
+  if(!(window.claude&&window.claude.use))return;
+  window.claude.use("db").then(function(db){
+    if(!db){setSaveState("saved in this browser only");return}
+    dbDoc=db.doc("answers/main");
+    return dbDoc.get().then(function(snap){
+      var remote=(snap.exists&&snap.data()&&snap.data().state)||{};
+      if(mergeIn(remote)){saveLocal();refresh()}
+      if(!snap.exists||localNewer(remote))scheduleDb();else setSaveState("saved");
+      dbDoc.onSnapshot(function(s){
+        if(!s.exists||s.metadata.hasPendingWrites)return;
+        var r=(s.data()||{}).state||{};
+        if(mergeIn(r)){saveLocal();refresh()}
+      },function(){});
+    });
+  }).catch(function(){setSaveState("saved in this browser only")});
+})();
+
+
+
+
+
+</script>
