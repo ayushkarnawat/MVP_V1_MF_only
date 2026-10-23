@@ -65,7 +65,7 @@ T1 and T2 are independent; T3 needs T2 and the shell; T4 to T7 are independent o
 
 ## Execution method (Claude–Codex, `model-orchestration` skill)
 
-**Roles.** Claude is the orchestrator: P0 pre-flight, handoff docs, delegation log, independent verification, the review gate, **all git staging**. Codex (`codex:codex-rescue`, `run_in_background: true`) is the default implementer; it edits and self-checks by inspection, and never touches git (its sandbox cannot write `.git`; the probe below reconfirms this each session). Claude runs every test, `tsc` and `oxlint` because Codex's sandbox does not reliably reach `node_modules`. A genuine Claude subagent is the fallback only under the three conditions in `delegation-rules.md`. Opus only on the three triggers in `escalation-triggers.md`, and only after asking the owner; the irreversible-delete runs (R4, R6) get no automatic Opus review, the Codex adversarial gate is the default, and Claude may ask for an Opus second look if a trigger fires.
+**Roles.** Claude is the orchestrator: P0 pre-flight, handoff docs, delegation log, independent verification, the review gate, **all git staging**. Codex (`codex:codex-rescue`, `run_in_background: true`) is the default implementer; it edits and self-checks by inspection, and never touches git (its sandbox cannot write `.git`; the probe below reconfirms this each session). Claude runs every test, `tsc` and `oxlint` because Codex's sandbox does not reliably reach `node_modules`. A genuine Claude subagent is the fallback only under the three conditions in `delegation-rules.md`. **Opus review on the risky runs: R4 (Family: delete paths and the import hand-off), R6 (Data & Privacy: the copied delete-account flow) and the final gate (R10).** The owner pre-approved this on 23 Oct 2026 ("opus for the risky parts"), so Claude does not ask again for these three; each is logged in `delegation-log.md` with that reason. Any other Opus use still needs the three triggers in `escalation-triggers.md` and a fresh ask. The Codex adversarial gate still runs on every run first.
 
 **Runs are the dispatch unit:**
 
@@ -74,13 +74,13 @@ T1 and T2 are independent; T3 needs T2 and the shell; T4 to T7 are independent o
 | R1 | T1 | Codex (small). In parallel with R2: different folders |
 | R2 | T2, T3 | Codex; route files and `ProfileNav` are mechanical. Needs P0 names |
 | R3 | T4 | Codex; Claude diffs `ContactChangeDialog` behaviour against `ProfileView.tsx` |
-| R4 | T5 | Codex; heightened attention in the review prompt: delete paths and the import hand-off |
+| R4 | T5 | Codex implements; Codex adversarial gate, then **Opus review** (pre-approved): delete paths, the selected-member reset, the import hand-off |
 | R5 | T6 | Codex |
-| R6 | T7 | Codex; heightened attention: copied irreversible flow |
+| R6 | T7 | Codex implements; Codex adversarial gate, then **Opus review** (pre-approved): the copied irreversible delete-account flow against `ProfileView.tsx` |
 | R7 | T8 | Claude (manual check on a synthetic household is Claude-led) |
 | R8 | T9 | Claude |
 | R9 | T10 | Claude (deletions; owner's go required) |
-| R10 | F | Claude; whole-branch Codex adversarial review |
+| R10 | F | Claude; whole-branch Codex adversarial review, then **Opus review** (pre-approved) |
 
 R3 to R6 touch separate folders and no shared file, so they may be dispatched as parallel Codex calls in one block if Claude judges the context cost acceptable; otherwise sequentially. Two writers never touch the same file.
 
@@ -203,7 +203,7 @@ R3 to R6 touch separate folders and no shared file, so they may be dispatched as
 
 - [ ] `cd frontend && npx vitest run src/features/profile-v2 src/shell src/features/profile src/features/auth`; one independent full `npx vitest run` (auth types and shell tests were touched); `npx tsc -b`; `npm run build`; `npx oxlint src`. Backend: the `/auth/me` and household-route test files pass.
 - [ ] `git diff --stat <base>...HEAD` shows only allowed files plus the new ones.
-- [ ] Whole-branch `/codex:adversarial-review` through `codex:codex-rescue` (manual relay told up front); fix per "Review-loop fix authorship". An Opus review only if a named trigger fires, and only with the owner's approval.
+- [ ] Whole-branch `/codex:adversarial-review` through `codex:codex-rescue` (manual relay told up front); fix per "Review-loop fix authorship". Then a whole-branch **Opus review** (pre-approved by the owner, 23 Oct 2026); fix per the same rule.
 - [ ] The owner's staging acceptance is not part of the build; it precedes T10.
 
 ## Open items for the owner
@@ -211,4 +211,4 @@ R3 to R6 touch separate folders and no shared file, so they may be dispatched as
 - Lawyer review of the "What we store" text and the Coming soon wording before launch (consent withdrawal, grievance contact, data export stay deferred).
 - Manual Add Member, remaining Financial Details fields, Connected Accounts: deferred, `DEFERRED_FEATURES.md`.
 - Default taken: unknown stored goal codes are preserved on save (`mergeGoals`). Say if you prefer they be dropped.
-- Default taken: no automatic Opus review on R4/R6; the Codex adversarial gate applies. Say if you want Opus there (it would need your approval each time).
+- Decided 23 Oct 2026: Opus review on R4, R6 and the final gate, pre-approved. Other runs use the Codex adversarial gate only.
