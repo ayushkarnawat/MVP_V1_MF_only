@@ -64,6 +64,16 @@ class WriteAttempted(RuntimeError):
     pass
 
 
+# One event loop for the whole run. nav.py keeps a module-level httpx.AsyncClient bound to the loop
+# it was first used on; calling asyncio.run() repeatedly closes that loop and the next call fails
+# with "Event loop is closed" (seen on the first staging run, 23 Oct).
+_LOOP = asyncio.new_event_loop()
+
+
+def run_async(coro):
+    return _LOOP.run_until_complete(coro)
+
+
 def guard(db: Session, allowed_tables: set[str], allowed_models: tuple):
     """Aborts any write outside the tables the chosen flags allow (ORM flushes and raw statements)."""
     @event.listens_for(db, "before_flush")
@@ -91,7 +101,7 @@ def run_timed(fn, runs: int) -> list[float]:
     out = []
     for _ in range(runs):
         t0 = time.perf_counter()
-        asyncio.run(fn())
+        run_async(fn())
         out.append(ms(t0))
     return out
 
@@ -232,7 +242,7 @@ def main() -> int:
                 invalidate_holdings_cache(i)
             t0 = time.perf_counter()
             try:
-                holdings = asyncio.run(compute_holdings(db, ids))
+                holdings = run_async(compute_holdings(db, ids))
             except WriteAttempted as e:
                 print(f"household holdings cold: needs a live NAV download ({e}). Re-run with --include-live-fetch.")
                 return 2
@@ -257,7 +267,7 @@ def main() -> int:
                 today = date.today()
                 t0 = time.perf_counter()
                 try:
-                    got = asyncio.run(get_nav_on_or_before(db, s, today))
+                    got = run_async(get_nav_on_or_before(db, s, today))
                     newest = got[1] if got else None
                     print(f"T1 one-fund NAV availability: newest {newest}, today's row "
                           f"{'present' if newest == today else 'absent'}, {ms(t0):.0f} ms")
@@ -287,7 +297,7 @@ def main() -> int:
                     report.append((s.sebi_category, tier2, None))
                     continue
                 t0 = time.perf_counter()
-                peers = asyncio.run(get_category_peers(db, s.sebi_category, s.plan_type))
+                peers = run_async(get_category_peers(db, s.sebi_category, s.plan_type))
                 t_peers = ms(t0)
                 pids = [p.id for p in peers.schemes]
                 print(f"T3 peers: {len(pids)} funds ({peers.fund_count} in category) in {t_peers:.0f} ms")
@@ -321,7 +331,7 @@ def main() -> int:
                     print(f"T3 daily category average {years}y: {len(rows)} rows, read {t_read:.0f} ms + average {ms(t0):.0f} ms")
                 t0 = time.perf_counter()
                 try:
-                    row = asyncio.run(compute_fund_score(db, s))
+                    row = run_async(compute_fund_score(db, s))
                     t_score_cold = ms(t0)
                     warm_s = run_timed(lambda: compute_fund_score(db, s), 2)
                     print(f"T3 Fund Score: cold {t_score_cold:.0f} ms, warm median {statistics.median(warm_s):.0f} ms "
