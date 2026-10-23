@@ -1,0 +1,850 @@
+<title>Planning Design Mockups</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky contents rail + one reading column of decision cards; planning workbook, not a landing page. */
+:root{
+  --bg:#f6f8f6; --surface:#ffffff; --surface-2:#eef2ee; --line:#d9e0d9;
+  --fg:#16211a; --muted:#566259; --accent:#128a4a; --accent-soft:#e1f3e8;
+  --locked:#2f5fb3; --locked-soft:#e6eefb; --open:#a8610a; --open-soft:#fbefd9;
+  --rec:#128a4a; --danger:#b3321f;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'DM Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'DM Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent)}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent)}
+nav.toc .grp{margin-top:14px}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:68ch;margin:0 0 10px}
+.rule{margin-top:18px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 16px;max-width:75ch}
+.rule b{color:var(--accent)}
+section{margin-top:52px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:72ch}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700;white-space:nowrap}
+.tag{display:inline-block;font:500 11px var(--f-mono);padding:2px 8px;border-radius:99px;letter-spacing:.03em}
+.tag.locked{background:var(--locked-soft);color:var(--locked)}
+.tag.open{background:var(--open-soft);color:var(--open)}
+.tag.done{background:var(--accent-soft);color:var(--accent)}
+.tag.rec{background:var(--accent-soft);color:var(--rec)}
+.tag.no{background:var(--surface-2);color:var(--danger);border:1px solid var(--danger)}
+.reply{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px}
+.reply b.t{color:var(--accent)}
+.reply ul,.reply ol{margin:6px 0;padding-left:20px}
+.reply li{margin:3px 0}
+.tag.later{background:var(--open-soft);color:var(--open)}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul{margin:6px 0;padding-left:20px}
+.sumbox li{margin:5px 0}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:10px 0}
+.two>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.two h4{margin:0 0 6px;font-family:var(--f-display);font-size:15px}
+.two ul{margin:4px 0;padding-left:18px}
+.two li{margin:4px 0}
+.two .pro h4{color:var(--rec)}
+.two .con h4{color:var(--danger)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}
+.chip{font:500 12px var(--f-mono);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:6px 12px;border-radius:99px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.spacer{flex:1}
+.count{font:500 12px var(--f-mono);color:var(--muted)}
+.btn{font:500 13px var(--f-body);background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+:root[data-theme="dark"] .btn{color:#06210f}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn{color:#06210f}}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:70px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:500 12px var(--f-mono);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.card p{margin:8px 0}
+.ask{font-weight:500}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--rec)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.opt .tag{margin-left:6px}
+.why{border-left:3px solid var(--rec);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--rec)}
+.risk{font-size:13.5px;color:var(--muted)}
+.risk b{color:var(--danger)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+textarea{width:100%;min-height:54px;font:14px var(--f-body);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;resize:vertical}
+.card.locked{background:var(--locked-soft);border-color:transparent}
+.card.locked .decided{font-weight:500}
+.hidden-by-filter{display:none}
+.callout{background:var(--open-soft);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:14px}
+ul.tight{margin:6px 0;padding-left:20px}
+ul.tight li{margin:3px 0}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+#out{white-space:pre-wrap;font:13px var(--f-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px;max-height:340px;overflow:auto}
+details{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:12px;padding:0 16px}
+details>summary{cursor:pointer;font-weight:700;padding:12px 0;font-family:var(--f-display);font-size:16px}
+details[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+details .body{padding-bottom:14px}
+h3.sub{font-size:17px;margin:22px 0 8px}
+blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);color:var(--muted);font-size:14px}
+.pill{display:inline-block;font:500 11px var(--f-mono);padding:1px 7px;border-radius:6px;background:var(--surface-2);color:var(--muted)}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+.flow .st{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:13px;min-width:0}
+.flow .st b{display:block;font-family:var(--f-display);font-size:14px;margin-bottom:2px}
+.flow .st .n{font:500 11px var(--f-mono);color:var(--muted)}
+.flow .st .m{color:var(--muted);font-size:12.5px}
+.flow .st.new{border-color:var(--accent)}
+.flow .st.old{border-style:dashed}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}nav.toc{position:static;max-height:none;margin-bottom:12px;columns:2}nav.toc .grp{margin-top:0;break-inside:avoid}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+<style>
+.mk{--m-bg:#FCFCFC;--m-card:#F5F5F5;--m-elev:#FFFFFF;--m-line:#ECECEC;--m-border:#DFDFDF;--m-text:#111111;--m-body:#4B4B4B;--m-sec:#717171;--m-mut:#9B9B9B;
+ --m-green:#22C55E;--m-greenT:#E9F9EF;--m-pos:#15803D;--m-posP:#22C55E;--m-neg:#C1272D;--m-negP:#E5484D;--m-negT:#FDECEC;
+ --m-warn:#D97706;--m-warnT:#FEF3E2;--m-warnX:#92400E;--m-info:#4F46E5;--m-infoT:#EEEDFC;--m-infoX:#3730A3;--m-blue:#2563EB;--m-teal:#0D9488;--m-neu:#F5F5F5;
+ background:var(--m-bg);color:var(--m-text);border:1px solid var(--line);border-radius:12px;padding:20px;overflow-x:auto;font-family:'Manrope','DM Sans','Segoe UI',system-ui,sans-serif;font-size:13px;line-height:1.45}
+.mk.dark{--m-bg:#111111;--m-card:#1A1A1A;--m-elev:#212121;--m-line:#2E2E2E;--m-border:#3B3B3B;--m-text:#FCFCFC;--m-body:#D4D4D4;--m-sec:#A3A3A3;--m-mut:#737373;
+ --m-greenT:rgba(34,197,94,.14);--m-pos:#34D399;--m-neg:#F87171;--m-negT:rgba(229,72,77,.16);--m-warnT:rgba(217,119,6,.18);--m-warnX:#FBBF24;--m-infoT:rgba(79,70,229,.22);--m-infoX:#A5B4FC;--m-neu:#1A1A1A}
+.mk *{box-sizing:border-box}
+.mk button{font:inherit;color:inherit;cursor:pointer}
+.mk .mkc{min-width:1000px}
+.mk h2.m-h1{font:700 26px 'DM Sans','Segoe UI',sans-serif;margin:0 0 2px}
+.mk .m-sub{color:var(--m-sec);margin:0 0 18px}
+.mk .m-back{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:var(--m-sec);padding:4px 0;margin-bottom:6px;font-weight:600}
+.mk .m-back:hover{color:var(--m-text)}
+.mk .m-plans{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.mk .m-plan{display:flex;align-items:center;gap:16px;text-align:left;background:var(--m-card);border:1px solid var(--m-line);border-radius:14px;padding:20px;min-height:112px;width:100%}
+.mk .m-plan:hover{border-color:var(--m-border);background:var(--m-elev)}
+.mk .m-ic{flex:none;width:48px;height:48px;border-radius:12px;display:grid;place-items:center}
+.mk .m-ic.sm{width:40px;height:40px;border-radius:10px}
+.mk .m-ic svg{width:22px;height:22px}
+.mk .t-teal{background:rgba(13,148,136,.14);color:var(--m-teal)}
+.mk .t-indigo{background:var(--m-infoT);color:var(--m-info)}
+.mk .t-neg{background:var(--m-negT);color:var(--m-negP)}
+.mk .t-warn{background:var(--m-warnT);color:var(--m-warn)}
+.mk .t-green{background:var(--m-greenT);color:var(--m-green)}
+.mk .m-plan h3{font:600 17px 'DM Sans',sans-serif;margin:0 0 3px}
+.mk .m-plan p{margin:0;color:var(--m-sec)}
+.mk .m-arrow{margin-left:auto;flex:none;width:36px;height:36px;border-radius:50%;background:var(--m-card);border:1px solid var(--m-border);display:grid;place-items:center;color:var(--m-sec)}
+.mk .m-arrow svg{width:16px;height:16px}
+.mk .m-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.mk .m-sc{display:flex;flex-direction:column;gap:6px;text-align:left;background:var(--m-card);border:1px solid var(--m-line);border-radius:12px;padding:14px;min-height:150px}
+.mk .m-sc:hover{border-color:var(--m-border)}
+.mk .m-sc.sel{border:2px solid var(--m-green);background:var(--m-greenT);padding:13px}
+.mk .m-sc .top{display:flex;gap:10px;align-items:flex-start}
+.mk .m-sc .nm{font-weight:600;font-size:13.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mk .m-sc .dt{color:var(--m-sec);font-size:12px}
+.mk .m-sc .ds{color:var(--m-body);font-size:12.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mk .m-sc .bt{margin-top:auto;display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:12px}
+.mk .m-sc .bt svg{width:16px;height:16px;color:var(--m-sec)}
+.mk .pos{color:var(--m-pos)}.mk .neg{color:var(--m-neg)}
+.mk .bdg{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:1px 7px;border-radius:99px;border:1px solid var(--m-border);color:var(--m-sec);white-space:nowrap}
+.mk .bdg.freeze{border-color:var(--m-warn);color:var(--m-warnX);background:var(--m-warnT)}
+.mk .bdg .dot{width:7px;height:7px;border-radius:50%;background:var(--m-negP)}
+.mk .m-more{border:0;background:none;color:var(--m-green);font-weight:600;padding:12px 0}
+.mk .m-pills{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.mk .m-pill{border:1px solid var(--m-border);background:var(--m-bg);border-radius:99px;padding:6px 14px;font-weight:600;color:var(--m-body)}
+.mk .m-pill[aria-pressed="true"]{background:var(--m-text);color:var(--m-bg);border-color:var(--m-text)}
+.mk .m-dh{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-top:28px;border-top:1px solid var(--m-line);padding-top:22px}
+.mk .m-dh h3{font:700 21px 'DM Sans',sans-serif;margin:0 0 2px}
+.mk .m-dh .dts{color:var(--m-sec);margin:0 0 2px}
+.mk select.m-sel{font:inherit;background:var(--m-elev);color:var(--m-text);border:1px solid var(--m-border);border-radius:8px;padding:8px 10px;min-width:190px}
+.mk .m-disc{font-style:italic;color:var(--m-sec);margin:10px 0 16px;max-width:90ch}
+.mk .m-tiles{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:12px;margin-bottom:16px}
+.mk .m-tile{background:var(--m-card);border:1px solid var(--m-line);border-radius:12px;padding:14px 16px}
+.mk .m-tile .c{color:var(--m-sec);font-size:12px}
+.mk .m-tile .v{font:700 24px 'DM Sans',sans-serif;margin:2px 0}
+.mk .m-tile .s{color:var(--m-sec);font-size:12px}
+.mk .m-charts{display:grid;grid-template-columns:5fr 6fr 4fr;gap:12px;margin-bottom:16px}
+.mk .m-charts.two{grid-template-columns:1fr 1fr}
+.mk .m-panel{background:var(--m-card);border:1px solid var(--m-line);border-radius:12px;padding:16px;min-width:0}
+.mk .m-panel h4{font:600 14px 'DM Sans',sans-serif;margin:0 0 12px}
+.mk .m-panel .cap{color:var(--m-sec);font-size:11.5px;margin-top:10px}
+.mk .m-bar{display:grid;grid-template-columns:104px minmax(0,1fr) 112px;gap:8px;align-items:center;padding:5px 0;font-size:12px}
+.mk .m-bar .tr{position:relative;height:10px}
+.mk .m-bar .zl{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--m-border)}
+.mk .m-bar .b{position:absolute;top:1px;height:8px;border-radius:3px}
+.mk .m-bar .vl{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mk .m-mira{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.mk .m-btn{border:1px solid var(--m-border);background:var(--m-bg);border-radius:8px;padding:7px 14px;font-weight:600}
+.mk .m-btn:hover{background:var(--m-elev)}
+.mk .m-btn.pri{background:var(--m-green);border-color:var(--m-green);color:#06260F}
+.mk .m-ph{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.mk .m-ph .p{background:var(--m-card);border:1px solid var(--m-line);border-radius:12px;padding:14px}
+.mk .m-ph .p b{font-size:18px;display:block;margin-top:4px;font-variant-numeric:tabular-nums}
+.mk details.m-mem{border:1px solid var(--m-line);border-radius:10px;margin-bottom:8px;background:var(--m-bg)}
+.mk details.m-mem summary{display:flex;justify-content:space-between;gap:12px;padding:12px 14px;cursor:pointer;font-weight:600;list-style:none}
+.mk details.m-mem summary::-webkit-details-marker{display:none}
+.mk .m-fund{display:flex;justify-content:space-between;gap:12px;padding:8px 14px;border-top:1px solid var(--m-line);font-size:12.5px;color:var(--m-body)}
+.mk .m-fund .l{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+.mk .chip{font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:99px;background:var(--m-neu);border:1px solid var(--m-border);color:var(--m-sec)}
+.mk .frz{font-size:11px;font-weight:600;color:var(--m-warnX)}
+.mk .m-note{display:flex;gap:10px;align-items:flex-start;background:var(--m-neu);border:1px solid var(--m-border);border-radius:10px;padding:12px 14px;margin-bottom:16px;color:var(--m-body)}
+.mk .m-banner{border:2px solid var(--m-warn);background:var(--m-warnT);border-radius:12px;padding:14px 16px;margin-bottom:16px}
+.mk .m-banner b.big{display:block;font:700 22px 'DM Sans',sans-serif;color:var(--m-warnX);margin-top:4px}
+.mk .m-skel{background:var(--m-card);border-radius:10px;height:84px;border:1px solid var(--m-line)}
+.mk .m-skel.t{height:20px;width:40%;margin-bottom:12px}
+.mk .m-err{border:1px solid var(--m-negP);background:var(--m-negT);border-radius:12px;padding:14px 16px}
+.mk .m-dlg{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.35);z-index:20}
+.mk .m-dlg>div{background:var(--m-elev);color:var(--m-text);border:1px solid var(--m-border);border-radius:14px;padding:22px;max-width:380px}
+.mk svg{flex:none}
+.mk .dim{opacity:.6}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.chips .chip2{font:500 12px var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:99px;padding:5px 12px;cursor:pointer}
+.chips .chip2[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.sw{display:flex;align-items:center;gap:8px}.sw i{width:18px;height:18px;border-radius:5px;border:1px solid var(--line);display:inline-block}
+.out2{font:500 13px var(--f-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:6px;min-height:36px;white-space:pre-wrap;overflow-wrap:anywhere}
+.ugrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.ugrid label{display:block;font-weight:500;margin-bottom:4px}
+.ugrid input,.ugrid select{width:100%;font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <h4>Contents</h4>
+  <a href="#intro">Where we are</a>
+  <div class="grp"><h4>Design</h4>
+    <a href="#mockup">1. The page, clickable</a>
+    <a href="#states">2. States</a>
+    <a href="#tokens">3. Colour tokens</a>
+    <a href="#type">4. Type and spacing</a>
+    <a href="#utils">5. Utilities (live)</a>
+    <a href="#components">6. Components</a>
+    <a href="#applied">7. Decisions applied</a></div>
+  <div class="grp"><h4>Documents</h4><a href="#docs">What was written</a></div>
+  <div class="grp"><h4>Open questions</h4><a href="#grp-G">G. From the documents</a></div>
+  <div class="grp"><a href="#log">Conversation log</a><a href="#answers">Your answers</a></div>
+</nav>
+
+<main>
+<div class="hero" id="intro">
+  <h1>Planning Design Mockups</h1>
+  <p>Design system, utilities and clickable mockups for the Planning page, with the open questions that came out of writing the documents. Prepared 23 Oct 2026. Nothing is built. Answers save automatically in this page's database; the box at the bottom collects them to paste into chat.</p>
+  <div class="rule"><b>Example numbers.</b> Every figure in the mockups is made up to show the layout. The engine's real numbers will differ, and every standard scenario here shows the same sample figures.</div>
+  <div class="rule"><b>Where we stand (updated 23 Oct):</b> all nine questions are answered and recorded as decisions L36 to L44 in the planning workbook. G1 is C: <b>ScenariosScreen is edited in place with a desktop variant switch</b> (default classic, so mobile is unchanged); the documents are updated to match. The implementation plans wait for your go.</div>
+</div>
+
+<section id="mockup">
+  <h2>1. The page, clickable</h2>
+  <p class="lead">Click through it: landing, Plan your future, the list, a scenario, a member. The chips switch to a state directly. The frame scrolls sideways on a narrow screen.</p>
+  <div class="chips" id="stateChips" role="group" aria-label="Mockup state"></div>
+  <div class="chips" id="themeChips" role="group" aria-label="Mockup theme"></div>
+  <div class="mk" id="mk" aria-live="polite"></div>
+</section>
+
+<section id="states">
+  <h2>2. States</h2>
+  <p class="lead">From the layout document. Every state above can be switched to with the chips.</p>
+  <div class="scroll"><table>
+    <tr><th>Where</th><th>Loading</th><th>Empty</th><th>Partial or no data</th><th>Error</th></tr>
+    <tr><td class="k">List</td><td>Skeleton cards in the same grid</td><td>"No scenarios are available yet."</td><td>n/a</td><td>"Scenarios aren't available right now." and Try again</td></tr>
+    <tr><td class="k">Detail</td><td>Skeleton tiles and charts under the heading</td><td>No holdings: message and a link to import (G6)</td><td>"Not enough historical data to estimate" where a number is null; coverage line; index-only view before 2006</td><td>Same error card; the list stays usable</td></tr>
+    <tr><td class="k">Member change</td><td>Numbers dim to 60% and stay until the new ones arrive</td><td>A member with no funds is not offered</td><td>As above</td><td>The dropdown reverts</td></tr>
+  </table></div>
+</section>
+
+<section id="tokens">
+  <h2>3. Colour tokens</h2>
+  <p class="lead">No new colour token. These are the Home and shell scoped tokens (palette PDF). Green appears only on the selected card and the focus ring.</p>
+  <div class="scroll"><table>
+    <tr><th>Use on this page</th><th>Light</th><th>Dark</th></tr>
+    <tr><td class="k">Page, card, elevated</td><td><span class="sw"><i style="background:#FCFCFC"></i>#FCFCFC</span> <span class="sw"><i style="background:#F5F5F5"></i>#F5F5F5</span> <span class="sw"><i style="background:#FFFFFF"></i>#FFFFFF</span></td><td><span class="sw"><i style="background:#111111"></i>#111111</span> <span class="sw"><i style="background:#1A1A1A"></i>#1A1A1A</span> <span class="sw"><i style="background:#212121"></i>#212121</span></td></tr>
+    <tr><td class="k">Text: primary, body, secondary</td><td>#111111, #4B4B4B, #717171</td><td>#FCFCFC, #D4D4D4 (derived), #A3A3A3</td></tr>
+    <tr><td class="k">Gain text, bar</td><td><span class="sw"><i style="background:#15803D"></i>#15803D</span> <span class="sw"><i style="background:#22C55E"></i>#22C55E</span></td><td><span class="sw"><i style="background:#34D399"></i>#34D399</span> bar #22C55E</td></tr>
+    <tr><td class="k">Loss text, bar</td><td><span class="sw"><i style="background:#C1272D"></i>#C1272D</span> <span class="sw"><i style="background:#E5484D"></i>#E5484D</span></td><td><span class="sw"><i style="background:#F87171"></i>#F87171</span> bar #E5484D</td></tr>
+    <tr><td class="k">Selected card</td><td>2 px #22C55E outline, #E9F9EF tint</td><td>2 px #22C55E outline, 14% green tint</td></tr>
+    <tr><td class="k">Index bars (G8)</td><td><span class="sw"><i style="background:#2563EB"></i>#2563EB (Chart 03)</span></td><td>same</td></tr>
+    <tr><td class="k">Freeze (L29)</td><td>#D97706 / text #92400E / tint #FEF3E2</td><td>text #FBBF24, tint 18% amber</td></tr>
+    <tr><td class="k">Hypothetical (L29)</td><td>#4F46E5 / text #3730A3 / tint #EEEDFC</td><td>text #A5B4FC (derived), tint 22% indigo</td></tr>
+    <tr><td class="k">Type icon tiles</td><td>Crash #E5484D tint; Bull run #0D9488 tint; Policy and rate #4F46E5 tint</td><td>low-opacity primaries</td></tr>
+  </table></div>
+</section>
+
+<section id="type">
+  <h2>4. Type and spacing</h2>
+  <div class="scroll"><table>
+    <tr><th>Role</th><th>Spec</th></tr>
+    <tr><td class="k">Page title</td><td>DM Sans 26 / 700</td></tr>
+    <tr><td class="k">Detail heading</td><td>DM Sans 21 / 700</td></tr>
+    <tr><td class="k">Card title</td><td>DM Sans 14 to 17 / 600</td></tr>
+    <tr><td class="k">Tile value</td><td>DM Sans 24 / 700, tabular figures</td></tr>
+    <tr><td class="k">Body, captions</td><td>Manrope 13 / 400; captions 12 / 500</td></tr>
+    <tr><td class="k">Radius, gaps</td><td>cards 12 px, controls 8 px; 12 px between cards, 16 to 28 px between rows; card padding 14 to 20 px</td></tr>
+  </table></div>
+</section>
+
+<section id="utils">
+  <h2>5. Utilities (live)</h2>
+  <p class="lead">The same logic the build will use, running here. Money-path maths in the real code uses decimal strings, not floats; these demos only show the rules.</p>
+  <div class="ugrid">
+    <div><label for="u1">Your return % and Nifty 50 return % (outperformed by)</label><div style="display:flex;gap:8px"><input id="u1a" value="-17.09"><input id="u1b" value="-30.2"></div><div class="out2" id="u1o"></div></div>
+    <div><label for="u2">Engine bucket to display group (asset class)</label><select id="u2"></select><div class="out2" id="u2o"></div></div>
+    <div><label for="u3">Bar values (comma separated) to widths</label><input id="u3" value="-1161000,-165000,39000,48000,-27600"><div class="out2" id="u3o"></div></div>
+    <div><label for="u4">Value to Indian rupees</label><input id="u4" value="-1266600"><div class="out2" id="u4o"></div></div>
+  </div>
+</section>
+
+<section id="components">
+  <h2>6. Components: reuse and new</h2>
+  <div class="scroll"><table>
+    <tr><th>Piece</th><th>Status</th><th>Notes</th></tr>
+    <tr><td class="k">Card, button, badge, select, tooltip, skeleton, dialog</td><td>reuse</td><td>unchanged</td></tr>
+    <tr><td class="k">Mira dialog</td><td>reuse</td><td>shell component</td></tr>
+    <tr><td class="k">Disclaimer, rupee and decimal helpers, benchmark labels, date range</td><td>reuse</td><td>from the scenarios feature and <span class="mono">lib</span></td></tr>
+    <tr><td class="k">PlanningPage, PlanCard, ComingSoonView</td><td>new</td><td>state and history</td></tr>
+    <tr><td class="k">ScenarioList, ScenarioCard, ScenarioTypeIcon</td><td>new</td><td>page-29 card</td></tr>
+    <tr><td class="k">ScenarioDetail, StatTile, MemberSelect, MiraInsightsCard</td><td>new</td><td></td></tr>
+    <tr><td class="k">DivergingBars, BenchmarkChart, AssetClassChart</td><td>new</td><td>plain markup, no chart library</td></tr>
+    <tr><td class="k">EstimateChip, FrozenText, ScenarioNote</td><td>new</td><td>labels inside member rows</td></tr>
+    <tr><td class="k">ScenariosScreen</td><td>edit in place (L36)</td><td>optional variant prop, default classic; the planning branch is an early return to new files; mobile and the old tab flow unchanged</td></tr>
+  </table></div>
+</section>
+
+<section id="applied">
+  <h2>7. Decisions applied</h2>
+  <div class="scroll"><table>
+    <tr><th>Decision</th><th>Where you see it</th></tr>
+    <tr><td class="k">L1, L13, L15</td><td>Landing replaced by the chosen view, Back link, history steps</td></tr>
+    <tr><td class="k">L2, L32</td><td>Plan your future: Coming soon, nothing collected</td></tr>
+    <tr><td class="k">L3, L8, L17, L18</td><td>List structure, card with icon, description, Nifty 50 stat only</td></tr>
+    <tr><td class="k">L14</td><td>Detail below the list</td></tr>
+    <tr><td class="k">L5, L19</td><td>Member dropdown</td></tr>
+    <tr><td class="k">L6, L7, L20 to L22, L28</td><td>Four tiles, two charts in rupees with the percent beside, six groups, no line chart</td></tr>
+    <tr><td class="k">L23, L24</td><td>Multi-phase, freeze and pre-2006 states</td></tr>
+    <tr><td class="k">L25, L35</td><td>Only the member list; Estimate and Frozen inside its rows</td></tr>
+    <tr><td class="k">L26</td><td>Mira card with button</td></tr>
+    <tr><td class="k">L29, L30</td><td>Freeze in Warning colours; disclaimer above the tiles</td></tr>
+    <tr><td class="k">L36</td><td>ScenariosScreen: optional variant prop, default classic; planning variant returns to new files</td></tr>
+    <tr><td class="k">L37, L38</td><td>One member: funds shown open under 'Funds for Asha' (switch the member in the mockup); the open detail stays when a pill changes</td></tr>
+    <tr><td class="k">L39</td><td>All wording in the mockups is the approved text</td></tr>
+    <tr><td class="k">L40, L43</td><td>No tooltips; index bars in Chart 03 blue</td></tr>
+    <tr><td class="k">L41</td><td>'Detail: no holdings' state</td></tr>
+    <tr><td class="k">L42</td><td>Delivery order: shell PR 1, Home T1, then Planning</td></tr>
+    <tr><td class="k">L44</td><td>Icon set in the mockups</td></tr>
+  </table></div>
+</section>
+
+<section id="docs">
+  <h2>What was written</h2>
+  <p class="lead">All in <span class="mono">Docs/orchestration/</span>, dated 2026-10-23, prefix <span class="mono">planning-scenarios</span>. Nothing committed. No existing document was edited except the shell contract (your go on A4).</p>
+  <div class="scroll"><table>
+    <tr><th>Document</th><th>File</th></tr>
+    <tr><td class="k">1. Functionality and backend spec</td><td class="mono">...-functionality-backend-spec.md</td></tr>
+    <tr><td class="k">2. Layout</td><td class="mono">...-layout.md</td></tr>
+    <tr><td class="k">3. Design system, utilities, mockups</td><td class="mono">...-design-system.md and this page (...-design-mockups.html)</td></tr>
+    <tr><td class="k">4. Reuse versus new</td><td class="mono">...-reuse-vs-new.md</td></tr>
+    <tr><td class="k">5. TDD</td><td class="mono">...-tdd.md</td></tr>
+    <tr><td class="k">6. Architecture</td><td class="mono">...-architecture.md</td></tr>
+    <tr><td class="k">7. PRD (new; PRD-04 untouched, version note proposed)</td><td class="mono">...-prd.md</td></tr>
+    <tr><td class="k">8. Flows</td><td class="mono">...-flows.md</td></tr>
+    <tr><td class="k">9. Backend decisions (proposal PD1 to PD8)</td><td class="mono">...-backend-decisions-proposal.md</td></tr>
+    <tr><td class="k">10. Implementation plans</td><td>Not written: they wait for your go.</td></tr>
+  </table></div>
+</section>
+
+<div class="bar" id="filterbar">
+  <button class="chip" id="f-all" aria-pressed="true">All questions</button>
+  <button class="chip" id="f-open" aria-pressed="false">Unanswered</button>
+  <button class="chip" id="f-done" aria-pressed="false">Answered</button>
+  <span class="spacer"></span>
+  <span class="count"><span id="count"></span><span id="savestate" role="status"></span></span>
+</div>
+
+<div id="questions"></div>
+<div id="lockedList" hidden></div>
+
+<section id="log">
+  <h2>Conversation log</h2>
+  <div class="scroll"><table>
+    <tr><th>When</th><th>Who</th><th>What</th></tr>
+    <tr><td class="k">23 Oct</td><td>You</td><td>Go for the documents phase, with the design system and mockups as an artifact that also holds any new open questions.</td></tr>
+    <tr><td class="k">23 Oct</td><td>Me</td><td>Wrote documents 1 to 9, built this page, found that the mobile app imports the Scenarios screen (G1) and raised eight more questions. Plans not written.</td></tr>
+    <tr><td class="k">23 Oct</td><td>You</td><td>Answered G1 to G9: G1 C, all others as recommended.</td></tr>
+    <tr><td class="k">23 Oct</td><td>Me</td><td>Updated the spec (new section 11), reuse, TDD, architecture and PRD for G1 C; recorded L36 to L44.</td></tr>
+  </table></div>
+  <div class="scroll" style="margin-top:12px"><table>
+    <tr><th>Pending</th><th>Waiting on</th></tr>
+    <tr><td class="k">G1 to G9</td><td>Answered (L36 to L44).</td></tr>
+    <tr><td class="k">PRD-04 version note, decisions.md entries (PD1 to PD8)</td><td>Your word; nothing applied.</td></tr>
+    <tr><td class="k">Other shell documents (old route)</td><td>Your word; not edited.</td></tr>
+    <tr><td class="k">Implementation plans</td><td>Your go.</td></tr>
+  </table></div>
+</section>
+
+<section id="answers">
+  <h2>Your answers</h2>
+  <p class="lead">This collects every choice and note above. Copy it and paste it into the chat.</p>
+  <div class="row"><button class="btn" id="copy">Copy my answers</button><button class="btn ghost" id="clear">Clear all choices</button><span class="count" id="copied" role="status"></span></div>
+  <div id="out" aria-live="polite"></div>
+</section>
+</main>
+</div>
+<script src="https://unpkg.com/lucide@0.475.0/dist/umd/lucide.min.js"></script>
+<script>
+(function(){
+var root=document.getElementById("mk");if(!root)return;
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function inr(n,sign){var a=Math.abs(Math.round(n));var s=new Intl.NumberFormat("en-IN").format(a);var neg=n<0&&a!==0;return (neg?"−":(sign&&a!==0?"+":""))+"₹"+s}
+function pct(v,d){var x=Math.abs(v).toFixed(d==null?1:d);return (v<0&&Number(x)!==0?"−":(v>0?"+":""))+x+"%"}
+function ic(name){return '<i data-lucide="'+name+'"></i>'}
+
+var GROUPS=["Equity","Hybrid","Debt","Gold and Silver","Overseas","Other"];
+var MEM={
+ asha:{name:"Asha",cov:[2800000,600000,700000,300000,200000,0],p:[-27,-15,3,10,-12,0],
+  funds:[["Parag Parikh Flexi Cap Fund",-380000],["HDFC Mid-Cap Opportunities Fund",-376000,"Category average estimate"],["SBI Magnum Gilt Fund",21000],["Nippon India Gold Savings Fund",30000],["Kotak Equity Hybrid Fund",-90000],["Motilal Oswal Nasdaq 100 FoF",-24000]]},
+ ravi:{name:"Ravi",cov:[1500000,500000,600000,180000,30000,0],p:[-27,-15,3,10,-12,0],
+  funds:[["Axis Bluechip Fund",-280000],["Quant Small Cap Fund",-125000,"Asset-class average estimate"],["Aditya Birla Sun Life Corporate Bond Fund",18000],["HDFC Balanced Advantage Fund",-75000],["SBI Gold Fund",18000],["Parag Parikh Flexi Cap Fund (overseas sleeve)",-3600]]}
+};
+function memTotals(ids){
+ var cov=[0,0,0,0,0,0],imp=[0,0,0,0,0,0];
+ ids.forEach(function(id){var m=MEM[id];for(var i=0;i<6;i++){cov[i]+=m.cov[i];imp[i]+=Math.round(m.cov[i]*m.p[i]/100)}});
+ var tc=cov.reduce(function(a,b){return a+b},0),ti=imp.reduce(function(a,b){return a+b},0);
+ return {cov:cov,imp:imp,tc:tc,ti:ti,ret:ti/tc*100};
+}
+var BENCH=[["Nifty 50",-30.2],["Nifty 500",-31.4],["Nifty LargeMidcap 250",-32.1],["Nifty Midcap 150",-33.9],["Nifty Smallcap 250",-36.2]];
+
+var CARDS=[
+ {id:"covid",nm:"COVID-19 Crash (Mar 2020)",dt:"1 Jan 2020 – 31 Dec 2020",ds:"Global markets fell sharply due to the pandemic.",ty:"CRASH",st:-30.2,kind:"standard",cur:1},
+ {id:"gfc",nm:"Global Financial Crisis (2008)",dt:"1 Jan 2008 – 31 Mar 2009",ds:"Severe global market downturn and liquidity crisis.",ty:"CRASH",st:null,kind:"multi",cur:1},
+ {id:"rate",nm:"Interest Rate Hike (2022)",dt:"1 Jan 2022 – 30 Jun 2022",ds:"Rapid rate hikes by global central banks.",ty:"POLICY_RATE",st:-9.4,kind:"standard",cur:1},
+ {id:"adani",nm:"Adani-Hindenburg (2023)",dt:"24 Jan 2023 – 28 Feb 2023",ds:"Impact on Adani group stocks and broader market sentiment.",ty:"CRASH",st:-6.1,kind:"standard",cur:1},
+ {id:"rally",nm:"Post-COVID Rally (2020–2021)",dt:"23 Mar 2020 – 18 Oct 2021",ds:"Strong market recovery and bull run.",ty:"BULL_RUN",st:88.0,kind:"standard",cur:1},
+ {id:"franklin",nm:"Franklin Templeton wind-up (2020)",dt:"23 Apr 2020 – 31 Dec 2021",ds:"Six debt funds stopped redemptions.",ty:"CRASH",st:null,kind:"freeze",badge:"freeze"},
+ {id:"dotcom",nm:"Dot-com bust (2000–2002)",dt:"1 Jan 2000 – 31 Oct 2002",ds:"Technology shares fell worldwide.",ty:"CRASH",st:-36.0,kind:"pre"},
+ {id:"iran",nm:"US-Iran war (2026)",dt:"28 Feb 2026 – ongoing",ds:"Oil and shipping disruption in the Gulf.",ty:"CRASH",st:-7.2,kind:"standard",badge:"ongoing"},
+ {id:"bull0307",nm:"2003-07 India bull run",dt:"1 Apr 2003 – 31 Dec 2007",ds:"A long rally in Indian shares.",ty:"BULL_RUN",st:278.0,kind:"pre"}
+];
+var TYPE={CRASH:["trending-down","t-neg"],BULL_RUN:["trending-up","t-teal"],POLICY_RATE:["percent","t-indigo"]};
+
+var STATES=[["landing","Landing"],["future","Plan your future"],["list","List"],["standard","Detail: standard"],["multi","Detail: multi-phase"],["freeze","Detail: freeze"],["pre","Detail: pre-2006"],["empty","Detail: no holdings"],["loading","Detail: loading"],["error","Detail: error"]];
+var S={view:"landing",dark:false,member:"family",more:false,pill:"all",sel:"covid",dlg:false};
+
+function bars(rows){
+ var vals=rows.map(function(r){return r.v}),mn=Math.min.apply(null,vals.concat([0])),mx=Math.max.apply(null,vals.concat([0])),rg=(mx-mn)||1;
+ var zero=mx<=0?100:(mn>=0?0:(-mn/rg*100));
+ return rows.map(function(r){
+  var w=Math.abs(r.v)/rg*100,st=r.v<0?"right:"+(100-zero)+"%;width:"+w+"%":"left:"+zero+"%;width:"+w+"%";
+  return '<div class="m-bar" tabindex="0" aria-label="'+esc(r.aria)+'"><span>'+esc(r.l)+'</span><span class="tr"><span class="zl" style="left:'+zero+'%"></span><span class="b" style="'+st+';background:'+r.c+'"></span></span><span class="vl '+(r.cls||"")+'">'+r.t+'</span></div>';
+ }).join("");
+}
+function card(c){
+ var t=TYPE[c.ty],sel=S.view!=="list"&&S.sel===c.id;
+ var stat=c.st==null?"<span></span>":'<span class="'+(c.st<0?"neg":"pos")+'">Nifty 50: '+pct(c.st,1)+'</span>';
+ var b=c.badge==="freeze"?'<span class="bdg freeze">'+ic("snowflake")+'Freeze</span>':c.badge==="ongoing"?'<span class="bdg"><span class="dot"></span>ongoing</span>':"";
+ return '<button type="button" class="m-sc'+(sel?" sel":"")+'" data-act="open" data-id="'+c.id+'"><span class="top"><span class="m-ic sm '+t[1]+'">'+ic(t[0])+'</span><span class="nm">'+esc(c.nm)+'</span></span>'+(b?'<span>'+b+'</span>':'')+'<span class="dt">'+esc(c.dt)+'</span><span class="ds">'+esc(c.ds)+'</span><span class="bt">'+stat+ic("chevron-right")+'</span></button>';
+}
+function list(){
+ var cur=CARDS.filter(function(c){return c.cur}),rest=CARDS.filter(function(c){return !c.cur});
+ var h='<div class="m-grid">'+cur.map(card).join("")+'</div><button type="button" class="m-more" data-act="more">'+(S.more?"Hide":"More scenarios")+'</button>';
+ if(S.more){
+  var pills=[["all","All"],["CRASH","Crashes"],["BULL_RUN","Bull Runs"],["POLICY_RATE","Policy / Rate"]];
+  h+='<div class="m-pills" role="group" aria-label="Scenario categories">'+pills.map(function(p){return '<button type="button" class="m-pill" aria-pressed="'+(S.pill===p[0])+'" data-act="pill" data-id="'+p[0]+'">'+p[1]+'</button>'}).join("")+'</div>';
+  h+='<div class="m-grid">'+rest.filter(function(c){return S.pill==="all"||c.ty===S.pill}).map(card).join("")+'</div>';
+ }
+ return h;
+}
+function tile(c,v,s,cls){return '<div class="m-tile"><div class="c">'+c+'</div><div class="v '+(cls||"")+'">'+v+'</div><div class="s">'+s+'</div></div>'}
+function memberSel(){
+ return '<label class="sr" style="display:none" for="mm">Member</label><select class="m-sel" id="mm" data-act="member"><option value="family"'+(S.member==="family"?" selected":"")+'>Family combined</option><option value="asha"'+(S.member==="asha"?" selected":"")+'>Asha</option><option value="ravi"'+(S.member==="ravi"?" selected":"")+'>Ravi</option></select>';
+}
+function fundRow(f,frozen){
+ var chip=f[2]?'<span class="chip" title="'+esc(f[2])+'">Estimate</span>':"";
+ var fz=frozen?'<span class="frz">Redemptions frozen</span>':"";
+ return '<div class="m-fund"><span class="l">'+esc(f[0])+chip+'</span><span>'+(frozen?fz:'<b class="'+(f[1]<0?"neg":"pos")+'">'+inr(f[1],true)+'</b>')+'</span></div>';
+}
+function members(frozen){
+ var ids=S.member==="family"?["asha","ravi"]:[S.member];
+ if(S.member!=="family"){
+  var m=MEM[S.member],t=memTotals([S.member]);
+  return '<div class="m-panel"><h4>Funds for '+m.name+'</h4>'+m.funds.map(function(f,i){return fundRow(frozen&&i===0?[f[0],0]:f,frozen&&i===0)}).join("")+'</div>';
+ }
+ return '<div class="m-panel"><h4>By family member</h4>'+ids.map(function(id,idx){
+  var m=MEM[id],t=memTotals([id]);
+  return '<details class="m-mem"'+(idx===0?" open":"")+'><summary><span>'+m.name+(idx===0?' <span class="chip">Biggest contributor</span>':'')+'</span><span class="'+(t.ti<0?"neg":"pos")+'">'+inr(t.ti,true)+' ('+pct(t.ret,1)+')</span></summary>'+m.funds.map(function(f,i){return fundRow(frozen&&i===0?[f[0],0]:f,frozen&&i===0)}).join("")+'</details>';
+ }).join("")+'</div>';
+}
+function assetChart(t){
+ var rows=[];GROUPS.forEach(function(g,i){if(t.cov[i]>0){var p=t.imp[i]/t.cov[i]*100;rows.push({l:g,v:t.imp[i],c:t.imp[i]<0?"var(--m-negP)":"var(--m-posP)",t:inr(t.imp[i],true)+" &nbsp;"+pct(p,1),cls:t.imp[i]<0?"neg":"pos",aria:g+", "+inr(t.imp[i],true)+", "+pct(p,1)})}});
+ return '<div class="m-panel"><h4>Impact by asset class</h4>'+bars(rows)+'<div class="cap">Covers '+inr(t.tc)+' of '+inr(t.tc+240000)+'. Funds with no data are left out.</div></div>';
+}
+function benchChart(t,withYou){
+ var rows=[];
+ if(withYou)rows.push({l:"Your portfolio",v:t.ret,c:t.ret<0?"var(--m-negP)":"var(--m-posP)",t:pct(t.ret,1),cls:t.ret<0?"neg":"pos",aria:"Your portfolio, "+pct(t.ret,1)});
+ BENCH.forEach(function(b){rows.push({l:b[0],v:b[1],c:"var(--m-blue)",t:pct(b[1],1),aria:b[0]+", "+pct(b[1],1)})});
+ return '<div class="m-panel"><h4>Benchmark comparison</h4>'+bars(rows)+'<div class="cap">Total return indices over the same dates.</div></div>';
+}
+function mira(){return '<div class="m-panel m-mira"><h4>'+ic("lightbulb")+' Insights from Mira</h4><div style="color:var(--m-sec)">Coming soon. Mira will point out what mattered most in each event.</div><button type="button" class="m-btn" data-act="mira">Learn more</button></div>'}
+function head(c){
+ return '<div class="m-dh"><div><h3>'+esc(c.nm)+'</h3><p class="dts">'+esc(c.dt)+'</p><p class="dts" style="color:var(--m-body)">'+esc(c.ds)+'</p></div>'+(S.view==="empty"?"":memberSel())+'</div><p class="m-disc">Here\'s what this portfolio would have captured during this period, based on actual historical fund performance — not a prediction of future returns.</p>';
+}
+function detail(){
+ var c=CARDS.filter(function(x){return x.id===S.sel})[0]||CARDS[0];
+ var v=S.view,ids=S.member==="family"?["asha","ravi"]:[S.member],t=memTotals(ids);
+ if(v==="multi")c=CARDS[1];if(v==="freeze")c=CARDS[5];if(v==="pre")c=CARDS[6];if(v==="standard"&&(c.kind!=="standard"))c=CARDS[0];
+ if(v==="loading")return '<div class="m-dh"><div><h3>'+esc(c.nm)+'</h3><p class="dts">'+esc(c.dt)+'</p></div></div><div class="m-skel t"></div><div class="m-tiles"><div class="m-skel"></div><div class="m-skel"></div><div class="m-skel"></div><div class="m-skel"></div></div><div class="m-charts two"><div class="m-skel" style="height:200px"></div><div class="m-skel" style="height:200px"></div></div>';
+ if(v==="error")return '<div class="m-dh"><div><h3>'+esc(c.nm)+'</h3></div></div><div class="m-err" role="alert"><div>Scenarios aren\'t available right now.</div><div style="color:var(--m-sec);margin:6px 0 10px">Request failed</div><button type="button" class="m-btn">Try again</button></div>';
+ if(v==="empty")return head(c)+'<div class="m-note">'+ic("info")+'<div><b>You have no funds to replay yet.</b><div>Import a statement to see how your funds would have done.</div><div style="margin-top:10px"><button type="button" class="m-btn pri">Import a statement</button></div></div></div>';
+ var out=Math.round((t.ret-(-30.2))*10)/10;
+ var h=head(c);
+ if(v==="pre"){
+  h+='<div class="m-tiles">'+tile("Nifty 50 return",'<span class="neg">'+pct(-36.0,1)+'</span>',"Total return index, same dates")+'</div>';
+  h+='<div class="m-note">'+ic("info")+'<div>Fund prices were not reported before 2006, so only the index is shown for this event.</div></div>';
+  h+='<div class="m-charts two">'+benchChart(t,false)+mira()+'</div>';
+  return h;
+ }
+ if(v==="freeze"){
+  h+='<div class="m-banner"><b>'+ic("snowflake")+' This wasn\'t a price fall — a ~20-month liquidity freeze</b><b class="big">Frozen, not %</b></div>';
+  h+=members(true);
+  return h;
+ }
+ var tiles=tile("Your portfolio return",'<span class="'+(t.ret<0?"neg":"pos")+'">'+pct(t.ret,1)+'</span>',v==="multi"?"Cumulative over all phases":"Over the scenario dates");
+ tiles+=tile("Rupee impact",'<span class="'+(t.ti<0?"neg":"pos")+'">'+inr(t.ti,true)+'</span>',"Current value times each fund's move");
+ if(v!=="multi")tiles+=tile("Nifty 50 return",'<span class="neg">'+pct(-30.2,1)+'</span>',(out>=0?'<b class="pos">Outperformed by '+out.toFixed(1)+' percentage points</b>':'<b class="neg">Behind by '+Math.abs(out).toFixed(1)+' percentage points</b>')+'<br>Compared with an equity index. Debt and gold funds in your portfolio do not move like it.');
+ tiles+=tile("Coverage","Based on "+inr(t.tc),"of your "+inr(t.tc+240000)+" · 1 fund has no data for this period");
+ h+='<div class="m-tiles">'+tiles+'</div>';
+ if(v==="multi"){
+  h+='<div class="m-ph"><div class="p"><div style="color:var(--m-sec)">Fall</div><div class="dt" style="color:var(--m-sec);font-size:12px">1 Jan 2008 – 27 Oct 2008</div><b class="neg">−31.2%</b></div><div class="p"><div style="color:var(--m-sec)">Bottom</div><div style="color:var(--m-sec);font-size:12px">28 Oct 2008 – 9 Mar 2009</div><b class="neg">−12.4%</b></div><div class="p"><div style="color:var(--m-sec)">Recovery</div><div style="color:var(--m-sec);font-size:12px">10 Mar 2009 – ongoing</div><b class="pos">+9.8%</b></div></div>';
+  h+='<div class="m-charts two">'+assetChart(t)+mira()+'</div>';
+ } else h+='<div class="m-charts">'+benchChart(t,true)+assetChart(t)+mira()+'</div>';
+ h+=members(false);
+ return h;
+}
+function render(){
+ var v=S.view,h='<div class="mkc">';
+ if(v==="multi")S.sel="gfc";else if(v==="freeze"){S.sel="franklin";S.more=true}else if(v==="pre"){S.sel="dotcom";S.more=true}else if(v==="standard"){var cc=CARDS.filter(function(x){return x.id===S.sel})[0];if(!cc||cc.kind!=="standard")S.sel="covid"}
+
+ if(v==="landing"){
+  h+='<h2 class="m-h1">Planning</h2><p class="m-sub">Explore different financial scenarios to plan better and make more informed decisions.</p><div class="m-plans"><button type="button" class="m-plan" data-act="future"><span class="m-ic t-green">'+ic("sprout")+'</span><span><h3>Plan your future</h3><p>Set goals, adjust assumptions and see how your wealth can grow over time.</p></span><span class="m-arrow">'+ic("arrow-right")+'</span></button><button type="button" class="m-plan" data-act="explore"><span class="m-ic t-indigo">'+ic("chart-column")+'</span><span><h3>Explore market scenarios</h3><p>See how your portfolio might perform in historical and hypothetical market events.</p></span><span class="m-arrow">'+ic("arrow-right")+'</span></button></div>';
+ } else if(v==="future"){
+  h+='<button type="button" class="m-back" data-act="back">'+ic("chevron-left")+'Back to Planning</button><h2 class="m-h1">Plan your future</h2><p class="m-sub">Set goals, adjust assumptions and see how your wealth can grow over time.</p><div class="m-note"><span class="m-ic sm t-green">'+ic("sprout")+'</span><div><b>Coming soon</b><div>Goal planning is on its way: retirement, your child\'s education, a home purchase and wealth goals.</div></div></div>';
+ } else {
+  h+='<button type="button" class="m-back" data-act="back">'+ic("chevron-left")+'Back to Planning</button><h2 class="m-h1">Explore market scenarios</h2><p class="m-sub">Here\'s what this portfolio would have captured during these periods, based on actual historical fund performance.</p>'+list();
+  if(v!=="list")h+=detail();
+ }
+ h+='</div>';
+ if(S.dlg)h+='<div class="m-dlg" data-act="closedlg"><div><h3 style="margin:0 0 6px;font:700 17px \'DM Sans\',sans-serif">Mira is coming soon</h3><p style="color:var(--m-sec);margin:0 0 12px">Your investing assistant is on its way. For now, explore your portfolio from the pages in the menu.</p><button type="button" class="m-btn" data-act="closedlg">Close</button></div></div>';
+ root.className="mk"+(S.dark?" dark":"");
+ root.innerHTML=h;
+ if(window.lucide&&lucide.createIcons)try{lucide.createIcons({attrs:{"stroke-width":1.75}})}catch(e){}
+ chips();
+}
+function chips(){
+ var sc=document.getElementById("stateChips");
+ sc.innerHTML=STATES.map(function(s){return '<button type="button" class="chip2" aria-pressed="'+(S.view===s[0])+'" data-st="'+s[0]+'">'+s[1]+'</button>'}).join("");
+ var tc=document.getElementById("themeChips");
+ tc.innerHTML=[["light","Light"],["dark","Dark"]].map(function(t){return '<button type="button" class="chip2" aria-pressed="'+((t[0]==="dark")===S.dark)+'" data-th="'+t[0]+'">'+t[1]+'</button>'}).join("");
+}
+document.getElementById("stateChips").addEventListener("click",function(e){var b=e.target.closest("[data-st]");if(!b)return;S.view=b.getAttribute("data-st");if(S.view==="list"){S.picked=false}render()});
+document.getElementById("themeChips").addEventListener("click",function(e){var b=e.target.closest("[data-th]");if(!b)return;S.dark=b.getAttribute("data-th")==="dark";render()});
+root.addEventListener("change",function(e){if(e.target.getAttribute("data-act")==="member"){S.member=e.target.value;render()}});
+root.addEventListener("click",function(e){
+ var b=e.target.closest("[data-act]");if(!b)return;var a=b.getAttribute("data-act");
+ if(a==="future")S.view="future";
+ else if(a==="explore")S.view="list";
+ else if(a==="back")S.view=(S.view==="future"||S.view==="list")?"landing":"list";
+ else if(a==="more")S.more=!S.more;
+ else if(a==="pill")S.pill=b.getAttribute("data-id");
+ else if(a==="open"){var c=CARDS.filter(function(x){return x.id===b.getAttribute("data-id")})[0];S.sel=c.id;S.picked=true;S.view=c.kind}
+ else if(a==="mira")S.dlg=true;
+ else if(a==="closedlg"){if(e.target===b||b.tagName==="BUTTON")S.dlg=false;else return}
+ else return;
+ render();
+});
+render();
+
+/* utilities, live */
+function cents(x){return Math.round(parseFloat(x)*100)}
+function u1(){var a=document.getElementById("u1a").value,b=document.getElementById("u1b").value,o=document.getElementById("u1o");
+ if(isNaN(parseFloat(a))||isNaN(parseFloat(b))){o.textContent="Enter two numbers.";return}
+ var d=(cents(a)-cents(b))/100;o.textContent=(d>=0?"Outperformed by ":"Behind by ")+Math.abs(d).toFixed(2)+" percentage points\n"+(d>=0?"+":"−")+Math.abs(d).toFixed(2)}
+var BUCKETS=[["Equity","Equity"],["Hybrid","Hybrid"],["Debt-short","Debt"],["Debt-long","Debt"],["Gold","Gold and Silver"],["Silver","Gold and Silver"],["Overseas","Overseas"],["Other","Other"],["(any new value)","Other"]];
+var sel=document.getElementById("u2");BUCKETS.forEach(function(b,i){var o=document.createElement("option");o.value=i;o.textContent=b[0];sel.appendChild(o)});
+function u2(){document.getElementById("u2o").textContent=BUCKETS[sel.value][0]+"  ->  "+BUCKETS[sel.value][1]}
+function u3(){var v=document.getElementById("u3").value.split(",").map(parseFloat).filter(function(x){return !isNaN(x)});var o=document.getElementById("u3o");
+ if(!v.length){o.textContent="Enter numbers.";return}
+ var mn=Math.min.apply(null,v.concat([0])),mx=Math.max.apply(null,v.concat([0])),rg=(mx-mn)||1,z=mx<=0?100:(mn>=0?0:(-mn/rg*100));
+ o.textContent="zero line at "+z.toFixed(1)+"%\n"+v.map(function(x){return x+" -> "+(x<0?"left ":"right ")+(Math.abs(x)/rg*100).toFixed(1)+"%"}).join("\n")}
+function u4(){var x=parseFloat(document.getElementById("u4").value);document.getElementById("u4o").textContent=isNaN(x)?"Enter a number.":inr(x,true)}
+["u1a","u1b"].forEach(function(i){document.getElementById(i).addEventListener("input",u1)});
+sel.addEventListener("change",u2);document.getElementById("u3").addEventListener("input",u3);document.getElementById("u4").addEventListener("input",u4);
+u1();u2();u3();u4();
+})();
+</script>
+<script>
+var LOCKED=[];
+
+var Q=[
+{g:"G",name:"Questions that came out of the documents",items:[
+ {id:"G1",t:"The mobile app imports the Scenarios screen. How do we edit it?",
+  ask:"You chose to edit ScenariosScreen and its views in place (D1 B). The mobile app imports ScenariosScreen directly, and so does today's desktop tab flow. What should we do?",
+  ctx:"Verified in the code: mobile/MobileRoot.tsx renders ScenariosScreen on its Scenarios tab, and features/dashboard/MainDashboardFlow.tsx renders it on the desktop tab until the shell replaces that flow. Editing it in place therefore changes the mobile screen too, which breaks the rule that mobile is untouched. The result views and ResultParts are shared by the same screen.",
+  opts:[
+   {k:"a",l:"New desktop page in new files; old screen and its views stay as they are",d:"PlanningPage and the new components are new files; ScenariosScreen, ScenarioPicker, the four result views and ResultParts are not edited. Mobile keeps working. The old desktop tab flow is retired by the shell, not by this work. Reverses D1 for the screen files only; the contract exception stays unneeded."},
+   {k:"b",l:"Edit in place; mobile changes too",d:"One set of files. Mobile gets the new layout and the new components, which were designed for desktop widths, and its tests change."},
+   {k:"c",l:"Edit in place, with a desktop variant switch inside the files",d:"ScenariosScreen takes a variant prop; mobile passes nothing and keeps the old look. One set of files, but two code paths inside each edited file."}],
+  rec:"a",why:"It keeps mobile untouched, which was a standing rule before D1, costs no extra file count, and leaves the working screen as a fallback. The old files can be deleted later, when mobile is redesigned.",
+  risk:"Two sets of scenario screens exist until mobile is redone. Shared strings (disclaimer, no-data text) should be imported, not copied, so they cannot drift."},
+ {id:"G2",t:"What does the member list show when one member is chosen?",
+  ask:"With the dropdown on one person, the By family member list would have a single row. How should that look?",
+  ctx:"With Family combined it lists each member and expands to funds. With one member chosen, the list has one row.",
+  opts:[
+   {k:"a",l:"Heading 'Funds for <name>' with the funds shown open",d:"No extra click; the estimate and frozen labels are immediately visible."},
+   {k:"b",l:"Keep one collapsed row",d:"Same component in both cases; the user clicks to see funds."},
+   {k:"c",l:"Hide the section",d:"Funds are not shown for a single member; loses the labels (L35)."}],
+  rec:"a",why:"A one-row list that needs a click is wasted effort, and showing funds open keeps the Estimate and Frozen labels visible.",
+  risk:"Two layouts for one section; both are simple."},
+ {id:"G3",t:"What happens to the open detail when you change a pill?",
+  ask:"With a detail open, the user clicks Crashes or Bull Runs. Does the detail stay?",
+  ctx:"The pills filter the cards under More scenarios. The open scenario might not be in the filtered set.",
+  opts:[
+   {k:"a",l:"The detail stays open; the card may disappear from the list",d:"Filtering never changes what is being read."},
+   {k:"b",l:"The detail closes when a pill is clicked",d:"The page returns to the list; the user picks again."}],
+  rec:"a",why:"Changing a filter is not a request to stop reading. Closing would lose the member choice and the scroll position.",
+  risk:"A user may not see which card is the open one if it was filtered out; the detail heading names it."},
+ {id:"G4",t:"Approve the wording I propose",
+  ask:"These are the new texts. Approve them, or write your own in the note.",
+  ctx:"Title: Planning. Subtitle (PDF page 29): Explore different financial scenarios to plan better and make more informed decisions. Plan your future card (PDF): Set goals, adjust assumptions and see how your wealth can grow over time. Explore card (PDF): See how your portfolio might perform in historical and hypothetical market events. Coming soon line: Goal planning is on its way: retirement, your child's education, a home purchase and wealth goals. Nifty tile caveat: Compared with an equity index. Debt and gold funds in your portfolio do not move like it. Pre-2006 note: Fund prices were not reported before 2006, so only the index is shown for this event. No holdings: Import a statement to see how your funds would have done. Outperformed text: Outperformed by 13.1 percentage points, or Behind by 2.0 percentage points.",
+  opts:[
+   {k:"a",l:"Approve as written",d:"Used in the plans and the mockups."},
+   {k:"b",l:"I will change some; notes below",d:"Write the replacement text in the note box."}],
+  rec:"a",why:"The first four lines come from the PDF; the rest are short, plain and carry the caveats the earlier decisions need.",
+  risk:"Compliance may want different wording for the caveat; the disclaimer itself is unchanged and keeps its own review gate."},
+ {id:"G5",t:"Do the bars show a tooltip on hover?",
+  ask:"Each bar already prints its value. Should hovering or focusing a bar also show a tooltip?",
+  ctx:"Home's line chart has a hover tooltip. Bars here print rupees and percent beside each row, so a tooltip would only repeat the same text.",
+  opts:[
+   {k:"a",l:"No tooltip; labels are always visible",d:"Simpler, works with keyboard and touch laptops."},
+   {k:"b",l:"Tooltip with the name, rupees and percent",d:"Matches Home's hover style; repeats the visible numbers."}],
+  rec:"a",why:"Nothing is hidden, so a tooltip adds code and tests for no new information.",
+  risk:"None."},
+ {id:"G6",t:"What does the detail show for a household with no holdings?",
+  ask:"A new account that has imported nothing opens a scenario. What should it see?",
+  ctx:"The scenarios are replays against the user's own funds, so there is nothing to compute. The list itself still works.",
+  opts:[
+   {k:"a",l:"A message and a button to import a statement; tiles and charts hidden",d:"The heading and disclaimer stay. The button opens the existing import flow."},
+   {k:"b",l:"The tiles with dashes and empty charts",d:"Shows the layout but looks broken."},
+   {k:"c",l:"No detail; a toast says import first",d:"Nothing opens; the user may not understand why."}],
+  rec:"a",why:"It explains the empty page and gives the next step.",
+  risk:"The import link depends on the shell's route for import (contract: /import)."},
+ {id:"G7",t:"Delivery order against Home and the shell",
+  ask:"Planning needs the shell's router first and benefits from Home's stored-price setting. What order do we ship in?",
+  ctx:"The detail's cold open can take 4.9 to 24.3 s without Home's setting (Home staging run). Home's setting is task T1 of the Home backend plan. Planning cannot mount before shell PR 1.",
+  opts:[
+   {k:"a",l:"After shell PR 1 and Home T1",d:"Planning waits for the setting, so the first release is fast."},
+   {k:"b",l:"After shell PR 1; accept slow cold opens if T1 is late",d:"Skeletons keep the page usable; the speed fix lands later."},
+   {k:"c",l:"Together with the Home release",d:"One announcement; later date."}],
+  rec:"a",why:"It follows your D5 answer (use Home's setting) and avoids shipping a page you already know is slow.",
+  risk:"A slip in Home delays Planning."},
+ {id:"G8",t:"Colour of the index bars",
+  ask:"Your portfolio bar is green or red by sign. What colour are the index bars?",
+  ctx:"Home draws the benchmark line in Chart 03 blue #2563EB. The current scenario screen draws index bars in neutral grey.",
+  opts:[
+   {k:"a",l:"Chart 03 blue, as on Home",d:"Same meaning for benchmark colour across the app."},
+   {k:"b",l:"Neutral grey, as on the current screen",d:"Keeps colour for the portfolio bar only."}],
+  rec:"a",why:"One benchmark colour across Home and Planning is easier to learn, and blue keeps the green and red for gain and loss.",
+  risk:"Blue next to a red portfolio bar can look busy; the mockups show how it reads."},
+ {id:"G9",t:"Approve the icon set",
+  ask:"Which icons should the landing cards and scenario types use?",
+  ctx:"Proposed from Lucide (to confirm each name exists in the installed version during the build): Plan your future, sprout; Explore market scenarios, chart-column; crash, trending-down; bull run, trending-up; policy and rate, percent; hypothetical (when enabled), sparkles; freeze badge, snowflake; Mira, lightbulb; Back, chevron-left; card chevron, chevron-right.",
+  opts:[
+   {k:"a",l:"Approve this set",d:"Shown in the mockups above."},
+   {k:"b",l:"Change some; notes below",d:"Name the icon or describe it."}],
+  rec:"a",why:"They echo page 29 (a plant, bars, a falling and a rising line) and exist in the icon library the app already uses.",
+  risk:"A name missing in the installed version needs a swap during the build."}
+]}
+];
+
+var REPLIES={};
+REPLIES.G1="<b>Recorded (L36).</b> The planning variant is an early return to new files, so the classic code paths in ScenariosScreen are not edited line by line; existing tests stay unchanged and prove it. The contract exception in v1.5 stays accurate.";
+
+var KEY="planning-design-mockups-v1";
+var state={};
+try{state=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){state={}}
+/* Answers are kept in two places: this browser (instant) and the artifact's own database
+   (survives closing the tab, clearing site data, and opening on another device).
+   Each question carries a timestamp t so the newer edit wins when the two are merged. */
+var dbDoc=null,dbTimer=null,dbSaving=false,dbDirty=false;
+function setSaveState(m){var el=document.getElementById("savestate");if(el)el.textContent=m?" · "+m:""}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+function touch(id){state[id]=state[id]||{};state[id].t=Date.now();return state[id]}
+function save(){saveLocal();scheduleDb()}
+function scheduleDb(){if(!dbDoc)return;dbDirty=true;clearTimeout(dbTimer);dbTimer=setTimeout(flushDb,600)}
+function flushDb(){
+  if(dbSaving){dbTimer=setTimeout(flushDb,300);return}
+  if(!dbDirty||!dbDoc)return;
+  dbDirty=false;dbSaving=true;setSaveState("saving");
+  dbDoc.set({state:JSON.parse(JSON.stringify(state)),updatedAt:new Date().toISOString()}).then(function(){
+    dbSaving=false;setSaveState("saved");
+  },function(){
+    dbSaving=false;dbDirty=true;setSaveState("not saved to cloud, kept in this browser");
+  });
+}
+function mergeIn(remote){
+  var changed=false;
+  Object.keys(remote||{}).forEach(function(k){
+    var r=remote[k]||{},l=state[k];
+    if(!l||(r.t||0)>(l.t||0)){state[k]=r;changed=true}
+  });
+  return changed;
+}
+function localNewer(remote){
+  return Object.keys(state).some(function(k){return !remote[k]||(state[k].t||0)>(remote[k].t||0)});
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+var ll=document.getElementById("lockedList");
+LOCKED.forEach(function(x){
+  var d=document.createElement("div");d.className="card locked";
+  d.innerHTML='<header><span class="id">'+x[0]+'</span><h3>'+x[1]+'</h3><span class="tag locked">decided by you</span></header><p class="decided">'+x[2]+'</p>';
+  ll.appendChild(d);
+});
+
+var qroot=document.getElementById("questions");
+var total=0;
+Q.forEach(function(grp){
+  var sec=document.createElement("section");sec.id="grp-"+grp.g;
+  sec.innerHTML='<h2>'+grp.g+'. '+esc(grp.name)+'</h2>';
+  grp.items.forEach(function(it){
+    total++;
+    var card=document.createElement("article");card.className="card";card.id="q-"+it.id;card.setAttribute("data-id",it.id);
+    var h='<header><span class="id">'+it.id+'</span><h3>'+esc(it.t)+'</h3><span class="tag open" data-status>unanswered</span></header>';
+    h+='<p class="ask">'+esc(it.ask)+'</p><p class="ctx">'+esc(it.ctx)+'</p><div class="opts" role="radiogroup" aria-label="'+esc(it.t)+'">';
+    it.opts.forEach(function(o){
+      var isr=o.k===it.rec;
+      h+='<label class="opt'+(isr?' isrec':'')+'"><input type="radio" name="r-'+it.id+'" value="'+o.k+'"><span><b>'+o.k.toUpperCase()+'. '+esc(o.l)+(isr?' <span class="tag rec">recommended</span>':'')+'</b><span class="d">'+esc(o.d)+'</span></span></label>';
+    });
+    h+='</div><div class="why"><b>Why I recommend '+it.rec.toUpperCase()+':</b> '+esc(it.why)+'</div><p class="risk"><b>If this goes wrong:</b> '+esc(it.risk)+'</p>'+(REPLIES[it.id]?'<div class="reply"><b class="t">Reply to your note:</b> '+REPLIES[it.id]+'</div>':'');
+    h+='<div class="row"><button class="btn ghost" data-use>Use recommended ('+it.rec.toUpperCase()+')</button><button class="btn ghost" data-reset>Reset</button></div>';
+    h+='<label for="n-'+it.id+'" class="count" style="display:block;margin-top:10px">Your own answer or notes</label><textarea id="n-'+it.id+'" placeholder="Optional. Write your own option here."></textarea>';
+    card.innerHTML=h;sec.appendChild(card);
+  });
+  qroot.appendChild(sec);
+});
+
+function cardOf(id){return document.getElementById("q-"+id)}
+function refresh(){
+  var done=0;
+  Q.forEach(function(g){g.items.forEach(function(it){
+    var c=cardOf(it.id),s=state[it.id]||{},ans=!!(s.c||(s.n&&s.n.trim()));
+    if(ans)done++;
+    var tag=c.querySelector("[data-status]");
+    tag.textContent=ans?"answered":"unanswered";tag.className="tag "+(ans?"done":"open");
+    c.setAttribute("data-answered",ans?"1":"0");
+    var radios=c.querySelectorAll("input[type=radio]");
+    radios.forEach(function(r){r.checked=(s.c===r.value)});
+    var ta=c.querySelector("textarea");if(ta&&ta.value!==(s.n||""))ta.value=s.n||"";
+  })});
+  document.getElementById("count").textContent=done+" of "+total+" answered";
+  applyFilter();buildOut();
+}
+var filter="all";
+function applyFilter(){
+  document.querySelectorAll("article.card").forEach(function(c){
+    var a=c.getAttribute("data-answered")==="1";
+    var hide=(filter==="open"&&a)||(filter==="done"&&!a);
+    c.classList.toggle("hidden-by-filter",hide);
+  });
+  ["all","open","done"].forEach(function(f){document.getElementById("f-"+f).setAttribute("aria-pressed",String(filter===f))});
+}
+["all","open","done"].forEach(function(f){document.getElementById("f-"+f).addEventListener("click",function(){filter=f;applyFilter()})});
+
+qroot.addEventListener("change",function(e){
+  var c=e.target.closest("article.card");if(!c)return;var id=c.getAttribute("data-id");
+  if(e.target.type==="radio"){touch(id).c=e.target.value;save();refresh()}
+});
+qroot.addEventListener("input",function(e){
+  if(e.target.tagName!=="TEXTAREA")return;
+  var c=e.target.closest("article.card");var id=c.getAttribute("data-id");
+  touch(id).n=e.target.value;save();
+  var s=state[id],ans=!!(s.c||(s.n&&s.n.trim()));
+  var tag=c.querySelector("[data-status]");tag.textContent=ans?"answered":"unanswered";tag.className="tag "+(ans?"done":"open");
+  c.setAttribute("data-answered",ans?"1":"0");
+  var n=document.querySelectorAll('article.card[data-answered="1"]').length;
+  document.getElementById("count").textContent=n+" of "+total+" answered";buildOut();
+});
+qroot.addEventListener("click",function(e){
+  var c=e.target.closest("article.card");if(!c)return;var id=c.getAttribute("data-id");
+  var it=null;Q.forEach(function(g){g.items.forEach(function(x){if(x.id===id)it=x})});
+  if(e.target.hasAttribute("data-use")){touch(id).c=it.rec;save();refresh()}
+  if(e.target.hasAttribute("data-reset")){state[id]={t:Date.now()};save();refresh()}
+});
+
+function buildOut(){
+  var lines=["Planning design mockups (answers to the open questions)",""];
+  Q.forEach(function(g){g.items.forEach(function(it){
+    var s=state[it.id]||{},txt;
+    if(s.c){var o=it.opts.filter(function(x){return x.k===s.c})[0];txt=s.c.toUpperCase()+" - "+o.l+(s.c===it.rec?" (recommended)":"")}
+    else txt="no choice";
+    if(s.n&&s.n.trim())txt+=" | note: "+s.n.trim();
+    lines.push(it.id+" "+it.t+": "+txt);
+  })});
+  document.getElementById("out").textContent=lines.join("\n");
+}
+document.getElementById("copy").addEventListener("click",function(){
+  var t=document.getElementById("out").textContent,m=document.getElementById("copied");
+  function sel(){var r=document.createRange();r.selectNodeContents(document.getElementById("out"));var s=window.getSelection();s.removeAllRanges();s.addRange(r);m.textContent="Select and copy the text below."}
+  try{navigator.clipboard.writeText(t).then(function(){m.textContent="Copied."},sel)}catch(e){sel()}
+});
+document.getElementById("clear").addEventListener("click",function(){
+  var t=Date.now();Q.forEach(function(g){g.items.forEach(function(it){state[it.id]={t:t}})});save();refresh();
+});
+refresh();
+
+/* Connect the database once the viewer answers; the page works without it. */
+(function(){
+  if(!(window.claude&&window.claude.use))return;
+  window.claude.use("db").then(function(db){
+    if(!db){setSaveState("saved in this browser only");return}
+    dbDoc=db.doc("answers/main");
+    return dbDoc.get().then(function(snap){
+      var remote=(snap.exists&&snap.data()&&snap.data().state)||{};
+      if(mergeIn(remote)){saveLocal();refresh()}
+      if(!snap.exists||localNewer(remote))scheduleDb();else setSaveState("saved");
+      dbDoc.onSnapshot(function(s){
+        if(!s.exists||s.metadata.hasPendingWrites)return;
+        var r=(s.data()||{}).state||{};
+        if(mergeIn(r)){saveLocal();refresh()}
+      },function(){});
+    });
+  }).catch(function(){setSaveState("saved in this browser only")});
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+</script>

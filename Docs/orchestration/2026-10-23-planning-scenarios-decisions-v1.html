@@ -1,0 +1,809 @@
+<title>Planning Scenarios Decisions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky contents rail + one reading column of decision cards; planning workbook, not a landing page. */
+:root{
+  --bg:#f6f8f6; --surface:#ffffff; --surface-2:#eef2ee; --line:#d9e0d9;
+  --fg:#16211a; --muted:#566259; --accent:#128a4a; --accent-soft:#e1f3e8;
+  --locked:#2f5fb3; --locked-soft:#e6eefb; --open:#a8610a; --open-soft:#fbefd9;
+  --rec:#128a4a; --danger:#b3321f;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'DM Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'DM Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent)}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent)}
+nav.toc .grp{margin-top:14px}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:68ch;margin:0 0 10px}
+.rule{margin-top:18px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 16px;max-width:75ch}
+.rule b{color:var(--accent)}
+section{margin-top:52px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:72ch}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700;white-space:nowrap}
+.tag{display:inline-block;font:500 11px var(--f-mono);padding:2px 8px;border-radius:99px;letter-spacing:.03em}
+.tag.locked{background:var(--locked-soft);color:var(--locked)}
+.tag.open{background:var(--open-soft);color:var(--open)}
+.tag.done{background:var(--accent-soft);color:var(--accent)}
+.tag.rec{background:var(--accent-soft);color:var(--rec)}
+.tag.no{background:var(--surface-2);color:var(--danger);border:1px solid var(--danger)}
+.reply{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px}
+.reply b.t{color:var(--accent)}
+.reply ul,.reply ol{margin:6px 0;padding-left:20px}
+.reply li{margin:3px 0}
+.tag.later{background:var(--open-soft);color:var(--open)}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul{margin:6px 0;padding-left:20px}
+.sumbox li{margin:5px 0}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:10px 0}
+.two>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.two h4{margin:0 0 6px;font-family:var(--f-display);font-size:15px}
+.two ul{margin:4px 0;padding-left:18px}
+.two li{margin:4px 0}
+.two .pro h4{color:var(--rec)}
+.two .con h4{color:var(--danger)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}
+.chip{font:500 12px var(--f-mono);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:6px 12px;border-radius:99px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.spacer{flex:1}
+.count{font:500 12px var(--f-mono);color:var(--muted)}
+.btn{font:500 13px var(--f-body);background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+:root[data-theme="dark"] .btn{color:#06210f}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn{color:#06210f}}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:70px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:500 12px var(--f-mono);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.card p{margin:8px 0}
+.ask{font-weight:500}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--rec)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.opt .tag{margin-left:6px}
+.why{border-left:3px solid var(--rec);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--rec)}
+.risk{font-size:13.5px;color:var(--muted)}
+.risk b{color:var(--danger)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+textarea{width:100%;min-height:54px;font:14px var(--f-body);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;resize:vertical}
+.card.locked{background:var(--locked-soft);border-color:transparent}
+.card.locked .decided{font-weight:500}
+.hidden-by-filter{display:none}
+.callout{background:var(--open-soft);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:14px}
+ul.tight{margin:6px 0;padding-left:20px}
+ul.tight li{margin:3px 0}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+#out{white-space:pre-wrap;font:13px var(--f-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px;max-height:340px;overflow:auto}
+details{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:12px;padding:0 16px}
+details>summary{cursor:pointer;font-weight:700;padding:12px 0;font-family:var(--f-display);font-size:16px}
+details[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+details .body{padding-bottom:14px}
+h3.sub{font-size:17px;margin:22px 0 8px}
+blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);color:var(--muted);font-size:14px}
+.pill{display:inline-block;font:500 11px var(--f-mono);padding:1px 7px;border-radius:6px;background:var(--surface-2);color:var(--muted)}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+.flow .st{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:13px;min-width:0}
+.flow .st b{display:block;font-family:var(--f-display);font-size:14px;margin-bottom:2px}
+.flow .st .n{font:500 11px var(--f-mono);color:var(--muted)}
+.flow .st .m{color:var(--muted);font-size:12.5px}
+.flow .st.new{border-color:var(--accent)}
+.flow .st.old{border-style:dashed}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}nav.toc{position:static;max-height:none;margin-bottom:12px;columns:2}nav.toc .grp{margin-top:0;break-inside:avoid}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <h4>Contents</h4>
+  <a href="#intro">Where we are</a>
+  <div class="grp"><h4>Research</h4>
+    <a href="#pdf">1. The PDF, page by page</a>
+    <a href="#mockup">2. The mockup, element by element</a>
+    <a href="#status">3. What the code has</a>
+    <a href="#reuse">4. Reuse versus new</a>
+    <a href="#privacy">5. Privacy, consent, third parties</a>
+    <a href="#conflicts">6. Conflicts to tell you about</a></div>
+  <div class="grp"><h4>Decisions</h4>
+  <a href="#locked">Decisions you made</a>
+  <a href="#blueprint">Page map</a></div>
+  <div class="grp"><h4>Open questions</h4>
+    <a href="#grp-A">A. Page shape and navigation</a><a href="#grp-B">B. The scenario list</a><a href="#grp-C">C. The scenario detail</a>
+    <a href="#grp-D">D. Look, reuse, speed</a><a href="#grp-E">E. Coming soon and records</a><a href="#grp-F"><b>F. Follow-up (new)</b></a></div>
+  <div class="grp"><a href="#risks">Risks</a><a href="#verify">To verify in the spec phase</a><a href="#log">Conversation log</a><a href="#glossary">Glossary</a><a href="#answers">Your answers</a></div>
+</nav>
+
+<main>
+<div class="hero" id="intro">
+  <h1>Planning Scenarios Decisions</h1>
+  <p>Planning workbook for the Planning page of the redesigned Unifolio desktop web app, prepared 23 Oct 2026. Nothing is built and no existing file was edited. Every open question below has options, a recommendation and the reason for it. Your answers save automatically in this page's database, so closing the tab loses nothing; the text box at the bottom collects them to paste into chat.</p>
+  <div class="rule"><b>Source of truth:</b> <i>Web app UI mockups MFs.pdf</i>, page 29 (Scenarios) and page 28 (Retirement Planning, which becomes "Coming soon"). Your instruction wins over the PDF where they differ: page 29 is not how the page will always look. Section 6 lists every disagreement. I will not edit any existing document without asking you.</div>
+  <div class="rule"><b>What this page is:</b> the Scenarios screen is already built. This plan restructures it and brings it under the Planning tab. It does not rebuild the engine. The one flow you described: Planning shows two cards; "Plan your future" says Coming soon; "Explore market scenarios" shows the scenario list in the style you have today (the All / Crashes / Bull Runs / Policy-Rate pills), with cards as on page 29; clicking a scenario opens its graphs and cards below.</div>
+  <div class="rule"><b>Scope:</b> desktop web only; mobile is untouched. Mutual funds only. Search is on hold. Event tracking is deferred (as for Home). Existing screens are not changed; the new page is new files that reuse the existing result pieces (decision L11 below proposes how).</div>
+  <div class="rule"><b>Where we stand (updated 23 Oct, after your answers to A1 to E3):</b> all 22 cards are answered and recorded as decisions L13 to L34, and F1 is answered (L35), so <b>every card is answered and the decisions are L1 to L44</b> (L36 to L44 answer the nine questions in the design mockups workbook). The contract is edited to v1.5 on your go (A4). Still open outside the cards: the load-time risk (L31, depends on Home) and the other shell documents that still show the old Planning route.</div>
+</div>
+
+<section id="pdf">
+  <h2>1. The PDF, page by page</h2>
+  <p class="lead">The PDF has 31 pages. The two that matter here are 28 and 29. Both are images with no text layer; I viewed them. I did not read page 27 (the shell contract says pages 27 to 31 cover Planning and Profile); tell me if it matters.</p>
+  <div class="scroll"><table>
+    <tr><th>Page</th><th>What it shows</th><th>What it means for this plan</th></tr>
+    <tr><td class="k">3, 9</td><td>Sidebar in text: Home, Portfolio, Liabilities, Planning on top; Profile and Help &amp; Support in the footer.</td><td>Planning is a main sidebar item (<span class="mono">/planning</span>). The shell owns the sidebar, not this page.</td></tr>
+    <tr><td class="k">28</td><td>"Scenarios" page, Retirement Planning tab: sliders (retirement age, life expectancy, monthly expenses, inflation, post-retirement return), Update Scenario button, projected retirement corpus line chart with base, optimistic and conservative cases, year-wise projection and income-versus-expenses bar charts, Insights from Mira, Quick Actions, Key Assumptions. Tabs also list Child's Education, Home Purchase, Wealth Goals, What If, Custom Scenario.</td><td>This is "Plan your future". You said: Coming soon. Nothing from this page is built. It is recorded for later (card E2).</td></tr>
+    <tr><td class="k">29</td><td>"Scenarios" page: title and subtitle, a "How Scenarios Work" video tile, two large cards (Plan your future, Explore market scenarios) each with sub-links, "Predefined Scenarios / Custom Scenario" tabs, an "All Scenarios" dropdown, five scenario cards, and a detail block for the selected scenario (COVID-19 Crash): selectors, six tiles, a line chart, an asset-class bar chart and a "Key Insights from Mira" card.</td><td>This is the layout reference. Your flow changes how it is sequenced (landing first, then list, then detail) and drops several elements (section 2).</td></tr>
+    <tr><td class="k">both</td><td>The sidebar drawn on 28 and 29 is the older one (Home, Analytics, Investments, Performance, Scenarios, Profile).</td><td>Ignored; the contract's text-based sidebar wins (conflict X2).</td></tr>
+  </table></div>
+</section>
+
+<section id="mockup">
+  <h2>2. The mockup, element by element (page 29)</h2>
+  <p class="lead">Left column: what the page shows. Right columns: what exists in the code today and what you decided. The numbers in the mockup (for example "Nifty 50: -38%" for COVID) are sample values; the engine's real COVID figure is different (session notes record Nifty -30.2% and a sample portfolio -28.5%). Do not read mockup numbers as data.</p>
+  <div class="scroll"><table>
+    <tr><th>Element</th><th>Today in the code</th><th>Decision</th></tr>
+    <tr><td class="k">Title "Scenarios" and subtitle</td><td>Title only ("Scenarios").</td><td>Page is under Planning. Title and subtitle wording: your call at the layout stage (not a card).</td></tr>
+    <tr><td class="k">"How Scenarios Work" 2-minute video tile</td><td>None; no video exists.</td><td>Removed (L8).</td></tr>
+    <tr><td class="k">Card: Plan your future (icon, text, round arrow)</td><td>None.</td><td>Coming soon (L2).</td></tr>
+    <tr><td class="k">Card: Explore market scenarios (icon, text, round arrow)</td><td>None; the screen opens straight on the list.</td><td>Opens the list (L1, L3).</td></tr>
+    <tr><td class="k">Four sub-links under the two cards (Market Crashes, Macroeconomic Events, Fund and Company Events, Market Rallies)</td><td>None.</td><td>Dropped; the pills replace them (L8).</td></tr>
+    <tr><td class="k">Tabs "Predefined Scenarios" and "Custom Scenario"</td><td>No custom scenarios exist. The list has curated cards, a "More scenarios / Hide" toggle and category pills.</td><td>Not used; the current pills stay (L3).</td></tr>
+    <tr><td class="k">"All Scenarios" dropdown</td><td>Category pills (All, Crashes, Bull Runs, Policy / Rate; Hypothetical is hidden by a release flag).</td><td>Pills stay (L3).</td></tr>
+    <tr><td class="k">Scenario card: type icon, name with date, one-line description, "Nifty 50: x%" in red or green, chevron, selected card outlined in green</td><td>Card with name, date range, badges (Freeze, ongoing, Assumption-based) and a stat line "Nifty 50 · Equity funds · Debt funds". The table already holds a description per scenario but the card does not show it.</td><td>Description line and type icon added (L8). Stat line wording: card B2.</td></tr>
+    <tr><td class="k">Detail heading and one-line description</td><td>Name and dates only.</td><td>Add the description (it exists in the table).</td></tr>
+    <tr><td class="k">"Use Current Portfolio" dropdown</td><td>The API always computes the whole household and returns a by-member list.</td><td>Becomes a member dropdown on the detail (L5); needs a small backend parameter (card C1, section 3).</td></tr>
+    <tr><td class="k">Benchmark switch (Nifty 50, Sensex, S&amp;P 500)</td><td>The engine stores five Nifty indices and no Sensex or S&amp;P 500.</td><td>Dropped (L5).</td></tr>
+    <tr><td class="k">Date-range picker</td><td>Each scenario has fixed dates.</td><td>Dropped; the dates show as text (L5).</td></tr>
+    <tr><td class="k">Tile: Portfolio Value (start)</td><td>Not returned.</td><td>Dropped (L6).</td></tr>
+    <tr><td class="k">Tile: Lowest Value</td><td>Not returned; needs a daily series.</td><td>Dropped (L6).</td></tr>
+    <tr><td class="k">Tile: Value at end</td><td>Not returned.</td><td>Dropped (L6).</td></tr>
+    <tr><td class="k">Tile: Nifty 50 Return</td><td>Returned in the benchmarks list (not for multi-phase or freeze scenarios).</td><td>Kept, with "Outperformed by" (L7).</td></tr>
+    <tr><td class="k">Tile: Your Portfolio Return</td><td>Returned (portfolio impact %).</td><td>Kept (L7).</td></tr>
+    <tr><td class="k">Tile: Recovery Time</td><td>Not returned; needs a daily series.</td><td>Dropped (L6).</td></tr>
+    <tr><td class="k">New tile: Rupee impact, Coverage line</td><td>Returned (rupee impact, covered value, total value, funds with no data).</td><td>Kept (L7).</td></tr>
+    <tr><td class="k">Chart: Portfolio vs Nifty 50 (line, hover tooltip)</td><td>None; no daily series is stored.</td><td>Dropped (L6). You asked for the Home chart style for what we do draw.</td></tr>
+    <tr><td class="k">Chart: Impact by Asset Class (bars, rupee and %, dropdown "Change in value")</td><td>Not returned. Per-fund rupee impact exists (inside the by-member list) and every fund has a category.</td><td>Kept, derived from stored per-fund results (L6, cards C2, C3).</td></tr>
+    <tr><td class="k">Card: Key Insights from Mira (six bullets)</td><td>None.</td><td>Placeholder (L4, card C8).</td></tr>
+    <tr><td class="k">Top bar: search, Ask Mira, Family Combined, theme, avatar</td><td>Shell.</td><td>Not part of this page. Search on hold.</td></tr>
+    <tr><td class="k">Not on the PDF but already built</td><td>The "not a prediction" disclaimer, benchmark comparison bars, by-fund list, by-family-member list (expandable to funds), phase cards for multi-phase events, a freeze banner, and a hypothetical view (hidden).</td><td>Kept and restyled (L9, cards C5, C7).</td></tr>
+  </table></div>
+</section>
+
+<section id="status">
+  <h2>3. What the code has</h2>
+  <p class="lead">Verified by reading the files named. Nothing was run in this session.</p>
+  <ul class="tight">
+    <li><b>Frontend (<span class="mono">frontend/src/features/scenarios/</span>):</b> <span class="mono">ScenariosScreen</span> (list, then result, one at a time, "Back to scenarios" button), <span class="mono">ScenarioPicker</span> (curated cards, a "More scenarios / Hide" toggle, category pills, card with name, dates, badges, stat line), four result views chosen by <span class="mono">resolveResultShape</span> (standard, multi-phase, redemption-freeze, hypothetical), shared pieces in <span class="mono">ResultParts</span> (hero numbers, benchmark bars, by-fund rows, by-member rows, disclaimer). 752 lines in total, with tests beside each file.</li>
+    <li><b>API:</b> <span class="mono">GET /scenarios?curated=</span> (list; hypotheticals hidden unless <span class="mono">SCENARIO_HYPOTHETICALS_ENABLED</span>) and <span class="mono">GET /scenarios/{id}/results</span> (always the whole household: it passes every household member to the engine).</li>
+    <li><b>Tables:</b> <span class="mono">scenarios</span> (name, description, dates, type, ongoing, display_rank, parent for phases, freeze list, four stored quick-stat columns), <span class="mono">scenario_scheme_results</span>, <span class="mono">scenario_category_averages</span>, <span class="mono">scenario_hypothetical_assumptions</span>. Results per fund are computed in advance by a job; the household result is computed at request time from current holdings.</li>
+    <li><b>The engine already takes a list of member ids.</b> Computing for one member is a parameter on the route, not new engine logic. The route must check the member belongs to the signed-in account.</li>
+    <li><b>Per-fund rupee impact</b> is built inside the engine (value times percent) and returned only inside each member's fund list. An asset-class total can be summed from it. The engine has a nine-bucket asset-class helper (<span class="mono">underlying_asset_class</span>: Equity, Hybrid, Debt-short, Debt-long, Gold, Silver, Overseas, Other, and so on), built for hypotheticals.</li>
+    <li><b>Benchmarks:</b> five Nifty total-return indices (Nifty 50, Nifty 500, LargeMidcap 250, Midcap 150, Smallcap 250). They are empty for multi-phase and freeze scenarios.</li>
+    <li><b>Speed (not measured for this endpoint):</b> the result route calls <span class="mono">compute_holdings</span>. The Home staging run found a cold <span class="mono">compute_holdings</span> took 4.9 to 24.3 s because it re-downloads fund NAV history until today's NAV is published. You decided to leave the Dashboard as is and log it. Scenario detail will inherit the same cost unless it uses the stored-price setting Home is adding (card D5).</li>
+    <li><b>Known open decision (DEFERRED_FEATURES.md):</b> three pre-2006 scenarios (Dot-com bust, 2003-07 India bull run, 2004 election result) have no fund data, so every fund says "Not enough historical data". The list shows them. Card C6.</li>
+    <li><b>Shell and contract:</b> contract v1.4 maps <span class="mono">scenarios</span> to <span class="mono">/planning/scenarios</span> and redirects <span class="mono">/planning</span> to it; Planning has no sub-menu; scope none. The shell's <span class="mono">MiraComingSoonDialog</span> exists for the Mira placeholder.</li>
+  </ul>
+</section>
+
+<section id="reuse">
+  <h2>4. Reuse versus new</h2>
+  <p class="lead">No new table is proposed. Everything below reuses what exists.</p>
+  <div class="scroll"><table>
+    <tr><th>Piece</th><th>Reuse</th><th>New</th></tr>
+    <tr><td class="k">Planning landing (two cards)</td><td>Shell page layout, card and badge components.</td><td>One small page component.</td></tr>
+    <tr><td class="k">Scenario list and pills</td><td><span class="mono">ScenarioPicker</span> logic (curated, More, pills), <span class="mono">listScenarios</span>, <span class="mono">formatDateRange</span>, <span class="mono">quickStatLine</span>.</td><td>Card in the page-29 style (icon, description, chevron, selected outline).</td></tr>
+    <tr><td class="k">Detail data</td><td><span class="mono">GET /scenarios/{id}/results</span>, the engine, stored per-fund results.</td><td>Optional <span class="mono">member_id</span> parameter; a derived <span class="mono">by_asset_class</span> list in the response. No table, no migration.</td></tr>
+    <tr><td class="k">Stat tiles</td><td>Values already in the response.</td><td>Tile component (Home design system tiles if present).</td></tr>
+    <tr><td class="k">Benchmark bars, asset-class bars</td><td><span class="mono">benchmarkLabel</span>, <span class="mono">rupees</span> and decimal helpers in <span class="mono">ResultParts</span>.</td><td>A diverging bar chart component in the Home chart style (card D2).</td></tr>
+    <tr><td class="k">By fund and by member lists</td><td><span class="mono">Funds</span>, <span class="mono">Members</span>, <span class="mono">FundRow</span>.</td><td>Restyle only.</td></tr>
+    <tr><td class="k">Phase cards, freeze banner</td><td>Existing multi-phase and freeze views.</td><td>Restyle only.</td></tr>
+    <tr><td class="k">Mira placeholder</td><td>Shell <span class="mono">MiraComingSoonDialog</span>.</td><td>One static card.</td></tr>
+    <tr><td class="k">Member dropdown</td><td>Existing select component and <span class="mono">list_household_members</span> data (already returned as by_member).</td><td>Local state.</td></tr>
+  </table></div>
+</section>
+
+<section id="privacy">
+  <h2>5. Privacy, consent, third parties, billing</h2>
+  <p class="lead">Facts from the repository are verified. Statements about the law are from my own knowledge, were not checked against the official text in this session, and need your lawyer's confirmation.</p>
+  <ul class="tight">
+    <li><b>New personal data:</b> none. Scenario results are computed on request from holdings the user already imported; nothing new is stored per user. No consent record or purpose changes.</li>
+    <li><b>PAN:</b> not used anywhere on this page.</li>
+    <li><b>Member parameter (verified need):</b> the route must reject a member that does not belong to the signed-in account, so one household cannot read another's numbers. This is the one real security point in the plan.</li>
+    <li><b>Disclaimers:</b> the existing "not a prediction of future returns" line stays. The decisions file records that the SEBI-style disclaimer wording is a release gate that needs a compliance reviewer. That review is not part of this plan.</li>
+    <li><b>Hypothetical scenarios:</b> stay behind <span class="mono">SCENARIO_HYPOTHETICALS_ENABLED</span> until a markets-literate review. Your screenshots show no Hypothetical pill, which agrees.</li>
+    <li><b>Data export and deletion:</b> nothing is stored per user for this page, so nothing to export or delete beyond what Profile already covers.</li>
+    <li><b>Notifications and OTP:</b> none.</li>
+    <li><b>Subscription and billing:</b> the PDF shows none on pages 28 and 29.</li>
+    <li><b>Third parties:</b> none for this page. Mira is a placeholder and calls nothing.</li>
+    <li><b>"Coming soon" cards:</b> collect nothing unless you choose the "Notify me" option in card E1.</li>
+  </ul>
+</section>
+
+<section id="conflicts">
+  <h2>6. Conflicts to tell you about</h2>
+  <p class="lead">I have changed none of these documents.</p>
+  <div class="scroll"><table>
+    <tr><th>#</th><th>Conflict</th><th>What I propose</th></tr>
+    <tr><td class="k">X1</td><td>Contract v1.4 redirects <span class="mono">/planning</span> to <span class="mono">/planning/scenarios</span> and lists a <span class="mono">planning-scenarios</span> route and a legacy mapping of <span class="mono">scenarios</span> to that path. Your flow (one route, in-page state, landing first) replaces this.</td><td>A short proposal for contract v1.5: <span class="mono">/planning</span> becomes the page; the <span class="mono">planning-scenarios</span> row and the redirect go. You apply it. Done: contract edited to v1.5 (L16).</td></tr>
+    <tr><td class="k">X2</td><td>Pages 28 and 29 draw the older six-item sidebar and put "Scenarios" at the top level.</td><td>The contract's text sidebar wins; Scenarios lives under Planning.</td></tr>
+    <tr><td class="k">X3</td><td>Page 29 shows both big cards at once with the list and detail under them. Your flow shows the cards first and the rest after a click.</td><td>Your flow wins. Answered (L13): the cards are replaced by the chosen view.</td></tr>
+    <tr><td class="k">X4</td><td>Page 29 asset classes (Stocks India, Mutual Funds, US Stocks, Gold, FDs &amp; Bonds, Real Estate) assume a whole-portfolio view. This app is mutual funds only.</td><td>Use fund-based classes. The engine has nine buckets, Home's allocation uses four. Card C2.</td></tr>
+    <tr><td class="k">X5</td><td>Page 29 offers Sensex and S&amp;P 500; the engine holds five Nifty indices only.</td><td>Dropped by your answer. Nothing to change.</td></tr>
+    <tr><td class="k">X6</td><td>Home plan: tokens scoped to Home and the shell (M12 A), palette colours only. The existing scenario views use <span class="mono">--color-hypo</span> and <span class="mono">--color-freeze</span>, which are not in the palette.</td><td>Card D3.</td></tr>
+    <tr><td class="k">X7</td><td>DEFERRED_FEATURES.md lists the pre-2006 scenario question as needing your decision "before production".</td><td>Card C6. I will not choose for you.</td></tr>
+    <tr><td class="k">X8</td><td>Your brief names the new documents "individual-fund". The tree already has untracked individual-fund documents from another session.</td><td>Use a <span class="mono">planning-scenarios</span> name. Card E3.</td></tr>
+    <tr><td class="k">X9</td><td>The retirement page (28) and its quick actions imply goal data the app does not hold.</td><td>Coming soon, nothing built (L2). Recorded for later in card E2.</td></tr>
+  </table></div>
+</section>
+
+<section id="locked">
+  <h2>Decisions you already made</h2>
+  <p class="lead">From your answers in chat on 23 Oct. I treat them as fixed. Tell me if I got any wrong.</p>
+  <div id="lockedList"></div>
+</section>
+
+<section id="blueprint">
+  <h2>Page map (how the page behaves)</h2>
+  <p class="lead">One route, <span class="mono">/planning</span>, with in-page state (L1). Updated with your answers of 23 Oct (L13 to L34).</p>
+  <div class="scroll"><table>
+    <tr><th>State</th><th>What shows</th><th>Source</th></tr>
+    <tr><td class="k">Landing</td><td>Page title, two cards: Plan your future, Explore market scenarios.</td><td>L1</td></tr>
+    <tr><td class="k">Plan your future</td><td>Opens in place of the landing, with a Back link and a short line on what will live there. No controls.</td><td>L2</td></tr>
+    <tr><td class="k">Explore market scenarios</td><td>Opens in place of the landing, with a Back link. Curated scenario cards, "More scenarios / Hide", then the pills (All, Crashes, Bull Runs, Policy / Rate) over page-29-style cards, each with type icon, name, dates, description, a Nifty 50 stat in red or green, badges and a chevron. The detail opens below the list with a smooth scroll.</td><td>L3, L8, L13, L14, L18</td></tr>
+    <tr><td class="k">Scenario detail, standard</td><td>Heading, dates, description, member dropdown, disclaimer, four tiles (portfolio return, rupee impact, benchmark return with outperformed-by, coverage), benchmark comparison bars beside the asset-class bars (rupees, percent beside), Mira card with a button, by-member list. The by-fund list is dropped (L25; disclosures: F1).</td><td>L4 to L7, L20 to L26</td></tr>
+    <tr><td class="k">Multi-phase event</td><td>Same, with the three phase cards after the tiles. Benchmark tile and bars absent (the engine returns none).</td><td>L23</td></tr>
+    <tr><td class="k">Redemption freeze</td><td>The freeze banner; tiles only where numbers exist; how frozen funds are named: F1.</td><td>L23, F1</td></tr>
+    <tr><td class="k">Hypothetical</td><td>Hidden by the release flag. The restyled view exists but does not render.</td><td>section 5</td></tr>
+    <tr><td class="k">States</td><td>Loading skeletons, empty (no holdings), no data for a scenario, error with Try again (existing patterns).</td><td>existing</td></tr>
+  </table></div>
+  <p class="lead" style="margin-top:14px">Backend change in one line: an optional <span class="mono">member_id</span> on <span class="mono">GET /scenarios/{id}/results</span> (checked against the account) and a derived <span class="mono">by_asset_class</span> list in the response. No table, no migration.</p>
+</section>
+
+<div class="bar" id="filterbar">
+  <button class="chip" id="f-all" aria-pressed="true">All questions</button>
+  <button class="chip" id="f-open" aria-pressed="false">Unanswered</button>
+  <button class="chip" id="f-done" aria-pressed="false">Answered</button>
+  <span class="spacer"></span>
+  <span class="count"><span id="count"></span><span id="savestate" role="status"></span></span>
+</div>
+
+<div id="questions"></div>
+
+<section id="risks">
+  <h2>Risks</h2>
+  <ul class="tight">
+    <li><b>R1.</b> Detail load time. The result route inherits <span class="mono">compute_holdings</span>'s cold cost (Home measured 4.9 to 24.3 s). Card D5.</li>
+    <li><b>R2.</b> The member parameter is an access-control point. A missing ownership check would expose another household's numbers. It needs a dedicated test.</li>
+    <li><b>R3.</b> Asset-class totals are derived, so funds with no data or frozen funds are left out of both the rupee sum and the covered value. The chart must say how much of the portfolio it covers, or it will look like it reconciles to the headline when it does not.</li>
+    <li><b>R4.</b> Contract v1.5 touches the shell, which another builder is working from.</li>
+    <li><b>R5.</b> Benchmark comparison against Nifty 50 for a debt-heavy portfolio is not like for like. The tile needs a one-line caveat (card C4).</li>
+    <li><b>R6.</b> Pre-2006 scenarios show nothing useful for funds until card C6 is decided.</li>
+    <li><b>R8.</b> With the by-fund list dropped (L25) and the old screen edited in place (L27), estimated and frozen funds lose their labels unless F1 is answered, and the existing tests for these files must be rewritten with the code.</li>
+    <li><b>R7.</b> The release gates (hypothetical values, SEBI disclaimer wording) are outside this plan but constrain what can ship.</li>
+  </ul>
+</section>
+
+<section id="verify">
+  <h2>To verify in the spec phase</h2>
+  <ul class="tight">
+    <li>Time <span class="mono">GET /scenarios/{id}/results</span> on staging for the three sample households (cold and warm), the same way the Home script did.</li>
+    <li>Confirm what <span class="mono">ui/charts/bar-chart</span> can do (horizontal, diverging, labels). I listed the file but did not read it.</li>
+    <li>Confirm the Home design system's tile and bar components exist by the time this is built, or define them here.</li>
+    <li>Confirm each scenario has a non-empty description in staging data (the column is required, so it should).</li>
+    <li>Confirm the exact asset-class grouping against real funds, including the "Other" bucket size.</li>
+    <li>Read PDF page 27 if it matters to you.</li>
+  </ul>
+</section>
+
+<section id="log">
+  <h2>Conversation log</h2>
+  <p class="lead">What was asked and decided, in order.</p>
+  <div class="scroll"><table>
+    <tr><th>When</th><th>Who</th><th>What</th></tr>
+    <tr><td class="k">23 Oct</td><td>You</td><td>Brief: plan the Planning page the way Home was planned. The Scenarios section is already built; restructure it under Planning. Flow: two cards; Plan your future is Coming soon; Explore market scenarios shows the existing pills and cards in the page-29 style; a click opens the graphs below. Graphs in the Home style. Page 29 is not how it will always look.</td></tr>
+    <tr><td class="k">23 Oct</td><td>Me</td><td>Read the PDF pages 28 and 29, the palette, the Home handoff, the shell contract and the scenarios code. Told you about the contract conflict (X1), the missing backend data, the document naming and the hidden hypotheticals. Asked four questions: routes, Mira, controls, new numbers.</td></tr>
+    <tr><td class="k">23 Oct</td><td>You</td><td>One route with in-page state; Mira as a placeholder; a family-or-member choice; only what exists today (no recovery time, no line chart).</td></tr>
+    <tr><td class="k">23 Oct</td><td>Me</td><td>Read the result views, the API route and the engine. Asked four more: member scope, graphs, tiles, list extras.</td></tr>
+    <tr><td class="k">23 Oct</td><td>You</td><td>Local dropdown on the detail; benchmark bars and impact by asset class; tiles for portfolio return, rupee impact, benchmark with outperformed-by, and coverage; remove the video, add card descriptions and type icons, drop the four sub-links.</td></tr>
+    <tr><td class="k">23 Oct</td><td>Me</td><td>This workbook (22 cards). Locked L1 to L12.</td></tr>
+    <tr><td class="k">23 Oct</td><td>You</td><td>Answered all 22 cards. Differences from my recommendations: A1 B, A4 B (edit the contract now), B2 A, C7 B, D1 B, E2 B. Note on B1: the screenshots were only a reference for today's UI.</td></tr>
+    <tr><td class="k">23 Oct</td><td>Me</td><td>Edited the shell contract to v1.5 (uncommitted): one /planning route, legacy mapping, the Scenarios exception. Did not edit the other shell documents that still show the old route (architecture line 105, the shell functionality spec, reuse-vs-new, TDD, and the shell PR 1 plan rows). Locked L13 to L34. Added card F1 (estimate and frozen labels after C7).</td></tr>
+    <tr><td class="k">23 Oct</td><td>You</td><td>F1 C: the estimate label goes inside the by-member fund rows.</td></tr>
+    <tr><td class="k">23 Oct</td><td>Me</td><td>Locked L35. Every card is answered. Waiting for your go before the documents phase.</td></tr>
+    <tr><td class="k">23 Oct</td><td>You</td><td>Go for the documents. Answered G1 to G9 in the design mockups workbook; G1 C (edit in place with a variant switch) differs from my recommendation.</td></tr>
+    <tr><td class="k">23 Oct</td><td>Me</td><td>Locked L36 to L44 and updated the spec, reuse, TDD, architecture and PRD for G1 C. Waiting for your go on the implementation plans.</td></tr>
+  </table></div>
+  <div class="scroll" style="margin-top:12px"><table>
+    <tr><th>Pending</th><th>Waiting on</th></tr>
+    <tr><td class="k">Other shell documents (old route)</td><td>Your word: the shell architecture, the shell functionality spec, reuse-vs-new, TDD and the shell PR 1 plan still show /planning/scenarios. I have not edited them.</td></tr>
+    <tr><td class="k">Go for the documents phase</td><td>Your go, after F1 (answering is not a go).</td></tr>
+    <tr><td class="k">Staging timing (L31)</td><td>Someone runs the script on the VM after it is written; depends on the Home setting.</td></tr>
+    <tr><td class="k">Compliance review of disclaimer wording</td><td>Outside this plan.</td></tr>
+  </table></div>
+</section>
+
+<section id="glossary">
+  <h2>Glossary</h2>
+  <ul class="tight">
+    <li><b>Scenario</b>: a past market event (or a hypothetical one) with fixed dates, replayed against the user's current holdings.</li>
+    <li><b>Quick stat</b>: the stored market, equity-fund and debt-fund move shown on a scenario card.</li>
+    <li><b>TRI</b>: total return index, the index including dividends.</li>
+    <li><b>Covered value</b>: the part of the portfolio that has data for the scenario's dates.</li>
+    <li><b>Wrapper route</b>: a tiny file that mounts a screen at a URL without changing the screen.</li>
+    <li><b>Coming soon state</b>: a card or page that says what is planned, with no working controls.</li>
+  </ul>
+</section>
+
+<section id="answers">
+  <h2>Your answers</h2>
+  <p class="lead">This collects every choice and note above. Copy it and paste it into the chat.</p>
+  <div class="row"><button class="btn" id="copy">Copy my answers</button><button class="btn ghost" id="clear">Clear all choices</button><span class="count" id="copied" role="status"></span></div>
+  <div id="out" aria-live="polite"></div>
+</section>
+</main>
+</div>
+<script>
+var LOCKED=[
+ ["L1","One route, /planning, with in-page state","Planning opens a landing page with two cards. Everything after that (Coming soon, the scenario list, a scenario's detail) changes in the page without a new URL. (Your answer, 23 Oct.) This changes contract v1.4, which redirects /planning to /planning/scenarios: see X1 and card A4."],
+ ["L2","Plan your future shows Coming soon","Nothing from PDF page 28 (retirement, child's education, home purchase, wealth goals, what if, custom) is built. (Your flow, 23 Oct.)"],
+ ["L3","Explore market scenarios uses today's list style","The existing curated cards, \"More scenarios / Hide\" and the All, Crashes, Bull Runs, Policy / Rate pills. The PDF's Predefined and Custom tabs and the All Scenarios dropdown are not used. Cards are laid out as on page 29. (Your flow and screenshots, 23 Oct.)"],
+ ["L4","Mira is a placeholder","The Key Insights card is shown as Coming soon. No AI, no rule-based insights. (Your answer, 23 Oct.) How it behaves on click: card C8."],
+ ["L5","Detail controls: a local member dropdown only","A dropdown on the detail to choose the whole family or one member. No benchmark switch and no date-range picker; the scenario's own dates show as text. (Your answers, 23 Oct.)"],
+ ["L6","Only what exists today: no line chart, no lowest value, no recovery time","Page 29's Portfolio Value, Lowest Value, Value at end, Recovery Time tiles and the Portfolio vs Nifty 50 line chart are dropped. The graphs are the benchmark comparison bars and the impact-by-asset-class bars, in the Home chart style. (Your answers, 23 Oct.)"],
+ ["L7","Four stat tiles","Your portfolio return, rupee impact, benchmark return with \"outperformed by\", and a coverage line. (Your answer, 23 Oct.)"],
+ ["L8","List extras","The How Scenarios Work video is removed; each card gets its description line and a type icon; the four sub-links under the two big cards are dropped. (Your answers, 23 Oct.)"],
+ ["L9","Existing result pieces stay: disclaimer, by-fund, by-member, phases, freeze banner","They are restyled and re-homed, not removed. Which of them shows for each result shape: card C5. (My reading of your flow; correct me if wrong.)"],
+ ["L10","Standing rules carry over","Mobile is out of scope and untouched; search is on hold; event tracking is deferred; reuse existing code and tables first, no new table proposed here; nothing is built until the plans exist and you say go; answering questions is not a go."],
+ ["L11","How the existing screen is handled (answered by L27)","Answered: edited in place. Nothing is edited before you say go."],
+ ["L12","Documents are named planning-scenarios","Answered by L34. Chosen to avoid mixing with the individual-fund documents already in the tree."],
+ ["L13","Choosing a card replaces the landing; a Back link returns","Plan your future and Explore market scenarios each open in place of the landing, with a Back link to the two cards. The cards do not stay on top. (Your answer to A1, 23 Oct; chosen against my recommendation.)"],
+ ["L14","Scenario detail opens below the list, with a smooth scroll","The list stays, the chosen card is outlined, and the page scrolls to the detail heading. Reduced-motion settings are respected. (Your answer to A2, 23 Oct.)"],
+ ["L15","Browser Back steps through the page's states","One history entry per step (landing, view, detail); the URL stays /planning; a refresh returns to the landing. (Your answer to A3, 23 Oct.)"],
+ ["L16","Contract edited: v1.5 (uncommitted)","Applied on your go (A4 B): /planning is the page; the redirect and the planning-scenarios route are removed; the legacy scenarios mapping points to /planning; Scenarios is the one existing screen restructured in place. Other shell documents still describe the old route; see the log. (Your answer to A4, 23 Oct.)"],
+ ["L17","List structure as built, same as PDF page 29","Curated cards, More / Hide, then pills over the rest. Your note: the screenshots were only a reference for today's UI; page 29 is the design. (Your answer to B1, 23 Oct.)"],
+ ["L18","Card stat line: Nifty 50 only, red or green","The Equity funds and Debt funds numbers no longer show on cards (they stay stored). Cards for ongoing, freeze and multi-phase events show no stat line, as today. (Your answer to B2, 23 Oct; chosen against my recommendation.)"],
+ ["L19","Member dropdown: Family combined first, kept while moving between scenarios","Reset when the user leaves Planning. Lists members that hold funds. (Your answer to C1, 23 Oct.)"],
+ ["L20","Asset-class chart groups: Equity, Hybrid, Debt, Gold and Silver, Overseas, Other","Totals derived from stored per-fund results; funds with no data or frozen are left out of both sums. (Your answer to C2, 23 Oct.)"],
+ ["L21","Asset-class bars are in rupees, with the percent printed beside each","No rupee/percent dropdown. (Your answer to C3, 23 Oct.)"],
+ ["L22","Benchmark tile uses Nifty 50 TRI with a one-line caveat; bars show all five indices","Tile and bars are hidden when the engine returns no benchmarks. (Your answer to C4, 23 Oct.)"],
+ ["L23","Each result shape keeps its own body, restyled","Tiles and charts only where data exists. Multi-phase has no benchmark tile; freeze shows its banner. (Your answer to C5, 23 Oct.) Affected by F1."],
+ ["L24","Pre-2006 scenarios show the index only, with a note","The three scenarios without fund data stay on the list; fund sections are replaced by a note and the tiles show the benchmark only. This closes the open item in DEFERRED_FEATURES.md (the entry itself is not edited). (Your answer to C6, 23 Oct.)"],
+ ["L25","By family member list only: the by-fund list is dropped from the detail","(Your answer to C7, 23 Oct; chosen against my recommendation.) This removes the only place that shows which funds are estimated or frozen, so card F1 asks how to keep those disclosures."],
+ ["L26","Mira: a static card with a button that opens the existing Mira dialog","(Your answer to C8, 23 Oct.)"],
+ ["L27","The existing Scenarios screen is edited in place","ScenariosScreen and its views change; no hidden copy and no old screen kept. This overrides the standing rule that existing screens are not changed, for this screen only (contract v1.5 says so). Existing tests for these files change with them. (Your answer to D1, 23 Oct; chosen against my recommendation.)"],
+ ["L28","A small new diverging-bars component in the Home style","Used for the asset-class bars and the benchmark bars; no chart library. (Your answer to D2, 23 Oct.)"],
+ ["L29","Scoped palette tokens; Freeze uses Warning, Hypothetical uses Informational","The old --color-freeze and --color-hypo colours are not used on the new page. (Your answer to D3, 23 Oct.)"],
+ ["L30","Disclaimer under the detail heading, above the tiles, as today","(Your answer to D4, 23 Oct.)"],
+ ["L31","Detail load time: use Home's stored-price setting and add a staging timing script","Depends on the Home backend plan landing the optional compute_holdings setting first. The script times cold and warm opens of the results route on the three staging households. (Your answer to D5, 23 Oct.)"],
+ ["L32","Plan your future collects nothing","Plain Coming soon text. (Your answer to E1, 23 Oct.)"],
+ ["L33","The retirement and goal designs are not added to DEFERRED_FEATURES.md","The PDF (page 28) is the record. (Your answer to E2, 23 Oct.)"],
+ ["L34","New documents are named planning-scenarios","Answers L12. (Your answer to E3, 23 Oct.)"],
+ ["L35","Estimate and frozen labels sit inside the by-member fund rows","Each fund row under an expanded member shows an Estimate chip (category or asset-class average, with the existing tooltip text) or Frozen text where that applies. There is no separate by-fund list. A fund held by two members shows the same label in both rows. This completes L23 and L25. (Your answer to F1, 23 Oct; my recommendation.)"],
+ ["L36","ScenariosScreen is edited in place with a desktop variant switch","An optional variant prop, default classic: mobile and the old desktop tab flow are unchanged. The planning variant returns early to a new flow in new files. Existing scenario tests stay unchanged and green. (Your answer to G1, 23 Oct; chosen against my recommendation.)"],
+ ["L37","One member chosen: heading Funds for <name>, funds shown open","(Your answer to G2, 23 Oct.)"],
+ ["L38","The open detail stays when a pill changes","The card may disappear from the list. (Your answer to G3, 23 Oct.)"],
+ ["L39","Proposed wording approved as written","Title, subtitle, card lines, Coming soon line, Nifty caveat, pre-2006 note, no-holdings line and the outperformed text, as listed in G4. (Your answer to G4, 23 Oct.)"],
+ ["L40","No bar tooltips; labels always visible","(Your answer to G5, 23 Oct.)"],
+ ["L41","No holdings: a message and an Import a statement button; tiles and charts hidden","(Your answer to G6, 23 Oct.)"],
+ ["L42","Delivery order: after shell PR 1 and Home T1","(Your answer to G7, 23 Oct.)"],
+ ["L43","Index bars use Chart 03 blue, as on Home","(Your answer to G8, 23 Oct.)"],
+ ["L44","Icon set approved","Sprout, chart-column, trending-down, trending-up, percent, sparkles, snowflake, lightbulb, chevron-left, chevron-right. Each name is to be confirmed in the installed Lucide version during the build. (Your answer to G9, 23 Oct.)"]
+];
+
+var Q=[
+{g:"A",name:"Page shape and navigation",items:[
+ {id:"A1",t:"After you open Explore market scenarios, do the two big cards stay on top?",
+  ask:"Once the user clicks Explore market scenarios, what happens to the two cards at the top?",
+  ctx:"Page 29 keeps both cards at the top with the list and detail under them. Your flow shows only the cards first. The choice decides whether a user can jump between Plan your future and Explore without pressing Back.",
+  opts:[
+   {k:"a",l:"Cards stay on top, the chosen one highlighted",d:"As page 29: the cards are always visible; the list and detail appear under the highlighted card. Plan your future shows its Coming soon text in the same place."},
+   {k:"b",l:"Cards are replaced by the list with a Back link",d:"The landing disappears; a Back to Planning link returns. Cleaner, one thing on screen at a time."},
+   {k:"c",l:"Cards shrink to a small switcher",d:"Two compact tabs on top once a choice is made. Extra design work."}],
+  rec:"a",why:"It matches the PDF and costs nothing extra. The cards double as the switcher, so no Back link is needed.",
+  risk:"On a short screen the cards push the list down; the detail needs auto-scroll (card A2)."},
+ {id:"A2",t:"Where does a scenario's detail appear?",
+  ask:"When the user clicks a scenario card, where do the graphs and cards open?",
+  ctx:"You said below. With the curated cards, the More scenarios list and the pills, the page can be long, so the detail may start well below the fold.",
+  opts:[
+   {k:"a",l:"Below the list, with a smooth scroll to it",d:"The list stays; the selected card is outlined in green; the page scrolls to the detail heading. Matches page 29."},
+   {k:"b",l:"Below the list, no scroll",d:"The user scrolls themselves. Simplest; easy to miss that anything opened."},
+   {k:"c",l:"Replaces the list, with Back to scenarios",d:"The current behaviour. No long page, but the list is lost when you look at a scenario."}],
+  rec:"a",why:"It is what you described and what the PDF shows, and the scroll removes the main drawback.",
+  risk:"Scroll motion must respect reduced-motion settings."},
+ {id:"A3",t:"Does the browser Back button step through the page's states?",
+  ask:"With one route and in-page state, should the browser Back button go from the detail to the list and from the list to the landing?",
+  ctx:"The URL stays /planning. The shell's own Back (O9 of the contract) goes to the last non-Portfolio screen. In-page state does not create history entries on its own.",
+  opts:[
+   {k:"a",l:"Yes, push a history entry for each step",d:"Back returns to the previous in-page state; the URL does not change. The existing app already stores tab state in window.history.state."},
+   {k:"b",l:"No, only on-page links",d:"Back leaves Planning entirely. Fewer moving parts."}],
+  rec:"a",why:"People press Back out of habit after opening a detail; leaving the whole page would feel like a bug. The pattern already exists in the app.",
+  risk:"History state must be restored correctly on refresh (after a refresh the page returns to the landing)."},
+ {id:"A4",t:"Contract change for one /planning route",
+  ask:"Your flow removes the /planning/scenarios route and the redirect. May I write the exact wording of contract v1.5 as a proposal for you to apply?",
+  ctx:"Contract v1.4 has a planning row that redirects to /planning/scenarios, a planning-scenarios row, and a legacy mapping from scenarios to that path. I will not edit the contract without your word.",
+  opts:[
+   {k:"a",l:"Write it as a proposal; I apply it",d:"A short note listing the rows to change. Same approach as the Home and Profile changes."},
+   {k:"b",l:"Edit the contract now",d:"I make the edit in the file and tell you. Needs your explicit go."},
+   {k:"c",l:"Keep /planning/scenarios too",d:"Leave the contract alone and let /planning redirect or hold both. Defeats the one-route decision."}],
+  rec:"a",why:"It keeps you in control of a document the shell builder is working from.",
+  risk:"If the shell is built before v1.5 lands, the old redirect would send users past the landing."}
+]},
+{g:"B",name:"The scenario list",items:[
+ {id:"B1",t:"How do the curated cards and the pills fit together?",
+  ask:"Your screenshots show curated cards on top, a Hide link, then the pills with the rest. Keep that structure?",
+  ctx:"Today: the curated cards show first (they have a display rank); More scenarios opens the rest with pills (All, Crashes, Bull Runs, Policy / Rate) that filter only the remaining cards.",
+  opts:[
+   {k:"a",l:"Keep it as built",d:"Curated cards first; the More / Hide toggle; pills filter the rest. Both blocks use the page-29 card."},
+   {k:"b",l:"Pills over everything, no curated block",d:"One list; the pills filter all scenarios; curated ones sort first. Simpler to explain, loses the featured set."}],
+  rec:"a",why:"It is what you see and approve in the screenshots; no behaviour change.",
+  risk:"None beyond the visual restyle."},
+ {id:"B2",t:"What does the stat line on a card say?",
+  ask:"Page 29 shows one number per card, for example Nifty 50 -38% in red. Today's card shows Nifty 50, Equity funds and Debt funds in one muted line. Which?",
+  ctx:"The Equity and Debt numbers are AUM-weighted fund moves built deliberately for the picker. Cards that are ongoing, freeze or multi-phase show no stat line today.",
+  opts:[
+   {k:"a",l:"Nifty 50 only, coloured red or green",d:"Exactly page 29. Shorter and clearer; the fund numbers appear only in the detail."},
+   {k:"b",l:"Keep today's line, with Nifty 50 coloured",d:"Nifty 50, Equity funds and Debt funds, the first one in the semantic colour, the rest muted."},
+   {k:"c",l:"Nifty 50 as a coloured chip, fund moves as a second muted line",d:"Both, with the chip as the page-29 element. Taller cards."}],
+  rec:"b",why:"It keeps information that was built on purpose and still gives the coloured number the PDF shows, without making cards taller.",
+  risk:"A long line wraps on narrow cards; the layout must allow two lines."}
+]},
+{g:"C",name:"The scenario detail",items:[
+ {id:"C1",t:"Member dropdown: default and memory",
+  ask:"Which choice does the member dropdown show when a scenario opens, and does it remember your choice?",
+  ctx:"You chose a local dropdown on the detail. The top-bar scope is not used on this page (the contract sets scope none). The list shows Family combined plus members that hold funds.",
+  opts:[
+   {k:"a",l:"Always start on Family combined",d:"Every scenario you open starts on the whole family."},
+   {k:"b",l:"Family combined first; the choice is kept while you move between scenarios in the same visit",d:"Reset when you leave Planning."},
+   {k:"c",l:"Follow the shell's scope",d:"Start on whatever Family or member the top bar shows elsewhere. Contradicts the contract's scope none."}],
+  rec:"b",why:"Someone comparing two scenarios for one member should not have to reselect each time, and a new visit starts neutral.",
+  risk:"A member with no holdings in a scenario shows an empty state; the dropdown must hide members without funds."},
+ {id:"C2",t:"Which asset-class groups does the bar chart show?",
+  ask:"Page 29 lists Stocks, Mutual Funds, US Stocks, Gold, FDs and Bonds, Real Estate. This app is mutual funds only. Which groups should the chart use?",
+  ctx:"The engine has nine fund-based buckets (Equity, Hybrid, Debt-short, Debt-long, Gold, Silver, Overseas, Other and so on), built for hypotheticals. Home's allocation uses four: Equity, Debt, Gold, Cash-like. Totals are derived from each fund's stored rupee impact; funds with no data or frozen funds are left out.",
+  opts:[
+   {k:"a",l:"Six groups: Equity, Hybrid, Debt, Gold and Silver, Overseas, Other",d:"Merges short and long debt, and gold with silver. Keeps Overseas and Hybrid, which behave differently in crashes."},
+   {k:"b",l:"All nine engine buckets",d:"Most detail, most rows; some rows will be tiny or empty."},
+   {k:"c",l:"The four Home groups",d:"Equity, Debt, Gold, Cash-like. Consistent with Home; hides Overseas and Hybrid inside Equity or Debt."}],
+  rec:"a",why:"It stays readable (six rows) and keeps the splits that matter for these events (an overseas fund can rise while Indian equity falls).",
+  risk:"Home and Planning use different groupings. A short note under the chart can say how funds are grouped."},
+ {id:"C3",t:"Rupee or percentage on the asset-class chart?",
+  ask:"Page 29 has a dropdown (Change in value). Should the chart offer both rupee and percentage?",
+  ctx:"Both numbers exist. The percentage for a group is its rupee impact divided by the value of its funds that have data.",
+  opts:[
+   {k:"a",l:"Dropdown with Rupee and Percent, default Rupee",d:"As page 29: bars sized by the chosen measure, both numbers in the labels."},
+   {k:"b",l:"Rupee bars with the percent printed beside each",d:"No control. Both numbers always visible."}],
+  rec:"b",why:"The page 29 chart already prints both numbers next to each bar, so a dropdown only changes the bar length. One less control.",
+  risk:"Bar length by rupees makes a small group look negligible even when its percent move is large."},
+ {id:"C4",t:"Benchmark tile and bars: which index?",
+  ask:"The tile shows a benchmark return and how far you were ahead or behind. Which index does it use, and which indices do the bars show?",
+  ctx:"The engine returns five Nifty total-return indices (50, 500, LargeMidcap 250, Midcap 150, Smallcap 250), and none for multi-phase or freeze scenarios. Comparing a debt-heavy portfolio with Nifty 50 is not like for like.",
+  opts:[
+   {k:"a",l:"Tile uses Nifty 50 TRI with a one-line caveat; bars show all five indices",d:"The caveat reads that the comparison is with an equity index. Tile and bars hidden when the engine returns none."},
+   {k:"b",l:"Tile uses the index that best matches the portfolio's mix",d:"New matching rule to design and explain."},
+   {k:"c",l:"No benchmark tile; bars only",d:"Avoids the unfair comparison. Drops the outperformed-by number you asked for (L7)."}],
+  rec:"a",why:"It gives the page-29 tile you asked for with an honest caveat, and uses data that exists today.",
+  risk:"Users may still read Outperformed by as a verdict on a mixed portfolio; the caveat must be visible."},
+ {id:"C5",t:"Multi-phase, freeze and no-benchmark scenarios",
+  ask:"Three result shapes differ from the standard one. How should the new detail treat them?",
+  ctx:"Multi-phase (for example a long crisis in three phases): headline is cumulative, phase cards show each phase, no benchmarks. Redemption freeze (Franklin Templeton wind-up): shows Frozen, not a percent. The asset-class chart uses the headline results, so it works for multi-phase too.",
+  opts:[
+   {k:"a",l:"Keep each shape's own body, restyled; tiles and charts only where data exists",d:"Multi-phase: tiles without the benchmark tile, phase cards, asset-class bars. Freeze: banner and by-fund list, no tiles or charts."},
+   {k:"b",l:"One layout for all shapes with N/A where data is missing",d:"Uniform look; many blank tiles."}],
+  rec:"a",why:"It keeps the meaning each view already carries and avoids empty tiles.",
+  risk:"Three variants to test."},
+ {id:"C6",t:"Pre-2006 scenarios have no fund data",
+  ask:"Dot-com bust, the 2003-07 India bull run and the 2004 election result have no fund data (fund price history starts in 2006). What should they show?",
+  ctx:"This is an open item in DEFERRED_FEATURES.md that needs your decision before production. Today every fund says Not enough historical data. Your screenshots show these cards on the list. The Nifty total-return history goes back to 1990.",
+  opts:[
+   {k:"a",l:"Hide them from the list",d:"Fewest surprises; fewer scenarios."},
+   {k:"b",l:"Show them with the index only and a note",d:"The benchmark number and bars show; the fund sections are replaced by a note that fund prices were not reported then. Small extra work."},
+   {k:"c",l:"Leave as is",d:"Users open them and see Not enough historical data for every fund."}],
+  rec:"b",why:"It keeps three real scenarios and tells the truth about the gap, at the cost of one short note and hiding the fund sections.",
+  risk:"The tiles must not show a portfolio return for these (there is none); they show the benchmark only."},
+ {id:"C7",t:"By fund and by family member lists",
+  ask:"Both lists exist today. Do they stay below the graphs?",
+  ctx:"Page 29 has neither; the PDF shows only the tiles, two charts and Mira. The by-fund list can be long for large portfolios, and by-member is the only place the family split shows.",
+  opts:[
+   {k:"a",l:"Keep both, restyled, below the graphs",d:"Nothing built is removed."},
+   {k:"b",l:"Keep by member only",d:"By fund is the long one. The member dropdown can also filter."},
+   {k:"c",l:"Keep both but collapsed by default",d:"A heading with a show control for each."}],
+  rec:"c",why:"Nothing is lost and the page-29 look stays clean: graphs first, detail on request.",
+  risk:"A collapsed list is easy to miss; the heading needs a count (for example 14 funds)."},
+ {id:"C8",t:"What does the Mira placeholder do?",
+  ask:"The Key Insights card shows as Coming soon. Should it do anything when clicked?",
+  ctx:"The shell has a Mira Coming soon dialog already (Home uses it). The Ask Mira button in the top bar is the shell's.",
+  opts:[
+   {k:"a",l:"Static card, no click",d:"Title Insights from Mira, a line that it is coming, no controls."},
+   {k:"b",l:"Static card with a button that opens the existing Mira dialog",d:"Reuses the shell component; consistent with Home."}],
+  rec:"b",why:"It reuses what exists and behaves like the other Mira entry points.",
+  risk:"None; the dialog collects nothing."}
+]},
+{g:"D",name:"Look, reuse, speed",items:[
+ {id:"D1",t:"How is the existing Scenarios screen handled?",
+  ask:"The new page needs a different layout. Do we build it alongside the old screen or change the old screen in place?",
+  ctx:"The rule is that existing screens are not changed, rebuilt or split. You have now asked to restructure this one. Profile used the first option: the old screen stays reachable at a hidden path until the new one is accepted, then it is deleted.",
+  opts:[
+   {k:"a",l:"New page alongside; old screen untouched until accepted, then deleted",d:"New files compose the existing result pieces. The old screen stays at a hidden path. Same as Profile."},
+   {k:"b",l:"Edit ScenariosScreen and its views in place",d:"Fewest files; no hidden route. Existing tests change."},
+   {k:"c",l:"New page alongside; old screen kept for good",d:"Two screens to maintain."}],
+  rec:"a",why:"It follows the Profile precedent, keeps the working screen as a fallback, and respects the rule until you say otherwise.",
+  risk:"The new page imports pieces from the old feature folder; moving them later needs care."},
+ {id:"D2",t:"Chart components for the bars",
+  ask:"The Home plan lists a bar chart in the UI charts folder. Page 29's asset-class chart has red and green bars on both sides of a zero line. Reuse or new?",
+  ctx:"I listed ui/charts/bar-chart but did not read it, so I do not know if it supports horizontal bars, a centre line and value labels. Home's own bars (concentration, family) are small custom pieces.",
+  opts:[
+   {k:"a",l:"A small new diverging-bars component in the Home style",d:"Plain markup and CSS, no chart library; also used for the benchmark bars. Tested on its own."},
+   {k:"b",l:"Extend the existing bar-chart",d:"Less new code if it fits; depends on what it supports (unverified)."}],
+  rec:"a",why:"Two simple bar charts do not need the chart library, and a plain component is easiest to test and to match to the palette.",
+  risk:"A new component must follow the Home design tokens; the Home plan may already define one to reuse."},
+ {id:"D3",t:"Colours: palette tokens and the old freeze and hypothetical colours",
+  ask:"The Home and shell plan scopes the new palette tokens to those pages. This page is part of the shell. The old scenario views use two colours that are not in the palette. What now?",
+  ctx:"Palette: green is rare, semantic colours only as tints, small numbers use the AA-safe shades. The old Freeze and Hypothetical accent colours (--color-freeze, --color-hypo) have no palette equivalent.",
+  opts:[
+   {k:"a",l:"Scoped palette tokens; Freeze uses Warning, Hypothetical uses Informational",d:"No old colours on the new page. Gains and losses follow the palette's text and primary shades."},
+   {k:"b",l:"Scoped palette tokens; keep the old Freeze and Hypothetical colours",d:"Two off-palette colours remain."}],
+  rec:"a",why:"It keeps the page inside the palette and the mapping is natural (a warning for a freeze, an informational tone for an assumption).",
+  risk:"Freeze looks less alarming in amber than before; the banner copy has to carry the message."},
+ {id:"D4",t:"Disclaimer placement",
+  ask:"The \"not a prediction\" line sits under the title today. Where should it go on the new page?",
+  ctx:"The wording is a release gate that needs compliance review; this question is only about where it appears.",
+  opts:[
+   {k:"a",l:"Under the detail heading, above the tiles, as today",d:"Same text, same place relative to the numbers."},
+   {k:"b",l:"Under the heading and again under each chart",d:"Repeated where numbers are shown. More text."},
+   {k:"c",l:"At the bottom of the detail",d:"Cleaner; easier to miss."}],
+  rec:"a",why:"The current place was chosen for compliance reasons and works.",
+  risk:"None."},
+ {id:"D5",t:"Detail load time",
+  ask:"The detail calls compute_holdings, which the Home staging run found slow on a cold open (4.9 to 24.3 s). How do we handle this page?",
+  ctx:"Home's plan (P7, answered A) adds a small optional setting on compute_holdings so Home uses the prices stored by the 06:00 job. P9 (answered A) left the Dashboard as is. The scenario result route is not measured.",
+  opts:[
+   {k:"a",l:"Use the same stored-price setting as Home, and add a staging timing script for this route",d:"No new job or table. Depends on the Home backend plan landing the setting first. The script measures cold and warm."},
+   {k:"b",l:"Measure first, then decide",d:"A read-only timing script on staging before the plans lock, like Home's H14. No design change until the numbers are in."},
+   {k:"c",l:"Leave as is, same as the Dashboard",d:"Accept slow cold opens; log it."}],
+  rec:"a",why:"It reuses the Home decision, adds no infrastructure and puts a measurement behind it. Home's dependency is the main cost.",
+  risk:"If the Home setting slips, this page is slow until it lands; the plan must say so."}
+]},
+{g:"E",name:"Coming soon and records",items:[
+ {id:"E1",t:"What does the Plan your future card collect?",
+  ask:"The card opens a Coming soon state. Should it collect anything, such as interest in the feature?",
+  ctx:"Collecting interest needs a new table, a consent line and a place to read it. Nothing like this exists today.",
+  opts:[
+   {k:"a",l:"Plain Coming soon text; nothing collected",d:"One short line on what will live there. No controls."},
+   {k:"b",l:"A Notify me button that stores interest",d:"New table, consent copy and review. Out of scope for a placeholder."},
+   {k:"c",l:"A feedback email link",d:"Shows an address; nothing stored in the app."}],
+  rec:"a",why:"It is a placeholder (L2) and every other Coming soon page in the plan collects nothing.",
+  risk:"No signal on demand for the feature."},
+ {id:"E2",t:"Record the retirement and goal planning designs for later?",
+  ask:"Page 28 is a full design for Plan your future. May I add an entry to DEFERRED_FEATURES.md so it is not lost?",
+  ctx:"The file is committed in the repo and already has other sessions' uncommitted edits. I add entries only on your instruction, and I leave anyone else's edits alone.",
+  opts:[
+   {k:"a",l:"Yes, add a short entry (uncommitted)",d:"What page 28 shows, what data it needs (age, expenses, assumptions), and the trigger to build it."},
+   {k:"b",l:"No, the PDF is the record",d:"Nothing added."}],
+  rec:"a",why:"The PDF can be replaced; a deferred entry keeps the trigger and the data gaps in the same list as the rest.",
+  risk:"None; the edit is small and uncommitted."},
+ {id:"E3",t:"Naming the new documents",
+  ask:"Your brief says to name the new documents with individual-fund, which is the name of the Fund page documents already in the tree. What should I use?",
+  ctx:"Files from another session are present and untracked: 2026-10-23-individual-fund-*.md and an HTML workbook. Mixing names would confuse both efforts.",
+  opts:[
+   {k:"a",l:"planning-scenarios",d:"For example 2026-10-23-planning-scenarios-functionality-backend-spec.md."},
+   {k:"b",l:"individual-fund, as in the brief",d:"Follows the brief literally; collides in meaning with the Fund page files."},
+   {k:"c",l:"planning",d:"Shorter; less specific if other Planning pages follow."}],
+  rec:"a",why:"It says exactly what it is and cannot be confused with the Fund page work.",
+  risk:"None."}
+]},
+{g:"F",name:"Follow-ups from your answers",items:[
+ {id:"F1",t:"Where do the estimated and frozen fund disclosures go now that the by-fund list is dropped?",
+  ask:"You kept only the by-member list (C7). The by-fund list is where each fund says it is an estimate (category or asset-class average) or that its redemptions were frozen. How should those disclosures show?",
+  ctx:"Today a fund with no price history for the event gets a proxy: the average of similar funds, labelled Category average estimate or Asset-class average estimate, with a tooltip. A frozen fund shows Redemptions frozen. The by-member list shows rupee impact per fund and no label. The coverage line shows only the count of funds with no data. The disclosure matters for compliance because the estimated numbers feed the headline.",
+  opts:[
+   {k:"a",l:"Keep the by-fund list collapsed, only where it matters",d:"Shown (collapsed, with a count) for freeze scenarios and for any scenario where at least one fund is an estimate; absent otherwise."},
+   {k:"b",l:"No list; one note plus frozen names",d:"Add an estimate count to the coverage line (for example 3 funds use average estimates) and, for freeze scenarios, a short list of the frozen fund names. Funds are not individually labelled."},
+   {k:"c",l:"Put the estimate label inside the by-member fund rows",d:"The expanded member rows show a small Estimate chip and Frozen text per fund; no separate by-fund list."}],
+  rec:"c",why:"It keeps the per-fund disclosure exactly where a user already looks at funds (under a member), adds no list you have just dropped, and needs only a chip on rows that exist.",
+  risk:"In the family view a fund held by two members appears twice; the label must be consistent in both."}
+]}
+];
+
+var REPLIES={};
+REPLIES.A1="<b>Recorded (L13).</b> Plan your future also gets a Back link, and the list view has the Back link to the two cards.";
+REPLIES.A4="<b>Done (L16):</b> the contract is now v1.5 (edited, uncommitted). Other shell documents that still show the old route are listed in the log; I have not touched them.";
+REPLIES.B1="<b>Recorded (L17):</b> same as page 29. I read the screenshots as today's UI, not the design.";
+REPLIES.C7="<b>Recorded (L25).</b> This has one consequence: the by-fund list is the only place that labels estimated and frozen funds. Card F1 asks how to keep those labels.";
+REPLIES.D1="<b>Recorded (L27).</b> The old screen is not kept, so its tests change with it. The rule that existing screens are not changed is overridden for this screen only, and the contract now says so.";
+
+REPLIES.F1="<b>Recorded (L35).</b> The chip and the Frozen text use the existing wording and tooltips from the by-fund rows; the by-member rows must carry the proxy flag and the frozen flag from the engine, which already computes both per fund.";
+
+var KEY="planning-scenarios-decisions-v1";
+var state={};
+try{state=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){state={}}
+/* Answers are kept in two places: this browser (instant) and the artifact's own database
+   (survives closing the tab, clearing site data, and opening on another device).
+   Each question carries a timestamp t so the newer edit wins when the two are merged. */
+var dbDoc=null,dbTimer=null,dbSaving=false,dbDirty=false;
+function setSaveState(m){var el=document.getElementById("savestate");if(el)el.textContent=m?" · "+m:""}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+function touch(id){state[id]=state[id]||{};state[id].t=Date.now();return state[id]}
+function save(){saveLocal();scheduleDb()}
+function scheduleDb(){if(!dbDoc)return;dbDirty=true;clearTimeout(dbTimer);dbTimer=setTimeout(flushDb,600)}
+function flushDb(){
+  if(dbSaving){dbTimer=setTimeout(flushDb,300);return}
+  if(!dbDirty||!dbDoc)return;
+  dbDirty=false;dbSaving=true;setSaveState("saving");
+  dbDoc.set({state:JSON.parse(JSON.stringify(state)),updatedAt:new Date().toISOString()}).then(function(){
+    dbSaving=false;setSaveState("saved");
+  },function(){
+    dbSaving=false;dbDirty=true;setSaveState("not saved to cloud, kept in this browser");
+  });
+}
+function mergeIn(remote){
+  var changed=false;
+  Object.keys(remote||{}).forEach(function(k){
+    var r=remote[k]||{},l=state[k];
+    if(!l||(r.t||0)>(l.t||0)){state[k]=r;changed=true}
+  });
+  return changed;
+}
+function localNewer(remote){
+  return Object.keys(state).some(function(k){return !remote[k]||(state[k].t||0)>(remote[k].t||0)});
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+var ll=document.getElementById("lockedList");
+LOCKED.forEach(function(x){
+  var d=document.createElement("div");d.className="card locked";
+  d.innerHTML='<header><span class="id">'+x[0]+'</span><h3>'+x[1]+'</h3><span class="tag locked">decided by you</span></header><p class="decided">'+x[2]+'</p>';
+  ll.appendChild(d);
+});
+
+var qroot=document.getElementById("questions");
+var total=0;
+Q.forEach(function(grp){
+  var sec=document.createElement("section");sec.id="grp-"+grp.g;
+  sec.innerHTML='<h2>'+grp.g+'. '+esc(grp.name)+'</h2>';
+  grp.items.forEach(function(it){
+    total++;
+    var card=document.createElement("article");card.className="card";card.id="q-"+it.id;card.setAttribute("data-id",it.id);
+    var h='<header><span class="id">'+it.id+'</span><h3>'+esc(it.t)+'</h3><span class="tag open" data-status>unanswered</span></header>';
+    h+='<p class="ask">'+esc(it.ask)+'</p><p class="ctx">'+esc(it.ctx)+'</p><div class="opts" role="radiogroup" aria-label="'+esc(it.t)+'">';
+    it.opts.forEach(function(o){
+      var isr=o.k===it.rec;
+      h+='<label class="opt'+(isr?' isrec':'')+'"><input type="radio" name="r-'+it.id+'" value="'+o.k+'"><span><b>'+o.k.toUpperCase()+'. '+esc(o.l)+(isr?' <span class="tag rec">recommended</span>':'')+'</b><span class="d">'+esc(o.d)+'</span></span></label>';
+    });
+    h+='</div><div class="why"><b>Why I recommend '+it.rec.toUpperCase()+':</b> '+esc(it.why)+'</div><p class="risk"><b>If this goes wrong:</b> '+esc(it.risk)+'</p>'+(REPLIES[it.id]?'<div class="reply"><b class="t">Reply to your note:</b> '+REPLIES[it.id]+'</div>':'');
+    h+='<div class="row"><button class="btn ghost" data-use>Use recommended ('+it.rec.toUpperCase()+')</button><button class="btn ghost" data-reset>Reset</button></div>';
+    h+='<label for="n-'+it.id+'" class="count" style="display:block;margin-top:10px">Your own answer or notes</label><textarea id="n-'+it.id+'" placeholder="Optional. Write your own option here."></textarea>';
+    card.innerHTML=h;sec.appendChild(card);
+  });
+  qroot.appendChild(sec);
+});
+
+function cardOf(id){return document.getElementById("q-"+id)}
+function refresh(){
+  var done=0;
+  Q.forEach(function(g){g.items.forEach(function(it){
+    var c=cardOf(it.id),s=state[it.id]||{},ans=!!(s.c||(s.n&&s.n.trim()));
+    if(ans)done++;
+    var tag=c.querySelector("[data-status]");
+    tag.textContent=ans?"answered":"unanswered";tag.className="tag "+(ans?"done":"open");
+    c.setAttribute("data-answered",ans?"1":"0");
+    var radios=c.querySelectorAll("input[type=radio]");
+    radios.forEach(function(r){r.checked=(s.c===r.value)});
+    var ta=c.querySelector("textarea");if(ta&&ta.value!==(s.n||""))ta.value=s.n||"";
+  })});
+  document.getElementById("count").textContent=done+" of "+total+" answered";
+  applyFilter();buildOut();
+}
+var filter="all";
+function applyFilter(){
+  document.querySelectorAll("article.card").forEach(function(c){
+    var a=c.getAttribute("data-answered")==="1";
+    var hide=(filter==="open"&&a)||(filter==="done"&&!a);
+    c.classList.toggle("hidden-by-filter",hide);
+  });
+  ["all","open","done"].forEach(function(f){document.getElementById("f-"+f).setAttribute("aria-pressed",String(filter===f))});
+}
+["all","open","done"].forEach(function(f){document.getElementById("f-"+f).addEventListener("click",function(){filter=f;applyFilter()})});
+
+qroot.addEventListener("change",function(e){
+  var c=e.target.closest("article.card");if(!c)return;var id=c.getAttribute("data-id");
+  if(e.target.type==="radio"){touch(id).c=e.target.value;save();refresh()}
+});
+qroot.addEventListener("input",function(e){
+  if(e.target.tagName!=="TEXTAREA")return;
+  var c=e.target.closest("article.card");var id=c.getAttribute("data-id");
+  touch(id).n=e.target.value;save();
+  var s=state[id],ans=!!(s.c||(s.n&&s.n.trim()));
+  var tag=c.querySelector("[data-status]");tag.textContent=ans?"answered":"unanswered";tag.className="tag "+(ans?"done":"open");
+  c.setAttribute("data-answered",ans?"1":"0");
+  var n=document.querySelectorAll('article.card[data-answered="1"]').length;
+  document.getElementById("count").textContent=n+" of "+total+" answered";buildOut();
+});
+qroot.addEventListener("click",function(e){
+  var c=e.target.closest("article.card");if(!c)return;var id=c.getAttribute("data-id");
+  var it=null;Q.forEach(function(g){g.items.forEach(function(x){if(x.id===id)it=x})});
+  if(e.target.hasAttribute("data-use")){touch(id).c=it.rec;save();refresh()}
+  if(e.target.hasAttribute("data-reset")){state[id]={t:Date.now()};save();refresh()}
+});
+
+function buildOut(){
+  var lines=["Planning scenarios decisions (answers to the planning workbook)",""];
+  Q.forEach(function(g){g.items.forEach(function(it){
+    var s=state[it.id]||{},txt;
+    if(s.c){var o=it.opts.filter(function(x){return x.k===s.c})[0];txt=s.c.toUpperCase()+" - "+o.l+(s.c===it.rec?" (recommended)":"")}
+    else txt="no choice";
+    if(s.n&&s.n.trim())txt+=" | note: "+s.n.trim();
+    lines.push(it.id+" "+it.t+": "+txt);
+  })});
+  document.getElementById("out").textContent=lines.join("\n");
+}
+document.getElementById("copy").addEventListener("click",function(){
+  var t=document.getElementById("out").textContent,m=document.getElementById("copied");
+  function sel(){var r=document.createRange();r.selectNodeContents(document.getElementById("out"));var s=window.getSelection();s.removeAllRanges();s.addRange(r);m.textContent="Select and copy the text below."}
+  try{navigator.clipboard.writeText(t).then(function(){m.textContent="Copied."},sel)}catch(e){sel()}
+});
+document.getElementById("clear").addEventListener("click",function(){
+  var t=Date.now();Q.forEach(function(g){g.items.forEach(function(it){state[it.id]={t:t}})});save();refresh();
+});
+refresh();
+
+/* Connect the database once the viewer answers; the page works without it. */
+(function(){
+  if(!(window.claude&&window.claude.use))return;
+  window.claude.use("db").then(function(db){
+    if(!db){setSaveState("saved in this browser only");return}
+    dbDoc=db.doc("answers/main");
+    return dbDoc.get().then(function(snap){
+      var remote=(snap.exists&&snap.data()&&snap.data().state)||{};
+      if(mergeIn(remote)){saveLocal();refresh()}
+      if(!snap.exists||localNewer(remote))scheduleDb();else setSaveState("saved");
+      dbDoc.onSnapshot(function(s){
+        if(!s.exists||s.metadata.hasPendingWrites)return;
+        var r=(s.data()||{}).state||{};
+        if(mergeIn(r)){saveLocal();refresh()}
+      },function(){});
+    });
+  }).catch(function(){setSaveState("saved in this browser only")});
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+</script>

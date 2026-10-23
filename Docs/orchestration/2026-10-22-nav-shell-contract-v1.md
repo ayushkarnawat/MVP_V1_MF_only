@@ -1,10 +1,12 @@
-# Navigation shell contract and URL map (v1.4, draft for review)
+# Navigation shell contract and URL map (v1.5, draft for review)
 
 **Status:** draft v1.2, 2026-10-22. Planning only; nothing is built. v1.2 replaces v1.1; v1 was first committed as 8c13782 (local only).
 
 **What changed in v1.2 (owner's answers to the open decisions, 22 Oct):** router is react-router v7 (O1); **Equity is an expandable group, not a page** (O2 redesigned): its children are Direct Stocks, Mutual Fund, US Stock, and FDs & bonds; clicking Portfolio opens Investments; the selected member is not in the URL (O4); no Planning sub-menu (O5); Liabilities is a placeholder page (O6); Back goes to the last non-Portfolio screen (O9); Profile sections as routes later (O10); Help & Support placeholder (O11). Assumptions made without an explicit answer are marked **(assumed)** in section 10 and should be confirmed.
 
 **What changed in v1.4 (23 Oct 2026, owner's go on the Profile planning; companion documents `2026-10-23-profile-*.md` and the workbook `2026-10-23-profile-planning-decisions-v1.html`):** Profile sections are routes now, not later (O10 reversed). `/profile` redirects to `/profile/personal`; there are seven left-list pages plus Settings children, a hidden `/profile/legacy` (the old Profile, deleted after the new one is accepted) and the existing `/profile/import-health`. All are `app` layout, scope `none`, one route file each. The three reserved paths `notifications`, `preferences` and `security` move under `/profile/settings/`, and `/profile/settings/import-history` is new. Profile does not change any other part of this contract.
+**What changed in v1.5 (23 Oct 2026, owner's go on the Planning planning; workbook `2026-10-23-planning-scenarios-decisions-v1.html`, decisions L1, A4):** Planning is **one route, `/planning`**, with in-page state (a landing with two cards, a Coming soon state, the scenario list and a scenario's detail). The redirect from `/planning` to `/planning/scenarios` and the `planning-scenarios` route are removed; the legacy `scenarios` mapping now points to `/planning`. The existing Scenarios screen is **restructured in place** under Planning (owner's answer D1 B), so the rule that existing screens are only wrapped does not apply to it. Planning still has no sub-menu and scope stays none. Nothing else in this contract changes.
+
 **Source of truth:** `Docs/Web app UI mockups MFs.pdf` (pp. 2-3 and 9 sidebar; 12-19, 21-26 Portfolio and Mutual Funds; 27-31 Planning and Profile) and the screenshots. Where this contract and an older document disagree, the PDF wins.
 **Related:** `2026-10-22-portfolio-snapshot-decisions.html` (decisions L7-L39), `2026-10-22-nav-shell-claude-session-brief.md`, `2026-10-22-nav-shell-architecture.md` (in-depth structure).
 
@@ -20,7 +22,7 @@ The new desktop app has a left sidebar that every page lives inside. Two people 
 **Unchanged and outside the shell:** sign-up, login, onboarding, the re-consent gate, the pending-deletion screen, the maintenance banner, the print and legal pages (`main.tsx` sends those around `App`).
 **Out of scope in this phase (decisions L29, L30):**
 - **Mobile.** Nothing on mobile is touched: not the bottom bar, not routes, not design. The router is mounted only in the desktop branch, after the existing gates.
-- **Existing screens** (Dashboard, History, Analytics, Scenarios, Profile, import) are not changed, rebuilt or split. The shell may only wrap them unchanged (section 6).
+- **Existing screens** (Dashboard, History, Analytics, Scenarios, Profile, import) are not changed, rebuilt or split (exception from v1.5: Scenarios is restructured in place under Planning by the owner's decision). The shell may only wrap them unchanged (section 6).
 **Themes:** light and dark only (decision L33). No other accessibility rules in this phase.
 
 ## 2. Facts checked in the code (2026-10-22)
@@ -85,8 +87,7 @@ All paths are final for v1.2. A placeholder ("Coming soon") exists at every path
 | `portfolio-mutual-funds-history` | `/portfolio/mutual-funds/history` | none (temporary) | app | existing | **History** (`HistoryView`) |
 | `portfolio-mutual-funds-fund` (+ `/overlap`, `/insights`) | `/portfolio/mutual-funds/funds/:schemeId` | none | app | placeholders | none |
 | `liabilities` | `/liabilities` | main 3 | app | placeholder | none |
-| `planning` | `/planning` | main 4 | app | redirect to `/planning/scenarios` | none |
-| `planning-scenarios` | `/planning/scenarios` | none | app | existing | **Scenarios** (`ScenariosScreen`) |
+| `planning` | `/planning` | main 4 | app | **Planning** (landing with two cards; Plan your future is Coming soon; Explore market scenarios shows the scenario list; a scenario's detail opens below the list; all by in-page state, restructured from `ScenariosScreen`) | none |
 | `profile` | `/profile` | footer 1 | app | redirect to `/profile/personal` | none |
 | `profile-personal` | `/profile/personal` | none | app | new (Profile) | Personal Information |
 | `profile-family` | `/profile/family` | none | app | new (Profile) | Family Members |
@@ -106,7 +107,7 @@ All paths are final for v1.2. A placeholder ("Coming soon") exists at every path
 - The Mutual Funds in-page menu (Overview, Performance, Allocation, Holdings, Transactions, Overlap, Other Analytics) is built by that page's owner; its paths are fixed here so they can be linked.
 - **Profile sections (v1.4):** the paths in the registry rows above. Profile is not scoped (`scope: none`) and shows no member banners. Settings holds Notifications, Preferences and Security (Coming soon pages) and Import History (the existing list); the staging-only Import health link sits at the foot of Settings. Details: `2026-10-23-profile-functionality-backend-spec.md`.
 - **Instrument routes (O2, v1.2):** the Equity children are routes in their own right (Mutual Fund keeps `/portfolio/mutual-funds` so existing mappings do not move). Equity itself has no page: a typed or bookmarked `/portfolio/equity` redirects to `/portfolio/mutual-funds`. The Investments page may still show instrument shortcuts, linking through `paths`.
-- **Legacy mapping:** `dashboard` is `/portfolio/mutual-funds`; `history` is `/portfolio/mutual-funds/history`; `analytics` is `/portfolio/mutual-funds/analytics`; `scenarios` is `/planning/scenarios`; `profile` is `/profile` (redirects to `/profile/personal` from v1.4; the old screen is at `/profile/legacy`).
+- **Legacy mapping:** `dashboard` is `/portfolio/mutual-funds`; `history` is `/portfolio/mutual-funds/history`; `analytics` is `/portfolio/mutual-funds/analytics`; `scenarios` is `/planning` (from v1.5); `profile` is `/profile` (redirects to `/profile/personal` from v1.4; the old screen is at `/profile/legacy`).
 
 ## 5. The route module
 
