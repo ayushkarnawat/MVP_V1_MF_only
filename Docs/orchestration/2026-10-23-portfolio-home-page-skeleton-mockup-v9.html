@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Portfolio Home Page — skeleton mockup v9 (8-slice taxonomy + full XIRR system)</title>
+<style>
+  :root {
+    /* Unifolio Colour Palette.pdf — UI Colours */
+    --bg:#FCFCFC; --card:#F5F5F5; --divider:#ECECEC; --input-border:#DFDFDF;
+    --ink:#111111; --muted-icon:#9B9B9B; --secondary-text:#717171; --body-text:#4B4B4B;
+    --brand:#22C55E; --brand-hover:#16A34A; --brand-selected-bg:#E9F9EF;
+    /* Semantic */
+    --pos:#22C55E; --pos-text:#15803D; --pos-bg:#EAFBF0;
+    --neg:#E5484D; --neg-text:#C1272D; --neg-bg:#FDECEC;
+    /* Data viz palette (assigned by rank/size, per doc). c6/c7 added in v9 for the
+       two slices the builder-check caught missing (Debt, Real Estate) — approximate
+       ramp extension, confirm exact Chart06/07 hex against the palette PDF at build time. */
+    --c1:#22C55E; --c2:#0D9488; --c3:#2563EB; --c4:#6366F1; --c5:#8B5CF6; --c6:#D97706; --c7:#EC4899; --c12:#C1272D;
+  }
+  body { font-family: 'DM Sans', -apple-system, 'Segoe UI', Arial, sans-serif; background:var(--bg); color:var(--ink); margin:0; padding:24px; }
+  h1, h2 { font-family: 'Manrope', -apple-system, 'Segoe UI', Arial, sans-serif; }
+  h1 { font-size:20px; margin:0 0 4px; font-weight:700; }
+  .subtitle { color:var(--secondary-text); font-size:13px; margin:0 0 16px; max-width:900px; }
+  .frame { background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.06); padding:14px; max-width:1180px; }
+  .outer-nav { border:2px dashed #aaa; border-radius:8px; padding:8px 14px; margin-bottom:12px; color:#888; font-size:12px; }
+  .layout { display:flex; gap:14px; align-items:flex-start; }
+  .sidebar { width:190px; flex-shrink:0; border:2px dashed #aaa; border-radius:8px; padding:10px; color:#555; font-size:12px; }
+  .sidebar .title { font-weight:700; margin-bottom:8px; color:#333; }
+  .sidebar .item { padding:5px 0; }
+  .sidebar .active { font-weight:700; color:var(--brand-hover); border-bottom:2px solid var(--brand); display:inline-block; }
+  .sidebar .child { padding:3px 0 3px 14px; color:#777; font-size:11px; }
+  .sidebar hr { border:none; border-top:1px solid #ccc; margin:8px 0; }
+  .main { flex:1; display:flex; flex-direction:column; gap:14px; min-width:0; }
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+  .page-header .crumb { font-size:11px; color:var(--secondary-text); }
+  .page-header h2 { font-size:19px; margin:2px 0 2px; font-weight:700; }
+  .page-header .sub { font-size:12px; color:var(--secondary-text); }
+  .btn { font-family:'Manrope',sans-serif; font-weight:600; font-size:11px; padding:6px 12px; border-radius:6px; border:1px solid var(--input-border); background:var(--bg); color:var(--ink); white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
+  .btn.primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+  .section { background:var(--card); border:1px solid var(--divider); border-radius:10px; padding:14px; position:relative; }
+  .badge { position:absolute; top:-10px; left:10px; background:#2563EB; color:#fff; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; }
+  .label { font-size:12px; color:var(--secondary-text); margin-bottom:8px; }
+  .card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
+  .card-head .title-row { display:flex; align-items:center; gap:6px; font-weight:700; font-family:'Manrope',sans-serif; font-size:14px; }
+  .card-head .actions { display:flex; gap:8px; }
+  .metrics { display:flex; gap:26px; font-size:13px; flex-wrap:wrap; }
+  .metrics .m-head { display:flex; align-items:center; gap:4px; color:var(--secondary-text); font-size:11px; }
+  .info-i { width:13px; height:13px; border-radius:50%; background:var(--divider); color:var(--secondary-text); font-size:9px; display:inline-flex; align-items:center; justify-content:center; cursor:help; }
+  .metrics b { font-size:17px; display:block; margin:3px 0; font-family:'Manrope',sans-serif; font-weight:700; }
+  .delta { font-size:11px; font-weight:600; }
+  .m-block { display:flex; flex-direction:column; gap:2px; }
+  .value-row { display:flex; align-items:center; gap:8px; }
+  .spark { width:72px; height:26px; flex-shrink:0; }
+
+  /* --- Clickability language: every clickable element on this page uses this.
+     Resting state already hints "clickable" (chevron at low opacity, cursor:pointer).
+     Hover deliberately overshoots — background, left accent bar, chevron solidifies
+     and slides, slight lift — so it's unambiguous without being subtle. --- */
+  .clickable { cursor:pointer; transition:background .12s ease, transform .12s ease, box-shadow .12s ease; position:relative; }
+  .clickable:hover { background:var(--brand-selected-bg); transform:translateX(3px); box-shadow:inset 3px 0 0 var(--brand); }
+  .clickable .chev { opacity:.3; font-size:13px; color:var(--secondary-text); transition:opacity .12s ease, transform .12s ease, color .12s ease; margin-left:auto; }
+  .clickable:hover .chev { opacity:1; color:var(--brand-hover); transform:translateX(2px); }
+
+  .pie-wrap { display:flex; gap:28px; align-items:center; flex-wrap:wrap; }
+  .pie-big { width:170px; height:170px; border-radius:50%; background:conic-gradient(var(--c1) 0 47.0%, var(--c2) 47.0% 69.0%, var(--c4) 69.0% 76.8%, var(--c3) 76.8% 85.8%, var(--c6) 85.8% 88.8%, var(--c5) 88.8% 92.9%, var(--c7) 92.9% 95.0%, var(--c12) 95.0% 100%); flex-shrink:0; position:relative; cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; }
+  .pie-big:hover { transform:scale(1.035); box-shadow:0 0 0 4px var(--brand-selected-bg), 0 4px 14px rgba(0,0,0,.12); }
+  .pie-big .hole { position:absolute; inset:34px; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--secondary-text); text-align:center; flex-direction:column; }
+  .pie-big .hole b { font-size:14px; color:var(--ink); font-family:'Manrope',sans-serif; }
+  .side-states { display:flex; gap:20px; flex:1; min-width:280px; }
+  .state-col { flex:1; }
+  .state-col .tag-state { font-size:9px; font-weight:700; text-transform:uppercase; color:var(--secondary-text); margin-bottom:6px; }
+  .legend-list .l-row { display:flex; align-items:center; gap:8px; font-size:12px; margin-bottom:6px; padding:5px 6px; border-radius:5px; }
+  .legend-list .dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .legend-list .pct { margin-left:8px; font-weight:600; }
+  .popup { border:1px solid var(--divider); border-radius:6px; padding:9px 11px; background:#fff; font-size:12px; box-shadow:0 2px 6px rgba(0,0,0,.1); }
+  .bar4 { display:flex; height:18px; border-radius:9px; overflow:hidden; cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; }
+  .bar4:hover { transform:scaleY(1.15); box-shadow:0 2px 8px rgba(0,0,0,.15); }
+  .member-rows { margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .m-row { display:flex; align-items:center; gap:10px; font-size:12px; padding:6px 8px; border-radius:6px; }
+  .m-avatar { width:22px; height:22px; border-radius:50%; background:var(--ink); color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .m-name { width:80px; flex-shrink:0; }
+  .m-bar-bg { flex:1; height:6px; background:var(--divider); border-radius:3px; overflow:hidden; }
+  .m-bar-fill { height:100%; border-radius:3px; }
+  .m-val { width:150px; text-align:right; flex-shrink:0; }
+  .insights { border:1px dashed var(--pos); border-radius:8px; padding:10px 12px; margin-top:10px; background:var(--pos-bg); }
+  .insights .it { font-size:12px; margin-bottom:5px; display:flex; gap:6px; }
+  .tag { font-size:9px; padding:1px 6px; border-radius:8px; font-weight:700; white-space:nowrap; background:var(--brand-selected-bg); color:var(--pos-text); }
+  .locked { background:var(--pos-bg); border:1px solid var(--pos); border-radius:8px; padding:10px 14px; font-size:13px; color:var(--pos-text); margin:0; }
+  .locked b { color:var(--pos-text); }
+  .shell-box { border:1px solid #2563EB; border-radius:8px; padding:12px 14px; font-size:12px; margin:0 0 18px; background:#EEEDFC; max-width:900px; }
+  .shell-box code { background:#fff; padding:1px 5px; border-radius:4px; font-size:11px; }
+  .qa-list { display:flex; flex-direction:column; gap:10px; margin-top:4px; }
+  .palette-strip { display:flex; gap:6px; margin:8px 0 18px; max-width:900px; flex-wrap:wrap; }
+  .sw { width:70px; font-size:9px; text-align:center; color:#555; }
+  .sw .chip { height:22px; border-radius:4px; margin-bottom:2px; }
+</style>
+</head>
+<body>
+
+<h1>Portfolio Home Page — skeleton mockup v9 (final, post builder-check)</h1>
+<p class="subtitle">Three fixes from v8, per the builder-check against the nav-shell contract and the Dashboard's XIRR system: (1) the Asset Allocation pie now has all 8 slices matching the contract's 8 sidebar rows exactly — Debt and Real Estate added; (2) the Summary Strip's XIRR is now the full Lifetime/Current toggle + disclaimer component, reused as-is from the Dashboard, not a bare undisclaimed number; (3) Filter is confirmed as a v1-only live-vs-coming-soon toggle, documented as due for a proper rebuild once more asset classes go live. Open this file directly in a browser to feel the hover states — they're real CSS, not described.</p>
+
+<div class="palette-strip">
+  <div class="sw"><div class="chip" style="background:#FCFCFC; border:1px solid #ddd;"></div>bg #FCFCFC</div>
+  <div class="sw"><div class="chip" style="background:#F5F5F5; border:1px solid #ddd;"></div>card #F5F5F5</div>
+  <div class="sw"><div class="chip" style="background:#22C55E;"></div>brand #22C55E</div>
+  <div class="sw"><div class="chip" style="background:#15803D;"></div>pos text #15803D</div>
+  <div class="sw"><div class="chip" style="background:#C1272D;"></div>neg text #C1272D</div>
+  <div class="sw"><div class="chip" style="background:#2563EB;"></div>chart03 #2563EB</div>
+  <div class="sw"><div class="chip" style="background:#0D9488;"></div>chart02 #0D9488</div>
+  <div class="sw"><div class="chip" style="background:#8B5CF6;"></div>chart05 #8B5CF6</div>
+</div>
+
+<div class="frame">
+  <div class="outer-nav">Existing top header + standard left nav — OUT OF SCOPE, built in the nav-shell session</div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="title">Dynamic Portfolio panel (per contract v1.2)</div>
+      <div class="item">&larr; Back</div>
+      <hr>
+      <div class="item"><span class="active">Investments</span></div>
+      <div class="item">Equity &#9662;</div>
+      <div class="child">Direct Stocks</div>
+      <div class="child">Mutual Fund</div>
+      <div class="child">US Stock</div>
+      <div class="child">FDs &amp; bonds</div>
+      <div class="item">Debt</div>
+      <div class="item">Gold</div>
+      <div class="item">Real Estate</div>
+      <div class="item">Others</div>
+      <hr>
+      <div class="item">Profile</div>
+      <div class="item">Help &amp; Support</div>
+    </div>
+
+    <div class="main">
+      <div class="page-header">
+        <div>
+          <div class="crumb">Investments</div>
+          <h2>All Investments</h2>
+          <div class="sub">View and manage your complete family portfolio across asset classes.</div>
+        </div>
+        <div><span class="btn primary">+ Add Investment</span></div>
+      </div>
+
+      <div class="section">
+        <div class="badge">1</div>
+        <div class="label">Summary strip. Every metric has an <span class="info-i">i</span> — hover shows what it means. Sparkline now sits beside the Total Portfolio Value number itself, with Today's Gain on its own line below (matches the reference screenshot).</div>
+        <div class="metrics">
+          <div>
+            <div class="m-head">Total Portfolio Value <span class="info-i">i</span></div>
+            <div class="m-block">
+              <div class="value-row">
+                <b>₹1,42,53,231</b>
+                <svg class="spark" viewBox="0 0 72 26" preserveAspectRatio="none">
+                  <polyline points="0,20 8,18 16,19 24,14 32,16 40,10 48,12 56,6 64,8 72,2" fill="none" stroke="#22C55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span class="delta" style="color:var(--pos-text)">Today's Gain: +₹41,230 (0.29%)</span>
+            </div>
+          </div>
+          <div><div class="m-head">Total Invested <span class="info-i">i</span></div><b>₹1,08,73,412</b></div>
+          <div><div class="m-head">Unrealised Gain <span class="info-i">i</span></div><b style="color:var(--pos-text)">+₹33,79,819</b><span class="delta" style="color:var(--pos-text)">+31.1%</span></div>
+          <div><div class="m-head">Realised Gain <span class="info-i">i</span></div><b>₹4,12,340</b></div>
+          <div>
+            <div class="m-head">XIRR <span class="info-i">i</span> <span class="btn" style="font-size:9px; padding:2px 6px;">Lifetime</span><span class="btn" style="font-size:9px; padding:2px 6px; opacity:.5;">Current</span></div>
+            <b>14.8%</b>
+            <span class="delta clickable" style="color:var(--secondary-text); text-decoration:underline;">Since inception — opening-balance disclaimer may apply ›</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="badge">2 + 3</div>
+        <div class="card-head">
+          <div class="title-row">Asset Allocation <span class="info-i">i</span></div>
+          <div class="actions">
+            <span class="btn">&#9661; Filter</span>
+            <span class="btn">&#8645; Sort</span>
+          </div>
+        </div>
+        <div class="label">8 slices, matching the nav-shell contract's 8 sidebar rows exactly (Mutual Funds, Direct Stocks, US Stocks, FDs &amp; Bonds, Debt, Gold, Real Estate, Others — Debt and Real Estate added in v9). Default sort: ascending by allocation %. Filter v1: live vs. coming-soon only (documented as due for a proper rebuild once more classes go live). Slices and legend rows both clickable, same destination, direct navigation. Colours follow the data-viz palette, assigned by rank (largest = Chart 01); c6/c7 are new, approximate.</div>
+        <div class="pie-wrap">
+          <div class="pie-big"><div class="hole">Total<br><b>₹1.42Cr</b></div></div>
+          <div class="side-states">
+            <div class="state-col">
+              <div class="tag-state">default state — ascending by %</div>
+              <div class="legend-list">
+                <div class="l-row clickable" style="opacity:.55;"><span class="dot" style="background:var(--c7);"></span>Real Estate <span class="tag" style="margin-left:4px;">Coming soon</span><span class="pct">2.1%</span><span class="chev">&#8250;</span></div>
+                <div class="l-row clickable" style="opacity:.55;"><span class="dot" style="background:var(--c6);"></span>Debt <span class="tag" style="margin-left:4px;">Coming soon</span><span class="pct">3.0%</span><span class="chev">&#8250;</span></div>
+                <div class="l-row clickable" style="opacity:.55;"><span class="dot" style="background:var(--c5);"></span>Gold <span class="tag" style="margin-left:4px;">Coming soon</span><span class="pct">4.1%</span><span class="chev">&#8250;</span></div>
+                <div class="l-row clickable" style="opacity:.55;"><span class="dot" style="background:var(--c12);"></span>Others <span class="tag" style="margin-left:4px;">Coming soon</span><span class="pct">5.0%</span><span class="chev">&#8250;</span></div>
+                <div class="l-row clickable" style="opacity:.55;"><span class="dot" style="background:var(--c3);"></span>FDs &amp; Bonds <span class="tag" style="margin-left:4px;">Coming soon</span><span class="pct">9.0%</span><span class="chev">&#8250;</span></div>
+                <div class="l-row clickable" style="opacity:.55;"><span class="dot" style="background:var(--c4);"></span>US Stocks <span class="tag" style="margin-left:4px;">Coming soon</span><span class="pct">7.8%</span><span class="chev">&#8250;</span></div>
+                <div class="l-row clickable" style="opacity:.55;"><span class="dot" style="background:var(--c2);"></span>Direct Stocks <span class="tag" style="margin-left:4px;">Coming soon</span><span class="pct">22.0%</span><span class="chev">&#8250;</span></div>
+                <div class="l-row clickable"><span class="dot" style="background:var(--c1);"></span>Mutual Funds<span class="pct">47.0%</span><span class="chev">&#8250;</span></div>
+              </div>
+            </div>
+            <div class="state-col">
+              <div class="tag-state">on hover (Mutual Funds)</div>
+              <div class="popup"><b>Mutual Funds</b><br>Allocation: 47.0%<br>Current Value: ₹66,98,600<br>Invested: ₹51,00,000<br>Gain/Loss: +₹15,98,600<br>XIRR: 16.1%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="badge">4</div>
+        <div class="label">Family allocation — bar + row list, whole portfolio, per member. Clicking a row/segment switches <code>useScope()</code> to that member, same page, same URL.</div>
+        <div class="bar4">
+          <div style="width:48%; background:var(--c1);"></div>
+          <div style="width:32%; background:var(--c2);"></div>
+          <div style="width:20%; background:var(--c3);"></div>
+        </div>
+        <div class="member-rows">
+          <div class="m-row clickable"><span class="m-avatar">SS</span><span class="m-name">Siddharth</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:48%; background:var(--c1);"></div></div><span class="m-val">₹68,42,310 (48.0%)</span><span class="chev">&#8250;</span></div>
+          <div class="m-row clickable"><span class="m-avatar">AS</span><span class="m-name">Aarohi</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:32%; background:var(--c2);"></div></div><span class="m-val">₹46,21,430 (32.4%)</span><span class="chev">&#8250;</span></div>
+          <div class="m-row clickable"><span class="m-avatar">PS</span><span class="m-name">Parents</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:20%; background:var(--c3);"></div></div><span class="m-val">₹27,89,491 (19.6%)</span><span class="chev">&#8250;</span></div>
+        </div>
+
+        <div class="insights">
+          <div style="font-size:11px; font-weight:700; color:var(--pos-text); margin-bottom:6px;">Quick Insights — 5 always-meaningful values</div>
+          <div class="it"><span class="tag">now</span> "Your largest holding is X — Y% of your total portfolio" — max of <code>current_value</code></div>
+          <div class="it"><span class="tag">now</span> "Spread across N AMCs and M funds" — distinct <code>amc_name</code> / count of holdings</div>
+          <div class="it"><span class="tag">now</span> "X% Direct, Y% Regular" — split of <code>plan_type</code> by value</div>
+          <div class="it"><span class="tag">now</span> "Your largest single AMC exposure is X%" — top of <code>AllocationSummary.by_amc</code></div>
+          <div class="it"><span class="tag">now</span> "₹X in active SIPs scheduled this month" — sum of active <code>SipRow.sip_amount</code></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="qa-list">
+  <div class="locked"><b>v9 — final skeleton, post builder-check:</b> all of v8 (sparkline beside the value, exaggerated clickable affordance, Filter + Sort, full brand palette) plus the three builder-check fixes — 8-slice pie matching the nav-shell contract exactly, Summary Strip XIRR reusing the Dashboard's full Lifetime/Current + disclaimer system, Filter confirmed as a deliberately minimal v1 toggle with a documented follow-up. No open questions remain for this page's skeleton — next is the HTML decisions artifact, then <code>superpowers:writing-plans</code>.</div>
+</div>
+
+</body>
+</html>

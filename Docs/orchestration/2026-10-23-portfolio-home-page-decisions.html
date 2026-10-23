@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Portfolio Home Page — Decisions Record</title>
+<style>
+  :root {
+    --bg:#FCFCFC; --card:#F5F5F5; --divider:#ECECEC; --input-border:#DFDFDF;
+    --ink:#111111; --muted-icon:#9B9B9B; --secondary-text:#717171; --body-text:#4B4B4B;
+    --brand:#22C55E; --brand-hover:#16A34A; --brand-selected-bg:#E9F9EF;
+    --pos:#22C55E; --pos-text:#15803D; --pos-bg:#EAFBF0;
+    --neg:#E5484D; --neg-text:#C1272D; --neg-bg:#FDECEC;
+    --warn:#D97706; --warn-text:#92400E; --warn-bg:#FEF3E2;
+    --info:#4F46E5; --info-text:#3730A3; --info-bg:#EEEDFC;
+    --c1:#22C55E; --c2:#0D9488; --c3:#2563EB; --c4:#6366F1; --c5:#8B5CF6; --c6:#D97706; --c7:#EC4899; --c12:#C1272D;
+  }
+  body { font-family:'DM Sans', -apple-system, 'Segoe UI', Arial, sans-serif; background:var(--bg); color:var(--ink); margin:0; padding:28px 32px 60px; max-width:1040px; }
+  h1, h2, h3 { font-family:'Manrope', -apple-system, 'Segoe UI', Arial, sans-serif; }
+  h1 { font-size:24px; margin:0 0 4px; }
+  .meta { color:var(--secondary-text); font-size:13px; margin:0 0 28px; }
+  h2 { font-size:17px; margin:34px 0 10px; padding-bottom:6px; border-bottom:2px solid var(--divider); }
+  h3 { font-size:14px; margin:18px 0 6px; }
+  p { font-size:13px; line-height:1.55; color:var(--body-text); margin:6px 0; }
+  code { background:var(--card); border:1px solid var(--divider); border-radius:4px; padding:1px 5px; font-size:12px; }
+  .locked { background:var(--pos-bg); border:1px solid var(--pos); border-left:4px solid var(--pos); border-radius:6px; padding:10px 14px; margin:10px 0; font-size:13px; }
+  .locked .tag { display:inline-block; background:var(--pos); color:#fff; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px; margin-right:8px; vertical-align:middle; }
+  .resolved { background:var(--info-bg); border:1px solid var(--info); border-left:4px solid var(--info); border-radius:6px; padding:10px 14px; margin:10px 0; font-size:13px; }
+  .resolved .tag { display:inline-block; background:var(--info); color:#fff; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px; margin-right:8px; vertical-align:middle; }
+  .flagged { background:var(--warn-bg); border:1px solid var(--warn); border-left:4px solid var(--warn); border-radius:6px; padding:10px 14px; margin:10px 0; font-size:13px; }
+  .flagged .tag { display:inline-block; background:var(--warn); color:#fff; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px; margin-right:8px; vertical-align:middle; }
+  table { border-collapse:collapse; width:100%; margin:10px 0; font-size:12.5px; }
+  th, td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--divider); vertical-align:top; }
+  th { color:var(--secondary-text); font-weight:600; font-size:11px; text-transform:uppercase; }
+  .pill { display:inline-block; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px; }
+  .pill.new { background:var(--info-bg); color:var(--info-text); }
+  .pill.reused { background:var(--pos-bg); color:var(--pos-text); }
+  .pill.updated { background:var(--warn-bg); color:var(--warn-text); }
+  .swrow { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 18px; }
+  .sw { width:76px; font-size:9.5px; text-align:center; color:#555; }
+  .sw .chip { height:24px; border-radius:4px; margin-bottom:3px; border:1px solid rgba(0,0,0,.06); }
+  .toc { background:var(--card); border:1px solid var(--divider); border-radius:8px; padding:12px 16px; font-size:12.5px; margin-bottom:10px; }
+  .toc a { color:var(--info-text); text-decoration:none; }
+  .toc a:hover { text-decoration:underline; }
+  .toc ol { margin:6px 0 0; padding-left:18px; }
+</style>
+</head>
+<body>
+
+<h1>Portfolio Home Page (<code>/portfolio</code>) — Decisions Record</h1>
+<p class="meta">Written 2026-10-23. Companion to <code>Docs/orchestration/2026-10-23-portfolio-home-page-design.md</code> (the prose spec) and <code>2026-10-23-portfolio-home-page-skeleton-mockup-v9.html</code> (the final locked mockup). This file is the single place every decision from the v1&rarr;v9 brainstorming round and the builder-check lives, so nobody has to re-derive them from the conversation.</p>
+
+<div class="toc">
+  <b>Contents</b>
+  <ol>
+    <li><a href="#scope">Scope</a></li>
+    <li><a href="#mockup">Mockup round decisions (v1&ndash;v8)</a></li>
+    <li><a href="#builder-check">Builder-check findings &amp; resolutions (v9)</a></li>
+    <li><a href="#palette">Palette applied</a></li>
+    <li><a href="#reuse">Reuse classification</a></li>
+    <li><a href="#deferred">Explicitly deferred</a></li>
+  </ol>
+</div>
+
+<h2 id="scope">1. Scope</h2>
+<div class="locked"><span class="tag">LOCKED</span><b>Mutual funds only for v1.</b> Confirmed against the backend (<code>asset_class_bucket()</code> only returns Equity/Debt/Hybrid/Other &mdash; SEBI MF categories, not real asset classes) and consistent with the parallel Home-screen effort's own MF-only scoping. Direct Stocks, US Stocks, FDs &amp; Bonds, Debt, Gold, and Real Estate appear in the UI because the nav-shell contract already reserves those routes, but render as <b>&ldquo;Coming soon&rdquo;</b> &mdash; visible, disabled, no data.</div>
+<div class="locked"><span class="tag">LOCKED</span><b>Two things build now, not deferred:</b> (a) the Total Portfolio Value sparkline's underlying daily-value computation, (b) extending <code>AllocationBucket</code> with <code>invested</code>/<code>gain_loss</code>/<code>xirr</code> per bucket.</div>
+
+<h2 id="mockup">2. Mockup round decisions (v1&rarr;v8)</h2>
+
+<h3>Equity: inline expandable group, not a popup</h3>
+<div class="locked"><span class="tag">LOCKED</span>Per nav-shell contract v1.2: Equity is an accordion inline in the sidebar with 4 real child routes (Direct Stocks, Mutual Fund, US Stock, FDs &amp; Bonds). Corrects an earlier mistaken &ldquo;popup&rdquo; description.</div>
+
+<h3>Total Portfolio Value delta basis</h3>
+<div class="locked"><span class="tag">LOCKED</span>The number shown is <code>HoldingRow.today_gain</code>, summed across holdings &mdash; &ldquo;Today&rsquo;s Gain,&rdquo; not a comparison to any fixed date.</div>
+
+<h3>Stocks pie slice split</h3>
+<div class="locked"><span class="tag">LOCKED</span>Split into Direct Stocks and US Stocks as separate slices, matching the router&rsquo;s own taxonomy exactly rather than one combined &ldquo;Stocks&rdquo; slice.</div>
+
+<h3>Member row/segment click</h3>
+<div class="locked"><span class="tag">LOCKED</span>Switches the page&rsquo;s own <code>useScope()</code> to that member &mdash; same page, same URL, reusing the existing aggregate/member mechanism. No new routing.</div>
+
+<h3>Sparkline position</h3>
+<div class="locked"><span class="tag">LOCKED</span>Sits beside the Total Portfolio Value number itself, in its own <code>.value-row</code>; &ldquo;Today&rsquo;s Gain&rdquo; moved to its own line below. (v7 had it beside the gain line &mdash; corrected in v8.)</div>
+
+<h3>Clickability intensity</h3>
+<div class="locked"><span class="tag">LOCKED</span>Every clickable row/slice/bar gets: resting-state chevron at low opacity, hover background tint + left accent bar + slide, and (pie/bar specifically) a lift + glow. Applied uniformly via a shared <code>.clickable</code> CSS pattern, not per-element one-offs.</div>
+
+<h3>Asset Allocation: Filter + Sort, no Search</h3>
+<div class="locked"><span class="tag">LOCKED</span>Sort defaults to ascending by allocation %. Filter and Sort buttons added to the card header; Search explicitly excluded from this card.</div>
+
+<h2 id="builder-check">3. Builder-check findings &amp; resolutions (v9)</h2>
+<p>A fresh subagent reviewed the written design doc + v8 mockup as a builder with no conversation context, and flagged three places a wrong guess would matter. All three are resolved below.</p>
+
+<h3>Finding 1 &mdash; pie taxonomy didn&rsquo;t match the nav-shell contract</h3>
+<div class="flagged"><span class="tag">FOUND</span>The committed contract defines 8 sidebar rows (Mutual Fund + Direct Stocks/US Stocks/FDs &amp; Bonds under Equity + top-level Debt/Gold/Real Estate/Others). v8&rsquo;s pie had 6 slices, missing Debt and Real Estate.</div>
+<div class="resolved"><span class="tag">RESOLVED</span>Match the contract exactly. v9&rsquo;s pie has <b>8 slices</b>: Mutual Funds, Direct Stocks, US Stocks, FDs &amp; Bonds, Debt, Gold, Real Estate, Others. <code>AllocationBucket</code> returns all 8, non-MF ones with <code>status:"coming_soon"</code>.</div>
+
+<h3>Finding 2 &mdash; Summary Strip XIRR had no disclaimer treatment</h3>
+<div class="flagged"><span class="tag">FOUND</span>The Dashboard&rsquo;s Lifetime/Current XIRR toggle and opening-cost disclaimer exist specifically because a large opening-balance cost share can badly distort the number (the PR&nbsp;#8 Chandra Tripathi fix). The design doc put a single undisclaimed XIRR figure on this page&rsquo;s most prominent new surface.</div>
+<div class="resolved"><span class="tag">RESOLVED</span>The Summary Strip&rsquo;s XIRR <b>reuses the Dashboard&rsquo;s full Lifetime/Current toggle + <code>XirrDisclaimerModal</code> system as-is</b> &mdash; same component in both places, not a stripped-down number and not a fork. Applies here, on <code>/portfolio/mutual-funds</code>, and anywhere else XIRR is shown.</div>
+
+<h3>Finding 3 &mdash; member-scope switch can be silently reset</h3>
+<div class="flagged"><span class="tag">FOUND</span>Per the contract, scope resets to Family Combined on every page change except between tabs of the same sidebar row. Investments and Mutual Fund are different rows, so picking a member in Section 4 and then clicking into the Mutual Funds slice drops back to Family Combined.</div>
+<div class="resolved"><span class="tag">RESOLVED</span>Confirmed intended &mdash; this page follows the same cross-page scope-reset rule as the rest of the shell. No exception built.</div>
+
+<h3>Other corrections from the builder-check (settled without needing the owner)</h3>
+<table>
+  <tr><th>Gap found</th><th>Resolution</th></tr>
+  <tr><td><code>GET /portfolio/summary</code> and a SIP-summary endpoint were wrongly called &ldquo;existing&rdquo;</td><td>Corrected: <code>/portfolio/summary</code> is a small new endpoint; the SIP figure reuses the existing <code>/sips</code> list client-side, the way <code>DashboardView</code> already does &mdash; no new SIP endpoint.</td></tr>
+  <tr><td>&ldquo;+ Add Investment&rdquo; button had no defined behavior</td><td>Opens the existing CAS-import flow directly (<code>useImport().openImport()</code>). No new picker UI &mdash; nothing else to pick between while MF is the only live class.</td></tr>
+  <tr><td>Filter criteria were undefined</td><td>v1 ships as live-vs-coming-soon only. Documented as a deliberately minimal placeholder &mdash; a real filter system (value range, AMC, etc.) is needed once more asset classes go live; flagged explicitly so that work isn&rsquo;t silently skipped.</td></tr>
+</table>
+
+<h2 id="palette">4. Palette applied</h2>
+<p>Per <code>Docs/Unifolio Colour Palette.pdf</code>. Chart01&ndash;05 and Chart12 are as documented; Chart06/07 (used here for Debt and Real Estate) are an approximate ramp extension &mdash; confirm the exact hex against the PDF before this ships to engineering.</p>
+<div class="swrow">
+  <div class="sw"><div class="chip" style="background:#FCFCFC; border:1px solid #ddd;"></div>bg #FCFCFC</div>
+  <div class="sw"><div class="chip" style="background:#F5F5F5; border:1px solid #ddd;"></div>card #F5F5F5</div>
+  <div class="sw"><div class="chip" style="background:#22C55E;"></div>brand #22C55E</div>
+  <div class="sw"><div class="chip" style="background:#15803D;"></div>pos text #15803D</div>
+  <div class="sw"><div class="chip" style="background:#C1272D;"></div>neg text #C1272D</div>
+  <div class="sw"><div class="chip" style="background:#D97706;"></div>warn #D97706</div>
+  <div class="sw"><div class="chip" style="background:#4F46E5;"></div>info #4F46E5</div>
+</div>
+<div class="swrow">
+  <div class="sw"><div class="chip" style="background:#22C55E;"></div>Chart01</div>
+  <div class="sw"><div class="chip" style="background:#0D9488;"></div>Chart02</div>
+  <div class="sw"><div class="chip" style="background:#2563EB;"></div>Chart03</div>
+  <div class="sw"><div class="chip" style="background:#6366F1;"></div>Chart04</div>
+  <div class="sw"><div class="chip" style="background:#8B5CF6;"></div>Chart05</div>
+  <div class="sw"><div class="chip" style="background:#D97706;"></div>Chart06*</div>
+  <div class="sw"><div class="chip" style="background:#EC4899;"></div>Chart07*</div>
+  <div class="sw"><div class="chip" style="background:#C1272D;"></div>Chart12</div>
+</div>
+<p style="font-size:11px; color:var(--secondary-text);">* approximate, not yet verified against the PDF.</p>
+
+<h2 id="reuse">5. Reuse classification</h2>
+<table>
+  <tr><th>Section</th><th>Classification</th><th>Detail</th></tr>
+  <tr><td>Page header</td><td><span class="pill new">Entirely new</span></td><td>No equivalent exists today</td></tr>
+  <tr><td>1 &mdash; Summary strip</td><td><span class="pill new">Entirely new</span> except XIRR</td><td>XIRR metric specifically is <span class="pill reused">reused-as-is</span> from the Dashboard</td></tr>
+  <tr><td>2+3 &mdash; Asset Allocation pie</td><td><span class="pill updated">Reused-but-updated</span></td><td><code>compute_allocation()</code> extended with <code>status</code>/<code>invested</code>/<code>gain_loss</code>/<code>xirr</code></td></tr>
+  <tr><td>4 &mdash; Family allocation bar + rows</td><td><span class="pill updated">Reused-but-updated</span></td><td>Per-member <code>compute_allocation()</code> calls already exist; new rendering only</td></tr>
+  <tr><td>4 &mdash; Quick Insights</td><td><span class="pill new">Entirely new</span></td><td>New presentation; all underlying fields already exist</td></tr>
+  <tr><td>Member scope switch</td><td><span class="pill reused">Reused-as-is</span></td><td><code>useScope()</code>/<code>NavigationShell.tsx</code>'s existing mechanism, unchanged</td></tr>
+</table>
+
+<h2 id="deferred">6. Explicitly deferred</h2>
+<ul>
+  <li>Sync Investments button &mdash; moves to <code>/portfolio/mutual-funds</code>, returns only once MF Central integration exists.</li>
+  <li>Export &mdash; no stated need yet.</li>
+  <li>Search &mdash; on hold per the shell session.</li>
+  <li>Direct Stocks / US Stocks / FDs &amp; Bonds / Debt / Gold / Real Estate data models &mdash; tracked in <code>DEFERRED_FEATURES.md</code> once this page ships.</li>
+  <li>Asset Allocation's proper filter system &mdash; v1 ships with live-vs-coming-soon only; redesign needed once more asset classes go live.</li>
+</ul>
+
+</body>
+</html>

@@ -54,11 +54,12 @@ flowchart TD
 flowchart TD
   P["Any page with an Add data entry"] -->|"openImport(member?)"| I["/import?member=id (no sidebar)"]
   I -->|"Family Combined, no member"| C["choose member in the header"]
-  I -->|"done with notice"| D["/portfolio/mutual-funds with the import notice"]
+  I -->|"done with notice, origin = /portfolio"| D1["/portfolio with the import notice"]
+  I -->|"done with notice, any other origin"| D2["/portfolio/mutual-funds with the import notice"]
   I -->|"Back link"| R["origin screen (SF6)"]
 ```
 
-The origin path is passed in router state; the CAS resume step is cleared on leaving, as today.
+The origin path is passed in router state and used for both the Back link and import completion; the CAS resume step is cleared on leaving, as today. **v1.3 (23 Oct):** completion is origin-aware only for the Portfolio home page — opening import from `/portfolio` returns to `/portfolio`. Every other origin (Dashboard, Analytics, the temporary top-bar button) keeps the v1.2 behaviour and always lands on `/portfolio/mutual-funds`, matching `MainDashboardFlow`'s existing "switch back to the Dashboard tab" behaviour for those origins.
 
 ## 7. Deep links, refresh, back and forward
 
