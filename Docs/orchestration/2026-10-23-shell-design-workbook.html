@@ -1,0 +1,744 @@
+<title>Shell Design Workbook</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky contents rail + one reading column of decision cards; planning workbook, not a landing page. */
+:root{
+  --bg:#f6f8f6; --surface:#ffffff; --surface-2:#eef2ee; --line:#d9e0d9;
+  --fg:#16211a; --muted:#566259; --accent:#128a4a; --accent-soft:#e1f3e8;
+  --locked:#2f5fb3; --locked-soft:#e6eefb; --open:#a8610a; --open-soft:#fbefd9;
+  --rec:#128a4a; --danger:#b3321f;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'DM Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'DM Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent)}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent)}
+nav.toc .grp{margin-top:14px}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:68ch;margin:0 0 10px}
+.rule{margin-top:18px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 16px;max-width:75ch}
+.rule b{color:var(--accent)}
+section{margin-top:52px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:72ch}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700;white-space:nowrap}
+.tag{display:inline-block;font:500 11px var(--f-mono);padding:2px 8px;border-radius:99px;letter-spacing:.03em}
+.tag.locked{background:var(--locked-soft);color:var(--locked)}
+.tag.open{background:var(--open-soft);color:var(--open)}
+.tag.done{background:var(--accent-soft);color:var(--accent)}
+.tag.rec{background:var(--accent-soft);color:var(--rec)}
+.tag.no{background:var(--surface-2);color:var(--danger);border:1px solid var(--danger)}
+.reply{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px}
+.reply b.t{color:var(--accent)}
+.reply ul,.reply ol{margin:6px 0;padding-left:20px}
+.reply li{margin:3px 0}
+.tag.later{background:var(--open-soft);color:var(--open)}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul{margin:6px 0;padding-left:20px}
+.sumbox li{margin:5px 0}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:10px 0}
+.two>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.two h4{margin:0 0 6px;font-family:var(--f-display);font-size:15px}
+.two ul{margin:4px 0;padding-left:18px}
+.two li{margin:4px 0}
+.two .pro h4{color:var(--rec)}
+.two .con h4{color:var(--danger)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}
+.chip{font:500 12px var(--f-mono);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:6px 12px;border-radius:99px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.spacer{flex:1}
+.count{font:500 12px var(--f-mono);color:var(--muted)}
+.btn{font:500 13px var(--f-body);background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+:root[data-theme="dark"] .btn{color:#06210f}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn{color:#06210f}}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:70px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:500 12px var(--f-mono);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.card p{margin:8px 0}
+.ask{font-weight:500}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--rec)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.opt .tag{margin-left:6px}
+.why{border-left:3px solid var(--rec);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--rec)}
+.risk{font-size:13.5px;color:var(--muted)}
+.risk b{color:var(--danger)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+textarea{width:100%;min-height:54px;font:14px var(--f-body);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;resize:vertical}
+.card.locked{background:var(--locked-soft);border-color:transparent}
+.card.locked .decided{font-weight:500}
+.hidden-by-filter{display:none}
+.callout{background:var(--open-soft);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:14px}
+ul.tight{margin:6px 0;padding-left:20px}
+ul.tight li{margin:3px 0}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+#out{white-space:pre-wrap;font:13px var(--f-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px;max-height:340px;overflow:auto}
+details{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:12px;padding:0 16px}
+details>summary{cursor:pointer;font-weight:700;padding:12px 0;font-family:var(--f-display);font-size:16px}
+details[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+details .body{padding-bottom:14px}
+h3.sub{font-size:17px;margin:22px 0 8px}
+blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);color:var(--muted);font-size:14px}
+.pill{display:inline-block;font:500 11px var(--f-mono);padding:1px 7px;border-radius:6px;background:var(--surface-2);color:var(--muted)}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+.flow .st{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:13px;min-width:0}
+.flow .st b{display:block;font-family:var(--f-display);font-size:14px;margin-bottom:2px}
+.flow .st .n{font:500 11px var(--f-mono);color:var(--muted)}
+.flow .st .m{color:var(--muted);font-size:12.5px}
+.flow .st.new{border-color:var(--accent)}
+.flow .st.old{border-style:dashed}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}nav.toc{position:static;max-height:none;margin-bottom:12px;columns:2}nav.toc .grp{margin-top:0;break-inside:avoid}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+/* Mockups: palette values are fixed inside .m-light and .m-dark so both themes show at once, whatever the page theme is. */
+.m-light{--p-bg:#FCFCFC;--p-card:#F5F5F5;--p-div:#ECECEC;--p-bd:#DFDFDF;--p-text:#111111;--p-body:#4B4B4B;--p-sec:#717171;--p-icon:#9B9B9B;--p-dis:#C4C4C4;--p-acc:#22C55E;--p-tint:#E9F9EF;--p-tip:#2A2A2A;--p-tiptext:#FFFFFF;--p-hover:#ECECEC}
+.m-dark{--p-bg:#111111;--p-card:#1A1A1A;--p-div:#2E2E2E;--p-bd:#2E2E2E;--p-text:#FCFCFC;--p-body:#A3A3A3;--p-sec:#A3A3A3;--p-icon:#737373;--p-dis:#5A5A5A;--p-acc:#22C55E;--p-tint:#16301F;--p-tip:#212121;--p-tiptext:#FCFCFC;--p-hover:#212121}
+.mk{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;margin:12px 0}
+.mw{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.mw .cap{font:500 11px var(--f-mono);padding:7px 12px;background:var(--surface-2);color:var(--muted);letter-spacing:.04em}
+.mw .stage{padding:0}
+.app{display:grid;grid-template-columns:176px minmax(0,1fr);min-height:420px;background:var(--p-bg);color:var(--p-text);font-family:'Manrope','DM Sans',system-ui,sans-serif;font-size:12.5px}
+.app .side{background:var(--p-card);border-right:1px solid var(--p-div);padding:12px 8px;display:flex;flex-direction:column;gap:2px}
+.app .logo{font:700 16px 'DM Sans',system-ui,sans-serif;padding:2px 8px 10px;color:var(--p-text)}
+.app .logo i{color:var(--p-acc);font-style:normal}
+.app .it{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;color:var(--p-body);font-weight:500;position:relative;line-height:1.2}
+.app .it svg{width:15px;height:15px;stroke:var(--p-icon);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.app .it.on{color:var(--p-text);font-weight:700}
+.app .it.on svg{stroke:var(--p-text)}
+.app .it.on::before{content:"";position:absolute;left:-8px;top:6px;bottom:6px;width:2px;background:var(--p-acc);border-radius:2px}
+.app.tint .it.on{background:var(--p-tint)}
+.app.pill .it.on{background:var(--p-acc);color:#06210f}
+.app.pill .it.on svg{stroke:#06210f}
+.app.pill .it.on::before{display:none}
+.app .it.mute{color:var(--p-dis)}
+.app .it.mute svg{stroke:var(--p-dis)}
+.app .it.back{color:var(--p-sec)}
+.app .it.grp.open{color:var(--p-text);font-weight:700}
+.app .chev{margin-left:auto;width:12px;height:12px;stroke:var(--p-icon);transition:none}
+.app .it.grp.open .chev{transform:rotate(90deg)}
+.app .kid{margin-left:14px;border-left:1px solid var(--p-div);padding-left:4px;display:flex;flex-direction:column;gap:2px}
+.app .kid .it::before{left:-5px}
+.app .sep{height:1px;background:var(--p-div);margin:8px 4px}
+.app .grow{flex:1}
+.app .it.hover{background:var(--p-hover);color:var(--p-text)}
+.app .it.focus{outline:2px solid var(--p-acc);outline-offset:1px}
+.app .tip{position:absolute;left:112px;top:-4px;background:var(--p-tip);color:var(--p-tiptext);font-size:11px;padding:4px 8px;border-radius:6px;white-space:nowrap;z-index:2}
+.app .main{display:flex;flex-direction:column;min-width:0}
+.app .top{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--p-div)}
+.app .sbox{flex:1;min-width:0;border:1px solid var(--p-bd);border-radius:8px;padding:6px 10px;color:var(--p-dis);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app .btn2{border:1px solid var(--p-bd);border-radius:8px;padding:6px 9px;color:var(--p-text);font-weight:600;font-size:11.5px;white-space:nowrap}
+.app .page{padding:14px;display:flex;flex-direction:column;gap:8px}
+.app .page .h{font:700 15px 'DM Sans',system-ui,sans-serif;color:var(--p-text)}
+.app .page .bar{height:9px;border-radius:5px;background:var(--p-div)}
+.app .page .blk{height:64px;border-radius:10px;background:var(--p-card);border:1px solid var(--p-div)}
+.app.focus1{grid-template-columns:minmax(0,1fr)}
+.states{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+.states .cell{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.states .cell .cap{font:500 11px var(--f-mono);padding:6px 10px;background:var(--surface-2);color:var(--muted)}
+.states .cell .stg{padding:10px 8px;position:relative;background:var(--p-card)}
+.sw{display:flex;align-items:center;gap:10px;margin:2px 0}
+.sw i{width:22px;height:22px;border-radius:6px;border:1px solid var(--line);display:inline-block;flex:none}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <h4>Contents</h4>
+  <a href="#intro">Where we are</a>
+  <div class="grp"><h4>Documents and palette</h4>
+    <a href="#docs">1. The shell documents</a>
+    <a href="#palette">2. The new palette</a>
+    <a href="#drift">3. Palette against today's tokens</a></div>
+  <div class="grp"><h4>Mockups</h4>
+    <a href="#mock">4. Sidebar, both modes</a>
+    <a href="#states">5. Row and group states</a>
+    <a href="#other">6. Import and Coming soon pages</a></div>
+  <div class="grp"><h4>Decisions</h4>
+  <a href="#locked">Frozen decisions</a></div>
+  <div class="grp"><h4>Open questions</h4>
+    <a href="#grp-P">P. Palette and look</a><a href="#grp-F">F. Flow gaps</a><a href="#grp-D">D. Delivery</a></div>
+  <div class="grp"><a href="#next">What happens next</a><a href="#risks">Risks</a><a href="#verify">To verify</a><a href="#log">Conversation log</a><a href="#glossary">Glossary</a><a href="#answers">Your answers</a></div>
+</nav>
+
+<main>
+<div class="hero" id="intro">
+  <h1>Shell Design Workbook</h1>
+  <p>Design system, mockups and open questions for the navigation shell (left sidebar, top bar, layouts), prepared 23 Oct 2026 from the written shell documents. Nothing is built. Claims are marked <span class="tag done">verified</span>, <span class="tag later">estimate</span> or <span class="tag no">unverified</span>. Answer the cards, then copy your answers at the bottom.</p>
+  <div class="rule"><b>Source of truth:</b> <i>Web app UI mockups MFs.pdf</i> for structure and <i>Unifolio Colour Palette.pdf</i> for colour and type. Where they differ, the newer palette wins and the difference is a question (SP1). I edit no existing document without your yes.</div>
+  <div class="rule"><b>Scope:</b> desktop only. Mobile and existing screens are untouched. The search box keeps its place; its behaviour is on hold (L46).</div>
+  <div class="sumbox">
+    <h3>One-minute summary</h3>
+    <ul>
+      <li><b>Done:</b> nine shell documents are written (list below). They follow the frozen decisions from the left-panel planning and use the new palette for every colour.</li>
+      <li><b>The palette changes the look:</b> the active row is dark text with a 2 px green bar, not a green pill. That is card SP1. Green stays rare.</li>
+      <li><b>Existing screens stay on their old colours.</b> The shell gets its own colour tokens from the palette, so nothing existing changes (SP2).</li>
+      <li><b>Six gaps found while writing:</b> where the app lands before Home exists, how users reach History and Analytics, where Add data lives, the shape of the family selector, and two smaller ones (cards SF1 to SF6).</li>
+      <li><b>Answered 23 Oct:</b> all 12 cards. Every one went with the recommendation except SF1, where you chose to land on the Home placeholder because Home is built right after the shell and staging waits for every page. The documents are updated to match. Next: the implementation plans. No product code until you say go.</li>
+    </ul>
+  </div>
+</div>
+
+<section id="docs">
+  <h2>1. The shell documents</h2>
+  <p class="lead">All under <span class="mono">Docs/orchestration/</span>, uncommitted, prefix <span class="mono">2026-10-23-shell-</span>. They match the shape of the Home documents.</p>
+  <div class="scroll"><table>
+    <tr><th>#</th><th>Document</th><th>File</th></tr>
+    <tr><td class="k">1</td><td>Functionality and backend spec: registry, router, sidebar logic, scope provider, Back, import, landing; backend: none</td><td class="mono">...-shell-functionality-backend-spec.md</td></tr>
+    <tr><td class="k">2</td><td>Layout: frame, both sidebar modes, focus layout, states</td><td class="mono">...-shell-layout.md</td></tr>
+    <tr><td class="k">3</td><td>Design system and utilities: palette tokens, components, states</td><td class="mono">...-shell-design-system.md</td></tr>
+    <tr><td class="k">4</td><td>Reuse versus new, what moves out of MainDashboardFlow, NavigationShell and DashboardPlaceholder, wrapper props</td><td class="mono">...-shell-reuse-vs-new.md</td></tr>
+    <tr><td class="k">5</td><td>Test design (TDD): contract, registry, sidebar, scope, wrappers, deep link, back and forward</td><td class="mono">...-shell-tdd.md</td></tr>
+    <tr><td class="k">6</td><td>Architecture: the existing shell architecture draft, with a 23 Oct update section and the approved search-on-hold line (also added to the contract)</td><td class="mono">2026-10-22-nav-shell-architecture.md</td></tr>
+    <tr><td class="k">7</td><td>PRD for the shell</td><td class="mono">...-shell-prd.md</td></tr>
+    <tr><td class="k">8</td><td>Flows: landing, Portfolio mode, Back, Equity, scope, import, deep links</td><td class="mono">...-shell-flows.md</td></tr>
+    <tr><td class="k">9</td><td>Backend decisions proposal (not appended to decisions.md)</td><td class="mono">...-shell-backend-decisions-proposal.md</td></tr>
+    <tr><td class="k">10</td><td>This workbook: mockups and open questions</td><td class="mono">...-shell-design-workbook.html</td></tr>
+  </table></div>
+</section>
+
+<section id="palette">
+  <h2>2. The new palette</h2>
+  <p class="lead">Read from <i>Unifolio Colour Palette.pdf</i> (committed 23 Oct, 16 pages; <span class="tag done">verified</span>). Only the roles the shell uses are listed.</p>
+  <div class="two">
+    <div><h4>Light</h4>
+      <div class="sw"><i style="background:#111111"></i><span><b>#111111</b> primary text, wordmark, active nav label</span></div>
+      <div class="sw"><i style="background:#FCFCFC"></i><span><b>#FCFCFC</b> base background</span></div>
+      <div class="sw"><i style="background:#22C55E"></i><span><b>#22C55E</b> brand green: active indicator, focus ring, CTA; rare</span></div>
+      <div class="sw"><i style="background:#F5F5F5"></i><span><b>#F5F5F5</b> card background</span></div>
+      <div class="sw"><i style="background:#ECECEC"></i><span><b>#ECECEC</b> dividers, subtle borders</span></div>
+      <div class="sw"><i style="background:#DFDFDF"></i><span><b>#DFDFDF</b> input and disabled borders</span></div>
+      <div class="sw"><i style="background:#C4C4C4"></i><span><b>#C4C4C4</b> disabled and placeholder text</span></div>
+      <div class="sw"><i style="background:#9B9B9B"></i><span><b>#9B9B9B</b> secondary icons, muted metadata</span></div>
+      <div class="sw"><i style="background:#717171"></i><span><b>#717171</b> secondary text</span></div>
+      <div class="sw"><i style="background:#4B4B4B"></i><span><b>#4B4B4B</b> body text (non-primary)</span></div>
+      <div class="sw"><i style="background:#2A2A2A"></i><span><b>#2A2A2A</b> dark accents (the Coming soon tooltip)</span></div>
+      <div class="sw"><i style="background:#E9F9EF"></i><span><b>#E9F9EF</b> selected tint (secondary button)</span></div>
+    </div>
+    <div><h4>Dark</h4>
+      <div class="sw"><i style="background:#111111"></i><span><b>#111111</b> background</span></div>
+      <div class="sw"><i style="background:#1A1A1A"></i><span><b>#1A1A1A</b> surface (card)</span></div>
+      <div class="sw"><i style="background:#212121"></i><span><b>#212121</b> elevated surface</span></div>
+      <div class="sw"><i style="background:#FCFCFC"></i><span><b>#FCFCFC</b> primary text</span></div>
+      <div class="sw"><i style="background:#A3A3A3"></i><span><b>#A3A3A3</b> secondary text</span></div>
+      <div class="sw"><i style="background:#2E2E2E"></i><span><b>#2E2E2E</b> border</span></div>
+      <div class="sw"><i style="background:#22C55E"></i><span><b>#22C55E</b> brand green, unchanged</span></div>
+      <p class="ctx" style="margin-top:10px">Not given for dark: muted icon, disabled text, selected tint. I used #737373, #5A5A5A and #16301F in the mockups (<span class="tag later">estimate</span>). Fonts: DM Sans for headings, Manrope for body. Green hierarchy: one or two green elements per screen at most.</p>
+    </div>
+  </div>
+</section>
+
+<section id="drift">
+  <h2>3. Palette against today's tokens</h2>
+  <p class="lead">From <span class="mono">frontend/src/styles/tokens.css</span> (<span class="tag done">verified</span>). tokens.css is not edited in this phase (card SP2).</p>
+  <div class="scroll"><table>
+    <tr><th>Role</th><th>tokens.css today</th><th>Palette</th></tr>
+    <tr><td class="k">Light border</td><td>#E5E5E5</td><td>#ECECEC dividers, #DFDFDF inputs</td></tr>
+    <tr><td class="k">Secondary text</td><td>#5C5C5C</td><td>#717171 secondary, #4B4B4B body</td></tr>
+    <tr><td class="k">Warning, negative</td><td>#F59E0B, #EF4444</td><td>#D97706, #E5484D</td></tr>
+    <tr><td class="k">Card</td><td>none (surface #FFFFFF)</td><td>#F5F5F5</td></tr>
+    <tr><td class="k">Dark background, ink, border</td><td>#0F0F0F, #F5F5F5, #2A2A2A</td><td>#111111, #FCFCFC, #2E2E2E</td></tr>
+    <tr><td class="k">Dark surface, secondary text, green</td><td>#1A1A1A, #A3A3A3, #22C55E</td><td>same</td></tr>
+  </table></div>
+</section>
+
+<section id="mock">
+  <h2>4. Sidebar, both modes</h2>
+  <p class="lead">Drawn with palette colours in light and dark. The active row uses option A of card SP1 (dark label, 2 px green bar). Icons are simplified drawings; the build uses lucide-react (Home, Briefcase, Receipt, Target, User, CircleHelp, ArrowLeft, LayoutGrid, TrendingUp, Landmark, Coins, Building2, Shapes, ChevronRight, ChartCandlestick, ChartPie, Globe, PiggyBank; all exist in the installed version, <span class="tag done">verified</span>). Greyed rows are Coming soon.</p>
+  <h3 class="sub">Portfolio mode, Equity open</h3>
+  <div class="mk" id="mk-port"></div>
+  <h3 class="sub">Main mode</h3>
+  <div class="mk" id="mk-main"></div>
+  <h3 class="sub">Portfolio mode, Equity closed</h3>
+  <div class="mk" id="mk-closed"></div>
+</section>
+
+<section id="states">
+  <h2>5. Row and group states</h2>
+  <p class="lead">Light first, then dark. The three Active cells show the options of card SP1 side by side. The tooltip is white on #2A2A2A in light (palette dark accent).</p>
+  <h3 class="sub">Light</h3>
+  <div class="states" id="st-light"></div>
+  <h3 class="sub">Dark</h3>
+  <div class="states" id="st-dark"></div>
+</section>
+
+<section id="other">
+  <h2>6. Import and Coming soon pages</h2>
+  <div class="mk" id="mk-focus"></div>
+</section>
+
+<section id="locked">
+  <h2>Frozen decisions these documents rely on</h2>
+  <p class="lead">From the left-panel planning (22 to 23 Oct) and your answers. Tell me if I got any wrong.</p>
+  <div id="lockedList"></div>
+</section>
+
+<div class="bar" id="filterbar">
+  <button class="chip" id="f-all" aria-pressed="true">All questions</button>
+  <button class="chip" id="f-open" aria-pressed="false">Unanswered</button>
+  <button class="chip" id="f-done" aria-pressed="false">Answered</button>
+  <span class="spacer"></span>
+  <span class="count"><span id="count"></span><span id="savestate" role="status"></span></span>
+</div>
+
+<div id="questions"></div>
+
+<section id="next">
+  <h2>What happens next</h2>
+  <ol class="tight">
+    <li>You answer the cards. I update the documents to match and record the answers as decisions.</li>
+    <li>Implementation plans are written (the owner's step 11), one plan for the shell split into PR 1 and PR 2.</li>
+    <li>No product code, install or commit until you say go. Planning effort for the sidebar part was estimated earlier at about 7 to 8 developer-days (<span class="tag later">estimate</span>), before PR 2's switch-over.</li>
+  </ol>
+</section>
+
+<section id="risks">
+  <h2>Risks to keep in view</h2>
+  <ul class="tight">
+    <li><b>Two colour sets.</b> The shell follows the palette while existing screens keep today's tokens, so some areas look slightly different until a global move (SP2).</li>
+    <li><b>Landing on a placeholder.</b> If PR 2 ships before Home, users land on Coming soon (SF1).</li>
+    <li><b>Features that become unreachable.</b> History and Analytics have no link until the Mutual Funds menu exists (SF2); the global Add data button is gone (SF3).</li>
+    <li><b>Moving scope logic out of MainDashboardFlow</b> can change member defaults, banners and the import notice. Port the tests first.</li>
+    <li><b>Faint disabled rows.</b> The palette's disabled grey is about 1.7:1 on the page background (SP4).</li>
+  </ul>
+</section>
+
+<section id="verify">
+  <h2>To verify before building</h2>
+  <ul class="tight">
+    <li>A MemoryRouter test with a React.lazy page settles with findBy queries under Vitest.</li>
+    <li>That <span class="mono">import.meta.glob</span> works the same under Vitest (it uses Vite's transform).</li>
+    <li>Whether DashboardView's and AnalyticsView's add-data entries are always visible (SF3).</li>
+    <li>That the 20 Node tags in CI and deploy.sh resolve to 20.19 or newer, and where AWS staging builds the frontend.</li>
+    <li>The dark-mode values the palette does not give (muted icon, disabled text, selected tint).</li>
+    <li>That a sidebar-width of about 224 px suits the real pages (an estimate from the mockup).</li>
+  </ul>
+</section>
+
+<section id="log">
+  <h2>Conversation log</h2>
+  <div class="scroll"><table>
+    <tr><th>When</th><th>Who</th><th>What</th></tr>
+    <tr><td class="k">23 Oct</td><td>You</td><td>The left-panel planning is done. Asked for the shell documents phase in the same shape as Home, then a combined artifact. Asked me to confirm the two contract assumptions and whether to add a search-on-hold line.</td></tr>
+    <tr><td class="k">23 Oct</td><td>Me</td><td>Found the two assumptions already closed and the architecture patches already on disk. You confirmed both closed and approved the one-line search note. I wrote documents 1 to 9, added the search note to the contract and architecture draft, and updated the architecture draft with a 23 Oct section.</td></tr>
+    <tr><td class="k">23 Oct</td><td>You</td><td>Added the new colour palette to the docs folder and asked for the artifact and documents to follow it.</td></tr>
+    <tr><td class="k">23 Oct</td><td>Me</td><td>Read the palette, mapped it to shell tokens and listed the differences from tokens.css. Rewrote the design system around it, found that the palette's active-row rule differs from the mockup (SP1), and built this workbook with mockups and 12 questions.</td></tr>
+  </table></div>
+</section>
+
+<section id="glossary">
+  <h2>Glossary</h2>
+  <div class="scroll"><table>
+    <tr><th>Term</th><th>Meaning here</th></tr>
+    <tr><td class="k">Shell</td><td>The frame around every page: sidebar, top bar, routing and the family-or-member scope.</td></tr>
+    <tr><td class="k">Token</td><td>A named colour or size used by components instead of a raw value.</td></tr>
+    <tr><td class="k">Placeholder</td><td>A route whose page is not built; its sidebar row is greyed.</td></tr>
+    <tr><td class="k">Wrapper route</td><td>A thin file that shows an existing screen unchanged inside the shell.</td></tr>
+    <tr><td class="k">Focus layout</td><td>A full-screen layout with no sidebar, used for importing a statement.</td></tr>
+    <tr><td class="k">Scope</td><td>Family Combined or one member.</td></tr>
+  </table></div>
+</section>
+
+<section id="answers">
+  <h2>Your answers</h2>
+  <p class="lead">This collects every choice and note above. Copy it and paste it into the chat.</p>
+  <div class="row"><button class="btn" id="copy">Copy my answers</button><button class="btn ghost" id="clear">Clear all choices</button><span class="count" id="copied" role="status"></span></div>
+  <div id="out" aria-live="polite"></div>
+</section>
+</main>
+</div>
+<script>
+var LOCKED=[
+ ["FZ1","Router: react-router ^7.18.4","One new dependency, declarative mode. v8.5 needs Node 22.22; CI and deploy.sh use Node 20, so v8 is a later task. (Left Panel Plan A1.)"],
+ ["FZ2","Equity is an expandable group","Equity only expands. Children: Direct Stocks, Mutual Fund, US Stock, FDs &amp; bonds, with icons. A typed /portfolio/equity redirects to /portfolio/mutual-funds. Closed 23 Oct: FDs &amp; bonds stays under Equity; Mutual Fund and US Stock are two items."],
+ ["FZ3","URLs","Mutual Fund keeps /portfolio/mutual-funds. The others are /portfolio/equity/direct-stocks, /us-stocks and /fds-bonds. Debt, Gold, Real Estate and Others are plain greyed links to placeholder pages."],
+ ["FZ4","Sidebar frame","About 224 px, always visible, no collapse. Clicking Portfolio opens Investments. One active row at a time; Investments is active only on /portfolio."],
+ ["FZ5","Back","Last live non-Portfolio screen with the normal layout, remembered for the session; otherwise the fallback (see SF1). Never /import or a placeholder."],
+ ["FZ6","Top bar is a frame","Search box (placement only), Ask Mira, family selector, theme toggle. No avatar. Search behaviour is on hold (L46); the contract now says so."],
+ ["FZ7","Scope rule","Every page change shows Family Combined, except moves between the tabs of one page (including a fund page opened from a Mutual Fund tab). One-member households stay in member mode. A refresh keeps the pick for the session."],
+ ["FZ8","Delivery","Two PRs (PR 1 not switched on; PR 2 scope move, wrappers, App.tsx switch). Both owners review the shell folder with CODEOWNERS. Tests: Vitest and Testing Library plus one manual check. Contract changes are allowed with a notice."],
+ ["FZ9","Existing screens and mobile","Existing screens render unchanged through thin wrapper route files. Mobile is untouched. Backend is untouched: no endpoint, table or migration."],
+ ["FZ11","Look, from your answers on 23 Oct","Active row: dark icon and label with a 2 px green bar on the left edge (SP1 A). Shell-only --shell-* tokens; tokens.css untouched (SP2 A). Sidebar surface #F5F5F5, dark #1A1A1A, with a #ECECEC border, dark #2E2E2E (SP3 A). Greyed rows in the palette's disabled text with a tooltip (SP4 A). Labels in Manrope Medium 14 px, active Semi-bold (SP5 A)."],
+ ["FZ12","Flow decisions, 23 Oct","Landing is /home and shows the Coming soon page until the Home PR sets it live; Home is built right after the shell and everything is staged together after all pages exist (SF1 B). A temporary Dashboard, History, Analytics tab strip in the wrappers (SF2 A) and a temporary + Add data button in the top bar (SF3 B), both removed when the real menu and the Investments page ship. One family dropdown, hidden on pages without a scope (SF4, SF5). Import Back link returns to where it was opened, default /portfolio/mutual-funds (SF6). CODEOWNERS: @ayushkarnawat and @aditi-unifolio (SD1)."],
+ ["FZ10","Colour comes from the new palette","The shell uses Unifolio Colour Palette.pdf (committed 23 Oct) through its own --shell-* tokens, light and dark. tokens.css is not edited in this phase (see SP2). Fonts: DM Sans headings, Manrope body."]
+];
+
+var Q=[
+{g:"P",name:"Palette and look",items:[
+ {id:"SP1",t:"How should the active sidebar row look?",
+  ask:"The palette and the mockup disagree. Which one wins?",
+  ctx:"Palette page 5 says the active nav item is the icon and label in #111111 with a 2 px brand-green underline or indicator, and page 6 says green stays rare (one or two green elements per screen). The PDF mockup and my earlier answer (N6) used a filled green-tint pill. Both are drawn in the mockups section.",
+  opts:[
+   {k:"a",l:"Palette: dark icon and label, a 2 px green bar on the row's left edge, no fill",d:"Follows the palette exactly. The only green in the sidebar is that bar."},
+   {k:"b",l:"Palette plus a light tint: option A with the palette's #E9F9EF selected tint behind the row",d:"Closer to the mockup, still uses palette colours. The tint use is my extension; the palette lists it for selected secondary buttons."},
+   {k:"c",l:"Mockup: filled green pill",d:"Matches the older PDF image; spends more green than the palette allows."}],
+  rec:"a",
+  why:"The palette is the newest source and states the rule for the active nav item in so many words. The tint (B) is a safe middle if A feels too plain.",
+  risk:"A is quieter than the mockup. B and C change what the manager's pages sit next to if they copy the sidebar style."},
+ {id:"SP2",t:"Move the whole app to the palette now?",
+  ask:"Do we update tokens.css or keep the shell on its own tokens?",
+  ctx:"tokens.css differs from the palette in several roles (for example light border #E5E5E5 against #ECECEC and #DFDFDF, dark background #0F0F0F against #111111; full table in the design system doc, section 3). Editing tokens.css changes the colours of every existing screen, which you froze (L30).",
+  opts:[
+   {k:"a",l:"Shell-only --shell-* tokens now; plan the global move as a later task",d:"Existing screens look exactly as today; the shell uses the palette. Two colour sets live side by side for a while."},
+   {k:"b",l:"Update tokens.css to the palette in the shell PR",d:"One colour set. Existing screens shift slightly and need a visual check."}],
+  rec:"a",
+  why:"It keeps the promise that existing screens do not change, and the global move is easy to do once the redesigned pages exist.",
+  risk:"New and old areas can look slightly different until the global move."},
+ {id:"SP3",t:"What colour is the sidebar surface?",
+  ask:"The palette has no sidebar colour. Which neutral do we use?",
+  ctx:"The mockup shows a pale tinted panel. The palette has page #FCFCFC, card #F5F5F5, divider #ECECEC. Dark: page #111111, card #1A1A1A, border #2E2E2E.",
+  opts:[
+   {k:"a",l:"Card colour (#F5F5F5; dark #1A1A1A) with a #ECECEC right border (dark #2E2E2E)",d:"Reads as chrome, clearly apart from the #FCFCFC page."},
+   {k:"b",l:"Same as the page (#FCFCFC) with only the border",d:"Flattest look."},
+   {k:"c",l:"A pale tint like the mockup",d:"Adds a colour that is not in the palette."}],
+  rec:"a",
+  why:"It uses palette neutrals only and separates the sidebar from the page without extra colour.",
+  risk:"Cards on the page are also #F5F5F5; the sidebar and a card can look related. The border keeps them apart."},
+ {id:"SP4",t:"How visible are greyed Coming soon rows?",
+  ask:"Which grey for rows that are not built yet?",
+  ctx:"The palette's disabled text is #C4C4C4, about 1.7:1 against #FCFCFC (my calculation). Muted metadata is #9B9B9B, about 2.7:1. The palette gives no dark values for these; I propose #5A5A5A (disabled) and #737373 (muted icon) for dark. L33 sets no extra accessibility target.",
+  opts:[
+   {k:"a",l:"Palette disabled text #C4C4C4 (dark #5A5A5A) with the tooltip",d:"Exactly the palette. Names are faint."},
+   {k:"b",l:"Muted #9B9B9B (dark #737373) with the tooltip",d:"Names stay readable, so users can see what is coming. Still clearly not active."}],
+  rec:"a",
+  why:"It follows the palette's own meaning of disabled. The tooltip explains the state.",
+  risk:"Faint labels can be missed. If users ask what the grey rows are, move to B."},
+ {id:"SP5",t:"Sidebar label font and weight",
+  ask:"Which type for the row labels?",
+  ctx:"Palette fonts: DM Sans for headings, Manrope for body and subtext; Medium for sub-labels, Semi-bold for buttons and tags. Both fonts are already used in tokens.css.",
+  opts:[
+   {k:"a",l:"Manrope Medium 14 px; the active row Semi-bold",d:"Treats labels as body text."},
+   {k:"b",l:"DM Sans Medium 14 px; the active row Semi-bold",d:"Treats labels as headings."}],
+  rec:"a",
+  why:"Row labels are short utility text, which the palette assigns to Manrope.",
+  risk:"None significant."}
+]},
+{g:"F",name:"Flow and behaviour gaps found while writing the documents",items:[
+ {id:"SF1",t:"Where does the app land before Home exists?",
+  ask:"After login, and on Back's fallback, the contract says /home. Home is a placeholder until its own PR. What happens in between?",
+  ctx:"If PR 2 switches the shell on before Home is built, users would land on a Coming soon page and the Home row is greyed.",
+  opts:[
+   {k:"a",l:"Send the landing, `/` and the Back fallback to /portfolio/mutual-funds (the existing Dashboard) until Home goes live, then change one line",d:"Users always land on a working screen. The Home row stays greyed meanwhile."},
+   {k:"b",l:"Land on the Home placeholder",d:"Matches the contract literally; users see Coming soon first."},
+   {k:"c",l:"Do not switch the shell on (PR 2) until Home is live",d:"No awkward state, but the shell and Home must ship together."}],
+  rec:"a",
+  why:"It keeps staging usable and costs one line to change later.",
+  risk:"Back's fallback and the logo target need the same switch; the TDD covers it."},
+ {id:"SF2",t:"How do users reach History and Analytics?",
+  ask:"Both exist, but the sidebar has no row for them and the Mutual Funds in-page menu is built by the page owner later.",
+  ctx:"Contract: History is /portfolio/mutual-funds/history and Analytics is /portfolio/mutual-funds/analytics, both in the in-page menu. The existing Dashboard has no such menu, and existing screens are not changed.",
+  opts:[
+   {k:"a",l:"A temporary tab strip (Dashboard, History, Analytics) drawn by the three wrapper files above the unchanged screens",d:"Removed when the Mutual Funds owner ships the real menu. The screens themselves are untouched."},
+   {k:"b",l:"Leave them reachable only by URL",d:"Users lose access in the meantime."},
+   {k:"c",l:"Add History and Analytics as sidebar children under Mutual Fund",d:"Changes the tree you locked."}],
+  rec:"a",
+  why:"Nothing that works today becomes unreachable, and no locked decision changes.",
+  risk:"A small piece of throwaway UI; it must be removed with the real menu."},
+ {id:"SF3",t:"Where does Add data live now?",
+  ask:"Today a + Add Data button sits in the top bar. The locked top bar has four items and no such button.",
+  ctx:"DashboardView and AnalyticsView each contain their own add-data entries (code search; whether always visible is unverified). History, Scenarios and Profile have none. The Investments mockup shows Add Investment on the page.",
+  opts:[
+   {k:"a",l:"No shell button; each page owns its entry",d:"Matches the locked top bar. Users on History, Scenarios or Profile need to go to a page that has one."},
+   {k:"b",l:"Keep a temporary + Add data button in the top bar until the Investments page ships",d:"Nothing is lost; extends the four-item top bar by one temporary item."},
+   {k:"c",l:"Put it in the sidebar footer",d:"A new permanent spot, not in the PDF."}],
+  rec:"b",
+  why:"Importing a statement is the app's core action; losing the global entry would be a regression. The button is removed when pages carry their own.",
+  risk:"It needs your yes because it extends the four items you locked."},
+ {id:"SF4",t:"Shape of the family selector",
+  ask:"One dropdown or today's two controls?",
+  ctx:"Today: a Family Combined and Per Member switch plus a member select. The PDF top bar shows one control, Family Combined with an arrow.",
+  opts:[
+   {k:"a",l:"One dropdown: Family Combined first, then each member",d:"Matches the PDF. A one-member household shows just the member."},
+   {k:"b",l:"Keep today's two controls",d:"Familiar; takes more space."}],
+  rec:"a",
+  why:"It matches the mockup and is simpler.",
+  risk:"Per-member naming rules ('Name (Me)' handling) must be kept as today."},
+ {id:"SF5",t:"The selector on pages without a scope",
+  ask:"Profile, Planning, Liabilities and Help do not use the scope. What does the selector do there?",
+  ctx:"Those routes are marked scope none in the contract.",
+  opts:[
+   {k:"a",l:"Hide it",d:"No control that does nothing."},
+   {k:"b",l:"Show it disabled",d:"The top bar never changes shape."}],
+  rec:"a",
+  why:"A control that does nothing invites questions.",
+  risk:"The top bar shifts slightly between pages."},
+ {id:"SF6",t:"Back link on the Add data screen",
+  ask:"Today it says Back to Dashboard. Where should it go?",
+  ctx:"The import screen has no sidebar. It can be opened from several pages now.",
+  opts:[
+   {k:"a",l:"Back to the screen it was opened from (kept in router state); default /portfolio/mutual-funds",d:"Label simply says Back."},
+   {k:"b",l:"Always to Investments",d:"Predictable; ignores where the user came from."}],
+  rec:"a",
+  why:"It returns people to what they were doing.",
+  risk:"A deep link to /import has no origin, so the default applies."}
+]},
+{g:"D",name:"Delivery",items:[
+ {id:"SD1",t:"GitHub handles for CODEOWNERS",
+  ask:"Who are the two reviewers?",
+  ctx:"You chose both owners reviewing anything under frontend/src/shell/, enforced with a CODEOWNERS file. The file needs the two GitHub handles. I know the repository owner is ayushkarnawat; the manager's handle is not in the repository.",
+  opts:[
+   {k:"a",l:"I will write both handles in the note box",d:"The file is created in PR 1 with them."},
+   {k:"b",l:"Skip the file; review by agreement",d:"Changes your D2 answer; nothing enforces it."}],
+  rec:"a",
+  why:"It keeps your D2 answer enforceable.",
+  risk:"None."}
+]}
+];
+
+var REPLIES={
+ SF1:"Yes, I understand: for now the app lands on the Home placeholder, Home is built right after the shell, and nothing is staged until every page from the PDF exists. So I did not add a redirect to the Dashboard. When the Home PR sets home to live, the row, the logo link, the landing and Back's fallback all start working with no other change. One consequence while developing: the Portfolio row stays greyed until the /portfolio page exists, so developers open /portfolio/mutual-funds by URL. Recorded as FZ12.",
+ SF2:"Understood. The strip stays temporary: drawn by three wrapper files, removed when the Mutual Funds owner ships the real in-page menu, and never staged, since staging waits for every page. The TDD has a test for it so its removal is deliberate.",
+ SP1:"Both styles are drawn in the mockups section (palette style, palette plus tint, and the mockup's pill) in light and dark, so you can compare them.",
+ SF3:"Understood, same as SF1: temporary, removed when the Investments page ships its own Add Investment control, and never staged. Found in the code: DashboardView and AnalyticsView each contain add-data entries; History, Scenarios and Profile do not. Recommendation B is a temporary addition to the four locked top-bar items."
+};
+/* Mockup renderers. Icons are simplified drawings for the mockup only; the build uses lucide-react. */
+var IC={
+ home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+ brief:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>',
+ receipt:'<path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+ target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+ help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/>',
+ back:'<path d="M19 12H5M11 6l-6 6 6 6"/>',
+ grid:'<rect x="4" y="4" width="6.5" height="6.5"/><rect x="13.5" y="4" width="6.5" height="6.5"/><rect x="4" y="13.5" width="6.5" height="6.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5"/>',
+ trend:'<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>',
+ bank:'<path d="M3 21h18M5 21V10M9 21V10M15 21V10M19 21V10M3 10l9-6 9 6"/>',
+ coins:'<circle cx="9" cy="9" r="6"/><path d="M15 9.5a6 6 0 1 1-5.5 8.5"/>',
+ build:'<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M10 21v-4h4v4"/>',
+ shapes:'<path d="M8 3l5 8H3z"/><circle cx="17" cy="7" r="4"/><rect x="4" y="14" width="7" height="7"/>',
+ chev:'<path d="M9 6l6 6-6 6"/>',
+ candle:'<path d="M8 4v16M16 4v16"/><rect x="5.5" y="8" width="5" height="7"/><rect x="13.5" y="6" width="5" height="9"/>',
+ pie:'<path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/>',
+ globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
+ pig:'<path d="M5 12a7 6 0 0 1 12-4h3v4l-2 2v3h-3v-2H9v2H6v-3a6 6 0 0 1-1-2z"/><circle cx="15" cy="10" r=".6"/>'
+};
+function ic(n){return '<svg viewBox="0 0 24 24" aria-hidden="true">'+IC[n]+'</svg>'}
+function it(n,l,c,x){return '<div class="it '+(c||'')+'">'+ic(n)+'<span>'+l+'</span>'+(x||'')+'</div>'}
+function sideMain(){
+  return '<div class="side"><div class="logo">Uni<i>f</i>olio</div>'+
+   it('home','Home','mute')+it('brief','Portfolio')+it('receipt','Liabilities','mute')+it('target','Planning','on')+
+   '<div class="grow"></div><div class="sep"></div>'+it('user','Profile')+it('help','Help &amp; Support','mute')+'</div>';
+}
+function sidePort(o){
+  o=o||{};var open=o.open!==false;
+  var kids=open?'<div class="kid">'+
+   it('candle','Direct Stocks','mute')+it('pie','Mutual Fund',o.inv?'':'on')+it('globe','US Stock','mute')+it('pig','FDs &amp; bonds','mute')+'</div>':'';
+  return '<div class="side"><div class="logo">Uni<i>f</i>olio</div>'+
+   it('back','Back','back')+it('grid','Investments',o.inv?'on':'mute')+
+   it('trend','Equity','grp'+(open?' open':''),'<svg class="chev" viewBox="0 0 24 24">'+IC.chev+'</svg>')+kids+
+   it('bank','Debt','mute')+it('coins','Gold','mute')+it('build','Real Estate','mute')+it('shapes','Others','mute')+
+   '<div class="grow"></div><div class="sep"></div>'+it('user','Profile')+it('help','Help &amp; Support','mute')+'</div>';
+}
+function topbar(){
+  return '<div class="top"><div class="sbox">Search for a fund, stock, or ask Mira</div><span class="btn2">Ask Mira</span><span class="btn2">Family Combined &#9662;</span><span class="btn2">&#9790;</span></div>';
+}
+function frame(th,cap,side,cls){
+  return '<div class="mw"><div class="cap">'+cap+'</div><div class="stage '+th+'"><div class="app '+(cls||'')+'">'+side+
+   '<div class="main">'+topbar()+'<div class="page"><div class="h">Page title</div><div class="bar" style="width:62%"></div><div class="blk"></div><div class="blk"></div></div></div></div></div></div>';
+}
+function put(id,h){var e=document.getElementById(id);if(e)e.innerHTML=h}
+put("mk-port",frame("m-light","Portfolio mode, Mutual Fund page, light",sidePort())+frame("m-dark","Portfolio mode, Mutual Fund page, dark",sidePort()));
+put("mk-main",frame("m-light","Main mode, Planning, light",sideMain())+frame("m-dark","Main mode, Planning, dark",sideMain()));
+put("mk-closed",frame("m-light","Equity closed, on Investments, light",sidePort({open:false,inv:true}))+frame("m-dark","Equity closed, on Investments, dark",sidePort({open:false,inv:true})));
+function cell(th,cap,inner,cls){return '<div class="cell"><div class="cap">'+cap+'</div><div class="stg '+th+'"><div class="app '+(cls||'')+'" style="display:block;min-height:0;background:transparent"><div class="side" style="border:0;background:transparent;padding:0">'+inner+'</div></div></div></div>'}
+function stateSet(th){
+  var h='';
+  h+=cell(th,"Default",it('pie','Mutual Fund'));
+  h+=cell(th,"Hover",it('pie','Mutual Fund','hover'));
+  h+=cell(th,"Active, SP1 option A",it('pie','Mutual Fund','on'));
+  h+=cell(th,"Active, SP1 option B",it('pie','Mutual Fund','on'),'tint');
+  h+=cell(th,"Active, SP1 option C",it('pie','Mutual Fund','on'),'pill');
+  h+=cell(th,"Keyboard focus",it('pie','Mutual Fund','focus'));
+  h+=cell(th,"Greyed, Coming soon",it('candle','Direct Stocks','mute')+'<div class="tip" style="left:70px;top:-6px">Coming soon</div>');
+  h+=cell(th,"Group closed",it('trend','Equity','grp','<svg class="chev" viewBox="0 0 24 24">'+IC.chev+'</svg>'));
+  h+=cell(th,"Group open, contains active",it('trend','Equity','grp open','<svg class="chev" viewBox="0 0 24 24">'+IC.chev+'</svg>')+'<div class="kid">'+it('pie','Mutual Fund','on')+'</div>');
+  return h;
+}
+put("st-light",stateSet("m-light"));
+put("st-dark",stateSet("m-dark"));
+put("mk-focus",'<div class="mw"><div class="cap">Focus layout, /import (no sidebar), light</div><div class="stage m-light"><div class="app focus1"><div class="main"><div class="top"><span class="btn2">&larr; Back</span><span style="flex:1"></span><span class="btn2">Importing for Aarohi</span><span class="btn2">&#9790;</span></div><div class="page"><div class="h">Import your statement</div><div class="bar" style="width:55%"></div><div class="blk"></div></div></div></div></div></div>'+
+ '<div class="mw"><div class="cap">Coming soon page, typed URL, light</div><div class="stage m-light">'+'<div class="app">'+sidePort()+'<div class="main">'+topbar()+'<div class="page"><div class="h">Direct Stocks</div><div class="bar" style="width:40%"></div><div class="blk" style="display:flex;align-items:center;justify-content:center;color:var(--p-sec)">Coming soon. Back to Investments</div></div></div></div></div></div>');
+var KEY="shell-design-workbook-v1";
+var state={};
+try{state=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){state={}}
+/* Answers are kept in two places: this browser (instant) and the artifact's own database
+   (survives closing the tab, clearing site data, and opening on another device).
+   Each question carries a timestamp t so the newer edit wins when the two are merged. */
+var dbDoc=null,dbTimer=null,dbSaving=false,dbDirty=false;
+function setSaveState(m){var el=document.getElementById("savestate");if(el)el.textContent=m?" · "+m:""}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+function touch(id){state[id]=state[id]||{};state[id].t=Date.now();return state[id]}
+function save(){saveLocal();scheduleDb()}
+function scheduleDb(){if(!dbDoc)return;dbDirty=true;clearTimeout(dbTimer);dbTimer=setTimeout(flushDb,600)}
+function flushDb(){
+  if(dbSaving){dbTimer=setTimeout(flushDb,300);return}
+  if(!dbDirty||!dbDoc)return;
+  dbDirty=false;dbSaving=true;setSaveState("saving");
+  dbDoc.set({state:JSON.parse(JSON.stringify(state)),updatedAt:new Date().toISOString()}).then(function(){
+    dbSaving=false;setSaveState("saved");
+  },function(){
+    dbSaving=false;dbDirty=true;setSaveState("not saved to cloud, kept in this browser");
+  });
+}
+function mergeIn(remote){
+  var changed=false;
+  Object.keys(remote||{}).forEach(function(k){
+    var r=remote[k]||{},l=state[k];
+    if(!l||(r.t||0)>(l.t||0)){state[k]=r;changed=true}
+  });
+  return changed;
+}
+function localNewer(remote){
+  return Object.keys(state).some(function(k){return !remote[k]||(state[k].t||0)>(remote[k].t||0)});
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+var ll=document.getElementById("lockedList");
+LOCKED.forEach(function(x){
+  var d=document.createElement("div");d.className="card locked";
+  d.innerHTML='<header><span class="id">'+x[0]+'</span><h3>'+x[1]+'</h3><span class="tag locked">decided by you</span></header><p class="decided">'+x[2]+'</p>';
+  ll.appendChild(d);
+});
+
+var qroot=document.getElementById("questions");
+var total=0;
+Q.forEach(function(grp){
+  var sec=document.createElement("section");sec.id="grp-"+grp.g;
+  sec.innerHTML='<h2>'+grp.g+'. '+esc(grp.name)+'</h2>';
+  grp.items.forEach(function(it){
+    total++;
+    var card=document.createElement("article");card.className="card";card.id="q-"+it.id;card.setAttribute("data-id",it.id);
+    var h='<header><span class="id">'+it.id+'</span><h3>'+esc(it.t)+'</h3><span class="tag open" data-status>unanswered</span></header>';
+    h+='<p class="ask">'+esc(it.ask)+'</p><p class="ctx">'+esc(it.ctx)+'</p><div class="opts" role="radiogroup" aria-label="'+esc(it.t)+'">';
+    it.opts.forEach(function(o){
+      var isr=o.k===it.rec;
+      h+='<label class="opt'+(isr?' isrec':'')+'"><input type="radio" name="r-'+it.id+'" value="'+o.k+'"><span><b>'+o.k.toUpperCase()+'. '+esc(o.l)+(isr?' <span class="tag rec">recommended</span>':'')+'</b><span class="d">'+esc(o.d)+'</span></span></label>';
+    });
+    h+='</div><div class="why"><b>Why I recommend '+it.rec.toUpperCase()+':</b> '+esc(it.why)+'</div><p class="risk"><b>If this goes wrong:</b> '+esc(it.risk)+'</p>'+(REPLIES[it.id]?'<div class="reply"><b class="t">Reply to your note:</b> '+REPLIES[it.id]+'</div>':'');
+    h+='<div class="row"><button class="btn ghost" data-use>Use recommended ('+it.rec.toUpperCase()+')</button><button class="btn ghost" data-reset>Reset</button></div>';
+    h+='<label for="n-'+it.id+'" class="count" style="display:block;margin-top:10px">Your own answer or notes</label><textarea id="n-'+it.id+'" placeholder="Optional. Write your own option here."></textarea>';
+    card.innerHTML=h;sec.appendChild(card);
+  });
+  qroot.appendChild(sec);
+});
+
+function cardOf(id){return document.getElementById("q-"+id)}
+function refresh(){
+  var done=0;
+  Q.forEach(function(g){g.items.forEach(function(it){
+    var c=cardOf(it.id),s=state[it.id]||{},ans=!!(s.c||(s.n&&s.n.trim()));
+    if(ans)done++;
+    var tag=c.querySelector("[data-status]");
+    tag.textContent=ans?"answered":"unanswered";tag.className="tag "+(ans?"done":"open");
+    c.setAttribute("data-answered",ans?"1":"0");
+    var radios=c.querySelectorAll("input[type=radio]");
+    radios.forEach(function(r){r.checked=(s.c===r.value)});
+    var ta=c.querySelector("textarea");if(ta&&ta.value!==(s.n||""))ta.value=s.n||"";
+  })});
+  document.getElementById("count").textContent=done+" of "+total+" answered";
+  applyFilter();buildOut();
+}
+var filter="all";
+function applyFilter(){
+  document.querySelectorAll("article.card").forEach(function(c){
+    var a=c.getAttribute("data-answered")==="1";
+    var hide=(filter==="open"&&a)||(filter==="done"&&!a);
+    c.classList.toggle("hidden-by-filter",hide);
+  });
+  ["all","open","done"].forEach(function(f){document.getElementById("f-"+f).setAttribute("aria-pressed",String(filter===f))});
+}
+["all","open","done"].forEach(function(f){document.getElementById("f-"+f).addEventListener("click",function(){filter=f;applyFilter()})});
+
+qroot.addEventListener("change",function(e){
+  var c=e.target.closest("article.card");if(!c)return;var id=c.getAttribute("data-id");
+  if(e.target.type==="radio"){touch(id).c=e.target.value;save();refresh()}
+});
+qroot.addEventListener("input",function(e){
+  if(e.target.tagName!=="TEXTAREA")return;
+  var c=e.target.closest("article.card");var id=c.getAttribute("data-id");
+  touch(id).n=e.target.value;save();
+  var s=state[id],ans=!!(s.c||(s.n&&s.n.trim()));
+  var tag=c.querySelector("[data-status]");tag.textContent=ans?"answered":"unanswered";tag.className="tag "+(ans?"done":"open");
+  c.setAttribute("data-answered",ans?"1":"0");
+  var n=document.querySelectorAll('article.card[data-answered="1"]').length;
+  document.getElementById("count").textContent=n+" of "+total+" answered";buildOut();
+});
+qroot.addEventListener("click",function(e){
+  var c=e.target.closest("article.card");if(!c)return;var id=c.getAttribute("data-id");
+  var it=null;Q.forEach(function(g){g.items.forEach(function(x){if(x.id===id)it=x})});
+  if(e.target.hasAttribute("data-use")){touch(id).c=it.rec;save();refresh()}
+  if(e.target.hasAttribute("data-reset")){state[id]={t:Date.now()};save();refresh()}
+});
+
+function buildOut(){
+  var lines=["Shell Design Workbook (answers to the planning workbook)",""];
+  Q.forEach(function(g){g.items.forEach(function(it){
+    var s=state[it.id]||{},txt;
+    if(s.c){var o=it.opts.filter(function(x){return x.k===s.c})[0];txt=s.c.toUpperCase()+" - "+o.l+(s.c===it.rec?" (recommended)":"")}
+    else txt="no choice";
+    if(s.n&&s.n.trim())txt+=" | note: "+s.n.trim();
+    lines.push(it.id+" "+it.t+": "+txt);
+  })});
+  document.getElementById("out").textContent=lines.join("\n");
+}
+document.getElementById("copy").addEventListener("click",function(){
+  var t=document.getElementById("out").textContent,m=document.getElementById("copied");
+  function sel(){var r=document.createRange();r.selectNodeContents(document.getElementById("out"));var s=window.getSelection();s.removeAllRanges();s.addRange(r);m.textContent="Select and copy the text below."}
+  try{navigator.clipboard.writeText(t).then(function(){m.textContent="Copied."},sel)}catch(e){sel()}
+});
+document.getElementById("clear").addEventListener("click",function(){
+  var t=Date.now();Q.forEach(function(g){g.items.forEach(function(it){state[it.id]={t:t}})});save();refresh();
+});
+refresh();
+
+/* Connect the database once the viewer answers; the page works without it. */
+(function(){
+  if(!(window.claude&&window.claude.use))return;
+  window.claude.use("db").then(function(db){
+    if(!db){setSaveState("saved in this browser only");return}
+    dbDoc=db.doc("answers/main");
+    return dbDoc.get().then(function(snap){
+      var remote=(snap.exists&&snap.data()&&snap.data().state)||{};
+      if(mergeIn(remote)){saveLocal();refresh()}
+      if(!snap.exists||localNewer(remote))scheduleDb();else setSaveState("saved");
+      dbDoc.onSnapshot(function(s){
+        if(!s.exists||s.metadata.hasPendingWrites)return;
+        var r=(s.data()||{}).state||{};
+        if(mergeIn(r)){saveLocal();refresh()}
+      },function(){});
+    });
+  }).catch(function(){setSaveState("saved in this browser only")});
+})();
+</script>

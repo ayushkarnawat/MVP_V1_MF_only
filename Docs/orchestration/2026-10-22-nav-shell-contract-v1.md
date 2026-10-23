@@ -62,7 +62,7 @@ Level 3  In-page menus         belong to the page (for example the Mutual Funds 
 | portfolio, child of Equity | 2.1-2.4 | Direct Stocks, Mutual Fund, US Stock, FDs & bonds | `/portfolio/equity/direct-stocks`, `/portfolio/mutual-funds`, `/portfolio/equity/us-stocks`, `/portfolio/equity/fds-bonds` | `ChartCandlestick`, `ChartPie`, `Globe`, `PiggyBank` (proposed; all four exist in lucide-react 0.475.0, checked 22 Oct) |
 | portfolio | 3-6 | Debt, Gold, Real Estate, Others | `/portfolio/debt`, `/gold`, `/real-estate`, `/others` | `Landmark`, `Coins`, `Building2`, `Shapes` |
 
-**Top bar:** a search box, Ask Mira, the family selector, the theme toggle. **No avatar** (decision L31); Profile is in the sidebar footer. Search (decision L39) is one box with a dropdown of three groups: Your funds, All funds, Ask Mira. In the shell's first version the box opens the shared "Mira, coming soon" popup; the real search (a new `GET /funds/search` endpoint plus the dropdown) is a follow-up PR whose owner is to be agreed. Its behaviour is specified in the Portfolio Snapshot workbook (G2 reply).
+**Top bar (search is on hold, decision L46, owner-approved note 23 Oct: the box keeps its place but nothing is built or planned for search now):** a search box, Ask Mira, the family selector, the theme toggle. The family selector is one dropdown (Family Combined first, then each member), hidden on pages with `scope: "none"` (owner answers SF4, SF5, 23 Oct). Until the Investments page ships its own Add Investment control, a temporary "+ Add data" button sits beside Ask Mira (owner answer SF3, 23 Oct; removed later with a contract change note). **No avatar** (decision L31); Profile is in the sidebar footer. Search (decision L39) is one box with a dropdown of three groups: Your funds, All funds, Ask Mira. In the shell's first version the box opens the shared "Mira, coming soon" popup; the real search (a new `GET /funds/search` endpoint plus the dropdown) is a follow-up PR whose owner is to be agreed. Its behaviour is specified in the Portfolio Snapshot workbook (G2 reply). **Search is on hold (decision L46, 23 Oct):** the box keeps its place in the top bar and opens the popup; nothing is planned or built for real search.
 
 ## 4. URL map
 
@@ -135,7 +135,7 @@ export interface ShellRoute {
 7. **`renderInShell(ui, { path, scope })`** from `shell/testing`.
 8. Theme variables from `tokens.css`; light and dark both work.
 
-**Existing screens (decision L38):** each gets a thin wrapper route file that reads the scope and renders the unchanged component with the props `MainDashboardFlow` passes today. Nothing inside the screens is edited.
+**Existing screens (decision L38):** each gets a thin wrapper route file that reads the scope and renders the unchanged component with the props `MainDashboardFlow` passes today. Nothing inside the screens is edited. **Temporary (owner answer SF2, 23 Oct):** the Dashboard, History and Analytics wrappers also draw a small tab strip (Dashboard, History, Analytics) above the unchanged screen, so History and Analytics stay reachable until the Mutual Funds owner ships the real in-page menu; the strip is then removed with a contract change note.
 
 ## 7. Guarantees, rules and changes
 
@@ -144,7 +144,7 @@ export interface ShellRoute {
 - Member banners (PAN conflict, profile nudge) appear above page content for a single selected member on `family-or-member` pages, except Profile, as today.
 - **Page owners** may add or replace their own route files and their own feature folders. They may not edit anything else under `frontend/src/shell/`. A shell change is its own small PR labelled `shell-contract`.
 - **Changing the contract:** changes may be made at any time with a notice to both owners and a change-log line (owner's answer D4, 22 Oct). Every page plan states the version it assumes. A change to a path, id, field meaning or the scope hook's shape also needs the shell reviewers' approval under section 9, and the notice must say which pages it affects.
-- **Change log:** v1 (2026-10-22): first version. v1.1 (2026-10-22): mobile out of scope, no avatar, route status, wrapper files, three-group search, landing flow. v1.2 (2026-10-22): Equity becomes an expandable group with four children, `kind: "group"` and optional `path` added to the route module, `/portfolio/equity` removed, react-router v7 confirmed, open decisions answered. v1.2 revised (2026-10-22, before anything was pushed, after the Left Panel Plan answers): `/portfolio/equity` is a redirect to `/portfolio/mutual-funds`; child icons added; Portfolio scope rule; router pinned to `^7.18.4`; two-PR delivery and CODEOWNERS review; contract changes allowed with a notice.
+- **Change log:** v1 (2026-10-22): first version. v1.1 (2026-10-22): mobile out of scope, no avatar, route status, wrapper files, three-group search, landing flow. v1.2 (2026-10-22): Equity becomes an expandable group with four children, `kind: "group"` and optional `path` added to the route module, `/portfolio/equity` removed, react-router v7 confirmed, open decisions answered. v1.2 note (2026-10-23): search noted as on hold (L46); no path, id or field changed. v1.2 revised (2026-10-22, before anything was pushed, after the Left Panel Plan answers): `/portfolio/equity` is a redirect to `/portfolio/mutual-funds`; child icons added; Portfolio scope rule; router pinned to `^7.18.4`; two-PR delivery and CODEOWNERS review; contract changes allowed with a notice.
 
 ## 8. Template for every page plan
 
@@ -163,7 +163,7 @@ export interface ShellRoute {
 
 ## 9. Branches and PRs
 
-The shell is delivered in two PRs (owner's answer D1, 22 Oct). **PR 1** `feat/shell-nav`: router, registry, sidebar, top bar frame, placeholders and tests, not yet switched on. **PR 2**: the scope move, the wrapper files for existing screens and the `App.tsx` switch. Every change under `frontend/src/shell/` needs review by both owners, enforced with a `CODEOWNERS` file (D2). PR 1 merges first into `feat/leapswitch-staging`. Then, branched from updated staging: `feat/home-snapshot` and `feat/portfolio-<page>` for each page; each touches only its own route file and feature folder. A page may start stacked on `feat/shell-nav` before it merges, then retarget.
+The shell is delivered in two PRs (owner's answer D1, 22 Oct). **PR 1** `feat/shell-nav`: router, registry, sidebar, top bar frame, placeholders and tests, not yet switched on. **PR 2**: the scope move, the wrapper files for existing screens and the `App.tsx` switch. Every change under `frontend/src/shell/` needs review by both owners, enforced with a `CODEOWNERS` file naming `@ayushkarnawat` and `@aditi-unifolio` (D2, SD1). PR 1 merges first into `feat/leapswitch-staging`. Then, branched from updated staging: `feat/home-snapshot` and `feat/portfolio-<page>` for each page; each touches only its own route file and feature folder. A page may start stacked on `feat/shell-nav` before it merges, then retarget.
 
 ## 10. Decisions on the open questions (answered 22 Oct)
 
@@ -171,7 +171,7 @@ O1 router: **react-router v7, `^7.18.4`** (one new dependency; v8.5 needs Node 2
 
 **Confirmed by the owner (Left Panel Plan, 22 Oct):** FDs & bonds sits under Equity as listed; Debt, Gold, Real Estate and Others are plain greyed links with no children; Equity opens on child pages and otherwise remembers its last state; a typed `/portfolio/equity` redirects to `/portfolio/mutual-funds`; the scope rule above (Family Combined on every page change, except between the in-page tabs of one page); a shared Coming soon page for greyed URLs; the logo goes to `/home`; basic keyboard and screen-reader semantics only; Back remembers only live screens with the normal layout, otherwise `/home`.
 
-**Still to confirm:** nothing.
+**Still to confirm:** nothing. **Decided 23 Oct (Shell Design Workbook):** the landing is `/home` and it shows the Coming soon page until the Home PR sets its status to live (everything is staged together at the end, after every page is built); the active row follows the palette (dark label, 2 px green bar); the shell uses its own `--shell-*` colour tokens from the palette and `tokens.css` is untouched; the sidebar surface, disabled-row colour and label font follow the palette; the import screen's Back link returns to the screen it was opened from, default `/portfolio/mutual-funds`.
 
 **Confirmed 23 Oct:** (a) the slug `direct-stocks` for the Direct Stocks child (an earlier workbook used `stocks`). (b) the "same page" test for the tab exception uses the shared sidebar row (section 3), so a fund page (`/portfolio/mutual-funds/funds/:schemeId`) opened from a Mutual Funds tab keeps the picked member, because both belong to the Mutual Funds row.
 

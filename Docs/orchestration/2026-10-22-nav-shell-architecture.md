@@ -135,7 +135,7 @@ stateDiagram-v2
 
 ### 3.6 The top bar (decisions L31, L39)
 
-Search box, Ask Mira, the family selector, the theme toggle. **No avatar**; Profile is in the sidebar footer. The search box is one box with a dropdown of three groups (Your funds, All funds, Ask Mira); in the shell's first version it opens the shared "Mira, coming soon" popup, and the real search is a follow-up (a new `GET /funds/search` endpoint plus the dropdown), specified in the Portfolio Snapshot workbook (G2).
+Search box (search is on hold, decision L46: nothing built or planned for it now; owner-approved note 23 Oct), Ask Mira, the family selector, the theme toggle. **No avatar**; Profile is in the sidebar footer. The search box is one box with a dropdown of three groups (Your funds, All funds, Ask Mira); in the shell's first version it opens the shared "Mira, coming soon" popup, and the real search is a follow-up (a new `GET /funds/search` endpoint plus the dropdown), specified in the Portfolio Snapshot workbook (G2). **Search is on hold (decision L46, 23 Oct):** the box keeps its place and opens the popup; nothing is planned or built for real search.
 
 ## 4. The family-or-member scope
 
@@ -219,6 +219,13 @@ Each existing screen gets a thin wrapper route file that reads the scope and ren
 | Router captures `/print/analytics` or legal pages | They bypass `App` in `main.tsx` before the router exists; add a test |
 | Real URLs break on a server without fallback | Verified for Caddy and CloudFront; add a note to the deploy guides |
 | The shell and a page PR collide | Pages touch only their route file and feature folder; shell changes are their own PR |
+
+## 11a. Update 23 Oct: palette, tokens and companion documents
+
+- **Colours:** the shell uses the new palette (`Docs/Unifolio Colour Palette.pdf`) through its own `--shell-*` tokens in `shell/theme/shell-tokens.css`, light and dark. `tokens.css` is not edited, so existing screens do not change. The active row follows the palette's rule (dark text with a 2 px green indicator) unless the owner chooses the mockup's pill (question SP1).
+- **Equity-group notes** (sidebar and registry notes, build step 3, router-version risk row) are already present in this file from commit `8476835`; no further patch was needed.
+- **Companion documents** (all `2026-10-23-shell-*`): functionality and backend spec, layout, design system, reuse versus new, TDD, PRD, flows, backend decisions proposal, and the combined artifact with the mockups and open questions.
+- **Answered 23 Oct (Shell Design Workbook):** landing is `/home`, shown as Coming soon until Home is live (SF1 B); a temporary tab strip in the Dashboard, History and Analytics wrappers (SF2); a temporary "+ Add data" top-bar button (SF3); one family dropdown, hidden on pages without a scope (SF4, SF5); the import Back link returns to the origin screen (SF6); CODEOWNERS names `@ayushkarnawat` and `@aditi-unifolio` (SD1). Nothing is open.
 
 ## 12. Open items (from the contract, section 10)
 
