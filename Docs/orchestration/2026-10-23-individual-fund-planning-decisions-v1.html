@@ -1,0 +1,884 @@
+<title>Individual Fund Page Decisions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky contents rail + one reading column of decision cards; planning workbook, not a landing page. Same CSS as the Portfolio Snapshot workbook. */
+:root{
+  --bg:#f6f8f6; --surface:#ffffff; --surface-2:#eef2ee; --line:#d9e0d9;
+  --fg:#16211a; --muted:#566259; --accent:#128a4a; --accent-soft:#e1f3e8;
+  --locked:#2f5fb3; --locked-soft:#e6eefb; --open:#a8610a; --open-soft:#fbefd9;
+  --rec:#128a4a; --danger:#b3321f;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'DM Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'DM Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent)}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent)}
+nav.toc .grp{margin-top:14px}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:68ch;margin:0 0 10px}
+.rule{margin-top:18px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 16px;max-width:75ch}
+.rule b{color:var(--accent)}
+section{margin-top:52px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:72ch}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700;white-space:nowrap}
+.tag{display:inline-block;font:500 11px var(--f-mono);padding:2px 8px;border-radius:99px;letter-spacing:.03em}
+.tag.locked{background:var(--locked-soft);color:var(--locked)}
+.tag.open{background:var(--open-soft);color:var(--open)}
+.tag.done{background:var(--accent-soft);color:var(--accent)}
+.tag.rec{background:var(--accent-soft);color:var(--rec)}
+.tag.no{background:var(--surface-2);color:var(--danger);border:1px solid var(--danger)}
+.reply{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px}
+.reply b.t{color:var(--accent)}
+.reply ul,.reply ol{margin:6px 0;padding-left:20px}
+.reply li{margin:3px 0}
+.tag.later{background:var(--open-soft);color:var(--open)}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul{margin:6px 0;padding-left:20px}
+.sumbox li{margin:5px 0}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:10px 0}
+.two>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.two h4{margin:0 0 6px;font-family:var(--f-display);font-size:15px}
+.two ul{margin:4px 0;padding-left:18px}
+.two li{margin:4px 0}
+.two .pro h4{color:var(--rec)}
+.two .con h4{color:var(--danger)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}
+.chip{font:500 12px var(--f-mono);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:6px 12px;border-radius:99px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.spacer{flex:1}
+.count{font:500 12px var(--f-mono);color:var(--muted)}
+.btn{font:500 13px var(--f-body);background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+:root[data-theme="dark"] .btn{color:#06210f}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn{color:#06210f}}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:70px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:500 12px var(--f-mono);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.card p{margin:8px 0}
+.ask{font-weight:500}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--rec)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.opt .tag{margin-left:6px}
+.why{border-left:3px solid var(--rec);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--rec)}
+.risk{font-size:13.5px;color:var(--muted)}
+.risk b{color:var(--danger)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+textarea{width:100%;min-height:54px;font:14px var(--f-body);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;resize:vertical}
+.card.locked{background:var(--locked-soft);border-color:transparent}
+.card.locked .decided{font-weight:500}
+.hidden-by-filter{display:none}
+.callout{background:var(--open-soft);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:14px}
+ul.tight{margin:6px 0;padding-left:20px}
+ul.tight li{margin:3px 0}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+#out{white-space:pre-wrap;font:13px var(--f-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px;max-height:340px;overflow:auto}
+details{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:12px;padding:0 16px}
+details>summary{cursor:pointer;font-weight:700;padding:12px 0;font-family:var(--f-display);font-size:16px}
+details[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+details .body{padding-bottom:14px}
+h3.sub{font-size:17px;margin:22px 0 8px}
+blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);color:var(--muted);font-size:14px}
+.pill{display:inline-block;font:500 11px var(--f-mono);padding:1px 7px;border-radius:6px;background:var(--surface-2);color:var(--muted)}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+.flow .st{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:13px;min-width:0}
+.flow .st b{display:block;font-family:var(--f-display);font-size:14px;margin-bottom:2px}
+.flow .st .n{font:500 11px var(--f-mono);color:var(--muted)}
+.flow .st .m{color:var(--muted);font-size:12.5px}
+.flow .st.new{border-color:var(--accent)}
+.flow .st.old{border-style:dashed}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}nav.toc{position:static;max-height:none;margin-bottom:12px;columns:2}nav.toc .grp{margin-top:0;break-inside:avoid}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <h4>Contents</h4>
+  <a href="#intro">Where we are</a>
+  <div class="grp"><h4>Research</h4>
+    <a href="#pdf">1. The PDF, pages 24 to 26</a>
+    <a href="#overview">2. Overview tab, element by element</a>
+    <a href="#insights">3. Insights tab, element by element</a>
+    <a href="#code">4. What the code has</a>
+    <a href="#cold">5. Cold start: what runs and when</a>
+    <a href="#compute">6. What we can compute and show</a>
+    <a href="#risk-metrics">7. Risk metrics (3Y): easy or heavy?</a>
+    <a href="#conflicts">8. Conflicts and mockup errors</a>
+    <a href="#privacy">9. Privacy, consent, Profile reuse</a>
+    <a href="#clickmap">10. Click map (L14)</a>
+    <a href="#catalogue">11. Insight rule catalogue</a></div>
+  <div class="grp"><h4>Decisions</h4>
+  <a href="#locked">Decisions you made</a>
+  <a href="#blueprint">Section blueprint</a></div>
+  <div class="grp"><h4>Open questions</h4>
+    <a href="#grp-A">A. The Overview numbers</a><a href="#grp-B">B. Cold start and loading</a><a href="#grp-C">C. Insights tab</a><a href="#grp-D">D. Everything clickable</a><a href="#grp-E">E. Page frame and entry</a></div>
+  <div class="grp"><a href="#plan">Documents phase plan</a><a href="#risks">Risks</a><a href="#verify">To verify</a><a href="#log">Conversation log</a><a href="#answers">Your answers</a></div>
+</nav>
+
+<main>
+<div class="hero" id="intro">
+  <h1>Individual Fund Page Decisions</h1>
+  <p>Planning workbook for the Overview and Insights tabs of the per-fund page in the new Unifolio desktop web app, prepared 23 Oct 2026. Nothing is built. Every open question has options, a recommendation and the reason for it. Pick an option or write your own; answers save in this page's database, so closing it loses nothing.</p>
+  <div class="rule"><b>Source of truth:</b> <i>Web app UI mockups MFs.pdf</i>, pages 24 (Overview) and 26 (Insights). Page 25 (Overlap) is out of scope. The PDF wins over older documents; every conflict is listed in section 8, and I will not edit any existing document without asking you.</div>
+  <div class="rule"><b>Scope:</b> mutual funds only, desktop web only; mobile is untouched. Existing screens are not changed; the shell wires them in by thin wrapper files. Search is on hold (L46 of the Home workbook). Contract version assumed: shell contract v1.4 (route <span class="mono">/portfolio/mutual-funds/funds/:schemeId</span> plus <span class="mono">/insights</span> and <span class="mono">/overlap</span>).</div>
+</div>
+
+<section id="pdf">
+  <h2>1. The PDF, pages 24 to 26</h2>
+  <p class="lead">The three pages are images with a title only (text extraction returns just the titles), so I read pages 24 and 26 visually, region by region. Page 25 was not analysed.</p>
+  <div class="scroll"><table>
+    <tr><th>Page</th><th>Content</th><th>This round</th></tr>
+    <tr><td class="k">24</td><td>"Mutual funds Individual Fund Page": the Overview tab for HDFC Flexi Cap Fund. Header with stats row and score card, tab strip, performance chart, your investment details, returns table, risk metrics, top 10 holdings, fund allocation donut.</td><td>In scope</td></tr>
+    <tr><td class="k">25</td><td>"Mutual funds Individual Fund Overlap Page"</td><td>Out of scope; the tab shows as Coming soon (L11)</td></tr>
+    <tr><td class="k">26</td><td>"Mutual funds Individual Fund Insights Page": Smart Insights from Mira, Key Insights, Strengths and Considerations, Fund Manager and Strategy, Rolling Returns, Year-wise Returns, Risk-Return scatter. A side note says: "One more thing to show here on monthly basis - which stocks are added and which are removed from previous month".</td><td>In scope</td></tr>
+  </table></div>
+</section>
+
+<section id="overview">
+  <h2>2. Overview tab (page 24), element by element</h2>
+  <p class="lead">Everything visible on the page, with its status after your answers in this session. "Data" says where the number can come from today; section 6 has the cost.</p>
+  <div class="scroll"><table>
+    <tr><th>Area</th><th>What the mockup shows</th><th>Status</th><th>Data today</th></tr>
+    <tr><td class="k">Top bar</td><td>Search "Search for a fund, stock, or ask Mira...", Ask Mira, "Family Combined" dropdown, moon icon, avatar "SS"</td><td>Shell owns it. Avatar removed (L31 of Home). Search on hold, opens the Mira popup.</td><td>shell</td></tr>
+    <tr><td class="k">Left menu</td><td>Home, Analytics, Investments (active), Performance, Scenarios, Profile, Help &amp; Support</td><td>Older menu; the shell contract (Portfolio mode, Equity group, Mutual Fund active) wins</td><td>shell</td></tr>
+    <tr><td class="k">Breadcrumb</td><td>Investments &gt; Mutual Funds &gt; HDFC Flexi Cap Fund</td><td>In scope. Investments goes to <span class="mono">/portfolio</span>, Mutual Funds to <span class="mono">/portfolio/mutual-funds</span></td><td>route</td></tr>
+    <tr><td class="k">Title block</td><td>Round AMC logo, fund name, pills "Direct Plan", "Growth", "Flexi Cap", "HDFC Mutual Fund"; right: "+ Add Investment" button and "..." menu</td><td>Growth pill not shown (L3). Add Investment and "..." shown as Coming soon (L10). Logo: open (E2).</td><td><span class="mono">schemes</span>: name, plan_type, sebi_category, amc_name. No logo.</td></tr>
+    <tr><td class="k">Stat: Current Value</td><td>₹18,32,450 and "(12.9% of portfolio)"</td><td>In scope; the share is of the mutual fund portfolio in the chosen scope</td><td><span class="mono">compute_holdings</span> row</td></tr>
+    <tr><td class="k">Stat: Invested</td><td>₹12,50,000</td><td>In scope</td><td>holding row <span class="mono">amount_invested</span></td></tr>
+    <tr><td class="k">Stat: Total Gain</td><td>+₹5,82,450 (+46.6%) and a small icon</td><td>In scope; today's gain and realized gain are also available for a popup</td><td>holding row (unrealized, realized, today gain)</td></tr>
+    <tr><td class="k">Stat: XIRR</td><td>18.9% and "vs category 14.2%"</td><td>In scope; the sub-line is open (A2)</td><td>stored <span class="mono">benchmark_funds</span> section has per-fund XIRR and benchmark XIRR</td></tr>
+    <tr><td class="k">Stat: Expense Ratio</td><td>1.10% and "Direct Plan"</td><td>In scope</td><td><span class="mono">scheme_ter</span> latest value</td></tr>
+    <tr><td class="k">Score card</td><td>Ring 82, "Unifolio Fund Score" with info icon, "Very Good", sentence "Consistent performance, reasonable costs and strong portfolio quality.", chevron arrow</td><td>Opens the existing FundScoreDetailModal (L2). Verdict word and sentence from existing verdict copy.</td><td><span class="mono">GET /analytics/funds/{id}/score</span>, stored <span class="mono">score</span> section, <span class="mono">fundScoreVerdicts.ts</span></td></tr>
+    <tr><td class="k">Tab strip</td><td>Overview, Performance, Holdings, Overlap Analysis, Peer Comparison, Transactions, Insights</td><td>Overview, Overlap (Coming soon) and Insights only (L11)</td><td>route</td></tr>
+    <tr><td class="k">Performance chart</td><td>Title and info icon; period chips 1M 3M 6M 1Y (selected) 3Y 5Y All; legend with three lines and their period returns (fund +28.4%, Nifty 500 TRI +21.6%, Flexi Cap Category Avg +19.8%); area-style lines on a -10% to 40% axis, Oct 2024 to Oct 2025</td><td>In scope; benchmark and category follow the fund (L12). Category line method: A4.</td><td>fund: <span class="mono">nav_history</span> (existing nav-history endpoint, periods 1M 1Y 3Y 5Y MAX). Benchmark: <span class="mono">benchmark_index_history</span> TRI. Category: not stored as a series.</td></tr>
+    <tr><td class="k">Your Investment Details</td><td>"Update" link; Units 1,428.321; Average NAV (Invested) ₹87.50; Current NAV ₹128.35; Invested Amount; Current Value; Gain / Loss; XIRR; First Investment 12 Jan 2022; Last Investment 5 Aug 2024; Folio Number XXXXX1234 with copy icon</td><td>In scope; Update shown as Coming soon (L10). Combined scope: units and amounts sum across members; several folios listed.</td><td>holding row (units, average NAV, current NAV, amounts). First and last dates from transactions. Folio numbers from <span class="mono">folios</span> (full number is stored; the mockup masks it, see C-note below).</td></tr>
+    <tr><td class="k">Returns table</td><td>Toggle "Absolute | Annualised" (now Inception | Current, L4); columns 1M 3M 6M 1Y 3Y 5Y Since Inception; rows fund, Nifty 500 TRI, Flexi Cap Category Avg</td><td>In scope; Current-mode definition is A1</td><td>fund and benchmark from NAV and TRI (cheap); category averages exist for 1Y, 3Y and 5Y only (<span class="mono">category_period_averages</span>), other periods need a new peer pass</td></tr>
+    <tr><td class="k">Risk Metrics (3Y)</td><td>Volatility 14.2% Moderate; Maximum Drawdown -18.6% Moderate; Sharpe 1.12 Good; Beta (vs Nifty 500) 0.92 Lower Risk; each with a bar</td><td>Build now if light (L5). Verdict in section 7. Labels and risk-free rate: A3.</td><td>one fund's NAV for 3 years plus Nifty 500 TRI</td></tr>
+    <tr><td class="k">Top 10 Holdings</td><td>"(38 stocks)", ten rows (stock, sector, weight) in two columns of five, "View all holdings" link</td><td>In scope; link opens a full list (A6)</td><td>latest written <span class="mono">disclosure_batches</span> + <span class="mono">scheme_holdings</span> for the scheme</td></tr>
+    <tr><td class="k">Fund Allocation</td><td>Tabs Market Cap (selected), Sector, Asset Type; donut with "₹18.32L Current Value" in the centre; legend Large 52.4%, Mid 28.1%, Small 19.5%</td><td>In scope; A5</td><td><span class="mono">market_cap_classifications</span> by ISIN; <span class="mono">stock_master.sector</span> or <span class="mono">sector_raw</span>; <span class="mono">asset_type</span></td></tr>
+  </table></div>
+</section>
+
+<section id="insights">
+  <h2>3. Insights tab (page 26), element by element</h2>
+  <div class="scroll"><table>
+    <tr><th>Area</th><th>What the mockup shows</th><th>Status</th><th>Data today</th></tr>
+    <tr><td class="k">Header</td><td>Breadcrumb with "Insights" added, same title block, no stat row, no score card</td><td>In scope</td><td>as Overview</td></tr>
+    <tr><td class="k">Smart Insights from Mira (BETA)</td><td>Light bulb, subtitle "Key insights, risks and opportunities based on your portfolio and market data.", button "Ask follow up question", three cards: "Strong long-term performer" (16.3% CAGR over 5 years vs category 12.7%), "High overlap in your portfolio" (64% overlap with 3 other funds, link "See overlap analysis"), "Consistent fund management" (stable team, 10+ years)</td><td>Placeholder, Coming soon (L7). The follow-up button opens the Mira popup.</td><td>none needed</td></tr>
+    <tr><td class="k">Key Insights</td><td>Six rows with icons: outperformed peer average in 4 of last 5 years; lower expense ratio (0.56%) vs category (1.02%); top 5 holdings make up 28%; high exposure to Financial Services (28%) and IT (16%); overlap 64% with JM Flexi Cap and 38% with HDFC Large Cap Fund; consistent investment style and low churn</td><td>Plain computed facts (L8). Rule catalogue in section 11 (C4).</td><td>mix of new peer calculations, <span class="mono">scheme_ter</span>, holdings, stored <span class="mono">overlap</span> section</td></tr>
+    <tr><td class="k">Strengths and Considerations</td><td>Strengths (4 green checks) and Considerations (4 red marks)</td><td>Plain computed facts (L8); C4</td><td>same inputs</td></tr>
+    <tr><td class="k">Fund Manager and Strategy</td><td>Photo, "Mr. Prashant Jain", "Managing the fund since Apr 2010", "15+ years" pill, paragraph, Investment Approach (4 checks), Investment Style grid (Growth Focused, Blend Style, Large + Mid + Small Cap, High Conviction)</td><td>Name and tenure only (L9); photo, paragraph, approach and style are Coming soon</td><td><span class="mono">scheme_fund_managers</span> (name, role, managing since)</td></tr>
+    <tr><td class="k">Rolling Returns</td><td>"3 Years" dropdown; three lines 2019 to 2025; hover tooltip "Mar 2023: fund 18.4%, Nifty 500 TRI 13.2%, category 11.6%"</td><td>In scope; C1</td><td>new calculation from monthly NAV series (the scorer builds only 5 years of months)</td></tr>
+    <tr><td class="k">Year-wise Returns</td><td>"Calendar Year" dropdown; grouped bars per year 2020 to 2025 for fund, Nifty 500 TRI, category</td><td>In scope; C2</td><td>from month-end series</td></tr>
+    <tr><td class="k">Risk-Return (3 Years)</td><td>Scatter, annual return vs volatility, the fund highlighted with a tooltip, grey peer dots</td><td>In scope; C3</td><td>peer monthly series (same pass the scorer already makes)</td></tr>
+  </table></div>
+</section>
+
+<section id="code">
+  <h2>4. What the code has: reuse versus new</h2>
+  <p class="lead">Read from the repository on 23 Oct 2026 (file names so each point can be re-checked). Nothing was run against a database.</p>
+  <div class="scroll"><table>
+    <tr><th>Piece</th><th>Exists today</th><th>For this page</th></tr>
+    <tr><td class="k">Existing per-fund routes</td><td><span class="mono">GET /funds/{scheme_id}/nav-history</span> (<span class="mono">api/dashboard.py</span>, periods 1M 1Y 3Y 5Y MAX, downsampled, returns in percent from the first point); <span class="mono">GET /analytics/funds/{id}/score</span> and <span class="mono">/ranking</span> (<span class="mono">api/analytics.py</span>)</td><td><span class="tag done">reuse</span> for the chart's fund line and the score</td></tr>
+    <tr><td class="k">Frontend</td><td><span class="mono">FundScoreDetailModal</span> (<span class="mono">features/analytics</span>) takes <span class="mono">schemeId</span>, loads <span class="mono">getFundScore</span> itself or uses given data; <span class="mono">FundScoreCard</span>, <span class="mono">fundScoreVerdicts.ts</span>, <span class="mono">tierStyle.ts</span>; <span class="mono">FundDetailModal</span> and <span class="mono">FundSignalGraph</span> on the Dashboard; <span class="mono">XirrDisclaimerModal</span></td><td><span class="tag done">reuse</span> unchanged (L2: the scorer arrow opens this same modal)</td></tr>
+    <tr><td class="k">Holdings</td><td><span class="mono">compute_holdings(db, member_ids)</span> returns rows per member and scheme (units, average NAV, current NAV, invested, value, unrealized, realized, today gain); per-worker cache, 15 minutes</td><td><span class="tag done">reuse</span>; cold start is its weak point (section 5)</td></tr>
+    <tr><td class="k">XIRR and benchmark</td><td><span class="mono">analytics/benchmark.py</span>: <span class="mono">compute_fund_vs_benchmark</span> gives per-fund XIRR and the same cash flows replayed in the fund's index; <span class="mono">_benchmark_index_for_category</span> maps a SEBI category to one of Nifty 50, Nifty 500, Nifty LargeMidcap 250, Nifty Midcap 150; stored as section <span class="mono">benchmark_funds</span></td><td><span class="tag done">reuse</span>; the mapping gives L12's "benchmark follows the fund"</td></tr>
+    <tr><td class="k">Benchmark history</td><td><span class="mono">benchmark_index_history</span> keyed by index, date and return type (price, TRI, PE, PB); the daily job pulls TRI from 1990 and price for 10 years</td><td><span class="tag done">reuse</span> TRI for the blue line. Whether TRI rows exist on staging is <span class="tag open">unverified</span></td></tr>
+    <tr><td class="k">Score and peers</td><td><span class="mono">scorer.py</span>: category peers (same plan type, Growth option), monthly series over 5 years, downside deviation, rolling 12-month consistency, TER overlay; 15-minute per-worker category cache; one <span class="mono">fund_scores</span> history row per fund per day</td><td><span class="tag done">reuse</span>; the peer series is also what category lines, year-wise bars and the scatter need</td></tr>
+    <tr><td class="k">Category averages</td><td><span class="mono">category_ranking.py</span>: AUM-weighted category average return for 1Y, 3Y and 5Y; <span class="mono">scheme_aaum</span> weights</td><td><span class="tag done">reuse</span> for the 1Y, 3Y and 5Y cells; shorter periods are new</td></tr>
+    <tr><td class="k">TER</td><td><span class="mono">scheme_ter</span>; category average TER inside the scorer (<span class="mono">_category_ter_context</span>)</td><td><span class="tag done">reuse</span></td></tr>
+    <tr><td class="k">Fund holdings</td><td><span class="mono">disclosure_batches</span> (scheme, as-of date, status) and <span class="mono">scheme_holdings</span> (name, ISIN, sector_raw, asset_type, market value, pct_to_nav); <span class="mono">market_cap_classifications</span>; <span class="mono">stock_master</span> (sector, PE, PB); retention keeps the newest three calendar months per scheme (<span class="mono">portfolio_disclosure_retention.py</span>)</td><td><span class="tag done">reuse</span>; monthly added/removed needs two months, so it works while the retention stays at three</td></tr>
+    <tr><td class="k">Overlap</td><td><span class="mono">overlap.py</span> and the stored <span class="mono">overlap</span> section (pairs of held funds)</td><td><span class="tag done">reuse</span> for the one overlap fact in Key Insights</td></tr>
+    <tr><td class="k">Fund manager</td><td><span class="mono">scheme_fund_managers</span>: name, role, sequence, managing_since (date), reference period. Ten fund houses need a monthly hand import (Priority 1 in CLAUDE.md), five have no factsheet</td><td><span class="tag done">reuse</span>; some funds will show no manager</td></tr>
+    <tr><td class="k">Not held anywhere</td><td>AMC logos; manager photo, biography, approach, style tags; portfolio turnover; a risk-free rate; Mira text; per-fund Sharpe, Beta, drawdown, volatility; category average series; calendar-year and rolling series; the monthly added/removed diff</td><td><span class="tag open">new calculation</span> or Coming soon</td></tr>
+    <tr><td class="k">New tables</td><td colspan="2">None proposed. Any precomputed result can use the existing <span class="mono">analytics_sections</span> table with a section name per scheme (reuse-first); only if measurements show that is not enough would I propose a table, and I would lead with this alternative.</td></tr>
+  </table></div>
+</section>
+
+<section id="cold">
+  <h2>5. Cold start: what runs and when</h2>
+  <p class="lead">You asked what a cold start costs and what triggers each calculation. Facts below are from the code; timings from the Home staging run are quoted as such. Nothing was measured for this page (see "To verify").</p>
+
+  <h3 class="sub">What triggers computation today</h3>
+  <div class="scroll"><table>
+    <tr><th>Trigger</th><th>What runs</th><th>Where the result lives</th></tr>
+    <tr><td class="k">Import confirm, member merge or delete</td><td><span class="mono">claim_and_dispatch_recompute</span> starts a household recompute as a separate task (ECS RunTask on AWS; a sibling worker container on LeapSwitch). It computes 15 sections (allocation, TER, benchmark, benchmark_funds, category_ranking, ranking, score, overlap and more) for combined and each member.</td><td>table <span class="mono">analytics_sections</span> (payload JSON, computed_at, failed_at)</td></tr>
+    <tr><td class="k">Opening Analytics with no stored rows</td><td><span class="mono">GET /analytics/{scope}</span> claims and dispatches a recompute if none is in flight (15-minute staleness ceiling) and returns <span class="mono">recomputing: true</span></td><td>same</td></tr>
+    <tr><td class="k">Daily schedule</td><td>NAV, benchmark and other reference jobs (cron on the VM); a daily analytics recompute job exists (ADR-006)</td><td>reference tables and <span class="mono">analytics_sections</span></td></tr>
+    <tr><td class="k">Opening the old Dashboard</td><td><span class="mono">compute_holdings</span> inline: for each held fund, fetch NAV history if no row is dated today (<span class="mono">nav.py</span> <span class="mono">get_nav_on_or_before</span>); <span class="mono">allow_stale_today</span> exists on that function but not on <span class="mono">compute_holdings</span></td><td>per-worker memory cache (15 min, 3 workers do not share it)</td></tr>
+    <tr><td class="k">A fund's NAV chart</td><td><span class="mono">warm_nav_history([scheme])</span> skips the download when a row is within 3 days of today; otherwise one network fetch of that fund's full history</td><td><span class="mono">nav_history</span></td></tr>
+    <tr><td class="k">Score request</td><td><span class="mono">compute_fund_score</span> runs on demand: loads the category peers (30 to 256 funds), builds their 5-year monthly series from one bulk read, scores. Cached per worker for 15 minutes, with a day key.</td><td>memory cache; one row per fund per day in <span class="mono">fund_scores</span>. The household <span class="mono">score</span> section stores scores for held funds only.</td></tr>
+  </table></div>
+
+  <h3 class="sub">What "cold" means for this page</h3>
+  <ul class="tight">
+    <li><b>First open after an import</b>: the household recompute may still be running, so stored sections (score, benchmark_funds, overlap) can be missing for a while. Everything else must work without them.</li>
+    <li><b>First open after a deploy or on another worker</b>: in-memory caches (holdings, category scores) are empty; the score's peer pass is paid again (seconds, <span class="tag open">unmeasured</span>).</li>
+    <li><b>Weekend or holiday</b>: no row dated today exists, so a naive holdings call re-downloads every held fund's NAV history. The Home staging run (14 Oct–23 Oct handoff, three households of 12 to 46 funds) measured a cold holdings call at 4.9 to 24.3 s for exactly this reason; warm holdings were 0 ms. This page would inherit that cost <i>if</i> it calls <span class="mono">compute_holdings</span> for the whole household to find one fund.</li>
+    <li><b>A single fund is cheap on its own</b>: its NAV series, TRI series and holdings batch are indexed single-fund reads. The Home measurements put one bulk NAV read for 12 to 46 funds at 8 to 240 ms, so one fund is a fraction of that (an estimate, not measured).</li>
+  </ul>
+
+  <h3 class="sub">Proposed loading design (to be decided in B1 and B2)</h3>
+  <div class="flow">
+    <div class="st new"><span class="n">TIER 1 · instant</span><b>Header + your investment</b><span class="m">A scheme-filtered holdings read (only this fund's folios, one NAV fetch at worst), TER, manager. Needs no peers and no stored section.</span></div>
+    <div class="st new"><span class="n">TIER 2 · fast</span><b>Chart, returns, risk metrics, holdings</b><span class="m">One fund's NAV and TRI series, 3-year NAV statistics, latest disclosure batch. Milliseconds from the database once NAV is warm.</span></div>
+    <div class="st new"><span class="n">TIER 3 · lazy</span><b>Category line, peer cells, score, insights</b><span class="m">Needs the category peers. Read the stored section when present; otherwise compute once and cache. Skeletons only on these cards.</span></div>
+    <div class="st old"><span class="n">NEVER ON OPEN</span><b>Household recompute</b><span class="m">The fund page never starts a recompute. It reads stored sections and falls back to computing one fund.</span></div>
+  </div>
+  <p class="ctx">Precompute option: add per-fund results (peer-dependent series and facts) to the existing recompute as one section per held fund in <span class="mono">analytics_sections</span>, refreshed after imports and by the daily job. No new table. Whether that is needed depends on the measurement in B3.</p>
+</section>
+
+<section id="compute">
+  <h2>6. What we can compute and show from the current codebase and backend</h2>
+  <p class="lead">Verdicts: <span class="tag done">have</span> already computed or stored; <span class="tag later">cheap</span> new calculation on data we hold, one fund, milliseconds (estimate); <span class="tag open">peers</span> needs the category peer series (cached; the cost is the cold peer pass); <span class="tag no">not held</span> no data source, so Coming soon or manual content.</p>
+  <div class="scroll"><table>
+    <tr><th>Page element</th><th>Verdict</th><th>How</th></tr>
+    <tr><td class="k">Name, plan, category, AMC</td><td><span class="tag done">have</span></td><td><span class="mono">schemes</span></td></tr>
+    <tr><td class="k">Current value, invested, gain, % of portfolio</td><td><span class="tag done">have</span></td><td>holding rows; share of portfolio = value / sum of the scope's values</td></tr>
+    <tr><td class="k">XIRR (fund)</td><td><span class="tag done">have</span></td><td>stored <span class="mono">benchmark_funds</span>; if missing, one-fund XIRR from its transactions (<span class="tag later">cheap</span>)</td></tr>
+    <tr><td class="k">Expense ratio</td><td><span class="tag done">have</span></td><td><span class="mono">scheme_ter</span></td></tr>
+    <tr><td class="k">Fund Score ring, verdict, sentence</td><td><span class="tag done">have</span></td><td>stored <span class="mono">score</span> section or on-demand endpoint; verdict copy exists</td></tr>
+    <tr><td class="k">Units, average NAV, current NAV, first and last investment</td><td><span class="tag done">have</span></td><td>holding row; dates from the first and last purchase transaction</td></tr>
+    <tr><td class="k">Folio number</td><td><span class="tag done">have</span></td><td><span class="mono">folios.folio_number</span> (several in a family scope)</td></tr>
+    <tr><td class="k">Chart: fund line</td><td><span class="tag done">have</span></td><td>nav-history endpoint, rebased</td></tr>
+    <tr><td class="k">Chart: benchmark line (Nifty 500 TRI etc.)</td><td><span class="tag later">cheap</span></td><td>TRI rows rebased to the period start; index chosen by <span class="mono">_benchmark_index_for_category</span></td></tr>
+    <tr><td class="k">Chart: category average line</td><td><span class="tag open">peers</span></td><td>equal or AUM-weighted average of the peers' rebased NAV (A4)</td></tr>
+    <tr><td class="k">Returns table, fund and benchmark, all columns</td><td><span class="tag later">cheap</span></td><td>NAV on or before each anchor date; under one year absolute, above one year annualised (my assumption, in A1)</td></tr>
+    <tr><td class="k">Returns table, category average</td><td><span class="tag open">peers</span></td><td>1Y, 3Y, 5Y exist; 1M, 3M, 6M and Since Inception are new (bulk NAV on-or-before already exists as <span class="mono">_bulk_nav_on_or_before</span>)</td></tr>
+    <tr><td class="k">Returns table, Current mode (your holding)</td><td><span class="tag later">cheap</span></td><td>XIRR with an opening value at the period start; benchmark replay already exists (A1)</td></tr>
+    <tr><td class="k">Volatility, max drawdown, Sharpe</td><td><span class="tag later">cheap</span></td><td>daily NAV returns over 3 years (about 750 points); risk-free rate is a setting (section 7)</td></tr>
+    <tr><td class="k">Beta vs Nifty 500</td><td><span class="tag later">cheap</span></td><td>covariance with Nifty 500 TRI daily returns, same window; needs TRI rows present</td></tr>
+    <tr><td class="k">Risk labels (Moderate, Good, Lower Risk)</td><td><span class="tag later">cheap</span> / <span class="tag open">peers</span></td><td>fixed bands (cheap) or percentile in the category (A3)</td></tr>
+    <tr><td class="k">Top 10 holdings, stock count, weights</td><td><span class="tag done">have</span></td><td>latest written batch; "38 stocks" = equity rows in that batch</td></tr>
+    <tr><td class="k">Fund Allocation: market cap, sector, asset type</td><td><span class="tag later">cheap</span></td><td>group the batch by cap bucket (by ISIN), sector, asset type; "Other" for debt, cash, unclassified (A5)</td></tr>
+    <tr><td class="k">Key Insights, Strengths, Considerations</td><td><span class="tag open">peers</span> mostly</td><td>templates over the numbers here (section 11)</td></tr>
+    <tr><td class="k">Rolling returns, year-wise returns, risk-return scatter</td><td><span class="tag open">peers</span></td><td>month-end series of fund, index and peers; the scorer builds 5 years, rolling 3-year charts need more (C1)</td></tr>
+    <tr><td class="k">Manager name, tenure</td><td><span class="tag done">have</span></td><td><span class="mono">scheme_fund_managers</span></td></tr>
+    <tr><td class="k">Manager photo, biography, approach, style, "15+ years"</td><td><span class="tag no">not held</span></td><td>Coming soon (L9)</td></tr>
+    <tr><td class="k">Portfolio turnover, "low churn" statement</td><td><span class="tag no">not held</span></td><td>turnover is not stored; no such statement is made (C4)</td></tr>
+    <tr><td class="k">Mira cards, follow-up</td><td><span class="tag no">not held</span></td><td>placeholder (L7)</td></tr>
+  </table></div>
+</section>
+
+<section id="risk-metrics">
+  <h2>7. Risk metrics (3Y): easy or heavy?</h2>
+  <div class="sumbox">
+    <h3>Verdict: easy, build it now (subject to A3)</h3>
+    <ul>
+      <li><b>Inputs:</b> one fund's NAV for 3 years (about 750 rows) and one index's TRI for the same days. Both are single-key reads on tables we already fill daily.</li>
+      <li><b>Volatility:</b> standard deviation of daily NAV returns, annualised (times the square root of 252). <b>Max drawdown:</b> largest peak-to-trough fall of the NAV in the window. <b>Sharpe:</b> annualised excess return over a risk-free rate divided by volatility. <b>Beta:</b> covariance with the index's daily returns divided by the index's variance.</li>
+      <li><b>Cost:</b> arithmetic on about 750 numbers, a few milliseconds in Python (an estimate; not timed). No peers, no cold peer pass.</li>
+      <li><b>What is not trivial:</b> the Sharpe risk-free rate does not exist in the code, so you must pick a number or source (A3); the bar labels need rules; funds with under 3 years of history show a shorter window or "not enough history" (rule to fix in the spec); NAV dates and index dates must be aligned before computing beta.</li>
+      <li><b>Mockup mix-up to fix:</b> the page 26 scatter shows 18.7% return and 14.2% volatility for the fund, but 18.7% is the 5-year figure on page 24 and 14.2% is the 3-year volatility. Both axes must use the same 3-year window (the 3-year return in the mockup is 16.3%).</li>
+    </ul>
+  </div>
+</section>
+
+<section id="conflicts">
+  <h2>8. Conflicts and mockup errors</h2>
+  <p class="lead">Where the PDF, the shell contract or our code disagree. None was resolved silently.</p>
+  <div class="scroll"><table>
+    <tr><th>Topic</th><th>PDF</th><th>Other source</th><th>Handling</th></tr>
+    <tr><td class="k">Left menu and avatar</td><td>Home, Analytics, Investments, Performance, Scenarios, Profile; avatar "SS"</td><td>Contract v1.4 and L31: Portfolio mode menu, no avatar</td><td>Contract wins for the shell; nothing to decide here</td></tr>
+    <tr><td class="k">Tab strip</td><td>Seven tabs</td><td>Contract reserves only <span class="mono">/insights</span> and <span class="mono">/overlap</span> under a fund</td><td>L11 shows three tabs, which the contract already supports. <b>No contract change needed.</b></td></tr>
+    <tr><td class="k">Add Investment, "...", Update</td><td>Active controls</td><td>Contract: a temporary "+ Add data" sits in the top bar</td><td>L10: shown as Coming soon on this page</td></tr>
+    <tr><td class="k">Greyed links vs "everything clickable"</td><td>-</td><td>Home L32: links to unbuilt pages are disabled</td><td>L14 says every element responds. Proposal: unbuilt targets respond with a small Coming soon popover (D2). Needs your confirmation because it differs from L32.</td></tr>
+    <tr><td class="k">Mockup numbers</td><td>Units 1,428.321 at current NAV ₹128.35 and average NAV ₹87.50</td><td>1,428.321 × 128.35 is about ₹1.83 lakh, not ₹18.32 lakh; ₹12,50,000 / 1,428.321 is about ₹875, not ₹87.50</td><td>Illustrative; cannot be test data. Gain (₹5,82,450 = 46.6% of invested) is consistent.</td></tr>
+    <tr><td class="k">Expense ratio</td><td>1.10% (page 24) and 0.56% vs category 1.02% (page 26)</td><td>-</td><td>One value per fund in the build; the page 26 figures are illustrative</td></tr>
+    <tr><td class="k">Return windows</td><td>"16.3% CAGR over the last 5 years" (page 26); 5Y = 18.7%, 3Y = 16.3% (page 24)</td><td>-</td><td>Illustrative; copy will always quote the period the number is for</td></tr>
+    <tr><td class="k">XIRR vs category</td><td>XIRR 18.9% "vs category 14.2%"</td><td>We store category returns as annualised point-to-point returns, not XIRR</td><td>Different measures; A2</td></tr>
+    <tr><td class="k">Folio number</td><td>Masked "XXXXX1234"</td><td><span class="mono">folios.folio_number</span> stores the full number as printed</td><td>Mask all but the last four characters on screen (assumed; say if you want it full)</td></tr>
+  </table></div>
+</section>
+
+<section id="privacy">
+  <h2>9. Privacy, consent and what Profile gives us</h2>
+  <p class="lead">Your brief listed Profile, consent, PAN, deletion, notifications and billing. This page is read-only, so most of that does not apply. What I checked and what follows:</p>
+  <ul class="tight">
+    <li><b>New personal data:</b> none stored. The page shows holdings, transactions-derived dates and folio numbers the account already holds. Reads go through the existing authenticated routes (<span class="mono">get_active_user</span>, member checks via <span class="mono">require_member</span>); the new fund routes must apply the same member check when a scope is passed.</li>
+    <li><b>Consent and re-consent gate:</b> unchanged; the page sits behind the shell's existing gates (contract section 1).</li>
+    <li><b>PAN and the raw CAS PDF</b> (ADR-004 reopened 18 Sep 2026): the page never reads them.</li>
+    <li><b>Account deletion and export:</b> no new user-owned table means nothing new to export or delete. If per-fund results are cached in <span class="mono">analytics_sections</span>, they are already removed with the user's other sections (to verify in the spec phase).</li>
+    <li><b>Third parties at page time:</b> none. The Mira placeholder sends nothing anywhere. NAV and index data are fetched by the existing jobs; a cold single-fund NAV fetch uses the same AMFI source the app already calls.</li>
+    <li><b>Folio numbers</b> are personal financial identifiers: masked on screen, copy gives the full number only on that deliberate action (assumed; confirm in the spec).</li>
+    <li><b>Not applicable here:</b> subscription and billing (Profile has its own), OTP delivery, notification settings, contact change.</li>
+    <li><b>Reused from Profile and import:</b> the existing import flow behind the later "Add Investment" (shown as Coming soon for now, L10); <span class="mono">useScope()</span> from the shell.</li>
+  </ul>
+</section>
+
+<section id="clickmap">
+  <h2>10. Click map (L14: everything is clickable and inviting)</h2>
+  <p class="lead">Your instruction: every element should be clickable, and the user should feel drawn to click without us saying so. My proposal for what each element opens. Cards D1 and D2 ask you to approve it. "Drill-down" means a popup or side panel with the numbers behind the figure, so nothing is a dead end.</p>
+  <div class="scroll"><table>
+    <tr><th>Element</th><th>Opens</th><th>Built from</th></tr>
+    <tr><td class="k">Breadcrumb levels</td><td>Investments, Mutual Funds pages</td><td>route</td></tr>
+    <tr><td class="k">AMC pill, category pill, plan pill</td><td>Fund list filtered to that AMC, category or plan within the user's holdings (the Mutual Funds holdings page when built; until then a popup list of the user's funds in it)</td><td>holdings</td></tr>
+    <tr><td class="k">Current Value tile</td><td>Drill-down: value by member and folio, with today's change</td><td>holding rows</td></tr>
+    <tr><td class="k">Invested tile</td><td>Drill-down: list of purchases, SIPs and withdrawals for this fund (Transactions tab is not in this round)</td><td>transactions</td></tr>
+    <tr><td class="k">Total Gain tile</td><td>Drill-down: realized, unrealized, today's gain</td><td>holding row</td></tr>
+    <tr><td class="k">XIRR tile</td><td>The existing XIRR explanation modal plus fund vs benchmark XIRR</td><td><span class="mono">XirrDisclaimerModal</span>, <span class="mono">benchmark_funds</span></td></tr>
+    <tr><td class="k">Expense Ratio tile</td><td>Direct vs Regular TER for this fund and the category average</td><td><span class="mono">scheme_ter</span></td></tr>
+    <tr><td class="k">Score card</td><td>The existing FundScoreDetailModal (L2)</td><td>reuse</td></tr>
+    <tr><td class="k">Period chips, legend items</td><td>Change period; legend item toggles its line</td><td>chart state</td></tr>
+    <tr><td class="k">Chart point or hover</td><td>Tooltip with the three values and the date; moving along the line updates the legend numbers</td><td>series</td></tr>
+    <tr><td class="k">Returns table cell</td><td>Highlights that period on the chart (Inception mode) or opens the cash-flow breakdown behind the XIRR (Current mode)</td><td>series, flows</td></tr>
+    <tr><td class="k">Your Investment Details rows</td><td>Units and average NAV: lot list; Folio: copy; First and Last Investment: that transaction; Update: Coming soon popover</td><td>lots, folios</td></tr>
+    <tr><td class="k">Risk metric rows</td><td>Plain-language definition, the number, the band and how it was measured (window, dates)</td><td>computed</td></tr>
+    <tr><td class="k">Top 10 holdings rows</td><td>The stock: its weight in this fund, which of your other funds hold it, month-on-month change</td><td>look-through, batches</td></tr>
+    <tr><td class="k">View all holdings</td><td>Full holdings list of the fund (A6)</td><td>batch</td></tr>
+    <tr><td class="k">Allocation tabs and slices</td><td>Tab switches the donut; a slice lists its stocks</td><td>batch</td></tr>
+    <tr><td class="k">Insight, strength and consideration rows</td><td>The evidence popup: the numbers and dates the sentence is built from</td><td>rule inputs</td></tr>
+    <tr><td class="k">Overlap row</td><td>Coming soon popover (Overlap tab is not built)</td><td>-</td></tr>
+    <tr><td class="k">Mira cards, Ask follow up</td><td>The shared Mira, coming soon popup</td><td>shell</td></tr>
+    <tr><td class="k">Fund manager</td><td>Popup: name, role, managing since, other funds in your portfolio with the same manager name</td><td><span class="mono">scheme_fund_managers</span></td></tr>
+    <tr><td class="k">Rolling, year-wise, scatter</td><td>Hover tooltips; a bar or dot opens that year's or fund's numbers; a peer dot opens the fund page only if the user holds it, else a small card</td><td>series</td></tr>
+  </table></div>
+  <p class="ctx"><b>How it will feel clickable without saying so</b> (for the design-system document, not a question): raised hover state and pointer cursor on every card and row, a soft chevron or arrow that appears on hover, tiles that lift slightly, numbers underlined on hover, chart elements that respond to the pointer, and consistent behaviour so people learn that everything opens something. No "click here" copy anywhere.</p>
+</section>
+
+<section id="catalogue">
+  <h2>11. Insight rule catalogue (proposal for C4)</h2>
+  <p class="lead">Every sentence is a fixed template filled with numbers we compute, with the evidence one click away (L8, L14). Thresholds are my proposals; none is advice. Rows marked * need the peer pass.</p>
+  <div class="scroll"><table>
+    <tr><th>List</th><th>Fact</th><th>Fires when (proposal)</th><th>Needs</th></tr>
+    <tr><td class="k">Key</td><td>Outperformed category average in X of last 5 calendar years *</td><td>always shown with X; Strength if X is 4 or 5, Consideration if X is 2 or less</td><td>year-wise series</td></tr>
+    <tr><td class="k">Key</td><td>Expense ratio a% vs category average b%</td><td>shown when both exist; Strength if a is 0.25 points or more below b, Consideration if 0.25 or more above</td><td>TER, category TER</td></tr>
+    <tr><td class="k">Key</td><td>Top 5 holdings make up p% of the fund</td><td>always; wording changes at 40% (concentrated) and below 25% (spread)</td><td>batch</td></tr>
+    <tr><td class="k">Key / Consideration</td><td>Highest sector exposures (name and %)</td><td>Consideration if one sector is 25% or more</td><td>batch, sectors</td></tr>
+    <tr><td class="k">Key / Consideration</td><td>Overlap of n% with fund X and m% with fund Y in your portfolio</td><td>shown when the stored overlap section has a pair at 30% or more; Consideration at 50% or more</td><td>stored <span class="mono">overlap</span></td></tr>
+    <tr><td class="k">Strength</td><td>3-year and 5-year return above category average *</td><td>both above</td><td>category averages</td></tr>
+    <tr><td class="k">Strength</td><td>Manager managing since (year), tenure y years</td><td>tenure 5 years or more; the word "experienced" is not used, only the number</td><td>managers</td></tr>
+    <tr><td class="k">Strength</td><td>Spread across market caps</td><td>each of large, mid, small at 15% or more</td><td>batch, caps</td></tr>
+    <tr><td class="k">Consideration</td><td>Volatility above category average *</td><td>volatility more than 1 point above the category median</td><td>peer volatility</td></tr>
+    <tr><td class="k">Consideration</td><td>Returns lagged the category in k of last 5 calendar years *</td><td>k is 2 or more</td><td>year-wise series</td></tr>
+  </table></div>
+</section>
+
+<section id="locked">
+  <h2>Decisions you already made</h2>
+  <p class="lead">These come from your messages in this session. I treat them as fixed. Tell me if I got any wrong.</p>
+  <div id="lockedList"></div>
+</section>
+
+<section id="blueprint">
+  <h2>Section blueprint</h2>
+  <p class="lead">How I currently understand each section. Question IDs mark what depends on your answer.</p>
+  <div class="scroll"><table>
+    <tr><th>Tab</th><th>Section</th><th>Shows</th><th>Calculated from</th><th>Edge cases</th></tr>
+    <tr><td class="k">Both</td><td>Header</td><td>Breadcrumb, logo tile, name, pills (plan, category, AMC), Add Investment and "..." (Coming soon), tab strip (Overview, Overlap greyed to a popover, Insights)</td><td>scheme row (E2)</td><td>fund not held in the chosen member (E4); unknown category; inactive scheme</td></tr>
+    <tr><td class="k">Overview</td><td>Stat row + score card</td><td>Current value (share of portfolio), invested, gain, XIRR, expense ratio; score ring, verdict, sentence</td><td>holding rows, stored sections (A2, B1)</td><td>no NAV; CAS-only fund; XIRR missing; score unavailable or thin category</td></tr>
+    <tr><td class="k">Overview</td><td>Performance chart</td><td>Fund, benchmark and category lines, chips 1M to All</td><td>NAV, TRI, peer series (A4)</td><td>fund younger than the period; missing TRI; flat days</td></tr>
+    <tr><td class="k">Overview</td><td>Your investment details</td><td>Units, average and current NAV, amounts, dates, folios</td><td>holdings, folios</td><td>family scope with several members and folios; opening-balance lots</td></tr>
+    <tr><td class="k">Overview</td><td>Returns table</td><td>Inception and Current modes</td><td>NAV, TRI, peers (A1)</td><td>periods longer than the fund's history show a dash</td></tr>
+    <tr><td class="k">Overview</td><td>Risk metrics</td><td>Four rows with bar and label</td><td>3-year NAV and TRI (A3)</td><td>under 3 years of history; no TRI</td></tr>
+    <tr><td class="k">Overview</td><td>Top 10 holdings, fund allocation</td><td>Ten rows; three-tab donut</td><td>latest batch (A5, A6)</td><td>no disclosure yet; hand-imported AMC; disclosure older than 60 days (existing age tag)</td></tr>
+    <tr><td class="k">Insights</td><td>Mira cards</td><td>Placeholder</td><td>-</td><td>-</td></tr>
+    <tr><td class="k">Insights</td><td>Key Insights, Strengths and Considerations</td><td>Template sentences with evidence popups</td><td>section 11 (C4)</td><td>a rule with missing input is skipped, never guessed</td></tr>
+    <tr><td class="k">Insights</td><td>Fund manager</td><td>Name, role, tenure; rest Coming soon</td><td>managers (L9)</td><td>no manager data for 5 fund houses</td></tr>
+    <tr><td class="k">Insights</td><td>Rolling, year-wise, scatter</td><td>Three charts with dropdowns</td><td>peer series (C1 to C3)</td><td>thin category; fund younger than the window</td></tr>
+  </table></div>
+</section>
+
+<div class="bar" id="filterbar">
+  <button class="chip" id="f-all" aria-pressed="true">All questions</button>
+  <button class="chip" id="f-open" aria-pressed="false">Unanswered</button>
+  <button class="chip" id="f-done" aria-pressed="false">Answered</button>
+  <span class="spacer"></span>
+  <span class="count"><span id="count"></span><span id="savestate" role="status"></span></span>
+</div>
+
+<div id="questions"></div>
+
+<section id="plan">
+  <h2>Documents phase plan</h2>
+  <p class="lead">Only after every question is answered and you say go (answering is not a go). Names carry "individual-fund" so they are not confused with Home or shell documents.</p>
+  <div class="scroll"><table>
+    <tr><th>Order</th><th>Document</th><th>Notes</th></tr>
+    <tr><td class="k">1</td><td>Functionality and backend spec</td><td>endpoints (tiers 1 to 3), calculations, jobs, tables (reuse-first)</td></tr>
+    <tr><td class="k">2</td><td>Layout doc</td><td>both tabs; loading, empty, partial, error states; family vs member</td></tr>
+    <tr><td class="k">3</td><td>Design system, utilities, mockups</td><td>palette and fonts from <i>Unifolio Colour Palette</i>; click affordances (L14); chart components (no line chart exists yet; <span class="mono">d3-shape</span> is installed)</td></tr>
+    <tr><td class="k">4</td><td>Reuse versus new and how it is built</td><td></td></tr>
+    <tr><td class="k">5</td><td>TDD doc</td><td>affected tests only; no live network</td></tr>
+    <tr><td class="k">6</td><td>Architecture doc</td><td></td></tr>
+    <tr><td class="k">7</td><td>PRD</td><td>I ask before touching existing PRDs</td></tr>
+    <tr><td class="k">8</td><td>Flow docs</td><td>user flows, compute and trigger flows</td></tr>
+    <tr><td class="k">9</td><td>Backend decisions proposal</td><td>not appended to <span class="mono">decisions.md</span> without your go</td></tr>
+    <tr><td class="k">10</td><td>Combined artifact</td><td>only if new questions arise</td></tr>
+    <tr><td class="k">11</td><td>Implementation plans</td><td><span class="mono">superpowers:writing-plans</span>; nothing is implemented until you say go</td></tr>
+  </table></div>
+</section>
+
+<section id="risks">
+  <h2>Risks</h2>
+  <ul class="tight">
+    <li><b>Cold holdings:</b> calling the household-wide holdings function to find one fund repeats the 5 to 24 s cold cost seen on Home. Mitigation: a scheme-filtered read (B2).</li>
+    <li><b>Peer pass on first open:</b> the category peers (up to 256 funds) are built per worker; two workers mean two cold passes. Mitigation: lazy tier 3 with skeletons, stored per-fund results (B2, B3).</li>
+    <li><b>Missing data presented as fact:</b> managers (5 fund houses with no factsheet), disclosures (10 hand-imported houses), TRI rows on staging. Every card needs an honest "not available" state.</li>
+    <li><b>Template insights read as advice:</b> wording stays factual (L8); no "buy", "sell", "good fund".</li>
+    <li><b>Everything-clickable scope creep (L14):</b> each drill-down is small, but there are about 25 distinct targets; the click map fixes the list so it cannot grow silently.</li>
+  </ul>
+</section>
+
+<section id="verify">
+  <h2>To verify in the spec phase</h2>
+  <ul class="tight">
+    <li>Cold and warm timings of the page's calls on the LeapSwitch VM (B3): scheme-filtered holdings, one-fund NAV fetch, peer pass for a 30-fund and a 250-fund category, rolling series over 10 years.</li>
+    <li>That <span class="mono">benchmark_index_history</span> holds TRI rows for all four indices on staging, and from which date.</li>
+    <li>That <span class="mono">analytics_sections</span> rows for a user are deleted by the account-deletion job (privacy section).</li>
+    <li>Whether the scorer's 5-year month window can be widened for the 3-year rolling chart without changing existing scores (it must not).</li>
+    <li>How many held funds are hand-imported houses, to size the "no disclosure" state.</li>
+  </ul>
+</section>
+
+<section id="log">
+  <h2>Conversation log</h2>
+  <p class="lead">What was asked and decided, in order, so nothing depends on memory.</p>
+  <div class="scroll"><table>
+    <tr><th>When</th><th>Who</th><th>What</th></tr>
+    <tr><td class="k">Round 0</td><td>You</td><td>Brief: plan the Individual funds page (Overview and Insights tabs only) the way Home was planned; planning only. Notes: the scorer arrow opens the existing popup; the Growth pill may be dropped; research cold-start calculation and triggering and what we can compute from the current code; page 24's Absolute/Annualised becomes Inception/Current; risk metrics for 3 years, built now if easy.</td></tr>
+    <tr><td class="k">Round 1</td><td>Me</td><td>Read the Home handoff, the shell contract and PDF pages 24 and 26; surveyed the backend and frontend. Asked four questions (returns toggle meaning, scope, insights source, fund manager content).</td></tr>
+    <tr><td class="k">Round 1</td><td>You</td><td>Returns toggle: fund vs your holding. Held funds, follows shell scope. Mira cards are a placeholder. Fund manager: name and tenure, strategy hidden.</td></tr>
+    <tr><td class="k">Round 2</td><td>Me</td><td>Asked four more (key insights, chart lines, tab strip, header actions).</td></tr>
+    <tr><td class="k">Round 2</td><td>You</td><td>Key Insights and Strengths/Considerations: plain computed facts. Benchmark and category lines change with the fund. Tabs: overview, overlap and "analysis", overlap as Coming soon. Header: keep all, mark Coming soon.</td></tr>
+    <tr><td class="k">Round 3</td><td>You</td><td>Everything should be clickable and the user should feel drawn to click it without our saying so.</td></tr>
+    <tr><td class="k">Round 3</td><td>Me</td><td>Recorded L1 to L15 (L14 is the click rule), wrote this workbook with the research, a click map (section 10), a rule catalogue (section 11) and 20 question cards A1 to E4. Stopped, as instructed, before any documents.</td></tr>
+    <tr><td class="k">Round 4</td><td>You</td><td>First batch of answers: A5 exactly as the mockup (no Other); A6 A; B3 A with a request for the measurement script; D2 B (greyed, as L32); E1 A; E4 A. Notes: B1 (the scorer already exists in Analytics and now shows per fund) and E2 (can we get all logos, as the review screen had).</td></tr>
+    <tr><td class="k">Round 4</td><td>Me</td><td>Wrote backend/scripts/measure_fund_page_staging.py (not run). Added notes on A5, B1, B3, D2 and E2 and a fourth option on E2 (reuse the existing SchemeLogo, which I found in the repo). Q ids unchanged. L10 and L14 read with D2: unbuilt items are greyed.</td></tr>
+    <tr><td class="k">Round 5</td><td>You</td><td>Second batch: every remaining card answered (L18). Notes: C2 remove the calendar-year dropdown and use the Overview chips (L16); C3 build if easy, else Coming soon; E1 the manager will build the Overlap page, so give him the route (L17); E2 asked again about getting all logos.</td></tr>
+    <tr><td class="k">Round 5</td><td>Me</td><td>Recorded L16 to L18, added the C3 and E1 replies (with the route details for your manager) and one new card, C6, because the new chips leave open what a bar stands for. C2 itself is left as a record of what you changed. Question ids unchanged.</td></tr>
+    <tr><td class="k">Round 6</td><td>You</td><td>C6 A: bar width follows the chip; chart renamed Period Returns (L19). All cards are now answered.</td></tr>
+    <tr><td class="k">Round 7</td><td>You</td><td>Go for the documents phase; staging script output pasted (46-fund household, four funds, run twice).</td></tr>
+    <tr><td class="k">Round 7</td><td>Me</td><td>Measured: household-wide holdings cold 20.3 to 22.1 s; one-fund price check 0.49 to 0.82 s; tier 2 10 to 19 ms; tier 3 2.0 to 4.5 s cold per fund; one fund of four had no disclosure and three had one month. Wrote the individual-fund documents (spec, layout, reuse versus new, TDD, architecture, PRD, flows, backend decisions proposal) with these numbers, and a design workbook with mockups and questions S1 to S14 and M1 to M10: https://claude.ai/artifact/JQVpnVKPV1XZ74VCHMNnEX. Correction to section 4 above: per-fund peer results are not user-specific, so the analytics_sections table (keyed per user) is not the cache; the documents propose an in-process cache (question S2).</td></tr>
+    <tr><td class="k">Round 8</td><td>You</td><td>Mockup feedback; remove the added/removed stocks block; asked why the Smart Insights cards were loading.</td></tr>
+    <tr><td class="k">Round 8</td><td>Me</td><td>Recorded L13 as dropped and L20 (computed facts, pending M11); removed card C5 and the related rows; updated the individual-fund documents and the design workbook (https://claude.ai/artifact/JQVpnVKPV1XZ74VCHMNnEX).</td></tr>
+    <tr><td class="k">Pending</td><td>You</td><td>All cards answered; the new questions are in the design workbook. Run the measurement script on the VM and paste the output (B3). The E2 logo question (all logos) is answered in its reply: the existing component covers 35 fund houses. Then say go for the documents.</td></tr>
+  </table></div>
+</section>
+
+<section id="answers">
+  <h2>Your answers</h2>
+  <p class="lead">This collects every choice and note above. Copy it and paste it into the chat.</p>
+  <div class="row"><button class="btn" id="copy">Copy my answers</button><button class="btn ghost" id="clear">Clear all choices</button><span class="count" id="copied" role="status"></span></div>
+  <div id="out" aria-live="polite"></div>
+</section>
+</main>
+</div>
+
+<script>
+var LOCKED=[
+ ["L1","Scope: Overview and Insights tabs only","Pages 24 and 26 of the PDF. The Overlap tab (page 25) is out of scope this round. The Performance, Holdings, Peer Comparison and Transactions tabs are not shown. (Your brief, 23 Oct.)"],
+ ["L2","The score arrow opens the existing popup","Clicking the Unifolio Fund Score card opens today's FundScoreDetailModal, the one the Scorer section opens, unchanged. It stays a global modal for now; moving it into the per-fund Insights route later is a documented follow-up, not part of this round. (Your note, 23 Oct.)"],
+ ["L3","Growth pill not shown","The title block shows Direct or Regular plan, category and fund house; no Growth pill. (Your note, 23 Oct.)"],
+ ["L4","Returns toggle is Inception | Current","Replaces Absolute | Annualised. Inception shows the fund's own returns from 1M to Since Inception against its benchmark and category average. Current shows your own returns on this holding. Exact period definitions are A1. (Your answers, 23 Oct.)"],
+ ["L5","Risk metrics (3Y): build now if easy","Volatility, maximum drawdown, Sharpe and Beta over 3 years. If heavy, show Coming soon. My assessment is that it is easy (section 7), pending A3. (Your instruction, 23 Oct.)"],
+ ["L6","Held funds only; follows the shell scope","The page opens for funds the household holds. Family Combined sums units and values across members; choosing a member shows that member's holding. Funds the user does not hold (search is on hold) are out of scope. (Your answer, 23 Oct.)"],
+ ["L7","Mira Smart Insights: placeholder","The three Smart Insights from Mira cards and the follow-up button are Coming soon; the follow-up opens the shared Mira popup. (Your answer, 23 Oct.)"],
+ ["L8","Key Insights and Strengths/Considerations: plain computed facts","Fixed templates filled with numbers we compute. No advice wording, no model-written text. Catalogue in section 11. (Your answer, 23 Oct.)"],
+ ["L9","Fund manager: name and tenure","Name, role and managing-since from our data. Photo, biography, investment approach and style tags show Coming soon. (Your answer, 23 Oct.)"],
+ ["L10","Header controls: keep all, marked Coming soon","Add Investment, the \"...\" menu and the Update link are shown and respond with a Coming soon message. (Your answer, 23 Oct.) The AMC logo is E2."],
+ ["L11","Tab strip: Overview, Overlap, Insights","Overlap responds as Coming soon. My reading of your words \"overview, overlap and analysis\" is that analysis means Insights; confirm in E1. The shell contract already reserves these three routes, so no contract change. (Your answer, 23 Oct.)"],
+ ["L12","Benchmark and category lines follow the fund","The benchmark is the index mapped to the fund's category (Nifty 50, Nifty 500, Nifty LargeMidcap 250 or Nifty Midcap 150, existing mapping), total return basis; the category average is the fund's own SEBI category and plan type. (Your answer, 23 Oct.) How the category line is built is A4."],
+ ["L13","Monthly stocks added and removed: dropped","The block was in the plan from the PDF page 26 note. The owner removed it on 23 Oct (\"we will not do that\"); card C5 is withdrawn and nothing for it is built or specified. (Your instruction, 23 Oct.)"],
+ ["L14","Everything is clickable and inviting","Every figure, row, chip, card and chart element responds to a click or tap with something useful (a drill-down popup, the evidence behind a sentence, or navigation), and looks it through hover lift, pointer cursor, arrows and consistent behaviour, never through \"click here\" copy. Click map in section 10. (Your message, 23 Oct.)"],
+ ["L15","Ground rules carried from Home","Planning only; mobile untouched; existing screens unchanged (thin wrapper route files only); search on hold; reuse existing code and tables first; no new table proposed; affected tests only, no live network in tests."],
+ ["L16","Year-wise chart: no dropdown; period chips like the Overview chart","The Calendar Year dropdown is removed. The chart uses the same chips as the Overview graph: 1M, 3M, 6M, 1Y, 3Y, 5Y, All. What each bar stands for is card C6. (Your note on C2, 23 Oct.)"],
+ ["L17","Overlap tab is a seamless hand-off to your manager","The Overlap tab stays Coming soon (greyed) now. It points at a reserved route, so when your manager builds the page he replaces one route file and the tab switches on by itself, with no change to this page. Route id portfolio-mutual-funds-fund-overlap, path /portfolio/mutual-funds/funds/:schemeId/overlap, file frontend/src/shell/routes/portfolio-mutual-funds-fund-overlap.route.tsx (see the E1 note for the details to give him). (Your note on E1, 23 Oct.)"],
+ ["L18","Answers recorded 23 Oct (second batch)","A1 A, A2 C (no sub-line under XIRR), A3 A, A4 A, A5 C, A6 A, B1 A, B2 A, B3 A, C1 A, C3 A (build now if easy, else Coming soon), C4 A, C5 A, D1 A, D2 B, E1 A, E2 D, E3 A, E4 A. C2 changed by L16."],
+ ["L19","Period Returns chart: bar width follows the chip","The chart is renamed Period Returns. 1M and 3M show weekly bars, 6M and 1Y monthly, 3Y quarterly, 5Y and All yearly (current year labelled year to date); each group shows fund, benchmark and category. (Your answer to C6, 23 Oct.)"],
+ ["L20","Smart Insights cards show computed facts (pending M11)","You asked why the three Mira cards were loading and whether the data can be fetched. Yes: the same rule engine fills them with the top three facts. This changes L7 (placeholder); the heading and attribution are question M11 in the design workbook."]
+];
+
+var REPLIES={
+ "A4":"You said the benchmark and category lines change with the fund (L12). That is settled: the benchmark follows the fund's category and the category average is its own category. The question left is how the category line is built, because it needs the whole peer group.",
+ "E1":"Your words were \"keep overview, overlap and analysis\". I read analysis as Insights, the third tab on page 26. If you meant a different tab, say so here.",
+ "C2":"Recorded as L16: no dropdown, the same chips as the Overview graph. This leaves one thing to settle, which is what a bar stands for under each chip; that is the new card C6 (the chips and a year-by-year chart pull in different directions, so I did not guess).",
+ "C3":"My read: it is easy to build, because the peer pass is the same one the category line and the rolling chart already need, and the scatter only adds each peer's 3-year return and volatility from the same monthly series. So: build it. The only risk is the first-open time of the whole peer pass, which the staging script (B3) measures; if that turns out too slow, the scatter is the first card that drops to Coming soon, as you said.",
+ "E1":"Recorded as L17. What to give your manager: the Overlap tab already exists in the shell's route list as a greyed placeholder. Route id portfolio-mutual-funds-fund-overlap; URL path /portfolio/mutual-funds/funds/:schemeId/overlap (so the fund is in the URL, for example /portfolio/mutual-funds/funds/3f2a.../overlap); one file frontend/src/shell/routes/portfolio-mutual-funds-fund-overlap.route.tsx (the convention is route id plus .route.tsx). To switch it on he replaces the page in that file and sets status to live; the tab and link here then enable themselves. The fund id arrives as the schemeId URL parameter, and the member scope comes from useScope(). Source: shell contract v1.4 section 4 and the shell PR 1 plan (row for portfolio-mutual-funds-fund, -fund-overlap, -fund-insights). Nothing on this page needs to change.",
+ "A5":"Recorded: exactly as the mockup, three tabs, no Other slice. To keep the Market Cap percentages adding to 100 without an Other slice, I will express them as a share of the classified equity part of the fund and print the unclassified share (debt, cash, unlisted) in the footnote and on the Asset Type tab. Say if you want it different.",
+ "B1":"Yes: it is the same scorer that Analytics uses today (compute_fund_score, the stored score section, and the same FundScoreDetailModal). Nothing new is invented; this page just shows that one fund's score. The question was only where this page reads it from. A is the answer that fits your note: use the stored per-fund result when the household recompute already made it, and compute just this fund when it is missing.",
+ "B3":"Script written, not run: backend/scripts/measure_fund_page_staging.py (modelled on the Home one, same guard, prints only counts, milliseconds and the SEBI category). On the VM, from the backend folder: python scripts/measure_fund_page_staging.py --user-id <uuid> --schemes 4 --include-score. Add --include-live-fetch to time a real NAV download and --simulate-fresh-cache for the no-download path. --include-score is needed for the peer pass and the Fund Score; it can create scheme rows from AMFI's list and writes the one fund_scores row per fund per day, exactly what opening Analytics does. Paste the output back.",
+ "D2":"Recorded: unbuilt targets are greyed and disabled (as Home L32). That means the Overlap tab, Add Investment, the \"...\" menu, Update, and the manager approach are greyed with a short tooltip, while everything that has a destination stays clickable (L14). L10 and L14 are adjusted to read this way.",
+ "E2":"We already have this. frontend/src/lib/amcLogos.ts maps 35 fund houses to their website domains and frontend/src/components/SchemeLogo.tsx shows the logo, falling back to the first letter. It was used by the removed review screen and nothing uses it now. Two cautions: it loads the images from the AMC's own site (and a logo service) in the viewer's browser each time, which is a third-party request, and I have not checked that the logo service still works. I have not downloaded anything. Option D is that component reused as is; option B would be bundling files."
+};
+
+var Q=[
+{g:"A",name:"The Overview numbers",items:[
+ {id:"A1",t:"What does \"Current\" show on the Returns table?",
+  ask:"Which periods and which measure for your own returns?",
+  ctx:"Inception mode (L4) shows the fund against its benchmark and category for 1M, 3M, 6M, 1Y, 3Y, 5Y and Since Inception; my assumption is periods under a year are plain returns and a year or more are annualised, with a footnote (the mockup mixes both). Current mode needs a definition of your returns per period.",
+  opts:[
+   {k:"a",l:"Your XIRR per period",d:"Columns 1Y, 3Y, 5Y and Since you first invested. Each period's XIRR counts the value at the period start as an opening flow; a period longer than you have held shows a dash. The benchmark row replays your same cash flows in the fund's index (code exists). 1M, 3M and 6M are hidden in this mode because annualising a short money-weighted return misleads."},
+   {k:"b",l:"Your price return per period",d:"Return of the units you hold today over each period, including 1M to 6M. Simple, but ignores when your money went in."},
+   {k:"c",l:"Since first investment only",d:"One column from the stored XIRR figures; every other column is greyed."}],
+  rec:"a",
+  why:"It answers the real question (how did my money do) with a method the app already uses elsewhere, and the benchmark replay gives a fair comparison. Hiding the short periods avoids silly numbers.",
+  risk:"Option a needs a small new calculation per period; option b would show a number that disagrees with the XIRR tile."},
+ {id:"A2",t:"What sits under the XIRR tile instead of \"vs category 14.2%\"?",
+  ask:"Which comparison is shown under your XIRR?",
+  ctx:"XIRR is a money-weighted measure for your cash flows. We store category returns as point-to-point annualised returns, so \"XIRR vs category\" compares two different things. The stored benchmark_funds section already gives your fund XIRR and the XIRR of the same flows in its index.",
+  opts:[
+   {k:"a",l:"vs benchmark XIRR",d:"\"vs Nifty 500 TRI 16.1%\" using the same cash flows. Like for like, numbers exist."},
+   {k:"b",l:"vs category average return",d:"Labelled \"category 3Y return 14.2%\"; honest label but a different measure."},
+   {k:"c",l:"No sub-line",d:"Only the XIRR value."}],
+  rec:"a",
+  why:"It is the only comparison that is like for like and needs no new calculation. The category comparison lives in the Returns table.",
+  risk:"Choosing b invites users to compare two measures that are not comparable."},
+ {id:"A3",t:"How are risk metrics labelled, and what risk-free rate for Sharpe?",
+  ask:"Fixed bands or peer percentile; and which number?",
+  ctx:"Section 7 says the four numbers are easy. What the code lacks is a risk-free rate and a rule for words like Moderate, Good, Lower Risk. Bands differ by fund type (equity, hybrid, debt), so fixed bands need a small table per type.",
+  opts:[
+   {k:"a",l:"Fixed documented bands + a risk-free rate setting",d:"Bands per fund type kept in a config table; risk-free rate is one number you give me (for example the 91-day T-bill yield, updated by hand). No peers needed, so it is instant on a cold start."},
+   {k:"b",l:"Percentile within the category",d:"Labels come from where the fund sits among its peers; uses the peer pass, so it is slower cold and needs peer volatility."},
+   {k:"c",l:"Numbers and bars, no words",d:"Drop Moderate/Good/Lower Risk."}],
+  rec:"a",
+  why:"It keeps the risk block independent of the peer pass, which is the expensive part of a cold start. Peer-relative wording appears in Key Insights instead.",
+  risk:"A stale hand-set risk-free rate slightly skews Sharpe; the footnote states the rate and its date. Please also give the rate you want (I have not verified a current value)."},
+ {id:"A4",t:"How is the category average line drawn on the chart?",
+  ask:"What resolution for the category line?",
+  ctx:"The fund line and the index line are single-fund reads. The category line averages every peer in the category and plan type (30 to 256 funds). The Home daily series for 12 to 46 funds took 8 to 240 ms; a 250-fund category over 3 years is bigger and unmeasured.",
+  opts:[
+   {k:"a",l:"Daily up to 1Y, month-end beyond (Recommended)",d:"Rebased average of peers, weighted by AUM as in the table; monthly points for 3Y, 5Y and All keep the pass small and match the series the scorer already builds."},
+   {k:"b",l:"Month-end points for every period",d:"Cheapest; the 1M and 3M chips show only one or two points."},
+   {k:"c",l:"Daily for every period",d:"Smoothest; heaviest on the first open and on All."}],
+  rec:"a",
+  why:"Short periods are where users hover most and need daily detail; long periods are smooth at monthly resolution anyway.",
+  risk:"If measurement shows even the daily 1Y pass is slow cold, the category line loads last (tier 3) with a skeleton."},
+ {id:"A5",t:"What does the Fund Allocation donut show?",
+  ask:"Which tabs, and how are leftovers shown?",
+  ctx:"The mockup shows only Large, Mid and Small summing to 100%. Real funds also hold debt, cash and stocks without a cap classification. The cap list is half-yearly (market_cap_classifications). Sector comes from stock_master by ISIN, else the AMC's own label.",
+  opts:[
+   {k:"a",l:"Three tabs, with an \"Other\" slice (Recommended)",d:"Market Cap: Large, Mid, Small, Other. Sector: top sectors then Others. Asset Type: equity, debt, cash and the rest. Shows the as-of date of the disclosure."},
+   {k:"b",l:"Market Cap and Asset Type only",d:"Sector later, because AMC sector labels are not standardised."},
+   {k:"c",l:"Exactly as the mockup (no Other)",d:"Looks tidy but the percentages would not add to 100 for hybrid funds."}],
+  rec:"a",
+  why:"Honest totals matter more than tidy legends, and the data for all three tabs comes from one batch read.",
+  risk:"Sector names from two sources can differ; the spec will pick one source per row and say which."},
+ {id:"A6",t:"What does \"View all holdings\" open?",
+  ask:"There is no Holdings tab this round.",
+  ctx:"The link sits under the Top 10 table. The Holdings tab is not in the tab strip (L11), and L14 says every element opens something.",
+  opts:[
+   {k:"a",l:"A full holdings panel (Recommended)",d:"A side panel with every holding of the fund, sortable, same data as the batch, with the as-of date."},
+   {k:"b",l:"Coming soon popover",d:"Tells the user the page is not built yet."}],
+  rec:"a",
+  why:"The data is already loaded for the top 10, so the full list is a small extension and avoids a dead end.",
+  risk:"Choosing b is quicker to build but breaks L14 on a very visible link."}
+]},
+{g:"B",name:"Cold start and loading",items:[
+ {id:"B1",t:"Where does the Fund Score on this page come from?",
+  ask:"Stored result, on-demand, or a fresh household recompute?",
+  ctx:"Section 5: the household recompute stores a score for every held fund, but it can be missing right after an import or deploy. The on-demand endpoint computes against the whole category peer group (seconds, unmeasured), cached 15 minutes per worker.",
+  opts:[
+   {k:"a",l:"Stored section first, else compute this one fund (Recommended)",d:"The score tile shows a skeleton only if it has to compute. The page never starts a recompute."},
+   {k:"b",l:"Always on-demand",d:"Simplest; every cold open pays the peer pass."},
+   {k:"c",l:"Start a household recompute if missing",d:"Matches the Analytics page; heavier and starts background work from a view page."}],
+  rec:"a",
+  why:"It is the same posture as Home (read stored sections, never start a recompute) and keeps the fast tiers independent of the slow one.",
+  risk:"A just-imported user briefly sees a skeleton on the score tile."},
+ {id:"B2",t:"How does the page load, and how is the holdings read kept cheap?",
+  ask:"Which loading design?",
+  ctx:"Section 5: calling the household-wide holdings function cold re-downloads every held fund's NAV (4.9 to 24.3 s on Home's staging run). This page needs one fund. A scheme-filtered read of the same holdings logic would fetch at most one NAV history.",
+  opts:[
+   {k:"a",l:"Three tiers + a scheme-filtered holdings read (Recommended)",d:"Tier 1 instant (header, your investment), tier 2 fast (chart, returns, risk, holdings batch), tier 3 lazy (category line, peer cells, score, insights). No new table; per-fund results can be cached in the existing analytics_sections later."},
+   {k:"b",l:"One blocking endpoint",d:"Simplest code; the first open waits for the slowest part."},
+   {k:"c",l:"Precompute everything per held fund",d:"Add a per-fund section to the household recompute and daily job; near-instant opens, more compute and a bigger recompute."}],
+  rec:"a",
+  why:"It puts useful content on screen immediately and confines the slow, uncertain part to a few cards. Option c stays available as an optimisation if the measurement in B3 shows tier 3 is too slow.",
+  risk:"A scheme-filtered holdings read touches existing holdings code (a small optional filter), which needs care and a regression test."},
+ {id:"B3",t:"Do we measure on staging before the plans are written?",
+  ask:"Run a read-only timing script on the VM first?",
+  ctx:"Home did this (the manager ran a script on three households and the result changed the plan). For this page it would time a scheme-filtered holdings read, a one-fund NAV fetch, the peer pass for a small and a large category, and the 10-year series. I would write the script in the documents phase; you run it and paste the output.",
+  opts:[
+   {k:"a",l:"Yes, measure before plans lock (Recommended)",d:"Plans wait for the numbers, as on Home."},
+   {k:"b",l:"No, plan with estimates and measure after the first build",d:"Faster to plans; risk of redesign later."}],
+  rec:"a",
+  why:"Every cold-start estimate in this workbook is unmeasured, and tier 3's design depends on them.",
+  risk:"Choosing b risks building tier 3 and finding the first open slow."}
+]},
+{g:"C",name:"Insights tab",items:[
+ {id:"C1",t:"Rolling returns: which windows and how much history?",
+  ask:"Which window options and display span?",
+  ctx:"The mockup dropdown shows \"3 Years\" with data from 2019. The scorer builds 5 years of month-ends; a 3-year rolling line over 6 years needs 9 years of NAV. Full NAV history is already downloaded and stored for held funds; the peers' history is stored for those fetched earlier.",
+  opts:[
+   {k:"a",l:"1Y, 3Y, 5Y windows over up to 10 years (Recommended)",d:"Month-end points; fund, benchmark and category; shown with the window's start and end dates in the tooltip."},
+   {k:"b",l:"1Y and 3Y only",d:"Smaller peer pass."},
+   {k:"c",l:"3Y only, as the mockup",d:"Smallest."}],
+  rec:"a",
+  why:"The dropdown exists in the mockup; the extra windows cost nothing once the monthly series is built.",
+  risk:"Funds younger than the window show a shorter line with a note; peers missing history are dropped from the average (stated)."},
+ {id:"C2",t:"Year-wise returns: calendar year, financial year, or both?",
+  ask:"What does the dropdown contain?",
+  ctx:"The mockup says Calendar Year. Indian investors often think in financial years (April to March). Both come from the same month-end series.",
+  opts:[
+   {k:"a",l:"Calendar year and financial year (Recommended)",d:"A two-item dropdown, default Calendar Year as in the mockup."},
+   {k:"b",l:"Calendar year only",d:"Exactly the mockup."}],
+  rec:"a",
+  why:"The dropdown already exists in the design, the data is free, and financial year is how users compare with tax and AMC reports.",
+  risk:"The partial current year must be labelled year to date."},
+ {id:"C3",t:"Risk-Return scatter: build now?",
+  ask:"Build it, or Coming soon?",
+  ctx:"It needs each peer's 3-year return and volatility, which come from the same monthly peer series the scorer builds (cached). Dots are the category's funds; the held fund is highlighted. A peer dot opens its fund page only if the user holds it, otherwise a small card with name, return and volatility.",
+  opts:[
+   {k:"a",l:"Build now (Recommended)",d:"Uses the same peer pass as the category line and year-wise bars."},
+   {k:"b",l:"Coming soon",d:"Shows an empty chart frame with a message."}],
+  rec:"a",
+  why:"The peer pass is already paid for by other cards on this tab, so the scatter adds little.",
+  risk:"Category with few peers makes a sparse scatter; the thin-category flag from the scorer is shown."},
+ {id:"C4",t:"Approve the Key Insights, Strengths and Considerations rule catalogue?",
+  ask:"Section 11 lists each fact, its trigger and its inputs. Approve, or change?",
+  ctx:"All wording is fact-only (L8). Thresholds (25 basis points of TER, 25% sector, 50% overlap, five years tenure) are my proposals. \"Experienced\" and \"low churn\" in the mockup cannot be stated as facts because tenure judgement and turnover are not held; the catalogue uses the numbers instead.",
+  opts:[
+   {k:"a",l:"Approve the catalogue as proposed (Recommended)",d:"I fix exact thresholds in the spec and show them in the evidence popups."},
+   {k:"b",l:"I will edit thresholds or wording",d:"Write the changes in the notes box."},
+   {k:"c",l:"Show only Key Insights; Strengths/Considerations later",d:"Smaller first release."}],
+  rec:"a",
+  why:"Fixed rules with visible evidence are testable and cannot say anything the data does not support.",
+  risk:"Thresholds reflect judgement; they are easy to change later because they live in one config."}
+]},
+{g:"D",name:"Everything clickable",items:[
+ {id:"D1",t:"Approve the click map?",
+  ask:"Section 10 lists what each element opens.",
+  ctx:"About 25 distinct targets, most of them small popups built from numbers already on the page. The alternative is a shorter list for this round with the rest added later.",
+  opts:[
+   {k:"a",l:"Approve the map as proposed (Recommended)",d:"All listed targets are in this round."},
+   {k:"b",l:"Cut to cards and tiles first",d:"Rows, chart points and tags respond only with hover tooltips this round."},
+   {k:"c",l:"I will edit the list",d:"Write changes in the notes box."}],
+  rec:"a",
+  why:"It follows your instruction and each target reuses data already loaded, so the cost is mostly design and tests.",
+  risk:"Test and design effort grows with the number of targets; the list is capped here on purpose."},
+ {id:"D2",t:"How do elements without a destination yet respond?",
+  ask:"Greyed and disabled, or a Coming soon popover?",
+  ctx:"Home L32 says links to unbuilt pages are disabled (greyed with a tooltip). L14 says everything responds. Examples here: the Overlap tab, Add Investment, the \"...\" menu, Update, manager approach.",
+  opts:[
+   {k:"a",l:"Look live; respond with a small Coming soon popover (Recommended)",d:"Same hover as live elements; the popover says what is coming. Differs from Home L32 for elements inside this page."},
+   {k:"b",l:"Greyed and disabled (as L32)",d:"Honest but they look dead, against L14."}],
+  rec:"a",
+  why:"It matches the feeling you asked for; the shell's disabled-link rule can stay for sidebar links.",
+  risk:"Users may click repeatedly on things that do nothing yet; the popover keeps it clear and short."}
+]},
+{g:"E",name:"Page frame and entry",items:[
+ {id:"E1",t:"Confirm the tabs: Overview, Overlap, Insights?",
+  ask:"Is \"analysis\" the Insights tab?",
+  ctx:"Your answer was \"keep overview, overlap and analysis, with overlap as coming soon for now\". The PDF names the tabs Overview, Performance, Holdings, Overlap Analysis, Peer Comparison, Transactions and Insights.",
+  opts:[
+   {k:"a",l:"Yes: Overview, Overlap (Coming soon), Insights (Recommended)",d:"Matches the three routes already in the contract."},
+   {k:"b",l:"No, I meant a different tab",d:"Say which in the notes box."}],
+  rec:"a",
+  why:"Insights is the other tab you asked me to plan, and the contract already has all three routes.",
+  risk:"If you meant another tab, the contract and this plan need a small change."},
+ {id:"E2",t:"What replaces the AMC logo?",
+  ask:"We hold no fund house logos.",
+  ctx:"The header shows a round logo. We have no logo files, and fetching logos from the web at page time would add a third party and licensing questions.",
+  opts:[
+   {k:"a",l:"Initials tile (Recommended)",d:"A round tile with the fund house's initials in a colour taken from the name; no assets."},
+   {k:"b",l:"A small curated set of logos for the largest fund houses",d:"Static files in the repo; needs your approval of the artwork and licence; others fall back to initials."},
+   {k:"c",l:"No logo",d:"Title block starts at the name."},
+   {k:"d",l:"Reuse the existing SchemeLogo component (Recommended after your note)",d:"Already built for the old review screen: 35 fund houses mapped by name, official logo loaded from the AMC's site, first-letter tile when nothing loads. No new code; each logo is a request from the viewer's browser to the AMC's site."}],
+  rec:"d",
+  why:"It gives real logos with no build, and the initials tile still appears for any fund house not in the map or when an image fails.",
+  risk:"Hotlinked logos can break or change, and each view contacts the AMC's site; option b (bundle approved files) removes both but needs artwork and licence approval."},
+ {id:"E3",t:"How does a user reach this page?",
+  ask:"Which entry points this round?",
+  ctx:"Existing screens are not changed (L15). The Dashboard's holdings table and the Analytics scorer therefore cannot get a new link. Home (L28 of the Home workbook) already plans fund rows that open the fund page. The Mutual Funds holdings page and the Holdings tab come from other work.",
+  opts:[
+   {k:"a",l:"New pages only, plus a working URL (Recommended)",d:"Home's contributors, the Mutual Funds Overview and Holdings pages when built, and the typed route."},
+   {k:"b",l:"Also a thin link inside the existing Dashboard fund modal",d:"Changes an existing screen, so needs your explicit permission."}],
+  rec:"a",
+  why:"It respects the rule that existing screens stay as they are; the new Mutual Funds pages will link to it.",
+  risk:"Until those pages ship, the page is reachable only from Home and by URL."},
+ {id:"E4",t:"A member picked who does not hold this fund: what shows?",
+  ask:"Hide, redirect, or show the fund without personal tiles?",
+  ctx:"Under L6 the page follows the shell scope. A household may hold the fund in one member's name only.",
+  opts:[
+   {k:"a",l:"Show the fund; personal tiles say \"Not held by <name>\" (Recommended)",d:"Chart (fund, benchmark, category), score, holdings, risk and Insights still work; Your Investment Details and personal tiles show a short message and a link back to Family Combined."},
+   {k:"b",l:"Switch to Family Combined automatically",d:"Can surprise the user."},
+   {k:"c",l:"Show a not-found state",d:"Blunt."}],
+  rec:"a",
+  why:"The fund information is useful whoever holds it, and the message explains why numbers are missing.",
+  risk:"More states to design and test."}
+]}
+];
+
+var KEY="individual-fund-decisions-v1";
+var state={};
+try{state=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){state={}}
+var dbDoc=null,dbTimer=null,dbSaving=false,dbDirty=false;
+function setSaveState(m){var el=document.getElementById("savestate");if(el)el.textContent=m?" · "+m:""}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+function touch(id){state[id]=state[id]||{};state[id].t=Date.now();return state[id]}
+function save(){saveLocal();scheduleDb()}
+function scheduleDb(){if(!dbDoc)return;dbDirty=true;clearTimeout(dbTimer);dbTimer=setTimeout(flushDb,600)}
+function flushDb(){
+  if(dbSaving){dbTimer=setTimeout(flushDb,300);return}
+  if(!dbDirty||!dbDoc)return;
+  dbDirty=false;dbSaving=true;setSaveState("saving");
+  dbDoc.set({state:JSON.parse(JSON.stringify(state)),updatedAt:new Date().toISOString()}).then(function(){
+    dbSaving=false;setSaveState("saved");
+  },function(){
+    dbSaving=false;dbDirty=true;setSaveState("not saved to cloud, kept in this browser");
+  });
+}
+function mergeIn(remote){
+  var changed=false;
+  Object.keys(remote||{}).forEach(function(k){
+    var r=remote[k]||{},l=state[k];
+    if(!l||(r.t||0)>(l.t||0)){state[k]=r;changed=true}
+  });
+  return changed;
+}
+function localNewer(remote){
+  return Object.keys(state).some(function(k){return !remote[k]||(state[k].t||0)>(remote[k].t||0)});
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+var ll=document.getElementById("lockedList");
+LOCKED.forEach(function(x){
+  var d=document.createElement("div");d.className="card locked";
+  d.innerHTML='<header><span class="id">'+x[0]+'</span><h3>'+esc(x[1])+'</h3><span class="tag locked">decided by you</span></header><p class="decided">'+esc(x[2])+'</p>';
+  ll.appendChild(d);
+});
+
+var qroot=document.getElementById("questions");
+var total=0;
+Q.forEach(function(grp){
+  var sec=document.createElement("section");sec.id="grp-"+grp.g;
+  sec.innerHTML='<h2>'+grp.g+'. '+esc(grp.name)+'</h2>';
+  grp.items.forEach(function(it){
+    total++;
+    var card=document.createElement("article");card.className="card";card.id="q-"+it.id;card.setAttribute("data-id",it.id);
+    var h='<header><span class="id">'+it.id+'</span><h3>'+esc(it.t)+'</h3><span class="tag open" data-status>unanswered</span></header>';
+    h+='<p class="ask">'+esc(it.ask)+'</p><p class="ctx">'+esc(it.ctx)+'</p><div class="opts" role="radiogroup" aria-label="'+esc(it.t)+'">';
+    it.opts.forEach(function(o){
+      var isr=o.k===it.rec;
+      h+='<label class="opt'+(isr?' isrec':'')+'"><input type="radio" name="r-'+it.id+'" value="'+o.k+'"><span><b>'+o.k.toUpperCase()+'. '+esc(o.l)+(isr?' <span class="tag rec">recommended</span>':'')+'</b><span class="d">'+esc(o.d)+'</span></span></label>';
+    });
+    h+='</div><div class="why"><b>Why I recommend '+it.rec.toUpperCase()+':</b> '+esc(it.why)+'</div><p class="risk"><b>If this goes wrong:</b> '+esc(it.risk)+'</p>'+(REPLIES[it.id]?'<div class="reply"><b class="t">Note:</b> '+REPLIES[it.id]+'</div>':'');
+    h+='<div class="row"><button class="btn ghost" data-use>Use recommended ('+it.rec.toUpperCase()+')</button><button class="btn ghost" data-reset>Reset</button></div>';
+    h+='<label for="n-'+it.id+'" class="count" style="display:block;margin-top:10px">Your own answer or notes</label><textarea id="n-'+it.id+'" placeholder="Optional. Write your own option here."></textarea>';
+    card.innerHTML=h;sec.appendChild(card);
+  });
+  qroot.appendChild(sec);
+});
+
+function cardOf(id){return document.getElementById("q-"+id)}
+function refresh(){
+  var done=0;
+  Q.forEach(function(g){g.items.forEach(function(it){
+    var c=cardOf(it.id),s=state[it.id]||{},ans=!!(s.c||(s.n&&s.n.trim()));
+    if(ans)done++;
+    var tag=c.querySelector("[data-status]");
+    tag.textContent=ans?"answered":"unanswered";tag.className="tag "+(ans?"done":"open");
+    c.setAttribute("data-answered",ans?"1":"0");
+    var radios=c.querySelectorAll("input[type=radio]");
+    radios.forEach(function(r){r.checked=(s.c===r.value)});
+    var ta=c.querySelector("textarea");if(ta&&ta.value!==(s.n||""))ta.value=s.n||"";
+  })});
+  document.getElementById("count").textContent=done+" of "+total+" answered";
+  applyFilter();buildOut();
+}
+var filter="all";
+function applyFilter(){
+  document.querySelectorAll("article.card").forEach(function(c){
+    var a=c.getAttribute("data-answered")==="1";
+    var hide=(filter==="open"&&a)||(filter==="done"&&!a);
+    c.classList.toggle("hidden-by-filter",hide);
+  });
+  ["all","open","done"].forEach(function(f){document.getElementById("f-"+f).setAttribute("aria-pressed",String(filter===f))});
+}
+["all","open","done"].forEach(function(f){document.getElementById("f-"+f).addEventListener("click",function(){filter=f;applyFilter()})});
+
+qroot.addEventListener("change",function(e){
+  var c=e.target.closest("article.card");if(!c)return;var id=c.getAttribute("data-id");
+  if(e.target.type==="radio"){touch(id).c=e.target.value;save();refresh()}
+});
+qroot.addEventListener("input",function(e){
+  if(e.target.tagName!=="TEXTAREA")return;
+  var c=e.target.closest("article.card");var id=c.getAttribute("data-id");
+  touch(id).n=e.target.value;save();
+  var s=state[id],ans=!!(s.c||(s.n&&s.n.trim()));
+  var tag=c.querySelector("[data-status]");tag.textContent=ans?"answered":"unanswered";tag.className="tag "+(ans?"done":"open");
+  c.setAttribute("data-answered",ans?"1":"0");
+  var n=document.querySelectorAll('article.card[data-answered="1"]').length;
+  document.getElementById("count").textContent=n+" of "+total+" answered";buildOut();
+});
+qroot.addEventListener("click",function(e){
+  var c=e.target.closest("article.card");if(!c)return;var id=c.getAttribute("data-id");
+  var it=null;Q.forEach(function(g){g.items.forEach(function(x){if(x.id===id)it=x})});
+  if(e.target.hasAttribute("data-use")){touch(id).c=it.rec;save();refresh()}
+  if(e.target.hasAttribute("data-reset")){state[id]={t:Date.now()};save();refresh()}
+});
+
+function buildOut(){
+  var lines=["Individual Fund Page decisions (answers to the planning workbook)",""];
+  Q.forEach(function(g){g.items.forEach(function(it){
+    var s=state[it.id]||{},txt;
+    if(s.c){var o=it.opts.filter(function(x){return x.k===s.c})[0];txt=s.c.toUpperCase()+" - "+o.l+(s.c===it.rec?" (recommended)":"")}
+    else txt="no choice";
+    if(s.n&&s.n.trim())txt+=" | note: "+s.n.trim();
+    lines.push(it.id+" "+it.t+": "+txt);
+  })});
+  document.getElementById("out").textContent=lines.join("\n");
+}
+document.getElementById("copy").addEventListener("click",function(){
+  var t=document.getElementById("out").textContent,m=document.getElementById("copied");
+  function sel(){var r=document.createRange();r.selectNodeContents(document.getElementById("out"));var s=window.getSelection();s.removeAllRanges();s.addRange(r);m.textContent="Select and copy the text below."}
+  try{navigator.clipboard.writeText(t).then(function(){m.textContent="Copied."},sel)}catch(e){sel()}
+});
+document.getElementById("clear").addEventListener("click",function(){
+  var t=Date.now();Q.forEach(function(g){g.items.forEach(function(it){state[it.id]={t:t}})});save();refresh();
+});
+refresh();
+
+/* Connect the database once the viewer answers; the page works without it. */
+(function(){
+  if(!(window.claude&&window.claude.use))return;
+  window.claude.use("db").then(function(db){
+    if(!db){setSaveState("saved in this browser only");return}
+    dbDoc=db.doc("answers/main");
+    return dbDoc.get().then(function(snap){
+      var remote=(snap.exists&&snap.data()&&snap.data().state)||{};
+      if(mergeIn(remote)){saveLocal();refresh()}
+      if(!snap.exists||localNewer(remote))scheduleDb();else setSaveState("saved");
+      dbDoc.onSnapshot(function(s){
+        if(!s.exists||s.metadata.hasPendingWrites)return;
+        var r=(s.data()||{}).state||{};
+        if(mergeIn(r)){saveLocal();refresh()}
+      },function(){});
+    });
+  }).catch(function(){setSaveState("saved in this browser only")});
+})();
+</script>
