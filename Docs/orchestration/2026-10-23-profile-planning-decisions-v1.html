@@ -142,7 +142,7 @@ blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);colo
   <a href="#blueprint">Section map</a></div>
   <div class="grp"><h4>Open questions</h4>
     <a href="#grp-A">A. Page shape</a><a href="#grp-B">B. Personal data</a><a href="#grp-C">C. Family, connected accounts</a>
-    <a href="#grp-D">D. Settings, billing, privacy</a><a href="#grp-E">E. Delivery</a><a href="#grp-F">F. Follow-ups (new, 23 Oct)</a></div>
+    <a href="#grp-D">D. Settings, billing, privacy</a><a href="#grp-E">E. Delivery</a><a href="#grp-F">F. Follow-ups</a><a href="#grp-G"><b>G. Open items (new)</b></a></div>
   <div class="grp"><a href="#risks">Risks</a><a href="#verify">To verify in the spec phase</a><a href="#log">Conversation log</a><a href="#glossary">Glossary</a><a href="#answers">Your answers</a></div>
 </nav>
 
@@ -152,7 +152,7 @@ blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);colo
   <p>Planning workbook for the redesigned Profile section of the Unifolio desktop web app, prepared 23 Oct 2026. Nothing is built and no existing file was edited. Every open question below has options, a recommendation and the reason for it. Your answers save automatically in this page's database, so closing the tab loses nothing; the text box at the bottom collects them to paste into chat.</p>
   <div class="rule"><b>Source of truth:</b> <i>Web app UI mockups MFs.pdf</i>, pages 30 and 31 (page 30 is a title slide; page 31 is one image, which I viewed). Where an older document or the code disagrees, the PDF wins, and section 6 lists every disagreement. I will not edit any existing document without asking you.</div>
   <div class="rule"><b>Scope:</b> desktop web only; mobile is untouched. Mutual funds only: other asset classes show as "Coming soon". Existing screens are not changed; the shell wires them in by thin wrapper route files. Search is on hold.</div>
-  <div class="rule"><b>Where we stand (updated 23 Oct, after your answers to F1 to F8):</b> <b>every card is answered or moot</b> and the decisions are L1 to L49; the documents phase is written (see the log). Since the first round: Connected Accounts is not built (it shows as a Coming soon page, L33; the design is in <span class="mono">DEFERRED_FEATURES.md</span>, uncommitted); financial details are deferred to Coming soon (L31); Settings holds Notifications, Preferences, Security and Import History (L32); the PAN is always shown masked (L49). The final list has seven items (L36). <b>Three small assumptions of mine are in L37.</b> Nothing starts until you say go.</div>
+  <div class="rule"><b>Where we stand (updated 23 Oct, after your answers to F1 to F8):</b> <b>every card is answered or moot</b> and the decisions are L1 to L62; the documents phase is written (see the log). Since the first round: Connected Accounts is not built (it shows as a Coming soon page, L33; the design is in <span class="mono">DEFERRED_FEATURES.md</span>, uncommitted); financial details are deferred to Coming soon (L31); Settings holds Notifications, Preferences, Security and Import History (L32); the PAN is always shown masked (L49). The final list has seven items (L36). <b>G1 to G11 are answered</b> (L52 to L62); G1 is settled as: people enter only through statements, manual Add Member is deferred. Two of them needed a correction from me: the import screen has no add-person chooser (G1), and the delete call already handles a member with no statements (G8). The shell contract change is applied (v1.4). Building waits on the shell PR and your go.</div>
 </div>
 
 <section id="pdf">
@@ -338,6 +338,13 @@ blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);colo
     <tr><td class="k">23 Oct, later</td><td>You</td><td>New instructions: delete the old Profile after the new one is built (A3); Financial Details from onboarding data plus goals (B1 option B); family strip tile becomes Add statement and the green Add Member button goes; Personal Information card without name and PAN; the member list keeps today's cards with the completion chip. Also re-pasted the saved card answers (B6 A, C2 B, C4 A now).</td></tr>
     <tr><td class="k">23 Oct, later</td><td>Me</td><td>Locked L42 to L48, updated the documents and the mockups, and raised one open item (Q5): how to add a person who is in no statement, now that Add Member is gone.</td></tr>
     <tr><td class="k">23 Oct, later</td><td>You</td><td>PAN is always masked: no Show or Hide on the screens (L49).</td></tr>
+    <tr><td class="k">23 Oct, later</td><td>You</td><td>Add Delete member above Delete all funds (not for the Admin); the strip label Primary User becomes Admin (L50, L51).</td></tr>
+    <tr><td class="k">23 Oct, later</td><td>You</td><td>Answered G1 to G11.</td></tr>
+    <tr><td class="k">23 Oct, later</td><td>Me</td><td>Locked L52 to L62; checked G1 and G8 in code and corrected both; added the deferred Financial Details entry (G9); updated the mockups and documents.</td></tr>
+    <tr><td class="k">23 Oct, later</td><td>You</td><td>No add-a-person path for now: people enter only through statements. Add the manual Add Member feature to the deferred list.</td></tr>
+    <tr><td class="k">23 Oct, later</td><td>Me</td><td>Recorded L62 as final and added the Add Member entry to DEFERRED_FEATURES.md.</td></tr>
+    <tr><td class="k">23 Oct, later</td><td>You</td><td>Go: apply the contract change.</td></tr>
+    <tr><td class="k">23 Oct, later</td><td>Me</td><td>Applied it as contract v1.4 (uncommitted).</td></tr>
     <tr><td class="k">23 Oct, later</td><td>Me</td><td>Appended a Connected Accounts entry to DEFERRED_FEATURES.md (uncommitted; the file already had another session's uncommitted changes, which I left alone). Locked L13 to L30. Flagged the full-PAN conflict. Added eight follow-up cards, F1 to F8.</td></tr>
   </table></div>
   <div class="scroll" style="margin-top:12px"><table>
@@ -392,7 +399,7 @@ var LOCKED=[
  ["L20","Full PAN is shown, always (SUPERSEDED by L49)","Chosen against my recommendation. This conflicts with how PAN is exposed today (stored encrypted, API returns masked only), so I need one confirmation of how it is delivered: F7. (Your answer to B6, 23 Oct.)"],
  ["L21","Only what is editable today can be edited","(Your answer to B7, 23 Oct.) The new optional financial fields (L17) are the one addition and need their own edit control."],
  ["L22","Family table: menu = Edit, Merge, Delete funds; Add Member opens the existing add form","(Your answer to C1, 23 Oct.)"],
- ["L23","The Family Account strip looks like the PDF and shows the data we have","Avatars, names and the Primary User / Member labels, in the mockup's style. Whether its two buttons stay is F8. (Your note on C2, 23 Oct.)"],
+ ["L23","The Family Account strip looks like the PDF and shows the data we have","Avatars, names and the Admin / Member labels, in the mockup's style. Whether its two buttons stay is F8. (Your note on C2, 23 Oct.)"],
  ["L24","Connected Accounts is NOT built now (list item amended by L33)","Deferred by you on 23 Oct and written into <span class='mono'>DEFERRED_FEATURES.md</span> (an edit I made on your instruction; uncommitted). This amends L3 and L8: nothing is built for it. The Mutual Funds row wording you chose (C3: \"Mutual funds (CAS statements): 5 statements imported, last on 12 Oct\") is kept in that entry. C4 is moot. Import History needs another home: F1."],
  ["L25","A \"Settings\" tab holds Notifications, Preferences and Security","The Account Settings card on page 31 becomes its own list item, Settings, with those three inside it. Whether the three also keep their own list items and what a row opens: F2. (Your note on D1, 23 Oct.)"],
  ["L26","A Coming soon page is a short line on what will live there, no controls","(Your answer to D2, 23 Oct.)"],
@@ -417,8 +424,21 @@ var LOCKED=[
  ["L45","The strip's last tile is Add statement","It asks \"Add statement for whom?\" (the household members), then opens the existing upload options for that person. With no members it goes straight to upload. The green Add Member button in the member list is removed, so there is no Add Member on Profile (amends L22, L35, L38). (Your instruction, 23 Oct, later.)"],
  ["L46","The Personal Information card has email and mobile only","Name and PAN are in the header card above and are not repeated. (Your instruction, 23 Oct, later.)"],
  ["L47","The member list keeps today's cards, with the profile-completion chip","Not the PDF table. Each card: name, masked PAN with Show, relationship, phone, email, the completion chip (percentage and what is missing, as today), Edit profile, Delete all funds. The Admin or Member label stays (L6) unless you say drop it. (Your instruction, 23 Oct, later.)"],
- ["L48","Later chat instructions win over the saved card state","The card answers you pasted on 23 Oct show B1 C, C1 A, C2 B and C4 A. They differ from L42 to L47 (B1 now onboarding data, C1 and C2 now Add statement with no Add Member, C4 moot). I applied the later chat instructions. B6 A (masked) and F7 B (full PAN on click) do not conflict: masked by default, full on click."]
- ["L49","The PAN is always shown masked; no Show or Hide","Supersedes L20, L34, L40 and L41. No reveal, no new endpoint, and F7 is moot. The only backend change left is `created_at` on `/auth/me`. (Your instruction, 23 Oct, later.)"]
+ ["L48","Later chat instructions win over the saved card state","The card answers you pasted on 23 Oct show B1 C, C1 A, C2 B and C4 A. They differ from L42 to L47 (B1 now onboarding data, C1 and C2 now Add statement with no Add Member, C4 moot). I applied the later chat instructions. B6 A (masked) and F7 B (full PAN on click) do not conflict: masked by default, full on click."],
+ ["L49","The PAN is always shown masked; no Show or Hide","Supersedes L20, L34, L40 and L41. No reveal, no new endpoint, and F7 is moot. The only backend change left is `created_at` on `/auth/me`. (Your instruction, 23 Oct, later.)"],
+ ["L50","A Delete member button above Delete all funds, on every card except the Admin's","It removes the person and their funds from the household, with a confirmation, using the existing delete-portfolio call with the remove-member option, so no backend change. (Your instruction, 23 Oct, later.)"],
+ ["L51","The strip label for the account holder is \"Admin\", not \"Primary User\"","So the strip, the cards and the pills all say Admin or Member. (Your instruction, 23 Oct, later.)"],
+ ["L52","One \"All of it\" chip when all four goals are stored (amends L44)","(Your answer to G2, 23 Oct.) The Goals dialog still shows the four checkboxes plus the shortcut."],
+ ["L53","Import Health link and Settings routes confirmed","The dev link sits at the foot of Settings; routes are /profile/settings with notifications, preferences, security and import-history. (Your answer to G3, 23 Oct.)"],
+ ["L54","The Admin or Member pill stays on the member cards","(Your answer to G4, 23 Oct.)"],
+ ["L55","The Connected Accounts Coming soon page keeps the muted planned-accounts list","Bank accounts, stocks and ETFs, FDs and bonds, gold, US stocks, real estate. (Your answer to G5, 23 Oct.)"],
+ ["L56","No lock icons on the greyed Coming soon rows","(Your answer to G6, 23 Oct.)"],
+ ["L57","An empty goals selection is blocked in the dialog only","No server change. (Your answer to G7, 23 Oct.)"],
+ ["L58","Delete member for a person with no statements: no fix needed","You chose to fix the call. I checked the code: for a non-self member with no statements the service already removes the member, and a test covers it (`test_deletion.py`). So there is no backend change. (Your answer to G8, 23 Oct, with my verification.)"],
+ ["L59","The remaining Financial Details fields go into the deferred list","Added to `DEFERRED_FEATURES.md` on 23 Oct with the accepted pick-lists (F5) and the consent notice (F6). (Your answer to G9, 23 Oct.)"],
+ ["L60","The draft wording is approved, except the privacy text","The Coming soon and Early access lines are approved; the lawyer reviews \"What we store\" before launch. (Your answer to G10, 23 Oct.)"],
+ ["L61","Shell contract change: applied on your go (contract v1.4)","Applied on 23 Oct 2026: O10 reversed, the Profile routes in the registry, the reserved-sections bullet and the legacy mapping updated, version note added. The contract file is edited in the working tree and not committed. (Your answer to G11 and your go, 23 Oct.)"],
+ ["L62","People enter the household only through statements, for now","Confirmed by you after my correction on G1: the existing import screen has no way to add a person, so none is added on Profile. A manual Add Member (the Add Member button and dialog, or an add-a-person link in the Add statement dialog) is deferred and recorded in `DEFERRED_FEATURES.md`. (Your instruction, 23 Oct, later.)"]
 ];
 
 var Q=[
@@ -690,11 +710,108 @@ var Q=[
   rec:"a",why:"It matches your note and the image, and costs two small wires to existing actions.",
   risk:"Two places to add a member on one page."}
 ]}
+,{g:"G",name:"Open items and confirmations (23 Oct, later)",items:[
+ {id:"G1",t:"How is a person added who is in no statement? (Q5)",
+  ask:"With the Add Member button removed (L45, L47), how does someone add a person who is not in any statement yet?",
+  ctx:"People now come in through statements. The existing import flow may already have a member chooser (contract section 5 says the import screen shows a chooser when no member is given); I have not checked it. This matters most for a household whose second person has no statement yet.",
+  opts:[
+   {k:"a",l:"Rely on the import flow's own chooser",d:"No add-person control on Profile. The Add statement tile with no member chosen opens the import flow, which handles a new person."},
+   {k:"b",l:"Add an \"add a new person\" link inside the \"Add statement for whom?\" dialog",d:"Opens the existing add-member form (the call exists), then continues to upload for that person."},
+   {k:"c",l:"Statement detection only",d:"A person appears only when a statement contains them; nothing manual."}],
+  rec:"a",why:"It adds no code to Profile and keeps one way in. I still need to confirm the chooser does this before you rely on it.",
+  risk:"If the chooser cannot add a new person, option b becomes necessary."},
+ {id:"G2",t:"Confirm how the stored goals and investor type are displayed (L44)",
+  ask:"These are my proposed display rules for the onboarding answers. Do you accept them?",
+  ctx:"Goals are stored as a JSON array of codes. Proposal: each known code becomes a chip with its onboarding title, in onboarding order (not stored order); null or empty shows \"Not answered\" with an Add button; a code the screen does not know (a newer option) is kept and shown humanised in a dashed chip; all four codes show as four chips (onboarding's \"All of it\" saves the four real codes); the old single-goal column is ignored. Investor type is one code shown with its onboarding title, or \"Not answered\".",
+  opts:[
+   {k:"a",l:"Accept the rules as written",d:"As in the mockup. Try the \"Onboarding data\" buttons there."},
+   {k:"b",l:"Accept, but show one \"All of it\" chip when all four are stored",d:"Shorter, but hides what is actually stored."},
+   {k:"c",l:"Change something",d:"Say what in the note box."}],
+  rec:"a",why:"It shows exactly what is stored and never drops a value a newer app version might write.",
+  risk:"Four chips take more room than one; the card wraps them."},
+ {id:"G3",t:"Import Health link and the Settings route names (L37)",
+  ask:"Two assumptions of mine: the staging-only Import Health link sits at the bottom of Settings, and the Settings routes are /profile/settings with notifications, preferences, security and import-history under it. Right?",
+  ctx:"The contract today reserves three separate routes (notifications, preferences, security) and has Import Health at /profile/import-health. Neither contract change is applied; the proposal is in the backend decisions doc.",
+  opts:[
+   {k:"a",l:"Yes to both",d:"Link at the foot of Settings (dev tools only); routes as written."},
+   {k:"b",l:"Link elsewhere",d:"Say where in the note box (for example the footer of Data & Privacy)."},
+   {k:"c",l:"Different route names",d:"Say which in the note box."}],
+  rec:"a",why:"It keeps all dev and settings items in one place and needs the smallest contract change.",
+  risk:"None to users; the staging link is for developers."},
+ {id:"G4",t:"Keep the Admin or Member pill on the member cards?",
+  ask:"Today's member cards have no pill. I kept the Admin / Member pill because of L6. Keep it?",
+  ctx:"The strip, the cards and the pill all say Admin or Member now (L51). The pill is a label only; there are no roles.",
+  opts:[
+   {k:"a",l:"Keep the pill",d:"Consistent with the strip."},
+   {k:"b",l:"Drop it from the cards",d:"Cards look exactly like today's. The strip keeps its labels."}],
+  rec:"a",why:"One vocabulary across the page, at no cost.",
+  risk:"Could suggest permissions that do not exist."},
+ {id:"G5",t:"Connected Accounts page: planned-accounts list",
+  ask:"The Coming soon page lists six planned account types in muted rows (bank accounts, stocks and ETFs, FDs and bonds, gold, US stocks, real estate). Keep that list, or one line only?",
+  ctx:"The spec says a short line and no controls (L26). I added the list in the mockup to look like page 31 and to invite a click. Each row only shows a note.",
+  opts:[
+   {k:"a",l:"Keep the muted list",d:"Closer to the PDF; shows what is coming."},
+   {k:"b",l:"One line only, as specced",d:"Plain page, no promises about which accounts."}],
+  rec:"b",why:"The list says more about future plans than the product has committed to. It is easy to add later.",
+  risk:"The page looks plainer than the PDF."},
+ {id:"G6",t:"Lock icons on the greyed Financial Details rows",
+  ask:"The Coming soon rows (occupation, industry, income, net worth, risk, experience) show a small lock. Keep it?",
+  ctx:"You asked me to remove the lock beside the PAN; these were left because they mean \"not available yet\".",
+  opts:[
+   {k:"a",l:"Remove the locks",d:"Greyed rows with a dash only."},
+   {k:"b",l:"Keep the locks",d:"A visual cue that the row is not available yet."}],
+  rec:"a",why:"Consistent with removing the PAN lock; the greyed look and the Coming soon heading already say it.",
+  risk:"None."},
+ {id:"G7",t:"Empty goals selection (needs a code check)",
+  ask:"Saving an empty goals list may fail on the server. What do we do?",
+  ctx:"The existing PATCH /auth/me treats an empty list as provided and then reads the first item, which probably raises. I have not run it. The frontend plan already blocks saving an empty selection.",
+  opts:[
+   {k:"a",l:"Block it in the dialog only",d:"No backend change."},
+   {k:"b",l:"Block it in the dialog and add a small server guard",d:"A failing test first, then a guard that rejects or ignores an empty list. A backend change."}],
+  rec:"a",why:"The dialog is the only caller on this page; onboarding has its own validation. Revisit if the call fails when tested.",
+  risk:"Another client could still send an empty list."},
+ {id:"G8",t:"Delete member for a person with no statements (needs a code check)",
+  ask:"Delete member uses the existing delete-portfolio call with the remove-member option. If the person has no statements it may return not found. What do we do?",
+  ctx:"The call returns a not-found error when the member has no imports (to verify). A member added manually or left empty after deleting funds could be in that state.",
+  opts:[
+   {k:"a",l:"Show a friendly message and offer nothing else",d:"For example \"Nothing to delete for this person.\""},
+   {k:"b",l:"Fix the call so it removes a member with no statements",d:"A small backend change plus a test."}],
+  rec:"b",why:"A Delete member button that fails for exactly the people most likely to be deleted is a poor experience.",
+  risk:"Touches the delete code, which has a large blast radius; needs the existing delete tests re-run."},
+ {id:"G9",t:"Write the rest of Financial Details into the deferred list?",
+  ask:"Occupation, industry, income, net worth, risk and experience stay Coming soon. Add them to DEFERRED_FEATURES.md as for Connected Accounts?",
+  ctx:"Connected Accounts is recorded there on your instruction. This would be a second entry. It is an edit to an existing document, so I am asking.",
+  opts:[
+   {k:"a",l:"Yes, add the entry",d:"With the proposed pick-lists and the consent notice from F5 and F6 so they are not lost."},
+   {k:"b",l:"No",d:"The workbook already records them."}],
+  rec:"a",why:"The pick-lists and the consent idea took real work and are only in this workbook, which is not the project's list of deferred features.",
+  risk:"None."},
+ {id:"G10",t:"Approve the draft wording",
+  ask:"The Coming soon lines, the Early access line and the \"What we store\" text are my drafts. How should they be approved?",
+  ctx:"\"What we store\" must match the ADRs and, in your words, your lawyer. The Coming soon lines say what is coming without dates.",
+  opts:[
+   {k:"a",l:"I approve the Coming soon and Early access wording now; the lawyer reviews \"What we store\"",d:"Build with the drafts; the privacy text is checked before launch."},
+   {k:"b",l:"Hold all wording until the lawyer has seen it",d:"Build the pages with placeholders."},
+   {k:"c",l:"I will edit the wording myself",d:"Put your versions in the note box."}],
+  rec:"a",why:"The Coming soon lines are low risk; only the privacy text needs legal eyes.",
+  risk:"Launch waits on the lawyer for the Data & Privacy page text."},
+ {id:"G11",t:"Who applies the shell contract change?",
+  ask:"Profile needs contract v1.2 changed (new Profile routes). Who applies it?",
+  ctx:"I have not edited the contract. The proposed wording is in the backend decisions doc. The shell session is also working from it.",
+  opts:[
+   {k:"a",l:"You apply it from my proposed wording",d:"I do not touch the contract."},
+   {k:"b",l:"I apply it when you say go",d:"A single edit to the contract, listed in my report."}],
+  rec:"a",why:"The contract is shared with the shell session; you control when it changes.",
+  risk:"The shell may be built before the Profile routes are in the contract."}
+]}
 ];
 
 var REPLIES={};
 REPLIES.A3="<b>Not applied.</b> The contract file is unchanged. If you approve option a or b, I will give you the exact wording of the change (O10 and the registry rows for <span class='mono'>profile</span> and <span class='mono'>profile-import-health</span>) as a proposal for you to apply.";
-REPLIES.A3="<b>Recorded (L15).</b> The contract file is unchanged. When you say go, I will give you the exact wording of the change (O10, the <span class='mono'>profile</span> registry row, a hidden path for the old screen, and the new Settings route) as a proposal for you to apply.";
+REPLIES.A3="<b>Recorded (L15), and applied on 23 Oct as contract v1.4.</b> (Earlier note: the contract file was unchanged.) When you say go, I will give you the exact wording of the change (O10, the <span class='mono'>profile</span> registry row, a hidden path for the old screen, and the new Settings route) as a proposal for you to apply.";
+REPLIES.G1="<b>Recorded (L62), with a correction.</b> I checked the code: the existing import screen has no chooser that adds a person. Its member control is a dropdown of existing members, and new people appear only when a statement contains them. So option A means there is no manual add-person path. Confirmed by you: not adding one now; recorded as deferred (L62).";
+REPLIES.G8="<b>Recorded (L58): no fix needed.</b> The service already removes a non-self member that has no statements, and a test covers it.";
+REPLIES.G11="<b>Done (L61):</b> applied on your go as contract v1.4; not committed.";
 REPLIES.B6="<b>Recorded (L20), then amended (L34):</b> full PAN on a click of \"show\", not always on screen. The conflict with ADR-004 (encrypted, masked-only API) is limited to one new read endpoint.";
 REPLIES.C2="<b>Recorded (L23)</b>, with one question left: whether the strip's two buttons stay (F8).";
 REPLIES.C3="<b>Recorded</b> and kept in <span class='mono'>DEFERRED_FEATURES.md</span> because Connected Accounts is not built now (L24).";
@@ -864,6 +981,13 @@ refresh();
     });
   }).catch(function(){setSaveState("saved in this browser only")});
 })();
+
+
+
+
+
+
+
 
 
 

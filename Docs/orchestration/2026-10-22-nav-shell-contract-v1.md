@@ -1,8 +1,10 @@
-# Navigation shell contract and URL map (v1.2, draft for review)
+# Navigation shell contract and URL map (v1.4, draft for review)
 
 **Status:** draft v1.2, 2026-10-22. Planning only; nothing is built. v1.2 replaces v1.1; v1 was first committed as 8c13782 (local only).
 
 **What changed in v1.2 (owner's answers to the open decisions, 22 Oct):** router is react-router v7 (O1); **Equity is an expandable group, not a page** (O2 redesigned): its children are Direct Stocks, Mutual Fund, US Stock, and FDs & bonds; clicking Portfolio opens Investments; the selected member is not in the URL (O4); no Planning sub-menu (O5); Liabilities is a placeholder page (O6); Back goes to the last non-Portfolio screen (O9); Profile sections as routes later (O10); Help & Support placeholder (O11). Assumptions made without an explicit answer are marked **(assumed)** in section 10 and should be confirmed.
+
+**What changed in v1.4 (23 Oct 2026, owner's go on the Profile planning; companion documents `2026-10-23-profile-*.md` and the workbook `2026-10-23-profile-planning-decisions-v1.html`):** Profile sections are routes now, not later (O10 reversed). `/profile` redirects to `/profile/personal`; there are seven left-list pages plus Settings children, a hidden `/profile/legacy` (the old Profile, deleted after the new one is accepted) and the existing `/profile/import-health`. All are `app` layout, scope `none`, one route file each. The three reserved paths `notifications`, `preferences` and `security` move under `/profile/settings/`, and `/profile/settings/import-history` is new. Profile does not change any other part of this contract.
 **Source of truth:** `Docs/Web app UI mockups MFs.pdf` (pp. 2-3 and 9 sidebar; 12-19, 21-26 Portfolio and Mutual Funds; 27-31 Planning and Profile) and the screenshots. Where this contract and an older document disagree, the PDF wins.
 **Related:** `2026-10-22-portfolio-snapshot-decisions.html` (decisions L7-L39), `2026-10-22-nav-shell-claude-session-brief.md`, `2026-10-22-nav-shell-architecture.md` (in-depth structure).
 
@@ -85,16 +87,26 @@ All paths are final for v1.2. A placeholder ("Coming soon") exists at every path
 | `liabilities` | `/liabilities` | main 3 | app | placeholder | none |
 | `planning` | `/planning` | main 4 | app | redirect to `/planning/scenarios` | none |
 | `planning-scenarios` | `/planning/scenarios` | none | app | existing | **Scenarios** (`ScenariosScreen`) |
-| `profile` | `/profile` | footer 1 | app | existing | **Profile** (`ProfileView`) |
+| `profile` | `/profile` | footer 1 | app | redirect to `/profile/personal` | none |
+| `profile-personal` | `/profile/personal` | none | app | new (Profile) | Personal Information |
+| `profile-family` | `/profile/family` | none | app | new (Profile) | Family Members |
+| `profile-connected-accounts` | `/profile/connected-accounts` | none | app | new (Profile), Coming soon | Connected Accounts |
+| `profile-settings` | `/profile/settings` | none | app | new (Profile) | Settings |
+| `profile-settings-notifications`, `-preferences`, `-security` | `/profile/settings/<notifications\|preferences\|security>` | none | app | new (Profile), Coming soon | none |
+| `profile-settings-import-history` | `/profile/settings/import-history` | none | app | new (Profile) | existing `ImportHistorySection` |
+| `profile-subscription` | `/profile/subscription` | none | app | new (Profile) | Subscription & Billing |
+| `profile-tax` | `/profile/tax` | none | app | new (Profile), Coming soon | Tax Information |
+| `profile-data-privacy` | `/profile/data-privacy` | none | app | new (Profile) | Data & Privacy |
+| `profile-legacy` | `/profile/legacy` | none | app | existing, hidden; deleted after the new Profile is accepted | **Profile (old)** (`ProfileView`) |
 | `profile-import-health` | `/profile/import-health` | none | app | existing dev screen | `ImportHealth` |
 | `help` | `/help` | footer 2 | app | placeholder | none |
 | `import` | `/import?member=<memberId>` | none | **focus** (no sidebar) | existing | the "Add data" mode (`ImportFlow`) |
 | `not-found` | `*` | none | app | shell | none |
 
 - The Mutual Funds in-page menu (Overview, Performance, Allocation, Holdings, Transactions, Overlap, Other Analytics) is built by that page's owner; its paths are fixed here so they can be linked.
-- **Profile sections** are reserved as `/profile/:section` (personal, family, connected-accounts, notifications, preferences, security, subscription, tax, data-privacy) for when Profile is redesigned. In v1 `/profile` is the existing screen.
+- **Profile sections (v1.4):** the paths in the registry rows above. Profile is not scoped (`scope: none`) and shows no member banners. Settings holds Notifications, Preferences and Security (Coming soon pages) and Import History (the existing list); the staging-only Import health link sits at the foot of Settings. Details: `2026-10-23-profile-functionality-backend-spec.md`.
 - **Instrument routes (O2, v1.2):** the Equity children are routes in their own right (Mutual Fund keeps `/portfolio/mutual-funds` so existing mappings do not move). Equity itself has no page: a typed or bookmarked `/portfolio/equity` redirects to `/portfolio/mutual-funds`. The Investments page may still show instrument shortcuts, linking through `paths`.
-- **Legacy mapping:** `dashboard` is `/portfolio/mutual-funds`; `history` is `/portfolio/mutual-funds/history`; `analytics` is `/portfolio/mutual-funds/analytics`; `scenarios` is `/planning/scenarios`; `profile` is `/profile`.
+- **Legacy mapping:** `dashboard` is `/portfolio/mutual-funds`; `history` is `/portfolio/mutual-funds/history`; `analytics` is `/portfolio/mutual-funds/analytics`; `scenarios` is `/planning/scenarios`; `profile` is `/profile` (redirects to `/profile/personal` from v1.4; the old screen is at `/profile/legacy`).
 
 ## 5. The route module
 
@@ -167,7 +179,7 @@ The shell is delivered in two PRs (owner's answer D1, 22 Oct). **PR 1** `feat/sh
 
 ## 10. Decisions on the open questions (answered 22 Oct)
 
-O1 router: **react-router v7, `^7.18.4`** (one new dependency; v8.5 needs Node 22.22 and our CI and deploy script use Node 20; a v8 and Node 22 upgrade is a later task). O2 portfolio menu: **Equity is an expandable group, not a page**; children Direct Stocks, Mutual Fund, US Stock, FDs & bonds; Portfolio opens Investments. O4 scope in the URL: **no**; shell state, remembered per session; only `/import` carries `?member=`. O5 Planning sub-menu: **none**. O6 Liabilities: **a placeholder page "Liabilities"** (assumed placeholder; confirm if it is to be built now). O9 Back: **the last non-Portfolio screen** (default `/home`). O10 Profile sections as routes: **later, not in v1**. O11 Help & Support: **placeholder for now**.
+O1 router: **react-router v7, `^7.18.4`** (one new dependency; v8.5 needs Node 22.22 and our CI and deploy script use Node 20; a v8 and Node 22 upgrade is a later task). O2 portfolio menu: **Equity is an expandable group, not a page**; children Direct Stocks, Mutual Fund, US Stock, FDs & bonds; Portfolio opens Investments. O4 scope in the URL: **no**; shell state, remembered per session; only `/import` carries `?member=`. O5 Planning sub-menu: **none**. O6 Liabilities: **a placeholder page "Liabilities"** (assumed placeholder; confirm if it is to be built now). O9 Back: **the last non-Portfolio screen** (default `/home`). O10 Profile sections as routes: **now (v1.4), see the v1.4 note**. O11 Help & Support: **placeholder for now**.
 
 **Confirmed by the owner (Left Panel Plan, 22 Oct):** FDs & bonds sits under Equity as listed; Debt, Gold, Real Estate and Others are plain greyed links with no children; Equity opens on child pages and otherwise remembers its last state; a typed `/portfolio/equity` redirects to `/portfolio/mutual-funds`; the scope rule above (Family Combined on every page change, except between the in-page tabs of one page); a shared Coming soon page for greyed URLs; the logo goes to `/home`; basic keyboard and screen-reader semantics only; Back remembers only live screens with the normal layout, otherwise `/home`.
 

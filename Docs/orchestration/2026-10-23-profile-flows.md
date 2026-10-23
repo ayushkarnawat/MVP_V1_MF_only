@@ -35,9 +35,10 @@ Closing the dialog cancels any in-flight request's effect (the stale-request gua
 
 ## 5. Add a member and the other family actions
 
-- **Add Member:** dialog (name, relationship, "other" label when relationship is other) -> `POST /household-members` -> list reloads. 409 (a self member exists) and 422 (invalid name) show messages.
+- **Add statement:** see section 10. There is no Add Member (deferred, `DEFERRED_FEATURES.md`).
 - **Edit:** `CompleteProfileDialog` -> `PUT /household-members/{id}/profile`; possible duplicate and other-account prompts are the dialog's own.
 - **Merge:** no standalone action (Q1). Merge happens only inside Edit's possible-duplicate prompt (`POST /household-members/{id}/merge-into/{target}`).
+- **Delete member** (not the Admin): confirmation -> `DELETE /household-members/{id}/portfolio?remove_member=true` -> list reloads. Funds are deleted with the member; the same background refresh as Delete all funds follows.
 - **Delete all funds:** `DeletePortfolioDialog` -> `DELETE /household-members/{id}/portfolio` (option to remove the member) -> list reloads. The existing queue work after a delete (cache clear, snapshot and Analytics refresh) is unchanged; Profile does not start any compute of its own.
 
 ## 6. Import History (Settings)

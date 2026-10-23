@@ -24,8 +24,9 @@ Reuse the Home/shell scoped tokens (decision M12 A there: new names for Home and
 | `InitialsAvatar` | circle with initials, size variants (header 56 px, strip 40 px, table 28 px); colour chosen from a small fixed set by a hash of the member id, so a person keeps the same colour |
 | `HeaderCard`, `PersonalInfoCard` | Personal Information page blocks |
 | `PanField` | masked PAN, no icon, no toggle (L49) |
-| `FamilyStrip` | avatars with "Primary User" / "Member" labels, Manage Members, Add statement tile |
+| `FamilyStrip` | avatars with "Admin" / "Member" labels, Manage Members, Add statement tile |
 | `MemberCard` | today's member card (avatar, name, pill, PAN, relationship, phone, email, actions) in the page-31 style; reuses the existing `ProfileNudge` chip unchanged |
+| `DeleteMemberDialog` | confirmation for removing a member and their funds (not shown for the Admin) |
 | `AddStatementDialog` | "Add statement for whom?": a list of household members, then opens the import flow |
 | `FinancialDetailsCard`, `GoalsDialog`, `InvestorTypeDialog` | onboarding data display and edit |
 | `ContactChangeDialog`, `DeleteAccountDialog` | repeat the behaviour of the dialogs inside `ProfileView` |
@@ -41,8 +42,8 @@ Reuse the Home/shell scoped tokens (decision M12 A there: new names for Home and
 1. **Left list:** 40 px rows, 20 px Lucide icon, label in Medium weight; active row uses the selected tint (#E9F9EF light) with primary text; hover uses the card tint. Candidate icons: `UserRound`, `Users`, `Link2`, `Settings`, `CreditCard`, `FileText`, `ShieldCheck`, `LogOut` (all exist in lucide-react 0.475.0; to confirm names in the build).
 2. **Header card:** avatar 56 px; name in H2; email and phone in secondary text; Edit Profile as a secondary button; the three facts as caption label above value.
 3. **PAN field:** always masked, tabular figures, no icon. No Show or Hide control (L49).
-4. **Family strip:** avatars 40 px; the self member's label "Primary User" in the brand green text, others "Member" in secondary; the Add Member tile has a dashed border and a plus icon.
-5. **Family table:** header row in caption style; Access Level pill: "Admin" in the brand-tint pill, "Member" in the informational-tint pill (as page 31); row menu button is a three-dot icon with an accessible name "Actions for <name>".
+4. **Family strip:** avatars 40 px; the self member's label "Admin" in the brand green text, others "Member" in secondary; the Add statement tile has a dashed border and a file-upload icon.
+5. **Member cards:** today's card fields in the page-31 style; Admin / Member pill in the card header ("Admin" brand tint, "Member" informational tint); the completion chip is the existing `ProfileNudge`; Delete member and Delete all funds are red text buttons at the right of the action row. No table and no row menu (L47).
 6. **Coming soon:** neutral-tint tag "Coming soon", heading, one line of body text, generous whitespace; no illustration in v1.
 7. **Subscription card:** plan name in H3, Active badge in brand tint, one line of body text.
 8. **Data & Privacy:** card per block; Delete account block keeps today's danger style (negative border and tint).
@@ -77,6 +78,6 @@ Manage your account, family members, preferences and data.
 
 ## 7. Added utilities (23 Oct, later)
 
-- `goalChips(codes)`: array of codes or null to chips, onboarding order, titles from the onboarding screens, unknown codes humanised and flagged, null or empty gives none.
+- `goalChips(codes)`: array of codes or null to chips, onboarding order, one "All of it" chip when all four are stored, titles from the onboarding screens, unknown codes humanised and flagged, null or empty gives none.
 - `investorLabel(code)`: onboarding title, null gives null, unknown code humanised.
 - `GOAL_OPTIONS` and `INVESTOR_OPTIONS`: the codes with their onboarding titles and subtitles, one constant used by the card, both dialogs and the tests. To avoid a second copy of the titles, import them from the onboarding files if they can be exported without editing those files; otherwise copy them and add a test that fails if the code lists differ.

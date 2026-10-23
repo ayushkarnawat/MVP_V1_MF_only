@@ -392,3 +392,32 @@ it can be built later without re-deciding it:
   workbook (F1).
 - The mockup says "CAS / MF Central"; we parse uploaded CAS files and I found no MF Central link
   (to verify).
+
+
+## Added 2026-10-23 (Profile redesign planning — rest of Financial Details, not built)
+
+**Profile > Personal Information > Financial Details: only the onboarding answers are built; the other fields are deferred.** Decided by the owner 2026-10-23 (planning workbook
+`Docs/orchestration/2026-10-23-profile-planning-decisions-v1.html`, decisions L31, L43; the owner asked for this entry in answer G9). Built now: investor type and goals, read from
+the onboarding answers already stored (`investor_type`, `primary_goals`) and edited with the existing `PATCH /auth/me`. Deferred, shown as greyed "Coming soon" rows: occupation,
+industry, annual income range, net worth range, risk profile, investment experience. Kept here so the work is not re-decided:
+- Storage (answer F4 A): nullable columns on the existing `users` table, validated pick-lists as check constraints (the pattern `primary_goals` uses). No new table.
+- Pick-lists (answer F5 A): annual income: below 5 lakh; 5 to 10 lakh; 10 to 25 lakh; 25 to 50 lakh; 50 lakh to 1 crore; above 1 crore. Net worth: below 50 lakh; 50 lakh to 1 crore;
+  1 to 5 crore; 5 to 10 crore; above 10 crore. Occupation: salaried; self-employed; business owner; professional; retired; homemaker; student; other. Industry: free text, up to 60
+  characters. Risk profile (self-declared, not an assessment): conservative; moderate; aggressive. Investment experience: under 1 year; 1 to 3; 3 to 5; 5 to 10; over 10 years.
+  The mockup's life goals (wealth creation, early retirement, buying a house, plus user-added) are separate from the four onboarding goals.
+- Consent (answer F6 A): a one-line notice on the form ("Optional. Not used anywhere yet. You can clear it at any time."), no new consent record. The lawyer confirms before launch.
+- Privacy: these would be the first stored personal data with no consumer; revisit the original data-minimisation stance (`decisions.md`) before building.
+
+
+## Added 2026-10-23 (Profile redesign planning — manual Add Member, not built)
+
+**Adding a household member by hand is deferred; for now people enter the household only through statements.** Decided by the owner 2026-10-23 (answer G1; decision L62 in
+`Docs/orchestration/2026-10-23-profile-planning-decisions-v1.html`). The redesigned Profile has no Add Member button and no add-person path. Today's Profile also has none; the
+import screen's "Select member" control only lists existing members (`MainDashboardFlow.tsx`), and new people appear when a statement contains them (`PeopleFoundDialog`).
+What was designed, so it can be built later without re-deciding:
+- An "Add Member" button on the member list and a dashed "Add Member" tile in the Family Account strip (the PDF's design, page 31).
+- A small `AddMemberDialog`: name, relationship, and an "other" label when the relationship is other. It would call the existing `POST /household-members`
+  (`createHouseholdMember` in `features/auth/api.ts`, which onboarding already uses); 409 means a self member already exists, 422 means an invalid name.
+- Alternative placement: an "add a new person" link inside the "Add statement for whom?" dialog, then continue to upload for that person.
+- Open when picked up: a member added by hand has no statements, so Delete member and the profile-completion chip must behave sensibly for an empty member (the delete service
+  already removes a non-self member with no statements, covered by `backend/tests/services/import_/test_deletion.py`).

@@ -49,7 +49,7 @@ Cards use the card surface from the palette; no card inside a card except the ta
 | Page | Loading | Empty | Error | Partial |
 |---|---|---|---|---|
 | Personal Information | skeleton header and card | n/a (an account always exists) | message with Retry; if only the member list fails, the card still shows name, email and phone from `/auth/me`, and PAN reads "Not available" | member list loads but PAN missing: PAN shows "Not added" |
-| Family Members | skeleton strip and 3 rows | the account always has the self member after onboarding; if the list is empty: "No family members yet" with the Add Member button | message with Retry | a row without a PAN: "Not added" |
+| Family Members | skeleton strip and 3 rows | the account always has the self member after onboarding; if the list is empty: "No family members yet. Add a statement and we will find the people in it." | message with Retry | a row without a PAN: "Not added" |
 | Settings | none (static) | n/a | n/a | n/a |
 | Import History | the section's own loading text | its own empty state | its own error | n/a |
 | Subscription, Coming soon pages | none (static) | n/a | n/a | n/a |
@@ -66,8 +66,8 @@ None. Profile ignores the top-bar family/member selector (route scope `none`). T
 - Left list link: navigates, no page reload; browser Back returns to the previous Profile page.
 - Edit Profile / row Edit: opens `CompleteProfileDialog`; on save, the member list reloads.
 - Email or Mobile "Change": `ContactChangeDialog` (email or phone, then a one-time code); on success `/auth/me` reloads.
-- Add Member / Manage Members: tile and button open the add dialog / scroll to the table.
-- Row menu: opens a small menu (keyboard accessible): Edit, Delete all funds.
+- Add statement tile: opens "Add statement for whom?", then the import screen for that person. Manage Members: scrolls to the member list. There is no Add Member.
+- Member card actions (no row menu): the completion chip or Edit profile, Delete member (not on the Admin's card) above Delete all funds.
 - Logout: confirmation dialog, then `logout()`.
 - Delete account: two-step dialog; on success the existing pending-deletion screen takes over (the shell gate), as today.
 

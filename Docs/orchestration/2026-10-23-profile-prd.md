@@ -8,7 +8,7 @@ Today's Profile is four tabs (Account Info, Family Members, Import History, Term
 
 ## 2. Users
 
-The signed-in account holder (the "Primary User"). Household members are people the account tracks; they have no logins and no roles.
+The signed-in account holder (the "Admin"). Household members are people the account tracks; they have no logins and no roles.
 
 ## 3. Scope
 
@@ -25,9 +25,9 @@ Mobile is untouched. Existing screens are untouched.
 | FR-3 | PAN is always shown masked (first two and last two characters); there is no Show or Hide and no way to see the full PAN on Profile | L49 |
 | FR-4 | Account type is derived: Individual for one member, Family for more | L19 |
 | FR-5 | Edit Profile and each row's Edit use the existing member edit; email and mobile use the existing one-time-code change | L21 |
-| FR-6 | Financial Details shows the investor type and goals the user gave in onboarding (goals stored as a JSON array, shown as titled chips; null shows Not answered; unknown codes kept); both can be edited with the existing account call; occupation, industry, income, net worth, risk and experience rows show Coming soon; nothing new is collected | L31, L43, L44 |
-| FR-7 | Family Account strip with Primary User / Member labels, Manage Members, and an Add statement tile that asks who the statement is for and then opens the upload options | L23, L45 |
-| FR-8 | Member cards as today: name, masked PAN, relationship, phone, email, Admin or Member label, profile-completion chip (percentage and what is missing), Edit profile, Delete all funds (merge only inside Edit's duplicate prompt). No Add Member button | L6, L47, Q1 |
+| FR-6 | Financial Details shows the investor type and goals the user gave in onboarding (goals stored as a JSON array, shown as titled chips, or one "All of it" chip when all four are stored; null shows Not answered; unknown codes kept); both can be edited with the existing account call; occupation, industry, income, net worth, risk and experience rows show Coming soon; nothing new is collected | L31, L43, L44 |
+| FR-7 | Family Account strip with Admin / Member labels, Manage Members, and an Add statement tile that asks who the statement is for and then opens the upload options | L23, L45 |
+| FR-8 | Member cards as today: name, masked PAN, relationship, phone, email, Admin or Member label, profile-completion chip (percentage and what is missing), Edit profile, Delete member (every member except the Admin), Delete all funds (merge only inside Edit's duplicate prompt). No Add Member button | L6, L47, Q1 |
 | FR-9 | Settings lists Notifications, Preferences, Security (Coming soon pages) and Import History (the existing list with delete) | L25, L32 |
 | FR-10 | Connected Accounts and Tax Information are Coming soon pages | L9, L33 |
 | FR-11 | Subscription & Billing shows "Early access", Active, one line; no price, date or history | L4, L27 |

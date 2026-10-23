@@ -37,7 +37,7 @@ Profile uses the shell's `AppLayout` and route scope `none`. The sidebar's foote
 | `profile-legacy` | `/profile/legacy` | null | live | wrapper of the old `ProfileView` (hidden, A3 B); **deleted in the retirement task (L42)** |
 | `profile-import-health` | `/profile/import-health` | null | live | existing, unchanged |
 
-All have `layout: "app"` and `scope: "none"`. `section: null` keeps them out of the sidebar; only `profile` is a footer item. The contract currently reserves nine `/profile/:section` paths (personal, family, connected-accounts, notifications, preferences, security, subscription, tax, data-privacy); this design replaces `notifications`, `preferences` and `security` with children of `settings` and adds `import-history` and `legacy`. **That is a proposed change to contract v1.2 (O10 and the URL map); it has not been applied.** The exact wording is in the backend decisions proposal's contract appendix.
+All have `layout: "app"` and `scope: "none"`. `section: null` keeps them out of the sidebar; only `profile` is a footer item. The contract currently reserves nine `/profile/:section` paths (personal, family, connected-accounts, notifications, preferences, security, subscription, tax, data-privacy); this design replaces `notifications`, `preferences` and `security` with children of `settings` and adds `import-history` and `legacy`. **That change to the contract (O10 and the URL map) was applied on 23 Oct 2026 as contract v1.4.** The exact wording is in the backend decisions proposal's contract appendix.
 
 ## 3. Frontend structure
 
@@ -50,7 +50,7 @@ frontend/src/features/profile-v2/
     ComingSoonPage.tsx
   components/
     HeaderCard.tsx, PersonalInfoCard.tsx, PanField.tsx, InitialsAvatar.tsx,
-    FamilyStrip.tsx, FamilyTable.tsx, FamilyRowMenu.tsx, AddMemberDialog.tsx,
+    FamilyStrip.tsx, MemberCard.tsx, AddStatementDialog.tsx, DeleteMemberDialog.tsx,
     ContactChangeDialog.tsx, DeleteAccountDialog.tsx, SettingsRows.tsx,
     SubscriptionCard.tsx, ConsentList.tsx, StoredDataNote.tsx, ComingSoonBlock.tsx
   lib/accessLevel.ts, accountType.ts, initialsOf.ts

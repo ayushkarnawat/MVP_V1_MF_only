@@ -623,6 +623,9 @@ blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);colo
 .mkmodal .dlg .pick:hover{border-color:var(--m-accent);background:var(--m-accent-tint);transform:translateX(2px)}
 .mkmodal .dlg .pick .av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--m-font-d)}
 .mkmodal .av.a0{background:var(--m-accent-tint);color:var(--m-accent-p)}.mkmodal .av.a1{background:var(--m-info-bg);color:var(--m-info-t)}.mkmodal .av.a2{background:var(--m-warn-bg);color:var(--m-warn-t)}.mkmodal .av.a3{background:var(--m-neg-bg);color:var(--m-neg-t)}
+
+.mk .dels{margin-left:auto;display:grid;gap:2px;justify-items:end}
+.mk .dels .delf{margin-left:0}
 </style>
 
 
@@ -747,12 +750,12 @@ blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);colo
 <section id="p-personal"><h2>Personal Information</h2>
 <p class="lead">Opens here (L13). The header card carries name and PAN (so the Personal Information card no longer repeats them, L46). Financial Details now shows what onboarding already stored: investor type and goals, with an Edit that reuses the onboarding call (L43). Everything else there is Coming soon. No date of birth, address or photo (L18, L19).</p>
 <div class="frame"><p class="cap">Mockup (interactive)</p><div class="mk pfw" data-start="personal"></div></div>
-<div class="notes"><div><h4>Source</h4>Account call (name, email, phone, created date, investor type, goals); household list (PAN, members).</div><div><h4>Onboarding answers (try the "Onboarding data" buttons above)</h4>Goals are stored as a JSON array of option codes, so the card maps each code to the title shown in onboarding, in the onboarding order. A null or empty list shows "Not answered" with an Add button. A code this screen does not know yet is shown humanised in a dashed chip, never dropped. "All of it" in onboarding saves the four real codes, so all four chips show.</div><div><h4>Actions</h4>Edit Profile: existing Complete profile dialog. Change email or mobile: new contact-change dialog. Edit goals or investor type: saved with the existing <span class="mono">PATCH /auth/me</span>, so no backend change.</div></div></section>
+<div class="notes"><div><h4>Source</h4>Account call (name, email, phone, created date, investor type, goals); household list (PAN, members).</div><div><h4>Onboarding answers (try the "Onboarding data" buttons above)</h4>Goals are stored as a JSON array of option codes, so the card maps each code to the title shown in onboarding, in the onboarding order. A null or empty list shows "Not answered" with an Add button. A code this screen does not know yet is shown humanised in a dashed chip, never dropped. "All of it" in onboarding saves the four real codes; when all four are stored the card shows one "All of it" chip (L52).</div><div><h4>Actions</h4>Edit Profile: existing Complete profile dialog. Change email or mobile: new contact-change dialog. Edit goals or investor type: saved with the existing <span class="mono">PATCH /auth/me</span>, so no backend change.</div></div></section>
 
 <section id="p-family"><h2>Family Members</h2>
 <p class="lead">Strip in the PDF's style (L23). Its last tile is now "Add statement": it asks who the statement is for, then opens the upload options (L45). The member list keeps today's card layout, including the profile-completion chip, instead of the PDF's table (L47). The Admin or Member label stays (L6).</p>
 <div class="frame"><p class="cap">Mockup (interactive)</p><div class="mk pfw" data-start="family"></div></div>
-<div class="notes"><div><h4>Source</h4>Household members list (name, PAN, relationship, phone, email, profile completion, missing fields).</div><div><h4>Completion chip</h4>Below 100% the card shows "60% complete · Finish profile" (or "Add email" when one field is missing) with a progress ring; at 100% it becomes an Edit profile button. Same behaviour as today.</div><div><h4>States</h4>Empty shows "No family members yet" and the tile goes straight to upload. The fourth member's PAN is held by another account, so it has no Show control.</div><div><h4>Rules</h4>Merge happens only inside Edit's possible-duplicate prompt. There is no Add Member button now: people come in through statements.</div></div></section>
+<div class="notes"><div><h4>Source</h4>Household members list (name, PAN, relationship, phone, email, profile completion, missing fields).</div><div><h4>Completion chip</h4>Below 100% the card shows "60% complete · Finish profile" (or "Add email" when one field is missing) with a progress ring; at 100% it becomes an Edit profile button. Same behaviour as today.</div><div><h4>States</h4>Empty shows "No family members yet" and the tile goes straight to upload. The fourth member's PAN is held by another account, so it has no Show control.</div><div><h4>Rules</h4>Merge happens only inside Edit's possible-duplicate prompt. There is no Add Member button now: people come in through statements. "Delete member" (every member except the Admin) sits above "Delete all funds" and removes the person and their funds.</div></div></section>
 
 <section id="p-connected"><h2>Connected Accounts</h2>
 <p class="lead">Not built now; a Coming soon page in the list (L24, L33). The full design is kept in DEFERRED_FEATURES.md.</p>
@@ -788,6 +791,7 @@ blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);colo
  <button class="btn2" data-dlg="logout">Logout</button>
  <button class="btn2" data-dlg="edit">Edit Profile (existing dialog)</button>
  <button class="btn2" data-dlg="delfunds">Delete all funds (existing dialog)</button>
+ <button class="btn2 dng" data-dlg="delmember">Delete member</button>
 </div></div></div></section>
 
 
@@ -823,7 +827,8 @@ function humanise(v){var s=String(v).replace(/_/g,' ');return s.charAt(0).toUppe
 function goalChips(arr){
  if(!Array.isArray(arr)||!arr.length)return [];
  var known=GOAL_OPTS.map(function(o){return o[0]}),out=[];
- GOAL_OPTS.forEach(function(o){if(arr.indexOf(o[0])>=0)out.push({t:o[1],unknown:false})});
+ var all=GOAL_OPTS.every(function(o){return arr.indexOf(o[0])>=0});
+ if(all){out.push({t:'All of it',unknown:false})}else{GOAL_OPTS.forEach(function(o){if(arr.indexOf(o[0])>=0)out.push({t:o[1],unknown:false})})}
  arr.forEach(function(v){if(known.indexOf(v)<0)out.push({t:humanise(v),unknown:true})});
  return out;
 }
@@ -887,7 +892,7 @@ function pPersonal(){
  '<div class="fact hot"'+say('Individual when you track one person, Family when you add more.')+'><div class="fl">Account type</div><div class="fv">'+(bad?'—':accountType(ms.length||1))+'</div></div>'+
  '<div class="fact hot"'+say('The month you joined Unifolio.')+'><div class="fl">Member since</div><div class="fv">'+memberSince(ME.since)+'</div></div></div></div>';
  var o=ONB[S.g],chips=goalChips(o.goals),inv=investorLabel(o.inv);
- var g=function(k,why){return '<div class="kv ghost hot hotr"'+say(why+' is coming soon.')+'><span class="k">'+k+'</span><span class="v">—</span>'+ic('lock')+'</div>'};
+ var g=function(k,why){return '<div class="kv ghost hot hotr"'+say(why+' is coming soon.')+'><span class="k">'+k+'</span><span class="v">—</span><span></span></div>'};
  var goalsHtml=chips.length?'<div class="gchips live">'+chips.map(function(c){return '<span class="gchip on'+(c.unknown?' unk':'')+'" data-dlg="goals"'+(c.unknown?' title="A newer option this screen does not know yet"':'')+'>'+esc(c.t)+(c.unknown?' '+ic('circle-help'):'')+'</span>'}).join('')+'<button class="gchip add" data-dlg="goals">'+ic('pencil')+'Edit</button></div>':'<div class="gchips live"><span class="sec">Not answered</span><button class="gchip add" data-dlg="goals">'+ic('plus')+'Add goals</button></div>';
  h+='<div class="two2"><div class="card"><div class="ttl"><div><h3>Personal Information</h3><div class="s">Keep your contact details up to date.</div></div></div>'+
  '<div class="kv hot hotr" data-dlg="contact-email"><span class="k">Email address</span><span class="v">'+esc(ME.email)+'</span>'+ic('pencil').replace('<i ','<i class="ed" ')+'</div>'+
@@ -903,7 +908,7 @@ function pFamily(){
  if(S.st==='error')return banner('Could not load your family members.');
  var ms=members();
  var h='<div class="card"><div class="ttl"><div><h3>Family Account</h3><div class="s">Manage family members and their access</div></div><button class="btn2" data-act="manage">'+ic('users')+'Manage Members</button></div><div class="strip">';
- ms.forEach(function(m){var first=m.name.split(' ')[0];h+='<div class="m" data-act="flash" data-id="'+m.id+'" role="button" tabindex="0" aria-label="Show '+esc(m.name)+' in the table">'+avatar(m.name,m.av,52)+'<b>'+esc(first)+'</b><span class="lb'+(m.rel==='self'?' pri':'')+'">'+(m.rel==='self'?'Primary User':'Member')+'</span></div>'});
+ ms.forEach(function(m){var first=m.name.split(' ')[0];h+='<div class="m" data-act="flash" data-id="'+m.id+'" role="button" tabindex="0" aria-label="Show '+esc(m.name)+' in the table">'+avatar(m.name,m.av,52)+'<b>'+esc(first)+'</b><span class="lb'+(m.rel==='self'?' pri':'')+'">'+(m.rel==='self'?'Admin':'Member')+'</span></div>'});
  h+='<div class="m" data-act="addstmt" role="button" tabindex="0"><span class="addtile">'+ic('file-up')+'</span><b>Add statement</b><span class="lb">For a family member</span></div></div></div>';
  h+='<div class="card" id="ftable"><div class="ttl"><div><h3>Family Members</h3><div class="s">The people whose portfolios you track. Add a statement to bring in their funds.</div></div></div>';
  if(!ms.length)return h+'<div class="notice hot" data-act="addstmt">'+ic('file-up')+'No family members yet. Add a statement and we will find the people in it.</div></div>';
@@ -915,7 +920,7 @@ function pFamily(){
   h+='<article id="row-'+m.id+'" class="mcard hotc'+(S.flash===m.id?' flash':'')+'" aria-label="'+esc(m.name)+'">'+
   '<div class="mhead">'+avatar(m.name,m.av,40)+'<div style="min-width:0"><div class="mname">'+esc(m.name)+'</div>'+(m.fromStmt?'<div class="sec" style="font-size:12px">from your statement</div>':'')+'</div><span class="pillx '+(ad?'ad':'me')+'" data-say="'+(ad?'Admin: the account holder. A label only, there are no roles.':'Member: a person whose portfolio you track. A label only.')+'">'+accessLevel(m.rel)+'</span></div>'+
   '<dl class="mgrid"><div><dt>PAN</dt><dd>'+panField(m)+(m.state==='conflict'?'<div class="cap3">On another Unifolio account</div>':'')+'</dd></div><div><dt>Relationship</dt><dd class="fv">'+esc(m.relLabel)+'</dd></div><div><dt>Phone</dt><dd class="fv'+(m.phone?'':' mutedv')+'">'+esc(phone)+'</dd></div><div><dt>Email</dt><dd class="fv'+(m.email?'':' mutedv')+'">'+esc(email)+'</dd></div></dl>'+
-  '<div class="mact">'+(self?'<button class="tl2" data-nav="personal">Change in Account Info</button>':'')+nudge+'<button class="delf" data-dlg="delfunds" aria-label="Delete all funds for '+esc(m.name)+'">'+ic('trash-2')+'Delete all funds</button></div></article>';
+  '<div class="mact">'+(self?'<button class="tl2" data-nav="personal">Change in Account Info</button>':'')+nudge+'<span class="dels">'+(self?'':'<button class="delf" data-dlg="delmember" data-name="'+esc(m.name)+'" aria-label="Delete '+esc(m.name)+' from your family">'+ic('user-minus')+'Delete member</button>')+'<button class="delf" data-dlg="delfunds" aria-label="Delete all funds for '+esc(m.name)+'">'+ic('trash-2')+'Delete all funds</button></span></div></article>';
  });
  return h+'</div></div>';
 }
@@ -1042,6 +1047,8 @@ function dlgHtml(){
   else h+='<h3>Confirm account deletion</h3><p class="sec">Your account and all household data will be permanently deleted in 30 days. You can cancel anytime before then.</p><div class="acts"><button class="btn2" data-dc="1">Cancel</button><button class="btn2 fill-dng" data-dd="Deletion scheduled (mockup)">Confirm deletion</button></div>';
  }else if(n==='logout'){
   h+='<h3>Log out of Unifolio?</h3><p class="sec">You will need a code or your Google account to sign in again.</p><div class="acts"><button class="btn2" data-dc="1">Cancel</button><button class="btn2 primary" data-dd="Logged out (mockup)">Log out</button></div>';
+ }else if(n==='delmember'){
+  h+='<h3>Delete '+esc(S.dlgName||'this member')+' from your family?</h3><p class="sec">This removes all of their funds from your statements and removes them from your family. Other people’s funds stay.</p><p class="sec" style="font-size:12.5px">If you upload a statement with them again, you will need to add their details again.</p><div class="acts"><button class="btn2" data-dc="1">Keep</button><button class="btn2 fill-dng" data-dd="Member deleted (mockup)">Delete member</button></div>';
  }else if(n==='mira'){
   h+='<h3>Mira is coming soon</h3><p class="sec">Your investing assistant is on its way. For now, explore your portfolio from the pages in the menu.</p><div class="acts"><button class="btn2 primary" data-dc="1">Got it</button></div>';
  }else if(n==='edit'){
@@ -1086,7 +1093,7 @@ document.addEventListener('click',function(e){
  var el=t.closest&&t.closest('[data-nav],[data-dlg],[data-act],[data-say]');
  if(!el){if(S.menu){S.menu=null;render()}return}
  if(el.hasAttribute('data-nav')){var w=el.closest('.pfw,#mfull');if(w){w.dataset.cur=el.getAttribute('data-nav');S.menu=null;S.shown={};S.err={};S.flash=null;render()}return}
- if(el.hasAttribute('data-dlg')){S.menu=null;openDlg(el.getAttribute('data-dlg'),el.closest('.pfw,#mfull'));render();return}
+ if(el.hasAttribute('data-dlg')){S.menu=null;S.dlgName=el.getAttribute('data-name');openDlg(el.getAttribute('data-dlg'),el.closest('.pfw,#mfull'));render();return}
  if(el.hasAttribute('data-act')){
   var act=el.getAttribute('data-act'),id=el.getAttribute('data-id');
   if(act==='pan'){
