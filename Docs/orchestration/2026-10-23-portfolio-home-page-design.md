@@ -48,26 +48,34 @@ Checked independently against the actual schema: `Transaction.balance_units` alr
 
 This is the same shape of computation the Analytics service already does for per-fund NAV history, just replayed across a short window (the sparkline only needs the last ~30 days, not a selectable period) and summed across folios instead of shown per-fund. **New backend work:** one service function (`compute_daily_value_series`, scoped by date range and household-member set) + one thin endpoint. Moderate, not trivial — flagged as a real task, not a one-liner.
 
-### 2.3 Section 2+3 — Asset Allocation pie + legend (reused data, extended schema)
+### 2.3 Section 2+3 — Asset Allocation pie + legend (new function, new field — NOT an extension of `compute_allocation()`)
 
 Pie slices: Mutual Funds (live), plus one slice per non-MF sidebar route (Coming soon) — matching the nav-shell contract exactly, resolved per §8 item 1: **eight slices total** — Mutual Funds, Direct Stocks, US Stocks, FDs & Bonds, Debt, Gold, Real Estate, Others. The v8 mockup (six slices, missing Debt and Real Estate) is superseded by v9, which adds the two missing slices/legend rows as Coming soon entries in the same muted style as the rest.
 
 **Backend-driven status, not hardcoded in the frontend:** each slice's `status: "live" | "coming_soon"` comes from the API response, mirroring how `ShellRoute.status` already works for routes. When a new asset class is built, it starts returning real numbers; the frontend doesn't need a redeploy to stop treating it as a placeholder. This is the same logical shape as the route registry's own `status` field — not copied from anywhere else, just the obvious consistent answer given the pattern already exists in this codebase.
 
-**Schema change needed:** `AllocationBucket` (`backend/app/services/dashboard/schemas.py`) currently has only `label` / `current_value` / `percentage`. The hover popup needs `invested`, `gain_loss`, and `xirr` per bucket too. Extend:
+**Conflict found and resolved while writing the implementation plan (2026-10-23):** this section originally said to "extend `AllocationBucket`" and have `compute_allocation()` serve this pie directly. That's wrong and was never built that way. `compute_allocation()`/`asset_class_bucket()` (`backend/app/services/dashboard/allocation_labels.py`) group holdings by **SEBI category** into Equity/Debt/Hybrid/Other — a different taxonomy from this page's 8 instrument types — and that exact field, `AllocationSummary.by_asset_class`, is live today in `DashboardView.tsx`/`MobileDashboardView.tsx`, which per §1 must stay untouched. Reusing the field for both purposes would silently break the Dashboard's existing chart or fork the field's meaning.
+
+**Resolution:** a **new** function and a **new** schema, parallel to the existing ones — `compute_allocation()`, `AllocationSummary`, and `AllocationBucket` are not modified:
 
 ```python
-class AllocationBucket(BaseModel):
-    label: str
-    current_value: str
-    percentage: str
-    status: Literal["live", "coming_soon"] = "live"
-    invested: str | None = None       # None for coming_soon buckets
+class InstrumentAllocationBucket(BaseModel):
+    label: str                        # "Mutual Funds", "Direct Stocks", ...
+    status: Literal["live", "coming_soon"]
+    current_value: str | None = None  # None for coming_soon buckets
+    percentage: str | None = None
+    invested: str | None = None
     gain_loss: str | None = None
     xirr: str | None = None
+
+def compute_instrument_allocation(
+    db: Session, household_member_ids: list[uuid.UUID],
+    holdings: list[HoldingRow], xirr_summary: DashboardXirrSummary,
+) -> list[InstrumentAllocationBucket]:
+    ...
 ```
 
-`compute_allocation()` (`backend/app/services/dashboard/allocation.py`) already groups holdings by value; extend the same loop to also sum `amount_invested` and `unrealized_gain` per bucket (trivial, same loop). Per-bucket XIRR is the one real addition: it needs the existing XIRR cash-flow replay, scoped to only the transactions belonging to holdings in that bucket — reuses the existing XIRR calculation, just filtered input, not a new algorithm.
+Since no non-MF holdings model exists yet (§2.5), this is simpler than per-bucket math would suggest: every real holding collapses into one "Mutual Funds" bucket, whose `current_value`/`invested`/`gain_loss`/`xirr` are the already-computed portfolio totals — `sum(HoldingRow.current_value)`, `sum(HoldingRow.amount_invested)`, their difference, and `DashboardXirrSummary.lifetime_xirr` — passed in, not recomputed (no new per-bucket XIRR cash-flow replay needed, since there's only one live bucket and it covers 100% of today's holdings). The other 7 buckets are static `status: "coming_soon"` entries with `None` financials. This function lives in `backend/app/services/dashboard/allocation.py` alongside `compute_allocation()` but is a separate top-level function, not a modification to it.
 
 Sort/filter (new, this round): Filter + Sort buttons in the card header, default sort ascending by allocation %. **Filter v1 (confirmed):** live vs. coming-soon only — toggling it hides/shows the coming-soon buckets. Deliberately minimal: with only 1 live category today there's nothing else meaningful to filter by. **Deferred, tracked in §7:** once more asset classes go live, Filter needs a proper redesign (by value range, by AMC, etc.) — this v1 toggle is not meant to be the permanent shape. Both are client-side over the same response; no backend change beyond returning the buckets (already does).
 
@@ -139,8 +147,13 @@ Matches `2026-10-22-portfolio-home-page-skeleton-mockup-v9.html` (v9 supersedes 
   ├─ useScope() → { scope: "family" | member_id }
   │
   ├─ GET /household/aggregate/allocation  (or /household-members/{id}/allocation)
-  │     → AllocationSummary (extended: status, invested, gain_loss, xirr per bucket)
-  │     → feeds Section 2+3 pie/legend AND Section 4's per-member bars
+  │     → AllocationSummary, UNCHANGED — feeds Section 4's per-member bars only
+  │     (this is the existing Equity/Debt/Hybrid/Other field DashboardView also
+  │     uses; it does NOT feed the Section 2+3 pie — see §2.3's 2026-10-23 note)
+  │
+  ├─ GET /portfolio/allocation  (NEW — §2.3's compute_instrument_allocation())
+  │     → list[InstrumentAllocationBucket], the 8-slice instrument-type pie
+  │     → feeds Section 2+3 pie/legend only
   │
   ├─ GET /portfolio/summary  (NEW thin endpoint over compute_holdings — corrected,
   │     did not exist; today_gain sum is new but trivial)
@@ -170,7 +183,7 @@ Click flows:
 |---|---|---|
 | Page header (crumb / title / subtitle / Add Investment) | **Entirely new** | No equivalent exists today |
 | 1 — Summary strip | **Entirely new**, except XIRR | Strip itself has no Dashboard equivalent; its XIRR metric specifically is **reused-as-is** — same Lifetime/Current toggle + `XirrDisclaimerModal` component as the Dashboard, not forked |
-| 2+3 — Asset Allocation pie | **Reused-but-updated** | `compute_allocation()` and `AllocationSummary` already exist; extended with `status`/`invested`/`gain_loss`/`xirr` |
+| 2+3 — Asset Allocation pie | **Entirely new (backend)** | New `compute_instrument_allocation()` + `InstrumentAllocationBucket`, parallel to (not an extension of) `compute_allocation()`/`AllocationBucket` — see §2.3's 2026-10-23 note |
 | 4 — Family allocation bar + rows | **Reused-but-updated** | Per-member `compute_allocation()` calls already exist; new rendering only |
 | 4 — Quick Insights | **Entirely new** | New presentation; all underlying fields already exist |
 | Member scope switch | **Reused-as-is** | `useScope()` / `NavigationShell.tsx`'s existing aggregate/member mechanism, unchanged |
@@ -215,7 +228,7 @@ Branch: stacked on `feat/shell-nav` per the contract's own convention (`feat/por
 
 v1 through v8 resolved every question raised during mockup iteration itself. The builder-check subagent then caught three real conflicts against code/contracts the mockup rounds didn't check against. All three are now resolved:
 
-**1. Pie taxonomy — match the nav-shell contract exactly.** Resolved: eight slices (Mutual Funds, Direct Stocks, US Stocks, FDs & Bonds, Debt, Gold, Real Estate, Others), matching the contract's eight sidebar rows 1:1. v9 supersedes v8's six-slice mockup, adding Debt and Real Estate. `AllocationBucket` returns all eight buckets, non-MF ones with `status: "coming_soon"`.
+**1. Pie taxonomy — match the nav-shell contract exactly.** Resolved: eight slices (Mutual Funds, Direct Stocks, US Stocks, FDs & Bonds, Debt, Gold, Real Estate, Others), matching the contract's eight sidebar rows 1:1. v9 supersedes v8's six-slice mockup, adding Debt and Real Estate. A new `InstrumentAllocationBucket` list (new `compute_instrument_allocation()`, new `GET /portfolio/allocation` endpoint) returns all eight buckets, non-MF ones with `status: "coming_soon"` — **revised 2026-10-23, see §2.3:** this is not `AllocationBucket`/`compute_allocation()` extended in place, which would have broken `DashboardView`'s existing Equity/Debt/Hybrid/Other chart; it's a separate function/schema/endpoint, found during plan-writing research.
 
 **2. Summary Strip's XIRR — reuse the Dashboard's full Lifetime/Current system, not just a caveat.** Resolved: the Summary Strip's XIRR is the same component as the Dashboard's — Lifetime/Current toggle plus `XirrDisclaimerModal`, not a stripped-down undisclaimed number and not a new build. Reused as-is in both places (§2.1, §5). Applies on this page, on `/portfolio/mutual-funds`, and anywhere else XIRR is shown — one shared component, not parallel implementations.
 
@@ -260,10 +273,13 @@ Per `Docs/PRDs/TDD-Unifolio.md`'s Component Design section, this backend is one 
 
 | Endpoint | Method | New? | Returns |
 |---|---|---|---|
-| `/household/aggregate/allocation`, `/household-members/{id}/allocation` | GET | Existing | `AllocationSummary`, extended per §2.3 schema change |
-| `/portfolio/summary` | GET | **New** | Total value, invested, unrealised/realised gain, today's gain — thin wrapper over existing per-holding aggregation |
-| `/portfolio/value-series?days=30` | GET | **New** | `compute_daily_value_series()` output (§2.2) — list of `{date, value}` |
+| `/household/aggregate/allocation`, `/household-members/{id}/allocation` | GET | Existing | `AllocationSummary`, UNCHANGED — feeds Section 4 only |
+| `/household/aggregate/portfolio-allocation`, `/household-members/{id}/portfolio-allocation` | GET | **New** | `list[InstrumentAllocationBucket]` (§2.3) — the 8-slice instrument-type pie, separate from `AllocationSummary` |
+| `/household/aggregate/portfolio-summary`, `/household-members/{id}/portfolio-summary` | GET | **New** | Total value, invested, unrealised/realised gain, today's gain — thin wrapper over existing per-holding aggregation |
+| `/household/aggregate/portfolio-value-series?days=30`, `/household-members/{id}/portfolio-value-series?days=30` | GET | **New** | `compute_daily_value_series()` output (§2.2) — list of `{date, value}` |
 | `/sips` | GET | Existing | Unchanged; aggregated client-side for Quick Insight #5 and the strip's SIP figure (§2.4 correction) |
+
+**Endpoint naming, decided while writing the implementation plan (2026-10-23):** §2.1 requires every Section-1/2/3 metric to be "family-combined or member-scoped per `useScope()`", but this document never named the actual routes. Resolved by following the exact existing dual-route convention every other Dashboard Service endpoint already uses (`/household/aggregate/X` + `/household-members/{id}/X`, see `aggregate.py`'s own docstring: the computation is identical, only the response shape differs) — not a new convention. Six new routes total (3 new concerns × aggregate/member), each a thin wrapper matching `get_aggregate_allocation()`/`get_member_allocation()`'s existing shape.
 
 **Sequence — page load (progressive hydration, not one blocking call):**
 
@@ -274,11 +290,15 @@ sequenceDiagram
     participant DB as Postgres
 
     U->>D: GET /household/aggregate/allocation
-    D->>DB: compute_allocation() across household, extended fields
-    DB-->>D: 8 buckets (1 live, 7 coming_soon)
-    D-->>U: AllocationSummary — renders Sections 2+3 and 4
+    D->>DB: compute_allocation() across household, UNCHANGED
+    DB-->>D: Equity/Debt/Hybrid/Other buckets
+    D-->>U: AllocationSummary — renders Section 4 only
 
     par independent, non-blocking
+        U->>D: GET /portfolio/allocation
+        D->>DB: compute_instrument_allocation() — 1 live + 7 coming_soon buckets
+        D-->>U: list[InstrumentAllocationBucket] — renders Sections 2+3
+    and
         U->>D: GET /portfolio/summary
         D->>DB: sum(current_value), sum(amount_invested), XIRR replay
         D-->>U: PortfolioSummary — renders Section 1 (minus sparkline)
