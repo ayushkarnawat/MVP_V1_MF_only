@@ -171,8 +171,8 @@ O1 router: **react-router v7, `^7.18.4`** (one new dependency; v8.5 needs Node 2
 
 **Confirmed by the owner (Left Panel Plan, 22 Oct):** FDs & bonds sits under Equity as listed; Debt, Gold, Real Estate and Others are plain greyed links with no children; Equity opens on child pages and otherwise remembers its last state; a typed `/portfolio/equity` redirects to `/portfolio/mutual-funds`; the scope rule above (Family Combined on every page change, except between the in-page tabs of one page); a shared Coming soon page for greyed URLs; the logo goes to `/home`; basic keyboard and screen-reader semantics only; Back remembers only live screens with the normal layout, otherwise `/home`.
 
-**Still to confirm:** (a) The slug `direct-stocks` for the Direct Stocks child (an earlier workbook used `stocks`).
+**Still to confirm:** nothing.
 
-**Confirmed 23 Oct:** (b) the "same page" test for the tab exception uses the shared sidebar row (section 3), so a fund page (`/portfolio/mutual-funds/funds/:schemeId`) opened from a Mutual Funds tab keeps the picked member, because both belong to the Mutual Funds row.
+**Confirmed 23 Oct:** (a) the slug `direct-stocks` for the Direct Stocks child (an earlier workbook used `stocks`). (b) the "same page" test for the tab exception uses the shared sidebar row (section 3), so a fund page (`/portfolio/mutual-funds/funds/:schemeId`) opened from a Mutual Funds tab keeps the picked member, because both belong to the Mutual Funds row.
 
 **Closed earlier:** O3 (`/mobile` handling: mobile untouched), O7 (mobile bar: out of scope), O8 (collapsible sidebar: not in v1), O12 (existing screens: wrapper files only, decision L38).

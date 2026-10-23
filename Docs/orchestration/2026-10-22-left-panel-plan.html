@@ -261,16 +261,14 @@ blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);colo
     <tr><td class="k">Back</td><td>Last non-Portfolio screen from the session, default Home (N7, C5).</td><td>N7</td></tr>
     <tr><td class="k">Footer</td><td>Profile and Help &amp; Support, the same in both modes.</td><td>PDF p3, p9</td></tr>
     <tr><td class="k">Look</td><td>About 224px, always visible, tokens only, green pill on the active row.</td><td>N6</td></tr>
-    <tr><td class="k">Scope</td><td>Family Combined on entering Portfolio (N9, B1 to B4). Lives in <span class="mono">useScope()</span>.</td><td>N9</td></tr>
+    <tr><td class="k">Scope</td><td>Family Combined on every page change, except between the in-page tabs of one page (N9, B1). Lives in <span class="mono">useScope()</span>.</td><td>N9</td></tr>
   </table></div>
   <h3 class="sub">How the scope rule moves</h3>
   <pre class="mermaid">
 flowchart TD
-  H["Any page outside Portfolio, scope = X"] -->|"open any /portfolio path"| P["Portfolio, scope = Family Combined"]
-  P -->|"move between Portfolio pages (B2)"| P
-  P -->|"Back, Home, Profile ... (B1)"| L["Leaving Portfolio"]
-  L -->|"option A"| R["scope restored to X"]
-  L -->|"option B"| K["scope stays as last chosen"]
+  H["Any page, scope = X"] -->|"move to a different page (B1)"| F["scope = Family Combined"]
+  H -->|"move between tabs of the same page"| K["scope stays X"]
+  H -->|"refresh on the same page (B4)"| K
   </pre>
 </section>
 
@@ -312,7 +310,7 @@ kind?: "page" | "group";   // group = toggles the sidebar, has no page of its ow
     <tr><td class="k">1</td><td>Add react-router (version per A1). Mount an empty router on an unused path. Build, tests and CI stay green.</td><td>frontend/package.json, lockfile</td><td>existing suites</td><td>0.5</td></tr>
     <tr><td class="k">2</td><td>Route types with <span class="mono">kind</span>; the registry with <span class="mono">import.meta.glob</span>; one route file per URL-map row, including the new Equity ones.</td><td>registry/types.ts, buildRegistry.ts, routes/*.route.tsx</td><td>contract test: unique ids and paths, every URL-map row has a file, parents exist, groups have a redirect</td><td>1</td></tr>
     <tr><td class="k">3</td><td>The sidebar: both modes, the Equity group, active rules, greyed rows with tooltip, logo, footer.</td><td>layout/Sidebar.tsx, nav/AppLink.tsx, nav/paths.ts</td><td>MemoryRouter tests per mode, group toggle and auto-open, active row, disabled links</td><td>2</td></tr>
-    <tr><td class="k">4</td><td>Back memory and the scope rule: remember the last non-Portfolio screen in the session; reset to Family Combined on entering Portfolio; restore on leaving (B1).</td><td>nav/modeMemory.ts, scope/useScope.ts</td><td>entry, move inside, leave, single member, refresh</td><td>1</td></tr>
+    <tr><td class="k">4</td><td>Back memory and the scope rule: remember the last non-Portfolio screen in the session; reset to Family Combined on every page change except between the in-page tabs of one page (B1); a refresh keeps the pick (B4).</td><td>nav/modeMemory.ts, scope/useScope.ts</td><td>page change, tab move, single member, refresh</td><td>1</td></tr>
     <tr><td class="k">5</td><td>Layouts and placeholders: AppLayout, FocusLayout, shared Coming soon page, not-found, top bar frame with its four slots.</td><td>layout/AppLayout.tsx, FocusLayout.tsx, TopBar.tsx, PlaceholderPage.tsx</td><td>layout renders each route kind</td><td>1</td></tr>
     <tr><td class="k">6</td><td>Run in the dev server and check both modes, light and dark, and a deep link and refresh by hand.</td><td>none</td><td>manual (D3)</td><td>0.5</td></tr>
     <tr><td class="k">7</td><td>&quot;How to add a page&quot; note; contract v1.2 change log line.</td><td>Docs/orchestration</td><td>none</td><td>0.5</td></tr>
@@ -390,7 +388,7 @@ kind?: "page" | "group";   // group = toggles the sidebar, has no page of its ow
 var LOCKED=[
  ["N1","Router: react-router, version to confirm","You chose react-router v7. Its latest release, 7.18.4, fits our Node 20 builds. A newer v8.5.0 exists but needs Node 22.22 or later (see A1). (Your answer, 22 Oct.)"],
  ["N2","Equity is a group that expands","Equity has a small arrow. Clicking it only opens or closes the group; Equity has no page of its own. It holds Direct Stocks, Mutual Funds, US Stocks and FDs &amp; Bonds. This replaces the flat Equity link in the PDF (p9) and the Equity placeholder page in the contract. (Your answers, 22 Oct.)"],
- ["N3","URLs for the Equity children","Mutual Funds keeps <span class='mono'>/portfolio/mutual-funds</span>. The other three get <span class='mono'>/portfolio/equity/direct-stocks</span>, <span class='mono'>/portfolio/equity/us-stocks</span> and <span class='mono'>/portfolio/equity/fds-bonds</span> (the slug is <span class='mono'>direct-stocks</span> because that is what the committed contract v1.2 already uses; this page first said <span class='mono'>stocks</span>). Each starts greyed out as &quot;Coming soon&quot; (L32) and switches on when its page is built. (Your answer to Q3, 22 Oct.)"],
+ ["N3","URLs for the Equity children","Mutual Funds keeps <span class='mono'>/portfolio/mutual-funds</span>. The other three get <span class='mono'>/portfolio/equity/direct-stocks</span>, <span class='mono'>/portfolio/equity/us-stocks</span> and <span class='mono'>/portfolio/equity/fds-bonds</span> (the slug <span class='mono'>direct-stocks</span> was confirmed by you on 23 Oct; it is what the committed contract v1.2 uses, and this page first said <span class='mono'>stocks</span>). Each starts greyed out as &quot;Coming soon&quot; (L32) and switches on when its page is built. (Your answer to Q3, 22 Oct.)"],
  ["N4","Debt, Gold, Real Estate and Others stay plain links","Each is a plain link to its own placeholder page, greyed out until built, with no children for now. (Your answer to Q4, 22 Oct.)"],
  ["N5","Portfolio opens Investments","Clicking Portfolio in the main menu opens the Investments page and switches the sidebar to Portfolio mode. (Your note, 22 Oct.)"],
  ["N6","Look follows the mockup","About 224px wide (my estimate), always visible, no collapse button. Wordmark on top, small icon and label rows, a green pill on the active row, a divider above the footer, and a chevron on Equity that turns when open. Light and dark both work (L33). (Your answer to Q5, 22 Oct.)"],
