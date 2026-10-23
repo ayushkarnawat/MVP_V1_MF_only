@@ -274,4 +274,4 @@ Sidebar behaviour (all from the registry and the current `pathname` via props, s
 
 ## Open items carried to PR 2
 
-Import completion target (proposal: return to the screen the import was opened from, default `/portfolio/mutual-funds`; pending the owner); the temporary tab strip and "+ Add data" wiring; the real scope provider; wrapper files; `App.tsx` switch.
+Import completion target (decided 23 Oct: always `/portfolio/mutual-funds` with the notice); the temporary tab strip and "+ Add data" wiring; the real scope provider; wrapper files; `App.tsx` switch.
