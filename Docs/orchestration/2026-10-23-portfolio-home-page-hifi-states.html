@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Portfolio Home Page — high-fidelity visual + behavior/feel design, all states (v4)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------------------------------------------------------------------
+     Tokens read from Docs/Unifolio Colour Palette.pdf (the Bible for
+     colour and font on this page, per the owner's instruction) — NOT
+     frontend/src/styles/tokens.css, which v3 wrongly used. Page #F5F5F5,
+     card #FFFFFF (elevated, soft shadow) matches the owner's reference
+     screenshot and design.md §13's resolution. Data-viz colours are the
+     real AllocationDonut.tsx PALETTE plus one added teal for the 8th
+     slice (a palette "supporting colour", not an invented hex).
+  --------------------------------------------------------------------- */
+  :root {
+    --bg:#F5F5F5; --surface:#FFFFFF; --border:#ECECEC; --border-soft:#ECECEC; --border-input:#DFDFDF;
+    --ink:#111111; --secondary:#717171; --body:#4B4B4B; --muted:#9B9B9B; --text-disabled:#C4C4C4;
+    --accent:#22C55E; --accent-hover:#16A34A; --accent-pressed:#15803D; --accent-selected-bg:#E9F9EF;
+    --pos:#22C55E; --pos-text:#15803D; --pos-bg:#EAFBF0;
+    --neg:#E5484D; --neg-text:#C1272D; --neg-bg:#FDECEC;
+    --warn:#D97706; --warn-text:#92400E; --warn-bg:#FEF3E2;
+    --teal:#0D9488;
+    --font-display:'DM Sans',-apple-system,'Segoe UI',Arial,sans-serif;
+    --font-body:'Manrope',-apple-system,'Segoe UI',Arial,sans-serif;
+    --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-pill:9999px;
+    --shadow-sm:0 1px 2px rgba(17,17,17,.05), 0 1px 1px rgba(17,17,17,.03);
+    --shadow-md:0 8px 24px rgba(17,17,17,.08), 0 2px 6px rgba(17,17,17,.04);
+    --fast:150ms cubic-bezier(.4,0,.2,1);
+    --pop:260ms cubic-bezier(.34,1.56,.64,1);
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; }
+  body { font-family:var(--font-body); background:#fff; color:var(--ink); padding:28px 28px 90px; -webkit-font-smoothing:antialiased; }
+  h1 { font-family:var(--font-display); font-size:19px; font-weight:700; margin:0 0 4px; }
+  .doc-subtitle { color:var(--secondary); font-size:13px; margin:0 0 16px; max-width:1000px; line-height:1.55; }
+  .icon { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; display:block; }
+  .icon-sm { width:13px; height:13px; }
+  .icon-lg { width:20px; height:20px; }
+  code { background:#F3F3F3; padding:1px 6px; border-radius:4px; font-size:11.5px; }
+
+  /* ---------------- tool chrome: state control bar ---------------- */
+  .controls { position:sticky; top:0; z-index:50; background:#fff; border:1px solid #ddd; border-radius:12px; padding:12px 16px; margin-bottom:20px; box-shadow:0 2px 14px rgba(0,0,0,.1); max-width:1220px; }
+  .ctl-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .ctl-row:last-child { margin-bottom:0; }
+  .ctl-label { font-family:var(--font-display); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--secondary); width:124px; flex-shrink:0; }
+  .ctl-btn { font-family:var(--font-display); font-weight:600; font-size:11px; padding:5px 11px; border-radius:7px; border:1px solid var(--border); background:#fafafa; color:#444; cursor:pointer; transition:all var(--fast); }
+  .ctl-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+  .ctl-btn.active { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .ctl-sub { opacity:.35; pointer-events:none; }
+  .ctl-sub.enabled { opacity:1; pointer-events:auto; }
+
+  /* ---------------- frame / chrome ---------------- */
+  .frame { background:var(--bg); border-radius:18px; padding:16px; max-width:1220px; }
+  .chrome-note { font-size:11px; color:var(--muted); margin:8px 2px 18px; max-width:1220px; }
+  .topbar { display:flex; align-items:center; gap:16px; padding:6px 10px 18px; }
+  .logo { font-family:var(--font-display); font-weight:800; font-size:17px; letter-spacing:-.01em; flex-shrink:0; }
+  .search-pill { flex:1; max-width:380px; display:flex; align-items:center; gap:8px; background:#F2F2F3; border-radius:var(--radius-pill); padding:9px 16px; color:var(--muted); font-size:13px; }
+  .top-actions { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .pill-ghost { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-weight:600; font-size:12.5px; padding:8px 14px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; color:var(--ink); white-space:nowrap; cursor:pointer; transition:all var(--fast); }
+  .pill-ghost:hover { border-color:#d5d5d5; box-shadow:var(--shadow-sm); }
+  .pill-ghost.accent-outline { border-color:var(--accent); color:var(--accent-hover); }
+  .icon-btn { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--secondary); cursor:pointer; transition:background var(--fast); flex-shrink:0; }
+  .icon-btn:hover { background:#F2F2F3; }
+  .avatar-top { width:34px; height:34px; border-radius:50%; background:var(--ink); color:#fff; font-family:var(--font-display); font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+  .layout { display:flex; gap:22px; align-items:flex-start; }
+  .sidebar { width:186px; flex-shrink:0; background:transparent; padding:4px 0; }
+  .side-item { display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:10px; color:var(--secondary); font-size:13.5px; font-weight:500; margin-bottom:2px; cursor:pointer; transition:background var(--fast), color var(--fast); }
+  .side-item:hover { background:#F4F4F4; color:var(--ink); }
+  .side-item.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+  .side-item .icon { color:inherit; }
+  .side-divider { height:1px; background:var(--border-soft); margin:12px 10px; }
+
+  .main { flex:1; display:flex; flex-direction:column; gap:26px; min-width:0; position:relative; }
+
+  /* ---------------- page header ---------------- */
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; padding:2px 2px 0; }
+  .crumb { font-size:11.5px; color:var(--muted); font-weight:500; }
+  .page-header h2 { font-family:var(--font-display); font-size:26px; font-weight:800; letter-spacing:-.015em; margin:4px 0 4px; }
+  .page-sub { font-size:13px; color:var(--secondary); }
+  .header-actions { display:flex; gap:10px; flex-shrink:0; }
+  .btn-primary { display:inline-flex; align-items:center; gap:7px; font-family:var(--font-display); font-weight:700; font-size:13px; padding:10px 18px; border-radius:var(--radius-pill); background:var(--accent); color:#fff; border:1px solid var(--accent); cursor:pointer; box-shadow:0 1px 2px rgba(34,197,94,.25); transition:all var(--fast); }
+  .btn-primary:hover { background:var(--accent-hover); border-color:var(--accent-hover); transform:translateY(-1px); box-shadow:0 6px 16px rgba(34,197,94,.3); }
+
+  /* ---------------- cards ---------------- */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:28px 30px; opacity:0; transform:translateY(10px); animation:settle 240ms cubic-bezier(.16,1,.3,1) forwards; }
+  @keyframes settle { to { opacity:1; transform:translateY(0); } }
+  .card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px; }
+  .card-title { display:flex; align-items:center; gap:7px; font-family:var(--font-display); font-weight:700; font-size:15.5px; color:var(--ink); }
+  .card-desc { font-size:12px; color:var(--muted); margin-bottom:22px; max-width:760px; line-height:1.6; }
+  .link-arrow { display:inline-flex; align-items:center; gap:4px; font-family:var(--font-display); font-weight:700; font-size:12px; color:var(--accent-hover); cursor:pointer; }
+  .link-arrow:hover { text-decoration:underline; }
+
+  .info-dot { width:14px; height:14px; border-radius:50%; background:#EEE; color:var(--secondary); font-size:9px; font-style:italic; font-family:Georgia,serif; font-weight:700; display:inline-flex; align-items:center; justify-content:center; cursor:help; position:relative; flex-shrink:0; }
+  .info-dot .tip { position:absolute; bottom:calc(100% + 7px); left:50%; transform:translateX(-50%) translateY(3px); background:#1a1a1a; color:#fff; font-size:10.5px; font-weight:500; font-style:normal; font-family:var(--font-body); line-height:1.4; padding:8px 11px; border-radius:8px; width:208px; text-align:left; opacity:0; pointer-events:none; transition:opacity 100ms ease, transform 100ms ease; z-index:12; }
+  .info-dot:hover .tip { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ---------------- Section 1: five separate cards, one metric each ---------------- */
+  .strip { display:flex; align-items:stretch; gap:16px; }
+  .metric { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; }
+  .metric.card { padding:22px 24px; }
+  .metric:first-child { flex:1.75; }
+  .m-label { display:flex; align-items:center; gap:5px; color:var(--secondary); font-size:12px; font-weight:600; margin-bottom:9px; }
+  .m-value { font-family:var(--font-display); font-size:23px; font-weight:800; letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
+  .m-value.pos { color:var(--pos-text); }
+  .value-sparkline-row { display:flex; align-items:center; gap:10px; min-width:0; }
+  .value-sparkline-row .m-value { min-width:0; flex-shrink:1; font-size:20px; }
+  .spark { width:44px; height:20px; flex-shrink:0; }
+  .m-delta { font-size:11.5px; font-weight:700; margin-top:5px; font-variant-numeric:tabular-nums; }
+  .m-delta.pos { color:var(--pos-text); }
+  .m-delta-neutral { font-size:11px; color:var(--muted); margin-top:5px; }
+
+  .seg-toggle { display:inline-flex; background:#F0F0F1; border-radius:var(--radius-pill); padding:2px; margin-bottom:8px; width:fit-content; }
+  .seg-btn { font-family:var(--font-display); font-weight:700; font-size:9.5px; padding:4px 10px; border-radius:var(--radius-pill); color:var(--muted); cursor:pointer; transition:all var(--fast); }
+  .seg-btn.active { background:#fff; color:var(--ink); box-shadow:var(--shadow-sm); }
+  .xirr-note { font-size:11px; color:var(--muted); text-decoration:underline; text-underline-offset:2px; cursor:pointer; margin-top:4px; }
+  .xirr-note:hover { color:var(--accent-hover); }
+
+  .chip-warn { display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:var(--radius-pill); background:var(--warn-bg); color:var(--warn-text); margin-top:8px; width:fit-content; position:relative; }
+  .inline-err { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:7px; }
+  .retry-link { color:var(--accent-hover); font-weight:700; cursor:pointer; text-decoration:underline; }
+
+  /* ---------------- Section 2+3: donut + legend ---------------- */
+  .pie-row { display:flex; gap:48px; align-items:center; flex-wrap:wrap; position:relative; }
+  .alloc-popup { position:absolute; top:0; right:0; width:220px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-md); padding:14px 16px; opacity:0; transform:translateX(6px); pointer-events:none; transition:opacity 120ms ease, transform 120ms ease; z-index:20; }
+  .alloc-popup.is-visible { opacity:1; transform:translateX(0); }
+  .alloc-popup-label { font-family:var(--font-display); font-weight:700; font-size:13px; margin-bottom:10px; }
+  .alloc-popup-row { display:flex; justify-content:space-between; gap:12px; font-size:12px; color:var(--secondary); padding:4px 0; white-space:nowrap; }
+  .alloc-popup-row span:last-child { font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .alloc-popup-row-cs { display:none; color:var(--muted); font-style:italic; justify-content:flex-start; }
+  .alloc-popup.is-coming .alloc-popup-row:not(.alloc-popup-row-cs) { display:none; }
+  .alloc-popup.is-coming .alloc-popup-row-cs { display:flex; }
+  .pie-stage { position:relative; width:188px; height:188px; flex-shrink:0; }
+  .pie-svg { width:100%; height:100%; overflow:visible; }
+  .pie-track { fill:none; stroke:#F0F0F0; }
+  .pie-seg { transform-origin:100px 100px; transition:transform var(--pop), opacity var(--fast); cursor:pointer; }
+  .pie-seg circle { fill:none; stroke-linecap:round; }
+  .pie-seg.is-active { transform:translate(var(--dx), var(--dy)); }
+  .pie-seg.is-dim { opacity:.38; }
+  .pie-hole { position:absolute; inset:34px; border-radius:50%; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none; }
+  .pie-hole .hl { font-size:11px; font-weight:600; color:var(--secondary); max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:opacity 120ms ease; }
+  .pie-hole .hv { font-family:var(--font-display); font-size:17px; font-weight:800; color:var(--ink); margin-top:3px; transition:opacity 120ms ease; }
+  .pie-hole .hp { font-size:11px; font-weight:700; color:var(--accent-hover); margin-top:2px; transition:opacity 120ms ease; }
+
+  .legend { flex:1; min-width:280px; display:flex; flex-direction:column; }
+  .l-row { display:flex; align-items:center; gap:10px; font-size:13px; padding:11px 12px; margin-bottom:2px; border-radius:9px; cursor:pointer; transition:background var(--fast), transform var(--fast); }
+  .l-row:hover, .l-row.is-active { background:#FAFAFA; }
+  .l-row.is-active { transform:translateX(2px); }
+  .l-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .l-label { font-weight:600; color:var(--ink); }
+  .l-tag { font-size:9px; padding:2px 8px; border-radius:var(--radius-pill); font-weight:700; background:#F1F1F1; color:var(--muted); }
+  .l-pct { margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); font-size:13px; }
+  .l-chev { width:13px; height:13px; color:var(--muted); opacity:0; transition:opacity var(--fast), transform var(--fast); }
+  .l-row:hover .l-chev { opacity:1; transform:translateX(2px); color:var(--accent-hover); }
+  .l-row.is-coming .l-label, .l-row.is-coming .l-pct { opacity:.55; }
+  .palette-flag { font-size:11px; color:var(--muted); margin-top:14px; padding-top:14px; border-top:1px solid var(--border-soft); }
+
+  /* ---------------- Section 4: family + insights ---------------- */
+  .fam-bar { display:flex; height:9px; border-radius:var(--radius-pill); overflow:hidden; background:#F0F0F0; cursor:pointer; }
+  .fam-bar > div { transition:filter var(--fast); }
+  .fam-bar:hover > div { filter:brightness(1.04); }
+  .member-rows { margin-top:16px; display:flex; flex-direction:column; }
+  .m-row { display:flex; align-items:center; gap:13px; font-size:13px; padding:11px 10px; margin-bottom:2px; border-radius:10px; cursor:pointer; transition:background var(--fast), transform var(--fast); }
+  .m-row:hover { background:#FAFAFA; transform:translateX(2px); }
+  .m-row:hover .l-chev { opacity:1; }
+  .m-avatar { width:29px; height:29px; border-radius:50%; color:#fff; font-family:var(--font-display); font-size:10.5px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .m-name { width:84px; flex-shrink:0; font-weight:600; color:var(--ink); }
+  .m-bar-bg { flex:1; height:5px; background:#F0F0F0; border-radius:3px; overflow:hidden; }
+  .m-bar-fill { height:100%; border-radius:3px; }
+  .m-val { width:168px; text-align:right; flex-shrink:0; font-variant-numeric:tabular-nums; color:var(--secondary); font-size:12.5px; }
+
+  .section-divider { border:none; border-top:1px solid var(--border-soft); margin:26px 0 22px; }
+  .insights-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:14px; }
+  .insights-head .card-title { flex:none; }
+  .insights-head .insights-meta { font-size:11.5px; color:var(--muted); }
+  .insights-list { display:flex; flex-direction:column; gap:14px; }
+  .insight-it { display:flex; gap:10px; align-items:flex-start; font-size:13px; color:var(--ink); line-height:1.5; }
+  .check-dot { width:17px; height:17px; border-radius:50%; background:var(--pos); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+  .check-dot .icon { width:10px; height:10px; stroke-width:3; }
+
+  /* ---------------- loading / empty / error ---------------- */
+  .shimmer { position:relative; overflow:hidden; background:#EFEFEF; border-radius:7px; }
+  .shimmer::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent); background-size:200% 100%; animation:shimmer 1.4s ease-in-out infinite; }
+  @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+
+  .card-error { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px 16px; gap:9px; }
+  .card-error .err-ico { width:38px; height:38px; border-radius:50%; background:var(--warn-bg); color:var(--warn-text); display:flex; align-items:center; justify-content:center; }
+  .card-error h4 { margin:2px 0 0; font-family:var(--font-display); font-size:14px; }
+  .card-error p { margin:0; font-size:12px; color:var(--secondary); max-width:340px; }
+  .retry-btn { font-family:var(--font-display); font-weight:700; font-size:12px; padding:7px 16px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; cursor:pointer; transition:all var(--fast); }
+  .retry-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+
+  .page-state { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:76px 20px; gap:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+  .page-state .big-ico { width:58px; height:58px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; }
+  .page-state.is-error .big-ico { background:var(--warn-bg); color:var(--warn-text); }
+  .page-state h3 { font-family:var(--font-display); font-size:19px; margin:0; }
+  .page-state p { margin:0; font-size:13px; color:var(--secondary); max-width:400px; line-height:1.6; }
+
+  .single-member-note { font-size:12.5px; color:var(--secondary); padding:4px 0 0; }
+
+  /* ---------------- spec section ---------------- */
+  .spec { max-width:1000px; margin-top:44px; }
+  .spec h2 { font-family:var(--font-display); font-size:17px; margin:34px 0 10px; }
+  .spec h2:first-child { margin-top:0; }
+  .spec table { border-collapse:collapse; width:100%; font-size:12.5px; margin-bottom:6px; }
+  .spec th, .spec td { text-align:left; padding:8px 10px; border-bottom:1px solid #eee; vertical-align:top; }
+  .spec th { font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--secondary); font-weight:700; font-family:var(--font-display); }
+  .decided-against { background:#F6F6F6; border-radius:8px; padding:11px 15px; font-size:12.5px; color:#444; margin-top:8px; }
+  .locked-note { background:var(--pos-bg); border:1px solid var(--pos); border-radius:9px; padding:13px 17px; font-size:13px; color:var(--pos-text); margin-top:22px; max-width:1000px; }
+</style>
+</head>
+<body>
+
+<svg style="display:none">
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.6-4.6M4 5v5h5"/><path d="M4 13a8 8 0 0 0 14.6 4.6M20 19v-5h-5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M20 20l-5.5-5.5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15.2 20c0-2.2 1.7-4 3.8-4.6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></symbol>
+  <symbol id="i-bar-chart" viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></symbol>
+  <symbol id="i-pie" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
+  <symbol id="i-trending" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-8"/><path d="M14 7h6v6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.8 1c0 1.8-2.3 2-2.3 3.5"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+  <symbol id="i-sort" viewBox="0 0 24 24"><path d="M8 20V6M4 10l4-4 4 4"/><path d="M16 4v14M12 14l4 4 4-4"/></symbol>
+  <symbol id="i-lightbulb" viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 21.5h4"/><path d="M12 2a6 6 0 0 0-3.6 10.8c.6.5 1 .9 1 1.7V15h5.2v-.5c0-.8.4-1.2 1-1.7A6 6 0 0 0 12 2Z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 10v5"/><path d="M12 18.2v.1"/></symbol>
+</svg>
+
+<h1>Portfolio Home Page — high-fidelity visual + behavior/feel design, all states</h1>
+<p class="doc-subtitle">v4 — colour and font now read from <code>Docs/Unifolio Colour Palette.pdf</code> (the Bible for colour/font per the owner), not <code>tokens.css</code> (v3's mistake): page <code>#F5F5F5</code>, card <code>#FFFFFF</code>, divider <code>#ECECEC</code>, text-secondary <code>#717171</code>, warning/negative from the palette's semantic set — DM Sans/Manrope unchanged, both sources already agree there. Summary Strip is back to 5 separate cards (matches the owner's reference screenshot and design.md §13). Sync Investments removed from the header. Asset Allocation now opens a hover popup to the right with invested/gain-loss/XIRR per slice, layered on top of the existing pop-out+dim+center-label-swap <code>AllocationDonut.tsx</code> hover mechanic (unchanged). The 8th slice (Debt) uses teal <code>#0D9488</code>, a palette "supporting colour" reserved for data-viz — not an invented hex — and the flag note is rewritten as a resolved decision, not an open TODO.</p>
+
+<div class="controls">
+  <div class="ctl-row">
+    <div class="ctl-label">Page state</div>
+    <button class="ctl-btn active" data-global="happy">Happy path</button>
+    <button class="ctl-btn" data-global="loading">Initial loading</button>
+    <button class="ctl-btn" data-global="empty">Empty — zero holdings</button>
+    <button class="ctl-btn" data-global="error">Page error</button>
+  </div>
+  <div class="ctl-row" id="row-strip">
+    <div class="ctl-label">1 · Summary strip</div>
+    <button class="ctl-btn active" data-sec="strip" data-val="default">Default</button>
+    <button class="ctl-btn" data-sec="strip" data-val="partial">Partial — stale NAV</button>
+    <button class="ctl-btn" data-sec="strip" data-val="sparkerr">Sparkline failed</button>
+  </div>
+  <div class="ctl-row" id="row-alloc">
+    <div class="ctl-label">2+3 · Allocation</div>
+    <button class="ctl-btn active" data-sec="alloc" data-val="default">Default</button>
+    <button class="ctl-btn" data-sec="alloc" data-val="loading">Loading</button>
+    <button class="ctl-btn" data-sec="alloc" data-val="error">Failed to load</button>
+  </div>
+  <div class="ctl-row" id="row-fam">
+    <div class="ctl-label">4 · Family+Insights</div>
+    <button class="ctl-btn active" data-sec="fam" data-val="default">Default</button>
+    <button class="ctl-btn" data-sec="fam" data-val="loading">Loading</button>
+    <button class="ctl-btn" data-sec="fam" data-val="single">Single-member household</button>
+  </div>
+</div>
+
+<div class="frame">
+
+  <div class="topbar">
+    <div class="logo">Unifolio</div>
+    <div class="search-pill"><svg class="icon icon-sm"><use href="#i-search"/></svg>Search for a fund, stock, or ask Mira...</div>
+    <div class="top-actions">
+      <div class="pill-ghost accent-outline"><svg class="icon icon-sm"><use href="#i-sparkle"/></svg>Ask Mira</div>
+      <div class="pill-ghost"><svg class="icon icon-sm"><use href="#i-users"/></svg>Family Combined<svg class="icon icon-sm"><use href="#i-chevron-down"/></svg></div>
+      <div class="icon-btn"><svg class="icon"><use href="#i-moon"/></svg></div>
+      <div class="avatar-top">SS</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="side-item"><svg class="icon"><use href="#i-home"/></svg>Home</div>
+      <div class="side-item"><svg class="icon"><use href="#i-bar-chart"/></svg>Analytics</div>
+      <div class="side-item active"><svg class="icon"><use href="#i-pie"/></svg>Investments</div>
+      <div class="side-item"><svg class="icon"><use href="#i-trending"/></svg>Performance</div>
+      <div class="side-item"><svg class="icon"><use href="#i-zap"/></svg>Scenarios</div>
+      <div class="side-divider"></div>
+      <div class="side-item"><svg class="icon"><use href="#i-user"/></svg>Profile</div>
+      <div class="side-item"><svg class="icon"><use href="#i-help"/></svg>Help &amp; Support</div>
+    </div>
+
+    <div class="main" id="main">
+
+      <div class="page-header">
+        <div>
+          <div class="crumb">Investments</div>
+          <h2>All Investments</h2>
+          <div class="page-sub">View and manage your complete family portfolio across asset classes.</div>
+        </div>
+        <div class="header-actions">
+          <div class="btn-primary"><svg class="icon icon-sm" style="stroke:#fff"><use href="#i-plus"/></svg>Add Investment<svg class="icon icon-sm" style="stroke:#fff"><use href="#i-chevron-down"/></svg></div>
+        </div>
+      </div>
+
+      <!-- ============ GLOBAL: INITIAL LOADING ============ -->
+      <div id="g-loading" style="display:none;">
+        <div class="card" style="margin-bottom:18px;">
+          <div class="strip">
+            <div class="metric"><div class="shimmer" style="width:55%; height:11px; margin-bottom:10px;"></div><div class="shimmer" style="width:80%; height:24px;"></div></div>
+            <div class="metric"><div class="shimmer" style="width:60%; height:11px; margin-bottom:10px;"></div><div class="shimmer" style="width:65%; height:20px;"></div></div>
+            <div class="metric"><div class="shimmer" style="width:60%; height:11px; margin-bottom:10px;"></div><div class="shimmer" style="width:65%; height:20px;"></div></div>
+            <div class="metric"><div class="shimmer" style="width:55%; height:11px; margin-bottom:10px;"></div><div class="shimmer" style="width:55%; height:20px;"></div></div>
+            <div class="metric"><div class="shimmer" style="width:40%; height:11px; margin-bottom:10px;"></div><div class="shimmer" style="width:45%; height:20px;"></div></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:18px;">
+          <div class="pie-row">
+            <div class="shimmer" style="width:188px; height:188px; border-radius:50%;"></div>
+            <div style="flex:1; min-width:260px;">
+              <div class="shimmer" style="height:16px; width:92%; margin-bottom:10px; border-radius:8px;"></div>
+              <div class="shimmer" style="height:16px; width:85%; margin-bottom:10px; border-radius:8px;"></div>
+              <div class="shimmer" style="height:16px; width:90%; margin-bottom:10px; border-radius:8px;"></div>
+              <div class="shimmer" style="height:16px; width:80%; border-radius:8px;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="shimmer" style="height:9px; border-radius:6px; margin-bottom:18px;"></div>
+          <div class="shimmer" style="height:18px; width:100%; margin-bottom:10px; border-radius:8px;"></div>
+          <div class="shimmer" style="height:18px; width:100%; border-radius:8px;"></div>
+        </div>
+      </div>
+
+      <!-- ============ GLOBAL: EMPTY ============ -->
+      <div id="g-empty" style="display:none;">
+        <div class="page-state">
+          <div class="big-ico"><svg class="icon-lg"><use href="#i-plus"/></svg></div>
+          <h3>Nothing here yet</h3>
+          <p>Import your first CAS statement and your family's portfolio will show up here — total value, allocation, and gains, all in one place.</p>
+          <div class="btn-primary"><svg class="icon icon-sm" style="stroke:#fff"><use href="#i-plus"/></svg>Add your first investment</div>
+        </div>
+      </div>
+
+      <!-- ============ GLOBAL: PAGE ERROR ============ -->
+      <div id="g-error" style="display:none;">
+        <div class="page-state is-error">
+          <div class="big-ico"><svg class="icon-lg"><use href="#i-alert"/></svg></div>
+          <h3>Couldn't load your portfolio</h3>
+          <p>There was a problem reaching our servers. Your data is safe — this is just a connection issue.</p>
+          <div class="retry-btn" style="padding:9px 20px; font-size:13px;">Retry</div>
+        </div>
+      </div>
+
+      <!-- ============ HAPPY PATH ============ -->
+      <div id="g-happy">
+
+        <!-- SECTION 1 — Summary strip: five separate cards -->
+        <div id="strip-default" class="strip">
+          <div class="metric card">
+            <div class="m-label">Total Portfolio Value<span class="info-dot">i<span class="tip">Sum of current value across all valued holdings, family-combined or scoped to one member.</span></span></div>
+            <div class="value-sparkline-row">
+              <span class="m-value">₹1,42,53,231</span>
+              <svg class="spark" viewBox="0 0 72 26" preserveAspectRatio="none"><polyline points="0,20 8,18 16,19 24,14 32,16 40,10 48,12 56,6 64,8 72,2" fill="none" stroke="#22C55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="m-delta pos">Today's Gain: +₹41,230 (0.29%)</div>
+          </div>
+          <div class="metric card"><div class="m-label">Total Invested<span class="info-dot">i</span></div><span class="m-value">₹1,08,73,412</span></div>
+          <div class="metric card"><div class="m-label">Unrealised Gain<span class="info-dot">i</span></div><span class="m-value pos">+₹33,79,819</span><div class="m-delta pos">+31.1%</div></div>
+          <div class="metric card"><div class="m-label">Realised Gain<span class="info-dot">i</span></div><span class="m-value">₹4,12,340</span></div>
+          <div class="metric card">
+            <div class="m-label">XIRR<span class="info-dot">i<span class="tip">Annualised return since inception. May include an opening balance from before you started tracking in Unifolio.</span></span></div>
+            <div class="seg-toggle"><span class="seg-btn active">Lifetime</span><span class="seg-btn">Current</span></div>
+            <span class="m-value">14.8%</span>
+            <div class="xirr-note">Since inception — opening-balance disclaimer may apply ›</div>
+          </div>
+        </div>
+
+        <div id="strip-partial" class="strip" style="display:none;">
+          <div class="metric card">
+            <div class="m-label">Total Portfolio Value<span class="info-dot">i</span></div>
+            <div class="value-sparkline-row">
+              <span class="m-value">₹1,42,53,231</span>
+              <svg class="spark" viewBox="0 0 72 26" preserveAspectRatio="none"><polyline points="0,20 8,18 16,19 24,14 32,16 40,10 48,12 56,6 64,8 72,2" fill="none" stroke="#22C55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="m-delta pos">Today's Gain: +₹41,230 (0.29%)</div>
+            <div class="chip-warn"><svg class="icon icon-sm"><use href="#i-alert"/></svg>3 on last known NAV</div>
+          </div>
+          <div class="metric card"><div class="m-label">Total Invested<span class="info-dot">i</span></div><span class="m-value">₹1,08,73,412</span></div>
+          <div class="metric card"><div class="m-label">Unrealised Gain<span class="info-dot">i</span></div><span class="m-value pos">+₹33,79,819</span><div class="m-delta pos">+31.1%</div></div>
+          <div class="metric card"><div class="m-label">Realised Gain<span class="info-dot">i</span></div><span class="m-value">₹4,12,340</span></div>
+          <div class="metric card">
+            <div class="m-label">XIRR<span class="info-dot">i</span></div>
+            <div class="seg-toggle"><span class="seg-btn active">Lifetime</span><span class="seg-btn">Current</span></div>
+            <span class="m-value">14.8%</span>
+            <div class="xirr-note">Since inception — opening-balance disclaimer may apply ›</div>
+          </div>
+        </div>
+
+        <div id="strip-sparkerr" class="strip" style="display:none;">
+          <div class="metric card">
+            <div class="m-label">Total Portfolio Value<span class="info-dot">i</span></div>
+            <div class="value-sparkline-row">
+              <span class="m-value">₹1,42,53,231</span>
+              <span class="inline-err">Couldn't load trend <span class="retry-link">Retry</span></span>
+            </div>
+            <div class="m-delta pos">Today's Gain: +₹41,230 (0.29%)</div>
+          </div>
+          <div class="metric card"><div class="m-label">Total Invested<span class="info-dot">i</span></div><span class="m-value">₹1,08,73,412</span></div>
+          <div class="metric card"><div class="m-label">Unrealised Gain<span class="info-dot">i</span></div><span class="m-value pos">+₹33,79,819</span><div class="m-delta pos">+31.1%</div></div>
+          <div class="metric card"><div class="m-label">Realised Gain<span class="info-dot">i</span></div><span class="m-value">₹4,12,340</span></div>
+          <div class="metric card">
+            <div class="m-label">XIRR<span class="info-dot">i</span></div>
+            <div class="seg-toggle"><span class="seg-btn active">Lifetime</span><span class="seg-btn">Current</span></div>
+            <span class="m-value">14.8%</span>
+            <div class="xirr-note">Since inception — opening-balance disclaimer may apply ›</div>
+          </div>
+        </div>
+
+        <!-- SECTION 2+3 — Asset Allocation -->
+        <div class="card" style="margin-top:18px;">
+          <div class="card-head">
+            <div class="card-title">Asset Allocation<span class="info-dot">i</span></div>
+            <div style="display:flex; gap:10px; align-items:center;" id="alloc-actions">
+              <div class="pill-ghost" style="padding:6px 13px; font-size:11.5px;"><svg class="icon icon-sm"><use href="#i-filter"/></svg>Filter</div>
+              <div class="pill-ghost" style="padding:6px 13px; font-size:11.5px;"><svg class="icon icon-sm"><use href="#i-sort"/></svg>Sort</div>
+            </div>
+          </div>
+          <div class="card-desc">8 slices, matching the nav-shell contract's 8 sidebar rows exactly. Hover a slice or a row — it pops out, the center label swaps (same interaction as the live <code>AllocationDonut</code> component), and a popup opens on the right with invested, gain/loss, and XIRR for that bucket (per design.md §2.3's <code>AllocationBucket</code> schema). Filter v1: live vs. coming-soon only.</div>
+
+          <div id="alloc-default" class="pie-row">
+            <div class="pie-stage">
+              <svg class="pie-svg" viewBox="0 0 200 200">
+                <circle class="pie-track" cx="100" cy="100" r="70" stroke-width="28"/>
+                <g id="pie-segments"></g>
+              </svg>
+              <div class="pie-hole" id="pie-hole">
+                <span class="hl" id="hole-label">Total Portfolio</span>
+                <span class="hv" id="hole-value">₹1.42Cr</span>
+                <span class="hp" id="hole-pct" style="display:none;"></span>
+              </div>
+            </div>
+            <div class="legend" id="legend-list"></div>
+            <div class="alloc-popup" id="alloc-popup">
+              <div class="alloc-popup-label" id="pop-label">Mutual Funds</div>
+              <div class="alloc-popup-row"><span>Allocation</span><span id="pop-allocation">47.0%</span></div>
+              <div class="alloc-popup-row"><span>Current Value</span><span id="pop-value">₹66,98,600</span></div>
+              <div class="alloc-popup-row"><span>Invested</span><span id="pop-invested">₹51,00,000</span></div>
+              <div class="alloc-popup-row"><span>Gain/Loss</span><span id="pop-gain">+₹15,98,600</span></div>
+              <div class="alloc-popup-row"><span>XIRR</span><span id="pop-xirr">16.1%</span></div>
+              <div class="alloc-popup-row alloc-popup-row-cs" id="pop-cs-row">Not tracked yet — coming soon.</div>
+            </div>
+          </div>
+          <div class="palette-flag" id="alloc-default-flag">✓ Resolved: the live <code>AllocationDonut.tsx</code> <code>PALETTE</code> array has 7 colours; this page's locked taxonomy has 8 slices. "Debt" above uses <code>#0D9488</code> (teal) as its 8th colour — one of the palette's own "supporting colours" reserved for data-viz use (<code>Docs/Unifolio Colour Palette.pdf</code>), not an invented or borrowed hex. The shared <code>PALETTE</code> array gets this as a real 8th entry at implementation time.</div>
+
+          <div id="alloc-loading" class="pie-row" style="display:none;">
+            <div class="shimmer" style="width:188px; height:188px; border-radius:50%;"></div>
+            <div style="flex:1; min-width:260px;">
+              <div class="shimmer" style="height:16px; width:92%; margin-bottom:10px; border-radius:8px;"></div>
+              <div class="shimmer" style="height:16px; width:85%; margin-bottom:10px; border-radius:8px;"></div>
+              <div class="shimmer" style="height:16px; width:90%; margin-bottom:10px; border-radius:8px;"></div>
+              <div class="shimmer" style="height:16px; width:80%; margin-bottom:10px; border-radius:8px;"></div>
+              <div class="shimmer" style="height:16px; width:88%; border-radius:8px;"></div>
+            </div>
+          </div>
+
+          <div id="alloc-error" style="display:none;">
+            <div class="card-error">
+              <div class="err-ico"><svg class="icon-lg"><use href="#i-alert"/></svg></div>
+              <h4>Couldn't load your asset allocation</h4>
+              <p>This section failed to load, but the rest of the page is unaffected.</p>
+              <div class="retry-btn">Retry</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 4 — Family allocation + Quick Insights -->
+        <div class="card" style="margin-top:18px;">
+          <div class="card-head"><div class="card-title">Family Members<span class="info-dot">i</span></div></div>
+          <div class="card-desc">Whole portfolio per member — click a row or bar segment to switch scope.</div>
+
+          <div id="fam-default">
+            <div class="fam-bar">
+              <div style="width:48%; background:#3B82F6;"></div>
+              <div style="width:32%; background:#8B5CF6;"></div>
+              <div style="width:20%; background:#F59E0B;"></div>
+            </div>
+            <div class="member-rows">
+              <div class="m-row"><span class="m-avatar" style="background:#3B82F6;">SS</span><span class="m-name">Siddharth</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:48%; background:#3B82F6;"></div></div><span class="m-val">₹68,42,310 (48.0%)</span><svg class="icon l-chev"><use href="#i-chevron-right"/></svg></div>
+              <div class="m-row"><span class="m-avatar" style="background:#8B5CF6;">AS</span><span class="m-name">Aarohi</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:32%; background:#8B5CF6;"></div></div><span class="m-val">₹46,21,430 (32.4%)</span><svg class="icon l-chev"><use href="#i-chevron-right"/></svg></div>
+              <div class="m-row"><span class="m-avatar" style="background:#F59E0B;">PS</span><span class="m-name">Parents</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:20%; background:#F59E0B;"></div></div><span class="m-val">₹27,89,491 (19.6%)</span><svg class="icon l-chev"><use href="#i-chevron-right"/></svg></div>
+            </div>
+          </div>
+
+          <div id="fam-loading" style="display:none;">
+            <div class="shimmer" style="height:9px; border-radius:6px; margin-bottom:18px;"></div>
+            <div class="shimmer" style="height:18px; width:100%; margin-bottom:10px; border-radius:8px;"></div>
+            <div class="shimmer" style="height:18px; width:100%; margin-bottom:10px; border-radius:8px;"></div>
+            <div class="shimmer" style="height:18px; width:100%; border-radius:8px;"></div>
+          </div>
+
+          <div id="fam-single" style="display:none;">
+            <div class="single-member-note">You're the only member in this household — nothing to compare yet. Add a family member from Profile to see a breakdown here.</div>
+          </div>
+
+          <hr class="section-divider">
+
+          <div class="insights-head">
+            <div class="card-title">Quick Insights</div>
+            <div class="insights-meta">From your current holdings</div>
+          </div>
+          <div class="insights-list">
+            <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Your largest holding is <b>HDFC Flexicap Fund</b> — 18.2% of your total portfolio</span></div>
+            <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Spread across <b>9 AMCs</b> and <b>23 funds</b></span></div>
+            <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span><b>72% Direct</b>, 28% Regular</span></div>
+            <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Your largest single AMC exposure is <b>HDFC at 24%</b></span></div>
+            <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span><b>₹1,18,000</b> in active SIPs scheduled this month</span></div>
+          </div>
+        </div>
+
+      </div><!-- /g-happy -->
+    </div>
+  </div>
+  <div class="chrome-note">Top bar &amp; sidebar shown for visual context only — built separately in the nav-shell session (design.md §11). This page's build is the three cards above.</div>
+</div>
+
+<!-- ======================= MOTION & INTERACTION SPEC ======================= -->
+<div class="spec">
+  <h2>Motion &amp; interaction spec</h2>
+  <table>
+    <tr><th>Trigger</th><th>Behaviour</th><th>Timing / easing</th></tr>
+    <tr><td>Hover a donut slice or its legend row</td><td>That slice pops outward ~7px along its own radial axis; every other slice dims to 40% opacity; the center label swaps from "Total Portfolio / ₹1.42Cr" to the hovered item's name/value/%. Exactly the live <code>AllocationDonut.tsx</code> behaviour (<code>hoverEffect="translate"</code>, <code>isFaded</code> → 0.4 opacity).</td><td><code>260ms cubic-bezier(.34,1.56,.64,1)</code> transform (a snappy overshoot, approximating the real component's spring), <code>150ms ease</code> opacity/label cross-fade</td></tr>
+    <tr><td>Hover any other clickable row (member row, legend row)</td><td>Quiet background tint, 2px right nudge, chevron fades in and slides</td><td><code>150ms</code> (<code>--fast</code> token)</td></tr>
+    <tr><td>ⓘ tooltip open</td><td>Fades in, 3px upward slide</td><td><code>100ms ease</code> in, <code>80ms</code> out</td></tr>
+    <tr><td>Section data arrives (per section, independently)</td><td>Fades in + slides up 10px from where its shimmer skeleton sat — shapes match exactly, no layout shift</td><td><code>240ms cubic-bezier(.16,1,.3,1)</code>; sections animate in whatever order their own fetch resolves</td></tr>
+    <tr><td>Loading shimmer</td><td>Horizontal sweep across skeleton shapes</td><td><code>1.4s ease-in-out infinite</code></td></tr>
+    <tr><td>Member scope switch</td><td>Scope-aware numbers cross-fade, bar/segment widths resize in place — no navigation, no new fetch</td><td><code>150ms</code> value cross-fade; <code>300ms ease</code> bar-width resize</td></tr>
+    <tr><td>Retry click</td><td>Button shows a brief spin state; section re-enters loading shimmer, then settles on success</td><td>Minimum <code>600ms</code> visible loading even on a fast response</td></tr>
+    <tr><td>Primary button hover</td><td>Darkens, lifts 1px, shadow deepens</td><td><code>150ms</code> (<code>--fast</code>)</td></tr>
+  </table>
+
+  <h2>Decided against</h2>
+  <div class="decided-against">No number count-up animation on load. No per-row staggered shimmer pulse. No skeleton for the page header (static strings, never fetched).</div>
+
+  <h2>State inventory — what's covered where</h2>
+  <table>
+    <tr><th>Scope</th><th>States</th><th>Why this shape</th></tr>
+    <tr><td>Whole page</td><td>Happy · Initial loading · Empty (zero holdings) · Page error</td><td>Mutually exclusive at the whole-page level</td></tr>
+    <tr><td>Section 1 — Summary strip</td><td>Default · Partial (stale NAV) · Sparkline failed independently</td><td>Each metric can carry its own caveat; the sparkline is its own fetch (§10)</td></tr>
+    <tr><td>Section 2+3 — Asset Allocation</td><td>Default · Loading · Failed to load</td><td>One endpoint backs the whole section, binary loaded/broken</td></tr>
+    <tr><td>Section 4 — Family + Insights</td><td>Default · Loading · Single-member household</td><td>Single-member is a valid data shape, not an error</td></tr>
+  </table>
+</div>
+
+<div class="locked-note"><b>Status (v4):</b> colour and font now read from the Colour Palette PDF, not <code>tokens.css</code> (v3's mistake); Summary Strip is 5 separate cards again; Sync Investments removed; Asset Allocation hover now also opens a right-side popup with invested/gain-loss/XIRR; the 8th slice uses a real palette colour (<code>#0D9488</code>), flag resolved. Layout/content/state-coverage unchanged from the locked v9 skeleton. One open item carried over, unrelated to this round: the pie-slice-click transition into a live asset class's own page — not relevant until a second asset class ships.</div>
+
+<script>
+(function(){
+  /* ---- page/section state toggles (unchanged mechanism from v2) ---- */
+  function setGlobal(state){
+    document.querySelectorAll('[data-global]').forEach(function(b){ b.classList.toggle('active', b.dataset.global === state); });
+    ['g-loading','g-empty','g-error','g-happy'].forEach(function(id){
+      document.getElementById(id).style.display = (id === 'g-' + state) ? 'block' : 'none';
+    });
+    var subEnabled = state === 'happy';
+    ['row-strip','row-alloc','row-fam'].forEach(function(id){
+      document.getElementById(id).classList.toggle('ctl-sub', !subEnabled);
+      document.getElementById(id).classList.toggle('enabled', subEnabled);
+    });
+  }
+  function setSection(sec, val){
+    document.querySelectorAll('[data-sec="'+sec+'"]').forEach(function(b){ b.classList.toggle('active', b.dataset.val === val); });
+    ['default','partial','sparkerr','loading','error','single'].forEach(function(v){
+      var el = document.getElementById(sec + '-' + v);
+      if (el) el.style.display = (v === val) ? '' : 'none';
+    });
+    var flag = document.getElementById('alloc-default-flag');
+    if (flag && sec === 'alloc') flag.style.display = (val === 'default') ? '' : 'none';
+    var actions = document.getElementById('alloc-actions');
+    if (actions) actions.style.opacity = (sec === 'alloc' && val !== 'default') ? '.35' : '1';
+  }
+  document.querySelectorAll('[data-global]').forEach(function(b){ b.addEventListener('click', function(){ setGlobal(b.dataset.global); }); });
+  document.querySelectorAll('[data-sec]').forEach(function(b){ b.addEventListener('click', function(){ setSection(b.dataset.sec, b.dataset.val); }); });
+  document.getElementById('row-strip').classList.add('ctl-sub','enabled');
+  document.getElementById('row-alloc').classList.add('ctl-sub','enabled');
+  document.getElementById('row-fam').classList.add('ctl-sub','enabled');
+
+  document.querySelectorAll('.seg-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var siblings = btn.parentElement.querySelectorAll('.seg-btn');
+      siblings.forEach(function(s){ s.classList.remove('active'); });
+      btn.classList.add('active');
+    });
+  });
+
+  /* ---- Asset Allocation donut: real SVG arcs + the live component's hover feel ----
+     8 slices, cumulative % -> arc length via stroke-dasharray on a thick stroked
+     circle (cornerRadius via stroke-linecap:round, padAngle via a fixed px gap),
+     each wrapped in its own <g> so it can translate independently along its own
+     radial direction on hover — mirrors pie-slice.tsx's AnimatedSliceTranslate
+     without needing d3/visx in a static mockup. */
+  var SLICES = [
+    { label:'Mutual Funds',  pct:47.0, color:'#22C55E', value:'₹66,98,600', comingSoon:false, invested:'₹51,00,000', gain:'+₹15,98,600', xirr:'16.1%' },
+    { label:'Direct Stocks', pct:22.0, color:'#3B82F6', value:'₹31,35,700', comingSoon:true },
+    { label:'US Stocks',     pct:7.8,  color:'#06B6D4', value:'₹11,11,750', comingSoon:true },
+    { label:'FDs & Bonds',   pct:9.0,  color:'#8B5CF6', value:'₹12,82,790', comingSoon:true },
+    { label:'Debt',          pct:3.0,  color:'#0D9488', value:'₹4,27,600',  comingSoon:true },
+    { label:'Gold',          pct:4.1,  color:'#F59E0B', value:'₹5,84,380',  comingSoon:true },
+    { label:'Real Estate',   pct:2.1,  color:'#EC4899', value:'₹2,99,320',  comingSoon:true },
+    { label:'Others',        pct:5.0,  color:'#64748B', value:'₹7,12,660',  comingSoon:true },
+  ];
+  var LEGEND_ORDER = ['Real Estate','Debt','Gold','Others','FDs & Bonds','US Stocks','Direct Stocks','Mutual Funds'];
+
+  var R = 70, SW = 28, CIRC = 2 * Math.PI * R, GAP = 4;
+  var svgSegs = document.getElementById('pie-segments');
+  var legendEl = document.getElementById('legend-list');
+  var holeLabel = document.getElementById('hole-label');
+  var holeValue = document.getElementById('hole-value');
+  var holePct = document.getElementById('hole-pct');
+
+  var cum = 0;
+  SLICES.forEach(function(s){
+    var startDeg = -90 + cum * 3.6;
+    var segLen = Math.max((s.pct / 100) * CIRC - GAP, 2);
+    var midDeg = startDeg + (s.pct * 3.6) / 2;
+    var midRad = midDeg * Math.PI / 180;
+    s._dx = (Math.cos(midRad) * 7).toFixed(2);
+    s._dy = (Math.sin(midRad) * 7).toFixed(2);
+
+    var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'pie-seg');
+    g.setAttribute('data-label', s.label);
+    g.style.setProperty('--dx', s._dx + 'px');
+    g.style.setProperty('--dy', s._dy + 'px');
+    var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', 100); c.setAttribute('cy', 100); c.setAttribute('r', R);
+    c.setAttribute('stroke', s.color); c.setAttribute('stroke-width', SW);
+    c.setAttribute('stroke-dasharray', segLen + ' ' + (CIRC - segLen));
+    c.setAttribute('transform', 'rotate(' + startDeg + ' 100 100)');
+    g.appendChild(c);
+    svgSegs.appendChild(g);
+    cum += s.pct;
+  });
+
+  LEGEND_ORDER.forEach(function(label){
+    var s = SLICES.find(function(x){ return x.label === label; });
+    var row = document.createElement('div');
+    row.className = 'l-row' + (s.comingSoon ? ' is-coming' : '');
+    row.setAttribute('data-label', s.label);
+    row.innerHTML =
+      '<span class="l-dot" style="background:' + s.color + '"></span>' +
+      '<span class="l-label">' + s.label + '</span>' +
+      (s.comingSoon ? '<span class="l-tag">Coming soon</span>' : '') +
+      '<span class="l-pct">' + s.pct.toFixed(1) + '%</span>' +
+      '<svg class="icon l-chev"><use href="#i-chevron-right"/></svg>';
+    legendEl.appendChild(row);
+  });
+
+  var popupEl = document.getElementById('alloc-popup');
+  var popLabel = document.getElementById('pop-label');
+  var popAllocation = document.getElementById('pop-allocation');
+  var popValue = document.getElementById('pop-value');
+  var popInvested = document.getElementById('pop-invested');
+  var popGain = document.getElementById('pop-gain');
+  var popXirr = document.getElementById('pop-xirr');
+
+  function setActive(label){
+    document.querySelectorAll('.pie-seg').forEach(function(g){
+      var match = g.getAttribute('data-label') === label;
+      g.classList.toggle('is-active', match && label !== null);
+      g.classList.toggle('is-dim', label !== null && !match);
+    });
+    document.querySelectorAll('.l-row').forEach(function(r){
+      r.classList.toggle('is-active', r.getAttribute('data-label') === label);
+    });
+    if (label === null) {
+      holeLabel.textContent = 'Total Portfolio';
+      holeValue.textContent = '₹1.42Cr';
+      holePct.style.display = 'none';
+      popupEl.classList.remove('is-visible');
+    } else {
+      var s = SLICES.find(function(x){ return x.label === label; });
+      holeLabel.textContent = s.label;
+      holeValue.textContent = s.value;
+      holePct.textContent = s.pct.toFixed(1) + '%';
+      holePct.style.display = '';
+
+      popLabel.textContent = s.label;
+      popAllocation.textContent = s.pct.toFixed(1) + '%';
+      popValue.textContent = s.value;
+      popupEl.classList.toggle('is-coming', s.comingSoon);
+      if (!s.comingSoon) {
+        popInvested.textContent = s.invested;
+        popGain.textContent = s.gain;
+        popXirr.textContent = s.xirr;
+      }
+      popupEl.classList.add('is-visible');
+    }
+  }
+  document.querySelectorAll('.pie-seg').forEach(function(g){
+    g.addEventListener('mouseenter', function(){ setActive(g.getAttribute('data-label')); });
+    g.addEventListener('mouseleave', function(){ setActive(null); });
+  });
+  legendEl.addEventListener('mouseover', function(e){
+    var row = e.target.closest('.l-row');
+    if (row) setActive(row.getAttribute('data-label'));
+  });
+  legendEl.addEventListener('mouseleave', function(){ setActive(null); });
+})();
+</script>
+
+</body>
+</html>
