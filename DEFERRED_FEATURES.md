@@ -68,6 +68,46 @@ Step 13 and Part 3.
 - `fund-managers-monthly` gets 2 GB on Fargate (HSBC's factsheet alone holds ~600 MB); other jobs stay at 1 GB.
 - The hand import was verified on all 10 fund houses' real files against Postgres.
 
+## ⚠ PRIORITY 2 — Home usage / event tracking (Google Analytics 4), deferred 2026-10-23
+
+**Deferred at the owner's request on 2026-10-23** while planning the redesigned Home screen
+(Portfolio Snapshot). The Home release ships **without** any usage tracking. This is logged as a
+priority so it is picked up right after Home, not left to drift.
+
+**Why it matters:** the app records no usage events today, so there is no way to tell whether
+Home works (do people use it, where do they go next, do they open news or the Mira popup).
+
+**What is already decided (owner answers H20, N3, N4):** basic tracking; seven events (home viewed,
+period selected, benchmark selected, mover opened, Worth a look clicked, news clicked, Mira popup
+opened); an outside tool, specifically Google Analytics 4. Frontend only, no backend endpoint or
+table; opt-in consent; no user id by default; fixed-label parameters, never amounts, fund names or
+member names.
+
+**Ready to build from:** `Docs/orchestration/2026-10-23-home-tracking-ga4-plan.md` (design, event
+table, consent, Google console checklist, tests, risks, effort of about 3 to 4 developer-days plus
+copy review, an estimate). Related: `2026-10-23-home-backend-decisions-proposal.md` (BD14).
+
+**Still open when this is picked up (artifact questions P1 to P6 and P8):** how consent is asked and
+recorded (a new `analytics` purpose in the existing consent system, which touches shared consent
+code and needs a migration); user identification; separate staging and production properties;
+Google settings (Signals, ad personalisation off, 14-month retention); page-view approach;
+privacy-policy and consent wording review (counsel); who creates the Google properties.
+
+**Risks to remember:** behaviour data from a financial app goes to Google outside India; opt-in and
+ad blockers make counts understate use; Google's data cannot be joined to our database or deleted
+per customer without an id. Fallback if counsel objects: the same `track.ts` can send to a
+self-hosted or India-region tool.
+
+**To do when picked up:** (1) answer P1 to P6 and P8; (2) owner creates the two Google properties
+and sends the measurement IDs; (3) write the implementation plan; (4) build, QA on staging with
+GA DebugView, then production after the privacy copy is approved.
+
+## Added 2026-10-23 (Dashboard cold open re-downloads prices, known gap, not fixed)
+
+Measured on staging 2026-10-23 (three real households): the Dashboard and anything that calls `compute_holdings` re-downloads every held fund's full price history live on every cold open, about 0.4 s per fund (4.5 s for 12 funds, 19 to 23 s for 42 to 46). Cause: `nav.py` trusts a stored price for "today" only if it is dated exactly today, but today's NAV is published in the evening (never on weekends and holidays), so the 06:00 `nav-daily` job's stored prices are ignored. Weekends and holidays are slower by the same logic (inferred, not measured). The Analytics code already avoids this with `allow_stale_today`.
+
+**Decision (owner, P9, 2026-10-23):** Home avoids it (it uses the stored prices); the Dashboard is left as is for now. Fix candidates when picked up: make the freshness rule treat the latest trading day's stored price as fresh, or reuse `warm_nav_history`'s 3-day window (`_NAV_FRESHNESS_WINDOW_DAYS`); tests must cover weekends, holidays, late-published NAVs and a failed nightly job. Minor: `compute_holdings` looks each fund up by id inside its loop (tens of ms, not worth changing alone). Evidence and script: `backend/scripts/measure_home_staging.py`, `Docs/orchestration/2026-10-23-home-functionality-backend-spec.md` section 2.
+
 ## PRD-01 — CAS Parser v2
 
 | Feature | Spec Source | Status | Deferred Reason | Priority |
@@ -330,3 +370,25 @@ Revisit only if users question the sector split. The upgrade would be:
 - Not recommended: stock-price-based (about 1,400 symbols a day, fragile, largest ToS risk).
 
 Detail: the planning artifact's B1 reply (`https://claude.ai/artifact/Hg7j92jMRCJqdsJw6ENQc5`).
+
+
+## Added 2026-10-23 (Profile redesign planning — Connected Accounts section, not built)
+
+**Profile > Connected Accounts is deferred; Profile v2 ships without it.** Decided by the owner
+2026-10-23, while answering the Profile planning workbook
+(`Docs/orchestration/2026-10-23-profile-planning-decisions-v1.html`). The design is kept here so
+it can be built later without re-deciding it:
+- The page (route `/profile/connected-accounts`, reserved in the shell contract) with the seven
+  rows drawn on page 31 of `Docs/Web app UI mockups MFs.pdf`: Mutual Funds, Stocks & ETFs, Bank
+  Accounts, Fixed Deposits & Bonds, Gold, US Stocks, Real Estate. Only Mutual Funds is live; the
+  other six greyed with a "Coming soon" tag and no counts (answer L3).
+- Mutual Funds row wording (answer C3, option A): "Mutual funds (CAS statements): N statements
+  imported, last on <date>", built from the import history the Profile already loads; the arrow
+  opens Import History.
+- The "Add Account" button was left undecided (C4, no choice): the only thing a user can add today
+  is a CAS import.
+- Needs a home meanwhile: Import History (and the staging-only Import Health link) were to sit
+  under this page (decision L8). Where they go while it is not built is an open question in the
+  workbook (F1).
+- The mockup says "CAS / MF Central"; we parse uploaded CAS files and I found no MF Central link
+  (to verify).

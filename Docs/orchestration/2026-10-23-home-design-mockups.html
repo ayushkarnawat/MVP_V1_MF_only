@@ -1,0 +1,1030 @@
+<title>Home Design Mockups</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky contents rail + one reading column of decision cards; planning workbook, not a landing page. */
+:root{
+  --bg:#f6f8f6; --surface:#ffffff; --surface-2:#eef2ee; --line:#d9e0d9;
+  --fg:#16211a; --muted:#566259; --accent:#128a4a; --accent-soft:#e1f3e8;
+  --locked:#2f5fb3; --locked-soft:#e6eefb; --open:#a8610a; --open-soft:#fbefd9;
+  --rec:#128a4a; --danger:#b3321f;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'DM Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'DM Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent)}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent)}
+nav.toc .grp{margin-top:14px}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:68ch;margin:0 0 10px}
+.rule{margin-top:18px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 16px;max-width:75ch}
+.rule b{color:var(--accent)}
+section{margin-top:52px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:72ch}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700;white-space:nowrap}
+.tag{display:inline-block;font:500 11px var(--f-mono);padding:2px 8px;border-radius:99px;letter-spacing:.03em}
+.tag.locked{background:var(--locked-soft);color:var(--locked)}
+.tag.open{background:var(--open-soft);color:var(--open)}
+.tag.done{background:var(--accent-soft);color:var(--accent)}
+.tag.rec{background:var(--accent-soft);color:var(--rec)}
+.tag.no{background:var(--surface-2);color:var(--danger);border:1px solid var(--danger)}
+.reply{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px}
+.reply b.t{color:var(--accent)}
+.reply ul,.reply ol{margin:6px 0;padding-left:20px}
+.reply li{margin:3px 0}
+.tag.later{background:var(--open-soft);color:var(--open)}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul{margin:6px 0;padding-left:20px}
+.sumbox li{margin:5px 0}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:10px 0}
+.two>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.two h4{margin:0 0 6px;font-family:var(--f-display);font-size:15px}
+.two ul{margin:4px 0;padding-left:18px}
+.two li{margin:4px 0}
+.two .pro h4{color:var(--rec)}
+.two .con h4{color:var(--danger)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}
+.chip{font:500 12px var(--f-mono);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:6px 12px;border-radius:99px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.spacer{flex:1}
+.count{font:500 12px var(--f-mono);color:var(--muted)}
+.btn{font:500 13px var(--f-body);background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+:root[data-theme="dark"] .btn{color:#06210f}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn{color:#06210f}}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:70px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:500 12px var(--f-mono);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.card p{margin:8px 0}
+.ask{font-weight:500}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--rec)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.opt .tag{margin-left:6px}
+.why{border-left:3px solid var(--rec);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--rec)}
+.risk{font-size:13.5px;color:var(--muted)}
+.risk b{color:var(--danger)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+textarea{width:100%;min-height:54px;font:14px var(--f-body);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;resize:vertical}
+.card.locked{background:var(--locked-soft);border-color:transparent}
+.card.locked .decided{font-weight:500}
+.hidden-by-filter{display:none}
+.callout{background:var(--open-soft);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:14px}
+ul.tight{margin:6px 0;padding-left:20px}
+ul.tight li{margin:3px 0}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+#out{white-space:pre-wrap;font:13px var(--f-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px;max-height:340px;overflow:auto}
+details{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:12px;padding:0 16px}
+details>summary{cursor:pointer;font-weight:700;padding:12px 0;font-family:var(--f-display);font-size:16px}
+details[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+details .body{padding-bottom:14px}
+h3.sub{font-size:17px;margin:22px 0 8px}
+blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);color:var(--muted);font-size:14px}
+.pill{display:inline-block;font:500 11px var(--f-mono);padding:1px 7px;border-radius:6px;background:var(--surface-2);color:var(--muted)}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+.flow .st{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:13px;min-width:0}
+.flow .st b{display:block;font-family:var(--f-display);font-size:14px;margin-bottom:2px}
+.flow .st .n{font:500 11px var(--f-mono);color:var(--muted)}
+.flow .st .m{color:var(--muted);font-size:12.5px}
+.flow .st.new{border-color:var(--accent)}
+.flow .st.old{border-style:dashed}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}nav.toc{position:static;max-height:none;margin-bottom:12px;columns:2}nav.toc .grp{margin-top:0;break-inside:avoid}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* Mockup layer: the app's own tokens (tokens.css) drive everything inside .mk; the workbook chrome above keeps the planning-doc look. */
+:root{
+  /* Unifolio Colour Palette.pdf, light */
+  --m-bg:#FCFCFC;--m-surface:#F5F5F5;--m-elev:#FFFFFF;--m-ink:#111111;--m-body:#4B4B4B;--m-sec:#717171;--m-muted:#9B9B9B;--m-ph:#C4C4C4;
+  --m-border:#ECECEC;--m-border2:#DFDFDF;--m-soft:#ECECEC;
+  --m-accent:#22C55E;--m-accent-h:#16A34A;--m-accent-p:#15803D;--m-accent-tint:#E9F9EF;
+  --m-pos:#22C55E;--m-pos-t:#15803D;--m-pos-bg:#EAFBF0;--m-pos-bd:#EAFBF0;
+  --m-neg:#E5484D;--m-neg-t:#C1272D;--m-neg-bg:#FDECEC;--m-neg-bd:#F6C6C7;
+  --m-warn:#D97706;--m-warn-t:#92400E;--m-warn-bg:#FEF3E2;--m-warn-bd:#FCE0B0;
+  --m-neu:#6B7280;--m-neu-t:#4B4B4B;--m-neu-bg:#F5F5F5;--m-neu-bd:#E0E0E0;
+  --m-info:#4F46E5;--m-info-t:#3730A3;--m-info-bg:#EEEDFC;--m-info-bd:#D2CFF6;
+  --m-bench:#2563EB;
+  --m-shadow:0 1px 2px rgba(0,0,0,.06);--m-r:12px;
+  --m-font-d:'DM Sans','Segoe UI',system-ui,sans-serif;--m-font-b:'Manrope','Segoe UI',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --m-bg:#111111;--m-surface:#1A1A1A;--m-elev:#212121;--m-ink:#FCFCFC;--m-body:#A3A3A3;--m-sec:#A3A3A3;--m-muted:#717171;--m-ph:#4B4B4B;
+  --m-border:#2E2E2E;--m-border2:#2E2E2E;--m-soft:#2E2E2E;
+  --m-accent-tint:rgba(34,197,94,.14);
+  --m-pos-t:#34D399;--m-pos-bg:rgba(34,197,94,.12);--m-pos-bd:#2E2E2E;
+  --m-neg-t:#F87171;--m-neg-bg:rgba(229,72,77,.14);--m-neg-bd:#2E2E2E;
+  --m-warn-t:#FBBF24;--m-warn-bg:rgba(217,119,6,.16);--m-warn-bd:#2E2E2E;
+  --m-neu-t:#A3A3A3;--m-neu-bg:#1A1A1A;--m-neu-bd:#2E2E2E;
+  --m-info-t:#818CF8;--m-info-bg:rgba(79,70,229,.18);--m-info-bd:#2E2E2E;
+  --m-shadow:0 1px 2px rgba(0,0,0,.4)}}
+:root[data-theme="dark"]{
+  --m-bg:#111111;--m-surface:#1A1A1A;--m-elev:#212121;--m-ink:#FCFCFC;--m-body:#A3A3A3;--m-sec:#A3A3A3;--m-muted:#717171;--m-ph:#4B4B4B;
+  --m-border:#2E2E2E;--m-border2:#2E2E2E;--m-soft:#2E2E2E;
+  --m-accent-tint:rgba(34,197,94,.14);
+  --m-pos-t:#34D399;--m-pos-bg:rgba(34,197,94,.12);--m-pos-bd:#2E2E2E;
+  --m-neg-t:#F87171;--m-neg-bg:rgba(229,72,77,.14);--m-neg-bd:#2E2E2E;
+  --m-warn-t:#FBBF24;--m-warn-bg:rgba(217,119,6,.16);--m-warn-bd:#2E2E2E;
+  --m-neu-t:#A3A3A3;--m-neu-bg:#1A1A1A;--m-neu-bd:#2E2E2E;
+  --m-info-t:#818CF8;--m-info-bg:rgba(79,70,229,.18);--m-info-bd:#2E2E2E;
+  --m-shadow:0 1px 2px rgba(0,0,0,.4)}
+.tools{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 0;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center}
+.tools .grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tools .lab{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.frame{border:1px solid var(--line);border-radius:12px;background:var(--surface-2);padding:16px;margin:12px 0;overflow-x:auto}
+.frame>.cap{font:500 11px var(--f-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.mk{background:var(--m-bg);color:var(--m-ink);font-family:var(--m-font-b);font-size:14px;line-height:1.5;border-radius:12px;padding:16px;min-width:0}
+.mk *{box-sizing:border-box}
+.mk h1,.mk h2,.mk h3,.mk .disp{font-family:var(--m-font-d);margin:0}
+.mk .card{background:var(--m-surface);border:1px solid var(--m-border);border-radius:var(--m-r);box-shadow:var(--m-shadow);padding:16px;margin:0}
+.mk .sec{color:var(--m-sec)}
+.mk .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0}
+.mk .between{justify-content:space-between}
+.mk svg.i,.mk i[data-lucide]{width:16px;height:16px;stroke-width:1.75;flex:none}
+.mk .pos{color:var(--m-pos)}.mk .neg{color:var(--m-neg)}.mk .bench{color:var(--m-bench)}
+.mk .num{font-variant-numeric:tabular-nums}
+.mk .btn2{font:500 13px var(--m-font-b);background:var(--m-surface);color:var(--m-ink);border:1px solid var(--m-border);border-radius:8px;padding:6px 12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.mk .btn2:hover{border-color:var(--m-accent)}
+.mk .btn2.primary{background:var(--m-accent);border-color:var(--m-accent);color:#06210f}
+.mk .seg{display:inline-flex;border:1px solid var(--m-border);border-radius:8px;overflow:hidden;background:var(--m-soft)}
+.mk .seg button{font:500 12.5px var(--m-font-b);border:0;background:transparent;color:var(--m-sec);padding:6px 12px;cursor:pointer}
+.mk .seg button[aria-pressed="true"]{background:var(--m-ink);color:var(--m-bg)}
+.mk select{font:500 13px var(--m-font-b);background:var(--m-surface);color:var(--m-ink);border:1px solid var(--m-border);border-radius:8px;padding:6px 10px}
+.mk .pill{font:500 11px var(--m-font-b);padding:2px 8px;border-radius:99px;background:var(--m-soft);color:var(--m-sec);display:inline-flex;gap:4px;align-items:center}
+.mk .pill.warn{background:var(--m-warn-bg);color:var(--m-warn)}
+.mk .pill.est{background:var(--m-soft);color:var(--m-sec);border:1px dashed var(--m-sec)}
+.mk .badge-pos{background:var(--m-pos-bg);color:var(--m-pos)}.mk .badge-neg{background:var(--m-neg-bg);color:var(--m-neg)}
+.mk .big{font:700 34px/1.1 var(--m-font-d);letter-spacing:-.01em}
+.mk .cap2{font:500 11px var(--m-font-b);letter-spacing:.08em;text-transform:uppercase;color:var(--m-sec)}
+.mk .dot{width:8px;height:8px;border-radius:50%;background:var(--m-accent);display:inline-block}
+.mk .sk{background:linear-gradient(90deg,var(--m-soft),var(--m-border),var(--m-soft));background-size:200% 100%;border-radius:6px;animation:sk 1.4s linear infinite;height:14px}
+@keyframes sk{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.mk .sk{animation:none}}
+.mk .notice{display:flex;gap:8px;align-items:center;border:1px dashed var(--m-border);border-radius:8px;padding:10px 12px;color:var(--m-sec)}
+.mk .err{border:1px solid var(--m-neg);color:var(--m-neg);border-radius:8px;padding:10px 12px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+.mk .legend{display:grid;gap:6px}
+.mk .legend .r{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center}
+.mk .legend .sw{width:10px;height:10px;border-radius:3px}
+.mk .legend .r.soon{opacity:.55}
+.mk .mrow{display:grid;grid-template-columns:minmax(0,1fr) 120px 92px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--m-border)}
+.mk .mrow:last-child{border-bottom:0}
+.mk .mrow .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mk .mbar{height:6px;border-radius:99px;background:var(--m-soft);position:relative}
+.mk .mbar>i{position:absolute;top:0;bottom:0;border-radius:99px}
+.mk .fam .fr{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 12px;padding:8px 0;border-bottom:1px solid var(--m-border);cursor:pointer}
+.mk .fam .fr:last-child{border-bottom:0}
+.mk .fam .fr .mbar{grid-column:1/-1}
+.mk .look{border:1px solid var(--m-warn);background:var(--m-warn-bg);border-radius:var(--m-r);padding:14px;display:grid;gap:8px}
+.mk .look h3{font-size:15px}
+.mk .cbars{display:flex;gap:18px;align-items:flex-end;height:70px}
+.mk .cbars div{width:46px;border-radius:6px 6px 0 0;display:flex;align-items:flex-start;justify-content:center;font:700 12px var(--m-font-d);padding-top:4px}
+.mk .news{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--m-border)}
+.mk .news:last-child{border-bottom:0}
+.mk .news .ic{width:44px;height:44px;border-radius:10px;background:var(--m-soft);display:grid;place-items:center;color:var(--m-ink)}
+.mk .news .ic i{width:22px;height:22px}
+.mk a.lk{color:var(--m-accent);text-decoration:none;font-weight:500;cursor:pointer}
+.mk a.lk.dis{color:var(--m-sec);cursor:not-allowed;opacity:.7}
+.mk .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start}
+.mk .stack{display:grid;gap:16px}
+.mk .chart{width:100%;height:auto;display:block;touch-action:none}
+.mk .chart text{font:11px var(--m-font-b);fill:var(--m-sec)}
+.mk .tip{position:absolute;pointer-events:none;background:var(--m-ink);color:var(--m-bg);font-size:12px;padding:6px 8px;border-radius:6px;white-space:nowrap;display:none}
+.mk .shell{display:grid;grid-template-columns:210px minmax(0,1fr);gap:0;min-width:980px;border:1px solid var(--m-border);border-radius:12px;overflow:hidden;background:var(--m-bg)}
+.mk .side{background:var(--m-surface);border-right:1px solid var(--m-border);padding:14px 10px;display:flex;flex-direction:column;gap:2px;min-height:100%}
+.mk .side .it{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;color:var(--m-sec)}
+.mk .side .it.on{background:var(--m-soft);color:var(--m-ink);font-weight:700}
+.mk .side .logo{font:700 18px var(--m-font-d);padding:6px 10px 14px}
+.mk .top{display:flex;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--m-border);background:var(--m-surface)}
+.mk .top .srch{flex:1;max-width:420px;border:1px solid var(--m-border);border-radius:8px;padding:6px 10px;color:var(--m-sec);display:flex;gap:8px;align-items:center}
+.sw3{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.sw3>div{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface);font-size:12.5px}
+.sw3 .c{height:44px}.sw3 .m{padding:6px 8px}.sw3 b{display:block}
+.iconsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.iconsgrid .mk{padding:12px;display:grid;gap:6px;justify-items:center;text-align:center;border:1px solid var(--m-border)}
+.iconsgrid .ic{width:48px;height:48px;border-radius:12px;background:var(--m-soft);display:grid;place-items:center}
+.iconsgrid .ic i{width:24px;height:24px}
+.demo{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.demo label{display:block;font:500 11px var(--f-mono);color:var(--muted);margin-bottom:3px}
+.demo input,.demo select{width:100%;font:14px var(--f-body);padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+.out2{font:13px var(--f-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:6px;overflow-wrap:anywhere}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:8px 0}
+.notes>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px;font-size:13.5px;min-width:0}
+.notes h4{margin:0 0 4px;font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.notes ul{margin:4px 0;padding-left:18px}
+.hidden-g{display:none}
+
+/* Palette rules: green is rare; semantic colours as tint + thin border; text uses the AA-safe text shades. */
+.mk .pos{color:var(--m-pos-t)}.mk .neg{color:var(--m-neg-t)}.mk .bench{color:var(--m-bench)}
+.mk .card{background:var(--m-surface)}
+.mk .mkbox,.mkbox{background:var(--m-elev)}
+.mk .btn2{background:var(--m-bg);border-color:var(--m-border2);font-weight:600}
+.mk .btn2:hover{border-color:var(--m-accent)}
+.mk .btn2.primary{background:var(--m-accent);border-color:var(--m-accent);color:#111111}
+.mk .btn2.primary:hover{background:var(--m-accent-h)}.mk .btn2.primary:active{background:var(--m-accent-p)}
+.mk .seg{background:var(--m-bg);border-color:var(--m-border2)}
+.mk .seg button{font-weight:600}
+.mk .seg button[aria-pressed="true"]{background:var(--m-accent-tint);color:var(--m-ink);box-shadow:inset 0 0 0 1px var(--m-accent)}
+.mk .pill{font-weight:600;background:var(--m-neu-bg);color:var(--m-neu-t);border:1px solid var(--m-neu-bd)}
+.mk .pill.warn{background:var(--m-warn-bg);color:var(--m-warn-t);border-color:var(--m-warn-bd)}
+.mk .pill.est{background:transparent;border:1px dashed var(--m-sec);color:var(--m-sec)}
+.mk .dot{background:var(--m-muted)}
+.mk .look{background:var(--m-warn-bg);border:1px solid var(--m-warn-bd)}
+.mk .look>i,.mk .look>svg{color:var(--m-warn)}
+.mk .look h3{color:var(--m-ink)}
+.mk .err{border-color:var(--m-neg-bd);background:var(--m-neg-bg);color:var(--m-neg-t)}
+.mk .notice{background:var(--m-neu-bg);border:1px dashed var(--m-neu-bd);color:var(--m-sec)}
+.mk .side{background:var(--m-surface)}
+.mk .side .it.on{background:transparent;color:var(--m-ink);font-weight:600;box-shadow:inset 0 -2px 0 var(--m-accent);border-radius:0}
+.mk h1,.mk h2,.mk h3{font-weight:600}.mk h1{font-weight:700}
+.mk .big{font-weight:700}
+.mk a.lk{color:var(--m-ink);text-decoration:underline;text-decoration-color:var(--m-accent);text-underline-offset:3px}
+.mk a.lk.dis{color:var(--m-muted);text-decoration-color:var(--m-border2)}
+.mk select:focus-visible,.mk button:focus-visible{outline:2px solid var(--m-accent);outline-offset:2px}
+.sw4{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin:8px 0 16px}
+.sw4>div{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface);font-size:11.5px}
+.sw4 .c{height:34px}.sw4 .m{padding:5px 7px;line-height:1.3}.sw4 b{display:block}
+.pg{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
+
+/* Interaction layer: everything that can be clicked looks clickable. */
+.mk [role="button"],.mk button,.mk select{cursor:pointer}
+.mk [role="button"]{transition:background .15s,transform .15s,box-shadow .15s,border-color .15s}
+.mk [role="button"]:focus-visible{outline:2px solid var(--m-accent);outline-offset:2px}
+.mk .card.click:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.10);border-color:var(--m-border2)}
+.mk .arr,.mk .arr2{display:inline-block;transition:transform .15s}
+.mk a.lk:hover .arr,.mk .lk:hover .arr,.mk .cta:hover .arr,.mk .wl:hover .arr{transform:translateX(4px)}
+.mk .cta:hover{border-color:var(--m-accent);background:var(--m-accent-tint)}
+.mk .chipbtn{font:600 12.5px var(--m-font-b);display:inline-flex;gap:8px;align-items:center;background:var(--m-surface);color:var(--m-ink);border:1px solid var(--m-border2);border-radius:99px;padding:5px 10px 5px 12px;cursor:pointer;transition:background .15s,border-color .15s}
+.mk .chipbtn:hover{border-color:var(--m-accent);background:var(--m-accent-tint)}
+.mk .chipbtn i{width:14px;height:14px;transition:transform .15s}.mk .chipbtn:hover i{transform:translateX(3px)}
+.mk a.inl{color:var(--m-ink);font-weight:600;text-decoration:underline;text-decoration-color:var(--m-accent);text-underline-offset:3px;cursor:pointer}
+.mk a.inl:hover{background:var(--m-accent-tint)}
+.mk a.benchlk{display:inline-flex;gap:4px;align-items:center;cursor:pointer;border-radius:6px;padding:0 4px;margin-left:-4px}
+.mk a.benchlk:hover{background:var(--m-info-bg)}
+.mk .benchlk i{width:14px;height:14px}
+.mk .news{border-radius:10px;padding:12px 8px;margin:0 -8px}
+.mk .news:hover{background:var(--m-soft)}
+.mk .news:hover .ic{background:var(--m-accent-tint)}
+.mk .side .it{cursor:pointer}.mk .side .it:hover{background:var(--m-soft);color:var(--m-ink)}
+.mk .legend .r{grid-template-columns:12px minmax(0,1fr) auto 16px;padding:5px 6px;margin:0 -6px;border-radius:8px}
+.mk .legend .r:hover{background:var(--m-soft)}
+.mk .legend .r i[data-lucide],.mk .legend .r svg{width:14px;height:14px;color:var(--m-muted);transition:transform .15s}
+.mk .legend .r:hover svg{transform:translateX(3px);color:var(--m-ink)}
+.mk .legend .r.soon{opacity:.7}
+.mk .sl{transition:opacity .15s,stroke-width .15s}.mk .sl:hover{stroke-width:26}
+.mk .viewing{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;padding:10px 12px;border:1px solid var(--m-border2);border-radius:10px;background:var(--m-bg)}
+.mk .av{width:34px;height:34px;border-radius:50%;display:inline-grid;place-items:center;font:700 14px var(--m-font-d);flex:none}
+.mk .fam{margin-top:16px;display:grid;gap:6px}
+.mk .stackbar{display:flex;gap:3px;height:12px;margin:2px 0 6px}
+.mk .stackbar .sg{display:block;border-radius:99px;transition:opacity .15s}
+.mk .fr{display:grid!important;grid-template-columns:34px minmax(0,1fr) auto auto!important;gap:10px!important;align-items:center;padding:10px 10px!important;border:1px solid var(--m-border);border-radius:12px;background:var(--m-bg);border-bottom:1px solid var(--m-border)!important}
+.mk .fr:hover{border-color:var(--m-accent);background:var(--m-accent-tint);transform:translateX(2px)}
+.mk .fr .mid,.mk .mv .mid{display:grid;min-width:0;line-height:1.3}
+.mk .sub{font-size:12px;color:var(--m-sec)}.mk .sub.pos{color:var(--m-pos-t)}
+.mk .fr .r2{display:grid;text-align:right;line-height:1.3}
+.mk .fr .go{display:inline-flex;align-items:center;gap:2px;font:600 12px var(--m-font-b);color:var(--m-sec);opacity:.0;transition:opacity .15s,transform .15s}
+.mk .fr:hover .go{opacity:1;color:var(--m-ink);transform:translateX(2px)}
+.mk .fr .go i{width:14px;height:14px}
+.mk .fam:has(.fr[data-i="0"]:hover) .sg:not([data-i="0"]),.mk .fam:has(.fr[data-i="1"]:hover) .sg:not([data-i="1"]),.mk .fam:has(.fr[data-i="2"]:hover) .sg:not([data-i="2"]){opacity:.3}
+.mk .alloc:has(.r[data-i="0"]:hover) .sl:not([data-i="0"]),.mk .alloc:has(.r[data-i="1"]:hover) .sl:not([data-i="1"]),.mk .alloc:has(.r[data-i="2"]:hover) .sl:not([data-i="2"]),.mk .alloc:has(.r[data-i="3"]:hover) .sl:not([data-i="3"]){opacity:.3}
+.mk .netbox{display:grid;grid-template-columns:auto minmax(140px,1fr);gap:16px;align-items:center;margin:12px 0 4px;padding:12px;border:1px solid var(--m-border);border-radius:12px;background:var(--m-bg)}
+.mk .net{font:700 24px var(--m-font-d)}
+.mk .bar2{display:flex;height:8px;border-radius:99px;overflow:hidden;gap:2px;margin-bottom:4px}.mk .bar2 i{display:block}
+.mk .grp{margin:12px 0 2px}
+.mk .mv{display:grid;grid-template-columns:36px minmax(0,1fr) auto 16px;gap:4px 10px;align-items:center;padding:8px;border-radius:10px;margin:0 -8px;border:0}
+.mk .mv:hover{background:var(--m-soft)}
+.mk .mv .tile{width:36px;height:36px;border-radius:10px;background:var(--m-soft);display:grid;place-items:center}
+.mk .mv:hover .tile{background:var(--m-elev)}
+.mk .mv .amt{text-align:right}
+.mk .mv>i[data-lucide],.mk .mv>svg{width:16px;height:16px;color:var(--m-muted);transition:transform .15s}
+.mk .mv:hover>svg{transform:translateX(3px);color:var(--m-ink)}
+.mk .mv .axis{grid-column:2/4;position:relative;height:6px;border-radius:99px;background:var(--m-soft)}
+.mk .mv:hover .axis{background:var(--m-border)}
+.mk .mv .axis::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--m-border2)}
+.mk .mv .axis i{position:absolute;top:0;bottom:0;border-radius:99px}
+.mk .mv.others .tile{background:transparent;border:1px dashed var(--m-border2)}
+.mk .wlgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.mk .wl{background:var(--m-surface);border:1px solid var(--m-border);border-radius:var(--m-r);padding:16px;display:grid;gap:10px;align-content:start;cursor:pointer}
+.mk .wl.wide{grid-column:1/-1}
+.mk .wl:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.10);border-color:var(--m-border2)}
+.mk .wl h3{font-size:16px;line-height:1.3}
+.mk .chip2{display:inline-flex;gap:6px;align-items:center;font:600 12px var(--m-font-b);padding:3px 10px;border-radius:99px;background:var(--m-neu-bg);color:var(--m-neu-t);border:1px solid var(--m-neu-bd)}
+.mk .chip2.warn{background:var(--m-warn-bg);color:var(--m-warn-t);border-color:var(--m-warn-bd)}
+.mk .chip2.neg{background:var(--m-neg-bg);color:var(--m-neg-t);border-color:var(--m-neg-bd)}
+.mk .chip2 i{width:14px;height:14px}
+.mk .bigpct{font:700 34px/1 var(--m-font-d)}
+.mk .tbar{display:flex;height:14px;gap:2px;border-radius:99px;overflow:hidden}
+.mk .tbar i{display:block;cursor:pointer;transition:opacity .15s}.mk .tbar:hover i:not(:hover){opacity:.55}
+.mk .lg{display:inline-flex;gap:6px;align-items:center}.mk .lg i{width:8px;height:8px;border-radius:3px;display:inline-block}
+.mk .scale{display:grid;gap:6px}
+.mk .track{position:relative;height:8px;border-radius:99px;background:var(--m-soft);margin:8px 0 2px}
+.mk .tick{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--m-ink);border-radius:2px}
+.mk .fdot{position:absolute;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--m-neg);border:3px solid var(--m-surface);box-shadow:0 0 0 1px var(--m-neg)}
+.mk .cmp{display:grid;gap:8px}.mk .cr{display:flex;gap:10px;align-items:center;font-size:13px}
+.mk .cmp .mbar{height:8px}.mk .cmp .mbar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--m-border2)}
+.mk .mbar{position:relative}
+.mktoast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--m-ink,#111);color:var(--m-bg,#fff);font:600 13px var(--m-font-b);padding:10px 16px;border-radius:99px;display:flex;gap:8px;align-items:center;z-index:40;transition:opacity .2s,transform .2s;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.mktoast.on{opacity:1;transform:translate(-50%,0)}
+.mktoast i{width:16px;height:16px}
+@media (prefers-reduced-motion:reduce){.mk [role="button"],.mk .arr,.mk .arr2,.mk .chipbtn,.mk .chipbtn i,.mktoast{transition:none}.mk .card.click:hover,.mk .wl:hover,.mk .fr:hover{transform:none}}
+.mk .w-right{min-height:32px;display:flex;align-items:center;justify-content:flex-end;min-width:200px}
+.mk .w-chart{min-height:0}
+@media (max-height:760px),(max-width:700px){.tools{position:static}}
+.mk .news{grid-template-columns:44px minmax(0,1fr)!important}
+.mk .news .nb{min-width:0;display:grid;gap:3px}
+.mk .news .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px}
+.mk .news .meta i,.mk .news .meta svg{width:13px;height:13px;color:var(--m-muted)}
+.mk .news .nt{font:600 15px/1.35 var(--m-font-d)}
+.mk .news .ns{font-size:13px}
+.mk .news:hover .nt{text-decoration:underline;text-decoration-color:var(--m-accent);text-underline-offset:3px}
+.mk .news.feat{grid-template-columns:56px minmax(0,1fr)!important;background:var(--m-bg);border:1px solid var(--m-border);border-radius:12px;padding:14px;margin:12px 0 4px}
+.mk .news.feat:hover{background:var(--m-accent-tint);border-color:var(--m-border2)}
+.mk .news .ic.big{width:56px;height:56px;border-radius:14px}.mk .news .ic.big i,.mk .news .ic.big svg{width:26px;height:26px}
+.mk .news .chip2{font-size:11px;padding:2px 8px}
+.mk .meter{display:grid;gap:3px;margin-top:6px}
+.mk .meter .mt{height:6px;border-radius:99px;background:var(--m-soft);overflow:hidden}.mk .meter .mt i{display:block;height:100%;border-radius:99px;background:var(--m-info)}
+.mk .reason{font:600 12px var(--m-font-b);display:inline-flex;gap:6px;align-items:center;background:var(--m-info-bg);color:var(--m-info-t);border:1px solid var(--m-info-bd);border-radius:99px;padding:4px 10px;cursor:pointer;text-align:left;transition:filter .15s,transform .15s}
+.mk .reason:hover{filter:brightness(.96);transform:translateY(-1px)}
+.mk .reason i,.mk .reason svg{width:13px;height:13px}
+.mk .reason.sm{font-size:11.5px;padding:3px 9px}
+.mk .btn2.sm{font-size:12px;padding:4px 10px}
+.mk .spin svg{animation:mkspin .8s linear}
+@keyframes mkspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.mk .spin svg{animation:none}}
+/* Cleaner news card: one headline, one meta line, one exposure line. */
+.mk .news{grid-template-columns:40px minmax(0,1fr)!important;padding:12px 8px;gap:12px}
+.mk .news .ic{width:40px;height:40px;border-radius:10px}.mk .news .ic i,.mk .news .ic svg{width:20px;height:20px}
+.mk .news .nb{gap:2px}
+.mk .news .nt{font:600 14.5px/1.35 var(--m-font-d)}
+.mk .news .meta{display:block;font-size:12.5px;color:var(--m-sec)}
+.mk .news .ns{font-size:12.5px;color:var(--m-sec)}
+.mk a.whylk{color:var(--m-ink);text-decoration:underline;text-decoration-color:var(--m-border2);text-underline-offset:3px;cursor:pointer}
+.mk a.whylk:hover{text-decoration-color:var(--m-accent)}
+.mk .iconbtn{border:0;background:transparent;color:var(--m-sec);width:32px;height:32px;border-radius:8px;display:grid;place-items:center;cursor:pointer}
+.mk .iconbtn:hover{background:var(--m-soft);color:var(--m-ink)}
+.mk .iconbtn svg{width:16px;height:16px}
+.mk .prevlink{border:0;background:transparent;color:var(--m-muted);font:500 11px var(--m-font-b);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.mk .prevlink:hover{color:var(--m-ink)}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <h4>Contents</h4>
+  <a href="#intro">How to use this page</a>
+  <div class="grp"><h4>Design system</h4>
+    <a href="#tokens">Tokens</a><a href="#type">Type, radius, spacing</a><a href="#charts">Chart rules</a><a href="#utils">Utilities (live)</a><a href="#components">Components: reuse and new</a></div>
+  <div class="grp"><h4>Sections</h4>
+    <a href="#s1">1 Greeting</a><a href="#s2">2 Wealth graph</a><a href="#s3">3 Money at a glance</a><a href="#s4">4 Allocation + family</a><a href="#s5">5 What moved today</a><a href="#s7">7 Worth a look</a><a href="#s8">8 News</a><a href="#icons">News icons</a><a href="#full">Full page</a></div>
+  <div class="grp"><h4>Decisions</h4><a href="#grp-H"><b>H. Open questions (documents)</b></a><a href="#grp-M"><b>M. Design questions</b></a><a href="#grp-N"><b>N. Follow-ups</b></a><a href="#grp-P"><b>P. Tracking and holdings</b></a><a href="#answers">Your answers</a></div>
+</nav>
+<main>
+<div class="hero" id="intro">
+  <h1>Home design mockups</h1>
+  <p>Section-wise design system, utilities and working UI mockups for the eight Home sections (Portfolio Snapshot), desktop, mutual funds only. Mockups use the app's own tokens from <span class="mono">tokens.css</span>, so what you see is what the build uses. All figures are illustrative and fund houses are fictional.</p>
+  <div class="rule"><b>Try it:</b> the bar below switches theme, scope (family or one member) and data state (normal, loading, empty, partial, error) for every mockup at once. Each mockup is interactive: periods, benchmark, movers view, Hide values.</div>
+</div>
+
+<div class="tools" role="toolbar" aria-label="Mockup controls">
+  <div class="grp"><span class="lab">Theme</span><button class="chip" data-t="light" aria-pressed="false">Light</button><button class="chip" data-t="dark" aria-pressed="false">Dark</button></div>
+  <div class="grp"><span class="lab">Scope</span><button class="chip" data-s="family" aria-pressed="true">Family combined</button><button class="chip" data-s="member" aria-pressed="false">One member</button></div>
+  <div class="grp"><span class="lab">Unbuilt links</span><button class="chip" data-u="toast" aria-pressed="false">Click shows note</button><button class="chip" data-u="grey" aria-pressed="true">Greyed out</button></div>
+  <div class="grp"><span class="lab">State</span><button class="chip" data-st="normal" aria-pressed="true">Normal</button><button class="chip" data-st="loading" aria-pressed="false">Loading</button><button class="chip" data-st="empty" aria-pressed="false">Empty</button><button class="chip" data-st="partial" aria-pressed="false">Partial data</button><button class="chip" data-st="error" aria-pressed="false">Error</button></div>
+</div>
+
+<section id="tokens"><h2>Design system: colour tokens</h2>
+<p class="lead">Source: <span class="mono">Docs/Unifolio Colour Palette.pdf</span> (16 pages). Values below are read live from the current theme. The palette differs from today's <span class="mono">tokens.css</span> in several places; see the questions.</p>
+<div id="swatches"></div>
+<div class="notes">
+<div><h4>Brand green: rare by design</h4>Primary button, active nav indicator, selected state, logo accent. One or two green elements per screen. Everyday variety uses Tier 2 colours (teal, indigo, amber).</div>
+<div><h4>Semantic colours</h4>Never fill a whole card or row. Use the tint as the background, the full-strength colour for the icon and thin border, and the AA-safe text shade for small numbers. Large numerals and chart marks use the primary shade.</div>
+<div><h4>Charts</h4>Data colours are assigned by rank, largest holding first (Chart 01 to 12). 15 or more items: top 10 to 11 individually, the rest grouped as "Others".</div>
+<div><h4>Benchmark line</h4>The palette has no dedicated benchmark colour. The mockups use Chart 03 blue (#2563EB) so the line is blue as the PDF asks. See question M13.</div></div>
+</section>
+
+<section id="type"><h2>Type, radius, spacing</h2>
+<div class="frame"><div class="mk"><div class="stack" style="gap:10px">
+ <div class="row" style="gap:24px;align-items:baseline"><span class="big num">₹2,13,47,320</span><span class="sec">Display 34 / 700, DM Sans, tabular numbers</span></div>
+ <div class="row" style="gap:24px;align-items:baseline"><h1 style="font-size:24px">Good evening, Siddharth</h1><span class="sec">H1 24 / 700</span></div>
+ <div class="row" style="gap:24px;align-items:baseline"><h3 style="font-size:16px">Today's contributors</h3><span class="sec">Card title 16 / 700</span></div>
+ <div class="row" style="gap:24px;align-items:baseline"><span>Your family portfolio is up ₹38,400 since Thursday.</span><span class="sec">Body 14-15 / 400, Manrope</span></div>
+ <div class="row" style="gap:24px;align-items:baseline"><span class="cap2">Your family's wealth</span><span class="sec">Caption 11 / 500, uppercase, letter-spaced</span></div>
+ <div class="row" style="gap:14px"><div class="card" style="width:120px;border-radius:8px">8px</div><div class="card" style="width:120px">12px (cards)</div><div class="card" style="width:120px;border-radius:20px">20px (dialogs)</div><span class="sec">Spacing: 16px card padding, 16px gap between cards, 8-12px inside rows.</span></div>
+</div></div></div></section>
+
+<section id="charts"><h2>Chart rules</h2>
+<div class="notes">
+<div><h4>Line/area chart (new)</h4><ul><li>Green area + line = portfolio rupee value, left axis (compact Cr/L).</li><li>Blue line = benchmark total return %, right axis, dashed gridlines shared.</li><li>Hover: crosshair + tooltip with date, value, benchmark %.</li><li>1D shows two points and the note "1D compares two NAV days".</li></ul></div>
+<div><h4>Donut (reuse)</h4><ul><li>Existing pie chart with centre label.</li><li>Coming-soon classes are not drawn.</li></ul></div>
+<div><h4>Bars (reuse)</h4><ul><li>Concentration: two bars (earlier, now).</li><li>Movers: small diverging bars per row.</li></ul></div></div></section>
+
+<section id="utils"><h2>Utilities (live)</h2>
+<p class="lead">Pure helpers that the build will unit-test. Type to see the real behaviour.</p>
+<div class="demo">
+ <div><label for="u1">Amount (₹)</label><input id="u1" value="21347320" inputmode="decimal"><div class="out2" id="u1o"></div></div>
+ <div><label for="u2">Change (₹)</label><input id="u2" value="38400" inputmode="decimal"><div class="out2" id="u2o"></div></div>
+ <div><label for="u3">Greeting hour (IST) and day type</label><select id="u3"><option value="auto">Now (IST)</option><option value="8">08:00</option><option value="14">14:00</option><option value="20">20:00</option></select><select id="u4" style="margin-top:6px"><option value="gain">Gain</option><option value="loss">Loss</option><option value="flat">Flat (under 0.05%)</option><option value="weekend">Weekend or holiday</option></select><div class="out2" id="u3o"></div></div>
+</div>
+<div class="notes"><div><h4>Other utilities</h4><ul><li><b>periodRange</b>: period to from/to, clamps to the last 10 years.</li><li><b>useHomeSection</b>: loading, error, data hook that cancels on scope change.</li><li><b>buildGlanceSentence</b>: the rule-built summary, never contradicts the headline.</li></ul></div></div>
+</section>
+
+<section id="components"><h2>Components: reuse and new</h2>
+<div class="scroll"><table><tr><th>Piece</th><th>Status</th><th>Used in</th></tr>
+<tr><td>Card, Badge, Button, Select, Dialog, Tooltip, Skeleton, Table</td><td><span class="tag done">reuse</span></td><td>all sections</td></tr>
+<tr><td>Pie chart with centre label, Bar chart, number-flow</td><td><span class="tag done">reuse</span></td><td>4, 7, 2</td></tr>
+<tr><td>PageLayout, PageState, MiraComingSoonDialog, AppLink, useScope</td><td><span class="tag done">reuse (shell)</span></td><td>page, 3, links</td></tr>
+<tr><td>LineAreaChart (d3-shape)</td><td><span class="tag open">new</span></td><td>2</td></tr>
+<tr><td>PeriodSelector, DateRangeCalendar, BenchmarkSelect, ChangeBadge, HideValuesButton</td><td><span class="tag open">new</span></td><td>2</td></tr>
+<tr><td>MoversCard, MoverRow, FamilyBar</td><td><span class="tag open">new</span></td><td>5, 4</td></tr>
+<tr><td>WorthALookCard, ConcentrationBars, PartialDataBadge</td><td><span class="tag open">new</span></td><td>7, all</td></tr>
+<tr><td>NewsCard, NewsItem, NewsCategoryIcon</td><td><span class="tag open">new</span></td><td>8</td></tr>
+</table></div></section>
+
+<section id="s1"><h2>1 Greeting and status line</h2>
+<p class="lead">Heading by IST time of day (L48). One neutral sentence. The status row shows only the data line (L44, L49).</p>
+<div class="frame"><p class="cap">Mockup</p><div class="mk" id="m1"></div></div>
+<div class="notes"><div><h4>Source</h4>GET .../home/summary</div><div><h4>States</h4>Loading: skeleton lines. Empty: heading plus an Import button. Partial: data line shows fewer members. Error: name only.</div><div><h4>Rules</h4>Data line hidden in member scope and single-member households (question H2). Family scope says "Your family portfolio", member scope "&lt;Member&gt;'s portfolio".</div></div></section>
+
+<section id="s2"><h2>2 Wealth graph</h2>
+<p class="lead">Green: portfolio value (left axis). Blue: benchmark total return % (right axis). Change excludes new money. Hide values hides the big number and the change under it (L26).</p>
+<div class="frame"><p class="cap">Mockup (interactive)</p><div class="mk" id="m2"></div></div>
+<div class="notes"><div><h4>Source</h4>GET .../home/wealth-series, GET /home/benchmarks</div><div><h4>States</h4>Loading: skeleton chart. Empty: "No investments yet" and Import. Partial: badge plus tooltip naming funds. Error: inline retry, headline hidden.</div><div><h4>Rules</h4>Periods 1D 1W 1M 1Y Custom (calendar, last 10 years). Benchmarks: Nifty 50, 500, LargeMidcap 250, Midcap 150, Smallcap 250; the recommended one follows the cap mix.</div></div></section>
+
+<section id="s3"><h2>3 Money at a glance</h2>
+<p class="lead">A sentence built from the same numbers as sections 1 and 5. Understand opens the Mira popup.</p>
+<div class="frame"><p class="cap">Mockup</p><div class="mk" id="m3"></div></div>
+<div class="notes"><div><h4>Source</h4>No endpoint; built in the browser from summary and movers.</div><div><h4>States</h4>Loading: one skeleton line. Empty and error: section hidden.</div></div></section>
+
+<section id="s4"><h2>4 Asset allocation and family bar</h2>
+<p class="lead">Donut by asset class with look-through. Hover a class to isolate its slice; click a class or slice to see its funds. The family section is a share bar plus one clickable card per member; it appears only in family scope.</p>
+<div class="frame"><p class="cap">Mockup (hover a slice, click a family member)</p><div class="mk" id="m4"></div></div>
+<div class="notes"><div><h4>Source</h4>GET .../home/allocation</div><div><h4>Rules</h4>The class list and each class's live or coming-soon status come from the backend (L20), so a class goes live without front-end change.</div></div></section>
+
+<section id="s5"><h2>5 What moved today</h2>
+<p class="lead">A net-change summary with a gained-versus-lost bar, then the top 2 gains and top 2 losses as clickable rows with a centred contribution bar. "Others" expands in place so the rows always add up to the net change.</p>
+<div class="frame"><p class="cap">Mockup (switch the view; click a row)</p><div class="mk" id="m5"></div></div>
+<div class="notes"><div><h4>Source</h4>GET .../home/movers?by=</div><div><h4>Rules</h4>Sector view is an estimate; category and fund are exact. A row opens a popup of its funds; View all and fund links are disabled until their pages exist.</div></div></section>
+
+<section id="s7"><h2>7 Worth a look</h2>
+<p class="lead">Up to three cards, most severe first, each a clickable card with a type chip, a small visual of the evidence and a clear next step. When nothing is flagged there is no card, only the line "Nothing needs attention."</p>
+<div class="frame"><p class="cap">Mockup</p><div class="mk" id="m7"></div></div>
+<div class="notes"><div><h4>Source</h4>GET .../home/worth-a-look</div><div><h4>Rules</h4>No advice wording; links disabled until pages exist; the earlier-month bar is omitted when that disclosure is missing.</div></div></section>
+
+<section id="s8"><h2>8 News</h2>
+<p class="lead">One to three items, each with an icon, a headline, one line saying where it is from and when, and one line saying how much of your portfolio it touches. Details (why you see it, which funds, how headlines are picked) sit behind "Why this?". The small Preview link below the card shows the no-specific-news case.</p>
+<div class="frame"><p class="cap">Mockup</p><div class="mk" id="m8"></div></div>
+<div class="notes"><div><h4>Source</h4>GET /home/news (loads last)</div><div><h4>Rules</h4>Strict priority ladder; updates only on a specific match; stale label after 36 hours, hidden after 72.</div></div></section>
+
+<section id="icons"><h2>News category icons</h2>
+<p class="lead">Fourteen icons drawn from the app's icon set (Lucide) at the app's stroke weight. Approve or change the list in the questions.</p>
+<div class="iconsgrid" id="iconsgrid"></div></section>
+
+<section id="full"><h2>Full page composition</h2>
+<p class="lead">All sections together inside the shell: sidebar in main mode, top bar, two columns from 1280 px.</p>
+<div class="frame"><p class="cap">Mockup (scrolls sideways on narrow screens)</p><div class="mk" id="mfull" style="padding:0;background:transparent"></div></div></section>
+
+<div class="bar" id="filterbar">
+  <button class="chip" id="f-all" aria-pressed="true">All questions</button>
+  <button class="chip" id="f-open" aria-pressed="false">Unanswered</button>
+  <button class="chip" id="f-done" aria-pressed="false">Answered</button>
+  <span class="spacer"></span>
+  <span class="count"><span id="count"></span><span id="savestate" role="status"></span></span>
+</div>
+<div id="lockedList" hidden></div>
+<div id="questions"></div>
+
+<section id="answers">
+  <h2>Your answers</h2>
+  <p class="lead">This collects every choice and note above. Copy it and paste it into the chat.</p>
+  <div class="row"><button class="btn" id="copy">Copy my answers</button><button class="btn ghost" id="clear">Clear all choices</button><span class="count" id="copied" role="status"></span></div>
+  <div id="out" aria-live="polite"></div>
+</section>
+</main>
+</div>
+
+<script src="https://unpkg.com/lucide@0.475.0/dist/umd/lucide.min.js"></script>
+<script>
+(function(){
+var S={scope:'family',st:'normal',period:'1M',bench:'n500',movers:'sector',hide:false,flag:true,theme:null};
+function $(i){return document.getElementById(i)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function istHour(){try{return (+new Intl.DateTimeFormat('en-GB',{hour:'numeric',hour12:false,timeZone:'Asia/Kolkata'}).format(new Date()))%24}catch(e){return 20}}
+function greetWord(h){return h<12?'Good morning':h<17?'Good afternoon':'Good evening'}
+function inr(n){var neg=n<0;n=Math.abs(Math.round(n));return(neg?'−':'')+'₹'+n.toLocaleString('en-IN')}
+function compact(n){var a=Math.abs(n);if(a>=1e7)return '₹'+(n/1e7).toFixed(2)+' Cr';if(a>=1e5)return '₹'+(n/1e5).toFixed(2)+' L';return inr(n)}
+function signed(n){return(n>=0?'+':'−')+inr(Math.abs(n)).replace('−','')}
+function pct(p){return(p>=0?'+':'−')+Math.abs(p).toFixed(2)+'%'}
+function ic(name){return '<i data-lucide="'+name+'"></i>'}
+
+var D={
+ family:{who:'Your family portfolio',total:21347320,day:38400,line:'Data from 3 of 4 family members'},
+ member:{who:"Siddharth's portfolio",total:10250000,day:18400,line:null}
+};
+var MV={
+ family:{sector:{g:[['Banks and financials',24600],['Pharma and healthcare',9100]],l:[['IT and technology',-4400],['Auto and EV',-2100]],n:5},
+         category:{g:[['Flexi Cap',18200],['Large Cap',12300]],l:[['Small Cap',-5800],['Short Duration Debt',-900]],n:3},
+         fund:{g:[['Meridian Flexi Cap Fund',11400],['Bluechip Large Cap Fund',8200]],l:[['Summit Small Cap Fund',-5100],['Harbor Short Term Bond Fund',-700]],n:4}},
+ member:{sector:{g:[['Banks and financials',11800],['Pharma and healthcare',4300]],l:[['IT and technology',-2100],['Auto and EV',-900]],n:4},
+         category:{g:[['Flexi Cap',9100],['Large Cap',5700]],l:[['Small Cap',-2600],['Short Duration Debt',-400]],n:2},
+         fund:{g:[['Meridian Flexi Cap Fund',5900],['Bluechip Large Cap Fund',3800]],l:[['Summit Small Cap Fund',-2400],['Harbor Short Term Bond Fund',-300]],n:3}}
+};
+var FAM=[['Siddharth',10250000],['Aarohi',6930000],['Parents',4167320]];
+var CHART=['#22C55E','#0D9488','#2563EB','#6366F1','#A855F7','#8B5CF6','#EC4899','#F43F5E','#D97706','#CA8A04','#C1272D','#65A30D'];
+var ALLOC=[['Equity',68.4,CHART[0]],['Debt',24.1,CHART[1]],['Gold',4.5,CHART[2]],['Others',3.0,CHART[3]]];
+var SOON=['Direct stocks','FDs and bonds','Real estate','US stocks'];
+var BENCH={n50:['Nifty 50',1],n500:['Nifty 500',1.1],lm:['Nifty LargeMidcap 250',1.15],mid:['Nifty Midcap 150',1.4],sc:['Nifty Smallcap 250',1.6]};
+var PER={'1D':{n:2,ret:.0018,b:.003,lab:'today'},'1W':{n:6,ret:.009,b:.008,lab:'this week'},'1M':{n:22,ret:.024,b:.02,lab:'this month'},'1Y':{n:250,ret:.148,b:.125,lab:'this year'},'Custom':{n:63,ret:.041,b:.036,lab:'in range'}};
+var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var END=new Date(2026,9,22);
+function dlab(d){return d.getDate()+' '+MON[d.getMonth()]}
+function buildSeries(){
+ var c=PER[S.period],tot=D[S.scope].total,end=tot,start=tot/(1+c.ret),bm=BENCH[S.bench][1],pts=[],span=S.period==='1D'?1:S.period==='1W'?7:S.period==='1M'?30:S.period==='1Y'?365:90;
+ for(var i=0;i<c.n;i++){var t=c.n>1?i/(c.n-1):1,w=c.n>2?Math.sin(Math.PI*t):0;
+  var v=start*(1+c.ret*t+Math.sin(i*1.7)*.004*w),b=c.b*bm*100*t+Math.sin(i*2.3)*.25*w;
+  var d=new Date(END.getTime()-(1-t)*span*864e5-(S.period==='1D'?0:0));
+  if(S.period==='1D'&&i===0)d=new Date(2026,9,21);
+  pts.push({d:d,v:i===c.n-1?end:v,b:i===c.n-1?c.b*bm*100:b})}
+ return {pts:pts,start:start,end:end,ret:c.ret,benchRet:c.b*bm*100,lab:c.lab};
+}
+var CH={},chn=0;
+function chart(sr){
+ var id='ch'+(++chn),W=720,H=250,l=64,r=54,t=12,b=26,pw=W-l-r,ph=H-t-b,P=sr.pts,n=P.length;
+ var vmin=Math.min.apply(null,P.map(function(p){return p.v})),vmax=Math.max.apply(null,P.map(function(p){return p.v}));var pad=(vmax-vmin)*.15||vmax*.002;vmin-=pad;vmax+=pad;
+ var bmin=Math.min(0,Math.min.apply(null,P.map(function(p){return p.b}))),bmax=Math.max.apply(null,P.map(function(p){return p.b}));var bp=(bmax-bmin)*.15||.2;bmax+=bp;
+ function x(i){return l+(n>1?i/(n-1):0)*pw}
+ function yv(v){return t+ph-(v-vmin)/(vmax-vmin)*ph}
+ function yb(v){return t+ph-(v-bmin)/(bmax-bmin)*ph}
+ var line=P.map(function(p,i){return(i?'L':'M')+x(i).toFixed(1)+' '+yv(p.v).toFixed(1)}).join(' ');
+ var area=line+' L'+x(n-1).toFixed(1)+' '+(t+ph)+' L'+x(0).toFixed(1)+' '+(t+ph)+' Z';
+ var bl=P.map(function(p,i){return(i?'L':'M')+x(i).toFixed(1)+' '+yb(p.b).toFixed(1)}).join(' ');
+ var g='',k;for(k=0;k<=4;k++){var yy=t+ph*k/4,vv=vmax-(vmax-vmin)*k/4,bb=bmax-(bmax-bmin)*k/4;
+  g+='<line x1="'+l+'" x2="'+(W-r)+'" y1="'+yy+'" y2="'+yy+'" stroke="var(--m-border)" stroke-dasharray="3 4"/>';
+  g+='<text x="'+(l-8)+'" y="'+(yy+4)+'" text-anchor="end">'+compact(vv)+'</text>';
+  g+='<text x="'+(W-r+8)+'" y="'+(yy+4)+'" fill="var(--m-bench)" style="fill:var(--m-bench)">'+bb.toFixed(1)+'%</text>'}
+ var xt='',m=n>1?4:0;for(k=0;k<=m;k++){var i2=Math.round((n-1)*k/(m||1));xt+='<text x="'+x(i2)+'" y="'+(H-6)+'" text-anchor="'+(k===0?'start':k===m?'end':'middle')+'">'+dlab(P[i2].d)+'</text>'}
+ CH[id]={P:P,x:x,yv:yv,yb:yb,W:W,H:H};
+ var dots=n<=2?P.map(function(p,i){return '<circle cx="'+x(i)+'" cy="'+yv(p.v)+'" r="4" fill="var(--m-accent)"/><circle cx="'+x(i)+'" cy="'+yb(p.b)+'" r="4" fill="var(--m-bench)"/>'}).join(''):'';
+ return '<div class="chartwrap" data-ch="'+id+'" style="position:relative"><svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Portfolio value and benchmark return">'+
+ '<defs><linearGradient id="g'+id+'" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#22C55E" stop-opacity=".28"/><stop offset="1" stop-color="#22C55E" stop-opacity="0"/></linearGradient></defs>'+
+ g+xt+(n>1?'<path d="'+area+'" fill="url(#g'+id+')"/>':'')+'<path d="'+bl+'" fill="none" stroke="var(--m-bench)" stroke-width="1.75"/><path d="'+line+'" fill="none" stroke="#22C55E" stroke-width="2.25"/>'+dots+
+ '<line class="cx" x1="0" x2="0" y1="'+t+'" y2="'+(t+ph)+'" stroke="var(--m-sec)" style="display:none"/><circle class="c1" r="4.5" fill="#22C55E" style="display:none"/><circle class="c2" r="4" fill="var(--m-bench)" style="display:none"/></svg><div class="tip"></div></div>';
+}
+function skel(n,w){var s='';for(var i=0;i<n;i++)s+='<div class="sk" style="width:'+(w&&w[i]||'100%')+';margin:8px 0"></div>';return s}
+function badge(){return S.st==='partial'?'<span class="pill warn" title="Missing: Summit Small Cap Fund (no NAV)">'+ic('triangle-alert')+' Partial data</span>':''}
+
+function r1(){
+ var d=D[S.scope],h=greetWord(istHour()),name='Siddharth';
+ if(S.st==='loading')return skel(2,['38%','60%'])+skel(1,['30%']);
+ if(S.st==='empty')return '<h1 style="font-size:24px">'+h+', '+name+'</h1><div class="notice" style="margin-top:10px">'+ic('upload')+'<span>Import a statement to see your portfolio.</span><button class="btn2 primary">Import statement</button></div>';
+ if(S.st==='error')return '<h1 style="font-size:24px">'+h+', '+name+'</h1>';
+ var line=d.line&&S.scope==='family'?(S.st==='partial'?'Data from 2 of 4 family members':d.line):null;
+ var top=MV[S.scope].sector.g[0][0];
+ return '<div class="row between"><div><h1 style="font-size:24px">'+ic(istHour()>=6&&istHour()<18?'sun':'moon')+' '+h+', '+name+'</h1>'+
+ '<p style="margin:4px 0 0">'+d.who+' is up <b class="num">'+inr(d.day)+'</b> ('+pct(d.day/d.total*100)+') since Wednesday. '+'<a class="inl" role="button" tabindex="0" data-act="topmover">'+top+'</a>'+' drove most of the gains.</p></div></div>'+
+ (line?'<div class="row" style="margin-top:8px"><button class="chipbtn" data-act="members"><span class="dot"></span><span>'+line+'</span>'+ic('chevron-right')+'</button></div>':'');
+}
+var WCUR=null,WANIM=0;
+function wq(c,s){return c.querySelector(s)}
+function resample(arr,n){if(arr.length===n)return arr.slice();var o=[];for(var i=0;i<n;i++){var t=n>1?i/(n-1):0,x=t*(arr.length-1),a=Math.floor(x),b=Math.min(arr.length-1,a+1),f=x-a;o.push(arr[a]*(1-f)+arr[b]*f)}return o}
+function interp(from,to,p){
+ var n=to.pts.length,fv=resample(from.pts.map(function(q){return q.v}),n),fb=resample(from.pts.map(function(q){return q.b}),n);
+ return {pts:to.pts.map(function(q,i){return {d:q.d,v:fv[i]+(q.v-fv[i])*p,b:fb[i]+(q.b-fb[i])*p}}),start:from.start+(to.start-from.start)*p,end:from.end+(to.end-from.end)*p,ret:from.ret+(to.ret-from.ret)*p,benchRet:from.benchRet+(to.benchRet-from.benchRet)*p,lab:to.lab};
+}
+function wnote(){return S.period==='1D'?'1D compares two NAV days (21 Oct and 22 Oct). Mutual fund NAVs publish once a day, so there is no intraday line.':''}
+function wright(){return S.period==='Custom'?'<button class="btn2" data-act="cal">'+ic('calendar')+' 1 Jul – 22 Oct 2026</button>':'<span class="sec" style="font-size:12px">Change excludes new money</span>'}
+function wsync(sr){
+ var amt=sr.end-sr.start,p=sr.ret*100,mask='••••••';
+ document.querySelectorAll('.wcard').forEach(function(c){
+  wq(c,'.w-end').textContent=S.hide?mask:inr(sr.end);
+  wq(c,'.w-chgtxt').textContent=S.hide?mask:(amt>=0?'▲ ':'▼ ')+signed(amt)+' ('+pct(p)+')';
+  wq(c,'.w-chgwrap').className='w-chgwrap num '+(amt>=0?'pos':'neg');
+  wq(c,'.w-benchtxt').textContent=BENCH[S.bench][0]+' '+pct(sr.benchRet);
+  wq(c,'.w-chart').innerHTML=chart(sr);
+ });
+}
+function r2(){
+ var nm=S.scope==='family'?"Your family's wealth":"Siddharth's wealth";
+ if(S.st==='loading')return '<div class="card">'+skel(2,['30%','45%'])+'<div class="sk" style="height:200px;margin:12px 0"></div>'+skel(1,['50%'])+'</div>';
+ if(S.st==='empty')return '<div class="card"><span class="cap2">'+nm+'</span><div class="notice" style="margin-top:10px">'+ic('wallet')+'<span>No investments yet.</span><button class="btn2 primary">Import statement</button></div></div>';
+ if(S.st==='error')return '<div class="card"><span class="cap2">'+nm+'</span><div class="err" style="margin-top:10px"><span>'+ic('circle-alert')+' Could not load your wealth graph.</span><button class="btn2" data-act="retry">Try again</button></div></div>';
+ var sr=buildSeries(),amt=sr.end-sr.start,p=sr.ret*100,mask='••••••';
+ var per=['1D','1W','1M','1Y','Custom'].map(function(k){return '<button data-act="period" data-v="'+k+'" aria-pressed="'+(S.period===k)+'">'+k+'</button>'}).join('');
+ var opts=Object.keys(BENCH).map(function(k){return '<option value="'+k+'"'+(S.bench===k?' selected':'')+'>'+BENCH[k][0]+(k==='n500'?' (recommended)':'')+'</option>'}).join('');
+ return '<div class="card wcard"><div class="row between"><span class="cap2">'+nm+' <span role="button" tabindex="0" data-act="info" title="How is this calculated?" style="cursor:pointer;display:inline-flex">'+ic('info')+'</span></span><div class="row">'+badge()+'<select data-act="bench" aria-label="Benchmark">'+opts+'</select></div></div>'+
+ '<div class="row" style="margin-top:8px;gap:12px;align-items:center"><span class="big num w-end">'+(S.hide?mask:inr(sr.end))+'</span><button class="btn2" data-act="hide" aria-label="'+(S.hide?'Show values':'Hide values')+'" title="'+(S.hide?'Show values':'Hide values')+'">'+ic(S.hide?'eye-off':'eye')+'</button></div>'+
+ '<div class="row" style="margin-top:4px"><span class="w-chgwrap num '+(amt>=0?'pos':'neg')+'"><b class="w-chgtxt">'+(S.hide?mask:(amt>=0?'▲ ':'▼ ')+signed(amt)+' ('+pct(p)+')')+'</b></span><span class="sec w-lab">Portfolio change '+sr.lab+'</span></div>'+
+ '<div class="row bench num" style="margin-top:2px"><a role="button" tabindex="0" data-act="benchfocus" class="benchlk"><b class="w-benchtxt">'+BENCH[S.bench][0]+' '+pct(sr.benchRet)+'</b> '+ic('chevron-down')+'</a></div>'+
+ '<div class="w-chart" style="margin-top:10px">'+chart(sr)+'</div>'+
+ '<p class="sec w-note" style="margin:4px 0 0;font-size:12px;min-height:2.6em">'+wnote()+'</p>'+
+ '<div class="row between" style="margin-top:6px"><div class="seg" role="group" aria-label="Period">'+per+'</div><div class="w-right">'+wright()+'</div></div></div>';
+}
+function updateWealth(animate){
+ if(!(S.st==='normal'||S.st==='partial')||!document.querySelector('.wcard'))return;
+ var to=buildSeries(),from=WCUR||to;cancelAnimationFrame(WANIM);
+ document.querySelectorAll('.wcard').forEach(function(c){
+  c.querySelectorAll('.seg button').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-v')===S.period))});
+  wq(c,'.w-lab').textContent='Portfolio change '+to.lab;wq(c,'.w-note').textContent=wnote();wq(c,'.w-right').innerHTML=wright();
+  var sel=wq(c,'select[data-act="bench"]');if(sel)sel.value=S.bench;
+ });
+ if(window.lucide&&lucide.createIcons)try{lucide.createIcons()}catch(e){}
+ var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ if(!animate||reduce){CH={};wsync(to);WCUR=to;return}
+ var t0=performance.now(),dur=420;
+ function step(now){var k=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-k,3),cur=k<1?interp(from,to,e):to;CH={};wsync(cur);WCUR=cur;if(k<1)WANIM=requestAnimationFrame(step)}
+ WANIM=requestAnimationFrame(step);
+}
+function r3(){
+ if(S.st==='loading')return '<div class="card">'+skel(2,['40%','90%'])+'</div>';
+ if(S.st==='empty'||S.st==='error')return null;
+ var d=D[S.scope],top=MV[S.scope].sector.g[0][0].toLowerCase();
+ return '<div class="card click" role="button" tabindex="0" data-act="mira"><div class="row between"><h3 style="font-size:16px">'+ic('sparkles')+' Your money, at a glance</h3><span class="lk">Understand today\'s change <span class="arr">→</span></span></div><p style="margin:8px 0 4px">Your portfolio gained <b class="num">'+inr(d.day)+'</b> today, with '+top+' contributing the most.</p><p class="sec" style="margin:0;font-size:12px">Based on available investment data</p></div>';
+}
+var MEM=[['Siddharth',10250000,18400],['Aarohi',6930000,12100],['Parents',4167320,7900]];
+var TOP5=[['HDFC Bank',12.1],['Reliance Industries',10.4],['ICICI Bank',9.6],['Infosys',7.8],['TCS',6.1]];
+var ICN={'Banks and financials':'landmark','Pharma and healthcare':'pill','IT and technology':'cpu','Auto and EV':'car','Energy, oil and power':'fuel','Consumer and FMCG':'shopping-basket','Metals and mining':'pickaxe','Real estate':'building-2','Infrastructure':'construction','Telecom':'radio-tower'};
+var RESTN={sector:['Energy, oil and power','Consumer and FMCG','Metals and mining','Real estate','Infrastructure','Telecom'],category:['Mid Cap','ELSS','Index','Hybrid','Liquid Debt','Gold'],fund:['Crest Midcap Fund','Anchor ELSS Tax Saver','Beacon Nifty Index Fund','Lantern Hybrid Fund','Orbit Liquid Fund','Vault Gold Fund']};
+S.unbuilt='grey';S.restOpen=false;
+function tileIc(view,name){return view==='sector'?(ICN[name]||'factory'):view==='category'?'layers':'chart-pie'}
+function restRows(view,oth,n){var W=[.6,.45,.25,-.2,-.1,0],w=W.slice(0,n),sum=w.reduce(function(a,b){return a+b},0),rows=[],acc=0;for(var i=0;i<n;i++){var v=i===n-1?oth-acc:Math.round(oth*w[i]/sum/100)*100;acc+=v;rows.push([RESTN[view][i],v])}return rows}
+function lk(txt,dis,what){var t=txt.replace('→','<span class="arr">→</span>');if(!dis)return '<a class="lk">'+t+'</a>';if(S.unbuilt==='grey')return '<a class="lk dis" title="Coming soon">'+t+'</a>';return '<a class="lk" role="button" tabindex="0" data-act="soon" data-msg="'+esc(what||'This page')+'">'+t+'</a>'}
+function cta(txt,what,solid){if(S.unbuilt==='grey')return '<button class="btn2" disabled title="Coming soon" style="opacity:.55;cursor:not-allowed">'+txt+'</button>';return '<button class="btn2 cta'+(solid?' primary':'')+'" data-act="soon" data-msg="'+esc(what)+'">'+txt+' <span class="arr">→</span></button>'}
+function toast(msg){var o=$('mktoast');if(!o){o=document.createElement('div');o.id='mktoast';o.className='mktoast';o.setAttribute('role','status');document.body.appendChild(o)}o.innerHTML=ic('sparkles')+' <span>'+esc(msg)+'</span>';o.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(function(){o.classList.remove('on')},2600);if(window.lucide)try{lucide.createIcons()}catch(e){}}
+function nf(name){var n=0;for(var i=0;i<name.length;i++)n+=name.charCodeAt(i);return 2+n%4}
+
+function donut(){
+ var R=58,C=2*Math.PI*R,off=0,s='';
+ ALLOC.forEach(function(a,i){var len=C*a[1]/100;s+='<circle class="sl" data-act="alloc" data-i="'+i+'" r="'+R+'" cx="80" cy="80" fill="none" stroke="'+a[2]+'" stroke-width="22" stroke-dasharray="'+len.toFixed(2)+' '+(C-len).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+'" transform="rotate(-90 80 80)" style="cursor:pointer"><title>'+a[0]+' '+a[1]+'%</title></circle>';off+=len});
+ return '<svg viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="Asset allocation">'+s+'<text x="80" y="76" text-anchor="middle" style="font:700 14px var(--m-font-d);fill:var(--m-ink)">'+compact(D[S.scope].total)+'</text><text x="80" y="94" text-anchor="middle" style="font:11px var(--m-font-b);fill:var(--m-sec)">Total value</text></svg>';
+}
+function r4(){
+ if(S.st==='loading')return '<div class="card">'+skel(1,['40%'])+'<div class="sk" style="width:150px;height:150px;border-radius:50%;margin:10px auto"></div>'+skel(4)+'</div>';
+ if(S.st==='empty')return null;
+ if(S.st==='error')return '<div class="card"><h3 style="font-size:16px">Asset allocation</h3><div class="err" style="margin-top:10px"><span>Could not load allocation.</span><button class="btn2" data-act="retry">Try again</button></div></div>';
+ var tot=D[S.scope].total;
+ var leg=ALLOC.map(function(a,i){return '<div class="r" role="button" tabindex="0" data-act="alloc" data-i="'+i+'"><span class="sw" style="background:'+a[2]+'"></span><span>'+a[0]+'</span><span class="num"><b>'+a[1].toFixed(1)+'%</b></span>'+ic('chevron-right')+'</div>'}).join('')+
+  SOON.map(function(a){return '<div class="r soon" role="button" tabindex="0" data-act="soonrow" data-msg="'+a+' tracking"><span class="sw" style="background:var(--m-border2)"></span><span>'+a+'</span><span class="pill">Coming soon</span>'+ic('chevron-right')+'</div>'}).join('');
+ var fam;
+ if(S.scope==='family'){
+  fam='<div class="fam"><div class="row between"><span class="cap2">By family member</span><span class="sec" style="font-size:12px">Tap a member to view their portfolio</span></div>'+
+   '<div class="stackbar" aria-hidden="true">'+MEM.map(function(f,i){return '<i class="sg" data-i="'+i+'" style="width:'+(f[1]/tot*100)+'%;background:'+CHART[i]+'"></i>'}).join('')+'</div>'+
+   MEM.map(function(f,i){var pc=f[1]/tot*100,fg=i===0?'#111111':'#FFFFFF';return '<div class="fr" role="button" tabindex="0" data-act="member" data-name="'+f[0]+'" data-i="'+i+'"><span class="av" style="background:'+CHART[i]+';color:'+fg+'">'+f[0].charAt(0)+'</span><span class="mid"><b>'+f[0]+'</b><span class="sub pos">▲ '+signed(f[2])+' today</span></span><span class="r2 num"><b>'+inr(f[1])+'</b><span class="sec">'+pc.toFixed(1)+'% of family</span></span><span class="go">View '+ic('chevron-right')+'</span></div>'}).join('')+'</div>';
+ }else{
+  fam='<div class="viewing"><span>Viewing <b>Siddharth\'s</b> portfolio</span><a class="lk" role="button" tabindex="0" data-act="family"><span class="arr2">←</span> Family combined</a></div>';
+ }
+ return '<div class="card alloc"><div class="row between"><h3 style="font-size:16px">Asset allocation '+badge()+'</h3>'+lk('View in Analytics →',true,'Allocation page')+'</div><div class="row" style="gap:20px;margin-top:10px;align-items:center"><div>'+donut()+'</div><div class="legend" style="flex:1;min-width:200px">'+leg+'</div></div>'+fam+'</div>';
+}
+var POOL=['Meridian Flexi Cap Fund','Bluechip Large Cap Fund','Summit Small Cap Fund','Harbor Short Term Bond Fund','Crest Midcap Fund'];
+function mrow(view,r,mx){var pos=r[1]>=0,w=Math.abs(r[1])/mx*50;return '<div class="mv" role="button" tabindex="0" data-act="mover" data-name="'+esc(r[0])+'" data-amt="'+r[1]+'"><span class="tile">'+ic(tileIc(view,r[0]))+'</span><span class="mid"><b>'+esc(r[0])+'</b><span class="sub">'+nf(r[0])+' funds</span></span><span class="amt num '+(pos?'pos':'neg')+'"><b>'+signed(r[1])+'</b></span>'+ic('chevron-right')+'<span class="axis"><i style="'+(pos?'left:50%':'right:50%')+';width:'+w+'%;background:var(--m-'+(pos?'pos':'neg')+')"></i></span></div>'}
+function r5(){
+ if(S.st==='loading')return '<div class="card">'+skel(1,['40%'])+skel(5)+'</div>';
+ if(S.st==='empty')return null;
+ if(S.st==='error')return '<div class="card"><h3 style="font-size:16px">What moved today</h3><div class="err" style="margin-top:10px"><span>Could not load movers.</span><button class="btn2" data-act="retry">Try again</button></div></div>';
+ var view=S.movers,d=MV[S.scope][view],net=D[S.scope].day,sg=0,sl=0;
+ d.g.forEach(function(r){sg+=r[1]});d.l.forEach(function(r){sl+=r[1]});var oth=net-sg-sl,rest=restRows(view,oth,d.n);
+ var all=d.g.concat(d.l).concat(rest),G=0,L=0;all.forEach(function(r){if(r[1]>=0)G+=r[1];else L+=r[1]});
+ var mx=Math.max.apply(null,all.map(function(r){return Math.abs(r[1])})),gw=G/(G-L)*100;
+ var seg=[['sector','Sector'],['category','Category'],['fund','Fund']].map(function(v){return '<button data-act="mviewseg" data-v="'+v[0]+'" aria-pressed="'+(view===v[0])+'">'+v[1]+'</button>'}).join('');
+ return '<div class="card"><div class="row between"><h3 style="font-size:16px">What moved today '+(view==='sector'?'<span class="pill est" title="Spread over each fund\'s sectors using its latest monthly holdings">Estimated</span>':'')+' '+badge()+'</h3><div class="seg" role="group" aria-label="Group by">'+seg+'</div></div>'+
+ '<div class="netbox"><div><span class="cap2">Net change today</span><div class="net num '+(net>=0?'pos':'neg')+'">'+signed(net)+' <span class="sec" style="font:500 13px var(--m-font-b)">'+pct(net/D[S.scope].total*100)+'</span></div></div>'+
+ '<div class="split"><div class="bar2"><i style="width:'+gw+'%;background:var(--m-pos)"></i><i style="width:'+(100-gw)+'%;background:var(--m-neg)"></i></div><div class="row between" style="font-size:12px"><span class="pos"><b>Gained '+inr(G)+'</b></span><span class="neg"><b>Lost '+inr(-L)+'</b></span></div></div></div>'+
+ '<div class="grp"><span class="cap2">Lifted your portfolio</span></div>'+d.g.map(function(r){return mrow(view,r,mx)}).join('')+
+ '<div class="grp"><span class="cap2">Pulled it down</span></div>'+d.l.map(function(r){return mrow(view,r,mx)}).join('')+
+ '<div class="mv others" role="button" tabindex="0" data-act="others" aria-expanded="'+S.restOpen+'"><span class="tile">'+ic('ellipsis')+'</span><span class="mid"><b>'+d.n+' others</b><span class="sub">'+(S.restOpen?'Hide':'Show')+' them</span></span><span class="amt num '+(oth>=0?'pos':'neg')+'"><b>'+signed(oth)+'</b></span>'+ic(S.restOpen?'chevron-up':'chevron-down')+'</div>'+
+ (S.restOpen?rest.map(function(r){return mrow(view,r,mx)}).join(''):'')+
+ '<div class="row between" style="margin-top:12px">'+cta('View all by day\'s change','Holdings sorted by day\'s change')+(view==='sector'?'<span class="sec" style="font-size:12px">Sector figures are estimates and add up to the exact change.</span>':'<span class="sec" style="font-size:12px">Rows add up to the net change.</span>')+'</div></div>';
+}
+function r7(){
+ if(S.st==='loading')return '<div class="card">'+skel(3,['35%','80%','60%'])+'</div>';
+ if(S.st==='empty')return null;
+ if(S.st==='error')return '<div class="card"><h3 style="font-size:16px">Worth a look</h3><p class="sec" style="margin:8px 0 0">Could not check right now.</p></div>';
+ var head='<div class="row between" style="margin-bottom:10px"><h3 style="font-size:16px">Worth a look</h3><button class="btn2" data-act="flag" style="font-size:11px">Preview: '+(S.flag?'flagged':'nothing flagged')+'</button></div>';
+ if(!S.flag)return '<div>'+head+'<p class="sec" style="margin:0">Nothing needs attention.</p></div>';
+ var segs=TOP5.map(function(t,i){return '<i class="ts" role="button" tabindex="0" data-act="soon" data-msg="'+t[0]+' holding" title="'+t[0]+' '+t[1]+'%" style="width:'+t[1]+'%;background:'+CHART[i]+'"></i>'}).join('')+'<i style="flex:1;background:var(--m-border)"></i>';
+ var leg=TOP5.map(function(t,i){return '<span class="lg"><i style="background:'+CHART[i]+'"></i>'+t[0]+' <b class="num">'+t[1]+'%</b></span>'}).join('');
+ var c1='<div class="wl wide" role="button" tabindex="0" data-act="soon" data-msg="Portfolio concentration"><div class="row between"><span class="chip2 warn">'+ic('triangle-alert')+' Concentration</span><span class="sec" style="font-size:12px">Approximate · holdings as of Sep 2026</span></div>'+
+  '<h3>Your portfolio is becoming more concentrated</h3>'+
+  '<div class="row" style="gap:14px;align-items:center"><span class="bigpct num">46%</span><span class="chip2 warn">▲ 5 pts</span><span class="sec">of your equity-fund holdings sit in just 5 stocks (41% earlier)</span></div>'+
+  '<div class="tbar">'+segs+'</div><div class="row" style="gap:6px 14px;font-size:12px">'+leg+'</div>'+
+  '<div class="row between"><span></span><span class="lk">See what is driving it <span class="arr">→</span></span></div></div>';
+ var c2='<div class="wl" role="button" tabindex="0" data-act="soon" data-msg="Fund cost comparison"><div class="row between"><span class="chip2 warn">'+ic('indian-rupee')+' Cost</span></div><h3>Summit Small Cap Fund costs more than its category</h3>'+
+  '<div class="scale"><div class="track"><i class="tick" style="left:16.7%"></i><i class="fdot" style="left:63.3%"></i></div><div class="row between" style="font-size:12px"><span class="sec">Category average <b class="num">0.25%</b></span><span><b class="num neg">This fund 0.95%</b></span></div></div>'+
+  '<p class="sec" style="margin:0;font-size:13px">0.70 percentage points above the average for the same plan type.</p><div class="row between"><span></span><span class="lk">See how costs compare <span class="arr">→</span></span></div></div>';
+ var c3='<div class="wl" role="button" tabindex="0" data-act="soon" data-msg="Fund review"><div class="row between"><span class="chip2 neg">'+ic('trending-down')+' Performance</span><span class="chip2" style="background:var(--m-neg-bg);color:var(--m-neg-t)">Score: Weak</span></div><h3>Crest Midcap Fund is lagging its category</h3>'+
+  '<div class="cmp"><div class="row between" style="font-size:12px"><span class="sec">Last 1 year</span></div><div class="cr"><span style="width:92px">This fund</span><span class="mbar" style="flex:1"><i style="left:50%;width:15%;background:var(--m-neg)"></i></span><b class="num neg">−6.2%</b></div><div class="cr"><span style="width:92px">Category</span><span class="mbar" style="flex:1"><i style="left:50%;width:8%;background:var(--m-pos)"></i></span><b class="num pos">+3.1%</b></div></div>'+
+  '<div class="row between"><span></span><span class="lk">Review this fund <span class="arr">→</span></span></div></div>';
+ return '<div>'+head+'<div class="wlgrid">'+c1+c2+(S.st==='partial'?'':c3)+'</div></div>';
+}
+S.newsGen=false;
+var NEWS=[
+ {ic:'landmark',kind:'Company results',src:'Moneycontrol',ago:'35 min ago',t:'Banks report mixed quarterly earnings',reason:'You hold HDFC Bank and ICICI Bank through 3 funds',exp:12,sum:'Three of your funds hold banks reporting this quarter. The actual impact depends on the size of those holdings and market movements.',funds:[['Meridian Flexi Cap Fund',6.1],['Bluechip Large Cap Fund',4.2],['Crest Midcap Fund',1.7]]},
+ {ic:'shopping-basket',kind:'Sector news',src:'Business Standard',ago:'2 h ago',t:'Sugar stocks face pressure as production estimates rise',reason:'Consumer and FMCG is one of your top 5 sectors',exp:3,sum:'Two of your funds hold companies in this sector.',funds:[['Meridian Flexi Cap Fund',2.0],['Crest Midcap Fund',1.0]]},
+ {ic:'percent',kind:'Rates and macro',src:'Mint',ago:'5 h ago',t:'Bond yields ease after RBI keeps the policy rate unchanged',reason:'Debt is 24% of your holdings',exp:null,sum:'Relevant to the debt funds in your portfolio.',funds:[['Harbor Short Term Bond Fund',24.1]]}
+];
+var GNEWS=[
+ {ic:'landmark',kind:'Markets',src:'Mint',ago:'1 h ago',t:'Sensex and Nifty close higher on broad buying',sum:'General market news.'},
+ {ic:'scale',kind:'Regulation',src:'Business Standard',ago:'6 h ago',t:'SEBI proposes changes to mutual fund disclosure norms',sum:'General regulatory news.'},
+ {ic:'percent',kind:'Rates and macro',src:'BusinessLine',ago:'9 h ago',t:'RBI policy meeting outcome due this week',sum:'General market news.'}
+];
+function r8(){
+ if(S.st==='loading')return '<div class="card">'+skel(1,['35%'])+skel(3)+'</div>';
+ if(S.st==='empty'||S.st==='error')return null;
+ var gen=S.newsGen,list=(gen?GNEWS:NEWS).slice(0,S.st==='partial'?2:3);
+ var head='<div class="row between"><h3 style="font-size:16px">Top news affecting your portfolio</h3><button class="iconbtn" data-act="newsrefresh" aria-label="Refresh news" title="Updated 10 min ago">'+ic('refresh-cw')+'</button></div>';
+ var note=gen?'<p class="sec" style="margin:6px 0 0;font-size:13px">Nothing specific to your holdings right now. Showing general market news.</p>':'';
+ var items=list.map(function(it,i){
+  var third=it.exp?'<div class="ns"><span class="num">About '+it.exp+'% of your portfolio</span> · <a class="whylk" role="button" tabindex="0" data-act="whynews" data-i="'+i+'">Why this?</a></div>':(it.reason&&!gen?'<div class="ns"><a class="whylk" role="button" tabindex="0" data-act="whynews" data-i="'+i+'">Why this?</a></div>':'');
+  return '<div class="news" role="button" tabindex="0" data-act="news"><div class="ic">'+ic(it.ic)+'</div><div class="nb"><div class="nt">'+esc(it.t)+'</div><div class="meta">'+it.kind+' · '+it.src+' · '+it.ago+'</div>'+third+'</div></div>'}).join('');
+ var foot='<p class="sec" style="margin:10px 0 0;font-size:12px">Headlines about companies your funds hold. Not investment advice.</p>';
+ return '<div class="card">'+head+note+'<div style="margin-top:6px">'+items+'</div>'+foot+'</div><div class="row" style="justify-content:flex-end;margin-top:6px"><button class="prevlink" data-act="newsgen">Preview: '+(gen?'general news':'specific news')+'</button></div>';
+}
+function sideTop(){
+ var items=[['house','Home',1],['briefcase','Portfolio'],['receipt','Liabilities'],['target','Planning']];
+ return '<aside class="side"><div class="logo">Unifolio</div>'+items.map(function(i){return '<div class="it'+(i[2]?' on':'')+'" role="button" tabindex="0" data-act="nav" data-msg="'+i[1]+'">'+ic(i[0])+i[1]+'</div>'}).join('')+'<div style="flex:1"></div><div class="it" role="button" tabindex="0" data-act="nav" data-msg="Profile">'+ic('user')+'Profile</div><div class="it" role="button" tabindex="0" data-act="nav" data-msg="Help and Support">'+ic('circle-help')+'Help &amp; Support</div></aside>';
+}
+function full(){
+ var a=[r3(),r5()].filter(Boolean).join(''),b=r4(),w=r7(),n=r8();
+ return '<div class="shell">'+sideTop()+'<div><div class="top"><div class="srch">'+ic('search')+'<span>Search is on hold</span></div><div style="flex:1"></div><button class="btn2">'+ic('sparkles')+' Ask Mira</button><span class="btn2">'+(S.scope==='family'?'Family Combined':'Siddharth')+' '+ic('chevron-down')+'</span><button class="btn2" aria-label="Theme">'+ic('moon')+'</button></div>'+
+ '<div style="padding:16px;display:grid;gap:16px">'+r1()+r2()+'<div class="grid2"><div class="stack">'+(r3()||'')+(r5()||'')+'</div><div class="stack">'+(b||'')+'</div></div>'+(w||'')+(n||'')+'</div></div></div>';
+}
+function hiddenNote(){return '<div class="notice">'+ic('eye-off')+' Hidden until the first import.</div>'}
+function render(){
+ var m=function(id,html){var e=$(id);if(e)e.innerHTML=html};
+ m('m1',r1());m('m2',r2());m('m3',r3()||hiddenNote());m('m4',r4()||hiddenNote());m('m5',r5()||hiddenNote());m('m7',r7()||hiddenNote());m('m8',r8()||hiddenNote());m('mfull',full());
+ document.querySelectorAll('[data-t]').forEach(function(b){b.setAttribute('aria-pressed',String(S.theme===b.getAttribute('data-t')))});
+ document.querySelectorAll('[data-s]').forEach(function(b){b.setAttribute('aria-pressed',String(S.scope===b.getAttribute('data-s')))});
+ document.querySelectorAll('[data-u]').forEach(function(b){b.setAttribute('aria-pressed',String(S.unbuilt===b.getAttribute('data-u')))});
+ document.querySelectorAll('[data-st]').forEach(function(b){b.setAttribute('aria-pressed',String(S.st===b.getAttribute('data-st')))});
+ WCUR=(S.st==='normal'||S.st==='partial')?buildSeries():null;swatches();if(window.lucide&&lucide.createIcons)try{lucide.createIcons()}catch(e){}
+}
+function swatches(){
+ var G=[
+ ['UI neutrals',[['--m-bg','Base background'],['--m-surface','Card background'],['--m-elev','Elevated surface'],['--m-ink','Primary text'],['--m-body','Body text'],['--m-sec','Secondary text'],['--m-muted','Muted, icons'],['--m-ph','Disabled, placeholder'],['--m-border','Divider, border'],['--m-border2','Input, disabled border']]],
+ ['Brand green',[['--m-accent','Primary, CTA'],['--m-accent-h','Hover'],['--m-accent-p','Pressed'],['--m-accent-tint','Selected tint']]],
+ ['Positive',[['--m-pos','Primary'],['--m-pos-t','Text'],['--m-pos-bg','Tint']]],
+ ['Negative',[['--m-neg','Primary'],['--m-neg-t','Text'],['--m-neg-bg','Tint'],['--m-neg-bd','Border']]],
+ ['Warning',[['--m-warn','Primary'],['--m-warn-t','Text'],['--m-warn-bg','Tint'],['--m-warn-bd','Border']]],
+ ['Neutral / informational',[['--m-neu','Neutral'],['--m-neu-t','Neutral text'],['--m-info','Informational'],['--m-info-t','Info text'],['--m-info-bg','Info tint'],['--m-bench','Benchmark (Chart 03)']]]];
+ var cs=getComputedStyle(document.documentElement),e=$('swatches');if(!e)return;
+ var h=G.map(function(g){return '<div class="pg">'+g[0]+'</div><div class="sw4">'+g[1].map(function(x){var v=cs.getPropertyValue(x[0]).trim();return '<div><div class="c" style="background:var('+x[0]+')"></div><div class="m"><b>'+x[1]+'</b><span class="mono">'+esc(v)+'</span></div></div>'}).join('')+'</div>'}).join('');
+ var SC=[['Excellent','#15803D'],['Strong','#22C55E'],['Good','#65A30D'],['Average','#CA8A04'],['Poor','#EA580C'],['Weak','#C1272D']];
+ h+='<div class="pg">Score colours (fund score labels)</div><div class="sw4">'+SC.map(function(x){return '<div><div class="c" style="background:'+x[1]+'"></div><div class="m"><b>'+x[0]+'</b><span class="mono">'+x[1]+'</span></div></div>'}).join('')+'</div>';
+ h+='<div class="pg">Data visualisation (assigned by rank, largest first)</div><div class="sw4">'+CHART.map(function(c,i){return '<div><div class="c" style="background:'+c+'"></div><div class="m"><b>Chart '+('0'+(i+1)).slice(-2)+'</b><span class="mono">'+c+'</span></div></div>'}).join('')+'</div>';
+ e.innerHTML=h;
+}
+function openMover(nm,am){var sp=[.5,.3,.2],mx=Math.abs(am)*.5;var list=sp.map(function(s,i){var v=Math.round(am*s/100)*100,w=Math.abs(v)/mx*50;return '<div class="mv" role="button" tabindex="0" data-act="soon" data-msg="'+POOL[(i+nm.length)%POOL.length]+'" style="grid-template-columns:36px minmax(0,1fr) auto 16px"><span class="tile">'+ic('chart-pie')+'</span><span class="mid"><b>'+POOL[(i+nm.length)%POOL.length]+'</b><span class="sub">'+Math.round(s*100)+'% of this move</span></span><span class="amt num '+(v>=0?'pos':'neg')+'"><b>'+signed(v)+'</b></span>'+ic('chevron-right')+'<span class="axis"><i style="'+(v>=0?'left:50%':'right:50%')+';width:'+w+'%;background:var(--m-'+(v>=0?'pos':'neg')+')"></i></span></div>'}).join('');modal(nm,'<div class="row between"><span class="sec">Funds behind this move</span><b class="num '+(am>=0?'pos':'neg')+'">'+signed(am)+'</b></div><div style="margin-top:6px">'+list+'</div><p class="sec" style="margin:8px 0 0;font-size:12px">Tap a fund to open its page.</p>')}
+function modal(title,body){
+ var o=document.createElement('div');o.className='mkmodal';o.innerHTML='<div class="mkbox mk"><div class="row between"><h3 style="font-size:16px">'+esc(title)+'</h3><button class="btn2" data-act="close" aria-label="Close">'+ic('x')+'</button></div><div style="margin-top:10px">'+body+'</div></div>';
+ document.body.appendChild(o);if(window.lucide)try{lucide.createIcons()}catch(e){}
+}
+var st=document.createElement('style');st.textContent='.mkmodal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:grid;place-items:center;z-index:30;padding:16px}.mkbox{max-width:440px;width:100%;border:1px solid var(--m-border);border-radius:20px!important;box-shadow:0 8px 30px rgba(0,0,0,.4)}.mkbox .card{margin-top:8px}';document.head.appendChild(st);
+document.addEventListener('click',function(e){
+ var t=e.target.closest('[data-t],[data-s],[data-st],[data-u],[data-act]');if(!t)return;
+ if(t.hasAttribute('data-u')){S.unbuilt=t.getAttribute('data-u');render();return}
+ if(t.hasAttribute('data-t')){S.theme=t.getAttribute('data-t');document.documentElement.setAttribute('data-theme',S.theme);render();return}
+ if(t.hasAttribute('data-s')){S.scope=t.getAttribute('data-s');render();return}
+ if(t.hasAttribute('data-st')){S.st=t.getAttribute('data-st');render();return}
+ var a=t.getAttribute('data-act');
+ if(a==='period'){S.period=t.getAttribute('data-v');updateWealth(true)}
+ else if(a==='hide'){S.hide=!S.hide;render()}
+ else if(a==='flag'){S.flag=!S.flag;render()}
+ else if(a==='retry'){S.st='normal';render()}
+ else if(a==='member'){S.scope='member';render()}
+ else if(a==='mira'){modal('Mira','<p>Mira, your AI guide, is on the way. Soon you will be able to ask about your portfolio in plain language.</p><button class="btn2 primary" data-act="close">Close</button>')}
+ else if(a==='cal'){modal('Pick a date range','<p>A calendar opens here. You can choose dates from October 2016 to today, the last 10 years.</p><button class="btn2 primary" data-act="close">Done</button>')}
+ else if(a==='soon'){toast((t.getAttribute('data-msg')||'This page')+' is coming soon.')}
+ else if(a==='soonrow'){toast((t.getAttribute('data-msg')||'This')+' is coming soon.')}
+ else if(a==='nav'){toast('Navigation preview: '+t.getAttribute('data-msg'))}
+ else if(a==='whynews'){var wi=+t.getAttribute('data-i'),wn=(S.newsGen?GNEWS:NEWS)[wi];modal('Why this?','<p style="margin:0 0 6px"><b>'+esc(wn.reason||'General market news')+'</b></p><p class="sec" style="margin:0 0 10px">A headline appears only when it matches something you hold. We look at your stocks first, then fund categories, fund houses, asset classes, sectors and rates. If nothing specific matches, general market news is shown. The card never changes on a timer.</p>'+(wn.funds?'<div class="cap2" style="margin-bottom:2px">Funds involved</div>'+wn.funds.map(function(f){return '<div class="mv" role="button" tabindex="0" data-act="soon" data-msg="'+f[0]+'" style="grid-template-columns:36px minmax(0,1fr) auto 16px"><span class="tile">'+ic('chart-pie')+'</span><span class="mid"><b>'+f[0]+'</b></span><span class="amt num"><b>'+f[1]+'%</b></span>'+ic('chevron-right')+'</div>'}).join('')+'<div style="margin-top:10px">'+cta('See affected holdings','Affected holdings')+'</div>':''))}
+ else if(a==='affected'){var ai2=+t.getAttribute('data-i'),an=NEWS[ai2];modal('Funds affected','<p class="sec" style="margin:0 0 6px">Funds in your portfolio that hold the companies in this story. A fund opens its page once that page exists.</p>'+an.funds.map(function(f){return '<div class="mv" role="button" tabindex="0" data-act="soon" data-msg="'+f[0]+'" style="grid-template-columns:36px minmax(0,1fr) auto 16px"><span class="tile">'+ic('chart-pie')+'</span><span class="mid"><b>'+f[0]+'</b><span class="sub">'+f[1]+'% of your portfolio</span></span><span class="amt num"><b>'+f[1]+'%</b></span>'+ic('chevron-right')+'</div>'}).join(''))}
+ else if(a==='newsrefresh'){t.classList.add('spin');setTimeout(function(){t.classList.remove('spin');toast('Checked for new headlines. Nothing new matches your portfolio.')},900)}
+ else if(a==='newsways'){modal('How we pick these headlines','<ol style="margin:0;padding-left:18px;display:grid;gap:4px"><li>Stocks you hold (your 5 largest)</li><li>Fund categories you hold</li><li>Fund houses you hold</li><li>Asset classes, such as gold or debt</li><li>Sectors</li><li>Interest rates and the economy</li><li>General market news, only when nothing above matches</li></ol><p class="sec" style="margin:10px 0 0;font-size:12.5px">The card changes only when a matching headline arrives or your holdings change, never on a timer. A headline stays for one day.</p>')}
+ else if(a==='newsgen'){S.newsGen=!S.newsGen;render()}
+ else if(a==='news'){toast('Opens the publisher site in a new tab.')}
+ else if(a==='others'){S.restOpen=!S.restOpen;render()}
+ else if(a==='mviewseg'){S.movers=t.getAttribute('data-v');S.restOpen=false;render()}
+ else if(a==='family'){S.scope='family';render()}
+ else if(a==='topmover'){var r0=MV[S.scope].sector.g[0];openMover(r0[0],r0[1])}
+ else if(a==='benchfocus'){var sel=t.closest('.card').querySelector('select[data-act="bench"]');if(sel){sel.focus();try{sel.showPicker()}catch(e2){}}}
+ else if(a==='info'){modal('How the change is calculated','<p style="margin:0 0 8px">The change excludes new money you added. It uses a money-weighted method (Modified Dietz), so a purchase made yesterday is not counted as a gain.</p><p class="sec" style="margin:0">The blue figure is the index total return over the same period.</p>')}
+ else if(a==='members'){modal('Family data','<div class="stack" style="gap:6px">'+MEM.map(function(f,i){return '<div class="row between" style="padding:6px 0;border-bottom:1px solid var(--m-border)"><span class="row"><span class="av" style="background:'+CHART[i]+';color:'+(i===0?'#111':'#fff')+'">'+f[0].charAt(0)+'</span><b>'+f[0]+'</b></span><span class="pill">'+ic('check')+' Connected</span></div>'}).join('')+'<div class="row between" style="padding:6px 0"><span class="row"><span class="av" style="background:var(--m-border2);color:var(--m-ink)">M</span><b>Meera</b></span><button class="btn2 primary" data-act="close">Import statement</button></div></div>')}
+ else if(a==='alloc'){var ai=+t.getAttribute('data-i'),al=ALLOC[ai],tv=D[S.scope].total*al[1]/100,fl=[POOL[ai%5],POOL[(ai+1)%5],POOL[(ai+2)%5]],sp=[.5,.3,.2];modal(al[0]+' · '+al[1].toFixed(1)+'%','<p class="sec" style="margin:0 0 8px">'+compact(tv)+' across your funds (look-through)</p>'+fl.map(function(n,i){return '<div class="mv" role="button" tabindex="0" data-act="soon" data-msg="'+n+'" style="grid-template-columns:36px minmax(0,1fr) auto 16px"><span class="tile">'+ic('chart-pie')+'</span><span class="mid"><b>'+n+'</b><span class="sub">'+(sp[i]*100)+'% of this class</span></span><span class="amt num"><b>'+compact(tv*sp[i])+'</b></span>'+ic('chevron-right')+'</div>'}).join(''))}
+ else if(false){var nm,am,sp;var list=sp.map(function(s,i){var v=Math.round(am*s/100)*100;return '<div class="mrow" style="grid-template-columns:1fr auto"><span>'+POOL[(i+nm.length)%POOL.length]+'</span><b class="num '+(v>=0?'pos':'neg')+'">'+signed(v)+'</b></div>'}).join('');modal(nm+' ('+signed(am)+')','<p class="sec" style="margin:0 0 6px">Funds in this group (a fund opens its page once that page exists)</p>'+list)}
+ else if(a==='mover'){openMover(t.getAttribute('data-name'),+t.getAttribute('data-amt'))}
+ else if(a==='close'){var o=t.closest('.mkmodal');if(o)o.remove()}
+});
+document.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&e.target.getAttribute&&e.target.getAttribute('role')==='button'){e.preventDefault();e.target.click()}});
+document.addEventListener('change',function(e){var t=e.target;if(!t.getAttribute)return;var a=t.getAttribute('data-act');if(a==='bench'){S.bench=t.value;updateWealth(true)}if(a==='mview'){S.movers=t.value;render()}});
+document.addEventListener('pointermove',function(e){
+ var w=e.target.closest&&e.target.closest('.chartwrap');if(!w)return;
+ var c=CH[w.getAttribute('data-ch')];if(!c)return;var svg=w.querySelector('svg'),r=svg.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*c.W;
+ var best=0,bd=1e9;c.P.forEach(function(p,i){var d=Math.abs(c.x(i)-px);if(d<bd){bd=d;best=i}});var p=c.P[best];
+ var cx=w.querySelector('.cx'),c1=w.querySelector('.c1'),c2=w.querySelector('.c2'),tip=w.querySelector('.tip');
+ cx.setAttribute('x1',c.x(best));cx.setAttribute('x2',c.x(best));cx.style.display='';c1.setAttribute('cx',c.x(best));c1.setAttribute('cy',c.yv(p.v));c1.style.display='';c2.setAttribute('cx',c.x(best));c2.setAttribute('cy',c.yb(p.b));c2.style.display='';
+ tip.style.display='block';tip.style.left=Math.min(r.width-170,Math.max(0,c.x(best)/c.W*r.width+10))+'px';tip.style.top='6px';
+ tip.innerHTML=dlab(p.d)+'<br>'+(S.hide?'••••••':inr(p.v))+'<br><span style="color:#93C5FD">'+BENCH[S.bench][0]+' '+pct(p.b)+'</span>';
+});
+document.addEventListener('pointerout',function(e){var w=e.target.closest&&e.target.closest('.chartwrap');if(!w)return;if(e.relatedTarget&&w.contains(e.relatedTarget))return;['.cx','.c1','.c2'].forEach(function(s){w.querySelector(s).style.display='none'});w.querySelector('.tip').style.display='none'});
+
+// icons grid
+var NI=[['Banks and financials','landmark'],['IT and technology','cpu'],['Pharma and healthcare','pill'],['Auto and EV','car'],['Consumer and FMCG','shopping-basket'],['Energy, oil and power','fuel'],['Metals and mining','pickaxe'],['Real estate and infrastructure','building-2'],['Gold and silver','coins'],['Interest rates and RBI','percent'],['Mutual funds and fund houses','chart-pie'],['Markets (Sensex, Nifty)','chart-candlestick'],['Regulation (SEBI)','scale'],['General news (fallback)','newspaper']];
+$('iconsgrid').innerHTML=NI.map(function(n){return '<div class="mk"><div class="ic">'+ic(n[1])+'</div><b style="font-size:12.5px">'+n[0]+'</b><span class="mono sec" style="font-size:11px">'+n[1]+'</span></div>'}).join('');
+// utilities
+function util(){
+ var a=+$('u1').value||0,b=+$('u2').value||0;$('u1o').textContent=inr(a)+'  |  '+compact(a);
+ $('u2o').textContent=signed(b)+'  |  '+pct(a?b/a*100:0);
+ var hv=$('u3').value==='auto'?istHour():+$('u3').value,k=$('u4').value,s;
+ var g=greetWord(hv);
+ if(k==='gain')s='Your family portfolio is up ₹38,400 since Wednesday.';else if(k==='loss')s='Your family portfolio is down ₹38,400 since Wednesday.';else if(k==='flat')s='Your family portfolio is little changed since Wednesday.';else s="Your family portfolio is up ₹38,400 since Friday's close.";
+ $('u3o').textContent=g+', Siddharth. '+s;
+}
+['u1','u2','u3','u4'].forEach(function(i){$(i).addEventListener('input',util)});util();
+render();
+})();
+
+</script>
+<script>
+var LOCKED=[];var REPLIES={};
+var Q=[{"g":"H","name":"Open questions from the Home documents (23 Oct)","items":[{"id":"H1","t":"Doc 1 Spec: where does the NAV date show?","ask":"L2 says Home says 'as of' the NAV date, but you removed the 'NAV as of' line. Should the date appear anywhere?","ctx":"The status row now shows only 'Data from n of n family members'. A weekend or holiday sentence can still say 'since Friday's close'.","opts":[{"k":"a","l":"Nowhere else","d":"Only the weekend/holiday sentence wording carries a date."},{"k":"b","l":"Small 'as of' under the graph","d":"A grey caption under the chart; the status row stays as is."}],"rec":"a","why":"It follows your instruction literally and keeps the PDF's status row.","risk":"Users cannot tell how fresh the prices are on a normal day."},{"id":"H2","t":"Doc 1 Spec: the data line in member scope","ask":"Show 'Data from n of n family members' when one member is selected or the household has one member?","ctx":"In member scope the count is meaningless ('1 of 1').","opts":[{"k":"a","l":"Hide it","d":"Show only in family scope of multi-member households."},{"k":"b","l":"Always show","d":"Shown in every scope, even 'Data from 1 of 1'."}],"rec":"a","why":"Avoids a line that adds no information.","risk":"Single users see no data-status line at all."},{"id":"H3","t":"Doc 1 Spec: when is a day 'flat'?","ask":"What change counts as 'little changed'?","ctx":"The summary sentence uses up / down / little changed.","opts":[{"k":"a","l":"Under 0.05%","d":"Absolute change below 0.05% reads 'little changed'."},{"k":"b","l":"Exactly zero only","d":"Only a literal zero is flat."}],"rec":"a","why":"A tiny move reads naturally as flat; the threshold is one setting.","risk":"Slightly hides very small real moves."},{"id":"H4","t":"Doc 1 Spec: sector view, holdings with no sector","ask":"Where do holdings with an unmapped or missing sector go in the estimated sector view?","ctx":"Sector names come from stock_master.sector; debt, cash and unmapped lines have none.","opts":[{"k":"a","l":"An 'Other' bucket","d":"Everything unmapped goes to 'Other', so the total still reconciles."},{"k":"b","l":"Hide them","d":"Not shown; the rows would not add to the headline."}],"rec":"a","why":"Keeps the sector rows reconciling to the exact headline.","risk":"'Other' can be large for debt-heavy funds."},{"id":"H5","t":"Doc 1 Spec: recommended benchmark for small-cap-heavy portfolios","ask":"With Nifty Smallcap 250 added, should small-cap-heavy portfolios get it as the recommended pick?","ctx":"I added this rule; L25 and L45 only say the index is offered.","opts":[{"k":"a","l":"Yes","d":"Small-cap heavy recommends Smallcap 250."},{"k":"b","l":"No","d":"Smallcap 250 is selectable but never recommended."}],"rec":"a","why":"Matches the cap-mix logic used for every other bucket.","risk":"Needs a cap-mix threshold (set during calibration)."},{"id":"H6","t":"Doc 1 Spec: the '3 months ago' concentration bar","ask":"Only about 3 months of fund disclosures are kept. If the earlier month is missing, omit the comparison bar or extend retention?","ctx":"The Worth a look mockup shows 41% (3 months ago) vs 46% (now).","opts":[{"k":"a","l":"Omit the bar","d":"Show only the current share when the earlier month is missing; no retention change."},{"k":"b","l":"Extend retention","d":"Keep 4+ months of disclosures so the bar can always show (needs an ADR-level decision)."}],"rec":"a","why":"No change to existing retention; honest when data is missing.","risk":"The trend bar will often be absent early on."},{"id":"H7","t":"Doc 1 Spec: Healthchecks.io plan","ask":"Healthchecks.io is chosen for the news-job heartbeat. Is the free tier acceptable (one check, one ping per run)?","ctx":"The news card needs a new background job (every 3 hours it downloads public news files and stores matching headlines). If that job silently stops, the card would just go stale and nobody would notice. Healthchecks.io is a small monitoring website: after every successful run our job sends one tiny web request to a private URL. If no request arrives on schedule, Healthchecks emails or messages you that the job did not run. It sends no user data, only that the job finished. The free plan allows about 20 checks, which is plenty for one job.","opts":[{"k":"a","l":"Yes, free tier","d":"One check, pinged on success."},{"k":"b","l":"Self-hosted heartbeat","d":"Run the check from our own infrastructure."}],"rec":"a","why":"Simplest; no user data leaves the system.","risk":"A third-party dependency for alerting only."},{"id":"H8","t":"Doc 2 Layout: two-column arrangement","ask":"Left column: Money at a glance, What moved today. Right column: Allocation and Family bar. Wealth card full width above; Worth a look and News full width below. OK?","ctx":"Section 6 is removed so these two columns take the freed space.","opts":[{"k":"a","l":"Yes","d":"As described."},{"k":"b","l":"Different","d":"Write the arrangement you want in the note."}],"rec":"a","why":"Balances the two tallest cards and keeps the PDF order.","risk":"If one card is much taller, a column has empty space."},{"id":"H9","t":"Doc 2 Layout: breakpoints","ask":"Two columns from 1280 px, stacked below; minimum supported width 1024 px (below 768 px the mobile tree takes over as today). OK?","ctx":"Desktop only; mobile untouched.","opts":[{"k":"a","l":"Yes","d":"1280 px two columns, stacked below."},{"k":"b","l":"Other values","d":"Write them in the note."}],"rec":"a","why":"Common laptop widths stay two-column.","risk":"Narrow laptops see a long stacked page."},{"id":"H10","t":"Doc 2 Layout: failed-import banner","ask":"Where does the 'import failed, retry' banner sit?","ctx":"Failed import is one of the designed states (F3).","opts":[{"k":"a","l":"Above everything","d":"A banner above the greeting, spanning the page."},{"k":"b","l":"Inside the wealth card","d":"Only the wealth card shows the failure."}],"rec":"a","why":"Impossible to miss, one place.","risk":"Pushes the whole page down while shown."},{"id":"H11","t":"Doc 3 Design: news categories","ask":"Approve the 13 news categories plus a general fallback for the category icons (list in the design doc).","ctx":"Banks, IT, Pharma, Auto, Consumer, Energy, Metals, Real estate, Gold and silver, Rates and RBI, Funds, Markets, Regulation, General.","opts":[{"k":"a","l":"Approve all 14","d":"Draw them in the app's Lucide style."},{"k":"b","l":"Change the list","d":"Add or remove categories in the note."}],"rec":"a","why":"Covers the sectors users actually see in headlines.","risk":"More categories mean more icons to design and test."},{"id":"H12","t":"Doc 3 Design: pixel mockups","ask":"When do you want pixel mockups (including the icon mockups)?","ctx":"The design doc has wireframes and notes only.","opts":[{"k":"a","l":"After the docs are approved","d":"Next step, before plans."},{"k":"b","l":"Skip, build from the doc","d":"Go straight to plans; mockups later."}],"rec":"a","why":"Avoids drawing screens that these answers may change.","risk":"A later mockup round can force frontend rework."},{"id":"H13","t":"Doc 3 Design: benchmark blue","ask":"May I choose the benchmark blue to fit the existing palette (one new token, both themes) without asking you for a hex value?","ctx":"Needed so the blue line reads in light and dark.","opts":[{"k":"a","l":"Yes","d":"I pick it and show it in the mockups."},{"k":"b","l":"I will give a hex","d":"Write it in the note."}],"rec":"a","why":"You review it in the mockups anyway.","risk":"Minor colour rework."},{"id":"H14","t":"Doc 5 TDD: staging performance run","ask":"When does the staging performance run happen (cold load, live NAV fetch, look-through timing)?","ctx":"It needs the VM and decides whether we need the precompute fallback.","opts":[{"k":"a","l":"First task of implementation","d":"Run it before building the Home endpoints."},{"k":"b","l":"Before plans lock","d":"Run it now, then write plans from the numbers."}],"rec":"a","why":"The plans do not need the numbers; the run needs the VM and your go.","risk":"If it misses 1.5 s the plan changes mid-build."},{"id":"H15","t":"Doc 5 TDD: test data","ask":"Confirm the data: synthetic set for every number, plus Chandra and two real statements as local spot checks (never committed).","ctx":"This is F6, restated for the TDD doc.","opts":[{"k":"a","l":"Confirm","d":"As described."},{"k":"b","l":"Synthetic only","d":"No real statements."}],"rec":"a","why":"Matches your earlier answer.","risk":"Synthetic data can miss odd real-world statements."},{"id":"H16","t":"Doc 6 Architecture: 'search on hold' note","ask":"May I add one line to the contract and the shell architecture noting the search box is on hold (L46)?","ctx":"Both are existing documents; the top-bar sections still describe search.","opts":[{"k":"a","l":"Yes, one line each","d":"I add the note, nothing else."},{"k":"b","l":"No","d":"Leave them as they are."}],"rec":"a","why":"Stops the next builder from building search.","risk":"The docs keep contradicting L46."},{"id":"H17","t":"Doc 6 Architecture: Direct Stocks slug","ask":"Is /portfolio/equity/direct-stocks the final slug (an earlier workbook used 'stocks')?","ctx":"Still listed as to-confirm in contract section 10.","opts":[{"k":"a","l":"direct-stocks","d":"Keep the contract's slug."},{"k":"b","l":"stocks","d":"Change to /portfolio/equity/stocks."}],"rec":"a","why":"It is already in contract v1.2.","risk":"Changing it later needs a contract notice."},{"id":"H18","t":"Doc 6 Architecture: where the routes live","ask":"Put the Home routes in a new api/home.py router rather than inside dashboard.py?","ctx":"dashboard.py is already large; Home is a separate feature.","opts":[{"k":"a","l":"New api/home.py","d":"Own file, registered in main.py."},{"k":"b","l":"Inside dashboard.py","d":"Fewer files, bigger file."}],"rec":"a","why":"Cleaner ownership and smaller diffs.","risk":"One more file to register."},{"id":"H19","t":"Doc 7 PRD: PRD-01 version note","ask":"May I add a short version note to PRD-01 saying Home replaces the Dashboard as the landing screen?","ctx":"PRD-01 still names the Dashboard as the landing screen.","opts":[{"k":"a","l":"Yes, show the wording first","d":"I draft the note; you approve before I edit."},{"k":"b","l":"No","d":"Leave PRD-01; the new PRD stands alone."}],"rec":"a","why":"Avoids two documents that disagree.","risk":"Readers of PRD-01 see the old landing."},{"id":"H20","t":"Doc 7 PRD: success measures","ask":"The app has no event tracking, so click and popup measures cannot be measured. Add tracking to scope?","ctx":"Success measures are how we would know, after launch, whether Home works: for example how many people click from Home into a Portfolio page, how many open the Mira popup, how many click a news item. The app records none of these today (no event tracking exists). Counting them needs a small tracking feature: the page sends an event on each click and the backend stores or forwards it. That is extra build work and a privacy decision. The question is whether to include it in this release or ship Home first and add measurement later.","opts":[{"k":"a","l":"Leave out of this release","d":"List the measures only."},{"k":"b","l":"Add basic tracking","d":"Adds a small tracking feature to the plan."}],"rec":"a","why":"Keeps this release to what you asked for.","risk":"No data to judge Home after launch."},{"id":"H21","t":"Doc 8 Flows: Home and Dashboard triggers","ask":"Confirm Home and Dashboard compute on separate triggers, with the precompute fallback only if staging misses 1.5 s.","ctx":"This is about when the numbers behind Home are calculated. Dashboard and Home both need holdings and values. Option a: each screen calculates only what it shows, only when you open it (Home on /home, Dashboard on /portfolio/mutual-funds), reading the same existing tables, so nothing extra is stored. Option b: calculate Home daily series in advance (after each statement import and in the 06:30 job) and store it in a new table, so Home loads instantly but we add a table, a job step and more places for numbers to go stale. Measurements say a is fast enough (under about 1.5 s expected), so the proposal is a, with b as the fallback only if the staging test misses the target.","opts":[{"k":"a","l":"Confirm","d":"Separate triggers; fallback only on a miss."},{"k":"b","l":"Precompute from the start","d":"Build the daily series table now."}],"rec":"a","why":"Reuses existing tables; no new table unless needed.","risk":"If staging is slow we add the table late."},{"id":"H22","t":"Doc 9 Decisions: write them down","ask":"May I append BD1 to BD13 to decisions.md and add the new table and columns to the schema doc when they are built?","ctx":"The decisions doc is append-only; the schema doc is 'exact and final'.","opts":[{"k":"a","l":"Yes, both","d":"Append decisions after all questions are settled; update the schema doc at build time."},{"k":"b","l":"Decisions only","d":"Do not touch the schema doc yet."}],"rec":"a","why":"Keeps the permanent record in sync.","risk":"Docs lag if skipped."},{"id":"H23","t":"Plans: how to split","ask":"How should the implementation plans be split?","ctx":"The contract treats the shell as its own plan.","opts":[{"k":"a","l":"Four plans","d":"Shell, Home backend, Home frontend, News."},{"k":"b","l":"Two plans","d":"Shell, and Home (including News)."}],"rec":"a","why":"Matches PR boundaries and who builds what.","risk":"More documents to keep consistent."},{"id":"H24","t":"Plans: news timing","ask":"Does the news card ship in the same release as Home, or dark afterwards?","ctx":"Counsel's review and a one to two week dark launch were recommended.","opts":[{"k":"a","l":"Dark afterwards","d":"Home ships first; news ships behind the kill switch, then switches on after review."},{"k":"b","l":"Same release","d":"Everything together."}],"rec":"a","why":"Home does not wait for the legal review.","risk":"News arrives later than the rest."},{"id":"H25","t":"Plans: shell first","ask":"Should the shell plan be written first, in the same batch?","ctx":"Home depends on the shell PR being merged.","opts":[{"k":"a","l":"Yes, first","d":"Shell plan, then the others."},{"k":"b","l":"Later","d":"Write Home plans only."}],"rec":"a","why":"Everything depends on it.","risk":"None."}]},{"g":"M","name":"Design questions from the mockups","items":[{"id":"M1","t":"Wealth graph: area fill","ask":"Should the green line have a soft area fill beneath it, or be a line only?","ctx":"See section 2: switch periods and hover. The PDF mockup shows a green area line with fill.","opts":[{"k":"a","l":"Soft area fill","d":"Gradient fading to transparent under the green line; benchmark stays a plain blue line (as in the mockup)."},{"k":"b","l":"Line only","d":"Cleaner when two lines are close together; loses the PDF look."}],"rec":"a","why":"Matches the PDF and makes the portfolio line the lead while the blue line stays thin.","risk":"The fill can visually compete with the blue line on short periods."},{"id":"M2","t":"Period buttons style","ask":"How should the 1D 1W 1M 1Y Custom buttons look?","ctx":"Section 2 uses a segmented control under the chart.","opts":[{"k":"a","l":"Segmented control","d":"One joined control; the selected period is filled."},{"k":"b","l":"Text tabs","d":"Plain labels with an underline on the selected one; lighter, easier to miss."}],"rec":"a","why":"The selected period is obvious at a glance.","risk":"None."},{"id":"M3","t":"Hide values affordance","ask":"How does the user hide values?","ctx":"Section 2 shows an eye icon button beside the big number (L26).","opts":[{"k":"a","l":"Eye icon button","d":"Icon only, with a tooltip and an accessible label."},{"k":"b","l":"Text button","d":"The words \"Hide values\" beside the number; clearer, takes more space."}],"rec":"a","why":"Familiar from banking apps and keeps the number row compact.","risk":"Some users may not recognise the icon."},{"id":"M4","t":"Movers rows","ask":"How should each mover row look?","ctx":"Section 5: name, a small diverging bar, signed amount (the rows are clickable).","opts":[{"k":"a","l":"Name, small bar, amount","d":"The bar shows relative size; gains point right in green, losses left in red."},{"k":"b","l":"Name and amount only","d":"Plain list as in the PDF mockup; no bar."},{"k":"c","l":"Full-width bars","d":"Large bars under each name; more visual, takes much more height."}],"rec":"a","why":"Adds scale at little cost in height.","risk":"The bar needs a stable max; a single huge mover shrinks the rest."},{"id":"M5","t":"Reconciling 'others' row","ask":"The card shows top 2 gains and top 2 losses (L28). Show an 'N others' row so the rows add up to the net change?","ctx":"Section 5 includes it. Without it the rows do not sum to the net figure, and the PDF note says all contributors should reconcile.","opts":[{"k":"a","l":"Show the others row","d":"Always reconciles on screen."},{"k":"b","l":"Omit it","d":"Cleaner; the rows visibly do not add up to the net."}],"rec":"a","why":"The headline, the contributors and the net must agree.","risk":"One more row of height."},{"id":"M6","t":"Estimated tag","ask":"How should the sector view be marked as an estimate?","ctx":"Section 5 shows an 'Estimated' pill with a tooltip, plus a footnote.","opts":[{"k":"a","l":"Pill, tooltip and footnote","d":"Hard to miss; explains the method on hover."},{"k":"b","l":"Footnote only","d":"Quieter; easy to overlook."}],"rec":"a","why":"The sector split is approximate, so the label should be visible.","risk":"Slightly busier header."},{"id":"M7","t":"Coming-soon allocation rows","ask":"How should classes that are not live yet look?","ctx":"Section 4 shows muted rows with a 'Coming soon' pill, not drawn in the donut (A2).","opts":[{"k":"a","l":"Muted row and pill","d":"Grey swatch, faded text, a Coming soon pill."},{"k":"b","l":"Lock icon","d":"Same muted row with a small lock icon instead of the pill."}],"rec":"a","why":"Plain words are clearer than an icon, and the row flips to a normal one when the class goes live.","risk":"None."},{"id":"M8","t":"Worth a look card style","ask":"How should flagged cards look?","ctx":"Section 7 uses an amber-tinted card with a warning icon, a headline, one sentence and a link.","opts":[{"k":"a","l":"Amber tint with icon","d":"Draws the eye; reads as attention, not an error."},{"k":"b","l":"Neutral card with amber icon","d":"Calmer; less urgent."}],"rec":"a","why":"These are items that deserve a look, and the tint makes them findable.","risk":"Several tinted cards in a row can feel alarming."},{"id":"M9","t":"News item layout","ask":"How should a news item be laid out?","ctx":"Section 8 puts our category icon in a tile on the left (the PDF thumbnail slot), then headline, kind and time, the exposure chip and one sentence.","opts":[{"k":"a","l":"Icon tile on the left","d":"As the PDF layout, with the icon replacing the thumbnail."},{"k":"b","l":"Icon inline with the kind label","d":"More compact; no thumbnail slot."}],"rec":"a","why":"Matches the PDF.","risk":"None."},{"id":"M10","t":"Empty page (no holdings)","ask":"What does Home show when there is no data yet?","ctx":"Switch the State bar to Empty: sections 1 and 2 show an Import prompt and every other section is hidden.","opts":[{"k":"a","l":"Greeting and wealth card only","d":"Two clear prompts; the rest appears after the first import."},{"k":"b","l":"All sections with empty messages","d":"Shows the full layout but with a lot of empty cards."}],"rec":"a","why":"A clear single next step.","risk":"The page looks short on a first visit."},{"id":"M11","t":"Family bar style","ask":"How should the family members be shown under the donut?","ctx":"Section 4 shows one row per member with amount, percentage and a thin bar (PDF page 7).","opts":[{"k":"a","l":"Rows with thin bars","d":"As the PDF; each row switches the scope."},{"k":"b","l":"One stacked bar","d":"A single bar split by member with a legend; more compact, less clickable."}],"rec":"a","why":"Matches the PDF and each row is a clear click target.","risk":"Long names in large families may wrap."},{"id":"M12","t":"Colour tokens: global or scoped","ask":"The new palette differs from today's tokens.css (for example card colour, borders, red, amber, dark background). How should the build adopt it?","ctx":"Updating tokens.css changes the look of every existing screen (Dashboard, Analytics and so on), which are meant to stay untouched. Home and the shell could use the palette through new names instead.","opts":[{"k":"a","l":"Scoped: new palette tokens for Home and the shell only","d":"Add the palette as new token names used by Home and the shell; existing screens keep the old values until your manager moves them."},{"k":"b","l":"Global: replace the values in tokens.css","d":"Every screen picks up the new palette at once; changes the appearance of existing screens."}],"rec":"a","why":"Keeps the rule that existing screens are not changed and avoids a surprise restyle.","risk":"Two palettes live side by side for a while."},{"id":"M13","t":"Benchmark line colour","ask":"The palette has no benchmark colour and the PDF asks for blue. Which blue?","ctx":"The mockups use Chart 03 blue (#2563EB) for the benchmark line, axis and percentage. Informational indigo (#4F46E5) also exists.","opts":[{"k":"a","l":"Chart 03 blue #2563EB","d":"A true blue from the data palette; also used as the third donut slice."},{"k":"b","l":"Informational indigo #4F46E5","d":"Palette semantic for information; reads purple-blue, less like the PDF."}],"rec":"a","why":"Matches the PDF wording 'blue' and is already in the palette.","risk":"The same blue appears in the donut for the third-largest class; different chart, same colour."},{"id":"M14","t":"Gain and loss figures","ask":"Palette: large numerals and chart marks use the primary shade; small numbers use the darker AA-safe text shade. Apply that?","ctx":"In the mockups the change under the big number is small text, so it uses the text shade (green #15803D, red #C1272D); bars and the line use the primary shade.","opts":[{"k":"a","l":"Yes, follow the palette","d":"Small figures use the text shade; marks and large numerals use the primary shade."},{"k":"b","l":"Primary shade everywhere","d":"Brighter, but fails the contrast rule in the palette for small numbers."}],"rec":"a","why":"It is the palette's own rule.","risk":"None."},{"id":"M15","t":"Dark-mode tints","ask":"The palette gives dark text colours but no dark background tints for semantic cards. Use the primary colour at low opacity?","ctx":"The dark mockups use the semantic colour at 12 to 18% opacity for tints and the standard dark border.","opts":[{"k":"a","l":"Low-opacity tints","d":"Derived from the palette; matches the light-mode logic."},{"k":"b","l":"Give me the values","d":"Write them in the note and I will use exactly those."}],"rec":"a","why":"Keeps one rule for both themes.","risk":"Derived values may differ from what the design team intends."},{"id":"M16","t":"Border tint for positive","ask":"The palette lists #EAFBF0 for both the positive tint and the positive border. Is the border meant to be darker?","ctx":"Every other semantic colour has a distinct border. The mockups use #EAFBF0 as written.","opts":[{"k":"a","l":"Use #EAFBF0 as written","d":"Border is nearly invisible against the tint."},{"k":"b","l":"I will give the border hex","d":"Write it in the note."}],"rec":"b","why":"Looks like a typo in the palette PDF.","risk":"A near-invisible border on positive badges."},{"id":"M17","t":"Links to pages that are not built yet","ask":"Decision L32 greys out links to pages that do not exist yet. You now want everything to feel clickable. What should an unbuilt link do?","ctx":"Try the Unbuilt links switch at the top. 'Click shows note' keeps the link looking live and shows a friendly 'coming soon' note; 'Greyed out' is the L32 behaviour. Several links are affected: View all, fund pages, View in Analytics, See what is driving it, affected holdings.","opts":[{"k":"a","l":"Look live, click shows a short note","d":"Replaces L32. Users get feedback on every click and the link needs no code change when its page goes live."},{"k":"b","l":"Greyed out with a tooltip (L32)","d":"As decided earlier; clear that it is unavailable, but feels dead."},{"k":"c","l":"Hide the link until the page exists","d":"Cleanest page; users never learn the feature is coming."}],"rec":"a","why":"It matches the instruction that everything should invite a click, and it still tells the user honestly that the page is not ready.","risk":"Users may click several times and see 'coming soon' repeatedly."}]},{"g":"N","name":"Follow-up questions from your answers (23 Oct, round 2)","items":[{"id":"N1","t":"Follow-up to H6: how many months of fund disclosures to keep","ask":"You chose to extend retention so the 'three months ago' bar can show. How long should we keep disclosures per fund?","ctx":"Today the cleanup job keeps the newest 3 calendar months per fund. The bar needs 4 (the latest plus the one three months back). A few more months gives a safety margin when a fund house skips or delays a monthly file (the factsheet access gaps in Priority 1), and later supports the 'stocks added and removed since last month' view from the PDF. It also grows the holdings table; we would measure its size first.","opts":[{"k":"a","l":"4 months","d":"The minimum that makes the bar work. Smallest storage growth, no margin if a file is late."},{"k":"b","l":"6 months","d":"Safety margin for late files and room for month-on-month changes; moderate storage growth."},{"k":"c","l":"12 months","d":"A full year of history; the largest storage growth."}],"rec":"b","why":"Covers late monthly files and the added/removed view with a modest storage increase, to be checked against real table size.","risk":"A longer window costs more storage and slows the cleanup job slightly."},{"id":"N2","t":"Follow-up to H14: running the staging performance check","ask":"You asked for the staging performance run before the plans lock. It measures a cold Home load, the live price fetches and the look-through timing on the real VM. How do we run it?","ctx":"The plans stay on hold until it is done. An offline measurement already exists (series 8 to 240 ms, contributors 5 to 20 ms, XIRR 0.7 to 1.0 s), but the live price fetch and look-through timing could not be measured offline.","opts":[{"k":"a","l":"I prepare a script, you run it on the VM","d":"I write a read-only measurement script following the existing measurement script style; you run it on staging and paste the output."},{"k":"b","l":"I run it over SSH with your go","d":"I run the same read-only script myself through the existing staging access, after you approve it."},{"k":"c","l":"Skip it, plan from the offline numbers","d":"Plans start now; the staging run becomes the first build task instead."}],"rec":"a","why":"It needs your VM access and keeps the staging run in your hands.","risk":"Plans wait until the output arrives."},{"id":"N3","t":"Follow-up to H20: which Home interactions to track","ask":"You chose to add basic tracking. Which interactions do we record?","ctx":"Basic tracking means the page tells our server when something happens, for example 'news item clicked'. Nothing about money or holdings is sent.","opts":[{"k":"a","l":"Seven key events","d":"Home viewed, period selected, benchmark selected, mover opened, Worth a look card clicked, news item clicked, Mira popup opened."},{"k":"b","l":"Page views only","d":"Just that Home was viewed and which section the user scrolled to; lightest."},{"k":"c","l":"Every click on Home","d":"Most complete, most data to store and review, and the biggest privacy question."}],"rec":"a","why":"Answers the questions we care about (do people use Home, what do they click) without recording everything.","risk":"Missing an event type means adding it later."},{"id":"N4","t":"Follow-up to H20: where tracking data is stored and the privacy side","ask":"Where do the tracking events go, and does the current consent text cover them?","ctx":"The app has append-only consent records for sign-up and upload. Events would be tied to the signed-in account.","opts":[{"k":"a","l":"Our own database, own table","d":"A small product events table in our existing database, 12 months retention, no third party. The wording is added to the copy review list (F5)."},{"k":"b","l":"An outside analytics tool","d":"Faster dashboards, but customer behaviour data leaves our system and needs new consent wording."},{"k":"c","l":"Log lines only","d":"No new table, but nothing is easy to count afterwards."}],"rec":"a","why":"Keeps the data inside our system and needs no new vendor.","risk":"The consent and privacy wording may need a small update, to be checked in the copy review."},{"id":"N5","t":"Follow-up to H24: how the news card goes live in the same release","ask":"News ships in the same release as Home. Is the card live from day one, or does it ship switched off until the legal review is done?","ctx":"The earlier plan had a one to two week hidden trial and a lawyer's review because a card personalised to holdings can be read as advice. The kill switch already exists in the design.","opts":[{"k":"a","l":"Ships switched off, turned on after the review","d":"The code is in the release; the card stays hidden until counsel signs off and you turn it on."},{"k":"b","l":"Live from day one with the disclaimer","d":"Users see news immediately; takes on the wording and licensing risk before review."},{"k":"c","l":"Live in staging first for one to two weeks, then production","d":"Same release for the code, a short trial on staging before real users see it."}],"rec":"a","why":"Meets 'same release' without putting unreviewed wording in front of users.","risk":"The card is invisible to users until the review finishes."},{"id":"N6","t":"Version note for the Dashboard-as-landing statement","ask":"The statement that the Dashboard is the landing screen is in PRD-03 (not PRD-01 as I first wrote). Two copies of PRD-03 exist and differ. Where does the version note go?","ctx":"The wording is drafted in 2026-10-23-prd-03-version-note-draft.md. Nothing has been edited. The two copies are Docs/PRD-03-Main-Dashboard.md and Docs/PRDs/PRD-03-Main-Dashboard.md.","opts":[{"k":"a","l":"Docs/PRDs/PRD-03-Main-Dashboard.md","d":"The PRDs folder copy."},{"k":"b","l":"Docs/PRD-03-Main-Dashboard.md","d":"The copy at the top of Docs."},{"k":"c","l":"Both copies","d":"Same note in each; the copies stay different in other ways."}],"rec":"c","why":"Avoids guessing which one readers use.","risk":"Two copies keep drifting apart."}]},{"g":"P","name":"Follow-ups on holdings speed (23 Oct, round 3)","items":[{"id":"P7","t":"Should Home use the prices already stored each morning?","ask":"A job already stores every fund price each morning at 06:00. Home can use that stored data and skip the live downloads, which currently make a cold open take 19 to 24 seconds. Do we do that?","ctx":"No new job and no new table. The only change is a small switch on the existing holdings calculation so Home uses the stored prices instead of downloading again. Prices are as of the latest published NAV day (up to about 10 hours behind in the evening), which is fine because NAVs publish once a day.","opts":[{"k":"a","l":"Yes, Home uses the stored prices","d":"Fast cold open. No new jobs."},{"k":"b","l":"No, keep the live downloads","d":"Always the freshest price, but Home takes 19 to 24 seconds and misses the 1.5 second target."}],"rec":"a","why":"The data is already there each morning, and a once-a-day price does not need a live download.","risk":"None that matters for a once-a-day price."},{"id":"P9","t":"Should the Dashboard get the same speed-up?","ask":"The Dashboard has the same slow cold open. Do we fix it too, now?","ctx":"Not needed for Home. It would be a separate change to code the Dashboard shares, so it should be its own task.","opts":[{"k":"a","l":"No, leave the Dashboard for now","d":"I note the slowness as a known gap so it is not forgotten."},{"k":"b","l":"Yes, fix it as a separate change","d":"Dashboard also opens fast; more testing and it touches an existing screen."}],"rec":"a","why":"Keeps this release away from existing screens.","risk":"The Dashboard stays slow on cold opens until someone picks it up."}]}];
+var KEY="home-mockups-v1";
+var state={};
+try{state=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){state={}}
+/* Answers are kept in two places: this browser (instant) and the artifact's own database
+   (survives closing the tab, clearing site data, and opening on another device).
+   Each question carries a timestamp t so the newer edit wins when the two are merged. */
+var dbDoc=null,dbTimer=null,dbSaving=false,dbDirty=false;
+function setSaveState(m){var el=document.getElementById("savestate");if(el)el.textContent=m?" · "+m:""}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+function touch(id){state[id]=state[id]||{};state[id].t=Date.now();return state[id]}
+function save(){saveLocal();scheduleDb()}
+function scheduleDb(){if(!dbDoc)return;dbDirty=true;clearTimeout(dbTimer);dbTimer=setTimeout(flushDb,600)}
+function flushDb(){
+  if(dbSaving){dbTimer=setTimeout(flushDb,300);return}
+  if(!dbDirty||!dbDoc)return;
+  dbDirty=false;dbSaving=true;setSaveState("saving");
+  dbDoc.set({state:JSON.parse(JSON.stringify(state)),updatedAt:new Date().toISOString()}).then(function(){
+    dbSaving=false;setSaveState("saved");
+  },function(){
+    dbSaving=false;dbDirty=true;setSaveState("not saved to cloud, kept in this browser");
+  });
+}
+function mergeIn(remote){
+  var changed=false;
+  Object.keys(remote||{}).forEach(function(k){
+    var r=remote[k]||{},l=state[k];
+    if(!l||(r.t||0)>(l.t||0)){state[k]=r;changed=true}
+  });
+  return changed;
+}
+function localNewer(remote){
+  return Object.keys(state).some(function(k){return !remote[k]||(state[k].t||0)>(remote[k].t||0)});
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+var ll=document.getElementById("lockedList");
+LOCKED.forEach(function(x){
+  var d=document.createElement("div");d.className="card locked";
+  d.innerHTML='<header><span class="id">'+x[0]+'</span><h3>'+x[1]+'</h3><span class="tag locked">decided by you</span></header><p class="decided">'+x[2]+'</p>';
+  ll.appendChild(d);
+});
+
+var qroot=document.getElementById("questions");
+var total=0;
+Q.forEach(function(grp){
+  var sec=document.createElement("section");sec.id="grp-"+grp.g;
+  sec.innerHTML='<h2>'+grp.g+'. '+esc(grp.name)+'</h2>';
+  grp.items.forEach(function(it){
+    total++;
+    var card=document.createElement("article");card.className="card";card.id="q-"+it.id;card.setAttribute("data-id",it.id);
+    var h='<header><span class="id">'+it.id+'</span><h3>'+esc(it.t)+'</h3><span class="tag open" data-status>unanswered</span></header>';
+    h+='<p class="ask">'+esc(it.ask)+'</p><p class="ctx">'+esc(it.ctx)+'</p><div class="opts" role="radiogroup" aria-label="'+esc(it.t)+'">';
+    it.opts.forEach(function(o){
+      var isr=o.k===it.rec;
+      h+='<label class="opt'+(isr?' isrec':'')+'"><input type="radio" name="r-'+it.id+'" value="'+o.k+'"><span><b>'+o.k.toUpperCase()+'. '+esc(o.l)+(isr?' <span class="tag rec">recommended</span>':'')+'</b><span class="d">'+esc(o.d)+'</span></span></label>';
+    });
+    h+='</div><div class="why"><b>Why I recommend '+it.rec.toUpperCase()+':</b> '+esc(it.why)+'</div><p class="risk"><b>If this goes wrong:</b> '+esc(it.risk)+'</p>'+(REPLIES[it.id]?'<div class="reply"><b class="t">Reply to your note:</b> '+REPLIES[it.id]+'</div>':'');
+    h+='<div class="row"><button class="btn ghost" data-use>Use recommended ('+it.rec.toUpperCase()+')</button><button class="btn ghost" data-reset>Reset</button></div>';
+    h+='<label for="n-'+it.id+'" class="count" style="display:block;margin-top:10px">Your own answer or notes</label><textarea id="n-'+it.id+'" placeholder="Optional. Write your own option here."></textarea>';
+    card.innerHTML=h;sec.appendChild(card);
+  });
+  qroot.appendChild(sec);
+});
+
+function cardOf(id){return document.getElementById("q-"+id)}
+function refresh(){
+  var done=0;
+  Q.forEach(function(g){g.items.forEach(function(it){
+    var c=cardOf(it.id),s=state[it.id]||{},ans=!!(s.c||(s.n&&s.n.trim()));
+    if(ans)done++;
+    var tag=c.querySelector("[data-status]");
+    tag.textContent=ans?"answered":"unanswered";tag.className="tag "+(ans?"done":"open");
+    c.setAttribute("data-answered",ans?"1":"0");
+    var radios=c.querySelectorAll("input[type=radio]");
+    radios.forEach(function(r){r.checked=(s.c===r.value)});
+    var ta=c.querySelector("textarea");if(ta&&ta.value!==(s.n||""))ta.value=s.n||"";
+  })});
+  document.getElementById("count").textContent=done+" of "+total+" answered";
+  applyFilter();buildOut();
+}
+var filter="all";
+function applyFilter(){
+  document.querySelectorAll("article.card").forEach(function(c){
+    var a=c.getAttribute("data-answered")==="1";
+    var hide=(filter==="open"&&a)||(filter==="done"&&!a);
+    c.classList.toggle("hidden-by-filter",hide);
+  });
+  ["all","open","done"].forEach(function(f){document.getElementById("f-"+f).setAttribute("aria-pressed",String(filter===f))});
+}
+["all","open","done"].forEach(function(f){document.getElementById("f-"+f).addEventListener("click",function(){filter=f;applyFilter()})});
+
+qroot.addEventListener("change",function(e){
+  var c=e.target.closest("article.card");if(!c)return;var id=c.getAttribute("data-id");
+  if(e.target.type==="radio"){touch(id).c=e.target.value;save();refresh()}
+});
+qroot.addEventListener("input",function(e){
+  if(e.target.tagName!=="TEXTAREA")return;
+  var c=e.target.closest("article.card");var id=c.getAttribute("data-id");
+  touch(id).n=e.target.value;save();
+  var s=state[id],ans=!!(s.c||(s.n&&s.n.trim()));
+  var tag=c.querySelector("[data-status]");tag.textContent=ans?"answered":"unanswered";tag.className="tag "+(ans?"done":"open");
+  c.setAttribute("data-answered",ans?"1":"0");
+  var n=document.querySelectorAll('article.card[data-answered="1"]').length;
+  document.getElementById("count").textContent=n+" of "+total+" answered";buildOut();
+});
+qroot.addEventListener("click",function(e){
+  var c=e.target.closest("article.card");if(!c)return;var id=c.getAttribute("data-id");
+  var it=null;Q.forEach(function(g){g.items.forEach(function(x){if(x.id===id)it=x})});
+  if(e.target.hasAttribute("data-use")){touch(id).c=it.rec;save();refresh()}
+  if(e.target.hasAttribute("data-reset")){state[id]={t:Date.now()};save();refresh()}
+});
+
+function buildOut(){
+  var lines=["Home design mockups: answers",""];
+  Q.forEach(function(g){g.items.forEach(function(it){
+    var s=state[it.id]||{},txt;
+    if(s.c){var o=it.opts.filter(function(x){return x.k===s.c})[0];txt=s.c.toUpperCase()+" - "+o.l+(s.c===it.rec?" (recommended)":"")}
+    else txt="no choice";
+    if(s.n&&s.n.trim())txt+=" | note: "+s.n.trim();
+    lines.push(it.id+" "+it.t+": "+txt);
+  })});
+  document.getElementById("out").textContent=lines.join("\n");
+}
+document.getElementById("copy").addEventListener("click",function(){
+  var t=document.getElementById("out").textContent,m=document.getElementById("copied");
+  function sel(){var r=document.createRange();r.selectNodeContents(document.getElementById("out"));var s=window.getSelection();s.removeAllRanges();s.addRange(r);m.textContent="Select and copy the text below."}
+  try{navigator.clipboard.writeText(t).then(function(){m.textContent="Copied."},sel)}catch(e){sel()}
+});
+document.getElementById("clear").addEventListener("click",function(){
+  var t=Date.now();Q.forEach(function(g){g.items.forEach(function(it){state[it.id]={t:t}})});save();refresh();
+});
+refresh();
+
+/* Connect the database once the viewer answers; the page works without it. */
+(function(){
+  if(!(window.claude&&window.claude.use))return;
+  window.claude.use("db").then(function(db){
+    if(!db){setSaveState("saved in this browser only");return}
+    dbDoc=db.doc("answers/main");
+    return dbDoc.get().then(function(snap){
+      var remote=(snap.exists&&snap.data()&&snap.data().state)||{};
+      if(mergeIn(remote)){saveLocal();refresh()}
+      if(!snap.exists||localNewer(remote))scheduleDb();else setSaveState("saved");
+      dbDoc.onSnapshot(function(s){
+        if(!s.exists||s.metadata.hasPendingWrites)return;
+        var r=(s.data()||{}).state||{};
+        if(mergeIn(r)){saveLocal();refresh()}
+      },function(){});
+    });
+  }).catch(function(){setSaveState("saved in this browser only")});
+})();
+
+</script>

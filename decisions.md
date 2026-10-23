@@ -755,3 +755,25 @@ Full table (Q1 to Q22) lives in the plan's "Locked decisions". The ones worth ke
 - **Frontend popup ships in the same PR as the backend** (not a later round), for everyone, no flag, per the 2026-10-19 decision; it closes on scope/member-filter change.
 - **Real-file gate:** run on the real `chandra.pdf` on 2026-10-20 after first being run on the synthetic reproduction while the real file was unavailable (the synthetic file proved faithful: identical numbers). Only the stale -5.59% drift baseline remains, as a separate follow-up.
 
+
+## 2026-10-23 — Home screen (Portfolio Snapshot) backend decisions (BD1 to BD17)
+
+From the planning round for the redesigned desktop Home (mutual funds only). Full reasoning and the owner answers behind each: `Docs/orchestration/2026-10-23-home-backend-decisions-proposal.md`, `2026-10-23-home-functionality-backend-spec.md`, the plans in `Docs/superpowers/plans/2026-10-23-*`. Nothing here is built yet; the schema doc (`Docs/PRDs/Database-Schema-Unifolio.md`) is updated when the migrations are written.
+
+- **BD1.** Home endpoints compute on request over existing tables; no daily-series table in v1 _Why:_ measured 8-240 ms with one bulk NAV read; target 1.5 s. _Alternative:_ precompute after import confirm and in the 06:30 job if staging misses.
+- **BD2.** Home never starts an Analytics recompute and never calls the snapshot rebuild on load _Why:_ keeps Analytics recompute unaffected; avoids multi-second loads. _Alternative:_ none.
+- **BD3.** Home uses the prices already stored by the 06:00 job and does not download live (owner direction 2026-10-23: no new jobs or tables). Needs only a small optional setting on `compute_holdings` (like the one the Analytics code already uses on the NAV lookup); confirmed by the owner (P7 A, 2026-10-23) _Why:_ measured 19 to 24 s cold on staging otherwise. _Alternative:_ live downloads (slow).
+- **BD4.** Day change is price movement only, units at previous close _Why:_ B2. _Alternative:_ none.
+- **BD5.** Sector view is a pro-rata split of each fund's exact change, labelled estimated, coverage under 50% falls back to category _Why:_ L21, L47. _Alternative:_ index-informed version deferred.
+- **BD6.** Benchmark is index total-return percent over the period; enum gains `nifty_smallcap_250` _Why:_ L37, L45. _Alternative:_ none; migration pattern 0006.
+- **BD7.** Asset-class list and live/coming-soon status come from one backend constant _Why:_ L20: later classes go live without front-end rework. _Alternative:_ a table is unnecessary until a class has data.
+- **BD8.** News: GDELT raw files, one job, one new table `news_items` (0044), per-user scoring at request time _Why:_ L15, E13. _Alternative:_ `analytics_sections` is the wrong shape.
+- **BD9.** `stock_master.nse_symbol` nullable column and an external job heartbeat _Why:_ owner chose E11 option B. _Alternative:_ name/ISIN matching only was the default.
+- **BD10.** Credit to GDELT on the About/legal page, not the card _Why:_ owner chose E14 B. _Alternative:_ counsel to confirm sufficiency.
+- **BD11.** Greeting is Good morning/afternoon/evening from the IST clock; no first-visit state (owner 23 Oct; replaces L16, confirmed) _Why:_ no schema change. _Alternative:_ `users.home_first_seen_at` dropped.
+- **BD12.** Fix `invalidate_holdings_cache` in the opening-balance route as a separate small change (approved 23 Oct) _Why:_ Home would otherwise show stale numbers. _Alternative:_ leave as is and document.
+- **BD13.** Extend disclosure retention from 3 to **6 months** per scheme (owner, H6 and N1) _Why:_ late files, trend bar, added/removed view. _Alternative:_ keep 3 and omit the bar.
+- **BD14.** **Deferred 2026-10-23:** usage tracking (Google Analytics 4, opt-in, seven events) is not in the Home release; logged as PRIORITY 2 in `DEFERRED_FEATURES.md`; plan kept in `2026-10-23-home-tracking-ga4-plan.md` _Why:_ owner decision. _Alternative:_ build it now (earlier answer).
+- **BD15.** News ships in the same release and is **live from day one** with the disclaimer (owner, H24 and N5); the `news_enabled` kill switch remains; counsel review was recommended and is not a gate _Why:_ owner choice. _Alternative:_ switched off until reviewed.
+- **BD16.** Links to unbuilt pages stay greyed out with a tooltip (L32 stands; owner, M17) _Why:_ owner chose B on M17. _Alternative:_ clickable "coming soon" note.
+- **BD17.** (owner, P9 A, 2026-10-23: not now, logged as a known gap in `DEFERRED_FEATURES.md`) the Dashboard has the same slow cold open; fixing the price-freshness rule in `nav.py` is a separate change, logged as a known gap rather than part of Home.

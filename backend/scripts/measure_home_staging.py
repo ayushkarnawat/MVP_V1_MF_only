@@ -11,11 +11,12 @@ statements. It calls the same service functions the Dashboard calls today and ti
   4. the bulk NAV read a Home value series would need (one query for every held scheme)
   5. the Dashboard's aggregate holdings + XIRR (for comparison only; Home must not call it)
 
-Never writes: a before_flush guard aborts on any ORM write. By default a cold holdings call
-that needs a live NAV download is refused (downloading writes nav_history rows, exactly what
-opening the Dashboard does today). Pass --include-live-fetch to allow those cache writes and
-measure the real cold cost; nothing else is written. Prints only counts and milliseconds,
-never names or amounts.
+Never writes: a guard aborts on any ORM flush or raw INSERT/UPDATE/DELETE. By default a cold
+holdings call that needs a live NAV download is refused (downloading caches rows in
+nav_history, exactly what opening the Dashboard does today). Pass --include-live-fetch to allow
+those cache inserts and measure the real cold cost; nothing else is written. Pass
+--simulate-fresh-cache to measure the path with no live download at all (what Home would cost if
+it could use stored NAVs). Prints only counts and milliseconds, never names or amounts.
 """
 import argparse
 import asyncio
@@ -45,6 +46,10 @@ class WriteAttempted(RuntimeError):
 
 
 def guard(db: Session, allow_nav_writes: bool):
+    """Blocks ORM flushes AND raw INSERT/UPDATE/DELETE statements. The first version only
+    watched ORM flushes, so the NAV cache's Core-level insert (nav.py _upsert_nav_history)
+    slipped through on the 23 Oct staging run; harmless there (on_conflict_do_nothing) but
+    the script must not claim read-only while it can write."""
     @event.listens_for(db, "before_flush")
     def _no_flush(session, ctx, instances):
         objs = list(session.new) + list(session.dirty) + list(session.deleted)
@@ -54,6 +59,17 @@ def guard(db: Session, allow_nav_writes: bool):
             "the call tried to write (a live NAV download?). Re-run with --include-live-fetch "
             "to allow nav_history cache writes. Nothing was committed."
         )
+
+    @event.listens_for(db.get_bind(), "before_cursor_execute")
+    def _no_write_sql(conn, cursor, statement, parameters, context, executemany):
+        head = statement.lstrip()[:12].upper()
+        if head.startswith(("INSERT", "UPDATE", "DELETE")):
+            if allow_nav_writes and head.startswith("INSERT") and "nav_history" in statement.lower():
+                return
+            raise WriteAttempted(
+                "a write statement was about to run (a live NAV download caches rows in nav_history). "
+                "Re-run with --include-live-fetch to allow nav_history cache inserts. Nothing was committed."
+            )
 
 
 def ms(t0: float) -> float:
@@ -86,7 +102,21 @@ def main() -> int:
     ap.add_argument("--runs", type=int, default=5)
     ap.add_argument("--limit", type=float, default=1.5, help="Home first-load budget in seconds")
     ap.add_argument("--include-live-fetch", action="store_true")
+    ap.add_argument("--simulate-fresh-cache", action="store_true",
+                    help="measure the no-live-fetch path: makes the NAV freshness check treat the newest cached "
+                         "day as current, i.e. what Home would cost if it were allowed to use stored NAVs")
     a = ap.parse_args()
+    if a.simulate_fresh_cache:
+        import app.services.dashboard.nav as nav_mod
+        real_date = nav_mod.date
+
+        class _Yesterday(real_date):
+            @classmethod
+            def today(cls):
+                return real_date.today() - timedelta(days=1)
+
+        nav_mod.date = _Yesterday
+        print("SIMULATION: NAV freshness check treats yesterday as today; no live NAV download will happen.")
 
     from app.config import settings
     url = make_url(settings.database_url)

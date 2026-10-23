@@ -277,6 +277,7 @@ Design Schema work — that level of detail isn't specified here.
       Flow document): family aggregate is the default landing for returning users who
       have family members set up; per-member view remains default for users without
       family set up. Affects FR-9's default state as specified.
+      > Resolved 2026-10-23: the landing screen is Home, in family-combined view. The Dashboard is a Portfolio page and keeps its own default state.
 
 ## Appendix
 
@@ -295,3 +296,4 @@ Design Schema work — that level of detail isn't specified here.
 | 1.1 | 2026-07-22 | Claude (PM partner) | Distributor comparison (FR-11) unblocked for v1 — research found AMFI's public ARN-lookup tool resolves distributor names on demand; comparison math itself only needs the ARN code already captured in PRD-01. Added FR-11a–c (lookup + cache, graceful fallback, suspended/invalid-ARN trust signal). Updated US-7 to P1, Dependencies, Risks, Timeline, Open Questions accordingly. |
 | 1.2 | 2026-07-22 | Claude (PM partner) | Added "Add data" entry point (FR-10a, US-9) — ongoing CAS import is a first-class dashboard capability, not onboarding-only, matching PRD-01's Ongoing Data Addition scope addition |
 | 1.3 | 2026-07-22 | Claude (PM partner) | Resolved default-landing-screen open question (family aggregate default when family exists) via the App Flow document |
+| 1.4 | 2026-10-23 | Claude (for the owner) | The first screen after sign-in is now **Home** (see `Docs/orchestration/2026-10-23-home-prd.md`), opening in the family-combined view. This Dashboard moves unchanged to Portfolio > Equity > Mutual Fund (`/portfolio/mutual-funds`). FR-9's default state (family aggregate versus the primary user) is answered by Home's scope rule: Family Combined on every page change. The Dashboard's calculations, tabs and behaviour are not changed by this note. |

@@ -64,3 +64,54 @@ Put new documents under `Docs/orchestration/` with the `2026-10-23-` style prefi
 - Working tree: `/mnt/c/Users/Dell/Desktop/MVP v1/MVP_V1_MF_only` on branch `feat/leapswitch-staging`. Uncommitted when this account stopped (may have changed): the PDF, this file, the artifact HTML copy, the older left-panel handoff and its artifact template, and the `DEFERRED_FEATURES.md` change. Only the contract/brief/architecture changes (up to 8476835) are committed.
 - The scratchpad under `/tmp` gets wiped between sessions; to edit the artifact, `Artifact read` the URL, then Read the saved file before Edit, and republish with the same file path (capabilities `{"db":{}}` carry forward).
 - Memory index notes exist at `~/.claude/projects/-mnt-c-Users-Dell-Desktop-MVP-v1-MVP-V1-MF-only/memory/` (including `project_home_snapshot_planning.md`).
+
+## 9. Progress update (documents phase, 2026-10-23, second account)
+
+Owner's pasted card answers received (differ from recs: E11 B, E14 B, E15 B, E3 B, E8 C, G4 plain light/dark). Contract assumptions confirmed: FDs & bonds under Equity; Mutual Fund and US Stock separate.
+Written (uncommitted, `2026-10-23-` prefix): home-functionality-backend-spec, home-layout, home-design-system, home-reuse-vs-new, home-tdd, home-architecture, home-prd, home-flows, home-backend-decisions-proposal. Equity patches to the shell architecture were already present on disk; none made. Not done: pixel/icon mockups (after owner approves doc 3), combined artifact (4 small open questions Q1-Q4 in the spec, section 13, may be asked inline instead), writing-plans (gated on Q1-Q4 and owner go). Artifact db at the live URL is not readable from this account (404).
+
+## 10. Answers round 2 (2026-10-23)
+
+H1-H25 and M1-M17 answered. Differences from the recommendations: H6 extend retention, H14 staging run before plans lock, H20 add basic tracking, H24 news in the same release, M17 greyed links (L32 stands); H3 no choice (default 0.05%). Docs updated; search-on-hold lines added to the contract and shell architecture (approved). New follow-ups N1-N6 are in the mockup artifact (retention length, staging run, tracking scope, tracking storage and privacy, news gating, which PRD-03 copy gets the version note; PRD-01 was a mistake, the landing statement is in PRD-03). Not yet done: append BD1-BD16 to decisions.md and update the schema doc (approved, waiting for N-answers), plans (blocked on the staging run per H14).
+
+## 11. Answers round 3 (2026-10-23)
+
+N1 6 months; N2 script `backend/scripts/measure_home_staging.py` prepared (read-only; imports verified, not run: the local dev database is not migrated; the owner runs it on the VM and pastes the output; plans wait for it); N3 seven events; N4 Google Analytics 4, plan in `2026-10-23-home-tracking-ga4-plan.md` (own table and endpoint withdrawn); N5 news live from day one; N6 note on both PRD-03 copies, wording in `2026-10-23-prd-03-version-note-draft.md`, shown to the owner first. New follow-ups P1-P8 (consent, identity, GA properties, Google settings, page view, policy copy, compute_holdings allow_stale_today, who creates the GA properties). Finding: `compute_holdings` has no allow-stale-today parameter (only `get_nav_on_or_before` does).
+
+## 12. Deferred to the final "all doc update" pass (owner, 2026-10-23)
+
+- Apply the PRD-03 version note to **both** copies: `Docs/PRD-03-Main-Dashboard.md` as version 1.1 (history stops at 1.0; add the resolution line under its still-open landing question) and `Docs/PRDs/PRD-03-Main-Dashboard.md` as version 1.4 (history reaches 1.3; add the line after the existing resolved landing question). Wording: `2026-10-23-prd-03-version-note-draft.md`. Not applied yet.
+- Append BD1-BD16 to `decisions.md` and add the new table and columns to `Database-Schema-Unifolio.md` (approved; wait for P1-P8 answers).
+- Still blocking the plans: the staging measurement output (`backend/scripts/measure_home_staging.py`, run on the VM) and answers to P1-P8.
+
+## 13. Event tracking deferred (owner, 2026-10-23)
+
+Tracking is out of the Home release. Logged as PRIORITY 2 in `DEFERRED_FEATURES.md` (uncommitted edit). Docs updated to say deferred (spec 9a, PRD H15 and section 6, BD14, TDD, reuse-vs-new, architecture, GA4 plan header). Artifact questions P1-P6 and P8 are therefore not needed now; P7 (compute_holdings allow_stale_today) is still open. Plans no longer include tracking or the consent-purpose change.
+
+## 14. Staging measurement result (2026-10-23)
+
+Run by the manager on the staging VM (three households, 12 to 46 funds). Home cold open FAILS the 1.5 s budget (4.9 to 24.3 s) because the NAV freshness check re-downloads every fund's history on every cold holdings call until today's NAV is published (never, on weekends and holidays). Warm holdings 0 ms; look-through, allocation and bulk NAV reads (1 year) are fine. Details in the spec section 2. The script's "read-only" guard missed the NAV cache insert (a Core statement), so the run wrote nav_history cache rows on staging (harmless, on_conflict_do_nothing, same as opening the Dashboard); guard fixed and a `--simulate-fresh-cache` flag added (imports verified, not run). The VM was fast-forwarded to commit 6e17132 and its backend image rebuilt (live containers not restarted). New open question P9: fix the freshness rule in nav.py (existing production code, helps the Dashboard too) as well as P7. Plans wait for P7 and P9.
+
+## 15. P7 and P9 simplified (owner, 2026-10-23)
+
+P7 is now a yes/no: Home uses the prices the 06:00 job already stores, no new jobs or tables, plus one small optional setting on compute_holdings. P9 is now a yes/no: fix the Dashboard too (recommended: no, log it as a known gap).
+
+## 16. P7 and P9 answered (owner, 2026-10-23)
+
+P7 A: Home uses the prices stored by the 06:00 job (small optional setting on compute_holdings, no new jobs or tables). P9 A: the Dashboard is left as is; the slowness is logged in DEFERRED_FEATURES.md (uncommitted). All planning questions are now answered. Remaining: the final all-docs update (PRD-03 notes 1.1 and 1.4, BD1-BD17 into decisions.md, schema doc) and the four plans, which the owner will ask for.
+
+## 17. Plans written (owner go, 2026-10-23)
+
+Four plans in `Docs/superpowers/plans/`: `2026-10-23-nav-shell-plan.md`, `2026-10-23-home-backend-plan.md`, `2026-10-23-home-frontend-plan.md`, `2026-10-23-news-plan.md` (uncommitted). Implementation still needs the owner's explicit go. Remaining doc work: PRD-03 notes (1.1 and 1.4), BD1-BD17 into decisions.md, schema doc, final review of the plans.
+
+## 18. Shell is built separately (owner, 2026-10-23)
+
+The left panel and shell are NOT part of this work. `2026-10-23-nav-shell-plan.md` is kept as a reference banner-marked plan for whoever builds it. The Home frontend plan connects to the panel only through the contract v1.2 route file, with a local adapter and stub until the shell exists. Active plans: Home backend, Home frontend, news. The earlier answers H23 (four plans) and H25 (shell first) are superseded.
+
+## 19. Original four-plan strategy reinstated (owner, 2026-10-23)
+
+Section 18 is superseded: the shell is built in this effort again. Order: shell PR 1, then in parallel the Home backend, news backend and shell PR 2, with Home frontend stacked on PR 1; Home and shell PR 2 release together. The shell-plan banner is removed; the Home frontend plan depends on shell PR 1 again (the adapter and stub are an optional fallback only).
+
+## 20. Who builds the shell (owner, 2026-10-23)
+
+The owner will build the shell (left panel, router, scope provider) themselves, following `Docs/superpowers/plans/2026-10-23-nav-shell-plan.md`. Still to settle by the owner as the shell builder: active-row style (green pill versus 2 px underline) and the plural versus singular menu labels. Home work (backend, news, frontend) starts only on the owner's explicit go.
