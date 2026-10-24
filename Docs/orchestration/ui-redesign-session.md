@@ -4,7 +4,7 @@
 
 ## State
 
-- **Wave:** 2 and 2b. Done: HB1 (`511f1ef`, `feat/home-snapshot`), S1.1 (`e825d10`, `feat/shell-nav`). S1.2 (9de1e5b + fix e186296, `feat/shell-nav`; Codex review FAIL then fixed, Opus PASS then fixed). S1.3 done (af4d2f7; redirectTo carry-over handled via finalRoute). **S1.4 next** (shell PR1 T5+T6), Codex review of S1.3+S1.4 batched there. Method: orchestration docs are committed on `leapswitch-redesign`; before each run I merge `leapswitch-redesign` into the task branch so Codex sees the handoff; code commits go on the task branch. The Codex review of S1.1 is batched into S1.2's review (covers T1 to T3), then the Opus review of S1.2.
+- **Wave:** 2 and 2b. Done: HB1 (`511f1ef`, `feat/home-snapshot`), S1.1 (`e825d10`, `feat/shell-nav`). S1.2 (9de1e5b + fix e186296, `feat/shell-nav`; Codex review FAIL then fixed, Opus PASS then fixed). S1.3 done (af4d2f7; redirectTo carry-over handled via finalRoute). **S1.4 READY** (`ui-redesign-S1.4-scope-topbar-layouts-handoff.md`, not yet relayed; shell PR1 T5+T6), Codex review of S1.3+S1.4 batched there. Method: orchestration docs are committed on `leapswitch-redesign`; before each run I merge `leapswitch-redesign` into the task branch so Codex sees the handoff; code commits go on the task branch. The Codex review of S1.1 is batched into S1.2's review (covers T1 to T3), then the Opus review of S1.2.
 - **Branches:** `leapswitch-redesign` (integration, docs), `feat/home-snapshot` (HB1 code), `feat/shell-nav` (next). Nothing pushed by this account. Untracked: `Docs/Web app UI mockups MFs.pdf` (owner's call).
 - **Latest migration:** `0043`; `0044` (news) and `0045` (benchmark indices) are free.
 - **Codex mode:** manual relay (owner decision 24 Oct). `codex:codex-rescue` is not available as an agent here; I write the handoff doc and a short prompt, the owner pastes it into Codex and pastes the report back, as in Sub-projects 1 and 2 and the UX fixes. Each review gate is also a relay (a review prompt for Codex, then its findings back).
@@ -61,4 +61,4 @@ Total 88 runs: 1 + 13 + 19 + 2 + 43 + 4 + 4 + 2.
 
 ## Next exact step
 
-Write the S1.4 handoff (shell PR1 T5+T6). Carry into S1.3/S2: scope reset may fire through the Equity redirect (check in useScope, T5); the T3 plan text still lists overlapCompare and /planning/scenarios, which contract v1.6 removed (plan text to update). S2.4 and I1 must make group-redirect targets live; HB3 stale today_gain note.
+Owner pastes the S1.4 prompt into Codex; verify, then the one Codex review (S1.3+S1.4), commit. Carry into S1.3/S2: scope reset may fire through the Equity redirect (check in useScope, T5); the T3 plan text still lists overlapCompare and /planning/scenarios, which contract v1.6 removed (plan text to update). S2.4 and I1 must make group-redirect targets live; HB3 stale today_gain note.
