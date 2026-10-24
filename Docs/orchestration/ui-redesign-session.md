@@ -4,7 +4,7 @@
 
 ## State
 
-- **Wave:** 2 and 2b. Done: HB1 (`511f1ef`, `feat/home-snapshot`), S1.1 (`e825d10`, `feat/shell-nav`). S1.2 (9de1e5b + fix e186296, `feat/shell-nav`; Codex review FAIL then fixed, Opus PASS then fixed). S1.3 done (af4d2f7; redirectTo carry-over handled via finalRoute). S1.4 done (028342a + fix 0a7db46; Codex review of S1.3+S1.4 FAIL then fixed). **S1.5 next (Claude): shell PR1 T7 (CODEOWNERS and how-to note)**, then S1.6 final gate +O, Codex review of S1.3+S1.4 batched there. Method: orchestration docs are committed on `leapswitch-redesign`; before each run I merge `leapswitch-redesign` into the task branch so Codex sees the handoff; code commits go on the task branch. The Codex review of S1.1 is batched into S1.2's review (covers T1 to T3), then the Opus review of S1.2.
+- **Wave:** 2 and 2b. Done: HB1 (`511f1ef`, `feat/home-snapshot`), S1.1 (`e825d10`, `feat/shell-nav`). S1.2 (9de1e5b + fix e186296, `feat/shell-nav`; Codex review FAIL then fixed, Opus PASS then fixed). S1.3 done (af4d2f7; redirectTo carry-over handled via finalRoute). S1.4 done (028342a + fix 0a7db46; Codex review of S1.3+S1.4 FAIL then fixed). **Shell PR1 complete on `feat/shell-nav` (b80b55c): S1.1 to S1.6 done, Opus final review PASS then fixed. Branch not pushed, no PR opened.** Next: Wave 2 shell PR2 (S2.1 onward), or the 2b backend runs (HB2 onward), Codex review of S1.3+S1.4 batched there. Method: orchestration docs are committed on `leapswitch-redesign`; before each run I merge `leapswitch-redesign` into the task branch so Codex sees the handoff; code commits go on the task branch. The Codex review of S1.1 is batched into S1.2's review (covers T1 to T3), then the Opus review of S1.2.
 - **Branches:** `leapswitch-redesign` (integration, docs), `feat/home-snapshot` (HB1 code), `feat/shell-nav` (next). Nothing pushed by this account. Untracked: `Docs/Web app UI mockups MFs.pdf` (owner's call).
 - **Latest migration:** `0043`; `0044` (news) and `0045` (benchmark indices) are free.
 - **Codex mode:** manual relay (owner decision 24 Oct). `codex:codex-rescue` is not available as an agent here; I write the handoff doc and a short prompt, the owner pastes it into Codex and pastes the report back, as in Sub-projects 1 and 2 and the UX fixes. Each review gate is also a relay (a review prompt for Codex, then its findings back).
@@ -27,7 +27,7 @@ Everything in handoff section 9, plus the owner's second-pass decisions of 24 Oc
 - [ ] L1 (with the owner)
 
 ### Wave 2: shell (stacked branches `feat/shell-nav`, `feat/shell-nav-switch`)
-- [x] S1.1 (e825d10) · [x] S1.2 +O (9de1e5b, e186296) · [x] S1.3 (af4d2f7) · [x] S1.4 (028342a, 0a7db46) · [ ] S1.5 (Claude) · [ ] S1.6 +O
+- [x] S1.1 (e825d10) · [x] S1.2 +O (9de1e5b, e186296) · [x] S1.3 (af4d2f7) · [x] S1.4 (028342a, 0a7db46) · [x] S1.5 (Claude) · [x] S1.6 +O (b80b55c)
 - [ ] S2.1 · [ ] S2.2 · [ ] S2.3 · [ ] S2.4 +O · [ ] S2.5 (Claude) · [ ] S2.6 (Claude) · [ ] S2.7 +O
 
 ### Wave 2b: backend (parallel to the shell)
@@ -61,4 +61,4 @@ Total 88 runs: 1 + 13 + 19 + 2 + 43 + 4 + 4 + 2.
 
 ## Next exact step
 
-S1.5 (me, no Codex): CODEOWNERS, how-to note, contract change-log line for `modeIcon`. Then S1.6 final gate (full shell tests, build, diff boundary, Opus review). Carry into S1.3/S2: scope reset may fire through the Equity redirect (check in useScope, T5); the T3 plan text still lists overlapCompare and /planning/scenarios, which contract v1.6 removed (plan text to update). S2.4 and I1 must make group-redirect targets live; HB3 stale today_gain note.
+Owner decides order: shell PR2 (S2.1) or backend HB2. Not fixed from the Opus final review (Low): Equity button double-handled Enter/Space, FocusLayout origin guard, paths dot-segments, Sidebar non-null assertion, useRegistry rebuild, placeholder span role and double tooltip title, contract title line still says v1.6. Carry into S1.3/S2: scope reset may fire through the Equity redirect (check in useScope, T5); the T3 plan text still lists overlapCompare and /planning/scenarios, which contract v1.6 removed (plan text to update). S2.4 and I1 must make group-redirect targets live; HB3 stale today_gain note.
