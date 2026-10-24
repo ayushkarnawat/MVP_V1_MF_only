@@ -12,6 +12,8 @@
 
 **Doc drift the builders must not follow.** Where the older Profile docs disagree with the spec's later answers (L45 to L50, L52, L56, G1), the spec wins: `-profile-tdd.md` row `FamilyPage` still says "masked PAN with Show" (there is no Show, L49); `-profile-layout.md` section 3/5 still mention an Add Member button and a row menu (neither exists, L47); `-profile-architecture.md` section 3 still lists `FamilyTable`, `FamilyRowMenu`, `AddMemberDialog` (not built; the files are `FamilyStrip`, `MemberCard`, `AddStatementDialog`). These were corrected on 23 Oct before this plan was committed; T9 re-checks the docs for any remaining drift.
 
+**Visual parity and chrome (added 24 Oct, owner-approved).** The finished page must look like its signed-off mockup(s) named in this plan, in light and dark. (1) The mockups' own sidebar, top bar, avatar and page-state buttons are not built: the shell draws the sidebar and top bar (contract v1.6). (2) **Parity step:** in the last run of this page the orchestrator runs it locally on the synthetic household and compares it with the mockup in the browser, light and dark, at 1280 and 1024 px, and lists every difference (layout, colours, type, spacing, states, copy, hover and click behaviour); differences are fixed before the run is DONE, or logged for a QA run with the owner's agreement. (3) Wherever this page lists a fund, the fund name opens the individual fund page through `paths` (the route is enabled by the Individual Fund runs). (4) Each page keeps the surface style of its own mockup (owner, 24 Oct).
+
 ## Global Constraints
 
 - Test-driven: failing test first, in every task.

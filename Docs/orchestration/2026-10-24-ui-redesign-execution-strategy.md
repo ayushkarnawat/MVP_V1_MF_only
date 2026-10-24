@@ -154,6 +154,14 @@ The Mutual Funds docs add these to §3 (all additive): `sebi_category` on `Holdi
 
 **Doc edits applied 24 Oct** (owner's go): contract v1.6; shell PR1 plan; Home backend T1/T3; Individual Fund backend T1 and frontend T1–T3; Home frontend T4 (+T1/T2 notes); News migration 0044; branch base `leapswitch-redesign` in the page plans; resolved-conflict notes in design.md, PRD-06, the TDD spec and the shell backend spec.
 
+### Owner decisions, second pass (24 Oct)
+- **Individual fund tabs:** Overview, Overlap Analysis, Insights (G2 settled; the Mutual Funds individual-fund mockup's note that the other two were dropped is superseded; the Individual Fund plans own Overview and Insights).
+- **Fund links:** a fund name or row opens the individual fund page wherever a page lists funds. The Mutual Funds Overview row stops opening the old FundDetailModal (edit in the Mutual Funds frontend plan, task 4); Home's fund and Worth-a-look links enable themselves when the route is live.
+- **Surface style:** each page keeps the style of its own mockup (white cards on grey for Investments and Mutual Funds, palette grey cards for the rest).
+- **Plan hygiene edits applied:** visual-parity step and chrome note in every frontend plan and in the handoff (step 5b); dark-mode note in the Investments and Mutual Funds plans; shell active row is an underline (shell PR1 plan, shell design system). Not edited, but they still say "left bar": the shell contract (v1.6, line 187) and the shell PRD (S15).
+- **Today's change:** the Mutual Funds Overview fund table gets a Today's change column (existing `today_gain`, no backend change) and sortable headers; Home's "View all by day's change" opens it sorted (`?sort=today_change&dir=desc`).
+- **Reference of the finished app:** `Docs/orchestration/2026-10-24-desktop-preview-all-pages.html`.
+
 ## 5. Execution waves
 
 A **run** = one Codex dispatch (several tasks batched, as in the sub-project convention) + the orchestrator's independent verification + review gate where marked. Counts for planned items are read from the plans' own run tables or batched at 2–3 tasks/run; items marked † are my estimate.

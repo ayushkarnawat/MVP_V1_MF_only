@@ -13,6 +13,8 @@
 
 **Spec:** `Docs/orchestration/2026-10-22-nav-shell-contract-v1.md` (v1.2), `2026-10-23-shell-functionality-backend-spec.md` (sections 5 to 8, 7a), `-shell-reuse-vs-new.md` (sections 1 and 3), `-shell-tdd.md`, `-shell-flows.md`, and the Shell Design Workbook (https://claude.ai/artifact/PEfZsLkuKVr1dMpbeDXqnP; private, so every decision is carried verbatim below).
 
+**Visual parity and chrome (added 24 Oct, owner-approved).** The finished page must look like its signed-off mockup(s) named in this plan, in light and dark. (1) The mockups' own sidebar, top bar, avatar and page-state buttons are not built: the shell draws the sidebar and top bar (contract v1.6). (2) **Parity step:** in the last run of this page the orchestrator runs it locally on the synthetic household and compares it with the mockup in the browser, light and dark, at 1280 and 1024 px, and lists every difference (layout, colours, type, spacing, states, copy, hover and click behaviour); differences are fixed before the run is DONE, or logged for a QA run with the owner's agreement. (3) Wherever this page lists a fund, the fund name opens the individual fund page through `paths` (the route is enabled by the Individual Fund runs). (4) Each page keeps the surface style of its own mockup (owner, 24 Oct).
+
 ## Phases
 
 | Phase | Covers | Ships |

@@ -12,6 +12,8 @@
 
 **Branch:** `feat/planning-scenarios` (frontend part). Touches `frontend/src/features/scenarios/{types.ts,api.ts,ScenariosScreen.tsx,ScenariosScreen.test.tsx,api.test.ts}`, new files under `frontend/src/features/scenarios/planning/`, and the Planning route file under `frontend/src/shell/routes/`. No commit or push without the owner's word: every task ends in a checkpoint, not a commit.
 
+**Visual parity and chrome (added 24 Oct, owner-approved).** The finished page must look like its signed-off mockup(s) named in this plan, in light and dark. (1) The mockups' own sidebar, top bar, avatar and page-state buttons are not built: the shell draws the sidebar and top bar (contract v1.6). (2) **Parity step:** in the last run of this page the orchestrator runs it locally on the synthetic household and compares it with the mockup in the browser, light and dark, at 1280 and 1024 px, and lists every difference (layout, colours, type, spacing, states, copy, hover and click behaviour); differences are fixed before the run is DONE, or logged for a QA run with the owner's agreement. (3) Wherever this page lists a fund, the fund name opens the individual fund page through `paths` (the route is enabled by the Individual Fund runs). (4) Each page keeps the surface style of its own mockup (owner, 24 Oct).
+
 ## Global Constraints
 
 - Mobile is untouched. `ScenariosScreen` with no props behaves exactly as today; every existing scenarios test and `mobile/MobileRoot.test.tsx` stay unchanged and green.

@@ -65,7 +65,7 @@ DM Sans for headings and subheadings, Manrope for body, accents and subtext. Wei
 | Row | height about 36 px (**estimate**); icon 18 px then label; 8 px radius; padding 8 x 12 px |
 | Default | icon `--shell-icon-muted`, label `--shell-text-body` |
 | Hover | background `--shell-divider`, label `--shell-text` |
-| Active | icon and label `--shell-text`, semi-bold, with a 2 px `--shell-accent` indicator on the row's left edge (palette: active nav item, icon and label, 2 px brand green underline/indicator; **SP1 decides** between this and the mockup's filled pill) |
+| Active | icon and label `--shell-text`, semi-bold, with a 2 px `--shell-accent` underline along the row's bottom edge (palette: active nav item, icon and label, 2 px brand green underline; decided 24 Oct: underline, no filled pill, no left bar) |
 | Focus | 2 px `--shell-accent` outline on every interactive row (palette focus ring) |
 | Group (Equity) | row with a chevron on the right, rotates 90 degrees when open; child rows indented 16 px with a 1 px `--shell-divider` guide line |
 | Group "contains active" | label `--shell-text` semi-bold, no indicator; the active child carries the indicator |

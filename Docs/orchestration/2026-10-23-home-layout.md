@@ -64,7 +64,7 @@ Each section fetches its own endpoint and renders independently (doc 1, section 
 
 | Link | Destination | State at launch |
 |---|---|---|
-| Contributors "View all" | `/portfolio/mutual-funds/holdings` sorted by day change | disabled |
+| Contributors "View all" | `/portfolio/mutual-funds?sort=today_change&dir=desc` (the Overview fund table sorted by Today's change; decided 24 Oct) | disabled |
 | Fund (row or popup) | `/portfolio/mutual-funds/funds/:schemeId` | disabled |
 | Allocation "View in Analytics" | `/portfolio/mutual-funds/allocation` | disabled |
 | Worth a look, concentration | `/portfolio/mutual-funds/overlap` | disabled |

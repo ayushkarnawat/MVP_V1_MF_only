@@ -10,6 +10,10 @@
 
 **Spec:** `Docs/orchestration/2026-10-23-portfolio-home-page-design.md` (authoritative; read in full alongside this plan), `Docs/orchestration/2026-10-23-portfolio-home-page-decisions.html`, `Docs/orchestration/2026-10-23-portfolio-home-page-skeleton-mockup-v9.html` (locked content), `Docs/orchestration/2026-10-23-portfolio-home-page-hifi-states.html` (locked visuals/states), `Docs/orchestration/2026-10-22-nav-shell-contract-v1.md` (shell interfaces this page consumes).
 
+**Visual parity and chrome (added 24 Oct, owner-approved).** The finished page must look like its signed-off mockup(s) named in this plan, in light and dark. (1) The mockups' own sidebar, top bar, avatar and page-state buttons are not built: the shell draws the sidebar and top bar (contract v1.6). (2) **Parity step:** in the last run of this page the orchestrator runs it locally on the synthetic household and compares it with the mockup in the browser, light and dark, at 1280 and 1024 px, and lists every difference (layout, colours, type, spacing, states, copy, hover and click behaviour); differences are fixed before the run is DONE, or logged for a QA run with the owner's agreement. (3) Wherever this page lists a fund, the fund name opens the individual fund page through `paths` (the route is enabled by the Individual Fund runs). (4) Each page keeps the surface style of its own mockup (owner, 24 Oct).
+
+**Dark mode (added 24 Oct).** This page's mockup(s) were drawn light only. Build every colour from the palette tokens so dark works: page `#111111`, card `#1A1A1A`, elevated `#212121`, border `#2E2E2E`, text `#FCFCFC` and `#A3A3A3`, semantic text `#34D399` `#F87171` `#FBBF24` `#818CF8`, tints as low-opacity primaries. The preview `Docs/orchestration/2026-10-24-desktop-preview-all-pages.html` shows the intended dark rendering of this page; the parity step checks it.
+
 ## Global Constraints
 
 - MF-only MVP: the only live asset class is Mutual Funds; Direct Stocks, US Stocks, FDs & Bonds, Debt, Gold, Real Estate render as `status: "coming_soon"` — visible, disabled, no data (design.md §1).
