@@ -151,16 +151,21 @@
   .search-pill-sm { display:flex; align-items:center; gap:7px; background:#F2F2F3; border-radius:var(--radius-pill); padding:8px 15px; color:var(--muted); font-size:12px; white-space:nowrap; cursor:pointer; transition:background var(--fast), color var(--fast); }
   .search-pill-sm:hover { background:#E9E9EA; color:var(--ink); }
 
-  /* Main content: table + AMC/family/insights sit side by side (viewport
-     layout matched to the reference screenshot) instead of stacked. */
-  .main-col { display:flex; flex-direction:row; flex-wrap:wrap; gap:16px; align-items:flex-start; }
-  .main-col > .table-card { flex:1 1 560px; min-width:0; }
-  .main-col > .side-card { flex:0 0 436px; width:436px; }
-  .side-card .pie-row { flex-direction:column; align-items:stretch; gap:20px; position:relative; }
-  .side-card .pie-stage { width:196px; height:196px; margin:0 auto; }
-  .side-card .pie-hole { inset:36px; } /* scaled to this stage's 196px (base ratio 38/206) so the hole stays proportional, not the broken tiny-hole-on-shrunk-ring look from before */
-  .side-card .legend { min-width:0; }
-  .side-card .alloc-popup { display:none; } /* hole-label swap on hover already carries the info; no room for the floating popup at this width */
+  /* Round 6 (2026-10-24): table is now ONE full-width row, not a flex
+     sibling of the AMC/family/insights panel — per the owner's explicit
+     "make the table a complete row, bring everything else down, one box
+     per section" direction. .main-col stacks vertically; .summary-row
+     below it holds AMC Allocation / Family Members / Quick Insights as
+     three independent, equal-width cards instead of one combined side
+     panel — each now has its own card-head, its own loading/error
+     treatment grouping, and (AMC card specifically) enough width to use
+     the normal side-by-side pie+legend layout with the full hover popup
+     re-enabled, instead of the old 436px-panel's stacked/no-popup variant. */
+  .main-col { display:flex; flex-direction:column; gap:16px; }
+  .main-col > .table-card { width:100%; }
+  .summary-row { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; align-items:stretch; }
+  .summary-row .card { display:flex; flex-direction:column; }
+  .summary-row.is-span1 { grid-template-columns:1fr; }
 
   /* ---------------- Section 3: holdings table ---------------- */
   .fund-table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:13px; }
@@ -723,103 +728,127 @@ Reference screenshots: <code>/mnt/d/References/Mutal fund overview page/</code>.
               </div>
             </div>
 
-            <!-- SECTION 4 — AMC allocation + Family + Quick Insights -->
-            <div class="card side-card">
-              <div class="card-head"><div class="card-title">AMC Allocation<span class="info-dot">i<span class="tip">Current value grouped by asset management company, across all your mutual fund holdings.</span></span></div></div>
-              <div class="card-desc">Hover a slice or a row — the center label swaps to that AMC's value and share. Same interaction as the Home page's Asset Allocation donut (<code>AllocationDonut.tsx</code>), scoped to <code>AllocationSummary.by_amc</code>.</div>
+        </div>
 
-              <div id="amc-default">
-                <div class="pie-row">
-                  <div class="pie-stage">
-                    <svg class="pie-svg" viewBox="0 0 200 200">
-                      <circle class="pie-track" cx="100" cy="100" r="70" stroke-width="28"/>
-                      <g id="pie-segments"></g>
-                    </svg>
-                    <div class="pie-hole" id="pie-hole">
-                      <span class="hl" id="hole-label">Total</span>
-                      <span class="hv" id="hole-value">₹66.9L</span>
-                      <span class="hp" id="hole-pct" style="display:none;"></span>
-                    </div>
-                  </div>
-                  <div class="legend" id="legend-list"></div>
-                  <div class="alloc-popup" id="alloc-popup">
-                    <div class="alloc-popup-label" id="pop-label">HDFC Mutual Fund</div>
-                    <div class="alloc-popup-row"><span>Allocation</span><span id="pop-allocation">40.0%</span></div>
-                    <div class="alloc-popup-row"><span>Current Value</span><span id="pop-value">₹26,79,440</span></div>
-                  </div>
-                </div>
-
-                <div style="margin:22px 0 2px;"><div class="card-title" style="font-size:13.5px;">Family Members</div></div>
-                <div class="fam-bar">
-                  <div style="width:48%; background:#3B82F6;"></div>
-                  <div style="width:32%; background:#8B5CF6;"></div>
-                  <div style="width:20%; background:#F59E0B;"></div>
-                </div>
-                <div class="member-rows">
-                  <div class="m-row"><span class="m-avatar" style="background:#3B82F6;">SS</span><span class="m-name">Siddharth</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:48%; background:#3B82F6;"></div></div><span class="m-val">₹32,13,300 (48.0%)</span><svg class="icon l-chev"><use href="#i-chevron-right"/></svg></div>
-                  <div class="m-row"><span class="m-avatar" style="background:#8B5CF6;">AS</span><span class="m-name">Aarohi</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:32%; background:#8B5CF6;"></div></div><span class="m-val">₹21,43,500 (32.0%)</span><svg class="icon l-chev"><use href="#i-chevron-right"/></svg></div>
-                  <div class="m-row"><span class="m-avatar" style="background:#F59E0B;">PS</span><span class="m-name">Parents</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:20%; background:#F59E0B;"></div></div><span class="m-val">₹13,41,800 (20.0%)</span><svg class="icon l-chev"><use href="#i-chevron-right"/></svg></div>
-                </div>
-
-                <hr class="section-divider">
-
-                <div class="insights-head">
-                  <div class="card-title">Quick Insights</div>
-                  <div class="insights-meta">From your current MF holdings</div>
-                </div>
-                <div class="insights-list">
-                  <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Your largest holding is <b>Parag Parikh Flexi Cap</b> — 22.2% of your MF portfolio</span></div>
-                  <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Spread across <b>6 AMCs</b> and <b>24 funds</b></span></div>
-                  <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span><b>72% Direct</b>, 28% Regular</span></div>
-                  <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span><b>₹45,000</b> in active SIPs scheduled this month</span></div>
+        <!-- SECTION 4 — AMC allocation / Family Members / Quick Insights, Round 6
+             (2026-10-24): three independent cards in one row, not one combined
+             side panel — per the owner's "bring it down, one box per section"
+             direction. Each state (default/loading/single) renders all three
+             cards together since they share one backend fetch; error renders
+             one spanning error card since all three come from that same fetch. -->
+        <div id="amc-default" class="summary-row">
+          <div class="card">
+            <div class="card-head"><div class="card-title">AMC Allocation<span class="info-dot">i<span class="tip">Current value grouped by asset management company, across all your mutual fund holdings.</span></span></div></div>
+            <div class="card-desc">Hover a slice or a row for value and share. Same interaction as the Home page's Asset Allocation donut (<code>AllocationDonut.tsx</code>), scoped to <code>AllocationSummary.by_amc</code>.</div>
+            <div class="pie-row">
+              <div class="pie-stage">
+                <svg class="pie-svg" viewBox="0 0 200 200">
+                  <circle class="pie-track" cx="100" cy="100" r="70" stroke-width="28"/>
+                  <g id="pie-segments"></g>
+                </svg>
+                <div class="pie-hole" id="pie-hole">
+                  <span class="hl" id="hole-label">Total</span>
+                  <span class="hv" id="hole-value">₹66.9L</span>
+                  <span class="hp" id="hole-pct" style="display:none;"></span>
                 </div>
               </div>
-
-              <div id="amc-loading" style="display:none;">
-                <div class="pie-row">
-                  <div class="shimmer" style="width:206px; height:206px; border-radius:50%;"></div>
-                  <div style="flex:1; min-width:260px;">
-                    <div class="shimmer" style="height:16px; width:92%; margin-bottom:10px; border-radius:8px;"></div>
-                    <div class="shimmer" style="height:16px; width:85%; margin-bottom:10px; border-radius:8px;"></div>
-                    <div class="shimmer" style="height:16px; width:90%; margin-bottom:10px; border-radius:8px;"></div>
-                    <div class="shimmer" style="height:16px; width:80%; border-radius:8px;"></div>
-                  </div>
-                </div>
-                <div class="shimmer" style="height:9px; border-radius:6px; margin:22px 0 18px;"></div>
-                <div class="shimmer" style="height:18px; width:100%; margin-bottom:10px; border-radius:8px;"></div>
-                <div class="shimmer" style="height:18px; width:100%; border-radius:8px;"></div>
-              </div>
-
-              <div id="amc-error" style="display:none;">
-                <div class="card-error">
-                  <div class="err-ico"><svg class="icon-lg"><use href="#i-alert"/></svg></div>
-                  <h4>Couldn't load your AMC allocation</h4>
-                  <p>This section failed to load, but the rest of the page is unaffected.</p>
-                  <div class="retry-btn">Retry</div>
-                </div>
-              </div>
-
-              <div id="amc-single" style="display:none;">
-                <div class="pie-row">
-                  <div class="pie-stage">
-                    <svg class="pie-svg" viewBox="0 0 200 200">
-                      <circle class="pie-track" cx="100" cy="100" r="70" stroke-width="28"/>
-                      <circle cx="100" cy="100" r="70" stroke-width="28" fill="none" stroke="var(--c1)" stroke-dasharray="440 0"/>
-                    </svg>
-                    <div class="pie-hole"><span class="hl">Total</span><span class="hv">₹66.9L</span></div>
-                  </div>
-                  <div class="legend"><div class="l-row"><span class="l-dot" style="background:var(--c1)"></span><span class="l-label">Only member</span><span class="l-pct">100%</span></div></div>
-                </div>
-                <div class="single-member-note" style="margin-top:18px;">You're the only member in this household — nothing to compare yet. Add a family member from Profile to see a breakdown here.</div>
-                <hr class="section-divider">
-                <div class="insights-head"><div class="card-title">Quick Insights</div><div class="insights-meta">From your current MF holdings</div></div>
-                <div class="insights-list">
-                  <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Your largest holding is <b>Parag Parikh Flexi Cap</b> — 22.2% of your MF portfolio</span></div>
-                  <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Spread across <b>6 AMCs</b> and <b>24 funds</b></span></div>
-                </div>
+              <div class="legend" id="legend-list"></div>
+              <div class="alloc-popup" id="alloc-popup">
+                <div class="alloc-popup-label" id="pop-label">HDFC Mutual Fund</div>
+                <div class="alloc-popup-row"><span>Allocation</span><span id="pop-allocation">40.0%</span></div>
+                <div class="alloc-popup-row"><span>Current Value</span><span id="pop-value">₹26,79,440</span></div>
               </div>
             </div>
+          </div>
 
+          <div class="card">
+            <div class="card-head"><div class="card-title">Family Members<span class="info-dot">i<span class="tip">Current value by household member, across all your mutual fund holdings.</span></span></div></div>
+            <div class="card-desc">Click a member to switch the whole page's scope to just their holdings.</div>
+            <div class="fam-bar">
+              <div style="width:48%; background:#3B82F6;"></div>
+              <div style="width:32%; background:#8B5CF6;"></div>
+              <div style="width:20%; background:#F59E0B;"></div>
+            </div>
+            <div class="member-rows">
+              <div class="m-row"><span class="m-avatar" style="background:#3B82F6;">SS</span><span class="m-name">Siddharth</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:48%; background:#3B82F6;"></div></div><span class="m-val">₹32,13,300 (48.0%)</span><svg class="icon l-chev"><use href="#i-chevron-right"/></svg></div>
+              <div class="m-row"><span class="m-avatar" style="background:#8B5CF6;">AS</span><span class="m-name">Aarohi</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:32%; background:#8B5CF6;"></div></div><span class="m-val">₹21,43,500 (32.0%)</span><svg class="icon l-chev"><use href="#i-chevron-right"/></svg></div>
+              <div class="m-row"><span class="m-avatar" style="background:#F59E0B;">PS</span><span class="m-name">Parents</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:20%; background:#F59E0B;"></div></div><span class="m-val">₹13,41,800 (20.0%)</span><svg class="icon l-chev"><use href="#i-chevron-right"/></svg></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="insights-head">
+              <div class="card-title">Quick Insights</div>
+              <div class="insights-meta">From your current MF holdings</div>
+            </div>
+            <div class="insights-list">
+              <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Your largest holding is <b>Parag Parikh Flexi Cap</b> — 22.2% of your MF portfolio</span></div>
+              <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Spread across <b>6 AMCs</b> and <b>24 funds</b></span></div>
+              <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span><b>72% Direct</b>, 28% Regular</span></div>
+              <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span><b>₹45,000</b> in active SIPs scheduled this month</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="amc-loading" class="summary-row" style="display:none;">
+          <div class="card">
+            <div class="pie-row">
+              <div class="shimmer" style="width:206px; height:206px; border-radius:50%;"></div>
+              <div style="flex:1; min-width:180px;">
+                <div class="shimmer" style="height:16px; width:92%; margin-bottom:10px; border-radius:8px;"></div>
+                <div class="shimmer" style="height:16px; width:85%; margin-bottom:10px; border-radius:8px;"></div>
+                <div class="shimmer" style="height:16px; width:90%; border-radius:8px;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="shimmer" style="height:9px; border-radius:6px; margin-bottom:18px;"></div>
+            <div class="shimmer" style="height:18px; width:100%; margin-bottom:10px; border-radius:8px;"></div>
+            <div class="shimmer" style="height:18px; width:100%; margin-bottom:10px; border-radius:8px;"></div>
+            <div class="shimmer" style="height:18px; width:100%; border-radius:8px;"></div>
+          </div>
+          <div class="card">
+            <div class="shimmer" style="height:18px; width:100%; margin-bottom:10px; border-radius:8px;"></div>
+            <div class="shimmer" style="height:18px; width:100%; margin-bottom:10px; border-radius:8px;"></div>
+            <div class="shimmer" style="height:18px; width:100%; margin-bottom:10px; border-radius:8px;"></div>
+            <div class="shimmer" style="height:18px; width:80%; border-radius:8px;"></div>
+          </div>
+        </div>
+
+        <div id="amc-error" class="summary-row is-span1" style="display:none;">
+          <div class="card card-error">
+            <div class="err-ico"><svg class="icon-lg"><use href="#i-alert"/></svg></div>
+            <h4>Couldn't load your AMC, family, and insights breakdown</h4>
+            <p>This section failed to load, but the rest of the page is unaffected.</p>
+            <div class="retry-btn">Retry</div>
+          </div>
+        </div>
+
+        <div id="amc-single" class="summary-row" style="display:none;">
+          <div class="card">
+            <div class="card-head"><div class="card-title">AMC Allocation<span class="info-dot">i</span></div></div>
+            <div class="pie-row">
+              <div class="pie-stage">
+                <svg class="pie-svg" viewBox="0 0 200 200">
+                  <circle class="pie-track" cx="100" cy="100" r="70" stroke-width="28"/>
+                  <circle cx="100" cy="100" r="70" stroke-width="28" fill="none" stroke="var(--c1)" stroke-dasharray="440 0"/>
+                </svg>
+                <div class="pie-hole"><span class="hl">Total</span><span class="hv">₹66.9L</span></div>
+              </div>
+              <div class="legend"><div class="l-row"><span class="l-dot" style="background:var(--c1)"></span><span class="l-label">Only member</span><span class="l-pct">100%</span></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Family Members<span class="info-dot">i</span></div></div>
+            <div class="single-member-note">You're the only member in this household — nothing to compare yet. Add a family member from Profile to see a breakdown here.</div>
+          </div>
+          <div class="card">
+            <div class="insights-head"><div class="card-title">Quick Insights</div><div class="insights-meta">From your current MF holdings</div></div>
+            <div class="insights-list">
+              <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Your largest holding is <b>Parag Parikh Flexi Cap</b> — 22.2% of your MF portfolio</span></div>
+              <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Spread across <b>6 AMCs</b> and <b>24 funds</b></span></div>
+            </div>
+          </div>
         </div>
 
       </div><!-- /g-happy -->
@@ -909,7 +938,14 @@ table-card's existing <code>flex:1</code> now claims that extra room while the s
 fixing the cramped/truncated numbers without shrinking the AMC panel; every Mira-labelled control ("Ask Mira" in
 the top bar, "Analyse with Mira" above the table) now opens a shared "Mira is coming soon" popup instead of being
 a dead click — the real Mira feature is the nav-shell owner's build, this is just an honest placeholder, reused
-verbatim on every subsequent sub-page. Round 5 (2026-10-24, pending sign-off): two new sections ported from
+verbatim on every subsequent sub-page. Round 6 (2026-10-24, pending sign-off): Section 3+4 restructured per the
+owner's explicit "make the table one complete row, bring everything else down, one box per section" direction —
+the holdings table is now its own full-width card (no longer sharing a row with a 436px side panel), and AMC
+Allocation/Family Members/Quick Insights are three independent equal-width cards in a row below it instead of one
+combined side panel. The AMC card is now wide enough to use the normal side-by-side pie+legend layout with the
+hover popup re-enabled (the old 436px panel had disabled it for space). Owner noted this layout direction is
+locked ("Layout-wise, this is it") with design polish still open ("80% liking, 20% enhancements"). Round 5
+(2026-10-24, signed off): two new sections ported from
 <code>DashboardView.tsx</code> and placed here per the "Overview replaces DashboardView" rule — (1) a SIPs card
 (full-width, between the synopsis strip and the tabs row) redesigned away from the real component's plain tabbed
 list into a horizontal date-capsule timeline (click a capsule → the detail panel below swaps to that due date,

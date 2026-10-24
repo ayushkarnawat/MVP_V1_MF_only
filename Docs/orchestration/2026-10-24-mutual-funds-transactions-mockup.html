@@ -131,6 +131,21 @@
   .txn-stat.withdrawn .ts-ico { background:var(--neg-bg); color:var(--neg-text); }
   .txn-stat.switched .ts-ico { background:var(--switch-bg); color:var(--switch); }
   .txn-stat.net .ts-ico { background:var(--accent-selected-bg); color:var(--accent-hover); }
+  /* Round 2 (2026-10-24, audit): stat tiles double as ledger filters — click Invested/Withdrawn/Switched
+     to jump to & filter the ledger below; a cursor+hover affordance makes that discoverable (design.md §11.1). */
+  .txn-stat[data-filter] { cursor:pointer; transition:border-color var(--fast), box-shadow var(--fast), transform var(--fast); }
+  .txn-stat[data-filter]:hover { border-color:var(--accent); box-shadow:var(--shadow-sm); transform:translateY(-1px); }
+  .txn-stat.is-active-filter { border-color:var(--accent); background:var(--hover-tint); }
+  .txn-stat.is-active-filter .ts-label { color:var(--accent-hover); }
+
+  .cf-notes { margin-top:12px; display:flex; flex-direction:column; gap:5px; }
+  .cf-notes p { font-size:11.5px; color:var(--muted); margin:0; line-height:1.5; }
+  .sip-banner { margin-top:14px; border-radius:var(--radius-md); border:1px solid var(--border-soft); background:var(--bg); padding:12px 16px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; font-size:12.5px; }
+  .sip-banner .sip-ico { width:30px; height:30px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .sip-banner .sip-count { font-weight:700; color:var(--ink); }
+  .sip-banner .sip-amt { font-family:var(--font-display); font-weight:800; color:var(--ink); }
+  .sip-missed-badge { display:inline-flex; align-items:center; gap:5px; font-family:var(--font-display); font-weight:700; font-size:10.5px; padding:4px 10px; border-radius:var(--radius-pill); background:var(--warn-bg); color:var(--warn-text); cursor:pointer; transition:background var(--fast); margin-left:auto; }
+  .sip-missed-badge:hover { background:color-mix(in srgb, var(--warn-bg) 55%, var(--warn)); }
 
   .chart-stage { display:flex; align-items:flex-end; gap:14px; height:200px; padding:0 4px; margin-top:8px; border-bottom:1px solid var(--border-soft); }
   .chart-col { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; cursor:pointer; position:relative; }
@@ -300,17 +315,29 @@ system, chrome, and Ask-Mira popup as Overview/Performance/Allocation/Holdings.<
           </div>
           <div class="card-desc">Click any period to see its dated, per-fund transactions below.</div>
 
-          <div class="txn-stat-strip">
-            <div class="txn-stat invested"><div class="ts-label"><span class="ts-ico"><svg class="icon icon-sm"><use href="#i-plus"/></svg></span>Total invested</div><div class="ts-val">₹58.2L</div></div>
-            <div class="txn-stat withdrawn"><div class="ts-label"><span class="ts-ico"><svg class="icon icon-sm"><use href="#i-minus"/></svg></span>Total withdrawn</div><div class="ts-val">₹4.1L</div></div>
-            <div class="txn-stat switched"><div class="ts-label"><span class="ts-ico"><svg class="icon icon-sm"><use href="#i-swap"/></svg></span>Net switched</div><div class="ts-val">₹0</div></div>
-            <div class="txn-stat net"><div class="ts-label"><span class="ts-ico"><svg class="icon icon-sm"><use href="#i-trending"/></svg></span>Net invested</div><div class="ts-val">₹54.1L</div></div>
+          <div class="txn-stat-strip" id="stat-strip">
+            <div class="txn-stat invested" data-filter="purchase" title="Click to filter the ledger below to purchases"><div class="ts-label"><span class="ts-ico"><svg class="icon icon-sm"><use href="#i-plus"/></svg></span>Total invested</div><div class="ts-val">₹58.2L</div></div>
+            <div class="txn-stat withdrawn" data-filter="redemption" title="Click to filter the ledger below to redemptions"><div class="ts-label"><span class="ts-ico"><svg class="icon icon-sm"><use href="#i-minus"/></svg></span>Total withdrawn</div><div class="ts-val">₹4.1L</div></div>
+            <div class="txn-stat switched" data-filter="switch" title="Click to filter the ledger below to switches"><div class="ts-label"><span class="ts-ico"><svg class="icon icon-sm"><use href="#i-swap"/></svg></span>Net switched</div><div class="ts-val">₹0</div></div>
+            <div class="txn-stat net" title="Net invested = Total invested − Total withdrawn (switches are in/out of this figure, not added to it)"><div class="ts-label"><span class="ts-ico"><svg class="icon icon-sm"><use href="#i-trending"/></svg></span>Net invested</div><div class="ts-val">₹54.1L</div></div>
           </div>
 
           <div class="chart-stage" id="chart-stage"></div>
           <div class="chart-legend">
             <span><span class="dot" style="background:var(--accent)"></span>Invested</span>
             <span><span class="dot" style="background:var(--neg)"></span>Withdrawn + switched out</span>
+          </div>
+
+          <div class="cf-notes">
+            <p>Opening holdings ₹2.4L (counted in Total invested above, not drawn as a bar — these units were already held before Unifolio started tracking).</p>
+            <p>Gain excludes ₹18,500 of units received as gifts.</p>
+          </div>
+
+          <div class="sip-banner">
+            <span class="sip-ico"><svg class="icon icon-sm"><use href="#i-trending"/></svg></span>
+            <span><span class="sip-count">3 active SIPs</span></span>
+            <span class="sip-amt">₹45,000/month</span>
+            <span class="sip-missed-badge" title="HDFC Mid-Cap Opportunities Fund — SIP due 05 Oct 2026 was not debited">1 missed instalment</span>
           </div>
 
           <div class="period-drill" id="period-drill" style="display:none;">
@@ -361,6 +388,8 @@ system, chrome, and Ask-Mira popup as Overview/Performance/Allocation/Holdings.<
 <tr><td>Stat strip + bar chart (monthly/yearly)</td><td><code>InvestmentWithdrawalSection</code>'s existing invested/withdrawn/switched buckets</td><td>None — same ledger, redesigned presentation (design.md §7.4)</td></tr>
 <tr><td>Period drill-down table</td><td><code>PeriodBreakdownTable</code> — dated per-fund transactions for the clicked period</td><td>None</td></tr>
 <tr><td>All Transactions ledger + type filter + row-expand</td><td>Same underlying transaction rows as the drill-down table, unfiltered by period</td><td>None</td></tr>
+<tr><td>Active SIPs banner (count, ₹/month, missed instalments)</td><td><code>investment_withdrawal.sip_summary</code> (<code>active_count</code>/<code>total_monthly_amount</code>/<code>missed_count</code>) — Round 2, 2026-10-24 audit: this existed in production but had no surface anywhere in the redesign</td><td>None — new banner, reused field</td></tr>
+<tr><td>Opening-holdings / gifts notes</td><td><code>investment_withdrawal.opening_holdings</code> / <code>gifts_net</code> — same audit finding as above</td><td>None — new text lines, reused fields</td></tr>
 </table>
 
 <h2>Motion &amp; interaction spec</h2>
@@ -370,6 +399,9 @@ system, chrome, and Ask-Mira popup as Overview/Performance/Allocation/Holdings.<
 <tr><td>Click a period's bars</td><td>That period's column gets a persistent selected state (bars brighten + scale slightly, label bolds in accent — survives mouse-leave per design.md §11.1); the drill table below re-renders for that period and smooth-scrolls into view</td><td><code>--fast</code></td></tr>
 <tr><td>Click a ledger row</td><td>Row expands in place (chevron rotates) to show NAV, units, and folio number for that transaction — same in-place expand pattern as Holdings' stock table</td><td><code>--fast</code></td></tr>
 <tr><td>Click a type-filter pill</td><td>Ledger re-filters in place; any open row stays open if still in the filtered set</td><td><code>--fast</code></td></tr>
+<tr><td>Click the Invested/Withdrawn/Switched stat tile (Round 2, new)</td><td>Jumps to the ledger card and applies that type's filter — tile and ledger's own segmented toggle share one state, so whichever fired last is the one shown highlighted on both</td><td><code>--fast</code> + smooth scroll</td></tr>
+<tr><td>Hover the Net Invested tile (Round 2, new)</td><td>Tooltip explains the figure is Invested minus Withdrawn, not independently filterable (it has no matching ledger type)</td><td>native tooltip</td></tr>
+<tr><td>Hover the missed-instalment badge (Round 2, new)</td><td>Tooltip names the fund and the missed due date</td><td>native tooltip</td></tr>
 </table>
 
 <div class="decided-against"><strong>Decided against:</strong> a line/area chart for cash flow over time — the
@@ -384,6 +416,18 @@ layout (stat strip, clickable bar chart, redesigned ledger with type-colored ico
 outset: the clicked chart period keeps a persistent selected look tied to the drill table beneath it (same pattern
 as Allocation's Round 6 fix and Holdings' fund chips), and ledger rows expand in place rather than updating
 anything elsewhere on the page.
+<br><br>Round 2 (2026-10-24, item 8 cross-cutting audit): comparing against the live
+<code>InvestmentWithdrawalSection</code>, Round 1 had already carried over the stat
+strip, bar chart and drill-down, but three real fields had no surface anywhere —
+<code>sip_summary</code> (active SIP count/₹-per-month/missed instalments),
+<code>opening_holdings</code>, and <code>gifts_net</code>. Added a SIP banner (with a
+warning-styled missed-instalment badge) and two note lines below the chart legend, same
+token system as every other note on this page set. Also closed an interactivity gap the
+audit surfaced: the four stat tiles were flat, non-interactive numbers despite sitting
+directly above a ledger they map to — Invested/Withdrawn/Switched now jump to and filter
+the ledger below (synced both ways with the ledger's own type-filter pills), and Net
+Invested gets an explanatory hover tooltip since it has no matching ledger type to filter
+by.
 <br><br>Next: Other Analytics, Fund Overlap, Individual Fund page.</div>
 
 </div>
@@ -526,13 +570,29 @@ anything elsewhere on the page.
     });
   }
   renderLedger();
+
+  /* ---- Stat-tile <-> ledger-filter sync (Round 2, 2026-10-24 audit): a stat tile and the
+     ledger's own segmented toggle are two entry points to the same filter state, so each
+     must clear the other's "active" look when it fires, or they'd visibly disagree. ---- */
+  function syncStatHighlight(){
+    document.querySelectorAll('#stat-strip [data-filter]').forEach(function(tile){
+      tile.classList.toggle('is-active-filter', tile.dataset.filter === activeType);
+    });
+  }
+  function setType(type){
+    document.querySelectorAll('#type-toggle .seg-btn').forEach(function(x){ x.classList.toggle('active', x.dataset.type === type); });
+    activeType = type;
+    openIdx = null;
+    renderLedger();
+    syncStatHighlight();
+  }
   document.querySelectorAll('#type-toggle .seg-btn').forEach(function(b){
-    b.addEventListener('click', function(){
-      document.querySelectorAll('#type-toggle .seg-btn').forEach(function(x){ x.classList.remove('active'); });
-      b.classList.add('active');
-      activeType = b.dataset.type;
-      openIdx = null;
-      renderLedger();
+    b.addEventListener('click', function(){ setType(b.dataset.type); });
+  });
+  document.querySelectorAll('#stat-strip [data-filter]').forEach(function(tile){
+    tile.addEventListener('click', function(){
+      setType(tile.dataset.filter);
+      document.querySelector('#ledger-list').closest('.card').scrollIntoView({ behavior:'smooth', block:'start' });
     });
   });
 })();

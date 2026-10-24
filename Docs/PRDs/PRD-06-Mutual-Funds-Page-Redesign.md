@@ -1,10 +1,12 @@
 # PRD-06 — Mutual Funds Page Redesign (`/portfolio/mutual-funds`)
 
-**Status (2026-10-24, updated):** All 8 mockups are now built — Overview, Performance,
-Allocation (Round 6), Holdings, Transactions, Other Analytics, Fund Overlap
+**Status (2026-10-24, updated):** All 8 mockups are built and signed off — Overview,
+Performance, Allocation (Round 6), Holdings, Transactions, Other Analytics, Fund Overlap
 (portfolio-level), and the Individual Fund page (which carries the Overlap Analysis tab's
-normal and comparison states — see §4.3 below, now resolved). This PRD is the
-product-requirements layer sitting above the full design detail, which lives in
+normal and comparison states — see §4.3 below, now resolved). A cross-cutting audit
+(§4.4) against the live production components has also been completed and actioned this
+round, with two items explicitly deferred (§4.4). This PRD is the product-requirements
+layer sitting above the full design detail, which lives in
 `Docs/orchestration/2026-10-23-mutual-funds-page-design.md` ("design.md" below) — this
 document does not repeat that detail, it points to it.
 
@@ -87,6 +89,38 @@ having nothing to render, since the comparison screen lives inside the Individua
 page instead) is unaffected by this resolution — still needs the nav-shell owner
 conversation, design.md §0/§7.5 and the TDD companion doc's §5.
 
+### 4.4 Cross-cutting audit (resolved 2026-10-24) — 4 findings, 2 explicitly deferred
+
+Every production component under `frontend/src/features/analytics/` was audited against
+each mockup's own "Data source mapping" table. 4 gaps were found and actioned; full
+record: `Docs/orchestration/2026-10-24-mutual-funds-cross-cutting-audit-findings.md`.
+
+1. **Investment & Withdrawal cashflow** (Transactions mockup) — not a missing feature as
+   first flagged; 3 genuinely missing fields (`sip_summary`, `gifts_net`,
+   `opening_holdings`) were built in full, no deferral.
+2. **`CoverageBanner`** missing from Holdings, Other Analytics, Fund Overlap (present
+   only in Allocation) — a simple headline-%-only stub line was added to all 3, per
+   owner instruction. **Deferred, not built:** the full per-fund reason list
+   (not-published/not-available/stale) and derivative-exclusion share, for all 3 sections.
+   Allocation's existing `.coverage-banner` markup is the template when this is picked up.
+3. **`ValuationSection` edge states** (Other Analytics) — `hide_headlines` /
+   `enough_data` thresholds and one example footnote were added as a one-line stub, per
+   owner instruction ("same for this" as #2). **Deferred, not built:** the real
+   hidden-ratio and not-enough-data rendered states, the complete per-stock exclusions
+   list, and the complete footnotes array.
+4. **Stock Concentration** (Fund Overlap) — entirely absent; built in full per owner
+   instruction (not deferred): a new Section 5 with a real SVG cumulative-exposure curve,
+   clickable concentration chips, and a headline sentence, all linking to Holdings' stock
+   table exactly as production's shared `onOpenStocks` handler does. The 3 smaller edge
+   states (sub-2-funds empty state, no-pairs-above-threshold empty state, matrix-
+   truncation note) are documented in an inline panel rather than live-toggled, since
+   triggering them live would require degrading the already-signed-off happy-path dataset.
+
+**The two deferred items above (full `CoverageBanner` port; full `ValuationSection` edge
+states) are open backend/frontend-production follow-up work, not mockup gaps** — tracked
+in the redesign handoff doc's item 8/9 and carried forward here so they aren't lost once
+the handoff doc itself is eventually retired.
+
 ## 5. Cross-cutting interactivity requirement (all pages)
 
 Every element on every page must be either (a) clickable with a visible, unambiguous
@@ -125,9 +159,10 @@ Round 6 fix as a worked example of applying it.
   `-transactions-mockup.html`, `-other-analytics-mockup.html`, `-overlap-mockup.html`,
   `-individual-fund-mockup.html` — the 5 remaining mockups, built 2026-10-24, completing
   the full 8-page set.
-- `Docs/orchestration/2026-10-24-mutual-funds-redesign-handoff.md` — being rewritten this
-  pass now that all 8 mockups are built; see its replacement for current status and the
-  continuation prompt for picking this up in a new session.
+- `Docs/orchestration/2026-10-24-mutual-funds-redesign-handoff.md` — current status and
+  the continuation prompt for picking this up in a new session.
+- `Docs/orchestration/2026-10-24-mutual-funds-cross-cutting-audit-findings.md` — the §4.4
+  audit's full per-finding resolution record.
 
 **"CDD"** — the owner was asked directly (AskUserQuestion, 2026-10-24) and confirmed this
 document should be **skipped entirely** — no "CDD" document exists or is planned for this

@@ -182,21 +182,6 @@
   .bm-tab:hover:not(.active) { color:var(--ink); }
   .bm-tab.active { background:#fff; color:var(--ink); font-weight:700; box-shadow:var(--shadow-sm); }
 
-  .dropdown-row { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; position:relative; }
-  .dd-pill { display:inline-flex; align-items:center; gap:8px; font-family:var(--font-display); font-weight:600; font-size:12.5px; padding:9px 14px; border-radius:var(--radius-md); border:1px solid var(--border); background:#fff; cursor:pointer; transition:all var(--fast); }
-  .dd-pill:hover { border-color:var(--accent); background:var(--hover-tint); }
-  .dd-pill .icon { color:var(--muted); transition:transform var(--fast); }
-  .dd-pill.is-open .icon { transform:rotate(180deg); }
-  .dd-panel { position:absolute; top:calc(100% + 6px); left:0; width:280px; background:#fff; border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-md); padding:8px; z-index:30; display:none; }
-  .dd-panel.is-open { display:block; }
-  .dd-check-row { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; font-size:12.5px; cursor:pointer; transition:background var(--fast); }
-  .dd-check-row:hover { background:var(--hover-tint); }
-  .dd-check-row input { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; }
-  .dd-check-row.is-new { color:var(--secondary); }
-  .dd-check-row.is-new .new-tag { font-size:9px; font-weight:700; color:var(--accent-hover); background:var(--accent-selected-bg); padding:2px 6px; border-radius:5px; margin-left:auto; }
-  .dd-radio-row { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; font-size:12.5px; cursor:pointer; transition:background var(--fast); }
-  .dd-radio-row:hover { background:var(--hover-tint); }
-  .dd-radio-row input { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; }
 
   .bm-hero { border:1px solid var(--border-soft); border-radius:var(--radius-md); background:#FAFAFA; padding:18px 20px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:20px; }
   .bm-hero-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--secondary); }
@@ -233,9 +218,10 @@
   .bm-chip.is-new::after { content:'NEW'; font-size:8.5px; font-weight:800; color:var(--accent-hover); background:var(--accent-selected-bg); padding:1px 5px; border-radius:4px; margin-left:2px; }
   .bm-chip.is-on.is-new::after { color:#fff; background:rgba(255,255,255,.22); }
 
-  .bm-race-wrap { border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:54px 28px 18px; }
+  .bm-race-wrap { border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:54px 28px 34px; }
   .bm-race-axis { position:relative; height:4px; background:linear-gradient(90deg,#F0F0F0,#E2E2E2); border-radius:3px; margin:0 6px; }
-  .bm-race-marker { position:absolute; top:50%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; cursor:pointer; z-index:2; }
+  .bm-race-marker { position:absolute; top:50%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; cursor:pointer; z-index:2; transition:top var(--fast); }
+  .bm-race-marker.is-congested { z-index:3; }
   .bm-race-marker .m-dot { width:15px; height:15px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1px var(--border-soft), 0 2px 5px rgba(0,0,0,.08); transition:transform var(--fast); }
   .bm-race-marker:hover .m-dot, .bm-race-marker.is-active .m-dot { transform:scale(1.3); }
   .bm-race-marker.is-you .m-dot { width:22px; height:22px; background:var(--accent); box-shadow:0 0 0 5px var(--accent-selected-bg); }
@@ -270,6 +256,9 @@
   .diff-badge.down { background:#F3F4F6; color:var(--neg-text); }
   .fund-bm-bar-row { margin-bottom:8px; }
   .fund-bm-bar-row-head { display:flex; justify-content:space-between; font-size:11.5px; font-weight:600; margin-bottom:5px; }
+  .bm-bar-row { padding:8px 10px; border-radius:var(--radius-md); transition:background var(--fast); }
+  .bm-bar-row:hover { background:var(--hover-tint); }
+  .bm-bar-row.is-active { background:var(--accent-selected-bg); }
   .show-more-link { display:block; text-align:center; font-family:var(--font-display); font-weight:700; font-size:12px; color:var(--accent-hover); cursor:pointer; padding:8px; border-radius:var(--radius-pill); transition:background var(--fast); }
   .show-more-link:hover { background:var(--hover-tint); text-decoration:underline; }
 
@@ -607,10 +596,16 @@ one spec-reading call I made and am flagging, not silently resolving.</p>
               <div class="bm-chip is-new" data-bm="nifty200"><span class="chip-dot" style="background:#BE185D;"></span>Nifty 200</div>
             </div>
 
+            <div class="seg-toggle" id="bm-view-toggle" style="margin-bottom:14px;">
+              <div class="seg-btn active" data-view="race">Race Track</div>
+              <div class="seg-btn" data-view="bar">Bar Chart</div>
+            </div>
+
             <div id="bm-default">
-              <div class="bm-race-wrap">
+              <div class="bm-race-wrap" id="bm-view-race">
                 <div class="bm-race-axis" id="bm-race-axis"></div>
               </div>
+              <div id="bm-bar-chart" style="display:none;"></div>
               <div class="bm-detail-panel" id="bm-detail-panel"></div>
             </div>
           </div>
@@ -769,7 +764,8 @@ say so and I'll merge them back into one table.</p>
 <tr><td>Click 1Y/3Y/5Y/All</td><td>Chart re-renders to that window</td><td>n/a in static mockup — real component re-slices points client-side, zero network call</td></tr>
 <tr><td>Hover/click a month point</td><td>Tooltip card appears below the chart with value/cost/gain + "See details"</td><td><code>--fast</code></td></tr>
 <tr><td>Click "See details"</td><td>Opens the full month modal (member chips, 4 tiles, per-fund table)</td><td>sheet slides up, 220ms</td></tr>
-<tr><td>Click a benchmark/time-window dropdown pill</td><td>Opens a checkbox/radio panel beneath it</td><td><code>--fast</code></td></tr>
+<tr><td>Click a benchmark chip / time-window segment</td><td>Toggles that index's marker on the race track (chip) or re-slices the XIRR window (segment) — Round 5 replaced the dropdown-panel design these rows originally described; see Round 6 note below</td><td><code>--fast</code></td></tr>
+<tr><td>Click Race Track / Bar Chart</td><td>Swaps Tab 1's representation of the same benchmark-entity data; selection and detail panel carry over</td><td><code>--fast</code></td></tr>
 <tr><td>Click a Portfolio vs Broad Market / Per-Fund vs Benchmark tab</td><td>Swaps the two comparison views</td><td><code>--fast</code></td></tr>
 </table>
 
@@ -800,8 +796,34 @@ directly-clickable toggle chips (click to show/hide that benchmark's marker); th
 plain segmented control (only 4 options — a dropdown added a click for nothing). Per-Fund vs Benchmark cards now
 collapse to a single scannable row (name, diff badge, an inline two-dot mini-track) by default, click to expand
 into the full fund-vs-benchmark bars — decluttering the default view while keeping the detail one click away, the
-same ask applied to every list on this page. Next: owner review, then Allocation's equivalent clickability pass,
-then Holdings, Other Analytics, Fund Overlap, Individual Fund Overlap, Transactions, in that order.</div>
+same ask applied to every list on this page. Round 6 (2026-10-24, pending sign-off): found and fixed a real bug,
+not a design issue — leftover pre-Round-5 JS (<code>wireDropdown('dd-index-pill', ...)</code> /
+<code>wireDropdown('dd-window-pill', ...)</code>) was calling <code>.addEventListener</code> on elements that no
+longer exist (the dropdown pills Round 5 replaced with chips/segmented control), throwing an uncaught
+<code>TypeError</code> that halted the entire inline script — so neither the Portfolio History chart (line/area/
+points never drawn) nor the Benchmark race track (markers never rendered) ever actually displayed in a real
+browser. This is almost certainly what "I can't see the design properly" was describing for both blocks, not a
+visual-design problem. Removed the dead dropdown JS and its unused <code>.dd-pill</code>/<code>.dd-panel</code>/
+<code>.dd-check-row</code>/<code>.dd-radio-row</code> CSS (also orphaned, never referenced by any markup). Also
+added the owner's explicitly-requested chart-type picker to Block 3 Tab 1 (Portfolio vs Broad Market): a
+"Race Track / Bar Chart" toggle swaps between the existing marker track and a new sorted horizontal-bar view of
+the same entities, reusing Tab 2's <code>.fund-bm-bar-row</code>/<code>.bm-bar-track</code> styling rather than
+inventing new classes; clicking either representation drives the same shared detail panel. <strong>Scope note:</strong>
+design.md §11.2 currently names this selectable-representation requirement for Allocation's four breakdowns only —
+extending it to Performance's benchmark comparison is new scope the owner asked for directly in this round; §11.2
+needs a follow-up edit to say so explicitly (tracked for the documentation pass, not done inline here). Portfolio
+History (Block 2) was not otherwise redesigned this round — the render-blocking bug fix alone resolved it; owner
+confirmed it now renders as intended, no further changes needed. Signed off by owner 2026-10-24. Round 7
+(2026-10-24, owner said no re-check needed): fixed real congestion in the race track when two entities' values
+land close together (e.g. "You" vs a near-identical benchmark) — previously both dots sat dead-center on the axis
+regardless of how close their values were, so close values rendered as one overlapping blob (the "You" marker's
+halo ring visually swallowing its neighbour). <code>renderRace()</code> now does a lightweight beeswarm-style
+de-collision: true value position on the X-axis is never altered (this is finance data — fudging it would
+misrepresent returns), but when two sorted neighbours land within a minimum gap, their dots are nudged apart
+perpendicular to the axis (alternating up/down, magnitude scaled to how close they are), and congested markers get
+a z-index bump so overlapping halos render with a clean edge. <code>.bm-race-wrap</code>'s bottom padding grew
+18px→34px to give the jitter room. Next: Allocation's equivalent clickability pass, then Holdings, Other Analytics,
+Fund Overlap, Individual Fund Overlap, Transactions, in that order.</div>
 
 </div>
 
@@ -864,29 +886,6 @@ then Holdings, Other Analytics, Fund Overlap, Individual Fund Overlap, Transacti
   var discPanel = document.getElementById('disclaimer-panel');
   discBtn.addEventListener('click', function(){
     discPanel.style.display = discPanel.style.display === 'none' ? 'block' : 'none';
-  });
-
-  // benchmark/time-window dropdown panels
-  function wireDropdown(pillId, panelId){
-    var pill = document.getElementById(pillId), panel = document.getElementById(panelId);
-    pill.addEventListener('click', function(e){
-      e.stopPropagation();
-      var open = panel.classList.contains('is-open');
-      document.querySelectorAll('.dd-panel.is-open').forEach(function(p){ p.classList.remove('is-open'); });
-      document.querySelectorAll('.dd-pill.is-open').forEach(function(p){ p.classList.remove('is-open'); });
-      if (!open) { panel.classList.add('is-open'); pill.classList.add('is-open'); }
-    });
-  }
-  wireDropdown('dd-index-pill', 'dd-index-panel');
-  wireDropdown('dd-window-pill', 'dd-window-panel');
-  document.addEventListener('click', function(){
-    document.querySelectorAll('.dd-panel.is-open').forEach(function(p){ p.classList.remove('is-open'); });
-    document.querySelectorAll('.dd-pill.is-open').forEach(function(p){ p.classList.remove('is-open'); });
-  });
-  document.querySelectorAll('#dd-window-panel input').forEach(function(r){
-    r.addEventListener('change', function(){
-      document.getElementById('dd-window-label').textContent = r.parentElement.querySelector('span').textContent;
-    });
   });
 
   // month detail modal
@@ -956,11 +955,27 @@ then Holdings, Other Analytics, Fund Overlap, Individual Fund Overlap, Transacti
     var sorted = visible.slice().sort(function(a,b){ return a.value - b.value; });
     var maxEntity = visible.reduce(function(a,b){ return b.value > a.value ? b : a; }, visible[0]);
     axisEl.innerHTML = '';
+    // Beeswarm-style de-collision: values stay at their true axis position (never fudged —
+    // this is finance data), but when two neighbours land within MIN_GAP we nudge the dot
+    // perpendicular to the axis, alternating up/down, so close values (e.g. "You" vs a
+    // near-identical benchmark) don't render as one overlapping blob.
+    var MIN_GAP = 9, lastPct = null, jitterSign = 1;
     sorted.forEach(function(e, i){
+      var pct = leftPct(e.value);
+      var congested = lastPct !== null && (pct - lastPct) < MIN_GAP;
+      var jitter = 0;
+      if (congested) {
+        jitter = jitterSign * (16 - Math.min(12, (pct - lastPct) * (12 / MIN_GAP)));
+        jitterSign *= -1;
+      } else {
+        jitterSign = 1;
+      }
+      lastPct = pct;
       var lane = i % 2 === 0 ? 'lane-bottom' : 'lane-top';
       var el = document.createElement('div');
-      el.className = 'bm-race-marker ' + lane + (e.isYou ? ' is-you' : '');
-      el.style.left = leftPct(e.value) + '%';
+      el.className = 'bm-race-marker ' + lane + (e.isYou ? ' is-you' : '') + (congested ? ' is-congested' : '');
+      el.style.left = pct + '%';
+      el.style.top = 'calc(50% + ' + jitter.toFixed(1) + 'px)';
       el.dataset.key = e.key;
       el.innerHTML =
         (e.key === maxEntity.key ? '<svg class="icon icon-sm m-crown"><use href="#i-zap"/></svg>' : '') +
@@ -971,8 +986,26 @@ then Holdings, Other Analytics, Fund Overlap, Individual Fund Overlap, Transacti
     });
   }
 
+  function renderBars(){
+    var visible = ENTITIES.filter(function(e){ return !e.hidden; });
+    var sorted = visible.slice().sort(function(a,b){ return b.value - a.value; });
+    var wrap = document.getElementById('bm-bar-chart');
+    wrap.innerHTML = sorted.map(function(e){
+      var pct = Math.min(100, (e.value / AXIS_MAX) * 100);
+      var color = e.isYou ? 'var(--accent)' : e.color;
+      return '<div class="fund-bm-bar-row bm-bar-row" data-key="' + e.key + '" style="cursor:pointer;">' +
+        '<div class="fund-bm-bar-row-head"><span>' + (e.isYou ? 'Your Portfolio' : e.label) + (e.key === sorted[0].key ? ' <svg class="icon icon-sm m-crown" style="display:inline;vertical-align:-2px;"><use href="#i-zap"/></svg>' : '') + '</span><span>+' + e.value.toFixed(2) + '%</span></div>' +
+        '<div class="bm-bar-track"><div class="bm-bar-fill" style="width:' + pct + '%; background:' + color + ';"></div></div>' +
+        '</div>';
+    }).join('');
+    wrap.querySelectorAll('.bm-bar-row').forEach(function(row){
+      row.addEventListener('click', function(){ selectEntity(row.dataset.key); });
+    });
+  }
+
   function selectEntity(key){
     document.querySelectorAll('.bm-race-marker').forEach(function(m){ m.classList.toggle('is-active', m.dataset.key === key); });
+    document.querySelectorAll('.bm-bar-row').forEach(function(m){ m.classList.toggle('is-active', m.dataset.key === key); });
     var e = ENTITIES.filter(function(x){ return x.key === key; })[0];
     if (!e) { detailEl.innerHTML = ''; return; }
     var diff = e.isYou ? null : (10.69 - e.value);
@@ -995,10 +1028,22 @@ then Holdings, Other Analytics, Fund Overlap, Individual Fund Overlap, Transacti
       e.hidden = !e.hidden;
       chip.classList.toggle('is-on', !e.hidden);
       renderRace();
+      renderBars();
+    });
+  });
+
+  document.querySelectorAll('#bm-view-toggle .seg-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('#bm-view-toggle .seg-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var isBar = btn.dataset.view === 'bar';
+      document.getElementById('bm-view-race').style.display = isBar ? 'none' : '';
+      document.getElementById('bm-bar-chart').style.display = isBar ? '' : 'none';
     });
   });
 
   renderRace();
+  renderBars();
   selectEntity('you');
 
   // Per-fund rows: collapsed mini-track by default, click to expand full bars

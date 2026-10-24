@@ -123,3 +123,26 @@ full component-to-route mapping).
   comparison state). No 4th artifact, no separate route for the comparison screen. §2.4's
   per-fund market-cap aggregation estimate is unaffected — it was already scoped to the
   comparison screen's Market Cap tab regardless of artifact count.
+
+## 6. Cross-cutting audit (2026-10-24) — confirms no new backend work, flags 2 frontend gaps
+
+A field-by-field audit of every mockup's "Data source mapping" table against the live
+production components (`CoverageBanner.tsx`, `ValuationSection.tsx`, `OverlapSection.tsx`,
+`InvestmentWithdrawalSection.tsx`) found 4 gaps, all of them **frontend mockup
+completeness gaps, not missing backend computation** — every field involved
+(`sip_summary`, `gifts_net`, `opening_holdings`, `CoverageBanner`'s per-fund reason list +
+`excluded_share`, `ValuationSection`'s `hide_headlines`/`enough_data`/`metric.missing`/
+`footnotes`, `OverlapSection`'s `concentration`/`total_stock_count`) already exists in the
+`analytics_sections` payload today and is already rendered by the real production
+component — the mockups simply hadn't represented it yet. Full record:
+`Docs/orchestration/2026-10-24-mutual-funds-cross-cutting-audit-findings.md`.
+
+- Transactions' 3 missing fields and Fund Overlap's Stock Concentration block: now fully
+  represented in their mockups, reusing existing fields, zero new backend work.
+- `CoverageBanner` full port (Holdings, Other Analytics, Fund Overlap) and
+  `ValuationSection`'s full edge-state rendering (Other Analytics): each mockup currently
+  shows only a simplified headline-% stub, deliberately deferred per owner instruction.
+  **This is purely a frontend mockup/implementation gap to close in a later round** — the
+  underlying fields are already computed and already consumed by the existing production
+  components (Allocation's mockup already demonstrates the full `CoverageBanner` pattern);
+  there is no new backend work item to add to §2 above for either of these.

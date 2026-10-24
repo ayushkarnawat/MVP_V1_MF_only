@@ -129,25 +129,7 @@
   .fms-item .fms-label { font-size:10.5px; color:var(--muted); font-weight:600; }
   .fms-item .fms-val { font-family:var(--font-display); font-weight:800; font-size:15px; margin-top:2px; }
 
-  .fund-tabs { display:flex; gap:4px; }
-  .ftab { font-family:var(--font-display); font-size:13.5px; font-weight:700; color:var(--secondary); padding:10px 18px; border-radius:var(--radius-pill); cursor:pointer; transition:all var(--fast); }
-  .ftab:hover:not(.active) { background:#F4F4F4; color:var(--ink); }
-  .ftab.active { background:var(--accent-selected-bg); color:var(--accent-hover); }
-
-  .tab-panel { display:none; flex-direction:column; gap:14px; }
-  .tab-panel.is-active { display:flex; }
-
   .overview-grid { display:grid; grid-template-columns:2fr 1fr; gap:14px; }
-  .nav-chart-stage { position:relative; height:160px; margin-top:10px; }
-  .key-stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:10px; }
-  .ks-item { border:1px solid var(--border-soft); border-radius:var(--radius-sm); padding:11px 13px; }
-  .ks-item .ks-label { font-size:10.5px; color:var(--muted); font-weight:600; }
-  .ks-item .ks-val { font-family:var(--font-display); font-weight:800; font-size:14.5px; margin-top:3px; }
-  .ks-item .ks-val.pos { color:var(--pos-text); }
-  .mini-holding-row { display:flex; align-items:center; gap:10px; padding:7px 0; font-size:12px; border-top:1px dashed var(--border-soft); }
-  .mini-holding-row:first-child { border-top:none; }
-  .mh-bar-track { flex:1; height:6px; border-radius:3px; background:#EFEFEF; overflow:hidden; }
-  .mh-bar-fill { height:100%; border-radius:3px; background:var(--accent); }
 
   .donut-sm-wrap { width:140px; height:140px; position:relative; margin:0 auto; }
   .donut-sm-wrap svg { width:100%; height:100%; }
@@ -166,6 +148,14 @@
   .sb-track { flex:1; height:10px; border-radius:5px; background:#EFEFEF; overflow:hidden; }
   .sb-fill { height:100%; border-radius:5px; background:var(--teal); }
   .sb-val { width:42px; text-align:right; font-weight:700; font-variant-numeric:tabular-nums; }
+  .ov-sector-row { cursor:pointer; padding:4px 6px; margin:0 -6px; border-radius:7px; transition:background var(--fast); }
+  .ov-sector-row:hover { background:var(--hover-tint); }
+  .ov-sector-row .sb-chevron { color:var(--muted); transition:transform var(--fast); margin-left:2px; }
+  .ov-sector-row.is-expanded .sb-chevron { transform:rotate(180deg); color:var(--accent-hover); }
+  .sb-detail { display:none; padding:2px 6px 10px 30px; }
+  .sb-detail.is-open { display:block; }
+  .sb-detail-row { display:flex; justify-content:space-between; font-size:11.5px; color:var(--secondary); padding:5px 0; border-top:1px dashed var(--border-soft); }
+  .sb-detail-row:first-child { border-top:none; }
 
   .quick-insights { background:var(--blue-bg); border-radius:var(--radius-md); padding:13px 16px; font-size:12.5px; color:#1E3A8A; line-height:1.6; }
 
@@ -177,6 +167,8 @@
   .ofw-row:active { transform:scale(.995); }
   .ofw-arrow { color:var(--muted); }
   .ofw-row:hover .ofw-arrow { color:var(--accent-hover); }
+  .ofw-name-cell { display:flex; align-items:center; gap:9px; }
+  .fund-logo-mini { width:26px; height:26px; border-radius:50%; background:var(--fundb-bg); color:var(--fundb); font-family:var(--font-display); font-weight:800; font-size:9.5px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 
   .back-control { display:inline-flex; align-items:center; gap:7px; font-family:var(--font-display); font-weight:700; font-size:12.5px; color:var(--secondary); cursor:pointer; padding:8px 14px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; transition:all var(--fast); margin-bottom:4px; width:fit-content; }
   .back-control:hover { border-color:var(--ink); color:var(--ink); }
@@ -201,8 +193,11 @@
   .two-col-top5 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
   .top5-col-title { font-weight:700; font-size:12.5px; margin-bottom:8px; display:flex; align-items:center; gap:7px; }
   .top5-dot { width:9px; height:9px; border-radius:50%; }
-  .top5-row { display:flex; justify-content:space-between; font-size:12px; padding:6px 0; border-top:1px dashed var(--border-soft); }
+  .top5-row { display:flex; justify-content:space-between; font-size:12px; padding:6px 8px; border-top:1px dashed var(--border-soft); border-radius:6px; margin:0 -8px; transition:background var(--fast); }
   .top5-row:first-child { border-top:none; }
+  .top5-row:hover { background:var(--hover-tint); }
+  .cmp-table-row { transition:background var(--fast); }
+  .cmp-table-row:hover { background:var(--hover-tint); }
 
   .mkt-cap-cmp { display:flex; gap:24px; margin-top:10px; }
   .mkt-cap-col { flex:1; }
@@ -213,22 +208,6 @@
   .perf-cmp-table th.num, .perf-cmp-table td.num { text-align:right; }
   .perf-cmp-table td { padding:9px 10px; border-top:1px solid var(--border-soft); }
   .perf-cmp-table td.pos { color:var(--pos-text); font-weight:700; }
-
-  .score-breakdown { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:16px; }
-  .score-breakdown-item { border:1px solid var(--border-soft); border-radius:var(--radius-sm); padding:11px 13px; }
-  .score-breakdown-item .sb2-label { font-size:10.5px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
-  .score-breakdown-item .sb2-val { font-family:var(--font-display); font-weight:800; font-size:17px; margin-top:4px; }
-  .score-ring-lg { width:110px; height:110px; position:relative; margin:0 auto 8px; }
-  .score-ring-lg svg { width:100%; height:100%; transform:rotate(-90deg); }
-  .score-ring-lg-val { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  .score-ring-lg-val b { font-family:var(--font-display); font-weight:800; font-size:26px; }
-  .score-tier { text-align:center; font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:var(--radius-pill); display:block; margin:6px auto 0; width:fit-content; background:var(--pos-bg); color:var(--pos-text); }
-  .score-lists { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-  .score-list-title { font-weight:700; font-size:12px; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
-  .score-list-title.strength { color:var(--pos-text); }
-  .score-list-title.watch { color:var(--warn-text); }
-  .score-list ul { margin:0; padding-left:18px; font-size:12px; color:var(--secondary); line-height:1.7; }
-  .score-explainer { background:var(--bg); border-radius:var(--radius-sm); padding:12px 14px; font-size:11.5px; color:var(--secondary); margin-top:14px; line-height:1.6; }
 
   .takeaways { background:var(--accent-selected-bg); border-radius:var(--radius-md); padding:13px 16px; font-size:12.5px; color:var(--accent-pressed); line-height:1.6; margin-top:4px; }
 </style>
@@ -254,13 +233,15 @@
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
 </svg>
 
-<h1>Mutual Funds — Individual Fund page, high-fidelity mockup</h1>
+<h1>Mutual Funds — Individual Fund page, high-fidelity mockup (v2)</h1>
 <p class="doc-subtitle">Route <code>portfolio-mutual-funds-fund</code> → <code>/portfolio/mutual-funds/funds/:schemeId</code>,
-moved in-scope 2026-10-24 (§7.5.1/§11.3). Standalone page, own header + 3 tabs: Overview / Overlap Analysis / Insights.
-The Overlap Analysis tab holds artifacts 2 and 3 of Fund Overlap's resolved 3-artifact split — its <b>normal state</b>
-and <b>comparison state</b>, one screen, toggled by clicking a row in "Top Funds with Overlap," not two routes. Use
-the "Open comparison" control below to preview the comparison state directly. Same token system, chrome, and
-Ask-Mira popup as the rest of this page set.</p>
+moved in-scope 2026-10-24 (§7.5.1/§11.3). <b>Round 2:</b> the Overview and Insights tabs are dropped entirely per the
+owner's call — this page now shows only Overlap Analysis, directly below the fund header, with no tab bar (a single
+remaining "tab" isn't a tab). It carries artifacts 2 and 3 of Fund Overlap's resolved 3-artifact split — its
+<b>normal state</b> and <b>comparison state</b>, one screen, toggled by clicking a row in "Top Funds with Overlap,"
+not two routes. Use the "Overlap state" control below to preview the comparison state directly. Every element in
+both states satisfies design.md §11.1 (clickable-with-effect or hoverable-with-tooltip) — see the interactivity audit
+in the motion spec below. Same token system, chrome, and Ask-Mira popup as the rest of this page set.</p>
 
 <div class="controls">
   <div class="ctl-row">
@@ -270,7 +251,7 @@ Ask-Mira popup as the rest of this page set.</p>
     <button class="ctl-btn" data-global="error">Page error</button>
   </div>
   <div class="ctl-row">
-    <div class="ctl-label">Overlap tab state</div>
+    <div class="ctl-label">Overlap state</div>
     <button class="ctl-btn active" data-ovstate="normal">Normal</button>
     <button class="ctl-btn" data-ovstate="comparison">Comparison (preview)</button>
   </div>
@@ -330,7 +311,7 @@ Ask-Mira popup as the rest of this page set.</p>
       <!-- ============ HAPPY PATH ============ -->
       <div id="g-happy">
 
-        <!-- Fund header — reused across all three tabs -->
+        <!-- Fund header — the page's only header, no tabs beneath it -->
         <div class="card fund-header-card">
           <div class="fund-logo">KMC</div>
           <div class="fund-id">
@@ -344,47 +325,8 @@ Ask-Mira popup as the rest of this page set.</p>
           </div>
         </div>
 
-        <div class="card" style="padding:10px;">
-          <div class="fund-tabs">
-            <div class="ftab active" data-ftab="overview">Overview</div>
-            <div class="ftab" data-ftab="overlap">Overlap Analysis</div>
-            <div class="ftab" data-ftab="insights">Insights</div>
-          </div>
-        </div>
-
-        <!-- ================= TAB: OVERVIEW ================= -->
-        <div class="tab-panel is-active" id="panel-overview">
-          <div class="overview-grid">
-            <div class="card">
-              <div class="card-head">
-                <div class="card-title">NAV Trend</div>
-                <div class="seg-toggle" id="nav-period-toggle">
-                  <div class="seg-btn" data-p="1y">1Y</div>
-                  <div class="seg-btn active" data-p="3y">3Y</div>
-                  <div class="seg-btn" data-p="5y">5Y</div>
-                </div>
-              </div>
-              <div class="nav-chart-stage"><svg viewBox="0 0 400 160" id="nav-chart" style="width:100%; height:100%;"></svg></div>
-              <div class="key-stats-grid">
-                <div class="ks-item"><div class="ks-label">1Y Return</div><div class="ks-val pos">+18.4%</div></div>
-                <div class="ks-item"><div class="ks-label">3Y Return (CAGR)</div><div class="ks-val pos">+22.1%</div></div>
-                <div class="ks-item"><div class="ks-label">5Y Return (CAGR)</div><div class="ks-val pos">+19.8%</div></div>
-                <div class="ks-item"><div class="ks-label">Benchmark</div><div class="ks-val">Nifty 500 TRI</div></div>
-                <div class="ks-item"><div class="ks-label">Fund Manager</div><div class="ks-val">Harsha Upadhyaya</div></div>
-                <div class="ks-item"><div class="ks-label">Inception</div><div class="ks-val">Sep 2009</div></div>
-                <div class="ks-item"><div class="ks-label">Category</div><div class="ks-val">Multi Cap</div></div>
-                <div class="ks-item"><div class="ks-label">Your Holding Since</div><div class="ks-val">Mar 2021</div></div>
-              </div>
-            </div>
-            <div class="card">
-              <div class="card-title">Top Holdings</div>
-              <div id="mini-holdings"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ================= TAB: OVERLAP ANALYSIS ================= -->
-        <div class="tab-panel" id="panel-overlap">
+        <!-- ================= OVERLAP ANALYSIS (the only content on this page — Overview/Insights dropped Round 2) ================= -->
+        <div id="panel-overlap">
 
           <!-- ---- NORMAL STATE ---- -->
           <div id="overlap-normal">
@@ -397,7 +339,7 @@ Ask-Mira popup as the rest of this page set.</p>
               </div>
               <div class="card">
                 <div class="card-title">Overlap Summary</div>
-                <div class="donut-sm-wrap"><svg viewBox="0 0 100 100" id="fund-overlap-donut"></svg>
+                <div class="donut-sm-wrap" title="22% of this fund's holdings (by weight) are also held in at least one other fund in your portfolio"><svg viewBox="0 0 100 100" id="fund-overlap-donut"></svg>
                   <div class="donut-sm-center"><div class="dsc-val">22%</div><div class="dsc-label">overlap with your portfolio</div></div>
                 </div>
                 <p style="text-align:center; font-size:11.5px; color:var(--muted); margin:10px 0 0;">14 common stocks out of 62 total holdings</p>
@@ -406,6 +348,7 @@ Ask-Mira popup as the rest of this page set.</p>
 
             <div class="card" style="margin-top:14px;">
               <div class="card-title">Common Holdings by Sector</div>
+              <div class="card-desc" style="margin-bottom:0;">Click a sector to see which stocks make it up.</div>
               <div class="sector-bars" id="sector-bars"></div>
             </div>
 
@@ -455,7 +398,7 @@ Ask-Mira popup as the rest of this page set.</p>
                   </div>
                 </div>
               </div>
-              <div class="donut-sm-wrap" style="width:100px; height:100px;"><svg viewBox="0 0 100 100" id="cmp-donut"></svg>
+              <div class="donut-sm-wrap" style="width:100px; height:100px;" title="18 of Kotak Multi Cap's 62 holdings are also held by ICICI Prudential Bluechip Fund"><svg viewBox="0 0 100 100" id="cmp-donut"></svg>
                 <div class="donut-sm-center"><div class="dsc-val" style="font-size:15px;">64%</div><div class="dsc-label">overlap</div></div>
               </div>
               <p style="width:100%; text-align:center; font-size:11px; color:var(--muted); margin:-6px 0 0;">18 common stocks out of 62 and 54 total holdings respectively</p>
@@ -538,38 +481,6 @@ Ask-Mira popup as the rest of this page set.</p>
 
         </div>
 
-        <!-- ================= TAB: INSIGHTS ================= -->
-        <div class="tab-panel" id="panel-insights">
-          <div class="card">
-            <div class="card-title">Fund Quality Scorer<span class="info-dot">i<span class="tip">Unifolio's proprietary score — 45% Return, 30% Downside Risk, 25% Consistency vs. SEBI category peers. Same detail view as Other Analytics' Scorer group.</span></span></div>
-            <div class="card-desc">This is the same full detail view shown in Other Analytics — shown here too, permanently, per the 2026-10-23 correction. Neither surface is interim.</div>
-            <div class="overview-grid">
-              <div>
-                <div class="score-breakdown">
-                  <div class="score-breakdown-item"><div class="sb2-label">Return (45%)</div><div class="sb2-val">88/100</div></div>
-                  <div class="score-breakdown-item"><div class="sb2-label">Downside Risk (30%)</div><div class="sb2-val">79/100</div></div>
-                  <div class="score-breakdown-item"><div class="sb2-label">Consistency (25%)</div><div class="sb2-val">85/100</div></div>
-                </div>
-                <div class="score-lists">
-                  <div class="score-list"><div class="score-list-title strength"><svg class="icon icon-sm"><use href="#i-check"/></svg>Strengths</div><ul>
-                    <li>Top-quartile 3Y and 5Y returns vs. category</li>
-                    <li>Low downside capture in the 2025 correction</li>
-                  </ul></div>
-                  <div class="score-list"><div class="score-list-title watch"><svg class="icon icon-sm"><use href="#i-alert"/></svg>Watch-outs</div><ul>
-                    <li>Expense ratio slightly above category median</li>
-                  </ul></div>
-                </div>
-                <div class="score-explainer"><b>How we calculate this:</b> 45% weight on 3Y/5Y category-relative returns, 30% on downside-capture during the worst drawdowns in the category over the same window, 25% on return consistency (rolling-period win rate vs. category).</div>
-              </div>
-              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                <div class="score-ring-lg"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="48" fill="none" stroke="#EFEFEF" stroke-width="11"/><circle cx="55" cy="55" r="48" fill="none" stroke="var(--pos)" stroke-width="11" stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="50.7" transform="rotate(-90 55 55)"/></svg>
-                  <div class="score-ring-lg-val"><b>84</b><span style="font-size:10px; color:var(--muted);">/ 100</span></div></div>
-                <div class="score-tier">Excellent</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
       </div>
 
     </div>
@@ -592,22 +503,29 @@ Ask-Mira popup as the rest of this page set.</p>
 <table>
 <tr><th>Element</th><th>Source</th><th>New work</th></tr>
 <tr><td>Fund header (name/logo, plan, CV, AUM, TER)</td><td>Already-computed fields, same ones Holdings' table already uses</td><td>None</td></tr>
-<tr><td>Overview tab (NAV trend, key stats, top holdings)</td><td>Existing per-fund NAV history + <code>stock_holdings.rows[].contributing_funds</code> scoped to one fund</td><td>None</td></tr>
-<tr><td>Overlap-with-portfolio donut + distribution + sector bars</td><td><code>overlap.matrix</code> scoped to this fund; <code>sector_raw</code> grouping</td><td>None</td></tr>
+<tr><td>Overlap-with-portfolio donut + distribution + sector bars</td><td><code>overlap.matrix</code> scoped to this fund; <code>sector_raw</code> grouping (sector-bar click-to-expand reads the same <code>contributing_funds</code> rows, grouped client-side by sector)</td><td>None</td></tr>
 <tr><td>Top Funds with Overlap table</td><td><code>overlap.matrix</code> row for this fund, sorted descending</td><td>None</td></tr>
 <tr><td>Comparison state (all 6 sub-tabs)</td><td><code>overlap.matrix[pairKey]</code>, <code>contributing_funds</code>, <code>sector_raw</code> — same derivations as the portfolio Overlap page, scoped to two funds</td><td>None</td></tr>
 <tr><td>Market Cap Comparison sub-tab</td><td><code>MarketCapClassification</code> (already used portfolio-wide on Allocation)</td><td>New: per-fund aggregation, not a new data source</td></tr>
-<tr><td>Insights tab</td><td><code>FundScoreDetailModal</code> — same component as Other Analytics' Scorer group, per Q8's correction (both surfaces permanent, not interim)</td><td>None</td></tr>
 </table>
+
+<div class="decided-against">Round 2: the Overview tab (NAV trend, key stats, top holdings) and Insights tab
+(<code>FundScoreDetailModal</code>) are dropped from this page entirely, per the owner's explicit call — not deferred,
+removed. Insights' content remains permanently available from Other Analytics' Scorer group (per the 2026-10-23
+correction, that surface was never interim); Overview's NAV/key-stats/top-holdings content has no other surface on
+this page set and is dropped outright, not relocated — the owner judged it unnecessary once Overlap Analysis is the
+page's sole purpose.</div>
 
 <h2>Motion &amp; interaction spec</h2>
 <table>
 <tr><th>Trigger</th><th>Behaviour</th><th>Timing</th></tr>
-<tr><td>Click Overview / Overlap Analysis / Insights</td><td>Fund header stays fixed above; tab panel below swaps, persistent active state on the clicked tab</td><td><code>--fast</code></td></tr>
 <tr><td>Click a "Top Funds with Overlap" row</td><td>Normal state hides, comparison state shows for that fund pair — same tab/screen, not a navigation, per §11.3</td><td><code>--fast</code></td></tr>
 <tr><td>Click "Back to [fund]'s overlap"</td><td>Comparison state hides, normal state returns — explicit labeled control per §11.1, not a browser-back-only escape</td><td><code>--fast</code></td></tr>
 <tr><td>Click a comparison sub-tab</td><td>Sub-panel swaps; persistent selected state on the clicked sub-tab</td><td><code>--fast</code></td></tr>
 <tr><td>Click a Distribution-bar segment or donut legend row</td><td>Persistent selected state, same pop+dim+label pattern as every other donut/legend on this page set</td><td><code>--pop</code></td></tr>
+<tr><td>Click a "Common Holdings by Sector" row <i>(Round 2, new)</i></td><td>Expands in place to the sector's contributing stocks, chevron rotates; only one sector open at a time</td><td><code>--fast</code></td></tr>
+<tr><td>Click the comparison Overview sub-tab's impact-donut segment or legend row <i>(Round 2, fix)</i></td><td>Isolates that segment (others dim to 25% opacity) — the motion spec already claimed this pattern existed; it hadn't been wired up until now</td><td>150ms</td></tr>
+<tr><td>Hover any bar/donut/table row without its own click action (sector-comparison bars, market-cap bars, common/unique holdings rows) <i>(Round 2, audit)</i></td><td>Background highlight + a native tooltip stating the exact figure — satisfies §11.1 for rows that have no further place to navigate to</td><td><code>--fast</code></td></tr>
 </table>
 
 <div class="decided-against">Considered giving the comparison state its own URL (e.g. <code>/funds/:id/overlap/:otherId</code>) —
@@ -615,18 +533,42 @@ rejected per §11.3's explicit resolution: this is "two states of one screen," r
 second route. A dedicated URL would also reintroduce the fund-picker pattern the owner explicitly removed from the
 portfolio-level Overlap page.</div>
 
-<div class="locked-note"><b>Status:</b> Individual Fund page built per design.md §7.5.1 — standalone page, own
+<div class="decided-against">Fund identity everywhere on this page (the fund header's <code>.fund-logo</code>,
+the comparison header's two <code>.fund-logo</code>/<code>.fund-logo.b</code> chips, "Top Funds with Overlap" rows'
+<code>.fund-logo-mini</code>) currently uses 2–3 letter initials in a flat-colour circular chip. Deferred rather than
+built now: swapping these for real AMC/fund-house logos — the mockup has no logo asset source, and production needs
+that decided (an AMC logo CDN/library, a self-hosted asset set, or derived-from-scheme-master icons) before this can
+be built for real, not simulated with placeholder images. Noted for the plan so it isn't lost: when real logos are
+available, the chip markup swaps from initials-on-a-colour to a logo image with the same circular mask and size,
+with the initials kept only as the broken-image/loading fallback. Same deferral as the Fund Overlap mockup's
+<code>.fund-chip-mini</code> — one standing decision, not re-litigated per artifact.</div>
+
+<div class="locked-note"><b>Status (Round 1):</b> Individual Fund page built per design.md §7.5.1 — standalone page, own
 header + 3 tabs (Overview/Overlap Analysis/Insights). This file completes artifacts 2 and 3 of Fund Overlap's
 resolved 3-artifact split: the Overlap Analysis tab's normal state (artifact 2) and comparison state (artifact 3),
 toggled in place via the "Top Funds with Overlap" row click and a labeled back control, never a separate route. The
 "Our view / Consider Review" callout and "See recommended alternative funds" are explicitly dropped at both levels,
 and the Top Funds with Overlap table carries no Action column, per the owner's explicit calls. The one new backend
 work item is per-fund Market Cap aggregation (Market Cap Comparison sub-tab) — everything else reads already-computed
-<code>overlap</code>/<code>contributing_funds</code>/<code>sector_raw</code> data. Every interactive element satisfies
-design.md §11.1 from the outset.
-<br><br>This completes all 5 remaining artifacts from the user's stated build order (Holdings, Transactions, Other
-Analytics, Fund Overlap, Individual Fund + Comparison). Next: update PRD-06/TDD/restructure-relayout docs, then
-write the final handoff + continuation prompt.</div>
+<code>overlap</code>/<code>contributing_funds</code>/<code>sector_raw</code> data.
+<br><br>This completed all 5 remaining artifacts from the user's stated build order (Holdings, Transactions, Other
+Analytics, Fund Overlap, Individual Fund + Comparison).
+<br><br><b>Round 2 (2026-10-24):</b> per the owner's instruction — "drop the Overview/Insights tabs entirely, make
+Overlap Analysis fully clickable in both its normal and comparison states" — (1) the Overview and Insights tabs and
+their panels are removed outright (not relocated; Insights' content stays permanently available from Other
+Analytics' Scorer group, Overview's NAV/key-stats/top-holdings content is simply gone), along with the now-unused
+tab bar, dead CSS (<code>.fund-tabs</code>/<code>.ftab</code>/<code>.tab-panel</code>/Overview-only/Insights-only
+rules), and dead JS (NAV chart renderer, top-holdings list, tab-click handler); (2) a real §11.1 interactivity audit
+across both Overlap-Analysis states found and fixed: the "Common Holdings by Sector" bars were static — now
+click-to-expand to the sector's contributing stocks; the comparison Overview sub-tab's impact-donut/legend had no
+click handlers at all despite the motion spec already (wrongly) claiming they worked — now wired with the standard
+isolate-on-click pattern; every remaining bar/table row with no click destination (sector comparison, market cap
+comparison, common/unique holdings) got a hover highlight plus a native tooltip stating its exact figure, so nothing
+reads as a dead/disconnected affordance; (3) "Top Funds with Overlap" rows now carry a small initials-chip avatar
+(<code>.fund-logo-mini</code>), matching the equivalent table in the Fund Overlap mockup, with a
+<code>decided-against</code> note recording that real AMC logos are deferred — one standing decision for this whole
+sub-project, not re-asked per artifact. Verified: div-tag balance, extracted-script JS syntax check, and headless-
+Chrome screenshots of both the normal and comparison states after every structural edit.</div>
 
 </div>
 
@@ -645,17 +587,7 @@ write the final handoff + continuation prompt.</div>
   }
   document.querySelectorAll('[data-global]').forEach(function(b){ b.addEventListener('click', function(){ setGlobal(b.dataset.global); }); });
 
-  /* ---- Fund tabs (Overview / Overlap Analysis / Insights) ---- */
-  document.querySelectorAll('.ftab').forEach(function(t){
-    t.addEventListener('click', function(){
-      document.querySelectorAll('.ftab').forEach(function(o){ o.classList.remove('active'); });
-      t.classList.add('active');
-      document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('is-active'); });
-      document.getElementById('panel-' + t.dataset.ftab).classList.add('is-active');
-    });
-  });
-
-  /* ---- Overlap tab: normal <-> comparison state ---- */
+  /* ---- Overlap: normal <-> comparison state ---- */
   function showComparison(){
     document.getElementById('overlap-normal').style.display = 'none';
     document.getElementById('overlap-comparison').style.display = 'block';
@@ -679,7 +611,7 @@ write the final handoff + continuation prompt.</div>
     { name: 'UTI Flexi Cap Fund', overlap: 21, common: 7, short: 'UTF' }
   ];
   document.getElementById('ofw-body').innerHTML = OFW.map(function(f){
-    return '<tr class="ofw-row" data-name="' + f.name + '" data-short="' + f.short + '"><td>' + f.name + '</td><td>' + f.overlap + '%</td><td>' + f.common + ' stocks</td><td class="ofw-arrow"><svg class="icon icon-sm"><use href="#i-chevron-right"/></svg></td></tr>';
+    return '<tr class="ofw-row" data-name="' + f.name + '" data-short="' + f.short + '" title="Click to see a full comparison with Kotak Multi Cap Fund"><td><div class="ofw-name-cell"><div class="fund-logo-mini">' + f.short + '</div>' + f.name + '</div></td><td>' + f.overlap + '%</td><td>' + f.common + ' stocks</td><td class="ofw-arrow"><svg class="icon icon-sm"><use href="#i-chevron-right"/></svg></td></tr>';
   }).join('');
   document.querySelectorAll('.ofw-row').forEach(function(r){
     r.addEventListener('click', function(){
@@ -688,33 +620,6 @@ write the final handoff + continuation prompt.</div>
       showComparison();
     });
   });
-
-  /* ---- Overview tab: mini NAV line chart ---- */
-  function renderNavChart(){
-    var pts = [18,22,19,27,24,32,29,38,35,44,41,52,48,58];
-    var w = 400, h = 160, max = Math.max.apply(null, pts), min = Math.min.apply(null, pts);
-    var step = w / (pts.length - 1);
-    var path = pts.map(function(v, i){ var x = i * step; var y = h - 10 - ((v - min) / (max - min)) * (h - 24); return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1); }).join(' ');
-    var area = path + ' L' + w + ',' + h + ' L0,' + h + ' Z';
-    document.getElementById('nav-chart').innerHTML =
-      '<defs><linearGradient id="navgrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--accent)" stop-opacity="0.22"/><stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>' +
-      '<path d="' + area + '" fill="url(#navgrad)"/>' +
-      '<path d="' + path + '" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>';
-  }
-  renderNavChart();
-  document.querySelectorAll('#nav-period-toggle .seg-btn').forEach(function(b){
-    b.addEventListener('click', function(){
-      document.querySelectorAll('#nav-period-toggle .seg-btn').forEach(function(x){ x.classList.remove('active'); });
-      b.classList.add('active');
-      renderNavChart();
-    });
-  });
-
-  /* ---- Overview tab: top holdings mini list ---- */
-  var MINI_HOLDINGS = [['HDFC Bank Ltd',7.1],['ICICI Bank Ltd',5.9],['Reliance Industries Ltd',6.5],['Infosys Ltd',4.2],['Larsen & Toubro Ltd',3.9]];
-  document.getElementById('mini-holdings').innerHTML = MINI_HOLDINGS.map(function(h){
-    return '<div class="mini-holding-row"><span style="width:150px; font-weight:600;">' + h[0] + '</span><div class="mh-bar-track"><div class="mh-bar-fill" style="width:' + (h[1]*10) + '%;"></div></div><span style="width:40px; text-align:right; font-weight:700;">' + h[1] + '%</span></div>';
-  }).join('');
 
   /* ---- Overlap normal state: distribution bar ---- */
   var DIST = [
@@ -747,11 +652,33 @@ write the final handoff + continuation prompt.</div>
       '<circle cx="50" cy="50" r="' + r + '" fill="none" stroke="var(--teal)" stroke-width="13" stroke-linecap="round" stroke-dasharray="' + dash + ' ' + (c - dash) + '" transform="rotate(-90 50 50)"/>';
   })();
 
-  /* ---- Overlap normal state: sector bars ---- */
-  var SECTOR = [['Financials', 38],['Information Technology', 22],['Energy', 14],['Consumer Discretionary', 11],['Healthcare', 8]];
-  document.getElementById('sector-bars').innerHTML = SECTOR.map(function(s){
-    return '<div class="sb-row"><div class="sb-label">' + s[0] + '</div><div class="sb-track"><div class="sb-fill" style="width:' + (s[1]*2.3) + '%;"></div></div><div class="sb-val">' + s[1] + '%</div></div>';
+  /* ---- Overlap normal state: sector bars, click-to-expand to the contributing stocks ---- */
+  var SECTOR = [
+    ['Financials', 38, [['HDFC Bank Ltd',7.1],['ICICI Bank Ltd',5.9],['Axis Bank Ltd',2.8],['Kotak Mahindra Bank Ltd',2.1]]],
+    ['Information Technology', 22, [['Infosys Ltd',4.2],['Persistent Systems Ltd',2.1],['Tata Consultancy Services Ltd',1.8]]],
+    ['Energy', 14, [['Reliance Industries Ltd',6.5],['Oil & Natural Gas Corp Ltd',1.4]]],
+    ['Consumer Discretionary', 11, [['Trent Ltd',1.9],['Titan Company Ltd',1.6]]],
+    ['Healthcare', 8, [['Sun Pharmaceutical Industries Ltd',2.3],['Cipla Ltd',1.2]]]
+  ];
+  document.getElementById('sector-bars').innerHTML = SECTOR.map(function(s, i){
+    var detail = s[2].map(function(st){ return '<div class="sb-detail-row"><span>' + st[0] + '</span><b>' + st[1] + '%</b></div>'; }).join('');
+    return '<div>' +
+      '<div class="sb-row ov-sector-row" data-idx="' + i + '" title="Click to see the ' + s[2].length + ' stocks behind this">' +
+        '<div class="sb-label">' + s[0] + '</div><div class="sb-track"><div class="sb-fill" style="width:' + (s[1]*2.3) + '%;"></div></div><div class="sb-val">' + s[1] + '%</div>' +
+        '<svg class="icon icon-sm sb-chevron"><use href="#i-chevron-down"/></svg>' +
+      '</div>' +
+      '<div class="sb-detail" id="sb-detail-' + i + '">' + detail + '</div>' +
+    '</div>';
   }).join('');
+  document.querySelectorAll('.ov-sector-row').forEach(function(row){
+    row.addEventListener('click', function(){
+      var idx = row.dataset.idx, detail = document.getElementById('sb-detail-' + idx);
+      var wasOpen = detail.classList.contains('is-open');
+      document.querySelectorAll('.sb-detail').forEach(function(d){ d.classList.remove('is-open'); });
+      document.querySelectorAll('.ov-sector-row').forEach(function(r){ r.classList.remove('is-expanded'); });
+      if (!wasOpen) { detail.classList.add('is-open'); row.classList.add('is-expanded'); }
+    });
+  });
 
   /* ---- Comparison state: sub-tabs ---- */
   document.querySelectorAll('.stab').forEach(function(t){
@@ -772,7 +699,7 @@ write the final handoff + continuation prompt.</div>
       '<circle cx="50" cy="50" r="' + r + '" fill="none" stroke="var(--neg)" stroke-width="12" stroke-linecap="round" stroke-dasharray="' + dash + ' ' + (c - dash) + '" transform="rotate(-90 50 50)"/>';
   })();
 
-  /* ---- Comparison state Overview sub-tab: 4-way impact donut + legend ---- */
+  /* ---- Comparison state Overview sub-tab: 4-way impact donut + legend, click either to isolate a segment ---- */
   var CMP_IMPACT = [
     { label: 'Common (both funds)', pct: 31.2, color: 'var(--neg)' },
     { label: 'Unique to Kotak Multi Cap', pct: 28.4, color: 'var(--accent)' },
@@ -781,15 +708,27 @@ write the final handoff + continuation prompt.</div>
   ];
   (function(){
     var r = 42, c = 2 * Math.PI * r, offset = 0;
-    document.getElementById('cmp-impact-donut').innerHTML = CMP_IMPACT.map(function(seg){
+    document.getElementById('cmp-impact-donut').innerHTML = CMP_IMPACT.map(function(seg, i){
       var len = c * seg.pct / 100;
-      var el = '<circle cx="50" cy="50" r="' + r + '" fill="none" stroke="' + seg.color + '" stroke-width="13" stroke-dasharray="' + len + ' ' + (c - len) + '" stroke-dashoffset="' + (-offset) + '" transform="rotate(-90 50 50)"/>';
+      var el = '<circle class="cmp-impact-seg" data-idx="' + i + '" cx="50" cy="50" r="' + r + '" fill="none" stroke="' + seg.color + '" stroke-width="13" stroke-dasharray="' + len + ' ' + (c - len) + '" stroke-dashoffset="' + (-offset) + '" transform="rotate(-90 50 50)" style="transition:opacity 150ms; cursor:pointer;" title="' + seg.label + ': ' + seg.pct + '%"/>';
       offset += len;
       return el;
     }).join('');
-    document.getElementById('cmp-impact-legend').innerHTML = CMP_IMPACT.map(function(seg){
-      return '<div class="legend-row" style="display:flex; align-items:center; gap:9px; padding:6px 8px;"><div class="legend-dot" style="width:10px; height:10px; border-radius:3px; background:' + seg.color + ';"></div><div class="legend-name" style="flex:1; font-size:12px; font-weight:600;">' + seg.label + '</div><div class="legend-pct" style="font-weight:800; font-size:12px;">' + seg.pct + '%</div></div>';
+    document.getElementById('cmp-impact-legend').innerHTML = CMP_IMPACT.map(function(seg, i){
+      return '<div class="legend-row" data-idx="' + i + '" style="display:flex; align-items:center; gap:9px; padding:6px 8px; border-radius:7px; cursor:pointer; transition:background var(--fast);"><div class="legend-dot" style="width:10px; height:10px; border-radius:3px; background:' + seg.color + ';"></div><div class="legend-name" style="flex:1; font-size:12px; font-weight:600;">' + seg.label + '</div><div class="legend-pct" style="font-weight:800; font-size:12px;">' + seg.pct + '%</div></div>';
     }).join('');
+    function selectImpactSegment(idx){
+      var already = document.querySelector('.legend-row[data-idx="' + idx + '"]').classList.contains('is-selected');
+      document.querySelectorAll('#cmp-impact-legend .legend-row').forEach(function(r){ r.classList.remove('is-selected'); r.style.background = ''; });
+      document.querySelectorAll('.cmp-impact-seg').forEach(function(s){ s.style.opacity = '1'; });
+      if (already) return;
+      document.querySelector('.legend-row[data-idx="' + idx + '"]').classList.add('is-selected');
+      document.querySelector('.legend-row[data-idx="' + idx + '"]').style.background = 'var(--hover-tint)';
+      document.querySelectorAll('.cmp-impact-seg').forEach(function(s){ s.style.opacity = (s.dataset.idx === idx) ? '1' : '0.25'; });
+    }
+    document.querySelectorAll('#cmp-impact-legend .legend-row, .cmp-impact-seg').forEach(function(el){
+      el.addEventListener('click', function(){ selectImpactSegment(el.dataset.idx); });
+    });
   })();
 
   /* ---- Comparison state Common Holdings sub-tab ---- */
@@ -801,17 +740,17 @@ write the final handoff + continuation prompt.</div>
     ['Axis Bank Ltd','Financials',2.8,4.1,6.9]
   ];
   document.getElementById('cmp-common-body').innerHTML = CMP_COMMON.map(function(c){
-    return '<tr><td>' + c[0] + '</td><td>' + c[1] + '</td><td class="num">' + c[2] + '%</td><td class="num">' + c[3] + '%</td><td class="num" style="font-weight:800;">' + c[4] + '%</td></tr>';
+    return '<tr class="cmp-table-row" title="' + c[0] + ' — ' + c[4] + '% combined weight across both funds in your portfolio"><td>' + c[0] + '</td><td>' + c[1] + '</td><td class="num">' + c[2] + '%</td><td class="num">' + c[3] + '%</td><td class="num" style="font-weight:800;">' + c[4] + '%</td></tr>';
   }).join('');
 
   /* ---- Comparison state Unique Holdings sub-tab ---- */
   var UNIQUE_A = [['Cholamandalam Investment Ltd',2.4],['Persistent Systems Ltd',2.1],['Trent Ltd',1.9],['Zomato Ltd',1.7],['Dixon Technologies Ltd',1.5]];
   var UNIQUE_B = [['Bharti Airtel Ltd',4.2],['Kotak Mahindra Bank Ltd',3.6],['Titan Company Ltd',3.1],['Asian Paints Ltd',2.8],['Maruti Suzuki India Ltd',2.4]];
-  function renderTop5(id, data){
-    document.getElementById(id).innerHTML = data.map(function(d){ return '<div class="top5-row"><span>' + d[0] + '</span><b>' + d[1] + '%</b></div>'; }).join('');
+  function renderTop5(id, data, fundName){
+    document.getElementById(id).innerHTML = data.map(function(d){ return '<div class="top5-row" title="' + d[0] + ': ' + d[1] + '% of ' + fundName + ', not held by the other fund"><span>' + d[0] + '</span><b>' + d[1] + '%</b></div>'; }).join('');
   }
-  renderTop5('unique-a', UNIQUE_A);
-  renderTop5('unique-b', UNIQUE_B);
+  renderTop5('unique-a', UNIQUE_A, 'Kotak Multi Cap Fund');
+  renderTop5('unique-b', UNIQUE_B, 'ICICI Prudential Bluechip Fund');
 
   /* ---- Comparison state Sector Comparison sub-tab ---- */
   var SECTOR_CMP = [
@@ -824,21 +763,21 @@ write the final handoff + continuation prompt.</div>
   document.getElementById('sector-cmp-bars').innerHTML = SECTOR_CMP.map(function(s){
     return '<div class="sb-row" style="margin-bottom:10px;"><div class="sb-label">' + s[0] + '</div>' +
       '<div style="flex:1; display:flex; flex-direction:column; gap:3px;">' +
-      '<div style="display:flex; align-items:center; gap:8px;"><div class="sb-track" style="flex:1;"><div class="sb-fill" style="width:' + (s[1]*2) + '%; background:var(--accent);"></div></div><span class="sb-val" style="color:var(--accent-pressed);">' + s[1] + '%</span></div>' +
-      '<div style="display:flex; align-items:center; gap:8px;"><div class="sb-track" style="flex:1;"><div class="sb-fill" style="width:' + (s[2]*2) + '%; background:var(--fundb);"></div></div><span class="sb-val" style="color:var(--fundb);">' + s[2] + '%</span></div>' +
+      '<div style="display:flex; align-items:center; gap:8px;" title="Kotak Multi Cap: ' + s[1] + '% in ' + s[0] + '"><div class="sb-track" style="flex:1;"><div class="sb-fill" style="width:' + (s[1]*2) + '%; background:var(--accent);"></div></div><span class="sb-val" style="color:var(--accent-pressed);">' + s[1] + '%</span></div>' +
+      '<div style="display:flex; align-items:center; gap:8px;" title="ICICI Bluechip: ' + s[2] + '% in ' + s[0] + '"><div class="sb-track" style="flex:1;"><div class="sb-fill" style="width:' + (s[2]*2) + '%; background:var(--fundb);"></div></div><span class="sb-val" style="color:var(--fundb);">' + s[2] + '%</span></div>' +
       '</div></div>';
   }).join('');
 
   /* ---- Comparison state Market Cap Comparison sub-tab ---- */
   var MKTCAP_A = [['Large Cap', 52, 'var(--accent)'],['Mid Cap', 31, 'var(--teal)'],['Small Cap', 17, 'var(--warn)']];
   var MKTCAP_B = [['Large Cap', 84, 'var(--fundb)'],['Mid Cap', 13, 'var(--purple)'],['Small Cap', 3, 'var(--warn)']];
-  function renderMktCap(id, data){
+  function renderMktCap(id, data, fundName){
     document.getElementById(id).innerHTML = data.map(function(d){
-      return '<div class="sb-row"><div class="sb-label" style="width:80px;">' + d[0] + '</div><div class="sb-track"><div class="sb-fill" style="width:' + d[1] + '%; background:' + d[2] + ';"></div></div><div class="sb-val">' + d[1] + '%</div></div>';
+      return '<div class="sb-row" title="' + fundName + ': ' + d[1] + '% ' + d[0] + '"><div class="sb-label" style="width:80px;">' + d[0] + '</div><div class="sb-track"><div class="sb-fill" style="width:' + d[1] + '%; background:' + d[2] + ';"></div></div><div class="sb-val">' + d[1] + '%</div></div>';
     }).join('');
   }
-  renderMktCap('mktcap-a', MKTCAP_A);
-  renderMktCap('mktcap-b', MKTCAP_B);
+  renderMktCap('mktcap-a', MKTCAP_A, 'Kotak Multi Cap Fund');
+  renderMktCap('mktcap-b', MKTCAP_B, 'ICICI Prudential Bluechip Fund');
 })();
 </script>
 </body>

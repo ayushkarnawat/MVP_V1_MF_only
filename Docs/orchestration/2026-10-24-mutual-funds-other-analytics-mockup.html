@@ -130,15 +130,6 @@
   .group-cards { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
   .group-cards.single { grid-template-columns:1fr; }
 
-  .cmp-bars { display:flex; flex-direction:column; gap:10px; margin-top:6px; }
-  .cmp-bar-row { display:flex; align-items:center; gap:10px; font-size:12px; }
-  .cmp-bar-label { width:120px; flex-shrink:0; color:var(--secondary); font-weight:600; }
-  .cmp-bar-track { flex:1; height:10px; border-radius:5px; background:#EFEFEF; overflow:hidden; }
-  .cmp-bar-fill { height:100%; border-radius:5px; }
-  .cmp-bar-val { width:52px; text-align:right; font-variant-numeric:tabular-nums; font-weight:700; }
-
-  .cost-save-banner { background:var(--accent-selected-bg); border:1px solid var(--accent); border-radius:var(--radius-md); padding:13px 16px; font-size:12.5px; color:var(--accent-pressed); margin-top:14px; }
-
   .score-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
   .score-card { border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:16px; cursor:pointer; transition:all var(--fast); }
   .score-card:hover { border-color:var(--accent); }
@@ -175,21 +166,111 @@
   .rank-main { flex:1; min-width:0; }
   .rank-fund { font-weight:700; font-size:13px; }
   .rank-meta { font-size:11px; color:var(--muted); margin-top:2px; }
-  .rank-pct-track { width:90px; height:7px; border-radius:4px; background:#EFEFEF; overflow:hidden; }
-  .rank-pct-fill { height:100%; background:var(--accent); border-radius:4px; }
   .rank-chev { color:var(--muted); transition:transform var(--fast); }
   .rank-row.is-open .rank-chev { transform:rotate(90deg); color:var(--accent-hover); }
   .rank-detail { display:none; padding:6px 10px 16px 58px; }
   .rank-row.is-open + .rank-detail { display:block; }
-  .peer-table { width:100%; border-collapse:collapse; font-size:12px; }
-  .peer-table th { text-align:left; font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; padding:0 10px 6px; }
-  .peer-table th.num, .peer-table td.num { text-align:right; }
-  .peer-table td { padding:7px 10px; border-top:1px dashed var(--border-soft); }
-  .peer-table tr.is-you td { font-weight:800; background:var(--accent-selected-bg); }
 
   .neighbor-row { display:flex; justify-content:space-between; align-items:center; padding:7px 10px; font-size:12px; border-radius:7px; }
   .neighbor-row.is-you { background:var(--accent-selected-bg); font-weight:800; }
   .neighbor-row .nr-weights { color:var(--muted); font-size:11px; font-weight:500; }
+
+  /* ---------------- Round 2 (2026-10-24): real fields found via audit of TerSection/ValuationSection/
+     ScorerSection/FundScoreCard/CategoryRankingSection/FundRankingSection against this mockup — see the
+     locked-note at the bottom for the full list and the removed-banner rationale. ---------------- */
+  .badge-chip { display:inline-flex; align-items:center; font-family:var(--font-display); font-weight:700; font-size:10px; padding:2px 8px; border-radius:var(--radius-pill); white-space:nowrap; }
+  .badge-chip.pos { background:var(--pos-bg); color:var(--pos-text); }
+  .badge-chip.warn { background:var(--warn-bg); color:var(--warn-text); }
+  .badge-chip.outline { background:transparent; border:1px solid var(--border); color:var(--secondary); }
+  .badge-chip.accent-outline { background:transparent; border:1px solid var(--accent); color:var(--accent-hover); }
+  .coverage-row { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); padding-top:9px; margin-top:9px; border-top:1px solid var(--border-soft); }
+  .coverage-row b { color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums; }
+  .edge-callout { display:flex; gap:9px; align-items:flex-start; background:var(--warn-bg); border:1px solid #F3D9A8; border-radius:var(--radius-sm); padding:10px 12px; font-size:11.5px; color:var(--warn-text); }
+  .edge-callout.is-neutral { background:#F6F6F6; border-color:var(--border); color:var(--secondary); }
+  .edge-callout svg { flex-shrink:0; margin-top:1px; }
+  .mini-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .mini-table th { text-align:right; font-size:9.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); font-weight:700; padding:0 8px 6px; }
+  .mini-table th:first-child, .mini-table td:first-child { text-align:left; }
+  .mini-table td { text-align:right; padding:6px 8px; border-top:1px dashed var(--border-soft); font-variant-numeric:tabular-nums; }
+  .mini-table tfoot td { font-weight:800; border-top:1px solid var(--border); color:var(--ink); }
+  .mini-table td.pos { color:var(--pos-text); font-weight:700; }
+  .mini-table td.neg { color:var(--neg-text); font-weight:700; }
+  .accordion-item { border:1px solid var(--border-soft); border-radius:var(--radius-sm); overflow:hidden; }
+  .accordion-head { display:flex; justify-content:space-between; align-items:center; padding:10px 13px; font-size:12px; font-weight:700; background:var(--bg); cursor:pointer; }
+  .accordion-head > svg { transition:transform var(--fast); color:var(--muted); flex-shrink:0; }
+  .accordion-item.is-open .accordion-head > svg { transform:rotate(180deg); }
+  .accordion-body { display:none; padding:12px 13px; font-size:12px; color:var(--secondary); line-height:1.6; border-top:1px solid var(--border-soft); }
+  .accordion-body p + p { margin-top:6px; }
+  .accordion-item.is-open .accordion-body { display:block; }
+  .tier-bar { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; }
+  .tier-bar .seg { height:8px; border-radius:4px; background:#EFEFEF; }
+  .tier-bar .seg.is-passed { background:#9FE0B8; }
+  .tier-bar .seg.is-active { background:var(--accent); }
+  .exclusion-note { background:#F6F6F6; border-radius:8px; padding:10px 13px; font-size:11.5px; color:var(--secondary); }
+
+  /* ---------------- Round 3 (2026-10-24): visual-design elevation pass. Same data/content as Round 2 —
+     this round replaces generic bordered label/value boxes and plain tables with designed-instrument
+     visuals (radial gauges, scale/spectrum pins, gradient tier-tracks, bar-chart leaderboard rows),
+     reusing the logo-chip + leaderboard visual language the Holdings page already got signed off on,
+     so the whole page set reads as one designed product rather than a dashboard-component grab bag. */
+  .fund-chip { width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:700; font-size:10.5px; flex-shrink:0; }
+
+  .hero-panel { display:flex; gap:22px; align-items:center; padding:18px 20px; border-radius:var(--radius-lg); background:linear-gradient(135deg,#FAFAFA,#fff); border:1px solid var(--border-soft); margin-bottom:16px; }
+  .radial-stat { position:relative; width:108px; height:108px; flex-shrink:0; }
+  .radial-stat svg { width:100%; height:100%; transform:rotate(-90deg); }
+  .radial-stat-val { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .radial-stat-val b { font-family:var(--font-display); font-weight:800; font-size:21px; line-height:1; }
+  .radial-stat-val span { font-size:9px; color:var(--muted); font-weight:700; margin-top:3px; text-transform:uppercase; letter-spacing:.02em; }
+
+  .spectrum { position:relative; height:40px; margin:20px 4px 2px; }
+  .spectrum-track { position:absolute; left:0; right:0; top:16px; height:6px; border-radius:3px; }
+  .spectrum-pin { position:absolute; top:0; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; }
+  .spectrum-pin .lbl { font-size:9px; font-weight:800; white-space:nowrap; background:#fff; padding:2px 6px; border-radius:var(--radius-pill); box-shadow:var(--shadow-sm); border:1px solid var(--border-soft); }
+  .spectrum-pin .dot { width:13px; height:13px; border-radius:50%; border:3px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.3); margin-top:2px; }
+  .spectrum-pin .val { font-size:10px; font-weight:800; white-space:nowrap; margin-top:3px; }
+
+  .insight-card { display:flex; gap:12px; align-items:flex-start; background:linear-gradient(135deg, var(--accent-selected-bg), #fff); border:1px solid var(--accent); border-radius:var(--radius-md); padding:14px 16px; }
+  .insight-card .ico { width:34px; height:34px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 4px 10px rgba(34,197,94,.35); }
+  .insight-card .txt { font-size:12.5px; color:var(--accent-pressed); line-height:1.5; }
+  .insight-card .txt b { font-size:14px; }
+
+  .ladder-row { display:flex; align-items:center; gap:12px; padding:10px 8px; border-radius:10px; transition:background var(--fast); border-top:1px solid var(--border-soft); cursor:pointer; }
+  .ladder-row:first-child { border-top:none; }
+  .ladder-row:hover, .ladder-row.is-open { background:var(--hover-tint); }
+  .ladder-name { width:260px; flex-shrink:0; display:flex; align-items:center; gap:9px; font-size:12.5px; font-weight:600; min-width:0; }
+  .ladder-name .nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ladder-track { flex:1; height:9px; border-radius:5px; background:#EFEFEF; }
+  .ladder-fill { height:100%; border-radius:5px; }
+  .ladder-chev { color:var(--muted); transition:transform var(--fast); flex-shrink:0; }
+  .ladder-row.is-open .ladder-chev { transform:rotate(90deg); color:var(--accent-hover); }
+  .ladder-detail { display:none; padding:4px 10px 16px 46px; }
+  .ladder-row.is-open + .ladder-detail { display:block; }
+  .ladder-totals { display:flex; align-items:center; gap:12px; padding:11px 8px; margin-top:4px; border-top:2px solid var(--ink); font-weight:800; }
+
+  .tier-track { position:relative; height:30px; margin:14px 2px 6px; }
+  .tier-track-base { position:absolute; left:0; right:0; top:12px; height:8px; border-radius:4px; background:linear-gradient(90deg,#E5484D,#D97706,#EAB308,#86EFAC,#22C55E); }
+  .tier-track-marker { position:absolute; top:0; transform:translateX(-50%); }
+  .tier-track-marker .flag { position:absolute; bottom:14px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; font-size:10px; font-weight:800; padding:3px 9px; border-radius:6px; white-space:nowrap; }
+  .tier-track-marker .flag::after { content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:4px solid transparent; border-top-color:var(--ink); }
+  .tier-track-marker .pin { position:absolute; top:7px; left:50%; transform:translateX(-50%); width:16px; height:16px; border-radius:50%; background:#fff; border:3px solid var(--ink); box-shadow:0 1px 4px rgba(0,0,0,.25); }
+  .tier-track-labels { display:flex; justify-content:space-between; font-size:8.5px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.02em; margin-top:2px; }
+
+  .acc-head-ico { display:flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; flex-shrink:0; }
+  .acc-head-ico.evidence { background:var(--blue-bg); color:var(--blue); }
+  .acc-head-ico.methodology { background:var(--purple-bg); color:var(--purple); }
+
+  .percentile-track { position:relative; height:30px; margin-top:10px; }
+  .percentile-base { position:absolute; left:0; right:0; top:12px; height:6px; border-radius:3px; background:#EFEFEF; }
+  .percentile-fill { position:absolute; left:0; top:12px; height:6px; border-radius:3px; }
+  .percentile-marker { position:absolute; top:0; transform:translateX(-50%); }
+  .percentile-marker .badge { font-size:10px; font-weight:800; color:#fff; padding:2px 8px; border-radius:var(--radius-pill); white-space:nowrap; display:block; }
+  .percentile-marker .pin { width:12px; height:12px; border-radius:50%; background:#fff; border:3px solid; margin:3px auto 0; }
+
+  .component-bar-row { display:flex; align-items:center; gap:10px; padding:7px 0; }
+  .component-bar-label { width:180px; flex-shrink:0; font-size:11.5px; color:var(--secondary); font-weight:600; }
+  .component-bar-track { flex:1; height:8px; border-radius:4px; background:#EFEFEF; }
+  .component-bar-fill { height:100%; border-radius:4px; }
+  .component-bar-val { width:60px; text-align:right; font-size:11.5px; font-weight:700; font-variant-numeric:tabular-nums; }
 </style>
 </head>
 <body>
@@ -301,30 +382,137 @@ system, chrome, and Ask-Mira popup as the rest of this page set.</p>
         <!-- ================= GROUP 1: Cost & Valuation ================= -->
         <div class="group-header" style="margin-top:20px;"><div class="group-num">1</div><div class="group-title">Cost &amp; Valuation</div></div>
         <div class="group-sub">How expensive your funds are to hold, and how richly their holdings are priced.</div>
-        <div class="group-cards">
+        <div class="group-cards single">
+
           <div class="card">
-            <div class="card-title">Valuation vs. Benchmark<span class="info-dot">i<span class="tip">Your portfolio's look-through P/E and P/B compared to Nifty 500 — a sense of whether you're paying a premium or discount for your holdings.</span></span></div>
-            <div class="cmp-bars" style="margin-top:14px;">
-              <div class="cmp-bar-row"><div class="cmp-bar-label">P/E — Portfolio</div><div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:78%; background:var(--accent);"></div></div><div class="cmp-bar-val">23.4x</div></div>
-              <div class="cmp-bar-row"><div class="cmp-bar-label">P/E — Nifty 500</div><div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:73%; background:var(--muted);"></div></div><div class="cmp-bar-val">21.9x</div></div>
-              <div class="cmp-bar-row"><div class="cmp-bar-label">P/B — Portfolio</div><div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:62%; background:var(--accent);"></div></div><div class="cmp-bar-val">4.1x</div></div>
-              <div class="cmp-bar-row"><div class="cmp-bar-label">P/B — Nifty 500</div><div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:58%; background:var(--muted);"></div></div><div class="cmp-bar-val">3.8x</div></div>
+            <div class="card-head">
+              <div class="card-title">Total Expense Ratio (TER) &amp; Cost Analysis<span class="info-dot">i<span class="tip">AUM-weighted annual management fee across your portfolio, split by Direct vs. Regular plans, with a per-fund cost breakdown.</span></span></div>
+              <span class="badge-chip outline">Ref: FY 2025-26</span>
             </div>
+            <div class="card-desc" style="margin-bottom:12px;">Projected annual cost if your value and each fund's TER stay as they are today — not a forecast of returns.</div>
+
+            <div class="hero-panel">
+              <div class="radial-stat">
+                <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="#EFEFEF" stroke-width="9"/><circle cx="50" cy="50" r="44" fill="none" stroke="var(--ink)" stroke-width="9" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="127"/></svg>
+                <div class="radial-stat-val"><b>1.08%</b><span>AUM-Wtd TER</span></div>
+              </div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:12px; color:var(--secondary);">₹48,600/yr at today's value · covers <b style="color:var(--ink);">₹44.6L</b> of ₹45.0L portfolio value</div>
+                <div class="spectrum">
+                  <div class="spectrum-track" style="background:linear-gradient(90deg,var(--pos),var(--warn));"></div>
+                  <div class="spectrum-pin" style="left:30.5%;"><div class="lbl" style="color:var(--pos-text);">Direct</div><div class="dot" style="background:var(--pos);"></div><div class="val" style="color:var(--pos-text);">0.61%</div></div>
+                  <div class="spectrum-pin" style="left:71%;"><div class="lbl" style="color:var(--warn-text);">Regular</div><div class="dot" style="background:var(--warn);"></div><div class="val" style="color:var(--warn-text);">1.42%</div></div>
+                </div>
+                <div style="display:flex; gap:18px; margin-top:6px; font-size:11px; color:var(--muted);">
+                  <span>Direct value: <b style="color:var(--ink);">₹26.9L</b></span>
+                  <span>Regular value: <b style="color:var(--ink);">₹17.7L</b></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- #17 (decided 6 Oct) still holds: Direct and Regular above hold different funds, so their
+                 TER gap alone is NOT a valid "switch and save" figure — that line was removed. What's below
+                 is a different, legitimate claim: each Direct-held fund's own saving vs. its own
+                 Regular-plan sibling, the same per-scheme figure the Distributor Comparison screen already
+                 computes (`annual_ter_saving`) — zero new backend work, just surfaced here too. -->
+            <div class="insight-card" style="margin-bottom:18px;">
+              <div class="ico"><svg class="icon icon-sm"><use href="#i-trending"/></svg></div>
+              <div class="txt"><b>Your 2 Direct-plan holdings are already saving an estimated 0.74%/yr combined</b><br>vs. the Regular-plan version of the same scheme — see each fund's own saving below.</div>
+            </div>
+
+            <div style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); padding:0 8px 4px;">Cost ladder — relative TER across your holdings <span style="text-transform:none; font-weight:500;">· click a fund for its 1Y/3Y/5Y returns</span></div>
+            <div id="ter-ladder-list"></div>
+            <div class="ladder-totals">
+              <div style="width:260px; flex-shrink:0;">Total (4 funds with a TER)</div>
+              <div style="flex:1;"></div>
+              <div style="text-align:right; width:170px; font-size:11px; color:var(--secondary); line-height:1.5;">₹44.6L · 1yr ₹41,520 · 3yr ₹1,28,990 · 5yr ₹2,24,730</div>
+            </div>
+            <div class="exclusion-note" style="margin-top:10px;">1 fund without a TER is not included in the projected totals above.</div>
+
+            <div class="edge-callout" style="margin-top:12px;"><svg class="icon icon-sm"><use href="#i-alert"/></svg><div><b>TER Exclusions (1 fund excluded).</b> The weighted TER calculation currently excludes <span class="badge-chip outline">Nippon India Growth Fund</span> due to missing AMFI disclosures.</div></div>
           </div>
+
           <div class="card">
-            <div class="card-title">Direct vs. Regular — Cost Analysis<span class="info-dot">i<span class="tip">The expense-ratio gap between your Regular-plan funds and their Direct-plan equivalent, projected forward.</span></span></div>
-            <div class="cmp-bars" style="margin-top:14px;">
-              <div class="cmp-bar-row"><div class="cmp-bar-label">Your TER (wtd. avg)</div><div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:68%; background:var(--warn);"></div></div><div class="cmp-bar-val">1.42%</div></div>
-              <div class="cmp-bar-row"><div class="cmp-bar-label">Direct-plan equiv.</div><div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:32%; background:var(--accent);"></div></div><div class="cmp-bar-val">0.61%</div></div>
+            <div class="card-title">Portfolio Valuation vs. Benchmarks<span class="info-dot">i<span class="tip">Your portfolio's look-through P/E and P/B compared to Nifty 50 and Nifty 500 — a sense of whether you're paying a premium or discount for your holdings.</span></span></div>
+            <div class="card-desc">Values as on 23 Oct 2026 · Holdings as on 30 Sep 2026.</div>
+            <!-- Simple coverage stub (Round 5, 2026-10-24 audit) — a lighter placeholder for production's
+                 full CoverageBanner (per-fund not-published/not-available/stale reasons, derivative-exclusion
+                 share) PLUS its hide_headlines (<50% coverage)/enough_data (<70%) threshold states. This card's
+                 ratios are always shown at full fidelity here; the threshold-gated hidden/insufficient states are
+                 a documented open item, see decided-against note below. -->
+            <div class="exclusion-note" style="margin-bottom:14px;">Based on 86.4% of your portfolio's equity exposure — ratios would be hidden below 50% coverage and flagged "not enough data" below 70%.</div>
+            <!-- Round 4: one shared toggle for both P/E and P/B (same N50/N500/You comparison, just a
+                 different ratio) rather than two independent ones — the spectrum view's pin-label collision
+                 problem on tightly-clustered values is the same for both, so switching one without the
+                 other would read as inconsistent. Bar widths are scaled to each panel's own max value
+                 (not an absolute zero-start axis) so the three bars stay visually distinct at this value
+                 range — matches how the spectrum pins are already positioned by relative, not absolute, scale. -->
+            <div class="seg-toggle" id="valuation-view-toggle" style="margin-bottom:14px;">
+              <div class="seg-btn active" data-view="spectrum">Racetrack</div>
+              <div class="seg-btn" data-view="bar">Bar Chart</div>
             </div>
-            <div class="cost-save-banner">Switching your 3 Regular-plan funds to Direct could save an estimated <b>₹1.9L</b> over the next 10 years, assuming similar returns continue.</div>
+            <div class="group-cards">
+              <div style="border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:16px 18px 10px;">
+                <div style="font-family:var(--font-display); font-weight:700; font-size:13px;">P/E · earnings</div>
+                <div class="val-view-spectrum">
+                  <div class="spectrum" style="margin:26px 4px 2px;">
+                    <div class="spectrum-track" style="background:#EFEFEF;"></div>
+                    <div class="spectrum-pin" style="left:68%;"><div class="lbl" style="color:var(--blue);">N50</div><div class="dot" style="background:var(--c3);"></div><div class="val" style="color:var(--blue);">20.5x</div></div>
+                    <div class="spectrum-pin" style="left:78%;"><div class="lbl" style="color:var(--secondary);">N500</div><div class="dot" style="background:var(--muted);"></div><div class="val" style="color:var(--secondary);">21.9x</div></div>
+                    <div class="spectrum-pin" style="left:88%;"><div class="lbl" style="color:var(--pos-text); font-weight:800;">You</div><div class="dot" style="background:var(--c1); width:15px; height:15px;"></div><div class="val" style="color:var(--pos-text);">23.4x</div></div>
+                  </div>
+                </div>
+                <div class="val-view-bar" style="display:none;">
+                  <div class="component-bar-row"><div class="component-bar-label" style="color:var(--blue);">Nifty 50</div><div class="component-bar-track"><div class="component-bar-fill" style="width:87.6%; background:var(--c3);"></div></div><div class="component-bar-val" style="color:var(--blue);">20.5x</div></div>
+                  <div class="component-bar-row"><div class="component-bar-label" style="color:var(--secondary);">Nifty 500</div><div class="component-bar-track"><div class="component-bar-fill" style="width:93.6%; background:var(--muted);"></div></div><div class="component-bar-val" style="color:var(--secondary);">21.9x</div></div>
+                  <div class="component-bar-row"><div class="component-bar-label" style="color:var(--pos-text); font-weight:800;">You</div><div class="component-bar-track"><div class="component-bar-fill" style="width:100%; background:var(--c1);"></div></div><div class="component-bar-val" style="color:var(--pos-text); font-weight:800;">23.4x</div></div>
+                </div>
+                <div style="font-size:11.5px; color:var(--ink); margin-top:14px; line-height:1.6;">Your portfolio is <b>14.1% more expensive</b> on earnings than Nifty 50, and <b>6.8% more expensive</b> than Nifty 500.</div>
+              </div>
+              <div style="border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:16px 18px 10px;">
+                <div style="font-family:var(--font-display); font-weight:700; font-size:13px;">P/B · book value</div>
+                <div class="val-view-spectrum">
+                  <div class="spectrum" style="margin:26px 4px 2px;">
+                    <div class="spectrum-track" style="background:#EFEFEF;"></div>
+                    <div class="spectrum-pin" style="left:68%;"><div class="lbl" style="color:var(--blue);">N50</div><div class="dot" style="background:var(--c3);"></div><div class="val" style="color:var(--blue);">3.6x</div></div>
+                    <div class="spectrum-pin" style="left:78%;"><div class="lbl" style="color:var(--secondary);">N500</div><div class="dot" style="background:var(--muted);"></div><div class="val" style="color:var(--secondary);">3.8x</div></div>
+                    <div class="spectrum-pin" style="left:88%;"><div class="lbl" style="color:var(--pos-text); font-weight:800;">You</div><div class="dot" style="background:var(--c1); width:15px; height:15px;"></div><div class="val" style="color:var(--pos-text);">4.1x</div></div>
+                  </div>
+                </div>
+                <div class="val-view-bar" style="display:none;">
+                  <div class="component-bar-row"><div class="component-bar-label" style="color:var(--blue);">Nifty 50</div><div class="component-bar-track"><div class="component-bar-fill" style="width:87.8%; background:var(--c3);"></div></div><div class="component-bar-val" style="color:var(--blue);">3.6x</div></div>
+                  <div class="component-bar-row"><div class="component-bar-label" style="color:var(--secondary);">Nifty 500</div><div class="component-bar-track"><div class="component-bar-fill" style="width:92.7%; background:var(--muted);"></div></div><div class="component-bar-val" style="color:var(--secondary);">3.8x</div></div>
+                  <div class="component-bar-row"><div class="component-bar-label" style="color:var(--pos-text); font-weight:800;">You</div><div class="component-bar-track"><div class="component-bar-fill" style="width:100%; background:var(--c1);"></div></div><div class="component-bar-val" style="color:var(--pos-text); font-weight:800;">4.1x</div></div>
+                </div>
+                <div style="font-size:11.5px; color:var(--ink); margin-top:14px; line-height:1.6;">Your portfolio is <b>13.9% more expensive</b> on book value than Nifty 50, and <b>7.9% more expensive</b> than Nifty 500.</div>
+              </div>
+            </div>
+            <div style="font-size:11px; color:var(--muted); margin-top:14px; line-height:1.6;">Equity holdings excluded from these ratios: <b>Zomato Ltd</b> · 1.8% of equity — negative earnings (P/E not meaningful).</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:8px; line-height:1.6;">P/E from NSE (SYMBOL P/E, reported trailing earnings); P/B from Yahoo Finance. Portfolio ratios use a weighted harmonic mean of the equity holdings with usable data.</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:8px; line-height:1.6;">Footnote: valuation data for Max Healthcare Institute Ltd is 4 days stale (last refreshed 19 Oct 2026).</div>
           </div>
+
         </div>
 
         <!-- ================= GROUP 2: Fund Quality Scorer ================= -->
         <div class="group-header"><div class="group-num">2</div><div class="group-title">Fund Quality Scorer</div></div>
-        <div class="group-sub">Unifolio's proprietary score — 45% Return, 30% Downside Risk, 25% Consistency vs. SEBI category peers. Click a fund for its full breakdown.</div>
+        <div class="group-sub">Unifolio's proprietary score — 45% Return, 30% Downside Risk, 25% Consistency vs. SEBI category peers, with a small TER cost nudge. Click a fund for its full breakdown.</div>
         <div class="card">
+          <div class="hero-panel">
+            <div class="radial-stat">
+              <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="#EFEFEF" stroke-width="9"/><circle cx="50" cy="50" r="44" fill="none" stroke="var(--blue)" stroke-width="9" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="73.5"/></svg>
+              <div class="radial-stat-val"><b>73.4</b><span>/100 · Good</span></div>
+            </div>
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:4px;">
+                <span class="badge-chip accent-outline">AUM Weighted</span>
+                <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--secondary);">Portfolio Weighted Score</span>
+              </div>
+              <div style="font-size:12px; color:var(--secondary);">Blends every scored fund's score by its ₹ value in your portfolio — a big winning fund moves this more than a small one.</div>
+              <div style="font-size:11px; color:var(--muted); margin-top:8px;">Scored value coverage: <b style="color:var(--ink);">₹42.8L</b> of ₹45.0L</div>
+            </div>
+          </div>
+          <div class="edge-callout" style="margin-bottom:16px;"><svg class="icon icon-sm"><use href="#i-help"/></svg><div><b>Unscored funds (1).</b> <span class="badge-chip outline">SBI Small Cap Fund</span> couldn't be scored — this fund doesn't have enough historical NAV data to evaluate downside risk and 12-month rolling consistency.</div></div>
           <div class="score-grid" id="score-grid"></div>
           <div class="score-detail" id="score-detail"></div>
         </div>
@@ -333,24 +521,22 @@ system, chrome, and Ask-Mira popup as the rest of this page set.</p>
         <div class="group-header"><div class="group-num">3</div><div class="group-title">SEBI Category Ranking &amp; Peer Comparison</div></div>
         <div class="group-sub">Where each fund sits among every other fund SEBI classifies in the same category.</div>
         <div class="card">
-          <div class="card-head">
-            <div class="card-title">Category Rank</div>
-            <div class="seg-toggle" id="rank-period-toggle">
-              <div class="seg-btn" data-p="1y">1Y</div>
-              <div class="seg-btn active" data-p="3y">3Y</div>
-              <div class="seg-btn" data-p="5y">5Y</div>
-            </div>
-          </div>
-          <div class="card-desc">Click a fund to see the 2 category peers immediately above and below it in return.</div>
+          <div class="card-title">Category Rank</div>
+          <!-- Round 1's 1Y/3Y/5Y toggle implied the rank itself is togglable per period — it isn't
+               (CategoryRankingSection ranks on a fixed blended 3Y/5Y return); dropped in favour of the
+               real PeriodReturnsTable, which shows all three periods for fund vs. category at once. -->
+          <div class="card-desc">Ranked on the blended 3Y/5Y return. Click a fund to see its full 1Y/3Y/5Y return vs. its category.</div>
           <div id="catrank-list"></div>
+          <div class="edge-callout" style="margin-top:10px;"><svg class="icon icon-sm"><use href="#i-help"/></svg><div><b>SBI Small Cap Fund</b> — SEBI category data is not available for this fund scheme to compute rank positioning.</div></div>
         </div>
 
         <!-- ================= GROUP 4: Fund Ranking ================= -->
         <div class="group-header"><div class="group-num">4</div><div class="group-title">Fund Ranking</div></div>
         <div class="group-sub">A transparent, formula-only composite — 3Y return 25% / 5Y return 25% / category-relative 20% / low volatility 15% / low TER 15%. Distinct from the Fund Quality Scorer above, which is proprietary.</div>
         <div class="card">
-          <div class="card-desc">Click a fund to see its immediate leaderboard neighbors in its category.</div>
+          <div class="card-desc">Overall rank = composite score: 3Y return 25%, 5Y return 25%, category-relative 20%, low volatility 15%, low TER 15%. Click a fund to see its leaderboard neighbors and component breakdown.</div>
           <div id="fundrank-list"></div>
+          <div class="edge-callout" style="margin-top:10px;"><svg class="icon icon-sm"><use href="#i-help"/></svg><div><b>Nippon India Growth Fund</b> — only 6 Thematic funds have a 3-year record, so there aren't enough peers to rank against (3Y return 10.2% · TER 0.92%). <b style="margin-left:8px;">SBI Small Cap Fund</b> — not ranked yet, needs 3 years of NAV history to be eligible.</div></div>
         </div>
 
       </div>
@@ -374,21 +560,35 @@ system, chrome, and Ask-Mira popup as the rest of this page set.</p>
 <h2>Data source mapping</h2>
 <table>
 <tr><th>Element</th><th>Source</th><th>New work</th></tr>
-<tr><td>Valuation vs. Benchmark</td><td><code>ValuationSection</code> (P/E, P/B vs. indices)</td><td>None</td></tr>
-<tr><td>Direct vs. Regular cost analysis</td><td><code>TerSection</code> + <code>FundTerTable</code></td><td>None</td></tr>
-<tr><td>Fund Quality Scorer grid + detail</td><td><code>ScorerSection</code> + <code>ScoreExplainer</code> + <code>FundScoreCard</code> + <code>FundScoreDetailModal</code> — full detail view kept here permanently per the 2026-10-23 correction, not displaced by the future per-fund page's Insights tab</td><td>None</td></tr>
-<tr><td>SEBI Category Ranking + peer comparison</td><td><code>CategoryRankingSection</code> + <code>PeriodReturnsTable</code></td><td>None</td></tr>
-<tr><td>Fund Ranking leaderboard</td><td><code>FundRankingSection</code> — the non-proprietary composite, distinct from the Scorer</td><td>None</td></tr>
+<tr><td>Valuation vs. Benchmark (Nifty 50 + Nifty 500, narrative deltas, exclusions)</td><td><code>ValuationSection</code> (<code>INDEX_LABELS</code>, P/E, P/B vs. both indices)</td><td>None</td></tr>
+<tr><td>Coverage/threshold line + footnote under the Valuation card (Round 5, 2026-10-24 audit)</td><td>Simplified stand-in for production's full <code>CoverageBanner</code> plus <code>ValuationSection</code>'s <code>hide_headlines</code> (&lt;50% coverage)/<code>enough_data</code> (&lt;70%) threshold states and <code>footnotes</code> array — this mockup states the thresholds in one line and shows one example footnote, always at full-fidelity data (never actually hides/flags). Full port tracked as a deferred item, see decided-against note below.</td><td>Static text</td></tr>
+<tr><td>TER hero boxes, per-fund cost table, TER exclusions</td><td><code>TerSection</code> + <code>FundTerTable</code></td><td>None</td></tr>
+<tr><td>Direct-holdings savings line (replaces the removed "switch to Direct" banner)</td><td><code>distributor_comparison.py</code>'s <code>annual_ter_saving</code> field (already computed, Direct-held schemes only, vs. their own Regular sibling's TER)</td><td>None</td></tr>
+<tr><td>Fund Quality Scorer grid + detail (tier bar, why-sentence, Evidence/Methodology accordions, cost adjustment, unscored-fund callout)</td><td><code>ScorerSection</code> + <code>ScoreExplainer</code> + <code>FundScoreCard</code> + <code>FundScoreDetailModal</code> — full detail view kept here permanently per the 2026-10-23 correction, not displaced by the future per-fund page's Insights tab</td><td>None</td></tr>
+<tr><td>SEBI Category Ranking (percentile gauge, outperform line, thin-category badge, real period-returns table, category_unavailable edge state)</td><td><code>CategoryRankingSection</code> + <code>PeriodReturnsTable</code> — note: production never shows named individual peers, only fund-vs-category-average</td><td>None</td></tr>
+<tr><td>Fund Ranking leaderboard (component percentile breakdown, thin-category badge, too_few_peers/insufficient_history/category_unavailable edge states)</td><td><code>FundRankingSection</code> + <code>RANK_WEIGHTS</code> — the non-proprietary composite, distinct from the Scorer</td><td>None</td></tr>
 </table>
 
 <h2>Motion &amp; interaction spec</h2>
 <table>
 <tr><th>Trigger</th><th>Behaviour</th><th>Timing</th></tr>
-<tr><td>Click a Fund Quality Scorer card</td><td>Card takes a persistent selected border (survives mouse-leave); the detail panel directly beneath the grid opens/updates for that fund, with a color-matched dot in its title tying it back to the clicked card</td><td><code>--fast</code></td></tr>
-<tr><td>Click a Category Ranking row</td><td>Row expands in place to a peer-comparison table (2 funds immediately above, 2 immediately below, your fund highlighted)</td><td><code>--fast</code></td></tr>
-<tr><td>Click a Fund Ranking row</td><td>Row expands in place to its leaderboard neighbors — same in-place mechanic, no panel elsewhere on the page</td><td><code>--fast</code></td></tr>
-<tr><td>Click the 1Y/3Y/5Y pill</td><td>Category Ranking list re-renders for that period; any open row's expansion closes since its neighbors may change</td><td><code>--fast</code></td></tr>
+<tr><td>Click a Fund Quality Scorer card</td><td>Card takes a persistent selected border (survives mouse-leave); the detail panel directly beneath the grid opens/updates for that fund, with a color-matched dot and tier bar in its title tying it back to the clicked card</td><td><code>--fast</code></td></tr>
+<tr><td>Click an Evidence/Methodology accordion head in the Scorer detail panel</td><td>Expands in place below the head; opening one does not close the other (independent toggles)</td><td><code>--fast</code></td></tr>
+<tr><td>Click a Category Ranking row</td><td>Row expands in place to the real fund-vs-category-average period-returns table plus a percentile gauge and outperform/underperform line — no fabricated named peers</td><td><code>--fast</code></td></tr>
+<tr><td>Click a Fund Ranking row</td><td>Row expands in place to its named leaderboard neighbors plus a per-component percentile breakdown table — same in-place mechanic, no panel elsewhere on the page</td><td><code>--fast</code></td></tr>
 </table>
+
+<div class="decided-against">The Valuation card's coverage/threshold line and footnote are simplified stand-ins for two
+separate pieces of production fidelity: (1) the full <code>CoverageBanner</code> (the "Based on X% of your portfolio"
+disclosure with a per-fund reason list — not published yet / not available from this AMC / value unavailable /
+stale-by-age — plus a derivative-exclusion share line, used by <code>ValuationSection</code> and 4 other production
+sections); (2) <code>ValuationSection</code>'s own threshold-gated states — ratios hidden entirely below 50%
+coverage (<code>hide_headlines</code>), a "not enough data" flag below 70% (<code>enough_data</code>), the full
+per-stock excluded-and-why list (<code>metric.missing</code>, only one example shown here), and the full
+<code>footnotes</code> array (only one example shown here). Built now: a one-line mention of the thresholds and a
+single example footnote. Deferred rather than built now: the real per-fund reason list, the actual hidden/
+insufficient-data rendered states, the full exclusions list, and the full footnotes array — tracked as open
+planned work in the redesign handoff doc, not silently dropped.</div>
 
 <div class="locked-note"><b>Status:</b> Other Analytics built per design.md §6/§7.6 — four visually distinct groups
 (Cost &amp; Valuation, Fund Quality Scorer, SEBI Category Ranking &amp; Peer Comparison, Fund Ranking), each reading
@@ -397,6 +597,78 @@ Score) and Fund Ranking (transparent formula composite) are kept visually and fu
 2026-10-23 correction — neither displaces the other. Zero new backend work: all four groups read already-computed
 sections. Every interactive element satisfies design.md §11.1: score cards and ranking rows either expand in place
 or keep a persistent selected state tied to the panel/row that updates, with no distant, silently-updating target.
+<br><br><b>Round 2 (2026-10-24, same session) — full data+design overhaul, built per explicit instruction to
+complete all four groups together before presenting:</b> this round followed a field-by-field audit against the
+live production components (<code>TerSection</code>/<code>FundTerTable</code>/<code>ValuationSection</code>/
+<code>ScorerSection</code>/<code>FundScoreCard</code>/<code>CategoryRankingSection</code>/
+<code>PeriodReturnsTable</code>/<code>FundRankingSection</code>). Two design-integrity fixes: (1) the old
+"switch your Regular funds to Direct, save ₹1.9L" banner contradicted a real, already-decided product rule
+(<code>TerSection</code>'s "#17 (decided 6 Oct)" comment — Direct/Regular hold different fund baskets, so an
+average-vs-average gap isn't a real per-fund saving) and is replaced with a grounded line built from the real,
+already-computed <code>annual_ter_saving</code> field (your Direct holdings' own saving vs. their Regular
+sibling's TER) — zero backend work; (2) Category Ranking's fabricated named-peer table (e.g. "ABC Multi Cap
+Fund") is removed entirely and replaced with the real <code>PeriodReturnsTable</code> shape (fund vs.
+anonymised category average, 1Y/3Y/5Y, with a percentile gauge and outperform/underperform line) since
+production never surfaces named individual peers. Group 1 also gained AUM-weighted/coverage figures, per-fund
+cost projections with a totals row, a TER-exclusions callout, and Nifty 50 + Nifty 500 valuation comparisons
+with narrative deltas (previously Nifty 500 only). Group 2 gained a portfolio-level weighted-score hero, an
+unscored-funds callout, and — in the detail panel — a 5-tier bar, a why-this-tier sentence, and
+Evidence/Methodology accordions. Group 4 gained a per-component percentile breakdown table on expand. The fake
+1Y/3Y/5Y "rank period" toggle on Category Ranking is removed (the real rank is a fixed blended 3Y/5Y figure, not
+togglable). Every group now also shows at least one real edge state inline — unscored fund (insufficient
+history), category_unavailable, too_few_peers — addressing task #8's edge-case audit for this page. Verified:
+div-tag balance (223/223) and the extracted <code>&lt;script&gt;</code> block both pass.
+<br><br><b>Round 3 (2026-10-24, same session) — visual-design elevation pass, built after explicit feedback that
+Round 2 was data-correct but presentation-wise "looks exactly like what it looked in the analytics section," with
+no design/UI improvement:</b> same data/content as Round 2 — this round replaces every generic bordered label/value
+box and plain HTML table with a designed-instrument visual, reusing the logo-chip-avatar and leaderboard-bar visual
+language the Holdings mockup already got signed off on, so the page set reads as one coherently designed product.
+Group 1's TER hero is now a radial SVG gauge (AUM-weighted TER) next to a Direct/Regular spectrum scale with
+positioned pins, replacing the old 3-stat-box grid; its per-fund cost table is now leaderboard-style
+<code>.ladder-row</code>s (logo-chip avatar, colour-coded fill bar sized to TER, a totals row) replacing the plain
+table; its Nifty 50/Nifty 500 P/E and P/B comparisons are now spectrum scales with three positioned pins each
+instead of stacked bars. Group 2's portfolio hero is now a radial score gauge; the per-fund detail's 5-tier
+breakdown is now a gradient tier-track with a flag/pin marker instead of a plain stat row, and its Evidence/
+Methodology accordions gained colour-coded icon chips. Group 3's percentile gauge and Group 4's per-component
+breakdown are now colour-tiered (red/amber/green) scale visualisations — a positioned percentile marker on a
+gradient track for Group 3, horizontal bar rows for Group 4 — instead of flat progress bars and a plain table.
+Caught and fixed in this pass: an accordion open/close CSS bug introduced earlier in this same session (the JS
+was setting <code>is-open</code> on <code>.accordion-body</code> itself, but the CSS rule required it on the
+ancestor <code>.accordion-item</code> — the accordion would never have visually opened in a real browser); a
+P/E/P/B spectrum pin-label collision on tightly-clustered values (Nifty 50/Nifty 500 within ~4 percentage points
+of each other), fixed by widening pin spacing and tightening label padding. Several CSS classes orphaned by the
+Round 2 content swap (<code>.cmp-bars</code>, <code>.cost-save-banner</code>, <code>.gauge-track</code>/
+<code>.gauge-fill</code>, <code>.rank-pct-track</code>/<code>.rank-pct-fill</code>, <code>.peer-table</code>) were
+confirmed unused via grep and removed. Verified: div-tag balance (278/278) and the extracted
+<code>&lt;script&gt;</code> block both pass; full-page headless-Chrome screenshot reviewed section-by-section.
+<br><br><b>Round 4 (2026-10-24, same session) — two owner-approved interactivity fixes, Round 3 otherwise
+approved as-is:</b> "TER looks good, but click on one fund it should drop down [and] show one year, three year,
+and five year values... For P/E and P/B values [I want the] ability to switch between racetrack kind of
+visualization and also bar chart kind of visualization." (1) The 5 static Group 1 cost-ladder rows are now
+driven by a <code>TERFUNDS</code> array and a <code>renderTerLadder()</code> function, ported from the exact
+<code>renderCatRank()</code>/<code>renderFundRank()</code> pattern already in this file (open-index var,
+<code>data-idx</code> rows, <code>is-open</code> toggle, re-render on click) — each row expands to the same
+<code>.mini-table</code> shape used by Category Ranking's detail. Kotak Multi Cap Fund, HDFC Mid-Cap
+Opportunities Fund and JM Flexi Cap Fund reuse their existing 1Y/3Y/5Y figures from the <code>CATRANK</code>
+array rather than redefining them (fund-value-consistency rule, design.md §11.4); Parag Parikh Flexi Cap Fund
+gets new realistic figures since it isn't in <code>CATRANK</code>; SBI Small Cap Fund's row expands to
+"No return data on file for this fund." consistent with its existing muted/no-TER row treatment. (2) The P/E
+and P/B panels gain one shared <code>Racetrack</code>/<code>Bar Chart</code> toggle (not two independent
+ones — both panels are the same N50/N500/You comparison, just a different ratio), reusing the already-defined
+<code>.seg-toggle</code>/<code>.seg-btn</code> classes and the chart-type-picker interaction this page set
+already uses in Performance/Allocation. The bar view reuses Fund Ranking's existing
+<code>.component-bar-row</code> shape, keeps the same N50/blue, N500/grey, You/green colour coding as the
+spectrum view, and scales each panel's three bars to that panel's own max value (not an absolute zero-start
+axis) so they stay visually distinct at this value range — the same compression problem Round 3's pin-label
+fix addressed. Verified: div-tag balance (280/280) and the extracted <code>&lt;script&gt;</code> block both
+pass; reviewed via headless-Chrome screenshots of the default state, an expanded TER row, the no-data SBI row,
+and the bar-chart view.
+<br><br><b>Round 5 (2026-10-24, item 8 cross-cutting audit):</b> found the Valuation card had no look-through
+coverage disclosure and none of <code>ValuationSection</code>'s threshold-gated edge states (ratio-hidden below
+50% coverage, "not enough data" below 70%, full excluded-stock list, footnotes array). Added a simple one-line
+threshold mention and one example footnote rather than the full production behaviour, per the owner's call for
+this round ("same for this [as the coverage banner]... add something simple"); the full versions are recorded as
+deferred/open work (see decided-against note above and the redesign handoff doc), not built here.
 <br><br>Next: Fund Overlap, Individual Fund page.</div>
 
 </div>
@@ -420,20 +692,93 @@ or keep a persistent selected state tied to the panel/row that updates, with no 
     t.addEventListener('click', function(){ document.querySelectorAll('.htab').forEach(function(o){ o.classList.remove('active'); }); t.classList.add('active'); });
   });
 
+  /* ---- TER cost ladder: Round 4, click-to-expand per fund (same pattern as renderCatRank/
+         renderFundRank below — open-index var, data-idx rows, is-open toggle, re-render on click).
+         Kotak/HDFC Mid-Cap/JM Flexi Cap 1Y/3Y/5Y figures are duplicated from CATRANK further down
+         (fund-value-consistency rule, design.md §11.4) rather than redefined independently. ---- */
+  var TERFUNDS = [
+    { fund: 'Kotak Multi Cap Fund', chip: 'KM', chipBg: 'rgba(34,197,94,.14)', chipFg: '#15803D',
+      ter: '0.58%', pct: 36, fillColor: 'var(--pos)', badgeClass: 'pos', badgeText: 'Direct · saves 0.81%/yr',
+      value: '₹12.4L', c1y: '₹7,190', c3y: '₹22,330', c5y: '₹38,900', fund1y: 18.4, fund3y: 15.1, fund5y: 16.8 },
+    { fund: 'Parag Parikh Flexi Cap Fund', chip: 'PP', chipBg: 'rgba(99,102,241,.14)', chipFg: '#4338CA',
+      ter: '0.64%', pct: 40, fillColor: 'var(--pos)', badgeClass: 'pos', badgeText: 'Direct · saves 0.67%/yr',
+      value: '₹14.5L', c1y: '₹9,280', c3y: '₹28,840', c5y: '₹50,230', fund1y: 16.8, fund3y: 15.9, fund5y: 18.1 },
+    { fund: 'HDFC Mid-Cap Opportunities Fund', chip: 'HM', chipBg: 'rgba(217,119,6,.14)', chipFg: '#92400E',
+      ter: '1.38%', pct: 86, fillColor: 'var(--warn)', badgeClass: 'outline', badgeText: 'Regular',
+      value: '₹9.8L', c1y: '₹13,520', c3y: '₹41,990', c5y: '₹73,180', fund1y: 19.0, fund3y: 14.4, fund5y: 17.9 },
+    { fund: 'JM Flexi Cap Fund', chip: 'JF', chipBg: 'rgba(236,72,153,.14)', chipFg: '#9D174D',
+      ter: '1.46%', pct: 91, fillColor: 'var(--warn)', badgeClass: 'outline', badgeText: 'Regular',
+      value: '₹7.9L', c1y: '₹11,530', c3y: '₹35,830', c5y: '₹62,420', fund1y: 11.3, fund3y: 10.8, fund5y: 12.1 },
+    { fund: 'SBI Small Cap Fund', chip: 'SS', chipBg: '#F0F0F1', chipFg: 'var(--muted)',
+      noData: true, value: '₹0.4L', sub: 'no TER on file, excluded from totals below' }
+  ];
+  var openTerLadder = null;
+  function renderTerLadder(){
+    document.getElementById('ter-ladder-list').innerHTML = TERFUNDS.map(function(r, i){
+      var sub = r.noData ? ('Your value ' + r.value + ' · ' + r.sub) :
+        ('Your value ' + r.value + ' · projected cost 1yr ' + r.c1y + ' · 3yr ' + r.c3y + ' · 5yr ' + r.c5y);
+      var right = r.noData ?
+        '<div style="font-family:var(--font-display); font-weight:800; font-size:14px; color:var(--muted);">—</div>' :
+        '<div style="font-family:var(--font-display); font-weight:800; font-size:14px;">' + r.ter + '</div><span class="badge-chip ' + r.badgeClass + '">' + r.badgeText + '</span>';
+      var detail = r.noData ?
+        '<div class="rank-meta">No return data on file for this fund.</div>' :
+        '<table class="mini-table"><thead><tr><th></th><th class="num">1Y</th><th class="num">3Y</th><th class="num">5Y</th></tr></thead><tbody>' +
+        '<tr><td>' + r.fund + '</td><td class="num">' + r.fund1y.toFixed(1) + '%</td><td class="num">' + r.fund3y.toFixed(1) + '%</td><td class="num">' + r.fund5y.toFixed(1) + '%</td></tr>' +
+        '</tbody></table>';
+      return '<div class="ladder-row' + (openTerLadder === i ? ' is-open' : '') + '" data-idx="' + i + '">' +
+        '<div class="ladder-name"><div class="fund-chip" style="background:' + r.chipBg + '; color:' + r.chipFg + ';">' + r.chip + '</div><div class="nm"' + (r.noData ? ' style="color:var(--muted);"' : '') + '>' + r.fund + '</div></div>' +
+        '<div style="flex:1; min-width:0;">' +
+          '<div class="ladder-track">' + (r.noData ? '' : '<div class="ladder-fill" style="width:' + r.pct + '%; background:' + r.fillColor + ';"></div>') + '</div>' +
+          '<div style="font-size:10.5px; color:var(--muted); margin-top:4px;">' + sub + '</div>' +
+        '</div>' +
+        '<div style="text-align:right; flex-shrink:0; width:170px;">' + right + '</div>' +
+        '<svg class="icon ladder-chev"><use href="#i-chevron-right"/></svg>' +
+        '</div>' +
+        '<div class="ladder-detail">' + detail + '</div>';
+    }).join('');
+    document.querySelectorAll('#ter-ladder-list .ladder-row').forEach(function(row){
+      row.addEventListener('click', function(){
+        var idx = parseInt(row.dataset.idx, 10);
+        openTerLadder = (openTerLadder === idx) ? null : idx;
+        renderTerLadder();
+      });
+    });
+  }
+  renderTerLadder();
+
+  /* ---- P/E and P/B valuation panels: Round 4 shared racetrack/bar-chart toggle ---- */
+  document.querySelectorAll('#valuation-view-toggle .seg-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('#valuation-view-toggle .seg-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var isBar = btn.dataset.view === 'bar';
+      document.querySelectorAll('.val-view-spectrum').forEach(function(el){ el.style.display = isBar ? 'none' : ''; });
+      document.querySelectorAll('.val-view-bar').forEach(function(el){ el.style.display = isBar ? '' : 'none'; });
+    });
+  });
+
   /* ---- Fund Quality Scorer: proprietary 45/30/25 (Return/Downside Risk/Consistency) ---- */
   var SCORES = [
-    { fund: 'Kotak Multi Cap Fund', score: 84, tier: 'excellent', ret: 88, risk: 79, cons: 85,
+    { fund: 'Kotak Multi Cap Fund', score: 84, tier: 'excellent', ret: 88, risk: 79, cons: 85, costAdj: +1.5,
+      why: 'Scores Excellent mainly on top-quartile 3Y/5Y category-relative returns, with a small +1.5 cost bonus for a below-median expense ratio.',
       strengths: ['Top-quartile 3Y and 5Y returns vs. category', 'Low downside capture in the 2025 correction'],
-      watch: ['Expense ratio slightly above category median'] },
-    { fund: 'JM Flexi Cap Fund', score: 71, tier: 'good', ret: 74, risk: 68, cons: 72,
+      watch: ['Expense ratio slightly above category median'],
+      evidence: ['3Y category-relative return percentile: 91st', '5Y category-relative return percentile: 87th', 'Max drawdown vs. category median during Mar–Apr 2025 correction: -11.2% vs. -14.8%'] },
+    { fund: 'JM Flexi Cap Fund', score: 71, tier: 'good', ret: 74, risk: 68, cons: 72, costAdj: 0,
+      why: 'Scores Good on consistent top-half returns, held back by higher volatility in sharp drawdowns; cost is category-median so no adjustment either way.',
       strengths: ['Consistent top-half category returns for 4 of the last 5 years'],
-      watch: ['Higher volatility than peers during sharp drawdowns', 'Manager tenure under 3 years'] },
-    { fund: 'HDFC Mid-Cap Opportunities Fund', score: 62, tier: 'average', ret: 58, risk: 55, cons: 70,
+      watch: ['Higher volatility than peers during sharp drawdowns', 'Manager tenure under 3 years'],
+      evidence: ['3Y category-relative return percentile: 68th', 'Rolling 1Y win-rate vs. category over 5Y: 4 of 5 years top-half', 'Manager tenure: 2.4 years'] },
+    { fund: 'HDFC Mid-Cap Opportunities Fund', score: 62, tier: 'average', ret: 58, risk: 55, cons: 70, costAdj: -1,
+      why: 'Scores Average — consistency is a genuine strength, but 3Y returns lag the category median and a slightly above-median TER applies a small -1 penalty.',
       strengths: ['Strong consistency — rarely in the bottom half of its category'],
-      watch: ['Returns lag category median over 3Y', 'Mid-cap category carries higher inherent volatility'] },
-    { fund: 'Parag Parikh Flexi Cap Fund', score: 79, tier: 'excellent', ret: 76, risk: 84, cons: 78,
+      watch: ['Returns lag category median over 3Y', 'Mid-cap category carries higher inherent volatility'],
+      evidence: ['3Y category-relative return percentile: 42nd', 'Rolling 1Y win-rate vs. category over 5Y: 4 of 5 years at or above median', 'TER vs. category median: +0.18pp'] },
+    { fund: 'Parag Parikh Flexi Cap Fund', score: 79, tier: 'excellent', ret: 76, risk: 84, cons: 78, costAdj: +0.5,
+      why: 'Scores Excellent primarily on best-in-class downside protection from international diversification, with a modest +0.5 cost bonus.',
       strengths: ['Best-in-class downside protection via international diversification', 'Low churn, tax-efficient'],
-      watch: ['International allocation caps upside in strong domestic rallies'] }
+      watch: ['International allocation caps upside in strong domestic rallies'],
+      evidence: ['3Y category-relative return percentile: 73rd', 'Max drawdown vs. category median during Mar–Apr 2025 correction: -8.9% vs. -14.8%', 'Portfolio turnover: 11% (category median: 34%)'] }
   ];
   var TIER_COLOR = { excellent: 'var(--pos)', good: 'var(--blue)', average: 'var(--warn)' };
   function ringSvg(pct, color){
@@ -457,12 +802,27 @@ or keep a persistent selected state tied to the panel/row that updates, with no 
       });
     });
   }
+  var TIER_ORDER = ['poor', 'below_average', 'average', 'good', 'excellent'];
+  var TIER_LABEL = { poor: 'Poor', below_average: 'Below Avg', average: 'Average', good: 'Good', excellent: 'Excellent' };
+  function tierBar(tier, score){
+    var pct = Math.max(2, Math.min(98, score));
+    return '<div class="tier-track">' +
+      '<div class="tier-track-base"></div>' +
+      '<div class="tier-track-marker" style="left:' + pct + '%;"><div class="flag">' + TIER_LABEL[tier] + '</div><div class="pin"></div></div>' +
+      '</div>' +
+      '<div class="tier-track-labels">' + TIER_ORDER.map(function(t){ return '<span>' + TIER_LABEL[t] + '</span>'; }).join('') + '</div>';
+  }
+  var openAccordion = null;
   function renderScoreDetail(){
     var s = SCORES[selectedScore];
     var panel = document.getElementById('score-detail');
     panel.classList.add('is-open');
+    var costLine = s.costAdj === 0 ? 'Cost: category-median TER, no adjustment.'
+      : (s.costAdj > 0 ? 'Cost bonus: +' + s.costAdj + ' for a below-median expense ratio.' : 'Cost penalty: ' + s.costAdj + ' for an above-median expense ratio.');
     panel.innerHTML =
       '<div class="score-detail-head"><span class="score-detail-dot" style="background:' + TIER_COLOR[s.tier] + '"></span><span class="score-detail-title">' + s.fund + ' — ' + s.score + '/100</span></div>' +
+      tierBar(s.tier, s.score) +
+      '<div class="score-explainer" style="margin-top:14px;"><b>Why this tier:</b> ' + s.why + '</div>' +
       '<div class="score-breakdown">' +
         '<div class="score-breakdown-item"><div class="sb-label">Return (45%)</div><div class="sb-val">' + s.ret + '/100</div></div>' +
         '<div class="score-breakdown-item"><div class="sb-label">Downside Risk (30%)</div><div class="sb-val">' + s.risk + '/100</div></div>' +
@@ -472,34 +832,57 @@ or keep a persistent selected state tied to the panel/row that updates, with no 
         '<div class="score-list"><div class="score-list-title strength"><svg class="icon icon-sm"><use href="#i-check"/></svg>Strengths</div><ul>' + s.strengths.map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul></div>' +
         '<div class="score-list"><div class="score-list-title watch"><svg class="icon icon-sm"><use href="#i-alert"/></svg>Watch-outs</div><ul>' + s.watch.map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul></div>' +
       '</div>' +
-      '<div class="score-explainer"><b>How we calculate this:</b> 45% weight on 3Y/5Y category-relative returns, 30% on downside-capture during the worst drawdowns in the category over the same window, 25% on return consistency (rolling-period win rate vs. category). Recomputed on every analytics refresh, same cadence as every other section on this page.</div>';
+      '<div class="accordion-item' + (openAccordion === 'evidence' ? ' is-open' : '') + '"><div class="accordion-head" data-acc="evidence"><span style="display:flex; align-items:center; gap:9px;"><span class="acc-head-ico evidence"><svg class="icon icon-sm"><use href="#i-bar-chart"/></svg></span>Evidence</span><svg class="icon icon-sm"><use href="#i-chevron-down"/></svg></div>' +
+        '<div class="accordion-body"><ul>' + s.evidence.map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul><div style="margin-top:6px;color:var(--muted);font-size:12px;">' + costLine + '</div></div></div>' +
+      '<div class="accordion-item' + (openAccordion === 'methodology' ? ' is-open' : '') + '" style="margin-top:8px;"><div class="accordion-head" data-acc="methodology"><span style="display:flex; align-items:center; gap:9px;"><span class="acc-head-ico methodology"><svg class="icon icon-sm"><use href="#i-layers"/></svg></span>Methodology</span><svg class="icon icon-sm"><use href="#i-chevron-down"/></svg></div>' +
+        '<div class="accordion-body"><div class="score-explainer"><b>How we calculate this:</b> 45% weight on 3Y/5Y category-relative returns, 30% on downside-capture during the worst drawdowns in the category over the same window, 25% on return consistency (rolling-period win rate vs. category), then a small cost adjustment (±1.5 max) for expense ratio vs. category median. Recomputed on every analytics refresh, same cadence as every other section on this page.</div></div></div>';
+    panel.querySelectorAll('.accordion-head').forEach(function(h){
+      h.addEventListener('click', function(){
+        var key = h.dataset.acc;
+        openAccordion = (openAccordion === key) ? null : key;
+        renderScoreDetail();
+      });
+    });
   }
   renderScoreGrid();
   renderScoreDetail();
 
-  /* ---- SEBI Category Ranking ---- */
+  /* ---- SEBI Category Ranking: fund vs. anonymised category average only — CategoryRankingSection
+         never shows named individual peers, so Round 1's fabricated "ABC/DEF Multi Cap Fund" peer
+         table is replaced with the real PeriodReturnsTable shape (fund / category avg / difference
+         across 1Y, 3Y, 5Y). Percentile + outperform line are both already-computed real fields. ---- */
   var CATRANK = [
-    { fund: 'Kotak Multi Cap Fund', category: 'Multi Cap', rank: 12, total: 28, pct: 1.1, peers: [
-      { name: 'ABC Multi Cap Fund', pct: 1.4 }, { name: 'DEF Multi Cap Fund', pct: 1.2 }, { name: 'Kotak Multi Cap Fund', pct: 1.1, you: true }, { name: 'GHI Multi Cap Fund', pct: 0.9 }, { name: 'JKL Multi Cap Fund', pct: 0.8 }
-    ]},
-    { fund: 'JM Flexi Cap Fund', category: 'Flexi Cap', rank: 34, total: 42, pct: 0.7, peers: [
-      { name: 'MNO Flexi Cap Fund', pct: 0.95 }, { name: 'PQR Flexi Cap Fund', pct: 0.8 }, { name: 'JM Flexi Cap Fund', pct: 0.7, you: true }, { name: 'STU Flexi Cap Fund', pct: 0.6 }, { name: 'VWX Flexi Cap Fund', pct: 0.55 }
-    ]},
-    { fund: 'HDFC Mid-Cap Opportunities Fund', category: 'Mid Cap', rank: 21, total: 25, pct: 0.65, peers: [
-      { name: 'YZA Mid Cap Fund', pct: 1.0 }, { name: 'BCD Mid Cap Fund', pct: 0.8 }, { name: 'HDFC Mid-Cap Opportunities Fund', pct: 0.65, you: true }, { name: 'EFG Mid Cap Fund', pct: 0.5 }, { name: 'HIJ Mid Cap Fund', pct: 0.4 }
-    ]}
+    { fund: 'Kotak Multi Cap Fund', category: 'Multi Cap', rank: 12, total: 28, percentile: 57, thin: false,
+      fund1y: 18.4, fund3y: 15.1, fund5y: 16.8, cat1y: 15.2, cat3y: 13.0, cat5y: 14.5 },
+    { fund: 'JM Flexi Cap Fund', category: 'Flexi Cap', rank: 34, total: 42, percentile: 19, thin: false,
+      fund1y: 11.3, fund3y: 10.8, fund5y: 12.1, cat1y: 14.1, cat3y: 12.6, cat5y: 13.9 },
+    { fund: 'HDFC Mid-Cap Opportunities Fund', category: 'Mid Cap', rank: 21, total: 25, percentile: 16, thin: false,
+      fund1y: 19.0, fund3y: 14.4, fund5y: 17.9, cat1y: 21.5, cat3y: 16.9, cat5y: 19.2 }
   ];
   var openCatRank = null;
-  var activeRankPeriod = '3y';
+  function diffCell(f, c){
+    var d = f - c; var cls = d >= 0 ? 'pos' : 'neg';
+    return '<td class="num ' + cls + '">' + (d >= 0 ? '+' : '') + d.toFixed(1) + 'pp</td>';
+  }
+  function percentileTier(pct){
+    if (pct >= 66) return { bg:'#EAFBF0', fg:'#15803D', bar:'#22C55E' };
+    if (pct >= 33) return { bg:'#FEF3E2', fg:'#92400E', bar:'#D97706' };
+    return { bg:'#FDECEC', fg:'#C1272D', bar:'#E5484D' };
+  }
   function renderCatRank(){
     document.getElementById('catrank-list').innerHTML = CATRANK.map(function(r, i){
-      var pctOfCat = 100 - (r.rank / r.total * 100);
-      var detail = '<table class="peer-table"><thead><tr><th>Fund</th><th class="num">' + activeRankPeriod.toUpperCase() + ' Return</th></tr></thead><tbody>' +
-        r.peers.map(function(p){ return '<tr class="' + (p.you ? 'is-you' : '') + '"><td>' + p.name + (p.you ? ' (this fund)' : '') + '</td><td class="num">' + p.pct.toFixed(2) + '%</td></tr>'; }).join('') + '</tbody></table>';
+      var outperform = r.fund3y >= r.cat3y;
+      var tier = percentileTier(r.percentile);
+      var detail = '<table class="mini-table"><thead><tr><th></th><th class="num">1Y</th><th class="num">3Y</th><th class="num">5Y</th></tr></thead><tbody>' +
+        '<tr><td>' + r.fund + '</td><td class="num">' + r.fund1y.toFixed(1) + '%</td><td class="num">' + r.fund3y.toFixed(1) + '%</td><td class="num">' + r.fund5y.toFixed(1) + '%</td></tr>' +
+        '<tr><td>' + r.category + ' category avg</td><td class="num">' + r.cat1y.toFixed(1) + '%</td><td class="num">' + r.cat3y.toFixed(1) + '%</td><td class="num">' + r.cat5y.toFixed(1) + '%</td></tr>' +
+        '<tr><td>Difference</td>' + diffCell(r.fund1y, r.cat1y) + diffCell(r.fund3y, r.cat3y) + diffCell(r.fund5y, r.cat5y) + '</tr></tbody></table>' +
+        '<div class="rank-meta" style="margin-top:8px;">' + (outperform ? 'Outperforming' : 'Underperforming') + ' its ' + r.category + ' category average over 3Y.' + (r.thin ? ' <span class="badge-chip warn" style="margin-left:6px;">Thin category (&lt;15 funds)</span>' : '') + '</div>';
       return '<div class="rank-row' + (openCatRank === i ? ' is-open' : '') + '" data-idx="' + i + '">' +
-        '<div class="rank-badge">#' + r.rank + '</div>' +
-        '<div class="rank-main"><div class="rank-fund">' + r.fund + '</div><div class="rank-meta">' + r.category + ' · rank ' + r.rank + ' of ' + r.total + '</div></div>' +
-        '<div class="rank-pct-track"><div class="rank-pct-fill" style="width:' + pctOfCat.toFixed(0) + '%"></div></div>' +
+        '<div class="rank-badge" style="background:' + tier.bg + '; color:' + tier.fg + ';">#' + r.rank + '</div>' +
+        '<div class="rank-main"><div class="rank-fund">' + r.fund + '</div><div class="rank-meta">' + r.category + ' · rank ' + r.rank + ' of ' + r.total + '</div>' +
+          '<div class="percentile-track"><div class="percentile-base"></div><div class="percentile-fill" style="width:' + r.percentile + '%; background:' + tier.bar + ';"></div>' +
+            '<div class="percentile-marker" style="left:' + r.percentile + '%;"><span class="badge" style="background:' + tier.bar + ';">' + r.percentile + 'th pct</span><div class="pin" style="border-color:' + tier.bar + ';"></div></div></div></div>' +
         '<svg class="icon rank-chev"><use href="#i-chevron-right"/></svg></div>' +
         '<div class="rank-detail">' + detail + '</div>';
     }).join('');
@@ -512,33 +895,43 @@ or keep a persistent selected state tied to the panel/row that updates, with no 
     });
   }
   renderCatRank();
-  document.querySelectorAll('#rank-period-toggle .seg-btn').forEach(function(b){
-    b.addEventListener('click', function(){
-      document.querySelectorAll('#rank-period-toggle .seg-btn').forEach(function(x){ x.classList.remove('active'); });
-      b.classList.add('active');
-      activeRankPeriod = b.dataset.p;
-      openCatRank = null;
-      renderCatRank();
-    });
-  });
 
   /* ---- Fund Ranking: transparent composite (3Y 25% / 5Y 25% / category-rel 20% / low vol 15% / low TER 15%) ---- */
+  var RANK_WEIGHTS = [
+    { key: '3y', label: '3Y Return', weight: 25 }, { key: '5y', label: '5Y Return', weight: 25 },
+    { key: 'catrel', label: 'Category-relative', weight: 20 }, { key: 'vol', label: 'Low Volatility', weight: 15 }, { key: 'ter', label: 'Low TER', weight: 15 }
+  ];
   var FUNDRANK = [
-    { fund: 'Kotak Multi Cap Fund', composite: 82, rank: 4, total: 28, neighbors: [
-      { name: 'ABC Multi Cap Fund', composite: 86, rank: 3 }, { name: 'Kotak Multi Cap Fund', composite: 82, rank: 4, you: true }, { name: 'DEF Multi Cap Fund', composite: 79, rank: 5 }
-    ]},
-    { fund: 'Parag Parikh Flexi Cap Fund', composite: 77, rank: 6, total: 42, neighbors: [
-      { name: 'GHI Flexi Cap Fund', composite: 80, rank: 5 }, { name: 'Parag Parikh Flexi Cap Fund', composite: 77, rank: 6, you: true }, { name: 'JKL Flexi Cap Fund', composite: 74, rank: 7 }
-    ]}
+    { fund: 'Kotak Multi Cap Fund', composite: 82, rank: 4, total: 28, thin: false,
+      components: { '3y': 91, '5y': 87, catrel: 78, vol: 72, ter: 61 },
+      neighbors: [
+        { name: 'Edelweiss Multi Cap Fund', composite: 86, rank: 3 }, { name: 'Kotak Multi Cap Fund', composite: 82, rank: 4, you: true }, { name: 'Baroda BNP Paribas Multi Cap Fund', composite: 79, rank: 5 }
+      ] },
+    { fund: 'Parag Parikh Flexi Cap Fund', composite: 77, rank: 6, total: 42, thin: false,
+      components: { '3y': 73, '5y': 76, catrel: 68, vol: 85, ter: 90 },
+      neighbors: [
+        { name: 'UTI Flexi Cap Fund', composite: 80, rank: 5 }, { name: 'Parag Parikh Flexi Cap Fund', composite: 77, rank: 6, you: true }, { name: 'Franklin India Flexi Cap Fund', composite: 74, rank: 7 }
+      ] }
   ];
   var openFundRank = null;
   function renderFundRank(){
     document.getElementById('fundrank-list').innerHTML = FUNDRANK.map(function(r, i){
-      var detail = r.neighbors.map(function(n){
+      var neighborRows = r.neighbors.map(function(n){
         return '<div class="neighbor-row ' + (n.you ? 'is-you' : '') + '"><span>#' + n.rank + ' ' + n.name + (n.you ? ' (this fund)' : '') + '</span><span class="nr-weights">' + n.composite + '/100</span></div>';
       }).join('');
+      var componentRows = RANK_WEIGHTS.map(function(w){
+        var pct = r.components[w.key];
+        var tier = percentileTier(pct);
+        return '<div class="component-bar-row"><div class="component-bar-label">' + w.label + ' <span style="color:var(--text-disabled);">(' + w.weight + '%)</span></div>' +
+          '<div class="component-bar-track"><div class="component-bar-fill" style="width:' + pct + '%; background:' + tier.bar + ';"></div></div>' +
+          '<div class="component-bar-val" style="color:' + tier.fg + ';">' + pct + 'th pct</div></div>';
+      }).join('');
+      var detail = '<div class="rank-meta" style="margin-bottom:6px;">Leaderboard neighbors</div>' + neighborRows +
+        '<div class="rank-meta" style="margin:12px 0 2px;">Component percentile within category</div>' + componentRows +
+        (r.thin ? '<div class="rank-meta" style="margin-top:8px;"><span class="badge-chip warn">Thin category (&lt;15 funds)</span></div>' : '');
+      var badgeTier = percentileTier(r.composite);
       return '<div class="rank-row' + (openFundRank === i ? ' is-open' : '') + '" data-idx="' + i + '">' +
-        '<div class="rank-badge">#' + r.rank + '</div>' +
+        '<div class="rank-badge" style="background:' + badgeTier.bg + '; color:' + badgeTier.fg + ';">#' + r.rank + '</div>' +
         '<div class="rank-main"><div class="rank-fund">' + r.fund + '</div><div class="rank-meta">Composite ' + r.composite + '/100 · rank ' + r.rank + ' of ' + r.total + ' in category</div></div>' +
         '<svg class="icon rank-chev"><use href="#i-chevron-right"/></svg></div>' +
         '<div class="rank-detail">' + detail + '</div>';

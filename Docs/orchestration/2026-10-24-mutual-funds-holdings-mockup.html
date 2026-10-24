@@ -123,11 +123,19 @@
 
   /* ---------------- Holdings-specific ---------------- */
   .fund-chip-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
-  .fund-chip { font-family:var(--font-display); font-weight:600; font-size:12px; padding:8px 14px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; color:var(--secondary); cursor:pointer; transition:all var(--fast); }
+  .fund-chip { display:inline-flex; align-items:center; font-family:var(--font-display); font-weight:600; font-size:12px; padding:8px 14px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; color:var(--secondary); cursor:pointer; transition:all var(--fast); }
   .fund-chip:hover { border-color:var(--accent); color:var(--accent-hover); }
+  .fund-chip .chip-dot { width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:7px; flex-shrink:0; }
   /* Persistent selection, not hover-only — same rule as Allocation's legend fix (design.md §11.1):
      the chip you clicked must still look clicked once the mouse moves to read the table below. */
   .fund-chip.is-selected { background:var(--ink); border-color:var(--ink); color:#fff; }
+  /* Ties the chip you clicked to the table beneath it — same fund-color carries through
+     the heading dot and the weight bars below, design-only per the owner's Round 8 ask. */
+  .top10-head { display:flex; align-items:center; gap:9px; padding:2px 2px 14px; border-bottom:1px solid var(--border-soft); margin-bottom:14px; flex-wrap:wrap; }
+  .top10-head .fund-color-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .top10-head .top10-fund-name { font-family:var(--font-display); font-weight:700; font-size:14.5px; color:var(--ink); }
+  .top10-head .top10-sub { font-size:11.5px; color:var(--muted); }
+  .top10-head .top10-sum { margin-left:auto; font-family:var(--font-display); font-weight:700; font-size:12.5px; color:var(--accent-hover); background:var(--accent-selected-bg); padding:5px 11px; border-radius:var(--radius-pill); white-space:nowrap; }
   .holdings-table { width:100%; border-collapse:collapse; font-size:13px; }
   .holdings-table thead th { text-align:left; font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:0 14px 10px; }
   .holdings-table thead th.num { text-align:right; }
@@ -136,11 +144,26 @@
   .holdings-table tbody tr.h-row { cursor:pointer; transition:background var(--fast); }
   .holdings-table tbody tr.h-row:hover { background:var(--hover-tint); }
   .holdings-table tbody tr.h-row.is-open { background:var(--hover-tint); }
-  .h-rank { width:22px; height:22px; border-radius:50%; background:#F0F0F1; color:var(--secondary); font-weight:700; font-size:10.5px; display:inline-flex; align-items:center; justify-content:center; margin-right:10px; }
   .h-expand-ico { color:var(--muted); transition:transform var(--fast); vertical-align:-2px; margin-left:6px; }
   .h-row.is-open .h-expand-ico { transform:rotate(90deg); color:var(--accent-hover); }
-  .h-weight-bar-track { width:72px; height:5px; border-radius:3px; background:#EFEFEF; display:inline-block; vertical-align:middle; margin-right:8px; overflow:hidden; }
-  .h-weight-bar-fill { height:100%; background:var(--accent); border-radius:3px; }
+  /* ---------------- Top Holdings by Fund — leaderboard-style list (Round 9,
+     2026-10-24, replacing the old plain 3-column table per the owner's
+     "still not happy, presentation-wise" feedback). Design-only: same chips,
+     same client-side re-sort, same data, no row-level interaction added since
+     the old table didn't have any either. ---------------- */
+  .top10-list { display:flex; flex-direction:column; gap:3px; }
+  .top10-row { display:flex; align-items:center; gap:13px; padding:9px 8px; border-radius:var(--radius-md); transition:background var(--fast); }
+  .top10-row:hover { background:var(--hover-tint); }
+  .top10-medal { width:26px; height:26px; border-radius:50%; background:#F0F0F1; color:var(--secondary); font-family:var(--font-display); font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .top10-medal.is-gold { background:linear-gradient(145deg,#FFE9A8,#D4A017); color:#5C3D05; box-shadow:0 1px 3px rgba(180,131,10,.4), inset 0 1px 0 rgba(255,255,255,.6); }
+  .top10-medal.is-silver { background:linear-gradient(145deg,#F4F6F8,#A9B0B8); color:#3D4247; box-shadow:0 1px 3px rgba(120,128,136,.35), inset 0 1px 0 rgba(255,255,255,.6); }
+  .top10-medal.is-bronze { background:linear-gradient(145deg,#E3A772,#9A5B2E); color:#3E2309; box-shadow:0 1px 3px rgba(122,74,33,.4), inset 0 1px 0 rgba(255,255,255,.5); }
+  .top10-avatar { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:700; font-size:10px; flex-shrink:0; }
+  .top10-name { width:220px; flex-shrink:0; font-size:13px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .top10-bar-wrap { flex:1; min-width:0; }
+  .top10-bar-track { height:11px; border-radius:6px; background:#F0F0F0; overflow:hidden; }
+  .top10-bar-fill { height:100%; border-radius:6px; transition:width var(--pop); }
+  .top10-pct { width:50px; text-align:right; font-variant-numeric:tabular-nums; font-weight:700; font-size:13px; color:var(--ink); flex-shrink:0; }
   .h-detail-row td { background:var(--bg); padding:0 !important; border-top:none !important; }
   .h-detail-inner { padding:4px 16px 16px 46px; display:flex; flex-direction:column; gap:7px; }
   .h-detail-fund-row { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--secondary); padding:7px 0; border-top:1px dashed var(--border-soft); }
@@ -148,6 +171,11 @@
   .h-detail-fund-row b { color:var(--ink); font-weight:600; }
   .h-detail-fund-row .num { font-variant-numeric:tabular-nums; font-weight:700; color:var(--ink); }
   .topn-caption { font-size:11px; color:var(--muted); margin-top:10px; }
+  /* Simple coverage stub (Round 2, 2026-10-24 audit) — a lighter placeholder for production's
+     full CoverageBanner (per-fund not-published/not-available/stale reasons, derivative-exclusion
+     share). Full port is a documented open item, see this card's decided-against note below. */
+  .coverage-banner-simple { background:var(--bg); border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:11px 15px; font-size:12px; color:var(--secondary); margin-top:14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .coverage-banner-simple b { color:var(--ink); }
 </style>
 </head>
 <body>
@@ -260,15 +288,13 @@ chrome, and Ask-Mira popup as Overview/Performance/Allocation.</p>
           </div>
           <div class="card-desc">Pick a fund to see its 10 largest stock positions.</div>
           <div class="fund-chip-row" id="fund-chips"></div>
-          <table class="holdings-table">
-            <thead><tr><th>#</th><th>Stock</th><th class="num">Weight in fund</th></tr></thead>
-            <tbody id="top10-body"></tbody>
-          </table>
+          <div class="top10-head" id="top10-head"></div>
+          <div class="top10-list" id="top10-body"></div>
           <div class="topn-caption" id="top10-caption"></div>
         </div>
 
         <!-- ================= CARD 2: Portfolio-wide stock look-through ================= -->
-        <div class="card" style="margin-top:16px;">
+        <div class="card" style="margin-top:16px;" id="all-holdings">
           <div class="card-head">
             <div class="card-title">All Holdings Across Your Portfolio<span class="info-dot">i<span class="tip">Every distinct stock your funds hold, looked through to the underlying company — the same stock can appear in several funds and is counted once here, at its combined weight.</span></span></div>
             <div class="seg-toggle" id="sort-toggle">
@@ -278,6 +304,7 @@ chrome, and Ask-Mira popup as Overview/Performance/Allocation.</p>
             </div>
           </div>
           <div class="card-desc">Click a stock to see exactly which of your funds hold it, and at what weight within each fund.</div>
+          <div class="coverage-banner-simple"><b>Based on 91.4% of your portfolio</b> — look-through coverage depends on which funds have published holdings; full per-fund breakdown coming soon.</div>
           <table class="holdings-table">
             <thead><tr><th>#</th><th>Stock</th><th class="num">Portfolio weight</th><th class="num">Held in</th></tr></thead>
             <tbody id="stocks-body"></tbody>
@@ -309,6 +336,7 @@ chrome, and Ask-Mira popup as Overview/Performance/Allocation.</p>
 <tr><td>Fund chip selector + Top 10 table</td><td><code>stock_holdings.rows[].contributing_funds</code>, client-side filtered to one fund and re-sorted by that fund's weight</td><td>None — pure client-side re-sort of already-returned data (design.md §7.3)</td></tr>
 <tr><td>Portfolio-wide stock table + sort toggle</td><td><code>stock_holdings.rows[]</code> (stock, portfolio weight, <code>contributing_funds</code> count) — exact match</td><td>None</td></tr>
 <tr><td>Row-click expand (contributing funds detail)</td><td><code>contributing_funds[].fund_weight_pct</code> per stock</td><td>None</td></tr>
+<tr><td>Coverage line under Card 2's heading (Round 11, 2026-10-24 audit)</td><td>Simplified stand-in for production's <code>CoverageBanner</code> (per-fund not-published/not-available/stale reasons + derivative-exclusion share) — this mockup only shows the headline % figure, not the reason list. Full port tracked as a deferred item, see decided-against note below.</td><td>Static text, hardcoded 91.4%</td></tr>
 </table>
 
 <h2>Motion &amp; interaction spec</h2>
@@ -319,6 +347,13 @@ chrome, and Ask-Mira popup as Overview/Performance/Allocation.</p>
 <tr><td>Click a sort-toggle pill</td><td>Portfolio-wide table re-sorts in place; any currently-open detail row stays open against its (now possibly reordered) stock</td><td><code>--fast</code></td></tr>
 </table>
 
+<div class="decided-against">Card 2's coverage line is a simplified stand-in for production's full
+<code>CoverageBanner</code> (the "Based on X% of your portfolio" disclosure with a per-fund reason list — not
+published yet / not available from this AMC / value unavailable / stale-by-age — plus a derivative-exclusion
+share line, used by <code>StockHoldingsSection</code> and 4 other production sections). Built now: just the
+headline %. Deferred rather than built now: the full per-fund reason list and derivative-exclusion line — tracked
+as open planned work in the redesign handoff doc, not silently dropped.</div>
+
 <div class="locked-note"><b>Status:</b> Holdings built per design.md §7.3 — both the per-fund Top 10 view and the
 portfolio-wide stock look-through are exact-match reads of already-computed data, zero new backend work. Every
 interactive element satisfies design.md §11.1 from the outset: the fund chips use the same persistent-selection
@@ -326,7 +361,35 @@ pattern the Allocation rework introduced (no silent "what changed" gap), and the
 in place directly beneath the clicked row rather than updating a panel elsewhere on the page — the stronger of the
 two compliant patterns already established (Allocation's Fund Manager table), used here by default rather than
 retrofitted.
-<br><br>Next: Transactions, Other Analytics, Fund Overlap, Individual Fund page.</div>
+<br><br><b>Round 8 (2026-10-24):</b> design-only pass on Card 1 ("Top Holdings by Fund") per the owner's explicit
+scope — "needs better presentation" but NOT a utility/functionality change, so the fund chips, the client-side
+re-sort, and the row click behaviour are all untouched; only how it looks changed. Each fund now has one stable
+color (cycled from the page's shared data-viz palette) that appears on its chip, carries through to a new heading
+strip above the table (fund name + a derived "X% in these 10 names" stat, summed from the same weights already in
+<code>TOP10</code> — no new figure), and colors that fund's weight bars — so the chip you clicked stays visually
+tied to the table it's driving, instead of every fund rendering in the same flat accent green.
+<br><br><b>Round 9 (2026-10-24, same session):</b> the owner said Round 8 still wasn't enough — "presentation-wise,
+I'm still not happy" — so Card 1 went further than a color tweak on the same 3-column table: the
+<code>&lt;table&gt;</code> is gone, replaced with a leaderboard-style list (<code>.top10-list</code>/
+<code>.top10-row</code>), still strictly design-only against the exact same <code>TOP10</code> data and the same
+fund-chip click behaviour. Each row now has a gold/silver/bronze medal for the top 3 instead of a plain numbered
+circle (ranks 4-10 stay a plain number, no change there), a 2-letter avatar derived from the stock's own name
+(decorative only, no new field — e.g. "HDFC Bank Ltd" → "HB"), and a full-width proportional bar instead of the
+old 84px sliver next to the number, so the bar itself carries the visual weight rather than being an afterthought
+beside the text. Card 2 ("All Holdings Across Your Portfolio") is still unchanged per the owner's explicit "looks
+good" — this round only touched Card 1.
+<br><br><b>Round 10 (2026-10-24, same session):</b> two signed-off tweaks on top of Round 9 — the
+medals now use an actual metallic gradient + shadow per tier (gold/silver/bronze read as medals,
+not pale flat chips), and the stock avatar went from a circle to a rounded-square logo-chip shape
+(same fund-tinted color, same 2-letter initials — still decorative-only, no real logo assets in
+this mockup set).
+<br><br><b>Round 11 (2026-10-24, item 8 cross-cutting audit):</b> found Card 2 had no look-through coverage
+disclosure at all — production's <code>CoverageBanner</code> is used here but absent from this mockup. Added a
+simple headline-only coverage line ("Based on 91.4% of your portfolio...") rather than the full banner, per the
+owner's call for this round ("don't need to add in the mock-up right now... add a simple thing"); the full
+per-fund reason list and derivative-exclusion line are recorded as deferred/open work (see decided-against note
+above and the redesign handoff doc), not built here.
+<br><br>Next: Other Analytics, Fund Overlap, Individual Fund page.</div>
 
 </div>
 
@@ -370,12 +433,33 @@ retrofitted.
     'UTI Flexi Cap Fund': [['HDFC Bank Ltd',6.8],['Infosys Ltd',5.6],['ICICI Bank Ltd',5.1],['Reliance Industries Ltd',4.4],['Kotak Mahindra Bank Ltd',3.6],['Bharti Airtel Ltd',3.3],['Larsen & Toubro Ltd',3.0],['Tata Consultancy Services Ltd',2.6],['Sun Pharmaceutical Industries Ltd',2.2],['Titan Company Ltd',1.9]]
   };
 
+  /* ---- Round 8, 2026-10-24: design-only pass on this card per the owner's feedback
+     ("looks good overall, needs better presentation") — same fund chips, same
+     client-side re-sort, same click behaviour, zero utility/functionality change.
+     Each fund gets one stable color (cycled from the shared data-viz palette) so
+     its chip, the heading dot, and this fund's weight bars all visually agree —
+     ties the selected chip to the table beneath it instead of a flat accent green
+     for every fund. ---- */
+  var PALETTE = ['#22C55E','#0D9488','#2563EB','#6366F1','#8B5CF6','#D97706','#EC4899','#C1272D'];
+  var FUND_COLORS = {};
+  FUNDS.forEach(function(f, i){ FUND_COLORS[f] = PALETTE[i % PALETTE.length]; });
+  /* Decorative 2-letter avatar from the stock's own name — no new data, just a
+     presentational treatment of the name string already in TOP10. */
+  function stockInitials(name){
+    var words = name.replace(/\(.*?\)/g, '').trim().split(/\s+/).filter(function(w){ return w && w !== '&'; });
+    return ((words[0] || '')[0] + (words[1] || '')[0]).toUpperCase();
+  }
+  function hexToRgba(hex, alpha){
+    var r = parseInt(hex.slice(1,3), 16), g = parseInt(hex.slice(3,5), 16), b = parseInt(hex.slice(5,7), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+
   var selectedFund = FUNDS[0];
   var chipRow = document.getElementById('fund-chips');
   FUNDS.forEach(function(f){
     var c = document.createElement('div');
     c.className = 'fund-chip' + (f === selectedFund ? ' is-selected' : '');
-    c.textContent = f;
+    c.innerHTML = '<span class="chip-dot" style="background:' + FUND_COLORS[f] + '"></span>' + f;
     c.addEventListener('click', function(){
       selectedFund = f;
       chipRow.querySelectorAll('.fund-chip').forEach(function(x){ x.classList.toggle('is-selected', x.textContent === f); });
@@ -386,11 +470,24 @@ retrofitted.
 
   function renderTop10(){
     var rows = TOP10[selectedFund];
+    var color = FUND_COLORS[selectedFund];
+    var top10Sum = rows.reduce(function(sum, r){ return sum + r[1]; }, 0);
+    document.getElementById('top10-head').innerHTML =
+      '<span class="fund-color-dot" style="background:' + color + '"></span>' +
+      '<span class="top10-fund-name">' + selectedFund + '</span>' +
+      '<span class="top10-sub">— its 10 largest stock positions</span>' +
+      '<span class="top10-sum">' + top10Sum.toFixed(1) + '% in these 10 names</span>';
     document.getElementById('top10-body').innerHTML = rows.map(function(r, i){
-      return '<tr><td><span class="h-rank">' + (i+1) + '</span></td><td>' + r[0] + '</td>' +
-        '<td class="num"><span class="h-weight-bar-track"><span class="h-weight-bar-fill" style="width:' + (r[1]/9*100).toFixed(0) + '%"></span></span>' + r[1].toFixed(1) + '%</td></tr>';
+      var medalClass = i === 0 ? ' is-gold' : i === 1 ? ' is-silver' : i === 2 ? ' is-bronze' : '';
+      return '<div class="top10-row">' +
+        '<div class="top10-medal' + medalClass + '">' + (i+1) + '</div>' +
+        '<div class="top10-avatar" style="background:' + hexToRgba(color, .14) + '; color:' + color + ';">' + stockInitials(r[0]) + '</div>' +
+        '<div class="top10-name">' + r[0] + '</div>' +
+        '<div class="top10-bar-wrap"><div class="top10-bar-track"><div class="top10-bar-fill" style="width:' + (r[1]/9*100).toFixed(0) + '%; background:' + color + ';"></div></div></div>' +
+        '<div class="top10-pct">' + r[1].toFixed(1) + '%</div>' +
+      '</div>';
     }).join('');
-    document.getElementById('top10-caption').textContent = selectedFund + ' — top 10 of its full stock holdings, re-sorted client-side from the portfolio-wide breakdown below.';
+    document.getElementById('top10-caption').textContent = 'Re-sorted client-side from the portfolio-wide breakdown below.';
   }
   renderTop10();
 

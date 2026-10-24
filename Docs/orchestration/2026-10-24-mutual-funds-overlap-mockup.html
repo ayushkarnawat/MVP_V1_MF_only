@@ -123,11 +123,17 @@
 
   /* ---------------- Fund Overlap-specific (design.md §7.5) ---------------- */
   .stat-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
-  .stat-tile { border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:15px 17px; }
+  .stat-tile { border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:15px 17px; transition:transform var(--fast), box-shadow var(--fast), border-color var(--fast); }
+  .stat-tile:hover { transform:translateY(-2px); box-shadow:var(--shadow-sm); border-color:#ddd; }
+  .stat-tile .st-icon { width:30px; height:30px; border-radius:9px; background:var(--bg); color:var(--secondary); display:flex; align-items:center; justify-content:center; margin-bottom:11px; }
   .stat-tile .st-label { font-size:11px; color:var(--muted); font-weight:600; margin-bottom:6px; }
   .stat-tile .st-val { font-family:var(--font-display); font-weight:800; font-size:21px; }
   .stat-tile .st-note { font-size:10.5px; color:var(--muted); margin-top:3px; }
+  .stat-tile.risk-high { background:var(--neg-bg); border-color:transparent; }
+  .stat-tile.risk-high .st-icon { background:#fff; color:var(--neg-text); }
   .stat-tile.risk-high .st-val { color:var(--neg-text); }
+  .stat-tile.risk-mod { background:var(--warn-bg); border-color:transparent; }
+  .stat-tile.risk-mod .st-icon { background:#fff; color:var(--warn-text); }
   .stat-tile.risk-mod .st-val { color:var(--warn-text); }
 
   .ch-table { width:100%; border-collapse:collapse; font-size:12.5px; }
@@ -137,9 +143,14 @@
   .ch-row { cursor:pointer; transition:background var(--fast); border-radius:8px; }
   .ch-row:hover, .ch-row.is-open { background:var(--hover-tint); }
   .fund-chips-cell { display:flex; align-items:center; gap:5px; }
-  .fund-chip-mini { width:24px; height:24px; border-radius:50%; background:var(--blue-bg); color:var(--blue); font-family:var(--font-display); font-weight:800; font-size:9px; display:flex; align-items:center; justify-content:center; border:2px solid #fff; margin-left:-7px; }
+  .fund-chip-mini { width:24px; height:24px; border-radius:50%; background:var(--blue-bg); color:var(--blue); font-family:var(--font-display); font-weight:800; font-size:9px; display:flex; align-items:center; justify-content:center; border:2px solid #fff; margin-left:-7px; flex-shrink:0; }
   .fund-chip-mini:first-child { margin-left:0; }
   .fund-chip-mini.overflow { background:#ECECEC; color:var(--secondary); }
+  .fund-chip-mini.inline { border:none; margin-left:0; }
+  .fund-name-cell { display:flex; align-items:center; gap:8px; }
+  .exposure-cell { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+  .exposure-bar-track { width:64px; height:4px; border-radius:2px; background:#EFEFEF; overflow:hidden; }
+  .exposure-bar-fill { height:100%; border-radius:2px; background:var(--blue); }
   .ch-detail-row td { padding:0 10px 14px 10px; border-top:none; }
   .ch-detail-row { display:none; }
   .ch-row.is-open + .ch-detail-row { display:table-row; }
@@ -147,23 +158,34 @@
   .ch-detail-fund { display:flex; justify-content:space-between; gap:10px; min-width:200px; }
   .ch-detail-fund b { color:var(--ink); }
 
+  /* ---------------- Round 2 (2026-10-24): bigger/richer heatmap, all 12 equity funds instead of a
+     6-fund slice (also fixes a pre-existing mismatch — the stat strip already says "8 of 66 pairs",
+     i.e. all 12 funds, while the grid only showed a 6-fund/15-pair slice of that). Detail panel moves
+     beside the grid instead of below it, and is populated by default (the single highest-overlap pair)
+     rather than empty until a click — that's what actually fills the card's right-side white space,
+     not just bigger pixels. A thin per-cell intensity bar is layered under the existing 3-tier band
+     colour (same legend, same thresholds) for a richer, two-encoding read without changing its meaning. */
+  .hm-layout { display:flex; gap:28px; align-items:flex-start; }
+  .hm-left { flex-shrink:0; }
   .heatmap-wrap { overflow-x:auto; }
   .heatmap { border-collapse:collapse; font-size:11px; }
   .heatmap th { font-family:var(--font-display); font-weight:700; font-size:10.5px; color:var(--secondary); padding:6px 8px; text-align:center; max-width:90px; }
   .heatmap th.row-label { text-align:right; max-width:140px; }
-  .heatmap td { text-align:center; padding:0; width:64px; height:44px; }
-  .hm-cell { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-weight:700; cursor:pointer; border-radius:7px; transition:all var(--fast); border:2px solid transparent; }
+  .heatmap td { text-align:center; padding:0; width:74px; height:56px; }
+  .hm-cell { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; font-weight:700; cursor:pointer; border-radius:7px; transition:all var(--fast); border:2px solid transparent; }
   .hm-cell.band-low { background:#EAFBF0; color:var(--pos-text); }
   .hm-cell.band-mod { background:#FEF3E2; color:var(--warn-text); }
   .hm-cell.band-high { background:#FDECEC; color:var(--neg-text); }
   .hm-cell.band-self { background:#F3F3F3; color:var(--text-disabled); cursor:default; }
   .hm-cell:not(.band-self):hover { transform:scale(1.07); }
   .hm-cell.is-selected { border-color:var(--ink); box-shadow:var(--shadow-sm); }
+  .hm-cell-bar { width:66%; height:3px; border-radius:2px; background:rgba(17,17,17,.08); overflow:hidden; }
+  .hm-cell-bar-fill { height:100%; border-radius:2px; }
   .heatmap-legend { display:flex; gap:16px; margin-top:12px; font-size:11.5px; color:var(--secondary); }
   .hl-item { display:flex; align-items:center; gap:6px; }
   .hl-swatch { width:12px; height:12px; border-radius:3px; }
 
-  .hm-detail { margin-top:16px; border-top:1px solid var(--border-soft); padding-top:14px; display:none; }
+  .hm-detail { flex:1; min-width:240px; border-left:1px solid var(--border-soft); padding-left:26px; display:none; }
   .hm-detail.is-open { display:block; }
   .hm-detail-title { font-family:var(--font-display); font-weight:800; font-size:14px; margin-bottom:10px; }
   .hm-stock-list { display:flex; flex-wrap:wrap; gap:7px; }
@@ -173,6 +195,30 @@
   .pair-bar-fill { height:100%; border-radius:4px; }
   .insight-callout { background:var(--blue-bg); border-radius:var(--radius-md); padding:14px 17px; font-size:12.5px; color:#1E3A8A; margin-top:14px; line-height:1.6; }
   .insight-callout ul { margin:6px 0 0; padding-left:18px; }
+
+  /* ---------------- Stock Concentration (Round 3, 2026-10-24 audit) — mirrors OverlapSection's
+     cumulative-exposure curve + concentration chips + headline, all routing to the same destination
+     (the Holdings page's full stock table) exactly as production's onOpenStocks does for every one
+     of these elements. ---------------- */
+  .conc-headline-link { display:inline-flex; align-items:center; gap:7px; font-family:var(--font-display); font-weight:700; font-size:13.5px; color:var(--ink); background:var(--accent-selected-bg); border:1px solid transparent; border-radius:var(--radius-md); padding:11px 16px; cursor:pointer; transition:all var(--fast); margin-bottom:16px; text-decoration:none; }
+  .conc-headline-link:hover { background:#DFF5E6; transform:translateY(-1px); box-shadow:var(--shadow-sm); }
+  .conc-headline-link svg { flex-shrink:0; }
+  .conc-chart-link { display:block; width:100%; max-width:560px; border-radius:var(--radius-md); transition:background var(--fast); padding:4px; margin:0 0 4px -4px; }
+  .conc-chart-link:hover { background:var(--hover-tint); }
+  .concentration-chart { width:100%; height:168px; display:block; }
+  .conc-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+  .conc-chip { font-family:var(--font-display); font-weight:700; font-size:11.5px; padding:7px 13px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fafafa; color:var(--ink); cursor:pointer; transition:all var(--fast); text-decoration:none; display:inline-block; }
+  .conc-chip:hover { border-color:var(--accent); color:var(--accent-hover); background:var(--hover-tint); transform:translateY(-1px); }
+  .edge-state-preview { display:flex; flex-direction:column; gap:8px; margin-top:16px; padding-top:16px; border-top:1px solid var(--border-soft); }
+  .edge-state-preview .esp-label { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:700; font-family:var(--font-display); }
+  .edge-state-row { display:flex; align-items:baseline; gap:8px; font-size:12px; color:var(--secondary); }
+  .edge-state-row b { color:var(--ink); font-weight:700; white-space:nowrap; }
+
+  /* Simple coverage stub (Round 4, 2026-10-24 audit) — lighter placeholder for production's full
+     CoverageBanner (per-fund not-published/not-available/stale reasons + derivative-exclusion
+     share). Full port is a documented open item, see the decided-against note near the spec. */
+  .coverage-banner-simple { background:var(--bg); border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:11px 15px; font-size:12px; color:var(--secondary); margin:14px 0; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .coverage-banner-simple b { color:var(--ink); }
 
   .donut-impact-row { display:flex; gap:26px; align-items:center; flex-wrap:wrap; }
   .donut-wrap { width:180px; height:180px; position:relative; flex-shrink:0; }
@@ -206,6 +252,7 @@
   <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.8 1c0 1.8-2.3 2-2.3 3.5"/><path d="M12 17.2v.1"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 10v5"/><path d="M12 18.2v.1"/></symbol>
   <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="i-overlap" viewBox="0 0 24 24"><circle cx="9" cy="12" r="7"/><circle cx="15" cy="12" r="7"/></symbol>
 </svg>
 
 <h1>Mutual Funds — Fund Overlap (portfolio-level) page, high-fidelity mockup</h1>
@@ -292,25 +339,31 @@ page set.</p>
           </div>
         </div>
 
+        <div class="coverage-banner-simple"><b>Based on 91.4% of your portfolio</b> — look-through coverage depends on which funds have published holdings; full per-fund breakdown coming soon.</div>
+
         <!-- Stat strip -->
         <div class="card" style="margin-top:14px;">
           <div class="stat-strip">
             <div class="stat-tile">
+              <div class="st-icon"><svg class="icon icon-sm"><use href="#i-layers"/></svg></div>
               <div class="st-label">Funds analysed</div>
               <div class="st-val">12 of 15</div>
               <div class="st-note">3 funds excluded — no stock holdings to look through (debt/gold/liquid)</div>
             </div>
             <div class="stat-tile">
+              <div class="st-icon"><svg class="icon icon-sm"><use href="#i-overlap"/></svg></div>
               <div class="st-label">Fund pairs with overlap</div>
-              <div class="st-val">8 of 66</div>
-              <div class="st-note">possible pairs across your 12 equity funds</div>
+              <div class="st-val">20 of 66</div>
+              <div class="st-note">at moderate (≥20%) or higher — possible pairs across your 12 equity funds</div>
             </div>
             <div class="stat-tile risk-high">
+              <div class="st-icon"><svg class="icon icon-sm"><use href="#i-trending"/></svg></div>
               <div class="st-label">Highest overlap</div>
               <div class="st-val">64%</div>
               <div class="st-note">Kotak Multi Cap × ICICI Pru Bluechip</div>
             </div>
             <div class="stat-tile risk-mod">
+              <div class="st-icon"><svg class="icon icon-sm"><use href="#i-alert"/></svg></div>
               <div class="st-label">Overlap risk</div>
               <div class="st-val">Moderate</div>
               <div class="st-note">a few fund pairs share meaningful exposure</div>
@@ -331,14 +384,18 @@ page set.</p>
         <!-- Section 2: Overlap Heatmap -->
         <div class="card" style="margin-top:14px;">
           <div class="card-title">2. Overlap Heatmap<span class="info-dot">i<span class="tip">Every fund pair's overlap %, based on shared stock weight. Click a cell for its shared-stock list.</span></span></div>
-          <div class="card-desc">Click any cell to see the stocks shared between that pair.</div>
-          <div class="heatmap-wrap"><table class="heatmap" id="heatmap"></table></div>
-          <div class="heatmap-legend">
-            <div class="hl-item"><div class="hl-swatch" style="background:#EAFBF0;"></div>Low &lt; 20%</div>
-            <div class="hl-item"><div class="hl-swatch" style="background:#FEF3E2;"></div>Moderate 20–40%</div>
-            <div class="hl-item"><div class="hl-swatch" style="background:#FDECEC;"></div>High ≥ 40%</div>
+          <div class="card-desc">Click any cell to see the stocks shared between that pair.<br>Covered funds, largest portfolio value first.</div>
+          <div class="hm-layout">
+            <div class="hm-left">
+              <div class="heatmap-wrap"><table class="heatmap" id="heatmap"></table></div>
+              <div class="heatmap-legend">
+                <div class="hl-item"><div class="hl-swatch" style="background:#EAFBF0;"></div>Low &lt; 20%</div>
+                <div class="hl-item"><div class="hl-swatch" style="background:#FEF3E2;"></div>Moderate 20–40%</div>
+                <div class="hl-item"><div class="hl-swatch" style="background:#FDECEC;"></div>High ≥ 40%</div>
+              </div>
+            </div>
+            <div class="hm-detail" id="hm-detail"></div>
           </div>
-          <div class="hm-detail" id="hm-detail"></div>
         </div>
 
         <!-- Section 3: Top Overlapping Fund Pairs -->
@@ -369,6 +426,24 @@ page set.</p>
           </div>
         </div>
 
+        <!-- Section 5: Stock Concentration (Round 3, 2026-10-24 item 8 cross-cutting audit) -->
+        <div class="card" style="margin-top:14px;">
+          <div class="card-title">5. Stock Concentration<span class="info-dot">i<span class="tip">How much of your total portfolio sits in just your top few stocks by weight, cumulatively — a different lens from Common Holdings above, which only counts stocks shared across more than one fund.</span></span></div>
+          <div class="card-desc">Click the headline, the chart, or any point below to see the full ranked stock list on the Holdings page.</div>
+          <a class="conc-headline-link" id="conc-headline" href="2026-10-24-mutual-funds-holdings-mockup.html#all-holdings"></a>
+          <a class="conc-chart-link" href="2026-10-24-mutual-funds-holdings-mockup.html#all-holdings" aria-label="View concentration in full stock table">
+            <svg class="concentration-chart" viewBox="0 0 600 190" id="conc-chart"></svg>
+          </a>
+          <div class="conc-chips" id="conc-chips"></div>
+          <div style="font-size:11px; color:var(--muted); margin-top:12px;">Based on 47 distinct stocks held across your 12 equity funds (3 debt/gold/liquid funds have no stock holdings to look through).</div>
+          <div class="edge-state-preview">
+            <div class="esp-label">What this section shows in other scenarios</div>
+            <div class="edge-state-row"><b>Fewer than 2 funds with published holdings:</b> the whole Overlap page (heatmap + pairs) is replaced with "Overlap needs at least two funds with published holdings."</div>
+            <div class="edge-state-row"><b>No pairs above the low-overlap threshold:</b> Section 3's list is replaced with "No pairs above this threshold."</div>
+            <div class="edge-state-row"><b>More than 12 funds with holdings:</b> the heatmap shows only the top 12 by value, with "Top 12 funds by value, out of N covered funds" above it — the pair list below still includes every covered fund. This portfolio has exactly 12, so the heatmap above reads "Covered funds, largest portfolio value first" instead.</div>
+          </div>
+        </div>
+
       </div>
 
     </div>
@@ -395,20 +470,50 @@ page set.</p>
 <tr><td>Overlap Heatmap</td><td><code>overlap.py</code> pairwise matrix; bands from <code>OVERLAP_BAND_LOW</code>/<code>OVERLAP_BAND_HIGH</code> (20/40)</td><td>None</td></tr>
 <tr><td>Top Overlapping Fund Pairs + Key Insights</td><td><code>overlap.py</code> top-N pairs; insight sentences auto-generated from the same data, same pattern as other auto-generated callouts on this page set</td><td>None</td></tr>
 <tr><td>Overlap Impact donut</td><td><code>overlap.py</code> impact breakdown (top-3-pairs weight / other-pairs weight / unique-holdings weight)</td><td>None</td></tr>
+<tr><td>Coverage line above the stat strip (Round 4, 2026-10-24 audit)</td><td>Simplified stand-in for production's full <code>CoverageBanner</code> (per-fund not-published/not-available/stale reasons + derivative-exclusion share) — this mockup only shows the headline % figure, not the reason list. Full port tracked as a deferred item, see decided-against note below.</td><td>Static text, hardcoded 91.4%</td></tr>
+<tr><td>Stock Concentration chart, chips, headline (Round 3, 2026-10-24 audit)</td><td><code>OverlapSection.tsx</code>'s <code>data.concentration</code> (cumulative <code>stock_count</code>/<code>exposure_pct</code> points), the <code>stock_count &lt;= 10</code> headline, and <code>onOpenStocks</code> — every one of these elements calls the same handler in production, so here they all link to the Holdings page's full stock table rather than simulating three different behaviours</td><td>None</td></tr>
+<tr><td>"Covered funds..." line + edge-state preview block (Round 3, 2026-10-24 audit)</td><td><code>data.matrix_truncated</code>'s false-branch text (shown as-is, since this portfolio has exactly 12 funds); the true-branch text, <code>total_fund_count &lt; 2</code>'s empty state, and <code>pairs_above_low.length === 0</code>'s empty state are documented inline rather than built as live toggles, since all three contradict this mockup's 12-fund/20-pair dataset</td><td>None</td></tr>
 </table>
 
 <h2>Motion &amp; interaction spec</h2>
 <table>
 <tr><th>Trigger</th><th>Behaviour</th><th>Timing</th></tr>
 <tr><td>Click a Common Holdings row</td><td>Row expands in place to show per-fund weight for that stock — same mechanic as the Holdings page's stock table</td><td><code>--fast</code></td></tr>
-<tr><td>Click a heatmap cell</td><td>Cell takes a persistent dark border (survives mouse-leave); a detail panel beneath the grid opens/updates showing that pair's shared stocks, titled with both fund names</td><td><code>--fast</code></td></tr>
+<tr><td>Click a heatmap cell</td><td>Cell takes a persistent dark border (survives mouse-leave); a detail panel beside the grid opens/updates showing that pair's shared stocks, titled with both fund names</td><td><code>--fast</code></td></tr>
 <tr><td>Click a Top Overlapping Pairs row</td><td>Same persistent-selection + synced heatmap cell: clicking a pair row also highlights its heatmap cell and opens the same shared-detail panel — one state, two entry points</td><td><code>--fast</code></td></tr>
 <tr><td>Click an Overlap Impact legend row</td><td>Donut segment pops + dims siblings, legend row gets persistent selected background — same <code>buildDonut()</code> pattern as Allocation/Holdings</td><td><code>--pop</code></td></tr>
+<tr><td>Hover a concentration chart point or chip (Round 3, 2026-10-24 audit)</td><td>Native tooltip/background tint shows the exact stock-count/exposure pair; hovering the headline or chart lifts/tints to signal they're links</td><td><code>--fast</code></td></tr>
+<tr><td>Click the headline, chart, or a chip in Stock Concentration (Round 3, 2026-10-24 audit)</td><td>Real cross-file navigation to the Holdings mockup's "All Holdings Across Your Portfolio" card — matches production, where all three call the same <code>onOpenStocks</code> handler</td><td>n/a (navigation)</td></tr>
 </table>
 
 <div class="decided-against">Considered a single merged "pair detail" modal instead of an inline panel — rejected per
 design.md §11.1: a modal is a bigger interruption than needed for what's fundamentally a drill-down, and an inline
-panel beneath the heatmap keeps the clicked cell and its explanation visible at the same time.</div>
+panel beside the heatmap keeps the clicked cell and its explanation visible at the same time.</div>
+
+<div class="decided-against">Stock Concentration's three smaller edge states (<code>total_fund_count &lt; 2</code>'s "Overlap needs
+at least two funds with published holdings", <code>pairs_above_low.length === 0</code>'s "No pairs above this
+threshold", and <code>matrix_truncated</code>'s true-branch "Top 12 funds by value, out of N covered funds") are
+documented in the new "What this section shows in other scenarios" panel rather than built as live, togglable
+states — all three only occur with a fund count or pair count this mockup's 12-fund/20-pair dataset doesn't have,
+and forcing the dataset down to trigger them would mean losing the richer happy-path data already signed off in
+Rounds 1-2.1. The non-truncated branch text ("Covered funds, largest portfolio value first") IS live, under the
+heatmap, since that's the branch this dataset actually hits.</div>
+
+<div class="decided-against">The coverage line above the stat strip is a simplified stand-in for production's full
+<code>CoverageBanner</code> (the "Based on X% of your portfolio" disclosure with a per-fund reason list — not
+published yet / not available from this AMC / value unavailable / stale-by-age — plus a derivative-exclusion
+share line, used by <code>OverlapSection</code> and 4 other production sections). Built now: just the headline %.
+Deferred rather than built now: the full per-fund reason list and derivative-exclusion line — tracked as open
+planned work in the redesign handoff doc, not silently dropped.</div>
+
+<div class="decided-against">Fund identity everywhere on this page (heatmap row/column headers, Common Holdings
+chips, Top Overlapping Fund Pairs rows) currently uses 2–3 letter initials (<code>FUND_SHORT</code>) in flat-colour
+circular chips. Deferred rather than built now: swapping these for real AMC/fund-house logos — the mockup has no
+logo asset source, and production needs that decided (an AMC logo CDN/library, a self-hosted asset set, or
+derived-from-scheme-master icons) before this can be built for real, not simulated with placeholder images. Noted
+for the plan so it isn't lost: when real logos are available, the chip markup (<code>.fund-chip-mini</code>,
+heatmap <code>&lt;th&gt;</code> labels) swaps from initials-on-a-colour to a logo image with the same circular
+mask and size, with the initials kept only as the broken-image/loading fallback.</div>
 
 <div class="locked-note"><b>Status:</b> Fund Overlap (portfolio-level) built per design.md §7.5 — stat strip, Common
 Holdings, Overlap Heatmap with the exact <code>overlap.py</code> band thresholds, Top Overlapping Fund Pairs + Key
@@ -418,6 +523,48 @@ built in the next file, which also carries the fund-vs-fund comparison UI. Zero 
 reads an already-computed <code>overlap.py</code> field. Every interactive element satisfies design.md §11.1: heatmap
 cells and table rows take a persistent selected state and open an adjacent or clearly color-matched detail panel,
 with the heatmap and pairs table cross-linked via the same selection state.
+<br><br><b>Round 2 (2026-10-24):</b> owner feedback — "bigger/richer heatmap, fill right-side white space; Top
+Overlapping Funds section stays as-is." Heatmap expanded from a 6-fund/15-pair slice to all 12 equity funds/66 pairs
+(the stat strip already said "66 pairs" against the smaller grid; expanding the grid also surfaced that its "8 of 66"
+overlap count was stale against the ≥20% band threshold it's supposed to reflect — corrected to the real count, 20,
+with the stat note now naming that threshold explicitly); the first 6 funds keep their original order and overlap
+values byte-for-byte so Top Overlapping Fund Pairs' <code>i</code>/<code>j</code>
+indices stay valid untouched, per the owner's explicit instruction. The detail panel moved from below the grid to
+beside it (<code>.hm-layout</code> flex row) and now opens pre-populated with the single highest-overlap pair
+(Kotak Multi Cap × ICICI Pru Bluechip, 64%) on page load instead of staying empty until a click — same cross-link
+mechanism, just fired once up front — which is what actually fills the white space rather than just growing pixel
+dimensions. Each cell also gained a thin intensity bar under its existing 3-tier band colour (same legend, same
+thresholds, `currentColor` so it never drifts from the band) for a richer two-encoding read. Verified: div-tag
+balance (119/119), script syntax check, and a headless-Chrome screenshot of both the default-loaded state (all 12
+funds, pre-populated side panel, pairs table row highlighted) and a different cell clicked.
+<br><br><b>Round 2.1 (2026-10-24):</b> owner feedback — "make it much more presentable UI-wise... without changing
+much about it," plus an explicit note that real fund-house logos (not initials) should replace the current chip
+style, to be recorded in the plan rather than built now (no logo asset source in a static mockup). Presentation
+pass across all four sections, no structural change: stat tiles gained an icon badge each and the two risk tiles
+got a full tinted background (not just coloured text) plus a shared hover-lift; Common Holdings' Total Portfolio
+Exposure column gained a small proportional bar under each percentage (same gradient-track language as the
+heatmap's intensity bars); Top Overlapping Fund Pairs rows gained the same chip-avatar treatment Common Holdings
+already uses, so fund identity reads at a glance instead of as plain text, plus a native hover tooltip; heatmap
+cells gained a native hover tooltip naming both funds and the exact %, on top of the existing click-to-pin
+behaviour. The real-logo deferral itself is recorded as a <code>decided-against</code> note right below this one.
+Verified: div-tag balance, script syntax check, and a headless-Chrome screenshot of the refreshed stat strip,
+Common Holdings, and Top Overlapping Fund Pairs sections.
+<br><br><b>Round 3 (2026-10-24, item 8 cross-cutting audit):</b> found the entire "Stock concentration" sub-section
+(cumulative-exposure curve, concentration chips, "Top N stocks represent X%" headline) missing — a real gap, not
+a field. Built in full, matching the owner's "smartly add this... same vibe, creatively presented" instruction: a
+new Section 5 card reusing this page's existing SVG-chart, chip, and headline-button visual language, with the
+headline/chart/chips all real cross-file links to the Holdings mockup's "All Holdings Across Your Portfolio" card
+(a new <code>id="all-holdings"</code> anchor added there) — mirroring production, where all three call the exact
+same <code>onOpenStocks</code> handler rather than three different behaviours. Also added the always-true
+"Covered funds, largest portfolio value first" line under the heatmap (the real text for this dataset's
+non-truncated branch). The three remaining smaller edge states, which all require a fund/pair count this
+dataset doesn't have, are documented in an inline "What this section shows in other scenarios" panel and a
+decided-against note rather than built as live toggles. Verified: div-tag balance and the extracted
+<code>&lt;script&gt;</code> block both pass; reviewed via headless-Chrome screenshot.
+<br><br><b>Round 4 (2026-10-24, same audit, same session):</b> Round 3's own writeup had left this page's
+<code>CoverageBanner</code> gap (Finding 2) untouched — caught on a re-check against the findings doc. Added the
+same simple headline-only coverage line used on Holdings and Other Analytics, above the stat strip; the full
+per-fund reason list remains deferred, same as those two pages (see decided-against note above).
 <br><br>Next: Individual Fund page (Overview/Overlap Analysis [normal + comparison]/Insights).</div>
 
 </div>
@@ -454,13 +601,15 @@ with the heatmap and pairs table cross-linked via the same selection state.
     { stock: 'Larsen & Toubro Ltd', heldIn: 5, exposure: 3.4, funds: ['Kotak Multi Cap Fund','Axis Midcap Fund','ICICI Prudential Bluechip Fund'], weights: [3.9, 3.2, 3.6] }
   ];
   var openCH = null;
+  var CH_MAX_EXPOSURE = Math.max.apply(null, COMMON.map(function(c){ return c.exposure; }));
   function renderCH(){
     document.getElementById('ch-body').innerHTML = COMMON.map(function(c, i){
       var chips = c.funds.slice(0,3).map(function(f){ return '<div class="fund-chip-mini">' + FUND_SHORT[f] + '</div>'; }).join('');
       var overflow = c.funds.length > 3 ? '<div class="fund-chip-mini overflow">+' + (c.funds.length - 3) + '</div>' : '';
       var detail = '<div class="ch-detail-inner">' + c.funds.map(function(f, j){ return '<div class="ch-detail-fund"><span>' + f + '</span><b>' + c.weights[j] + '%</b></div>'; }).join('') + '</div>';
       return '<tr class="ch-row' + (openCH === i ? ' is-open' : '') + '" data-idx="' + i + '">' +
-        '<td>' + (i+1) + '</td><td><b>' + c.stock + '</b></td><td>' + c.heldIn + ' funds</td><td class="num">' + c.exposure + '%</td>' +
+        '<td>' + (i+1) + '</td><td><b>' + c.stock + '</b></td><td>' + c.heldIn + ' funds</td>' +
+        '<td class="num"><div class="exposure-cell">' + c.exposure + '%<div class="exposure-bar-track"><div class="exposure-bar-fill" style="width:' + (c.exposure / CH_MAX_EXPOSURE * 100) + '%;"></div></div></div></td>' +
         '<td><div class="fund-chips-cell">' + chips + overflow + '</div></td></tr>' +
         '<tr class="ch-detail-row"><td colspan="5">' + detail + '</td></tr>';
     }).join('');
@@ -474,21 +623,35 @@ with the heatmap and pairs table cross-linked via the same selection state.
   }
   renderCH();
 
-  /* ---- Heatmap: only show a 6-fund slice for legibility (reference language: "12 of 15 funds") ---- */
-  var HM_FUNDS = ['Kotak Multi Cap Fund','ICICI Prudential Bluechip Fund','JM Flexi Cap Fund','HDFC Mid-Cap Opportunities Fund','Axis Midcap Fund','Kotak Small Cap Fund'];
+  /* ---- Heatmap: all 12 equity funds (matches the "66 pairs" stat tile). First 6 entries keep
+     the original order/values so Top Overlapping Fund Pairs' i/j indices (left as-is) still
+     point at the same cells. ---- */
+  var HM_FUNDS = ['Kotak Multi Cap Fund','ICICI Prudential Bluechip Fund','JM Flexi Cap Fund','HDFC Mid-Cap Opportunities Fund','Axis Midcap Fund','Kotak Small Cap Fund','Parag Parikh Flexi Cap Fund','SBI Small Cap Fund','Mirae Asset Large Cap Fund','Nippon India Growth Fund','Canara Robeco Emerging Equities Fund','UTI Flexi Cap Fund'];
   var HM = [
-    [null, 64, 38, 22, 11, 4],
-    [64, null, 29, 18, 9, 3],
-    [38, 29, null, 24, 14, 6],
-    [22, 18, 24, null, 19, 8],
-    [11, 9, 14, 19, null, 12],
-    [4, 3, 6, 8, 12, null]
+    [null, 64, 38, 22, 11, 4, 18, 3, 42, 31, 9, 36],
+    [64, null, 29, 18, 9, 3, 21, 2, 58, 27, 6, 33],
+    [38, 29, null, 24, 14, 6, 16, 4, 19, 22, 12, 20],
+    [22, 18, 24, null, 19, 8, 9, 7, 8, 13, 21, 10],
+    [11, 9, 14, 19, null, 12, 6, 9, 5, 10, 23, 7],
+    [4, 3, 6, 8, 12, null, 2, 15, 2, 5, 17, 3],
+    [18, 21, 16, 9, 6, 2, null, 2, 24, 14, 5, 19],
+    [3, 2, 4, 7, 9, 15, 2, null, 1, 3, 14, 2],
+    [42, 58, 19, 8, 5, 2, 24, 1, null, 26, 4, 28],
+    [31, 27, 22, 13, 10, 5, 14, 3, 26, null, 11, 24],
+    [9, 6, 12, 21, 23, 17, 5, 14, 4, 11, null, 8],
+    [36, 33, 20, 10, 7, 3, 19, 2, 28, 24, 8, null]
   ];
+  var HM_MAX = 64; // matches the "Highest overlap" stat tile above — anchors the intensity bars
   var PAIR_STOCKS = {
     '0-1': ['HDFC Bank Ltd','Reliance Industries Ltd','ICICI Bank Ltd','Larsen & Toubro Ltd','Axis Bank Ltd'],
     '0-2': ['Infosys Ltd','Tata Consultancy Services Ltd','HDFC Bank Ltd'],
     '2-3': ['Infosys Ltd','Cholamandalam Investment Ltd'],
-    '3-4': ['Persistent Systems Ltd','Coforge Ltd']
+    '3-4': ['Persistent Systems Ltd','Coforge Ltd'],
+    '1-8': ['HDFC Bank Ltd','ICICI Bank Ltd','Reliance Industries Ltd','Kotak Mahindra Bank Ltd','Axis Bank Ltd','Larsen & Toubro Ltd'],
+    '0-8': ['HDFC Bank Ltd','Reliance Industries Ltd','ICICI Bank Ltd','Infosys Ltd'],
+    '0-11': ['HDFC Bank Ltd','ICICI Bank Ltd','Reliance Industries Ltd'],
+    '1-11': ['HDFC Bank Ltd','ICICI Bank Ltd','Kotak Mahindra Bank Ltd'],
+    '8-11': ['HDFC Bank Ltd','Reliance Industries Ltd','Infosys Ltd']
   };
   function bandOf(v){ if (v >= 40) return 'band-high'; if (v >= 20) return 'band-mod'; return 'band-low'; }
   var selectedPair = null;
@@ -500,7 +663,9 @@ with the heatmap and pairs table cross-linked via the same selection state.
         if (v === null) { html += '<td><div class="hm-cell band-self">—</div></td>'; return; }
         var key = i < j ? i + '-' + j : j + '-' + i;
         var sel = selectedPair === key ? ' is-selected' : '';
-        html += '<td><div class="hm-cell ' + bandOf(v) + sel + '" data-key="' + key + '" data-i="' + i + '" data-j="' + j + '">' + v + '%</div></td>';
+        var tip = HM_FUNDS[i] + ' × ' + HM_FUNDS[j] + ': ' + v + '% overlap';
+        html += '<td><div class="hm-cell ' + bandOf(v) + sel + '" data-key="' + key + '" data-i="' + i + '" data-j="' + j + '" title="' + tip + '">' +
+          '<span>' + v + '%</span><div class="hm-cell-bar"><div class="hm-cell-bar-fill" style="width:' + Math.min(100, v / HM_MAX * 100) + '%; background:currentColor;"></div></div></div></td>';
       });
       html += '</tr>';
     });
@@ -533,8 +698,10 @@ with the heatmap and pairs table cross-linked via the same selection state.
   function renderPairs(){
     document.getElementById('pairs-body').innerHTML = PAIRS.map(function(p, idx){
       var key = p.i + '-' + p.j;
-      return '<tr class="ch-row' + (selectedPair === key ? ' is-open' : '') + '" data-key="' + key + '" data-i="' + p.i + '" data-j="' + p.j + '">' +
-        '<td>' + (idx+1) + '</td><td>' + p.a + '</td><td>' + p.b + '</td>' +
+      return '<tr class="ch-row' + (selectedPair === key ? ' is-open' : '') + '" data-key="' + key + '" data-i="' + p.i + '" data-j="' + p.j + '" title="Click to see shared holdings">' +
+        '<td>' + (idx+1) + '</td>' +
+        '<td><div class="fund-name-cell"><div class="fund-chip-mini inline">' + FUND_SHORT[p.a] + '</div>' + p.a + '</div></td>' +
+        '<td><div class="fund-name-cell"><div class="fund-chip-mini inline">' + FUND_SHORT[p.b] + '</div>' + p.b + '</div></td>' +
         '<td><div class="pair-bar-track" style="width:100px;"><div class="pair-bar-fill" style="width:' + p.overlap + '%; background:' + pairColor(p.overlap) + ';"></div></div>' + p.overlap + '%</td>' +
         '<td class="num">' + p.shared + '</td><td class="num">' + p.combined + '%</td></tr>';
     }).join('');
@@ -545,6 +712,7 @@ with the heatmap and pairs table cross-linked via the same selection state.
   renderPairs();
   var _origSelectPair = selectPair;
   selectPair = function(key, i, j){ _origSelectPair(key, i, j); renderPairs(); };
+  selectPair('0-1', 0, 1); // default: highest-overlap pair, so the side panel (and pairs table row) isn't empty on load
 
   /* ---- Overlap Impact donut (reuses the buildDonut pop+dim+legend pattern from Allocation) ---- */
   var IMPACT = [
@@ -575,6 +743,32 @@ with the heatmap and pairs table cross-linked via the same selection state.
     });
   }
   buildImpactDonut();
+
+  /* ---- Stock Concentration (Round 3, 2026-10-24 audit) — mirrors OverlapSection's cumulative-
+     exposure curve. In production every chip, the chart, and the headline call the same
+     onOpenStocks handler (they all lead to the same place: the full stock table); here that's a
+     real cross-file link to the Holdings mockup rather than a simulated state change, since that's
+     the actual destination, not a different view of this page. ---- */
+  var CONCENTRATION = [
+    { n: 5, pct: 19.8 }, { n: 10, pct: 31.2 }, { n: 15, pct: 39.6 },
+    { n: 20, pct: 45.9 }, { n: 25, pct: 50.7 }, { n: 30, pct: 54.3 }
+  ];
+  function renderConcentration(){
+    var maxN = CONCENTRATION[CONCENTRATION.length - 1].n;
+    var maxPct = Math.max(100, Math.max.apply(null, CONCENTRATION.map(function(p){ return p.pct; })));
+    var coord = function(p){ return { x: 40 + p.n / maxN * 520, y: 160 - p.pct / maxPct * 130 }; };
+    var pts = CONCENTRATION.map(function(p){ var c = coord(p); return c.x + ',' + c.y; });
+    document.getElementById('conc-chart').innerHTML =
+      '<line x1="40" x2="560" y1="160" y2="160" stroke="var(--border-soft)"/>' +
+      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="var(--accent)" stroke-width="3"/>' +
+      CONCENTRATION.map(function(p){ var c = coord(p); return '<circle cx="' + c.x + '" cy="' + c.y + '" r="4.5" fill="var(--accent)" stroke="#fff" stroke-width="2"><title>' + p.n + ' stocks: ' + p.pct + '%</title></circle>'; }).join('');
+    document.getElementById('conc-chips').innerHTML = CONCENTRATION.map(function(p){
+      return '<a class="conc-chip" href="2026-10-24-mutual-funds-holdings-mockup.html#all-holdings" title="View the full ranked stock list on the Holdings page">' + p.n + ' stocks: ' + p.pct + '%</a>';
+    }).join('');
+    var headline = CONCENTRATION.filter(function(p){ return p.n <= 10; }).pop();
+    document.getElementById('conc-headline').innerHTML = 'Top ' + headline.n + ' stocks represent ' + headline.pct + '% of your total MF portfolio — view all stocks<svg class="icon icon-sm"><use href="#i-chevron-right"/></svg>';
+  }
+  renderConcentration();
 })();
 </script>
 </body>

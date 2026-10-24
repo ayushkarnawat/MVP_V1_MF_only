@@ -140,6 +140,10 @@
   .drill-fund-list { list-style:none; margin:0 0 8px; padding:0 0 0 2px; font-size:11.5px; color:var(--secondary); }
   .drill-fund-list li { padding:4px 0; border-top:1px dashed var(--border-soft); }
   .drill-fund-list li:first-child { border-top:none; }
+  .drill-sector-tag { font-size:10px; font-weight:700; color:var(--secondary); background:#F0F0F0; border-radius:5px; padding:1px 6px; margin-left:6px; vertical-align:1px; }
+  .drill-pct-tag { font-size:10.5px; color:var(--muted); font-weight:600; }
+  .drill-bar-track { height:5px; border-radius:4px; background:#F0F0F0; overflow:hidden; }
+  .drill-bar-fill { height:100%; border-radius:4px; }
 
   /* ---------------- Asset Class nested donut ---------------- */
   .nested-stage { position:relative; width:280px; height:280px; flex-shrink:0; margin:0 auto; }
@@ -399,14 +403,9 @@ popup as the Overview/Performance mockups.</p>
           </div>
 
           <div class="drill-panel" id="mcap-drill-panel">
-            <div class="card-title" style="font-size:13.5px; margin-bottom:10px;">Large Cap — top holdings</div>
-            <div class="drill-row" data-expand="d1"><span>HDFC Bank Limited</span><span class="dr-val">₹4,12,000</span></div>
-            <ul class="drill-fund-list" id="d1-funds" style="display:none;"><li><b>Kotak Multi Cap Fund</b> · 3.1% of portfolio</li><li><b>HDFC Mid-Cap Opportunities</b> · 2.0% of portfolio</li></ul>
-            <div class="drill-row" data-expand="d2"><span>ICICI Bank Limited</span><span class="dr-val">₹3,58,000</span></div>
-            <ul class="drill-fund-list" id="d2-funds" style="display:none;"><li><b>Parag Parikh Flexi Cap Fund</b> · 2.7% of portfolio</li></ul>
-            <div class="drill-row" data-expand="d3"><span>Reliance Industries Limited</span><span class="dr-val">₹3,04,000</span></div>
-            <ul class="drill-fund-list" id="d3-funds" style="display:none;"><li><b>JM Flexi Cap Fund</b> · 2.3% of portfolio</li></ul>
-            <p class="meta-line">Showing the largest 3 of 41 holdings in this group.</p>
+            <div class="card-title" style="font-size:13.5px; margin-bottom:10px;" id="mcap-drill-title"></div>
+            <div id="mcap-drill-rows"></div>
+            <p class="meta-line" id="mcap-drill-meta"></p>
           </div>
         </div>
 
@@ -555,6 +554,33 @@ smooth-scrolls into view on click — so the row, the color, and the panel are t
 the panel silently changing somewhere below. Fund Manager's row-expand (detail appears directly beneath the
 clicked row, same shape as Market Cap's drill-row) and Market Cap itself were already compliant with this rule
 and are unchanged.
+<br><br><b>Round 8 (2026-10-24, this round):</b> the owner's three Allocation complaints, grounded against the real
+backend before writing any of this — <code>cap_allocation.py</code> (every market-cap bucket already computes up
+to 50 <code>StockHoldingRow</code>s, not just the 3 this mockup showed, each with <code>sector_raw</code>,
+<code>exposure_value</code>/<code>exposure_pct</code>, and <code>contributing_funds[]</code> carrying BOTH
+<code>fund_weight_pct</code> and <code>stock_weight_pct</code>) and <code>asset_allocation_lookthrough.py</code>
+(confirmed the equity ring reuses that same per-stock computation, but Debt/Gold/Cash-like only ever get a scalar
+class total — no per-instrument data exists for them today). (1) <b>Market Cap's legend click did nothing</b> —
+Round 5's note above calling this "already genuinely wired" was wrong: the drill panel's expand/collapse worked,
+but it was 100% static HTML always labelled "Large Cap" regardless of which bucket was clicked, and
+<code>buildDonut</code> was never given an <code>onClick</code> callback for this card. Fixed: the legend now
+drives the panel like every other card (persistent selection, color-matched title, scroll-into-view), and each
+bucket's rows now carry sector + both contributing-fund weight percentages instead of just a fund name and one
+₹ figure. "Other / Unclassified" intentionally shows no stock rows and says why — <code>cap_allocation.py</code>
+genuinely never computes rows for that bucket either, so a fabricated holdings list would have been less honest
+than the previous static panel, not more. (2) <b>Asset Allocation "use everything the backend has"</b> — Equity's
+drill now shows the same stock-level detail as Market Cap (same backend computation underneath) instead of a flat
+3-fund list, with a cross-reference note pointing at the Market-Cap card below for the cap-wise split. Debt/Gold/
+Cash-like stay fund-level (no richer data exists for them yet) but each fund row now shows its % of that asset
+class's own value, and a note flags the missing per-instrument breakdown as a real backend gap rather than papering
+over it. (3) <b>Category/AMC "more interesting and unique"</b> — this card's click mechanic already worked
+correctly, so this was a design-richness ask, not a bug: each contributing fund row now has a concentration bar
+and its % of that slice's value (both derived from the same ₹ figures already on this page, not new data), and the
+largest fund in the slice gets a marker. Also fixed a latent bug while touching this code: the old drill-row click
+handler ran once at page load via <code>querySelectorAll</code>, so it would have silently done nothing for rows
+re-rendered after a legend click, and would have mis-fired on Category/AMC's drill-rows (no <code>data-expand</code>
+attribute there, throwing on a null element) the moment those rows existed in the DOM — replaced with a delegated
+listener scoped to each panel. Fund Manager is untouched per the owner's explicit "looks good."
 <br><br>Next: Holdings, Other Analytics, Fund Overlap (now a multi-artifact split per design.md §11.3 — exact
 count still an open question), Individual Fund Overlap, Individual Fund page, Individual Fund Comparison,
 Transactions, plus the PRD/TDD/backend-flow/restructure/relayout document set.</div>
@@ -668,9 +694,77 @@ Transactions, plus the PRD/TDD/backend-flow/restructure/relayout document set.</
   ];
   function renderMcap(denom){
     var slices = denom === 'equity' ? MCAP_EQUITY : MCAP_TOTAL;
-    buildDonut('mcap-segments', 'mcap-legend', 'mcap-hole-label', 'mcap-hole-value', 'mcap-hole-pct', slices, denom === 'equity' ? 'Equity only' : 'Total portfolio', '₹66.9L');
+    buildDonut('mcap-segments', 'mcap-legend', 'mcap-hole-label', 'mcap-hole-value', 'mcap-hole-pct', slices, denom === 'equity' ? 'Equity only' : 'Total portfolio', '₹66.9L', function(label, color){ renderMcapDrill(label, color, true); });
+    renderMcapDrill(slices[0].label, slices[0].color);
     var largest = slices.slice().sort(function(a,b){ return b.pct - a.pct; })[0];
     document.querySelector('.card:nth-of-type(2) .headline-stat') && (document.querySelectorAll('.headline-stat')[1].textContent = 'Largest allocation: ' + largest.label + ' (' + largest.pct.toFixed(1) + '%)');
+  }
+  /* ---- Market Cap drill-down (Round 8, 2026-10-24): each bucket's legend row
+     now drives this panel, using the same per-stock shape the real backend
+     computes for every market-cap bucket (cap_allocation.py's StockHoldingRow:
+     sector_raw, exposure_value, exposure_pct, contributing_funds[].fund_weight_pct
+     + stock_weight_pct) — not just the bucket's 3 biggest holdings by name and
+     value as before. "Other / Unclassified" has no rows by design: the backend
+     (cap_allocation.py) never computes stock-level rows for that bucket either,
+     so the panel says why instead of inventing holdings. ---- */
+  var MCAP_STOCKS = {
+    'Large Cap': { rows:[
+      { name:'HDFC Bank Limited', sector:'Banking', value:'₹4,12,000', funds:[
+        { name:'Kotak Multi Cap Fund', fundPct:3.1, stockPct:58 },
+        { name:'HDFC Mid-Cap Opportunities Fund', fundPct:2.0, stockPct:42 },
+      ] },
+      { name:'ICICI Bank Limited', sector:'Banking', value:'₹3,58,000', funds:[
+        { name:'Parag Parikh Flexi Cap Fund', fundPct:2.7, stockPct:100 },
+      ] },
+      { name:'Reliance Industries Limited', sector:'Energy', value:'₹3,04,000', funds:[
+        { name:'JM Flexi Cap Fund', fundPct:2.3, stockPct:100 },
+      ] },
+    ], meta:'Showing the largest 3 of 41 holdings in this group.' },
+    'Mid Cap': { rows:[
+      { name:'Max Healthcare Institute Limited', sector:'Healthcare', value:'₹1,86,000', funds:[
+        { name:'HDFC Mid-Cap Opportunities Fund', fundPct:4.1, stockPct:100 },
+      ] },
+      { name:'Cummins India Limited', sector:'Industrials', value:'₹1,54,200', funds:[
+        { name:'Kotak Multi Cap Fund', fundPct:2.4, stockPct:100 },
+      ] },
+      { name:'Coforge Limited', sector:'IT Services', value:'₹1,21,900', funds:[
+        { name:'HDFC Mid-Cap Opportunities Fund', fundPct:2.3, stockPct:70 },
+        { name:'Kotak Small Cap Fund', fundPct:1.1, stockPct:30 },
+      ] },
+    ], meta:'Showing the largest 3 of 29 holdings in this group.' },
+    'Small Cap': { rows:[
+      { name:'KEI Industries Limited', sector:'Industrials', value:'₹98,400', funds:[
+        { name:'Kotak Small Cap Fund', fundPct:3.8, stockPct:100 },
+      ] },
+      { name:'Blue Star Limited', sector:'Consumer Durables', value:'₹76,300', funds:[
+        { name:'Kotak Small Cap Fund', fundPct:3.2, stockPct:100 },
+      ] },
+      { name:'Sundram Fasteners Limited', sector:'Auto Components', value:'₹64,100', funds:[
+        { name:'Kotak Small Cap Fund', fundPct:3.5, stockPct:100 },
+      ] },
+    ], meta:'Showing the largest 3 of 23 holdings in this group.' },
+    'Other / Unclassified': { rows:[],
+      note:'This bucket folds together equity AMFI hasn\'t size-classified yet plus debt, gold and cash-like instruments — the same look-through data that breaks Large/Mid/Small Cap down to individual stocks doesn\'t attribute holdings here.',
+      meta:'' },
+  };
+  function renderMcapDrill(label, color, fromClick){
+    var data = MCAP_STOCKS[label];
+    if (!data) return;
+    var dotHtml = color ? '<span class="drill-panel-dot" style="background:' + color + '"></span>' : '';
+    document.getElementById('mcap-drill-title').innerHTML = dotHtml + label + (data.rows.length ? ' — top holdings' : '');
+    if (!data.rows.length) {
+      document.getElementById('mcap-drill-rows').innerHTML = '<p class="meta-line" style="margin:0;">' + data.note + '</p>';
+    } else {
+      document.getElementById('mcap-drill-rows').innerHTML = data.rows.map(function(r, i){
+        var fundsHtml = r.funds.map(function(f){
+          return '<li><b>' + f.name + '</b> · ' + f.fundPct.toFixed(1) + '% of that fund\'s own portfolio · contributes ' + f.stockPct.toFixed(0) + '% of this stock\'s total exposure</li>';
+        }).join('');
+        return '<div class="drill-row" data-expand="mc' + i + '"><span>' + r.name + '<span class="drill-sector-tag">' + r.sector + '</span></span><span class="dr-val">' + r.value + '</span></div>' +
+          '<ul class="drill-fund-list" id="mc' + i + '-funds" style="display:none;">' + fundsHtml + '</ul>';
+      }).join('');
+    }
+    document.getElementById('mcap-drill-meta').textContent = data.meta;
+    if (fromClick) document.getElementById('mcap-drill-panel').scrollIntoView({ behavior:'smooth', block:'nearest' });
   }
   renderMcap('total');
   document.querySelectorAll('#mcap-denom-toggle .seg-btn').forEach(function(btn){
@@ -736,14 +830,30 @@ Transactions, plus the PRD/TDD/backend-flow/restructure/relayout document set.</
       { name:'ICICI Prudential Equity & Debt Fund', value:'₹4,68,902' },
     ], meta:'Showing all 3 schemes across smaller AMCs.' },
   };
+  function rupeesToNumber(v){ return parseInt(v.replace(/[^\d]/g, ''), 10); }
+  /* ---- Round 8, 2026-10-24: each contributing fund now also shows its share
+     of THIS slice's value (a concentration bar + %), and the largest fund gets
+     a crown marker — derived entirely from the ₹ values already shown on this
+     page (no new backend figure, just a ratio of two numbers already here),
+     answering the owner's "more interesting and unique" feedback without
+     inventing anything. ---- */
   function renderCatAmcDrill(tab, label, color, fromClick){
     var map = tab === 'amc' ? AMC_FUNDS : CATEGORY_FUNDS;
     var d = map[label];
     if (!d) return;
+    var sliceTotal = d.rows.reduce(function(sum, r){ return sum + rupeesToNumber(r.value); }, 0);
+    var barColor = color || 'var(--accent)';
     var dotHtml = color ? '<span class="drill-panel-dot" style="background:' + color + '"></span>' : '';
     document.getElementById('catamc-drill-title').innerHTML = dotHtml + label + ' — contributing funds';
-    document.getElementById('catamc-drill-rows').innerHTML = d.rows.map(function(r){
-      return '<div class="drill-row" style="cursor:default;"><span>' + r.name + '</span><span class="dr-val">' + r.value + '</span></div>';
+    document.getElementById('catamc-drill-rows').innerHTML = d.rows.map(function(r, i){
+      var pct = sliceTotal ? (rupeesToNumber(r.value) / sliceTotal * 100) : 0;
+      return '<div class="drill-row" style="cursor:default; flex-direction:column; align-items:stretch; gap:7px;">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><span>' +
+          (i === 0 ? '<svg class="icon icon-sm" style="color:var(--accent-hover); vertical-align:-2px; margin-right:4px;"><use href="#i-zap"/></svg>' : '') +
+          r.name + '</span><span class="dr-val">' + r.value + '</span></div>' +
+        '<div class="drill-bar-track"><div class="drill-bar-fill" style="width:' + pct.toFixed(1) + '%; background:' + barColor + ';"></div></div>' +
+        '<span class="drill-pct-tag" style="align-self:flex-end;">' + pct.toFixed(1) + '% of this ' + (tab === 'amc' ? 'AMC' : 'category') + '\'s value</span>' +
+      '</div>';
     }).join('');
     document.getElementById('catamc-drill-meta').textContent = d.meta;
     if (fromClick) document.getElementById('catamc-drill-panel').scrollIntoView({ behavior:'smooth', block:'nearest' });
@@ -772,11 +882,18 @@ Transactions, plus the PRD/TDD/backend-flow/restructure/relayout document set.</
     });
   });
 
-  /* ---- Market Cap drill-down: click a holding row to expand its contributing funds ---- */
-  document.querySelectorAll('.drill-row').forEach(function(row){
-    row.addEventListener('click', function(){
+  /* ---- Click a holding row to expand its contributing funds. Delegated (not a
+     querySelectorAll-at-load forEach) so it keeps working after Market Cap/Asset
+     Class re-render their rows on every legend click — a plain forEach bound once
+     at load would miss every row created after that point, and would also have
+     mis-fired on Category/AMC's drill-rows (no data-expand attribute there). ---- */
+  ['mcap-drill-panel', 'asset-drill-panel'].forEach(function(panelId){
+    var panel = document.getElementById(panelId);
+    panel.addEventListener('click', function(e){
+      var row = e.target.closest('.drill-row');
+      if (!row || !row.dataset.expand) return;
       var list = document.getElementById(row.dataset.expand + '-funds');
-      list.style.display = list.style.display === 'none' ? 'block' : 'none';
+      if (list) list.style.display = list.style.display === 'none' ? 'block' : 'none';
     });
   });
 
@@ -829,26 +946,40 @@ Transactions, plus the PRD/TDD/backend-flow/restructure/relayout document set.</
     assetLegendEl.appendChild(row);
   });
 
-  /* ---- Asset Class drill-down (Round 5, 2026-10-24): clicking a legend row
-     reuses Market Cap's .drill-panel pattern — "top contributing funds, N of
-     M" style, not a claim of full reconciliation (same convention as Market
-     Cap's own "largest 3 of 41 holdings"). ---- */
+  /* ---- Asset Class drill-down (Round 8, 2026-10-24, supersedes Round 5's flat
+     fund-list): Equity reuses Market Cap's per-stock data (both ultimately come
+     from the same backend computation — asset_allocation_lookthrough.py's equity
+     ring IS cap_allocation.py's output, so the same sector/contributing-fund
+     detail genuinely exists here too). Debt/Gold/Cash-like stay fund-level,
+     because asset_allocation_lookthrough.py only sums a scalar total for those
+     three classes today — no per-instrument breakdown to show, so each row is
+     now annotated with what the real data CAN show (% of that class) rather than
+     invented stock-level rows, and a note flags the real backend gap instead of
+     silently doing nothing. ---- */
   var ASSET_DRILL = {
-    'Equity': { rows:[
-      { name:'Kotak Multi Cap Fund', value:'₹5,35,888' },
-      { name:'HDFC Mid-Cap Opportunities Fund', value:'₹12,05,748' },
-      { name:'Parag Parikh Flexi Cap Fund', value:'₹10,71,776' },
-    ], meta:'Showing the largest 3 of 11 equity funds in this portfolio.' },
-    'Debt': { rows:[
-      { name:'HDFC Corporate Bond Fund', value:'₹2,00,000' },
-      { name:'Kotak Banking & PSU Debt Fund', value:'₹1,34,930' },
-    ], meta:'Showing both Debt funds in this portfolio.' },
-    'Gold': { rows:[
-      { name:'HDFC Gold Fund', value:'₹4,01,400' },
+    'Equity': { kind:'stocks', rows:[
+      { name:'HDFC Bank Limited', sector:'Banking', value:'₹4,12,000', funds:[
+        { name:'Kotak Multi Cap Fund', fundPct:3.1, stockPct:58 },
+        { name:'HDFC Mid-Cap Opportunities Fund', fundPct:2.0, stockPct:42 },
+      ] },
+      { name:'ICICI Bank Limited', sector:'Banking', value:'₹3,58,000', funds:[
+        { name:'Parag Parikh Flexi Cap Fund', fundPct:2.7, stockPct:100 },
+      ] },
+      { name:'Reliance Industries Limited', sector:'Energy', value:'₹3,04,000', funds:[
+        { name:'JM Flexi Cap Fund', fundPct:2.3, stockPct:100 },
+      ] },
+    ], meta:'Showing the largest 3 of 93 stock holdings across your 11 equity funds — see Market-Cap Allocation below for the same look-through data split by cap size.' },
+    'Debt': { kind:'funds', rows:[
+      { name:'HDFC Corporate Bond Fund', value:'₹2,00,000', pctOfClass:59.7 },
+      { name:'Kotak Banking & PSU Debt Fund', value:'₹1,34,930', pctOfClass:40.3 },
+    ], meta:'Showing both Debt funds in this portfolio.',
+      note:'Debt doesn\'t get an instrument-level look-through yet (no per-bond breakdown in the backend today) — this shows fund-level only.' },
+    'Gold': { kind:'funds', rows:[
+      { name:'HDFC Gold Fund', value:'₹4,01,400', pctOfClass:100 },
     ], meta:'Only Gold holding in this portfolio.' },
-    'Cash-like': { rows:[
-      { name:'HDFC Arbitrage Fund', value:'₹1,67,600' },
-      { name:'Liquid / overnight holdings (across multiple schemes)', value:'₹1,00,000' },
+    'Cash-like': { kind:'funds', rows:[
+      { name:'HDFC Arbitrage Fund', value:'₹1,67,600', pctOfClass:62.6 },
+      { name:'Liquid / overnight holdings (across multiple schemes)', value:'₹1,00,000', pctOfClass:37.4 },
     ], meta:'Includes arbitrage and liquid holdings — the toggle above moves arbitrage funds here.' },
   };
   /* Click a legend row -> drill panel below updates AND stays visibly tied to that row
@@ -857,10 +988,20 @@ Transactions, plus the PRD/TDD/backend-flow/restructure/relayout document set.</
   function renderAssetDrill(label, color){
     var d = ASSET_DRILL[label];
     var dotHtml = color ? '<span class="drill-panel-dot" style="background:' + color + '"></span>' : '';
-    document.getElementById('asset-drill-title').innerHTML = dotHtml + label + ' — contributing funds';
-    document.getElementById('asset-drill-rows').innerHTML = d.rows.map(function(r){
-      return '<div class="drill-row" style="cursor:default;"><span>' + r.name + '</span><span class="dr-val">' + r.value + '</span></div>';
-    }).join('');
+    document.getElementById('asset-drill-title').innerHTML = dotHtml + label + (d.kind === 'stocks' ? ' — top holdings' : ' — contributing funds');
+    if (d.kind === 'stocks') {
+      document.getElementById('asset-drill-rows').innerHTML = d.rows.map(function(r, i){
+        var fundsHtml = r.funds.map(function(f){
+          return '<li><b>' + f.name + '</b> · ' + f.fundPct.toFixed(1) + '% of that fund\'s own portfolio · contributes ' + f.stockPct.toFixed(0) + '% of this stock\'s total exposure</li>';
+        }).join('');
+        return '<div class="drill-row" data-expand="ad' + i + '"><span>' + r.name + '<span class="drill-sector-tag">' + r.sector + '</span></span><span class="dr-val">' + r.value + '</span></div>' +
+          '<ul class="drill-fund-list" id="ad' + i + '-funds" style="display:none;">' + fundsHtml + '</ul>';
+      }).join('');
+    } else {
+      document.getElementById('asset-drill-rows').innerHTML = d.rows.map(function(r){
+        return '<div class="drill-row" style="cursor:default;"><span>' + r.name + '</span><span class="dr-val">' + r.value + ' <span class="drill-pct-tag">' + r.pctOfClass.toFixed(1) + '% of ' + label + '</span></span></div>';
+      }).join('') + (d.note ? '<p class="meta-line" style="margin-top:8px;">' + d.note + '</p>' : '');
+    }
     document.getElementById('asset-drill-meta').textContent = d.meta;
   }
   renderAssetDrill('Equity');

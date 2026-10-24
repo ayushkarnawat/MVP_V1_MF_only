@@ -52,7 +52,11 @@ like-for-like port:
 - **Fund Overlap**: rebuilt from scratch per a fresh set of owner-provided reference
   screenshots (stat strip, Common Holdings table, Heatmap, Top Pairs + Key Insights,
   Impact donut) — see design.md §7.5 for the full relayout spec, and §3 below for how this
-  is now splitting into multiple artifacts.
+  is now splitting into multiple artifacts. A cross-cutting audit (2026-10-24, full record:
+  `Docs/orchestration/2026-10-24-mutual-funds-cross-cutting-audit-findings.md`) added a
+  5th sub-section, Stock Concentration (`OverlapSection.tsx`'s cumulative-exposure curve +
+  concentration chips, previously entirely absent from the mockup) — same relayout
+  treatment, same visual language as the rest of the page, not a like-for-like port.
 
 Every relaid-out page must also satisfy the cross-cutting interactivity rule (design.md
 §11.1): every element is either meaningfully clickable with a visible cause-and-effect

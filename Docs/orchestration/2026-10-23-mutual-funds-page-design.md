@@ -37,6 +37,11 @@ asked for it to be built now, specifically because the fund-vs-fund comparison f
 needs a home and §11.3 resolves that home as this page's Overlap tab. See §7.5.1 (now
 in-scope) and §11.3 (resolved) below.
 
+**Further update, 2026-10-24 (same day, end of session):** all 8 mockups (plus the
+Transactions mockup, now formally tracked) are signed off, and a cross-cutting audit
+against live production components has been completed and actioned — see §11.6 for the
+4 findings and the 2 items explicitly deferred as frontend/production follow-up work.
+
 ---
 
 ## 0. Route map (locked by the nav-shell contract — not invented here)
@@ -705,4 +710,41 @@ specs/` for specs, `Docs/superpowers/plans/` for implementation plans), the full
 document set requested for this sub-project, beyond this design.md and the HTML mockups,
 is tracked and built incrementally rather than invented ad hoc per artifact — see the
 handoff document for the current build status of each.
+
+### 11.6 Cross-cutting audit (2026-10-24) — 4 findings against live production, 2 deferred
+
+After all 8 mockups were signed off, every production component under
+`frontend/src/features/analytics/` was audited against each mockup's own "Data source
+mapping" table (grep for the production component's actual field names — zero matches
+meant genuinely absent, not just renamed). Full per-finding record:
+`Docs/orchestration/2026-10-24-mutual-funds-cross-cutting-audit-findings.md`.
+
+1. **Investment & Withdrawal cashflow** (Transactions) — not a missing feature as first
+   flagged; 3 genuinely missing fields (SIP/missed-instalment summary, gifts-net,
+   opening-holdings) built in full.
+2. **`CoverageBanner`** (present only in Allocation) — missing from Holdings, Other
+   Analytics, Fund Overlap. Per owner instruction, a simple headline-%-only stub was
+   added to all 3 rather than the full port. **Deferred:** the per-fund reason list
+   (not-published/not-available/stale) + derivative-exclusion share, for all 3 sections —
+   Allocation's existing `.coverage-banner` markup is the template.
+3. **`ValuationSection` edge states** (Other Analytics) — `hide_headlines`/`enough_data`
+   thresholds and the `footnotes` array had no mockup representation. Per owner
+   instruction ("same for this" as #2), a one-line both-thresholds sentence + one example
+   footnote was added. **Deferred:** the real hidden-ratio/not-enough-data rendered
+   states, the full per-stock exclusions list, the full footnotes array.
+4. **Stock Concentration** (Fund Overlap) — entirely absent. Per owner instruction ("same
+   vibe, creatively presented... UX/UI should be enhanced"), built in full as a new
+   Section 5: SVG cumulative-exposure curve, clickable concentration chips, and a
+   headline sentence, following the §11.1 interactivity rule exactly as production does
+   (chart, chips, and headline all call the same destination, matching
+   `OverlapSection.tsx`'s single shared `onOpenStocks` handler). The 3 smaller edge
+   states it also surfaced (sub-2-funds empty state, no-pairs-above-threshold empty
+   state, matrix-truncation note) are documented in an inline "what this section shows in
+   other scenarios" panel rather than live-toggled — building live toggles would require
+   degrading the already-signed-off 12-fund/20-pair happy-path dataset.
+
+Both deferred items (#2, #3) are frontend/production implementation gaps, not design
+decisions still pending — see the TDD/backend-flow companion doc §6 for confirmation that
+no new backend computation is needed for either, and the handoff doc's item 8/9 for where
+this is tracked going forward.
 
