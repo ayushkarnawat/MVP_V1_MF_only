@@ -396,6 +396,7 @@ blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--line);colo
 .mk .iconbtn svg{width:16px;height:16px}
 .mk .prevlink{border:0;background:transparent;color:var(--m-muted);font:500 11px var(--m-font-b);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .mk .prevlink:hover{color:var(--m-ink)}
+.mkbox .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}.mkbox .calgrid.wk span{font:600 11px var(--m-font-b);color:var(--m-sec);text-align:center;padding:4px 0}.mkbox .cd{border:0;background:transparent;color:var(--m-ink);font:500 13px var(--m-font-b);height:34px;border-radius:8px;cursor:pointer}.mkbox .cd:hover:not(:disabled){background:var(--m-soft)}.mkbox .cd:disabled{color:var(--m-ph);cursor:not-allowed}.mkbox .cd.inr{background:var(--m-accent-tint);border-radius:0}.mkbox .cd.sel{background:var(--m-accent);color:#111111;font-weight:700}.mkbox .btn2{font:600 13px var(--m-font-b);background:var(--m-bg);color:var(--m-ink);border:1px solid var(--m-border2);border-radius:8px;padding:6px 10px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}.mkbox .btn2.primary{background:var(--m-accent);border-color:var(--m-accent);color:#111111}.mkbox .btn2:disabled{opacity:.5;cursor:not-allowed}.mkbox .btn2.sm{font-size:12px;padding:4px 10px}.mkbox select{font:500 13px var(--m-font-b);background:var(--m-surface);color:var(--m-ink);border:1px solid var(--m-border);border-radius:8px;padding:5px 8px}.mkbox .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.mkbox .between{justify-content:space-between}.mkbox .sec{color:var(--m-sec)}.mkbox svg{width:16px;height:16px}
 </style>
 
 <div class="wrap">
@@ -567,11 +568,47 @@ var PER={'1D':{n:2,ret:.0018,b:.003,lab:'today'},'1W':{n:6,ret:.009,b:.008,lab:'
 var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 var END=new Date(2026,9,22);
 function dlab(d){return d.getDate()+' '+MON[d.getMonth()]}
+var CAL={view:null,start:null,end:null};
+S.range={from:new Date(2026,6,1),to:END};
+var MINDATE=new Date(END.getFullYear()-10,END.getMonth(),END.getDate());
+var MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function fmtR(d){return dlab(d)+' '+d.getFullYear()}
+function sameDay(a,b){return !!(a&&b&&a.getTime()===b.getTime())}
+function renderCal(){
+ var box=document.getElementById('calbox');if(!box)return;
+ var v=CAL.view,y=v.getFullYear(),m=v.getMonth(),pad=(new Date(y,m,1).getDay()+6)%7,days=new Date(y,m+1,0).getDate(),cells='',i;
+ for(i=0;i<pad;i++)cells+='<span></span>';
+ for(i=1;i<=days;i++){var dt=new Date(y,m,i),dis=dt<MINDATE||dt>END,sel=sameDay(dt,CAL.start)||sameDay(dt,CAL.end),inr=CAL.start&&CAL.end&&dt>CAL.start&&dt<CAL.end;
+  cells+='<button type="button" class="cd'+(sel?' sel':'')+(inr?' inr':'')+'"'+(dis?' disabled':'')+' data-act="calday" data-d="'+y+'-'+m+'-'+i+'">'+i+'</button>'}
+ var ys='',yy;for(yy=END.getFullYear();yy>=MINDATE.getFullYear();yy--)ys+='<option value="'+yy+'"'+(yy===y?' selected':'')+'>'+yy+'</option>';
+ var ms=MN.map(function(n,k){return '<option value="'+k+'"'+(k===m?' selected':'')+'>'+n+'</option>'}).join('');
+ var prevDis=(y===MINDATE.getFullYear()&&m<=MINDATE.getMonth()),nextDis=(y===END.getFullYear()&&m>=END.getMonth());
+ var txt=CAL.start?(fmtR(CAL.start)+(CAL.end?' to '+fmtR(CAL.end):' (pick an end date)')):'Pick a start date';
+ box.innerHTML='<div class="row between"><h3 style="font-size:16px">Pick a date range</h3><button class="btn2" data-act="close" aria-label="Close">'+ic('x')+'</button></div>'+
+ '<p class="sec" style="margin:4px 0 10px;font-size:12.5px">You can choose dates from '+fmtR(MINDATE)+' to today, the last 10 years.</p>'+
+ '<div class="row" style="gap:6px;margin-bottom:10px"><button type="button" class="btn2 sm" data-act="calpreset" data-n="90">Last 3 months</button><button type="button" class="btn2 sm" data-act="calpreset" data-n="365">Last 12 months</button><button type="button" class="btn2 sm" data-act="calpreset" data-n="1826">Last 5 years</button><button type="button" class="btn2 sm" data-act="calpreset" data-n="3652">Last 10 years</button></div>'+
+ '<div class="row between" style="margin-bottom:6px"><button type="button" class="btn2" data-act="calnav" data-n="-1" aria-label="Previous month"'+(prevDis?' disabled':'')+'>'+ic('chevron-left')+'</button><div class="row" style="gap:6px"><select data-act="calm" aria-label="Month">'+ms+'</select><select data-act="caly" aria-label="Year">'+ys+'</select></div><button type="button" class="btn2" data-act="calnav" data-n="1" aria-label="Next month"'+(nextDis?' disabled':'')+'>'+ic('chevron-right')+'</button></div>'+
+ '<div class="calgrid wk">'+['Mo','Tu','We','Th','Fr','Sa','Su'].map(function(x){return '<span>'+x+'</span>'}).join('')+'</div><div class="calgrid">'+cells+'</div>'+
+ '<div class="row between" style="margin-top:12px;border-top:1px solid var(--m-border);padding-top:10px"><span class="num" style="font-size:12.5px">'+txt+'</span><div class="row"><button type="button" class="btn2" data-act="close">Cancel</button><button type="button" class="btn2 primary" data-act="calapply"'+(CAL.start?'':' disabled')+'>Apply</button></div></div>';
+ if(window.lucide)try{lucide.createIcons()}catch(e){}
+}
+function openCal(){
+ var old=document.querySelector('.mkmodal.cal');if(old)old.remove();
+ CAL.start=S.range.from;CAL.end=S.range.to;CAL.view=new Date(S.range.to.getFullYear(),S.range.to.getMonth(),1);
+ var o=document.createElement('div');o.className='mkmodal cal';o.innerHTML='<div class="mkbox mk" id="calbox" style="max-width:380px"></div>';document.body.appendChild(o);renderCal();
+}
+function calDay(s){var p=s.split('-'),d=new Date(+p[0],+p[1],+p[2]);
+ if(!CAL.start||CAL.end){CAL.start=d;CAL.end=null}else if(d<CAL.start){CAL.start=d}else{CAL.end=d}
+ renderCal()}
+function calApply(){S.range={from:CAL.start,to:CAL.end||CAL.start};S.period='Custom';var o=document.querySelector('.mkmodal.cal');if(o)o.remove();updateWealth(true)}
+
 function buildSeries(){
- var c=PER[S.period],tot=D[S.scope].total,end=tot,start=tot/(1+c.ret),bm=BENCH[S.bench][1],pts=[],span=S.period==='1D'?1:S.period==='1W'?7:S.period==='1M'?30:S.period==='1Y'?365:90;
+ var c=PER[S.period],tot=D[S.scope].total,endD=END,span=S.period==='1D'?1:S.period==='1W'?7:S.period==='1M'?30:S.period==='1Y'?365:90;
+ if(S.period==='Custom'){var days=Math.max(1,Math.round((S.range.to-S.range.from)/864e5)+1);c={n:Math.min(250,Math.max(6,days>400?Math.round(days/5):days)),ret:Math.max(.002,.148*days/365),b:Math.max(.002,.125*days/365),lab:'in range'};span=days;endD=S.range.to}
+ var end=tot,start=tot/(1+c.ret),bm=BENCH[S.bench][1],pts=[];
  for(var i=0;i<c.n;i++){var t=c.n>1?i/(c.n-1):1,w=c.n>2?Math.sin(Math.PI*t):0;
   var v=start*(1+c.ret*t+Math.sin(i*1.7)*.004*w),b=c.b*bm*100*t+Math.sin(i*2.3)*.25*w;
-  var d=new Date(END.getTime()-(1-t)*span*864e5-(S.period==='1D'?0:0));
+  var d=new Date(endD.getTime()-(1-t)*span*864e5);
   if(S.period==='1D'&&i===0)d=new Date(2026,9,21);
   pts.push({d:d,v:i===c.n-1?end:v,b:i===c.n-1?c.b*bm*100:b})}
  return {pts:pts,start:start,end:end,ret:c.ret,benchRet:c.b*bm*100,lab:c.lab};
@@ -621,7 +658,7 @@ function interp(from,to,p){
  return {pts:to.pts.map(function(q,i){return {d:q.d,v:fv[i]+(q.v-fv[i])*p,b:fb[i]+(q.b-fb[i])*p}}),start:from.start+(to.start-from.start)*p,end:from.end+(to.end-from.end)*p,ret:from.ret+(to.ret-from.ret)*p,benchRet:from.benchRet+(to.benchRet-from.benchRet)*p,lab:to.lab};
 }
 function wnote(){return S.period==='1D'?'1D compares two NAV days (21 Oct and 22 Oct). Mutual fund NAVs publish once a day, so there is no intraday line.':''}
-function wright(){return S.period==='Custom'?'<button class="btn2" data-act="cal">'+ic('calendar')+' 1 Jul – 22 Oct 2026</button>':'<span class="sec" style="font-size:12px">Change excludes new money</span>'}
+function wright(){return S.period==='Custom'?'<button class="btn2" data-act="cal">'+ic('calendar')+' '+fmtR(S.range.from)+' – '+fmtR(S.range.to)+'</button>':'<span class="sec" style="font-size:12px">Change excludes new money</span>'}
 function wsync(sr){
  var amt=sr.end-sr.start,p=sr.ret*100,mask='••••••';
  document.querySelectorAll('.wcard').forEach(function(c){
@@ -814,13 +851,17 @@ document.addEventListener('click',function(e){
  if(t.hasAttribute('data-s')){S.scope=t.getAttribute('data-s');render();return}
  if(t.hasAttribute('data-st')){S.st=t.getAttribute('data-st');render();return}
  var a=t.getAttribute('data-act');
- if(a==='period'){S.period=t.getAttribute('data-v');updateWealth(true)}
+ if(a==='period'){var pv=t.getAttribute('data-v');if(pv==='Custom'){openCal()}else{S.period=pv;updateWealth(true)}}
  else if(a==='hide'){S.hide=!S.hide;render()}
  else if(a==='flag'){S.flag=!S.flag;render()}
  else if(a==='retry'){S.st='normal';render()}
  else if(a==='member'){S.scope='member';render()}
  else if(a==='mira'){modal('Mira','<p>Mira, your AI guide, is on the way. Soon you will be able to ask about your portfolio in plain language.</p><button class="btn2 primary" data-act="close">Close</button>')}
- else if(a==='cal'){modal('Pick a date range','<p>A calendar opens here. You can choose dates from October 2016 to today, the last 10 years.</p><button class="btn2 primary" data-act="close">Done</button>')}
+ else if(a==='cal'){openCal()}
+ else if(a==='calday'){calDay(t.getAttribute('data-d'))}
+ else if(a==='calnav'){CAL.view=new Date(CAL.view.getFullYear(),CAL.view.getMonth()+(+t.getAttribute('data-n')),1);renderCal()}
+ else if(a==='calpreset'){var nn=+t.getAttribute('data-n'),f=new Date(END.getTime()-(nn-1)*864e5);if(f<MINDATE)f=MINDATE;CAL.start=f;CAL.end=END;CAL.view=new Date(END.getFullYear(),END.getMonth(),1);renderCal()}
+ else if(a==='calapply'){calApply()}
  else if(a==='soon'){toast((t.getAttribute('data-msg')||'This page')+' is coming soon.')}
  else if(a==='soonrow'){toast((t.getAttribute('data-msg')||'This')+' is coming soon.')}
  else if(a==='nav'){toast('Navigation preview: '+t.getAttribute('data-msg'))}
@@ -843,7 +884,7 @@ document.addEventListener('click',function(e){
  else if(a==='close'){var o=t.closest('.mkmodal');if(o)o.remove()}
 });
 document.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&e.target.getAttribute&&e.target.getAttribute('role')==='button'){e.preventDefault();e.target.click()}});
-document.addEventListener('change',function(e){var t=e.target;if(!t.getAttribute)return;var a=t.getAttribute('data-act');if(a==='bench'){S.bench=t.value;updateWealth(true)}if(a==='mview'){S.movers=t.value;render()}});
+document.addEventListener('change',function(e){var t=e.target;if(!t.getAttribute)return;var a=t.getAttribute('data-act');if(a==='bench'){S.bench=t.value;updateWealth(true)}if(a==='calm'||a==='caly'){var cm=document.querySelector('[data-act="calm"]'),cy=document.querySelector('[data-act="caly"]');var nv=new Date(+cy.value,+cm.value,1),lo=new Date(MINDATE.getFullYear(),MINDATE.getMonth(),1),hi=new Date(END.getFullYear(),END.getMonth(),1);if(nv<lo)nv=lo;if(nv>hi)nv=hi;CAL.view=nv;renderCal()}if(a==='mview'){S.movers=t.value;render()}});
 document.addEventListener('pointermove',function(e){
  var w=e.target.closest&&e.target.closest('.chartwrap');if(!w)return;
  var c=CH[w.getAttribute('data-ch')];if(!c)return;var svg=w.querySelector('svg'),r=svg.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*c.W;
