@@ -1,17 +1,18 @@
 import uuid
 import threading
 import time
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
-from app.models.enums import CostSource, PlanType, Relationship, TransactionOrigin, TransactionType
+from app.models.enums import CostSource, ImportStatus, PlanType, Relationship, TransactionOrigin, TransactionType
 from app.models.folio import Folio
-from app.models.reference import Scheme
+from app.models.imports import Import
+from app.models.reference import NavHistory, Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
 from app.services.dashboard.holdings import _process_folio_lots, compute_holdings, invalidate_holdings_cache
@@ -24,7 +25,7 @@ def test_peek_cached_holdings_returns_none_when_cold():
 
 def test_peek_cached_holdings_returns_rows_without_removing_them():
     member_id = uuid.uuid4()
-    key = ((member_id,), date.today())
+    key = ((member_id,), date.today(), None, False)
     with _holdings_cache_lock:
         _holdings_cache[key] = _HoldingsCacheEntry(rows=["sentinel"], cached_at=time.monotonic())
     try:
@@ -36,7 +37,7 @@ def test_peek_cached_holdings_returns_rows_without_removing_them():
 
 def test_peek_cached_holdings_does_not_evict_expired_entry():
     member_id = uuid.uuid4()
-    key = ((member_id,), date.today())
+    key = ((member_id,), date.today(), None, False)
     entry = _HoldingsCacheEntry(rows=[], cached_at=time.monotonic() - 3600)
     with _holdings_cache_lock:
         _holdings_cache[key] = entry
@@ -175,10 +176,169 @@ def _persisted_txn(db, folio, type_, on_date, amount, units, nav):
 
 
 def _mock_nav_batch(result):
-    async def lookup(_db, scheme_date_pairs):
+    async def lookup(_db, scheme_date_pairs, *, allow_stale_today=False):
         return {scheme.id: result for scheme, _ in scheme_date_pairs}
 
     return AsyncMock(side_effect=lookup)
+
+
+def _stored_holdings(db, *, days_old=0):
+    member = _household_member(db)
+    imported = Import(household_member_id=member.id, status=ImportStatus.CONFIRMED,
+                      uploaded_at=datetime.now(timezone.utc))
+    db.add(imported)
+    db.commit()
+    schemes = [_scheme(db, name=name) for name in ("Fund A", "Fund B")]
+    for index, scheme in enumerate(schemes):
+        folio = _folio(db, member, scheme, folio_number=f"HB1-{index}")
+        db.add(Transaction(folio_id=folio.id, import_id=imported.id,
+                           type=TransactionType.PURCHASE, date=date(2024, 1, 1),
+                           amount=Decimal("5000"), units=Decimal("100"), nav=Decimal("50")))
+        db.add(NavHistory(scheme_id=scheme.id, date=date.today() - timedelta(days=days_old), nav=Decimal("60")))
+    db.commit()
+    return member, schemes
+
+
+def test_scheme_filter_returns_only_requested_schemes(db_session):
+    import asyncio
+    from app.services.dashboard import nav
+
+    member, (wanted, other) = _stored_holdings(db_session)
+    loaded_folios = []
+
+    @event.listens_for(db_session, "loaded_as_persistent")
+    def record_transaction(_session, instance):
+        if isinstance(instance, Transaction):
+            loaded_folios.append(instance.folio_id)
+
+    with patch.object(nav, "_latest_cached_on_or_before", wraps=nav._latest_cached_on_or_before) as lookup, \
+         patch.object(nav, "_fetch_nav_history", new=AsyncMock(side_effect=AssertionError("unexpected fetch"))):
+        [row] = asyncio.run(compute_holdings(db_session, [member.id], scheme_ids=frozenset({wanted.id})))
+    assert row.scheme_id == str(wanted.id)
+    assert [call.args[1] for call in lookup.call_args_list] == [wanted.id]
+    assert loaded_folios == [db_session.query(Folio).filter(Folio.scheme_id == wanted.id).one().id]
+
+
+def test_filtered_and_unfiltered_cache_entries_do_not_collide(db_session):
+    import asyncio
+
+    member, schemes = _stored_holdings(db_session)
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=AsyncMock(side_effect=AssertionError("unexpected fetch"))):
+        all_rows = asyncio.run(compute_holdings(db_session, [member.id]))
+        [filtered] = asyncio.run(compute_holdings(db_session, [member.id], scheme_ids=frozenset({schemes[0].id})))
+        again = asyncio.run(compute_holdings(db_session, [member.id]))
+    assert {row.scheme_id for row in all_rows} == {str(s.id) for s in schemes}
+    assert filtered.scheme_id == str(schemes[0].id)
+    assert again == all_rows
+
+
+def test_unfiltered_default_behaviour_unchanged(db_session):
+    import asyncio
+
+    member, schemes = _stored_holdings(db_session)
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=AsyncMock(side_effect=AssertionError("unexpected fetch"))):
+        rows = asyncio.run(compute_holdings(db_session, [member.id]))
+        explicit = asyncio.run(compute_holdings(db_session, [member.id], scheme_ids=None, allow_stale_today=False))
+    assert explicit == rows
+    assert {row.scheme_id for row in rows} == {str(s.id) for s in schemes}
+    for row in rows:
+        assert Decimal(row.units_held) == Decimal("100")
+        assert Decimal(row.amount_invested) == Decimal("5000")
+        assert Decimal(row.current_value) == Decimal("6000")
+        assert Decimal(row.unrealized_gain) == Decimal("1000")
+        assert row.current_nav_date == date.today()
+
+
+def test_allow_stale_today_never_fetches(db_session):
+    import asyncio
+
+    member, schemes = _stored_holdings(db_session, days_old=1)
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=AsyncMock(side_effect=AssertionError("unexpected fetch"))):
+        rows = asyncio.run(compute_holdings(db_session, [member.id], allow_stale_today=True))
+    assert len(rows) == 2
+    for row in rows:
+        assert Decimal(row.current_nav) == Decimal("60")
+        assert Decimal(row.current_value) == Decimal("6000")
+        assert row.current_nav_date == date.today() - timedelta(days=1)
+
+
+def test_default_still_fetches_when_today_row_missing(db_session):
+    import asyncio
+
+    member, schemes = _stored_holdings(db_session, days_old=1)
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=AsyncMock(return_value=[(date.today(), Decimal("70"))])) as fetch:
+        [row] = asyncio.run(compute_holdings(db_session, [member.id], scheme_ids=frozenset({schemes[0].id})))
+    fetch.assert_awaited_once_with(schemes[0].amfi_code)
+    assert Decimal(row.current_value) == Decimal("7000")
+    assert row.current_nav_date == date.today()
+
+
+def test_stale_allowed_result_does_not_serve_a_strict_call(db_session):
+    import asyncio
+
+    member, schemes = _stored_holdings(db_session, days_old=1)
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=AsyncMock(return_value=[(date.today(), Decimal("70"))])) as fetch:
+        stale = asyncio.run(compute_holdings(db_session, [member.id], allow_stale_today=True))
+        fetch.assert_not_awaited()
+        strict = asyncio.run(compute_holdings(db_session, [member.id]))
+    assert fetch.await_count == 2
+    assert all(row.current_nav_date == date.today() - timedelta(days=1) for row in stale)
+    assert all(Decimal(row.current_value) == Decimal("7000") for row in strict)
+
+
+def test_invalidate_removes_filtered_and_stale_entries(db_session):
+    import asyncio
+
+    member, schemes = _stored_holdings(db_session)
+    unrelated = uuid.uuid4()
+    unrelated_key = ((unrelated,), date.today(), None, False)
+    with _holdings_cache_lock:
+        _holdings_cache[unrelated_key] = _HoldingsCacheEntry(rows=[], cached_at=time.monotonic())
+    try:
+        with patch("app.services.dashboard.nav._fetch_nav_history", new=AsyncMock(side_effect=AssertionError("unexpected fetch"))):
+            for scheme_ids in (None, frozenset({schemes[0].id})):
+                for stale in (False, True):
+                    asyncio.run(compute_holdings(db_session, [member.id], scheme_ids=scheme_ids, allow_stale_today=stale))
+        assert len([key for key in _holdings_cache if member.id in key[0]]) == 4
+        invalidate_holdings_cache(member.id)
+        assert not any(member.id in key[0] for key in _holdings_cache)
+        assert unrelated_key in _holdings_cache
+    finally:
+        invalidate_holdings_cache(unrelated)
+
+
+def test_peek_cached_holdings_reads_only_the_unfiltered_strict_entry(db_session):
+    import asyncio
+
+    member, schemes = _stored_holdings(db_session)
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=AsyncMock(side_effect=AssertionError("unexpected fetch"))):
+        asyncio.run(compute_holdings(db_session, [member.id], scheme_ids=frozenset({schemes[0].id})))
+        asyncio.run(compute_holdings(db_session, [member.id], allow_stale_today=True))
+        assert peek_cached_holdings([member.id]) is None
+        strict = asyncio.run(compute_holdings(db_session, [member.id]))
+    assert peek_cached_holdings([member.id]) is strict
+    assert len(strict) == 2
+
+
+def test_empty_scheme_filter_returns_no_rows_or_transactions(db_session):
+    import asyncio
+
+    member, _ = _stored_holdings(db_session)
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=AsyncMock(side_effect=AssertionError("unexpected fetch"))):
+        assert asyncio.run(compute_holdings(db_session, [member.id], scheme_ids=frozenset())) == []
+
+
+def test_compatibility_seam_forwards_allow_stale_today(db_session):
+    import asyncio
+    from app.services.dashboard import nav
+
+    member, schemes = _stored_holdings(db_session, days_old=1)
+    with patch("app.services.dashboard.holdings.get_nav_on_or_before", new=AsyncMock(wraps=nav.get_nav_on_or_before)) as lookup, \
+         patch.object(nav, "_fetch_nav_history", new=AsyncMock(side_effect=AssertionError("unexpected fetch"))):
+        [row] = asyncio.run(compute_holdings(db_session, [member.id], scheme_ids=frozenset({schemes[0].id}), allow_stale_today=True))
+    lookup.assert_awaited_once_with(db_session, schemes[0], date.today(), allow_stale_today=True)
+    assert row.current_nav_date == date.today() - timedelta(days=1)
+    assert Decimal(row.current_value) == Decimal("6000")
 
 
 def test_compute_holdings_returns_current_value_and_gains_from_nav():
@@ -450,7 +610,7 @@ def test_compute_holdings_recomputes_expired_entry_through_generation_guard():
         expired_compute_started = asyncio.Event()
         release_expired_compute = asyncio.Event()
 
-        async def lookup(_db, scheme_date_pairs):
+        async def lookup(_db, scheme_date_pairs, *, allow_stale_today=False):
             call_number = nav_lookup.await_count
             if call_number == 2:
                 expired_compute_started.set()
@@ -554,7 +714,7 @@ def test_invalidation_cannot_interleave_between_generation_check_and_publish():
             asyncio.run(compute_holdings(db, [member.id]))
         invalidator.join(timeout=2)
         assert not invalidator.is_alive()
-        cache_key = ((member.id,), date.today())
+        cache_key = ((member.id,), date.today(), None, False)
         assert cache_key not in holdings_module._holdings_cache
     finally:
         holdings_module._holdings_cache = original_cache
@@ -575,7 +735,7 @@ def test_late_compute_cannot_publish_after_import_invalidation():
         stale_compute_started = asyncio.Event()
         release_stale_compute = asyncio.Event()
 
-        async def lookup(_db, scheme_date_pairs):
+        async def lookup(_db, scheme_date_pairs, *, allow_stale_today=False):
             if not stale_compute_started.is_set():
                 stale_compute_started.set()
                 await release_stale_compute.wait()

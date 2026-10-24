@@ -249,6 +249,8 @@ async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
 async def get_navs_on_or_before(
     db: Session,
     scheme_date_pairs: list[tuple[Scheme, date]],
+    *,
+    allow_stale_today: bool = False,
 ) -> dict[uuid.UUID, tuple[Decimal, date] | None]:
     """Batch NAV lookup with concurrency confined to the pure HTTP leg."""
     results: dict[uuid.UUID, tuple[Decimal, date] | None] = {}
@@ -263,7 +265,9 @@ async def get_navs_on_or_before(
             results[scheme.id] = (cached.nav, cached.date) if cached else None
             continue
         cached = _latest_cached_on_or_before(db, scheme.id, on_date)
-        trustworthy = cached is not None and (cached.date == on_date or on_date != date.today())
+        trustworthy = cached is not None and (
+            allow_stale_today or cached.date == on_date or on_date != date.today()
+        )
         if trustworthy:
             results[scheme.id] = (cached.nav, cached.date)
         else:
