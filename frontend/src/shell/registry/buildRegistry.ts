@@ -1,4 +1,5 @@
 import type { ShellRoute } from "./types";
+import { resolveRoute } from "../nav/resolve";
 
 type RouteModules = Record<string, { default: ShellRoute }>;
 
@@ -23,14 +24,15 @@ export function validateRegistry(routes: ShellRoute[]): string[] {
   const ids = new Set<string>();
   const paths = new Set<string>();
   const byId = new Map(routes.map(route => [route.id, route]));
-  const byPath = new Map(routes.filter(route => route.path !== undefined).map(route => [route.path!, route]));
+  // Compare paths the way the router does: case-insensitive, no trailing slash, parameter names ignored.
+  const normal = (path: string) => path.toLowerCase().replace(/\/+$/, "").replace(/:[^/]+/g, ":p");
 
   for (const route of routes) {
     if (ids.has(route.id)) errors.push(`Duplicate route id: ${route.id}`);
     ids.add(route.id);
     if (route.path !== undefined) {
-      if (paths.has(route.path)) errors.push(`Duplicate route path: ${route.path}`);
-      paths.add(route.path);
+      if (paths.has(normal(route.path))) errors.push(`Duplicate route path: ${route.path}`);
+      paths.add(normal(route.path));
     }
     const stem = fileStems.get(route);
     if (stem !== undefined && stem !== route.id) errors.push(`Route id ${route.id} does not match file stem ${stem}`);
@@ -42,10 +44,12 @@ export function validateRegistry(routes: ShellRoute[]): string[] {
       if (!route.redirectTo) {
         errors.push(`Group ${route.id} needs a redirect target`);
       } else {
-        const target = byPath.get(route.redirectTo);
+        const target = resolveRoute(route.redirectTo, routes);
         if (!target) errors.push(`Missing redirect target ${route.redirectTo} for group ${route.id}`);
         else if (target.kind === "group") errors.push(`Group ${route.id} must redirect to a non-group route`);
       }
+    } else if (route.redirectTo && !resolveRoute(route.redirectTo, routes)) {
+      errors.push(`Missing redirect target ${route.redirectTo} for route ${route.id}`);
     } else if (!route.page && !route.redirectTo) {
       errors.push(route.status === "live"
         ? `Live route ${route.id} needs a page or redirect`
@@ -65,7 +69,7 @@ export function validateRegistry(routes: ShellRoute[]): string[] {
         break;
       }
       seen.add(current);
-      current = byPath.get(current.redirectTo);
+      current = resolveRoute(current.redirectTo, routes);
     }
   }
   return errors;

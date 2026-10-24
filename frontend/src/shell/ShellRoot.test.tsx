@@ -9,6 +9,7 @@ import { AppLink } from "./nav/AppLink";
 import { useAppNavigate } from "./nav/useAppNavigate";
 
 afterEach(() => vi.restoreAllMocks());
+function SearchProbe() { return <output data-testid="search">{useLocation().search}</output>; }
 function Location() { return <output data-testid="location">{useLocation().pathname}</output>; }
 
 it.each([["/", "/home", "Home"], ["/planning", "/planning", "Planning"], ["/portfolio/equity", "/portfolio/mutual-funds", "Mutual Funds"]])(
@@ -110,4 +111,10 @@ it("redirects replace their history entry", async () => {
   fireEvent.click(screen.getByRole("button", { name: "History back" }));
   expect(await screen.findByRole("heading", { name: "Planning" })).toBeInTheDocument();
   expect(screen.getByTestId("location")).toHaveTextContent("/planning");
+});
+
+it("redirects keep the query string", async () => {
+  render(<MemoryRouter initialEntries={["/?x=1"]}><TestScopeProvider><ShellRoutes /><SearchProbe /></TestScopeProvider></MemoryRouter>);
+  expect(await screen.findByRole("heading", { name: "Home" })).toBeInTheDocument();
+  expect(screen.getByTestId("search")).toHaveTextContent("?x=1");
 });

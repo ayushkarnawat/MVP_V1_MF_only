@@ -145,6 +145,15 @@ describe("contract v1.6 registry", () => {
 });
 
 describe("registry validation", () => {
+  it("catches redirect cycles, missing targets and duplicate paths the way the router sees them", () => {
+    const a = page({ id: "a", path: "/a", redirectTo: "/b/", page: undefined });
+    const b = page({ id: "b", path: "/b", redirectTo: "/a", page: undefined });
+    expect(validateRegistry([a, b]).some(error => error.includes("Redirect cycle"))).toBe(true);
+    const lost = page({ id: "lost", path: "/lost", redirectTo: "/hmoe", page: undefined });
+    expect(validateRegistry([lost])).toContain("Missing redirect target /hmoe for route lost");
+    expect(validateRegistry([page({ id: "x", path: "/home" }), page({ id: "y", path: "/Home/" })])).toContain("Duplicate route path: /Home/");
+  });
+
   it("rejects a duplicate id", () => {
     expect(validateRegistry([page(), page({ path: "/other" })])).toContain("Duplicate route id: leaf");
   });

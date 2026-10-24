@@ -6,7 +6,7 @@ type BackStorage = Pick<Storage, "getItem" | "setItem">;
 
 export function shouldRemember(route: ShellRoute | undefined): boolean {
   return !!route?.path && route.path !== "*" && modeOf(route.path) === "main"
-    && route.layout === "app" && route.status === "live" && route.kind !== "group";
+    && route.layout === "app" && route.status === "live" && !route.redirectTo && route.kind !== "group";
 }
 
 export function rememberBack(pathname: string, routes: ShellRoute[], storage?: BackStorage): void {

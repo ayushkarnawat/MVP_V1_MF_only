@@ -67,3 +67,9 @@ it("handles a throwing sessionStorage getter", () => {
     Object.defineProperty(window, "sessionStorage", descriptor);
   }
 });
+
+it("does not remember a live redirect route whose target is a placeholder", () => {
+  sessionStorage.clear();
+  rememberBack("/", routes);
+  expect(sessionStorage.getItem(key)).toBeNull();
+});

@@ -16,6 +16,9 @@ it("remembers the last app page for Back and marks the row for a trailing-slash 
   cleanup();
   renderInShell(undefined, { path: "/portfolio/", routes });
   await waitFor(() => expect(document.querySelectorAll('nav [aria-current="page"]')).toHaveLength(1));
+  cleanup();
+  renderInShell(undefined, { path: "/PORTFOLIO", routes });
+  await waitFor(() => expect(document.querySelectorAll('nav [aria-current="page"]')).toHaveLength(1));
 });
 
 it("keeps the chrome and scrolls the page area on pathname changes", async () => {
