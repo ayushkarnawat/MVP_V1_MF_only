@@ -4,7 +4,7 @@
 
 ## State
 
-- **Wave:** 2 and 2b. HB1 DONE (`511f1ef` on `feat/home-snapshot`). Run **S1.1** READY (`ui-redesign-S1.1-router-registry-handoff.md`, branch `feat/shell-nav`, not yet relayed to Codex). Working method: orchestration docs (handoffs, this file, the delegation log) are committed on `leapswitch-redesign`; task branches carry code only and are cut from `leapswitch-redesign` after the run's handoff is committed.
+- **Wave:** 2 and 2b. Done: HB1 (`511f1ef`, `feat/home-snapshot`), S1.1 (`e825d10`, `feat/shell-nav`). **S1.2 (+O) READY** (`ui-redesign-S1.2-navigation-logic-handoff.md`, same branch `feat/shell-nav`, not yet relayed). Method: orchestration docs are committed on `leapswitch-redesign`; before each run I merge `leapswitch-redesign` into the task branch so Codex sees the handoff; code commits go on the task branch. The Codex review of S1.1 is batched into S1.2's review (covers T1 to T3), then the Opus review of S1.2.
 - **Branches:** `leapswitch-redesign` (integration, docs), `feat/home-snapshot` (HB1 code), `feat/shell-nav` (next). Nothing pushed by this account. Untracked: `Docs/Web app UI mockups MFs.pdf` (owner's call).
 - **Latest migration:** `0043`; `0044` (news) and `0045` (benchmark indices) are free.
 - **Codex mode:** manual relay (owner decision 24 Oct). `codex:codex-rescue` is not available as an agent here; I write the handoff doc and a short prompt, the owner pastes it into Codex and pastes the report back, as in Sub-projects 1 and 2 and the UX fixes. Each review gate is also a relay (a review prompt for Codex, then its findings back).
@@ -27,7 +27,7 @@ Everything in handoff section 9, plus the owner's second-pass decisions of 24 Oc
 - [ ] L1 (with the owner)
 
 ### Wave 2: shell (stacked branches `feat/shell-nav`, `feat/shell-nav-switch`)
-- [ ] S1.1 · [ ] S1.2 +O · [ ] S1.3 · [ ] S1.4 · [ ] S1.5 (Claude) · [ ] S1.6 +O
+- [x] S1.1 (e825d10) · [ ] S1.2 +O · [ ] S1.3 · [ ] S1.4 · [ ] S1.5 (Claude) · [ ] S1.6 +O
 - [ ] S2.1 · [ ] S2.2 · [ ] S2.3 · [ ] S2.4 +O · [ ] S2.5 (Claude) · [ ] S2.6 (Claude) · [ ] S2.7 +O
 
 ### Wave 2b: backend (parallel to the shell)
@@ -61,4 +61,4 @@ Total 88 runs: 1 + 13 + 19 + 2 + 43 + 4 + 4 + 2.
 
 ## Next exact step
 
-Owner pastes the S1.1 prompt into Codex and returns the CODEX REPORT; then verify, Codex review relay, commit on `feat/shell-nav`. Carry-over notes: Home day-change (HB3) must not label stale-allowed `today_gain` as today's without `current_nav_date`; `scheme_ids` is coerced to a frozenset in `compute_holdings`.
+Owner pastes the S1.2 prompt into Codex and returns the report; verify, then one Codex review prompt (S1.1 and S1.2 diff) and the Opus review, commit on `feat/shell-nav`. Carry-over: S2.4 and I1 must make every group-redirect target live (documented skipped test in `registry.test.ts`); HB3 note about stale `today_gain` (see HB1 handoff).

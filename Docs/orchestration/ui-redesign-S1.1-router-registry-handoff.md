@@ -1,5 +1,5 @@
 # Handoff: ui-redesign S1.1 (shell PR 1: router dependency, registry, route files, contract test)
-**Status:** OPEN (ready to dispatch)
+**Status:** REVIEW (committed `e825d10`; Codex review batched into S1.2)
 **Parent plan:** `Docs/superpowers/plans/2026-10-23-shell-pr1-router-registry-sidebar.md` Tasks **T1** and **T2** (run R1 of that plan). Contract: `Docs/orchestration/2026-10-22-nav-shell-contract-v1.md` (v1.6, section 4 URL map and section 5 route module). Run catalogue: `2026-10-24-ui-redesign-orchestrator-handoff.md` section 6, run **S1.1**.
 **Branch:** `feat/shell-nav` (cut from `leapswitch-redesign`). **Orchestrator:** Claude Code · **Worker:** Codex (manual relay).
 
@@ -20,4 +20,6 @@ Test-first. Existing screens, `App.tsx`, `main.tsx`, `features/**`, `mobile/**`,
 Fill in the CODEX REPORT block (template in `ui-redesign-HB1-compute-holdings-handoff.md`, change the run label to S1.1) at the end of your answer, as one fenced block.
 
 ## Orchestrator record
-(pending)
+- Round 1: BLOCKED at `npm install` (sandbox could not reach npm). Orchestrator installed `react-router@^7.18.4` (one dependency line; lockfile adds `cookie` and `set-cookie-parser`). Codex asked which rule governs a group redirect to a placeholder: decided option 1 (target must exist, not a group, no loop; the stricter live-target rule is a skipped test naming S2.4 and I1).
+- Round 2: DONE. 37 passed, 1 skipped (shell tests plus NavigationShell); `tsc -b` and `oxlint src/shell` clean; 41 route files; orchestrator re-ran the same commands and compared the file names with contract v1.6 section 4 (the 12 names my regex missed are the contract's shorthand rows and the fund trio). Codex self-review fixed two (missing title or label threw instead of returning errors; Profile marked live too early). Commit `e825d10` on `feat/shell-nav`.
+
