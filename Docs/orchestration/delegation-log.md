@@ -595,3 +595,4 @@ fix" rule.
 - 2026-10-24 | ui-redesign — S1.3 (shell PR1 T4) READY | worker=codex (manual relay) | Handoff Docs/orchestration/ui-redesign-S1.3-sidebar-handoff.md.
 - 2026-10-24 | ui-redesign — S1.3 DONE af4d2f7 (feat/shell-nav) | worker=codex | 182 tests pass; review batched into S1.4.
 - 2026-10-24 | ui-redesign — S1.4 (shell PR1 T5+T6) READY | worker=codex (manual relay) | Handoff Docs/orchestration/ui-redesign-S1.4-scope-topbar-layouts-handoff.md.
+- 2026-10-24 | ui-redesign — S1.4 DONE 028342a + 0a7db46 (feat/shell-nav) | worker=codex | Codex review S1.3+S1.4 FAIL then fixed; 214 tests pass.
