@@ -1,5 +1,5 @@
 # Handoff: ui-redesign S1.3 (shell PR 1: shell tokens and Sidebar)
-**Status:** OPEN (ready to dispatch). No Opus review (not a +O run); Codex review is batched into S1.4's review.
+**Status:** DONE (af4d2f7); Codex review batched into S1.4. No Opus review (not a +O run); Codex review is batched into S1.4's review.
 **Parent plan:** `Docs/superpowers/plans/2026-10-23-shell-pr1-router-registry-sidebar.md` Task **T4** (run R3), plus "Locked decisions" 2 to 5, 8 and 11 and the Global Constraints there. Contract: `Docs/orchestration/2026-10-22-nav-shell-contract-v1.md` v1.6. Visual reference: `Docs/orchestration/2026-10-24-desktop-preview-all-pages.html` (sidebar and active underline).
 **Branch:** `feat/shell-nav` (holds S1.1 and S1.2). **Orchestrator:** Claude Code. **Worker:** Codex (manual relay).
 
@@ -17,4 +17,4 @@ One active row only; Investments active only on `/portfolio`; the Mutual Fund ro
 CODEX REPORT block, run label S1.3 (template in `ui-redesign-HB1-compute-holdings-handoff.md`), one fenced block at the end.
 
 ## Orchestrator record
-(pending)
+Codex report DONE. Orchestrator re-ran: 182 passed, 1 skipped; tsc and oxlint clean; no raw hex in components; changes inside the handoff's file list. Not yet looked at in a browser (the sidebar is not mounted until S1.4/ShellRoot).
