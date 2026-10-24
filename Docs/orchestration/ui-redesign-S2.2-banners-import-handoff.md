@@ -1,5 +1,5 @@
 # Handoff: ui-redesign S2.2 (shell PR 2: MemberBanners, ImportProvider, import wrapper)
-**Status:** OPEN (ready to dispatch). Not a +O run. After this run: ONE Codex review prompt covering S2.1 and S2.2.
+**Status:** DONE (63394ae, fix 0c57ab9). Not a +O run. After this run: ONE Codex review prompt covering S2.1 and S2.2.
 **Parent plan:** `Docs/superpowers/plans/2026-10-23-shell-pr2-scope-wrappers-switch.md` Task **T2** (run R2), with Locked decisions 4, 5, 6 (the `import` row) and the Global Constraints ("port, do not rewrite"). Contracts: `Docs/orchestration/2026-10-22-nav-shell-contract-v1.md` v1.6; `2026-10-23-shell-flows.md` section 6.
 **Branch:** `feat/shell-nav-switch` (holds shell PR1 and S2.1). **Orchestrator:** Claude Code. **Worker:** Codex (manual relay).
 
@@ -23,4 +23,4 @@ Behaviour parity with `MainDashboardFlow` for banners, dialog save/merge and the
 CODEX REPORT block, run label S2.2 (template in `ui-redesign-HB1-compute-holdings-handoff.md`), one fenced block at the end.
 
 ## Orchestrator record
-(pending)
+Codex report DONE (269 tests). Scope extended with optional ScopeMember.profile (owner-side decision 1, approved by orchestrator); Codex also made a small FocusLayout header-slot edit (accepted). Codex review S2.1+S2.2 FAIL: queued reset lost when me changes (ScopeProvider), resume state cleared under StrictMode replay (ImportWrapper). Both fixed with regression tests (verified failing without the fix); 271 pass.
