@@ -130,7 +130,7 @@ useEffect(() => {
 ## F: Final gate (run R7)
 
 - [ ] `cd frontend && npx vitest run src/shell src/App.test.tsx` plus the touched feature folders pass; independent full frontend run once (`npx vitest run`) because the diff touches `App.tsx`; `npx tsc -b`; `npm run build`; `npx oxlint src`.
-- [ ] `git diff --stat feat/leapswitch-staging...HEAD`: only the allowed files.
+- [ ] `git diff --stat leapswitch-redesign...HEAD`: only the allowed files.
 - [ ] Opus adversarial review (with approval) of the whole branch, then fix per "Review-loop fix authorship".
 - [ ] Owner's staging check is **not** part of this PR: staging waits until every page from the PDF is built.
 

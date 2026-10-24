@@ -42,7 +42,7 @@
 
 ## Branch and order
 
-Branch `feat/individual-fund-page` from updated `feat/leapswitch-staging`. Order: T1 (existing-code change, shared with Home), T2 (skeleton), T3 to T8 (tiers 1 and 2, any order after T2), T9 to T11 (tier 3), T12 (insights), T13 (wiring and regression), T14 (staging measurement). No commit or push without the owner's word.
+Branch `feat/individual-fund-page` from `leapswitch-redesign` (PR targets `leapswitch-redesign`). Order: T1 (now owned by Home T1; this plan only consumes it), T2 (skeleton), T3 to T8 (tiers 1 and 2, any order after T2), T9 to T11 (tier 3), T12 (insights), T13 (wiring and regression), T14 (staging measurement). No commit or push without the owner's word.
 
 **Test command:** `cd backend && .venv/Scripts/python.exe -m pytest <files>` (Postgres-only behaviour in `tests/functional_postgres`).
 
@@ -50,23 +50,13 @@ Branch `feat/individual-fund-page` from updated `feat/leapswitch-staging`. Order
 
 ---
 
-### Task 1: `compute_holdings` scheme filter and stored-prices setting (S1, S10)
+### Task 1: `compute_holdings` scheme filter and stored-prices setting (S1, S10) — owned by the Home backend plan
 
-Coordinate with Home's plan task T1 (`allow_stale_today`): same parameter name and behaviour. Whichever merges first owns it; the other drops its copy.
+**Changed 24 Oct (gap G3):** this task is now implemented once, as Home backend plan **T1**, with exactly the signature this plan needs: `async def compute_holdings(db, household_member_ids, *, scheme_ids: frozenset[uuid.UUID] | None = None, allow_stale_today: bool = False) -> list[HoldingRow]`, `peek_cached_holdings` and `invalidate_holdings_cache` with the same key shape. Its tests (`test_scheme_filter_returns_only_requested_schemes`, `test_filtered_and_unfiltered_cache_entries_do_not_collide`, `test_unfiltered_default_behaviour_unchanged`, `test_allow_stale_today_never_fetches`, `test_default_still_fetches_when_today_row_missing`) live there.
 
-**Files:**
-- Modify: `app/services/dashboard/holdings.py` (the `compute_holdings` signature, cache key, `peek_cached_holdings`)
-- Modify: `app/services/dashboard/nav.py` (`get_navs_on_or_before` accepts `allow_stale_today`)
-- Test: `tests/services/dashboard/test_holdings.py`, `tests/services/dashboard/test_nav.py`
-
-**Interfaces:**
-- Produces: `async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID], *, scheme_ids: frozenset[uuid.UUID] | None = None, allow_stale_today: bool = False) -> list[HoldingRow]`; `def peek_cached_holdings(household_member_ids: list[uuid.UUID]) -> list[HoldingRow] | None` unchanged for callers that pass nothing.
-
-- [ ] **Step 1: Write failing tests** in `test_holdings.py`: `test_scheme_filter_returns_only_requested_schemes` (two held schemes, filter one, one row); `test_filtered_and_unfiltered_cache_entries_do_not_collide` (call unfiltered then filtered, second returns one row); `test_unfiltered_default_behaviour_unchanged` (existing fixtures, rows equal as before); `test_allow_stale_today_never_fetches` (a stored NAV dated yesterday, patch `app.services.dashboard.nav._fetch_nav_history` to raise; call with `allow_stale_today=True`; row valued at the stored NAV, `current_nav_date` is yesterday); `test_default_still_fetches_when_today_row_missing` (patched fetch is called once).
-- [ ] **Step 2: Run** `pytest tests/services/dashboard/test_holdings.py -k "scheme_filter or stale_today or collide or unchanged" -v`. Expected: FAIL (unexpected keyword).
-- [ ] **Step 3: Implement** the keyword-only parameters. Filter folios by `Folio.scheme_id` inside `compute_holdings` (before `_load_folio_transactions` loads transactions: pass the filtered folios, do not change that function's other callers). Cache key becomes `(tuple(sorted(ids)), date.today(), scheme_ids, allow_stale_today)`; `peek_cached_holdings` and `invalidate_holdings_cache` use the same shape (invalidate deletes every key containing the member id). In `nav.py` thread `allow_stale_today` into `get_navs_on_or_before` so a cached row on any date up to today is trusted.
-- [ ] **Step 4: Run** the new tests plus the whole of `tests/services/dashboard/test_holdings.py` and `test_nav.py`. Expected: PASS.
-- [ ] **Step 5: Commit** `git commit -m "feat(holdings): optional scheme filter and stored-prices setting"` (only after the owner's word).
+- [ ] **Step 1:** confirm Home T1 is merged on `leapswitch-redesign`; if not, stop and run it first (it is the first backend run of the whole effort).
+- [ ] **Step 2: Smoke test** in `tests/services/fund_page/test_scope.py` or `test_holdings_usage.py`: `test_fund_page_calls_compute_holdings_with_scheme_filter_and_stored_prices` (patch `compute_holdings`, call the summary service, assert the keyword arguments `scheme_ids=frozenset({scheme.id})` and `allow_stale_today=True`). Expected after T3: PASS.
+- [ ] **Step 3:** no commit here.
 
 ### Task 2: package skeleton, scope resolution, stored-section reader
 

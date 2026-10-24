@@ -14,3 +14,15 @@
 {$LS_API_DOMAIN:ls-staging-api.unifolio.in} {
 	reverse_proxy backend:8000
 }
+
+# Redesign preview (branch leapswitch-redesign): a second static frontend that
+# calls the SAME API, database, worker and cron as ls-staging. Frontend only;
+# see Docs/superpowers/plans/2026-10-24-deploy-redesign-plan.md. Removed when
+# the redesign is merged into feat/leapswitch-staging.
+{$LS_REDESIGN_DOMAIN:ls-redesign.unifolio.in} {
+	root * /srv/frontend-redesign
+	encode gzip
+	header X-Robots-Tag "noindex, nofollow"
+	try_files {path} /index.html
+	file_server
+}

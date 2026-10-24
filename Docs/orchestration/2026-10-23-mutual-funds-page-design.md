@@ -58,7 +58,7 @@ IDs or paths:
 | `portfolio-mutual-funds-holdings` | `/portfolio/mutual-funds/holdings` | §7.3 Holdings (stock look-through) |
 | `portfolio-mutual-funds-transactions` | `/portfolio/mutual-funds/transactions` | §7.4 Transactions |
 | `portfolio-mutual-funds-overlap` | `/portfolio/mutual-funds/overlap` | §7.5 Overlap — portfolio level, no compare sub-feature (resolved 2026-10-23) |
-| `portfolio-mutual-funds-overlap-compare` ⚠ | `/portfolio/mutual-funds/overlap/compare` | **Conflict, not resolved here** — see §7.5's flag. The owner removed the two-fund compare feature from the portfolio level entirely (2026-10-23); this route has nothing left to render. Needs a v1.2→v1.3 contract change, to be raised with the nav-shell owner, not decided unilaterally by this design. |
+| ~~`portfolio-mutual-funds-overlap-compare`~~ | ~~`/portfolio/mutual-funds/overlap/compare`~~ | **Resolved 2026-10-24: removed by nav-shell contract v1.6.** The owner removed the two-fund compare feature from the portfolio level (2026-10-23); the comparison is a second state of the Individual Fund page's Overlap tab (§7.5.1, §11.3). |
 | `portfolio-mutual-funds-analytics` | `/portfolio/mutual-funds/analytics` | §7.6 Other Analytics — today wraps the unchanged `AnalyticsView` per the shell's bridging rule; this design specifies what it becomes once rebuilt |
 | `portfolio-mutual-funds-history` | `/portfolio/mutual-funds/history` | Temporary-only — content folds into §7.1 Performance, route retired once that ships (Q2 resolved) |
 | `portfolio-mutual-funds-fund` (+`/overlap`,`/insights`) | `/portfolio/mutual-funds/funds/:schemeId` | **In scope as of 2026-10-24** — §7.5.1 is now the content spec (fund header/Overview, Overlap Analysis tab with its two states, Insights tab) |
@@ -563,8 +563,8 @@ Nifty Next 50, Nifty Smallcap 250, Nifty 100, Nifty 200). The Overlap section wa
 substantially revised the same day per new reference screenshots (§7.5/§7.5.1) — both mockups
 need another targeted rebuild of just the Overlap section to match. Two things still need the
 owner's input before `superpowers:writing-plans`:
-1. The nav-shell route conflict flagged in §0/§7.5 (`portfolio-mutual-funds-overlap-compare`
-   has nothing to render now) — needs a contract change, raised with the nav-shell owner.
+1. ~~The nav-shell route conflict flagged in §0/§7.5 (`portfolio-mutual-funds-overlap-compare`
+   has nothing to render now)~~ — **resolved 2026-10-24**: contract v1.6 removes the route.
 2. The owner said they remain unhappy with both mockups' overall layout fidelity (beyond
    Overlap) and offered to provide section-by-section reference screenshots — that offer is
    still open; worth taking them up on it before doing another full blind rebuild pass of the

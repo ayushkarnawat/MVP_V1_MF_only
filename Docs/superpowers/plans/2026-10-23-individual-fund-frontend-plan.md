@@ -12,8 +12,8 @@
 
 ## Global Constraints
 
-- **Depends on:** shell PR 1 (route registry, `PageLayout` with tabs, `PageState`, `AppLink`, `paths`, `MiraComingSoonDialog`, `useScope`, `shell/testing` `renderInShell`) per contract v1.4. A task may start stacked on `feat/shell-nav` before it merges. Shares with Home: `ui/charts/line-area-chart.tsx` and the palette token file; whoever merges first owns each, the other imports it (tasks say where).
-- **Touch only** `frontend/src/features/fund-page/`, `frontend/src/components/ui/charts/` (three new files), and the two route files `frontend/src/shell/routes/portfolio-mutual-funds-fund.route.tsx` and `portfolio-mutual-funds-fund-insights.route.tsx` (replace the placeholder page, set `status: "live"`). Everything else under `frontend/src/shell/` untouched. The Overlap route file stays a placeholder (L17). Existing screens, `FundScoreDetailModal`, `SchemeLogo`, and mobile untouched.
+- **Depends on:** shell PR 1 (route registry, `PageLayout` with tabs, `PageState`, `AppLink`, `paths`, `MiraComingSoonDialog`, `useScope`, `shell/testing` `renderInShell`) per contract v1.4. A task may start stacked on `feat/shell-nav` before it merges. Charts, palette tokens, formatting and click helpers come from the shared UI kit (`2026-10-24-shared-ui-kit-plan.md`, merged first); this plan imports them.
+- **Touch only** `frontend/src/features/fund-page/`, nothing under `components/ui/charts/` (the kit owns it), and the two route files `frontend/src/shell/routes/portfolio-mutual-funds-fund.route.tsx` and `portfolio-mutual-funds-fund-insights.route.tsx` (replace the placeholder page, set `status: "live"`). Everything else under `frontend/src/shell/` untouched. The Overlap route file stays a placeholder (L17). Existing screens, `FundScoreDetailModal`, `SchemeLogo`, and mobile untouched.
 - **Routes (contract v1.4):** `/portfolio/mutual-funds/funds/:schemeId` (Overview), `.../insights`, `.../overlap` (greyed tab). Links only through `paths.*`.
 - **Colours (palette PDF, M1 B):** fund line tier 2 teal `#0D9488`; benchmark Chart 03 blue `#2563EB`; category average `#9B9B9B`. Green `#22C55E` is for UI only: primary button, active tab underline, focus ring. Card `#F5F5F5` on base `#FCFCFC`, popups `#FFFFFF`, dividers `#ECECEC`; dark values as in the design workbook. Semantic colours only as tint backgrounds on small chips and icon discs, full colour only for icon and number. Fonts: DM Sans headings, Manrope body.
 - **Score ring (M2 A):** bands by `final_score`: 85+ Excellent `#15803D`, 70 to 84 Strong `#22C55E`, 55 to 69 Good `#65A30D`, 40 to 54 Average `#CA8A04`, 25 to 39 Weak `#EA580C`, under 25 Poor `#C1272D`; the sentence under it comes from the existing verdict helpers.
@@ -40,51 +40,30 @@
 
 Branch `feat/individual-fund-page` (frontend part). Order: T1, T2, T3 (foundations), T4 (frame and routes), T5 to T9 (Overview sections, any order after T4), T10, T11 (Insights sections), T12 (assembly, states, scope), T13 (QA). No commit or push without the owner's word.
 
-### Task 1: tokens, formatting, clickable helpers, API, hooks
+### Task 1: API, types and section hook (tokens, formatting and click helpers moved to the shared UI kit)
+
+**Changed 24 Oct (gap G5):** the palette tokens, `formatRupees` / `formatCompactRupees` / `formatPercent` / `formatDate` / `scoreBand`, and the `CLICK_*` / `DISABLED` constants are built once in `2026-10-24-shared-ui-kit-plan.md` Task 1 (`styles/palette-tokens.css`, `lib/format.ts`, `lib/clickable.ts`). Import them from there; their tests live in the kit plan.
 
 **Files:**
-- Create: `features/fund-page/fund-page-tokens.css` (skip and import Home's palette token file if already merged; same variable names), `format.ts`, `clickable.ts`, `types.ts`, `api.ts`, `hooks/useFundSection.ts`
-- Test: `format.test.ts`, `clickable.test.ts`, `api.test.ts`, `hooks/useFundSection.test.tsx`
+- Create: `features/fund-page/types.ts`, `api.ts`, `hooks/useFundSection.ts`
+- Test: `api.test.ts`, `hooks/useFundSection.test.tsx`
 
 **Interfaces:**
-- Produces: `formatRupees(v: string | null): string`, `formatCompactRupees(v: string): string` ("₹18.33 L", "₹1.20 Cr"), `formatPercent(v: string | null, opts?: {digits?: number; signed?: boolean}): string`, `formatDate(iso: string): string`, `scoreBand(finalScore: number): {word: string; color: string}`; `clickable` class-string constants `CLICK_CARD`, `CLICK_ROW`, `CLICK_FIGURE`, `DISABLED`; `fundPageApi` functions one per backend route, each `(schemeId: string, scope: string, signal?: AbortSignal) => Promise<T>` with types in `types.ts` mirroring the backend schemas (`SummaryResponse`, `PerformanceResponse`, `ReturnsResponse`, `RiskResponse`, `CompositionResponse`, `HoldingsListResponse`, `ManagerResponse`, `ScoreResponse`, `CategorySeriesResponse`, `CategoryReturnsResponse`, `RollingResponse`, `PeriodReturnsResponse`, `ScatterResponse`, `InsightsResponse`, `Unavailable`); `function useFundSection<T>(fetcher: (signal: AbortSignal) => Promise<T | Unavailable>, deps: unknown[]): {status: "loading" | "ready" | "unavailable" | "error"; data: T | null; reason: string | null; retry: () => void}`.
+- Produces: `fundPageApi` functions one per backend route, each `(schemeId: string, scope: string, signal?: AbortSignal) => Promise<T>` with types in `types.ts` mirroring the backend schemas (`SummaryResponse`, `PerformanceResponse`, `ReturnsResponse`, `RiskResponse`, `CompositionResponse`, `HoldingsListResponse`, `ManagerResponse`, `ScoreResponse`, `CategorySeriesResponse`, `CategoryReturnsResponse`, `RollingResponse`, `PeriodReturnsResponse`, `ScatterResponse`, `InsightsResponse`, `Unavailable`); `function useFundSection<T>(fetcher: (signal: AbortSignal) => Promise<T | Unavailable>, deps: unknown[]): {status: "loading" | "ready" | "unavailable" | "error"; data: T | null; reason: string | null; retry: () => void}`. The Overlap-tab fetchers (`overlap`, `overlapCompare`) are added by the Mutual Funds frontend plan T15, not here.
 
-- [ ] **Step 1: Failing tests:** format cases (`1833250` gives "₹18,33,250"; `1233.5` gives "₹1,234" rounding rule stated in the test; null gives "—"; compact boundaries at 1e5 and 1e7; signed percent `+46.7%`); `scoreBand(82)` is Strong `#22C55E`, edges 85, 70, 55, 40, 25; `api.test.ts`: each fetcher calls the exact path and adds `scope` and the bearer token; `useFundSection`: `test_ignores_stale_response_after_deps_change` (resolve the first fetch after the second; data is the second), `test_aborts_on_unmount`, `test_unavailable_payload_sets_status_and_reason`, `test_retry_refetches`.
-- [ ] **Step 2: Run** the four files. Expected: FAIL.
+- [ ] **Step 1: Failing tests:** `api.test.ts`: each fetcher calls the exact path and adds `scope` and the bearer token; `useFundSection`: `test_ignores_stale_response_after_deps_change` (resolve the first fetch after the second; data is the second), `test_aborts_on_unmount`, `test_unavailable_payload_sets_status_and_reason`, `test_retry_refetches`.
+- [ ] **Step 2: Run** the two files. Expected: FAIL.
 - [ ] **Step 3: Implement** the signatures above; the API uses `lib/apiClient` (`cachedFetch`, `ApiError`, `getToken`) exactly like `features/analytics/api.ts`.
 - [ ] **Step 4: Run.** Expected: PASS.
-- [ ] **Step 5: Commit** `feat(fund-page): tokens, formatting, api and hooks`.
+- [ ] **Step 5: Commit** `feat(fund-page): api, types and section hook`.
 
-### Task 2: morph hook and `LineAreaChart` (shared with Home)
+### Task 2: morph hook and `LineAreaChart` — moved to the shared UI kit
 
-**Files:**
-- Create: `components/ui/charts/use-morph.ts`; `components/ui/charts/line-area-chart.tsx` (if Home's T4 has merged, extend it with the props below instead of creating it)
-- Test: `components/ui/charts/use-morph.test.ts`, `line-area-chart.test.tsx`
+Built once in `2026-10-24-shared-ui-kit-plan.md` Task 2 (`components/ui/charts/use-morph.ts`, `line-area-chart.tsx`) with this task's tests (`resample`, `useMorph`, clipped-axis regression, hidden series, tooltip, one-point series, axis morph). This plan imports them. Nothing to build here.
 
-**Interfaces:**
-- Produces: `function resample(values: number[], count: number): number[]`; `function useMorph<T extends number[][]>(target: T, opts?: {durationMs?: number}): T` (returns the interpolated arrays each animation frame, ease-out cubic `1 - (1 - t)^3`, immediate when `prefers-reduced-motion` or on first render); `LineAreaChart` props `{series: {key: string; name: string; color: string; values: number[]; area?: boolean; visible?: boolean}[]; labels: (index: number) => string; tooltipLabel?: (index: number) => string; formatValue: (v: number) => string; height?: number; ariaLabel: string}`; the y-axis top tick always covers the data.
+### Task 3: `GroupedBarChart` and `ScatterChart` — moved to the shared UI kit
 
-- [ ] **Step 1: Failing tests:** `resample` cases (same length returns copy, upsample linear, one point); `useMorph` with fake timers (`test_reaches_target_in_400ms`, `test_midpoint_is_between_old_and_new`, `test_reduced_motion_is_immediate`, `test_cancels_previous_animation_on_new_target`); chart: `test_top_tick_covers_max_value` (regression for the clipped axis), `test_hidden_series_not_drawn`, `test_tooltip_shows_all_visible_series_on_hover`, `test_one_point_series_renders_dot_not_line`, `test_axis_range_morphs_with_data`.
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** with `d3-shape` `line` and `area`; the SVG keeps a fixed `viewBox` height so nothing jumps; tick generation takes steps of 1, 2, 5 times a power of ten and extends until the last tick is at or above the maximum.
-- [ ] **Step 4: Run.** Expected: PASS.
-- [ ] **Step 5: Commit** `feat(charts): morph hook and line-area chart`.
-
-### Task 3: `GroupedBarChart` and `ScatterChart`
-
-**Files:**
-- Create: `components/ui/charts/grouped-bar-chart.tsx`, `scatter-chart.tsx`
-- Test: `grouped-bar-chart.test.tsx`, `scatter-chart.test.tsx`
-
-**Interfaces:**
-- Consumes: `useMorph`.
-- Produces: `GroupedBarChart` props `{buckets: {label: string; values: number[]}[]; seriesColors: string[]; onBucketClick?: (index: number) => void; ariaLabel: string; formatValue: (v: number) => string}` (bar count changes morph by resampling the old bars to the new count, labels fade in); `ScatterChart` props `{points: {id: string; name: string; x: number; y: number; highlight?: boolean}[]; xLabel: string; yLabel: string; onPointClick?: (id: string) => void; ariaLabel: string}`.
-
-- [ ] **Step 1: Failing tests:** bars: `test_renders_one_group_per_bucket_with_n_bars`, `test_negative_bars_extend_below_zero`, `test_bucket_count_change_morphs_not_snaps` (intermediate frame has the new count), `test_hover_dims_other_buckets`, `test_enter_activates_focused_bar`; scatter: `test_highlight_point_is_larger_and_ringed`, `test_click_and_enter_call_handler`, `test_axis_ticks_cover_all_points`, `test_empty_points_renders_frame_only`.
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** both as small SVG components using `d3-scale`-free arithmetic (no new package) and the same tick helper as T2 (export it from `use-morph.ts` as `niceTicks(lo: number, hi: number): number[]`).
-- [ ] **Step 4: Run.** Expected: PASS.
-- [ ] **Step 5: Commit** `feat(charts): grouped bar and scatter charts`.
+Built once in `2026-10-24-shared-ui-kit-plan.md` Task 2 (`grouped-bar-chart.tsx`, `scatter-chart.tsx`, `niceTicks`). Nothing to build here.
 
 ### Task 4: page frame, header, tabs, routes
 
@@ -97,7 +76,7 @@ Branch `feat/individual-fund-page` (frontend part). Order: T1, T2, T3 (foundatio
 - Consumes: shell `PageLayout`, `useScope()`, `paths`, `AppLink`; `SchemeLogo`; `fundPageApi.summary`.
 - Produces: `FundPageFrame({schemeId, tab, children}: {schemeId: string; tab: "overview" | "insights"; children: (ctx: FundPageContext) => ReactNode})` where `FundPageContext = {schemeId: string; scope: string; summary: HookResult<SummaryResponse>}`; `useFundPageScope(): string` ("combined" or member id from `useScope()`).
 
-- [ ] **Step 1: Failing tests (renderInShell at the Overview path):** `test_breadcrumb_links_use_paths_and_current_fund_is_text`; `test_header_shows_plan_category_amc_and_no_growth_pill`; `test_logo_uses_scheme_logo_with_initial_fallback`; `test_add_investment_and_more_are_disabled_with_coming_soon_tooltip` (click does nothing); `test_overlap_tab_disabled`; `test_tab_switch_navigates_and_keeps_member` (pick a member, switch to Insights, `useScope` still that member); `test_unknown_scheme_shows_not_found_state`; `test_route_files_are_live_and_overlap_is_placeholder`.
+- [ ] **Step 1: Failing tests (renderInShell at the Overview path):** `test_breadcrumb_links_use_paths_and_current_fund_is_text`; `test_header_shows_plan_category_amc_and_no_growth_pill`; `test_logo_uses_scheme_logo_with_initial_fallback`; `test_add_investment_and_more_are_disabled_with_coming_soon_tooltip` (click does nothing); `test_overlap_tab_disabled` (the Overlap tab is enabled later by Mutual Funds frontend plan T15, which updates this test); `test_tab_switch_navigates_and_keeps_member` (pick a member, switch to Insights, `useScope` still that member); `test_unknown_scheme_shows_not_found_state`; `test_route_files_are_live_and_overlap_is_placeholder`.
 - [ ] **Step 2: Run.** Expected: FAIL.
 - [ ] **Step 3: Implement.** Replace the page in the two route files only (`status: "live"`); do not change `path`, `id`, `label`, `icon`, `section`, `order`.
 - [ ] **Step 4: Run** this file and the shell route-registry contract test. Expected: PASS.
@@ -239,7 +218,7 @@ Branch `feat/individual-fund-page` (frontend part). Order: T1, T2, T3 (foundatio
 - [ ] **Step 2: Visual QA against the design workbook in light and dark** at 1280, 1100 and 1024 px with the synthetic CAS household (`Docs/CAS Files/synthetic/pdfs/realistic/`) imported on a local run: header and stat band as PDF page 24, morph on every chip, donut lift, Insights two columns spacing, every disabled target greyed with its tooltip, keyboard walk (Tab, Enter, Space, Escape) across tiles, rows and charts (Review Focus 5), reduced-motion setting removes movement, dark theme uses no light literals (Review Focus 6).
 - [ ] **Step 3: Staging check:** with the backend deployed, open the page for a held fund of each category on the VM; first open of a category shows tier 3 skeletons for under about 5 s and then every card; second open fast. Record the numbers.
 - [ ] **Step 4: Owner review** of the page against the PDF pages 24 and 26 and the interactive mockup; list differences in a note, fix in the owning task.
-- [ ] **Step 5: Do not** merge into `feat/leapswitch-staging` or deploy without the owner's word.
+- [ ] **Step 5: Do not** merge into `leapswitch-redesign` or deploy without the owner's word.
 
 ## Self-review record
 

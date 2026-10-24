@@ -28,7 +28,7 @@ the `Scheme` reference model (`backend/app/models/reference.py:28`) and is alrea
 `backend/app/services/dashboard/schemas.py:55`'s `HoldingRow`, joined from the
 scheme-master the dashboard already reads. No migration, no new table. (design.md §3, Q3)
 
-### 2.2 Four additional benchmark indices
+### 2.2 Four additional benchmark indices (planned in `Docs/superpowers/plans/2026-10-24-mutual-funds-backend-plan.md`: enum members stay behind a legacy tuple so existing outputs do not change; migration 0045)
 
 `nse_indices_client.py`'s `BenchmarkIndex` enum has exactly 4 members today
 (`nifty_50`/`nifty_500`/`nifty_largemidcap_250`/`nifty_midcap_150`) with a deliberately
@@ -57,7 +57,7 @@ uses — see PRD-06 §4.1) selects a key into this already-fetched payload: zero
 network round-trips once the page has loaded, which is the speed property Option B
 (§1 above) is for. (design.md §7.1)
 
-### 2.3 Fund Overlap — "excluded funds" count (needs a backend check, not yet confirmed)
+### 2.3 Fund Overlap — "excluded funds" count (**checked 2026-10-24: no backend work**; `OverlapSummary.coverage` already lists every fund without disclosure and the reason, so the frontend derives the count)
 
 Unconfirmed whether `overlap` already tracks which owned funds it excluded (e.g. missing
 look-through data) separately from the funds it scored, or whether it only ever returns
@@ -114,9 +114,8 @@ full component-to-route mapping).
 
 - The nav-shell route conflict (`portfolio-mutual-funds-overlap-compare` has nothing to
   render once the compare feature moved off the portfolio level, resolved to live inside
-  the Individual Fund page's Overlap Analysis tab instead) — still needs a contract change
-  with the nav-shell owner, design.md §0/§7.5. Not resolved by the artifact-count decision
-  below; this is a routing-table conversation, not a design one.
+  the Individual Fund page's Overlap Analysis tab instead) — **resolved 2026-10-24: contract
+  v1.6 removes the route.**
 - ~~Fund Overlap's exact artifact count (3 vs 4) and the "two states" reference~~ —
   **resolved 2026-10-24** via AskUserQuestion: exactly 3 artifacts (portfolio-level
   overlap; the Individual Fund page's Overlap Analysis tab normal state; the same tab's

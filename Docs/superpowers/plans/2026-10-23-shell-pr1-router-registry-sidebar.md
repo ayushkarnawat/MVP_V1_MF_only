@@ -18,7 +18,7 @@
 | Phase | Covers | Ships |
 |---|---|---|
 | T1 | dependency, skeleton, lazy-route spike | compiles, no behaviour change |
-| T2 | registry, types, about 31 route files, contract test | tested data layer |
+| T2 | registry, types, about 30 route files, contract test | tested data layer |
 | T3 | pure navigation functions, `paths`, `AppLink`, Back memory | tested logic |
 | T4 | shell tokens, Sidebar | tested sidebar |
 | T5 | scope contract types, family selector, top bar, Mira dialog | tested frame parts |
@@ -68,7 +68,7 @@ Order is strict: T1 → T2 → T3 → T4 → T5 → T6 → T7 (each task imports
 
 | Run | Tasks | Model notes |
 |---|---|---|
-| R1 | T1, T2 (dependency, spike, registry, 31 route files, contract test) | route files are mechanical; Codex |
+| R1 | T1, T2 (dependency, spike, registry, 30 route files, contract test) | route files are mechanical; Codex |
 | R2 | T3 (pure navigation functions, paths, AppLink, Back memory) | Codex; **Opus review** (the reset and active-row logic is shared with PR 2) |
 | R3 | T4 (tokens, Sidebar) | Codex |
 | R4 | T5, T6 (frame parts, layouts, `ShellRoot`, helper) | Codex |
@@ -79,7 +79,7 @@ Order is strict: T1 → T2 → T3 → T4 → T5 → T6 → T7 (each task imports
 
 ## P0: Pre-flight (Claude, after "go")
 
-- [ ] Create branch `feat/shell-nav` from `feat/leapswitch-staging`. Confirm `git status` shows no unrelated staged files.
+- [ ] Create branch `feat/shell-nav` from `leapswitch-redesign` (PR targets `leapswitch-redesign`). Confirm `git status` shows no unrelated staged files.
 - [ ] Confirm `cd frontend && npx tsc -b` and `npx vitest run src/features/dashboard/NavigationShell.test.tsx` pass before any change (baseline).
 - [ ] Re-read the contract section 4 URL map; the route list below must still match it.
 
@@ -143,14 +143,13 @@ export interface ShellRoute {
 | `portfolio-equity-fds-bonds` | `/portfolio/equity/fds-bonds` | portfolio 4 | `portfolio-equity` | family-or-member | placeholder | PlaceholderPage |
 | `portfolio-debt`, `portfolio-gold`, `portfolio-real-estate`, `portfolio-others` | `/portfolio/<debt\|gold\|real-estate\|others>` | portfolio 3, 4, 5, 6 | none | family-or-member | placeholder | PlaceholderPage |
 | `portfolio-mutual-funds-performance`, `-allocation`, `-holdings`, `-transactions`, `-overlap` | `/portfolio/mutual-funds/<name>` | null | `portfolio-mutual-funds` | family-or-member | placeholder | PlaceholderPage |
-| `portfolio-mutual-funds-overlap-compare` | `/portfolio/mutual-funds/overlap/compare` | null | `portfolio-mutual-funds` | family-or-member | placeholder | PlaceholderPage |
 | `portfolio-mutual-funds-analytics`, `-history` | `/portfolio/mutual-funds/analytics`, `/history` | null | `portfolio-mutual-funds` | family-or-member | placeholder in PR 1 (PR 2 flips to live) | PlaceholderPage |
 | `portfolio-mutual-funds-fund`, `-fund-overlap`, `-fund-insights` | `/portfolio/mutual-funds/funds/:schemeId` (+ `/overlap`, `/insights`) | null | `portfolio-mutual-funds` | family-or-member | placeholder | PlaceholderPage |
 | `import` | `/import` | null | none | none | placeholder in PR 1 (PR 2 flips to live) | PlaceholderPage; `layout: "focus"` |
 | `root` | `/` | null | none | none | live | redirect `/home` |
 | `not-found` | `*` | null | none | none | live | NotFoundPage |
 
-(about 31 route files; the exact count is whatever the table produces, asserted by the test below.)
+(about 30 route files; the exact count is whatever the table produces, asserted by the test below.)
 
 Each route file is the same shape, for example `portfolio-mutual-funds.route.tsx`:
 
@@ -267,11 +266,11 @@ Sidebar behaviour (all from the registry and the current `pathname` via props, s
 ## F: Final gate (run R6, Claude + Opus review with approval)
 
 - [ ] `cd frontend && npx vitest run src/shell src/features/dashboard/NavigationShell.test.tsx src/App.test.tsx` all pass; `npx tsc -b` clean; `npm run build` succeeds (proves the glob registry bundles).
-- [ ] `git diff --stat feat/leapswitch-staging...HEAD` shows only `frontend/src/shell/**`, `frontend/package.json`, the lockfile, `.github/CODEOWNERS` and docs. No change to `App.tsx` or `features/**`.
+- [ ] `git diff --stat leapswitch-redesign...HEAD` shows only `frontend/src/shell/**`, `frontend/package.json`, the lockfile, `.github/CODEOWNERS` and docs. No change to `App.tsx` or `features/**`.
 - [ ] No manual dev-server check in PR 1: the shell is not mounted anywhere (no preview route is added). The visual and keyboard checks run in PR 2, once the shell is switched on.
 - [ ] Adversarial review of the whole branch (Opus, with approval): rules above, boundary of the diff, accessibility basics, registry validation completeness.
 - [ ] Record the result in the handoff docs and the delegation log; commit by explicit paths; never push.
 
 ## Open items carried to PR 2
 
-Import completion target (decided 23 Oct: always `/portfolio/mutual-funds` with the notice); the temporary tab strip and "+ Add data" wiring; the real scope provider; wrapper files; `App.tsx` switch.
+Import completion target (contract v1.3: returns to the origin only when it is `/portfolio`, otherwise `/portfolio/mutual-funds`, with the notice); contract v1.6 (24 Oct) removed the `overlap-compare` route, which is why the registry has no row for it; the temporary tab strip and "+ Add data" wiring; the real scope provider; wrapper files; `App.tsx` switch.

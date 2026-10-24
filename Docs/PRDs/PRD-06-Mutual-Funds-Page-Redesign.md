@@ -86,8 +86,7 @@ referred to, and both live inside the Individual Fund page
 (`2026-10-24-mutual-funds-individual-fund-mockup.html`), per design.md §7.5.1/§11.3. The
 previously-flagged nav-shell contract conflict (`portfolio-mutual-funds-overlap-compare`
 having nothing to render, since the comparison screen lives inside the Individual Fund
-page instead) is unaffected by this resolution — still needs the nav-shell owner
-conversation, design.md §0/§7.5 and the TDD companion doc's §5.
+page instead) is **resolved 2026-10-24: nav-shell contract v1.6 removes that route.**
 
 ### 4.4 Cross-cutting audit (resolved 2026-10-24) — 4 findings, 2 explicitly deferred
 

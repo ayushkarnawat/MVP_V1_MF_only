@@ -59,6 +59,28 @@ risky, use the full checklist instead:
 If the deploy goes bad, `./scripts/rollback.sh` reverts the backend/worker
 image to the one running before the last `deploy.sh` run, no rebuild needed.
 
+## Redesign preview link (branch `leapswitch-redesign`)
+
+`ls-redesign.unifolio.in` serves a second, frontend-only bundle built from the
+`leapswitch-redesign` branch. It calls the same API, database, worker and cron
+as `ls-staging`. Nothing about `ls-staging` changes until the branch is merged
+into `feat/leapswitch-staging`.
+
+- VM layout: main clone `/opt/unifolio` (branch `feat/leapswitch-staging`) and a
+  git worktree `/opt/unifolio-redesign` (branch `leapswitch-redesign`);
+  `/opt/unifolio-redesign/deploy/leapswitch/.env` is a symlink to the main clone's `.env`.
+- `.env` needs `LS_REDESIGN_DOMAIN`, the two absolute `*_FRONTEND_DIST` paths and the
+  comma-separated `ALLOWED_ORIGINS` (see `.env.example`).
+- `scripts/deploy-redesign.sh` (frontend only), `--caddy` (first time / Caddyfile change),
+  `--full` (backend + worker too, built from the redesign worktree).
+- **Rule while the preview exists:** any backend/worker deploy runs from the redesign
+  worktree (it is a superset of staging), never from the main clone, otherwise the
+  Caddyfile loses the redesign block and the backend loses redesign code. Hotfixes on
+  `feat/leapswitch-staging` are merged into `leapswitch-redesign` first.
+- Full plan, manual steps and merge-back checklist:
+  `Docs/superpowers/plans/2026-10-24-deploy-redesign-plan.md`,
+  `Docs/orchestration/2026-10-24-ui-redesign-manual-steps.md`.
+
 ## Resetting before a real-data test round
 
 `scripts/clean-db.sh` implements D5's third standing condition (see the

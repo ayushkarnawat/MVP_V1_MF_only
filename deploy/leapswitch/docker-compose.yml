@@ -16,6 +16,10 @@
 # 16 Oct 2026; see the plan's "Is a.gp1.16g right?" section). The backend
 # talks to the worker over this network, never via the Docker socket.
 
+# Pinned so every checkout of this folder (main clone and the redesign
+# worktree on the VM) drives the SAME containers and volumes.
+name: leapswitch
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -110,7 +114,10 @@ services:
     env_file: .env
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ../../frontend/dist:/srv/frontend:ro
+      # Absolute paths are set in .env on the VM (MAIN_/REDESIGN_FRONTEND_DIST) so
+      # running compose from either checkout never swaps one link's bundle for the other's.
+      - ${MAIN_FRONTEND_DIST:-../../frontend/dist}:/srv/frontend:ro
+      - ${REDESIGN_FRONTEND_DIST:-../../frontend/dist}:/srv/frontend-redesign:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

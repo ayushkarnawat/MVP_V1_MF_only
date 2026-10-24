@@ -42,7 +42,6 @@ interface ShellRoute {
 | `portfolio-equity-us-stocks`, `portfolio-equity-fds-bonds` | `/portfolio/equity/us-stocks`, `/portfolio/equity/fds-bonds` | child of Equity | app | family-or-member | placeholder | none |
 | `portfolio-debt`, `-gold`, `-real-estate`, `-others` | `/portfolio/<name>` | Portfolio 3 to 6 | app | family-or-member | placeholder | none |
 | `portfolio-mutual-funds-performance`, `-allocation`, `-holdings`, `-transactions`, `-overlap` | `/portfolio/mutual-funds/<name>` | none (in-page menu) | app | family-or-member | placeholder | none |
-| `portfolio-mutual-funds-overlap-compare` | `/portfolio/mutual-funds/overlap/compare` | none | app | family-or-member | placeholder | none |
 | `portfolio-mutual-funds-analytics` | `/portfolio/mutual-funds/analytics` | none | app | family-or-member | **live** | Analytics wrapper |
 | `portfolio-mutual-funds-history` | `/portfolio/mutual-funds/history` | none | app | family-or-member | **live** | History wrapper |
 | `portfolio-mutual-funds-fund` (+ `-overlap`, `-insights`) | `/portfolio/mutual-funds/funds/:schemeId` (+ `/overlap`, `/insights`) | none | app | family-or-member | placeholder | none |
