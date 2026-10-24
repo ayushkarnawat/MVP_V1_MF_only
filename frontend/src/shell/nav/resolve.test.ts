@@ -1,9 +1,32 @@
 import { describe, expect, it } from "vitest";
 import { buildRegistry } from "../registry/buildRegistry";
-import { activeRowId, modeOf, resolveRoute, rowOf } from "./resolve";
+import { activeRowId, finalRoute, modeOf, resolveRoute, rowOf } from "./resolve";
 
 const routes = buildRegistry();
 const byId = new Map(routes.map(route => [route.id, route]));
+
+describe("redirect destinations", () => {
+  it("follows Equity to the Mutual Funds placeholder", () => {
+    expect(finalRoute(byId.get("portfolio-equity"), routes)?.id).toBe("portfolio-mutual-funds");
+  });
+
+  it("follows multiple redirects and leaves a non-redirect unchanged", () => {
+    const leaf = byId.get("home")!;
+    const middle = { ...leaf, id: "middle", path: "/middle", redirectTo: "/home" };
+    const start = { ...leaf, id: "start", path: "/start", redirectTo: "/middle" };
+    expect(finalRoute(start, [start, middle, leaf])).toBe(leaf);
+    expect(finalRoute(leaf, [leaf])).toBe(leaf);
+  });
+
+  it("returns undefined for missing targets, unknown routes and loops", () => {
+    const loop = { ...routes[0], id: "loop", path: "/loop", redirectTo: "/loop" };
+    const other = { ...loop, id: "other", path: "/other", redirectTo: "/loop" };
+    expect(finalRoute(loop, [loop])).toBeUndefined();
+    expect(finalRoute({ ...loop, redirectTo: "/other" }, [{ ...loop, redirectTo: "/other" }, other])).toBeUndefined();
+    expect(finalRoute({ ...loop, redirectTo: "/missing" }, [loop])).toBeUndefined();
+    expect(finalRoute(undefined, routes)).toBeUndefined();
+  });
+});
 
 describe("route resolution", () => {
   it.each([

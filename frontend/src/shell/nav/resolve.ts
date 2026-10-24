@@ -24,6 +24,17 @@ export function resolveRoute(pathname: string, routes: ShellRoute[]): ShellRoute
     .sort((a, b) => parameterCount(a.path!) - parameterCount(b.path!) || b.path!.length - a.path!.length)[0];
 }
 
+export function finalRoute(route: ShellRoute | undefined, routes: ShellRoute[]): ShellRoute | undefined {
+  const seen = new Set<string>();
+  let current = route;
+  while (current?.redirectTo) {
+    if (seen.has(current.id)) return undefined;
+    seen.add(current.id);
+    current = resolveRoute(current.redirectTo, routes);
+  }
+  return current;
+}
+
 export function modeOf(pathname: string): "main" | "portfolio" {
   const path = decodePathname(pathname).toLowerCase();
   return path === "/portfolio" || path.startsWith("/portfolio/") ? "portfolio" : "main";

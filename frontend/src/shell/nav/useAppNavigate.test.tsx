@@ -12,6 +12,26 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
+it("blocks a redirect to a placeholder", () => {
+  render(<MemoryRouter initialEntries={["/planning"]}><Harness to="/portfolio/equity" /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button"));
+  expect(screen.getByTestId("location")).toHaveTextContent("/planning");
+});
+
+it("allows a redirect after its target becomes live", () => {
+  routes = routes.map(route => route.id === "portfolio-mutual-funds" ? { ...route, status: "live" } : route);
+  render(<MemoryRouter initialEntries={["/planning"]}><Harness to="/portfolio/equity" /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button"));
+  expect(screen.getByTestId("location")).toHaveTextContent("/portfolio/equity");
+});
+
+it("blocks an invalid redirect chain without hanging", () => {
+  routes = routes.map(route => route.id === "portfolio-equity" ? { ...route, redirectTo: "/portfolio/equity" } : route);
+  render(<MemoryRouter initialEntries={["/planning"]}><Harness to="/portfolio/equity" /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button"));
+  expect(screen.getByTestId("location")).toHaveTextContent("/planning");
+});
+
 function Harness({ to, replace = false }: { to: string; replace?: boolean }) {
   const navigate = useAppNavigate();
   const location = useLocation();

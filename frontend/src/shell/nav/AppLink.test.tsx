@@ -12,6 +12,24 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
+it("disables a live redirect whose final destination is a placeholder", () => {
+  render(<MemoryRouter><AppLink to="/portfolio/equity">Equity destination</AppLink></MemoryRouter>);
+  expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  expect(screen.getByTitle("Coming soon")).toHaveAttribute("aria-disabled", "true");
+});
+
+it("enables a redirect once its final target becomes live", () => {
+  routes = routes.map(route => route.id === "portfolio-mutual-funds" ? { ...route, status: "live" } : route);
+  render(<MemoryRouter><AppLink to="/portfolio/equity">Equity destination</AppLink></MemoryRouter>);
+  expect(screen.getByRole("link")).toHaveAttribute("href", "/portfolio/equity");
+});
+
+it("disables a redirect loop without hanging", () => {
+  routes = routes.map(route => route.id === "portfolio-equity" ? { ...route, redirectTo: "/portfolio/equity" } : route);
+  render(<MemoryRouter><AppLink to="/portfolio/equity">Equity destination</AppLink></MemoryRouter>);
+  expect(screen.queryByRole("link")).not.toBeInTheDocument();
+});
+
 function Location() {
   const location = useLocation();
   return <output data-testid="location">{location.pathname}{location.search}{location.hash}</output>;
