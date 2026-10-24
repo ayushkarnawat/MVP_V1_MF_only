@@ -94,9 +94,9 @@ describe("contract v1.6 registry", () => {
       .toEqual(["portfolio-equity-direct-stocks", "portfolio-mutual-funds", "portfolio-equity-us-stocks", "portfolio-equity-fds-bonds"]);
   });
 
-  it("keeps Planning a placeholder page and Profile a non-scoped redirect", () => {
+  it("keeps Planning live and Profile a non-scoped redirect", () => {
     const routes = buildRegistry();
-    expect(routes.find(route => route.id === "planning")).toMatchObject({ path: "/planning", status: "placeholder", scope: "none" });
+    expect(routes.find(route => route.id === "planning")).toMatchObject({ path: "/planning", status: "live", scope: "none" });
     expect(routes.find(route => route.id === "planning")?.redirectTo).toBeUndefined();
     expect(routes.find(route => route.id === "profile")).toMatchObject({ redirectTo: "/profile/personal", scope: "none", status: "placeholder" });
     expect(routes.filter(route => route.id.startsWith("profile")).every(route => route.scope === "none")).toBe(true);

@@ -11,9 +11,9 @@ const route: ShellRoute = {
   parentId: "profile",
   layout: "app",
   scope: "none",
-  status: "placeholder",
+  status: "live",
   title: "Personal Information",
-  page: () => import("../layout/PlaceholderPage"),
+  page: () => import("../wrappers/ProfileWrapper"),
 };
 
 export default route;

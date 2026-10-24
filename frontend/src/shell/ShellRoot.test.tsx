@@ -8,6 +8,11 @@ import { useScope } from "./scope/ScopeContext";
 import { AppLink } from "./nav/AppLink";
 import { useAppNavigate } from "./nav/useAppNavigate";
 
+// Route/layout tests keep live screens isolated from their API effects.
+vi.mock("../features/dashboard/DashboardView", () => ({ DashboardView: () => <h1>Mutual Funds</h1> }));
+vi.mock("../features/scenarios/ScenariosScreen", () => ({ ScenariosScreen: () => <h1>Planning</h1> }));
+vi.mock("../features/import/ImportFlow", () => ({ ImportFlow: () => <div>Import screen</div> }));
+
 afterEach(() => vi.restoreAllMocks());
 function SearchProbe() { return <output data-testid="search">{useLocation().search}</output>; }
 function Location() { return <output data-testid="location">{useLocation().pathname}</output>; }

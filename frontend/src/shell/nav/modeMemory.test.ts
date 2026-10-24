@@ -38,7 +38,7 @@ it("falls back when storage is empty, unknown, or a route becomes placeholder", 
   sessionStorage.setItem(key, "/unknown");
   expect(readBack(routes)).toBe("/home");
   rememberBack("/planning", routes);
-  expect(readBack(buildRegistry())).toBe("/home");
+  expect(readBack(buildRegistry().map(route => route.id === "planning" ? { ...route, status: "placeholder" } : route))).toBe("/home");
 });
 
 it("falls back when a stored destination is now focus-layout or Portfolio", () => {

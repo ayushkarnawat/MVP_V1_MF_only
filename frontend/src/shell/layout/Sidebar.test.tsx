@@ -175,6 +175,7 @@ describe("sidebar", () => {
   });
 
   it("turns a row into a working link when its fixture route becomes live", () => {
+    routes = routes.map(route => route.id === "planning" ? { ...route, status: "placeholder" } : route);
     const view = mount();
     expect(row("Planning")).not.toHaveAttribute("href");
     routes = routes.map(route => route.id === "planning" ? { ...route, status: "live" } : route);
