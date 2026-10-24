@@ -68,4 +68,23 @@ describe("route resolution", () => {
     expect(rowOf(first, new Map())).toBeUndefined();
     expect(rowOf(first, new Map([[first.id, first], [second.id, second]]))).toBeUndefined();
   });
+
+  it("matches an encoded path the way the router does", () => {
+    const routes = buildRegistry();
+    expect(resolveRoute("/%68ome", routes)?.id).toBe(resolveRoute("/home", routes)?.id);
+    expect(resolveRoute("/%68ome", routes)).toBeDefined();
+    expect(resolveRoute("/%E0%A4%A", routes)).toBeUndefined();
+  });
+
+  it("keeps an encoded slash inside the fund id and ignores query and hash", () => {
+    const routes = buildRegistry();
+    expect(resolveRoute("/portfolio/mutual-funds/funds/a%2Fb", routes)?.id).toBe("portfolio-mutual-funds-fund");
+    expect(resolveRoute("/portfolio/mutual-funds/funds/x%2Foverlap", routes)?.id).toBe("portfolio-mutual-funds-fund");
+    expect(resolveRoute("/portfolio/mutual-funds?sort=today_change#x", routes)?.id).toBe("portfolio-mutual-funds");
+  });
+
+  it("modeOf ignores case and encoding", () => {
+    expect(modeOf("/Portfolio/debt")).toBe("portfolio");
+    expect(modeOf("/%70ortfolio/debt")).toBe("portfolio");
+  });
 });

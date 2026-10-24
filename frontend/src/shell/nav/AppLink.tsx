@@ -14,7 +14,7 @@ export function AppLink({ to, children, className, activeClassName }: AppLinkPro
   const resolved = useResolvedPath(to, { relative: "path" });
   const route = resolveRoute(resolved.pathname, buildRegistry());
   if (route?.status === "placeholder") {
-    return <span aria-disabled="true" title="Coming soon" className={[className, "shell-link-disabled"].filter(Boolean).join(" ")}>{children}</span>;
+    return <span aria-disabled="true" tabIndex={0} title="Coming soon" className={[className, "shell-link-disabled"].filter(Boolean).join(" ")}>{children}</span>;
   }
   return <NavLink to={to} relative="path" end className={({ isActive }) => [className, isActive && activeClassName].filter(Boolean).join(" ")}>{children}</NavLink>;
 }

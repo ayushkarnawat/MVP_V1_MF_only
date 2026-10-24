@@ -46,5 +46,5 @@ export const paths = {
   profileLegacy: () => "/profile/legacy",
   importHealth: () => "/profile/import-health",
   help: () => "/help",
-  import: (memberId?: string) => memberId === undefined ? "/import" : `/import?member=${encodeURIComponent(memberId)}`,
+  import: (memberId?: string) => !memberId ? "/import" : `/import?member=${encodeURIComponent(memberId)}`,
 };

@@ -5,13 +5,28 @@ function parameterCount(path: string): number {
   return path.split("/").filter(segment => segment.startsWith(":") || segment === "*").length;
 }
 
+// React Router matches on the decoded pathname, so `/%68ome` is Home there; match the same way or the
+// placeholder guards in AppLink, useAppNavigate and the scope reset rule can be bypassed by an encoded path.
+function decodePathname(pathname: string): string {
+  // Like the router: an encoded slash stays encoded (it is part of a param value, not a new segment),
+  // and one undecodable segment leaves the whole path raw. Query and hash are not part of the match.
+  const bare = pathname.split(/[?#]/)[0];
+  try {
+    return bare.split("/").map(segment => decodeURIComponent(segment).replace(/\//g, "%2F")).join("/");
+  } catch {
+    return bare;
+  }
+}
+
 export function resolveRoute(pathname: string, routes: ShellRoute[]): ShellRoute | undefined {
-  return routes.filter(route => route.path && route.path !== "*" && matchPath({ path: route.path, end: true }, pathname))
+  const decoded = decodePathname(pathname);
+  return routes.filter(route => route.path && route.path !== "*" && matchPath({ path: route.path, end: true }, decoded))
     .sort((a, b) => parameterCount(a.path!) - parameterCount(b.path!) || b.path!.length - a.path!.length)[0];
 }
 
 export function modeOf(pathname: string): "main" | "portfolio" {
-  return pathname === "/portfolio" || pathname.startsWith("/portfolio/") ? "portfolio" : "main";
+  const path = decodePathname(pathname).toLowerCase();
+  return path === "/portfolio" || path.startsWith("/portfolio/") ? "portfolio" : "main";
 }
 
 export function rowOf(route: ShellRoute | undefined, byId: Map<string, ShellRoute>): ShellRoute | undefined {
