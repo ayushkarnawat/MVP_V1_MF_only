@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mutual Funds page — skeleton wireframe (Overview + 6 sub-pages), v2 resolved</title>
+<style>
+  :root {
+    --bg:#F5F5F5; --card:#FFFFFF; --divider:#E5E5E5; --input-border:#DFDFDF;
+    --ink:#111111; --secondary-text:#717171; --brand:#22C55E; --brand-hover:#16A34A;
+    --pos:#22C55E; --pos-text:#15803D; --pos-bg:#EAFBF0; --neg:#E5484D;
+    --c1:#22C55E; --c2:#0D9488; --c3:#2563EB; --c4:#6366F1; --c5:#8B5CF6; --c6:#D97706; --c7:#EC4899;
+  }
+  body { font-family:'DM Sans',-apple-system,'Segoe UI',Arial,sans-serif; background:var(--bg); color:var(--ink); margin:0; padding:24px; }
+  h1, h2 { font-family:'Manrope',-apple-system,'Segoe UI',Arial,sans-serif; }
+  h1 { font-size:20px; margin:0 0 4px; font-weight:700; }
+  .subtitle { color:var(--secondary-text); font-size:13px; margin:0 0 22px; max-width:900px; }
+  .page-anchor { font-size:11px; color:var(--secondary-text); margin:40px 0 6px; text-transform:uppercase; letter-spacing:.04em; }
+  .frame { background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.06); padding:14px; max-width:1180px; margin-bottom:10px; }
+  .outer-nav { border:2px dashed #aaa; border-radius:8px; padding:8px 14px; margin-bottom:12px; color:#888; font-size:12px; }
+  .layout { display:flex; gap:14px; align-items:flex-start; }
+  .sidebar { width:170px; flex-shrink:0; border:2px dashed #aaa; border-radius:8px; padding:10px; color:#555; font-size:12px; }
+  .sidebar .title { font-weight:700; margin-bottom:8px; color:#333; }
+  .sidebar .item { padding:4px 0; }
+  .sidebar .active { font-weight:700; color:var(--brand-hover); border-bottom:2px solid var(--brand); display:inline-block; }
+  .tabcol { width:190px; flex-shrink:0; border:1px solid var(--divider); border-radius:8px; padding:8px; background:var(--bg); }
+  .tabcol .t { padding:8px 10px; border-radius:6px; font-size:12.5px; margin-bottom:2px; cursor:pointer; }
+  .tabcol .t.active { background:#fff; font-weight:700; box-shadow:0 1px 2px rgba(0,0,0,.08); border-left:3px solid var(--brand); }
+  .main { flex:1; display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+  .page-header h2 { font-size:18px; margin:2px 0 2px; font-weight:700; }
+  .page-header .sub { font-size:12px; color:var(--secondary-text); }
+  .btn { font-family:'Manrope',sans-serif; font-weight:600; font-size:11px; padding:6px 12px; border-radius:6px; border:1px solid var(--input-border); background:var(--bg); color:var(--ink); white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
+  .btn.primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+  .strike { text-decoration:line-through; opacity:.4; }
+  .section { background:var(--bg); border:1px solid var(--divider); border-radius:10px; padding:13px; position:relative; }
+  .section.sub { background:#fff; border:1px dashed var(--divider); margin-top:8px; }
+  .badge { position:absolute; top:-10px; left:10px; background:#2563EB; color:#fff; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; }
+  .done { position:absolute; top:-10px; right:10px; background:var(--pos); color:#fff; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; }
+  .qmark { position:absolute; top:-10px; right:10px; background:#D97706; color:#fff; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; }
+  .label { font-size:11.5px; color:var(--secondary-text); margin-bottom:6px; line-height:1.5; }
+  .row-mock { display:flex; align-items:center; gap:10px; font-size:11.5px; padding:6px 8px; border-radius:6px; background:#fff; margin-bottom:4px; }
+  .logo-chip { width:20px; height:20px; border-radius:5px; background:#ddd; flex-shrink:0; }
+  .colhead { display:flex; gap:10px; font-size:10px; color:var(--secondary-text); padding:0 8px 4px; font-weight:700; }
+  .metrics { display:flex; gap:22px; font-size:12px; flex-wrap:wrap; }
+  .metrics b { font-size:15px; display:block; margin:2px 0; font-family:'Manrope',sans-serif; }
+  .pie-wrap { display:flex; gap:22px; align-items:center; flex-wrap:wrap; }
+  .pie-small { width:110px; height:110px; border-radius:50%; background:conic-gradient(var(--c1) 0 40%, var(--c2) 40% 62%, var(--c3) 62% 78%, var(--c4) 78% 90%, var(--c5) 90% 100%); flex-shrink:0; }
+  .pie-small.sm { width:84px; height:84px; }
+  .legend-list .l-row { display:flex; align-items:center; gap:7px; font-size:11.5px; margin-bottom:4px; }
+  .legend-list .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .placeholder-box { border:1.5px dashed #bbb; border-radius:8px; padding:18px; text-align:center; color:#999; font-size:12px; background:#fafafa; }
+  .mock-chart { height:90px; border-radius:8px; background:repeating-linear-gradient(45deg,#eee,#eee 8px,#f5f5f5 8px,#f5f5f5 16px); display:flex; align-items:center; justify-content:center; color:#aaa; font-size:11px; }
+  .locked { background:var(--pos-bg); border:1px solid var(--pos); border-radius:8px; padding:10px 14px; font-size:13px; color:var(--pos-text); margin:14px 0; max-width:900px; }
+  .open { background:#FEF3E2; border:1px solid #D97706; border-radius:8px; padding:10px 14px; font-size:12.5px; color:#B45309; margin:0 0 20px; max-width:900px; }
+  .heat-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; max-width:400px; }
+  .heat-cell { aspect-ratio:1; border-radius:3px; font-size:9px; display:flex; align-items:center; justify-content:center; color:#fff; }
+  .tile-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .tile { background:#fff; border:1px solid var(--divider); border-radius:8px; padding:8px 10px; font-size:11px; }
+  .tile b { display:block; font-size:14px; font-family:'Manrope',sans-serif; margin-top:2px; }
+  .modal-mock { border:2px dashed #999; border-radius:10px; padding:12px; background:#fdfdfd; margin-top:8px; }
+  .chip-row { display:flex; gap:6px; margin-bottom:8px; }
+  .chip { font-size:10px; padding:3px 8px; border-radius:12px; background:var(--bg); border:1px solid var(--divider); }
+  .group-head { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--secondary-text); margin:10px 0 4px; }
+  .fade { opacity:.5; }
+</style>
+</head>
+<body>
+
+<h1>Mutual Funds page — skeleton wireframe, v2 (resolved)</h1>
+<p class="subtitle">Updated after all 12 questions in <code>2026-10-23-mutual-funds-page-decisions.html</code> were
+answered, plus a same-day follow-up revision (benchmark indices finalized, Overlap redesigned to drop the
+portfolio-level compare feature). Green "✓" badges mark content that's now locked/resolved.</p>
+
+<div class="open">⚠ Two items remain open, neither a "pick from a menu" decision: (1) the nav-shell route
+conflict flagged at the Overlap section below, needing the nav-shell owner's input; (2) the owner's standing
+offer of section-by-section reference screenshots for the remaining pages, given stated dissatisfaction with
+overall layout fidelity — not yet taken up.</div>
+
+<div class="page-anchor">Overview — /portfolio/mutual-funds</div>
+<div class="frame">
+  <div class="outer-nav">Existing top header + standard left nav — out of scope, built in the nav-shell session</div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="title">Portfolio panel</div>
+      <div class="item">Equity ▾</div>
+      <div class="item" style="padding-left:14px;"><span class="active">Mutual Fund</span></div>
+      <div class="item" style="padding-left:14px;">Direct Stocks</div>
+      <div class="item" style="padding-left:14px;">US Stock</div>
+    </div>
+    <div class="main">
+      <div class="page-header">
+        <div><h2>All Investments</h2><div class="sub">Mutual fund holdings across your family.</div></div>
+        <div><span class="btn primary">+ Add Investment</span> <span class="btn strike">Sync Investments</span></div>
+      </div>
+
+      <div class="section">
+        <div class="badge">1</div><div class="done">✓ Q1</div>
+        <div class="label">Summary strip — Total Value (+ sparkline), Total Invested, Unrealised Gain, Realised
+        Gain, XIRR (Lifetime/Current toggle + disclaimer, reused verbatim from Dashboard). No "vs date" comparison
+        line. Synopsis: one auto-generated sentence (Quick-Insights pattern), zero new backend work.</div>
+        <div class="metrics">
+          <div>Total Value<b>₹66,98,600</b></div>
+          <div>Total Invested<b>₹51,00,000</b></div>
+          <div>Unrealised Gain<b style="color:var(--pos-text)">+₹15,98,600</b></div>
+          <div>Realised Gain<b>₹2,10,000</b></div>
+          <div>XIRR <span class="btn" style="font-size:9px;padding:2px 6px;">Lifetime</span><b>16.1%</b></div>
+        </div>
+        <div class="placeholder-box" style="margin-top:8px;">"Spread across 6 AMCs and 24 funds, 72% Direct."</div>
+      </div>
+
+      <div class="section">
+        <div class="badge">2</div>
+        <div class="label">In-page tab menu, vertical. Built with shell's &lt;PageLayout tabs /&gt;. No search bar.
+        Temporary History route retired — folded into Performance.</div>
+        <div class="tabcol">
+          <div class="t active">Overview</div>
+          <div class="t">Performance</div>
+          <div class="t">Allocation</div>
+          <div class="t">Holdings</div>
+          <div class="t">Transactions</div>
+          <div class="t">Overlap</div>
+          <div class="t">Other Analytics</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="badge">3</div><div class="done">✓ Q3/Q4</div>
+        <div class="label">Holdings table — new, not a reskin. Filter/Sort controls live here. Category column
+        added (new <code>sebi_category</code> field); Direct/Regular only this round (Growth/IDCW deferred).</div>
+        <div style="font-size:12px;font-weight:700;margin-bottom:6px;">Mutual Funds (24) &nbsp; <span class="btn" style="font-size:10px;">▽ Filter</span> <span class="btn" style="font-size:10px;">⇅ Sort</span></div>
+        <div class="colhead"><span style="width:200px;">Fund</span><span style="width:90px;">Plan</span><span style="width:100px;">Category</span><span style="width:90px;">Invested</span><span style="width:90px;">Value</span><span style="width:90px;">Gain/Loss</span><span>XIRR</span></div>
+        <div class="row-mock"><span class="logo-chip"></span><span style="width:180px;">Kotak Multi Cap Fund — Direct Growth</span><span style="width:90px;">Direct</span><span style="width:100px;">Flexi Cap Fund</span><span style="width:90px;">₹12,00,000</span><span style="width:90px;">₹15,40,000</span><span style="width:90px;color:var(--pos-text)">+₹3,40,000</span><span>14.2%</span></div>
+        <div class="row-mock"><span class="logo-chip"></span><span style="width:180px;">JM Flexi Cap Fund — Direct Growth</span><span style="width:90px;">Direct</span><span style="width:100px;">Flexi Cap Fund</span><span style="width:90px;">₹8,00,000</span><span style="width:90px;">₹9,80,000</span><span style="width:90px;color:var(--pos-text)">+₹1,80,000</span><span>12.9%</span></div>
+        <div class="label" style="margin-top:6px;">Logo via existing <code>SchemeLogo</code> — reuse, not rebuild.
+        Row click → <code>FundDetailModal</code> (interim, Q12 — repoint once the real per-fund page ships, being
+        built in parallel).</div>
+      </div>
+
+      <div class="section">
+        <div class="badge">4</div>
+        <div class="label">AMC allocation donut (reuses existing <code>AllocationSummary.by_amc</code> +
+        <code>AllocationDrilldownModal</code>) + family-member breakdown + Quick Insights.</div>
+        <div class="pie-wrap">
+          <div class="pie-small"></div>
+          <div class="legend-list">
+            <div class="l-row"><span class="dot" style="background:var(--c1)"></span>HDFC MF — 40%</div>
+            <div class="l-row"><span class="dot" style="background:var(--c2)"></span>Kotak MF — 22%</div>
+            <div class="l-row"><span class="dot" style="background:var(--c3)"></span>Parag Parikh — 16%</div>
+            <div class="l-row"><span class="dot" style="background:var(--c4)"></span>JM Financial — 12%</div>
+            <div class="l-row"><span class="dot" style="background:var(--c5)"></span>Others — 10%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="locked">Overview Sections 1-4 structurally locked. Section 3's Category/plan-type columns resolved.</div>
+
+<div class="page-anchor">Performance — /portfolio/mutual-funds/performance</div>
+<div class="frame"><div class="layout">
+  <div class="tabcol"><div class="t">Overview</div><div class="t active">Performance</div><div class="t">Allocation</div><div class="t">Holdings</div><div class="t">Transactions</div><div class="t">Overlap</div><div class="t">Other Analytics</div></div>
+  <div class="main">
+    <div class="section"><div class="label">Detailed XIRR — Lifetime/Current toggle (reused) + per-fund XIRR table.</div><div class="mock-chart">XIRR detail block</div></div>
+    <div class="section"><div class="label">Absolute return (already computed: <code>investment_withdrawal.absolute_gain</code>).</div><div class="metrics"><div>Absolute Return<b>+31.4%</b></div></div></div>
+
+    <div class="section"><div class="done">✓ Q2/Q11</div>
+      <div class="label"><strong>Portfolio value history — the entire HistoryView experience folded in verbatim,
+      full detail preserved.</strong> Temporary History route retired once this ships.</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:12px;font-weight:700;">Family · monthly value at each month-end</span>
+        <div style="display:flex;gap:4px;"><span class="btn" style="font-size:10px;">1Y</span><span class="btn" style="font-size:10px;">3Y</span><span class="btn" style="font-size:10px;">5Y</span><span class="btn primary" style="font-size:10px;">All</span></div>
+      </div>
+      <div class="mock-chart">month-end value line + cost-of-holdings shaded area, hollow dot = no price that month</div>
+      <div class="modal-mock">
+        <div style="font-size:11px;font-weight:700;margin-bottom:6px;">Click a month → August 2019 (modal, unchanged)</div>
+        <div class="chip-row"><span class="chip">All</span><span class="chip">Anand</span><span class="chip">Ayush</span></div>
+        <div class="tile-grid">
+          <div class="tile">Portfolio value<b>₹14,08,836</b></div>
+          <div class="tile">Change this month<b>₹43,930</b></div>
+          <div class="tile">New money<b>₹1,15,427</b></div>
+          <div class="tile">Market movement<b>-₹71,497</b></div>
+        </div>
+        <div class="colhead" style="margin-top:8px;"><span style="width:200px;">Fund</span><span style="width:90px;">Units</span><span style="width:90px;">NAV (date)</span><span style="width:80px;">Value</span><span>Cost</span></div>
+        <div class="row-mock"><span style="width:200px;">SBI Flexicap Fund — Direct Growth</span><span style="width:90px;">13,427.9</span><span style="width:90px;">₹49.99</span><span style="width:80px;">₹6,71,378</span><span>₹5,84,820</span></div>
+      </div>
+    </div>
+
+    <div class="section"><div class="done">✓ Q5 (indices finalized 2026-10-23)</div>
+      <div class="label">Benchmark comparison — precompute every (benchmark × time-window) combination (Option B),
+      prioritizing read speed. Windows: 1Y/3Y/5Y/Since inception, windowed XIRR (new math). 8 indices total: today's
+      4 (Nifty 50/500/LargeMidcap 250/Midcap 150) + 4 new (Nifty Next 50, Smallcap 250, Nifty 100, Nifty 200), all
+      NSE-sourced, zero new integration.</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;"><span class="btn">Benchmark: Nifty 500 ▾</span><span class="btn">Window: 3Y ▾</span></div>
+      <div class="mock-chart">benchmark bar chart — dropdown selects a key already in the fetched payload</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="page-anchor">Allocation — /portfolio/mutual-funds/allocation</div>
+<div class="frame"><div class="layout">
+  <div class="tabcol"><div class="t">Overview</div><div class="t">Performance</div><div class="t active">Allocation</div><div class="t">Holdings</div><div class="t">Transactions</div><div class="t">Overlap</div><div class="t">Other Analytics</div></div>
+  <div class="main">
+    <div class="label" style="margin-bottom:0;">Five breakdowns, all already computed server-side.</div>
+    <div class="section"><div class="label">By AMC</div><div class="mock-chart">donut</div></div>
+    <div class="section"><div class="done">✓ Q6</div><div class="label">By Market Cap (Large/Mid/Small/Other) — own
+    first-class section now, carries over every bucket/percentage/drill-down exactly as analytics shows today.</div><div class="mock-chart">donut + bucket rows</div></div>
+    <div class="section"><div class="label">By Fund Manager</div><div class="placeholder-box">manager table</div></div>
+    <div class="section"><div class="label">By Category (SEBI)</div><div class="mock-chart">donut</div></div>
+    <div class="section"><div class="label">By Asset Class (Equity/Debt/Gold/Cash-like, + arbitrage-as-cash toggle, reused)</div><div class="mock-chart">donut</div></div>
+  </div>
+</div></div>
+
+<div class="page-anchor">Holdings — /portfolio/mutual-funds/holdings (stock look-through)</div>
+<div class="frame"><div class="layout">
+  <div class="tabcol"><div class="t">Overview</div><div class="t">Performance</div><div class="t">Allocation</div><div class="t active">Holdings</div><div class="t">Transactions</div><div class="t">Overlap</div><div class="t">Other Analytics</div></div>
+  <div class="main">
+    <div class="section"><div class="label">Top 10 stock holdings per fund (client-side re-sort of already-returned <code>contributing_funds</code> data).</div><div class="placeholder-box">per-fund top-10 list, fund picker</div></div>
+    <div class="section"><div class="label">All stock holdings across the portfolio — exact match to <code>stock_holdings.rows[]</code>.</div>
+      <div class="colhead"><span style="width:220px;">Stock</span><span style="width:100px;">Exposure %</span><span>Funds holding it</span></div>
+      <div class="row-mock"><span style="width:200px;">HDFC Bank Ltd</span><span style="width:100px;">4.2%</span><span>3 funds</span></div>
+      <div class="row-mock"><span style="width:200px;">Reliance Industries</span><span style="width:100px;">3.8%</span><span>5 funds</span></div>
+    </div>
+  </div>
+</div></div>
+
+<div class="page-anchor">Transactions — /portfolio/mutual-funds/transactions</div>
+<div class="frame"><div class="layout">
+  <div class="tabcol"><div class="t">Overview</div><div class="t">Performance</div><div class="t">Allocation</div><div class="t">Holdings</div><div class="t active">Transactions</div><div class="t">Overlap</div><div class="t">Other Analytics</div></div>
+  <div class="main">
+    <div class="section"><div class="done">✓ Q11</div>
+      <div class="label">Cash-flow ledger (<code>InvestmentWithdrawalSection</code> content, data unchanged) —
+      <strong>flagged by the owner as needing a genuine visual redesign</strong>, not a straight port; see hi-fi
+      mockup for the creative pass.</div>
+      <div class="metrics"><div>Invested<b>₹51,00,000</b></div><div>Withdrawn<b>₹3,20,000</b></div><div>Net Invested<b>₹47,80,000</b></div><div>Current Value<b>₹66,98,600</b></div></div>
+      <div class="mock-chart">monthly bar chart, click a bar → drill-down table</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="page-anchor">Overlap — /portfolio/mutual-funds/overlap</div>
+<div class="frame"><div class="layout">
+  <div class="tabcol"><div class="t">Overview</div><div class="t">Performance</div><div class="t">Allocation</div><div class="t">Holdings</div><div class="t">Transactions</div><div class="t active">Overlap</div><div class="t">Other Analytics</div></div>
+  <div class="main">
+    <div class="section"><div class="done">✓ Q10 (revised 2026-10-23)</div>
+      <div class="label"><strong>Portfolio level only — no compare feature, no fund picker, no /overlap/compare
+      route.</strong> Four sections + a top stat strip, all already computed from the existing <code>overlap</code>
+      section and <code>stock_holdings.rows[].contributing_funds</code>.</div>
+      <div class="tile-grid">
+        <div class="tile">Funds analysed<b>12</b></div>
+        <div class="tile">Fund pairs with overlap<b>7</b></div>
+        <div class="tile">Highest overlap<b>78%</b></div>
+        <div class="tile">Overlap risk<b style="color:var(--neg)">Moderate</b></div>
+      </div>
+      <div class="label" style="margin-top:4px;">"Funds analysed" exclusion count (if any funds lack holdings data) —
+      <span class="qmark" style="position:static;display:inline-block;">needs backend check</span></div>
+
+      <div class="group-head">1 — Common Holdings</div>
+      <div class="row-mock"><span style="width:200px;">HDFC Bank Ltd</span><span>held by 4 of your funds</span></div>
+      <div class="row-mock"><span style="width:200px;">ICICI Bank Ltd</span><span>held by 3 of your funds</span></div>
+      <div class="label">Top 10 by default, "View all →" expands the full list.</div>
+
+      <div class="group-head">2 — Overlap Heatmap</div>
+      <div class="heat-grid">
+        <div class="heat-cell" style="background:var(--neg)">78%</div><div class="heat-cell" style="background:#f0a">52%</div><div class="heat-cell" style="background:var(--c6)">34%</div><div class="heat-cell" style="background:var(--pos)">12%</div><div class="heat-cell" style="background:var(--pos)">8%</div><div class="heat-cell" style="background:#eee;color:#999">—</div>
+      </div>
+      <div class="label">Fund × fund grid, color-banded by overlap %. From <code>overlap.matrix</code>.</div>
+
+      <div class="group-head">3 — Top Overlapping Fund Pairs</div>
+      <div class="row-mock">Kotak Multi Cap ↔ JM Flexi Cap <span style="margin-left:auto;font-weight:700;">78% overlap</span></div>
+      <div class="row-mock">HDFC Mid-Cap ↔ Parag Parikh Flexi Cap <span style="margin-left:auto;font-weight:700;">52% overlap</span></div>
+      <div class="placeholder-box" style="margin-top:6px;">Key Insights callout — "Kotak Multi Cap and JM Flexi Cap
+      share 78% of holdings; consider consolidating." Auto-generated sentences, new logic (same pattern as Q1's
+      synopsis), zero new data.</div>
+
+      <div class="group-head">4 — Overlap Impact on Your Portfolio</div>
+      <div class="mock-chart">3-way donut: ₹/% in top-3 overlapping pairs / other overlapping pairs / unique holdings</div>
+      <div class="label">Supersedes the earlier 2-way common/unique split. From <code>overlap.concentration</code>/<code>bands</code>.</div>
+    </div>
+  </div>
+</div></div>
+<div class="open">⚠ Nav-shell contract conflict: the locked route table still reserves
+<code>portfolio-mutual-funds-overlap-compare</code> for a two-fund compare page, but that feature is removed from
+the portfolio level entirely per this revision. Needs a v1.2→v1.3 contract change with the nav-shell owner — not
+resolved here. See design.md §0/§7.5.</div>
+<div class="locked">Overlap (portfolio level) resolved to the 4-section + stat-strip structure above. Fund-level
+overlap tab + fund-vs-fund comparison screen are documented as context only in design.md §7.5.1 — they belong to
+the separate, future per-fund page and are explicitly out of scope for this round, so no mockup frame for them
+appears here.</div>
+
+<div class="page-anchor">Other Analytics — /portfolio/mutual-funds/analytics</div>
+<div class="frame"><div class="layout">
+  <div class="tabcol"><div class="t">Overview</div><div class="t">Performance</div><div class="t">Allocation</div><div class="t">Holdings</div><div class="t">Transactions</div><div class="t">Overlap</div><div class="t active">Other Analytics</div></div>
+  <div class="main">
+    <div class="section"><div class="done">✓ Q7</div>
+      <div class="label">Not a flat list — three distinct, clearly-separated groups.</div>
+      <div class="group-head">Group 1 — Cost &amp; Valuation</div>
+      <div style="display:flex;gap:10px;"><div class="section sub" style="flex:1;"><div class="label">Valuation (P/E, P/B vs indices)</div><div class="mock-chart">chart</div></div><div class="section sub" style="flex:1;"><div class="label">TER &amp; Cost Analysis (Direct vs Regular)</div><div class="mock-chart">table</div></div></div>
+      <div class="group-head">Group 2 — Fund Quality Scorer</div>
+      <div class="section sub"><div class="label">Score cards per fund, interim <code>FundScoreDetailModal</code> (migrates to future per-fund page's /insights)</div><div class="placeholder-box">score ring cards</div></div>
+      <div class="group-head">Group 3 — SEBI Category Ranking &amp; Peer Comparison <span style="color:#2563EB;font-weight:700;">its own distinct section</span></div>
+      <div class="section sub"><div class="placeholder-box">category ranking table + period returns — visually separated from groups 1-2, not folded into Allocation</div></div>
+      <div class="label fade" style="margin-top:10px;">Fund Ranking removed from this page — moved to the future per-fund page (deferred).
+      Download PDF button removed from UI (code kept, dormant) — see Q9.</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="locked" style="margin-top:30px;">All 12 decisions plus the same-day Overlap/benchmark revision are
+resolved into this skeleton. Two items remain open (nav-shell route conflict; owner's screenshot offer for
+remaining pages) — see the amber notes above, neither blocks reading this skeleton. Next: hi-fi mockup gets the
+matching update, then <code>superpowers:writing-plans</code> once the owner confirms fidelity.</div>
+
+</body>
+</html>

@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mutual Funds — Overview page, high-fidelity mockup, all states (v1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------------------------------------------------------------------
+     Same token system as 2026-10-23-portfolio-home-page-hifi-states.html
+     (DM Sans/Manrope, brand green #22C55E, data-viz palette) so the two
+     pages read as one product — per design.md's "Sibling precedent" note.
+     Tokens read from Docs/Unifolio Colour Palette.pdf, not tokens.css.
+  --------------------------------------------------------------------- */
+  :root {
+    --bg:#F5F5F5; --surface:#FFFFFF; --border:#ECECEC; --border-soft:#ECECEC; --border-input:#DFDFDF;
+    --ink:#111111; --secondary:#717171; --body:#4B4B4B; --muted:#9B9B9B; --text-disabled:#C4C4C4;
+    --accent:#22C55E; --accent-hover:#16A34A; --accent-pressed:#15803D; --accent-selected-bg:#E9F9EF;
+    --pos:#22C55E; --pos-text:#15803D; --pos-bg:#EAFBF0;
+    --neg:#E5484D; --neg-text:#C1272D; --neg-bg:#FDECEC;
+    --warn:#D97706; --warn-text:#92400E; --warn-bg:#FEF3E2;
+    --teal:#0D9488;
+    --c1:#22C55E; --c2:#0D9488; --c3:#2563EB; --c4:#6366F1; --c5:#8B5CF6; --c6:#D97706; --c7:#EC4899; --c8:#C1272D;
+    --font-display:'DM Sans',-apple-system,'Segoe UI',Arial,sans-serif;
+    --font-body:'Manrope',-apple-system,'Segoe UI',Arial,sans-serif;
+    --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:20px; --radius-pill:9999px;
+    --shadow-sm:0 1px 2px rgba(17,17,17,.05), 0 1px 1px rgba(17,17,17,.03);
+    --shadow-md:0 8px 24px rgba(17,17,17,.08), 0 2px 6px rgba(17,17,17,.04);
+    --shadow-lg:0 20px 48px rgba(17,17,17,.12), 0 4px 10px rgba(17,17,17,.05);
+    --fast:150ms cubic-bezier(.4,0,.2,1);
+    --pop:260ms cubic-bezier(.34,1.56,.64,1);
+    --hover-tint:#F2FBF5; /* shared light-green hover wash — every genuinely clickable row/control uses this one tint, so hover reads as one consistent "this is actionable" language across the page */
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; }
+  body { font-family:var(--font-body); background:#fff; color:var(--ink); padding:28px 28px 90px; -webkit-font-smoothing:antialiased; }
+  h1 { font-family:var(--font-display); font-size:19px; font-weight:700; margin:0 0 4px; }
+  .doc-subtitle { color:var(--secondary); font-size:13px; margin:0 0 16px; max-width:1040px; line-height:1.55; }
+  .icon { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; display:block; }
+  .icon-sm { width:13px; height:13px; }
+  .icon-xs { width:11px; height:11px; }
+  .icon-lg { width:20px; height:20px; }
+  code { background:#F3F3F3; padding:1px 6px; border-radius:4px; font-size:11.5px; }
+
+  /* ---------------- tool chrome: state control bar ---------------- */
+  .controls { position:sticky; top:0; z-index:50; background:#fff; border:1px solid #ddd; border-radius:12px; padding:12px 16px; margin-bottom:20px; box-shadow:0 2px 14px rgba(0,0,0,.1); max-width:1640px; }
+  .ctl-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .ctl-row:last-child { margin-bottom:0; }
+  .ctl-label { font-family:var(--font-display); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--secondary); width:140px; flex-shrink:0; }
+  .ctl-btn { font-family:var(--font-display); font-weight:600; font-size:11px; padding:5px 11px; border-radius:7px; border:1px solid var(--border); background:#fafafa; color:#444; cursor:pointer; transition:all var(--fast); }
+  .ctl-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+  .ctl-btn.active { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .ctl-sub { opacity:.35; pointer-events:none; }
+  .ctl-sub.enabled { opacity:1; pointer-events:auto; }
+
+  /* ---------------- frame / chrome ---------------- */
+  /* Round 4 (2026-10-24): widened from 1320px to 1640px — a laptop browser
+     window (not this doc's narrower artifact-viewer width) per the owner's
+     ask, so the table gets real room without touching the side-card's width. */
+  .frame { background:var(--bg); border-radius:18px; padding:16px; max-width:1640px; }
+  .chrome-note { font-size:11px; color:var(--muted); margin:8px 2px 18px; max-width:1640px; }
+  .topbar { display:flex; align-items:center; gap:16px; padding:6px 10px 18px; }
+  .logo { font-family:var(--font-display); font-weight:800; font-size:17px; letter-spacing:-.01em; flex-shrink:0; }
+  .search-pill { flex:1; max-width:380px; display:flex; align-items:center; gap:8px; background:#F2F2F3; border-radius:var(--radius-pill); padding:9px 16px; color:var(--muted); font-size:13px; }
+  .top-actions { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .pill-ghost { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-weight:600; font-size:12.5px; padding:8px 14px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; color:var(--ink); white-space:nowrap; cursor:pointer; transition:all var(--fast); }
+  .pill-ghost:hover { border-color:#d5d5d5; box-shadow:var(--shadow-sm); transform:translateY(-1px); }
+  .pill-ghost.accent-outline:hover { background:var(--hover-tint); border-color:var(--accent); }
+  .pill-ghost.accent-outline { border-color:var(--accent); color:var(--accent-hover); }
+  .icon-btn { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--secondary); cursor:pointer; transition:background var(--fast); flex-shrink:0; }
+  .icon-btn:hover { background:#F2F2F3; }
+  .avatar-top { width:34px; height:34px; border-radius:50%; background:var(--ink); color:#fff; font-family:var(--font-display); font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+  .layout { display:flex; gap:18px; align-items:flex-start; }
+  .sidebar { width:186px; flex-shrink:0; background:transparent; padding:4px 0; }
+  .side-item { display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:10px; color:var(--secondary); font-size:13.5px; font-weight:500; margin-bottom:2px; cursor:pointer; transition:background var(--fast), color var(--fast); }
+  .side-item:hover { background:#F4F4F4; color:var(--ink); }
+  .side-item.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+  .side-item .icon { color:inherit; }
+  .side-divider { height:1px; background:var(--border-soft); margin:12px 10px; }
+
+  .main { flex:1; display:flex; flex-direction:column; gap:18px; min-width:0; position:relative; }
+
+  /* ---------------- page header ---------------- */
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; padding:2px 2px 0; }
+  .crumb { font-size:11.5px; color:var(--muted); font-weight:500; }
+  .page-header h2 { font-family:var(--font-display); font-size:26px; font-weight:800; letter-spacing:-.015em; margin:4px 0 4px; }
+  .page-sub { font-size:13px; color:var(--secondary); }
+  .header-actions { display:flex; gap:10px; flex-shrink:0; }
+  .btn-primary { display:inline-flex; align-items:center; gap:7px; font-family:var(--font-display); font-weight:700; font-size:13px; padding:10px 18px; border-radius:var(--radius-pill); background:var(--accent); color:#fff; border:1px solid var(--accent); cursor:pointer; box-shadow:0 1px 2px rgba(34,197,94,.25); transition:all var(--fast); }
+  .btn-primary:hover { background:var(--accent-hover); border-color:var(--accent-hover); transform:translateY(-1px); box-shadow:0 6px 16px rgba(34,197,94,.3); }
+
+  /* ---------------- cards ---------------- */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:20px 22px; opacity:0; transform:translateY(10px); animation:settle 240ms cubic-bezier(.16,1,.3,1) forwards; }
+  @keyframes settle { to { opacity:1; transform:translateY(0); } }
+  .card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px; }
+  .card-title { display:flex; align-items:center; gap:7px; font-family:var(--font-display); font-weight:700; font-size:15.5px; color:var(--ink); }
+  .card-desc { font-size:12px; color:var(--muted); margin-bottom:16px; max-width:760px; line-height:1.55; }
+  .link-arrow { display:inline-flex; align-items:center; gap:4px; font-family:var(--font-display); font-weight:700; font-size:12px; color:var(--accent-hover); cursor:pointer; }
+  .link-arrow:hover { text-decoration:underline; }
+
+  .info-dot { width:14px; height:14px; border-radius:50%; background:#EEE; color:var(--secondary); font-size:9px; font-style:italic; font-family:Georgia,serif; font-weight:700; display:inline-flex; align-items:center; justify-content:center; cursor:help; position:relative; flex-shrink:0; }
+  .info-dot .tip { position:absolute; bottom:calc(100% + 7px); left:50%; transform:translateX(-50%) translateY(3px); background:#1a1a1a; color:#fff; font-size:10.5px; font-weight:500; font-style:normal; font-family:var(--font-body); line-height:1.4; padding:8px 11px; border-radius:8px; width:208px; text-align:left; opacity:0; pointer-events:none; transition:opacity 100ms ease, transform 100ms ease; z-index:12; }
+  .info-dot:hover .tip { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ---------------- Section 1: ONE unified card, five metric segments ---------------- */
+  .strip { display:flex; align-items:stretch; }
+  .strip.card { padding:18px 24px; }
+  .metric { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; position:relative; padding:0 22px; }
+  .metric:first-child { flex:1.3; padding-left:0; }
+  .metric:not(:first-child) { border-left:1px solid var(--border-soft); }
+  .m-label { display:flex; align-items:center; gap:5px; color:var(--secondary); font-size:12px; font-weight:600; margin-bottom:9px; }
+  .m-value { font-family:var(--font-display); font-size:23px; font-weight:800; letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
+  .m-value.pos { color:var(--pos-text); }
+  .value-sparkline-row { display:flex; align-items:center; gap:10px; min-width:0; }
+  .value-sparkline-row .m-value { min-width:0; flex-shrink:1; font-size:20px; }
+  .spark { width:64px; height:24px; flex-shrink:0; }
+  .m-delta { font-size:11.5px; font-weight:700; margin-top:5px; font-variant-numeric:tabular-nums; }
+  .m-delta.pos { color:var(--pos-text); }
+  .m-delta-neutral { font-size:11px; color:var(--muted); margin-top:5px; }
+
+  .seg-toggle { display:inline-flex; background:#F0F0F1; border-radius:var(--radius-pill); padding:2px; margin-bottom:8px; width:fit-content; }
+  .seg-btn { font-family:var(--font-display); font-weight:700; font-size:9.5px; padding:4px 10px; border-radius:var(--radius-pill); color:var(--muted); cursor:pointer; transition:all var(--fast); }
+  .seg-btn.active { background:#fff; color:var(--ink); box-shadow:var(--shadow-sm); }
+  .seg-btn:hover:not(.active) { color:var(--ink); }
+  .xirr-note { font-size:11px; color:var(--muted); text-decoration:underline; text-underline-offset:2px; cursor:pointer; margin-top:4px; }
+  .xirr-note:hover { color:var(--accent-hover); }
+
+  .chip-warn { display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:var(--radius-pill); background:var(--warn-bg); color:var(--warn-text); margin-top:8px; width:fit-content; position:relative; }
+  .inline-err { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:7px; }
+  .retry-link { color:var(--accent-hover); font-weight:700; cursor:pointer; text-decoration:underline; }
+
+  /* ---------------- synopsis banner ---------------- */
+  .synopsis { display:flex; align-items:center; gap:12px; background:linear-gradient(120deg, var(--accent-selected-bg) 0%, #F2FBFF 100%); border:1px solid #BFEBD0; border-radius:var(--radius-md); padding:13px 18px; }
+  .synopsis .glyph-ring { width:28px; height:28px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; color:var(--accent-hover); flex-shrink:0; box-shadow:0 1px 3px rgba(21,128,61,.18); }
+  .synopsis p { margin:0; font-size:13px; color:var(--ink); line-height:1.5; }
+  .synopsis b { color:var(--accent-pressed); }
+
+  /* ---------------- Section 2: in-page tabs — horizontal pill row, same
+     visual pattern as the "All Investments" page's asset-class switcher
+     one level up, relabelled to this page's own seven sub-pages, per the
+     owner's reference screenshot (overrides design.md §2's vertical-column
+     text — see the annotation note below the mockup). Sits above the
+     table, with search/filter/sort on the same row. ---------------- */
+  .tabs-utility-row { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:12px 18px; }
+  .htabs { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+  .htab { font-family:var(--font-display); font-size:13px; font-weight:600; color:var(--secondary); padding:9px 15px; border-radius:var(--radius-pill); cursor:pointer; transition:background var(--fast), color var(--fast); white-space:nowrap; }
+  .htab:hover:not(.active) { background:#F4F4F4; color:var(--ink); }
+  .htab.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+  .utility-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .search-pill-sm { display:flex; align-items:center; gap:7px; background:#F2F2F3; border-radius:var(--radius-pill); padding:8px 15px; color:var(--muted); font-size:12px; white-space:nowrap; cursor:pointer; transition:background var(--fast), color var(--fast); }
+  .search-pill-sm:hover { background:#E9E9EA; color:var(--ink); }
+
+  /* Main content: table + AMC/family/insights sit side by side (viewport
+     layout matched to the reference screenshot) instead of stacked. */
+  .main-col { display:flex; flex-direction:row; flex-wrap:wrap; gap:16px; align-items:flex-start; }
+  .main-col > .table-card { flex:1 1 560px; min-width:0; }
+  .main-col > .side-card { flex:0 0 436px; width:436px; }
+  .side-card .pie-row { flex-direction:column; align-items:stretch; gap:20px; position:relative; }
+  .side-card .pie-stage { width:196px; height:196px; margin:0 auto; }
+  .side-card .pie-hole { inset:36px; } /* scaled to this stage's 196px (base ratio 38/206) so the hole stays proportional, not the broken tiny-hole-on-shrunk-ring look from before */
+  .side-card .legend { min-width:0; }
+  .side-card .alloc-popup { display:none; } /* hole-label swap on hover already carries the info; no room for the floating popup at this width */
+
+  /* ---------------- Section 3: holdings table ---------------- */
+  .fund-table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:13px; }
+  .fund-table thead th { text-align:left; font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:0 16px 12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fund-table thead th.num { text-align:right; }
+  .fund-table tbody td { padding:18px 16px; border-top:1px solid var(--border-soft); vertical-align:middle; overflow:hidden; text-overflow:ellipsis; }
+  .fund-table tbody td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .fund-row { cursor:pointer; transition:background var(--fast), box-shadow var(--fast); }
+  .fund-row:hover { background:var(--hover-tint); box-shadow:inset 3px 0 0 var(--accent); }
+  .fund-row:hover .row-chev { opacity:1; transform:translateX(2px); color:var(--accent-hover); }
+  .fund-row:hover .fund-logo { transform:scale(1.07); }
+  .fund-cell { display:flex; align-items:center; gap:11px; }
+  .fund-logo { width:34px; height:34px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:800; font-size:12px; color:#fff; transition:transform var(--fast); }
+  .fund-name-wrap b { display:block; font-size:13px; font-weight:700; color:var(--ink); }
+  .fund-name-wrap span { font-size:11px; color:var(--secondary); }
+  .fund-name-wrap .plan-badge-inline { display:inline-block; margin-top:5px; font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:6px; background:#EEF2FF; color:#4338CA; white-space:nowrap; }
+  .plan-badge { font-size:10px; font-weight:700; padding:4px 9px; border-radius:7px; background:#EEF2FF; color:#4338CA; white-space:nowrap; }
+  .cat-badge { font-size:10px; font-weight:700; padding:4px 9px; border-radius:7px; background:#F3F4F6; color:#4B5563; white-space:nowrap; }
+  .gl-pos { color:var(--pos-text); font-weight:700; }
+  .gl-neg { color:var(--neg-text); font-weight:700; }
+  .xirr-cell { font-weight:700; }
+  .row-chev { width:13px; height:13px; color:var(--muted); opacity:0; transition:opacity var(--fast), transform var(--fast); }
+  .table-foot-note { font-size:11px; color:var(--muted); margin-top:12px; padding-top:12px; border-top:1px solid var(--border-soft); line-height:1.5; }
+
+  /* ---------------- Section 2+3 (home): donut + legend, reused for AMC ---------------- */
+  .pie-row { display:flex; gap:32px; align-items:center; flex-wrap:wrap; position:relative; }
+  .alloc-popup { position:absolute; top:0; right:0; width:196px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-md); padding:14px 16px; opacity:0; transform:translateX(6px); pointer-events:none; transition:opacity 120ms ease, transform 120ms ease; z-index:20; }
+  .alloc-popup.is-visible { opacity:1; transform:translateX(0); }
+  .alloc-popup-label { font-family:var(--font-display); font-weight:700; font-size:13px; margin-bottom:10px; }
+  .alloc-popup-row { display:flex; justify-content:space-between; gap:12px; font-size:12px; color:var(--secondary); padding:4px 0; white-space:nowrap; }
+  .alloc-popup-row span:last-child { font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .pie-stage { position:relative; width:206px; height:206px; flex-shrink:0; }
+  .pie-svg { width:100%; height:100%; overflow:visible; }
+  .pie-track { fill:none; stroke:#F0F0F0; }
+  .pie-seg { transform-origin:100px 100px; transition:transform var(--pop), opacity var(--fast); cursor:pointer; }
+  .pie-seg circle { fill:none; stroke-linecap:round; }
+  .pie-seg.is-active { transform:translate(var(--dx), var(--dy)); }
+  .pie-seg.is-dim { opacity:.38; }
+  .pie-hole { position:absolute; inset:38px; border-radius:50%; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none; }
+  .pie-hole .hl { font-size:11.5px; font-weight:600; color:var(--secondary); max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:opacity 120ms ease; }
+  .pie-hole .hv { font-family:var(--font-display); font-size:17px; font-weight:800; color:var(--ink); margin-top:3px; transition:opacity 120ms ease; }
+  .pie-hole .hp { font-size:11.5px; font-weight:700; color:var(--accent-hover); margin-top:2px; transition:opacity 120ms ease; }
+
+  .legend { flex:1; min-width:220px; display:flex; flex-direction:column; }
+  .l-row { display:flex; align-items:center; gap:9px; font-size:12.5px; padding:7px 10px; margin-bottom:1px; border-radius:9px; cursor:pointer; transition:background var(--fast), transform var(--fast); }
+  .l-row:hover, .l-row.is-active { background:var(--hover-tint); }
+  .l-row.is-active { transform:translateX(2px); }
+  .l-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .l-label { font-weight:600; color:var(--ink); }
+  .l-pct { margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); font-size:12.5px; }
+  .l-chev { width:12px; height:12px; color:var(--muted); opacity:0; transition:opacity var(--fast), transform var(--fast); }
+  .l-row:hover .l-chev { opacity:1; transform:translateX(2px); color:var(--accent-hover); }
+
+  /* ---------------- Section 4: family + insights ---------------- */
+  .fam-bar { display:flex; height:9px; border-radius:var(--radius-pill); overflow:hidden; background:#F0F0F0; cursor:pointer; }
+  .fam-bar > div { transition:filter var(--fast); }
+  .fam-bar:hover > div { filter:brightness(1.04); }
+  .member-rows { margin-top:16px; display:flex; flex-direction:column; }
+  .m-row { display:flex; align-items:center; gap:13px; font-size:13px; padding:8px 10px; margin-bottom:1px; border-radius:10px; cursor:pointer; transition:background var(--fast), transform var(--fast); }
+  .m-row:hover { background:var(--hover-tint); transform:translateX(2px); }
+  .m-row:hover .l-chev { opacity:1; transform:translateX(2px); color:var(--accent-hover); }
+  .m-avatar { width:29px; height:29px; border-radius:50%; color:#fff; font-family:var(--font-display); font-size:10.5px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .m-name { width:84px; flex-shrink:0; font-weight:600; color:var(--ink); }
+  .m-bar-bg { flex:1; height:5px; background:#F0F0F0; border-radius:3px; overflow:hidden; }
+  .m-bar-fill { height:100%; border-radius:3px; }
+  .m-val { width:168px; text-align:right; flex-shrink:0; font-variant-numeric:tabular-nums; color:var(--secondary); font-size:12.5px; }
+
+  .section-divider { border:none; border-top:1px solid var(--border-soft); margin:18px 0 14px; }
+  .insights-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:14px; }
+  .insights-head .card-title { flex:none; }
+  .insights-head .insights-meta { font-size:11.5px; color:var(--muted); }
+  .insights-list { display:flex; flex-direction:column; gap:10px; }
+  .insight-it { display:flex; gap:10px; align-items:flex-start; font-size:13px; color:var(--ink); line-height:1.5; }
+  .check-dot { width:17px; height:17px; border-radius:50%; background:var(--pos); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+  .check-dot .icon { width:10px; height:10px; stroke-width:3; }
+
+  /* ---------------- loading / empty / error ---------------- */
+  .shimmer { position:relative; overflow:hidden; background:#EFEFEF; border-radius:7px; }
+  .shimmer::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent); background-size:200% 100%; animation:shimmer 1.4s ease-in-out infinite; }
+  @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+
+  .card-error { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px 16px; gap:9px; }
+  .card-error .err-ico { width:38px; height:38px; border-radius:50%; background:var(--warn-bg); color:var(--warn-text); display:flex; align-items:center; justify-content:center; }
+  .card-error h4 { margin:2px 0 0; font-family:var(--font-display); font-size:14px; }
+  .card-error p { margin:0; font-size:12px; color:var(--secondary); max-width:340px; }
+  .retry-btn { font-family:var(--font-display); font-weight:700; font-size:12px; padding:7px 16px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; cursor:pointer; transition:all var(--fast); }
+  .retry-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+
+  .page-state { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:76px 20px; gap:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+  .page-state .big-ico { width:58px; height:58px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; }
+  .page-state.is-error .big-ico { background:var(--warn-bg); color:var(--warn-text); }
+  .page-state h3 { font-family:var(--font-display); font-size:19px; margin:0; }
+  .page-state p { margin:0; font-size:13px; color:var(--secondary); max-width:400px; line-height:1.6; }
+
+  .single-member-note { font-size:12.5px; color:var(--secondary); padding:4px 0 0; }
+
+  /* ---------------- Ask Mira — "coming soon" popup (shared pattern, Round 4
+     2026-10-24): every Mira-labelled control across every MF sub-page opens
+     this same modal. The nav-shell owner builds the real Mira feature later;
+     this page only needs the honest placeholder so the control isn't a dead
+     click. ---------------- */
+  .mira-trigger { cursor:pointer; }
+  .mira-modal-overlay { position:fixed; inset:0; background:rgba(17,17,17,.45); z-index:200; display:flex; align-items:center; justify-content:center; }
+  .mira-modal-overlay[hidden] { display:none; }
+  .mira-modal { background:#fff; width:360px; max-width:calc(100vw - 40px); border-radius:var(--radius-lg); padding:26px 26px 22px; box-shadow:var(--shadow-lg); text-align:center; animation:settle 200ms cubic-bezier(.16,1,.3,1); }
+  .mira-modal .glyph-ring { width:44px; height:44px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; }
+  .mira-modal h3 { font-family:var(--font-display); font-size:17px; margin:0 0 8px; }
+  .mira-modal p { font-size:13px; color:var(--secondary); line-height:1.55; margin:0 0 18px; }
+  .mira-modal .btn-primary { width:100%; justify-content:center; }
+
+  /* ---------------- SIPs section (Round 5, 2026-10-24) — redesigned away
+     from DashboardView's plain tabbed list per the owner's explicit "don't
+     like the current design" ask. A horizontal date-capsule timeline
+     instead of a flat vertical list: each capsule is one due date;
+     clicking it swaps the detail panel below to that date's SIPs — reads
+     like a glanceable calendar strip, not a scrolling list. Upcoming/This
+     Month/Stopped are three equal always-visible tabs (the real component
+     buries "stopped" behind a text link under Upcoming — the owner's
+     screenshot shows it should stand on its own). ---------------- */
+  .sip-card { margin-top:14px; }
+  .sip-head-row { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:4px; }
+  .sip-next-chip { display:flex; align-items:center; gap:10px; background:var(--accent-selected-bg); border:1px solid #BFEBD0; border-radius:var(--radius-md); padding:9px 14px; font-size:12.5px; color:var(--accent-pressed); }
+  .sip-next-chip b { font-weight:800; }
+  .sip-next-chip .glyph-ring { width:24px; height:24px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; color:var(--accent-hover); flex-shrink:0; }
+  .sip-total-pill { font-family:var(--font-display); font-weight:700; font-size:12.5px; color:var(--ink); background:var(--bg); border:1px solid var(--border-soft); border-radius:var(--radius-pill); padding:7px 14px; white-space:nowrap; }
+  .sip-total-pill b { color:var(--accent-pressed); }
+
+  .sip-tabs { display:flex; gap:8px; margin:14px 0 16px; }
+  .sip-tab-btn { font-family:var(--font-display); font-weight:700; font-size:12px; padding:7px 15px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; color:var(--secondary); cursor:pointer; transition:all var(--fast); }
+  .sip-tab-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+  .sip-tab-btn.active { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .sip-tab-btn .count { opacity:.65; margin-left:4px; }
+
+  .sip-timeline { display:flex; gap:10px; overflow-x:auto; padding:4px 2px 14px; scrollbar-width:thin; }
+  .sip-cap { flex-shrink:0; width:84px; display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 8px; border-radius:var(--radius-md); border:1.5px solid var(--border-soft); cursor:pointer; transition:all var(--fast); background:#fff; }
+  .sip-cap:hover { border-color:var(--accent); background:var(--hover-tint); }
+  .sip-cap.is-active { border-color:var(--accent); background:var(--accent-selected-bg); box-shadow:0 2px 10px rgba(34,197,94,.18); }
+  .sip-cap .cap-day { font-family:var(--font-display); font-size:19px; font-weight:800; color:var(--ink); line-height:1; }
+  .sip-cap .cap-month { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); margin-top:1px; }
+  .sip-cap .cap-dots { display:flex; gap:3px; margin-top:4px; }
+  .sip-cap .cap-dots span { width:5px; height:5px; border-radius:50%; background:var(--accent); }
+  .sip-cap .cap-amt { font-size:10.5px; font-weight:700; color:var(--secondary); margin-top:2px; font-variant-numeric:tabular-nums; }
+  .sip-cap.is-active .cap-amt { color:var(--accent-pressed); }
+
+  .sip-detail-panel { border-top:1px solid var(--border-soft); padding-top:14px; display:flex; flex-direction:column; gap:1px; }
+  .sip-detail-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border-radius:9px; cursor:pointer; transition:background var(--fast); }
+  .sip-detail-row:hover { background:var(--hover-tint); }
+  .sip-detail-row .srow-name { font-size:13px; font-weight:600; color:var(--ink); }
+  .sip-detail-row .srow-member { font-size:11px; color:var(--secondary); margin-top:1px; }
+  .sip-detail-row .srow-amt { font-family:var(--font-display); font-weight:800; font-size:13.5px; color:var(--ink); font-variant-numeric:tabular-nums; }
+
+  .sip-month-nav { display:flex; align-items:center; justify-content:center; gap:16px; margin-bottom:14px; }
+  .sip-month-nav button { background:none; border:none; cursor:pointer; color:var(--secondary); display:flex; font-size:15px; }
+  .sip-month-nav button:hover { color:var(--accent-hover); }
+  .sip-month-nav span { font-family:var(--font-display); font-weight:700; font-size:13.5px; color:var(--ink); }
+
+  .sip-stopped-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 14px; border:1px solid var(--border-soft); border-radius:var(--radius-md); margin-bottom:8px; cursor:pointer; transition:all var(--fast); }
+  .sip-stopped-row:hover { border-color:var(--warn); background:var(--warn-bg); }
+  .sip-stopped-badge { font-size:10px; font-weight:700; padding:3px 9px; border-radius:var(--radius-pill); background:var(--warn-bg); color:var(--warn-text); white-space:nowrap; }
+
+  /* ---------------- Distributor Comparison modal (Round 5) ---------------- */
+  .dist-modal-overlay { position:fixed; inset:0; background:rgba(17,17,17,.45); z-index:210; display:flex; align-items:flex-start; justify-content:center; padding:48px 20px; overflow-y:auto; }
+  .dist-modal-overlay[hidden] { display:none; }
+  .dist-modal { background:#fff; width:820px; max-width:100%; border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); animation:settle 200ms cubic-bezier(.16,1,.3,1); }
+  .dist-modal-head { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 14px; border-bottom:1px solid var(--border-soft); }
+  .dist-modal-head h3 { font-family:var(--font-display); font-size:17px; margin:0; }
+  .dist-modal-close { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--secondary); cursor:pointer; transition:background var(--fast); font-size:16px; }
+  .dist-modal-close:hover { background:#F2F2F3; }
+  .dist-modal-sub { padding:14px 24px 0; font-size:12.5px; color:var(--secondary); }
+  .dist-table-wrap { padding:14px 24px 22px; overflow-x:auto; }
+  .dist-table { width:100%; border-collapse:collapse; font-size:12.5px; min-width:680px; }
+  .dist-table thead th { text-align:left; font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.03em; padding:0 10px 10px; }
+  .dist-table thead th.num { text-align:right; }
+  .dist-table tbody td { padding:13px 10px; border-top:1px solid var(--border-soft); vertical-align:top; }
+  .dist-table tbody td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .dist-row { cursor:pointer; transition:background var(--fast); }
+  .dist-row:hover { background:var(--hover-tint); }
+  .dist-expand-btn { transition:transform var(--fast); }
+  .dist-row.is-open .dist-expand-btn { transform:rotate(90deg); color:var(--accent-hover); }
+  .dist-status { font-size:10px; font-weight:700; padding:3px 9px; border-radius:var(--radius-pill); white-space:nowrap; }
+  .dist-status.direct { background:var(--pos-bg); color:var(--pos-text); }
+  .dist-status.active { background:#EEF2FF; color:#4338CA; }
+  .dist-scheme-row td { background:var(--bg); font-size:12px; }
+  .dist-scheme-row .scheme-name { font-weight:600; color:var(--ink); }
+  .dist-scheme-row .scheme-saving { color:var(--pos-text); font-weight:700; font-size:11px; margin-top:2px; }
+  .dist-scheme-row .scheme-member { color:var(--muted); font-size:11px; margin-top:2px; }
+
+  /* ---------------- spec/annotation section ---------------- */
+  .spec { max-width:1080px; margin-top:44px; }
+  .spec h2 { font-family:var(--font-display); font-size:17px; margin:34px 0 10px; }
+  .spec h2:first-child { margin-top:0; }
+  .spec table { border-collapse:collapse; width:100%; font-size:12.5px; margin-bottom:6px; }
+  .spec th, .spec td { text-align:left; padding:8px 10px; border-bottom:1px solid #eee; vertical-align:top; }
+  .spec th { font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--secondary); font-weight:700; font-family:var(--font-display); }
+  .decided-against { background:#F6F6F6; border-radius:8px; padding:11px 15px; font-size:12.5px; color:#444; margin-top:8px; }
+  .locked-note { background:var(--pos-bg); border:1px solid var(--pos); border-radius:9px; padding:13px 17px; font-size:13px; color:var(--pos-text); margin-top:22px; max-width:1080px; }
+  .open-note { background:var(--warn-bg); border:1px solid #F5C377; border-radius:9px; padding:13px 17px; font-size:13px; color:var(--warn-text); margin-top:14px; max-width:1080px; }
+</style>
+</head>
+<body>
+
+<svg style="display:none">
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M20 20l-5.5-5.5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15.2 20c0-2.2 1.7-4 3.8-4.6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></symbol>
+  <symbol id="i-bar-chart" viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></symbol>
+  <symbol id="i-pie" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
+  <symbol id="i-trending" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-8"/><path d="M14 7h6v6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.8 1c0 1.8-2.3 2-2.3 3.5"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+  <symbol id="i-sort" viewBox="0 0 24 24"><path d="M8 20V6M4 10l4-4 4 4"/><path d="M16 4v14M12 14l4 4 4-4"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 10v5"/><path d="M12 18.2v.1"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h13M13 4l4 4-4 4"/><path d="M20 16H7M11 12l-4 4 4 4"/></symbol>
+  <symbol id="i-venn" viewBox="0 0 24 24"><circle cx="9" cy="12" r="7"/><circle cx="15" cy="12" r="7"/></symbol>
+</svg>
+
+<h1>Mutual Funds — Overview page, high-fidelity mockup</h1>
+<p class="doc-subtitle">Route <code>portfolio-mutual-funds</code> → <code>/portfolio/mutual-funds</code>, per design.md
+§§0-4. Same token system as <code>2026-10-23-portfolio-home-page-hifi-states.html</code> so both pages read as one
+product — Section 1 (summary strip) and Section 4 (AMC donut + family + insights) reuse that page's exact
+component shape and hover mechanics, relabeled for MF scope; Section 2 (in-page tabs) and Section 3 (holdings
+table) are new, built to the reference screenshots' content but pushed further visually — no creativity ceiling,
+even on the reference-grounded sections (per the owner's 2026-10-23 correction). Section 2 is a horizontal pill
+row, not a vertical column — see the annotation note below for why that overrides design.md §2's original text.
+Reference screenshots: <code>/mnt/d/References/Mutal fund overview page/</code>.</p>
+
+<div class="controls">
+  <div class="ctl-row">
+    <div class="ctl-label">Page state</div>
+    <button class="ctl-btn active" data-global="happy">Happy path</button>
+    <button class="ctl-btn" data-global="loading">Initial loading</button>
+    <button class="ctl-btn" data-global="empty">Empty — zero MF holdings</button>
+    <button class="ctl-btn" data-global="error">Page error</button>
+  </div>
+  <div class="ctl-row" id="row-strip">
+    <div class="ctl-label">1 · Summary strip</div>
+    <button class="ctl-btn active" data-sec="strip" data-val="default">Default</button>
+    <button class="ctl-btn" data-sec="strip" data-val="partial">Partial — stale NAV</button>
+    <button class="ctl-btn" data-sec="strip" data-val="sparkerr">Sparkline failed</button>
+  </div>
+  <div class="ctl-row" id="row-table">
+    <div class="ctl-label">3 · Holdings table</div>
+    <button class="ctl-btn active" data-sec="table" data-val="default">Default</button>
+    <button class="ctl-btn" data-sec="table" data-val="loading">Loading</button>
+    <button class="ctl-btn" data-sec="table" data-val="error">Failed to load</button>
+  </div>
+  <div class="ctl-row" id="row-amc">
+    <div class="ctl-label">4 · AMC+Family+Insights</div>
+    <button class="ctl-btn active" data-sec="amc" data-val="default">Default</button>
+    <button class="ctl-btn" data-sec="amc" data-val="loading">Loading</button>
+    <button class="ctl-btn" data-sec="amc" data-val="error">Failed to load</button>
+    <button class="ctl-btn" data-sec="amc" data-val="single">Single-member household</button>
+  </div>
+</div>
+
+<div class="frame">
+
+  <div class="topbar">
+    <div class="logo">Unifolio</div>
+    <div class="search-pill"><svg class="icon icon-sm"><use href="#i-search"/></svg>Search for a fund, stock, or ask Mira...</div>
+    <div class="top-actions">
+      <div class="pill-ghost accent-outline mira-trigger"><svg class="icon icon-sm"><use href="#i-sparkle"/></svg>Ask Mira</div>
+      <div class="pill-ghost"><svg class="icon icon-sm"><use href="#i-users"/></svg>Family Combined<svg class="icon icon-sm"><use href="#i-chevron-down"/></svg></div>
+      <div class="icon-btn"><svg class="icon"><use href="#i-moon"/></svg></div>
+      <div class="avatar-top">SS</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="side-item"><svg class="icon"><use href="#i-home"/></svg>Home</div>
+      <div class="side-item"><svg class="icon"><use href="#i-bar-chart"/></svg>Analytics</div>
+      <div class="side-item active"><svg class="icon"><use href="#i-pie"/></svg>Investments</div>
+      <div class="side-item"><svg class="icon"><use href="#i-trending"/></svg>Performance</div>
+      <div class="side-item"><svg class="icon"><use href="#i-zap"/></svg>Scenarios</div>
+      <div class="side-divider"></div>
+      <div class="side-item"><svg class="icon"><use href="#i-user"/></svg>Profile</div>
+      <div class="side-item"><svg class="icon"><use href="#i-help"/></svg>Help &amp; Support</div>
+    </div>
+
+    <div class="main" id="main">
+
+      <div class="page-header">
+        <div>
+          <div class="crumb">Investments</div>
+          <h2>All Investments</h2>
+          <div class="page-sub">Your family's mutual fund portfolio — holdings, allocation, and performance in one place.</div>
+        </div>
+        <div class="header-actions">
+          <div class="btn-primary"><svg class="icon icon-sm" style="stroke:#fff"><use href="#i-plus"/></svg>Add Investment<svg class="icon icon-sm" style="stroke:#fff"><use href="#i-chevron-down"/></svg></div>
+        </div>
+      </div>
+
+      <!-- ============ GLOBAL: INITIAL LOADING ============ -->
+      <div id="g-loading" style="display:none;">
+        <div class="card" style="margin-bottom:18px;">
+          <div class="strip" style="gap:0;">
+            <div class="metric"><div class="shimmer" style="width:55%; height:11px; margin-bottom:10px;"></div><div class="shimmer" style="width:80%; height:24px;"></div></div>
+            <div class="metric"><div class="shimmer" style="width:60%; height:11px; margin-bottom:10px;"></div><div class="shimmer" style="width:65%; height:20px;"></div></div>
+            <div class="metric"><div class="shimmer" style="width:60%; height:11px; margin-bottom:10px;"></div><div class="shimmer" style="width:65%; height:20px;"></div></div>
+            <div class="metric"><div class="shimmer" style="width:55%; height:11px; margin-bottom:10px;"></div><div class="shimmer" style="width:55%; height:20px;"></div></div>
+            <div class="metric"><div class="shimmer" style="width:40%; height:11px; margin-bottom:10px;"></div><div class="shimmer" style="width:45%; height:20px;"></div></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:18px;">
+          <div class="shimmer" style="height:16px; width:40%; margin-bottom:14px; border-radius:8px;"></div>
+          <div class="shimmer" style="height:44px; width:100%; margin-bottom:8px; border-radius:8px;"></div>
+          <div class="shimmer" style="height:44px; width:100%; margin-bottom:8px; border-radius:8px;"></div>
+          <div class="shimmer" style="height:44px; width:100%; border-radius:8px;"></div>
+        </div>
+        <div class="card">
+          <div class="pie-row">
+            <div class="shimmer" style="width:206px; height:206px; border-radius:50%;"></div>
+            <div style="flex:1; min-width:260px;">
+              <div class="shimmer" style="height:16px; width:92%; margin-bottom:10px; border-radius:8px;"></div>
+              <div class="shimmer" style="height:16px; width:85%; margin-bottom:10px; border-radius:8px;"></div>
+              <div class="shimmer" style="height:16px; width:90%; margin-bottom:10px; border-radius:8px;"></div>
+              <div class="shimmer" style="height:16px; width:80%; border-radius:8px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ GLOBAL: EMPTY ============ -->
+      <div id="g-empty" style="display:none;">
+        <div class="page-state">
+          <div class="big-ico"><svg class="icon-lg"><use href="#i-plus"/></svg></div>
+          <h3>No mutual funds yet</h3>
+          <p>Import your family's CAS statement and every fund, its value, and its performance will show up here.</p>
+          <div class="btn-primary"><svg class="icon icon-sm" style="stroke:#fff"><use href="#i-plus"/></svg>Add your first investment</div>
+        </div>
+      </div>
+
+      <!-- ============ GLOBAL: PAGE ERROR ============ -->
+      <div id="g-error" style="display:none;">
+        <div class="page-state is-error">
+          <div class="big-ico"><svg class="icon-lg"><use href="#i-alert"/></svg></div>
+          <h3>Couldn't load your mutual funds</h3>
+          <p>There was a problem reaching our servers. Your data is safe — this is just a connection issue.</p>
+          <div class="retry-btn" style="padding:9px 20px; font-size:13px;">Retry</div>
+        </div>
+      </div>
+
+      <!-- ============ HAPPY PATH ============ -->
+      <div id="g-happy">
+
+        <!-- SECTION 1 — Summary strip: ONE card, five segments -->
+        <div id="strip-default" class="strip card">
+          <div class="metric hero">
+            <div class="m-label">Total Portfolio Value<span class="info-dot">i<span class="tip">Sum of current value across all mutual fund holdings, family-combined or scoped to one member.</span></span></div>
+            <div class="value-sparkline-row">
+              <span class="m-value">₹66,98,600</span>
+              <svg class="spark" viewBox="0 0 72 26" preserveAspectRatio="none"><polyline points="0,20 8,18 16,19 24,14 32,16 40,10 48,12 56,6 64,8 72,2" fill="none" stroke="#22C55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="m-delta pos">Today: +₹18,230 (0.27%)</div>
+          </div>
+          <div class="metric"><div class="m-label">Total Invested<span class="info-dot">i</span></div><span class="m-value">₹51,00,000</span></div>
+          <div class="metric"><div class="m-label">Unrealised Gain<span class="info-dot">i</span></div><span class="m-value pos">+₹15,98,600</span><div class="m-delta pos">+31.3%</div></div>
+          <div class="metric"><div class="m-label">Realised Gain<span class="info-dot">i</span></div><span class="m-value">₹2,10,000</span></div>
+          <div class="metric">
+            <div class="m-label">XIRR<span class="info-dot">i<span class="tip">Annualised return since inception. May include an opening balance from before you started tracking in Unifolio.</span></span></div>
+            <div class="seg-toggle"><span class="seg-btn active">Lifetime</span><span class="seg-btn">Current</span></div>
+            <span class="m-value">16.1%</span>
+            <div class="xirr-note">Since inception — opening-balance disclaimer may apply ›</div>
+          </div>
+        </div>
+
+        <div id="strip-partial" class="strip card" style="display:none;">
+          <div class="metric hero">
+            <div class="m-label">Total Portfolio Value<span class="info-dot">i</span></div>
+            <div class="value-sparkline-row">
+              <span class="m-value">₹66,98,600</span>
+              <svg class="spark" viewBox="0 0 72 26" preserveAspectRatio="none"><polyline points="0,20 8,18 16,19 24,14 32,16 40,10 48,12 56,6 64,8 72,2" fill="none" stroke="#22C55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="m-delta pos">Today: +₹18,230 (0.27%)</div>
+            <div class="chip-warn"><svg class="icon icon-sm"><use href="#i-alert"/></svg>2 on last known NAV</div>
+          </div>
+          <div class="metric"><div class="m-label">Total Invested<span class="info-dot">i</span></div><span class="m-value">₹51,00,000</span></div>
+          <div class="metric"><div class="m-label">Unrealised Gain<span class="info-dot">i</span></div><span class="m-value pos">+₹15,98,600</span><div class="m-delta pos">+31.3%</div></div>
+          <div class="metric"><div class="m-label">Realised Gain<span class="info-dot">i</span></div><span class="m-value">₹2,10,000</span></div>
+          <div class="metric">
+            <div class="m-label">XIRR<span class="info-dot">i</span></div>
+            <div class="seg-toggle"><span class="seg-btn active">Lifetime</span><span class="seg-btn">Current</span></div>
+            <span class="m-value">16.1%</span>
+            <div class="xirr-note">Since inception — opening-balance disclaimer may apply ›</div>
+          </div>
+        </div>
+
+        <div id="strip-sparkerr" class="strip card" style="display:none;">
+          <div class="metric hero">
+            <div class="m-label">Total Portfolio Value<span class="info-dot">i</span></div>
+            <div class="value-sparkline-row">
+              <span class="m-value">₹66,98,600</span>
+              <span class="inline-err">Couldn't load trend <span class="retry-link">Retry</span></span>
+            </div>
+            <div class="m-delta pos">Today: +₹18,230 (0.27%)</div>
+          </div>
+          <div class="metric"><div class="m-label">Total Invested<span class="info-dot">i</span></div><span class="m-value">₹51,00,000</span></div>
+          <div class="metric"><div class="m-label">Unrealised Gain<span class="info-dot">i</span></div><span class="m-value pos">+₹15,98,600</span><div class="m-delta pos">+31.3%</div></div>
+          <div class="metric"><div class="m-label">Realised Gain<span class="info-dot">i</span></div><span class="m-value">₹2,10,000</span></div>
+          <div class="metric">
+            <div class="m-label">XIRR<span class="info-dot">i</span></div>
+            <div class="seg-toggle"><span class="seg-btn active">Lifetime</span><span class="seg-btn">Current</span></div>
+            <span class="m-value">16.1%</span>
+            <div class="xirr-note">Since inception — opening-balance disclaimer may apply ›</div>
+          </div>
+        </div>
+
+        <!-- Synopsis — Q1 resolved: Option A, one auto-generated sentence -->
+        <div class="synopsis" style="margin-top:14px;">
+          <div class="glyph-ring"><svg class="icon icon-sm"><use href="#i-sparkle"/></svg></div>
+          <p>Spread across <b>6 AMCs</b> and <b>24 funds</b> — <b>72% in Direct plans</b>, with <b>₹45,000</b> in active SIPs this month.</p>
+        </div>
+
+        <!-- SIPs section (Round 5, 2026-10-24) — new, ported + redesigned
+             from DashboardView's "Upcoming SIPs" section (PRD-03 FR-5/FR-6).
+             Placed here (full-width, between the synopsis and the tabs row)
+             since it's forward-looking "what happens next" information, same
+             shelf as the synopsis sentence, not competing with the table's
+             own real estate. See the annotation section for why this beats
+             the current design and why this placement over a dedicated tab. -->
+        <div class="card sip-card">
+          <div class="sip-head-row">
+            <div class="card-title">SIPs<span class="info-dot">i<span class="tip">Every active and stopped systematic investment plan across your family, scoped to the selected member.</span></span></div>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <div class="sip-next-chip"><span class="glyph-ring"><svg class="icon icon-xs"><use href="#i-zap"/></svg></span>Next: <b>DSP Small Cap Fund</b> · 24 Oct · ₹3,336</div>
+              <div class="sip-total-pill">Monthly SIP total <b>₹45,000</b></div>
+            </div>
+          </div>
+
+          <div class="sip-tabs" role="tablist" aria-label="SIP view">
+            <div class="sip-tab-btn active" data-sip-tab="upcoming" role="tab" aria-selected="true">Upcoming<span class="count">(13)</span></div>
+            <div class="sip-tab-btn" data-sip-tab="month" role="tab" aria-selected="false">This Month</div>
+            <div class="sip-tab-btn" data-sip-tab="stopped" role="tab" aria-selected="false">Stopped<span class="count">(3)</span></div>
+          </div>
+
+          <div id="sip-panel-upcoming" class="sip-panel" role="tabpanel">
+            <div class="sip-timeline" id="sip-timeline-upcoming">
+              <div class="sip-cap is-active" data-sip-date="24oct"><span class="cap-day">24</span><span class="cap-month">Oct</span><div class="cap-dots"><span></span></div><span class="cap-amt">₹3,336</span></div>
+              <div class="sip-cap" data-sip-date="26oct"><span class="cap-day">26</span><span class="cap-month">Oct</span><div class="cap-dots"><span></span></div><span class="cap-amt">₹5,005</span></div>
+              <div class="sip-cap" data-sip-date="27oct"><span class="cap-day">27</span><span class="cap-month">Oct</span><div class="cap-dots"><span></span><span></span></div><span class="cap-amt">₹16,244</span></div>
+              <div class="sip-cap" data-sip-date="02nov"><span class="cap-day">02</span><span class="cap-month">Nov</span><div class="cap-dots"><span></span></div><span class="cap-amt">₹6,498</span></div>
+              <div class="sip-cap" data-sip-date="03nov"><span class="cap-day">03</span><span class="cap-month">Nov</span><div class="cap-dots"><span></span></div><span class="cap-amt">₹6,673</span></div>
+              <div class="sip-cap" data-sip-date="05nov"><span class="cap-day">05</span><span class="cap-month">Nov</span><div class="cap-dots"><span></span></div><span class="cap-amt">₹16,682</span></div>
+              <div class="sip-cap" data-sip-date="07nov"><span class="cap-day">07</span><span class="cap-month">Nov</span><div class="cap-dots"><span></span></div><span class="cap-amt">₹5,005</span></div>
+            </div>
+            <div class="sip-detail-panel" id="sip-detail-upcoming"></div>
+          </div>
+
+          <div id="sip-panel-month" class="sip-panel" role="tabpanel" style="display:none;">
+            <div class="sip-month-nav"><button type="button" aria-label="Previous month">&larr;</button><span>October 2026</span><button type="button" aria-label="Next month">&rarr;</button></div>
+            <div class="sip-detail-panel">
+              <div class="sip-detail-row"><div><div class="srow-name">DSP Small Cap Fund — Direct Plan — Growth</div><div class="srow-member">Aarohi · 24 Oct 2026</div></div><div class="srow-amt">₹3,336</div></div>
+              <div class="sip-detail-row"><div><div class="srow-name">Invesco India Large &amp; Mid Cap Fund — Direct Plan — Growth</div><div class="srow-member">Siddharth · 26 Oct 2026</div></div><div class="srow-amt">₹5,005</div></div>
+              <div class="sip-detail-row"><div><div class="srow-name">SBI Small Cap Fund — Direct Plan — Growth</div><div class="srow-member">Parents · 27 Oct 2026</div></div><div class="srow-amt">₹3,249</div></div>
+              <div class="sip-detail-row"><div><div class="srow-name">Nippon India Large Cap Fund — Direct Plan — Growth Option</div><div class="srow-member">Siddharth · 27 Oct 2026</div></div><div class="srow-amt">₹12,995</div></div>
+            </div>
+          </div>
+
+          <div id="sip-panel-stopped" class="sip-panel" role="tabpanel" style="display:none;">
+            <div class="sip-stopped-row"><div><div class="srow-name">ICICI Prudential Value Fund (erstwhile Value Discovery Fund) — Direct Plan — Growth</div><div class="srow-member">Parents</div></div><div style="display:flex; align-items:center; gap:10px;"><span class="srow-amt">₹3,249</span><span class="sip-stopped-badge">Stopped</span></div></div>
+            <div class="sip-stopped-row"><div><div class="srow-name">HDFC Mid Cap Fund — Direct Plan — Growth Option</div><div class="srow-member">Siddharth</div></div><div style="display:flex; align-items:center; gap:10px;"><span class="srow-amt">₹12,995</span><span class="sip-stopped-badge">Stopped</span></div></div>
+            <div class="sip-stopped-row"><div><div class="srow-name">SBI Large Cap Fund — Direct Plan — Growth</div><div class="srow-member">Aarohi</div></div><div style="display:flex; align-items:center; gap:10px;"><span class="srow-amt">₹4,873</span><span class="sip-stopped-badge">Stopped</span></div></div>
+          </div>
+        </div>
+
+        <!-- SECTION 2 — in-page tabs, horizontal pill row (see CSS comment above
+             for why this overrides design.md §2's vertical-column text), plus
+             the search/filter/sort utility row on the same line -->
+        <div class="tabs-utility-row card" style="margin-top:18px;">
+          <div class="htabs">
+            <div class="htab active">Overview</div>
+            <div class="htab">Performance</div>
+            <div class="htab">Allocation</div>
+            <div class="htab">Holdings</div>
+            <div class="htab">Transactions</div>
+            <div class="htab">Overlap</div>
+            <div class="htab">Other Analytics</div>
+          </div>
+          <div class="utility-actions">
+            <div class="search-pill-sm"><svg class="icon icon-sm"><use href="#i-search"/></svg>Search investments...</div>
+            <div class="pill-ghost" style="padding:7px 13px; font-size:12px;"><svg class="icon icon-sm"><use href="#i-filter"/></svg>Filter</div>
+            <div class="pill-ghost" style="padding:7px 13px; font-size:12px;"><svg class="icon icon-sm"><use href="#i-sort"/></svg>Sort</div>
+          </div>
+        </div>
+
+        <div class="main-col" style="margin-top:16px;">
+
+            <!-- SECTION 3 — Holdings table -->
+            <div class="card table-card">
+              <div class="card-head">
+                <div class="card-title"><span id="mf-count">Mutual Funds (24)</span></div>
+                <div style="display:flex; gap:8px;">
+                  <div class="pill-ghost dist-trigger" style="padding:6px 13px; font-size:11.5px;"><svg class="icon icon-sm"><use href="#i-users"/></svg>Compare Distributors</div>
+                  <div class="pill-ghost accent-outline mira-trigger" style="padding:6px 13px; font-size:11.5px;"><svg class="icon icon-sm"><use href="#i-sparkle"/></svg>Analyse with Mira</div>
+                  <div class="pill-ghost" style="padding:6px 13px; font-size:11.5px;">Export</div>
+                </div>
+              </div>
+
+              <div id="table-default">
+                <table class="fund-table">
+                  <colgroup>
+                    <col style="width:32%"><col style="width:15%"><col style="width:13%"><col style="width:13%"><col style="width:14%"><col style="width:9%"><col style="width:24px">
+                  </colgroup>
+                  <thead><tr><th>Fund</th><th>Category</th><th class="num">Invested</th><th class="num">Value</th><th class="num">Gain/Loss</th><th class="num">XIRR</th><th style="width:24px;"></th></tr></thead>
+                  <tbody>
+                    <tr class="fund-row">
+                      <td><div class="fund-cell"><div class="fund-logo" style="background:linear-gradient(135deg,var(--c2),var(--c3));">K</div><div class="fund-name-wrap"><b>Kotak Multi Cap Fund</b><span>Kotak Mahindra MF</span><span class="plan-badge-inline">Direct · Growth</span></div></div></td>
+                      <td><span class="cat-badge">Flexi Cap</span></td>
+                      <td class="num">₹12,00,000</td><td class="num">₹15,40,000</td><td class="num gl-pos">+₹3,40,000</td><td class="num xirr-cell">14.2%</td>
+                      <td><svg class="icon row-chev"><use href="#i-chevron-right"/></svg></td>
+                    </tr>
+                    <tr class="fund-row">
+                      <td><div class="fund-cell"><div class="fund-logo" style="background:linear-gradient(135deg,var(--c6),#B45309);">J</div><div class="fund-name-wrap"><b>JM Flexi Cap Fund</b><span>JM Financial MF</span><span class="plan-badge-inline">Direct · Growth</span></div></div></td>
+                      <td><span class="cat-badge">Flexi Cap</span></td>
+                      <td class="num">₹8,00,000</td><td class="num">₹9,80,000</td><td class="num gl-pos">+₹1,80,000</td><td class="num xirr-cell">12.9%</td>
+                      <td><svg class="icon row-chev"><use href="#i-chevron-right"/></svg></td>
+                    </tr>
+                    <tr class="fund-row">
+                      <td><div class="fund-cell"><div class="fund-logo" style="background:linear-gradient(135deg,var(--c1),var(--accent-pressed));">H</div><div class="fund-name-wrap"><b>HDFC Mid-Cap Opportunities</b><span>HDFC MF</span><span class="plan-badge-inline">Direct · Growth</span></div></div></td>
+                      <td><span class="cat-badge">Mid Cap</span></td>
+                      <td class="num">₹9,50,000</td><td class="num">₹13,10,000</td><td class="num gl-pos">+₹3,60,000</td><td class="num xirr-cell">17.8%</td>
+                      <td><svg class="icon row-chev"><use href="#i-chevron-right"/></svg></td>
+                    </tr>
+                    <tr class="fund-row">
+                      <td><div class="fund-cell"><div class="fund-logo" style="background:linear-gradient(135deg,var(--c4),var(--c5));">P</div><div class="fund-name-wrap"><b>Parag Parikh Flexi Cap</b><span>PPFAS MF</span><span class="plan-badge-inline">Direct · Growth</span></div></div></td>
+                      <td><span class="cat-badge">Flexi Cap</span></td>
+                      <td class="num">₹10,50,000</td><td class="num">₹14,88,600</td><td class="num gl-pos">+₹4,38,600</td><td class="num xirr-cell">18.4%</td>
+                      <td><svg class="icon row-chev"><use href="#i-chevron-right"/></svg></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="table-foot-note">Logo via the existing <code>SchemeLogo</code> component, keyed off <code>amc_name</code>/<code>scheme_name</code> · Category is the new <code>sebi_category</code> field · Direct/Regular only this round (Growth/IDCW deferred, see <code>DEFERRED_FEATURES.md</code>) · row click opens <code>FundDetailModal</code> as an interim target until the per-fund page ships.</div>
+              </div>
+
+              <div id="table-loading" style="display:none;">
+                <div class="shimmer" style="height:44px; width:100%; margin-bottom:8px; border-radius:8px;"></div>
+                <div class="shimmer" style="height:44px; width:100%; margin-bottom:8px; border-radius:8px;"></div>
+                <div class="shimmer" style="height:44px; width:100%; margin-bottom:8px; border-radius:8px;"></div>
+                <div class="shimmer" style="height:44px; width:100%; border-radius:8px;"></div>
+              </div>
+
+              <div id="table-error" style="display:none;">
+                <div class="card-error">
+                  <div class="err-ico"><svg class="icon-lg"><use href="#i-alert"/></svg></div>
+                  <h4>Couldn't load your holdings</h4>
+                  <p>This section failed to load, but the rest of the page is unaffected.</p>
+                  <div class="retry-btn">Retry</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 4 — AMC allocation + Family + Quick Insights -->
+            <div class="card side-card">
+              <div class="card-head"><div class="card-title">AMC Allocation<span class="info-dot">i<span class="tip">Current value grouped by asset management company, across all your mutual fund holdings.</span></span></div></div>
+              <div class="card-desc">Hover a slice or a row — the center label swaps to that AMC's value and share. Same interaction as the Home page's Asset Allocation donut (<code>AllocationDonut.tsx</code>), scoped to <code>AllocationSummary.by_amc</code>.</div>
+
+              <div id="amc-default">
+                <div class="pie-row">
+                  <div class="pie-stage">
+                    <svg class="pie-svg" viewBox="0 0 200 200">
+                      <circle class="pie-track" cx="100" cy="100" r="70" stroke-width="28"/>
+                      <g id="pie-segments"></g>
+                    </svg>
+                    <div class="pie-hole" id="pie-hole">
+                      <span class="hl" id="hole-label">Total</span>
+                      <span class="hv" id="hole-value">₹66.9L</span>
+                      <span class="hp" id="hole-pct" style="display:none;"></span>
+                    </div>
+                  </div>
+                  <div class="legend" id="legend-list"></div>
+                  <div class="alloc-popup" id="alloc-popup">
+                    <div class="alloc-popup-label" id="pop-label">HDFC Mutual Fund</div>
+                    <div class="alloc-popup-row"><span>Allocation</span><span id="pop-allocation">40.0%</span></div>
+                    <div class="alloc-popup-row"><span>Current Value</span><span id="pop-value">₹26,79,440</span></div>
+                  </div>
+                </div>
+
+                <div style="margin:22px 0 2px;"><div class="card-title" style="font-size:13.5px;">Family Members</div></div>
+                <div class="fam-bar">
+                  <div style="width:48%; background:#3B82F6;"></div>
+                  <div style="width:32%; background:#8B5CF6;"></div>
+                  <div style="width:20%; background:#F59E0B;"></div>
+                </div>
+                <div class="member-rows">
+                  <div class="m-row"><span class="m-avatar" style="background:#3B82F6;">SS</span><span class="m-name">Siddharth</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:48%; background:#3B82F6;"></div></div><span class="m-val">₹32,13,300 (48.0%)</span><svg class="icon l-chev"><use href="#i-chevron-right"/></svg></div>
+                  <div class="m-row"><span class="m-avatar" style="background:#8B5CF6;">AS</span><span class="m-name">Aarohi</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:32%; background:#8B5CF6;"></div></div><span class="m-val">₹21,43,500 (32.0%)</span><svg class="icon l-chev"><use href="#i-chevron-right"/></svg></div>
+                  <div class="m-row"><span class="m-avatar" style="background:#F59E0B;">PS</span><span class="m-name">Parents</span><div class="m-bar-bg"><div class="m-bar-fill" style="width:20%; background:#F59E0B;"></div></div><span class="m-val">₹13,41,800 (20.0%)</span><svg class="icon l-chev"><use href="#i-chevron-right"/></svg></div>
+                </div>
+
+                <hr class="section-divider">
+
+                <div class="insights-head">
+                  <div class="card-title">Quick Insights</div>
+                  <div class="insights-meta">From your current MF holdings</div>
+                </div>
+                <div class="insights-list">
+                  <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Your largest holding is <b>Parag Parikh Flexi Cap</b> — 22.2% of your MF portfolio</span></div>
+                  <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Spread across <b>6 AMCs</b> and <b>24 funds</b></span></div>
+                  <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span><b>72% Direct</b>, 28% Regular</span></div>
+                  <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span><b>₹45,000</b> in active SIPs scheduled this month</span></div>
+                </div>
+              </div>
+
+              <div id="amc-loading" style="display:none;">
+                <div class="pie-row">
+                  <div class="shimmer" style="width:206px; height:206px; border-radius:50%;"></div>
+                  <div style="flex:1; min-width:260px;">
+                    <div class="shimmer" style="height:16px; width:92%; margin-bottom:10px; border-radius:8px;"></div>
+                    <div class="shimmer" style="height:16px; width:85%; margin-bottom:10px; border-radius:8px;"></div>
+                    <div class="shimmer" style="height:16px; width:90%; margin-bottom:10px; border-radius:8px;"></div>
+                    <div class="shimmer" style="height:16px; width:80%; border-radius:8px;"></div>
+                  </div>
+                </div>
+                <div class="shimmer" style="height:9px; border-radius:6px; margin:22px 0 18px;"></div>
+                <div class="shimmer" style="height:18px; width:100%; margin-bottom:10px; border-radius:8px;"></div>
+                <div class="shimmer" style="height:18px; width:100%; border-radius:8px;"></div>
+              </div>
+
+              <div id="amc-error" style="display:none;">
+                <div class="card-error">
+                  <div class="err-ico"><svg class="icon-lg"><use href="#i-alert"/></svg></div>
+                  <h4>Couldn't load your AMC allocation</h4>
+                  <p>This section failed to load, but the rest of the page is unaffected.</p>
+                  <div class="retry-btn">Retry</div>
+                </div>
+              </div>
+
+              <div id="amc-single" style="display:none;">
+                <div class="pie-row">
+                  <div class="pie-stage">
+                    <svg class="pie-svg" viewBox="0 0 200 200">
+                      <circle class="pie-track" cx="100" cy="100" r="70" stroke-width="28"/>
+                      <circle cx="100" cy="100" r="70" stroke-width="28" fill="none" stroke="var(--c1)" stroke-dasharray="440 0"/>
+                    </svg>
+                    <div class="pie-hole"><span class="hl">Total</span><span class="hv">₹66.9L</span></div>
+                  </div>
+                  <div class="legend"><div class="l-row"><span class="l-dot" style="background:var(--c1)"></span><span class="l-label">Only member</span><span class="l-pct">100%</span></div></div>
+                </div>
+                <div class="single-member-note" style="margin-top:18px;">You're the only member in this household — nothing to compare yet. Add a family member from Profile to see a breakdown here.</div>
+                <hr class="section-divider">
+                <div class="insights-head"><div class="card-title">Quick Insights</div><div class="insights-meta">From your current MF holdings</div></div>
+                <div class="insights-list">
+                  <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Your largest holding is <b>Parag Parikh Flexi Cap</b> — 22.2% of your MF portfolio</span></div>
+                  <div class="insight-it"><span class="check-dot"><svg class="icon"><use href="#i-check"/></svg></span><span>Spread across <b>6 AMCs</b> and <b>24 funds</b></span></div>
+                </div>
+              </div>
+            </div>
+
+        </div>
+
+      </div><!-- /g-happy -->
+    </div>
+  </div>
+  <div class="chrome-note">Top bar &amp; sidebar shown for visual context only — built separately in the nav-shell session. This page's build is the summary strip, synopsis, horizontal tabs + utility row, and the two main-content cards above.</div>
+</div>
+
+<!-- ======================= ANNOTATION SECTION ======================= -->
+<div class="spec">
+  <h2>Reference-vs-spec note — tab navigation (revised, supersedes the earlier read)</h2>
+  <div class="open-note"><b>This overrides design.md §2's "vertical column" text — design.md needs a follow-up
+  edit to match.</b> The reference screenshot's horizontal pill row literally reads "Mutual Funds (24) / Stocks
+  (18) / FDs (6) / ..." — that's the asset-class switcher on the "All Investments" page, one level above this one.
+  Design.md §2 had locked this page's own in-page sub-navigation (Overview/Performance/Allocation/Holdings/
+  Transactions/Overlap/Other Analytics) as a vertical column, reasoning that no reference showed that nav in situ.
+  Owner review (2026-10-24) explicitly asked for the <i>same horizontal pill-bar visual pattern</i> to be reused
+  for this page's seven sub-pages instead — i.e. relabel the pattern, not copy its asset-class content. Built that
+  way above: a horizontal <code>.htabs</code> row with Overview/Performance/Allocation/Holdings/Transactions/
+  Overlap/Other Analytics, sharing the row with Search/Filter/Sort, sitting above the table — still built with the
+  nav-shell's <code>&lt;PageLayout tabs={...} /&gt;</code> prop, just rendered horizontally instead of vertically.
+  Design.md §2's prose should be updated to describe a horizontal tab row before this is considered fully locked.</div>
+
+  <h2>Data source mapping</h2>
+  <table>
+    <tr><th>Element</th><th>Source</th><th>New work</th></tr>
+    <tr><td>Summary strip (5 metrics)</td><td>Same dashboard aggregate as today, scoped to MF holdings</td><td>None — same pattern as Home page's Section 1</td></tr>
+    <tr><td>Synopsis sentence</td><td><code>AllocationSummary.by_amc</code> (AMC/fund count) + <code>plan_type</code> split on <code>HoldingRow</code></td><td>None — new sentence-template logic only</td></tr>
+    <tr><td>Holdings table — logo</td><td><code>SchemeLogo</code> component, keyed off <code>amc_name</code>/<code>scheme_name</code> via <code>getAmcInfo()</code></td><td>Wiring only — zero current callers in <code>HoldingsTable</code>/<code>FundDetailModal</code> today</td></tr>
+    <tr><td>Holdings table — Category column</td><td>New <code>sebi_category: str | None</code> on <code>HoldingRow</code> (<code>backend/app/services/dashboard/schemas.py:55</code>), joined from the <code>Scheme</code> reference model's existing field</td><td>Additive field, no migration, no new table</td></tr>
+    <tr><td>Holdings table — Plan badge (under fund name)/Invested/Value/Gain-Loss/XIRR</td><td>Existing <code>HoldingRow</code> fields</td><td>None</td></tr>
+    <tr><td>AMC donut + legend</td><td><code>AllocationSummary.by_amc</code> (label, current_value, percentage — no per-AMC invested/gain/XIRR in this schema, so the hover popup shows only Value + %, unlike the Home page's by-asset-class popup)</td><td>None — same chart/legend/click→<code>AllocationDrilldownModal</code> wiring as <code>DashboardView.tsx</code> today</td></tr>
+    <tr><td>Family Members bar</td><td>Same pattern/component as Home page's Section 4, scoped to MF via <code>useScope()</code></td><td>None</td></tr>
+    <tr><td>Quick Insights (4 items)</td><td><code>by_amc</code> data + <code>investment_withdrawal.sip_summary</code></td><td>None — new sentence templates only</td></tr>
+  </table>
+
+  <h2>Decisions applied</h2>
+  <table>
+    <tr><th>Question</th><th>Resolution</th></tr>
+    <tr><td>Q1 — synopsis</td><td>Option A: one auto-generated sentence, Home page's Quick Insights pattern</td></tr>
+    <tr><td>Q3 — Category column</td><td>Add <code>sebi_category</code> to <code>HoldingRow</code></td></tr>
+    <tr><td>Q4 — Growth/IDCW</td><td>Direct/Regular only this round; Growth/IDCW deferred, no field exists yet</td></tr>
+    <tr><td>Row click target</td><td>Interim: opens today's <code>FundDetailModal</code>. Disabled per-fund page row target is out of scope this round.</td></tr>
+    <tr><td>"Sync Investments" button</td><td>Removed — button deletion only, no backend change</td></tr>
+  </table>
+
+  <h2>Motion &amp; interaction spec</h2>
+  <table>
+    <tr><th>Trigger</th><th>Behaviour</th><th>Timing / easing</th></tr>
+    <tr><td>Hover an AMC donut slice or legend row</td><td>Slice pops outward ~7px along its own radial axis; others dim to 38% opacity; center label swaps from "Total / ₹66.9L" to the hovered AMC's name/value/%; popup opens on the right with Allocation % + Current Value.</td><td><code>260ms cubic-bezier(.34,1.56,.64,1)</code> transform, <code>150ms ease</code> opacity/label cross-fade</td></tr>
+    <tr><td>Hover a holdings-table row</td><td>Row tints, trailing chevron fades in and nudges right — signals the row is clickable (interim <code>FundDetailModal</code> target)</td><td><code>150ms</code> (<code>--fast</code>)</td></tr>
+    <tr><td>Hover a family-member row</td><td>Quiet background tint, 2px right nudge, chevron fades in</td><td><code>150ms</code></td></tr>
+    <tr><td>Click a horizontal tab</td><td>Route change via <code>&lt;PageLayout tabs={...}/&gt;</code> — active tab gets the light-green pill fill, selected household member is preserved across the switch (contract §3)</td><td>N/A — nav-shell owned</td></tr>
+    <tr><td>Section data arrives (per section, independently)</td><td>Fades in + slides up 10px from its shimmer skeleton — shapes match exactly, no layout shift</td><td><code>240ms cubic-bezier(.16,1,.3,1)</code></td></tr>
+    <tr><td>Retry click</td><td>Button shows a brief spin state; section re-enters loading shimmer, then settles on success</td><td>Minimum <code>600ms</code> visible loading</td></tr>
+  </table>
+
+  <h2>State inventory — what's covered where</h2>
+  <table>
+    <tr><th>Scope</th><th>States</th><th>Why this shape</th></tr>
+    <tr><td>Whole page</td><td>Happy · Initial loading · Empty (zero MF holdings) · Page error</td><td>Mutually exclusive at the whole-page level</td></tr>
+    <tr><td>Section 1 — Summary strip</td><td>Default · Partial (stale NAV) · Sparkline failed independently</td><td>Each metric can carry its own caveat; the sparkline is its own fetch</td></tr>
+    <tr><td>Section 3 — Holdings table</td><td>Default · Loading · Failed to load</td><td>One endpoint backs the table, binary loaded/broken</td></tr>
+    <tr><td>Section 4 — AMC + Family + Insights</td><td>Default · Loading · Failed to load · Single-member household</td><td>Single-member is a valid data shape, not an error</td></tr>
+  </table>
+
+  <h2>Decided against</h2>
+  <div class="decided-against">No per-row staggered shimmer pulse. No number count-up animation on load. (Revised 2026-10-24: the search box above the holdings table is back in, in the tabs/utility row, per the owner's reference — superseding the earlier "dropped" note.)</div>
+</div>
+
+<div class="locked-note"><b>Status:</b> Overview built per design.md §§0-4, as revised 2026-10-24 — summary strip is
+now one unified card (five segments, not five separate cards); Section 2 is a horizontal tab row (Overview/
+Performance/Allocation/Holdings/Transactions/Overlap/Other Analytics) sharing a row with Search/Filter/Sort,
+overriding design.md §2's vertical-column text (doc needs a follow-up edit); the holdings table and the AMC/
+Family/Insights panel sit side by side (table ~60%, panel 380px) instead of stacked, matching the reference
+screenshot's viewport shape; the Plan badge moved under the fund name instead of its own column. Round 3
+(2026-10-24): AMC Allocation donut widened to a full-width stacked layout (panel 436px, ring 196px, hole inset
+rescaled 38→36px to match — was the real bug behind "looks cramped," not just a size request) instead of sitting
+cramped beside a 220px legend; the holdings table got a `<colgroup>`/`table-layout:fixed` pass for symmetrical
+columns plus roomier cell padding; hover affordance was unified across every clickable row/pill (shared
+`--hover-tint` wash, left accent bar + logo pop on table rows, chevron parity between legend and member rows,
+lift on outline pills, hover added to the search/filter/sort pills) so every real control reads as clickable —
+purely informational elements (Quick Insights text, info-dot tooltips) were deliberately left unstyled since
+they aren't interactive. Signed off by owner. Round 4 (2026-10-24, also signed off): <code>.frame</code> widened
+1320px→1640px (assume a real laptop browser window, not this doc's narrower artifact-viewer width) — the
+table-card's existing <code>flex:1</code> now claims that extra room while the side-card's 436px stays untouched,
+fixing the cramped/truncated numbers without shrinking the AMC panel; every Mira-labelled control ("Ask Mira" in
+the top bar, "Analyse with Mira" above the table) now opens a shared "Mira is coming soon" popup instead of being
+a dead click — the real Mira feature is the nav-shell owner's build, this is just an honest placeholder, reused
+verbatim on every subsequent sub-page. Round 5 (2026-10-24, pending sign-off): two new sections ported from
+<code>DashboardView.tsx</code> and placed here per the "Overview replaces DashboardView" rule — (1) a SIPs card
+(full-width, between the synopsis strip and the tabs row) redesigned away from the real component's plain tabbed
+list into a horizontal date-capsule timeline (click a capsule → the detail panel below swaps to that due date,
+reads as a glanceable calendar strip rather than a scroll list), with Stopped promoted from a buried text-link to
+a full equal tab, plus a "Next SIP" hero chip and a "Monthly SIP total" pill for at-a-glance status without
+opening anything; (2) a "Compare Distributors" button in the holdings table-card's header (next to "Analyse with
+Mira"/"Export", owner-confirmed placement) opening a <code>DistributorComparisonModal</code>-ported popup —
+Direct Plan + 2 ARN-coded distributor rows, click-to-expand per-scheme breakdown, every figure reconciled exactly
+to this page's Total Invested (₹51,00,000)/Total Portfolio Value (₹66,98,600) and the existing 72%/28% Direct/
+Regular split. The holdings-table filter/sort ask from the same feedback round was explicitly retracted by the
+owner mid-message — not built. Next: owner review of Round 5 + the Performance/Allocation clickability passes
+below, then Holdings, Other Analytics, Fund Overlap, Individual Fund Overlap, Transactions, in that order.</div>
+
+<!-- Ask Mira — coming soon (shared pattern across every MF sub-page) -->
+<div class="mira-modal-overlay" id="mira-modal" hidden>
+  <div class="mira-modal">
+    <div class="glyph-ring"><svg class="icon-lg"><use href="#i-sparkle"/></svg></div>
+    <h3>Mira is coming soon</h3>
+    <p>Mira, your AI investment assistant, is still being built. You'll be able to ask it about your portfolio, holdings, and performance right from here.</p>
+    <div class="btn-primary" id="mira-modal-close" style="background:var(--ink); border-color:var(--ink);">Got it</div>
+  </div>
+</div>
+
+<!-- Compare Distributors (Round 5, 2026-10-24) — ported from the real
+     DistributorComparisonModal.tsx. Direct Plan row + 2 ARN-coded rows,
+     expand to see per-scheme breakdown. All figures reconcile exactly to
+     this page's Total Invested (₹51,00,000) / Total Value (₹66,98,600) and
+     the "72% Direct, 28% Regular" split already shown in Quick Insights. -->
+<div class="dist-modal-overlay" id="dist-modal" hidden>
+  <div class="dist-modal">
+    <div class="dist-modal-head">
+      <h3>Compare Distributors</h3>
+      <div class="dist-modal-close" id="dist-modal-close">&times;</div>
+    </div>
+    <div class="dist-modal-sub">How your investments split across Direct Plan and regular (ARN-coded) distributors — expand a row to see the schemes behind it.</div>
+    <div class="dist-table-wrap">
+      <table class="dist-table">
+        <thead><tr><th style="width:24px;"></th><th>Distributor</th><th class="num">Invested</th><th class="num">Current Value</th><th class="num">Unrealized Gain</th></tr></thead>
+        <tbody>
+          <tr class="dist-row" data-dist="direct">
+            <td><svg class="icon icon-sm dist-expand-btn"><use href="#i-chevron-right"/></svg></td>
+            <td><b>Direct Plan (No Broker)</b><div><span class="dist-status direct">Direct</span></div></td>
+            <td class="num">₹36,72,000</td><td class="num">₹48,22,992</td><td class="num gl-pos">+₹11,50,992</td>
+          </tr>
+          <tr class="dist-scheme-row" data-dist-parent="direct" style="display:none;"><td></td><td colspan="4">
+            <div style="display:flex; justify-content:space-between; padding:6px 0;"><div><div class="scheme-name">Kotak Multi Cap Fund</div><div class="scheme-member">Siddharth</div></div><div class="num" style="text-align:right;">₹12,00,000 → ₹15,40,000</div></div>
+            <div style="display:flex; justify-content:space-between; padding:6px 0; border-top:1px solid var(--border-soft);"><div><div class="scheme-name">JM Flexi Cap Fund</div><div class="scheme-member">Aarohi<div class="scheme-saving">Saves 1.1% a year vs Regular</div></div></div><div class="num" style="text-align:right;">₹8,00,000 → ₹9,80,000</div></div>
+            <div style="display:flex; justify-content:space-between; padding:6px 0; border-top:1px solid var(--border-soft);"><div><div class="scheme-name">HDFC Mid-Cap Opportunities</div><div class="scheme-member">Parents<div class="scheme-saving">Saves 0.9% a year vs Regular</div></div></div><div class="num" style="text-align:right;">₹9,50,000 → ₹13,10,000</div></div>
+            <div style="display:flex; justify-content:space-between; padding:6px 0; border-top:1px solid var(--border-soft);"><div><div class="scheme-name">Mirae Asset Large &amp; Midcap Fund</div><div class="scheme-member">Siddharth<div class="scheme-saving">Saves 0.8% a year vs Regular</div></div></div><div class="num" style="text-align:right;">₹7,22,000 → ₹9,92,992</div></div>
+          </td></tr>
+
+          <tr class="dist-row" data-dist="prudent">
+            <td><svg class="icon icon-sm dist-expand-btn"><use href="#i-chevron-right"/></svg></td>
+            <td><b>Prudent Wealth Advisors</b><div><span class="dist-status active">ARN-99214</span></div></td>
+            <td class="num">₹10,28,000</td><td class="num">₹13,55,608</td><td class="num gl-pos">+₹3,27,608</td>
+          </tr>
+          <tr class="dist-scheme-row" data-dist-parent="prudent" style="display:none;"><td></td><td colspan="4">
+            <div style="display:flex; justify-content:space-between; padding:6px 0;"><div><div class="scheme-name">SBI Bluechip Fund — Regular Plan</div><div class="scheme-member">Parents</div></div><div class="num" style="text-align:right;">₹6,28,000 → ₹8,19,340</div></div>
+            <div style="display:flex; justify-content:space-between; padding:6px 0; border-top:1px solid var(--border-soft);"><div><div class="scheme-name">ICICI Prudential Bluechip Fund — Regular Plan</div><div class="scheme-member">Aarohi</div></div><div class="num" style="text-align:right;">₹4,00,000 → ₹5,36,268</div></div>
+          </td></tr>
+
+          <tr class="dist-row" data-dist="mk">
+            <td><svg class="icon icon-sm dist-expand-btn"><use href="#i-chevron-right"/></svg></td>
+            <td><b>M.K. Investment Services</b><div><span class="dist-status active">ARN-45310</span></div></td>
+            <td class="num">₹4,00,000</td><td class="num">₹5,20,000</td><td class="num gl-pos">+₹1,20,000</td>
+          </tr>
+          <tr class="dist-scheme-row" data-dist-parent="mk" style="display:none;"><td></td><td colspan="4">
+            <div style="display:flex; justify-content:space-between; padding:6px 0;"><div><div class="scheme-name">Axis Midcap Fund — Regular Plan</div><div class="scheme-member">Siddharth</div></div><div class="num" style="text-align:right;">₹4,00,000 → ₹5,20,000</div></div>
+          </td></tr>
+        </tbody>
+      </table>
+      <div class="table-foot-note">Figures sum exactly to this page's Total Invested (₹51,00,000) and Total Portfolio Value (₹66,98,600) — 72% Direct Plan / 28% Regular, matching the Quick Insights summary above.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var miraModal = document.getElementById('mira-modal');
+  document.querySelectorAll('.mira-trigger').forEach(function(t){ t.addEventListener('click', function(){ miraModal.hidden = false; }); });
+  document.getElementById('mira-modal-close').addEventListener('click', function(){ miraModal.hidden = true; });
+  miraModal.addEventListener('click', function(e){ if (e.target === miraModal) miraModal.hidden = true; });
+
+  function setGlobal(state){
+    document.querySelectorAll('[data-global]').forEach(function(b){ b.classList.toggle('active', b.dataset.global === state); });
+    ['g-loading','g-empty','g-error','g-happy'].forEach(function(id){
+      document.getElementById(id).style.display = (id === 'g-' + state) ? 'block' : 'none';
+    });
+    var subEnabled = state === 'happy';
+    ['row-strip','row-table','row-amc'].forEach(function(id){
+      document.getElementById(id).classList.toggle('ctl-sub', !subEnabled);
+      document.getElementById(id).classList.toggle('enabled', subEnabled);
+    });
+  }
+  function setSection(sec, val){
+    document.querySelectorAll('[data-sec="'+sec+'"]').forEach(function(b){ b.classList.toggle('active', b.dataset.val === val); });
+    ['default','partial','sparkerr','loading','error','single'].forEach(function(v){
+      var el = document.getElementById(sec + '-' + v);
+      if (el) el.style.display = (v === val) ? '' : 'none';
+    });
+  }
+  document.querySelectorAll('[data-global]').forEach(function(b){ b.addEventListener('click', function(){ setGlobal(b.dataset.global); }); });
+  document.querySelectorAll('[data-sec]').forEach(function(b){ b.addEventListener('click', function(){ setSection(b.dataset.sec, b.dataset.val); }); });
+  document.getElementById('row-strip').classList.add('ctl-sub','enabled');
+  document.getElementById('row-table').classList.add('ctl-sub','enabled');
+  document.getElementById('row-amc').classList.add('ctl-sub','enabled');
+
+  document.querySelectorAll('.seg-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var siblings = btn.parentElement.querySelectorAll('.seg-btn');
+      siblings.forEach(function(s){ s.classList.remove('active'); });
+      btn.classList.add('active');
+    });
+  });
+
+  document.querySelectorAll('.htab').forEach(function(t){
+    t.addEventListener('click', function(){
+      document.querySelectorAll('.htab').forEach(function(o){ o.classList.remove('active'); });
+      t.classList.add('active');
+    });
+  });
+
+  /* ---- AMC donut: real SVG arcs + pop-out/dim/label-swap, same mechanic as
+     the Home page's AllocationDonut hover — ported to AllocationSummary.by_amc
+     shape (label, current_value, percentage only — no per-bucket invested/
+     gain/XIRR in that schema, so the popup only shows Value + %). ---- */
+  var SLICES = [
+    { label:'HDFC Mutual Fund',       pct:40.0, color:'#22C55E', value:'₹26,79,440' },
+    { label:'Kotak Mahindra MF',      pct:22.0, color:'#0D9488', value:'₹14,73,692' },
+    { label:'Parag Parikh (PPFAS)',   pct:16.0, color:'#2563EB', value:'₹10,71,776' },
+    { label:'JM Financial MF',        pct:12.0, color:'#6366F1', value:'₹8,03,832'  },
+    { label:'Others',                 pct:10.0, color:'#8B5CF6', value:'₹6,69,860'  },
+  ];
+
+  var R = 70, SW = 28, CIRC = 2 * Math.PI * R, GAP = 4;
+  var svgSegs = document.getElementById('pie-segments');
+  var legendEl = document.getElementById('legend-list');
+  var holeLabel = document.getElementById('hole-label');
+  var holeValue = document.getElementById('hole-value');
+  var holePct = document.getElementById('hole-pct');
+
+  var cum = 0;
+  SLICES.forEach(function(s){
+    var startDeg = -90 + cum * 3.6;
+    var segLen = Math.max((s.pct / 100) * CIRC - GAP, 2);
+    var midDeg = startDeg + (s.pct * 3.6) / 2;
+    var midRad = midDeg * Math.PI / 180;
+    s._dx = (Math.cos(midRad) * 7).toFixed(2);
+    s._dy = (Math.sin(midRad) * 7).toFixed(2);
+
+    var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'pie-seg');
+    g.setAttribute('data-label', s.label);
+    g.style.setProperty('--dx', s._dx + 'px');
+    g.style.setProperty('--dy', s._dy + 'px');
+    var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', 100); c.setAttribute('cy', 100); c.setAttribute('r', R);
+    c.setAttribute('stroke', s.color); c.setAttribute('stroke-width', SW);
+    c.setAttribute('stroke-dasharray', segLen + ' ' + (CIRC - segLen));
+    c.setAttribute('transform', 'rotate(' + startDeg + ' 100 100)');
+    g.appendChild(c);
+    svgSegs.appendChild(g);
+    cum += s.pct;
+  });
+
+  SLICES.forEach(function(s){
+    var row = document.createElement('div');
+    row.className = 'l-row';
+    row.setAttribute('data-label', s.label);
+    row.innerHTML =
+      '<span class="l-dot" style="background:' + s.color + '"></span>' +
+      '<span class="l-label">' + s.label + '</span>' +
+      '<span class="l-pct">' + s.pct.toFixed(1) + '%</span>' +
+      '<svg class="icon l-chev"><use href="#i-chevron-right"/></svg>';
+    legendEl.appendChild(row);
+  });
+
+  var popupEl = document.getElementById('alloc-popup');
+  var popLabel = document.getElementById('pop-label');
+  var popAllocation = document.getElementById('pop-allocation');
+  var popValue = document.getElementById('pop-value');
+
+  function setActive(label){
+    document.querySelectorAll('.pie-seg').forEach(function(g){
+      var match = g.getAttribute('data-label') === label;
+      g.classList.toggle('is-active', match && label !== null);
+      g.classList.toggle('is-dim', label !== null && !match);
+    });
+    document.querySelectorAll('.l-row').forEach(function(r){
+      r.classList.toggle('is-active', r.getAttribute('data-label') === label);
+    });
+    if (label === null) {
+      holeLabel.textContent = 'Total';
+      holeValue.textContent = '₹66.9L';
+      holePct.style.display = 'none';
+      popupEl.classList.remove('is-visible');
+    } else {
+      var s = SLICES.find(function(x){ return x.label === label; });
+      holeLabel.textContent = s.label;
+      holeValue.textContent = s.value;
+      holePct.textContent = s.pct.toFixed(1) + '%';
+      holePct.style.display = '';
+
+      popLabel.textContent = s.label;
+      popAllocation.textContent = s.pct.toFixed(1) + '%';
+      popValue.textContent = s.value;
+      popupEl.classList.add('is-visible');
+    }
+  }
+  document.querySelectorAll('.pie-seg').forEach(function(g){
+    g.addEventListener('mouseenter', function(){ setActive(g.getAttribute('data-label')); });
+    g.addEventListener('mouseleave', function(){ setActive(null); });
+  });
+  legendEl.addEventListener('mouseover', function(e){
+    var row = e.target.closest('.l-row');
+    if (row) setActive(row.getAttribute('data-label'));
+  });
+  legendEl.addEventListener('mouseleave', function(){ setActive(null); });
+})();
+
+/* ---- SIPs: capsule timeline + tab switching (Round 5) ---- */
+(function(){
+  var SIP_DATA = {
+    '24oct': [ { name:'DSP Small Cap Fund — Direct Plan — Growth', member:'Aarohi', amt:'₹3,336' } ],
+    '26oct': [ { name:'Invesco India Large & Mid Cap Fund — Direct Plan — Growth', member:'Siddharth', amt:'₹5,005' } ],
+    '27oct': [
+      { name:'SBI Small Cap Fund — Direct Plan — Growth', member:'Parents', amt:'₹3,249' },
+      { name:'Nippon India Large Cap Fund — Direct Plan — Growth Option', member:'Siddharth', amt:'₹12,995' }
+    ],
+    '02nov': [ { name:'HDFC Small Cap Fund — Direct Plan — Growth', member:'Siddharth', amt:'₹6,498' } ],
+    '03nov': [ { name:'Tata Digital India Fund — Direct Plan — Growth', member:'Aarohi', amt:'₹6,673' } ],
+    '05nov': [ { name:'Edelweiss Mid Cap Fund — Direct Plan — Growth', member:'Parents', amt:'₹16,682' } ],
+    '07nov': [ { name:'DSP Midcap Fund — Direct Plan — Growth', member:'Aarohi', amt:'₹5,005' } ]
+  };
+
+  function renderDetail(dateKey){
+    var panel = document.getElementById('sip-detail-upcoming');
+    var rows = SIP_DATA[dateKey] || [];
+    panel.innerHTML = rows.map(function(r){
+      return '<div class="sip-detail-row"><div><div class="srow-name">'+r.name+'</div><div class="srow-member">'+r.member+'</div></div><div class="srow-amt">'+r.amt+'</div></div>';
+    }).join('');
+  }
+  document.querySelectorAll('#sip-timeline-upcoming .sip-cap').forEach(function(cap){
+    cap.addEventListener('click', function(){
+      document.querySelectorAll('#sip-timeline-upcoming .sip-cap').forEach(function(c){ c.classList.remove('is-active'); });
+      cap.classList.add('is-active');
+      renderDetail(cap.getAttribute('data-sip-date'));
+    });
+  });
+  renderDetail('24oct');
+
+  document.querySelectorAll('.sip-tab-btn').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.sip-tab-btn').forEach(function(t){ t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected','true');
+      var target = tab.getAttribute('data-sip-tab');
+      ['upcoming','month','stopped'].forEach(function(id){
+        document.getElementById('sip-panel-'+id).style.display = (id === target) ? '' : 'none';
+      });
+    });
+  });
+})();
+
+/* ---- Compare Distributors modal: open/close + row-expand (Round 5) ---- */
+(function(){
+  var distModal = document.getElementById('dist-modal');
+  document.querySelectorAll('.dist-trigger').forEach(function(t){ t.addEventListener('click', function(){ distModal.hidden = false; }); });
+  document.getElementById('dist-modal-close').addEventListener('click', function(){ distModal.hidden = true; });
+  distModal.addEventListener('click', function(e){ if (e.target === distModal) distModal.hidden = true; });
+
+  document.querySelectorAll('.dist-row').forEach(function(row){
+    row.addEventListener('click', function(){
+      var key = row.getAttribute('data-dist');
+      var schemeRow = document.querySelector('.dist-scheme-row[data-dist-parent="'+key+'"]');
+      var isOpen = row.classList.toggle('is-open');
+      schemeRow.style.display = isOpen ? '' : 'none';
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

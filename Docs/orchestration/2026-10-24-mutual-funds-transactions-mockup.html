@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mutual Funds — Transactions page, high-fidelity mockup, all states (v1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F5F5F5; --surface:#FFFFFF; --border:#ECECEC; --border-soft:#ECECEC; --border-input:#DFDFDF;
+    --ink:#111111; --secondary:#717171; --body:#4B4B4B; --muted:#9B9B9B; --text-disabled:#C4C4C4;
+    --accent:#22C55E; --accent-hover:#16A34A; --accent-pressed:#15803D; --accent-selected-bg:#E9F9EF;
+    --pos:#22C55E; --pos-text:#15803D; --pos-bg:#EAFBF0;
+    --neg:#E5484D; --neg-text:#C1272D; --neg-bg:#FDECEC;
+    --warn:#D97706; --warn-text:#92400E; --warn-bg:#FEF3E2;
+    --teal:#0D9488; --switch:#8B5CF6; --switch-bg:#F3F0FE;
+    --c1:#22C55E; --c2:#0D9488; --c3:#2563EB; --c4:#6366F1; --c5:#8B5CF6; --c6:#D97706; --c7:#EC4899; --c8:#C1272D;
+    --font-display:'DM Sans',-apple-system,'Segoe UI',Arial,sans-serif;
+    --font-body:'Manrope',-apple-system,'Segoe UI',Arial,sans-serif;
+    --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:20px; --radius-pill:9999px;
+    --shadow-sm:0 1px 2px rgba(17,17,17,.05), 0 1px 1px rgba(17,17,17,.03);
+    --shadow-md:0 8px 24px rgba(17,17,17,.08), 0 2px 6px rgba(17,17,17,.04);
+    --shadow-lg:0 20px 48px rgba(17,17,17,.12), 0 4px 10px rgba(17,17,17,.05);
+    --fast:150ms cubic-bezier(.4,0,.2,1);
+    --pop:260ms cubic-bezier(.34,1.56,.64,1);
+    --hover-tint:#F2FBF5;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; }
+  body { font-family:var(--font-body); background:#fff; color:var(--ink); padding:28px 28px 90px; -webkit-font-smoothing:antialiased; }
+  h1 { font-family:var(--font-display); font-size:19px; font-weight:700; margin:0 0 4px; }
+  .doc-subtitle { color:var(--secondary); font-size:13px; margin:0 0 16px; max-width:1040px; line-height:1.55; }
+  .icon { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; display:block; }
+  .icon-sm { width:13px; height:13px; }
+  .icon-lg { width:20px; height:20px; }
+  code { background:#F3F3F3; padding:1px 6px; border-radius:4px; font-size:11.5px; }
+
+  .controls { position:sticky; top:0; z-index:50; background:#fff; border:1px solid #ddd; border-radius:12px; padding:12px 16px; margin-bottom:20px; box-shadow:0 2px 14px rgba(0,0,0,.1); max-width:1640px; }
+  .ctl-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .ctl-row:last-child { margin-bottom:0; }
+  .ctl-label { font-family:var(--font-display); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--secondary); width:140px; flex-shrink:0; }
+  .ctl-btn { font-family:var(--font-display); font-weight:600; font-size:11px; padding:5px 11px; border-radius:7px; border:1px solid var(--border); background:#fafafa; color:#444; cursor:pointer; transition:all var(--fast); }
+  .ctl-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+  .ctl-btn.active { background:var(--ink); border-color:var(--ink); color:#fff; }
+
+  .frame { background:var(--bg); border-radius:18px; padding:16px; max-width:1640px; }
+  .topbar { display:flex; align-items:center; gap:16px; padding:6px 10px 18px; }
+  .logo { font-family:var(--font-display); font-weight:800; font-size:17px; letter-spacing:-.01em; flex-shrink:0; }
+  .search-pill { flex:1; max-width:380px; display:flex; align-items:center; gap:8px; background:#F2F2F3; border-radius:var(--radius-pill); padding:9px 16px; color:var(--muted); font-size:13px; }
+  .top-actions { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .pill-ghost { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-weight:600; font-size:12.5px; padding:8px 14px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; color:var(--ink); white-space:nowrap; cursor:pointer; transition:all var(--fast); }
+  .pill-ghost:hover { border-color:#d5d5d5; box-shadow:var(--shadow-sm); transform:translateY(-1px); }
+  .pill-ghost.accent-outline { border-color:var(--accent); color:var(--accent-hover); }
+  .pill-ghost.accent-outline:hover { background:var(--hover-tint); border-color:var(--accent); }
+  .icon-btn { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--secondary); cursor:pointer; transition:background var(--fast); flex-shrink:0; }
+  .icon-btn:hover { background:#F2F2F3; }
+  .avatar-top { width:34px; height:34px; border-radius:50%; background:var(--ink); color:#fff; font-family:var(--font-display); font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .mira-trigger { cursor:pointer; }
+
+  .layout { display:flex; gap:18px; align-items:flex-start; }
+  .sidebar { width:186px; flex-shrink:0; background:transparent; padding:4px 0; }
+  .side-item { display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:10px; color:var(--secondary); font-size:13.5px; font-weight:500; margin-bottom:2px; cursor:pointer; transition:background var(--fast), color var(--fast); }
+  .side-item:hover { background:#F4F4F4; color:var(--ink); }
+  .side-item.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+  .side-divider { height:1px; background:var(--border-soft); margin:12px 10px; }
+
+  .main { flex:1; display:flex; flex-direction:column; gap:18px; min-width:0; position:relative; }
+
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; padding:2px 2px 0; }
+  .crumb { font-size:11.5px; color:var(--muted); font-weight:500; }
+  .page-header h2 { font-family:var(--font-display); font-size:26px; font-weight:800; letter-spacing:-.015em; margin:4px 0 4px; }
+  .page-sub { font-size:13px; color:var(--secondary); }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:22px 24px; opacity:0; transform:translateY(10px); animation:settle 240ms cubic-bezier(.16,1,.3,1) forwards; }
+  @keyframes settle { to { opacity:1; transform:translateY(0); } }
+  .card-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; flex-wrap:wrap; gap:10px; }
+  .card-title { display:flex; align-items:center; gap:7px; font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ink); }
+  .card-desc { font-size:12px; color:var(--muted); margin-bottom:16px; max-width:760px; line-height:1.55; }
+
+  .info-dot { width:14px; height:14px; border-radius:50%; background:#EEE; color:var(--secondary); font-size:9px; font-style:italic; font-family:Georgia,serif; font-weight:700; display:inline-flex; align-items:center; justify-content:center; cursor:help; position:relative; flex-shrink:0; }
+  .info-dot .tip { position:absolute; bottom:calc(100% + 7px); left:50%; transform:translateX(-50%) translateY(3px); background:#1a1a1a; color:#fff; font-size:10.5px; font-weight:500; font-style:normal; font-family:var(--font-body); line-height:1.4; padding:8px 11px; border-radius:8px; width:208px; text-align:left; opacity:0; pointer-events:none; transition:opacity 100ms ease, transform 100ms ease; z-index:12; }
+  .info-dot:hover .tip { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .tabs-utility-row { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:12px 18px; }
+  .htabs { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+  .htab { font-family:var(--font-display); font-size:13px; font-weight:600; color:var(--secondary); padding:9px 15px; border-radius:var(--radius-pill); cursor:pointer; transition:background var(--fast), color var(--fast); white-space:nowrap; }
+  .htab:hover:not(.active) { background:#F4F4F4; color:var(--ink); }
+  .htab.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+
+  .seg-toggle { display:inline-flex; background:#F0F0F1; border-radius:var(--radius-pill); padding:2px; width:fit-content; }
+  .seg-btn { font-family:var(--font-display); font-weight:700; font-size:11px; padding:6px 13px; border-radius:var(--radius-pill); color:var(--muted); cursor:pointer; transition:all var(--fast); white-space:nowrap; }
+  .seg-btn.active { background:#fff; color:var(--ink); box-shadow:var(--shadow-sm); }
+  .seg-btn:hover:not(.active) { color:var(--ink); }
+
+  .shimmer { position:relative; overflow:hidden; background:#EFEFEF; border-radius:7px; }
+  .shimmer::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent); background-size:200% 100%; animation:shimmer 1.4s ease-in-out infinite; }
+  @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+
+  .page-state { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:76px 20px; gap:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+  .page-state .big-ico { width:58px; height:58px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; }
+  .page-state.is-error .big-ico { background:var(--warn-bg); color:var(--warn-text); }
+  .page-state h3 { font-family:var(--font-display); font-size:19px; margin:0; }
+  .page-state p { margin:0; font-size:13px; color:var(--secondary); max-width:400px; line-height:1.6; }
+  .retry-btn { font-family:var(--font-display); font-weight:700; font-size:12px; padding:7px 16px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; cursor:pointer; transition:all var(--fast); }
+  .retry-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+
+  .mira-modal-overlay { position:fixed; inset:0; background:rgba(17,17,17,.45); z-index:200; display:flex; align-items:center; justify-content:center; }
+  .mira-modal-overlay[hidden] { display:none; }
+  .mira-modal { background:#fff; width:360px; max-width:calc(100vw - 40px); border-radius:var(--radius-lg); padding:26px 26px 22px; box-shadow:var(--shadow-lg); text-align:center; animation:settle 200ms cubic-bezier(.16,1,.3,1); }
+  .mira-modal .glyph-ring { width:44px; height:44px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; }
+  .mira-modal h3 { font-family:var(--font-display); font-size:17px; margin:0 0 8px; }
+  .mira-modal p { font-size:13px; color:var(--secondary); line-height:1.55; margin:0 0 18px; }
+  .mira-modal .btn-primary { width:100%; justify-content:center; display:inline-flex; align-items:center; font-family:var(--font-display); font-weight:700; padding:10px 18px; border-radius:var(--radius-pill); color:#fff; cursor:pointer; }
+
+  .spec { max-width:1080px; margin-top:44px; }
+  .spec h2 { font-family:var(--font-display); font-size:17px; margin:34px 0 10px; }
+  .spec h2:first-child { margin-top:0; }
+  .spec table { border-collapse:collapse; width:100%; font-size:12.5px; margin-bottom:6px; }
+  .spec th, .spec td { text-align:left; padding:8px 10px; border-bottom:1px solid #eee; vertical-align:top; }
+  .spec th { font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--secondary); font-weight:700; font-family:var(--font-display); }
+  .decided-against { background:#F6F6F6; border-radius:8px; padding:11px 15px; font-size:12.5px; color:#444; margin-top:8px; }
+  .locked-note { background:var(--pos-bg); border:1px solid var(--pos); border-radius:9px; padding:13px 17px; font-size:13px; color:var(--pos-text); margin-top:22px; max-width:1080px; }
+
+  /* ---------------- Transactions-specific (genuine redesign, not a port — design.md §7.4) ---------------- */
+  .txn-stat-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
+  .txn-stat { border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:15px 17px; }
+  .txn-stat .ts-label { font-size:11px; color:var(--muted); font-weight:600; display:flex; align-items:center; gap:6px; }
+  .txn-stat .ts-ico { width:26px; height:26px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .txn-stat .ts-val { font-family:var(--font-display); font-size:21px; font-weight:800; margin-top:8px; }
+  .txn-stat.invested .ts-ico { background:var(--pos-bg); color:var(--pos-text); }
+  .txn-stat.withdrawn .ts-ico { background:var(--neg-bg); color:var(--neg-text); }
+  .txn-stat.switched .ts-ico { background:var(--switch-bg); color:var(--switch); }
+  .txn-stat.net .ts-ico { background:var(--accent-selected-bg); color:var(--accent-hover); }
+
+  .chart-stage { display:flex; align-items:flex-end; gap:14px; height:200px; padding:0 4px; margin-top:8px; border-bottom:1px solid var(--border-soft); }
+  .chart-col { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; cursor:pointer; position:relative; }
+  .chart-bars { display:flex; align-items:flex-end; gap:3px; height:100%; width:100%; justify-content:center; }
+  .chart-bar { width:16px; border-radius:4px 4px 0 0; transition:opacity var(--fast), transform var(--fast); }
+  .chart-bar.invested { background:var(--accent); }
+  .chart-bar.withdrawn { background:var(--neg); }
+  .chart-col:hover .chart-bar { opacity:.75; }
+  /* Persistent selection on the clicked period — same rule as every other drill-down on this page set (design.md §11.1) */
+  .chart-col.is-selected .chart-bar { opacity:1; transform:scaleX(1.08); }
+  .chart-col.is-selected { }
+  .chart-col-label { font-size:10.5px; color:var(--muted); font-weight:600; margin-top:8px; }
+  .chart-col.is-selected .chart-col-label { color:var(--accent-hover); font-weight:800; }
+  .chart-legend { display:flex; gap:18px; margin-top:12px; font-size:11.5px; color:var(--secondary); }
+  .chart-legend span { display:inline-flex; align-items:center; gap:6px; }
+  .chart-legend .dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+
+  .period-drill { border-top:1px solid var(--border-soft); margin-top:18px; padding-top:16px; }
+  .period-drill-title { font-family:var(--font-display); font-weight:700; font-size:14px; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .txn-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .txn-table thead th { text-align:left; font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:0 12px 8px; }
+  .txn-table thead th.num { text-align:right; }
+  .txn-table tbody td { padding:10px 12px; border-top:1px solid var(--border-soft); }
+  .txn-table tbody td.num { text-align:right; font-variant-numeric:tabular-nums; }
+
+  .type-badge { display:inline-flex; align-items:center; gap:5px; font-family:var(--font-display); font-weight:700; font-size:10.5px; padding:3px 9px; border-radius:var(--radius-pill); }
+  .type-badge.purchase { background:var(--pos-bg); color:var(--pos-text); }
+  .type-badge.redemption { background:var(--neg-bg); color:var(--neg-text); }
+  .type-badge.switch-in { background:var(--switch-bg); color:var(--switch); }
+  .type-badge.switch-out { background:var(--switch-bg); color:var(--switch); }
+
+  .ledger-row { display:flex; align-items:center; gap:14px; padding:13px 10px; border-top:1px solid var(--border-soft); cursor:pointer; transition:background var(--fast); border-radius:10px; }
+  .ledger-row:first-child { border-top:none; }
+  .ledger-row:hover, .ledger-row.is-open { background:var(--hover-tint); }
+  .ledger-ico { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .ledger-ico.purchase { background:var(--pos-bg); color:var(--pos-text); }
+  .ledger-ico.redemption { background:var(--neg-bg); color:var(--neg-text); }
+  .ledger-ico.switch-in, .ledger-ico.switch-out { background:var(--switch-bg); color:var(--switch); }
+  .ledger-main { flex:1; min-width:0; }
+  .ledger-fund { font-weight:700; font-size:13px; }
+  .ledger-meta { font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .ledger-amt { font-family:var(--font-display); font-weight:800; font-size:14px; white-space:nowrap; }
+  .ledger-amt.neg { color:var(--neg-text); }
+  .ledger-amt.pos { color:var(--pos-text); }
+  .ledger-chev { color:var(--muted); transition:transform var(--fast); }
+  .ledger-row.is-open .ledger-chev { transform:rotate(90deg); color:var(--accent-hover); }
+  .ledger-detail { padding:4px 10px 14px 64px; display:none; gap:18px; flex-wrap:wrap; font-size:11.5px; color:var(--secondary); }
+  .ledger-detail b { color:var(--ink); }
+  .ledger-row.is-open + .ledger-detail { display:flex; }
+</style>
+</head>
+<body>
+
+<svg style="display:none">
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M17 3l4 4-4 4"/><path d="M3 7h18"/><path d="M7 21l-4-4 4-4"/><path d="M21 17H3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M20 20l-5.5-5.5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15.2 20c0-2.2 1.7-4 3.8-4.6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></symbol>
+  <symbol id="i-bar-chart" viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></symbol>
+  <symbol id="i-pie" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
+  <symbol id="i-trending" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-8"/><path d="M14 7h6v6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.8 1c0 1.8-2.3 2-2.3 3.5"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 10v5"/><path d="M12 18.2v.1"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></symbol>
+</svg>
+
+<h1>Mutual Funds — Transactions page, high-fidelity mockup</h1>
+<p class="doc-subtitle">Route <code>portfolio-mutual-funds-transactions</code> → <code>/portfolio/mutual-funds/transactions</code>,
+per design.md §7.4. Same cash-flow ledger data as today's <code>InvestmentWithdrawalSection</code> +
+<code>PeriodBreakdownTable</code> (invested/withdrawn/switched, monthly/yearly buckets, drill-down to dated
+per-fund transactions) — but the owner flagged the current UI as "still pretty shit," so this is a genuine visual
+redesign, not a port: a stat strip, a clickable period bar-chart (monthly/yearly toggle) that drills into dated
+transactions for the clicked period, and a redesigned transaction ledger with type-colored icon chips. Same token
+system, chrome, and Ask-Mira popup as Overview/Performance/Allocation/Holdings.</p>
+
+<div class="controls">
+  <div class="ctl-row">
+    <div class="ctl-label">Page state</div>
+    <button class="ctl-btn active" data-global="happy">Happy path</button>
+    <button class="ctl-btn" data-global="loading">Initial loading</button>
+    <button class="ctl-btn" data-global="error">Page error</button>
+  </div>
+</div>
+
+<div class="frame">
+
+  <div class="topbar">
+    <div class="logo">Unifolio</div>
+    <div class="search-pill"><svg class="icon icon-sm"><use href="#i-search"/></svg>Search for a fund, stock, or ask Mira...</div>
+    <div class="top-actions">
+      <div class="pill-ghost accent-outline mira-trigger"><svg class="icon icon-sm"><use href="#i-sparkle"/></svg>Ask Mira</div>
+      <div class="pill-ghost"><svg class="icon icon-sm"><use href="#i-users"/></svg>Family Combined<svg class="icon icon-sm"><use href="#i-chevron-down"/></svg></div>
+      <div class="icon-btn"><svg class="icon"><use href="#i-moon"/></svg></div>
+      <div class="avatar-top">SS</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="side-item"><svg class="icon"><use href="#i-home"/></svg>Home</div>
+      <div class="side-item"><svg class="icon"><use href="#i-bar-chart"/></svg>Analytics</div>
+      <div class="side-item active"><svg class="icon"><use href="#i-pie"/></svg>Investments</div>
+      <div class="side-item"><svg class="icon"><use href="#i-trending"/></svg>Performance</div>
+      <div class="side-item"><svg class="icon"><use href="#i-zap"/></svg>Scenarios</div>
+      <div class="side-divider"></div>
+      <div class="side-item"><svg class="icon"><use href="#i-user"/></svg>Profile</div>
+      <div class="side-item"><svg class="icon"><use href="#i-help"/></svg>Help &amp; Support</div>
+    </div>
+
+    <div class="main" id="main">
+
+      <div class="page-header">
+        <div>
+          <div class="crumb">Investments · Mutual Funds</div>
+          <h2>Transactions</h2>
+          <div class="page-sub">Every rupee in and out of your mutual funds, by period and by fund.</div>
+        </div>
+      </div>
+
+      <!-- ============ GLOBAL: INITIAL LOADING ============ -->
+      <div id="g-loading" style="display:none;">
+        <div class="card" style="margin-bottom:18px;"><div class="shimmer" style="height:16px; width:30%; margin-bottom:16px; border-radius:8px;"></div><div class="shimmer" style="height:260px; width:100%; border-radius:12px;"></div></div>
+        <div class="card"><div class="shimmer" style="height:16px; width:30%; margin-bottom:16px; border-radius:8px;"></div><div class="shimmer" style="height:320px; width:100%; border-radius:12px;"></div></div>
+      </div>
+
+      <!-- ============ GLOBAL: PAGE ERROR ============ -->
+      <div id="g-error" style="display:none;">
+        <div class="page-state is-error">
+          <div class="big-ico"><svg class="icon-lg"><use href="#i-alert"/></svg></div>
+          <h3>Couldn't load your transactions</h3>
+          <p>There was a problem reaching our servers. Your data is safe — this is just a connection issue.</p>
+          <div class="retry-btn" style="padding:9px 20px; font-size:13px;">Retry</div>
+        </div>
+      </div>
+
+      <!-- ============ HAPPY PATH ============ -->
+      <div id="g-happy">
+
+        <div class="tabs-utility-row card" style="margin-bottom:0;">
+          <div class="htabs">
+            <div class="htab">Overview</div>
+            <div class="htab">Performance</div>
+            <div class="htab">Allocation</div>
+            <div class="htab">Holdings</div>
+            <div class="htab active">Transactions</div>
+            <div class="htab">Overlap</div>
+            <div class="htab">Other Analytics</div>
+          </div>
+        </div>
+
+        <!-- ================= CARD 1: Cash flow over time ================= -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-head">
+            <div class="card-title">Cash Flow Over Time</div>
+            <div class="seg-toggle" id="period-toggle">
+              <div class="seg-btn active" data-period="monthly">Monthly</div>
+              <div class="seg-btn" data-period="yearly">Yearly</div>
+            </div>
+          </div>
+          <div class="card-desc">Click any period to see its dated, per-fund transactions below.</div>
+
+          <div class="txn-stat-strip">
+            <div class="txn-stat invested"><div class="ts-label"><span class="ts-ico"><svg class="icon icon-sm"><use href="#i-plus"/></svg></span>Total invested</div><div class="ts-val">₹58.2L</div></div>
+            <div class="txn-stat withdrawn"><div class="ts-label"><span class="ts-ico"><svg class="icon icon-sm"><use href="#i-minus"/></svg></span>Total withdrawn</div><div class="ts-val">₹4.1L</div></div>
+            <div class="txn-stat switched"><div class="ts-label"><span class="ts-ico"><svg class="icon icon-sm"><use href="#i-swap"/></svg></span>Net switched</div><div class="ts-val">₹0</div></div>
+            <div class="txn-stat net"><div class="ts-label"><span class="ts-ico"><svg class="icon icon-sm"><use href="#i-trending"/></svg></span>Net invested</div><div class="ts-val">₹54.1L</div></div>
+          </div>
+
+          <div class="chart-stage" id="chart-stage"></div>
+          <div class="chart-legend">
+            <span><span class="dot" style="background:var(--accent)"></span>Invested</span>
+            <span><span class="dot" style="background:var(--neg)"></span>Withdrawn + switched out</span>
+          </div>
+
+          <div class="period-drill" id="period-drill" style="display:none;">
+            <div class="period-drill-title"><svg class="icon"><use href="#i-bar-chart"/></svg><span id="drill-period-label"></span></div>
+            <table class="txn-table">
+              <thead><tr><th>Date</th><th>Fund</th><th>Type</th><th class="num">Units</th><th class="num">NAV</th><th class="num">Amount</th></tr></thead>
+              <tbody id="drill-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ================= CARD 2: All transactions ledger ================= -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-head">
+            <div class="card-title">All Transactions</div>
+            <div class="seg-toggle" id="type-toggle">
+              <div class="seg-btn active" data-type="all">All</div>
+              <div class="seg-btn" data-type="purchase">Purchases</div>
+              <div class="seg-btn" data-type="redemption">Redemptions</div>
+              <div class="seg-btn" data-type="switch">Switches</div>
+            </div>
+          </div>
+          <div class="card-desc">Click a transaction for its NAV, units, and folio details.</div>
+          <div id="ledger-list"></div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Ask Mira — coming soon (shared verbatim with Overview/Performance/Allocation/Holdings) -->
+<div class="mira-modal-overlay" id="mira-modal" hidden>
+  <div class="mira-modal">
+    <div class="glyph-ring"><svg class="icon-lg"><use href="#i-sparkle"/></svg></div>
+    <h3>Mira is coming soon</h3>
+    <p>Mira, your AI investment assistant, is still being built. You'll be able to ask it about your portfolio, holdings, and performance right from here.</p>
+    <div class="btn-primary" id="mira-modal-close" style="background:var(--ink); border:1px solid var(--ink);">Got it</div>
+  </div>
+</div>
+
+<div class="spec">
+
+<h2>Data source mapping</h2>
+<table>
+<tr><th>Element</th><th>Source</th><th>New work</th></tr>
+<tr><td>Stat strip + bar chart (monthly/yearly)</td><td><code>InvestmentWithdrawalSection</code>'s existing invested/withdrawn/switched buckets</td><td>None — same ledger, redesigned presentation (design.md §7.4)</td></tr>
+<tr><td>Period drill-down table</td><td><code>PeriodBreakdownTable</code> — dated per-fund transactions for the clicked period</td><td>None</td></tr>
+<tr><td>All Transactions ledger + type filter + row-expand</td><td>Same underlying transaction rows as the drill-down table, unfiltered by period</td><td>None</td></tr>
+</table>
+
+<h2>Motion &amp; interaction spec</h2>
+<table>
+<tr><th>Trigger</th><th>Behaviour</th><th>Timing</th></tr>
+<tr><td>Click the Monthly/Yearly pill</td><td>Chart re-renders with the other bucket size; any open period-drill closes (its period no longer exists at the new granularity)</td><td><code>--fast</code></td></tr>
+<tr><td>Click a period's bars</td><td>That period's column gets a persistent selected state (bars brighten + scale slightly, label bolds in accent — survives mouse-leave per design.md §11.1); the drill table below re-renders for that period and smooth-scrolls into view</td><td><code>--fast</code></td></tr>
+<tr><td>Click a ledger row</td><td>Row expands in place (chevron rotates) to show NAV, units, and folio number for that transaction — same in-place expand pattern as Holdings' stock table</td><td><code>--fast</code></td></tr>
+<tr><td>Click a type-filter pill</td><td>Ledger re-filters in place; any open row stays open if still in the filtered set</td><td><code>--fast</code></td></tr>
+</table>
+
+<div class="decided-against"><strong>Decided against:</strong> a line/area chart for cash flow over time — the
+owner's reference language ("monthly/yearly buckets," "drill-down to dated transactions") describes discrete
+periods you click into, which bars represent more literally than a continuous line; bars also give each period an
+obvious, separately-clickable hit target, which a line's hover-only point doesn't.</div>
+
+<div class="locked-note"><b>Status:</b> Transactions built per design.md §7.4 as a genuine visual redesign — same
+ledger/drill-down/numbers as <code>InvestmentWithdrawalSection</code> + <code>PeriodBreakdownTable</code>, new
+layout (stat strip, clickable bar chart, redesigned ledger with type-colored icon chips) per the owner's explicit
+"still pretty shit, needs more than a port" feedback. Every interactive element satisfies design.md §11.1 from the
+outset: the clicked chart period keeps a persistent selected look tied to the drill table beneath it (same pattern
+as Allocation's Round 6 fix and Holdings' fund chips), and ledger rows expand in place rather than updating
+anything elsewhere on the page.
+<br><br>Next: Other Analytics, Fund Overlap, Individual Fund page.</div>
+
+</div>
+
+<script>
+(function(){
+  var miraModal = document.getElementById('mira-modal');
+  document.querySelectorAll('.mira-trigger').forEach(function(t){ t.addEventListener('click', function(){ miraModal.hidden = false; }); });
+  document.getElementById('mira-modal-close').addEventListener('click', function(){ miraModal.hidden = true; });
+  miraModal.addEventListener('click', function(e){ if (e.target === miraModal) miraModal.hidden = true; });
+
+  function setGlobal(state){
+    document.querySelectorAll('[data-global]').forEach(function(b){ b.classList.toggle('active', b.dataset.global === state); });
+    ['g-loading','g-error','g-happy'].forEach(function(id){
+      document.getElementById(id).style.display = (id === 'g-' + state) ? 'block' : 'none';
+    });
+  }
+  document.querySelectorAll('[data-global]').forEach(function(b){ b.addEventListener('click', function(){ setGlobal(b.dataset.global); }); });
+
+  document.querySelectorAll('.htab').forEach(function(t){
+    t.addEventListener('click', function(){ document.querySelectorAll('.htab').forEach(function(o){ o.classList.remove('active'); }); t.classList.add('active'); });
+  });
+
+  var FUNDS = ['Kotak Multi Cap Fund','JM Flexi Cap Fund','HDFC Mid-Cap Opportunities Fund','Parag Parikh Flexi Cap Fund','HDFC Corporate Bond Fund'];
+
+  var MONTHLY = [
+    ['Jan ’26',4.1,0.2],['Feb ’26',4.1,0.1],['Mar ’26',4.3,0.6],['Apr ’26',4.1,0.2],['May ’26',4.1,0.1],
+    ['Jun ’26',4.4,0.3],['Jul ’26',4.1,0.2],['Aug ’26',4.1,0.4],['Sep ’26',4.6,0.1],['Oct ’26',4.1,0.2]
+  ];
+  var YEARLY = [
+    ['2021',6.8,0.3],['2022',8.4,0.6],['2023',10.2,0.9],['2024',12.6,0.8],['2025',14.1,1.1],['2026 (YTD)',42.3,2.3]
+  ];
+
+  var activePeriod = 'monthly';
+  var selectedCol = null;
+  var maxVal = 0;
+
+  function dataFor(period){ return period === 'monthly' ? MONTHLY : YEARLY; }
+
+  function renderChart(){
+    var data = dataFor(activePeriod);
+    maxVal = Math.max.apply(null, data.map(function(d){ return Math.max(d[1], d[2]); }));
+    var stage = document.getElementById('chart-stage');
+    stage.innerHTML = data.map(function(d, i){
+      var investedH = (d[1] / maxVal * 100).toFixed(0);
+      var outH = (d[2] / maxVal * 100).toFixed(0);
+      return '<div class="chart-col" data-idx="' + i + '">' +
+        '<div class="chart-bars"><div class="chart-bar invested" style="height:' + investedH + '%"></div><div class="chart-bar withdrawn" style="height:' + outH + '%"></div></div>' +
+        '<div class="chart-col-label">' + d[0] + '</div></div>';
+    }).join('');
+    stage.querySelectorAll('.chart-col').forEach(function(col){
+      col.addEventListener('click', function(){
+        selectedCol = parseInt(col.dataset.idx, 10);
+        renderChart();
+        renderDrill();
+      });
+    });
+    if (selectedCol !== null && selectedCol < data.length) {
+      var el = stage.querySelector('[data-idx="' + selectedCol + '"]');
+      if (el) el.classList.add('is-selected');
+    }
+  }
+
+  var TXN_TYPES = ['purchase','purchase','redemption','switch-out','switch-in','purchase'];
+  function makeTxns(periodLabel, investedTotal, outTotal){
+    var rows = [];
+    var nPurchases = 3;
+    for (var i = 0; i < nPurchases; i++){
+      var fund = FUNDS[i % FUNDS.length];
+      rows.push({ date: '03 ' + periodLabel.replace(' ’26','').replace(' (YTD)',''), fund: fund, type: 'purchase', units: (1200 + i*340).toFixed(2), nav: (42 + i*3).toFixed(2), amount: (investedTotal * (0.45 - i*0.1)).toFixed(2) });
+    }
+    if (outTotal > 0) {
+      rows.push({ date: '18 ' + periodLabel.replace(' ’26','').replace(' (YTD)',''), fund: FUNDS[4], type: 'redemption', units: (300).toFixed(2), nav: (38.5).toFixed(2), amount: outTotal.toFixed(2) });
+    }
+    return rows;
+  }
+
+  function renderDrill(){
+    var data = dataFor(activePeriod);
+    if (selectedCol === null) { document.getElementById('period-drill').style.display = 'none'; return; }
+    var d = data[selectedCol];
+    document.getElementById('period-drill').style.display = 'block';
+    document.getElementById('drill-period-label').textContent = d[0] + ' — invested ₹' + d[1].toFixed(1) + 'L, out ₹' + d[2].toFixed(1) + 'L';
+    var rows = makeTxns(d[0], d[1], d[2]);
+    document.getElementById('drill-body').innerHTML = rows.map(function(r){
+      return '<tr><td>' + r.date + '</td><td>' + r.fund + '</td><td><span class="type-badge ' + r.type + '">' + r.type.replace('-', ' ') + '</span></td>' +
+        '<td class="num">' + r.units + '</td><td class="num">₹' + r.nav + '</td><td class="num">₹' + r.amount + 'L</td></tr>';
+    }).join('');
+    document.getElementById('period-drill').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+
+  renderChart();
+
+  document.querySelectorAll('#period-toggle .seg-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('#period-toggle .seg-btn').forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      activePeriod = b.dataset.period;
+      selectedCol = null;
+      renderChart();
+      renderDrill();
+    });
+  });
+
+  /* ---- All Transactions ledger — same transaction universe, chronological, filterable ---- */
+  var LEDGER = [
+    { date: '22 Oct 2026', fund: 'Kotak Multi Cap Fund', type: 'purchase', amount: 1.8, units: '412.60', nav: 43.62, folio: '1182993421' },
+    { date: '15 Oct 2026', fund: 'JM Flexi Cap Fund', type: 'purchase', amount: 1.2, units: '268.11', nav: 44.75, folio: '1183004477' },
+    { date: '08 Oct 2026', fund: 'HDFC Corporate Bond Fund', type: 'redemption', amount: 0.4, units: '965.22', nav: 41.44, folio: '1181772230' },
+    { date: '03 Oct 2026', fund: 'HDFC Mid-Cap Opportunities Fund', type: 'purchase', amount: 1.1, units: '140.08', nav: 78.52, folio: '1183015590' },
+    { date: '28 Sep 2026', fund: 'Parag Parikh Flexi Cap Fund', type: 'purchase', amount: 0.9, units: '112.70', nav: 79.86, folio: '1182998812' },
+    { date: '14 Sep 2026', fund: 'JM Flexi Cap Fund', type: 'switch-out', amount: 0.3, units: '67.05', nav: 44.75, folio: '1183004477' },
+    { date: '14 Sep 2026', fund: 'Kotak Multi Cap Fund', type: 'switch-in', amount: 0.3, units: '68.80', nav: 43.62, folio: '1182993421' },
+    { date: '03 Sep 2026', fund: 'Kotak Multi Cap Fund', type: 'purchase', amount: 1.8, units: '412.60', nav: 43.62, folio: '1182993421' },
+    { date: '03 Aug 2026', fund: 'HDFC Mid-Cap Opportunities Fund', type: 'purchase', amount: 1.1, units: '140.08', nav: 78.52, folio: '1183015590' },
+    { date: '03 Jul 2026', fund: 'Parag Parikh Flexi Cap Fund', type: 'purchase', amount: 0.9, units: '112.70', nav: 79.86, folio: '1182998812' }
+  ];
+
+  var ICO = { purchase: 'i-plus', redemption: 'i-minus', 'switch-in': 'i-swap', 'switch-out': 'i-swap' };
+  var activeType = 'all';
+  var openIdx = null;
+  function renderLedger(){
+    var rows = LEDGER.filter(function(r){ return activeType === 'all' || (activeType === 'switch' ? r.type.indexOf('switch') === 0 : r.type === activeType); });
+    document.getElementById('ledger-list').innerHTML = rows.map(function(r, i){
+      var sign = (r.type === 'redemption' || r.type === 'switch-out') ? '-' : '+';
+      var cls = sign === '-' ? 'neg' : 'pos';
+      return '<div class="ledger-row' + (openIdx === i ? ' is-open' : '') + '" data-idx="' + i + '">' +
+        '<div class="ledger-ico ' + r.type + '"><svg class="icon icon-sm"><use href="#' + ICO[r.type] + '"/></svg></div>' +
+        '<div class="ledger-main"><div class="ledger-fund">' + r.fund + '</div><div class="ledger-meta">' + r.date + ' · ' + r.type.replace('-', ' ') + '</div></div>' +
+        '<div class="ledger-amt ' + cls + '">' + sign + '₹' + r.amount.toFixed(1) + 'L</div>' +
+        '<svg class="icon ledger-chev"><use href="#i-chevron-right"/></svg></div>' +
+        '<div class="ledger-detail"><span>Units: <b>' + r.units + '</b></span><span>NAV: <b>₹' + r.nav.toFixed(2) + '</b></span><span>Folio: <b>' + r.folio + '</b></span></div>';
+    }).join('');
+    document.querySelectorAll('.ledger-row').forEach(function(row){
+      row.addEventListener('click', function(){
+        var idx = parseInt(row.dataset.idx, 10);
+        openIdx = (openIdx === idx) ? null : idx;
+        renderLedger();
+      });
+    });
+  }
+  renderLedger();
+  document.querySelectorAll('#type-toggle .seg-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('#type-toggle .seg-btn').forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      activeType = b.dataset.type;
+      openIdx = null;
+      renderLedger();
+    });
+  });
+})();
+</script>
+</body>
+</html>

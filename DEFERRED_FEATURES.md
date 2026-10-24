@@ -421,3 +421,29 @@ What was designed, so it can be built later without re-deciding:
 - Alternative placement: an "add a new person" link inside the "Add statement for whom?" dialog, then continue to upload for that person.
 - Open when picked up: a member added by hand has no statements, so Delete member and the profile-completion chip must behave sensibly for an empty member (the delete service
   already removes a non-self member with no statements, covered by `backend/tests/services/import_/test_deletion.py`).
+
+
+## Added 2026-10-23 (Mutual Funds page redesign planning — three items decided not to build this round)
+
+Decided by the owner 2026-10-23 while resolving `Docs/orchestration/2026-10-23-mutual-funds-page-decisions.html`
+(the open-questions artifact for the `/portfolio/mutual-funds` redesign, design doc
+`Docs/orchestration/2026-10-23-mutual-funds-page-design.md`). Kept here so these aren't re-decided:
+
+- **Growth/IDCW plan sub-type (Q4).** The redesigned holdings table ships Direct/Regular only, matching
+  today's `PlanType` enum. No field anywhere in the schema or CAS-import pipeline distinguishes Growth from
+  IDCW (Dividend) plans; building it means parsing a CAS attribute Unifolio doesn't currently extract, and the
+  scope is unknown until someone checks what CAMS/KFintech statements actually expose for it. Owner confirmed:
+  ship without it, revisit as its own small investigation later.
+- ~~Fund Ranking (`FundRankingSection`, `ranking` analytics section) removed from the Mutual Funds analytics
+  pages entirely.~~ **Reversed 2026-10-23.** The original Q7 discussion mislabeled this "proprietary" and
+  conflated it with `ScorerSection` (Unifolio's actual proprietary score). `FundRankingSection` is a
+  transparent, non-proprietary composite (3Y/5Y return, category-relative, volatility, TER) — the owner
+  confirmed it stays on the portfolio-level Other Analytics page as its own group, see
+  `2026-10-23-mutual-funds-page-design.md` §6/§7.6. Not deferred.
+- **PDF export (`PrintAnalyticsView`, `pdf_export.py`) hidden from the UI, not removed.** Owner's call (Q9): once
+  the single long-scroll Analytics page is split into six pages, "Download PDF" stops being a clear, well-scoped
+  feature (one combined PDF across pages that no longer share one scroll). Rather than redesign it this round,
+  the owner chose to keep 100% of today's export code (frontend button component, backend route, `pdf_export.py`)
+  in place and working, just remove the visible "Download PDF" entry point from the Mutual Funds pages' UI.
+  **Do not delete this code as "unused" in a later cleanup pass** — it is deliberately dormant, not dead, pending
+  a real decision on combined-vs-per-page export once the new pages are built and proven.

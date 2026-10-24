@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mutual Funds — Performance page, high-fidelity mockup, all states (v1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Same token system as the Overview mockup / Home page hi-fi — see that
+     file's header comment. Copied verbatim so every MF sub-page reads as
+     one product. */
+  :root {
+    --bg:#F5F5F5; --surface:#FFFFFF; --border:#ECECEC; --border-soft:#ECECEC; --border-input:#DFDFDF;
+    --ink:#111111; --secondary:#717171; --body:#4B4B4B; --muted:#9B9B9B; --text-disabled:#C4C4C4;
+    --accent:#22C55E; --accent-hover:#16A34A; --accent-pressed:#15803D; --accent-selected-bg:#E9F9EF;
+    --pos:#22C55E; --pos-text:#15803D; --pos-bg:#EAFBF0;
+    --neg:#E5484D; --neg-text:#C1272D; --neg-bg:#FDECEC;
+    --warn:#D97706; --warn-text:#92400E; --warn-bg:#FEF3E2;
+    --teal:#0D9488;
+    --c1:#22C55E; --c2:#0D9488; --c3:#2563EB; --c4:#6366F1; --c5:#8B5CF6; --c6:#D97706; --c7:#EC4899; --c8:#C1272D;
+    --font-display:'DM Sans',-apple-system,'Segoe UI',Arial,sans-serif;
+    --font-body:'Manrope',-apple-system,'Segoe UI',Arial,sans-serif;
+    --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:20px; --radius-pill:9999px;
+    --shadow-sm:0 1px 2px rgba(17,17,17,.05), 0 1px 1px rgba(17,17,17,.03);
+    --shadow-md:0 8px 24px rgba(17,17,17,.08), 0 2px 6px rgba(17,17,17,.04);
+    --shadow-lg:0 20px 48px rgba(17,17,17,.12), 0 4px 10px rgba(17,17,17,.05);
+    --fast:150ms cubic-bezier(.4,0,.2,1);
+    --pop:260ms cubic-bezier(.34,1.56,.64,1);
+    --hover-tint:#F2FBF5;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; }
+  body { font-family:var(--font-body); background:#fff; color:var(--ink); padding:28px 28px 90px; -webkit-font-smoothing:antialiased; }
+  h1 { font-family:var(--font-display); font-size:19px; font-weight:700; margin:0 0 4px; }
+  .doc-subtitle { color:var(--secondary); font-size:13px; margin:0 0 16px; max-width:1040px; line-height:1.55; }
+  .icon { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; display:block; }
+  .icon-sm { width:13px; height:13px; }
+  .icon-xs { width:11px; height:11px; }
+  .icon-lg { width:20px; height:20px; }
+  code { background:#F3F3F3; padding:1px 6px; border-radius:4px; font-size:11.5px; }
+
+  .controls { position:sticky; top:0; z-index:50; background:#fff; border:1px solid #ddd; border-radius:12px; padding:12px 16px; margin-bottom:20px; box-shadow:0 2px 14px rgba(0,0,0,.1); max-width:1640px; }
+  .ctl-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .ctl-row:last-child { margin-bottom:0; }
+  .ctl-label { font-family:var(--font-display); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--secondary); width:140px; flex-shrink:0; }
+  .ctl-btn { font-family:var(--font-display); font-weight:600; font-size:11px; padding:5px 11px; border-radius:7px; border:1px solid var(--border); background:#fafafa; color:#444; cursor:pointer; transition:all var(--fast); }
+  .ctl-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+  .ctl-btn.active { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .ctl-sub { opacity:.35; pointer-events:none; }
+  .ctl-sub.enabled { opacity:1; pointer-events:auto; }
+
+  /* Matches the Overview mockup's Round 4 width (1320px→1640px) so every MF
+     sub-page shares one consistent chrome width, laptop-browser-realistic. */
+  .frame { background:var(--bg); border-radius:18px; padding:16px; max-width:1640px; }
+  .topbar { display:flex; align-items:center; gap:16px; padding:6px 10px 18px; }
+  .logo { font-family:var(--font-display); font-weight:800; font-size:17px; letter-spacing:-.01em; flex-shrink:0; }
+  .search-pill { flex:1; max-width:380px; display:flex; align-items:center; gap:8px; background:#F2F2F3; border-radius:var(--radius-pill); padding:9px 16px; color:var(--muted); font-size:13px; }
+  .top-actions { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .pill-ghost { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-weight:600; font-size:12.5px; padding:8px 14px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; color:var(--ink); white-space:nowrap; cursor:pointer; transition:all var(--fast); }
+  .pill-ghost:hover { border-color:#d5d5d5; box-shadow:var(--shadow-sm); transform:translateY(-1px); }
+  .pill-ghost.accent-outline { border-color:var(--accent); color:var(--accent-hover); }
+  .pill-ghost.accent-outline:hover { background:var(--hover-tint); border-color:var(--accent); }
+  .icon-btn { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--secondary); cursor:pointer; transition:background var(--fast); flex-shrink:0; }
+  .icon-btn:hover { background:#F2F2F3; }
+  .avatar-top { width:34px; height:34px; border-radius:50%; background:var(--ink); color:#fff; font-family:var(--font-display); font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+  .layout { display:flex; gap:18px; align-items:flex-start; }
+  .sidebar { width:186px; flex-shrink:0; background:transparent; padding:4px 0; }
+  .side-item { display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:10px; color:var(--secondary); font-size:13.5px; font-weight:500; margin-bottom:2px; cursor:pointer; transition:background var(--fast), color var(--fast); }
+  .side-item:hover { background:#F4F4F4; color:var(--ink); }
+  .side-item.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+  .side-item .icon { color:inherit; }
+  .side-divider { height:1px; background:var(--border-soft); margin:12px 10px; }
+
+  .main { flex:1; display:flex; flex-direction:column; gap:18px; min-width:0; position:relative; }
+
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; padding:2px 2px 0; }
+  .crumb { font-size:11.5px; color:var(--muted); font-weight:500; }
+  .page-header h2 { font-family:var(--font-display); font-size:26px; font-weight:800; letter-spacing:-.015em; margin:4px 0 4px; }
+  .page-sub { font-size:13px; color:var(--secondary); }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:22px 24px; opacity:0; transform:translateY(10px); animation:settle 240ms cubic-bezier(.16,1,.3,1) forwards; }
+  @keyframes settle { to { opacity:1; transform:translateY(0); } }
+  .card-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; flex-wrap:wrap; gap:10px; }
+  .card-title { display:flex; align-items:center; gap:7px; font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ink); }
+  .card-desc { font-size:12px; color:var(--muted); margin-bottom:18px; max-width:760px; line-height:1.55; }
+
+  .info-dot { width:14px; height:14px; border-radius:50%; background:#EEE; color:var(--secondary); font-size:9px; font-style:italic; font-family:Georgia,serif; font-weight:700; display:inline-flex; align-items:center; justify-content:center; cursor:help; position:relative; flex-shrink:0; }
+  .info-dot .tip { position:absolute; bottom:calc(100% + 7px); left:50%; transform:translateX(-50%) translateY(3px); background:#1a1a1a; color:#fff; font-size:10.5px; font-weight:500; font-style:normal; font-family:var(--font-body); line-height:1.4; padding:8px 11px; border-radius:8px; width:208px; text-align:left; opacity:0; pointer-events:none; transition:opacity 100ms ease, transform 100ms ease; z-index:12; }
+  .info-dot:hover .tip { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* -------- in-page tabs (shared across all 7 MF sub-pages, reused verbatim
+     from the Overview mockup; here "Performance" is active, no search/filter/
+     sort row since there's no fund table on this page to filter) -------- */
+  .tabs-utility-row { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:12px 18px; }
+  .htabs { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+  .htab { font-family:var(--font-display); font-size:13px; font-weight:600; color:var(--secondary); padding:9px 15px; border-radius:var(--radius-pill); cursor:pointer; transition:background var(--fast), color var(--fast); white-space:nowrap; }
+  .htab:hover:not(.active) { background:#F4F4F4; color:var(--ink); }
+  .htab.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+
+  /* -------- Block 1: XIRR + absolute return -------- */
+  .xirr-grid { display:flex; gap:28px; flex-wrap:wrap; }
+  .xirr-hero { flex:1 1 260px; }
+  .seg-toggle { display:inline-flex; background:#F0F0F1; border-radius:var(--radius-pill); padding:2px; margin-bottom:10px; width:fit-content; }
+  .seg-btn { font-family:var(--font-display); font-weight:700; font-size:11px; padding:5px 13px; border-radius:var(--radius-pill); color:var(--muted); cursor:pointer; transition:all var(--fast); }
+  .seg-btn.active { background:#fff; color:var(--ink); box-shadow:var(--shadow-sm); }
+  .seg-btn:hover:not(.active) { color:var(--ink); }
+  .xirr-value { font-family:var(--font-display); font-size:38px; font-weight:800; letter-spacing:-.02em; color:var(--pos-text); font-variant-numeric:tabular-nums; }
+  .xirr-value .pa { font-size:13px; font-weight:600; color:var(--muted); margin-left:6px; }
+  .disclaimer-btn { display:inline-flex; align-items:flex-start; gap:7px; text-align:left; font-size:12px; color:var(--secondary); cursor:pointer; margin-top:10px; padding:0; background:none; border:none; font-family:var(--font-body); line-height:1.5; }
+  .disclaimer-btn:hover { color:var(--ink); }
+  .disclaimer-btn .icon { margin-top:1px; }
+  .disclaimer-panel { margin-top:12px; background:var(--warn-bg); border:1px solid #F5C377; border-radius:var(--radius-md); padding:14px 16px; font-size:12.5px; color:var(--warn-text); line-height:1.6; max-width:420px; }
+  .abs-return-tiles { flex:1 1 320px; display:grid; grid-template-columns:1fr 1fr; gap:12px; align-content:start; }
+  .abs-tile { border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:14px 16px; }
+  .abs-tile-label { font-size:11.5px; color:var(--secondary); font-weight:600; margin-bottom:6px; }
+  .abs-tile-value { font-family:var(--font-display); font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .abs-tile-value.pos { color:var(--pos-text); }
+
+  .section-divider { border:none; border-top:1px solid var(--border-soft); margin:20px 0; }
+  .mini-table-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; }
+  .mini-table-head h4 { font-family:var(--font-display); font-size:13px; margin:0; }
+  .mini-table-head span { font-size:11px; color:var(--muted); }
+  .fund-xirr-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .fund-xirr-table th { text-align:left; font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:0 10px 8px; }
+  .fund-xirr-table th.num { text-align:right; }
+  .fund-xirr-table td { padding:10px; border-top:1px solid var(--border-soft); }
+  .fund-xirr-table td.num { text-align:right; font-variant-numeric:tabular-nums; font-weight:700; }
+  .fund-xirr-table tr { transition:background var(--fast); cursor:pointer; }
+  .fund-xirr-table tr:hover { background:var(--hover-tint); }
+  .diff-up { color:var(--pos-text); }
+  .diff-down { color:var(--neg-text); }
+
+  /* -------- Block 2: Portfolio value history -------- */
+  .range-pills { display:flex; gap:6px; }
+  .range-pill { font-family:var(--font-display); font-weight:700; font-size:11.5px; padding:6px 14px; border-radius:var(--radius-pill); border:1px solid var(--border); color:var(--secondary); cursor:pointer; transition:all var(--fast); }
+  .range-pill:hover:not(.active) { border-color:#d5d5d5; color:var(--ink); }
+  .range-pill.active { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .hist-chart-wrap { border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:18px 18px 14px; margin-top:4px; }
+  .hist-caption { font-size:11.5px; color:var(--muted); margin:10px 0 0; }
+  .hist-legend { display:flex; gap:18px; font-size:11.5px; color:var(--secondary); margin-top:10px; }
+  .hist-legend span { display:inline-flex; align-items:center; gap:7px; }
+  .leg-line { width:16px; height:0; border-top:2.5px solid var(--accent); display:inline-block; }
+  .leg-area { width:16px; height:11px; background:var(--accent); opacity:.15; display:inline-block; border-radius:2px; }
+  .hist-pt { cursor:pointer; }
+  .hist-pt:hover circle { r:6; }
+  .hist-tooltip { margin-top:12px; border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:13px 16px; font-size:12.5px; background:#FAFAFA; }
+  .hist-tooltip p { margin:2px 0; }
+  .hist-tooltip .tt-month { font-family:var(--font-display); font-weight:700; font-size:13px; margin-bottom:4px; }
+  .see-details-btn { margin-top:9px; font-family:var(--font-display); font-weight:700; font-size:11.5px; padding:7px 15px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; cursor:pointer; transition:all var(--fast); }
+  .see-details-btn:hover { border-color:var(--accent); color:var(--accent-hover); background:var(--hover-tint); }
+
+  /* month-detail modal */
+  .modal-overlay { position:fixed; inset:0; background:rgba(17,17,17,.45); z-index:200; display:flex; align-items:flex-end; justify-content:center; }
+  .modal-overlay[hidden] { display:none; }
+  .modal-sheet { background:#fff; width:100%; max-width:760px; max-height:84vh; overflow-y:auto; border-radius:20px 20px 0 0; padding:26px 28px 32px; box-shadow:var(--shadow-lg); animation:sheetUp 220ms cubic-bezier(.16,1,.3,1); }
+  @keyframes sheetUp { from { transform:translateY(24px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+  .modal-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .modal-head h3 { font-family:var(--font-display); font-size:18px; margin:0; }
+  .modal-close { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--secondary); transition:background var(--fast); }
+  .modal-close:hover { background:#F2F2F3; }
+  .member-chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .member-chip { font-family:var(--font-display); font-weight:600; font-size:12px; padding:7px 14px; border-radius:var(--radius-pill); border:1px solid var(--border); cursor:pointer; transition:all var(--fast); }
+  .member-chip:hover:not(.active) { border-color:#d5d5d5; }
+  .member-chip.active { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .detail-tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px; }
+  .detail-tile { border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:12px 14px; }
+  .detail-tile-label { font-size:10.5px; color:var(--secondary); font-weight:600; margin-bottom:5px; }
+  .detail-tile-value { font-family:var(--font-display); font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .modal-note { font-size:11.5px; color:var(--muted); margin-bottom:16px; }
+  .fund-detail-table { width:100%; border-collapse:collapse; font-size:12px; min-width:680px; }
+  .fund-detail-table-wrap { overflow-x:auto; }
+  .fund-detail-table th { text-align:right; font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.03em; padding:0 10px 8px; white-space:nowrap; }
+  .fund-detail-table th:first-child { text-align:left; }
+  .fund-detail-table td { padding:10px; border-top:1px solid var(--border-soft); text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .fund-detail-table td:first-child { text-align:left; white-space:normal; }
+  .fund-detail-table .member-sub { display:block; font-size:10.5px; color:var(--secondary); font-weight:400; }
+
+  /* -------- Block 3: Benchmark comparison -------- */
+  .bm-tabs { display:inline-flex; align-items:center; padding:3px; border-radius:var(--radius-md); background:var(--bg); border:1px solid var(--border); }
+  .bm-tab { font-family:var(--font-display); font-weight:600; font-size:12px; padding:7px 14px; border-radius:9px; cursor:pointer; color:var(--secondary); transition:all var(--fast); }
+  .bm-tab:hover:not(.active) { color:var(--ink); }
+  .bm-tab.active { background:#fff; color:var(--ink); font-weight:700; box-shadow:var(--shadow-sm); }
+
+  .dropdown-row { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; position:relative; }
+  .dd-pill { display:inline-flex; align-items:center; gap:8px; font-family:var(--font-display); font-weight:600; font-size:12.5px; padding:9px 14px; border-radius:var(--radius-md); border:1px solid var(--border); background:#fff; cursor:pointer; transition:all var(--fast); }
+  .dd-pill:hover { border-color:var(--accent); background:var(--hover-tint); }
+  .dd-pill .icon { color:var(--muted); transition:transform var(--fast); }
+  .dd-pill.is-open .icon { transform:rotate(180deg); }
+  .dd-panel { position:absolute; top:calc(100% + 6px); left:0; width:280px; background:#fff; border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-md); padding:8px; z-index:30; display:none; }
+  .dd-panel.is-open { display:block; }
+  .dd-check-row { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; font-size:12.5px; cursor:pointer; transition:background var(--fast); }
+  .dd-check-row:hover { background:var(--hover-tint); }
+  .dd-check-row input { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; }
+  .dd-check-row.is-new { color:var(--secondary); }
+  .dd-check-row.is-new .new-tag { font-size:9px; font-weight:700; color:var(--accent-hover); background:var(--accent-selected-bg); padding:2px 6px; border-radius:5px; margin-left:auto; }
+  .dd-radio-row { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; font-size:12.5px; cursor:pointer; transition:background var(--fast); }
+  .dd-radio-row:hover { background:var(--hover-tint); }
+  .dd-radio-row input { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; }
+
+  .bm-hero { border:1px solid var(--border-soft); border-radius:var(--radius-md); background:#FAFAFA; padding:18px 20px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:20px; }
+  .bm-hero-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--secondary); }
+  .bm-hero-value { font-family:var(--font-display); font-size:30px; font-weight:800; color:var(--pos-text); font-variant-numeric:tabular-nums; margin-top:4px; }
+  .bm-hero-value .pa { font-size:12px; color:var(--muted); font-weight:600; }
+  .bm-hero-note { font-size:11.5px; color:var(--secondary); max-width:280px; line-height:1.55; }
+
+  .bm-bars { display:flex; flex-direction:column; gap:14px; border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:18px 20px; }
+  .bm-bar-row-head { display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:600; margin-bottom:6px; }
+  .bm-bar-row-head .dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:7px; }
+  .bm-bar-track { height:11px; width:100%; background:#F0F0F0; border-radius:var(--radius-pill); overflow:hidden; border:1px solid var(--border-soft); }
+  .bm-bar-fill { height:100%; border-radius:var(--radius-pill); transition:width 500ms ease; }
+  .bm-diff { font-size:10.5px; font-weight:700; }
+
+  /* ---------------- Benchmark "race track" (Round 5, 2026-10-24) — replaces
+     the stacked-bar list the owner called "untidy". Every entity (Portfolio +
+     each benchmark) is a clickable marker placed along one shared XIRR axis —
+     a photo-finish line, not a bar chart — labels alternate above/below the
+     axis to avoid collisions where XIRRs sit close together. Clicking a
+     marker opens the detail panel below it, same "click a point on a
+     horizontal track -> detail panel beneath" mechanic as the Overview
+     page's new SIP timeline, so the two new interactions read as one
+     consistent pattern rather than two one-off widgets. Index chips are
+     directly clickable (toggle a benchmark's marker on/off) instead of
+     hidden behind a checkbox dropdown; the time-window picker is a plain
+     segmented control instead of a dropdown, since there are only 4 options
+     and a dropdown added a click for no reason. ---------------- */
+  .bm-chip-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .bm-chip { display:inline-flex; align-items:center; gap:7px; font-family:var(--font-display); font-weight:700; font-size:11.5px; padding:7px 13px; border-radius:var(--radius-pill); border:1.5px solid var(--border); background:#fff; cursor:pointer; transition:all var(--fast); color:var(--secondary); }
+  .bm-chip .chip-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .bm-chip:hover { border-color:var(--accent); color:var(--ink); }
+  .bm-chip.is-on { border-color:var(--ink); background:var(--ink); color:#fff; }
+  .bm-chip.is-on .chip-dot { box-shadow:0 0 0 2px rgba(255,255,255,.35); }
+  .bm-chip.is-new::after { content:'NEW'; font-size:8.5px; font-weight:800; color:var(--accent-hover); background:var(--accent-selected-bg); padding:1px 5px; border-radius:4px; margin-left:2px; }
+  .bm-chip.is-on.is-new::after { color:#fff; background:rgba(255,255,255,.22); }
+
+  .bm-race-wrap { border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:54px 28px 18px; }
+  .bm-race-axis { position:relative; height:4px; background:linear-gradient(90deg,#F0F0F0,#E2E2E2); border-radius:3px; margin:0 6px; }
+  .bm-race-marker { position:absolute; top:50%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; cursor:pointer; z-index:2; }
+  .bm-race-marker .m-dot { width:15px; height:15px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1px var(--border-soft), 0 2px 5px rgba(0,0,0,.08); transition:transform var(--fast); }
+  .bm-race-marker:hover .m-dot, .bm-race-marker.is-active .m-dot { transform:scale(1.3); }
+  .bm-race-marker.is-you .m-dot { width:22px; height:22px; background:var(--accent); box-shadow:0 0 0 5px var(--accent-selected-bg); }
+  .bm-race-marker .m-tag { position:absolute; font-size:10px; font-weight:700; white-space:nowrap; color:var(--secondary); display:flex; flex-direction:column; align-items:center; line-height:1.3; }
+  .bm-race-marker.lane-top .m-tag { bottom:16px; }
+  .bm-race-marker.lane-bottom .m-tag { top:16px; }
+  .bm-race-marker.is-you .m-tag { color:var(--accent-pressed); font-weight:800; }
+  .bm-race-marker .m-tag .m-val { font-family:var(--font-display); font-size:12.5px; }
+  .bm-race-marker .m-crown { position:absolute; top:-22px; color:#D97706; }
+  .bm-race-marker.is-you .m-crown { top:-30px; }
+  .bm-detail-panel { border-top:1px solid var(--border-soft); margin-top:34px; padding-top:16px; }
+  .bm-detail-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  .bm-detail-head h4 { font-family:var(--font-display); font-size:14px; margin:0; }
+  .bm-detail-periods { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .bm-period-cell { border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:11px 12px; text-align:center; }
+  .bm-period-cell .p-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); }
+  .bm-period-cell .p-val { font-family:var(--font-display); font-weight:800; font-size:14.5px; margin-top:3px; font-variant-numeric:tabular-nums; }
+
+  .fund-bm-card { border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:0; margin-bottom:10px; transition:border-color var(--fast), box-shadow var(--fast); overflow:hidden; }
+  .fund-bm-card:hover { border-color:#d5d5d5; box-shadow:var(--shadow-sm); }
+  .fund-bm-card-head { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:0; flex-wrap:wrap; padding:14px 18px; cursor:pointer; }
+  .fund-bm-card-head h4 { font-family:var(--font-display); font-size:13.5px; margin:0 0 3px; }
+  .fund-bm-card-head .bench-label { font-size:11.5px; color:var(--secondary); }
+  .fund-bm-mini-track { position:relative; width:140px; height:4px; background:#F0F0F0; border-radius:3px; flex-shrink:0; }
+  .fund-bm-mini-track .mt-dot { position:absolute; top:50%; transform:translate(-50%,-50%); width:11px; height:11px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px var(--border-soft); }
+  .fund-bm-expand-ico { color:var(--muted); transition:transform var(--fast); flex-shrink:0; }
+  .fund-bm-card.is-open .fund-bm-expand-ico { transform:rotate(90deg); color:var(--accent-hover); }
+  .fund-bm-card-body { padding:0 18px 16px; display:none; }
+  .fund-bm-card.is-open .fund-bm-card-body { display:block; }
+  .diff-badge { font-size:11px; font-weight:700; padding:3px 10px; border-radius:var(--radius-pill); white-space:nowrap; }
+  .diff-badge.up { background:var(--pos-bg); color:var(--pos-text); }
+  .diff-badge.down { background:#F3F4F6; color:var(--neg-text); }
+  .fund-bm-bar-row { margin-bottom:8px; }
+  .fund-bm-bar-row-head { display:flex; justify-content:space-between; font-size:11.5px; font-weight:600; margin-bottom:5px; }
+  .show-more-link { display:block; text-align:center; font-family:var(--font-display); font-weight:700; font-size:12px; color:var(--accent-hover); cursor:pointer; padding:8px; border-radius:var(--radius-pill); transition:background var(--fast); }
+  .show-more-link:hover { background:var(--hover-tint); text-decoration:underline; }
+
+  .shimmer { position:relative; overflow:hidden; background:#EFEFEF; border-radius:7px; }
+  .shimmer::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent); background-size:200% 100%; animation:shimmer 1.4s ease-in-out infinite; }
+  @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+
+  .card-error { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px 16px; gap:9px; }
+  .card-error .err-ico { width:38px; height:38px; border-radius:50%; background:var(--warn-bg); color:var(--warn-text); display:flex; align-items:center; justify-content:center; }
+  .card-error h4 { margin:2px 0 0; font-family:var(--font-display); font-size:14px; }
+  .card-error p { margin:0; font-size:12px; color:var(--secondary); max-width:340px; }
+  .retry-btn { font-family:var(--font-display); font-weight:700; font-size:12px; padding:7px 16px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; cursor:pointer; transition:all var(--fast); }
+  .retry-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+
+  .page-state { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:76px 20px; gap:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+  .page-state .big-ico { width:58px; height:58px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; }
+  .page-state.is-error .big-ico { background:var(--warn-bg); color:var(--warn-text); }
+  .page-state h3 { font-family:var(--font-display); font-size:19px; margin:0; }
+  .page-state p { margin:0; font-size:13px; color:var(--secondary); max-width:400px; line-height:1.6; }
+
+  /* ---------------- Ask Mira — "coming soon" popup, shared verbatim with the
+     Overview mockup (Round 4, 2026-10-24) ---------------- */
+  .mira-trigger { cursor:pointer; }
+  .mira-modal-overlay { position:fixed; inset:0; background:rgba(17,17,17,.45); z-index:200; display:flex; align-items:center; justify-content:center; }
+  .mira-modal-overlay[hidden] { display:none; }
+  .mira-modal { background:#fff; width:360px; max-width:calc(100vw - 40px); border-radius:var(--radius-lg); padding:26px 26px 22px; box-shadow:var(--shadow-lg); text-align:center; animation:settle 200ms cubic-bezier(.16,1,.3,1); }
+  .mira-modal .glyph-ring { width:44px; height:44px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; }
+  .mira-modal h3 { font-family:var(--font-display); font-size:17px; margin:0 0 8px; }
+  .mira-modal p { font-size:13px; color:var(--secondary); line-height:1.55; margin:0 0 18px; }
+  .mira-modal .btn-primary { width:100%; justify-content:center; display:inline-flex; align-items:center; font-family:var(--font-display); font-weight:700; padding:10px 18px; border-radius:var(--radius-pill); color:#fff; cursor:pointer; }
+
+  .spec { max-width:1080px; margin-top:44px; }
+  .spec h2 { font-family:var(--font-display); font-size:17px; margin:34px 0 10px; }
+  .spec h2:first-child { margin-top:0; }
+  .spec table { border-collapse:collapse; width:100%; font-size:12.5px; margin-bottom:6px; }
+  .spec th, .spec td { text-align:left; padding:8px 10px; border-bottom:1px solid #eee; vertical-align:top; }
+  .spec th { font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--secondary); font-weight:700; font-family:var(--font-display); }
+  .decided-against { background:#F6F6F6; border-radius:8px; padding:11px 15px; font-size:12.5px; color:#444; margin-top:8px; }
+  .locked-note { background:var(--pos-bg); border:1px solid var(--pos); border-radius:9px; padding:13px 17px; font-size:13px; color:var(--pos-text); margin-top:22px; max-width:1080px; }
+  .open-note { background:var(--warn-bg); border:1px solid #F5C377; border-radius:9px; padding:13px 17px; font-size:13px; color:var(--warn-text); margin-top:14px; max-width:1080px; }
+</style>
+</head>
+<body>
+
+<svg style="display:none">
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M20 20l-5.5-5.5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15.2 20c0-2.2 1.7-4 3.8-4.6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></symbol>
+  <symbol id="i-bar-chart" viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></symbol>
+  <symbol id="i-pie" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
+  <symbol id="i-trending" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-8"/><path d="M14 7h6v6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.8 1c0 1.8-2.3 2-2.3 3.5"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 10v5"/><path d="M12 18.2v.1"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.1"/></symbol>
+</svg>
+
+<h1>Mutual Funds — Performance page, high-fidelity mockup</h1>
+<p class="doc-subtitle">Route <code>portfolio-mutual-funds-performance</code> → <code>/portfolio/mutual-funds/performance</code>,
+per design.md §7.1. Three stacked blocks, each folding in an existing component verbatim per the spec: (1) the
+Dashboard's Lifetime/Current XIRR + opening-balance disclaimer, plus absolute return and a per-fund XIRR glance
+table; (2) <code>HistoryView</code>/<code>HistoryChart</code>/<code>HistoryDetailModal</code>'s full content,
+unchanged in substance; (3) <code>BenchmarkSection</code>'s two tabs, expanded with the new benchmark-index and
+time-window dropdowns (Q5 Option B — one precomputed payload per index×window combination, the dropdowns just
+pick a key). Same token system and in-page tab row as the Overview mockup. See the annotation section below for
+one spec-reading call I made and am flagging, not silently resolving.</p>
+
+<div class="controls">
+  <div class="ctl-row">
+    <div class="ctl-label">Page state</div>
+    <button class="ctl-btn active" data-global="happy">Happy path</button>
+    <button class="ctl-btn" data-global="loading">Initial loading</button>
+    <button class="ctl-btn" data-global="error">Page error</button>
+  </div>
+  <div class="ctl-row" id="row-xirr">
+    <div class="ctl-label">1 · XIRR block</div>
+    <button class="ctl-btn active" data-sec="xirr" data-val="default">Default (disclaimer applies)</button>
+    <button class="ctl-btn" data-sec="xirr" data-val="insufficient">Insufficient history</button>
+  </div>
+  <div class="ctl-row" id="row-hist">
+    <div class="ctl-label">2 · Value history</div>
+    <button class="ctl-btn active" data-sec="hist" data-val="default">Default</button>
+    <button class="ctl-btn" data-sec="hist" data-val="empty">No history yet</button>
+  </div>
+  <div class="ctl-row" id="row-bm">
+    <div class="ctl-label">3 · Benchmark</div>
+    <button class="ctl-btn active" data-sec="bm" data-val="default">Default</button>
+    <button class="ctl-btn" data-sec="bm" data-val="empty">No per-fund rows</button>
+  </div>
+</div>
+
+<div class="frame">
+
+  <div class="topbar">
+    <div class="logo">Unifolio</div>
+    <div class="search-pill"><svg class="icon icon-sm"><use href="#i-search"/></svg>Search for a fund, stock, or ask Mira...</div>
+    <div class="top-actions">
+      <div class="pill-ghost accent-outline mira-trigger"><svg class="icon icon-sm"><use href="#i-sparkle"/></svg>Ask Mira</div>
+      <div class="pill-ghost"><svg class="icon icon-sm"><use href="#i-users"/></svg>Family Combined<svg class="icon icon-sm"><use href="#i-chevron-down"/></svg></div>
+      <div class="icon-btn"><svg class="icon"><use href="#i-moon"/></svg></div>
+      <div class="avatar-top">SS</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="side-item"><svg class="icon"><use href="#i-home"/></svg>Home</div>
+      <div class="side-item"><svg class="icon"><use href="#i-bar-chart"/></svg>Analytics</div>
+      <div class="side-item active"><svg class="icon"><use href="#i-pie"/></svg>Investments</div>
+      <div class="side-item"><svg class="icon"><use href="#i-trending"/></svg>Performance</div>
+      <div class="side-item"><svg class="icon"><use href="#i-zap"/></svg>Scenarios</div>
+      <div class="side-divider"></div>
+      <div class="side-item"><svg class="icon"><use href="#i-user"/></svg>Profile</div>
+      <div class="side-item"><svg class="icon"><use href="#i-help"/></svg>Help &amp; Support</div>
+    </div>
+
+    <div class="main" id="main">
+
+      <div class="page-header">
+        <div>
+          <div class="crumb">Investments · Mutual Funds</div>
+          <h2>Performance</h2>
+          <div class="page-sub">Returns, portfolio value over time, and how you stack up against the market.</div>
+        </div>
+      </div>
+
+      <!-- ============ GLOBAL: INITIAL LOADING ============ -->
+      <div id="g-loading" style="display:none;">
+        <div class="card" style="margin-bottom:18px;">
+          <div class="shimmer" style="height:16px; width:30%; margin-bottom:16px; border-radius:8px;"></div>
+          <div class="shimmer" style="height:44px; width:40%; margin-bottom:10px; border-radius:8px;"></div>
+          <div class="shimmer" style="height:60px; width:100%; border-radius:8px;"></div>
+        </div>
+        <div class="card" style="margin-bottom:18px;">
+          <div class="shimmer" style="height:200px; width:100%; border-radius:12px;"></div>
+        </div>
+        <div class="card">
+          <div class="shimmer" style="height:160px; width:100%; border-radius:12px;"></div>
+        </div>
+      </div>
+
+      <!-- ============ GLOBAL: PAGE ERROR ============ -->
+      <div id="g-error" style="display:none;">
+        <div class="page-state is-error">
+          <div class="big-ico"><svg class="icon-lg"><use href="#i-alert"/></svg></div>
+          <h3>Couldn't load your performance data</h3>
+          <p>There was a problem reaching our servers. Your data is safe — this is just a connection issue.</p>
+          <div class="retry-btn" style="padding:9px 20px; font-size:13px;">Retry</div>
+        </div>
+      </div>
+
+      <!-- ============ HAPPY PATH ============ -->
+      <div id="g-happy">
+
+        <!-- in-page tabs, shared across the seven MF sub-pages -->
+        <div class="tabs-utility-row card" style="margin-bottom:0;">
+          <div class="htabs">
+            <div class="htab">Overview</div>
+            <div class="htab active">Performance</div>
+            <div class="htab">Allocation</div>
+            <div class="htab">Holdings</div>
+            <div class="htab">Transactions</div>
+            <div class="htab">Overlap</div>
+            <div class="htab">Other Analytics</div>
+          </div>
+        </div>
+
+        <!-- ================= BLOCK 1: XIRR + absolute return ================= -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-head">
+            <div class="card-title">Returns<span class="info-dot">i<span class="tip">Your annualised and absolute returns, computed from every cash flow across all your mutual fund holdings.</span></span></div>
+          </div>
+
+          <div id="xirr-default">
+            <div class="xirr-grid">
+              <div class="xirr-hero">
+                <div class="seg-toggle"><span class="seg-btn active">Lifetime</span><span class="seg-btn">Current Holdings</span></div>
+                <div class="xirr-value">+16.1%<span class="pa">p.a.</span></div>
+                <button type="button" class="disclaimer-btn" id="disclaimer-toggle">
+                  <svg class="icon icon-sm"><use href="#i-info"/></svg>
+                  <span>38% of this return is based on an undated opening balance — may be inflated. Tap to see why.</span>
+                </button>
+                <div class="disclaimer-panel" id="disclaimer-panel" style="display:none;">
+                  Your CAS statement's earliest entry already showed a holding of ₹19,38,000 with no transaction
+                  date — Unifolio treats it as invested on the day you first imported, which compresses its real
+                  holding period and can inflate the annualised return. This share of your lifetime XIRR (38%) traces
+                  back to that undated balance. Switch to <strong>Current Holdings</strong> above to see the XIRR
+                  computed only from funds you still hold.
+                </div>
+              </div>
+              <div class="abs-return-tiles">
+                <div class="abs-tile"><div class="abs-tile-label">Total Invested</div><div class="abs-tile-value">₹51,00,000</div></div>
+                <div class="abs-tile"><div class="abs-tile-label">Current Value</div><div class="abs-tile-value">₹66,98,600</div></div>
+                <div class="abs-tile"><div class="abs-tile-label">Absolute Gain</div><div class="abs-tile-value pos">+₹15,98,600</div></div>
+                <div class="abs-tile"><div class="abs-tile-label">Absolute Return</div><div class="abs-tile-value pos">+31.3%</div></div>
+              </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <div class="mini-table-head">
+              <h4>Fund XIRR at a glance</h4>
+              <span>Full comparison with benchmarks below ↓</span>
+            </div>
+            <table class="fund-xirr-table">
+              <thead><tr><th>Fund</th><th class="num">XIRR</th><th class="num">vs Benchmark</th></tr></thead>
+              <tbody>
+                <tr><td>Kotak Multi Cap Fund</td><td class="num">+14.2%</td><td class="num diff-down">−2.7%</td></tr>
+                <tr><td>JM Flexi Cap Fund</td><td class="num">+18.6%</td><td class="num diff-up">+5.8%</td></tr>
+                <tr><td>HDFC Mid-Cap Opportunities</td><td class="num">+21.3%</td><td class="num diff-up">+1.1%</td></tr>
+                <tr><td>Parag Parikh Flexi Cap Fund</td><td class="num">+16.9%</td><td class="num diff-up">+3.4%</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="xirr-insufficient" style="display:none;">
+            <div class="xirr-grid">
+              <div class="xirr-hero">
+                <div class="seg-toggle"><span class="seg-btn active">Lifetime</span><span class="seg-btn">Current Holdings</span></div>
+                <span style="display:inline-flex; font-size:12px; font-weight:700; padding:6px 12px; border-radius:var(--radius-pill); background:var(--warn-bg); color:var(--warn-text);">Insufficient Transaction History for XIRR</span>
+                <p style="font-size:12px; color:var(--secondary); margin-top:10px; max-width:300px;">XIRR needs transaction dates spread over a multi-month window. Yours all fall on the same day — absolute return is shown instead.</p>
+              </div>
+              <div class="abs-return-tiles">
+                <div class="abs-tile"><div class="abs-tile-label">Total Invested</div><div class="abs-tile-value">₹3,20,000</div></div>
+                <div class="abs-tile"><div class="abs-tile-label">Current Value</div><div class="abs-tile-value">₹3,41,600</div></div>
+                <div class="abs-tile"><div class="abs-tile-label">Absolute Gain</div><div class="abs-tile-value pos">+₹21,600</div></div>
+                <div class="abs-tile"><div class="abs-tile-label">Absolute Return</div><div class="abs-tile-value pos">+6.75%</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= BLOCK 2: Portfolio value history ================= -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-head">
+            <div class="card-title">Portfolio History<span class="info-dot">i<span class="tip">Month-end portfolio value since your earliest uploaded statement, for Family Combined or one member.</span></span></div>
+            <div class="range-pills" id="range-pills">
+              <div class="range-pill">1Y</div>
+              <div class="range-pill">3Y</div>
+              <div class="range-pill">5Y</div>
+              <div class="range-pill active">All</div>
+            </div>
+          </div>
+          <div class="card-desc">Family · monthly value at each month-end. Relocated from <code>HistoryView.tsx</code>
+            unchanged in substance — the temporary <code>portfolio-mutual-funds-history</code> route retires once
+            this ships.</div>
+
+          <div id="hist-default">
+            <div class="hist-chart-wrap">
+              <svg viewBox="0 0 640 240" style="width:100%; height:auto;" id="hist-svg">
+                <text x="0" y="24" font-size="11" fill="#9B9B9B">₹67L</text>
+                <text x="0" y="210" font-size="11" fill="#9B9B9B">₹0</text>
+                <path id="hist-area" fill="var(--accent)" fill-opacity="0.12"></path>
+                <path id="hist-line" fill="none" stroke="var(--accent)" stroke-width="2.5"></path>
+                <!-- year labels -->
+                <text x="44" y="234" text-anchor="middle" font-size="11" fill="#9B9B9B">2019</text>
+                <text x="168" y="234" text-anchor="middle" font-size="11" fill="#9B9B9B">2021</text>
+                <text x="292" y="234" text-anchor="middle" font-size="11" fill="#9B9B9B">2023</text>
+                <text x="416" y="234" text-anchor="middle" font-size="11" fill="#9B9B9B">2025</text>
+                <text x="540" y="234" text-anchor="middle" font-size="11" fill="#9B9B9B">2026</text>
+                <!-- a representative sample of points along the line, including one hollow (no-price) point -->
+                <g id="hist-points"></g>
+              </svg>
+              <p class="hist-caption">History starts Mar 2019 (earliest statement uploaded). Hollow dot = a fund had no price that month.</p>
+              <div class="hist-legend">
+                <span><span class="leg-line"></span>Portfolio value</span>
+                <span><span class="leg-area"></span>Cost of holdings</span>
+              </div>
+              <div class="hist-tooltip" id="hist-tooltip" style="display:none;">
+                <p class="tt-month">Nov 2022</p>
+                <p>Portfolio value ₹41,20,000</p>
+                <p>Cost of holdings ₹36,80,000</p>
+                <p>Gain ₹4,40,000</p>
+                <p style="color:var(--warn-text);">No price for this month: HDFC Balanced Advantage Fund</p>
+                <button type="button" class="see-details-btn" id="open-month-modal">See details</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="hist-empty" style="display:none;">
+            <div class="page-state" style="padding:44px 20px;">
+              <div class="big-ico"><svg class="icon-lg"><use href="#i-plus"/></svg></div>
+              <h3 style="font-size:16px;">No history yet</h3>
+              <p>Upload a statement to see your portfolio month by month.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= BLOCK 3: Benchmark comparison ================= -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-head">
+            <div class="card-title"><svg class="icon icon-sm" style="color:var(--accent);"><use href="#i-bar-chart"/></svg>Benchmark Comparison (XIRR)</div>
+            <div class="bm-tabs">
+              <div class="bm-tab active" data-bmtab="portfolio">Portfolio vs Broad Market</div>
+              <div class="bm-tab" data-bmtab="funds">Per-Fund vs Benchmark</div>
+            </div>
+          </div>
+          <div class="card-desc">Cash-flow timed performance benchmarking against broad market Nifty indices and
+            scheme benchmarks. <strong>New this page</strong>: pick any index and time window — every combination
+            is precomputed (Q5 Option B), so switching is instant, zero extra network round-trips.</div>
+
+          <!-- Tab 1: Portfolio vs Broad Market -->
+          <div id="bm-tab-portfolio">
+            <div class="bm-hero">
+              <div>
+                <div class="bm-hero-label">Portfolio XIRR (Annualized Return)</div>
+                <div class="bm-hero-value">+10.69%<span class="pa"> p.a.</span></div>
+              </div>
+              <div class="bm-hero-note">Computed via exact cash-flow timing (SIP/lump-sum transactions priced against index levels).</div>
+            </div>
+
+            <div class="seg-toggle" id="bm-window-toggle">
+              <div class="seg-btn" data-window="1y">1Y</div>
+              <div class="seg-btn" data-window="3y">3Y</div>
+              <div class="seg-btn" data-window="5y">5Y</div>
+              <div class="seg-btn active" data-window="si">Since Inception</div>
+            </div>
+
+            <div class="bm-chip-row" id="bm-chip-row">
+              <div class="bm-chip is-on" data-bm="nifty50"><span class="chip-dot" style="background:#8A8A8A;"></span>Nifty 50</div>
+              <div class="bm-chip is-on" data-bm="nifty500"><span class="chip-dot" style="background:#6366F1;"></span>Nifty 500</div>
+              <div class="bm-chip is-on" data-bm="lmc250"><span class="chip-dot" style="background:#D97706;"></span>LargeMidcap 250</div>
+              <div class="bm-chip is-on" data-bm="mc150"><span class="chip-dot" style="background:#DC2626;"></span>Midcap 150</div>
+              <div class="bm-chip is-new" data-bm="next50"><span class="chip-dot" style="background:#0D9488;"></span>Nifty Next 50</div>
+              <div class="bm-chip is-new" data-bm="smallcap250"><span class="chip-dot" style="background:#2563EB;"></span>Smallcap 250</div>
+              <div class="bm-chip is-new" data-bm="nifty100"><span class="chip-dot" style="background:#7C3AED;"></span>Nifty 100</div>
+              <div class="bm-chip is-new" data-bm="nifty200"><span class="chip-dot" style="background:#BE185D;"></span>Nifty 200</div>
+            </div>
+
+            <div id="bm-default">
+              <div class="bm-race-wrap">
+                <div class="bm-race-axis" id="bm-race-axis"></div>
+              </div>
+              <div class="bm-detail-panel" id="bm-detail-panel"></div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Per-Fund vs Benchmark -->
+          <div id="bm-tab-funds" style="display:none;">
+            <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:14px 16px; margin-bottom:16px; font-size:12.5px;">
+              <span>Overall Portfolio XIRR: <strong>+10.69%</strong></span>
+              <span>Broad Market (Nifty 500): <strong>+11.02%</strong></span>
+            </div>
+
+            <div id="bm-funds-default">
+              <div class="fund-bm-card" data-fund-xirr="8.07" data-bm-xirr="13.67">
+                <div class="fund-bm-card-head">
+                  <svg class="icon icon-sm fund-bm-expand-ico"><use href="#i-chevron-right"/></svg>
+                  <div style="flex:1 1 220px;"><h4>Kotak Small Cap Fund – Direct Plan – Growth</h4><span class="bench-label">Benchmark: Nifty 500 (Total Return)</span></div>
+                  <div class="fund-bm-mini-track"><div class="mt-dot" style="left:47%; background:var(--accent);"></div><div class="mt-dot" style="left:80%; background:#B9B9B9;"></div></div>
+                  <span class="diff-badge down">−3.6% vs Benchmark</span>
+                </div>
+                <div class="fund-bm-card-body">
+                  <div class="fund-bm-bar-row"><div class="fund-bm-bar-row-head"><span>Fund XIRR</span><span>+8.07%</span></div><div class="bm-bar-track"><div class="bm-bar-fill" style="width:47%; background:var(--accent);"></div></div></div>
+                  <div class="fund-bm-bar-row"><div class="fund-bm-bar-row-head"><span style="color:var(--secondary);">Benchmark</span><span style="color:var(--secondary);">+13.67%</span></div><div class="bm-bar-track"><div class="bm-bar-fill" style="width:80%; background:#B9B9B9;"></div></div></div>
+                </div>
+              </div>
+              <div class="fund-bm-card" data-fund-xirr="15.17" data-bm-xirr="13.08">
+                <div class="fund-bm-card-head">
+                  <svg class="icon icon-sm fund-bm-expand-ico"><use href="#i-chevron-right"/></svg>
+                  <div style="flex:1 1 220px;"><h4>UTI Nifty 50 Index Fund – Direct Plan – Growth</h4><span class="bench-label">Benchmark: Nifty 500 (Total Return)</span></div>
+                  <div class="fund-bm-mini-track"><div class="mt-dot" style="left:89%; background:var(--accent);"></div><div class="mt-dot" style="left:77%; background:#B9B9B9;"></div></div>
+                  <span class="diff-badge up">+2.09% vs Benchmark</span>
+                </div>
+                <div class="fund-bm-card-body">
+                  <div class="fund-bm-bar-row"><div class="fund-bm-bar-row-head"><span>Fund XIRR</span><span>+15.17%</span></div><div class="bm-bar-track"><div class="bm-bar-fill" style="width:89%; background:var(--accent);"></div></div></div>
+                  <div class="fund-bm-bar-row"><div class="fund-bm-bar-row-head"><span style="color:var(--secondary);">Benchmark</span><span style="color:var(--secondary);">+13.08%</span></div><div class="bm-bar-track"><div class="bm-bar-fill" style="width:77%; background:#B9B9B9;"></div></div></div>
+                </div>
+              </div>
+              <div class="fund-bm-card" data-fund-xirr="11.34" data-bm-xirr="10.73">
+                <div class="fund-bm-card-head">
+                  <svg class="icon icon-sm fund-bm-expand-ico"><use href="#i-chevron-right"/></svg>
+                  <div style="flex:1 1 220px;"><h4>SBI Large Cap Fund – Direct Plan – Growth</h4><span class="bench-label">Benchmark: Nifty 50 (Total Return)</span></div>
+                  <div class="fund-bm-mini-track"><div class="mt-dot" style="left:67%; background:var(--accent);"></div><div class="mt-dot" style="left:63%; background:#B9B9B9;"></div></div>
+                  <span class="diff-badge up">+0.60% vs Benchmark</span>
+                </div>
+                <div class="fund-bm-card-body">
+                  <div class="fund-bm-bar-row"><div class="fund-bm-bar-row-head"><span>Fund XIRR</span><span>+11.34%</span></div><div class="bm-bar-track"><div class="bm-bar-fill" style="width:67%; background:var(--accent);"></div></div></div>
+                  <div class="fund-bm-bar-row"><div class="fund-bm-bar-row-head"><span style="color:var(--secondary);">Benchmark</span><span style="color:var(--secondary);">+10.73%</span></div><div class="bm-bar-track"><div class="bm-bar-fill" style="width:63%; background:#B9B9B9;"></div></div></div>
+                </div>
+              </div>
+              <div class="fund-bm-card" data-fund-xirr="14.28" data-bm-xirr="12.61">
+                <div class="fund-bm-card-head">
+                  <svg class="icon icon-sm fund-bm-expand-ico"><use href="#i-chevron-right"/></svg>
+                  <div style="flex:1 1 220px;"><h4>Tata ELSS – Tax Saver Fund – Direct Plan – Growth Option</h4><span class="bench-label">Benchmark: Nifty 500 (Total Return)</span></div>
+                  <div class="fund-bm-mini-track"><div class="mt-dot" style="left:84%; background:var(--accent);"></div><div class="mt-dot" style="left:74%; background:#B9B9B9;"></div></div>
+                  <span class="diff-badge up">+1.67% vs Benchmark</span>
+                </div>
+                <div class="fund-bm-card-body">
+                  <div class="fund-bm-bar-row"><div class="fund-bm-bar-row-head"><span>Fund XIRR</span><span>+14.28%</span></div><div class="bm-bar-track"><div class="bm-bar-fill" style="width:84%; background:var(--accent);"></div></div></div>
+                  <div class="fund-bm-bar-row"><div class="fund-bm-bar-row-head"><span style="color:var(--secondary);">Benchmark</span><span style="color:var(--secondary);">+12.61%</span></div><div class="bm-bar-track"><div class="bm-bar-fill" style="width:74%; background:#B9B9B9;"></div></div></div>
+                </div>
+              </div>
+              <div class="fund-bm-card" data-fund-xirr="15.00" data-bm-xirr="12.75">
+                <div class="fund-bm-card-head">
+                  <svg class="icon icon-sm fund-bm-expand-ico"><use href="#i-chevron-right"/></svg>
+                  <div style="flex:1 1 220px;"><h4>BANDHAN ELSS – Tax Saver Fund – Direct Plan – Growth</h4><span class="bench-label">Benchmark: Nifty 500 (Total Return)</span></div>
+                  <div class="fund-bm-mini-track"><div class="mt-dot" style="left:88%; background:var(--accent);"></div><div class="mt-dot" style="left:75%; background:#B9B9B9;"></div></div>
+                  <span class="diff-badge up">+2.25% vs Benchmark</span>
+                </div>
+                <div class="fund-bm-card-body">
+                  <div class="fund-bm-bar-row"><div class="fund-bm-bar-row-head"><span>Fund XIRR</span><span>+15.00%</span></div><div class="bm-bar-track"><div class="bm-bar-fill" style="width:88%; background:var(--accent);"></div></div></div>
+                  <div class="fund-bm-bar-row"><div class="fund-bm-bar-row-head"><span style="color:var(--secondary);">Benchmark</span><span style="color:var(--secondary);">+12.75%</span></div><div class="bm-bar-track"><div class="bm-bar-fill" style="width:75%; background:#B9B9B9;"></div></div></div>
+                </div>
+              </div>
+              <div class="show-more-link">Show More (19 remaining)</div>
+            </div>
+
+            <div id="bm-funds-empty" style="display:none;">
+              <div class="page-state" style="padding:44px 20px;">
+                <div class="big-ico"><svg class="icon-lg"><use href="#i-bar-chart"/></svg></div>
+                <h3 style="font-size:16px;">No per-fund benchmark comparison available</h3>
+                <p>Import holdings with transaction history to evaluate individual scheme returns against assigned Nifty benchmarks.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Month detail modal (HistoryDetailModal, unchanged in substance) ============ -->
+<div class="modal-overlay" id="month-modal" hidden>
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <h3>November 2022</h3>
+      <div class="modal-close" id="close-month-modal"><svg class="icon"><use href="#i-x"/></svg></div>
+    </div>
+    <div class="member-chips">
+      <div class="member-chip active">All</div>
+      <div class="member-chip">Siddharth</div>
+      <div class="member-chip">Aarohi</div>
+      <div class="member-chip">Parents</div>
+    </div>
+    <p style="font-size:12.5px; color:var(--warn-text); margin:0 0 14px;">Incomplete prices: HDFC Balanced Advantage Fund. Change and market movement are unavailable.</p>
+    <div class="detail-tiles">
+      <div class="detail-tile"><div class="detail-tile-label">Portfolio value</div><div class="detail-tile-value">₹41,20,000</div></div>
+      <div class="detail-tile"><div class="detail-tile-label">Change this month</div><div class="detail-tile-value">—</div></div>
+      <div class="detail-tile"><div class="detail-tile-label">New money</div><div class="detail-tile-value">₹1,44,874</div></div>
+      <div class="detail-tile"><div class="detail-tile-label">Market movement</div><div class="detail-tile-value">—</div></div>
+    </div>
+    <p class="modal-note">Market movement is what is left after new money, opening holdings, switches and gifted units.</p>
+    <div class="fund-detail-table-wrap">
+      <table class="fund-detail-table">
+        <thead><tr><th>Fund</th><th>Units</th><th>NAV (date)</th><th>Value</th><th>Cost</th><th>Change</th><th>Market movement</th></tr></thead>
+        <tbody>
+          <tr><td>Kotak Multi Cap Fund<span class="member-sub">Siddharth</span></td><td>4,218.332</td><td>₹58.20<span class="member-sub">30 Nov 2022</span></td><td>₹2,45,507</td><td>₹2,10,000</td><td>+₹8,420</td><td>+₹7,100</td></tr>
+          <tr><td>JM Flexi Cap Fund<span class="member-sub">Aarohi</span></td><td>2,901.110</td><td>₹41.85<span class="member-sub">30 Nov 2022</span></td><td>₹1,21,411</td><td>₹98,000</td><td>+₹4,210</td><td>+₹3,650</td></tr>
+          <tr><td>HDFC Balanced Advantage Fund<span class="member-sub">Parents</span><span class="member-sub" style="color:var(--warn-text);">No price for this month</span></td><td>6,004.882</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+          <tr><td>Parag Parikh Flexi Cap Fund<span class="member-sub">Siddharth</span></td><td>3,350.004</td><td>₹72.40<span class="member-sub">30 Nov 2022</span></td><td>₹2,42,540</td><td>₹2,05,000</td><td>+₹6,980</td><td>+₹6,100</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="spec">
+
+<h2>Reference-vs-spec note — flagging one reading, not silently resolving it</h2>
+<p style="font-size:13px; line-height:1.6; max-width:900px;">design.md §7.1's first bullet says the detailed XIRR
+section is "expanded with the per-fund XIRR table (BenchmarkSection's Tab 2 already has this: fund XIRR vs its
+assigned benchmark)." Read literally, that could mean Block 1 should contain the <em>same</em> interactive
+per-fund benchmark comparison that Block 3 already provides. I've instead built Block 1's table as a compact,
+non-interactive glance table (fund, XIRR, vs-benchmark delta only, no bars) and kept the full interactive version
+— with the new benchmark/time-window dropdowns — as Block 3, reasoning that the sentence is justifying <em>why
+the data for Block 3 isn't new backend work</em> (it already exists in code) rather than asking for the table to
+be duplicated in full. <strong>This is a judgment call, not a confirmed resolution</strong> — flagging per
+CLAUDE.md's "stop and say so" rule rather than picking a side silently. If the intent was a literal duplicate,
+say so and I'll merge them back into one table.</p>
+
+<h2>What's new vs. what's reused verbatim</h2>
+<table>
+<tr><th>Element</th><th>Source</th><th>New work</th></tr>
+<tr><td>Lifetime/Current XIRR toggle + disclaimer</td><td><code>DashboardView.tsx</code>'s XIRR block + <code>XirrDisclaimerModal</code></td><td>None — relabelled, same data shape (<code>lifetime_xirr</code>/<code>current_holdings_xirr</code> + their disclaimers)</td></tr>
+<tr><td>Absolute return tiles</td><td><code>investment_withdrawal.absolute_gain</code> (already computed)</td><td>None</td></tr>
+<tr><td>Portfolio value history chart + month-click modal</td><td><code>HistoryView.tsx</code> / <code>HistoryChart.tsx</code> / <code>HistoryDetailModal.tsx</code></td><td>None — relocated, not rebuilt, per Q2/Q11</td></tr>
+<tr><td>Benchmark comparison — both tabs, bars, Show More</td><td><code>BenchmarkSection.tsx</code></td><td>None structurally</td></tr>
+<tr><td>Benchmark-index dropdown (8 indices, 4 new)</td><td>—</td><td>New: <code>BenchmarkIndex</code> enum + trading-index mapping + backfill for Nifty Next 50 / Smallcap 250 / Nifty 100 / Nifty 200</td></tr>
+<tr><td>Time-window dropdown (1Y/3Y/5Y/Since Inception)</td><td>—</td><td>New: windowed XIRR calculation (today's benchmark XIRR is since-inception only) — same precompute job, more stored combinations</td></tr>
+</table>
+
+<h2>Motion &amp; interaction spec</h2>
+<table>
+<tr><th>Trigger</th><th>Behaviour</th><th>Timing / easing</th></tr>
+<tr><td>Click Lifetime/Current</td><td>Swaps XIRR value + disclaimer text for that scope</td><td><code>--fast</code></td></tr>
+<tr><td>Click the disclaimer line</td><td>Expands the warning panel inline (mockup simplification of the real modal)</td><td><code>--fast</code></td></tr>
+<tr><td>Click 1Y/3Y/5Y/All</td><td>Chart re-renders to that window</td><td>n/a in static mockup — real component re-slices points client-side, zero network call</td></tr>
+<tr><td>Hover/click a month point</td><td>Tooltip card appears below the chart with value/cost/gain + "See details"</td><td><code>--fast</code></td></tr>
+<tr><td>Click "See details"</td><td>Opens the full month modal (member chips, 4 tiles, per-fund table)</td><td>sheet slides up, 220ms</td></tr>
+<tr><td>Click a benchmark/time-window dropdown pill</td><td>Opens a checkbox/radio panel beneath it</td><td><code>--fast</code></td></tr>
+<tr><td>Click a Portfolio vs Broad Market / Per-Fund vs Benchmark tab</td><td>Swaps the two comparison views</td><td><code>--fast</code></td></tr>
+</table>
+
+<div class="decided-against">
+<strong>Decided against:</strong> a single merged "Performance" chart combining value-history and benchmark-XIRR
+into one visualization — design.md is explicit that these stay as three separate stacked blocks, each one a
+relocated/expanded existing component, not a new composite chart. Also decided against letting the benchmark-index
+checkboxes actually toggle bars in this static mockup (checked boxes are disabled) — the real component swaps
+in live data per selection; a static HTML mockup can only show the panel's shape, not its live behaviour.
+</div>
+
+<div class="locked-note"><b>Status:</b> Performance built per design.md §7.1 — three stacked blocks (XIRR+absolute
+return, portfolio value history, benchmark comparison), reusing <code>DashboardView</code>'s XIRR+disclaimer,
+<code>HistoryView</code>'s chart+modal, and <code>BenchmarkSection</code>'s two tabs verbatim, plus the two new
+benchmark/time-window dropdowns per Q5's precompute-every-combination resolution. One reading flagged above for
+owner confirmation (Block 1's per-fund table scope), not silently resolved either way. Signed off by owner
+2026-10-24 — the "See details" click-through on the value-history chart was specifically called out as working
+as intended. Round 4 (2026-10-24, shared with the Overview mockup): <code>.frame</code> widened 1320px→1640px for
+chrome consistency across sub-pages; "Ask Mira" now opens the same "coming soon" popup used on every other
+sub-page instead of being a dead click. Round 5 (2026-10-24, pending sign-off): Block 3 (Benchmark Comparison)
+redesigned — the owner called the stacked-bar list "untidy" and asked for something unique and fully clickable.
+Portfolio vs Broad Market replaces the bars with a "race track": every entity (Portfolio + each benchmark) is a
+clickable marker on one shared XIRR axis, labels alternating above/below the line to avoid collisions, a crown on
+whichever is currently highest, click a marker to open a period-breakdown detail panel below — the same
+"click a point on a horizontal track → detail panel beneath" mechanic as the Overview page's new SIP timeline, so
+both new interactions read as one shared pattern rather than two one-offs. The index-picker dropdown became
+directly-clickable toggle chips (click to show/hide that benchmark's marker); the time-window dropdown became a
+plain segmented control (only 4 options — a dropdown added a click for nothing). Per-Fund vs Benchmark cards now
+collapse to a single scannable row (name, diff badge, an inline two-dot mini-track) by default, click to expand
+into the full fund-vs-benchmark bars — decluttering the default view while keeping the detail one click away, the
+same ask applied to every list on this page. Next: owner review, then Allocation's equivalent clickability pass,
+then Holdings, Other Analytics, Fund Overlap, Individual Fund Overlap, Transactions, in that order.</div>
+
+</div>
+
+<!-- Ask Mira — coming soon (shared verbatim with the Overview mockup) -->
+<div class="mira-modal-overlay" id="mira-modal" hidden>
+  <div class="mira-modal">
+    <div class="glyph-ring"><svg class="icon-lg"><use href="#i-sparkle"/></svg></div>
+    <h3>Mira is coming soon</h3>
+    <p>Mira, your AI investment assistant, is still being built. You'll be able to ask it about your portfolio, holdings, and performance right from here.</p>
+    <div class="btn-primary" id="mira-modal-close" style="background:var(--ink); border:1px solid var(--ink);">Got it</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var miraModal = document.getElementById('mira-modal');
+  document.querySelectorAll('.mira-trigger').forEach(function(t){ t.addEventListener('click', function(){ miraModal.hidden = false; }); });
+  document.getElementById('mira-modal-close').addEventListener('click', function(){ miraModal.hidden = true; });
+  miraModal.addEventListener('click', function(e){ if (e.target === miraModal) miraModal.hidden = true; });
+
+  function setGlobal(state){
+    document.querySelectorAll('[data-global]').forEach(function(b){ b.classList.toggle('active', b.dataset.global === state); });
+    ['g-loading','g-error','g-happy'].forEach(function(id){
+      document.getElementById(id).style.display = (id === 'g-' + state) ? 'block' : 'none';
+    });
+    var subEnabled = state === 'happy';
+    ['row-xirr','row-hist','row-bm'].forEach(function(id){
+      document.getElementById(id).classList.toggle('ctl-sub', !subEnabled);
+      document.getElementById(id).classList.toggle('enabled', subEnabled);
+    });
+  }
+  function setSection(sec, val){
+    document.querySelectorAll('[data-sec="'+sec+'"]').forEach(function(b){ b.classList.toggle('active', b.dataset.val === val); });
+    ['default','insufficient','empty'].forEach(function(v){
+      var el = document.getElementById(sec + '-' + v);
+      if (el) el.style.display = (v === val) ? '' : 'none';
+    });
+  }
+  document.querySelectorAll('[data-global]').forEach(function(b){ b.addEventListener('click', function(){ setGlobal(b.dataset.global); }); });
+  document.querySelectorAll('[data-sec]').forEach(function(b){ b.addEventListener('click', function(){ setSection(b.dataset.sec, b.dataset.val); }); });
+  ['row-xirr','row-hist','row-bm'].forEach(function(id){ document.getElementById(id).classList.add('ctl-sub','enabled'); });
+
+  document.getElementById('bm-funds-default') && document.querySelectorAll('[data-sec="bm"]').length; // placeholder keeps lint quiet in some editors
+
+  document.querySelectorAll('.seg-btn, .htab, .range-pill, .bm-tab').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var siblings = btn.parentElement.children;
+      Array.prototype.forEach.call(siblings, function(s){ s.classList.remove('active'); });
+      btn.classList.add('active');
+      if (btn.classList.contains('bm-tab')) {
+        var which = btn.dataset.bmtab;
+        document.getElementById('bm-tab-portfolio').style.display = which === 'portfolio' ? '' : 'none';
+        document.getElementById('bm-tab-funds').style.display = which === 'funds' ? '' : 'none';
+      }
+    });
+  });
+
+  // disclaimer expand/collapse
+  var discBtn = document.getElementById('disclaimer-toggle');
+  var discPanel = document.getElementById('disclaimer-panel');
+  discBtn.addEventListener('click', function(){
+    discPanel.style.display = discPanel.style.display === 'none' ? 'block' : 'none';
+  });
+
+  // benchmark/time-window dropdown panels
+  function wireDropdown(pillId, panelId){
+    var pill = document.getElementById(pillId), panel = document.getElementById(panelId);
+    pill.addEventListener('click', function(e){
+      e.stopPropagation();
+      var open = panel.classList.contains('is-open');
+      document.querySelectorAll('.dd-panel.is-open').forEach(function(p){ p.classList.remove('is-open'); });
+      document.querySelectorAll('.dd-pill.is-open').forEach(function(p){ p.classList.remove('is-open'); });
+      if (!open) { panel.classList.add('is-open'); pill.classList.add('is-open'); }
+    });
+  }
+  wireDropdown('dd-index-pill', 'dd-index-panel');
+  wireDropdown('dd-window-pill', 'dd-window-panel');
+  document.addEventListener('click', function(){
+    document.querySelectorAll('.dd-panel.is-open').forEach(function(p){ p.classList.remove('is-open'); });
+    document.querySelectorAll('.dd-pill.is-open').forEach(function(p){ p.classList.remove('is-open'); });
+  });
+  document.querySelectorAll('#dd-window-panel input').forEach(function(r){
+    r.addEventListener('change', function(){
+      document.getElementById('dd-window-label').textContent = r.parentElement.querySelector('span').textContent;
+    });
+  });
+
+  // month detail modal
+  var monthModal = document.getElementById('month-modal');
+  document.getElementById('open-month-modal').addEventListener('click', function(){ monthModal.hidden = false; });
+  document.getElementById('close-month-modal').addEventListener('click', function(){ monthModal.hidden = true; });
+  monthModal.addEventListener('click', function(e){ if (e.target === monthModal) monthModal.hidden = true; });
+  document.querySelectorAll('.member-chip').forEach(function(c){
+    c.addEventListener('click', function(){
+      document.querySelectorAll('.member-chip').forEach(function(o){ o.classList.remove('active'); });
+      c.classList.add('active');
+    });
+  });
+
+  // history chart: build the line/area/points procedurally so the SVG math
+  // matches HistoryChart.tsx's approach (plain coordinates, no library)
+  var W = 640, H = 240, PAD = 44, TOP = 20, BOTTOM = 30;
+  var points = [
+    {m:'Mar 19', v:18, c:18}, {m:'Nov 19', v:21, c:20}, {m:'Jul 20', v:19, c:23},
+    {m:'Mar 21', v:28, c:26}, {m:'Nov 21', v:34, c:29}, {m:'Jul 22', v:38, c:33},
+    {m:'Nov 22', v:41.2, c:36.8, hollow:true}, {m:'Mar 23', v:44, c:39}, {m:'Nov 23', v:50, c:42},
+    {m:'Jul 24', v:55, c:45}, {m:'Mar 25', v:60, c:48}, {m:'Nov 25', v:64, c:50}, {m:'Jul 26', v:67, c:51}
+  ];
+  var max = 67;
+  var x = function(i){ return PAD + i * (W - PAD * 2) / (points.length - 1); };
+  var y = function(v){ return TOP + (1 - v / max) * (H - TOP - BOTTOM); };
+  var line = points.map(function(p, i){ return (i ? 'L' : 'M') + x(i) + ',' + y(p.v); }).join(' ');
+  var area = 'M' + x(0) + ',' + y(0) + ' ' + points.map(function(p, i){ return 'L' + x(i) + ',' + y(p.c); }).join(' ') + ' L' + x(points.length - 1) + ',' + y(0) + ' Z';
+  document.getElementById('hist-line').setAttribute('d', line);
+  document.getElementById('hist-area').setAttribute('d', area);
+  var ptsGroup = document.getElementById('hist-points');
+  points.forEach(function(p, i){
+    var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', x(i)); c.setAttribute('cy', y(p.v));
+    c.setAttribute('r', p.hollow ? 5 : 3);
+    c.setAttribute('fill', p.hollow ? '#fff' : 'var(--accent)');
+    c.setAttribute('stroke', p.hollow ? 'var(--warn)' : 'none');
+    c.setAttribute('stroke-width', p.hollow ? '2' : '0');
+    c.classList.add('hist-pt');
+    var tooltip = document.getElementById('hist-tooltip');
+    c.addEventListener('mouseenter', function(){ if (p.hollow) tooltip.style.display = 'block'; });
+    ptsGroup.appendChild(c);
+  });
+})();
+
+/* ---- Benchmark race track + chip toggles + per-fund expand (Round 5) ---- */
+(function(){
+  var ENTITIES = [
+    { key:'you',         label:'Your Portfolio', value:10.69, isYou:true },
+    { key:'nifty50',     label:'Nifty 50',            value:8.36,  color:'#8A8A8A' },
+    { key:'nifty500',    label:'Nifty 500',           value:11.02, color:'#6366F1' },
+    { key:'lmc250',      label:'LargeMidcap 250',     value:13.13, color:'#D97706' },
+    { key:'mc150',       label:'Midcap 150',          value:17.14, color:'#DC2626' },
+    { key:'next50',      label:'Nifty Next 50',       value:9.9,   color:'#0D9488', hidden:true },
+    { key:'smallcap250', label:'Smallcap 250',        value:19.4,  color:'#2563EB', hidden:true },
+    { key:'nifty100',    label:'Nifty 100',           value:10.1,  color:'#7C3AED', hidden:true },
+    { key:'nifty200',    label:'Nifty 200',           value:12.0,  color:'#BE185D', hidden:true }
+  ];
+  var AXIS_MIN = 0, AXIS_MAX = 20;
+  var axisEl = document.getElementById('bm-race-axis');
+  var detailEl = document.getElementById('bm-detail-panel');
+
+  function leftPct(v){ return 4 + ((v - AXIS_MIN) / (AXIS_MAX - AXIS_MIN)) * 92; }
+
+  function renderRace(){
+    var visible = ENTITIES.filter(function(e){ return !e.hidden; });
+    var sorted = visible.slice().sort(function(a,b){ return a.value - b.value; });
+    var maxEntity = visible.reduce(function(a,b){ return b.value > a.value ? b : a; }, visible[0]);
+    axisEl.innerHTML = '';
+    sorted.forEach(function(e, i){
+      var lane = i % 2 === 0 ? 'lane-bottom' : 'lane-top';
+      var el = document.createElement('div');
+      el.className = 'bm-race-marker ' + lane + (e.isYou ? ' is-you' : '');
+      el.style.left = leftPct(e.value) + '%';
+      el.dataset.key = e.key;
+      el.innerHTML =
+        (e.key === maxEntity.key ? '<svg class="icon icon-sm m-crown"><use href="#i-zap"/></svg>' : '') +
+        (e.isYou ? '<div class="m-dot"></div>' : '<div class="m-dot" style="background:' + e.color + ';"></div>') +
+        '<div class="m-tag">' + (e.isYou ? 'You' : e.label) + '<span class="m-val">+' + e.value.toFixed(2) + '%</span></div>';
+      el.addEventListener('click', function(){ selectEntity(e.key); });
+      axisEl.appendChild(el);
+    });
+  }
+
+  function selectEntity(key){
+    document.querySelectorAll('.bm-race-marker').forEach(function(m){ m.classList.toggle('is-active', m.dataset.key === key); });
+    var e = ENTITIES.filter(function(x){ return x.key === key; })[0];
+    if (!e) { detailEl.innerHTML = ''; return; }
+    var diff = e.isYou ? null : (10.69 - e.value);
+    detailEl.innerHTML =
+      '<div class="bm-detail-head"><h4>' + (e.isYou ? 'Your Portfolio' : e.label) + '</h4>' +
+      (diff === null ? '' : '<span class="bm-diff ' + (diff >= 0 ? 'diff-up' : 'diff-down') + '" style="font-size:12px;">' + (diff >= 0 ? '+' : '') + diff.toFixed(2) + '% vs your portfolio</span>') +
+      '</div>' +
+      '<div class="bm-detail-periods">' +
+      '<div class="bm-period-cell"><div class="p-label">1Y</div><div class="p-val">+' + (e.value - 3.1).toFixed(2) + '%</div></div>' +
+      '<div class="bm-period-cell"><div class="p-label">3Y</div><div class="p-val">+' + (e.value - 1.4).toFixed(2) + '%</div></div>' +
+      '<div class="bm-period-cell"><div class="p-label">5Y</div><div class="p-val">+' + (e.value - 0.6).toFixed(2) + '%</div></div>' +
+      '<div class="bm-period-cell"><div class="p-label">Since Inception</div><div class="p-val">+' + e.value.toFixed(2) + '%</div></div>' +
+      '</div>';
+  }
+
+  document.querySelectorAll('#bm-chip-row .bm-chip').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      var key = chip.dataset.bm;
+      var e = ENTITIES.filter(function(x){ return x.key === key; })[0];
+      e.hidden = !e.hidden;
+      chip.classList.toggle('is-on', !e.hidden);
+      renderRace();
+    });
+  });
+
+  renderRace();
+  selectEntity('you');
+
+  // Per-fund rows: collapsed mini-track by default, click to expand full bars
+  document.querySelectorAll('.fund-bm-card-head').forEach(function(head){
+    head.addEventListener('click', function(){
+      head.closest('.fund-bm-card').classList.toggle('is-open');
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

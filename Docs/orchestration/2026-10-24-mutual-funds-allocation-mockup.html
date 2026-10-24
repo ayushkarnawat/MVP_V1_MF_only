@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mutual Funds — Allocation page, high-fidelity mockup, all states (v1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F5F5F5; --surface:#FFFFFF; --border:#ECECEC; --border-soft:#ECECEC; --border-input:#DFDFDF;
+    --ink:#111111; --secondary:#717171; --body:#4B4B4B; --muted:#9B9B9B; --text-disabled:#C4C4C4;
+    --accent:#22C55E; --accent-hover:#16A34A; --accent-pressed:#15803D; --accent-selected-bg:#E9F9EF;
+    --pos:#22C55E; --pos-text:#15803D; --pos-bg:#EAFBF0;
+    --neg:#E5484D; --neg-text:#C1272D; --neg-bg:#FDECEC;
+    --warn:#D97706; --warn-text:#92400E; --warn-bg:#FEF3E2;
+    --teal:#0D9488;
+    --c1:#22C55E; --c2:#0D9488; --c3:#2563EB; --c4:#6366F1; --c5:#8B5CF6; --c6:#D97706; --c7:#EC4899; --c8:#C1272D;
+    --font-display:'DM Sans',-apple-system,'Segoe UI',Arial,sans-serif;
+    --font-body:'Manrope',-apple-system,'Segoe UI',Arial,sans-serif;
+    --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:20px; --radius-pill:9999px;
+    --shadow-sm:0 1px 2px rgba(17,17,17,.05), 0 1px 1px rgba(17,17,17,.03);
+    --shadow-md:0 8px 24px rgba(17,17,17,.08), 0 2px 6px rgba(17,17,17,.04);
+    --shadow-lg:0 20px 48px rgba(17,17,17,.12), 0 4px 10px rgba(17,17,17,.05);
+    --fast:150ms cubic-bezier(.4,0,.2,1);
+    --pop:260ms cubic-bezier(.34,1.56,.64,1);
+    --hover-tint:#F2FBF5;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; }
+  body { font-family:var(--font-body); background:#fff; color:var(--ink); padding:28px 28px 90px; -webkit-font-smoothing:antialiased; }
+  h1 { font-family:var(--font-display); font-size:19px; font-weight:700; margin:0 0 4px; }
+  .doc-subtitle { color:var(--secondary); font-size:13px; margin:0 0 16px; max-width:1040px; line-height:1.55; }
+  .icon { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; display:block; }
+  .icon-sm { width:13px; height:13px; }
+  .icon-lg { width:20px; height:20px; }
+  code { background:#F3F3F3; padding:1px 6px; border-radius:4px; font-size:11.5px; }
+
+  .controls { position:sticky; top:0; z-index:50; background:#fff; border:1px solid #ddd; border-radius:12px; padding:12px 16px; margin-bottom:20px; box-shadow:0 2px 14px rgba(0,0,0,.1); max-width:1640px; }
+  .ctl-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .ctl-row:last-child { margin-bottom:0; }
+  .ctl-label { font-family:var(--font-display); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--secondary); width:140px; flex-shrink:0; }
+  .ctl-btn { font-family:var(--font-display); font-weight:600; font-size:11px; padding:5px 11px; border-radius:7px; border:1px solid var(--border); background:#fafafa; color:#444; cursor:pointer; transition:all var(--fast); }
+  .ctl-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+  .ctl-btn.active { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .ctl-sub { opacity:.35; pointer-events:none; }
+  .ctl-sub.enabled { opacity:1; pointer-events:auto; }
+
+  .frame { background:var(--bg); border-radius:18px; padding:16px; max-width:1640px; }
+  .topbar { display:flex; align-items:center; gap:16px; padding:6px 10px 18px; }
+  .logo { font-family:var(--font-display); font-weight:800; font-size:17px; letter-spacing:-.01em; flex-shrink:0; }
+  .search-pill { flex:1; max-width:380px; display:flex; align-items:center; gap:8px; background:#F2F2F3; border-radius:var(--radius-pill); padding:9px 16px; color:var(--muted); font-size:13px; }
+  .top-actions { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .pill-ghost { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-weight:600; font-size:12.5px; padding:8px 14px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; color:var(--ink); white-space:nowrap; cursor:pointer; transition:all var(--fast); }
+  .pill-ghost:hover { border-color:#d5d5d5; box-shadow:var(--shadow-sm); transform:translateY(-1px); }
+  .pill-ghost.accent-outline { border-color:var(--accent); color:var(--accent-hover); }
+  .pill-ghost.accent-outline:hover { background:var(--hover-tint); border-color:var(--accent); }
+  .icon-btn { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--secondary); cursor:pointer; transition:background var(--fast); flex-shrink:0; }
+  .icon-btn:hover { background:#F2F2F3; }
+  .avatar-top { width:34px; height:34px; border-radius:50%; background:var(--ink); color:#fff; font-family:var(--font-display); font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .mira-trigger { cursor:pointer; }
+
+  .layout { display:flex; gap:18px; align-items:flex-start; }
+  .sidebar { width:186px; flex-shrink:0; background:transparent; padding:4px 0; }
+  .side-item { display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:10px; color:var(--secondary); font-size:13.5px; font-weight:500; margin-bottom:2px; cursor:pointer; transition:background var(--fast), color var(--fast); }
+  .side-item:hover { background:#F4F4F4; color:var(--ink); }
+  .side-item.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+  .side-divider { height:1px; background:var(--border-soft); margin:12px 10px; }
+
+  .main { flex:1; display:flex; flex-direction:column; gap:18px; min-width:0; position:relative; }
+
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; padding:2px 2px 0; }
+  .crumb { font-size:11.5px; color:var(--muted); font-weight:500; }
+  .page-header h2 { font-family:var(--font-display); font-size:26px; font-weight:800; letter-spacing:-.015em; margin:4px 0 4px; }
+  .page-sub { font-size:13px; color:var(--secondary); }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:22px 24px; opacity:0; transform:translateY(10px); animation:settle 240ms cubic-bezier(.16,1,.3,1) forwards; }
+  @keyframes settle { to { opacity:1; transform:translateY(0); } }
+  .card-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; flex-wrap:wrap; gap:10px; }
+  .card-title { display:flex; align-items:center; gap:7px; font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ink); }
+  .card-desc { font-size:12px; color:var(--muted); margin-bottom:16px; max-width:760px; line-height:1.55; }
+
+  .info-dot { width:14px; height:14px; border-radius:50%; background:#EEE; color:var(--secondary); font-size:9px; font-style:italic; font-family:Georgia,serif; font-weight:700; display:inline-flex; align-items:center; justify-content:center; cursor:help; position:relative; flex-shrink:0; }
+  .info-dot .tip { position:absolute; bottom:calc(100% + 7px); left:50%; transform:translateX(-50%) translateY(3px); background:#1a1a1a; color:#fff; font-size:10.5px; font-weight:500; font-style:normal; font-family:var(--font-body); line-height:1.4; padding:8px 11px; border-radius:8px; width:208px; text-align:left; opacity:0; pointer-events:none; transition:opacity 100ms ease, transform 100ms ease; z-index:12; }
+  .info-dot:hover .tip { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .tabs-utility-row { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:12px 18px; }
+  .htabs { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+  .htab { font-family:var(--font-display); font-size:13px; font-weight:600; color:var(--secondary); padding:9px 15px; border-radius:var(--radius-pill); cursor:pointer; transition:background var(--fast), color var(--fast); white-space:nowrap; }
+  .htab:hover:not(.active) { background:#F4F4F4; color:var(--ink); }
+  .htab.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+
+  /* ---------------- shared pill-toggle (denominator / sort / category-amc tab) ---------------- */
+  .seg-toggle { display:inline-flex; background:#F0F0F1; border-radius:var(--radius-pill); padding:2px; width:fit-content; }
+  .seg-btn { font-family:var(--font-display); font-weight:700; font-size:11px; padding:6px 13px; border-radius:var(--radius-pill); color:var(--muted); cursor:pointer; transition:all var(--fast); white-space:nowrap; }
+  .seg-btn.active { background:#fff; color:var(--ink); box-shadow:var(--shadow-sm); }
+  .seg-btn:hover:not(.active) { color:var(--ink); }
+
+  /* ---------------- donut + legend (shared across Market Cap / Category / AMC) ---------------- */
+  .pie-row { display:flex; gap:32px; align-items:center; flex-wrap:wrap; }
+  .pie-stage { position:relative; width:206px; height:206px; flex-shrink:0; }
+  .pie-svg { width:100%; height:100%; overflow:visible; }
+  .pie-track { fill:none; stroke:#F0F0F0; }
+  .pie-seg { transform-origin:100px 100px; transition:transform var(--pop), opacity var(--fast); cursor:pointer; }
+  .pie-seg circle { fill:none; stroke-linecap:round; }
+  .pie-seg.is-active { transform:translate(var(--dx), var(--dy)); }
+  .pie-seg.is-dim { opacity:.38; }
+  .pie-hole { position:absolute; inset:38px; border-radius:50%; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none; }
+  .pie-hole .hl { font-size:11.5px; font-weight:600; color:var(--secondary); max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pie-hole .hv { font-family:var(--font-display); font-size:17px; font-weight:800; color:var(--ink); margin-top:3px; }
+  .pie-hole .hp { font-size:11.5px; font-weight:700; color:var(--accent-hover); margin-top:2px; }
+  .legend { flex:1; min-width:220px; display:flex; flex-direction:column; }
+  .l-row { display:flex; align-items:center; gap:9px; font-size:12.5px; padding:7px 10px; margin-bottom:1px; border-radius:9px; cursor:pointer; transition:background var(--fast), transform var(--fast); }
+  .l-row:hover, .l-row.is-active { background:var(--hover-tint); }
+  .l-row.is-active { transform:translateX(2px); }
+  .l-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .l-label { font-weight:600; color:var(--ink); }
+  .l-pct { margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); font-size:12.5px; }
+  .l-chev { width:12px; height:12px; color:var(--muted); opacity:0; transition:opacity var(--fast), transform var(--fast); }
+  .l-row:hover .l-chev { opacity:1; transform:translateX(2px); color:var(--accent-hover); }
+  /* Persistent "this is what the drill panel below is showing" marker — see design.md §11.1 */
+  .l-row.is-selected { border-left:3px solid var(--accent); padding-left:7px; }
+  .l-row.is-selected .l-chev { opacity:1; transform:rotate(90deg); color:var(--accent-hover); }
+  .drill-panel-dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:7px; vertical-align:-1px; }
+
+  .headline-stat { font-size:13px; font-weight:700; color:var(--ink); margin-top:14px; }
+  .meta-line { font-size:11.5px; color:var(--muted); margin:2px 0; }
+
+  .coverage-banner { background:var(--bg); border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:13px 16px; font-size:12px; color:var(--secondary); margin-top:14px; }
+  .coverage-banner p { margin:0 0 6px; }
+  .coverage-banner p:last-child { margin-bottom:0; }
+  .coverage-banner .cb-title { font-weight:700; color:var(--ink); }
+  .coverage-banner ul { margin:0 0 6px; padding-left:18px; }
+  .coverage-banner li { margin-bottom:2px; }
+
+  /* ---------------- drill-down stock list (Market Cap) ---------------- */
+  .drill-panel { border-top:1px solid var(--border-soft); margin-top:16px; padding-top:14px; }
+  .drill-row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border-soft); border-radius:var(--radius-md); font-size:12.5px; cursor:pointer; margin-bottom:8px; transition:all var(--fast); }
+  .drill-row:hover { border-color:var(--accent); background:var(--hover-tint); }
+  .drill-row .dr-val { font-variant-numeric:tabular-nums; font-weight:700; }
+  .drill-fund-list { list-style:none; margin:0 0 8px; padding:0 0 0 2px; font-size:11.5px; color:var(--secondary); }
+  .drill-fund-list li { padding:4px 0; border-top:1px dashed var(--border-soft); }
+  .drill-fund-list li:first-child { border-top:none; }
+
+  /* ---------------- Asset Class nested donut ---------------- */
+  .nested-stage { position:relative; width:280px; height:280px; flex-shrink:0; margin:0 auto; }
+  .nested-stage .ring-outer, .nested-stage .ring-inner { position:absolute; inset:0; }
+  .nested-stage .ring-inner { inset:30px; }
+  .nested-hole { position:absolute; inset:92px; border-radius:50%; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none; }
+  .nested-hole .hl { font-size:11px; font-weight:600; color:var(--secondary); }
+  .nested-hole .hv { font-family:var(--font-display); font-size:15px; font-weight:800; margin-top:3px; }
+  .arb-toggle { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink); margin:12px 0 4px; cursor:pointer; }
+  .arb-toggle input { width:16px; height:16px; accent-color:var(--accent); cursor:pointer; }
+  .equity-outer-chips { display:flex; flex-wrap:wrap; gap:14px; font-size:11.5px; color:var(--secondary); margin-top:14px; }
+  .equity-outer-chips span { display:inline-flex; align-items:center; gap:6px; }
+  .equity-outer-chips .dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+
+  /* ---------------- Fund Manager table ---------------- */
+  .mgr-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .mgr-table thead th { text-align:left; font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:0 14px 10px; }
+  .mgr-table thead th.num { text-align:right; }
+  .mgr-table tbody td, .mgr-table tfoot td { padding:14px; border-top:1px solid var(--border-soft); }
+  .mgr-table tbody td.num, .mgr-table tfoot td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .mgr-table tbody tr.mgr-row { cursor:pointer; transition:background var(--fast); }
+  .mgr-table tbody tr.mgr-row:hover { background:var(--hover-tint); }
+  .mgr-table tfoot td { font-weight:700; background:var(--bg); }
+  .mgr-caption { font-size:11px; color:var(--muted); margin-top:10px; }
+  /* ---------------- Clickability pass (Round 5, 2026-10-24): Asset Class and
+     Category/AMC legend rows already rendered a chevron (.l-chev via
+     buildDonut) implying click-ability, but no handler was ever wired — the
+     gap the owner called out. Both now reuse Market Cap's existing
+     .drill-panel/.drill-row pattern so every allocation card drills the same
+     way. Fund Manager rows get the same treatment via expand/detail rows. ---------------- */
+  .mgr-expand-ico { color:var(--muted); transition:transform var(--fast); vertical-align:-2px; margin-right:4px; }
+  .mgr-row.is-open .mgr-expand-ico { transform:rotate(90deg); color:var(--accent-hover); }
+  .mgr-detail-row td { background:var(--bg); padding:0 !important; border-top:none !important; }
+  .mgr-detail-row .mgr-detail-inner { padding:4px 14px 14px; font-size:12px; color:var(--secondary); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .mgr-detail-row .mgr-detail-inner b { color:var(--ink); }
+  .unavail-box { display:flex; gap:10px; align-items:flex-start; border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:13px 16px; margin-top:14px; background:var(--warn-bg); }
+  .unavail-box svg { color:var(--warn-text); flex-shrink:0; margin-top:1px; }
+  .unavail-box p { margin:0 0 5px; font-size:12px; font-weight:700; color:var(--warn-text); }
+  .unavail-box ul { margin:0; padding-left:18px; font-size:11.5px; color:var(--warn-text); }
+
+  .shimmer { position:relative; overflow:hidden; background:#EFEFEF; border-radius:7px; }
+  .shimmer::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent); background-size:200% 100%; animation:shimmer 1.4s ease-in-out infinite; }
+  @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+
+  .card-error { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px 16px; gap:9px; }
+  .card-error .err-ico { width:38px; height:38px; border-radius:50%; background:var(--warn-bg); color:var(--warn-text); display:flex; align-items:center; justify-content:center; }
+  .card-error h4 { margin:2px 0 0; font-family:var(--font-display); font-size:14px; }
+  .card-error p { margin:0; font-size:12px; color:var(--secondary); max-width:340px; }
+  .retry-btn { font-family:var(--font-display); font-weight:700; font-size:12px; padding:7px 16px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; cursor:pointer; transition:all var(--fast); }
+  .retry-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+
+  .page-state { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:76px 20px; gap:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+  .page-state .big-ico { width:58px; height:58px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; }
+  .page-state.is-error .big-ico { background:var(--warn-bg); color:var(--warn-text); }
+  .page-state h3 { font-family:var(--font-display); font-size:19px; margin:0; }
+  .page-state p { margin:0; font-size:13px; color:var(--secondary); max-width:400px; line-height:1.6; }
+
+  .mira-modal-overlay { position:fixed; inset:0; background:rgba(17,17,17,.45); z-index:200; display:flex; align-items:center; justify-content:center; }
+  .mira-modal-overlay[hidden] { display:none; }
+  .mira-modal { background:#fff; width:360px; max-width:calc(100vw - 40px); border-radius:var(--radius-lg); padding:26px 26px 22px; box-shadow:var(--shadow-lg); text-align:center; animation:settle 200ms cubic-bezier(.16,1,.3,1); }
+  .mira-modal .glyph-ring { width:44px; height:44px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; }
+  .mira-modal h3 { font-family:var(--font-display); font-size:17px; margin:0 0 8px; }
+  .mira-modal p { font-size:13px; color:var(--secondary); line-height:1.55; margin:0 0 18px; }
+  .mira-modal .btn-primary { width:100%; justify-content:center; display:inline-flex; align-items:center; font-family:var(--font-display); font-weight:700; padding:10px 18px; border-radius:var(--radius-pill); color:#fff; cursor:pointer; }
+
+  .spec { max-width:1080px; margin-top:44px; }
+  .spec h2 { font-family:var(--font-display); font-size:17px; margin:34px 0 10px; }
+  .spec h2:first-child { margin-top:0; }
+  .spec table { border-collapse:collapse; width:100%; font-size:12.5px; margin-bottom:6px; }
+  .spec th, .spec td { text-align:left; padding:8px 10px; border-bottom:1px solid #eee; vertical-align:top; }
+  .spec th { font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--secondary); font-weight:700; font-family:var(--font-display); }
+  .decided-against { background:#F6F6F6; border-radius:8px; padding:11px 15px; font-size:12.5px; color:#444; margin-top:8px; }
+  .locked-note { background:var(--pos-bg); border:1px solid var(--pos); border-radius:9px; padding:13px 17px; font-size:13px; color:var(--pos-text); margin-top:22px; max-width:1080px; }
+  .open-note { background:var(--warn-bg); border:1px solid #F5C377; border-radius:9px; padding:13px 17px; font-size:13px; color:var(--warn-text); margin-top:14px; max-width:1080px; }
+</style>
+</head>
+<body>
+
+<svg style="display:none">
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M20 20l-5.5-5.5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15.2 20c0-2.2 1.7-4 3.8-4.6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></symbol>
+  <symbol id="i-bar-chart" viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></symbol>
+  <symbol id="i-pie" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
+  <symbol id="i-trending" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-8"/><path d="M14 7h6v6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.8 1c0 1.8-2.3 2-2.3 3.5"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 10v5"/><path d="M12 18.2v.1"/></symbol>
+  <symbol id="i-help-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.8 1c0 1.8-2.3 2-2.3 3.5"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-users2" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15.2 20c0-2.2 1.7-4 3.8-4.6"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></symbol>
+</svg>
+
+<h1>Mutual Funds — Allocation page, high-fidelity mockup</h1>
+<p class="doc-subtitle">Route <code>portfolio-mutual-funds-allocation</code> → <code>/portfolio/mutual-funds/allocation</code>,
+per design.md §7.2. All five breakdowns the owner asked for — AMC, market cap, fund manager, category, asset class —
+already computed today, zero new backend work (except the category-column item tracked separately against Q3).
+Four stacked cards, broadest-to-narrowest: Asset Class (look-through equity/debt/gold/cash, nested donut) → Market
+Cap (promoted to its own first-class section per Q6-A, carrying every piece of <code>CapAllocationSection</code>'s
+content) → Category &amp; AMC (combined card with a tab toggle, ported from <code>AllocationSection.tsx</code>) →
+Fund Manager (table, ported from <code>FundManagerSection.tsx</code>). Same token system, chrome, and Ask-Mira
+popup as the Overview/Performance mockups.</p>
+
+<div class="controls">
+  <div class="ctl-row">
+    <div class="ctl-label">Page state</div>
+    <button class="ctl-btn active" data-global="happy">Happy path</button>
+    <button class="ctl-btn" data-global="loading">Initial loading</button>
+    <button class="ctl-btn" data-global="error">Page error</button>
+  </div>
+  <div class="ctl-row" id="row-mcap">
+    <div class="ctl-label">Market Cap card</div>
+    <button class="ctl-btn active" data-sec="mcap" data-val="default">Default</button>
+    <button class="ctl-btn" data-sec="mcap" data-val="drill">Drilled into Large Cap</button>
+  </div>
+  <div class="ctl-row" id="row-catamc">
+    <div class="ctl-label">Category/AMC card</div>
+    <button class="ctl-btn active" data-sec="catamc" data-val="category">By Category</button>
+    <button class="ctl-btn" data-sec="catamc" data-val="amc">By AMC</button>
+  </div>
+  <div class="ctl-row" id="row-mgr">
+    <div class="ctl-label">Fund Manager card</div>
+    <button class="ctl-btn active" data-sec="mgr" data-val="default">Default</button>
+    <button class="ctl-btn" data-sec="mgr" data-val="empty">No manager data</button>
+  </div>
+</div>
+
+<div class="frame">
+
+  <div class="topbar">
+    <div class="logo">Unifolio</div>
+    <div class="search-pill"><svg class="icon icon-sm"><use href="#i-search"/></svg>Search for a fund, stock, or ask Mira...</div>
+    <div class="top-actions">
+      <div class="pill-ghost accent-outline mira-trigger"><svg class="icon icon-sm"><use href="#i-sparkle"/></svg>Ask Mira</div>
+      <div class="pill-ghost"><svg class="icon icon-sm"><use href="#i-users"/></svg>Family Combined<svg class="icon icon-sm"><use href="#i-chevron-down"/></svg></div>
+      <div class="icon-btn"><svg class="icon"><use href="#i-moon"/></svg></div>
+      <div class="avatar-top">SS</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="side-item"><svg class="icon"><use href="#i-home"/></svg>Home</div>
+      <div class="side-item"><svg class="icon"><use href="#i-bar-chart"/></svg>Analytics</div>
+      <div class="side-item active"><svg class="icon"><use href="#i-pie"/></svg>Investments</div>
+      <div class="side-item"><svg class="icon"><use href="#i-trending"/></svg>Performance</div>
+      <div class="side-item"><svg class="icon"><use href="#i-zap"/></svg>Scenarios</div>
+      <div class="side-divider"></div>
+      <div class="side-item"><svg class="icon"><use href="#i-user"/></svg>Profile</div>
+      <div class="side-item"><svg class="icon"><use href="#i-help"/></svg>Help &amp; Support</div>
+    </div>
+
+    <div class="main" id="main">
+
+      <div class="page-header">
+        <div>
+          <div class="crumb">Investments · Mutual Funds</div>
+          <h2>Allocation</h2>
+          <div class="page-sub">How your money is spread — by asset class, market cap, category, fund house, and manager.</div>
+        </div>
+      </div>
+
+      <!-- ============ GLOBAL: INITIAL LOADING ============ -->
+      <div id="g-loading" style="display:none;">
+        <div class="card" style="margin-bottom:18px;"><div class="shimmer" style="height:16px; width:30%; margin-bottom:16px; border-radius:8px;"></div><div class="shimmer" style="height:220px; width:100%; border-radius:12px;"></div></div>
+        <div class="card" style="margin-bottom:18px;"><div class="shimmer" style="height:16px; width:30%; margin-bottom:16px; border-radius:8px;"></div><div class="shimmer" style="height:200px; width:100%; border-radius:12px;"></div></div>
+        <div class="card"><div class="shimmer" style="height:16px; width:30%; margin-bottom:16px; border-radius:8px;"></div><div class="shimmer" style="height:160px; width:100%; border-radius:12px;"></div></div>
+      </div>
+
+      <!-- ============ GLOBAL: PAGE ERROR ============ -->
+      <div id="g-error" style="display:none;">
+        <div class="page-state is-error">
+          <div class="big-ico"><svg class="icon-lg"><use href="#i-alert"/></svg></div>
+          <h3>Couldn't load your allocation data</h3>
+          <p>There was a problem reaching our servers. Your data is safe — this is just a connection issue.</p>
+          <div class="retry-btn" style="padding:9px 20px; font-size:13px;">Retry</div>
+        </div>
+      </div>
+
+      <!-- ============ HAPPY PATH ============ -->
+      <div id="g-happy">
+
+        <div class="tabs-utility-row card" style="margin-bottom:0;">
+          <div class="htabs">
+            <div class="htab">Overview</div>
+            <div class="htab">Performance</div>
+            <div class="htab active">Allocation</div>
+            <div class="htab">Holdings</div>
+            <div class="htab">Transactions</div>
+            <div class="htab">Overlap</div>
+            <div class="htab">Other Analytics</div>
+          </div>
+        </div>
+
+        <!-- ================= CARD 1: Asset Class allocation (look-through) ================= -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-head">
+            <div class="card-title">Look-Through Asset Allocation<span class="info-dot">i<span class="tip">What your money is really in once mutual fund holdings are looked through to equity, debt, gold and cash-like instruments.</span></span></div>
+          </div>
+          <div class="card-desc">Percentages of covered portfolio value — differs slightly from Market Cap below, which is scoped to total portfolio or equity only. Equity's outer ring breaks into Large/Mid/Small/Other; debt, gold and cash-like stay undivided.</div>
+
+          <label class="arb-toggle"><input type="checkbox" id="arb-checkbox"><span>Treat arbitrage funds as cash-like</span></label>
+          <p class="meta-line" id="arb-note">Applies to HDFC Arbitrage Fund. Entire fund value moves to cash-like; Equity Savings is unchanged.</p>
+
+          <div class="pie-row" style="margin-top:10px;">
+            <div class="nested-stage">
+              <svg class="pie-svg ring-outer" viewBox="0 0 200 200" id="outer-svg"><g id="outer-segments"></g></svg>
+              <svg class="pie-svg ring-inner" viewBox="0 0 200 200" id="inner-svg"><circle class="pie-track" cx="100" cy="100" r="50" stroke-width="22"/><g id="inner-segments"></g></svg>
+              <div class="nested-hole"><span class="hl" id="asset-hole-label">Covered value</span><span class="hv" id="asset-hole-value">₹66.9L</span></div>
+            </div>
+            <div class="legend" id="asset-legend"></div>
+          </div>
+          <div class="equity-outer-chips" id="equity-outer-chips"></div>
+          <div class="headline-stat">Largest asset class: Equity (78.0%)</div>
+          <div class="coverage-banner">
+            <p class="cb-title">Based on 91.4% of your portfolio</p>
+            <ul>
+              <li>HDFC Overnight Fund — not published yet</li>
+              <li>Axis International Fund of Fund — not available from this AMC</li>
+            </ul>
+            <p>Derivative and other positions excluded from this view: 2.1% (net disclosed share).</p>
+          </div>
+
+          <div class="drill-panel" id="asset-drill-panel">
+            <div class="card-title" style="font-size:13.5px; margin-bottom:10px;" id="asset-drill-title">Equity — contributing funds</div>
+            <div id="asset-drill-rows"></div>
+            <p class="meta-line" id="asset-drill-meta"></p>
+          </div>
+        </div>
+
+        <!-- ================= CARD 2: Market Cap allocation (first-class, Q6-A) ================= -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-head">
+            <div class="card-title">Market-Cap Allocation<span class="info-dot">i<span class="tip">Equity holdings classified by AMFI market-cap size, looked through every fund you own.</span></span></div>
+            <div class="seg-toggle" id="mcap-denom-toggle">
+              <span class="seg-btn active" data-denom="total">% of total portfolio</span>
+              <span class="seg-btn" data-denom="equity">% of equity only</span>
+            </div>
+          </div>
+          <div class="card-desc">Values as on 24 Oct 2026 · Holdings as on 23 Oct 2026 · AMFI classification effective from 01 Jul 2026.</div>
+
+          <div class="pie-row">
+            <div class="pie-stage"><svg class="pie-svg" viewBox="0 0 200 200"><circle class="pie-track" cx="100" cy="100" r="70" stroke-width="28"/><g id="mcap-segments"></g></svg><div class="pie-hole"><span class="hl" id="mcap-hole-label">Total portfolio</span><span class="hv" id="mcap-hole-value">₹66.9L</span><span class="hp" id="mcap-hole-pct" style="display:none;"></span></div></div>
+            <div class="legend" id="mcap-legend"></div>
+          </div>
+          <div class="headline-stat">Largest allocation: Large Cap (42.0%)</div>
+          <div class="coverage-banner">
+            <p class="cb-title">Based on 91.4% of your portfolio</p>
+            <ul><li>HDFC Overnight Fund — not published yet</li></ul>
+            <p>Derivative and other positions excluded from this view: 2.1% (net disclosed share).</p>
+          </div>
+
+          <div class="drill-panel" id="mcap-drill-panel">
+            <div class="card-title" style="font-size:13.5px; margin-bottom:10px;">Large Cap — top holdings</div>
+            <div class="drill-row" data-expand="d1"><span>HDFC Bank Limited</span><span class="dr-val">₹4,12,000</span></div>
+            <ul class="drill-fund-list" id="d1-funds" style="display:none;"><li><b>Kotak Multi Cap Fund</b> · 3.1% of portfolio</li><li><b>HDFC Mid-Cap Opportunities</b> · 2.0% of portfolio</li></ul>
+            <div class="drill-row" data-expand="d2"><span>ICICI Bank Limited</span><span class="dr-val">₹3,58,000</span></div>
+            <ul class="drill-fund-list" id="d2-funds" style="display:none;"><li><b>Parag Parikh Flexi Cap Fund</b> · 2.7% of portfolio</li></ul>
+            <div class="drill-row" data-expand="d3"><span>Reliance Industries Limited</span><span class="dr-val">₹3,04,000</span></div>
+            <ul class="drill-fund-list" id="d3-funds" style="display:none;"><li><b>JM Flexi Cap Fund</b> · 2.3% of portfolio</li></ul>
+            <p class="meta-line">Showing the largest 3 of 41 holdings in this group.</p>
+          </div>
+        </div>
+
+        <!-- ================= CARD 3: Category & AMC allocation (combined, tab toggle) ================= -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-head">
+            <div class="card-title">Portfolio Allocation<span class="info-dot">i<span class="tip">Asset distribution across SEBI categories and fund houses (AMCs).</span></span></div>
+            <div class="seg-toggle" id="catamc-tab-toggle">
+              <span class="seg-btn active" data-tab="category">By Category</span>
+              <span class="seg-btn" data-tab="amc">By AMC</span>
+            </div>
+          </div>
+          <div class="card-desc">Asset distribution across SEBI categories and fund houses.</div>
+
+          <div style="margin-bottom:14px;">
+            <div class="seg-toggle" id="catamc-sort-toggle">
+              <span class="seg-btn" data-sort="asc">Smallest first</span>
+              <span class="seg-btn active" data-sort="desc">Largest first</span>
+            </div>
+          </div>
+
+          <div class="pie-row">
+            <div class="pie-stage"><svg class="pie-svg" viewBox="0 0 200 200"><circle class="pie-track" cx="100" cy="100" r="70" stroke-width="28"/><g id="catamc-segments"></g></svg><div class="pie-hole"><span class="hl" id="catamc-hole-label">Total</span><span class="hv" id="catamc-hole-value">₹66.9L</span><span class="hp" id="catamc-hole-pct" style="display:none;"></span></div></div>
+            <div class="legend" id="catamc-legend"></div>
+          </div>
+
+          <div class="drill-panel" id="catamc-drill-panel">
+            <div class="card-title" style="font-size:13.5px; margin-bottom:10px;" id="catamc-drill-title">Flexi Cap — contributing funds</div>
+            <div id="catamc-drill-rows"></div>
+            <p class="meta-line" id="catamc-drill-meta"></p>
+          </div>
+        </div>
+
+        <!-- ================= CARD 4: Fund Manager allocation ================= -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-head">
+            <div class="card-title"><svg class="icon icon-sm" style="color:var(--accent);"><use href="#i-users2"/></svg>Fund Manager Allocation</div>
+          </div>
+          <div class="card-desc">Who is actually running your money, aggregated across your whole portfolio.</div>
+
+          <div id="mgr-default">
+            <table class="mgr-table">
+              <thead><tr><th>Fund manager</th><th>AMC</th><th class="num">Current value</th><th class="num">% of overall portfolio</th></tr></thead>
+              <tbody>
+                <tr class="mgr-row" data-mgr="Rajeev Thakkar"><td><svg class="icon icon-sm mgr-expand-ico"><use href="#i-chevron-right"/></svg> Rajeev Thakkar</td><td>PPFAS MF</td><td class="num">₹14,88,600</td><td class="num">22.2%</td></tr>
+                <tr class="mgr-detail-row" data-mgr-detail="Rajeev Thakkar" style="display:none;"><td colspan="4"><div class="mgr-detail-inner"></div></td></tr>
+                <tr class="mgr-row" data-mgr="Harsha Upadhyaya"><td><svg class="icon icon-sm mgr-expand-ico"><use href="#i-chevron-right"/></svg> Harsha Upadhyaya</td><td>Kotak Mahindra MF</td><td class="num">₹14,73,692</td><td class="num">22.0%</td></tr>
+                <tr class="mgr-detail-row" data-mgr-detail="Harsha Upadhyaya" style="display:none;"><td colspan="4"><div class="mgr-detail-inner"></div></td></tr>
+                <tr class="mgr-row" data-mgr="Chirag Setalvad"><td><svg class="icon icon-sm mgr-expand-ico"><use href="#i-chevron-right"/></svg> Chirag Setalvad</td><td>HDFC MF</td><td class="num">₹13,10,000</td><td class="num">19.6%</td></tr>
+                <tr class="mgr-detail-row" data-mgr-detail="Chirag Setalvad" style="display:none;"><td colspan="4"><div class="mgr-detail-inner"></div></td></tr>
+                <tr class="mgr-row" data-mgr="Satish Ramanathan"><td><svg class="icon icon-sm mgr-expand-ico"><use href="#i-chevron-right"/></svg> Satish Ramanathan</td><td>JM Financial MF</td><td class="num">₹9,80,000</td><td class="num">14.6%</td></tr>
+                <tr class="mgr-detail-row" data-mgr-detail="Satish Ramanathan" style="display:none;"><td colspan="4"><div class="mgr-detail-inner"></div></td></tr>
+              </tbody>
+              <tfoot><tr><td colspan="2">Covered by manager data</td><td class="num">₹52,52,292</td><td class="num">78.4%</td></tr></tfoot>
+            </table>
+            <p class="mgr-caption">Funds with more than one manager are divided equally between them.</p>
+            <div class="unavail-box">
+              <svg class="icon icon-sm"><use href="#i-help-circle"/></svg>
+              <div>
+                <p>Fund manager data for these schemes isn't available yet.</p>
+                <ul><li>HDFC Overnight Fund (HDFC MF)</li><li>Axis International Fund of Fund (Axis MF)</li></ul>
+              </div>
+            </div>
+          </div>
+
+          <div id="mgr-empty" style="display:none;">
+            <div class="page-state" style="padding:44px 20px;">
+              <div class="big-ico"><svg class="icon-lg"><use href="#i-users2"/></svg></div>
+              <h3 style="font-size:16px;">No fund manager data available</h3>
+              <p>We haven't matched fund manager records for your current holdings yet.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ask Mira — coming soon (shared verbatim with Overview/Performance) -->
+<div class="mira-modal-overlay" id="mira-modal" hidden>
+  <div class="mira-modal">
+    <div class="glyph-ring"><svg class="icon-lg"><use href="#i-sparkle"/></svg></div>
+    <h3>Mira is coming soon</h3>
+    <p>Mira, your AI investment assistant, is still being built. You'll be able to ask it about your portfolio, holdings, and performance right from here.</p>
+    <div class="btn-primary" id="mira-modal-close" style="background:var(--ink); border:1px solid var(--ink);">Got it</div>
+  </div>
+</div>
+
+<div class="spec">
+
+<h2>Data source mapping</h2>
+<table>
+<tr><th>Element</th><th>Source</th><th>New work</th></tr>
+<tr><td>Asset Class nested donut + arbitrage toggle</td><td><code>asset_allocation</code> (equity/debt/gold/cash-like + <code>equity_outer</code> cap buckets), <code>AssetAllocationSection.tsx</code></td><td>None</td></tr>
+<tr><td>Market Cap donut + denominator toggle + drill-down</td><td><code>cap_allocation</code>, <code>CapAllocationSection.tsx</code> — promoted to its own section per Q6-A, every piece carried over (buckets, equity-vs-total toggle, classification date, drill rows)</td><td>None — composition only</td></tr>
+<tr><td>Category/AMC combined donut + tab + sort toggle</td><td><code>allocation.by_category</code> / <code>allocation.by_amc</code>, <code>AllocationSection.tsx</code></td><td>None</td></tr>
+<tr><td>Fund Manager table</td><td><code>fund_manager</code>, <code>FundManagerSection.tsx</code></td><td>None</td></tr>
+</table>
+
+<h2>Motion &amp; interaction spec</h2>
+<table>
+<tr><th>Trigger</th><th>Behaviour</th><th>Timing</th></tr>
+<tr><td>Hover a Market Cap / Category / AMC donut slice or legend row</td><td>Slice pops outward, others dim, center label swaps — identical mechanic to Overview's AMC donut</td><td><code>--pop</code>/<code>--fast</code></td></tr>
+<tr><td>Hover an Asset Class nested-ring legend row</td><td>Matching arcs in <strong>both</strong> rings dim the rest — no pop-out translate on this one (see Decided against)</td><td><code>--fast</code></td></tr>
+<tr><td>Click a Market Cap legend row</td><td>Opens the drill-down panel below with that bucket's top holdings; each holding expands to show which of your funds hold it and at what weight</td><td><code>--fast</code></td></tr>
+<tr><td>Click the denominator / sort / category-amc toggle</td><td>Swaps the active pill, re-renders the donut/legend/table with the new slice of data</td><td><code>--fast</code></td></tr>
+<tr><td>Check "Treat arbitrage funds as cash-like"</td><td>Both donut rings re-render with arbitrage fund value moved into the cash-like slice</td><td><code>--fast</code></td></tr>
+</table>
+
+<div class="decided-against"><strong>Decided against:</strong> radial pop-out hover on the Asset Class nested donut
+— with two rings at different radii sharing one hover target, a translate-based pop risks the outer ring's slice
+overlapping the inner ring's hole. Dim-only hover (both rings dim their non-matching arcs together, center label
+still swaps) reads just as clearly as "this is the hovered slice" without that risk — the single-ring donuts
+(Market Cap, Category, AMC) keep the full pop+dim mechanic since they don't share this problem. Also decided
+against building a live-reflowing drill-down for Category/AMC (unlike Market Cap) — design.md doesn't ask for one
+there, and <code>AllocationSection.tsx</code>'s real component doesn't have one either.</div>
+
+<div class="locked-note"><b>Status:</b> Allocation built per design.md §7.2 — all five breakdowns present
+(Asset Class, Market Cap promoted to first-class per Q6-A with every piece of <code>CapAllocationSection</code>
+carried over, Category, AMC, Fund Manager), zero new backend work. Ask-Mira coming-soon popup and the 1640px
+chrome width are shared verbatim with the Overview/Performance mockups (Round 4 pattern).
+<br><br><b>Round 5 (2026-10-24, pending sign-off):</b> closed the "everything should be clickable" gap the owner
+called out — Asset Class's nested-donut legend and Category/AMC's combined-donut legend both already rendered a
+chevron (<code>.l-chev</code>, via the shared <code>buildDonut</code> helper) implying click-ability, but only
+hover was ever wired. Both now reuse Market Cap's existing <code>.drill-panel</code>/<code>.drill-row</code>
+click pattern: click a legend row, a panel below lists that slice's top contributing funds ("largest N of M",
+same non-exhaustive convention as Market Cap's own "largest 3 of 41 holdings" — no claim of full reconciliation).
+Category/AMC's drill re-renders on tab switch to default to the new top slice. The Fund Manager table's rows
+were fully static (<code>cursor:default</code>); each now expands on click to a detail row showing which
+scheme(s) that manager runs and their XIRR, reusing the canonical 4-sample-fund set shared with the Overview
+mockup (Kotak Multi Cap, JM Flexi Cap, HDFC Mid-Cap Opportunities, Parag Parikh Flexi Cap) rather than inventing
+unlisted figures. Every fund name introduced across the three new drill datasets (e.g. "HDFC Corporate Bond
+Fund", "HDFC Gold Fund", "Kotak Small Cap Fund") carries exactly one ₹ value used consistently everywhere it
+reappears on this page — checked by hand after the Overview Distributor-modal reconciliation bug this same
+round. Market Cap's legend itself stays hover-only, unchanged: it already has its own genuinely-wired
+drill-row/fund-list mechanic, so it wasn't part of the gap being closed here.
+<br><br><b>Round 6 (2026-10-24, reworking Round 5's own anti-pattern):</b> the owner explicitly rejected Round 5's
+Asset Class/Category-AMC drill mechanic — clicking a legend row updated the panel below, but nothing visible tied
+the click to the update ("the user doesn't know what's updating... the user has no idea why I'm clicking this").
+Fixed per the newly-written design.md §11.1 ("meaningful-click-or-hover, visible cause-effect" rule, now the
+cross-artifact philosophy for this whole sub-project): the clicked legend row now stays visibly selected
+(persistent left-accent border + open chevron, not just a hover-only tint that vanishes the moment the mouse
+leaves), the drill panel's title carries a dot colored to match the exact slice clicked, and the panel
+smooth-scrolls into view on click — so the row, the color, and the panel are tied together at a glance instead of
+the panel silently changing somewhere below. Fund Manager's row-expand (detail appears directly beneath the
+clicked row, same shape as Market Cap's drill-row) and Market Cap itself were already compliant with this rule
+and are unchanged.
+<br><br>Next: Holdings, Other Analytics, Fund Overlap (now a multi-artifact split per design.md §11.3 — exact
+count still an open question), Individual Fund Overlap, Individual Fund page, Individual Fund Comparison,
+Transactions, plus the PRD/TDD/backend-flow/restructure/relayout document set.</div>
+
+</div>
+
+<script>
+(function(){
+  var miraModal = document.getElementById('mira-modal');
+  document.querySelectorAll('.mira-trigger').forEach(function(t){ t.addEventListener('click', function(){ miraModal.hidden = false; }); });
+  document.getElementById('mira-modal-close').addEventListener('click', function(){ miraModal.hidden = true; });
+  miraModal.addEventListener('click', function(e){ if (e.target === miraModal) miraModal.hidden = true; });
+
+  function setGlobal(state){
+    document.querySelectorAll('[data-global]').forEach(function(b){ b.classList.toggle('active', b.dataset.global === state); });
+    ['g-loading','g-error','g-happy'].forEach(function(id){
+      document.getElementById(id).style.display = (id === 'g-' + state) ? 'block' : 'none';
+    });
+  }
+  document.querySelectorAll('[data-global]').forEach(function(b){ b.addEventListener('click', function(){ setGlobal(b.dataset.global); }); });
+
+  document.querySelectorAll('.htab').forEach(function(t){
+    t.addEventListener('click', function(){ document.querySelectorAll('.htab').forEach(function(o){ o.classList.remove('active'); }); t.classList.add('active'); });
+  });
+
+  /* ---- generic single-ring donut builder: used for Market Cap and the
+     Category/AMC combined card, same pop+dim+label-swap mechanic as the
+     Overview AMC donut ---- */
+  function buildDonut(segId, legendId, holeLabelId, holeValueId, holePctId, slices, totalLabel, totalValue, onClick){
+    var R = 70, SW = 28, CIRC = 2 * Math.PI * R, GAP = 4;
+    var svgSegs = document.getElementById(segId);
+    var legendEl = document.getElementById(legendId);
+    var holeLabel = document.getElementById(holeLabelId);
+    var holeValue = document.getElementById(holeValueId);
+    var holePct = document.getElementById(holePctId);
+    svgSegs.innerHTML = ''; legendEl.innerHTML = '';
+    var cum = 0;
+    slices.forEach(function(s){
+      var startDeg = -90 + cum * 3.6;
+      var segLen = Math.max((s.pct / 100) * CIRC - GAP, 2);
+      var midDeg = startDeg + (s.pct * 3.6) / 2;
+      var midRad = midDeg * Math.PI / 180;
+      s._dx = (Math.cos(midRad) * 7).toFixed(2);
+      s._dy = (Math.sin(midRad) * 7).toFixed(2);
+      var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'pie-seg');
+      g.setAttribute('data-label', s.label);
+      g.style.setProperty('--dx', s._dx + 'px');
+      g.style.setProperty('--dy', s._dy + 'px');
+      var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', 100); c.setAttribute('cy', 100); c.setAttribute('r', R);
+      c.setAttribute('stroke', s.color); c.setAttribute('stroke-width', SW);
+      c.setAttribute('stroke-dasharray', segLen + ' ' + (CIRC - segLen));
+      c.setAttribute('transform', 'rotate(' + startDeg + ' 100 100)');
+      g.appendChild(c); svgSegs.appendChild(g);
+      cum += s.pct;
+    });
+    slices.forEach(function(s){
+      var row = document.createElement('div');
+      row.className = 'l-row'; row.setAttribute('data-label', s.label);
+      row.innerHTML = '<span class="l-dot" style="background:' + s.color + '"></span><span class="l-label">' + s.label + '</span><span class="l-pct">' + s.pct.toFixed(1) + '%</span><svg class="icon l-chev"><use href="#i-chevron-right"/></svg>';
+      legendEl.appendChild(row);
+    });
+    var selectedLabel = null;
+    function setActive(label){
+      svgSegs.querySelectorAll('.pie-seg').forEach(function(g){
+        var match = g.getAttribute('data-label') === label;
+        g.classList.toggle('is-active', match && label !== null);
+        g.classList.toggle('is-dim', label !== null && !match);
+      });
+      legendEl.querySelectorAll('.l-row').forEach(function(r){ r.classList.toggle('is-active', r.getAttribute('data-label') === label); r.classList.toggle('is-selected', r.getAttribute('data-label') === selectedLabel); });
+      if (label === null) { holeLabel.textContent = totalLabel; holeValue.textContent = totalValue; holePct.style.display = 'none'; }
+      else {
+        var s = slices.find(function(x){ return x.label === label; });
+        holeLabel.textContent = s.label; holeValue.textContent = s.value; holePct.textContent = s.pct.toFixed(1) + '%'; holePct.style.display = '';
+      }
+    }
+    svgSegs.querySelectorAll('.pie-seg').forEach(function(g){
+      g.addEventListener('mouseenter', function(){ setActive(g.getAttribute('data-label')); });
+      g.addEventListener('mouseleave', function(){ setActive(selectedLabel); });
+    });
+    legendEl.addEventListener('mouseover', function(e){ var row = e.target.closest('.l-row'); if (row) setActive(row.getAttribute('data-label')); });
+    legendEl.addEventListener('mouseleave', function(){ setActive(selectedLabel); });
+    if (onClick) {
+      /* Selection persists after click (not just on hover) so the legend row stays
+         visibly tied to whatever the drill panel below is now showing — see design.md
+         §11.1, fixing the "user doesn't know what's updating" feedback on Round 5. */
+      legendEl.addEventListener('click', function(e){
+        var row = e.target.closest('.l-row');
+        if (!row) return;
+        selectedLabel = row.getAttribute('data-label');
+        setActive(selectedLabel);
+        onClick(selectedLabel, row.querySelector('.l-dot').style.background);
+      });
+      selectedLabel = slices[0].label;
+      setActive(selectedLabel);
+    }
+  }
+
+  var MCAP_TOTAL = [
+    { label:'Large Cap', pct:42.0, color:'#22C55E', value:'₹28,13,412' },
+    { label:'Mid Cap', pct:28.0, color:'#0D9488', value:'₹18,75,608' },
+    { label:'Small Cap', pct:18.0, color:'#2563EB', value:'₹12,05,748' },
+    { label:'Other / Unclassified', pct:12.0, color:'#6366F1', value:'₹8,03,832' },
+  ];
+  var MCAP_EQUITY = [
+    { label:'Large Cap', pct:46.0, color:'#22C55E', value:'₹28,13,412' },
+    { label:'Mid Cap', pct:31.0, color:'#0D9488', value:'₹18,75,608' },
+    { label:'Small Cap', pct:19.0, color:'#2563EB', value:'₹12,05,748' },
+    { label:'Other / Unclassified', pct:4.0, color:'#6366F1', value:'₹2,43,520' },
+  ];
+  function renderMcap(denom){
+    var slices = denom === 'equity' ? MCAP_EQUITY : MCAP_TOTAL;
+    buildDonut('mcap-segments', 'mcap-legend', 'mcap-hole-label', 'mcap-hole-value', 'mcap-hole-pct', slices, denom === 'equity' ? 'Equity only' : 'Total portfolio', '₹66.9L');
+    var largest = slices.slice().sort(function(a,b){ return b.pct - a.pct; })[0];
+    document.querySelector('.card:nth-of-type(2) .headline-stat') && (document.querySelectorAll('.headline-stat')[1].textContent = 'Largest allocation: ' + largest.label + ' (' + largest.pct.toFixed(1) + '%)');
+  }
+  renderMcap('total');
+  document.querySelectorAll('#mcap-denom-toggle .seg-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('#mcap-denom-toggle .seg-btn').forEach(function(s){ s.classList.remove('active'); });
+      btn.classList.add('active');
+      renderMcap(btn.dataset.denom);
+    });
+  });
+
+  var CATEGORY = [
+    { label:'Flexi Cap', pct:34.0, color:'#22C55E', value:'₹22,77,524' },
+    { label:'Mid Cap', pct:18.0, color:'#0D9488', value:'₹12,05,748' },
+    { label:'Small Cap', pct:14.0, color:'#2563EB', value:'₹9,37,804' },
+    { label:'Large Cap', pct:12.0, color:'#6366F1', value:'₹8,03,832' },
+    { label:'ELSS', pct:10.0, color:'#8B5CF6', value:'₹6,69,860' },
+    { label:'Hybrid', pct:7.0, color:'#D97706', value:'₹4,68,902' },
+    { label:'Debt', pct:5.0, color:'#EC4899', value:'₹3,34,930' },
+  ];
+  var AMC = [
+    { label:'HDFC Mutual Fund', pct:40.0, color:'#22C55E', value:'₹26,79,440' },
+    { label:'Kotak Mahindra MF', pct:22.0, color:'#0D9488', value:'₹14,73,692' },
+    { label:'Parag Parikh (PPFAS)', pct:16.0, color:'#2563EB', value:'₹10,71,776' },
+    { label:'JM Financial MF', pct:12.0, color:'#6366F1', value:'₹8,03,832' },
+    { label:'Others', pct:10.0, color:'#8B5CF6', value:'₹6,69,860' },
+  ];
+  /* ---- Category/AMC drill-down (Round 5, 2026-10-24): same "click legend
+     row -> drill panel below" mechanic as Asset Class. Fund names are shared
+     with ASSET_DRILL above wherever the same underlying fund appears, so
+     e.g. "HDFC Corporate Bond Fund" always shows the same value everywhere
+     on this page. ---- */
+  var CATEGORY_FUNDS = {
+    'Flexi Cap': { rows:[
+      { name:'Parag Parikh Flexi Cap Fund', value:'₹10,71,776' },
+      { name:'JM Flexi Cap Fund', value:'₹8,03,832' },
+    ], meta:'Showing the largest 2 of 3 Flexi Cap funds.' },
+    'Mid Cap': { rows:[{ name:'HDFC Mid-Cap Opportunities Fund', value:'₹12,05,748' }], meta:'Only Mid Cap fund in this portfolio.' },
+    'Small Cap': { rows:[{ name:'Kotak Small Cap Fund', value:'₹9,37,804' }], meta:'Only Small Cap fund in this portfolio.' },
+    'Large Cap': { rows:[{ name:'SBI Large Cap Fund', value:'₹7,22,000' }], meta:'Only Large Cap fund in this portfolio.' },
+    'ELSS': { rows:[{ name:'Tata ELSS – Tax Saver Fund', value:'₹6,69,860' }], meta:'Only ELSS fund in this portfolio.' },
+    'Hybrid': { rows:[{ name:'ICICI Prudential Equity & Debt Fund', value:'₹4,68,902' }], meta:'Only Hybrid fund in this portfolio.' },
+    'Debt': { rows:[
+      { name:'HDFC Corporate Bond Fund', value:'₹2,00,000' },
+      { name:'Kotak Banking & PSU Debt Fund', value:'₹1,34,930' },
+    ], meta:'Showing both Debt funds in this portfolio.' },
+  };
+  var AMC_FUNDS = {
+    'HDFC Mutual Fund': { rows:[
+      { name:'HDFC Mid-Cap Opportunities Fund', value:'₹12,05,748' },
+      { name:'HDFC Corporate Bond Fund', value:'₹2,00,000' },
+      { name:'HDFC Gold Fund', value:'₹4,01,400' },
+    ], meta:'Showing the largest 3 of 4 HDFC Mutual Fund schemes.' },
+    'Kotak Mahindra MF': { rows:[
+      { name:'Kotak Multi Cap Fund', value:'₹5,35,888' },
+      { name:'Kotak Small Cap Fund', value:'₹9,37,804' },
+      { name:'Kotak Banking & PSU Debt Fund', value:'₹1,34,930' },
+    ], meta:'Showing all 3 Kotak Mahindra MF schemes.' },
+    'Parag Parikh (PPFAS)': { rows:[{ name:'Parag Parikh Flexi Cap Fund', value:'₹10,71,776' }], meta:'Only PPFAS scheme in this portfolio.' },
+    'JM Financial MF': { rows:[{ name:'JM Flexi Cap Fund', value:'₹8,03,832' }], meta:'Only JM Financial scheme in this portfolio.' },
+    'Others': { rows:[
+      { name:'SBI Large Cap Fund', value:'₹7,22,000' },
+      { name:'Tata ELSS – Tax Saver Fund', value:'₹6,69,860' },
+      { name:'ICICI Prudential Equity & Debt Fund', value:'₹4,68,902' },
+    ], meta:'Showing all 3 schemes across smaller AMCs.' },
+  };
+  function renderCatAmcDrill(tab, label, color, fromClick){
+    var map = tab === 'amc' ? AMC_FUNDS : CATEGORY_FUNDS;
+    var d = map[label];
+    if (!d) return;
+    var dotHtml = color ? '<span class="drill-panel-dot" style="background:' + color + '"></span>' : '';
+    document.getElementById('catamc-drill-title').innerHTML = dotHtml + label + ' — contributing funds';
+    document.getElementById('catamc-drill-rows').innerHTML = d.rows.map(function(r){
+      return '<div class="drill-row" style="cursor:default;"><span>' + r.name + '</span><span class="dr-val">' + r.value + '</span></div>';
+    }).join('');
+    document.getElementById('catamc-drill-meta').textContent = d.meta;
+    if (fromClick) document.getElementById('catamc-drill-panel').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+  function renderCatAmc(tab){
+    var slices = (tab === 'amc' ? AMC : CATEGORY).slice().sort(function(a,b){ return b.pct - a.pct; });
+    buildDonut('catamc-segments', 'catamc-legend', 'catamc-hole-label', 'catamc-hole-value', 'catamc-hole-pct', slices, 'Total', '₹66.9L', function(label, color){ renderCatAmcDrill(tab, label, color, true); });
+    renderCatAmcDrill(tab, slices[0].label);
+  }
+  renderCatAmc('category');
+  document.querySelectorAll('#catamc-tab-toggle .seg-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('#catamc-tab-toggle .seg-btn').forEach(function(s){ s.classList.remove('active'); });
+      btn.classList.add('active');
+      renderCatAmc(btn.dataset.tab);
+    });
+  });
+  document.querySelectorAll('#catamc-sort-toggle .seg-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('#catamc-sort-toggle .seg-btn').forEach(function(s){ s.classList.remove('active'); });
+      btn.classList.add('active');
+      var activeTab = document.querySelector('#catamc-tab-toggle .seg-btn.active').dataset.tab;
+      var slices = (activeTab === 'amc' ? AMC : CATEGORY).slice().sort(function(a,b){ return btn.dataset.sort === 'asc' ? a.pct - b.pct : b.pct - a.pct; });
+      buildDonut('catamc-segments', 'catamc-legend', 'catamc-hole-label', 'catamc-hole-value', 'catamc-hole-pct', slices, 'Total', '₹66.9L', function(label, color){ renderCatAmcDrill(activeTab, label, color, true); });
+      renderCatAmcDrill(activeTab, slices[0].label);
+    });
+  });
+
+  /* ---- Market Cap drill-down: click a holding row to expand its contributing funds ---- */
+  document.querySelectorAll('.drill-row').forEach(function(row){
+    row.addEventListener('click', function(){
+      var list = document.getElementById(row.dataset.expand + '-funds');
+      list.style.display = list.style.display === 'none' ? 'block' : 'none';
+    });
+  });
+
+  /* ---- Asset Class nested donut: two rings, dim-only hover (see "Decided
+     against" in the annotation section for why no pop-out here) ---- */
+  var EQUITY_OUTER = [
+    { label:'Large Cap', pct:36.0, color:'#22C55E' },
+    { label:'Mid Cap', pct:24.0, color:'#0D9488' },
+    { label:'Small Cap', pct:14.0, color:'#2563EB' },
+    { label:'Other', pct:4.0, color:'#6366F1' },
+  ];
+  var NON_EQUITY = [
+    { label:'Debt', pct:12.0, color:'#D97706' },
+    { label:'Gold', pct:6.0, color:'#EC4899' },
+    { label:'Cash-like', pct:4.0, color:'#9B9B9B' },
+  ];
+  var INNER = [
+    { label:'Equity', pct:78.0, color:'#22C55E' },
+    { label:'Debt', pct:12.0, color:'#D97706' },
+    { label:'Gold', pct:6.0, color:'#EC4899' },
+    { label:'Cash-like', pct:4.0, color:'#9B9B9B' },
+  ];
+  function arcPath(svgId, radius, strokeWidth, slices, groupLabel){
+    var svg = document.getElementById(svgId);
+    var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    var CIRC = 2 * Math.PI * radius, GAP = 3, cum = 0;
+    slices.forEach(function(s){
+      var startDeg = -90 + cum * 3.6;
+      var segLen = Math.max((s.pct / 100) * CIRC - GAP, 2);
+      var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', 100); c.setAttribute('cy', 100); c.setAttribute('r', radius);
+      c.setAttribute('fill', 'none'); c.setAttribute('stroke', s.color); c.setAttribute('stroke-width', strokeWidth);
+      c.setAttribute('stroke-dasharray', segLen + ' ' + (CIRC - segLen));
+      c.setAttribute('transform', 'rotate(' + startDeg + ' 100 100)');
+      c.setAttribute('data-label', s.label);
+      c.setAttribute('data-ring', groupLabel);
+      g.appendChild(c);
+      cum += s.pct;
+    });
+    svg.appendChild(g);
+  }
+  arcPath('outer-svg', 92, 36, EQUITY_OUTER.concat(NON_EQUITY), 'outer');
+  arcPath('inner-svg', 50, 22, INNER, 'inner');
+
+  var assetLegendEl = document.getElementById('asset-legend');
+  INNER.forEach(function(s){
+    var row = document.createElement('div');
+    row.className = 'l-row'; row.setAttribute('data-label', s.label);
+    row.innerHTML = '<span class="l-dot" style="background:' + s.color + '"></span><span class="l-label">' + s.label + '</span><span class="l-pct">' + s.pct.toFixed(1) + '%</span><svg class="icon l-chev"><use href="#i-chevron-right"/></svg>';
+    assetLegendEl.appendChild(row);
+  });
+
+  /* ---- Asset Class drill-down (Round 5, 2026-10-24): clicking a legend row
+     reuses Market Cap's .drill-panel pattern — "top contributing funds, N of
+     M" style, not a claim of full reconciliation (same convention as Market
+     Cap's own "largest 3 of 41 holdings"). ---- */
+  var ASSET_DRILL = {
+    'Equity': { rows:[
+      { name:'Kotak Multi Cap Fund', value:'₹5,35,888' },
+      { name:'HDFC Mid-Cap Opportunities Fund', value:'₹12,05,748' },
+      { name:'Parag Parikh Flexi Cap Fund', value:'₹10,71,776' },
+    ], meta:'Showing the largest 3 of 11 equity funds in this portfolio.' },
+    'Debt': { rows:[
+      { name:'HDFC Corporate Bond Fund', value:'₹2,00,000' },
+      { name:'Kotak Banking & PSU Debt Fund', value:'₹1,34,930' },
+    ], meta:'Showing both Debt funds in this portfolio.' },
+    'Gold': { rows:[
+      { name:'HDFC Gold Fund', value:'₹4,01,400' },
+    ], meta:'Only Gold holding in this portfolio.' },
+    'Cash-like': { rows:[
+      { name:'HDFC Arbitrage Fund', value:'₹1,67,600' },
+      { name:'Liquid / overnight holdings (across multiple schemes)', value:'₹1,00,000' },
+    ], meta:'Includes arbitrage and liquid holdings — the toggle above moves arbitrage funds here.' },
+  };
+  /* Click a legend row -> drill panel below updates AND stays visibly tied to that row
+     (persistent .is-selected + color-matched dot in the panel title + a scroll-into-view
+     nudge), not a silent update elsewhere — see design.md §11.1. */
+  function renderAssetDrill(label, color){
+    var d = ASSET_DRILL[label];
+    var dotHtml = color ? '<span class="drill-panel-dot" style="background:' + color + '"></span>' : '';
+    document.getElementById('asset-drill-title').innerHTML = dotHtml + label + ' — contributing funds';
+    document.getElementById('asset-drill-rows').innerHTML = d.rows.map(function(r){
+      return '<div class="drill-row" style="cursor:default;"><span>' + r.name + '</span><span class="dr-val">' + r.value + '</span></div>';
+    }).join('');
+    document.getElementById('asset-drill-meta').textContent = d.meta;
+  }
+  renderAssetDrill('Equity');
+  var selectedAssetLabel = 'Equity';
+  assetLegendEl.addEventListener('click', function(e){
+    var row = e.target.closest('.l-row');
+    if (!row) return;
+    selectedAssetLabel = row.getAttribute('data-label');
+    setAssetActive(selectedAssetLabel);
+    renderAssetDrill(selectedAssetLabel, row.querySelector('.l-dot').style.background);
+    document.getElementById('asset-drill-panel').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  });
+  var chipsEl = document.getElementById('equity-outer-chips');
+  EQUITY_OUTER.forEach(function(b){
+    var span = document.createElement('span');
+    span.innerHTML = '<span class="dot" style="background:' + b.color + '"></span>' + b.label + ': ' + b.pct.toFixed(1) + '%';
+    chipsEl.appendChild(span);
+  });
+  function setAssetActive(label){
+    document.querySelectorAll('#outer-svg circle[data-label], #inner-svg circle[data-label]').forEach(function(c){
+      c.style.opacity = (label === null || c.getAttribute('data-label') === label) ? '1' : '.3';
+    });
+    assetLegendEl.querySelectorAll('.l-row').forEach(function(r){
+      r.classList.toggle('is-active', r.getAttribute('data-label') === label);
+      r.classList.toggle('is-selected', r.getAttribute('data-label') === selectedAssetLabel);
+    });
+    var holeLabel = document.getElementById('asset-hole-label'), holeValue = document.getElementById('asset-hole-value');
+    if (label === null) { holeLabel.textContent = 'Covered value'; holeValue.textContent = '₹66.9L'; }
+    else { var s = INNER.find(function(x){ return x.label === label; }); holeLabel.textContent = s.label; holeValue.textContent = s.pct.toFixed(1) + '%'; }
+  }
+  setAssetActive(selectedAssetLabel);
+  assetLegendEl.addEventListener('mouseover', function(e){ var row = e.target.closest('.l-row'); if (row) setAssetActive(row.getAttribute('data-label')); });
+  assetLegendEl.addEventListener('mouseleave', function(){ setAssetActive(selectedAssetLabel); });
+
+  document.getElementById('arb-checkbox').addEventListener('change', function(e){
+    document.getElementById('arb-note').textContent = e.target.checked
+      ? 'Arbitrage fund value now counted as cash-like. Cash-like share increased; Equity Savings is unchanged.'
+      : 'Applies to HDFC Arbitrage Fund. Entire fund value moves to cash-like; Equity Savings is unchanged.';
+  });
+
+  document.querySelectorAll('[data-sec="mgr"]').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('[data-sec="mgr"]').forEach(function(s){ s.classList.remove('active'); });
+      b.classList.add('active');
+      document.getElementById('mgr-default').style.display = b.dataset.val === 'default' ? '' : 'none';
+      document.getElementById('mgr-empty').style.display = b.dataset.val === 'empty' ? '' : 'none';
+    });
+  });
+
+  /* ---- Fund Manager row expand (Round 5, 2026-10-24): same click-to-reveal
+     mechanic as the other two cards, scoped to one scheme per manager —
+     reuses the canonical 4-sample-fund XIRR set shared with the Overview
+     mockup rather than inventing unlisted figures. ---- */
+  var MGR_DETAIL = {
+    'Rajeev Thakkar': { schemes:['Parag Parikh Flexi Cap Fund'], xirr:'+18.4%' },
+    'Harsha Upadhyaya': { schemes:['Kotak Multi Cap Fund', 'Kotak Small Cap Fund', 'Kotak Banking & PSU Debt Fund'], xirr:'+13.1% (blended)' },
+    'Chirag Setalvad': { schemes:['HDFC Mid-Cap Opportunities Fund'], xirr:'+17.8%' },
+    'Satish Ramanathan': { schemes:['JM Flexi Cap Fund'], xirr:'+12.9%' },
+  };
+  document.querySelectorAll('.mgr-row').forEach(function(row){
+    row.addEventListener('click', function(){
+      var name = row.dataset.mgr;
+      var detailRow = document.querySelector('.mgr-detail-row[data-mgr-detail="' + name + '"]');
+      var isOpen = row.classList.contains('is-open');
+      row.classList.toggle('is-open', !isOpen);
+      detailRow.style.display = isOpen ? 'none' : '';
+      if (!isOpen) {
+        var d = MGR_DETAIL[name];
+        detailRow.querySelector('.mgr-detail-inner').innerHTML =
+          '<span>Manages: <b>' + d.schemes.join(', ') + '</b></span><span>XIRR: <b>' + d.xirr + '</b></span>';
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

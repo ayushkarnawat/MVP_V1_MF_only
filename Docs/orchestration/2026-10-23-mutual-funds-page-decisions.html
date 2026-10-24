@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mutual Funds page — decisions, resolved</title>
+<style>
+  :root {
+    --bg:#FCFCFC; --card:#F5F5F5; --divider:#ECECEC; --input-border:#DFDFDF;
+    --ink:#111111; --muted-icon:#9B9B9B; --secondary-text:#717171; --body-text:#4B4B4B;
+    --brand:#22C55E; --brand-hover:#16A34A; --brand-selected-bg:#E9F9EF;
+    --pos:#22C55E; --pos-text:#15803D; --pos-bg:#EAFBF0;
+    --neg:#E5484D; --neg-text:#C1272D; --neg-bg:#FDECEC;
+    --warn:#D97706; --warn-text:#B45309; --warn-bg:#FEF3E2;
+    --info:#2563EB; --info-bg:#EFF6FF;
+  }
+  body { font-family:'DM Sans',-apple-system,'Segoe UI',Arial,sans-serif; background:var(--bg); color:var(--ink); margin:0; padding:28px 32px 80px; max-width:980px; }
+  h1,h2,h3 { font-family:'Manrope',-apple-system,'Segoe UI',Arial,sans-serif; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .subtitle { color:var(--secondary-text); font-size:13.5px; margin:0 0 20px; max-width:860px; line-height:1.5; }
+  .toc { background:#fff; border:1px solid var(--divider); border-radius:10px; padding:14px 18px; margin-bottom:26px; font-size:13px; }
+  .toc h3 { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--secondary-text); margin:0 0 8px; }
+  .toc a { color:var(--ink); text-decoration:none; display:inline-block; }
+  .toc a:hover { color:var(--brand-hover); text-decoration:underline; }
+  .toc-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 20px; }
+  h2 { font-size:16px; margin:34px 0 12px; padding-bottom:6px; border-bottom:2px solid var(--divider); }
+  .box { border-radius:10px; padding:14px 18px; margin:0 0 14px; font-size:13.5px; line-height:1.55; }
+  .locked { background:var(--pos-bg); border:1px solid var(--pos); }
+  .locked .tag { background:var(--pos); color:#fff; }
+  .resolved { background:var(--info-bg); border:1px solid var(--info); }
+  .resolved .tag { background:var(--info); color:#fff; }
+  .open { background:var(--warn-bg); border:1px solid var(--warn); }
+  .open .tag { background:var(--warn); color:#fff; }
+  .box .head { display:flex; align-items:center; gap:10px; margin-bottom:6px; font-weight:700; font-family:'Manrope',sans-serif; font-size:14px; }
+  .tag { font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; text-transform:uppercase; letter-spacing:.03em; }
+  .box p { margin:6px 0; }
+  .box code { background:rgba(0,0,0,.06); padding:1px 5px; border-radius:4px; font-size:12px; }
+  .answer { margin-top:10px; border-left:3px solid var(--info); border-radius:4px; padding:8px 12px; background:#fff; font-size:12.5px; color:var(--body-text); }
+  .answer .lbl { font-weight:700; color:var(--info); font-size:11px; text-transform:uppercase; letter-spacing:.03em; display:block; margin-bottom:3px; }
+  .footer-note { margin-top:40px; padding:16px 18px; border-radius:10px; background:#111; color:#fff; font-size:13px; line-height:1.6; }
+  .footer-note code { background:rgba(255,255,255,.15); padding:1px 5px; border-radius:4px; }
+  .count-badge { display:inline-block; font-size:11px; font-weight:700; padding:1px 7px; border-radius:8px; background:var(--info); color:#fff; margin-left:6px; }
+  .count-badge.warn { background:var(--warn); }
+</style>
+</head>
+<body>
+
+<h1>Mutual Funds page — decisions, resolved (2026-10-23)</h1>
+<p class="subtitle">All 12 flagged questions came back answered in one message. This page now records what was
+decided, not what's open, so nothing drifts or gets re-litigated. One genuine new sub-item surfaced inside the
+Q5 answer (which extra benchmark indices to add) — that one is still open, marked below. Full reasoning for every
+item lives in <code>2026-10-23-mutual-funds-page-design.md</code>; this is the index.</p>
+
+<div class="toc">
+  <h3>Jump to</h3>
+  <div class="toc-grid">
+    <a href="#q1">Q1 — Section 1 synopsis</a>
+    <a href="#q7">Q7 — Other Analytics content</a>
+    <a href="#q2">Q2 — History tab's fate</a>
+    <a href="#q8">Q8 — Fund Score modal</a>
+    <a href="#q3">Q3 — Category column</a>
+    <a href="#q9">Q9 — PDF export</a>
+    <a href="#q4">Q4 — Growth/IDCW</a>
+    <a href="#q10">Q10 — Overlap shape</a>
+    <a href="#q5">Q5 — Benchmark/time-frame dropdown</a>
+    <a href="#q11">Q11 — Transactions definition</a>
+    <a href="#q6">Q6 — Market-cap placement</a>
+    <a href="#q12">Q12 — Interim click target</a>
+    <a href="#open">Still genuinely open</a>
+    <a href="#locked">Already decided, unaffected</a>
+  </div>
+</div>
+
+<h2 id="q1">Q1 — Section 1's "synopsis"</h2>
+<div class="box resolved">
+  <div class="head"><span class="tag">Resolved — Option A</span></div>
+  <p>One auto-generated sentence, same pattern as the Home page's Quick Insights ("Spread across 6 AMCs and 24
+  funds, 72% Direct"). Zero new backend work — built from <code>allocation.by_amc</code> and the existing
+  <code>plan_type</code> split.</p>
+  <div class="answer"><span class="lbl">Owner's answer</span>"Go with the recommended option." No dependency on
+  Q11 changed the content in the end — Transactions kept its existing meaning (cash-flow ledger).</div>
+</div>
+
+<h2 id="q2">Q2 — The temporary "History" tab's fate</h2>
+<div class="box resolved">
+  <div class="head"><span class="tag">Resolved — Option A, expanded</span></div>
+  <p>Folds into <strong>Performance</strong>, but not as a trimmed highlight — the owner wants the <em>entire</em>
+  current <code>HistoryView</code> experience carried over in full detail: the month-end value chart with its
+  1Y/3Y/5Y/All toggle, the cost-of-holdings shaded area, the hollow-dot no-price annotation, and the click-a-month
+  modal with its four value/change/new-money/market-movement tiles and full per-fund table. None of it gets
+  simplified away. The temporary <code>portfolio-mutual-funds-history</code> route retires once this ships, per
+  the shell contract's own change-note process. Full build plan: design doc §7.1.</p>
+  <div class="answer"><span class="lbl">Owner's answer</span>"The recommended option seems to be correct but the
+  history tab the way it is today... should be... folded into [Performance]... not leaving detail out, make it as
+  detailed as possible exactly the way it is today."</div>
+</div>
+
+<h2 id="q3">Q3 — Category column backend gap</h2>
+<div class="box resolved">
+  <div class="head"><span class="tag">Resolved — Option A</span></div>
+  <p>Add <code>sebi_category: str | None</code> to the dashboard <code>HoldingRow</code> schema — additive, no
+  migration. The owner also asked to check the existing market-cap allocation backend system as a possible
+  source; checked (<code>cap_allocation.py</code>'s <code>MarketCapClassification</code>) — it's a different,
+  per-<em>stock</em> taxonomy (Large/Mid/Small/Other) used for Allocation's Market Cap section (Q6), not the
+  per-<em>fund</em> category this column needs. Both are real, both already exist, neither should be conflated
+  with the other. Detail: design doc §3.</p>
+  <div class="answer"><span class="lbl">Owner's answer</span>"Go with the recommendation, but also do look in the
+  back end. We also have a market allocation or market cap allocation function... check out that back-end system
+  as well."</div>
+</div>
+
+<h2 id="q4">Q4 — Growth/IDCW plan sub-type</h2>
+<div class="box resolved">
+  <div class="head"><span class="tag">Resolved — Option B</span></div>
+  <p>Direct/Regular only this round. Logged in <code>DEFERRED_FEATURES.md</code>'s 2026-10-23 entry.</p>
+  <div class="answer"><span class="lbl">Owner's answer</span>"recommended option."</div>
+</div>
+
+<h2 id="q5">Q5 — Performance page's benchmark + time-frame dropdown</h2>
+<div class="box resolved">
+  <div class="head"><span class="tag">Resolved — Option B</span></div>
+  <p>Precompute every (benchmark × time-window) combination, prioritizing read speed over backend load, matching
+  the existing precompute-everything architecture. Time windows: 1Y / 3Y / 5Y / Since inception, computed as
+  windowed XIRR (new math — today's benchmark XIRR is always since-inception).</p>
+  <div class="answer"><span class="lbl">Owner's answer</span>"My mind is going toward option B... I am
+  prioritizing... the utmost best speed to the user... along with that... add more indices to this, we already...
+  run for more indices than these four, so why not use that background job's data."</div>
+  <p style="margin-top:10px;"><strong>Correction, checked against the real code:</strong> there is no existing
+  job computing more than the current 4 indices. <code>nse_indices_client.py</code>'s index-name mapping is a
+  hardcoded 4-entry dict with a comment stating it's deliberately static ("only 4 members, no need to fetch
+  IndexMapping.json at runtime") — nothing today fetches or stores any other index's history. Adding indices is
+  new, scoped work (new enum members + trading-name mapping + a backfill run through the same fetch-and-cache
+  mechanism — not a new integration, just more rows).</p>
+  <p style="margin-top:10px;"><strong>Index list finalized (2026-10-23):</strong> the owner confirmed the
+  recommended candidates as-is — Nifty Next 50, Nifty Smallcap 250, Nifty 100, Nifty 200. No open sub-items
+  remain on this question.</p>
+  <div class="answer" style="margin-top:10px;"><span class="lbl">Owner's answer</span>"Let's go with the
+  recommended option as given."</div>
+</div>
+
+<h2 id="q6">Q6 — Market-cap allocation placement</h2>
+<div class="box resolved">
+  <div class="head"><span class="tag">Resolved — Option A</span></div>
+  <p>Own first-class section on the Allocation page. Must carry over everything <code>CapAllocationSection</code>
+  shows today — all buckets, the equity-vs-total split, the classification-as-of date, the drill-down rows —
+  just promoted out of the Asset Class equity drill-down, not trimmed.</p>
+  <div class="answer"><span class="lbl">Owner's answer</span>"Go with the recommended option, but make sure it
+  looks the exact... way it looks in analytics today... nothing should be different from the analytics."</div>
+</div>
+
+<h2 id="q7">Q7 — "Other Analytics" final content</h2>
+<div class="box resolved">
+  <div class="head"><span class="tag">Resolved — three distinct groups, not a flat list</span></div>
+  <p>Not Option A or B as originally framed — the owner's answer resolved it into a third shape:</p>
+  <ol>
+    <li><strong>"Cost &amp; Valuation"</strong> — Valuation (P/E, P/B) + TER &amp; Cost Analysis, grouped under
+    one clearly labeled area.</li>
+    <li><strong>"Fund Quality Scorer"</strong> — unchanged, its own group.</li>
+    <li><strong>"SEBI Category Ranking &amp; Peer Comparison"</strong> — its own clearly separated group, not
+    folded into Allocation's category breakdown and not flattened into the same list as the other two — big
+    and different enough in kind to read as a section on its own.</li>
+  </ol>
+  <p><strong>Fund Ranking removed from analytics entirely</strong> — the owner's call: a proprietary per-fund
+  ranking belongs on the future per-fund page, not any portfolio-level page. Logged as deferred, nothing deleted.</p>
+  <div class="answer"><span class="lbl">Owner's answer</span>"If this doesn't fit [Allocation], does it need its
+  own individual page? I don't think so... sectionalized properly to show that it is a different thing... Fund
+  ranking... this now is no more in analytics... this moves to per fund pages."</div>
+</div>
+
+<h2 id="q8">Q8 — Fund Score detail modal's fate</h2>
+<div class="box resolved">
+  <div class="head"><span class="tag">Resolved — Option B, confirmed</span></div>
+  <p>Migrates to the future per-fund page's <code>/insights</code> route when that page is built — consistent
+  with Fund Ranking's move. Interim: stays as today's modal inside Other Analytics' Scorer group.</p>
+  <div class="answer"><span class="lbl">Owner's answer</span>"Since we're moving the fund scorer to per fund, so
+  even the modal will move there."</div>
+</div>
+
+<h2 id="q9">Q9 — PDF export scope</h2>
+<div class="box resolved">
+  <div class="head"><span class="tag">Resolved — Option C, modified</span></div>
+  <p>Not "keep it visible, defer changes" — the owner wants the "Download PDF" button <strong>removed from the
+  UI entirely</strong> across the new pages, while every line of existing export code (frontend component,
+  backend route, <code>pdf_export.py</code>) stays in place and working, dormant rather than deleted. Documented
+  in <code>DEFERRED_FEATURES.md</code> specifically so it isn't mistaken for dead code later.</p>
+  <div class="answer"><span class="lbl">Owner's answer</span>"Let's remove the download PDF option completely,
+  but keep it in the backend... just not a visible feature... keep today's combined report working... unchanged."</div>
+</div>
+
+<h2 id="q10">Q10 — Overlap page shape</h2>
+<div class="box resolved">
+  <div class="head"><span class="tag">Resolved — expanded into its own full spec, then revised again same day</span></div>
+  <p>The owner first pulled this out of a one-line confirmation into a full spec (heatmap, top pairs, portfolio
+  impact, common holdings, a two-owned-fund compare sub-page). <strong>Same-day follow-up, with sharper reference
+  screenshots:</strong> the compare feature is removed from the portfolio level entirely — no
+  <code>/overlap/compare</code>, no picker, nothing at this level. It moves to the <em>future per-fund page</em>
+  instead, reached only by clicking a row in that page's "Top Funds with Overlap" table.</p>
+  <p>The portfolio-level Overlap page is now: a top stat strip (funds analysed, pairs with overlap, highest
+  overlap, overlap risk) plus four sections — Common Holdings, Overlap Heatmap, Top Overlapping Fund Pairs (with
+  a Key Insights callout), and Overlap Impact on Your Portfolio (a 3-way ₹/% donut: top-3-pairs / other-
+  overlapping / unique). This donut supersedes the earlier "common vs. unique" 2-way split idea — same concept,
+  more precise. Full spec: design doc §7.5.</p>
+  <p>The fund-level overlap tab + fund-vs-fund comparison screen the owner also described in full is documented
+  in design doc §7.5.1 as context/feasibility only — it belongs to the future per-fund page (confirmed out of
+  scope this round), not this document's build.</p>
+  <p><strong>⚠ Flagging, not resolving:</strong> this removal conflicts with the locked nav-shell contract's
+  <code>portfolio-mutual-funds-overlap-compare</code> route, which now has nothing to render — see design doc
+  §0/§7.5. Needs a contract change, to be raised with the nav-shell owner.</p>
+  <div class="answer"><span class="lbl">Owner's answer</span>"This is the next most important thing I'm going to
+  discuss. Figure all of this out. Don't keep this an open question." — then, same day: "there's no compare
+  feature as such... no compare slug, no slash compare, no nothing, it's not here."</div>
+</div>
+
+<h2 id="q11">Q11 — What "Transactions" contains</h2>
+<div class="box resolved">
+  <div class="head"><span class="tag">Resolved — Option A</span></div>
+  <p>The cash-flow ledger (<code>InvestmentWithdrawalSection</code>), unchanged in substance. History's value
+  chart moved to Performance instead, per Q2. Flagged separately: the owner considers today's UI for this content
+  weak and wants a genuine visual redesign here, not a straight port.</p>
+  <div class="answer"><span class="lbl">Owner's answer</span>"Agreed UI-wise, it's still pretty shit, needs to be
+  [re]announced [redesigned]."</div>
+</div>
+
+<h2 id="q12">Q12 — Interim fund-row click target</h2>
+<div class="box resolved">
+  <div class="head"><span class="tag">Resolved — Option A</span></div>
+  <p>Open <code>FundDetailModal</code> as the interim behavior. Context noted: the real per-fund page is being
+  designed/built in parallel, so this interim target may be short-lived — repoint Section 3's rows to it as a
+  small follow-up once that page ships, not a fresh decision.</p>
+  <div class="answer"><span class="lbl">Owner's answer</span>"Let's just plumb in the recommended option. But
+  this is being built side by side, and once it gets built, we will have to update this accordingly."</div>
+</div>
+
+<h2 id="open">Still genuinely open <span class="count-badge warn">2 items</span></h2>
+<div class="box open">
+  <div class="head"><span class="tag">Open</span>Nav-shell contract conflict — <code>portfolio-mutual-funds-overlap-compare</code> route</div>
+  <p>Q10's resolution removes the portfolio-level compare feature entirely, but the locked v1.2 contract reserves
+  this route specifically for it. Needs the owner (already coordinating with the nav-shell owner on the fund-level
+  page) to get this route dropped or repurposed in a contract revision — not something this design resolves on
+  its own. See design doc §0/§7.5.</p>
+</div>
+<div class="box open">
+  <div class="head"><span class="tag">Open</span>Owner still unhappy with both mockups' overall layout fidelity</div>
+  <p>Beyond Overlap (now addressed), the owner said they're "still not happy with it... let go of the skeleton as
+  well, even not happy with the layouts... they are not matching what they are supposed to be matching" for the
+  other sub-pages, and offered to provide section-by-section reference screenshots. That offer hasn't been taken
+  up yet — worth doing before another full blind mockup rebuild.</p>
+</div>
+
+<h2 id="locked">Already decided — unaffected by this round's answers</h2>
+<div class="box locked">
+  <div class="head"><span class="tag">Locked</span>Route map and the 7 route IDs</div>
+  <p>Fixed by the nav-shell contract (v1.2) — see design doc §0.</p>
+</div>
+<div class="box locked">
+  <div class="head"><span class="tag">Locked</span>Scope stays on in-page tab switches</div>
+  <p>Moving between any of the 7 Mutual Funds tabs (including the future per-fund page) keeps the picked
+  household member, instead of resetting to Family Combined.</p>
+</div>
+<div class="box locked">
+  <div class="head"><span class="tag">Locked</span>"Sync Investments" removed, "Add Investment" and "All Investments" stay</div>
+  <p>UI-only change — button deletion, no backend impact.</p>
+</div>
+<div class="box locked">
+  <div class="head"><span class="tag">Locked</span>No search bar in Section 2; Filter/Sort belong to Section 3's table</div>
+  <p>Confirmed directly with the owner mid-session.</p>
+</div>
+<div class="box locked">
+  <div class="head"><span class="tag">Locked</span>AMC-allocation donut + family breakdown reuse existing components verbatim</div>
+  <p><code>AllocationSummary.by_amc</code> and <code>AllocationDrilldownModal</code> already exist and already
+  support click-through.</p>
+</div>
+<div class="box locked">
+  <div class="head"><span class="tag">Locked</span>AMC/fund-house logo: reuse <code>SchemeLogo</code>, don't rebuild</div>
+  <p>Confirmed zero current callers in <code>HoldingsTable</code>/<code>FundDetailModal</code>.</p>
+</div>
+
+<div class="footer-note">
+  Next: pick the one open benchmark-index item above (or confirm the recommended four), then both mockups get
+  rebuilt end to end against everything resolved here — full creative pass, color/font system unchanged, analytics-
+  sourced sections kept content-faithful to today's real analytics, History/Overlap kept faithful to your reference
+  mockups' actual design system. After that: recheck against the real code once more, then
+  <code>superpowers:writing-plans</code>.
+</div>
+
+</body>
+</html>

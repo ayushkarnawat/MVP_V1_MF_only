@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mutual Funds — Fund Overlap (portfolio-level) page, high-fidelity mockup, all states (v1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F5F5F5; --surface:#FFFFFF; --border:#ECECEC; --border-soft:#ECECEC; --border-input:#DFDFDF;
+    --ink:#111111; --secondary:#717171; --body:#4B4B4B; --muted:#9B9B9B; --text-disabled:#C4C4C4;
+    --accent:#22C55E; --accent-hover:#16A34A; --accent-pressed:#15803D; --accent-selected-bg:#E9F9EF;
+    --pos:#22C55E; --pos-text:#15803D; --pos-bg:#EAFBF0;
+    --neg:#E5484D; --neg-text:#C1272D; --neg-bg:#FDECEC;
+    --warn:#D97706; --warn-text:#92400E; --warn-bg:#FEF3E2;
+    --teal:#0D9488; --purple:#8B5CF6; --purple-bg:#F3F0FE; --blue:#2563EB; --blue-bg:#EAF1FD;
+    --c1:#22C55E; --c2:#0D9488; --c3:#2563EB; --c4:#6366F1; --c5:#8B5CF6; --c6:#D97706; --c7:#EC4899; --c8:#C1272D;
+    --font-display:'DM Sans',-apple-system,'Segoe UI',Arial,sans-serif;
+    --font-body:'Manrope',-apple-system,'Segoe UI',Arial,sans-serif;
+    --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:20px; --radius-pill:9999px;
+    --shadow-sm:0 1px 2px rgba(17,17,17,.05), 0 1px 1px rgba(17,17,17,.03);
+    --shadow-md:0 8px 24px rgba(17,17,17,.08), 0 2px 6px rgba(17,17,17,.04);
+    --shadow-lg:0 20px 48px rgba(17,17,17,.12), 0 4px 10px rgba(17,17,17,.05);
+    --fast:150ms cubic-bezier(.4,0,.2,1);
+    --pop:260ms cubic-bezier(.34,1.56,.64,1);
+    --hover-tint:#F2FBF5;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; }
+  body { font-family:var(--font-body); background:#fff; color:var(--ink); padding:28px 28px 90px; -webkit-font-smoothing:antialiased; }
+  h1 { font-family:var(--font-display); font-size:19px; font-weight:700; margin:0 0 4px; }
+  .doc-subtitle { color:var(--secondary); font-size:13px; margin:0 0 16px; max-width:1040px; line-height:1.55; }
+  .icon { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; display:block; }
+  .icon-sm { width:13px; height:13px; }
+  .icon-lg { width:20px; height:20px; }
+  code { background:#F3F3F3; padding:1px 6px; border-radius:4px; font-size:11.5px; }
+
+  .controls { position:sticky; top:0; z-index:50; background:#fff; border:1px solid #ddd; border-radius:12px; padding:12px 16px; margin-bottom:20px; box-shadow:0 2px 14px rgba(0,0,0,.1); max-width:1640px; }
+  .ctl-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .ctl-row:last-child { margin-bottom:0; }
+  .ctl-label { font-family:var(--font-display); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--secondary); width:140px; flex-shrink:0; }
+  .ctl-btn { font-family:var(--font-display); font-weight:600; font-size:11px; padding:5px 11px; border-radius:7px; border:1px solid var(--border); background:#fafafa; color:#444; cursor:pointer; transition:all var(--fast); }
+  .ctl-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+  .ctl-btn.active { background:var(--ink); border-color:var(--ink); color:#fff; }
+
+  .frame { background:var(--bg); border-radius:18px; padding:16px; max-width:1640px; }
+  .topbar { display:flex; align-items:center; gap:16px; padding:6px 10px 18px; }
+  .logo { font-family:var(--font-display); font-weight:800; font-size:17px; letter-spacing:-.01em; flex-shrink:0; }
+  .search-pill { flex:1; max-width:380px; display:flex; align-items:center; gap:8px; background:#F2F2F3; border-radius:var(--radius-pill); padding:9px 16px; color:var(--muted); font-size:13px; }
+  .top-actions { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .pill-ghost { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-weight:600; font-size:12.5px; padding:8px 14px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; color:var(--ink); white-space:nowrap; cursor:pointer; transition:all var(--fast); }
+  .pill-ghost:hover { border-color:#d5d5d5; box-shadow:var(--shadow-sm); transform:translateY(-1px); }
+  .pill-ghost.accent-outline { border-color:var(--accent); color:var(--accent-hover); }
+  .pill-ghost.accent-outline:hover { background:var(--hover-tint); border-color:var(--accent); }
+  .icon-btn { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--secondary); cursor:pointer; transition:background var(--fast); flex-shrink:0; }
+  .icon-btn:hover { background:#F2F2F3; }
+  .avatar-top { width:34px; height:34px; border-radius:50%; background:var(--ink); color:#fff; font-family:var(--font-display); font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .mira-trigger { cursor:pointer; }
+
+  .layout { display:flex; gap:18px; align-items:flex-start; }
+  .sidebar { width:186px; flex-shrink:0; background:transparent; padding:4px 0; }
+  .side-item { display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:10px; color:var(--secondary); font-size:13.5px; font-weight:500; margin-bottom:2px; cursor:pointer; transition:background var(--fast), color var(--fast); }
+  .side-item:hover { background:#F4F4F4; color:var(--ink); }
+  .side-item.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+  .side-divider { height:1px; background:var(--border-soft); margin:12px 10px; }
+
+  .main { flex:1; display:flex; flex-direction:column; gap:18px; min-width:0; position:relative; }
+
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; padding:2px 2px 0; }
+  .crumb { font-size:11.5px; color:var(--muted); font-weight:500; }
+  .page-header h2 { font-family:var(--font-display); font-size:26px; font-weight:800; letter-spacing:-.015em; margin:4px 0 4px; }
+  .page-sub { font-size:13px; color:var(--secondary); }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:22px 24px; opacity:0; transform:translateY(10px); animation:settle 240ms cubic-bezier(.16,1,.3,1) forwards; }
+  @keyframes settle { to { opacity:1; transform:translateY(0); } }
+  .card-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; flex-wrap:wrap; gap:10px; }
+  .card-title { display:flex; align-items:center; gap:7px; font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ink); }
+  .card-desc { font-size:12px; color:var(--muted); margin-bottom:16px; max-width:760px; line-height:1.55; }
+
+  .info-dot { width:14px; height:14px; border-radius:50%; background:#EEE; color:var(--secondary); font-size:9px; font-style:italic; font-family:Georgia,serif; font-weight:700; display:inline-flex; align-items:center; justify-content:center; cursor:help; position:relative; flex-shrink:0; }
+  .info-dot .tip { position:absolute; bottom:calc(100% + 7px); left:50%; transform:translateX(-50%) translateY(3px); background:#1a1a1a; color:#fff; font-size:10.5px; font-weight:500; font-style:normal; font-family:var(--font-body); line-height:1.4; padding:8px 11px; border-radius:8px; width:208px; text-align:left; opacity:0; pointer-events:none; transition:opacity 100ms ease, transform 100ms ease; z-index:12; }
+  .info-dot:hover .tip { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .tabs-utility-row { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:12px 18px; }
+  .htabs { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+  .htab { font-family:var(--font-display); font-size:13px; font-weight:600; color:var(--secondary); padding:9px 15px; border-radius:var(--radius-pill); cursor:pointer; transition:background var(--fast), color var(--fast); white-space:nowrap; }
+  .htab:hover:not(.active) { background:#F4F4F4; color:var(--ink); }
+  .htab.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+
+  .seg-toggle { display:inline-flex; background:#F0F0F1; border-radius:var(--radius-pill); padding:2px; width:fit-content; }
+  .seg-btn { font-family:var(--font-display); font-weight:700; font-size:11px; padding:6px 13px; border-radius:var(--radius-pill); color:var(--muted); cursor:pointer; transition:all var(--fast); white-space:nowrap; }
+  .seg-btn.active { background:#fff; color:var(--ink); box-shadow:var(--shadow-sm); }
+  .seg-btn:hover:not(.active) { color:var(--ink); }
+
+  .shimmer { position:relative; overflow:hidden; background:#EFEFEF; border-radius:7px; }
+  .shimmer::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent); background-size:200% 100%; animation:shimmer 1.4s ease-in-out infinite; }
+  @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+
+  .page-state { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:76px 20px; gap:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+  .page-state .big-ico { width:58px; height:58px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; }
+  .page-state.is-error .big-ico { background:var(--warn-bg); color:var(--warn-text); }
+  .page-state h3 { font-family:var(--font-display); font-size:19px; margin:0; }
+  .page-state p { margin:0; font-size:13px; color:var(--secondary); max-width:400px; line-height:1.6; }
+  .retry-btn { font-family:var(--font-display); font-weight:700; font-size:12px; padding:7px 16px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; cursor:pointer; transition:all var(--fast); }
+  .retry-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+
+  .mira-modal-overlay { position:fixed; inset:0; background:rgba(17,17,17,.45); z-index:200; display:flex; align-items:center; justify-content:center; }
+  .mira-modal-overlay[hidden] { display:none; }
+  .mira-modal { background:#fff; width:360px; max-width:calc(100vw - 40px); border-radius:var(--radius-lg); padding:26px 26px 22px; box-shadow:var(--shadow-lg); text-align:center; animation:settle 200ms cubic-bezier(.16,1,.3,1); }
+  .mira-modal .glyph-ring { width:44px; height:44px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; }
+  .mira-modal h3 { font-family:var(--font-display); font-size:17px; margin:0 0 8px; }
+  .mira-modal p { font-size:13px; color:var(--secondary); line-height:1.55; margin:0 0 18px; }
+  .mira-modal .btn-primary { width:100%; justify-content:center; display:inline-flex; align-items:center; font-family:var(--font-display); font-weight:700; padding:10px 18px; border-radius:var(--radius-pill); color:#fff; cursor:pointer; }
+
+  .spec { max-width:1080px; margin-top:44px; }
+  .spec h2 { font-family:var(--font-display); font-size:17px; margin:34px 0 10px; }
+  .spec h2:first-child { margin-top:0; }
+  .spec table { border-collapse:collapse; width:100%; font-size:12.5px; margin-bottom:6px; }
+  .spec th, .spec td { text-align:left; padding:8px 10px; border-bottom:1px solid #eee; vertical-align:top; }
+  .spec th { font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--secondary); font-weight:700; font-family:var(--font-display); }
+  .decided-against { background:#F6F6F6; border-radius:8px; padding:11px 15px; font-size:12.5px; color:#444; margin-top:8px; }
+  .locked-note { background:var(--pos-bg); border:1px solid var(--pos); border-radius:9px; padding:13px 17px; font-size:13px; color:var(--pos-text); margin-top:22px; max-width:1080px; }
+
+  /* ---------------- Fund Overlap-specific (design.md §7.5) ---------------- */
+  .stat-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .stat-tile { border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:15px 17px; }
+  .stat-tile .st-label { font-size:11px; color:var(--muted); font-weight:600; margin-bottom:6px; }
+  .stat-tile .st-val { font-family:var(--font-display); font-weight:800; font-size:21px; }
+  .stat-tile .st-note { font-size:10.5px; color:var(--muted); margin-top:3px; }
+  .stat-tile.risk-high .st-val { color:var(--neg-text); }
+  .stat-tile.risk-mod .st-val { color:var(--warn-text); }
+
+  .ch-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .ch-table th { text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); font-weight:700; padding:0 10px 8px; }
+  .ch-table th.num, .ch-table td.num { text-align:right; }
+  .ch-table td { padding:10px; border-top:1px solid var(--border-soft); vertical-align:middle; }
+  .ch-row { cursor:pointer; transition:background var(--fast); border-radius:8px; }
+  .ch-row:hover, .ch-row.is-open { background:var(--hover-tint); }
+  .fund-chips-cell { display:flex; align-items:center; gap:5px; }
+  .fund-chip-mini { width:24px; height:24px; border-radius:50%; background:var(--blue-bg); color:var(--blue); font-family:var(--font-display); font-weight:800; font-size:9px; display:flex; align-items:center; justify-content:center; border:2px solid #fff; margin-left:-7px; }
+  .fund-chip-mini:first-child { margin-left:0; }
+  .fund-chip-mini.overflow { background:#ECECEC; color:var(--secondary); }
+  .ch-detail-row td { padding:0 10px 14px 10px; border-top:none; }
+  .ch-detail-row { display:none; }
+  .ch-row.is-open + .ch-detail-row { display:table-row; }
+  .ch-detail-inner { background:var(--bg); border-radius:10px; padding:11px 14px; font-size:12px; color:var(--secondary); display:flex; flex-wrap:wrap; gap:8px 18px; }
+  .ch-detail-fund { display:flex; justify-content:space-between; gap:10px; min-width:200px; }
+  .ch-detail-fund b { color:var(--ink); }
+
+  .heatmap-wrap { overflow-x:auto; }
+  .heatmap { border-collapse:collapse; font-size:11px; }
+  .heatmap th { font-family:var(--font-display); font-weight:700; font-size:10.5px; color:var(--secondary); padding:6px 8px; text-align:center; max-width:90px; }
+  .heatmap th.row-label { text-align:right; max-width:140px; }
+  .heatmap td { text-align:center; padding:0; width:64px; height:44px; }
+  .hm-cell { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-weight:700; cursor:pointer; border-radius:7px; transition:all var(--fast); border:2px solid transparent; }
+  .hm-cell.band-low { background:#EAFBF0; color:var(--pos-text); }
+  .hm-cell.band-mod { background:#FEF3E2; color:var(--warn-text); }
+  .hm-cell.band-high { background:#FDECEC; color:var(--neg-text); }
+  .hm-cell.band-self { background:#F3F3F3; color:var(--text-disabled); cursor:default; }
+  .hm-cell:not(.band-self):hover { transform:scale(1.07); }
+  .hm-cell.is-selected { border-color:var(--ink); box-shadow:var(--shadow-sm); }
+  .heatmap-legend { display:flex; gap:16px; margin-top:12px; font-size:11.5px; color:var(--secondary); }
+  .hl-item { display:flex; align-items:center; gap:6px; }
+  .hl-swatch { width:12px; height:12px; border-radius:3px; }
+
+  .hm-detail { margin-top:16px; border-top:1px solid var(--border-soft); padding-top:14px; display:none; }
+  .hm-detail.is-open { display:block; }
+  .hm-detail-title { font-family:var(--font-display); font-weight:800; font-size:14px; margin-bottom:10px; }
+  .hm-stock-list { display:flex; flex-wrap:wrap; gap:7px; }
+  .hm-stock-pill { background:var(--bg); border-radius:var(--radius-pill); padding:5px 12px; font-size:11.5px; font-weight:600; }
+
+  .pair-bar-track { width:100px; height:8px; border-radius:4px; background:#EFEFEF; overflow:hidden; }
+  .pair-bar-fill { height:100%; border-radius:4px; }
+  .insight-callout { background:var(--blue-bg); border-radius:var(--radius-md); padding:14px 17px; font-size:12.5px; color:#1E3A8A; margin-top:14px; line-height:1.6; }
+  .insight-callout ul { margin:6px 0 0; padding-left:18px; }
+
+  .donut-impact-row { display:flex; gap:26px; align-items:center; flex-wrap:wrap; }
+  .donut-wrap { width:180px; height:180px; position:relative; flex-shrink:0; }
+  .donut-wrap svg { width:100%; height:100%; }
+  .donut-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none; }
+  .donut-center .dc-val { font-family:var(--font-display); font-weight:800; font-size:17px; }
+  .donut-center .dc-label { font-size:9.5px; color:var(--muted); max-width:120px; line-height:1.3; }
+  .legend-list { flex:1; min-width:220px; display:flex; flex-direction:column; gap:3px; }
+  .legend-row { display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:9px; cursor:pointer; transition:background var(--fast); }
+  .legend-row:hover, .legend-row.is-selected { background:var(--hover-tint); }
+  .legend-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+  .legend-name { font-size:12.5px; font-weight:600; flex:1; }
+  .legend-pct { font-family:var(--font-display); font-weight:800; font-size:12.5px; }
+</style>
+</head>
+<body>
+
+<svg style="display:none">
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M20 20l-5.5-5.5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15.2 20c0-2.2 1.7-4 3.8-4.6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></symbol>
+  <symbol id="i-bar-chart" viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></symbol>
+  <symbol id="i-pie" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
+  <symbol id="i-trending" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-8"/><path d="M14 7h6v6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.8 1c0 1.8-2.3 2-2.3 3.5"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 10v5"/><path d="M12 18.2v.1"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></symbol>
+</svg>
+
+<h1>Mutual Funds — Fund Overlap (portfolio-level) page, high-fidelity mockup</h1>
+<p class="doc-subtitle">Route <code>portfolio-mutual-funds-overlap</code> → <code>/portfolio/mutual-funds/overlap</code>,
+standalone route per the AskUserQuestion resolution: Fund Overlap is exactly 3 artifacts — this portfolio-wide view
+(1 of 3), and the Individual Fund page's Overlap Analysis tab normal + comparison states (2 and 3 of 3, built in the
+next file). Per design.md §7.5: stat strip, Common Holdings, Overlap Heatmap (3-tier band, matches
+<code>OVERLAP_BAND_LOW</code>/<code>OVERLAP_BAND_HIGH</code> = 20/40 in <code>overlap.py</code>), Top Overlapping
+Fund Pairs + Key Insights, Overlap Impact donut. Same token system, chrome, and Ask-Mira popup as the rest of this
+page set.</p>
+
+<div class="controls">
+  <div class="ctl-row">
+    <div class="ctl-label">Page state</div>
+    <button class="ctl-btn active" data-global="happy">Happy path</button>
+    <button class="ctl-btn" data-global="loading">Initial loading</button>
+    <button class="ctl-btn" data-global="error">Page error</button>
+  </div>
+</div>
+
+<div class="frame">
+
+  <div class="topbar">
+    <div class="logo">Unifolio</div>
+    <div class="search-pill"><svg class="icon icon-sm"><use href="#i-search"/></svg>Search for a fund, stock, or ask Mira...</div>
+    <div class="top-actions">
+      <div class="pill-ghost accent-outline mira-trigger"><svg class="icon icon-sm"><use href="#i-sparkle"/></svg>Ask Mira</div>
+      <div class="pill-ghost"><svg class="icon icon-sm"><use href="#i-users"/></svg>Family Combined<svg class="icon icon-sm"><use href="#i-chevron-down"/></svg></div>
+      <div class="icon-btn"><svg class="icon"><use href="#i-moon"/></svg></div>
+      <div class="avatar-top">SS</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="side-item"><svg class="icon"><use href="#i-home"/></svg>Home</div>
+      <div class="side-item"><svg class="icon"><use href="#i-bar-chart"/></svg>Analytics</div>
+      <div class="side-item active"><svg class="icon"><use href="#i-pie"/></svg>Investments</div>
+      <div class="side-item"><svg class="icon"><use href="#i-trending"/></svg>Performance</div>
+      <div class="side-item"><svg class="icon"><use href="#i-zap"/></svg>Scenarios</div>
+      <div class="side-divider"></div>
+      <div class="side-item"><svg class="icon"><use href="#i-user"/></svg>Profile</div>
+      <div class="side-item"><svg class="icon"><use href="#i-help"/></svg>Help &amp; Support</div>
+    </div>
+
+    <div class="main" id="main">
+
+      <div class="page-header">
+        <div>
+          <div class="crumb">Investments · Mutual Funds</div>
+          <h2>Fund Overlap</h2>
+          <div class="page-sub">How much your equity funds duplicate each other's stock picks.</div>
+        </div>
+      </div>
+
+      <!-- ============ GLOBAL: INITIAL LOADING ============ -->
+      <div id="g-loading" style="display:none;">
+        <div class="card" style="margin-bottom:18px;"><div class="shimmer" style="height:70px; width:100%; border-radius:12px;"></div></div>
+        <div class="card"><div class="shimmer" style="height:16px; width:30%; margin-bottom:16px; border-radius:8px;"></div><div class="shimmer" style="height:220px; width:100%; border-radius:12px;"></div></div>
+      </div>
+
+      <!-- ============ GLOBAL: PAGE ERROR ============ -->
+      <div id="g-error" style="display:none;">
+        <div class="page-state is-error">
+          <div class="big-ico"><svg class="icon-lg"><use href="#i-alert"/></svg></div>
+          <h3>Couldn't load overlap analysis</h3>
+          <p>There was a problem reaching our servers. Your data is safe — this is just a connection issue.</p>
+          <div class="retry-btn" style="padding:9px 20px; font-size:13px;">Retry</div>
+        </div>
+      </div>
+
+      <!-- ============ HAPPY PATH ============ -->
+      <div id="g-happy">
+
+        <div class="tabs-utility-row card" style="margin-bottom:0;">
+          <div class="htabs">
+            <div class="htab">Overview</div>
+            <div class="htab">Performance</div>
+            <div class="htab">Allocation</div>
+            <div class="htab">Holdings</div>
+            <div class="htab">Transactions</div>
+            <div class="htab active">Overlap</div>
+            <div class="htab">Other Analytics</div>
+          </div>
+        </div>
+
+        <!-- Stat strip -->
+        <div class="card" style="margin-top:14px;">
+          <div class="stat-strip">
+            <div class="stat-tile">
+              <div class="st-label">Funds analysed</div>
+              <div class="st-val">12 of 15</div>
+              <div class="st-note">3 funds excluded — no stock holdings to look through (debt/gold/liquid)</div>
+            </div>
+            <div class="stat-tile">
+              <div class="st-label">Fund pairs with overlap</div>
+              <div class="st-val">8 of 66</div>
+              <div class="st-note">possible pairs across your 12 equity funds</div>
+            </div>
+            <div class="stat-tile risk-high">
+              <div class="st-label">Highest overlap</div>
+              <div class="st-val">64%</div>
+              <div class="st-note">Kotak Multi Cap × ICICI Pru Bluechip</div>
+            </div>
+            <div class="stat-tile risk-mod">
+              <div class="st-label">Overlap risk</div>
+              <div class="st-val">Moderate</div>
+              <div class="st-note">a few fund pairs share meaningful exposure</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 1: Common Holdings -->
+        <div class="card" style="margin-top:14px;">
+          <div class="card-title">1. Common Holdings<span class="info-dot">i<span class="tip">Stocks held by more than one of your funds, and how much of your total portfolio they represent combined.</span></span></div>
+          <div class="card-desc">Click a stock to see exactly how much of each fund it's held in.</div>
+          <table class="ch-table">
+            <thead><tr><th>#</th><th>Stock</th><th>Held in</th><th class="num">Total Portfolio Exposure</th><th>Top Funds</th></tr></thead>
+            <tbody id="ch-body"></tbody>
+          </table>
+        </div>
+
+        <!-- Section 2: Overlap Heatmap -->
+        <div class="card" style="margin-top:14px;">
+          <div class="card-title">2. Overlap Heatmap<span class="info-dot">i<span class="tip">Every fund pair's overlap %, based on shared stock weight. Click a cell for its shared-stock list.</span></span></div>
+          <div class="card-desc">Click any cell to see the stocks shared between that pair.</div>
+          <div class="heatmap-wrap"><table class="heatmap" id="heatmap"></table></div>
+          <div class="heatmap-legend">
+            <div class="hl-item"><div class="hl-swatch" style="background:#EAFBF0;"></div>Low &lt; 20%</div>
+            <div class="hl-item"><div class="hl-swatch" style="background:#FEF3E2;"></div>Moderate 20–40%</div>
+            <div class="hl-item"><div class="hl-swatch" style="background:#FDECEC;"></div>High ≥ 40%</div>
+          </div>
+          <div class="hm-detail" id="hm-detail"></div>
+        </div>
+
+        <!-- Section 3: Top Overlapping Fund Pairs -->
+        <div class="card" style="margin-top:14px;">
+          <div class="card-title">3. Top Overlapping Fund Pairs</div>
+          <table class="ch-table">
+            <thead><tr><th>#</th><th>Fund 1</th><th>Fund 2</th><th>Overlap</th><th class="num">Shared Stocks</th><th class="num">Combined Weight</th></tr></thead>
+            <tbody id="pairs-body"></tbody>
+          </table>
+          <div class="insight-callout"><b>Key insights:</b>
+            <ul>
+              <li>Kotak Multi Cap Fund and ICICI Prudential Bluechip Fund share 64% overlap — together they account for 31% of your equity exposure, so a correction in their shared large-cap holdings would hit both at once.</li>
+              <li>Your small- and mid-cap funds (Kotak Small Cap, Axis Midcap) have the lowest overlap with the rest of your portfolio — they're doing the most diversification work.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Section 4: Overlap Impact donut -->
+        <div class="card" style="margin-top:14px;">
+          <div class="card-title">4. Overlap Impact</div>
+          <div class="card-desc">How much of your portfolio sits in overlapping vs. unique holdings.</div>
+          <div class="donut-impact-row">
+            <div class="donut-wrap">
+              <svg viewBox="0 0 100 100" id="impact-donut"></svg>
+              <div class="donut-center"><div class="dc-val" id="impact-center-val">41.1%</div><div class="dc-label" id="impact-center-label">of portfolio in top 3 overlapping pairs</div></div>
+            </div>
+            <div class="legend-list" id="impact-legend"></div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Ask Mira — coming soon (shared verbatim with the rest of this page set) -->
+<div class="mira-modal-overlay" id="mira-modal" hidden>
+  <div class="mira-modal">
+    <div class="glyph-ring"><svg class="icon-lg"><use href="#i-sparkle"/></svg></div>
+    <h3>Mira is coming soon</h3>
+    <p>Mira, your AI investment assistant, is still being built. You'll be able to ask it about your portfolio, holdings, and performance right from here.</p>
+    <div class="btn-primary" id="mira-modal-close" style="background:var(--ink); border:1px solid var(--ink);">Got it</div>
+  </div>
+</div>
+
+<div class="spec">
+
+<h2>Data source mapping</h2>
+<table>
+<tr><th>Element</th><th>Source</th><th>New work</th></tr>
+<tr><td>Stat strip</td><td><code>overlap.py</code> summary fields (funds analysed, pairs with overlap, highest overlap, qualitative risk label)</td><td>None</td></tr>
+<tr><td>Common Holdings table</td><td><code>stock_holdings.rows[]</code>, cross-referenced against <code>contributing_funds</code></td><td>None</td></tr>
+<tr><td>Overlap Heatmap</td><td><code>overlap.py</code> pairwise matrix; bands from <code>OVERLAP_BAND_LOW</code>/<code>OVERLAP_BAND_HIGH</code> (20/40)</td><td>None</td></tr>
+<tr><td>Top Overlapping Fund Pairs + Key Insights</td><td><code>overlap.py</code> top-N pairs; insight sentences auto-generated from the same data, same pattern as other auto-generated callouts on this page set</td><td>None</td></tr>
+<tr><td>Overlap Impact donut</td><td><code>overlap.py</code> impact breakdown (top-3-pairs weight / other-pairs weight / unique-holdings weight)</td><td>None</td></tr>
+</table>
+
+<h2>Motion &amp; interaction spec</h2>
+<table>
+<tr><th>Trigger</th><th>Behaviour</th><th>Timing</th></tr>
+<tr><td>Click a Common Holdings row</td><td>Row expands in place to show per-fund weight for that stock — same mechanic as the Holdings page's stock table</td><td><code>--fast</code></td></tr>
+<tr><td>Click a heatmap cell</td><td>Cell takes a persistent dark border (survives mouse-leave); a detail panel beneath the grid opens/updates showing that pair's shared stocks, titled with both fund names</td><td><code>--fast</code></td></tr>
+<tr><td>Click a Top Overlapping Pairs row</td><td>Same persistent-selection + synced heatmap cell: clicking a pair row also highlights its heatmap cell and opens the same shared-detail panel — one state, two entry points</td><td><code>--fast</code></td></tr>
+<tr><td>Click an Overlap Impact legend row</td><td>Donut segment pops + dims siblings, legend row gets persistent selected background — same <code>buildDonut()</code> pattern as Allocation/Holdings</td><td><code>--pop</code></td></tr>
+</table>
+
+<div class="decided-against">Considered a single merged "pair detail" modal instead of an inline panel — rejected per
+design.md §11.1: a modal is a bigger interruption than needed for what's fundamentally a drill-down, and an inline
+panel beneath the heatmap keeps the clicked cell and its explanation visible at the same time.</div>
+
+<div class="locked-note"><b>Status:</b> Fund Overlap (portfolio-level) built per design.md §7.5 — stat strip, Common
+Holdings, Overlap Heatmap with the exact <code>overlap.py</code> band thresholds, Top Overlapping Fund Pairs + Key
+Insights, Overlap Impact donut. This is artifact 1 of the 3 that make up "Fund Overlap" per the AskUserQuestion
+resolution; artifacts 2 and 3 (the Individual Fund page's Overlap Analysis tab, normal and comparison states) are
+built in the next file, which also carries the fund-vs-fund comparison UI. Zero new backend work — every element
+reads an already-computed <code>overlap.py</code> field. Every interactive element satisfies design.md §11.1: heatmap
+cells and table rows take a persistent selected state and open an adjacent or clearly color-matched detail panel,
+with the heatmap and pairs table cross-linked via the same selection state.
+<br><br>Next: Individual Fund page (Overview/Overlap Analysis [normal + comparison]/Insights).</div>
+
+</div>
+
+<script>
+(function(){
+  var miraModal = document.getElementById('mira-modal');
+  document.querySelectorAll('.mira-trigger').forEach(function(t){ t.addEventListener('click', function(){ miraModal.hidden = false; }); });
+  document.getElementById('mira-modal-close').addEventListener('click', function(){ miraModal.hidden = true; });
+  miraModal.addEventListener('click', function(e){ if (e.target === miraModal) miraModal.hidden = true; });
+
+  function setGlobal(state){
+    document.querySelectorAll('[data-global]').forEach(function(b){ b.classList.toggle('active', b.dataset.global === state); });
+    ['g-loading','g-error','g-happy'].forEach(function(id){
+      document.getElementById(id).style.display = (id === 'g-' + state) ? 'block' : 'none';
+    });
+  }
+  document.querySelectorAll('[data-global]').forEach(function(b){ b.addEventListener('click', function(){ setGlobal(b.dataset.global); }); });
+
+  document.querySelectorAll('.htab').forEach(function(t){
+    t.addEventListener('click', function(){ document.querySelectorAll('.htab').forEach(function(o){ o.classList.remove('active'); }); t.classList.add('active'); });
+  });
+
+  /* ---- Fund universe (12 equity funds, matches Holdings page's set) ---- */
+  var FUNDS = ['Kotak Multi Cap Fund','JM Flexi Cap Fund','HDFC Mid-Cap Opportunities Fund','Parag Parikh Flexi Cap Fund','Kotak Small Cap Fund','ICICI Prudential Bluechip Fund','Axis Midcap Fund','SBI Small Cap Fund','Mirae Asset Large Cap Fund','Nippon India Growth Fund','Canara Robeco Emerging Equities Fund','UTI Flexi Cap Fund'];
+  var FUND_SHORT = {'Kotak Multi Cap Fund':'KMC','JM Flexi Cap Fund':'JMF','HDFC Mid-Cap Opportunities Fund':'HMC','Parag Parikh Flexi Cap Fund':'PPF','Kotak Small Cap Fund':'KSC','ICICI Prudential Bluechip Fund':'ICB','Axis Midcap Fund':'AXM','SBI Small Cap Fund':'SBS','Mirae Asset Large Cap Fund':'MAL','Nippon India Growth Fund':'NIG','Canara Robeco Emerging Equities Fund':'CRE','UTI Flexi Cap Fund':'UTF'};
+
+  /* ---- Common Holdings ---- */
+  var COMMON = [
+    { stock: 'HDFC Bank Ltd', heldIn: 9, exposure: 6.8, funds: ['Kotak Multi Cap Fund','ICICI Prudential Bluechip Fund','Mirae Asset Large Cap Fund','UTI Flexi Cap Fund'], weights: [7.1, 8.9, 6.2, 5.8] },
+    { stock: 'Reliance Industries Ltd', heldIn: 8, exposure: 5.9, funds: ['Kotak Multi Cap Fund','ICICI Prudential Bluechip Fund','Nippon India Growth Fund','Mirae Asset Large Cap Fund'], weights: [6.5, 7.8, 5.4, 6.0] },
+    { stock: 'ICICI Bank Ltd', heldIn: 7, exposure: 5.1, funds: ['Kotak Multi Cap Fund','ICICI Prudential Bluechip Fund','UTI Flexi Cap Fund'], weights: [5.9, 7.2, 4.8] },
+    { stock: 'Infosys Ltd', heldIn: 6, exposure: 4.2, funds: ['JM Flexi Cap Fund','Mirae Asset Large Cap Fund','Nippon India Growth Fund'], weights: [4.8, 4.5, 3.9] },
+    { stock: 'Larsen & Toubro Ltd', heldIn: 5, exposure: 3.4, funds: ['Kotak Multi Cap Fund','Axis Midcap Fund','ICICI Prudential Bluechip Fund'], weights: [3.9, 3.2, 3.6] }
+  ];
+  var openCH = null;
+  function renderCH(){
+    document.getElementById('ch-body').innerHTML = COMMON.map(function(c, i){
+      var chips = c.funds.slice(0,3).map(function(f){ return '<div class="fund-chip-mini">' + FUND_SHORT[f] + '</div>'; }).join('');
+      var overflow = c.funds.length > 3 ? '<div class="fund-chip-mini overflow">+' + (c.funds.length - 3) + '</div>' : '';
+      var detail = '<div class="ch-detail-inner">' + c.funds.map(function(f, j){ return '<div class="ch-detail-fund"><span>' + f + '</span><b>' + c.weights[j] + '%</b></div>'; }).join('') + '</div>';
+      return '<tr class="ch-row' + (openCH === i ? ' is-open' : '') + '" data-idx="' + i + '">' +
+        '<td>' + (i+1) + '</td><td><b>' + c.stock + '</b></td><td>' + c.heldIn + ' funds</td><td class="num">' + c.exposure + '%</td>' +
+        '<td><div class="fund-chips-cell">' + chips + overflow + '</div></td></tr>' +
+        '<tr class="ch-detail-row"><td colspan="5">' + detail + '</td></tr>';
+    }).join('');
+    document.querySelectorAll('.ch-row').forEach(function(r){
+      r.addEventListener('click', function(){
+        var idx = parseInt(r.dataset.idx, 10);
+        openCH = (openCH === idx) ? null : idx;
+        renderCH();
+      });
+    });
+  }
+  renderCH();
+
+  /* ---- Heatmap: only show a 6-fund slice for legibility (reference language: "12 of 15 funds") ---- */
+  var HM_FUNDS = ['Kotak Multi Cap Fund','ICICI Prudential Bluechip Fund','JM Flexi Cap Fund','HDFC Mid-Cap Opportunities Fund','Axis Midcap Fund','Kotak Small Cap Fund'];
+  var HM = [
+    [null, 64, 38, 22, 11, 4],
+    [64, null, 29, 18, 9, 3],
+    [38, 29, null, 24, 14, 6],
+    [22, 18, 24, null, 19, 8],
+    [11, 9, 14, 19, null, 12],
+    [4, 3, 6, 8, 12, null]
+  ];
+  var PAIR_STOCKS = {
+    '0-1': ['HDFC Bank Ltd','Reliance Industries Ltd','ICICI Bank Ltd','Larsen & Toubro Ltd','Axis Bank Ltd'],
+    '0-2': ['Infosys Ltd','Tata Consultancy Services Ltd','HDFC Bank Ltd'],
+    '2-3': ['Infosys Ltd','Cholamandalam Investment Ltd'],
+    '3-4': ['Persistent Systems Ltd','Coforge Ltd']
+  };
+  function bandOf(v){ if (v >= 40) return 'band-high'; if (v >= 20) return 'band-mod'; return 'band-low'; }
+  var selectedPair = null;
+  function renderHeatmap(){
+    var html = '<thead><tr><th></th>' + HM_FUNDS.map(function(f){ return '<th>' + FUND_SHORT[f] + '</th>'; }).join('') + '</tr></thead><tbody>';
+    HM.forEach(function(row, i){
+      html += '<tr><th class="row-label">' + FUND_SHORT[HM_FUNDS[i]] + '</th>';
+      row.forEach(function(v, j){
+        if (v === null) { html += '<td><div class="hm-cell band-self">—</div></td>'; return; }
+        var key = i < j ? i + '-' + j : j + '-' + i;
+        var sel = selectedPair === key ? ' is-selected' : '';
+        html += '<td><div class="hm-cell ' + bandOf(v) + sel + '" data-key="' + key + '" data-i="' + i + '" data-j="' + j + '">' + v + '%</div></td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody>';
+    document.getElementById('heatmap').innerHTML = html;
+    document.querySelectorAll('.hm-cell[data-key]').forEach(function(c){
+      c.addEventListener('click', function(){ selectPair(c.dataset.key, parseInt(c.dataset.i,10), parseInt(c.dataset.j,10)); });
+    });
+  }
+  function selectPair(key, i, j){
+    selectedPair = key;
+    renderHeatmap();
+    var stocks = PAIR_STOCKS[key] || ['Common holdings not available for this pair in the current scan.'];
+    var panel = document.getElementById('hm-detail');
+    panel.classList.add('is-open');
+    panel.innerHTML = '<div class="hm-detail-title">' + HM_FUNDS[i] + ' × ' + HM_FUNDS[j] + ' — shared holdings</div>' +
+      '<div class="hm-stock-list">' + stocks.map(function(s){ return '<div class="hm-stock-pill">' + s + '</div>'; }).join('') + '</div>';
+    panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+  renderHeatmap();
+
+  /* ---- Top Overlapping Fund Pairs (cross-linked to the heatmap selection) ---- */
+  var PAIRS = [
+    { a: 'Kotak Multi Cap Fund', b: 'ICICI Prudential Bluechip Fund', overlap: 64, shared: 18, combined: 31.2, i: 0, j: 1 },
+    { a: 'Kotak Multi Cap Fund', b: 'JM Flexi Cap Fund', overlap: 38, shared: 11, combined: 22.4, i: 0, j: 2 },
+    { a: 'HDFC Mid-Cap Opportunities Fund', b: 'Axis Midcap Fund', overlap: 19, shared: 6, combined: 14.1, i: 3, j: 4 },
+    { a: 'JM Flexi Cap Fund', b: 'HDFC Mid-Cap Opportunities Fund', overlap: 24, shared: 7, combined: 16.8, i: 2, j: 3 }
+  ];
+  function pairColor(v){ if (v >= 40) return 'var(--neg)'; if (v >= 20) return 'var(--warn)'; return 'var(--pos)'; }
+  function renderPairs(){
+    document.getElementById('pairs-body').innerHTML = PAIRS.map(function(p, idx){
+      var key = p.i + '-' + p.j;
+      return '<tr class="ch-row' + (selectedPair === key ? ' is-open' : '') + '" data-key="' + key + '" data-i="' + p.i + '" data-j="' + p.j + '">' +
+        '<td>' + (idx+1) + '</td><td>' + p.a + '</td><td>' + p.b + '</td>' +
+        '<td><div class="pair-bar-track" style="width:100px;"><div class="pair-bar-fill" style="width:' + p.overlap + '%; background:' + pairColor(p.overlap) + ';"></div></div>' + p.overlap + '%</td>' +
+        '<td class="num">' + p.shared + '</td><td class="num">' + p.combined + '%</td></tr>';
+    }).join('');
+    document.querySelectorAll('#pairs-body tr').forEach(function(r){
+      r.addEventListener('click', function(){ selectPair(r.dataset.key, parseInt(r.dataset.i,10), parseInt(r.dataset.j,10)); renderPairs(); });
+    });
+  }
+  renderPairs();
+  var _origSelectPair = selectPair;
+  selectPair = function(key, i, j){ _origSelectPair(key, i, j); renderPairs(); };
+
+  /* ---- Overlap Impact donut (reuses the buildDonut pop+dim+legend pattern from Allocation) ---- */
+  var IMPACT = [
+    { label: 'Top 3 overlapping pairs', pct: 41.1, color: 'var(--neg)' },
+    { label: 'Other overlapping pairs', pct: 18.6, color: 'var(--warn)' },
+    { label: 'Unique holdings', pct: 40.3, color: 'var(--accent)' }
+  ];
+  var selectedImpact = 0;
+  function buildImpactDonut(){
+    var r = 42, cx = 50, cy = 50, circ = 2 * Math.PI * r, offset = 0;
+    var svg = document.getElementById('impact-donut');
+    svg.innerHTML = IMPACT.map(function(seg, i){
+      var len = circ * seg.pct / 100;
+      var isSel = i === selectedImpact;
+      var dash = isSel ? len * 0.985 : len;
+      var el = '<circle cx="' + cx + '" cy="' + cy + '" r="' + (isSel ? r + 2 : r) + '" fill="none" stroke="' + seg.color + '" stroke-width="' + (isSel ? 15 : 13) + '" stroke-dasharray="' + dash + ' ' + (circ - dash) + '" stroke-dashoffset="' + (-offset) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')" opacity="' + (selectedImpact === null || isSel ? 1 : 0.35) + '" style="transition:all 200ms cubic-bezier(.34,1.56,.64,1);"/>';
+      offset += len;
+      return el;
+    }).join('');
+    document.getElementById('impact-center-val').textContent = IMPACT[selectedImpact].pct + '%';
+    document.getElementById('impact-center-label').textContent = IMPACT[selectedImpact].label.toLowerCase() === 'top 3 overlapping pairs' ? 'of portfolio in top 3 overlapping pairs' : ('of portfolio: ' + IMPACT[selectedImpact].label.toLowerCase());
+    document.getElementById('impact-legend').innerHTML = IMPACT.map(function(seg, i){
+      return '<div class="legend-row' + (i === selectedImpact ? ' is-selected' : '') + '" data-idx="' + i + '">' +
+        '<div class="legend-dot" style="background:' + seg.color + ';"></div><div class="legend-name">' + seg.label + '</div><div class="legend-pct">' + seg.pct + '%</div></div>';
+    }).join('');
+    document.querySelectorAll('#impact-legend .legend-row').forEach(function(row){
+      row.addEventListener('click', function(){ selectedImpact = parseInt(row.dataset.idx, 10); buildImpactDonut(); });
+    });
+  }
+  buildImpactDonut();
+})();
+</script>
+</body>
+</html>

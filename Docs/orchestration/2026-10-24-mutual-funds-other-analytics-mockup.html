@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mutual Funds — Other Analytics page, high-fidelity mockup, all states (v1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F5F5F5; --surface:#FFFFFF; --border:#ECECEC; --border-soft:#ECECEC; --border-input:#DFDFDF;
+    --ink:#111111; --secondary:#717171; --body:#4B4B4B; --muted:#9B9B9B; --text-disabled:#C4C4C4;
+    --accent:#22C55E; --accent-hover:#16A34A; --accent-pressed:#15803D; --accent-selected-bg:#E9F9EF;
+    --pos:#22C55E; --pos-text:#15803D; --pos-bg:#EAFBF0;
+    --neg:#E5484D; --neg-text:#C1272D; --neg-bg:#FDECEC;
+    --warn:#D97706; --warn-text:#92400E; --warn-bg:#FEF3E2;
+    --teal:#0D9488; --purple:#8B5CF6; --purple-bg:#F3F0FE; --blue:#2563EB; --blue-bg:#EAF1FD;
+    --c1:#22C55E; --c2:#0D9488; --c3:#2563EB; --c4:#6366F1; --c5:#8B5CF6; --c6:#D97706; --c7:#EC4899; --c8:#C1272D;
+    --font-display:'DM Sans',-apple-system,'Segoe UI',Arial,sans-serif;
+    --font-body:'Manrope',-apple-system,'Segoe UI',Arial,sans-serif;
+    --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:20px; --radius-pill:9999px;
+    --shadow-sm:0 1px 2px rgba(17,17,17,.05), 0 1px 1px rgba(17,17,17,.03);
+    --shadow-md:0 8px 24px rgba(17,17,17,.08), 0 2px 6px rgba(17,17,17,.04);
+    --shadow-lg:0 20px 48px rgba(17,17,17,.12), 0 4px 10px rgba(17,17,17,.05);
+    --fast:150ms cubic-bezier(.4,0,.2,1);
+    --pop:260ms cubic-bezier(.34,1.56,.64,1);
+    --hover-tint:#F2FBF5;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; }
+  body { font-family:var(--font-body); background:#fff; color:var(--ink); padding:28px 28px 90px; -webkit-font-smoothing:antialiased; }
+  h1 { font-family:var(--font-display); font-size:19px; font-weight:700; margin:0 0 4px; }
+  .doc-subtitle { color:var(--secondary); font-size:13px; margin:0 0 16px; max-width:1040px; line-height:1.55; }
+  .icon { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; display:block; }
+  .icon-sm { width:13px; height:13px; }
+  .icon-lg { width:20px; height:20px; }
+  code { background:#F3F3F3; padding:1px 6px; border-radius:4px; font-size:11.5px; }
+
+  .controls { position:sticky; top:0; z-index:50; background:#fff; border:1px solid #ddd; border-radius:12px; padding:12px 16px; margin-bottom:20px; box-shadow:0 2px 14px rgba(0,0,0,.1); max-width:1640px; }
+  .ctl-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .ctl-row:last-child { margin-bottom:0; }
+  .ctl-label { font-family:var(--font-display); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--secondary); width:140px; flex-shrink:0; }
+  .ctl-btn { font-family:var(--font-display); font-weight:600; font-size:11px; padding:5px 11px; border-radius:7px; border:1px solid var(--border); background:#fafafa; color:#444; cursor:pointer; transition:all var(--fast); }
+  .ctl-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+  .ctl-btn.active { background:var(--ink); border-color:var(--ink); color:#fff; }
+
+  .frame { background:var(--bg); border-radius:18px; padding:16px; max-width:1640px; }
+  .topbar { display:flex; align-items:center; gap:16px; padding:6px 10px 18px; }
+  .logo { font-family:var(--font-display); font-weight:800; font-size:17px; letter-spacing:-.01em; flex-shrink:0; }
+  .search-pill { flex:1; max-width:380px; display:flex; align-items:center; gap:8px; background:#F2F2F3; border-radius:var(--radius-pill); padding:9px 16px; color:var(--muted); font-size:13px; }
+  .top-actions { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .pill-ghost { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-weight:600; font-size:12.5px; padding:8px 14px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; color:var(--ink); white-space:nowrap; cursor:pointer; transition:all var(--fast); }
+  .pill-ghost:hover { border-color:#d5d5d5; box-shadow:var(--shadow-sm); transform:translateY(-1px); }
+  .pill-ghost.accent-outline { border-color:var(--accent); color:var(--accent-hover); }
+  .pill-ghost.accent-outline:hover { background:var(--hover-tint); border-color:var(--accent); }
+  .icon-btn { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--secondary); cursor:pointer; transition:background var(--fast); flex-shrink:0; }
+  .icon-btn:hover { background:#F2F2F3; }
+  .avatar-top { width:34px; height:34px; border-radius:50%; background:var(--ink); color:#fff; font-family:var(--font-display); font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .mira-trigger { cursor:pointer; }
+
+  .layout { display:flex; gap:18px; align-items:flex-start; }
+  .sidebar { width:186px; flex-shrink:0; background:transparent; padding:4px 0; }
+  .side-item { display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:10px; color:var(--secondary); font-size:13.5px; font-weight:500; margin-bottom:2px; cursor:pointer; transition:background var(--fast), color var(--fast); }
+  .side-item:hover { background:#F4F4F4; color:var(--ink); }
+  .side-item.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+  .side-divider { height:1px; background:var(--border-soft); margin:12px 10px; }
+
+  .main { flex:1; display:flex; flex-direction:column; gap:18px; min-width:0; position:relative; }
+
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; padding:2px 2px 0; }
+  .crumb { font-size:11.5px; color:var(--muted); font-weight:500; }
+  .page-header h2 { font-family:var(--font-display); font-size:26px; font-weight:800; letter-spacing:-.015em; margin:4px 0 4px; }
+  .page-sub { font-size:13px; color:var(--secondary); }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:22px 24px; opacity:0; transform:translateY(10px); animation:settle 240ms cubic-bezier(.16,1,.3,1) forwards; }
+  @keyframes settle { to { opacity:1; transform:translateY(0); } }
+  .card-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; flex-wrap:wrap; gap:10px; }
+  .card-title { display:flex; align-items:center; gap:7px; font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ink); }
+  .card-desc { font-size:12px; color:var(--muted); margin-bottom:16px; max-width:760px; line-height:1.55; }
+
+  .info-dot { width:14px; height:14px; border-radius:50%; background:#EEE; color:var(--secondary); font-size:9px; font-style:italic; font-family:Georgia,serif; font-weight:700; display:inline-flex; align-items:center; justify-content:center; cursor:help; position:relative; flex-shrink:0; }
+  .info-dot .tip { position:absolute; bottom:calc(100% + 7px); left:50%; transform:translateX(-50%) translateY(3px); background:#1a1a1a; color:#fff; font-size:10.5px; font-weight:500; font-style:normal; font-family:var(--font-body); line-height:1.4; padding:8px 11px; border-radius:8px; width:208px; text-align:left; opacity:0; pointer-events:none; transition:opacity 100ms ease, transform 100ms ease; z-index:12; }
+  .info-dot:hover .tip { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .tabs-utility-row { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:12px 18px; }
+  .htabs { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+  .htab { font-family:var(--font-display); font-size:13px; font-weight:600; color:var(--secondary); padding:9px 15px; border-radius:var(--radius-pill); cursor:pointer; transition:background var(--fast), color var(--fast); white-space:nowrap; }
+  .htab:hover:not(.active) { background:#F4F4F4; color:var(--ink); }
+  .htab.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+
+  .seg-toggle { display:inline-flex; background:#F0F0F1; border-radius:var(--radius-pill); padding:2px; width:fit-content; }
+  .seg-btn { font-family:var(--font-display); font-weight:700; font-size:11px; padding:6px 13px; border-radius:var(--radius-pill); color:var(--muted); cursor:pointer; transition:all var(--fast); white-space:nowrap; }
+  .seg-btn.active { background:#fff; color:var(--ink); box-shadow:var(--shadow-sm); }
+  .seg-btn:hover:not(.active) { color:var(--ink); }
+
+  .shimmer { position:relative; overflow:hidden; background:#EFEFEF; border-radius:7px; }
+  .shimmer::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent); background-size:200% 100%; animation:shimmer 1.4s ease-in-out infinite; }
+  @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+
+  .page-state { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:76px 20px; gap:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+  .page-state .big-ico { width:58px; height:58px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; }
+  .page-state.is-error .big-ico { background:var(--warn-bg); color:var(--warn-text); }
+  .page-state h3 { font-family:var(--font-display); font-size:19px; margin:0; }
+  .page-state p { margin:0; font-size:13px; color:var(--secondary); max-width:400px; line-height:1.6; }
+  .retry-btn { font-family:var(--font-display); font-weight:700; font-size:12px; padding:7px 16px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; cursor:pointer; transition:all var(--fast); }
+  .retry-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+
+  .mira-modal-overlay { position:fixed; inset:0; background:rgba(17,17,17,.45); z-index:200; display:flex; align-items:center; justify-content:center; }
+  .mira-modal-overlay[hidden] { display:none; }
+  .mira-modal { background:#fff; width:360px; max-width:calc(100vw - 40px); border-radius:var(--radius-lg); padding:26px 26px 22px; box-shadow:var(--shadow-lg); text-align:center; animation:settle 200ms cubic-bezier(.16,1,.3,1); }
+  .mira-modal .glyph-ring { width:44px; height:44px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; }
+  .mira-modal h3 { font-family:var(--font-display); font-size:17px; margin:0 0 8px; }
+  .mira-modal p { font-size:13px; color:var(--secondary); line-height:1.55; margin:0 0 18px; }
+  .mira-modal .btn-primary { width:100%; justify-content:center; display:inline-flex; align-items:center; font-family:var(--font-display); font-weight:700; padding:10px 18px; border-radius:var(--radius-pill); color:#fff; cursor:pointer; }
+
+  .spec { max-width:1080px; margin-top:44px; }
+  .spec h2 { font-family:var(--font-display); font-size:17px; margin:34px 0 10px; }
+  .spec h2:first-child { margin-top:0; }
+  .spec table { border-collapse:collapse; width:100%; font-size:12.5px; margin-bottom:6px; }
+  .spec th, .spec td { text-align:left; padding:8px 10px; border-bottom:1px solid #eee; vertical-align:top; }
+  .spec th { font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--secondary); font-weight:700; font-family:var(--font-display); }
+  .decided-against { background:#F6F6F6; border-radius:8px; padding:11px 15px; font-size:12.5px; color:#444; margin-top:8px; }
+  .locked-note { background:var(--pos-bg); border:1px solid var(--pos); border-radius:9px; padding:13px 17px; font-size:13px; color:var(--pos-text); margin-top:22px; max-width:1080px; }
+
+  /* ---------------- Other Analytics-specific: 4 visually distinct groups (design.md §6/§7.6) ---------------- */
+  .group-header { display:flex; align-items:center; gap:10px; margin:30px 0 14px; }
+  .group-header:first-child { margin-top:0; }
+  .group-num { width:24px; height:24px; border-radius:7px; background:var(--ink); color:#fff; font-family:var(--font-display); font-weight:800; font-size:11.5px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .group-title { font-family:var(--font-display); font-weight:800; font-size:16px; }
+  .group-sub { font-size:12px; color:var(--muted); margin-left:34px; margin-top:-10px; margin-bottom:4px; }
+  .group-cards { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .group-cards.single { grid-template-columns:1fr; }
+
+  .cmp-bars { display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+  .cmp-bar-row { display:flex; align-items:center; gap:10px; font-size:12px; }
+  .cmp-bar-label { width:120px; flex-shrink:0; color:var(--secondary); font-weight:600; }
+  .cmp-bar-track { flex:1; height:10px; border-radius:5px; background:#EFEFEF; overflow:hidden; }
+  .cmp-bar-fill { height:100%; border-radius:5px; }
+  .cmp-bar-val { width:52px; text-align:right; font-variant-numeric:tabular-nums; font-weight:700; }
+
+  .cost-save-banner { background:var(--accent-selected-bg); border:1px solid var(--accent); border-radius:var(--radius-md); padding:13px 16px; font-size:12.5px; color:var(--accent-pressed); margin-top:14px; }
+
+  .score-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .score-card { border:1px solid var(--border-soft); border-radius:var(--radius-md); padding:16px; cursor:pointer; transition:all var(--fast); }
+  .score-card:hover { border-color:var(--accent); }
+  .score-card.is-selected { border-color:var(--accent); background:var(--hover-tint); box-shadow:var(--shadow-sm); }
+  .score-fund-name { font-weight:700; font-size:12.5px; margin-bottom:10px; min-height:32px; }
+  .score-ring { width:64px; height:64px; margin:0 auto 8px; position:relative; }
+  .score-ring svg { width:100%; height:100%; transform:rotate(-90deg); }
+  .score-ring-val { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:800; font-size:15px; }
+  .score-tier { text-align:center; font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:var(--radius-pill); display:block; margin:0 auto; width:fit-content; }
+  .score-tier.excellent { background:var(--pos-bg); color:var(--pos-text); }
+  .score-tier.good { background:var(--blue-bg); color:var(--blue); }
+  .score-tier.average { background:var(--warn-bg); color:var(--warn-text); }
+
+  .score-detail { border-top:1px solid var(--border-soft); margin-top:18px; padding-top:16px; display:none; }
+  .score-detail.is-open { display:block; }
+  .score-detail-head { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .score-detail-dot { width:10px; height:10px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+  .score-detail-title { font-family:var(--font-display); font-weight:800; font-size:15px; }
+  .score-breakdown { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:16px; }
+  .score-breakdown-item { border:1px solid var(--border-soft); border-radius:var(--radius-sm); padding:11px 13px; }
+  .score-breakdown-item .sb-label { font-size:10.5px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+  .score-breakdown-item .sb-val { font-family:var(--font-display); font-weight:800; font-size:17px; margin-top:4px; }
+  .score-lists { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .score-list-title { font-weight:700; font-size:12px; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .score-list-title.strength { color:var(--pos-text); }
+  .score-list-title.watch { color:var(--warn-text); }
+  .score-list ul { margin:0; padding-left:18px; font-size:12px; color:var(--secondary); line-height:1.7; }
+  .score-explainer { background:var(--bg); border-radius:var(--radius-sm); padding:12px 14px; font-size:11.5px; color:var(--secondary); margin-top:14px; line-height:1.6; }
+
+  .rank-row { display:flex; align-items:center; gap:14px; padding:13px 10px; border-top:1px solid var(--border-soft); cursor:pointer; border-radius:10px; transition:background var(--fast); }
+  .rank-row:first-child { border-top:none; }
+  .rank-row:hover, .rank-row.is-open { background:var(--hover-tint); }
+  .rank-badge { width:34px; height:34px; border-radius:50%; background:#F0F0F1; color:var(--ink); font-family:var(--font-display); font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .rank-main { flex:1; min-width:0; }
+  .rank-fund { font-weight:700; font-size:13px; }
+  .rank-meta { font-size:11px; color:var(--muted); margin-top:2px; }
+  .rank-pct-track { width:90px; height:7px; border-radius:4px; background:#EFEFEF; overflow:hidden; }
+  .rank-pct-fill { height:100%; background:var(--accent); border-radius:4px; }
+  .rank-chev { color:var(--muted); transition:transform var(--fast); }
+  .rank-row.is-open .rank-chev { transform:rotate(90deg); color:var(--accent-hover); }
+  .rank-detail { display:none; padding:6px 10px 16px 58px; }
+  .rank-row.is-open + .rank-detail { display:block; }
+  .peer-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .peer-table th { text-align:left; font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; padding:0 10px 6px; }
+  .peer-table th.num, .peer-table td.num { text-align:right; }
+  .peer-table td { padding:7px 10px; border-top:1px dashed var(--border-soft); }
+  .peer-table tr.is-you td { font-weight:800; background:var(--accent-selected-bg); }
+
+  .neighbor-row { display:flex; justify-content:space-between; align-items:center; padding:7px 10px; font-size:12px; border-radius:7px; }
+  .neighbor-row.is-you { background:var(--accent-selected-bg); font-weight:800; }
+  .neighbor-row .nr-weights { color:var(--muted); font-size:11px; font-weight:500; }
+</style>
+</head>
+<body>
+
+<svg style="display:none">
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M20 20l-5.5-5.5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15.2 20c0-2.2 1.7-4 3.8-4.6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></symbol>
+  <symbol id="i-bar-chart" viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></symbol>
+  <symbol id="i-pie" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
+  <symbol id="i-trending" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-8"/><path d="M14 7h6v6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.8 1c0 1.8-2.3 2-2.3 3.5"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 10v5"/><path d="M12 18.2v.1"/></symbol>
+  <symbol id="i-award" viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M8.5 13.5 7 21l5-3 5 3-1.5-7.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></symbol>
+</svg>
+
+<h1>Mutual Funds — Other Analytics page, high-fidelity mockup</h1>
+<p class="doc-subtitle">Route <code>portfolio-mutual-funds-analytics</code> → <code>/portfolio/mutual-funds/analytics</code>,
+per design.md §6/§7.6. Four visually distinct, clearly separated groups per Q7's resolution — none flattened into
+one grab-bag list: <b>1. Cost &amp; Valuation</b> (Valuation + TER, grouped), <b>2. Fund Quality Scorer</b>
+(Unifolio's proprietary 45/30/25 score, full detail stays here permanently), <b>3. SEBI Category Ranking &amp; Peer
+Comparison</b> (its own large section), <b>4. Fund Ranking</b> (the transparent, formula-only composite —
+leaderboard with a fund's category neighbors). All four already computed today, zero new backend work. Same token
+system, chrome, and Ask-Mira popup as the rest of this page set.</p>
+
+<div class="controls">
+  <div class="ctl-row">
+    <div class="ctl-label">Page state</div>
+    <button class="ctl-btn active" data-global="happy">Happy path</button>
+    <button class="ctl-btn" data-global="loading">Initial loading</button>
+    <button class="ctl-btn" data-global="error">Page error</button>
+  </div>
+</div>
+
+<div class="frame">
+
+  <div class="topbar">
+    <div class="logo">Unifolio</div>
+    <div class="search-pill"><svg class="icon icon-sm"><use href="#i-search"/></svg>Search for a fund, stock, or ask Mira...</div>
+    <div class="top-actions">
+      <div class="pill-ghost accent-outline mira-trigger"><svg class="icon icon-sm"><use href="#i-sparkle"/></svg>Ask Mira</div>
+      <div class="pill-ghost"><svg class="icon icon-sm"><use href="#i-users"/></svg>Family Combined<svg class="icon icon-sm"><use href="#i-chevron-down"/></svg></div>
+      <div class="icon-btn"><svg class="icon"><use href="#i-moon"/></svg></div>
+      <div class="avatar-top">SS</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="side-item"><svg class="icon"><use href="#i-home"/></svg>Home</div>
+      <div class="side-item"><svg class="icon"><use href="#i-bar-chart"/></svg>Analytics</div>
+      <div class="side-item active"><svg class="icon"><use href="#i-pie"/></svg>Investments</div>
+      <div class="side-item"><svg class="icon"><use href="#i-trending"/></svg>Performance</div>
+      <div class="side-item"><svg class="icon"><use href="#i-zap"/></svg>Scenarios</div>
+      <div class="side-divider"></div>
+      <div class="side-item"><svg class="icon"><use href="#i-user"/></svg>Profile</div>
+      <div class="side-item"><svg class="icon"><use href="#i-help"/></svg>Help &amp; Support</div>
+    </div>
+
+    <div class="main" id="main">
+
+      <div class="page-header">
+        <div>
+          <div class="crumb">Investments · Mutual Funds</div>
+          <h2>Other Analytics</h2>
+          <div class="page-sub">Cost, quality, and ranking views that go deeper than the headline dashboard.</div>
+        </div>
+      </div>
+
+      <!-- ============ GLOBAL: INITIAL LOADING ============ -->
+      <div id="g-loading" style="display:none;">
+        <div class="card" style="margin-bottom:18px;"><div class="shimmer" style="height:16px; width:30%; margin-bottom:16px; border-radius:8px;"></div><div class="shimmer" style="height:220px; width:100%; border-radius:12px;"></div></div>
+        <div class="card"><div class="shimmer" style="height:16px; width:30%; margin-bottom:16px; border-radius:8px;"></div><div class="shimmer" style="height:200px; width:100%; border-radius:12px;"></div></div>
+      </div>
+
+      <!-- ============ GLOBAL: PAGE ERROR ============ -->
+      <div id="g-error" style="display:none;">
+        <div class="page-state is-error">
+          <div class="big-ico"><svg class="icon-lg"><use href="#i-alert"/></svg></div>
+          <h3>Couldn't load your analytics</h3>
+          <p>There was a problem reaching our servers. Your data is safe — this is just a connection issue.</p>
+          <div class="retry-btn" style="padding:9px 20px; font-size:13px;">Retry</div>
+        </div>
+      </div>
+
+      <!-- ============ HAPPY PATH ============ -->
+      <div id="g-happy">
+
+        <div class="tabs-utility-row card" style="margin-bottom:0;">
+          <div class="htabs">
+            <div class="htab">Overview</div>
+            <div class="htab">Performance</div>
+            <div class="htab">Allocation</div>
+            <div class="htab">Holdings</div>
+            <div class="htab">Transactions</div>
+            <div class="htab">Overlap</div>
+            <div class="htab active">Other Analytics</div>
+          </div>
+        </div>
+
+        <!-- ================= GROUP 1: Cost & Valuation ================= -->
+        <div class="group-header" style="margin-top:20px;"><div class="group-num">1</div><div class="group-title">Cost &amp; Valuation</div></div>
+        <div class="group-sub">How expensive your funds are to hold, and how richly their holdings are priced.</div>
+        <div class="group-cards">
+          <div class="card">
+            <div class="card-title">Valuation vs. Benchmark<span class="info-dot">i<span class="tip">Your portfolio's look-through P/E and P/B compared to Nifty 500 — a sense of whether you're paying a premium or discount for your holdings.</span></span></div>
+            <div class="cmp-bars" style="margin-top:14px;">
+              <div class="cmp-bar-row"><div class="cmp-bar-label">P/E — Portfolio</div><div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:78%; background:var(--accent);"></div></div><div class="cmp-bar-val">23.4x</div></div>
+              <div class="cmp-bar-row"><div class="cmp-bar-label">P/E — Nifty 500</div><div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:73%; background:var(--muted);"></div></div><div class="cmp-bar-val">21.9x</div></div>
+              <div class="cmp-bar-row"><div class="cmp-bar-label">P/B — Portfolio</div><div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:62%; background:var(--accent);"></div></div><div class="cmp-bar-val">4.1x</div></div>
+              <div class="cmp-bar-row"><div class="cmp-bar-label">P/B — Nifty 500</div><div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:58%; background:var(--muted);"></div></div><div class="cmp-bar-val">3.8x</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Direct vs. Regular — Cost Analysis<span class="info-dot">i<span class="tip">The expense-ratio gap between your Regular-plan funds and their Direct-plan equivalent, projected forward.</span></span></div>
+            <div class="cmp-bars" style="margin-top:14px;">
+              <div class="cmp-bar-row"><div class="cmp-bar-label">Your TER (wtd. avg)</div><div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:68%; background:var(--warn);"></div></div><div class="cmp-bar-val">1.42%</div></div>
+              <div class="cmp-bar-row"><div class="cmp-bar-label">Direct-plan equiv.</div><div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:32%; background:var(--accent);"></div></div><div class="cmp-bar-val">0.61%</div></div>
+            </div>
+            <div class="cost-save-banner">Switching your 3 Regular-plan funds to Direct could save an estimated <b>₹1.9L</b> over the next 10 years, assuming similar returns continue.</div>
+          </div>
+        </div>
+
+        <!-- ================= GROUP 2: Fund Quality Scorer ================= -->
+        <div class="group-header"><div class="group-num">2</div><div class="group-title">Fund Quality Scorer</div></div>
+        <div class="group-sub">Unifolio's proprietary score — 45% Return, 30% Downside Risk, 25% Consistency vs. SEBI category peers. Click a fund for its full breakdown.</div>
+        <div class="card">
+          <div class="score-grid" id="score-grid"></div>
+          <div class="score-detail" id="score-detail"></div>
+        </div>
+
+        <!-- ================= GROUP 3: SEBI Category Ranking & Peer Comparison ================= -->
+        <div class="group-header"><div class="group-num">3</div><div class="group-title">SEBI Category Ranking &amp; Peer Comparison</div></div>
+        <div class="group-sub">Where each fund sits among every other fund SEBI classifies in the same category.</div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Category Rank</div>
+            <div class="seg-toggle" id="rank-period-toggle">
+              <div class="seg-btn" data-p="1y">1Y</div>
+              <div class="seg-btn active" data-p="3y">3Y</div>
+              <div class="seg-btn" data-p="5y">5Y</div>
+            </div>
+          </div>
+          <div class="card-desc">Click a fund to see the 2 category peers immediately above and below it in return.</div>
+          <div id="catrank-list"></div>
+        </div>
+
+        <!-- ================= GROUP 4: Fund Ranking ================= -->
+        <div class="group-header"><div class="group-num">4</div><div class="group-title">Fund Ranking</div></div>
+        <div class="group-sub">A transparent, formula-only composite — 3Y return 25% / 5Y return 25% / category-relative 20% / low volatility 15% / low TER 15%. Distinct from the Fund Quality Scorer above, which is proprietary.</div>
+        <div class="card">
+          <div class="card-desc">Click a fund to see its immediate leaderboard neighbors in its category.</div>
+          <div id="fundrank-list"></div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Ask Mira — coming soon (shared verbatim with the rest of this page set) -->
+<div class="mira-modal-overlay" id="mira-modal" hidden>
+  <div class="mira-modal">
+    <div class="glyph-ring"><svg class="icon-lg"><use href="#i-sparkle"/></svg></div>
+    <h3>Mira is coming soon</h3>
+    <p>Mira, your AI investment assistant, is still being built. You'll be able to ask it about your portfolio, holdings, and performance right from here.</p>
+    <div class="btn-primary" id="mira-modal-close" style="background:var(--ink); border:1px solid var(--ink);">Got it</div>
+  </div>
+</div>
+
+<div class="spec">
+
+<h2>Data source mapping</h2>
+<table>
+<tr><th>Element</th><th>Source</th><th>New work</th></tr>
+<tr><td>Valuation vs. Benchmark</td><td><code>ValuationSection</code> (P/E, P/B vs. indices)</td><td>None</td></tr>
+<tr><td>Direct vs. Regular cost analysis</td><td><code>TerSection</code> + <code>FundTerTable</code></td><td>None</td></tr>
+<tr><td>Fund Quality Scorer grid + detail</td><td><code>ScorerSection</code> + <code>ScoreExplainer</code> + <code>FundScoreCard</code> + <code>FundScoreDetailModal</code> — full detail view kept here permanently per the 2026-10-23 correction, not displaced by the future per-fund page's Insights tab</td><td>None</td></tr>
+<tr><td>SEBI Category Ranking + peer comparison</td><td><code>CategoryRankingSection</code> + <code>PeriodReturnsTable</code></td><td>None</td></tr>
+<tr><td>Fund Ranking leaderboard</td><td><code>FundRankingSection</code> — the non-proprietary composite, distinct from the Scorer</td><td>None</td></tr>
+</table>
+
+<h2>Motion &amp; interaction spec</h2>
+<table>
+<tr><th>Trigger</th><th>Behaviour</th><th>Timing</th></tr>
+<tr><td>Click a Fund Quality Scorer card</td><td>Card takes a persistent selected border (survives mouse-leave); the detail panel directly beneath the grid opens/updates for that fund, with a color-matched dot in its title tying it back to the clicked card</td><td><code>--fast</code></td></tr>
+<tr><td>Click a Category Ranking row</td><td>Row expands in place to a peer-comparison table (2 funds immediately above, 2 immediately below, your fund highlighted)</td><td><code>--fast</code></td></tr>
+<tr><td>Click a Fund Ranking row</td><td>Row expands in place to its leaderboard neighbors — same in-place mechanic, no panel elsewhere on the page</td><td><code>--fast</code></td></tr>
+<tr><td>Click the 1Y/3Y/5Y pill</td><td>Category Ranking list re-renders for that period; any open row's expansion closes since its neighbors may change</td><td><code>--fast</code></td></tr>
+</table>
+
+<div class="locked-note"><b>Status:</b> Other Analytics built per design.md §6/§7.6 — four visually distinct groups
+(Cost &amp; Valuation, Fund Quality Scorer, SEBI Category Ranking &amp; Peer Comparison, Fund Ranking), each reading
+as its own section rather than one flat list, per Q7's resolution. The Fund Quality Scorer (proprietary Unifolio
+Score) and Fund Ranking (transparent formula composite) are kept visually and functionally distinct per the
+2026-10-23 correction — neither displaces the other. Zero new backend work: all four groups read already-computed
+sections. Every interactive element satisfies design.md §11.1: score cards and ranking rows either expand in place
+or keep a persistent selected state tied to the panel/row that updates, with no distant, silently-updating target.
+<br><br>Next: Fund Overlap, Individual Fund page.</div>
+
+</div>
+
+<script>
+(function(){
+  var miraModal = document.getElementById('mira-modal');
+  document.querySelectorAll('.mira-trigger').forEach(function(t){ t.addEventListener('click', function(){ miraModal.hidden = false; }); });
+  document.getElementById('mira-modal-close').addEventListener('click', function(){ miraModal.hidden = true; });
+  miraModal.addEventListener('click', function(e){ if (e.target === miraModal) miraModal.hidden = true; });
+
+  function setGlobal(state){
+    document.querySelectorAll('[data-global]').forEach(function(b){ b.classList.toggle('active', b.dataset.global === state); });
+    ['g-loading','g-error','g-happy'].forEach(function(id){
+      document.getElementById(id).style.display = (id === 'g-' + state) ? 'block' : 'none';
+    });
+  }
+  document.querySelectorAll('[data-global]').forEach(function(b){ b.addEventListener('click', function(){ setGlobal(b.dataset.global); }); });
+
+  document.querySelectorAll('.htab').forEach(function(t){
+    t.addEventListener('click', function(){ document.querySelectorAll('.htab').forEach(function(o){ o.classList.remove('active'); }); t.classList.add('active'); });
+  });
+
+  /* ---- Fund Quality Scorer: proprietary 45/30/25 (Return/Downside Risk/Consistency) ---- */
+  var SCORES = [
+    { fund: 'Kotak Multi Cap Fund', score: 84, tier: 'excellent', ret: 88, risk: 79, cons: 85,
+      strengths: ['Top-quartile 3Y and 5Y returns vs. category', 'Low downside capture in the 2025 correction'],
+      watch: ['Expense ratio slightly above category median'] },
+    { fund: 'JM Flexi Cap Fund', score: 71, tier: 'good', ret: 74, risk: 68, cons: 72,
+      strengths: ['Consistent top-half category returns for 4 of the last 5 years'],
+      watch: ['Higher volatility than peers during sharp drawdowns', 'Manager tenure under 3 years'] },
+    { fund: 'HDFC Mid-Cap Opportunities Fund', score: 62, tier: 'average', ret: 58, risk: 55, cons: 70,
+      strengths: ['Strong consistency — rarely in the bottom half of its category'],
+      watch: ['Returns lag category median over 3Y', 'Mid-cap category carries higher inherent volatility'] },
+    { fund: 'Parag Parikh Flexi Cap Fund', score: 79, tier: 'excellent', ret: 76, risk: 84, cons: 78,
+      strengths: ['Best-in-class downside protection via international diversification', 'Low churn, tax-efficient'],
+      watch: ['International allocation caps upside in strong domestic rallies'] }
+  ];
+  var TIER_COLOR = { excellent: 'var(--pos)', good: 'var(--blue)', average: 'var(--warn)' };
+  function ringSvg(pct, color){
+    var r = 28, c = 2*Math.PI*r, off = c * (1 - pct/100);
+    return '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="' + r + '" fill="none" stroke="#EFEFEF" stroke-width="7"/>' +
+      '<circle cx="32" cy="32" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + c + '" stroke-dashoffset="' + off + '"/></svg>';
+  }
+  var selectedScore = 0;
+  function renderScoreGrid(){
+    document.getElementById('score-grid').innerHTML = SCORES.map(function(s, i){
+      return '<div class="score-card' + (i === selectedScore ? ' is-selected' : '') + '" data-idx="' + i + '">' +
+        '<div class="score-fund-name">' + s.fund + '</div>' +
+        '<div class="score-ring">' + ringSvg(s.score, TIER_COLOR[s.tier]) + '<div class="score-ring-val">' + s.score + '</div></div>' +
+        '<div class="score-tier ' + s.tier + '">' + s.tier.charAt(0).toUpperCase() + s.tier.slice(1) + '</div></div>';
+    }).join('');
+    document.querySelectorAll('.score-card').forEach(function(c){
+      c.addEventListener('click', function(){
+        selectedScore = parseInt(c.dataset.idx, 10);
+        renderScoreGrid();
+        renderScoreDetail();
+      });
+    });
+  }
+  function renderScoreDetail(){
+    var s = SCORES[selectedScore];
+    var panel = document.getElementById('score-detail');
+    panel.classList.add('is-open');
+    panel.innerHTML =
+      '<div class="score-detail-head"><span class="score-detail-dot" style="background:' + TIER_COLOR[s.tier] + '"></span><span class="score-detail-title">' + s.fund + ' — ' + s.score + '/100</span></div>' +
+      '<div class="score-breakdown">' +
+        '<div class="score-breakdown-item"><div class="sb-label">Return (45%)</div><div class="sb-val">' + s.ret + '/100</div></div>' +
+        '<div class="score-breakdown-item"><div class="sb-label">Downside Risk (30%)</div><div class="sb-val">' + s.risk + '/100</div></div>' +
+        '<div class="score-breakdown-item"><div class="sb-label">Consistency (25%)</div><div class="sb-val">' + s.cons + '/100</div></div>' +
+      '</div>' +
+      '<div class="score-lists">' +
+        '<div class="score-list"><div class="score-list-title strength"><svg class="icon icon-sm"><use href="#i-check"/></svg>Strengths</div><ul>' + s.strengths.map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul></div>' +
+        '<div class="score-list"><div class="score-list-title watch"><svg class="icon icon-sm"><use href="#i-alert"/></svg>Watch-outs</div><ul>' + s.watch.map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul></div>' +
+      '</div>' +
+      '<div class="score-explainer"><b>How we calculate this:</b> 45% weight on 3Y/5Y category-relative returns, 30% on downside-capture during the worst drawdowns in the category over the same window, 25% on return consistency (rolling-period win rate vs. category). Recomputed on every analytics refresh, same cadence as every other section on this page.</div>';
+  }
+  renderScoreGrid();
+  renderScoreDetail();
+
+  /* ---- SEBI Category Ranking ---- */
+  var CATRANK = [
+    { fund: 'Kotak Multi Cap Fund', category: 'Multi Cap', rank: 12, total: 28, pct: 1.1, peers: [
+      { name: 'ABC Multi Cap Fund', pct: 1.4 }, { name: 'DEF Multi Cap Fund', pct: 1.2 }, { name: 'Kotak Multi Cap Fund', pct: 1.1, you: true }, { name: 'GHI Multi Cap Fund', pct: 0.9 }, { name: 'JKL Multi Cap Fund', pct: 0.8 }
+    ]},
+    { fund: 'JM Flexi Cap Fund', category: 'Flexi Cap', rank: 34, total: 42, pct: 0.7, peers: [
+      { name: 'MNO Flexi Cap Fund', pct: 0.95 }, { name: 'PQR Flexi Cap Fund', pct: 0.8 }, { name: 'JM Flexi Cap Fund', pct: 0.7, you: true }, { name: 'STU Flexi Cap Fund', pct: 0.6 }, { name: 'VWX Flexi Cap Fund', pct: 0.55 }
+    ]},
+    { fund: 'HDFC Mid-Cap Opportunities Fund', category: 'Mid Cap', rank: 21, total: 25, pct: 0.65, peers: [
+      { name: 'YZA Mid Cap Fund', pct: 1.0 }, { name: 'BCD Mid Cap Fund', pct: 0.8 }, { name: 'HDFC Mid-Cap Opportunities Fund', pct: 0.65, you: true }, { name: 'EFG Mid Cap Fund', pct: 0.5 }, { name: 'HIJ Mid Cap Fund', pct: 0.4 }
+    ]}
+  ];
+  var openCatRank = null;
+  var activeRankPeriod = '3y';
+  function renderCatRank(){
+    document.getElementById('catrank-list').innerHTML = CATRANK.map(function(r, i){
+      var pctOfCat = 100 - (r.rank / r.total * 100);
+      var detail = '<table class="peer-table"><thead><tr><th>Fund</th><th class="num">' + activeRankPeriod.toUpperCase() + ' Return</th></tr></thead><tbody>' +
+        r.peers.map(function(p){ return '<tr class="' + (p.you ? 'is-you' : '') + '"><td>' + p.name + (p.you ? ' (this fund)' : '') + '</td><td class="num">' + p.pct.toFixed(2) + '%</td></tr>'; }).join('') + '</tbody></table>';
+      return '<div class="rank-row' + (openCatRank === i ? ' is-open' : '') + '" data-idx="' + i + '">' +
+        '<div class="rank-badge">#' + r.rank + '</div>' +
+        '<div class="rank-main"><div class="rank-fund">' + r.fund + '</div><div class="rank-meta">' + r.category + ' · rank ' + r.rank + ' of ' + r.total + '</div></div>' +
+        '<div class="rank-pct-track"><div class="rank-pct-fill" style="width:' + pctOfCat.toFixed(0) + '%"></div></div>' +
+        '<svg class="icon rank-chev"><use href="#i-chevron-right"/></svg></div>' +
+        '<div class="rank-detail">' + detail + '</div>';
+    }).join('');
+    document.querySelectorAll('#catrank-list .rank-row').forEach(function(row){
+      row.addEventListener('click', function(){
+        var idx = parseInt(row.dataset.idx, 10);
+        openCatRank = (openCatRank === idx) ? null : idx;
+        renderCatRank();
+      });
+    });
+  }
+  renderCatRank();
+  document.querySelectorAll('#rank-period-toggle .seg-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('#rank-period-toggle .seg-btn').forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      activeRankPeriod = b.dataset.p;
+      openCatRank = null;
+      renderCatRank();
+    });
+  });
+
+  /* ---- Fund Ranking: transparent composite (3Y 25% / 5Y 25% / category-rel 20% / low vol 15% / low TER 15%) ---- */
+  var FUNDRANK = [
+    { fund: 'Kotak Multi Cap Fund', composite: 82, rank: 4, total: 28, neighbors: [
+      { name: 'ABC Multi Cap Fund', composite: 86, rank: 3 }, { name: 'Kotak Multi Cap Fund', composite: 82, rank: 4, you: true }, { name: 'DEF Multi Cap Fund', composite: 79, rank: 5 }
+    ]},
+    { fund: 'Parag Parikh Flexi Cap Fund', composite: 77, rank: 6, total: 42, neighbors: [
+      { name: 'GHI Flexi Cap Fund', composite: 80, rank: 5 }, { name: 'Parag Parikh Flexi Cap Fund', composite: 77, rank: 6, you: true }, { name: 'JKL Flexi Cap Fund', composite: 74, rank: 7 }
+    ]}
+  ];
+  var openFundRank = null;
+  function renderFundRank(){
+    document.getElementById('fundrank-list').innerHTML = FUNDRANK.map(function(r, i){
+      var detail = r.neighbors.map(function(n){
+        return '<div class="neighbor-row ' + (n.you ? 'is-you' : '') + '"><span>#' + n.rank + ' ' + n.name + (n.you ? ' (this fund)' : '') + '</span><span class="nr-weights">' + n.composite + '/100</span></div>';
+      }).join('');
+      return '<div class="rank-row' + (openFundRank === i ? ' is-open' : '') + '" data-idx="' + i + '">' +
+        '<div class="rank-badge">#' + r.rank + '</div>' +
+        '<div class="rank-main"><div class="rank-fund">' + r.fund + '</div><div class="rank-meta">Composite ' + r.composite + '/100 · rank ' + r.rank + ' of ' + r.total + ' in category</div></div>' +
+        '<svg class="icon rank-chev"><use href="#i-chevron-right"/></svg></div>' +
+        '<div class="rank-detail">' + detail + '</div>';
+    }).join('');
+    document.querySelectorAll('#fundrank-list .rank-row').forEach(function(row){
+      row.addEventListener('click', function(){
+        var idx = parseInt(row.dataset.idx, 10);
+        openFundRank = (openFundRank === idx) ? null : idx;
+        renderFundRank();
+      });
+    });
+  }
+  renderFundRank();
+})();
+</script>
+</body>
+</html>

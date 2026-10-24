@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mutual Funds — Holdings page, high-fidelity mockup, all states (v1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F5F5F5; --surface:#FFFFFF; --border:#ECECEC; --border-soft:#ECECEC; --border-input:#DFDFDF;
+    --ink:#111111; --secondary:#717171; --body:#4B4B4B; --muted:#9B9B9B; --text-disabled:#C4C4C4;
+    --accent:#22C55E; --accent-hover:#16A34A; --accent-pressed:#15803D; --accent-selected-bg:#E9F9EF;
+    --pos:#22C55E; --pos-text:#15803D; --pos-bg:#EAFBF0;
+    --neg:#E5484D; --neg-text:#C1272D; --neg-bg:#FDECEC;
+    --warn:#D97706; --warn-text:#92400E; --warn-bg:#FEF3E2;
+    --teal:#0D9488;
+    --c1:#22C55E; --c2:#0D9488; --c3:#2563EB; --c4:#6366F1; --c5:#8B5CF6; --c6:#D97706; --c7:#EC4899; --c8:#C1272D;
+    --font-display:'DM Sans',-apple-system,'Segoe UI',Arial,sans-serif;
+    --font-body:'Manrope',-apple-system,'Segoe UI',Arial,sans-serif;
+    --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:20px; --radius-pill:9999px;
+    --shadow-sm:0 1px 2px rgba(17,17,17,.05), 0 1px 1px rgba(17,17,17,.03);
+    --shadow-md:0 8px 24px rgba(17,17,17,.08), 0 2px 6px rgba(17,17,17,.04);
+    --shadow-lg:0 20px 48px rgba(17,17,17,.12), 0 4px 10px rgba(17,17,17,.05);
+    --fast:150ms cubic-bezier(.4,0,.2,1);
+    --pop:260ms cubic-bezier(.34,1.56,.64,1);
+    --hover-tint:#F2FBF5;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; }
+  body { font-family:var(--font-body); background:#fff; color:var(--ink); padding:28px 28px 90px; -webkit-font-smoothing:antialiased; }
+  h1 { font-family:var(--font-display); font-size:19px; font-weight:700; margin:0 0 4px; }
+  .doc-subtitle { color:var(--secondary); font-size:13px; margin:0 0 16px; max-width:1040px; line-height:1.55; }
+  .icon { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; display:block; }
+  .icon-sm { width:13px; height:13px; }
+  .icon-lg { width:20px; height:20px; }
+  code { background:#F3F3F3; padding:1px 6px; border-radius:4px; font-size:11.5px; }
+
+  .controls { position:sticky; top:0; z-index:50; background:#fff; border:1px solid #ddd; border-radius:12px; padding:12px 16px; margin-bottom:20px; box-shadow:0 2px 14px rgba(0,0,0,.1); max-width:1640px; }
+  .ctl-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .ctl-row:last-child { margin-bottom:0; }
+  .ctl-label { font-family:var(--font-display); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--secondary); width:140px; flex-shrink:0; }
+  .ctl-btn { font-family:var(--font-display); font-weight:600; font-size:11px; padding:5px 11px; border-radius:7px; border:1px solid var(--border); background:#fafafa; color:#444; cursor:pointer; transition:all var(--fast); }
+  .ctl-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+  .ctl-btn.active { background:var(--ink); border-color:var(--ink); color:#fff; }
+
+  .frame { background:var(--bg); border-radius:18px; padding:16px; max-width:1640px; }
+  .topbar { display:flex; align-items:center; gap:16px; padding:6px 10px 18px; }
+  .logo { font-family:var(--font-display); font-weight:800; font-size:17px; letter-spacing:-.01em; flex-shrink:0; }
+  .search-pill { flex:1; max-width:380px; display:flex; align-items:center; gap:8px; background:#F2F2F3; border-radius:var(--radius-pill); padding:9px 16px; color:var(--muted); font-size:13px; }
+  .top-actions { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .pill-ghost { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-weight:600; font-size:12.5px; padding:8px 14px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; color:var(--ink); white-space:nowrap; cursor:pointer; transition:all var(--fast); }
+  .pill-ghost:hover { border-color:#d5d5d5; box-shadow:var(--shadow-sm); transform:translateY(-1px); }
+  .pill-ghost.accent-outline { border-color:var(--accent); color:var(--accent-hover); }
+  .pill-ghost.accent-outline:hover { background:var(--hover-tint); border-color:var(--accent); }
+  .icon-btn { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--secondary); cursor:pointer; transition:background var(--fast); flex-shrink:0; }
+  .icon-btn:hover { background:#F2F2F3; }
+  .avatar-top { width:34px; height:34px; border-radius:50%; background:var(--ink); color:#fff; font-family:var(--font-display); font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .mira-trigger { cursor:pointer; }
+
+  .layout { display:flex; gap:18px; align-items:flex-start; }
+  .sidebar { width:186px; flex-shrink:0; background:transparent; padding:4px 0; }
+  .side-item { display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:10px; color:var(--secondary); font-size:13.5px; font-weight:500; margin-bottom:2px; cursor:pointer; transition:background var(--fast), color var(--fast); }
+  .side-item:hover { background:#F4F4F4; color:var(--ink); }
+  .side-item.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+  .side-divider { height:1px; background:var(--border-soft); margin:12px 10px; }
+
+  .main { flex:1; display:flex; flex-direction:column; gap:18px; min-width:0; position:relative; }
+
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; padding:2px 2px 0; }
+  .crumb { font-size:11.5px; color:var(--muted); font-weight:500; }
+  .page-header h2 { font-family:var(--font-display); font-size:26px; font-weight:800; letter-spacing:-.015em; margin:4px 0 4px; }
+  .page-sub { font-size:13px; color:var(--secondary); }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:22px 24px; opacity:0; transform:translateY(10px); animation:settle 240ms cubic-bezier(.16,1,.3,1) forwards; }
+  @keyframes settle { to { opacity:1; transform:translateY(0); } }
+  .card-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; flex-wrap:wrap; gap:10px; }
+  .card-title { display:flex; align-items:center; gap:7px; font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ink); }
+  .card-desc { font-size:12px; color:var(--muted); margin-bottom:16px; max-width:760px; line-height:1.55; }
+
+  .info-dot { width:14px; height:14px; border-radius:50%; background:#EEE; color:var(--secondary); font-size:9px; font-style:italic; font-family:Georgia,serif; font-weight:700; display:inline-flex; align-items:center; justify-content:center; cursor:help; position:relative; flex-shrink:0; }
+  .info-dot .tip { position:absolute; bottom:calc(100% + 7px); left:50%; transform:translateX(-50%) translateY(3px); background:#1a1a1a; color:#fff; font-size:10.5px; font-weight:500; font-style:normal; font-family:var(--font-body); line-height:1.4; padding:8px 11px; border-radius:8px; width:208px; text-align:left; opacity:0; pointer-events:none; transition:opacity 100ms ease, transform 100ms ease; z-index:12; }
+  .info-dot:hover .tip { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .tabs-utility-row { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:12px 18px; }
+  .htabs { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+  .htab { font-family:var(--font-display); font-size:13px; font-weight:600; color:var(--secondary); padding:9px 15px; border-radius:var(--radius-pill); cursor:pointer; transition:background var(--fast), color var(--fast); white-space:nowrap; }
+  .htab:hover:not(.active) { background:#F4F4F4; color:var(--ink); }
+  .htab.active { background:var(--accent-selected-bg); color:var(--accent-hover); font-weight:700; }
+
+  .seg-toggle { display:inline-flex; background:#F0F0F1; border-radius:var(--radius-pill); padding:2px; width:fit-content; }
+  .seg-btn { font-family:var(--font-display); font-weight:700; font-size:11px; padding:6px 13px; border-radius:var(--radius-pill); color:var(--muted); cursor:pointer; transition:all var(--fast); white-space:nowrap; }
+  .seg-btn.active { background:#fff; color:var(--ink); box-shadow:var(--shadow-sm); }
+  .seg-btn:hover:not(.active) { color:var(--ink); }
+
+  .shimmer { position:relative; overflow:hidden; background:#EFEFEF; border-radius:7px; }
+  .shimmer::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent); background-size:200% 100%; animation:shimmer 1.4s ease-in-out infinite; }
+  @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+
+  .page-state { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:76px 20px; gap:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+  .page-state .big-ico { width:58px; height:58px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; }
+  .page-state.is-error .big-ico { background:var(--warn-bg); color:var(--warn-text); }
+  .page-state h3 { font-family:var(--font-display); font-size:19px; margin:0; }
+  .page-state p { margin:0; font-size:13px; color:var(--secondary); max-width:400px; line-height:1.6; }
+  .retry-btn { font-family:var(--font-display); font-weight:700; font-size:12px; padding:7px 16px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; cursor:pointer; transition:all var(--fast); }
+  .retry-btn:hover { border-color:var(--accent); color:var(--accent-hover); }
+
+  .mira-modal-overlay { position:fixed; inset:0; background:rgba(17,17,17,.45); z-index:200; display:flex; align-items:center; justify-content:center; }
+  .mira-modal-overlay[hidden] { display:none; }
+  .mira-modal { background:#fff; width:360px; max-width:calc(100vw - 40px); border-radius:var(--radius-lg); padding:26px 26px 22px; box-shadow:var(--shadow-lg); text-align:center; animation:settle 200ms cubic-bezier(.16,1,.3,1); }
+  .mira-modal .glyph-ring { width:44px; height:44px; border-radius:50%; background:var(--accent-selected-bg); color:var(--accent-hover); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; }
+  .mira-modal h3 { font-family:var(--font-display); font-size:17px; margin:0 0 8px; }
+  .mira-modal p { font-size:13px; color:var(--secondary); line-height:1.55; margin:0 0 18px; }
+  .mira-modal .btn-primary { width:100%; justify-content:center; display:inline-flex; align-items:center; font-family:var(--font-display); font-weight:700; padding:10px 18px; border-radius:var(--radius-pill); color:#fff; cursor:pointer; }
+
+  .spec { max-width:1080px; margin-top:44px; }
+  .spec h2 { font-family:var(--font-display); font-size:17px; margin:34px 0 10px; }
+  .spec h2:first-child { margin-top:0; }
+  .spec table { border-collapse:collapse; width:100%; font-size:12.5px; margin-bottom:6px; }
+  .spec th, .spec td { text-align:left; padding:8px 10px; border-bottom:1px solid #eee; vertical-align:top; }
+  .spec th { font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--secondary); font-weight:700; font-family:var(--font-display); }
+  .decided-against { background:#F6F6F6; border-radius:8px; padding:11px 15px; font-size:12.5px; color:#444; margin-top:8px; }
+  .locked-note { background:var(--pos-bg); border:1px solid var(--pos); border-radius:9px; padding:13px 17px; font-size:13px; color:var(--pos-text); margin-top:22px; max-width:1080px; }
+
+  /* ---------------- Holdings-specific ---------------- */
+  .fund-chip-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+  .fund-chip { font-family:var(--font-display); font-weight:600; font-size:12px; padding:8px 14px; border-radius:var(--radius-pill); border:1px solid var(--border); background:#fff; color:var(--secondary); cursor:pointer; transition:all var(--fast); }
+  .fund-chip:hover { border-color:var(--accent); color:var(--accent-hover); }
+  /* Persistent selection, not hover-only — same rule as Allocation's legend fix (design.md §11.1):
+     the chip you clicked must still look clicked once the mouse moves to read the table below. */
+  .fund-chip.is-selected { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .holdings-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .holdings-table thead th { text-align:left; font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:0 14px 10px; }
+  .holdings-table thead th.num { text-align:right; }
+  .holdings-table tbody td { padding:13px 14px; border-top:1px solid var(--border-soft); }
+  .holdings-table tbody td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .holdings-table tbody tr.h-row { cursor:pointer; transition:background var(--fast); }
+  .holdings-table tbody tr.h-row:hover { background:var(--hover-tint); }
+  .holdings-table tbody tr.h-row.is-open { background:var(--hover-tint); }
+  .h-rank { width:22px; height:22px; border-radius:50%; background:#F0F0F1; color:var(--secondary); font-weight:700; font-size:10.5px; display:inline-flex; align-items:center; justify-content:center; margin-right:10px; }
+  .h-expand-ico { color:var(--muted); transition:transform var(--fast); vertical-align:-2px; margin-left:6px; }
+  .h-row.is-open .h-expand-ico { transform:rotate(90deg); color:var(--accent-hover); }
+  .h-weight-bar-track { width:72px; height:5px; border-radius:3px; background:#EFEFEF; display:inline-block; vertical-align:middle; margin-right:8px; overflow:hidden; }
+  .h-weight-bar-fill { height:100%; background:var(--accent); border-radius:3px; }
+  .h-detail-row td { background:var(--bg); padding:0 !important; border-top:none !important; }
+  .h-detail-inner { padding:4px 16px 16px 46px; display:flex; flex-direction:column; gap:7px; }
+  .h-detail-fund-row { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--secondary); padding:7px 0; border-top:1px dashed var(--border-soft); }
+  .h-detail-fund-row:first-child { border-top:none; }
+  .h-detail-fund-row b { color:var(--ink); font-weight:600; }
+  .h-detail-fund-row .num { font-variant-numeric:tabular-nums; font-weight:700; color:var(--ink); }
+  .topn-caption { font-size:11px; color:var(--muted); margin-top:10px; }
+</style>
+</head>
+<body>
+
+<svg style="display:none">
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M20 20l-5.5-5.5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15.2 20c0-2.2 1.7-4 3.8-4.6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></symbol>
+  <symbol id="i-bar-chart" viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></symbol>
+  <symbol id="i-pie" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
+  <symbol id="i-trending" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-8"/><path d="M14 7h6v6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.8 1c0 1.8-2.3 2-2.3 3.5"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 10v5"/><path d="M12 18.2v.1"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></symbol>
+</svg>
+
+<h1>Mutual Funds — Holdings page, high-fidelity mockup</h1>
+<p class="doc-subtitle">Route <code>portfolio-mutual-funds-holdings</code> → <code>/portfolio/mutual-funds/holdings</code>,
+per design.md §7.3. Two views built from data already returned today: <b>per-fund Top 10</b> (a client-side
+re-sort of <code>contributing_funds</code> — not a new backend computation) and the <b>portfolio-wide stock
+look-through</b> (an exact match for <code>stock_holdings.rows[].contributing_funds</code>). Same token system,
+chrome, and Ask-Mira popup as Overview/Performance/Allocation.</p>
+
+<div class="controls">
+  <div class="ctl-row">
+    <div class="ctl-label">Page state</div>
+    <button class="ctl-btn active" data-global="happy">Happy path</button>
+    <button class="ctl-btn" data-global="loading">Initial loading</button>
+    <button class="ctl-btn" data-global="error">Page error</button>
+  </div>
+</div>
+
+<div class="frame">
+
+  <div class="topbar">
+    <div class="logo">Unifolio</div>
+    <div class="search-pill"><svg class="icon icon-sm"><use href="#i-search"/></svg>Search for a fund, stock, or ask Mira...</div>
+    <div class="top-actions">
+      <div class="pill-ghost accent-outline mira-trigger"><svg class="icon icon-sm"><use href="#i-sparkle"/></svg>Ask Mira</div>
+      <div class="pill-ghost"><svg class="icon icon-sm"><use href="#i-users"/></svg>Family Combined<svg class="icon icon-sm"><use href="#i-chevron-down"/></svg></div>
+      <div class="icon-btn"><svg class="icon"><use href="#i-moon"/></svg></div>
+      <div class="avatar-top">SS</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="side-item"><svg class="icon"><use href="#i-home"/></svg>Home</div>
+      <div class="side-item"><svg class="icon"><use href="#i-bar-chart"/></svg>Analytics</div>
+      <div class="side-item active"><svg class="icon"><use href="#i-pie"/></svg>Investments</div>
+      <div class="side-item"><svg class="icon"><use href="#i-trending"/></svg>Performance</div>
+      <div class="side-item"><svg class="icon"><use href="#i-zap"/></svg>Scenarios</div>
+      <div class="side-divider"></div>
+      <div class="side-item"><svg class="icon"><use href="#i-user"/></svg>Profile</div>
+      <div class="side-item"><svg class="icon"><use href="#i-help"/></svg>Help &amp; Support</div>
+    </div>
+
+    <div class="main" id="main">
+
+      <div class="page-header">
+        <div>
+          <div class="crumb">Investments · Mutual Funds</div>
+          <h2>Holdings</h2>
+          <div class="page-sub">The stocks behind your funds — by fund, and looked through across your whole portfolio.</div>
+        </div>
+      </div>
+
+      <!-- ============ GLOBAL: INITIAL LOADING ============ -->
+      <div id="g-loading" style="display:none;">
+        <div class="card" style="margin-bottom:18px;"><div class="shimmer" style="height:16px; width:30%; margin-bottom:16px; border-radius:8px;"></div><div class="shimmer" style="height:260px; width:100%; border-radius:12px;"></div></div>
+        <div class="card"><div class="shimmer" style="height:16px; width:30%; margin-bottom:16px; border-radius:8px;"></div><div class="shimmer" style="height:320px; width:100%; border-radius:12px;"></div></div>
+      </div>
+
+      <!-- ============ GLOBAL: PAGE ERROR ============ -->
+      <div id="g-error" style="display:none;">
+        <div class="page-state is-error">
+          <div class="big-ico"><svg class="icon-lg"><use href="#i-alert"/></svg></div>
+          <h3>Couldn't load your holdings data</h3>
+          <p>There was a problem reaching our servers. Your data is safe — this is just a connection issue.</p>
+          <div class="retry-btn" style="padding:9px 20px; font-size:13px;">Retry</div>
+        </div>
+      </div>
+
+      <!-- ============ HAPPY PATH ============ -->
+      <div id="g-happy">
+
+        <div class="tabs-utility-row card" style="margin-bottom:0;">
+          <div class="htabs">
+            <div class="htab">Overview</div>
+            <div class="htab">Performance</div>
+            <div class="htab">Allocation</div>
+            <div class="htab active">Holdings</div>
+            <div class="htab">Transactions</div>
+            <div class="htab">Overlap</div>
+            <div class="htab">Other Analytics</div>
+          </div>
+        </div>
+
+        <!-- ================= CARD 1: Per-fund Top 10 ================= -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-head">
+            <div class="card-title">Top Holdings by Fund<span class="info-dot">i<span class="tip">Each fund's top 10 stock positions by weight — re-sorted on your device from the same per-fund breakdown used in the portfolio-wide table below, not a separate computation.</span></span></div>
+          </div>
+          <div class="card-desc">Pick a fund to see its 10 largest stock positions.</div>
+          <div class="fund-chip-row" id="fund-chips"></div>
+          <table class="holdings-table">
+            <thead><tr><th>#</th><th>Stock</th><th class="num">Weight in fund</th></tr></thead>
+            <tbody id="top10-body"></tbody>
+          </table>
+          <div class="topn-caption" id="top10-caption"></div>
+        </div>
+
+        <!-- ================= CARD 2: Portfolio-wide stock look-through ================= -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-head">
+            <div class="card-title">All Holdings Across Your Portfolio<span class="info-dot">i<span class="tip">Every distinct stock your funds hold, looked through to the underlying company — the same stock can appear in several funds and is counted once here, at its combined weight.</span></span></div>
+            <div class="seg-toggle" id="sort-toggle">
+              <div class="seg-btn active" data-sort="weight">By weight</div>
+              <div class="seg-btn" data-sort="name">By name</div>
+              <div class="seg-btn" data-sort="funds">By # of funds</div>
+            </div>
+          </div>
+          <div class="card-desc">Click a stock to see exactly which of your funds hold it, and at what weight within each fund.</div>
+          <table class="holdings-table">
+            <thead><tr><th>#</th><th>Stock</th><th class="num">Portfolio weight</th><th class="num">Held in</th></tr></thead>
+            <tbody id="stocks-body"></tbody>
+          </table>
+          <div class="topn-caption">Largest 12 of 47 distinct stocks held across your 12 equity funds (3 debt/gold/liquid funds have no stock holdings to look through).</div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Ask Mira — coming soon (shared verbatim with Overview/Performance/Allocation) -->
+<div class="mira-modal-overlay" id="mira-modal" hidden>
+  <div class="mira-modal">
+    <div class="glyph-ring"><svg class="icon-lg"><use href="#i-sparkle"/></svg></div>
+    <h3>Mira is coming soon</h3>
+    <p>Mira, your AI investment assistant, is still being built. You'll be able to ask it about your portfolio, holdings, and performance right from here.</p>
+    <div class="btn-primary" id="mira-modal-close" style="background:var(--ink); border:1px solid var(--ink);">Got it</div>
+  </div>
+</div>
+
+<div class="spec">
+
+<h2>Data source mapping</h2>
+<table>
+<tr><th>Element</th><th>Source</th><th>New work</th></tr>
+<tr><td>Fund chip selector + Top 10 table</td><td><code>stock_holdings.rows[].contributing_funds</code>, client-side filtered to one fund and re-sorted by that fund's weight</td><td>None — pure client-side re-sort of already-returned data (design.md §7.3)</td></tr>
+<tr><td>Portfolio-wide stock table + sort toggle</td><td><code>stock_holdings.rows[]</code> (stock, portfolio weight, <code>contributing_funds</code> count) — exact match</td><td>None</td></tr>
+<tr><td>Row-click expand (contributing funds detail)</td><td><code>contributing_funds[].fund_weight_pct</code> per stock</td><td>None</td></tr>
+</table>
+
+<h2>Motion &amp; interaction spec</h2>
+<table>
+<tr><th>Trigger</th><th>Behaviour</th><th>Timing</th></tr>
+<tr><td>Click a fund chip</td><td>Chip takes the persistent "selected" fill (survives mouse-leave — design.md §11.1); the Top 10 table directly beneath it re-renders for that fund</td><td><code>--fast</code></td></tr>
+<tr><td>Click a stock row</td><td>Row opens in place (chevron rotates 90°) revealing a detail strip listing every contributing fund and its per-fund weight — same expand-in-place mechanic as Allocation's Fund Manager table, not a panel elsewhere on the page</td><td><code>--fast</code></td></tr>
+<tr><td>Click a sort-toggle pill</td><td>Portfolio-wide table re-sorts in place; any currently-open detail row stays open against its (now possibly reordered) stock</td><td><code>--fast</code></td></tr>
+</table>
+
+<div class="locked-note"><b>Status:</b> Holdings built per design.md §7.3 — both the per-fund Top 10 view and the
+portfolio-wide stock look-through are exact-match reads of already-computed data, zero new backend work. Every
+interactive element satisfies design.md §11.1 from the outset: the fund chips use the same persistent-selection
+pattern the Allocation rework introduced (no silent "what changed" gap), and the stock table's row-click expands
+in place directly beneath the clicked row rather than updating a panel elsewhere on the page — the stronger of the
+two compliant patterns already established (Allocation's Fund Manager table), used here by default rather than
+retrofitted.
+<br><br>Next: Transactions, Other Analytics, Fund Overlap, Individual Fund page.</div>
+
+</div>
+
+<script>
+(function(){
+  var miraModal = document.getElementById('mira-modal');
+  document.querySelectorAll('.mira-trigger').forEach(function(t){ t.addEventListener('click', function(){ miraModal.hidden = false; }); });
+  document.getElementById('mira-modal-close').addEventListener('click', function(){ miraModal.hidden = true; });
+  miraModal.addEventListener('click', function(e){ if (e.target === miraModal) miraModal.hidden = true; });
+
+  function setGlobal(state){
+    document.querySelectorAll('[data-global]').forEach(function(b){ b.classList.toggle('active', b.dataset.global === state); });
+    ['g-loading','g-error','g-happy'].forEach(function(id){
+      document.getElementById(id).style.display = (id === 'g-' + state) ? 'block' : 'none';
+    });
+  }
+  document.querySelectorAll('[data-global]').forEach(function(b){ b.addEventListener('click', function(){ setGlobal(b.dataset.global); }); });
+
+  document.querySelectorAll('.htab').forEach(function(t){
+    t.addEventListener('click', function(){ document.querySelectorAll('.htab').forEach(function(o){ o.classList.remove('active'); }); t.classList.add('active'); });
+  });
+
+  /* ---- shared fund universe: 12 equity funds analysed for look-through, matching
+     the 12-of-15 count used on the Overlap page so the two artifacts agree ---- */
+  var FUNDS = ['Kotak Multi Cap Fund','JM Flexi Cap Fund','HDFC Mid-Cap Opportunities Fund','Parag Parikh Flexi Cap Fund',
+    'Kotak Small Cap Fund','ICICI Prudential Bluechip Fund','Axis Midcap Fund','SBI Small Cap Fund',
+    'Mirae Asset Large Cap Fund','Nippon India Growth Fund','Canara Robeco Emerging Equities Fund','UTI Flexi Cap Fund'];
+
+  var TOP10 = {
+    'Kotak Multi Cap Fund': [['HDFC Bank Ltd',8.2],['ICICI Bank Ltd',6.9],['Reliance Industries Ltd',6.1],['Infosys Ltd',5.4],['Larsen & Toubro Ltd',4.3],['Bharti Airtel Ltd',3.8],['Axis Bank Ltd',3.2],['Tata Consultancy Services Ltd',2.9],['Maruti Suzuki India Ltd',2.4],['Titan Company Ltd',2.1]],
+    'JM Flexi Cap Fund': [['HDFC Bank Ltd',7.4],['Infosys Ltd',6.8],['ICICI Bank Ltd',5.9],['Reliance Industries Ltd',5.1],['Bharti Airtel Ltd',4.4],['Kotak Mahindra Bank Ltd',3.6],['Larsen & Toubro Ltd',3.3],['Sun Pharmaceutical Industries Ltd',2.8],['Tata Consultancy Services Ltd',2.5],['Divi’s Laboratories Ltd',2.0]],
+    'HDFC Mid-Cap Opportunities Fund': [['Max Healthcare Institute Ltd',4.1],['Cummins India Ltd',3.7],['Supreme Industries Ltd',3.4],['Balkrishna Industries Ltd',3.1],['AU Small Finance Bank Ltd',2.9],['Page Industries Ltd',2.7],['Voltas Ltd',2.5],['Coforge Ltd',2.3],['The Federal Bank Ltd',2.2],['Sun Pharmaceutical Industries Ltd',2.0]],
+    'Parag Parikh Flexi Cap Fund': [['HDFC Bank Ltd',7.1],['ITC Ltd',5.8],['ICICI Bank Ltd',5.3],['Bajaj Holdings & Investment Ltd',4.6],['Alphabet Inc (via feeder)',4.2],['Microsoft Corp (via feeder)',3.9],['Mahindra & Mahindra Ltd',3.4],['Axis Bank Ltd',2.8],['Coal India Ltd',2.4],['Power Grid Corporation of India Ltd',2.1]],
+    'Kotak Small Cap Fund': [['KEI Industries Ltd',3.8],['Sundram Fasteners Ltd',3.5],['Blue Star Ltd',3.2],['Carborundum Universal Ltd',2.9],['J.B. Chemicals & Pharmaceuticals Ltd',2.7],['Century Plyboards (India) Ltd',2.5],['Grindwell Norton Ltd',2.3],['eClerx Services Ltd',2.1],['Triveni Turbine Ltd',2.0],['Sonata Software Ltd',1.9]],
+    'ICICI Prudential Bluechip Fund': [['HDFC Bank Ltd',8.9],['ICICI Bank Ltd',7.6],['Reliance Industries Ltd',6.4],['Infosys Ltd',5.2],['Larsen & Toubro Ltd',4.1],['Axis Bank Ltd',3.6],['Tata Consultancy Services Ltd',3.2],['Bharti Airtel Ltd',3.0],['Kotak Mahindra Bank Ltd',2.6],['Maruti Suzuki India Ltd',2.3]],
+    'Axis Midcap Fund': [['Max Healthcare Institute Ltd',3.9],['The Federal Bank Ltd',3.5],['Coforge Ltd',3.2],['AU Small Finance Bank Ltd',3.0],['Supreme Industries Ltd',2.8],['Voltas Ltd',2.6],['Cummins India Ltd',2.4],['Page Industries Ltd',2.2],['Balkrishna Industries Ltd',2.1],['Sun Pharmaceutical Industries Ltd',1.9]],
+    'SBI Small Cap Fund': [['KEI Industries Ltd',3.6],['Blue Star Ltd',3.3],['Sundram Fasteners Ltd',3.1],['eClerx Services Ltd',2.8],['Century Plyboards (India) Ltd',2.6],['Carborundum Universal Ltd',2.4],['Sonata Software Ltd',2.2],['J.B. Chemicals & Pharmaceuticals Ltd',2.1],['Grindwell Norton Ltd',1.9],['Triveni Turbine Ltd',1.8]],
+    'Mirae Asset Large Cap Fund': [['HDFC Bank Ltd',8.6],['Reliance Industries Ltd',6.9],['ICICI Bank Ltd',6.3],['Infosys Ltd',5.0],['Larsen & Toubro Ltd',3.9],['Bharti Airtel Ltd',3.4],['Tata Consultancy Services Ltd',3.1],['Axis Bank Ltd',2.9],['Titan Company Ltd',2.3],['Maruti Suzuki India Ltd',2.1]],
+    'Nippon India Growth Fund': [['Cummins India Ltd',3.8],['Voltas Ltd',3.4],['Coforge Ltd',3.1],['Max Healthcare Institute Ltd',2.9],['Balkrishna Industries Ltd',2.7],['AU Small Finance Bank Ltd',2.5],['Supreme Industries Ltd',2.4],['The Federal Bank Ltd',2.2],['Page Industries Ltd',2.0],['Sun Pharmaceutical Industries Ltd',1.9]],
+    'Canara Robeco Emerging Equities Fund': [['HDFC Bank Ltd',4.4],['Max Healthcare Institute Ltd',3.6],['Cummins India Ltd',3.2],['ICICI Bank Ltd',3.0],['Coforge Ltd',2.8],['Infosys Ltd',2.6],['AU Small Finance Bank Ltd',2.4],['Supreme Industries Ltd',2.2],['Voltas Ltd',2.1],['Balkrishna Industries Ltd',1.9]],
+    'UTI Flexi Cap Fund': [['HDFC Bank Ltd',6.8],['Infosys Ltd',5.6],['ICICI Bank Ltd',5.1],['Reliance Industries Ltd',4.4],['Kotak Mahindra Bank Ltd',3.6],['Bharti Airtel Ltd',3.3],['Larsen & Toubro Ltd',3.0],['Tata Consultancy Services Ltd',2.6],['Sun Pharmaceutical Industries Ltd',2.2],['Titan Company Ltd',1.9]]
+  };
+
+  var selectedFund = FUNDS[0];
+  var chipRow = document.getElementById('fund-chips');
+  FUNDS.forEach(function(f){
+    var c = document.createElement('div');
+    c.className = 'fund-chip' + (f === selectedFund ? ' is-selected' : '');
+    c.textContent = f;
+    c.addEventListener('click', function(){
+      selectedFund = f;
+      chipRow.querySelectorAll('.fund-chip').forEach(function(x){ x.classList.toggle('is-selected', x.textContent === f); });
+      renderTop10();
+    });
+    chipRow.appendChild(c);
+  });
+
+  function renderTop10(){
+    var rows = TOP10[selectedFund];
+    document.getElementById('top10-body').innerHTML = rows.map(function(r, i){
+      return '<tr><td><span class="h-rank">' + (i+1) + '</span></td><td>' + r[0] + '</td>' +
+        '<td class="num"><span class="h-weight-bar-track"><span class="h-weight-bar-fill" style="width:' + (r[1]/9*100).toFixed(0) + '%"></span></span>' + r[1].toFixed(1) + '%</td></tr>';
+    }).join('');
+    document.getElementById('top10-caption').textContent = selectedFund + ' — top 10 of its full stock holdings, re-sorted client-side from the portfolio-wide breakdown below.';
+  }
+  renderTop10();
+
+  /* ---- portfolio-wide stock table: aggregated weight + which of the 12 funds hold each ---- */
+  var STOCKS = [
+    ['HDFC Bank Ltd',6.8,['Kotak Multi Cap Fund',8.2],['JM Flexi Cap Fund',7.4],['Parag Parikh Flexi Cap Fund',7.1],['ICICI Prudential Bluechip Fund',8.9],['Mirae Asset Large Cap Fund',8.6],['Canara Robeco Emerging Equities Fund',4.4],['UTI Flexi Cap Fund',6.8]],
+    ['ICICI Bank Ltd',5.9,['Kotak Multi Cap Fund',6.9],['JM Flexi Cap Fund',5.9],['Parag Parikh Flexi Cap Fund',5.3],['ICICI Prudential Bluechip Fund',7.6],['Mirae Asset Large Cap Fund',6.3],['Canara Robeco Emerging Equities Fund',3.0],['UTI Flexi Cap Fund',5.1]],
+    ['Reliance Industries Ltd',5.2,['Kotak Multi Cap Fund',6.1],['JM Flexi Cap Fund',5.1],['ICICI Prudential Bluechip Fund',6.4],['Mirae Asset Large Cap Fund',6.9],['UTI Flexi Cap Fund',4.4]],
+    ['Infosys Ltd',4.6,['Kotak Multi Cap Fund',5.4],['JM Flexi Cap Fund',6.8],['ICICI Prudential Bluechip Fund',5.2],['Mirae Asset Large Cap Fund',5.0],['Canara Robeco Emerging Equities Fund',2.6],['UTI Flexi Cap Fund',5.6]],
+    ['Larsen & Toubro Ltd',3.8,['Kotak Multi Cap Fund',4.3],['JM Flexi Cap Fund',3.3],['ICICI Prudential Bluechip Fund',4.1],['Mirae Asset Large Cap Fund',3.9],['UTI Flexi Cap Fund',3.0]],
+    ['Bharti Airtel Ltd',3.3,['Kotak Multi Cap Fund',3.8],['JM Flexi Cap Fund',4.4],['ICICI Prudential Bluechip Fund',3.0],['Mirae Asset Large Cap Fund',3.4],['UTI Flexi Cap Fund',3.3]],
+    ['Max Healthcare Institute Ltd',3.1,['HDFC Mid-Cap Opportunities Fund',4.1],['Axis Midcap Fund',3.9],['Nippon India Growth Fund',2.9],['Canara Robeco Emerging Equities Fund',3.6]],
+    ['Axis Bank Ltd',2.9,['Kotak Multi Cap Fund',3.2],['Parag Parikh Flexi Cap Fund',2.8],['ICICI Prudential Bluechip Fund',3.6],['Mirae Asset Large Cap Fund',2.9]],
+    ['Cummins India Ltd',2.6,['HDFC Mid-Cap Opportunities Fund',3.7],['Axis Midcap Fund',2.4],['Nippon India Growth Fund',3.8],['Canara Robeco Emerging Equities Fund',3.2]],
+    ['Kotak Mahindra Bank Ltd',2.6,['JM Flexi Cap Fund',3.6],['ICICI Prudential Bluechip Fund',2.6],['UTI Flexi Cap Fund',3.6]],
+    ['Tata Consultancy Services Ltd',2.4,['Kotak Multi Cap Fund',2.9],['JM Flexi Cap Fund',2.5],['ICICI Prudential Bluechip Fund',3.2],['Mirae Asset Large Cap Fund',3.1],['UTI Flexi Cap Fund',2.6]],
+    ['Maruti Suzuki India Ltd',2.1,['Kotak Multi Cap Fund',2.4],['ICICI Prudential Bluechip Fund',2.3],['Mirae Asset Large Cap Fund',2.1]]
+  ];
+
+  var activeSort = 'weight';
+  function renderStocks(){
+    var rows = STOCKS.slice();
+    if (activeSort === 'weight') rows.sort(function(a,b){ return b[1]-a[1]; });
+    else if (activeSort === 'name') rows.sort(function(a,b){ return a[0].localeCompare(b[0]); });
+    else rows.sort(function(a,b){ return (b.length-2) - (a.length-2); });
+    document.getElementById('stocks-body').innerHTML = rows.map(function(r, i){
+      var funds = r.slice(2);
+      var detail = funds.map(function(f){
+        return '<div class="h-detail-fund-row"><span><b>' + f[0] + '</b></span><span class="num">' + f[1].toFixed(1) + '% of fund</span></div>';
+      }).join('');
+      return '<tr class="h-row" data-idx="' + i + '"><td>' + (i+1) + '</td><td>' + r[0] + '<svg class="icon icon-sm h-expand-ico"><use href="#i-chevron-right"/></svg></td>' +
+        '<td class="num">' + r[1].toFixed(1) + '%</td><td class="num">' + funds.length + ' fund' + (funds.length > 1 ? 's' : '') + '</td></tr>' +
+        '<tr class="h-detail-row" data-detail="' + i + '" style="display:none;"><td colspan="4"><div class="h-detail-inner">' + detail + '</div></td></tr>';
+    }).join('');
+    document.querySelectorAll('#stocks-body tr.h-row').forEach(function(row){
+      row.addEventListener('click', function(){
+        var idx = row.dataset.idx;
+        var detailRow = document.querySelector('tr[data-detail="' + idx + '"]');
+        var open = row.classList.toggle('is-open');
+        detailRow.style.display = open ? 'table-row' : 'none';
+      });
+    });
+  }
+  renderStocks();
+  document.querySelectorAll('#sort-toggle .seg-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('#sort-toggle .seg-btn').forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      activeSort = b.dataset.sort;
+      renderStocks();
+    });
+  });
+})();
+</script>
+</body>
+</html>

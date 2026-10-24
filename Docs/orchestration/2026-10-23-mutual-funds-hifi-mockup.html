@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mutual Funds page — hi-fi mockup v2, resolved (Overview + 6 sub-pages)</title>
+<style>
+  :root {
+    --bg:#F5F5F5; --surface:#FFFFFF; --divider:#ECECEC; --input-border:#DFDFDF;
+    --ink:#111111; --muted-icon:#9B9B9B; --secondary-text:#717171; --body-text:#4B4B4B;
+    --brand:#22C55E; --brand-hover:#16A34A; --brand-selected-bg:#E9F9EF;
+    --pos:#22C55E; --pos-text:#15803D; --pos-bg:#EAFBF0;
+    --neg:#E5484D; --neg-text:#C1272D; --neg-bg:#FDECEC;
+    --warn-text:#B45309; --warn-bg:#FEF3E2;
+    --c1:#22C55E; --c2:#0D9488; --c3:#2563EB; --c4:#6366F1; --c5:#8B5CF6; --c6:#D97706; --c7:#EC4899; --c8:#C1272D;
+    --shadow:0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --shadow-lg:0 8px 24px rgba(17,17,17,.07), 0 2px 6px rgba(17,17,17,.04);
+  }
+  * { box-sizing:border-box; }
+  body { font-family:'DM Sans',-apple-system,'Segoe UI',Arial,sans-serif; background:var(--bg); color:var(--ink); margin:0; padding:26px; }
+  h1,h2,h3 { font-family:'Manrope',-apple-system,'Segoe UI',Arial,sans-serif; }
+  h1 { font-size:21px; margin:0 0 4px; }
+  .subtitle { color:var(--secondary-text); font-size:13px; margin:0 0 20px; max-width:920px; line-height:1.55; }
+  .page-anchor { font-size:11px; color:#fff; margin:48px 0 10px; text-transform:uppercase; letter-spacing:.06em; font-weight:700; background:var(--ink); display:inline-block; padding:5px 12px; border-radius:7px; }
+  .app { display:flex; gap:16px; max-width:1260px; }
+  .rail { width:168px; flex-shrink:0; background:var(--surface); border-radius:14px; padding:14px 10px; box-shadow:var(--shadow); font-size:12.5px; color:var(--secondary-text); }
+  .rail .grp { font-weight:700; color:var(--ink); padding:6px 8px; }
+  .rail .item { padding:7px 10px; border-radius:8px; margin-bottom:1px; }
+  .rail .item.active { background:var(--brand-selected-bg); color:var(--brand-hover); font-weight:700; }
+  .content { flex:1; min-width:0; display:flex; gap:16px; }
+  .tabcol { width:198px; flex-shrink:0; background:var(--surface); border-radius:14px; padding:10px; box-shadow:var(--shadow); align-self:flex-start; }
+  .tabcol .t { padding:10px 12px; border-radius:9px; font-size:13px; font-weight:600; color:var(--secondary-text); margin-bottom:2px; cursor:pointer; display:flex; align-items:center; gap:9px; }
+  .tabcol .t .ic { width:17px; text-align:center; font-size:13px; }
+  .tabcol .t.active { background:linear-gradient(135deg, var(--brand) 0%, var(--brand-hover) 100%); color:#fff; box-shadow:0 4px 10px rgba(34,197,94,.3); }
+  .tabcol .t:hover:not(.active) { background:var(--bg); }
+  .main { flex:1; min-width:0; display:flex; flex-direction:column; gap:16px; }
+  .ph { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; }
+  .ph h2 { font-size:21px; margin:0; font-weight:800; letter-spacing:-.01em; }
+  .ph .sub { font-size:12.5px; color:var(--secondary-text); margin-top:3px; }
+  .btn { font-family:'Manrope',sans-serif; font-weight:700; font-size:12px; padding:9px 16px; border-radius:9px; border:1px solid var(--input-border); background:#fff; color:var(--ink); white-space:nowrap; cursor:pointer; }
+  .btn.primary { background:linear-gradient(135deg, var(--brand) 0%, var(--brand-hover) 100%); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(34,197,94,.28); }
+  .btn.ghost { background:transparent; }
+  .btn.sm { font-size:11px; padding:6px 12px; }
+  .card { background:var(--surface); border-radius:16px; padding:19px 21px; box-shadow:var(--shadow); position:relative; overflow:hidden; }
+  .card.accent::before { content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--accent, linear-gradient(90deg,var(--c1),var(--c3))); }
+  .card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+  .card-head .t { font-weight:800; font-size:14.5px; display:flex; align-items:center; gap:7px; letter-spacing:-.005em; }
+  .card-head .t .ic { width:26px; height:26px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; color:#fff; flex-shrink:0; }
+  .info-dot { width:14px; height:14px; border-radius:50%; background:var(--divider); color:var(--secondary-text); font-size:9px; display:inline-flex; align-items:center; justify-content:center; cursor:help; }
+  .metrics { display:flex; gap:32px; flex-wrap:wrap; }
+  .metrics .m-head { font-size:11.5px; color:var(--secondary-text); display:flex; align-items:center; gap:4px; margin-bottom:3px; }
+  .metrics b { font-size:20px; font-family:'Manrope',sans-serif; display:block; letter-spacing:-.01em; }
+  .delta { font-size:11.5px; font-weight:700; }
+  .seg-toggle { display:inline-flex; background:var(--bg); border-radius:9px; padding:3px; gap:2px; }
+  .seg-btn { font-size:10.5px; font-weight:700; padding:4px 11px; border-radius:7px; color:var(--secondary-text); cursor:pointer; }
+  .seg-btn.active { background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  .synopsis { margin-top:12px; background:linear-gradient(135deg, var(--brand-selected-bg) 0%, #F0FDF9 100%); border:1px solid #BBF0D1; border-radius:12px; padding:12px 16px; font-size:12.5px; color:var(--pos-text); display:flex; gap:8px; align-items:flex-start; }
+  .synopsis .glyph { font-size:14px; flex-shrink:0; }
+  table.fund-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.fund-table th { text-align:left; font-size:10.5px; color:var(--secondary-text); font-weight:700; padding:0 10px 9px; text-transform:uppercase; letter-spacing:.03em; }
+  table.fund-table th.num, table.fund-table td.num { text-align:right; }
+  table.fund-table td { padding:11px 10px; border-top:1px solid var(--divider); }
+  table.fund-table tr.r { transition:background .1s; }
+  table.fund-table tr.r:hover { background:var(--brand-selected-bg); cursor:pointer; }
+  .fund-cell { display:flex; align-items:center; gap:10px; }
+  .fund-logo { width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg,#ddd,#eee); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; color:#999; font-weight:800; }
+  .fund-name b { display:block; font-size:12.5px; }
+  .fund-name span { font-size:10.5px; color:var(--secondary-text); }
+  .plan-badge { font-size:9.5px; font-weight:700; padding:3px 8px; border-radius:7px; background:#EEF2FF; color:#4338CA; }
+  .cat-badge { font-size:9.5px; font-weight:700; padding:3px 8px; border-radius:7px; background:#F3F4F6; color:#4B5563; }
+  .pos { color:var(--pos-text); } .neg { color:var(--neg-text); }
+  .pie-wrap { display:flex; gap:30px; align-items:center; flex-wrap:wrap; }
+  .pie { width:154px; height:154px; border-radius:50%; flex-shrink:0; position:relative; box-shadow:inset 0 0 0 1px rgba(0,0,0,.03); }
+  .pie .hole { position:absolute; inset:32px; background:#fff; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:10px; color:var(--secondary-text); box-shadow:0 2px 8px rgba(0,0,0,.05); }
+  .pie .hole b { font-size:14px; color:var(--ink); font-family:'Manrope',sans-serif; }
+  .legend { flex:1; min-width:220px; display:flex; flex-direction:column; gap:7px; }
+  .l-row { display:flex; align-items:center; gap:8px; font-size:12px; padding:7px 9px; border-radius:8px; cursor:pointer; }
+  .l-row:hover { background:var(--bg); }
+  .dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; box-shadow:0 0 0 3px color-mix(in srgb, currentColor 15%, transparent); }
+  .l-row .pct { margin-left:auto; font-weight:800; }
+  .bar4 { display:flex; height:22px; border-radius:11px; overflow:hidden; box-shadow:inset 0 0 0 1px rgba(0,0,0,.04); }
+  .m-rows { margin-top:14px; display:flex; flex-direction:column; gap:9px; }
+  .m-row { display:flex; align-items:center; gap:10px; font-size:12px; padding:6px 0; }
+  .m-avatar { width:26px; height:26px; border-radius:50%; background:var(--ink); color:#fff; font-size:9.5px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .m-name { width:76px; flex-shrink:0; }
+  .m-bg { flex:1; height:7px; background:var(--divider); border-radius:4px; overflow:hidden; }
+  .m-fill { height:100%; border-radius:4px; }
+  .m-val { width:150px; text-align:right; }
+  .insights { margin-top:14px; display:flex; flex-direction:column; gap:8px; }
+  .insights .it { font-size:12px; display:flex; gap:8px; align-items:flex-start; padding:9px 11px; background:var(--bg); border-radius:9px; }
+  .insights .tag { font-size:9px; padding:2px 7px; border-radius:7px; font-weight:700; background:var(--brand-selected-bg); color:var(--pos-text); flex-shrink:0; margin-top:1px; }
+  .chartbox { height:170px; border-radius:12px; background:linear-gradient(180deg,#fafafa,#f3f3f3); display:flex; align-items:center; justify-content:center; color:var(--muted-icon); font-size:12px; position:relative; overflow:hidden; }
+  .nav-line { position:absolute; inset:0; }
+  .bars { display:flex; align-items:flex-end; gap:16px; height:130px; width:100%; padding:0 24px; }
+  .bars .b { flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; }
+  .bars .b .stack { width:100%; display:flex; flex-direction:column-reverse; border-radius:5px 5px 0 0; overflow:hidden; }
+  .bars .b .lbl { font-size:9px; color:var(--secondary-text); font-weight:600; }
+  .dropdown { font-size:11.5px; font-weight:700; padding:8px 13px; border-radius:9px; border:1px solid var(--input-border); background:#fff; display:inline-flex; align-items:center; gap:6px; }
+  .heatgrid { display:grid; grid-template-columns:repeat(6,1fr); gap:5px; max-width:430px; }
+  .hcell { aspect-ratio:1; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:800; color:#fff; cursor:pointer; transition:transform .1s; }
+  .hcell:hover { transform:scale(1.08); outline:2px solid var(--ink); z-index:1; }
+  .pairrow { display:flex; align-items:center; gap:10px; font-size:12.5px; padding:10px 4px; border-top:1px solid var(--divider); }
+  .pairrow .names { flex:1; font-weight:600; } .pairrow .pct { font-weight:800; width:50px; text-align:right; }
+  .sev { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .kpi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:11px; }
+  .kpi { background:var(--bg); border-radius:11px; padding:11px 13px; }
+  .kpi .l { font-size:10.5px; color:var(--secondary-text); }
+  .kpi .v { font-size:14.5px; font-weight:800; font-family:'Manrope',sans-serif; }
+  .score-ring { width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; }
+  .score-ring .n { width:46px; height:46px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; }
+  .tier { font-size:10px; font-weight:800; padding:3px 9px; border-radius:7px; }
+  .note { font-size:11px; color:var(--secondary-text); margin-top:11px; line-height:1.5; }
+  .locked-note { background:linear-gradient(135deg, var(--pos-bg) 0%, #F0FDF9 100%); border:1px solid var(--pos); border-radius:12px; padding:13px 17px; font-size:12.5px; color:var(--pos-text); max-width:1120px; margin-top:22px; }
+  .open-note { background:var(--warn-bg); border:1px solid #F5C377; border-radius:12px; padding:13px 17px; font-size:12.5px; color:var(--warn-text); max-width:1120px; margin:14px 0 0; }
+  .group-label { display:flex; align-items:center; gap:9px; margin:4px 0 12px; }
+  .group-label .bar { width:4px; height:18px; border-radius:2px; }
+  .group-label span { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:var(--secondary-text); }
+  .sector-row { display:flex; align-items:center; gap:10px; font-size:12px; padding:6px 0; }
+  .sector-row .name { width:120px; flex-shrink:0; }
+  .sector-row .bars2 { flex:1; display:flex; align-items:center; gap:4px; }
+  .sector-row .bb { height:10px; border-radius:5px; }
+  .pill { font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px; }
+  .modal-mock { border:1px solid var(--divider); border-radius:14px; padding:16px; background:#fcfcfc; margin-top:14px; box-shadow:var(--shadow-lg); }
+  .chip-row { display:flex; gap:7px; margin-bottom:12px; }
+  .chip { font-size:11px; font-weight:700; padding:5px 12px; border-radius:20px; background:var(--bg); border:1px solid var(--divider); cursor:pointer; }
+  .chip.active { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .tile-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .tile { background:#fff; border:1px solid var(--divider); border-radius:11px; padding:11px 13px; }
+  .tile .l { font-size:10.5px; color:var(--secondary-text); }
+  .tile b { display:block; font-size:15px; font-family:'Manrope',sans-serif; margin-top:3px; }
+</style>
+</head>
+<body>
+
+<h1>Mutual Funds page — hi-fi mockup, v2 (resolved)</h1>
+<p class="subtitle">Updated after all 12 questions in <code>2026-10-23-mutual-funds-page-decisions.html</code> were
+resolved, plus a same-day follow-up revision (benchmark indices finalized; Overlap rebuilt to drop the
+portfolio-level compare feature entirely). Built on the same tokens as
+<code>2026-10-23-portfolio-home-page-hifi-states.html</code> (DM Sans/Manrope, brand green <code>#22C55E</code>,
+data-viz palette <code>--c1</code>–<code>--c8</code>) so both pages read as one product. Two items remain open,
+flagged in amber where relevant: the nav-shell route conflict on the Overlap page, and the owner's standing offer
+of section-by-section reference screenshots for the remaining pages given stated fidelity concerns.</p>
+
+<div class="page-anchor">Overview — /portfolio/mutual-funds</div>
+<div class="app">
+  <div class="rail">
+    <div class="grp">Equity ▾</div>
+    <div class="item active" style="margin-left:10px;">Mutual Fund</div>
+    <div class="item" style="margin-left:10px;">Direct Stocks</div>
+    <div class="item" style="margin-left:10px;">US Stock</div>
+    <div class="item" style="margin-left:10px;">FDs &amp; bonds</div>
+  </div>
+  <div class="main" style="flex:1;">
+    <div class="ph">
+      <div><h2>All Investments</h2><div class="sub">View and manage your mutual fund portfolio across the family.</div></div>
+      <div><span class="btn primary">+ Add Investment</span></div>
+    </div>
+
+    <div class="card accent" style="--accent:linear-gradient(90deg,var(--c1),var(--c3));">
+      <div class="metrics">
+        <div><div class="m-head">Total Portfolio Value <span class="info-dot">i</span></div><b>₹66,98,600</b><span class="delta pos">Today: +₹18,230 (0.27%)</span></div>
+        <div><div class="m-head">Total Invested <span class="info-dot">i</span></div><b>₹51,00,000</b></div>
+        <div><div class="m-head">Unrealised Gain <span class="info-dot">i</span></div><b class="pos">+₹15,98,600</b><span class="delta pos">+31.3%</span></div>
+        <div><div class="m-head">Realised Gain <span class="info-dot">i</span></div><b>₹2,10,000</b></div>
+        <div><div class="m-head">XIRR <span class="info-dot">i</span></div>
+          <div class="seg-toggle" style="margin:3px 0;"><span class="seg-btn active">Lifetime</span><span class="seg-btn">Current</span></div>
+          <b>16.1%</b>
+        </div>
+      </div>
+      <div class="synopsis"><span class="glyph">◆</span>"Spread across 6 AMCs and 24 funds — 72% in Direct plans, with ₹45,000 in active SIPs this month."
+      <span style="color:var(--secondary-text); margin-left:4px;">— auto-generated from <code>allocation.by_amc</code> + plan-type split</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; align-items:flex-start;">
+      <div class="tabcol">
+        <div class="t active"><span class="ic">◉</span>Overview</div>
+        <div class="t" style="color:var(--secondary-text); background:transparent;"><span class="ic">▲</span>Performance</div>
+        <div class="t" style="color:var(--secondary-text); background:transparent;"><span class="ic">◐</span>Allocation</div>
+        <div class="t" style="color:var(--secondary-text); background:transparent;"><span class="ic">▣</span>Holdings</div>
+        <div class="t" style="color:var(--secondary-text); background:transparent;"><span class="ic">⇄</span>Transactions</div>
+        <div class="t" style="color:var(--secondary-text); background:transparent;"><span class="ic">◫</span>Overlap</div>
+        <div class="t" style="color:var(--secondary-text); background:transparent;"><span class="ic">✦</span>Other Analytics</div>
+      </div>
+
+      <div style="flex:1; display:flex; flex-direction:column; gap:16px; min-width:0;">
+        <div class="card">
+          <div class="card-head">
+            <div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c1),var(--c2));">▣</span>Mutual Funds (24)</div>
+            <div style="display:flex; gap:8px;"><span class="btn sm">▽ Filter</span><span class="btn sm">⇅ Sort</span></div>
+          </div>
+          <table class="fund-table">
+            <thead><tr><th>Fund</th><th>Plan</th><th>Category</th><th class="num">Invested</th><th class="num">Value</th><th class="num">Gain/Loss</th><th class="num">XIRR</th></tr></thead>
+            <tbody>
+              <tr class="r"><td><div class="fund-cell"><div class="fund-logo">K</div><div class="fund-name"><b>Kotak Multi Cap Fund</b><span>Kotak Mahindra MF</span></div></div></td>
+                <td><span class="plan-badge">Direct · Growth</span></td><td><span class="cat-badge">Flexi Cap</span></td>
+                <td class="num">₹12,00,000</td><td class="num">₹15,40,000</td><td class="num pos">+₹3,40,000</td><td class="num">14.2%</td></tr>
+              <tr class="r"><td><div class="fund-cell"><div class="fund-logo">J</div><div class="fund-name"><b>JM Flexi Cap Fund</b><span>JM Financial MF</span></div></div></td>
+                <td><span class="plan-badge">Direct · Growth</span></td><td><span class="cat-badge">Flexi Cap</span></td>
+                <td class="num">₹8,00,000</td><td class="num">₹9,80,000</td><td class="num pos">+₹1,80,000</td><td class="num">12.9%</td></tr>
+              <tr class="r"><td><div class="fund-cell"><div class="fund-logo">H</div><div class="fund-name"><b>HDFC Mid-Cap Opportunities</b><span>HDFC MF</span></div></div></td>
+                <td><span class="plan-badge">Direct · Growth</span></td><td><span class="cat-badge">Mid Cap</span></td>
+                <td class="num">₹9,50,000</td><td class="num">₹13,10,000</td><td class="num pos">+₹3,60,000</td><td class="num">17.8%</td></tr>
+              <tr class="r"><td><div class="fund-cell"><div class="fund-logo">P</div><div class="fund-name"><b>Parag Parikh Flexi Cap</b><span>PPFAS MF</span></div></div></td>
+                <td><span class="plan-badge">Direct · Growth</span></td><td><span class="cat-badge">Flexi Cap</span></td>
+                <td class="num">₹10,50,000</td><td class="num">₹14,88,600</td><td class="num pos">+₹4,38,600</td><td class="num">18.4%</td></tr>
+            </tbody>
+          </table>
+          <div class="note">Logo via existing <code>SchemeLogo</code> component · Category from the new <code>sebi_category</code> field · Direct/Regular only this round (Growth/IDCW deferred) · row click opens <code>FundDetailModal</code> (interim, until the per-fund page ships).</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c3),var(--c4));">◐</span>AMC Allocation <span class="info-dot">i</span></div></div>
+          <div class="pie-wrap">
+            <div class="pie" style="background:conic-gradient(var(--c1) 0 40%, var(--c2) 40% 62%, var(--c3) 62% 78%, var(--c4) 78% 90%, var(--c5) 90% 100%);"><div class="hole">Total<br><b>₹66.9L</b></div></div>
+            <div class="legend">
+              <div class="l-row"><span class="dot" style="background:var(--c1)"></span>HDFC Mutual Fund<span class="pct">40.0%</span></div>
+              <div class="l-row"><span class="dot" style="background:var(--c2)"></span>Kotak Mahindra MF<span class="pct">22.0%</span></div>
+              <div class="l-row"><span class="dot" style="background:var(--c3)"></span>Parag Parikh (PPFAS)<span class="pct">16.0%</span></div>
+              <div class="l-row"><span class="dot" style="background:var(--c4)"></span>JM Financial MF<span class="pct">12.0%</span></div>
+              <div class="l-row"><span class="dot" style="background:var(--c5)"></span>Others<span class="pct">10.0%</span></div>
+            </div>
+          </div>
+          <div class="note">Reuses the existing <code>AllocationSummary.by_amc</code> field + <code>AllocationDrilldownModal</code> — chart and legend rows both clickable, no new backend work.</div>
+
+          <div class="bar4" style="margin-top:18px;">
+            <div style="width:48%; background:var(--c1);"></div><div style="width:32%; background:var(--c2);"></div><div style="width:20%; background:var(--c3);"></div>
+          </div>
+          <div class="m-rows">
+            <div class="m-row"><span class="m-avatar">SS</span><span class="m-name">Siddharth</span><div class="m-bg"><div class="m-fill" style="width:48%; background:var(--c1);"></div></div><span class="m-val">₹32,13,300 (48.0%)</span></div>
+            <div class="m-row"><span class="m-avatar">AS</span><span class="m-name">Aarohi</span><div class="m-bg"><div class="m-fill" style="width:32%; background:var(--c2);"></div></div><span class="m-val">₹21,43,500 (32.0%)</span></div>
+            <div class="m-row"><span class="m-avatar">PS</span><span class="m-name">Parents</span><div class="m-bg"><div class="m-fill" style="width:20%; background:var(--c3);"></div></div><span class="m-val">₹13,41,800 (20.0%)</span></div>
+          </div>
+          <div class="insights">
+            <div class="it"><span class="tag">now</span>"Your largest holding is Parag Parikh Flexi Cap — 22.2% of your MF portfolio"</div>
+            <div class="it"><span class="tag">now</span>"Spread across 6 AMCs and 24 funds"</div>
+            <div class="it"><span class="tag">now</span>"72% Direct, 28% Regular"</div>
+            <div class="it"><span class="tag">now</span>"₹45,000 in active SIPs scheduled this month"</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page-anchor">Performance — /portfolio/mutual-funds/performance</div>
+<div class="app"><div class="tabcol"><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◉</span>Overview</div><div class="t active"><span class="ic">▲</span>Performance</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◐</span>Allocation</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">▣</span>Holdings</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">⇄</span>Transactions</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◫</span>Overlap</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">✦</span>Other Analytics</div></div>
+  <div class="main">
+    <div class="ph"><div><h2>Performance</h2><div class="sub">XIRR, absolute return, value history, and how you stack up against the market.</div></div></div>
+
+    <div class="card accent" style="--accent:linear-gradient(90deg,var(--c1),var(--c2));">
+      <div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c1),var(--c2));">%</span>XIRR <span class="info-dot">i</span></div><div class="seg-toggle"><span class="seg-btn active">Lifetime</span><span class="seg-btn">Current</span></div></div>
+      <div class="metrics"><div><b style="font-size:30px;">16.1%</b><span class="delta" style="color:var(--secondary-text);">Since inception — opening-balance disclaimer may apply</span></div></div>
+      <table class="fund-table" style="margin-top:14px;">
+        <thead><tr><th>Fund</th><th class="num">XIRR</th><th class="num">vs. Benchmark</th></tr></thead>
+        <tbody>
+          <tr><td>Kotak Multi Cap Fund</td><td class="num">14.2%</td><td class="num pos">+2.1%</td></tr>
+          <tr><td>HDFC Mid-Cap Opportunities</td><td class="num">17.8%</td><td class="num pos">+4.6%</td></tr>
+          <tr><td>Parag Parikh Flexi Cap</td><td class="num">18.4%</td><td class="num pos">+3.9%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c5),var(--c7));">Σ</span>Absolute Return</div></div>
+      <div class="metrics"><div><b class="pos" style="font-size:23px;">+31.3%</b><span class="delta" style="color:var(--secondary-text);">₹15,98,600 gained on ₹51,00,000 invested</span></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c3),var(--c1));">◴</span>Portfolio value history</div>
+        <div class="seg-toggle"><span class="seg-btn">1Y</span><span class="seg-btn">3Y</span><span class="seg-btn">5Y</span><span class="seg-btn active">All</span></div>
+      </div>
+      <div class="chartbox">
+        <svg width="100%" height="100%" viewBox="0 0 600 170" preserveAspectRatio="none" style="position:absolute;inset:0;">
+          <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#22C55E" stop-opacity=".35"/><stop offset="100%" stop-color="#22C55E" stop-opacity="0"/></linearGradient></defs>
+          <path d="M0,140 L60,130 L120,120 L180,115 L240,95 L300,100 L360,80 L420,70 L480,55 L540,40 L600,30 L600,170 L0,170 Z" fill="url(#g1)"/>
+          <path d="M0,140 L60,130 L120,120 L180,115 L240,95 L300,100 L360,80 L420,70 L480,55 L540,40 L600,30" fill="none" stroke="#22C55E" stroke-width="2.5"/>
+          <path d="M0,150 L60,146 L120,142 L180,139 L240,132 L300,128 L360,120 L420,112 L480,102 L540,92 L600,84" fill="none" stroke="#C7C7C7" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <circle cx="240" cy="95" r="4" fill="#fff" stroke="#22C55E" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="note">Month-end value (solid) vs. cost of holdings (dashed) — hollow dot marks a month with no price fetch. Entire <code>HistoryView</code> experience folded in here, full detail preserved — click any month for the breakdown below.</div>
+
+      <div class="modal-mock">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><div style="font-size:12.5px; font-weight:800;">August 2019 — family breakdown</div><span style="font-size:10px; color:var(--secondary-text);">✕ close</span></div>
+        <div class="chip-row"><span class="chip active">All</span><span class="chip">Siddharth</span><span class="chip">Aarohi</span></div>
+        <div class="tile-grid">
+          <div class="tile"><div class="l">Portfolio value</div><b>₹14,08,836</b></div>
+          <div class="tile"><div class="l">Change this month</div><b class="pos">+₹43,930</b></div>
+          <div class="tile"><div class="l">New money</div><b>₹1,15,427</b></div>
+          <div class="tile"><div class="l">Market movement</div><b class="neg">-₹71,497</b></div>
+        </div>
+        <table class="fund-table" style="margin-top:12px;">
+          <thead><tr><th>Fund</th><th class="num">Units</th><th class="num">NAV (date)</th><th class="num">Value</th><th class="num">Cost</th></tr></thead>
+          <tbody>
+            <tr><td>SBI Flexicap Fund — Direct Growth</td><td class="num">13,427.9</td><td class="num">₹49.99 (30 Aug)</td><td class="num">₹6,71,378</td><td class="num">₹5,84,820</td></tr>
+            <tr><td>Kotak Multi Cap Fund — Direct Growth</td><td class="num">6,210.4</td><td class="num">₹61.20 (30 Aug)</td><td class="num">₹3,80,077</td><td class="num">₹3,42,100</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c6),var(--c7));">◪</span>Benchmark Comparison</div>
+        <div style="display:flex; gap:8px;"><span class="dropdown">Benchmark: Nifty 500 ▾</span><span class="dropdown">Window: 3Y ▾</span></div>
+      </div>
+      <div class="bars">
+        <div class="b"><div class="stack" style="height:98px;"><div style="height:100%;background:linear-gradient(180deg,var(--c1),var(--brand-hover));"></div></div><div class="lbl">Portfolio<br>14.8%</div></div>
+        <div class="b"><div class="stack" style="height:75px;"><div style="height:100%;background:var(--muted-icon);"></div></div><div class="lbl">Nifty 500<br>11.2%</div></div>
+        <div class="b"><div class="stack" style="height:65px;"><div style="height:100%;background:var(--muted-icon);opacity:.65;"></div></div><div class="lbl">Nifty 50<br>9.8%</div></div>
+      </div>
+      <div class="note">Every (benchmark × time-window) combination is precomputed server-side — the dropdowns above just select a key already present in the fetched payload, favouring read speed over backend load. Windows: 1Y / 3Y / 5Y / Since inception, using windowed XIRR (new math beyond today's since-inception-only figure).</div>
+      <div class="locked-note" style="margin-top:14px;">Resolved 2026-10-23: 8 indices total — today's 4 (Nifty 50 / Nifty 500 / Nifty LargeMidcap 250 / Nifty Midcap 150) plus Nifty Next 50, Nifty Smallcap 250, Nifty 100, Nifty 200, all NSE-sourced with zero new integration.</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="page-anchor">Allocation — /portfolio/mutual-funds/allocation</div>
+<div class="app"><div class="tabcol"><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◉</span>Overview</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">▲</span>Performance</div><div class="t active"><span class="ic">◐</span>Allocation</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">▣</span>Holdings</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">⇄</span>Transactions</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◫</span>Overlap</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">✦</span>Other Analytics</div></div>
+  <div class="main">
+    <div class="ph"><div><h2>Allocation</h2><div class="sub">How your mutual fund money is spread — by AMC, market cap, manager, category and asset class.</div></div></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <div class="card"><div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c1),var(--c2));">◐</span>By AMC</div></div><div class="pie" style="margin:0 auto;background:conic-gradient(var(--c1) 0 40%, var(--c2) 40% 62%, var(--c3) 62% 78%, var(--c4) 78% 90%, var(--c5) 90% 100%);"><div class="hole">AMC</div></div></div>
+      <div class="card accent" style="--accent:linear-gradient(90deg,var(--c1),var(--c6));"><div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c1),var(--c6));">▦</span>By Market Cap</div></div><div class="pie" style="margin:0 auto;background:conic-gradient(var(--c1) 0 55%, var(--c2) 55% 82%, var(--c6) 82% 94%, var(--muted-icon) 94% 100%);"><div class="hole">Cap</div></div><div class="note">Large 55% · Mid 27% · Small 12% · Other 6% — identical to today's analytics Market Cap section, carried over in full (buckets, percentages, drill-down rows), just visually integrated here.</div></div>
+      <div class="card"><div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c4),var(--c5));">◎</span>By Fund Manager</div></div>
+        <table class="fund-table"><thead><tr><th>Manager</th><th>AMC</th><th class="num">% of Portfolio</th></tr></thead>
+        <tbody><tr><td>Rahul Baijal</td><td>HDFC MF</td><td class="num">24.0%</td></tr><tr><td>Harsha Upadhyaya</td><td>Kotak MF</td><td class="num">18.5%</td></tr></tbody></table>
+      </div>
+      <div class="card"><div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c3),var(--c5));">▤</span>By Category (SEBI)</div></div><div class="pie" style="margin:0 auto;background:conic-gradient(var(--c3) 0 45%, var(--c4) 45% 72%, var(--c5) 72% 100%);"><div class="hole">Cat</div></div><div class="note">Flexi Cap 45% · Mid Cap 27% · ELSS 28%</div></div>
+      <div class="card" style="grid-column:1/-1;"><div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c1),var(--c7));">◉</span>By Asset Class <span class="info-dot">i</span></div><label style="font-size:11px;color:var(--secondary-text);"><input type="checkbox"> Treat arbitrage funds as cash-like</label></div>
+        <div class="pie-wrap"><div class="pie" style="background:conic-gradient(var(--c1) 0 78%, var(--c6) 78% 90%, var(--c5) 90% 96%, var(--muted-icon) 96% 100%);"><div class="hole">Asset</div></div>
+        <div class="legend"><div class="l-row"><span class="dot" style="background:var(--c1)"></span>Equity<span class="pct">78%</span></div><div class="l-row"><span class="dot" style="background:var(--c6)"></span>Debt<span class="pct">12%</span></div><div class="l-row"><span class="dot" style="background:var(--c5)"></span>Gold<span class="pct">6%</span></div><div class="l-row"><span class="dot" style="background:var(--muted-icon)"></span>Cash-like<span class="pct">4%</span></div></div></div>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<div class="page-anchor">Holdings — /portfolio/mutual-funds/holdings (stock look-through)</div>
+<div class="app"><div class="tabcol"><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◉</span>Overview</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">▲</span>Performance</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◐</span>Allocation</div><div class="t active"><span class="ic">▣</span>Holdings</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">⇄</span>Transactions</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◫</span>Overlap</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">✦</span>Other Analytics</div></div>
+  <div class="main">
+    <div class="ph"><div><h2>Holdings</h2><div class="sub">The actual companies you own, underneath every fund.</div></div></div>
+    <div class="card">
+      <div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c2),var(--c3));">10</span>Top 10 holdings</div><span class="dropdown">Kotak Multi Cap Fund ▾</span></div>
+      <table class="fund-table"><thead><tr><th>Stock</th><th class="num">Weight in fund</th></tr></thead>
+      <tbody><tr><td>HDFC Bank Ltd</td><td class="num">8.4%</td></tr><tr><td>ICICI Bank Ltd</td><td class="num">6.9%</td></tr><tr><td>Reliance Industries</td><td class="num">5.2%</td></tr></tbody></table>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c4),var(--c1));">▣</span>All stock holdings across your portfolio (247 stocks)</div><input class="dropdown" placeholder="Search stocks..." style="font-weight:400;"></div>
+      <table class="fund-table"><thead><tr><th>Stock</th><th class="num">Portfolio Exposure</th><th>Held by</th></tr></thead>
+        <tbody>
+          <tr><td>HDFC Bank Ltd</td><td class="num">4.2%</td><td>3 funds</td></tr>
+          <tr><td>Reliance Industries</td><td class="num">3.8%</td><td>5 funds</td></tr>
+          <tr><td>Infosys Ltd</td><td class="num">2.9%</td><td>4 funds</td></tr>
+        </tbody></table>
+      <div class="note">Exact match to today's <code>stock_holdings.rows[].contributing_funds</code> — no new backend work.</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="page-anchor">Transactions — /portfolio/mutual-funds/transactions</div>
+<div class="app"><div class="tabcol"><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◉</span>Overview</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">▲</span>Performance</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◐</span>Allocation</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">▣</span>Holdings</div><div class="t active"><span class="ic">⇄</span>Transactions</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◫</span>Overlap</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">✦</span>Other Analytics</div></div>
+  <div class="main">
+    <div class="ph"><div><h2>Transactions</h2><div class="sub">Every rupee in, out, and switched — month by month. Same cash-flow ledger data as before, redesigned.</div></div>
+      <div class="seg-toggle"><span class="seg-btn active">Monthly</span><span class="seg-btn">Yearly</span></div>
+    </div>
+    <div class="card accent" style="--accent:linear-gradient(90deg,var(--c1),var(--c4));">
+      <div class="metrics">
+        <div><div class="m-head">Invested</div><b>₹51,00,000</b></div>
+        <div><div class="m-head">Withdrawn</div><b>₹3,20,000</b></div>
+        <div><div class="m-head">Net Invested</div><b>₹47,80,000</b></div>
+        <div><div class="m-head">Current Value</div><b>₹66,98,600</b></div>
+        <div><div class="m-head">Absolute Gain</div><b class="pos">+31.3%</b></div>
+      </div>
+      <label style="font-size:11px;color:var(--secondary-text);display:block;margin-top:10px;"><input type="checkbox"> Include switches</label>
+      <div class="bars" style="margin-top:14px;">
+        <div class="b"><div class="stack" style="height:62px;"><div style="height:85%;background:linear-gradient(180deg,var(--c1),var(--brand-hover));"></div><div style="height:15%;background:var(--neg);"></div></div><div class="lbl">Jun</div></div>
+        <div class="b"><div class="stack" style="height:92px;"><div style="height:100%;background:linear-gradient(180deg,var(--c1),var(--brand-hover));"></div></div><div class="lbl">Jul</div></div>
+        <div class="b"><div class="stack" style="height:42px;"><div style="height:70%;background:linear-gradient(180deg,var(--c1),var(--brand-hover));"></div><div style="height:30%;background:var(--c6);"></div></div><div class="lbl">Aug</div></div>
+        <div class="b"><div class="stack" style="height:78px;"><div style="height:100%;background:linear-gradient(180deg,var(--c1),var(--brand-hover));"></div></div><div class="lbl">Sep</div></div>
+        <div class="b"><div class="stack" style="height:100px;"><div style="height:100%;background:linear-gradient(180deg,var(--c1),var(--brand-hover));"></div></div><div class="lbl">Oct</div></div>
+      </div>
+      <div style="display:flex; gap:16px; margin-top:12px; font-size:10.5px; color:var(--secondary-text);">
+        <span><span class="dot" style="background:var(--c1); display:inline-block;"></span> Invested</span>
+        <span><span class="dot" style="background:var(--neg); display:inline-block;"></span> Withdrawn</span>
+        <span><span class="dot" style="background:var(--c6); display:inline-block;"></span> Switched</span>
+      </div>
+      <div class="note">Click a bar → per-fund drill-down (reused <code>PeriodBreakdownTable</code>): invested/withdrawn/switched per fund, expandable to dated transactions. Underlying data unchanged — this is purely the visual redesign the owner asked for.</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="page-anchor">Overlap — /portfolio/mutual-funds/overlap</div>
+<div class="app"><div class="tabcol"><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◉</span>Overview</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">▲</span>Performance</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◐</span>Allocation</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">▣</span>Holdings</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">⇄</span>Transactions</div><div class="t active"><span class="ic">◫</span>Overlap</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">✦</span>Other Analytics</div></div>
+  <div class="main">
+    <div class="ph"><div><h2>Fund Overlap</h2><div class="sub">How much your funds secretly duplicate each other, across the whole portfolio.</div></div></div>
+    <div class="note" style="margin-top:-8px;">Portfolio level only — revised 2026-10-23. No compare feature, no
+    fund picker, no <code>/overlap/compare</code> route. The fund-level overlap tab and fund-vs-fund comparison
+    screen belong to the separate, future per-fund page (see the context note at the end of this section) and are
+    out of scope for this round — not mocked up as a page here.</div>
+
+    <div class="card accent" style="--accent:linear-gradient(90deg,var(--c6),var(--c8));">
+      <div class="metrics">
+        <div><div class="m-head">Funds analysed <span class="info-dot">i</span></div><b>12</b></div>
+        <div><div class="m-head">Fund pairs with overlap</div><b>7</b></div>
+        <div><div class="m-head">Highest overlap</div><b class="neg">78%</b></div>
+        <div><div class="m-head">Overlap risk</div><b style="color:var(--c6);">Moderate</b></div>
+      </div>
+      <div class="note">"Funds analysed" — whether <code>overlap</code> already distinguishes funds excluded for
+      missing holdings data from funds actually scored is an open backend check, not yet confirmed.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c1),var(--c2));">▣</span>1 · Common Holdings</div><span class="btn sm">View all →</span></div>
+      <table class="fund-table"><thead><tr><th>Stock</th><th class="num">Portfolio Exposure</th><th>Held by</th></tr></thead>
+      <tbody>
+        <tr><td>HDFC Bank Ltd</td><td class="num">4.2%</td><td>4 funds</td></tr>
+        <tr><td>ICICI Bank Ltd</td><td class="num">3.6%</td><td>3 funds</td></tr>
+        <tr><td>Reliance Industries</td><td class="num">3.1%</td><td>5 funds</td></tr>
+      </tbody></table>
+      <div class="note">Top 10 shown by default, "View all" expands the full list — from <code>stock_holdings.rows[].contributing_funds</code>, no new backend work.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c6),var(--c8));">▦</span>2 · Overlap Heatmap</div></div>
+      <div class="heatgrid">
+        <div class="hcell" style="background:var(--neg);">78%</div><div class="hcell" style="background:#F0A830;">52%</div><div class="hcell" style="background:var(--c6);">34%</div><div class="hcell" style="background:var(--pos);">12%</div><div class="hcell" style="background:var(--pos);">8%</div><div class="hcell" style="background:#eee;color:#bbb;">—</div>
+        <div class="hcell" style="background:#F0A830;">52%</div><div class="hcell" style="background:var(--neg);">—</div><div class="hcell" style="background:var(--c6);">29%</div><div class="hcell" style="background:var(--pos);">15%</div><div class="hcell" style="background:var(--pos);">6%</div><div class="hcell" style="background:#eee;color:#bbb;">—</div>
+      </div>
+      <div class="note">Fund × fund grid, color-banded by overlap % — from <code>overlap.matrix</code>.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c3),var(--c6));">▲</span>3 · Top Overlapping Fund Pairs</div></div>
+      <div class="pairrow"><span class="sev" style="background:var(--neg);"></span><span class="names">Kotak Multi Cap ↔ JM Flexi Cap</span><span class="pct">78%</span></div>
+      <div class="pairrow"><span class="sev" style="background:#F0A830;"></span><span class="names">HDFC Mid-Cap ↔ Parag Parikh Flexi Cap</span><span class="pct">52%</span></div>
+      <div class="pairrow"><span class="sev" style="background:var(--c6);"></span><span class="names">Kotak Multi Cap ↔ Parag Parikh Flexi Cap</span><span class="pct">34%</span></div>
+      <div class="insights" style="margin-top:12px;">
+        <div class="it"><span class="tag">insight</span>"Kotak Multi Cap and JM Flexi Cap share 78% of holdings — consider whether you need both."</div>
+        <div class="it"><span class="tag">insight</span>"3 of your fund pairs have overlap above 30%, concentrated in financials."</div>
+      </div>
+      <div class="note">Key Insights sentences are auto-generated, same lightweight pattern as the Overview synopsis — new sentence logic, no new data. From <code>overlap.pairs_above_low</code>.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c4),var(--c5));">◑</span>4 · Overlap Impact on Your Portfolio</div></div>
+      <div class="pie-wrap">
+        <div class="pie" style="background:conic-gradient(var(--neg) 0 22%, var(--c6) 22% 35%, var(--c2) 35% 100%);"><div class="hole">Impact</div></div>
+        <div class="legend">
+          <div class="l-row"><span class="dot" style="background:var(--neg)"></span>Top-3 overlapping pairs<span class="pct">22%</span></div>
+          <div class="l-row"><span class="dot" style="background:var(--c6)"></span>Other overlapping pairs<span class="pct">13%</span></div>
+          <div class="l-row"><span class="dot" style="background:var(--c2)"></span>Unique holdings<span class="pct">65%</span></div>
+        </div>
+      </div>
+      <div class="note">3-way ₹/% split, supersedes the earlier 2-way common/unique framing — from <code>overlap.concentration</code>/<code>bands</code>.</div>
+    </div>
+
+    <div class="open-note">⚠ Nav-shell contract conflict: the locked route table still reserves
+    <code>portfolio-mutual-funds-overlap-compare</code> for a two-fund compare page, but that feature is removed
+    from the portfolio level entirely per this revision. Needs a v1.2→v1.3 contract change with the nav-shell
+    owner — not resolved here. See design.md §0/§7.5.</div>
+
+    <div class="note" style="margin-top:4px;">Context only, not built this round: the future per-fund page's
+    Overlap tab (fund header, overlap-with-portfolio donut, common holdings, overlap distribution, sector overlap
+    chart, key takeaways — no "Consider Review" callout, no alternative-funds link) and its "Top Funds with
+    Overlap" table (Fund Name / Overlap % / Common Stocks — no Action column), where a row click is the only path
+    to a fund-vs-fund comparison screen (Overview/Common/Unique/Sector/Market Cap/Performance tabs). Everything
+    there is buildable from data this page already relies on, except per-fund market-cap bucketing (new
+    aggregation) and the funds-excluded count above (new, small). Full spec: design.md §7.5.1.</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="page-anchor">Other Analytics — /portfolio/mutual-funds/analytics</div>
+<div class="app"><div class="tabcol"><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◉</span>Overview</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">▲</span>Performance</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◐</span>Allocation</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">▣</span>Holdings</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">⇄</span>Transactions</div><div class="t" style="background:transparent;color:var(--secondary-text);"><span class="ic">◫</span>Overlap</div><div class="t active"><span class="ic">✦</span>Other Analytics</div></div>
+  <div class="main">
+    <div class="ph"><div><h2>Other Analytics</h2><div class="sub">Cost &amp; valuation, fund quality, and category ranking — each with its own identity, not a flat list.</div></div></div>
+
+    <div class="group-label"><div class="bar" style="background:linear-gradient(180deg,var(--c3),var(--c6));"></div><span>Cost &amp; Valuation</span></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <div class="card"><div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c3),var(--c4));">◪</span>Valuation</div></div><div class="metrics"><div><div class="m-head">P/E</div><b>24.1</b></div><div><div class="m-head">P/B</div><b>3.8</b></div></div><div class="chartbox" style="height:90px;margin-top:10px;">P/E vs. index, trailing</div></div>
+      <div class="card"><div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c6),var(--c7));">%</span>TER &amp; Cost Analysis</div></div><div class="metrics"><div><div class="m-head">Weighted TER</div><b>0.62%</b></div></div><table class="fund-table" style="margin-top:10px;"><thead><tr><th>Plan</th><th class="num">Avg TER</th></tr></thead><tbody><tr><td>Direct</td><td class="num">0.48%</td></tr><tr><td>Regular</td><td class="num">1.12%</td></tr></tbody></table></div>
+    </div>
+
+    <div class="group-label" style="margin-top:8px;"><div class="bar" style="background:linear-gradient(180deg,var(--c1),var(--c2));"></div><span>Fund Quality Scorer</span></div>
+    <div class="card">
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:12px; background:var(--bg); border-radius:12px; padding:12px 16px; flex:1; min-width:220px;">
+          <div class="score-ring" style="background:conic-gradient(var(--brand) 0 82%, var(--divider) 82% 100%);"><div class="n">82</div></div>
+          <div><div style="font-size:12px;font-weight:700;">Kotak Multi Cap Fund</div><span class="tier" style="background:var(--brand-selected-bg); color:var(--pos-text);">Tier 2 — Strong</span></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; background:var(--bg); border-radius:12px; padding:12px 16px; flex:1; min-width:220px;">
+          <div class="score-ring" style="background:conic-gradient(var(--c3) 0 91%, var(--divider) 91% 100%);"><div class="n">91</div></div>
+          <div><div style="font-size:12px;font-weight:700;">Parag Parikh Flexi Cap</div><span class="tier" style="background:#EEF2FF; color:#4338CA;">Tier 1 — Excellent</span></div>
+        </div>
+      </div>
+      <div class="note">Score card click → interim <code>FundScoreDetailModal</code> (migrates to the future per-fund page's <code>/insights</code> route once that ships). Fund Ranking removed from this page entirely — it's a per-fund calculation and moves to that same future page.</div>
+    </div>
+
+    <div class="group-label" style="margin-top:8px;"><div class="bar" style="background:linear-gradient(180deg,var(--c4),var(--c5));"></div><span>SEBI Category Ranking &amp; Peer Comparison</span></div>
+    <div class="card accent" style="--accent:linear-gradient(90deg,var(--c4),var(--c5));">
+      <div class="card-head"><div class="t"><span class="ic" style="background:linear-gradient(135deg,var(--c4),var(--c5));">#</span>Category Ranking</div></div>
+      <table class="fund-table"><thead><tr><th>Fund</th><th>Category</th><th class="num">Rank in category</th><th class="num">1Y return</th></tr></thead>
+      <tbody>
+        <tr><td>Kotak Multi Cap Fund</td><td><span class="cat-badge">Flexi Cap</span></td><td class="num">12 / 48</td><td class="num pos">+14.2%</td></tr>
+        <tr><td>Parag Parikh Flexi Cap</td><td><span class="cat-badge">Flexi Cap</span></td><td class="num">3 / 48</td><td class="num pos">+18.4%</td></tr>
+      </tbody></table>
+      <div class="note">Distinct, visually separated section — not folded flatly into a list, not merged into Allocation's category donut.</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="locked-note">All 12 decisions plus the same-day Overlap/benchmark revision are resolved into this
+hi-fi pass. Visual language intentionally pushed further than the first draft within the locked color/font tokens
+— gradient accents, icon chips, richer charts — while every analytics-sourced section still mirrors today's real
+analytics structure and data. Two items remain open (nav-shell route conflict; owner's screenshot offer for the
+remaining pages) — see the amber notes above. Next: owner confirms fidelity (possibly via section-by-section
+references), then final code recheck, then <code>superpowers:writing-plans</code>.</div>
+
+</body>
+</html>
