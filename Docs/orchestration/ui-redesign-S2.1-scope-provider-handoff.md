@@ -1,5 +1,5 @@
 # Handoff: ui-redesign S2.1 (shell PR 2: ScopeProvider, persistence, reset wiring)
-**Status:** OPEN (ready to dispatch). Not a +O run in the run catalogue (the PR2 plan marks R1 for Opus; the orchestrator will run a Codex review, and an Opus review only if the owner approves it for this run).
+**Status:** DONE (2f430e4); Codex review batched into S2.2. Not a +O run in the run catalogue (the PR2 plan marks R1 for Opus; the orchestrator will run a Codex review, and an Opus review only if the owner approves it for this run).
 **Parent plan:** `Docs/superpowers/plans/2026-10-23-shell-pr2-scope-wrappers-switch.md` Task **T1** (run R1), plus its Global Constraints and Locked decisions 1 to 3. Contract v1.6 (`useScope`). PR 1 provides `ScopeContext`, `useScope`, `shouldResetScope`, `buildRegistry`, `renderInShell`/`TestScopeProvider` under `frontend/src/shell/`.
 **Branch:** `feat/shell-nav-switch` (cut from `feat/shell-nav`, which holds all of shell PR 1). **Orchestrator:** Claude Code. **Worker:** Codex (manual relay).
 
@@ -21,4 +21,4 @@ Behaviour parity with `MainDashboardFlow` (default modes, member switching); the
 CODEX REPORT block, run label S2.1 (template in `ui-redesign-HB1-compute-holdings-handoff.md`), one fenced block at the end.
 
 ## Orchestrator record
-(pending)
+Codex report DONE. Orchestrator re-ran src/shell: 243 passed, 1 skipped; tsc and oxlint clean; only the 3 new files plus the index export. Read ScopeProvider.tsx: parity rules, stale-response guard and loading-time navigation recheck look right.

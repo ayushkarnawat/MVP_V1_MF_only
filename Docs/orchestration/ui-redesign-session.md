@@ -4,7 +4,7 @@
 
 ## State
 
-- **Wave:** 2 and 2b. Done: HB1 (`511f1ef`, `feat/home-snapshot`), S1.1 (`e825d10`, `feat/shell-nav`). S1.2 (9de1e5b + fix e186296, `feat/shell-nav`; Codex review FAIL then fixed, Opus PASS then fixed). S1.3 done (af4d2f7; redirectTo carry-over handled via finalRoute). S1.4 done (028342a + fix 0a7db46; Codex review of S1.3+S1.4 FAIL then fixed). **S2.1 READY** (`ui-redesign-S2.1-scope-provider-handoff.md`, branch `feat/shell-nav-switch` stacked on `feat/shell-nav`, not yet relayed). **Shell PR1 complete on `feat/shell-nav` (b80b55c): S1.1 to S1.6 done, Opus final review PASS then fixed. Branch not pushed, no PR opened.** Next: Wave 2 shell PR2 (S2.1 onward), or the 2b backend runs (HB2 onward), Codex review of S1.3+S1.4 batched there. Method: orchestration docs are committed on `leapswitch-redesign`; before each run I merge `leapswitch-redesign` into the task branch so Codex sees the handoff; code commits go on the task branch. The Codex review of S1.1 is batched into S1.2's review (covers T1 to T3), then the Opus review of S1.2.
+- **Wave:** 2 and 2b. Done: HB1 (`511f1ef`, `feat/home-snapshot`), S1.1 (`e825d10`, `feat/shell-nav`). S1.2 (9de1e5b + fix e186296, `feat/shell-nav`; Codex review FAIL then fixed, Opus PASS then fixed). S1.3 done (af4d2f7; redirectTo carry-over handled via finalRoute). S1.4 done (028342a + fix 0a7db46; Codex review of S1.3+S1.4 FAIL then fixed). S2.1 done (2f430e4, `feat/shell-nav-switch`; Codex review batched with S2.2). PRs open: #9 (shell PR1), #10 (HB1) as aditi-unifolio. **Shell PR1 complete on `feat/shell-nav` (b80b55c): S1.1 to S1.6 done, Opus final review PASS then fixed. Branch not pushed, no PR opened.** Next: Wave 2 shell PR2 (S2.1 onward), or the 2b backend runs (HB2 onward), Codex review of S1.3+S1.4 batched there. Method: orchestration docs are committed on `leapswitch-redesign`; before each run I merge `leapswitch-redesign` into the task branch so Codex sees the handoff; code commits go on the task branch. The Codex review of S1.1 is batched into S1.2's review (covers T1 to T3), then the Opus review of S1.2.
 - **Branches:** `leapswitch-redesign` (integration, docs), `feat/home-snapshot` (HB1 code), `feat/shell-nav` (next). Nothing pushed by this account. Untracked: `Docs/Web app UI mockups MFs.pdf` (owner's call).
 - **Latest migration:** `0043`; `0044` (news) and `0045` (benchmark indices) are free.
 - **Codex mode:** manual relay (owner decision 24 Oct). `codex:codex-rescue` is not available as an agent here; I write the handoff doc and a short prompt, the owner pastes it into Codex and pastes the report back, as in Sub-projects 1 and 2 and the UX fixes. Each review gate is also a relay (a review prompt for Codex, then its findings back).
@@ -28,7 +28,7 @@ Everything in handoff section 9, plus the owner's second-pass decisions of 24 Oc
 
 ### Wave 2: shell (stacked branches `feat/shell-nav`, `feat/shell-nav-switch`)
 - [x] S1.1 (e825d10) · [x] S1.2 +O (9de1e5b, e186296) · [x] S1.3 (af4d2f7) · [x] S1.4 (028342a, 0a7db46) · [x] S1.5 (Claude) · [x] S1.6 +O (b80b55c)
-- [ ] S2.1 · [ ] S2.2 · [ ] S2.3 · [ ] S2.4 +O · [ ] S2.5 (Claude) · [ ] S2.6 (Claude) · [ ] S2.7 +O
+- [x] S2.1 (2f430e4) · [ ] S2.2 · [ ] S2.3 · [ ] S2.4 +O · [ ] S2.5 (Claude) · [ ] S2.6 (Claude) · [ ] S2.7 +O
 
 ### Wave 2b: backend (parallel to the shell)
 - [x] HB1 +O (commit 511f1ef on feat/home-snapshot; Opus PASS; Codex review PASS; branch not yet pushed or PR'd) · [ ] HB2 · [ ] HB3 · [ ] HB4 · [ ] HB5
