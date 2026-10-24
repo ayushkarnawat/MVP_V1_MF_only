@@ -604,3 +604,4 @@ fix" rule.
 - 2026-10-24 | ui-redesign — S2.3 (shell PR2 T3) READY | worker=codex (manual relay) | Handoff Docs/orchestration/ui-redesign-S2.3-wrappers-handoff.md.
 - 2026-10-24 | ui-redesign — S2.3 DONE 8b62d4b (feat/shell-nav-switch) | worker=codex | 294 shell tests pass; review batched into S2.4.
 - 2026-10-24 | ui-redesign — S2.4 (shell PR2 T4, +O) READY | worker=codex (manual relay) | Handoff Docs/orchestration/ui-redesign-S2.4-switch-on-handoff.md.
+- 2026-10-24 | ui-redesign — S2.4 code committed 8aea4c2 (feat/shell-nav-switch), reviews pending | worker=codex | 916 tests / tsc / oxlint / build green. TRANSFER of orchestration to the manager's laptop and accounts (see 2026-10-24-ui-redesign-account-transfer-handoff.md).

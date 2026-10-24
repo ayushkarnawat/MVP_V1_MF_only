@@ -1,5 +1,5 @@
 # Handoff: ui-redesign S2.4 (shell PR 2: switch the shell on, retire the old shell, port tests)
-**Status:** OPEN (ready to dispatch). **+O run: Codex review then Opus review (approved), covering S2.3 and S2.4.**
+**Status:** REVIEW (code committed 8aea4c2; Codex review S2.3+S2.4 and Opus review pending). **+O run: Codex review then Opus review (approved), covering S2.3 and S2.4.**
 **Parent plan:** `Docs/superpowers/plans/2026-10-23-shell-pr2-scope-wrappers-switch.md` Task **T4** (run R4), Locked decisions 7 to 10, Global Constraints, Review Focus. This is the only run that changes what users see.
 **Branch:** `feat/shell-nav-switch` (holds shell PR1 and S2.1 to S2.3). **Orchestrator:** Claude Code. **Worker:** Codex (manual relay).
 
@@ -20,4 +20,4 @@ Every old assertion has a new home (no silent loss); nothing mounts the router f
 CODEX REPORT block, run label S2.4 (template in `ui-redesign-HB1-compute-holdings-handoff.md`) plus the PORT MAP table, one fenced block at the end.
 
 ## Orchestrator record
-(pending)
+Codex report DONE (916 tests in the affected set, tsc, oxlint, build green). Orchestrator re-ran the same command with --maxWorkers=2: 92 files / 916 tests passed, tsc clean, oxlint clean, build OK. Checked: App.tsx diff is only the import and the desktop render swap; old tests counted 15 + 7 + 8 = 30, all mapped in Codex's PORT MAP by name; no remaining references to MainDashboardFlow/NavigationShell/DashboardPlaceholder/unifolioTab. Accepted deviation: profile.route.tsx flipped live so the /profile redirect link is enabled. Codex report is in the S2.4 chat transcript (PORT MAP: P01-P15 in shell/portedFlow.test.tsx; navigation tests mapped to P01-P04/P13/P03/P02 and FamilySelector tests; App tests mapped 1:1 in App.test.tsx). PENDING: row-by-row semantic check of portedFlow.test.tsx against the old assertions, Codex review, Opus review.
