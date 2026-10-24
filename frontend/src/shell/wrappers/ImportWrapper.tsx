@@ -23,7 +23,16 @@ export default function ImportWrapper() {
   const setMemberChip = slot?.setMemberChip;
   const leaving = useRef({ memberId: targetAddMemberId }).current;
   useEffect(() => { leaving.memberId = targetAddMemberId; }, [leaving, targetAddMemberId]);
-  useEffect(() => () => clearCasResumeStep2(leaving.memberId), [leaving]);
+  // Clear on a real leave only: React StrictMode replays effect cleanup on mount, and the old code cleared
+  // on the user's back/leave action, so the clear waits a tick and is skipped if the page mounted again.
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      setTimeout(() => { if (!mounted.current) clearCasResumeStep2(leaving.memberId); }, 0);
+    };
+  }, [leaving]);
 
   const memberChip = useMemo(() => addDataAllowsMemberChoice && members.length > 0 ? (
     <Select value={targetAddMemberId ?? undefined} onValueChange={setChoice}>

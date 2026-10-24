@@ -219,3 +219,13 @@ it("falls back when refresh removes the picked member", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
   await loaded("Alice,Carol"); expectPick("aggregate", "a");
 });
+
+it("keeps a navigation queued during loading when me changes before the fetch finishes", async () => {
+  sessionStorage.setItem(key, JSON.stringify({ mode: "member", memberId: "b" }));
+  vi.mocked(getHouseholdMembers).mockImplementationOnce(() => new Promise(() => {})).mockResolvedValueOnce(family);
+  const view = mount("/home");
+  fireEvent.click(screen.getByRole("button", { name: "/portfolio/mutual-funds" }));
+  auth.me = { user_id: "account-a" };
+  view.rerender(<MemoryRouter initialEntries={["/home"]}><ScopeProvider><Probe /></ScopeProvider></MemoryRouter>);
+  await loaded(); expectPick("aggregate", "a");
+});

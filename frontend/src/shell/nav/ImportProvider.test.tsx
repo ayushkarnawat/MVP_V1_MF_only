@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Outlet, Route, Routes, useLocation, useNavigate } from "react-router";
+import { StrictMode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { useEffect } from "react";
 import { clearCasResumeStep2 } from "../../features/import/casResumeState";
@@ -47,12 +48,13 @@ function ImportLocation() {
   return <><output data-testid="location">{JSON.stringify({ path: location.pathname, state: location.state })}</output><button onClick={() => { void navigate(-1); }}>History back</button><Outlet /></>;
 }
 
-function mountImport({ path = "/import", origin, viewMode = "aggregate" }: { path?: string; origin?: string; viewMode?: "member" | "aggregate" } = {}) {
-  return render(<MemoryRouter initialEntries={["/earlier", { pathname: path.split("?")[0], search: path.includes("?") ? `?${path.split("?")[1]}` : "", state: origin ? { origin } : undefined }]} initialIndex={1}>
+function mountImport({ path = "/import", origin, viewMode = "aggregate", strict = false }: { path?: string; origin?: string; viewMode?: "member" | "aggregate"; strict?: boolean } = {}) {
+  const Wrap = strict ? StrictMode : ({ children }: { children: React.ReactNode }) => <>{children}</>;
+  return render(<Wrap><MemoryRouter initialEntries={["/earlier", { pathname: path.split("?")[0], search: path.includes("?") ? `?${path.split("?")[1]}` : "", state: origin ? { origin } : undefined }]} initialIndex={1}>
     <TestScopeProvider scope={{ viewMode, memberId: "a", members: [{ id: "a", name: "Alice" }, { id: "b", name: "Bob" }] }}>
       <ImportProvider><Routes><Route element={<ImportLocation />}><Route element={<FocusLayout />}><Route path="/import" element={<ImportWrapper />} /></Route><Route path="*" element={<h1>Destination</h1>} /></Route></Routes></ImportProvider>
     </TestScopeProvider>
-  </MemoryRouter>);
+  </MemoryRouter></Wrap>);
 }
 
 it("offers member choice in the focus header from aggregate scope and keys the flow by member", async () => {
@@ -88,7 +90,7 @@ it.each(["/portfolio", "/home", undefined])("replaces import with its completion
   fireEvent.click(await screen.findByRole("button", { name: "Complete import" }));
   const destination = origin === "/portfolio" ? "/portfolio" : "/portfolio/mutual-funds";
   await waitFor(() => expect(JSON.parse(screen.getByTestId("location").textContent!)).toEqual({ path: destination, state: { importNotice: { text: "Imported", details: ["Ready"] } } }));
-  expect(clearCasResumeStep2).toHaveBeenCalledWith("b");
+  await waitFor(() => expect(clearCasResumeStep2).toHaveBeenCalledWith("b"));
   fireEvent.click(screen.getByRole("button", { name: "History back" }));
   await waitFor(() => expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/earlier"));
 });
@@ -99,5 +101,12 @@ it.each(["/portfolio", undefined])("returns Back to origin %s and clears resume 
   expect(back).toHaveAttribute("href", origin ?? "/portfolio/mutual-funds");
   fireEvent.click(back);
   await screen.findByRole("heading", { name: "Destination" });
-  expect(clearCasResumeStep2).toHaveBeenCalledWith("b");
+  await waitFor(() => expect(clearCasResumeStep2).toHaveBeenCalledWith("b"));
+});
+
+it("does not clear resume state while import stays mounted under StrictMode", async () => {
+  mountImport({ path: "/import?member=b", strict: true });
+  await screen.findByTestId("flow");
+  await new Promise(resolve => setTimeout(resolve, 20));
+  expect(clearCasResumeStep2).not.toHaveBeenCalled();
 });

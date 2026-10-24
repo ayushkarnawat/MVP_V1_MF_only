@@ -62,7 +62,9 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
   }, [routes]);
 
   useEffect(() => {
-    const lifecycle: MemberRequest = { active: true, version: 0, loading: true, moves: [] };
+    // Moves queued before the previous fetch finished still need their reset check against the new response.
+    const carried = requests.current.loading ? requests.current.moves : [];
+    const lifecycle: MemberRequest = { active: true, version: 0, loading: true, moves: carried };
     requests.current = lifecycle;
     setState(initialState);
     void loadMembers(lifecycle, false);
