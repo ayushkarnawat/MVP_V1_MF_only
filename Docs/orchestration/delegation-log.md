@@ -592,3 +592,4 @@ fix" rule.
 - 2026-10-24 | ui-redesign — S1.1 built and committed e825d10 (feat/shell-nav) | worker=codex (manual relay) + orchestrator (npm install) | 37 tests pass, tsc and oxlint clean, 41 routes match contract v1.6; Codex review batched into S1.2.
 - 2026-10-24 | ui-redesign — S1.2 (shell PR1 T3, +O) READY | worker=codex (manual relay) | Handoff Docs/orchestration/ui-redesign-S1.2-navigation-logic-handoff.md.
 - 2026-10-24 | ui-redesign — S1.2 DONE 9de1e5b + e186296 (feat/shell-nav) | worker=codex + orchestrator fixes | Codex review (S1.1+S1.2) FAIL then fixed; Opus PASS then fixed; 154 tests pass.
+- 2026-10-24 | ui-redesign — S1.3 (shell PR1 T4) READY | worker=codex (manual relay) | Handoff Docs/orchestration/ui-redesign-S1.3-sidebar-handoff.md.
