@@ -1,0 +1,71 @@
+import { describe, expect, it } from "vitest";
+import { buildRegistry } from "../registry/buildRegistry";
+import { activeRowId, modeOf, resolveRoute, rowOf } from "./resolve";
+
+const routes = buildRegistry();
+const byId = new Map(routes.map(route => [route.id, route]));
+
+describe("route resolution", () => {
+  it.each([
+    ["/portfolio", "portfolio"],
+    ["/portfolio/mutual-funds/holdings", "portfolio-mutual-funds-holdings"],
+    ["/portfolio/mutual-funds/funds/INF123", "portfolio-mutual-funds-fund"],
+    ["/portfolio/mutual-funds/funds/INF123/insights", "portfolio-mutual-funds-fund-insights"],
+    ["/portfolio/equity", "portfolio-equity"],
+    ["/profile", "profile"],
+    ["/unknown", undefined],
+    ["/portfolio/mutual-funds/overlap/compare", undefined],
+  ])("resolves %s to %s", (path, id) => {
+    expect(resolveRoute(path, routes)?.id).toBe(id);
+  });
+
+  it("prefers fewer parameters even when the dynamic pattern is longer", () => {
+    const base = routes[0];
+    const fixtures = [
+      { ...base, id: "dynamic", path: "/reports/:longParameterName" },
+      { ...base, id: "static", path: "/reports/new" },
+    ];
+    expect(resolveRoute("/reports/new", fixtures)?.id).toBe("static");
+    expect(fixtures[0].id).toBe("dynamic");
+  });
+
+  it("breaks equal parameter counts by the longer matching path", () => {
+    const base = routes[0];
+    expect(resolveRoute("/reports/new", [
+      { ...base, id: "short", path: "/reports/:x" },
+      { ...base, id: "long", path: "/reports/:longName" },
+    ])?.id).toBe("long");
+  });
+
+  it.each([
+    ["/portfolio", "portfolio"],
+    ["/portfolio/equity/us-stocks", "portfolio"],
+    ["/profile", "main"],
+    ["/portfolio-other", "main"],
+  ])("uses the correct mode for %s", (path, mode) => {
+    expect(modeOf(path)).toBe(mode);
+  });
+
+  it.each([
+    ["/portfolio", "portfolio"],
+    ["/portfolio/mutual-funds/holdings", "portfolio-mutual-funds"],
+    ["/portfolio/mutual-funds/funds/INF123", "portfolio-mutual-funds"],
+    ["/portfolio/mutual-funds/funds/INF123/overlap", "portfolio-mutual-funds"],
+    ["/profile/settings/security", "profile"],
+    ["/profile", "profile"],
+    ["/portfolio/equity", "portfolio-equity"],
+    ["/unknown", undefined],
+    ["/", undefined],
+  ])("finds the ancestor-or-self sidebar row for %s", (path, id) => {
+    expect(rowOf(resolveRoute(path, routes), byId)?.id).toBe(id);
+    expect(activeRowId(path, routes)).toBe(id);
+  });
+
+  it("stops safely on missing or cyclic parent links", () => {
+    const base = { ...routes[0], section: null };
+    const first = { ...base, id: "first", parentId: "second" };
+    const second = { ...base, id: "second", parentId: "first" };
+    expect(rowOf(first, new Map())).toBeUndefined();
+    expect(rowOf(first, new Map([[first.id, first], [second.id, second]]))).toBeUndefined();
+  });
+});
