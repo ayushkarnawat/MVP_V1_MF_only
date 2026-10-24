@@ -1,0 +1,23 @@
+# Handoff: ui-redesign S2.4 (shell PR 2: switch the shell on, retire the old shell, port tests)
+**Status:** OPEN (ready to dispatch). **+O run: Codex review then Opus review (approved), covering S2.3 and S2.4.**
+**Parent plan:** `Docs/superpowers/plans/2026-10-23-shell-pr2-scope-wrappers-switch.md` Task **T4** (run R4), Locked decisions 7 to 10, Global Constraints, Review Focus. This is the only run that changes what users see.
+**Branch:** `feat/shell-nav-switch` (holds shell PR1 and S2.1 to S2.3). **Orchestrator:** Claude Code. **Worker:** Codex (manual relay).
+
+## Task
+1. **Port tests first (no deletion before this is done).** List every `it(...)` in `frontend/src/features/dashboard/MainDashboardFlow.test.tsx`, `NavigationShell.test.tsx` and `frontend/src/App.test.tsx`. For each old test write the equivalent assertion in the new shell tests (scope, banners, import, sidebar, wrappers, `ShellRoot`) and keep a mapping table `old test -> new test file/name`, or `retired` with a reason (retire only tests of behaviour that no longer exists: the old top-bar Family/Per Member switch, the old header, `unifolioTab` history state; history-state assertions become URL assertions). Put the whole table in your report (section "PORT MAP"). The orchestrator checks every row.
+2. **Wire the providers and banners:** `ShellRoot` wraps the router content in `ScopeProvider` and `ImportProvider` (inside the router, because both use router hooks); `AppLayout` renders `MemberBanners` above the page area; the top bar's temporary "+ Add data" calls `useImport().openImport()` (PR1 TopBar already calls it); the FamilySelector uses the real `useScope()`. `ShellRoutes` stays free of a router and of the providers where tests rely on that (use the existing `renderInShell`/`TestScopeProvider`: if both providers must live in `ShellRoot` only, keep `ShellRoutes` provider-free and let `ShellRoot` add them; the S2.1/S2.2 providers already read the router and registry themselves).
+3. **Switch:** in `frontend/src/App.tsx` replace `<DashboardPlaceholder />` in the desktop branch with `<ShellRoot />` (inside the existing gates, nothing else in `App.tsx` changes). Delete `features/dashboard/MainDashboardFlow.tsx`, `NavigationShell.tsx`, `NavigationShell.module.css`, `DashboardPlaceholder.tsx`, and (only after step 1) `MainDashboardFlow.test.tsx` and `NavigationShell.test.tsx`. Fix imports. `grep -rn "MainDashboardFlow\|NavigationShell\|DashboardPlaceholder\|unifolioTab" frontend/src` must return nothing afterwards except text inside comments you explain. Update `App.test.tsx`: a ready desktop user at `/` ends on `/home` inside the shell (sidebar and top bar present, placeholder page); the mobile branch still renders `MobileRoot`; an unauthenticated user still sees `AuthEntryFlow`; `/print/analytics`, the legal pages and the mobile branch never mount the router.
+4. **Enable the skipped registry test.** `registry.test.ts` has a skipped test for the stricter rule "every group redirect targets a live route". `/portfolio/mutual-funds` is live now (S2.3): un-skip it and make it pass (do not weaken it). If any group target is not live, report it instead.
+5. Behaviour to verify by tests: banners (PAN conflict, nudge, Complete profile) appear for a single selected member on `family-or-member` routes except Profile; none in aggregate, on Profile or on scope-none routes; the member selector switches scope; Dashboard `importNotice` flows through router state after import; `clearCasResumeStep2` on leaving import; deep link / refresh on each live path.
+
+## Constraints
+Allowed edits outside `frontend/src/shell/`: exactly `frontend/src/App.tsx` (desktop branch only), `frontend/src/App.test.tsx`, and the six deletions listed. Not touched: any other file in `features/**`, `components/**`, `mobile/**`, `main.tsx`, `tokens.css`, `package.json`, lockfile, `Docs/`, backend. No raw hex, no `window.history`/`popstate`. No new dependency, no `npm install`. Git read-only (deleting files on disk is fine). LF, UTF-8. Run: `npx vitest run src/App.test.tsx src/shell src/features/dashboard src/features/history src/features/analytics src/features/profile src/features/import`, `npx tsc -b`, `npx oxlint src/shell src/App.tsx`, and `npm run build`. No full suite.
+
+## Review Focus
+Every old assertion has a new home (no silent loss); nothing mounts the router for mobile, print or legal routes; banners' route and mode conditions; the notice reaches Dashboard; deletions leave no dangling imports; the un-skipped registry test is real.
+
+## Report
+CODEX REPORT block, run label S2.4 (template in `ui-redesign-HB1-compute-holdings-handoff.md`) plus the PORT MAP table, one fenced block at the end.
+
+## Orchestrator record
+(pending)

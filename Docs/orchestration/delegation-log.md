@@ -602,3 +602,5 @@ fix" rule.
 - 2026-10-24 | ui-redesign — S2.2 (shell PR2 T2) READY | worker=codex (manual relay) | Handoff Docs/orchestration/ui-redesign-S2.2-banners-import-handoff.md.
 - 2026-10-24 | ui-redesign — S2.2 DONE 63394ae + 0c57ab9 (feat/shell-nav-switch) | worker=codex | Codex review S2.1+S2.2 FAIL then fixed; 271 shell tests pass.
 - 2026-10-24 | ui-redesign — S2.3 (shell PR2 T3) READY | worker=codex (manual relay) | Handoff Docs/orchestration/ui-redesign-S2.3-wrappers-handoff.md.
+- 2026-10-24 | ui-redesign — S2.3 DONE 8b62d4b (feat/shell-nav-switch) | worker=codex | 294 shell tests pass; review batched into S2.4.
+- 2026-10-24 | ui-redesign — S2.4 (shell PR2 T4, +O) READY | worker=codex (manual relay) | Handoff Docs/orchestration/ui-redesign-S2.4-switch-on-handoff.md.

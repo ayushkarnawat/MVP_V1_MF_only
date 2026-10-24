@@ -1,5 +1,5 @@
 # Handoff: ui-redesign S2.3 (shell PR 2: seven wrapper routes and the temporary tab strip)
-**Status:** OPEN (ready to dispatch). Not a +O run. Codex review is batched into S2.4's review (S2.3 + S2.4 diff).
+**Status:** DONE (8b62d4b); Codex review batched into S2.4. Not a +O run. Codex review is batched into S2.4's review (S2.3 + S2.4 diff).
 **Parent plan:** `Docs/superpowers/plans/2026-10-23-shell-pr2-scope-wrappers-switch.md` Task **T3** (run R3), Locked decisions 6 and 7 and the Global Constraints ("existing screens are not changed"). Props table: `Docs/orchestration/2026-10-23-shell-reuse-vs-new.md` section 3. Old behaviour to port: `frontend/src/features/dashboard/MainDashboardFlow.tsx` (read-only; re-read it, line numbers drift).
 **Branch:** `feat/shell-nav-switch` (holds shell PR1, S2.1, S2.2). **Orchestrator:** Claude Code. **Worker:** Codex (manual relay).
 
@@ -23,4 +23,4 @@ Prop parity with `MainDashboardFlow` (same values, same handlers); only the list
 CODEX REPORT block, run label S2.3 (template in `ui-redesign-HB1-compute-holdings-handoff.md`), one fenced block at the end.
 
 ## Orchestrator record
-(pending)
+Codex report DONE. Orchestrator re-ran: 294 passed, 1 skipped; tsc, oxlint clean; only frontend/src/shell changed; Profile name derivation identical to MainDashboardFlow; ProfileView hosted by profile-personal; six routes flipped.
