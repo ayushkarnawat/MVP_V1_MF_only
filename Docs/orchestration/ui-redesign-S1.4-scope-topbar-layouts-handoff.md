@@ -1,5 +1,5 @@
 # Handoff: ui-redesign S1.4 (shell PR 1: scope contract, top bar, Mira dialog, layouts, ShellRoot)
-**Status:** OPEN (ready to dispatch). Not a +O run. After this run: ONE Codex review prompt covering S1.3 and S1.4.
+**Status:** DONE (028342a, fix 0a7db46). Not a +O run. After this run: ONE Codex review prompt covering S1.3 and S1.4.
 **Parent plan:** `Docs/superpowers/plans/2026-10-23-shell-pr1-router-registry-sidebar.md` Tasks **T5 and T6** (run R4; the plan lists files, behaviour and the Step 1 tests), plus Locked decisions 1, 9, 10, 11 and the Global Constraints. Contract: `Docs/orchestration/2026-10-22-nav-shell-contract-v1.md` v1.6 (section on `useScope`/`useImport`).
 **Branch:** `feat/shell-nav` (holds S1.1 to S1.3). **Orchestrator:** Claude Code. **Worker:** Codex (manual relay).
 
@@ -20,4 +20,4 @@ Only files under `frontend/src/shell/` (and tests). Not touched: existing screen
 CODEX REPORT block, run label S1.4 (template in `ui-redesign-HB1-compute-holdings-handoff.md`), one fenced block at the end.
 
 ## Orchestrator record
-(pending)
+Codex report DONE (213 tests). Orchestrator re-ran: green, tsc and oxlint clean, only frontend/src/shell changed, shell not mounted. Codex review (S1.3+S1.4) FAIL: Back memory never recorded (Medium, AppLayout now calls rememberBack on pathname change); trailing-slash URL lost the active marker (Low). Both fixed with a new test; 214 pass. Deviation accepted: shell-local dialog because the existing Modal has no focus trap.
