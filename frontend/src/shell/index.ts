@@ -2,6 +2,7 @@ import "./theme/shell-tokens.css";
 
 export { ShellRoot, ShellRoutes } from "./ShellRoot";
 export { ScopeContext, ImportContext, useScope, useImport } from "./scope/ScopeContext";
+export { ScopeProvider } from "./scope/ScopeProvider";
 export type { ScopeValue, ScopeMember, ImportValue } from "./scope/scopeTypes";
 export type { ShellRoute } from "./registry/types";
 export { buildRegistry, validateRegistry } from "./registry/buildRegistry";
