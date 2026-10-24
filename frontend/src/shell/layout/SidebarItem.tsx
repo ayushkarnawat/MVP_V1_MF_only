@@ -28,7 +28,8 @@ export function SidebarItem({ route, routes, pathname, active, child = false, po
   const content = <AppLink to={route.path!} className={classes}><Icon size={18} aria-hidden="true" /><span>{label}</span></AppLink>;
   // NavLink already marks an exact live match. Ancestor rows and disabled rows
   // need the marker here so there is exactly one aria-current in the sidebar.
-  const linkMarksCurrent = !disabled && pathname.replace(/\/+$/, "").toLowerCase() === route.path?.replace(/\/+$/, "").toLowerCase();
+  // NavLink marks only an exact string match, so `/portfolio/` or a differently cased URL needs the marker here too.
+  const linkMarksCurrent = !disabled && pathname === route.path;
   return <li aria-current={active && !linkMarksCurrent ? "page" : undefined}>
     {disabled ? <Tooltip.Root><Tooltip.Trigger asChild><span className="block">{content}</span></Tooltip.Trigger><Tooltip.Portal><Tooltip.Content side="right" sideOffset={8} className="z-50 rounded-md bg-[var(--shell-tooltip-bg)] px-3 py-1.5 font-body text-xs text-[var(--shell-tooltip-text)]">Coming soon</Tooltip.Content></Tooltip.Portal></Tooltip.Root> : content}
   </li>;

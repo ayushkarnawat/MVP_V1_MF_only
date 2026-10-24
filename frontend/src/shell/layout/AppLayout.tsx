@@ -5,11 +5,16 @@ import { TopBar } from "./TopBar";
 import { PageBoundary } from "./PageBoundary";
 import { PageState } from "./PageState";
 import { usePageTitle } from "./usePageTitle";
+import { useRegistry } from "../registry/RegistryContext";
+import { rememberBack } from "../nav/modeMemory";
 
 export function AppLayout() {
   const { pathname } = useLocation();
   const pageArea = useRef<HTMLElement>(null);
+  const routes = useRegistry();
   usePageTitle(pathname);
+  // Back (in Portfolio mode) returns to the last non-Portfolio page; rememberBack ignores everything else.
+  useEffect(() => { rememberBack(pathname, routes); }, [pathname, routes]);
   useEffect(() => { pageArea.current?.scrollTo?.({ top: 0, left: 0 }); }, [pathname]);
   return <div className="flex h-screen overflow-hidden bg-[var(--shell-page)] text-[var(--shell-text)]">
     <Sidebar pathname={pathname} />

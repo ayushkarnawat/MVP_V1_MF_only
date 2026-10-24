@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { buildRegistry } from "../registry/buildRegistry";
 import { renderInShell } from "../testing";
@@ -6,6 +6,17 @@ import { PageLayout } from "./PageLayout";
 import { PageState } from "./PageState";
 
 afterEach(() => vi.restoreAllMocks());
+
+it("remembers the last app page for Back and marks the row for a trailing-slash URL", async () => {
+  sessionStorage.clear();
+  const routes = buildRegistry().map(route => ["planning", "portfolio"].includes(route.id) ? { ...route, status: "live" as const } : route);
+  renderInShell(undefined, { path: "/planning", routes });
+  expect(await screen.findByRole("heading", { name: "Planning" })).toBeInTheDocument();
+  await waitFor(() => expect(sessionStorage.getItem("unifolio.shell.back")).toBe("/planning"));
+  cleanup();
+  renderInShell(undefined, { path: "/portfolio/", routes });
+  await waitFor(() => expect(document.querySelectorAll('nav [aria-current="page"]')).toHaveLength(1));
+});
 
 it("keeps the chrome and scrolls the page area on pathname changes", async () => {
   const scroll = vi.fn();
