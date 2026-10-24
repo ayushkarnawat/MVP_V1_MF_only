@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { UnifolioLogo } from "../../components/UnifolioLogo";
-import { buildRegistry } from "../registry/buildRegistry";
+import { useRegistry } from "../registry/RegistryContext";
 import { activeRowId, modeOf } from "../nav/resolve";
 import { paths } from "../nav/paths";
 import { readBack } from "../nav/modeMemory";
@@ -10,7 +10,7 @@ import { SidebarItem } from "./SidebarItem";
 import { SidebarGroup } from "./SidebarGroup";
 
 export function Sidebar({ pathname }: { pathname: string }) {
-  const routes = buildRegistry();
+  const routes = useRegistry();
   const activeId = activeRowId(pathname, routes);
   const portfolioMode = modeOf(pathname) === "portfolio";
   const portfolio = routes.find(route => route.id === "portfolio")!;

@@ -1,3 +1,25 @@
 import "./theme/shell-tokens.css";
 
-export {};
+export { ShellRoot, ShellRoutes } from "./ShellRoot";
+export { ScopeContext, ImportContext, useScope, useImport } from "./scope/ScopeContext";
+export type { ScopeValue, ScopeMember, ImportValue } from "./scope/scopeTypes";
+export type { ShellRoute } from "./registry/types";
+export { buildRegistry, validateRegistry } from "./registry/buildRegistry";
+export { AppLink } from "./nav/AppLink";
+export { useAppNavigate } from "./nav/useAppNavigate";
+export { paths } from "./nav/paths";
+export { resolveRoute, modeOf, rowOf, activeRowId, finalRoute } from "./nav/resolve";
+export { rememberBack, readBack, shouldRemember } from "./nav/modeMemory";
+export { shouldResetScope } from "./scope/resetRule";
+export { Sidebar } from "./layout/Sidebar";
+export { TopBar } from "./layout/TopBar";
+export { FamilySelector } from "./layout/FamilySelector";
+export { AppLayout } from "./layout/AppLayout";
+export { FocusLayout } from "./layout/FocusLayout";
+export { PageLayout } from "./layout/PageLayout";
+export type { PageLayoutProps } from "./layout/PageLayout";
+export { PageState } from "./layout/PageState";
+export type { PageStateProps } from "./layout/PageState";
+export { default as PlaceholderPage } from "./layout/PlaceholderPage";
+export { default as NotFoundPage } from "./layout/NotFoundPage";
+export { MiraComingSoonDialog } from "./mira/MiraComingSoonDialog";

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { NavLink, useResolvedPath } from "react-router";
-import { buildRegistry } from "../registry/buildRegistry";
+import { useRegistry } from "../registry/RegistryContext";
 import { finalRoute, resolveRoute } from "./resolve";
 
 interface AppLinkProps {
@@ -12,7 +12,7 @@ interface AppLinkProps {
 
 export function AppLink({ to, children, className, activeClassName }: AppLinkProps) {
   const resolved = useResolvedPath(to, { relative: "path" });
-  const routes = buildRegistry();
+  const routes = useRegistry();
   const route = resolveRoute(resolved.pathname, routes);
   const destination = finalRoute(route, routes);
   if (route?.status === "placeholder" || destination?.status === "placeholder" || (route && !destination)) {
