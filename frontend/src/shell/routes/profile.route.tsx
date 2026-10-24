@@ -10,7 +10,7 @@ const route: ShellRoute = {
   order: 1,
   layout: "app",
   scope: "none",
-  status: "placeholder",
+  status: "live",
   title: "Profile",
   redirectTo: "/profile/personal",
 };

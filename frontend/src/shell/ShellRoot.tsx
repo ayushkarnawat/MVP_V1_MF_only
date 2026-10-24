@@ -5,6 +5,8 @@ import { AppLayout } from "./layout/AppLayout";
 import { FocusLayout } from "./layout/FocusLayout";
 import { usePageModule } from "./layout/pageModules";
 import { PageState } from "./layout/PageState";
+import { ScopeProvider } from "./scope/ScopeProvider";
+import { ImportProvider } from "./nav/ImportProvider";
 
 function LazyPage({ route }: { route: ShellRoute }) {
   const Page = usePageModule(route.page);
@@ -27,4 +29,6 @@ export function ShellRoutes({ routes: supplied }: { routes?: ShellRoute[] } = {}
   </Routes></RegistryContext.Provider>;
 }
 
-export function ShellRoot() { return <BrowserRouter><ShellRoutes /></BrowserRouter>; }
+export function ShellRoot() {
+  return <BrowserRouter><ScopeProvider><ImportProvider><ShellRoutes /></ImportProvider></ScopeProvider></BrowserRouter>;
+}

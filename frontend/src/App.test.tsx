@@ -2,13 +2,19 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import * as api from "./features/auth/api";
+import { BrowserRouter } from "react-router";
+
+vi.mock("react-router", async () => {
+  const actual = await vi.importActual<typeof import("react-router")>("react-router");
+  return { ...actual, BrowserRouter: vi.fn(actual.BrowserRouter) };
+});
 
 // updateMe is mocked too (deviation from the task brief): OnboardingFlow's mount
 // effect fires updateMe, and an unmocked real fetch fails the run as an
 // unhandled rejection — same pattern as OnboardingFlow.test.tsx.
 vi.mock("./features/auth/api", async () => {
   const actual = await vi.importActual<typeof import("./features/auth/api")>("./features/auth/api");
-  return { ...actual, getMe: vi.fn(), updateMe: vi.fn(), listHouseholdMembers: vi.fn().mockResolvedValue([]) };
+  return { ...actual, getMe: vi.fn(), updateMe: vi.fn(), listHouseholdMembers: vi.fn().mockResolvedValue([]), getHouseholdMembers: vi.fn().mockResolvedValue([]) };
 });
 
 // The sign-up Landing now loads the legal documents; stub them so no real fetch fires.
@@ -28,6 +34,7 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => expect(screen.getByRole("button", { name: /get otp/i })).toBeInTheDocument());
+    expect(BrowserRouter).not.toHaveBeenCalled();
   });
 
   it("shows MobileLandingPage when there is no stored session on mobile viewport and transitions to AuthEntryFlow", async () => {
@@ -51,6 +58,9 @@ describe("App", () => {
         expect(screen.getByText(/holdings,\s*one clear\s*picture/i)).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /get started/i })).toBeInTheDocument();
       });
+      fireEvent.click(screen.getByRole("button", { name: /get started/i }));
+      expect(await screen.findByRole("button", { name: /get otp/i })).toBeInTheDocument();
+      expect(BrowserRouter).not.toHaveBeenCalled();
     } finally {
       window.matchMedia = originalMatchMedia;
     }
@@ -70,7 +80,7 @@ describe("App", () => {
     await waitFor(() => expect(screen.getByLabelText(/full name as per pan/i)).toBeInTheDocument());
   });
 
-  it("shows DashboardPlaceholder when the session is valid and onboarding is complete on desktop viewport", async () => {
+  it("shows the Home shell when the session is valid and onboarding is complete on desktop viewport", async () => {
     localStorage.setItem("unifolio_session_token", "tok-1");
     vi.mocked(api.getMe).mockResolvedValue({
       user_id: "u1", phone_number: "+919999999999", email: null,
@@ -79,7 +89,12 @@ describe("App", () => {
 
     render(<App />);
 
-    await waitFor(() => expect(screen.getByText(/welcome to unifolio/i)).toBeInTheDocument());
+    expect(await screen.findByRole("heading", { name: "Home" })).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/home");
+    expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ask Mira" })).toBeInTheDocument();
+    expect(screen.getByText("Coming soon")).toBeInTheDocument();
+    expect(BrowserRouter).toHaveBeenCalled();
   });
 
   it("outdated consent blocks the dashboard until agreed", async () => {
@@ -156,6 +171,7 @@ describe("App", () => {
         expect(screen.getByRole("button", { name: /analytics/i })).toBeEnabled();
         expect(screen.queryByRole("button", { name: "Holdings" })).not.toBeInTheDocument();
       });
+      expect(BrowserRouter).not.toHaveBeenCalled();
     } finally {
       window.matchMedia = originalMatchMedia;
     }
@@ -168,5 +184,19 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => expect(screen.getByRole("button", { name: /get otp/i })).toBeInTheDocument());
+  });
+
+  it("an explicit mobile route bypasses the router even at desktop width", async () => {
+    localStorage.setItem("unifolio_session_token", "tok-mobile");
+    vi.mocked(api.getMe).mockResolvedValue({ user_id: "u1", phone_number: "+919999999999", email: null, onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [] });
+    const original = window;
+    vi.stubGlobal("window", new Proxy(original, { get(target, property) {
+      return property === "location" ? { pathname: "/mobile", hash: "" } : Reflect.get(target, property);
+    } }));
+    try {
+      render(<App />);
+      expect(await screen.findByRole("navigation", { name: /mobile navigation/i })).toBeInTheDocument();
+      expect(BrowserRouter).not.toHaveBeenCalled();
+    } finally { vi.unstubAllGlobals(); }
   });
 });

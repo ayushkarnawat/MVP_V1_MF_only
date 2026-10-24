@@ -7,11 +7,14 @@ import { PageState } from "./PageState";
 import { usePageTitle } from "./usePageTitle";
 import { useRegistry } from "../registry/RegistryContext";
 import { rememberBack } from "../nav/modeMemory";
+import { MemberBanners } from "../scope/MemberBanners";
+import { useScope } from "../scope/ScopeContext";
 
 export function AppLayout() {
   const { pathname } = useLocation();
   const pageArea = useRef<HTMLElement>(null);
   const routes = useRegistry();
+  const scope = useScope();
   usePageTitle(pathname);
   // Back (in Portfolio mode) returns to the last non-Portfolio page; rememberBack ignores everything else.
   useEffect(() => { rememberBack(pathname, routes); }, [pathname, routes]);
@@ -21,6 +24,7 @@ export function AppLayout() {
     <div className="flex min-w-0 flex-1 flex-col">
       <TopBar />
       <main ref={pageArea} className="min-h-0 flex-1 overflow-y-auto p-6">
+        {scope.viewMode === "member" && scope.selectedMember?.profile && <MemberBanners />}
         <PageBoundary key={pathname}><Suspense fallback={<PageState state="loading" />}><Outlet /></Suspense></PageBoundary>
       </main>
     </div>

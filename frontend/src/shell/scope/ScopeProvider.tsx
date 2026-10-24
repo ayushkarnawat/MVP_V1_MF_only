@@ -71,7 +71,7 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
     return () => { lifecycle.active = false; };
   }, [me, loadMembers]);
 
-  // MainDashboardFlow's Complete profile save/merge and Profile
+  // The former desktop flow's Complete profile save/merge and Profile
   // onMembersChanged callers invalidateApiCache() BEFORE refreshMembers().
   // This method only refetches, preserving that existing responsibility split.
   const refreshMembers = useCallback(async () => {
