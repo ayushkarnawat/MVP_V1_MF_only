@@ -599,3 +599,4 @@ fix" rule.
 - 2026-10-24 | ui-redesign — S1.5, S1.6 DONE (feat/shell-nav, b80b55c) | orchestrator + Opus final review | PR1 complete: 217 tests pass, tsc, oxlint, build OK. Opus Mediums fixed (registry validation, aria-current case); Lows listed in session file.
 - 2026-10-24 | ui-redesign — S2.1 (shell PR2 T1) READY | worker=codex (manual relay) | Handoff Docs/orchestration/ui-redesign-S2.1-scope-provider-handoff.md; branch feat/shell-nav-switch.
 - 2026-10-24 | ui-redesign — S2.1 DONE 2f430e4 (feat/shell-nav-switch) | worker=codex | 243 shell tests pass; review batched into S2.2.
+- 2026-10-24 | ui-redesign — S2.2 (shell PR2 T2) READY | worker=codex (manual relay) | Handoff Docs/orchestration/ui-redesign-S2.2-banners-import-handoff.md.
