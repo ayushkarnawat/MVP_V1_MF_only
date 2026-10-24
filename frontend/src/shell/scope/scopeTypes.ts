@@ -1,4 +1,6 @@
-export interface ScopeMember { id: string; name: string }
+import type { HouseholdMember } from "../../features/auth/types";
+
+export interface ScopeMember { id: string; name: string; profile?: HouseholdMember }
 
 export interface ScopeValue {
   viewMode: "aggregate" | "member";

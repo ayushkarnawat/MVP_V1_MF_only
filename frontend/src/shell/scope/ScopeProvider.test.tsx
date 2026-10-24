@@ -31,6 +31,7 @@ function Probe() {
     <output data-testid="key">{scope.scopeKey}</output>
     <output data-testid="members">{scope.members.map(value => value.name).join(",")}</output>
     <output data-testid="selected">{scope.selectedMember?.name ?? "none"}</output>
+    <output data-testid="profile">{JSON.stringify(scope.members.map(member => Reflect.get(member, "profile")))}</output>
     <button onClick={() => scope.setMember("b")}>Pick Bob</button>
     <button onClick={scope.setAggregate}>Aggregate</button>
     <button onClick={() => { void scope.refreshMembers(); }}>Refresh</button>
@@ -62,6 +63,11 @@ beforeEach(() => {
 it("starts one member in member mode", async () => {
   vi.mocked(getHouseholdMembers).mockResolvedValue([family[0]]);
   mount(); await loaded("Alice"); expectPick("member", "a");
+});
+
+it("carries fetched profile metadata for member banners and dialogs", async () => {
+  mount(); await loaded();
+  expect(JSON.parse(screen.getByTestId("profile").textContent!)).toEqual(family);
 });
 
 it("starts several members aggregate with the first preselected", async () => {

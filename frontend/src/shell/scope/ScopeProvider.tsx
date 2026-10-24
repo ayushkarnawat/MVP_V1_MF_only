@@ -12,7 +12,7 @@ import { readScope, writeScope } from "./scopeStorage";
 import type { StoredScope } from "./scopeStorage";
 
 function toMemberOption(member: HouseholdMember): ScopeMember {
-  return { id: member.id, name: member.name || "Self" };
+  return { id: member.id, name: member.name || "Self", profile: member };
 }
 
 function defaultPick(members: ScopeMember[]): StoredScope {
