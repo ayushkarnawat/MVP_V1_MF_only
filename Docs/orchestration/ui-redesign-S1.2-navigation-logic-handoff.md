@@ -1,5 +1,5 @@
 # Handoff: ui-redesign S1.2 (shell PR 1: navigation functions, paths, AppLink, Back memory)
-**Status:** OPEN (ready to dispatch). **Opus review after the Codex review (approved).**
+**Status:** DONE (9de1e5b, fix e186296). **Opus review after the Codex review (approved).**
 **Parent plan:** `Docs/superpowers/plans/2026-10-23-shell-pr1-router-registry-sidebar.md` Task **T3** (run R2 of that plan; the plan contains the reference code for `resolve.ts` and `resetRule.ts`). Contract: `Docs/orchestration/2026-10-22-nav-shell-contract-v1.md` (v1.6, sections 3 and 6). Run catalogue: handoff section 6, run **S1.2**.
 **Branch:** `feat/shell-nav` (already holds S1.1: registry, 41 route files, contract test). **Orchestrator:** Claude Code · **Worker:** Codex (manual relay).
 
@@ -17,4 +17,4 @@ A route flipped from `placeholder` to `live` becomes a link everywhere with no o
 CODEX REPORT block, run label S1.2 (template in `ui-redesign-HB1-compute-holdings-handoff.md`), as one fenced block at the end.
 
 ## Orchestrator record
-(pending)
+Codex report DONE (143 tests). Codex review FAIL: encoded path bypassed placeholder guard (Medium), ignored relative option (Low); both fixed. Opus review PASS with Medium (encoded slash must stay encoded) and Lows; fixed: slash handling, query/hash stripped, modeOf case/decoding, NaN member count, focusable placeholder, empty member id; reset tests added (154 pass, tsc clean). Deferred, recorded in session file: redirect-following guards, scope reset via Equity redirect.
