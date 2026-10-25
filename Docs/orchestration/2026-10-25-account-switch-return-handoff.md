@@ -90,10 +90,10 @@ Run by the orchestrator in the built-in browser against a local backend and the 
 
 **Not covered, said plainly:** the Analytics page was still on its loading skeleton when I looked (its computation is slow on a fresh import), so its full content was not inspected; a real phone; staging data; PDF export (the local backend skips the PDF browser); the 7-point check of the individual fund page or any page from later waves.
 
-**Raised for the owner (not fixed; none is a shell regression):**
+**Raised for the owner, two questions (not fixed; neither is a shell regression):**
 1. **Profile name:** Account Info shows "Account holder" unless a member name ends in "(Me)". This is identical to the old `MainDashboardFlow` code (line 292), so it is parity, but in this seeded account the self member is plain `ROHAN VIJAY KULKARNI`. Worth confirming that real onboarding appends "(Me)"; if it does not, Profile always shows the fallback (a pre-existing item).
 2. **Equity on a child page:** clicking Equity while one of its child pages is open does not collapse it. The contract says the group "opens by itself" on a child path and does not say whether the user may collapse it then. Tell me if you want it collapsible.
-3. **Title wording:** the Analytics tab reads "Analytics" but the browser tab title says "Other Analytics" (registry title). Cosmetic.
+(A third item raised first, the browser title "Other Analytics" against the "Analytics" tab, is retracted: contract v1.6 names that in-page tab "Other Analytics", so the title is the planned wording.)
 
 **Guard tests (S2.5, `2d8adc4`, `frontend/src/shell/guards.test.ts`):** every `--shell-*` variable used is defined and defined in all three theme blocks; no raw hex outside the token file; no `any`, `window.history` or `popstate`. Each rule was shown to fail on a planted violation. The T5 boundary tests (`/print/analytics`, legal paths, mobile viewport and `/mobile` bypass) already exist from S2.4 in `boundary.test.tsx` and `App.test.tsx`, so none were added.
 
