@@ -21,6 +21,27 @@
    ```powershell
    wsl.exe -d Ubuntu -- bash /mnt/c/<path-to>/wsl-fe.sh test src/shell/portedFlow.test.tsx
    ```
+   **Fast path (measured 25 Oct, use this by default):** the same checks run about 6 to 13 times faster on a copy of `frontend/` on WSL's own disk (`~/fe-speed`) than on the `D:` path: three test files 31 s vs 5 s; the full affected set 977 s vs 73 s (94 files, 928/928 green, and the cold-import flake did not occur there, so that flake is a slow-drive effect, not a logic bug). One-time setup: copy `frontend/` including `node_modules` to `~/fe-speed` (about 160 s, 251 MB). Then every run starts by syncing source (everything except `node_modules`, `dist`, `.vite`) from `D:`, so it always tests the working tree. Script (`fast-fe.sh`, keep it outside the repo; `nproc` is 16, RAM 7.7 GB, so keep `--maxWorkers=2` or raise it only cautiously):
+   ```bash
+   #!/usr/bin/env bash
+   # Usage: fast-fe.sh <sync|tsc|oxlint|build|test> [vitest args...]
+   SRC="/mnt/d/Unifolio code/frontend"; DST="$HOME/fe-speed"
+   mkdir -p "$DST"
+   if command -v rsync >/dev/null 2>&1; then
+     rsync -a --delete --exclude node_modules --exclude dist --exclude .vite "$SRC/" "$DST/"
+   else
+     (cd "$DST" && find . -mindepth 1 -maxdepth 1 ! -name node_modules ! -name dist -exec rm -rf {} +)
+     (cd "$SRC" && tar --exclude=./node_modules --exclude=./dist --exclude=./.vite -cf - .) | (cd "$DST" && tar -xf -)
+   fi
+   cmd="$1"; shift; cd "$DST" || exit 1
+   case "$cmd" in
+     sync) ;; tsc) npx tsc -b ;; oxlint) npx oxlint src/shell ;; build) npm run build ;;
+     test) npx vitest run "$@" --maxWorkers=2 ;;
+   esac
+   echo "EXIT=$?"
+   ```
+   If `~/fe-speed/node_modules` is missing or `package.json` dependencies changed, redo the one-time copy or run `npm ci` inside `~/fe-speed` (from WSL). The `D:` path stays the source of truth; never edit files in `~/fe-speed`. The slow `wsl-fe.sh` recipe above still works as a fallback.
+
    Do not run `npm install` from Windows (it would replace the Linux bindings); if dependencies are missing run it from WSL. The first test in `portedFlow.test.tsx` fails on a cold import under the hardcoded 5000 ms limit (deferred fix); rerun with a longer `--testTimeout` only for scratch work, never edit the committed limit before the owner's go.
 3. **Stale `.git/index.lock`.** Seen repeatedly. Check no git process runs, then delete it.
 4. **Memory is per account.** Each account's auto-memory is separate. Everything that must survive lives in these docs, committed on `leapswitch-redesign`.
@@ -62,7 +83,7 @@ Opus reviews were the largest token cost. New rule:
 
 ## 3b. Efficiency changes (owner approved 25 Oct, apply from S2.5 onward)
 
-1. **Speed the machine side first.** The repo sits on the Windows `D:` drive, which WSL reads slowly (last full run: tests 66 s, environment 900 s and import 739 s summed across workers). Measure a copy on WSL's own disk (for example `~/unifolio`) against the current path before changing any workflow; use `vitest related <files>` for fix commits.
+1. **Speed the machine side first.** The repo sits on the Windows `D:` drive, which WSL reads slowly (last full run: tests 66 s, environment 900 s and import 739 s summed across workers). **Measured and adopted 25 Oct (section 1, "Fast path"):** a copy on WSL's own disk is 6x faster for a small run and 13x faster for the full affected set (977 s to 73 s), and the cold-import flake disappears. `vitest related <files>` for fix commits is still available on top.
 2. **Fewer full runs.** A full affected-set run once per PR at the final gate (S2.7). Fix commits and test-only changes get targeted runs plus `tsc` and `oxlint`.
 3. **No re-review of Lows or test-only fixes.** Per-run Codex review only for risky runs (changes what users see, touches shared code, or is a foundation later runs build on). Otherwise batch Codex per PR, and at the final gate run Codex and Opus on the same diff in parallel with one fix pass.
 4. **Recurring review findings become automatic checks.** Guard tests under `frontend/src/shell`: every `--shell-*` variable used is defined in the token stylesheet; no raw hex in the shell; no `any`, `window.history` or `popstate`. Added in S2.5.
