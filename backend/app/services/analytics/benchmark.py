@@ -31,7 +31,12 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.models.enums import BenchmarkIndex, BenchmarkReturnType, TransactionType
+from app.models.enums import (
+    LEGACY_BENCHMARK_INDICES,
+    BenchmarkIndex,
+    BenchmarkReturnType,
+    TransactionType,
+)
 from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
@@ -163,7 +168,7 @@ async def compute_portfolio_vs_benchmarks(
     if not transactions:
         return PortfolioBenchmarkSummary(
             portfolio_xirr=None,
-            benchmarks=[IndexXirrRow(index=i, xirr=None) for i in BenchmarkIndex],
+            benchmarks=[IndexXirrRow(index=i, xirr=None) for i in LEGACY_BENCHMARK_INDICES],
         )
 
     holdings = await compute_holdings(db, household_member_ids)
@@ -171,7 +176,7 @@ async def compute_portfolio_vs_benchmarks(
     portfolio_xirr = _portfolio_xirr(transactions, current_value)
 
     benchmark_rows = []
-    for index in BenchmarkIndex:
+    for index in LEGACY_BENCHMARK_INDICES:
         rate = await _benchmark_xirr_for_transactions(db, transactions, index)
         benchmark_rows.append(IndexXirrRow(index=index, xirr=_xirr_str(rate)))
 

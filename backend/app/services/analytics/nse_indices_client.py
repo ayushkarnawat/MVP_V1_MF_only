@@ -35,12 +35,16 @@ _USER_AGENT = (
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 
-# Static — only 4 members, no need to fetch IndexMapping.json at runtime.
+# Static — only eight members, no need to fetch IndexMapping.json at runtime.
 _TRADING_INDEX_NAME: dict[BenchmarkIndex, str] = {
     BenchmarkIndex.NIFTY_50: "Nifty 50",
     BenchmarkIndex.NIFTY_500: "Nifty 500",
     BenchmarkIndex.NIFTY_LARGEMIDCAP_250: "NIFTY LARGEMID250",
     BenchmarkIndex.NIFTY_MIDCAP_150: "Nifty Midcap 150",
+    BenchmarkIndex.NIFTY_NEXT_50: "Nifty Next 50",
+    BenchmarkIndex.NIFTY_SMALLCAP_250: "Nifty Smallcap 250",
+    BenchmarkIndex.NIFTY_100: "Nifty 100",
+    BenchmarkIndex.NIFTY_200: "Nifty 200",
 }
 
 

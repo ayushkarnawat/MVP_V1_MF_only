@@ -41,7 +41,7 @@ from app.services.analytics.schemas import (
     ScenarioResultRow,
     ScenarioSummaryRow,
 )
-from app.models.enums import BenchmarkIndex, BenchmarkReturnType
+from app.models.enums import LEGACY_BENCHMARK_INDICES, BenchmarkIndex, BenchmarkReturnType
 from app.models.reference import BenchmarkIndexHistory, SchemeAaum
 from app.services.dashboard.holdings import compute_holdings
 
@@ -493,7 +493,7 @@ def _scenario_benchmark_comparisons(db: Session, scenario: Scenario) -> list[Sce
         return []
     end = scenario.end_date or date.today()
     comparisons = []
-    for index in BenchmarkIndex:
+    for index in LEGACY_BENCHMARK_INDICES:
         start_level, end_level = _benchmark_levels(db, index, scenario.start_date, end)
         if start_level is None or end_level is None or start_level <= 0:
             continue

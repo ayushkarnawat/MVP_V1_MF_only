@@ -136,6 +136,19 @@ class BenchmarkIndex(str, enum.Enum):
     NIFTY_500 = "nifty_500"
     NIFTY_LARGEMIDCAP_250 = "nifty_largemidcap_250"
     NIFTY_MIDCAP_150 = "nifty_midcap_150"
+    NIFTY_NEXT_50 = "nifty_next_50"
+    NIFTY_SMALLCAP_250 = "nifty_smallcap_250"
+    NIFTY_100 = "nifty_100"
+    NIFTY_200 = "nifty_200"
+
+
+LEGACY_BENCHMARK_INDICES: tuple[BenchmarkIndex, ...] = (
+    BenchmarkIndex.NIFTY_50,
+    BenchmarkIndex.NIFTY_500,
+    BenchmarkIndex.NIFTY_LARGEMIDCAP_250,
+    BenchmarkIndex.NIFTY_MIDCAP_150,
+)  # the four the old UI, the PDF export, the mobile app and every stored payload know; pre-existing loops iterate this, never the full enum
+ALL_BENCHMARK_INDICES: tuple[BenchmarkIndex, ...] = tuple(BenchmarkIndex)
 
 
 class BenchmarkReturnType(str, enum.Enum):

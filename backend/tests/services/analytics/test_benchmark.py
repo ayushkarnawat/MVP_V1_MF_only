@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+import app.models.enums as enum_module
 from app.db.base import Base
 from app.models.enums import BenchmarkIndex, BenchmarkReturnType, PlanType, Relationship, TransactionType
 from app.models.folio import Folio
@@ -158,6 +159,68 @@ def test_compute_portfolio_vs_benchmarks_empty_when_no_transactions():
     assert summary.portfolio_xirr is None
     assert len(summary.benchmarks) == 4
     assert all(row.xirr is None for row in summary.benchmarks)
+    assert [row.index for row in summary.benchmarks] == list(enum_module.LEGACY_BENCHMARK_INDICES)
+
+
+def test_enum_has_eight_members_and_legacy_tuple_is_the_original_four_in_order():
+    legacy = (
+        BenchmarkIndex.NIFTY_50,
+        BenchmarkIndex.NIFTY_500,
+        BenchmarkIndex.NIFTY_LARGEMIDCAP_250,
+        BenchmarkIndex.NIFTY_MIDCAP_150,
+    )
+
+    assert len(BenchmarkIndex) == 8
+    assert enum_module.LEGACY_BENCHMARK_INDICES == legacy
+    assert len(enum_module.ALL_BENCHMARK_INDICES) == 8
+    assert enum_module.ALL_BENCHMARK_INDICES[:4] == legacy
+
+
+def test_portfolio_vs_benchmarks_still_returns_exactly_the_legacy_four_rows():
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    purchase_date = date.today().replace(year=date.today().year - 1)
+    _folio_with_purchase(
+        db,
+        member,
+        scheme,
+        Decimal("1000.00"),
+        Decimal("100.000"),
+        Decimal("10.0000"),
+        purchase_date,
+    )
+    new_indices = (
+        BenchmarkIndex("nifty_next_50"),
+        BenchmarkIndex("nifty_smallcap_250"),
+        BenchmarkIndex("nifty_100"),
+        BenchmarkIndex("nifty_200"),
+    )
+    for index in new_indices:
+        for return_type in (BenchmarkReturnType.PRICE, BenchmarkReturnType.TRI):
+            db.add_all(
+                [
+                    BenchmarkIndexHistory(
+                        index_name=index,
+                        return_type=return_type,
+                        date=purchase_date,
+                        value=Decimal("100.00"),
+                    ),
+                    BenchmarkIndexHistory(
+                        index_name=index,
+                        return_type=return_type,
+                        date=date.today(),
+                        value=Decimal("105.00"),
+                    ),
+                ]
+            )
+    db.commit()
+
+    p1, p2 = _mock_holdings(scheme, Decimal("12.0000"))
+    with p1, p2, _no_fetch():
+        summary = asyncio.run(compute_portfolio_vs_benchmarks(db, [member.id]))
+
+    assert [row.index for row in summary.benchmarks] == list(enum_module.LEGACY_BENCHMARK_INDICES)
 
 
 def test_compute_portfolio_vs_benchmarks_computes_portfolio_and_nifty50_xirr():
