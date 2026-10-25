@@ -135,6 +135,17 @@ it("Import health's Back lands on Profile even when deep-linked with no history 
   await screen.findByRole("heading", { name: "Profile screen" });
 });
 
+it("Import health's Back does not leave Import health one browser Back away (no Back loop)", async () => {
+  mount("/profile"); await screen.findByRole("heading", { name: "Profile screen" });
+  fireEvent.click(screen.getByRole("button", { name: "Open import health" }));
+  await screen.findByRole("heading", { name: "Import health screen" });
+  fireEvent.click(screen.getByRole("button", { name: "Health back" }));
+  await screen.findByRole("heading", { name: "Profile screen" });
+  fireEvent.click(screen.getByRole("button", { name: "History back" }));
+  await screen.findByRole("heading", { name: "Profile screen" });
+  expect(JSON.parse(screen.getByTestId("location").textContent!).path).not.toBe("/profile/import-health");
+});
+
 it.each(["member", "aggregate"] as const)("passes memberId to ImportHealth only in %s mode", async viewMode => {
   renderInShell(undefined, { path: "/profile/import-health", scope: { ...scope, viewMode } });
   await screen.findByRole("heading", { name: "Import health screen" });

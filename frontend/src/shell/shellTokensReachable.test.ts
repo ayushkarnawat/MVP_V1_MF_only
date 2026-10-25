@@ -14,17 +14,21 @@ function resolveImport(fromFile: string, importPath: string): string | null {
   return null;
 }
 
+// Comments are stripped first: a commented-out import is not in the bundle, so it must not count.
+function relativeImports(source: string): string[] {
+  const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const importRegex = /(?:import|export)\s+(?:[^'"]*?from\s+)?["'](\.[^"']+)["']/g;
+  return [...code.matchAll(importRegex)].map(match => match[1]);
+}
+
 function collectImportedCssFiles(entry: string): Set<string> {
   const cssFiles = new Set<string>();
   const visited = new Set<string>();
-  const importRegex = /(?:import|export)\s+(?:[^'"]*?from\s+)?["'](\.[^"']+)["']/g;
 
   function visit(file: string) {
     if (visited.has(file)) return;
     visited.add(file);
-    const content = readFileSync(file, "utf8");
-    for (const match of content.matchAll(importRegex)) {
-      const importPath = match[1];
+    for (const importPath of relativeImports(readFileSync(file, "utf8"))) {
       if (importPath.endsWith(".css")) {
         const cssFile = resolve(dirname(file), importPath);
         if (existsSync(cssFile)) cssFiles.add(cssFile);
@@ -44,5 +48,10 @@ describe("shell token stylesheet", () => {
     const cssFiles = collectImportedCssFiles(resolve("src/App.tsx"));
     const shellTokens = resolve("src/shell/theme/shell-tokens.css");
     expect([...cssFiles]).toContain(shellTokens);
+  });
+
+  it("does not count commented-out imports", () => {
+    const source = ['// import "./theme/shell-tokens.css";', '/* import "./theme/block.css"; */', 'import "./theme/real.css";'].join("\n");
+    expect(relativeImports(source)).toEqual(["./theme/real.css"]);
   });
 });
