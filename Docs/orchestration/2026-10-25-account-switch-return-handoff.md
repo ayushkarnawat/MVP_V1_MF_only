@@ -41,9 +41,10 @@
 | Codex adversarial review S2.3+S2.4 | FAIL (1 Medium), fixed `a7ef402`, Codex scoped re-review PASS |
 | Opus review S2.3+S2.4 | FAIL (1 High, 2 Medium, 3 Low); High and one Medium fixed `7440ed9` |
 | Codex scoped re-review of `7440ed9` | FAIL, 1 Medium (Import health Back pushed `/profile`, leaving a Back loop) + 1 Low (token reachability test matched commented imports). Both fixed test-first in `1c5a686` (RED confirmed for each; affected set 920/921, only the known cold-import flake; tsc, oxlint, build clean, run from the desktop session via WSL) |
-| Codex scoped re-review of `1c5a686` | **PENDING, relay to Codex (prompt in section 5b)** |
+| Codex scoped re-review of `1c5a686` | PASS on navigation; 1 Low (inline `//` comment case in the token reachability test), fixed test-first in `93f07ff` (RED confirmed). Owner chose to skip a further Codex round for it |
+| Full affected set after `93f07ff` | 920/921 (run by the orchestrator via WSL); the one failure is the known cold-import flake |
 | Open Opus Medium (import notice can resurface 2+ Back-hops away; closing it means changing locked decision 6) | **DECIDED 25 Oct: accepted as a documented limitation, revisit in I1** |
-| S2.4 marked DONE | blocked only on the Codex re-review of `7440ed9` |
+| S2.4 marked DONE | **DONE 25 Oct 2026** (the section 5b prompt is no longer needed) |
 
 Then, in order: S2.5 (Claude: boundary/landing tests plus a manual browser check of the running shell on a synthetic household), S2.6 (Claude: docs/log, show a diff), S2.7 (final gate, Opus whole-branch review; push `feat/shell-nav-switch`, open its PR into `leapswitch-redesign`; ask the owner whether to base it on `feat/shell-nav` while PR #9 is unmerged). After shell PR2, ask which track next (Wave 2b backend from HB2, or Wave 1 manual work).
 
@@ -95,7 +96,7 @@ Check independently:
 Report PASS or FAIL, then findings High/Medium/Low with file:line. Do not pad.
 ```
 
-## 5b. Prompt for Codex: scoped re-review of `1c5a686` (current one to relay)
+## 5b. Prompt for Codex: scoped re-review of `1c5a686` (USED 25 Oct, kept for the record; S2.4 is closed)
 
 ```
 Scoped read-only re-review (no edits, no git writes). Repo: D:\Unifolio code (WSL: /mnt/d/Unifolio code), branch feat/shell-nav-switch (already checked out). You previously reviewed 7440ed9 and reported: Medium, ImportHealthWrapper's Back pushed /profile and left Import health one browser Back away (a Back loop); Low, shellTokensReachable.test.ts matched commented-out imports. Review commit 1c5a686 only (git show 1c5a686). It touches frontend/src/shell/wrappers/ImportHealthWrapper.tsx, frontend/src/shell/routes/wrappers.test.tsx and frontend/src/shell/shellTokensReachable.test.ts.
