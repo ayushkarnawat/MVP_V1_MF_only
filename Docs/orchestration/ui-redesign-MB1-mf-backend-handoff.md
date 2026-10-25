@@ -1,5 +1,5 @@
 # Handoff: ui-redesign MB1 (Mutual Funds backend: four new benchmark indices behind a legacy tuple, migration 0045)
-**Status:** READY FOR CODEX (written 26 Oct 2026, not yet run)
+**Status:** DONE (commit `3e1597e6` on `feat/mf-backend`, 26 Oct 2026; not pushed)
 **Parent plan:** `Docs/superpowers/plans/2026-10-24-mutual-funds-backend-plan.md` Task **BT1**. Run catalogue: `2026-10-24-ui-redesign-orchestrator-handoff.md` section 6, run **MB1**. It also unblocks Home's `recommend_benchmark` and the Smallcap 250 benchmark option (Home run HB4, task T10).
 **Branch:** `feat/mf-backend`, cut by the orchestrator from `leapswitch-redesign` (it carries this handoff). The PR will target `leapswitch-redesign`. **Orchestrator:** Claude Code · **Worker:** Codex (manual relay). One working tree, one run at a time: do not switch branches. Where the plan names a step but not a detail, this document wins.
 
@@ -50,13 +50,23 @@ Anything the code shows that this handoff did not say goes under Findings; behav
 ## Report (Codex fills this in at the end, in one fenced block)
 ```
 CODEX REPORT — ui-redesign — MB1
-Run date/time:    Environment:    Python:    Baseline HEAD:
-1. TASK STATUS:
-2. FILES:
-3. TESTS (RED list, GREEN task runs, final fresh commands, the `git grep "in BenchmarkIndex"` output):
-4. DEVIATIONS (mechanics only):
-5. FINDINGS:
-6. OPEN QUESTIONS / BLOCKERS:
-7. SELF-REVIEW FINDINGS:
-8. CONFIRMATIONS: No git write commands:  Full suites not run:  Edits only in the allowed files:
+Run date/time: 2026-10-26 02:46:34 +05:30    Environment: WSL Ubuntu    Python: 3.14.4    Baseline HEAD: 079579c6
+1. TASK STATUS: PASS — BT1 implemented test-first. Eight benchmark members exist; legacy response surfaces remain limited to the original four; migration 0045 is the sole head.
+2. FILES: Modified backend/app/models/enums.py, backend/app/services/analytics/nse_indices_client.py, backend/app/services/analytics/benchmark.py, backend/app/services/analytics/scenario_engine.py, backend/tests/services/analytics/test_benchmark.py, backend/tests/services/analytics/test_nse_indices_client.py, backend/tests/services/analytics/test_scenario_engine.py, backend/tests/scripts/test_background_jobs.py, backend/tests/test_migrations.py, and this Report block. Added backend/alembic/versions/0045_benchmark_index_new_members.py and backend/tests/functional_postgres/test_benchmark_enum_0045.py.
+3. TESTS (RED list, GREEN task runs, final fresh commands, the `git grep "in BenchmarkIndex"` output): RED — the exact five-file command produced 8 failed, 139 passed, 3 skipped in 225.78s: missing LEGACY_BENCHMARK_INDICES/eight enum members (three benchmark tests), missing verified NSE members/names (two NSE tests), scenario full-enum exposure (one scenario test), old 8/6 job log (one job test), and missing 0045 head (one migration test). GREEN — exact five-file task command: 147 passed, 3 skipped in 224.94s. Required grep-derived neighbors plus the new functional test: 34 passed, 3 skipped, 1 warning in 5.12s. New PostgreSQL test alone: collected and skipped, 1 skipped in 0.72s (TEST_DATABASE_URL unset). Final fresh exact five-file command: 147 passed, 3 skipped in 220.08s. Final `git grep -n "in BenchmarkIndex" -- app scripts`: `scripts/jobs/refresh_benchmark_daily.py:35:        for index in BenchmarkIndex`.
+4. DEVIATIONS (mechanics only): The first exact WSL RED command was blocked by the managed sandbox with Wsl/E_ACCESSDENIED; it was rerun unchanged with approved WSL execution. Read-only git commands emitted a non-fatal fsmonitor IPC warning. No configs were edited.
+5. FINDINGS: Existing enum-widening migrations (including 0006 and 0041) call op.execute directly and do not use autocommit_block; 0045 follows this handoff's stricter explicit outside-transaction requirement with op.get_context().autocommit_block(). The mandated literal grep has only the refresh-job hit: ALL_BENCHMARK_INDICES is defined as `tuple(BenchmarkIndex)`, per the required snippet, so it does not contain the literal text `in BenchmarkIndex` and cannot appear in that grep output.
+6. OPEN QUESTIONS / BLOCKERS: None. The real-PostgreSQL assertion remains CI-only as specified because TEST_DATABASE_URL is unset locally.
+7. SELF-REVIEW FINDINGS: No missed pre-existing full-enum response loop was found. Both portfolio paths and scenario comparisons use LEGACY_BENCHMARK_INDICES; the untouched refresh job still iterates all eight. Trading names match the handoff exactly. Migration chain is 0043 -> 0045, PostgreSQL additions are autocommitted and idempotent, SQLite and downgrade are no-ops. The daily-job log count is the only existing assertion changed. No float was introduced. `git diff --check` is clean; tracked edited files are LF.
+8. CONFIRMATIONS: No git write commands: Yes.  Full suites not run: Yes.  Edits only in the allowed files: Yes (the pre-existing untracked `Web app UI mockups MFs.pdf` was untouched).  No live network requests: Yes.  Branch not switched: Yes.
 ```
+
+## Orchestrator record (26 Oct 2026)
+- **Scope check:** the eleven allowed code and test files, plus this Report block; LF, no `float`, nothing staged. Code read against the handoff: eight enum members and both tuples, the four verified trading names, the three loops (two in `benchmark.py`, one in `scenario_engine.py`) on the legacy tuple, migration `0045` chaining from `0043` with PostgreSQL additions inside `autocommit_block()`, SQLite and downgrade no-ops. No deviations.
+- **Real Postgres run (the test Codex could only collect):** I ran `tests/functional_postgres/test_benchmark_enum_0045.py` against a throwaway `postgres:16-alpine` container (already on this laptop, removed afterwards): **passed**, and `enum_range(benchmarkindex)` lists all eight values. This also settles Codex's finding: `autocommit_block()` is the working pattern on Postgres 16 (older enum migrations call `op.execute` inside the transaction, which also works on 16; the stricter form is kept).
+- **Audit beyond the grep:** every other use of `BenchmarkIndex` and `BenchmarkIndexHistory` in `app` and `scripts` filters to one named index (valuation uses Nifty 50 and Nifty 500 only; the fund-page measurement script takes an index argument), so no other loop can surface a new index. The literal grep finds only `refresh_benchmark_daily.py`, as intended.
+- **Mutation check:** 16 deliberate bugs (loops back on the full enum in all three places, tuple order and membership, the full tuple shrunk, four names and one enum value mistyped, migration chain and revision id wrong, and, against the real Postgres container, a dropped value, a typo and a missing `IF NOT EXISTS`): **16 caught, 0 survived**; files restored byte-for-byte (the script first hit a transient write error on `/mnt/d`; nothing had been changed at that point and I reran it with a retrying writer).
+- **Independent test run:** 175 passed, 3 skipped (the five handoff files plus recompute, valuation and period-consistency neighbours; the skips are Postgres-only tests without a URL, one of which I ran for real as above).
+- **Review gate:** batched at the PR level (MB4), by the efficiency policy.
+- **Deploy note (for the staging plan):** the first daily `refresh_benchmark_daily` run after deploy makes 16 requests instead of 8 (the four new indices, price from 10 years and TRI from 1990, about 1 MB each); the live names were verified on 26 Oct. The News migration (planned as `0044`, not yet built) must now use `down_revision = "0045"` (or whatever is the head then).
+- **Next:** MB2 (BT2 `sebi_category` on `HoldingRow`, BT3 windowed benchmark XIRR) on `feat/mf-backend`; HB4 on `feat/home-snapshot` needs this commit (merge `feat/mf-backend` into `feat/home-snapshot` first, which also brings migration 0045 onto the Home PR, so the two PRs must merge in that order or be retargeted).
