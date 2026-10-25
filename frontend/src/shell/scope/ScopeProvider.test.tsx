@@ -131,14 +131,36 @@ it("never resets a single-member household", async () => {
 it("persists a picked member across remount without overwriting it while loading", async () => {
   const first = mount(); await loaded();
   fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
-  await waitFor(() => expect(JSON.parse(sessionStorage.getItem(key)!)).toEqual({ mode: "member", memberId: "b" }));
+  await waitFor(() => expect(JSON.parse(sessionStorage.getItem(key)!)).toEqual({ mode: "member", memberId: "b", path: "/portfolio/mutual-funds" }));
   first.unmount();
   let finish!: (members: HouseholdMember[]) => void;
   vi.mocked(getHouseholdMembers).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
   mount();
-  expect(JSON.parse(sessionStorage.getItem(key)!)).toEqual({ mode: "member", memberId: "b" });
+  expect(JSON.parse(sessionStorage.getItem(key)!)).toEqual({ mode: "member", memberId: "b", path: "/portfolio/mutual-funds" });
   await act(async () => { finish(family); });
   await loaded(); expectPick("member", "b");
+});
+
+it("records the page the saved scope was last on, following in-app navigation", async () => {
+  mount(); await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
+  fireEvent.click(screen.getByRole("button", { name: "/portfolio/mutual-funds/holdings" }));
+  await waitFor(() => expect(JSON.parse(sessionStorage.getItem(key)!)).toEqual({ mode: "member", memberId: "b", path: "/portfolio/mutual-funds/holdings" }));
+});
+
+it("restores a saved pick when the same sidebar row is reloaded", async () => {
+  sessionStorage.setItem(key, JSON.stringify({ mode: "member", memberId: "b", path: "/portfolio/mutual-funds/history" }));
+  mount("/portfolio/mutual-funds"); await loaded(); expectPick("member", "b");
+});
+
+it("resets a saved pick when the page is opened directly on a different sidebar row (address-bar navigation)", async () => {
+  sessionStorage.setItem(key, JSON.stringify({ mode: "member", memberId: "b", path: "/portfolio/debt" }));
+  mount("/portfolio/mutual-funds"); await loaded(); expectPick("aggregate", "a");
+});
+
+it("does not reset a saved pick when the saved page and the opened page do not cross family-or-member rows", async () => {
+  sessionStorage.setItem(key, JSON.stringify({ mode: "member", memberId: "b", path: "/portfolio/mutual-funds" }));
+  mount("/profile/personal"); await loaded(); expectPick("member", "b");
 });
 
 it("falls back when the persisted member no longer exists", async () => {

@@ -58,6 +58,36 @@ function mountImport({ path = "/import", origin, viewMode = "aggregate", strict 
   </MemoryRouter></Wrap>);
 }
 
+function mountImportStack(entries: Array<string | { pathname: string; state?: unknown }>) {
+  return render(<MemoryRouter initialEntries={entries} initialIndex={entries.length - 1}>
+    <TestScopeProvider scope={{ viewMode: "aggregate", memberId: "a", members: [{ id: "a", name: "Alice" }, { id: "b", name: "Bob" }] }}>
+      <ImportProvider><Routes><Route element={<ImportLocation />}><Route element={<FocusLayout />}><Route path="/import" element={<ImportWrapper />} /></Route><Route path="*" element={<h1>Destination</h1>} /></Route></Routes></ImportProvider>
+    </TestScopeProvider>
+  </MemoryRouter>);
+}
+
+it("the import Back link pops to the page it was opened from, so browser Back does not re-enter import", async () => {
+  mountImportStack(["/earlier", "/portfolio/mutual-funds", { pathname: "/import", state: { origin: "/portfolio/mutual-funds" } }]);
+  fireEvent.click(await screen.findByRole("link", { name: /Back/ }));
+  await waitFor(() => expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/portfolio/mutual-funds"));
+  fireEvent.click(screen.getByRole("button", { name: "History back" }));
+  await waitFor(() => expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/earlier"));
+});
+
+it("the import Back link goes to the origin when there is no earlier entry to pop to (deep link)", async () => {
+  mountImportStack([{ pathname: "/import", state: { origin: "/portfolio" } }]);
+  fireEvent.click(await screen.findByRole("link", { name: /Back/ }));
+  await waitFor(() => expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/portfolio"));
+});
+
+it.each([["member", "Alice"], ["aggregate", "Alice"]] as const)("ignores a ?member= id that is not in the household (%s scope)", async (viewMode, name) => {
+  mountImport({ path: "/import?member=ghost", viewMode });
+  await waitFor(() => expect(screen.getByTestId("flow")).toHaveTextContent("a"));
+  expect(screen.getByTestId("flow")).not.toHaveTextContent("ghost");
+  if (viewMode === "member") expect(screen.getByText(/Importing for/)).toHaveTextContent(name);
+  expect(flow.mounted).not.toContain("ghost");
+});
+
 it("offers member choice in the focus header from aggregate scope and keys the flow by member", async () => {
   mountImport();
   const picker = await screen.findByRole("combobox", { name: "Select family member to import for" });

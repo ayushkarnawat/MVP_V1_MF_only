@@ -52,7 +52,8 @@ function Location() {
   const navigate = useNavigate();
   return <><output data-testid="location">{JSON.stringify({ path: location.pathname + location.search + location.hash, state: location.state })}</output>
     <button onClick={() => { void navigate(-1); }}>History back</button><button onClick={() => { void navigate(1); }}>History forward</button>
-    <button onClick={() => { void navigate(location.pathname, { replace: true }); }}>Replace here</button></>;
+    <button onClick={() => { void navigate(location.pathname, { replace: true }); }}>Replace here</button>
+    <button onClick={() => { void navigate("/profile"); }}>Go Profile</button></>;
 }
 
 function mount(path: string, state?: unknown) {
@@ -151,6 +152,19 @@ it("Import health's Back lands on Profile after its own history entry was replac
   fireEvent.click(screen.getByRole("button", { name: "Replace here" }));
   fireEvent.click(screen.getByRole("button", { name: "Health back" }));
   await screen.findByRole("heading", { name: "Profile screen" });
+});
+
+it("Import health's Back pops straight back to Profile with no duplicate Profile entry", async () => {
+  mount("/home"); await screen.findByRole("heading", { name: "Home" });
+  fireEvent.click(screen.getByRole("button", { name: "Go Profile" }));
+  await screen.findByRole("heading", { name: "Profile screen" });
+  fireEvent.click(screen.getByRole("button", { name: "Open import health" }));
+  await screen.findByRole("heading", { name: "Import health screen" });
+  fireEvent.click(screen.getByRole("button", { name: "Health back" }));
+  await screen.findByRole("heading", { name: "Profile screen" });
+  fireEvent.click(screen.getByRole("button", { name: "History back" }));
+  await screen.findByRole("heading", { name: "Home" });
+  expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/home");
 });
 
 it("Import health's Back does not leave Import health one browser Back away (no Back loop)", async () => {

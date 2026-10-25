@@ -10,7 +10,7 @@ export default function ProfileWrapper() {
   const { members, refreshMembers } = useScope();
   const navigate = useAppNavigate();
   return <ProfileView
-    onOpenImportHealth={() => { void navigate(paths.importHealth()); }}
+    onOpenImportHealth={() => { void navigate(paths.importHealth(), { state: { from: "profile" } }); }}
     name={members.find(member => member.name.endsWith("(Me)"))?.name.replace(/\s*\(Me\)$/, "") ?? "Account holder"}
     email={me?.email ?? null}
     phoneNumber={me?.phone_number ?? ""}

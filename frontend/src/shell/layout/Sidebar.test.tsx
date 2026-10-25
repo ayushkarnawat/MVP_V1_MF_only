@@ -20,7 +20,7 @@ afterEach(() => vi.restoreAllMocks());
 function Harness() {
   const location = useLocation();
   const navigate = useNavigate();
-  return <><Sidebar pathname={location.pathname} /><output data-testid="location">{location.pathname}</output><button onClick={() => { void navigate("/portfolio/debt"); }}>Test: Debt</button></>;
+  return <><Sidebar pathname={location.pathname} /><output data-testid="location">{location.pathname}</output><button onClick={() => { void navigate("/portfolio/debt"); }}>Test: Debt</button><button onClick={() => { void navigate("/portfolio/mutual-funds"); }}>Test: Mutual Funds</button></>;
 }
 
 function mount(path = "/home") {
@@ -140,16 +140,31 @@ describe("sidebar", () => {
     expect(screen.getByTestId("location")).toHaveTextContent("/portfolio");
   });
 
-  it("forces Equity open for a child without overwriting the stored closed choice", () => {
+  it("opens Equity for a child page but lets the user collapse and re-expand it there (owner decision 25 Oct)", () => {
     sessionStorage.setItem(equityKey, "false");
     mount("/portfolio/mutual-funds/holdings");
     const group = screen.getByRole("button", { name: "Equity" });
     expect(group).toHaveAttribute("aria-expanded", "true");
     fireEvent.click(group);
+    expect(group).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(group);
     expect(group).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(group);
+    expect(group).toHaveAttribute("aria-expanded", "false");
     expect(sessionStorage.getItem(equityKey)).toBe("false");
+    expect(screen.getByTestId("location")).toHaveTextContent("/portfolio/mutual-funds/holdings");
+  });
+
+  it("keeps the user's stored choice off a child page, and reopens Equity when navigation lands on a child again", () => {
+    sessionStorage.setItem(equityKey, "false");
+    mount("/portfolio/mutual-funds");
+    const group = screen.getByRole("button", { name: "Equity" });
+    fireEvent.click(group);
+    expect(group).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(screen.getByRole("button", { name: "Test: Debt" }));
     expect(group).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(screen.getByRole("button", { name: "Test: Mutual Funds" }));
+    expect(group).toHaveAttribute("aria-expanded", "true");
   });
 
   it("keeps placeholder rows focusable, disabled and free of hrefs", () => {

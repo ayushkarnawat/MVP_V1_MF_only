@@ -47,15 +47,20 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
       const data = await getHouseholdMembers();
       if (!lifecycle.active || request !== lifecycle.version) return;
       const members = data.map(toMemberOption);
-      const stored = readScope();
+      const saved = readScope();
+      const stored: StoredScope | null = saved && { mode: saved.mode, memberId: saved.memberId };
+      const savedPath = saved?.path;
       // Navigation can precede the first fetch. Recheck those moves once the
       // household size is known, before restoring its persisted selection.
       const reset = lifecycle.moves.some(([from, to]) => shouldResetScope(from, to, routes, members.length));
+      // A fresh load of a different sidebar row than the one the scope was saved on (an address-bar navigation)
+      // is a cross-row move too; only a reload of the same row keeps the saved member.
+      const fromOtherRow = !keepPick && savedPath !== undefined && shouldResetScope(savedPath, previousPath.current, routes, members.length);
       lifecycle.moves = [];
       lifecycle.loading = false;
       setState(previous => ({
         members,
-        pick: reset ? defaultPick(members) : validPick(keepPick && previous.ready ? previous.pick : stored, members),
+        pick: reset || fromOtherRow ? defaultPick(members) : validPick(keepPick && previous.ready ? previous.pick : stored, members),
         ready: true,
       }));
     } catch { /* Initial failure leaves an empty list; refresh failure keeps the list we have. */ }
@@ -98,8 +103,8 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
   }, [pathname, routes]);
 
   useEffect(() => {
-    if (state.ready) writeScope(state.pick);
-  }, [state.ready, state.pick]);
+    if (state.ready) writeScope(state.pick, pathname);
+  }, [state.ready, state.pick, pathname]);
 
   const value: ScopeValue = {
     members: state.members,

@@ -15,7 +15,10 @@ export default function ImportWrapper() {
   const [search] = useSearchParams();
   const { state } = useLocation();
   const navigate = useNavigate();
-  const queryMember = search.get("member");
+  const requestedMember = search.get("member");
+  // A ?member= id outside the household (a stale link, another account's) is ignored so the header and the upload
+  // always name the same member. While the household is still loading it cannot be checked, so it is used as is.
+  const queryMember = requestedMember && (members.length === 0 || members.some(member => member.id === requestedMember)) ? requestedMember : null;
   const [choice, setChoice] = useState<string | null>(null);
   const targetAddMemberId = queryMember || choice || memberId || members[0]?.id || null;
   const addDataAllowsMemberChoice = !queryMember && viewMode === "aggregate";
