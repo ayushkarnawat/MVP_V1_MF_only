@@ -1,5 +1,5 @@
 # Handoff: ui-redesign HB3 (units replay, today's movers, greeting summary)
-**Status:** READY (not yet run)
+**Status:** DONE (commit `62d9a4f7` on `feat/home-snapshot`, 26 Oct 2026; pushed with the next push)
 **Parent plan:** `Docs/superpowers/plans/2026-10-23-home-backend-plan.md` Tasks **T8 (movers), T6 (summary)** plus a **new first task, the transactions-to-units replay** that `build_value_series` (HB2) consumes (owner decision 25 Oct). **T7 (allocation) is NOT in this run**: the spec and the plan contradict each other on where the donut comes from and the owner must decide first (see "Deferred from this run"). Spec: `Docs/orchestration/2026-10-23-home-functionality-backend-spec.md` sections 3 and 6; B2 is price movement only; B5 excludes new money. Run catalogue: `2026-10-24-ui-redesign-orchestrator-handoff.md` section 6, run **HB3**.
 **Branch:** `feat/home-snapshot` (HB1 `511f1ef`, HB2 `4b4e4e1f`; PR #10). **Orchestrator:** Claude Code · **Worker:** Codex (manual relay). One working tree, one run at a time: do not switch branches. The shapes below are decided by the orchestrator and are exact; where the plan names a function but not its shape, this document wins.
 
@@ -167,13 +167,23 @@ Anything the code shows that this handoff did not say goes under Findings; behav
 ## Report (Codex fills this in at the end, in one fenced block)
 ```
 CODEX REPORT — ui-redesign — HB3
-Run date/time:    Environment:    Python:    Baseline HEAD:
-1. TASK STATUS:
-2. FILES: New (untracked) / Modified / Pre-existing changes left alone / Staged (must be empty)
-3. TESTS: RED command and last lines; GREEN commands with exact counts; neighbours; git diff --check; LF/UTF-8 check
-4. DEVIATIONS (mechanics only):
-5. FINDINGS (what the code showed that this handoff did not say):
-6. OPEN QUESTIONS / BLOCKERS:
-7. SELF-REVIEW FINDINGS:
-8. CONFIRMATIONS: No git write commands:   Full suites not run:   Edits only in the allowed files:
+Run date/time: 2026-10-26 00:42 IST    Environment: Windows PowerShell host / Ubuntu WSL backend venv    Python: 3.14.4    Baseline HEAD: dd2159aff572c6a67d0734bc3483571f6aefa129
+1. TASK STATUS: DONE — Task 0 units replay, Task 1 movers, and Task 2 summary implemented test-first.
+2. FILES: New (untracked): backend/app/services/home/{units,movers,summary}.py; backend/tests/services/home/test_{units,movers,summary}.py. Modified: this Report block only. Pre-existing changes left alone: Web app UI mockups MFs.pdf (untracked). Staged: empty.
+3. TESTS: RED: `... pytest tests/services/home/test_units.py ...` -> ModuleNotFoundError: app.services.home.units; `... test_movers.py ...` -> ModuleNotFoundError: app.services.home.movers; `... test_summary.py ...` -> ModuleNotFoundError: app.services.home.summary. GREEN task runs: units `10 passed in 1.65s`; movers `13 passed in 1.06s`; summary `15 passed in 0.94s`. Final fresh Home command: `wsl.exe -d Ubuntu --cd "D:\Unifolio code\backend" -- .venv/bin/python -m pytest tests/services/home -q -p no:cacheprovider --disable-warnings` -> `83 passed in 2.01s`. Final fresh neighbours command: same pytest invocation with `tests/services/dashboard/test_holdings.py tests/services/dashboard/test_snapshots.py tests/services/dashboard/test_xirr.py` -> `87 passed in 4.12s`. `git diff --check` and LF/UTF-8 checks: clean.
+4. DEVIATIONS (mechanics only): the first WSL RED command was sandbox-blocked with `Wsl/E_ACCESSDENIED` and rerun unchanged after approval. Two units tests initially had fixture-only defects (an expired ORM id added a query; eager `setdefault` created a duplicate folio), and one movers test removed an anonymous SQLAlchemy listener through an unsupported internal API; the tests were corrected without changing their asserted behavior. No executing-plan scratch ledger was created because the handoff limits edits to its seven allowed targets.
+5. FINDINGS (what the code showed that this handoff did not say): none. V6 implementation uses only `stock_master.sector`; `scheme_holdings.sector_raw` is deliberately ignored because it may contain debt ratings.
+6. OPEN QUESTIONS / BLOCKERS: none.
+7. SELF-REVIEW FINDINGS: corrected summary tests to construct their general-case Movers from the exact five-fund hand fixture through `compute_movers`; no unresolved code findings.
+8. CONFIRMATIONS: No git write commands: yes. Full suites not run: yes. Edits only in the allowed files: yes.
 ```
+
+## Orchestrator record (26 Oct 2026)
+- **Scope check:** `git status` and `git diff --stat` matched the allowed list exactly (six new files; the only other edit was this handoff's Report block, which was set aside from the task branch and restored here so docs stay on `leapswitch-redesign`); nothing staged; all files LF; no `float(`, `dateutil` or clock reads in the new modules.
+- **Independent test run:** every backend test file that references the changed code (13 targets): **307 passed** on Codex's tree (269 baseline plus 38 new), **315 passed** after my 8 added tests.
+- **Code read** against this handoff: `units.py` replays through `FifoState` with one folio and one transaction statement; `movers.py` implements the previous-close-units rule, the eligibility, stale and missing rules, floor plus largest-remainder cents with ties by key, the three views, the coverage and 50 percent fallback, and the `stock_master`-only sector label; `summary.py` follows the thresholds exactly. No deviations from the handoff found.
+- **Differential check (my own script, not committed):** my independent re-implementation of the rules against Codex's `compute_movers`, **1,500 random portfolios in all three views (4,500 cases), zero mismatches** (net, percentage, dates, stale and missing, coverage, fallback, every shown bar, the exact headline identity, no negative zero); `distribute_cents` and `spread_cents` against my reference over 3,000 random cases, zero mismatches; the handoff's five-fund hand fixture reproduced exactly in the fund, category and sector views and the fallback; the summary thresholds and labels at their edges.
+- **Mutation check:** 33 deliberate bugs injected one at a time across the three modules. **27 were caught; 6 survived**, all genuine test gaps (several traceable to boundaries this handoff did not pin): unchanged totals emitted when two folios offset each other on one date; the sector fallback threshold at 40 percent and at exactly 50; an empty category label not shown as "Other"; the previous NAV date taken as the earliest instead of the latest; the top loser chosen as the smallest drag. Fixed by the orchestrator (test-only, 8 added test cases in the Codex test files: a cross-folio netting test, four fallback edges at 45, 49, 50 and 51 percent coverage, the empty-category label, the previous-date choice, and the largest-loss contributor). Re-run: all six, plus a threshold-60 mutant, are caught; files restored byte-for-byte.
+- **Review gate:** by the owner's efficiency policy no per-run review; the Codex adversarial review of the whole Home backend is batched at the PR level (HB5, PR #10).
+- **Findings carried forward (Low, accepted):** in the fund view a zero-change bar has an empty `scheme_ids` (the bar is never shown individually, so harmless; set it to its own fund if a route needs it); `load_sector_weights` treats every non-mapped row, including debt and cash, as "Other" as specified, so sector-view quality depends on how many held stocks have a sector in `stock_master` (staging has 884 of 1,385 stocks with no sector: see the session file's staging note).
+- **Next:** HB3b (T7 allocation, option C); HB4 waits for the Mutual Funds backend MB1.
