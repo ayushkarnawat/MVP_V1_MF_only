@@ -97,6 +97,21 @@ def test_spread_cents_examples_and_sum_invariants():
     }
 
 
+def test_spread_cents_exact_ties_are_broken_by_key_not_by_division_noise():
+    # Every share has a remainder of exactly one third of a cent (repeating in decimal), so the
+    # extra cent must go to the smallest key ("debt"), whatever order the weights arrive in.
+    weights = {
+        "equity": Decimal("2"), "debt": Decimal("8"), "gold": Decimal("65"), "others": Decimal("0"),
+    }
+    expected = {
+        "equity": Decimal("664.67"), "debt": Decimal("2658.70"),
+        "gold": Decimal("21601.88"), "others": Decimal("0.00"),
+    }
+    assert spread_cents(Decimal("24925.25"), weights) == expected
+    assert spread_cents(Decimal("24925.25"), dict(reversed(list(weights.items())))) == expected
+    assert spread_cents(Decimal("-24925.25"), weights) == {key: -value if value else value for key, value in expected.items()}
+
+
 def test_hand_fixture_fund_view_uses_previous_close_units():
     funds = _hand_fixture()
     result = compute_movers(funds, AS_OF, "fund")

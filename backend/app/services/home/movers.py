@@ -6,6 +6,7 @@ from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import ROUND_FLOOR, ROUND_HALF_UP, Decimal
+from fractions import Fraction
 from typing import Literal, TypeVar
 
 from sqlalchemy import and_, func
@@ -106,11 +107,17 @@ def spread_cents(total: Decimal, weights: Mapping[K, Decimal]) -> dict[K, Decima
     if total.is_zero() or not positive:
         return result
     weight_total = sum(positive.values(), Decimal("0"))
-    exact = {key: abs(total) * weight / weight_total for key, weight in positive.items()}
-    distributed, _ = distribute_cents(exact)
+    # Exact fractions, not Decimal division: a repeating share (a third of a cent) must tie exactly
+    # with its peers so the key order decides, instead of 28-digit rounding noise.
+    total_cents = int((abs(total) / CENT).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    exact = {key: Fraction(total_cents) * Fraction(weight) / Fraction(weight_total) for key, weight in positive.items()}
+    cents = {key: share.numerator // share.denominator for key, share in exact.items()}
+    ranked = sorted(exact, key=lambda key: (-(exact[key] - cents[key]), str(key)))
+    for key in ranked[: total_cents - sum(cents.values())]:
+        cents[key] += 1
     sign = Decimal("-1") if total < 0 else Decimal("1")
-    for key, value in distributed.items():
-        result[key] = _money(value * sign)
+    for key, count in cents.items():
+        result[key] = _money(Decimal(count) * CENT * sign)
     return result
 
 
