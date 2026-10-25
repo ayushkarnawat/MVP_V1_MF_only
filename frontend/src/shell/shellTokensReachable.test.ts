@@ -15,8 +15,9 @@ function resolveImport(fromFile: string, importPath: string): string | null {
 }
 
 // Comments are stripped first: a commented-out import is not in the bundle, so it must not count.
+// A line comment starts at "//" at the line start or after whitespace (so "https://" in a string is safe).
 function relativeImports(source: string): string[] {
-  const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|\s)\/\/.*$/gm, "$1");
   const importRegex = /(?:import|export)\s+(?:[^'"]*?from\s+)?["'](\.[^"']+)["']/g;
   return [...code.matchAll(importRegex)].map(match => match[1]);
 }
@@ -51,7 +52,12 @@ describe("shell token stylesheet", () => {
   });
 
   it("does not count commented-out imports", () => {
-    const source = ['// import "./theme/shell-tokens.css";', '/* import "./theme/block.css"; */', 'import "./theme/real.css";'].join("\n");
+    const source = [
+      '// import "./theme/shell-tokens.css";',
+      '/* import "./theme/block.css"; */',
+      'const disabled = true; // import "./theme/inline.css";',
+      'import "./theme/real.css"; // import "./theme/after-real.css";',
+    ].join("\n");
     expect(relativeImports(source)).toEqual(["./theme/real.css"]);
   });
 });
