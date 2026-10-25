@@ -1,5 +1,5 @@
 # Handoff: ui-redesign HB3b (Home allocation donut and family bar, owner's option C)
-**Status:** READY FOR CODEX (written 26 Oct 2026, not yet run)
+**Status:** DONE (commit `e68e6b0e` on `feat/home-snapshot`, 26 Oct 2026; pushed with the next push)
 **Parent plan:** `Docs/superpowers/plans/2026-10-23-home-backend-plan.md` Task **T7 (`allocation.py`)**, with the plan's test "donut equals the Dashboard allocation" **replaced** by the owner's option C (decided 25 Oct): the donut's mix is read from the stored `asset_allocation` Analytics section (look-through numbers, no recompute); when that section is absent, stale or unusable, the Dashboard's shallow buckets are used instead. Spec: `Docs/orchestration/2026-10-23-home-functionality-backend-spec.md` section 5 (A1, A2, family bar). Run catalogue: `2026-10-24-ui-redesign-orchestrator-handoff.md` section 6, run **HB3b**.
 **Branch:** `feat/home-snapshot` (HB1 `511f1ef`, HB2 `4b4e4e1f`, HB3 `62d9a4f7`; PR #10, Draft). **Orchestrator:** Claude Code · **Worker:** Codex (manual relay). One working tree, one run at a time: do not switch branches. Shapes below are decided by the orchestrator and are exact; where the plan or spec is looser, this document wins.
 
@@ -164,13 +164,24 @@ Anything the code shows that this handoff did not say goes under Findings; behav
 ## Report (Codex fills this in at the end, in one fenced block)
 ```
 CODEX REPORT — ui-redesign — HB3b
-Run date/time:    Environment:    Python:    Baseline HEAD:
-1. TASK STATUS:
-2. FILES:
-3. TESTS (RED list, GREEN task runs, final fresh commands):
-4. DEVIATIONS (mechanics only):
-5. FINDINGS:
-6. OPEN QUESTIONS / BLOCKERS:
-7. SELF-REVIEW FINDINGS:
-8. CONFIRMATIONS: No git write commands:  Full suites not run:  Edits only in the allowed files:
+Run date/time: 2026-10-26 01:24 IST    Environment: Windows PowerShell host / Ubuntu WSL backend venv    Python: 3.14.4    Baseline HEAD: cca86ddd9ad398f18c0cfac4114001a87f2a911f
+1. TASK STATUS: DONE — Task 1 pure allocation functions and Task 2 read-only loader implemented test-first.
+2. FILES: New (untracked): backend/app/services/home/allocation.py and backend/tests/services/home/test_allocation.py. Modified: this Report block only. Pre-existing left alone: Web app UI mockups MFs.pdf (untracked). Staged: empty.
+3. TESTS (RED list, GREEN task runs, final fresh commands): Task 1 RED: listed Home command failed during collection with ModuleNotFoundError for app.services.home.allocation. Task 1 GREEN: `120 passed in 2.44s`. Task 2 RED: listed Home command failed during collection because load_allocation was deliberately absent. Initial Task 2 GREEN: `136 passed in 5.31s`. Self-review regression RED: missing fallback class rendered Decimal('0'), expected 0.01-quantized Decimal('0.00') (`1 failed, 136 passed`); GREEN/final fresh Home command `wsl.exe -d Ubuntu --cd "D:\Unifolio code\backend" -- .venv/bin/python -m pytest tests/services/home -q -p no:cacheprovider --disable-warnings` -> `137 passed in 7.36s`. Final fresh neighbours command with test_holdings.py, test_recompute.py, test_lookthrough_postgres.py, test_asset_allocation_lookthrough.py and test_lookthrough_cross_section_agreement.py -> `75 passed, 2 skipped in 9.25s`. Formatting/encoding checks: clean.
+4. DEVIATIONS (mechanics only): no executing-plan scratch ledger was created because the handoff limits edits to its three allowed targets. `git grep -l "_upsert_section" -- tests` found no tracked file, so the explicitly permitted tests/services/analytics/test_recompute.py was used. The asset-allocation grep also selected the Postgres look-through file; its two tests were skipped because no functional Postgres URL was configured.
+5. FINDINGS: app/core/decimal_utils.py confirms quantize_amount uses Decimal('0.01') with ROUND_HALF_UP, as the loader requires. No other facts beyond the handoff were found.
+6. OPEN QUESTIONS / BLOCKERS: none.
+7. SELF-REVIEW FINDINGS: fixed one contract defect test-first: missing fallback classes now retain the required 0.01 Decimal exponent instead of serialising as `0`. No unresolved findings.
+8. CONFIRMATIONS: No git write commands: yes. Full suites not run: yes. Edits only in the allowed files: yes.
 ```
+
+## Orchestrator record (26 Oct 2026)
+- **Scope check:** the two new files plus this Report block only; LF, no `float(`, nothing staged. Code read against the handoff: the parser (both payload shapes, every `None` case), the Home-owned bucket mapping, the exact split via `spread_cents`, and the loader (freshness against confirmed imports, `failed_at`, scope key, statement budget, no writes) match the handoff; no deviations.
+- **Defect found in Codex's tests (fixed by the orchestrator):** running `test_allocation.py` before `tests/services/analytics/test_recompute.py` made `test_generation_bump_mid_run_stops_stale_writes_and_allows_fresh_dispatch` fail. Cause: the read-only test patched `app.services.analytics.recompute.try_claim_recompute` and then, still inside the patch, imported `app.api.analytics`, which bound the mock for the rest of the session. Codex's own neighbours run missed it because of file order. Fixed with one top-of-file `import app.api.analytics` in the test (reproduced first with the two files in that order; both orders pass now).
+- **Defect found by my differential check, in HB3's `spread_cents` (Low, fixed test-first):** Decimal division rounded at 28 digits, so an exact tie (a third of a cent for several keys) was decided by rounding noise instead of key order, against the HB3 rule "ties by key ascending". Example: `24925.25` over weights 2, 8, 65, 0 gave the extra cent to `equity` instead of `debt`. `spread_cents` now works in exact fractions; new test `test_spread_cents_exact_ties_are_broken_by_key_not_by_division_noise` seen RED first. My HB3 differential reference had the same noise (so it never saw this); it now uses fractions too, and the HB3 runs are still 4,500 movers cases and 3,000 cents-helper cases with zero mismatches.
+- **Differential check (my script, not committed):** 4,000 random `build_allocation` cases (stored mix, optional family list) against an independent exact-fraction reference: the four live values, the percentages, the coming-soon rows, the family percentages and sums: zero mismatches after the fix; the bucket mapping on 15 categories and 1,000 random fallback sets: zero mismatches.
+- **Mutation check:** 35 deliberate bugs in `allocation.py`; 31 caught at first, 4 survived. I added two tests (percentages round half-up; an all-zero stored mix falls back) which close two. The two left are equivalent in practice: dropping the `nav_unavailable` test (real unavailable rows always have `current_value` None, so the second condition covers it) and the `or ""` on a missing category (the default already gives `""`).
+- **Independent test run:** 242 passed across `tests/services/home` (137 on Codex's tree plus 3 tests of mine: 2 in allocation, 1 in movers) and the neighbours (holdings, recompute, asset-allocation look-through, look-through, cap allocation, period consistency). Codex's skipped Postgres look-through tests need a functional Postgres URL and are not touched by this change.
+- **Review gate:** batched at the PR level (HB5), by the efficiency policy.
+- **Findings carried forward (Low, accepted):** the donut uses `as_disclosed` only (the Analytics page's arbitrage-as-cash toggle has no Home equivalent); the stored mix can be up to a day old (the daily recompute) while magnitudes are live; an opening-balance edit does not refresh the stored section until the next recompute (the freshness rule looks at imports only); in the fallback, Hybrid funds sit in Others.
+- **Next:** HB4 (T9 worth-a-look, T10 benchmark recommendation) waits for the Mutual Funds backend MB1 (the Smallcap 250 enum); HB5 (T11 routes and T12 synthetic gate). A route may need a `members` list for the family bar: it is the household's members in created order.
