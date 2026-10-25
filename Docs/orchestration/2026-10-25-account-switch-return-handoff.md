@@ -97,6 +97,27 @@ Run by the orchestrator in the built-in browser against a local backend and the 
 
 **Guard tests (S2.5, `2d8adc4`, `frontend/src/shell/guards.test.ts`):** every `--shell-*` variable used is defined and defined in all three theme blocks; no raw hex outside the token file; no `any`, `window.history` or `popstate`. Each rule was shown to fail on a planted violation. The T5 boundary tests (`/print/analytics`, legal paths, mobile viewport and `/mobile` bypass) already exist from S2.4 in `boundary.test.tsx` and `App.test.tsx`, so none were added.
 
+## 2d. S2.7 gate record (25 Oct 2026), shell PR 2 on `feat/shell-nav-switch`
+
+**Scope check:** `git diff origin/feat/shell-nav...HEAD` (the base exists locally only as `origin/feat/shell-nav`): 65 files before the fix pass, all in allowed areas (43 under `frontend/src/shell`, `App.tsx` and `App.test.tsx`, exactly the six listed deletions, 12 orchestration docs, `log.md`, `session.md`); no change under `frontend/src/mobile`, to any existing screen, `package.json` or the lockfile.
+
+**Verification (run by the orchestrator on the WSL-native copy):** `tsc -b` exit 0; `oxlint` 0 warnings on the PR's files (31 pre-existing warnings in 8-plus files this PR does not touch, for example `pie-context.tsx`, `OnboardingFlow.tsx`); `npm run build` OK; every shell variable tested is defined in the built CSS; full frontend suite **159 files, 1,425 tests, all passed** (113 s). The first full run (before the fix pass) had 1,422 green; after the fix pass one targeted run missed that `ShellRoot.test.tsx` needed the new auth mock and the full run caught it, which is the case for keeping one full run per fix pass.
+
+**Opus whole-branch review (read-only subagent, model opus): FAIL, 2 Medium + 4 Low, no High.** Each claim re-checked in the code before acting:
+
+| # | Finding | Decision |
+|---|---|---|
+| M1 | After switch-on no enabled control leads to the Mutual Funds Dashboard, History or Analytics: `/home`, `/portfolio` and Liabilities are placeholders (disabled), the Equity group shows only in Portfolio mode | **Verified, by design, owner decision needed on the PR note.** It is the staged rollout of decision L35 and contract section 10 ("landing is `/home`, Coming soon until the Home PR; everything is staged together at the end"). Consequence to state in the PR description: **do not deploy this PR (or its branch) to `feat/leapswitch-staging` / ls-staging alone**; testers would lose their dashboard. The manual check reached those pages by typing URLs, not by clicking |
+| M2 | A notice naming family members lives in history state; after logout the same tab's Back could show user A's notice to user B | **Verified and fixed** in `9eead9d`: the notice is written with `importNoticeUser` and shown only when it matches the current user; an unattributed notice is ignored. Three tests failed first (two wrapper cases, three updated `ImportProvider` expectations), now pass. Real privacy item, not covered by the accepted limitation |
+| L1 | Import health Back with `navigate(-1)` can cycle, land elsewhere or leave the app once "+ Add data" changes its history key | **Fixed** in `9eead9d`: Back now always replaces with Profile (the original Codex suggestion). New test (replace the entry, then Back) failed first |
+| L2 | Import header can name a different member than the one the upload targets when `?member=` is an id not in the household | Not fixed. Needs a stale or foreign link, and the backend refuses a member that is not in the household. Fixing it would delay mounting the import flow until members load. Revisit with the next import change |
+| L3 | The import focus layout's Back link is a push, so browser Back from the origin re-enters `/import` | Not fixed. PR 1 code with an owner-decided Back behaviour; revisit with L2 |
+| L4 | The merge test passed even if "select the merge target" was removed (a one-member household defaults to that member) | **Fixed** in `9eead9d`: three-member fixture; shown to fail when the `setMember(targetId)` line is removed, then restored |
+
+**Cleanly checked by Opus (read, not run):** no leftover references to the deleted files; tokens defined and reached from `App.tsx`; provider order; auth gating can never mount the shell outside a ready desktop user; StrictMode handling; scope reset rule and stale stored ids; redirects replace (no loops); wrapper prop parity with the old `MainDashboardFlow`.
+
+**Still open at this point:** the Codex whole-branch review (prompt in section 5c; relay is the owner's), then pushing `feat/shell-nav-switch` and opening its PR (owner's word first; ask whether to base it on `feat/shell-nav` while PR #9 is unmerged).
+
 ## 3. Review policy change (owner proposal 25 Oct, adopted; owner may veto)
 
 Opus reviews were the largest token cost. New rule:
@@ -141,6 +162,17 @@ Check independently:
 5. Any other Medium/Low in these four files, raw hex colours instead of var(--shell-*), any `any`, or files changed outside frontend/src/shell.
 
 Report PASS or FAIL, then findings High/Medium/Low with file:line. Do not pad.
+```
+
+## 5c. Prompt for Codex: whole-branch review of shell PR 2 (S2.7)
+
+```
+Adversarial read-only review (no edits, no git writes). Repo: D:\Unifolio code (WSL: /mnt/d/Unifolio code), branch feat/shell-nav-switch (already checked out). Review the whole PR: git diff origin/feat/shell-nav...HEAD (about 65 files, 38 non-merge commits). It moves the family-or-member scope out of the old MainDashboardFlow into ScopeProvider/ImportProvider, adds wrapper routes that render the existing screens unchanged, a temporary Mutual Funds tab strip, and switches the shell on in frontend/src/App.tsx. It deletes MainDashboardFlow, NavigationShell and DashboardPlaceholder (old content: git show d5b065a:<path>). Spec: Docs/orchestration/2026-10-22-nav-shell-contract-v1.md, Docs/superpowers/plans/2026-10-23-shell-pr2-scope-wrappers-switch.md, Docs/orchestration/2026-10-23-shell-reuse-vs-new.md section 3.
+Known and accepted, do not report: an import notice in history state can reappear on Back two or more steps later (owner accepted); the Lows under "Not fixed from the Opus final review" in Docs/orchestration/ui-redesign-session.md; the first portedFlow test timing out on a slow filesystem; the items an Opus whole-branch review already found and that commit 9eead9d fixed (a notice is shown only to the user it was written for, Import health Back replaces with Profile, a stronger merge test); no enabled path from the main sidebar to Mutual Funds until the Home and Portfolio pages go live (staged rollout, decision L35); the import header can name another member when ?member= is a foreign id; the import Back link is a push.
+
+Look for what only shows when the pieces are wired together: code reachable only through a path the app never imports; provider order and context availability across ShellRoot/AppLayout/FocusLayout; StrictMode double-effect problems; router history semantics (push vs replace, Back/Forward, Back memory in sessionStorage, redirects leaving duplicate entries or loops); scope reset and the persisted scope with a stale member id, or after a member is merged or deleted; App.tsx gating (loading, pending deletion, mobile, unauthenticated, onboarding incomplete, ReconsentGate) and that the router can never mount outside a ready desktop user; stale state when another user logs in in the same tab; keyboard and ARIA problems in the sidebar and top bar; parity of each wrapper with what MainDashboardFlow passed to the same screen; tests that assert a spy was called but never real behavior, or could pass vacuously; any leftover reference to the deleted files; anything under frontend/src/mobile or any existing screen modified; raw hex, any, new dependencies or lockfile changes.
+
+Report PASS or FAIL, then findings High/Medium/Low with file:line and a concrete failure scenario. Do not pad.
 ```
 
 ## 5b. Prompt for Codex: scoped re-review of `1c5a686` (USED 25 Oct, kept for the record; S2.4 is closed)
