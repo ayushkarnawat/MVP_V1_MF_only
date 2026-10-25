@@ -135,3 +135,69 @@ def test_post_opening_balance_resolves_gap(client, gap_setup):
     gaps_res = client.get(f"/household-members/{member_id}/coverage-gaps", headers=headers)
     assert gaps_res.status_code == 200
     assert len(gaps_res.json()) == 0
+
+
+def test_post_opening_balance_invalidates_holdings_cache(client, gap_setup, monkeypatch):
+    from app.api import cas_imports
+
+    headers, member_id, folio_id = gap_setup
+    invalidated = []
+    monkeypatch.setattr(cas_imports, "invalidate_holdings_cache", invalidated.append, raising=False)
+
+    response = client.post(
+        f"/folios/{folio_id}/opening-balance",
+        headers=headers,
+        json={
+            "units": "50.000",
+            "date": "2024-01-01",
+            "amount": "5000.00",
+            "nav": "100.0000",
+        },
+    )
+
+    assert response.status_code == 201
+    assert invalidated == [member_id]
+
+
+def test_post_opening_balance_does_not_invalidate_on_bad_payload(client, gap_setup, monkeypatch):
+    from app.api import cas_imports
+
+    headers, _member_id, folio_id = gap_setup
+    invalidated = []
+    monkeypatch.setattr(cas_imports, "invalidate_holdings_cache", invalidated.append, raising=False)
+
+    response = client.post(
+        f"/folios/{folio_id}/opening-balance",
+        headers=headers,
+        json={
+            "units": "abc",
+            "date": "2024-01-01",
+            "amount": "5000.00",
+            "nav": "100.0000",
+        },
+    )
+
+    assert response.status_code == 400
+    assert invalidated == []
+
+
+def test_post_opening_balance_does_not_invalidate_for_unknown_folio(client, gap_setup, monkeypatch):
+    from app.api import cas_imports
+
+    headers, _member_id, _folio_id = gap_setup
+    invalidated = []
+    monkeypatch.setattr(cas_imports, "invalidate_holdings_cache", invalidated.append, raising=False)
+
+    response = client.post(
+        f"/folios/{uuid.uuid4()}/opening-balance",
+        headers=headers,
+        json={
+            "units": "50.000",
+            "date": "2024-01-01",
+            "amount": "5000.00",
+            "nav": "100.0000",
+        },
+    )
+
+    assert response.status_code == 400
+    assert invalidated == []
