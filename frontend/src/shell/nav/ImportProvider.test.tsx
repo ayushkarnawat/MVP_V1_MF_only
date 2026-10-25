@@ -11,6 +11,7 @@ import { useImport } from "../scope/ScopeContext";
 import { ImportProvider } from "./ImportProvider";
 
 vi.mock("../../features/import/casResumeState", () => ({ clearCasResumeStep2: vi.fn() }));
+vi.mock("../../features/auth/AuthContext", () => ({ useAuth: () => ({ me: { user_id: "u-1" } }) }));
 const flow = vi.hoisted(() => ({ mounted: [] as string[], unmounted: [] as string[] }));
 vi.mock("../../features/import/ImportFlow", () => ({ ImportFlow: ({ householdMemberId, onDone }: { householdMemberId: string; onDone: (notice?: { text: string; details?: string[] }) => void }) => {
   useEffect(() => { flow.mounted.push(householdMemberId); return () => { flow.unmounted.push(householdMemberId); }; }, [householdMemberId]);
@@ -89,7 +90,7 @@ it.each(["/portfolio", "/home", undefined])("replaces import with its completion
   mountImport({ path: "/import?member=b", origin });
   fireEvent.click(await screen.findByRole("button", { name: "Complete import" }));
   const destination = origin === "/portfolio" ? "/portfolio" : "/portfolio/mutual-funds";
-  await waitFor(() => expect(JSON.parse(screen.getByTestId("location").textContent!)).toEqual({ path: destination, state: { importNotice: { text: "Imported", details: ["Ready"] } } }));
+  await waitFor(() => expect(JSON.parse(screen.getByTestId("location").textContent!)).toEqual({ path: destination, state: { importNotice: { text: "Imported", details: ["Ready"] }, importNoticeUser: "u-1" } }));
   await waitFor(() => expect(clearCasResumeStep2).toHaveBeenCalledWith("b"));
   fireEvent.click(screen.getByRole("button", { name: "History back" }));
   await waitFor(() => expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/earlier"));

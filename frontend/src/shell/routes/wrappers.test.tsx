@@ -17,7 +17,7 @@ import { renderInShell } from "../testing";
 import { buildRegistry } from "../registry/buildRegistry";
 
 const auth = vi.hoisted(() => ({
-  me: { email: "alice@example.test", phone_number: "123" } as { email: string | null; phone_number: string | null } | null,
+  me: { user_id: "u-1", email: "alice@example.test", phone_number: "123" } as { user_id: string; email: string | null; phone_number: string | null } | null,
   logout: vi.fn(), requestAccountDeletion: vi.fn(), requestContactChange: vi.fn(), verifyContactChange: vi.fn(),
 }));
 vi.mock("../../features/auth/AuthContext", () => ({ useAuth: () => auth }));
@@ -44,14 +44,15 @@ const refreshMembers = vi.fn();
 const scope = { viewMode: "member" as const, memberId: "b", members, refreshMembers };
 beforeEach(() => {
   vi.clearAllMocks();
-  auth.me = { email: "alice@example.test", phone_number: "123" };
+  auth.me = { user_id: "u-1", email: "alice@example.test", phone_number: "123" };
 });
 
 function Location() {
   const location = useLocation();
   const navigate = useNavigate();
   return <><output data-testid="location">{JSON.stringify({ path: location.pathname + location.search + location.hash, state: location.state })}</output>
-    <button onClick={() => { void navigate(-1); }}>History back</button><button onClick={() => { void navigate(1); }}>History forward</button></>;
+    <button onClick={() => { void navigate(-1); }}>History back</button><button onClick={() => { void navigate(1); }}>History forward</button>
+    <button onClick={() => { void navigate(location.pathname, { replace: true }); }}>Replace here</button></>;
 }
 
 function mount(path: string, state?: unknown) {
@@ -80,7 +81,7 @@ it.each(["member", "aggregate"] as const)("passes %s scope and callbacks to Anal
 
 it("passes the import notice then replaces the same URL with cleared state on dismissal", async () => {
   const notice = { text: "Imported", details: ["Ready"] };
-  mount("/portfolio/mutual-funds?period=1#holdings", { importNotice: notice });
+  mount("/portfolio/mutual-funds?period=1#holdings", { importNotice: notice, importNoticeUser: "u-1" });
   await screen.findByRole("heading", { name: "Dashboard screen" });
   expect(vi.mocked(DashboardView).mock.calls.at(-1)?.[0].importNotice).toEqual(notice);
   fireEvent.click(screen.getByRole("button", { name: "Dismiss notice" }));
@@ -131,6 +132,23 @@ it("uses Profile's account-holder and contact fallbacks", async () => {
 it("Import health's Back lands on Profile even when deep-linked with no history to go back to", async () => {
   mount("/profile/import-health");
   await screen.findByRole("heading", { name: "Import health screen" });
+  fireEvent.click(screen.getByRole("button", { name: "Health back" }));
+  await screen.findByRole("heading", { name: "Profile screen" });
+});
+
+it.each([
+  ["another user's", { importNotice: { text: "Ramesh: 9 added" }, importNoticeUser: "u-2" }],
+  ["an unattributed", { importNotice: { text: "Ramesh: 9 added" } }],
+])("does not show %s import notice left in browser history", async (_label, state) => {
+  mount("/portfolio/mutual-funds", state);
+  await screen.findByRole("heading", { name: "Dashboard screen" });
+  expect(vi.mocked(DashboardView).mock.calls.at(-1)?.[0].importNotice).toBeNull();
+});
+
+it("Import health's Back lands on Profile after its own history entry was replaced (no leaving the app)", async () => {
+  mount("/profile/import-health");
+  await screen.findByRole("heading", { name: "Import health screen" });
+  fireEvent.click(screen.getByRole("button", { name: "Replace here" }));
   fireEvent.click(screen.getByRole("button", { name: "Health back" }));
   await screen.findByRole("heading", { name: "Profile screen" });
 });

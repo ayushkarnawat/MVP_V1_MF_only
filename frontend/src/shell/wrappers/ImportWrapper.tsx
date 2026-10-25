@@ -4,12 +4,14 @@ import { ShieldCheck, User } from "lucide-react";
 import { ImportFlow } from "../../features/import/ImportFlow";
 import { clearCasResumeStep2 } from "../../features/import/casResumeState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { useAuth } from "../../features/auth/AuthContext";
 import { useScope } from "../scope/ScopeContext";
 import { ImportHeaderContext } from "../nav/ImportProvider";
 import { importDoneTarget } from "../nav/importDoneTarget";
 
 export default function ImportWrapper() {
   const { members, memberId, viewMode } = useScope();
+  const { me } = useAuth();
   const [search] = useSearchParams();
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -59,7 +61,9 @@ export default function ImportWrapper() {
     <h1 className="sr-only">Add data</h1>
     <div className="space-y-8">
       {targetAddMemberId && <ImportFlow key={targetAddMemberId} householdMemberId={targetAddMemberId} onDone={notice => {
-        void navigate(importDoneTarget(typeof origin === "string" ? origin : undefined), { replace: true, state: { importNotice: notice ?? null } });
+        // The notice names family members and lives in history state, which outlives a logout in the same tab:
+        // it carries the user it was written for so another user's Back press never shows it.
+        void navigate(importDoneTarget(typeof origin === "string" ? origin : undefined), { replace: true, state: { importNotice: notice ?? null, importNoticeUser: me?.user_id ?? null } });
       }} />}
       <div className="flex items-center justify-center gap-2 text-[11px] text-[var(--color-text-secondary)] pt-4 border-t border-[var(--color-border)]/60">
         <ShieldCheck className="h-4 w-4 text-[var(--color-positive)]" />

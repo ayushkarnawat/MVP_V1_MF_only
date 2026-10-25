@@ -172,17 +172,20 @@ it("shows Edit profile instead of the nudge for a complete member", async () => 
 });
 
 it("merging from the real profile dialog selects the target member", async () => {
-  vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([alice, { ...ramesh, pan_masked: null, pan_editable: true }]);
-  vi.mocked(authApi.updateMemberProfile).mockRejectedValue(new ApiError(409, { code: "pan_belongs_to_other_member", message: "x", details: { can_merge: true, other_member_id: "m-1", other_member_name: "Alice", source_fund_count: 1 } }));
+  // Three members, merging into the third: with only one member left a household defaults to that member, so a
+  // two-member fixture would pass even if the merge never selected its target.
+  const carol = { ...ramesh, id: "m-3", name: "Carol Mehta", pan_masked: "CQ******9K", profile_completion: 100, missing_fields: [] };
+  vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([alice, { ...ramesh, pan_masked: null, pan_editable: true }, carol]);
+  vi.mocked(authApi.updateMemberProfile).mockRejectedValue(new ApiError(409, { code: "pan_belongs_to_other_member", message: "x", details: { can_merge: true, other_member_id: "m-3", other_member_name: "Carol Mehta", source_fund_count: 1 } }));
   vi.mocked(authApi.mergeMemberInto).mockResolvedValue({ folios_moved: 1, transactions_dropped: 0 });
   await openRamesh(); fireEvent.click(await screen.findByText(/40% complete/));
   await screen.findByRole("heading", { name: "Complete Ramesh Sharma’s profile" });
-  vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([alice]);
+  vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([alice, carol]);
   fireEvent.change(screen.getByLabelText("PAN"), { target: { value: "BXQPS5678L" } });
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
   fireEvent.click(await screen.findByRole("button", { name: /Merge/ }));
-  await waitFor(() => expect(authApi.mergeMemberInto).toHaveBeenCalledWith("m-2", "m-1"));
-  await waitFor(() => expect(dashboardApi.getMemberHoldings).toHaveBeenLastCalledWith("m-1", expect.anything()));
+  await waitFor(() => expect(authApi.mergeMemberInto).toHaveBeenCalledWith("m-2", "m-3"));
+  await waitFor(() => expect(dashboardApi.getMemberHoldings).toHaveBeenLastCalledWith("m-3", expect.anything()));
 });
 
 it("Change in Account Info opens the Profile route and its sections", async () => {
