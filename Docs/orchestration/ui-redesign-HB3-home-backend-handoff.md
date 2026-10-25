@@ -142,7 +142,7 @@ Tests first, in `backend/tests/services/home/test_summary.py`: greeting boundari
 ---
 
 ## Deferred from this run (do not build)
-- **T7 allocation (`allocation.py`)**: the spec (section 5, A1) says the donut comes from the look-through `compute_asset_allocation`, while the plan's T7 test says it must equal the Dashboard allocation (`compute_allocation`, the shallow by-category buckets Equity, Debt, Hybrid, Other). They give different numbers for hybrid and gold funds, the look-through normalises to covered value, and it is the heavy analytics path. This needs the **owner's decision** and will be a small run (HB3b) after it.
+- **T7 allocation (`allocation.py`)**: the spec (section 5, A1) says the donut comes from the look-through `compute_asset_allocation`, while the plan's T7 test says it must equal the Dashboard allocation (`compute_allocation`, the shallow by-category buckets Equity, Debt, Hybrid, Other). They give different numbers for hybrid and gold funds, the look-through normalises to covered value, and it is the heavy analytics path. **The owner decided option C on 25 Oct** (read the stored `asset_allocation` Analytics section, look-through numbers with no recompute, and fall back to the Dashboard buckets when it is absent). It will be a small run (HB3b) after this one; do nothing about it here.
 - Any route, schema, migration, enum value or model change; the benchmark loader; `worth.py`; `recommend_benchmark`. No edit to `holdings.py`, `nav.py`, `series.py` or any Dashboard code.
 
 ## Test commands (run only these; no full suite)
