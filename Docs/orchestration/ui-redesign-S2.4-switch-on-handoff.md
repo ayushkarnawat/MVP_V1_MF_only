@@ -21,3 +21,33 @@ CODEX REPORT block, run label S2.4 (template in `ui-redesign-HB1-compute-holding
 
 ## Orchestrator record
 Codex report DONE (916 tests in the affected set, tsc, oxlint, build green). Orchestrator re-ran the same command with --maxWorkers=2: 92 files / 916 tests passed, tsc clean, oxlint clean, build OK. Checked: App.tsx diff is only the import and the desktop render swap; old tests counted 15 + 7 + 8 = 30, all mapped in Codex's PORT MAP by name; no remaining references to MainDashboardFlow/NavigationShell/DashboardPlaceholder/unifolioTab. Accepted deviation: profile.route.tsx flipped live so the /profile redirect link is enabled. Codex report is in the S2.4 chat transcript (PORT MAP: P01-P15 in shell/portedFlow.test.tsx; navigation tests mapped to P01-P04/P13/P03/P02 and FamilySelector tests; App tests mapped 1:1 in App.test.tsx). PENDING: row-by-row semantic check of portedFlow.test.tsx against the old assertions, Codex review, Opus review.
+
+**2026-10-25, account transfer, reconstructed row-by-row (Codex's original table was never saved to a file, only to the prior laptop's chat transcript — rebuilt independently from git history at `d5b065a`):**
+
+| # | Old test (file) | New test (file) | Note |
+|---|---|---|---|
+| 1 | records tab changes in browser history and restores Dashboard on Back (MainDashboardFlow) | records Analytics and Planning URLs and restores Dashboard on Back (portedFlow #1) | history state → URL assertions, as the handoff's own rule anticipates |
+| 2 | opens the History tab and keeps it on Back/Forward (MainDashboardFlow) | opens History and keeps it on Back/Forward with ordered enabled tabs (portedFlow #2) | |
+| 3 | opens Profile as a history-backed tab with account controls (MainDashboardFlow) | opens Profile from the sidebar with account controls and no chrome logout (portedFlow #3) | |
+| 4 | fetches household members and defaults landing view (MainDashboardFlow) | fetches household members and defaults to aggregate with one theme toggle and shell chrome (portedFlow #4) | |
+| 5 | renders exactly one theme toggle on the Add Data screen (MainDashboardFlow) | renders exactly one theme toggle on Add Data and leaves through Back (portedFlow #5) | |
+| 6 | picking a detected member opens their dashboard (MainDashboardFlow) | picking a detected member fetches their dashboard without automatically opening a dialog (portedFlow #6) | |
+| 7 | shows the nudge for an incomplete member on dashboard and analytics tabs (MainDashboardFlow) | shows the incomplete-member nudge on Dashboard and Analytics but not aggregate, Profile or Planning (portedFlow #7) | strengthened: now also asserts absence elsewhere |
+| 8 | clicking the nudge opens Complete profile; saving reloads members and keeps the dialog's own stage (MainDashboardFlow) | saving Complete profile reloads members and preserves the dialog's warning stage (portedFlow #8) | |
+| 9 | pan conflict member shows the red banner (MainDashboardFlow) | shows a PAN conflict banner for the selected member (portedFlow #9) | |
+| 10 | a complete member shows Edit profile instead of the nudge (MainDashboardFlow) | shows Edit profile instead of the nudge for a complete member (portedFlow #10) | |
+| 11 | merge from the profile dialog re-targets selection (MainDashboardFlow) | merging from the real profile dialog selects the target member (portedFlow #11) | |
+| 12 | Change in Account Info takes a Self member to the Profile tab (MainDashboardFlow) | Change in Account Info opens the Profile route and its sections (portedFlow #12) | tab → route |
+| 13 | Add data picker lists every member enabled (MainDashboardFlow) | all member options are enabled, undecorated and selectable for scope and Add data (portedFlow #13) | broadened to cover scope selector too |
+| 14 | shows and dismisses the dashboard notice after a duplicate import closes (MainDashboardFlow) | shows and dismisses the duplicate import notice after returning from Analytics (portedFlow #14) | |
+| 15 | shows the success notice and family details after returning to the dashboard (MainDashboardFlow) | shows the success notice and family details after returning to Dashboard (portedFlow #15) | exact match |
+| 16 | opens Scenarios from the desktop navigation (NavigationShell) | renders Scenarios without props (`routes/wrappers.test.tsx`), plus Go-Planning assertions in portedFlow #1 | route-level, not a mocked tab prop |
+| 17 | renders header, logo mark, and enabled Analytics nav item (NavigationShell) | shows the main menu, shared footer and the existing logo (`layout/Sidebar.test.tsx`) + live/disabled link pattern across Sidebar.test.tsx | header → Sidebar/TopBar split |
+| 18 | triggers tab switch when Analytics button is clicked (NavigationShell) | portedFlow #1 (real URL navigation on Analytics click) | strictly stronger: real nav vs. a spied callback |
+| 19 | switches view mode when toggle buttons are clicked (NavigationShell) | **RETIRED** | the old top-bar Family/Per Member toggle no longer exists; replaced by `FamilySelector`'s combobox (`layout/FamilySelector.test.tsx`) — exactly the retirement case the handoff's Task 1 names by name |
+| 20 | opens Profile from the header without rendering logout there (NavigationShell) | opens Profile from the sidebar with account controls and no chrome logout (portedFlow #3) | same test, header → sidebar |
+| 21 | no member shows a lock icon or a %; every pick calls onMemberSelect (NavigationShell) | all member options are enabled, undecorated and selectable for scope and Add data (portedFlow #13, line 200) | the `svg.lucide-lock` / `%` assertions are reused verbatim |
+| 22 | shows History between Dashboard and Analytics and switches to it (NavigationShell) | opens History and keeps it on Back/Forward with ordered enabled tabs (portedFlow #2, line 84 order assertion) | Scenarios/Planning moved out of this tab group into a separate sidebar-level nav item, so it's correctly absent from this particular order check |
+| 23-30 | all 8 `App.test.tsx` old tests | all present in current `App.test.tsx` under the same names, except "shows DashboardPlaceholder..." → "shows the Home shell..." | the rename **is** the point of S2.4 (placeholder replaced by the live shell); current `App.test.tsx` also adds one new test (explicit mobile-route bypass at desktop width) not present before — an addition, not a loss |
+
+**Result: 30/30 old tests accounted for.** 29 have a confirmed new home (several strengthened, several renamed to match the new routing/component names); 1 (#19, the Family/Per Member toggle) is retired for the exact reason the handoff itself pre-authorizes. No silent loss of coverage found. PORT MAP row-by-row check: **done.**
