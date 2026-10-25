@@ -118,6 +118,24 @@ Run by the orchestrator in the built-in browser against a local backend and the 
 
 **Still open at this point:** the Codex whole-branch review (prompt in section 5c; relay is the owner's), then pushing `feat/shell-nav-switch` and opening its PR (owner's word first; ask whether to base it on `feat/shell-nav` while PR #9 is unmerged).
 
+## 2e. S2.7 second round (25 Oct 2026): Codex whole-branch review, owner decisions, fix pass 2
+
+**Codex whole-branch review (relayed by the owner): FAIL, 1 Medium, no High.** It returned two reports; both carry the same Medium, the first also had a Low.
+- **Medium:** the saved scope had no page recorded, so opening a different sidebar row by address bar (for example `/portfolio/debt`, pick Bob, then type `/portfolio/mutual-funds`) restored Bob instead of resetting to Family Combined. Verified, fixed: the saved scope now records its page (`path` in `unifolio.shell.scope`) and a fresh load applies the same cross-row reset rule; a reload of the same row still restores the member; a save without a page behaves as before. Tests failed first.
+- **Low:** my Import health fix (always replace with Profile) left a duplicate Profile entry (Home, Profile, Import health, Back, browser Back showed Profile again). Fixed: Profile marks the entry it pushes (`state.from = "profile"`); Back then pops straight to it; with no mark (deep link, rewritten entry) Back replaces with Profile. Test failed first.
+
+**Owner answers and instructions (25 Oct):**
+- Profile name: real onboarding appends "(Me)", so the name derivation matches the old code exactly. **Resolved, no action.**
+- Equity on a child page: the owner wants it collapsible. **Implemented and written into the contract:** it opens by itself when navigation lands on one of its pages, the user may collapse and re-expand it there, the stored choice is untouched while on a child page, and it reopens on the next landing on a child. Section 3 and the PR 2 change-log entry of the contract carry the wording.
+- "Fix the Lows as well": **done** for L2 (a `?member=` id outside the household is ignored, so header and upload name the same member; while the household is still loading the id is used as is) and L3 (the import Back link pops to its origin when there is an earlier entry; with none, as for a deep link, it goes to the origin). Both with tests that failed first.
+- Batching strategy: confirmed. It is recorded in section 3b and was used here: one full run per fix pass, Opus and Codex on the same diff at the final gate. (Honest note: the owner relayed Codex after the first fix pass, so there were two fix passes instead of one; the cost was small on the fast path.)
+
+**Still by design, explained to the owner (M1):** with the shell on, `/home` is a Coming soon page and Home, Portfolio and Liabilities are disabled, so there is no enabled path to the Mutual Funds pages until the Home and Portfolio pages exist. That is the staged rollout of decision L35 (everything is switched on together at the end). The PR description must say not to deploy this branch to staging alone. If the owner wants testers able to reach the dashboard before then, a temporary link (for example enabling Portfolio to open Mutual Funds) is a small separate change and a contract change; not done.
+
+**Gate after fix pass 2 (orchestrator, WSL-native copy):** `tsc -b` 0; `oxlint` 0 warnings on the PR's files; build OK; shell variables in the built CSS; full frontend suite **159 files, 1,435 tests, all passed**. Code commit `f18d215` and docs commit `2ee6062` on `feat/shell-nav-switch`.
+
+**What is left for S2.7:** the owner's word to push `feat/shell-nav-switch` and open its PR into `leapswitch-redesign` (ask whether to base it on `feat/shell-nav` while PR #9 is unmerged); then ask which track next.
+
 ## 3. Review policy change (owner proposal 25 Oct, adopted; owner may veto)
 
 Opus reviews were the largest token cost. New rule:
