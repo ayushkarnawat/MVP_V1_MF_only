@@ -71,6 +71,32 @@ Then, in order: S2.5 (Claude: boundary/landing tests plus a manual browser check
 
 **Backlog explicitly not touched:** the deferred fixes in the session file (`xlwt` in `backend/requirements.txt`, the 5000 ms cold-import timeout), to be done after all waves, per the owner.
 
+## 2c. S2.5 record (25 Oct 2026): manual browser check PASSED, guard tests added
+
+Run by the orchestrator in the built-in browser against a local backend and the dev server with a seeded synthetic couple (`r2_couple_rohan_priya_10yr.pdf`: Rohan self, Priya detected; 651 transactions; recipe in `2026-10-25-local-qa-environment.md`). The check also confirms the S2.3+S2.4 Opus High fix in a real browser: the shell's styles load. Nothing needed a code fix.
+
+| T5 item | Result |
+|---|---|
+| Both sidebar modes | Main (Home, Portfolio, Liabilities, Planning) and Portfolio mode (Back, Investments, Equity group, Debt, Gold, Real Estate, Others) render; footer (Profile, Help & Support) in both |
+| Equity expand/collapse by mouse and keyboard | Mouse expand and collapse work; Enter expands once and Space collapses once; it never navigates (this also shows the listed Low "Equity double-handles Enter/Space" has no visible effect) |
+| Greyed rows and tooltip; focus ring on every row | "Coming soon" tooltip on greyed rows; every sidebar row, live or greyed, gets a 1.6 px solid accent outline when focused |
+| Deep link and refresh on `/portfolio/mutual-funds/holdings` | Loads in Portfolio mode with Mutual Fund active; the placeholder page is expected (holdings is not a live page); the MF tab strip is correctly absent there |
+| Back after Profile; Back after a deep link | Browser Back from Profile returns to the previous page. The sidebar Back row goes to the remembered main page (`unifolio.shell.back`), else Home (verified with session storage cleared) |
+| Scope rule, two members | Priya picked on Dashboard, kept on History and Analytics, reset to Family Combined after Profile and Back; the incomplete-member banner ("40% complete · Finish profile") shows for Priya |
+| `/import` focus layout and Back | No sidebar, Back link, member chip and theme toggle; Back returns to the page it came from |
+| `/portfolio/equity` | Redirects to `/portfolio/mutual-funds` |
+| Narrowing below 768 px | At 700 px the separate mobile tree renders (Mobile Navigation: Dashboard, Analytics, Scenarios, Import); no desktop sidebar |
+| Existing screens unchanged inside the page area | Dashboard (tiles, allocation donut, SIPs), History chart, Import, Profile render correctly in light and dark; figures match the statement (invested 45.56 L vs 45.6 L stated) |
+
+**Not covered, said plainly:** the Analytics page was still on its loading skeleton when I looked (its computation is slow on a fresh import), so its full content was not inspected; a real phone; staging data; PDF export (the local backend skips the PDF browser); the 7-point check of the individual fund page or any page from later waves.
+
+**Raised for the owner (not fixed; none is a shell regression):**
+1. **Profile name:** Account Info shows "Account holder" unless a member name ends in "(Me)". This is identical to the old `MainDashboardFlow` code (line 292), so it is parity, but in this seeded account the self member is plain `ROHAN VIJAY KULKARNI`. Worth confirming that real onboarding appends "(Me)"; if it does not, Profile always shows the fallback (a pre-existing item).
+2. **Equity on a child page:** clicking Equity while one of its child pages is open does not collapse it. The contract says the group "opens by itself" on a child path and does not say whether the user may collapse it then. Tell me if you want it collapsible.
+3. **Title wording:** the Analytics tab reads "Analytics" but the browser tab title says "Other Analytics" (registry title). Cosmetic.
+
+**Guard tests (S2.5, `2d8adc4`, `frontend/src/shell/guards.test.ts`):** every `--shell-*` variable used is defined and defined in all three theme blocks; no raw hex outside the token file; no `any`, `window.history` or `popstate`. Each rule was shown to fail on a planted violation. The T5 boundary tests (`/print/analytics`, legal paths, mobile viewport and `/mobile` bypass) already exist from S2.4 in `boundary.test.tsx` and `App.test.tsx`, so none were added.
+
 ## 3. Review policy change (owner proposal 25 Oct, adopted; owner may veto)
 
 Opus reviews were the largest token cost. New rule:
