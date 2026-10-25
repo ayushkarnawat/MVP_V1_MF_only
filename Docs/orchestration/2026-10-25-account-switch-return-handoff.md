@@ -40,7 +40,8 @@
 | Independent verification and PORT MAP 30/30 | done |
 | Codex adversarial review S2.3+S2.4 | FAIL (1 Medium), fixed `a7ef402`, Codex scoped re-review PASS |
 | Opus review S2.3+S2.4 | FAIL (1 High, 2 Medium, 3 Low); High and one Medium fixed `7440ed9` |
-| Codex scoped re-review of `7440ed9` | **PENDING, relay to Codex (prompt in section 5)** |
+| Codex scoped re-review of `7440ed9` | FAIL, 1 Medium (Import health Back pushed `/profile`, leaving a Back loop) + 1 Low (token reachability test matched commented imports). Both fixed test-first in `1c5a686` (RED confirmed for each; affected set 920/921, only the known cold-import flake; tsc, oxlint, build clean, run from the desktop session via WSL) |
+| Codex scoped re-review of `1c5a686` | **PENDING, relay to Codex (prompt in section 5b)** |
 | Open Opus Medium (import notice can resurface 2+ Back-hops away; closing it means changing locked decision 6) | **DECIDED 25 Oct: accepted as a documented limitation, revisit in I1** |
 | S2.4 marked DONE | blocked only on the Codex re-review of `7440ed9` |
 
@@ -82,6 +83,20 @@ Check independently:
 3. ImportHealthWrapper: paths.profile() is a push, not a pop. After Profile -> Import health -> Back, does browser Back now return to Import health (a Back loop)? Compare with how FocusLayout and modeMemory handle Back. Is replace or the Back-memory helper the right primitive here, and is there any other entry point to /profile/import-health in the registry besides Profile?
 4. wrappers.test.tsx: does the new deep-link test assert real behavior (a rendered Profile screen via URL) and would it fail with the old navigate(-1)?
 5. Any other Medium/Low in these four files, raw hex colours instead of var(--shell-*), any `any`, or files changed outside frontend/src/shell.
+
+Report PASS or FAIL, then findings High/Medium/Low with file:line. Do not pad.
+```
+
+## 5b. Prompt for Codex: scoped re-review of `1c5a686` (current one to relay)
+
+```
+Scoped read-only re-review (no edits, no git writes). Repo: D:\Unifolio code (WSL: /mnt/d/Unifolio code), branch feat/shell-nav-switch (already checked out). You previously reviewed 7440ed9 and reported: Medium, ImportHealthWrapper's Back pushed /profile and left Import health one browser Back away (a Back loop); Low, shellTokensReachable.test.ts matched commented-out imports. Review commit 1c5a686 only (git show 1c5a686). It touches frontend/src/shell/wrappers/ImportHealthWrapper.tsx, frontend/src/shell/routes/wrappers.test.tsx and frontend/src/shell/shellTokensReachable.test.ts.
+
+Check independently:
+1. Does the new onBack (navigate(-1) when location.key is not "default", otherwise navigate to paths.profile() with replace) close the Back loop for Profile -> Import health -> Health back -> browser Back? Is there any in-app way to reach /profile/import-health where navigate(-1) would land somewhere other than Profile (check the registry and every caller of paths for it), or where the "default" key check misfires (refresh, StrictMode, MemoryRouter vs BrowserRouter)?
+2. Does the new test "no Back loop" in wrappers.test.tsx really fail against the previous push-based onBack, and does it assert real history behavior rather than a mock call?
+3. shellTokensReachable.test.ts: does the comment stripping (block comments and whole-line // comments) remove commented imports without hiding a real one (for example a "//" inside an import string, a trailing comment after a real import, a multi-line import)? Does the new commented-imports test fail without the stripping?
+4. Any other Medium/Low in these three files, raw hex colours, any `any`, or files changed outside frontend/src/shell.
 
 Report PASS or FAIL, then findings High/Medium/Low with file:line. Do not pad.
 ```
