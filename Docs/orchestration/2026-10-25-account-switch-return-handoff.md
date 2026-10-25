@@ -59,6 +59,14 @@ Opus reviews were the largest token cost. New rule:
 - Reason this is safe, and the one thing to keep: the S2.3+S2.4 Opus review caught a High that two Codex rounds missed (the shell token stylesheet was never imported, so every `--shell-*` variable was undefined in the built app). That was a whole-wiring defect, which is exactly what an end-of-PR whole-branch review is for. So every final Opus gate must include a **built-output check**: grep `dist/assets/*.css` for definitions of each `--shell-*` variable used, plus a manual run of the app, since jsdom ignores stylesheets.
 - This replaces the 24 Oct blanket Opus approval list. Update the "Opus blanket approval" line in `ui-redesign-session.md` when the owner confirms.
 
+## 3b. Efficiency changes (owner approved 25 Oct, apply from S2.5 onward)
+
+1. **Speed the machine side first.** The repo sits on the Windows `D:` drive, which WSL reads slowly (last full run: tests 66 s, environment 900 s and import 739 s summed across workers). Measure a copy on WSL's own disk (for example `~/unifolio`) against the current path before changing any workflow; use `vitest related <files>` for fix commits.
+2. **Fewer full runs.** A full affected-set run once per PR at the final gate (S2.7). Fix commits and test-only changes get targeted runs plus `tsc` and `oxlint`.
+3. **No re-review of Lows or test-only fixes.** Per-run Codex review only for risky runs (changes what users see, touches shared code, or is a foundation later runs build on). Otherwise batch Codex per PR, and at the final gate run Codex and Opus on the same diff in parallel with one fix pass.
+4. **Recurring review findings become automatic checks.** Guard tests under `frontend/src/shell`: every `--shell-*` variable used is defined in the token stylesheet; no raw hex in the shell; no `any`, `window.history` or `popstate`. Added in S2.5.
+5. Keep the independent PORT MAP-style verification whenever a screen is replaced, and the built-output check at every final gate.
+
 ## 4. Import-notice item: DECIDED 25 Oct 2026, accepted as a documented limitation (revisit in I1; listed under unfixed Lows in the session file)
 
 The text below is the background and the original recommendation, kept for the record.
