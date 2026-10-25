@@ -7,7 +7,21 @@
 ## 1. Hazards specific to switching (read first)
 
 1. **One checkout, two sessions.** Both sessions work in the same folder (`D:\Unifolio code`, seen from WSL as `/mnt/d/Unifolio code`). Only one session may be active at a time. A second one doing `git checkout` or `git stash` changes the branch under the first. First command in every session: `git branch --show-current; git status --short`.
-2. **Where checks run.** `frontend/node_modules` holds only Linux native bindings (`@rolldown/binding-linux-x64-*`, `@oxlint/binding-linux-x64-*`). Run `vitest`, `tsc -b`, `oxlint` and `npm run build` from **WSL Ubuntu** (node 20), never from Windows PowerShell or Git Bash. Windows sessions do git, docs and reading only, or call `wsl.exe -d Ubuntu -- bash <script>` (put the commands in a script file; paths with spaces break inline quoting).
+2. **Where checks run.** `frontend/node_modules` holds only Linux native bindings (`@rolldown/binding-linux-x64-*`, `@oxlint/binding-linux-x64-*`), so `vitest`, `tsc -b`, `oxlint` and `npm run build` must execute in **WSL Ubuntu** (node 20), not natively on Windows. A Windows desktop session **can** run them: it calls WSL from PowerShell. Verified 25 Oct from the desktop app: `tsc -b` exit 0 in 16 s, one vitest file in about 35 s. Recipe (paths with spaces break inline quoting, so use a script file; call it from PowerShell, not Git Bash, which rewrites `/mnt/...` paths):
+   ```bash
+   # wsl-fe.sh (keep it outside the repo, e.g. the session scratchpad)
+   cd "/mnt/d/Unifolio code/frontend" || exit 1
+   cmd="$1"; shift
+   case "$cmd" in
+     tsc) npx tsc -b ;; oxlint) npx oxlint src/shell ;; build) npm run build ;;
+     test) npx vitest run "$@" --maxWorkers=2 ;;
+   esac
+   echo "EXIT=$?"
+   ```
+   ```powershell
+   wsl.exe -d Ubuntu -- bash /mnt/c/<path-to>/wsl-fe.sh test src/shell/portedFlow.test.tsx
+   ```
+   Do not run `npm install` from Windows (it would replace the Linux bindings); if dependencies are missing run it from WSL. The first test in `portedFlow.test.tsx` fails on a cold import under the hardcoded 5000 ms limit (deferred fix); rerun with a longer `--testTimeout` only for scratch work, never edit the committed limit before the owner's go.
 3. **Stale `.git/index.lock`.** Seen repeatedly. Check no git process runs, then delete it.
 4. **Memory is per account.** Each account's auto-memory is separate. Everything that must survive lives in these docs, committed on `leapswitch-redesign`.
 5. **Codex relay lives in the owner's chat.** Codex reports exist only where the owner pasted them. Record every verdict in the S2.4 handoff doc and `delegation-log.md` the moment it arrives.
@@ -46,7 +60,13 @@ Opus reviews were the largest token cost. New rule:
 
 ## 4. Open owner decision, with a recommendation
 
-**Import notice resurfacing (Opus Medium, not fixed).** The success/duplicate import notice lives in router history state (locked decision 6). `a7ef402` clears the entry you leave from, which closes the reported depth-1 case. A notice two or more Back-hops away can still reappear. Fully closing it needs provider-held state or a one-shot consume, which changes a locked decision.
+**Import notice resurfacing (Opus Medium, not fixed).** The banner shown on the Dashboard after an import ("12 transactions added..." or "This statement was already imported") is stored inside the browser-history entry of the Dashboard page it appears on (`location.state.importNotice`, locked decision 6). Dismissing it, or starting another import, clears it only on the entry the user is standing on. `a7ef402` closes the adjacent case Codex found (dismiss a later notice, press Back, an older notice returns). What remains, reproduced 25 Oct with a throwaway test on `feat/shell-nav-switch` (deleted, not committed):
+
+1. Import A finishes; the Dashboard shows notice A; the user does not dismiss it (history: Dashboard[A]).
+2. The user opens Analytics, clicks Add data there, finishes import B, which lands back on Dashboard with notice B, and dismisses B (history: Dashboard[A], Analytics, Dashboard).
+3. Browser Back twice reaches the first Dashboard entry, and **notice A shows again**, although B has since been imported and A is old news. The test confirmed it (`stale notice A visible after Back x2: true`).
+
+Impact: an out-of-date, dismissible banner after several Back presses. No data is changed or lost. In the old pre-shell app the notice was component state and could not come back this way. Fully closing it needs the notice held outside history (provider-held state) or a one-shot consume, which changes a locked decision.
 Recommendation: accept as a documented limitation (cosmetic stale banner, no data loss, bounded), list it under unfixed Lows, revisit in I1 when real pages replace the placeholders. This matches the stopping heuristic in the model-orchestration skill (lower severity than the prior round, correctness-safe, bigger primitive needed).
 
 ## 5. Prompt for Codex: scoped re-review of `7440ed9`
