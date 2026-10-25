@@ -1,5 +1,5 @@
 # Handoff: ui-redesign HB2 (opening-balance cache fix, disclosure retention to 6 months, Home series maths)
-**Status:** READY (not yet run)
+**Status:** DONE (commit `4b4e4e1f` on `feat/home-snapshot`, 25 Oct 2026; not pushed)
 **Parent plan:** `Docs/superpowers/plans/2026-10-23-home-backend-plan.md` Tasks **T2 + T4 + T5**. Spec: `Docs/orchestration/2026-10-23-home-functionality-backend-spec.md` (section 4, the wealth graph; B5 is Modified Dietz; the 1.2 to 29 s naive build is forbidden). Run catalogue: `2026-10-24-ui-redesign-orchestrator-handoff.md` section 6, run **HB2**.
 **Branch:** `feat/home-snapshot` (HB1 `511f1ef` is its tip; PR #10 targets `leapswitch-redesign`). **Orchestrator:** Claude Code · **Worker:** Codex (manual relay). One working tree, one run at a time: do not switch branches.
 
@@ -138,3 +138,21 @@ Run date/time:    Environment:    Python:    Baseline HEAD:
 7. SELF-REVIEW FINDINGS:
 8. CONFIRMATIONS: No git write commands:   Full suites not run:   Edits only in the allowed files:
 ```
+
+## Codex report as relayed (25 Oct 2026, condensed to the facts; the full block is in the owner's chat)
+- **Status DONE.** Run 22:53 IST, Windows PowerShell host with the Ubuntu WSL test environment, Python 3.14 (`backend/.venv`), baseline HEAD `138788d1`.
+- **Files:** new `backend/app/services/home/__init__.py`, `series.py`, `backend/tests/services/home/__init__.py`, `test_series.py`; modified `backend/app/api/cas_imports.py`, `backend/app/services/analytics/portfolio_disclosure_retention.py`, `backend/tests/api/test_coverage_gaps_routes.py`, `backend/tests/services/analytics/test_portfolio_disclosure_retention.py`. Nothing staged; the mockup PDF untouched.
+- **Tests:** RED first for every task (route: successful 201 produced no invalidation; retention: 5 failed on the old three-month cutoff and the missing constant; each series function collected RED on the missing API). Final handoff command 58 passed; neighbours 75 passed; 133 across the named files. `git diff --check` clean; UTF-8 and LF verified; no `float()`, `dateutil` or `date.today()` in `series.py`.
+- **Deviations (mechanics):** baseline was `138788d1`, not the handoff's HB1-tip reference (the branch already held the merged docs); the first WSL call was blocked by the sandbox (`E_ACCESSDENIED`) and was rerun unchanged after approval; one hand-derived retention expectation was wrong (June is inside April to September) and the test, not production code, was corrected.
+- **Findings:** the transactions-to-units replay that `build_value_series` consumes remains out of scope and still needs an owning task.
+- **Self-review:** added a test that the series continues with zero-valued points after full redemption; refactored `build_value_series` from dates times schemes to row-event deltas with `bisect` (all 45 series tests stayed green).
+
+## Orchestrator record (25 Oct 2026)
+- **Scope check:** `git status` and `git diff --stat` matched the handoff's allowed list exactly (4 modified, 4 new), nothing staged, all files LF.
+- **Independent test run:** every backend test file that references the changed code (`git grep` for `cas_imports`, `invalidate_holdings_cache`, `prune_old_batches`, `opening-balance`, `services.home`): 11 files, **252 passed**.
+- **Code read:** the route calls `invalidate_holdings_cache(folio.household_member_id)` after the create (which commits internally) and not on any 400 path; retention uses the named `RETAIN_MONTHS`; `series.py` follows every shape and convention in this handoff.
+- **Differential check (my own script, not committed):** `build_value_series` against a brute-force definition on 600 random cases, `modified_dietz` on 2,000, `benchmark_return` on 1,500, and `period_range` for every day from 2000 to 2026 against `dateutil` (used only in the scratch check): **zero mismatches**; every hand case in this handoff reproduced exactly.
+- **Mutation check:** 15 deliberate bugs injected one at a time (Dietz window, weight direction, rounding and zero denominator; loader lookback 9 and 11 days and an over-wide end; series start and partial flag; benchmark clipping; the ten-year window; the one-week length; the month-end clamp; the route's invalidation; retention back to three months). **14 were caught; the lookback of 9 days survived**, because this handoff only pinned rows 9 and 11 days back, not the exact 10-day edge. Fixed by the orchestrator (test-only, small): the lookback test now also has a row exactly 10 days back (included), a row on the `end` day (included) and the day after (excluded); re-run, the lookback-9, lookback-11 and end-exclusive mutants are all caught. Files restored byte-for-byte after every run.
+- **Review gate:** by the owner's efficiency policy (25 Oct) no per-run Codex or Opus review for a run like this (pure functions, a one-line route change, a constant); the Codex adversarial review of the Home backend is **batched at the PR level (HB5, PR #10)**. HB1 already had its own Opus and Codex reviews.
+- **Low, accepted:** `series.py` imports `Collection`, `Mapping` and `Sequence` from `typing` (deprecated aliases) instead of `collections.abc`; harmless, leave unless a linter complains.
+- **Still open:** (1) the units replay needs an owner, to be assigned when HB3 is written (movers also needs previous-close units); (2) manual, before PR #10 merges: count `scheme_holdings` rows on staging to confirm six months of retention is acceptable (plan T4); (3) commit `4b4e4e1f` is local; `feat/home-snapshot` is not pushed since HB1's `511f1ef` (owner's word needed).

@@ -42,6 +42,8 @@
    ```
    If `~/fe-speed/node_modules` is missing or `package.json` dependencies changed, redo the one-time copy or run `npm ci` inside `~/fe-speed` (from WSL). The `D:` path stays the source of truth; never edit files in `~/fe-speed`. The slow `wsl-fe.sh` recipe above still works as a fallback.
 
+   **Simpler invocation, verified 25 Oct:** `wsl.exe -d Ubuntu --cd "D:\Unifolio code\backend" -- .venv/bin/python -m pytest <files> -q -p no:cacheprovider --disable-warnings` (and the same with `--cd "D:\Unifolio code\frontend" -- npx vitest run ...` for the slow path) works inline from PowerShell with no script file and no quoting of the space in the path. **Backend tests must use the WSL venv** (`backend/.venv`, Python 3.14); the Windows `backend/.venv-win` is incomplete (Python 3.13, a missing module breaks the route tests). Baseline on `feat/home-snapshot`: the HB2 files plus neighbours passed (82, then 252 across all files that reference the changed code).
+
    Do not run `npm install` from Windows (it would replace the Linux bindings); if dependencies are missing run it from WSL. The first test in `portedFlow.test.tsx` fails on a cold import under the hardcoded 5000 ms limit (deferred fix); rerun with a longer `--testTimeout` only for scratch work, never edit the committed limit before the owner's go.
 3. **Stale `.git/index.lock`.** Seen repeatedly. Check no git process runs, then delete it.
 4. **Memory is per account.** Each account's auto-memory is separate. Everything that must survive lives in these docs, committed on `leapswitch-redesign`.
