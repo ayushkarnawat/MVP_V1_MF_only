@@ -136,6 +136,15 @@ Run by the orchestrator in the built-in browser against a local backend and the 
 
 **What is left for S2.7:** the owner's word to push `feat/shell-nav-switch` and open its PR into `leapswitch-redesign` (ask whether to base it on `feat/shell-nav` while PR #9 is unmerged); then ask which track next.
 
+## 2f. Shell PR 2 pushed and opened (25 Oct 2026): PR #11
+
+- **Branch model, as the owner stated it (25 Oct):** every page or flow is one PR; all the PRs land on `leapswitch-redesign`; only when the whole redesign is on that branch does it get deployed, to its **own new link** (the existing `ls-staging` stays as it is). So the "no enabled path to Mutual Funds" state (M1) is expected on the integration branch until Home and Portfolio land; it only matters if a branch is deployed alone.
+- **What was done:** `feat/shell-nav-switch` pushed to GitHub (fast-forward `b7ac484` to `83db71f`, no force), PR **#11** opened as `ayushkarnawat` with base **`feat/shell-nav`** (stacked on PR #9, whose base is `leapswitch-redesign`), title "Shell PR 2: scope, wrapper routes and switch-on (stacked on #9)", description with scope, merge order, staged-rollout note, evidence and accepted items. URL: https://github.com/ayushkarnawat/MVP_V1_MF_only/pull/11.
+- **Why that base:** PR #9 and #10 both target `leapswitch-redesign`. PR 2 contains PR 1's commits, so a PR straight into `leapswitch-redesign` would show PR 1's files again and merging it first would carry PR 1 in without #9's review. Stacked on `feat/shell-nav` it shows only PR 2's 66 files (42 non-merge commits).
+- **Merge order (owner's click):** merge #9, then change #11's base to `leapswitch-redesign` (GitHub offers it, or retargets when `feat/shell-nav` is deleted after #9 merges), then merge #11. The orchestrator never merges.
+- **CI:** no checks had registered when read; expect `backend-fast` to fail on the known `xlwt` import (same as #9 and #10; no backend file changed here); fix is on the deferred list.
+- **Auto-fix:** off (offered to the owner).
+
 ## 3. Review policy change (owner proposal 25 Oct, adopted; owner may veto)
 
 Opus reviews were the largest token cost. New rule:
@@ -218,3 +227,4 @@ You are the orchestrator of the Unifolio UI redesign, resuming after a temporary
 ## 7. Hand-back log (append a line each time the baton moves)
 
 - 2026-10-25, Windows desktop account (Sonnet 5.5): took over after the first account hit its limit mid-cherry-pick. Done: cherry-picked `cb2024a` to `leapswitch-redesign` (`02cb599`); verified branches and WSL/Windows toolchain split; wrote this file. Not done: Codex re-review of `7440ed9` (awaiting relay), the import-notice decision, S2.5 to S2.7.
+- 2026-10-25, Windows desktop account (Sonnet 5.5), later: S2.4 closed, S2.5 to S2.7 done (guard tests, manual browser check, docs, whole-branch Opus and Codex reviews, two fix passes, owner decisions applied), WSL-native fast test path adopted (977 s to 73 s). `feat/shell-nav-switch` pushed and PR #11 opened (base `feat/shell-nav`, stacked on #9). Next: the owner reviews and merges #9 then #11; ask which track next (Wave 2b backend HB2 onward, or Wave 1 manual work). Nothing is held in this account's chat that is not in these docs, the delegation log or the commits.
