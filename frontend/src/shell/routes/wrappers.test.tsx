@@ -128,6 +128,13 @@ it("uses Profile's account-holder and contact fallbacks", async () => {
   expect(vi.mocked(ProfileView).mock.calls.at(-1)?.[0]).toMatchObject({ name: "Account holder", email: null, phoneNumber: "" });
 });
 
+it("Import health's Back lands on Profile even when deep-linked with no history to go back to", async () => {
+  mount("/profile/import-health");
+  await screen.findByRole("heading", { name: "Import health screen" });
+  fireEvent.click(screen.getByRole("button", { name: "Health back" }));
+  await screen.findByRole("heading", { name: "Profile screen" });
+});
+
 it.each(["member", "aggregate"] as const)("passes memberId to ImportHealth only in %s mode", async viewMode => {
   renderInShell(undefined, { path: "/profile/import-health", scope: { ...scope, viewMode } });
   await screen.findByRole("heading", { name: "Import health screen" });

@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
+import "./theme/shell-tokens.css";
 import type { ShellRoute } from "./registry/types";
 import { RegistryContext, useRegistry } from "./registry/RegistryContext";
 import { AppLayout } from "./layout/AppLayout";
