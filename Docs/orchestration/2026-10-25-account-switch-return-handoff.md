@@ -41,8 +41,8 @@
 | Codex adversarial review S2.3+S2.4 | FAIL (1 Medium), fixed `a7ef402`, Codex scoped re-review PASS |
 | Opus review S2.3+S2.4 | FAIL (1 High, 2 Medium, 3 Low); High and one Medium fixed `7440ed9` |
 | Codex scoped re-review of `7440ed9` | **PENDING, relay to Codex (prompt in section 5)** |
-| Open Opus Medium (import notice can resurface 2+ Back-hops away; closing it means changing locked decision 6) | **PENDING owner decision** |
-| S2.4 marked DONE | blocked on the two lines above |
+| Open Opus Medium (import notice can resurface 2+ Back-hops away; closing it means changing locked decision 6) | **DECIDED 25 Oct: accepted as a documented limitation, revisit in I1** |
+| S2.4 marked DONE | blocked only on the Codex re-review of `7440ed9` |
 
 Then, in order: S2.5 (Claude: boundary/landing tests plus a manual browser check of the running shell on a synthetic household), S2.6 (Claude: docs/log, show a diff), S2.7 (final gate, Opus whole-branch review; push `feat/shell-nav-switch`, open its PR into `leapswitch-redesign`; ask the owner whether to base it on `feat/shell-nav` while PR #9 is unmerged). After shell PR2, ask which track next (Wave 2b backend from HB2, or Wave 1 manual work).
 
@@ -58,7 +58,9 @@ Opus reviews were the largest token cost. New rule:
 - Reason this is safe, and the one thing to keep: the S2.3+S2.4 Opus review caught a High that two Codex rounds missed (the shell token stylesheet was never imported, so every `--shell-*` variable was undefined in the built app). That was a whole-wiring defect, which is exactly what an end-of-PR whole-branch review is for. So every final Opus gate must include a **built-output check**: grep `dist/assets/*.css` for definitions of each `--shell-*` variable used, plus a manual run of the app, since jsdom ignores stylesheets.
 - This replaces the 24 Oct blanket Opus approval list. Update the "Opus blanket approval" line in `ui-redesign-session.md` when the owner confirms.
 
-## 4. Open owner decision, with a recommendation
+## 4. Import-notice item: DECIDED 25 Oct 2026, accepted as a documented limitation (revisit in I1; listed under unfixed Lows in the session file)
+
+The text below is the background and the original recommendation, kept for the record.
 
 **Import notice resurfacing (Opus Medium, not fixed).** The banner shown on the Dashboard after an import ("12 transactions added..." or "This statement was already imported") is stored inside the browser-history entry of the Dashboard page it appears on (`location.state.importNotice`, locked decision 6). Dismissing it, or starting another import, clears it only on the entry the user is standing on. `a7ef402` closes the adjacent case Codex found (dismiss a later notice, press Back, an older notice returns). What remains, reproduced 25 Oct with a throwaway test on `feat/shell-nav-switch` (deleted, not committed):
 
@@ -89,7 +91,7 @@ Report PASS or FAIL, then findings High/Medium/Low with file:line. Do not pad.
 **Return prompt (paste into the first account's session when its limit resets):**
 
 ```
-You are the orchestrator of the Unifolio UI redesign, resuming after a temporary account switch (25 Oct 2026). Do not re-derive anything. Run `git branch --show-current; git status --short` first, then read in full: Docs/orchestration/2026-10-25-account-switch-return-handoff.md (this is newer than the transfer handoff on three points: the Opus policy in section 3, the Windows/WSL rule in section 1, and the S2.4 gate state in section 2), then Docs/orchestration/ui-redesign-session.md, then skim 2026-10-24-ui-redesign-account-transfer-handoff.md for the mechanism. Invoke task-observer and model-orchestration as CLAUDE.md requires. Run frontend checks from WSL only. Then: ask me for (a) the Codex verdict on the 7440ed9 scoped re-review if I have it, (b) my decision on the open import-notice Medium (section 4). Close the S2.4 gate, then S2.5, S2.6, S2.7 per section 2. Opus only for the final whole-branch review at S2.7; Sonnet subagents for other reviews. Same standing rules as before: never push, merge or open a PR without my word; stage explicit paths; check the branch before every commit; keep this file and the session file current before your own limit runs out.
+You are the orchestrator of the Unifolio UI redesign, resuming after a temporary account switch (25 Oct 2026). Do not re-derive anything. Run `git branch --show-current; git status --short` first, then read in full: Docs/orchestration/2026-10-25-account-switch-return-handoff.md (this is newer than the transfer handoff on three points: the Opus policy in section 3, the Windows/WSL rule in section 1, and the S2.4 gate state in section 2), then Docs/orchestration/ui-redesign-session.md, then skim 2026-10-24-ui-redesign-account-transfer-handoff.md for the mechanism. Invoke task-observer and model-orchestration as CLAUDE.md requires. Run frontend checks from WSL only. Then ask me for the Codex verdict on the 7440ed9 scoped re-review if I have it (the import-notice Medium is already decided: accepted as a limitation, section 4). Close the S2.4 gate, then S2.5, S2.6, S2.7 per section 2. Opus only for the final whole-branch review at S2.7; Sonnet subagents for other reviews. Same standing rules as before: never push, merge or open a PR without my word; stage explicit paths; check the branch before every commit; keep this file and the session file current before your own limit runs out.
 ```
 
 ## 7. Hand-back log (append a line each time the baton moves)
