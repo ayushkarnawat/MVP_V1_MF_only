@@ -220,6 +220,21 @@ it("shows and dismisses the duplicate import notice after returning from Analyti
   expect(screen.queryByText("This statement was already imported")).not.toBeInTheDocument();
 });
 
+it("does not resurrect an earlier dismissed-then-replaced import notice via Browser back", async () => {
+  vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([alice]);
+  mount(); await dashboard();
+  fireEvent.click(screen.getByRole("button", { name: "+ Add data" }));
+  fireEvent.click(await screen.findByText("Close duplicate import"));
+  expect(await screen.findByText("This statement was already imported")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "+ Add data" }));
+  fireEvent.click(await screen.findByText("Finish import"));
+  expect(await screen.findByText("12 transactions added · 2 already saved")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Dismiss import notice" }));
+  expect(screen.queryByText("12 transactions added · 2 already saved")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Browser back" }));
+  expect(screen.queryByText("This statement was already imported")).not.toBeInTheDocument();
+});
+
 it("shows the success notice and family details after returning to Dashboard", async () => {
   vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([alice]);
   mount(); await dashboard(); fireEvent.click(screen.getByRole("button", { name: "+ Add data" }));

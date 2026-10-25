@@ -10,12 +10,15 @@ export const ImportHeaderContext = createContext<{ memberChip: ReactNode; setMem
 
 export function ImportProvider({ children }: { children: ReactNode }) {
   const [memberChip, setMemberChip] = useState<ReactNode>(null);
-  const { pathname } = useLocation();
+  const location = useLocation();
   const navigate = useNavigate();
   const { viewMode, memberId } = useScope();
   const openImport = (explicitMemberId?: string) => {
     const target = explicitMemberId || (viewMode === "member" ? memberId ?? undefined : undefined);
-    void navigate(paths.import(target), { state: { origin: pathname } });
+    // Clear any notice left on the current entry before pushing the import route, so a stale
+    // notice from an earlier import can never resurface via Back once a later one supersedes it.
+    void navigate({ pathname: location.pathname, search: location.search, hash: location.hash }, { replace: true, state: null });
+    void navigate(paths.import(target), { state: { origin: location.pathname } });
   };
   return <ImportContext.Provider value={{ openImport }}><ImportHeaderContext.Provider value={{ memberChip, setMemberChip }}>{children}</ImportHeaderContext.Provider></ImportContext.Provider>;
 }
