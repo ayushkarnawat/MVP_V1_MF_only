@@ -15,6 +15,21 @@ Companion files (read all three; the commit that adds them is the transfer point
 The owner said the manager has stated what he wants this handoff and prompt to contain, and asked that both be structured accordingly. **That text did not arrive with the request** (only the sentence saying it would). Until it is supplied, this handoff covers: (a) a handoff for Claude and one for Codex; (b) what was done and what is left on the Codex side, including work that was not committed; (c) PR links and PR status; (d) the exact working mechanism: the Claude-Codex method, the code and git mechanism, the PR mechanism; (e) a starting prompt; (f) enough detail that execution on the new machine is identical.
 **Action for the incoming Claude, first message to the owner/manager:** ask the manager to paste his requirements, then check this file against them line by line and add a section "Manager requirement coverage" mapping each requirement to the section here that satisfies it (new files and additions to *this* file are allowed without asking).
 
+### Manager requirement coverage (supplied 2026-10-25)
+
+The manager's original 2026-10-24, 22:01 message to the outgoing intern (pasted verbatim on request) is the source of these requirements. Each clause mapped to where it is satisfied:
+
+| Requirement (from the manager's message) | Satisfied by |
+|---|---|
+| "Handoff documents for both Claude and codex" | This file (Claude's primary instruction file) + `ui-redesign-codex-worker-brief.md` (Codex's standing instructions). |
+| "what's to be done on Codex because nothing has been committed" | §5 (per-run loop) + §7's "In flight at transfer" paragraph, which states exactly what Codex reported DONE but was not yet committed at hand-off time (S2.4) and what commits actually exist. |
+| "PR links and checking the PRs to what has been done till now and what to be done ahead" | §8 (repository and PR state at transfer) — both PR URLs, open/not-merged/no-review status; §7's run catalogue gives done-vs-ahead per run. |
+| "Proper detailed handoff to exactly mimic what you are doing with your Claude codex system, the mechanism, the code mechanism, the PR mechanism, everything" | §4 (roles and the one rule that explains everything), §5 (the per-run loop including the exact git commands in 5.3/5.7), §5.8 (PR mechanism), §6 (rules every run obeys), §11 (known gotchas) — this is the full mechanism, not a summary of it. |
+| "a prompt" / "a prompt to give my claude to start this exact thing" | `2026-10-24-ui-redesign-new-account-prompt.md`, Prompt 1 (Claude) and Prompt 2 (Codex), plus Prompts 3/3b/4/5 so every recurring prompt type is a template, not something reconstructed from memory each run. |
+| "then commit these handoff docs and whatever" | Done: this file, the worker brief, the session file, and the new-account prompt file are committed (`853273d`, `docs: account transfer handoff, Codex worker brief, new-account prompts, S2.4 state`). |
+| "After that, I'll take over, you don't need to worry" | No further action needed from the outgoing side beyond the commit above; confirmed received and read by the incoming session (this one) on 2026-10-25. |
+| "as detailed and as to perfection as possible so that there is nothing left out or no gaps that can cause my execution to be different than your execution. That's my only problem and only worry" | The completeness goal behind every section, especially §6 (rules, no exceptions), §11 (every gotcha that cost real time, so it isn't re-paid), §10 (how to talk to the human, so turns read the same way), and the explicit instruction in §5.5 to verify Codex's report independently rather than trust it — the mechanism is designed so a different operator produces the same outcome, not just a similar one. The incoming session hit exactly one gap this file didn't cover (a fresh checkout's `node_modules` missing `react-router` despite `package.json`/lockfile having it) — fixed by running `npm install`, noted here so a future transfer doesn't lose the same few minutes.
+
 ---
 
 ## 2. What is moving, what is not

@@ -7,9 +7,10 @@
 - **Wave:** 2 and 2b. Done: HB1 (`511f1ef`, `feat/home-snapshot`), S1.1 (`e825d10`, `feat/shell-nav`). S1.2 (9de1e5b + fix e186296, `feat/shell-nav`; Codex review FAIL then fixed, Opus PASS then fixed). S1.3 done (af4d2f7; redirectTo carry-over handled via finalRoute). S1.4 done (028342a + fix 0a7db46; Codex review of S1.3+S1.4 FAIL then fixed). S2.1 done (2f430e4, `feat/shell-nav-switch`; Codex review batched with S2.2). S2.2 done (63394ae + fix 0c57ab9; Codex review S2.1+S2.2 FAIL then fixed). S2.3 done (8b62d4b). **S2.4 (+O) committed `8aea4c2` on `feat/shell-nav-switch`** (Codex report DONE; orchestrator re-ran the affected set: 92 files, 916 tests, tsc, oxlint, build all green; PORT MAP 30/30 by name). Codex review (S2.3+S2.4) and Opus review still to do. **TRANSFER 2026-10-24: orchestration moves to the manager's laptop/accounts; read `2026-10-24-ui-redesign-account-transfer-handoff.md` first.** PRs open: #9 (shell PR1), #10 (HB1) as aditi-unifolio. **Shell PR1 complete on `feat/shell-nav` (b80b55c): S1.1 to S1.6 done, Opus final review PASS then fixed. Branch not pushed, no PR opened.** Next: Wave 2 shell PR2 (S2.1 onward), or the 2b backend runs (HB2 onward), Codex review of S1.3+S1.4 batched there. Method: orchestration docs are committed on `leapswitch-redesign`; before each run I merge `leapswitch-redesign` into the task branch so Codex sees the handoff; code commits go on the task branch. The Codex review of S1.1 is batched into S1.2's review (covers T1 to T3), then the Opus review of S1.2.
 - **Branches:** `leapswitch-redesign` (integration, docs), `feat/home-snapshot` (HB1 code), `feat/shell-nav` (next). Nothing pushed by this account. Untracked: `Docs/Web app UI mockups MFs.pdf` (owner's call).
 - **Latest migration:** `0043`; `0044` (news) and `0045` (benchmark indices) are free.
-- **Codex mode:** manual relay (owner decision 24 Oct). `codex:codex-rescue` is not available as an agent here; I write the handoff doc and a short prompt, the owner pastes it into Codex and pastes the report back, as in Sub-projects 1 and 2 and the UX fixes. Each review gate is also a relay (a review prompt for Codex, then its findings back).
-- **Opus blanket approval:** given 24 Oct for the +O runs only (HB1, S1.2, S1.6, S2.4, S2.7, MB3, MF6, MF15, PR4, PR6, PR10, M2).
+- **Codex mode:** manual relay (owner decision 24 Oct, reconfirmed 25 Oct on account transfer). `codex:codex-rescue` is not available as an agent on this account either; I write the handoff doc and a short prompt, the owner pastes it into Codex and pastes the report back, as in Sub-projects 1 and 2 and the UX fixes. Each review gate is also a relay (a review prompt for Codex, then its findings back).
+- **Opus blanket approval:** given 24 Oct for the +O runs only (HB1, S1.2, S1.6, S2.4, S2.7, MB3, MF6, MF15, PR4, PR6, PR10, M2); reconfirmed directly by the owner 25 Oct on account transfer — no need to re-ask per run on this account.
 - **Owner "go":** given 24 Oct for Waves 1, 2 and 2b.
+- **GH/git identity (this account, confirmed 25 Oct):** `gh auth status` and `git config user.name/user.email` are already `ayushkarnawat` / the owner's own identity in this environment (not `aditi-unifolio`, which opened PRs #9/#10 on the previous laptop). Task branches pushed and PRs opened from here will be under `ayushkarnawat`; this is expected and approved, not a mismatch to fix.
 
 ## Decisions taken (do not re-ask)
 
@@ -20,6 +21,11 @@ Everything in handoff section 9, plus the owner's second-pass decisions of 24 Oc
 - Whether to commit the mockup PDF.
 - Existing docs that still say "green bar" for the active row and were not edited: the shell contract (v1.6, line 187) and the shell PRD (S15). Ask at the end of the shell wave with a diff.
 - `PR9` (retiring the old Profile) before or after the merge rehearsal.
+
+## Deferred fixes (owner: fix once all waves are done, not now — confirmed 25 Oct)
+
+- **CI gap, both open PRs:** `backend-fast` job fails identically on PR #9 and PR #10 (`ModuleNotFoundError: No module named 'xlwt'` aborts pytest collection in `tests/services/analytics/test_portfolio_disclosure_parsing.py`). Confirmed pre-existing and unrelated to either PR's diff (PR #9 is frontend-only, PR #10 is backend-only; `backend-postgres` and `frontend` both pass on each). Fix: add `xlwt` to `backend/requirements.txt`.
+- **Test timing flake, `frontend/src/shell/portedFlow.test.tsx`:** the first test's first `dashboard()` call hits a cold `React.lazy()` import (cached module-level in `PageBoundary.tsx` for every later call) and times out at ~5080ms against a hardcoded 5000ms limit on this checkout — reproducible on this machine/filesystem, not seen as a logic bug. Fix: raise that one `findByText` call's timeout (e.g. to the global 15000ms in `vitest.config.ts`) or otherwise give the cold import more headroom.
 
 ## Run catalogue (check off after the review gate and the commit; "+O" = Opus review)
 
