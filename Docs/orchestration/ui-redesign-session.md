@@ -107,3 +107,7 @@ New orchestrator: follow Prompt 1 in `2026-10-24-ui-redesign-new-account-prompt.
 ## Status 26 Oct (evening)
 - Done and verified: G1 kit, HB4, HB5 + HB5b (Home API complete), G2 (Home foundations), second link live. Nothing pushed. Branches: `feat/ui-kit` (`e93854b8`), `feat/home-frontend` (`0aefde78`, stacked on the kit), `feat/home-snapshot` (`88db9376`, Home backend, stacked on the Mutual Funds backend).
 - Next lanes: Codex C2 = Portfolio backend (stacked on `feat/home-snapshot`, reusing the units and series modules); Gemini G3 = Home greeting, wealth card and glance, against the real golden fixtures. CAL1 (threshold calibration on staging data) still open.
+
+## Status 26 Oct (late)
+- Codex limit exhausted: implementation moves to Claude Code (Sonnet) on the owner's second account (register C97). First job: the Portfolio backend (`ui-redesign-PF-portfolio-backend-handoff.md`, branch `feat/portfolio-backend` from `feat/home-snapshot`).
+- Reviews owed before merging into `leapswitch-redesign` (register C98): one adversarial review each for the Home backend (PR #10) and the Mutual Funds backend (PR #12); no Opus gate for them. L8 note written (`2026-10-26-home-api-cold-holdings-note-L8.md`); measure at I2.
