@@ -1,10 +1,27 @@
-"""Pure windowed portfolio and benchmark XIRR calculations."""
+"""Pure windowed portfolio and benchmark XIRR calculations.
+
+Window definition (decision C20, the page design leaves the start open):
+
+* "1Y", "3Y" and "5Y" are the interval `(start, today]`, where `start` is the month end N calendar years
+  before the LAST COMPLETED month end (`window_start`). The opening value is read from the month-end
+  portfolio snapshots, which is why the start is a month end and not today minus N years. A "1Y" window is
+  therefore 12 to 13 months long: 389 days on 24 Oct 2026 (start 30 Sep 2025), 366 days on the first of
+  a month, up to 397 days on the last. The real start is returned as `start_date`; the page must show it
+  beside the "1Y" label rather than imply an exact year. "SI" starts at the first transaction.
+* A transaction dated on `start` is part of the opening value, never also a flow.
+* A window is unavailable (every rate None) when some member who held at the start has no complete
+  snapshot there, and also when a CAS opening-balance row falls inside it: that row is dated at its
+  statement's start, not when the money went in, so inside a window it would be counted as new money
+  (the Dashboard's Root Cause B disclaimer is the same idea). "SI" still includes it, as the legacy number.
+
+"today" for the window start and end is the Indian date (`ist_today`), not the host's UTC date.
+"""
 
 from calendar import monthrange
 from bisect import bisect_right
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Mapping
 import uuid
@@ -15,6 +32,7 @@ from app.models.enums import (
     ALL_BENCHMARK_INDICES,
     BenchmarkIndex,
     BenchmarkReturnType,
+    TransactionOrigin,
     TransactionType,
 )
 from app.models.reference import BenchmarkIndexHistory
@@ -23,10 +41,33 @@ from app.services.analytics.benchmark import _portfolio_xirr, _signed_amount, _x
 from app.services.analytics.schemas import BenchmarkWindowRow, FundWindowXirr, IndexXirrRow
 from app.services.analytics.xirr import xirr
 from app.services.analytics.xirr_fast import xirr_fast
-from app.services.dashboard.snapshots import get_month_detail, get_snapshots
+from app.services.dashboard.snapshots import get_month_detail, get_snapshots, reuse_nav_series
 
 WINDOWS: tuple[str, ...] = ("1Y", "3Y", "5Y", "SI")
 WINDOW_YEARS: dict[str, int | None] = {"1Y": 1, "3Y": 3, "5Y": 5, "SI": None}
+OPENING_BALANCE_IN_WINDOW = "opening_balance_in_window"
+
+# India has no daylight saving, so a fixed offset is exact and needs no tz database on the host.
+_IST = timezone(timedelta(hours=5, minutes=30), "IST")
+# Replayed index units below this are Decimal rounding (1/3 three times against 3/3 leaves -1e-28), not an oversale.
+_UNITS_DUST = Decimal("1E-9")
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def ist_today() -> date:
+    """Today's date in India. A UTC host is a day behind between 00:00 and 05:30 IST, which would put the
+    window start and end a month early for the first five and a half hours of every month."""
+    return _utc_now().astimezone(_IST).date()
+
+
+def _cas_opening_in_window(transactions: Sequence[Transaction], start: date, today: date) -> bool:
+    return any(
+        txn.origin == TransactionOrigin.CAS_OPENING and start < txn.date <= today
+        for txn in transactions
+    )
 
 
 class IndexLevels:
@@ -80,46 +121,48 @@ async def build_window_context(
     portfolio_start_values: dict[str, Decimal | None] = {"SI": None}
     fund_start_values: dict[str, dict[uuid.UUID, Decimal]] = {"SI": {}}
     detail_by_start = {}
-    for window in WINDOWS[:-1]:
-        start = starts[window]
-        if start is None:
-            portfolio_start_values[window] = None
-            fund_start_values[window] = {}
-            continue
+    # One NAV load per scheme for the (up to three) month details below, instead of one per call and member.
+    with reuse_nav_series():
+        for window in WINDOWS[:-1]:
+            start = starts[window]
+            if start is None:
+                portfolio_start_values[window] = None
+                fund_start_values[window] = {}
+                continue
 
-        total = Decimal("0")
-        available = True
-        for member_id in member_ids:
-            rows = snapshots_by_member.get(member_id, [])
-            if not rows:
-                continue
-            first_month = min(row.snapshot_month for row in rows)
-            if first_month > start:
-                continue
-            opening = next((row for row in rows if row.snapshot_month == start), None)
-            if opening is None or opening.is_partial:
-                available = False
-                break
-            total += Decimal(opening.total_value)
-        portfolio_start_values[window] = total if available and total > 0 else None
+            total = Decimal("0")
+            available = True
+            for member_id in member_ids:
+                rows = snapshots_by_member.get(member_id, [])
+                if not rows:
+                    continue
+                first_month = min(row.snapshot_month for row in rows)
+                if first_month > start:
+                    continue
+                opening = next((row for row in rows if row.snapshot_month == start), None)
+                if opening is None or opening.is_partial:
+                    available = False
+                    break
+                total += Decimal(opening.total_value)
+            portfolio_start_values[window] = total if available and total > 0 else None
 
-        if start not in detail_by_start:
-            detail_by_start[start] = await get_month_detail(db, member_ids, start)
-        detail = detail_by_start[start]
-        if detail is None:
-            fund_start_values[window] = {}
-            continue
-        rows_by_scheme = {}
-        for row in detail.funds:
-            rows_by_scheme.setdefault(uuid.UUID(row.scheme_id), []).append(row)
-        values = {}
-        for scheme_id, rows in rows_by_scheme.items():
-            if any(not row.priced or row.value is None for row in rows):
+            if start not in detail_by_start:
+                detail_by_start[start] = await get_month_detail(db, member_ids, start)
+            detail = detail_by_start[start]
+            if detail is None:
+                fund_start_values[window] = {}
                 continue
-            value = sum((Decimal(row.value) for row in rows), Decimal("0"))
-            if value > 0:
-                values[scheme_id] = value
-        fund_start_values[window] = values
+            rows_by_scheme = {}
+            for row in detail.funds:
+                rows_by_scheme.setdefault(uuid.UUID(row.scheme_id), []).append(row)
+            values = {}
+            for scheme_id, rows in rows_by_scheme.items():
+                if any(not row.priced or row.value is None for row in rows):
+                    continue
+                value = sum((Decimal(row.value) for row in rows), Decimal("0"))
+                if value > 0:
+                    values[scheme_id] = value
+            fund_start_values[window] = values
 
     return WindowContext(
         today=today,
@@ -127,7 +170,6 @@ async def build_window_context(
         portfolio_start_values=portfolio_start_values,
         fund_start_values=fund_start_values,
     )
-
 
 def load_index_levels(
     db: Session,
@@ -180,6 +222,13 @@ def index_window_xirr(
             units += -signed / level
         else:
             units -= signed / level
+        if units < 0:
+            if units < -_UNITS_DUST:
+                # The fund paid out more than the index replay holds (a fund that beat the index, then was
+                # redeemed in full): the hypothetical portfolio would be short units, its terminal value
+                # negative, and any rate solved from that is meaningless. No benchmark rate.
+                return None
+            units = Decimal("0")
         replayed.append((flow_date, signed))
 
     terminal_level = levels.on_or_before(today)
@@ -269,6 +318,22 @@ def compute_window_rows(
             )
             continue
 
+        if _cas_opening_in_window(transactions, start, ctx.today):
+            # Enough history, but a CAS opening balance dated inside the window would count as new money
+            # (it is dated at its statement's start): the portfolio and index rates would both be wrong
+            # with nothing to show it. Say so instead.
+            rows.append(
+                BenchmarkWindowRow(
+                    window=window,
+                    available=False,
+                    start_date=None,
+                    portfolio_xirr=None,
+                    indices=[IndexXirrRow(index=index, xirr=None) for index in ALL_BENCHMARK_INDICES],
+                    unavailable_reason=OPENING_BALANCE_IN_WINDOW,
+                )
+            )
+            continue
+
         flows = [
             (txn.date, _signed_amount(txn))
             for txn in transactions
@@ -337,6 +402,11 @@ def compute_fund_window_rows(
         start = ctx.starts[window]
         start_value = ctx.fund_start_values[window].get(scheme_id)
         if start is None or start_value is None:
+            rows.append(FundWindowXirr(window=window, fund_xirr=None, benchmark_xirr=None))
+            continue
+        if _cas_opening_in_window(fund_transactions, start, ctx.today):
+            # Only reachable when the same scheme sits in another folio that was held at the start (a
+            # second CAS brought a second folio); a fund that is new in the window has no start value.
             rows.append(FundWindowXirr(window=window, fund_xirr=None, benchmark_xirr=None))
             continue
         flows = [
