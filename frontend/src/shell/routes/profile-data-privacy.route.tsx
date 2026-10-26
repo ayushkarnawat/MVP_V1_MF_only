@@ -11,9 +11,9 @@ const route: ShellRoute = {
   parentId: "profile",
   layout: "app",
   scope: "none",
-  status: "placeholder",
+  status: "live",
   title: "Data & Privacy",
-  page: () => import("../layout/PlaceholderPage"),
+  page: () => import("../../features/profile-v2/pages/PendingProfilePage"),
 };
 
 export default route;
