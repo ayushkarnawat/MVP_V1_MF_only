@@ -45,7 +45,7 @@ export function homePath(
     if (scope.memberId == null) {
       throw new Error("memberId is required for member scope");
     }
-    base = `/household-members/${scope.memberId}/home/${section}`;
+    base = `/household-members/${encodeURIComponent(scope.memberId)}/home/${section}`;
   }
 
   if (query) {

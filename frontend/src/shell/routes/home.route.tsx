@@ -10,9 +10,9 @@ const route: ShellRoute = {
   order: 1,
   layout: "app",
   scope: "family-or-member",
-  status: "placeholder",
+  status: "live",
   title: "Home",
-  page: () => import("../layout/PlaceholderPage"),
+  page: () => import("../../features/home/HomePage"),
 };
 
 export default route;
