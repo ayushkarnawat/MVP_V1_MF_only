@@ -99,3 +99,7 @@ New orchestrator: follow Prompt 1 in `2026-10-24-ui-redesign-new-account-prompt.
 - Ready: HB5 handoff (`ui-redesign-HB5-home-routes-handoff.md`, Codex session C1b). In preparation: Gemini packet G2 (Home foundations and controls).
 - **Owner-requested follow-up CAL1 (register C85):** calibrate the worth-a-look thresholds on staging data at the integration wave (I2) and show the owner the table; HB4 could not do it locally.
 - Manual: VM steps 5 to 9 of `2026-10-24-ui-redesign-manual-steps.md` (command block given in chat); the Google OAuth step is dropped.
+
+## Status 26 Oct (afternoon)
+- Second link live: DNS, VM worktree `/opt/unifolio-redesign`, `.env`, redesign bundle, caddy and backend recreated (done by the orchestrator over SSH as `deploy`); both links 200, CORS works for both origins. Owner step 10 (sign-in check in two profiles) pending.
+- HB5 part 1 committed as WIP (`b646ab1c`); HB5b handoff written (`ui-redesign-HB5b-home-routes-completion-handoff.md`, Codex session C1c). G2 packet with the Gemini pilot running or about to run on `feat/home-frontend`.
