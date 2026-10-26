@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
@@ -96,18 +96,31 @@ def _active_in_window(points: Sequence[tuple[date, Decimal]], start: date) -> bo
     return units_at_start > 0
 
 
+# A feed dead for longer than this gains nothing: the window would only keep growing with the clock.
+MAX_FEED_GAP_DAYS = 400
+
+
 def _feed_gap_days(
-    newest_prices: dict[uuid.UUID, tuple[date, Decimal]],
+    newest_prices: Mapping[uuid.UUID, tuple[date, Decimal]],
     statement_priced_ids: Collection[uuid.UUID],
+    held_ids: Collection[uuid.UUID],
     today: date,
 ) -> int:
-    """Whole days between `today` and the newest stored price of the funds that have a daily feed.
+    """Whole days between `today` and the newest stored price of the daily-priced funds the scope holds now.
 
-    Funds priced from statements are left out (their prices are weeks apart by nature and must not decide what
-    "latest" means for the daily ones); a household of statement-priced funds only falls back to all of them."""
-    daily = [day for scheme_id, (day, _price) in newest_prices.items() if scheme_id not in statement_priced_ids]
-    days = daily or [day for day, _price in newest_prices.values()]
-    return max(0, (today - max(days)).days) if days else 0
+    Which funds decide, in order: the daily-priced funds held today (a fund sold while its feed goes on must not
+    hide that the funds still held stopped being priced); else every daily-priced fund ever held; else every
+    fund. Funds priced from statements are left out of the first two (their prices are weeks apart by nature and
+    must not decide what "latest" means for the daily ones). The gap is capped at MAX_FEED_GAP_DAYS."""
+    # A price dated after `today` is not a reading of the feed's age: it is left out, so the gap is never negative.
+    known = {scheme_id: day for scheme_id, (day, _price) in newest_prices.items() if day <= today}
+    daily = {scheme_id: day for scheme_id, day in known.items() if scheme_id not in statement_priced_ids}
+    days = (
+        [day for scheme_id, day in daily.items() if scheme_id in held_ids]
+        or list(daily.values())
+        or list(known.values())
+    )
+    return min(MAX_FEED_GAP_DAYS, (today - max(days)).days) if days else 0
 
 
 async def load_home_inputs(
@@ -142,7 +155,8 @@ async def load_home_inputs(
         scheme_id for scheme_id, scheme in schemes_not_held.items() if scheme.source == SchemeSource.CAS_ONLY
     }
     nav_start -= timedelta(days=_feed_gap_days(
-        load_prior_prices(db, set(units) | held_scheme_ids, today), statement_priced_ids, today
+        load_prior_prices(db, set(units) | held_scheme_ids, today),
+        statement_priced_ids, held_scheme_ids, today,
     ))
     active_scheme_ids = {
         scheme_id for scheme_id, points in units.items() if _active_in_window(points, nav_start)
