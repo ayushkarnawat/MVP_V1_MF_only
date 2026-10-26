@@ -1,0 +1,94 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": null,
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "members": [
+    {
+      "id": "81e5a369-bbd4-59f1-b480-8a5bbf1c74ef",
+      "name": "ASHA RAO",
+      "has_data": false
+    },
+    {
+      "id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
+      "name": "Dev Rao",
+      "has_data": false
+    }
+  ],
+  "buckets": [
+    {
+      "label": "Mutual Funds",
+      "status": "live",
+      "current_value": "0.00",
+      "percentage": "0.00",
+      "invested": "0.00",
+      "gain_loss": "0.00",
+      "xirr": null
+    },
+    {
+      "label": "Direct Stocks",
+      "status": "coming_soon",
+      "current_value": null,
+      "percentage": null,
+      "invested": null,
+      "gain_loss": null,
+      "xirr": null
+    },
+    {
+      "label": "US Stocks",
+      "status": "coming_soon",
+      "current_value": null,
+      "percentage": null,
+      "invested": null,
+      "gain_loss": null,
+      "xirr": null
+    },
+    {
+      "label": "FDs & Bonds",
+      "status": "coming_soon",
+      "current_value": null,
+      "percentage": null,
+      "invested": null,
+      "gain_loss": null,
+      "xirr": null
+    },
+    {
+      "label": "Debt",
+      "status": "coming_soon",
+      "current_value": null,
+      "percentage": null,
+      "invested": null,
+      "gain_loss": null,
+      "xirr": null
+    },
+    {
+      "label": "Gold",
+      "status": "coming_soon",
+      "current_value": null,
+      "percentage": null,
+      "invested": null,
+      "gain_loss": null,
+      "xirr": null
+    },
+    {
+      "label": "Real Estate",
+      "status": "coming_soon",
+      "current_value": null,
+      "percentage": null,
+      "invested": null,
+      "gain_loss": null,
+      "xirr": null
+    },
+    {
+      "label": "Others",
+      "status": "coming_soon",
+      "current_value": null,
+      "percentage": null,
+      "invested": null,
+      "gain_loss": null,
+      "xirr": null
+    }
+  ]
+}
