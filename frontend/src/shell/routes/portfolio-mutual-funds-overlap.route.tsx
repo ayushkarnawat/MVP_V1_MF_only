@@ -13,7 +13,7 @@ const route: ShellRoute = {
   scope: "family-or-member",
   status: "placeholder",
   title: "Overlap",
-  page: () => import("../layout/PlaceholderPage"),
+  page: () => import("../../features/mutual-funds/frame/ComingSoonPages").then(module => ({ default: module.OverlapComingSoon })),
 };
 
 export default route;

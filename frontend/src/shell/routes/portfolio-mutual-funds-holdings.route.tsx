@@ -13,7 +13,7 @@ const route: ShellRoute = {
   scope: "family-or-member",
   status: "placeholder",
   title: "Holdings",
-  page: () => import("../layout/PlaceholderPage"),
+  page: () => import("../../features/mutual-funds/frame/ComingSoonPages").then(module => ({ default: module.HoldingsComingSoon })),
 };
 
 export default route;

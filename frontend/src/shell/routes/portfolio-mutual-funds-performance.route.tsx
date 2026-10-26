@@ -13,7 +13,7 @@ const route: ShellRoute = {
   scope: "family-or-member",
   status: "placeholder",
   title: "Performance",
-  page: () => import("../layout/PlaceholderPage"),
+  page: () => import("../../features/mutual-funds/performance/PerformancePage"),
 };
 
 export default route;
