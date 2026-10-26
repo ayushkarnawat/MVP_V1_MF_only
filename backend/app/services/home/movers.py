@@ -201,6 +201,9 @@ def _bars_for_view(
 
 PRICE_DAY_COVERAGE = Decimal("0.5")
 PRICE_DAY_LOOKBACK = 15
+# The longest gap between the clock and a daily-priced fund's newest price that still counts as current: a long
+# weekend with a holiday is five days, so ten leaves room without hiding a feed that has stopped.
+STALE_FEED_DAYS = 10
 
 
 def _price_day(funds: Sequence[FundInput], as_of: date) -> date | None:
@@ -257,9 +260,15 @@ def compute_movers(
     ]
     # A fund with no units today (sold or switched out after its price feed ended) has nothing left to price: it
     # is not stale, however old its last price is (review N2).
+    # A fund is also stale when its newest price is more than STALE_FEED_DAYS older than the clock, even if every
+    # other fund is just as old (a feed that stopped): the numbers are then correct as of that date, and `partial`
+    # says they are not today's (review L15).
     stale = tuple(sorted((
         fund.scheme_id for fund in priced
-        if contexts[fund.scheme_id][0] and contexts[fund.scheme_id][0][0] != as_of_nav_date
+        if contexts[fund.scheme_id][0] and (
+            contexts[fund.scheme_id][0][0] != as_of_nav_date
+            or (as_of - contexts[fund.scheme_id][0][0]).days > STALE_FEED_DAYS
+        )
         and _value_at(fund.units_timeline, as_of) > 0
     ), key=str))
     missing = tuple(sorted((

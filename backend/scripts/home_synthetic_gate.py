@@ -6,6 +6,7 @@ import hashlib
 import shutil
 import sys
 import tempfile
+import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
@@ -28,6 +29,7 @@ from app.services.dashboard.holdings import _holdings_cache, compute_holdings
 from app.services.home.units import build_units_timeline
 
 
+REFERENCE_SCENARIOS = {"base", "member_rohan", "member_priya", "opening_balance_inside_period"}
 IST = timezone(timedelta(hours=5, minutes=30))
 FRIDAY = datetime(2026, 10, 23, 18, 30, tzinfo=IST)
 MONDAY = datetime(2026, 10, 26, 10, 0, tzinfo=IST)
@@ -100,6 +102,19 @@ def _mutate(db, scenario: str) -> None:
                 db.execute(text(
                     "UPDATE nav_history SET nav = :nav WHERE scheme_id = :scheme_id AND date = :day"
                 ), {"nav": str(Decimal(rows[1].nav) * factor), "scheme_id": scheme_id, "day": rows[0].date})
+    elif scenario == "opening_balance_inside_period":
+        # 100 units that already existed when a statement began ten days before the latest price, recorded at a
+        # cost of 1.00 (far below their worth): a period gain that counts them at cost (review F3) is wrong by
+        # almost their whole value, which only a check against an independent reference can see.
+        scheme_id = _held_scheme_hex(db)
+        folio_id, import_id = db.execute(text(
+            "SELECT f.id, t.import_id FROM folios f JOIN transactions t ON t.folio_id = f.id "
+            "WHERE f.scheme_id = :scheme_id ORDER BY f.id LIMIT 1"
+        ), {"scheme_id": scheme_id}).one()
+        db.execute(text(
+            "INSERT INTO transactions (id, folio_id, import_id, type, date, amount, units, nav) "
+            "VALUES (:id, :folio_id, :import_id, 'opening_balance', date(:latest, '-10 days'), 1.00, 100, 0.01)"
+        ), {"id": uuid.uuid4().hex, "folio_id": folio_id, "import_id": import_id, "latest": latest})
     elif scenario == "no_holdings":
         db.execute(text("DELETE FROM transaction_imports"))
         db.execute(text("DELETE FROM transactions"))
@@ -126,6 +141,76 @@ def _reference_value(db, member_ids, on_date: date) -> Decimal:
         if row is not None:
             total += units * Decimal(str(row[0]))
     return total
+
+
+def _held_any(db, member_ids, start: date, end: date) -> bool:
+    """True when the scope held any unit on any day of [start, end] (so a series for it cannot be empty)."""
+    for points in build_units_timeline(db, member_ids).values():
+        units = Decimal("0")
+        for changed_on, held in points:
+            if changed_on <= start:
+                units = held
+            elif changed_on <= end and held > 0:
+                return True
+        if units > 0:
+            return True
+    return False
+
+
+def _price_on_or_before(db, scheme_id, day: date) -> Decimal | None:
+    row = db.execute(
+        text("SELECT nav FROM nav_history WHERE scheme_id = :scheme AND date <= :day ORDER BY date DESC LIMIT 1"),
+        {"scheme": scheme_id, "day": day.isoformat()},
+    ).first()
+    return None if row is None else Decimal(str(row[0]))
+
+
+# Money paid in by the investor, and money paid out to the investor, by stored transaction type.
+_CONTRIBUTION_TYPES = {"purchase", "purchase_sip", "switch_in", "gift_in"}
+_WITHDRAWAL_TYPES = {"redemption", "switch_out", "dividend_payout", "reversal", "gift_out"}
+
+
+def _reference_flows(db, member_ids, after: date, upto: date) -> Decimal:
+    """Net money put in during (after, upto], straight from the stored rows. Units that already existed when a
+    statement began (an opening balance) enter at what they were worth that day, not at their cost (review F3)."""
+    placeholders = ",".join(f":m{index}" for index in range(len(member_ids)))
+    rows = db.execute(
+        text(
+            "SELECT t.type, t.date, t.amount, t.stamp_duty, t.units, f.scheme_id FROM transactions t "
+            "JOIN folios f ON f.id = t.folio_id "
+            f"WHERE f.household_member_id IN ({placeholders}) AND t.date > :after AND t.date <= :upto"
+        ),
+        {**{f"m{index}": member.hex for index, member in enumerate(member_ids)},
+         "after": after.isoformat(), "upto": upto.isoformat()},
+    ).all()
+    total = Decimal("0")
+    for kind, day, amount, stamp_duty, units, scheme_id in rows:
+        paid = Decimal(str(amount)) + Decimal(str(stamp_duty or 0))
+        if kind == "opening_balance":
+            price = _price_on_or_before(db, scheme_id, date.fromisoformat(str(day)))
+            total += Decimal(str(units)) * price if price is not None else paid
+        elif kind in _CONTRIBUTION_TYPES:
+            total += paid
+        elif kind in _WITHDRAWAL_TYPES:
+            total -= paid
+    return total
+
+
+def _reference_period(db, member_ids, body) -> tuple[Decimal, Decimal, Decimal, Decimal]:
+    """(opening value, closing value, net contributions, gain) of a non-empty body's period, computed from the
+    stored rows: values at market (`_reference_value`), flows from `_reference_flows`, gain = closing - opening
+    - net contributions (the Modified Dietz gain)."""
+    requested_start = date.fromisoformat(body["start"])
+    first = date.fromisoformat(body["points"][0]["date"])
+    last = date.fromisoformat(body["points"][-1]["date"])
+    if first > requested_start:
+        # the portfolio did not exist yet at the start: it opens empty the day before its first point
+        effective, opening = first - timedelta(days=1), Decimal("0")
+    else:
+        effective, opening = requested_start, _reference_value(db, member_ids, first)
+    closing = _reference_value(db, member_ids, last)
+    net = _reference_flows(db, member_ids, effective, last)
+    return opening, closing, net, closing - opening - net
 
 
 def _run_scenario(source: Path, temp_dir: Path, scenario: str) -> ScenarioResult:
@@ -201,8 +286,10 @@ def _run_scenario(source: Path, temp_dir: Path, scenario: str) -> ScenarioResult
         }
         with sessions() as db:
             _holdings_cache.clear()
+            # stored_only like the Home loader: without it this call could fetch a price and hide a mismatch with
+            # what the routes (which never fetch) show (review N7).
             rows = asyncio.run(compute_holdings(
-                db, selected_member_ids, allow_stale_today=True
+                db, selected_member_ids, allow_stale_today=True, stored_only=True
             ))
             direct_total = sum(
                 (quantize_amount(Decimal(row.current_value)) for row in rows
@@ -247,10 +334,12 @@ def _run_scenario(source: Path, temp_dir: Path, scenario: str) -> ScenarioResult
             details["custom_empty"] = (
                 f"empty={custom_body['empty']} points={len(custom_body['points'])}"
             )
-        if scenario in {"base", "member_rohan", "member_priya"}:
+        if scenario in REFERENCE_SCENARIOS:
             # An independent value of the portfolio on a date (every fund the scope ever held, stored price on or
             # before the date) against the series' first and last point of several periods, including a past
-            # range inside the years this household had a fund it has since sold (review F1 and F2).
+            # range inside the years this household had a fund it has since sold (review F1 and F2); and an
+            # independent period gain and net contribution (opening balances taken in at market value, review F3)
+            # against change_amount and net_contributions. An empty body must be one the reference expects.
             queries = {
                 "1M": f"{root}/home/wealth-series?period=1M",
                 "1Y": f"{root}/home/wealth-series?period=1Y",
@@ -259,6 +348,11 @@ def _run_scenario(source: Path, temp_dir: Path, scenario: str) -> ScenarioResult
             with sessions() as db:
                 for label, query in queries.items():
                     body = client.get(query).json()
+                    start, end = date.fromisoformat(body["start"]), date.fromisoformat(body["end"])
+                    expected_empty = not _held_any(db, selected_member_ids, start, end)
+                    name = f"reference_{label}_empty"
+                    checks[name] = body["empty"] is expected_empty
+                    details[name] = f"empty={body['empty']} reference_expects_empty={expected_empty} range={start}..{end}"
                     if body["empty"]:
                         continue
                     for which, point in (("first", body["points"][0]), ("last", body["points"][-1])):
@@ -267,6 +361,15 @@ def _run_scenario(source: Path, temp_dir: Path, scenario: str) -> ScenarioResult
                         name = f"reference_{label}_{which}"
                         checks[name] = gap <= Decimal("0.10")
                         details[name] = f"point={point['value']} reference={reference.quantize(Decimal('0.01'))} on {point['date']}"
+                    opening, closing, net, gain = _reference_period(db, selected_member_ids, body)
+                    for name, actual, expected, tolerance in (
+                        (f"reference_{label}_start_value", body["start_value"], opening, "0.10"),
+                        (f"reference_{label}_end_value", body["end_value"], closing, "0.10"),
+                        (f"reference_{label}_net_contributions", body["net_contributions"], net, "0.05"),
+                        (f"reference_{label}_change_amount", body["change_amount"], gain, "0.25"),
+                    ):
+                        checks[name] = abs(Decimal(actual) - expected) <= Decimal(tolerance)
+                        details[name] = f"actual={actual} reference={expected.quantize(Decimal('0.01'))}"
         lines = tuple(
             f"{scenario} {name}: {'PASS' if passed else 'FAIL'} ({details[name]})"
             for name, passed in checks.items()
@@ -309,7 +412,7 @@ def main() -> None:
     scenarios = (
         "base", "member_rohan", "member_priya", "weekend", "partial_data",
         "stale_statement", "one_fund_only", "all_funds_down", "loss_day",
-        "no_holdings", "custom_before_index_data",
+        "no_holdings", "custom_before_index_data", "opening_balance_inside_period",
     )
     with tempfile.TemporaryDirectory(prefix="unifolio-home-gate-") as directory:
         results = _run_all_scenarios(source, Path(directory), scenarios)

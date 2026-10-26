@@ -277,7 +277,11 @@ def build_wealth_series(
         # price date; a past custom range ends with that day's own value (review F2). The as-of date is the day
         # half the value is priced on, not the newest price: when a held fund already has a later (weekend)
         # price, the headline uses it and the series point cannot, so the point keeps its own value (review N3).
-        headline_value=headline_value if end == inputs.nav_as_of and not _priced_after(inputs, end) else None,
+        # Likewise when units changed after the as-of date (a purchase on the weekend, or one made after the last
+        # statement price): the headline counts the units held now, the point only those held that day (review L3).
+        headline_value=headline_value if (
+            end == inputs.nav_as_of and not _priced_after(inputs, end) and not _units_changed_after(inputs, end)
+        ) else None,
     )
 
 
@@ -286,5 +290,13 @@ def _priced_after(inputs: HomeInputs, day: date) -> bool:
     return any(
         fund.navs and fund.navs[-1][0] > day
         and fund.units_timeline and fund.units_timeline[-1][1] > 0
+        for fund in inputs.funds
+    )
+
+
+def _units_changed_after(inputs: HomeInputs, day: date) -> bool:
+    """True when any fund's units changed after `day`, so the headline (units held now) is not the value on `day`."""
+    return any(
+        fund.units_timeline and fund.units_timeline[-1][0] > day
         for fund in inputs.funds
     )
