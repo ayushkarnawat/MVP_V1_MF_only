@@ -266,6 +266,7 @@ def get_scenario_summary(db: Session, scenario: Scenario, *, has_phases: bool | 
         has_phases = db.query(Scenario).filter_by(parent_scenario_id=scenario.id).first() is not None
     return ScenarioSummaryRow(
         scenario_id=str(scenario.id), name=scenario.name, scenario_type=scenario.scenario_type,
+        description=scenario.description,
         start_date=scenario.start_date.isoformat() if scenario.start_date else None,
         end_date=scenario.end_date.isoformat() if scenario.end_date else None,
         is_ongoing=scenario.is_ongoing, display_rank=scenario.display_rank,

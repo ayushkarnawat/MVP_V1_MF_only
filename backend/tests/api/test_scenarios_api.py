@@ -20,7 +20,7 @@ def _seed(client, *scenarios):
 
 
 def _scenario(name, **kw):
-    return Scenario(id=uuid.uuid4(), name=name, description="d", start_date=date(2020, 1, 1), end_date=date(2020, 3, 1), scenario_type=kw.pop("scenario_type", "CRASH"), **kw)
+    return Scenario(id=uuid.uuid4(), name=name, description=kw.pop("description", "d"), start_date=date(2020, 1, 1), end_date=date(2020, 3, 1), scenario_type=kw.pop("scenario_type", "CRASH"), **kw)
 
 
 def test_curated_scenarios_returns_only_display_rank_rows(client):
@@ -34,6 +34,16 @@ def test_curated_scenarios_returns_only_display_rank_rows(client):
     assert [s["name"] for s in response.json()] == ["Curated"]
     response = client.get("/scenarios", headers=headers)
     assert [s["name"] for s in response.json()] == ["Curated", "Not curated"]
+
+
+def test_list_scenarios_includes_description_even_when_empty(client):
+    headers, _, _ = _authed_headers_and_member(client, "+919000000706")
+    _seed(client, _scenario("Quiet", description=""))
+
+    response = client.get("/scenarios", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()[0]["description"] == ""
 
 
 def test_scenario_results_returns_404_for_unknown_scenario(client):

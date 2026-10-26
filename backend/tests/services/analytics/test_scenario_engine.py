@@ -276,6 +276,11 @@ from app.services.analytics.scenario_engine import (
     get_scenario_result_for_household,
     get_scenario_summary,
 )
+from app.services.analytics.schemas import (
+    ScenarioMemberFundResult,
+    ScenarioResultRow,
+    ScenarioSummaryRow,
+)
 from app.models.user import HouseholdMember
 
 
@@ -305,6 +310,66 @@ def test_get_scenario_summary_has_phases_true_for_group_row():
 
     summary = get_scenario_summary(db, group)
     assert summary.has_phases is True
+
+
+def test_get_scenario_summary_includes_description():
+    db = _session()
+    scenario = Scenario(
+        name="Global selloff",
+        description="Global markets fell sharply.",
+        start_date=date(2020, 1, 1),
+        end_date=date(2020, 3, 31),
+        scenario_type="CRASH",
+    )
+    db.add(scenario)
+    db.commit()
+
+    assert get_scenario_summary(db, scenario).description == "Global markets fell sharply."
+
+
+def test_new_schema_fields_default_so_old_constructors_work():
+    summary = ScenarioSummaryRow(
+        scenario_id="scenario",
+        name="Scenario",
+        scenario_type="CRASH",
+        start_date="2020-01-01",
+        end_date="2020-03-31",
+        is_ongoing=False,
+        display_rank=1,
+        parent_scenario_id=None,
+        has_phases=False,
+        had_redemption_freeze_schemes=None,
+        quick_market_pct=None,
+        quick_equity_pct=None,
+        quick_debt_pct=None,
+        quick_weight_quarter=None,
+    )
+    member_fund = ScenarioMemberFundResult(
+        scheme_id="s",
+        scheme_name="n",
+        rupee_impact=None,
+    )
+    result = ScenarioResultRow(
+        scenario=summary,
+        portfolio_impact_pct=None,
+        rupee_impact="0.00",
+        covered_value="0.00",
+        total_value="0.00",
+        no_data_funds=0,
+        benchmarks=[],
+        phases=[],
+        by_fund=[],
+        by_member=[],
+        hypothetical_assumptions=[],
+        assumptions_not_set=False,
+    )
+
+    assert summary.description == ""
+    assert member_fund.is_proxied is False
+    assert member_fund.proxy_basis is None
+    assert member_fund.is_frozen is False
+    assert result.by_asset_class == []
+    assert result.funds_data_available is True
 
 
 def _holdings(*rows):

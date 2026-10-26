@@ -468,6 +468,7 @@ class AggregateFundManagerAllocationResponse(BaseModel):
 class ScenarioSummaryRow(BaseModel):
     scenario_id: str
     name: str
+    description: str = ""
     scenario_type: str
     start_date: str | None
     end_date: str | None
@@ -504,6 +505,9 @@ class ScenarioMemberFundResult(BaseModel):
     scheme_id: str
     scheme_name: str
     rupee_impact: str | None
+    is_proxied: bool = False
+    proxy_basis: str | None = None
+    is_frozen: bool = False
 
 
 class ScenarioMemberResult(BaseModel):
@@ -525,6 +529,13 @@ class ScenarioHypotheticalAssumptionRow(BaseModel):
     assumption_note: str
 
 
+class ScenarioAssetClassRow(BaseModel):
+    bucket: str
+    rupee_impact: str
+    covered_value: str
+    pct: str | None
+
+
 class ScenarioResultRow(BaseModel):
     scenario: ScenarioSummaryRow
     portfolio_impact_pct: str | None   # Σ rupee impact ÷ covered_value (fix 6)
@@ -538,6 +549,8 @@ class ScenarioResultRow(BaseModel):
     by_member: list[ScenarioMemberResult]
     hypothetical_assumptions: list[ScenarioHypotheticalAssumptionRow]
     assumptions_not_set: bool
+    by_asset_class: list[ScenarioAssetClassRow] = []
+    funds_data_available: bool = True
 
 
 class AssetAllocationClass(BaseModel):
