@@ -61,8 +61,9 @@ REQUESTS = {
 }
 
 
-def write_fixture_set(destination: Path) -> dict[str, dict]:
-    destination.mkdir(parents=True, exist_ok=True)
+def write_fixture_set(destination: Path, *, write: bool = True) -> dict[str, dict]:
+    if write:
+        destination.mkdir(parents=True, exist_ok=True)
     written = {}
     for filename, spec in REQUESTS.items():
         runtime = build_home_fixture(variant=spec.variant, now=spec.now)
@@ -74,7 +75,9 @@ def write_fixture_set(destination: Path) -> dict[str, dict]:
             payload = response.json()
             fixture_path = destination / filename
             rendered = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
-            if not fixture_path.exists() or fixture_path.read_text(encoding="utf-8") != rendered:
+            if write and (
+                not fixture_path.exists() or fixture_path.read_text(encoding="utf-8") != rendered
+            ):
                 fixture_path.write_text(rendered, encoding="utf-8", newline="\n")
             written[filename] = payload
         finally:

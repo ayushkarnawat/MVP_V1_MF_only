@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 import json
 import uuid
@@ -12,11 +12,13 @@ from sqlalchemy import event
 from app.api.home import _total_value, get_now_ist
 from app.core.decimal_utils import quantize_amount
 from app.db.session import get_db
-from app.models.enums import Relationship
+from app.models.enums import BenchmarkIndex, BenchmarkReturnType, Relationship
+from app.models.reference import BenchmarkIndexHistory, NavHistory
 from app.models.user import HouseholdMember
 from app.services.auth.session import get_active_user
+from app.services.dashboard.holdings import _holdings_cache
 from app.services.home.schemas import MissingFund, SummaryResponse
-from tests.api.home_fixture import FIXED_NOW, build_home_fixture, seed_home_household
+from tests.api.home_fixture import FIXED_NOW, build_home_fixture, seed_home_household, uid
 from scripts.write_home_fixtures import REQUESTS, write_fixture_set
 
 
@@ -215,7 +217,8 @@ def test_home_openapi_money_fields_are_strings(home_client):
 
 def test_generated_golden_fixtures_equal_live_routes():
     destination = Path(__file__).resolve().parents[1] / "fixtures" / "home"
-    generated = write_fixture_set(destination)
+    # Read-only on purpose: writing first and then comparing the file with the same output can never fail.
+    generated = write_fixture_set(destination, write=False)
     assert set(generated) == set(REQUESTS)
     for filename, payload in generated.items():
         assert json.loads((destination / filename).read_text(encoding="utf-8")) == payload
@@ -511,6 +514,143 @@ def test_display_name_rules_and_greeting_boundaries():
         assert empty_runtime.client.get("/household/aggregate/home/summary").json()["display_name"] == ""
     finally:
         empty_runtime.close()
+
+
+def _edit_db(runtime, work):
+    generator = runtime.client.app.dependency_overrides[get_db]()
+    db = next(generator)
+    try:
+        work(db)
+        db.commit()
+    finally:
+        generator.close()
+    _holdings_cache.clear()
+
+
+def test_wealth_period_ends_on_the_nav_date_not_the_calendar_date():
+    monday = FIXED_NOW.replace(day=26, hour=10, minute=0)
+    runtime = build_home_fixture(now=monday)
+    try:
+        body = runtime.client.get("/household/aggregate/home/wealth-series?period=1D").json()
+        assert body["end"] == body["nav_as_of"] == "2026-10-23"
+        assert body["points"][-1]["date"] == "2026-10-23"
+    finally:
+        runtime.close()
+
+
+def test_display_name_prefers_the_self_member_over_the_oldest_member():
+    runtime = build_home_fixture()
+    try:
+        def swap(db):
+            members = {member.id: member for member in db.query(HouseholdMember).all()}
+            members[runtime.household.asha_id].relationship = Relationship.PARENT
+            members[runtime.household.dev_id].relationship = Relationship.SELF
+
+        _edit_db(runtime, swap)
+        assert runtime.client.get("/household/aggregate/home/summary").json()["display_name"] == "Dev"
+    finally:
+        runtime.close()
+
+
+def test_computed_at_is_the_clock_instant_in_utc():
+    runtime = build_home_fixture()
+    try:
+        value = runtime.client.get("/household/aggregate/home/summary").json()["computed_at"]
+        assert value.endswith("Z")
+        assert datetime.fromisoformat(value.replace("Z", "+00:00")) == FIXED_NOW
+        assert value == "2026-10-23T13:00:00Z"
+    finally:
+        runtime.close()
+
+
+def test_members_are_listed_in_the_order_they_were_created_not_by_id():
+    runtime = build_home_fixture()
+    try:
+        first_by_id = sorted([runtime.household.asha_id, runtime.household.dev_id], key=str)[0]
+
+        def reorder(db):
+            for member in db.query(HouseholdMember).all():
+                # the member with the smaller id is created last, so id order and creation order differ
+                member.created_at = datetime(2026, 1, 9 if member.id == first_by_id else 2, tzinfo=timezone.utc)
+
+        _edit_db(runtime, reorder)
+        names = [member["name"] for member in runtime.client.get(
+            "/household/aggregate/home/summary"
+        ).json()["members"]]
+        expected_first = "Dev Rao" if first_by_id == runtime.household.asha_id else "ASHA RAO"
+        assert names[0] == expected_first
+        assert len(names) == 2
+    finally:
+        runtime.close()
+
+
+def test_a_fund_priced_earlier_than_the_rest_is_named_as_missing_on_every_route():
+    runtime = build_home_fixture()
+    try:
+        def age_gold(db):
+            db.query(NavHistory).filter(
+                NavHistory.scheme_id == uid("scheme-gold"), NavHistory.date > date(2026, 10, 19)
+            ).delete()
+
+        _edit_db(runtime, age_gold)
+        for path in ("summary", "wealth-series?period=1M", "movers?by=fund"):
+            body = runtime.client.get(f"/household/aggregate/home/{path}").json()
+            assert body["partial"] is True, path
+            assert [fund["name"] for fund in body["missing_funds"]] == ["Dev Gold Fund"], path
+    finally:
+        runtime.close()
+
+
+def test_benchmark_line_uses_total_return_levels_not_price_levels():
+    runtime = build_home_fixture()
+    try:
+        def add_price_levels(db):
+            # Price levels on days the total-return series has no row (weekends) with absurd values:
+            # if the query ignored the return type they would show up as extra, wrong points.
+            day = date(2025, 10, 1)
+            while day <= date(2026, 10, 23):
+                if day.weekday() >= 5:
+                    db.add(BenchmarkIndexHistory(
+                        index_name=BenchmarkIndex.NIFTY_50, date=day,
+                        return_type=BenchmarkReturnType.PRICE, value=Decimal("1.00"),
+                    ))
+                day += timedelta(days=1)
+
+        _edit_db(runtime, add_price_levels)
+        body = runtime.client.get(
+            "/household/aggregate/home/wealth-series?period=1M&benchmark=nifty_50"
+        ).json()
+        assert body["benchmark"]["pct"] == "0.2145"
+        by_date = {point["date"]: point["pct"] for point in body["benchmark"]["points"]}
+        assert by_date["2026-10-17"] == by_date["2026-10-16"]
+        assert by_date["2026-10-18"] == by_date["2026-10-16"]
+    finally:
+        runtime.close()
+
+
+def test_benchmark_start_on_a_weekend_uses_the_last_level_before_it_and_is_not_clipped():
+    runtime = build_home_fixture()
+    try:
+        body = runtime.client.get(
+            "/household/aggregate/home/wealth-series?period=custom&from=2026-09-19&to=2026-10-23&benchmark=nifty_50"
+        ).json()
+        assert body["benchmark"]["clipped"] is False
+        assert body["benchmark"]["effective_start"] == "2026-09-19"
+    finally:
+        runtime.close()
+
+
+def test_sector_bars_carry_no_per_fund_change_and_fund_bars_do():
+    runtime = build_home_fixture()
+    try:
+        sector = runtime.client.get("/household/aggregate/home/movers?by=sector").json()
+        bars = sector["gains"] + sector["losses"]
+        assert bars and all(fund["change"] is None for bar in bars for fund in bar["funds"])
+        fund_view = runtime.client.get("/household/aggregate/home/movers?by=fund").json()
+        bars = fund_view["gains"] + fund_view["losses"]
+        assert bars and all(fund["change"] is not None for bar in bars for fund in bar["funds"])
+    finally:
+        runtime.close()
 
 
 def test_one_point_first_purchase_redemption_and_missing_nav_series():
