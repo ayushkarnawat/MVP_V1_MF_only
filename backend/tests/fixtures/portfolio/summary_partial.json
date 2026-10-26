@@ -30,8 +30,8 @@
   "today_gain": "2.00",
   "today_pct": "0.0476",
   "previous_nav_date": "2026-10-22",
-  "lifetime_xirr": null,
-  "current_holdings_xirr": null,
+  "lifetime_xirr": "-0.716009594645563925",
+  "current_holdings_xirr": "-0.716009594645563925",
   "lifetime_xirr_disclaimer": null,
   "current_holdings_xirr_disclaimer": null
 }
