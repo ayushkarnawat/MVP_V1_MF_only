@@ -1,0 +1,21 @@
+{
+  "scope": "member",
+  "member_id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
+  "nav_as_of": "2026-10-23",
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "members": null,
+  "total_value": "3012.00",
+  "total_invested": "3000.00",
+  "unrealized_gain": "12.00",
+  "unrealized_pct": "0.4000",
+  "realized_gain": "0.00",
+  "today_gain": "12.00",
+  "today_pct": "0.4000",
+  "previous_nav_date": "2026-10-22",
+  "lifetime_xirr": "0.02377974994515885143004314061",
+  "current_holdings_xirr": "0.02377974994515885143004314061",
+  "lifetime_xirr_disclaimer": null,
+  "current_holdings_xirr_disclaimer": null
+}

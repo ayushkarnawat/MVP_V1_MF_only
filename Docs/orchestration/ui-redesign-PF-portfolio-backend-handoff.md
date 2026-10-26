@@ -89,13 +89,125 @@ Anything the code shows that this handoff did not say goes under Findings; behav
 ## Report (the worker fills this in at the end, in one fenced block)
 ```
 WORKER REPORT — ui-redesign — PF-B (Portfolio backend)
-Run date/time:    Worker (tool and model):    Python: 3.14    Baseline HEAD:
-1. TASK STATUS (Tasks 1 to 7):
+Run date/time: 2026-10-26 (this session)    Worker (tool and model): Claude Code, Sonnet 5    Python: 3.14    Baseline HEAD: c4f0501f (feat/portfolio-backend, merge of leapswitch-redesign)
+
+1. TASK STATUS (Tasks 1 to 7): All seven done.
+   Task 1 (response models): done. Task 2 (instrument_allocation.py): done. Task 3 (portfolio_summary.py):
+   done. Task 4 (value_series.py): done. Task 5 (routes + registration): done. Task 6 (tests + golden
+   fixtures): done, all 7 sub-items. Task 7 (synthetic gate on the real file): done, all 8 scenarios PASS.
+
 2. FILES (added and changed):
+   Added: backend/app/api/portfolio.py; backend/app/services/dashboard/portfolio_schemas.py,
+   instrument_allocation.py, portfolio_summary.py, value_series.py; backend/scripts/
+   write_portfolio_fixtures.py, portfolio_synthetic_gate.py; backend/tests/api/test_portfolio_routes.py;
+   backend/tests/services/dashboard/test_instrument_allocation.py, test_portfolio_summary.py,
+   test_value_series.py; backend/tests/fixtures/portfolio/{allocation_family,allocation_member,
+   allocation_empty,summary_family,summary_member,summary_empty,summary_partial,series_family_30d,
+   series_member_30d,series_empty}.json (10 files).
+   Changed: backend/app/main.py (one import-line addition of `portfolio` and one
+   `app.include_router(portfolio.router)` line; `git diff --check` clean, LF/UTF-8 unaffected).
+   No other file touched. `git status --porcelain` on `backend/app`, `backend/scripts`, `backend/tests`
+   shows exactly this list.
+
 3. TESTS (RED list, GREEN task runs, final fresh commands and last lines; the gate output in full):
+   RED-first modules confirmed failing for the right reason before implementation: Task 1
+   (ModuleNotFoundError: portfolio_schemas), Task 2 (ModuleNotFoundError: instrument_allocation, after
+   fixing an initial wrong import of DashboardXirrSummary from schemas instead of xirr), Task 3
+   (ModuleNotFoundError: portfolio_summary), Task 4 (ModuleNotFoundError: value_series), Task 5 (404 on
+   all six routes before registration), golden-fixture/semantics tests (FileNotFoundError on
+   tests/fixtures/portfolio/*.json before scripts/write_portfolio_fixtures.py was run).
+   One test-only bug found and fixed during Task 6: test_portfolio_parity_with_home_across_variants
+   (4 parametrized cases) initially failed with `RuntimeError: Event loop is closed` because it called
+   the live `/holdings` route, which attempts a real httpx NAV fetch for the fixture's fake AMFI codes.
+   Fixed by monkeypatching `get_nav_on_or_before` to read from the seeded `NavHistory` rows only, the
+   same pattern `test_home_totals_match_dashboard_rounded_rows_for_aggregate_and_member` already uses
+   in test_home_routes.py. No implementation code changed for this fix.
+   GREEN, final fresh combined run (all Task-6 test files + the full baseline set in one command):
+     wsl.exe -d Ubuntu --cd "D:\Unifolio code\backend" -- .venv/bin/python -m pytest
+     tests/services/dashboard/test_instrument_allocation.py tests/services/dashboard/test_portfolio_summary.py
+     tests/services/dashboard/test_value_series.py tests/api/test_portfolio_routes.py
+     tests/api/test_home_routes.py tests/services/home tests/services/dashboard/test_holdings.py
+     tests/services/analytics/test_recompute.py tests/scripts/test_measure_benchmark_matrix.py
+     tests/api/test_dashboard_aggregate_routes.py tests/api/test_dashboard_distributor_comparison_route.py
+     tests/api/test_dashboard_routes.py tests/api/test_dashboard_sips_route.py
+     tests/api/test_dashboard_snapshots_route.py -q -p no:cacheprovider --disable-warnings
+   Last line: `433 passed, 5 warnings in 18.94s` (34 new Portfolio tests + 270 Home baseline + 88 neighbour
+   baseline + 41 dashboard baseline = 433, all baselines matched exactly). `tests/services/analytics/
+   test_portfolio_disclosure_parsing.py` excluded (xlwt missing), nothing installed.
+
+   Task 7 gate output in full (run against `/home/ayush/s25/s25.db`, after a dry run on a scratch copy
+   in the session scratchpad to shake out bugs first):
+   source_sha256_before: f51884f66c2789de15879632a02f16c2353b4e49e337c3d894e87194ab05186f
+   base value_chain: PASS (summary=8222736.44 home=8222736.44 allocation=8222736.44 holdings_row_sum=8222736.44 series_last=8222736.44)
+   base today_gain_parity: PASS (today_gain=-78327.92 home_change=-78327.92 today_pct=-0.9436 home_net_pct=-0.9436)
+   base unrealized_identity: PASS (unrealized_gain=3667120.05 value=8222736.44 invested=4555616.39)
+   member_rohan value_chain: PASS (summary=4022474.97 home=4022474.97 allocation=4022474.97 holdings_row_sum=4022474.97 series_last=4022474.97)
+   member_rohan today_gain_parity: PASS (today_gain=-39340.02 home_change=-39340.02 today_pct=-0.9685 home_net_pct=-0.9685)
+   member_rohan unrealized_identity: PASS (unrealized_gain=1703835.00 value=4022474.97 invested=2318639.97)
+   member_priya value_chain: PASS (summary=4200261.47 home=4200261.47 allocation=4200261.47 holdings_row_sum=4200261.47 series_last=4200261.47)
+   member_priya today_gain_parity: PASS (today_gain=-38987.89 home_change=-38987.89 today_pct=-0.9197 home_net_pct=-0.9197)
+   member_priya unrealized_identity: PASS (unrealized_gain=1963285.05 value=4200261.47 invested=2236976.42)
+   weekend value_chain: PASS (summary=8222736.44 home=8222736.44 allocation=8222736.44 holdings_row_sum=8222736.44 series_last=8222736.44)
+   weekend today_gain_parity: PASS (today_gain=-78327.92 home_change=-78327.92 today_pct=-0.9436 home_net_pct=-0.9436)
+   weekend unrealized_identity: PASS (unrealized_gain=3667120.05 value=8222736.44 invested=4555616.39)
+   partial_data value_chain: PASS (summary=8239532.25 home=8239532.25 allocation=8239532.25 holdings_row_sum=8239532.25 series_last=8239532.25)
+   partial_data today_gain_parity: PASS (today_gain=-68747.82 home_change=-68747.82 today_pct=-0.8991 home_net_pct=-0.8991)
+   partial_data unrealized_identity: PASS (unrealized_gain=3683915.86 value=8239532.25 invested=4555616.39)
+   one_fund_only value_chain: PASS (summary=1220931.30 home=1220931.30 allocation=1220931.30 holdings_row_sum=1220931.30 series_last=1220931.30)
+   one_fund_only today_gain_parity: PASS (today_gain=-8548.71 home_change=-8548.71 today_pct=-0.6953 home_net_pct=-0.6953)
+   one_fund_only unrealized_identity: PASS (unrealized_gain=502925.45 value=1220931.30 invested=718005.85)
+   all_funds_down value_chain: PASS (summary=8218054.19 home=8218054.19 allocation=8218054.19 holdings_row_sum=8218054.19 series_last=8218054.19)
+   all_funds_down today_gain_parity: PASS (today_gain=-83010.17 home_change=-83010.17 today_pct=-1.0000 home_net_pct=-1.0000)
+   all_funds_down unrealized_identity: PASS (unrealized_gain=3662437.80 value=8218054.19 invested=4555616.39)
+   no_holdings value_chain: PASS (summary=0.00 home=0.00 allocation=0.00 holdings_row_sum=0.00 series_last=None)
+   no_holdings today_gain_parity: PASS (today_gain=0.00 home_change=0.00 today_pct=None home_net_pct=None)
+   no_holdings unrealized_identity: PASS (unrealized_gain=0.00 value=0.00 invested=0.00)
+   source_sha256_after: f51884f66c2789de15879632a02f16c2353b4e49e337c3d894e87194ab05186f
+   FINAL RESULTS
+   base: PASS failed_checks=none
+   member_rohan: PASS failed_checks=none
+   member_priya: PASS failed_checks=none
+   weekend: PASS failed_checks=none
+   partial_data: PASS failed_checks=none
+   one_fund_only: PASS failed_checks=none
+   all_funds_down: PASS failed_checks=none
+   no_holdings: PASS failed_checks=none
+   source_hash: PASS before=f51884f66c2789de15879632a02f16c2353b4e49e337c3d894e87194ab05186f after=f51884f66c2789de15879632a02f16c2353b4e49e337c3d894e87194ab05186f
+
 4. DEVIATIONS (mechanics only):
+   - `backend/scripts/portfolio_synthetic_gate.py` imports `FRIDAY`, `MONDAY`, `ScenarioResult`,
+     `_mutate`, `_sha256` from `scripts.home_synthetic_gate` (the handoff named `_mutate` and
+     `_held_scheme_hex` explicitly as reusable; `_held_scheme_hex` is called internally by `_mutate` and
+     was not needed directly, so it was not imported). `home_synthetic_gate.py` itself was not edited.
+   - The `test_portfolio_parity_with_home_across_variants` monkeypatch described in section 3 above
+     (test-only, mirrors an existing Home test pattern).
+   - No file outside the allowed list was touched; no forbidden file needed changing.
+
 5. FINDINGS:
-6. OPEN QUESTIONS / BLOCKERS:
+   - `lifetime_xirr`/`current_holdings_xirr` in the Portfolio summary are the full-precision Decimal
+     strings `calculate_dashboard_xirr` already produces (e.g. `"0.3265242927545401092123717864"`),
+     passed straight through unrounded per C96/C96's "strings the Dashboard produces" — confirmed this
+     is the existing Dashboard convention, not a new rounding decision.
+   - On the real file, `today_pct` reaches `-1.0000` in the `all_funds_down` scenario (every held fund
+     down the same day) — within the `PlainDecimal`/4-place contract, no special-casing needed.
+
+6. OPEN QUESTIONS / BLOCKERS: none. Nothing required a change to a forbidden file.
+
 7. SELF-REVIEW FINDINGS:
-8. CONFIRMATIONS: No git write commands: ___  Full suites not run: ___  Edits only in the allowed files: ___  ~/s25/s25.db unmodified (sha256 before and after): ___
+   - `grep -n "float"` across all five new application/script modules returns no matches; every
+     money/percentage value flows through `Decimal`/`quantize_amount`/`PlainDecimal`.
+   - Golden-fixture and fixture-semantics tests read existing files only (confirmed RED before the
+     writer script ran, confirmed the writer script's own `write=False` path is exercised by the golden
+     test, so the comparison cannot trivially pass by writing-then-reading the same output).
+   - `git diff --check` and manual CRLF/UTF-8 scans on every added/changed file: clean (LF only, valid
+     UTF-8).
+   - `git status --porcelain` on the touched directories lists exactly the allowed-file set in section 2,
+     nothing extra.
+
+8. CONFIRMATIONS: No git write commands: confirmed (only status/diff/log/grep run throughout).
+   Full suites not run: confirmed (only the files named in "Test commands" were run, in the combinations
+   shown above).
+   Edits only in the allowed files: confirmed (see section 2 and the self-review `git status` check).
+   ~/s25/s25.db unmodified (sha256 before and after): confirmed,
+   f51884f66c2789de15879632a02f16c2353b4e49e337c3d894e87194ab05186f both times.
 ```
