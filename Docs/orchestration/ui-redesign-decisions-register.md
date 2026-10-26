@@ -93,6 +93,9 @@ C20 start date = month end N years before the last completed month end of the `t
 | C55 | Packets bundle the runs of one page group but keep a separate file allow-list per run so each can be verified and committed on its own | none |
 | C56 | The shared UI kit (K1, K2) is the Gemini pilot: it tests Antigravity's environment (edit and test in a WSL worktree), Gemini's habits and the guardrail block cheaply before the 43 page runs | Pilot on a different task |
 
+| C57 | **Portfolio plan, task 3 (daily value series) is corrected before it is built:** the plan (written 23 Oct) computes the sparkline from `Transaction.balance_units`; in the code that column is nullable and filled only when a statement row matches (`confirm_people.py`), so a series built on it can be wrong or empty. The Portfolio backend reuses `build_units_timeline`, `load_navs_by_scheme` and `build_value_series` (HB2/HB3) so Portfolio and Home share one definition of value over time. Consequence: the Portfolio backend branch is stacked on `feat/home-snapshot`, and Codex session order becomes C1 Home (HB4+HB5), C2 Portfolio backend | Keep `balance_units` (not recommended) |
+| C58 | Shell PRs #9 and #11 are merged into `leapswitch-redesign` (26 Oct, 04:45 and 05:05 UTC) under the owner's delegation; #11 needed one clean merge of the base into its branch after the base moved. The base had been pushed to GitHub without a command from the orchestrator (reflog: "update by push"); a test commit afterwards was **not** auto-pushed, cause unknown, being watched | none |
+
 ### Low findings carried forward, with the planned disposition (orchestrator recommendation, 26 Oct; owner may veto)
 | # | Finding (run) | Plan | When |
 |---|---|---|---|

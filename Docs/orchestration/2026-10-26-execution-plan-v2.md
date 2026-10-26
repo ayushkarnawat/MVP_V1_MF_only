@@ -20,8 +20,8 @@ Each lane works in its **own git worktree** (a branch can be checked out in one 
 ### Lane C (Codex), 7 implementation sessions, each followed by my verification
 | Session | Runs | Branch | Why this order |
 |---|---|---|---|
-| C1 | Portfolio backend: instrument-type allocation, summary, daily series (plan tasks 1 to 3, inside catalogue runs PF1 and PF2) | `feat/portfolio-backend` | Portfolio is the first page to preview; these are logic-heavy backend tasks hidden in the page plan |
-| C2 | HB4 (worth-a-look, benchmark recommendation) + HB5 (routes, synthetic gate) | `feat/home-snapshot` (merge `feat/mf-backend` in first: needs the Smallcap 250 index) | Unblocks the Home preview and gives the **real fixtures** the Home front end is built against |
+| C1 | HB4 (worth-a-look, benchmark recommendation) + HB5 (routes, synthetic gate) | `feat/home-snapshot` (merge `feat/mf-backend` in first: needs the Smallcap 250 index) | Unblocks the Home preview, gives the **real fixtures** the Home front end is built against, and the Portfolio backend reuses its series and units modules |
+| C2 | Portfolio backend: instrument-type allocation, summary, daily series (plan tasks 1 to 3, inside catalogue runs PF1 and PF2) | `feat/portfolio-backend`, **stacked on `feat/home-snapshot`** | Logic-heavy backend tasks hidden in the page plan. **Task 3 changes (register C57):** the plan's sparkline reads `Transaction.balance_units`, which is nullable and not reliable (the import code sets it only when a statement row matches); it must instead reuse HB2/HB3's units replay and value series, so Portfolio and Home can never disagree |
 | C3 | NB1 to NB3 (news) | `feat/home-news` (after MB1 is on the integration branch: migration 0044 chains after 0045) | Home's news section |
 | C4 | IB1 + IB2 | `feat/individual-fund-page` | MB4 needs IB1 |
 | C5 | IB3 + IB4 | same | |
