@@ -10,9 +10,9 @@ const route: ShellRoute = {
   order: 0,
   layout: "focus",
   scope: "none",
-  status: "placeholder",
+  status: "live",
   title: "Add data",
-  page: () => import("../layout/PlaceholderPage"),
+  page: () => import("../wrappers/ImportWrapper"),
 };
 
 export default route;

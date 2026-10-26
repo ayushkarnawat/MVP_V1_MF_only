@@ -5,6 +5,8 @@ import { renderInShell } from "../testing";
 import { PageLayout } from "./PageLayout";
 import { PageState } from "./PageState";
 
+vi.mock("../../features/scenarios/ScenariosScreen", () => ({ ScenariosScreen: () => <h1>Planning</h1> }));
+
 afterEach(() => vi.restoreAllMocks());
 
 it("remembers the last app page for Back and marks the row for a trailing-slash URL", async () => {

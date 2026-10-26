@@ -94,11 +94,11 @@ describe("contract v1.6 registry", () => {
       .toEqual(["portfolio-equity-direct-stocks", "portfolio-mutual-funds", "portfolio-equity-us-stocks", "portfolio-equity-fds-bonds"]);
   });
 
-  it("keeps Planning a placeholder page and Profile a non-scoped redirect", () => {
+  it("keeps Planning live and Profile a non-scoped redirect", () => {
     const routes = buildRegistry();
-    expect(routes.find(route => route.id === "planning")).toMatchObject({ path: "/planning", status: "placeholder", scope: "none" });
+    expect(routes.find(route => route.id === "planning")).toMatchObject({ path: "/planning", status: "live", scope: "none" });
     expect(routes.find(route => route.id === "planning")?.redirectTo).toBeUndefined();
-    expect(routes.find(route => route.id === "profile")).toMatchObject({ redirectTo: "/profile/personal", scope: "none", status: "placeholder" });
+    expect(routes.find(route => route.id === "profile")).toMatchObject({ redirectTo: "/profile/personal", scope: "none", status: "live" });
     expect(routes.filter(route => route.id.startsWith("profile")).every(route => route.scope === "none")).toBe(true);
     expect(routes.find(route => route.id === "profile-settings-import-history")?.parentId).toBe("profile-settings");
   });
@@ -136,7 +136,7 @@ describe("contract v1.6 registry", () => {
   });
 
   // Runs S2.4 and I1 must enable the destinations before shell switch-on.
-  it.skip("requires every group redirect target to be live by switch-on", () => {
+  it("requires every group redirect target to be live by switch-on", () => {
     const routes = buildRegistry();
     for (const route of routes.filter(route => route.kind === "group")) {
       expect(routes.find(target => target.path === route.redirectTo)?.status).toBe("live");

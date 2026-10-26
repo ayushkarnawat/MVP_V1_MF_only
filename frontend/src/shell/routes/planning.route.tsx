@@ -10,9 +10,9 @@ const route: ShellRoute = {
   order: 4,
   layout: "app",
   scope: "none",
-  status: "placeholder",
+  status: "live",
   title: "Planning",
-  page: () => import("../layout/PlaceholderPage"),
+  page: () => import("../wrappers/ScenariosWrapper"),
 };
 
 export default route;

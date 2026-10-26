@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./features/auth/AuthContext";
 import { AuthEntryFlow } from "./features/auth/AuthEntryFlow";
 import { OnboardingFlow } from "./features/auth/OnboardingFlow";
-import { DashboardPlaceholder } from "./features/dashboard/DashboardPlaceholder";
+import { ShellRoot } from "./shell/ShellRoot";
 import { MobileRoot } from "./mobile/MobileRoot";
 import { MobileLandingPage } from "./mobile/features/landing/MobileLandingPage";
 import { MobileJourneyContext } from "./features/auth/mobileJourneyContext";
@@ -127,7 +127,7 @@ function MainApp() {
 
   return (
     <ReconsentGate>
-      <DashboardPlaceholder />
+      <ShellRoot />
     </ReconsentGate>
   );
 }

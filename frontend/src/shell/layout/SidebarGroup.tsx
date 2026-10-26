@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { ShellRoute } from "../registry/types";
 import { SidebarItem } from "./SidebarItem";
@@ -18,12 +18,19 @@ export function SidebarGroup({ route, childrenRoutes, routes, pathname, activeId
     try { return window.sessionStorage.getItem(equityKey) === "true"; }
     catch { return false; }
   });
+  // The row the user collapsed while one of this group's own pages was open. The group opens by itself when
+  // navigation lands on one of its pages, but the user may close it there (owner decision, 25 Oct 2026).
+  const [collapsedAt, setCollapsedAt] = useState<string | undefined>(undefined);
   const listId = useId();
   const containsActive = childrenRoutes.some(child => child.id === activeId);
-  const open = containsActive || storedOpen;
+  useEffect(() => { if (!containsActive) setCollapsedAt(undefined); }, [containsActive]);
+  const open = containsActive ? collapsedAt !== activeId : storedOpen;
   const Icon = route.icon;
   function toggle() {
-    if (containsActive) return;
+    if (containsActive) {
+      setCollapsedAt(open ? activeId : undefined);
+      return;
+    }
     const next = !storedOpen;
     setStoredOpen(next);
     try { window.sessionStorage.setItem(equityKey, String(next)); }

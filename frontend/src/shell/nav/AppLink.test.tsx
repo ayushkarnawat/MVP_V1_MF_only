@@ -7,7 +7,7 @@ import { AppLink } from "./AppLink";
 
 let routes: ShellRoute[];
 beforeEach(() => {
-  routes = registry.buildRegistry().map(route => route.id === "planning" ? { ...route, status: "live" } : route);
+  routes = registry.buildRegistry().map(route => route.id === "planning" ? { ...route, status: "live" } : route.id === "portfolio-mutual-funds" ? { ...route, status: "placeholder" } : route);
   vi.spyOn(registry, "buildRegistry").mockImplementation(() => routes);
 });
 afterEach(() => vi.restoreAllMocks());
@@ -75,6 +75,7 @@ it("applies the active class only at the live destination", () => {
 });
 
 it("checks relative links against the resolved pathname", () => {
+  routes = routes.map(route => route.id === "profile-personal" ? { ...route, status: "placeholder" } : route);
   render(<MemoryRouter initialEntries={["/profile/settings"]}><Routes><Route path="/profile/settings" element={<AppLink to="../personal">Personal</AppLink>} /></Routes></MemoryRouter>);
   expect(screen.getByTitle("Coming soon")).toHaveAttribute("aria-disabled", "true");
 });
