@@ -131,7 +131,7 @@ def load_index_levels(
     loaded = {}
     for index in indices:
         rows = (
-            db.query(BenchmarkIndexHistory)
+            db.query(BenchmarkIndexHistory.date, BenchmarkIndexHistory.value)
             .filter(
                 BenchmarkIndexHistory.index_name == index,
                 BenchmarkIndexHistory.return_type == BenchmarkReturnType.TRI,
@@ -144,7 +144,7 @@ def load_index_levels(
         loaded[index] = IndexLevels(
             [row.date for row in rows],
             [row.value for row in rows],
-        )
+        )  # column rows, not ORM entities: tens of thousands of rows per call
     return loaded
 
 

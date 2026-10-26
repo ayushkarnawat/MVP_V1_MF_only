@@ -181,6 +181,7 @@ class PortfolioBenchmarkSummary(BaseModel):
 
     portfolio_xirr: str | None
     benchmarks: list[IndexXirrRow]
+    windows: list[BenchmarkWindowRow] = []
 
 
 class AggregatePortfolioBenchmarkResponse(BaseModel):
@@ -198,6 +199,7 @@ class FundBenchmarkRow(BaseModel):
     benchmark_index: BenchmarkIndex
     fund_xirr: str | None
     benchmark_xirr: str | None
+    windows: list[FundWindowXirr] = []
 
 
 class FundVsBenchmarkSummary(BaseModel):

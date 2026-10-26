@@ -1,10 +1,11 @@
 import asyncio
+import logging
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, localcontext
 from unittest.mock import AsyncMock, patch
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 import app.models.enums as enum_module
@@ -23,6 +24,13 @@ from app.services.analytics.benchmark import (
     compute_fund_vs_benchmark,
     compute_portfolio_vs_benchmarks,
 )
+from app.services.analytics.benchmark_windows import (
+    WINDOWS,
+    WindowContext,
+    compute_fund_window_rows as real_compute_fund_window_rows,
+    window_start,
+)
+from app.services.analytics.schemas import FundBenchmarkRow, PortfolioBenchmarkSummary
 
 
 def _session():
@@ -106,6 +114,58 @@ class _BenchmarkCheckDate(date):
     @classmethod
     def today(cls):
         return date(2025, 1, 6)
+
+
+def _seed_all_tri_history(db, dates):
+    for index in enum_module.ALL_BENCHMARK_INDICES:
+        for n, history_date in enumerate(sorted(set(dates))):
+            db.add(
+                BenchmarkIndexHistory(
+                    index_name=index,
+                    return_type=BenchmarkReturnType.TRI,
+                    date=history_date,
+                    value=Decimal("100") + Decimal(n),
+                )
+            )
+    db.commit()
+
+
+def _window_context(scheme_ids, today=None):
+    today = today or date.today()
+    starts = {window: window_start(window, today) for window in WINDOWS}
+    return WindowContext(
+        today=today,
+        starts=starts,
+        portfolio_start_values={
+            "1Y": Decimal("3000"),
+            "3Y": Decimal("2500"),
+            "5Y": Decimal("2000"),
+            "SI": None,
+        },
+        fund_start_values={
+            window: ({scheme_id: Decimal("1000") for scheme_id in scheme_ids} if window != "SI" else {})
+            for window in WINDOWS
+        },
+    )
+
+
+def _seed_two_fund_window_case(db):
+    member = _household_member(db)
+    large_cap = _scheme(db, "Large Cap Window Fund", sebi_category="Equity Scheme - Large Cap Fund")
+    mid_cap = _scheme(db, "Mid Cap Window Fund", sebi_category="Equity Scheme - Mid Cap Fund")
+    purchase_date = date.today().replace(year=date.today().year - 6)
+    _folio_with_purchase(
+        db, member, large_cap, Decimal("1000"), Decimal("100"), Decimal("10"), purchase_date
+    )
+    _folio_with_purchase(
+        db, member, mid_cap, Decimal("2000"), Decimal("200"), Decimal("10"), purchase_date
+    )
+    ctx = _window_context([large_cap.id, mid_cap.id])
+    _seed_all_tri_history(
+        db,
+        [purchase_date, date.today(), *(start for start in ctx.starts.values() if start is not None)],
+    )
+    return member, large_cap, mid_cap, ctx
 
 
 def test_benchmark_xirr_prices_each_transaction_on_its_own_date():
@@ -503,3 +563,494 @@ def test_benchmark_uses_tri_and_ignores_price_rows():
     tri_xirr = Decimal(next(r for r in with_tri.benchmarks if r.index == BenchmarkIndex.NIFTY_50).xirr)
     # The index grew 10% (TRI), not 5% (price): about a 10% annual rate for one year.
     assert Decimal("0.09") < tri_xirr < Decimal("0.11")
+
+
+def test_summary_has_windows_for_all_four_in_order():
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    purchase_date = date.today().replace(year=date.today().year - 6)
+    _folio_with_purchase(
+        db, member, scheme, Decimal("1000"), Decimal("100"), Decimal("10"), purchase_date
+    )
+    ctx = _window_context([scheme.id])
+    _seed_all_tri_history(
+        db,
+        [purchase_date, date.today(), *(start for start in ctx.starts.values() if start is not None)],
+    )
+
+    p1, p2 = _mock_holdings(scheme, Decimal("12"))
+    with (
+        p1,
+        p2,
+        _no_fetch(),
+        patch(
+            "app.services.analytics.benchmark.build_window_context",
+            new=AsyncMock(return_value=ctx),
+            create=True,
+        ),
+    ):
+        summary = asyncio.run(compute_portfolio_vs_benchmarks(db, [member.id]))
+
+    assert [window.window for window in summary.windows] == ["1Y", "3Y", "5Y", "SI"]
+    assert all(
+        [row.index for row in window.indices] == list(enum_module.ALL_BENCHMARK_INDICES)
+        for window in summary.windows
+    )
+
+
+def test_existing_summary_keys_unchanged():
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    purchase_date = date.today().replace(year=date.today().year - 6)
+    _folio_with_purchase(
+        db, member, scheme, Decimal("1000"), Decimal("100"), Decimal("10"), purchase_date
+    )
+    ctx = _window_context([scheme.id])
+    _seed_all_tri_history(
+        db,
+        [purchase_date, date.today(), *(start for start in ctx.starts.values() if start is not None)],
+    )
+
+    p1, p2 = _mock_holdings(scheme, Decimal("12"))
+    with (
+        p1,
+        p2,
+        _no_fetch(),
+        patch(
+            "app.services.analytics.benchmark.build_window_context",
+            new=AsyncMock(return_value=ctx),
+            create=True,
+        ),
+    ):
+        normal = asyncio.run(compute_portfolio_vs_benchmarks(db, [member.id]))
+
+    p1, p2 = _mock_holdings(scheme, Decimal("12"))
+    with (
+        p1,
+        p2,
+        _no_fetch(),
+        patch(
+            "app.services.analytics.benchmark.build_window_context",
+            new=AsyncMock(side_effect=RuntimeError("window context failed")),
+            create=True,
+        ),
+    ):
+        failed_windows = asyncio.run(compute_portfolio_vs_benchmarks(db, [member.id]))
+
+    assert normal.portfolio_xirr == failed_windows.portfolio_xirr
+    assert normal.benchmarks == failed_windows.benchmarks
+    assert list(normal.model_dump().keys()) == ["portfolio_xirr", "benchmarks", "windows"]
+    assert failed_windows.windows == []
+
+
+def test_old_stored_payload_without_windows_still_validates():
+    portfolio = PortfolioBenchmarkSummary.model_validate(
+        {
+            "portfolio_xirr": "0.125",
+            "benchmarks": [{"index": "nifty_50", "xirr": "0.10"}],
+        }
+    )
+    fund = FundBenchmarkRow.model_validate(
+        {
+            "scheme_id": str(uuid.uuid4()),
+            "scheme_name": "Stored Fund",
+            "benchmark_index": "nifty_500",
+            "fund_xirr": "0.12",
+            "benchmark_xirr": "0.09",
+        }
+    )
+
+    assert portfolio.windows == []
+    assert fund.windows == []
+
+
+def test_fund_rows_carry_windows_and_keep_benchmark_index_legacy():
+    db = _session()
+    member, large_cap, mid_cap, ctx = _seed_two_fund_window_case(db)
+    p1, p2 = _mock_holdings_multi(
+        {large_cap.id: Decimal("12"), mid_cap.id: Decimal("9")}
+    )
+    with (
+        p1,
+        p2,
+        _no_fetch(),
+        patch(
+            "app.services.analytics.benchmark.build_window_context",
+            new=AsyncMock(return_value=ctx),
+            create=True,
+        ),
+    ):
+        comparison = asyncio.run(compute_fund_vs_benchmark(db, [member.id]))
+
+    assert len(comparison.funds) == 2
+    for row in comparison.funds:
+        assert row.benchmark_index in enum_module.LEGACY_BENCHMARK_INDICES
+        assert [window.window for window in row.windows] == ["1Y", "3Y", "5Y", "SI"]
+        since_inception = next(window for window in row.windows if window.window == "SI")
+        assert since_inception.fund_xirr == row.fund_xirr
+        assert since_inception.benchmark_xirr == row.benchmark_xirr
+
+
+def test_empty_household_returns_empty_windows():
+    db = _session()
+    member = _household_member(db)
+
+    portfolio = asyncio.run(compute_portfolio_vs_benchmarks(db, [member.id]))
+    funds = asyncio.run(compute_fund_vs_benchmark(db, [member.id]))
+
+    assert portfolio.windows == []
+    assert funds.funds == []
+
+
+def test_window_failure_degrades_to_empty_windows_and_logs_a_warning(caplog):
+    db = _session()
+    member, large_cap, mid_cap, ctx = _seed_two_fund_window_case(db)
+    navs = {large_cap.id: Decimal("12"), mid_cap.id: Decimal("9")}
+
+    p1, p2 = _mock_holdings_multi(navs)
+    with (
+        p1,
+        p2,
+        _no_fetch(),
+        patch(
+            "app.services.analytics.benchmark.build_window_context",
+            new=AsyncMock(return_value=ctx),
+            create=True,
+        ),
+    ):
+        baseline_portfolio = asyncio.run(compute_portfolio_vs_benchmarks(db, [member.id]))
+        baseline_funds = asyncio.run(compute_fund_vs_benchmark(db, [member.id]))
+
+    caplog.clear()
+    p1, p2 = _mock_holdings_multi(navs)
+    with (
+        caplog.at_level(logging.WARNING, logger="app.services.analytics.benchmark"),
+        p1,
+        p2,
+        _no_fetch(),
+        patch(
+            "app.services.analytics.benchmark.build_window_context",
+            new=AsyncMock(return_value=ctx),
+            create=True,
+        ),
+        patch(
+            "app.services.analytics.benchmark.compute_window_rows",
+            side_effect=RuntimeError("portfolio window failed"),
+            create=True,
+        ),
+    ):
+        failed_portfolio = asyncio.run(compute_portfolio_vs_benchmarks(db, [member.id]))
+
+    assert failed_portfolio.portfolio_xirr == baseline_portfolio.portfolio_xirr
+    assert failed_portfolio.benchmarks == baseline_portfolio.benchmarks
+    assert failed_portfolio.windows == []
+    assert any(record.levelno == logging.WARNING for record in caplog.records)
+
+    caplog.clear()
+    p1, p2 = _mock_holdings_multi(navs)
+    with (
+        caplog.at_level(logging.WARNING, logger="app.services.analytics.benchmark"),
+        p1,
+        p2,
+        _no_fetch(),
+        patch(
+            "app.services.analytics.benchmark.build_window_context",
+            new=AsyncMock(side_effect=RuntimeError("fund window inputs failed")),
+        ),
+    ):
+        failed_fund_inputs = asyncio.run(compute_fund_vs_benchmark(db, [member.id]))
+
+    baseline_by_id = {row.scheme_id: row for row in baseline_funds.funds}
+    failed_inputs_by_id = {row.scheme_id: row for row in failed_fund_inputs.funds}
+    assert all(row.windows == [] for row in failed_inputs_by_id.values())
+    for scheme_id, row in failed_inputs_by_id.items():
+        assert row.fund_xirr == baseline_by_id[scheme_id].fund_xirr
+        assert row.benchmark_xirr == baseline_by_id[scheme_id].benchmark_xirr
+    assert any(record.levelno == logging.WARNING for record in caplog.records)
+
+    caplog.clear()
+
+    def fail_one_fund(context, scheme_id, *args):
+        if scheme_id == large_cap.id:
+            raise RuntimeError("one fund window failed")
+        return real_compute_fund_window_rows(context, scheme_id, *args)
+
+    p1, p2 = _mock_holdings_multi(navs)
+    with (
+        caplog.at_level(logging.WARNING, logger="app.services.analytics.benchmark"),
+        p1,
+        p2,
+        _no_fetch(),
+        patch(
+            "app.services.analytics.benchmark.build_window_context",
+            new=AsyncMock(return_value=ctx),
+            create=True,
+        ),
+        patch(
+            "app.services.analytics.benchmark.compute_fund_window_rows",
+            side_effect=fail_one_fund,
+            create=True,
+        ),
+    ):
+        failed_funds = asyncio.run(compute_fund_vs_benchmark(db, [member.id]))
+
+    failed_by_id = {row.scheme_id: row for row in failed_funds.funds}
+    assert failed_by_id[str(large_cap.id)].windows == []
+    assert len(failed_by_id[str(mid_cap.id)].windows) == 4
+    for scheme_id, row in failed_by_id.items():
+        assert row.fund_xirr == baseline_by_id[scheme_id].fund_xirr
+        assert row.benchmark_xirr == baseline_by_id[scheme_id].benchmark_xirr
+    assert any(
+        record.levelno == logging.WARNING and str(large_cap.id) in record.getMessage()
+        for record in caplog.records
+    )
+
+
+def test_new_indices_are_topped_up_with_tri_history_once_per_computation():
+    db = _session()
+    member, large_cap, mid_cap, ctx = _seed_two_fund_window_case(db)
+    navs = {large_cap.id: Decimal("12"), mid_cap.id: Decimal("9")}
+    new_indices = set(enum_module.ALL_BENCHMARK_INDICES) - set(enum_module.LEGACY_BENCHMARK_INDICES)
+
+    for computation in (compute_portfolio_vs_benchmarks, compute_fund_vs_benchmark):
+        p1, p2 = _mock_holdings_multi(navs)
+        with (
+            p1,
+            p2,
+            patch(
+                "app.services.analytics.benchmark.ensure_index_history_fresh",
+                new=AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.services.analytics.benchmark.build_window_context",
+                new=AsyncMock(return_value=ctx),
+            ),
+        ):
+            baseline = asyncio.run(computation(db, [member.id]))
+
+        top_up = AsyncMock(return_value=False)
+        p1, p2 = _mock_holdings_multi(navs)
+        with (
+            p1,
+            p2,
+            patch("app.services.analytics.benchmark.ensure_index_history_fresh", new=top_up),
+            patch(
+                "app.services.analytics.benchmark.build_window_context",
+                new=AsyncMock(return_value=ctx),
+                create=True,
+            ),
+        ):
+            result = asyncio.run(computation(db, [member.id]))
+
+        calls_for_new_indices = [
+            call
+            for call in top_up.await_args_list
+            if call.args[1] in new_indices
+        ]
+        # Only the portfolio matrix shows the new indices; a fund's own benchmark is always one of the
+        # legacy four, so the fund computation neither fetches nor loads the new ones.
+        expected_new = new_indices if computation is compute_portfolio_vs_benchmarks else set()
+        assert {call.args[1] for call in calls_for_new_indices} == expected_new
+        assert all(call.kwargs["return_type"] == BenchmarkReturnType.TRI for call in calls_for_new_indices)
+        assert len(calls_for_new_indices) == len(expected_new)
+        assert not any(
+            call.args[1] in new_indices
+            and call.kwargs.get("return_type") == BenchmarkReturnType.PRICE
+            for call in top_up.await_args_list
+        )
+        if isinstance(result, PortfolioBenchmarkSummary):
+            assert result.portfolio_xirr == baseline.portfolio_xirr
+            assert result.benchmarks == baseline.benchmarks
+        else:
+            assert result.overall_portfolio_xirr == baseline.overall_portfolio_xirr
+            assert result.overall_broad_market_xirr == baseline.overall_broad_market_xirr
+            assert [
+                (row.scheme_id, row.benchmark_index, row.fund_xirr, row.benchmark_xirr)
+                for row in result.funds
+            ] == [
+                (row.scheme_id, row.benchmark_index, row.fund_xirr, row.benchmark_xirr)
+                for row in baseline.funds
+            ]
+
+
+def test_window_work_does_not_grow_with_the_number_of_funds():
+    async def window_statement_count(fund_count):
+        db = _session()
+        member = _household_member(db)
+        schemes = []
+        purchase_date = date.today().replace(year=date.today().year - 6)
+        for n in range(fund_count):
+            scheme = _scheme(
+                db,
+                name=f"Fund {n}",
+                sebi_category="Equity Scheme - Large Cap Fund",
+            )
+            _folio_with_purchase(
+                db,
+                member,
+                scheme,
+                Decimal("1000"),
+                Decimal("100"),
+                Decimal("10"),
+                purchase_date,
+            )
+            schemes.append(scheme)
+
+        ctx = _window_context([scheme.id for scheme in schemes])
+        holdings = [
+            HoldingRow(
+                scheme_id=str(scheme.id),
+                scheme_name=scheme.name,
+                amc_name=scheme.amc_name,
+                household_member_id=str(member.id),
+                household_member_name=member.name,
+                plan_type=PlanType.DIRECT,
+                units_held="100",
+                average_nav="10",
+                current_nav="10",
+                current_nav_date=date.today(),
+                amount_invested="1000",
+                current_value="1000",
+                current_profit_total="0",
+                realized_gain="0",
+                unrealized_gain="0",
+                today_gain="0",
+            )
+            for scheme in schemes
+        ]
+        measuring = False
+        statements = 0
+
+        @event.listens_for(db.get_bind(), "before_cursor_execute")
+        def count_window_statements(conn, cursor, statement, parameters, context, executemany):
+            nonlocal statements
+            if measuring:
+                statements += 1
+
+        async def context_once(*args):
+            nonlocal measuring
+            measuring = True
+            return ctx
+
+        with (
+            patch("app.services.analytics.benchmark.compute_holdings", new=AsyncMock(return_value=holdings)),
+            patch(
+                "app.services.analytics.benchmark._benchmark_xirr_for_transactions",
+                new=AsyncMock(return_value=Decimal("0.1")),
+            ),
+            patch("app.services.analytics.benchmark.ensure_index_history_fresh", new=AsyncMock(return_value=False)),
+            patch(
+                "app.services.analytics.benchmark.build_window_context",
+                new=AsyncMock(side_effect=context_once),
+                create=True,
+            ),
+        ):
+            await compute_fund_vs_benchmark(db, [member.id])
+
+        event.remove(db.get_bind(), "before_cursor_execute", count_window_statements)
+        db.close()
+        return statements
+
+    two_funds = asyncio.run(window_statement_count(2))
+    six_funds = asyncio.run(window_statement_count(6))
+
+    # One levels query per legacy index plus the two-statement re-select that refreshes rows a commit expired.
+    assert two_funds == six_funds == len(enum_module.LEGACY_BENCHMARK_INDICES) + 2
+
+
+def test_non_database_failure_in_window_inputs_does_not_roll_back_the_session():
+    db = _session()
+    member, large_cap, mid_cap, ctx = _seed_two_fund_window_case(db)
+    p1, p2 = _mock_holdings_multi({large_cap.id: Decimal("12"), mid_cap.id: Decimal("9")})
+    rollbacks = []
+    real_rollback = db.rollback
+    db.rollback = lambda: rollbacks.append(1) or real_rollback()
+
+    with (
+        p1,
+        p2,
+        patch("app.services.analytics.benchmark.ensure_index_history_fresh", new=AsyncMock(return_value=True)),
+        patch(
+            "app.services.analytics.benchmark.build_window_context",
+            new=AsyncMock(side_effect=TypeError("engine bug")),
+        ),
+    ):
+        summary = asyncio.run(compute_portfolio_vs_benchmarks(db, [member.id]))
+
+    assert summary.windows == []
+    assert rollbacks == []  # a rollback would expire every loaded transaction for nothing
+
+
+def test_database_failure_in_window_inputs_rolls_the_session_back_and_degrades():
+    from sqlalchemy.exc import OperationalError
+
+    db = _session()
+    member, large_cap, mid_cap, ctx = _seed_two_fund_window_case(db)
+    p1, p2 = _mock_holdings_multi({large_cap.id: Decimal("12"), mid_cap.id: Decimal("9")})
+    rollbacks = []
+    real_rollback = db.rollback
+    db.rollback = lambda: rollbacks.append(1) or real_rollback()
+
+    with (
+        p1,
+        p2,
+        patch("app.services.analytics.benchmark.ensure_index_history_fresh", new=AsyncMock(return_value=True)),
+        patch(
+            "app.services.analytics.benchmark.build_window_context",
+            new=AsyncMock(side_effect=OperationalError("stmt", {}, Exception("connection lost"))),
+        ),
+    ):
+        summary = asyncio.run(compute_portfolio_vs_benchmarks(db, [member.id]))
+
+    assert summary.windows == []
+    assert rollbacks == [1]
+
+
+def test_commit_during_window_inputs_does_not_cause_a_refresh_query_per_transaction():
+    """A snapshot rebuild commits and expires every loaded row; the windows must not then pay one
+    refresh query per transaction (the cost would scale with history length)."""
+
+    async def window_statements(purchases_per_fund):
+        db = _session()
+        member = _household_member(db)
+        schemes = [_scheme(db, f"Fund {n}", sebi_category="Equity Scheme - Flexi Cap Fund") for n in range(2)]
+        first = date.today().replace(year=date.today().year - 6)
+        for scheme in schemes:
+            for n in range(purchases_per_fund):
+                _folio_with_purchase(
+                    db, member, scheme, Decimal("1000"), Decimal("100"), Decimal("10"),
+                    first + timedelta(days=30 * n),
+                )
+        ctx = _window_context([scheme.id for scheme in schemes])
+        _seed_all_tri_history(db, [first, date.today(), *(s for s in ctx.starts.values() if s is not None)])
+        measuring = False
+        count = 0
+
+        @event.listens_for(db.get_bind(), "before_cursor_execute")
+        def counter(conn, cursor, statement, parameters, context, executemany):
+            nonlocal count
+            if measuring:
+                count += 1
+
+        async def committing_context(*args):
+            nonlocal measuring
+            db.commit()  # what get_snapshots does when it rebuilds
+            measuring = True
+            return ctx
+
+        p1, p2 = _mock_holdings_multi({scheme.id: Decimal("12") for scheme in schemes})
+        with (
+            p1,
+            p2,
+            patch("app.services.analytics.benchmark.ensure_index_history_fresh", new=AsyncMock(return_value=True)),
+            patch("app.services.analytics.benchmark.build_window_context", new=AsyncMock(side_effect=committing_context)),
+        ):
+            summary = await compute_portfolio_vs_benchmarks(db, [member.id])
+        assert summary.windows
+        event.remove(db.get_bind(), "before_cursor_execute", counter)
+        db.close()
+        return count
+
+    assert asyncio.run(window_statements(2)) == asyncio.run(window_statements(12))
