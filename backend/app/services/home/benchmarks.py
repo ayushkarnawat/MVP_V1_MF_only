@@ -101,4 +101,7 @@ def load_cap_mix(
     except (KeyError, TypeError, ValueError, AttributeError, ArithmeticError):
         # An unparsable stored section counts as unavailable (the recommendation falls back to Nifty 500).
         return None
+    # "NaN" and "Infinity" parse as Decimals but fail every comparison: they are as unusable as text (review N5).
+    if not all(value.is_finite() for value in cap_mix.values()):
+        return None
     return cap_mix if set(cap_mix) == {"LARGE", "MID", "SMALL"} else None

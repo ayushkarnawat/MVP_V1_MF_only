@@ -376,11 +376,20 @@ def _category_ter_means(
 _MALFORMED = (KeyError, TypeError, ValueError, AttributeError, ArithmeticError)
 
 
+def _finite(value: Any) -> Decimal:
+    """A stored number as a Decimal; "NaN" and "Infinity" parse but break every comparison later, so they count
+    as malformed, like text that is not a number (review N5)."""
+    number = Decimal(value)
+    if not number.is_finite():
+        raise ValueError("stored number is not finite")
+    return number
+
+
 def _parse_scores(payload: Mapping[str, Any]) -> dict[Any, tuple[Any, Decimal | None]]:
     return {
         row.get("scheme_id"): (
             row.get("risk_adjusted_tier"),
-            None if row.get("final_score") is None else Decimal(row["final_score"]),
+            None if row.get("final_score") is None else _finite(row["final_score"]),
         )
         for row in payload.get("funds", [])
     }
@@ -391,8 +400,8 @@ def _parse_rankings(payload: Mapping[str, Any]) -> dict[Any, tuple[Decimal | Non
     for row in payload.get("funds", []):
         period = row.get("periods", {}).get("1y", {})
         parsed[row.get("scheme_id")] = (
-            None if period.get("fund_return") is None else Decimal(period["fund_return"]),
-            None if period.get("category_avg") is None else Decimal(period["category_avg"]),
+            None if period.get("fund_return") is None else _finite(period["fund_return"]),
+            None if period.get("category_avg") is None else _finite(period["category_avg"]),
         )
     return parsed
 
@@ -494,7 +503,7 @@ def load_worth_facts(
                     StockExposure(
                         name=row["instrument_name"],
                         isin=row.get("isin"),
-                        exposure_pct=Decimal(row["exposure_pct"]),
+                        exposure_pct=_finite(row["exposure_pct"]),
                     )
                     for row in rows
                 )
@@ -504,7 +513,7 @@ def load_worth_facts(
                     else date.fromisoformat(payload["holdings_as_of"])
                 )
                 coverage = payload.get("coverage", {}).get("covered_value_pct")
-                coverage_pct = None if coverage is None else Decimal(coverage)
+                coverage_pct = None if coverage is None else _finite(coverage)
                 hide_headlines = bool(payload.get("hide_headlines"))
                 earlier = (None, None)
                 isins = [stock.isin for stock in top_stocks if stock.isin is not None]

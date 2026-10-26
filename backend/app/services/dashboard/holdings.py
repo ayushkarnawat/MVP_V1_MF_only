@@ -57,9 +57,13 @@ class _HoldingsCacheEntry:
     cached_at: float
 
 
-_holdings_cache: dict[
-    tuple[tuple[uuid.UUID, ...], date, frozenset[uuid.UUID] | None, bool], _HoldingsCacheEntry
-] = {}
+# Key: (members, day, scheme_ids, allow_stale_today), plus a trailing True only for a stored-only read, so the
+# default path's key shape is unchanged and a stored-only read never shares an entry with a live one.
+_HoldingsCacheKey = (
+    tuple[tuple[uuid.UUID, ...], date, frozenset[uuid.UUID] | None, bool]
+    | tuple[tuple[uuid.UUID, ...], date, frozenset[uuid.UUID] | None, bool, bool]
+)
+_holdings_cache: dict[_HoldingsCacheKey, _HoldingsCacheEntry] = {}
 _holdings_cache_generation: dict[uuid.UUID, int] = defaultdict(int)
 _holdings_cache_lock = threading.Lock()
 _default_single_nav_lookup = get_nav_on_or_before

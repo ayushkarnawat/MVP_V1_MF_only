@@ -255,9 +255,12 @@ def compute_movers(
             contexts[fund.scheme_id][0][0] == as_of_nav_date or fund.statement_priced
         )
     ]
+    # A fund with no units today (sold or switched out after its price feed ended) has nothing left to price: it
+    # is not stale, however old its last price is (review N2).
     stale = tuple(sorted((
         fund.scheme_id for fund in priced
         if contexts[fund.scheme_id][0] and contexts[fund.scheme_id][0][0] != as_of_nav_date
+        and _value_at(fund.units_timeline, as_of) > 0
     ), key=str))
     missing = tuple(sorted((
         fund.scheme_id for fund in eligible if contexts[fund.scheme_id][0] is None
@@ -271,7 +274,11 @@ def compute_movers(
         latest, previous, current_units, previous_units, _ = contexts[fund.scheme_id]
         current_values[fund.scheme_id] = _zero(current_units * latest[1])
         if fund.statement_priced:
-            previous_values[fund.scheme_id] = _zero(previous_units * latest[1])
+            # Its change is zero by rule, so the value it started the day with is the value it has: the units
+            # held at the latest price date at that price. Taking the units at the previous statement date left
+            # a fund with one price out of the base entirely, and ignored units added since that statement,
+            # which overstated every percentage (review N1).
+            previous_values[fund.scheme_id] = current_values[fund.scheme_id]
         else:
             previous_values[fund.scheme_id] = _zero(previous_units * previous[1]) if previous else Decimal("0")
         exact_changes[fund.scheme_id] = (
