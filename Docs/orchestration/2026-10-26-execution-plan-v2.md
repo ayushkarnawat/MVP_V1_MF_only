@@ -27,6 +27,8 @@ Each lane works in its **own git worktree** (a branch can be checked out in one 
 | C5 | IB3 + IB4 | same | |
 | C6 | IB5 + MB4 | `feat/individual-fund-page`, `feat/mf-backend` | Finishes the fund page and the Mutual Funds Overlap tab |
 | C7 | PB1 + PB2 | `feat/planning-backend` | Planning is late in the page order |
+**Update 26 Oct (register C65):** session C1 is split into **C1 = HB4** (worth-a-look, benchmark recommendation, shared stored-section reader; handoff `ui-redesign-HB4-home-backend-handoff.md`) and **C1b = HB5** (routes, response contracts, synthetic gate). The sessions after them keep their letters; the Codex total is about 14 sessions.
+
 Plus: one Codex adversarial review per backend PR (#10 Home, #12 Mutual Funds, Individual Fund, Planning, News, Portfolio backend) = 6, and the small cleanup run **MX1** (can be me). Profile's one backend line (`created_at` on `/auth/me`) I do myself.
 Manual owner steps inside these runs (read-only checks on the VM): the news dry run (NB1 T1) and the staging timing scripts at the integration wave.
 
