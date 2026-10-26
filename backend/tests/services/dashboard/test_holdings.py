@@ -9,7 +9,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
-from app.models.enums import CostSource, PlanType, Relationship, TransactionOrigin, TransactionType
+from app.models.enums import (
+    CostSource,
+    PlanType,
+    Relationship,
+    SchemeSource,
+    TransactionOrigin,
+    TransactionType,
+)
 from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
@@ -208,6 +215,149 @@ def test_compute_holdings_returns_current_value_and_gains_from_nav():
     assert Decimal(row.today_gain) == Decimal("100.00")  # (60-59) * 100
     assert row.plan_type == PlanType.DIRECT
     assert row.asset_class == "Equity"
+
+
+def test_compute_holdings_carries_sebi_category_on_valued_and_nav_unavailable_rows():
+    import asyncio
+
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    folio = _folio(db, member, scheme)
+    _persisted_txn(
+        db,
+        folio,
+        TransactionType.PURCHASE,
+        date(2024, 1, 1),
+        Decimal("5000.00"),
+        Decimal("100.000"),
+        Decimal("50.0000"),
+    )
+
+    with patch(
+        "app.services.dashboard.holdings.get_navs_on_or_before",
+        new=_mock_nav_batch((Decimal("60.0000"), date.today())),
+    ), patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None):
+        [valued] = asyncio.run(compute_holdings(db, [member.id]))
+
+    invalidate_holdings_cache(member.id)
+    with patch(
+        "app.services.dashboard.holdings.get_navs_on_or_before",
+        new=_mock_nav_batch(None),
+    ):
+        [nav_unavailable] = asyncio.run(compute_holdings(db, [member.id]))
+
+    assert valued.sebi_category == "Equity Scheme - Flexi Cap Fund"
+    assert nav_unavailable.sebi_category == "Equity Scheme - Flexi Cap Fund"
+
+
+def test_compute_holdings_preserves_empty_sebi_category():
+    import asyncio
+
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    scheme.sebi_category = ""
+    db.commit()
+    folio = _folio(db, member, scheme)
+    _persisted_txn(
+        db,
+        folio,
+        TransactionType.PURCHASE,
+        date(2024, 1, 1),
+        Decimal("100"),
+        Decimal("10"),
+        Decimal("10"),
+    )
+
+    with patch(
+        "app.services.dashboard.holdings.get_navs_on_or_before",
+        new=_mock_nav_batch((Decimal("12"), date.today())),
+    ), patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None):
+        [row] = asyncio.run(compute_holdings(db, [member.id]))
+
+    assert row.sebi_category == scheme.sebi_category
+
+
+def test_compute_holdings_preserves_cas_only_scheme_category():
+    import asyncio
+
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    scheme.source = SchemeSource.CAS_ONLY
+    scheme.sebi_category = "CAS statement category"
+    db.commit()
+    folio = _folio(db, member, scheme)
+    _persisted_txn(
+        db,
+        folio,
+        TransactionType.PURCHASE,
+        date(2024, 1, 1),
+        Decimal("100"),
+        Decimal("10"),
+        Decimal("10"),
+    )
+
+    with patch(
+        "app.services.dashboard.holdings.get_navs_on_or_before",
+        new=_mock_nav_batch((Decimal("12"), date.today())),
+    ), patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None):
+        [row] = asyncio.run(compute_holdings(db, [member.id]))
+
+    assert row.sebi_category == scheme.sebi_category
+
+
+def test_existing_holding_fields_unchanged():
+    import asyncio
+
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    folio = _folio(db, member, scheme)
+    _persisted_txn(
+        db,
+        folio,
+        TransactionType.PURCHASE,
+        date(2024, 1, 1),
+        Decimal("100"),
+        Decimal("10"),
+        Decimal("10"),
+    )
+
+    with patch(
+        "app.services.dashboard.holdings.get_navs_on_or_before",
+        new=_mock_nav_batch((Decimal("12"), date.today())),
+    ), patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None):
+        [row] = asyncio.run(compute_holdings(db, [member.id]))
+
+    dumped = row.model_dump(mode="json")
+    assert list(dumped)[-1] == "sebi_category"
+    dumped.pop("sebi_category")
+    assert dumped == {
+        "stale_nav": False,
+        "price_from_statement": False,
+        "scheme_id": str(scheme.id),
+        "scheme_name": "HDFC Flexi Cap Fund",
+        "amc_name": "HDFC AMC",
+        "asset_class": "Equity",
+        "household_member_id": str(member.id),
+        "household_member_name": "Self",
+        "plan_type": "direct",
+        "plan_verified": False,
+        "units_held": "10.000",
+        "average_nav": "10.0000",
+        "current_nav": "12",
+        "current_nav_date": date.today().isoformat(),
+        "amount_invested": "100.0000000",
+        "current_value": "120.000",
+        "current_profit_total": "20.0000000",
+        "realized_gain": "0",
+        "unrealized_gain": "20.0000000",
+        "today_gain": "0.000",
+        "nav_unavailable": False,
+        "opening_lot": None,
+    }
 
 
 def test_compute_holdings_keeps_fifo_fields_when_nav_is_unavailable():
@@ -796,3 +946,9 @@ def test_average_cost_with_stamp_duty_has_no_exponent():
     units, cost, _ = _process_folio_lots([buy])
     assert "E" not in str(cost / units)
     assert cost / units == Decimal("50")
+
+
+def test_holding_row_sebi_category_defaults_to_none_when_not_supplied():
+    from app.services.dashboard.schemas import HoldingRow
+
+    assert HoldingRow.model_fields["sebi_category"].default is None
