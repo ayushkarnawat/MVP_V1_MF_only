@@ -111,3 +111,6 @@ New orchestrator: follow Prompt 1 in `2026-10-24-ui-redesign-new-account-prompt.
 ## Status 26 Oct (late)
 - Codex limit exhausted: implementation moves to Claude Code (Sonnet) on the owner's second account (register C97). First job: the Portfolio backend (`ui-redesign-PF-portfolio-backend-handoff.md`, branch `feat/portfolio-backend` from `feat/home-snapshot`).
 - Reviews owed before merging into `leapswitch-redesign` (register C98): one adversarial review each for the Home backend (PR #10) and the Mutual Funds backend (PR #12); no Opus gate for them. L8 note written (`2026-10-26-home-api-cold-holdings-note-L8.md`); measure at I2.
+
+## Status 26 Oct (night)
+- G3 packet written, tests red-committed on `feat/home-frontend` (243 Home tests, reference-validated). **Opus review of the Home backend found real defects (register C101, note `2026-10-26-home-backend-opus-review.md`); HB6 fixes are being done by the orchestrator in `~/wt/home-be`; PR #10 must not merge before HB6 and a re-review.** Pushed Draft PRs: #10 (Home backend), #12 (MF backend), #13 (UI kit), #14 (Home front end run 1).

@@ -131,7 +131,10 @@ def assemble_wealth_series(
             period, requested_start, end, clamped, True, (), Decimal("0.00"),
             Decimal("0.00"), Decimal("0.00"), Decimal("0.00"), None,
             "price_only" if period == "1D" else "modified_dietz",
-            _benchmark_series(benchmark, (), requested_start, end), requested_start,
+            # A range that starts after the latest price date has no series and no index return to compute;
+            # it is the same empty body with or without a benchmark (review N4).
+            None if requested_start > end else _benchmark_series(benchmark, (), requested_start, end),
+            requested_start,
         )
     first_date = points[0].date
     start_effective = (
@@ -271,6 +274,17 @@ def build_wealth_series(
         flows=flows,
         benchmark=benchmark_data,
         # The portfolio's value today replaces the last point only when the series really ends on the latest
-        # price date; a past custom range ends with that day's own value (review F2).
-        headline_value=headline_value if end == inputs.nav_as_of else None,
+        # price date; a past custom range ends with that day's own value (review F2). The as-of date is the day
+        # half the value is priced on, not the newest price: when a held fund already has a later (weekend)
+        # price, the headline uses it and the series point cannot, so the point keeps its own value (review N3).
+        headline_value=headline_value if end == inputs.nav_as_of and not _priced_after(inputs, end) else None,
+    )
+
+
+def _priced_after(inputs: HomeInputs, day: date) -> bool:
+    """True when a fund still held has a price dated after `day` (the headline value would use it)."""
+    return any(
+        fund.navs and fund.navs[-1][0] > day
+        and fund.units_timeline and fund.units_timeline[-1][1] > 0
+        for fund in inputs.funds
     )
