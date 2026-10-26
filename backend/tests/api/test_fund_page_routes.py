@@ -1,16 +1,38 @@
-"""fund_page.router isn't registered on app.main.app until T3 (see handoff
-D-table), so this can't use the shared `client` fixture yet -- a standalone
-FastAPI app with only this router proves the auth dependency is wired."""
+"""`fund_page.router` is registered on `app.main.app` since T3, but these
+tests still use a standalone app with a single shared in-memory session --
+the `client` fixture mints a fresh, empty DB per test and goes through the
+real OTP/signup flow, which is unnecessary weight for routes whose fixtures
+(scheme/folio/transaction rows) are built directly via `factories.py`."""
 from __future__ import annotations
 
 import uuid
+from unittest.mock import AsyncMock
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api import fund_page
 from app.db.session import get_db
-from tests.services.fund_page.factories import make_session
+from app.models.user import User
+from app.services.auth.session import get_active_user
+from app.services.dashboard import holdings as holdings_module
+from app.services.fund_page import summary as summary_module
+from tests.services.fund_page.factories import add_user_household, fx_hold, make_session
+
+
+@pytest.fixture(autouse=True)
+def _no_network(monkeypatch):
+    monkeypatch.setattr(summary_module, "warm_nav_history", AsyncMock(return_value=None))
+
+
+@pytest.fixture(autouse=True)
+def _isolated_holdings_cache():
+    holdings_module._holdings_cache.clear()
+    holdings_module._holdings_cache_generation.clear()
+    yield
+    holdings_module._holdings_cache.clear()
+    holdings_module._holdings_cache_generation.clear()
 
 
 def _client() -> TestClient:
@@ -20,6 +42,79 @@ def _client() -> TestClient:
     return TestClient(app)
 
 
+def _authed_client(db, user: User) -> TestClient:
+    app = FastAPI()
+    app.include_router(fund_page.router)
+    app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_active_user] = lambda: user
+    return TestClient(app)
+
+
 def test_endpoints_require_session():
     response = _client().get(f"/fund-page/{uuid.uuid4()}/summary")
     assert response.status_code == 401
+
+
+def test_summary_route_404s_for_unknown_scheme():
+    db = make_session()
+    household = add_user_household(db)
+    user = db.get(User, household.user_id)
+
+    response = _authed_client(db, user).get(f"/fund-page/{uuid.uuid4()}/summary")
+
+    assert response.status_code == 404
+
+
+def test_summary_route_returns_tiles_for_held_scheme():
+    db = make_session()
+    household = add_user_household(db)
+    hold = fx_hold(db, household)
+    user = db.get(User, household.user_id)
+
+    response = _authed_client(db, user).get(f"/fund-page/{hold.scheme.id}/summary")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["held"] is True
+    assert body["tiles"]["invested"] == "1600.00"
+    assert len(body["details"]["folios"]) == 2
+
+
+def test_folio_number_route_returns_unmasked_value_for_own_folio():
+    db = make_session()
+    household = add_user_household(db)
+    hold = fx_hold(db, household)
+    user = db.get(User, household.user_id)
+
+    response = _authed_client(db, user).get(
+        f"/fund-page/{hold.scheme.id}/folios/{hold.asha_folio.id}/number"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["folio_number"] == "4400918/3"
+
+
+def test_folio_number_route_404s_for_foreign_household():
+    db = make_session()
+    household = add_user_household(db)
+    hold = fx_hold(db, household)
+    other_household = add_user_household(db, key="other")
+    other_user = db.get(User, other_household.user_id)
+
+    response = _authed_client(db, other_user).get(
+        f"/fund-page/{hold.scheme.id}/folios/{hold.asha_folio.id}/number"
+    )
+
+    assert response.status_code == 404
+
+
+def test_summary_response_never_contains_the_full_folio_number():
+    db = make_session()
+    household = add_user_household(db)
+    hold = fx_hold(db, household)
+    user = db.get(User, household.user_id)
+
+    response = _authed_client(db, user).get(f"/fund-page/{hold.scheme.id}/summary")
+
+    assert "4400918/3" not in response.text
+    assert "A12345678" not in response.text

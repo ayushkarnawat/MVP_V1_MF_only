@@ -9,7 +9,7 @@ if sys.platform == "win32":
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analytics, auth, cas_imports, dashboard, home, imports, legal, portfolio, scenarios
+from app.api import analytics, auth, cas_imports, dashboard, fund_page, home, imports, legal, portfolio, scenarios
 from app.config import settings
 from app.services.analytics.pdf_export import start_browser, stop_browser
 from app.services.import_.crypto import decode_key
@@ -103,6 +103,7 @@ app.include_router(portfolio.router)
 app.include_router(analytics.router)
 app.include_router(scenarios.router)
 app.include_router(legal.router)
+app.include_router(fund_page.router)
 
 from app.api.dev_health import register_dev_routes  # noqa: E402
 
