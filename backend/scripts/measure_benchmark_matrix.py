@@ -8,7 +8,9 @@ household scope and each member scope without printing names or monetary values:
   a. build_window_context
   b. load_index_levels for all eight TRI indices over the required range
   c. compute_window_rows plus compute_fund_window_rows for every fund (pure CPU)
-  d. the sum of a-c, reported as "added by windows"
+  d. 2 x a + 2 x b + c, reported as "added by windows" (the portfolio and the fund computation
+     each build their own context and levels; c uses the since-inception rates the legacy
+     code has already solved, as production does)
   e. the existing portfolio and fund benchmark computations end to end, warm
 
 The database guard aborts on every INSERT, UPDATE, DELETE or schema statement and on every ORM
@@ -39,18 +41,21 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
-from app.models.enums import ALL_BENCHMARK_INDICES
+from app.models.enums import ALL_BENCHMARK_INDICES, LEGACY_BENCHMARK_INDICES, TransactionType
 from app.models.folio import Folio
 from app.models.reference import NavHistory, Scheme
 from app.services.analytics.benchmark import (
     _benchmark_index_for_category,
+    _benchmark_xirr_for_transactions,
     _current_value_by_scheme,
     _fund_level_transactions,
     _investment_transactions,
+    _portfolio_xirr,
     compute_fund_vs_benchmark,
     compute_portfolio_vs_benchmarks,
 )
 from app.services.analytics.benchmark_windows import (
+    SinceInceptionRates,
     build_window_context,
     compute_fund_window_rows,
     compute_window_rows,
@@ -247,10 +252,44 @@ def main() -> int:
                     levels_sql.append(counter.stop())
                     counter.check_read_only()
 
+                # The production path hands the engine the since-inception rates the legacy code has
+                # already solved; solve them here once, untimed, so the timed step is the real one.
+                legacy_rates = {
+                    index: run_async(_benchmark_xirr_for_transactions(db, transactions, index))
+                    for index in LEGACY_BENCHMARK_INDICES
+                }
+                counter.check_read_only()
+                since_inception = SinceInceptionRates(
+                    portfolio=_portfolio_xirr(transactions, total_current_value),
+                    indices=legacy_rates,
+                )
+                fund_since_inception = {}
+                for scheme_id, scheme_transactions in grouped.items():
+                    index = _benchmark_index_for_category(schemes[scheme_id].sebi_category)
+                    fund_since_inception[scheme_id] = (
+                        _portfolio_xirr(
+                            scheme_transactions,
+                            current_values.get(str(scheme_id), Decimal("0")),
+                            extra_debit_types={TransactionType.SWITCH_IN},
+                        ),
+                        run_async(
+                            _benchmark_xirr_for_transactions(
+                                db,
+                                scheme_transactions,
+                                index,
+                                extra_debit_types={TransactionType.SWITCH_IN},
+                            )
+                        ),
+                    )
+                counter.check_read_only()
+
                 pure_ms = []
                 for context, levels in zip(contexts, levels_by_run):
                     t0 = time.perf_counter()
-                    compute_window_rows(context, transactions, total_current_value, levels)
+                    compute_window_rows(
+                        context, transactions, total_current_value, levels,
+                        since_inception=since_inception,
+                    )
                     for scheme_id, scheme_transactions in grouped.items():
                         scheme = schemes[scheme_id]
                         compute_fund_window_rows(
@@ -260,11 +299,14 @@ def main() -> int:
                             current_values.get(str(scheme_id), Decimal("0")),
                             _benchmark_index_for_category(scheme.sebi_category),
                             levels,
+                            since_inception=fund_since_inception[scheme_id],
                         )
                     pure_ms.append(ms(t0))
 
+                # Production builds a context and loads the levels twice: once in the portfolio
+                # computation and once in the fund computation.
                 added_ms = [
-                    context_time + levels_time + pure_time
+                    2 * context_time + 2 * levels_time + pure_time
                     for context_time, levels_time, pure_time in zip(context_ms, levels_ms, pure_ms)
                 ]
                 print(

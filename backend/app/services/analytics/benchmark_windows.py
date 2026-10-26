@@ -2,7 +2,7 @@
 
 from calendar import monthrange
 from bisect import bisect_right
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
@@ -22,6 +22,7 @@ from app.models.transaction import Transaction
 from app.services.analytics.benchmark import _portfolio_xirr, _signed_amount, _xirr_str
 from app.services.analytics.schemas import BenchmarkWindowRow, FundWindowXirr, IndexXirrRow
 from app.services.analytics.xirr import xirr
+from app.services.analytics.xirr_fast import xirr_fast
 from app.services.dashboard.snapshots import get_month_detail, get_snapshots
 
 WINDOWS: tuple[str, ...] = ("1Y", "3Y", "5Y", "SI")
@@ -46,6 +47,12 @@ class WindowContext:
     starts: dict[str, date | None]
     portfolio_start_values: dict[str, Decimal | None]
     fund_start_values: dict[str, dict[uuid.UUID, Decimal]]
+
+
+@dataclass(frozen=True)
+class SinceInceptionRates:
+    portfolio: Decimal | None
+    indices: Mapping[BenchmarkIndex, Decimal | None]
 
 
 def window_start(window: str, today: date) -> date | None:
@@ -154,6 +161,7 @@ def index_window_xirr(
     start: date | None,
     start_value: Decimal | None,
     today: date,
+    solver: Callable[[list[tuple[date, Decimal]]], Decimal | None] | None = None,
 ) -> Decimal | None:
     units = Decimal("0")
     replayed: list[tuple[date, Decimal]] = []
@@ -178,7 +186,7 @@ def index_window_xirr(
     if terminal_level is None or not replayed:
         return None
     replayed.append((today, units * terminal_level))
-    return xirr(replayed)
+    return (solver or xirr)(replayed)
 
 
 def _index_rows(
@@ -187,11 +195,23 @@ def _index_rows(
     start_value: Decimal | None,
     today: date,
     levels: Mapping[BenchmarkIndex, IndexLevels],
+    solver: Callable[[list[tuple[date, Decimal]]], Decimal | None] | None = None,
+    known_rates: Mapping[BenchmarkIndex, Decimal | None] | None = None,
 ) -> list[IndexXirrRow]:
     rows = []
     for index in ALL_BENCHMARK_INDICES:
-        index_levels = levels.get(index, IndexLevels([], []))
-        rate = index_window_xirr(index_levels, flows, start, start_value, today)
+        if known_rates is not None and index in known_rates:
+            rate = known_rates[index]
+        else:
+            index_levels = levels.get(index, IndexLevels([], []))
+            rate = index_window_xirr(
+                index_levels,
+                flows,
+                start,
+                start_value,
+                today,
+                solver,
+            )
         rows.append(IndexXirrRow(index=index, xirr=_xirr_str(rate)))
     return rows
 
@@ -201,6 +221,7 @@ def compute_window_rows(
     transactions: Sequence[Transaction],
     current_value: Decimal,
     levels: Mapping[BenchmarkIndex, IndexLevels],
+    since_inception: SinceInceptionRates | None = None,
 ) -> list[BenchmarkWindowRow]:
     if not transactions:
         return []
@@ -209,13 +230,27 @@ def compute_window_rows(
     for window in WINDOWS:
         if window == "SI":
             flows = [(txn.date, _signed_amount(txn)) for txn in transactions]
+            if since_inception is None:
+                portfolio_rate = _portfolio_xirr(list(transactions), current_value)
+                index_rows = _index_rows(flows, None, None, ctx.today, levels)
+            else:
+                portfolio_rate = since_inception.portfolio
+                index_rows = _index_rows(
+                    flows,
+                    None,
+                    None,
+                    ctx.today,
+                    levels,
+                    solver=xirr_fast,
+                    known_rates=since_inception.indices,
+                )
             rows.append(
                 BenchmarkWindowRow(
                     window=window,
                     available=True,
                     start_date=min(txn.date for txn in transactions),
-                    portfolio_xirr=_xirr_str(_portfolio_xirr(list(transactions), current_value)),
-                    indices=_index_rows(flows, None, None, ctx.today, levels),
+                    portfolio_xirr=_xirr_str(portfolio_rate),
+                    indices=index_rows,
                 )
             )
             continue
@@ -239,14 +274,23 @@ def compute_window_rows(
             for txn in transactions
             if start < txn.date <= ctx.today
         ]
-        portfolio_rate = xirr([(start, -start_value), *flows, (ctx.today, current_value)])
+        portfolio_rate = xirr_fast(
+            [(start, -start_value), *flows, (ctx.today, current_value)]
+        )
         rows.append(
             BenchmarkWindowRow(
                 window=window,
                 available=True,
                 start_date=start,
                 portfolio_xirr=_xirr_str(portfolio_rate),
-                indices=_index_rows(flows, start, start_value, ctx.today, levels),
+                indices=_index_rows(
+                    flows,
+                    start,
+                    start_value,
+                    ctx.today,
+                    levels,
+                    solver=xirr_fast,
+                ),
             )
         )
     return rows
@@ -259,6 +303,7 @@ def compute_fund_window_rows(
     fund_current_value: Decimal,
     index: BenchmarkIndex,
     levels: Mapping[BenchmarkIndex, IndexLevels],
+    since_inception: tuple[Decimal | None, Decimal | None] | None = None,
 ) -> list[FundWindowXirr]:
     rows = []
     extra_debits = frozenset({TransactionType.SWITCH_IN})
@@ -269,14 +314,17 @@ def compute_fund_window_rows(
                 (txn.date, _signed_amount(txn, extra_debits))
                 for txn in fund_transactions
             ]
-            fund_rate = _portfolio_xirr(
-                list(fund_transactions),
-                fund_current_value,
-                extra_debit_types=extra_debits,
-            )
-            benchmark_rate = index_window_xirr(
-                index_levels, flows, None, None, ctx.today
-            )
+            if since_inception is None:
+                fund_rate = _portfolio_xirr(
+                    list(fund_transactions),
+                    fund_current_value,
+                    extra_debit_types=extra_debits,
+                )
+                benchmark_rate = index_window_xirr(
+                    index_levels, flows, None, None, ctx.today
+                )
+            else:
+                fund_rate, benchmark_rate = since_inception
             rows.append(
                 FundWindowXirr(
                     window=window,
@@ -296,9 +344,16 @@ def compute_fund_window_rows(
             for txn in fund_transactions
             if start < txn.date <= ctx.today
         ]
-        fund_rate = xirr([(start, -start_value), *flows, (ctx.today, fund_current_value)])
+        fund_rate = xirr_fast(
+            [(start, -start_value), *flows, (ctx.today, fund_current_value)]
+        )
         benchmark_rate = index_window_xirr(
-            index_levels, flows, start, start_value, ctx.today
+            index_levels,
+            flows,
+            start,
+            start_value,
+            ctx.today,
+            xirr_fast,
         )
         rows.append(
             FundWindowXirr(

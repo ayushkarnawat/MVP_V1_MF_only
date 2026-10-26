@@ -772,10 +772,10 @@ def test_window_failure_degrades_to_empty_windows_and_logs_a_warning(caplog):
 
     caplog.clear()
 
-    def fail_one_fund(context, scheme_id, *args):
+    def fail_one_fund(context, scheme_id, *args, **kwargs):
         if scheme_id == large_cap.id:
             raise RuntimeError("one fund window failed")
-        return real_compute_fund_window_rows(context, scheme_id, *args)
+        return real_compute_fund_window_rows(context, scheme_id, *args, **kwargs)
 
     p1, p2 = _mock_holdings_multi(navs)
     with (
@@ -1054,3 +1054,60 @@ def test_commit_during_window_inputs_does_not_cause_a_refresh_query_per_transact
         return count
 
     assert asyncio.run(window_statements(2)) == asyncio.run(window_statements(12))
+
+
+def test_production_path_passes_the_legacy_since_inception_rates_to_the_window_engine():
+    from unittest.mock import MagicMock
+
+    from app.services.analytics import benchmark_windows
+    from app.services.analytics.benchmark import _xirr_str
+
+    legacy = set(enum_module.LEGACY_BENCHMARK_INDICES)
+    db = _session()
+    member, large_cap, mid_cap, ctx = _seed_two_fund_window_case(db)
+    navs = {large_cap.id: Decimal("12"), mid_cap.id: Decimal("9")}
+
+    portfolio_spy = MagicMock(side_effect=benchmark_windows.compute_window_rows)
+    p1, p2 = _mock_holdings_multi(navs)
+    with (
+        p1,
+        p2,
+        patch("app.services.analytics.benchmark.ensure_index_history_fresh", new=AsyncMock(return_value=True)),
+        patch("app.services.analytics.benchmark.build_window_context", new=AsyncMock(return_value=ctx)),
+        patch("app.services.analytics.benchmark.compute_window_rows", new=portfolio_spy),
+    ):
+        summary = asyncio.run(compute_portfolio_vs_benchmarks(db, [member.id]))
+
+    given = portfolio_spy.call_args.kwargs["since_inception"]
+    assert _xirr_str(given.portfolio) == summary.portfolio_xirr
+    assert {index: _xirr_str(rate) for index, rate in given.indices.items()} == {
+        row.index: row.xirr for row in summary.benchmarks
+    }
+    si_row = summary.windows[-1]
+    assert si_row.window == "SI"
+    assert si_row.portfolio_xirr == summary.portfolio_xirr
+    assert {row.index: row.xirr for row in si_row.indices if row.index in legacy} == {
+        row.index: row.xirr for row in summary.benchmarks
+    }
+
+    fund_spy = MagicMock(side_effect=benchmark_windows.compute_fund_window_rows)
+    p1, p2 = _mock_holdings_multi(navs)
+    with (
+        p1,
+        p2,
+        patch("app.services.analytics.benchmark.ensure_index_history_fresh", new=AsyncMock(return_value=True)),
+        patch("app.services.analytics.benchmark.build_window_context", new=AsyncMock(return_value=ctx)),
+        patch("app.services.analytics.benchmark.compute_fund_window_rows", new=fund_spy),
+    ):
+        funds = asyncio.run(compute_fund_vs_benchmark(db, [member.id]))
+
+    assert fund_spy.call_count == len(funds.funds) == 2
+    for call in fund_spy.call_args_list:
+        scheme_id = str(call.args[1])
+        row = next(row for row in funds.funds if row.scheme_id == scheme_id)
+        fund_rate, benchmark_rate = call.kwargs["since_inception"]
+        assert (_xirr_str(fund_rate), _xirr_str(benchmark_rate)) == (row.fund_xirr, row.benchmark_xirr)
+        si_window = row.windows[-1]
+        assert (si_window.window, si_window.fund_xirr, si_window.benchmark_xirr) == (
+            "SI", row.fund_xirr, row.benchmark_xirr,
+        )

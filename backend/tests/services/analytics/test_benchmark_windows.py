@@ -78,6 +78,18 @@ def _seed_transactions(db, count):
     db.commit()
 
 
+
+def _assert_matches_solvers(actual, flows):
+    """Window rates come from the faster 18-digit solver. It agrees with the legacy solver far better
+    than 1e-8 but not digit for digit; the digit-for-digit rule belongs to the since-inception numbers."""
+    from app.services.analytics.benchmark import _xirr_str
+    from app.services.analytics.xirr import xirr
+    from app.services.analytics.xirr_fast import xirr_fast
+
+    assert actual == _xirr_str(xirr_fast(flows))
+    assert abs(Decimal(actual) - xirr(flows)) < Decimal("1e-8")
+
+
 def _transaction(kind, on_date, amount):
     return Transaction(
         id=uuid.uuid4(),
@@ -410,16 +422,16 @@ def test_compute_window_rows_uses_open_left_interval_and_all_eight_indices():
     assert one_year.window == "1Y"
     assert one_year.available is True
     assert one_year.start_date == start
-    assert one_year.portfolio_xirr == _xirr_str(xirr(expected_flows))
+    _assert_matches_solvers(one_year.portfolio_xirr, expected_flows)
     nifty_units = (
         Decimal("100000") / Decimal("100")
         + Decimal("10000") / Decimal("110")
         - Decimal("5000") / Decimal("120")
     )
-    expected_nifty = _xirr_str(
-        xirr(expected_flows[:-1] + [(today, nifty_units * Decimal("150"))])
+    _assert_matches_solvers(
+        one_year.indices[0].xirr,
+        expected_flows[:-1] + [(today, nifty_units * Decimal("150"))],
     )
-    assert one_year.indices[0].xirr == expected_nifty
     assert one_year.indices[4].index is BenchmarkIndex.NIFTY_NEXT_50
     assert one_year.indices[4].xirr is None
 
@@ -530,11 +542,12 @@ def test_compute_fund_window_rows_uses_only_in_window_flows_and_switch_in_as_deb
         (redemption_date, Decimal("10")),
         (today, Decimal("150")),
     ]
-    assert three_year.fund_xirr == _xirr_str(xirr(expected_flows))
+    _assert_matches_solvers(three_year.fund_xirr, expected_flows)
     units = Decimal("100") / Decimal("100") + Decimal("30") / Decimal("120")
     units -= Decimal("10") / Decimal("130")
-    assert three_year.benchmark_xirr == _xirr_str(
-        xirr(expected_flows[:-1] + [(today, units * Decimal("150"))])
+    _assert_matches_solvers(
+        three_year.benchmark_xirr,
+        expected_flows[:-1] + [(today, units * Decimal("150"))],
     )
     assert rows[0].fund_xirr is None and rows[0].benchmark_xirr is None
     assert rows[2].fund_xirr is None and rows[2].benchmark_xirr is None
@@ -927,7 +940,7 @@ def test_compute_window_rows_ignores_transactions_dated_after_today():
 
     one_year = compute_window_rows(ctx, transactions, Decimal("110"), {})[0]
 
-    assert one_year.portfolio_xirr == _xirr_str(xirr([(start, Decimal("-100")), (today, Decimal("110"))]))
+    _assert_matches_solvers(one_year.portfolio_xirr, [(start, Decimal("-100")), (today, Decimal("110"))])
 
 
 def test_build_window_context_member_whose_first_month_is_the_window_start_counts():
@@ -1004,3 +1017,208 @@ def test_build_window_context_fund_worth_nothing_at_the_start_is_absent():
             setattr(windows_module, name, value)
 
     assert ctx.fund_start_values["1Y"] == {}
+
+
+def test_available_portfolio_and_index_windows_use_the_fast_solver():
+    import app.services.analytics.benchmark_windows as windows_module
+    from app.services.analytics.benchmark import _xirr_str
+    from app.services.analytics.xirr import xirr
+    from app.services.analytics.xirr_fast import xirr_fast
+
+    today = date(2026, 10, 24)
+    start = date(2025, 9, 30)
+    before = date(2025, 8, 31)
+    purchase_date = date(2026, 1, 15)
+    redemption_date = date(2026, 6, 10)
+    transactions = [
+        _transaction(TransactionType.PURCHASE, before, "7000"),
+        _transaction(TransactionType.PURCHASE, start, "8000"),
+        _transaction(TransactionType.PURCHASE, purchase_date, "10000"),
+        _transaction(TransactionType.REDEMPTION, redemption_date, "5000"),
+    ]
+    ctx = windows_module.WindowContext(
+        today=today,
+        starts={"1Y": start, "3Y": date(2023, 9, 30), "5Y": date(2021, 9, 30), "SI": None},
+        portfolio_start_values={"1Y": Decimal("100000"), "3Y": None, "5Y": None, "SI": None},
+        fund_start_values={"1Y": {}, "3Y": {}, "5Y": {}, "SI": {}},
+    )
+    dates = [before, start, purchase_date, redemption_date, today]
+    levels = {
+        index: windows_module.IndexLevels(dates, [Decimal("100")] * len(dates))
+        for index in ALL_BENCHMARK_INDICES
+    }
+    levels[BenchmarkIndex.NIFTY_50] = windows_module.IndexLevels(
+        dates,
+        [Decimal("90"), Decimal("100"), Decimal("110"), Decimal("120"), Decimal("150")],
+    )
+    portfolio_flows = [
+        (start, Decimal("-100000")),
+        (purchase_date, Decimal("-10000")),
+        (redemption_date, Decimal("5000")),
+        (today, Decimal("130000")),
+    ]
+    nifty_units = (
+        Decimal("100000") / Decimal("100")
+        + Decimal("10000") / Decimal("110")
+        - Decimal("5000") / Decimal("120")
+    )
+    nifty_flows = [*portfolio_flows[:-1], (today, nifty_units * Decimal("150"))]
+
+    with patch.object(windows_module, "xirr_fast", wraps=xirr_fast) as fast_solver:
+        one_year = windows_module.compute_window_rows(
+            ctx, transactions, Decimal("130000"), levels
+        )[0]
+
+    assert one_year.portfolio_xirr == _xirr_str(xirr_fast(portfolio_flows))
+    assert abs(Decimal(one_year.portfolio_xirr) - xirr(portfolio_flows)) < Decimal("1e-8")
+    assert one_year.indices[0].xirr == _xirr_str(xirr_fast(nifty_flows))
+    assert abs(Decimal(one_year.indices[0].xirr) - xirr(nifty_flows)) < Decimal("1e-8")
+    assert fast_solver.call_count == 1 + len(ALL_BENCHMARK_INDICES)
+    assert any(call.args[0] == portfolio_flows for call in fast_solver.call_args_list)
+    assert any(call.args[0] == nifty_flows for call in fast_solver.call_args_list)
+
+
+def test_available_fund_window_uses_the_fast_solver():
+    import app.services.analytics.benchmark_windows as windows_module
+    from app.services.analytics.benchmark import _xirr_str
+    from app.services.analytics.xirr import xirr
+    from app.services.analytics.xirr_fast import xirr_fast
+
+    scheme_id = uuid.uuid4()
+    today = date(2026, 10, 24)
+    start = date(2023, 9, 30)
+    switch_date = date(2024, 4, 15)
+    redemption_date = date(2025, 7, 1)
+    transactions = [
+        _transaction(TransactionType.PURCHASE, date(2022, 10, 1), "50"),
+        _transaction(TransactionType.PURCHASE, start, "20"),
+        _transaction(TransactionType.SWITCH_IN, switch_date, "30"),
+        _transaction(TransactionType.REDEMPTION, redemption_date, "10"),
+    ]
+    ctx = windows_module.WindowContext(
+        today=today,
+        starts={"1Y": date(2025, 9, 30), "3Y": start, "5Y": date(2021, 9, 30), "SI": None},
+        portfolio_start_values={"1Y": None, "3Y": None, "5Y": None, "SI": None},
+        fund_start_values={"1Y": {}, "3Y": {scheme_id: Decimal("100")}, "5Y": {}, "SI": {}},
+    )
+    level_dates = [date(2022, 10, 1), start, switch_date, redemption_date, today]
+    levels = {
+        BenchmarkIndex.NIFTY_50: windows_module.IndexLevels(
+            level_dates,
+            [Decimal("80"), Decimal("100"), Decimal("120"), Decimal("130"), Decimal("150")],
+        )
+    }
+    fund_flows = [
+        (start, Decimal("-100")),
+        (switch_date, Decimal("-30")),
+        (redemption_date, Decimal("10")),
+        (today, Decimal("150")),
+    ]
+    units = Decimal("100") / Decimal("100") + Decimal("30") / Decimal("120")
+    units -= Decimal("10") / Decimal("130")
+    benchmark_flows = [*fund_flows[:-1], (today, units * Decimal("150"))]
+
+    with patch.object(windows_module, "xirr_fast", wraps=xirr_fast) as fast_solver:
+        three_year = windows_module.compute_fund_window_rows(
+            ctx,
+            scheme_id,
+            transactions,
+            Decimal("150"),
+            BenchmarkIndex.NIFTY_50,
+            levels,
+        )[1]
+
+    assert three_year.fund_xirr == _xirr_str(xirr_fast(fund_flows))
+    assert abs(Decimal(three_year.fund_xirr) - xirr(fund_flows)) < Decimal("1e-8")
+    assert three_year.benchmark_xirr == _xirr_str(xirr_fast(benchmark_flows))
+    assert abs(Decimal(three_year.benchmark_xirr) - xirr(benchmark_flows)) < Decimal("1e-8")
+    assert fast_solver.call_count == 2
+    assert any(call.args[0] == fund_flows for call in fast_solver.call_args_list)
+    assert any(call.args[0] == benchmark_flows for call in fast_solver.call_args_list)
+
+
+def test_supplied_portfolio_since_inception_rates_are_not_resolved():
+    import app.services.analytics.benchmark_windows as windows_module
+    from app.services.analytics.benchmark import _xirr_str
+    from app.services.analytics.xirr_fast import xirr_fast
+
+    today = date(2026, 10, 24)
+    first = date(2020, 1, 1)
+    transactions = [_transaction(TransactionType.PURCHASE, first, "100")]
+    ctx = windows_module.WindowContext(
+        today=today,
+        starts={"1Y": date(2025, 9, 30), "3Y": date(2023, 9, 30), "5Y": date(2021, 9, 30), "SI": None},
+        portfolio_start_values={"1Y": None, "3Y": None, "5Y": None, "SI": None},
+        fund_start_values={"1Y": {}, "3Y": {}, "5Y": {}, "SI": {}},
+    )
+    levels = {
+        index: windows_module.IndexLevels(
+            [first, today], [Decimal("100"), Decimal("150")]
+        )
+        for index in ALL_BENCHMARK_INDICES
+    }
+    portfolio_rate = Decimal("0.123456789")
+    legacy_rates = {
+        index: Decimal("0.20") + Decimal(position) / Decimal(100)
+        for position, index in enumerate(LEGACY_BENCHMARK_INDICES)
+    }
+    supplied = windows_module.SinceInceptionRates(
+        portfolio=portfolio_rate,
+        indices=legacy_rates,
+    )
+
+    with (
+        patch.object(windows_module, "xirr", side_effect=AssertionError("legacy solver called")) as legacy_solver,
+        patch.object(windows_module, "xirr_fast", wraps=xirr_fast) as fast_solver,
+    ):
+        since_inception = windows_module.compute_window_rows(
+            ctx,
+            transactions,
+            Decimal("150"),
+            levels,
+            since_inception=supplied,
+        )[3]
+
+    assert since_inception.portfolio_xirr == _xirr_str(portfolio_rate)
+    assert [row.xirr for row in since_inception.indices[:4]] == [
+        _xirr_str(legacy_rates[index]) for index in LEGACY_BENCHMARK_INDICES
+    ]
+    assert all(row.xirr is not None for row in since_inception.indices[4:])
+    assert legacy_solver.call_count == 0
+    assert fast_solver.call_count == len(ALL_BENCHMARK_INDICES) - len(LEGACY_BENCHMARK_INDICES)
+
+
+def test_supplied_fund_since_inception_rates_are_not_resolved():
+    import app.services.analytics.benchmark_windows as windows_module
+    from app.services.analytics.benchmark import _xirr_str
+
+    scheme_id = uuid.uuid4()
+    today = date(2026, 10, 24)
+    first = date(2020, 1, 1)
+    ctx = windows_module.WindowContext(
+        today=today,
+        starts={"1Y": date(2025, 9, 30), "3Y": date(2023, 9, 30), "5Y": date(2021, 9, 30), "SI": None},
+        portfolio_start_values={"1Y": None, "3Y": None, "5Y": None, "SI": None},
+        fund_start_values={"1Y": {}, "3Y": {}, "5Y": {}, "SI": {}},
+    )
+    fund_rate = Decimal("0.123456789")
+    benchmark_rate = Decimal("0.234567891")
+
+    with (
+        patch.object(windows_module, "xirr", side_effect=AssertionError("legacy solver called")) as legacy_solver,
+        patch.object(windows_module, "xirr_fast", side_effect=AssertionError("fast solver called")) as fast_solver,
+    ):
+        since_inception = windows_module.compute_fund_window_rows(
+            ctx,
+            scheme_id,
+            [_transaction(TransactionType.PURCHASE, first, "100")],
+            Decimal("150"),
+            BenchmarkIndex.NIFTY_50,
+            {},
+            since_inception=(fund_rate, benchmark_rate),
+        )[3]
+
+    assert since_inception.fund_xirr == _xirr_str(fund_rate)
+    assert since_inception.benchmark_xirr == _xirr_str(benchmark_rate)
+    assert legacy_solver.call_count == 0
+    assert fast_solver.call_count == 0

@@ -249,8 +249,10 @@ async def compute_portfolio_vs_benchmarks(
     portfolio_xirr = _portfolio_xirr(transactions, current_value)
 
     benchmark_rows = []
+    legacy_rates: dict[BenchmarkIndex, Decimal | None] = {}
     for index in LEGACY_BENCHMARK_INDICES:
         rate = await _benchmark_xirr_for_transactions(db, transactions, index)
+        legacy_rates[index] = rate
         benchmark_rows.append(IndexXirrRow(index=index, xirr=_xirr_str(rate)))
 
     windows = []
@@ -264,7 +266,17 @@ async def compute_portfolio_vs_benchmarks(
         # The snapshot rebuild or index top-up above may have committed and expired `transactions`;
         # selecting them again refreshes the whole batch in one statement.
         transactions = _investment_transactions(db, household_member_ids)
-        windows = compute_window_rows(ctx, transactions, current_value, levels)
+        from app.services.analytics.benchmark_windows import SinceInceptionRates
+
+        # The since-inception row reuses the rates solved above, so it equals the legacy numbers by
+        # construction and the solver does not run again on the longest cash-flow lists.
+        windows = compute_window_rows(
+            ctx,
+            transactions,
+            current_value,
+            levels,
+            since_inception=SinceInceptionRates(portfolio=portfolio_xirr, indices=legacy_rates),
+        )
     except Exception as error:
         _roll_back_if_database_error(db, error)
         logger.warning("Portfolio benchmark windows could not be computed", exc_info=True)
@@ -329,7 +341,9 @@ async def compute_fund_vs_benchmark(
     schemes = {s.id: s for s in db.query(Scheme).filter(Scheme.id.in_(grouped.keys())).all()}
 
     fund_rows: list[FundBenchmarkRow] = []
-    window_jobs: list[tuple[FundBenchmarkRow, uuid.UUID, list[Transaction], BenchmarkIndex]] = []
+    window_jobs: list[
+        tuple[FundBenchmarkRow, uuid.UUID, list[Transaction], BenchmarkIndex, Decimal | None, Decimal | None]
+    ] = []
     for scheme_id, scheme_txns in grouped.items():
         scheme = schemes[scheme_id]
         index = _benchmark_index_for_category(scheme.sebi_category)
@@ -355,7 +369,7 @@ async def compute_fund_vs_benchmark(
                 benchmark_xirr=_xirr_str(benchmark_rate),
             )
         )
-        window_jobs.append((fund_rows[-1], scheme_id, scheme_txns, index))
+        window_jobs.append((fund_rows[-1], scheme_id, scheme_txns, index, fund_rate, benchmark_rate))
 
     total_current_value = sum(current_value_by_scheme.values(), Decimal("0"))
     overall_portfolio_rate = _portfolio_xirr(transactions, total_current_value)
@@ -387,7 +401,7 @@ async def compute_fund_vs_benchmark(
         _roll_back_if_database_error(db, error)
         logger.warning("Fund benchmark window inputs could not be built", exc_info=True)
     else:
-        for row, scheme_id, scheme_txns, index in window_jobs:
+        for row, scheme_id, scheme_txns, index, fund_rate, benchmark_rate in window_jobs:
             try:
                 row.windows = compute_fund_window_rows(
                     window_ctx,
@@ -396,6 +410,7 @@ async def compute_fund_vs_benchmark(
                     current_value_by_scheme.get(str(scheme_id), Decimal("0")),
                     index,
                     window_levels,
+                    since_inception=(fund_rate, benchmark_rate),
                 )
             except Exception as error:
                 _roll_back_if_database_error(db, error)
