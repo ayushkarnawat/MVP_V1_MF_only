@@ -2,13 +2,33 @@ from __future__ import annotations
 
 import json
 import sys
+from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tests.api.home_fixture import FIXED_NOW, build_home_fixture
+
+
+@contextmanager
+def pinned_xirr_clock(day: date):
+    """Make the Dashboard XIRR module's `date.today()` return `day`.
+
+    The Dashboard XIRR (reused by Portfolio and deliberately left unchanged) ends its cash flows at the real
+    `date.today()`, while every other Portfolio input follows the injected clock. Without this pin the golden
+    XIRR strings drift every calendar day and the golden-fixture test goes red with no code change (review H1).
+    """
+
+    class _PinnedDate(date):
+        @classmethod
+        def today(cls):
+            return day
+
+    with patch("app.services.dashboard.xirr.date", _PinnedDate):
+        yield
 
 
 @dataclass(frozen=True)
@@ -42,7 +62,8 @@ def write_fixture_set(destination: Path, *, write: bool = True) -> dict[str, dic
         runtime = build_home_fixture(variant=spec.variant, now=spec.now)
         try:
             path = spec.path.format(member_id=runtime.household.dev_id)
-            response = runtime.client.get(path)
+            with pinned_xirr_clock(spec.now.date()):
+                response = runtime.client.get(path)
             if response.status_code != 200:
                 raise RuntimeError(f"{path}: {response.status_code} {response.text}")
             payload = response.json()

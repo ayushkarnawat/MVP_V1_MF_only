@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Sequence
 
 from app.core.decimal_utils import quantize_amount
-from app.services.dashboard.portfolio_schemas import InstrumentBucketOut
+from app.services.dashboard.portfolio_schemas import InstrumentBucketOut, zero_unsigned
 from app.services.dashboard.schemas import HoldingRow
 from app.services.dashboard.xirr import DashboardXirrSummary
 
@@ -29,7 +29,7 @@ def compute_instrument_allocation(
     mutual_funds = InstrumentBucketOut(
         label="Mutual Funds", status="live",
         current_value=current_value, percentage=Decimal("100.00") if current_value > 0 else Decimal("0.00"),
-        invested=invested, gain_loss=current_value - invested, xirr=xirr_summary.lifetime_xirr,
+        invested=invested, gain_loss=zero_unsigned(current_value - invested), xirr=xirr_summary.lifetime_xirr,
     )
     coming_soon = [
         InstrumentBucketOut(

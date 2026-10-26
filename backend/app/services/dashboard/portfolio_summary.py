@@ -6,6 +6,7 @@ from decimal import Decimal
 from typing import Sequence
 
 from app.core.decimal_utils import quantize_amount
+from app.services.dashboard.portfolio_schemas import zero_unsigned
 from app.services.dashboard.schemas import HoldingRow, RealizedSummary, XirrDisclaimerOut
 from app.services.dashboard.xirr import DashboardXirrSummary
 from app.services.home.movers import Movers
@@ -45,9 +46,9 @@ def compute_portfolio_summary(
     total_invested = sum(
         (quantize_amount(Decimal(row.amount_invested)) for row in valued), Decimal("0.00")
     )
-    unrealized_gain = total_value - total_invested
+    unrealized_gain = zero_unsigned(total_value - total_invested)
     unrealized_pct = (
-        (unrealized_gain / total_invested * Decimal("100")).quantize(PCT)
+        zero_unsigned((unrealized_gain / total_invested * Decimal("100")).quantize(PCT))
         if total_invested != 0 else None
     )
     return PortfolioSummary(
@@ -55,9 +56,9 @@ def compute_portfolio_summary(
         total_invested=total_invested,
         unrealized_gain=unrealized_gain,
         unrealized_pct=unrealized_pct,
-        realized_gain=quantize_amount(Decimal(realized_summary.total)),
-        today_gain=movers.net_change,
-        today_pct=movers.net_pct,
+        realized_gain=zero_unsigned(quantize_amount(Decimal(realized_summary.total))),
+        today_gain=zero_unsigned(movers.net_change),
+        today_pct=None if movers.net_pct is None else zero_unsigned(movers.net_pct),
         previous_nav_date=movers.previous_nav_date,
         lifetime_xirr=xirr_summary.lifetime_xirr,
         current_holdings_xirr=xirr_summary.current_holdings_xirr,

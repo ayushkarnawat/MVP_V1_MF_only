@@ -1,4 +1,5 @@
 import random
+from fractions import Fraction
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -78,21 +79,63 @@ def test_empty_household_gives_zeros_and_none_percentages():
     assert summary.lifetime_xirr is None
 
 
-def test_unrealized_gain_equals_value_minus_invested_property_over_random_inputs():
+def _paise(text: str) -> int:
+    """Whole paise of an amount, rounded half up, by integer arithmetic (no Decimal quantize involved)."""
+    scaled = Fraction(Decimal(text)) * 100
+    return int(scaled + Fraction(1, 2)) if scaled >= 0 else -int(-scaled + Fraction(1, 2))
+
+
+def test_summary_figures_equal_an_independent_computation_over_random_inputs():
+    """Totals are sums of per-row paise-rounded amounts, gain is their difference and the percentage is the exact
+    ratio rounded half away from zero to 4dp -- all recomputed here from the raw row strings with integers and
+    fractions, so a change in any rounding rule (including summing exact values first) fails this test."""
     xirr_summary = DashboardXirrSummary(lifetime_xirr=None, current_holdings_xirr=None)
     realized_summary = RealizedSummary(total="0.00", funds=[])
     movers = _movers(net_change="0.00", net_pct=None, previous_nav_date=None)
     rng = random.Random(54321)
+    ties_seen = 0
     for _ in range(300):
         count = rng.randint(0, 5)
         holdings = [
             _holding(
                 f"s{i}",
-                value=str(Decimal(rng.randint(0, 100000)) / 100),
-                invested=str(Decimal(rng.randint(0, 100000)) / 100),
+                # Thousandths, so about one amount in ten sits exactly on a half-paisa.
+                value=str(Decimal(rng.randint(0, 100000)) / 1000),
+                invested=str(Decimal(rng.randint(0, 100000)) / 1000),
                 nav_unavailable=rng.random() < 0.2,
             )
             for i in range(count)
         ]
         summary = compute_portfolio_summary(holdings, xirr_summary, realized_summary, movers)
-        assert summary.unrealized_gain == summary.total_value - summary.total_invested
+        valued = [row for row in holdings if not row.nav_unavailable]
+        value_paise = sum(_paise(row.current_value) for row in valued)
+        invested_paise = sum(_paise(row.amount_invested) for row in valued)
+        ties_seen += sum(
+            1 for row in valued if (Decimal(row.current_value) * 1000) % 10 == 5
+        )
+        assert summary.total_value == Decimal(value_paise) / 100
+        assert summary.total_invested == Decimal(invested_paise) / 100
+        assert summary.unrealized_gain == Decimal(value_paise - invested_paise) / 100
+        if invested_paise == 0:
+            assert summary.unrealized_pct is None
+        else:
+            ratio = Fraction(value_paise - invested_paise, invested_paise) * 100 * 10000
+            rounded = int(ratio + Fraction(1, 2)) if ratio >= 0 else -int(-ratio + Fraction(1, 2))
+            assert summary.unrealized_pct == Decimal(rounded) / 10000
+    assert ties_seen > 20, "the random rows must include half-paisa amounts"
+
+
+def test_totals_are_the_sum_of_per_row_rounded_amounts_not_a_rounded_sum():
+    """Review M2(a): 1.005 + 1.005 is 2.02 (each row 1.01), not 2.01."""
+    xirr_summary = DashboardXirrSummary(lifetime_xirr=None, current_holdings_xirr=None)
+    holdings = [
+        _holding("s1", value="1.005", invested="1.005"),
+        _holding("s2", value="1.005", invested="2.005"),
+    ]
+    summary = compute_portfolio_summary(
+        holdings, xirr_summary, RealizedSummary(total="0.00", funds=[]),
+        _movers(net_change="0.00", net_pct=None, previous_nav_date=None),
+    )
+    assert summary.total_value == Decimal("2.02")
+    assert summary.total_invested == Decimal("3.02")  # 1.01 + 2.01
+    assert summary.unrealized_gain == Decimal("-1.00")
