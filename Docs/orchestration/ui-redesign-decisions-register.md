@@ -201,3 +201,8 @@ C24 Every run is verified by me with a scope check, tests of every file that ref
 
 ### Shell (earlier sessions; details in the return handoff sections 2c to 2e)
 C28 Back handling: the Import health Back link pops history when it came from Profile and otherwise replaces with Profile; the import focus Back pops only when it has an origin. C29 The import notice is tied to the user id so it is not shown to another user after logout. C30 Saved scope records the page it was saved on and resets when a different page is opened. C31 A foreign `?member=` id is ignored. C32 The shell stylesheet is imported in `ShellRoot`. These were review findings fixed test-first with the owner's standing "fix the Lows" instruction.
+
+### Verified and committed 27 Oct (second orchestrator session)
+| # | Decision | If you veto |
+|---|---|---|
+| C125 | Gemini reports G6, PF1, MF-A, PL-A, PR-A, IF-A verified by the orchestrator in each worktree: file map matches (no tests, types or fixtures touched), `tsc -b` clean, oxlint 0/0, feature tests G6 33 files/465, PF1 12/200, MF-A 13/230, PL-A 14/199, PR-A 14/191, IF-A 14/308; shell+App 27/348 and kit 16/188 unchanged; build passes. Committed as `20ba0c97` (home-fe), `82d1b976` (portfolio-fe), `c93ab07f` (mf-fe), `01492942` (planning-fe), `1765dbdd` (profile-fe), `cfca2bce` (if-fe) and pushed. Visual-parity pass still to do at each page's last run. | Revert the commit |
