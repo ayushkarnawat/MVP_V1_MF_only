@@ -19,6 +19,10 @@ anything by re-reading the whole repo.**
 - Must be settled before the first automatic run on **10 Nov 2026**: (1) first staging import + record alerts; (2) decide on any fund house AWS blocks; (3) build a missed-month alert; (4) admin upload screen instead of the CLI; (5) test HDFC's passive file; (6) decide the long-term fix (ask AMCs for access / vendor data quote); (7) confirm the ops-alerts email subscriptions; (8) the monthly routine itself.
 - Detail and the ordered to-do table: `DEFERRED_FEATURES.md` (top section). Background and options: `Docs/orchestration/subproject1-execution/a04-factsheet-access-gaps.html` (https://claude.ai/artifact/STCA9eNZwWZ4ZYYGzmpkTL).
 
+## Latest (2026-10-25): UI redesign, shell PR 2 built, reviewed and opened as PR #11
+
+The navigation shell is switched on in `App.tsx` for desktop (old `MainDashboardFlow`, `NavigationShell`, `DashboardPlaceholder` deleted; `/home` shows Coming soon). Runs S2.1 to S2.7 are done: Codex and Opus whole-branch reviews with test-first fixes, a manual browser check on a seeded synthetic household, full frontend suite 159 files / 1,435 tests green. **PR #11** (`feat/shell-nav-switch`, base `feat/shell-nav`, stacked on #9) is open and not merged. **Next:** the owner reviews and merges #9, retargets #11 to `leapswitch-redesign`, merges it; then pick the next track (Wave 2b backend HB2 onward, or Wave 1 manual work). Every redesign PR lands on `leapswitch-redesign`, which is deployed to its own new link only when the whole redesign is there; do not deploy a branch alone. Open PRs: #9 (shell PR 1), #10 (home snapshot backend), #11 (shell PR 2). Live state, decisions and the run catalogue: `Docs/orchestration/ui-redesign-session.md` and `Docs/orchestration/2026-10-25-account-switch-return-handoff.md`; local QA recipe: `Docs/orchestration/2026-10-25-local-qa-environment.md`.
+
 ## Latest (2026-10-22): Scorer V2 planning PAUSED, at Ayush's request
 
 Too many open judgment calls stacking up at once alongside other priorities. All four

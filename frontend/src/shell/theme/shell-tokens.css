@@ -1,0 +1,46 @@
+:root {
+  --shell-page: #FCFCFC;
+  --shell-card: #F5F5F5;
+  --shell-divider: #ECECEC;
+  --shell-border-input: #DFDFDF;
+  --shell-text: #111111;
+  --shell-text-body: #4B4B4B;
+  --shell-text-secondary: #717171;
+  --shell-icon-muted: #9B9B9B;
+  --shell-text-disabled: #C4C4C4;
+  --shell-accent: #22C55E;
+  --shell-tooltip-bg: #2A2A2A;
+  --shell-tooltip-text: #FFFFFF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --shell-page: #111111;
+    --shell-card: #1A1A1A;
+    --shell-divider: #2E2E2E;
+    --shell-border-input: #2E2E2E;
+    --shell-text: #FCFCFC;
+    --shell-text-body: #A3A3A3;
+    --shell-text-secondary: #A3A3A3;
+    --shell-icon-muted: #737373;
+    --shell-text-disabled: #5A5A5A;
+    --shell-accent: #22C55E;
+    --shell-tooltip-bg: #212121;
+    --shell-tooltip-text: #FCFCFC;
+  }
+}
+
+[data-theme="dark"] {
+  --shell-page: #111111;
+  --shell-card: #1A1A1A;
+  --shell-divider: #2E2E2E;
+  --shell-border-input: #2E2E2E;
+  --shell-text: #FCFCFC;
+  --shell-text-body: #A3A3A3;
+  --shell-text-secondary: #A3A3A3;
+  --shell-icon-muted: #737373;
+  --shell-text-disabled: #5A5A5A;
+  --shell-accent: #22C55E;
+  --shell-tooltip-bg: #212121;
+  --shell-tooltip-text: #FCFCFC;
+}
