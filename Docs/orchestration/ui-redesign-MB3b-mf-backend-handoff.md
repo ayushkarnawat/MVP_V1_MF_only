@@ -1,5 +1,5 @@
 # Handoff: ui-redesign MB3b (make the benchmark window matrix fast enough: the BT4 timing gate failed locally)
-**Status:** READY FOR CODEX (written 26 Oct 2026, not yet run)
+**Status:** DONE (commit `b74d5078` on `feat/mf-backend`, 26 Oct 2026; not pushed). Codex stopped BLOCKED on a contradiction in this handoff; the orchestrator finished the run (see the record at the end).
 **Parent plan:** `Docs/superpowers/plans/2026-10-24-mutual-funds-backend-plan.md` BT4 step 4 ("Failing the gate means vectorise further or reduce stored cells; report to the orchestrator, do not relax the gate"). MB3 (`ui-redesign-MB3-mf-backend-handoff.md`) stored the windows; the orchestrator then ran `scripts/measure_benchmark_matrix.py` on the largest local synthetic household (2 members, 9 funds, 651 transactions, SQLite, 66,400 stored TRI rows): **GATE: FAIL, 7,113 ms worst "added by windows" for the combined scope** (limit 3,000 ms), 4,127 ms for member 1 (382 transactions). **Almost all of it is the XIRR solver**: profiling `compute_window_rows` on that household: 35 solves, 5.1 s of the 5.4 s, 17 of them with more than 300 cash flows at about 239 ms each (the existing `xirr` does two Decimal fractional powers per flow per Newton iteration, about 0.4 ms per flow per solve). The database side is small (context 456 ms, 39 statements; index levels 34 ms, 8 statements).
 **Branch:** `feat/mf-backend` (MB1 `3e1597e6`, MB2 `4bf0daeb`, MB3 committed just before this handoff). **Orchestrator:** Claude Code · **Worker:** Codex (manual relay). One working tree, one run at a time: do not switch branches.
 
@@ -49,14 +49,20 @@ Anything the code shows that this handoff did not say goes under Findings; behav
 
 ## Report (Codex fills this in at the end, in one fenced block)
 ```
-CODEX REPORT — ui-redesign — MB3b
-Run date/time:    Environment:    Python:    Baseline HEAD:
-1. TASK STATUS:
-2. FILES:
-3. TESTS (RED list, GREEN task runs, final fresh commands) AND the before/after micro-benchmark:
-4. DEVIATIONS (mechanics only):
-5. FINDINGS:
-6. OPEN QUESTIONS / BLOCKERS:
-7. SELF-REVIEW FINDINGS:
-8. CONFIRMATIONS: No git write commands:  Full suites not run:  Edits only in the allowed files:
+CODEX REPORT — ui-redesign — MB3b (condensed by the orchestrator; Codex's report ended BLOCKED)
+Baseline HEAD 4284133e. TASK STATUS: BLOCKED. Added xirr_fast.py and test_xirr_fast.py, modified benchmark_windows.py and test_benchmark_windows.py (since_inception parameters, window solves routed to xirr_fast); did not reach benchmark.py or test_benchmark.py.
+TESTS: RED first for the new solver and window tests. Scoped command ended 3 failed, 111 passed: three EXISTING assertions in test_benchmark_windows.py compared a window rate with the legacy xirr string digit for digit (fast 0.221039975463349829 against legacy 0.2210399754633498196925454959).
+FINDINGS: (1) the handoff said both "windows use xirr_fast" and "no existing assertion may change", and three existing tests (written by the MB2/MB3 runs from this orchestrator's own handoffs) demanded digit-for-digit equality for window rates; (2) unconstrained random flows can give absurd rates (about 2e23) where an absolute 1e-8 comparison is impossible at 18 digits. Throwaway micro-benchmark, 650 transactions, nine years, eight daily indices, compute_window_rows only: before 3259 ms (minimum of three), partial after 1865 ms.
+OPEN QUESTION: allow replacing the three exact assertions with within-1e-8 comparisons, or keep the legacy solver for standalone calls.
+CONFIRMATIONS: no git writes, no full suites, edits only in allowed files.
 ```
+
+## Orchestrator record (26 Oct 2026)
+- **Why it was BLOCKED, and the decision:** the contradiction was mine. The three existing assertions guard the **window** numbers (new numbers with no legacy counterpart); the digit-for-digit rule belongs to the **since-inception** numbers, which now equal the legacy values by construction. Decision (register C45): replace those exact comparisons with a helper that checks the window rate equals `_xirr_str(xirr_fast(flows))` **and** is within 1e-8 of the legacy solver on the same flows. The orchestrator finished the run itself (the remaining work was about 30 lines in `benchmark.py` plus tests) rather than spend a relay round trip.
+- **What was done after Codex stopped:** the three assertions changed as above (`_assert_matches_solvers` in `test_benchmark_windows.py`); `benchmark.py` keeps the raw legacy rates and passes them as `since_inception=` (portfolio and per fund), with a test written first and seen RED (`test_production_path_passes_the_legacy_since_inception_rates_to_the_window_engine`); one fake in an existing test gained `**kwargs` for the new argument (no assertion changed).
+- **Measurement script corrected:** its "pure window matrix" step ran `compute_window_rows` without `since_inception`, so it overstated production (the solver ran again on the longest cash-flow lists). It now solves the legacy rates once untimed and times the real call pattern, and "added by windows" is `2 x context + 2 x levels + pure` because the portfolio and fund computations each build their own.
+- **Gate (local, 651-transaction household, 2 members, 9 funds): PASS.** Combined scope added time **median 1,346 ms, worst 1,363 ms** (context 483 ms, levels 33 ms, pure maths 284 ms; it was 7,113 ms measured the old way); member 1 819 ms; member 2 701 ms. Measured the other way, as production behaves, by running each computation with the window context forced to fail and without: portfolio **+679 ms** (2,345 to 3,024 ms), funds **+424 ms** (1,663 to 2,087 ms). Checks on the real data: the since-inception window equals the legacy number for the portfolio and for every one of the 9 funds, and 8 of 9 funds have a 3-year value. Staging (Postgres, its CPU) is measured at the integration wave.
+- **Independent checks:** (1) `xirr_fast` against the legacy solver on 6,000 random sets (half realistic, half wild): **0 genuine differences**; every realistic set agreed within 1e-8; the only disagreements are 29 wild sets with absurd rates (above 1e9 a year) where one solver gave up or settled at a huge value. (2) The engine differential from MB2 (1,200 random cases) with the comparison relaxed to the same rule: 0 mismatches; 300 since-inception pass-through cases: 0 mismatches. (3) Mutation check, 18 bugs (solver routing, the pass-through, the legacy-rate record, tolerance, precision, derivative, year basis, iteration count): 16 caught; the 2 survivors are equivalent (the `base <= 0` guard, because `ln()` of a non-positive number raises and is caught to `None` anyway, and the missing-outflow guard, because the iteration also ends in `None`).
+- **Tests:** 115 pass in the five scoped files; **1,908 pass, 5 skipped** across `tests/services/analytics` (minus the one file needing `xlwt`), `tests/api`, `tests/scripts` and `tests/services/dashboard`.
+- **Low carried forward (accepted):** `xirr_fast` and the legacy solver can disagree only on absurd rates (above about 1e9 a year), which no real portfolio produces.
+- **Next:** `IB1` (the Individual Fund backend skeleton MB4 needs) on `feat/individual-fund-page`, or push the new commits to Draft PR #12 first (the owner's call).
