@@ -1,0 +1,3 @@
+# The shell (routes registry, navigation, layouts) is reviewed by both owners.
+# Branch protection that enforces this is a repository setting, not code.
+/frontend/src/shell/ @ayushkarnawat @aditi-unifolio
