@@ -22,6 +22,14 @@ logger = logging.getLogger(__name__)
 # against price any more.
 _TRI_START = date(1990, 1, 1)
 
+# Who reads what (PR #12 review L-f): TRI of all eight indices is read by the Analytics windows
+# (benchmark_windows.load_index_levels), and the Individual Fund chart will read the TRI of the four legacy
+# indices (its plan, Task 4, goes through _benchmark_index_for_category). PRICE rows of the four newer indices
+# (Next 50, Smallcap 250, 100, 200) are read by nothing and no planned page reads them. They are fetched only
+# because this loop covers every enum member and test_refresh_benchmark_daily_* pins 16 fetches. To stop,
+# set this to LEGACY_BENCHMARK_INDICES and change that test to expect 12.
+_PRICE_INDICES = tuple(BenchmarkIndex)
+
 
 async def main_async(db: Session) -> None:
     end_date = date.today()
@@ -34,6 +42,7 @@ async def main_async(db: Session) -> None:
         )
         for index in BenchmarkIndex
         for return_type in starts
+        if return_type is BenchmarkReturnType.TRI or index in _PRICE_INDICES
     ]
     succeeded = sum(results)
     logger.info(

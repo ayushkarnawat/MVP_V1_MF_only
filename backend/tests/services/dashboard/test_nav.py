@@ -1,7 +1,7 @@
 import contextlib
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
-from app.models.reference import Scheme
+from app.models.reference import NavHistory, Scheme
 from app.services.dashboard import nav as nav_module
 from app.services.dashboard.nav import (
     _upsert_nav_history,
@@ -42,6 +42,65 @@ def _scheme(db, amfi_code="125497"):
 
 def _mfapi_payload(entries: list[tuple[str, str]]) -> dict:
     return {"meta": {}, "data": [{"date": d, "nav": n} for d, n in entries]}
+
+
+def test_get_navs_on_or_before_allow_stale_today_trusts_yesterdays_row(db_session):
+    import asyncio
+
+    scheme = _scheme(db_session)
+    yesterday = date.today() - timedelta(days=1)
+    db_session.add(NavHistory(scheme_id=scheme.id, date=yesterday, nav=Decimal("60")))
+    db_session.commit()
+    with patch.object(nav_module, "_fetch_nav_history", new=AsyncMock(side_effect=AssertionError("unexpected fetch"))):
+        result = asyncio.run(get_navs_on_or_before(db_session, [(scheme, date.today())], allow_stale_today=True))
+    assert result == {scheme.id: (Decimal("60"), yesterday)}
+
+
+def test_get_navs_on_or_before_default_unchanged(db_session):
+    import asyncio
+
+    scheme = _scheme(db_session)
+    db_session.add(NavHistory(scheme_id=scheme.id, date=date.today() - timedelta(days=1), nav=Decimal("60")))
+    db_session.commit()
+    with patch.object(nav_module, "_fetch_nav_history", new=AsyncMock(return_value=[(date.today(), Decimal("70"))])) as fetch:
+        result = asyncio.run(get_navs_on_or_before(db_session, [(scheme, date.today())]))
+    fetch.assert_awaited_once_with(scheme.amfi_code)
+    assert result == {scheme.id: (Decimal("70"), date.today())}
+
+
+def test_get_navs_on_or_before_allow_stale_today_fetches_when_cache_empty(db_session):
+    import asyncio
+
+    scheme = _scheme(db_session)
+    with patch.object(nav_module, "_fetch_nav_history", new=AsyncMock(return_value=[(date.today(), Decimal("70"))])) as fetch:
+        result = asyncio.run(get_navs_on_or_before(db_session, [(scheme, date.today())], allow_stale_today=True))
+    fetch.assert_awaited_once_with(scheme.amfi_code)
+    assert result == {scheme.id: (Decimal("70"), date.today())}
+
+
+def test_stored_only_never_fetches_and_never_writes_when_the_store_is_empty(db_session):
+    import asyncio
+
+    scheme = _scheme(db_session)
+    with patch.object(nav_module, "_fetch_nav_history", new=AsyncMock(side_effect=AssertionError("unexpected fetch"))):
+        batch = asyncio.run(get_navs_on_or_before(db_session, [(scheme, date.today())], stored_only=True))
+        single = asyncio.run(get_nav_on_or_before(db_session, scheme, date.today(), stored_only=True))
+    assert batch == {scheme.id: None}
+    assert single is None
+    assert db_session.query(NavHistory).count() == 0
+
+
+def test_stored_only_returns_the_stored_row_even_for_today_without_fetching(db_session):
+    import asyncio
+
+    scheme = _scheme(db_session)
+    db_session.add(NavHistory(scheme_id=scheme.id, date=date.today(), nav=Decimal("60")))
+    db_session.commit()
+    with patch.object(nav_module, "_fetch_nav_history", new=AsyncMock(side_effect=AssertionError("unexpected fetch"))):
+        batch = asyncio.run(get_navs_on_or_before(db_session, [(scheme, date.today())], stored_only=True))
+        single = asyncio.run(get_nav_on_or_before(db_session, scheme, date.today(), stored_only=True))
+    assert batch == {scheme.id: (Decimal("60"), date.today())}
+    assert single == (Decimal("60"), date.today())
 
 
 def test_fetch_nav_history_deduplicates_concurrent_calls_for_same_amfi_code():

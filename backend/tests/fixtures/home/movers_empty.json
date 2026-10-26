@@ -1,0 +1,21 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": null,
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "requested_view": "fund",
+  "view": "fund",
+  "fell_back": false,
+  "estimated": false,
+  "coverage_pct": null,
+  "net_change": "0.00",
+  "net_pct": null,
+  "previous_value": "0.00",
+  "previous_nav_date": null,
+  "gains": [],
+  "losses": [],
+  "others_count": 0,
+  "others_change": "0.00"
+}

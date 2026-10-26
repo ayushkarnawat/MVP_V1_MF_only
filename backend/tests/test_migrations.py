@@ -5,6 +5,20 @@ from pathlib import Path
 import pytest
 
 
+def test_0045_is_head_and_sqlite_upgrade_then_downgrade_to_0043(tmp_path, monkeypatch):
+    path = tmp_path / "benchmark-index-0045.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+
+    heads = _alembic("heads")
+    assert heads.returncode == 0, heads.stderr
+    assert heads.stdout.strip() == "0045 (head)"
+
+    up = _alembic("upgrade", "head")
+    assert up.returncode == 0, up.stderr
+    down = _alembic("downgrade", "0043")
+    assert down.returncode == 0, down.stderr
+
+
 def test_0043_unique_top_level_name_roundtrip(tmp_path, monkeypatch):
     import sqlite3
     import uuid

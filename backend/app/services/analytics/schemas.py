@@ -160,6 +160,39 @@ class IndexXirrRow(BaseModel):
     xirr: str | None
 
 
+class BenchmarkWindowRow(BaseModel):
+    """Portfolio XIRR and each index's hypothetical XIRR over one window.
+
+    A "1Y", "3Y" or "5Y" window does not start exactly one, three or five years before today: it starts at
+    the month end that many years before the last completed month end, because the opening value comes
+    from the month-end snapshots. "1Y" therefore spans 12 to 13 months (366 to 397 days; 389 days on
+    24 Oct 2026, starting 30 Sep 2025). `start_date` is that real start and the page must show it. "SI"
+    starts at the first transaction. A window is unavailable (`available` false, every rate null) when the
+    household has no complete snapshot at its start, or when a CAS opening balance falls inside it
+    (`unavailable_reason == "opening_balance_in_window"`)."""
+
+    window: Literal["1Y", "3Y", "5Y", "SI"]
+    available: bool
+    start_date: date | None = Field(
+        description="The real first day of the window (the month-end snapshot date), not today minus N years. "
+        "1Y spans 12 to 13 months. Null when the window is unavailable."
+    )
+    portfolio_xirr: str | None
+    indices: list[IndexXirrRow]
+    unavailable_reason: Literal["opening_balance_in_window"] | None = Field(
+        default=None,
+        description="Why a window with enough history is still unavailable: a CAS opening balance (dated at "
+        "its statement start, not when the money was invested) falls inside it, so the money in and the "
+        "start value cannot be told apart. Null otherwise, including when there is simply not enough history.",
+    )
+
+
+class FundWindowXirr(BaseModel):
+    window: Literal["1Y", "3Y", "5Y", "SI"]
+    fund_xirr: str | None
+    benchmark_xirr: str | None
+
+
 class PortfolioBenchmarkSummary(BaseModel):
     """PRD-04 FR-8 — portfolio XIRR from the full transaction history,
     alongside XIRR for all 4 Nifty indices computed via the same
@@ -167,6 +200,7 @@ class PortfolioBenchmarkSummary(BaseModel):
 
     portfolio_xirr: str | None
     benchmarks: list[IndexXirrRow]
+    windows: list[BenchmarkWindowRow] = []
 
 
 class AggregatePortfolioBenchmarkResponse(BaseModel):
@@ -184,6 +218,7 @@ class FundBenchmarkRow(BaseModel):
     benchmark_index: BenchmarkIndex
     fund_xirr: str | None
     benchmark_xirr: str | None
+    windows: list[FundWindowXirr] = []
 
 
 class FundVsBenchmarkSummary(BaseModel):

@@ -1,0 +1,11 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": "2026-10-23",
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "cards": [],
+  "unavailable": [],
+  "state": "nothing_flagged"
+}

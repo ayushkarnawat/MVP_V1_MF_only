@@ -1,0 +1,32 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": null,
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "members": [
+    {
+      "id": "81e5a369-bbd4-59f1-b480-8a5bbf1c74ef",
+      "name": "ASHA RAO",
+      "has_data": false
+    },
+    {
+      "id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
+      "name": "Dev Rao",
+      "has_data": false
+    }
+  ],
+  "total_value": "0.00",
+  "total_invested": "0.00",
+  "unrealized_gain": "0.00",
+  "unrealized_pct": null,
+  "realized_gain": "0.00",
+  "today_gain": "0.00",
+  "today_pct": null,
+  "previous_nav_date": null,
+  "lifetime_xirr": null,
+  "current_holdings_xirr": null,
+  "lifetime_xirr_disclaimer": null,
+  "current_holdings_xirr_disclaimer": null
+}

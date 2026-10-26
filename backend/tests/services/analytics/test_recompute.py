@@ -9,16 +9,31 @@ from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
 from app.models.analytics import AnalyticsRecomputeStatus, AnalyticsSection
-from app.models.enums import Relationship
+from app.models.enums import (
+    ALL_BENCHMARK_INDICES,
+    BenchmarkIndex,
+    BenchmarkReturnType,
+    PlanType,
+    Relationship,
+    TransactionType,
+)
+from app.models.folio import Folio
+from app.models.reference import BenchmarkIndexHistory, Scheme
+from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
+from app.services.analytics.benchmark import compute_fund_vs_benchmark, compute_portfolio_vs_benchmarks
+from app.services.analytics.benchmark_windows import WINDOWS, WindowContext, window_start
 from app.services.analytics.recompute import (
     _SECTIONS,
+    _upsert_section,
     recompute_household_analytics,
     release_recompute_claim,
     should_dispatch_recompute,
     try_claim_recompute,
 )
 from app.services.analytics.schemas import (
+    AggregateFundVsBenchmarkResponse,
+    AggregatePortfolioBenchmarkResponse,
     ValuationSummary,
     ValuationMetric,
     OverlapSummary,
@@ -41,6 +56,8 @@ from app.services.analytics.schemas import (
     PortfolioScoreSummary,
     WeightedTerSummary,
 )
+from app.services.dashboard.aggregate import get_member_statuses
+from app.services.dashboard.schemas import HoldingRow
 
 
 def _session():
@@ -509,3 +526,154 @@ def test_started_at_is_refreshed_after_each_section_so_a_long_run_is_not_taken_f
             p.stop()
     assert len(set(seen)) > 1          # moved forward during the run
     assert seen == sorted(seen)
+
+
+def test_windows_survive_json_round_trip_through_analytics_sections():
+    import asyncio
+
+    db = _session()
+    user, members = _user_with_members(db, n_members=1)
+    member = members[0]
+    scheme = Scheme(
+        id=uuid.uuid4(),
+        amfi_code=uuid.uuid4().hex[:6],
+        isin="INFROUNDTRIP",
+        name="Round Trip Fund",
+        amc_name="Test AMC",
+        sebi_category="Equity Scheme - Large Cap Fund",
+    )
+    folio = Folio(
+        id=uuid.uuid4(),
+        household_member_id=member.id,
+        scheme_id=scheme.id,
+        folio_number=uuid.uuid4().hex[:6],
+        plan_type=PlanType.DIRECT,
+    )
+    purchase_date = date.today().replace(year=date.today().year - 6)
+    db.add_all([scheme, folio])
+    db.flush()
+    db.add(
+        Transaction(
+            id=uuid.uuid4(),
+            folio_id=folio.id,
+            import_id=uuid.uuid4(),
+            type=TransactionType.PURCHASE,
+            date=purchase_date,
+            amount=Decimal("1000"),
+            units=Decimal("100"),
+            nav=Decimal("10"),
+        )
+    )
+    starts = {window: window_start(window, date.today()) for window in WINDOWS}
+    ctx = WindowContext(
+        today=date.today(),
+        starts=starts,
+        portfolio_start_values={
+            "1Y": Decimal("1000"),
+            "3Y": Decimal("1000"),
+            "5Y": Decimal("1000"),
+            "SI": None,
+        },
+        fund_start_values={
+            window: ({scheme.id: Decimal("1000")} if window != "SI" else {})
+            for window in WINDOWS
+        },
+    )
+    history_dates = {
+        purchase_date,
+        date.today(),
+        *(start for start in starts.values() if start is not None),
+    }
+    for index in ALL_BENCHMARK_INDICES:
+        for n, history_date in enumerate(sorted(history_dates)):
+            db.add(
+                BenchmarkIndexHistory(
+                    index_name=index,
+                    return_type=BenchmarkReturnType.TRI,
+                    date=history_date,
+                    value=Decimal("100") + Decimal(n),
+                )
+            )
+    db.commit()
+
+    holding = HoldingRow(
+        scheme_id=str(scheme.id),
+        scheme_name=scheme.name,
+        amc_name=scheme.amc_name,
+        household_member_id=str(member.id),
+        household_member_name=member.name,
+        plan_type=PlanType.DIRECT,
+        units_held="100",
+        average_nav="10",
+        current_nav="12",
+        current_nav_date=date.today(),
+        amount_invested="1000",
+        current_value="1200",
+        current_profit_total="200",
+        realized_gain="0",
+        unrealized_gain="200",
+        today_gain="0",
+    )
+    with (
+        patch(
+            "app.services.analytics.benchmark.compute_holdings",
+            new=AsyncMock(return_value=[holding]),
+        ),
+        patch(
+            "app.services.analytics.benchmark.ensure_index_history_fresh",
+            new=AsyncMock(return_value=False),
+        ),
+        patch(
+            "app.services.analytics.benchmark.build_window_context",
+            new=AsyncMock(return_value=ctx),
+            create=True,
+        ),
+    ):
+        portfolio = asyncio.run(compute_portfolio_vs_benchmarks(db, [member.id]))
+        funds = asyncio.run(compute_fund_vs_benchmark(db, [member.id]))
+
+    statuses = get_member_statuses(db, user.id)
+    _upsert_section(
+        db,
+        user.id,
+        "combined",
+        None,
+        "benchmark",
+        AggregatePortfolioBenchmarkResponse(members=statuses, benchmark=portfolio),
+    )
+    _upsert_section(db, user.id, str(member.id), member.id, "benchmark", portfolio)
+    _upsert_section(
+        db,
+        user.id,
+        "combined",
+        None,
+        "benchmark_funds",
+        AggregateFundVsBenchmarkResponse(members=statuses, comparison=funds),
+    )
+    _upsert_section(db, user.id, str(member.id), member.id, "benchmark_funds", funds)
+    db.commit()
+
+    combined_portfolio_row = db.get(AnalyticsSection, (user.id, "combined", "benchmark"))
+    member_portfolio_row = db.get(AnalyticsSection, (user.id, str(member.id), "benchmark"))
+    combined_fund_row = db.get(AnalyticsSection, (user.id, "combined", "benchmark_funds"))
+    member_fund_row = db.get(AnalyticsSection, (user.id, str(member.id), "benchmark_funds"))
+
+    combined_portfolio = AggregatePortfolioBenchmarkResponse.model_validate(
+        combined_portfolio_row.payload
+    ).benchmark
+    member_portfolio = PortfolioBenchmarkSummary.model_validate(member_portfolio_row.payload)
+    combined_funds = AggregateFundVsBenchmarkResponse.model_validate(
+        combined_fund_row.payload
+    ).comparison
+    member_funds = FundVsBenchmarkSummary.model_validate(member_fund_row.payload)
+
+    assert combined_portfolio.windows == portfolio.windows
+    assert member_portfolio.windows == portfolio.windows
+    assert combined_funds.funds[0].windows == funds.funds[0].windows
+    assert member_funds.funds[0].windows == funds.funds[0].windows
+    assert isinstance(combined_portfolio_row.payload["benchmark"]["windows"][0]["start_date"], str)
+    assert isinstance(combined_portfolio_row.payload["benchmark"]["windows"][0]["portfolio_xirr"], str)
+    assert isinstance(
+        combined_fund_row.payload["comparison"]["funds"][0]["windows"][0]["fund_xirr"],
+        str,
+    )

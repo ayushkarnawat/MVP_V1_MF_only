@@ -1,0 +1,72 @@
+{
+  "scope": "member",
+  "member_id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
+  "nav_as_of": "2026-10-23",
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "source": "analytics",
+  "approximate": false,
+  "total_value": "3012.00",
+  "classes": [
+    {
+      "key": "equity",
+      "label": "Equity",
+      "status": "live",
+      "value": "0.00",
+      "percentage": "0.00"
+    },
+    {
+      "key": "debt",
+      "label": "Debt",
+      "status": "live",
+      "value": "2002.00",
+      "percentage": "66.47"
+    },
+    {
+      "key": "gold",
+      "label": "Gold",
+      "status": "live",
+      "value": "1010.00",
+      "percentage": "33.53"
+    },
+    {
+      "key": "others",
+      "label": "Others",
+      "status": "live",
+      "value": "0.00",
+      "percentage": "0.00"
+    },
+    {
+      "key": "direct_stocks",
+      "label": "Direct stocks",
+      "status": "coming_soon",
+      "value": null,
+      "percentage": null
+    },
+    {
+      "key": "fds_bonds",
+      "label": "FDs and bonds",
+      "status": "coming_soon",
+      "value": null,
+      "percentage": null
+    },
+    {
+      "key": "real_estate",
+      "label": "Real estate",
+      "status": "coming_soon",
+      "value": null,
+      "percentage": null
+    },
+    {
+      "key": "us_stocks",
+      "label": "US stocks",
+      "status": "coming_soon",
+      "value": null,
+      "percentage": null
+    }
+  ],
+  "covered_pct": "100.00",
+  "mix_as_of": "2026-10-23",
+  "members": null
+}

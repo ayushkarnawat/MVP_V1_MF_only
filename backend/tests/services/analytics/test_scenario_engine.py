@@ -511,6 +511,58 @@ def test_benchmark_comparison_filters_tri_at_both_ends():
     assert [(b.name, b.pct) for b in _scenario_benchmark_comparisons(db, scenario)] == [("nifty_50", "-20.00")]
 
 
+def test_scenario_benchmark_comparisons_ignore_new_indices():
+    from app.services.analytics.scenario_engine import _scenario_benchmark_comparisons
+
+    db = _session()
+    scenario = Scenario(
+        name="Crash",
+        description="d",
+        start_date=date(2020, 1, 1),
+        end_date=date(2020, 3, 31),
+    )
+    all_indices = [
+        BenchmarkIndex(value)
+        for value in (
+            "nifty_50",
+            "nifty_500",
+            "nifty_largemidcap_250",
+            "nifty_midcap_150",
+            "nifty_next_50",
+            "nifty_smallcap_250",
+            "nifty_100",
+            "nifty_200",
+        )
+    ]
+    for index in all_indices:
+        db.add_all(
+            [
+                BenchmarkIndexHistory(
+                    index_name=index,
+                    date=date(2019, 12, 31),
+                    return_type=BenchmarkReturnType.TRI,
+                    value=Decimal("100"),
+                ),
+                BenchmarkIndexHistory(
+                    index_name=index,
+                    date=date(2020, 3, 31),
+                    return_type=BenchmarkReturnType.TRI,
+                    value=Decimal("80"),
+                ),
+            ]
+        )
+    db.commit()
+
+    results = _scenario_benchmark_comparisons(db, scenario)
+
+    assert [result.name for result in results] == [
+        "nifty_50",
+        "nifty_500",
+        "nifty_largemidcap_250",
+        "nifty_midcap_150",
+    ]
+
+
 def test_standard_result_includes_benchmarks_with_real_coverage_only():
     db = _session()
     scenario = Scenario(id=uuid.uuid4(), name="Dot-com bust", description="d", start_date=date(2000, 3, 1), end_date=date(2002, 10, 31), scenario_type="CRASH")

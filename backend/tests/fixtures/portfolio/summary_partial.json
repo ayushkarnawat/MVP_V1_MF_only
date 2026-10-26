@@ -1,0 +1,37 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": "2026-10-23",
+  "partial": true,
+  "missing_funds": [
+    {
+      "scheme_id": "7c906599-2ff8-5de4-83f9-b94651c683f2",
+      "name": "Dev Gold Fund"
+    }
+  ],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "members": [
+    {
+      "id": "81e5a369-bbd4-59f1-b480-8a5bbf1c74ef",
+      "name": "ASHA RAO",
+      "has_data": true
+    },
+    {
+      "id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
+      "name": "Dev Rao",
+      "has_data": true
+    }
+  ],
+  "total_value": "4202.00",
+  "total_invested": "4000.00",
+  "unrealized_gain": "202.00",
+  "unrealized_pct": "5.0500",
+  "realized_gain": "0.00",
+  "today_gain": "2.00",
+  "today_pct": "0.0476",
+  "previous_nav_date": "2026-10-22",
+  "lifetime_xirr": "-0.716009594645563925",
+  "current_holdings_xirr": "-0.716009594645563925",
+  "lifetime_xirr_disclaimer": null,
+  "current_holdings_xirr_disclaimer": null
+}

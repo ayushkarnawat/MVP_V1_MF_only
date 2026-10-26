@@ -5,6 +5,8 @@ import uuid
 from bisect import bisect_right
 from calendar import monthrange
 from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
@@ -105,18 +107,60 @@ async def _prepare_months(db: Session, member_id: uuid.UUID, *, warm: bool = Tru
         return None
     if warm:
         schemes = {s.id:s for s in db.query(Scheme).filter(Scheme.id.in_({f.scheme_id for f in folios})).all()}
-    series = {sid:[] for sid in schemes}
-    nav_query = db.query(NavHistory).filter(NavHistory.scheme_id.in_(schemes))
-    if through is not None:
-        nav_query = nav_query.filter(NavHistory.date <= through)
-    for row in nav_query.order_by(NavHistory.date).all():
-        # A 0 NAV is real (a written-off segregated portfolio, kfin_pk_10yr),
-        # and the dashboard values it at 0; skipping it would carry the last
-        # positive NAV forward forever (Phase 6 Task 12).
-        if row.nav >= 0:
-            series[row.scheme_id].append((row.date,row.nav))
-    dates = {sid:[day for day,_ in values] for sid,values in series.items()}
+    series, dates = _nav_series(db, list(schemes), through)
     return folios, events, schemes, series, dates, version
+
+
+# Shared NAV series for the window context (review fix L-d): it asks for several month details in a row, each of
+# which used to load every NAV row up to its month again (about 90,000 ORM rows for a nine-fund household,
+# three times per member). Inside `reuse_nav_series()` the rows are loaded once per scheme and every later
+# request reuses them. Reads only: nothing inside the block writes, so the rows cannot go stale under it.
+_NAV_SERIES_CACHE: ContextVar[dict | None] = ContextVar("nav_series_cache", default=None)
+
+
+@contextmanager
+def reuse_nav_series() -> Iterator[None]:
+    token = _NAV_SERIES_CACHE.set({})
+    try:
+        yield
+    finally:
+        _NAV_SERIES_CACHE.reset(token)
+
+
+def _nav_series(db: Session, scheme_ids: list[uuid.UUID], through: date | None):
+    """Per scheme, the (date, nav) series up to `through` (all of it when None) and its dates. A series that was
+    loaded for a later month, or fully, is reused as it is: every reader looks values up by bisect on the month
+    end, so rows after the month it asked for change nothing."""
+    cache = _NAV_SERIES_CACHE.get()
+    series: dict = {}
+    dates: dict = {}
+    missing = []
+    for scheme_id in scheme_ids:
+        hit = cache.get(scheme_id) if cache is not None else None
+        if hit is not None and (hit[0] is None or (through is not None and hit[0] >= through)):
+            series[scheme_id], dates[scheme_id] = hit[1], hit[2]
+        else:
+            missing.append(scheme_id)
+    if missing:
+        loaded = {scheme_id: [] for scheme_id in missing}
+        # Columns, not NavHistory entities: tens of thousands of rows, and nothing here needs an ORM object.
+        nav_query = db.query(NavHistory.scheme_id, NavHistory.date, NavHistory.nav).filter(
+            NavHistory.scheme_id.in_(missing)
+        )
+        if through is not None:
+            nav_query = nav_query.filter(NavHistory.date <= through)
+        for scheme_id, day, nav in nav_query.order_by(NavHistory.date).all():
+            # A 0 NAV is real (a written-off segregated portfolio, kfin_pk_10yr),
+            # and the dashboard values it at 0; skipping it would carry the last
+            # positive NAV forward forever (Phase 6 Task 12).
+            if nav >= 0:
+                loaded[scheme_id].append((day, nav))
+        for scheme_id, values in loaded.items():
+            series[scheme_id] = values
+            dates[scheme_id] = [day for day, _ in values]
+            if cache is not None:
+                cache[scheme_id] = (through, values, dates[scheme_id])
+    return series, dates
 
 
 def _walk_months(context, through: date):

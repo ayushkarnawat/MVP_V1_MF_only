@@ -1,5 +1,6 @@
 import asyncio
 import decimal
+import json
 import uuid
 from datetime import date, timedelta
 from decimal import Decimal
@@ -18,6 +19,7 @@ from app.models.reference import BenchmarkIndexHistory
 from app.services.analytics.nse_indices_client import (
     _TRADING_INDEX_NAME,
     _fetch_index_history,
+    _fetch_tri_history,
     ensure_index_history_fresh,
     get_index_level_on_or_before,
 )
@@ -33,6 +35,38 @@ def _session():
 
 def test_trading_index_name_covers_every_benchmark_index_enum_member():
     assert set(_TRADING_INDEX_NAME.keys()) == set(BenchmarkIndex)
+
+
+def test_new_indices_trading_names_are_the_verified_ones():
+    assert {
+        BenchmarkIndex("nifty_next_50"): "Nifty Next 50",
+        BenchmarkIndex("nifty_smallcap_250"): "Nifty Smallcap 250",
+        BenchmarkIndex("nifty_100"): "Nifty 100",
+        BenchmarkIndex("nifty_200"): "Nifty 200",
+    }.items() <= _TRADING_INDEX_NAME.items()
+
+
+def test_price_and_tri_fetches_send_the_mapped_name_for_a_new_index():
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(return_value=[])
+    mock_client = MagicMock()
+    mock_client.post = AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    index = BenchmarkIndex("nifty_smallcap_250")
+
+    with patch(
+        "app.services.analytics.nse_indices_client.httpx.AsyncClient", return_value=mock_client
+    ):
+        asyncio.run(_fetch_index_history(index, date(2026, 10, 13), date(2026, 10, 23)))
+        asyncio.run(_fetch_tri_history(index, date(2026, 10, 13), date(2026, 10, 23)))
+
+    assert mock_client.post.await_count == 2
+    for call in mock_client.post.await_args_list:
+        cinfo = json.loads(call.kwargs["json"]["cinfo"])
+        assert cinfo["name"] == "Nifty Smallcap 250"
+        assert cinfo["indexName"] == "Nifty Smallcap 250"
 
 
 def test_fetch_index_history_does_not_blanket_follow_redirects():

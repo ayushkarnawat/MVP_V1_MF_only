@@ -12,6 +12,7 @@ from app.models.imports import Import
 from app.services.import_.preview_store import PREVIEW_STATUSES
 from app.models.user import HouseholdMember, User
 from app.services.auth.session import get_active_user
+from app.services.dashboard.holdings import invalidate_holdings_cache
 from app.services.dashboard.household_members import get_household_member_for_user
 from app.services.dashboard.member_details import require_member
 
@@ -275,6 +276,7 @@ def post_opening_balance(
 
     folio = db.get(Folio, folio_uuid)
     assert folio is not None
+    invalidate_holdings_cache(folio.household_member_id)
 
     return OpeningBalanceResponse(
         transaction_id=str(txn.id),

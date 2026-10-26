@@ -14,16 +14,19 @@ from app.services.import_.file_storage import build_s3_client
 
 logger = logging.getLogger(__name__)
 
+# Calendar months kept per scheme, counting the newest disclosed month.
+RETAIN_MONTHS = 6
+
 
 def prune_old_batches(db: Session, today: date) -> int:
-    # Handoff: newest three calendar months *per scheme*, not relative to the
-    # job's current month (a September monthly disclosure must keep July too).
+    # Handoff: newest RETAIN_MONTHS calendar months *per scheme*, not relative to the
+    # job's current month (a September monthly disclosure must keep April too).
     newest = dict(db.query(DisclosureBatch.scheme_id, func.max(DisclosureBatch.as_of_date))
                   .filter(DisclosureBatch.as_of_date <= today)
                   .group_by(DisclosureBatch.scheme_id).all())
     cutoffs = {}
     for scheme_id, disclosed in newest.items():
-        month = disclosed.year * 12 + disclosed.month - 3
+        month = disclosed.year * 12 + disclosed.month - RETAIN_MONTHS
         cutoffs[scheme_id] = date(month // 12, month % 12 + 1, 1)
     latest = dict(db.query(DisclosureBatch.scheme_id, func.max(DisclosureBatch.as_of_date))
                   .filter(DisclosureBatch.status == DisclosureBatchStatus.WRITTEN, DisclosureBatch.as_of_date <= today)

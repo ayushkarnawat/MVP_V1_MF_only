@@ -10,6 +10,8 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal, Overflow, InvalidOperation, DivisionByZero
 
+from app.services.analytics.xirr_fast import xirr_bisect
+
 _MAX_ITERATIONS = 100
 _TOLERANCE = Decimal("0.0000001")
 _DAYS_PER_YEAR = Decimal(365)
@@ -19,11 +21,17 @@ def xirr(cash_flows: list[tuple[date, Decimal]], guess: Decimal = Decimal("0.1")
     """`cash_flows` is a list of `(date, amount)` pairs — negative for an
     outflow, positive for an inflow, order doesn't matter. Returns the
     annualized rate (e.g. `Decimal("0.12")` for 12%), or `None` if there's
-    no genuine two-sided cash flow to solve for, the iteration hits a
-    non-real-valued power (rate collapsed to <= -100%), or Newton-Raphson
-    fails to converge within `_MAX_ITERATIONS` — a real possibility for
-    pathological cash-flow shapes, treated as "can't compute," not a
-    crash."""
+    no genuine two-sided cash flow to solve for, or the numbers overflow.
+    Newton-Raphson from the 0.1 guess can overshoot below -100% on a steep
+    decline (a fund down about 45% or more in a year), blow up numerically,
+    or fail to converge within `_MAX_ITERATIONS`; those cases fall back to a bracketed bisection
+    (`xirr_fast.xirr_bisect`). The bisection searches x = ln(1 + rate) in [-20, 14], that is rates from
+    -99.9999998% to about +1.2 million (+120 million percent) a year, and returns None when the discounted flows have no
+    sign change in that range (a root outside it, or none at all). A pair of roots closer together than one
+    grid step (0.25 in x) can also be missed. Flows that net out at once (a same-day pair of -5 and +5)
+    give 0, not None: the present value is zero for every rate and the rate nearest 0 is returned.
+    The Newton result is untouched whenever Newton converges, so every rate
+    that was computable before is returned digit for digit."""
     if len(cash_flows) < 2:
         return None
     has_outflow = any(amount < 0 for _, amount in cash_flows)
@@ -39,7 +47,7 @@ def xirr(cash_flows: list[tuple[date, Decimal]], guess: Decimal = Decimal("0.1")
         for _ in range(_MAX_ITERATIONS):
             base = Decimal(1) + rate
             if base <= 0:
-                return None
+                return xirr_bisect(cash_flows)
 
             f_value = Decimal("0")
             f_prime = Decimal("0")
@@ -50,12 +58,12 @@ def xirr(cash_flows: list[tuple[date, Decimal]], guess: Decimal = Decimal("0.1")
                     f_prime += -years * amount / (base ** (years + Decimal(1)))
 
             if f_prime == 0:
-                return None
+                return xirr_bisect(cash_flows)
             new_rate = rate - f_value / f_prime
             if abs(new_rate - rate) < _TOLERANCE:
                 return new_rate
             rate = new_rate
     except (Overflow, InvalidOperation, DivisionByZero):
-        return None
+        return xirr_bisect(cash_flows)  # a wild Newton step; the bracketed search has none
 
-    return None
+    return xirr_bisect(cash_flows)
