@@ -7,8 +7,8 @@ Short and in order. Terminals: **A** = SSH to the CloudPe VM. **W** = a browser.
 | # | Where | Step | Notes |
 |---|---|---|---|
 | 1 | Local terminal | Commit the repo-side files on `leapswitch-redesign` and `git push -u origin leapswitch-redesign` | Files: `deploy/leapswitch/{Caddyfile,docker-compose.yml,.env.example,README.md,scripts/deploy-redesign.sh}` plus the new docs. Claude does not push. |
-| 2 | AWS Route 53 (DNS stays on AWS) | Add an **A record** `ls-redesign.unifolio.in` → the VM's public IP (same IP as `ls-staging.unifolio.in`) | TTL 300. Check: `dig +short ls-redesign.unifolio.in` returns the IP **before** step 5, or Let's Encrypt may rate-limit. |
-| 3 | W: Google Cloud console → APIs & Services → Credentials → the OAuth client | Add `https://ls-redesign.unifolio.in` under **Authorised JavaScript origins** | Only needed for "Sign in with Google" on the new link. Takes a few minutes to apply. |
+| 2 | AWS Route 53 (DNS stays on AWS) | **Done 26 Oct by the orchestrator through the AWS CLI** (A record `ls-redesign.unifolio.in` → `202.66.174.251`, TTL 300, change `C02498811QSJT51VONMNJ`); it resolves publicly. | TTL 300. Check: `dig +short ls-redesign.unifolio.in` returns the IP **before** step 5, or Let's Encrypt may rate-limit. |
+| 3 | ~~Google Cloud console: add the origin~~ | **Dropped (owner, 26 Oct): Sign in with Google is not part of the redesign.** | Nothing to do. |
 | 4 | CloudPe dashboard | Nothing to change if ports 80/443 are open to the world already (they are for ls-staging). If SSH times out but HTTPS works, it is the Security Group IP allowlist (see the plan's Troubleshooting) | |
 | 5 | A | `cd /opt/unifolio && git fetch && git worktree add /opt/unifolio-redesign leapswitch-redesign` | Adjust `/opt/unifolio` to where the repo really is. |
 | 6 | A | `ln -s /opt/unifolio/deploy/leapswitch/.env /opt/unifolio-redesign/deploy/leapswitch/.env` | One `.env` for both. |
