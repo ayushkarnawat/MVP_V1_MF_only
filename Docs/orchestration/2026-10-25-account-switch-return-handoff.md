@@ -42,6 +42,8 @@
    ```
    If `~/fe-speed/node_modules` is missing or `package.json` dependencies changed, redo the one-time copy or run `npm ci` inside `~/fe-speed` (from WSL). The `D:` path stays the source of truth; never edit files in `~/fe-speed`. The slow `wsl-fe.sh` recipe above still works as a fallback.
 
+   **Simpler invocation, verified 25 Oct:** `wsl.exe -d Ubuntu --cd "D:\Unifolio code\backend" -- .venv/bin/python -m pytest <files> -q -p no:cacheprovider --disable-warnings` (and the same with `--cd "D:\Unifolio code\frontend" -- npx vitest run ...` for the slow path) works inline from PowerShell with no script file and no quoting of the space in the path. **Backend tests must use the WSL venv** (`backend/.venv`, Python 3.14); the Windows `backend/.venv-win` is incomplete (Python 3.13, a missing module breaks the route tests). Baseline on `feat/home-snapshot`: the HB2 files plus neighbours passed (82, then 252 across all files that reference the changed code).
+
    Do not run `npm install` from Windows (it would replace the Linux bindings); if dependencies are missing run it from WSL. The first test in `portedFlow.test.tsx` fails on a cold import under the hardcoded 5000 ms limit (deferred fix); rerun with a longer `--testTimeout` only for scratch work, never edit the committed limit before the owner's go.
 3. **Stale `.git/index.lock`.** Seen repeatedly. Check no git process runs, then delete it.
 4. **Memory is per account.** Each account's auto-memory is separate. Everything that must survive lives in these docs, committed on `leapswitch-redesign`.
@@ -51,7 +53,7 @@
 
 - `leapswitch-redesign` head `02cb599` (docs; the Opus-review record `cb2024a` cherry-picked from the task branch; nothing else was missing). Untracked: `Web app UI mockups MFs.pdf` (owner's call, stays untracked).
 - `feat/shell-nav-switch` head `cb2024a`, five commits ahead of its remote (`b7ac484`), **not pushed**. Contains S2.1 to S2.4 and three fixes: `a7ef402` (import notice cleared before pushing /import), `7440ed9` (shell token CSS reachable from `App.tsx`, Import Health Back lands on Profile).
-- `feat/shell-nav` `15ac628` (shell PR1, PR #9), `feat/home-snapshot` `511f1ef` (HB1, PR #10). Both PRs open, unreviewed, CI red for the same pre-existing `xlwt` reason.
+- `feat/shell-nav` `15ac628` (shell PR1, PR #9), `feat/home-snapshot` `511f1ef` (HB1, PR #10). Both PRs open, unreviewed, CI was red for the same pre-existing `xlwt` reason (**fixed 25 Oct: a workflow line, see the session file's CI note**).
 - Test evidence (from the previous session's reports, **read, not re-run by this account**): affected set 325/326 after `7440ed9`; the one failure is the deferred cold-import timeout in `portedFlow.test.tsx`. This account has run no tests yet.
 
 **S2.4 review gate status**
@@ -69,7 +71,7 @@
 
 Then, in order: S2.5 (Claude: boundary/landing tests plus a manual browser check of the running shell on a synthetic household), S2.6 (Claude: docs/log, show a diff), S2.7 (final gate, Opus whole-branch review; push `feat/shell-nav-switch`, open its PR into `leapswitch-redesign`; ask the owner whether to base it on `feat/shell-nav` while PR #9 is unmerged). After shell PR2, ask which track next (Wave 2b backend from HB2, or Wave 1 manual work).
 
-**Backlog explicitly not touched:** the deferred fixes in the session file (`xlwt` in `backend/requirements.txt`, the 5000 ms cold-import timeout), to be done after all waves, per the owner.
+**Backlog explicitly not touched:** the deferred fixes in the session file (the 5000 ms cold-import timeout, probably unnecessary now), to be done after all waves, per the owner. (The `xlwt` CI item was pulled forward and fixed on 25 Oct; its real cause was the `backend-fast` workflow not installing `requirements-dev.txt`, not a missing line in `requirements.txt`.)
 
 ## 2c. S2.5 record (25 Oct 2026): manual browser check PASSED, guard tests added
 
@@ -142,7 +144,7 @@ Run by the orchestrator in the built-in browser against a local backend and the 
 - **What was done:** `feat/shell-nav-switch` pushed to GitHub (fast-forward `b7ac484` to `83db71f`, no force), PR **#11** opened as `ayushkarnawat` with base **`feat/shell-nav`** (stacked on PR #9, whose base is `leapswitch-redesign`), title "Shell PR 2: scope, wrapper routes and switch-on (stacked on #9)", description with scope, merge order, staged-rollout note, evidence and accepted items. URL: https://github.com/ayushkarnawat/MVP_V1_MF_only/pull/11.
 - **Why that base:** PR #9 and #10 both target `leapswitch-redesign`. PR 2 contains PR 1's commits, so a PR straight into `leapswitch-redesign` would show PR 1's files again and merging it first would carry PR 1 in without #9's review. Stacked on `feat/shell-nav` it shows only PR 2's 66 files (42 non-merge commits).
 - **Merge order (owner's click):** merge #9, then change #11's base to `leapswitch-redesign` (GitHub offers it, or retargets when `feat/shell-nav` is deleted after #9 merges), then merge #11. The orchestrator never merges.
-- **CI:** no checks had registered when read; expect `backend-fast` to fail on the known `xlwt` import (same as #9 and #10; no backend file changed here); fix is on the deferred list.
+- **CI:** no checks had registered when read; expected `backend-fast` to fail on the known `xlwt` import (same as #9 and #10; no backend file changed here). **Fixed later the same day by a one-line workflow change (the job now installs `requirements-dev.txt` too), pushed to this branch.**
 - **Auto-fix:** off (offered to the owner).
 
 ## 3. Review policy change (owner proposal 25 Oct, adopted; owner may veto)
