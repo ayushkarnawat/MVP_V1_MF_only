@@ -50,7 +50,7 @@ function renderFlow() {
 const NORMAL_SESSION = { session_token: "tok-1", user_id: "u1", onboarding_step: null, onboarding_completed: false };
 const ME_RESPONSE = {
   user_id: "u1", phone_number: "+919999999999", email: null,
-  onboarding_step: null, onboarding_completed: false, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [],
+  onboarding_step: null, onboarding_completed: false, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [], created_at: "2025-10-14T09:30:00+05:30",
 };
 
 function fillEmail(email: string) {

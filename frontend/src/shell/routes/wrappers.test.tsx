@@ -204,7 +204,8 @@ it.each([
   }
 });
 
-it("enables only the six requested routes and preserves the existing import route", () => {
+it("enables only the requested routes and preserves the existing import route", () => {
   const live = buildRegistry().filter(route => route.status === "live").map(route => route.id).sort();
-  expect(live).toEqual(["root", "not-found", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "profile", "profile-import-health", "profile-personal"].sort());
+  expect(live).toEqual(["root", "not-found", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "profile", "profile-import-health", "profile-personal",
+    "profile-legacy", "profile-family", "profile-connected-accounts", "profile-settings", "profile-settings-notifications", "profile-settings-preferences", "profile-settings-security", "profile-settings-import-history", "profile-subscription", "profile-tax", "profile-data-privacy"].sort());
 });

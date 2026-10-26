@@ -34,6 +34,8 @@ export interface MeResponse {
   consent_outdated: string[];
   pending_deletion?: boolean;
   deletion_scheduled_at?: string | null;
+  // ISO 8601 account creation time; "Member since" on Profile reads it (added to GET /auth/me by the Profile plan, task T1).
+  created_at: string;
 }
 
 export type AccountDeletionReason =
