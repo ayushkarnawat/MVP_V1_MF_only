@@ -680,7 +680,8 @@ def test_loader_statement_budgets_for_analytics_and_fallback(db_session):
         event.remove(db_session.bind, "before_cursor_execute", listener)
         counts.append(len(statements))
         db_session.expire_all()
-    assert counts == [2, 3]
+    # The shared reader skips the freshness query when no row is stored, so the fallback costs 2 (was 3).
+    assert counts == [2, 2]
 
 
 def test_loader_does_not_mutate_section_or_call_recompute_or_dispatch(db_session):

@@ -7,17 +7,14 @@ from datetime import date, datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any, Literal
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.decimal_utils import quantize_amount
-from app.models.analytics import AnalyticsSection
-from app.models.enums import ImportStatus
-from app.models.imports import Import
 from app.models.reference import Scheme
 from app.services.dashboard.allocation_labels import asset_class_bucket
 from app.services.dashboard.holdings import compute_holdings
 from app.services.home.movers import spread_cents
+from app.services.home.stored import load_fresh_sections, scope_key_for
 
 
 ALLOCATION_CLASSES: tuple[tuple[str, str, Literal["live", "coming_soon"]], ...] = (
@@ -223,10 +220,6 @@ def build_allocation(
     )
 
 
-def _utc(value: datetime) -> datetime:
-    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
-
-
 async def load_allocation(
     db: Session,
     user_id: uuid.UUID,
@@ -262,23 +255,17 @@ async def load_allocation(
             total_value=Decimal("0.00"), mix=None, buckets=None, members=member_values
         )
 
-    scope_key = "combined" if scope == "aggregate" else str(household_member_ids[0])
-    section = db.get(AnalyticsSection, (user_id, scope_key, "asset_allocation"))
-    latest_import = (
-        db.query(func.max(func.coalesce(Import.confirmed_at, Import.uploaded_at)))
-        .filter(
-            Import.household_member_id.in_(household_member_ids),
-            Import.status == ImportStatus.CONFIRMED,
-        )
-        .scalar()
+    scope_key = scope_key_for(scope, household_member_ids)
+    sections = load_fresh_sections(
+        db,
+        user_id,
+        scope_key=scope_key,
+        sections=["asset_allocation"],
+        household_member_ids=household_member_ids,
     )
     mix = None
-    if section is not None and section.failed_at is None:
-        candidate = parse_stored_allocation(section.payload, section.computed_at)
-        if candidate is not None and (
-            latest_import is None or candidate.computed_at >= _utc(latest_import)
-        ):
-            mix = candidate
+    if section := sections.get("asset_allocation"):
+        mix = parse_stored_allocation(section.payload, section.computed_at)
 
     buckets = None
     if mix is None:
