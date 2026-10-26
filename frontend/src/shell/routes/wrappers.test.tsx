@@ -22,6 +22,8 @@ const auth = vi.hoisted(() => ({
 }));
 vi.mock("../../features/auth/AuthContext", () => ({ useAuth: () => auth }));
 vi.mock("../../lib/apiClient", () => ({ invalidateApiCache: vi.fn() }));
+// The Home page fetches its own data; route tests keep it out of the way like the other live screens.
+vi.mock("../../features/home/HomePage", () => ({ default: () => <h1>Home</h1> }));
 vi.mock("../../features/dashboard/DashboardView", () => ({ DashboardView: vi.fn((props: DashboardViewProps) => <>
   <h1>Dashboard screen</h1><button onClick={props.onDismissImportNotice}>Dismiss notice</button>
   <button onClick={props.onOpenHistory}>Open history</button><button onClick={() => props.onAddDataForMember?.("b")}>Dashboard import</button>
@@ -204,7 +206,7 @@ it.each([
   }
 });
 
-it("enables only the six requested routes and preserves the existing import route", () => {
+it("enables only the requested routes (Home since G6) and preserves the existing import route", () => {
   const live = buildRegistry().filter(route => route.status === "live").map(route => route.id).sort();
-  expect(live).toEqual(["root", "not-found", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "profile", "profile-import-health", "profile-personal"].sort());
+  expect(live).toEqual(["root", "not-found", "home", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "profile", "profile-import-health", "profile-personal"].sort());
 });

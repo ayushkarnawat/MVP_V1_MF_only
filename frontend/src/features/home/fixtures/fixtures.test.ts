@@ -1,3 +1,5 @@
+import { existsSync, readdirSync, readFileSync } from "fs";
+import { resolve } from "path";
 import { describe, expect, it } from "vitest";
 import type { WealthSeriesResponse } from "../types";
 import { FIXTURE_NAMES, fixture } from "./index";
@@ -25,9 +27,23 @@ const EXTRAS: Record<string, string[]> = {
 };
 
 describe("Home golden fixtures", () => {
-  it("has the 25 files the backend generates", () => {
-    expect(FIXTURE_NAMES).toHaveLength(25);
+  it("has the 29 files the backend generates", () => {
+    expect(FIXTURE_NAMES).toHaveLength(29);
     expect(FIXTURE_NAMES).toContain("worth_concentration_with_earlier");
+    for (const name of ["summary_statement_priced_fund", "wealth_1m_fund_sold_in_period", "wealth_1m_statement_priced_fund", "wealth_custom_past_range"]) {
+      expect(FIXTURE_NAMES).toContain(name);
+    }
+  });
+
+  // Guard against the copy going stale: when the backend set is in the checkout, every file in it has an identical copy here.
+  const BACKEND = resolve("../backend/tests/fixtures/home");
+  it.skipIf(!existsSync(BACKEND))("matches the backend's generated set file for file", () => {
+    const backend = readdirSync(BACKEND).filter(file => file.endsWith(".json")).sort();
+    expect(backend.map(file => file.slice(0, -5))).toEqual(FIXTURE_NAMES);
+    for (const file of backend) {
+      const here = resolve("src/features/home/fixtures", file);
+      expect(JSON.parse(readFileSync(here, "utf8")), file).toEqual(JSON.parse(readFileSync(resolve(BACKEND, file), "utf8")));
+    }
   });
 
   it("throws for a name that does not exist", () => {
