@@ -183,8 +183,33 @@ def _stock_alias(name: str) -> str | None:
     return text
 
 
+def _category_fold(text: str) -> str:
+    """Fold a category name so the bare SEBI name used in headlines ("Large
+    Cap Fund") and the stored, AMFI-canonicalised `Scheme.sebi_category`
+    ("Equity Scheme - Large Cap Fund", via `canonical_category`) land on the
+    same string: both are schemes the user actually holds, so T5's watch
+    list must resolve a held fund's category to the exact key a headline
+    about that category would also tag. `canonical_category` already
+    collapses ~80 raw AMFI headings to ~40; the remaining differences from
+    the bare SEBI name are the "<Type> Scheme - " prefix and, for a few
+    categories, a dropped trailing "Fund" or "/ " vs "/" spacing."""
+    text = re.sub(r"\s+", " ", text.strip().lower())
+    text = text.removesuffix(" fund")
+    return text.replace("/ ", "/")
+
+
+_CATEGORY_KEYS_FOLDED: dict[str, str] = {
+    _category_fold(name): key for name, key in SEBI_CATEGORY_KEYS.items() if key is not None
+}
+
+
 def category_key(sebi_name: str) -> str | None:
-    return SEBI_CATEGORY_KEYS.get(sebi_name)
+    if not sebi_name:
+        return None
+    if sebi_name in SEBI_CATEGORY_KEYS:
+        return SEBI_CATEGORY_KEYS[sebi_name]
+    _, _, rest = sebi_name.partition(" - ")
+    return _CATEGORY_KEYS_FOLDED.get(_category_fold(rest or sebi_name))
 
 
 def sector_key(label: str | None) -> str | None:

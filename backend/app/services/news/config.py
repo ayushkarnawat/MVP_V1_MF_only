@@ -11,6 +11,7 @@ until the owner's calibration reply (section 9 of the handoff).
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 
 # D9: Indian business sites, unrestricted except economictimes.indiatimes.com
 # (see ETIMES_ALLOWED_PATH_PREFIXES below -- that domain is only in scope for
@@ -289,3 +290,19 @@ AMBIGUITY_CONTEXT_WORDS: frozenset[str] = frozenset({
     "shares", "share", "stock", "stocks", "q1", "q2", "q3", "q4", "results",
     "sensex", "nifty", "nse", "bse", "earnings", "profit", "revenue",
 })
+
+# ---------------------------------------------------------------------------
+# T5: watch-list thresholds (D4) -- STARTING VALUES ONLY, not locked until
+# the owner's calibration reply (section 9 of the handoff / E20). Do not
+# tune these without an explicit "CALIBRATION: SET ..." reply.
+# ---------------------------------------------------------------------------
+TOP_N = 5  # per kind: rank by exposure_pct, keep the top 5, THEN apply MIN_SIZE_PCT
+
+MIN_SIZE_PCT: dict[str, Decimal] = {
+    "stock": Decimal("1.00"),
+    "fund_house": Decimal("0.00"),  # ">0" in practice -- any held house qualifies
+    "fund_category": Decimal("10.00"),
+    "asset_class": Decimal("5.00"),  # gold_silver
+    "rates_macro": Decimal("20.00"),  # debt, surfaced as the "rates" entity
+    "sector": Decimal("10.00"),
+}

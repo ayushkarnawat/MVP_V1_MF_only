@@ -169,6 +169,22 @@ def test_category_key_handles_every_sebi_category_without_raising():
     assert category_key("Not A Real Category") is None
 
 
+def test_category_key_also_accepts_the_stored_amfi_canonical_form():
+    # Scheme.sebi_category is stored AMFI-canonical ("<Type> Scheme - <Name>", via
+    # canonical_category()), not the bare SEBI name a headline uses -- T5's watch list
+    # calls category_key() on held funds directly, so both forms must resolve the same key.
+    assert category_key("Equity Scheme - Large Cap Fund") == "large_cap"
+    assert category_key("Debt Scheme - Short Duration Fund") == "short_duration"
+    assert category_key("Equity Scheme - ELSS") == "elss"
+    assert category_key("Hybrid Scheme - Dynamic Asset Allocation or Balanced Advantage") == "balanced_advantage"
+    assert category_key("Hybrid Scheme - Equity Savings") == "equity_savings"
+    assert category_key("Hybrid Scheme - Multi Asset Allocation") == "multi_asset_allocation"
+    assert category_key("Equity Scheme - Sectoral/ Thematic") == "sectoral_thematic"
+    assert category_key("Gold ETF") is None
+    assert category_key("Other Scheme - Fund of Funds (Overseas)") == "fof_overseas"
+    assert category_key("Other Scheme - Some Unmapped Niche Category") is None  # no raise
+
+
 # ---------------------------------------------------------------------------
 # (5) gold/silver: bare mention is not enough, a negative phrase cancels it
 # ---------------------------------------------------------------------------
