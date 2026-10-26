@@ -1,0 +1,22 @@
+{
+  "status": "ready",
+  "source": "stored",
+  "computed_at": "2026-10-23T13:30:00Z",
+  "scheme_id": "7c9e5b0a-3f1d-4a52-8e6b-1d2f3a4b5c6d",
+  "scheme_name": "Alpha Flexi Cap Fund - Direct Plan",
+  "category_unavailable": false,
+  "insufficient_history": false,
+  "thin_category": false,
+  "risk_adjusted_tier": 4,
+  "cost_adjustment": "0.25",
+  "final_score": "72.00",
+  "return_percentile": "71.00",
+  "risk_percentile": "64.00",
+  "consistency_hit_rate": "0.80",
+  "scheme_return": "0.19",
+  "category_avg_return": "0.16",
+  "downside_deviation": "0.021",
+  "category_avg_downside_deviation": "0.025",
+  "consistency_hits": 8,
+  "consistency_total_windows": 10
+}

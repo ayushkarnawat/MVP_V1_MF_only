@@ -1,0 +1,30 @@
+{
+  "status": "ready",
+  "scheme_id": "7c9e5b0a-3f1d-4a52-8e6b-1d2f3a4b5c6d",
+  "window_start": "2023-10-23",
+  "window_end": "2026-10-23",
+  "points": 1095,
+  "life_window": false,
+  "risk_free_rate": "0.065",
+  "volatility": {
+    "value": "14.2000",
+    "band": "Moderate",
+    "tone": "warn"
+  },
+  "max_drawdown": {
+    "value": "-18.4000",
+    "band": "Moderate",
+    "tone": "warn"
+  },
+  "sharpe": {
+    "value": "0.8200",
+    "band": "Fair",
+    "tone": "warn"
+  },
+  "beta": {
+    "value": "0.9800",
+    "band": "Market-like",
+    "tone": "neu"
+  },
+  "beta_reason": null
+}
