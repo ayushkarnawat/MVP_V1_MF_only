@@ -29,18 +29,20 @@ def test_load_home_inputs_batches_sources_and_unions_missing(monkeypatch):
     holdings = [_holding(first, "Zulu Fund"), _holding(second, "Alpha Fund", unavailable=True)]
     calls = {"holdings": 0, "units": 0, "navs": 0, "sectors": 0}
 
-    async def fake_holdings(db, member_ids, *, allow_stale_today):
+    async def fake_holdings(db, member_ids, *, allow_stale_today, stored_only):
         calls["holdings"] += 1
         assert allow_stale_today is True
+        assert stored_only is True  # a Home GET never downloads or writes a price
         return holdings
 
-    def fake_units(db, member_ids, *, scheme_ids):
+    def fake_units(db, member_ids, **kwargs):
         calls["units"] += 1
+        assert "scheme_ids" not in kwargs  # every fund held in the window, not only today's
         return {first: [(date(2026, 10, 1), Decimal("10"))], second: [(date(2026, 10, 1), Decimal("5"))]}
 
     def fake_navs(db, scheme_ids, start, end):
         calls["navs"] += 1
-        assert scheme_ids == {first}
+        assert set(scheme_ids) == {first, second}
         return {first: [(date(2026, 10, 22), Decimal("9")), (date(2026, 10, 23), Decimal("10"))]}
 
     def fake_sectors(db, scheme_ids, as_of):
@@ -58,6 +60,7 @@ def test_load_home_inputs_batches_sources_and_unions_missing(monkeypatch):
     monkeypatch.setattr(context, "compute_holdings", fake_holdings)
     monkeypatch.setattr(context, "build_units_timeline", fake_units)
     monkeypatch.setattr(context, "load_navs_by_scheme", fake_navs)
+    monkeypatch.setattr(context, "load_prior_prices", lambda db, ids, day: {})
     monkeypatch.setattr(context, "load_sector_weights", fake_sectors)
     monkeypatch.setattr(context, "compute_movers", lambda funds, today, view: movers)
 

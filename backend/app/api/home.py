@@ -17,6 +17,7 @@ from app.services.auth.session import get_active_user
 from app.services.home.allocation import load_allocation
 from app.services.home.benchmarks import HOME_BENCHMARKS, load_cap_mix, recommend_benchmark
 from app.services.home.context import HomeInputs, ScopeContext, load_home_inputs, resolve_scope
+from app.services.home.series import MAX_CUSTOM_YEARS
 from app.services.home.schemas import (
     AllocationResponse,
     BenchmarkOptionOut,
@@ -274,7 +275,10 @@ async def _wealth(
         custom = (date_from, date_to)
     ctx = resolve_scope(db, user, member_id)
     if period == "custom":
-        nav_start = date_from
+        # Read prices from the clamped start, never from a raw date that may be centuries back (review F7).
+        today = now_ist.date()
+        floor = date(today.year - MAX_CUSTOM_YEARS, today.month, min(today.day, 28)) - timedelta(days=15)
+        nav_start = max(date_from, floor)
     elif period == "1Y":
         nav_start = now_ist.date() - timedelta(days=373)
     elif period == "1M":
@@ -292,7 +296,7 @@ async def _wealth(
             custom=custom,
             benchmark=None if benchmark is None else BenchmarkIndex(benchmark),
         )
-    except ValueError as exc:
+    except (ValueError, OverflowError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     benchmark_out = None
     if wealth.benchmark is not None:

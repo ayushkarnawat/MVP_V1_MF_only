@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Collection, Literal, Mapping, NamedTuple, Sequence
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.reference import NavHistory
@@ -155,6 +155,34 @@ def load_navs_by_scheme(
     for scheme_id, nav_date, nav in rows:
         grouped[scheme_id].append((nav_date, nav))
     return grouped
+
+
+def load_prior_prices(
+    db: Session,
+    scheme_ids: Collection[uuid.UUID],
+    on_or_before: date,
+) -> dict[uuid.UUID, tuple[date, Decimal]]:
+    """The newest stored price on or before `on_or_before` for each scheme that has one, in one query.
+
+    The ten-day look-back of `load_navs_by_scheme` is enough for a fund priced daily, but a fund priced from
+    its statements has prices weeks or months apart: without the price that was current at the start of the
+    window the series would show it as worthless until its next statement price (review F4)."""
+    requested = set(scheme_ids)
+    if not requested:
+        return {}
+    newest = (
+        select(NavHistory.scheme_id, func.max(NavHistory.date).label("newest"))
+        .where(NavHistory.scheme_id.in_(requested), NavHistory.date <= on_or_before)
+        .group_by(NavHistory.scheme_id)
+        .subquery()
+    )
+    rows = db.execute(
+        select(NavHistory.scheme_id, NavHistory.date, NavHistory.nav).join(
+            newest,
+            (NavHistory.scheme_id == newest.c.scheme_id) & (NavHistory.date == newest.c.newest),
+        )
+    ).all()
+    return {scheme_id: (price_date, nav) for scheme_id, price_date, nav in rows}
 
 
 def modified_dietz(

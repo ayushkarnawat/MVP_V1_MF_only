@@ -70,6 +70,73 @@ def _assert_identity(movers):
     assert visible + movers.result.others_change == movers.net_change
 
 
+def test_statement_priced_fund_is_never_stale_and_does_not_set_the_as_of_day():
+    daily = _fund(
+        "Daily", "Flexi Cap", [(date(2026, 10, 1), Decimal("100"))],
+        [(date(2026, 10, 22), Decimal("10")), (AS_OF, Decimal("11"))],
+    )
+    statement = _fund(
+        "Statement", "Flexi Cap", [(date(2026, 5, 1), Decimal("1000"))],
+        [(date(2026, 6, 30), Decimal("10.50")), (date(2026, 10, 15), Decimal("10.60"))],
+        statement_priced=True,
+    )
+    movers = compute_movers((daily, statement), AS_OF, "fund")
+    assert movers.as_of_nav_date == AS_OF
+    assert movers.stale_scheme_ids == ()
+    assert movers.partial is False
+    assert movers.net_change == Decimal("100.00")  # the statement-priced fund contributes zero by rule
+    # but its value counts in the base the percentage is measured against: 1,000 + 10,600
+    assert movers.previous_value == Decimal("11600.00")
+    assert {fund.name for fund in movers.funds} == {"Daily", "Statement"}
+
+
+def test_all_statement_priced_funds_still_get_an_as_of_day():
+    only = _fund(
+        "Statement", "Flexi Cap", [(date(2026, 5, 1), Decimal("1000"))],
+        [(date(2026, 10, 15), Decimal("10.60"))], statement_priced=True,
+    )
+    movers = compute_movers((only,), AS_OF, "fund")
+    assert movers.as_of_nav_date == date(2026, 10, 15)
+    assert movers.net_change == Decimal("0.00")
+    assert movers.stale_scheme_ids == ()
+
+
+def _weekend_funds(weekend_funds):
+    friday, saturday = AS_OF, date(2026, 10, 24)
+    specs = {"big": (Decimal("1000"), Decimal("10")), "mid": (Decimal("500"), Decimal("10")), "small": (Decimal("100"), Decimal("10"))}
+    funds = []
+    for name, (units, nav) in specs.items():
+        navs = [(date(2026, 10, 22), nav), (friday, nav + Decimal("1"))]
+        if name in weekend_funds:
+            navs.append((saturday, nav + Decimal("2")))
+        funds.append(_fund(name, "Flexi Cap", [(date(2026, 10, 1), units)], navs))
+    return funds
+
+
+def test_a_weekend_price_from_a_small_holding_does_not_become_the_as_of_day():
+    movers = compute_movers(_weekend_funds({"small"}), date(2026, 10, 26), "fund")
+    assert movers.as_of_nav_date == AS_OF
+    assert movers.stale_scheme_ids == ()
+    assert movers.net_change == Decimal("1600.00")  # every fund's one-day move on Friday
+
+
+def test_a_weekend_price_covering_most_of_the_value_becomes_the_as_of_day():
+    movers = compute_movers(_weekend_funds({"big", "mid"}), date(2026, 10, 26), "fund")
+    assert movers.as_of_nav_date == date(2026, 10, 24)
+    assert len(movers.stale_scheme_ids) == 1  # the small fund has no Saturday price
+    assert movers.partial is True
+
+
+def test_just_over_half_the_value_is_enough_for_the_weekend_day():
+    funds = [
+        _fund("a", "x", [(date(2026, 10, 1), Decimal("100"))],
+              [(AS_OF, Decimal("10")), (date(2026, 10, 24), Decimal("11"))]),
+        _fund("b", "x", [(date(2026, 10, 1), Decimal("100"))], [(date(2026, 10, 22), Decimal("9")), (AS_OF, Decimal("10"))]),
+    ]
+    # a is worth 1,100 at its latest price and b 1,000: a covers 52 percent
+    assert compute_movers(funds, date(2026, 10, 26), "fund").as_of_nav_date == date(2026, 10, 24)
+
+
 def test_distribute_cents_examples_and_negative_tie():
     assert distribute_cents({"a": Decimal("33.333"), "b": Decimal("33.333"),
                              "c": Decimal("33.334")}) == (

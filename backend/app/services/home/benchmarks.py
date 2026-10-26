@@ -92,9 +92,13 @@ def load_cap_mix(
     section = sections.get("cap_allocation")
     if section is None or section.payload.get("hide_headlines"):
         return None
-    cap_mix = {
-        row["key"]: Decimal(row["percentage_equity"])
-        for row in section.payload.get("buckets", [])
-        if row.get("key") in {"LARGE", "MID", "SMALL"}
-    }
+    try:
+        cap_mix = {
+            row["key"]: Decimal(row["percentage_equity"])
+            for row in section.payload.get("buckets", [])
+            if row.get("key") in {"LARGE", "MID", "SMALL"}
+        }
+    except (KeyError, TypeError, ValueError, AttributeError, ArithmeticError):
+        # An unparsable stored section counts as unavailable (the recommendation falls back to Nifty 500).
+        return None
     return cap_mix if set(cap_mix) == {"LARGE", "MID", "SMALL"} else None

@@ -176,6 +176,15 @@ def _calendar_days(start: date, end: date) -> list[date]:
     return [start + timedelta(days=offset) for offset in range((end - start).days + 1)]
 
 
+def _price_on_or_before(prices: Sequence[tuple[date, Decimal]], day: date) -> Decimal | None:
+    found = None
+    for price_date, price in prices:
+        if price_date > day:
+            break
+        found = price
+    return found
+
+
 def build_wealth_series(
     db: Session,
     ctx: ScopeContext,
@@ -187,13 +196,19 @@ def build_wealth_series(
     benchmark: BenchmarkIndex | None = None,
 ) -> WealthSeries:
     end_anchor = inputs.nav_as_of or today
-    requested = period_range(period, end_anchor, custom)
+    if period == "custom":
+        # The range is checked against today (the 10-year floor and "beyond today" are about the calendar), and
+        # only then capped at the latest price date without calling it a clamp (review F8).
+        requested = period_range(period, today, custom)
+        end = min(requested.end, end_anchor)
+    else:
+        requested = period_range(period, end_anchor, custom)
+        end = requested.end
     start = (
         inputs.movers.previous_nav_date or requested.end
         if period == "1D"
         else requested.start
     )
-    end = requested.end
     dates = _calendar_days(start, end)
     units = {fund.scheme_id: fund.units_timeline for fund in inputs.funds}
     navs = {fund.scheme_id: fund.navs for fund in inputs.funds}
@@ -212,7 +227,7 @@ def build_wealth_series(
         start_effective = start
 
     transaction_rows = db.execute(
-        select(Transaction)
+        select(Transaction, Folio.scheme_id)
         .join(Folio, Folio.id == Transaction.folio_id)
         .where(
             Folio.household_member_id.in_(ctx.member_ids),
@@ -220,12 +235,18 @@ def build_wealth_series(
             Transaction.date <= end,
         )
         .order_by(Transaction.date, Transaction.id)
-    ).scalars().all() if ctx.member_ids else []
+    ).all() if ctx.member_ids else []
     extra_debits = frozenset({TransactionType.SWITCH_IN})
-    flows = [
-        (transaction.date, -_signed_amount(transaction, extra_debits))
-        for transaction in transaction_rows
-    ]
+    flows = []
+    for transaction, scheme_id in transaction_rows:
+        if transaction.type == TransactionType.OPENING_BALANCE:
+            # The units already existed; the statement's cost is not money that came in on this date. They
+            # enter the period at what they were worth that day (review F3). Without a price, fall back to cost.
+            price = _price_on_or_before(navs.get(scheme_id, ()), transaction.date)
+            if price is not None:
+                flows.append((transaction.date, transaction.units * price))
+                continue
+        flows.append((transaction.date, -_signed_amount(transaction, extra_debits)))
 
     benchmark_data = None
     if benchmark is not None:
@@ -249,5 +270,7 @@ def build_wealth_series(
         movers=inputs.movers,
         flows=flows,
         benchmark=benchmark_data,
-        headline_value=headline_value,
+        # The portfolio's value today replaces the last point only when the series really ends on the latest
+        # price date; a past custom range ends with that day's own value (review F2).
+        headline_value=headline_value if end == inputs.nav_as_of else None,
     )

@@ -132,7 +132,8 @@ def _latest_cached_on_or_before(db: Session, scheme_id: uuid.UUID, on_date: date
 
 
 async def get_nav_on_or_before(
-    db: Session, scheme: Scheme, on_date: date, *, allow_stale_today: bool = False
+    db: Session, scheme: Scheme, on_date: date, *, allow_stale_today: bool = False,
+    stored_only: bool = False,
 ) -> tuple[Decimal, date] | None:
     """Most recent NAV on or before `on_date`. Returns `(nav, actual_date)`,
     or `None` if nothing is available even after attempting a fetch.
@@ -148,8 +149,12 @@ async def get_nav_on_or_before(
     scorer's CAGR calc, where same-day vs. prior-business-day NAV is
     immaterial) and have already warmed the cache via `warm_nav_history`,
     where forcing a live re-fetch would just re-download data fetched
-    moments ago."""
-    if scheme.amfi_code is None:
+    moments ago.
+
+    `stored_only=True` never fetches and never writes: the stored row, or `None`.
+    Read-only callers (the Home API's GET routes) use it so that a request can
+    neither wait on the live feed nor insert prices."""
+    if scheme.amfi_code is None or stored_only:
         # A CAS-only fund has no feed: its prices are the ones its statements
         # printed (confirm_people._store_statement_prices).
         cached = _latest_cached_on_or_before(db, scheme.id, on_date)
@@ -251,15 +256,17 @@ async def get_navs_on_or_before(
     scheme_date_pairs: list[tuple[Scheme, date]],
     *,
     allow_stale_today: bool = False,
+    stored_only: bool = False,
 ) -> dict[uuid.UUID, tuple[Decimal, date] | None]:
-    """Batch NAV lookup with concurrency confined to the pure HTTP leg."""
+    """Batch NAV lookup with concurrency confined to the pure HTTP leg.
+    `stored_only=True` reads the stored rows only: no fetch, no write."""
     results: dict[uuid.UUID, tuple[Decimal, date] | None] = {}
     pending: list[tuple[Scheme, date, NavHistory | None]] = []
 
     # A synchronous SQLAlchemy Session is not coroutine-safe: all reads stay
     # outside gather and execute in this sequential loop.
     for scheme, on_date in scheme_date_pairs:
-        if scheme.amfi_code is None:
+        if scheme.amfi_code is None or stored_only:
             # CAS-only fund: only the prices its statements printed.
             cached = _latest_cached_on_or_before(db, scheme.id, on_date)
             results[scheme.id] = (cached.nav, cached.date) if cached else None

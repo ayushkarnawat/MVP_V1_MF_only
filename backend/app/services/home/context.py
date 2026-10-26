@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
@@ -8,6 +9,8 @@ from typing import Literal
 
 from sqlalchemy.orm import Session
 
+from app.models.enums import SchemeSource
+from app.models.reference import Scheme
 from app.models.user import User
 from app.services.dashboard.aggregate import get_member_statuses
 from app.services.dashboard.holdings import compute_holdings
@@ -16,7 +19,9 @@ from app.services.dashboard.member_details import require_member
 from app.services.dashboard.schemas import HoldingRow
 from app.services.home.movers import FundInput, Movers, compute_movers, load_sector_weights
 from app.services.home.schemas import MemberOut, MissingFund
-from app.services.home.series import ValueSeries, build_value_series, load_navs_by_scheme
+from app.services.home.series import (
+    ValueSeries, build_value_series, load_navs_by_scheme, load_prior_prices,
+)
 from app.services.home.units import build_units_timeline
 
 
@@ -80,6 +85,17 @@ def _calendar_days(start: date, end: date) -> list[date]:
     return [start + timedelta(days=offset) for offset in range((end - start).days + 1)]
 
 
+def _active_in_window(points: Sequence[tuple[date, Decimal]], start: date) -> bool:
+    """True when the units timeline has units on the books at `start` or at any later date."""
+    units_at_start = Decimal("0")
+    for changed_on, units in points:
+        if changed_on <= start:
+            units_at_start = units
+        elif units > 0:
+            return True
+    return units_at_start > 0
+
+
 async def load_home_inputs(
     db: Session,
     ctx: ScopeContext,
@@ -88,40 +104,61 @@ async def load_home_inputs(
     nav_start: date,
     view: Literal["fund", "category", "sector"] = "sector",
 ) -> HomeInputs:
+    # Stored prices only: a GET must neither wait on the live feed nor write a price (register C84, review F6).
     holdings = tuple(
-        await compute_holdings(db, list(ctx.member_ids), allow_stale_today=True)
+        await compute_holdings(db, list(ctx.member_ids), allow_stale_today=True, stored_only=True)
     )
     by_scheme: dict[uuid.UUID, HoldingRow] = {}
     for row in holdings:
         by_scheme.setdefault(uuid.UUID(row.scheme_id), row)
     held_scheme_ids = set(by_scheme)
-    valued_scheme_ids = {
-        scheme_id
-        for scheme_id, row in by_scheme.items()
-        if not row.nav_unavailable and row.current_value is not None
+    # Every fund the scope held at any time inside the window, not only today's: a fund sold or switched out
+    # in the period has cash flows in it, so its value must be in the series too (review F1).
+    units = build_units_timeline(db, ctx.member_ids)
+    active_scheme_ids = {
+        scheme_id for scheme_id, points in units.items() if _active_in_window(points, nav_start)
+    } | held_scheme_ids
+    others = {}
+    if active_scheme_ids - held_scheme_ids:
+        others = {
+            scheme.id: scheme
+            for scheme in db.query(Scheme).filter(Scheme.id.in_(active_scheme_ids - held_scheme_ids)).all()
+        }
+    names = {scheme_id: row.scheme_name for scheme_id, row in by_scheme.items()}
+    names.update({scheme_id: scheme.name for scheme_id, scheme in others.items()})
+    navs = load_navs_by_scheme(db, active_scheme_ids, nav_start, today)
+    # A fund whose prices are weeks apart (statement-priced) needs the price that was current at the window's
+    # start, which the ten-day look-back does not reach.
+    lacking = {
+        scheme_id for scheme_id in active_scheme_ids
+        if not any(price_date <= nav_start for price_date, _price in navs.get(scheme_id, ()))
     }
-    units = build_units_timeline(
-        db, ctx.member_ids, scheme_ids=frozenset(held_scheme_ids)
-    )
-    navs = load_navs_by_scheme(db, valued_scheme_ids, nav_start, today)
+    for scheme_id, (price_date, price) in load_prior_prices(db, lacking, nav_start).items():
+        navs[scheme_id] = [(price_date, price), *navs.get(scheme_id, [])]
     sector_weights = (
         load_sector_weights(db, held_scheme_ids, today) if view == "sector" else {}
     )
 
     funds = []
-    for scheme_id, row in sorted(by_scheme.items(), key=lambda item: (item[1].scheme_name, str(item[0]))):
+    for scheme_id in sorted(active_scheme_ids, key=lambda key: (names.get(key, ""), str(key))):
+        row = by_scheme.get(scheme_id)
+        scheme = others.get(scheme_id)
         daily_navs = list(navs.get(scheme_id, ()))
-        statement_priced = bool(row.price_from_statement or not daily_navs)
+        from_statement = bool(row.price_from_statement) if row else scheme.source == SchemeSource.CAS_ONLY
+        statement_priced = from_statement or not daily_navs
+        # A statement-priced fund keeps every statement price stored for it (review F4); the single latest
+        # price on its holdings row is only the fallback when nothing is stored.
         if (
-            statement_priced
+            not daily_navs
+            and row is not None
             and row.current_nav is not None
             and row.current_nav_date is not None
         ):
             daily_navs = [(row.current_nav_date, Decimal(row.current_nav))]
         funds.append(FundInput(
             scheme_id=scheme_id,
-            name=row.scheme_name,
-            category=row.sebi_category or "",
+            name=names[scheme_id],
+            category=((row.sebi_category if row else scheme.sebi_category) or ""),
             units_timeline=units.get(scheme_id, ()),
             navs=daily_navs,
             statement_priced=statement_priced,
@@ -130,7 +167,11 @@ async def load_home_inputs(
 
     movers = compute_movers(funds, today, view)
     dates = _calendar_days(nav_start, today) if nav_start <= today else []
-    series = build_value_series(units, navs, dates)
+    series = build_value_series(
+        {scheme_id: units[scheme_id] for scheme_id in active_scheme_ids if scheme_id in units},
+        {scheme_id: navs.get(scheme_id, []) for scheme_id in active_scheme_ids},
+        dates,
+    )
     missing_ids = {
         scheme_id for scheme_id, row in by_scheme.items() if row.nav_unavailable
     }
@@ -139,7 +180,7 @@ async def load_home_inputs(
     missing_ids.update(series.missing_schemes)
     missing_funds = tuple(sorted(
         (
-            MissingFund(scheme_id=str(scheme_id), name=by_scheme[scheme_id].scheme_name)
+            MissingFund(scheme_id=str(scheme_id), name=names.get(scheme_id, str(scheme_id)))
             for scheme_id in missing_ids
         ),
         key=lambda item: (item.name, item.scheme_id),
