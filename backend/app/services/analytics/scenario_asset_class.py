@@ -9,6 +9,33 @@ during a rupee-depreciation scenario while a domestic equity index falls,
 which a single "Equity" bucket would get backwards."""
 import re
 
+DISPLAY_GROUPS: tuple[str, ...] = (
+    "Equity",
+    "Hybrid",
+    "Debt",
+    "Gold and Silver",
+    "Overseas",
+    "Other",
+)
+
+_DISPLAY_GROUP_BY_BUCKET = {
+    "Equity": "Equity",
+    # Generic index funds and ETFs track Indian equity indices.
+    "Index/ETF": "Equity",
+    "Hybrid": "Hybrid",
+    "Debt-short": "Debt",
+    "Debt-long": "Debt",
+    "Gold": "Gold and Silver",
+    "Silver": "Gold and Silver",
+    "Overseas": "Overseas",
+    "Other": "Other",
+}
+
+
+def display_group(bucket: str) -> str:
+    return _DISPLAY_GROUP_BY_BUCKET.get(bucket, "Other")
+
+
 # An ETF, index fund or fund-of-funds is a wrapper: what moves its value is what it
 # holds. AMFI files ~1,200 of them under 18 headings, and the generic ones ("Other ETFs",
 # "Other Scheme - Index Funds", "FoF Domestic") mix equity, bonds, gold, silver and foreign

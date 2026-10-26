@@ -1,11 +1,11 @@
 # backend/tests/services/analytics/test_scenario_asset_class.py
 import pytest
 
-from app.services.analytics.scenario_asset_class import underlying_asset_class
+from app.services.analytics.scenario_asset_class import DISPLAY_GROUPS, display_group, underlying_asset_class
 
 
 # Real AMFI category headings and scheme names (live file, 9 Oct).
-@pytest.mark.parametrize("category, name, expected", [
+UNDERLYING_ASSET_CLASS_CASES = [
     ("Equity Scheme - Flexi Cap Fund", "Parag Parikh Flexi Cap Fund", "Equity"),
     ("Solution Oriented Scheme - Retirement Fund", "HDFC Retirement Savings Fund", "Hybrid"),
     ("Debt Scheme - Liquid Fund", "SBI Liquid Fund", "Debt-short"),
@@ -31,9 +31,44 @@ from app.services.analytics.scenario_asset_class import underlying_asset_class
     ("Other Scheme - FoF Domestic", "ICICI Prudential Passive Multi-Asset Fund of Funds", "Hybrid"),
     ("Other Scheme - FoF Domestic", "Groww Nifty PSE ETF FOF", "Index/ETF"),
     ("Other Scheme - FoF Domestic", "Axis Multi Factor Passive FoF", "Other"),
-])
+]
+
+
+@pytest.mark.parametrize("category, name, expected", UNDERLYING_ASSET_CLASS_CASES)
 def test_underlying_asset_class(category, name, expected):
     assert underlying_asset_class(category, name) == expected
+
+
+def test_display_groups_order_is_fixed():
+    assert DISPLAY_GROUPS == (
+        "Equity",
+        "Hybrid",
+        "Debt",
+        "Gold and Silver",
+        "Overseas",
+        "Other",
+    )
+
+
+@pytest.mark.parametrize("bucket, expected", [
+    ("Equity", "Equity"),
+    ("Index/ETF", "Equity"),
+    ("Hybrid", "Hybrid"),
+    ("Debt-short", "Debt"),
+    ("Debt-long", "Debt"),
+    ("Gold", "Gold and Silver"),
+    ("Silver", "Gold and Silver"),
+    ("Overseas", "Overseas"),
+    ("Other", "Other"),
+    ("Crypto", "Other"),
+])
+def test_display_group_maps_every_engine_bucket(bucket, expected):
+    assert display_group(bucket) == expected
+
+
+@pytest.mark.parametrize("category, name, _expected", UNDERLYING_ASSET_CLASS_CASES)
+def test_every_underlying_asset_class_value_is_mapped(category, name, _expected):
+    assert display_group(underlying_asset_class(category, name)) in DISPLAY_GROUPS
 
 
 def test_no_gold_silver_or_bond_wrapper_lands_in_equity():
