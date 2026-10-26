@@ -171,6 +171,7 @@ async def build_window_context(
         fund_start_values=fund_start_values,
     )
 
+
 def load_index_levels(
     db: Session,
     indices: Iterable[BenchmarkIndex],

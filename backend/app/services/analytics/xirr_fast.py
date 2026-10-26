@@ -9,7 +9,8 @@ _MAX_ITERATIONS = 100
 _TOLERANCE = Decimal("0.0000001")
 _DAYS_PER_YEAR = Decimal(365)
 
-# Bisection fallback, on x = ln(1 + rate). The range runs from a rate of -99.99999998% to a very large gain.
+# Bisection fallback, on x = ln(1 + rate), searched over x in [-20, 14]: rates from -99.9999998% (e**-20 - 1)
+# to about +1.2 million, i.e. +120 million percent a year (e**14 - 1). A root outside that range is not found.
 _BISECT_LOW = Decimal("-20")
 _BISECT_HIGH = Decimal("14")
 _BISECT_STEP = Decimal("0.25")
@@ -23,7 +24,11 @@ def _bisect_rate(years_by_flow: list[tuple[Decimal, Decimal]]) -> Decimal | None
     Newton from a 0.1 guess overshoots below -100% on a steep decline (a fund that lost about 45% or more
     in a year) and gives up; a bracketed search always finds a root when the discounted flows change sign
     across the range, which holds for any "money in, then less money out" shape. Several roots can exist for
-    mixed shapes; bisection returns one of them, like Newton does. None when the range holds no sign change."""
+    mixed shapes; the bracket nearest x = 0 (a rate of 0) wins. None when the discounted flows show no sign
+    change on the grid over x in [-20, 14] (rates from -99.9999998% to about +1.2 million, i.e. +120 million
+    percent a year): a root outside that range gives None, and so can a pair of roots closer together than
+    one grid step (0.25 in x), whose two sign changes cancel inside one cell. Flows that net out at every
+    rate (a same-day pair of -5 and +5) are zero everywhere, and the grid point nearest 0 is taken: a rate of 0."""
 
     def present_value(x: Decimal) -> Decimal:
         return sum((amount * (-years * x).exp() for years, amount in years_by_flow), Decimal("0"))
@@ -65,7 +70,9 @@ def _bisect_rate(years_by_flow: list[tuple[Decimal, Decimal]]) -> Decimal | None
 
 
 def xirr_bisect(cash_flows: list[tuple[date, Decimal]]) -> Decimal | None:
-    """The bisection fallback on its own, for the legacy solver (which keeps its own Newton step)."""
+    """The bisection fallback on its own, for the legacy solver (which keeps its own Newton step). Searches
+    x = ln(1 + rate) in [-20, 14] only (see `_bisect_rate`): None when there is no sign change in that range
+    or the arithmetic overflows."""
     if len(cash_flows) < 2:
         return None
     start_date = min(flow_date for flow_date, _ in cash_flows)

@@ -25,7 +25,11 @@ def xirr(cash_flows: list[tuple[date, Decimal]], guess: Decimal = Decimal("0.1")
     Newton-Raphson from the 0.1 guess can overshoot below -100% on a steep
     decline (a fund down about 45% or more in a year), blow up numerically,
     or fail to converge within `_MAX_ITERATIONS`; those cases fall back to a bracketed bisection
-    (`xirr_fast.xirr_bisect`), which returns None only when no rate exists.
+    (`xirr_fast.xirr_bisect`). The bisection searches x = ln(1 + rate) in [-20, 14], that is rates from
+    -99.9999998% to about +1.2 million (+120 million percent) a year, and returns None when the discounted flows have no
+    sign change in that range (a root outside it, or none at all). A pair of roots closer together than one
+    grid step (0.25 in x) can also be missed. Flows that net out at once (a same-day pair of -5 and +5)
+    give 0, not None: the present value is zero for every rate and the rate nearest 0 is returned.
     The Newton result is untouched whenever Newton converges, so every rate
     that was computable before is returned digit for digit."""
     if len(cash_flows) < 2:
