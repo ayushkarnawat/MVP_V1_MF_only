@@ -211,7 +211,12 @@ async def _window_inputs(
 ) -> tuple[WindowContext, dict[BenchmarkIndex, IndexLevels]]:
     # `earliest_transaction` is read by the caller before this runs: the snapshot rebuild and the index
     # top-up below commit, and a commit expires every ORM row the caller already loaded.
-    today = date.today()
+    from app.services.analytics.benchmark_windows import ist_today
+
+    # The Indian date, not the host's: on a UTC host date.today() is a day behind for 5.5 hours a night and
+    # would put the window start a month early on the 1st. (The legacy since-inception code above still
+    # reads date.today(); that code is deliberately untouched.)
+    today = ist_today()
     ctx = await build_window_context(db, member_ids, today)
     earliest = min([earliest_transaction] + [start for start in ctx.starts.values() if start is not None])
     for index in indices:
