@@ -50,10 +50,17 @@ def test_stale_price_feed_gives_the_same_series_and_summary_as_a_fresh_one(varia
     (fresh_series, fresh_summary), (stale_series, stale_summary) = results
     assert fresh_series["points"], "the fixture must have a chart to compare"
     assert fresh_series["points"][0]["value"] != "0.00"
-    for key in ("days", "start", "end", "empty", "partial", "missing_funds", "points", "nav_as_of"):
+    # `partial` and `missing_funds` are the one thing that differs on purpose: a daily feed that stopped weeks ago
+    # is reported stale (Home's STALE_FEED_DAYS rule), so the stale reading must say so and name the funds.
+    for key in ("days", "start", "end", "empty", "points", "nav_as_of"):
         assert stale_series[key] == fresh_series[key], key
     for key in _SUMMARY_FIELDS:
+        if key in ("partial", "missing_funds"):
+            continue
         assert stale_summary[key] == fresh_summary[key], key
+    for body in (stale_series, stale_summary):
+        assert body["partial"] is True
+        assert body["missing_funds"], "a dead feed must name the funds that are not current"
 
 
 def _build_feed_gap_household(now: datetime):
@@ -94,8 +101,10 @@ def test_held_funds_priced_earlier_than_a_sold_fund_still_chart_the_sold_fund():
     # Seven chart days (25 Sep - 1 Oct): the sold fund's 110,000.00 is in the first three of them (until its sale).
     assert Decimal(reference["points"][0]["value"]) > Decimal("110000")
     assert Decimal(reference["points"][-1]["value"]) < Decimal("10000")
-    for key in ("days", "start", "end", "empty", "partial", "missing_funds", "points", "nav_as_of"):
+    for key in ("days", "start", "end", "empty", "points", "nav_as_of"):
         assert later[key] == reference[key], key
+    # The held funds' feed has been dead since 1 Oct by the later reading: stale, named, `partial` (HB8 rule).
+    assert later["partial"] is True and later["missing_funds"]
 
 
 # ---------------------------------------------------------------------------------------------------------------
