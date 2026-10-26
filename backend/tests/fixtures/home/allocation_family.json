@@ -5,8 +5,8 @@
   "partial": false,
   "missing_funds": [],
   "computed_at": "2026-10-23T13:00:00Z",
-  "source": "dashboard_buckets",
-  "approximate": true,
+  "source": "analytics",
+  "approximate": false,
   "total_value": "5212.00",
   "classes": [
     {
@@ -66,8 +66,8 @@
       "percentage": null
     }
   ],
-  "covered_pct": null,
-  "mix_as_of": null,
+  "covered_pct": "100.00",
+  "mix_as_of": "2026-10-23",
   "members": [
     {
       "id": "81e5a369-bbd4-59f1-b480-8a5bbf1c74ef",

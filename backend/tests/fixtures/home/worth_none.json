@@ -6,10 +6,6 @@
   "missing_funds": [],
   "computed_at": "2026-10-23T13:00:00Z",
   "cards": [],
-  "unavailable": [
-    "score",
-    "category_ranking",
-    "stock_holdings"
-  ],
-  "state": "unavailable"
+  "unavailable": [],
+  "state": "nothing_flagged"
 }

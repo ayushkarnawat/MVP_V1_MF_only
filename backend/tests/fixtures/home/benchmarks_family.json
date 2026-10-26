@@ -14,12 +14,12 @@
     {
       "index": "nifty_500",
       "label": "Nifty 500",
-      "recommended": true
+      "recommended": false
     },
     {
       "index": "nifty_largemidcap_250",
       "label": "Nifty LargeMidcap 250",
-      "recommended": false
+      "recommended": true
     },
     {
       "index": "nifty_midcap_150",
@@ -32,6 +32,6 @@
       "recommended": false
     }
   ],
-  "recommended_index": "nifty_500",
-  "reason": "unavailable"
+  "recommended_index": "nifty_largemidcap_250",
+  "reason": "large_and_mid"
 }

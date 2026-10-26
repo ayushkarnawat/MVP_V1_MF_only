@@ -6,6 +6,7 @@ import hashlib
 import shutil
 import sys
 import tempfile
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -18,16 +19,29 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from app.api.home import get_now_ist
+from app.core.decimal_utils import quantize_amount
 from app.db.session import get_db
 from app.main import app
 from app.models.user import HouseholdMember, User
 from app.services.auth.session import get_active_user
 from app.services.dashboard.holdings import _holdings_cache, compute_holdings
+from app.services.home.units import build_units_timeline
 
 
 IST = timezone(timedelta(hours=5, minutes=30))
 FRIDAY = datetime(2026, 10, 23, 18, 30, tzinfo=IST)
 MONDAY = datetime(2026, 10, 26, 10, 0, tzinfo=IST)
+
+
+@dataclass(frozen=True)
+class ScenarioResult:
+    scenario: str
+    lines: tuple[str, ...]
+    checks: dict[str, bool]
+
+    @property
+    def passed(self) -> bool:
+        return all(self.checks.values())
 
 
 def _sha256(path: Path) -> str:
@@ -38,14 +52,26 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _held_scheme_hex(db) -> str:
+    # A scenario that edits a fund the household no longer holds tests nothing, so
+    # the scenarios below always edit a fund that still has units on the books.
+    member_ids = [row[0] for row in db.query(HouseholdMember.id).all()]
+    timeline = build_units_timeline(db, member_ids)
+    held = sorted(
+        (scheme_id for scheme_id, points in timeline.items() if points and points[-1][1] > 0),
+        key=str,
+    )
+    if not held:
+        raise ValueError("the source database holds no fund")
+    return held[0].hex
+
+
 def _mutate(db, scenario: str) -> None:
     if scenario in {"base", "member_rohan", "member_priya", "weekend", "custom_before_index_data"}:
         return
     latest = db.execute(text("SELECT max(date) FROM nav_history")).scalar_one()
     if scenario in {"partial_data", "stale_statement"}:
-        scheme_id = db.execute(text(
-            "SELECT scheme_id FROM nav_history GROUP BY scheme_id ORDER BY scheme_id LIMIT 1"
-        )).scalar_one()
+        scheme_id = _held_scheme_hex(db)
         days = 12 if scenario == "partial_data" else 5
         db.execute(text(
             "DELETE FROM nav_history WHERE scheme_id = :scheme_id "
@@ -63,7 +89,7 @@ def _mutate(db, scenario: str) -> None:
             "SELECT DISTINCT scheme_id FROM nav_history ORDER BY scheme_id"
         )).all()]
         if scenario == "loss_day":
-            scheme_ids = scheme_ids[:1]
+            scheme_ids = [_held_scheme_hex(db)]
         factor = Decimal("0.99") if scenario == "all_funds_down" else Decimal("0.95")
         for scheme_id in scheme_ids:
             rows = db.execute(text(
@@ -82,7 +108,7 @@ def _mutate(db, scenario: str) -> None:
     db.commit()
 
 
-def _run_scenario(source: Path, temp_dir: Path, scenario: str) -> list[str]:
+def _run_scenario(source: Path, temp_dir: Path, scenario: str) -> ScenarioResult:
     copy = temp_dir / f"{scenario}.db"
     shutil.copy2(source, copy)
     engine = create_engine(f"sqlite:///{copy}", connect_args={"check_same_thread": False})
@@ -111,63 +137,126 @@ def _run_scenario(source: Path, temp_dir: Path, scenario: str) -> list[str]:
     client = TestClient(app)
     if scenario == "member_rohan":
         root = f"/household-members/{member_ids[0]}"
+        selected_member_ids = [member_ids[0]]
     elif scenario == "member_priya":
         root = f"/household-members/{member_ids[1]}"
+        selected_member_ids = [member_ids[1]]
     else:
         root = "/household/aggregate"
-    summary = client.get(f"{root}/home/summary").json()
-    movers = client.get(f"{root}/home/movers?by=fund").json()
-    wealth = client.get(f"{root}/home/wealth-series?period=1D").json()
-    allocation = client.get(f"{root}/home/allocation").json()
-    worth = client.get(f"{root}/home/worth-a-look").json()
-    if scenario == "custom_before_index_data":
-        custom = client.get(
-            f"{root}/home/wealth-series?period=custom&from=2016-01-01&to=2016-12-31&benchmark=nifty_50"
-        )
-        if custom.status_code != 200:
-            raise RuntimeError(custom.text)
+        selected_member_ids = member_ids
+    try:
+        summary = client.get(f"{root}/home/summary").json()
+        movers = client.get(f"{root}/home/movers?by=fund").json()
+        wealth = client.get(f"{root}/home/wealth-series?period=1D").json()
+        allocation = client.get(f"{root}/home/allocation").json()
+        worth = client.get(f"{root}/home/worth-a-look").json()
+        custom_body = None
+        if scenario == "custom_before_index_data":
+            custom = client.get(
+                f"{root}/home/wealth-series?period=custom&from=2016-01-01&to=2016-12-31&benchmark=nifty_50"
+            )
+            if custom.status_code != 200:
+                raise RuntimeError(custom.text)
+            custom_body = custom.json()
 
-    lines = []
-    checks = {
-        "identity": summary["change_amount"] == movers["net_change"] == wealth["change_amount"],
-        "mover_sum": sum(
+        mover_total = sum(
             (Decimal(row["change"]) for row in movers["gains"] + movers["losses"]),
             Decimal("0"),
-        ) + Decimal(movers["others_change"]) == Decimal(movers["net_change"]),
-        "value_chain": (
-            (wealth["empty"] and summary["total_value"] == allocation["total_value"] == "0.00")
-            or (
-                wealth["points"][-1]["value"] == wealth["end_value"]
-                == summary["total_value"] == allocation["total_value"]
+        ) + Decimal(movers["others_change"])
+        checks = {
+            "identity": summary["change_amount"] == movers["net_change"] == wealth["change_amount"],
+            "mover_sum": mover_total == Decimal(movers["net_change"]),
+            "value_chain": (
+                (wealth["empty"] and summary["total_value"] == allocation["total_value"] == "0.00")
+                or (
+                    wealth["points"][-1]["value"] == wealth["end_value"]
+                    == summary["total_value"] == allocation["total_value"]
+                )
+            ),
+        }
+        details = {
+            "identity": f"summary={summary['change_amount']} movers={movers['net_change']} wealth={wealth['change_amount']}",
+            "mover_sum": f"bars_plus_others={mover_total} net={movers['net_change']}",
+            "value_chain": f"point={None if wealth['empty'] else wealth['points'][-1]['value']} end={wealth['end_value']} summary={summary['total_value']} allocation={allocation['total_value']}",
+        }
+        with sessions() as db:
+            _holdings_cache.clear()
+            rows = asyncio.run(compute_holdings(
+                db, selected_member_ids, allow_stale_today=True
+            ))
+            direct_total = sum(
+                (quantize_amount(Decimal(row.current_value)) for row in rows
+                 if row.current_value is not None and not row.nav_unavailable),
+                Decimal("0.00"),
             )
-        ),
-    }
-    details = {
-        "identity": f"summary={summary['change_amount']} movers={movers['net_change']} wealth={wealth['change_amount']}",
-        "mover_sum": f"bars={sum((Decimal(row['change']) for row in movers['gains'] + movers['losses']), Decimal('0')) + Decimal(movers['others_change'])} net={movers['net_change']}",
-        "value_chain": f"point={None if wealth['empty'] else wealth['points'][-1]['value']} end={wealth['end_value']} summary={summary['total_value']} allocation={allocation['total_value']}",
-    }
-    with sessions() as db:
-        _holdings_cache.clear()
-        rows = asyncio.run(compute_holdings(db, member_ids if root.endswith("aggregate") else [member_ids[0 if scenario == "member_rohan" else 1]], allow_stale_today=True))
-        direct_total = sum(
-            (Decimal(row.current_value) for row in rows if row.current_value is not None and not row.nav_unavailable),
-            Decimal("0"),
-        ).quantize(Decimal("0.01"))
-    checks["holdings_parity"] = Decimal(summary["total_value"]) == direct_total
-    details["holdings_parity"] = f"summary={summary['total_value']} holdings={direct_total}"
-    for name, passed in checks.items():
-        suffix = "" if passed else f" ({details[name]})"
-        lines.append(f"{scenario} {name}: {'PASS' if passed else 'FAIL'}{suffix}")
-    lines.append(f"{scenario} worth_state: {worth['state']}")
-    app.dependency_overrides.pop(get_db, None)
-    app.dependency_overrides.pop(get_active_user, None)
-    app.dependency_overrides.pop(get_now_ist, None)
-    engine.dispose()
-    if not all(checks.values()):
-        print("\n".join(lines))
-        raise AssertionError(f"{scenario} failed: {checks}")
-    return lines
+        checks["holdings_parity"] = Decimal(summary["total_value"]) == direct_total
+        details["holdings_parity"] = (
+            f"summary={summary['total_value']} holdings_row_sum={direct_total}"
+        )
+        if root == "/household/aggregate":
+            member_total = sum(
+                (Decimal(row["value"]) for row in allocation["members"] or []), Decimal("0")
+            )
+            checks["allocation_member_sum"] = member_total == Decimal(allocation["total_value"])
+            details["allocation_member_sum"] = (
+                f"members={member_total} allocation={allocation['total_value']}"
+            )
+        partial_values = (summary["partial"], wealth["partial"], movers["partial"])
+        missing_values = tuple(
+            tuple((row["scheme_id"], row["name"]) for row in payload["missing_funds"])
+            for payload in (summary, wealth, movers)
+        )
+        checks["partial_agreement"] = (
+            len(set(partial_values)) == 1 and len(set(missing_values)) == 1
+        )
+        details["partial_agreement"] = (
+            f"partial(summary,wealth,movers)={partial_values} "
+            f"missing_counts={tuple(len(value) for value in missing_values)}"
+        )
+        if scenario in {"partial_data", "stale_statement"}:
+            # The edited fund's price is older than the others', so every route must say so.
+            checks["scenario_effect"] = partial_values == (True, True, True) and len(missing_values[0]) == 1
+            details["scenario_effect"] = (
+                f"expected partial on all routes with one named fund, got {partial_values} "
+                f"and {len(missing_values[0])} named"
+            )
+        checks["worth_state"] = worth["state"] == "unavailable"
+        details["worth_state"] = f"actual={worth['state']} expected=unavailable"
+        if custom_body is not None:
+            checks["custom_empty"] = custom_body["empty"] is True
+            details["custom_empty"] = (
+                f"empty={custom_body['empty']} points={len(custom_body['points'])}"
+            )
+        lines = tuple(
+            f"{scenario} {name}: {'PASS' if passed else 'FAIL'} ({details[name]})"
+            for name, passed in checks.items()
+        )
+        return ScenarioResult(scenario, lines, checks)
+    finally:
+        client.close()
+        app.dependency_overrides.pop(get_db, None)
+        app.dependency_overrides.pop(get_active_user, None)
+        app.dependency_overrides.pop(get_now_ist, None)
+        engine.dispose()
+
+
+def _run_all_scenarios(
+    source: Path, temp_dir: Path, scenarios: tuple[str, ...]
+) -> list[ScenarioResult]:
+    results = []
+    for scenario in scenarios:
+        try:
+            result = _run_scenario(source, temp_dir, scenario)
+        except Exception as exc:
+            result = ScenarioResult(
+                scenario=scenario,
+                lines=(f"{scenario} execution: FAIL (error={type(exc).__name__}: {exc})",),
+                checks={"execution": False},
+            )
+        results.append(result)
+        for line in result.lines:
+            print(line)
+    return results
 
 
 def main() -> None:
@@ -183,9 +272,7 @@ def main() -> None:
         "no_holdings", "custom_before_index_data",
     )
     with tempfile.TemporaryDirectory(prefix="unifolio-home-gate-") as directory:
-        for scenario in scenarios:
-            for line in _run_scenario(source, Path(directory), scenario):
-                print(line)
+        results = _run_all_scenarios(source, Path(directory), scenarios)
     print("base calibration fund_shares: n/a")
     print("base calibration tier: n/a")
     print("base calibration 1y_gap: n/a")
@@ -193,8 +280,22 @@ def main() -> None:
     print("base calibration top_five_share: n/a")
     after = _sha256(source)
     print(f"source_sha256_after: {after}")
-    if before != after:
-        raise SystemExit("FAIL: source database hash changed")
+    print("FINAL RESULTS")
+    for result in results:
+        failed = ",".join(
+            name for name, passed in result.checks.items() if not passed
+        ) or "none"
+        print(
+            f"{result.scenario}: {'PASS' if result.passed else 'FAIL'} "
+            f"failed_checks={failed}"
+        )
+    source_unchanged = before == after
+    print(
+        f"source_hash: {'PASS' if source_unchanged else 'FAIL'} "
+        f"before={before} after={after}"
+    )
+    if not source_unchanged or not all(result.passed for result in results):
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

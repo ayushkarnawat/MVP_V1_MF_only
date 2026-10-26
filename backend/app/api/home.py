@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.core.decimal_utils import quantize_amount
 from app.db.session import get_db
 from app.models.enums import BenchmarkIndex, Relationship
 from app.models.user import HouseholdMember, User
@@ -85,14 +86,14 @@ def _envelope(ctx: ScopeContext, inputs: HomeInputs, now_ist: datetime) -> dict:
 
 
 def _total_value(inputs: HomeInputs) -> Decimal:
-    return _money(sum(
+    return sum(
         (
-            Decimal(row.current_value)
+            quantize_amount(Decimal(row.current_value))
             for row in inputs.holdings
             if not row.nav_unavailable and row.current_value is not None
         ),
-        Decimal("0"),
-    ))
+        Decimal("0.00"),
+    )
 
 
 async def _inputs(

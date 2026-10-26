@@ -1,82 +1,90 @@
 from __future__ import annotations
 
 import json
+import sys
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from tests.api.home_fixture import FIXED_NOW, WEEKEND_NOW, build_home_fixture
+
+
+@dataclass(frozen=True)
+class FixtureSpec:
+    path: str
+    variant: str = "base"
+    now: datetime = FIXED_NOW
 
 
 REQUESTS = {
-    "summary_family.json": "/household/aggregate/home/summary",
-    "summary_member.json": "/household-members/{member_id}/home/summary",
-    "summary_empty.json": "/household/aggregate/home/summary",
-    "summary_partial.json": "/household/aggregate/home/summary",
-    "summary_weekend.json": "/household/aggregate/home/summary",
-    "wealth_1d_family.json": "/household/aggregate/home/wealth-series?period=1D",
-    "wealth_1m_family_benchmark.json": "/household/aggregate/home/wealth-series?period=1M&benchmark=nifty_50",
-    "wealth_1y_member_clipped.json": "/household-members/{member_id}/home/wealth-series?period=1Y&benchmark=nifty_smallcap_250",
-    "wealth_custom_empty_range.json": "/household/aggregate/home/wealth-series?period=custom&from=2016-01-01&to=2016-12-31",
-    "wealth_partial.json": "/household/aggregate/home/wealth-series?period=1M",
-    "allocation_family.json": "/household/aggregate/home/allocation",
-    "allocation_member.json": "/household-members/{member_id}/home/allocation",
-    "allocation_fallback.json": "/household/aggregate/home/allocation",
-    "allocation_empty.json": "/household/aggregate/home/allocation",
-    "movers_sector.json": "/household/aggregate/home/movers?by=sector",
-    "movers_category_fallback.json": "/household/aggregate/home/movers?by=category",
-    "movers_fund.json": "/household/aggregate/home/movers?by=fund",
-    "movers_all_down.json": "/household/aggregate/home/movers?by=fund",
-    "movers_empty.json": "/household/aggregate/home/movers?by=fund",
-    "worth_three_cards.json": "/household/aggregate/home/worth-a-look",
-    "worth_none.json": "/household/aggregate/home/worth-a-look",
-    "worth_unavailable.json": "/household/aggregate/home/worth-a-look",
-    "benchmarks_family.json": "/household/aggregate/home/benchmarks",
-    "benchmarks_no_mix.json": "/household-members/{member_id}/home/benchmarks",
+    "summary_family.json": FixtureSpec("/household/aggregate/home/summary"),
+    "summary_member.json": FixtureSpec("/household-members/{member_id}/home/summary"),
+    "summary_empty.json": FixtureSpec("/household/aggregate/home/summary", "empty"),
+    "summary_partial.json": FixtureSpec("/household/aggregate/home/summary", "partial"),
+    "summary_weekend.json": FixtureSpec("/household/aggregate/home/summary", now=WEEKEND_NOW),
+    "wealth_1d_family.json": FixtureSpec("/household/aggregate/home/wealth-series?period=1D"),
+    "wealth_1m_family_benchmark.json": FixtureSpec(
+        "/household/aggregate/home/wealth-series?period=1M&benchmark=nifty_50"
+    ),
+    "wealth_1y_member_clipped.json": FixtureSpec(
+        "/household-members/{member_id}/home/wealth-series?period=1Y&benchmark=nifty_smallcap_250"
+    ),
+    "wealth_custom_empty_range.json": FixtureSpec(
+        "/household/aggregate/home/wealth-series?period=custom&from=2016-01-01&to=2016-12-31"
+    ),
+    "wealth_partial.json": FixtureSpec(
+        "/household/aggregate/home/wealth-series?period=1M", "partial"
+    ),
+    "allocation_family.json": FixtureSpec("/household/aggregate/home/allocation"),
+    "allocation_member.json": FixtureSpec("/household-members/{member_id}/home/allocation"),
+    "allocation_fallback.json": FixtureSpec("/household/aggregate/home/allocation", "no_sections"),
+    "allocation_empty.json": FixtureSpec("/household/aggregate/home/allocation", "empty"),
+    "movers_sector.json": FixtureSpec("/household/aggregate/home/movers?by=sector"),
+    "movers_category_fallback.json": FixtureSpec(
+        "/household/aggregate/home/movers?by=sector", "no_disclosures"
+    ),
+    "movers_fund.json": FixtureSpec("/household/aggregate/home/movers?by=fund"),
+    "movers_all_down.json": FixtureSpec("/household/aggregate/home/movers?by=fund", "all_down"),
+    "movers_empty.json": FixtureSpec("/household/aggregate/home/movers?by=fund", "empty"),
+    "worth_three_cards.json": FixtureSpec("/household/aggregate/home/worth-a-look"),
+    "worth_none.json": FixtureSpec("/household/aggregate/home/worth-a-look", "nothing_flagged"),
+    "worth_unavailable.json": FixtureSpec("/household/aggregate/home/worth-a-look", "no_sections"),
+    "worth_concentration_with_earlier.json": FixtureSpec(
+        "/household/aggregate/home/worth-a-look", "earlier"
+    ),
+    "benchmarks_family.json": FixtureSpec("/household/aggregate/home/benchmarks"),
+    "benchmarks_no_mix.json": FixtureSpec(
+        "/household-members/{member_id}/home/benchmarks", "no_sections"
+    ),
 }
 
 
-def write_fixture_set(client, member_id, destination: Path) -> dict[str, dict]:
+def write_fixture_set(destination: Path) -> dict[str, dict]:
     destination.mkdir(parents=True, exist_ok=True)
     written = {}
-    for filename, template in REQUESTS.items():
-        path = template.format(member_id=member_id)
-        response = client.get(path)
-        if response.status_code != 200:
-            raise RuntimeError(f"{path}: {response.status_code} {response.text}")
-        payload = response.json()
-        (destination / filename).write_text(
-            json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-            newline="\n",
-        )
-        written[filename] = payload
+    for filename, spec in REQUESTS.items():
+        runtime = build_home_fixture(variant=spec.variant, now=spec.now)
+        try:
+            path = spec.path.format(member_id=runtime.household.dev_id)
+            response = runtime.client.get(path)
+            if response.status_code != 200:
+                raise RuntimeError(f"{path}: {response.status_code} {response.text}")
+            payload = response.json()
+            fixture_path = destination / filename
+            rendered = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+            if not fixture_path.exists() or fixture_path.read_text(encoding="utf-8") != rendered:
+                fixture_path.write_text(rendered, encoding="utf-8", newline="\n")
+            written[filename] = payload
+        finally:
+            runtime.close()
     return written
 
 
 def main() -> None:
-    from sqlalchemy import create_engine, event
-    from sqlalchemy.orm import sessionmaker
-    from sqlalchemy.pool import StaticPool
-    from fastapi.testclient import TestClient
-
-    from app.db.base import Base
-    from app.db.session import get_db
-    from app.main import app
-    from tests.api.home_fixture import seed_home_household
-
-    engine = create_engine(
-        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    event.listen(engine, "connect", lambda connection, _record: connection.execute("PRAGMA foreign_keys=ON"))
-    Base.metadata.create_all(engine)
-    sessions = sessionmaker(autoflush=False, bind=engine)
-
-    def override_db():
-        with sessions() as db:
-            yield db
-
-    app.dependency_overrides[get_db] = override_db
-    client = TestClient(app)
-    household = seed_home_household(client)
     destination = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "home"
-    write_fixture_set(client, household.asha_id, destination)
+    write_fixture_set(destination)
     print(f"wrote {len(REQUESTS)} Home fixtures to {destination}")
 
 

@@ -1,34 +1,34 @@
 {
   "scope": "member",
-  "member_id": "81e5a369-bbd4-59f1-b480-8a5bbf1c74ef",
+  "member_id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
   "nav_as_of": "2026-10-23",
   "partial": false,
   "missing_funds": [],
   "computed_at": "2026-10-23T13:00:00Z",
-  "source": "dashboard_buckets",
-  "approximate": true,
-  "total_value": "2200.00",
+  "source": "analytics",
+  "approximate": false,
+  "total_value": "3012.00",
   "classes": [
     {
       "key": "equity",
       "label": "Equity",
       "status": "live",
-      "value": "2200.00",
-      "percentage": "100.00"
+      "value": "0.00",
+      "percentage": "0.00"
     },
     {
       "key": "debt",
       "label": "Debt",
       "status": "live",
-      "value": "0.00",
-      "percentage": "0.00"
+      "value": "2002.00",
+      "percentage": "66.47"
     },
     {
       "key": "gold",
       "label": "Gold",
       "status": "live",
-      "value": "0.00",
-      "percentage": "0.00"
+      "value": "1010.00",
+      "percentage": "33.53"
     },
     {
       "key": "others",
@@ -66,7 +66,7 @@
       "percentage": null
     }
   ],
-  "covered_pct": null,
-  "mix_as_of": null,
+  "covered_pct": "100.00",
+  "mix_as_of": "2026-10-23",
   "members": null
 }

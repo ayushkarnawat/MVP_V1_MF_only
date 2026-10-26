@@ -1,0 +1,77 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": "2026-10-23",
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "cards": [
+    {
+      "kind": "weak_fund",
+      "rank": 1,
+      "scheme_id": "54b8755e-6b2b-5f4f-a8fe-b41125031af6",
+      "scheme_name": "Asha Large Cap",
+      "evidence": {
+        "tier": 1,
+        "final_score": "35.00",
+        "share_pct": "23.22",
+        "category": "Equity Scheme - Large Cap Fund"
+      }
+    },
+    {
+      "kind": "underperforming",
+      "rank": 2,
+      "scheme_id": "fe06ac21-f8c7-5dbf-a877-5c703ddbcdef",
+      "scheme_name": "Asha Flexi Cap",
+      "evidence": {
+        "fund_1y_pct": "5.00",
+        "category_avg_1y_pct": "12.00",
+        "gap_pp": "7.00",
+        "share_pct": "18.99",
+        "category": "Equity Scheme - Flexi Cap Fund"
+      }
+    },
+    {
+      "kind": "concentration",
+      "rank": 3,
+      "scheme_id": null,
+      "scheme_name": null,
+      "evidence": {
+        "top5_pct": "25.00",
+        "stocks": [
+          {
+            "name": "Top Stock 1",
+            "isin": "INE00000001",
+            "exposure_pct": "5.00"
+          },
+          {
+            "name": "Top Stock 2",
+            "isin": "INE00000002",
+            "exposure_pct": "5.00"
+          },
+          {
+            "name": "Top Stock 3",
+            "isin": "INE00000003",
+            "exposure_pct": "5.00"
+          },
+          {
+            "name": "Top Stock 4",
+            "isin": "INE00000004",
+            "exposure_pct": "5.00"
+          },
+          {
+            "name": "Top Stock 5",
+            "isin": "INE00000005",
+            "exposure_pct": "5.00"
+          }
+        ],
+        "holdings_as_of": "2026-09-30",
+        "earlier_top5_pct": "10.00",
+        "earlier_as_of": "2026-06-30",
+        "approximate": true
+      }
+    }
+  ],
+  "unavailable": [],
+  "state": "cards"
+}

@@ -9,6 +9,7 @@ from typing import Literal, Sequence
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.decimal_utils import quantize_amount
 from app.models.enums import BenchmarkIndex, BenchmarkReturnType, TransactionType
 from app.models.folio import Folio
 from app.models.reference import BenchmarkIndexHistory
@@ -118,8 +119,13 @@ def assemble_wealth_series(
     movers,
     flows: Sequence[tuple[date, Decimal]],
     benchmark: tuple[BenchmarkIndex, Sequence[tuple[date, Decimal]]] | None,
+    headline_value: Decimal | None = None,
 ) -> WealthSeries:
     points = tuple(SeriesPoint(point.date, _money(point.value)) for point in value_series.points)
+    if points and points[-1].date == end and headline_value is not None:
+        # Exact units times NAV can differ by paise from the sum of displayed rows.
+        # The chart endpoint agrees with the headline, donut and holdings table.
+        points = (*points[:-1], SeriesPoint(end, _money(headline_value)))
     if not points:
         return WealthSeries(
             period, requested_start, end, clamped, True, (), Decimal("0.00"),
@@ -192,6 +198,18 @@ def build_wealth_series(
     units = {fund.scheme_id: fund.units_timeline for fund in inputs.funds}
     navs = {fund.scheme_id: fund.navs for fund in inputs.funds}
     value_series = build_value_series(units, navs, dates)
+    headline_value = sum(
+        (
+            quantize_amount(Decimal(row.current_value))
+            for row in inputs.holdings
+            if not row.nav_unavailable and row.current_value is not None
+        ),
+        Decimal("0.00"),
+    )
+    if value_series.points and value_series.points[0].date > start:
+        start_effective = value_series.points[0].date - timedelta(days=1)
+    else:
+        start_effective = start
 
     transaction_rows = db.execute(
         select(Transaction)
@@ -216,6 +234,7 @@ def build_wealth_series(
             .where(
                 BenchmarkIndexHistory.index_name == benchmark,
                 BenchmarkIndexHistory.return_type == BenchmarkReturnType.TRI,
+                BenchmarkIndexHistory.date >= start_effective - timedelta(days=10),
                 BenchmarkIndexHistory.date <= end,
             )
             .order_by(BenchmarkIndexHistory.date)
@@ -230,4 +249,5 @@ def build_wealth_series(
         movers=inputs.movers,
         flows=flows,
         benchmark=benchmark_data,
+        headline_value=headline_value,
     )
