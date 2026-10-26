@@ -170,6 +170,25 @@ def test_an_extreme_custom_start_is_clamped_before_any_data_is_read():
         runtime.close()
 
 
+def test_an_extreme_custom_start_never_reaches_the_price_read(monkeypatch):
+    from app.services.home import context as context_module
+
+    seen = []
+    original = context_module.load_navs_by_scheme
+
+    def recording(db, scheme_ids, start, end):
+        seen.append(start)
+        return original(db, scheme_ids, start, end)
+
+    monkeypatch.setattr(context_module, "load_navs_by_scheme", recording)
+    runtime = build_home_fixture()
+    try:
+        _get(runtime, "/household/aggregate/home/wealth-series?period=custom&from=1900-01-01&to=2026-10-01")
+        assert seen and min(seen) >= date(2016, 10, 1)  # the ten-year floor (2016-10-23) less a short look-back
+    finally:
+        runtime.close()
+
+
 # --- F3: an opening balance inside the period -----------------------------------------------------------
 
 def test_an_opening_balance_inside_the_period_is_a_contribution_at_market_value_not_cost():
