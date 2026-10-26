@@ -96,6 +96,20 @@ def _active_in_window(points: Sequence[tuple[date, Decimal]], start: date) -> bo
     return units_at_start > 0
 
 
+def _feed_gap_days(
+    newest_prices: dict[uuid.UUID, tuple[date, Decimal]],
+    statement_priced_ids: Collection[uuid.UUID],
+    today: date,
+) -> int:
+    """Whole days between `today` and the newest stored price of the funds that have a daily feed.
+
+    Funds priced from statements are left out (their prices are weeks apart by nature and must not decide what
+    "latest" means for the daily ones); a household of statement-priced funds only falls back to all of them."""
+    daily = [day for scheme_id, (day, _price) in newest_prices.items() if scheme_id not in statement_priced_ids]
+    days = daily or [day for day, _price in newest_prices.values()]
+    return max(0, (today - max(days)).days) if days else 0
+
+
 async def load_home_inputs(
     db: Session,
     ctx: ScopeContext,
@@ -115,15 +129,28 @@ async def load_home_inputs(
     # Every fund the scope held at any time inside the window, not only today's: a fund sold or switched out
     # in the period has cash flows in it, so its value must be in the series too (review F1).
     units = build_units_timeline(db, ctx.member_ids)
+    # Every window below is measured back from the newest stored price, not from the clock: when the feed has
+    # stopped, the series and the day's change are still built on the last day that has prices (review L15).
+    not_held = set(units) - held_scheme_ids
+    schemes_not_held = (
+        {scheme.id: scheme for scheme in db.query(Scheme).filter(Scheme.id.in_(not_held)).all()}
+        if not_held else {}
+    )
+    statement_priced_ids = {
+        scheme_id for scheme_id, row in by_scheme.items() if row.price_from_statement
+    } | {
+        scheme_id for scheme_id, scheme in schemes_not_held.items() if scheme.source == SchemeSource.CAS_ONLY
+    }
+    nav_start -= timedelta(days=_feed_gap_days(
+        load_prior_prices(db, set(units) | held_scheme_ids, today), statement_priced_ids, today
+    ))
     active_scheme_ids = {
         scheme_id for scheme_id, points in units.items() if _active_in_window(points, nav_start)
     } | held_scheme_ids
-    others = {}
-    if active_scheme_ids - held_scheme_ids:
-        others = {
-            scheme.id: scheme
-            for scheme in db.query(Scheme).filter(Scheme.id.in_(active_scheme_ids - held_scheme_ids)).all()
-        }
+    others = {
+        scheme_id: schemes_not_held[scheme_id]
+        for scheme_id in active_scheme_ids - held_scheme_ids if scheme_id in schemes_not_held
+    }
     names = {scheme_id: row.scheme_name for scheme_id, row in by_scheme.items()}
     names.update({scheme_id: scheme.name for scheme_id, scheme in others.items()})
     navs = load_navs_by_scheme(db, active_scheme_ids, nav_start, today)

@@ -160,12 +160,25 @@ def test_an_extreme_custom_start_is_clamped_before_any_data_is_read():
         assert old["clamped"] is True
         assert old["start"] == "2016-10-23"
         assert len(old["points"]) < 4000
+        # Year 1 is a valid date: clamped to the ten-year floor like any other old start, never an error.
         response = runtime.client.get(
             "/household/aggregate/home/wealth-series?period=custom&from=0001-01-05&to=2026-10-01"
         )
-        assert response.status_code in (200, 422)
-        if response.status_code == 200:
-            assert response.json()["clamped"] is True
+        assert response.status_code == 200, response.text[:300]
+        assert response.json()["clamped"] is True
+        assert response.json()["start"] == "2016-10-23"
+        # Not a date at all (year 0) is rejected by request validation, before any data is read.
+        invalid = runtime.client.get(
+            "/household/aggregate/home/wealth-series?period=custom&from=0000-01-05&to=2026-10-01"
+        )
+        assert invalid.status_code == 422
+        # A range that runs backwards, and a custom period without its dates, are rejected by the route.
+        backwards = runtime.client.get(
+            "/household/aggregate/home/wealth-series?period=custom&from=2026-10-02&to=2026-10-01"
+        )
+        assert backwards.status_code == 422
+        missing = runtime.client.get("/household/aggregate/home/wealth-series?period=custom&from=2026-10-01")
+        assert missing.status_code == 422
     finally:
         runtime.close()
 
@@ -312,6 +325,17 @@ def test_a_fund_with_a_feed_code_and_no_stored_price_is_missing_not_downloaded(m
         event.listen(runtime.engine, "before_cursor_execute", listener)
         try:
             summary = _get(runtime, "/household/aggregate/home/summary")
+            # Every Home GET route, in both scopes and with each query variant (review N7): none may fetch or write.
+            member = runtime.household.asha_id  # the member whose folio holds the fund without a stored price
+            for template, query in _every_home_get_request():
+                for root in ("/household/aggregate", f"/household-members/{member}"):
+                    _holdings_cache.clear()
+                    path = f"{root}{template}" + (f"?{query}" if query else "")
+                    body = _get(runtime, path)
+                    assert calls == [], path
+                    assert writes == [], path
+                    assert body["partial"] is True, path
+                    assert "nonav fund" in [fund["name"] for fund in body["missing_funds"]], path
         finally:
             event.remove(runtime.engine, "before_cursor_execute", listener)
         assert calls == []
@@ -320,6 +344,32 @@ def test_a_fund_with_a_feed_code_and_no_stored_price_is_missing_not_downloaded(m
         assert [fund["name"] for fund in summary["missing_funds"]] == ["nonav fund"]
     finally:
         runtime.close()
+
+
+def _every_home_get_request():
+    """(path under the scope root, query) for every query variant of every registered Home GET route."""
+    from app.api.home import router
+
+    variants = {
+        "/home/summary": [""],
+        "/home/movers": ["by=sector", "by=category", "by=fund"],
+        "/home/wealth-series": [
+            "period=1D", "period=1W", "period=1M", "period=1Y",
+            "period=custom&from=2026-10-01&to=2026-10-23",
+            "period=custom&from=2026-10-01&to=2026-10-23&benchmark=nifty_50",
+        ],
+        "/home/allocation": [""],
+        "/home/benchmarks": [""],
+        "/home/worth-a-look": [""],
+    }
+    registered = {
+        route.path.removeprefix("/household/aggregate")
+        for route in router.routes
+        if route.path.startswith("/household/aggregate/home/") and "GET" in route.methods
+    }
+    # A route added later without a variant here would silently escape the no-fetch, no-write check.
+    assert registered == set(variants), registered ^ set(variants)
+    return [(template, query) for template, queries in variants.items() for query in queries]
 
 
 # --- F10: a malformed stored section is unavailable, not a 500 ---------------------------------------------
