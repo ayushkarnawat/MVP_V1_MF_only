@@ -103,3 +103,7 @@ New orchestrator: follow Prompt 1 in `2026-10-24-ui-redesign-new-account-prompt.
 ## Status 26 Oct (afternoon)
 - Second link live: DNS, VM worktree `/opt/unifolio-redesign`, `.env`, redesign bundle, caddy and backend recreated (done by the orchestrator over SSH as `deploy`); both links 200, CORS works for both origins. Owner step 10 (sign-in check in two profiles) pending.
 - HB5 part 1 committed as WIP (`b646ab1c`); HB5b handoff written (`ui-redesign-HB5b-home-routes-completion-handoff.md`, Codex session C1c). G2 packet with the Gemini pilot running or about to run on `feat/home-frontend`.
+
+## Status 26 Oct (evening)
+- Done and verified: G1 kit, HB4, HB5 + HB5b (Home API complete), G2 (Home foundations), second link live. Nothing pushed. Branches: `feat/ui-kit` (`e93854b8`), `feat/home-frontend` (`0aefde78`, stacked on the kit), `feat/home-snapshot` (`88db9376`, Home backend, stacked on the Mutual Funds backend).
+- Next lanes: Codex C2 = Portfolio backend (stacked on `feat/home-snapshot`, reusing the units and series modules); Gemini G3 = Home greeting, wealth card and glance, against the real golden fixtures. CAL1 (threshold calibration on staging data) still open.
