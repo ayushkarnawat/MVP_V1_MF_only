@@ -37,6 +37,17 @@ REQUESTS = {
     "wealth_partial.json": FixtureSpec(
         "/household/aggregate/home/wealth-series?period=1M", "partial"
     ),
+    # Added by the independent review (register C101): the cases that were wrong before the fix.
+    "wealth_1m_fund_sold_in_period.json": FixtureSpec(
+        "/household/aggregate/home/wealth-series?period=1M", "sold_fund"
+    ),
+    "wealth_custom_past_range.json": FixtureSpec(
+        "/household/aggregate/home/wealth-series?period=custom&from=2026-09-20&to=2026-10-01"
+    ),
+    "wealth_1m_statement_priced_fund.json": FixtureSpec(
+        "/household/aggregate/home/wealth-series?period=1M", "cas_only"
+    ),
+    "summary_statement_priced_fund.json": FixtureSpec("/household/aggregate/home/summary", "cas_only"),
     "allocation_family.json": FixtureSpec("/household/aggregate/home/allocation"),
     "allocation_member.json": FixtureSpec("/household-members/{member_id}/home/allocation"),
     "allocation_fallback.json": FixtureSpec("/household/aggregate/home/allocation", "no_sections"),

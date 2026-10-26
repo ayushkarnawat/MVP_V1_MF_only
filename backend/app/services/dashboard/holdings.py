@@ -165,13 +165,18 @@ def compute_realized_summary(db: Session, household_member_ids: list[uuid.UUID])
 
 async def compute_holdings(
     db: Session, household_member_ids: list[uuid.UUID], *,
-    scheme_ids: frozenset[uuid.UUID] | None = None, allow_stale_today: bool = False
+    scheme_ids: frozenset[uuid.UUID] | None = None, allow_stale_today: bool = False,
+    stored_only: bool = False,
 ) -> list[HoldingRow]:
     if not household_member_ids:
         return []
 
     scheme_ids = frozenset(scheme_ids) if scheme_ids is not None else None  # hashable even if a caller passes a set or list
+    # `stored_only` (read-only callers: the Home API) never fetches or writes a price, so its result must not
+    # serve, or be served by, a call that is allowed to fetch.
     cache_key = (tuple(sorted(household_member_ids)), date.today(), scheme_ids, allow_stale_today)
+    if stored_only:
+        cache_key += (True,)
     with _holdings_cache_lock:
         cached_entry = _holdings_cache.get(cache_key)
         if cached_entry is not None:
@@ -226,6 +231,8 @@ async def compute_holdings(
     on_date = date.today()
     # Forward the flag only when it is on, so every existing caller and test double sees the exact call it saw before.
     nav_kwargs = {"allow_stale_today": True} if allow_stale_today else {}
+    if stored_only:
+        nav_kwargs["stored_only"] = True
     scheme_date_pairs = [(scheme, on_date) for _, scheme, _, _, _, _ in computed]
     if get_nav_on_or_before is not _default_single_nav_lookup:
         # Compatibility seam for existing hand-built tests that replace the

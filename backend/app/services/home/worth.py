@@ -373,6 +373,30 @@ def _category_ter_means(
     }
 
 
+_MALFORMED = (KeyError, TypeError, ValueError, AttributeError, ArithmeticError)
+
+
+def _parse_scores(payload: Mapping[str, Any]) -> dict[Any, tuple[Any, Decimal | None]]:
+    return {
+        row.get("scheme_id"): (
+            row.get("risk_adjusted_tier"),
+            None if row.get("final_score") is None else Decimal(row["final_score"]),
+        )
+        for row in payload.get("funds", [])
+    }
+
+
+def _parse_rankings(payload: Mapping[str, Any]) -> dict[Any, tuple[Decimal | None, Decimal | None]]:
+    parsed = {}
+    for row in payload.get("funds", []):
+        period = row.get("periods", {}).get("1y", {})
+        parsed[row.get("scheme_id")] = (
+            None if period.get("fund_return") is None else Decimal(period["fund_return"]),
+            None if period.get("category_avg") is None else Decimal(period["category_avg"]),
+        )
+    return parsed
+
+
 def load_worth_facts(
     db: Session,
     user_id: uuid.UUID,
@@ -416,23 +440,22 @@ def load_worth_facts(
         sections=STORED_SECTION_NAMES,
         household_member_ids=household_member_ids,
     )
-    unavailable = tuple(name for name in STORED_SECTION_NAMES if name not in sections)
+    # A stored payload that no longer parses (a schema that moved, a bad value) is unavailable, like a missing or
+    # stale one: the card is skipped, the page does not fail (review F10).
+    unavailable = {name for name in STORED_SECTION_NAMES if name not in sections}
 
     scores = {}
     if section := sections.get("score"):
-        for row in section.payload.get("funds", []):
-            scores[row.get("scheme_id")] = (
-                row.get("risk_adjusted_tier"),
-                None if row.get("final_score") is None else Decimal(row["final_score"]),
-            )
+        try:
+            scores = _parse_scores(section.payload)
+        except _MALFORMED:
+            unavailable.add("score")
     rankings = {}
     if section := sections.get("category_ranking"):
-        for row in section.payload.get("funds", []):
-            period = row.get("periods", {}).get("1y", {})
-            rankings[row.get("scheme_id")] = (
-                None if period.get("fund_return") is None else Decimal(period["fund_return"]),
-                None if period.get("category_avg") is None else Decimal(period["category_avg"]),
-            )
+        try:
+            rankings = _parse_rankings(section.payload)
+        except _MALFORMED:
+            unavailable.add("category_ranking")
 
     ters = _latest_ters(db, scheme_ids)
     pairs = set()
@@ -464,48 +487,57 @@ def load_worth_facts(
     concentration = None
     if section := sections.get("stock_holdings"):
         payload = section.payload
-        rows = payload.get("rows", [])[:5]
-        if rows:
-            top_stocks = tuple(
-                StockExposure(
-                    name=row["instrument_name"],
-                    isin=row.get("isin"),
-                    exposure_pct=Decimal(row["exposure_pct"]),
+        try:
+            rows = payload.get("rows", [])[:5]
+            if rows:
+                top_stocks = tuple(
+                    StockExposure(
+                        name=row["instrument_name"],
+                        isin=row.get("isin"),
+                        exposure_pct=Decimal(row["exposure_pct"]),
+                    )
+                    for row in rows
                 )
-                for row in rows
-            )
-            current_as_of = (
-                None
-                if payload.get("holdings_as_of") is None
-                else date.fromisoformat(payload["holdings_as_of"])
-            )
-            coverage = payload.get("coverage", {}).get("covered_value_pct")
-            hide_headlines = bool(payload.get("hide_headlines"))
-            earlier = (None, None)
-            isins = [stock.isin for stock in top_stocks if stock.isin is not None]
-            if not hide_headlines and current_as_of is not None and isins:
-                earlier = load_earlier_top5(
-                    db,
-                    scheme_values={
-                        scheme_id: grouped_facts["value"]
-                        for scheme_id, grouped_facts in grouped.items()
-                    },
-                    total_value=sum(
-                        (grouped_facts["value"] for grouped_facts in grouped.values()),
-                        Decimal("0"),
+                current_as_of = (
+                    None
+                    if payload.get("holdings_as_of") is None
+                    else date.fromisoformat(payload["holdings_as_of"])
+                )
+                coverage = payload.get("coverage", {}).get("covered_value_pct")
+                coverage_pct = None if coverage is None else Decimal(coverage)
+                hide_headlines = bool(payload.get("hide_headlines"))
+                earlier = (None, None)
+                isins = [stock.isin for stock in top_stocks if stock.isin is not None]
+                if not hide_headlines and current_as_of is not None and isins:
+                    earlier = load_earlier_top5(
+                        db,
+                        scheme_values={
+                            scheme_id: grouped_facts["value"]
+                            for scheme_id, grouped_facts in grouped.items()
+                        },
+                        total_value=sum(
+                            (grouped_facts["value"] for grouped_facts in grouped.values()),
+                            Decimal("0"),
+                        ),
+                        isins=isins,
+                        current_as_of=current_as_of,
+                    )
+                concentration = ConcentrationFacts(
+                    top_stocks=top_stocks,
+                    top5_pct=sum(
+                        (stock.exposure_pct for stock in top_stocks), Decimal("0")
                     ),
-                    isins=isins,
-                    current_as_of=current_as_of,
+                    holdings_as_of=current_as_of,
+                    coverage_pct=coverage_pct,
+                    hide_headlines=hide_headlines,
+                    earlier_top5_pct=earlier[0],
+                    earlier_as_of=earlier[1],
                 )
-            concentration = ConcentrationFacts(
-                top_stocks=top_stocks,
-                top5_pct=sum(
-                    (stock.exposure_pct for stock in top_stocks), Decimal("0")
-                ),
-                holdings_as_of=current_as_of,
-                coverage_pct=None if coverage is None else Decimal(coverage),
-                hide_headlines=hide_headlines,
-                earlier_top5_pct=earlier[0],
-                earlier_as_of=earlier[1],
-            )
-    return WorthFacts(tuple(funds), concentration, unavailable)
+        except _MALFORMED:
+            concentration = None
+            unavailable.add("stock_holdings")
+    return WorthFacts(
+        tuple(funds),
+        concentration,
+        tuple(name for name in STORED_SECTION_NAMES if name in unavailable),
+    )

@@ -78,6 +78,31 @@ def test_get_navs_on_or_before_allow_stale_today_fetches_when_cache_empty(db_ses
     assert result == {scheme.id: (Decimal("70"), date.today())}
 
 
+def test_stored_only_never_fetches_and_never_writes_when_the_store_is_empty(db_session):
+    import asyncio
+
+    scheme = _scheme(db_session)
+    with patch.object(nav_module, "_fetch_nav_history", new=AsyncMock(side_effect=AssertionError("unexpected fetch"))):
+        batch = asyncio.run(get_navs_on_or_before(db_session, [(scheme, date.today())], stored_only=True))
+        single = asyncio.run(get_nav_on_or_before(db_session, scheme, date.today(), stored_only=True))
+    assert batch == {scheme.id: None}
+    assert single is None
+    assert db_session.query(NavHistory).count() == 0
+
+
+def test_stored_only_returns_the_stored_row_even_for_today_without_fetching(db_session):
+    import asyncio
+
+    scheme = _scheme(db_session)
+    db_session.add(NavHistory(scheme_id=scheme.id, date=date.today(), nav=Decimal("60")))
+    db_session.commit()
+    with patch.object(nav_module, "_fetch_nav_history", new=AsyncMock(side_effect=AssertionError("unexpected fetch"))):
+        batch = asyncio.run(get_navs_on_or_before(db_session, [(scheme, date.today())], stored_only=True))
+        single = asyncio.run(get_nav_on_or_before(db_session, scheme, date.today(), stored_only=True))
+    assert batch == {scheme.id: (Decimal("60"), date.today())}
+    assert single == (Decimal("60"), date.today())
+
+
 def test_fetch_nav_history_deduplicates_concurrent_calls_for_same_amfi_code():
     import asyncio
 

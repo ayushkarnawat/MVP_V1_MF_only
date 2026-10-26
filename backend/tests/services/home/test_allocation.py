@@ -505,7 +505,9 @@ def test_loader_absent_section_uses_bucket_fallback_and_stored_prices(db_session
             members=[(members[0].id, members[0].name)],
         ))
 
-    lookup.assert_awaited_once_with(db_session, [members[0].id], allow_stale_today=True)
+    lookup.assert_awaited_once_with(
+        db_session, [members[0].id], allow_stale_today=True, stored_only=True
+    )
     assert result.source == "dashboard_buckets"
     assert result.approximate is True
     assert result.total_value == Decimal("100000.00")

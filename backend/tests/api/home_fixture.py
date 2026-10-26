@@ -187,6 +187,56 @@ def _write_disclosures(db, schemes, *, earlier: bool) -> None:
                 ))
 
 
+def _extra_fund(db, key, member_id, *, amfi, plan, source=None):
+    scheme = Scheme(
+        id=uid(f"scheme-{key}"), amfi_code=amfi, name=f"{key} fund", amc_name="Home Test AMC",
+        sebi_category="Equity Scheme - Large Cap Fund", plan_type=plan,
+        **({"source": source} if source is not None else {}),
+    )
+    db.add(scheme)
+    db.flush()
+    folio = Folio(
+        id=uid(f"folio-{key}"), household_member_id=member_id, scheme_id=scheme.id,
+        folio_number=key.upper(), plan_type=PlanType.DIRECT,
+    )
+    db.add(folio)
+    db.flush()
+    return scheme, folio
+
+
+def _add_sold_fund(db, member_id, import_id) -> None:
+    """A fund bought 1 Aug and fully redeemed 10 Oct at a flat price: review F1 (a sale inside the period)."""
+    scheme, folio = _extra_fund(db, "sold", member_id, amfi="HOME-sold", plan=SchemePlanType.REGULAR)
+    for key, kind, day, amount, units, nav in (
+        ("sold-buy", TransactionType.PURCHASE, date(2026, 8, 1), "100000", "10000", "10"),
+        ("sold-red", TransactionType.REDEMPTION, date(2026, 10, 10), "110000", "10000", "11"),
+    ):
+        db.add(Transaction(
+            id=uid(f"t-{key}"), folio_id=folio.id, import_id=import_id, type=kind, date=day,
+            amount=Decimal(amount), units=Decimal(units), nav=Decimal(nav),
+        ))
+    day = date(2026, 7, 25)
+    while day <= date(2026, 10, 23):
+        if day.weekday() < 5:
+            db.add(NavHistory(scheme_id=scheme.id, date=day, nav=Decimal("11")))
+        day += timedelta(days=1)
+
+
+def _add_statement_priced_fund(db, member_id, import_id) -> None:
+    """A fund with no price feed: 1,000 units, priced only by two statements (review F4)."""
+    from app.models.enums import SchemeSource
+
+    scheme, folio = _extra_fund(
+        db, "casonly", member_id, amfi=None, plan=SchemePlanType.DIRECT, source=SchemeSource.CAS_ONLY
+    )
+    db.add(Transaction(
+        id=uid("t-cas-buy"), folio_id=folio.id, import_id=import_id, type=TransactionType.PURCHASE,
+        date=date(2026, 5, 1), amount=Decimal("10000"), units=Decimal("1000"), nav=Decimal("10"),
+    ))
+    db.add(NavHistory(scheme_id=scheme.id, date=date(2026, 6, 30), nav=Decimal("10.50")))
+    db.add(NavHistory(scheme_id=scheme.id, date=date(2026, 10, 15), nav=Decimal("10.60")))
+
+
 # This definition intentionally supersedes the simple base seeder above: existing route
 # tests keep the same call site while the golden writer selects explicit variants.
 def seed_home_household(
@@ -322,6 +372,10 @@ def seed_home_household(
         ))
     if variant not in {"no_disclosures", "no_sections", "partial"}:
         _write_disclosures(db, schemes, earlier=variant == "earlier")
+    if variant == "sold_fund":
+        _add_sold_fund(db, asha.id, imports[asha.id].id)
+    if variant == "cas_only":
+        _add_statement_priced_fund(db, asha.id, imports[asha.id].id)
 
     db.commit()
     client.app.dependency_overrides[get_active_user] = lambda: SimpleNamespace(

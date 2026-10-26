@@ -331,6 +331,23 @@ def test_home_fixture_semantics():
     no_mix = load("benchmarks_no_mix.json")
     assert (no_mix["reason"], no_mix["recommended_index"]) == ("unavailable", "nifty_500")
 
+    # The cases the independent review found wrong (register C101): each fixture pins the corrected value.
+    sold = load("wealth_1m_fund_sold_in_period.json")
+    assert (sold["start_value"], sold["net_contributions"], sold["change_amount"]) == (
+        "115095.60", "-110000.00", "116.40"
+    )
+    assert sold["partial"] is False
+    past = load("wealth_custom_past_range.json")
+    assert past["end"] == "2026-10-01" and past["end_value"] == past["points"][-1]["value"] != "5212.00"
+    assert past["clamped"] is False
+    statement = load("wealth_1m_statement_priced_fund.json")
+    assert (statement["start_value"], statement["end_value"], statement["change_amount"]) == (
+        "15595.60", "15812.00", "216.40"
+    )
+    assert statement["partial"] is False and statement["missing_funds"] == []
+    summary = load("summary_statement_priced_fund.json")
+    assert (summary["total_value"], summary["change_amount"], summary["partial"]) == ("15812.00", "12.00", False)
+
 
 @pytest.mark.parametrize(
     "variant",

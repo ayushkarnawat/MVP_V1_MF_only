@@ -199,21 +199,64 @@ def _bars_for_view(
     ]
 
 
+PRICE_DAY_COVERAGE = Decimal("0.5")
+PRICE_DAY_LOOKBACK = 15
+
+
+def _price_day(funds: Sequence[FundInput], as_of: date) -> date | None:
+    """The day the day's change is measured on (register C103).
+
+    Normally the latest price date, but some fund houses publish prices for weekend month-ends; on such a morning
+    that date is the latest across funds yet covers a sliver of the portfolio, and every other fund would count
+    as stale. So: the latest recent date on which funds holding at least half of the portfolio's value (at their
+    own latest prices) have a price; the others use their latest price on or before it. `None` when no fund has
+    a daily price at all."""
+    weights: dict[uuid.UUID, Decimal] = {}
+    dates: dict[uuid.UUID, set[date]] = {}
+    for fund in funds:
+        if fund.statement_priced:
+            continue
+        latest, _previous, current_units, _previous_units, eligible = _nav_context(fund, as_of)
+        if not eligible or latest is None:
+            continue
+        weights[fund.scheme_id] = current_units * latest[1]
+        dates[fund.scheme_id] = {day for day, _nav in fund.navs if day <= as_of}
+    if not dates:
+        return None
+    candidates = sorted(set().union(*dates.values()), reverse=True)[:PRICE_DAY_LOOKBACK]
+    total = sum(weights.values(), Decimal("0"))
+    if total <= 0:
+        return candidates[0]
+    for day in candidates:
+        covered = sum((weights[key] for key, days in dates.items() if day in days), Decimal("0"))
+        if covered >= total * PRICE_DAY_COVERAGE:
+            return day
+    return candidates[0]
+
+
 def compute_movers(
     funds: Sequence[FundInput],
     as_of: date,
     view: Literal["fund", "category", "sector"] = "sector",
 ) -> Movers:
-    contexts = {fund.scheme_id: _nav_context(fund, as_of) for fund in funds}
+    price_day = _price_day(funds, as_of)
+    contexts = {fund.scheme_id: _nav_context(fund, price_day or as_of) for fund in funds}
     eligible = [fund for fund in funds if contexts[fund.scheme_id][4]]
-    dated = [contexts[fund.scheme_id][0][0] for fund in eligible if contexts[fund.scheme_id][0]]
+    # A fund priced only from statements has no daily price to compare: it never sets the as-of day and is never
+    # "stale" (its change is zero by rule); it still counts in the value the percentage is measured against.
+    priced = [fund for fund in eligible if not fund.statement_priced]
+    dated = [contexts[fund.scheme_id][0][0] for fund in priced if contexts[fund.scheme_id][0]]
+    if not dated:
+        dated = [contexts[fund.scheme_id][0][0] for fund in eligible if contexts[fund.scheme_id][0]]
     as_of_nav_date = max(dated) if dated else None
     included = [
         fund for fund in eligible
-        if contexts[fund.scheme_id][0] and contexts[fund.scheme_id][0][0] == as_of_nav_date
+        if contexts[fund.scheme_id][0] and (
+            contexts[fund.scheme_id][0][0] == as_of_nav_date or fund.statement_priced
+        )
     ]
     stale = tuple(sorted((
-        fund.scheme_id for fund in eligible
+        fund.scheme_id for fund in priced
         if contexts[fund.scheme_id][0] and contexts[fund.scheme_id][0][0] != as_of_nav_date
     ), key=str))
     missing = tuple(sorted((
@@ -227,12 +270,15 @@ def compute_movers(
     for fund in included:
         latest, previous, current_units, previous_units, _ = contexts[fund.scheme_id]
         current_values[fund.scheme_id] = _zero(current_units * latest[1])
-        previous_values[fund.scheme_id] = _zero(previous_units * previous[1]) if previous else Decimal("0")
+        if fund.statement_priced:
+            previous_values[fund.scheme_id] = _zero(previous_units * latest[1])
+        else:
+            previous_values[fund.scheme_id] = _zero(previous_units * previous[1]) if previous else Decimal("0")
         exact_changes[fund.scheme_id] = (
             Decimal("0") if fund.statement_priced or previous is None
             else previous_units * (latest[1] - previous[1])
         )
-        if previous:
+        if previous and not fund.statement_priced:
             previous_dates.append(previous[0])
     changes, net_change = distribute_cents(exact_changes)
     fund_changes = tuple(sorted((

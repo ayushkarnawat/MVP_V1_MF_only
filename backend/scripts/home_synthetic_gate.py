@@ -7,7 +7,7 @@ import shutil
 import sys
 import tempfile
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
@@ -106,6 +106,26 @@ def _mutate(db, scenario: str) -> None:
     else:
         raise ValueError(f"unknown scenario: {scenario}")
     db.commit()
+
+
+def _reference_value(db, member_ids, on_date: date) -> Decimal:
+    """What the scope's funds were worth on a date, computed without any of the Home modules except the units
+    replay: units held that day (every fund, sold ones included) times the newest stored price on or before it."""
+    total = Decimal("0")
+    for scheme_id, points in build_units_timeline(db, member_ids).items():
+        units = Decimal("0")
+        for changed_on, held in points:
+            if changed_on <= on_date:
+                units = held
+        if units <= 0:
+            continue
+        row = db.execute(
+            text("SELECT nav FROM nav_history WHERE scheme_id = :scheme AND date <= :day ORDER BY date DESC LIMIT 1"),
+            {"scheme": scheme_id.hex, "day": on_date.isoformat()},
+        ).first()
+        if row is not None:
+            total += units * Decimal(str(row[0]))
+    return total
 
 
 def _run_scenario(source: Path, temp_dir: Path, scenario: str) -> ScenarioResult:
@@ -227,6 +247,26 @@ def _run_scenario(source: Path, temp_dir: Path, scenario: str) -> ScenarioResult
             details["custom_empty"] = (
                 f"empty={custom_body['empty']} points={len(custom_body['points'])}"
             )
+        if scenario in {"base", "member_rohan", "member_priya"}:
+            # An independent value of the portfolio on a date (every fund the scope ever held, stored price on or
+            # before the date) against the series' first and last point of several periods, including a past
+            # range inside the years this household had a fund it has since sold (review F1 and F2).
+            queries = {
+                "1M": f"{root}/home/wealth-series?period=1M",
+                "1Y": f"{root}/home/wealth-series?period=1Y",
+                "past_2023": f"{root}/home/wealth-series?period=custom&from=2023-01-02&to=2023-12-29",
+            }
+            with sessions() as db:
+                for label, query in queries.items():
+                    body = client.get(query).json()
+                    if body["empty"]:
+                        continue
+                    for which, point in (("first", body["points"][0]), ("last", body["points"][-1])):
+                        reference = _reference_value(db, selected_member_ids, date.fromisoformat(point["date"]))
+                        gap = abs(Decimal(point["value"]) - reference)
+                        name = f"reference_{label}_{which}"
+                        checks[name] = gap <= Decimal("0.10")
+                        details[name] = f"point={point['value']} reference={reference.quantize(Decimal('0.01'))} on {point['date']}"
         lines = tuple(
             f"{scenario} {name}: {'PASS' if passed else 'FAIL'} ({details[name]})"
             for name, passed in checks.items()

@@ -229,7 +229,7 @@ async def load_allocation(
     members: Sequence[tuple[uuid.UUID, str]],
 ) -> Allocation:
     rows = await compute_holdings(
-        db, list(household_member_ids), allow_stale_today=True
+        db, list(household_member_ids), allow_stale_today=True, stored_only=True
     )
     valued_rows = [
         (row, quantize_amount(Decimal(row.current_value)))

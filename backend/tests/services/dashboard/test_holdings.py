@@ -270,6 +270,35 @@ def test_allow_stale_today_never_fetches(db_session):
         assert row.current_nav_date == date.today() - timedelta(days=1)
 
 
+def test_stored_only_never_fetches_even_when_a_fund_has_no_stored_price(db_session):
+    import asyncio
+
+    member, schemes = _stored_holdings(db_session, days_old=1)
+    db_session.query(NavHistory).filter(NavHistory.scheme_id == schemes[1].id).delete()
+    db_session.commit()
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=AsyncMock(side_effect=AssertionError("unexpected fetch"))):
+        rows = asyncio.run(compute_holdings(db_session, [member.id], allow_stale_today=True, stored_only=True))
+    by_scheme = {row.scheme_id: row for row in rows}
+    assert by_scheme[str(schemes[1].id)].nav_unavailable is True
+    assert by_scheme[str(schemes[0].id)].current_nav_date == date.today() - timedelta(days=1)
+    assert db_session.query(NavHistory).filter(NavHistory.scheme_id == schemes[1].id).count() == 0
+
+
+def test_stored_only_result_never_serves_or_is_served_by_a_call_that_may_fetch(db_session):
+    import asyncio
+
+    member, schemes = _stored_holdings(db_session, days_old=1)
+    db_session.query(NavHistory).filter(NavHistory.scheme_id == schemes[1].id).delete()
+    db_session.commit()
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=AsyncMock(return_value=[(date.today(), Decimal("70"))])) as fetch:
+        stored = asyncio.run(compute_holdings(db_session, [member.id], allow_stale_today=True, stored_only=True))
+        fetch.assert_not_awaited()
+        may_fetch = asyncio.run(compute_holdings(db_session, [member.id], allow_stale_today=True))
+    assert any(row.nav_unavailable for row in stored)
+    assert not any(row.nav_unavailable for row in may_fetch)
+    fetch.assert_awaited()
+
+
 def test_default_still_fetches_when_today_row_missing(db_session):
     import asyncio
 
