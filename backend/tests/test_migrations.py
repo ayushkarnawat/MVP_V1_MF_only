@@ -5,18 +5,74 @@ from pathlib import Path
 import pytest
 
 
-def test_0045_is_head_and_sqlite_upgrade_then_downgrade_to_0043(tmp_path, monkeypatch):
+def test_0045_is_in_the_chain_and_sqlite_upgrade_then_downgrade_to_0043(tmp_path, monkeypatch):
     path = tmp_path / "benchmark-index-0045.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
 
     heads = _alembic("heads")
     assert heads.returncode == 0, heads.stderr
-    assert heads.stdout.strip() == "0045 (head)"
+    assert heads.stdout.strip() == "0044 (head)"
 
     up = _alembic("upgrade", "head")
     assert up.returncode == 0, up.stderr
     down = _alembic("downgrade", "0043")
     assert down.returncode == 0, down.stderr
+
+
+def test_0044_news_items_table_and_nse_symbol_column_roundtrip(tmp_path, monkeypatch):
+    """0044 chains after 0045 (0043 -> 0045 -> 0044); alembic follows
+    down_revision, not file order, so the head is 0044 even though 0045's
+    file sorts first alphabetically."""
+    import sqlite3
+
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    path = tmp_path / "news-0044.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+
+    cfg = Config(str(BACKEND_DIR / "alembic.ini"))
+    cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    script = ScriptDirectory.from_config(cfg)
+    assert script.get_revision("0044").down_revision == "0045"
+    assert script.get_revision("0045").down_revision == "0043"
+
+    up = _alembic("upgrade", "head")
+    assert up.returncode == 0, up.stderr
+    with sqlite3.connect(path) as conn:
+        columns = {r[1]: r for r in conn.execute("PRAGMA table_info(news_items)")}
+        assert set(columns) == {
+            "id", "source", "title", "url", "published_at", "ingested_at",
+            "language", "entity_tags", "tier",
+        }
+        assert columns["id"][5] == 1  # primary key
+        for not_null_col in ("source", "title", "url", "published_at", "ingested_at", "language", "entity_tags", "tier"):
+            assert columns[not_null_col][3] == 1, not_null_col
+        indexes = {r[1] for r in conn.execute("PRAGMA index_list(news_items)")}
+        assert "ix_news_items_published_at" in indexes
+        table_sql = conn.execute("SELECT sql FROM sqlite_master WHERE name='news_items'").fetchone()[0]
+        assert "uq_news_items_url" in table_sql
+        assert "CHECK" in table_sql.upper() and "tier" in table_sql
+
+        stock_master_columns = {r[1] for r in conn.execute("PRAGMA table_info(stock_master)")}
+        assert "nse_symbol" in stock_master_columns
+
+    down = _alembic("downgrade", "0045")
+    assert down.returncode == 0, down.stderr
+    with sqlite3.connect(path) as conn:
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert "news_items" not in tables
+        stock_master_columns = {r[1] for r in conn.execute("PRAGMA table_info(stock_master)")}
+        assert "nse_symbol" not in stock_master_columns
+
+    down_further = _alembic("downgrade", "0043")
+    assert down_further.returncode == 0, down_further.stderr
+
+    up_again = _alembic("upgrade", "head")
+    assert up_again.returncode == 0, up_again.stderr
+    with sqlite3.connect(path) as conn:
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert "news_items" in tables
 
 
 def test_0043_unique_top_level_name_roundtrip(tmp_path, monkeypatch):
@@ -1541,7 +1597,9 @@ def test_stock_master_model_has_decimal_ratios_and_no_foreign_keys():
     table = StockMaster.__table__
     assert list(table.primary_key.columns.keys()) == ["isin"]
     assert not table.foreign_keys
-    assert set(table.columns.keys()) == {"isin", "name", "sector", "pe_ratio", "pb_ratio", "as_of_date", "source", "pb_source", "footnote"}
+    # nse_symbol added by migration 0044 (Home News backend, owner-approved
+    # third sanctioned existing-test edit — see NB1 handoff section 13).
+    assert set(table.columns.keys()) == {"isin", "name", "sector", "pe_ratio", "pb_ratio", "as_of_date", "source", "pb_source", "footnote", "nse_symbol"}
     assert all(table.c[name].type.scale == 6 for name in ("pe_ratio", "pb_ratio"))
 
 

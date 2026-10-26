@@ -8,6 +8,7 @@ from app.models import (  # noqa: F401
     folio,
     imports,
     member_history,
+    news,
     reference,
     snapshot,
     transaction,

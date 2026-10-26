@@ -315,3 +315,7 @@ class StockMaster(Base):
     source: Mapped[str] = mapped_column(String, nullable=False)
     pb_source: Mapped[str | None] = mapped_column(String)
     footnote: Mapped[str | None] = mapped_column(Text)
+    # NSE trading symbol (migration 0044, Home News backend). NULL until the
+    # daily stock job fills it (O5, not in this scope); the news tagger uses
+    # it only when present, falling back to name/ISIN matching otherwise.
+    nse_symbol: Mapped[str | None] = mapped_column(String(32))
