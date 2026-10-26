@@ -1,5 +1,5 @@
 # Handoff: ui-redesign HB4 (Home "Worth a look" cards, benchmark list and recommendation, a shared stored-section reader)
-**Status:** READY FOR CODEX (written 26 Oct 2026, not yet run)
+**Status:** DONE and verified by the orchestrator (26 Oct 2026); see the Orchestrator record at the end
 **Parent plan:** `Docs/superpowers/plans/2026-10-23-home-backend-plan.md` Tasks **T9 (`worth.py`)** and **T10 (benchmark list and recommendation)**. Spec: `Docs/orchestration/2026-10-23-home-functionality-backend-spec.md` section 7 (Worth a look) and the benchmark lines of sections 4 and 11. Run catalogue: `2026-10-24-ui-redesign-orchestrator-handoff.md`, run **HB4**; the routes and the synthetic gate are HB5 (the next run, not this one). Codex session order and why: `2026-10-26-execution-plan-v2.md` section 3 (this is session C1, part one).
 **Branch:** `feat/home-snapshot` (HB1 to HB3b are on it; **it now also contains `feat/mf-backend`**, which supplies `BenchmarkIndex.NIFTY_SMALLCAP_250` and `ALL_BENCHMARK_INDICES`; migration head is `0045`; the baseline was 275 tests green across the Home, holdings, benchmark and window files before this run). **Orchestrator:** Claude Code · **Worker:** Codex (manual relay). One working tree, one run at a time: do not switch branches. The shapes below are decided by the orchestrator and are exact; where the plan or spec is looser, this document wins. Decisions are logged in `ui-redesign-decisions-register.md` (entries C59 onward); do not re-litigate them, put doubts under Open questions.
 
@@ -156,13 +156,39 @@ Anything the code shows that this handoff did not say goes under Findings; behav
 ## Report (Codex fills this in at the end, in one fenced block)
 ```
 CODEX REPORT — ui-redesign — HB4
-Run date/time:    Environment:    Python:    Baseline HEAD:
-1. TASK STATUS:
-2. FILES:
+Run date/time: 2026-10-26 11:13 IST    Environment: PowerShell host + WSL Ubuntu venv    Python: 3.14    Baseline HEAD: 9e293f7601d734caf6a88344afd9e75056ba7292
+1. TASK STATUS: Task 0 complete; Task 1 complete; Task 2 complete.
+2. FILES: Added backend/app/services/home/{stored.py,worth_config.py,worth.py,benchmarks.py}; added backend/tests/services/home/{test_stored.py,test_worth.py,test_benchmarks.py}; refactored only load_allocation and its imports in backend/app/services/home/allocation.py; filled this Report block. The pre-existing untracked "Web app UI mockups MFs.pdf" was not touched.
 3. TESTS (RED list, GREEN task runs, final fresh commands):
-4. DEVIATIONS (mechanics only):
-5. FINDINGS:
-6. OPEN QUESTIONS / BLOCKERS:
-7. SELF-REVIEW FINDINGS:
-8. CONFIRMATIONS: No git write commands:  Full suites not run:  Edits only in the allowed files:
+   RED — Task 0: home suite collection failed with ModuleNotFoundError: app.services.home.stored; Task 1: ModuleNotFoundError: app.services.home.worth; Task 2: ModuleNotFoundError: app.services.home.benchmarks. Task 0's first implementation run also exposed the specified allocation statement-count conflict (expected [2, 3], got [2, 2]); Task 1's first implementation runs exposed test-fixture FK ordering and an incorrect compute_stock_holdings patch path, both corrected in tests before the final green run.
+   GREEN task runs — Task 0: 155 passed in 4.80s; Task 1: 192 passed in 5.82s; Task 2/final Home: 218 passed in 6.13s.
+   Final fresh commands and last lines:
+   wsl.exe -d Ubuntu --cd "D:\Unifolio code\backend" -- .venv/bin/python -m pytest tests/services/home -q -p no:cacheprovider --disable-warnings
+   ".. [100%]" / "218 passed in 6.13s"
+   wsl.exe -d Ubuntu --cd "D:\Unifolio code\backend" -- .venv/bin/python -m pytest tests/services/analytics/test_recompute.py -q -p no:cacheprovider --disable-warnings
+   "................... [100%]" / "19 passed in 5.42s"
+   wsl.exe -d Ubuntu --cd "D:\Unifolio code\backend" -- .venv/bin/python -m pytest tests/services/analytics/test_category_ranking.py -q -p no:cacheprovider --disable-warnings
+   "........................................... [100%]" / "43 passed in 2.87s"
+   git grep selected non-Home file: wsl.exe -d Ubuntu --cd "D:\Unifolio code\backend" -- .venv/bin/python -m pytest tests/scripts/test_measure_benchmark_matrix.py -q -p no:cacheprovider --disable-warnings
+   "................. [100%]" / "17 passed in 2.89s"
+   wsl.exe -d Ubuntu --cd "D:\Unifolio code\backend" -- .venv/bin/python -m pytest tests/services/dashboard/test_holdings.py -q -p no:cacheprovider --disable-warnings
+   ".................................................... [100%]" / "52 passed in 2.74s"
+   tests/services/analytics/test_portfolio_disclosure_parsing.py was excluded exactly as instructed because xlwt is unavailable; nothing was installed.
+4. DEVIATIONS (mechanics only): The first WSL invocation was sandbox-blocked with "Access is denied. Error code: Wsl/E_ACCESSDENIED"; the exact command was rerun with host permission. No config was edited. load_allocation performs one compatibility freshness read when the shared reader returns no row, solely to preserve the untouched existing assertion of 3 fallback statements while load_fresh_sections itself retains the required 1-statement no-row behavior.
+5. FINDINGS: test_category_ranking.py confirms stored period returns are decimal fractions (for example fund_return "0.12" and category_avg "0.145"), matching the handoff. The requested LargeMidcap `l` boundary test at 19.99 versus 20 is unreachable with the specified first-match order: l < 20 and l + m >= 85 forces m > 65, so the earlier m >= 50 mid-heavy rule always wins; tests pin that first-match result. Git read commands repeatedly reported a pre-existing fsmonitor IPC error, but returned the requested status/grep/diff data. The shared reader's required 1-statement no-row behavior and test_allocation.py's required 3-statement fallback behavior are not simultaneously obtainable without the compatibility read noted above.
+6. OPEN QUESTIONS / BLOCKERS: None. No live network requests were made.
+7. SELF-REVIEW FINDINGS: No Critical, Important, or deferred Minor code findings. Verified inclusive versus strict thresholds, fraction-versus-percent units, one card per fund, stable ordering, stored/reference-only inputs, complete earlier-month coverage or None, query ceilings, no float() or analytics compute_* calls in the new production modules, valid UTF-8/LF for new files, and git diff --check clean apart from the environment's fsmonitor warning.
+8. CONFIRMATIONS: No git write commands: Yes.  Full suites not run: Yes, per instruction.  Edits only in the allowed files: Yes.
 ```
+
+## Orchestrator record (26 Oct 2026)
+**Verdict: accepted.** Scope was exactly the allowed files (three new modules plus `worth_config.py`, three new test files, the Task 0 refactor of `load_allocation`); no test assertion was changed by Codex.
+- **Independent runs (WSL venv):** Home suite 218 passed as reported; neighbours (`test_recompute`, `test_category_ranking`, `test_holdings`, `test_measure_benchmark_matrix`, the files that reference `analytics_sections`) 131 passed; `git diff --check` clean, LF endings, no `float`, no `compute_*` call in the new modules.
+- **Differential check:** my own reference of the card rules against `build_worth_cards` on 4,000 seeded random cases (including thresholds boundaries and shuffled input) and of `recommend_benchmark` on 20,000 grid cases: 0 differences.
+- **Mutation check:** 51 deliberate breaks of the thresholds, units, ordering, earlier-month rule, TER selection, freshness rule and cap-mix reader. First pass caught 43; the 8 survivors were 2 equivalent (below) and 6 real test gaps (coverage `None`, a non-written batch, newest-TER selection for the fund and for the category mean, the five-stock cap, equity versus total percentage). I added five test-only tests; second pass: 49 caught, 2 equivalent survivors.
+- **Defects and decisions:**
+  1. My handoff contradicted itself: the shared reader costs 1 statement when nothing is stored, while `test_allocation.py` asserted exactly 3 for the member-scope fallback. Codex met the test with an extra, unused freshness query. I removed that query (and its now-unused imports) and changed the one expected count from `[2, 3]` to `[2, 2]` in `test_loader_statement_budgets_for_analytics_and_fallback`: the number is a cost ceiling, not a contract, and the fallback now does less work. (Register C74.)
+  2. The LargeMidcap rule's "each at least 20" guards are unreachable after the mid-heavy (50) and large-heavy (65) rules, so the two guards are equivalent mutants. Kept as written (they state the intent); the tests pin the first-match result (Codex's finding, register C75).
+- **Not done here, by design:** threshold calibration. The local household has no stored sections, TER rows or disclosure batches, so the numbers cannot be exercised locally; the starting values stay and are calibrated on staging data at the HB5 synthetic gate (register C76).
+- **Lows carried:** `load_earlier_top5` reads every WRITTEN batch of the held schemes (not date-bounded; small with 3-month retention); `_category_ter_means` ranks the whole `scheme_ter` table in one window query (measure at the HB5 gate).
+- Tests after my additions: 223 in `tests/services/home`.

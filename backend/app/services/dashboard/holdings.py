@@ -57,7 +57,13 @@ class _HoldingsCacheEntry:
     cached_at: float
 
 
-_holdings_cache: dict[tuple[tuple[uuid.UUID, ...], date], _HoldingsCacheEntry] = {}
+# Key: (members, day, scheme_ids, allow_stale_today), plus a trailing True only for a stored-only read, so the
+# default path's key shape is unchanged and a stored-only read never shares an entry with a live one.
+_HoldingsCacheKey = (
+    tuple[tuple[uuid.UUID, ...], date, frozenset[uuid.UUID] | None, bool]
+    | tuple[tuple[uuid.UUID, ...], date, frozenset[uuid.UUID] | None, bool, bool]
+)
+_holdings_cache: dict[_HoldingsCacheKey, _HoldingsCacheEntry] = {}
 _holdings_cache_generation: dict[uuid.UUID, int] = defaultdict(int)
 _holdings_cache_lock = threading.Lock()
 _default_single_nav_lookup = get_nav_on_or_before
@@ -74,7 +80,7 @@ def invalidate_holdings_cache(household_member_id: uuid.UUID) -> None:
 
 def peek_cached_holdings(household_member_ids: list[uuid.UUID]) -> list[HoldingRow] | None:
     """Read today's cache without computing, evicting or extending it."""
-    cache_key = (tuple(sorted(household_member_ids)), date.today())
+    cache_key = (tuple(sorted(household_member_ids)), date.today(), None, False)
     with _holdings_cache_lock:
         entry = _holdings_cache.get(cache_key)
         if entry is None or _holdings_cache_clock() - entry.cached_at > _HOLDINGS_CACHE_TTL_SECONDS:
@@ -110,8 +116,13 @@ def _process_folio_lots(transactions: list[Transaction]) -> tuple[Decimal, Decim
     return state.units, state.cost, state.realized_gain
 
 
-def _load_folio_transactions(db: Session, household_member_ids: list[uuid.UUID]):
-    folios = db.query(Folio).filter(Folio.household_member_id.in_(household_member_ids)).all() if household_member_ids else []
+def _load_folio_transactions(
+    db: Session, household_member_ids: list[uuid.UUID], *, scheme_ids: frozenset[uuid.UUID] | None = None
+):
+    folio_query = db.query(Folio).filter(Folio.household_member_id.in_(household_member_ids))
+    if scheme_ids is not None:
+        folio_query = folio_query.filter(Folio.scheme_id.in_(scheme_ids))
+    folios = folio_query.all() if household_member_ids else []
     # Batched across all folios in one query instead of one query per folio —
     # the same fix already applied to the NAV lookup below. Global ordering
     # (date, consuming-after-adding, id) is preserved per-folio by grouping
@@ -156,11 +167,20 @@ def compute_realized_summary(db: Session, household_member_ids: list[uuid.UUID])
     return RealizedSummary(total=str(quantize_amount(sum((gain for units, gain in groups.values()), Decimal("0")))), funds=funds)
 
 
-async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -> list[HoldingRow]:
+async def compute_holdings(
+    db: Session, household_member_ids: list[uuid.UUID], *,
+    scheme_ids: frozenset[uuid.UUID] | None = None, allow_stale_today: bool = False,
+    stored_only: bool = False,
+) -> list[HoldingRow]:
     if not household_member_ids:
         return []
 
-    cache_key = (tuple(sorted(household_member_ids)), date.today())
+    scheme_ids = frozenset(scheme_ids) if scheme_ids is not None else None  # hashable even if a caller passes a set or list
+    # `stored_only` (read-only callers: the Home API) never fetches or writes a price, so its result must not
+    # serve, or be served by, a call that is allowed to fetch.
+    cache_key = (tuple(sorted(household_member_ids)), date.today(), scheme_ids, allow_stale_today)
+    if stored_only:
+        cache_key += (True,)
     with _holdings_cache_lock:
         cached_entry = _holdings_cache.get(cache_key)
         if cached_entry is not None:
@@ -174,7 +194,7 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
         m.id: m
         for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()
     }
-    folios, transactions_by_folio = _load_folio_transactions(db, household_member_ids)
+    folios, transactions_by_folio = _load_folio_transactions(db, household_member_ids, scheme_ids=scheme_ids)
 
     grouped: dict[tuple[uuid.UUID, uuid.UUID, PlanType], list[Folio]] = defaultdict(list)
     for folio in folios:
@@ -213,17 +233,21 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
         computed.append((member_id, scheme, plan_type, total_units, total_cost, total_realized))
 
     on_date = date.today()
+    # Forward the flag only when it is on, so every existing caller and test double sees the exact call it saw before.
+    nav_kwargs = {"allow_stale_today": True} if allow_stale_today else {}
+    if stored_only:
+        nav_kwargs["stored_only"] = True
     scheme_date_pairs = [(scheme, on_date) for _, scheme, _, _, _, _ in computed]
     if get_nav_on_or_before is not _default_single_nav_lookup:
         # Compatibility seam for existing hand-built tests that replace the
         # former single-scheme lookup. Keep these awaits sequential so even a
         # DB-touching test double cannot make the sync Session concurrent.
         nav_results = {
-            scheme.id: await get_nav_on_or_before(db, scheme, lookup_date)
+            scheme.id: await get_nav_on_or_before(db, scheme, lookup_date, **nav_kwargs)
             for scheme, lookup_date in scheme_date_pairs
         }
     else:
-        nav_results = await get_navs_on_or_before(db, scheme_date_pairs)
+        nav_results = await get_navs_on_or_before(db, scheme_date_pairs, **nav_kwargs)
 
     rows: list[HoldingRow] = []
     for member_id, scheme, plan_type, total_units, total_cost, total_realized in computed:
@@ -252,6 +276,7 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
                     today_gain=None,
                     nav_unavailable=True,
                     opening_lot=opening_info.get((member_id, scheme.id, plan_type)),
+                    sebi_category=scheme.sebi_category,
                 )
             )
             continue
@@ -291,6 +316,7 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
                 unrealized_gain=str(unrealized_gain),
                 today_gain=str(today_gain),
                 opening_lot=opening_info.get((member_id, scheme.id, plan_type)),
+                sebi_category=scheme.sebi_category,
             )
         )
     # Delayed publication, weekends, and holidays are normal; cache the

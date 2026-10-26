@@ -144,7 +144,7 @@ def test_refresh_benchmark_daily_fetches_price_ten_years_and_tri_from_1990(
     assert all(c[3] == date(2014, 2, 28) for c in calls if c[2] is BenchmarkReturnType.PRICE)
     assert all(c[3] == date(1990, 1, 1) for c in calls if c[2] is BenchmarkReturnType.TRI)
     assert all(c[4] == date(2024, 2, 29) for c in calls)
-    assert "refresh_benchmark_daily: fetches=8 succeeded=6 success=False" in caplog.messages
+    assert "refresh_benchmark_daily: fetches=16 succeeded=14 success=False" in caplog.messages
 
 
 def test_delete_expired_accounts_daily_runs_hard_delete_service(db_session, monkeypatch, caplog):

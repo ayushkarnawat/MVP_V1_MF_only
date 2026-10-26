@@ -160,6 +160,20 @@ class IndexXirrRow(BaseModel):
     xirr: str | None
 
 
+class BenchmarkWindowRow(BaseModel):
+    window: Literal["1Y", "3Y", "5Y", "SI"]
+    available: bool
+    start_date: date | None
+    portfolio_xirr: str | None
+    indices: list[IndexXirrRow]
+
+
+class FundWindowXirr(BaseModel):
+    window: Literal["1Y", "3Y", "5Y", "SI"]
+    fund_xirr: str | None
+    benchmark_xirr: str | None
+
+
 class PortfolioBenchmarkSummary(BaseModel):
     """PRD-04 FR-8 — portfolio XIRR from the full transaction history,
     alongside XIRR for all 4 Nifty indices computed via the same
@@ -167,6 +181,7 @@ class PortfolioBenchmarkSummary(BaseModel):
 
     portfolio_xirr: str | None
     benchmarks: list[IndexXirrRow]
+    windows: list[BenchmarkWindowRow] = []
 
 
 class AggregatePortfolioBenchmarkResponse(BaseModel):
@@ -184,6 +199,7 @@ class FundBenchmarkRow(BaseModel):
     benchmark_index: BenchmarkIndex
     fund_xirr: str | None
     benchmark_xirr: str | None
+    windows: list[FundWindowXirr] = []
 
 
 class FundVsBenchmarkSummary(BaseModel):
