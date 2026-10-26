@@ -1,0 +1,150 @@
+{
+  "scenario": {
+    "scenario_id": "22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    "name": "Fixture scenario B",
+    "description": "Fixture description for scenario b.",
+    "scenario_type": "CRASH",
+    "start_date": "2025-11-03",
+    "end_date": "2025-12-31",
+    "is_ongoing": false,
+    "display_rank": 2,
+    "parent_scenario_id": null,
+    "has_phases": true,
+    "had_redemption_freeze_schemes": null,
+    "quick_market_pct": null,
+    "quick_equity_pct": null,
+    "quick_debt_pct": null,
+    "quick_weight_quarter": null
+  },
+  "portfolio_impact_pct": "-5.00",
+  "rupee_impact": "-260.56",
+  "covered_value": "5212.00",
+  "total_value": "5212.00",
+  "no_data_funds": 0,
+  "benchmarks": [],
+  "phases": [
+    {
+      "label": "Fall",
+      "order": 1,
+      "start_date": "2025-11-03",
+      "end_date": "2025-11-28",
+      "is_ongoing": false,
+      "pct": "-4.31"
+    },
+    {
+      "label": "Recovery",
+      "order": 2,
+      "start_date": "2025-12-01",
+      "end_date": "2025-12-31",
+      "is_ongoing": false,
+      "pct": "-0.69"
+    }
+  ],
+  "by_fund": [
+    {
+      "scheme_id": "a1000000-0000-4000-8000-000000000001",
+      "scheme_name": "Asha Large Cap",
+      "pct": "-3.00",
+      "is_proxied": false,
+      "proxy_basis": null,
+      "is_frozen": false
+    },
+    {
+      "scheme_id": "a1000000-0000-4000-8000-000000000002",
+      "scheme_name": "Asha Flexi Cap",
+      "pct": "-2.00",
+      "is_proxied": false,
+      "proxy_basis": null,
+      "is_frozen": false
+    },
+    {
+      "scheme_id": "a1000000-0000-4000-8000-000000000003",
+      "scheme_name": "Dev Short Duration Debt",
+      "pct": "0.50",
+      "is_proxied": false,
+      "proxy_basis": null,
+      "is_frozen": false
+    },
+    {
+      "scheme_id": "a1000000-0000-4000-8000-000000000004",
+      "scheme_name": "Dev Gold Fund",
+      "pct": "1.00",
+      "is_proxied": true,
+      "proxy_basis": "asset_class_average:Gold",
+      "is_frozen": false
+    }
+  ],
+  "by_member": [
+    {
+      "household_member_id": "81e5a369-bbd4-59f1-b480-8a5bbf1c74ef",
+      "member_name": "ASHA RAO",
+      "rupee_impact": "-341.00",
+      "pct": "-15.50",
+      "funds": [
+        {
+          "scheme_id": "a1000000-0000-4000-8000-000000000001",
+          "scheme_name": "Asha Large Cap",
+          "rupee_impact": "-242.00",
+          "is_proxied": false,
+          "proxy_basis": null,
+          "is_frozen": false
+        },
+        {
+          "scheme_id": "a1000000-0000-4000-8000-000000000002",
+          "scheme_name": "Asha Flexi Cap",
+          "rupee_impact": "-99.00",
+          "is_proxied": false,
+          "proxy_basis": null,
+          "is_frozen": false
+        }
+      ]
+    },
+    {
+      "household_member_id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
+      "member_name": "Dev Rao",
+      "rupee_impact": "80.44",
+      "pct": "2.67",
+      "funds": [
+        {
+          "scheme_id": "a1000000-0000-4000-8000-000000000003",
+          "scheme_name": "Dev Short Duration Debt",
+          "rupee_impact": "40.04",
+          "is_proxied": false,
+          "proxy_basis": null,
+          "is_frozen": false
+        },
+        {
+          "scheme_id": "a1000000-0000-4000-8000-000000000004",
+          "scheme_name": "Dev Gold Fund",
+          "rupee_impact": "40.40",
+          "is_proxied": true,
+          "proxy_basis": "asset_class_average:Gold",
+          "is_frozen": false
+        }
+      ]
+    }
+  ],
+  "hypothetical_assumptions": [],
+  "assumptions_not_set": false,
+  "by_asset_class": [
+    {
+      "bucket": "Equity",
+      "rupee_impact": "-341.00",
+      "covered_value": "2200.00",
+      "pct": "-15.50"
+    },
+    {
+      "bucket": "Debt",
+      "rupee_impact": "40.04",
+      "covered_value": "2002.00",
+      "pct": "2.00"
+    },
+    {
+      "bucket": "Gold and Silver",
+      "rupee_impact": "40.40",
+      "covered_value": "1010.00",
+      "pct": "4.00"
+    }
+  ],
+  "funds_data_available": true
+}

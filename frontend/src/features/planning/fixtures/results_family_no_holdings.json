@@ -1,0 +1,52 @@
+{
+  "scenario": {
+    "scenario_id": "11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "name": "Fixture scenario A",
+    "description": "Fixture description for scenario a.",
+    "scenario_type": "CRASH",
+    "start_date": "2025-11-03",
+    "end_date": "2025-12-31",
+    "is_ongoing": false,
+    "display_rank": 1,
+    "parent_scenario_id": null,
+    "has_phases": false,
+    "had_redemption_freeze_schemes": null,
+    "quick_market_pct": "0.43",
+    "quick_equity_pct": null,
+    "quick_debt_pct": null,
+    "quick_weight_quarter": null
+  },
+  "portfolio_impact_pct": null,
+  "rupee_impact": "0.00",
+  "covered_value": "0.00",
+  "total_value": "0.00",
+  "no_data_funds": 0,
+  "benchmarks": [
+    {
+      "name": "nifty_50",
+      "pct": "0.43"
+    }
+  ],
+  "phases": [],
+  "by_fund": [],
+  "by_member": [
+    {
+      "household_member_id": "81e5a369-bbd4-59f1-b480-8a5bbf1c74ef",
+      "member_name": "ASHA RAO",
+      "rupee_impact": "0.00",
+      "pct": null,
+      "funds": []
+    },
+    {
+      "household_member_id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
+      "member_name": "Dev Rao",
+      "rupee_impact": "0.00",
+      "pct": null,
+      "funds": []
+    }
+  ],
+  "hypothetical_assumptions": [],
+  "assumptions_not_set": false,
+  "by_asset_class": [],
+  "funds_data_available": true
+}
