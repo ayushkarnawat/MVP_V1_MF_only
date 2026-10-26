@@ -1,0 +1,23 @@
+/* Home-only colour aliases. The data-viz, semantic and surface tokens come from palette-tokens.css (the shared kit). */
+:root {
+  --home-bench: var(--c3);
+  --home-pos-border: #EAFBF0;
+  --home-neg-border: #F6C6C7;
+  --home-warn-border: #FCE0B0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --home-bench: var(--c3);
+    --home-pos-border: rgba(34, 197, 94, 0.35);
+    --home-neg-border: rgba(248, 113, 113, 0.35);
+    --home-warn-border: rgba(251, 191, 36, 0.35);
+  }
+}
+
+[data-theme="dark"] {
+  --home-bench: var(--c3);
+  --home-pos-border: rgba(34, 197, 94, 0.35);
+  --home-neg-border: rgba(248, 113, 113, 0.35);
+  --home-warn-border: rgba(251, 191, 36, 0.35);
+}
