@@ -265,6 +265,7 @@ async def compute_holdings(
                     today_gain=None,
                     nav_unavailable=True,
                     opening_lot=opening_info.get((member_id, scheme.id, plan_type)),
+                    sebi_category=scheme.sebi_category,
                 )
             )
             continue
@@ -304,6 +305,7 @@ async def compute_holdings(
                 unrealized_gain=str(unrealized_gain),
                 today_gain=str(today_gain),
                 opening_lot=opening_info.get((member_id, scheme.id, plan_type)),
+                sebi_category=scheme.sebi_category,
             )
         )
     # Delayed publication, weekends, and holidays are normal; cache the

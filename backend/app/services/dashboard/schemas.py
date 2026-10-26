@@ -76,6 +76,7 @@ class HoldingRow(BaseModel):
     today_gain: str | None
     nav_unavailable: bool = False
     opening_lot: OpeningLotInfo | None = None
+    sebi_category: str | None = None
 
 
 class DistributorSchemeBreakdown(BaseModel):

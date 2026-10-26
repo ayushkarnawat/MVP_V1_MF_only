@@ -24,14 +24,23 @@ the index level instead of NAV" (PRD-04 Research) literally true.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from collections import defaultdict
 from datetime import date
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.models.enums import BenchmarkIndex, BenchmarkReturnType, TransactionType
+from app.models.enums import (
+    ALL_BENCHMARK_INDICES,
+    LEGACY_BENCHMARK_INDICES,
+    BenchmarkIndex,
+    BenchmarkReturnType,
+    TransactionType,
+)
 from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
@@ -52,6 +61,11 @@ from app.services.dashboard.schemas import HoldingRow
 from app.services.dashboard.xirr import _RELEVANT_TYPES as _XIRR_RELEVANT_TYPES, _XIRR_DEBIT_TYPES, _FUND_RELEVANT_TYPES
 from app.services.dashboard.xirr import portfolio_xirr as _portfolio_xirr
 from app.services.lot_rules import paid_amount
+
+if TYPE_CHECKING:
+    from app.services.analytics.benchmark_windows import IndexLevels, WindowContext
+
+logger = logging.getLogger(__name__)
 
 # Same flow sets as the dashboard XIRR (gifts valued, #3).
 _RELEVANT_TYPES = _XIRR_RELEVANT_TYPES
@@ -156,6 +170,70 @@ def _current_value_by_scheme(holdings: list[HoldingRow]) -> dict[str, Decimal]:
     return totals
 
 
+async def build_window_context(
+    db: Session,
+    member_ids: list[uuid.UUID],
+    today: date,
+) -> WindowContext:
+    from app.services.analytics.benchmark_windows import build_window_context as _build_window_context
+
+    return await _build_window_context(db, member_ids, today)
+
+
+def load_index_levels(
+    db: Session,
+    indices: tuple[BenchmarkIndex, ...],
+    start: date,
+    end: date,
+) -> dict[BenchmarkIndex, IndexLevels]:
+    from app.services.analytics.benchmark_windows import load_index_levels as _load_index_levels
+
+    return _load_index_levels(db, indices, start, end)
+
+
+def compute_window_rows(*args, **kwargs):
+    from app.services.analytics.benchmark_windows import compute_window_rows as _compute_window_rows
+
+    return _compute_window_rows(*args, **kwargs)
+
+
+def compute_fund_window_rows(*args, **kwargs):
+    from app.services.analytics.benchmark_windows import compute_fund_window_rows as _compute_fund_window_rows
+
+    return _compute_fund_window_rows(*args, **kwargs)
+
+
+async def _window_inputs(
+    db: Session,
+    member_ids: list[uuid.UUID],
+    earliest_transaction: date,
+    indices: tuple[BenchmarkIndex, ...],
+) -> tuple[WindowContext, dict[BenchmarkIndex, IndexLevels]]:
+    # `earliest_transaction` is read by the caller before this runs: the snapshot rebuild and the index
+    # top-up below commit, and a commit expires every ORM row the caller already loaded.
+    today = date.today()
+    ctx = await build_window_context(db, member_ids, today)
+    earliest = min([earliest_transaction] + [start for start in ctx.starts.values() if start is not None])
+    for index in indices:
+        if index not in LEGACY_BENCHMARK_INDICES:
+            await ensure_index_history_fresh(
+                db,
+                index,
+                earliest,
+                today,
+                return_type=BenchmarkReturnType.TRI,
+            )
+    levels = load_index_levels(db, indices, earliest, today)
+    return ctx, levels
+
+
+def _roll_back_if_database_error(db: Session, error: Exception) -> None:
+    # A failed flush or commit leaves the session unusable until it is rolled back. Any other exception
+    # leaves it healthy, and a rollback would expire every loaded row for nothing (one refresh query each).
+    if isinstance(error, SQLAlchemyError):
+        db.rollback()
+
+
 async def compute_portfolio_vs_benchmarks(
     db: Session, household_member_ids: list[uuid.UUID]
 ) -> PortfolioBenchmarkSummary:
@@ -163,7 +241,7 @@ async def compute_portfolio_vs_benchmarks(
     if not transactions:
         return PortfolioBenchmarkSummary(
             portfolio_xirr=None,
-            benchmarks=[IndexXirrRow(index=i, xirr=None) for i in BenchmarkIndex],
+            benchmarks=[IndexXirrRow(index=i, xirr=None) for i in LEGACY_BENCHMARK_INDICES],
         )
 
     holdings = await compute_holdings(db, household_member_ids)
@@ -171,13 +249,42 @@ async def compute_portfolio_vs_benchmarks(
     portfolio_xirr = _portfolio_xirr(transactions, current_value)
 
     benchmark_rows = []
-    for index in BenchmarkIndex:
+    legacy_rates: dict[BenchmarkIndex, Decimal | None] = {}
+    for index in LEGACY_BENCHMARK_INDICES:
         rate = await _benchmark_xirr_for_transactions(db, transactions, index)
+        legacy_rates[index] = rate
         benchmark_rows.append(IndexXirrRow(index=index, xirr=_xirr_str(rate)))
+
+    windows = []
+    try:
+        ctx, levels = await _window_inputs(
+            db,
+            household_member_ids,
+            min(transaction.date for transaction in transactions),
+            ALL_BENCHMARK_INDICES,
+        )
+        # The snapshot rebuild or index top-up above may have committed and expired `transactions`;
+        # selecting them again refreshes the whole batch in one statement.
+        transactions = _investment_transactions(db, household_member_ids)
+        from app.services.analytics.benchmark_windows import SinceInceptionRates
+
+        # The since-inception row reuses the rates solved above, so it equals the legacy numbers by
+        # construction and the solver does not run again on the longest cash-flow lists.
+        windows = compute_window_rows(
+            ctx,
+            transactions,
+            current_value,
+            levels,
+            since_inception=SinceInceptionRates(portfolio=portfolio_xirr, indices=legacy_rates),
+        )
+    except Exception as error:
+        _roll_back_if_database_error(db, error)
+        logger.warning("Portfolio benchmark windows could not be computed", exc_info=True)
 
     return PortfolioBenchmarkSummary(
         portfolio_xirr=_xirr_str(portfolio_xirr),
         benchmarks=benchmark_rows,
+        windows=windows,
     )
 
 
@@ -234,6 +341,9 @@ async def compute_fund_vs_benchmark(
     schemes = {s.id: s for s in db.query(Scheme).filter(Scheme.id.in_(grouped.keys())).all()}
 
     fund_rows: list[FundBenchmarkRow] = []
+    window_jobs: list[
+        tuple[FundBenchmarkRow, uuid.UUID, list[Transaction], BenchmarkIndex, Decimal | None, Decimal | None]
+    ] = []
     for scheme_id, scheme_txns in grouped.items():
         scheme = schemes[scheme_id]
         index = _benchmark_index_for_category(scheme.sebi_category)
@@ -259,10 +369,56 @@ async def compute_fund_vs_benchmark(
                 benchmark_xirr=_xirr_str(benchmark_rate),
             )
         )
+        window_jobs.append((fund_rows[-1], scheme_id, scheme_txns, index, fund_rate, benchmark_rate))
 
     total_current_value = sum(current_value_by_scheme.values(), Decimal("0"))
     overall_portfolio_rate = _portfolio_xirr(transactions, total_current_value)
     overall_broad_market_rate = await _benchmark_xirr_for_transactions(db, transactions, BenchmarkIndex.NIFTY_500)
+
+    # Windows come last, after every legacy number: a failure here can only leave `windows` empty. Each
+    # fund's own index is one of the legacy four, so only those are loaded and nothing new is fetched.
+    try:
+        window_transactions = []
+        seen_transactions = set()
+        for transaction in [*fund_level_transactions, *transactions]:
+            identity = (
+                ("id", transaction.id)
+                if transaction.id is not None
+                else ("object", id(transaction))
+            )
+            if identity not in seen_transactions:
+                seen_transactions.add(identity)
+                window_transactions.append(transaction)
+        window_ctx, window_levels = await _window_inputs(
+            db,
+            household_member_ids,
+            min(transaction.date for transaction in window_transactions),
+            LEGACY_BENCHMARK_INDICES,
+        )
+        # Refresh rows a commit above may have expired, in one statement (see the portfolio path).
+        _fund_level_transactions(db, household_member_ids)
+    except Exception as error:
+        _roll_back_if_database_error(db, error)
+        logger.warning("Fund benchmark window inputs could not be built", exc_info=True)
+    else:
+        for row, scheme_id, scheme_txns, index, fund_rate, benchmark_rate in window_jobs:
+            try:
+                row.windows = compute_fund_window_rows(
+                    window_ctx,
+                    scheme_id,
+                    scheme_txns,
+                    current_value_by_scheme.get(str(scheme_id), Decimal("0")),
+                    index,
+                    window_levels,
+                    since_inception=(fund_rate, benchmark_rate),
+                )
+            except Exception as error:
+                _roll_back_if_database_error(db, error)
+                logger.warning(
+                    "Fund benchmark windows could not be computed for scheme %s",
+                    scheme_id,
+                    exc_info=True,
+                )
 
     return FundVsBenchmarkSummary(
         funds=fund_rows,
