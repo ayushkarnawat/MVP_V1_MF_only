@@ -1,0 +1,25 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": null,
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "members": [
+    {
+      "id": "81e5a369-bbd4-59f1-b480-8a5bbf1c74ef",
+      "name": "ASHA RAO",
+      "has_data": false
+    },
+    {
+      "id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
+      "name": "Dev Rao",
+      "has_data": false
+    }
+  ],
+  "days": 30,
+  "start": "2026-09-24",
+  "end": "2026-10-23",
+  "empty": true,
+  "points": []
+}
