@@ -20,6 +20,8 @@ def pinned_xirr_clock(day: date):
     The Dashboard XIRR (reused by Portfolio and deliberately left unchanged) ends its cash flows at the real
     `date.today()`, while every other Portfolio input follows the injected clock. Without this pin the golden
     XIRR strings drift every calendar day and the golden-fixture test goes red with no code change (review H1).
+    Only the XIRR module needs the pin: holdings and nav read the real date only through "on or before" price
+    lookups, which return the same rows for any real date after the fixture's clock (re-review L7).
     """
 
     class _PinnedDate(date):

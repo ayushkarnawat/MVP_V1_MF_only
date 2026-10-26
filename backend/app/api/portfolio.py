@@ -5,13 +5,10 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.home import get_now_ist
 from app.db.session import get_db
-from app.models.folio import Folio
-from app.models.reference import NavHistory
 from app.models.user import User
 from app.services.auth.session import get_active_user
 from app.services.dashboard.holdings import compute_realized_summary
@@ -46,37 +43,16 @@ def _members(ctx: ScopeContext) -> list | None:
     return list(ctx.members) if ctx.scope == "aggregate" else None
 
 
-def _latest_price_day(db: Session, ctx: ScopeContext, today: date) -> date | None:
-    """The newest stored price date, on or before `today`, of any fund the scope has ever held."""
-    if not ctx.member_ids:
-        return None
-    held = select(Folio.scheme_id).where(Folio.household_member_id.in_(ctx.member_ids))
-    return db.execute(
-        select(func.max(NavHistory.date)).where(
-            NavHistory.scheme_id.in_(held), NavHistory.date <= today,
-        )
-    ).scalar_one_or_none()
-
-
 async def _load_inputs(
     db: Session, ctx: ScopeContext, today: date, *, lookback_days: int,
     view: Literal["fund", "category", "sector"],
 ) -> HomeInputs:
-    """Home's inputs with the price window anchored on the newest stored price, not on the calendar.
-
-    Every Portfolio figure is measured back from the latest price date (`nav_as_of`), which is the clock's day
-    only while the feed is current. Anchoring the load on `today` instead left the early part of the chart
-    unpriced (0.00, `partial` false), dropped funds sold before the loaded window, and left `today_gain` at 0.00
-    once the newest price was more than ~10 days old (review M1)."""
-    anchor = min(today, _latest_price_day(db, ctx, today) or today)
-    nav_start = anchor - timedelta(days=lookback_days)
-    inputs = await load_home_inputs(db, ctx, today, nav_start=nav_start, view=view)
-    # The newest price of the funds actually still held can be older than the newest price of any fund ever held
-    # (a fund sold after its feed went on): if so the window must reach back from that older date.
-    if inputs.nav_as_of is not None and inputs.nav_as_of - timedelta(days=lookback_days) < nav_start:
-        nav_start = inputs.nav_as_of - timedelta(days=lookback_days)
-        inputs = await load_home_inputs(db, ctx, today, nav_start=nav_start, view=view)
-    return inputs
+    """Home's inputs for the scope. The price window follows the newest stored price of the funds still held:
+    `load_home_inputs` shifts it back by the feed gap itself (HB8/HB9), once, so a dead feed still gets a full
+    window and Portfolio adds no anchoring of its own (re-review M1/M2: a second shift gave a false `partial`)."""
+    return await load_home_inputs(
+        db, ctx, today, nav_start=today - timedelta(days=lookback_days), view=view,
+    )
 
 
 async def _allocation(db: Session, user: User, member_id: uuid.UUID | None, now_ist: datetime):
