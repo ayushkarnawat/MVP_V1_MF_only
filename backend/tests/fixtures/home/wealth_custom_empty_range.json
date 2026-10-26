@@ -1,0 +1,21 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": "2026-10-23",
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "period": "custom",
+  "start": "2016-10-23",
+  "end": "2016-12-31",
+  "clamped": true,
+  "empty": true,
+  "points": [],
+  "start_value": "0.00",
+  "end_value": "0.00",
+  "net_contributions": "0.00",
+  "change_amount": "0.00",
+  "change_pct": null,
+  "change_method": "modified_dietz",
+  "benchmark": null
+}

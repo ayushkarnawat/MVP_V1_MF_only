@@ -135,13 +135,36 @@ Anything the code shows that this handoff did not say goes under Findings; behav
 ## Report (Codex fills this in at the end, in one fenced block)
 ```
 CODEX REPORT — ui-redesign — HB5
-Run date/time:    Environment:    Python: 3.14    Baseline HEAD:
-1. TASK STATUS (Tasks 0 to 4):
-2. FILES (added and changed):
-3. TESTS (RED list, GREEN task runs, final fresh commands and last lines; the gate output in full):
-4. DEVIATIONS (mechanics only):
-5. FINDINGS (including which flow helper was reused, which fixtures were hand-checked and the arithmetic):
-6. OPEN QUESTIONS / BLOCKERS:
-7. SELF-REVIEW FINDINGS:
-8. CONFIRMATIONS: No git write commands: ___  Full suites not run: ___  Edits only in the allowed files: ___  ~/s25/s25.db unmodified (sha256 before and after): ___
+Run date/time: 2026-10-26 12:19 IST    Environment: WSL Ubuntu from Windows/PowerShell, D:\Unifolio code    Python: 3.14    Baseline HEAD: 8fd8aa20e328566d8b7ac3ab90e326fba1c41505
+1. TASK STATUS (Tasks 0 to 4): Task 0 COMPLETE. Task 1 COMPLETE. Task 2 COMPLETE. Task 3 INCOMPLETE/BLOCKED after deterministic live-route fixture, 24 generated JSON files, OpenAPI/auth/404/422 and base reconciliation coverage; the full required variant matrix, no-write/recompute checks, statement-count checks, Dashboard route parity test, and semantic review of every named golden variant are not complete. Task 4 BLOCKED on the base scenario by an existing forbidden-file one-paisa allocation mismatch, so later scenarios and neighbour commands were not run.
+2. FILES (added and changed): changed backend/app/main.py (home router registration only); added backend/app/services/home/schemas.py, context.py, wealth.py; added backend/app/api/home.py; added backend/scripts/write_home_fixtures.py and home_synthetic_gate.py; added backend/tests/api/home_fixture.py and test_home_routes.py; added backend/tests/services/home/test_context.py and test_wealth.py; generated all 24 requested backend/tests/fixtures/home/*.json files; changed this Report block. Pre-existing untracked Web app UI mockups MFs.pdf was not touched.
+3. TESTS (RED list, GREEN task runs, final fresh commands and last lines; the gate output in full): RED observed: schemas import failed because app.services.home.schemas did not exist; context/wealth collection failed because those modules did not exist; twelve route tests returned 404/no OpenAPI paths before registration; deterministic DB fixture first failed at explicit FK insert ordering and then exposed detached ORM instances; gate first failed before DB access because direct script execution lacked backend on sys.path; copied-DB base gate then failed the required value-chain invariant by Rs 0.01. GREEN targeted task runs, all using the one approved command: 225 passed, 1 warning; 230 passed, 1 warning; 238 passed, 2 warnings; 242 passed, 2 warnings; latest 243 passed, 2 warnings in 12.30s. Fresh final neighbour commands were not run because the handoff says to stop if a forbidden existing home service needs a change. tests/services/analytics/test_portfolio_disclosure_parsing.py was not collected, as instructed (xlwt absent; nothing installed). Latest gate output in full:
+/mnt/d/Unifolio code/backend/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+2026-10-26 06:48:43,922 httpx: HTTP Request: GET http://testserver/household/aggregate/home/summary "HTTP/1.1 200 OK"
+2026-10-26 06:48:43,947 httpx: HTTP Request: GET http://testserver/household/aggregate/home/movers?by=fund "HTTP/1.1 200 OK"
+2026-10-26 06:48:43,978 httpx: HTTP Request: GET http://testserver/household/aggregate/home/wealth-series?period=1D "HTTP/1.1 200 OK"
+2026-10-26 06:48:44,012 httpx: HTTP Request: GET http://testserver/household/aggregate/home/allocation "HTTP/1.1 200 OK"
+2026-10-26 06:48:44,039 httpx: HTTP Request: GET http://testserver/household/aggregate/home/worth-a-look "HTTP/1.1 200 OK"
+source_sha256_before: f51884f66c2789de15879632a02f16c2353b4e49e337c3d894e87194ab05186f
+base identity: PASS
+base mover_sum: PASS
+base value_chain: FAIL (point=8222736.45 end=8222736.45 summary=8222736.45 allocation=8222736.44)
+base holdings_parity: PASS
+base worth_state: unavailable
+Traceback (most recent call last):
+  File "/mnt/d/Unifolio code/backend/scripts/home_synthetic_gate.py", line 201, in <module>
+    main()
+    ~~~~^^
+  File "/mnt/d/Unifolio code/backend/scripts/home_synthetic_gate.py", line 187, in main
+    for line in _run_scenario(source, Path(directory), scenario):
+                ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/d/Unifolio code/backend/scripts/home_synthetic_gate.py", line 169, in _run_scenario
+    raise AssertionError(f"{scenario} failed: {checks}")
+AssertionError: base failed: {'identity': True, 'mover_sum': True, 'value_chain': False, 'holdings_parity': True}
+4. DEVIATIONS (mechanics only): load_home_inputs accepts an additional keyword-only view argument (default "sector") because the required behavior says to load sector weights only for a sector request and to pass view to compute_movers, while the prose signature omitted view. The tests use asyncio.run because this repository does not load an async pytest plugin. The golden writer was exercised through the approved pytest command rather than as an extra unlisted command. Work stopped before final neighbour runs because the gate proved an allowed-file-only fix cannot satisfy the required invariant.
+5. FINDINGS (including which flow helper was reused, which fixtures were hand-checked and the arithmetic): wealth cash flows reuse app.services.dashboard.xirr._FUND_RELEVANT_TYPES and _signed_amount with SWITCH_IN in extra debit types, then invert the XIRR sign to express contributions as positive and redemptions as negative; paid_amount therefore preserves stamp duty handling. Hand-checked the deterministic summary, wealth 1D and movers fund arithmetic: Large Cap 100*(12.10-12.00)=+10.00; Flexi Cap 50*(19.80-20.00)=-10.00; Debt 200*(10.01-10.00)=+2.00; Gold 10*(101.00-100.00)=+10.00; net=+12.00. Ending value=1210.00+990.00+2002.00+1010.00=5212.00, matching summary, wealth end and fallback allocation in the deterministic fixture. Code finding not stated by the handoff: the real local base data exposes a rounding-order disagreement—home/allocation.py quantizes each holding row before summing, while the headline/holdings path sums exact current_value values and quantizes at the aggregate; on this DB that differs by Rs 0.01. Also, direct script execution needs backend inserted into sys.path, as existing package imports otherwise fail.
+6. OPEN QUESTIONS / BLOCKERS: May backend/app/services/home/allocation.py be added to the allowed files so load_allocation can sum exact Decimal holding values and quantize once (or should the decided invariant be changed)? The current exact requirements cannot all hold: the route must use Allocation's dataclass value, no new money calculation is allowed, allocation.py is forbidden to edit, and the gate requires allocation.total_value == summary.total_value. Base evidence is 8222736.44 versus 8222736.45. Per the handoff's stop rule, no guess was made. The 24 currently generated golden files are provisional: filenames for empty/partial/all-down/stored-card variants exist, but those semantic variants were not completed or approved after the blocker and must not be treated as final front-end fixtures.
+7. SELF-REVIEW FINDINGS: Exact schema field names/order/optionality and plain-string Decimal serialization are implemented; all models forbid extras. Twelve paths and response models are registered and the targeted suite is green. No float() or float literals are present in the new home modules. git diff --check returned clean; tracked edited files report LF. Remaining known gaps are exactly the Task 3/4 items called out above. The gate correctly copies the input DB per scenario and never imports tests, but it intentionally exits on the first failed invariant, so only base executed. The fixture writer currently imports the deterministic test factory when run as a standalone script; this is not forbidden for the writer, but it should be revisited when the semantic variant factory is completed.
+8. CONFIRMATIONS: No git write commands: YES  Full suites not run: YES  Edits only in the allowed files: YES  ~/s25/s25.db unmodified (sha256 before and after): YES — f51884f66c2789de15879632a02f16c2353b4e49e337c3d894e87194ab05186f before and f51884f66c2789de15879632a02f16c2353b4e49e337c3d894e87194ab05186f after
 ```

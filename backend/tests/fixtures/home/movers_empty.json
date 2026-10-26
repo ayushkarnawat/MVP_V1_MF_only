@@ -1,0 +1,59 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": "2026-10-23",
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "requested_view": "fund",
+  "view": "fund",
+  "fell_back": false,
+  "estimated": false,
+  "coverage_pct": null,
+  "net_change": "12.00",
+  "net_pct": "0.2308",
+  "previous_value": "5200.00",
+  "previous_nav_date": "2026-10-22",
+  "gains": [
+    {
+      "key": "54b8755e-6b2b-5f4f-a8fe-b41125031af6",
+      "label": "Asha Large Cap",
+      "change": "10.00",
+      "funds": [
+        {
+          "scheme_id": "54b8755e-6b2b-5f4f-a8fe-b41125031af6",
+          "name": "Asha Large Cap",
+          "change": "10.00"
+        }
+      ]
+    },
+    {
+      "key": "7c906599-2ff8-5de4-83f9-b94651c683f2",
+      "label": "Dev Gold Fund",
+      "change": "10.00",
+      "funds": [
+        {
+          "scheme_id": "7c906599-2ff8-5de4-83f9-b94651c683f2",
+          "name": "Dev Gold Fund",
+          "change": "10.00"
+        }
+      ]
+    }
+  ],
+  "losses": [
+    {
+      "key": "fe06ac21-f8c7-5dbf-a877-5c703ddbcdef",
+      "label": "Asha Flexi Cap",
+      "change": "-10.00",
+      "funds": [
+        {
+          "scheme_id": "fe06ac21-f8c7-5dbf-a877-5c703ddbcdef",
+          "name": "Asha Flexi Cap",
+          "change": "-10.00"
+        }
+      ]
+    }
+  ],
+  "others_count": 1,
+  "others_change": "2.00"
+}

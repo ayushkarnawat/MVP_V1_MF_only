@@ -1,0 +1,156 @@
+from __future__ import annotations
+
+import uuid
+from dataclasses import dataclass
+from datetime import date, timedelta
+from decimal import Decimal
+from typing import Literal
+
+from sqlalchemy.orm import Session
+
+from app.models.user import User
+from app.services.dashboard.aggregate import get_member_statuses
+from app.services.dashboard.holdings import compute_holdings
+from app.services.dashboard.household_members import list_household_members
+from app.services.dashboard.member_details import require_member
+from app.services.dashboard.schemas import HoldingRow
+from app.services.home.movers import FundInput, Movers, compute_movers, load_sector_weights
+from app.services.home.schemas import MemberOut, MissingFund
+from app.services.home.series import ValueSeries, build_value_series, load_navs_by_scheme
+from app.services.home.units import build_units_timeline
+
+
+@dataclass(frozen=True)
+class ScopeContext:
+    scope: Literal["aggregate", "member"]
+    member_id: uuid.UUID | None
+    member_ids: tuple[uuid.UUID, ...]
+    members: tuple[MemberOut, ...]
+    member_name: str | None
+
+
+@dataclass(frozen=True)
+class HomeInputs:
+    holdings: tuple[HoldingRow, ...]
+    funds: tuple[FundInput, ...]
+    movers: Movers
+    series: ValueSeries
+    nav_as_of: date | None
+    partial: bool
+    missing_funds: tuple[MissingFund, ...]
+
+
+def resolve_scope(
+    db: Session,
+    user: User,
+    member_id: uuid.UUID | None,
+) -> ScopeContext:
+    household = sorted(
+        list_household_members(db, user.id),
+        key=lambda member: (member.created_at, str(member.id)),
+    )
+    status_by_id = {status.id: status for status in get_member_statuses(db, user.id)}
+    members = tuple(
+        MemberOut(
+            id=str(member.id),
+            name=member.name,
+            has_data=status_by_id[str(member.id)].has_data,
+        )
+        for member in household
+    )
+    if member_id is None:
+        return ScopeContext(
+            scope="aggregate",
+            member_id=None,
+            member_ids=tuple(member.id for member in household),
+            members=members,
+            member_name=None,
+        )
+    member = require_member(db, user.id, member_id)
+    return ScopeContext(
+        scope="member",
+        member_id=member.id,
+        member_ids=(member.id,),
+        members=members,
+        member_name=member.name,
+    )
+
+
+def _calendar_days(start: date, end: date) -> list[date]:
+    return [start + timedelta(days=offset) for offset in range((end - start).days + 1)]
+
+
+async def load_home_inputs(
+    db: Session,
+    ctx: ScopeContext,
+    today: date,
+    *,
+    nav_start: date,
+    view: Literal["fund", "category", "sector"] = "sector",
+) -> HomeInputs:
+    holdings = tuple(
+        await compute_holdings(db, list(ctx.member_ids), allow_stale_today=True)
+    )
+    by_scheme: dict[uuid.UUID, HoldingRow] = {}
+    for row in holdings:
+        by_scheme.setdefault(uuid.UUID(row.scheme_id), row)
+    held_scheme_ids = set(by_scheme)
+    valued_scheme_ids = {
+        scheme_id
+        for scheme_id, row in by_scheme.items()
+        if not row.nav_unavailable and row.current_value is not None
+    }
+    units = build_units_timeline(
+        db, ctx.member_ids, scheme_ids=frozenset(held_scheme_ids)
+    )
+    navs = load_navs_by_scheme(db, valued_scheme_ids, nav_start, today)
+    sector_weights = (
+        load_sector_weights(db, held_scheme_ids, today) if view == "sector" else {}
+    )
+
+    funds = []
+    for scheme_id, row in sorted(by_scheme.items(), key=lambda item: (item[1].scheme_name, str(item[0]))):
+        daily_navs = list(navs.get(scheme_id, ()))
+        statement_priced = bool(row.price_from_statement or not daily_navs)
+        if (
+            statement_priced
+            and row.current_nav is not None
+            and row.current_nav_date is not None
+        ):
+            daily_navs = [(row.current_nav_date, Decimal(row.current_nav))]
+        funds.append(FundInput(
+            scheme_id=scheme_id,
+            name=row.scheme_name,
+            category=row.sebi_category or "",
+            units_timeline=units.get(scheme_id, ()),
+            navs=daily_navs,
+            statement_priced=statement_priced,
+            sector_weights=sector_weights.get(scheme_id),
+        ))
+
+    movers = compute_movers(funds, today, view)
+    dates = _calendar_days(nav_start, today) if nav_start <= today else []
+    series = build_value_series(units, navs, dates)
+    missing_ids = {
+        scheme_id for scheme_id, row in by_scheme.items() if row.nav_unavailable
+    }
+    missing_ids.update(movers.stale_scheme_ids)
+    missing_ids.update(movers.missing_scheme_ids)
+    missing_ids.update(series.missing_schemes)
+    missing_funds = tuple(sorted(
+        (
+            MissingFund(scheme_id=str(scheme_id), name=by_scheme[scheme_id].scheme_name)
+            for scheme_id in missing_ids
+        ),
+        key=lambda item: (item.name, item.scheme_id),
+    ))
+    partial = bool(missing_funds) or movers.partial or series.partial
+    return HomeInputs(
+        holdings=holdings,
+        funds=tuple(funds),
+        movers=movers,
+        series=series,
+        nav_as_of=movers.as_of_nav_date,
+        partial=partial,
+        missing_funds=missing_funds,
+    )
