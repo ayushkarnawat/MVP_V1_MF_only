@@ -16,7 +16,7 @@ The tests for the kit are **already written and committed** (commit `ce872db7`, 
 8. **If anything differs from this packet** (a file is missing, a command prints something unexpected, a symbol does not exist) **stop and report it**; do not improvise.
 
 ## Step 0: environment check (do this first, and report the output)
-The folder is on WSL. If Antigravity can open it as a WSL folder, use its terminal inside WSL. If not, open the Windows path above and run every command below through WSL by prefixing `wsl.exe -d Ubuntu --cd /home/ayush/wt/ui-kit/frontend -- ` (for example `wsl.exe -d Ubuntu --cd /home/ayush/wt/ui-kit/frontend -- npx tsc -b`). Never run `npm`/`npx` from Windows itself: the installed `node_modules` only works inside WSL.
+The folder lives on WSL's disk and is opened in Antigravity through the Windows drive `W:` (path `W:\home\ayush\wt\ui-kit`, which is the same folder as `\\wsl.localhost\Ubuntu\home\ayush\wt\ui-kit`). You can read and edit the files there normally. **Every command (`git`, `npm`, `npx`, `grep`, `cd`) must run inside WSL, not in Windows**, because the git metadata and `node_modules` only work there. If your terminal is a Windows terminal, prefix each command like this: `wsl.exe -d Ubuntu --cd /home/ayush/wt/ui-kit -- <command>` for git commands and `wsl.exe -d Ubuntu --cd /home/ayush/wt/ui-kit/frontend -- <command>` for npm/npx commands (for example `wsl.exe -d Ubuntu --cd /home/ayush/wt/ui-kit/frontend -- npx tsc -b`). If your terminal is already a WSL terminal, no prefix is needed. Never run `git`, `npm` or `npx` as plain Windows commands in this folder.
 Run, from `/home/ayush/wt/ui-kit` and report the output of each:
 ```
 git branch --show-current          # expect: feat/ui-kit
