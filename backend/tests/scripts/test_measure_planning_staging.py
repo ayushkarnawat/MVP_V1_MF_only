@@ -55,6 +55,8 @@ def test_time_call_returns_one_duration_per_repeat():
         "select pg_catalog.version()",
         "SET TRANSACTION ISOLATION LEVEL READ COMMITTED",
         "BEGIN (implicit)",
+        "SELECT replace(scheme_name, 'a', 'b') FROM schemes",
+        "SELECT REPLACE (name, ' ', '') FROM schemes",
     ],
 )
 def test_reads_and_connection_housekeeping_are_not_writes(statement):
@@ -68,6 +70,7 @@ def test_reads_and_connection_housekeeping_are_not_writes(statement):
         "  update portfolio_snapshots set total_value = 0",
         "DELETE FROM analytics_sections",
         "REPLACE INTO nav_history VALUES (1)",
+        "REPLACE INTO nav_history (scheme_id) VALUES (1)",
         "CREATE TABLE x (id int)",
         "ALTER TABLE nav_history ADD COLUMN y int",
         "DROP TABLE nav_history",
