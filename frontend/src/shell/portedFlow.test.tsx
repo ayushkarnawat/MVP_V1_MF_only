@@ -7,6 +7,8 @@ import * as dashboardApi from "../features/dashboard/api";
 import { ApiError } from "../lib/apiClient";
 import { ShellRoot, ShellRoutes } from "./ShellRoot";
 import { ScopeProvider } from "./scope/ScopeProvider";
+import { buildRegistry } from "./registry/buildRegistry";
+import { RegistryContext } from "./registry/RegistryContext";
 import { ImportProvider } from "./nav/ImportProvider";
 import { useScope } from "./scope/ScopeContext";
 
@@ -50,8 +52,13 @@ function Controls() {
     <button onClick={() => { void navigate(-1); }}>Browser back</button><button onClick={() => { void navigate(1); }}>Browser forward</button>
     <button onClick={() => { void navigate("/planning"); }}>Go Planning</button></>;
 }
+// /portfolio/mutual-funds now renders the new Overview (features/mutual-funds), so the Dashboard has no route of its own.
+// These ported flows (scope, notices, import return) still exercise the Dashboard through its wrapper at that path.
+// /portfolio/mutual-funds/analytics renders the new Other Analytics page too (packet MF-C), so the old Analytics screen is mounted the same way.
+const legacyRoutes = buildRegistry().map(route => route.id === "portfolio-mutual-funds" ? { ...route, page: () => import("./wrappers/DashboardWrapper") }
+  : route.id === "portfolio-mutual-funds-analytics" ? { ...route, page: () => import("./wrappers/AnalyticsWrapper") } : route);
 function mount(path = "/portfolio/mutual-funds") {
-  return render(<MemoryRouter initialEntries={[path]}><ScopeProvider><ImportProvider><ShellRoutes /><Controls /></ImportProvider></ScopeProvider></MemoryRouter>);
+  return render(<MemoryRouter initialEntries={[path]}><RegistryContext.Provider value={legacyRoutes}><ScopeProvider><ImportProvider><ShellRoutes /><Controls /></ImportProvider></ScopeProvider></RegistryContext.Provider></MemoryRouter>);
 }
 async function pick(name: RegExp) {
   const trigger = await screen.findByRole("combobox", { name: "Portfolio scope" });

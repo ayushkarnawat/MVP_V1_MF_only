@@ -20,10 +20,11 @@ afterEach(() => vi.restoreAllMocks());
 function SearchProbe() { return <output data-testid="search">{useLocation().search}</output>; }
 function Location() { return <output data-testid="location">{useLocation().pathname}</output>; }
 
-it.each([["/", "/home", "Home"], ["/planning", "/planning", "Planning"], ["/portfolio/equity", "/portfolio/mutual-funds", "Mutual Funds"]])(
-  "resolves %s according to the current registry", async (path, destination, title) => {
+// The Mutual Funds page's h1 is "All Investments" while its route title (browser tab) stays "Mutual Funds".
+it.each([["/", "/home", "Home", "Home"], ["/planning", "/planning", "Planning", "Planning"], ["/portfolio/equity", "/portfolio/mutual-funds", "All Investments", "Mutual Funds"]])(
+  "resolves %s according to the current registry", async (path, destination, heading, title) => {
     renderInShell(<><ShellRoutes /><Location /></>, { path });
-    expect(await screen.findByRole("heading", { name: title, level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: heading, level: 1 })).toBeInTheDocument();
     expect(screen.getByTestId("location")).toHaveTextContent(destination);
     await waitFor(() => expect(document.title).toBe(`${title} · Unifolio`));
   },

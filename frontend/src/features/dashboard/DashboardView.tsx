@@ -7,11 +7,11 @@ import { EmptyState } from "../../components/EmptyState";
 import { HoldingsTableSkeleton } from "../../components/Skeleton";
 import { Badge } from "../../components/Badge";
 import { Button } from "@/components/ui/button";
-import { FundDetailModal } from "./FundDetailModal";
-import { DistributorComparisonModal } from "./DistributorComparisonModal";
+import { FundDetailModal } from "@/components/mf/FundDetailModal";
+import { DistributorComparisonModal } from "@/components/mf/DistributorComparisonModal";
 import { AllocationDrilldownModal } from "./AllocationDrilldownModal";
-import { CoverageGapBanner } from "../import/CoverageGapBanner";
-import { OpeningBalanceModal } from "../import/OpeningBalanceModal";
+import { CoverageGapBanner } from "@/components/mf/CoverageGapBanner";
+import { OpeningBalanceModal } from "@/components/mf/OpeningBalanceModal";
 import { getMemberCoverageGaps } from "../import/api";
 import type { CoverageGapItem } from "../import/types";
 import { sumDecimalStrings, formatIndianCurrency, toPercentString } from "../../lib/decimal";
@@ -43,7 +43,7 @@ import type {
 } from "./types";
 import { XirrDisclaimerModal } from "./XirrDisclaimerModal";
 import { openingSharePercent } from "./xirrDisclaimerFormat";
-import { SoldFundsSection } from "./SoldFundsSection";
+import { SoldFundsSection } from "@/components/mf/SoldFundsSection";
 import { cn } from "@/lib/utils";
 import { ArrowUpRight, ArrowDownRight, User, Users, AlertTriangle, BarChart2, Info } from "lucide-react";
 

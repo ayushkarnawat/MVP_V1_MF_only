@@ -1,9 +1,9 @@
 import { indexFromClientX } from "@/lib/chartPointer";
-import { PlanBadge } from "@/features/dashboard/PlanBadge";
+import { PlanBadge } from "@/components/mf/PlanBadge";
 import { useState, useMemo, useRef, useLayoutEffect, useEffect } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { Badge } from "@/components/Badge";
-import { navPriceBadge } from "@/features/dashboard/navPriceBadge";
+import { navPriceBadge } from "@/components/mf/navPriceBadge";
 import { FundSignal } from "@/components/FundSignal";
 import { Skeleton } from "@/components/Skeleton";
 import { cn } from "@/lib/utils";

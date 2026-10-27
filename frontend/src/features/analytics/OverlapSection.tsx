@@ -2,8 +2,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { compareDecimalStrings } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
-import { CoverageBanner } from "./CoverageBanner";
-import { formatPercent, holdingsDate, percentageProduct } from "./lookthroughDisplay";
+import { CoverageBanner } from "@/components/mf/CoverageBanner";
+import { formatPercent, holdingsDate, percentageProduct } from "@/components/mf/lookthroughDisplay";
 import type { OverlapPair, OverlapSummary } from "./types";
 
 const CARD = "rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6 shadow-2xs";

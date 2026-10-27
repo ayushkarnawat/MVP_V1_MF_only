@@ -13,7 +13,7 @@ const route: ShellRoute = {
   scope: "family-or-member",
   status: "live",
   title: "Other Analytics",
-  page: () => import("../wrappers/AnalyticsWrapper"),
+  page: () => import("../../features/mutual-funds/other/OtherAnalyticsPage"),
 };
 
 export default route;

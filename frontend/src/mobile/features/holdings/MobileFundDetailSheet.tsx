@@ -1,7 +1,7 @@
-import { PlanBadge } from "@/features/dashboard/PlanBadge";
+import { PlanBadge } from "@/components/mf/PlanBadge";
 import { useEffect } from "react";
 import { Badge } from "@/components/Badge";
-import { navPriceBadge } from "@/features/dashboard/navPriceBadge";
+import { navPriceBadge } from "@/components/mf/navPriceBadge";
 import { FundSignal } from "@/components/FundSignal";
 import { Button } from "@/components/ui/button";
 import { cn, formatDdMmYyyy } from "@/lib/utils";

@@ -4,9 +4,9 @@ import { defaultPieColors } from "@/components/ui/charts/pie-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { compareDecimalStrings } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
-import { CoverageBanner } from "./CoverageBanner";
+import { CoverageBanner } from "@/components/mf/CoverageBanner";
 import { CapAllocationSection } from "./CapAllocationSection";
-import { formatPercent, holdingsDate, percentageProduct } from "./lookthroughDisplay";
+import { formatPercent, holdingsDate, percentageProduct } from "@/components/mf/lookthroughDisplay";
 import type { AssetAllocationSummary } from "./types";
 
 const LABELS = { equity: "Equity", debt: "Debt", gold: "Gold", cash_like: "Cash-like" };

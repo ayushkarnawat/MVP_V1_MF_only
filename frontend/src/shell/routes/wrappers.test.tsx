@@ -13,6 +13,7 @@ import { ImportHealth } from "../../features/dev/ImportHealth";
 import { ScenariosScreen } from "../../features/scenarios/ScenariosScreen";
 import { invalidateApiCache } from "../../lib/apiClient";
 import { ShellRoutes } from "../ShellRoot";
+import DashboardWrapper from "../wrappers/DashboardWrapper";
 import { renderInShell } from "../testing";
 import { buildRegistry } from "../registry/buildRegistry";
 
@@ -58,12 +59,20 @@ function Location() {
     <button onClick={() => { void navigate("/profile"); }}>Go Profile</button></>;
 }
 
+// /portfolio/mutual-funds/analytics renders the new Other Analytics page (features/mutual-funds), so the old Analytics screen has no
+// route of its own; these checks still exercise it through its wrapper at that path (packet MF-C).
+const legacyRoutes = buildRegistry().map(route => route.id === "portfolio-mutual-funds-analytics" ? { ...route, page: () => import("../wrappers/AnalyticsWrapper") } : route);
 function mount(path: string, state?: unknown) {
-  return renderInShell(<><ShellRoutes /><Location /></>, { path, state, scope, openImport });
+  return renderInShell(<><ShellRoutes /><Location /></>, { path, state, scope, openImport, routes: legacyRoutes });
+}
+
+// The Dashboard no longer has a route (/portfolio/mutual-funds renders the new Overview), so its wrapper is mounted directly.
+function mountDashboard(path: string, state?: unknown) {
+  return renderInShell(<><DashboardWrapper /><Location /></>, { path, state, scope, openImport });
 }
 
 it.each(["member", "aggregate"] as const)("passes %s scope and callbacks to Dashboard", async viewMode => {
-  renderInShell(undefined, { path: "/portfolio/mutual-funds", scope: { ...scope, viewMode }, openImport });
+  renderInShell(<DashboardWrapper />, { path: "/portfolio/mutual-funds", scope: { ...scope, viewMode }, openImport });
   await screen.findByRole("heading", { name: "Dashboard screen" });
   expect(vi.mocked(DashboardView).mock.calls.at(-1)?.[0]).toMatchObject({ viewMode, memberId: "b", onAddDataForMember: openImport });
   fireEvent.click(screen.getByRole("button", { name: "Dashboard import" })); expect(openImport).toHaveBeenCalledWith("b");
@@ -76,7 +85,7 @@ it.each(["member", "aggregate"] as const)("passes %s scope and member name to Hi
 });
 
 it.each(["member", "aggregate"] as const)("passes %s scope and callbacks to Analytics", async viewMode => {
-  renderInShell(undefined, { path: "/portfolio/mutual-funds/analytics", scope: { ...scope, viewMode }, openImport });
+  renderInShell(undefined, { path: "/portfolio/mutual-funds/analytics", scope: { ...scope, viewMode }, openImport, routes: legacyRoutes });
   await screen.findByRole("heading", { name: "Analytics screen" });
   expect(vi.mocked(AnalyticsView).mock.calls.at(-1)?.[0]).toEqual({ viewMode, memberId: "b", activeMemberName: "Bob", onAddDataForMember: openImport });
   fireEvent.click(screen.getByRole("button", { name: "Analytics import" })); expect(openImport).toHaveBeenCalledWith("b");
@@ -84,7 +93,7 @@ it.each(["member", "aggregate"] as const)("passes %s scope and callbacks to Anal
 
 it("passes the import notice then replaces the same URL with cleared state on dismissal", async () => {
   const notice = { text: "Imported", details: ["Ready"] };
-  mount("/portfolio/mutual-funds?period=1#holdings", { importNotice: notice, importNoticeUser: "u-1" });
+  mountDashboard("/portfolio/mutual-funds?period=1#holdings", { importNotice: notice, importNoticeUser: "u-1" });
   await screen.findByRole("heading", { name: "Dashboard screen" });
   expect(vi.mocked(DashboardView).mock.calls.at(-1)?.[0].importNotice).toEqual(notice);
   fireEvent.click(screen.getByRole("button", { name: "Dismiss notice" }));
@@ -94,15 +103,21 @@ it("passes the import notice then replaces the same URL with cleared state on di
   expect(JSON.parse(screen.getByTestId("location").textContent!).state).toBeNull();
 });
 
-it("opens History through Dashboard and supports browser back and forward between live pages", async () => {
-  mount("/portfolio/mutual-funds");
+it("opens History from the old Dashboard wrapper", async () => {
+  mountDashboard("/portfolio/mutual-funds");
   fireEvent.click(await screen.findByRole("button", { name: "Open history" }));
+  await waitFor(() => expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/portfolio/mutual-funds/history"));
+});
+
+it("supports browser back and forward between live pages", async () => {
+  mount("/portfolio/mutual-funds/history");
   await screen.findByRole("heading", { name: "History screen" });
-  expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/portfolio/mutual-funds/history");
+  fireEvent.click(screen.getByRole("button", { name: "Go Profile" }));
+  await screen.findByRole("heading", { name: "Profile screen" });
   fireEvent.click(screen.getByRole("button", { name: "History back" }));
-  await screen.findByRole("heading", { name: "Dashboard screen" });
-  fireEvent.click(screen.getByRole("button", { name: "History forward" }));
   await screen.findByRole("heading", { name: "History screen" });
+  fireEvent.click(screen.getByRole("button", { name: "History forward" }));
+  await screen.findByRole("heading", { name: "Profile screen" });
 });
 
 it("renders Scenarios without props", async () => {
@@ -143,7 +158,7 @@ it.each([
   ["another user's", { importNotice: { text: "Ramesh: 9 added" }, importNoticeUser: "u-2" }],
   ["an unattributed", { importNotice: { text: "Ramesh: 9 added" } }],
 ])("does not show %s import notice left in browser history", async (_label, state) => {
-  mount("/portfolio/mutual-funds", state);
+  mountDashboard("/portfolio/mutual-funds", state);
   await screen.findByRole("heading", { name: "Dashboard screen" });
   expect(vi.mocked(DashboardView).mock.calls.at(-1)?.[0].importNotice).toBeNull();
 });
@@ -187,7 +202,6 @@ it.each(["member", "aggregate"] as const)("passes memberId to ImportHealth only 
 });
 
 it.each([
-  ["/portfolio/mutual-funds", "Dashboard screen", true],
   ["/portfolio/mutual-funds/history", "History screen", true],
   ["/portfolio/mutual-funds/analytics", "Analytics screen", true],
   ["/planning", "Scenarios screen", false],
@@ -208,5 +222,5 @@ it.each([
 
 it("enables only the requested routes (Home since G6) and preserves the existing import route", () => {
   const live = buildRegistry().filter(route => route.status === "live").map(route => route.id).sort();
-  expect(live).toEqual(["root", "not-found", "home", "portfolio", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "profile", "profile-import-health", "profile-personal"].sort());
+  expect(live).toEqual(["root", "not-found", "home", "portfolio", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "profile", "profile-import-health", "profile-personal", "portfolio-mutual-funds-performance", "portfolio-mutual-funds-allocation", "portfolio-mutual-funds-holdings", "portfolio-mutual-funds-transactions", "portfolio-mutual-funds-overlap"].sort());
 });

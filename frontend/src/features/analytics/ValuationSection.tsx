@@ -3,8 +3,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { defaultPieColors } from "@/components/ui/charts/pie-context";
 import { compareDecimalStrings } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
-import { CoverageBanner } from "./CoverageBanner";
-import { formatPercent, holdingsDate, percentageProduct } from "./lookthroughDisplay";
+import { CoverageBanner } from "@/components/mf/CoverageBanner";
+import { formatPercent, holdingsDate, percentageProduct } from "@/components/mf/lookthroughDisplay";
 import type { ValuationSummary } from "./types";
 
 const CARD = "rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6 shadow-2xs";
