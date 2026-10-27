@@ -4,6 +4,8 @@
 
 **Environment:** redesign link `https://ls-redesign.unifolio.in` (same API, database, worker and cron as `https://ls-staging.unifolio.in`). VM commands run in `/opt/unifolio-redesign/deploy/leapswitch` as root or with `sudo`. Branch under test: `leapswitch-redesign` (never `main`, never `feat/leapswitch-staging`). Synthetic statements: `Docs/CAS Files/synthetic/pdfs/realistic/`, password `MF@123`.
 
+**Needs ready before you start (see the guide, "Before you start"):** the Healthchecks.io ping URL for the News job, a test household's user UUID (rows B13 to B17), and 5 GB or more of free disk on the VM.
+
 **Date / tester / commit under test (`git log -1 --format=%h`):** ______ / ______ / ______
 
 **How to fill it in:** Pass, Fail or Skip in the notes column with a short note; initials in the last column. "Expected: look for ..." means the exact text is not fixed by the sources, so judge it by what is described. **Fixer:** Backend = backend developer/Claude session; Frontend = frontend session; Ops = owner or manager on the VM; Owner = a decision, not a bug.

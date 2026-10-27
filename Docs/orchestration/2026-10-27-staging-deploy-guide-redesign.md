@@ -21,6 +21,17 @@ Modelled on `2026-10-10-staging-deploy-guide-subproject-1.md` and `leapswitch-st
 - New cron lines: `news-refresh`, `news-refresh-catchup`, and Sunday 05:20 `nse-symbol-fill`.
 - Home news feed freshness is the last successful `refresh_news` run (`job_runs`). **The feed shows empty until the first successful refresh after 0046 is live.**
 
+## Before you start: what the owner supplies
+
+Have these ready before section 0, so no step stalls halfway:
+
+| Item | Needed in | Who |
+|---|---|---|
+| **Healthchecks.io check for the News job** and its ping URL (becomes `HEALTHCHECK_NEWS_URL`) | Section 5, and the live runs in section 6b | Owner creates the check (period and grace suited to a run every 3 hours plus the nightly catch-up) and gives the manager the URL |
+| **A test household with real statements** and its **user UUID** (becomes `<UUID>`) | Sections 13 and 14 (Planning script, I2 timings), and the Worth-a-look and XIRR checks | Owner picks the household and gives the manager the UUID. Open History for that household once before section 14 |
+| **Free disk and memory on the VM** (several GB of disk for the image build; 16 GB RAM) | Checked in section 0 | Manager; stop and tell the owner if disk is under 5 GB free |
+| **Synthetic statements** from `Docs/CAS Files/synthetic/pdfs/realistic/` (password `MF@123`) | Sections 17 and 18 | Owner |
+
 ## Order of steps
 
 | Section | What | Site |
