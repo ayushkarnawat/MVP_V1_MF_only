@@ -12,6 +12,11 @@ interface OpeningBalanceModalProps {
   onResolved: () => void;
 }
 
+// Same masking the ledger shows: only the last four characters are readable.
+function maskFolio(folio: string): string {
+  return folio.length <= 4 ? folio : `XXXX${folio.slice(-4)}`;
+}
+
 export function OpeningBalanceModal({
   isOpen,
   gap,
@@ -57,7 +62,7 @@ export function OpeningBalanceModal({
             {gap.scheme_name}
           </div>
           <div className="type-caption" style={{ color: "var(--color-text-secondary)" }}>
-            Folio: {gap.folio_number} • <span style={{ color: "var(--color-negative)", fontWeight: 600 }}>{gap.deficit_units} units missing</span> before {gap.first_deficit_date}
+            Folio: {maskFolio(gap.folio_number)} • <span style={{ color: "var(--color-negative)", fontWeight: 600 }}>{gap.deficit_units} units missing</span> before {gap.first_deficit_date}
           </div>
         </div>
 

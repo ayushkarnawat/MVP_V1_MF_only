@@ -45,13 +45,13 @@ describe("SummaryStrip", () => {
   });
   it("switches the XIRR between Lifetime and Current holdings", () => {
     strip();
-    expect(screen.getByRole("tab", { name: "Lifetime" })).toHaveAttribute("aria-selected", "true");
-    fireEvent.click(screen.getByRole("tab", { name: "Current" }));
-    expect(screen.getByRole("tab", { name: "Current" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("button", { name: "Lifetime" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Current" }));
+    expect(screen.getByRole("button", { name: "Current" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByTestId("value-xirr")).toHaveTextContent("14.8%");
     expect(screen.getByTestId("xirr-caption")).toHaveTextContent("Current holdings");
     expect(screen.queryByRole("button", { name: /opening-balance disclaimer/ })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: "Lifetime" }));
+    fireEvent.click(screen.getByRole("button", { name: "Lifetime" }));
     expect(screen.getByTestId("value-xirr")).toHaveTextContent("16.1%");
   });
   it("opens the opening-balance explanation from the Lifetime note", () => {

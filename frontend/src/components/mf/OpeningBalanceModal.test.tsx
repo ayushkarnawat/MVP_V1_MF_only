@@ -63,4 +63,10 @@ describe("OpeningBalanceModal", () => {
       expect(onResolved).toHaveBeenCalled();
     });
   });
+
+  it("masks the folio number to its last four characters", () => {
+    render(<OpeningBalanceModal isOpen gap={{ ...gapItem, folio_number: "1234567/89" }} onClose={vi.fn()} onResolved={vi.fn()} />);
+    expect(screen.getByText(/Folio: XXXX7\/89/)).toBeInTheDocument();
+    expect(screen.queryByText(/1234567/)).not.toBeInTheDocument();
+  });
 });

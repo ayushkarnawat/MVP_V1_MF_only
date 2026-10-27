@@ -163,6 +163,12 @@ function MonthModal({
             </div>
           </div>
 
+          {selectedMemberId !== null && (
+            <p data-testid="tiles-scope-note" className="text-xs text-[var(--ui-text-muted)]">
+              The four tiles above are totals for All members; the table below shows only {distinctMembers.find(m => m.id === selectedMemberId)?.name ?? "the selected member"}.
+            </p>
+          )}
+
           <p className="text-xs text-[var(--ui-text-muted)]">
             Market movement is what is left after new money, opening holdings, switches and gifted units.
           </p>
@@ -270,14 +276,13 @@ function ReturnsBlock({
         </div>
 
         <div
-          role="tablist"
+          role="group"
           aria-label="XIRR basis"
           className="inline-flex self-start rounded-xl border border-[var(--ui-divider)] p-1"
         >
           <button
             type="button"
-            role="tab"
-            aria-selected={basis === "lifetime"}
+            aria-pressed={basis === "lifetime"}
             data-clickable=""
             data-effect="switch"
             onClick={() => {
@@ -294,8 +299,7 @@ function ReturnsBlock({
           </button>
           <button
             type="button"
-            role="tab"
-            aria-selected={basis === "current"}
+            aria-pressed={basis === "current"}
             data-clickable=""
             data-effect="switch"
             onClick={() => {
@@ -511,10 +515,13 @@ function HistoryBlock({ history }: { history: ReturnType<typeof useMfHistory> })
 
   const shownPoints = useMemo(() => {
     const pts = history.data ?? [];
-    if (range === "1Y") return pts.slice(-12);
-    if (range === "3Y") return pts.slice(-36);
-    if (range === "5Y") return pts.slice(-60);
-    return pts;
+    const months = range === "1Y" ? 12 : range === "3Y" ? 36 : range === "5Y" ? 60 : null;
+    if (months === null || pts.length === 0) return pts;
+    // Filter by calendar month so a gap in the series does not stretch "1Y" back over older years.
+    const latest = pts[pts.length - 1].month;
+    const latestIndex = Number(latest.slice(0, 4)) * 12 + Number(latest.slice(5, 7)) - 1;
+    const cutoff = latestIndex - (months - 1);
+    return pts.filter(p => Number(p.month.slice(0, 4)) * 12 + Number(p.month.slice(5, 7)) - 1 >= cutoff);
   }, [history.data, range]);
 
   const selectedPoint = allPoints.find(p => p.month === selectedMonth) ?? null;

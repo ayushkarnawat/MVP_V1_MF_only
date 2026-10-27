@@ -128,4 +128,9 @@ describe("FundDetailModal", () => {
     expect(screen.getByText(/₹3,500/)).toBeInTheDocument();
   });
 
+  it("shows an unrealised loss as -₹12,345, never ₹-12,345", () => {
+    render(<FundDetailModal isOpen onClose={vi.fn()} holding={{ ...sampleHolding, unrealized_gain: "-12345", current_profit_total: "-12345" }} />);
+    expect(screen.getByText("-₹12,345", { selector: "span" })).toBeInTheDocument();
+    expect(screen.queryByText(/₹-/)).not.toBeInTheDocument();
+  });
 });

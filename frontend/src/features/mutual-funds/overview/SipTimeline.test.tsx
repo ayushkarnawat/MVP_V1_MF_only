@@ -105,6 +105,19 @@ describe("SipTimeline", () => {
     expect(await screen.findByText("January 2027")).toBeInTheDocument();
     await waitFor(() => expect(mocks.getSipsMonthly.mock.calls.at(-1)!.slice(1, 3)).toEqual([2027, 1]));
   });
+  it("derives the current month in Asia/Kolkata, not the browser time zone", async () => {
+    const original = process.env.TZ;
+    process.env.TZ = "America/Los_Angeles";
+    try {
+      // 07:30 on 1 Nov in India, still 31 Oct evening in Los Angeles.
+      vi.setSystemTime(new Date("2026-11-01T02:00:00Z"));
+      mount();
+      fireEvent.click(screen.getByRole("tab", { name: "This Month" }));
+      expect(await screen.findByText("November 2026")).toBeInTheDocument();
+    } finally {
+      if (original === undefined) delete process.env.TZ; else process.env.TZ = original;
+    }
+  });
   it("shows its own error with Retry when the month fails to load", async () => {
     mocks.getSipsMonthly.mockRejectedValueOnce(new Error("x")).mockResolvedValue(fx.sipsMonthly().sips);
     mount();

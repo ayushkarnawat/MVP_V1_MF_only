@@ -117,9 +117,9 @@ describe("Returns block", () => {
     expect(screen.getByRole("heading", { name: "Returns" })).toBeInTheDocument();
     expect(screen.getByTestId("xirr-value")).toHaveTextContent("+16.1%");
     expect(screen.getByTestId("block-returns")).toHaveTextContent("p.a.");
-    expect(screen.getByRole("tab", { name: "Lifetime" })).toHaveAttribute("aria-selected", "true");
-    fireEvent.click(screen.getByRole("tab", { name: "Current Holdings" }));
-    expect(screen.getByRole("tab", { name: "Current Holdings" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("button", { name: "Lifetime" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Current Holdings" }));
+    expect(screen.getByRole("button", { name: "Current Holdings" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByTestId("xirr-value")).toHaveTextContent("+14.8%");
     expect(screen.queryByTestId("disclaimer-button")).not.toBeInTheDocument();
   });
@@ -139,8 +139,8 @@ describe("Returns block", () => {
     expect(panel).toHaveTextContent("Unifolio treats it as invested on the day the statement starts");
     expect(panel).toHaveTextContent("Without the undated portion, the lifetime XIRR would be 11.1%.");
     expect(panel).toHaveTextContent("Switch to Current Holdings above to see the XIRR computed only from funds you still hold.");
-    fireEvent.click(screen.getByRole("tab", { name: "Current Holdings" }));
-    fireEvent.click(screen.getByRole("tab", { name: "Lifetime" }));
+    fireEvent.click(screen.getByRole("button", { name: "Current Holdings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Lifetime" }));
     expect(screen.queryByTestId("disclaimer-panel")).not.toBeInTheDocument();
   });
   it("says so when the alternative XIRR cannot be computed", async () => {
@@ -217,6 +217,31 @@ describe("Portfolio History block", () => {
     fireEvent.click(range.getByRole("button", { name: "5Y" }));
     expect(count()).toBe(30);
     expect(mocks.getHistoryPoints).toHaveBeenCalledTimes(1);
+  });
+  it("ranges filter by month date, not by the last N points, when months are missing", async () => {
+    const sparse: HistoryPoint[] = ["2024-01-28", "2024-02-28", "2025-12-28", "2026-06-28"].map((month, i) => ({
+      month, value: 100 + i, invested: 90, valueText: `${100 + i}.00`, investedText: "90.00", partial: false, missing: [],
+    }));
+    mocks.getHistoryPoints.mockResolvedValue(sparse);
+    mount();
+    await screen.findByTestId("point-2026-06-28");
+    const range = within(screen.getByRole("group", { name: "Range" }));
+    fireEvent.click(range.getByRole("button", { name: "1Y" }));
+    expect(screen.getAllByTestId(/^point-/)).toHaveLength(2);
+    fireEvent.click(range.getByRole("button", { name: "3Y" }));
+    expect(screen.getAllByTestId(/^point-/)).toHaveLength(4);
+  });
+  it("says the four tiles are all-member totals once a member chip filters the table", async () => {
+    mount();
+    await ready();
+    fireEvent.click(screen.getByTestId("point-2026-08-31"));
+    fireEvent.click(screen.getByRole("button", { name: "See details" }));
+    const dialog = await screen.findByRole("dialog", { name: "August 2026" });
+    expect(within(dialog).queryByTestId("tiles-scope-note")).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Siddharth" }));
+    expect(within(dialog).getByTestId("tiles-scope-note")).toHaveTextContent("All members");
+    fireEvent.click(within(dialog).getByRole("button", { name: "All" }));
+    expect(within(dialog).queryByTestId("tiles-scope-note")).not.toBeInTheDocument();
   });
   it("shows a month card on hover or click with its figures, a persistent selection and the missing-price note", async () => {
     mount();
