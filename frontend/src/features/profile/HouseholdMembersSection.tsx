@@ -6,6 +6,7 @@ import type { DeleteImportResponse, HouseholdImportHistoryItem } from "../import
 import { CompleteProfileDialog } from "../dashboard/members/CompleteProfileDialog";
 import { DeletePortfolioDialog } from "./DeletePortfolioDialog";
 import { FamilyMemberCard } from "./FamilyMemberCard";
+import { statementsFor } from "./historyGroups";
 
 interface HouseholdMembersSectionProps {
   loadMembers?: () => Promise<HouseholdMember[]>;
@@ -18,11 +19,6 @@ interface HouseholdMembersSectionProps {
   onChanged?: () => void;
   /** Self's "Change in Account Info": the page switches to its Account Info section. */
   onChangeInAccountInfo?: () => void;
-}
-
-/** How many statements a member's funds come from: rows of one upload group count once. */
-export function statementsFor(memberId: string, history: HouseholdImportHistoryItem[]): number {
-  return new Set(history.filter((h) => h.household_member_id === memberId).map((h) => h.upload_group_id ?? h.import_id)).size;
 }
 
 // M17: "a member's whole portfolio". The spec says "a member's menu" but doesn't place it;
