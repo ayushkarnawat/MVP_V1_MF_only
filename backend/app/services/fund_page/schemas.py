@@ -303,3 +303,25 @@ class ScatterResponse(FundModel):
     thin_category: bool
     peer_volatility_median: str | None
     points: list[ScatterPoint]
+
+
+class InsightEvidenceOut(FundModel):
+    label: str
+    value: str
+
+
+class InsightFactOut(FundModel):
+    id: str
+    list: Literal["key", "strength", "consideration"]
+    tone: Literal["pos", "warn", "neg", "info", "neu"]
+    text: str
+    evidence: list[InsightEvidenceOut]
+    priority: int
+
+
+class InsightsResponse(FundModel):
+    status: Literal["ready"] = "ready"
+    key: list[InsightFactOut]
+    strengths: list[InsightFactOut]
+    considerations: list[InsightFactOut]
+    top_three: list[InsightFactOut]
