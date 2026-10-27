@@ -323,3 +323,49 @@ def test_fund_value_keeps_nav_precision_until_display_rounding():
     summary, _ = _cost_summaries([("Precise NAV", "100.4999", "1.00", PlanType.DIRECT)])
     assert summary.funds[0].value == "100.4999"
     assert summary.cost_1y == "1.00"
+
+
+def test_direct_fund_rows_carry_the_annual_saving_against_the_regular_sibling():
+    from app.models.enums import SchemePlanType
+    db = _session()
+    member = _household_member(db)
+    direct = _scheme(db, "Alpha Fund - Direct")
+    direct.base_name, direct.plan_type = "Alpha Fund", SchemePlanType.DIRECT
+    regular = _scheme(db, "Alpha Fund - Regular")
+    regular.base_name, regular.plan_type = "Alpha Fund", SchemePlanType.REGULAR
+    held_regular = _scheme(db, "Beta Fund - Regular")
+    held_regular.base_name, held_regular.plan_type = "Beta Fund", SchemePlanType.REGULAR
+    db.commit()
+    _folio_with_purchase(db, member, direct, Decimal("6000.00"), Decimal("100.000"), Decimal("60.0000"))
+    _folio_with_purchase(db, member, held_regular, Decimal("4000.00"), Decimal("100.000"), Decimal("40.0000"), plan_type=PlanType.REGULAR)
+    for scheme, ter in ((direct, "0.50"), (regular, "1.30"), (held_regular, "1.50")):
+        db.add(SchemeTer(scheme_id=scheme.id, reference_period=_current_month_start(), ter_value=Decimal(ter)))
+    db.commit()
+
+    p1, p2 = _mock_holdings(direct, held_regular)
+    with p1, p2:
+        summary = asyncio.run(compute_weighted_ter(db, [member.id]))
+
+    rows = {row.scheme_name: row for row in summary.funds}
+    # hand check: value 100 units x 60 = 6000; Regular sibling costs 1.30% against 0.50%, so 6000 x 0.80 / 100 = 48.00 a year
+    assert rows["Alpha Fund - Direct"].annual_ter_saving == "48.00"
+    assert rows["Beta Fund - Regular"].annual_ter_saving is None
+    assert summary.model_dump(mode="json")["funds"][0]["annual_ter_saving"] in ("48.00", None)
+
+
+def test_direct_fund_without_a_cheaper_gap_or_ter_has_no_saving():
+    from app.models.enums import SchemePlanType
+    db = _session()
+    member = _household_member(db)
+    direct = _scheme(db, "Gamma Fund - Direct")
+    direct.base_name, direct.plan_type = "Gamma Fund", SchemePlanType.DIRECT
+    regular = _scheme(db, "Gamma Fund - Regular")
+    regular.base_name, regular.plan_type = "Gamma Fund", SchemePlanType.REGULAR
+    db.commit()
+    _folio_with_purchase(db, member, direct, Decimal("6000.00"), Decimal("100.000"), Decimal("60.0000"))
+    db.add(SchemeTer(scheme_id=direct.id, reference_period=_current_month_start(), ter_value=Decimal("0.50")))
+    db.commit()  # the Regular sibling has no TER row
+    p1, p2 = _mock_holdings(direct, direct)
+    with p1, p2:
+        summary = asyncio.run(compute_weighted_ter(db, [member.id]))
+    assert summary.funds[0].annual_ter_saving is None

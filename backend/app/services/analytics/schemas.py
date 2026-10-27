@@ -120,6 +120,10 @@ class FundTerRow(BaseModel):
     cost_1y: str | None = None
     cost_3y: str | None = None
     cost_5y: str | None = None
+    # Optional (MF-B ask C139): rupees a year a Direct holding saves against its own
+    # Regular sibling, value x (Regular TER - Direct TER) / 100. None when not Direct,
+    # no sibling or no TER on either side, or Direct is not cheaper.
+    annual_ter_saving: str | None = None
 
 
 class WeightedTerSummary(BaseModel):

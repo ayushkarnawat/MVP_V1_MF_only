@@ -21,7 +21,8 @@ from decimal import Decimal, ROUND_HALF_UP
 from sqlalchemy.orm import Session
 
 from app.models.enums import PlanType
-from app.models.reference import SchemeTer
+from app.models.enums import SchemePlanType
+from app.models.reference import Scheme, SchemeTer
 from app.services.analytics.schemas import (
     AggregateDirectRegularTerResponse,
     AggregateWeightedTerResponse,
@@ -52,7 +53,36 @@ def _latest_ter_for_scheme(db: Session, scheme_id: uuid.UUID) -> tuple[Decimal, 
     return (row.ter_value, row.reference_period) if row else None
 
 
-def _summarize(holdings: list[HoldingRow], ter_by_scheme: dict[str, tuple[Decimal, date]], *, include_funds: bool = False) -> WeightedTerSummary:
+def _direct_ter_gaps(db: Session, holdings: list[HoldingRow], ter_by_scheme: dict[str, tuple[Decimal, date]]) -> dict[str, Decimal]:
+    """Percentage points by which each fully-Direct held scheme is cheaper than its own
+    Regular sibling (same AMC and base name, first by AMFI code, as distributor_comparison.py)."""
+    if db is None:  # unit tests drive the weighting with patched holdings and no session
+        return {}
+    plans: dict[str, set] = {}
+    for holding in holdings:
+        plans.setdefault(holding.scheme_id, set()).add(holding.plan_type)
+    direct_ids = [uuid.UUID(sid) for sid, kinds in plans.items() if kinds == {PlanType.DIRECT} and sid in ter_by_scheme]
+    if not direct_ids:
+        return {}
+    schemes = db.query(Scheme).filter(Scheme.id.in_(direct_ids), Scheme.base_name.isnot(None)).all()
+    siblings = db.query(Scheme).filter(
+        Scheme.amc_name.in_({s.amc_name for s in schemes}), Scheme.base_name.in_({s.base_name for s in schemes}),
+        Scheme.plan_type == SchemePlanType.REGULAR,
+    ).order_by(Scheme.amfi_code, Scheme.id).all()
+    sibling_of: dict[tuple, uuid.UUID] = {}
+    for sibling in siblings:
+        sibling_of.setdefault((sibling.amc_name, sibling.base_name), sibling.id)
+    gaps: dict[str, Decimal] = {}
+    for scheme in schemes:
+        sibling_id = sibling_of.get((scheme.amc_name, scheme.base_name))
+        sibling_ter = _latest_ter_for_scheme(db, sibling_id) if sibling_id else None
+        if sibling_ter is not None and sibling_ter[0] > ter_by_scheme[str(scheme.id)][0]:
+            gaps[str(scheme.id)] = sibling_ter[0] - ter_by_scheme[str(scheme.id)][0]
+    return gaps
+
+
+def _summarize(holdings: list[HoldingRow], ter_by_scheme: dict[str, tuple[Decimal, date]], *, include_funds: bool = False,
+               direct_gaps: dict[str, Decimal] | None = None) -> WeightedTerSummary:
     total_value = Decimal("0")
     covered_value = Decimal("0")
     weighted_sum = Decimal("0")
@@ -81,6 +111,8 @@ def _summarize(holdings: list[HoldingRow], ter_by_scheme: dict[str, tuple[Decima
         row.cost_1y = f"{cost_1y:.2f}"
         row.cost_3y = f"{cost_1y * 3:.2f}"
         row.cost_5y = f"{cost_1y * 5:.2f}"
+        if direct_gaps and scheme_id in direct_gaps:
+            row.annual_ter_saving = f"{(value * direct_gaps[scheme_id] / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP):.2f}"
         covered_value += value
         weighted_sum += value * ter_value
         if latest_period is None or reference_period > latest_period:
@@ -114,7 +146,8 @@ async def _weighted_ter_for_holdings(db: Session, holdings: list[HoldingRow]) ->
         for scheme_id in scheme_ids
         if (info := _latest_ter_for_scheme(db, scheme_id)) is not None
     }
-    return _summarize(holdings, ter_by_scheme, include_funds=True)
+    return _summarize(holdings, ter_by_scheme, include_funds=True,
+                      direct_gaps=_direct_ter_gaps(db, holdings, ter_by_scheme))
 
 
 async def compute_weighted_ter(db: Session, household_member_ids: list[uuid.UUID]) -> WeightedTerSummary:
