@@ -39,8 +39,9 @@ async def compute_category_allocation(
     holdings = await compute_holdings(db, household_member_ids)
     total_value = sum((Decimal(h.current_value) for h in holdings), Decimal("0"))
 
-    # sebi_category isn't on HoldingRow — one batch query for every scheme in
-    # this holding set, same pattern as dashboard/allocation.py.
+    # HoldingRow now carries `sebi_category` too; this lookup is kept as is rather
+    # than editing hot shared code for a one-query saving. It is one batch query
+    # for every scheme in this holding set, same pattern as dashboard/allocation.py.
     scheme_ids = {uuid.UUID(h.scheme_id) for h in holdings}
     categories = (
         {s.id: s.sebi_category for s in db.query(Scheme).filter(Scheme.id.in_(scheme_ids)).all()}

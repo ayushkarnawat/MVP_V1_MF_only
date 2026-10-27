@@ -335,9 +335,16 @@ def test_compute_distributor_comparison_batches_transaction_fetch_regardless_of_
 
     event.listen(engine, "before_cursor_execute", _capture)
     try:
-        with patch(
-            "app.services.dashboard.distributor_comparison.get_navs_on_or_before",
-            new=_mock_nav_batch({scheme.id: (Decimal("100.0000"), date(2024, 6, 1))}),
+        with (
+            patch(
+                "app.services.dashboard.distributor_comparison.get_navs_on_or_before",
+                new=_mock_nav_batch({scheme.id: (Decimal("100.0000"), date(2024, 6, 1))}),
+            ),
+            # Without this, resolve_arn makes a real AMFI call and relied on swallowing the network error (L16).
+            patch(
+                "app.services.dashboard.distributor_comparison.resolve_arn",
+                new=AsyncMock(side_effect=_fake_resolve_arn({"ARN-11111": SimpleNamespace(distributor_name="Alpha", status=ArnStatus.ACTIVE)})),
+            ),
         ):
             asyncio.run(compute_distributor_comparison(db, [member.id]))
     finally:

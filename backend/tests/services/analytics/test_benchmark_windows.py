@@ -620,6 +620,44 @@ def test_since_inception_portfolio_rows_equal_existing_legacy_calculation_exactl
     assert [row.xirr for row in since_inception.indices[:4]] == expected
 
 
+def test_since_inception_portfolio_rate_ends_at_the_context_today_not_the_real_today():
+    """MX1 / L1: the SI portfolio rate's terminal date is ctx.today, the same date the index replay ends at."""
+    from datetime import timedelta
+
+    from app.services.analytics.benchmark import _investment_transactions, _signed_amount, _xirr_str
+    from app.services.analytics.benchmark_windows import SinceInceptionRates, WindowContext, compute_window_rows
+    from app.services.dashboard.xirr import xirr
+
+    db = _session()
+    member, _scheme = _seed_mixed_portfolio(db)
+    transactions = _investment_transactions(db, [member.id])
+    ctx_today = date.today() - timedelta(days=40)
+    ctx = WindowContext(
+        today=ctx_today,
+        starts={"1Y": None, "3Y": None, "5Y": None, "SI": None},
+        portfolio_start_values={"1Y": None, "3Y": None, "5Y": None, "SI": None},
+        fund_start_values={"1Y": {}, "3Y": {}, "5Y": {}, "SI": {}},
+    )
+    current_value = Decimal("12000")
+    expected = _xirr_str(
+        xirr([(t.date, _signed_amount(t)) for t in transactions] + [(ctx_today, current_value)])
+    )
+    real_today_rate = _xirr_str(
+        xirr([(t.date, _signed_amount(t)) for t in transactions] + [(date.today(), current_value)])
+    )
+    assert expected != real_today_rate  # the fixture can tell the two terminal dates apart
+
+    computed = compute_window_rows(ctx, transactions, current_value, {})[3]
+    assert computed.portfolio_xirr == expected
+
+    # A rate solved to the real date.today() is not reused when the context's today differs.
+    supplied = compute_window_rows(
+        ctx, transactions, current_value, {},
+        since_inception=SinceInceptionRates(portfolio=xirr([(t.date, _signed_amount(t)) for t in transactions] + [(date.today(), current_value)]), indices={}),
+    )[3]
+    assert supplied.portfolio_xirr == expected
+
+
 def test_since_inception_fund_row_equals_existing_fund_comparison_exactly():
     from app.services.analytics.benchmark import (
         _fund_level_transactions,
@@ -1142,7 +1180,9 @@ def test_supplied_portfolio_since_inception_rates_are_not_resolved():
     from app.services.analytics.benchmark import _xirr_str
     from app.services.analytics.xirr_fast import xirr_fast
 
-    today = date(2026, 10, 24)
+    # The supplied rate is reused only when ctx.today is the real date.today() (MX1): the legacy rate it
+    # comes from ends there. So this test must run "as of" the real today.
+    today = date.today()
     first = date(2020, 1, 1)
     transactions = [_transaction(TransactionType.PURCHASE, first, "100")]
     ctx = windows_module.WindowContext(
