@@ -36,10 +36,10 @@ describe("Home route flip", () => {
     expect(HomePageDefault).toBe(HomePage);
   });
 
-  it("leaves the old Dashboard route exactly where it was", () => {
+  it("keeps the Mutual Funds route live and unchanged apart from its page, which is now the new Overview", () => {
     const dashboard = registry.find(route => route.id === "portfolio-mutual-funds")!;
     expect(dashboard).toMatchObject({ path: "/portfolio/mutual-funds", status: "live", title: "Mutual Funds", section: "portfolio", scope: "family-or-member" });
-    expect(String(dashboard.page)).toContain("DashboardWrapper");
+    expect(String(dashboard.page)).toContain("mutual-funds/overview/OverviewPage");
   });
 
   it("keeps the landing route: the root path still redirects to /home", () => {

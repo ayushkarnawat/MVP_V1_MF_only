@@ -114,7 +114,7 @@ it("opens History from the old Dashboard wrapper", async () => {
 it("supports browser back and forward between live pages", async () => {
   mount("/portfolio/mutual-funds/history");
   await screen.findByRole("heading", { name: "History screen" });
-  fireEvent.click(screen.getByRole("button", { name: "Go Profile" }));
+  fireEvent.click(screen.getByRole("button", { name: "Go old Profile" }));
   await screen.findByRole("heading", { name: "Profile screen" });
   fireEvent.click(screen.getByRole("button", { name: "History back" }));
   await screen.findByRole("heading", { name: "History screen" });
@@ -233,5 +233,5 @@ it.each([
 
 it("enables only the requested routes and preserves the existing import route", () => {
   const live = buildRegistry().filter(route => route.status === "live").map(route => route.id).sort();
-  expect(live).toEqual(["root", "not-found", "home", "portfolio", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "profile", "profile-import-health", "profile-personal", "portfolio-mutual-funds-performance", "portfolio-mutual-funds-allocation", "portfolio-mutual-funds-holdings", "portfolio-mutual-funds-transactions", "portfolio-mutual-funds-overlap", "profile-legacy", "profile-family", "profile-connected-accounts", "profile-settings", "profile-settings-notifications", "profile-settings-preferences", "profile-settings-security", "profile-settings-import-history", "profile-subscription", "profile-tax", "profile-data-privacy", "portfolio-mutual-funds-fund", "portfolio-mutual-funds-fund-insights"].sort());
+  expect(live).toEqual(["root", "not-found", "home", "portfolio", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "profile", "profile-import-health", "profile-personal", "portfolio-mutual-funds-performance", "portfolio-mutual-funds-allocation", "portfolio-mutual-funds-holdings", "portfolio-mutual-funds-transactions", "portfolio-mutual-funds-overlap", "profile-legacy", "profile-family", "profile-connected-accounts", "profile-settings", "profile-settings-notifications", "profile-settings-preferences", "profile-settings-security", "profile-settings-import-history", "profile-subscription", "profile-tax", "profile-data-privacy"].sort());
 });

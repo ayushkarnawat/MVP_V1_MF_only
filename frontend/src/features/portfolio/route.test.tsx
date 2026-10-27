@@ -25,10 +25,10 @@ describe("the /portfolio shell route", () => {
     expect(resolveRoute("/portfolio", routes)?.status).toBe("live");
   });
 
-  it("leaves the old Mutual Funds dashboard route as it was", async () => {
+  it("keeps the Mutual Funds route live; its page is now the new Overview", async () => {
     expect(mutualFunds.path).toBe("/portfolio/mutual-funds");
     expect(mutualFunds.status).toBe("live");
-    const { default: wrapper } = await import("@/shell/wrappers/DashboardWrapper");
+    const { default: wrapper } = await import("@/features/mutual-funds/overview/OverviewPage");
     expect((await mutualFunds.page!()).default).toBe(wrapper);
   });
 });

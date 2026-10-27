@@ -11,9 +11,9 @@ const route: ShellRoute = {
   parentId: "portfolio-mutual-funds",
   layout: "app",
   scope: "family-or-member",
-  status: "live",
+  status: "placeholder",
   title: "Fund Insights",
-  page: () => import("../../features/individual-fund/InsightsPage"),
+  page: () => import("../layout/PlaceholderPage"),
 };
 
 export default route;
