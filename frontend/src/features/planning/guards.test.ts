@@ -17,13 +17,16 @@ const read = (file: string) => readFileSync(file, "utf8");
 const name = (file: string) => file.slice(PLANNING.length + 1).replaceAll("\\", "/");
 
 describe("Planning front-end guards", () => {
-  it("scans the files PL-A creates (not vacuous)", () => {
+  it("scans the files PL-A and PL-B create (not vacuous)", () => {
     const names = FILES.map(name).sort();
     for (const expected of [
       "api.ts", "planningCopy.ts", "planningHistory.ts", "scenarioFormat.ts", "tiles.ts", "types.ts",
       "components/AssetClassChart.tsx", "components/BenchmarkChart.tsx", "components/DivergingBars.tsx",
       "components/MemberRows.tsx", "components/MemberSelect.tsx", "components/MiraInsightsCard.tsx",
       "components/StatTile.tsx",
+      // PL-B
+      "components/ScenarioCard.tsx", "components/ScenarioList.tsx", "sections/ScenarioDetail.tsx",
+      "sections/PlanningScenarios.tsx", "PlanningPage.tsx",
     ]) {
       expect(names).toContain(expected);
     }

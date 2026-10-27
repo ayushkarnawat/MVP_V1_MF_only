@@ -11,6 +11,12 @@ export const multiPhaseResult = () => fixture<ScenarioResult>("results_family_mu
 export const freezeResult = () => fixture<ScenarioResult>("results_family_freeze");
 export const noFundDataResult = () => fixture<ScenarioResult>("results_family_no_fund_data");
 export const noHoldingsResult = () => fixture<ScenarioResult>("results_family_no_holdings");
+/**
+ * The pre-2006 event as the real route should return it (register C122): no fund results, but the Nifty 50
+ * index series, so the page has something to show. The spec fixture lists `benchmarks []` for scenario D, so
+ * the index is injected here (same figure as the scenario's `quick_market_pct`).
+ */
+export const pre2006Result = (): ScenarioResult => ({ ...noFundDataResult(), benchmarks: [{ name: "nifty_50", pct: "12.50" }] });
 export const curatedList = () => fixture<ScenarioSummary[]>("scenarios_list_curated");
 
 /** The five indices the real route returns for a standard event (mockup numbers). */
