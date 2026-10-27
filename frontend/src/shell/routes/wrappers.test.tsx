@@ -176,6 +176,7 @@ it("Import health's Back does not leave Import health one browser Back away (no 
   fireEvent.click(screen.getByRole("button", { name: "Health back" }));
   await screen.findByRole("heading", { name: "Home" });
   fireEvent.click(screen.getByRole("button", { name: "History back" }));
+  await screen.findByRole("heading", { name: "Home" });
   expect(JSON.parse(screen.getByTestId("location").textContent!).path).not.toBe("/profile/import-health");
 });
 
