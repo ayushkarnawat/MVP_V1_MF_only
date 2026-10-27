@@ -96,3 +96,100 @@ export function scoreNoRingText(score: ScoreResponse): string | null {
   }
   return null;
 }
+
+export type RiskKey = "volatility" | "max_drawdown" | "sharpe" | "beta";
+
+export interface RiskRowInfo {
+  key: RiskKey;
+  label: string;
+  definition: string;
+}
+
+export const RISK_ROWS: readonly RiskRowInfo[] = [
+  {
+    key: "volatility",
+    label: "Volatility",
+    definition: "How much the fund's daily returns vary, annualised.",
+  },
+  {
+    key: "max_drawdown",
+    label: "Maximum drawdown",
+    definition: "The largest fall from a peak to a low in the window.",
+  },
+  {
+    key: "sharpe",
+    label: "Sharpe ratio",
+    definition: "Return above the risk-free rate for each unit of volatility.",
+  },
+  {
+    key: "beta",
+    label: "Beta (vs benchmark)",
+    definition: "How far the fund moves with its benchmark: 1.0 moves with it.",
+  },
+];
+
+export const RISK_NO_HISTORY_TEXT =
+  "Not enough history to show risk figures yet. About a year of prices is needed.";
+export const RISK_LIFE_WINDOW_NOTE =
+  "This fund is younger than 3 years, so its whole history is used.";
+export const BETA_DASH_NOTE =
+  "Not enough overlapping history with the benchmark.";
+export const COPY_FOLIO_FAILED = "Couldn't copy the folio number.";
+
+export function riskUnavailableText(reason: string | null | undefined): string {
+  if (reason === "no_history") {
+    return RISK_NO_HISTORY_TEXT;
+  }
+  return unavailableText(reason);
+}
+
+export function ageTagText(tag: string | null | undefined): string | null {
+  if (tag === "older_than_60_days") {
+    return "This disclosure is more than 60 days older than the latest price, so the holdings may have changed.";
+  }
+  return null;
+}
+
+export function stockCountText(count: number): string {
+  return count === 1 ? `${count} stock` : `${count} stocks`;
+}
+
+export type AllocationTab = "market_cap" | "sector" | "asset_type";
+
+export const ALLOCATION_TABS: readonly { value: AllocationTab; label: string }[] =
+  [
+    { value: "market_cap", label: "Market Cap" },
+    { value: "sector", label: "Sector" },
+    { value: "asset_type", label: "Asset Type" },
+  ];
+
+export const SLICE_SHARE_LABEL: Record<AllocationTab, string> = {
+  market_cap: "Share of classified equity",
+  sector: "Share of the fund",
+  asset_type: "Share of the fund",
+};
+
+export function marketCapLabel(label: string): string {
+  if (/\sCap$/i.test(label)) {
+    return label;
+  }
+  return `${label} Cap`;
+}
+
+export function allocationNote(
+  tab: AllocationTab,
+  asOf: string,
+  unclassified: string | null
+): string {
+  if (tab === "market_cap") {
+    if (unclassified !== null) {
+      return `Share of the classified equity part. Not shown: ${unclassified} of the fund (cash, debt, unlisted). Disclosure as of ${asOf}.`;
+    }
+    return `Share of the classified equity part. Disclosure as of ${asOf}.`;
+  }
+  if (tab === "sector") {
+    return `Sector from the fund's disclosure, as of ${asOf}.`;
+  }
+  return `Share of the fund's portfolio, as of ${asOf}.`;
+}
+

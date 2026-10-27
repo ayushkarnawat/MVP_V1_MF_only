@@ -139,7 +139,7 @@ export function ReturnsTable({ schemeId, scope, fundName }: ReturnsTableProps) {
                       scope="row"
                       className="py-2.5 pr-4 font-normal text-[var(--ui-text-muted)]"
                     >
-                      Benchmark
+                      {incData.benchmark_label || "Benchmark"}
                     </th>
                     {incData.columns.map((col) => {
                       const val = incData.rows.benchmark![col];

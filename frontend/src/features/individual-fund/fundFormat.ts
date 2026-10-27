@@ -1,6 +1,7 @@
 import { formatDate, formatPercent, formatRupees } from "@/lib/format";
 import { formatDecimal, toPercentString } from "@/lib/decimal";
-import type { PerformancePeriod, SeriesPoint } from "./types";
+import type { PerformancePeriod, SeriesPoint, Tone } from "./types";
+import type { RiskKey } from "./fundCopy";
 
 export { formatDate };
 
@@ -145,3 +146,56 @@ export function lastPct(
   if (!points || points.length === 0) return null;
   return points[points.length - 1].pct;
 }
+
+export function formatRiskValue(
+  key: RiskKey,
+  value: string | null | undefined
+): string {
+  if (value == null) return "—";
+  const s = String(value).trim();
+  if (!s.match(DECIMAL)) return "—";
+  if (key === "volatility" || key === "max_drawdown") {
+    return formatPercent(s, { digits: 1 });
+  }
+  return formatDecimal(s);
+}
+
+export function riskBarPercent(
+  key: RiskKey,
+  value: string | null | undefined
+): number {
+  if (value == null) return 0;
+  const s = String(value).trim();
+  if (!s.match(DECIMAL)) return 0;
+  const raw = key === "max_drawdown" ? Math.abs(Number(s)) : Number(s);
+  const scale =
+    key === "volatility"
+      ? 30
+      : key === "max_drawdown"
+        ? 45
+        : key === "sharpe"
+          ? 2
+          : 1.5;
+  const scaled = (raw / scale) * 100;
+  const minVal = key === "sharpe" ? 4 : 0;
+  const clamped = Math.min(100, Math.max(minVal, scaled));
+  return Math.round(clamped * 10) / 10;
+}
+
+export function toneChipClass(tone: Tone | null | undefined): string {
+  const base =
+    "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold";
+  switch (tone) {
+    case "pos":
+      return `${base} bg-[var(--pos-bg)] text-[var(--pos-text)]`;
+    case "warn":
+      return `${base} bg-[var(--warn-bg)] text-[var(--warn-text)]`;
+    case "neg":
+      return `${base} bg-[var(--neg-bg)] text-[var(--neg-text)]`;
+    case "info":
+      return `${base} bg-[var(--ui-card)] text-[var(--c4)]`;
+    default:
+      return `${base} border border-[var(--ui-divider)] bg-[var(--ui-card)] text-[var(--ui-text-muted)]`;
+  }
+}
+
