@@ -9,7 +9,7 @@ import type { HoldingRow } from "../types";
 const XIRR = { "S-KOTAK": "0.1420", "S-JM": "0.1860", "S-HDFC": "0.2130" };
 
 function table(over: Partial<Parameters<typeof HoldingsTable>[0]> = {}) {
-  const props = { holdings: loaded(fx.holdings()), xirrByScheme: XIRR, sort: null as SortState | null, onSort: vi.fn(), query: "", onOpenFund: vi.fn(), onAnalyse: vi.fn(), ...over };
+  const props = { holdings: loaded(fx.holdings()), xirrByScheme: XIRR, sort: null as SortState | null, onSort: vi.fn(), query: "", onOpenFund: vi.fn(), onAnalyse: vi.fn(), onCompareDistributors: vi.fn(), ...over };
   return { props, ...render(<HoldingsTable {...props} />) };
 }
 const rowIds = () => screen.getAllByTestId(/^row-/).map(row => row.getAttribute("data-testid")!.slice(4));
@@ -110,12 +110,44 @@ describe("HoldingsTable", () => {
   it("opens the fund from a click on the row or the name, and with Enter", () => {
     const { props } = table();
     fireEvent.click(within(row("S-JM:m2")).getByTestId("invested"));
-    expect(props.onOpenFund).toHaveBeenLastCalledWith("S-JM");
+    expect(props.onOpenFund).toHaveBeenLastCalledWith("S-JM", "m2");
     fireEvent.click(within(row("S-HDFC:m3")).getByRole("button", { name: "HDFC Mid-Cap Opportunities Fund" }));
-    expect(props.onOpenFund).toHaveBeenLastCalledWith("S-HDFC");
+    expect(props.onOpenFund).toHaveBeenLastCalledWith("S-HDFC", "m3");
     expect(props.onOpenFund).toHaveBeenCalledTimes(2);
     fireEvent.keyDown(row("S-KOTAK:m1"), { key: "Enter" });
-    expect(props.onOpenFund).toHaveBeenLastCalledWith("S-KOTAK");
+    expect(props.onOpenFund).toHaveBeenLastCalledWith("S-KOTAK", "m1");
+  });
+  it("tells the member of the clicked row when two members hold the same fund", () => {
+    const second: HoldingRow = { ...fx.holdings()[0], household_member_id: "m2", household_member_name: "Aarohi" };
+    const { props } = table({ holdings: loaded([fx.holdings()[0], second]) });
+    fireEvent.click(within(row("S-KOTAK:m2")).getByTestId("invested"));
+    expect(props.onOpenFund).toHaveBeenLastCalledWith("S-KOTAK", "m2");
+    fireEvent.click(within(row("S-KOTAK:m1")).getByRole("button", { name: "Kotak Multi Cap Fund" }));
+    expect(props.onOpenFund).toHaveBeenLastCalledWith("S-KOTAK", "m1");
+    expect(props.onOpenFund).toHaveBeenCalledTimes(2);
+  });
+  it("marks a row and a name as opening a popup, not navigating", () => {
+    table();
+    expect(row("S-JM:m2")).toHaveAttribute("data-effect", "open");
+    expect(within(row("S-JM:m2")).getByRole("button", { name: "JM Flexi Cap Fund" })).toHaveAttribute("data-effect", "open");
+  });
+  it("has a Compare Distributors button in the card header, before Analyse with Mira", () => {
+    const { props } = table();
+    const compare = screen.getByRole("button", { name: "Compare Distributors" });
+    const analyse = screen.getByRole("button", { name: "Analyse with Mira" });
+    expect(compare).toHaveAttribute("data-clickable");
+    expect(compare).toHaveAttribute("data-effect", "open");
+    expect(compare.compareDocumentPosition(analyse) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Mutual Funds (5)" }).compareDocumentPosition(compare) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(compare);
+    expect(props.onCompareDistributors).toHaveBeenCalledTimes(1);
+    expect(props.onAnalyse).not.toHaveBeenCalled();
+  });
+  it("keeps Compare Distributors while a search matches nothing, and has no Export button", () => {
+    table({ query: "zzz" });
+    expect(screen.getByRole("button", { name: "Compare Distributors" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /export/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/export|download/i)).not.toBeInTheDocument();
   });
   it("gives the name a tooltip with the full text", () => {
     table();

@@ -9,8 +9,20 @@ const mocks = vi.hoisted(() => ({
   getAnalyticsScope: vi.fn(), retryAnalyticsScope: vi.fn(), getHoldingsBundle: vi.fn(), getAllocation: vi.fn(), getSips: vi.fn(),
   getSipsMonthly: vi.fn(), getCoverageGaps: vi.fn(), getHistoryPoints: vi.fn(), getMonthDetail: vi.fn(),
 }));
+const legacy = vi.hoisted(() => ({
+  postOpeningBalance: vi.fn(), getAggregateDistributorComparison: vi.fn(), getMemberDistributorComparison: vi.fn(), getFundNavHistory: vi.fn(),
+}));
+const auth = vi.hoisted(() => ({ me: { user_id: "u-1" } as { user_id: string } | null }));
 vi.mock("../../auth/session", () => ({ getToken: () => "t1" }));
+vi.mock("../../auth/AuthContext", () => ({ useAuth: () => auth }));
 vi.mock("../api", () => mocks);
+// The moved legacy parts call these old API modules themselves (they live in components/mf, outside the feature).
+vi.mock("../../import/api", () => ({ postOpeningBalance: legacy.postOpeningBalance }));
+vi.mock("../../dashboard/api", () => ({
+  getAggregateDistributorComparison: legacy.getAggregateDistributorComparison,
+  getMemberDistributorComparison: legacy.getMemberDistributorComparison,
+  getFundNavHistory: legacy.getFundNavHistory,
+}));
 
 import { analyticsStore } from "../data/analyticsStore";
 import OverviewPage from "./OverviewPage";
@@ -24,8 +36,20 @@ function mount(opts: Parameters<typeof renderInShell>[1] = {}, path = "/portfoli
 }
 const page = async () => { await screen.findByTestId("value-total"); await screen.findByTestId("row-S-KOTAK:m1"); await screen.findByRole("heading", { name: "AMC Allocation" }); };
 
+const directRow = { arn_code: null, distributor_name: null, arn_status: null, amount_invested: "3672000.00", current_value: "4822992.00", current_profit_total: "1150992.00", realized_gain: "0.00", unrealized_gain: "1150992.00", schemes: [] };
+const brokerRow = { arn_code: "ARN-99214", distributor_name: "Prudent Wealth Advisors", arn_status: "ACTIVE", amount_invested: "1028000.00", current_value: "1355608.00", current_profit_total: "327608.00", realized_gain: "0.00", unrealized_gain: "327608.00", schemes: [] };
+const gaps = () => fx.coverageGaps();
+const memberMount = (opts: Parameters<typeof renderInShell>[1] = {}) => mount({ scope: { members, viewMode: "member", memberId: "m1" }, ...opts });
+const memberBundle = (realizedFunds = fx.aggregateHoldings().realized_summary!.funds) => ({ ...bundle(fx.memberHoldings().holdings), members: [], realized: { total: "210000.00", funds: realizedFunds } });
+
 beforeEach(() => {
   Object.values(mocks).forEach(m => m.mockReset());
+  Object.values(legacy).forEach(m => m.mockReset());
+  auth.me = { user_id: "u-1" };
+  legacy.getAggregateDistributorComparison.mockResolvedValue({ members: [], rows: [directRow, brokerRow] });
+  legacy.getMemberDistributorComparison.mockResolvedValue([directRow, brokerRow]);
+  legacy.getFundNavHistory.mockResolvedValue({ scheme_id: "S-KOTAK", period: "1Y", requested_period: "1Y", clamped: false, points: [], overall_return_pct: null });
+  legacy.postOpeningBalance.mockResolvedValue({});
   analyticsStore.invalidate();
   mocks.getHoldingsBundle.mockResolvedValue(bundle());
   mocks.getAllocation.mockResolvedValue(fx.allocation().allocation);
@@ -119,11 +143,17 @@ describe("OverviewPage", () => {
     expect(screen.getAllByTestId(/^row-/)).toHaveLength(1);
     expect(screen.getByRole("heading", { name: "Mutual Funds (1)" })).toBeInTheDocument();
   });
-  it("opens the fund's page from a row", async () => {
+  it("opens the Fund Details popup from a row and stays on the page", async () => {
     mount();
     await page();
     fireEvent.click(within(screen.getByTestId("row-S-KOTAK:m1")).getByRole("button", { name: "Kotak Multi Cap Fund" }));
-    expect(screen.getByTestId("loc")).toHaveTextContent("/portfolio/mutual-funds/funds/S-KOTAK");
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("Fund Details");
+    expect(dialog).toHaveTextContent("Kotak Multi Cap Fund");
+    expect(dialog).toHaveTextContent("Kotak Mahindra Mutual Fund");
+    expect(dialog).toHaveTextContent("₹15,40,000");
+    expect(screen.getByTestId("loc")).toHaveTextContent(/^\/portfolio\/mutual-funds$/);
+    await waitFor(() => expect(legacy.getFundNavHistory).toHaveBeenCalledWith("S-KOTAK", expect.anything(), expect.anything()));
   });
   it("opens the Mira dialog from Analyse with Mira", async () => {
     mount();
@@ -180,5 +210,185 @@ describe("OverviewPage", () => {
     const { container } = mount();
     await page();
     expectInteractivity(container, 20);
+  });
+});
+
+describe("OverviewPage, the legacy parts wired back in (MF-D1)", () => {
+  it("opens Compare Distributors from the table header and loads the comparison only then", async () => {
+    mount();
+    await page();
+    expect(legacy.getAggregateDistributorComparison).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Compare Distributors" }));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("Distributor Comparison");
+    expect(await within(dialog).findByText("Direct Plan (No Broker)")).toBeInTheDocument();
+    expect(within(dialog).getByText("Prudent Wealth Advisors")).toBeInTheDocument();
+    expect(legacy.getAggregateDistributorComparison).toHaveBeenCalledTimes(1);
+    expect(legacy.getMemberDistributorComparison).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close modal" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+  it("asks for the selected member's comparison in a member view", async () => {
+    memberMount();
+    await screen.findByTestId("row-S-KOTAK:m1");
+    fireEvent.click(screen.getByRole("button", { name: "Compare Distributors" }));
+    await screen.findByText("Direct Plan (No Broker)");
+    expect(legacy.getMemberDistributorComparison).toHaveBeenCalledTimes(1);
+    expect(legacy.getMemberDistributorComparison.mock.calls[0][0]).toBe("m1");
+    expect(legacy.getAggregateDistributorComparison).not.toHaveBeenCalled();
+  });
+  it("builds no Export button and no PDF download anywhere on the page", async () => {
+    mount();
+    await page();
+    expect(screen.queryByRole("button", { name: /export/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/export|download pdf/i)).not.toBeInTheDocument();
+  });
+  it("shows a row's own member's figures in the Fund Details popup when two members hold the fund", async () => {
+    const second = { ...fx.holdings()[0], household_member_id: "m2", household_member_name: "Aarohi", current_value: "999000.00", unrealized_gain: "99000.00", current_profit_total: "99000.00" };
+    mocks.getHoldingsBundle.mockResolvedValue(bundle([fx.holdings()[0], second]));
+    mount();
+    await screen.findByTestId("row-S-KOTAK:m2");
+    fireEvent.click(within(screen.getByTestId("row-S-KOTAK:m2")).getByTestId("invested"));
+    expect(screen.getByRole("dialog")).toHaveTextContent("₹9,99,000");
+    expect(screen.getByRole("dialog")).not.toHaveTextContent("₹15,40,000");
+    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+    fireEvent.click(within(screen.getByTestId("row-S-KOTAK:m1")).getByTestId("invested"));
+    expect(screen.getByRole("dialog")).toHaveTextContent("₹15,40,000");
+  });
+  it("opens the popup with Enter on a row, closes it with Escape, and a fund without a price shows no price chart", async () => {
+    mount();
+    await page();
+    fireEvent.keyDown(screen.getByTestId("row-S-AXIS:m1"), { key: "Enter" });
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("Axis Midcap Fund");
+    expect(dialog).toHaveTextContent("NAV unavailable");
+    expect(legacy.getFundNavHistory).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+  it("lists the fully sold funds, collapsed, right under the holdings table", async () => {
+    mount();
+    await page();
+    const toggle = screen.getByRole("button", { name: /Sold funds \(1\)/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(/Old Fund/)).not.toBeInTheDocument();
+    const order = [screen.getByRole("heading", { name: "Mutual Funds (5)" }), toggle, screen.getByRole("heading", { name: "AMC Allocation" })];
+    for (let i = 1; i < order.length; i++) expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText(/Old Fund · Siddharth/)).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Sold funds" })).getByText("₹2,10,000")).toBeInTheDocument();
+  });
+  it("narrows the sold funds to the selected member in a member view", async () => {
+    const other = { ...fx.aggregateHoldings().realized_summary!.funds[0], scheme_id: "S-OLD2", scheme_name: "Other Old Fund", household_member_id: "m2", household_member_name: "Aarohi" };
+    mocks.getHoldingsBundle.mockResolvedValue(memberBundle([...fx.aggregateHoldings().realized_summary!.funds, other]));
+    memberMount();
+    await screen.findByTestId("row-S-KOTAK:m1");
+    fireEvent.click(screen.getByRole("button", { name: /Sold funds \(1\)/ }));
+    expect(screen.getByText(/Old Fund · Siddharth/)).toBeInTheDocument();
+    expect(screen.queryByText(/Other Old Fund/)).not.toBeInTheDocument();
+  });
+  it("shows no sold-funds section when nothing is fully sold", async () => {
+    mocks.getHoldingsBundle.mockResolvedValue({ ...bundle(), realized: { total: "5.00", funds: [{ ...fx.aggregateHoldings().realized_summary!.funds[0], fully_sold: false }] } });
+    mount();
+    await page();
+    expect(screen.queryByRole("button", { name: /Sold funds/ })).not.toBeInTheDocument();
+  });
+  it("shows no coverage-gap banner in the family view and does not ask for gaps", async () => {
+    mount();
+    await page();
+    expect(screen.queryByText(/Coverage Gap Detected/)).not.toBeInTheDocument();
+    expect(mocks.getCoverageGaps).not.toHaveBeenCalled();
+  });
+  it("shows the coverage-gap banner above the summary strip in a member view", async () => {
+    mocks.getHoldingsBundle.mockResolvedValue(memberBundle());
+    mocks.getCoverageGaps.mockResolvedValue(gaps());
+    memberMount();
+    const banner = await screen.findByText(/Coverage Gap Detected \(1 folio missing earlier purchases\)/);
+    await screen.findByTestId("value-total");
+    expect(banner.compareDocumentPosition(screen.getByRole("group", { name: "Total Portfolio Value" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(mocks.getCoverageGaps.mock.calls[0][0]).toBe("m1");
+  });
+  it("saves an opening balance, then reloads holdings, allocation, gaps, history and the analytics", async () => {
+    mocks.getHoldingsBundle.mockResolvedValue(memberBundle());
+    mocks.getCoverageGaps.mockResolvedValueOnce(gaps()).mockResolvedValue([]);
+    memberMount();
+    await screen.findByTestId("row-S-KOTAK:m1");
+    fireEvent.click(await screen.findByRole("button", { name: /Resolve Gap/ }));
+    expect((document.getElementById("opening-units") as HTMLInputElement).value).toBe("10.000");
+    fireEvent.click(screen.getByRole("button", { name: "Save Opening Balance" }));
+    await waitFor(() => expect(screen.queryByText(/Coverage Gap Detected/)).not.toBeInTheDocument());
+    expect(legacy.postOpeningBalance).toHaveBeenCalledWith("f1", { units: "10.000", date: "2024-01-05", amount: undefined, nav: undefined });
+    await screen.findByTestId("row-S-KOTAK:m1");
+    expect(mocks.getHoldingsBundle).toHaveBeenCalledTimes(2);
+    expect(mocks.getAllocation).toHaveBeenCalledTimes(2);
+    expect(mocks.getCoverageGaps).toHaveBeenCalledTimes(2);
+    expect(mocks.getHistoryPoints).toHaveBeenCalledTimes(2);
+    expect(mocks.retryAnalyticsScope).toHaveBeenCalledTimes(1);
+    expect(mocks.retryAnalyticsScope).toHaveBeenCalledWith("m1");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+  it("leaves the page as it was when saving the opening balance fails", async () => {
+    mocks.getHoldingsBundle.mockResolvedValue(memberBundle());
+    mocks.getCoverageGaps.mockResolvedValue(gaps());
+    legacy.postOpeningBalance.mockRejectedValue(new Error("Opening balance rejected"));
+    memberMount();
+    await screen.findByTestId("row-S-KOTAK:m1");
+    fireEvent.click(await screen.findByRole("button", { name: /Resolve Gap/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Opening Balance" }));
+    expect(await screen.findByText("Opening balance rejected")).toBeInTheDocument();
+    expect(mocks.getHoldingsBundle).toHaveBeenCalledTimes(1);
+    expect(mocks.retryAnalyticsScope).not.toHaveBeenCalled();
+  });
+  it("shows the post-import notice for this user above the page and dismisses it without leaving", async () => {
+    mount({ state: { importNotice: { text: "Ramesh: 9 transactions added", details: ["2 duplicates skipped"] }, importNoticeUser: "u-1" } });
+    await page();
+    const notice = screen.getByText("Ramesh: 9 transactions added");
+    expect(screen.getByText("2 duplicates skipped")).toBeInTheDocument();
+    expect(notice.compareDocumentPosition(screen.getByRole("group", { name: "Total Portfolio Value" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss import notice" }));
+    expect(screen.queryByText("Ramesh: 9 transactions added")).not.toBeInTheDocument();
+    expect(screen.getByTestId("loc")).toHaveTextContent(/^\/portfolio\/mutual-funds$/);
+    expect(screen.getByTestId("row-S-KOTAK:m1")).toBeInTheDocument();
+  });
+  it("shows no notice that was written for another user", async () => {
+    mount({ state: { importNotice: { text: "Ramesh: 9 transactions added" }, importNoticeUser: "u-2" } });
+    await page();
+    expect(screen.queryByText("Ramesh: 9 transactions added")).not.toBeInTheDocument();
+  });
+  it("keeps the post-import notice on the empty state and on the page error", async () => {
+    mocks.getHoldingsBundle.mockResolvedValue(bundle([]));
+    const first = mount({ state: { importNotice: { text: "Ramesh: 9 transactions added" }, importNoticeUser: "u-1" } });
+    await screen.findByRole("heading", { name: "No mutual funds yet" });
+    expect(screen.getByText("Ramesh: 9 transactions added")).toBeInTheDocument();
+    first.unmount();
+    mocks.getHoldingsBundle.mockRejectedValue(new Error("x"));
+    mocks.getAllocation.mockRejectedValue(new Error("y"));
+    mount({ state: { importNotice: { text: "Ramesh: 9 transactions added" }, importNoticeUser: "u-1" } });
+    await screen.findByRole("heading", { name: "Couldn't load your mutual funds" });
+    expect(screen.getByText("Ramesh: 9 transactions added")).toBeInTheDocument();
+  });
+  it("puts the parts in order: notice, gap banner, summary, SIPs, table, sold funds, cards", async () => {
+    mocks.getHoldingsBundle.mockResolvedValue(memberBundle());
+    mocks.getCoverageGaps.mockResolvedValue(gaps());
+    memberMount({ state: { importNotice: { text: "Ramesh: 9 transactions added" }, importNoticeUser: "u-1" } });
+    await screen.findByTestId("row-S-KOTAK:m1");
+    const order = [
+      screen.getByText("Ramesh: 9 transactions added"), await screen.findByText(/Coverage Gap Detected/), screen.getByRole("group", { name: "Total Portfolio Value" }),
+      screen.getByRole("heading", { name: "SIPs" }), screen.getByRole("heading", { name: "Mutual Funds (2)" }), screen.getByRole("button", { name: /Sold funds/ }),
+      screen.getByRole("heading", { name: "AMC Allocation" }),
+    ];
+    for (let i = 1; i < order.length; i++) expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING, `part ${i}`).toBeTruthy();
+  });
+  it("marks the legacy parts so the interactivity rule skips them, and they add no gap of their own", async () => {
+    mocks.getHoldingsBundle.mockResolvedValue(memberBundle());
+    mocks.getCoverageGaps.mockResolvedValue(gaps());
+    const { container } = memberMount({ state: { importNotice: { text: "Ramesh: 9 transactions added" }, importNoticeUser: "u-1" } });
+    await screen.findByTestId("row-S-KOTAK:m1");
+    await screen.findByText(/Coverage Gap Detected/);
+    const marked = [...container.querySelectorAll("[data-legacy]")];
+    expect(marked.length).toBeGreaterThanOrEqual(3);
+    for (const el of marked) expect(el.className).toContain("contents");
+    expectInteractivity(container, 15);
   });
 });

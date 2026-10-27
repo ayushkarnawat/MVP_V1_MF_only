@@ -24,7 +24,7 @@ describe("Mutual Funds front-end guards", () => {
     for (const expected of [
       "api.ts", "mfCopy.ts", "data/analyticsStore.ts", "data/useMfDashboard.ts", "frame/MutualFundsFrame.tsx", "frame/ComingSoonPages.tsx",
       "common/SectionCard.tsx", "common/charts.tsx", "overview/SummaryStrip.tsx", "overview/SipTimeline.tsx", "overview/HoldingsTable.tsx",
-      "overview/OverviewCards.tsx", "overview/OverviewPage.tsx", "performance/PerformancePage.tsx",
+      "overview/OverviewCards.tsx", "overview/OverviewPage.tsx", "overview/legacyLogic.ts", "overview/CoverageGapGate.tsx", "performance/PerformancePage.tsx",
       "performance/benchmarkLogic.ts", "performance/BenchmarkBlock.tsx",
       "allocation/allocationLogic.ts", "allocation/DrillPanel.tsx", "allocation/AssetClassCard.tsx", "allocation/MarketCapCard.tsx",
       "allocation/CategoryAmcCard.tsx", "allocation/FundManagerCard.tsx", "allocation/AllocationPage.tsx",
@@ -36,7 +36,7 @@ describe("Mutual Funds front-end guards", () => {
       "other/otherLogic.ts", "other/TerLadder.tsx", "other/ValuationSpectrum.tsx", "other/CostValuationGroup.tsx", "other/ScorerGroup.tsx",
       "other/CategoryRankingGroup.tsx", "other/FundRankingGroup.tsx", "other/OtherAnalyticsPage.tsx",
     ]) expect(names).toContain(expected);
-    expect(names).toHaveLength(51);
+    expect(names).toHaveLength(53);
   });
 
   it("never turns a money or percentage string into a float, comments included", () => {
@@ -79,6 +79,12 @@ describe("Mutual Funds front-end guards", () => {
 
   it("does not import the shell's test helpers, the test setup or the orchestrator's helper file", () => {
     expect(FILES.filter(file => /shell\/testing|setupTests|\/testing["']|\.\/fixtures/.test(read(file))).map(name)).toEqual([]);
+  });
+
+  it("mounts the legacy parts that keep their own markup inside a data-legacy wrapper", () => {
+    const users = FILES.filter(file => /components\/mf\/(CoverageGapBanner|OpeningBalanceModal|SoldFundsSection|PostImportNotice)["']/.test(read(file)));
+    expect(users.map(name).sort()).toEqual(["overview/CoverageGapGate.tsx", "overview/OverviewPage.tsx"]);
+    expect(users.filter(file => !read(file).includes("data-legacy")).map(name)).toEqual([]);
   });
 
   it("has no text the owner removed", () => {

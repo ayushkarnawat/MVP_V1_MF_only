@@ -20,7 +20,9 @@ const SELECTED_ATTRS = ["aria-pressed", "aria-selected", "aria-current", "aria-e
 /** Design rule 11.1 on one rendered container: every control is marked data-clickable with a data-effect, a
  * select/switch/sort/expand control exposes its persistent state through an ARIA attribute, and every tooltip has text. */
 export function expectInteractivity(container: HTMLElement, minimum = 1) {
-  const controls = [...container.querySelectorAll<HTMLElement>("button, [role=button], [role=tab], [role=radio], [role=option]")];
+  // Parts moved out of the old screens (components/mf) keep their own markup: a wrapper marked data-legacy exempts them.
+  const controls = [...container.querySelectorAll<HTMLElement>("button, [role=button], [role=tab], [role=radio], [role=option]")]
+    .filter(control => control.closest("[data-legacy]") === null);
   const bare = controls.filter(control => !control.hasAttribute("data-clickable")).map(control => control.outerHTML.slice(0, 120));
   expect(bare).toEqual([]);
   const clickable = [...container.querySelectorAll<HTMLElement>("[data-clickable]")];
