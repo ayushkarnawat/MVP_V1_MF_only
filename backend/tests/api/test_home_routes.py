@@ -67,6 +67,7 @@ def test_summary_response_has_exact_contract_and_plain_decimal_json():
         since_label="today",
         since_date=date(2026, 10, 22),
         top_contributor="Large Cap",
+        top_contributor_scheme_id="54b8755e-6b2b-5f4f-a8fe-b41125031af6",
         members_connected=2,
         members_total=2,
         data_line="Data from 2 of 2 family members",
@@ -99,7 +100,7 @@ def test_summary_response_has_exact_contract_and_plain_decimal_json():
         "since_label": "today",
         "since_date": "2026-10-22",
         "top_contributor": "Large Cap",
-        "top_contributor_scheme_id": None,
+        "top_contributor_scheme_id": "54b8755e-6b2b-5f4f-a8fe-b41125031af6",
         "members_connected": 2,
         "members_total": 2,
         "data_line": "Data from 2 of 2 family members",
@@ -107,6 +108,19 @@ def test_summary_response_has_exact_contract_and_plain_decimal_json():
         "total_value": "1234.50",
         "members": [],
     }
+
+
+def test_summary_route_top_contributor_id_matches_the_named_nonzero_mover(home_client):
+    client, household = home_client
+    names = {"Asha Large Cap": "large", "Dev Gold Fund": "gold"}
+    for path, expected_name in (
+        ("/household/aggregate/home/summary", "Asha Large Cap"),
+        (f"/household-members/{household.dev_id}/home/summary", "Dev Gold Fund"),
+    ):
+        body = client.get(path).json()
+        assert body["top_contributor"] == expected_name
+        assert Decimal(body["change_amount"]) != 0
+        assert body["top_contributor_scheme_id"] == str(uid(f"scheme-{names[expected_name]}"))
 
 
 def test_home_models_forbid_extra_fields():
@@ -180,9 +194,9 @@ def test_home_identity_chain_and_allocation_reconcile(home_client):
 
 def test_home_total_value_rounds_each_valued_holding_before_sum():
     inputs = SimpleNamespace(holdings=(
-        SimpleNamespace(current_value="1.005", nav_unavailable=False),
-        SimpleNamespace(current_value="1.005", nav_unavailable=False),
-        SimpleNamespace(current_value=None, nav_unavailable=True),
+        SimpleNamespace(scheme_id="a", current_value="1.005", nav_unavailable=False),
+        SimpleNamespace(scheme_id="b", current_value="1.005", nav_unavailable=False),
+        SimpleNamespace(scheme_id="c", current_value=None, nav_unavailable=True),
     ))
     assert _total_value(inputs) == Decimal("2.02")
 

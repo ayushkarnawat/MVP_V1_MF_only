@@ -412,3 +412,125 @@ def test_fund_weight_pct_is_null_when_the_value_or_total_is_unknown():
     assert _weight_pct("a", {"a": Decimal("1")}, Decimal("0")) is None
     assert _weight_pct("missing", {"a": Decimal("1")}, Decimal("1")) is None
     assert _weight_pct("a", {"a": Decimal("1")}, Decimal("3")) == Decimal("33.33")
+
+
+def _holding(scheme_id, value, *, unavailable=False):
+    from types import SimpleNamespace
+    return SimpleNamespace(scheme_id=scheme_id, current_value=value, nav_unavailable=unavailable)
+
+
+def test_news_holding_values_match_homes_quantized_total():
+    from decimal import Decimal
+    from app.api.home import _total_value
+    from app.api.home_news import _holding_values
+
+    rows = [_holding("a", "10.005"), _holding("b", "20.004"), _holding("c", None), _holding("d", "5", unavailable=True)]
+    values = _holding_values(rows)
+    assert values == {"a": Decimal("10.01"), "b": Decimal("20.00")}
+    assert sum(values.values(), Decimal("0.00")) == _total_value(type("I", (), {"holdings": rows})())
+
+
+def test_news_holding_values_sum_rows_repeating_a_scheme():
+    from decimal import Decimal
+    from app.api.home_news import _holding_values
+
+    values = _holding_values([_holding("a", "100.00"), _holding("a", "50.00"), _holding("b", "10.00")])
+    assert values == {"a": Decimal("150.00"), "b": Decimal("10.00")}
+
+
+def _seed_shared_scheme(runtime):
+    """Dev also holds Asha's Large Cap scheme in his own folio (one holding row per member)."""
+    from datetime import date
+    from decimal import Decimal
+    from app.models.enums import PlanType, TransactionType
+    from app.models.folio import Folio
+    from app.models.imports import Import
+    from app.models.transaction import Transaction
+    from tests.api.home_fixture import uid
+    from app.services.dashboard.holdings import _holdings_cache
+
+    db = _db(runtime)
+    folio = Folio(
+        id=uid("folio-shared-dev"), household_member_id=uid("dev"), scheme_id=uid("scheme-large"),
+        folio_number="SHARED-DEV", plan_type=PlanType.DIRECT,
+    )
+    db.add(folio)
+    db.flush()
+    db.add(Transaction(
+        id=uid("transaction-shared-dev"), folio_id=folio.id, import_id=uid("import-Dev Rao"),
+        type=TransactionType.PURCHASE, date=date(2026, 8, 25), amount=Decimal("1000"),
+        units=Decimal("100"), nav=Decimal("10"),
+    ))
+    db.commit()
+    _holdings_cache.clear()
+
+
+def test_fund_weight_pct_counts_every_members_row_for_a_shared_scheme():
+    runtime = build_news_fixture()
+    try:
+        _seed_shared_scheme(runtime)
+        seed_news_items(_db(runtime), [
+            {"source": "Mint", "title": "HDFC Mutual Fund AUM crosses record high as fund house expands",
+             "published_at": NOW_UTC - timedelta(hours=4)},
+        ], ingested_at=NOW_UTC - timedelta(hours=1))
+        body = runtime.client.get("/household/aggregate/home/news").json()
+        funds = {fund["name"]: fund for fund in body["items"][0]["funds"]}
+        # Large Cap is now 1210 (Asha) + 100 units * 12.10 (Dev) = 2420; total 5212 + 1210 = 6422.
+        assert funds["Asha Large Cap"]["weight_pct"] == "37.68"  # 2420 / 6422
+        assert funds["Dev Short Duration Debt"]["weight_pct"] == "31.17"  # 2002 / 6422
+    finally:
+        runtime.close()
+
+
+def test_fund_weight_pct_is_member_scoped_for_a_member_request():
+    runtime = build_news_fixture()
+    try:
+        seed_news_items(_db(runtime), [
+            {"source": "Mint", "title": "HDFC Mutual Fund AUM crosses record high as fund house expands",
+             "published_at": NOW_UTC - timedelta(hours=4)},
+        ], ingested_at=NOW_UTC - timedelta(hours=1))
+        from tests.api.home_fixture import uid
+        body = runtime.client.get(f"/household-members/{uid('asha')}/home/news").json()
+        funds = {fund["name"]: fund for fund in body["items"][0]["funds"]}
+        # Asha only: Large Cap 1210, Flexi Cap 990; total 2200.
+        assert funds["Asha Large Cap"]["weight_pct"] == "55.00"
+        assert funds["Asha Flexi Cap"]["weight_pct"] == "45.00"
+        assert "Dev Short Duration Debt" not in funds
+    finally:
+        runtime.close()
+
+
+def test_fund_weight_pct_null_for_unavailable_nav_fund_and_excluded_from_total():
+    runtime = build_news_fixture()
+    try:
+        from app.models.reference import NavHistory, Scheme
+        from tests.api.home_fixture import uid
+        from app.services.dashboard.holdings import _holdings_cache
+        db = _db(runtime)
+        db.query(NavHistory).filter(NavHistory.scheme_id == uid("scheme-gold")).delete()
+        db.get(Scheme, uid("scheme-gold")).amfi_code = None
+        db.commit()
+        _holdings_cache.clear()
+        seed_news_items(_db(runtime), [
+            {"source": "Mint", "title": "HDFC Mutual Fund AUM crosses record high as fund house expands",
+             "published_at": NOW_UTC - timedelta(hours=4)},
+        ], ingested_at=NOW_UTC - timedelta(hours=1))
+        body = runtime.client.get("/household/aggregate/home/news").json()
+        assert body["partial"] is True
+        funds = {fund["name"]: fund for fund in body["items"][0]["funds"]}
+        assert "Dev Gold Fund" not in funds  # unavailable-NAV funds never reach a watch entity
+        # Total excludes Gold (1010): 5212 - 1010 = 4202.
+        assert funds["Dev Short Duration Debt"]["weight_pct"] == "47.64"  # 2002 / 4202
+    finally:
+        runtime.close()
+
+
+def test_funds_out_gives_null_weight_to_an_unavailable_fund_and_excludes_it_from_total():
+    from decimal import Decimal
+    from app.api.home_news import _funds_out, _holding_values
+    from app.services.news.match import WatchEntity
+
+    values = _holding_values([_holding("a", "300.00"), _holding("b", "100.00"), _holding("g", "999", unavailable=True)])
+    entity = WatchEntity("fund_house", "k", "Label", None, "holdings", (("a", "A"), ("b", "B"), ("g", "Gold")))
+    out = {fund.scheme_id: fund.weight_pct for fund in _funds_out(entity, values, None)}
+    assert out == {"a": Decimal("75.00"), "b": Decimal("25.00"), "g": None}

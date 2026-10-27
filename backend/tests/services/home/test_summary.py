@@ -242,3 +242,39 @@ def test_top_contributor_scheme_id_matches_the_named_fund_or_is_none():
     flat = build_summary(movers=_movers(_fund("Alpha", "0")), **kwargs)
     assert flat.top_contributor is None
     assert flat.top_contributor_scheme_id is None
+
+def _summary_for(movers):
+    return build_summary(
+        display_name="Ayush", now_ist=datetime(2026, 10, 23, 9, tzinfo=IST), scope="aggregate",
+        member_name=None, movers=movers, members_connected=1, members_total=1,
+    )
+
+
+def test_top_contributor_scheme_id_follows_the_named_fund_on_a_tie():
+    # Two equal gains: whichever fund is named, the id must be that same fund's.
+    first, second = uuid.uuid4(), uuid.uuid4()
+    summary = _summary_for(_movers(
+        _fund("Alpha", "20", scheme_id=first), _fund("Beta", "20", scheme_id=second),
+    ))
+    named = {"Alpha": first, "Beta": second}
+    assert summary.top_contributor in named
+    assert summary.top_contributor_scheme_id == str(named[summary.top_contributor])
+
+
+def test_top_contributor_scheme_id_on_a_net_zero_mixed_sign_day():
+    gain, loss = uuid.uuid4(), uuid.uuid4()
+    movers = _movers(_fund("Gain", "20", scheme_id=gain), _fund("Loss", "-20", scheme_id=loss))
+    assert movers.net_change == 0
+    summary = _summary_for(movers)
+    named = {"Gain": gain, "Loss": loss}
+    assert summary.top_contributor in named
+    assert summary.top_contributor_scheme_id == str(named[summary.top_contributor])
+    # Larger absolute move wins on a net-zero day too.
+    big_loss = uuid.uuid4()
+    movers = _movers(
+        _fund("Gain", "10", scheme_id=gain), _fund("Loss", "-15", scheme_id=big_loss),
+        _fund("Gain2", "5", scheme_id=uuid.uuid4()),
+    )
+    assert movers.net_change == 0
+    summary = _summary_for(movers)
+    assert (summary.top_contributor, summary.top_contributor_scheme_id) == ("Loss", str(big_loss))

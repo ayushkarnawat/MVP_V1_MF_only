@@ -18,7 +18,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.api.home import get_now_ist
+from app.api.home import get_now_ist, valued_amounts_by_scheme
 from app.config import settings
 from app.db.session import get_db
 from app.models.news import JobRun, NewsItem
@@ -95,10 +95,8 @@ def _find_stock_row(entity_key: str, stock_rows: Sequence[Mapping]) -> Mapping |
 
 
 def _holding_values(holdings: Sequence[HoldingRow]) -> dict[str, Decimal]:
-    return {
-        row.scheme_id: Decimal(row.current_value)
-        for row in holdings if not row.nav_unavailable and row.current_value is not None
-    }
+    # Shared with Home's total: quantized per row, summed per scheme (one row per member/plan).
+    return valued_amounts_by_scheme(holdings)
 
 
 def _weight_pct(scheme_id: str, holding_values: Mapping[str, Decimal], total: Decimal) -> Decimal | None:
