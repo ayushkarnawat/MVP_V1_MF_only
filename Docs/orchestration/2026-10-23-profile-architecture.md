@@ -64,6 +64,8 @@ Each page component calls `useAuth()` and the existing member and history loader
 backend/app/services/auth/schemas.py              + MeResponse.created_at (Q2)
 ```
 
+Added later (27 Oct, backend pass 3, PR #20): the consents call may also return optional `document_title` and `version_label` (`ConsentList.tsx` shows them when present). No new endpoint.
+
 No new module, table, job or migration.
 
 ## 5. PAN
