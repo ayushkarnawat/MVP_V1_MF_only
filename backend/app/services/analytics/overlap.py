@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.models.enums import AssetType
 from app.services.analytics.lookthrough import get_disclosure_scope, get_lookthrough_table, LookthroughTable
 from app.services.analytics.schemas import (
-    ConcentrationPoint, OverlapBands, OverlapCommonStock, OverlapFund,
+    ConcentrationPoint, OverlapBands, OverlapCommonStock, OverlapDriver, OverlapFund, OverlapImpactPair,
     OverlapPair, OverlapResult, OverlapSummary,
 )
 
@@ -19,6 +19,8 @@ OVERLAP_BAND_LOW = Decimal("20")
 OVERLAP_BAND_HIGH = Decimal("40")
 OVERLAP_MAX_FUNDS = 12
 COMMON_STOCK_LIMIT = 20
+IMPACT_PAIRS = 3
+IMPACT_DRIVERS = 5
 _EQUITY = {AssetType.EQUITY_DOMESTIC, AssetType.EQUITY_INTERNATIONAL}
 _ZERO = Decimal(0)
 
@@ -54,6 +56,17 @@ def compute_concentration(table: LookthroughTable) -> list[ConcentrationPoint]:
     return [ConcentrationPoint(stock_count=n, exposure_pct=sum((r.exposure_pct for r in equity[:n]), _ZERO)) for n in counts]
 
 
+def _impact(pair: OverlapPair) -> OverlapImpactPair:
+    # common_stocks is already largest shared weight first, so its head is the top drivers.
+    return OverlapImpactPair(
+        fund_a=pair.fund_a, fund_b=pair.fund_b, overlap_pct=pair.overlap_pct,
+        drivers=[OverlapDriver(isin=s.isin, instrument_name=s.instrument_name,
+                               contribution_pct=min(s.weight_a, s.weight_b),
+                               share_of_pair_pct=min(s.weight_a, s.weight_b) / pair.overlap_pct * 100)
+                 for s in pair.common_stocks[:IMPACT_DRIVERS]],
+    )
+
+
 async def compute_overlap(db: Session, household_member_ids: list[uuid.UUID]) -> OverlapSummary:
     scope = await get_disclosure_scope(db, household_member_ids)
     table = await get_lookthrough_table(db, household_member_ids)
@@ -65,7 +78,7 @@ async def compute_overlap(db: Session, household_member_ids: list[uuid.UUID]) ->
     funds.sort(key=lambda f: (-f.current_value, str(f.scheme_id)))
     weights = {fund.scheme_id: _stock_weights(rows[fund.scheme_id]) for fund in funds}
     top_ids = {f.scheme_id for f in funds[:OVERLAP_MAX_FUNDS]}
-    matrix, above = [], []
+    matrix, above, at_low = [], [], []
     for fund_a, fund_b in combinations(funds, 2):
         result = _pair_result(weights[fund_a.scheme_id], weights[fund_b.scheme_id])
         pair = OverlapPair(fund_a=fund_a, fund_b=fund_b, **result.model_dump())
@@ -73,9 +86,14 @@ async def compute_overlap(db: Session, household_member_ids: list[uuid.UUID]) ->
             matrix.append(pair)
         if pair.overlap_pct > OVERLAP_BAND_LOW:
             above.append(pair)
-    above.sort(key=lambda p: (-p.overlap_pct, str(p.fund_a.scheme_id), str(p.fund_b.scheme_id)))
+        elif pair.overlap_pct == OVERLAP_BAND_LOW:
+            at_low.append(pair)
+    order = lambda p: (-p.overlap_pct, str(p.fund_a.scheme_id), str(p.fund_b.scheme_id))
+    above.sort(key=order)
+    at_low.sort(key=order)
     return OverlapSummary(
         matrix_funds=funds[:OVERLAP_MAX_FUNDS], matrix=matrix, pairs_above_low=above,
+        impact_pairs=[_impact(pair) for pair in above[:IMPACT_PAIRS]], pairs_at_low_boundary=at_low,
         matrix_truncated=len(funds) > OVERLAP_MAX_FUNDS, total_fund_count=len(funds),
         common_stock_limit=COMMON_STOCK_LIMIT,
         bands=OverlapBands(low=OVERLAP_BAND_LOW, high=OVERLAP_BAND_HIGH),

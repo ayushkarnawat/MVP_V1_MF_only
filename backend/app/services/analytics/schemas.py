@@ -636,6 +636,20 @@ class OverlapPair(OverlapResult):
     fund_b: OverlapFund
 
 
+class OverlapDriver(BaseModel):
+    isin: str
+    instrument_name: str
+    contribution_pct: Decimal  # the smaller of the stock's two fund weights, percent of net assets
+    share_of_pair_pct: Decimal  # contribution_pct as a percent of the pair's overlap_pct
+
+
+class OverlapImpactPair(BaseModel):
+    fund_a: OverlapFund
+    fund_b: OverlapFund
+    overlap_pct: Decimal
+    drivers: list[OverlapDriver]
+
+
 class ConcentrationPoint(BaseModel):
     stock_count: int
     exposure_pct: Decimal
@@ -645,6 +659,12 @@ class OverlapSummary(BaseModel):
     matrix_funds: list[OverlapFund]
     matrix: list[OverlapPair]  # unordered pairs; diagonal omitted
     pairs_above_low: list[OverlapPair]
+    # Optional (MF-C ask C139), None on payloads stored before they existed.
+    # Stock-level impact: the largest common stocks behind each of the top pairs above low.
+    impact_pairs: list[OverlapImpactPair] | None = None
+    # Pairs at exactly the low band, which the strict pairs_above_low leaves out; an
+    # inclusive view is pairs_above_low + this, re-sorted by overlap.
+    pairs_at_low_boundary: list[OverlapPair] | None = None
     matrix_truncated: bool
     total_fund_count: int
     common_stock_limit: int
