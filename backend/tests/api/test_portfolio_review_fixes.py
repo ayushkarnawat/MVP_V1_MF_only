@@ -121,10 +121,19 @@ def _mutate_db(runtime, *statements):
         db.commit()
 
 
-def test_summary_total_is_the_sum_of_per_row_rounded_values_not_a_rounded_sum():
+def test_summary_total_is_the_sum_of_per_row_rounded_values_not_a_rounded_sum(monkeypatch):
     """Review M2(a): two funds worth 990.005 and 1010.005 are 990.01 and 1,010.01 on the holdings table, so the
     headline must be the sum of those rows. Summing the exact values first and rounding once gives 5,212.01."""
+    import httpx
     from sqlalchemy import update
+
+    # The legacy `/holdings` route may fetch a live NAV when the newest stored price is not today's (the fixture's
+    # prices end 2026-10-23, the real date is later). That is a mfapi.in call (not AMFI); simulate it being down,
+    # which the route handles by using the stored NAV, so the test never depends on the network (L16).
+    async def _feed_down(_amfi_code):
+        raise httpx.ConnectError("offline")
+
+    monkeypatch.setattr("app.services.dashboard.nav._fetch_nav_history", _feed_down)
 
     from app.models.reference import NavHistory
     from tests.api.home_fixture import uid
