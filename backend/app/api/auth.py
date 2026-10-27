@@ -506,10 +506,15 @@ def _me_response(user: User, db: DbSession) -> MeResponse:
         .filter_by(user_id=user.id, relationship=Relationship.SELF)
         .first()
     )
+    created_at = user.created_at
+    if created_at.tzinfo is None:
+        # SQLite drops tzinfo; stored values are UTC.
+        created_at = created_at.replace(tzinfo=timezone.utc)
     return MeResponse(
         user_id=str(user.id),
         phone_number=user.phone_number,
         email=user.email,
+        created_at=created_at,
         onboarding_step=user.onboarding_step,
         onboarding_completed=user.onboarding_completed_at is not None,
         investor_type=user.investor_type,

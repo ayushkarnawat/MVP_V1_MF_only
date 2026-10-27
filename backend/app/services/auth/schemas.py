@@ -200,6 +200,8 @@ class MeResponse(BaseModel):
     pending_deletion: bool
     deletion_scheduled_at: datetime | None
     self_name: str | None = None
+    # Account creation time, for the Profile "Member since" line.
+    created_at: datetime
     # Sign-up documents (T&C / Privacy) without a current GIVEN row --
     # non-empty means the client must ask the user to agree again.
     consent_outdated: list[str] = []

@@ -738,6 +738,31 @@ def test_get_me_reports_self_name(client):
     assert client.get("/auth/me", headers=headers).json()["self_name"] == "Asha Rao"
 
 
+def test_me_includes_created_at(client):
+    """Profile plan T1: "Member since" reads created_at (ISO 8601) from /auth/me."""
+    from datetime import datetime, timezone
+
+    from app.db.session import get_db
+    from app.main import app
+    from app.models.user import User
+
+    phone = "+919100100004"
+    headers = _goal_headers(client, phone)
+    body = client.get("/auth/me", headers=headers).json()
+    assert "created_at" in body
+    got = datetime.fromisoformat(body["created_at"])
+    db = next(app.dependency_overrides[get_db]())
+    stored = db.query(User).filter_by(phone_number=phone).one().created_at
+    if stored.tzinfo is None:  # SQLite drops tzinfo; stored values are UTC
+        stored = stored.replace(tzinfo=timezone.utc)
+    if got.tzinfo is None:
+        got = got.replace(tzinfo=timezone.utc)
+    assert got == stored
+    # PATCH returns the same MeResponse shape
+    patched = client.patch("/auth/me", json={"onboarding_step": "q1"}, headers=headers).json()
+    assert patched["created_at"] == body["created_at"]
+
+
 # ---------------------------------------------------------------------------
 # Task 8 (consent core B2): T&C + Privacy consent captured at the first
 # sign-up step, recorded atomically with the account.
