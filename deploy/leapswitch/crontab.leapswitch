@@ -35,6 +35,10 @@ BACKUP=/opt/unifolio/deploy/leapswitch/scripts/backup.sh
 0  8  *  *  *              $RUN delete-expired-accounts-daily scripts/jobs/delete_expired_accounts_daily.py
 0  19 *  *  *              $RUN cas-file-expiry-daily         -m app.scripts.expire_cas_files
 
+# L17: weekly NSE symbol fill for stock_master.nse_symbol (NULL-only, idempotent). A no-op unless
+# NSE_SYMBOL_FILL_ENABLED=true is in the VM .env. Sunday 05:20 sits before the 05:40 batch window.
+20 5  *  *  0              $RUN nse-symbol-fill              scripts/jobs/fill_nse_symbols.py
+
 # Home news feed (T6): a 5-hour ingest window every 3 hours covers the gap
 # between runs with room to spare, and a 26-hour catch-up once a night is
 # the safety net if a run is ever missed. Minute :15 keeps both off the

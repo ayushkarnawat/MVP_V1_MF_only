@@ -157,7 +157,7 @@ async def compute_investment_withdrawal(
     # parallel SIPs (DashboardView.tsx), and missed instalments are measured
     # against the folio's latest statement end -- the same reference
     # compute_active_sips uses to call a SIP active.
-    sip_rows = compute_active_sips(db, household_member_ids)
+    sip_rows = compute_active_sips(db, household_member_ids, today=today)
     references = _references(db, list(folios.values()))
     # SipRow has no folio id, so folios are grouped by member + scheme. Where
     # their statement ends differ, the earliest wins: a miss is flagged only

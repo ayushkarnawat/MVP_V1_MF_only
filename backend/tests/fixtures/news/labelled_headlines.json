@@ -1184,5 +1184,457 @@
   {
     "title": "A regional theatre group staged a sold out revival of a classic play",
     "expected": []
+  },
+  {
+    "title": "Bank shares rally as credit growth picks up across the system",
+    "expected": [
+      [
+        "sector",
+        "banks_financials"
+      ]
+    ]
+  },
+  {
+    "title": "Banking sector deposit growth lags loan growth for a fifth quarter",
+    "expected": [
+      [
+        "sector",
+        "banks_financials"
+      ]
+    ]
+  },
+  {
+    "title": "PSU banks see a sharp drop in bad loans this year",
+    "expected": [
+      [
+        "sector",
+        "banks_financials"
+      ]
+    ]
+  },
+  {
+    "title": "Private banks raise deposit rates to attract savers",
+    "expected": [
+      [
+        "sector",
+        "banks_financials"
+      ]
+    ]
+  },
+  {
+    "title": "NBFC lenders face tighter funding conditions after the new rules",
+    "expected": [
+      [
+        "sector",
+        "banks_financials"
+      ]
+    ]
+  },
+  {
+    "title": "Banking stocks slip as margin worries return",
+    "expected": [
+      [
+        "sector",
+        "banks_financials"
+      ]
+    ]
+  },
+  {
+    "title": "Lenders report softer net interest margins in the latest results",
+    "expected": [
+      [
+        "sector",
+        "banks_financials"
+      ]
+    ]
+  },
+  {
+    "title": "IT stocks fall as US clients delay discretionary spending",
+    "expected": [
+      [
+        "sector",
+        "it_tech"
+      ]
+    ]
+  },
+  {
+    "title": "IT sector hiring slows for a second straight quarter",
+    "expected": [
+      [
+        "sector",
+        "it_tech"
+      ]
+    ]
+  },
+  {
+    "title": "Software stocks gain on a weaker rupee",
+    "expected": [
+      [
+        "sector",
+        "it_tech"
+      ]
+    ]
+  },
+  {
+    "title": "Tech stocks in India mirror the overnight move in global peers",
+    "expected": [
+      [
+        "sector",
+        "it_tech"
+      ]
+    ]
+  },
+  {
+    "title": "Software exporters brace for tighter visa rules",
+    "expected": [
+      [
+        "sector",
+        "it_tech"
+      ]
+    ]
+  },
+  {
+    "title": "IT shares extend losses on weak deal pipeline commentary",
+    "expected": [
+      [
+        "sector",
+        "it_tech"
+      ]
+    ]
+  },
+  {
+    "title": "Pharma stocks climb after the US regulator clears a key plant",
+    "expected": [
+      [
+        "sector",
+        "pharma_health"
+      ]
+    ]
+  },
+  {
+    "title": "Pharma sector braces for price controls on essential medicines",
+    "expected": [
+      [
+        "sector",
+        "pharma_health"
+      ]
+    ]
+  },
+  {
+    "title": "Healthcare stocks attract buying as hospital occupancy improves",
+    "expected": [
+      [
+        "sector",
+        "pharma_health"
+      ]
+    ]
+  },
+  {
+    "title": "Drug makers see export growth cool in the second quarter",
+    "expected": [
+      [
+        "sector",
+        "pharma_health"
+      ]
+    ]
+  },
+  {
+    "title": "Hospital stocks gain on higher average revenue per bed",
+    "expected": [
+      [
+        "sector",
+        "pharma_health"
+      ]
+    ]
+  },
+  {
+    "title": "Pharmaceutical companies step up spending on generics research",
+    "expected": [
+      [
+        "sector",
+        "pharma_health"
+      ]
+    ]
+  },
+  {
+    "title": "Auto stocks edge higher on strong festive bookings",
+    "expected": [
+      [
+        "sector",
+        "auto_ev"
+      ]
+    ]
+  },
+  {
+    "title": "Auto sector sales growth moderates after a record festive month",
+    "expected": [
+      [
+        "sector",
+        "auto_ev"
+      ]
+    ]
+  },
+  {
+    "title": "Car makers cut production as inventories build up at dealers",
+    "expected": [
+      [
+        "sector",
+        "auto_ev"
+      ]
+    ]
+  },
+  {
+    "title": "Two wheeler sales rise in rural markets on a good monsoon",
+    "expected": [
+      [
+        "sector",
+        "auto_ev"
+      ]
+    ]
+  },
+  {
+    "title": "EV makers lobby for a longer subsidy window",
+    "expected": [
+      [
+        "sector",
+        "auto_ev"
+      ]
+    ]
+  },
+  {
+    "title": "Auto shares slip as input costs rise",
+    "expected": [
+      [
+        "sector",
+        "auto_ev"
+      ]
+    ]
+  },
+  {
+    "title": "FMCG stocks recover as rural demand shows early signs of revival",
+    "expected": [
+      [
+        "sector",
+        "consumer_fmcg"
+      ]
+    ]
+  },
+  {
+    "title": "FMCG sector volume growth stays muted in the latest quarter",
+    "expected": [
+      [
+        "sector",
+        "consumer_fmcg"
+      ]
+    ]
+  },
+  {
+    "title": "Consumer goods companies hike prices to protect margins",
+    "expected": [
+      [
+        "sector",
+        "consumer_fmcg"
+      ]
+    ]
+  },
+  {
+    "title": "FMCG shares drift lower on commodity cost worries",
+    "expected": [
+      [
+        "sector",
+        "consumer_fmcg"
+      ]
+    ]
+  },
+  {
+    "title": "Oil and gas stocks rise as crude prices firm up",
+    "expected": [
+      [
+        "sector",
+        "energy"
+      ]
+    ]
+  },
+  {
+    "title": "Energy stocks lead gains on strong refining margins",
+    "expected": [
+      [
+        "sector",
+        "energy"
+      ]
+    ]
+  },
+  {
+    "title": "Power stocks rally on higher electricity demand forecasts",
+    "expected": [
+      [
+        "sector",
+        "energy"
+      ]
+    ]
+  },
+  {
+    "title": "Oil marketing companies see margins improve as crude cools",
+    "expected": [
+      [
+        "sector",
+        "energy"
+      ]
+    ]
+  },
+  {
+    "title": "Energy sector capex plans point to a heavy investment year",
+    "expected": [
+      [
+        "sector",
+        "energy"
+      ]
+    ]
+  },
+  {
+    "title": "Metal stocks jump on hopes of stimulus from China",
+    "expected": [
+      [
+        "sector",
+        "metals_mining"
+      ]
+    ]
+  },
+  {
+    "title": "Steel stocks slide as import duties are reviewed",
+    "expected": [
+      [
+        "sector",
+        "metals_mining"
+      ]
+    ]
+  },
+  {
+    "title": "Mining stocks gain after new auction rules are announced",
+    "expected": [
+      [
+        "sector",
+        "metals_mining"
+      ]
+    ]
+  },
+  {
+    "title": "Metals sector faces pressure from weak global demand",
+    "expected": [
+      [
+        "sector",
+        "metals_mining"
+      ]
+    ]
+  },
+  {
+    "title": "Metal shares gain as aluminium prices recover",
+    "expected": [
+      [
+        "sector",
+        "metals_mining"
+      ]
+    ]
+  },
+  {
+    "title": "Realty stocks gain as housing sales hit a decade high",
+    "expected": [
+      [
+        "sector",
+        "realty_infra"
+      ]
+    ]
+  },
+  {
+    "title": "Realty sector launches rise sharply in the major cities",
+    "expected": [
+      [
+        "sector",
+        "realty_infra"
+      ]
+    ]
+  },
+  {
+    "title": "Infrastructure stocks rally on a bigger road building budget",
+    "expected": [
+      [
+        "sector",
+        "realty_infra"
+      ]
+    ]
+  },
+  {
+    "title": "Construction stocks see order books swell in the quarter",
+    "expected": [
+      [
+        "sector",
+        "realty_infra"
+      ]
+    ]
+  },
+  {
+    "title": "Realty shares come under pressure after a rate hike fear",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ],
+      [
+        "sector",
+        "realty_infra"
+      ]
+    ]
+  },
+  {
+    "title": "Bank holiday on Saturday will keep branches shut across the state",
+    "expected": []
+  },
+  {
+    "title": "Blood bank camp organised at the district hospital this weekend",
+    "expected": []
+  },
+  {
+    "title": "River bank erosion worsens in the delta after the heavy rains",
+    "expected": []
+  },
+  {
+    "title": "Energy drink maker launches a new flavour for the festive season",
+    "expected": []
+  },
+  {
+    "title": "Auto rickshaw drivers stage a protest over fare revisions",
+    "expected": []
+  },
+  {
+    "title": "IT raid on a jeweller's premises continues for a second day",
+    "expected": []
+  },
+  {
+    "title": "Real estate agent held for cheating buyers in a plot scam",
+    "expected": []
+  },
+  {
+    "title": "Metal detector at the stadium gates catches a banned item",
+    "expected": []
+  },
+  {
+    "title": "Pharma lobby meets the health minister over a draft policy paper",
+    "expected": []
+  },
+  {
+    "title": "Power cut hits several neighbourhoods for six hours",
+    "expected": []
+  },
+  {
+    "title": "Hospital stocks of oxygen cylinders replenished ahead of winter",
+    "expected": []
+  },
+  {
+    "title": "Construction of the new flyover will be completed in March",
+    "expected": []
+  },
+  {
+    "title": "Car makers union calls off the planned strike after talks",
+    "expected": []
   }
 ]

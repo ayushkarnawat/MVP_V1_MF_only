@@ -24,7 +24,7 @@ async def _insights(db: Session, user: User, member_id: uuid.UUID | None, now_is
     ctx = resolve_scope(db, user, member_id)
     # Same stored-price inputs as the other Portfolio routes; the "fund" view skips the sector-weights query.
     inputs = await _load_inputs(db, ctx, now_ist.date(), lookback_days=15, view="fund")
-    sip_rows = compute_active_sips(db, list(ctx.member_ids))
+    sip_rows = compute_active_sips(db, list(ctx.member_ids), today=now_ist.date())
     result = compute_portfolio_insights(inputs.holdings, sip_rows)
     return PortfolioInsightsResponse(
         **_envelope(ctx, inputs, now_ist), members=_members(ctx), total_value=result.total_value,

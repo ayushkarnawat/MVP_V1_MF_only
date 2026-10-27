@@ -84,5 +84,10 @@ class Settings(BaseSettings):
     news_disabled_sources: str = ""
     healthcheck_news_url: str = ""
 
+    # L17: one-off/idempotent fill of stock_master.nse_symbol from the public NSE
+    # equity list. Off by default; the VM .env sets NSE_SYMBOL_FILL_ENABLED=true.
+    nse_symbol_fill_enabled: bool = False
+    nse_symbol_fill_url: str = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
+
 
 settings = Settings()

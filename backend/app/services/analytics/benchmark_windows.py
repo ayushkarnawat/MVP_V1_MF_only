@@ -284,7 +284,10 @@ def compute_window_rows(
             # (`_portfolio_xirr`) ends at the real date.today(), so a supplied rate is reused only when
             # the two agree (always, in production outside 00:00-05:30 IST); otherwise it is re-solved
             # from the same flows with the same solver, so the two are still digit for digit equal.
-            if since_inception is not None and ctx.today == date.today():
+            # The index rates follow the same rule (register L1 follow-up / C155): legacy values are reused
+            # only when ctx.today is the real date, else they are re-solved to ctx.today.
+            reuse_legacy = since_inception is not None and ctx.today == date.today()
+            if reuse_legacy:
                 portfolio_rate = since_inception.portfolio
             else:
                 portfolio_rate = xirr([*flows, (ctx.today, current_value)])
@@ -298,7 +301,7 @@ def compute_window_rows(
                     ctx.today,
                     levels,
                     solver=xirr_fast,
-                    known_rates=since_inception.indices,
+                    known_rates=since_inception.indices if reuse_legacy else None,
                 )
             rows.append(
                 BenchmarkWindowRow(
@@ -386,7 +389,13 @@ def compute_fund_window_rows(
                 (txn.date, _signed_amount(txn, extra_debits))
                 for txn in fund_transactions
             ]
-            if since_inception is None:
+            if since_inception is not None and ctx.today == date.today():
+                fund_rate, benchmark_rate = since_inception
+            elif since_inception is not None:
+                # The legacy pair ends at the real date.today(); re-solve to ctx.today from the same flows.
+                fund_rate = xirr([*flows, (ctx.today, fund_current_value)])
+                benchmark_rate = index_window_xirr(index_levels, flows, None, None, ctx.today)
+            else:
                 fund_rate = _portfolio_xirr(
                     list(fund_transactions),
                     fund_current_value,
@@ -395,8 +404,6 @@ def compute_fund_window_rows(
                 benchmark_rate = index_window_xirr(
                     index_levels, flows, None, None, ctx.today
                 )
-            else:
-                fund_rate, benchmark_rate = since_inception
             rows.append(
                 FundWindowXirr(
                     window=window,

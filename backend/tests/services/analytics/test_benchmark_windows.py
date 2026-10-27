@@ -1233,7 +1233,7 @@ def test_supplied_fund_since_inception_rates_are_not_resolved():
     from app.services.analytics.benchmark import _xirr_str
 
     scheme_id = uuid.uuid4()
-    today = date(2026, 10, 24)
+    today = date.today()  # legacy pair is reused only when ctx.today is the real date
     first = date(2020, 1, 1)
     ctx = windows_module.WindowContext(
         today=today,
@@ -1262,3 +1262,95 @@ def test_supplied_fund_since_inception_rates_are_not_resolved():
     assert since_inception.benchmark_xirr == _xirr_str(benchmark_rate)
     assert legacy_solver.call_count == 0
     assert fast_solver.call_count == 0
+
+
+def _levels_through(transactions, end):
+    from app.services.analytics.benchmark_windows import IndexLevels
+
+    days = sorted({t.date for t in transactions} | {end})
+    return IndexLevels(days, [Decimal(100 + 5 * i) for i in range(len(days))])
+
+
+def test_since_inception_index_rates_end_at_the_context_today_not_the_real_today():
+    """Register L1 follow-up / C155: a supplied (legacy, real-date.today()) index rate is reused only when
+    ctx.today is the real today; otherwise it is re-solved from the same flows with the same solver."""
+    from app.services.analytics.benchmark import _investment_transactions, _signed_amount, _xirr_str
+    from app.services.analytics.benchmark_windows import (
+        SinceInceptionRates, WindowContext, compute_window_rows, index_window_xirr,
+    )
+    from app.services.analytics.xirr_fast import xirr_fast
+
+    db = _session()
+    member, _scheme = _seed_mixed_portfolio(db)
+    transactions = _investment_transactions(db, [member.id])
+    ctx_today = date.today() - timedelta(days=40)
+    ctx = WindowContext(
+        today=ctx_today,
+        starts={"1Y": None, "3Y": None, "5Y": None, "SI": None},
+        portfolio_start_values={"1Y": None, "3Y": None, "5Y": None, "SI": None},
+        fund_start_values={"1Y": {}, "3Y": {}, "5Y": {}, "SI": {}},
+    )
+    levels = {index: _levels_through(transactions, ctx_today) for index in ALL_BENCHMARK_INDICES}
+    flows = [(t.date, _signed_amount(t)) for t in transactions]
+    expected = {
+        index: _xirr_str(index_window_xirr(levels[index], flows, None, None, ctx_today, xirr_fast))
+        for index in ALL_BENCHMARK_INDICES
+    }
+    stale = SinceInceptionRates(
+        portfolio=Decimal("0.5"), indices={index: Decimal("0.77") for index in ALL_BENCHMARK_INDICES},
+    )
+
+    row = compute_window_rows(ctx, transactions, Decimal("12000"), levels, since_inception=stale)[3]
+
+    assert {r.index: r.xirr for r in row.indices} == expected
+    assert all(value != _xirr_str(Decimal("0.77")) for value in expected.values())  # the fixture tells them apart
+
+
+def test_since_inception_index_rates_are_reused_when_the_context_today_is_the_real_today():
+    from app.services.analytics.benchmark import _investment_transactions, _xirr_str
+    from app.services.analytics.benchmark_windows import SinceInceptionRates, WindowContext, compute_window_rows
+
+    db = _session()
+    member, _scheme = _seed_mixed_portfolio(db)
+    transactions = _investment_transactions(db, [member.id])
+    ctx = WindowContext(
+        today=date.today(),
+        starts={"1Y": None, "3Y": None, "5Y": None, "SI": None},
+        portfolio_start_values={"1Y": None, "3Y": None, "5Y": None, "SI": None},
+        fund_start_values={"1Y": {}, "3Y": {}, "5Y": {}, "SI": {}},
+    )
+    known = SinceInceptionRates(
+        portfolio=Decimal("0.5"), indices={index: Decimal("0.77") for index in ALL_BENCHMARK_INDICES},
+    )
+    row = compute_window_rows(ctx, transactions, Decimal("12000"), {}, since_inception=known)[3]
+    assert row.portfolio_xirr == _xirr_str(Decimal("0.5"))
+    assert {r.xirr for r in row.indices} == {_xirr_str(Decimal("0.77"))}
+
+
+def test_since_inception_fund_row_ends_at_the_context_today_not_the_real_today():
+    from app.services.analytics.benchmark import _fund_level_transactions, _signed_amount, _xirr_str
+    from app.services.analytics.benchmark_windows import WindowContext, compute_fund_window_rows, index_window_xirr
+    from app.services.analytics.xirr import xirr
+
+    db = _session()
+    member, scheme = _seed_mixed_portfolio(db)
+    transactions = _fund_level_transactions(db, [member.id])
+    ctx_today = date.today() - timedelta(days=40)
+    ctx = WindowContext(
+        today=ctx_today,
+        starts={"1Y": None, "3Y": None, "5Y": None, "SI": None},
+        portfolio_start_values={"1Y": None, "3Y": None, "5Y": None, "SI": None},
+        fund_start_values={"1Y": {}, "3Y": {}, "5Y": {}, "SI": {}},
+    )
+    levels = {index: _levels_through(transactions, ctx_today) for index in ALL_BENCHMARK_INDICES}
+    index = ALL_BENCHMARK_INDICES[0]
+    flows = [(t.date, _signed_amount(t, frozenset({TransactionType.SWITCH_IN}))) for t in transactions]
+    value = Decimal("12000")
+
+    rows = compute_fund_window_rows(
+        ctx, scheme.id, transactions, value, index, levels,
+        since_inception=(Decimal("0.5"), Decimal("0.6")),
+    )
+    si = rows[3]
+    assert si.fund_xirr == _xirr_str(xirr([*flows, (ctx_today, value)]))
+    assert si.benchmark_xirr == _xirr_str(index_window_xirr(levels[index], flows, None, None, ctx_today))

@@ -8,6 +8,7 @@ alongside the combined data."""
 from __future__ import annotations
 
 import uuid
+from datetime import date
 
 from sqlalchemy.orm import Session
 
@@ -79,19 +80,20 @@ async def get_aggregate_allocation(db: Session, user_id: uuid.UUID) -> Aggregate
     return AggregateAllocationResponse(members=statuses, allocation=allocation)
 
 
-def get_aggregate_sips(db: Session, user_id: uuid.UUID, *, include_stopped: bool = False) -> AggregateSipsResponse:
+def get_aggregate_sips(db: Session, user_id: uuid.UUID, *, include_stopped: bool = False,
+                       today: date | None = None) -> AggregateSipsResponse:
     members = list_household_members(db, user_id)
     statuses = get_member_statuses(db, user_id)
-    sips = compute_active_sips(db, [m.id for m in members], include_stopped=include_stopped)
+    sips = compute_active_sips(db, [m.id for m in members], include_stopped=include_stopped, today=today)
     return AggregateSipsResponse(members=statuses, sips=sips)
 
 
 def get_aggregate_sips_monthly(
-    db: Session, user_id: uuid.UUID, year: int, month: int
+    db: Session, user_id: uuid.UUID, year: int, month: int, *, today: date | None = None
 ) -> AggregateSipsMonthlyResponse:
     members = list_household_members(db, user_id)
     statuses = get_member_statuses(db, user_id)
-    sips = compute_sips_for_month(db, [m.id for m in members], year, month)
+    sips = compute_sips_for_month(db, [m.id for m in members], year, month, today=today)
     return AggregateSipsMonthlyResponse(members=statuses, sips=sips)
 
 
