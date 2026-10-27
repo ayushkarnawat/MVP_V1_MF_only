@@ -14,7 +14,7 @@ afterEach(() => vi.restoreAllMocks());
 
 it("disables a live redirect whose final destination is a placeholder", () => {
   render(<MemoryRouter><AppLink to="/portfolio/equity">Equity destination</AppLink></MemoryRouter>);
-  expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Equity destination" })).not.toHaveAttribute("href");
   expect(screen.getByTitle("Coming soon")).toHaveAttribute("aria-disabled", "true");
 });
 
@@ -27,7 +27,7 @@ it("enables a redirect once its final target becomes live", () => {
 it("disables a redirect loop without hanging", () => {
   routes = routes.map(route => route.id === "portfolio-equity" ? { ...route, redirectTo: "/portfolio/equity" } : route);
   render(<MemoryRouter><AppLink to="/portfolio/equity">Equity destination</AppLink></MemoryRouter>);
-  expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  expect(screen.getByRole("link")).toHaveAttribute("aria-disabled", "true");
 });
 
 function Location() {
@@ -51,7 +51,7 @@ it("renders a placeholder as a disabled span with children and tooltip", () => {
   expect(disabled).toHaveAttribute("aria-disabled", "true");
   expect(disabled).toHaveClass("base", "shell-link-disabled");
   expect(disabled).not.toHaveAttribute("href");
-  expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  expect(disabled).toHaveAttribute("role", "link");
   fireEvent.click(screen.getByText("Home"));
   expect(screen.getByTestId("location")).toHaveTextContent("/planning");
 });
@@ -59,7 +59,7 @@ it("renders a placeholder as a disabled span with children and tooltip", () => {
 it("turns a placeholder into a link when its registry status flips", () => {
   const ui = <MemoryRouter><AppLink to="/home">Home</AppLink></MemoryRouter>;
   const view = render(ui);
-  expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  expect(screen.getByRole("link")).toHaveAttribute("aria-disabled", "true");
   routes = routes.map(route => route.id === "home" ? { ...route, status: "live" } : route);
   view.rerender(<MemoryRouter><AppLink to="/home">Home</AppLink></MemoryRouter>);
   expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/home");
@@ -78,4 +78,12 @@ it("checks relative links against the resolved pathname", () => {
   routes = routes.map(route => route.id === "profile-personal" ? { ...route, status: "placeholder" } : route);
   render(<MemoryRouter initialEntries={["/profile/settings"]}><Routes><Route path="/profile/settings" element={<AppLink to="../personal">Personal</AppLink>} /></Routes></MemoryRouter>);
   expect(screen.getByTitle("Coming soon")).toHaveAttribute("aria-disabled", "true");
+});
+
+it("exposes the disabled placeholder as a disabled link with a Coming soon description", () => {
+  render(<MemoryRouter initialEntries={["/planning"]}><AppLink to="/home">Home</AppLink></MemoryRouter>);
+  const link = screen.getByRole("link", { name: "Home" });
+  expect(link).toHaveAttribute("aria-disabled", "true");
+  expect(link).toHaveAttribute("aria-description", "Coming soon");
+  expect(link).not.toHaveAttribute("href");
 });
