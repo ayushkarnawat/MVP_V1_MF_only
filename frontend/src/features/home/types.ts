@@ -5,7 +5,7 @@
 export type HomeScopeKind = "aggregate" | "member";
 export type HomePeriod = "1D" | "1W" | "1M" | "1Y" | "custom";
 export type MoversView = "sector" | "category" | "fund";
-export type HomeSectionName = "summary" | "wealth-series" | "allocation" | "movers" | "worth-a-look" | "benchmarks";
+export type HomeSectionName = "summary" | "wealth-series" | "allocation" | "movers" | "worth-a-look" | "benchmarks" | "news";
 
 export interface HomeScopeArg {
   viewMode: HomeScopeKind;
@@ -132,4 +132,45 @@ export interface WealthSeriesQuery {
   from?: string;
   to?: string;
   benchmark?: string;
+}
+
+// News (backend/app/services/news/schemas.py, merged on leapswitch-redesign). Copy for the card comes from `texts`.
+export type NewsKind = "stock" | "fund_category" | "fund_house" | "asset_class" | "sector" | "rates_macro" | "general";
+export type NewsIconKey =
+  | "banks_financials" | "it_tech" | "pharma_health" | "auto_ev" | "consumer_fmcg" | "energy" | "metals_mining"
+  | "realty_infra" | "gold_silver" | "rates_rbi" | "funds_amc" | "markets" | "regulation" | "general";
+
+export interface NewsFundOut { scheme_id: string; name: string }
+export interface NewsItemOut {
+  id: string;
+  kind: NewsKind;
+  tier: number;
+  specific: boolean;
+  source: string;
+  headline: string;
+  url: string;
+  published_at: string;
+  icon_key: NewsIconKey;
+  entity_label: string | null;
+  reason: string;
+  exposure_pct: string | null;
+  exposure_text: string | null;
+  exposure_as_of: string | null;
+  funds: NewsFundOut[];
+}
+export interface NewsTextsOut {
+  title: string;
+  subtext: string;
+  disclaimer: string;
+  about_credit_text: string;
+  about_credit_url: string;
+}
+export interface NewsResponse extends Envelope {
+  enabled: boolean;
+  state: "items" | "empty" | "hidden" | "disabled";
+  feed_as_of: string | null;
+  stale: boolean;
+  hidden: boolean;
+  texts: NewsTextsOut;
+  items: NewsItemOut[];
 }

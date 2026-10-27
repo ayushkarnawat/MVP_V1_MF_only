@@ -51,7 +51,7 @@ describe("HomePage: the signed-off layout", () => {
     mockHomeApi();
     renderHome();
     await allLoaded();
-    const ids = ["home-greeting", "home-wealth", "home-glance", "home-allocation", "home-movers", "home-worth", "home-news-slot"];
+    const ids = ["home-greeting", "home-wealth", "home-glance", "home-allocation", "home-movers", "home-worth", "home-news"];
     const nodes = ids.map(id => screen.getByTestId(id));
     for (let i = 1; i < nodes.length; i++) {
       expect(nodes[i - 1].compareDocumentPosition(nodes[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -67,7 +67,7 @@ describe("HomePage: the signed-off layout", () => {
     expect(within(grid).getByTestId("home-glance").className).toContain("xl:col-start-1");
     expect(within(grid).getByTestId("home-movers").className).toContain("xl:col-start-1");
     expect(within(grid).getByTestId("home-allocation").className).toContain("xl:col-start-2");
-    for (const outside of ["home-greeting", "home-wealth", "home-worth", "home-news-slot"]) {
+    for (const outside of ["home-greeting", "home-wealth", "home-worth", "home-news"]) {
       expect(grid).not.toContainElement(screen.getByTestId(outside));
     }
   });
@@ -82,14 +82,12 @@ describe("HomePage: the signed-off layout", () => {
     expect(screen.getByRole("group", { name: "Group by" })).toBeInTheDocument();
   });
 
-  it("leaves a clearly marked, empty, hidden news slot and never asks for news", async () => {
-    const api = mockHomeApi();
+  it("replaces the old empty news slot with the news section", async () => {
+    mockHomeApi();
     renderHome();
     await allLoaded();
-    const slot = screen.getByTestId("home-news-slot");
-    expect(slot).toBeEmptyDOMElement();
-    expect(slot).toHaveAttribute("aria-hidden", "true");
-    expect(api.callsFor("news")).toHaveLength(0);
+    expect(screen.queryByTestId("home-news-slot")).toBeNull();
+    expect(await screen.findByRole("region", { name: "News affecting top holdings" })).toBeInTheDocument();
   });
 });
 
@@ -255,7 +253,7 @@ describe("HomePage: no holdings", () => {
     renderHome();
     await screen.findByText("Import a statement to see your portfolio.");
     await screen.findByText("No investments yet.");
-    for (const hidden of ["home-glance", "home-allocation", "home-movers", "home-worth", "home-news-slot"]) {
+    for (const hidden of ["home-glance", "home-allocation", "home-movers", "home-worth", "home-news"]) {
       expect(screen.queryByTestId(hidden), hidden).toBeNull();
     }
     expect(screen.getByTestId("home-greeting")).toBeInTheDocument();

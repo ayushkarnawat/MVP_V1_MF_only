@@ -4,6 +4,7 @@
 import { vi } from "vitest";
 import { invalidateApiCache } from "../../../lib/apiClient";
 import { fixture } from "../fixtures";
+import { newsFixture } from "../fixtures/newsFixtures";
 
 export type HomeRouteName = "summary" | "wealth-series" | "allocation" | "movers" | "worth-a-look" | "benchmarks" | "news";
 
@@ -52,7 +53,7 @@ function defaults(call: HomeCall): unknown {
       if (period === "custom") return fixture("wealth_custom_past_range");
       return fixture("wealth_1m_family_benchmark");
     }
-    default: return { detail: "not found" };
+    case "news": return newsFixture(member ? "news_member_debt" : "news_specific_three");
   }
 }
 
@@ -81,7 +82,6 @@ export function mockHomeApi(overrides: Partial<Record<HomeRouteName, HomeHandler
       url,
     };
     calls.push(call);
-    if (section === "news") return new Response(JSON.stringify({ detail: "not found" }), { status: 404 });
 
     const handler = section in handlers ? handlers[section] : undefined;
     if (handler === PENDING) return abortable(init?.signal);
