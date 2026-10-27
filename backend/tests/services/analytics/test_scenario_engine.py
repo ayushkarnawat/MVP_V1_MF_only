@@ -1320,3 +1320,61 @@ def test_hypothetical_result_has_empty_by_asset_class():
 
     assert result.by_asset_class == []
     assert result.funds_data_available is True
+
+
+def test_results_call_compute_holdings_with_stored_prices():
+    db = _session()
+    member_id = uuid.uuid4()
+    historical = Scenario(id=uuid.uuid4(), name="Stored historical", description="d", start_date=date(2020, 1, 1), end_date=date(2020, 3, 1), scenario_type="CRASH")
+    hypothetical = Scenario(id=uuid.uuid4(), name="Stored hypothetical", description="d", scenario_type="HYPOTHETICAL")
+    db.add_all([historical, hypothetical])
+    db.commit()
+    db.add(ScenarioHypotheticalAssumption(scenario_id=hypothetical.id, asset_class="Equity", assumed_pct_change=Decimal("-5.00"), assumption_note="test"))
+    db.commit()
+
+    holdings = AsyncMock(return_value=[])
+    with patch("app.services.analytics.scenario_engine.compute_holdings", new=holdings):
+        get_scenario_result_for_household(db, historical, [member_id])
+        get_scenario_result_for_household(db, hypothetical, [member_id])
+
+    assert holdings.await_count == 2
+    assert all(call.kwargs == {"allow_stale_today": True, "stored_only": True} for call in holdings.await_args_list)
+
+
+def test_results_route_never_fetches_a_nav():
+    from app.models.enums import ImportStatus, PlanType, TransactionType
+    from app.models.folio import Folio
+    from app.models.imports import Import
+    from app.models.transaction import Transaction
+
+    db = _session()
+    member = _household_member(db)
+    scheme = Scheme(
+        id=uuid.uuid4(), amfi_code="LIVE-NAV", name="No stored NAV", amc_name="AMC",
+        sebi_category="Equity Scheme - Flexi Cap Fund",
+    )
+    scenario = Scenario(id=uuid.uuid4(), name="No network", description="d", start_date=date(2020, 1, 1), end_date=date(2020, 3, 1), scenario_type="CRASH")
+    imported = Import(household_member_id=member.id, status=ImportStatus.CONFIRMED, uploaded_at=datetime.now(timezone.utc))
+    db.add_all([scheme, scenario, imported])
+    db.commit()
+    folio = Folio(
+        id=uuid.uuid4(), household_member_id=member.id, scheme_id=scheme.id,
+        folio_number="T5-NAV", plan_type=PlanType.DIRECT,
+    )
+    db.add(folio)
+    db.commit()
+    transaction = Transaction(
+        id=uuid.uuid4(), folio_id=folio.id, import_id=imported.id,
+        type=TransactionType.PURCHASE, date=date(2024, 1, 1),
+        amount=Decimal("1000.00"), units=Decimal("100.000"), nav=Decimal("10.0000"),
+    )
+    db.add_all([
+        transaction,
+        ScenarioSchemeResult(scenario_id=scenario.id, scheme_id=scheme.id, pct_change=Decimal("-10.00")),
+    ])
+    db.commit()
+
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=AsyncMock(side_effect=AssertionError("network"))) as fetch:
+        result = get_scenario_result_for_household(db, scenario, [member.id])
+    fetch.assert_not_awaited()
+    assert (result.total_value, result.by_asset_class) == ("0.00", [])

@@ -351,7 +351,7 @@ async def _async_get_scenario_result_for_household(
                 phases=[], by_fund=[], by_member=[], hypothetical_assumptions=[], assumptions_not_set=True,
             )
         assumption_by_class = {a.asset_class: a for a in assumptions}
-        holdings = await compute_holdings(db, household_member_ids)
+        holdings = await compute_holdings(db, household_member_ids, allow_stale_today=True, stored_only=True)
         by_member: dict[uuid.UUID, Decimal] = {mid: Decimal("0") for mid in household_member_ids}
         by_member_covered: dict[uuid.UUID, Decimal] = {mid: Decimal("0") for mid in household_member_ids}
         total_impact = covered_value = total_value = Decimal("0")
@@ -398,7 +398,7 @@ async def _async_get_scenario_result_for_household(
         )
 
     serving_scenario = _current_phase(db, scenario) if summary.has_phases else scenario
-    holdings = await compute_holdings(db, household_member_ids)
+    holdings = await compute_holdings(db, household_member_ids, allow_stale_today=True, stored_only=True)
     held_ids = {uuid.UUID(h.scheme_id) for h in holdings}
     held_schemes = {s.id: s for s in db.query(Scheme).filter(Scheme.id.in_(held_ids)).all()}
     results = _held_results(db, serving_scenario.id, held_schemes)
