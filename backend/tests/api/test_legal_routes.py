@@ -83,3 +83,35 @@ def test_my_consents_returns_latest_given_per_document(client):
         db.close()
     after = client.get("/legal/consents/me", headers=headers).json()
     assert [r["document_type"] for r in after] == ["terms_of_service"]
+
+
+def test_my_consents_carry_document_title_and_readable_version(client):
+    from app.models.enums import ConsentDocumentType as T
+    from app.services.legal.registry import current_document
+
+    headers = _legacy_headers(client, "+919300000103")
+    accepted = [
+        {"document_type": t.value, "document_version": current_document(t).version}
+        for t in (T.TERMS_OF_SERVICE, T.PRIVACY_POLICY)
+    ]
+    assert client.post("/legal/consents", json={"accepted_documents": accepted}, headers=headers).status_code == 200
+
+    by_type = {r["document_type"]: r for r in client.get("/legal/consents/me", headers=headers).json()}
+    tos, pp = by_type["terms_of_service"], by_type["privacy_policy"]
+    assert isinstance(tos["document_title"], str) and tos["document_title"].strip()
+    assert tos["document_title"] == current_document(T.TERMS_OF_SERVICE).title
+    assert isinstance(pp["document_title"], str) and pp["document_title"].strip()
+    assert pp["document_title"] == current_document(T.PRIVACY_POLICY).title
+    # Existing fields untouched; the opaque version stays alongside the label.
+    assert tos["document_version"] == "tos-placeholder-2026-10-01"
+    assert tos["version_label"] == "1 Oct 2026"
+    assert pp["version_label"] == "1 Oct 2026"
+
+
+def test_version_label_derives_date_and_falls_back_to_raw_version():
+    from app.services.legal.registry import version_label
+
+    assert version_label("pan-disclaimer-placeholder-2026-10-05") == "5 Oct 2026"
+    assert version_label("tos-placeholder-2026-12-31") == "31 Dec 2026"
+    assert version_label("tos-v2") == "tos-v2"
+    assert version_label("tos-2026-13-45") == "tos-2026-13-45"

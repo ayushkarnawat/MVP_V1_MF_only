@@ -27,7 +27,7 @@ from app.services.legal.consent import (
     record_consent,
     validate_accepted,
 )
-from app.services.legal.registry import current_documents
+from app.services.legal.registry import current_documents, version_label
 
 router = APIRouter(prefix="/legal", tags=["legal"])
 
@@ -55,6 +55,10 @@ class MyConsentOut(BaseModel):
     document_type: ConsentDocumentType
     document_version: str
     recorded_at: datetime
+    # Display-only additions (optional, additive): the legal document's title
+    # and a readable form of document_version.
+    document_title: str | None = None
+    version_label: str | None = None
 
 
 @router.get("/documents", response_model=list[LegalDocumentOut])
@@ -123,6 +127,8 @@ def my_consents(user: User = Depends(get_active_user), db: Session = Depends(get
                 document_type=doc_type,
                 document_version=latest.document_version,
                 recorded_at=latest.recorded_at,
+                document_title=doc.title,
+                version_label=version_label(latest.document_version),
             )
         )
     return out
