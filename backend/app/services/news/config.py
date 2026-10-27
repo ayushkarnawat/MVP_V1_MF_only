@@ -4,8 +4,8 @@ T3 (this file's first content): site allow-lists and source display names
 (D9/L18). T4 (this pass): tagging dictionaries -- SEBI category table,
 sector buckets, gold/silver and rates/macro phrase lists, the group-name
 and ambiguous-alias guards, and the icon lookup. T5 adds the watch-list
-thresholds (`MIN_SIZE_PCT`, `TOP_N`), starting values only, not locked
-until the owner's calibration reply (section 9 of the handoff).
+thresholds (`MIN_SIZE_PCT`, `TOP_N`), locked 2026-10-27 by owner (section 9
+of the handoff / E20 calibration reply: "CALIBRATION: KEEP").
 """
 
 from __future__ import annotations
@@ -292,9 +292,9 @@ AMBIGUITY_CONTEXT_WORDS: frozenset[str] = frozenset({
 })
 
 # ---------------------------------------------------------------------------
-# T5: watch-list thresholds (D4) -- STARTING VALUES ONLY, not locked until
-# the owner's calibration reply (section 9 of the handoff / E20). Do not
-# tune these without an explicit "CALIBRATION: SET ..." reply.
+# T5: watch-list thresholds (D4) -- locked 2026-10-27 by owner (section 9 of
+# the handoff / E20 calibration reply: "CALIBRATION: KEEP"). Do not tune
+# these without an explicit new "CALIBRATION: SET ..." reply.
 # ---------------------------------------------------------------------------
 TOP_N = 5  # per kind: rank by exposure_pct, keep the top 5, THEN apply MIN_SIZE_PCT
 
