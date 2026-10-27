@@ -35,12 +35,14 @@ function featureTarget(file: string, specifier: string): string | null {
 // Profile may reuse: its own folder, the auth feature, the existing Profile feature (but never the three screens the new pages replace),
 // the dashboard's member components (ProfileNudge, CompleteProfileDialog), and, since PR-B, two single files: the import feature's
 // API module (import history calls) and the dev-tools flag hook. Nothing else from the import or dev features.
+// Since PR-C, one more single file: the legal feature's API module (the consent list). Nothing else from the legal feature
+// (the terms block is the existing `profile/TermsSection`, which reads the legal documents itself).
 const LEGACY_SCREENS = ["profile/ProfileView", "profile/HouseholdMembersSection", "profile/FamilyMemberCard"];
 function allowed(target: string): boolean {
   if (target === "profile-v2" || target.startsWith("profile-v2/")) return true;
   if (target === "auth" || target.startsWith("auth/")) return true;
   if (target.startsWith("dashboard/members/")) return true;
-  if (target === "import/api" || target === "dev/useDevToolsEnabled") return true;
+  if (target === "import/api" || target === "dev/useDevToolsEnabled" || target === "legal/api") return true;
   if (target.startsWith("profile/")) return !LEGACY_SCREENS.some(legacy => target === legacy || target.startsWith(`${legacy}.`));
   return false;
 }
@@ -56,6 +58,9 @@ describe("Profile (v2) front-end guards", () => {
       "components/InitialsAvatar.tsx", "components/HeaderCard.tsx", "components/PersonalInfoCard.tsx", "components/FinancialDetailsCard.tsx",
       "components/GoalsDialog.tsx", "components/InvestorTypeDialog.tsx", "components/ContactChangeDialog.tsx", "components/PanField.tsx",
       "components/SettingsRows.tsx", "components/SubscriptionCard.tsx",
+      "pages/FamilyPage.tsx", "pages/DataPrivacyPage.tsx", "lib/memberLabels.ts", "lib/statementCount.ts",
+      "components/FamilyStrip.tsx", "components/MemberCard.tsx", "components/AddStatementDialog.tsx", "components/DeleteMemberDialog.tsx",
+      "components/ConsentList.tsx", "components/StoredDataNote.tsx", "components/DeleteAccountDialog.tsx",
     ]) {
       expect(names).toContain(expected);
     }
@@ -70,6 +75,23 @@ describe("Profile (v2) front-end guards", () => {
       }
     }
     expect([...reached].sort()).toEqual(["dev/useDevToolsEnabled", "import/api"]);
+  });
+
+  it("reads the legal feature only through its API file (the widening is exact, not a folder)", () => {
+    const reached = new Set<string>();
+    for (const file of FILES) {
+      for (const specifier of specifiers(file)) {
+        const target = featureTarget(file, specifier);
+        if (target && target.startsWith("legal/")) reached.add(target);
+      }
+    }
+    expect([...reached].sort()).toEqual(["legal/api"]);
+  });
+
+  it("only the Family page and the delete-member dialog send a member delete, and the dialog refuses the self member", () => {
+    const callers = FILES.filter(file => /deleteMemberPortfolio/.test(read(file))).map(name).sort();
+    expect(callers).toEqual(["components/DeleteMemberDialog.tsx", "pages/FamilyPage.tsx"]);
+    expect(read(join(PROFILE, "components/DeleteMemberDialog.tsx"))).toMatch(/relationship\s*===\s*["']self["']/);
   });
 
   it("formats no amount: nothing in Profile uses number or currency formatting (these pages show no money)", () => {
@@ -120,8 +142,8 @@ describe("Profile route files (shell/routes)", () => {
   const pageLine = (id: string) => (read(join(ROUTES, `${id}.route.tsx`)).match(/page:\s*\(\)\s*=>[^\n]*/) ?? [""])[0];
 
   it.each([
-    ["profile-family", "features/profile-v2/pages/PendingProfilePage"],
-    ["profile-data-privacy", "features/profile-v2/pages/PendingProfilePage"],
+    ["profile-family", "features/profile-v2/pages/FamilyPage"],
+    ["profile-data-privacy", "features/profile-v2/pages/DataPrivacyPage"],
     ["profile-personal", "features/profile-v2/pages/PersonalInfoPage"],
     ["profile-settings", "features/profile-v2/pages/SettingsPage"],
     ["profile-settings-import-history", "features/profile-v2/pages/ImportHistoryPage"],

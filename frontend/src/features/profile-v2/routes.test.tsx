@@ -6,7 +6,10 @@ import { buildRegistry } from "@/shell/registry/buildRegistry";
 import { renderInShell } from "@/shell/testing";
 import { listHouseholdMembers } from "@/features/auth/api";
 import type { MeResponse } from "@/features/auth/types";
-import { getHouseholdImportHistory } from "@/features/import/api";
+import { deleteMemberPortfolio, getHouseholdImportHistory } from "@/features/import/api";
+import { getLegalDocuments, getMyConsents } from "@/features/legal/api";
+import { DOCS } from "@/features/legal/testFixtures";
+import { CONSENTS_FIXTURE } from "./fixtures/consents";
 import { ME_FIXTURE } from "./fixtures/me";
 import { HOUSEHOLD_FIXTURE } from "./fixtures/members";
 
@@ -16,7 +19,12 @@ const auth = vi.hoisted(() => ({
 }));
 vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => auth }));
 vi.mock("@/features/auth/api", () => ({ listHouseholdMembers: vi.fn() }));
-vi.mock("@/features/import/api", () => ({ getHouseholdImportHistory: vi.fn(), deleteHouseholdImport: vi.fn() }));
+vi.mock("@/features/import/api", () => ({ getHouseholdImportHistory: vi.fn(), deleteHouseholdImport: vi.fn(), deleteMemberPortfolio: vi.fn() }));
+vi.mock("@/features/legal/api", async importOriginal => ({
+  ...(await importOriginal<typeof import("@/features/legal/api")>()),
+  getLegalDocuments: vi.fn(),
+  getMyConsents: vi.fn(),
+}));
 vi.mock("@/lib/apiClient", () => ({ invalidateApiCache: vi.fn() }));
 vi.mock("@/features/dev/useDevToolsEnabled", () => ({ useDevToolsEnabled: () => false }));
 vi.mock("@/features/profile/ProfileView", () => ({ ProfileView: () => <h1>Old profile screen</h1> }));
@@ -27,8 +35,8 @@ function Probe() {
   return <output data-testid="location">{location.pathname}</output>;
 }
 
-function mount(path: string) {
-  return renderInShell(<><ShellRoutes /><Probe /></>, { path });
+function mount(path: string, openImport?: (memberId?: string) => void) {
+  return renderInShell(<><ShellRoutes /><Probe /></>, { path, openImport });
 }
 
 const navOf = () => screen.getByRole("navigation", { name: "Profile sections" });
@@ -51,6 +59,9 @@ beforeEach(() => {
   auth.refreshMe.mockResolvedValue(undefined);
   vi.mocked(listHouseholdMembers).mockResolvedValue(HOUSEHOLD_FIXTURE);
   vi.mocked(getHouseholdImportHistory).mockResolvedValue([]);
+  vi.mocked(deleteMemberPortfolio).mockResolvedValue({ deleted_transactions_count: 0, removed_member_ids: [], deleted_file: false });
+  vi.mocked(getLegalDocuments).mockResolvedValue(DOCS);
+  vi.mocked(getMyConsents).mockResolvedValue(CONSENTS_FIXTURE);
 });
 
 describe("Profile routes in the real shell registry (contract v1.4)", () => {
@@ -182,17 +193,67 @@ describe("Personal Information, Settings, Import History and Subscription are re
   });
 });
 
-describe("Pages not built yet are a pending page inside the frame (replaced one by one by the next runs)", () => {
-  it.each([
-    ["/profile/family", "Family Members", "Family Members"],
-    ["/profile/data-privacy", "Data & Privacy", "Data & Privacy"],
-  ])("%s shows the route title %j under the frame and marks %j", async (path, title, current) => {
+describe("Family Members and Data & Privacy are real pages in the frame (deep link, twice in a row); no page is pending any more", () => {
+  it("/profile/family shows the strip and one card per member, marks Family Members as current, and is not the pending page", async () => {
     for (let visit = 0; visit < 2; visit++) {
-      const view = mount(path);
-      expect(await screen.findByRole("heading", { level: 2, name: title })).toBeInTheDocument();
-      expect(screen.getByTestId("profile-pending")).toHaveTextContent("This page is being built.");
+      const view = mount("/profile/family");
+      expect(await screen.findByRole("heading", { level: 2, name: "Family Account" })).toBeInTheDocument();
+      expect(await screen.findAllByTestId("member-card")).toHaveLength(3);
+      expect(screen.getByRole("heading", { level: 2, name: "Family Members" })).toBeInTheDocument();
       expect(screen.getByRole("heading", { level: 1, name: "Profile" })).toBeInTheDocument();
-      expect(currentLabel()).toBe(current);
+      expect(screen.queryByTestId("profile-pending")).not.toBeInTheDocument();
+      expect(currentLabel()).toBe("Family Members");
+      view.unmount();
+    }
+  });
+
+  it("/profile/data-privacy shows the four blocks, marks Data & Privacy as current, and is not the pending page", async () => {
+    for (let visit = 0; visit < 2; visit++) {
+      const view = mount("/profile/data-privacy");
+      expect(await screen.findAllByTestId("consent-row")).toHaveLength(3);
+      const headings = within(screen.getByTestId("profile-content")).getAllByRole("heading", { level: 2 }).map(heading => heading.textContent);
+      expect(headings).toEqual(["Terms of Service", "Your consents", "What we store", "Delete account"]);
+      expect(screen.queryByTestId("profile-pending")).not.toBeInTheDocument();
+      expect(currentLabel()).toBe("Data & Privacy");
+      view.unmount();
+    }
+  });
+
+  it("the Profile list moves between the two pages and keeps one frame", async () => {
+    mount("/profile/family");
+    await screen.findAllByTestId("member-card");
+    fireEvent.click(within(navOf()).getByRole("link", { name: "Data & Privacy" }));
+    expect(await screen.findByRole("heading", { level: 2, name: "Your consents" })).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent("/profile/data-privacy");
+    fireEvent.click(within(navOf()).getByRole("link", { name: "Family Members" }));
+    expect((await screen.findAllByTestId("member-card")).length).toBe(3);
+    expect(screen.getAllByRole("navigation", { name: "Profile sections" })).toHaveLength(1);
+  });
+
+  it("Add statement on the Family page reaches the shell's import hook with the chosen person", async () => {
+    const openImport = vi.fn();
+    mount("/profile/family", openImport);
+    await screen.findAllByTestId("member-card");
+    fireEvent.click(screen.getByRole("button", { name: "Add statement" }));
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Add statement for whom?" })).getByRole("button", { name: "Aditi Surve" }));
+    expect(openImport).toHaveBeenCalledWith("m-spouse");
+  });
+
+  it("'Change in Account Info' on the Family page opens the Personal Information page", async () => {
+    mount("/profile/family");
+    await screen.findAllByTestId("member-card");
+    fireEvent.click(screen.getByRole("button", { name: "Change in Account Info" }));
+    expect(await screen.findByRole("heading", { level: 2, name: "Financial Details" })).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent("/profile/personal");
+  });
+
+  it("every one of the seven Profile list pages is a real page: none shows the pending text", async () => {
+    for (const path of ["/profile/personal", "/profile/family", "/profile/connected-accounts", "/profile/settings", "/profile/subscription", "/profile/tax", "/profile/data-privacy"]) {
+      const view = mount(path);
+      await screen.findByRole("navigation", { name: "Profile sections" });
+      await screen.findAllByRole("heading", { level: 2 });
+      expect(screen.queryByTestId("profile-pending"), path).not.toBeInTheDocument();
+      expect(screen.queryByText("This page is being built."), path).not.toBeInTheDocument();
       view.unmount();
     }
   });
