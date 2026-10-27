@@ -354,3 +354,66 @@ def test_title_does_not_strip_other_publishers_suffix():
     article = parse_gkg_line(_line_with_title("moneycontrol.com", "Gold prices surge - Reuters"))
     assert article is not None
     assert article.title == "Gold prices surge - Reuters"
+
+
+def _line_with_url(domain: str, url: str) -> str:
+    return "\t".join(
+        ["rec", "20261023080000", "1", domain, url]
+        + [""] * 20
+        + ["", "<PAGE_TITLE>Some headline</PAGE_TITLE>"]
+    )
+
+
+@pytest.mark.parametrize("url", [
+    "javascript:alert(1)",
+    "ftp://www.moneycontrol.com/news/x.html",
+    "https://evil.example.com/news/x.html",
+    "https://moneycontrol.com.evil.example.com/news/x.html",
+    "https://notmoneycontrol.com/news/x.html",
+    "//www.moneycontrol.com/news/x.html",
+])
+def test_article_url_must_be_http_on_the_allow_listed_domain(url):
+    assert parse_gkg_line(_line_with_url("moneycontrol.com", url)) is None
+
+
+@pytest.mark.parametrize("url", [
+    "https://www.moneycontrol.com/news/x.html",
+    "http://moneycontrol.com/news/x.html",
+])
+def test_article_url_on_the_domain_or_a_subdomain_is_kept(url):
+    assert parse_gkg_line(_line_with_url("moneycontrol.com", url)) is not None
+
+
+def test_ingest_window_counts_off_domain_urls_as_a_skip():
+    now = datetime(2026, 10, 23, 7, 7, tzinfo=UTC)
+    good = _line_with_url("moneycontrol.com", "https://www.moneycontrol.com/news/a.html")
+    bad = _line_with_url("moneycontrol.com", "https://evil.example.com/news/b.html")
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("x.gkg.csv", good + "\n" + bad + "\n")
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=buffer.getvalue())
+
+    async def run():
+        async with _mock_client(handle) as client:
+            return await ingest_window(client, now, 1, retry_sleep=0)
+
+    articles, stats = asyncio.run(run())
+    assert [a.url for a in articles] == ["https://www.moneycontrol.com/news/a.html"]
+    assert stats.skipped_bad_url == 4  # 1 bad row in each of the 4 identical files
+
+
+def test_gdelt_files_are_fetched_over_https():
+    seen: list[str] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.scheme)
+        return httpx.Response(404)
+
+    async def run():
+        async with _mock_client(handle) as client:
+            return await fetch_file(client, "20261023060000", tries=1, retry_sleep=0)
+
+    asyncio.run(run())
+    assert seen == ["https"]
