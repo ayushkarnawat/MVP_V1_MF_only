@@ -34,6 +34,13 @@ from app.services.news.config import (
 # network middlebox cannot rewrite the headlines/URLs we ingest.
 GDELT_BASE_URL = "https://data.gdeltproject.org/gdeltv2/"
 GKG_COLUMN_COUNT = 27
+# A real 15-minute GKG zip is a few MB; anything past this is not one, so the
+# download is aborted rather than held in memory.
+MAX_GKG_FILE_BYTES = 50 * 1024 * 1024
+
+
+class GkgFileTooLarge(RuntimeError):
+    pass
 
 # T6's job pauses 1s between files (politeness towards GDELT); hardcoded
 # rather than a new ingest_window parameter because the handoff's contract
@@ -255,13 +262,23 @@ async def fetch_file(
     error: Exception | None = None
     for attempt in range(tries):
         try:
-            response = await client.get(url)
+            async with client.stream("GET", url) as response:
+                body: bytes | None = None
+                if response.status_code == 200:
+                    chunks: list[bytes] = []
+                    size = 0
+                    async for chunk in response.aiter_bytes():
+                        size += len(chunk)
+                        if size > MAX_GKG_FILE_BYTES:
+                            raise GkgFileTooLarge(f"{url}: body exceeds {MAX_GKG_FILE_BYTES} bytes")
+                        chunks.append(chunk)
+                    body = b"".join(chunks)
         except httpx.HTTPError as exc:
             error = exc
         else:
             error = None
-            if response.status_code == 200:
-                return response.content
+            if body is not None:
+                return body
             if response.status_code == 404:
                 if attempt == tries - 1:
                     return None

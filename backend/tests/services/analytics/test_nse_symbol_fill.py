@@ -119,3 +119,16 @@ def test_commit_failure_soft_fails_and_rolls_back(db_session, monkeypatch):
     assert not result.success
     db_session.expire_all()
     assert db_session.get(StockMaster, "INE002A01018").nse_symbol is None
+
+def test_oversized_equity_list_soft_fails(db_session, monkeypatch):
+    from app.services.analytics import nse_symbol_fill
+
+    monkeypatch.setattr(nse_symbol_fill, "MAX_EQUITY_LIST_BYTES", 100)
+    db_session.add(_stock("INE002A01018"))
+    db_session.commit()
+
+    result = _run(db_session, _ok)
+
+    assert not result.success
+    db_session.expire_all()
+    assert db_session.get(StockMaster, "INE002A01018").nse_symbol is None

@@ -417,3 +417,23 @@ def test_gdelt_files_are_fetched_over_https():
 
     asyncio.run(run())
     assert seen == ["https"]
+
+def test_oversized_gdelt_file_aborts_and_counts_failed(monkeypatch):
+    import app.services.news.ingest as ingest
+
+    monkeypatch.setattr(ingest, "MAX_GKG_FILE_BYTES", 1000)
+    now = datetime(2026, 10, 23, 7, 7, tzinfo=UTC)
+    calls = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        calls.append(1)
+        return httpx.Response(200, content=b"x" * 5000)
+
+    async def run():
+        async with _mock_client(handle) as client:
+            return await ingest_window(client, now, 1, retry_sleep=0)
+
+    articles, stats = asyncio.run(run())
+    assert articles == []
+    assert stats.files_failed == 4 and stats.files_ok == 0
+    assert len(calls) == 4  # an oversize body is not retried
