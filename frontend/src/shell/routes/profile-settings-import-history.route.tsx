@@ -13,7 +13,7 @@ const route: ShellRoute = {
   scope: "none",
   status: "live",
   title: "Import History",
-  page: () => import("../../features/profile-v2/pages/PendingProfilePage"),
+  page: () => import("../../features/profile-v2/pages/ImportHistoryPage"),
 };
 
 export default route;

@@ -13,7 +13,7 @@ const route: ShellRoute = {
   scope: "none",
   status: "live",
   title: "Subscription & Billing",
-  page: () => import("../../features/profile-v2/pages/PendingProfilePage"),
+  page: () => import("../../features/profile-v2/pages/SubscriptionPage"),
 };
 
 export default route;
