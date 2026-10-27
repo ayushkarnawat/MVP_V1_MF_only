@@ -238,7 +238,7 @@ def test_fetch_file_retries_404_then_returns_none():
 
     async def run():
         async with _mock_client(handle) as client:
-            return await fetch_file(client, "20261023060000", tries=2, retry_sleep=0.0)
+            return await fetch_file(client, "20261023060000", tries=2, retry_sleep=0)
 
     result = asyncio.run(run())
     assert result is None
@@ -251,7 +251,7 @@ def test_ingest_window_counts_missing_and_still_reads_other_files():
     async def run():
         handler = _fixture_handler({FILE_1_STAMP: FILE_1_ZIP})  # FILE_2_STAMP missing
         async with _mock_client(handler) as client:
-            return await ingest_window(client, now, 1, retry_sleep=0.0)
+            return await ingest_window(client, now, 1, retry_sleep=0)
 
     articles, stats = asyncio.run(run())
     assert stats.files_missing >= 1
@@ -270,7 +270,7 @@ def test_ingest_window_truncated_zip_counts_failed_other_files_still_read():
     async def run():
         handler = _fixture_handler({FILE_1_STAMP: truncated, FILE_2_STAMP: FILE_2_ZIP})
         async with _mock_client(handler) as client:
-            return await ingest_window(client, now, 1, retry_sleep=0.0)
+            return await ingest_window(client, now, 1, retry_sleep=0)
 
     articles, stats = asyncio.run(run())
     assert stats.files_failed >= 1
@@ -321,7 +321,7 @@ def test_network_error_three_times_counts_failed():
 
     async def run():
         async with _mock_client(handle) as client:
-            return await ingest_window(client, now, 1, retry_sleep=0.0)
+            return await ingest_window(client, now, 1, retry_sleep=0)
 
     articles, stats = asyncio.run(run())
     assert articles == []

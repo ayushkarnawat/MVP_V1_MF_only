@@ -220,7 +220,7 @@ def parse_gkg_line(line: str, *, disabled_sources: Collection[str] = ()) -> RawA
 
 
 async def fetch_file(
-    client: httpx.AsyncClient, stamp: str, *, tries: int = 3, retry_sleep: float = 2.0
+    client: httpx.AsyncClient, stamp: str, *, tries: int = 3, retry_sleep: int = 2
 ) -> bytes | None:
     url = f"{GDELT_BASE_URL}{stamp}.gkg.csv.zip"
     error: Exception | None = None
@@ -249,7 +249,7 @@ async def ingest_window(
     hours: int,
     *,
     disabled_sources: Collection[str] = (),
-    retry_sleep: float = 2.0,
+    retry_sleep: int = 2,
 ) -> tuple[list[RawArticle], IngestStats]:
     stats = IngestStats()
     articles: list[RawArticle] = []
