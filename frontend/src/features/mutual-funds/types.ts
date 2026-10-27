@@ -1,4 +1,7 @@
-// Contract types for the Mutual Funds page front end (packet MF-A). Orchestrator-owned: never edit.
+// Contract types for the Mutual Funds page front end (packets MF-A and MF-B). Orchestrator-owned: never edit.
+// MF-B adds (all copies of backend/app/services/analytics/schemas.py, which is authoritative): the benchmark windows,
+// the look-through stock rows, the asset-class, market-cap, category/AMC and fund-manager allocations and the
+// full investment-and-withdrawal ledger.
 // Every type below is a COPY of a type the legacy screens already use (features/dashboard/types.ts,
 // features/analytics/types.ts, features/import/types.ts, features/history/api.ts). They are copied, not imported,
 // because the mutual-funds feature may not import another feature (see guards.test.ts). A change to a backend
@@ -192,11 +195,175 @@ export interface FundBenchmarkRow {
   benchmark_index: string;
   fund_xirr: string | null;
   benchmark_xirr: string | null;
+  /** Added by the MB backend; a payload stored before it has none (the page then shows since-inception only). */
+  windows?: FundWindowXirr[];
 }
 export interface FundVsBenchmarkSummary {
   funds: FundBenchmarkRow[];
   overall_portfolio_xirr: string | null;
   overall_broad_market_xirr: string | null;
+}
+// ---- benchmark windows (backend: PortfolioBenchmarkSummary, BenchmarkWindowRow, FundWindowXirr) ----
+export type BenchmarkIndexKey =
+  | "nifty_50" | "nifty_500" | "nifty_largemidcap_250" | "nifty_midcap_150"
+  | "nifty_next_50" | "nifty_smallcap_250" | "nifty_100" | "nifty_200";
+export type BenchmarkWindow = "1Y" | "3Y" | "5Y" | "SI";
+export interface IndexXirrRow { index: BenchmarkIndexKey; xirr: string | null }
+export interface BenchmarkWindowRow {
+  window: BenchmarkWindow;
+  available: boolean;
+  /** The real first day of the window (a month end), null when unavailable. 1Y is 12 to 13 months, not exactly a year. */
+  start_date: string | null;
+  portfolio_xirr: string | null;
+  indices: IndexXirrRow[];
+  unavailable_reason?: "opening_balance_in_window" | null;
+}
+export interface FundWindowXirr { window: BenchmarkWindow; fund_xirr: string | null; benchmark_xirr: string | null }
+export interface PortfolioBenchmarkSummary {
+  portfolio_xirr: string | null;
+  /** The four legacy indices, since inception. */
+  benchmarks: IndexXirrRow[];
+  /** Added by the MB backend; a payload stored before it has none. */
+  windows?: BenchmarkWindowRow[];
+}
+
+// ---- look-through (backend: FundContribution, StockHoldingRow, StockHoldingsSummary, Cap*, AssetAllocation*) ----
+export interface FundContribution {
+  scheme_id: string;
+  scheme_name: string;
+  holdings_as_of: string;
+  cadence: string;
+  age_tag: "older_than_60_days" | "on_cycle" | null;
+  /** The fund's weight in the household portfolio, percent. */
+  fund_weight_pct: string;
+  /** The stock's weight inside that fund, percent. */
+  stock_weight_pct: string;
+}
+export interface StockHoldingRow {
+  isin: string | null;
+  instrument_name: string;
+  sector_raw: string | null;
+  asset_type: "equity_domestic" | "equity_international" | "debt" | "gold_silver" | "reit_invit" | "cash_equivalent" | "derivative" | "other";
+  /** Percent of the household portfolio. */
+  exposure_pct: string;
+  exposure_value: string;
+  contributing_funds: FundContribution[];
+}
+export interface StockHoldingsSummary {
+  rows: StockHoldingRow[];
+  nav_as_of: string | null;
+  holdings_as_of: string | null;
+  total_portfolio_value: string;
+  coverage: LookthroughCoverage;
+  truncated: boolean;
+  total_stock_count: number;
+  hide_headlines: boolean;
+  excluded_share: string;
+  non_equity_share: string;
+}
+export type CapKey = "LARGE" | "MID" | "SMALL" | "OTHER";
+export interface CapAllocationBucket {
+  key: CapKey;
+  value: string;
+  percentage_total: string;
+  percentage_equity: string;
+  /** Capped by the backend, largest first; value, percentages and row_count cover every stock. */
+  rows: StockHoldingRow[];
+  row_count: number;
+}
+export interface CapAllocationOther {
+  non_equity_value: string;
+  unclassified_equity_value: string;
+  non_equity_rows: StockHoldingRow[];
+  unclassified_equity_rows: StockHoldingRow[];
+  non_equity_count: number;
+  unclassified_equity_count: number;
+}
+export interface CapAllocationSummary {
+  buckets: CapAllocationBucket[];
+  other: CapAllocationOther;
+  total_portfolio_value: string;
+  total_equity_value: string;
+  nav_as_of: string | null;
+  holdings_as_of: string | null;
+  classification_as_of: string | null;
+  coverage: LookthroughCoverage;
+  hide_headlines: boolean;
+  excluded_share: string;
+}
+export type AssetClassKey = "equity" | "debt" | "gold" | "cash_like";
+export interface AssetAllocationClass { key: AssetClassKey; value: string; percentage: string }
+export interface AssetAllocationOuter { key: CapKey; value: string; percentage: string }
+export interface AssetAllocationVariant {
+  classes: AssetAllocationClass[];
+  equity_outer: AssetAllocationOuter[];
+  cap_allocation: CapAllocationSummary;
+}
+export interface AssetAllocationSummary {
+  as_disclosed: AssetAllocationVariant;
+  arbitrage_as_cash: AssetAllocationVariant;
+  total_portfolio_value: string;
+  covered_value: string;
+  nav_as_of: string | null;
+  holdings_as_of: string | null;
+  coverage: LookthroughCoverage;
+  hide_headlines: boolean;
+  excluded_share: string;
+  arbitrage_funds: CoverageFund[];
+}
+
+// ---- category / AMC and fund manager ----
+/** The analytics `allocation` section. `percentage` is a Decimal string here (it is a number in the dashboard allocation). */
+export interface AnalyticsAllocationBucket { label: string; current_value: string; percentage: string }
+export interface AnalyticsAllocationSummary {
+  by_category: AnalyticsAllocationBucket[];
+  by_amc: AnalyticsAllocationBucket[];
+  total_value: string;
+}
+export interface ManagerFundRow {
+  scheme_id: string;
+  scheme_name: string;
+  household_value: string;
+  sequence_order: number;
+  role?: string | null;
+}
+export interface ManagerGroup {
+  manager_name: string;
+  amc_name: string;
+  /** Percent of the whole portfolio. */
+  percentage: string;
+  role: string | null;
+  total_household_value: string;
+  funds: ManagerFundRow[];
+}
+export interface UnavailableScheme { scheme_id: string; scheme_name: string; amc_name: string }
+export interface FundManagerAllocationSummary {
+  manager_groups: ManagerGroup[];
+  unavailable_schemes: UnavailableScheme[];
+  portfolio_value: string;
+  covered_value: string;
+  covered_percentage: string;
+}
+
+// ---- investment and withdrawal (the Transactions page and the Performance absolute return) ----
+export interface InvestmentWithdrawalEntry {
+  transaction_id: string;
+  date: string;
+  type: string;
+  amount: string;
+  direction: "invested" | "withdrawn" | "reversal" | "switched_in" | "switched_out" | "opening";
+  scheme_name: string;
+  household_member_id: string;
+  household_member_name: string;
+}
+export interface InvestmentWithdrawalBucket {
+  /** "YYYY-MM" for monthly buckets, "YYYY" for yearly. */
+  period: string;
+  invested: string;
+  withdrawn: string;
+  entries: InvestmentWithdrawalEntry[];
+  switched_in?: string;
+  switched_out?: string;
 }
 export interface InvestmentWithdrawalResult {
   total_invested: string;
@@ -204,14 +371,26 @@ export interface InvestmentWithdrawalResult {
   net_invested: string;
   current_value: string;
   absolute_gain: string;
+  monthly: InvestmentWithdrawalBucket[];
+  yearly: InvestmentWithdrawalBucket[];
   sip_summary: { active_count: number; total_monthly_amount: string; missed_count: number };
   gifts_net: string;
+  total_switched_in?: string;
+  total_switched_out?: string;
+  switch_count?: number;
+  opening_holdings?: string;
 }
 
 /** What useMfAnalytics(name) returns as `data`. Sections the later bundles use are typed loosely until then. */
 export interface SectionPayloads {
+  benchmark: PortfolioBenchmarkSummary;
   benchmark_funds: FundVsBenchmarkSummary;
   investment_withdrawal: InvestmentWithdrawalResult;
+  asset_allocation: AssetAllocationSummary;
+  cap_allocation: CapAllocationSummary;
+  allocation: AnalyticsAllocationSummary;
+  fund_manager: FundManagerAllocationSummary;
+  stock_holdings: StockHoldingsSummary;
 }
 export type SectionPayload<S extends AnalyticsSectionName> = S extends keyof SectionPayloads ? SectionPayloads[S] : Record<string, unknown>;
 

@@ -19,14 +19,20 @@ const read = (file: string) => readFileSync(file, "utf8");
 const name = (file: string) => file.slice(ROOT.length + 1).replaceAll("\\", "/");
 
 describe("Mutual Funds front-end guards", () => {
-  it("scans the files this packet creates (not vacuous)", () => {
+  it("scans the files the packets create (not vacuous)", () => {
     const names = FILES.map(name).sort();
     for (const expected of [
       "api.ts", "mfCopy.ts", "data/analyticsStore.ts", "data/useMfDashboard.ts", "frame/MutualFundsFrame.tsx", "frame/ComingSoonPages.tsx",
       "common/SectionCard.tsx", "common/charts.tsx", "overview/SummaryStrip.tsx", "overview/SipTimeline.tsx", "overview/HoldingsTable.tsx",
       "overview/OverviewCards.tsx", "overview/OverviewPage.tsx", "performance/PerformancePage.tsx",
+      "performance/benchmarkLogic.ts", "performance/BenchmarkBlock.tsx",
+      "allocation/allocationLogic.ts", "allocation/DrillPanel.tsx", "allocation/AssetClassCard.tsx", "allocation/MarketCapCard.tsx",
+      "allocation/CategoryAmcCard.tsx", "allocation/FundManagerCard.tsx", "allocation/AllocationPage.tsx",
+      "holdings/holdingsLogic.ts", "holdings/TopHoldingsByFund.tsx", "holdings/AllStocksTable.tsx", "holdings/HoldingsPage.tsx",
+      "transactions/transactionsLogic.ts", "transactions/CashFlowStrip.tsx", "transactions/CashFlowBars.tsx", "transactions/PeriodDrill.tsx",
+      "transactions/Ledger.tsx", "transactions/SipBanner.tsx", "transactions/TransactionsPage.tsx",
     ]) expect(names).toContain(expected);
-    expect(names).toHaveLength(14);
+    expect(names).toHaveLength(34);
   });
 
   it("never turns a money or percentage string into a float, comments included", () => {

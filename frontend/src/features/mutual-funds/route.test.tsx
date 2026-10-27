@@ -1,6 +1,7 @@
 import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as fx from "./fixtures";
+import * as fb from "./fixtures/mfB";
 import { buildRegistry } from "../../shell/registry/buildRegistry";
 import { renderInShell } from "../../shell/testing";
 
@@ -30,7 +31,7 @@ beforeEach(() => {
   mocks.getSipsMonthly.mockResolvedValue([]);
   mocks.getCoverageGaps.mockResolvedValue([]);
   mocks.getHistoryPoints.mockResolvedValue([]);
-  mocks.getAnalyticsScope.mockResolvedValue(fx.analyticsCombined());
+  mocks.getAnalyticsScope.mockResolvedValue(fb.analyticsMfB());
 });
 
 describe("Mutual Funds routes", () => {
@@ -42,22 +43,31 @@ describe("Mutual Funds routes", () => {
     expect(screen.queryByRole("navigation", { name: "Mutual Fund pages" })).not.toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Mutual Funds sections" })).toBeInTheDocument();
   });
-  it("renders the Performance page at its own path with the benchmark block still a placeholder", async () => {
+  it("renders the Performance page at its own path, with the benchmark block built", async () => {
     mount("/portfolio/mutual-funds/performance");
     expect(await screen.findByRole("heading", { level: 1, name: "Performance" })).toBeInTheDocument();
-    expect(await screen.findByTestId("block-benchmark")).toHaveTextContent("Coming soon");
+    const block = await screen.findByTestId("block-benchmark");
+    expect(block).toHaveTextContent("Benchmark Comparison (XIRR)");
+    expect(block).not.toHaveTextContent("Coming soon");
+    expect(screen.getByRole("tab", { name: "Per-Fund vs Benchmark" })).toBeInTheDocument();
   });
   it.each([
-    ["/portfolio/mutual-funds/allocation", "Allocation"],
-    ["/portfolio/mutual-funds/holdings", "Holdings"],
-    ["/portfolio/mutual-funds/transactions", "Transactions"],
-    ["/portfolio/mutual-funds/overlap", "Overlap"],
-  ])("renders %s inside the frame with a Coming soon body", async (path, title) => {
+    ["/portfolio/mutual-funds/allocation", "Allocation", "allocation-cards"],
+    ["/portfolio/mutual-funds/holdings", "Holdings", "holdings-cards"],
+    ["/portfolio/mutual-funds/transactions", "Transactions", "transactions-cards"],
+  ])("renders %s as a real page inside the frame", async (path, title, testId) => {
     mount(path);
     expect(await screen.findByRole("heading", { level: 1, name: title })).toBeInTheDocument();
-    expect(screen.getByText("Coming soon")).toBeInTheDocument();
+    expect(await screen.findByTestId(testId)).toBeInTheDocument();
+    expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Mutual Funds sections" })).toBeInTheDocument();
+  });
+  it("renders Overlap inside the frame with a Coming soon body, and asks for nothing", async () => {
+    mount("/portfolio/mutual-funds/overlap");
+    expect(await screen.findByRole("heading", { level: 1, name: "Overlap" })).toBeInTheDocument();
+    expect(screen.getByText("Coming soon")).toBeInTheDocument();
     expect(mocks.getHoldingsBundle).not.toHaveBeenCalled();
+    expect(mocks.getAnalyticsScope).not.toHaveBeenCalled();
   });
   it.each([
     ["/portfolio/mutual-funds/analytics", "Analytics screen"],
@@ -67,12 +77,12 @@ describe("Mutual Funds routes", () => {
     expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Mutual Fund pages" })).toBeInTheDocument();
   });
-  it("changes no route status in this run (Performance goes live with the benchmark block)", () => {
+  it("has Performance, Allocation, Holdings and Transactions live, and only Overlap still a placeholder", () => {
     const status = Object.fromEntries(buildRegistry().filter(route => route.id.startsWith("portfolio-mutual-funds")).map(route => [route.id, route.status]));
     expect(status).toMatchObject({
       "portfolio-mutual-funds": "live", "portfolio-mutual-funds-analytics": "live", "portfolio-mutual-funds-history": "live",
-      "portfolio-mutual-funds-performance": "placeholder", "portfolio-mutual-funds-allocation": "placeholder", "portfolio-mutual-funds-holdings": "placeholder",
-      "portfolio-mutual-funds-transactions": "placeholder", "portfolio-mutual-funds-overlap": "placeholder",
+      "portfolio-mutual-funds-performance": "live", "portfolio-mutual-funds-allocation": "live", "portfolio-mutual-funds-holdings": "live",
+      "portfolio-mutual-funds-transactions": "live", "portfolio-mutual-funds-overlap": "placeholder",
     });
   });
 });

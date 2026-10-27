@@ -217,5 +217,5 @@ it.each([
 
 it("enables only the six requested routes and preserves the existing import route", () => {
   const live = buildRegistry().filter(route => route.status === "live").map(route => route.id).sort();
-  expect(live).toEqual(["root", "not-found", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "profile", "profile-import-health", "profile-personal"].sort());
+  expect(live).toEqual(["root", "not-found", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "portfolio-mutual-funds-performance", "portfolio-mutual-funds-allocation", "portfolio-mutual-funds-holdings", "portfolio-mutual-funds-transactions", "profile", "profile-import-health", "profile-personal"].sort());
 });

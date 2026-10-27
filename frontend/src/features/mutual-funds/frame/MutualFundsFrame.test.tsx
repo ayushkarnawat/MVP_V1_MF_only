@@ -91,9 +91,12 @@ describe("MutualFundsFrame", () => {
   it("links live tabs and shows tabs that are not live yet as disabled", () => {
     mount("overview");
     expect(screen.getByRole("link", { name: "Other Analytics" })).toHaveAttribute("href", "/portfolio/mutual-funds/analytics");
-    const allocation = within(screen.getByRole("navigation", { name: "Mutual Funds sections" })).getByText("Allocation");
-    expect(allocation.closest("[aria-disabled=true]")).not.toBeNull();
-    expect(screen.queryByRole("link", { name: "Allocation" })).not.toBeInTheDocument();
+    for (const [name, href] of [["Performance", "performance"], ["Allocation", "allocation"], ["Holdings", "holdings"], ["Transactions", "transactions"]]) {
+      expect(screen.getByRole("link", { name })).toHaveAttribute("href", `/portfolio/mutual-funds/${href}`);
+    }
+    const overlap = within(screen.getByRole("navigation", { name: "Mutual Funds sections" })).getByText("Overlap");
+    expect(overlap.closest("[aria-disabled=true]")).not.toBeNull();
+    expect(screen.queryByRole("link", { name: "Overlap" })).not.toBeInTheDocument();
   });
   it("keeps the picked member when switching tabs", async () => {
     const routes = buildRegistry().map(route => route.id === "portfolio-mutual-funds-analytics"

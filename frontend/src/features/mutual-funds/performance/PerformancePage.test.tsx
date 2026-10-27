@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as fx from "../fixtures";
+import * as fb from "../fixtures/mfB";
 import { renderInShell } from "../../../shell/testing";
 import { expectInteractivity } from "../testing";
 import type { HistoryPoint, XirrBundle } from "../types";
@@ -47,12 +48,32 @@ describe("PerformancePage frame and blocks", () => {
     const blocks = [...screen.getByTestId("performance-blocks").querySelectorAll("[data-testid^=block-]")].map(el => el.getAttribute("data-testid"));
     expect(blocks).toEqual(["block-returns", "block-history", "block-benchmark"]);
   });
-  it("leaves the benchmark comparison as a placeholder for the next run", async () => {
+  it("shows the benchmark comparison as the third block, with the same portfolio XIRR as the Returns block", async () => {
+    mocks.getAnalyticsScope.mockResolvedValue(fb.analyticsMfB());
     mount();
     await ready();
     const block = screen.getByTestId("block-benchmark");
     expect(within(block).getByRole("heading", { name: "Benchmark Comparison (XIRR)" })).toBeInTheDocument();
-    expect(block).toHaveTextContent("Coming soon");
+    expect(block).not.toHaveTextContent("Coming soon");
+    expect(within(block).getByTestId("marker-portfolio")).toHaveAttribute("aria-label", "Your Portfolio +16.1%");
+    expect(screen.getByTestId("xirr-value")).toHaveTextContent("+16.1%");
+  });
+  it("shows dashes, not a crash, when the stored benchmark section is empty", async () => {
+    mount();
+    await ready();
+    const block = screen.getByTestId("block-benchmark");
+    expect(within(block).getByTestId("value-portfolio")).toHaveTextContent("Your Portfolio: —");
+    expect(within(block).queryByTestId("marker-portfolio")).not.toBeInTheDocument();
+  });
+  it("lets the benchmark section fail on its own and keeps the other two blocks", async () => {
+    const response = fb.analyticsMfB();
+    response.sections.benchmark = { payload: null, computed_at: null, failed_at: "2026-10-26T00:00:00Z" };
+    mocks.getAnalyticsScope.mockResolvedValue(response);
+    mount();
+    await ready();
+    expect(within(screen.getByTestId("block-benchmark")).getByText("Couldn't load the benchmark comparison.")).toBeInTheDocument();
+    expect(screen.getByTestId("xirr-value")).toBeInTheDocument();
+    expect(screen.getByTestId("point-2026-10-31")).toBeInTheDocument();
   });
   it("loads only what it needs", async () => {
     mount();
@@ -183,16 +204,17 @@ describe("Portfolio History block", () => {
     mocks.getHistoryPoints.mockResolvedValue(many(30));
     mount();
     await screen.findByTestId("point-2026-06-28");
+    const range = within(screen.getByRole("group", { name: "Range" }));
     const count = () => screen.getAllByTestId(/^point-/).length;
-    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+    expect(range.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
     expect(count()).toBe(30);
-    fireEvent.click(screen.getByRole("button", { name: "1Y" }));
+    fireEvent.click(range.getByRole("button", { name: "1Y" }));
     expect(count()).toBe(12);
-    expect(screen.getByRole("button", { name: "1Y" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "false");
-    fireEvent.click(screen.getByRole("button", { name: "3Y" }));
+    expect(range.getByRole("button", { name: "1Y" })).toHaveAttribute("aria-pressed", "true");
+    expect(range.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(range.getByRole("button", { name: "3Y" }));
     expect(count()).toBe(30);
-    fireEvent.click(screen.getByRole("button", { name: "5Y" }));
+    fireEvent.click(range.getByRole("button", { name: "5Y" }));
     expect(count()).toBe(30);
     expect(mocks.getHistoryPoints).toHaveBeenCalledTimes(1);
   });
