@@ -4,6 +4,8 @@ import {
   ALLOCATION_TABS, BETA_DASH_NOTE, COMING_SOON, COPY_FOLIO_FAILED, DEFAULT_PERIOD, PERFORMANCE_PERIODS, RISK_LIFE_WINDOW_NOTE,
   RISK_NO_HISTORY_TEXT, RISK_ROWS, SINCE_LAUNCH_NOTE, SLICE_SHARE_LABEL, TILE_TITLES, ageTagText, allocationNote, benchmarkNote,
   columnHeader, marketCapLabel, riskUnavailableText, scoreNoRingText, scoreSentence, stockCountText, unavailableText,
+  DEFAULT_ROLLING_WINDOW, MANAGER_COMING_SOON_NOTE, NO_INSIGHTS_TEXT, ROLLING_WINDOWS, SCATTER_THIN_NOTE, SMART_INSIGHTS_SUBTITLE, TONE_ICONS,
+  bucketWord, factTitle, periodReturnsNote, rollingUnavailableText, scatterCaption, tenureText,
 } from "./fundCopy";
 import type { ScoreResponse } from "./types";
 
@@ -128,5 +130,64 @@ describe("fundCopy: holdings and allocation", () => {
 
   it("the slice dialog names the share by tab", () => {
     expect(SLICE_SHARE_LABEL).toEqual({ market_cap: "Share of classified equity", sector: "Share of the fund", asset_type: "Share of the fund" });
+  });
+});
+
+describe("fundCopy: insights", () => {
+  it("the fixed texts", () => {
+    expect(NO_INSIGHTS_TEXT).toBe("Not enough data to draw insights yet");
+    expect(SMART_INSIGHTS_SUBTITLE).toBe("Key insights, risks and opportunities based on your portfolio.");
+    expect(SCATTER_THIN_NOTE).toBe("Few funds in this category, so this comparison is a rough guide.");
+    expect(MANAGER_COMING_SOON_NOTE).toBe("Photo, biography and strategy are coming soon.");
+  });
+
+  it("each tone has its own icon (M4): trending-up, triangle-alert, circle-alert, info, minus", () => {
+    expect(TONE_ICONS).toEqual({ pos: "trending-up", warn: "triangle-alert", neg: "circle-alert", info: "info", neu: "minus" });
+  });
+
+  it.each([
+    ["long_term_vs_category", "Long-term performance"], ["peer_beat_years", "Long-term performance"], ["overlap", "Overlap in your portfolio"],
+    ["manager_tenure", "Fund management"], ["expense_ratio_vs_category", "Fund costs"], ["top5_weight", "Top holdings"],
+    ["top5_concentration", "Top holdings"], ["sector_concentration", "Sector mix"], ["market_cap_spread", "Market-cap mix"],
+    ["volatility_vs_category", "Volatility"], ["lagging_years", "Recent years"], ["something_new", "Insight"], ["", "Insight"],
+  ])("factTitle(%j) is %s", (id, expected) => {
+    expect(factTitle(id)).toBe(expected);
+  });
+
+  it("the rolling windows are 1, 3 and 5 years and 3 is the default", () => {
+    expect(ROLLING_WINDOWS).toEqual([{ value: 1, label: "1 Year" }, { value: 3, label: "3 Years" }, { value: 5, label: "5 Years" }]);
+    expect(DEFAULT_ROLLING_WINDOW).toBe(3);
+  });
+
+  it("rollingUnavailableText says how much history is missing, and falls back to the shared wording", () => {
+    expect(rollingUnavailableText("no_history", 5)).toBe("This fund has less than 5 years of history, so there are no 5-year rolling returns to show.");
+    expect(rollingUnavailableText("no_history", 1)).toBe("This fund has less than 1 year of history, so there are no 1-year rolling returns to show.");
+    expect(rollingUnavailableText("peers_unavailable", 3)).toBe(unavailableText("peers_unavailable"));
+    expect(rollingUnavailableText(null, 3)).toBe("Not available right now.");
+  });
+
+  it.each([["week", "weekly"], ["month", "monthly"], ["quarter", "quarterly"], ["year", "yearly"]] as const)("bucketWord(%s) is %s", (bucket, expected) => {
+    expect(bucketWord(bucket)).toBe(expected);
+  });
+
+  it("periodReturnsNote names the bucket and the period, and explains the year to date bar for yearly buckets", () => {
+    expect(periodReturnsNote("week", "1M")).toBe("Bars are weekly for 1M.");
+    expect(periodReturnsNote("month", "1Y")).toBe("Bars are monthly for 1Y.");
+    expect(periodReturnsNote("quarter", "3Y")).toBe("Bars are quarterly for 3Y.");
+    expect(periodReturnsNote("year", "5Y")).toBe("Bars are yearly for 5Y. The current year is shown year to date.");
+    expect(periodReturnsNote("year", "All")).toBe("Bars are yearly for the whole history. The current year is shown year to date.");
+  });
+
+  it("tenureText prints the years, and nothing when there is no figure", () => {
+    expect(tenureText("7.6")).toBe("7.6 years");
+    expect(tenureText("0.5")).toBe("0.5 years");
+    expect(tenureText("")).toBeNull();
+    expect(tenureText(null)).toBeNull();
+    expect(tenureText(undefined)).toBeNull();
+  });
+
+  it("scatterCaption gives the window and the number of funds compared", () => {
+    expect(scatterCaption(5, "23 Oct 2023", "23 Oct 2026")).toBe("Returns and volatility from 23 Oct 2023 to 23 Oct 2026. 5 funds compared, including this one.");
+    expect(scatterCaption(1, "23 Oct 2023", "23 Oct 2026")).toBe("Returns and volatility from 23 Oct 2023 to 23 Oct 2026. 1 fund compared, including this one.");
   });
 });

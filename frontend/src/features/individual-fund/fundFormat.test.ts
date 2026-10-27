@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   axisLabel, changeDirection, formatDate, formatNav, formatRiskValue, formatSignedPercent, formatSignedRupees, formatWhole, formatXirr,
   lastPct, planPill, riskBarPercent, seriesValues, shareLine, shortCategory, toneChipClass,
+  barLabel, fillGaps, initialsOf,
 } from "./fundFormat";
 
 describe("changeDirection", () => {
@@ -137,5 +138,45 @@ describe("toneChipClass", () => {
     expect(toneChipClass(null)).toBe(toneChipClass("neu"));
     expect(toneChipClass(undefined)).toBe(toneChipClass("neu"));
     expect(toneChipClass("bogus" as never)).toBe(toneChipClass("neu"));
+  });
+});
+
+describe("initialsOf", () => {
+  it.each([
+    ["A. Kumar", "AK"], ["R. Menon", "RM"], ["Anil", "A"], ["Rajiv Kumar Singh", "RS"], ["mary-ann lee", "ML"],
+    ["  Neha   Rao  ", "NR"], ["", "?"], ["   ", "?"], [null, "?"], [undefined, "?"], ["... ---", "?"],
+  ] as const)("%j gives %s", (name, expected) => {
+    expect(initialsOf(name)).toBe(expected);
+  });
+});
+
+describe("fillGaps", () => {
+  it("turns percent strings into chart numbers", () => {
+    expect(fillGaps(["14.2000", "14.0000", "-1.5000"])).toEqual([14.2, 14, -1.5]);
+  });
+
+  it("a missing point repeats the one before it, and leading gaps take the first known value", () => {
+    expect(fillGaps(["12.9000", null, "12.5000", null, null])).toEqual([12.9, 12.9, 12.5, 12.5, 12.5]);
+    expect(fillGaps([null, null, "3.0000", "4.0000"])).toEqual([3, 3, 3, 4]);
+  });
+
+  it("a series with no value at all is null, so the chart leaves the line out", () => {
+    expect(fillGaps([null, null])).toBeNull();
+    expect(fillGaps([])).toBeNull();
+  });
+
+  it("does not change the list it is given", () => {
+    const input = ["1.0000", null];
+    fillGaps(input);
+    expect(input).toEqual(["1.0000", null]);
+  });
+});
+
+describe("barLabel", () => {
+  it.each([
+    ["month", "Nov 2025", "Nov"], ["month", "November 2025", "Nov"], ["month", "Jan 2026", "Jan"], ["month", "odd label", "odd label"],
+    ["year", "2022", "2022"], ["year", "2026 YTD", "2026 YTD"], ["quarter", "Q1 2026", "Q1 2026"], ["week", "W3", "W3"],
+  ] as const)("%s bucket %j is drawn as %j", (bucket, label, expected) => {
+    expect(barLabel(bucket, label)).toBe(expected);
   });
 });

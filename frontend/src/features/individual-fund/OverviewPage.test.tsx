@@ -352,11 +352,11 @@ describe("Overview route", () => {
     expect(api.summary).toHaveBeenCalledWith(IDS.scheme, "combined", expect.any(AbortSignal));
   });
 
-  it("test_route_files_are_live_and_overlap_is_placeholder: the fund route is live, its page loads, Insights and Overlap are still placeholders", async () => {
+  it("test_route_files_are_live_and_overlap_is_placeholder: the fund route is live, its page loads, Insights is live too and Overlap is still a placeholder", async () => {
     const routes = buildRegistry();
     const byId = (id: string) => routes.find(route => route.id === id)!;
     expect(byId("portfolio-mutual-funds-fund")).toMatchObject({ status: "live", path: "/portfolio/mutual-funds/funds/:schemeId", label: "Fund Overview", scope: "family-or-member" });
-    expect(byId("portfolio-mutual-funds-fund-insights").status).toBe("placeholder");
+    expect(byId("portfolio-mutual-funds-fund-insights").status).toBe("live");
     expect(byId("portfolio-mutual-funds-fund-overlap").status).toBe("placeholder");
     const page = await byId("portfolio-mutual-funds-fund").page!();
     expect(page.default).toBe(OverviewRoute);

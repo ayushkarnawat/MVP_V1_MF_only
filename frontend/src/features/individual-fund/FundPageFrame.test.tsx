@@ -120,8 +120,9 @@ describe("FundPageFrame", () => {
     expect(within(tabs).getByRole("link", { name: "Insights" })).not.toHaveAttribute("aria-current");
   });
 
-  it("while the Insights route is still a placeholder its tab is the disabled Coming soon tab", async () => {
-    renderInShell(<FundPageFrame schemeId={IDS.scheme} tab="overview">{() => <p>page body</p>}</FundPageFrame>, { path: OVERVIEW, routes: liveRoutes(["portfolio-mutual-funds-fund"]) });
+  it("when the Insights route is not live its tab is the disabled Coming soon tab", async () => {
+    const routes = liveRoutes(["portfolio-mutual-funds-fund"]).map(route => (route.id === "portfolio-mutual-funds-fund-insights" ? { ...route, status: "placeholder" as const } : route));
+    renderInShell(<FundPageFrame schemeId={IDS.scheme} tab="overview">{() => <p>page body</p>}</FundPageFrame>, { path: OVERVIEW, routes });
     const tabs = await screen.findByRole("navigation", { name: "Fund sections" });
     expect(within(tabs).queryByRole("link", { name: "Insights" })).toBeNull();
     expect(within(tabs).getByText("Insights")).toHaveAttribute("aria-disabled", "true");
