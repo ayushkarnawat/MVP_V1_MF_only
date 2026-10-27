@@ -1,4 +1,5 @@
-# Outline for packets PR-B and PR-C (Profile pages): not ready for Gemini
+# Outline for packets PR-B and PR-C (Profile pages)
+**Update 27 Oct: PR-B now has its own packet, `ui-redesign-PR-B-profile-packet.md` (ready for Gemini, tests red-committed). Only PR-C (Family Members, Data & Privacy) is still an outline; the PR-B sections below are kept for reference and the packet wins where they differ.**
 **Status:** OUTLINE (written 27 Oct 2026). Prepared fully only after PR-A is built and verified (`ui-redesign-PR-A-profile-packet.md`), because the tests need the real frame, helpers and route state. Source: `Docs/superpowers/plans/2026-10-23-profile-plan.md` tasks T4 to T7 (catalogue runs PR3 to PR6), the Profile spec sections 2 to 7, the layout and design-system documents, the signed-off mockup `2026-10-24-desktop-preview-all-pages.html` (views `p-personal`, `p-family`, `p-settings`, `p-subscription`, `p-privacy`).
 **Excluded everywhere:** **PR9 (plan task T10, retire the old Profile)**: deletes `ProfileView`, `HouseholdMembersSection`, `FamilyMemberCard`, the `/profile/legacy` route and the old wrapper. It needs the owner's acceptance of the new Profile on staging and an explicit "go" (decision L42), it deletes working code after an importer search, and it is Claude's work, not Gemini's. PR7 (route and boundary tests, manual check), PR8 (docs) and PR10 (final gate with Opus) are also Claude's.
 
@@ -6,7 +7,7 @@
 | Packet | Runs | New files (implementation) | Opus gate |
 |---|---|---|---|
 | **PR-A** (ready) | PR2: T2 helpers, T3 frame, nav, Coming soon, routes | 13, plus 11 route-file edits | none |
-| **PR-B** | PR3 (T4 Personal Information) + PR5 (T6 Settings, Import History, Subscription) | 9 + 5 = 14, plus route edits | none |
+| **PR-B** (ready, own packet) | PR3 (T4 Personal Information) + PR5 (T6 Settings, Import History, Subscription) | 9 + 5 = 14, plus route edits | none |
 | **PR-C** | PR4 (T5 Family Members) + PR6 (T7 Data & Privacy) | 5 + 4 = 9, plus route edits | **PR4 and PR6 each** (plan: delete paths and the import hand-off; the copied delete-account flow) |
 The Opus reviews stay per run, as the plan and execution plan v2 name them (MF6, MF15, PR4, PR6, PR10).
 
