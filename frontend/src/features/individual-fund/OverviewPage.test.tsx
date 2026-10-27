@@ -5,6 +5,7 @@ import { ApiError } from "@/lib/apiClient";
 import { buildRegistry } from "@/shell/registry/buildRegistry";
 import { useScope } from "@/shell/scope/ScopeContext";
 import { renderInShell } from "@/shell/testing";
+import { liveFundRoutes } from "./__support__/liveRoutes";
 import { deferred } from "./__support__/deferred";
 import OverviewRoute, { OverviewPage } from "./OverviewPage";
 import { IDS, fixture } from "./fixtures";
@@ -345,20 +346,23 @@ describe("OverviewPage", () => {
 
 describe("Overview route", () => {
   it("the real route renders the page inside the shell at the fund URL, and the family view asks for the combined scope", async () => {
-    renderInShell(undefined, { path: PATH });
+    renderInShell(undefined, { path: PATH, routes: liveFundRoutes() });
     expect(await screen.findByRole("heading", { level: 1, name: NAME })).toBeInTheDocument();
     expect(await screen.findByTestId("tile-value-figure")).toHaveTextContent("₹2,250");
     expect(screen.getByRole("main")).toContainElement(screen.getByTestId("fund-page"));
     expect(api.summary).toHaveBeenCalledWith(IDS.scheme, "combined", expect.any(AbortSignal));
   });
 
-  it("test_route_files_are_live_and_overlap_is_placeholder: the fund route is live, its page loads, Insights is live too and Overlap is still a placeholder", async () => {
+  it("test_route_files_are_live_and_overlap_is_placeholder: both fund route files are placeholders for now, the page modules still load and Overlap is a placeholder", async () => {
     const routes = buildRegistry();
     const byId = (id: string) => routes.find(route => route.id === id)!;
-    expect(byId("portfolio-mutual-funds-fund")).toMatchObject({ status: "live", path: "/portfolio/mutual-funds/funds/:schemeId", label: "Fund Overview", scope: "family-or-member" });
-    expect(byId("portfolio-mutual-funds-fund-insights").status).toBe("live");
+    // IF page not exposed yet, register C166, flip status and page when the Individual Fund backend ships.
+    expect(byId("portfolio-mutual-funds-fund")).toMatchObject({ status: "placeholder", path: "/portfolio/mutual-funds/funds/:schemeId", label: "Fund Overview", scope: "family-or-member" });
+    expect((await byId("portfolio-mutual-funds-fund").page!()).default).toBe((await import("@/shell/layout/PlaceholderPage")).default);
+    expect(byId("portfolio-mutual-funds-fund-insights")).toMatchObject({ status: "placeholder" });
     expect(byId("portfolio-mutual-funds-fund-overlap").status).toBe("placeholder");
-    const page = await byId("portfolio-mutual-funds-fund").page!();
-    expect(page.default).toBe(OverviewRoute);
+    // The page module itself still loads; the real-route test above mounts it through a live override.
+    expect(OverviewRoute).toBeTypeOf("function");
+    expect((await import("./OverviewPage")).default).toBeTypeOf("function");
   });
 });

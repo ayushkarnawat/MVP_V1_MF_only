@@ -3,6 +3,7 @@ import { Route, Routes, useLocation } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { paths } from "@/shell/nav/paths";
 import { renderInShell } from "@/shell/testing";
+import { liveFundRoutes } from "../__support__/liveRoutes";
 import { deferred } from "../__support__/deferred";
 import { formatRiskValue } from "../fundFormat";
 import { IDS, fixture } from "../fixtures";
@@ -44,7 +45,7 @@ function mount() {
       </Routes>
       <Location />
     </>,
-    { path: paths.mutualFunds.fundInsights(IDS.scheme) },
+    { path: paths.mutualFunds.fundInsights(IDS.scheme), routes: liveFundRoutes() },
   );
 }
 const click = (id: string) => act(() => { chart.props!.onPointClick!(id); });
