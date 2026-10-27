@@ -86,15 +86,23 @@ def _envelope(ctx: ScopeContext, inputs: HomeInputs, now_ist: datetime) -> dict:
     }
 
 
+def valued_amounts_by_scheme(holdings) -> dict[str, Decimal]:
+    """Per-scheme sum of the per-row quantized current values (rows repeat per member/plan).
+
+    The single source of Home's total: `_total_value` and the news weight_pct both use it.
+    """
+    amounts: dict[str, Decimal] = {}
+    for row in holdings:
+        if row.nav_unavailable or row.current_value is None:
+            continue
+        amounts[row.scheme_id] = amounts.get(row.scheme_id, Decimal("0.00")) + quantize_amount(
+            Decimal(row.current_value)
+        )
+    return amounts
+
+
 def _total_value(inputs: HomeInputs) -> Decimal:
-    return sum(
-        (
-            quantize_amount(Decimal(row.current_value))
-            for row in inputs.holdings
-            if not row.nav_unavailable and row.current_value is not None
-        ),
-        Decimal("0.00"),
-    )
+    return sum(valued_amounts_by_scheme(inputs.holdings).values(), Decimal("0.00"))
 
 
 async def _inputs(

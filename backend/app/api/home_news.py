@@ -13,12 +13,12 @@ from __future__ import annotations
 import uuid
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.api.home import get_now_ist
+from app.api.home import get_now_ist, valued_amounts_by_scheme
 from app.config import settings
 from app.db.session import get_db
 from app.models.news import JobRun, NewsItem
@@ -95,10 +95,15 @@ def _find_stock_row(entity_key: str, stock_rows: Sequence[Mapping]) -> Mapping |
 
 
 def _holding_values(holdings: Sequence[HoldingRow]) -> dict[str, Decimal]:
-    return {
-        row.scheme_id: Decimal(row.current_value)
-        for row in holdings if not row.nav_unavailable and row.current_value is not None
-    }
+    # Shared with Home's total: quantized per row, summed per scheme (one row per member/plan).
+    return valued_amounts_by_scheme(holdings)
+
+
+def _weight_pct(scheme_id: str, holding_values: Mapping[str, Decimal], total: Decimal) -> Decimal | None:
+    value = holding_values.get(scheme_id)
+    if value is None or total <= 0:
+        return None
+    return (value / total * Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 def _funds_out(
@@ -111,7 +116,11 @@ def _funds_out(
         return base * stock_weights.get(scheme_id, Decimal("0")) / Decimal("100")
 
     ranked = sorted(entity.funds, key=lambda pair: (-value_for(pair[0]), pair[1]))
-    return [NewsFundOut(scheme_id=scheme_id, name=name) for scheme_id, name in ranked[:5]]
+    total = sum(holding_values.values(), Decimal("0"))
+    return [
+        NewsFundOut(scheme_id=scheme_id, name=name, weight_pct=_weight_pct(scheme_id, holding_values, total))
+        for scheme_id, name in ranked[:5]
+    ]
 
 
 def _icon_key(entity: WatchEntity | None, row: NewsRow, stock_sector_raw: str | None) -> str:
