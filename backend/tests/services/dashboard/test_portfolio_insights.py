@@ -276,3 +276,15 @@ def test_properties_over_random_inputs(seed):
                     Decimal(row.current_value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
         assert ins.largest_holding.value == max(per_scheme.values())
         assert ins.spread.fund_count == len(per_scheme)
+
+
+def test_largest_amc_is_chosen_by_value_not_by_fund_count():
+    # Big AMC: one fund worth 900.00. Small AMC: three funds worth 100.00 each = 300.00 (more funds, less value).
+    result = compute_portfolio_insights(
+        [_h("big", "900.00", amc="Big AMC")]
+        + [_h(f"small{n}", "100.00", amc="Small AMC") for n in range(3)],
+        [],
+    )
+    amc = result.insights.largest_amc
+    assert (amc.amc_name, amc.value, amc.fund_count) == ("Big AMC", Decimal("900.00"), 1)
+    assert amc.pct_of_portfolio == Decimal("75.0000")
