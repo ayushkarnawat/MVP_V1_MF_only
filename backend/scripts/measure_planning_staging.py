@@ -59,7 +59,12 @@ def run_async(coro):
 
 def is_write_statement(statement: str) -> bool:
     sql = _SQL_IGNORED.sub(" ", statement).upper()
-    return any(re.search(rf"\b{verb}\b", sql) for verb in _WRITE_VERBS)
+    # REPLACE( is the string function; only REPLACE INTO is a write, so a bare
+    # REPLACE followed by '(' is ignored.
+    return any(
+        re.search(rf"\b{verb}\b(?!\s*\()" if verb == "REPLACE" else rf"\b{verb}\b", sql)
+        for verb in _WRITE_VERBS
+    )
 
 
 def guard(db: Session, counter: StatementCounter) -> None:
