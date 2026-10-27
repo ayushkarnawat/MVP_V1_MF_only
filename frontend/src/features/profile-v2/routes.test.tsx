@@ -259,6 +259,35 @@ describe("Family Members and Data & Privacy are real pages in the frame (deep li
   });
 });
 
+describe("All eleven Profile pages (seven list pages, four Settings children) are real pages in the frame", () => {
+  it.each([
+    ["/profile/personal", "Personal Information"],
+    ["/profile/family", "Family Members"],
+    ["/profile/connected-accounts", "Connected Accounts"],
+    ["/profile/settings", "Settings"],
+    ["/profile/subscription", "Subscription & Billing"],
+    ["/profile/tax", "Tax Information"],
+    ["/profile/data-privacy", "Data & Privacy"],
+    ["/profile/settings/notifications", "Settings"],
+    ["/profile/settings/preferences", "Settings"],
+    ["/profile/settings/security", "Settings"],
+    ["/profile/settings/import-history", "Settings"],
+  ])("%s: frame, one current item %j, not the pending page; deep link and remount twice", async (path, current) => {
+    for (let visit = 0; visit < 2; visit++) {
+      const view = mount(path);
+      expect(await screen.findByRole("navigation", { name: "Profile sections" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { level: 1, name: "Profile" })).toBeInTheDocument();
+      expect((await screen.findAllByRole("heading", { level: 2 })).length).toBeGreaterThan(0);
+      expect(screen.getByTestId("location")).toHaveTextContent(path);
+      expect(screen.queryByTestId("profile-pending"), path).not.toBeInTheDocument();
+      expect(screen.queryByText("This page is being built."), path).not.toBeInTheDocument();
+      expect(screen.queryByText("Old profile screen")).not.toBeInTheDocument();
+      expect(currentLabel()).toBe(current);
+      view.unmount();
+    }
+  });
+});
+
 describe("Navigation inside the frame", () => {
   it("moves from one Profile page to another through the list, keeping one frame", async () => {
     mount("/profile/family");
