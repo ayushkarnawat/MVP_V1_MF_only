@@ -286,6 +286,10 @@ AMBIGUOUS_ALIASES: dict[str, tuple[str, ...]] = {
     "eternal": ("zomato", "food delivery", "blinkit"),
     "jio": ("telecom", "reliance jio", "5g", "jiomart"),
 }
+# NSE symbols (4+ letters, so they pass the length rule) that are also plain English
+# words: tagged only when the headline carries stock/market context, like the
+# ambiguous name aliases above.
+PLAIN_WORD_SYMBOLS: frozenset[str] = frozenset({"idea", "sail", "page", "time"})
 AMBIGUITY_CONTEXT_WORDS: frozenset[str] = frozenset({
     "shares", "share", "stock", "stocks", "q1", "q2", "q3", "q4", "results",
     "sensex", "nifty", "nse", "bse", "earnings", "profit", "revenue",

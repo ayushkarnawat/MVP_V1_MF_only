@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 import httpx
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.db.session import commit_off_loop
@@ -19,6 +20,9 @@ from app.models.reference import StockMaster
 from app.services.analytics.nse_indices_client import _USER_AGENT
 
 logger = logging.getLogger(__name__)
+
+# EQUITY_L.csv is a few hundred KB; abort the download well past that.
+MAX_EQUITY_LIST_BYTES = 20 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -50,10 +54,17 @@ async def fill_nse_symbols(db: Session, *, url: str, client: httpx.AsyncClient |
         if client is None:
             async with httpx.AsyncClient(timeout=30, follow_redirects=True, headers={"User-Agent": _USER_AGENT}) as owned:
                 return await fill_nse_symbols(db, url=url, client=owned)
-        response = await client.get(url)
-        response.raise_for_status()
-        symbols = parse_equity_list(response.content)
-    except (httpx.HTTPError, ValueError, UnicodeDecodeError) as exc:
+        async with client.stream("GET", url) as response:
+            response.raise_for_status()
+            chunks: list[bytes] = []
+            size = 0
+            async for chunk in response.aiter_bytes():
+                size += len(chunk)
+                if size > MAX_EQUITY_LIST_BYTES:
+                    raise ValueError("NSE equity list exceeds size cap")
+                chunks.append(chunk)
+        symbols = parse_equity_list(b"".join(chunks))
+    except (httpx.HTTPError, ValueError, UnicodeDecodeError, csv.Error) as exc:
         logger.warning("NSE_SYMBOL_FILL_ALERT fetch_failed %s", type(exc).__name__)
         return NseSymbolFillResult(False)
     updated = already_set = unmatched = 0
@@ -65,5 +76,14 @@ async def fill_nse_symbols(db: Session, *, url: str, client: httpx.AsyncClient |
             updated += 1
         else:
             unmatched += 1
-    await commit_off_loop(db)
+    try:
+        await commit_off_loop(db)
+    except SQLAlchemyError as exc:
+        db.rollback()
+        logger.warning(
+            "NSE_SYMBOL_FILL_ALERT commit_failed %s updated=%d already_set=%d unmatched=%d",
+            type(exc).__name__, updated, already_set, unmatched,
+        )
+        return NseSymbolFillResult(False)
+    logger.info("NSE_SYMBOL_FILL updated=%d already_set=%d unmatched=%d", updated, already_set, unmatched)
     return NseSymbolFillResult(True, updated, already_set, unmatched)

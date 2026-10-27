@@ -442,3 +442,39 @@ def test_most_missed_sip_tie_keeps_the_first_listed():
         second = _run(db, [member.id], sips=[b, a]).sip_summary
     assert first.missed_count == 6 and first.missed_sip_fund == "Fund A"
     assert second.missed_sip_fund == "Fund B"
+
+
+def test_today_is_the_ist_date_on_a_utc_host_before_05_30_ist():
+    # 20:30 UTC on 31 Oct is 02:00 IST on 1 Nov. A UTC host's date.today() says 31 Oct.
+    from unittest.mock import MagicMock
+    from zoneinfo import ZoneInfo
+
+    utc_now = datetime(2026, 10, 31, 20, 30, tzinfo=timezone.utc)
+
+    class FakeDate(date):
+        @classmethod
+        def today(cls):
+            return date(2026, 10, 31)  # what a UTC host reports
+
+    class FakeDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return utc_now.astimezone(tz) if tz else utc_now
+
+    db = _session()
+    member = _member(db)
+    folio = _folio(db, member)
+    sips = [_sip(member, folio.scheme_id, date(2026, 9, 5), "5000.00")]
+    active = MagicMock(return_value=sips)
+    with (
+        patch(f"{_MODULE}.date", FakeDate),
+        patch(f"{_MODULE}.datetime", FakeDateTime, create=True),
+        patch(f"{_MODULE}.compute_holdings", new=AsyncMock(return_value=[_holding("0.00")])),
+        patch(f"{_MODULE}.compute_active_sips", active),
+        patch(f"{_MODULE}._references", return_value={}),
+    ):
+        result = asyncio.run(compute_investment_withdrawal(db, [member.id]))
+
+    assert active.call_args.kwargs["today"] == date(2026, 11, 1)
+    # Last instalment 5 Sep; with no statement reference the fallback is today (1 Nov): October missed.
+    assert result.sip_summary.missed_count == 1

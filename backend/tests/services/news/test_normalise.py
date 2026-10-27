@@ -423,3 +423,22 @@ def test_labelled_headline_precision_and_recall_bars(dictionaries):
     tp, fp, fn = by_topic.get("fund_category", [0, 0, 0])
     topic_precision = tp / (tp + fp) if (tp + fp) else 1.0
     assert topic_precision >= 0.95, f"fund_category precision {topic_precision:.3f} (bar 0.95); fp={fp}"
+
+
+def test_plain_word_nse_symbols_do_not_become_stock_tags(db_session):
+    for isin, name, symbol in (
+        ("INTEST0201", "Oil India Limited", "OIL"),
+        ("INTEST0202", "BSE Limited", "BSE"),
+        ("INTEST0203", "Sun Pharmaceutical Industries Limited", "SUN"),
+        ("INTEST0204", "Vodafone Idea Limited", "IDEA"),
+    ):
+        db_session.add(StockMaster(isin=isin, name=name, sector="Services", as_of_date=date(2026, 10, 1), source="NSE", nse_symbol=symbol))
+    db_session.commit()
+    dicts = load_dictionaries(db_session)
+    # Length rule: 3-letter symbols that are plain words are not aliases at all.
+    assert "oil" not in dicts.stocks and "bse" not in dicts.stocks and "sun" not in dicts.stocks
+    # A 4+ letter plain word needs stock/market context, like ambiguous name aliases.
+    assert not [t for t in tag_title("An idea whose time has come for savers", dicts) if t.kind == "stock"]
+    assert not [t for t in tag_title("Oil prices slip as the sun sets on the BSE lawn", dicts) if t.kind == "stock"]
+    tagged = tag_title("Idea shares jump after the AGR relief", dicts)
+    assert [t.key for t in tagged if t.kind == "stock"] == ["INTEST0204"]

@@ -1,6 +1,6 @@
 """T3: GDELT 2.1 GKG ingest.
 
-15-minute files at ``http://data.gdeltproject.org/gdeltv2/<stamp>.gkg.csv.zip``,
+15-minute files at ``https://data.gdeltproject.org/gdeltv2/<stamp>.gkg.csv.zip``,
 27 tab-separated columns (as `news-dry-run/gdelt_dry_run.py` reads them). Only
 column 1 (DATE), 3 (source domain), 4 (URL), 25 (translation info) and 26
 (extras: ``<PAGE_TITLE>``/``<PAGE_PRECISEPUBTIMESTAMP>``) are used -- the rest
@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from io import BytesIO, TextIOWrapper
 from typing import Literal
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -29,8 +30,17 @@ from app.services.news.config import (
     SOURCE_DISPLAY_NAMES,
 )
 
-GDELT_BASE_URL = "http://data.gdeltproject.org/gdeltv2/"
+# data.gdeltproject.org serves the same files over https (verified); use it so a
+# network middlebox cannot rewrite the headlines/URLs we ingest.
+GDELT_BASE_URL = "https://data.gdeltproject.org/gdeltv2/"
 GKG_COLUMN_COUNT = 27
+# A real 15-minute GKG zip is a few MB; anything past this is not one, so the
+# download is aborted rather than held in memory.
+MAX_GKG_FILE_BYTES = 50 * 1024 * 1024
+
+
+class GkgFileTooLarge(RuntimeError):
+    pass
 
 # T6's job pauses 1s between files (politeness towards GDELT); hardcoded
 # rather than a new ingest_window parameter because the handoff's contract
@@ -38,7 +48,7 @@ GKG_COLUMN_COUNT = 27
 _PAUSE_BETWEEN_FILES_SECONDS = 1.0
 
 Origin = Literal["indian", "global"]
-_SkipReason = Literal["malformed", "non_english", "site"]
+_SkipReason = Literal["malformed", "non_english", "site", "bad_url"]
 
 _PAGE_TITLE_RE = re.compile(r"<PAGE_TITLE>(.*?)</PAGE_TITLE>", re.DOTALL)
 _PRECISE_TS_RE = re.compile(r"<PAGE_PRECISEPUBTIMESTAMP>(\d{14})</PAGE_PRECISEPUBTIMESTAMP>")
@@ -71,6 +81,7 @@ class IngestStats:
     rows_kept: int = 0
     skipped_non_english: int = 0
     skipped_site: int = 0
+    skipped_bad_url: int = 0
     skipped_dup: int = 0
 
 
@@ -110,6 +121,21 @@ def _site_display_name(domain: str) -> str:
         if _label_boundary_match(domain, site):
             return name
     return domain
+
+
+def _url_on_allowed_domain(url: str, domain: str) -> bool:
+    """The article URL must be http(s) and its host must be the allow-listed
+    site (or a subdomain of it) that GDELT reported for the row: the domain
+    column and the URL column are independent fields in the feed."""
+    try:
+        parts = urlsplit(url)
+        host = (parts.hostname or "").lower()
+    except ValueError:
+        return False
+    if parts.scheme not in ("http", "https") or not host:
+        return False
+    sites = [s for s in (*INDIAN_SITES, *GLOBAL_SITES) if _label_boundary_match(domain, s)]
+    return any(_label_boundary_match(host, site) for site in sites)
 
 
 def _etimes_path_allowed(url: str) -> bool:
@@ -204,6 +230,8 @@ def _classify_line(
     origin = _origin_for_domain(domain)
     if origin is None:
         return None, "site"
+    if not _url_on_allowed_domain(url, domain):
+        return None, "bad_url"
     if _label_boundary_match(domain, ETIMES_DOMAIN) and not _etimes_path_allowed(url):
         return None, "site"
     if any(_label_boundary_match(domain, disabled) for disabled in disabled_sources):
@@ -234,13 +262,23 @@ async def fetch_file(
     error: Exception | None = None
     for attempt in range(tries):
         try:
-            response = await client.get(url)
+            async with client.stream("GET", url) as response:
+                body: bytes | None = None
+                if response.status_code == 200:
+                    chunks: list[bytes] = []
+                    size = 0
+                    async for chunk in response.aiter_bytes():
+                        size += len(chunk)
+                        if size > MAX_GKG_FILE_BYTES:
+                            raise GkgFileTooLarge(f"{url}: body exceeds {MAX_GKG_FILE_BYTES} bytes")
+                        chunks.append(chunk)
+                    body = b"".join(chunks)
         except httpx.HTTPError as exc:
             error = exc
         else:
             error = None
-            if response.status_code == 200:
-                return response.content
+            if body is not None:
+                return body
             if response.status_code == 404:
                 if attempt == tries - 1:
                     return None
@@ -283,6 +321,8 @@ async def ingest_window(
                                 stats.skipped_non_english += 1
                             elif reason == "site":
                                 stats.skipped_site += 1
+                            elif reason == "bad_url":
+                                stats.skipped_bad_url += 1
                             continue
                         dedup_key = (article.domain, _dedup_key_title(article.title))
                         if article.url in seen_urls or dedup_key in seen_title_keys:

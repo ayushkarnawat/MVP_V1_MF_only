@@ -7,8 +7,9 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
@@ -143,7 +144,9 @@ async def compute_investment_withdrawal(
     total_invested = _sum(entries, "invested") - _sum(entries, "reversal") + opening_holdings
     total_withdrawn = _sum(entries, "withdrawn")
 
-    today = date.today()
+    # IST date (the zone app.api.home.get_now_ist uses): the batch recompute runs on a UTC
+    # host, where date.today() is a day behind between 00:00 and 05:30 IST.
+    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
     monthly: list[InvestmentWithdrawalBucket] = []
     yearly: list[InvestmentWithdrawalBucket] = []
     if entries:
