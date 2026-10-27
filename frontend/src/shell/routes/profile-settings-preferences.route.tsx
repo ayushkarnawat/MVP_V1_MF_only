@@ -11,9 +11,9 @@ const route: ShellRoute = {
   parentId: "profile-settings",
   layout: "app",
   scope: "none",
-  status: "placeholder",
+  status: "live",
   title: "Preferences",
-  page: () => import("../layout/PlaceholderPage"),
+  page: () => import("../../features/profile-v2/pages/comingSoonPages").then(m => ({ default: m.PreferencesPage })),
 };
 
 export default route;

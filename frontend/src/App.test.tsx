@@ -73,7 +73,7 @@ describe("App", () => {
     localStorage.setItem("unifolio_session_token", "tok-1");
     const incompleteMe = {
       user_id: "u1", phone_number: "+919999999999", email: null,
-      onboarding_step: "q1_name", onboarding_completed: false, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [],
+      onboarding_step: "q1_name", onboarding_completed: false, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [], created_at: "2025-10-14T09:30:00+05:30",
     };
     vi.mocked(api.getMe).mockResolvedValue(incompleteMe);
     vi.mocked(api.updateMe).mockResolvedValue(incompleteMe);
@@ -87,7 +87,7 @@ describe("App", () => {
     localStorage.setItem("unifolio_session_token", "tok-1");
     vi.mocked(api.getMe).mockResolvedValue({
       user_id: "u1", phone_number: "+919999999999", email: null,
-      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [],
+      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [], created_at: "2025-10-14T09:30:00+05:30",
     });
 
     render(<App />);
@@ -105,7 +105,7 @@ describe("App", () => {
     localStorage.setItem("unifolio_session_token", "tok-1");
     const base = {
       user_id: "u1", phone_number: "+919999999999", email: null,
-      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null,
+      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null, created_at: "2025-10-14T09:30:00+05:30",
     };
     vi.mocked(api.getMe)
       .mockResolvedValueOnce({ ...base, consent_outdated: ["terms_of_service", "privacy_policy"] })
@@ -135,7 +135,7 @@ describe("App", () => {
     localStorage.setItem("unifolio_session_token", "tok-pending");
     vi.mocked(api.getMe).mockResolvedValue({
       user_id: "u1", phone_number: "+919999999999", email: null,
-      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [],
+      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [], created_at: "2025-10-14T09:30:00+05:30",
       pending_deletion: true, deletion_scheduled_at: "2026-09-16T08:00:00+00:00",
     });
 
@@ -149,7 +149,7 @@ describe("App", () => {
     localStorage.setItem("unifolio_session_token", "tok-1");
     vi.mocked(api.getMe).mockResolvedValue({
       user_id: "u1", phone_number: "+919999999999", email: null,
-      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [],
+      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [], created_at: "2025-10-14T09:30:00+05:30",
     });
 
     // Mock mobile matchMedia
@@ -192,7 +192,7 @@ describe("App", () => {
 
   it("an explicit mobile route bypasses the router even at desktop width", async () => {
     localStorage.setItem("unifolio_session_token", "tok-mobile");
-    vi.mocked(api.getMe).mockResolvedValue({ user_id: "u1", phone_number: "+919999999999", email: null, onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [] });
+    vi.mocked(api.getMe).mockResolvedValue({ user_id: "u1", phone_number: "+919999999999", email: null, onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [], created_at: "2025-10-14T09:30:00+05:30" });
     const original = window;
     vi.stubGlobal("window", new Proxy(original, { get(target, property) {
       return property === "location" ? { pathname: "/mobile", hash: "" } : Reflect.get(target, property);

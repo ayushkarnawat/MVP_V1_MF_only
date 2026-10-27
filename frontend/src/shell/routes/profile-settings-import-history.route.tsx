@@ -11,9 +11,9 @@ const route: ShellRoute = {
   parentId: "profile-settings",
   layout: "app",
   scope: "none",
-  status: "placeholder",
+  status: "live",
   title: "Import History",
-  page: () => import("../layout/PlaceholderPage"),
+  page: () => import("../../features/profile-v2/pages/ImportHistoryPage"),
 };
 
 export default route;

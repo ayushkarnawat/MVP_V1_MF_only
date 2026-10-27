@@ -55,6 +55,10 @@ export interface MyConsent {
   document_type: LegalDocumentType;
   document_version: string;
   recorded_at: string;
+  /** Registry title (e.g. "Terms & Conditions"); the Profile page keeps its own wording and does not show it. */
+  document_title?: string | null;
+  /** Readable date taken from the version id ("1 Oct 2026"), or the raw id when it has no date. */
+  version_label?: string | null;
 }
 
 /** The latest agreement per document, for the Profile "Terms of Service" section. */
