@@ -13,7 +13,7 @@ from datetime import datetime
 
 from app.db.session import get_db
 from app.models.analytics import AnalyticsSection
-from app.models.news import NewsItem
+from app.models.news import JobRun, NewsItem
 from app.models.reference import Scheme, StockMaster
 from app.services.news.normalise import load_dictionaries, tag_title
 from tests.api.home_fixture import HomeFixtureRuntime, build_home_fixture
@@ -52,7 +52,18 @@ def _rename_fixture_entities(db) -> None:
     db.commit()
 
 
-def seed_news_items(db, articles: list[dict], *, ingested_at: datetime) -> None:
+_SAME_AS_INGESTED = object()
+
+
+def set_news_job_run(db, last_success_at: datetime | None) -> None:
+    """Set (or clear, with None) the refresh_news last-success row the route reads."""
+    db.query(JobRun).filter_by(job_name="refresh_news").delete()
+    if last_success_at is not None:
+        db.add(JobRun(job_name="refresh_news", last_success_at=last_success_at))
+    db.commit()
+
+
+def seed_news_items(db, articles: list[dict], *, ingested_at: datetime, job_run_at=_SAME_AS_INGESTED) -> None:
     """Each article dict needs source/title/published_at (and optionally url,
     ingested_at). Tags are produced by the real tag_title pipeline, not
     asserted by hand, so a test exercises genuine matching end to end."""
@@ -72,6 +83,10 @@ def seed_news_items(db, articles: list[dict], *, ingested_at: datetime) -> None:
             tier=tier,
         ))
     db.commit()
+    # The route's feed_as_of is the last successful refresh_news run, not an item's
+    # ingested_at. By default a seeded batch counts as a run at that same instant;
+    # pass job_run_at=None for "never ran" or another time to decouple them.
+    set_news_job_run(db, ingested_at if job_run_at is _SAME_AS_INGESTED else job_run_at)
 
 
 def build_news_fixture(

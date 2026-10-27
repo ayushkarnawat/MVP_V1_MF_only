@@ -12,7 +12,7 @@ from app.db.session import get_db
 from app.services.auth.session import get_active_user
 from app.services.news.schemas import NewsItemOut
 from tests.api.home_fixture import FIXED_NOW, seed_home_household
-from tests.api.news_fixture import build_news_fixture, seed_news_items, set_coverage
+from tests.api.news_fixture import build_news_fixture, seed_news_items, set_coverage, set_news_job_run
 from scripts.write_news_fixtures import BUILDERS, write_fixture_set
 
 NOW_UTC = FIXED_NOW.astimezone(timezone.utc)
@@ -87,6 +87,66 @@ def test_empty_state_when_no_news_rows_exist():
         assert body["enabled"] is True
         assert body["state"] == "empty"
         assert body["feed_as_of"] is None
+        assert body["items"] == []
+    finally:
+        runtime.close()
+
+
+_ARTICLE = {"source": "Mint", "title": "Sensex ends higher on strong earnings"}
+
+
+def test_feed_as_of_is_last_successful_job_run_not_newest_item():
+    runtime = build_news_fixture()
+    try:
+        seed_news_items(_db(runtime), [
+            {**_ARTICLE, "published_at": NOW_UTC - timedelta(hours=60)},
+        ], ingested_at=NOW_UTC - timedelta(hours=60), job_run_at=NOW_UTC - timedelta(hours=1))
+        body = runtime.client.get("/household/aggregate/home/news").json()
+        assert body["state"] == "items"
+        assert body["stale"] is False
+        assert body["hidden"] is False
+        assert body["feed_as_of"].startswith((NOW_UTC - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S"))
+    finally:
+        runtime.close()
+
+
+def test_old_job_run_makes_feed_stale_and_hidden_even_with_fresh_items():
+    for delta, stale, hidden in (
+        (timedelta(hours=36), False, False), (timedelta(hours=37), True, False),
+        (timedelta(hours=72), True, False), (timedelta(hours=73), True, True),
+    ):
+        runtime = build_news_fixture()
+        try:
+            seed_news_items(_db(runtime), [
+                {**_ARTICLE, "published_at": NOW_UTC - timedelta(hours=1)},
+            ], ingested_at=NOW_UTC - timedelta(minutes=5), job_run_at=NOW_UTC - delta)
+            body = runtime.client.get("/household/aggregate/home/news").json()
+            assert (body["stale"], body["hidden"]) == (stale, hidden), delta
+        finally:
+            runtime.close()
+
+
+def test_items_but_no_job_run_row_is_the_empty_state():
+    runtime = build_news_fixture()
+    try:
+        seed_news_items(_db(runtime), [
+            {**_ARTICLE, "published_at": NOW_UTC - timedelta(hours=1)},
+        ], ingested_at=NOW_UTC - timedelta(hours=1), job_run_at=None)
+        body = runtime.client.get("/household/aggregate/home/news").json()
+        assert body["state"] == "empty"
+        assert body["feed_as_of"] is None
+        assert body["items"] == []
+    finally:
+        runtime.close()
+
+
+def test_job_run_with_zero_items_is_fresh_not_empty():
+    runtime = build_news_fixture()
+    try:
+        set_news_job_run(_db(runtime), NOW_UTC - timedelta(hours=2))
+        body = runtime.client.get("/household/aggregate/home/news").json()
+        assert body["state"] == "items"
+        assert body["stale"] is False
         assert body["items"] == []
     finally:
         runtime.close()

@@ -16,13 +16,12 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.home import get_now_ist
 from app.config import settings
 from app.db.session import get_db
-from app.models.news import NewsItem
+from app.models.news import JobRun, NewsItem
 from app.models.user import User
 from app.services.auth.session import get_active_user
 from app.services.dashboard.holdings import compute_holdings
@@ -183,7 +182,9 @@ async def _news(db: Session, user: User, member_id: uuid.UUID | None, now_ist: d
     )
     watch = build_watchlist(db, user, ctx, holdings, allocation, sections, today=now_ist.date())
 
-    feed_as_of_raw = db.query(func.max(NewsItem.ingested_at)).scalar()
+    # Freshness = last SUCCESSFUL refresh_news run, not the newest inserted article: a healthy
+    # run that finds only duplicates inserts nothing and must not make the feed look stale.
+    feed_as_of_raw = db.query(JobRun.last_success_at).filter(JobRun.job_name == "refresh_news").scalar()
     if feed_as_of_raw is None:
         return NewsResponse(
             **envelope, enabled=True, state="empty",
