@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { ArrowUpDown, ChevronRight, SlidersHorizontal, TriangleAlert } from "lucide-react";
 import { AppLink } from "@/shell/nav/AppLink";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,6 +25,12 @@ export interface InstrumentAllocationProps {
   status: "loading" | "error" | "data";
   data: PortfolioAllocationResponse | null;
   onRetry: () => void;
+}
+
+// A live bucket the app has no page for (an unknown label) is shown as a plain row, never as a link to "".
+function LiveRow({ to, className, children }: { to: string | null; className: string; children: ReactNode }) {
+  if (to === null) return <div className={className}>{children}</div>;
+  return <AppLink to={to} className={className}>{children}</AppLink>;
 }
 
 export function InstrumentAllocation({
@@ -243,8 +250,8 @@ export function InstrumentAllocation({
                   onFocus={() => setActiveKey(key)}
                   onBlur={() => setActiveKey(null)}
                 >
-                  <AppLink
-                    to={bucketPath(bucket.label) ?? ""}
+                  <LiveRow
+                    to={bucketPath(bucket.label)}
                     className="flex items-center justify-between w-full px-3 py-2 rounded-xl hover:bg-[var(--ui-surface)] transition-colors group"
                   >
                     <div className="flex items-center gap-2.5">
@@ -266,7 +273,7 @@ export function InstrumentAllocation({
                         aria-hidden="true"
                       />
                     </div>
-                  </AppLink>
+                  </LiveRow>
                 </li>
               );
             }

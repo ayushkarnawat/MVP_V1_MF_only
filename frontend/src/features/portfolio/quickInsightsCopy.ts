@@ -13,6 +13,42 @@ export interface InsightLine {
   parts: InsightPart[];
 }
 
+const PCT_SCALE = 10_000n; // ten-thousandths of a percent: the backend sends four decimals
+
+function toScaled(pct: string): bigint | null {
+  const match = pct.trim().match(/^(\d+)(?:\.(\d*))?$/);
+  if (!match) return null;
+  return BigInt(match[1]) * PCT_SCALE + BigInt((match[2] ?? "").padEnd(4, "0").slice(0, 4));
+}
+
+/**
+ * Whole-percent shares that add up to 100. Rounding each share on its own can total 99 or 101 (62.5 + 37.5
+ * gives 63 + 38), so the largest remainders take the missing points. Only applied when the raw shares really
+ * do total 100 (to within 0.01); otherwise each share is rounded half up on its own, as before.
+ */
+export function wholePercentShares(pcts: string[]): number[] {
+  const scaled = pcts.map(toScaled);
+  const fallback = () => pcts.map(p => Number(formatPercent(p, { digits: 0 }).replace("%", "")));
+  if (scaled.some(v => v === null)) return fallback();
+  const values = scaled as bigint[];
+  const total = values.reduce((a, b) => a + b, 0n);
+  const off = total > 100n * PCT_SCALE ? total - 100n * PCT_SCALE : 100n * PCT_SCALE - total;
+  if (off > 100n) return fallback();
+  const floors = values.map(v => v / PCT_SCALE);
+  let missing = 100 - floors.reduce((a, b) => a + Number(b), 0);
+  if (missing < 0 || missing > values.length) return fallback();
+  const order = values
+    .map((v, index) => ({ index, remainder: v % PCT_SCALE }))
+    .sort((a, b) => (a.remainder === b.remainder ? a.index - b.index : a.remainder > b.remainder ? -1 : 1));
+  const shares = floors.map(Number);
+  for (const { index } of order) {
+    if (missing === 0) break;
+    shares[index] += 1;
+    missing -= 1;
+  }
+  return shares;
+}
+
 export function countLabel(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
 }
@@ -47,20 +83,24 @@ export function insightLines(insights: PortfolioInsights): InsightLine[] {
   }
 
   if (insights.plan_split !== null) {
+    const [directShare, regularShare, unclassifiedShare] = wholePercentShares([
+      insights.plan_split.direct.pct,
+      insights.plan_split.regular.pct,
+      insights.plan_split.unclassified.pct,
+    ]);
     const parts: InsightPart[] = [
       {
-        text: `${formatPercent(insights.plan_split.direct.pct, { digits: 0 })} Direct`,
+        text: `${directShare}% Direct`,
         bold: true,
       },
       {
-        text: `, ${formatPercent(insights.plan_split.regular.pct, { digits: 0 })} Regular`,
+        text: `, ${regularShare}% Regular`,
         bold: false,
       },
     ];
-    const u = formatPercent(insights.plan_split.unclassified.pct, { digits: 0 });
-    if (u !== "0%") {
+    if (unclassifiedShare !== 0) {
       parts.push({
-        text: `, ${u} Unclassified`,
+        text: `, ${unclassifiedShare}% Unclassified`,
         bold: false,
       });
     }

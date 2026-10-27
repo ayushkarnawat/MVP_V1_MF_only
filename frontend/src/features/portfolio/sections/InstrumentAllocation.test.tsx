@@ -20,6 +20,18 @@ function setup(overrides: Partial<InstrumentAllocationProps> = {}) {
   return { ...view, onRetry };
 }
 
+describe("InstrumentAllocation: a live bucket with an unknown label", () => {
+  it("renders a plain row, not a link to an empty path", () => {
+    const data = fixture<PortfolioAllocationResponse>("allocation_family");
+    data.buckets = [...data.buckets, { label: "Crypto", status: "live", current_value: "100.00", percentage: "1.00", invested: "90.00", gain_loss: "10.00", xirr: null }];
+    setup({ data });
+    const row = screen.getByTestId("legend-crypto");
+    expect(within(row).queryByRole("link")).toBeNull();
+    expect(row).toHaveTextContent("Crypto");
+    expect(row).toHaveTextContent("1.0%");
+  });
+});
+
 describe("InstrumentAllocation: states", () => {
   it("shows a loading placeholder", () => {
     setup({ status: "loading", data: null });

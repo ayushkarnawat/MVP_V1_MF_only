@@ -57,7 +57,7 @@ describe("insightLines: the family fixture", () => {
     expect(insightLines(family().insights)[2].parts).toEqual([bold("100% Direct"), plain(", 0% Regular")]);
     // mixed split: unclassified 0.3333 also rounds to 0
     const mixed = withInsights(i => { i.plan_split = mixedPlan(); });
-    expect(insightLines(mixed)[2].parts).toEqual([bold("69% Direct"), plain(", 30% Regular")]);
+    expect(insightLines(mixed)[2].parts).toEqual([bold("70% Direct"), plain(", 30% Regular")]);
   });
 
   it("writes the largest AMC with its name and share in bold, in whole percents", () => {
@@ -114,7 +114,8 @@ describe("insightLines: number formatting", () => {
     });
     const lines = insightLines(insights).map(insightText);
     expect(lines[0]).toContain("— 14.8% of your total portfolio");
-    expect(lines[2]).toBe("63% Direct, 38% Regular");
+    // 62.5 + 37.5 would round half up to 63 + 38 = 101: the shares are shown so they add to 100.
+    expect(lines[2]).toBe("63% Direct, 37% Regular");
     expect(lines[3]).toBe("Your largest single AMC exposure is HDFC Mutual Fund at 23%");
     const edge = withInsights(i => { i.largest_holding!.pct_of_portfolio = "99.9500"; });
     expect(insightText(insightLines(edge)[0])).toContain("— 100.0% of your total portfolio");
@@ -153,9 +154,31 @@ describe("insightLines: unclassified plans", () => {
         unclassified: { value: "1.00", pct: "12.5000" },
       };
     });
-    expect(insightLines(shown)[2].parts).toEqual([bold("60% Direct"), plain(", 28% Regular"), plain(", 13% Unclassified")]);
+    expect(insightLines(shown)[2].parts).toEqual([bold("60% Direct"), plain(", 28% Regular"), plain(", 12% Unclassified")]);
     const boundary = withInsights(i => { i.plan_split = mixedPlan("0.5000"); });
     expect(insightText(insightLines(boundary)[2])).toBe("69% Direct, 30% Regular, 1% Unclassified");
+  });
+
+  it("makes the three whole-percent shares add up to exactly 100 (largest remainder)", () => {
+    const sumOf = (text: string) => [...text.matchAll(/(\d+)%/g)].reduce((total, m) => total + Number(m[1]), 0);
+    const thirds = withInsights(i => {
+      i.plan_split = {
+        direct: { value: "1.00", pct: "33.4000" },
+        regular: { value: "1.00", pct: "33.3000" },
+        unclassified: { value: "1.00", pct: "33.3000" },
+      };
+    });
+    const text = insightText(insightLines(thirds)[2]);
+    expect(sumOf(text)).toBe(100);
+    expect(text).toBe("34% Direct, 33% Regular, 33% Unclassified");
+    const halves = withInsights(i => {
+      i.plan_split = {
+        direct: { value: "1.00", pct: "49.5000" },
+        regular: { value: "1.00", pct: "50.5000" },
+        unclassified: { value: "0.00", pct: "0.0000" },
+      };
+    });
+    expect(sumOf(insightText(insightLines(halves)[2]))).toBe(100);
   });
 
   it("still writes Direct and Regular when one of them is zero", () => {
