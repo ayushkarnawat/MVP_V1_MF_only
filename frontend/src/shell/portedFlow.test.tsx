@@ -7,21 +7,25 @@ import * as dashboardApi from "../features/dashboard/api";
 import { ApiError } from "../lib/apiClient";
 import { ShellRoot, ShellRoutes } from "./ShellRoot";
 import { ScopeProvider } from "./scope/ScopeProvider";
+import { buildRegistry } from "./registry/buildRegistry";
+import { RegistryContext } from "./registry/RegistryContext";
 import { ImportProvider } from "./nav/ImportProvider";
 import { useScope } from "./scope/ScopeContext";
 
+// The Home page fetches its own data; route tests keep it out of the way like the other live screens.
+vi.mock("../features/home/HomePage", () => ({ default: () => <h1>Home</h1> }));
 vi.mock("../features/dev/useDevToolsEnabled", () => ({ useDevToolsEnabled: () => false }));
-vi.mock("../features/auth/api", () => ({ getHouseholdMembers: vi.fn(), updateMemberProfile: vi.fn(), mergeMemberInto: vi.fn() }));
+vi.mock("../features/auth/api", () => ({ getHouseholdMembers: vi.fn(), listHouseholdMembers: vi.fn(), updateMemberProfile: vi.fn(), mergeMemberInto: vi.fn() }));
 vi.mock("../features/dashboard/api", () => ({ getMemberHoldings: vi.fn(), getMemberAllocation: vi.fn(), getMemberSips: vi.fn(), getMemberSipsMonthly: vi.fn(), getAggregateHoldings: vi.fn(), getAggregateAllocation: vi.fn(), getAggregateSips: vi.fn(), getAggregateSipsMonthly: vi.fn() }));
 vi.mock("../features/history/HistoryView", () => ({ HistoryView: ({ viewMode }: { viewMode: string }) => <h1>History test view ({viewMode})</h1> }));
 vi.mock("../features/analytics/AnalyticsView", () => ({ AnalyticsView: () => <h1>Analytics test view</h1> }));
-vi.mock("../features/scenarios/ScenariosScreen", () => ({ ScenariosScreen: () => <h1>Scenarios test view</h1> }));
+vi.mock("../features/planning/PlanningPage", () => ({ default: () => <h1>Scenarios test view</h1> }));
 vi.mock("../features/import/ImportFlow", () => ({ ImportFlow: ({ householdMemberId, onDone }: { householdMemberId: string; onDone?: (notice?: { text: string; details?: string[] }) => void }) => <div data-testid="import-for">{householdMemberId}
   <button onClick={() => onDone?.({ text: "This statement was already imported" })}>Close duplicate import</button>
   <button onClick={() => onDone?.({ text: "12 transactions added · 2 already saved", details: ["Alice: 3 added", "Ramesh: 9 added, 2 already saved", "History starts mid-year."] })}>Finish import</button>
 </div> }));
 vi.mock("../features/auth/AuthContext", () => {
-  const value = { me: { user_id: "u1", phone_number: "+919999999999", email: "alice@example.com" }, logout: vi.fn() };
+  const value = { me: { user_id: "u1", phone_number: "+919999999999", email: "alice@example.com", self_name: "Alice" }, logout: vi.fn() };
   return { useAuth: () => value };
 });
 
@@ -30,6 +34,7 @@ const ramesh: HouseholdMember = { ...alice, id: "m-2", name: "Ramesh Sharma", re
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([alice, ramesh]);
+  vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([alice, ramesh]);
   vi.mocked(dashboardApi.getMemberHoldings).mockResolvedValue([]);
   vi.mocked(dashboardApi.getMemberAllocation).mockResolvedValue({ by_asset_class: [], by_amc: [], total_value: "0.00" });
   vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({ members: [], holdings: [] });
@@ -48,8 +53,13 @@ function Controls() {
     <button onClick={() => { void navigate(-1); }}>Browser back</button><button onClick={() => { void navigate(1); }}>Browser forward</button>
     <button onClick={() => { void navigate("/planning"); }}>Go Planning</button></>;
 }
+// /portfolio/mutual-funds now renders the new Overview (features/mutual-funds), so the Dashboard has no route of its own.
+// These ported flows (scope, notices, import return) still exercise the Dashboard through its wrapper at that path.
+// /portfolio/mutual-funds/analytics renders the new Other Analytics page too (packet MF-C), so the old Analytics screen is mounted the same way.
+const legacyRoutes = buildRegistry().map(route => route.id === "portfolio-mutual-funds" ? { ...route, page: () => import("./wrappers/DashboardWrapper") }
+  : route.id === "portfolio-mutual-funds-analytics" ? { ...route, page: () => import("./wrappers/AnalyticsWrapper") } : route);
 function mount(path = "/portfolio/mutual-funds") {
-  return render(<MemoryRouter initialEntries={[path]}><ScopeProvider><ImportProvider><ShellRoutes /><Controls /></ImportProvider></ScopeProvider></MemoryRouter>);
+  return render(<MemoryRouter initialEntries={[path]}><RegistryContext.Provider value={legacyRoutes}><ScopeProvider><ImportProvider><ShellRoutes /><Controls /></ImportProvider></ScopeProvider></RegistryContext.Provider></MemoryRouter>);
 }
 async function pick(name: RegExp) {
   const trigger = await screen.findByRole("combobox", { name: "Portfolio scope" });
@@ -93,18 +103,20 @@ it("opens History and keeps it on Back/Forward with ordered enabled tabs", async
 
 it("opens Profile from the sidebar with account controls and no chrome logout", async () => {
   vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([alice]);
+  vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([alice]);
   mount(); await dashboard();
   expect(screen.queryByRole("button", { name: /logout/i })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: "Profile" }));
   await screen.findByRole("heading", { name: "Profile" });
-  expect(screen.getByRole("heading", { name: "Account Info" })).toBeInTheDocument();
-  expect(screen.getByText("Alice")).toBeInTheDocument();
-  expect(screen.getByText("alice@example.com")).toBeInTheDocument();
-  expect(screen.getByText("+919999999999")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Import History" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Personal Information" })).toBeInTheDocument();
+  expect(screen.getByTestId("profile-name")).toHaveTextContent("Alice");
+  expect(screen.getByTestId("profile-email")).toHaveTextContent("alice@example.com");
+  expect(screen.getByTestId("profile-phone")).toHaveTextContent("+919999999999");
+  expect(await screen.findByTestId("fact-account-type")).toHaveTextContent("Individual");
+  expect(within(screen.getByRole("navigation", { name: "Profile sections" })).getByRole("link", { name: "Settings" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /logout/i })).toBeInTheDocument();
   expect(screen.queryByText("Danger Zone")).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: /delete account/i })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /delete account/i })).not.toBeInTheDocument();
   expect(screen.getByTestId("url")).toHaveTextContent("/profile/personal");
 });
 

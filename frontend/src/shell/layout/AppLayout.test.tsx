@@ -5,6 +5,8 @@ import { renderInShell } from "../testing";
 import { PageLayout } from "./PageLayout";
 import { PageState } from "./PageState";
 
+// The Home page fetches its own data; route tests keep it out of the way like the other live screens.
+vi.mock("../../features/home/HomePage", () => ({ default: () => <h1>Home</h1> }));
 vi.mock("../../features/scenarios/ScenariosScreen", () => ({ ScenariosScreen: () => <h1>Planning</h1> }));
 
 afterEach(() => vi.restoreAllMocks());

@@ -6,7 +6,7 @@ import { cn, toTitleCase } from "@/lib/utils";
 import { formatIndianCurrency } from "@/lib/decimal";
 import { getAggregateDistributorComparison, getMemberDistributorComparison } from "@/features/dashboard/api";
 import type { DistributorPortfolioRow } from "@/features/dashboard/types";
-import { distributorChannel, distributorLabel } from "@/features/dashboard/distributorChannel";
+import { distributorChannel, distributorLabel } from "@/components/mf/distributorChannel";
 import { motion, useReducedMotion } from "motion/react";
 import { pageTransition, listContainerVariants, listItemVariants, isTestEnv } from "@/lib/motion";
 

@@ -2,7 +2,8 @@ import { afterEach, expect, it, vi } from "vitest";
 import { buildRegistry } from "../registry/buildRegistry";
 import { readBack, rememberBack, shouldRemember } from "./modeMemory";
 
-const routes = buildRegistry().map(route => route.id === "planning" ? { ...route, status: "live" as const } : route);
+// Home went live with the Home page (G6); the cases below need it to be a placeholder, as before.
+const routes = buildRegistry().map(route => route.id === "planning" ? { ...route, status: "live" as const } : route.id === "home" ? { ...route, status: "placeholder" as const } : route);
 const key = "unifolio.shell.back";
 afterEach(() => vi.restoreAllMocks());
 

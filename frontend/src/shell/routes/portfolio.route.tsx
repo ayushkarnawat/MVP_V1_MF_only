@@ -12,9 +12,9 @@ const route: ShellRoute = {
   order: 2,
   layout: "app",
   scope: "family-or-member",
-  status: "placeholder",
+  status: "live",
   title: "Portfolio",
-  page: () => import("../layout/PlaceholderPage"),
+  page: () => import("../../features/portfolio/PortfolioPage"),
 };
 
 export default route;

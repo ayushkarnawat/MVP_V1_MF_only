@@ -13,7 +13,7 @@ const route: ShellRoute = {
   scope: "family-or-member",
   status: "live",
   title: "Mutual Funds",
-  page: () => import("../wrappers/DashboardWrapper"),
+  page: () => import("../../features/mutual-funds/overview/OverviewPage"),
 };
 
 export default route;

@@ -1,0 +1,100 @@
+{
+  "status": "ready",
+  "scheme_id": "7c9e5b0a-3f1d-4a52-8e6b-1d2f3a4b5c6d",
+  "holdings_as_of": "2026-09-30",
+  "age_tag": null,
+  "count": 13,
+  "rows": [
+    {
+      "name": "HDFC Bank Ltd",
+      "isin": "INE040A01034",
+      "sector": "Financial Services",
+      "asset_type": "equity",
+      "weight": "8.2100"
+    },
+    {
+      "name": "ICICI Bank Ltd",
+      "isin": "INE090A01021",
+      "sector": "Financial Services",
+      "asset_type": "equity",
+      "weight": "6.9000"
+    },
+    {
+      "name": "Infosys Ltd",
+      "isin": "INE009A01021",
+      "sector": "Information Technology",
+      "asset_type": "equity",
+      "weight": "5.4000"
+    },
+    {
+      "name": "Reliance Industries Ltd",
+      "isin": "INE002A01018",
+      "sector": "Energy",
+      "asset_type": "equity",
+      "weight": "5.1000"
+    },
+    {
+      "name": "Larsen & Toubro Ltd",
+      "isin": "INE018A01030",
+      "sector": "Industrials",
+      "asset_type": "equity",
+      "weight": "4.3000"
+    },
+    {
+      "name": "Bharti Airtel Ltd",
+      "isin": "INE397D01024",
+      "sector": "Telecom",
+      "asset_type": "equity",
+      "weight": "3.9000"
+    },
+    {
+      "name": "Tata Consultancy Services Ltd",
+      "isin": "INE467B01029",
+      "sector": "Information Technology",
+      "asset_type": "equity",
+      "weight": "3.6000"
+    },
+    {
+      "name": "ITC Ltd",
+      "isin": "INE154A01025",
+      "sector": "FMCG",
+      "asset_type": "equity",
+      "weight": "3.2000"
+    },
+    {
+      "name": "Axis Bank Ltd",
+      "isin": "INE238A01034",
+      "sector": "Financial Services",
+      "asset_type": "equity",
+      "weight": "2.9000"
+    },
+    {
+      "name": "Sun Pharmaceutical Industries Ltd",
+      "isin": "INE044A01036",
+      "sector": "Healthcare",
+      "asset_type": "equity",
+      "weight": "2.6000"
+    },
+    {
+      "name": "Maruti Suzuki India Ltd",
+      "isin": "INE585B01010",
+      "sector": "Automobile",
+      "asset_type": "equity",
+      "weight": "2.4000"
+    },
+    {
+      "name": "Titan Company Ltd",
+      "isin": "INE280A01028",
+      "sector": "Consumer Durables",
+      "asset_type": "equity",
+      "weight": "2.1000"
+    },
+    {
+      "name": "Treps",
+      "isin": "",
+      "sector": "Others",
+      "asset_type": "cash_equivalent",
+      "weight": "3.6000"
+    }
+  ]
+}

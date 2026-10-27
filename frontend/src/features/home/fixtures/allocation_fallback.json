@@ -1,0 +1,85 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": "2026-10-23",
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "source": "dashboard_buckets",
+  "approximate": true,
+  "total_value": "5212.00",
+  "classes": [
+    {
+      "key": "equity",
+      "label": "Equity",
+      "status": "live",
+      "value": "2200.00",
+      "percentage": "42.21"
+    },
+    {
+      "key": "debt",
+      "label": "Debt",
+      "status": "live",
+      "value": "2002.00",
+      "percentage": "38.41"
+    },
+    {
+      "key": "gold",
+      "label": "Gold",
+      "status": "live",
+      "value": "1010.00",
+      "percentage": "19.38"
+    },
+    {
+      "key": "others",
+      "label": "Others",
+      "status": "live",
+      "value": "0.00",
+      "percentage": "0.00"
+    },
+    {
+      "key": "direct_stocks",
+      "label": "Direct stocks",
+      "status": "coming_soon",
+      "value": null,
+      "percentage": null
+    },
+    {
+      "key": "fds_bonds",
+      "label": "FDs and bonds",
+      "status": "coming_soon",
+      "value": null,
+      "percentage": null
+    },
+    {
+      "key": "real_estate",
+      "label": "Real estate",
+      "status": "coming_soon",
+      "value": null,
+      "percentage": null
+    },
+    {
+      "key": "us_stocks",
+      "label": "US stocks",
+      "status": "coming_soon",
+      "value": null,
+      "percentage": null
+    }
+  ],
+  "covered_pct": null,
+  "mix_as_of": null,
+  "members": [
+    {
+      "id": "81e5a369-bbd4-59f1-b480-8a5bbf1c74ef",
+      "name": "ASHA RAO",
+      "value": "2200.00",
+      "percentage": "42.21"
+    },
+    {
+      "id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
+      "name": "Dev Rao",
+      "value": "3012.00",
+      "percentage": "57.79"
+    }
+  ]
+}

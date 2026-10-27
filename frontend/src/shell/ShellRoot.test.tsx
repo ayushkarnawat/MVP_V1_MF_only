@@ -9,6 +9,8 @@ import { AppLink } from "./nav/AppLink";
 import { useAppNavigate } from "./nav/useAppNavigate";
 
 // Route/layout tests keep live screens isolated from their API effects.
+// The Home page fetches its own data; route tests keep it out of the way like the other live screens.
+vi.mock("../features/home/HomePage", () => ({ default: () => <h1>Home</h1> }));
 vi.mock("../features/dashboard/DashboardView", () => ({ DashboardView: () => <h1>Mutual Funds</h1> }));
 vi.mock("../features/scenarios/ScenariosScreen", () => ({ ScenariosScreen: () => <h1>Planning</h1> }));
 vi.mock("../features/import/ImportFlow", () => ({ ImportFlow: () => <div>Import screen</div> }));
@@ -18,10 +20,11 @@ afterEach(() => vi.restoreAllMocks());
 function SearchProbe() { return <output data-testid="search">{useLocation().search}</output>; }
 function Location() { return <output data-testid="location">{useLocation().pathname}</output>; }
 
-it.each([["/", "/home", "Home"], ["/planning", "/planning", "Planning"], ["/portfolio/equity", "/portfolio/mutual-funds", "Mutual Funds"]])(
-  "resolves %s according to the current registry", async (path, destination, title) => {
+// The Mutual Funds page's h1 is "All Investments" while its route title (browser tab) stays "Mutual Funds".
+it.each([["/", "/home", "Home", "Home"], ["/planning", "/planning", "Planning", "Planning"], ["/portfolio/equity", "/portfolio/mutual-funds", "All Investments", "Mutual Funds"]])(
+  "resolves %s according to the current registry", async (path, destination, heading, title) => {
     renderInShell(<><ShellRoutes /><Location /></>, { path });
-    expect(await screen.findByRole("heading", { name: title, level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: heading, level: 1 })).toBeInTheDocument();
     expect(screen.getByTestId("location")).toHaveTextContent(destination);
     await waitFor(() => expect(document.title).toBe(`${title} · Unifolio`));
   },

@@ -1,0 +1,43 @@
+{
+  "status": "ready",
+  "key": [
+    {
+      "id": "expense_ratio_vs_category",
+      "list": "key",
+      "tone": "pos",
+      "text": "Expense ratio is 0.62%, against a category average of 0.95%.",
+      "evidence": [
+        {
+          "label": "Expense ratio",
+          "value": "0.62%"
+        },
+        {
+          "label": "Category average",
+          "value": "0.95%"
+        }
+      ],
+      "priority": 40
+    }
+  ],
+  "strengths": [],
+  "considerations": [],
+  "top_three": [
+    {
+      "id": "expense_ratio_vs_category",
+      "list": "key",
+      "tone": "pos",
+      "text": "Expense ratio is 0.62%, against a category average of 0.95%.",
+      "evidence": [
+        {
+          "label": "Expense ratio",
+          "value": "0.62%"
+        },
+        {
+          "label": "Category average",
+          "value": "0.95%"
+        }
+      ],
+      "priority": 40
+    }
+  ]
+}

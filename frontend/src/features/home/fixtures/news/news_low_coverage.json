@@ -1,0 +1,94 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": "2026-10-23",
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "enabled": true,
+  "state": "items",
+  "feed_as_of": "2026-10-23T12:00:00Z",
+  "stale": false,
+  "hidden": false,
+  "texts": {
+    "title": "News affecting top holdings",
+    "subtext": "Headlines about companies your funds hold",
+    "disclaimer": "Headlines are from third-party sources and shown for information. They are not investment advice or research.",
+    "about_credit_text": "News index: GDELT Project",
+    "about_credit_url": "https://www.gdeltproject.org/"
+  },
+  "items": [
+    {
+      "id": "bf7c1c8d-0922-5020-9f47-b56e7a133eed",
+      "kind": "stock",
+      "tier": 1,
+      "specific": true,
+      "source": "Moneycontrol",
+      "headline": "HDFC Bank shares rally after strong quarterly results",
+      "url": "https://example.com/bf7c1c8d-0922-5020-9f47-b56e7a133eed",
+      "published_at": "2026-10-23T11:00:00Z",
+      "icon_key": "markets",
+      "entity_label": "Top Stock 1",
+      "reason": "Mentions Top Stock 1, which your funds invest in",
+      "exposure_pct": null,
+      "exposure_text": null,
+      "exposure_as_of": null,
+      "funds": []
+    },
+    {
+      "id": "ee295fdb-86b3-53b0-851f-6aaad504a27a",
+      "kind": "fund_house",
+      "tier": 3,
+      "specific": true,
+      "source": "Mint",
+      "headline": "HDFC Mutual Fund AUM crosses record high as fund house expands",
+      "url": "https://example.com/ee295fdb-86b3-53b0-851f-6aaad504a27a",
+      "published_at": "2026-10-23T09:00:00Z",
+      "icon_key": "funds_amc",
+      "entity_label": "Hdfc",
+      "reason": "About Hdfc, a fund house you invest with",
+      "exposure_pct": "100.00",
+      "exposure_text": "About 100% of your portfolio",
+      "exposure_as_of": null,
+      "funds": [
+        {
+          "scheme_id": "cf09c887-92a1-5b49-a624-7f067ed6a2c8",
+          "name": "Dev Short Duration Debt",
+          "weight_pct": "38.41"
+        },
+        {
+          "scheme_id": "54b8755e-6b2b-5f4f-a8fe-b41125031af6",
+          "name": "Asha Large Cap",
+          "weight_pct": "23.22"
+        },
+        {
+          "scheme_id": "7c906599-2ff8-5de4-83f9-b94651c683f2",
+          "name": "Dev Gold Fund",
+          "weight_pct": "19.38"
+        },
+        {
+          "scheme_id": "fe06ac21-f8c7-5dbf-a877-5c703ddbcdef",
+          "name": "Asha Flexi Cap",
+          "weight_pct": "18.99"
+        }
+      ]
+    },
+    {
+      "id": "621dbc07-73b4-5285-adbd-840e9386e5b0",
+      "kind": "asset_class",
+      "tier": 4,
+      "specific": true,
+      "source": "The Economic Times",
+      "headline": "Gold prices hit a new all-time high amid global uncertainty",
+      "url": "https://example.com/621dbc07-73b4-5285-adbd-840e9386e5b0",
+      "published_at": "2026-10-23T07:00:00Z",
+      "icon_key": "gold_silver",
+      "entity_label": "Gold and Silver",
+      "reason": "About gold and silver, which your funds invest in",
+      "exposure_pct": "19.38",
+      "exposure_text": "About 19.4% of your portfolio",
+      "exposure_as_of": null,
+      "funds": []
+    }
+  ]
+}

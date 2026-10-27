@@ -13,7 +13,7 @@ const route: ShellRoute = {
   scope: "none",
   status: "live",
   title: "Personal Information",
-  page: () => import("../wrappers/ProfileWrapper"),
+  page: () => import("../../features/profile-v2/pages/PersonalInfoPage"),
 };
 
 export default route;

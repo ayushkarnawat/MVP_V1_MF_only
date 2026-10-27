@@ -1,0 +1,39 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": "2026-10-23",
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "enabled": true,
+  "state": "items",
+  "feed_as_of": "2026-10-22T00:00:00Z",
+  "stale": true,
+  "hidden": false,
+  "texts": {
+    "title": "News affecting top holdings",
+    "subtext": "Headlines about companies your funds hold",
+    "disclaimer": "Headlines are from third-party sources and shown for information. They are not investment advice or research.",
+    "about_credit_text": "News index: GDELT Project",
+    "about_credit_url": "https://www.gdeltproject.org/"
+  },
+  "items": [
+    {
+      "id": "6f61edf3-0738-5641-a10f-dceb639784f9",
+      "kind": "general",
+      "tier": 7,
+      "specific": false,
+      "source": "Mint",
+      "headline": "Sensex ends higher on strong earnings",
+      "url": "https://example.com/6f61edf3-0738-5641-a10f-dceb639784f9",
+      "published_at": "2026-10-22T00:00:00Z",
+      "icon_key": "markets",
+      "entity_label": null,
+      "reason": "General market and economy news",
+      "exposure_pct": null,
+      "exposure_text": null,
+      "exposure_as_of": null,
+      "funds": []
+    }
+  ]
+}

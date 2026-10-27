@@ -1,7 +1,7 @@
-import { PlanBadge } from "@/features/dashboard/PlanBadge";
+import { PlanBadge } from "@/components/mf/PlanBadge";
 import { FundSignal } from "@/components/FundSignal";
 import { Badge } from "@/components/ui/badge";
-import { navPriceBadge } from "@/features/dashboard/navPriceBadge";
+import { navPriceBadge } from "@/components/mf/navPriceBadge";
 import { ChevronRight } from "lucide-react";
 import type { HoldingRow } from "@/features/dashboard/types";
 import { motion, useReducedMotion } from "motion/react";
