@@ -1,0 +1,113 @@
+/* Data-viz and semantic palette shared by the redesigned pages (the shared UI kit).
+   Light is the default; dark follows the system setting unless data-theme="light" forces light,
+   and data-theme="dark" forces dark. The shell keeps its own --shell-* variables (shell-tokens.css);
+   tokens.css is untouched. */
+:root {
+  /* data-viz series (the names the Mutual Funds mockups use) */
+  --c1: #22C55E;
+  --c2: #0D9488;
+  --c3: #2563EB;
+  --c4: #6366F1;
+  --c5: #8B5CF6;
+  --c6: #D97706;
+  --c7: #EC4899;
+  --c8: #C1272D;
+
+  /* semantic: solid, text and tint */
+  --pos: #22C55E;
+  --pos-text: #15803D;
+  --pos-bg: #EAFBF0;
+  --warn: #D97706;
+  --warn-text: #B45309;
+  --warn-bg: #FEF3E2;
+  --neg: #E5484D;
+  --neg-text: #C1272D;
+  --neg-bg: #FDECEC;
+
+  /* surfaces, text and interaction */
+  --ui-page: #FCFCFC;
+  --ui-card: #F5F5F5;
+  --ui-elevated: #FFFFFF;
+  --ui-divider: #ECECEC;
+  --ui-border-hover: #B8B8B8;
+  --ui-row-hover: #ECECEC;
+  --ui-text: #111111;
+  --ui-text-muted: #717171;
+  --ui-focus: #22C55E;
+  --ui-disabled-text: #C4C4C4;
+  --ui-disabled-border: #DFDFDF;
+  --ui-tooltip-bg: #2A2A2A;
+  --ui-tooltip-text: #FFFFFF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --c1: #22C55E;
+    --c2: #2DD4BF;
+    --c3: #60A5FA;
+    --c4: #818CF8;
+    --c5: #A78BFA;
+    --c6: #FBBF24;
+    --c7: #F472B6;
+    --c8: #F87171;
+
+    --pos: #22C55E;
+    --pos-text: #34D399;
+    --pos-bg: rgba(34, 197, 94, 0.14);
+    --warn: #FBBF24;
+    --warn-text: #FBBF24;
+    --warn-bg: rgba(251, 191, 36, 0.14);
+    --neg: #F87171;
+    --neg-text: #F87171;
+    --neg-bg: rgba(248, 113, 113, 0.16);
+
+    --ui-page: #111111;
+    --ui-card: #1A1A1A;
+    --ui-elevated: #212121;
+    --ui-divider: #2E2E2E;
+    --ui-border-hover: #4A4A4A;
+    --ui-row-hover: #212121;
+    --ui-text: #FCFCFC;
+    --ui-text-muted: #A3A3A3;
+    --ui-focus: #22C55E;
+    --ui-disabled-text: #5A5A5A;
+    --ui-disabled-border: #2E2E2E;
+    --ui-tooltip-bg: #212121;
+    --ui-tooltip-text: #FCFCFC;
+  }
+}
+
+[data-theme="dark"] {
+  --c1: #22C55E;
+  --c2: #2DD4BF;
+  --c3: #60A5FA;
+  --c4: #818CF8;
+  --c5: #A78BFA;
+  --c6: #FBBF24;
+  --c7: #F472B6;
+  --c8: #F87171;
+
+  --pos: #22C55E;
+  --pos-text: #34D399;
+  --pos-bg: rgba(34, 197, 94, 0.14);
+  --warn: #FBBF24;
+  --warn-text: #FBBF24;
+  --warn-bg: rgba(251, 191, 36, 0.14);
+  --neg: #F87171;
+  --neg-text: #F87171;
+  --neg-bg: rgba(248, 113, 113, 0.16);
+
+  --ui-page: #111111;
+  --ui-card: #1A1A1A;
+  --ui-elevated: #212121;
+  --ui-divider: #2E2E2E;
+  --ui-border-hover: #4A4A4A;
+  --ui-row-hover: #212121;
+  --ui-text: #FCFCFC;
+  --ui-text-muted: #A3A3A3;
+  --ui-focus: #22C55E;
+  --ui-disabled-text: #5A5A5A;
+  --ui-disabled-border: #2E2E2E;
+  --ui-tooltip-bg: #212121;
+  --ui-tooltip-text: #FCFCFC;
+}

@@ -7,3 +7,7 @@ export * from "./chart-center-typography";
 export * from "./animation";
 export * from "./use-mount-progress";
 export * from "./use-enter-complete";
+export * from "./use-morph";
+export * from "./line-area-chart";
+export * from "./grouped-bar-chart";
+export * from "./scatter-chart";
