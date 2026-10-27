@@ -43,7 +43,6 @@ export const paths = {
   profileSubscription: () => "/profile/subscription",
   profileTax: () => "/profile/tax",
   profileDataPrivacy: () => "/profile/data-privacy",
-  profileLegacy: () => "/profile/legacy",
   importHealth: () => "/profile/import-health",
   help: () => "/help",
   import: (memberId?: string) => !memberId ? "/import" : `/import?member=${encodeURIComponent(memberId)}`,

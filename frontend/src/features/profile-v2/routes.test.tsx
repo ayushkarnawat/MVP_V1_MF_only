@@ -27,7 +27,6 @@ vi.mock("@/features/legal/api", async importOriginal => ({
 }));
 vi.mock("@/lib/apiClient", () => ({ invalidateApiCache: vi.fn() }));
 vi.mock("@/features/dev/useDevToolsEnabled", () => ({ useDevToolsEnabled: () => false }));
-vi.mock("@/features/profile/ProfileView", () => ({ ProfileView: () => <h1>Old profile screen</h1> }));
 vi.mock("@/features/dev/ImportHealth", () => ({ ImportHealth: () => <h1>Import health screen</h1> }));
 
 function Probe() {
@@ -49,7 +48,7 @@ const currentLabel = () => {
 const PROFILE_IDS = [
   "profile", "profile-personal", "profile-family", "profile-connected-accounts", "profile-settings",
   "profile-settings-notifications", "profile-settings-preferences", "profile-settings-security", "profile-settings-import-history",
-  "profile-subscription", "profile-tax", "profile-data-privacy", "profile-legacy", "profile-import-health",
+  "profile-subscription", "profile-tax", "profile-data-privacy", "profile-import-health",
 ];
 
 beforeEach(() => {
@@ -65,7 +64,7 @@ beforeEach(() => {
 });
 
 describe("Profile routes in the real shell registry (contract v1.4)", () => {
-  it("has exactly the fourteen Profile routes, all live", () => {
+  it("has exactly the thirteen Profile routes, all live", () => {
     const profile = buildRegistry().filter(route => route.id === "profile" || route.id.startsWith("profile-"));
     expect(profile.map(route => route.id).sort()).toEqual([...PROFILE_IDS].sort());
     expect(profile.filter(route => route.status !== "live").map(route => route.id)).toEqual([]);
@@ -312,13 +311,6 @@ describe("Navigation inside the frame", () => {
 });
 
 describe("Routes that stay as they are", () => {
-  it("/profile/legacy opens the existing Profile screen, without the new frame", async () => {
-    mount("/profile/legacy");
-    expect(await screen.findByRole("heading", { name: "Old profile screen" })).toBeInTheDocument();
-    expect(screen.queryByRole("navigation", { name: "Profile sections" })).not.toBeInTheDocument();
-    expect(screen.getByTestId("location")).toHaveTextContent("/profile/legacy");
-  });
-
   it("/profile/personal no longer opens the old screen", async () => {
     mount("/profile/personal");
     await screen.findByRole("heading", { level: 2, name: "Personal Information" });

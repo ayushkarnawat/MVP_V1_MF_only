@@ -5,6 +5,11 @@ import type { DeleteScope } from "./DeleteImportDialog";
 /** F26: the API list is flat; one statement = one upload_group_id (a lone import is its own group). */
 export const groupKey = (item: HouseholdImportHistoryItem) => item.upload_group_id ?? item.import_id;
 
+/** How many statements a member's funds come from: rows of one upload group count once. */
+export function statementsFor(memberId: string, history: HouseholdImportHistoryItem[]): number {
+  return new Set(history.filter((h) => h.household_member_id === memberId).map((h) => h.upload_group_id ?? h.import_id)).size;
+}
+
 const removedWithLastImport = (m: HouseholdMember) => m.removed_with_last_import;
 
 /**

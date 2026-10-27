@@ -51,7 +51,7 @@ describe("Profile (v2) front-end guards", () => {
   it("scans the files the packets create (not vacuous)", () => {
     const names = FILES.map(name).sort();
     for (const expected of [
-      "ProfileFrame.tsx", "ProfileNav.tsx", "pages/ComingSoonPage.tsx", "pages/PendingProfilePage.tsx", "pages/comingSoonPages.tsx",
+      "ProfileFrame.tsx", "ProfileNav.tsx", "pages/ComingSoonPage.tsx", "pages/comingSoonPages.tsx",
       "lib/accessLevel.ts", "lib/accountType.ts", "lib/goalChips.ts", "lib/initialsOf.ts", "lib/investorLabel.ts",
       "lib/memberSince.ts", "lib/onboardingOptions.ts", "lib/profileNav.ts",
       "pages/PersonalInfoPage.tsx", "pages/SettingsPage.tsx", "pages/ImportHistoryPage.tsx", "pages/SubscriptionPage.tsx",
@@ -115,7 +115,7 @@ describe("Profile (v2) front-end guards", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("never imports the old Profile screens by any spelling (boundary: they are retired later)", () => {
+  it("never imports the old Profile screens by any spelling (retired in PR9; guard against re-import)", () => {
     const offenders = FILES.filter(file => /ProfileView|HouseholdMembersSection|FamilyMemberCard/.test(read(file))).map(name);
     expect(offenders).toEqual([]);
   });
@@ -153,7 +153,6 @@ describe("Profile route files (shell/routes)", () => {
     ["profile-settings-notifications", "features/profile-v2/pages/comingSoonPages"],
     ["profile-settings-preferences", "features/profile-v2/pages/comingSoonPages"],
     ["profile-settings-security", "features/profile-v2/pages/comingSoonPages"],
-    ["profile-legacy", "wrappers/ProfileWrapper"],
     ["profile-import-health", "wrappers/ImportHealthWrapper"],
   ])("%s loads %s and is live", (id, module) => {
     expect(pageLine(id)).toContain(module);
