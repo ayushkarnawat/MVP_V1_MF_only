@@ -16,6 +16,7 @@ from app.services.analytics.scenario_engine import (
 )
 from app.services.analytics.schemas import ScenarioResultRow, ScenarioSummaryRow
 from app.services.dashboard.household_members import list_household_members
+from app.services.dashboard.member_details import require_member
 
 router = APIRouter(prefix="/scenarios", tags=["scenarios"])
 
@@ -49,6 +50,7 @@ def _list_scenarios(db: DbSession, curated: bool, hypotheticals_enabled: bool) -
 @router.get("/{scenario_id}/results", response_model=ScenarioResultRow)
 async def get_scenario_results(
     scenario_id: uuid.UUID,
+    member_id: uuid.UUID | None = None,
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
@@ -56,5 +58,9 @@ async def get_scenario_results(
     hidden = scenario is not None and scenario.scenario_type == "HYPOTHETICAL" and not settings.scenario_hypotheticals_enabled
     if scenario is None or hidden:
         raise HTTPException(status_code=404, detail="Scenario not found.")
-    members = list_household_members(db, user.id)
-    return await _async_get_scenario_result_for_household(db, scenario, [m.id for m in members])
+    if member_id is None:
+        ids = [member.id for member in list_household_members(db, user.id)]
+    else:
+        require_member(db, user.id, member_id)
+        ids = [member_id]
+    return await _async_get_scenario_result_for_household(db, scenario, ids)
