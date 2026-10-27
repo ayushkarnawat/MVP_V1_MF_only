@@ -25,12 +25,13 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.session import SessionLocal
-from app.models.news import NewsItem
+from app.models.news import JobRun, NewsItem
 from app.services.news.ingest import ingest_window
 from app.services.news.normalise import Dictionaries, load_dictionaries, store_items, tag_title
 
 logger = logging.getLogger(__name__)
 
+JOB_NAME = "refresh_news"
 _RETENTION_DAYS = 14
 _USER_AGENT = "Unifolio news refresh (contact: ops)"
 _DRY_RUN_SAMPLE_SIZE = 20
@@ -100,6 +101,17 @@ async def main_async(db: Session, *, hours: int = 5, dry_run: bool = False) -> i
         cutoff = now_utc - timedelta(days=_RETENTION_DAYS)
         purged = db.query(NewsItem).filter(NewsItem.published_at < cutoff).delete(synchronize_session=False)
         db.commit()
+
+        # Success = at least one source file read OK. Recorded here (after the work is
+        # committed, before the ping, and regardless of whether a healthcheck URL is set)
+        # so the Home news route can show freshness even when a run inserts nothing.
+        if stats.files_ok > 0:
+            job_run = db.get(JobRun, JOB_NAME)
+            if job_run is None:
+                db.add(JobRun(job_name=JOB_NAME, last_success_at=now_utc))
+            else:
+                job_run.last_success_at = now_utc
+            db.commit()
     except Exception:
         db.rollback()
         logger.exception("news_refresh: failed")
