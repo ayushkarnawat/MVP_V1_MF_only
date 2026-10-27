@@ -139,3 +139,24 @@ class ReturnsResponse(FundModel):
     columns: list[str]
     rows: dict[str, dict[str, str | None] | None]
     benchmark_reason: Literal["no_benchmark", "no_history"] | None
+
+
+class RiskMetricOut(FundModel):
+    value: str | None
+    band: str | None
+    tone: str | None
+
+
+class RiskResponse(FundModel):
+    status: Literal["ready"] = "ready"
+    scheme_id: str
+    window_start: date
+    window_end: date
+    points: int
+    life_window: bool
+    risk_free_rate: str
+    volatility: RiskMetricOut
+    max_drawdown: RiskMetricOut
+    sharpe: RiskMetricOut
+    beta: RiskMetricOut
+    beta_reason: Literal["insufficient_shared_dates", "no_benchmark"] | None

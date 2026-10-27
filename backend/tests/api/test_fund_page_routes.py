@@ -6,6 +6,7 @@ real OTP/signup flow, which is unnecessary weight for routes whose fixtures
 from __future__ import annotations
 
 import uuid
+from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock
 
@@ -22,6 +23,7 @@ from app.services.dashboard import holdings as holdings_module
 from app.services.fund_page import summary as summary_module
 from tests.services.fund_page.factories import (
     TODAY,
+    add_nav_factors,
     add_scheme,
     add_user_household,
     fx_hold,
@@ -192,3 +194,34 @@ def test_inception_returns_route_returns_appendix_a_contract():
     assert abs(Decimal(body["rows"]["fund"]["1Y"]) - Decimal("10")) < Decimal("0.001")
     assert body["rows"]["benchmark"] is None
     assert body["benchmark_reason"] == "no_history"
+
+
+def test_risk_route_returns_appendix_a_contract():
+    db = make_session()
+    household = add_user_household(db)
+    scheme = add_scheme(
+        db,
+        "route-risk",
+        "Equity Scheme - Flexi Cap Fund",
+        SchemePlanType.DIRECT,
+        "ROUTERISK",
+    )
+    add_nav_factors(
+        db,
+        scheme,
+        TODAY - timedelta(days=500),
+        [Decimal("1")] * 500,
+    )
+    user = db.get(User, household.user_id)
+
+    response = _authed_client(db, user).get(f"/fund-page/{scheme.id}/risk")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ready"
+    assert body["scheme_id"] == str(scheme.id)
+    assert body["life_window"] is True
+    assert body["risk_free_rate"] == "0.065"
+    assert body["volatility"] == {"value": "0.0000", "band": "Low", "tone": "pos"}
+    assert body["sharpe"] == {"value": None, "band": None, "tone": None}
+    assert body["beta_reason"] == "insufficient_shared_dates"
