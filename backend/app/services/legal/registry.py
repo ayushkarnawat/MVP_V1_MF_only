@@ -9,7 +9,9 @@ key off the version, so every user is asked to agree again automatically.
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 from app.models.enums import ConsentDocumentType, ConsentPurpose
@@ -75,3 +77,23 @@ def current_documents() -> dict[ConsentDocumentType, LegalDocument]:
 
 def current_document(t: ConsentDocumentType) -> LegalDocument:
     return _CURRENT[t]
+
+
+_VERSION_DATE = re.compile(r"(\d{4})-(\d{2})-(\d{2})$")
+
+
+def version_label(version: str) -> str:
+    """Readable form of an opaque version id, for display only.
+
+    Version ids end in their effective date (e.g. ``tos-placeholder-2026-10-01``),
+    so the label is that date as ``1 Oct 2026``. An id with no trailing valid
+    date is returned unchanged -- the label is never blank or invented.
+    """
+    m = _VERSION_DATE.search(version)
+    if m:
+        try:
+            d = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            return version
+        return f"{d.day} {d.strftime('%b %Y')}"
+    return version
