@@ -13,7 +13,7 @@ const route: ShellRoute = {
   scope: "none",
   status: "live",
   title: "Family Members",
-  page: () => import("../../features/profile-v2/pages/PendingProfilePage"),
+  page: () => import("../../features/profile-v2/pages/FamilyPage"),
 };
 
 export default route;
