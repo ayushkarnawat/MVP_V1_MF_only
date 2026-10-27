@@ -409,3 +409,36 @@ def test_ledger_entries_carry_units_nav_and_masked_folio():
     assert (entry.units, entry.nav, entry.folio) == ("48.123", "51.9500", "XXXX6789")
     dumped = entry.model_dump(mode="json")
     assert dumped["units"] == "48.123" and dumped["nav"] == "51.9500" and dumped["folio"] == "XXXX6789"
+
+
+def _two_folios(db, member):
+    return _folio(db, member), _folio(db, member)
+
+
+def test_most_missed_sip_is_weighted_by_series_count_like_the_headline():
+    db = _session()
+    member = _member(db)
+    fa, fb = _two_folios(db, member)
+    # A: 2 missed x 3 parallel SIPs = 6; B: 3 missed x 1 = 3. Per-row alone would wrongly pick B.
+    a = _sip(member, fa.scheme_id, date(2024, 3, 5), "5000.00", series_count=3).model_copy(update={"scheme_name": "Fund A"})
+    b = _sip(member, fb.scheme_id, date(2024, 3, 5), "5000.00").model_copy(update={"scheme_name": "Fund B"})
+    refs = {fa.id: date(2024, 6, 30), fb.id: date(2024, 7, 31)}
+    with patch(f"{_MODULE}._references", return_value=refs):
+        summary = _run(db, [member.id], sips=[b, a]).sip_summary
+    assert summary.missed_count == 9
+    assert summary.missed_sip_fund == "Fund A"
+
+
+def test_most_missed_sip_tie_keeps_the_first_listed():
+    db = _session()
+    member = _member(db)
+    fa, fb = _two_folios(db, member)
+    # A: 3 x 1 = 3; B: 1 x 3 = 3 -> tie, first listed wins.
+    a = _sip(member, fa.scheme_id, date(2024, 3, 5), "5000.00").model_copy(update={"scheme_name": "Fund A"})
+    b = _sip(member, fb.scheme_id, date(2024, 5, 5), "5000.00", series_count=3).model_copy(update={"scheme_name": "Fund B"})
+    refs = {fa.id: date(2024, 7, 31), fb.id: date(2024, 7, 31)}
+    with patch(f"{_MODULE}._references", return_value=refs):
+        first = _run(db, [member.id], sips=[a, b]).sip_summary
+        second = _run(db, [member.id], sips=[b, a]).sip_summary
+    assert first.missed_count == 6 and first.missed_sip_fund == "Fund A"
+    assert second.missed_sip_fund == "Fund B"

@@ -190,7 +190,8 @@ async def compute_investment_withdrawal(
     # tie), dated at the first instalment it missed, the month after its last paid one.
     worst_row, worst_missed = None, 0
     for row in sip_rows:
-        missed = missed_instalments(row.sip_date, reference_by_holding.get((row.household_member_id, row.scheme_id), today))
+        # Weighted by series_count so the named fund agrees with the headline missed_count.
+        missed = missed_instalments(row.sip_date, reference_by_holding.get((row.household_member_id, row.scheme_id), today)) * row.series_count
         if missed > worst_missed:
             worst_row, worst_missed = row, missed
 
