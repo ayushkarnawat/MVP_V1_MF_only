@@ -86,6 +86,14 @@ export function ConsentList({ status, consents, onRetry }: ConsentListProps) {
                   <span data-testid="consent-version" className="text-xs text-[var(--ui-text-muted)]">
                     Version {consent.document_version}
                   </span>
+                  {consent.version_label ? (
+                    <>
+                      {" "}
+                      <span data-testid="consent-version-label" className="text-xs text-[var(--ui-text-muted)]">
+                        {consent.version_label}
+                      </span>
+                    </>
+                  ) : null}
                 </span>
                 {date ? (
                   <span data-testid="consent-date" className="text-xs text-[var(--ui-text-muted)]">
