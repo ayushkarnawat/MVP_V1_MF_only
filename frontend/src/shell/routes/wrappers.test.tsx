@@ -10,7 +10,7 @@ import { AnalyticsView } from "../../features/analytics/AnalyticsView";
 import type { AnalyticsViewProps } from "../../features/analytics/AnalyticsView";
 import { ProfileView } from "../../features/profile/ProfileView";
 import { ImportHealth } from "../../features/dev/ImportHealth";
-import { ScenariosScreen } from "../../features/scenarios/ScenariosScreen";
+import PlanningPage from "../../features/planning/PlanningPage";
 import { invalidateApiCache } from "../../lib/apiClient";
 import { ShellRoutes } from "../ShellRoot";
 import DashboardWrapper from "../wrappers/DashboardWrapper";
@@ -33,7 +33,7 @@ vi.mock("../../features/history/HistoryView", () => ({ HistoryView: vi.fn((_prop
 vi.mock("../../features/analytics/AnalyticsView", () => ({ AnalyticsView: vi.fn((props: AnalyticsViewProps) => <>
   <h1>Analytics screen</h1><button onClick={() => props.onAddDataForMember?.("b")}>Analytics import</button>
 </>) }));
-vi.mock("../../features/scenarios/ScenariosScreen", () => ({ ScenariosScreen: vi.fn(() => <h1>Scenarios screen</h1>) }));
+vi.mock("../../features/planning/PlanningPage", () => ({ default: vi.fn(() => <h1>Scenarios screen</h1>) }));
 vi.mock("../../features/profile/ProfileView", () => ({ ProfileView: vi.fn((props: ComponentProps<typeof ProfileView>) => <>
   <h1>Profile screen</h1><button onClick={props.onOpenImportHealth}>Open import health</button><button onClick={props.onMembersChanged}>Members changed</button>
 </>) }));
@@ -120,9 +120,9 @@ it("supports browser back and forward between live pages", async () => {
   await screen.findByRole("heading", { name: "Profile screen" });
 });
 
-it("renders Scenarios without props", async () => {
+it("renders the Planning page without props", async () => {
   mount("/planning"); await screen.findByRole("heading", { name: "Scenarios screen" });
-  expect(ScenariosScreen).toHaveBeenCalledWith({}, undefined);
+  expect(PlanningPage).toHaveBeenCalledWith({}, undefined);
 });
 
 it("ports Profile's name and all auth handlers, then invalidates before refreshing", async () => {

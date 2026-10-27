@@ -19,7 +19,7 @@ vi.mock("../features/auth/api", () => ({ getHouseholdMembers: vi.fn(), updateMem
 vi.mock("../features/dashboard/api", () => ({ getMemberHoldings: vi.fn(), getMemberAllocation: vi.fn(), getMemberSips: vi.fn(), getMemberSipsMonthly: vi.fn(), getAggregateHoldings: vi.fn(), getAggregateAllocation: vi.fn(), getAggregateSips: vi.fn(), getAggregateSipsMonthly: vi.fn() }));
 vi.mock("../features/history/HistoryView", () => ({ HistoryView: ({ viewMode }: { viewMode: string }) => <h1>History test view ({viewMode})</h1> }));
 vi.mock("../features/analytics/AnalyticsView", () => ({ AnalyticsView: () => <h1>Analytics test view</h1> }));
-vi.mock("../features/scenarios/ScenariosScreen", () => ({ ScenariosScreen: () => <h1>Scenarios test view</h1> }));
+vi.mock("../features/planning/PlanningPage", () => ({ default: () => <h1>Scenarios test view</h1> }));
 vi.mock("../features/import/ImportFlow", () => ({ ImportFlow: ({ householdMemberId, onDone }: { householdMemberId: string; onDone?: (notice?: { text: string; details?: string[] }) => void }) => <div data-testid="import-for">{householdMemberId}
   <button onClick={() => onDone?.({ text: "This statement was already imported" })}>Close duplicate import</button>
   <button onClick={() => onDone?.({ text: "12 transactions added · 2 already saved", details: ["Alice: 3 added", "Ramesh: 9 added, 2 already saved", "History starts mid-year."] })}>Finish import</button>

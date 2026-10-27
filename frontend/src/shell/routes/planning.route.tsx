@@ -12,7 +12,7 @@ const route: ShellRoute = {
   scope: "none",
   status: "live",
   title: "Planning",
-  page: () => import("../wrappers/ScenariosWrapper"),
+  page: () => import("../../features/planning/PlanningPage"),
 };
 
 export default route;
