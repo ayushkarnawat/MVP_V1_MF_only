@@ -11,6 +11,7 @@ names or monetary values. Any ORM or SQL write aborts the run.
 
 import argparse
 import asyncio
+import re
 import statistics
 import sys
 import time
@@ -46,6 +47,10 @@ class StatementCounter:
 
 _LOOP = asyncio.new_event_loop()
 _WRITE_VERBS = ("INSERT", "UPDATE", "DELETE", "REPLACE", "CREATE", "ALTER", "DROP", "TRUNCATE")
+_SQL_IGNORED = re.compile(
+    r"--[^\n]*(?:\n|$)|/\*.*?\*/|'(?:''|[^'])*'|\"(?:\"\"|[^\"])*\"",
+    re.DOTALL,
+)
 
 
 def run_async(coro):
@@ -53,8 +58,8 @@ def run_async(coro):
 
 
 def is_write_statement(statement: str) -> bool:
-    head = statement.lstrip().upper()
-    return head.startswith(_WRITE_VERBS)
+    sql = _SQL_IGNORED.sub(" ", statement).upper()
+    return any(re.search(rf"\b{verb}\b", sql) for verb in _WRITE_VERBS)
 
 
 def guard(db: Session, counter: StatementCounter) -> None:
@@ -86,7 +91,11 @@ def time_call(fn, repeat: int) -> list[float]:
 
 
 def make_engine():
-    return create_engine(make_url(settings.database_url))
+    url = make_url(settings.database_url)
+    engine = create_engine(url)
+    if url.get_backend_name() == "postgresql":
+        return engine.execution_options(postgresql_readonly=True)
+    return engine
 
 
 def list_household_members(db: Session, user_id: uuid.UUID):

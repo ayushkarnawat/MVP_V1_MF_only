@@ -72,10 +72,33 @@ def test_reads_and_connection_housekeeping_are_not_writes(statement):
         "ALTER TABLE nav_history ADD COLUMN y int",
         "DROP TABLE nav_history",
         "TRUNCATE nav_history",
+        "/* diagnostic */ DELETE FROM nav_history",
+        "WITH removed AS (DELETE FROM nav_history RETURNING scheme_id) SELECT * FROM removed",
+        "WITH ids AS (SELECT 1) UPDATE nav_history SET nav = 0",
     ],
 )
 def test_writes_are_detected(statement):
     assert _load().is_write_statement(statement) is True
+
+
+def test_make_engine_enables_postgres_read_only_transactions(monkeypatch):
+    module = _load()
+    url = SimpleNamespace(get_backend_name=lambda: "postgresql")
+
+    class FakeEngine:
+        def __init__(self):
+            self.options = []
+
+        def execution_options(self, **options):
+            self.options.append(options)
+            return self
+
+    engine = FakeEngine()
+    monkeypatch.setattr(module, "make_url", lambda value: url)
+    monkeypatch.setattr(module, "create_engine", lambda value: engine)
+
+    assert module.make_engine() is engine
+    assert engine.options == [{"postgresql_readonly": True}]
 
 
 def test_guard_blocks_an_orm_flush(db_session):
