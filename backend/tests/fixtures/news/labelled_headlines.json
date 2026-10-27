@@ -1,0 +1,1188 @@
+[
+  {
+    "title": "HDFC Bank reports an 11 percent jump in quarterly net profit",
+    "expected": [
+      [
+        "stock",
+        "INTEST0001"
+      ]
+    ]
+  },
+  {
+    "title": "Reliance Industries unveils a new green energy investment plan",
+    "expected": [
+      [
+        "stock",
+        "INTEST0002"
+      ]
+    ]
+  },
+  {
+    "title": "Tata Motors domestic sales rise sharply ahead of the festive season",
+    "expected": [
+      [
+        "stock",
+        "INTEST0003"
+      ]
+    ]
+  },
+  {
+    "title": "Tata Steel announces a fresh capacity expansion at its plant",
+    "expected": [
+      [
+        "stock",
+        "INTEST0004"
+      ]
+    ]
+  },
+  {
+    "title": "Infosys raises its full year revenue growth guidance",
+    "expected": [
+      [
+        "stock",
+        "INTEST0005"
+      ]
+    ]
+  },
+  {
+    "title": "Tata Consultancy Services wins a large multi year outsourcing deal",
+    "expected": [
+      [
+        "stock",
+        "INTEST0006"
+      ]
+    ]
+  },
+  {
+    "title": "ITC shares advance after strong cigarette volume growth",
+    "expected": [
+      [
+        "stock",
+        "INTEST0007"
+      ]
+    ]
+  },
+  {
+    "title": "ONGC discovers a new natural gas field off the eastern coast",
+    "expected": [
+      [
+        "stock",
+        "INTEST0008"
+      ]
+    ]
+  },
+  {
+    "title": "State Bank Of India opens a hundred new rural branches this quarter",
+    "expected": [
+      [
+        "stock",
+        "INTEST0009"
+      ]
+    ]
+  },
+  {
+    "title": "NTPC commissions a new thermal power unit in the east",
+    "expected": [
+      [
+        "stock",
+        "INTEST0010"
+      ]
+    ]
+  },
+  {
+    "title": "Titan posts strong festive season jewellery and watches sales",
+    "expected": [
+      [
+        "stock",
+        "INTEST0011"
+      ]
+    ]
+  },
+  {
+    "title": "Trent shares rally as its Zudio retail format keeps expanding",
+    "expected": [
+      [
+        "stock",
+        "INTEST0012"
+      ]
+    ]
+  },
+  {
+    "title": "Eternal shares jump after Blinkit quick commerce volumes surge",
+    "expected": [
+      [
+        "stock",
+        "INTEST0013"
+      ]
+    ]
+  },
+  {
+    "title": "Jio shares climb on strong telecom subscriber additions",
+    "expected": [
+      [
+        "stock",
+        "INTEST0014"
+      ]
+    ]
+  },
+  {
+    "title": "Adani Enterprises lists a new airport infrastructure subsidiary",
+    "expected": [
+      [
+        "stock",
+        "INTEST0015"
+      ]
+    ]
+  },
+  {
+    "title": "Bajaj Finance reports healthy growth in its loan book this quarter",
+    "expected": [
+      [
+        "stock",
+        "INTEST0017"
+      ]
+    ]
+  },
+  {
+    "title": "Sun Pharmaceutical Industries gets approval for a new generic drug",
+    "expected": [
+      [
+        "stock",
+        "INTEST0018"
+      ]
+    ]
+  },
+  {
+    "title": "Hindustan Unilever launches a new range of personal care products",
+    "expected": [
+      [
+        "stock",
+        "INTEST0019"
+      ]
+    ]
+  },
+  {
+    "title": "Maruti Suzuki India reports record monthly vehicle dispatches",
+    "expected": [
+      [
+        "stock",
+        "INTEST0020"
+      ]
+    ]
+  },
+  {
+    "title": "DLF shares gain after a strong quarter of residential bookings",
+    "expected": [
+      [
+        "stock",
+        "INTEST0021"
+      ]
+    ]
+  },
+  {
+    "title": "Apollo Hospitals Enterprise expands its network with three new hospitals",
+    "expected": [
+      [
+        "stock",
+        "INTEST0022"
+      ]
+    ]
+  },
+  {
+    "title": "HDFC Mutual Fund launches a new flexi cap NFO this week",
+    "expected": [
+      [
+        "fund_house",
+        "hdfc"
+      ]
+    ]
+  },
+  {
+    "title": "ICICI Prudential Mutual Fund revises the exit load on one of its schemes",
+    "expected": [
+      [
+        "fund_house",
+        "icici_prudential"
+      ]
+    ]
+  },
+  {
+    "title": "SBI Mutual Fund crosses a new milestone in assets under management",
+    "expected": [
+      [
+        "fund_house",
+        "sbi"
+      ]
+    ]
+  },
+  {
+    "title": "Axis Mutual Fund announces a change in the fund manager for its flagship scheme",
+    "expected": [
+      [
+        "fund_house",
+        "axis"
+      ]
+    ]
+  },
+  {
+    "title": "Kotak Mahindra Mutual Fund files papers for a new thematic fund",
+    "expected": [
+      [
+        "fund_house",
+        "kotak_mahindra"
+      ],
+      [
+        "fund_category",
+        "sectoral_thematic"
+      ]
+    ]
+  },
+  {
+    "title": "Nippon India Mutual Fund declares a dividend under its hybrid scheme",
+    "expected": [
+      [
+        "fund_house",
+        "nippon_india"
+      ]
+    ]
+  },
+  {
+    "title": "Aditya Birla Sun Life Mutual Fund opens subscription for a new NFO",
+    "expected": [
+      [
+        "fund_house",
+        "aditya_birla_sun_life"
+      ]
+    ]
+  },
+  {
+    "title": "UTI Mutual Fund completes twenty five years of its flagship scheme",
+    "expected": [
+      [
+        "fund_house",
+        "uti"
+      ]
+    ]
+  },
+  {
+    "title": "Mirae Asset Mutual Fund expands its distribution network across smaller towns",
+    "expected": [
+      [
+        "fund_house",
+        "mirae_asset"
+      ]
+    ]
+  },
+  {
+    "title": "Edelweiss Mutual Fund merges two of its debt schemes",
+    "expected": [
+      [
+        "fund_house",
+        "edelweiss"
+      ]
+    ]
+  },
+  {
+    "title": "HDFC AMC reports a rise in quarterly profit on higher asset management fees",
+    "expected": [
+      [
+        "fund_house",
+        "hdfc"
+      ]
+    ]
+  },
+  {
+    "title": "SBI Asset Management plans to launch three new schemes this year",
+    "expected": [
+      [
+        "fund_house",
+        "sbi"
+      ]
+    ]
+  },
+  {
+    "title": "ICICI Prudential AMC appoints a new chief investment officer",
+    "expected": [
+      [
+        "fund_house",
+        "icici_prudential"
+      ]
+    ]
+  },
+  {
+    "title": "Axis AMC revises the scheme information document for its debt fund",
+    "expected": [
+      [
+        "fund_house",
+        "axis"
+      ]
+    ]
+  },
+  {
+    "title": "A new ELSS from a leading fund house opens for subscription today",
+    "expected": [
+      [
+        "fund_category",
+        "elss"
+      ]
+    ]
+  },
+  {
+    "title": "Flows into small cap funds moderated in the latest monthly data",
+    "expected": [
+      [
+        "fund_category",
+        "small_cap"
+      ]
+    ]
+  },
+  {
+    "title": "Advisors are recommending flexi cap funds for long term investors",
+    "expected": [
+      [
+        "fund_category",
+        "flexi_cap"
+      ]
+    ]
+  },
+  {
+    "title": "A balanced advantage fund saw strong inflows this month",
+    "expected": [
+      [
+        "fund_category",
+        "balanced_advantage"
+      ]
+    ]
+  },
+  {
+    "title": "Arbitrage fund flows rose as market volatility increased",
+    "expected": [
+      [
+        "fund_category",
+        "arbitrage"
+      ]
+    ]
+  },
+  {
+    "title": "A new gilt fund aims to track long dated government bonds",
+    "expected": [
+      [
+        "fund_category",
+        "gilt"
+      ]
+    ]
+  },
+  {
+    "title": "Passive investing gains ground as index fund assets keep growing",
+    "expected": [
+      [
+        "fund_category",
+        "index_etf"
+      ]
+    ]
+  },
+  {
+    "title": "A value fund manager explains the case for out of favour stocks",
+    "expected": [
+      [
+        "fund_category",
+        "value"
+      ]
+    ]
+  },
+  {
+    "title": "A banking and psu fund added two new corporate bond holdings",
+    "expected": [
+      [
+        "fund_category",
+        "banking_psu"
+      ],
+      [
+        "fund_category",
+        "corporate_bond"
+      ]
+    ]
+  },
+  {
+    "title": "A multi asset allocation fund rebalanced its equity and gold mix",
+    "expected": [
+      [
+        "fund_category",
+        "multi_asset_allocation"
+      ]
+    ]
+  },
+  {
+    "title": "An equity savings fund combines arbitrage and equity exposure for lower risk",
+    "expected": [
+      [
+        "fund_category",
+        "equity_savings"
+      ],
+      [
+        "fund_category",
+        "arbitrage"
+      ]
+    ]
+  },
+  {
+    "title": "A retirement fund targets long term savers nearing their sixties",
+    "expected": [
+      [
+        "fund_category",
+        "retirement"
+      ]
+    ]
+  },
+  {
+    "title": "A children's fund locks in savings until the child turns eighteen",
+    "expected": [
+      [
+        "fund_category",
+        "childrens"
+      ]
+    ]
+  },
+  {
+    "title": "A dynamic bond fund extended its portfolio duration this quarter",
+    "expected": [
+      [
+        "fund_category",
+        "dynamic_bond"
+      ]
+    ]
+  },
+  {
+    "title": "A credit risk fund reported a marginal rise in defaults last year",
+    "expected": [
+      [
+        "fund_category",
+        "credit_risk"
+      ]
+    ]
+  },
+  {
+    "title": "A corporate bond fund added fresh allocations to AAA rated paper",
+    "expected": [
+      [
+        "fund_category",
+        "corporate_bond"
+      ]
+    ]
+  },
+  {
+    "title": "A liquid fund remains a popular parking option for short term cash",
+    "expected": [
+      [
+        "fund_category",
+        "liquid"
+      ]
+    ]
+  },
+  {
+    "title": "An overnight fund invests only in securities maturing the next day",
+    "expected": [
+      [
+        "fund_category",
+        "overnight"
+      ]
+    ]
+  },
+  {
+    "title": "A floater fund benefits when interest rates are rising",
+    "expected": [
+      [
+        "fund_category",
+        "floater"
+      ],
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "A contra fund manager is buying battered stocks that have fallen out of favour",
+    "expected": [
+      [
+        "fund_category",
+        "contra"
+      ]
+    ]
+  },
+  {
+    "title": "A dividend yield fund screens for companies with a strong payout history",
+    "expected": [
+      [
+        "fund_category",
+        "dividend_yield"
+      ]
+    ]
+  },
+  {
+    "title": "A focused fund concentrates its portfolio into fewer high conviction bets",
+    "expected": [
+      [
+        "fund_category",
+        "focused"
+      ]
+    ]
+  },
+  {
+    "title": "A sectoral fund focused on technology outperformed broader markets this year",
+    "expected": [
+      [
+        "fund_category",
+        "sectoral_thematic"
+      ]
+    ]
+  },
+  {
+    "title": "A large cap fund trimmed its exposure to a few expensive stocks",
+    "expected": [
+      [
+        "fund_category",
+        "large_cap"
+      ]
+    ]
+  },
+  {
+    "title": "A mid cap fund increased its weight in a fast growing auto component maker",
+    "expected": [
+      [
+        "fund_category",
+        "mid_cap"
+      ]
+    ]
+  },
+  {
+    "title": "A large & mid cap fund increased allocation to mid sized banks",
+    "expected": [
+      [
+        "fund_category",
+        "large_mid_cap"
+      ]
+    ]
+  },
+  {
+    "title": "A multi cap fund rebalances its exposure across market capitalisations",
+    "expected": [
+      [
+        "fund_category",
+        "multi_cap"
+      ]
+    ]
+  },
+  {
+    "title": "Gold prices hit a fresh record high ahead of the festive season",
+    "expected": [
+      [
+        "asset_class",
+        "gold_silver"
+      ]
+    ]
+  },
+  {
+    "title": "Silver prices rallied sharply amid rising industrial demand",
+    "expected": [
+      [
+        "asset_class",
+        "gold_silver"
+      ]
+    ]
+  },
+  {
+    "title": "A new sovereign gold bond tranche opens for subscription this week",
+    "expected": [
+      [
+        "asset_class",
+        "gold_silver"
+      ]
+    ]
+  },
+  {
+    "title": "Gold imports surged last month on strong wedding season demand",
+    "expected": [
+      [
+        "asset_class",
+        "gold_silver"
+      ]
+    ]
+  },
+  {
+    "title": "The central bank added to its gold reserves over the past quarter",
+    "expected": [
+      [
+        "asset_class",
+        "gold_silver"
+      ]
+    ]
+  },
+  {
+    "title": "Gold ETF inflows picked up as investors sought a safe haven",
+    "expected": [
+      [
+        "asset_class",
+        "gold_silver"
+      ]
+    ]
+  },
+  {
+    "title": "Silver ETF assets under management doubled over the past year",
+    "expected": [
+      [
+        "asset_class",
+        "gold_silver"
+      ]
+    ]
+  },
+  {
+    "title": "Silver imports rose sharply on strong demand from the solar industry",
+    "expected": [
+      [
+        "asset_class",
+        "gold_silver"
+      ]
+    ]
+  },
+  {
+    "title": "Bullion dealers reported brisk trading ahead of the festival",
+    "expected": [
+      [
+        "asset_class",
+        "gold_silver"
+      ]
+    ]
+  },
+  {
+    "title": "Silver demand from the jewellery trade remained strong this quarter",
+    "expected": [
+      [
+        "asset_class",
+        "gold_silver"
+      ]
+    ]
+  },
+  {
+    "title": "Gold rates eased slightly after the recent record rally",
+    "expected": [
+      [
+        "asset_class",
+        "gold_silver"
+      ]
+    ]
+  },
+  {
+    "title": "Silver rates climbed for a third straight session on global cues",
+    "expected": [
+      [
+        "asset_class",
+        "gold_silver"
+      ]
+    ]
+  },
+  {
+    "title": "The RBI kept the repo rate unchanged at its latest policy review",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "The Monetary Policy Committee voted unanimously to hold rates steady",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "The MPC meeting outcome is due later this week",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "Economists expect interest rates to stay elevated for longer",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "The latest inflation data came in below street estimates",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "CPI inflation eased for a second straight month",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "WPI inflation turned negative for the first time this year",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "The RBI governor signalled a cautious approach to future rate moves",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "Bond yields softened after the inflation print",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "The yield curve flattened as traders priced in a pause",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "A rate cut now looks more likely before the year end",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "Markets are debating the odds of a rate hike next quarter",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "The central bank left its policy rate unchanged for a third meeting",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "The RBI policy stance remains focused on taming inflation",
+    "expected": [
+      [
+        "rates_macro",
+        "rates"
+      ]
+    ]
+  },
+  {
+    "title": "Sensex climbed over four hundred points in early trade",
+    "expected": [
+      [
+        "general",
+        "sensex"
+      ]
+    ]
+  },
+  {
+    "title": "Sensex extended its winning streak for a fourth session",
+    "expected": [
+      [
+        "general",
+        "sensex"
+      ]
+    ]
+  },
+  {
+    "title": "Nifty closed above its record high for the first time this year",
+    "expected": [
+      [
+        "general",
+        "nifty"
+      ]
+    ]
+  },
+  {
+    "title": "Nifty futures signalled a flat start to the trading session",
+    "expected": [
+      [
+        "general",
+        "nifty"
+      ]
+    ]
+  },
+  {
+    "title": "SEBI tightened disclosure norms for listed companies",
+    "expected": [
+      [
+        "general",
+        "sebi"
+      ]
+    ]
+  },
+  {
+    "title": "SEBI proposed new rules for how mutual funds disclose risk",
+    "expected": [
+      [
+        "general",
+        "sebi"
+      ]
+    ]
+  },
+  {
+    "title": "AMFI released its monthly mutual fund industry data",
+    "expected": [
+      [
+        "general",
+        "amfi"
+      ]
+    ]
+  },
+  {
+    "title": "AMFI data showed steady SIP inflows last month",
+    "expected": [
+      [
+        "general",
+        "amfi"
+      ]
+    ]
+  },
+  {
+    "title": "India's GDP growth for the quarter beat expectations",
+    "expected": [
+      [
+        "general",
+        "gdp"
+      ]
+    ]
+  },
+  {
+    "title": "Economists trimmed their GDP growth forecast for the year",
+    "expected": [
+      [
+        "general",
+        "gdp"
+      ]
+    ]
+  },
+  {
+    "title": "The union budget introduced new tax slabs for individuals",
+    "expected": [
+      [
+        "general",
+        "budget"
+      ]
+    ]
+  },
+  {
+    "title": "Budget 2027 is expected to focus on infrastructure spending",
+    "expected": [
+      [
+        "general",
+        "budget"
+      ]
+    ]
+  },
+  {
+    "title": "Apple Inc unveiled its latest lineup of devices at a flagship event",
+    "expected": [
+      [
+        "stock",
+        "apple inc"
+      ]
+    ]
+  },
+  {
+    "title": "Microsoft Corp reported strong growth in its cloud computing division",
+    "expected": [
+      [
+        "stock",
+        "microsoft corp"
+      ]
+    ]
+  },
+  {
+    "title": "Amazon.com Inc expanded its same day delivery service to new cities",
+    "expected": [
+      [
+        "stock",
+        "amazon com inc"
+      ]
+    ]
+  },
+  {
+    "title": "Alphabet Inc Class A shares rose after a strong earnings report",
+    "expected": [
+      [
+        "stock",
+        "alphabet inc class a"
+      ]
+    ]
+  },
+  {
+    "title": "Meta Platforms Inc announced a new round of infrastructure investment",
+    "expected": [
+      [
+        "stock",
+        "meta platforms inc"
+      ]
+    ]
+  },
+  {
+    "title": "NVIDIA Corp posted record data center revenue for the quarter",
+    "expected": [
+      [
+        "stock",
+        "nvidia corp"
+      ]
+    ]
+  },
+  {
+    "title": "Tesla Inc delivered more vehicles than expected last quarter",
+    "expected": [
+      [
+        "stock",
+        "tesla inc"
+      ]
+    ]
+  },
+  {
+    "title": "Taiwan Semiconductor Manufacturing Co Ltd raised its revenue outlook",
+    "expected": [
+      [
+        "stock",
+        "taiwan semiconductor manufacturing co ltd"
+      ]
+    ]
+  },
+  {
+    "title": "Samsung Electronics Co Ltd showcased new display technology",
+    "expected": [
+      [
+        "stock",
+        "samsung electronics co ltd"
+      ]
+    ]
+  },
+  {
+    "title": "Visa Inc processed a record volume of transactions over the holidays",
+    "expected": [
+      [
+        "stock",
+        "visa inc"
+      ]
+    ]
+  },
+  {
+    "title": "Mastercard Inc partnered with a regional bank on a new card product",
+    "expected": [
+      [
+        "stock",
+        "mastercard inc"
+      ]
+    ]
+  },
+  {
+    "title": "Johnson & Johnson received approval for a new medical device",
+    "expected": [
+      [
+        "stock",
+        "johnson and johnson"
+      ]
+    ]
+  },
+  {
+    "title": "Nestle SA announced a new sustainability initiative for its supply chain",
+    "expected": [
+      [
+        "stock",
+        "nestle sa"
+      ]
+    ]
+  },
+  {
+    "title": "ASML Holding NV reported strong demand for its lithography systems",
+    "expected": [
+      [
+        "stock",
+        "asml holding nv"
+      ]
+    ]
+  },
+  {
+    "title": "Titan submarine search operation concludes without survivors",
+    "expected": []
+  },
+  {
+    "title": "Trent recalled its final season finale amid fan backlash",
+    "expected": []
+  },
+  {
+    "title": "Eternal flame burns outside the war memorial every evening",
+    "expected": []
+  },
+  {
+    "title": "Jio was the name chosen by the couple for their newborn daughter",
+    "expected": []
+  },
+  {
+    "title": "Tata spoke warmly about her grandchildren during the interview",
+    "expected": []
+  },
+  {
+    "title": "HDFC stands for a concept explained in the economics textbook",
+    "expected": []
+  },
+  {
+    "title": "Reliance on imported components has slowed the local workshop",
+    "expected": []
+  },
+  {
+    "title": "Adani described the weather as unusually humid this week",
+    "expected": []
+  },
+  {
+    "title": "Birla Corporation delivered the keynote address at the university convocation",
+    "expected": []
+  },
+  {
+    "title": "The sprinter's strike rate improved after months of training",
+    "expected": []
+  },
+  {
+    "title": "The bowler's economy and run rate were both impressive today",
+    "expected": []
+  },
+  {
+    "title": "The company's hiring growth rate slowed in the third quarter",
+    "expected": []
+  },
+  {
+    "title": "The veteran actor won a gold medal at the state sports meet",
+    "expected": []
+  },
+  {
+    "title": "Her coach presented a silver medal after the close final",
+    "expected": []
+  },
+  {
+    "title": "The brand's customer service is often held up as the gold standard",
+    "expected": []
+  },
+  {
+    "title": "The town celebrated its golden jubilee with a weekend festival",
+    "expected": []
+  },
+  {
+    "title": "A silver lining emerged after weeks of disappointing weather",
+    "expected": []
+  },
+  {
+    "title": "Monsoon rains lashed coastal regions for a third straight day",
+    "expected": []
+  },
+  {
+    "title": "The national cricket team announced its squad for the test series",
+    "expected": []
+  },
+  {
+    "title": "A local bakery won the city's best cafe award this year",
+    "expected": []
+  },
+  {
+    "title": "The film festival honoured its best director with a lifetime prize",
+    "expected": []
+  },
+  {
+    "title": "The city metro extended its operating hours for the holiday weekend",
+    "expected": []
+  },
+  {
+    "title": "A new museum exhibit showcases artifacts from the bronze age",
+    "expected": []
+  },
+  {
+    "title": "Traffic was diverted for a marathon event across the old town",
+    "expected": []
+  },
+  {
+    "title": "The school board revised its exam schedule for the next term",
+    "expected": []
+  },
+  {
+    "title": "An airline added a new direct flight to a regional airport",
+    "expected": []
+  },
+  {
+    "title": "A startup incubator announced its next cohort of young founders",
+    "expected": []
+  },
+  {
+    "title": "Heavy fog delayed several morning flights at the airport",
+    "expected": []
+  },
+  {
+    "title": "The library extended its weekend hours ahead of exam season",
+    "expected": []
+  },
+  {
+    "title": "A wildlife sanctuary welcomed three newborn elephant calves",
+    "expected": []
+  },
+  {
+    "title": "A heritage walk through the old city attracted record crowds this weekend",
+    "expected": []
+  },
+  {
+    "title": "The civic body repaved several potholed roads ahead of the rains",
+    "expected": []
+  },
+  {
+    "title": "A popular food truck festival returns to the waterfront this spring",
+    "expected": []
+  },
+  {
+    "title": "Volunteers planted saplings along the riverside as part of a cleanup drive",
+    "expected": []
+  },
+  {
+    "title": "The observatory opened its doors for a rare evening stargazing event",
+    "expected": []
+  },
+  {
+    "title": "A regional theatre group staged a sold out revival of a classic play",
+    "expected": []
+  }
+]

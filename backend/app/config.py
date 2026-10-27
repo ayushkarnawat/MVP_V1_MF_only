@@ -76,5 +76,13 @@ class Settings(BaseSettings):
     object_storage_secret_key: str = ""
     object_storage_force_path_style: bool = False
 
+    # Home News backend (D2, ui-redesign NB1-NB3). Kill switch: off everywhere
+    # until the VM .env sets NEWS_ENABLED=true at T9 (N5 B — live from day
+    # one on that host, kept behind this switch). Comma-separated domains in
+    # news_disabled_sources apply at both ingest and request time.
+    news_enabled: bool = False
+    news_disabled_sources: str = ""
+    healthcheck_news_url: str = ""
+
 
 settings = Settings()

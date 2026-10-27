@@ -35,6 +35,14 @@ BACKUP=/opt/unifolio/deploy/leapswitch/scripts/backup.sh
 0  8  *  *  *              $RUN delete-expired-accounts-daily scripts/jobs/delete_expired_accounts_daily.py
 0  19 *  *  *              $RUN cas-file-expiry-daily         -m app.scripts.expire_cas_files
 
+# Home news feed (T6): a 5-hour ingest window every 3 hours covers the gap
+# between runs with room to spare, and a 26-hour catch-up once a night is
+# the safety net if a run is ever missed. Minute :15 keeps both off the
+# batch-job window (05:40-06:35) and off 08:00/19:00, which
+# delete-expired-accounts-daily and cas-file-expiry-daily already own.
+15 7,10,13,16,19,22 *  *  * $RUN news-refresh          scripts/jobs/refresh_news.py --hours 5
+30 23 *  *  *                $RUN news-refresh-catchup  scripts/jobs/refresh_news.py --hours 26
+
 # Memory watch over the tightest window in the 16 GB budget: both daily
 # batch jobs above (05:45/05:55) plus analytics-recompute-all's 5-slot
 # worker pool (06:30) overlapping daytime use -- added 16 Oct 2026 alongside
