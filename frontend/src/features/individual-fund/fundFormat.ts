@@ -199,3 +199,56 @@ export function toneChipClass(tone: Tone | null | undefined): string {
   }
 }
 
+export function initialsOf(name: string | null | undefined): string {
+  if (name == null) return "?";
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const letters: string[] = [];
+  for (const word of words) {
+    const match = word.match(/\p{L}/u);
+    if (match) {
+      letters.push(match[0]);
+    }
+  }
+  if (letters.length === 0) return "?";
+  if (letters.length === 1) return letters[0].toUpperCase();
+  return (letters[0] + letters[letters.length - 1]).toUpperCase();
+}
+
+export function fillGaps(
+  values: readonly (string | null)[]
+): number[] | null {
+  const firstIndex = values.findIndex(
+    (v) => v !== null && typeof v === "string"
+  );
+  if (firstIndex === -1) {
+    return null;
+  }
+  const result: number[] = new Array(values.length);
+  const firstVal = Number(values[firstIndex]);
+  for (let i = 0; i < firstIndex; i++) {
+    result[i] = firstVal;
+  }
+  let currentVal = firstVal;
+  for (let i = firstIndex; i < values.length; i++) {
+    const val = values[i];
+    if (val !== null) {
+      currentVal = Number(val);
+    }
+    result[i] = currentVal;
+  }
+  return result;
+}
+
+export function barLabel(
+  bucket: "week" | "month" | "quarter" | "year",
+  label: string
+): string {
+  if (bucket === "month") {
+    const match = label.match(/^([A-Za-z]{3,9})\s+\d{4}$/);
+    if (match) {
+      return match[1].slice(0, 3);
+    }
+  }
+  return label;
+}
+

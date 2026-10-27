@@ -1,4 +1,10 @@
-import type { PerformancePeriod, ScoreResponse } from "./types";
+import type {
+  PerformancePeriod,
+  PeriodReturnsResponse,
+  RollingWindow,
+  ScoreResponse,
+  Tone,
+} from "./types";
 
 export const COMING_SOON = "Coming soon";
 
@@ -191,5 +197,111 @@ export function allocationNote(
     return `Sector from the fund's disclosure, as of ${asOf}.`;
   }
   return `Share of the fund's portfolio, as of ${asOf}.`;
+}
+
+export const NO_INSIGHTS_TEXT = "Not enough data to draw insights yet";
+export const SMART_INSIGHTS_SUBTITLE =
+  "Key insights, risks and opportunities based on your portfolio.";
+export const SCATTER_THIN_NOTE =
+  "Few funds in this category, so this comparison is a rough guide.";
+export const MANAGER_COMING_SOON_NOTE =
+  "Photo, biography and strategy are coming soon.";
+
+export const TONE_ICONS: Record<Tone, string> = {
+  pos: "trending-up",
+  warn: "triangle-alert",
+  neg: "circle-alert",
+  info: "info",
+  neu: "minus",
+};
+
+export function factTitle(id: string): string {
+  switch (id) {
+    case "long_term_vs_category":
+    case "peer_beat_years":
+      return "Long-term performance";
+    case "overlap":
+      return "Overlap in your portfolio";
+    case "manager_tenure":
+      return "Fund management";
+    case "expense_ratio_vs_category":
+      return "Fund costs";
+    case "top5_weight":
+    case "top5_concentration":
+      return "Top holdings";
+    case "sector_concentration":
+      return "Sector mix";
+    case "market_cap_spread":
+      return "Market-cap mix";
+    case "volatility_vs_category":
+      return "Volatility";
+    case "lagging_years":
+      return "Recent years";
+    default:
+      return "Insight";
+  }
+}
+
+export const ROLLING_WINDOWS: readonly {
+  value: RollingWindow;
+  label: string;
+}[] = [
+  { value: 1, label: "1 Year" },
+  { value: 3, label: "3 Years" },
+  { value: 5, label: "5 Years" },
+];
+
+export const DEFAULT_ROLLING_WINDOW: RollingWindow = 3;
+
+export function rollingUnavailableText(
+  reason: string | null | undefined,
+  windowYears: number
+): string {
+  if (reason === "no_history") {
+    const years = windowYears === 1 ? "year" : "years";
+    return `This fund has less than ${windowYears} ${years} of history, so there are no ${windowYears}-year rolling returns to show.`;
+  }
+  return unavailableText(reason);
+}
+
+export function bucketWord(bucket: PeriodReturnsResponse["bucket"]): string {
+  switch (bucket) {
+    case "week":
+      return "weekly";
+    case "month":
+      return "monthly";
+    case "quarter":
+      return "quarterly";
+    case "year":
+      return "yearly";
+  }
+}
+
+export function periodReturnsNote(
+  bucket: PeriodReturnsResponse["bucket"],
+  period: string
+): string {
+  const span = period === "All" ? "the whole history" : period;
+  const base = `Bars are ${bucketWord(bucket)} for ${span}.`;
+  if (bucket === "year") {
+    return `${base} The current year is shown year to date.`;
+  }
+  return base;
+}
+
+export function tenureText(years: string | null | undefined): string | null {
+  if (years == null || years === "") {
+    return null;
+  }
+  return `${years} years`;
+}
+
+export function scatterCaption(
+  count: number,
+  start: string,
+  end: string
+): string {
+  const noun = count === 1 ? "fund" : "funds";
+  return `Returns and volatility from ${start} to ${end}. ${count} ${noun} compared, including this one.`;
 }
 
