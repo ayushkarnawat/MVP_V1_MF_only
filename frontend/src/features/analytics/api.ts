@@ -31,7 +31,7 @@ async function authFetch(path: string, options: RequestInit = {}): Promise<Respo
  * household member id). The backend dispatches its own recompute on a cold-start
  * GET; callers must poll (see useAnalyticsScope.ts), not treat this as one-shot. */
 export async function getAnalyticsScope(scope: string, signal?: AbortSignal): Promise<AnalyticsScopeResponse> {
-  const res = await authFetch(`/analytics/${scope}`, { signal });
+  const res = await authFetch(`/analytics/${scope}`, { signal, cache: "no-store" });
   return res.json();
 }
 

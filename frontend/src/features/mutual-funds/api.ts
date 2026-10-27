@@ -149,7 +149,7 @@ export async function getHistoryPoints(scope: MfScopeArg, signal?: AbortSignal):
 }
 
 export async function getAnalyticsScope(scope: string, signal?: AbortSignal): Promise<AnalyticsScopeResponse> {
-  const res = await authFetch(`/analytics/${encodeURIComponent(scope)}`, { signal });
+  const res = await authFetch(`/analytics/${encodeURIComponent(scope)}`, { signal, cache: "no-store" });
   return await res.json();
 }
 

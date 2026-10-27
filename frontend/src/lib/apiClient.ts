@@ -53,7 +53,10 @@ export function invalidateApiCache(): void {
 }
 
 export async function cachedFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  const isGet = !options.method || options.method.toUpperCase() === "GET";
+  // `cache: "no-store"` opts a poll/retry loop out of the URL cache (read and write), so a
+  // Retry POST followed by a GET never replays a stale (failed / recomputing) response.
+  const bypass = options.cache === "no-store";
+  const isGet = (!options.method || options.method.toUpperCase() === "GET") && !bypass;
   if (isGet) {
     const cached = _getCache.get(url);
     if (cached && cached.expiresAt > Date.now()) {
