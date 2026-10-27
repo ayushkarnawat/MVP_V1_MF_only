@@ -250,3 +250,39 @@ class CategoryReturnsResponse(FundModel):
     category: dict[str, str | None]
     peers_used: dict[str, int]
     thin_category: bool
+
+
+class RollingPoint(FundModel):
+    date: date
+    fund: str
+    benchmark: str | None
+    category: str | None
+
+
+class RollingResponse(FundModel):
+    status: Literal["ready"] = "ready"
+    window_years: int
+    points: list[RollingPoint]
+
+
+class PeriodReturnBucket(FundModel):
+    label: str
+    start: date
+    end: date
+    fund: str | None
+    benchmark: str | None
+    category: str | None
+
+
+class PeerPeriodReturnsResponse(FundModel):
+    status: Literal["ready"] = "ready"
+    period: str
+    bucket: Literal["week", "month", "quarter", "year"]
+    buckets: list[PeriodReturnBucket]
+
+
+class CalendarYearReturn(FundModel):
+    year: int
+    fund: str | None
+    benchmark: str | None
+    category: str | None
