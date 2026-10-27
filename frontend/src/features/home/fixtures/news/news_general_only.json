@@ -1,0 +1,73 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": null,
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "enabled": true,
+  "state": "items",
+  "feed_as_of": "2026-10-23T12:00:00Z",
+  "stale": false,
+  "hidden": false,
+  "texts": {
+    "title": "News affecting top holdings",
+    "subtext": "Headlines about companies your funds hold",
+    "disclaimer": "Headlines are from third-party sources and shown for information. They are not investment advice or research.",
+    "about_credit_text": "News index: GDELT Project",
+    "about_credit_url": "https://www.gdeltproject.org/"
+  },
+  "items": [
+    {
+      "id": "fa7b170f-d945-51c0-852a-4ea56469b839",
+      "kind": "general",
+      "tier": 7,
+      "specific": false,
+      "source": "Mint",
+      "headline": "Sensex ends flat amid mixed global cues",
+      "url": "https://example.com/fa7b170f-d945-51c0-852a-4ea56469b839",
+      "published_at": "2026-10-23T12:00:00Z",
+      "icon_key": "markets",
+      "entity_label": null,
+      "reason": "General market and economy news",
+      "exposure_pct": null,
+      "exposure_text": null,
+      "exposure_as_of": null,
+      "funds": []
+    },
+    {
+      "id": "b1825527-32ab-52f7-9acb-af5c63b570d4",
+      "kind": "general",
+      "tier": 7,
+      "specific": false,
+      "source": "Moneycontrol",
+      "headline": "Nifty closes marginally lower in a volatile session",
+      "url": "https://example.com/b1825527-32ab-52f7-9acb-af5c63b570d4",
+      "published_at": "2026-10-23T10:00:00Z",
+      "icon_key": "markets",
+      "entity_label": null,
+      "reason": "General market and economy news",
+      "exposure_pct": null,
+      "exposure_text": null,
+      "exposure_as_of": null,
+      "funds": []
+    },
+    {
+      "id": "7888daa5-a9a3-52c6-bebf-22f2a896a5ad",
+      "kind": "general",
+      "tier": 7,
+      "specific": false,
+      "source": "The Economic Times",
+      "headline": "SEBI proposes new disclosure norms for mutual funds",
+      "url": "https://example.com/7888daa5-a9a3-52c6-bebf-22f2a896a5ad",
+      "published_at": "2026-10-23T08:00:00Z",
+      "icon_key": "regulation",
+      "entity_label": null,
+      "reason": "General market and economy news",
+      "exposure_pct": null,
+      "exposure_text": null,
+      "exposure_as_of": null,
+      "funds": []
+    }
+  ]
+}

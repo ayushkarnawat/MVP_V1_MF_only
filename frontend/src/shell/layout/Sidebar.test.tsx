@@ -12,7 +12,8 @@ import { Sidebar } from "./Sidebar";
 let routes: ShellRoute[];
 const equityKey = "unifolio.shell.equityOpen";
 beforeEach(() => {
-  routes = registry.buildRegistry();
+  // Home went live with the Home page (G6); these tests use it as the placeholder row, as before.
+  routes = registry.buildRegistry().map(route => route.id === "home" ? { ...route, status: "placeholder" as const } : route);
   vi.spyOn(registry, "buildRegistry").mockImplementation(() => routes);
 });
 afterEach(() => vi.restoreAllMocks());

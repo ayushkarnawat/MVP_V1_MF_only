@@ -10,6 +10,8 @@ import { ScopeProvider } from "./scope/ScopeProvider";
 import { ImportProvider } from "./nav/ImportProvider";
 import { useScope } from "./scope/ScopeContext";
 
+// The Home page fetches its own data; route tests keep it out of the way like the other live screens.
+vi.mock("../features/home/HomePage", () => ({ default: () => <h1>Home</h1> }));
 vi.mock("../features/dev/useDevToolsEnabled", () => ({ useDevToolsEnabled: () => false }));
 vi.mock("../features/auth/api", () => ({ getHouseholdMembers: vi.fn(), updateMemberProfile: vi.fn(), mergeMemberInto: vi.fn() }));
 vi.mock("../features/dashboard/api", () => ({ getMemberHoldings: vi.fn(), getMemberAllocation: vi.fn(), getMemberSips: vi.fn(), getMemberSipsMonthly: vi.fn(), getAggregateHoldings: vi.fn(), getAggregateAllocation: vi.fn(), getAggregateSips: vi.fn(), getAggregateSipsMonthly: vi.fn() }));

@@ -7,7 +7,7 @@ import { AppLink } from "./AppLink";
 
 let routes: ShellRoute[];
 beforeEach(() => {
-  routes = registry.buildRegistry().map(route => route.id === "planning" ? { ...route, status: "live" } : route.id === "portfolio-mutual-funds" ? { ...route, status: "placeholder" } : route);
+  routes = registry.buildRegistry().map(route => route.id === "planning" ? { ...route, status: "live" } : route.id === "portfolio-mutual-funds" ? { ...route, status: "placeholder" } : route.id === "home" ? { ...route, status: "placeholder" } : route);
   vi.spyOn(registry, "buildRegistry").mockImplementation(() => routes);
 });
 afterEach(() => vi.restoreAllMocks());

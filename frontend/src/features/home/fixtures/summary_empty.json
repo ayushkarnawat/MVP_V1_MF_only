@@ -1,0 +1,36 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": null,
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "display_name": "Asha",
+  "greeting": "evening",
+  "scope_label": "Your family portfolio",
+  "change_amount": "0.00",
+  "change_pct": null,
+  "direction": "flat",
+  "status_phrase": "little changed",
+  "since_label": "today",
+  "since_date": null,
+  "top_contributor": null,
+  "top_contributor_scheme_id": null,
+  "members_connected": 0,
+  "members_total": 2,
+  "data_line": "Data from 0 of 2 family members",
+  "has_holdings": false,
+  "total_value": "0.00",
+  "members": [
+    {
+      "id": "81e5a369-bbd4-59f1-b480-8a5bbf1c74ef",
+      "name": "ASHA RAO",
+      "has_data": false
+    },
+    {
+      "id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
+      "name": "Dev Rao",
+      "has_data": false
+    }
+  ]
+}

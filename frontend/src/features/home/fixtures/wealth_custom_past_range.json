@@ -1,0 +1,70 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": "2026-10-23",
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "period": "custom",
+  "start": "2026-09-20",
+  "end": "2026-10-01",
+  "clamped": false,
+  "empty": false,
+  "points": [
+    {
+      "date": "2026-09-20",
+      "value": "5077.60"
+    },
+    {
+      "date": "2026-09-21",
+      "value": "5088.40"
+    },
+    {
+      "date": "2026-09-22",
+      "value": "5092.00"
+    },
+    {
+      "date": "2026-09-23",
+      "value": "5095.60"
+    },
+    {
+      "date": "2026-09-24",
+      "value": "5099.20"
+    },
+    {
+      "date": "2026-09-25",
+      "value": "5102.80"
+    },
+    {
+      "date": "2026-09-26",
+      "value": "5102.80"
+    },
+    {
+      "date": "2026-09-27",
+      "value": "5102.80"
+    },
+    {
+      "date": "2026-09-28",
+      "value": "5113.60"
+    },
+    {
+      "date": "2026-09-29",
+      "value": "5117.20"
+    },
+    {
+      "date": "2026-09-30",
+      "value": "5120.80"
+    },
+    {
+      "date": "2026-10-01",
+      "value": "5124.40"
+    }
+  ],
+  "start_value": "5077.60",
+  "end_value": "5124.40",
+  "net_contributions": "0.00",
+  "change_amount": "46.80",
+  "change_pct": "0.9217",
+  "change_method": "modified_dietz",
+  "benchmark": null
+}
