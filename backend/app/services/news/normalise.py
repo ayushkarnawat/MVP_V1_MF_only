@@ -322,7 +322,12 @@ def load_dictionaries(db: Session) -> Dictionaries:
         if len(foreign) >= _FOREIGN_DISTINCT_LIMIT:
             break
 
-    return Dictionaries(stocks=stocks, fund_houses=fund_houses, foreign=foreign, symbol_only=frozenset(symbol_only), company_stripped=frozenset(company_stripped),
+    return Dictionaries(
+        stocks=stocks,
+        fund_houses=fund_houses,
+        foreign=foreign,
+        symbol_only=frozenset(symbol_only),
+        company_stripped=frozenset(company_stripped),
     )
 
 
