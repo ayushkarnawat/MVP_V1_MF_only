@@ -171,3 +171,21 @@ def test_a_pair_at_exactly_the_low_band_is_listed_separately_for_an_inclusive_vi
     assert [(p.fund_a.scheme_id, p.fund_b.scheme_id) for p in result.pairs_above_low] == [(b.id, c.id)]
     assert {(p.fund_a.scheme_id, p.fund_b.scheme_id) for p in result.pairs_at_low_boundary} == {(a.id, b.id), (a.id, c.id)}
     assert all(p.overlap_pct == Decimal("20") for p in result.pairs_at_low_boundary)
+
+
+def test_impact_drivers_are_the_top_five_by_contribution_with_exact_shares(db_session, monkeypatch):
+    # Eight shared stocks listed in scrambled order; the pair's overlap is the sum of the smaller weights: 36.
+    weights = {"S1": "3", "S2": "8", "S3": "5", "S4": "7", "S5": "1", "S6": "6", "S7": "4", "S8": "2"}
+    a = [(n, f"ISIN{n}", w, EQ) for n, w in weights.items()]
+    b = [(n, f"ISIN{n}", str(Decimal(w) + 1), EQ) for n, w in weights.items()]
+    schemes = [_scheme(db_session) for _ in range(2)]
+    for scheme, rows in zip(schemes, (a, b)):
+        _batch(db_session, scheme, rows)
+    result = _compute(db_session, monkeypatch, [_holding(schemes[0], "900"), _holding(schemes[1], "100")])
+    impact = result.impact_pairs[0]
+    assert impact.overlap_pct == Decimal("36")
+    assert [(d.instrument_name, d.contribution_pct) for d in impact.drivers] == [
+        ("S2", Decimal("8")), ("S4", Decimal("7")), ("S6", Decimal("6")), ("S3", Decimal("5")), ("S7", Decimal("4"))]
+    # hand check: 8/36, 7/36, 6/36, 5/36, 4/36 of the overlap; S1, S8, S5 (3, 2, 1) are left out
+    assert [d.share_of_pair_pct for d in impact.drivers] == [
+        Decimal(n) / Decimal("36") * 100 for n in ("8", "7", "6", "5", "4")]
