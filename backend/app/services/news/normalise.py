@@ -54,6 +54,8 @@ _FOREIGN_DISTINCT_LIMIT = 300
 # "Reliance Industries Limited" stays "Reliance Industries" (the business
 # word is what disambiguates sibling group companies, so it is kept).
 _STOCK_FILLER_RE = re.compile(r"\b(limited|ltd\.?|company|corporation)\b", re.I)
+_COMPANY_WORD_RE = re.compile(r"\b(company|corporation)\b", re.I)
+_LEGAL_ONLY_RE = re.compile(r"\b(limited|ltd\.?)\b", re.I)
 _AMC_GENERIC_RE = re.compile(
     r"\b(asset management company|asset management|mutual fund|trustee company|investment managers?|amc)\b",
     re.I,
@@ -92,6 +94,10 @@ class Dictionaries:
     # Stock aliases that exist only because of an NSE symbol (not the company
     # name); they match an ALL-CAPS token only -- see tag_title.
     symbol_only: frozenset[str] = frozenset()
+    # One-word aliases left after dropping "Company"/"Corporation" from the
+    # name ("Urban Company" -> "urban"); a common word, so it needs
+    # stock/market context (the full name is indexed as its own alias).
+    company_stripped: frozenset[str] = frozenset()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "_stock_index", _index_by_first_word(self.stocks))
@@ -268,6 +274,7 @@ def sector_key(label: str | None) -> str | None:
 def load_dictionaries(db: Session) -> Dictionaries:
     stocks: dict[str, tuple[str, str]] = {}
     symbol_only: set[str] = set()
+    company_stripped: set[str] = set()
     rows = db.query(StockMaster.isin, StockMaster.name, StockMaster.nse_symbol).all()
     displays = {isin: re.sub(r"\s+", " ", _STOCK_FILLER_RE.sub(" ", name)).strip() for isin, name, _ in rows}
     # Names first, so a symbol never shadows another company's name alias.
@@ -275,6 +282,10 @@ def load_dictionaries(db: Session) -> Dictionaries:
         alias = _stock_alias(name)
         if alias:
             stocks.setdefault(alias, (isin, displays[isin]))
+            if " " not in alias and _COMPANY_WORD_RE.search(name):
+                company_stripped.add(alias)
+                full_name = normalise_title(_LEGAL_ONLY_RE.sub(" ", name))
+                stocks.setdefault(full_name, (isin, displays[isin]))
     for isin, _name, nse_symbol in rows:
         display = displays[isin]
         if nse_symbol:
@@ -311,7 +322,8 @@ def load_dictionaries(db: Session) -> Dictionaries:
         if len(foreign) >= _FOREIGN_DISTINCT_LIMIT:
             break
 
-    return Dictionaries(stocks=stocks, fund_houses=fund_houses, foreign=foreign, symbol_only=frozenset(symbol_only))
+    return Dictionaries(stocks=stocks, fund_houses=fund_houses, foreign=foreign, symbol_only=frozenset(symbol_only), company_stripped=frozenset(company_stripped),
+    )
 
 
 def tag_title(title: str, dictionaries: Dictionaries) -> list[EntityTag]:
@@ -338,7 +350,7 @@ def tag_title(title: str, dictionaries: Dictionaries) -> list[EntityTag]:
         # pass on context below, since headlines do write "Idea shares".
         if alias in dictionaries.symbol_only and alias not in _PLAIN_WORD_SYMBOLS_NORM and not _contains_word(caps_text, alias):
             continue
-        if alias in _AMBIGUOUS_ALIASES_NORM or alias in _PLAIN_WORD_SYMBOLS_NORM:
+        if alias in _AMBIGUOUS_ALIASES_NORM or alias in _PLAIN_WORD_SYMBOLS_NORM or alias in dictionaries.company_stripped:
             context = _AMBIGUITY_CONTEXT_NORM | set(_AMBIGUOUS_ALIASES_NORM.get(alias, ()))
             if not any(_contains_word(normalised, word) for word in context):
                 continue

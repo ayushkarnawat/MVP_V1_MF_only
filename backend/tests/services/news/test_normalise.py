@@ -60,6 +60,7 @@ STOCK_ROWS = [
     ("Stanley Lifestyles Limited", "STANLEY", "Consumer Durables", "INTEST0025"),
     ("Yatra Online Limited", "YATRA", "Consumer Services", "INTEST0026"),
     ("Bajel Projects Limited", "BAJEL", "Capital Goods", "INTEST0027"),
+    ("Urban Company Limited", "URBANCO", "Consumer Services", "INTEST0028"),
 ]
 
 AMC_NAMES = [
@@ -494,3 +495,38 @@ def test_bajel_headline_tags_only_bajel_not_take(symbol_dictionaries):
 def test_all_caps_symbol_still_tags(symbol_dictionaries):
     assert _stock_keys("TAKE Solutions wins a new contract", symbol_dictionaries) == ["INTEST0301"]
     assert _stock_keys("Brokerages upgrade YATRA after strong bookings", symbol_dictionaries) == ["INTEST0304"]
+
+
+# ---------------------------------------------------------------------------
+# (12) a one-word alias left over after dropping "Company"/"Corporation" from
+# the name ("Urban Company Limited" -> "urban") is a common word: it needs
+# stock context, or the company's full name
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def urban_dictionaries(db_session) -> Dictionaries:
+    db_session.add(StockMaster(isin="INTEST0310", name="Urban Company Limited", sector="Consumer Services", as_of_date=date(2026, 10, 1), source="NSE", nse_symbol="URBANCO"))
+    db_session.add(StockMaster(isin="INTEST0311", name="Cipla Limited", sector="Healthcare", as_of_date=date(2026, 10, 1), source="NSE", nse_symbol="CIPLA"))
+    db_session.commit()
+    return load_dictionaries(db_session)
+
+
+@pytest.mark.parametrize("title", [
+    "Delhi vs Bihar: Delhi workers spend nearly three times more than urban Bihar commuters",
+    "Urban planners call for more cycling lanes in the city centre",
+])
+def test_company_stripped_one_word_alias_needs_context(urban_dictionaries, title):
+    assert _stock_keys(title, urban_dictionaries) == []
+
+
+@pytest.mark.parametrize("title", [
+    "Urban Company shares rise 5% as Morgan Stanley sees up to 40% upside",
+    "Urban Company launches a new home services category",
+    "Urban stock jumps after strong Q2 results",
+])
+def test_company_stripped_alias_tags_with_context_or_full_name(urban_dictionaries, title):
+    assert _stock_keys(title, urban_dictionaries) == ["INTEST0310"]
+
+
+def test_legal_suffix_only_names_are_unaffected(urban_dictionaries):
+    assert _stock_keys("Cipla launches a new inhaler in the US market", urban_dictionaries) == ["INTEST0311"]
