@@ -69,7 +69,7 @@ describe("ProfileNav", () => {
   });
 
   it("marks nothing on a Profile path that is not in the list", () => {
-    const nav = mount("/profile/legacy");
+    const nav = mount("/profile/unknown");
     expect(nav.querySelectorAll('[aria-current="page"]')).toHaveLength(0);
   });
 

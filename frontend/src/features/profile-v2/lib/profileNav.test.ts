@@ -71,7 +71,7 @@ describe("isNavItemCurrent", () => {
     ["settings", "/profile/settings-x", false],
     ["settings", "/profile/subscription", false],
     ["personal", "/profile/settings/security", false],
-    ["personal", "/profile/legacy", false],
+    ["personal", "/profile/unknown", false],
   ])("%s at %s is %s", (id, pathname, expected) => {
     expect(isNavItemCurrent(item(id), pathname)).toBe(expected);
   });

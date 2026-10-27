@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 import { describe, expect, it } from "vitest";
 
-// Test files are skipped: they may mock the old screens (the shell wrapper still serves one at /profile/legacy), source files may not touch them.
+// Test files are skipped: they may mock the old screens (the old screens were deleted in PR9), source files may not re-import them.
 const PROFILE = resolve("src/features/profile-v2");
 
 function sourceFiles(dir: string): string[] {

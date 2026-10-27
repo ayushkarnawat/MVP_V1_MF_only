@@ -43,7 +43,6 @@ const urlMap = [
   ["profile-subscription", "/profile/subscription"],
   ["profile-tax", "/profile/tax"],
   ["profile-data-privacy", "/profile/data-privacy"],
-  ["profile-legacy", "/profile/legacy"],
   ["profile-import-health", "/profile/import-health"],
   ["help", "/help"],
   ["import", "/import"],

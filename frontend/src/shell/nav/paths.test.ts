@@ -41,7 +41,6 @@ const cases = [
   [() => paths.profileSubscription(), "/profile/subscription", "profile-subscription"],
   [() => paths.profileTax(), "/profile/tax", "profile-tax"],
   [() => paths.profileDataPrivacy(), "/profile/data-privacy", "profile-data-privacy"],
-  [() => paths.profileLegacy(), "/profile/legacy", "profile-legacy"],
   [() => paths.importHealth(), "/profile/import-health", "profile-import-health"],
   [() => paths.help(), "/help", "help"],
   [() => paths.import(), "/import", "import"],

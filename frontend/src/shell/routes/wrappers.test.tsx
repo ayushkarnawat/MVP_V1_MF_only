@@ -8,10 +8,8 @@ import { HistoryView } from "../../features/history/HistoryView";
 import type { HistoryViewProps } from "../../features/history/HistoryView";
 import { AnalyticsView } from "../../features/analytics/AnalyticsView";
 import type { AnalyticsViewProps } from "../../features/analytics/AnalyticsView";
-import { ProfileView } from "../../features/profile/ProfileView";
 import { ImportHealth } from "../../features/dev/ImportHealth";
 import PlanningPage from "../../features/planning/PlanningPage";
-import { invalidateApiCache } from "../../lib/apiClient";
 import { ShellRoutes } from "../ShellRoot";
 import DashboardWrapper from "../wrappers/DashboardWrapper";
 import { renderInShell } from "../testing";
@@ -34,9 +32,6 @@ vi.mock("../../features/analytics/AnalyticsView", () => ({ AnalyticsView: vi.fn(
   <h1>Analytics screen</h1><button onClick={() => props.onAddDataForMember?.("b")}>Analytics import</button>
 </>) }));
 vi.mock("../../features/planning/PlanningPage", () => ({ default: vi.fn(() => <h1>Scenarios screen</h1>) }));
-vi.mock("../../features/profile/ProfileView", () => ({ ProfileView: vi.fn((props: ComponentProps<typeof ProfileView>) => <>
-  <h1>Profile screen</h1><button onClick={props.onOpenImportHealth}>Open import health</button><button onClick={props.onMembersChanged}>Members changed</button>
-</>) }));
 vi.mock("../../features/profile-v2/pages/PersonalInfoPage", () => ({ default: () => <h1>Personal Information screen</h1> }));
 vi.mock("../../features/dev/ImportHealth", () => ({ ImportHealth: vi.fn((props: ComponentProps<typeof ImportHealth>) => <>
   <h1>Import health screen</h1><button onClick={props.onBack}>Health back</button>
@@ -57,8 +52,7 @@ function Location() {
   return <><output data-testid="location">{JSON.stringify({ path: location.pathname + location.search + location.hash, state: location.state })}</output>
     <button onClick={() => { void navigate(-1); }}>History back</button><button onClick={() => { void navigate(1); }}>History forward</button>
     <button onClick={() => { void navigate(location.pathname, { replace: true }); }}>Replace here</button>
-    <button onClick={() => { void navigate("/profile"); }}>Go Profile</button>
-    <button onClick={() => { void navigate("/profile/legacy"); }}>Go old Profile</button></>;
+    <button onClick={() => { void navigate("/profile"); }}>Go Profile</button></>;
 }
 
 // /portfolio/mutual-funds/analytics renders the new Other Analytics page (features/mutual-funds), so the old Analytics screen has no
@@ -114,12 +108,12 @@ it("opens History from the old Dashboard wrapper", async () => {
 it("supports browser back and forward between live pages", async () => {
   mount("/portfolio/mutual-funds/history");
   await screen.findByRole("heading", { name: "History screen" });
-  fireEvent.click(screen.getByRole("button", { name: "Go old Profile" }));
-  await screen.findByRole("heading", { name: "Profile screen" });
+  fireEvent.click(screen.getByRole("button", { name: "Go Profile" }));
+  await screen.findByRole("heading", { name: "Personal Information screen" });
   fireEvent.click(screen.getByRole("button", { name: "History back" }));
   await screen.findByRole("heading", { name: "History screen" });
   fireEvent.click(screen.getByRole("button", { name: "History forward" }));
-  await screen.findByRole("heading", { name: "Profile screen" });
+  await screen.findByRole("heading", { name: "Personal Information screen" });
 });
 
 it("renders the Planning page without props", async () => {
@@ -127,33 +121,11 @@ it("renders the Planning page without props", async () => {
   expect(PlanningPage).toHaveBeenCalledWith({}, undefined);
 });
 
-it("ports Profile's name and all auth handlers, then invalidates before refreshing", async () => {
-  const events: string[] = [];
-  vi.mocked(invalidateApiCache).mockImplementation(() => { events.push("invalidate"); });
-  refreshMembers.mockImplementation(() => { events.push("refresh"); });
-  mount("/profile/legacy"); await screen.findByRole("heading", { name: "Profile screen" });
-  expect(vi.mocked(ProfileView).mock.calls.at(-1)?.[0]).toMatchObject({ name: "Alice", email: "alice@example.test", phoneNumber: "123", logout: auth.logout, requestAccountDeletion: auth.requestAccountDeletion, requestContactChange: auth.requestContactChange, verifyContactChange: auth.verifyContactChange });
-  expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/profile/legacy");
-  fireEvent.click(screen.getByRole("button", { name: "Members changed" })); expect(events).toEqual(["invalidate", "refresh"]);
-  fireEvent.click(screen.getByRole("button", { name: "Open import health" }));
-  await screen.findByRole("heading", { name: "Import health screen" });
-  expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/profile/import-health");
-  fireEvent.click(screen.getByRole("button", { name: "Health back" }));
-  await screen.findByRole("heading", { name: "Profile screen" });
-});
-
 it("/profile opens the new Personal Information page, not the old screen", async () => {
   mount("/profile");
   await screen.findByRole("heading", { name: "Personal Information screen" });
   expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/profile/personal");
   expect(screen.queryByRole("heading", { name: "Profile screen" })).not.toBeInTheDocument();
-});
-
-it("uses Profile's account-holder and contact fallbacks", async () => {
-  auth.me = null;
-  renderInShell(undefined, { path: "/profile/legacy", scope: { ...scope, members: [{ id: "a", name: "Alice" }] } });
-  await screen.findByRole("heading", { name: "Profile screen" });
-  expect(vi.mocked(ProfileView).mock.calls.at(-1)?.[0]).toMatchObject({ name: "Account holder", email: null, phoneNumber: "" });
 });
 
 it("Import health's Back lands on Profile even when deep-linked with no history to go back to", async () => {
@@ -181,30 +153,6 @@ it("Import health's Back lands on Profile after its own history entry was replac
   await screen.findByRole("heading", { name: "Personal Information screen" });
 });
 
-it("Import health's Back pops straight back to the screen that opened it with no duplicate entry", async () => {
-  mount("/home"); await screen.findByRole("heading", { name: "Home" });
-  fireEvent.click(screen.getByRole("button", { name: "Go old Profile" }));
-  await screen.findByRole("heading", { name: "Profile screen" });
-  fireEvent.click(screen.getByRole("button", { name: "Open import health" }));
-  await screen.findByRole("heading", { name: "Import health screen" });
-  fireEvent.click(screen.getByRole("button", { name: "Health back" }));
-  await screen.findByRole("heading", { name: "Profile screen" });
-  fireEvent.click(screen.getByRole("button", { name: "History back" }));
-  await screen.findByRole("heading", { name: "Home" });
-  expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/home");
-});
-
-it("Import health's Back does not leave Import health one browser Back away (no Back loop)", async () => {
-  mount("/profile/legacy"); await screen.findByRole("heading", { name: "Profile screen" });
-  fireEvent.click(screen.getByRole("button", { name: "Open import health" }));
-  await screen.findByRole("heading", { name: "Import health screen" });
-  fireEvent.click(screen.getByRole("button", { name: "Health back" }));
-  await screen.findByRole("heading", { name: "Profile screen" });
-  fireEvent.click(screen.getByRole("button", { name: "History back" }));
-  await screen.findByRole("heading", { name: "Profile screen" });
-  expect(JSON.parse(screen.getByTestId("location").textContent!).path).not.toBe("/profile/import-health");
-});
-
 it.each(["member", "aggregate"] as const)("passes memberId to ImportHealth only in %s mode", async viewMode => {
   renderInShell(undefined, { path: "/profile/import-health", scope: { ...scope, viewMode } });
   await screen.findByRole("heading", { name: "Import health screen" });
@@ -215,7 +163,6 @@ it.each([
   ["/portfolio/mutual-funds/history", "History screen", true],
   ["/portfolio/mutual-funds/analytics", "Analytics screen", true],
   ["/planning", "Scenarios screen", false],
-  ["/profile/legacy", "Profile screen", false],
   ["/profile/personal", "Personal Information screen", false],
   ["/profile/import-health", "Import health screen", false],
 ] as const)("renders deep links and remounts at %s with the temporary strip correctly placed", async (path, heading, tabs) => {
@@ -233,5 +180,5 @@ it.each([
 
 it("enables only the requested routes and preserves the existing import route", () => {
   const live = buildRegistry().filter(route => route.status === "live").map(route => route.id).sort();
-  expect(live).toEqual(["root", "not-found", "home", "portfolio", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "profile", "profile-import-health", "profile-personal", "portfolio-mutual-funds-performance", "portfolio-mutual-funds-allocation", "portfolio-mutual-funds-holdings", "portfolio-mutual-funds-transactions", "portfolio-mutual-funds-overlap", "profile-legacy", "profile-family", "profile-connected-accounts", "profile-settings", "profile-settings-notifications", "profile-settings-preferences", "profile-settings-security", "profile-settings-import-history", "profile-subscription", "profile-tax", "profile-data-privacy"].sort());
+  expect(live).toEqual(["root", "not-found", "home", "portfolio", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "profile", "profile-import-health", "profile-personal", "portfolio-mutual-funds-performance", "portfolio-mutual-funds-allocation", "portfolio-mutual-funds-holdings", "portfolio-mutual-funds-transactions", "portfolio-mutual-funds-overlap", "profile-family", "profile-connected-accounts", "profile-settings", "profile-settings-notifications", "profile-settings-preferences", "profile-settings-security", "profile-settings-import-history", "profile-subscription", "profile-tax", "profile-data-privacy"].sort());
 });
