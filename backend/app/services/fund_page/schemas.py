@@ -286,3 +286,20 @@ class CalendarYearReturn(FundModel):
     fund: str | None
     benchmark: str | None
     category: str | None
+
+
+class ScatterPoint(FundModel):
+    scheme_id: str
+    name: str
+    return_pct: str
+    volatility_pct: str
+    is_fund: bool
+
+
+class ScatterResponse(FundModel):
+    status: Literal["ready"] = "ready"
+    window_start: date
+    window_end: date
+    thin_category: bool
+    peer_volatility_median: str | None
+    points: list[ScatterPoint]

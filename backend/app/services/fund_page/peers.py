@@ -8,7 +8,7 @@ from datetime import date
 from decimal import Decimal
 
 from sqlalchemy import func, select, union_all
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.models.enums import BenchmarkReturnType
 from app.models.reference import BenchmarkIndexHistory, NavHistory, Scheme
@@ -35,6 +35,8 @@ from app.services.fund_page.schemas import (
     PerformancePoint,
     RollingPoint,
     RollingResponse,
+    ScatterPoint,
+    ScatterResponse,
     Unavailable,
     plain,
 )
@@ -511,4 +513,97 @@ async def calendar_year_returns(
     key = (scheme.sebi_category, scheme.plan_type, today, "calendar_years", n)
     return await peer_cache.get_or_compute(
         key, lambda: _calendar_year_returns_uncached(db, scheme, today, n),
+    )
+
+
+def _median(values: list[Decimal]) -> Decimal | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    midpoint = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[midpoint]
+    return (ordered[midpoint - 1] + ordered[midpoint]) / Decimal("2")
+
+
+def _scatter_rows(
+    db: Session, scheme_ids: list[uuid.UUID], start: date, end: date,
+):
+    lifetime = aliased(NavHistory)
+    first_date = select(func.min(lifetime.date)).where(
+        lifetime.scheme_id == NavHistory.scheme_id,
+        lifetime.date <= end,
+    ).correlate(NavHistory).scalar_subquery()
+    return db.execute(
+        select(
+            NavHistory.scheme_id,
+            NavHistory.date,
+            NavHistory.nav,
+            first_date.label("first_date"),
+        ).where(
+            NavHistory.scheme_id.in_(scheme_ids),
+            NavHistory.date >= start,
+            NavHistory.date <= end,
+        ).order_by(NavHistory.scheme_id, NavHistory.date)
+    ).all()
+
+
+async def _risk_return_scatter_uncached(
+    db: Session, scheme: Scheme, today: date,
+) -> ScatterResponse | Unavailable:
+    from app.services.fund_page.risk import cagr, daily_returns, sample_std
+
+    peers = await get_category_peers(db, scheme.sebi_category, scheme.plan_type)
+    if not peers.schemes:
+        return Unavailable(reason="peers_unavailable")
+    schemes = {peer.id: peer for peer in peers.schemes}
+    schemes[scheme.id] = scheme
+    start = years_ago(today, 3)
+    grouped: dict[uuid.UUID, list[tuple[date, Decimal]]] = defaultdict(list)
+    first_by_scheme: dict[uuid.UUID, date] = {}
+    for scheme_id, row_date, nav, first_date in _scatter_rows(
+        db, list(schemes), start, today,
+    ):
+        grouped[scheme_id].append((row_date, nav))
+        first_by_scheme[scheme_id] = first_date
+    values: dict[uuid.UUID, tuple[Decimal, Decimal]] = {}
+    for scheme_id, rows in grouped.items():
+        if first_by_scheme.get(scheme_id) is None or first_by_scheme[scheme_id] > start:
+            continue
+        annual_return = cagr(rows)
+        if annual_return is None:
+            continue
+        volatility = sample_std(daily_returns(rows)) * Decimal("252").sqrt() * _HUNDRED
+        values[scheme_id] = (annual_return * _HUNDRED, volatility)
+    if scheme.id not in values:
+        return Unavailable(reason="no_history")
+    points = [
+        ScatterPoint(
+            scheme_id=str(scheme_id), name=schemes[scheme_id].name,
+            return_pct=plain(result[0], 4), volatility_pct=plain(result[1], 4),
+            is_fund=scheme_id == scheme.id,
+        )
+        for scheme_id, result in sorted(
+            values.items(), key=lambda item: (item[0] != scheme.id, schemes[item[0]].name),
+        )
+    ]
+    peer_volatility = _median([
+        result[1] for scheme_id, result in values.items() if scheme_id != scheme.id
+    ])
+    return ScatterResponse(
+        window_start=start, window_end=today,
+        thin_category=len(values) < _THIN_CATEGORY_THRESHOLD,
+        peer_volatility_median=(
+            plain(peer_volatility, 4) if peer_volatility is not None else None
+        ),
+        points=points,
+    )
+
+
+async def risk_return_scatter(
+    db: Session, scheme: Scheme, today: date,
+) -> ScatterResponse | Unavailable:
+    key = (scheme.sebi_category, scheme.plan_type, today, "scatter", None)
+    return await peer_cache.get_or_compute(
+        key, lambda: _risk_return_scatter_uncached(db, scheme, today),
     )
