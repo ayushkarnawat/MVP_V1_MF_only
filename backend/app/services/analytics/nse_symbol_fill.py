@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 import httpx
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.db.session import commit_off_loop
@@ -53,7 +54,7 @@ async def fill_nse_symbols(db: Session, *, url: str, client: httpx.AsyncClient |
         response = await client.get(url)
         response.raise_for_status()
         symbols = parse_equity_list(response.content)
-    except (httpx.HTTPError, ValueError, UnicodeDecodeError) as exc:
+    except (httpx.HTTPError, ValueError, UnicodeDecodeError, csv.Error) as exc:
         logger.warning("NSE_SYMBOL_FILL_ALERT fetch_failed %s", type(exc).__name__)
         return NseSymbolFillResult(False)
     updated = already_set = unmatched = 0
@@ -65,5 +66,14 @@ async def fill_nse_symbols(db: Session, *, url: str, client: httpx.AsyncClient |
             updated += 1
         else:
             unmatched += 1
-    await commit_off_loop(db)
+    try:
+        await commit_off_loop(db)
+    except SQLAlchemyError as exc:
+        db.rollback()
+        logger.warning(
+            "NSE_SYMBOL_FILL_ALERT commit_failed %s updated=%d already_set=%d unmatched=%d",
+            type(exc).__name__, updated, already_set, unmatched,
+        )
+        return NseSymbolFillResult(False)
+    logger.info("NSE_SYMBOL_FILL updated=%d already_set=%d unmatched=%d", updated, already_set, unmatched)
     return NseSymbolFillResult(True, updated, already_set, unmatched)

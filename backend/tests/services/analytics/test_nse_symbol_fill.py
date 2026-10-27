@@ -88,3 +88,34 @@ def test_settings_default_off_and_job_exits_cleanly_when_off(monkeypatch):
     spec.loader.exec_module(job)
     monkeypatch.setattr(settings, "nse_symbol_fill_enabled", False)
     assert job.run(None) == 0
+
+
+def test_malformed_csv_soft_fails_without_touching_rows(db_session):
+    db_session.add(_stock("INE002A01018"))
+    db_session.commit()
+    huge = b"SYMBOL,ISIN NUMBER\n" + b"X" * 200_000 + b",INE002A01018\n"  # over csv's field limit
+
+    result = _run(db_session, lambda request: httpx.Response(200, content=huge))
+
+    assert not result.success
+    db_session.expire_all()
+    assert db_session.get(StockMaster, "INE002A01018").nse_symbol is None
+
+
+def test_commit_failure_soft_fails_and_rolls_back(db_session, monkeypatch):
+    from sqlalchemy.exc import OperationalError
+
+    from app.services.analytics import nse_symbol_fill
+
+    async def boom(_db):
+        raise OperationalError("COMMIT", {}, Exception("disk full"))
+
+    monkeypatch.setattr(nse_symbol_fill, "commit_off_loop", boom)
+    db_session.add(_stock("INE002A01018"))
+    db_session.commit()
+
+    result = _run(db_session, _ok)
+
+    assert not result.success
+    db_session.expire_all()
+    assert db_session.get(StockMaster, "INE002A01018").nse_symbol is None
