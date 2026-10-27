@@ -88,15 +88,14 @@ describe("MutualFundsFrame", () => {
     expect(nav.querySelectorAll("[aria-current=page]")).toHaveLength(1);
     expect(nav.querySelector("[data-tab=overview]")).toHaveAttribute("data-active", "false");
   });
-  it("links live tabs and shows tabs that are not live yet as disabled", () => {
+  it("links every tab that is live, so all six other tabs are links from the Overview", () => {
     mount("overview");
     expect(screen.getByRole("link", { name: "Other Analytics" })).toHaveAttribute("href", "/portfolio/mutual-funds/analytics");
-    for (const [name, href] of [["Performance", "performance"], ["Allocation", "allocation"], ["Holdings", "holdings"], ["Transactions", "transactions"]]) {
+    for (const [name, href] of [["Performance", "performance"], ["Allocation", "allocation"], ["Holdings", "holdings"], ["Transactions", "transactions"], ["Overlap", "overlap"]]) {
       expect(screen.getByRole("link", { name })).toHaveAttribute("href", `/portfolio/mutual-funds/${href}`);
     }
-    const overlap = within(screen.getByRole("navigation", { name: "Mutual Funds sections" })).getByText("Overlap");
-    expect(overlap.closest("[aria-disabled=true]")).not.toBeNull();
-    expect(screen.queryByRole("link", { name: "Overlap" })).not.toBeInTheDocument();
+    expect(within(screen.getByRole("navigation", { name: "Mutual Funds sections" })).getAllByRole("link")).toHaveLength(6);
+    expect(screen.getByRole("navigation", { name: "Mutual Funds sections" }).querySelector("[aria-disabled=true]")).toBeNull();
   });
   it("keeps the picked member when switching tabs", async () => {
     const routes = buildRegistry().map(route => route.id === "portfolio-mutual-funds-analytics"

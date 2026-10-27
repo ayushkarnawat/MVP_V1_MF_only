@@ -57,8 +57,11 @@ function Location() {
     <button onClick={() => { void navigate("/profile"); }}>Go Profile</button></>;
 }
 
+// /portfolio/mutual-funds/analytics renders the new Other Analytics page (features/mutual-funds), so the old Analytics screen has no
+// route of its own; these checks still exercise it through its wrapper at that path (packet MF-C).
+const legacyRoutes = buildRegistry().map(route => route.id === "portfolio-mutual-funds-analytics" ? { ...route, page: () => import("../wrappers/AnalyticsWrapper") } : route);
 function mount(path: string, state?: unknown) {
-  return renderInShell(<><ShellRoutes /><Location /></>, { path, state, scope, openImport });
+  return renderInShell(<><ShellRoutes /><Location /></>, { path, state, scope, openImport, routes: legacyRoutes });
 }
 
 // The Dashboard no longer has a route (/portfolio/mutual-funds renders the new Overview), so its wrapper is mounted directly.
@@ -80,7 +83,7 @@ it.each(["member", "aggregate"] as const)("passes %s scope and member name to Hi
 });
 
 it.each(["member", "aggregate"] as const)("passes %s scope and callbacks to Analytics", async viewMode => {
-  renderInShell(undefined, { path: "/portfolio/mutual-funds/analytics", scope: { ...scope, viewMode }, openImport });
+  renderInShell(undefined, { path: "/portfolio/mutual-funds/analytics", scope: { ...scope, viewMode }, openImport, routes: legacyRoutes });
   await screen.findByRole("heading", { name: "Analytics screen" });
   expect(vi.mocked(AnalyticsView).mock.calls.at(-1)?.[0]).toEqual({ viewMode, memberId: "b", activeMemberName: "Bob", onAddDataForMember: openImport });
   fireEvent.click(screen.getByRole("button", { name: "Analytics import" })); expect(openImport).toHaveBeenCalledWith("b");
@@ -217,5 +220,5 @@ it.each([
 
 it("enables only the six requested routes and preserves the existing import route", () => {
   const live = buildRegistry().filter(route => route.status === "live").map(route => route.id).sort();
-  expect(live).toEqual(["root", "not-found", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "portfolio-mutual-funds-performance", "portfolio-mutual-funds-allocation", "portfolio-mutual-funds-holdings", "portfolio-mutual-funds-transactions", "profile", "profile-import-health", "profile-personal"].sort());
+  expect(live).toEqual(["root", "not-found", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "portfolio-mutual-funds-performance", "portfolio-mutual-funds-allocation", "portfolio-mutual-funds-holdings", "portfolio-mutual-funds-transactions", "portfolio-mutual-funds-overlap", "profile", "profile-import-health", "profile-personal"].sort());
 });

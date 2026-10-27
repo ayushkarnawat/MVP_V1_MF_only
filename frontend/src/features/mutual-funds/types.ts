@@ -1,4 +1,5 @@
-// Contract types for the Mutual Funds page front end (packets MF-A and MF-B). Orchestrator-owned: never edit.
+// Contract types for the Mutual Funds page front end (packets MF-A, MF-B and MF-C). Orchestrator-owned: never edit.
+// MF-C adds the overlap, valuation, TER, category-ranking, scorer and fund-ranking sections (copies of the same schemas.py).
 // MF-B adds (all copies of backend/app/services/analytics/schemas.py, which is authoritative): the benchmark windows,
 // the look-through stock rows, the asset-class, market-cap, category/AMC and fund-manager allocations and the
 // full investment-and-withdrawal ledger.
@@ -381,8 +382,191 @@ export interface InvestmentWithdrawalResult {
   opening_holdings?: string;
 }
 
+// ---- MF-C: overlap (backend: OverlapSummary, OverlapPair, OverlapFund, OverlapCommonStock, ConcentrationPoint) ----
+export interface OverlapFund { scheme_id: string; scheme_name: string; current_value: string }
+export interface OverlapCommonStock {
+  isin: string;
+  instrument_name: string;
+  /** The stock's weight inside fund A and fund B, percent of each fund's net assets. */
+  weight_a: string;
+  weight_b: string;
+}
+export interface OverlapPair {
+  fund_a: OverlapFund;
+  fund_b: OverlapFund;
+  /** Percent: the sum over the shared stocks of the smaller of the two fund weights. */
+  overlap_pct: string;
+  /** At most `common_stock_limit` stocks, largest shared weight first; `common_total` counts every shared stock. */
+  common_stocks: OverlapCommonStock[];
+  common_total: number;
+}
+export interface ConcentrationPoint { stock_count: number; exposure_pct: string }
+export interface OverlapSummary {
+  /** At most 12 funds, largest household value first. */
+  matrix_funds: OverlapFund[];
+  /** Every pair among `matrix_funds`, in `combinations(matrix_funds, 2)` order. */
+  matrix: OverlapPair[];
+  /** Every pair among ALL funds with overlap strictly above the low band, largest first. */
+  pairs_above_low: OverlapPair[];
+  matrix_truncated: boolean;
+  /** Funds with published holdings (not only the ones in the matrix). */
+  total_fund_count: number;
+  common_stock_limit: number;
+  bands: { low: string; high: string };
+  /** Cumulative portfolio exposure of the N largest equity stocks, for N in {5, 10, 20, 50} capped at the stock count. */
+  concentration: ConcentrationPoint[];
+  total_stock_count: number;
+  nav_as_of: string | null;
+  holdings_as_of: string | null;
+  total_portfolio_value: string;
+  coverage: LookthroughCoverage;
+  hide_headlines: boolean;
+  excluded_share: string;
+}
+
+// ---- MF-C: Other Analytics (backend: ValuationSummary, WeightedTerSummary, DirectRegularTerComparison, CategoryRankingSummary,
+// PortfolioScoreSummary, FundRankingSummary) ----
+export interface ValuationMissingStock { isin: string | null; instrument_name: string; exposure_value: string; percentage_equity: string; reason: string }
+export interface ValuationMetric {
+  ratio: string | null;
+  coverage_pct: string;
+  enough_data: boolean;
+  as_of_date: string | null;
+  missing: ValuationMissingStock[];
+}
+export interface ValuationIndex {
+  index_name: "nifty_50" | "nifty_500";
+  pe_ratio: string | null;
+  pb_ratio: string | null;
+  pe_as_of: string | null;
+  pb_as_of: string | null;
+  pe_delta_pct: string | null;
+  pb_delta_pct: string | null;
+}
+export interface ValuationSummary {
+  pe: ValuationMetric;
+  pb: ValuationMetric;
+  indices: ValuationIndex[];
+  total_equity_value: string;
+  total_portfolio_value: string;
+  nav_as_of: string | null;
+  holdings_as_of: string | null;
+  coverage: LookthroughCoverage;
+  hide_headlines: boolean;
+  excluded_share: string;
+  footnotes: string[];
+}
+export interface FundTerRow {
+  scheme_id: string;
+  scheme_name: string;
+  plan_type: string | null;
+  /** Percent a year ("0.9200" is 0.92%). */
+  ter: string | null;
+  /** The household's value in this fund, rupees. */
+  value: string;
+  /** Projected cost in rupees over 1, 3 and 5 years at today's value and TER (no return assumption). */
+  cost_1y: string | null;
+  cost_3y: string | null;
+  cost_5y: string | null;
+  /** ADDITIVE, NOT YET SENT BY THE BACKEND (backend ask): rupees a year this Direct holding saves against its own Regular sibling. */
+  annual_ter_saving?: string | null;
+}
+export interface WeightedTerSummary {
+  weighted_ter: string | null;
+  covered_value: string;
+  total_value: string;
+  reference_period: string | null;
+  uncovered_schemes: string[];
+  cost_1y?: string | null;
+  cost_3y?: string | null;
+  cost_5y?: string | null;
+  funds?: FundTerRow[];
+}
+export interface DirectRegularTerComparison { direct: WeightedTerSummary; regular: WeightedTerSummary }
+export interface PeriodReturn { fund_return: string | null; category_avg: string | null; peers: number }
+export interface CategoryRankRow {
+  scheme_id: string;
+  scheme_name: string;
+  sebi_category: string | null;
+  category_unavailable: boolean;
+  insufficient_history: boolean;
+  scheme_return: string | null;
+  category_rank: number | null;
+  category_size: number;
+  percentile: string | null;
+  category_avg_return: string | null;
+  thin_category: boolean;
+  periods?: Partial<Record<"1y" | "3y" | "5y", PeriodReturn>>;
+  plan_type?: string | null;
+}
+export interface CategoryRankingSummary { funds: CategoryRankRow[] }
+export interface FundScoreRow {
+  scheme_id: string;
+  scheme_name: string;
+  category_unavailable: boolean;
+  insufficient_history: boolean;
+  thin_category: boolean;
+  /** Backend convention: 5 is the best tier. The page shows 6 minus this, so Tier 1 is best. */
+  risk_adjusted_tier: number | null;
+  cost_adjustment: string | null;
+  final_score: string | null;
+  return_percentile: string | null;
+  risk_percentile: string | null;
+  consistency_hit_rate: string | null;
+  scheme_return?: string | null;
+  category_avg_return?: string | null;
+  downside_deviation?: string | null;
+  category_avg_downside_deviation?: string | null;
+  consistency_hits?: number | null;
+  consistency_total_windows?: number | null;
+}
+export interface PortfolioScoreSummary {
+  funds: FundScoreRow[];
+  weighted_score: string | null;
+  covered_value: string;
+  total_value: string;
+  uncovered_schemes: string[];
+}
+export interface FundRankingNeighbor { scheme_id: string; scheme_name: string; category_rank: number; composite_score: string }
+export interface FundRankingComponent { percentile: string | null; raw: string | null }
+export interface FundRankingComponents {
+  return_3y: FundRankingComponent;
+  return_5y: FundRankingComponent;
+  category_relative: FundRankingComponent;
+  low_volatility: FundRankingComponent;
+  low_ter: FundRankingComponent;
+}
+export interface FundRankingRow {
+  scheme_id: string;
+  scheme_name: string;
+  category_name: string | null;
+  category_unavailable: boolean;
+  insufficient_history: boolean;
+  thin_category: boolean;
+  too_few_peers: boolean;
+  composite_score: string | null;
+  category_rank: number | null;
+  category_size: number;
+  category_universe_size: number;
+  percentile: string | null;
+  return_1y: string | null;
+  ranked_as: string | null;
+  neighbors: FundRankingNeighbor[];
+  components: FundRankingComponents;
+  horizons?: Partial<Record<"1y" | "3y" | "5y", PeriodReturn>>;
+  plan_type?: string | null;
+}
+export interface FundRankingSummary { funds: FundRankingRow[] }
+
 /** What useMfAnalytics(name) returns as `data`. Sections the later bundles use are typed loosely until then. */
 export interface SectionPayloads {
+  overlap: OverlapSummary;
+  valuation: ValuationSummary;
+  ter: WeightedTerSummary;
+  ter_direct_regular: DirectRegularTerComparison;
+  category_ranking: CategoryRankingSummary;
+  ranking: FundRankingSummary;
+  score: PortfolioScoreSummary;
   benchmark: PortfolioBenchmarkSummary;
   benchmark_funds: FundVsBenchmarkSummary;
   investment_withdrawal: InvestmentWithdrawalResult;

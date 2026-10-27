@@ -31,8 +31,12 @@ describe("Mutual Funds front-end guards", () => {
       "holdings/holdingsLogic.ts", "holdings/TopHoldingsByFund.tsx", "holdings/AllStocksTable.tsx", "holdings/HoldingsPage.tsx",
       "transactions/transactionsLogic.ts", "transactions/CashFlowStrip.tsx", "transactions/CashFlowBars.tsx", "transactions/PeriodDrill.tsx",
       "transactions/Ledger.tsx", "transactions/SipBanner.tsx", "transactions/TransactionsPage.tsx",
+      "overlap/overlapLogic.ts", "overlap/StatStrip.tsx", "overlap/CommonHoldings.tsx", "overlap/Heatmap.tsx", "overlap/PairDetail.tsx",
+      "overlap/TopPairs.tsx", "overlap/ImpactDonut.tsx", "overlap/StockConcentration.tsx", "overlap/OverlapPage.tsx",
+      "other/otherLogic.ts", "other/TerLadder.tsx", "other/ValuationSpectrum.tsx", "other/CostValuationGroup.tsx", "other/ScorerGroup.tsx",
+      "other/CategoryRankingGroup.tsx", "other/FundRankingGroup.tsx", "other/OtherAnalyticsPage.tsx",
     ]) expect(names).toContain(expected);
-    expect(names).toHaveLength(34);
+    expect(names).toHaveLength(51);
   });
 
   it("never turns a money or percentage string into a float, comments included", () => {
