@@ -25,9 +25,10 @@ async def compute_allocation(db: Session, household_member_ids: list[uuid.UUID])
 
     total_value = sum((Decimal(h.current_value) for h in valued_holdings), Decimal("0"))
 
-    # Bucket label needs the raw sebi_category, which HoldingRow doesn't
-    # carry — one batch query for every scheme in this holding set, not one
-    # query per holding row.
+    # Bucket label needs the raw sebi_category. HoldingRow now carries it too
+    # (`sebi_category`); this lookup is kept as is rather than editing hot shared
+    # code for a one-query saving. It is one batch query for every scheme in
+    # this holding set, not one query per holding row.
     scheme_ids = {uuid.UUID(h.scheme_id) for h in valued_holdings}
     categories = {s.id: s.sebi_category for s in db.query(Scheme).filter(Scheme.id.in_(scheme_ids)).all()} if scheme_ids else {}
 

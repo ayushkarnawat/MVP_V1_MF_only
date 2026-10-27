@@ -280,11 +280,17 @@ def compute_window_rows(
     for window in WINDOWS:
         if window == "SI":
             flows = [(txn.date, _signed_amount(txn)) for txn in transactions]
+            # The portfolio rate must end at ctx.today like the index replay. The legacy solver
+            # (`_portfolio_xirr`) ends at the real date.today(), so a supplied rate is reused only when
+            # the two agree (always, in production outside 00:00-05:30 IST); otherwise it is re-solved
+            # from the same flows with the same solver, so the two are still digit for digit equal.
+            if since_inception is not None and ctx.today == date.today():
+                portfolio_rate = since_inception.portfolio
+            else:
+                portfolio_rate = xirr([*flows, (ctx.today, current_value)])
             if since_inception is None:
-                portfolio_rate = _portfolio_xirr(list(transactions), current_value)
                 index_rows = _index_rows(flows, None, None, ctx.today, levels)
             else:
-                portfolio_rate = since_inception.portfolio
                 index_rows = _index_rows(
                     flows,
                     None,
