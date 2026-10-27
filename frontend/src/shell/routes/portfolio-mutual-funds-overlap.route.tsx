@@ -11,9 +11,9 @@ const route: ShellRoute = {
   parentId: "portfolio-mutual-funds",
   layout: "app",
   scope: "family-or-member",
-  status: "placeholder",
+  status: "live",
   title: "Overlap",
-  page: () => import("../../features/mutual-funds/frame/ComingSoonPages").then(module => ({ default: module.OverlapComingSoon })),
+  page: () => import("../../features/mutual-funds/overlap/OverlapPage"),
 };
 
 export default route;
