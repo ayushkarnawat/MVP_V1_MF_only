@@ -29,3 +29,6 @@ PL-B nine defaults (C126), IF-B1 nine defaults (C127), PR-B seven defaults (C128
 - In PowerShell, pass WSL work as a script file path, not an inline string with `$` or quotes; a quoting slip once made every test run in every worktree (5.6 MB of output). Always `NO_COLOR=1` and strip escapes before grepping.
 - Subagents prepare packets in about 30 minutes each when run four in parallel; they must be told not to touch the register or commit in the docs worktree (done this session; I committed the docs once).
 - The subagents' `Agent` ids do not survive an account switch: re-spawn if their work is missing.
+
+## 6. UPDATE (supersedes the MF-B paragraph of section 2): MF-B is DONE and verified
+MF-B: C121 move `eab59d22`, red tests `dc8217bd` on mf-fe (pushed), reference `~/mf-fe-ref-b`, packet `ui-redesign-MF-B-mutual-funds-packet.md`; green = feature 31 files/512, shell+App 27/348, kit 16/188. Its Gemini prompt is in the prompts file; defaults are C132, backend asks C133, notes C134. No subagent is running. Four Gemini prompts are therefore ready: PL-B, IF-B1, PR-B, MF-B. Next after their reports: MF-C, PR-C, IF-B2, G7 (section 3 step 3).
