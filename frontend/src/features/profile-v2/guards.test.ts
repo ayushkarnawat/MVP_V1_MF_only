@@ -33,12 +33,14 @@ function featureTarget(file: string, specifier: string): string | null {
 }
 
 // Profile may reuse: its own folder, the auth feature, the existing Profile feature (but never the three screens the new pages replace),
-// and the dashboard's member components (ProfileNudge, CompleteProfileDialog).
+// the dashboard's member components (ProfileNudge, CompleteProfileDialog), and, since PR-B, two single files: the import feature's
+// API module (import history calls) and the dev-tools flag hook. Nothing else from the import or dev features.
 const LEGACY_SCREENS = ["profile/ProfileView", "profile/HouseholdMembersSection", "profile/FamilyMemberCard"];
 function allowed(target: string): boolean {
   if (target === "profile-v2" || target.startsWith("profile-v2/")) return true;
   if (target === "auth" || target.startsWith("auth/")) return true;
   if (target.startsWith("dashboard/members/")) return true;
+  if (target === "import/api" || target === "dev/useDevToolsEnabled") return true;
   if (target.startsWith("profile/")) return !LEGACY_SCREENS.some(legacy => target === legacy || target.startsWith(`${legacy}.`));
   return false;
 }
@@ -50,9 +52,29 @@ describe("Profile (v2) front-end guards", () => {
       "ProfileFrame.tsx", "ProfileNav.tsx", "pages/ComingSoonPage.tsx", "pages/PendingProfilePage.tsx", "pages/comingSoonPages.tsx",
       "lib/accessLevel.ts", "lib/accountType.ts", "lib/goalChips.ts", "lib/initialsOf.ts", "lib/investorLabel.ts",
       "lib/memberSince.ts", "lib/onboardingOptions.ts", "lib/profileNav.ts",
+      "pages/PersonalInfoPage.tsx", "pages/SettingsPage.tsx", "pages/ImportHistoryPage.tsx", "pages/SubscriptionPage.tsx",
+      "components/InitialsAvatar.tsx", "components/HeaderCard.tsx", "components/PersonalInfoCard.tsx", "components/FinancialDetailsCard.tsx",
+      "components/GoalsDialog.tsx", "components/InvestorTypeDialog.tsx", "components/ContactChangeDialog.tsx", "components/PanField.tsx",
+      "components/SettingsRows.tsx", "components/SubscriptionCard.tsx",
     ]) {
       expect(names).toContain(expected);
     }
+  });
+
+  it("reads the import and dev features only through the two allowed files (the widening is exact, not a folder)", () => {
+    const reached = new Set<string>();
+    for (const file of FILES) {
+      for (const specifier of specifiers(file)) {
+        const target = featureTarget(file, specifier);
+        if (target && (target.startsWith("import/") || target.startsWith("dev/"))) reached.add(target);
+      }
+    }
+    expect([...reached].sort()).toEqual(["dev/useDevToolsEnabled", "import/api"]);
+  });
+
+  it("formats no amount: nothing in Profile uses number or currency formatting (these pages show no money)", () => {
+    const offenders = FILES.filter(file => /Intl\.NumberFormat|toLocaleString|formatCurrency|formatInr/.test(read(file))).map(name);
+    expect(offenders).toEqual([]);
   });
 
   it("uses colour variables only, no hard-coded colours, in the components (comments included)", () => {
@@ -99,17 +121,17 @@ describe("Profile route files (shell/routes)", () => {
 
   it.each([
     ["profile-family", "features/profile-v2/pages/PendingProfilePage"],
-    ["profile-settings", "features/profile-v2/pages/PendingProfilePage"],
-    ["profile-settings-import-history", "features/profile-v2/pages/PendingProfilePage"],
-    ["profile-subscription", "features/profile-v2/pages/PendingProfilePage"],
     ["profile-data-privacy", "features/profile-v2/pages/PendingProfilePage"],
+    ["profile-personal", "features/profile-v2/pages/PersonalInfoPage"],
+    ["profile-settings", "features/profile-v2/pages/SettingsPage"],
+    ["profile-settings-import-history", "features/profile-v2/pages/ImportHistoryPage"],
+    ["profile-subscription", "features/profile-v2/pages/SubscriptionPage"],
     ["profile-connected-accounts", "features/profile-v2/pages/comingSoonPages"],
     ["profile-tax", "features/profile-v2/pages/comingSoonPages"],
     ["profile-settings-notifications", "features/profile-v2/pages/comingSoonPages"],
     ["profile-settings-preferences", "features/profile-v2/pages/comingSoonPages"],
     ["profile-settings-security", "features/profile-v2/pages/comingSoonPages"],
     ["profile-legacy", "wrappers/ProfileWrapper"],
-    ["profile-personal", "wrappers/ProfileWrapper"],
     ["profile-import-health", "wrappers/ImportHealthWrapper"],
   ])("%s loads %s and is live", (id, module) => {
     expect(pageLine(id)).toContain(module);

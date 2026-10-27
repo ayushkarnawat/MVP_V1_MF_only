@@ -4,12 +4,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ShellRoutes } from "@/shell/ShellRoot";
 import { buildRegistry } from "@/shell/registry/buildRegistry";
 import { renderInShell } from "@/shell/testing";
+import { listHouseholdMembers } from "@/features/auth/api";
+import type { MeResponse } from "@/features/auth/types";
+import { getHouseholdImportHistory } from "@/features/import/api";
+import { ME_FIXTURE } from "./fixtures/me";
+import { HOUSEHOLD_FIXTURE } from "./fixtures/members";
 
 const auth = vi.hoisted(() => ({
-  me: { user_id: "u-1", email: "alice@example.test", phone_number: "123" } as { user_id: string; email: string | null; phone_number: string | null } | null,
-  logout: vi.fn(), requestAccountDeletion: vi.fn(), requestContactChange: vi.fn(), verifyContactChange: vi.fn(),
+  me: null as MeResponse | null,
+  logout: vi.fn(), updateMe: vi.fn(), refreshMe: vi.fn(), requestAccountDeletion: vi.fn(), requestContactChange: vi.fn(), verifyContactChange: vi.fn(),
 }));
 vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => auth }));
+vi.mock("@/features/auth/api", () => ({ listHouseholdMembers: vi.fn() }));
+vi.mock("@/features/import/api", () => ({ getHouseholdImportHistory: vi.fn(), deleteHouseholdImport: vi.fn() }));
+vi.mock("@/lib/apiClient", () => ({ invalidateApiCache: vi.fn() }));
+vi.mock("@/features/dev/useDevToolsEnabled", () => ({ useDevToolsEnabled: () => false }));
 vi.mock("@/features/profile/ProfileView", () => ({ ProfileView: () => <h1>Old profile screen</h1> }));
 vi.mock("@/features/dev/ImportHealth", () => ({ ImportHealth: () => <h1>Import health screen</h1> }));
 
@@ -35,7 +44,14 @@ const PROFILE_IDS = [
   "profile-subscription", "profile-tax", "profile-data-privacy", "profile-legacy", "profile-import-health",
 ];
 
-beforeEach(() => { vi.clearAllMocks(); });
+beforeEach(() => {
+  vi.clearAllMocks();
+  auth.me = ME_FIXTURE;
+  auth.updateMe.mockResolvedValue(undefined);
+  auth.refreshMe.mockResolvedValue(undefined);
+  vi.mocked(listHouseholdMembers).mockResolvedValue(HOUSEHOLD_FIXTURE);
+  vi.mocked(getHouseholdImportHistory).mockResolvedValue([]);
+});
 
 describe("Profile routes in the real shell registry (contract v1.4)", () => {
   it("has exactly the fourteen Profile routes, all live", () => {
@@ -93,12 +109,82 @@ describe("Coming soon pages inside the Profile frame (deep link and refresh, no 
   });
 });
 
+describe("Personal Information, Settings, Import History and Subscription are real pages in the frame (deep link, twice in a row)", () => {
+  it("/profile/personal shows the new page, with the account's name and masked PAN, not the old screen", async () => {
+    for (let visit = 0; visit < 2; visit++) {
+      const view = mount("/profile/personal");
+      expect(await screen.findByRole("heading", { level: 2, name: "Personal Information" })).toBeInTheDocument();
+      expect(await screen.findByText("AB******4F")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { level: 1, name: "Profile" })).toBeInTheDocument();
+      expect(screen.getByTestId("profile-name")).toHaveTextContent("Siddharth Surve");
+      expect(screen.getByRole("heading", { level: 2, name: "Financial Details" })).toBeInTheDocument();
+      expect(screen.queryByText("Old profile screen")).not.toBeInTheDocument();
+      expect(currentLabel()).toBe("Personal Information");
+      view.unmount();
+    }
+  });
+
+  it("/profile/settings lists the four rows and marks Settings as current", async () => {
+    for (let visit = 0; visit < 2; visit++) {
+      const view = mount("/profile/settings");
+      expect(await screen.findByRole("heading", { level: 2, name: "Settings" })).toBeInTheDocument();
+      const rows = within(screen.getByRole("list", { name: "Settings sections" })).getAllByRole("listitem");
+      expect(rows.map(row => within(row).getByTestId("settings-row-title").textContent)).toEqual(["Notifications", "Preferences", "Security", "Import History"]);
+      expect(screen.queryByTestId("profile-pending")).not.toBeInTheDocument();
+      expect(currentLabel()).toBe("Settings");
+      view.unmount();
+    }
+  });
+
+  it("a Settings row opens its page: Security opens the Coming soon page, Import History opens the history", async () => {
+    mount("/profile/settings");
+    await screen.findByRole("heading", { level: 2, name: "Settings" });
+    fireEvent.click(within(screen.getByRole("list", { name: "Settings sections" })).getByRole("link", { name: /Security/ }));
+    expect(await screen.findByRole("heading", { level: 2, name: "Security" })).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent("/profile/settings/security");
+    fireEvent.click(within(screen.getByTestId("profile-content")).getByRole("link", { name: "Settings" }));
+    await screen.findByRole("heading", { level: 2, name: "Settings" });
+    fireEvent.click(within(screen.getByRole("list", { name: "Settings sections" })).getByRole("link", { name: /Import History/ }));
+    expect(await screen.findByText("No imports yet.")).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent("/profile/settings/import-history");
+  });
+
+  it("/profile/settings/import-history shows the existing history section and a Back link to Settings", async () => {
+    for (let visit = 0; visit < 2; visit++) {
+      const view = mount("/profile/settings/import-history");
+      expect(await screen.findByRole("heading", { level: 2, name: "Import History" })).toBeInTheDocument();
+      expect(await screen.findByText("No imports yet.")).toBeInTheDocument();
+      expect(within(screen.getByTestId("profile-content")).getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/profile/settings");
+      expect(currentLabel()).toBe("Settings");
+      view.unmount();
+    }
+  });
+
+  it("/profile/subscription shows the Early access card and marks Subscription & Billing as current", async () => {
+    for (let visit = 0; visit < 2; visit++) {
+      const view = mount("/profile/subscription");
+      expect(await screen.findByRole("heading", { level: 2, name: "Subscription & Billing" })).toBeInTheDocument();
+      expect(screen.getByTestId("plan-row")).toHaveTextContent("Early access");
+      expect(screen.queryByTestId("profile-pending")).not.toBeInTheDocument();
+      expect(currentLabel()).toBe("Subscription & Billing");
+      view.unmount();
+    }
+  });
+
+  it("the Profile list moves between the new pages", async () => {
+    mount("/profile/personal");
+    await screen.findByText("AB******4F");
+    fireEvent.click(within(navOf()).getByRole("link", { name: "Subscription & Billing" }));
+    expect(await screen.findByRole("heading", { level: 2, name: "Subscription & Billing" })).toBeInTheDocument();
+    fireEvent.click(within(navOf()).getByRole("link", { name: "Personal Information" }));
+    expect(await screen.findByRole("heading", { level: 2, name: "Financial Details" })).toBeInTheDocument();
+    expect(screen.getAllByRole("navigation", { name: "Profile sections" })).toHaveLength(1);
+  });
+});
+
 describe("Pages not built yet are a pending page inside the frame (replaced one by one by the next runs)", () => {
   it.each([
     ["/profile/family", "Family Members", "Family Members"],
-    ["/profile/settings", "Settings", "Settings"],
-    ["/profile/settings/import-history", "Import History", "Settings"],
-    ["/profile/subscription", "Subscription & Billing", "Subscription & Billing"],
     ["/profile/data-privacy", "Data & Privacy", "Data & Privacy"],
   ])("%s shows the route title %j under the frame and marks %j", async (path, title, current) => {
     for (let visit = 0; visit < 2; visit++) {
@@ -141,6 +227,12 @@ describe("Routes that stay as they are", () => {
     expect(await screen.findByRole("heading", { name: "Old profile screen" })).toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Profile sections" })).not.toBeInTheDocument();
     expect(screen.getByTestId("location")).toHaveTextContent("/profile/legacy");
+  });
+
+  it("/profile/personal no longer opens the old screen", async () => {
+    mount("/profile/personal");
+    await screen.findByRole("heading", { level: 2, name: "Personal Information" });
+    expect(screen.queryByRole("heading", { name: "Old profile screen" })).not.toBeInTheDocument();
   });
 
   it("/profile/import-health still opens the dev screen", async () => {

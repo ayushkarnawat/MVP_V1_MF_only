@@ -34,6 +34,7 @@ vi.mock("../../features/scenarios/ScenariosScreen", () => ({ ScenariosScreen: vi
 vi.mock("../../features/profile/ProfileView", () => ({ ProfileView: vi.fn((props: ComponentProps<typeof ProfileView>) => <>
   <h1>Profile screen</h1><button onClick={props.onOpenImportHealth}>Open import health</button><button onClick={props.onMembersChanged}>Members changed</button>
 </>) }));
+vi.mock("../../features/profile-v2/pages/PersonalInfoPage", () => ({ default: () => <h1>Personal Information screen</h1> }));
 vi.mock("../../features/dev/ImportHealth", () => ({ ImportHealth: vi.fn((props: ComponentProps<typeof ImportHealth>) => <>
   <h1>Import health screen</h1><button onClick={props.onBack}>Health back</button>
 </>) }));
@@ -53,7 +54,8 @@ function Location() {
   return <><output data-testid="location">{JSON.stringify({ path: location.pathname + location.search + location.hash, state: location.state })}</output>
     <button onClick={() => { void navigate(-1); }}>History back</button><button onClick={() => { void navigate(1); }}>History forward</button>
     <button onClick={() => { void navigate(location.pathname, { replace: true }); }}>Replace here</button>
-    <button onClick={() => { void navigate("/profile"); }}>Go Profile</button></>;
+    <button onClick={() => { void navigate("/profile"); }}>Go Profile</button>
+    <button onClick={() => { void navigate("/profile/legacy"); }}>Go old Profile</button></>;
 }
 
 function mount(path: string, state?: unknown) {
@@ -112,9 +114,9 @@ it("ports Profile's name and all auth handlers, then invalidates before refreshi
   const events: string[] = [];
   vi.mocked(invalidateApiCache).mockImplementation(() => { events.push("invalidate"); });
   refreshMembers.mockImplementation(() => { events.push("refresh"); });
-  mount("/profile"); await screen.findByRole("heading", { name: "Profile screen" });
+  mount("/profile/legacy"); await screen.findByRole("heading", { name: "Profile screen" });
   expect(vi.mocked(ProfileView).mock.calls.at(-1)?.[0]).toMatchObject({ name: "Alice", email: "alice@example.test", phoneNumber: "123", logout: auth.logout, requestAccountDeletion: auth.requestAccountDeletion, requestContactChange: auth.requestContactChange, verifyContactChange: auth.verifyContactChange });
-  expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/profile/personal");
+  expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/profile/legacy");
   fireEvent.click(screen.getByRole("button", { name: "Members changed" })); expect(events).toEqual(["invalidate", "refresh"]);
   fireEvent.click(screen.getByRole("button", { name: "Open import health" }));
   await screen.findByRole("heading", { name: "Import health screen" });
@@ -123,9 +125,16 @@ it("ports Profile's name and all auth handlers, then invalidates before refreshi
   await screen.findByRole("heading", { name: "Profile screen" });
 });
 
+it("/profile opens the new Personal Information page, not the old screen", async () => {
+  mount("/profile");
+  await screen.findByRole("heading", { name: "Personal Information screen" });
+  expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/profile/personal");
+  expect(screen.queryByRole("heading", { name: "Profile screen" })).not.toBeInTheDocument();
+});
+
 it("uses Profile's account-holder and contact fallbacks", async () => {
   auth.me = null;
-  renderInShell(undefined, { path: "/profile/personal", scope: { ...scope, members: [{ id: "a", name: "Alice" }] } });
+  renderInShell(undefined, { path: "/profile/legacy", scope: { ...scope, members: [{ id: "a", name: "Alice" }] } });
   await screen.findByRole("heading", { name: "Profile screen" });
   expect(vi.mocked(ProfileView).mock.calls.at(-1)?.[0]).toMatchObject({ name: "Account holder", email: null, phoneNumber: "" });
 });
@@ -134,7 +143,8 @@ it("Import health's Back lands on Profile even when deep-linked with no history 
   mount("/profile/import-health");
   await screen.findByRole("heading", { name: "Import health screen" });
   fireEvent.click(screen.getByRole("button", { name: "Health back" }));
-  await screen.findByRole("heading", { name: "Profile screen" });
+  await screen.findByRole("heading", { name: "Personal Information screen" });
+  expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/profile/personal");
 });
 
 it.each([
@@ -151,12 +161,12 @@ it("Import health's Back lands on Profile after its own history entry was replac
   await screen.findByRole("heading", { name: "Import health screen" });
   fireEvent.click(screen.getByRole("button", { name: "Replace here" }));
   fireEvent.click(screen.getByRole("button", { name: "Health back" }));
-  await screen.findByRole("heading", { name: "Profile screen" });
+  await screen.findByRole("heading", { name: "Personal Information screen" });
 });
 
-it("Import health's Back pops straight back to Profile with no duplicate Profile entry", async () => {
+it("Import health's Back pops straight back to the screen that opened it with no duplicate entry", async () => {
   mount("/home"); await screen.findByRole("heading", { name: "Home" });
-  fireEvent.click(screen.getByRole("button", { name: "Go Profile" }));
+  fireEvent.click(screen.getByRole("button", { name: "Go old Profile" }));
   await screen.findByRole("heading", { name: "Profile screen" });
   fireEvent.click(screen.getByRole("button", { name: "Open import health" }));
   await screen.findByRole("heading", { name: "Import health screen" });
@@ -168,7 +178,7 @@ it("Import health's Back pops straight back to Profile with no duplicate Profile
 });
 
 it("Import health's Back does not leave Import health one browser Back away (no Back loop)", async () => {
-  mount("/profile"); await screen.findByRole("heading", { name: "Profile screen" });
+  mount("/profile/legacy"); await screen.findByRole("heading", { name: "Profile screen" });
   fireEvent.click(screen.getByRole("button", { name: "Open import health" }));
   await screen.findByRole("heading", { name: "Import health screen" });
   fireEvent.click(screen.getByRole("button", { name: "Health back" }));
@@ -189,7 +199,8 @@ it.each([
   ["/portfolio/mutual-funds/history", "History screen", true],
   ["/portfolio/mutual-funds/analytics", "Analytics screen", true],
   ["/planning", "Scenarios screen", false],
-  ["/profile/personal", "Profile screen", false],
+  ["/profile/legacy", "Profile screen", false],
+  ["/profile/personal", "Personal Information screen", false],
   ["/profile/import-health", "Import health screen", false],
 ] as const)("renders deep links and remounts at %s with the temporary strip correctly placed", async (path, heading, tabs) => {
   for (let visit = 0; visit < 2; visit++) {
