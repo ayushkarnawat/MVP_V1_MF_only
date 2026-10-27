@@ -135,6 +135,8 @@ export interface InceptionReturnsResponse {
   columns: InceptionColumn[];
   rows: { fund: InceptionCells; benchmark: InceptionCells | null };
   benchmark_reason: string | null;
+  /** Additive (register C124, pending on the backend): the benchmark's name, e.g. "Nifty 500 TRI". Absent means the page says "Benchmark". */
+  benchmark_label?: string | null;
 }
 
 export interface CurrentReturnsResponse {
@@ -143,6 +145,8 @@ export interface CurrentReturnsResponse {
   columns: CurrentColumn[];
   rows: { holding_xirr: CurrentCells; benchmark_same_flows: CurrentCells | null };
   benchmark_reason: string | null;
+  /** Additive (register C124, pending on the backend); see InceptionReturnsResponse. */
+  benchmark_label?: string | null;
 }
 
 export type ReturnsResponse = InceptionReturnsResponse | CurrentReturnsResponse;
@@ -316,6 +320,8 @@ export interface ScatterPointOut {
   return_pct: string;
   volatility_pct: string;
   is_fund: boolean;
+  /** Additive (register C124, pending on the backend): true when the household holds this peer, so its dot can link to its fund page. Absent means "not known, do not link". */
+  held?: boolean;
 }
 
 export interface ScatterResponse {

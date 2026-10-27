@@ -8,7 +8,7 @@ import type {
   SummaryResponse, SummaryTiles, TopHolding, Unavailable,
 } from "../types";
 import { FIXTURE_NAMES, IDS, fixture } from "./index";
-import { type Schema, anything, arr, bool, either, lit, nullable, num, obj, str } from "./schema";
+import { type Schema, anything, arr, bool, either, lit, nullable, num, obj, optional, str } from "./schema";
 
 // The contract guard: every spec fixture must match the contract types field for field. When the real golden
 // files replace these, this test is what tells us the backend and types.ts still agree.
@@ -46,10 +46,12 @@ const currentCells: Schema<CurrentCells> = obj<CurrentCells>({ "1Y": nstr, "3Y":
 const inceptionReturns: Schema<InceptionReturnsResponse> = obj<InceptionReturnsResponse>({
   status: lit("ready"), mode: lit("inception"), columns: arr(lit("1M", "3M", "6M", "1Y", "3Y", "5Y", "since_inception")),
   rows: obj<InceptionReturnsResponse["rows"]>({ fund: inceptionCells, benchmark: nullable(inceptionCells) }), benchmark_reason: nstr,
+  benchmark_label: optional(nstr),
 });
 const currentReturns: Schema<CurrentReturnsResponse> = obj<CurrentReturnsResponse>({
   status: lit("ready"), mode: lit("current"), columns: arr(lit("1Y", "3Y", "5Y", "since_first_investment")),
   rows: obj<CurrentReturnsResponse["rows"]>({ holding_xirr: currentCells, benchmark_same_flows: nullable(currentCells) }), benchmark_reason: nstr,
+  benchmark_label: optional(nstr),
 });
 const metric: Schema<RiskMetric> = obj<RiskMetric>({ value: nstr, band: nstr, tone });
 const risk: Schema<RiskResponse> = obj<RiskResponse>({
@@ -96,7 +98,7 @@ const bucket: Schema<PeriodBucket> = obj<PeriodBucket>({ label: str, start: str,
 const periodReturns: Schema<PeriodReturnsResponse> = obj<PeriodReturnsResponse>({
   status: lit("ready"), period: periods, bucket: lit("week", "month", "quarter", "year"), buckets: arr(bucket),
 });
-const scatterPoint: Schema<ScatterPointOut> = obj<ScatterPointOut>({ scheme_id: str, name: str, return_pct: str, volatility_pct: str, is_fund: bool });
+const scatterPoint: Schema<ScatterPointOut> = obj<ScatterPointOut>({ scheme_id: str, name: str, return_pct: str, volatility_pct: str, is_fund: bool, held: optional(bool) });
 const scatter: Schema<ScatterResponse> = obj<ScatterResponse>({
   status: lit("ready"), window_start: str, window_end: str, thin_category: bool, peer_volatility_median: nstr, points: arr(scatterPoint),
 });
@@ -223,5 +225,24 @@ describe("Individual Fund spec fixtures", () => {
     expect(body.allocation.market_cap.reduce((sum, s) => sum + Number(s.pct), 0)).toBeCloseTo(100, 4);
     const all = fixture<HoldingsListResponse>("holdings_all");
     expect(all.count).toBe(all.rows.length);
+  });
+
+  it("test_additive_fields_are_optional: the validator accepts a missing optional field, checks a present one, and the returns fixtures omit benchmark_label", () => {
+    const point = obj<{ id: string; held?: boolean }>({ id: str, held: optional(bool) });
+    expect(point.check({ id: "a" }, "p")).toEqual([]);
+    expect(point.check({ id: "a", held: true }, "p")).toEqual([]);
+    expect(point.check({ id: "a", held: "yes" }, "p")).toEqual(["p.held: expected boolean, got string"]);
+    expect(point.check({ id: "a", other: 1 }, "p")).toEqual(["p.other: not in the contract"]);
+    expect(fixture("returns_inception")).not.toHaveProperty("benchmark_label");
+    expect(fixture("returns_current")).not.toHaveProperty("benchmark_label");
+  });
+
+  it("the scatter fixtures carry the additive held flag: the fund's own dot is held, exactly one peer is held, the others are not", () => {
+    for (const name of ["scatter", "scatter_thin"]) {
+      const body = fixture<ScatterResponse>(name);
+      expect(body.points.every(p => typeof p.held === "boolean")).toBe(true);
+      expect(body.points.filter(p => p.is_fund).every(p => p.held)).toBe(true);
+      expect(body.points.filter(p => !p.is_fund && p.held)).toHaveLength(1);
+    }
   });
 });

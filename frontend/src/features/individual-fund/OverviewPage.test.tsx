@@ -1,4 +1,5 @@
-import { act, fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/apiClient";
 import { buildRegistry } from "@/shell/registry/buildRegistry";
@@ -8,13 +9,19 @@ import { deferred } from "./__support__/deferred";
 import OverviewRoute, { OverviewPage } from "./OverviewPage";
 import { IDS, fixture } from "./fixtures";
 import type {
-  CategoryReturnsResponse, CategorySeriesResponse, InceptionReturnsResponse, PerformanceResponse, ScoreResponse, SummaryResponse, Unavailable,
+  CategoryReturnsResponse, CategorySeriesResponse, CompositionResponse, HoldingsListResponse, InceptionReturnsResponse, PerformanceResponse,
+  RiskResponse, ScoreResponse, SummaryResponse, Unavailable,
 } from "./types";
 
-// The kit chart cannot measure a width in jsdom, so it is a stub; everything else is the real page.
-vi.mock("@/components/ui/charts", () => ({ LineAreaChart: () => <div data-testid="line-chart" /> }));
+// The kit charts cannot measure a width in jsdom, so they are stubs; everything else is the real page.
+vi.mock("@/components/ui/charts", () => ({
+  LineAreaChart: () => <div data-testid="line-chart" />,
+  PieChart: ({ children }: { children?: ReactNode }) => <div data-testid="pie-chart">{children}</div>,
+  PieSlice: ({ index }: { index: number }) => <i data-testid={`pie-slice-${index}`} />,
+}));
 const api = vi.hoisted(() => ({
   summary: vi.fn(), performance: vi.fn(), returns: vi.fn(), score: vi.fn(), categorySeries: vi.fn(), categoryReturns: vi.fn(),
+  risk: vi.fn(), composition: vi.fn(), holdings: vi.fn(), folioNumber: vi.fn(),
 }));
 vi.mock("./api", () => ({ fundPageApi: api }));
 
@@ -29,6 +36,9 @@ function setDefaults() {
   api.score.mockImplementation(() => Promise.resolve(fixture<ScoreResponse>("score_stored")));
   api.categorySeries.mockImplementation(() => Promise.resolve(fixture<CategorySeriesResponse>("peers_series_1y")));
   api.categoryReturns.mockImplementation(() => Promise.resolve(fixture<CategoryReturnsResponse>("peers_returns")));
+  api.risk.mockImplementation(() => Promise.resolve(fixture<RiskResponse>("risk_equity")));
+  api.composition.mockImplementation(() => Promise.resolve(fixture<CompositionResponse>("composition")));
+  api.holdings.mockImplementation(() => Promise.resolve(fixture<HoldingsListResponse>("holdings_all")));
 }
 
 function mount(options: Parameters<typeof renderInShell>[1] = {}) {
@@ -125,11 +135,18 @@ describe("OverviewPage", () => {
     api.score.mockImplementation(() => Promise.resolve(un("peers_unavailable")));
     api.categorySeries.mockImplementation(() => Promise.resolve(un("peers_unavailable")));
     api.categoryReturns.mockImplementation(() => Promise.resolve(un("peers_unavailable")));
+    api.risk.mockImplementation(() => Promise.resolve(un("no_history")));
+    api.composition.mockImplementation(() => Promise.resolve(un("no_disclosure")));
     mount();
     expect(await screen.findByRole("heading", { level: 1, name: NAME })).toBeInTheDocument();
     expect(await screen.findByText("Category comparison is not available for this fund yet.")).toBeInTheDocument();
-    expect(screen.getAllByTestId("section-unavailable")).toHaveLength(2);
+    // Performance, Returns, Top 10 Holdings and Fund Allocation each print their own reason; Risk Metrics has its own short message.
+    await screen.findByTestId("risk-unavailable");
+    expect(screen.getAllByTestId("section-unavailable")).toHaveLength(4);
+    expect(screen.getByTestId("risk-unavailable")).toHaveTextContent("Not enough history to show risk figures yet.");
+    expect(screen.getAllByText("Holdings not available yet for this fund house.")).toHaveLength(2);
     expect(screen.getByTestId("tile-value-figure")).toHaveTextContent("₹2,250");
+    expect(screen.getByTestId("detail-value-value")).toHaveTextContent("₹2,250");
   });
 
   it("test_family_scope_default_combined: every scoped request says combined", async () => {
@@ -162,6 +179,8 @@ describe("OverviewPage", () => {
     await screen.findByTestId("score-number");
     await screen.findByTestId("cell-category-1Y");
     await screen.findByTestId("legend-category-figure");
+    await screen.findByTestId("risk-row-volatility");
+    await screen.findByTestId("top-row-1");
     for (const fn of Object.values(api)) fn.mockClear();
     fireEvent.click(screen.getByRole("button", { name: "Pick Dev" }));
     await act(async () => {});
@@ -171,6 +190,8 @@ describe("OverviewPage", () => {
     expect(api.performance).not.toHaveBeenCalled();
     expect(api.categorySeries).not.toHaveBeenCalled();
     expect(api.categoryReturns).not.toHaveBeenCalled();
+    expect(api.risk).not.toHaveBeenCalled();
+    expect(api.composition).not.toHaveBeenCalled();
   });
 
   it("a member switch while the summary is still loading aborts the request in flight", async () => {
@@ -203,6 +224,122 @@ describe("OverviewPage", () => {
     mount();
     expect(await screen.findByRole("heading", { name: "Fund not found" })).toBeInTheDocument();
     expect(screen.queryByTestId("overview-grid")).toBeNull();
+  });
+
+  it("the right column holds Your Investment Details, Risk Metrics and Fund Allocation, and Top 10 Holdings sits under Returns on the left", async () => {
+    mount();
+    await screen.findByTestId("overview-grid");
+    const right = screen.getByTestId("overview-right");
+    const left = screen.getByTestId("overview-left");
+    expect(await within(right).findByRole("heading", { name: "Your Investment Details" })).toBeInTheDocument();
+    expect(await within(right).findByRole("heading", { name: "Risk Metrics (3Y)" })).toBeInTheDocument();
+    expect(await within(right).findByRole("heading", { name: "Fund Allocation" })).toBeInTheDocument();
+    const top = await within(left).findByRole("heading", { name: "Top 10 Holdings (38 stocks)" });
+    const returns = within(left).getByRole("heading", { name: "Returns" });
+    expect(returns.compareDocumentPosition(top) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const headings = (root: HTMLElement) => within(root).getAllByRole("heading", { level: 3 }).map(h => h.textContent);
+    expect(headings(left)).toEqual(["Performance", "Returns", "Top 10 Holdings (38 stocks)"]);
+    expect(headings(right)).toEqual(["Your Investment Details", "Risk Metrics (3Y)", "Fund Allocation"]);
+  });
+
+  it("test_narrow_order: below 1280 px the six cards flow Performance, Details, Returns, Risk, Top 10, Allocation (order classes), and from 1280 px the two stacks are columns", async () => {
+    mount();
+    await screen.findByTestId("overview-grid");
+    const slots = ["performance", "details", "returns", "risk", "top-holdings", "allocation"];
+    slots.forEach((slot, index) => {
+      const el = screen.getByTestId(`slot-${slot}`);
+      expect(el.className).toContain(`order-${index + 1}`);
+      expect(el.className).toContain("xl:order-none");
+    });
+    for (const id of ["overview-left", "overview-right"]) {
+      expect(screen.getByTestId(id).className).toContain("contents");
+      expect(screen.getByTestId(id).className).toContain("xl:block");
+      expect(screen.getByTestId(id).className).toContain("xl:space-y-5");
+    }
+    expect(within(screen.getByTestId("overview-left")).getByTestId("slot-top-holdings")).toBeInTheDocument();
+    expect(within(screen.getByTestId("overview-right")).getByTestId("slot-risk")).toBeInTheDocument();
+  });
+
+  it("test_tier2_cards_load_on_their_own: Risk Metrics, Top 10 Holdings and Fund Allocation show their loading status while the rest of the page is already there", async () => {
+    const risk = deferred<RiskResponse>();
+    const composition = deferred<CompositionResponse>();
+    api.risk.mockReturnValue(risk.promise);
+    api.composition.mockReturnValue(composition.promise);
+    mount();
+    expect(await screen.findByTestId("detail-value-value")).toHaveTextContent("₹2,250");
+    expect(await screen.findByTestId("cell-fund-1Y")).toHaveTextContent("10.0%");
+    expect(screen.getByRole("status", { name: "Loading risk metrics" })).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Loading holdings" })).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Loading allocation" })).toBeInTheDocument();
+    await act(async () => {
+      risk.resolve(fixture<RiskResponse>("risk_equity"));
+      composition.resolve(fixture<CompositionResponse>("composition"));
+    });
+    expect(screen.getByTestId("risk-volatility-value")).toHaveTextContent("14.2%");
+    expect(screen.getByTestId("top-row-1")).toHaveTextContent("HDFC Bank Ltd");
+    expect(screen.getByTestId("alloc-row-0")).toHaveTextContent("Large Cap");
+  });
+
+  it("the composition is fetched once for both Top 10 Holdings and Fund Allocation, with no scope; the risk figures likewise", async () => {
+    mount();
+    await screen.findByTestId("top-row-1");
+    await screen.findByTestId("alloc-row-0");
+    await screen.findByTestId("risk-row-volatility");
+    expect(api.composition).toHaveBeenCalledTimes(1);
+    expect(api.composition).toHaveBeenCalledWith(IDS.scheme, expect.any(AbortSignal));
+    expect(api.risk).toHaveBeenCalledTimes(1);
+    expect(api.risk).toHaveBeenCalledWith(IDS.scheme, expect.any(AbortSignal));
+    expect(api.holdings).not.toHaveBeenCalled();
+  });
+
+  it("test_failed_card_shows_error_and_retry_refetches_only_that_card (Risk Metrics)", async () => {
+    api.risk.mockRejectedValueOnce(new Error("down")).mockImplementation(() => Promise.resolve(fixture<RiskResponse>("risk_equity")));
+    mount();
+    expect(await screen.findByText("Couldn't load risk metrics.")).toBeInTheDocument();
+    expect(await screen.findByTestId("top-row-1")).toBeInTheDocument();
+    expect(screen.getByTestId("detail-value-value")).toHaveTextContent("₹2,250");
+    const before = { summary: api.summary.mock.calls.length, composition: api.composition.mock.calls.length, performance: api.performance.mock.calls.length };
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByTestId("risk-row-volatility")).toBeInTheDocument();
+    expect(api.risk).toHaveBeenCalledTimes(2);
+    expect({ summary: api.summary.mock.calls.length, composition: api.composition.mock.calls.length, performance: api.performance.mock.calls.length }).toEqual(before);
+  });
+
+  it("a failed composition shows an error in both cards that use it, and one Retry brings both back", async () => {
+    api.composition.mockRejectedValueOnce(new Error("down")).mockImplementation(() => Promise.resolve(fixture<CompositionResponse>("composition")));
+    mount();
+    expect(await screen.findByText("Couldn't load holdings.")).toBeInTheDocument();
+    expect(screen.getByText("Couldn't load allocation.")).toBeInTheDocument();
+    expect(await screen.findByTestId("risk-volatility-value")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "Retry" })[0]);
+    expect(await screen.findByTestId("top-row-1")).toBeInTheDocument();
+    expect(await screen.findByTestId("alloc-row-0")).toBeInTheDocument();
+    expect(api.composition).toHaveBeenCalledTimes(2);
+  });
+
+  it("the allocation centre shows the household's current value for this scope", async () => {
+    mount();
+    expect(await screen.findByTestId("alloc-centre-value")).toHaveTextContent("₹2,250");
+    expect(screen.getByTestId("alloc-centre-label")).toHaveTextContent("Current value");
+  });
+
+  it("test_not_held_member_shows_fund_level_cards (right column): the details say who does not hold it, the risk, holdings and allocation stay, and the centre reads 100%", async () => {
+    api.summary.mockImplementation(() => Promise.resolve(fixture<SummaryResponse>("summary_not_held")));
+    mount({ scope: { members, viewMode: "member", memberId: IDS.meera } });
+    expect(await screen.findByTestId("details-not-held")).toHaveTextContent("Not held by Meera Rao.");
+    expect(await screen.findByTestId("risk-volatility-value")).toHaveTextContent("14.2%");
+    expect(await screen.findByTestId("top-row-1")).toHaveTextContent("HDFC Bank Ltd");
+    expect(await screen.findByTestId("alloc-centre-value")).toHaveTextContent("100%");
+    expect(screen.queryByTestId("detail-units")).toBeNull();
+  });
+
+  it("a member's own numbers show in the details after the switch, and the folio list follows the scope", async () => {
+    api.summary.mockImplementation((_id: string, scope: string) =>
+      Promise.resolve(fixture<SummaryResponse>(scope === IDS.asha ? "summary_member" : "summary_family")));
+    mount({ scope: { members, viewMode: "member", memberId: IDS.asha } });
+    expect(await screen.findByTestId("detail-value-value")).toHaveTextContent("₹1,500");
+    expect(screen.getByTestId("detail-units-value")).toHaveTextContent("100.000");
+    expect(screen.getByTestId(`folio-${IDS.folioAsha}`)).toHaveTextContent("Folio number");
   });
 });
 

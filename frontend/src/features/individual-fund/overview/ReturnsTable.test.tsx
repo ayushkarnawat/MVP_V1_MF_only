@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderInShell } from "@/shell/testing";
 import { deferred } from "../__support__/deferred";
@@ -238,5 +238,24 @@ describe("ReturnsTable", () => {
     await screen.findByText("Your holding (XIRR)");
     const calls = api.returns.mock.calls.map(call => `${call[1]}:${call[2]}`);
     expect(calls).toEqual([`inception:${IDS.asha}`, `current:${IDS.asha}`, `inception:${IDS.dev}`, `current:${IDS.dev}`]);
+  });
+
+  it("test_benchmark_row_uses_the_api_label_when_present_and_falls_back_to_Benchmark (additive field, register C124)", async () => {
+    const labelled = inception();
+    labelled.benchmark_label = "Nifty 500 TRI";
+    api.returns.mockImplementation((_id: string, mode: string) => Promise.resolve(mode === "current" ? { ...current(), benchmark_label: "Nifty 500 TRI" } : labelled));
+    mount();
+    await screen.findByTestId("row-fund");
+    expect(within(screen.getByTestId("row-benchmark")).getByRole("rowheader")).toHaveTextContent("Nifty 500 TRI");
+    fireEvent.click(screen.getByRole("button", { name: "Current" }));
+    // The Current table compares the same cash flows, so its row keeps its own wording.
+    expect(await screen.findByText("Benchmark, same cash flows")).toBeInTheDocument();
+    cleanup();
+    const unlabelled = inception();
+    unlabelled.benchmark_label = null;
+    api.returns.mockImplementation(() => Promise.resolve(unlabelled));
+    mount();
+    await screen.findByTestId("row-fund");
+    expect(within(screen.getByTestId("row-benchmark")).getByRole("rowheader").textContent).toBe("Benchmark");
   });
 });

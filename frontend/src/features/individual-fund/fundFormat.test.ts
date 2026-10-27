@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  axisLabel, changeDirection, formatDate, formatNav, formatSignedPercent, formatSignedRupees, formatWhole, formatXirr,
-  lastPct, planPill, seriesValues, shareLine, shortCategory,
+  axisLabel, changeDirection, formatDate, formatNav, formatRiskValue, formatSignedPercent, formatSignedRupees, formatWhole, formatXirr,
+  lastPct, planPill, riskBarPercent, seriesValues, shareLine, shortCategory, toneChipClass,
 } from "./fundFormat";
 
 describe("changeDirection", () => {
@@ -98,5 +98,44 @@ describe("series helpers", () => {
   it("formatDate is the kit's DD Mon YYYY", () => {
     expect(formatDate("2026-10-23")).toBe("23 Oct 2026");
     expect(formatDate(null)).toBe("—");
+  });
+});
+
+describe("formatRiskValue", () => {
+  it.each([
+    ["volatility", "14.2000", "14.2%"], ["volatility", "9", "9.0%"], ["max_drawdown", "-18.4000", "-18.4%"],
+    ["sharpe", "0.8200", "0.82"], ["sharpe", "-0.1250", "-0.13"], ["beta", "0.9800", "0.98"], ["beta", "1.0", "1.00"],
+    ["volatility", null, "—"], ["beta", undefined, "—"], ["sharpe", "n/a", "—"], ["max_drawdown", "", "—"],
+  ] as const)("%s %s reads %s", (key, value, expected) => {
+    expect(formatRiskValue(key, value)).toBe(expected);
+  });
+});
+
+describe("riskBarPercent", () => {
+  it.each([
+    ["volatility", "14.2000", 47.3], ["volatility", "0", 0], ["volatility", "45", 100],
+    ["max_drawdown", "-18.4000", 40.9], ["max_drawdown", "-60", 100], ["max_drawdown", "-0.0", 0],
+    ["sharpe", "0.8200", 41], ["sharpe", "1.15", 57.5], ["sharpe", "-0.5", 4], ["sharpe", "0.01", 4], ["sharpe", "3", 100],
+    ["beta", "0.9800", 65.3], ["beta", "2", 100],
+    ["beta", null, 0], ["volatility", "abc", 0], ["sharpe", undefined, 0],
+  ] as const)("%s %s sits at %s", (key, value, expected) => {
+    expect(riskBarPercent(key, value)).toBe(expected);
+  });
+});
+
+describe("toneChipClass", () => {
+  it("gives each tone its own tint and text colour from the palette variables", () => {
+    expect(toneChipClass("pos")).toContain("bg-[var(--pos-bg)] text-[var(--pos-text)]");
+    expect(toneChipClass("warn")).toContain("bg-[var(--warn-bg)] text-[var(--warn-text)]");
+    expect(toneChipClass("neg")).toContain("bg-[var(--neg-bg)] text-[var(--neg-text)]");
+    expect(toneChipClass("info")).toContain("text-[var(--c4)]");
+    expect(toneChipClass("neu")).toContain("text-[var(--ui-text-muted)]");
+  });
+
+  it("is a pill, and an unknown or missing tone is the neutral one", () => {
+    for (const tone of ["pos", "warn", "neg", "info", "neu", null, undefined] as const) expect(toneChipClass(tone)).toContain("rounded-full");
+    expect(toneChipClass(null)).toBe(toneChipClass("neu"));
+    expect(toneChipClass(undefined)).toBe(toneChipClass("neu"));
+    expect(toneChipClass("bogus" as never)).toBe(toneChipClass("neu"));
   });
 });

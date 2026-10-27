@@ -23,6 +23,8 @@ describe("Individual Fund front-end guards", () => {
       "api.ts", "fundCopy.ts", "fundFormat.ts", "types.ts", "useFundSection.ts", "FundPageFrame.tsx", "OverviewPage.tsx",
       "components/SectionState.tsx", "components/Segmented.tsx",
       "overview/PerformanceChart.tsx", "overview/ReturnsTable.tsx", "overview/ScoreCard.tsx", "overview/StatBand.tsx", "overview/TileDialog.tsx",
+      "overview/InvestmentDetails.tsx", "overview/RiskMetrics.tsx", "overview/TopHoldings.tsx", "overview/AllHoldingsDialog.tsx",
+      "overview/FundAllocation.tsx", "overview/holdingDialogs.tsx",
       "fixtures/index.ts", "fixtures/schema.ts",
     ]) {
       expect(names).toContain(expected);

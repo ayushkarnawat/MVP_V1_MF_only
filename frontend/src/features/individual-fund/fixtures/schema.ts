@@ -5,6 +5,8 @@
 export interface Schema<T> {
   check: (value: unknown, path: string) => string[];
   readonly kind?: T;
+  /** True for a field the contract allows to be absent (the additive fields of register C124). */
+  readonly optional?: boolean;
 }
 
 const make = <T>(check: Schema<T>["check"]): Schema<T> => ({ check });
@@ -23,6 +25,10 @@ export function nullable<T>(inner: Schema<T>): Schema<T | null> {
   return make((value, path) => (value === null ? [] : inner.check(value, path)));
 }
 
+export function optional<T>(inner: Schema<T>): Schema<T | undefined> {
+  return { check: (value, path) => (value === undefined ? [] : inner.check(value, path)), optional: true };
+}
+
 export function arr<T>(item: Schema<T>): Schema<T[]> {
   return make((value, path) => {
     if (!Array.isArray(value)) return [`${path}: expected array, got ${typeName(value)}`];
@@ -37,8 +43,9 @@ export function obj<T extends object>(fields: { [K in keyof T]-?: Schema<T[K]> }
     const errors: string[] = [];
     const wanted = Object.keys(fields);
     for (const key of wanted) {
-      if (!(key in record)) errors.push(`${path}.${key}: missing`);
-      else errors.push(...(fields as Record<string, Schema<unknown>>)[key].check(record[key], `${path}.${key}`));
+      if (!(key in record)) {
+        if (!(fields as Record<string, Schema<unknown>>)[key].optional) errors.push(`${path}.${key}: missing`);
+      } else errors.push(...(fields as Record<string, Schema<unknown>>)[key].check(record[key], `${path}.${key}`));
     }
     for (const key of Object.keys(record)) if (!wanted.includes(key)) errors.push(`${path}.${key}: not in the contract`);
     return errors;
