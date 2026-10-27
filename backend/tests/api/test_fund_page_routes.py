@@ -14,11 +14,19 @@ from fastapi.testclient import TestClient
 
 from app.api import fund_page
 from app.db.session import get_db
+from app.models.enums import SchemePlanType
 from app.models.user import User
 from app.services.auth.session import get_active_user
 from app.services.dashboard import holdings as holdings_module
 from app.services.fund_page import summary as summary_module
-from tests.services.fund_page.factories import add_user_household, fx_hold, make_session
+from tests.services.fund_page.factories import (
+    TODAY,
+    add_scheme,
+    add_user_household,
+    fx_hold,
+    fx_nav10,
+    make_session,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -118,3 +126,32 @@ def test_summary_response_never_contains_the_full_folio_number():
 
     assert "4400918/3" not in response.text
     assert "A12345678" not in response.text
+
+
+def test_performance_route_returns_appendix_a_contract():
+    db = make_session()
+    household = add_user_household(db)
+    scheme = add_scheme(
+        db,
+        "route-performance",
+        "Equity Scheme - Flexi Cap Fund",
+        SchemePlanType.DIRECT,
+        "ROUTEPERF",
+    )
+    fx_nav10(db, scheme)
+    user = db.get(User, household.user_id)
+
+    response = _authed_client(db, user).get(
+        f"/fund-page/{scheme.id}/performance",
+        params={"period": "1Y"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ready"
+    assert body["scheme_id"] == str(scheme.id)
+    assert body["period"] == "1Y"
+    assert body["start"] == TODAY.replace(year=TODAY.year - 1).isoformat()
+    assert body["end"] == TODAY.isoformat()
+    assert body["fund"][0]["pct"] == "0.0000"
+    assert body["period_returns"]["fund"] == body["fund"][-1]["pct"]

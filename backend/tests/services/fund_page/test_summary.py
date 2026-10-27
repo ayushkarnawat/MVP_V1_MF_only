@@ -20,6 +20,7 @@ from fastapi import HTTPException
 from app.models.enums import Relationship, SchemePlanType
 from app.models.user import HouseholdMember
 from app.services.dashboard import holdings as holdings_module
+from app.services.dashboard import nav as nav_module
 from app.services.fund_page import summary as summary_module
 from app.services.fund_page.scope import ScopeContext
 from app.services.fund_page.summary import build_summary, ensure_recent_nav
@@ -155,7 +156,14 @@ def test_xirr_falls_back_to_computed_when_no_stored_section():
     assert response.tiles.xirr != "0.123456"
 
 
-def test_share_of_portfolio_pct_uses_warm_cache_without_recomputing():
+def test_share_of_portfolio_pct_uses_warm_cache_without_recomputing(monkeypatch):
+    class _PinnedDate(date):
+        @classmethod
+        def today(cls):
+            return TODAY
+
+    monkeypatch.setattr(holdings_module, "date", _PinnedDate)
+    monkeypatch.setattr(nav_module, "date", _PinnedDate)
     db = make_session()
     household = add_user_household(db)
     hold = fx_hold(db, household)

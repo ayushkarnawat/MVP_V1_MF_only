@@ -105,3 +105,29 @@ class FolioNumberResponse(FundModel):
     status: Literal["ready"] = "ready"
     folio_id: str
     folio_number: str
+
+
+class PerformancePoint(FundModel):
+    date: date
+    pct: str
+
+
+class PeriodReturnsOut(FundModel):
+    fund: str
+    benchmark: str | None
+
+
+class PerformanceResponse(FundModel):
+    status: Literal["ready"] = "ready"
+    scheme_id: str
+    period: str
+    start: date
+    end: date
+    clamped: bool
+    since_launch: bool
+    fund: list[PerformancePoint]
+    benchmark_index: str | None
+    benchmark_label: str | None
+    benchmark: list[PerformancePoint] | None
+    benchmark_reason: Literal["no_benchmark", "no_history"] | None
+    period_returns: PeriodReturnsOut
