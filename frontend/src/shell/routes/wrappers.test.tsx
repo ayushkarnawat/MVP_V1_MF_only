@@ -208,5 +208,5 @@ it.each([
 
 it("enables only the requested routes (Home since G6) and preserves the existing import route", () => {
   const live = buildRegistry().filter(route => route.status === "live").map(route => route.id).sort();
-  expect(live).toEqual(["root", "not-found", "home", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "profile", "profile-import-health", "profile-personal"].sort());
+  expect(live).toEqual(["root", "not-found", "home", "portfolio", "portfolio-equity", "import", "planning", "portfolio-mutual-funds", "portfolio-mutual-funds-analytics", "portfolio-mutual-funds-history", "profile", "profile-import-health", "profile-personal"].sort());
 });

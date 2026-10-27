@@ -51,7 +51,7 @@ describe("sidebar", () => {
       expect(active.color).toBe("var(--shell-text)");
       expect(active.fontWeight).toBe("600");
       expect(active.backgroundColor).toBe("rgba(0, 0, 0, 0)");
-      expect(getComputedStyle(row("Portfolio")).color).toBe("var(--shell-text-disabled)");
+      expect(getComputedStyle(row("Liabilities")).color).toBe("var(--shell-text-disabled)");
       const underline = new Map<string, string>();
       for (const rule of Array.from(style.sheet!.cssRules)) {
         if (!(rule instanceof CSSStyleRule) || !rule.selectorText.endsWith("::after")) continue;
@@ -180,13 +180,13 @@ describe("sidebar", () => {
 
   it("shows a Radix Coming soon tooltip on hover", async () => {
     mount();
-    fireEvent.pointerMove(row("Portfolio"), { pointerType: "mouse" });
+    fireEvent.pointerMove(row("Liabilities"), { pointerType: "mouse" });
     expect(await screen.findByRole("tooltip")).toHaveTextContent("Coming soon");
   });
 
   it("shows a Radix Coming soon tooltip on keyboard focus", async () => {
     mount();
-    act(() => row("Portfolio").focus());
+    act(() => row("Liabilities").focus());
     expect(await screen.findByRole("tooltip")).toHaveTextContent("Coming soon");
   });
 

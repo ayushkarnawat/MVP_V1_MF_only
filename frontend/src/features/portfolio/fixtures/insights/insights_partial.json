@@ -1,0 +1,65 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": "2026-10-23",
+  "partial": true,
+  "missing_funds": [
+    {
+      "scheme_id": "7c906599-2ff8-5de4-83f9-b94651c683f2",
+      "name": "Dev Gold Fund"
+    }
+  ],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "members": [
+    {
+      "id": "81e5a369-bbd4-59f1-b480-8a5bbf1c74ef",
+      "name": "ASHA RAO",
+      "has_data": true
+    },
+    {
+      "id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
+      "name": "Dev Rao",
+      "has_data": true
+    }
+  ],
+  "total_value": "4278.34",
+  "empty": false,
+  "empty_reason": null,
+  "insights": {
+    "largest_holding": {
+      "scheme_id": "cf09c887-92a1-5b49-a624-7f067ed6a2c8",
+      "fund_name": "Dev Short Duration Debt",
+      "amc_name": "Home Test AMC",
+      "value": "2042.04",
+      "pct_of_portfolio": "47.7297"
+    },
+    "spread": {
+      "fund_count": 3,
+      "amc_count": 1
+    },
+    "plan_split": {
+      "direct": {
+        "value": "4278.34",
+        "pct": "100.0000"
+      },
+      "regular": {
+        "value": "0.00",
+        "pct": "0.0000"
+      },
+      "unclassified": {
+        "value": "0.00",
+        "pct": "0.0000"
+      }
+    },
+    "largest_amc": {
+      "amc_name": "Home Test AMC",
+      "value": "4278.34",
+      "pct_of_portfolio": "100.0000",
+      "fund_count": 3
+    },
+    "sips": {
+      "active_count": 3,
+      "monthly_total": "9000.00"
+    }
+  }
+}

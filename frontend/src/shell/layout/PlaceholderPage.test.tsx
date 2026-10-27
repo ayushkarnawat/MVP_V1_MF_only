@@ -3,11 +3,12 @@ import { expect, it } from "vitest";
 import { renderInShell } from "../testing";
 import { buildRegistry } from "../registry/buildRegistry";
 
-it("shows the matched route title, Coming soon and disabled Investments", async () => {
+// /portfolio went live with the Portfolio page (PF1), so the Investments link on a placeholder is a real link now.
+it("shows the matched route title, Coming soon and the Investments link", async () => {
   renderInShell(undefined, { path: "/portfolio/gold" });
   expect(await screen.findByRole("heading", { name: "Gold" })).toBeInTheDocument();
   expect(screen.getByRole("main")).toHaveTextContent("Coming soon");
-  expect(screen.getByRole("main").querySelector('[aria-disabled="true"]')).toHaveTextContent("Investments");
+  expect(screen.getByRole("main").querySelector('a[href="/portfolio"]')).toHaveTextContent("Investments");
 });
 
 it("enables the Investments link using fixture registry status", async () => {
