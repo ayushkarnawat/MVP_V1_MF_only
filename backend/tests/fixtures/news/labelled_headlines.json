@@ -1636,5 +1636,131 @@
   {
     "title": "Car makers union calls off the planned strike after talks",
     "expected": []
+  },
+  {
+    "title": "Microsoft techie who topped performance ratings says he'll take VEP, but won't work till his exit",
+    "expected": []
+  },
+  {
+    "title": "Egypt parliament backs Sisi to take 'all necessary measures' to support Saudi Arabia against Houthis",
+    "expected": []
+  },
+  {
+    "title": "Bajel Projects shares surge over 12% - What's behind the stock rally? Can it rise further? Experts take",
+    "expected": [
+      [
+        "stock",
+        "INTEST0027"
+      ]
+    ]
+  },
+  {
+    "title": "Shaan pays tribute to Michael Jackson in Dubai, fans call him 'pop star'",
+    "expected": []
+  },
+  {
+    "title": "Digi Yatra international passenger trials to go live at seven airports from Nov 1",
+    "expected": []
+  },
+  {
+    "title": "Morgan Stanley sees a strong festive quarter for Indian consumer demand",
+    "expected": []
+  },
+  {
+    "title": "Stanley Lifestyles shares slide after weak quarterly results",
+    "expected": [
+      [
+        "stock",
+        "INTEST0025"
+      ]
+    ]
+  },
+  {
+    "title": "Brokerages stay bullish on Take Solutions after a deal win; TAKE stock jumps",
+    "expected": [
+      [
+        "stock",
+        "INTEST0023"
+      ]
+    ]
+  },
+  {
+    "title": "Strides Pharma Science shares gain after a USFDA approval",
+    "expected": [
+      [
+        "stock",
+        "INTEST0024"
+      ]
+    ]
+  },
+  {
+    "title": "Yatra Online shares rise as festive travel bookings improve",
+    "expected": [
+      [
+        "stock",
+        "INTEST0026"
+      ]
+    ]
+  },
+  {
+    "title": "Tata Motors shares rise as festive demand takes hold",
+    "expected": [
+      [
+        "stock",
+        "INTEST0003"
+      ]
+    ]
+  },
+  {
+    "title": "Experts take a cautious view on the budget ahead of the session",
+    "expected": []
+  },
+  {
+    "title": "Urban Company shares rise 5% as Morgan Stanley sees up to 40% upside",
+    "expected": [
+      [
+        "stock",
+        "INTEST0028"
+      ]
+    ]
+  },
+  {
+    "title": "Delhi vs Bihar: Delhi workers spend nearly three times more than urban Bihar commuters",
+    "expected": []
+  },
+  {
+    "title": "Urban demand for two wheelers stays muted as rural recovery picks up",
+    "expected": []
+  },
+  {
+    "title": "Urban Company IPO listing gains hold as the stock steadies",
+    "expected": [
+      [
+        "stock",
+        "INTEST0028"
+      ]
+    ]
+  },
+  {
+    "title": "Nykaa shares jump 5% after Q2 results",
+    "expected": [
+      [
+        "stock",
+        "INTEST0029"
+      ]
+    ]
+  },
+  {
+    "title": "NYKAA stock rallies on festive demand",
+    "expected": [
+      [
+        "stock",
+        "INTEST0029"
+      ]
+    ]
+  },
+  {
+    "title": "Nykaa opens a new beauty store in Pune",
+    "expected": []
   }
 ]
