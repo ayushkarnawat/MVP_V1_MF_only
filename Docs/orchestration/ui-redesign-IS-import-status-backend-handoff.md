@@ -1,3 +1,5 @@
+> **DROPPED (owner decision, 27 Oct): do not run this handoff.** The old system had no failed-import tracking, so the failed-import banner and 'statement is being processed' note are not built; nothing here is invented. Kept only as a record.
+
 # Handoff: ui-redesign IS (Home import-status backend: failed-import banner + "statement is being processed" note)
 **Status:** DRAFT, NOT READY TO RUN until the owner answers Open question 1 (written 27 Oct 2026). **Worker:** Claude Code (Sonnet), one terminal session. **Orchestrator:** Claude Code in the main session, who verifies and makes every commit.
 **Why:** register C120 parked two Home items for lack of a data source: the failed-import banner (layout F3, owner H10: "sits above everything") and the "Your statement is being processed" note shown with skeletons (layout line 44). Front-end consumer: the G6 Home assembly; the front end waits for the golden fixtures of Task 7.
