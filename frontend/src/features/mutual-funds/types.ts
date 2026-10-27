@@ -293,7 +293,15 @@ export interface CapAllocationSummary {
   excluded_share: string;
 }
 export type AssetClassKey = "equity" | "debt" | "gold" | "cash_like";
-export interface AssetAllocationClass { key: AssetClassKey; value: string; percentage: string }
+/** ASKS-FE-M (C160): a fund inside one asset class. `percentage` is the share of that class (positive parts only), not of the portfolio. */
+export interface AssetAllocationClassFund { scheme_id: string; scheme_name: string; value: string; percentage: string }
+export interface AssetAllocationClass {
+  key: AssetClassKey;
+  value: string;
+  percentage: string;
+  /** Optional (absent or null on payloads stored before the ask). Largest first; only funds with a positive part. */
+  funds?: AssetAllocationClassFund[] | null;
+}
 export interface AssetAllocationOuter { key: CapKey; value: string; percentage: string }
 export interface AssetAllocationVariant {
   classes: AssetAllocationClass[];
@@ -356,6 +364,11 @@ export interface InvestmentWithdrawalEntry {
   scheme_name: string;
   household_member_id: string;
   household_member_name: string;
+  /** ASKS-FE-M (backend C133/C160), optional: absent on payloads stored before the ask. Decimal strings. */
+  units?: string | null;
+  nav?: string | null;
+  /** Masked by the backend: "XXXX" plus the last four letters or digits of the folio. */
+  folio?: string | null;
 }
 export interface InvestmentWithdrawalBucket {
   /** "YYYY-MM" for monthly buckets, "YYYY" for yearly. */
@@ -374,7 +387,14 @@ export interface InvestmentWithdrawalResult {
   absolute_gain: string;
   monthly: InvestmentWithdrawalBucket[];
   yearly: InvestmentWithdrawalBucket[];
-  sip_summary: { active_count: number; total_monthly_amount: string; missed_count: number };
+  sip_summary: {
+    active_count: number;
+    total_monthly_amount: string;
+    missed_count: number;
+    /** ASKS-FE-M (C160), optional: the SIP with the most missed instalments and the date of the first one it missed ("YYYY-MM-DD"); null when none. */
+    missed_sip_fund?: string | null;
+    missed_sip_date?: string | null;
+  };
   gifts_net: string;
   total_switched_in?: string;
   total_switched_out?: string;
@@ -400,6 +420,22 @@ export interface OverlapPair {
   common_stocks: OverlapCommonStock[];
   common_total: number;
 }
+/** ASKS-FE-M (C160): one stock behind a pair's overlap. */
+export interface OverlapDriver {
+  isin: string;
+  instrument_name: string;
+  /** The smaller of the stock's two fund weights, percent of net assets. */
+  contribution_pct: string;
+  /** `contribution_pct` as a percent of the pair's `overlap_pct`. */
+  share_of_pair_pct: string;
+}
+export interface OverlapImpactPair {
+  fund_a: OverlapFund;
+  fund_b: OverlapFund;
+  overlap_pct: string;
+  /** Up to 5 stocks, largest shared weight first. */
+  drivers: OverlapDriver[];
+}
 export interface ConcentrationPoint { stock_count: number; exposure_pct: string }
 export interface OverlapSummary {
   /** At most 12 funds, largest household value first. */
@@ -408,6 +444,10 @@ export interface OverlapSummary {
   matrix: OverlapPair[];
   /** Every pair among ALL funds with overlap strictly above the low band, largest first. */
   pairs_above_low: OverlapPair[];
+  /** ASKS-FE-M (C160), optional: the top 3 of `pairs_above_low` with their biggest shared stocks. */
+  impact_pairs?: OverlapImpactPair[] | null;
+  /** Optional: pairs at exactly the low band, which the strict `pairs_above_low` leaves out. The inclusive list is the two joined, re-sorted by overlap. */
+  pairs_at_low_boundary?: OverlapPair[] | null;
   matrix_truncated: boolean;
   /** Funds with published holdings (not only the ones in the matrix). */
   total_fund_count: number;

@@ -2,6 +2,7 @@ import { compareDecimalStrings, sumDecimalStrings } from "../../../lib/decimal";
 import { percentOf, slugify } from "../mfCopy";
 import type {
   AnalyticsAllocationBucket,
+  AssetAllocationClassFund,
   AssetAllocationVariant,
   AssetClassKey,
   CapAllocationSummary,
@@ -202,3 +203,10 @@ export function fundsInSlice(
 
   return { funds, count: funds.length };
 }
+
+/** The funds behind one asset class (backend C160), in the order the backend sent them (largest first); null when the
+ * payload has none for the class (an old payload), which is different from an empty list. */
+export function classFunds(variant: AssetAllocationVariant, key: AssetClassKey): AssetAllocationClassFund[] | null {
+  return variant.classes.find(item => item.key === key)?.funds ?? null;
+}
+

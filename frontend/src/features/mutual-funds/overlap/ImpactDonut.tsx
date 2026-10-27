@@ -4,7 +4,7 @@ import type { AnalyticsCardProps } from "../allocation/allocationLogic";
 import { SectionCard } from "../common/SectionCard";
 import { SlicedDonut } from "../common/charts";
 import type { OverlapSummary, Slice } from "../types";
-import { impactBreakdown } from "./overlapLogic";
+import { impactBreakdown, impactPairs, pairKey } from "./overlapLogic";
 
 const COLORS: Record<string, string> = {
   top3: "var(--neg)",
@@ -22,6 +22,7 @@ export function ImpactDonut({
 
   const count = data ? Math.min(3, data.pairs_above_low.length) : 0;
   const rows = data ? impactBreakdown(data) : [];
+  const drivers = data ? impactPairs(data) : [];
 
   const slices: Slice[] = rows.map(r => ({
     key: r.key,
@@ -116,6 +117,43 @@ export function ImpactDonut({
                 </ul>
               </div>
             </>
+          )}
+
+          {drivers.length > 0 && (
+            <section data-testid="impact-drivers" aria-label="What drives the overlap" className="space-y-3 border-t border-[var(--ui-divider)] pt-4">
+              <h4 className="text-sm font-semibold text-[var(--ui-text)]">What drives the overlap</h4>
+              <p className="text-xs text-[var(--ui-text-muted)]">The biggest shared stocks behind your top overlapping pairs.</p>
+              {drivers.map(pair => {
+                const key = pairKey(pair.fund_a.scheme_id, pair.fund_b.scheme_id);
+                const title = `${pair.fund_a.scheme_name} × ${pair.fund_b.scheme_name}`;
+                return (
+                  <div key={key} data-testid={`impact-pair-${key}`} data-pair={key} className="space-y-1.5">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <h5 data-testid={`impact-pair-title-${key}`} className="text-xs font-semibold text-[var(--ui-text)]">{title}</h5>
+                      <span data-testid={`impact-pair-overlap-${key}`} className="text-xs text-[var(--ui-text-muted)]">
+                        {`${formatPercent(pair.overlap_pct, { digits: 0 })} overlap`}
+                      </span>
+                    </div>
+                    <ul aria-label={`Stocks driving ${title}`} className="flex flex-col gap-1 text-xs">
+                      {pair.drivers.map(stock => (
+                        <li
+                          key={stock.isin}
+                          data-testid={`impact-driver-${key}-${stock.isin}`}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-[var(--ui-divider)] px-3 py-2"
+                        >
+                          <span data-testid={`impact-driver-name-${key}-${stock.isin}`} className="text-[var(--ui-text)]">
+                            {stock.instrument_name}
+                          </span>
+                          <span data-testid={`impact-driver-value-${key}-${stock.isin}`} className="text-[var(--ui-text-muted)]">
+                            {`${formatPercent(stock.contribution_pct, { digits: 2 })} of net assets · ${formatPercent(stock.share_of_pair_pct, { digits: 1 })} of the overlap`}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </section>
           )}
         </div>
       )}

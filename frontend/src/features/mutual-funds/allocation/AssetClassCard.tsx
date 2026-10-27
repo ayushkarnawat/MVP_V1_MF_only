@@ -11,6 +11,7 @@ import {
   assetSlices,
   CAP_LABELS,
   chartPct,
+  classFunds,
   colorAt,
   hasNegative,
   largestSlice,
@@ -60,6 +61,7 @@ export function AssetClassCard({
   const containsNegative = useMemo(() => hasNegative(slices), [slices]);
 
   const selectedSlice = validSelected ? slices.find(s => s.key === validSelected) ?? null : null;
+  const funds = variant && validSelected ? classFunds(variant, validSelected) : null;
 
   const R_OUTER = 88;
   const R_INNER = 56;
@@ -363,6 +365,35 @@ export function AssetClassCard({
                   ))}
               </ul>
 
+              {funds !== null && funds.length > 0 && (
+                <div className="mt-3 flex flex-col gap-1.5">
+                  <p data-testid="drill-funds-title" className="text-xs font-semibold text-[var(--ui-text)]">
+                    Contributing funds
+                  </p>
+                  <ul aria-label="Contributing funds" className="flex flex-col gap-1 text-xs">
+                    {funds.map(fund => (
+                      <li
+                        key={fund.scheme_id}
+                        data-testid={`drill-fund-${fund.scheme_id}`}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-[var(--ui-divider)] px-3 py-2"
+                      >
+                        <span data-testid={`drill-fund-name-${fund.scheme_id}`} className="text-[var(--ui-text)]">
+                          {fund.scheme_name}
+                        </span>
+                        <span data-testid={`drill-fund-value-${fund.scheme_id}`} className="font-medium text-[var(--ui-text)]">
+                          {`${formatRupees(fund.value)} · ${formatPercent(fund.percentage, { digits: 1 })} of ${selectedSlice.label}`}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {funds !== null && funds.length === 0 && (
+                <p data-testid="drill-funds-empty" className="mt-3 text-xs text-[var(--ui-text-muted)]">
+                  No fund adds a positive amount to this class.
+                </p>
+              )}
+
               {validSelected === "equity" ? (
                 <button
                   type="button"
@@ -378,11 +409,11 @@ export function AssetClassCard({
                 >
                   See the stock-level split in Market-Cap Allocation
                 </button>
-              ) : (
+              ) : funds === null ? (
                 <p data-testid="drill-gap-note" className="mt-2 text-xs text-[var(--ui-text-muted)]">
                   A fund-by-fund breakdown isn't available for this class yet; the look-through produces one total for it.
                 </p>
-              )}
+              ) : null}
             </DrillPanel>
           )}
         </div>

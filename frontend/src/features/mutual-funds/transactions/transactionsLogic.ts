@@ -1,4 +1,5 @@
-import { diffDecimalStrings, sumDecimalStrings } from "../../../lib/decimal";
+import { diffDecimalStrings, formatDecimal, sumDecimalStrings } from "../../../lib/decimal";
+import { formatDate } from "../../../lib/format";
 import { MONTHS_LONG } from "../mfCopy";
 import type {
   InvestmentWithdrawalBucket,
@@ -158,3 +159,33 @@ export function barHeights(
     };
   });
 }
+
+export interface LedgerDetail {
+  units: string | null;
+  nav: string | null;
+  folio: string | null;
+}
+
+const present = (value: string | null | undefined): value is string => typeof value === "string" && value.trim() !== "";
+
+/** The optional units, NAV and folio of one ledger entry (backend C160), ready to show; null when the entry has none of
+ * them (an old payload), so the row keeps its "not part of this data yet" sentence. Units are shown as sent (they carry
+ * three places), the NAV in rupees to two places, the folio as the backend masked it. */
+export function ledgerDetail(entry: InvestmentWithdrawalEntry): LedgerDetail | null {
+  const units = present(entry.units) ? entry.units : null;
+  const nav = present(entry.nav) ? `₹${formatDecimal(entry.nav)}` : null;
+  const folio = present(entry.folio) ? entry.folio : null;
+  return units === null && nav === null && folio === null ? null : { units, nav, folio };
+}
+
+const MISSED_SIP_GENERIC = "A scheduled SIP instalment did not appear on the latest statement.";
+
+/** The tooltip of the missed-instalment badge: names the fund and the due date of the first missed instalment when the
+ * backend sends both (the mockup's wording), otherwise the generic sentence. */
+export function missedSipTooltip(summary: InvestmentWithdrawalResult["sip_summary"]): string {
+  const fund = summary.missed_sip_fund;
+  const due = formatDate(summary.missed_sip_date);
+  if (!present(fund) || due === "—") return MISSED_SIP_GENERIC;
+  return `${fund} — SIP due ${due} was not debited`;
+}
+
