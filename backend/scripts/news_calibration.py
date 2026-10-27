@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from app.models.reference import Scheme
 from app.models.user import HouseholdMember, User
 from app.services.home.allocation import load_allocation
 from app.services.home.context import resolve_scope
@@ -38,6 +39,7 @@ from app.services.news.config import MIN_SIZE_PCT, TOP_N
 from app.services.news.match import (
     WatchEntity, _allocation_entities, _group_by_fund_category, _group_by_fund_house, _valued,
 )
+from app.services.news.normalise import category_key
 
 _NO_DISCLOSURE_KINDS = ("stock", "sector")
 
@@ -89,6 +91,15 @@ def _report_kind(kind: str, entities: list[WatchEntity]) -> list[str]:
     return lines
 
 
+def _unmatched_category_strings(db) -> list[str]:
+    """C137 diagnostic: `sebi_category` strings held by real schemes in this
+    file that `category_key` still can't resolve, so a calibration gap like
+    the Axis/UTI one this task fixed shows up here instead of silently
+    vanishing from `fund_category`'s percentages."""
+    categories = {row[0] for row in db.query(Scheme.sebi_category).distinct() if row[0]}
+    return sorted(name for name in categories if category_key(name) is None)
+
+
 def _report_for_scope(db, label: str, user_id, ctx) -> list[str]:
     entities = _real_entities(db, user_id, ctx)
     by_kind: dict[str, list[WatchEntity]] = {}
@@ -126,6 +137,14 @@ def main() -> None:
                 .order_by(HouseholdMember.created_at, HouseholdMember.id)
                 .all()
             )
+            unmatched = _unmatched_category_strings(db)
+            print("unmatched sebi_category strings (no category_key match):")
+            if unmatched:
+                for name in unmatched:
+                    print(f"  {name!r}")
+            else:
+                print("  (none)")
+
             aggregate_ctx = resolve_scope(db, SimpleNamespace(id=user.id), None)
             for line in _report_for_scope(db, "aggregate", user.id, aggregate_ctx):
                 print(line)

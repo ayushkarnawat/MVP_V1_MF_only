@@ -185,6 +185,15 @@ def test_category_key_also_accepts_the_stored_amfi_canonical_form():
     assert category_key("Other Scheme - Some Unmapped Niche Category") is None  # no raise
 
 
+def test_category_key_c137_tolerates_dash_glued_descriptors_and_plural_fund_names():
+    # C137: real AMC `sebi_category` strings found via s25.db calibration that the
+    # pre-fix fold/key logic resolved to None. Axis glues a plain-English descriptor
+    # onto the real category name with a bare "-" (no space before it); UTI uses the
+    # plural "Funds" where the bare SEBI name says "Index Funds/ETFs".
+    assert category_key("Equity Schemes - ELSS- Tax Saver Fund") == "elss"
+    assert category_key("Other Scheme - Index Funds") == "index_etf"
+
+
 # ---------------------------------------------------------------------------
 # (5) gold/silver: bare mention is not enough, a negative phrase cancels it
 # ---------------------------------------------------------------------------

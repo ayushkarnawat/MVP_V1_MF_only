@@ -198,8 +198,37 @@ def _category_fold(text: str) -> str:
     return text.replace("/ ", "/")
 
 
+def _category_fold_variants(text: str) -> set[str]:
+    """C137: some AMCs' `sebi_category` strings don't match any bare SEBI
+    name even after `_category_fold` -- an AMC-specific descriptor is glued
+    on with a bare "-" (no surrounding spaces, so the "<Type> Scheme - "
+    prefix split above doesn't catch it), e.g. "ELSS- Tax Saver Fund"; or
+    the plural "Funds" is used where the bare name says singular "Fund", or
+    vice versa, e.g. "Index Funds" vs. the bare name "Index Funds/ETFs".
+    Generate every plausible fold instead of a single one, so both sides
+    (this function is used to build `_CATEGORY_KEYS_FOLDED` too) can be
+    compared by set membership. No bare SEBI name contains a literal "-",
+    so the dash-split variant is only ever produced from AMC-supplied text."""
+    base = _category_fold(text)
+    variants = {base}
+    if base.endswith(" funds"):
+        variants.add(base[: -len(" funds")])
+    elif base.endswith(" fund"):
+        variants.add(base[: -len(" fund")])
+    for variant in list(variants):
+        if variant.endswith("/etfs"):
+            variants.add(variant[: -len("/etfs")])
+    left, sep, _ = base.partition("-")
+    if sep and left.strip():
+        variants.add(left.strip())
+    return variants
+
+
 _CATEGORY_KEYS_FOLDED: dict[str, str] = {
-    _category_fold(name): key for name, key in SEBI_CATEGORY_KEYS.items() if key is not None
+    variant: key
+    for name, key in SEBI_CATEGORY_KEYS.items()
+    if key is not None
+    for variant in _category_fold_variants(name)
 }
 
 
@@ -209,7 +238,11 @@ def category_key(sebi_name: str) -> str | None:
     if sebi_name in SEBI_CATEGORY_KEYS:
         return SEBI_CATEGORY_KEYS[sebi_name]
     _, _, rest = sebi_name.partition(" - ")
-    return _CATEGORY_KEYS_FOLDED.get(_category_fold(rest or sebi_name))
+    for variant in _category_fold_variants(rest or sebi_name):
+        key = _CATEGORY_KEYS_FOLDED.get(variant)
+        if key is not None:
+            return key
+    return None
 
 
 def sector_key(label: str | None) -> str | None:
