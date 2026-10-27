@@ -38,6 +38,7 @@ from app.models.reference import (
     MarketCapClassification,
     NavHistory,
     Scheme,
+    SchemeFundManager,
     SchemeHolding,
     StockMaster,
 )
@@ -228,6 +229,24 @@ def add_stock_master(
 ) -> StockMaster:
     return _attach(db, StockMaster(
         isin=isin, name=name, sector=sector, as_of_date=as_of, source="fixture",
+    ))
+
+
+def add_manager(
+    db: Session,
+    scheme: Scheme,
+    name: str,
+    reference_period: date,
+    *,
+    role: str | None = None,
+    sequence_order: int = 0,
+    managing_since: date | None = None,
+) -> SchemeFundManager:
+    return _attach(db, SchemeFundManager(
+        id=uid(f"manager-{scheme.id}-{reference_period}-{name}"), scheme_id=scheme.id,
+        manager_name=name, role=role, sequence_order=sequence_order,
+        managing_since=managing_since, reference_period=reference_period,
+        match_method="EXACT", match_confidence=Decimal("1"),
     ))
 
 

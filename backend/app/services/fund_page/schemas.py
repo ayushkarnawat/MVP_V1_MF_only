@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
+
+from app.services.analytics.schemas import FundScoreRow
 
 
 class FundModel(BaseModel):
@@ -208,3 +210,24 @@ class HoldingsListResponse(FundModel):
     age_tag: Literal["older_than_60_days"] | None
     count: int
     rows: list[HoldingRowOut]
+
+
+class ManagerOut(FundModel):
+    name: str
+    role: str | None
+    managing_since: date | None
+    tenure_years: str | None
+
+
+class ManagerResponse(FundModel):
+    status: Literal["ready"] = "ready"
+    scheme_id: str
+    reference_period: date
+    details_available: Literal[False] = False
+    managers: list[ManagerOut]
+
+
+class ScoreResponse(FundScoreRow):
+    status: Literal["ready"] = "ready"
+    source: Literal["stored", "computed"]
+    computed_at: datetime
