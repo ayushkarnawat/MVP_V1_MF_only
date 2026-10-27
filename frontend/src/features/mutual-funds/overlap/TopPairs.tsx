@@ -8,9 +8,9 @@ import {
   buildOverlapInsights,
   combinedWeight,
   fundInitials,
+  inclusivePairs,
   PAIR_LIMIT,
   pairKeyOf,
-  sortedPairs,
 } from "./overlapLogic";
 
 export interface TopPairsProps extends AnalyticsCardProps<OverlapSummary> {
@@ -27,7 +27,7 @@ export function TopPairs({
 }: TopPairsProps) {
   const [showAll, setShowAll] = useState(false);
 
-  const pairs = data ? sortedPairs(data.pairs_above_low) : [];
+  const pairs = data ? inclusivePairs(data) : [];
   const displayed = showAll ? pairs : pairs.slice(0, PAIR_LIMIT);
   const insights = data ? buildOverlapInsights(data) : [];
 
