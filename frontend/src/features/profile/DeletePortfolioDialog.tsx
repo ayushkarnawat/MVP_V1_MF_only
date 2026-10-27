@@ -18,10 +18,11 @@ export function DeletePortfolioDialog({ member, statementsCount, pending = false
   const [removeMember, setRemoveMember] = useState(false);
   // Me is never removed from the family (M17: "self member and PAN always kept").
   const canRemove = member.relationship !== "self";
+  const name = member.name?.trim() ? member.name : "this member";
   return (
     <PromptDialog
       isOpen
-      title={`Delete all of ${member.name}’s funds?`}
+      title={`Delete all of ${name}’s funds?`}
       body={`This removes their funds from all ${statementsCount} statement${statementsCount === 1 ? "" : "s"}. Other people’s funds stay.`}
       onClose={onKeep}
       footer={
@@ -40,10 +41,10 @@ export function DeletePortfolioDialog({ member, statementsCount, pending = false
           <>
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={removeMember} onChange={(e) => setRemoveMember(e.target.checked)} />
-              <span>{`Also remove ${member.name} from my family`}</span>
+              <span>{`Also remove ${name} from my family`}</span>
             </label>
             <p className="text-[var(--color-text-secondary)]">
-              {`If you remove them and later upload a statement with ${member.name} again, you’ll need to add their details again.`}
+              {`If you remove them and later upload a statement with ${name} again, you’ll need to add their details again.`}
             </p>
           </>
         )}

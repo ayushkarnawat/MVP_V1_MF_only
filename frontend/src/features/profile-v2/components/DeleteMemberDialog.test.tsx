@@ -66,7 +66,7 @@ describe("DeleteMemberDialog: deleting", () => {
     fireEvent.click(confirm());
     expect(confirm()).toHaveTextContent("Deleting…");
     expect(confirm()).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Keep" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Keep" })).toBeDisabled();
     fireEvent.click(confirm());
     expect(deleteMemberPortfolio).toHaveBeenCalledTimes(1);
     await act(async () => { finish(DELETED); });
@@ -99,24 +99,27 @@ describe("DeleteMemberDialog: leaving", () => {
     expect(deleteMemberPortfolio).not.toHaveBeenCalled();
   });
 
-  it("a late answer after the dialog was closed changes nothing (no onDeleted)", async () => {
+  // Closing mid-request used to look like "cancel" while the server still deleted, and the Family list stayed stale.
+  it("cannot be closed while the delete is in flight, and the answer still reaches onDeleted", async () => {
     let finish: (value: Deleted) => void = () => {};
     vi.mocked(deleteMemberPortfolio).mockReturnValue(new Promise<Deleted>(resolve => { finish = resolve; }));
     mount();
     fireEvent.click(confirm());
-    fireEvent.click(screen.getByRole("button", { name: "Keep" }));
+    expect(screen.getByRole("button", { name: "Keep" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onClose).not.toHaveBeenCalled();
     await act(async () => { finish(DELETED); });
-    expect(onDeleted).not.toHaveBeenCalled();
+    expect(onDeleted).toHaveBeenCalledTimes(1);
   });
 
-  it("a late failure after the dialog was closed shows no message", async () => {
-    let fail: (reason: Error) => void = () => {};
-    vi.mocked(deleteMemberPortfolio).mockReturnValue(new Promise<Deleted>((_resolve, reject) => { fail = reject; }));
+  it("can be closed again once a failed delete has shown its message", async () => {
+    vi.mocked(deleteMemberPortfolio).mockRejectedValue(new Error("x"));
     mount();
     fireEvent.click(confirm());
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Keep" }));
-    await act(async () => { fail(new Error("late")); });
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
 

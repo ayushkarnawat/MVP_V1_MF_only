@@ -69,6 +69,11 @@ describe("SettingsRows", () => {
   it("shows disabled rows, not links, when the routes are still placeholders", () => {
     const placeholders = buildRegistry().map(route => route.id.startsWith("profile-settings-") ? { ...route, status: "placeholder" as const } : route);
     renderInShell(<SettingsRows />, { path: "/profile/settings", routes: placeholders });
-    expect(screen.queryAllByRole("link")).toHaveLength(0);
+    const links = screen.getAllByRole("link");
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link).toHaveAttribute("aria-disabled", "true");
+      expect(link).not.toHaveAttribute("href");
+    }
   });
 });

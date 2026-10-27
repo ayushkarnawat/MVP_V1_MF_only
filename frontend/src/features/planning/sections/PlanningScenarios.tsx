@@ -49,6 +49,13 @@ export function PlanningScenarios({ selectedId, onSelect, onImport, onLearnMore 
   const [listAttempt, setListAttempt] = useState(0);
 
   const [memberId, setMemberId] = useState<MemberChoice>("family");
+  // A new scenario starts at Family combined, so its own member set is built from its own family result.
+  // Done while rendering (not in an effect) so no request goes out for the new scenario with the old member.
+  const [lastSelectedId, setLastSelectedId] = useState(selectedId);
+  if (lastSelectedId !== selectedId) {
+    setLastSelectedId(selectedId);
+    setMemberId("family");
+  }
   const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
   const [loaded, setLoaded] = useState<{
     scenarioId: string;

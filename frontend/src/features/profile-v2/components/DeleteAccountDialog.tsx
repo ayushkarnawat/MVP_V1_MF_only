@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Modal } from "@/components/Modal";
 import { useAuth } from "@/features/auth/AuthContext";
 import type { AccountDeletionReason } from "@/features/auth/types";
@@ -24,27 +24,23 @@ export function DeleteAccountDialog({ onClose }: DeleteAccountDialogProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const tokenRef = useRef(0);
-
+  // Closing while the request is out would look like "cancel" although the deletion still gets scheduled.
   const close = () => {
-    tokenRef.current += 1;
+    if (submitting) return;
     onClose();
   };
 
   const confirm = async () => {
     if (!reason || submitting) return;
-    const token = tokenRef.current;
     setSubmitting(true);
     setError(null);
     try {
       await requestAccountDeletion(reason, feedback);
-      if (tokenRef.current !== token) return;
       onClose();
     } catch {
-      if (tokenRef.current !== token) return;
       setError("Could not schedule account deletion. Please try again.");
     } finally {
-      if (tokenRef.current === token) setSubmitting(false);
+      setSubmitting(false);
     }
   };
 
@@ -87,8 +83,9 @@ export function DeleteAccountDialog({ onClose }: DeleteAccountDialogProps) {
           <div className="mt-6 flex justify-end gap-3">
             <button
               type="button"
+              disabled={submitting}
               onClick={close}
-              className="rounded-lg border border-[var(--ui-divider)] bg-[var(--ui-card)] px-4 py-2 text-sm font-medium text-[var(--ui-text)] hover:bg-[var(--ui-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]"
+              className="rounded-lg border border-[var(--ui-divider)] bg-[var(--ui-card)] px-4 py-2 text-sm font-medium text-[var(--ui-text)] disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[var(--ui-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]"
             >
               Cancel
             </button>
@@ -115,8 +112,9 @@ export function DeleteAccountDialog({ onClose }: DeleteAccountDialogProps) {
           <div className="mt-6 flex justify-end gap-3">
             <button
               type="button"
+              disabled={submitting}
               onClick={close}
-              className="rounded-lg border border-[var(--ui-divider)] bg-[var(--ui-card)] px-4 py-2 text-sm font-medium text-[var(--ui-text)] hover:bg-[var(--ui-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]"
+              className="rounded-lg border border-[var(--ui-divider)] bg-[var(--ui-card)] px-4 py-2 text-sm font-medium text-[var(--ui-text)] disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[var(--ui-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]"
             >
               Cancel
             </button>
