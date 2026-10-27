@@ -14,6 +14,7 @@ import {
   LEDGER_PAGE,
   type LedgerFilter,
   type LedgerKind,
+  ledgerDetail,
   ledgerRows,
 } from "./transactionsLogic";
 
@@ -177,6 +178,7 @@ export function Ledger({ buckets, filter, onFilter }: LedgerProps) {
 
                   if (!isOpen) return [el];
 
+                  const extra = ledgerDetail(row.entry);
                   const detailRow = (
                     <tr
                       key={`detail-${id}`}
@@ -215,10 +217,30 @@ export function Ledger({ buckets, filter, onFilter }: LedgerProps) {
                               {id}
                             </dd>
                           </div>
+                          {extra?.units != null && (
+                            <div>
+                              <dt className="text-[var(--ui-text-muted)]">Units</dt>
+                              <dd className="font-medium text-[var(--ui-text)]">{extra.units}</dd>
+                            </div>
+                          )}
+                          {extra?.nav != null && (
+                            <div>
+                              <dt className="text-[var(--ui-text-muted)]">NAV</dt>
+                              <dd className="font-medium text-[var(--ui-text)]">{extra.nav}</dd>
+                            </div>
+                          )}
+                          {extra?.folio != null && (
+                            <div>
+                              <dt className="text-[var(--ui-text-muted)]">Folio</dt>
+                              <dd className="font-mono text-[11px] text-[var(--ui-text)]">{extra.folio}</dd>
+                            </div>
+                          )}
                         </dl>
-                        <p className="mt-3 text-xs text-[var(--ui-text-muted)]">
-                          Units, NAV and folio are not part of this data yet.
-                        </p>
+                        {extra === null && (
+                          <p className="mt-3 text-xs text-[var(--ui-text-muted)]">
+                            Units, NAV and folio are not part of this data yet.
+                          </p>
+                        )}
                       </td>
                     </tr>
                   );

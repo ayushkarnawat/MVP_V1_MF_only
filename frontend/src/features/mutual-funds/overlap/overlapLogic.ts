@@ -7,6 +7,7 @@ import type {
   ConcentrationPoint,
   FundContribution,
   OverlapFund,
+  OverlapImpactPair,
   OverlapPair,
   OverlapSummary,
   StockHoldingRow,
@@ -79,7 +80,7 @@ export function findPair(summary: OverlapSummary, key: string | null): OverlapPa
   if (inMatrix) return inMatrix;
   const inAboveLow = summary.pairs_above_low.find(p => pairKeyOf(p) === key);
   if (inAboveLow) return inAboveLow;
-  return null;
+  return (summary.pairs_at_low_boundary ?? []).find(p => pairKeyOf(p) === key) ?? null;
 }
 
 export function riskBand(summary: OverlapSummary): Band | null {
@@ -294,3 +295,25 @@ export function concentrationCurve(points: ConcentrationPoint[]): { points: Curv
 export function allStocksPath(): string {
   return `${paths.mutualFunds.holdings()}#all-holdings`;
 }
+
+/** The pairs the Top Pairs table lists: those above the low band plus those exactly at it (backend C160 leaves
+ * `pairs_above_low` strict), each pair once, largest overlap first. The stat strip counts pairs at the band as
+ * overlapping too, so the table agrees with it. */
+export function inclusivePairs(summary: OverlapSummary): OverlapPair[] {
+  const seen = new Set<string>();
+  const joined: OverlapPair[] = [];
+  for (const pair of [...summary.pairs_above_low, ...(summary.pairs_at_low_boundary ?? [])]) {
+    const key = pairKeyOf(pair);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    joined.push(pair);
+  }
+  return sortedPairs(joined);
+}
+
+/** The top pairs with the stocks behind their overlap (backend C160), in the backend's order; empty when the field is
+ * absent or null, and a pair with no drivers is left out. */
+export function impactPairs(summary: OverlapSummary): OverlapImpactPair[] {
+  return (summary.impact_pairs ?? []).filter(pair => pair.drivers.length > 0);
+}
+

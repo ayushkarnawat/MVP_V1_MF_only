@@ -1,14 +1,13 @@
 import { formatRupees } from "../../../lib/format";
 import type { InvestmentWithdrawalResult } from "../types";
+import { missedSipTooltip } from "./transactionsLogic";
 
 export interface SipBannerProps {
   summary: InvestmentWithdrawalResult["sip_summary"];
 }
 
-const MISSED_TOOLTIP =
-  "A scheduled SIP instalment did not appear on the latest statement.";
-
 export function SipBanner({ summary }: SipBannerProps) {
+  const missedTooltip = missedSipTooltip(summary);
   if (summary.active_count === 0) {
     return (
       <div
@@ -44,8 +43,8 @@ export function SipBanner({ summary }: SipBannerProps) {
           role="note"
           tabIndex={0}
           data-testid="sip-missed"
-          title={MISSED_TOOLTIP}
-          data-tooltip={MISSED_TOOLTIP}
+          title={missedTooltip}
+          data-tooltip={missedTooltip}
           className="rounded-full bg-[var(--warn-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--warn-text)] cursor-help"
         >
           {summary.missed_count} missed{" "}
