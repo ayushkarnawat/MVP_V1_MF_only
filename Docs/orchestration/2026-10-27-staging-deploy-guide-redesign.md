@@ -111,11 +111,12 @@ cd deploy/leapswitch
 ## Section 2: Backup and current migration
 
 ```bash
-sudo ./scripts/backup.sh
-ls -lt /var/backups 2>/dev/null | head -3
+sudo ./scripts/backup.sh < /dev/null
+echo "backup exit: $?"
+sudo sh -c '. ./.env; aws --profile cloudpe --endpoint-url "$OBJECT_STORAGE_ENDPOINT_URL" s3 ls "s3://$BACKUP_BUCKET_NAME/postgres/" | tail -3'
 sudo docker compose run --rm -T backend alembic current
 ```
-**Good looks like:** the backup script exits 0 (it logs to `/var/log/unifolio-backup.log` when run from cron; NEEDS CHECK the dump directory printed by `backup.sh` on your run and note it for rollback). `alembic current` here is the **before** picture and must end with `0043 (head)` or, if an earlier redesign step already applied some of the new migrations, `0045` or `0044`. **`0046` at this point would be wrong**: it would mean the migrations were already applied, so stop and tell the orchestrator. `0046 (head)` is expected only **after** section 3, never in this section. Write the revision you see here in the run log; it is the starting point for rollback.
+**Good looks like:** the backup script exits 0 **and prints nothing** (it logs to `/var/log/unifolio-backup.log` only when run from cron). **The dump is not on the VM's disk:** `backup.sh` gzips it and uploads it to the CloudPe object-storage bucket `unifolio-staging-disclosure-failed`, key prefix `postgres/` (about 169 MB per dump on 27 Oct 2026), and deletes the local copy. The `s3 ls` line above must show a dump stamped with the current time; note its file name for rollback. Keep `< /dev/null` on the command when it is run from a script, or it can swallow the script's own input. `alembic current` here is the **before** picture and must end with `0043 (head)` or, if an earlier redesign step already applied some of the new migrations, `0045` or `0044`. **`0046` at this point would be wrong**: it would mean the migrations were already applied, so stop and tell the orchestrator. `0046 (head)` is expected only **after** section 3, never in this section. Write the revision you see here in the run log; it is the starting point for rollback.
 
 Use `docker compose run`, not `exec`: `exec` targets the existing container, which may be stale.
 
@@ -145,8 +146,9 @@ sudo docker compose exec -T postgres psql -U "$DB_USERNAME" "$DB_NAME" -c "\d jo
 
 This release changes the backend (news, NSE fill, `job_runs`, M2 fixes), so use `--full`:
 ```bash
-./scripts/deploy-redesign.sh --full
+sudo sh ./scripts/deploy-redesign.sh --full
 ```
+**Run it exactly like this, not `./scripts/deploy-redesign.sh`.** The file is committed without the executable bit (git mode `100644`), so `./scripts/deploy-redesign.sh` fails at once with `Permission denied` (exit 126; nothing changes), and the `deploy` user is not in the docker group, so it needs `sudo`. Before it, check the disk: the build needs about 2.5 GB, so free at least 5 GB first (`df -h /`). `sudo docker builder prune -f` frees the build cache safely (it only slows the next build). Before a **second** `--full` run (for example a hotfix), keep the pre-redesign images under their own tag so the second run cannot overwrite them: `sudo docker tag leapswitch-backend:previous leapswitch-backend:pre-redesign` and the same for `leapswitch-worker`. The first run on 27 Oct 2026 took 3 min 13 s.
 Do **not** run a separate `docker tag ... :previous` step first: `deploy.sh` tags `:previous` itself from the image running right now, and tagging a second time after a build would overwrite `:previous` with the new image and destroy the rollback.
 
 **Good looks like:** the build ends with `built in <N>s`, then
@@ -173,7 +175,7 @@ Edit the one shared `.env` (`sudo`, keep `chmod 600`). It is `/opt/unifolio/depl
 
 | Variable | Value | Notes |
 |---|---|---|
-| `NEWS_ENABLED` | `true` | Kill switch for the Home news job and routes. Default off. Set it only **after** the dry run in section 6 (the dry run works with it off). |
+| `NEWS_ENABLED` | `true` | Kill switch for the Home news job and routes. Default off. The dry run in section 6a **also needs it `true`**: with it off the job prints `news_refresh: news disabled` and exits 0 without reading anything (found on 27 Oct 2026). Set it before 6a; no cron is installed yet, so nothing runs on its own. |
 | `HEALTHCHECK_NEWS_URL` | your Healthchecks.io ping URL | Pinged by `refresh_news.py` after a successful run. Owner creates the check and supplies the URL. NEEDS CHECK: the check's period and grace should suit a run every 3 hours plus the nightly catch-up. |
 | `NEWS_DISABLED_SOURCES` | empty, or comma-separated domains | Dropped at ingest and at request time, case-insensitive. Leave empty unless a source must be blocked. |
 | `NSE_SYMBOL_FILL_ENABLED` | `true` | Enables `scripts/jobs/fill_nse_symbols.py`. Default off. |
@@ -184,7 +186,7 @@ Apply and confirm (the backend and worker read `.env` at container start):
 sudo docker compose up -d --no-deps backend worker
 sudo docker compose run --rm -T backend python -c "from app.config import settings as s; print(s.news_enabled, bool(s.healthcheck_news_url), repr(s.news_disabled_sources), s.nse_symbol_fill_enabled)"
 ```
-**Good looks like:** `True True '' True` (or your disabled list). **Do this step after the section 6 dry run if you prefer to keep news off until the dry run is reviewed:** do the dry run first, then set `NEWS_ENABLED=true` and `HEALTHCHECK_NEWS_URL`, then continue.
+**Good looks like:** `True True '' True` (or your disabled list). Set `NEWS_ENABLED=true` before the section 6 dry run (the dry run writes nothing and never pings the heartbeat).
 
 **If a value shows `False`/empty:** a typo in the variable name, quotes around the value, or the containers were not recreated.
 
@@ -196,14 +198,14 @@ Order matters: dry run, then live runs with the kill switch on, then review, the
 ```bash
 sudo docker compose run --rm -T backend python scripts/jobs/refresh_news.py --dry-run --hours 5
 ```
-**Good looks like:** exit 0 and a `news_refresh` summary line of the form `files_ok=<n> missing=<n> failed=<n> rows=<n> kept=<n> inserted=0 purged=0 seconds=<s> peak_mb=<m>`. Expected: look for `files_ok` above 0 and `kept` a plausible fraction of `rows`. NEEDS CHECK: the exact dry-run wording (the sources show the live line only).
+**Good looks like:** exit 0, one `HTTP/1.1 200 OK` line per GDELT file (20 files for `--hours 5`, none 4xx/5xx), then a summary of the form `dry_run: articles=<n>` and `untagged indian-site titles: count=<m>`, followed by a list of the untagged headlines. Measured 27 Oct 2026: `articles=303`, `count=238`. The dry run does not print the live `news_refresh files_ok=...` line.
 
 **6b. Live runs, timed** (needs `NEWS_ENABLED=true` and `HEALTHCHECK_NEWS_URL` from section 5):
 ```bash
 sudo /usr/bin/time -v docker compose run --rm -T backend python scripts/jobs/refresh_news.py --hours 26
 sudo /usr/bin/time -v docker compose run --rm -T backend python scripts/jobs/refresh_news.py --hours 5
 ```
-**Good looks like:** exit 0 each time; a `news_refresh files_ok=... inserted=<n> ...` line (first run `inserted` above 0, second run small or 0 because of duplicates); the `time -v` block shows `Maximum resident set size (kbytes)` and `Elapsed (wall clock) time`. Paste both numbers. NEEDS CHECK: no memory or duration limit is written in the sources; the concern is the tight 05:40 to 06:35 memory window, which these runs are outside. The ingest stats include the new `skipped_bad_url` counter (non-https or off-domain article URLs dropped). Healthchecks.io shows a ping after each live run.
+**Good looks like:** exit 0 each time; a `news_refresh files_ok=... inserted=<n> ...` line (first run `inserted` above 0, second run small or 0 because of duplicates); the `time -v` block shows `Maximum resident set size (kbytes)` and `Elapsed (wall clock) time`. Paste both numbers. **Use the job's own `peak_mb` as the memory figure**: the `Maximum resident set size` in the `time -v` block measures the `docker compose` client (about 32 MB), not the job. Measured 27 Oct 2026: `--hours 26`: `files_ok=104 rows=129738 kept=1104 inserted=178 seconds=170.2 peak_mb=104.8`, wall 2:54; `--hours 5`: `files_ok=20 rows=30218 kept=303 inserted=0 seconds=25.5 peak_mb=99.3`, wall 0:28. About 100 MB peak is far inside the VM's 16 GB, including the 05:40 to 06:35 batch window. The summary line does **not** print a `skipped_bad_url` count. Healthchecks.io shows a ping after each live run (the owner checks it).
 
 **If exit 1 with `files_ok=0`:** GDELT unreachable or every file failed: check outbound HTTPS from the VM. A file over 50 MB is refused by design.
 
@@ -213,7 +215,9 @@ sudo docker compose run --rm -T backend python scripts/review_news_matches.py
 ```
 **Good looks like:** `news_items total=<N>`, `published_at oldest=... newest=...`, `ingested_at oldest=... newest=...`, `rows per tier:` (tiers 1 to 7), `rows per tag kind:`, `rows per source:`, then 20 sample headlines per tag kind. Expected: look for samples whose tag really matches the headline. Untagged titles are not stored; use `--dry-run` to see those. Send the output to the orchestrator for review. Optional: `--samples 40` for more.
 
-**6d.** Only after the review is accepted, install the crontab (section 8).
+**Real finding on 27 Oct 2026 (read this before accepting 6c):** `stock_master` holds 884 stocks whose **name** is just the ticker in capitals (for example `TAKE`, `STAR`, `STANLEY`, `YATRA`, `BAJEL`), so they match as ordinary name aliases and tagged everyday words ("he'll take", "pop star", "Morgan Stanley", "Digi Yatra"). PR #29 fixed the symbol-only brand aliases and the `Company`-stripped one-word names; a follow-up branch (`fix/news-ticker-names`) covers the ticker-style names. After each fix deploy, clear the derived rows and re-ingest: `delete from news_items;` (the table is a cache that refills from GDELT in about 3 minutes), then the two 6b runs, then 6c, and grep the review for `stock:(TAKE|STAR|STANLEY|YATRA)`. The review must show none of those on the headlines listed above.
+
+**6d.** Only after the review is accepted, install the crontab (section 8). If the session's permission check blocks the crontab install, the owner runs the three section 8 commands in their own WSL terminal.
 
 ## Section 7: NSE symbol fill, one-off
 
@@ -232,7 +236,7 @@ echo $?
 
 The redesign branch's `crontab.leapswitch` adds three lines: `nse-symbol-fill` (Sundays 05:20 IST), `news-refresh` (`15 7,10,13,16,19,22`, `--hours 5`) and `news-refresh-catchup` (`30 23`, `--hours 26`). The file's `RUN=` path is `/opt/unifolio/deploy/leapswitch/scripts/run-job.sh` (the main clone's script, which drives the same pinned `leapswitch` compose project, so it uses the image just built).
 
-Install from the **redesign worktree's** copy (the main clone's copy lacks the new lines):
+Install from the **redesign worktree's** copy (the main clone's copy lacks the new lines). This step changes the VM's scheduler permanently, so it is the owner's to run or approve:
 ```bash
 sudo crontab -l > /root/crontab.before-redesign.$(date +%F)
 sudo crontab /opt/unifolio-redesign/deploy/leapswitch/crontab.leapswitch
@@ -258,7 +262,7 @@ sudo bash -c 'time ./scripts/run-job.sh analytics-recompute-all scripts/run_anal
 ```
 (Single household: `... scripts/run_analytics_recompute.py --household <UUID>`.)
 
-**Good looks like:** both exit 0; the benchmark job logs success for all eight TRI indices (Expected: look for the four new indices in its output); `analytics-recompute-all` finishes in **under 15 minutes** (the stale ceiling named in `measure_benchmark_matrix.py`). Record the wall time.
+**Good looks like:** both exit 0; the benchmark job logs success for all eight TRI indices (Expected: look for the four new indices in its output); `analytics-recompute-all` finishes in **under 15 minutes** (the stale ceiling named in `measure_benchmark_matrix.py`). Record the wall time. Measured 27 Oct 2026: `refresh_benchmark_daily: fetches=16 succeeded=16 success=True` (newest stored TRI date for all 8 indices: 27 Oct), `analytics-recompute-all` exit 0 in **485 s (8 min 5 s)**.
 
 Then, in a browser as the owner: Mutual Funds, Performance (benchmark window rows have values) and Home, Worth a look (cards or "nothing flagged"; state not `unavailable` for a household with sections).
 
@@ -304,7 +308,7 @@ Read-only. Needs a household with real statements; the checkout must be `leapswi
 ```bash
 sudo docker compose run --rm -T backend python scripts/measure_planning_staging.py --user-id <UUID> --runs 3
 ```
-(Optional `--scenarios 3` is the default.) It measures each ranked scenario for the whole family and then per member: one cold call (holdings cache cleared) and warm calls. It prints counts, member and scenario ordinals and timings only. **Good looks like:** exit 0 and a timing line per scope. NEEDS CHECK: no pass/fail limit is written in the script or the sources; record the numbers for the owner.
+(Optional `--scenarios 3` is the default.) It measures each ranked scenario for the whole family and then per member: one cold call (holdings cache cleared) and warm calls. It prints counts, member and scenario ordinals and timings only. **Good looks like:** exit 0 and a timing line per scope. NEEDS CHECK: no pass/fail limit is written in the script or the sources; record the numbers for the owner. Measured 27 Oct 2026 on the 3-member test household (3 scenarios): family cold 0.31 to 0.36 s, member cold 0.02 to 0.19 s, warm medians 0.02 to 0.05 s, exit 0, no write error.
 
 **If it aborts with a write error:** a read route is writing (ORM or SQL write). Stop and report; this is a Backend bug.
 
@@ -323,7 +327,7 @@ sudo docker compose run --rm -T backend python scripts/measure_benchmark_matrix.
 # Fund page tiers (informational; the Individual Fund page is deferred)
 sudo docker compose run --rm -T backend python scripts/measure_fund_page_staging.py --user-id <UUID> --schemes 4 --runs 3
 ```
-Add `--simulate-fresh-cache` to the Home and fund-page scripts to measure the path with no live NAV download; add `--include-live-fetch` only if you accept `nav_history` cache inserts (the default refuses a cold call that needs one).
+Add `--simulate-fresh-cache` to the Home and fund-page scripts to measure the path with no live NAV download; add `--include-live-fetch` only if you accept `nav_history` cache inserts (the default refuses a cold call that needs one). **The plain Home run aborts with `WriteAttempted` on any day before the evening NAV publish (a cold call would download today's NAV); record the `--simulate-fresh-cache` run.** The benchmark script has its own flag for the same case, `--allow-nav-writes`. **If a script refuses with stale snapshots you do not need the app:** rebuild the household's snapshots from the VM, which is exactly what opening History does (`rebuild_member_snapshots(member_id)` in `app/services/dashboard/snapshots.py`, run once per member through `docker compose run --rm -T backend python -`). Measured 27 Oct 2026 (3-member household, 91 months of history, 46 funds): Home cold-open estimate **789 ms** (limit 1,500: pass); month detail aggregate **median 1,021 ms, worst 1,455 ms (limit 1,000: marginal fail, rises with later months)**; benchmark windows **not measured**: the script aborted on a write both before and after the snapshot rebuild and `--allow-nav-writes`, after midnight IST while the day's caches were one day behind; rerun after the 06:15 IST jobs; fund-page tiers 8 to 15 ms per fund.
 
 **Good looks like:** Home within 1.5 s, month detail median within 1.0 s, benchmark windows below 3000 ms, plus the full analytics recompute within 15 minutes (section 9). NEEDS CHECK: the fund-page tiers have no stated limits. Planning is section 13.
 
@@ -356,11 +360,13 @@ sudo ./scripts/run-job.sh fund-managers-monthly scripts/jobs/refresh_fund_manage
 ```
 **Good looks like:** `refresh_fund_managers_monthly: success=True amcs_processed=40 amcs_failed=0 ...`. Every `FUND_MANAGER_ALERT amc=... reason=fetch_failed` line names a fund house the VM could not reach: paste all of them. The owner decides each one (move to the hand import by setting `ResolverKind.MANUAL` plus a `note`, or accept "not available yet"). If the command runs for more than 30 minutes, stop and report.
 
+Measured 27 Oct 2026 from the VM: `success=True amcs_processed=34 amcs_failed=6 schemes_matched=1104 schemes_unmatched=2 seconds=330.2` and 6 alerts: Angel One `403 Forbidden`, HSBC `ReadTimeout`, Sundaram `500`, and `stale_month` for Mahindra Manulife, Mirae Asset and SBI (the new month's file was not yet published). The 10th-of-the-month run is the one that counts for the stale ones.
+
 **2. Probe the blocked fund houses from the VM's address** (read-only; these five URLs are the ones named in the registry notes, the other five have no stable URL in the registry):
 ```bash
 for u in http://hdfcfund.com/downloads/monthly-fact-sheet https://bandhanmutual.com/downloads/factsheets "https://invescomutualfund.com/literature-and-form?tab=Factsheets" https://www.jmfinancialmf.com/downloads/Factsheet/Factsheet https://www.kotakmf.com/Information/forms-and-downloads/Information; do printf "%s  " "$u"; curl -s -o /dev/null -m 20 -w "%{http_code}\n" "$u"; done
 ```
-Plain `curl`, no header tricks: the A04 rule is no access-control workarounds. **Good looks like:** record each code. The registry notes say 403, 401, 403, 406 and a 200 with no links, so a `200` for the first four would be new evidence worth acting on (on 2026-10-16 Bandhan, JM Financial, Axis and Kotak answered from this address and ICICI and HDFC did not). Record for the owner; do not change the registry here.
+Plain `curl`, no header tricks: the A04 rule is no access-control workarounds. **Good looks like:** record each code. The registry notes say 403, 401, 403, 406 and a 200 with no links, so a `200` for the first four would be new evidence worth acting on (on 2026-10-16 Bandhan, JM Financial, Axis and Kotak answered from this address and ICICI and HDFC did not). Record for the owner; do not change the registry here. Measured 27 Oct 2026 from the VM: HDFC `403`, Bandhan `200`, Invesco `301`, JM Financial `406`, Kotak `301`.
 
 **3. Owner: the HDFC passive file.** Download HDFC's passive factsheet and send it to Claude to verify the reader (the active file already matched 53 of 53). Until then HDFC's hand import is only trusted for the active file.
 
