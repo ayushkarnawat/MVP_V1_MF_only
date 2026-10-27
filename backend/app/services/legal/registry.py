@@ -79,6 +79,7 @@ def current_document(t: ConsentDocumentType) -> LegalDocument:
     return _CURRENT[t]
 
 
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 _VERSION_DATE = re.compile(r"(\d{4})-(\d{2})-(\d{2})$")
 
 
@@ -95,5 +96,6 @@ def version_label(version: str) -> str:
             d = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
         except ValueError:
             return version
-        return f"{d.day} {d.strftime('%b %Y')}"
+        # Fixed month names: strftime would follow the process locale.
+        return f"{d.day} {_MONTHS[d.month - 1]} {d.year}"
     return version

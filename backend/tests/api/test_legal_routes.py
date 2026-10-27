@@ -98,7 +98,9 @@ def test_my_consents_carry_document_title_and_readable_version(client):
 
     by_type = {r["document_type"]: r for r in client.get("/legal/consents/me", headers=headers).json()}
     tos, pp = by_type["terms_of_service"], by_type["privacy_policy"]
+    assert isinstance(tos["document_title"], str) and tos["document_title"].strip()
     assert tos["document_title"] == current_document(T.TERMS_OF_SERVICE).title
+    assert isinstance(pp["document_title"], str) and pp["document_title"].strip()
     assert pp["document_title"] == current_document(T.PRIVACY_POLICY).title
     # Existing fields untouched; the opaque version stays alongside the label.
     assert tos["document_version"] == "tos-placeholder-2026-10-01"
@@ -110,5 +112,6 @@ def test_version_label_derives_date_and_falls_back_to_raw_version():
     from app.services.legal.registry import version_label
 
     assert version_label("pan-disclaimer-placeholder-2026-10-05") == "5 Oct 2026"
+    assert version_label("tos-placeholder-2026-12-31") == "31 Dec 2026"
     assert version_label("tos-v2") == "tos-v2"
     assert version_label("tos-2026-13-45") == "tos-2026-13-45"
