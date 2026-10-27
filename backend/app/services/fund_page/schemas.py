@@ -160,3 +160,51 @@ class RiskResponse(FundModel):
     sharpe: RiskMetricOut
     beta: RiskMetricOut
     beta_reason: Literal["insufficient_shared_dates", "no_benchmark"] | None
+
+
+class CompositionHoldingOut(FundModel):
+    name: str
+    isin: str | None
+    sector: str
+    weight: str
+
+
+class AllocationBucketOut(FundModel):
+    label: str
+    pct: str
+
+
+class AssetAllocationBucketOut(FundModel):
+    key: str
+    label: str
+    pct: str
+
+
+class CompositionAllocationOut(FundModel):
+    market_cap: list[AllocationBucketOut]
+    sector: list[AllocationBucketOut]
+    asset_type: list[AssetAllocationBucketOut]
+
+
+class CompositionResponse(FundModel):
+    status: Literal["ready"] = "ready"
+    scheme_id: str
+    holdings_as_of: date
+    age_tag: Literal["older_than_60_days"] | None
+    stock_count: int
+    top10: list[CompositionHoldingOut]
+    allocation: CompositionAllocationOut
+    unclassified_pct: str
+
+
+class HoldingRowOut(CompositionHoldingOut):
+    asset_type: str
+
+
+class HoldingsListResponse(FundModel):
+    status: Literal["ready"] = "ready"
+    scheme_id: str
+    holdings_as_of: date
+    age_tag: Literal["older_than_60_days"] | None
+    count: int
+    rows: list[HoldingRowOut]

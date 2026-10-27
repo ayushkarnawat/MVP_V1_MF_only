@@ -19,9 +19,12 @@ from app.core.decimal_utils import quantize_amount, quantize_nav
 from app.db.base import Base
 from app.models.analytics import AnalyticsSection
 from app.models.enums import (
+    AssetType,
     BenchmarkIndex,
     BenchmarkReturnType,
+    DisclosureBatchStatus,
     ImportStatus,
+    MarketCapBucket,
     PlanType,
     Relationship,
     SchemePlanType,
@@ -29,7 +32,15 @@ from app.models.enums import (
 )
 from app.models.folio import Folio
 from app.models.imports import Import
-from app.models.reference import BenchmarkIndexHistory, NavHistory, Scheme
+from app.models.reference import (
+    BenchmarkIndexHistory,
+    DisclosureBatch,
+    MarketCapClassification,
+    NavHistory,
+    Scheme,
+    SchemeHolding,
+    StockMaster,
+)
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
 
@@ -173,6 +184,50 @@ def put_section(
     return _attach(db, AnalyticsSection(
         user_id=user_id, scope_key=scope_key, section=section, payload=payload,
         household_member_id=household_member_id, computed_at=computed_at, failed_at=failed_at,
+    ))
+
+
+def add_disclosure_batch(
+    db: Session,
+    scheme: Scheme,
+    as_of: date,
+    rows: list[tuple[str, str | None, Decimal, AssetType, str | None]],
+    *,
+    status: DisclosureBatchStatus = DisclosureBatchStatus.WRITTEN,
+) -> DisclosureBatch:
+    batch = _attach(db, DisclosureBatch(
+        id=uid(f"batch-{scheme.id}-{as_of}-{status.value}"), scheme_id=scheme.id,
+        as_of_date=as_of, amc_name=scheme.amc_name, status=status,
+    ))
+    for index, (name, isin, weight, asset_type, sector_raw) in enumerate(rows):
+        db.add(SchemeHolding(
+            id=uid(f"holding-{batch.id}-{index}-{isin or name}"), batch_id=batch.id,
+            instrument_name=name, isin=isin, sector_raw=sector_raw,
+            asset_type=asset_type, market_value=Decimal("1"), pct_to_nav=weight,
+        ))
+    db.flush()
+    return batch
+
+
+def add_market_cap(
+    db: Session, isin: str, bucket: MarketCapBucket, effective_date: date,
+) -> MarketCapClassification:
+    rank = {
+        MarketCapBucket.LARGE: 1,
+        MarketCapBucket.MID: 101,
+        MarketCapBucket.SMALL: 251,
+    }[bucket]
+    return _attach(db, MarketCapClassification(
+        id=uid(f"market-cap-{isin}-{effective_date}"), isin=isin, rank=rank,
+        bucket=bucket, effective_date=effective_date, source_period=effective_date,
+    ))
+
+
+def add_stock_master(
+    db: Session, isin: str, *, name: str, sector: str | None, as_of: date,
+) -> StockMaster:
+    return _attach(db, StockMaster(
+        isin=isin, name=name, sector=sector, as_of_date=as_of, source="fixture",
     ))
 
 
