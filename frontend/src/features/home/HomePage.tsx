@@ -53,7 +53,7 @@ export function HomePage({ today }: { today?: string } = {}) {
   const [hidden, setHidden] = useState<boolean>(false);
   const [moversView, setMoversView] = useState<MoversView>("sector");
   const [miraOpen, setMiraOpen] = useState<boolean>(false);
-  const [topMoverRequest, setTopMoverRequest] = useState<{ name: string; token: number } | null>(null);
+  const [topMoverRequest, setTopMoverRequest] = useState<{ name: string; schemeId: string | null; token: number } | null>(null);
 
   const summary = useHomeSection(signal => getHomeSummary(scope, signal), [scopeKey]);
   const benchmarks = useHomeSection(signal => getBenchmarks(scope, signal), [scopeKey]);
@@ -105,7 +105,8 @@ export function HomePage({ today }: { today?: string } = {}) {
     const name = summary.data?.top_contributor;
     if (!name) return;
     setMoversView("fund");
-    setTopMoverRequest(previous => ({ name, token: (previous?.token ?? 0) + 1 }));
+    const schemeId = summary.data?.top_contributor_scheme_id ?? null;
+    setTopMoverRequest(previous => ({ name, schemeId, token: (previous?.token ?? 0) + 1 }));
   };
 
   const handleBenchmarkChange = (index: string) => {

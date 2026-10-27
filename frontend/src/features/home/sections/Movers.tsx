@@ -15,7 +15,7 @@ export interface MoversProps {
   onViewChange: (view: MoversView) => void;
   onRetry: () => void;
   // Set by the greeting's top-mover link: open the popup of the row with this label once the fund rows are showing.
-  openRequest?: { name: string; token: number } | null;
+  openRequest?: { name: string; schemeId?: string | null; token: number } | null;
 }
 
 const roundOne = (x: number) => Math.round(x * 10) / 10;
@@ -46,7 +46,12 @@ export function Movers({
     if (!openRequest || handledToken.current === openRequest.token) return;
     if (status !== "data" || !data || data.view !== "fund" || view !== "fund") return;
     handledToken.current = openRequest.token;
-    const bar = [...data.gains, ...data.losses].find(row => row.label === openRequest.name);
+    // In the fund grouping a row key is the scheme id: match on it when the server gave one (names can be
+    // renamed or shared); fall back to the label only when no id came, never when an id matched nothing.
+    const rows = [...data.gains, ...data.losses];
+    const bar = openRequest.schemeId
+      ? rows.find(row => row.key === openRequest.schemeId)
+      : rows.find(row => row.label === openRequest.name);
     if (bar) setOpened({ bar, view: "fund" });
   }, [openRequest, status, data, view]);
 

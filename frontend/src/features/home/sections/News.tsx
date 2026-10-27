@@ -211,7 +211,7 @@ export function News({ status, data, refreshing, onRefresh }: NewsProps) {
                 className="divide-y divide-[var(--ui-divider)]"
               >
                 {opened.funds.map(fund => (
-                  <li key={fund.scheme_id} className="py-2 text-sm">
+                  <li key={fund.scheme_id} className="flex items-baseline justify-between gap-3 py-2 text-sm">
                     <span
                       aria-disabled="true"
                       title="Coming soon"
@@ -219,6 +219,12 @@ export function News({ status, data, refreshing, onRefresh }: NewsProps) {
                     >
                       {fund.name}
                     </span>
+                    {/* The server sends its own 2-decimal text; shown untouched, and left out when it sends none. */}
+                    {fund.weight_pct ? (
+                      <span data-testid="why-fund-weight" className="shrink-0 text-[var(--ui-text-muted)]">
+                        {fund.weight_pct}%
+                      </span>
+                    ) : null}
                   </li>
                 ))}
               </ul>
