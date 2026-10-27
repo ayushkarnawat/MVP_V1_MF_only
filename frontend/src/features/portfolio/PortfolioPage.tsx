@@ -3,6 +3,7 @@ import { PageLayout } from "@/shell/layout/PageLayout";
 import { useImport, useScope } from "@/shell/scope/ScopeContext";
 import {
   getPortfolioAllocation,
+  getPortfolioInsights,
   getPortfolioSummary,
   getPortfolioValueSeries,
 } from "./api";
@@ -10,6 +11,7 @@ import { isEmptyPortfolio } from "./portfolioCopy";
 import { memberTitleName } from "./portfolioFormat";
 import { FamilyMembers } from "./sections/FamilyMembers";
 import { InstrumentAllocation } from "./sections/InstrumentAllocation";
+import { QuickInsights } from "./sections/QuickInsights";
 import { SummaryStrip } from "./sections/SummaryStrip";
 import type { MemberValue, PortfolioScopeArg } from "./types";
 import { usePortfolioSection } from "./usePortfolioSection";
@@ -42,6 +44,11 @@ export default function PortfolioPage() {
 
   const series = usePortfolioSection(
     (signal) => getPortfolioValueSeries(scope, SERIES_DAYS, signal),
+    [scopeKey]
+  );
+
+  const insights = usePortfolioSection(
+    (signal) => getPortfolioInsights(scope, signal),
     [scopeKey]
   );
 
@@ -159,6 +166,11 @@ export default function PortfolioPage() {
               onSelectMember={setMember}
               onShowFamily={setAggregate}
               onRetry={family.retry}
+            />
+            <QuickInsights
+              status={insights.status}
+              data={insights.data}
+              onRetry={insights.retry}
             />
           </>
         )}

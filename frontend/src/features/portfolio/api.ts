@@ -2,6 +2,7 @@ import { API_BASE_URL, ApiError, cachedFetch, parseErrorDetail } from "@/lib/api
 import { getToken } from "../auth/session";
 import type {
   PortfolioAllocationResponse,
+  PortfolioInsightsResponse,
   PortfolioScopeArg,
   PortfolioSectionName,
   PortfolioSummaryResponse,
@@ -84,5 +85,13 @@ export async function getPortfolioValueSeries(
     portfolioPath(scope, "portfolio-value-series", { days: String(days) }),
     { signal }
   );
+  return res.json();
+}
+
+export async function getPortfolioInsights(
+  scope: PortfolioScopeArg,
+  signal?: AbortSignal
+): Promise<PortfolioInsightsResponse> {
+  const res = await authFetch(portfolioPath(scope, "portfolio-insights"), { signal });
   return res.json();
 }
