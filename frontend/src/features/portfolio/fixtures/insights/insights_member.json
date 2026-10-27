@@ -1,0 +1,49 @@
+{
+  "scope": "member",
+  "member_id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
+  "nav_as_of": "2026-10-23",
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "members": null,
+  "total_value": "2001181.40",
+  "empty": false,
+  "empty_reason": null,
+  "insights": {
+    "largest_holding": {
+      "scheme_id": "120841",
+      "fund_name": "Parag Parikh Flexi Cap Fund - Direct Plan - Growth",
+      "amc_name": "PPFAS Mutual Fund",
+      "value": "1220931.30",
+      "pct_of_portfolio": "61.0105"
+    },
+    "spread": {
+      "fund_count": 3,
+      "amc_count": 3
+    },
+    "plan_split": {
+      "direct": {
+        "value": "1520931.30",
+        "pct": "76.0017"
+      },
+      "regular": {
+        "value": "480250.10",
+        "pct": "23.9983"
+      },
+      "unclassified": {
+        "value": "0.00",
+        "pct": "0.0000"
+      }
+    },
+    "largest_amc": {
+      "amc_name": "PPFAS Mutual Fund",
+      "value": "1220931.30",
+      "pct_of_portfolio": "61.0105",
+      "fund_count": 1
+    },
+    "sips": {
+      "active_count": 1,
+      "monthly_total": "5000.00"
+    }
+  }
+}

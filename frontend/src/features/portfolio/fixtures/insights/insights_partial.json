@@ -1,0 +1,65 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": "2026-10-23",
+  "partial": true,
+  "missing_funds": [
+    {
+      "scheme_id": "120503",
+      "name": "ICICI Prudential Liquid Fund - Growth"
+    }
+  ],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "members": [
+    {
+      "id": "81e5a369-bbd4-59f1-b480-8a5bbf1c74ef",
+      "name": "ASHA RAO",
+      "has_data": true
+    },
+    {
+      "id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
+      "name": "Dev Rao",
+      "has_data": true
+    }
+  ],
+  "total_value": "3691681.65",
+  "empty": false,
+  "empty_reason": null,
+  "insights": {
+    "largest_holding": {
+      "scheme_id": "120841",
+      "fund_name": "Parag Parikh Flexi Cap Fund - Direct Plan - Growth",
+      "amc_name": "PPFAS Mutual Fund",
+      "value": "1220931.30",
+      "pct_of_portfolio": "33.0725"
+    },
+    "spread": {
+      "fund_count": 5,
+      "amc_count": 4
+    },
+    "plan_split": {
+      "direct": {
+        "value": "2570931.30",
+        "pct": "69.6412"
+      },
+      "regular": {
+        "value": "1120750.35",
+        "pct": "30.3588"
+      },
+      "unclassified": {
+        "value": "0.00",
+        "pct": "0.0000"
+      }
+    },
+    "largest_amc": {
+      "amc_name": "HDFC Mutual Fund",
+      "value": "1690500.25",
+      "pct_of_portfolio": "45.7921",
+      "fund_count": 2
+    },
+    "sips": {
+      "active_count": 3,
+      "monthly_total": "17000.00"
+    }
+  }
+}

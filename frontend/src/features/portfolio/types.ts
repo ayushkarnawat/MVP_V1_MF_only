@@ -75,7 +75,7 @@ export interface PortfolioValueSeriesResponse extends Envelope {
   points: ValuePoint[];
 }
 
-export type PortfolioSectionName = "portfolio-summary" | "portfolio-allocation" | "portfolio-value-series";
+export type PortfolioSectionName = "portfolio-summary" | "portfolio-allocation" | "portfolio-value-series" | "portfolio-insights";
 
 export interface PortfolioScopeArg {
   viewMode: "aggregate" | "member";
@@ -87,4 +87,61 @@ export interface MemberValue {
   id: string;
   name: string;
   value: string;
+}
+
+// Quick Insights (GET .../portfolio-insights). Mirrors backend/app/services/dashboard/portfolio_insights_schemas.py as
+// specified in Docs/orchestration/ui-redesign-QI-quick-insights-backend-handoff.md (the route is built later; until
+// then ./fixtures/insights holds SPEC fixtures, see FIXTURE_STATUS there). Money and percentages are decimal strings;
+// a percentage is a real percentage here ("14.8478" is 14.8478 percent), unlike the XIRR fractions above.
+
+export interface LargestHolding {
+  scheme_id: string;
+  fund_name: string;
+  amc_name: string;
+  value: string;
+  pct_of_portfolio: string;
+}
+
+export interface FundSpread {
+  fund_count: number;
+  amc_count: number;
+}
+
+export interface PlanSplitEntry {
+  value: string;
+  pct: string;
+}
+
+export interface PlanSplit {
+  direct: PlanSplitEntry;
+  regular: PlanSplitEntry;
+  unclassified: PlanSplitEntry;
+}
+
+export interface LargestAmc {
+  amc_name: string;
+  value: string;
+  pct_of_portfolio: string;
+  fund_count: number;
+}
+
+export interface SipInsight {
+  active_count: number;
+  monthly_total: string;
+}
+
+export interface PortfolioInsights {
+  largest_holding: LargestHolding | null;
+  spread: FundSpread;
+  plan_split: PlanSplit | null;
+  largest_amc: LargestAmc | null;
+  sips: SipInsight;
+}
+
+export interface PortfolioInsightsResponse extends Envelope {
+  members: MemberOut[] | null;
+  total_value: string;
+  empty: boolean;
+  empty_reason: "no_holdings" | "no_prices" | null;
+  insights: PortfolioInsights;
 }

@@ -1,0 +1,60 @@
+{
+  "scope": "aggregate",
+  "member_id": null,
+  "nav_as_of": "2026-10-23",
+  "partial": false,
+  "missing_funds": [],
+  "computed_at": "2026-10-23T13:00:00Z",
+  "members": [
+    {
+      "id": "81e5a369-bbd4-59f1-b480-8a5bbf1c74ef",
+      "name": "ASHA RAO",
+      "has_data": true
+    },
+    {
+      "id": "e6b4557c-b0e3-58f9-8642-54da2db3a27d",
+      "name": "Dev Rao",
+      "has_data": true
+    }
+  ],
+  "total_value": "3704027.32",
+  "empty": false,
+  "empty_reason": null,
+  "insights": {
+    "largest_holding": {
+      "scheme_id": "120841",
+      "fund_name": "Parag Parikh Flexi Cap Fund - Direct Plan - Growth",
+      "amc_name": "PPFAS Mutual Fund",
+      "value": "1220931.30",
+      "pct_of_portfolio": "32.9623"
+    },
+    "spread": {
+      "fund_count": 6,
+      "amc_count": 5
+    },
+    "plan_split": {
+      "direct": {
+        "value": "2570931.30",
+        "pct": "69.4091"
+      },
+      "regular": {
+        "value": "1120750.35",
+        "pct": "30.2576"
+      },
+      "unclassified": {
+        "value": "12345.67",
+        "pct": "0.3333"
+      }
+    },
+    "largest_amc": {
+      "amc_name": "HDFC Mutual Fund",
+      "value": "1690500.25",
+      "pct_of_portfolio": "45.6395",
+      "fund_count": 2
+    },
+    "sips": {
+      "active_count": 0,
+      "monthly_total": "0.00"
+    }
+  }
+}

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { API_BASE_URL, invalidateApiCache } from "@/lib/apiClient";
 import { renderInShell } from "@/shell/testing";
 import { fixture } from "./fixtures";
+import { fixture as insightsFixture } from "./fixtures/insights";
 import PortfolioPage from "./PortfolioPage";
 import type { PortfolioSummaryResponse } from "./types";
 
@@ -28,7 +29,9 @@ function defaultResponse(path: string): Response {
     case "/household/aggregate/portfolio-allocation": return json(fixture("allocation_family"));
     case "/household/aggregate/portfolio-value-series?days=30": return json(fixture("series_family_30d"));
     case `/household-members/${ASHA}/portfolio-summary`: return json(memberSummary(ASHA, "2200.00"));
+    case "/household/aggregate/portfolio-insights": return json(insightsFixture("insights_family"));
     case `/household-members/${DEV}/portfolio-summary`: return json(memberSummary(DEV, "3012.00"));
+    case `/household-members/${DEV}/portfolio-insights`: return json(insightsFixture("insights_member"));
     case `/household-members/${DEV}/portfolio-allocation`: return json(fixture("allocation_member"));
     case `/household-members/${DEV}/portfolio-value-series?days=30`: return json(fixture("series_member_30d"));
     default: return json({ detail: `unexpected ${path}` }, 404);
@@ -58,7 +61,7 @@ beforeEach(() => invalidateApiCache());
 afterEach(() => vi.unstubAllGlobals());
 
 describe("PortfolioPage: the family view", () => {
-  it("fetches the three sections for the family and one summary per member", async () => {
+  it("fetches the four sections for the family and one summary per member", async () => {
     serve();
     renderPage();
     await screen.findByTestId("value-total");
@@ -68,10 +71,11 @@ describe("PortfolioPage: the family view", () => {
       "/household/aggregate/portfolio-summary",
       "/household/aggregate/portfolio-allocation",
       "/household/aggregate/portfolio-value-series?days=30",
+      "/household/aggregate/portfolio-insights",
       `/household-members/${ASHA}/portfolio-summary`,
       `/household-members/${DEV}/portfolio-summary`,
     ]));
-    expect(calls).toHaveLength(5);
+    expect(calls).toHaveLength(6);
   });
 
   it("draws the header, the summary, the allocation and the family", async () => {
