@@ -561,10 +561,18 @@ class ScenarioResultRow(BaseModel):
     funds_data_available: bool = True
 
 
+class AssetAllocationClassFund(CoverageFund):
+    value: Decimal
+    percentage: Decimal  # percent of the asset class, not of the portfolio
+
+
 class AssetAllocationClass(BaseModel):
     key: Literal["equity", "debt", "gold", "cash_like"]
     value: Decimal
     percentage: Decimal
+    # Optional (MF-B ask C133, Asset Class drill): funds contributing to the class,
+    # largest first; None on payloads stored before this field existed.
+    funds: list[AssetAllocationClassFund] | None = None
 
 
 class AssetAllocationOuter(BaseModel):
