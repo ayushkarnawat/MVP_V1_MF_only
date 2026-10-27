@@ -325,3 +325,147 @@ class InsightsResponse(FundModel):
     strengths: list[InsightFactOut]
     considerations: list[InsightFactOut]
     top_three: list[InsightFactOut]
+
+
+class OverlapDistribution(FundModel):
+    unique_to_fund_count: int
+    common_count: int
+    unique_to_others_count: int
+    unique_to_fund_pct: str
+    common_pct: str
+    unique_to_others_pct: str
+
+
+class HeldInFundOut(FundModel):
+    scheme_id: str
+    scheme_name: str
+
+
+class CommonHoldingOut(FundModel):
+    isin: str
+    name: str
+    sector: str
+    fund_weight: str
+    portfolio_weight: str
+    held_in_funds: list[HeldInFundOut]
+
+
+class SectorStockOut(FundModel):
+    isin: str
+    name: str
+    weight: str
+
+
+class OverlapSectorOut(FundModel):
+    sector: str
+    pct: str
+    stocks: list[SectorStockOut]
+
+
+class TopOverlapFundOut(FundModel):
+    scheme_id: str
+    scheme_name: str
+    overlap_pct: str
+    common_stock_count: int
+
+
+class MissingDisclosureFundOut(FundModel):
+    scheme_id: str
+    scheme_name: str
+
+
+class FundOverlapCoverage(FundModel):
+    covered_value_pct: str
+    funds_without_disclosure: list[MissingDisclosureFundOut]
+
+
+class FundOverlapResponse(FundModel):
+    status: Literal["ready"] = "ready"
+    scheme_id: str
+    holdings_as_of: date
+    overlap_pct: str
+    common_stock_count: int
+    total_stock_count: int
+    distribution: OverlapDistribution
+    common_holdings: list[CommonHoldingOut]
+    by_sector: list[OverlapSectorOut]
+    top_overlap_funds: list[TopOverlapFundOut]
+    coverage: FundOverlapCoverage
+
+
+class ComparisonFundOut(FundModel):
+    scheme_id: str
+    scheme_name: str
+    holdings_as_of: date
+    current_value: str
+
+
+class ComparisonCounts(FundModel):
+    unique_a: int
+    common: int
+    unique_b: int
+
+
+class AmountPctOut(FundModel):
+    amount: str
+    pct: str
+
+
+class ComparisonImpact(FundModel):
+    common_both: AmountPctOut
+    unique_a: AmountPctOut
+    unique_b: AmountPctOut
+    other_funds: AmountPctOut
+
+
+class SectorComparisonOut(FundModel):
+    sector: str
+    common: str
+    a: str
+    b: str
+
+
+class ComparisonCommonHoldingOut(FundModel):
+    isin: str
+    name: str
+    sector: str
+    weight_a: str
+    weight_b: str
+    combined: str
+
+
+class UniqueHoldingOut(FundModel):
+    isin: str
+    name: str
+    sector: str
+    weight: str
+
+
+class UniqueHoldingsOut(FundModel):
+    a: list[UniqueHoldingOut]
+    b: list[UniqueHoldingOut]
+
+
+class MarketCapFundOut(FundModel):
+    large: str
+    mid: str
+    small: str
+    other: str
+
+
+class ComparisonMarketCap(FundModel):
+    a: MarketCapFundOut
+    b: MarketCapFundOut
+
+
+class FundComparisonResponse(FundModel):
+    status: Literal["ready"] = "ready"
+    fund_a: ComparisonFundOut
+    fund_b: ComparisonFundOut
+    overlap_pct: str
+    counts: ComparisonCounts
+    impact: ComparisonImpact
+    sector_comparison: list[SectorComparisonOut]
+    common_holdings: list[ComparisonCommonHoldingOut]
+    unique_holdings: UniqueHoldingsOut
+    market_cap: ComparisonMarketCap

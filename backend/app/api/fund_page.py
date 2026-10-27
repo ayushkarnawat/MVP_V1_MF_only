@@ -18,6 +18,7 @@ from app.services.fund_page.composition import all_holdings, build_composition
 from app.services.fund_page.folios import full_folio_number
 from app.services.fund_page.insights import build_insights
 from app.services.fund_page.manager import build_manager
+from app.services.fund_page.overlap import build_fund_comparison, build_fund_overlap
 from app.services.fund_page.peers import (
     category_returns,
     category_series,
@@ -34,6 +35,8 @@ from app.services.fund_page.schemas import (
     CategorySeriesResponse,
     CompositionResponse,
     FolioNumberResponse,
+    FundComparisonResponse,
+    FundOverlapResponse,
     HoldingsListResponse,
     InsightsResponse,
     ManagerResponse,
@@ -266,6 +269,40 @@ async def peers_scatter(
 ):
     scheme = _scheme_or_404(db, scheme_id)
     return await risk_return_scatter(db, scheme, now.date())
+
+
+@router.get(
+    "/{scheme_id}/overlap",
+    response_model=FundOverlapResponse | Unavailable,
+)
+async def overlap(
+    scheme_id: uuid.UUID,
+    scope: str = "combined",
+    user: User = Depends(get_active_user),
+    db: Session = Depends(get_db),
+    now: datetime = Depends(get_now_ist),
+):
+    scheme = _scheme_or_404(db, scheme_id)
+    ctx = resolve_scope(db, user.id, scope)
+    return await build_fund_overlap(db, scheme, ctx, now.date())
+
+
+@router.get(
+    "/{scheme_id}/overlap/{other_scheme_id}",
+    response_model=FundComparisonResponse | Unavailable,
+)
+async def overlap_comparison(
+    scheme_id: uuid.UUID,
+    other_scheme_id: uuid.UUID,
+    scope: str = "combined",
+    user: User = Depends(get_active_user),
+    db: Session = Depends(get_db),
+    now: datetime = Depends(get_now_ist),
+):
+    scheme = _scheme_or_404(db, scheme_id)
+    other_scheme = _scheme_or_404(db, other_scheme_id)
+    ctx = resolve_scope(db, user.id, scope)
+    return await build_fund_comparison(db, scheme, other_scheme, ctx, now.date())
 
 
 @router.get("/{scheme_id}/insights", response_model=InsightsResponse)
