@@ -30,8 +30,9 @@ from app.models.reference import (
     Scheme,
 )
 from app.services.analytics.scheme_universe import canonical_category
-from app.services.analytics.scenario_asset_class import underlying_asset_class
+from app.services.analytics.scenario_asset_class import DISPLAY_GROUPS, display_group, underlying_asset_class
 from app.services.analytics.schemas import (
+    ScenarioAssetClassRow,
     ScenarioBenchmarkResult,
     ScenarioFundResult,
     ScenarioHypotheticalAssumptionRow,
@@ -266,6 +267,7 @@ def get_scenario_summary(db: Session, scenario: Scenario, *, has_phases: bool | 
         has_phases = db.query(Scenario).filter_by(parent_scenario_id=scenario.id).first() is not None
     return ScenarioSummaryRow(
         scenario_id=str(scenario.id), name=scenario.name, scenario_type=scenario.scenario_type,
+        description=scenario.description,
         start_date=scenario.start_date.isoformat() if scenario.start_date else None,
         end_date=scenario.end_date.isoformat() if scenario.end_date else None,
         is_ongoing=scenario.is_ongoing, display_rank=scenario.display_rank,
@@ -284,6 +286,32 @@ def _current_phase(db: Session, group: Scenario) -> Scenario:
 
 def _pct_str(value: Decimal | None) -> str | None:
     return str(value) if value is not None else None
+
+
+def _unsigned_zero(value: Decimal) -> Decimal:
+    return abs(value) if value.is_zero() else value
+
+
+def _build_asset_class_rows(
+    group_rupee: dict[str, Decimal],
+    group_covered: dict[str, Decimal],
+) -> list[ScenarioAssetClassRow]:
+    rows = []
+    for bucket in DISPLAY_GROUPS:
+        if bucket not in group_covered:
+            continue
+        rupee = group_rupee[bucket]
+        covered = group_covered[bucket]
+        pct = None if covered == 0 else _pct_str(
+            _unsigned_zero((rupee / covered * 100).quantize(Decimal("0.01")))
+        )
+        rows.append(ScenarioAssetClassRow(
+            bucket=bucket,
+            rupee_impact=str(_unsigned_zero(rupee.quantize(Decimal("0.01")))),
+            covered_value=str(covered.quantize(Decimal("0.01"))),
+            pct=pct,
+        ))
+    return rows
 
 
 _SEGREGATED_SUFFIX = re.compile(r"\s*\(no\.?\s*of\s+segregated\s+portfolios?\s*-\s*\d+\)\s*$", re.IGNORECASE)
@@ -323,7 +351,7 @@ async def _async_get_scenario_result_for_household(
                 phases=[], by_fund=[], by_member=[], hypothetical_assumptions=[], assumptions_not_set=True,
             )
         assumption_by_class = {a.asset_class: a for a in assumptions}
-        holdings = await compute_holdings(db, household_member_ids)
+        holdings = await compute_holdings(db, household_member_ids, allow_stale_today=True, stored_only=True)
         by_member: dict[uuid.UUID, Decimal] = {mid: Decimal("0") for mid in household_member_ids}
         by_member_covered: dict[uuid.UUID, Decimal] = {mid: Decimal("0") for mid in household_member_ids}
         total_impact = covered_value = total_value = Decimal("0")
@@ -370,14 +398,24 @@ async def _async_get_scenario_result_for_household(
         )
 
     serving_scenario = _current_phase(db, scenario) if summary.has_phases else scenario
-    holdings = await compute_holdings(db, household_member_ids)
+    holdings = await compute_holdings(db, household_member_ids, allow_stale_today=True, stored_only=True)
     held_ids = {uuid.UUID(h.scheme_id) for h in holdings}
     held_schemes = {s.id: s for s in db.query(Scheme).filter(Scheme.id.in_(held_ids)).all()}
     results = _held_results(db, serving_scenario.id, held_schemes)
     headline_results = _held_results(db, scenario.id, held_schemes) if summary.has_phases else results
     frozen_ids = {sid for sid, s in held_schemes.items() if _is_frozen(s, frozen_keys)}
+    funds_data_available = (
+        db.query(ScenarioSchemeResult.scheme_id)
+        .filter(
+            ScenarioSchemeResult.scenario_id.in_([scenario.id, serving_scenario.id]),
+            ScenarioSchemeResult.pct_change.isnot(None),
+        )
+        .first() is not None
+    )
 
     by_fund_map: dict[str, ScenarioFundResult] = {}
+    group_rupee: dict[str, Decimal] = {}
+    group_covered: dict[str, Decimal] = {}
     by_member_rupee: dict[uuid.UUID, Decimal] = {mid: Decimal("0") for mid in household_member_ids}
     by_member_covered: dict[uuid.UUID, Decimal] = {mid: Decimal("0") for mid in household_member_ids}
     by_member_funds: dict[uuid.UUID, list[ScenarioMemberFundResult]] = {mid: [] for mid in household_member_ids}
@@ -403,6 +441,11 @@ async def _async_get_scenario_result_for_household(
             by_member_covered[member_id] += current_value
             total_rupee += rupee_impact
             covered_value += current_value
+            if current_value > 0:
+                scheme = held_schemes[scheme_id]
+                group = display_group(underlying_asset_class(scheme.sebi_category or "", scheme.name))
+                group_rupee[group] = group_rupee.get(group, Decimal("0")) + rupee_impact
+                group_covered[group] = group_covered.get(group, Decimal("0")) + current_value
         elif not is_frozen and current_value > 0:
             no_data_funds += 1
 
@@ -412,7 +455,13 @@ async def _async_get_scenario_result_for_household(
             proxy_basis=scheme_result.proxy_basis if scheme_result else None, is_frozen=is_frozen,
         )
         by_member_funds[member_id].append(
-            ScenarioMemberFundResult(scheme_id=holding.scheme_id, scheme_name=holding.scheme_name, rupee_impact=_pct_str(rupee_impact))
+            ScenarioMemberFundResult(
+                scheme_id=holding.scheme_id, scheme_name=holding.scheme_name,
+                rupee_impact=_pct_str(rupee_impact),
+                is_proxied=scheme_result.is_proxied if scheme_result else False,
+                proxy_basis=scheme_result.proxy_basis if scheme_result else None,
+                is_frozen=is_frozen,
+            )
         )
 
     def household_pct(pct_by_scheme: dict[uuid.UUID, Decimal | None]) -> str | None:
@@ -447,7 +496,8 @@ async def _async_get_scenario_result_for_household(
         covered_value=str(covered_value.quantize(Decimal("0.01"))), total_value=str(total_value.quantize(Decimal("0.01"))),
         no_data_funds=no_data_funds,
         benchmarks=_scenario_benchmark_comparisons(db, scenario) if not summary.had_redemption_freeze_schemes and not summary.has_phases else [],
-        phases=phases, by_fund=list(by_fund_map.values()),
+        phases=phases, by_asset_class=_build_asset_class_rows(group_rupee, group_covered),
+        by_fund=list(by_fund_map.values()),
         by_member=[
             ScenarioMemberResult(
                 household_member_id=str(mid), member_name=members[mid].name if mid in members else "Unknown",
@@ -458,6 +508,7 @@ async def _async_get_scenario_result_for_household(
             for mid in household_member_ids
         ],
         hypothetical_assumptions=[], assumptions_not_set=False,
+        funds_data_available=funds_data_available,
     )
 
 

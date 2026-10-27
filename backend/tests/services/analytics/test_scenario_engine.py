@@ -276,6 +276,11 @@ from app.services.analytics.scenario_engine import (
     get_scenario_result_for_household,
     get_scenario_summary,
 )
+from app.services.analytics.schemas import (
+    ScenarioMemberFundResult,
+    ScenarioResultRow,
+    ScenarioSummaryRow,
+)
 from app.models.user import HouseholdMember
 
 
@@ -305,6 +310,66 @@ def test_get_scenario_summary_has_phases_true_for_group_row():
 
     summary = get_scenario_summary(db, group)
     assert summary.has_phases is True
+
+
+def test_get_scenario_summary_includes_description():
+    db = _session()
+    scenario = Scenario(
+        name="Global selloff",
+        description="Global markets fell sharply.",
+        start_date=date(2020, 1, 1),
+        end_date=date(2020, 3, 31),
+        scenario_type="CRASH",
+    )
+    db.add(scenario)
+    db.commit()
+
+    assert get_scenario_summary(db, scenario).description == "Global markets fell sharply."
+
+
+def test_new_schema_fields_default_so_old_constructors_work():
+    summary = ScenarioSummaryRow(
+        scenario_id="scenario",
+        name="Scenario",
+        scenario_type="CRASH",
+        start_date="2020-01-01",
+        end_date="2020-03-31",
+        is_ongoing=False,
+        display_rank=1,
+        parent_scenario_id=None,
+        has_phases=False,
+        had_redemption_freeze_schemes=None,
+        quick_market_pct=None,
+        quick_equity_pct=None,
+        quick_debt_pct=None,
+        quick_weight_quarter=None,
+    )
+    member_fund = ScenarioMemberFundResult(
+        scheme_id="s",
+        scheme_name="n",
+        rupee_impact=None,
+    )
+    result = ScenarioResultRow(
+        scenario=summary,
+        portfolio_impact_pct=None,
+        rupee_impact="0.00",
+        covered_value="0.00",
+        total_value="0.00",
+        no_data_funds=0,
+        benchmarks=[],
+        phases=[],
+        by_fund=[],
+        by_member=[],
+        hypothetical_assumptions=[],
+        assumptions_not_set=False,
+    )
+
+    assert summary.description == ""
+    assert member_fund.is_proxied is False
+    assert member_fund.proxy_basis is None
+    assert member_fund.is_frozen is False
+    assert result.by_asset_class == []
+    assert result.funds_data_available is True
 
 
 def _holdings(*rows):
@@ -895,3 +960,421 @@ def test_ruling6_single_option_etfs_count_in_averages():
     compute_scenario_results(db, scenario)
     average = db.query(ScenarioCategoryAverage).one()
     assert (average.scheme_count, average.avg_pct_change) == (3, Decimal("10"))
+
+
+def _planning_scheme(db, name, amfi_code, sebi_category, *, amc_name="AMC", base_name=None):
+    scheme = Scheme(
+        name=name,
+        amfi_code=amfi_code,
+        amc_name=amc_name,
+        sebi_category=sebi_category,
+        base_name=base_name,
+    )
+    db.add(scheme)
+    db.commit()
+    return scheme
+
+
+def _planning_scenario(db, name="Planning scenario", **kwargs):
+    scenario = Scenario(
+        name=name,
+        description="d",
+        start_date=date(2020, 1, 1),
+        end_date=date(2020, 3, 31),
+        scenario_type="CRASH",
+        **kwargs,
+    )
+    db.add(scenario)
+    db.commit()
+    return scenario
+
+
+def _planning_results(db, scenario, *rows):
+    db.add_all([
+        ScenarioSchemeResult(
+            scenario_id=scenario.id,
+            scheme_id=scheme.id,
+            pct_change=Decimal(pct) if pct is not None else None,
+            is_proxied=is_proxied,
+            proxy_basis=proxy_basis,
+        )
+        for scheme, pct, is_proxied, proxy_basis in rows
+    ])
+    db.commit()
+
+
+def test_by_asset_class_sums_rupee_impact_into_display_groups():
+    db = _session()
+    scenario = _planning_scenario(db)
+    equity_one = _planning_scheme(db, "Equity One", "PE1", "Equity Scheme - Flexi Cap Fund")
+    equity_two = _planning_scheme(db, "Equity Two", "PE2", "Equity Scheme - Large Cap Fund")
+    liquid = _planning_scheme(db, "Liquid One", "PD1", "Debt Scheme - Liquid Fund")
+    _planning_results(
+        db,
+        scenario,
+        (equity_one, "-20.00", False, None),
+        (equity_two, "-10.00", False, None),
+        (liquid, "1.00", False, None),
+    )
+    member_a = _household_member(db, "Member A")
+    member_b = _household_member(db, "Member B")
+
+    with patch(
+        "app.services.analytics.scenario_engine.compute_holdings",
+        new=_holdings(
+            (equity_one, member_a, "100000.00"),
+            (liquid, member_a, "200000.00"),
+            (equity_two, member_b, "50000.00"),
+        ),
+    ):
+        result = get_scenario_result_for_household(db, scenario, [member_a.id, member_b.id])
+
+    assert [row.model_dump() for row in result.by_asset_class] == [
+        {"bucket": "Equity", "rupee_impact": "-25000.00", "covered_value": "150000.00", "pct": "-16.67"},
+        {"bucket": "Debt", "rupee_impact": "2000.00", "covered_value": "200000.00", "pct": "1.00"},
+    ]
+    assert sum(Decimal(row.rupee_impact) for row in result.by_asset_class) == Decimal(result.rupee_impact)
+    assert sum(Decimal(row.covered_value) for row in result.by_asset_class) == Decimal(result.covered_value)
+    assert (result.rupee_impact, result.covered_value, result.portfolio_impact_pct) == (
+        "-23000.00",
+        "350000.00",
+        "-6.57",
+    )
+
+
+def test_by_asset_class_single_group_percent_equals_headline():
+    db = _session()
+    scenario = _planning_scenario(db)
+    equity_one = _planning_scheme(db, "Equity One", "PS1", "Equity Scheme - Flexi Cap Fund")
+    equity_two = _planning_scheme(db, "Equity Two", "PS2", "Equity Scheme - Large Cap Fund")
+    _planning_results(db, scenario, (equity_one, "-20.00", False, None), (equity_two, "-10.00", False, None))
+    member = _household_member(db)
+
+    with patch(
+        "app.services.analytics.scenario_engine.compute_holdings",
+        new=_holdings((equity_one, member, "100000.00"), (equity_two, member, "50000.00")),
+    ):
+        result = get_scenario_result_for_household(db, scenario, [member.id])
+
+    assert result.by_asset_class[0].pct == result.portfolio_impact_pct
+
+
+def test_by_asset_class_unmapped_and_index_funds_land_in_expected_groups():
+    db = _session()
+    scenario = _planning_scenario(db)
+    index = _planning_scheme(db, "Nifty Index", "PM1", "Index Funds - Equity Funds")
+    gold = _planning_scheme(db, "Gold ETF One", "PM2", "Other Scheme - Gold ETF")
+    odd = _planning_scheme(db, "Odd One", "PM3", "Some Unclassified Category")
+    _planning_results(
+        db,
+        scenario,
+        (index, "-2.00", False, None),
+        (gold, "3.00", False, None),
+        (odd, "1.00", False, None),
+    )
+    member = _household_member(db)
+
+    with patch(
+        "app.services.analytics.scenario_engine.compute_holdings",
+        new=_holdings((index, member, "1000.00"), (gold, member, "1000.00"), (odd, member, "1000.00")),
+    ):
+        result = get_scenario_result_for_household(db, scenario, [member.id])
+
+    assert [row.bucket for row in result.by_asset_class] == ["Equity", "Gold and Silver", "Other"]
+
+
+def test_by_asset_class_excludes_frozen_and_no_data_funds():
+    db = _session()
+    scenario = _planning_scenario(
+        db,
+        had_redemption_freeze_schemes=["Franklin India Low Duration Fund"],
+    )
+    frozen = _planning_scheme(
+        db,
+        "Franklin India Low Duration Fund - Direct Plan - Growth",
+        "PX1",
+        "Debt Scheme - Low Duration Fund",
+        amc_name="Franklin Templeton Mutual Fund",
+        base_name="Franklin India Low Duration Fund",
+    )
+    no_data = _planning_scheme(db, "No Data Gold", "PX2", "Other Scheme - Gold ETF")
+    equity = _planning_scheme(db, "Equity One", "PX3", "Equity Scheme - Flexi Cap Fund")
+    _planning_results(
+        db,
+        scenario,
+        (frozen, "-5.00", False, None),
+        (no_data, None, True, "no_comparable_data"),
+        (equity, "-10.00", False, None),
+    )
+    member = _household_member(db)
+
+    with patch(
+        "app.services.analytics.scenario_engine.compute_holdings",
+        new=_holdings((frozen, member, "5000.00"), (no_data, member, "2000.00"), (equity, member, "1000.00")),
+    ):
+        result = get_scenario_result_for_household(db, scenario, [member.id])
+
+    assert [row.model_dump() for row in result.by_asset_class] == [
+        {"bucket": "Equity", "rupee_impact": "-100.00", "covered_value": "1000.00", "pct": "-10.00"}
+    ]
+    assert result.no_data_funds == 1
+
+
+def test_by_asset_class_empty_when_no_fund_has_data():
+    db = _session()
+    scenario = _planning_scenario(db)
+    scheme = _planning_scheme(db, "No Data", "PN1", "Equity Scheme - Flexi Cap Fund")
+    _planning_results(db, scenario, (scheme, None, True, "no_comparable_data"))
+    member = _household_member(db)
+
+    with patch("app.services.analytics.scenario_engine.compute_holdings", new=_holdings((scheme, member, "1000.00"))):
+        result = get_scenario_result_for_household(db, scenario, [member.id])
+
+    assert result.by_asset_class == []
+    assert result.portfolio_impact_pct is None
+
+
+def test_by_asset_class_ignores_zero_value_holdings():
+    db = _session()
+    scenario = _planning_scenario(db)
+    scheme = _planning_scheme(db, "Equity One", "PZ1", "Equity Scheme - Flexi Cap Fund")
+    _planning_results(db, scenario, (scheme, "-10.00", False, None))
+    member = _household_member(db)
+
+    with patch("app.services.analytics.scenario_engine.compute_holdings", new=_holdings((scheme, member, "0"))):
+        result = get_scenario_result_for_household(db, scenario, [member.id])
+
+    assert result.by_asset_class == []
+
+
+def test_by_asset_class_multi_phase_uses_headline_results():
+    db = _session()
+    group = _planning_scenario(db, name="Group")
+    phase = Scenario(
+        name="Current phase",
+        description="d",
+        parent_scenario_id=group.id,
+        phase_order=1,
+        phase_label="Current",
+        start_date=date(2020, 2, 1),
+        end_date=date(2020, 3, 31),
+        scenario_type="CRASH",
+    )
+    scheme = _planning_scheme(db, "Equity One", "PP1", "Equity Scheme - Flexi Cap Fund")
+    db.add(phase)
+    db.commit()
+    _planning_results(db, group, (scheme, "-12.00", False, None))
+    _planning_results(db, phase, (scheme, "-3.00", False, None))
+    member = _household_member(db)
+
+    with patch("app.services.analytics.scenario_engine.compute_holdings", new=_holdings((scheme, member, "1000.00"))):
+        result = get_scenario_result_for_household(db, group, [member.id])
+
+    assert result.by_asset_class[0].model_dump() == {
+        "bucket": "Equity",
+        "rupee_impact": "-120.00",
+        "covered_value": "1000.00",
+        "pct": "-12.00",
+    }
+    assert result.by_fund[0].pct == "-3.00"
+
+
+def test_build_asset_class_rows_never_signs_a_zero_and_handles_zero_cover():
+    from app.services.analytics.scenario_engine import _build_asset_class_rows
+
+    rows = _build_asset_class_rows(
+        {"Equity": Decimal("-0.01"), "Debt": Decimal("0")},
+        {"Equity": Decimal("100000000.00"), "Debt": Decimal("0")},
+    )
+
+    assert [row.model_dump() for row in rows] == [
+        {"bucket": "Equity", "rupee_impact": "-0.01", "covered_value": "100000000.00", "pct": "0.00"},
+        {"bucket": "Debt", "rupee_impact": "0.00", "covered_value": "0.00", "pct": None},
+    ]
+
+
+def test_member_fund_rows_carry_proxy_and_frozen_flags():
+    db = _session()
+    scenario = _planning_scenario(db, had_redemption_freeze_schemes=["Franklin Frozen Fund"])
+    proxied = _planning_scheme(db, "Proxied Fund", "PF1", "Equity Scheme - Flexi Cap Fund")
+    frozen = _planning_scheme(
+        db,
+        "Franklin Frozen Fund - Direct Plan - Growth",
+        "PF2",
+        "Debt Scheme - Low Duration Fund",
+        amc_name="Franklin Templeton Mutual Fund",
+        base_name="Franklin Frozen Fund",
+    )
+    real = _planning_scheme(db, "Real Fund", "PF3", "Debt Scheme - Liquid Fund")
+    _planning_results(
+        db,
+        scenario,
+        (proxied, "-7.00", True, "asset_class_average:Equity"),
+        (frozen, "-5.00", False, None),
+        (real, "1.00", False, None),
+    )
+    member_a = _household_member(db, "Member A")
+    member_b = _household_member(db, "Member B")
+
+    with patch(
+        "app.services.analytics.scenario_engine.compute_holdings",
+        new=_holdings(
+            (proxied, member_a, "1000.00"),
+            (frozen, member_a, "1000.00"),
+            (real, member_a, "1000.00"),
+            (proxied, member_b, "500.00"),
+        ),
+    ):
+        result = get_scenario_result_for_household(db, scenario, [member_a.id, member_b.id])
+
+    by_fund = {row.scheme_id: row for row in result.by_fund}
+    member_rows = [fund for member in result.by_member for fund in member.funds]
+    assert sum(row.scheme_id == str(proxied.id) for row in member_rows) == 2
+    for row in member_rows:
+        fund = by_fund[row.scheme_id]
+        assert (row.is_proxied, row.proxy_basis, row.is_frozen) == (
+            fund.is_proxied,
+            fund.proxy_basis,
+            fund.is_frozen,
+        )
+    assert (by_fund[str(proxied.id)].is_proxied, by_fund[str(proxied.id)].proxy_basis) == (
+        True,
+        "asset_class_average:Equity",
+    )
+    assert by_fund[str(frozen.id)].is_frozen is True
+    assert (by_fund[str(real.id)].is_proxied, by_fund[str(real.id)].proxy_basis, by_fund[str(real.id)].is_frozen) == (
+        False,
+        None,
+        False,
+    )
+
+
+def test_funds_data_available():
+    db = _session()
+    member = _household_member(db)
+    scheme = _planning_scheme(db, "Fund", "FD1", "Equity Scheme - Flexi Cap Fund")
+    no_rows = _planning_scenario(db, name="No rows")
+    null_row = _planning_scenario(db, name="Null row")
+    real_row = _planning_scenario(db, name="Real row")
+    _planning_results(db, null_row, (scheme, None, True, "no_comparable_data"))
+    _planning_results(db, real_row, (scheme, "-1.00", False, None))
+
+    group_row = _planning_scenario(db, name="Group row")
+    group_phase = Scenario(
+        name="Group phase",
+        description="d",
+        parent_scenario_id=group_row.id,
+        phase_order=1,
+        phase_label="P",
+        scenario_type="CRASH",
+        start_date=date(2020, 1, 1),
+        end_date=date(2020, 3, 31),
+    )
+    db.add(group_phase)
+    db.commit()
+    _planning_results(db, group_row, (scheme, "-2.00", False, None))
+
+    phase_row = _planning_scenario(db, name="Phase row")
+    current_phase = Scenario(
+        name="Current phase",
+        description="d",
+        parent_scenario_id=phase_row.id,
+        phase_order=1,
+        phase_label="P",
+        scenario_type="CRASH",
+        start_date=date(2020, 1, 1),
+        end_date=date(2020, 3, 31),
+    )
+    db.add(current_phase)
+    db.commit()
+    _planning_results(db, current_phase, (scheme, "-3.00", False, None))
+
+    with patch("app.services.analytics.scenario_engine.compute_holdings", new=AsyncMock(return_value=[])):
+        availability = [
+            get_scenario_result_for_household(db, scenario, [member.id]).funds_data_available
+            for scenario in (no_rows, null_row, real_row, group_row, phase_row)
+        ]
+
+    assert availability == [False, False, True, True, True]
+
+
+def test_hypothetical_result_has_empty_by_asset_class():
+    db = _session()
+    member = _household_member(db)
+    scheme = _planning_scheme(db, "Equity Fund", "FH1", "Equity Scheme - Flexi Cap Fund")
+    scenario = Scenario(name="Hypothetical", description="d", scenario_type="HYPOTHETICAL")
+    db.add(scenario)
+    db.commit()
+    db.add(
+        ScenarioHypotheticalAssumption(
+            scenario_id=scenario.id,
+            asset_class="Equity",
+            assumed_pct_change=Decimal("-10.00"),
+            assumption_note="note",
+        )
+    )
+    db.commit()
+
+    with patch("app.services.analytics.scenario_engine.compute_holdings", new=_holdings((scheme, member, "1000.00"))):
+        result = get_scenario_result_for_household(db, scenario, [member.id])
+
+    assert result.by_asset_class == []
+    assert result.funds_data_available is True
+
+
+def test_results_call_compute_holdings_with_stored_prices():
+    db = _session()
+    member_id = uuid.uuid4()
+    historical = Scenario(id=uuid.uuid4(), name="Stored historical", description="d", start_date=date(2020, 1, 1), end_date=date(2020, 3, 1), scenario_type="CRASH")
+    hypothetical = Scenario(id=uuid.uuid4(), name="Stored hypothetical", description="d", scenario_type="HYPOTHETICAL")
+    db.add_all([historical, hypothetical])
+    db.commit()
+    db.add(ScenarioHypotheticalAssumption(scenario_id=hypothetical.id, asset_class="Equity", assumed_pct_change=Decimal("-5.00"), assumption_note="test"))
+    db.commit()
+
+    holdings = AsyncMock(return_value=[])
+    with patch("app.services.analytics.scenario_engine.compute_holdings", new=holdings):
+        get_scenario_result_for_household(db, historical, [member_id])
+        get_scenario_result_for_household(db, hypothetical, [member_id])
+
+    assert holdings.await_count == 2
+    assert all(call.kwargs == {"allow_stale_today": True, "stored_only": True} for call in holdings.await_args_list)
+
+
+def test_results_route_never_fetches_a_nav():
+    from app.models.enums import ImportStatus, PlanType, TransactionType
+    from app.models.folio import Folio
+    from app.models.imports import Import
+    from app.models.transaction import Transaction
+
+    db = _session()
+    member = _household_member(db)
+    scheme = Scheme(
+        id=uuid.uuid4(), amfi_code="LIVE-NAV", name="No stored NAV", amc_name="AMC",
+        sebi_category="Equity Scheme - Flexi Cap Fund",
+    )
+    scenario = Scenario(id=uuid.uuid4(), name="No network", description="d", start_date=date(2020, 1, 1), end_date=date(2020, 3, 1), scenario_type="CRASH")
+    imported = Import(household_member_id=member.id, status=ImportStatus.CONFIRMED, uploaded_at=datetime.now(timezone.utc))
+    db.add_all([scheme, scenario, imported])
+    db.commit()
+    folio = Folio(
+        id=uuid.uuid4(), household_member_id=member.id, scheme_id=scheme.id,
+        folio_number="T5-NAV", plan_type=PlanType.DIRECT,
+    )
+    db.add(folio)
+    db.commit()
+    transaction = Transaction(
+        id=uuid.uuid4(), folio_id=folio.id, import_id=imported.id,
+        type=TransactionType.PURCHASE, date=date(2024, 1, 1),
+        amount=Decimal("1000.00"), units=Decimal("100.000"), nav=Decimal("10.0000"),
+    )
+    db.add_all([
+        transaction,
+        ScenarioSchemeResult(scenario_id=scenario.id, scheme_id=scheme.id, pct_change=Decimal("-10.00")),
+    ])
+    db.commit()
+
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=AsyncMock(side_effect=AssertionError("network"))) as fetch:
+        result = get_scenario_result_for_household(db, scenario, [member.id])
+    fetch.assert_not_awaited()
+    assert (result.total_value, result.by_asset_class) == ("0.00", [])
