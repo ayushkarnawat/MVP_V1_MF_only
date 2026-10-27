@@ -9,6 +9,7 @@ import { InfoMark } from "../common/SectionCard";
 import { useMfAnalytics } from "../data/analyticsStore";
 import { useMfHistory, useMfHoldings, useMfSection } from "../data/useMfDashboard";
 import { MutualFundsFrame } from "../frame/MutualFundsFrame";
+import { BenchmarkBlock } from "./BenchmarkBlock";
 import {
   changeDirection,
   formatSignedPercent,
@@ -780,15 +781,7 @@ function PerformanceBody() {
     <div data-testid="performance-blocks" className="flex flex-col gap-[18px]">
       <ReturnsBlock holdings={holdings} money={money} funds={funds} />
       <HistoryBlock history={history} />
-      <section
-        data-testid="block-benchmark"
-        className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5"
-      >
-        <h3 className="text-base font-semibold text-[var(--ui-text)] mb-2">
-          Benchmark Comparison (XIRR)
-        </h3>
-        <p className="text-sm text-[var(--ui-text-muted)]">Coming soon</p>
-      </section>
+      <BenchmarkBlock />
     </div>
   );
 }

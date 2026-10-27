@@ -11,9 +11,9 @@ const route: ShellRoute = {
   parentId: "portfolio-mutual-funds",
   layout: "app",
   scope: "family-or-member",
-  status: "placeholder",
+  status: "live",
   title: "Allocation",
-  page: () => import("../../features/mutual-funds/frame/ComingSoonPages").then(module => ({ default: module.AllocationComingSoon })),
+  page: () => import("../../features/mutual-funds/allocation/AllocationPage"),
 };
 
 export default route;
