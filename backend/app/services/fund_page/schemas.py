@@ -131,3 +131,11 @@ class PerformanceResponse(FundModel):
     benchmark: list[PerformancePoint] | None
     benchmark_reason: Literal["no_benchmark", "no_history"] | None
     period_returns: PeriodReturnsOut
+
+
+class ReturnsResponse(FundModel):
+    status: Literal["ready"] = "ready"
+    mode: Literal["inception", "current"]
+    columns: list[str]
+    rows: dict[str, dict[str, str | None] | None]
+    benchmark_reason: Literal["no_benchmark", "no_history"] | None

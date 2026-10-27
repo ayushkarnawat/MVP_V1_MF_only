@@ -15,13 +15,21 @@ from app.models.user import User
 from app.services.auth.session import get_active_user
 from app.services.fund_page.folios import full_folio_number
 from app.services.fund_page.performance import period_series
-from app.services.fund_page.schemas import FolioNumberResponse, PerformanceResponse, SummaryResponse, Unavailable
+from app.services.fund_page.returns import current_returns, inception_returns
+from app.services.fund_page.schemas import (
+    FolioNumberResponse,
+    PerformanceResponse,
+    ReturnsResponse,
+    SummaryResponse,
+    Unavailable,
+)
 from app.services.fund_page.scope import resolve_scope
 from app.services.fund_page.summary import build_summary
 
 router = APIRouter(prefix="/fund-page", tags=["fund_page"])
 
 _PERIODS = Literal["1M", "3M", "6M", "1Y", "3Y", "5Y", "All"]
+_RETURN_MODES = Literal["inception", "current"]
 
 
 @router.get("/{scheme_id}/summary", response_model=SummaryResponse)
@@ -65,3 +73,24 @@ async def performance(
     if scheme is None:
         raise HTTPException(status_code=404, detail="Scheme not found.")
     return await period_series(db, scheme, period, now.date())
+
+
+@router.get(
+    "/{scheme_id}/returns",
+    response_model=ReturnsResponse | Unavailable,
+)
+async def returns(
+    scheme_id: uuid.UUID,
+    mode: _RETURN_MODES = "inception",
+    scope: str = "combined",
+    user: User = Depends(get_active_user),
+    db: Session = Depends(get_db),
+    now: datetime = Depends(get_now_ist),
+):
+    scheme = db.get(Scheme, scheme_id)
+    if scheme is None:
+        raise HTTPException(status_code=404, detail="Scheme not found.")
+    ctx = resolve_scope(db, user.id, scope)
+    if mode == "current":
+        return await current_returns(db, scheme, ctx, user.id, now.date())
+    return inception_returns(db, scheme, now.date())

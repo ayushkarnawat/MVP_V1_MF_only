@@ -6,6 +6,7 @@ real OTP/signup flow, which is unnecessary weight for routes whose fixtures
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 from unittest.mock import AsyncMock
 
 import pytest
@@ -155,3 +156,39 @@ def test_performance_route_returns_appendix_a_contract():
     assert body["end"] == TODAY.isoformat()
     assert body["fund"][0]["pct"] == "0.0000"
     assert body["period_returns"]["fund"] == body["fund"][-1]["pct"]
+
+
+def test_inception_returns_route_returns_appendix_a_contract():
+    db = make_session()
+    household = add_user_household(db)
+    scheme = add_scheme(
+        db,
+        "route-returns",
+        "Equity Scheme - Flexi Cap Fund",
+        SchemePlanType.DIRECT,
+        "ROUTERET",
+    )
+    fx_nav10(db, scheme)
+    user = db.get(User, household.user_id)
+
+    response = _authed_client(db, user).get(
+        f"/fund-page/{scheme.id}/returns",
+        params={"mode": "inception"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ready"
+    assert body["mode"] == "inception"
+    assert body["columns"] == [
+        "1M",
+        "3M",
+        "6M",
+        "1Y",
+        "3Y",
+        "5Y",
+        "since_inception",
+    ]
+    assert abs(Decimal(body["rows"]["fund"]["1Y"]) - Decimal("10")) < Decimal("0.001")
+    assert body["rows"]["benchmark"] is None
+    assert body["benchmark_reason"] == "no_history"
