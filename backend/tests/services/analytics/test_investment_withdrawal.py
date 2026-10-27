@@ -360,6 +360,23 @@ def test_missed_instalments_are_measured_against_the_latest_statement_not_today(
     assert result.sip_summary.missed_count == 6
 
 
+def test_missed_sip_names_the_fund_and_the_first_missed_date():
+    db = _session()
+    member = _member(db)
+    folio = _folio(db, member)
+    sips = [_sip(member, folio.scheme_id, date(2024, 3, 5), "5000.00")]
+    with patch(f"{_MODULE}._references", return_value={folio.id: date(2024, 4, 30)}):
+        quiet = _run(db, [member.id], sips=sips).sip_summary
+    assert (quiet.missed_sip_fund, quiet.missed_sip_date) == (None, None)
+    # hand check: last paid 5 Mar 2024, statement ends 31 Jul 2024 -> Apr, May, Jun missed; the first is 5 Apr 2024
+    with patch(f"{_MODULE}._references", return_value={folio.id: date(2024, 7, 31)}):
+        summary = _run(db, [member.id], sips=sips).sip_summary
+    assert summary.missed_count == 3
+    assert summary.missed_sip_fund == sips[0].scheme_name
+    assert summary.missed_sip_date == date(2024, 4, 5)
+    assert summary.model_dump(mode="json")["missed_sip_date"] == "2024-04-05"
+
+
 def test_two_folios_of_one_fund_use_the_earliest_statement_end():
     """SipRow has no folio id, so folios are grouped by member + scheme. With
     different statement ends, the earliest one is used: a miss is only
@@ -376,3 +393,52 @@ def test_two_folios_of_one_fund_use_the_earliest_statement_end():
     with patch(f"{_MODULE}._references", return_value=references):
         result = _run(db, [member.id], sips=sips)
     assert result.sip_summary.missed_count == 0
+
+
+def test_ledger_entries_carry_units_nav_and_masked_folio():
+    db = _session()
+    member = _member(db)
+    folio = _folio(db, member)
+    folio.folio_number = "1234567/89"
+    db.commit()
+    db.add(Transaction(id=uuid.uuid4(), folio_id=folio.id, import_id=uuid.uuid4(), type=TransactionType.PURCHASE,
+                       date=date(2026, 1, 5), amount=Decimal("2500.00"), units=Decimal("48.123"), nav=Decimal("51.9500")))
+    db.commit()
+    entry = _run(db, [member.id]).monthly[0].entries[0]
+    # hand check: raw row units 48.123, nav 51.9500; folio "1234567/89" keeps its last four alphanumerics "6789"
+    assert (entry.units, entry.nav, entry.folio) == ("48.123", "51.9500", "XXXX6789")
+    dumped = entry.model_dump(mode="json")
+    assert dumped["units"] == "48.123" and dumped["nav"] == "51.9500" and dumped["folio"] == "XXXX6789"
+
+
+def _two_folios(db, member):
+    return _folio(db, member), _folio(db, member)
+
+
+def test_most_missed_sip_is_weighted_by_series_count_like_the_headline():
+    db = _session()
+    member = _member(db)
+    fa, fb = _two_folios(db, member)
+    # A: 2 missed x 3 parallel SIPs = 6; B: 3 missed x 1 = 3. Per-row alone would wrongly pick B.
+    a = _sip(member, fa.scheme_id, date(2024, 3, 5), "5000.00", series_count=3).model_copy(update={"scheme_name": "Fund A"})
+    b = _sip(member, fb.scheme_id, date(2024, 3, 5), "5000.00").model_copy(update={"scheme_name": "Fund B"})
+    refs = {fa.id: date(2024, 6, 30), fb.id: date(2024, 7, 31)}
+    with patch(f"{_MODULE}._references", return_value=refs):
+        summary = _run(db, [member.id], sips=[b, a]).sip_summary
+    assert summary.missed_count == 9
+    assert summary.missed_sip_fund == "Fund A"
+
+
+def test_most_missed_sip_tie_keeps_the_first_listed():
+    db = _session()
+    member = _member(db)
+    fa, fb = _two_folios(db, member)
+    # A: 3 x 1 = 3; B: 1 x 3 = 3 -> tie, first listed wins.
+    a = _sip(member, fa.scheme_id, date(2024, 3, 5), "5000.00").model_copy(update={"scheme_name": "Fund A"})
+    b = _sip(member, fb.scheme_id, date(2024, 5, 5), "5000.00", series_count=3).model_copy(update={"scheme_name": "Fund B"})
+    refs = {fa.id: date(2024, 7, 31), fb.id: date(2024, 7, 31)}
+    with patch(f"{_MODULE}._references", return_value=refs):
+        first = _run(db, [member.id], sips=[a, b]).sip_summary
+        second = _run(db, [member.id], sips=[b, a]).sip_summary
+    assert first.missed_count == 6 and first.missed_sip_fund == "Fund A"
+    assert second.missed_sip_fund == "Fund B"

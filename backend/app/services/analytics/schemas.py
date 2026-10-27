@@ -120,6 +120,10 @@ class FundTerRow(BaseModel):
     cost_1y: str | None = None
     cost_3y: str | None = None
     cost_5y: str | None = None
+    # Optional (MF-B ask C139): rupees a year a Direct holding saves against its own
+    # Regular sibling, value x (Regular TER - Direct TER) / 100. None when not Direct,
+    # no sibling or no TER on either side, or Direct is not cheaper.
+    annual_ter_saving: str | None = None
 
 
 class WeightedTerSummary(BaseModel):
@@ -338,6 +342,10 @@ class InvestmentWithdrawalEntry(BaseModel):
     scheme_name: str
     household_member_id: str
     household_member_name: str
+    # Optional ledger detail (MF-B ask C133); absent on payloads stored before it.
+    units: str | None = None
+    nav: str | None = None
+    folio: str | None = None  # masked: "XXXX" + last four alphanumerics
 
 
 class InvestmentWithdrawalBucket(BaseModel):
@@ -353,6 +361,10 @@ class InvestmentWithdrawalSipSummary(BaseModel):
     active_count: int
     total_monthly_amount: str
     missed_count: int
+    # Optional (MF-B ask C133): the SIP with the most missed instalments and the date
+    # of the first one it missed; both None when nothing is missed.
+    missed_sip_fund: str | None = None
+    missed_sip_date: date | None = None
 
 
 class InvestmentWithdrawalResult(BaseModel):
@@ -553,10 +565,18 @@ class ScenarioResultRow(BaseModel):
     funds_data_available: bool = True
 
 
+class AssetAllocationClassFund(CoverageFund):
+    value: Decimal
+    percentage: Decimal  # percent of the asset class, not of the portfolio
+
+
 class AssetAllocationClass(BaseModel):
     key: Literal["equity", "debt", "gold", "cash_like"]
     value: Decimal
     percentage: Decimal
+    # Optional (MF-B ask C133, Asset Class drill): funds contributing to the class,
+    # largest first; None on payloads stored before this field existed.
+    funds: list[AssetAllocationClassFund] | None = None
 
 
 class AssetAllocationOuter(BaseModel):
@@ -616,6 +636,20 @@ class OverlapPair(OverlapResult):
     fund_b: OverlapFund
 
 
+class OverlapDriver(BaseModel):
+    isin: str
+    instrument_name: str
+    contribution_pct: Decimal  # the smaller of the stock's two fund weights, percent of net assets
+    share_of_pair_pct: Decimal  # contribution_pct as a percent of the pair's overlap_pct
+
+
+class OverlapImpactPair(BaseModel):
+    fund_a: OverlapFund
+    fund_b: OverlapFund
+    overlap_pct: Decimal
+    drivers: list[OverlapDriver]
+
+
 class ConcentrationPoint(BaseModel):
     stock_count: int
     exposure_pct: Decimal
@@ -625,6 +659,12 @@ class OverlapSummary(BaseModel):
     matrix_funds: list[OverlapFund]
     matrix: list[OverlapPair]  # unordered pairs; diagonal omitted
     pairs_above_low: list[OverlapPair]
+    # Optional (MF-C ask C139), None on payloads stored before they existed.
+    # Stock-level impact: the largest common stocks behind each of the top pairs above low.
+    impact_pairs: list[OverlapImpactPair] | None = None
+    # Pairs at exactly the low band, which the strict pairs_above_low leaves out; an
+    # inclusive view is pairs_above_low + this, re-sorted by overlap.
+    pairs_at_low_boundary: list[OverlapPair] | None = None
     matrix_truncated: bool
     total_fund_count: int
     common_stock_limit: int

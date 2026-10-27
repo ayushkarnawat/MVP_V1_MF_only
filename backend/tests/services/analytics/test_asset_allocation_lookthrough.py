@@ -151,3 +151,64 @@ def test_excluded_share_has_no_intermediate_portfolio_rounding(db_session, monke
         ("Future", "EQ", "-1", AssetType.DERIVATIVE)])
     result = _compute(db_session, monkeypatch, [_holding(covered, "1"), _holding(missing, "2")])
     assert result.excluded_share == Decimal("-1") / Decimal("3")  # -0.01 of a 3-rupee total, exact, no intermediate rounding
+
+
+def test_asset_classes_list_their_funds_with_value_and_share_of_class(db_session, monkeypatch):
+    schemes = [_scheme(db_session) for _ in range(3)]
+    for scheme, eq, debt, gold in zip(schemes, ("95", "65", "0"), ("0", "30", "0"), ("0", "0", "100")):
+        _batch(db_session, scheme, [("Stock", "EQ", eq, AssetType.EQUITY_DOMESTIC),
+            ("Bond", "B", debt, AssetType.DEBT), ("Gold", "G", gold, AssetType.GOLD_SILVER),
+            ("TREPS", None, "3" if eq != "0" else "0", AssetType.CASH_EQUIVALENT),
+            ("Net receivables", None, "2" if eq != "0" else "0", AssetType.CASH_EQUIVALENT)])
+    result = _compute(db_session, monkeypatch, [_holding(s, v) for s, v in zip(schemes, ("600", "300", "100"))])
+    classes = {row.key: row for row in result.as_disclosed.classes}
+    # hand check: equity = 600*95% + 300*65% = 570 + 195 = 765; the 570 fund is 570/765 of the class
+    equity = classes["equity"].funds
+    assert [(f.scheme_id, f.value) for f in equity] == [(schemes[0].id, Decimal("570")), (schemes[1].id, Decimal("195"))]
+    assert equity[0].percentage == Decimal("570") / Decimal("765") * 100
+    assert equity[0].scheme_name == schemes[0].name
+    # a fund with nothing in the class is left out; gold is only the third fund
+    assert [(f.scheme_id, f.value, f.percentage) for f in classes["gold"].funds] == [(schemes[2].id, Decimal("100"), Decimal("100"))]
+    assert classes["debt"].funds[0].value == Decimal("90")
+    assert result.model_dump(mode="json")["as_disclosed"]["classes"][0]["funds"][0]["value"] == "570.000"
+
+
+def test_arbitrage_as_cash_variant_moves_the_whole_fund_into_cash_like(db_session, monkeypatch):
+    scheme = _scheme(db_session)
+    scheme.sebi_category = "Arbitrage Fund"
+    _batch(db_session, scheme, [("Stock", "EQ", "60", AssetType.EQUITY_DOMESTIC), ("Cash", None, "40", AssetType.CASH_EQUIVALENT)])
+    result = _compute(db_session, monkeypatch, [_holding(scheme, "500")])
+    cash = {r.key: r for r in result.arbitrage_as_cash.classes}["cash_like"]
+    assert [(f.scheme_id, f.value, f.percentage) for f in cash.funds] == [(scheme.id, Decimal("500"), Decimal("100"))]
+    assert {r.key: r for r in result.arbitrage_as_cash.classes}["equity"].funds == []
+
+
+def _equity_funds(variant):
+    return next(row for row in variant.classes if row.key == "equity").funds
+
+
+def test_class_funds_share_ignores_negative_parts_and_lists_only_positive(db_session, monkeypatch):
+    a, b = [_scheme(db_session) for _ in range(2)]
+    _batch(db_session, a, [("Stock", "EQ", "60", AssetType.EQUITY_DOMESTIC)])
+    _batch(db_session, b, [("Short", "SH", "-10", AssetType.EQUITY_DOMESTIC)])
+    result = _compute(db_session, monkeypatch, [_holding(a, "1000"), _holding(b, "1000")])
+    funds = _equity_funds(result.as_disclosed)
+    # class total is 600-100=500; shares are over the positive parts only (600), so never above 100
+    assert [(f.scheme_id, f.value, f.percentage) for f in funds] == [(a.id, Decimal("600"), Decimal("100"))]
+
+
+def test_class_funds_share_with_zero_class_total_is_not_zero_percent(db_session, monkeypatch):
+    a, b = [_scheme(db_session) for _ in range(2)]
+    _batch(db_session, a, [("Stock", "EQ", "50", AssetType.EQUITY_DOMESTIC)])
+    _batch(db_session, b, [("Short", "SH", "-50", AssetType.EQUITY_DOMESTIC)])
+    result = _compute(db_session, monkeypatch, [_holding(a, "1000"), _holding(b, "1000")])
+    assert _values(result.as_disclosed)["equity"] == Decimal("0")
+    funds = _equity_funds(result.as_disclosed)
+    assert [(f.scheme_id, f.percentage) for f in funds] == [(a.id, Decimal("100"))]
+
+
+def test_class_funds_all_negative_class_lists_nothing_without_dividing_by_zero(db_session, monkeypatch):
+    a = _scheme(db_session)
+    _batch(db_session, a, [("Short", "SH", "-5", AssetType.EQUITY_DOMESTIC)])
+    result = _compute(db_session, monkeypatch, [_holding(a, "1000")])
+    assert _equity_funds(result.as_disclosed) == []
