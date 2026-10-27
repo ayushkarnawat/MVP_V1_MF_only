@@ -285,3 +285,56 @@ def test_no_float_in_the_new_modules():
                      "app/services/dashboard/portfolio_insights_schemas.py"):
         source = (APP_ROOT / relative).read_text(encoding="utf-8")
         assert not re.search(r"\bfloat\b", source), relative
+
+
+# ---- golden fixtures (the front end copies these) ---------------------------------------------------------------
+import json
+
+from scripts.write_portfolio_insights_fixtures import REQUESTS, write_fixture_set
+
+FIXTURE_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "portfolio"
+
+
+def test_generated_insights_golden_fixtures_equal_live_routes():
+    # Read-only on purpose: writing first and then comparing the file with the same output can never fail.
+    generated = write_fixture_set(FIXTURE_DIR, write=False)
+    assert set(generated) == set(REQUESTS) and len(REQUESTS) == 6
+    for filename, payload in generated.items():
+        assert json.loads((FIXTURE_DIR / filename).read_text(encoding="utf-8")) == payload, filename
+
+
+def test_portfolio_insights_fixture_semantics():
+    load = lambda name: json.loads((FIXTURE_DIR / name).read_text(encoding="utf-8"))
+    names = ["family", "member", "empty", "partial", "no_sips", "no_prices"]
+
+    family = load("insights_family.json")
+    assert len(family["members"]) == 2
+    assert family["insights"]["sips"]["active_count"] > 0
+    assert all(family["insights"][key] is not None for key in ("largest_holding", "plan_split", "largest_amc"))
+    assert family["insights"]["spread"]["fund_count"] > 0
+
+    member = load("insights_member.json")
+    assert member["members"] is None and member["scope"] == "member"
+
+    empty = load("insights_empty.json")
+    assert empty["empty"] is True and empty["empty_reason"] == "no_holdings"
+    assert all(empty["insights"][key] is None for key in ("largest_holding", "plan_split", "largest_amc"))
+    assert empty["insights"]["spread"] == {"fund_count": 0, "amc_count": 0}
+
+    partial = load("insights_partial.json")
+    assert partial["partial"] is True
+    assert [fund["name"] for fund in partial["missing_funds"]] == ["Dev Gold Fund"]
+
+    no_prices = load("insights_no_prices.json")
+    assert no_prices["empty"] is True and no_prices["empty_reason"] == "no_prices"
+
+    no_sips = load("insights_no_sips.json")
+    assert no_sips["insights"]["sips"] == {"active_count": 0, "monthly_total": "0.00"}
+    assert all(no_sips["insights"][key] is not None for key in ("largest_holding", "plan_split", "largest_amc"))
+
+    for name in names:
+        body = load(f"insights_{name}.json")
+        if body["insights"]["plan_split"] is not None:
+            split = body["insights"]["plan_split"]
+            assert sum(Decimal(split[plan]["value"]) for plan in ("direct", "regular", "unclassified")) == Decimal(
+                body["total_value"]), name
