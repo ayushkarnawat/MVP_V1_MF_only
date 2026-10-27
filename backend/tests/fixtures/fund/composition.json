@@ -1,0 +1,125 @@
+{
+  "status": "ready",
+  "scheme_id": "2c652f6f-008c-58a5-90a5-d1f2e331823f",
+  "holdings_as_of": "2026-09-30",
+  "age_tag": null,
+  "stock_count": 12,
+  "top10": [
+    {
+      "name": "Golden Stock 4",
+      "isin": "INEGOLD00003",
+      "sector": "Healthcare",
+      "weight": "8.0000"
+    },
+    {
+      "name": "Golden Stock 8",
+      "isin": "INEGOLD00007",
+      "sector": "Healthcare",
+      "weight": "8.0000"
+    },
+    {
+      "name": "Golden Stock 12",
+      "isin": "INEGOLD00011",
+      "sector": "Unclassified",
+      "weight": "8.0000"
+    },
+    {
+      "name": "Golden Stock 3",
+      "isin": "INEGOLD00002",
+      "sector": "Industrials",
+      "weight": "7.0000"
+    },
+    {
+      "name": "Golden Stock 7",
+      "isin": "INEGOLD00006",
+      "sector": "Industrials",
+      "weight": "7.0000"
+    },
+    {
+      "name": "Golden Stock 11",
+      "isin": "INEGOLD00010",
+      "sector": "Industrials",
+      "weight": "7.0000"
+    },
+    {
+      "name": "Golden Stock 2",
+      "isin": "INEGOLD00001",
+      "sector": "IT",
+      "weight": "6.0000"
+    },
+    {
+      "name": "Golden Stock 6",
+      "isin": "INEGOLD00005",
+      "sector": "IT",
+      "weight": "6.0000"
+    },
+    {
+      "name": "Golden Stock 10",
+      "isin": "INEGOLD00009",
+      "sector": "IT",
+      "weight": "6.0000"
+    },
+    {
+      "name": "Golden Stock 1",
+      "isin": "INEGOLD00000",
+      "sector": "Financial Services",
+      "weight": "5.0000"
+    }
+  ],
+  "allocation": {
+    "market_cap": [
+      {
+        "label": "Large",
+        "pct": "33.3333"
+      },
+      {
+        "label": "Mid",
+        "pct": "33.3333"
+      },
+      {
+        "label": "Small",
+        "pct": "33.3333"
+      }
+    ],
+    "sector": [
+      {
+        "label": "Industrials",
+        "pct": "21.0000"
+      },
+      {
+        "label": "IT",
+        "pct": "18.0000"
+      },
+      {
+        "label": "Healthcare",
+        "pct": "16.0000"
+      },
+      {
+        "label": "Financial Services",
+        "pct": "15.0000"
+      },
+      {
+        "label": "Unclassified",
+        "pct": "8.0000"
+      }
+    ],
+    "asset_type": [
+      {
+        "key": "equity",
+        "label": "Equity",
+        "pct": "78.0000"
+      },
+      {
+        "key": "debt",
+        "label": "Debt",
+        "pct": "12.0000"
+      },
+      {
+        "key": "cash_equivalent",
+        "label": "Cash and equivalents",
+        "pct": "4.0000"
+      }
+    ]
+  },
+  "unclassified_pct": "16.0000"
+}

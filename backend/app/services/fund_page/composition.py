@@ -73,7 +73,7 @@ def _age_tag(db: Session, scheme: Scheme, batch: DisclosureBatch, today: date) -
     newest_nav = db.query(NavHistory.date).filter(
         NavHistory.scheme_id == scheme.id,
         NavHistory.date <= today,
-    ).order_by(NavHistory.date.desc()).scalar()
+    ).order_by(NavHistory.date.desc()).limit(1).scalar()
     if newest_nav is not None and (newest_nav - batch.as_of_date).days > 60:
         return "older_than_60_days"
     return None

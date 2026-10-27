@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 
 from datetime import datetime
+from enum import IntEnum
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -57,7 +58,12 @@ router = APIRouter(prefix="/fund-page", tags=["fund_page"])
 
 _PERIODS = Literal["1M", "3M", "6M", "1Y", "3Y", "5Y", "All"]
 _RETURN_MODES = Literal["inception", "current"]
-_ROLLING_WINDOWS = Literal[1, 3, 5]
+
+
+class _RollingWindow(IntEnum):
+    ONE = 1
+    THREE = 3
+    FIVE = 5
 
 
 def _scheme_or_404(db: Session, scheme_id: uuid.UUID) -> Scheme:
@@ -233,13 +239,13 @@ async def peers_returns(
 )
 async def peers_rolling(
     scheme_id: uuid.UUID,
-    window: _ROLLING_WINDOWS = 3,
+    window: _RollingWindow = _RollingWindow.THREE,
     _user: User = Depends(get_active_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
     scheme = _scheme_or_404(db, scheme_id)
-    return await rolling_returns(db, scheme, window, now.date())
+    return await rolling_returns(db, scheme, int(window), now.date())
 
 
 @router.get(
