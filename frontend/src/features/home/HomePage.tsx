@@ -20,6 +20,7 @@ import { Allocation } from "./sections/Allocation";
 import { Glance } from "./sections/Glance";
 import { Greeting } from "./sections/Greeting";
 import { Movers } from "./sections/Movers";
+import { News } from "./sections/News";
 import { WealthCard } from "./sections/WealthCard";
 import { WorthALook } from "./sections/WorthALook";
 import type {
@@ -29,6 +30,7 @@ import type {
   WealthSeriesResponse,
 } from "./types";
 import { useHomeSection } from "./useHomeSection";
+import { useNews } from "./useNews";
 import { useStaleWhileLoading } from "./useStaleWhileLoading";
 
 // A request that waits until the page cancels it: used while the wealth series is not ready to be asked for.
@@ -51,6 +53,7 @@ export function HomePage({ today }: { today?: string } = {}) {
   const [hidden, setHidden] = useState<boolean>(false);
   const [moversView, setMoversView] = useState<MoversView>("sector");
   const [miraOpen, setMiraOpen] = useState<boolean>(false);
+  const [topMoverRequest, setTopMoverRequest] = useState<{ name: string; token: number } | null>(null);
 
   const summary = useHomeSection(signal => getHomeSummary(scope, signal), [scopeKey]);
   const benchmarks = useHomeSection(signal => getBenchmarks(scope, signal), [scopeKey]);
@@ -79,6 +82,9 @@ export function HomePage({ today }: { today?: string } = {}) {
   const moversRaw = useHomeSection(signal => getMovers(scope, moversView, signal), [scopeKey, moversView]);
   const movers = useStaleWhileLoading(moversRaw, scopeKey);
 
+  // Last, so the request goes out after the other sections' requests.
+  const news = useNews(scope, scopeKey);
+
   const handlePeriodChange = (next: HomePeriod) => {
     if (next === "custom" && !appliedRange) {
       return;
@@ -92,6 +98,14 @@ export function HomePage({ today }: { today?: string } = {}) {
       setAppliedRange({ from: range.from, to: range.to });
       setPeriod("custom");
     }
+  };
+
+  // The greeting's top mover: show the Fund grouping and open that fund's popup in the movers card.
+  const handleTopMover = () => {
+    const name = summary.data?.top_contributor;
+    if (!name) return;
+    setMoversView("fund");
+    setTopMoverRequest(previous => ({ name, token: (previous?.token ?? 0) + 1 }));
   };
 
   const handleBenchmarkChange = (index: string) => {
@@ -123,6 +137,7 @@ export function HomePage({ today }: { today?: string } = {}) {
           status={summary.status}
           summary={summary.data}
           onImport={openImport}
+          onTopMover={handleTopMover}
         />
       </div>
 
@@ -177,6 +192,7 @@ export function HomePage({ today }: { today?: string } = {}) {
                 view={moversView}
                 onViewChange={setMoversView}
                 onRetry={movers.retry}
+                openRequest={topMoverRequest}
               />
             </div>
           </div>
@@ -188,8 +204,14 @@ export function HomePage({ today }: { today?: string } = {}) {
             />
           </div>
 
-          {/* NEWS SLOT (plan T10): the News section mounts here once the news backend exists. Nothing is fetched yet. */}
-          <div data-testid="home-news-slot" aria-hidden="true" />
+          <div data-testid="home-news" className="empty:hidden">
+            <News
+              status={news.status}
+              data={news.data}
+              refreshing={news.refreshing}
+              onRefresh={news.refresh}
+            />
+          </div>
         </>
       )}
 

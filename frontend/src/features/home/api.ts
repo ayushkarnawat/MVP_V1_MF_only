@@ -7,6 +7,7 @@ import type {
   HomeSectionName,
   MoversResponse,
   MoversView,
+  NewsResponse,
   SummaryResponse,
   WealthSeriesQuery,
   WealthSeriesResponse,
@@ -121,3 +122,12 @@ export async function getMovers(
   const res = await authFetch(homePath(scope, "movers", { by }), { signal });
   return res.json();
 }
+
+export async function getNews(
+  scope: HomeScopeArg,
+  signal?: AbortSignal
+): Promise<NewsResponse> {
+  const res = await authFetch(homePath(scope, "news"), { signal });
+  return res.json();
+}
+

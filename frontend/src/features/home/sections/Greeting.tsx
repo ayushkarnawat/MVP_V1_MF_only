@@ -9,9 +9,10 @@ export interface GreetingProps {
   status: "loading" | "error" | "data";
   summary: SummaryResponse | null;
   onImport: (memberId?: string) => void;
+  onTopMover?: () => void;
 }
 
-export function Greeting({ status, summary, onImport }: GreetingProps) {
+export function Greeting({ status, summary, onImport, onTopMover }: GreetingProps) {
   const [open, setOpen] = useState(false);
 
   if (status === "loading") {
@@ -60,6 +61,12 @@ export function Greeting({ status, summary, onImport }: GreetingProps) {
   }
 
   const sentence = buildStatusSentence(summary);
+
+  // The closing clause "<name> drove most of the gains." makes the name a button (register C99): found by
+  // the clause, not by the name alone, because the same words can also appear earlier in the sentence.
+  const topName = summary.top_contributor;
+  const clauseAt =
+    sentence && onTopMover && topName ? sentence.lastIndexOf(` ${topName} drove most of`) : -1;
 
   return (
     <div className="space-y-3">
@@ -137,7 +144,23 @@ export function Greeting({ status, summary, onImport }: GreetingProps) {
           data-testid="greeting-sentence"
           className="text-sm text-[var(--ui-text-muted)] leading-relaxed"
         >
-          {sentence}
+          {clauseAt >= 0 && topName ? (
+            <>
+              {sentence.slice(0, clauseAt + 1)}
+              <button
+                type="button"
+                data-testid="greeting-top-mover"
+                aria-haspopup="dialog"
+                onClick={onTopMover}
+                className="font-semibold text-[var(--ui-text)] underline decoration-[var(--ui-accent)] underline-offset-[3px] hover:bg-[var(--ui-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ui-focus)]"
+              >
+                {topName}
+              </button>
+              {sentence.slice(clauseAt + 1 + topName.length)}
+            </>
+          ) : (
+            sentence
+          )}
         </p>
       )}
     </div>
