@@ -52,7 +52,8 @@ function Location() {
   return <><output data-testid="location">{JSON.stringify({ path: location.pathname + location.search + location.hash, state: location.state })}</output>
     <button onClick={() => { void navigate(-1); }}>History back</button><button onClick={() => { void navigate(1); }}>History forward</button>
     <button onClick={() => { void navigate(location.pathname, { replace: true }); }}>Replace here</button>
-    <button onClick={() => { void navigate("/profile"); }}>Go Profile</button></>;
+    <button onClick={() => { void navigate("/profile"); }}>Go Profile</button>
+    <button onClick={() => { void navigate("/profile/import-health", { state: { from: "profile" } }); }}>Go import health</button></>;
 }
 
 // /portfolio/mutual-funds/analytics renders the new Other Analytics page (features/mutual-funds), so the old Analytics screen has no
@@ -151,6 +152,31 @@ it("Import health's Back lands on Profile after its own history entry was replac
   fireEvent.click(screen.getByRole("button", { name: "Replace here" }));
   fireEvent.click(screen.getByRole("button", { name: "Health back" }));
   await screen.findByRole("heading", { name: "Personal Information screen" });
+});
+
+// The old Profile screen used to open Import health; these keep its Back rules covered now that Import health is reached from Settings
+// (the page marks the entry with state { from: "profile" }, as SettingsPage does): Back pops straight to the opener with no duplicate
+// entry and no Back loop.
+it("Import health's Back pops straight back to the screen that opened it with no duplicate entry", async () => {
+  mount("/home"); await screen.findByRole("heading", { name: "Home" });
+  fireEvent.click(screen.getByRole("button", { name: "Go import health" }));
+  await screen.findByRole("heading", { name: "Import health screen" });
+  fireEvent.click(screen.getByRole("button", { name: "Health back" }));
+  await screen.findByRole("heading", { name: "Home" });
+  expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/home");
+  fireEvent.click(screen.getByRole("button", { name: "History back" }));
+  await screen.findByRole("heading", { name: "Home" });
+  expect(JSON.parse(screen.getByTestId("location").textContent!).path).toBe("/home");
+});
+
+it("Import health's Back does not leave Import health one browser Back away (no Back loop)", async () => {
+  mount("/home"); await screen.findByRole("heading", { name: "Home" });
+  fireEvent.click(screen.getByRole("button", { name: "Go import health" }));
+  await screen.findByRole("heading", { name: "Import health screen" });
+  fireEvent.click(screen.getByRole("button", { name: "Health back" }));
+  await screen.findByRole("heading", { name: "Home" });
+  fireEvent.click(screen.getByRole("button", { name: "History back" }));
+  expect(JSON.parse(screen.getByTestId("location").textContent!).path).not.toBe("/profile/import-health");
 });
 
 it.each(["member", "aggregate"] as const)("passes memberId to ImportHealth only in %s mode", async viewMode => {
