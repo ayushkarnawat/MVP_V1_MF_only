@@ -231,3 +231,22 @@ class ScoreResponse(FundScoreRow):
     status: Literal["ready"] = "ready"
     source: Literal["stored", "computed"]
     computed_at: datetime
+
+
+class CategorySeriesResponse(FundModel):
+    status: Literal["ready"] = "ready"
+    period: str
+    granularity: Literal["daily", "month_end"]
+    category: str
+    peers_used: int
+    peers_total: int
+    thin_category: bool
+    points: list[PerformancePoint]
+
+
+class CategoryReturnsResponse(FundModel):
+    status: Literal["ready"] = "ready"
+    columns: list[str]
+    category: dict[str, str | None]
+    peers_used: dict[str, int]
+    thin_category: bool

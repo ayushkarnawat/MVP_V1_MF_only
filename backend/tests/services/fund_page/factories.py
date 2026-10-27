@@ -40,6 +40,7 @@ from app.models.reference import (
     Scheme,
     SchemeFundManager,
     SchemeHolding,
+    SchemeAaum,
     StockMaster,
 )
 from app.models.transaction import Transaction
@@ -247,6 +248,14 @@ def add_manager(
         manager_name=name, role=role, sequence_order=sequence_order,
         managing_since=managing_since, reference_period=reference_period,
         match_method="EXACT", match_confidence=Decimal("1"),
+    ))
+
+
+def add_aaum(
+    db: Session, scheme: Scheme, value: Decimal, reference_period: date = TODAY,
+) -> SchemeAaum:
+    return _attach(db, SchemeAaum(
+        scheme_id=scheme.id, reference_period=reference_period, aaum_value=value,
     ))
 
 
