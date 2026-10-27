@@ -386,3 +386,29 @@ def test_generated_news_golden_fixtures_equal_live_routes():
     assert set(generated) == set(BUILDERS)
     for filename, payload in generated.items():
         assert json.loads((destination / filename).read_text(encoding="utf-8")) == payload
+
+
+def test_fund_weight_pct_is_the_funds_share_of_the_scope_portfolio():
+    runtime = build_news_fixture()
+    try:
+        seed_news_items(_db(runtime), [
+            {"source": "Mint", "title": "HDFC Mutual Fund AUM crosses record high as fund house expands",
+             "published_at": NOW_UTC - timedelta(hours=4)},
+        ], ingested_at=NOW_UTC - timedelta(hours=1))
+        body = runtime.client.get("/household/aggregate/home/news").json()
+        funds = {fund["name"]: fund for fund in body["items"][0]["funds"]}
+        # Stored values: Large Cap 1210, Flexi Cap 990, Gold 1010, Short Duration Debt 2002; total 5212.
+        assert funds["Dev Short Duration Debt"]["weight_pct"] == "38.41"  # 2002 / 5212 = 38.4114...
+        assert funds["Asha Large Cap"]["weight_pct"] == "23.22"  # 1210 / 5212 = 23.2157...
+        assert set(funds["Asha Large Cap"]) == {"scheme_id", "name", "weight_pct"}
+    finally:
+        runtime.close()
+
+
+def test_fund_weight_pct_is_null_when_the_value_or_total_is_unknown():
+    from decimal import Decimal
+    from app.api.home_news import _weight_pct
+
+    assert _weight_pct("a", {"a": Decimal("1")}, Decimal("0")) is None
+    assert _weight_pct("missing", {"a": Decimal("1")}, Decimal("1")) is None
+    assert _weight_pct("a", {"a": Decimal("1")}, Decimal("3")) == Decimal("33.33")

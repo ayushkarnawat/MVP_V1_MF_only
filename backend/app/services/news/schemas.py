@@ -21,6 +21,8 @@ IconKey = Literal[
 class NewsFundOut(HomeModel):
     scheme_id: str
     name: str
+    # Held fund's share of the scope's total portfolio value (percent, 2 dp); null when unknown.
+    weight_pct: PlainDecimal | None = None
 
 
 class NewsItemOut(HomeModel):
