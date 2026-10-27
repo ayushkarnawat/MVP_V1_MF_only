@@ -25,7 +25,7 @@ from app.services.analytics.schemas import (
 )
 from app.services.dashboard.cash_flow import _CREDIT_TYPES, _DEBIT_TYPES
 from app.services.dashboard.holdings import compute_holdings
-from app.services.dashboard.sip import _references, compute_active_sips, missed_instalments
+from app.services.dashboard.sip import _add_months_clamped, _references, compute_active_sips, missed_instalments
 from app.services.lot_rules import is_conversion_description, paid_amount
 
 _ZERO = Decimal("0.00")
@@ -186,6 +186,14 @@ async def compute_investment_withdrawal(
         for row in sip_rows
     )
 
+    # Which SIP to name: the one with the most missed instalments (first listed on a
+    # tie), dated at the first instalment it missed, the month after its last paid one.
+    worst_row, worst_missed = None, 0
+    for row in sip_rows:
+        missed = missed_instalments(row.sip_date, reference_by_holding.get((row.household_member_id, row.scheme_id), today))
+        if missed > worst_missed:
+            worst_row, worst_missed = row, missed
+
     return InvestmentWithdrawalResult(
         total_invested=f"{total_invested:.2f}",
         total_withdrawn=f"{total_withdrawn:.2f}",
@@ -206,5 +214,7 @@ async def compute_investment_withdrawal(
             active_count=active_count,
             total_monthly_amount=f"{total_monthly_sip:.2f}",
             missed_count=missed_count,
+            missed_sip_fund=worst_row.scheme_name if worst_row else None,
+            missed_sip_date=_add_months_clamped(worst_row.sip_date, 1) if worst_row else None,
         ),
     )

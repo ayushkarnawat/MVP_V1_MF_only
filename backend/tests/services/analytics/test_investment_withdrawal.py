@@ -360,6 +360,23 @@ def test_missed_instalments_are_measured_against_the_latest_statement_not_today(
     assert result.sip_summary.missed_count == 6
 
 
+def test_missed_sip_names_the_fund_and_the_first_missed_date():
+    db = _session()
+    member = _member(db)
+    folio = _folio(db, member)
+    sips = [_sip(member, folio.scheme_id, date(2024, 3, 5), "5000.00")]
+    with patch(f"{_MODULE}._references", return_value={folio.id: date(2024, 4, 30)}):
+        quiet = _run(db, [member.id], sips=sips).sip_summary
+    assert (quiet.missed_sip_fund, quiet.missed_sip_date) == (None, None)
+    # hand check: last paid 5 Mar 2024, statement ends 31 Jul 2024 -> Apr, May, Jun missed; the first is 5 Apr 2024
+    with patch(f"{_MODULE}._references", return_value={folio.id: date(2024, 7, 31)}):
+        summary = _run(db, [member.id], sips=sips).sip_summary
+    assert summary.missed_count == 3
+    assert summary.missed_sip_fund == sips[0].scheme_name
+    assert summary.missed_sip_date == date(2024, 4, 5)
+    assert summary.model_dump(mode="json")["missed_sip_date"] == "2024-04-05"
+
+
 def test_two_folios_of_one_fund_use_the_earliest_statement_end():
     """SipRow has no folio id, so folios are grouped by member + scheme. With
     different statement ends, the earliest one is used: a miss is only

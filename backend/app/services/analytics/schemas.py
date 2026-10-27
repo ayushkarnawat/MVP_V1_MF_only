@@ -357,6 +357,10 @@ class InvestmentWithdrawalSipSummary(BaseModel):
     active_count: int
     total_monthly_amount: str
     missed_count: int
+    # Optional (MF-B ask C133): the SIP with the most missed instalments and the date
+    # of the first one it missed; both None when nothing is missed.
+    missed_sip_fund: str | None = None
+    missed_sip_date: date | None = None
 
 
 class InvestmentWithdrawalResult(BaseModel):
