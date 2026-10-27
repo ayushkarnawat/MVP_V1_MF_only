@@ -14,6 +14,7 @@ never triggers a refresh. The refresh used to run here and, on AWS, took
 
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
@@ -53,6 +54,15 @@ def _latest_ter_for_scheme(db: Session, scheme_id: uuid.UUID) -> tuple[Decimal, 
     return (row.ter_value, row.reference_period) if row else None
 
 
+def _option_key(scheme: Scheme) -> str:
+    """The plan option (growth, IDCW payout, ...) of a scheme. `base_name` carries neither plan
+    nor option (scheme_universe.py builds name = "base - plan - option"), so Growth and IDCW
+    siblings share it; the option is what is left of the name after the base and plan words."""
+    remainder = (scheme.name or "")[len(scheme.base_name or ""):].lower()
+    words = re.sub(r"[^a-z0-9]+", " ", remainder).split()
+    return " ".join(w for w in words if w not in ("direct", "regular", "plan"))
+
+
 def _direct_ter_gaps(db: Session, holdings: list[HoldingRow], ter_by_scheme: dict[str, tuple[Decimal, date]]) -> dict[str, Decimal]:
     """Percentage points by which each fully-Direct held scheme is cheaper than its own
     Regular sibling (same AMC and base name, first by AMFI code, as distributor_comparison.py)."""
@@ -71,11 +81,14 @@ def _direct_ter_gaps(db: Session, holdings: list[HoldingRow], ter_by_scheme: dic
     ).order_by(Scheme.amfi_code, Scheme.id).all()
     sibling_of: dict[tuple, uuid.UUID] = {}
     for sibling in siblings:
-        sibling_of.setdefault((sibling.amc_name, sibling.base_name), sibling.id)
+        sibling_of.setdefault((sibling.amc_name, sibling.base_name, _option_key(sibling)), sibling.id)
     gaps: dict[str, Decimal] = {}
     for scheme in schemes:
-        sibling_id = sibling_of.get((scheme.amc_name, scheme.base_name))
+        sibling_id = sibling_of.get((scheme.amc_name, scheme.base_name, _option_key(scheme)))
         sibling_ter = _latest_ter_for_scheme(db, sibling_id) if sibling_id else None
+        # Each TER comes from its own latest period; a gap is only honest when both are the same month.
+        if sibling_ter is not None and sibling_ter[1] != ter_by_scheme[str(scheme.id)][1]:
+            continue
         if sibling_ter is not None and sibling_ter[0] > ter_by_scheme[str(scheme.id)][0]:
             gaps[str(scheme.id)] = sibling_ter[0] - ter_by_scheme[str(scheme.id)][0]
     return gaps

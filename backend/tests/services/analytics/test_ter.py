@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
@@ -350,7 +350,8 @@ def test_direct_fund_rows_carry_the_annual_saving_against_the_regular_sibling():
     # hand check: value 100 units x 60 = 6000; Regular sibling costs 1.30% against 0.50%, so 6000 x 0.80 / 100 = 48.00 a year
     assert rows["Alpha Fund - Direct"].annual_ter_saving == "48.00"
     assert rows["Beta Fund - Regular"].annual_ter_saving is None
-    assert summary.model_dump(mode="json")["funds"][0]["annual_ter_saving"] in ("48.00", None)
+    dumped = {f["scheme_name"]: f for f in summary.model_dump(mode="json")["funds"]}
+    assert dumped["Alpha Fund - Direct"]["annual_ter_saving"] == "48.00"
 
 
 def test_direct_fund_without_a_cheaper_gap_or_ter_has_no_saving():
@@ -369,3 +370,40 @@ def test_direct_fund_without_a_cheaper_gap_or_ter_has_no_saving():
     with p1, p2:
         summary = asyncio.run(compute_weighted_ter(db, [member.id]))
     assert summary.funds[0].annual_ter_saving is None
+
+
+def _gap_setup(direct_name, regular_name, direct_period, regular_period):
+    from app.models.enums import SchemePlanType
+    db = _session()
+    member = _household_member(db)
+    direct = _scheme(db, direct_name)
+    direct.base_name, direct.plan_type = "Delta Fund", SchemePlanType.DIRECT
+    regular = _scheme(db, regular_name)
+    regular.base_name, regular.plan_type = "Delta Fund", SchemePlanType.REGULAR
+    db.commit()
+    _folio_with_purchase(db, member, direct, Decimal("6000.00"), Decimal("100.000"), Decimal("60.0000"))
+    db.add(SchemeTer(scheme_id=direct.id, reference_period=direct_period, ter_value=Decimal("0.50")))
+    db.add(SchemeTer(scheme_id=regular.id, reference_period=regular_period, ter_value=Decimal("1.30")))
+    db.commit()
+    p1, p2 = _mock_holdings(direct, direct)
+    with p1, p2:
+        return asyncio.run(compute_weighted_ter(db, [member.id])).funds[0]
+
+
+def test_saving_is_null_when_direct_and_regular_ter_periods_differ():
+    this_month = _current_month_start()
+    last_month = (this_month - timedelta(days=1)).replace(day=1)
+    row = _gap_setup("Delta Fund - Direct Plan - Growth", "Delta Fund - Regular Plan - Growth", this_month, last_month)
+    assert row.annual_ter_saving is None
+
+
+def test_saving_uses_the_regular_sibling_when_periods_match():
+    row = _gap_setup("Delta Fund - Direct Plan - Growth", "Delta Fund - Regular Plan - Growth",
+                     _current_month_start(), _current_month_start())
+    assert row.annual_ter_saving == "48.00"
+
+
+def test_saving_is_null_when_the_regular_sibling_is_a_different_plan_option():
+    row = _gap_setup("Delta Fund - Direct Plan - Growth", "Delta Fund - Regular Plan - IDCW",
+                     _current_month_start(), _current_month_start())
+    assert row.annual_ter_saving is None
