@@ -11,12 +11,33 @@ def test_0045_is_in_the_chain_and_sqlite_upgrade_then_downgrade_to_0043(tmp_path
 
     heads = _alembic("heads")
     assert heads.returncode == 0, heads.stderr
-    assert heads.stdout.strip() == "0044 (head)"
+    assert heads.stdout.strip() == "0046 (head)"
 
     up = _alembic("upgrade", "head")
     assert up.returncode == 0, up.stderr
     down = _alembic("downgrade", "0043")
     assert down.returncode == 0, down.stderr
+
+
+def test_0046_job_runs_table_roundtrip(tmp_path, monkeypatch):
+    import sqlite3
+
+    path = tmp_path / "job-runs-0046.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+    up = _alembic("upgrade", "head")
+    assert up.returncode == 0, up.stderr
+    with sqlite3.connect(path) as conn:
+        columns = {r[1]: r for r in conn.execute("PRAGMA table_info(job_runs)")}
+        assert set(columns) == {"job_name", "last_success_at"}
+        assert columns["job_name"][5] == 1  # primary key
+        assert columns["last_success_at"][3] == 1  # NOT NULL
+    down = _alembic("downgrade", "0044")
+    assert down.returncode == 0, down.stderr
+    with sqlite3.connect(path) as conn:
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert "job_runs" not in tables and "news_items" in tables
+    again = _alembic("upgrade", "head")
+    assert again.returncode == 0, again.stderr
 
 
 def test_0044_news_items_table_and_nse_symbol_column_roundtrip(tmp_path, monkeypatch):

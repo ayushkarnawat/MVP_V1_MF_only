@@ -164,3 +164,60 @@ def test_disabled_sources_config_is_case_insensitive(monkeypatch):
     job = _load_job("refresh_news")
     monkeypatch.setattr(settings, "news_disabled_sources", " MoneyControl.COM , ,Reuters.com")
     assert job._disabled_sources() == {"moneycontrol.com", "reuters.com"}
+
+
+def _last_success(db_session):
+    from app.models.news import JobRun
+
+    row = db_session.get(JobRun, "refresh_news")
+    if row is None:
+        return None
+    value = row.last_success_at
+    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+
+
+def test_duplicates_only_run_still_records_last_success(db_session, monkeypatch):
+    from app.models.news import JobRun
+
+    job = _load_job("refresh_news")
+    monkeypatch.setattr(job, "ingest_window", AsyncMock(return_value=([_article()], IngestStats(files_ok=1, rows_seen=1, rows_kept=1))))
+    monkeypatch.setattr(job, "_ping", Mock())
+    assert asyncio.run(job.main_async(db_session)) == 0
+    first = _last_success(db_session)
+    assert first is not None
+    # Age the stored value and re-run with the same (duplicate) article: nothing is inserted,
+    # yet the success time must advance.
+    db_session.get(JobRun, "refresh_news").last_success_at = first - timedelta(hours=40)
+    db_session.commit()
+    assert asyncio.run(job.main_async(db_session)) == 0
+    assert db_session.query(NewsItem).count() == 1
+    assert _last_success(db_session) > first - timedelta(hours=1)
+
+
+def test_success_recorded_even_when_healthcheck_url_unset(db_session, monkeypatch):
+    job = _load_job("refresh_news")
+    monkeypatch.setattr(settings, "healthcheck_news_url", "")
+    monkeypatch.setattr(job, "ingest_window", AsyncMock(return_value=([], IngestStats(files_ok=1))))
+    assert asyncio.run(job.main_async(db_session)) == 0
+    assert _last_success(db_session) is not None
+
+
+def test_failed_runs_do_not_record_last_success(db_session, monkeypatch):
+    job = _load_job("refresh_news")
+    monkeypatch.setattr(job, "_ping", Mock())
+    monkeypatch.setattr(job, "ingest_window", AsyncMock(return_value=([], IngestStats(files_ok=0, files_missing=5))))
+    assert asyncio.run(job.main_async(db_session)) == 1
+    assert _last_success(db_session) is None
+    monkeypatch.setattr(job, "ingest_window", AsyncMock(side_effect=RuntimeError("boom")))
+    assert asyncio.run(job.main_async(db_session)) == 1
+    assert _last_success(db_session) is None
+
+
+def test_dry_run_and_kill_switch_do_not_record_last_success(db_session, monkeypatch):
+    job = _load_job("refresh_news")
+    monkeypatch.setattr(job, "ingest_window", AsyncMock(return_value=([_article()], IngestStats(files_ok=1))))
+    assert asyncio.run(job.main_async(db_session, dry_run=True)) == 0
+    assert _last_success(db_session) is None
+    monkeypatch.setattr(settings, "news_enabled", False)
+    assert asyncio.run(job.main_async(db_session)) == 0
+    assert _last_success(db_session) is None

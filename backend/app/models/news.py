@@ -30,3 +30,14 @@ class NewsItem(Base):
         nullable=False, default=list, server_default="[]",
     )
     tier: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class JobRun(Base):
+    """Last successful run of a batch job, keyed by job name (e.g. "refresh_news").
+    Platform-wide, no user FK. Written only on success, so a failed run leaves the
+    previous value in place."""
+
+    __tablename__ = "job_runs"
+
+    job_name: Mapped[str] = mapped_column(String(64), primary_key=True)
+    last_success_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
