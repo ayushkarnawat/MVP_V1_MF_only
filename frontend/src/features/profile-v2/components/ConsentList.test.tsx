@@ -25,6 +25,53 @@ describe("ConsentList: the card", () => {
   });
 });
 
+describe("ConsentList: version label", () => {
+  const labels = () => rows().map(row => within(row).queryByTestId("consent-version-label")?.textContent ?? null);
+
+  it("shows the readable version label next to each consent, exactly as the server sent it", () => {
+    mount("ready", CONSENTS_FIXTURE);
+    expect(labels()).toEqual(["14 Oct 2025", "14 Oct 2025", "21 Oct 2025"]);
+  });
+
+  it("shows a label that is a raw version id as it is, without inventing a date", () => {
+    mount("ready", [{ ...CONSENTS_FIXTURE[0], document_version: "tos-v2", version_label: "tos-v2" }]);
+    expect(labels()).toEqual(["tos-v2"]);
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["null", null],
+    ["empty", ""],
+  ])("hides the label when it is %s, and the row still shows its name, version and date", (_name, value) => {
+    mount("ready", [{ ...CONSENTS_FIXTURE[0], version_label: value }]);
+    expect(screen.queryByTestId("consent-version-label")).not.toBeInTheDocument();
+    expect(rows()[0]).toHaveTextContent("Terms of Service");
+    expect(rows()[0]).toHaveTextContent("Version tos-2025-10-14");
+    expect(rows()[0]).toHaveTextContent("agreed 14 Oct 2025");
+  });
+
+  it("a row without the new fields at all (an older server) renders as before", () => {
+    const { document_title: _t, version_label: _l, ...bare } = CONSENTS_FIXTURE[1];
+    mount("ready", [bare]);
+    expect(labels()).toEqual([null]);
+    expect(screen.getByTestId("consent-name")).toHaveTextContent("Privacy Policy");
+  });
+
+  it("keeps the page's own wording: 'Terms of Service', never the registry title 'Terms & Conditions'", () => {
+    mount("ready", CONSENTS_FIXTURE);
+    expect(rows()[0]).toHaveTextContent("Terms of Service");
+    expect(screen.getByTestId("consents-card")).not.toHaveTextContent("Terms & Conditions");
+    expect(within(rows()[0]).getByTestId("consent-name").textContent).toBe("Terms of Service");
+  });
+
+  it("sits in the same row as the name, after it", () => {
+    mount("ready", CONSENTS_FIXTURE);
+    const name = within(rows()[0]).getByTestId("consent-name");
+    const label = within(rows()[0]).getByTestId("consent-version-label");
+    expect(name.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
 describe("ConsentList: loaded", () => {
   it("shows one row per consent: the document's name, its version and the date agreed", () => {
     mount("ready", CONSENTS_FIXTURE);

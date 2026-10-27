@@ -106,6 +106,14 @@ describe("DataPrivacyPage: your consents", () => {
     expect(rows[2]).toHaveTextContent("agreed 21 Oct 2025");
   });
 
+  it("shows each consent's readable version label, and keeps 'Terms of Service' wording", async () => {
+    mount();
+    await ready();
+    const labels = within(consentsCard()).getAllByTestId("consent-version-label").map(el => el.textContent);
+    expect(labels).toEqual(["14 Oct 2025", "14 Oct 2025", "21 Oct 2025"]);
+    expect(consentsCard()).not.toHaveTextContent("Terms & Conditions");
+  });
+
   it("shows a skeleton until the consents arrive, while the other blocks are already there", async () => {
     mount();
     expect(within(consentsCard()).getByTestId("consents-loading")).toBeInTheDocument();

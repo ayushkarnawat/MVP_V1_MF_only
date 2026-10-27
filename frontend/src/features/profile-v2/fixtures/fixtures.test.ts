@@ -68,7 +68,7 @@ const HISTORY_KEYS: Record<keyof ImportHistoryRow, true> = {
   import_id: true, household_member_id: true, uploaded_at: true, statement_from_date: true, statement_to_date: true, status: true,
   new_transactions_count: true, upload_group_id: true, member_name: true, group_people_count: true,
 };
-const CONSENT_KEYS: Record<keyof MyConsent, true> = { document_type: true, document_version: true, recorded_at: true };
+const CONSENT_KEYS: Record<keyof MyConsent, true> = { document_type: true, document_version: true, recorded_at: true, document_title: true, version_label: true };
 
 describe("SPEC FIXTURE guard (statement history and consents)", () => {
   it("marks the two PR-C fixture files as spec fixtures", () => {
@@ -102,5 +102,7 @@ describe("SPEC FIXTURE guard (statement history and consents)", () => {
       expect(Number.isNaN(new Date(consent.recorded_at).getTime()), consent.document_type).toBe(false);
     }
     expect(CONSENTS_FIXTURE.map(consent => consent.document_type)).toEqual(["terms_of_service", "privacy_policy", "pan_disclaimer"]);
+    expect(CONSENTS_FIXTURE.map(consent => consent.version_label)).toEqual(["14 Oct 2025", "14 Oct 2025", "21 Oct 2025"]);
+    expect(CONSENTS_FIXTURE.map(consent => consent.document_title)).toEqual(["Terms & Conditions", "Privacy Policy", "PAN disclaimer"]);
   });
 });
