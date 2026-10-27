@@ -124,7 +124,7 @@ describe("FundPageFrame", () => {
     const routes = liveRoutes(["portfolio-mutual-funds-fund"]).map(route => (route.id === "portfolio-mutual-funds-fund-insights" ? { ...route, status: "placeholder" as const } : route));
     renderInShell(<FundPageFrame schemeId={IDS.scheme} tab="overview">{() => <p>page body</p>}</FundPageFrame>, { path: OVERVIEW, routes });
     const tabs = await screen.findByRole("navigation", { name: "Fund sections" });
-    expect(within(tabs).queryByRole("link", { name: "Insights" })).toBeNull();
+    expect(within(tabs).getByRole("link", { name: "Insights" })).not.toHaveAttribute("href");
     expect(within(tabs).getByText("Insights")).toHaveAttribute("aria-disabled", "true");
   });
 

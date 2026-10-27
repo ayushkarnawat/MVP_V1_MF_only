@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Moon, Sun } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildStatusSentence } from "../homeCopy";
@@ -14,6 +14,31 @@ export interface GreetingProps {
 
 export function Greeting({ status, summary, onImport, onTopMover }: GreetingProps) {
   const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const chipRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // The popup is not a modal, but it takes focus when opened, closes on Escape (focus back to the chip)
+  // and closes on a press outside it.
+  useEffect(() => {
+    if (!open) return;
+    dialogRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        chipRef.current?.focus();
+      }
+    };
+    const onPress = (e: MouseEvent) => {
+      if (!wrapperRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onPress);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onPress);
+    };
+  }, [open]);
 
   if (status === "loading") {
     return (
@@ -81,9 +106,10 @@ export function Greeting({ status, summary, onImport, onTopMover }: GreetingProp
         </h1>
 
         {summary.data_line && (
-          <div className="relative">
+          <div className="relative" ref={wrapperRef}>
             <button
               type="button"
+              ref={chipRef}
               data-testid="members-chip"
               aria-expanded={open}
               aria-haspopup="dialog"
@@ -100,11 +126,7 @@ export function Greeting({ status, summary, onImport, onTopMover }: GreetingProp
                 role="dialog"
                 aria-label="Family members"
                 tabIndex={-1}
-                onKeyDown={e => {
-                  if (e.key === "Escape") {
-                    setOpen(false);
-                  }
-                }}
+                ref={dialogRef}
                 className="absolute right-0 top-full z-20 mt-2 w-72 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-elevated)] p-3 shadow-lg"
               >
                 <ul className="space-y-2">

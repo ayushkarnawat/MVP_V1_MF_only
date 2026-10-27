@@ -158,7 +158,9 @@ describe("MemberRows: fund names open the fund page", () => {
   it("keeps the name readable, but not a link, while the fund page is not live", () => {
     show(standardResult(), "family", buildRegistry());
     expect(screen.getByText("Asha Large Cap")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Asha Large Cap" })).toBeNull();
+    const disabled = screen.getByRole("link", { name: "Asha Large Cap" });
+    expect(disabled).toHaveAttribute("aria-disabled", "true");
+    expect(disabled).not.toHaveAttribute("href");
   });
 
   it("encodes the scheme id in the address", () => {

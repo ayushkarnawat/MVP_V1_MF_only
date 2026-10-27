@@ -291,14 +291,13 @@ export function SummaryStrip({
             </span>
           </div>
           <div
-            role="tablist"
+            role="group"
             aria-label="XIRR basis"
             className="inline-flex rounded-lg border border-[var(--ui-divider)] p-0.5 bg-[var(--ui-surface)] text-xs"
           >
             <button
               type="button"
-              role="tab"
-              aria-selected={basis === "Lifetime"}
+              aria-pressed={basis === "Lifetime"}
               onClick={() => setBasis("Lifetime")}
               className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
                 basis === "Lifetime"
@@ -310,8 +309,7 @@ export function SummaryStrip({
             </button>
             <button
               type="button"
-              role="tab"
-              aria-selected={basis === "Current"}
+              aria-pressed={basis === "Current"}
               onClick={() => setBasis("Current")}
               className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
                 basis === "Current"

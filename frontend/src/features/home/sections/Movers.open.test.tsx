@@ -12,6 +12,22 @@ function props(overrides: Partial<MoversProps> = {}): MoversProps {
   return { status: "data", data: byFund(), view: "fund", onViewChange: vi.fn(), onRetry: vi.fn(), ...overrides };
 }
 
+describe("Movers: closing the inline popup", () => {
+  it("returns focus to the row that opened it, for Escape and for the close button", () => {
+    render(<Movers {...props()} />);
+    const row = screen.getAllByRole("button").find(el => el.getAttribute("data-testid")?.startsWith("mover-") && !el.getAttribute("data-testid")?.startsWith("mover-tile"))!;
+    fireEvent.click(row);
+    const dialog = screen.getByRole("dialog");
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(row).toHaveFocus();
+    fireEvent.click(row);
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(row).toHaveFocus();
+  });
+});
+
 describe("Movers: opening a popup on request (the greeting's top-mover link)", () => {
   it("opens the popup of the gainer named in the request and moves focus into it", () => {
     render(<Movers {...props({ openRequest: { name: "Asha Large Cap", token: 1 } })} />);

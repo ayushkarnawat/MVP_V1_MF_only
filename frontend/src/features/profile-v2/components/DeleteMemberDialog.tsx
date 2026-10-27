@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Modal } from "@/components/Modal";
 import type { HouseholdMember } from "@/features/auth/types";
 import { deleteMemberPortfolio } from "@/features/import/api";
@@ -13,31 +13,28 @@ export interface DeleteMemberDialogProps {
 export function DeleteMemberDialog({ member, onClose, onDeleted }: DeleteMemberDialogProps) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const tokenRef = useRef(0);
-
   // The account holder is never removed; no dialog and no request, whatever the caller does.
   if (member.relationship === "self") return null;
 
+  // Closing while the request is out would look like "cancel" although the server still deletes, and the
+  // Family list would never refresh. So the dialog stays until the answer is in.
   const close = () => {
-    tokenRef.current += 1;
+    if (pending) return;
     onClose();
   };
 
   const remove = async () => {
     if (pending) return;
-    const token = tokenRef.current;
     setPending(true);
     setError(null);
     try {
       // true is the remove_member argument: the same call "Delete all funds" makes with its box ticked.
       await deleteMemberPortfolio(member.id, true);
-      if (tokenRef.current !== token) return;
       onDeleted();
     } catch {
-      if (tokenRef.current !== token) return;
       setError("Could not delete this member. Please try again.");
     } finally {
-      if (tokenRef.current === token) setPending(false);
+      setPending(false);
     }
   };
 
@@ -58,8 +55,9 @@ export function DeleteMemberDialog({ member, onClose, onDeleted }: DeleteMemberD
         <div className="mt-6 flex justify-end gap-3">
           <button
             type="button"
+            disabled={pending}
             onClick={close}
-            className="rounded-lg border border-[var(--ui-divider)] bg-[var(--ui-card)] px-4 py-2 text-sm font-medium text-[var(--ui-text)] hover:bg-[var(--ui-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]"
+            className="rounded-lg border border-[var(--ui-divider)] bg-[var(--ui-card)] px-4 py-2 text-sm font-medium text-[var(--ui-text)] disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[var(--ui-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]"
           >
             Keep
           </button>

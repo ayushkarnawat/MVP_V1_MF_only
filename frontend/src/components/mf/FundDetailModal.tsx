@@ -7,6 +7,7 @@ import { FundSignalGraph } from "../FundSignal";
 import type { HoldingRow } from "@/features/dashboard/types";
 import styles from "./FundDetailModal.module.css";
 import { formatDecimal } from "@/lib/decimal";
+import { formatSignedRupees } from "@/features/mutual-funds/mfCopy";
 
 export interface FundDetailModalProps {
   isOpen: boolean;
@@ -48,7 +49,7 @@ export function FundDetailModal({
           <div className={styles.kpiCard}>
             <span className={styles.kpiLabel}>Unrealised gain</span>
             <span className={`type-data-large ${navUnavailable ? "" : Number(holding.unrealized_gain) >= 0 ? styles.positiveText : styles.negativeText}`}>
-              {navUnavailable || holding.unrealized_gain === null ? "—" : `₹${formatCurrency(Number(holding.unrealized_gain))}`}
+              {navUnavailable || holding.unrealized_gain === null ? "—" : formatSignedRupees(holding.unrealized_gain)}
             </span>
           </div>
           <div className={styles.kpiCard}>

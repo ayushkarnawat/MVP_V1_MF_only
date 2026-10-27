@@ -162,26 +162,28 @@ describe("DeleteAccountDialog: leaving at any time", () => {
     expect(auth.requestAccountDeletion).not.toHaveBeenCalled();
   });
 
-  it("a late success after the dialog was closed does not call onClose a second time", async () => {
+  // Closing mid-request used to look like "cancel" while the deletion was still scheduled.
+  it("cannot be closed while the request is in flight, and success then closes it once", async () => {
     let finish: () => void = () => {};
     auth.requestAccountDeletion.mockReturnValue(new Promise<void>(resolve => { finish = resolve; }));
     mount();
     toConfirmStep();
     fireEvent.click(confirm());
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onClose).not.toHaveBeenCalled();
     await act(async () => { finish(); });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("a late failure after the dialog was closed shows no message", async () => {
-    let fail: (reason: Error) => void = () => {};
-    auth.requestAccountDeletion.mockReturnValue(new Promise<void>((_resolve, reject) => { fail = reject; }));
+  it("can be closed again once a failed request has shown its message", async () => {
+    auth.requestAccountDeletion.mockRejectedValue(new Error("x"));
     mount();
     toConfirmStep();
     fireEvent.click(confirm());
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    await act(async () => { fail(new Error("late")); });
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

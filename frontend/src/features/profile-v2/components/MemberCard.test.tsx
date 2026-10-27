@@ -130,6 +130,13 @@ describe("MemberCard: the PAN field", () => {
     expect(within(card()).getAllByText("On another Unifolio account")).toHaveLength(2);
   });
 
+  it("is announced once: the visible caption is hidden from assistive tech, the pill is not", () => {
+    mount(SPOUSE);
+    const announced = within(card()).getAllByText("On another Unifolio account").filter(el => !el.closest('[aria-hidden="true"]'));
+    expect(announced).toHaveLength(1);
+    expect(within(field("pan")).getByTestId("pan-conflict-caption")).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("the caption sits after the pill, below it, inside the PAN field's own cell", () => {
     mount(SPOUSE);
     const pill = within(field("pan")).getByTestId("pan-conflict");

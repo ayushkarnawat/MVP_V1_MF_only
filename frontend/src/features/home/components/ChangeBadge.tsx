@@ -7,7 +7,8 @@ export interface ChangeBadgeProps {
 }
 
 export function ChangeBadge({ amount, pct, hidden }: ChangeBadgeProps) {
-  const direction = changeDirection(amount);
+  // A change under half a rupee is shown as "₹0", so the arrow and colour follow the rounded figure.
+  const direction = formatSignedRupees(amount) === "₹0" ? "flat" : changeDirection(amount);
   const arrow = direction === "up" ? "▲" : direction === "down" ? "▼" : "–";
 
   const colorClass =

@@ -61,3 +61,59 @@ it("the sheet locks background scrolling while open and restores it; the default
   expect(document.body.style.overflow).toBe("auto");
   document.body.style.overflow = "";
 });
+
+describe("Modal focus management (both variants)", () => {
+  for (const variant of ["center", "sheet"] as const) {
+    it(`${variant}: moves focus in, wraps Tab, restores focus on close`, () => {
+      const opener = document.createElement("button");
+      document.body.appendChild(opener);
+      opener.focus();
+      const { rerender } = render(
+        <Modal isOpen onClose={vi.fn()} title="T" variant={variant}>
+          <input aria-label="a" />
+          <button type="button">last</button>
+        </Modal>,
+      );
+      const close = screen.getByRole("button", { name: /close modal/i });
+      expect(document.activeElement).toBe(close);
+      const last = screen.getByRole("button", { name: "last" });
+      last.focus();
+      fireEvent.keyDown(window, { key: "Tab" });
+      expect(document.activeElement).toBe(close);
+      close.focus();
+      fireEvent.keyDown(window, { key: "Tab", shiftKey: true });
+      expect(document.activeElement).toBe(last);
+      rerender(
+        <Modal isOpen={false} onClose={vi.fn()} title="T" variant={variant}>
+          <input aria-label="a" />
+        </Modal>,
+      );
+      expect(document.activeElement).toBe(opener);
+      opener.remove();
+    });
+  }
+
+  it("does not steal focus when the parent re-renders with a new onClose", () => {
+    const { rerender } = render(
+      <Modal isOpen onClose={() => {}} title="T"><input aria-label="a" /></Modal>,
+    );
+    const input = screen.getByLabelText("a");
+    input.focus();
+    rerender(<Modal isOpen onClose={() => {}} title="T"><input aria-label="a" /></Modal>);
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("two open modals have distinct title ids wired to aria-labelledby", () => {
+    render(
+      <>
+        <Modal isOpen onClose={vi.fn()} title="One">a</Modal>
+        <Modal isOpen onClose={vi.fn()} title="Two">b</Modal>
+      </>,
+    );
+    const dialogs = screen.getAllByRole("dialog");
+    const ids = dialogs.map((d) => d.getAttribute("aria-labelledby"));
+    expect(new Set(ids).size).toBe(2);
+    expect(screen.getByRole("dialog", { name: "One" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Two" })).toBeInTheDocument();
+  });
+});

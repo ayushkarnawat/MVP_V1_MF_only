@@ -92,7 +92,7 @@ export function MemberCard({
           <dd className="mt-1 min-w-0">
             <PanField panMasked={member.pan_masked} conflict={heldElsewhere} />
             {heldElsewhere ? (
-              <p data-testid="pan-conflict-caption" className="mt-1 text-xs text-[var(--ui-text-muted)]">
+              <p data-testid="pan-conflict-caption" aria-hidden="true" className="mt-1 text-xs text-[var(--ui-text-muted)]">
                 On another Unifolio account
               </p>
             ) : null}

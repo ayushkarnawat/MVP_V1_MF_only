@@ -100,6 +100,26 @@ describe("Greeting: the members list behind the chip", () => {
     expect(screen.queryByRole("dialog", { name: "Family members" })).toBeNull();
   });
 
+  it("focuses the members popup on open, closes on Escape and returns focus to the chip", () => {
+    render(<Greeting status="data" summary={withMissing()} onImport={() => {}} />);
+    const chip = screen.getByTestId("members-chip");
+    fireEvent.click(chip);
+    const dialog = screen.getByRole("dialog", { name: "Family members" });
+    expect(dialog).toHaveFocus();
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Family members" })).toBeNull();
+    expect(chip).toHaveFocus();
+  });
+
+  it("closes the members popup on a click outside it, but not on a click inside it", () => {
+    render(<Greeting status="data" summary={withMissing()} onImport={() => {}} />);
+    fireEvent.click(screen.getByTestId("members-chip"));
+    fireEvent.mouseDown(screen.getByRole("dialog", { name: "Family members" }));
+    expect(screen.getByRole("dialog", { name: "Family members" })).toBeInTheDocument();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole("dialog", { name: "Family members" })).toBeNull();
+  });
+
   it("lists every member with whether their data is in", () => {
     render(<Greeting status="data" summary={withMissing()} onImport={() => {}} />);
     fireEvent.click(screen.getByTestId("members-chip"));

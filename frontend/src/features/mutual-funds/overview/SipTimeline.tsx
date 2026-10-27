@@ -16,14 +16,20 @@ export interface SipTimelineProps {
   };
 }
 
+// India has no daylight saving, so a fixed +05:30 offset is exact. (Intl is off-limits in this
+// feature's money-formatting guard, and a fixed offset needs none.)
+function currentIstYearMonth(): { year: number; month: number } {
+  const ist = new Date(Date.now() + (5 * 60 + 30) * 60_000);
+  return { year: ist.getUTCFullYear(), month: ist.getUTCMonth() + 1 };
+}
+
 export function SipTimeline({ sips }: SipTimelineProps) {
   const { viewMode, memberId } = useScope();
   const [activeTab, setActiveTab] = useState<"upcoming" | "month" | "stopped">("upcoming");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  const [date, setDate] = useState(() => new Date());
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
+  // "This month" is the Indian calendar month, whatever the browser's own time zone says.
+  const [{ year, month }, setYearMonth] = useState(currentIstYearMonth);
 
   const monthlyLoad = useMfSection(
     useCallback(
@@ -39,11 +45,11 @@ export function SipTimeline({ sips }: SipTimelineProps) {
   );
 
   const prevMonth = () => {
-    setDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1));
+    setYearMonth(({ year: y, month: m }) => (m === 1 ? { year: y - 1, month: 12 } : { year: y, month: m - 1 }));
   };
 
   const nextMonth = () => {
-    setDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1));
+    setYearMonth(({ year: y, month: m }) => (m === 12 ? { year: y + 1, month: 1 } : { year: y, month: m + 1 }));
   };
 
   if (sips.status === "loading") {

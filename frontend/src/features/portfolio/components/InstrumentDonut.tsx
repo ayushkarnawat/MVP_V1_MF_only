@@ -33,7 +33,7 @@ export function InstrumentDonut({
     <div className="relative h-[236px] w-[236px] shrink-0">
       <svg
         viewBox="0 0 200 200"
-        role="img"
+        role="group"
         aria-label={ariaLabel}
         className="h-full w-full overflow-visible"
       >

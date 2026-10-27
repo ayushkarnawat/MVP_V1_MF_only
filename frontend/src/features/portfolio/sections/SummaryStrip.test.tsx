@@ -206,15 +206,15 @@ describe("SummaryStrip: the XIRR basis and its disclaimer", () => {
 
   it("switches between Lifetime and Current with a tab list", () => {
     setup({ data: withDisclaimers() });
-    const tabs = screen.getByRole("tablist", { name: "XIRR basis" });
-    const lifetime = within(tabs).getByRole("tab", { name: "Lifetime" });
-    const current = within(tabs).getByRole("tab", { name: "Current" });
-    expect(lifetime).toHaveAttribute("aria-selected", "true");
-    expect(current).toHaveAttribute("aria-selected", "false");
+    const tabs = screen.getByRole("group", { name: "XIRR basis" });
+    const lifetime = within(tabs).getByRole("button", { name: "Lifetime" });
+    const current = within(tabs).getByRole("button", { name: "Current" });
+    expect(lifetime).toHaveAttribute("aria-pressed", "true");
+    expect(current).toHaveAttribute("aria-pressed", "false");
     expect(text("value-xirr")).toBe("14.8%");
     fireEvent.click(current);
-    expect(current).toHaveAttribute("aria-selected", "true");
-    expect(lifetime).toHaveAttribute("aria-selected", "false");
+    expect(current).toHaveAttribute("aria-pressed", "true");
+    expect(lifetime).toHaveAttribute("aria-pressed", "false");
     expect(text("value-xirr")).toBe("21.0%");
     fireEvent.click(lifetime);
     expect(text("value-xirr")).toBe("14.8%");
@@ -223,7 +223,7 @@ describe("SummaryStrip: the XIRR basis and its disclaimer", () => {
   it("offers the disclaimer only for the basis that has one", () => {
     setup({ data: withDisclaimers() });
     expect(screen.getByRole("button", { name: "Since inception — opening-balance disclaimer may apply ›" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: "Current" }));
+    fireEvent.click(screen.getByRole("button", { name: "Current" }));
     expect(screen.queryByRole("button", { name: /opening-balance/ })).toBeNull();
     expect(screen.getByTestId("xirr-caption")).toHaveTextContent("Current holdings");
   });
@@ -260,7 +260,7 @@ describe("SummaryStrip: the XIRR basis and its disclaimer", () => {
     const data = withDisclaimers();
     data.current_holdings_xirr_disclaimer = { alt_xirr: "0.1900", opening_cost_share: "0.5000" };
     setup({ data });
-    fireEvent.click(screen.getByRole("tab", { name: "Current" }));
+    fireEvent.click(screen.getByRole("button", { name: "Current" }));
     fireEvent.click(screen.getByRole("button", { name: "Current holdings — opening-balance disclaimer may apply ›" }));
     expect(screen.getByText("Shown Current XIRR")).toBeInTheDocument();
     expect(screen.getByTestId("disclaimer-shown")).toHaveTextContent("21.0%");

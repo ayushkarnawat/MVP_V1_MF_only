@@ -27,7 +27,7 @@ const circle = (key: string) => screen.getByTestId(`slice-${key}`).querySelector
 describe("InstrumentDonut: drawing", () => {
   it("draws a 200 by 200 svg with a track ring and the default accessible name", () => {
     setup();
-    const svg = screen.getByRole("img", { name: "Asset allocation" });
+    const svg = screen.getByRole("group", { name: "Asset allocation" });
     expect(svg).toHaveAttribute("viewBox", "0 0 200 200");
     const track = screen.getByTestId("donut-track");
     expect(track).toHaveAttribute("r", "70");
@@ -37,7 +37,7 @@ describe("InstrumentDonut: drawing", () => {
 
   it("uses a given accessible name", () => {
     setup({ ariaLabel: "Allocation by class" });
-    expect(screen.getByRole("img", { name: "Allocation by class" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Allocation by class" })).toBeInTheDocument();
   });
 
   it("draws one full ring, with no gap, for a single slice", () => {

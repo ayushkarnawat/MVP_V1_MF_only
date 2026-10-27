@@ -197,15 +197,18 @@ describe("PlanningScenarios: the member dropdown", () => {
     expect(getScenarioResult).toHaveBeenLastCalledWith(A, expect.any(AbortSignal), undefined);
   });
 
-  it("keeps the chosen member when another scenario is opened", async () => {
+  // Changed on purpose: the member list is built from each scenario's own family result, so opening another
+  // scenario starts at Family combined (it used to carry the old member over and keep the old scenario's list).
+  it("goes back to Family combined when another scenario is opened, so its own member set is built", async () => {
     await openStandard();
     fireEvent.change(screen.getByLabelText("Member"), { target: { value: DEV_ID } });
     await screen.findByRole("heading", { level: 3, name: "Funds for Dev Rao" });
     fireEvent.click(screen.getByTestId(`card-${B}`));
     await screen.findByRole("heading", { level: 2, name: "Fixture scenario B" });
-    expect(getScenarioResult).toHaveBeenLastCalledWith(B, expect.any(AbortSignal), DEV_ID);
-    await screen.findByRole("heading", { level: 3, name: "Funds for Dev Rao" });
-    expect(screen.getByLabelText("Member")).toHaveValue(DEV_ID);
+    await screen.findByRole("heading", { level: 3, name: "By family member" });
+    expect(getScenarioResult).toHaveBeenLastCalledWith(B, expect.any(AbortSignal), undefined);
+    expect(getScenarioResult).not.toHaveBeenCalledWith(B, expect.any(AbortSignal), DEV_ID);
+    expect(screen.getByLabelText("Member")).toHaveValue("family");
   });
 
   it("puts the dropdown back and shows the error in the detail when a member fetch fails", async () => {
