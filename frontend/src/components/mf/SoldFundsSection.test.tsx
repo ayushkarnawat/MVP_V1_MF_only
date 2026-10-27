@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { SoldFundsSection } from "./SoldFundsSection";
-import type { RealizedSummary } from "./types";
+import type { RealizedSummary } from "@/features/dashboard/types";
 
 const summary: RealizedSummary = {
   total: "-150",

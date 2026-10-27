@@ -1,12 +1,12 @@
-import { PlanBadge } from "@/features/dashboard/PlanBadge";
-import { Modal } from "../../components/Modal";
-import { Badge } from "../../components/Badge";
+import { PlanBadge } from "./PlanBadge";
+import { Modal } from "../Modal";
+import { Badge } from "../Badge";
 import { navPriceBadge } from "./navPriceBadge";
-import { formatDdMmYyyy } from "../../lib/utils";
-import { FundSignalGraph } from "../../components/FundSignal";
-import type { HoldingRow } from "./types";
+import { formatDdMmYyyy } from "@/lib/utils";
+import { FundSignalGraph } from "../FundSignal";
+import type { HoldingRow } from "@/features/dashboard/types";
 import styles from "./FundDetailModal.module.css";
-import { formatDecimal } from "../../lib/decimal";
+import { formatDecimal } from "@/lib/decimal";
 
 export interface FundDetailModalProps {
   isOpen: boolean;

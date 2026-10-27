@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import type { PlanType } from "./types";
+import type { PlanType } from "@/features/dashboard/types";
 
 export function PlanBadge({ planType, verified }: { planType: PlanType; verified?: boolean }) {
   if (planType === "direct") return <Badge variant="positive">Direct</Badge>;

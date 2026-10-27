@@ -1,10 +1,10 @@
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { DistributorComparisonModal } from "./DistributorComparisonModal";
-import * as api from "./api";
-import type { DistributorPortfolioRow } from "./types";
+import * as api from "@/features/dashboard/api";
+import type { DistributorPortfolioRow } from "@/features/dashboard/types";
 
-vi.mock("./api", () => ({
+vi.mock("@/features/dashboard/api", () => ({
   getMemberDistributorComparison: vi.fn(),
   getAggregateDistributorComparison: vi.fn(),
 }));

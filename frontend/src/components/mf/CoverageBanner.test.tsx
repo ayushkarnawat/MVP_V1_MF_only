@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CoverageBanner } from "./CoverageBanner";
-import { sampleStockHoldings } from "./stockHoldingsTestData";
+import { sampleStockHoldings } from "@/features/analytics/stockHoldingsTestData";
 
 describe("CoverageBanner", () => {
   it("names separate coverage reasons, missing values and age tags", () => {

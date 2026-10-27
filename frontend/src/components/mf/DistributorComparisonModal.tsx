@@ -1,13 +1,13 @@
 import { Fragment, useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { Modal } from "../../components/Modal";
-import { Badge } from "../../components/Badge";
-import { Skeleton } from "../../components/Skeleton";
-import { cn, toTitleCase } from "../../lib/utils";
-import { getAggregateDistributorComparison, getMemberDistributorComparison } from "./api";
-import type { DistributorPortfolioRow } from "./types";
+import { Modal } from "../Modal";
+import { Badge } from "../Badge";
+import { Skeleton } from "../Skeleton";
+import { cn, toTitleCase } from "@/lib/utils";
+import { getAggregateDistributorComparison, getMemberDistributorComparison } from "@/features/dashboard/api";
+import type { DistributorPortfolioRow } from "@/features/dashboard/types";
 import { distributorChannel, distributorLabel } from "./distributorChannel";
-import { formatDecimal, formatIndianCurrency } from "../../lib/decimal";
+import { formatDecimal, formatIndianCurrency } from "@/lib/decimal";
 import styles from "./DistributorComparisonModal.module.css";
 
 export interface DistributorComparisonModalProps {

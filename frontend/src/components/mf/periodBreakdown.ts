@@ -1,6 +1,6 @@
 import { compareDecimalStrings, diffDecimalStrings, sumDecimalStrings } from "@/lib/decimal";
 import { toTitleCase } from "@/lib/utils";
-import type { InvestmentWithdrawalEntry } from "./types";
+import type { InvestmentWithdrawalEntry } from "@/features/analytics/types";
 
 export interface FundBreakdownRow {
   schemeName: string;

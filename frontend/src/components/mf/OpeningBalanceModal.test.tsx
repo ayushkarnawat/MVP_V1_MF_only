@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { OpeningBalanceModal } from "./OpeningBalanceModal";
-import * as api from "./api";
+import * as api from "@/features/import/api";
 
 describe("OpeningBalanceModal", () => {
   afterEach(() => {

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { formatIndianCurrency } from "../../lib/decimal";
+import { formatIndianCurrency } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
-import type { RealizedSummary } from "./types";
+import type { RealizedSummary } from "@/features/dashboard/types";
 
 /** #9: funds the investor fully sold, with the gain or loss they realised.
  * Collapsed by default; hidden when nothing is fully sold. `memberId`

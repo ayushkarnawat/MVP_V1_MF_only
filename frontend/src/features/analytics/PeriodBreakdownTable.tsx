@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { compareDecimalStrings, sumDecimalStrings } from "@/lib/decimal";
 import { formatExactDate } from "@/lib/dateRange";
 import { cn } from "@/lib/utils";
-import { breakdownTotals, groupByFund, transactionLabel } from "./periodBreakdown";
+import { breakdownTotals, groupByFund, transactionLabel } from "@/components/mf/periodBreakdown";
 import type { InvestmentWithdrawalBucket } from "./types";
 
 /** Round once to whole rupees, keeping even large backend amounts exact. */

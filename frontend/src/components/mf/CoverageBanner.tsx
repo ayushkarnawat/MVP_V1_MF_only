@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { LookthroughCoverage, LookthroughFundAge } from "./types";
+import type { LookthroughCoverage, LookthroughFundAge } from "@/features/analytics/types";
 import { formatPercent } from "./lookthroughDisplay";
 
 export function fundAgeText(fund: LookthroughFundAge): string | null {

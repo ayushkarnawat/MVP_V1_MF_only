@@ -1,9 +1,9 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Modal } from "../../components/Modal";
-import { Button } from "../../components/Button";
-import { postOpeningBalance } from "./api";
-import type { CoverageGapItem } from "./types";
+import { Modal } from "../Modal";
+import { Button } from "../Button";
+import { postOpeningBalance } from "@/features/import/api";
+import type { CoverageGapItem } from "@/features/import/types";
 
 interface OpeningBalanceModalProps {
   isOpen: boolean;

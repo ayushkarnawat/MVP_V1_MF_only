@@ -1,8 +1,8 @@
 import type { PlanType, HoldingRow } from "@/features/dashboard/types";
-import { PlanBadge } from "@/features/dashboard/PlanBadge";
+import { PlanBadge } from "@/components/mf/PlanBadge";
 import { useState } from "react";
 import { Badge } from "./Badge";
-import { navPriceBadge } from "@/features/dashboard/navPriceBadge";
+import { navPriceBadge } from "@/components/mf/navPriceBadge";
 import { FundSignal } from "./FundSignal";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";

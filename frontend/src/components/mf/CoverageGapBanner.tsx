@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, ArrowRight } from "lucide-react";
-import type { CoverageGapItem } from "./types";
+import type { CoverageGapItem } from "@/features/import/types";
 
 interface CoverageGapBannerProps {
   gaps: CoverageGapItem[];

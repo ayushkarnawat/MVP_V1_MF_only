@@ -1,10 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FundDetailModal } from "./FundDetailModal";
-import type { HoldingRow } from "./types";
-import * as api from "./api";
+import type { HoldingRow } from "@/features/dashboard/types";
+import * as api from "@/features/dashboard/api";
 
-vi.mock("./api", () => ({
+vi.mock("@/features/dashboard/api", () => ({
   getFundNavHistory: vi.fn(),
 }));
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { InvestmentWithdrawalEntry } from "./types";
+import type { InvestmentWithdrawalEntry } from "@/features/analytics/types";
 import { breakdownTotals, groupByFund, transactionLabel } from "./periodBreakdown";
 
 function entry(direction: InvestmentWithdrawalEntry["direction"], amount: string, schemeName = "Alpha", member = "m1"): InvestmentWithdrawalEntry {

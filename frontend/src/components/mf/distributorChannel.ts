@@ -1,4 +1,4 @@
-import type { DistributorPortfolioRow } from "./types";
+import type { DistributorPortfolioRow } from "@/features/dashboard/types";
 
 export type DistributorChannel = "direct" | "regular-no-arn" | "arn";
 
