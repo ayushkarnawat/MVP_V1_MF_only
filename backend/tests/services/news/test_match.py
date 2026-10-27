@@ -237,3 +237,19 @@ def test_r15_no_holdings_gives_an_empty_watch():
         allocation=make_allocation("0.00"), sections={}, today=TODAY,
     )
     assert watch.entities == ()
+
+
+def test_same_scheme_held_by_two_members_is_listed_once(db_session):
+    sid = str(uuid.uuid4())
+    holdings = [
+        make_holding(scheme_id=sid, scheme_name="Dup fund", amc_name="HDFC Mutual Fund", current_value="600.00"),
+        make_holding(scheme_id=sid, scheme_name="Dup fund", amc_name="HDFC Mutual Fund", current_value="400.00"),
+    ]
+    watch = build_watchlist(
+        db_session, SimpleNamespace(id=uuid.uuid4()), None, holdings=holdings,
+        allocation=make_allocation("1000.00"), sections={}, today=TODAY,
+    )
+    for kind in ("fund_house", "fund_category"):
+        entity = next(e for e in watch.entities if e.kind == kind)
+        assert entity.exposure_pct == Decimal("100.00")
+        assert entity.funds == ((sid, "Dup fund"),)

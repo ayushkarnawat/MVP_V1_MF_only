@@ -66,13 +66,20 @@ def _valued(holdings: Sequence[HoldingRow]) -> list[tuple[HoldingRow, Decimal]]:
     return rows
 
 
+def _add_fund(funds: dict[str, list[tuple[str, str]]], key: str, scheme_id: str, scheme_name: str) -> None:
+    # Two members holding one scheme are two holding rows; list the scheme once.
+    bucket = funds.setdefault(key, [])
+    if all(existing_id != scheme_id for existing_id, _ in bucket):
+        bucket.append((scheme_id, scheme_name))
+
+
 def _group_by_fund_house(valued: Sequence[tuple[HoldingRow, Decimal]], total: Decimal) -> list[WatchEntity]:
     groups: dict[str, Decimal] = {}
     funds: dict[str, list[tuple[str, str]]] = {}
     for row, value in valued:
         key = fund_house_key(row.amc_name)
         groups[key] = groups.get(key, Decimal("0")) + value
-        funds.setdefault(key, []).append((row.scheme_id, row.scheme_name))
+        _add_fund(funds, key, row.scheme_id, row.scheme_name)
     return [
         WatchEntity(
             kind="fund_house",
@@ -94,7 +101,7 @@ def _group_by_fund_category(valued: Sequence[tuple[HoldingRow, Decimal]], total:
         if key is None:
             continue
         groups[key] = groups.get(key, Decimal("0")) + value
-        funds.setdefault(key, []).append((row.scheme_id, row.scheme_name))
+        _add_fund(funds, key, row.scheme_id, row.scheme_name)
     return [
         WatchEntity(
             kind="fund_category",
