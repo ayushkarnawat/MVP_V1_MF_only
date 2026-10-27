@@ -225,3 +225,113 @@ def test_risk_route_returns_appendix_a_contract():
     assert body["volatility"] == {"value": "0.0000", "band": "Low", "tone": "pos"}
     assert body["sharpe"] == {"value": None, "band": None, "tone": None}
     assert body["beta_reason"] == "insufficient_shared_dates"
+
+
+def _route_paths(scheme_id, folio_id=None):
+    folio_id = folio_id or uuid.uuid4()
+    base = f"/fund-page/{scheme_id}"
+    return [
+        f"{base}/summary",
+        f"{base}/folios/{folio_id}/number",
+        f"{base}/performance",
+        f"{base}/returns",
+        f"{base}/risk",
+        f"{base}/portfolio-composition",
+        f"{base}/holdings",
+        f"{base}/manager",
+        f"{base}/score",
+        f"{base}/peers/series",
+        f"{base}/peers/returns",
+        f"{base}/peers/rolling",
+        f"{base}/peers/period-returns",
+        f"{base}/peers/scatter",
+        f"{base}/insights",
+    ]
+
+
+@pytest.mark.parametrize("path_index", range(15))
+def test_each_fund_page_route_requires_session(path_index):
+    path = _route_paths(uuid.uuid4())[path_index]
+    assert _client().get(path).status_code == 401
+
+
+@pytest.mark.parametrize("path_index", range(15))
+def test_each_fund_page_route_unknown_scheme_404(path_index):
+    db = make_session()
+    household = add_user_household(db)
+    user = db.get(User, household.user_id)
+    path = _route_paths(uuid.uuid4())[path_index]
+
+    assert _authed_client(db, user).get(path).status_code == 404
+
+
+@pytest.mark.parametrize(
+    "suffix",
+    ["summary", "returns", "score", "insights"],
+)
+def test_member_not_in_household_404_on_every_scoped_route(suffix):
+    db = make_session()
+    household = add_user_household(db)
+    scheme = add_scheme(
+        db, f"foreign-{suffix}", "Equity Scheme - Flexi Cap Fund",
+        SchemePlanType.DIRECT, f"FOREIGN{suffix}",
+    )
+    user = db.get(User, household.user_id)
+
+    response = _authed_client(db, user).get(
+        f"/fund-page/{scheme.id}/{suffix}", params={"scope": str(uuid.uuid4())},
+    )
+
+    assert response.status_code == 404
+
+
+def test_not_held_scope_still_serves_fund_level_routes(monkeypatch):
+    from app.services.fund_page.schemas import Unavailable
+
+    db = make_session()
+    household = add_user_household(db)
+    scheme = add_scheme(
+        db, "not-held-routes", "Equity Scheme - Flexi Cap Fund",
+        SchemePlanType.DIRECT, "NOTHELDROUTES",
+    )
+    user = db.get(User, household.user_id)
+    unavailable = Unavailable(reason="no_history")
+    monkeypatch.setattr(fund_page, "period_series", AsyncMock(return_value=unavailable))
+    monkeypatch.setattr(fund_page, "compute_risk", lambda *_args: unavailable)
+    monkeypatch.setattr(fund_page, "build_composition", lambda *_args: Unavailable(reason="no_disclosure"))
+    monkeypatch.setattr(fund_page, "all_holdings", lambda *_args: Unavailable(reason="no_disclosure"))
+    monkeypatch.setattr(fund_page, "build_manager", lambda *_args: Unavailable(reason="no_manager_data"))
+    monkeypatch.setattr(fund_page, "category_series", AsyncMock(return_value=Unavailable(reason="peers_unavailable")))
+    monkeypatch.setattr(fund_page, "category_returns", AsyncMock(return_value=Unavailable(reason="peers_unavailable")))
+    monkeypatch.setattr(fund_page, "rolling_returns", AsyncMock(return_value=unavailable))
+    monkeypatch.setattr(fund_page, "period_returns", AsyncMock(return_value=unavailable))
+    monkeypatch.setattr(fund_page, "risk_return_scatter", AsyncMock(return_value=Unavailable(reason="peers_unavailable")))
+    client = _authed_client(db, user)
+
+    for suffix in (
+        "performance", "risk", "portfolio-composition", "holdings", "manager",
+        "peers/series", "peers/returns", "peers/rolling", "peers/period-returns",
+        "peers/scatter",
+    ):
+        assert client.get(f"/fund-page/{scheme.id}/{suffix}").status_code == 200
+
+
+def test_openapi_has_all_t13_paths_and_no_number_typed_money():
+    document = _client().get("/openapi.json").json()
+    paths = document["paths"]
+    placeholders = _route_paths("{scheme_id}", "{folio_id}")
+    assert all(path in paths for path in placeholders)
+    assert all(set(paths[path]) == {"get"} for path in placeholders)
+
+    schemas = document["components"]["schemas"]
+    money_names = {
+        "value", "pct", "weight", "current_value", "invested", "total_gain",
+        "total_gain_pct", "xirr", "units", "average_nav", "current_nav", "gain",
+        "gain_pct", "return_pct", "volatility_pct", "overlap_pct", "amount",
+        "fund_weight", "portfolio_weight", "combined", "large", "mid", "small", "other",
+    }
+    for schema_name, schema in schemas.items():
+        if schema_name.endswith(("Response", "Out", "Point", "Bucket")):
+            for field, definition in schema.get("properties", {}).items():
+                if field in money_names:
+                    assert "number" not in str(definition), (schema_name, field, definition)
