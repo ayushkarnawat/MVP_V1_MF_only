@@ -67,7 +67,7 @@ describe("PortfolioPage: the Quick Insights card, family view", () => {
     serve();
     renderPage();
     const region = await screen.findByRole("region", { name: "Quick Insights" });
-    expect(within(region).getByTestId("insight-spread")).toHaveTextContent("Spread across 5 AMCs and 6 funds");
+    expect(within(region).getByTestId("insight-spread")).toHaveTextContent("Spread across 1 AMC and 4 funds");
     expect(count(FAMILY_INSIGHTS)).toBe(1);
   });
 
@@ -75,10 +75,10 @@ describe("PortfolioPage: the Quick Insights card, family view", () => {
     serve();
     renderPage();
     await screen.findByRole("region", { name: "Quick Insights" });
-    expect(screen.getByTestId("insight-largest-holding")).toHaveTextContent("— 33.0% of your total portfolio");
-    expect(screen.getByTestId("insight-plan-split")).toHaveTextContent("69% Direct, 30% Regular");
-    expect(screen.getByTestId("insight-largest-amc")).toHaveTextContent("HDFC Mutual Fund at 46%");
-    expect(screen.getByTestId("insight-sips")).toHaveTextContent("₹17,000 in active SIPs scheduled this month");
+    expect(screen.getByTestId("insight-largest-holding")).toHaveTextContent("— 38.6% of your total portfolio");
+    expect(screen.getByTestId("insight-plan-split")).toHaveTextContent("100% Direct, 0% Regular");
+    expect(screen.getByTestId("insight-largest-amc")).toHaveTextContent("Home Test AMC at 100%");
+    expect(screen.getByTestId("insight-sips")).toHaveTextContent("₹9,000 in active SIPs scheduled this month");
   });
 
   it("sits directly under the Family Members card, last on the page", async () => {
@@ -156,7 +156,7 @@ describe("PortfolioPage: the Quick Insights card, empty and partial answers", ()
   it("shows a partial answer like any other", async () => {
     serve(path => path === FAMILY_INSIGHTS ? json(insightsFixture("insights_partial")) : undefined);
     renderPage();
-    expect(await screen.findByTestId("insight-spread")).toHaveTextContent("Spread across 4 AMCs and 5 funds");
+    expect(await screen.findByTestId("insight-spread")).toHaveTextContent("Spread across 1 AMC and 3 funds");
   });
 
   it("leaves out the SIP line when no SIP is active", async () => {
@@ -202,8 +202,8 @@ describe("PortfolioPage: the Quick Insights card, member scope", () => {
     serve();
     renderPage({ viewMode: "member", memberId: DEV });
     const region = await screen.findByRole("region", { name: "Quick Insights" });
-    expect(within(region).getByTestId("insight-spread")).toHaveTextContent("Spread across 3 AMCs and 3 funds");
-    expect(within(region).getByTestId("insight-sips")).toHaveTextContent("₹5,000");
+    expect(within(region).getByTestId("insight-spread")).toHaveTextContent("Spread across 1 AMC and 2 funds");
+    expect(within(region).getByTestId("insight-sips")).toHaveTextContent("₹4,000");
     expect(calls).toContain(DEV_INSIGHTS);
     expect(calls).not.toContain(FAMILY_INSIGHTS);
   });
@@ -212,7 +212,7 @@ describe("PortfolioPage: the Quick Insights card, member scope", () => {
     serve();
     renderPage();
     const family = await screen.findByRole("region", { name: "Quick Insights" });
-    expect(within(family).getByTestId("insight-spread")).toHaveTextContent("5 AMCs and 6 funds");
+    expect(within(family).getByTestId("insight-spread")).toHaveTextContent("1 AMC and 4 funds");
     serve(path => path === DEV_INSIGHTS ? never() : undefined);
     fireEvent.click(await screen.findByTestId(`family-row-${DEV}`));
     expect(await screen.findByRole("status", { name: "Loading quick insights" })).toBeInTheDocument();
@@ -235,7 +235,7 @@ describe("PortfolioPage: the Quick Insights card, member scope", () => {
     renderPage({ viewMode: "member", memberId: ASHA });
     expect(await screen.findByTestId("insight-spread")).toHaveTextContent("Spread across 2 AMCs and 2 funds");
     fireEvent.click(await screen.findByTestId(`family-row-${DEV}`));
-    await waitFor(() => expect(screen.getByTestId("insight-spread")).toHaveTextContent("Spread across 3 AMCs and 3 funds"));
+    await waitFor(() => expect(screen.getByTestId("insight-spread")).toHaveTextContent("Spread across 1 AMC and 2 funds"));
     expect(count(ASHA_INSIGHTS)).toBe(1);
     expect(count(DEV_INSIGHTS)).toBe(1);
   });
@@ -245,9 +245,9 @@ describe("PortfolioPage: the Quick Insights card, member scope", () => {
     renderPage();
     await screen.findByRole("region", { name: "Quick Insights" });
     fireEvent.click(await screen.findByTestId(`family-row-${DEV}`));
-    await waitFor(() => expect(screen.getByTestId("insight-spread")).toHaveTextContent("Spread across 3 AMCs and 3 funds"));
+    await waitFor(() => expect(screen.getByTestId("insight-spread")).toHaveTextContent("Spread across 1 AMC and 2 funds"));
     fireEvent.click(await screen.findByRole("button", { name: "Family combined" }));
-    await waitFor(() => expect(screen.getByTestId("insight-spread")).toHaveTextContent("Spread across 5 AMCs and 6 funds"));
+    await waitFor(() => expect(screen.getByTestId("insight-spread")).toHaveTextContent("Spread across 1 AMC and 4 funds"));
   });
 });
 
@@ -257,6 +257,6 @@ describe("PortfolioPage: the Quick Insights card, a household of one", () => {
     renderPage({ members: [MEMBERS[1]] });
     expect(await screen.findByText(/You're the only member in this household/)).toBeInTheDocument();
     const region = await screen.findByRole("region", { name: "Quick Insights" });
-    expect(within(region).getByTestId("insight-spread")).toHaveTextContent("Spread across 3 AMCs and 3 funds");
+    expect(within(region).getByTestId("insight-spread")).toHaveTextContent("Spread across 1 AMC and 2 funds");
   });
 });

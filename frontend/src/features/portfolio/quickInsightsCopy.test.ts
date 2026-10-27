@@ -16,6 +16,14 @@ function withInsights(change: (insights: PortfolioInsights) => void): PortfolioI
   return insights;
 }
 
+// A mixed Direct/Regular/Unclassified split with the old spec numbers. The golden family file is all Direct with one AMC,
+// so the tests that need a share to round away, or an AMC that differs from the largest holding's, build that input here.
+const mixedPlan = (unclassifiedPct = "0.3333") => ({
+  direct: { value: "2570931.30", pct: "69.4091" },
+  regular: { value: "1120750.35", pct: "30.2576" },
+  unclassified: { value: "12345.67", pct: unclassifiedPct },
+});
+
 describe("countLabel", () => {
   it("uses the singular for exactly one and the plural otherwise (zero included)", () => {
     expect(countLabel(1, "fund", "funds")).toBe("1 fund");
@@ -33,39 +41,52 @@ describe("insightLines: the family fixture", () => {
   it("writes the largest holding with the fund in bold and the share to one place", () => {
     expect(insightLines(family().insights)[0].parts).toEqual([
       plain("Your largest holding is "),
-      bold("Parag Parikh Flexi Cap Fund - Direct Plan - Growth"),
-      plain(" — 33.0% of your total portfolio"),
+      bold("Dev Short Duration Debt"),
+      plain(" — 38.6% of your total portfolio"),
     ]);
   });
 
   it("writes the spread with both counts in bold", () => {
     expect(insightLines(family().insights)[1].parts).toEqual([
-      plain("Spread across "), bold("5 AMCs"), plain(" and "), bold("6 funds"),
+      plain("Spread across "), bold("1 AMC"), plain(" and "), bold("4 funds"),
     ]);
   });
 
   it("writes the plan split in whole percents and leaves out a share that rounds to zero", () => {
-    // direct 69.4091, regular 30.2576, unclassified 0.3333 (rounds to 0, so it is not mentioned)
-    expect(insightLines(family().insights)[2].parts).toEqual([bold("69% Direct"), plain(", 30% Regular")]);
+    // golden family: direct 100.0000, regular 0.0000, unclassified 0.0000 (rounds to 0, so it is not mentioned)
+    expect(insightLines(family().insights)[2].parts).toEqual([bold("100% Direct"), plain(", 0% Regular")]);
+    // mixed split: unclassified 0.3333 also rounds to 0
+    const mixed = withInsights(i => { i.plan_split = mixedPlan(); });
+    expect(insightLines(mixed)[2].parts).toEqual([bold("69% Direct"), plain(", 30% Regular")]);
   });
 
   it("writes the largest AMC with its name and share in bold, in whole percents", () => {
     expect(insightLines(family().insights)[3].parts).toEqual([
+      plain("Your largest single AMC exposure is "), bold("Home Test AMC at 100%"),
+    ]);
+  });
+
+  it("names the largest AMC, not the AMC of the largest holding", () => {
+    const insights = withInsights(i => {
+      i.largest_holding!.amc_name = "PPFAS Mutual Fund";
+      i.largest_amc = { amc_name: "HDFC Mutual Fund", value: "1690500.25", pct_of_portfolio: "45.6395", fund_count: 2 };
+    });
+    expect(insightLines(insights)[3].parts).toEqual([
       plain("Your largest single AMC exposure is "), bold("HDFC Mutual Fund at 46%"),
     ]);
   });
 
   it("writes the SIP total in rupees with Indian digit grouping", () => {
-    expect(insightLines(family().insights)[4].parts).toEqual([bold("₹17,000"), plain(" in active SIPs scheduled this month")]);
+    expect(insightLines(family().insights)[4].parts).toEqual([bold("₹9,000"), plain(" in active SIPs scheduled this month")]);
   });
 
   it("joins the parts into plain text for each line", () => {
     expect(insightLines(family().insights).map(insightText)).toEqual([
-      "Your largest holding is Parag Parikh Flexi Cap Fund - Direct Plan - Growth — 33.0% of your total portfolio",
-      "Spread across 5 AMCs and 6 funds",
-      "69% Direct, 30% Regular",
-      "Your largest single AMC exposure is HDFC Mutual Fund at 46%",
-      "₹17,000 in active SIPs scheduled this month",
+      "Your largest holding is Dev Short Duration Debt — 38.6% of your total portfolio",
+      "Spread across 1 AMC and 4 funds",
+      "100% Direct, 0% Regular",
+      "Your largest single AMC exposure is Home Test AMC at 100%",
+      "₹9,000 in active SIPs scheduled this month",
     ]);
   });
 });
@@ -73,11 +94,11 @@ describe("insightLines: the family fixture", () => {
 describe("insightLines: the member fixture", () => {
   it("uses the member's own figures", () => {
     expect(insightLines(member().insights).map(insightText)).toEqual([
-      "Your largest holding is Parag Parikh Flexi Cap Fund - Direct Plan - Growth — 61.0% of your total portfolio",
-      "Spread across 3 AMCs and 3 funds",
-      "76% Direct, 24% Regular",
-      "Your largest single AMC exposure is PPFAS Mutual Fund at 61%",
-      "₹5,000 in active SIPs scheduled this month",
+      "Your largest holding is Dev Short Duration Debt — 66.9% of your total portfolio",
+      "Spread across 1 AMC and 2 funds",
+      "100% Direct, 0% Regular",
+      "Your largest single AMC exposure is Home Test AMC at 100%",
+      "₹4,000 in active SIPs scheduled this month",
     ]);
   });
 });
@@ -85,6 +106,7 @@ describe("insightLines: the member fixture", () => {
 describe("insightLines: number formatting", () => {
   it("rounds half up on the decimal text, never through a float", () => {
     const insights = withInsights(i => {
+      i.largest_amc!.amc_name = "HDFC Mutual Fund";
       i.largest_holding!.pct_of_portfolio = "14.8450";
       i.plan_split!.direct.pct = "62.5000";
       i.plan_split!.regular.pct = "37.5000";
@@ -116,13 +138,13 @@ describe("insightLines: number formatting", () => {
 
   it("shows the AMC name exactly as the backend sends it", () => {
     const insights = withInsights(i => { i.largest_amc!.amc_name = "Unknown AMC"; });
-    expect(insightText(insightLines(insights)[3])).toBe("Your largest single AMC exposure is Unknown AMC at 46%");
+    expect(insightText(insightLines(insights)[3])).toBe("Your largest single AMC exposure is Unknown AMC at 100%");
   });
 });
 
 describe("insightLines: unclassified plans", () => {
   it("adds a third share once it rounds to at least one percent", () => {
-    const edge = withInsights(i => { i.plan_split!.unclassified = { value: "50000.00", pct: "0.4999" }; });
+    const edge = withInsights(i => { i.plan_split = mixedPlan("0.4999"); });
     expect(insightText(insightLines(edge)[2])).toBe("69% Direct, 30% Regular");
     const shown = withInsights(i => {
       i.plan_split = {
@@ -132,7 +154,7 @@ describe("insightLines: unclassified plans", () => {
       };
     });
     expect(insightLines(shown)[2].parts).toEqual([bold("60% Direct"), plain(", 28% Regular"), plain(", 13% Unclassified")]);
-    const boundary = withInsights(i => { i.plan_split!.unclassified = { value: "1.00", pct: "0.5000" }; });
+    const boundary = withInsights(i => { i.plan_split = mixedPlan("0.5000"); });
     expect(insightText(insightLines(boundary)[2])).toBe("69% Direct, 30% Regular, 1% Unclassified");
   });
 

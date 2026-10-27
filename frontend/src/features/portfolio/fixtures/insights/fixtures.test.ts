@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { PortfolioInsightsResponse } from "../../types";
 import { FIXTURE_NAMES, FIXTURE_STATUS, fixture } from "./index";
 
-// The contract guard for the Quick Insights SPEC fixtures (see index.ts). It checks every file against section 5 of the
-// backend handoff and re-derives the family numbers from the six funds below in whole paise (BigInt), so a wrong
-// hand-built number fails here. When the backend golden files replace the spec files this test must keep passing.
+// The contract guard for the Quick Insights fixtures, which are the backend's golden files (see index.ts). It checks
+// every file against section 5 of the backend handoff and re-derives the numbers in whole paise (BigInt) from the
+// fund values the golden files themselves expose, so a stale or edited number fails here. The files are generated from
+// the backend's home fixture: Asha and Dev, four funds, all of one AMC ("Home Test AMC"), all Direct plans.
 const KEYS = [
   "scope", "member_id", "nav_as_of", "partial", "missing_funds", "computed_at",
   "members", "total_value", "empty", "empty_reason", "insights",
@@ -27,27 +28,24 @@ const pct4 = (value: bigint, total: bigint) => {
 };
 const get = (name: string) => fixture<PortfolioInsightsResponse>(name);
 
-// scheme_id, AMC, plan, value of the six funds the family and member files are built from
-const FUNDS: [string, string, "direct" | "regular" | "unclassified", string][] = [
-  ["120841", "PPFAS Mutual Fund", "direct", "1220931.30"],
-  ["118955", "HDFC Mutual Fund", "direct", "1050000.00"],
-  ["100174", "HDFC Mutual Fund", "regular", "640500.25"],
-  ["103504", "SBI Mutual Fund", "regular", "480250.10"],
-  ["118778", "Nippon India Mutual Fund", "direct", "300000.00"],
-  ["120503", "ICICI Prudential Mutual Fund", "unclassified", "12345.67"],
-];
+// The values the golden files expose. Dev holds two funds: Short Duration Debt (the largest holding of every file) and
+// Gold, which is the one fund the partial file leaves out. Asha holds the rest of the family total.
+const DEBT = "cf09c887-92a1-5b49-a624-7f067ed6a2c8";
+const GOLD = "7c906599-2ff8-5de4-83f9-b94651c683f2";
+const DEBT_VALUE = paise("2042.04");
+const GOLD_VALUE = paise(get("insights_member").total_value) - DEBT_VALUE;
 
-describe("Quick Insights spec fixtures", () => {
-  it("has the six files the backend will generate, and says they are spec fixtures", () => {
+describe("Quick Insights golden fixtures", () => {
+  it("has the six files the backend generates, and says they are the backend golden files", () => {
     expect(FIXTURE_NAMES).toEqual(NAMES);
-    expect(FIXTURE_STATUS).toBe("SPEC FIXTURE");
+    expect(FIXTURE_STATUS).toBe("BACKEND GOLDEN");
   });
 
   it("throws for a name that does not exist, and returns a copy each time", () => {
     expect(() => fixture("nope")).toThrow("unknown Quick Insights fixture: nope");
     const first = get("insights_family");
     first.total_value = "changed";
-    expect(get("insights_family").total_value).toBe("3704027.32");
+    expect(get("insights_family").total_value).toBe("5288.34");
   });
 
   it.each(NAMES)("%s has exactly the contract's fields", name => {
@@ -74,36 +72,47 @@ describe("Quick Insights spec fixtures", () => {
     }
   });
 
-  it("derives the family numbers from the six funds", () => {
+  it("derives the family numbers from the member and partial files", () => {
     const body = get("insights_family");
-    const total = FUNDS.reduce((sum, fund) => sum + paise(fund[3]), 0n);
-    expect(body.total_value).toBe("3704027.32");
-    expect(paise(body.total_value)).toBe(total);
+    const dev = get("insights_member");
+    const partial = get("insights_partial");
+    const total = paise(body.total_value);
+    // Dev's two funds are Debt and Gold; the family adds Asha's two (Flexi Cap and Large Cap) on top of Dev's total.
+    expect(GOLD_VALUE).toBe(paise("1010.00"));
+    expect(paise(dev.total_value)).toBe(DEBT_VALUE + GOLD_VALUE);
+    expect(body.total_value).toBe("5288.34");
+    expect(total - paise(dev.total_value)).toBe(paise("2236.30"));
+    // The partial file is the family without Gold, which it names as the fund without a price.
+    expect(total - GOLD_VALUE).toBe(paise(partial.total_value));
     const largest = body.insights.largest_holding!;
-    expect(largest.scheme_id).toBe("120841");
-    expect(largest.value).toBe("1220931.30");
-    expect(largest.pct_of_portfolio).toBe(pct4(paise("1220931.30"), total));
-    expect(largest.pct_of_portfolio).toBe("32.9623");
-    expect(body.insights.spread).toEqual({ fund_count: 6, amc_count: 5 });
+    expect(largest.scheme_id).toBe(DEBT);
+    expect(largest.fund_name).toBe("Dev Short Duration Debt");
+    expect(largest.value).toBe("2042.04");
+    expect(paise(largest.value)).toBe(DEBT_VALUE);
+    expect(largest.pct_of_portfolio).toBe(pct4(DEBT_VALUE, total));
+    expect(largest.pct_of_portfolio).toBe("38.6140");
+    expect(body.insights.spread).toEqual({ fund_count: 4, amc_count: 1 });
     const plans = body.insights.plan_split!;
-    for (const plan of ["direct", "regular", "unclassified"] as const) {
-      const value = FUNDS.filter(fund => fund[2] === plan).reduce((sum, fund) => sum + paise(fund[3]), 0n);
-      expect(paise(plans[plan].value)).toBe(value);
-      expect(plans[plan].pct).toBe(pct4(value, total));
-    }
-    expect([plans.direct.pct, plans.regular.pct, plans.unclassified.pct]).toEqual(["69.4091", "30.2576", "0.3333"]);
-    const hdfc = paise("1050000.00") + paise("640500.25");
+    expect(plans.direct).toEqual({ value: "5288.34", pct: pct4(total, total) });
+    expect(plans.regular).toEqual({ value: "0.00", pct: "0.0000" });
+    expect(plans.unclassified).toEqual({ value: "0.00", pct: "0.0000" });
+    expect(plans.direct.pct).toBe("100.0000");
+    // One AMC holds everything, so its value is the whole total and it holds all four funds.
     expect(body.insights.largest_amc).toEqual({
-      amc_name: "HDFC Mutual Fund", value: "1690500.25", pct_of_portfolio: pct4(hdfc, total), fund_count: 2,
+      amc_name: "Home Test AMC", value: "5288.34", pct_of_portfolio: pct4(total, total), fund_count: 4,
     });
-    expect(body.insights.largest_amc!.pct_of_portfolio).toBe("45.6395");
-    expect(body.insights.sips).toEqual({ active_count: 3, monthly_total: "17000.00" });
+    expect(body.insights.largest_amc!.pct_of_portfolio).toBe("100.0000");
+    expect(body.insights.sips).toEqual({ active_count: 3, monthly_total: "9000.00" });
   });
 
-  it("keeps the largest AMC different from the AMC of the largest holding (so a mix-up shows)", () => {
+  it("has one AMC for the whole book, so the largest AMC and the largest holding share a name and the AMC covers every fund", () => {
+    // The old spec fixture kept the two AMC names apart to make a mix-up show; the backend data cannot. The copy tests
+    // cover that mix-up with their own input, and here we pin what the golden data does say.
     const body = get("insights_family");
-    expect(body.insights.largest_holding!.amc_name).toBe("PPFAS Mutual Fund");
-    expect(body.insights.largest_amc!.amc_name).toBe("HDFC Mutual Fund");
+    expect(body.insights.largest_holding!.amc_name).toBe("Home Test AMC");
+    expect(body.insights.largest_amc!.amc_name).toBe("Home Test AMC");
+    expect(body.insights.largest_amc!.fund_count).toBe(body.insights.spread.fund_count);
+    expect(paise(body.insights.largest_amc!.value)).toBe(paise(body.total_value));
   });
 
   it("family lists two members and all five insights", () => {
@@ -124,9 +133,14 @@ describe("Quick Insights spec fixtures", () => {
     expect(body.scope).toBe("member");
     expect(body.member_id).toBe(DEV);
     expect(body.members).toBeNull();
-    expect(body.total_value).toBe("2001181.40");
-    expect(body.insights.spread).toEqual({ fund_count: 3, amc_count: 3 });
-    expect(body.insights.sips).toEqual({ active_count: 1, monthly_total: "5000.00" });
+    expect(body.total_value).toBe("3052.04");
+    expect(body.insights.spread).toEqual({ fund_count: 2, amc_count: 1 });
+    expect(body.insights.largest_holding!.scheme_id).toBe(DEBT);
+    expect(body.insights.largest_holding!.pct_of_portfolio).toBe(pct4(DEBT_VALUE, paise("3052.04")));
+    expect(body.insights.largest_holding!.pct_of_portfolio).toBe("66.9074");
+    expect(body.insights.plan_split!.direct).toEqual({ value: "3052.04", pct: "100.0000" });
+    // Two parallel SIPs (the backend seeds Dev with twins) add up to 4000.
+    expect(body.insights.sips).toEqual({ active_count: 2, monthly_total: "4000.00" });
   });
 
   it("empty has no holdings: every insight null except sips and the spread zero", () => {
@@ -144,15 +158,16 @@ describe("Quick Insights spec fixtures", () => {
 
   it("partial names the fund without a NAV and leaves it out of the total and the counts", () => {
     const body = get("insights_partial");
+    const family = get("insights_family");
     expect(body.partial).toBe(true);
-    expect(body.missing_funds).toEqual([{ scheme_id: "120503", name: "ICICI Prudential Liquid Fund - Growth" }]);
-    const rest = FUNDS.filter(fund => fund[0] !== "120503");
-    const total = rest.reduce((sum, fund) => sum + paise(fund[3]), 0n);
+    expect(body.missing_funds).toEqual([{ scheme_id: GOLD, name: "Dev Gold Fund" }]);
+    const total = paise(family.total_value) - GOLD_VALUE;
     expect(paise(body.total_value)).toBe(total);
-    expect(body.total_value).toBe("3691681.65");
-    expect(body.insights.spread).toEqual({ fund_count: 5, amc_count: 4 });
+    expect(body.total_value).toBe("4278.34");
+    expect(body.insights.spread).toEqual({ fund_count: 3, amc_count: 1 });
     expect(body.insights.plan_split!.unclassified).toEqual({ value: "0.00", pct: "0.0000" });
-    expect(body.insights.largest_holding!.pct_of_portfolio).toBe(pct4(paise("1220931.30"), total));
+    expect(body.insights.largest_holding!.pct_of_portfolio).toBe(pct4(DEBT_VALUE, total));
+    expect(body.insights.largest_holding!.pct_of_portfolio).toBe("47.7297");
   });
 
   it("no_sips has zero SIPs and the other four insights", () => {
@@ -162,7 +177,12 @@ describe("Quick Insights spec fixtures", () => {
     expect(body.insights.largest_holding).not.toBeNull();
     expect(body.insights.plan_split).not.toBeNull();
     expect(body.insights.largest_amc).not.toBeNull();
-    expect(body.insights.spread.fund_count).toBe(6);
+    // The no-SIP build leaves out the seeded SIP transactions, so its holdings differ a little from the family file.
+    expect(body.total_value).toBe("5212.00");
+    expect(body.insights.largest_holding!.value).toBe("2002.00");
+    expect(body.insights.largest_holding!.pct_of_portfolio).toBe(pct4(paise("2002.00"), paise("5212.00")));
+    expect(body.insights.largest_holding!.pct_of_portfolio).toBe("38.4114");
+    expect(body.insights.spread).toEqual({ fund_count: 4, amc_count: 1 });
   });
 
   it("no_prices has holdings but no price at all", () => {
@@ -171,7 +191,13 @@ describe("Quick Insights spec fixtures", () => {
     expect(body.empty_reason).toBe("no_prices");
     expect(body.partial).toBe(true);
     expect(body.missing_funds.length).toBeGreaterThan(0);
+    expect(body.missing_funds.map(fund => fund.name)).toEqual([
+      "Asha Flexi Cap", "Asha Large Cap", "Dev Gold Fund", "Dev Short Duration Debt",
+    ]);
+    expect(body.nav_as_of).toBeNull();
     expect(body.total_value).toBe("0.00");
     expect(body.insights.largest_holding).toBeNull();
+    // has_data means "has a confirmed import", not "has holdings": both members have data although nothing is priced.
+    expect(body.members!.every(member => member.has_data)).toBe(true);
   });
 });

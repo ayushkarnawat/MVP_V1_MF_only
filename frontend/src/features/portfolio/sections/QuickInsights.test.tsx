@@ -72,21 +72,21 @@ describe("QuickInsights: the family insights", () => {
       "insight-largest-holding", "insight-spread", "insight-plan-split", "insight-largest-amc", "insight-sips",
     ]);
     expect(items.map(item => item.textContent)).toEqual([
-      "Your largest holding is Parag Parikh Flexi Cap Fund - Direct Plan - Growth — 33.0% of your total portfolio",
-      "Spread across 5 AMCs and 6 funds",
-      "69% Direct, 30% Regular",
-      "Your largest single AMC exposure is HDFC Mutual Fund at 46%",
-      "₹17,000 in active SIPs scheduled this month",
+      "Your largest holding is Dev Short Duration Debt — 38.6% of your total portfolio",
+      "Spread across 1 AMC and 4 funds",
+      "100% Direct, 0% Regular",
+      "Your largest single AMC exposure is Home Test AMC at 100%",
+      "₹9,000 in active SIPs scheduled this month",
     ]);
   });
 
   it("puts the key figure of each line in bold", () => {
     setup();
-    expect(boldTexts(screen.getByTestId("insight-largest-holding"))).toEqual(["Parag Parikh Flexi Cap Fund - Direct Plan - Growth"]);
-    expect(boldTexts(screen.getByTestId("insight-spread"))).toEqual(["5 AMCs", "6 funds"]);
-    expect(boldTexts(screen.getByTestId("insight-plan-split"))).toEqual(["69% Direct"]);
-    expect(boldTexts(screen.getByTestId("insight-largest-amc"))).toEqual(["HDFC Mutual Fund at 46%"]);
-    expect(boldTexts(screen.getByTestId("insight-sips"))).toEqual(["₹17,000"]);
+    expect(boldTexts(screen.getByTestId("insight-largest-holding"))).toEqual(["Dev Short Duration Debt"]);
+    expect(boldTexts(screen.getByTestId("insight-spread"))).toEqual(["1 AMC", "4 funds"]);
+    expect(boldTexts(screen.getByTestId("insight-plan-split"))).toEqual(["100% Direct"]);
+    expect(boldTexts(screen.getByTestId("insight-largest-amc"))).toEqual(["Home Test AMC at 100%"]);
+    expect(boldTexts(screen.getByTestId("insight-sips"))).toEqual(["₹9,000"]);
   });
 
   it("marks each line with a decorative check that screen readers skip", () => {
@@ -106,16 +106,16 @@ describe("QuickInsights: the family insights", () => {
 
   it("renders the figures it is given, not a fixed set (member fixture)", () => {
     setup({ data: get("insights_member") });
-    expect(screen.getByTestId("insight-spread")).toHaveTextContent("Spread across 3 AMCs and 3 funds");
-    expect(screen.getByTestId("insight-plan-split")).toHaveTextContent("76% Direct, 24% Regular");
-    expect(screen.getByTestId("insight-sips")).toHaveTextContent("₹5,000 in active SIPs scheduled this month");
+    expect(screen.getByTestId("insight-spread")).toHaveTextContent("Spread across 1 AMC and 2 funds");
+    expect(screen.getByTestId("insight-plan-split")).toHaveTextContent("100% Direct, 0% Regular");
+    expect(screen.getByTestId("insight-sips")).toHaveTextContent("₹4,000 in active SIPs scheduled this month");
   });
 });
 
 describe("QuickInsights: partial data and missing lines", () => {
   it("still shows the insights of a partial response", () => {
     setup({ data: get("insights_partial") });
-    expect(screen.getByTestId("insight-spread")).toHaveTextContent("Spread across 4 AMCs and 5 funds");
+    expect(screen.getByTestId("insight-spread")).toHaveTextContent("Spread across 1 AMC and 3 funds");
     expect(screen.getAllByRole("listitem")).toHaveLength(5);
   });
 
@@ -138,7 +138,11 @@ describe("QuickInsights: partial data and missing lines", () => {
 
   it("adds the unclassified share when it is large enough to matter", () => {
     const body = get("insights_family");
-    body.insights.plan_split!.unclassified.pct = "12.5000";
+    body.insights.plan_split = {
+      direct: { value: "2570931.30", pct: "69.4091" },
+      regular: { value: "1120750.35", pct: "30.2576" },
+      unclassified: { value: "12345.67", pct: "12.5000" },
+    };
     setup({ data: body });
     expect(screen.getByTestId("insight-plan-split")).toHaveTextContent("69% Direct, 30% Regular, 13% Unclassified");
     expect(boldTexts(screen.getByTestId("insight-plan-split"))).toEqual(["69% Direct"]);

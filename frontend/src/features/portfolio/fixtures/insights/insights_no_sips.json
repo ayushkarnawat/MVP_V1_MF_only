@@ -17,40 +17,40 @@
       "has_data": true
     }
   ],
-  "total_value": "3704027.32",
+  "total_value": "5212.00",
   "empty": false,
   "empty_reason": null,
   "insights": {
     "largest_holding": {
-      "scheme_id": "120841",
-      "fund_name": "Parag Parikh Flexi Cap Fund - Direct Plan - Growth",
-      "amc_name": "PPFAS Mutual Fund",
-      "value": "1220931.30",
-      "pct_of_portfolio": "32.9623"
+      "scheme_id": "cf09c887-92a1-5b49-a624-7f067ed6a2c8",
+      "fund_name": "Dev Short Duration Debt",
+      "amc_name": "Home Test AMC",
+      "value": "2002.00",
+      "pct_of_portfolio": "38.4114"
     },
     "spread": {
-      "fund_count": 6,
-      "amc_count": 5
+      "fund_count": 4,
+      "amc_count": 1
     },
     "plan_split": {
       "direct": {
-        "value": "2570931.30",
-        "pct": "69.4091"
+        "value": "5212.00",
+        "pct": "100.0000"
       },
       "regular": {
-        "value": "1120750.35",
-        "pct": "30.2576"
+        "value": "0.00",
+        "pct": "0.0000"
       },
       "unclassified": {
-        "value": "12345.67",
-        "pct": "0.3333"
+        "value": "0.00",
+        "pct": "0.0000"
       }
     },
     "largest_amc": {
-      "amc_name": "HDFC Mutual Fund",
-      "value": "1690500.25",
-      "pct_of_portfolio": "45.6395",
-      "fund_count": 2
+      "amc_name": "Home Test AMC",
+      "value": "5212.00",
+      "pct_of_portfolio": "100.0000",
+      "fund_count": 4
     },
     "sips": {
       "active_count": 0,
