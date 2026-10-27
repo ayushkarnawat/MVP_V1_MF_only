@@ -61,6 +61,7 @@ STOCK_ROWS = [
     ("Yatra Online Limited", "YATRA", "Consumer Services", "INTEST0026"),
     ("Bajel Projects Limited", "BAJEL", "Capital Goods", "INTEST0027"),
     ("Urban Company Limited", "URBANCO", "Consumer Services", "INTEST0028"),
+    ("FSN E-Commerce Ventures Limited", "NYKAA", "Consumer Services", "INTEST0029"),
 ]
 
 AMC_NAMES = [
@@ -480,7 +481,6 @@ def _stock_keys(title, dicts):
     "Egypt parliament backs Sisi to take 'all necessary measures' to support Saudi Arabia against Houthis",
     "Shaan pays tribute to Michael Jackson in Dubai, fans call him 'pop star'",
     "Digi Yatra international passenger trials to go live at seven airports from Nov 1",
-    "Morgan Stanley sees up to 40% upside in the stock after shares rise",
     "Experts take a view on the stock rally after shares surge",
 ])
 def test_lowercase_symbol_word_never_tags_a_stock(symbol_dictionaries, title):
@@ -530,3 +530,53 @@ def test_company_stripped_alias_tags_with_context_or_full_name(urban_dictionarie
 
 def test_legal_suffix_only_names_are_unaffected(urban_dictionaries):
     assert _stock_keys("Cipla launches a new inhaler in the US market", urban_dictionaries) == ["INTEST0311"]
+
+
+# ---------------------------------------------------------------------------
+# (13) symbol-only aliases, three-way case test on the token as written:
+# ALL-CAPS always tags, Capitalised tags only with stock/market context,
+# lower case never tags
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def brand_dictionaries(db_session) -> Dictionaries:
+    db_session.add(StockMaster(isin="INTEST0320", name="FSN E-Commerce Ventures Limited", sector="Consumer Services", as_of_date=date(2026, 10, 1), source="NSE", nse_symbol="NYKAA"))
+    db_session.add(StockMaster(isin="INTEST0321", name="Take Solutions Limited", sector="Information Technology", as_of_date=date(2026, 10, 1), source="NSE", nse_symbol="TAKE"))
+    db_session.add(StockMaster(isin="INTEST0322", name="Tata Consultancy Services Limited", sector="Information Technology", as_of_date=date(2026, 10, 1), source="NSE", nse_symbol="TCSX"))
+    db_session.commit()
+    return load_dictionaries(db_session)
+
+
+@pytest.mark.parametrize("title", [
+    "Nykaa shares jump 5% after Q2 results",
+    "NYKAA stock rallies on festive demand",
+    "Nykaa's stock hits a record high",
+])
+def test_capitalised_brand_symbol_tags_with_context_and_caps_always(brand_dictionaries, title):
+    assert _stock_keys(title, brand_dictionaries) == ["INTEST0320"]
+
+
+@pytest.mark.parametrize("title", [
+    "Nykaa opens a new store in Pune",  # Capitalised, no stock context
+    "I bought a nykaa lipstick",  # lower case, never
+    "Experts take a view on the stock rally after shares surge",  # lower case, even with context
+])
+def test_capitalised_without_context_or_lowercase_never_tags(brand_dictionaries, title):
+    assert _stock_keys(title, brand_dictionaries) == []
+
+
+@pytest.mark.parametrize("title", [
+    "TCSX's order book swells",
+    "TCSX-led rally lifts the Nifty",
+])
+def test_all_caps_symbol_survives_possessive_and_hyphen(brand_dictionaries, title):
+    assert _stock_keys(title, brand_dictionaries) == ["INTEST0322"]
+
+
+def test_known_limitation_capitalised_name_with_context_still_tags(db_session):
+    # Accepted residual: "Morgan Stanley sees upside in X shares" tags STANLEY
+    # (Capitalised + stock context). Not special-cased on purpose.
+    db_session.add(StockMaster(isin="INTEST0330", name="Stanley Lifestyles Limited", sector="Consumer Durables", as_of_date=date(2026, 10, 1), source="NSE", nse_symbol="STANLEY"))
+    db_session.commit()
+    dicts = load_dictionaries(db_session)
+    assert _stock_keys("Morgan Stanley sees upside in Urban shares", dicts) == ["INTEST0330"]

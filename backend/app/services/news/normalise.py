@@ -140,10 +140,15 @@ def _contains_word(text: str, phrase: str) -> bool:
         start = idx + 1
 
 
-def _all_caps_text(title: str) -> str:
-    """The title's ALL-CAPS words only, normalised, so a symbol alias can be
-    checked against how the headline actually spelt it."""
-    return normalise_title(" ".join(w for w in title.split() if w.isupper()))
+def _cased_texts(title: str) -> tuple[str, str]:
+    """(ALL-CAPS words, Capitalised words) of the title, each normalised, so a
+    symbol alias can be checked against how the headline actually spelt it.
+    A possessive 's is dropped and hyphens split first: "TCS's" and "TCS-led"
+    both still carry the all-caps token TCS."""
+    words = re.findall(r"[A-Za-z0-9]+", re.sub(r"['\u2019]s\b", "", title))
+    caps = " ".join(w for w in words if w.isupper())
+    capitalised = " ".join(w for w in words if w[0].isupper() and w[1:].islower())
+    return normalise_title(caps), normalise_title(capitalised)
 
 
 def _candidates(index: Mapping[str, tuple[str, ...]], words: Sequence[str]) -> set[str]:
@@ -344,17 +349,24 @@ def tag_title(title: str, dictionaries: Dictionaries) -> list[EntityTag]:
             tags.append(tag)
 
     stock_index = dictionaries._stock_index  # type: ignore[attr-defined]
-    caps_text = _all_caps_text(title) if dictionaries.symbol_only else ""
+    caps_text, capitalised_text = _cased_texts(title) if dictionaries.symbol_only else ("", "")
+    has_stock_context = any(_contains_word(normalised, word) for word in _AMBIGUITY_CONTEXT_NORM)
     for alias in _candidates(stock_index, words):
         if not _contains_word(normalised, alias):
             continue
-        # A symbol-only alias (TAKE, STAR, YATRA...) is usually an everyday
-        # word, and stock/market context in the headline does not rescue it
-        # ("Experts take ..." under a shares headline). Only the all-caps
-        # spelling counts; the plain-word symbols (IDEA, SAIL...) may still
-        # pass on context below, since headlines do write "Idea shares".
-        if alias in dictionaries.symbol_only and alias not in _PLAIN_WORD_SYMBOLS_NORM and not _contains_word(caps_text, alias):
-            continue
+        # A symbol-only alias (TAKE, STAR, NYKAA...) is often an everyday
+        # word, so go by how the headline spelt it: ALL-CAPS always tags,
+        # Capitalised ("Nykaa shares jump") tags only with stock/market
+        # context, lower case ("take", "pop star") never. Known limitation:
+        # "Morgan Stanley sees upside in X shares" is Capitalised with context
+        # and so still tags STANLEY. The plain-word symbols (IDEA, SAIL...)
+        # keep the context-only rule below, since headlines do write "Idea shares".
+        if alias in dictionaries.symbol_only and alias not in _PLAIN_WORD_SYMBOLS_NORM:
+            if not (
+                _contains_word(caps_text, alias)
+                or (has_stock_context and _contains_word(capitalised_text, alias))
+            ):
+                continue
         if alias in _AMBIGUOUS_ALIASES_NORM or alias in _PLAIN_WORD_SYMBOLS_NORM or alias in dictionaries.company_stripped:
             context = _AMBIGUITY_CONTEXT_NORM | set(_AMBIGUOUS_ALIASES_NORM.get(alias, ()))
             if not any(_contains_word(normalised, word) for word in context):

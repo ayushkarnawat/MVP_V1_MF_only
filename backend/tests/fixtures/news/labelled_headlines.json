@@ -1740,5 +1740,27 @@
         "INTEST0028"
       ]
     ]
+  },
+  {
+    "title": "Nykaa shares jump 5% after Q2 results",
+    "expected": [
+      [
+        "stock",
+        "INTEST0029"
+      ]
+    ]
+  },
+  {
+    "title": "NYKAA stock rallies on festive demand",
+    "expected": [
+      [
+        "stock",
+        "INTEST0029"
+      ]
+    ]
+  },
+  {
+    "title": "Nykaa opens a new beauty store in Pune",
+    "expected": []
   }
 ]
