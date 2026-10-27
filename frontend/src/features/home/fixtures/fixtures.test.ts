@@ -10,7 +10,7 @@ const ENVELOPE = ["scope", "member_id", "nav_as_of", "partial", "missing_funds",
 const EXTRAS: Record<string, string[]> = {
   summary: [
     "display_name", "greeting", "scope_label", "change_amount", "change_pct", "direction", "status_phrase",
-    "since_label", "since_date", "top_contributor", "members_connected", "members_total", "data_line",
+    "since_label", "since_date", "top_contributor", "top_contributor_scheme_id", "members_connected", "members_total", "data_line",
     "has_holdings", "total_value", "members",
   ],
   wealth: [

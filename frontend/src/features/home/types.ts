@@ -36,6 +36,7 @@ export interface SummaryResponse extends Envelope {
   since_label: string;
   since_date: string | null;
   top_contributor: string | null;
+  top_contributor_scheme_id?: string | null;
   members_connected: number;
   members_total: number;
   data_line: string | null;
@@ -140,7 +141,7 @@ export type NewsIconKey =
   | "banks_financials" | "it_tech" | "pharma_health" | "auto_ev" | "consumer_fmcg" | "energy" | "metals_mining"
   | "realty_infra" | "gold_silver" | "rates_rbi" | "funds_amc" | "markets" | "regulation" | "general";
 
-export interface NewsFundOut { scheme_id: string; name: string }
+export interface NewsFundOut { scheme_id: string; name: string; weight_pct?: string | null }
 export interface NewsItemOut {
   id: string;
   kind: NewsKind;

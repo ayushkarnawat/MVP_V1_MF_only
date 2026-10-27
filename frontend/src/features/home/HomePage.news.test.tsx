@@ -242,7 +242,7 @@ describe("HomePage: the greeting's top mover opens the movers popup (register C9
   });
 
   it("still switches to the Fund grouping, but opens nothing, when the top contributor is not among the rows shown", async () => {
-    const summary = { ...fixture<SummaryResponse>("summary_family"), top_contributor: "Nobody Fund" };
+    const summary = { ...fixture<SummaryResponse>("summary_family"), top_contributor: "Nobody Fund", top_contributor_scheme_id: null };
     const api = mockHomeApi({ summary });
     renderHome();
     await allLoaded();
@@ -251,6 +251,55 @@ describe("HomePage: the greeting's top mover opens the movers popup (register C9
     await waitFor(() => expect(screen.getByRole("button", { name: "Fund" })).toHaveAttribute("aria-pressed", "true"));
     await waitFor(() => expect(screen.getByTestId("mover-54b8755e-6b2b-5f4f-a8fe-b41125031af6")).toBeInTheDocument());
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("opens the row whose scheme id the summary names, even when the summary's name matches no row", async () => {
+    const summary = { ...fixture<SummaryResponse>("summary_family"), top_contributor: "Asha Large Cap (renamed)", top_contributor_scheme_id: "54b8755e-6b2b-5f4f-a8fe-b41125031af6" };
+    mockHomeApi({ summary });
+    renderHome();
+    await allLoaded();
+    fireEvent.click(within(sentence()).getByRole("button", { name: "Asha Large Cap (renamed)" }));
+    expect(await screen.findByRole("dialog", { name: "Asha Large Cap funds" })).toBeInTheDocument();
+  });
+
+  it("matches by the id, not the name, when the two point at different rows", async () => {
+    const summary = { ...fixture<SummaryResponse>("summary_family"), top_contributor: "Asha Large Cap", top_contributor_scheme_id: "7c906599-2ff8-5de4-83f9-b94651c683f2" };
+    mockHomeApi({ summary });
+    renderHome();
+    await allLoaded();
+    fireEvent.click(within(sentence()).getByRole("button", { name: "Asha Large Cap" }));
+    expect(await screen.findByRole("dialog", { name: "Dev Gold Fund funds" })).toBeInTheDocument();
+  });
+
+  it("opens nothing when the id is given but is not among the rows shown, even if the name matches a row", async () => {
+    const summary = { ...fixture<SummaryResponse>("summary_family"), top_contributor: "Asha Large Cap", top_contributor_scheme_id: "00000000-0000-4000-8000-000000000000" };
+    const api = mockHomeApi({ summary });
+    renderHome();
+    await allLoaded();
+    fireEvent.click(within(sentence()).getByRole("button", { name: "Asha Large Cap" }));
+    await waitFor(() => expect(api.callsFor("movers")).toHaveLength(2));
+    await waitFor(() => expect(screen.getByTestId("mover-54b8755e-6b2b-5f4f-a8fe-b41125031af6")).toBeInTheDocument());
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("falls back to the name when an older server sends no id at all", async () => {
+    const summary: Record<string, unknown> = { ...fixture<SummaryResponse>("summary_family") };
+    delete summary.top_contributor_scheme_id;
+    mockHomeApi({ summary });
+    renderHome();
+    await allLoaded();
+    fireEvent.click(within(sentence()).getByRole("button", { name: "Asha Large Cap" }));
+    expect(await screen.findByRole("dialog", { name: "Asha Large Cap funds" })).toBeInTheDocument();
+  });
+
+  it("uses the member's own scheme id in a member's view", async () => {
+    const summary = { ...fixture<SummaryResponse>("summary_member"), top_contributor: "Dev Gold Fund (renamed)" };
+    mockHomeApi({ summary });
+    renderHome({ member: true });
+    await screen.findByText("Viewing Dev Rao's portfolio");
+    await screen.findByTestId("movers-split");
+    fireEvent.click(within(sentence()).getByRole("button", { name: "Dev Gold Fund (renamed)" }));
+    expect(await screen.findByRole("dialog", { name: "Dev Gold Fund funds" })).toBeInTheDocument();
   });
 
   it("has no link when the server names no top contributor", async () => {

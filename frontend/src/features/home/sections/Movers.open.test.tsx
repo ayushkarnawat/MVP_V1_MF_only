@@ -80,6 +80,43 @@ describe("Movers: opening a popup on request (the greeting's top-mover link)", (
     expect(screen.getByRole("dialog", { name: "Asha Large Cap funds" })).toBeInTheDocument();
   });
 
+  it("matches by scheme id when one is given, even if the name is different or wrong", () => {
+    render(<Movers {...props({ openRequest: { name: "Old Display Name", schemeId: "54b8755e-6b2b-5f4f-a8fe-b41125031af6", token: 1 } })} />);
+    expect(screen.getByRole("dialog", { name: "Asha Large Cap funds" })).toBeInTheDocument();
+  });
+
+  it("matches a loser by scheme id", () => {
+    render(<Movers {...props({ openRequest: { name: "Whatever", schemeId: "fe06ac21-f8c7-5dbf-a877-5c703ddbcdef", token: 1 } })} />);
+    expect(screen.getByRole("dialog", { name: "Asha Flexi Cap funds" })).toBeInTheDocument();
+  });
+
+  it("lets the id win when the name belongs to a different row", () => {
+    render(<Movers {...props({ openRequest: { name: "Asha Large Cap", schemeId: "7c906599-2ff8-5de4-83f9-b94651c683f2", token: 1 } })} />);
+    expect(screen.getByRole("dialog", { name: "Dev Gold Fund funds" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Asha Large Cap funds" })).toBeNull();
+  });
+
+  it("opens nothing, and does not fall back to the name, when the id is given but no row has it", () => {
+    render(<Movers {...props({ openRequest: { name: "Asha Large Cap", schemeId: "00000000-0000-4000-8000-000000000000", token: 1 } })} />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("falls back to the name only when the id is null or missing", () => {
+    const first = render(<Movers {...props({ openRequest: { name: "Dev Gold Fund", schemeId: null, token: 1 } })} />);
+    expect(screen.getByRole("dialog", { name: "Dev Gold Fund funds" })).toBeInTheDocument();
+    first.unmount();
+    render(<Movers {...props({ openRequest: { name: "Asha Flexi Cap", token: 1 } })} />);
+    expect(screen.getByRole("dialog", { name: "Asha Flexi Cap funds" })).toBeInTheDocument();
+  });
+
+  it("still waits for the fund rows when matching by id", () => {
+    const request = { name: "Asha Large Cap", schemeId: "54b8755e-6b2b-5f4f-a8fe-b41125031af6", token: 1 };
+    const { rerender } = render(<Movers {...props({ data: sector(), view: "fund", openRequest: request })} />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    rerender(<Movers {...props({ data: byFund(), view: "fund", openRequest: request })} />);
+    expect(screen.getByRole("dialog", { name: "Asha Large Cap funds" })).toBeInTheDocument();
+  });
+
   it("leaves the normal row click working next to a request", () => {
     render(<Movers {...props({ openRequest: { name: "Asha Large Cap", token: 1 } })} />);
     fireEvent.click(screen.getByRole("button", { name: "Close" }));

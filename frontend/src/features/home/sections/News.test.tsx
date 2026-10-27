@@ -226,13 +226,66 @@ describe("News: Why this?", () => {
     const dialog = screen.getByRole("dialog", { name: "Why this?" });
     expect(within(dialog).getByText("Funds involved")).toBeInTheDocument();
     const rows = within(within(dialog).getByTestId("why-funds")).getAllByRole("listitem");
-    expect(rows.map(row => row.textContent)).toEqual(["Dev Short Duration Debt", "Asha Large Cap", "Dev Gold Fund", "Asha Flexi Cap"]);
-    for (const row of rows) {
-      const name = within(row).getByText(row.textContent ?? "");
+    const names = ["Dev Short Duration Debt", "Asha Large Cap", "Dev Gold Fund", "Asha Flexi Cap"];
+    const weights = ["38.41%", "23.22%", "19.38%", "18.99%"];
+    expect(rows.map(row => row.textContent)).toEqual(names.map((name, index) => `${name}${weights[index]}`));
+    rows.forEach((row, index) => {
+      const name = within(row).getByText(names[index]);
       expect(name).toHaveAttribute("aria-disabled", "true");
       expect(name).toHaveAttribute("title", "Coming soon");
-    }
+    });
     expect(within(dialog).queryByRole("link")).toBeNull();
+  });
+
+  it("shows each fund's share of the portfolio as the server's own text with a percent sign, one per fund, in the sent order", () => {
+    setup();
+    open(1);
+    const dialog = screen.getByRole("dialog", { name: "Why this?" });
+    const shown = within(dialog).getAllByTestId("why-fund-weight");
+    expect(shown.map(node => node.textContent)).toEqual(["38.41%", "23.22%", "19.38%", "18.99%"]);
+    // The weight belongs to its own row, and is not styled as the disabled name.
+    const rows = within(within(dialog).getByTestId("why-funds")).getAllByRole("listitem");
+    rows.forEach((row, index) => {
+      expect(within(row).getByTestId("why-fund-weight")).toBe(shown[index]);
+      expect(shown[index]).not.toHaveAttribute("aria-disabled");
+    });
+  });
+
+  it("shows the weight exactly as sent, whatever the digits (no rounding, no reformatting)", () => {
+    const data = newsFixture<NewsResponse>("news_specific_three");
+    data.items[1].funds[0].weight_pct = "0.05";
+    data.items[1].funds[1].weight_pct = "100.00";
+    setup({ data });
+    open(1);
+    const shown = within(screen.getByRole("dialog", { name: "Why this?" })).getAllByTestId("why-fund-weight");
+    expect(shown.map(node => node.textContent).slice(0, 2)).toEqual(["0.05%", "100.00%"]);
+  });
+
+  it("leaves out the weight of a fund the server sends none for (null or missing), keeping its name and the rest", () => {
+    const data = newsFixture<NewsResponse>("news_specific_three");
+    data.items[1].funds[0].weight_pct = null;
+    delete data.items[1].funds[1].weight_pct;
+    setup({ data });
+    open(1);
+    const rows = within(within(screen.getByRole("dialog", { name: "Why this?" })).getByTestId("why-funds")).getAllByRole("listitem");
+    expect(rows).toHaveLength(4);
+    expect(within(rows[0]).queryByTestId("why-fund-weight")).toBeNull();
+    expect(within(rows[1]).queryByTestId("why-fund-weight")).toBeNull();
+    expect(rows[0].textContent).toBe("Dev Short Duration Debt");
+    expect(rows[1].textContent).toBe("Asha Large Cap");
+    expect(within(rows[2]).getByTestId("why-fund-weight")).toHaveTextContent("19.38%");
+    expect(within(rows[3]).getByTestId("why-fund-weight")).toHaveTextContent("18.99%");
+  });
+
+  it("shows no weight at all on an older server that sends none", () => {
+    const data = newsFixture<NewsResponse>("news_specific_three");
+    for (const fund of data.items[1].funds) delete fund.weight_pct;
+    setup({ data });
+    open(1);
+    const dialog = screen.getByRole("dialog", { name: "Why this?" });
+    expect(within(dialog).queryByTestId("why-fund-weight")).toBeNull();
+    expect(within(within(dialog).getByTestId("why-funds")).getAllByRole("listitem").map(row => row.textContent))
+      .toEqual(["Dev Short Duration Debt", "Asha Large Cap", "Dev Gold Fund", "Asha Flexi Cap"]);
   });
 
   it("offers See affected holdings greyed, never as a button or link, only when funds are listed", () => {

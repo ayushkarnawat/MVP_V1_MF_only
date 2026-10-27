@@ -50,6 +50,25 @@ describe("News golden fixtures", () => {
     for (const item of body.items as object[]) expect(Object.keys(item).sort()).toEqual([...ITEM].sort());
   });
 
+  // Each fund row carries its weight (a 2-decimal percent string) and nothing else new. Sums are exact: cents as integers.
+  it("gives every fund a name, a scheme id and a 2-decimal weight_pct, and a fund list that adds up to 100.00", () => {
+    let funds = 0;
+    for (const name of NEWS_FIXTURE_NAMES) {
+      for (const item of newsFixture<NewsResponse>(name).items) {
+        if (item.funds.length === 0) continue;
+        let cents = 0;
+        for (const fund of item.funds) {
+          expect(Object.keys(fund).sort(), name).toEqual(["name", "scheme_id", "weight_pct"]);
+          expect(fund.weight_pct, name).toMatch(/^\d{1,3}\.\d{2}$/);
+          cents += Number(fund.weight_pct!.replace(".", ""));
+          funds += 1;
+        }
+        expect(cents, name).toBe(10000);
+      }
+    }
+    expect(funds).toBe(8);
+  });
+
   it("covers every state the section must handle", () => {
     const by = (name: string) => newsFixture<NewsResponse>(name);
     expect(by("news_specific_three")).toMatchObject({ state: "items", stale: false, hidden: false, enabled: true });
