@@ -48,6 +48,7 @@ class SummaryResponse(Envelope):
     since_label: str
     since_date: date | None
     top_contributor: str | None
+    top_contributor_scheme_id: str | None = None
     members_connected: int
     members_total: int
     data_line: str | None

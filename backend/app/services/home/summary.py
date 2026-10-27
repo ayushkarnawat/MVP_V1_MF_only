@@ -30,6 +30,7 @@ class Summary:
     members_connected: int
     members_total: int
     data_line: str | None
+    top_contributor_scheme_id: str | None = None
 
 
 def greeting_for_hour(hour: int) -> str:
@@ -40,17 +41,27 @@ def greeting_for_hour(hour: int) -> str:
     return "evening"
 
 
-def _top_contributor(movers: Movers) -> str | None:
+def _top_contributor_fund(movers: Movers):
     nonzero = [fund for fund in movers.funds if fund.change]
     if not nonzero:
         return None
     if movers.net_change > 0:
         positive = [fund for fund in nonzero if fund.change > 0]
-        return max(positive, key=lambda fund: fund.change).name if positive else None
+        return max(positive, key=lambda fund: fund.change) if positive else None
     if movers.net_change < 0:
         negative = [fund for fund in nonzero if fund.change < 0]
-        return min(negative, key=lambda fund: fund.change).name if negative else None
-    return max(nonzero, key=lambda fund: abs(fund.change)).name
+        return min(negative, key=lambda fund: fund.change) if negative else None
+    return max(nonzero, key=lambda fund: abs(fund.change))
+
+
+def _top_contributor(movers: Movers) -> str | None:
+    fund = _top_contributor_fund(movers)
+    return fund.name if fund is not None else None
+
+
+def _top_contributor_scheme_id(movers: Movers) -> str | None:
+    fund = _top_contributor_fund(movers)
+    return str(fund.scheme_id) if fund is not None else None
 
 
 def build_summary(
@@ -99,6 +110,7 @@ def build_summary(
         since_label=since_label,
         since_date=movers.previous_nav_date,
         top_contributor=_top_contributor(movers),
+        top_contributor_scheme_id=_top_contributor_scheme_id(movers),
         members_connected=members_connected,
         members_total=members_total,
         data_line=data_line,

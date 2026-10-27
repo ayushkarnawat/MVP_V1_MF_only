@@ -78,6 +78,7 @@ def test_summary_response_has_exact_contract_and_plain_decimal_json():
         "scope", "member_id", "nav_as_of", "partial", "missing_funds", "computed_at",
         "display_name", "greeting", "scope_label", "change_amount", "change_pct",
         "direction", "status_phrase", "since_label", "since_date", "top_contributor",
+        "top_contributor_scheme_id",
         "members_connected", "members_total", "data_line", "has_holdings",
         "total_value", "members",
     ]
@@ -98,6 +99,7 @@ def test_summary_response_has_exact_contract_and_plain_decimal_json():
         "since_label": "today",
         "since_date": "2026-10-22",
         "top_contributor": "Large Cap",
+        "top_contributor_scheme_id": None,
         "members_connected": 2,
         "members_total": 2,
         "data_line": "Data from 2 of 2 family members",

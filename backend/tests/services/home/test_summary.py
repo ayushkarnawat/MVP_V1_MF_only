@@ -225,3 +225,20 @@ def test_top_contributor_is_the_largest_loss_when_several_funds_fall():
     )
 
     assert summary.top_contributor == "Beta"
+
+
+def test_top_contributor_scheme_id_matches_the_named_fund_or_is_none():
+    now = datetime(2026, 10, 23, 9, tzinfo=IST)
+    alpha, beta = uuid.uuid4(), uuid.uuid4()
+    kwargs = dict(display_name="Ayush", now_ist=now, scope="aggregate", member_name=None,
+                  members_connected=1, members_total=1)
+
+    summary = build_summary(
+        movers=_movers(_fund("Alpha", "20", scheme_id=alpha), _fund("Beta", "-5", scheme_id=beta)), **kwargs,
+    )
+    assert summary.top_contributor == "Alpha"
+    assert summary.top_contributor_scheme_id == str(alpha)
+
+    flat = build_summary(movers=_movers(_fund("Alpha", "0")), **kwargs)
+    assert flat.top_contributor is None
+    assert flat.top_contributor_scheme_id is None
