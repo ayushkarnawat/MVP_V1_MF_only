@@ -338,6 +338,10 @@ class InvestmentWithdrawalEntry(BaseModel):
     scheme_name: str
     household_member_id: str
     household_member_name: str
+    # Optional ledger detail (MF-B ask C133); absent on payloads stored before it.
+    units: str | None = None
+    nav: str | None = None
+    folio: str | None = None  # masked: "XXXX" + last four alphanumerics
 
 
 class InvestmentWithdrawalBucket(BaseModel):

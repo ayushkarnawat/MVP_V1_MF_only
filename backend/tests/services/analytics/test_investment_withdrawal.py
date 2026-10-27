@@ -376,3 +376,19 @@ def test_two_folios_of_one_fund_use_the_earliest_statement_end():
     with patch(f"{_MODULE}._references", return_value=references):
         result = _run(db, [member.id], sips=sips)
     assert result.sip_summary.missed_count == 0
+
+
+def test_ledger_entries_carry_units_nav_and_masked_folio():
+    db = _session()
+    member = _member(db)
+    folio = _folio(db, member)
+    folio.folio_number = "1234567/89"
+    db.commit()
+    db.add(Transaction(id=uuid.uuid4(), folio_id=folio.id, import_id=uuid.uuid4(), type=TransactionType.PURCHASE,
+                       date=date(2026, 1, 5), amount=Decimal("2500.00"), units=Decimal("48.123"), nav=Decimal("51.9500")))
+    db.commit()
+    entry = _run(db, [member.id]).monthly[0].entries[0]
+    # hand check: raw row units 48.123, nav 51.9500; folio "1234567/89" keeps its last four alphanumerics "6789"
+    assert (entry.units, entry.nav, entry.folio) == ("48.123", "51.9500", "XXXX6789")
+    dumped = entry.model_dump(mode="json")
+    assert dumped["units"] == "48.123" and dumped["nav"] == "51.9500" and dumped["folio"] == "XXXX6789"

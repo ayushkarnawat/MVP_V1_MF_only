@@ -51,6 +51,13 @@ def direction_for(txn: Transaction) -> str | None:
     return None  # GIFT_IN/GIFT_OUT/BONUS -- deliberately excluded, see Review Focus #5
 
 
+def _mask_folio(folio_number: str) -> str:
+    """Short display form: no other route hides folios, but a ledger row only needs
+    enough to tell two folios of one fund apart, so keep the last four alphanumerics."""
+    tail = "".join(ch for ch in folio_number if ch.isalnum())[-4:]
+    return f"XXXX{tail}"
+
+
 def _sum(entries: list[InvestmentWithdrawalEntry], direction: str) -> Decimal:
     return sum((Decimal(e.amount) for e in entries if e.direction == direction), _ZERO)
 
@@ -127,6 +134,9 @@ async def compute_investment_withdrawal(
             scheme_name=schemes[folio.scheme_id].name,
             household_member_id=str(folio.household_member_id),
             household_member_name=members[folio.household_member_id].name,
+            units=str(txn.units),
+            nav=str(txn.nav),
+            folio=_mask_folio(folio.folio_number),
         ))
 
     opening_holdings = _sum(entries, "opening")
