@@ -89,6 +89,9 @@ class Dictionaries:
     stocks: Mapping[str, tuple[str, str]]  # alias -> (isin, display name)
     fund_houses: Mapping[str, str]  # alias -> fund_house_key
     foreign: Mapping[str, str]  # alias -> display name (equity_international holdings)
+    # Stock aliases that exist only because of an NSE symbol (not the company
+    # name); they match an ALL-CAPS token only -- see tag_title.
+    symbol_only: frozenset[str] = frozenset()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "_stock_index", _index_by_first_word(self.stocks))
@@ -129,6 +132,12 @@ def _contains_word(text: str, phrase: str) -> bool:
         if before_ok and after_ok:
             return True
         start = idx + 1
+
+
+def _all_caps_text(title: str) -> str:
+    """The title's ALL-CAPS words only, normalised, so a symbol alias can be
+    checked against how the headline actually spelt it."""
+    return normalise_title(" ".join(w for w in title.split() if w.isupper()))
 
 
 def _candidates(index: Mapping[str, tuple[str, ...]], words: Sequence[str]) -> set[str]:
@@ -258,12 +267,16 @@ def sector_key(label: str | None) -> str | None:
 
 def load_dictionaries(db: Session) -> Dictionaries:
     stocks: dict[str, tuple[str, str]] = {}
-    for isin, name, nse_symbol in db.query(StockMaster.isin, StockMaster.name, StockMaster.nse_symbol):
-        display = _STOCK_FILLER_RE.sub(" ", name)
-        display = re.sub(r"\s+", " ", display).strip()
+    symbol_only: set[str] = set()
+    rows = db.query(StockMaster.isin, StockMaster.name, StockMaster.nse_symbol).all()
+    displays = {isin: re.sub(r"\s+", " ", _STOCK_FILLER_RE.sub(" ", name)).strip() for isin, name, _ in rows}
+    # Names first, so a symbol never shadows another company's name alias.
+    for isin, name, _ in rows:
         alias = _stock_alias(name)
         if alias:
-            stocks.setdefault(alias, (isin, display))
+            stocks.setdefault(alias, (isin, displays[isin]))
+    for isin, _name, nse_symbol in rows:
+        display = displays[isin]
         if nse_symbol:
             symbol_alias = normalise_title(nse_symbol)
             if (
@@ -273,7 +286,9 @@ def load_dictionaries(db: Session) -> Dictionaries:
                 # symbol (OIL, BSE, SUN) would tag any headline using the word.
                 and (len(symbol_alias) >= 4 or symbol_alias in SHORT_ALIAS_ALLOW)
             ):
-                stocks.setdefault(symbol_alias, (isin, display))
+                if symbol_alias not in stocks:
+                    stocks[symbol_alias] = (isin, display)
+                    symbol_only.add(symbol_alias)
 
     fund_houses: dict[str, str] = {}
     for (amc_name,) in db.query(distinct(Scheme.amc_name)):
@@ -282,13 +297,13 @@ def load_dictionaries(db: Session) -> Dictionaries:
             fund_houses.setdefault(alias, fund_house_key(amc_name))
 
     foreign: dict[str, str] = {}
-    rows = (
+    foreign_rows = (
         db.query(SchemeHolding.instrument_name)
         .filter(SchemeHolding.asset_type == AssetType.EQUITY_INTERNATIONAL)
         .order_by(SchemeHolding.market_value.desc())
         .limit(_FOREIGN_FETCH_LIMIT)
     )
-    for (name,) in rows:
+    for (name,) in foreign_rows:
         alias = normalise_title(name)
         if not alias or alias in foreign:
             continue
@@ -296,7 +311,7 @@ def load_dictionaries(db: Session) -> Dictionaries:
         if len(foreign) >= _FOREIGN_DISTINCT_LIMIT:
             break
 
-    return Dictionaries(stocks=stocks, fund_houses=fund_houses, foreign=foreign)
+    return Dictionaries(stocks=stocks, fund_houses=fund_houses, foreign=foreign, symbol_only=frozenset(symbol_only))
 
 
 def tag_title(title: str, dictionaries: Dictionaries) -> list[EntityTag]:
@@ -312,8 +327,16 @@ def tag_title(title: str, dictionaries: Dictionaries) -> list[EntityTag]:
             tags.append(tag)
 
     stock_index = dictionaries._stock_index  # type: ignore[attr-defined]
+    caps_text = _all_caps_text(title) if dictionaries.symbol_only else ""
     for alias in _candidates(stock_index, words):
         if not _contains_word(normalised, alias):
+            continue
+        # A symbol-only alias (TAKE, STAR, YATRA...) is usually an everyday
+        # word, and stock/market context in the headline does not rescue it
+        # ("Experts take ..." under a shares headline). Only the all-caps
+        # spelling counts; the plain-word symbols (IDEA, SAIL...) may still
+        # pass on context below, since headlines do write "Idea shares".
+        if alias in dictionaries.symbol_only and alias not in _PLAIN_WORD_SYMBOLS_NORM and not _contains_word(caps_text, alias):
             continue
         if alias in _AMBIGUOUS_ALIASES_NORM or alias in _PLAIN_WORD_SYMBOLS_NORM:
             context = _AMBIGUITY_CONTEXT_NORM | set(_AMBIGUOUS_ALIASES_NORM.get(alias, ()))

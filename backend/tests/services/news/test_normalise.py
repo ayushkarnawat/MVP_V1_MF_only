@@ -55,6 +55,11 @@ STOCK_ROWS = [
     ("Maruti Suzuki India Limited", "MARUTI", "Automobile and Auto Components", "INTEST0020"),
     ("DLF Limited", "DLF", "Realty", "INTEST0021"),
     ("Apollo Hospitals Enterprise Limited", "APOLLOHOSP", "Healthcare", "INTEST0022"),
+    ("Take Solutions Limited", "TAKE", "Information Technology", "INTEST0023"),
+    ("Strides Pharma Science Limited", "STAR", "Healthcare", "INTEST0024"),
+    ("Stanley Lifestyles Limited", "STANLEY", "Consumer Durables", "INTEST0025"),
+    ("Yatra Online Limited", "YATRA", "Consumer Services", "INTEST0026"),
+    ("Bajel Projects Limited", "BAJEL", "Capital Goods", "INTEST0027"),
 ]
 
 AMC_NAMES = [
@@ -442,3 +447,50 @@ def test_plain_word_nse_symbols_do_not_become_stock_tags(db_session):
     assert not [t for t in tag_title("Oil prices slip as the sun sets on the BSE lawn", dicts) if t.kind == "stock"]
     tagged = tag_title("Idea shares jump after the AGR relief", dicts)
     assert [t.key for t in tagged if t.kind == "stock"] == ["INTEST0204"]
+
+# ---------------------------------------------------------------------------
+# (11) symbol-only aliases (an NSE symbol that is not also part of the name)
+# match only as an ALL-CAPS token, never as an everyday lower-case word
+# ---------------------------------------------------------------------------
+
+SYMBOL_ONLY_ROWS = [
+    ("Take Solutions Limited", "TAKE", "INTEST0301"),
+    ("Strides Pharma Science Limited", "STAR", "INTEST0302"),
+    ("Stanley Lifestyles Limited", "STANLEY", "INTEST0303"),
+    ("Yatra Online Limited", "YATRA", "INTEST0304"),
+    ("Bajel Projects Limited", "BAJEL", "INTEST0305"),
+]
+
+
+@pytest.fixture()
+def symbol_dictionaries(db_session) -> Dictionaries:
+    for name, symbol, isin in SYMBOL_ONLY_ROWS:
+        db_session.add(StockMaster(isin=isin, name=name, sector="Services", as_of_date=date(2026, 10, 1), source="NSE", nse_symbol=symbol))
+    db_session.commit()
+    return load_dictionaries(db_session)
+
+
+def _stock_keys(title, dicts):
+    return [t.key for t in tag_title(title, dicts) if t.kind == "stock"]
+
+
+@pytest.mark.parametrize("title", [
+    "Microsoft techie who topped performance ratings says he'll take VEP, but won't work till his exit",
+    "Egypt parliament backs Sisi to take 'all necessary measures' to support Saudi Arabia against Houthis",
+    "Shaan pays tribute to Michael Jackson in Dubai, fans call him 'pop star'",
+    "Digi Yatra international passenger trials to go live at seven airports from Nov 1",
+    "Morgan Stanley sees up to 40% upside in the stock after shares rise",
+    "Experts take a view on the stock rally after shares surge",
+])
+def test_lowercase_symbol_word_never_tags_a_stock(symbol_dictionaries, title):
+    assert _stock_keys(title, symbol_dictionaries) == []
+
+
+def test_bajel_headline_tags_only_bajel_not_take(symbol_dictionaries):
+    title = "Bajel Projects shares surge over 12% - What's behind the stock rally? Can it rise further? Experts take"
+    assert _stock_keys(title, symbol_dictionaries) == ["INTEST0305"]
+
+
+def test_all_caps_symbol_still_tags(symbol_dictionaries):
+    assert _stock_keys("TAKE Solutions wins a new contract", symbol_dictionaries) == ["INTEST0301"]
+    assert _stock_keys("Brokerages upgrade YATRA after strong bookings", symbol_dictionaries) == ["INTEST0304"]
