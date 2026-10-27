@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Calendar, Info } from "lucide-react";
 import { LineAreaChart } from "@/components/ui/charts";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,6 +40,8 @@ export interface WealthCardProps {
   onRetry: () => void;
   onImport: () => void;
   onInfo?: () => void;
+  // The previous period's series is still on screen while the new one loads: dim it and say so.
+  refreshing?: boolean;
 }
 
 export function WealthCard({
@@ -60,6 +62,7 @@ export function WealthCard({
   onRetry,
   onImport,
   onInfo,
+  refreshing = false,
 }: WealthCardProps) {
   const [calendarOpen, setCalendarOpen] = useState(false);
 
@@ -68,6 +71,20 @@ export function WealthCard({
       setCalendarOpen(false);
     }
   }, [period]);
+
+  // Escape closes the calendar popover and hands focus back to the button that opened it.
+  const chooseDatesRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!calendarOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setCalendarOpen(false);
+        chooseDatesRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [calendarOpen]);
 
   const captionText = wealthCaption(scope, memberName);
 
@@ -157,6 +174,7 @@ export function WealthCard({
             />
             <button
               type="button"
+              ref={chooseDatesRef}
               aria-label="Choose dates"
               onClick={() => setCalendarOpen(prev => !prev)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-card)] px-2.5 py-1 text-xs font-medium text-[var(--ui-text)] hover:bg-[var(--ui-bg-subtle)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ui-focus)]"
@@ -261,7 +279,10 @@ export function WealthCard({
   const noteText = notes.join(" ");
 
   return (
-    <div className="relative rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4 space-y-4">
+    <div
+      aria-busy={refreshing}
+      className={`relative rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4 space-y-4 transition-opacity ${refreshing ? "opacity-60" : ""}`}
+    >
       {/* Top row */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -312,7 +333,7 @@ export function WealthCard({
           hidden={hidden}
         />
         <span className="text-[var(--ui-text-muted)]">
-          {`Portfolio change ${periodLabel(period)}`}
+          {refreshing ? "Updating…" : `Portfolio change ${periodLabel(period)}`}
         </span>
       </div>
 
@@ -370,6 +391,7 @@ export function WealthCard({
         {period === "custom" ? (
           <button
             type="button"
+            ref={chooseDatesRef}
             aria-label="Choose dates"
             onClick={() => setCalendarOpen(prev => !prev)}
             className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-card)] px-2.5 py-1 text-xs font-medium text-[var(--ui-text)] hover:bg-[var(--ui-bg-subtle)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ui-focus)]"

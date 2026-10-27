@@ -14,6 +14,8 @@ export interface MoversProps {
   view: MoversView;
   onViewChange: (view: MoversView) => void;
   onRetry: () => void;
+  // The previous grouping is still on screen while the new one loads: dim it and mark it busy.
+  refreshing?: boolean;
   // Set by the greeting's top-mover link: open the popup of the row with this label once the fund rows are showing.
   openRequest?: { name: string; schemeId?: string | null; token: number } | null;
 }
@@ -26,6 +28,7 @@ export function Movers({
   view,
   onViewChange,
   onRetry,
+  refreshing = false,
   openRequest = null,
 }: MoversProps) {
   const [opened, setOpened] = useState<{
@@ -33,6 +36,18 @@ export function Movers({
     view: MoversView;
   } | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // Closing the popup would otherwise drop focus to the page body: hand it back to the row that opened it.
+  const closeDialog = () => {
+    const key = opened?.bar.key;
+    setOpened(null);
+    if (key == null) return;
+    const row = Array.from(sectionRef.current?.querySelectorAll<HTMLElement>('[data-testid^="mover-"]') ?? []).find(
+      el => el.getAttribute("data-testid") === `mover-${key}`,
+    );
+    row?.focus();
+  };
 
   useEffect(() => {
     if (opened && opened.view === view) {
@@ -132,7 +147,11 @@ export function Movers({
   const isDialogOpen = opened != null && opened.view === view;
 
   return (
-    <section className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
+    <section
+      ref={sectionRef}
+      aria-busy={refreshing}
+      className={`rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5 transition-opacity ${refreshing ? "opacity-60" : ""}`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-semibold text-[var(--ui-text)]">
@@ -291,7 +310,7 @@ export function Movers({
           onKeyDown={e => {
             if (e.key === "Escape") {
               e.stopPropagation();
-              setOpened(null);
+              closeDialog();
             }
           }}
           className="mt-4 rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-4 focus-visible:outline-none"
@@ -303,7 +322,7 @@ export function Movers({
             <button
               type="button"
               aria-label="Close"
-              onClick={() => setOpened(null)}
+              onClick={closeDialog}
               className="rounded p-1 text-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
             >
               <X size={16} aria-hidden="true" />

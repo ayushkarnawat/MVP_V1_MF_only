@@ -159,6 +159,7 @@ export function HomePage({ today }: { today?: string } = {}) {
           hidden={hidden}
           onToggleHidden={() => setHidden(value => !value)}
           onRetry={wealth.retry}
+          refreshing={wealth.refreshing}
           onImport={importForScope}
           onInfo={() => setMiraOpen(true)}
         />
@@ -193,6 +194,7 @@ export function HomePage({ today }: { today?: string } = {}) {
                 view={moversView}
                 onViewChange={setMoversView}
                 onRetry={movers.retry}
+                refreshing={movers.refreshing}
                 openRequest={topMoverRequest}
               />
             </div>

@@ -190,6 +190,16 @@ describe("WealthCard: the custom range", () => {
     expect(screen.getByRole("button", { name: "Previous month" })).toBeInTheDocument();
   });
 
+  it("closes the calendar on Escape and returns focus to Choose dates", () => {
+    setup({ period: "custom", customRange: { from: "2026-10-05", to: "2026-10-12" } });
+    const choose = screen.getByRole("button", { name: "Choose dates" });
+    fireEvent.click(choose);
+    expect(screen.getByRole("button", { name: "Previous month" })).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole("button", { name: "Previous month" }), { key: "Escape" });
+    expect(screen.queryByRole("button", { name: "Previous month" })).toBeNull();
+    expect(choose).toHaveFocus();
+  });
+
   it("keeps the calendar open after the first click and closes it when the range is complete", () => {
     const { handlers } = setup({ period: "custom", customRange: { from: "2026-10-05", to: null } });
     fireEvent.click(screen.getByRole("button", { name: "Choose dates" }));

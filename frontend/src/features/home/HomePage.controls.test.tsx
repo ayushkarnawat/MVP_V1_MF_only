@@ -258,6 +258,29 @@ describe("HomePage: movers grouping", () => {
     expect(button).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("marks the stale wealth card as updating, not as the new period's number, while the next period loads", async () => {
+    const api = mockHomeApi();
+    renderHome();
+    await ready();
+    api.set("wealth-series", PENDING);
+    fireEvent.click(screen.getByRole("radio", { name: "1W" }));
+    await waitFor(() => expect(api.callsFor("wealth-series")).toHaveLength(2));
+    const busy = screen.getByTestId("wealth-total").closest("[aria-busy]");
+    expect(busy).toHaveAttribute("aria-busy", "true");
+    expect(busy).toHaveTextContent("Updating");
+    expect(busy).not.toHaveTextContent(/Portfolio change/);
+  });
+
+  it("marks the stale movers card as updating while the next grouping loads", async () => {
+    const api = mockHomeApi();
+    renderHome();
+    await ready();
+    api.set("movers", PENDING);
+    fireEvent.click(within(screen.getByRole("group", { name: "Group by" })).getByRole("button", { name: "Fund" }));
+    await waitFor(() => expect(api.callsFor("movers")).toHaveLength(2));
+    expect(screen.getByTestId("movers-split").closest("section")).toHaveAttribute("aria-busy", "true");
+  });
+
   it("keeps the glance sentence on screen while the movers reload", async () => {
     const api = mockHomeApi();
     renderHome();

@@ -30,6 +30,18 @@ describe("ChangeBadge", () => {
     expect(badge().textContent).toBe("▲ +₹12");
   });
 
+  it("treats a change that rounds to zero rupees as neutral, not a green gain", () => {
+    render(<ChangeBadge amount="0.30" pct="0.0010" />);
+    expect(badge().textContent).toBe("– ₹0 (0.00%)");
+    expect(badge().getAttribute("data-direction")).toBe("flat");
+    expect(badge().className).not.toContain("pos-text");
+  });
+
+  it("treats a small loss that rounds to zero rupees as neutral too", () => {
+    render(<ChangeBadge amount="-0.40" pct={null} />);
+    expect(badge().getAttribute("data-direction")).toBe("flat");
+  });
+
   it("shows only a dash when there is no amount", () => {
     render(<ChangeBadge amount={null} pct={null} />);
     expect(badge().textContent).toBe("—");
