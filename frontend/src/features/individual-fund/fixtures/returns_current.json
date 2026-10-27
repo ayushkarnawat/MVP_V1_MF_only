@@ -1,0 +1,25 @@
+{
+  "status": "ready",
+  "mode": "current",
+  "columns": [
+    "1Y",
+    "3Y",
+    "5Y",
+    "since_first_investment"
+  ],
+  "rows": {
+    "holding_xirr": {
+      "1Y": "18.5300",
+      "3Y": null,
+      "5Y": null,
+      "since_first_investment": "18.5300"
+    },
+    "benchmark_same_flows": {
+      "1Y": "15.0000",
+      "3Y": null,
+      "5Y": null,
+      "since_first_investment": "15.0000"
+    }
+  },
+  "benchmark_reason": null
+}

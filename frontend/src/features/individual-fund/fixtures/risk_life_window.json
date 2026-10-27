@@ -1,0 +1,30 @@
+{
+  "status": "ready",
+  "scheme_id": "5e6f7a8b-1c2d-4e3f-9a0b-8c7d6e5f4a3b",
+  "window_start": "2025-03-20",
+  "window_end": "2026-10-23",
+  "points": 582,
+  "life_window": true,
+  "risk_free_rate": "0.065",
+  "volatility": {
+    "value": "11.4000",
+    "band": "Low",
+    "tone": "pos"
+  },
+  "max_drawdown": {
+    "value": "-9.1000",
+    "band": "Low",
+    "tone": "pos"
+  },
+  "sharpe": {
+    "value": "1.1500",
+    "band": "Good",
+    "tone": "pos"
+  },
+  "beta": {
+    "value": null,
+    "band": null,
+    "tone": null
+  },
+  "beta_reason": "insufficient_shared_dates"
+}

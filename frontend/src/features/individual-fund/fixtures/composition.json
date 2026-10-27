@@ -1,0 +1,116 @@
+{
+  "status": "ready",
+  "scheme_id": "7c9e5b0a-3f1d-4a52-8e6b-1d2f3a4b5c6d",
+  "holdings_as_of": "2026-09-30",
+  "age_tag": null,
+  "stock_count": 38,
+  "top10": [
+    {
+      "name": "HDFC Bank Ltd",
+      "isin": "INE040A01034",
+      "sector": "Financial Services",
+      "weight": "8.2100"
+    },
+    {
+      "name": "ICICI Bank Ltd",
+      "isin": "INE090A01021",
+      "sector": "Financial Services",
+      "weight": "6.9000"
+    },
+    {
+      "name": "Infosys Ltd",
+      "isin": "INE009A01021",
+      "sector": "Information Technology",
+      "weight": "5.4000"
+    },
+    {
+      "name": "Reliance Industries Ltd",
+      "isin": "INE002A01018",
+      "sector": "Energy",
+      "weight": "5.1000"
+    },
+    {
+      "name": "Larsen & Toubro Ltd",
+      "isin": "INE018A01030",
+      "sector": "Industrials",
+      "weight": "4.3000"
+    },
+    {
+      "name": "Bharti Airtel Ltd",
+      "isin": "INE397D01024",
+      "sector": "Telecom",
+      "weight": "3.9000"
+    },
+    {
+      "name": "Tata Consultancy Services Ltd",
+      "isin": "INE467B01029",
+      "sector": "Information Technology",
+      "weight": "3.6000"
+    },
+    {
+      "name": "ITC Ltd",
+      "isin": "INE154A01025",
+      "sector": "FMCG",
+      "weight": "3.2000"
+    },
+    {
+      "name": "Axis Bank Ltd",
+      "isin": "INE238A01034",
+      "sector": "Financial Services",
+      "weight": "2.9000"
+    },
+    {
+      "name": "Sun Pharmaceutical Industries Ltd",
+      "isin": "INE044A01036",
+      "sector": "Healthcare",
+      "weight": "2.6000"
+    }
+  ],
+  "allocation": {
+    "market_cap": [
+      {
+        "label": "Large",
+        "pct": "72.1000"
+      },
+      {
+        "label": "Mid",
+        "pct": "20.0000"
+      },
+      {
+        "label": "Small",
+        "pct": "7.9000"
+      }
+    ],
+    "sector": [
+      {
+        "label": "Financial Services",
+        "pct": "31.2000"
+      },
+      {
+        "label": "Information Technology",
+        "pct": "13.4000"
+      },
+      {
+        "label": "Energy",
+        "pct": "8.1000"
+      },
+      {
+        "label": "Others",
+        "pct": "47.3000"
+      }
+    ],
+    "asset_type": [
+      {
+        "key": "equity",
+        "label": "Equity",
+        "pct": "96.4000"
+      },
+      {
+        "key": "cash_equivalent",
+        "label": "Cash and equivalents",
+        "pct": "3.6000"
+      }
+    ]
+  },
+  "unclassified_pct": "3.6000"
+}

@@ -1,0 +1,34 @@
+{
+  "status": "ready",
+  "mode": "inception",
+  "columns": [
+    "1M",
+    "3M",
+    "6M",
+    "1Y",
+    "3Y",
+    "5Y",
+    "since_inception"
+  ],
+  "rows": {
+    "fund": {
+      "1M": "0.8000",
+      "3M": "2.4000",
+      "6M": "4.9000",
+      "1Y": "10.0000",
+      "3Y": "10.0000",
+      "5Y": null,
+      "since_inception": "10.0000"
+    },
+    "benchmark": {
+      "1M": "0.9000",
+      "3M": "2.9000",
+      "6M": "5.8000",
+      "1Y": "12.0000",
+      "3Y": "12.0000",
+      "5Y": null,
+      "since_inception": "12.0000"
+    }
+  },
+  "benchmark_reason": null
+}

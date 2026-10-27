@@ -1,0 +1,52 @@
+{
+  "status": "ready",
+  "scope": "b4a3e2f6-9c33-4b8d-9e5a-2c3d4e5f6a7b",
+  "held": false,
+  "held_by_other_members": [
+    {
+      "id": "b2e1c0d4-7a11-4f6b-9c3e-0a1b2c3d4e5f",
+      "name": "ASHA RAO"
+    },
+    {
+      "id": "b3f2d1e5-8b22-4a7c-8d4f-1b2c3d4e5f6a",
+      "name": "Dev Rao"
+    }
+  ],
+  "nav_as_of": "2026-10-23",
+  "nav_stale": false,
+  "has_history": true,
+  "scheme": {
+    "id": "7c9e5b0a-3f1d-4a52-8e6b-1d2f3a4b5c6d",
+    "name": "Alpha Flexi Cap Fund - Direct Plan",
+    "plan": "Direct",
+    "category": "Equity Scheme - Flexi Cap Fund",
+    "amc_name": "Alpha AMC"
+  },
+  "tiles": {
+    "current_value": null,
+    "share_of_portfolio_pct": null,
+    "invested": null,
+    "total_gain": null,
+    "total_gain_pct": null,
+    "xirr": null,
+    "expense_ratio": {
+      "value": "0.62",
+      "reference_period": "2026-09-01",
+      "plan": "Direct"
+    }
+  },
+  "details": {
+    "units": null,
+    "average_nav": null,
+    "current_nav": "15.0000",
+    "invested": null,
+    "current_value": null,
+    "gain": null,
+    "gain_pct": null,
+    "xirr": null,
+    "first_investment": null,
+    "last_investment": null,
+    "opening_lot": null,
+    "folios": []
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "status": "ready",
+  "period": "1Y",
+  "bucket": "month",
+  "buckets": [
+    {
+      "label": "Nov 2025",
+      "start": "2025-10-31",
+      "end": "2025-11-30",
+      "fund": "2.1000",
+      "benchmark": "1.8000",
+      "category": "1.9000"
+    },
+    {
+      "label": "Dec 2025",
+      "start": "2025-11-30",
+      "end": "2025-12-31",
+      "fund": "-0.6000",
+      "benchmark": "-0.2000",
+      "category": "-0.4000"
+    },
+    {
+      "label": "Jan 2026",
+      "start": "2025-12-31",
+      "end": "2026-01-31",
+      "fund": "1.4000",
+      "benchmark": "1.1000",
+      "category": "1.2000"
+    },
+    {
+      "label": "Feb 2026",
+      "start": "2026-01-31",
+      "end": "2026-02-28",
+      "fund": "0.9000",
+      "benchmark": null,
+      "category": "0.7000"
+    }
+  ]
+}

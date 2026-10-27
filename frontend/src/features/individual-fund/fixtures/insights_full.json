@@ -1,0 +1,173 @@
+{
+  "status": "ready",
+  "key": [
+    {
+      "id": "expense_ratio_vs_category",
+      "list": "key",
+      "tone": "pos",
+      "text": "Expense ratio is 0.62%, against a category average of 0.95%.",
+      "evidence": [
+        {
+          "label": "Expense ratio",
+          "value": "0.62%"
+        },
+        {
+          "label": "Category average",
+          "value": "0.95%"
+        }
+      ],
+      "priority": 40
+    },
+    {
+      "id": "top5_concentration",
+      "list": "key",
+      "tone": "info",
+      "text": "Top 5 holdings make up 30% of the fund.",
+      "evidence": [
+        {
+          "label": "Top 5",
+          "value": "30.0%"
+        },
+        {
+          "label": "Top 10",
+          "value": "46.0%"
+        },
+        {
+          "label": "As of",
+          "value": "2026-09-30"
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "id": "sector_concentration",
+      "list": "key",
+      "tone": "warn",
+      "text": "Financial Services is 31% of the fund.",
+      "evidence": [
+        {
+          "label": "Financial Services",
+          "value": "31.2%"
+        }
+      ],
+      "priority": 55
+    }
+  ],
+  "strengths": [
+    {
+      "id": "long_term_vs_category",
+      "list": "strength",
+      "tone": "pos",
+      "text": "Returned 14.2% a year over 3 years, against a category average of 13.0%.",
+      "evidence": [
+        {
+          "label": "3 years",
+          "value": "14.2% a year"
+        },
+        {
+          "label": "Category average",
+          "value": "13.0% a year"
+        }
+      ],
+      "priority": 10
+    },
+    {
+      "id": "manager_tenure",
+      "list": "strength",
+      "tone": "pos",
+      "text": "The lead manager has managed the fund since 2019, 7.6 years.",
+      "evidence": [
+        {
+          "label": "Managing since",
+          "value": "2019-03-01"
+        },
+        {
+          "label": "Tenure",
+          "value": "7.6 years"
+        }
+      ],
+      "priority": 30
+    }
+  ],
+  "considerations": [
+    {
+      "id": "overlap",
+      "list": "consideration",
+      "tone": "warn",
+      "text": "51% overlap with Beta Flexi Cap Fund in your portfolio.",
+      "evidence": [
+        {
+          "label": "Beta Flexi Cap Fund",
+          "value": "51%"
+        }
+      ],
+      "priority": 20
+    },
+    {
+      "id": "volatility_vs_category",
+      "list": "consideration",
+      "tone": "neg",
+      "text": "Volatility is above the category median.",
+      "evidence": [
+        {
+          "label": "This fund",
+          "value": "14.2%"
+        },
+        {
+          "label": "Category median",
+          "value": "14.0%"
+        }
+      ],
+      "priority": 60
+    }
+  ],
+  "top_three": [
+    {
+      "id": "long_term_vs_category",
+      "list": "strength",
+      "tone": "pos",
+      "text": "Returned 14.2% a year over 3 years, against a category average of 13.0%.",
+      "evidence": [
+        {
+          "label": "3 years",
+          "value": "14.2% a year"
+        },
+        {
+          "label": "Category average",
+          "value": "13.0% a year"
+        }
+      ],
+      "priority": 10
+    },
+    {
+      "id": "overlap",
+      "list": "consideration",
+      "tone": "warn",
+      "text": "51% overlap with Beta Flexi Cap Fund in your portfolio.",
+      "evidence": [
+        {
+          "label": "Beta Flexi Cap Fund",
+          "value": "51%"
+        }
+      ],
+      "priority": 20
+    },
+    {
+      "id": "manager_tenure",
+      "list": "strength",
+      "tone": "pos",
+      "text": "The lead manager has managed the fund since 2019, 7.6 years.",
+      "evidence": [
+        {
+          "label": "Managing since",
+          "value": "2019-03-01"
+        },
+        {
+          "label": "Tenure",
+          "value": "7.6 years"
+        }
+      ],
+      "priority": 30
+    }
+  ]
+}
