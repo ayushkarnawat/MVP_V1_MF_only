@@ -21,8 +21,9 @@ export interface HoldingsTableProps {
   sort: SortState | null;
   onSort: (next: SortState) => void;
   query: string;
-  onOpenFund: (schemeId: string) => void;
+  onOpenFund: (schemeId: string, memberId: string) => void;
   onAnalyse: () => void;
+  onCompareDistributors: () => void;
 }
 
 export function HoldingsTable({
@@ -33,6 +34,7 @@ export function HoldingsTable({
   query,
   onOpenFund,
   onAnalyse,
+  onCompareDistributors,
 }: HoldingsTableProps) {
   if (holdings.status === "loading") {
     return (
@@ -98,15 +100,26 @@ export function HoldingsTable({
         <h3 id="holdings-title" className="text-base font-semibold text-[var(--ui-text)]">
           Mutual Funds ({filteredRows.length})
         </h3>
-        <button
-          type="button"
-          data-clickable=""
-          data-effect="open"
-          onClick={onAnalyse}
-          className="inline-flex items-center justify-center rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] px-3 py-1.5 text-xs font-medium text-[var(--ui-text)] hover:bg-[var(--ui-row-hover)]"
-        >
-          Analyse with Mira
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            data-clickable=""
+            data-effect="open"
+            onClick={onCompareDistributors}
+            className="inline-flex items-center justify-center rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] px-3 py-1.5 text-xs font-medium text-[var(--ui-text)] hover:bg-[var(--ui-row-hover)]"
+          >
+            Compare Distributors
+          </button>
+          <button
+            type="button"
+            data-clickable=""
+            data-effect="open"
+            onClick={onAnalyse}
+            className="inline-flex items-center justify-center rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] px-3 py-1.5 text-xs font-medium text-[var(--ui-text)] hover:bg-[var(--ui-row-hover)]"
+          >
+            Analyse with Mira
+          </button>
+        </div>
       </div>
 
       {filteredRows.length === 0 ? (
@@ -157,10 +170,10 @@ export function HoldingsTable({
                     data-testid={`row-${row.scheme_id}:${row.household_member_id}`}
                     tabIndex={0}
                     data-clickable=""
-                    data-effect="navigate"
-                    onClick={() => onOpenFund(row.scheme_id)}
+                    data-effect="open"
+                    onClick={() => onOpenFund(row.scheme_id, row.household_member_id)}
                     onKeyDown={e => {
-                      if (e.key === "Enter") onOpenFund(row.scheme_id);
+                      if (e.key === "Enter") onOpenFund(row.scheme_id, row.household_member_id);
                     }}
                     className="cursor-pointer hover:bg-[var(--ui-row-hover)]"
                   >
@@ -178,10 +191,10 @@ export function HoldingsTable({
                             type="button"
                             title={row.scheme_name}
                             data-clickable=""
-                            data-effect="navigate"
+                            data-effect="open"
                             onClick={e => {
                               e.stopPropagation();
-                              onOpenFund(row.scheme_id);
+                              onOpenFund(row.scheme_id, row.household_member_id);
                             }}
                             className="text-left font-medium text-[var(--ui-text)] truncate max-w-xs hover:underline"
                           >
