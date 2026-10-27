@@ -219,6 +219,24 @@ def test_disabled_source_excluded_at_request_time(monkeypatch):
         runtime.close()
 
 
+def test_disabled_source_config_case_insensitive_at_request_time(monkeypatch):
+    runtime = build_news_fixture()
+    try:
+        seed_news_items(_db(runtime), [
+            {"source": "Moneycontrol", "title": "HDFC Bank shares rally after strong quarterly results",
+             "published_at": NOW_UTC - timedelta(hours=2)},
+            {"source": "Some Other Source", "title": "Gold prices hit a new all-time high amid global uncertainty",
+             "published_at": NOW_UTC - timedelta(hours=3)},
+        ], ingested_at=NOW_UTC - timedelta(hours=1))
+        monkeypatch.setattr(settings, "news_disabled_sources", " MoneyControl.COM ")
+        body = runtime.client.get("/household/aggregate/home/news").json()
+        sources = {item["source"] for item in body["items"]}
+        assert "Moneycontrol" not in sources
+        assert "Some Other Source" in sources
+    finally:
+        runtime.close()
+
+
 def test_news_routes_are_select_only(monkeypatch):
     import app.services.analytics.recompute as recompute
     import app.services.dashboard.snapshots as snapshots

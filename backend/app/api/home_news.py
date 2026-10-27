@@ -59,7 +59,7 @@ def _utc(value: datetime) -> datetime:
 
 
 def _disabled_source_names() -> set[str]:
-    domains = {d.strip() for d in settings.news_disabled_sources.split(",") if d.strip()}
+    domains = {d.strip().lower() for d in settings.news_disabled_sources.split(",") if d.strip()}
     return {SOURCE_DISPLAY_NAMES[d] for d in domains if d in SOURCE_DISPLAY_NAMES}
 
 

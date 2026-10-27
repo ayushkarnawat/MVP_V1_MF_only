@@ -44,7 +44,9 @@ _PAGE_TITLE_RE = re.compile(r"<PAGE_TITLE>(.*?)</PAGE_TITLE>", re.DOTALL)
 _PRECISE_TS_RE = re.compile(r"<PAGE_PRECISEPUBTIMESTAMP>(\d{14})</PAGE_PRECISEPUBTIMESTAMP>")
 # A trailing " - Moneycontrol"-style publisher suffix seen on several of the
 # allow-listed sites' <PAGE_TITLE> values; GDELT does not strip this itself.
-_PUBLISHER_SUFFIX_RE = re.compile(r"\s+-\s+[A-Za-z0-9.&' ]{2,40}$")
+# Only stripped when the tail names the article's own source (see _clean_title),
+# so a headline like "Gold surges - silver follows" keeps its tail.
+_PUBLISHER_SUFFIX_RE = re.compile(r"^(?P<head>.*\S)\s+-\s+(?P<tail>[A-Za-z0-9.&' ]{2,40})$")
 _PUNCT_RE = re.compile(r"[^0-9a-z ]+")
 
 _ENGLISH_ASCII_RATIO_MIN = 0.8
@@ -118,10 +120,16 @@ def _etimes_path_allowed(url: str) -> bool:
     return any(path.startswith(prefix) for prefix in ETIMES_ALLOWED_PATH_PREFIXES)
 
 
-def _clean_title(raw: str) -> str:
+def _clean_title(raw: str, domain: str = "") -> str:
     text = html.unescape(raw)
     text = re.sub(r"\s+", " ", text).strip()
-    text = _PUBLISHER_SUFFIX_RE.sub("", text).strip()
+    match = _PUBLISHER_SUFFIX_RE.match(text)
+    if match is not None and domain:
+        tail = match.group("tail").strip().lower()
+        names = {domain.lower(), _site_display_name(domain).lower()}
+        names |= {site for site in SOURCE_DISPLAY_NAMES if _label_boundary_match(domain, site)}
+        if tail in names:
+            text = match.group("head").strip()
     return text
 
 
@@ -188,7 +196,7 @@ def _classify_line(
     title_match = _PAGE_TITLE_RE.search(cols[26])
     if not title_match:
         return None, "malformed"
-    title = _clean_title(title_match.group(1))
+    title = _clean_title(title_match.group(1), domain)
     if not title:
         return None, "malformed"
     if not _is_english(cols[25], title):

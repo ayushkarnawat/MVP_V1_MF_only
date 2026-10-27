@@ -328,3 +328,29 @@ def test_network_error_three_times_counts_failed():
     assert stats.files_failed == 4
     assert stats.files_ok == 0
     assert stats.files_missing == 0
+
+
+def _line_with_title(domain: str, title: str) -> str:
+    return "\t".join(
+        ["rec", "20261023080000", "1", domain, f"https://www.{domain}/news/x.html"]
+        + [""] * 20
+        + ["", f"<PAGE_TITLE>{title}</PAGE_TITLE>"]
+    )
+
+
+def test_title_keeps_non_publisher_dash_tail():
+    article = parse_gkg_line(_line_with_title("moneycontrol.com", "Gold prices surge - silver follows"))
+    assert article is not None
+    assert article.title == "Gold prices surge - silver follows"
+
+
+def test_title_strips_publisher_suffix_case_insensitively():
+    article = parse_gkg_line(_line_with_title("moneycontrol.com", "Gold prices surge - MONEYCONTROL"))
+    assert article is not None
+    assert article.title == "Gold prices surge"
+
+
+def test_title_does_not_strip_other_publishers_suffix():
+    article = parse_gkg_line(_line_with_title("moneycontrol.com", "Gold prices surge - Reuters"))
+    assert article is not None
+    assert article.title == "Gold prices surge - Reuters"

@@ -49,7 +49,7 @@ def _peak_mb() -> float | None:
 
 
 def _disabled_sources() -> set[str]:
-    return {domain.strip() for domain in settings.news_disabled_sources.split(",") if domain.strip()}
+    return {domain.strip().lower() for domain in settings.news_disabled_sources.split(",") if domain.strip()}
 
 
 def _print_dry_run(articles, dictionaries: Dictionaries) -> None:

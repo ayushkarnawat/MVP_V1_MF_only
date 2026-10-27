@@ -158,3 +158,9 @@ def test_crontab_has_exactly_the_two_news_lines_and_avoids_the_windows():
             assert not in_batch_window, f"{line!r} falls inside the 05:40-06:35 batch window"
             assert (hour, minute) != (8, 0), f"{line!r} collides with delete-expired-accounts-daily"
             assert (hour, minute) != (19, 0), f"{line!r} collides with cas-file-expiry-daily"
+
+
+def test_disabled_sources_config_is_case_insensitive(monkeypatch):
+    job = _load_job("refresh_news")
+    monkeypatch.setattr(settings, "news_disabled_sources", " MoneyControl.COM , ,Reuters.com")
+    assert job._disabled_sources() == {"moneycontrol.com", "reuters.com"}
