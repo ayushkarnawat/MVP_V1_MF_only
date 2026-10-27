@@ -181,3 +181,34 @@ def test_arbitrage_as_cash_variant_moves_the_whole_fund_into_cash_like(db_sessio
     cash = {r.key: r for r in result.arbitrage_as_cash.classes}["cash_like"]
     assert [(f.scheme_id, f.value, f.percentage) for f in cash.funds] == [(scheme.id, Decimal("500"), Decimal("100"))]
     assert {r.key: r for r in result.arbitrage_as_cash.classes}["equity"].funds == []
+
+
+def _equity_funds(variant):
+    return next(row for row in variant.classes if row.key == "equity").funds
+
+
+def test_class_funds_share_ignores_negative_parts_and_lists_only_positive(db_session, monkeypatch):
+    a, b = [_scheme(db_session) for _ in range(2)]
+    _batch(db_session, a, [("Stock", "EQ", "60", AssetType.EQUITY_DOMESTIC)])
+    _batch(db_session, b, [("Short", "SH", "-10", AssetType.EQUITY_DOMESTIC)])
+    result = _compute(db_session, monkeypatch, [_holding(a, "1000"), _holding(b, "1000")])
+    funds = _equity_funds(result.as_disclosed)
+    # class total is 600-100=500; shares are over the positive parts only (600), so never above 100
+    assert [(f.scheme_id, f.value, f.percentage) for f in funds] == [(a.id, Decimal("600"), Decimal("100"))]
+
+
+def test_class_funds_share_with_zero_class_total_is_not_zero_percent(db_session, monkeypatch):
+    a, b = [_scheme(db_session) for _ in range(2)]
+    _batch(db_session, a, [("Stock", "EQ", "50", AssetType.EQUITY_DOMESTIC)])
+    _batch(db_session, b, [("Short", "SH", "-50", AssetType.EQUITY_DOMESTIC)])
+    result = _compute(db_session, monkeypatch, [_holding(a, "1000"), _holding(b, "1000")])
+    assert _values(result.as_disclosed)["equity"] == Decimal("0")
+    funds = _equity_funds(result.as_disclosed)
+    assert [(f.scheme_id, f.percentage) for f in funds] == [(a.id, Decimal("100"))]
+
+
+def test_class_funds_all_negative_class_lists_nothing_without_dividing_by_zero(db_session, monkeypatch):
+    a = _scheme(db_session)
+    _batch(db_session, a, [("Short", "SH", "-5", AssetType.EQUITY_DOMESTIC)])
+    result = _compute(db_session, monkeypatch, [_holding(a, "1000")])
+    assert _equity_funds(result.as_disclosed) == []

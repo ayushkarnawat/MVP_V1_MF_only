@@ -57,11 +57,14 @@ async def compute_asset_allocation(
         def pct(value):
             return value / scope.covered * 100 if scope.covered else ZERO
         def class_funds(key):
-            # Funds with nothing in the class are left out; the share is of the class total.
-            parts = sorted(((sid, part) for sid, part in by_fund[key].items() if part != 0),
+            # Only funds with a positive part are listed, and shares are over the sum of those
+            # positive parts: a negative line (e.g. a short/derivative-like row) would otherwise
+            # push a share above 100, below 0, or make it 0% when the class total nets to 0.
+            parts = sorted(((sid, part) for sid, part in by_fund[key].items() if part > 0),
                            key=lambda item: (-item[1], str(item[0])))
+            positive_total = sum((part for _, part in parts), ZERO)
             return [AssetAllocationClassFund(scheme_id=sid, scheme_name=scope.schemes[sid].name, value=part,
-                                             percentage=part / amounts[key] * 100 if amounts[key] else ZERO)
+                                             percentage=part / positive_total * 100)
                     for sid, part in parts]
         return AssetAllocationVariant(
             classes=[AssetAllocationClass(key=key, value=value, percentage=pct(value), funds=class_funds(key))
