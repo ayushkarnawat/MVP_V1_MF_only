@@ -51,7 +51,8 @@ Have these ready before section 0, so no step stalls halfway:
 | 12 | **CAL1 thresholds** | up |
 | 13 | **Planning script** | up |
 | 14 | **I2 timing measurements** on the 21.9M-row `nav_history` | up |
-| 15 | **News stock and sector calibration re-check** | up, later |
+| 15 | **News stock and sector calibration re-check** (L20, L21) | up |
+| 15b | **Priority 1: fund-manager factsheet access from this VM** | up |
 | 16 | `tests/test_migrations.py` hang check | laptop |
 | 17 | Smoke test | up |
 | 18 | Owner's manual checklist (items 1 to 5) | up |
@@ -69,7 +70,11 @@ git log -1 --format=%h origin/leapswitch-redesign
 git merge-base --is-ancestor 96dc4d92 origin/leapswitch-redesign && echo front-end-fixes-in
 git merge-base --is-ancestor 2f1ad702 origin/leapswitch-redesign && echo backend-fixes-in
 ```
-**Good looks like:** a short hash (send it to the orchestrator) and both `...-in` lines. Expected: CI is green on that hash (`gh run list --branch leapswitch-redesign --limit 3`).
+**Good looks like:** a short hash and both `...-in` lines. The tip is **`191bcc3b` or a later docs-only commit**: the code was last changed at `80179818`, and `191bcc3b` only edits this guide and the checklist. Prove no code moved since `80179818`:
+```bash
+git diff --stat 80179818 origin/leapswitch-redesign -- backend frontend deploy scripts
+```
+**Good looks like:** it prints nothing. If it prints files, someone merged code after the review: stop and tell the orchestrator. Expected: CI is green on the last code commit (`gh run list --branch leapswitch-redesign --limit 3`; a docs-only push may show no new run).
 
 On the VM:
 ```bash
@@ -110,7 +115,7 @@ sudo ./scripts/backup.sh
 ls -lt /var/backups 2>/dev/null | head -3
 sudo docker compose run --rm -T backend alembic current
 ```
-**Good looks like:** the backup script exits 0 (it logs to `/var/log/unifolio-backup.log` when run from cron; NEEDS CHECK the dump directory printed by `backup.sh` on your run and note it for rollback). `alembic current` ends with `0043 (head)` or, if an earlier redesign step already applied some, one of `0045`, `0044`. Expected: look for a revision at or before `0043`/`0045`/`0044`, not `0046`.
+**Good looks like:** the backup script exits 0 (it logs to `/var/log/unifolio-backup.log` when run from cron; NEEDS CHECK the dump directory printed by `backup.sh` on your run and note it for rollback). `alembic current` here is the **before** picture and must end with `0043 (head)` or, if an earlier redesign step already applied some of the new migrations, `0045` or `0044`. **`0046` at this point would be wrong**: it would mean the migrations were already applied, so stop and tell the orchestrator. `0046 (head)` is expected only **after** section 3, never in this section. Write the revision you see here in the run log; it is the starting point for rollback.
 
 Use `docker compose run`, not `exec`: `exec` targets the existing container, which may be stale.
 
@@ -122,7 +127,7 @@ Run the migration **before** the new code. The three migrations are additive, an
 sudo docker compose run --rm -T backend alembic upgrade head
 sudo docker compose run --rm -T backend alembic current
 ```
-**Good looks like:** one `Running upgrade ...` line per migration applied (`0043 -> 0045`, `0045 -> 0044`, `0044 -> 0046` if starting from 0043), no traceback, and `alembic current` prints:
+**Good looks like:** (this is where `0046 (head)` first appears; section 2 printed the old revision) one `Running upgrade ...` line per migration applied (`0043 -> 0045`, `0045 -> 0044`, `0044 -> 0046` if starting from 0043), no traceback, and `alembic current` prints:
 ```
 0046 (head)
 ```
@@ -322,11 +327,51 @@ Add `--simulate-fresh-cache` to the Home and fund-page scripts to measure the pa
 
 **Good looks like:** Home within 1.5 s, month detail median within 1.0 s, benchmark windows below 3000 ms, plus the full analytics recompute within 15 minutes (section 9). NEEDS CHECK: the fund-page tiers have no stated limits. Planning is section 13.
 
+**L10 and L11 are measured here, not later.** L10 (Home headline and series can mix two price dates for up to 15 minutes after the 06:00 NAV job) and L11 (every Home route runs the full inputs loader, so Home may be slower than it needs to be). Record these next to the Home timing so the owner can decide on each:
+```bash
+# L11: the Home timing table above, per route (record the slowest route and its time)
+# L10: latest price date stored, to compare with the date the Home series ends on
+sudo docker compose exec -T postgres psql -U "$DB_USERNAME" "$DB_NAME" -c "select max(nav_date) from nav_history"
+```
+Then, as the owner, open Home for the test household and note the date on the headline and the last point of the series. **Good looks like:** both dates equal the `max(nav_date)` above; a one-day gap is the L10 mixed-date case (report it; the fix is to build the series' last point from the holdings' price date). NEEDS CHECK: `measure_home_staging.py` may print the series end date itself; if it does, paste that line instead of the browser read.
+
 **If a gate is missed:** the register's L6 (benchmark windows), L8 (cold holdings), L10, L11 name the suspects and the order of fixes. Report the numbers; Backend fixes.
 
-## Section 15: News stock and sector calibration re-check
+## Section 15: News stock and sector calibration re-check (L20, L21)
 
-Do this once real portfolio disclosures exist (after `portfolio-disclosures-daily`, which runs on days 1 to 20 of the month, has loaded data). Re-run section 6c and read the `stock` and `sector` samples. The labelled set (150 headlines) measured precision 0.991 and recall 0.975 overall at the News backend merge (register C144); the M2 symbol-alias fix run on the same set gave tp 159, fp 3, fn 4, i.e. precision 0.9815 and recall 0.9755 (register C171), so compare your re-check with both; **sector precision and recall were never measured** (L15) and the sector tagger has known false positives (L20). Send the orchestrator a short table of wrong tags. **Good looks like:** stock tags name the right company; sector tags are not "X stocks of Y" noun phrases. Tuning is Backend's, after the owner decides.
+Run it now with whatever disclosures are loaded, and again when `portfolio-disclosures-daily` (days 1 to 20 of the month) has loaded more. Do not skip it because disclosures are few: check first how many there are.
+```bash
+sudo docker compose exec -T postgres psql -U "$DB_USERNAME" "$DB_NAME" -c "select count(*) from stock_master where nse_symbol is not null" -c "select count(*) from news_items"
+sudo docker compose run --rm -T backend python scripts/review_news_matches.py --samples 40 > /root/news-review-$(date +%F).txt; grep -c . /root/news-review-$(date +%F).txt
+```
+Also check **L21** here: the `PLAIN_WORD_SYMBOLS` words (`idea`, `sail`, `page`, `time`, in `backend/app/services/news/config.py`) are tagged only with stock-market context. Look in the `stock` samples for headlines tagged only because of one of those words. **Good looks like:** each such tag has real stock-market context in the headline. Re-run section 6c and read the `stock` and `sector` samples. The labelled set (150 headlines) measured precision 0.991 and recall 0.975 overall at the News backend merge (register C144); the M2 symbol-alias fix run on the same set gave tp 159, fp 3, fn 4, i.e. precision 0.9815 and recall 0.9755 (register C171), so compare your re-check with both; **sector precision and recall were never measured** (L15) and the sector tagger has known false positives (L20). Send the orchestrator a short table of wrong tags. **Good looks like:** stock tags name the right company; sector tags are not "X stocks of Y" noun phrases. Tuning is Backend's, after the owner decides.
+
+## Section 15b: Priority 1, fund-manager factsheet access (CLAUDE.md, deadline 10 Nov 2026)
+
+`DEFERRED_FEATURES.md`, top section: 10 fund houses (689 live funds) are on the monthly hand import because their sites refuse scripted requests from AWS, and 5 (33 funds) publish no usable factsheet. The VM's Indian address may be treated differently, so this section turns that open question into evidence. It changes no setting. The monthly job's next run is **10 Nov 2026, 06:00 IST** (it is already in the crontab). Items 1, 2 and 4 are commands; 3 and 5 are the owner's.
+
+**1. Run the monthly job once, now, from the VM** (the 40 automatic fund houses; it is idempotent and writes only `scheme_fund_managers`):
+```bash
+sudo ./scripts/run-job.sh fund-managers-monthly scripts/jobs/refresh_fund_managers_monthly.py 2>&1 | tee /root/fund-managers-$(date +%F).log | grep -E "refresh_fund_managers_monthly|FUND_MANAGER_ALERT"
+```
+**Good looks like:** `refresh_fund_managers_monthly: success=True amcs_processed=40 amcs_failed=0 ...`. Every `FUND_MANAGER_ALERT amc=... reason=fetch_failed` line names a fund house the VM could not reach: paste all of them. The owner decides each one (move to the hand import by setting `ResolverKind.MANUAL` plus a `note`, or accept "not available yet"). If the command runs for more than 30 minutes, stop and report.
+
+**2. Probe the blocked fund houses from the VM's address** (read-only; these five URLs are the ones named in the registry notes, the other five have no stable URL in the registry):
+```bash
+for u in http://hdfcfund.com/downloads/monthly-fact-sheet https://bandhanmutual.com/downloads/factsheets "https://invescomutualfund.com/literature-and-form?tab=Factsheets" https://www.jmfinancialmf.com/downloads/Factsheet/Factsheet https://www.kotakmf.com/Information/forms-and-downloads/Information; do printf "%s  " "$u"; curl -s -o /dev/null -m 20 -w "%{http_code}\n" "$u"; done
+```
+Plain `curl`, no header tricks: the A04 rule is no access-control workarounds. **Good looks like:** record each code. The registry notes say 403, 401, 403, 406 and a 200 with no links, so a `200` for the first four would be new evidence worth acting on (on 2026-10-16 Bandhan, JM Financial, Axis and Kotak answered from this address and ICICI and HDFC did not). Record for the owner; do not change the registry here.
+
+**3. Owner: the HDFC passive file.** Download HDFC's passive factsheet and send it to Claude to verify the reader (the active file already matched 53 of 53). Until then HDFC's hand import is only trusted for the active file.
+
+**4. The ops-alerts subscriptions** (AWS side, run from a machine where `aws` is configured):
+```bash
+TOPIC=$(aws sns list-topics --query "Topics[?contains(TopicArn,'ops-alerts')].TopicArn" --output text)
+aws sns list-subscriptions-by-topic --topic-arn "$TOPIC" --query "Subscriptions[].{email:Endpoint,arn:SubscriptionArn}"
+```
+**Good looks like:** each email has a real `arn:aws:sns:...` value. `PendingConfirmation` means nobody receives those alerts: the address owner clicks "Confirm subscription" in the AWS email. These are the AWS staging alerts; failures on the VM email `OPS_ALERT_EMAIL` through `run-job.sh`, so also confirm it is set on the VM (`grep -c "^OPS_ALERT_EMAIL=" .env` prints `1`).
+
+**5. Owner decisions, now or before 10 Nov:** (a) the missed-month alert (nothing warns if a hand-import month is skipped), (b) whether to build the admin upload screen, (c) whether to ask the five largest blocked fund houses for official access or get a data-vendor quote. They are tracked in `DEFERRED_FEATURES.md`. Nothing here blocks the staging sign-off, but write the date each is decided in the run log.
 
 ## Section 16: `tests/test_migrations.py` hang check
 
@@ -351,7 +396,7 @@ The owner signs up and clicks; the manager watches the logs: `sudo docker compos
 1. **Profile T8 manual check** on a synthetic household from `Docs/CAS Files/synthetic/pdfs/realistic/` (password `MF@123`): all seven pages and four Settings children in light and dark; deep link and refresh on `/profile/family`; masked PAN everywhere and no full PAN in any network response; edit goals and investor type and see them persist; Add statement for a member opens import for that person and Back returns to Family; Delete member on a throwaway non-self member (the self card has no such button); contact-change dialog **up to the code step only**; **delete-account dialog up to the confirm step only, do not confirm**; Import History deletes nothing except throwaway data; the dev Import health link only with dev tools on; `ProfileNudge` warning colours in dark mode.
 2. **Visual parity per page** against the mockups, light and dark, at 1280 and 1024 wide.
 3. **The new Mutual Funds items:** units/NAV/folio ledger row; missed-SIP tooltip; asset-class drill; Overlap "What drives the overlap" section and the inclusive pairs list; the legacy parts: Compare Distributors button, no Export button, sold funds, coverage-gap banner, opening-balance dialog, post-import notice.
-4. **Home news weights and the greeting link.**
+4. **Home news weights and the greeting link, and the L13 decision.** L13: a fund redeemed on the latest price date still counts in that day's change on Home (the sector view puts its amount in Other), unlike the old Dashboard's held-only gain. On a household that sold a fund on the latest price date, look at the Home day change and decide **keep** (consistent with the 1-day series) or **exclude**. Write the decision in the notes of checklist row C23 and in the register.
 5. **Individual Fund links must be greyed** (the routes are placeholders).
 
 The same items appear, with expected results, in groups C and D of the QA checklist.

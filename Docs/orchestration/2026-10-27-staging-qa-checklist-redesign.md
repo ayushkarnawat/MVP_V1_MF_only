@@ -4,6 +4,8 @@
 
 **Environment:** redesign link `https://ls-redesign.unifolio.in` (same API, database, worker and cron as `https://ls-staging.unifolio.in`). VM commands run in `/opt/unifolio-redesign/deploy/leapswitch` as root or with `sudo`. Branch under test: `leapswitch-redesign` (never `main`, never `feat/leapswitch-staging`). Synthetic statements: `Docs/CAS Files/synthetic/pdfs/realistic/`, password `MF@123`.
 
+**Commit under test:** `191bcc3b` or a later docs-only commit (code unchanged since `80179818`; the guide's section 0 proves it with one `git diff --stat`).
+
 **Needs ready before you start (see the guide, "Before you start"):** the Healthchecks.io ping URL for the News job, a test household's user UUID (rows B13 to B17), and 5 GB or more of free disk on the VM.
 
 **Date / tester / commit under test (`git log -1 --format=%h`):** ______ / ______ / ______
@@ -39,7 +41,7 @@
 | B3 | News live run, 5 hours | Same command with `--hours 5` | Exit 0; `inserted` small or 0 (duplicates are fine); heartbeat ping arrives | | | As B2 |
 | B4 | New ingest counters sane | Read the stats line of B2: `skipped_bad_url` | Expected: the counter appears in the stats and is small compared with `kept`. Fetches are https only and article URLs must be on the source domain (M2 fix) | | | A large `skipped_bad_url` means many sources rejected. Backend decides whether the check is too strict |
 | B5 | Match review (section 6) | `docker compose run --rm -T backend python scripts/review_news_matches.py` | Prints `news_items total=N`, published_at and ingested_at ranges, rows per tier (tiers 1 to 7), rows per tag kind, rows per source, 20 sample headlines per tag kind. Expected: look for sample headlines that really match their tag. Tier 8 must never appear | | | Wrong-looking tags are a tagger issue: log them, Backend. Known: L20 (see F5) |
-| B6 | News stock and sector calibration re-check (section 15) | Once real portfolio disclosures exist (`portfolio-disclosures-daily` runs on days 1 to 20 of the month; wait until it has loaded data), re-read the B5 samples for kinds `stock` and `sector`; compare against the labelled set result (150 headlines: precision 0.991, recall 0.975 at the News merge, register C144; precision 0.9815, recall 0.9755 after the M2 alias fix, register C171). Sector precision and recall were never measured (L15) | Expected: stock tags name the right company; sector tags are not the "X stocks of Y" false positives (L20). Send the owner a short table | | | Systematic false tags: Backend adds headlines to `labelled_headlines.json` and tunes. Owner decides to keep or change |
+| B6 | News stock and sector calibration re-check (section 15) | Run now with whatever disclosures are loaded, and again after `portfolio-disclosures-daily` (days 1 to 20 of the month) has loaded more (guide section 15; also checks L21's plain-word symbols); re-read the B5 samples for kinds `stock` and `sector`; compare against the labelled set result (150 headlines: precision 0.991, recall 0.975 at the News merge, register C144; precision 0.9815, recall 0.9755 after the M2 alias fix, register C171). Sector precision and recall were never measured (L15) | Expected: stock tags name the right company; sector tags are not the "X stocks of Y" false positives (L20). Send the owner a short table | | | Systematic false tags: Backend adds headlines to `labelled_headlines.json` and tunes. Owner decides to keep or change |
 | B7 | NSE symbol fill (section 7) | `sudo ./scripts/run-job.sh nse-symbol-fill scripts/jobs/fill_nse_symbols.py` | Exit 0 and `fill_nse_symbols: success=True updated=<n> already_set=<m> unmatched=<k>`. A second run shows `updated=0` (idempotent). Download is capped at 20 MB | | | `success=False` = NSE refused the VM's address or timed out (job still exits 0 by design). Ops retries; if blocked, tell the owner, the tagger falls back to name and ISIN matching |
 | B8 | Recompute jobs: benchmark windows (section 9) | Run the `benchmark-daily` job and the analytics recompute (guide section 9), then open Mutual Funds, Performance for a synthetic household | Benchmark window rows (the 8 TRI indices incl. Nifty Next 50, Smallcap 250, Nifty 100, Nifty 200 added by 0045) show values, not blanks | | | Blank windows: the index history did not load (Ops reruns the job) or a computation bug (Backend) |
 | B9 | Recompute jobs: analytics | `time ./scripts/run-job.sh analytics-recompute-all scripts/run_analytics_recompute.py --all` | Exit 0; total time under the 15-minute stale ceiling (`measure_benchmark_matrix.py` docstring asks for this comparison) | | | Over 15 minutes: Backend (L6 in the register is the suspect) |
@@ -52,6 +54,9 @@
 | B16 | I2 timing (section 14): fund page tiers | `docker compose run --rm -T backend python scripts/measure_fund_page_staging.py --user-id <UUID> --schemes 4 --runs 3` | Record tier 1, 2 and 3 times. NEEDS CHECK: no per-tier limit is stated in the sources I read (the Individual Fund page is deferred, so this is for the record) | | | Informational |
 | B17 | Planning script (section 13) | `docker compose run --rm -T backend python scripts/measure_planning_staging.py --user-id <UUID> --runs 3` (checkout must be `leapswitch-redesign`) | Exit 0; a cold and warm timing per scope (family, then each member); counts only, no names or amounts. NEEDS CHECK: no numeric limit is stated in the sources I read | | | An abort message about a write means a code path writes on a read route: Backend, urgent |
 | B18 | Timings record | Paste B2, B13 to B17 numbers to the orchestrator | All recorded | | | |
+| B19 | L10 and L11 measured (guide section 14) | Home timing table per route (L11), then `select max(nav_date) from nav_history` via `docker compose exec -T postgres psql -U "$DB_USERNAME" "$DB_NAME"`, and the date on the Home headline and the last point of the Home series (L10) | Both dates equal `max(nav_date)`; slowest Home route recorded. A one-day gap is the L10 mixed-date case | | | L10 gap: Backend builds the series' last point from the holdings' price date. L11 slow: Backend builds an envelope-only loader. Owner decides on each |
+| B20 | Priority 1: factsheet job from the VM (guide section 15b, item 1) | `sudo ./scripts/run-job.sh fund-managers-monthly scripts/jobs/refresh_fund_managers_monthly.py` and grep `FUND_MANAGER_ALERT` | `success=True amcs_processed=40 amcs_failed=0`; every `FUND_MANAGER_ALERT ... fetch_failed` line pasted | | | A blocked fund house: Owner decides (hand import or accept "not available yet"), Backend changes the registry |
+| B21 | Priority 1: blocked-house probe and alert subscriptions (guide section 15b, items 2 and 4) | The five `curl` status codes from the VM; the `aws sns list-subscriptions-by-topic` output; `grep -c "^OPS_ALERT_EMAIL=" .env` | Codes recorded; every subscription has a real ARN (not `PendingConfirmation`); the count is `1` | | | A pending subscription: the address owner confirms. Deadline for the decisions in item 5 is 10 Nov 2026 |
 
 ## Group C: Every page, light and dark, 1280 and 1024 wide
 
@@ -121,6 +126,7 @@ For each row open the page at 1280 px wide, then 1024; in light, then dark. A ro
 | Id | What | Status |
 |---|---|---|
 | L12 | Flaky `DashboardView` XIRR popup test | CI only; passes on rerun; open |
+| L10, L11 | Home headline and series may mix two price dates for up to 15 minutes after the 06:00 job; Home runs the full inputs loader on every route | Measured at B19; owner decides on a fix |
 | L13 | A fund redeemed on the latest price date still counts in that day's change on Home | Owner decides at Home parity (row C23) |
 | L20 | News tagger fires a sector on "X stocks of Y" phrases (for example "Hospital stocks of oxygen cylinders") | Needs context logic; open |
 | L21 | `PLAIN_WORD_SYMBOLS` (news tagger) is a hand-picked list (`idea`, `sail`, `page`, `time`) | Open; not a defect unless a new plain-word ticker mis-tags |
@@ -137,13 +143,13 @@ For each row open the page at 1280 px wide, then 1024; in light, then dark. A ro
 | Group | Rows | Passed | Failed | Owner-accepted Low (row ids) |
 |---|---|---|---|---|
 | A Deploy health | A1 to A11 | | | |
-| B Data and jobs | B1 to B18 | | | |
+| B Data and jobs | B1 to B21 | | | |
 | C Every page | C1 to C24 | | | |
 | D Security and privacy | D1 to D7 | | | |
 | E Regression | E1 to E7 | | | |
 | F Rollback and known issues | F1 to F3 | | | |
 
-**Timings recorded (B2, B13 to B17):** ________________________
+**Timings recorded (B2, B13 to B17, B19):** ________________________
 
 **Decision for the next stage (the owner names it):**  GO  /  NO-GO  (circle one)
 

@@ -777,3 +777,14 @@ From the planning round for the redesigned desktop Home (mutual funds only). Ful
 - **BD15.** News ships in the same release and is **live from day one** with the disclaimer (owner, H24 and N5); the `news_enabled` kill switch remains; counsel review was recommended and is not a gate _Why:_ owner choice. _Alternative:_ switched off until reviewed.
 - **BD16.** Links to unbuilt pages stay greyed out with a tooltip (L32 stands; owner, M17) _Why:_ owner chose B on M17. _Alternative:_ clickable "coming soon" note.
 - **BD17.** (owner, P9 A, 2026-10-23: not now, logged as a known gap in `DEFERRED_FEATURES.md`) the Dashboard has the same slow cold open; fixing the price-freshness rule in `nav.py` is a separate change, logged as a known gap rather than part of Home.
+
+
+## 2026-10-27 — Profile redesign backend decisions (PD1 to PD9)
+
+Moved here from `Docs/orchestration/2026-10-23-profile-backend-decisions-proposal.md` on the owner's go (27 Oct 2026, staging-run session). Full reasoning and the owner answers behind each: that proposal, `2026-10-23-profile-functionality-backend-spec.md`, `2026-10-23-profile-architecture.md`. The Profile redesign is built and merged into `leapswitch-redesign` (PR #26, PR #27; register rows C168, C169).
+
+- **PD1, PD2, PD3, PD4, PD7.** Withdrawn (L49): there is no `GET /household-members/{id}/pan` endpoint or other PAN-reveal route; the PAN is always masked in every response and on every screen _Why:_ owner instruction of 23 Oct. ADR-004 (encrypted PAN per household member) is unaffected and no conflict remains. _Alternative:_ a reveal endpoint with re-authentication, rejected.
+- **PD5.** `GET /auth/me` gains `created_at`, used for "Member since" in the Profile header (Q2, decided) _Why:_ no new table or call. _Alternative:_ none.
+- **PD6.** No schema change, no migration and no new job for the Profile release _Why:_ L31 removed the only option that needed new columns. _Alternative:_ none.
+- **PD8.** No backend change for editing goals and investor type: the existing `PATCH /auth/me` is used (L43), the same call onboarding uses _Why:_ reuse; behaviour for an empty goals list was to be verified (spec item 7). _Alternative:_ a Profile-specific endpoint.
+- **PD9.** The old Profile screen is deleted after the new one is accepted (L42); reused components stay _Why:_ Approach 3B kept it reachable only as a fallback until then. _Alternative:_ keep it indefinitely. **Executed on the owner's go: PR #27 (`24e84d81`, 27 Oct 2026), register row C169.** Kept: `PendingDeletionScreen`, `TermsSection`, `LogoutConfirmDialog`, `DeletePortfolioDialog`, `DeleteImportDialog`, `ImportHistorySection`, `historyGroups`, the Import health route and its dev link.
