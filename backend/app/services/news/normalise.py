@@ -25,6 +25,7 @@ from app.models.reference import Scheme, SchemeHolding, StockMaster
 from app.services.news.ingest import RawArticle
 from app.services.news.config import (
     AMBIGUITY_CONTEXT_WORDS,
+    PLAIN_WORD_SYMBOLS,
     AMBIGUOUS_ALIASES,
     CATEGORY_ALIASES,
     CATEGORY_LABELS,
@@ -156,6 +157,7 @@ _FUND_CONTEXT_WORDS_NORM = tuple(normalise_title(w) for w in FUND_CONTEXT_WORDS)
 _AMBIGUOUS_ALIASES_NORM: dict[str, tuple[str, ...]] = {
     normalise_title(k): tuple(normalise_title(w) for w in v) for k, v in AMBIGUOUS_ALIASES.items()
 }
+_PLAIN_WORD_SYMBOLS_NORM = frozenset(normalise_title(w) for w in PLAIN_WORD_SYMBOLS)
 _AMBIGUITY_CONTEXT_NORM = frozenset(normalise_title(w) for w in AMBIGUITY_CONTEXT_WORDS)
 
 
@@ -264,7 +266,13 @@ def load_dictionaries(db: Session) -> Dictionaries:
             stocks.setdefault(alias, (isin, display))
         if nse_symbol:
             symbol_alias = normalise_title(nse_symbol)
-            if symbol_alias and symbol_alias not in GROUP_NAMES_NOT_STOCKS:
+            if (
+                symbol_alias
+                and symbol_alias not in GROUP_NAMES_NOT_STOCKS
+                # Same length rule as name aliases: a 3-letter plain-word
+                # symbol (OIL, BSE, SUN) would tag any headline using the word.
+                and (len(symbol_alias) >= 4 or symbol_alias in SHORT_ALIAS_ALLOW)
+            ):
                 stocks.setdefault(symbol_alias, (isin, display))
 
     fund_houses: dict[str, str] = {}
@@ -307,8 +315,8 @@ def tag_title(title: str, dictionaries: Dictionaries) -> list[EntityTag]:
     for alias in _candidates(stock_index, words):
         if not _contains_word(normalised, alias):
             continue
-        if alias in _AMBIGUOUS_ALIASES_NORM:
-            context = _AMBIGUITY_CONTEXT_NORM | set(_AMBIGUOUS_ALIASES_NORM[alias])
+        if alias in _AMBIGUOUS_ALIASES_NORM or alias in _PLAIN_WORD_SYMBOLS_NORM:
+            context = _AMBIGUITY_CONTEXT_NORM | set(_AMBIGUOUS_ALIASES_NORM.get(alias, ()))
             if not any(_contains_word(normalised, word) for word in context):
                 continue
         isin, label = dictionaries.stocks[alias]
