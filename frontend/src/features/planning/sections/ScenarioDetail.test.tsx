@@ -177,7 +177,7 @@ describe("ScenarioDetail: multi-phase result", () => {
     const list = screen.getByRole("list", { name: "Phases" });
     const items = within(list).getAllByRole("listitem");
     expect(items.map(item => item.getAttribute("data-testid"))).toEqual(["phase-1", "phase-2"]);
-    expect(items[0]).toHaveTextContent("Fall");
+    expect(items[0]).toHaveTextContent("Phase 1");
     expect(items[0]).toHaveTextContent("3 November 2025 – 28 November 2025");
     expect(screen.getByTestId("phase-pct-1")).toHaveTextContent("−4.3%");
     expect(screen.getByTestId("phase-pct-1")).toHaveClass("text-[var(--neg-text)]");

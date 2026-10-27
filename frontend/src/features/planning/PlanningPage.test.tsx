@@ -8,8 +8,8 @@ import { DEV_ID, curatedList, memberDevResult, noHoldingsResult, standardResult 
 
 vi.mock("./api", () => ({ listScenarios: vi.fn(), getScenarioResult: vi.fn() }));
 
-const A = "11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const B = "22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const A = "44eed64c-8dde-52f4-98d7-344b76762d11";
+const B = "30891762-ed34-5787-b5f1-2e9281cc5371";
 const openImport = vi.fn();
 
 const mount = () => renderInShell(<PlanningPage />, { path: "/planning", openImport });

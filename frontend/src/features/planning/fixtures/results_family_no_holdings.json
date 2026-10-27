@@ -1,6 +1,6 @@
 {
   "scenario": {
-    "scenario_id": "11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "scenario_id": "44eed64c-8dde-52f4-98d7-344b76762d11",
     "name": "Fixture scenario A",
     "description": "Fixture description for scenario a.",
     "scenario_type": "CRASH",

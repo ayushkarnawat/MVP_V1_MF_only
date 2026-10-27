@@ -1,6 +1,6 @@
 [
   {
-    "scenario_id": "11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "scenario_id": "44eed64c-8dde-52f4-98d7-344b76762d11",
     "name": "Fixture scenario A",
     "description": "Fixture description for scenario a.",
     "scenario_type": "CRASH",
@@ -17,7 +17,7 @@
     "quick_weight_quarter": null
   },
   {
-    "scenario_id": "22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    "scenario_id": "30891762-ed34-5787-b5f1-2e9281cc5371",
     "name": "Fixture scenario B",
     "description": "Fixture description for scenario b.",
     "scenario_type": "CRASH",
@@ -34,7 +34,7 @@
     "quick_weight_quarter": null
   },
   {
-    "scenario_id": "33333333-cccc-4ccc-8ccc-cccccccccccc",
+    "scenario_id": "92f086e9-1293-521d-bab9-d5420d1dee7d",
     "name": "Fixture scenario C",
     "description": "Fixture description for scenario c.",
     "scenario_type": "CRASH",
@@ -53,10 +53,10 @@
     "quick_weight_quarter": null
   },
   {
-    "scenario_id": "44444444-dddd-4ddd-8ddd-dddddddddddd",
+    "scenario_id": "538a4989-f397-5e91-b356-967f9695644e",
     "name": "Fixture scenario D",
     "description": "Fixture description for scenario d.",
-    "scenario_type": "BULL_RUN",
+    "scenario_type": "CRASH",
     "start_date": "2005-01-03",
     "end_date": "2005-06-30",
     "is_ongoing": false,
@@ -70,10 +70,10 @@
     "quick_weight_quarter": null
   },
   {
-    "scenario_id": "55555555-eeee-4eee-8eee-eeeeeeeeeeee",
+    "scenario_id": "2bfb792c-aea0-5ebc-8d35-aedcbece692c",
     "name": "Fixture scenario E",
     "description": "",
-    "scenario_type": "POLICY_RATE",
+    "scenario_type": "CRASH",
     "start_date": "2025-11-03",
     "end_date": "2025-12-31",
     "is_ongoing": false,
@@ -81,7 +81,7 @@
     "parent_scenario_id": null,
     "has_phases": false,
     "had_redemption_freeze_schemes": null,
-    "quick_market_pct": "-1.20",
+    "quick_market_pct": null,
     "quick_equity_pct": null,
     "quick_debt_pct": null,
     "quick_weight_quarter": null

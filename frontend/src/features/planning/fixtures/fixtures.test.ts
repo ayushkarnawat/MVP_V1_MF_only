@@ -5,7 +5,7 @@ import type { ScenarioResult, ScenarioSummary } from "../types";
 import { FIXTURE_NAMES, FIXTURE_STATUS, fixture } from "./index";
 
 // The contract guard: it checks every file against Appendix A of the Planning backend handoff.
-// When the real backend fixtures replace the spec ones, this test must still pass.
+// The files are the backend golden fixtures (backend/tests/fixtures/planning/); this test must keep passing on them.
 const RESULT_NAMES = FIXTURE_NAMES.filter(name => name.startsWith("results_"));
 const RESULT_KEYS = [
   "scenario", "portfolio_impact_pct", "rupee_impact", "covered_value", "total_value", "no_data_funds", "benchmarks",
@@ -20,12 +20,12 @@ const MEMBER_FUND_KEYS = ["scheme_id", "scheme_name", "rupee_impact", "is_proxie
 const isMoney = (value: unknown) => value === null || (typeof value === "string" && /^-?\d+(\.\d+)?$/.test(value));
 
 describe("Planning fixtures", () => {
-  it("has the seven files the backend generates, and says they are spec fixtures", () => {
+  it("has the seven files the backend generates, and says they are the backend golden files", () => {
     expect(FIXTURE_NAMES).toEqual([
       "results_family_freeze", "results_family_multi_phase", "results_family_no_fund_data",
       "results_family_no_holdings", "results_family_standard", "results_member_dev", "scenarios_list_curated",
     ]);
-    expect(FIXTURE_STATUS).toBe("SPEC FIXTURE");
+    expect(FIXTURE_STATUS).toBe("BACKEND GOLDEN");
   });
 
   it("throws for a name that does not exist, and returns a copy each time", () => {
@@ -73,7 +73,7 @@ describe("Planning fixtures", () => {
     expect(sumDecimalStrings(result.by_asset_class.map(group => group.rupee_impact))).toBe(result.rupee_impact);
     expect(sumDecimalStrings(result.by_asset_class.map(group => group.covered_value))).toBe(result.covered_value);
     expect(result.by_member.map(member => member.member_name)).toEqual(["ASHA RAO", "Dev Rao"]);
-    expect(result.by_member[1].funds[1]).toMatchObject({ is_proxied: true, proxy_basis: "asset_class_average:Gold" });
+    expect(result.by_member[1].funds.find(fund => fund.scheme_name === "Dev Gold Fund")).toMatchObject({ is_proxied: true, proxy_basis: "asset_class_average:Gold" });
   });
 
   it("member fixture has one member and totals for that member only", () => {

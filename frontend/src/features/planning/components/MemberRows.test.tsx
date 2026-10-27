@@ -10,9 +10,9 @@ const LIVE_FUND_ROUTE = buildRegistry().map(route => route.id === "portfolio-mut
 const show = (result: ScenarioResult, selected = "family", routes = LIVE_FUND_ROUTE) =>
   renderInShell(<MemberRows result={result} selectedMemberId={selected} />, { routes });
 const header = (name: RegExp) => screen.getByRole("button", { name });
-const GOLD = "a1000000-0000-4000-8000-000000000004";
-const DEBT = "a1000000-0000-4000-8000-000000000003";
-const LARGE = "a1000000-0000-4000-8000-000000000001";
+const GOLD = "7c906599-2ff8-5de4-83f9-b94651c683f2";
+const DEBT = "cf09c887-92a1-5b49-a624-7f067ed6a2c8";
+const LARGE = "54b8755e-6b2b-5f4f-a8fe-b41125031af6";
 
 describe("MemberRows: family mode", () => {
   it("is a titled card with one expandable row per member, biggest loss first", () => {
@@ -100,7 +100,7 @@ describe("MemberRows: family mode", () => {
 
   it("gives the same fund the same label under two members", () => {
     const result = standardResult();
-    const shared = { ...result.by_member[1].funds[1] };
+    const shared = { ...result.by_member[1].funds.find(fund => fund.scheme_id === GOLD)! };
     result.by_member[0].funds.push({ ...shared });
     show(result);
     fireEvent.click(header(/Dev Rao/));
