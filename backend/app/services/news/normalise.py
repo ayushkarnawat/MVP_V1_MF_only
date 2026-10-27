@@ -94,6 +94,11 @@ class Dictionaries:
     # Stock aliases that exist only because of an NSE symbol (not the company
     # name); they match an ALL-CAPS token only -- see tag_title.
     symbol_only: frozenset[str] = frozenset()
+    # Aliases from a stock whose stock_master NAME is itself the ticker
+    # ('TAKE', 'STAR'): treated as symbol-only for the case rule, and a
+    # Capitalised match right after another Capitalised word is skipped
+    # ("Morgan Stanley", "Digi Yatra" -- part of a larger proper name).
+    ticker_style: frozenset[str] = frozenset()
     # One-word aliases left after dropping "Company"/"Corporation" from the
     # name ("Urban Company" -> "urban"); a common word, so it needs
     # stock/market context (the full name is indexed as its own alias).
@@ -140,15 +145,37 @@ def _contains_word(text: str, phrase: str) -> bool:
         start = idx + 1
 
 
-def _cased_texts(title: str) -> tuple[str, str]:
-    """(ALL-CAPS words, Capitalised words) of the title, each normalised, so a
-    symbol alias can be checked against how the headline actually spelt it.
-    A possessive 's is dropped and hyphens split first: "TCS's" and "TCS-led"
-    both still carry the all-caps token TCS."""
-    words = re.findall(r"[A-Za-z0-9]+", re.sub(r"['\u2019]s\b", "", title))
-    caps = " ".join(w for w in words if w.isupper())
-    capitalised = " ".join(w for w in words if w[0].isupper() and w[1:].islower())
-    return normalise_title(caps), normalise_title(capitalised)
+def _cased_texts(title: str) -> tuple[str, str, str]:
+    """(ALL-CAPS words, Capitalised words, Capitalised words not directly
+    after another Capitalised word), each normalised, so a symbol alias can be
+    checked against how the headline actually spelt it. A possessive 's is
+    dropped and hyphens split first: "TCS's" and "TCS-led" both still carry
+    the all-caps token TCS."""
+    cleaned = re.sub(r"['\u2019]s\b", "", title)
+    tokens = list(re.finditer(r"[A-Za-z0-9]+", cleaned))
+
+    def capitalised(w: str) -> bool:
+        return w[0].isupper() and w[1:].islower()
+
+    caps: list[str] = []
+    cap: list[str] = []
+    unattached: list[str] = []
+    for i, m in enumerate(tokens):
+        word = m.group()
+        if word.isupper():
+            caps.append(word)
+        elif capitalised(word):
+            cap.append(word)
+            prev = tokens[i - 1] if i else None
+            attached = (
+                prev is not None
+                and prev.group().isalpha()
+                and capitalised(prev.group())
+                and not cleaned[prev.end() : m.start()].strip()
+            )
+            if not attached:
+                unattached.append(word)
+    return tuple(normalise_title(" ".join(group)) for group in (caps, cap, unattached))  # type: ignore[return-value]
 
 
 def _candidates(index: Mapping[str, tuple[str, ...]], words: Sequence[str]) -> set[str]:
@@ -203,6 +230,12 @@ def _stock_alias(name: str) -> str | None:
     if len(text) < 4 and text not in SHORT_ALIAS_ALLOW:
         return None
     return text
+
+
+def _is_ticker_name(name: str) -> bool:
+    """stock_master often stores the ticker itself as the name ('TAKE',
+    'STAR'): one token, all caps, at least 3 letters."""
+    return " " not in name and name == name.upper() and sum(c.isalpha() for c in name) >= 3
 
 
 def _category_fold(text: str) -> str:
@@ -279,6 +312,7 @@ def sector_key(label: str | None) -> str | None:
 def load_dictionaries(db: Session) -> Dictionaries:
     stocks: dict[str, tuple[str, str]] = {}
     symbol_only: set[str] = set()
+    ticker_style: set[str] = set()
     company_stripped: set[str] = set()
     rows = db.query(StockMaster.isin, StockMaster.name, StockMaster.nse_symbol).all()
     displays = {isin: re.sub(r"\s+", " ", _STOCK_FILLER_RE.sub(" ", name)).strip() for isin, name, _ in rows}
@@ -287,6 +321,9 @@ def load_dictionaries(db: Session) -> Dictionaries:
         alias = _stock_alias(name)
         if alias:
             stocks.setdefault(alias, (isin, displays[isin]))
+            if stocks[alias][0] == isin and _is_ticker_name(name):
+                symbol_only.add(alias)
+                ticker_style.add(alias)
             if " " not in alias and _COMPANY_WORD_RE.search(name):
                 company_stripped.add(alias)
                 full_name = normalise_title(_LEGAL_ONLY_RE.sub(" ", name))
@@ -332,6 +369,7 @@ def load_dictionaries(db: Session) -> Dictionaries:
         fund_houses=fund_houses,
         foreign=foreign,
         symbol_only=frozenset(symbol_only),
+        ticker_style=frozenset(ticker_style),
         company_stripped=frozenset(company_stripped),
     )
 
@@ -349,22 +387,25 @@ def tag_title(title: str, dictionaries: Dictionaries) -> list[EntityTag]:
             tags.append(tag)
 
     stock_index = dictionaries._stock_index  # type: ignore[attr-defined]
-    caps_text, capitalised_text = _cased_texts(title) if dictionaries.symbol_only else ("", "")
+    caps_text, capitalised_text, unattached_text = _cased_texts(title) if dictionaries.symbol_only else ("", "", "")
     has_stock_context = any(_contains_word(normalised, word) for word in _AMBIGUITY_CONTEXT_NORM)
     for alias in _candidates(stock_index, words):
         if not _contains_word(normalised, alias):
             continue
-        # A symbol-only alias (TAKE, STAR, NYKAA...) is often an everyday
+        # A symbol-only or ticker-style alias (TAKE, STAR, NYKAA...) is often an everyday
         # word, so go by how the headline spelt it: ALL-CAPS always tags,
         # Capitalised ("Nykaa shares jump") tags only with stock/market
-        # context, lower case ("take", "pop star") never. Known limitation:
-        # "Morgan Stanley sees upside in X shares" is Capitalised with context
-        # and so still tags STANLEY. The plain-word symbols (IDEA, SAIL...)
+        # context, lower case ("take", "pop star") never. Ticker-style names also
+        # skip a Capitalised match that follows another Capitalised word
+        # ("Morgan Stanley sees ... shares" must not tag STANLEY). The plain-word symbols (IDEA, SAIL...)
         # keep the context-only rule below, since headlines do write "Idea shares".
         if alias in dictionaries.symbol_only and alias not in _PLAIN_WORD_SYMBOLS_NORM:
             if not (
                 _contains_word(caps_text, alias)
-                or (has_stock_context and _contains_word(capitalised_text, alias))
+                or (
+                    has_stock_context
+                    and _contains_word(unattached_text if alias in dictionaries.ticker_style else capitalised_text, alias)
+                )
             ):
                 continue
         if alias in _AMBIGUOUS_ALIASES_NORM or alias in _PLAIN_WORD_SYMBOLS_NORM or alias in dictionaries.company_stripped:

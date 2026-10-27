@@ -55,11 +55,11 @@ STOCK_ROWS = [
     ("Maruti Suzuki India Limited", "MARUTI", "Automobile and Auto Components", "INTEST0020"),
     ("DLF Limited", "DLF", "Realty", "INTEST0021"),
     ("Apollo Hospitals Enterprise Limited", "APOLLOHOSP", "Healthcare", "INTEST0022"),
-    ("Take Solutions Limited", "TAKE", "Information Technology", "INTEST0023"),
-    ("Strides Pharma Science Limited", "STAR", "Healthcare", "INTEST0024"),
-    ("Stanley Lifestyles Limited", "STANLEY", "Consumer Durables", "INTEST0025"),
-    ("Yatra Online Limited", "YATRA", "Consumer Services", "INTEST0026"),
-    ("Bajel Projects Limited", "BAJEL", "Capital Goods", "INTEST0027"),
+    ("TAKE", "TAKE", "Information Technology", "INTEST0023"),
+    ("STAR", "STAR", "Healthcare", "INTEST0024"),
+    ("STANLEY", "STANLEY", "Consumer Durables", "INTEST0025"),
+    ("YATRA", "YATRA", "Consumer Services", "INTEST0026"),
+    ("BAJEL", "BAJEL", "Capital Goods", "INTEST0027"),
     ("Urban Company Limited", "URBANCO", "Consumer Services", "INTEST0028"),
     ("FSN E-Commerce Ventures Limited", "NYKAA", "Consumer Services", "INTEST0029"),
 ]
@@ -573,10 +573,73 @@ def test_all_caps_symbol_survives_possessive_and_hyphen(brand_dictionaries, titl
     assert _stock_keys(title, brand_dictionaries) == ["INTEST0322"]
 
 
-def test_known_limitation_capitalised_name_with_context_still_tags(db_session):
-    # Accepted residual: "Morgan Stanley sees upside in X shares" tags STANLEY
-    # (Capitalised + stock context). Not special-cased on purpose.
+def test_capitalised_symbol_after_a_proper_name_word_with_context_still_tags_for_brands(db_session):
+    # Brand (symbol-only) class keeps no proper-name guard; only ticker-style
+    # names get it (see section 14).
     db_session.add(StockMaster(isin="INTEST0330", name="Stanley Lifestyles Limited", sector="Consumer Durables", as_of_date=date(2026, 10, 1), source="NSE", nse_symbol="STANLEY"))
     db_session.commit()
     dicts = load_dictionaries(db_session)
     assert _stock_keys("Morgan Stanley sees upside in Urban shares", dicts) == ["INTEST0330"]
+
+
+# ---------------------------------------------------------------------------
+# (14) ticker-style names: on staging many stock_master rows carry the ticker
+# itself as the NAME ('TAKE', 'STAR', 'YATRA'), so name == symbol and it is
+# an ordinary name alias. A one-word ALL-CAPS name follows the same three-way
+# case rule as a symbol-only alias, plus a proper-name guard: a Capitalised
+# match right after another Capitalised word ("Morgan Stanley", "Digi
+# Yatra") is part of a larger name and is skipped.
+# ---------------------------------------------------------------------------
+
+TICKER_ROWS = [
+    ("TAKE", "INTEST0401"),
+    ("STAR", "INTEST0402"),
+    ("STANLEY", "INTEST0403"),
+    ("YATRA", "INTEST0404"),
+    ("BAJEL", "INTEST0405"),
+]
+
+
+@pytest.fixture()
+def ticker_dictionaries(db_session) -> Dictionaries:
+    for name, isin in TICKER_ROWS:
+        db_session.add(StockMaster(isin=isin, name=name, sector="Services", as_of_date=date(2026, 10, 1), source="NSE", nse_symbol=name))
+    db_session.add(StockMaster(isin="INTEST0410", name="Urban Company Ltd.", sector="Consumer Services", as_of_date=date(2026, 10, 1), source="NSE", nse_symbol="URBANCO"))
+    db_session.add(StockMaster(isin="INTEST0411", name="FSN E-Commerce Ventures Limited", sector="Consumer Services", as_of_date=date(2026, 10, 1), source="NSE", nse_symbol="NYKAA"))
+    db_session.commit()
+    return load_dictionaries(db_session)
+
+
+@pytest.mark.parametrize("title", [
+    "Microsoft techie who topped performance ratings says he'll take VEP, but won't work till his exit",
+    "Egypt parliament backs Sisi to take 'all necessary measures' to support Saudi Arabia against Houthis",
+    "Shaan pays tribute to Michael Jackson in Dubai, fans call him 'pop star'",
+    "Digi Yatra international passenger trials to go live at seven airports from Nov 1",
+    "Sensex Today | Stock Market LIVE Updates: Morgan Stanley sees Nifty at 28,000 by December",
+    "Experts take a view on the stock rally after shares surge",
+])
+def test_ticker_style_names_do_not_tag_everyday_or_proper_name_words(ticker_dictionaries, title):
+    assert _stock_keys(title, ticker_dictionaries) == []
+
+
+def test_ticker_style_name_headline_with_bajel_and_trailing_take(ticker_dictionaries):
+    title = "Bajel Projects shares surge over 12% - What's behind the stock rally? Can it rise further? Experts take"
+    assert _stock_keys(title, ticker_dictionaries) == ["INTEST0405"]
+
+
+def test_morgan_stanley_with_stock_context_no_longer_tags_stanley(ticker_dictionaries):
+    # Was an accepted limitation for symbol-only aliases; the proper-name guard closes it.
+    title = "Urban Company shares rise 5% as Morgan Stanley sees up to 40% upside"
+    assert _stock_keys(title, ticker_dictionaries) == ["INTEST0410"]
+
+
+@pytest.mark.parametrize("title, expected", [
+    ("YATRA shares rally on strong bookings", ["INTEST0404"]),  # ALL-CAPS always tags
+    ("Yatra shares rally on strong bookings", ["INTEST0404"]),  # starts the headline
+    ("Brokerages like Yatra stock after Q2 results", ["INTEST0404"]),  # after a lowercase word
+    ("Analysts upbeat: Stanley shares gain", ["INTEST0403"]),  # after punctuation, not a name
+    ("Nykaa shares jump 5% after Q2 results", ["INTEST0411"]),  # brand symbol-only: no guard
+    ("Brokerages Add Nykaa on strong earnings", ["INTEST0411"]),  # guard not applied to brands
+])
+def test_ticker_style_names_still_tag_when_written_as_a_ticker(ticker_dictionaries, title, expected):
+    assert _stock_keys(title, ticker_dictionaries) == expected

@@ -1685,7 +1685,7 @@
     ]
   },
   {
-    "title": "Strides Pharma Science shares gain after a USFDA approval",
+    "title": "STAR shares gain after a USFDA approval",
     "expected": [
       [
         "stock",
@@ -1694,7 +1694,7 @@
     ]
   },
   {
-    "title": "Yatra Online shares rise as festive travel bookings improve",
+    "title": "Yatra shares rise as festive travel bookings improve",
     "expected": [
       [
         "stock",
@@ -1762,5 +1762,18 @@
   {
     "title": "Nykaa opens a new beauty store in Pune",
     "expected": []
+  },
+  {
+    "title": "Sensex Today | Stock Market LIVE Updates: Morgan Stanley sees Nifty at 28,000 by December",
+    "expected": [
+      [
+        "general",
+        "sensex"
+      ],
+      [
+        "general",
+        "nifty"
+      ]
+    ]
   }
 ]
