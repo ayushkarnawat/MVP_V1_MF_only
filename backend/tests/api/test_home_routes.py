@@ -112,13 +112,13 @@ def test_home_models_forbid_extra_fields():
         MissingFund(scheme_id="scheme", name="Fund", unexpected=True)
 
 
-def test_openapi_registers_exactly_twelve_home_paths(client):
+def test_openapi_registers_exactly_the_home_paths(client):
     paths = client.get("/openapi.json").json()["paths"]
     expected = {
         f"/household/aggregate/home/{suffix}" for suffix in HOME_SUFFIXES
     } | {
         f"/household-members/{{member_id}}/home/{suffix}" for suffix in HOME_SUFFIXES
-    }
+    } | {"/household/aggregate/home/news", "/household-members/{member_id}/home/news"}
     assert {path for path in paths if "/home/" in path} == expected
     for path in expected:
         assert paths[path]["get"]["tags"] == ["home"]
