@@ -432,3 +432,43 @@ def test_small_steps_do_not_chain_two_sips_together():
     for amount in ("1000.00", "1000.09", "1000.18"):
         _monthly(db, folio, start, 2, Decimal(amount))
     assert len(compute_active_sips(db, [member.id])) == 2
+
+
+# L19: the reference date is the caller's IST date, never the server's.
+def test_active_sips_use_the_callers_date_when_no_statement_end_exists():
+    db = _session()
+    member = _household_member(db)
+    folio = _folio(db, member, _scheme(db))
+    _sip_txn(db, folio, date(2026, 7, 5))
+
+    # Last instalment July: through October it has missed 2 months -> still active.
+    [active] = compute_active_sips(db, [member.id], today=date(2026, 10, 5))
+    assert active.status == "active"
+    # Four missed instalments by December -> stopped, hidden by default.
+    assert compute_active_sips(db, [member.id], today=date(2026, 12, 20)) == []
+    [stopped] = compute_active_sips(db, [member.id], include_stopped=True, today=date(2026, 12, 20))
+    assert stopped.status == "stopped"
+
+
+def test_active_sips_ist_midnight_window_uses_the_ist_date_not_the_utc_date():
+    # 00:30 IST on 1 Nov is still 31 Oct on a UTC host. The IST date must win.
+    from zoneinfo import ZoneInfo
+    ist_now = datetime(2026, 11, 1, 0, 30, tzinfo=ZoneInfo("Asia/Kolkata"))
+    assert ist_now.astimezone(timezone.utc).date() == date(2026, 10, 31)
+    db = _session()
+    member = _household_member(db)
+    folio = _folio(db, member, _scheme(db))
+    _sip_txn(db, folio, date(2026, 6, 25))
+
+    assert len(compute_active_sips(db, [member.id], today=date(2026, 10, 31))) == 1  # UTC date: 3 missed
+    assert compute_active_sips(db, [member.id], today=ist_now.date()) == []  # IST date: 4 missed
+    [row] = compute_active_sips(db, [member.id], include_stopped=True, today=ist_now.date())
+    assert row.next_due_date == date(2026, 11, 25)
+
+
+def test_active_sips_default_keeps_using_the_server_date_for_existing_callers():
+    db = _session()
+    member = _household_member(db)
+    folio = _folio(db, member, _scheme(db))
+    _sip_txn(db, folio, date.today() - timedelta(days=30))
+    assert compute_active_sips(db, [member.id]) == compute_active_sips(db, [member.id], today=date.today())

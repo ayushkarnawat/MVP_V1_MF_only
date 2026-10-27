@@ -1,11 +1,12 @@
 import uuid
 import re
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session as DbSession
 
+from app.api.home import get_now_ist
 from app.db.session import get_db
 from app.models.reference import Scheme
 from app.models.user import User #user db model
@@ -222,9 +223,10 @@ def get_member_sips(
     include_stopped: bool = False,
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
+    now: datetime = Depends(get_now_ist),
 ):
     require_member(db, user.id, member_id)
-    return compute_active_sips(db, [member_id], include_stopped=include_stopped)
+    return compute_active_sips(db, [member_id], include_stopped=include_stopped, today=now.date())
 
 
 @router.get("/household-members/{member_id}/sips/monthly", response_model=list[SipMonthlyRow])
@@ -234,10 +236,11 @@ def get_member_sips_monthly(
     month: int | None = None,
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
+    now: datetime = Depends(get_now_ist),
 ):
     require_member(db, user.id, member_id)
-    today = date.today()
-    return compute_sips_for_month(db, [member_id], year or today.year, month or today.month)
+    today = now.date()
+    return compute_sips_for_month(db, [member_id], year or today.year, month or today.month, today=today)
 
 
 @router.get("/household-members/{member_id}/cash-flow", response_model=list[CashFlowEntry])
@@ -319,9 +322,10 @@ async def get_household_aggregate_allocation(
 @router.get("/household/aggregate/sips", response_model=AggregateSipsResponse)
 def get_household_aggregate_sips(
     include_stopped: bool = False,
-    user: User = Depends(get_active_user), db: DbSession = Depends(get_db)
+    user: User = Depends(get_active_user), db: DbSession = Depends(get_db),
+    now: datetime = Depends(get_now_ist),
 ):
-    return get_aggregate_sips(db, user.id, include_stopped=include_stopped)
+    return get_aggregate_sips(db, user.id, include_stopped=include_stopped, today=now.date())
 
 
 @router.get("/household/aggregate/sips/monthly", response_model=AggregateSipsMonthlyResponse)
@@ -330,9 +334,10 @@ def get_household_aggregate_sips_monthly(
     month: int | None = None,
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
+    now: datetime = Depends(get_now_ist),
 ):
-    today = date.today()
-    return get_aggregate_sips_monthly(db, user.id, year or today.year, month or today.month)
+    today = now.date()
+    return get_aggregate_sips_monthly(db, user.id, year or today.year, month or today.month, today=today)
 
 
 @router.get("/household/aggregate/cash-flow", response_model=AggregateCashFlowResponse)

@@ -148,9 +148,12 @@ def _references(db: Session, folios: list[Folio]) -> dict[uuid.UUID, date]:
 
 
 def compute_active_sips(db: Session, household_member_ids: list[uuid.UUID], *,
-                        include_stopped: bool = False) -> list[SipRow]:
+                        include_stopped: bool = False, today: date | None = None) -> list[SipRow]:
     if not household_member_ids:
         return []
+    # `today` is the caller's IST date. Only a folio with no confirmed statement end falls back to it;
+    # the default (server date) keeps callers that have no request context working (L19).
+    today = today or date.today()
     members = {m.id:m for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()}
     folios = db.query(Folio).filter(Folio.household_member_id.in_(household_member_ids)).all()
     by_folio = _folio_transactions_by_id(db, folios)
@@ -161,7 +164,7 @@ def compute_active_sips(db: Session, household_member_ids: list[uuid.UUID], *,
         transactions = by_folio.get(folio.id, [])
         units, _, _ = _process_folio_lots(transactions)
         for series in sip_series(transactions):
-            active = units > 0 and missed_instalments(series.last_date, references.get(folio.id) or date.today()) <= 3
+            active = units > 0 and missed_instalments(series.last_date, references.get(folio.id) or today) <= 3
             if not active and not include_stopped:
                 continue
             scheme = schemes[folio.scheme_id]
@@ -169,14 +172,16 @@ def compute_active_sips(db: Session, household_member_ids: list[uuid.UUID], *,
                                household_member_id=str(folio.household_member_id),
                                household_member_name=members[folio.household_member_id].name,
                                sip_date=series.last_date, sip_amount=f"{series.amount:.2f}",
-                               next_due_date=_next_due_on_or_after(series.last_date, date.today()),
+                               next_due_date=_next_due_on_or_after(series.last_date, today),
                                series_count=series.parallel, status="active" if active else "stopped"))
     return rows
 
 
-def compute_sips_for_month(db: Session, household_member_ids: list[uuid.UUID], year: int, month: int) -> list[SipMonthlyRow]:
+def compute_sips_for_month(db: Session, household_member_ids: list[uuid.UUID], year: int, month: int, *,
+                           today: date | None = None) -> list[SipMonthlyRow]:
     if not household_member_ids:
         return []
+    today = today or date.today()
     members = {m.id:m for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()}
     folios = db.query(Folio).filter(Folio.household_member_id.in_(household_member_ids)).all()
     by_folio = _folio_transactions_by_id(db, folios)
@@ -195,7 +200,7 @@ def compute_sips_for_month(db: Session, household_member_ids: list[uuid.UUID], y
             # it differ slightly from the series' latest amount).
             dates = [(t.date, t.amount) for t in actual]
             if not dates:
-                if units <= 0 or missed_instalments(series.last_date, references.get(folio.id) or date.today()) > 3:
+                if units <= 0 or missed_instalments(series.last_date, references.get(folio.id) or today) > 3:
                     continue
                 if (year,month) < (series.first_date.year,series.first_date.month):
                     continue
