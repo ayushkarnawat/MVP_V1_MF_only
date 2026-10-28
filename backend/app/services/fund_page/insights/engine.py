@@ -17,6 +17,7 @@ from app.services.fund_page.peers import (
     category_returns,
     risk_return_scatter,
 )
+from app.services.fund_page.returns import inception_returns
 from app.services.fund_page.score import build_score
 from app.services.fund_page.schemas import (
     InsightEvidenceOut,
@@ -120,6 +121,13 @@ async def gather_inputs(
         Decimal(score.category_avg_return) * Decimal("100")
         if score.category_avg_return is not None else None
     )
+    # The scorer return is a blended 3Y/5Y figure; the five-year rule needs the real
+    # annualised 5Y on both sides (same basis as category["5Y"]), else no fact.
+    fund_5y = None
+    own_returns = inception_returns(db, scheme, today)
+    if not isinstance(own_returns, Unavailable):
+        value = (own_returns.rows.get("fund") or {}).get("5Y")
+        fund_5y = Decimal(value) if value is not None else None
     category_5y = None
     if not isinstance(category, Unavailable) and category.category.get("5Y") is not None:
         category_5y = Decimal(category.category["5Y"])
@@ -133,8 +141,8 @@ async def gather_inputs(
         overlap_pairs=overlap_pairs_from_stored(db, scheme, ctx, user_id),
         return_3y=scheme_return,
         category_return_3y=category_return,
-        return_5y=scheme_return,
-        category_return_5y=category_5y if category_5y is not None else category_return,
+        return_5y=fund_5y,
+        category_return_5y=category_5y,
         manager_tenure=manager_tenure,
         manager_since=manager_since,
         cap_shares=cap_shares,

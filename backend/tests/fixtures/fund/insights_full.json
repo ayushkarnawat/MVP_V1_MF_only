@@ -47,23 +47,6 @@
   ],
   "strengths": [
     {
-      "id": "long_term_vs_category",
-      "list": "strength",
-      "tone": "pos",
-      "text": "Five-year return is 11.5%, against 10.8396% for the category.",
-      "evidence": [
-        {
-          "label": "Fund return",
-          "value": "11.5%"
-        },
-        {
-          "label": "Category return",
-          "value": "10.8396%"
-        }
-      ],
-      "priority": 10
-    },
-    {
       "id": "manager_tenure",
       "list": "strength",
       "tone": "pos",
@@ -104,6 +87,23 @@
   ],
   "considerations": [
     {
+      "id": "long_term_vs_category",
+      "list": "consideration",
+      "tone": "warn",
+      "text": "Five-year return is 10%, against 10.8396% for the category.",
+      "evidence": [
+        {
+          "label": "Fund return",
+          "value": "10%"
+        },
+        {
+          "label": "Category return",
+          "value": "10.8396%"
+        }
+      ],
+      "priority": 10
+    },
+    {
       "id": "peer_beat_years",
       "list": "consideration",
       "tone": "warn",
@@ -133,13 +133,13 @@
   "top_three": [
     {
       "id": "long_term_vs_category",
-      "list": "strength",
-      "tone": "pos",
-      "text": "Five-year return is 11.5%, against 10.8396% for the category.",
+      "list": "consideration",
+      "tone": "warn",
+      "text": "Five-year return is 10%, against 10.8396% for the category.",
       "evidence": [
         {
           "label": "Fund return",
-          "value": "11.5%"
+          "value": "10%"
         },
         {
           "label": "Category return",
