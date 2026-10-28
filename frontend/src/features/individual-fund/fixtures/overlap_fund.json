@@ -1,0 +1,104 @@
+{
+  "status": "ready",
+  "scheme_id": "2c652f6f-008c-58a5-90a5-d1f2e331823f",
+  "holdings_as_of": "2026-09-30",
+  "overlap_pct": "18.0000",
+  "common_stock_count": 3,
+  "total_stock_count": 12,
+  "distribution": {
+    "unique_to_fund_count": 9,
+    "common_count": 3,
+    "unique_to_others_count": 0,
+    "unique_to_fund_pct": "75.0000",
+    "common_pct": "25.0000",
+    "unique_to_others_pct": "0.0000"
+  },
+  "common_holdings": [
+    {
+      "isin": "INEGOLD00002",
+      "name": "Golden Stock 3",
+      "sector": "Industrials",
+      "fund_weight": "7.0000",
+      "portfolio_weight": "7.1519",
+      "held_in_funds": [
+        {
+          "scheme_id": "dfb6f3a4-ed3e-5d4c-81e4-7343b0862d60",
+          "scheme_name": "Golden Peer 1 Fund"
+        }
+      ]
+    },
+    {
+      "isin": "INEGOLD00001",
+      "name": "Golden Stock 2",
+      "sector": "IT",
+      "fund_weight": "6.0000",
+      "portfolio_weight": "6.2025",
+      "held_in_funds": [
+        {
+          "scheme_id": "dfb6f3a4-ed3e-5d4c-81e4-7343b0862d60",
+          "scheme_name": "Golden Peer 1 Fund"
+        }
+      ]
+    },
+    {
+      "isin": "INEGOLD00000",
+      "name": "Golden Stock 1",
+      "sector": "Financial Services",
+      "fund_weight": "5.0000",
+      "portfolio_weight": "5.2532",
+      "held_in_funds": [
+        {
+          "scheme_id": "dfb6f3a4-ed3e-5d4c-81e4-7343b0862d60",
+          "scheme_name": "Golden Peer 1 Fund"
+        }
+      ]
+    }
+  ],
+  "by_sector": [
+    {
+      "sector": "Industrials",
+      "pct": "7.0000",
+      "stocks": [
+        {
+          "isin": "INEGOLD00002",
+          "name": "Golden Stock 3",
+          "weight": "7.0000"
+        }
+      ]
+    },
+    {
+      "sector": "IT",
+      "pct": "6.0000",
+      "stocks": [
+        {
+          "isin": "INEGOLD00001",
+          "name": "Golden Stock 2",
+          "weight": "6.0000"
+        }
+      ]
+    },
+    {
+      "sector": "Financial Services",
+      "pct": "5.0000",
+      "stocks": [
+        {
+          "isin": "INEGOLD00000",
+          "name": "Golden Stock 1",
+          "weight": "5.0000"
+        }
+      ]
+    }
+  ],
+  "top_overlap_funds": [
+    {
+      "scheme_id": "dfb6f3a4-ed3e-5d4c-81e4-7343b0862d60",
+      "scheme_name": "Golden Peer 1 Fund",
+      "overlap_pct": "18.0000",
+      "common_stock_count": 3
+    }
+  ],
+  "coverage": {
+    "covered_value_pct": "100.0000",
+    "funds_without_disclosure": []
+  }
+}

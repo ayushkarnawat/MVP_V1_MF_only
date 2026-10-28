@@ -4,7 +4,6 @@ import { Route, Routes, useLocation, useParams } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/apiClient";
 import { buildRegistry } from "@/shell/registry/buildRegistry";
-import type { ShellRoute } from "@/shell/registry/types";
 import { useScope } from "@/shell/scope/ScopeContext";
 import { renderInShell } from "@/shell/testing";
 import { deferred } from "./__support__/deferred";
@@ -20,15 +19,8 @@ const INSIGHTS = `${OVERVIEW}/insights`;
 const members = [{ id: IDS.asha, name: "ASHA RAO" }, { id: IDS.dev, name: "Dev Rao" }];
 const summary = () => fixture<SummaryResponse>("summary_family");
 
-/** The registry with some placeholder routes switched to live, so the frame is tested apart from the route files. */
-function liveRoutes(ids: string[]): ShellRoute[] {
-  return buildRegistry().map(route =>
-    ids.includes(route.id)
-      ? { ...route, status: "live" as const, page: async () => ({ default: () => <h1>{`${route.id} page`}</h1> }) }
-      : route,
-  );
-}
-const ROUTES = liveRoutes(["portfolio", "portfolio-mutual-funds-fund", "portfolio-mutual-funds-fund-insights"]);
+// The real registry: the Overview and Insights routes are live (IF-C), so the Overview and Insights tabs are real links; Overlap is not.
+const ROUTES = buildRegistry();
 
 function Location() {
   return <output data-testid="location">{useLocation().pathname}</output>;
@@ -121,7 +113,7 @@ describe("FundPageFrame", () => {
   });
 
   it("when the Insights route is not live its tab is the disabled Coming soon tab", async () => {
-    const routes = liveRoutes(["portfolio-mutual-funds-fund"]).map(route => (route.id === "portfolio-mutual-funds-fund-insights" ? { ...route, status: "placeholder" as const } : route));
+    const routes = buildRegistry().map(route => (route.id === "portfolio-mutual-funds-fund-insights" ? { ...route, status: "placeholder" as const } : route));
     renderInShell(<FundPageFrame schemeId={IDS.scheme} tab="overview">{() => <p>page body</p>}</FundPageFrame>, { path: OVERVIEW, routes });
     const tabs = await screen.findByRole("navigation", { name: "Fund sections" });
     expect(within(tabs).getByRole("link", { name: "Insights" })).not.toHaveAttribute("href");

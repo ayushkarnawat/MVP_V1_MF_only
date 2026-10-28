@@ -1,0 +1,146 @@
+{
+  "status": "ready",
+  "fund_a": {
+    "scheme_id": "2c652f6f-008c-58a5-90a5-d1f2e331823f",
+    "scheme_name": "Alpha Flexi Cap Fund - Direct Plan",
+    "holdings_as_of": "2026-09-30",
+    "current_value": "2250.00"
+  },
+  "fund_b": {
+    "scheme_id": "dfb6f3a4-ed3e-5d4c-81e4-7343b0862d60",
+    "scheme_name": "Golden Peer 1 Fund",
+    "holdings_as_of": "2026-09-30",
+    "current_value": "120.00"
+  },
+  "overlap_pct": "18.0000",
+  "counts": {
+    "unique_a": 9,
+    "common": 3,
+    "unique_b": 0
+  },
+  "impact": {
+    "common_both": {
+      "amount": "441.00",
+      "pct": "18.6076"
+    },
+    "unique_a": {
+      "amount": "1350.00",
+      "pct": "56.9620"
+    },
+    "unique_b": {
+      "amount": "0.00",
+      "pct": "0.0000"
+    },
+    "other_funds": {
+      "amount": "579.00",
+      "pct": "24.4304"
+    }
+  },
+  "sector_comparison": [
+    {
+      "sector": "Industrials",
+      "common": "7.0000",
+      "a": "21.0000",
+      "b": "10.0000"
+    },
+    {
+      "sector": "IT",
+      "common": "6.0000",
+      "a": "18.0000",
+      "b": "10.0000"
+    },
+    {
+      "sector": "Financial Services",
+      "common": "5.0000",
+      "a": "15.0000",
+      "b": "10.0000"
+    },
+    {
+      "sector": "Healthcare",
+      "common": "0.0000",
+      "a": "16.0000",
+      "b": "0.0000"
+    },
+    {
+      "sector": "Other",
+      "common": "0.0000",
+      "a": "8.0000",
+      "b": "0.0000"
+    }
+  ],
+  "common_holdings": [
+    {
+      "isin": "INEGOLD00002",
+      "name": "Golden Stock 3",
+      "sector": "Industrials",
+      "weight_a": "7.0000",
+      "weight_b": "10.0000",
+      "combined": "169.50"
+    },
+    {
+      "isin": "INEGOLD00001",
+      "name": "Golden Stock 2",
+      "sector": "IT",
+      "weight_a": "6.0000",
+      "weight_b": "10.0000",
+      "combined": "147.00"
+    },
+    {
+      "isin": "INEGOLD00000",
+      "name": "Golden Stock 1",
+      "sector": "Financial Services",
+      "weight_a": "5.0000",
+      "weight_b": "10.0000",
+      "combined": "124.50"
+    }
+  ],
+  "unique_holdings": {
+    "a": [
+      {
+        "isin": "INEGOLD00003",
+        "name": "Golden Stock 4",
+        "sector": "Healthcare",
+        "weight": "8.0000"
+      },
+      {
+        "isin": "INEGOLD00007",
+        "name": "Golden Stock 8",
+        "sector": "Healthcare",
+        "weight": "8.0000"
+      },
+      {
+        "isin": "INEGOLD00011",
+        "name": "Golden Stock 12",
+        "sector": "Other",
+        "weight": "8.0000"
+      },
+      {
+        "isin": "INEGOLD00006",
+        "name": "Golden Stock 7",
+        "sector": "Industrials",
+        "weight": "7.0000"
+      },
+      {
+        "isin": "INEGOLD00010",
+        "name": "Golden Stock 11",
+        "sector": "Industrials",
+        "weight": "7.0000"
+      }
+    ],
+    "b": []
+  },
+  "market_cap": {
+    "a": {
+      "large": "33.3333",
+      "mid": "33.3333",
+      "small": "33.3333",
+      "other": "0.0000"
+    },
+    "b": {
+      "large": "33.3333",
+      "mid": "33.3333",
+      "small": "33.3333",
+      "other": "0.0000"
+    }
+  }
+}

@@ -54,12 +54,15 @@ describe("FundAllocation", () => {
       ["Market Cap", "true"], ["Sector", "false"], ["Asset Type", "false"],
     ]);
     expect(pie.props!.data.map(d => d.label)).toEqual(["Large Cap", "Mid Cap", "Small Cap"]);
-    expect(pie.props!.data.map(d => d.value)).toEqual([72.1, 20, 7.9]);
+    // The golden splits the classified equity into three equal thirds (33.3333 each).
+    expect(pie.props!.data.map(d => d.value)).toEqual([33.3333, 33.3333, 33.3333]);
     tab("Sector");
     expect(screen.getByRole("button", { name: "Sector" })).toHaveAttribute("aria-pressed", "true");
-    expect(pie.props!.data.map(d => d.label)).toEqual(["Financial Services", "Information Technology", "Energy", "Others"]);
+    expect(pie.props!.data.map(d => d.label)).toEqual(["Industrials", "IT", "Healthcare", "Financial Services", "Unclassified"]);
+    expect(pie.props!.data.map(d => d.value)).toEqual([21, 18, 16, 15, 8]);
     tab("Asset Type");
-    expect(pie.props!.data.map(d => d.label)).toEqual(["Equity", "Cash and equivalents"]);
+    expect(pie.props!.data.map(d => d.label)).toEqual(["Equity", "Debt", "Cash and equivalents"]);
+    expect(pie.props!.data.map(d => d.value)).toEqual([78, 12, 4]);
     tab("Market Cap");
     expect(pie.props!.data.map(d => d.label)).toEqual(["Large Cap", "Mid Cap", "Small Cap"]);
   });
@@ -67,10 +70,10 @@ describe("FundAllocation", () => {
   it("test_market_cap_has_three_slices_and_footnote_with_unclassified_share: three slices and legend rows, no Other slice, and the footnote names the share that is not shown", () => {
     mount();
     expect(screen.getAllByTestId(/^pie-slice-/)).toHaveLength(3);
-    expect(rowText()).toEqual(["Large Cap72.1%", "Mid Cap20.0%", "Small Cap7.9%"]);
+    expect(rowText()).toEqual(["Large Cap33.3%", "Mid Cap33.3%", "Small Cap33.3%"]);
     expect(rowText().some(text => /other/i.test(text ?? ""))).toBe(false);
     expect(screen.getByTestId("alloc-note")).toHaveTextContent(
-      "Share of the classified equity part. Not shown: 3.6% of the fund (cash, debt, unlisted). Disclosure as of 30 Sep 2026."
+      "Share of the classified equity part. Not shown: 16.0% of the fund (cash, debt, unlisted). Disclosure as of 30 Sep 2026."
     );
     for (const color of pie.props!.data.map(d => d.color)) expect(color).toMatch(/^var\(--c\d\)$/);
   });
@@ -129,7 +132,7 @@ describe("FundAllocation", () => {
     expect(screen.getByTestId("alloc-row-0")).toHaveAttribute("data-active", "false");
     expect(screen.getByTestId("alloc-row-0").className).toContain("opacity-60");
     expect(screen.getByTestId("alloc-row-1").className).not.toContain("opacity-60");
-    expect(screen.getByTestId("alloc-centre-value")).toHaveTextContent("20.0%");
+    expect(screen.getByTestId("alloc-centre-value")).toHaveTextContent("33.3%");
     expect(screen.getByTestId("alloc-centre-label")).toHaveTextContent("Mid Cap");
     hover(null);
     expect(pie.props!.hoveredIndex).toBeNull();
@@ -162,8 +165,8 @@ describe("FundAllocation", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     hover(0);
     fireEvent.click(screen.getByTestId("alloc-chart"));
-    const dialog = screen.getByRole("dialog", { name: "Large Cap (72.1%)" });
-    expect(within(dialog).getByText("Share of classified equity", { selector: "dt" }).nextElementSibling).toHaveTextContent("72.1%");
+    const dialog = screen.getByRole("dialog", { name: "Large Cap (33.3%)" });
+    expect(within(dialog).getByText("Share of classified equity", { selector: "dt" }).nextElementSibling).toHaveTextContent("33.3%");
     fireEvent.keyDown(document.body, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
   });
@@ -171,24 +174,32 @@ describe("FundAllocation", () => {
   it("a legend row is a real button that opens the same dialog, for the keyboard too", () => {
     mount();
     fireEvent.click(screen.getByTestId("alloc-row-1"));
-    expect(screen.getByRole("dialog", { name: "Mid Cap (20.0%)" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Mid Cap (33.3%)" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
     tab("Asset Type");
-    fireEvent.click(screen.getByTestId("alloc-row-1"));
-    const dialog = screen.getByRole("dialog", { name: "Cash and equivalents (3.6%)" });
+    fireEvent.click(screen.getByTestId("alloc-row-2"));
+    const dialog = screen.getByRole("dialog", { name: "Cash and equivalents (4.0%)" });
     expect(within(dialog).getByText("Share of the fund", { selector: "dt" })).toBeInTheDocument();
   });
 
   it("a sector slice lists the top-10 holdings in that sector, or says there are none", () => {
-    mount();
+    // The golden's sectors, in order: Industrials 21, IT 18, Healthcare 16, Financial Services 15, Unclassified 8.
+    // A sixth, hand-added sector has none of the top-10 stocks, to cover the empty case.
+    const data = fixture<CompositionResponse>("composition");
+    data.allocation.sector.push({ label: "Utilities", pct: "2.0000" });
+    mount(section({ data }));
     tab("Sector");
     fireEvent.click(screen.getByTestId("alloc-row-0"));
-    let dialog = screen.getByRole("dialog", { name: "Financial Services (31.2%)" });
+    let dialog = screen.getByRole("dialog", { name: "Industrials (21.0%)" });
     expect(within(dialog).getByText("Top 10 holdings in this sector")).toBeInTheDocument();
-    expect(within(dialog).getAllByRole("listitem").map(li => li.textContent)).toEqual(["HDFC Bank Ltd8.2%", "ICICI Bank Ltd6.9%", "Axis Bank Ltd2.9%"]);
+    expect(within(dialog).getAllByRole("listitem").map(li => li.textContent)).toEqual(["Golden Stock 37.0%", "Golden Stock 77.0%", "Golden Stock 117.0%"]);
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
-    fireEvent.click(screen.getByTestId("alloc-row-3"));
-    dialog = screen.getByRole("dialog", { name: "Others (47.3%)" });
+    fireEvent.click(screen.getByTestId("alloc-row-4"));
+    dialog = screen.getByRole("dialog", { name: "Unclassified (8.0%)" });
+    expect(within(dialog).getAllByRole("listitem").map(li => li.textContent)).toEqual(["Golden Stock 128.0%"]);
+    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+    fireEvent.click(screen.getByTestId("alloc-row-5"));
+    dialog = screen.getByRole("dialog", { name: "Utilities (2.0%)" });
     expect(within(dialog).getByTestId("slice-none")).toHaveTextContent("None of the top 10 holdings is in this sector.");
   });
 

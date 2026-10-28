@@ -71,6 +71,18 @@ describe("ReturnsTable", () => {
   it("a period with no figure is a dash with a tooltip", async () => {
     mount();
     await screen.findByTestId("row-fund");
+    // The real golden has a figure for every period (5Y included: 10.0000 and 12.0000).
+    expect(cell("cell-fund-5Y")).toHaveTextContent("10.0%");
+    expect(cell("cell-benchmark-5Y")).toHaveTextContent("12.0%");
+    expect(cell("cell-fund-5Y")).not.toHaveAttribute("title");
+    cleanup();
+    // A young fund has no 5Y figure: the contract sends null, the cell is a dash with a tooltip.
+    const young = inception();
+    young.rows.fund["5Y"] = null;
+    young.rows.benchmark!["5Y"] = null;
+    api.returns.mockImplementation(() => Promise.resolve(young));
+    mount();
+    await screen.findByTestId("row-fund");
     expect(cell("cell-fund-5Y")).toHaveTextContent("—");
     expect(cell("cell-fund-5Y")).toHaveAttribute("title", "No history for this period yet.");
     expect(cell("cell-benchmark-5Y")).toHaveTextContent("—");
@@ -99,9 +111,10 @@ describe("ReturnsTable", () => {
     expect(cell("cell-fund-1Y")).toHaveTextContent("10.0%");
     await act(async () => { slow.resolve(category()); });
     expect(cell("cell-category-1Y")).not.toHaveAttribute("data-state");
-    expect(cell("cell-category-1Y")).toHaveTextContent("13.1%");
-    expect(cell("cell-category-since_inception")).toHaveTextContent("13.0%");
-    expect(cell("cell-category-1M")).toHaveTextContent("0.7%");
+    // peers_returns: 1Y 10.8332, since inception 10.8333, 1M 0.8483.
+    expect(cell("cell-category-1Y")).toHaveTextContent("10.8%");
+    expect(cell("cell-category-since_inception")).toHaveTextContent("10.8%");
+    expect(cell("cell-category-1M")).toHaveTextContent("0.8%");
   });
 
   it("unavailable category figures are dashes with the reason as a tooltip", async () => {
@@ -121,7 +134,7 @@ describe("ReturnsTable", () => {
     expect(cell("cell-category-1Y")).toHaveAttribute("title", "Category figures could not be loaded");
     fireEvent.click(screen.getByRole("button", { name: "Retry category returns" }));
     await act(async () => {});
-    expect(cell("cell-category-1Y")).toHaveTextContent("13.1%");
+    expect(cell("cell-category-1Y")).toHaveTextContent("10.8%");
     expect(api.categoryReturns).toHaveBeenCalledTimes(2);
     expect(api.returns).toHaveBeenCalledTimes(1);
   });
@@ -148,9 +161,11 @@ describe("ReturnsTable", () => {
     const headers = within(screen.getByRole("table")).getAllByRole("columnheader").map(h => h.textContent);
     expect(headers).toEqual(["Series", "1Y", "3Y", "5Y", "Since first investment"]);
     expect(screen.getByText("Benchmark, same cash flows")).toBeInTheDocument();
-    expect(cell("cell-fund-1Y")).toHaveTextContent("18.5%");
-    expect(cell("cell-fund-since_first_investment")).toHaveTextContent("18.5%");
-    expect(cell("cell-benchmark-1Y")).toHaveTextContent("15.0%");
+    // returns_current: holding XIRR 9.9997 (1Y) and 22.8418 (since first investment); benchmark with the same flows 12.0000.
+    expect(cell("cell-fund-1Y")).toHaveTextContent("10.0%");
+    expect(cell("cell-fund-since_first_investment")).toHaveTextContent("22.8%");
+    expect(cell("cell-benchmark-1Y")).toHaveTextContent("12.0%");
+    expect(cell("cell-benchmark-since_first_investment")).toHaveTextContent("12.0%");
     expect(cell("cell-fund-3Y")).toHaveTextContent("—");
     expect(cell("cell-fund-3Y")).toHaveAttribute("title", "You have not held this fund for this long.");
     expect(cell("cell-benchmark-5Y")).toHaveTextContent("—");

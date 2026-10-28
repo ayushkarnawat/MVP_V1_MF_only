@@ -37,7 +37,8 @@ describe("ScoreCard", () => {
     render(<ScoreCard score={section()} />);
     const card = screen.getByTestId("score-card");
     expect(card).toHaveTextContent("Unifolio Fund Score");
-    expect(within(card).getByTestId("score-number")).toHaveTextContent("72");
+    // The stored golden scores 78.50: the ring shows 79 (half up) and 78.5 is in the Strong band (70 to 84.99).
+    expect(within(card).getByTestId("score-number")).toHaveTextContent("79");
     expect(within(card).getByTestId("score-band")).toHaveTextContent("Strong");
     expect(card).toHaveTextContent("Consistent performance, reasonable costs and strong portfolio quality.");
     expect(within(card).getByTestId("score-ring-arc")).toHaveAttribute("stroke", "#22C55E");
@@ -106,12 +107,13 @@ describe("ScoreCard", () => {
   it("the breakdown lists the factors from the stored row", () => {
     render(<ScoreCard score={section()} />);
     fireEvent.click(screen.getByTestId("score-card"));
-    expect(screen.getByTestId("score-value")).toHaveTextContent("72 / 100");
+    expect(screen.getByTestId("score-value")).toHaveTextContent("79 / 100");
     expect(screen.getByTestId("score-rating")).toHaveTextContent("Strong");
-    expect(screen.getByTestId("score-return")).toHaveTextContent("19.0% vs 16.0%");
-    expect(screen.getByTestId("score-return-pct")).toHaveTextContent("71");
-    expect(screen.getByTestId("score-risk-pct")).toHaveTextContent("64");
-    expect(screen.getByTestId("score-consistency")).toHaveTextContent("8 of 10 rolling windows");
+    // scheme_return "0.1150" and category_avg_return "0.0950" are fractions: 11.5% against 9.5%.
+    expect(screen.getByTestId("score-return")).toHaveTextContent("11.5% vs 9.5%");
+    expect(screen.getByTestId("score-return-pct")).toHaveTextContent("82");
+    expect(screen.getByTestId("score-risk-pct")).toHaveTextContent("72");
+    expect(screen.getByTestId("score-consistency")).toHaveTextContent("4 of 5 rolling windows");
     expect(screen.getByTestId("score-updated")).toHaveTextContent("23 Oct 2026");
   });
 
@@ -119,7 +121,12 @@ describe("ScoreCard", () => {
     const view = render(<ScoreCard score={section({ data: fixture<ScoreResponse>("score_computed") })} />);
     fireEvent.click(screen.getByTestId("score-card"));
     expect(screen.getByRole("dialog")).not.toHaveTextContent(/stored|computed/i);
-    expect(screen.getByTestId("score-value")).toHaveTextContent("58 / 100");
+    // score_computed.json: final_score 57.39 (PENDING re-copy of the corrected golden: re-derive then).
+    expect(screen.getByTestId("score-value")).toHaveTextContent("57 / 100");
+    // Its fractions are long decimals ("0.0997813910184841955369313962" and "0.1080959623568836480857113976"): shown to one place.
+    expect(screen.getByTestId("score-return")).toHaveTextContent("10.0% vs 10.8%");
+    expect(screen.getByTestId("score-consistency")).toHaveTextContent("48 of 48 rolling windows");
+    expect(screen.getByTestId("score-updated")).toHaveTextContent("23 Oct 2026");
     view.unmount();
   });
 });

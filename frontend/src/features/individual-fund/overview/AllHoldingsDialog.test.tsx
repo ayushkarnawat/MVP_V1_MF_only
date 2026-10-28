@@ -32,10 +32,13 @@ describe("AllHoldingsDialog", () => {
     expect(await screen.findByRole("dialog", { name: "All holdings, as of 30 Sep 2026" })).toBeInTheDocument();
     expect(api.holdings).toHaveBeenCalledTimes(1);
     expect(api.holdings).toHaveBeenCalledWith(IDS.scheme, expect.any(AbortSignal));
-    expect(screen.getByTestId("all-count")).toHaveTextContent("13 holdings");
-    expect(screen.getAllByTestId("all-row")).toHaveLength(13);
+    expect(screen.getByTestId("all-count")).toHaveTextContent("14 holdings");
+    expect(screen.getAllByTestId("all-row")).toHaveLength(14);
+    // The golden's heaviest line is a government bond with no ISIN (12 percent): it ranks first, its sector is Sovereign.
     const first = within(screen.getAllByTestId("all-row")[0]).getAllByRole("cell").map(cell => cell.textContent);
-    expect(first).toEqual(["1", "HDFC Bank Ltd", "Financial Services", "8.21%"]);
+    expect(first).toEqual(["1", "Government Bond", "Sovereign", "12.00%"]);
+    const last = within(screen.getAllByTestId("all-row")[13]).getAllByRole("cell").map(cell => cell.textContent);
+    expect(last).toEqual(["14", "Cash and equivalents", "Unclassified", "4.00%"]);
   });
 
   it("test_view_all_fetches_once: closing and opening again keeps the list and does not ask again", async () => {
@@ -55,32 +58,35 @@ describe("AllHoldingsDialog", () => {
     const weight = screen.getByRole("columnheader", { name: "Weight" });
     expect(weight).toHaveAttribute("aria-sort", "descending");
     expect(stock).toHaveAttribute("aria-sort", "none");
-    expect(names()[0]).toBe("HDFC Bank Ltd");
-    // Equal weights keep the order the API gave: Tata Consultancy (3.6) before Treps (3.6).
-    expect(names().indexOf("Tata Consultancy Services Ltd")).toBeLessThan(names().indexOf("Treps"));
+    expect(names()[0]).toBe("Government Bond");
+    // Equal weights keep the order the API gave: Golden Stock 4, 8 and 12 (all 8.0) stay in that order, ahead of the 7.0 group.
+    expect(names().slice(1, 7)).toEqual(["Golden Stock 4", "Golden Stock 8", "Golden Stock 12", "Golden Stock 3", "Golden Stock 7", "Golden Stock 11"]);
 
     fireEvent.click(within(weight).getByRole("button", { name: "Weight" }));
     expect(weight).toHaveAttribute("aria-sort", "ascending");
-    expect(names()[0]).toBe("Titan Company Ltd");
-    expect(names().at(-1)).toBe("HDFC Bank Ltd");
+    expect(names()[0]).toBe("Cash and equivalents");
+    expect(names().at(-1)).toBe("Government Bond");
+    // Ascending keeps the API order inside a tie too: the three 5.0 stocks come as Golden Stock 1, 5, 9.
+    expect(names().slice(1, 4)).toEqual(["Golden Stock 1", "Golden Stock 5", "Golden Stock 9"]);
     fireEvent.click(within(weight).getByRole("button", { name: "Weight" }));
     expect(weight).toHaveAttribute("aria-sort", "descending");
-    expect(names()[0]).toBe("HDFC Bank Ltd");
+    expect(names()[0]).toBe("Government Bond");
 
     fireEvent.click(within(stock).getByRole("button", { name: "Stock" }));
     expect(stock).toHaveAttribute("aria-sort", "ascending");
     expect(weight).toHaveAttribute("aria-sort", "none");
-    expect(names().slice(0, 3)).toEqual(["Axis Bank Ltd", "Bharti Airtel Ltd", "HDFC Bank Ltd"]);
+    // Plain text order: "Golden Stock 1" is before "Golden Stock 10", which is before "Golden Stock 2"; the bond is last.
+    expect(names().slice(0, 5)).toEqual(["Cash and equivalents", "Golden Stock 1", "Golden Stock 10", "Golden Stock 11", "Golden Stock 12"]);
     expect(within(screen.getAllByTestId("all-row")[0]).getAllByRole("cell")[0]).toHaveTextContent("1");
-    expect(within(screen.getAllByTestId("all-row")[12]).getAllByRole("cell")[0]).toHaveTextContent("13");
+    expect(within(screen.getAllByTestId("all-row")[13]).getAllByRole("cell")[0]).toHaveTextContent("14");
     fireEvent.click(within(stock).getByRole("button", { name: "Stock" }));
     expect(stock).toHaveAttribute("aria-sort", "descending");
-    expect(names()[0]).toBe("Treps");
-    expect(names().at(-1)).toBe("Axis Bank Ltd");
+    expect(names()[0]).toBe("Government Bond");
+    expect(names().at(-1)).toBe("Cash and equivalents");
 
     fireEvent.click(within(weight).getByRole("button", { name: "Weight" }));
     expect(weight).toHaveAttribute("aria-sort", "descending");
-    expect(names()[0]).toBe("HDFC Bank Ltd");
+    expect(names()[0]).toBe("Government Bond");
   });
 
   it("is singular for one holding and notes an old disclosure", async () => {

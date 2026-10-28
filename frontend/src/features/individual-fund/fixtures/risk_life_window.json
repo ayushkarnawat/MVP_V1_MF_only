@@ -1,30 +1,30 @@
 {
   "status": "ready",
-  "scheme_id": "5e6f7a8b-1c2d-4e3f-9a0b-8c7d6e5f4a3b",
-  "window_start": "2025-03-20",
+  "scheme_id": "92769a73-3a1e-5c03-8a0e-7fc438116b0e",
+  "window_start": "2023-10-23",
   "window_end": "2026-10-23",
-  "points": 582,
-  "life_window": true,
+  "points": 1096,
+  "life_window": false,
   "risk_free_rate": "0.065",
   "volatility": {
-    "value": "11.4000",
-    "band": "Low",
-    "tone": "pos"
+    "value": "0.0060",
+    "band": null,
+    "tone": null
   },
   "max_drawdown": {
-    "value": "-9.1000",
-    "band": "Low",
-    "tone": "pos"
+    "value": "0.0000",
+    "band": null,
+    "tone": null
   },
   "sharpe": {
-    "value": "1.1500",
-    "band": "Good",
-    "tone": "pos"
+    "value": "83.1640",
+    "band": null,
+    "tone": null
   },
   "beta": {
     "value": null,
     "band": null,
     "tone": null
   },
-  "beta_reason": "insufficient_shared_dates"
+  "beta_reason": "no_benchmark"
 }

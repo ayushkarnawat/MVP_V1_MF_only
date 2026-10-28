@@ -5,7 +5,9 @@ import type { Fact, InsightsResponse } from "../types";
 import { EvidenceDialog } from "./EvidenceDialog";
 
 const facts = () => fixture<InsightsResponse>("insights_full");
-const top5 = () => facts().key[1];
+// The market-cap fact has the most evidence in the golden: three rows (Large, Mid and Small, 33.3333% each).
+const top5 = () => facts().strengths.find(fact => fact.id === "market_cap_spread")!;
+const SENTENCE = "Market-cap shares are Large 33.3333%, Mid 33.3333%, and Small 33.3333%.";
 
 describe("EvidenceDialog", () => {
   it("renders nothing without a fact", () => {
@@ -18,16 +20,16 @@ describe("EvidenceDialog", () => {
     const dialog = screen.getByRole("dialog", { name: "Evidence" });
     const rows = within(dialog).getAllByTestId("evidence-row");
     expect(rows.map(row => [within(row).getByRole("term").textContent, within(row).getByRole("definition").textContent])).toEqual([
-      ["Top 5", "30.0%"], ["Top 10", "46.0%"], ["As of", "2026-09-30"],
+      ["Large", "33.3333%"], ["Mid", "33.3333%"], ["Small", "33.3333%"],
     ]);
-    expect(within(dialog).getByTestId("evidence-text")).toHaveTextContent("Top 5 holdings make up 30% of the fund.");
+    expect(within(dialog).getByTestId("evidence-text")).toHaveTextContent(SENTENCE);
     expect(dialog.querySelector("dl")).not.toBeNull();
   });
 
   it("a fact with no evidence still shows its sentence, and no empty list", () => {
     const bare: Fact = { ...top5(), evidence: [] };
     render(<EvidenceDialog fact={bare} onClose={vi.fn()} />);
-    expect(screen.getByTestId("evidence-text")).toHaveTextContent("Top 5 holdings make up 30% of the fund.");
+    expect(screen.getByTestId("evidence-text")).toHaveTextContent(SENTENCE);
     expect(screen.queryAllByTestId("evidence-row")).toHaveLength(0);
     expect(document.querySelector("dl")).toBeNull();
   });

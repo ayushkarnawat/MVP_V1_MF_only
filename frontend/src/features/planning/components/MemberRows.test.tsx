@@ -6,7 +6,9 @@ import { ASHA_ID, DEV_ID, freezeResult, memberDevResult, noFundDataResult, stand
 import type { ScenarioResult } from "../types";
 import { MemberRows } from "./MemberRows";
 
-const LIVE_FUND_ROUTE = buildRegistry().map(route => route.id === "portfolio-mutual-funds-fund" ? { ...route, status: "live" as const } : route);
+// The real registry: the Individual Fund page route is live (IF-C), so a fund name is a real link. The "not live" case below flips it back by hand.
+const LIVE_FUND_ROUTE = buildRegistry();
+const NOT_LIVE_FUND_ROUTE = buildRegistry().map(route => route.id === "portfolio-mutual-funds-fund" ? { ...route, status: "placeholder" as const } : route);
 const show = (result: ScenarioResult, selected = "family", routes = LIVE_FUND_ROUTE) =>
   renderInShell(<MemberRows result={result} selectedMemberId={selected} />, { routes });
 const header = (name: RegExp) => screen.getByRole("button", { name });
@@ -156,7 +158,7 @@ describe("MemberRows: fund names open the fund page", () => {
   });
 
   it("keeps the name readable, but not a link, while the fund page is not live", () => {
-    show(standardResult(), "family", buildRegistry());
+    show(standardResult(), "family", NOT_LIVE_FUND_ROUTE);
     expect(screen.getByText("Asha Large Cap")).toBeInTheDocument();
     const disabled = screen.getByRole("link", { name: "Asha Large Cap" });
     expect(disabled).toHaveAttribute("aria-disabled", "true");

@@ -27,7 +27,8 @@ vi.mock("../api", () => ({ fundPageApi: api }));
 const rolling = (window: 1 | 3 | 5 = 3, shift = 0): RollingResponse => {
   const body = fixture<RollingResponse>("rolling_3y");
   body.window_years = window;
-  if (shift) body.points = body.points.map(point => ({ ...point, fund: point.fund === null ? null : String(Number(point.fund) + shift) }));
+  // A shifted body has its own fund line, shift + index / 2 (exact in binary, so no rounding noise): 10, 10.5, 11 ... for shift 10.
+  if (shift) body.points = body.points.map((point, index) => ({ ...point, fund: String(shift + index / 2) }));
   return body;
 };
 const noHistory = () => fixture<Unavailable>("rolling_no_history");
@@ -72,18 +73,36 @@ describe("RollingReturnsChart", () => {
     expect(props.series.map(s => [s.key, s.name, s.color])).toEqual([
       ["fund", "Fund", "var(--c2)"], ["benchmark", "Benchmark", "var(--c3)"], ["category", "Category average", "var(--ui-text-muted)"],
     ]);
-    expect(byKey("fund")!.values).toEqual([14.2, 14, 13.6, 13.9, 14.4]);
-    expect(byKey("benchmark")!.values).toEqual([12.9, 12.9, 12.5, 12.7, 13]);
-    expect(byKey("category")!.values).toEqual([13.1, 13, 12.8, 12.9, 13.2]);
+    // rolling_3y: 36 month-end points from 31 Oct 2023 to 30 Sep 2026, none missing; these are the first five.
+    expect(byKey("fund")!.values).toHaveLength(36);
+    expect(byKey("fund")!.values.slice(0, 5)).toEqual([9.9999, 9.9999, 9.9999, 10.0003, 10.0097]);
+    expect(byKey("benchmark")!.values.slice(0, 5)).toEqual([12, 12, 12, 12, 12.0116]);
+    expect(byKey("category")!.values.slice(0, 5)).toEqual([10.8331, 10.8335, 10.8334, 10.8332, 10.8437]);
+    expect(byKey("fund")!.values.at(-1)).toBe(10.0097);
     expect(byKey("fund")!.area).toBe(true);
     expect(byKey("benchmark")!.area).toBeFalsy();
     expect(props.series.every(s => s.visible !== false)).toBe(true);
-    expect(props.labels(0)).toBe("Oct 18");
-    expect(props.labels(4)).toBe("Feb 19");
-    expect(props.tooltipLabel!(0)).toBe("31 Oct 2018, 3-year window");
+    expect(props.labels(0)).toBe("Oct 23");
+    expect(props.labels(4)).toBe("Feb 24");
+    expect(props.labels(35)).toBe("Sep 26");
+    expect(props.tooltipLabel!(0)).toBe("31 Oct 2023, 3-year window");
     expect(props.formatValue(14.2)).toBe("14.2%");
     expect(props.formatValue(-1.26)).toBe("-1.3%");
     expect(props.ariaLabel).toBe("Rolling returns, 3-year window");
+  });
+
+  it("a month with no value for a line takes the value of the month before, and the first months take the first value", async () => {
+    // The golden has no gaps, so two are made by hand: the fund's second month is 10.5 and its third is missing; the benchmark has no value in the first two months.
+    const body = rolling();
+    body.points[1].fund = "10.5000";
+    body.points[2].fund = null;
+    body.points[0].benchmark = null;
+    body.points[1].benchmark = null;
+    api.rolling.mockImplementation(() => Promise.resolve(body));
+    mount();
+    await screen.findByTestId("line-chart");
+    expect(byKey("fund")!.values.slice(0, 5)).toEqual([9.9999, 10.5, 10.5, 10.0003, 10.0097]);
+    expect(byKey("benchmark")!.values.slice(0, 5)).toEqual([12, 12, 12, 12, 12.0116]);
   });
 
   it("a line with no value at all (no benchmark, or no category) is left out", async () => {
@@ -111,9 +130,9 @@ describe("RollingReturnsChart", () => {
     expect(byKey("fund")!.values).toEqual(before);
     await act(async () => { next.resolve(rolling(1, 10)); });
     expect(screen.getByTestId("rolling-chart-wrap")).not.toHaveAttribute("aria-busy");
-    expect(byKey("fund")!.values).toEqual([24.2, 24, 23.6, 23.9, 24.4]);
+    expect(byKey("fund")!.values.slice(0, 5)).toEqual([10, 10.5, 11, 11.5, 12]);
     expect(chart.props!.ariaLabel).toBe("Rolling returns, 1-year window");
-    expect(chart.props!.tooltipLabel!(1)).toBe("30 Nov 2018, 1-year window");
+    expect(chart.props!.tooltipLabel!(1)).toBe("30 Nov 2023, 1-year window");
     choose("5");
     await screen.findByTestId("line-chart");
     expect(api.rolling).toHaveBeenLastCalledWith(IDS.scheme, 5, expect.any(AbortSignal));
@@ -172,9 +191,9 @@ describe("RollingReturnsChart", () => {
     choose("5");
     choose("1");
     await act(async () => { one.resolve(rolling(1, 10)); });
-    expect(byKey("fund")!.values[0]).toBe(24.2);
+    expect(byKey("fund")!.values[0]).toBe(10);
     await act(async () => { five.resolve(rolling(5, 50)); });
-    expect(byKey("fund")!.values[0]).toBe(24.2);
+    expect(byKey("fund")!.values[0]).toBe(10);
     expect(chart.props!.ariaLabel).toBe("Rolling returns, 1-year window");
   });
 

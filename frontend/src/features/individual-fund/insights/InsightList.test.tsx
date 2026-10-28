@@ -16,21 +16,21 @@ describe("InsightList", () => {
     mount();
     expect(screen.getByRole("heading", { name: "Key Insights" })).toBeInTheDocument();
     expect(rows().map(row => row.getAttribute("data-testid"))).toEqual([
-      "fact-expense_ratio_vs_category", "fact-top5_concentration", "fact-sector_concentration",
+      "fact-overlap", "fact-expense_ratio_vs_category", "fact-top5_weight",
     ]);
-    expect(rows()[1]).toHaveTextContent("Top 5 holdings make up 30% of the fund.");
+    expect(rows()[2]).toHaveTextContent("The five largest disclosed holdings account for 38%.");
   });
 
-  it("test_key_insights_rows_have_tone_icon_and_open_evidence_with_enter: pos trending-up, info info, warn triangle-alert", () => {
+  it("test_key_insights_rows_have_tone_icon_and_open_evidence_with_enter: info info, pos trending-up, neu minus", () => {
     mount();
-    expect(rows().map(row => within(row).getByTestId("tone-icon").getAttribute("data-icon"))).toEqual(["trending-up", "info", "triangle-alert"]);
-    expect(rows().map(row => within(row).getByTestId("tone-icon").getAttribute("data-tone"))).toEqual(["pos", "info", "warn"]);
+    expect(rows().map(row => within(row).getByTestId("tone-icon").getAttribute("data-icon"))).toEqual(["info", "trending-up", "minus"]);
+    expect(rows().map(row => within(row).getByTestId("tone-icon").getAttribute("data-tone"))).toEqual(["info", "pos", "neu"]);
     fireEvent.keyDown(rows()[1], { key: "Enter" });
     const dialog = screen.getByRole("dialog", { name: "Evidence" });
-    expect(within(dialog).getAllByTestId("evidence-row").map(row => row.textContent)).toEqual(["Top 530.0%", "Top 1046.0%", "As of2026-09-30"]);
+    expect(within(dialog).getAllByTestId("evidence-row").map(row => row.textContent)).toEqual(["Expense ratio0.7%", "Category average1.033333333333333333333333333%"]);
     fireEvent.click(within(dialog).getByRole("button", { name: "Close modal" }));
     fireEvent.click(rows()[2]);
-    expect(screen.getByTestId("evidence-text")).toHaveTextContent("Financial Services is 31% of the fund.");
+    expect(screen.getByTestId("evidence-text")).toHaveTextContent("The five largest disclosed holdings account for 38%.");
   });
 
   it("a negative fact is drawn with the circle-alert icon", () => {
@@ -41,15 +41,15 @@ describe("InsightList", () => {
   });
 
   it("test_overlap_row_links_to_greyed_overlap_with_tooltip: an overlap fact in the key list keeps its evidence and shows the greyed link", () => {
-    const data = fixture<InsightsResponse>("insights_full");
-    data.key.push(data.considerations[0]);
-    mount(section({ data }));
+    // In the real golden the overlap fact is already in the key list (list "key", tone "info", priority 20).
+    mount();
     const row = screen.getByTestId("fact-overlap");
     expect(within(row).getByTestId("overlap-link")).toHaveAttribute("aria-disabled", "true");
     expect(within(row).getByTestId("overlap-link")).toHaveAttribute("title", "Coming soon");
     expect(screen.getAllByTestId("overlap-link")).toHaveLength(1);
     fireEvent.click(row);
-    expect(screen.getByTestId("evidence-text")).toHaveTextContent("51% overlap with Beta Flexi Cap Fund in your portfolio.");
+    expect(screen.getByTestId("evidence-text")).toHaveTextContent("Portfolio overlap with Golden Peer 1 Fund is 35%.");
+    expect(within(screen.getByRole("dialog")).getAllByTestId("evidence-row").map(item => item.textContent)).toEqual(["Golden Peer 1 Fund35%"]);
   });
 
   it("test_no_facts_shows_not_enough_data_message: an empty key list says so", () => {

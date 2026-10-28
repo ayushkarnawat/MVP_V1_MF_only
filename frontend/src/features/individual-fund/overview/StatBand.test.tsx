@@ -32,9 +32,9 @@ describe("StatBand", () => {
     expect(screen.getByTestId("tile-gain-figure")).toHaveTextContent("+₹650");
     expect(screen.getByTestId("tile-gain-sub")).toHaveTextContent("+40.6%");
     expect(screen.getByTestId("tile-xirr")).toHaveTextContent("XIRR");
-    expect(screen.getByTestId("tile-xirr-figure")).toHaveTextContent("18.5%");
+    expect(screen.getByTestId("tile-xirr-figure")).toHaveTextContent("12.3%");
     expect(screen.getByTestId("tile-ter")).toHaveTextContent("Expense ratio");
-    expect(screen.getByTestId("tile-ter-figure")).toHaveTextContent("0.62%");
+    expect(screen.getByTestId("tile-ter-figure")).toHaveTextContent("0.70%");
     expect(screen.getByTestId("tile-ter-sub")).toHaveTextContent("Direct Plan");
   });
 
@@ -48,10 +48,11 @@ describe("StatBand", () => {
 
   it("test_share_of_portfolio_shown_under_the_value_and_hidden_when_null", () => {
     mount();
-    expect(screen.getByTestId("tile-value-sub")).toHaveTextContent("45.0% of portfolio");
-    const cas = fixture<SummaryResponse>("summary_cas_only");
-    expect(cas.tiles.share_of_portfolio_pct).toBeNull();
-    mount(cas);
+    expect(screen.getByTestId("tile-value-sub")).toHaveTextContent("94.5% of portfolio");
+    // The real member-scope golden has no share (a member's share of the household is not computed): the line is hidden.
+    const memberView = fixture<SummaryResponse>("summary_member");
+    expect(memberView.tiles.share_of_portfolio_pct).toBeNull();
+    mount(memberView);
     expect(screen.getAllByTestId("tile-value")).toHaveLength(2);
     expect(within(screen.getAllByTestId("tile-value")[1]).queryByTestId("tile-value-sub")).toBeNull();
   });
@@ -63,7 +64,11 @@ describe("StatBand", () => {
   });
 
   it("a missing XIRR or expense ratio reads a dash", () => {
-    mount(fixture<SummaryResponse>("summary_cas_only"));
+    // The CAS-only golden has no expense ratio but does have an XIRR (12.9%); the contract also allows a null XIRR, so blank it.
+    const cas = fixture<SummaryResponse>("summary_cas_only");
+    expect(cas.tiles.xirr).toBe("0.1292258326537757773518355219");
+    cas.tiles.xirr = null;
+    mount(cas);
     expect(screen.getByTestId("tile-xirr-figure")).toHaveTextContent("—");
     expect(screen.getByTestId("tile-ter-figure")).toHaveTextContent("—");
     expect(screen.queryByTestId("tile-ter-sub")).toBeNull();
@@ -145,23 +150,23 @@ describe("StatBand", () => {
 
     fireEvent.click(screen.getByTestId("tile-ter"));
     dialog = screen.getByRole("dialog");
-    expect(row(dialog, "This plan")).toBe("0.62%");
+    expect(row(dialog, "This plan")).toBe("0.70%");
     expect(row(dialog, "Plan")).toBe("Direct");
-    expect(row(dialog, "As of")).toBe("01 Sep 2026");
+    expect(row(dialog, "As of")).toBe("30 Sep 2026");
   });
 
   it("the XIRR drill-down gives the rate, the period and the explanation", () => {
     mount();
     fireEvent.click(screen.getByTestId("tile-xirr"));
     const dialog = screen.getByRole("dialog");
-    expect(row(dialog, "Your XIRR")).toBe("18.5%");
+    expect(row(dialog, "Your XIRR")).toBe("12.3%");
     expect(row(dialog, "Period")).toBe("01 Jan 2025 to 23 Oct 2026");
     expect(dialog).toHaveTextContent("XIRR weighs when your money went in, so it differs from the fund's own return table.");
   });
 
   it("the score card sits beside the band and opens its own dialog", () => {
     mount();
-    expect(within(screen.getByTestId("score-card")).getByTestId("score-number")).toHaveTextContent("72");
+    expect(within(screen.getByTestId("score-card")).getByTestId("score-number")).toHaveTextContent("79");
     fireEvent.click(screen.getByTestId("score-card"));
     expect(screen.getByRole("dialog", { name: "Unifolio Fund Score" })).toBeInTheDocument();
   });
@@ -174,13 +179,21 @@ describe("StatBand", () => {
 
   it("test_not_held_replaces_tiles_with_message_and_link_to_combined (the score card stays)", () => {
     const setAggregate = vi.fn();
-    mount(fixture<SummaryResponse>("summary_not_held"), {}, { members, viewMode: "member", memberId: IDS.meera, setAggregate });
-    expect(screen.getByTestId("not-held")).toHaveTextContent("Not held by Meera Rao");
-    expect(screen.getByTestId("not-held")).toHaveTextContent("Held by ASHA RAO, Dev Rao.");
+    // The real not-held golden is scoped to Dev Rao, and only ASHA RAO holds the fund.
+    mount(fixture<SummaryResponse>("summary_not_held"), {}, { members, viewMode: "member", memberId: IDS.dev, setAggregate });
+    expect(screen.getByTestId("not-held")).toHaveTextContent("Not held by Dev Rao");
+    expect(screen.getByTestId("not-held")).toHaveTextContent("Held by ASHA RAO.");
     expect(screen.queryByTestId("tile-value")).toBeNull();
     expect(screen.getByTestId("score-card")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "View Family Combined" }));
     expect(setAggregate).toHaveBeenCalledTimes(1);
+  });
+
+  it("when two members hold the fund the not-held line names both, in the API order", () => {
+    const body = fixture<SummaryResponse>("summary_not_held");
+    body.held_by_other_members = [{ id: IDS.asha, name: "ASHA RAO" }, { id: IDS.meera, name: "Meera Rao" }];
+    mount(body, {}, { members, viewMode: "member", memberId: IDS.dev });
+    expect(screen.getByTestId("not-held")).toHaveTextContent("Held by ASHA RAO, Meera Rao.");
   });
 
   it("while a new member's figures load the tiles show a loading status instead of the old member's numbers", () => {

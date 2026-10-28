@@ -1,116 +1,125 @@
 {
   "status": "ready",
-  "scheme_id": "7c9e5b0a-3f1d-4a52-8e6b-1d2f3a4b5c6d",
+  "scheme_id": "2c652f6f-008c-58a5-90a5-d1f2e331823f",
   "holdings_as_of": "2026-09-30",
   "age_tag": null,
-  "stock_count": 38,
+  "stock_count": 12,
   "top10": [
     {
-      "name": "HDFC Bank Ltd",
-      "isin": "INE040A01034",
-      "sector": "Financial Services",
-      "weight": "8.2100"
-    },
-    {
-      "name": "ICICI Bank Ltd",
-      "isin": "INE090A01021",
-      "sector": "Financial Services",
-      "weight": "6.9000"
-    },
-    {
-      "name": "Infosys Ltd",
-      "isin": "INE009A01021",
-      "sector": "Information Technology",
-      "weight": "5.4000"
-    },
-    {
-      "name": "Reliance Industries Ltd",
-      "isin": "INE002A01018",
-      "sector": "Energy",
-      "weight": "5.1000"
-    },
-    {
-      "name": "Larsen & Toubro Ltd",
-      "isin": "INE018A01030",
-      "sector": "Industrials",
-      "weight": "4.3000"
-    },
-    {
-      "name": "Bharti Airtel Ltd",
-      "isin": "INE397D01024",
-      "sector": "Telecom",
-      "weight": "3.9000"
-    },
-    {
-      "name": "Tata Consultancy Services Ltd",
-      "isin": "INE467B01029",
-      "sector": "Information Technology",
-      "weight": "3.6000"
-    },
-    {
-      "name": "ITC Ltd",
-      "isin": "INE154A01025",
-      "sector": "FMCG",
-      "weight": "3.2000"
-    },
-    {
-      "name": "Axis Bank Ltd",
-      "isin": "INE238A01034",
-      "sector": "Financial Services",
-      "weight": "2.9000"
-    },
-    {
-      "name": "Sun Pharmaceutical Industries Ltd",
-      "isin": "INE044A01036",
+      "name": "Golden Stock 4",
+      "isin": "INEGOLD00003",
       "sector": "Healthcare",
-      "weight": "2.6000"
+      "weight": "8.0000"
+    },
+    {
+      "name": "Golden Stock 8",
+      "isin": "INEGOLD00007",
+      "sector": "Healthcare",
+      "weight": "8.0000"
+    },
+    {
+      "name": "Golden Stock 12",
+      "isin": "INEGOLD00011",
+      "sector": "Unclassified",
+      "weight": "8.0000"
+    },
+    {
+      "name": "Golden Stock 3",
+      "isin": "INEGOLD00002",
+      "sector": "Industrials",
+      "weight": "7.0000"
+    },
+    {
+      "name": "Golden Stock 7",
+      "isin": "INEGOLD00006",
+      "sector": "Industrials",
+      "weight": "7.0000"
+    },
+    {
+      "name": "Golden Stock 11",
+      "isin": "INEGOLD00010",
+      "sector": "Industrials",
+      "weight": "7.0000"
+    },
+    {
+      "name": "Golden Stock 2",
+      "isin": "INEGOLD00001",
+      "sector": "IT",
+      "weight": "6.0000"
+    },
+    {
+      "name": "Golden Stock 6",
+      "isin": "INEGOLD00005",
+      "sector": "IT",
+      "weight": "6.0000"
+    },
+    {
+      "name": "Golden Stock 10",
+      "isin": "INEGOLD00009",
+      "sector": "IT",
+      "weight": "6.0000"
+    },
+    {
+      "name": "Golden Stock 1",
+      "isin": "INEGOLD00000",
+      "sector": "Financial Services",
+      "weight": "5.0000"
     }
   ],
   "allocation": {
     "market_cap": [
       {
         "label": "Large",
-        "pct": "72.1000"
+        "pct": "33.3333"
       },
       {
         "label": "Mid",
-        "pct": "20.0000"
+        "pct": "33.3333"
       },
       {
         "label": "Small",
-        "pct": "7.9000"
+        "pct": "33.3333"
       }
     ],
     "sector": [
       {
+        "label": "Industrials",
+        "pct": "21.0000"
+      },
+      {
+        "label": "IT",
+        "pct": "18.0000"
+      },
+      {
+        "label": "Healthcare",
+        "pct": "16.0000"
+      },
+      {
         "label": "Financial Services",
-        "pct": "31.2000"
+        "pct": "15.0000"
       },
       {
-        "label": "Information Technology",
-        "pct": "13.4000"
-      },
-      {
-        "label": "Energy",
-        "pct": "8.1000"
-      },
-      {
-        "label": "Others",
-        "pct": "47.3000"
+        "label": "Unclassified",
+        "pct": "8.0000"
       }
     ],
     "asset_type": [
       {
         "key": "equity",
         "label": "Equity",
-        "pct": "96.4000"
+        "pct": "78.0000"
+      },
+      {
+        "key": "debt",
+        "label": "Debt",
+        "pct": "12.0000"
       },
       {
         "key": "cash_equivalent",
         "label": "Cash and equivalents",
-        "pct": "3.6000"
+        "pct": "4.0000"
       }
     ]
   },
-  "unclassified_pct": "3.6000"
+  "unclassified_pct": "16.0000"
 }

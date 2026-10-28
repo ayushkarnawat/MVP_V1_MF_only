@@ -1,49 +1,54 @@
 {
   "status": "ready",
-  "scope": "b2e1c0d4-7a11-4f6b-9c3e-0a1b2c3d4e5f",
+  "scope": "c4083fcb-1e9f-50d6-b023-a1a17a1972d1",
   "held": true,
-  "held_by_other_members": [],
+  "held_by_other_members": [
+    {
+      "id": "80008f0b-4cf4-5e83-b15a-b3122e6abbf2",
+      "name": "ASHA RAO"
+    }
+  ],
   "nav_as_of": "2026-10-23",
   "nav_stale": false,
   "has_history": true,
   "scheme": {
-    "id": "7c9e5b0a-3f1d-4a52-8e6b-1d2f3a4b5c6d",
+    "id": "2c652f6f-008c-58a5-90a5-d1f2e331823f",
     "name": "Alpha Flexi Cap Fund - Direct Plan",
     "plan": "Direct",
     "category": "Equity Scheme - Flexi Cap Fund",
     "amc_name": "Alpha AMC"
   },
   "tiles": {
-    "current_value": "1500.00",
-    "share_of_portfolio_pct": "30.0000",
-    "invested": "1000.00",
-    "total_gain": "500.00",
-    "total_gain_pct": "50.0000",
-    "xirr": "0.259800",
+    "current_value": "750.00",
+    "share_of_portfolio_pct": null,
+    "invested": "600.00",
+    "total_gain": "150.00",
+    "total_gain_pct": "25.0000",
+    "xirr": "0.1735279232884757158275261014",
     "expense_ratio": {
-      "value": "0.62",
-      "reference_period": "2026-09-01",
+      "value": "0.70",
+      "reference_period": "2026-09-30",
       "plan": "Direct"
     }
   },
   "details": {
-    "units": "100.000",
-    "average_nav": "10.0000",
+    "units": "50.000",
+    "average_nav": "12.0000",
     "current_nav": "15.0000",
-    "invested": "1000.00",
-    "current_value": "1500.00",
-    "gain": "500.00",
-    "gain_pct": "50.0000",
-    "xirr": "0.259800",
-    "first_investment": "2025-01-01",
-    "last_investment": "2025-01-01",
+    "invested": "600.00",
+    "current_value": "750.00",
+    "gain": "150.00",
+    "gain_pct": "25.0000",
+    "xirr": "0.1735279232884757158275261014",
+    "first_investment": "2025-06-01",
+    "last_investment": "2025-06-01",
     "opening_lot": null,
     "folios": [
       {
-        "folio_id": "a1d4c7e0-1111-4aaa-8bbb-000000000001",
-        "member_id": "b2e1c0d4-7a11-4f6b-9c3e-0a1b2c3d4e5f",
-        "member_name": "ASHA RAO",
-        "folio_masked": "XXXXX9183"
+        "folio_id": "e562b2b9-d43a-5957-bee6-8b1eb24de5df",
+        "member_id": "c4083fcb-1e9f-50d6-b023-a1a17a1972d1",
+        "member_name": "Dev Rao",
+        "folio_masked": "XXXXX5678"
       }
     ]
   }

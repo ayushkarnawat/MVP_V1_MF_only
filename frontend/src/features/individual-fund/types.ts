@@ -1,9 +1,8 @@
 // Contract types for the Individual Fund page API (GET /fund-page/{scheme_id}/...).
 // Source: Docs/orchestration/ui-redesign-IB-individual-fund-backend-handoff.md, Appendix A.1.
-// SPEC FIXTURE STATUS: the backend is not built yet. These types and the JSON files in ./fixtures are
-// written from the Appendix, not from real output. They are orchestrator-owned: never edit them. When the
-// real golden fixtures (backend/tests/fixtures/fund/*.json) exist they replace the files here and
-// fixtures/fixtures.test.ts is the guard that compares them against these types.
+// FIXTURE STATUS (IF-C): the Individual Fund backend is built and merged. The JSON files in ./fixtures are
+// byte-identical copies of the backend goldens (backend/tests/fixtures/fund/*.json) and fixtures/fixtures.test.ts is
+// the guard that compares them against these types. These types and the fixtures are orchestrator-owned: never edit them.
 //
 // Conventions: every ready body has status "ready"; an unavailable body is exactly
 // { status: "unavailable", reason } (HTTP 200). Money, units, NAV and percent values are strings. Percent
@@ -207,7 +206,8 @@ export interface CompositionResponse {
 
 export interface HoldingRowOut {
   name: string;
-  isin: string;
+  /** Null for a holding that has no ISIN (a government bond line, the cash line). */
+  isin: string | null;
   sector: string;
   asset_type: string;
   weight: string;
@@ -355,4 +355,106 @@ export interface InsightsResponse {
   strengths: Fact[];
   considerations: Fact[];
   top_three: Fact[];
+}
+
+// ---- 16 and 17. overlap (the Overlap tab, packet IF-D; typed here so the golden overlap fixtures are guarded) ----------
+
+export interface OverlapFundRef {
+  scheme_id: string;
+  scheme_name: string;
+}
+
+export interface OverlapDistribution {
+  unique_to_fund_count: number;
+  common_count: number;
+  unique_to_others_count: number;
+  unique_to_fund_pct: string;
+  common_pct: string;
+  unique_to_others_pct: string;
+}
+
+export interface OverlapCommonHolding {
+  isin: string;
+  name: string;
+  sector: string;
+  fund_weight: string;
+  portfolio_weight: string;
+  held_in_funds: OverlapFundRef[];
+}
+
+export interface OverlapSectorStock {
+  isin: string;
+  name: string;
+  weight: string;
+}
+
+export interface OverlapSector {
+  sector: string;
+  pct: string;
+  stocks: OverlapSectorStock[];
+}
+
+export interface OverlapTopFund extends OverlapFundRef {
+  overlap_pct: string;
+  common_stock_count: number;
+}
+
+export interface OverlapResponse {
+  status: "ready";
+  scheme_id: string;
+  holdings_as_of: string;
+  overlap_pct: string;
+  common_stock_count: number;
+  total_stock_count: number;
+  distribution: OverlapDistribution;
+  common_holdings: OverlapCommonHolding[];
+  by_sector: OverlapSector[];
+  top_overlap_funds: OverlapTopFund[];
+  coverage: { covered_value_pct: string; funds_without_disclosure: OverlapFundRef[] };
+}
+
+export interface CompareFund extends OverlapFundRef {
+  holdings_as_of: string;
+  current_value: string;
+}
+
+export interface ImpactAmount {
+  amount: string;
+  pct: string;
+}
+
+export interface CompareCommonHolding {
+  isin: string;
+  name: string;
+  sector: string;
+  weight_a: string;
+  weight_b: string;
+  combined: string;
+}
+
+export interface CompareUniqueHolding {
+  isin: string;
+  name: string;
+  sector: string;
+  weight: string;
+}
+
+export interface CompareMarketCap {
+  large: string;
+  mid: string;
+  small: string;
+  other: string;
+}
+
+export interface OverlapCompareResponse {
+  status: "ready";
+  fund_a: CompareFund;
+  fund_b: CompareFund;
+  overlap_pct: string;
+  counts: { unique_a: number; common: number; unique_b: number };
+  impact: { common_both: ImpactAmount; unique_a: ImpactAmount; unique_b: ImpactAmount; other_funds: ImpactAmount };
+  sector_comparison: { sector: string; common: string; a: string; b: string }[];
+  common_holdings: CompareCommonHolding[];
+  unique_holdings: { a: CompareUniqueHolding[]; b: CompareUniqueHolding[] };
+  market_cap: { a: CompareMarketCap; b: CompareMarketCap };
 }

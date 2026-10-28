@@ -27,8 +27,9 @@ describe("SmartInsightsCards", () => {
     expect(cards().map(card => within(card).getByTestId("smart-card-title").textContent)).toEqual([
       "Long-term performance", "Overlap in your portfolio", "Fund management",
     ]);
-    expect(cards()[0]).toHaveTextContent("Returned 14.2% a year over 3 years, against a category average of 13.0%.");
-    expect(cards().map(card => within(card).getByTestId("tone-icon").getAttribute("data-tone"))).toEqual(["pos", "warn", "pos"]);
+    // top_three mixes lists: the first card is a consideration (warn) from the "consideration" list, the second a key fact, the third a strength.
+    expect(cards()[0]).toHaveTextContent("Five-year return is 10%, against 10.8396% for the category.");
+    expect(cards().map(card => within(card).getByTestId("tone-icon").getAttribute("data-tone"))).toEqual(["warn", "info", "pos"]);
     expect(screen.getByRole("list", { name: "Top three insights" })).toBeInTheDocument();
     for (const card of cards()) {
       expect(card).toHaveAttribute("role", "button");
@@ -37,8 +38,8 @@ describe("SmartInsightsCards", () => {
     }
     fireEvent.click(cards()[1]);
     const dialog = screen.getByRole("dialog", { name: "Evidence" });
-    expect(within(dialog).getByTestId("evidence-row")).toHaveTextContent("Beta Flexi Cap Fund51%");
-    expect(within(dialog).getByTestId("evidence-text")).toHaveTextContent("51% overlap with Beta Flexi Cap Fund in your portfolio.");
+    expect(within(dialog).getByTestId("evidence-row")).toHaveTextContent("Golden Peer 1 Fund35%");
+    expect(within(dialog).getByTestId("evidence-text")).toHaveTextContent("Portfolio overlap with Golden Peer 1 Fund is 35%.");
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
   });
@@ -52,7 +53,7 @@ describe("SmartInsightsCards", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
     const spaceNotPrevented = fireEvent.keyDown(cards()[2], { key: " " });
     expect(spaceNotPrevented).toBe(false);
-    expect(screen.getByTestId("evidence-text")).toHaveTextContent("The lead manager has managed the fund since 2019, 7.6 years.");
+    expect(screen.getByTestId("evidence-text")).toHaveTextContent("The lead manager has managed the fund since 2018-04-01, 8.6 years.");
   });
 
   it("test_follow_up_button_opens_mira_popup: Ask Mira a follow-up opens the shell's coming-soon dialog", () => {
@@ -75,7 +76,9 @@ describe("SmartInsightsCards", () => {
   });
 
   it("test_fewer_than_three_facts_shows_fewer_cards: one fact, one card", () => {
-    mount(section({ data: fixture<InsightsResponse>("insights_sparse") }));
+    const data = fixture<InsightsResponse>("insights_full");
+    data.top_three = data.key.filter(item => item.id === "expense_ratio_vs_category");
+    mount(section({ data }));
     expect(cards()).toHaveLength(1);
     expect(cards()[0]).toHaveAttribute("data-fact", "expense_ratio_vs_category");
     expect(within(cards()[0]).getByTestId("smart-card-title")).toHaveTextContent("Fund costs");

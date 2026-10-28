@@ -20,22 +20,32 @@ describe("StrengthsConsiderations", () => {
     expect(within(lists).getByRole("heading", { name: "Considerations" })).toBeInTheDocument();
     const strengths = within(screen.getByTestId("sc-strengths")).getByRole("list", { name: "Strengths" });
     const considerations = within(screen.getByTestId("sc-considerations")).getByRole("list", { name: "Considerations" });
-    expect(within(strengths).getAllByRole("button").map(row => row.getAttribute("data-testid"))).toEqual(["fact-long_term_vs_category", "fact-manager_tenure"]);
-    expect(within(considerations).getAllByRole("button").map(row => row.getAttribute("data-testid"))).toEqual(["fact-overlap", "fact-volatility_vs_category"]);
+    expect(within(strengths).getAllByRole("button").map(row => row.getAttribute("data-testid"))).toEqual(["fact-manager_tenure", "fact-market_cap_spread"]);
+    // The five-year comparison is a consideration in the golden (the fund trails its category), listed first by priority.
+    expect(within(considerations).getAllByRole("button").map(row => row.getAttribute("data-testid"))).toEqual(["fact-long_term_vs_category", "fact-peer_beat_years", "fact-lagging_years"]);
     expect(screen.getByTestId("sc-strengths").compareDocumentPosition(screen.getByTestId("sc-considerations")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    fireEvent.click(within(considerations).getByTestId("fact-volatility_vs_category"));
+    fireEvent.click(within(considerations).getByTestId("fact-lagging_years"));
     const dialog = screen.getByRole("dialog", { name: "Evidence" });
-    expect(within(dialog).getAllByTestId("evidence-row").map(row => row.textContent)).toEqual(["This fund14.2%", "Category median14.0%"]);
-    expect(within(dialog).getByTestId("evidence-text")).toHaveTextContent("Volatility is above the category median.");
+    expect(within(dialog).getAllByTestId("evidence-row").map(row => row.textContent)).toEqual(["Years below category5 of 5"]);
+    expect(within(dialog).getByTestId("evidence-text")).toHaveTextContent("The fund trailed the category in 5 of 5 completed years.");
   });
 
-  it("each row carries the icon of its own tone, and the overlap consideration has the greyed Overlap link", () => {
+  it("each row carries the icon of its own tone; the golden has no overlap fact here (it is a key insight), so no Overlap link", () => {
     mount();
     const icon = (id: string) => within(screen.getByTestId(`fact-${id}`)).getByTestId("tone-icon").getAttribute("data-icon");
-    expect(icon("long_term_vs_category")).toBe("trending-up");
-    expect(icon("overlap")).toBe("triangle-alert");
-    expect(icon("volatility_vs_category")).toBe("circle-alert");
+    expect(icon("manager_tenure")).toBe("trending-up");
+    expect(icon("long_term_vs_category")).toBe("triangle-alert");
+    expect(icon("peer_beat_years")).toBe("triangle-alert");
+    expect(icon("lagging_years")).toBe("circle-alert");
+    expect(screen.queryAllByTestId("overlap-link")).toHaveLength(0);
+  });
+
+  it("an overlap fact listed as a consideration has the greyed Overlap link", () => {
+    const data = fixture<InsightsResponse>("insights_full");
+    data.considerations.unshift({ ...data.key[0], list: "consideration", tone: "warn" });
+    mount(section({ data }));
     expect(within(screen.getByTestId("fact-overlap")).getByTestId("overlap-link")).toHaveAttribute("title", "Coming soon");
+    expect(within(screen.getByTestId("fact-overlap")).getByTestId("tone-icon")).toHaveAttribute("data-icon", "triangle-alert");
     expect(screen.getAllByTestId("overlap-link")).toHaveLength(1);
   });
 
@@ -55,7 +65,10 @@ describe("StrengthsConsiderations", () => {
   });
 
   it("test_no_facts_shows_not_enough_data_message: both lists empty says so", () => {
-    mount(section({ data: fixture<InsightsResponse>("insights_sparse") }));
+    const data = fixture<InsightsResponse>("insights_full");
+    data.strengths = [];
+    data.considerations = [];
+    mount(section({ data }));
     expect(screen.getByTestId("sc-empty")).toHaveTextContent("Not enough data to draw insights yet");
     expect(screen.queryByTestId("sc-lists")).toBeNull();
   });

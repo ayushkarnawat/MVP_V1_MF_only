@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   axisLabel, changeDirection, formatDate, formatNav, formatRiskValue, formatSignedPercent, formatSignedRupees, formatWhole, formatXirr,
   lastPct, planPill, riskBarPercent, seriesValues, shareLine, shortCategory, toneChipClass,
-  barLabel, fillGaps, initialsOf,
+  alignToDates, barLabel, fillGaps, initialsOf,
 } from "./fundFormat";
 
 describe("changeDirection", () => {
@@ -178,5 +178,44 @@ describe("barLabel", () => {
     ["year", "2022", "2022"], ["year", "2026 YTD", "2026 YTD"], ["quarter", "Q1 2026", "Q1 2026"], ["week", "W3", "W3"],
   ] as const)("%s bucket %j is drawn as %j", (bucket, label, expected) => {
     expect(barLabel(bucket, label)).toBe(expected);
+  });
+});
+
+describe("alignToDates", () => {
+  const points = [
+    { date: "2026-01-01", pct: "0.0000" }, { date: "2026-01-02", pct: "1.5000" }, { date: "2026-01-03", pct: "2.0000" },
+    { date: "2026-01-06", pct: "3.2500" },
+  ];
+
+  it("gives one number per wanted date, taking the point that has exactly that date", () => {
+    expect(alignToDates(points, ["2026-01-01", "2026-01-03", "2026-01-06"])).toEqual([0, 2, 3.25]);
+  });
+
+  it("a wanted date the series lacks takes the nearest earlier point (a weekend between 3 and 6 January)", () => {
+    expect(alignToDates(points, ["2026-01-02", "2026-01-04", "2026-01-05", "2026-01-06"])).toEqual([1.5, 2, 2, 3.25]);
+  });
+
+  it("a wanted date after the last point keeps the last value, and one before the first point takes the first value", () => {
+    expect(alignToDates(points, ["2025-12-30", "2026-01-09"])).toEqual([0, 3.25]);
+    const later = [{ date: "2026-01-05", pct: "2.5000" }, { date: "2026-01-08", pct: "4.0000" }];
+    expect(alignToDates(later, ["2026-01-01", "2026-01-05", "2026-01-07", "2026-01-12"])).toEqual([2.5, 2.5, 2.5, 4]);
+  });
+
+  it("works on a longer series than the wanted dates (daily category points against a fund that skips days)", () => {
+    expect(alignToDates(points, ["2026-01-01", "2026-01-06"])).toEqual([0, 3.25]);
+  });
+
+  it("an empty or missing series gives an empty list, and no wanted dates give an empty list", () => {
+    expect(alignToDates([], ["2026-01-01"])).toEqual([]);
+    expect(alignToDates(null, ["2026-01-01"])).toEqual([]);
+    expect(alignToDates(points, [])).toEqual([]);
+  });
+
+  it("does not change the lists it is given", () => {
+    const wanted = ["2026-01-04"];
+    const copy = structuredClone(points);
+    alignToDates(points, wanted);
+    expect(points).toEqual(copy);
+    expect(wanted).toEqual(["2026-01-04"]);
   });
 });

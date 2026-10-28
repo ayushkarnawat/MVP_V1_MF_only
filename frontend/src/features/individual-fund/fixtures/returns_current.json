@@ -9,16 +9,16 @@
   ],
   "rows": {
     "holding_xirr": {
-      "1Y": "18.5300",
+      "1Y": "9.9997",
       "3Y": null,
       "5Y": null,
-      "since_first_investment": "18.5300"
+      "since_first_investment": "22.8418"
     },
     "benchmark_same_flows": {
-      "1Y": "15.0000",
+      "1Y": "12.0000",
       "3Y": null,
       "5Y": null,
-      "since_first_investment": "15.0000"
+      "since_first_investment": "12.0000"
     }
   },
   "benchmark_reason": null

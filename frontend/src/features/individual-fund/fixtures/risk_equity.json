@@ -1,30 +1,30 @@
 {
   "status": "ready",
-  "scheme_id": "7c9e5b0a-3f1d-4a52-8e6b-1d2f3a4b5c6d",
+  "scheme_id": "2c652f6f-008c-58a5-90a5-d1f2e331823f",
   "window_start": "2023-10-23",
   "window_end": "2026-10-23",
-  "points": 1095,
+  "points": 1096,
   "life_window": false,
   "risk_free_rate": "0.065",
   "volatility": {
-    "value": "14.2000",
-    "band": "Moderate",
-    "tone": "warn"
+    "value": "0.0050",
+    "band": "Low",
+    "tone": "pos"
   },
   "max_drawdown": {
-    "value": "-18.4000",
-    "band": "Moderate",
-    "tone": "warn"
+    "value": "0.0000",
+    "band": "Low",
+    "tone": "pos"
   },
   "sharpe": {
-    "value": "0.8200",
-    "band": "Fair",
-    "tone": "warn"
+    "value": "698.7295",
+    "band": "Good",
+    "tone": "pos"
   },
   "beta": {
-    "value": "0.9800",
-    "band": "Market-like",
-    "tone": "neu"
+    "value": "0.7407",
+    "band": "Lower risk",
+    "tone": "pos"
   },
   "beta_reason": null
 }
