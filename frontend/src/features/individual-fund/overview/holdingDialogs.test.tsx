@@ -39,15 +39,15 @@ describe("SliceDialog", () => {
   });
 
   it("a market-cap or asset-type slice shows its share only", () => {
-    render(<SliceDialog slice={{ tab: "market_cap", label: "Mid Cap", pct: "20.0000" }} top10={top10()} onClose={vi.fn()} />);
-    const dialog = screen.getByRole("dialog", { name: "Mid Cap (20.0%)" });
-    expect(within(dialog).getByText("Share of classified equity", { selector: "dt" }).nextElementSibling).toHaveTextContent("20.0%");
+    render(<SliceDialog slice={{ tab: "market_cap", label: "Mid Cap", pct: "33.3333" }} top10={top10()} onClose={vi.fn()} />);
+    const dialog = screen.getByRole("dialog", { name: "Mid Cap (33.3%)" });
+    expect(within(dialog).getByText("Share of classified equity", { selector: "dt" }).nextElementSibling).toHaveTextContent("33.3%");
     expect(within(dialog).queryByText("Top 10 holdings in this sector")).toBeNull();
   });
 
   it("a sector slice also lists the top-10 holdings that belong to it", () => {
-    render(<SliceDialog slice={{ tab: "sector", label: "Energy", pct: "8.1000" }} top10={top10()} onClose={vi.fn()} />);
-    const dialog = screen.getByRole("dialog", { name: "Energy (8.1%)" });
-    expect(within(dialog).getAllByRole("listitem").map(li => li.textContent)).toEqual(["Reliance Industries Ltd5.1%"]);
+    render(<SliceDialog slice={{ tab: "sector", label: "Healthcare", pct: "16.0000" }} top10={top10()} onClose={vi.fn()} />);
+    const dialog = screen.getByRole("dialog", { name: "Healthcare (16.0%)" });
+    expect(within(dialog).getAllByRole("listitem").map(li => li.textContent)).toEqual(["Golden Stock 48.0%", "Golden Stock 88.0%"]);
   });
 });

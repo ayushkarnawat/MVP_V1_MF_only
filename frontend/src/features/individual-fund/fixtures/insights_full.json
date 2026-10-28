@@ -2,152 +2,161 @@
   "status": "ready",
   "key": [
     {
+      "id": "overlap",
+      "list": "key",
+      "tone": "info",
+      "text": "Portfolio overlap with Golden Peer 1 Fund is 35%.",
+      "evidence": [
+        {
+          "label": "Golden Peer 1 Fund",
+          "value": "35%"
+        }
+      ],
+      "priority": 20
+    },
+    {
       "id": "expense_ratio_vs_category",
       "list": "key",
       "tone": "pos",
-      "text": "Expense ratio is 0.62%, against a category average of 0.95%.",
+      "text": "Expense ratio is 0.7%, against a category average of 1.033333333333333333333333333%.",
       "evidence": [
         {
           "label": "Expense ratio",
-          "value": "0.62%"
+          "value": "0.7%"
         },
         {
           "label": "Category average",
-          "value": "0.95%"
+          "value": "1.033333333333333333333333333%"
         }
       ],
       "priority": 40
     },
     {
-      "id": "top5_concentration",
+      "id": "top5_weight",
       "list": "key",
-      "tone": "info",
-      "text": "Top 5 holdings make up 30% of the fund.",
+      "tone": "neu",
+      "text": "The five largest disclosed holdings account for 38%.",
       "evidence": [
         {
-          "label": "Top 5",
-          "value": "30.0%"
-        },
-        {
-          "label": "Top 10",
-          "value": "46.0%"
-        },
-        {
-          "label": "As of",
-          "value": "2026-09-30"
+          "label": "Top five weight",
+          "value": "38%"
         }
       ],
-      "priority": 50
-    },
-    {
-      "id": "sector_concentration",
-      "list": "key",
-      "tone": "warn",
-      "text": "Financial Services is 31% of the fund.",
-      "evidence": [
-        {
-          "label": "Financial Services",
-          "value": "31.2%"
-        }
-      ],
-      "priority": 55
+      "priority": 70
     }
   ],
   "strengths": [
     {
-      "id": "long_term_vs_category",
+      "id": "manager_tenure",
       "list": "strength",
       "tone": "pos",
-      "text": "Returned 14.2% a year over 3 years, against a category average of 13.0%.",
+      "text": "The lead manager has managed the fund since 2018-04-01, 8.6 years.",
       "evidence": [
         {
-          "label": "3 years",
-          "value": "14.2% a year"
+          "label": "Managing since",
+          "value": "2018-04-01"
         },
         {
-          "label": "Category average",
-          "value": "13.0% a year"
+          "label": "Tenure",
+          "value": "8.6"
+        }
+      ],
+      "priority": 30
+    },
+    {
+      "id": "market_cap_spread",
+      "list": "strength",
+      "tone": "pos",
+      "text": "Market-cap shares are Large 33.3333%, Mid 33.3333%, and Small 33.3333%.",
+      "evidence": [
+        {
+          "label": "Large",
+          "value": "33.3333%"
+        },
+        {
+          "label": "Mid",
+          "value": "33.3333%"
+        },
+        {
+          "label": "Small",
+          "value": "33.3333%"
+        }
+      ],
+      "priority": 50
+    }
+  ],
+  "considerations": [
+    {
+      "id": "long_term_vs_category",
+      "list": "consideration",
+      "tone": "warn",
+      "text": "Five-year return is 10%, against 10.8396% for the category.",
+      "evidence": [
+        {
+          "label": "Fund return",
+          "value": "10%"
+        },
+        {
+          "label": "Category return",
+          "value": "10.8396%"
         }
       ],
       "priority": 10
     },
     {
-      "id": "manager_tenure",
-      "list": "strength",
-      "tone": "pos",
-      "text": "The lead manager has managed the fund since 2019, 7.6 years.",
-      "evidence": [
-        {
-          "label": "Managing since",
-          "value": "2019-03-01"
-        },
-        {
-          "label": "Tenure",
-          "value": "7.6 years"
-        }
-      ],
-      "priority": 30
-    }
-  ],
-  "considerations": [
-    {
-      "id": "overlap",
+      "id": "peer_beat_years",
       "list": "consideration",
       "tone": "warn",
-      "text": "51% overlap with Beta Flexi Cap Fund in your portfolio.",
+      "text": "The fund exceeded the category in 0 of 5 completed years.",
       "evidence": [
         {
-          "label": "Beta Flexi Cap Fund",
-          "value": "51%"
+          "label": "Years above category",
+          "value": "0 of 5"
         }
       ],
-      "priority": 20
+      "priority": 11
     },
     {
-      "id": "volatility_vs_category",
+      "id": "lagging_years",
       "list": "consideration",
       "tone": "neg",
-      "text": "Volatility is above the category median.",
+      "text": "The fund trailed the category in 5 of 5 completed years.",
       "evidence": [
         {
-          "label": "This fund",
-          "value": "14.2%"
-        },
-        {
-          "label": "Category median",
-          "value": "14.0%"
+          "label": "Years below category",
+          "value": "5 of 5"
         }
       ],
-      "priority": 60
+      "priority": 90
     }
   ],
   "top_three": [
     {
       "id": "long_term_vs_category",
-      "list": "strength",
-      "tone": "pos",
-      "text": "Returned 14.2% a year over 3 years, against a category average of 13.0%.",
+      "list": "consideration",
+      "tone": "warn",
+      "text": "Five-year return is 10%, against 10.8396% for the category.",
       "evidence": [
         {
-          "label": "3 years",
-          "value": "14.2% a year"
+          "label": "Fund return",
+          "value": "10%"
         },
         {
-          "label": "Category average",
-          "value": "13.0% a year"
+          "label": "Category return",
+          "value": "10.8396%"
         }
       ],
       "priority": 10
     },
     {
       "id": "overlap",
-      "list": "consideration",
-      "tone": "warn",
-      "text": "51% overlap with Beta Flexi Cap Fund in your portfolio.",
+      "list": "key",
+      "tone": "info",
+      "text": "Portfolio overlap with Golden Peer 1 Fund is 35%.",
       "evidence": [
         {
-          "label": "Beta Flexi Cap Fund",
-          "value": "51%"
+          "label": "Golden Peer 1 Fund",
+          "value": "35%"
         }
       ],
       "priority": 20
@@ -156,15 +165,15 @@
       "id": "manager_tenure",
       "list": "strength",
       "tone": "pos",
-      "text": "The lead manager has managed the fund since 2019, 7.6 years.",
+      "text": "The lead manager has managed the fund since 2018-04-01, 8.6 years.",
       "evidence": [
         {
           "label": "Managing since",
-          "value": "2019-03-01"
+          "value": "2018-04-01"
         },
         {
           "label": "Tenure",
-          "value": "7.6 years"
+          "value": "8.6"
         }
       ],
       "priority": 30

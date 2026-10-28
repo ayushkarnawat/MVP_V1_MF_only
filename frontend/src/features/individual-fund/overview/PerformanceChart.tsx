@@ -11,6 +11,7 @@ import {
   benchmarkNote,
 } from "../fundCopy";
 import {
+  alignToDates,
   axisLabel,
   changeDirection,
   formatDate,
@@ -120,7 +121,7 @@ export function PerformanceChart({ schemeId, fundName }: PerformanceChartProps) 
               key: "category",
               name: categoryName,
               color: "var(--ui-text-muted)",
-              values: seriesValues(categoryReady.points),
+              values: alignToDates(categoryReady.points, data.fund.map((point) => point.date)),
               visible: !hidden.category,
             },
           ]

@@ -9,7 +9,7 @@ const api = vi.hoisted(() => ({ folioNumber: vi.fn() }));
 vi.mock("../api", () => ({ fundPageApi: api }));
 
 const members = [{ id: IDS.asha, name: "ASHA RAO" }, { id: IDS.dev, name: "Dev Rao" }, { id: IDS.meera, name: "Meera Rao" }];
-const FOLIO_ID_2 = "a2d4c7e0-2222-4aaa-8bbb-000000000002";
+const FOLIO_ID_2 = IDS.folioDev;
 const FULL_NUMBER = "4400918/3";
 
 function mount(summary: SummaryResponse = fixture<SummaryResponse>("summary_family"), props: { refreshing?: boolean } = {}, scope = {}) {
@@ -55,7 +55,7 @@ describe("InvestmentDetails", () => {
     expect(screen.getByTestId("detail-value-value")).toHaveTextContent("₹2,250");
     expect(screen.getByTestId("detail-gain")).toHaveTextContent("Gain / Loss");
     expect(screen.getByTestId("detail-gain-value")).toHaveTextContent("+₹650 (+40.6%)");
-    expect(screen.getByTestId("detail-xirr-value")).toHaveTextContent("18.5%");
+    expect(screen.getByTestId("detail-xirr-value")).toHaveTextContent("12.3%");
     expect(screen.getByTestId("detail-first")).toHaveTextContent("First investment");
     expect(screen.getByTestId("detail-first-value")).toHaveTextContent("01 Jan 2025");
     expect(screen.getByTestId("detail-last")).toHaveTextContent("Last investment");
@@ -98,10 +98,10 @@ describe("InvestmentDetails", () => {
   });
 
   it("test_folio_masked_until_copy: the masked number is shown, nothing is requested until the click, then the full number goes to the clipboard and is never rendered", async () => {
-    mount(fixture<SummaryResponse>("summary_member"), {}, { members, viewMode: "member", memberId: IDS.asha });
+    mount();
     const folio = screen.getByRole("button", { name: "Copy folio number XXXXX9183" });
     expect(folio).toHaveTextContent("XXXXX9183");
-    expect(screen.getByTestId(`folio-${IDS.folioAsha}`)).toHaveTextContent("Folio number");
+    expect(screen.getByTestId(`folio-${IDS.folioAsha}`)).toHaveTextContent("Folio · ASHA RAO");
     expect(api.folioNumber).not.toHaveBeenCalled();
     expect(document.body.textContent).not.toContain(FULL_NUMBER);
     fireEvent.mouseEnter(folio);
@@ -119,7 +119,7 @@ describe("InvestmentDetails", () => {
   it("the Copied note goes away again after a moment", async () => {
     vi.useFakeTimers();
     try {
-      mount(fixture<SummaryResponse>("summary_member"), {}, { members, viewMode: "member", memberId: IDS.asha });
+      mount();
       fireEvent.click(screen.getByRole("button", { name: "Copy folio number XXXXX9183" }));
       await act(async () => { await vi.advanceTimersByTimeAsync(10); });
       expect(screen.getByText("Copied")).toBeInTheDocument();
@@ -132,7 +132,7 @@ describe("InvestmentDetails", () => {
 
   it("a failed request for the number says so and copies nothing", async () => {
     api.folioNumber.mockRejectedValue(new Error("down"));
-    mount(fixture<SummaryResponse>("summary_member"), {}, { members, viewMode: "member", memberId: IDS.asha });
+    mount();
     fireEvent.click(screen.getByRole("button", { name: "Copy folio number XXXXX9183" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't copy the folio number.");
     expect(writeText).not.toHaveBeenCalled();
@@ -140,7 +140,7 @@ describe("InvestmentDetails", () => {
 
   it("a clipboard that refuses, or is missing, says so too", async () => {
     writeText.mockRejectedValue(new Error("denied"));
-    mount(fixture<SummaryResponse>("summary_member"), {}, { members, viewMode: "member", memberId: IDS.asha });
+    mount();
     fireEvent.click(screen.getByRole("button", { name: "Copy folio number XXXXX9183" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't copy the folio number.");
     setClipboard(undefined);
@@ -161,6 +161,19 @@ describe("InvestmentDetails", () => {
     fireEvent.click(within(second).getByRole("button", { name: "Copy folio number XXXXX5678" }));
     await screen.findByText("Copied");
     expect(api.folioNumber).toHaveBeenCalledWith(IDS.scheme, FOLIO_ID_2);
+  });
+
+  it("a member view lists only that member's own folio and figures (the real member golden is Dev Rao's)", () => {
+    mount(fixture<SummaryResponse>("summary_member"), {}, { members, viewMode: "member", memberId: IDS.dev });
+    expect(screen.getByTestId("detail-units-value")).toHaveTextContent("50.000");
+    expect(screen.getByTestId("detail-average-nav-value")).toHaveTextContent("₹12.00");
+    expect(screen.getByTestId("detail-invested-value")).toHaveTextContent("₹600");
+    expect(screen.getByTestId("detail-value-value")).toHaveTextContent("₹750");
+    expect(screen.getByTestId("detail-gain-value")).toHaveTextContent("+₹150 (+25.0%)");
+    expect(screen.getByTestId("detail-xirr-value")).toHaveTextContent("17.4%");
+    expect(screen.getByTestId(`folio-${IDS.folioDev}`)).toHaveTextContent("XXXXX5678");
+    expect(screen.queryByTestId(`folio-${IDS.folioAsha}`)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Copy folio number XXXXX9183" })).toBeNull();
   });
 
   it("test_rows_open_matching_drilldown: each row opens the dialog of its tile, with click, Enter and Space, and Escape closes it", () => {
@@ -195,9 +208,9 @@ describe("InvestmentDetails", () => {
   });
 
   it("test_not_held: a member who does not hold the fund sees the short message and no figures, and the heading stays", () => {
-    mount(fixture<SummaryResponse>("summary_not_held"), {}, { members, viewMode: "member", memberId: IDS.meera });
+    mount(fixture<SummaryResponse>("summary_not_held"), {}, { members, viewMode: "member", memberId: IDS.dev });
     expect(screen.getByRole("heading", { name: "Your Investment Details" })).toBeInTheDocument();
-    expect(screen.getByTestId("details-not-held")).toHaveTextContent("Not held by Meera Rao.");
+    expect(screen.getByTestId("details-not-held")).toHaveTextContent("Not held by Dev Rao.");
     expect(screen.queryByTestId("detail-units")).toBeNull();
     expect(screen.queryByRole("button", { name: /Copy folio number/ })).toBeNull();
   });

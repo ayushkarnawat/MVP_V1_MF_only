@@ -4,36 +4,108 @@
   "bucket": "month",
   "buckets": [
     {
+      "label": "Oct 2025",
+      "start": "2025-10-23",
+      "end": "2025-10-31",
+      "fund": "0.2090",
+      "benchmark": "0.2487",
+      "category": "0.2255"
+    },
+    {
       "label": "Nov 2025",
       "start": "2025-10-31",
       "end": "2025-11-30",
-      "fund": "2.1000",
-      "benchmark": "1.8000",
-      "category": "1.9000"
+      "fund": "0.7860",
+      "benchmark": "0.9358",
+      "category": "0.8482"
     },
     {
       "label": "Dec 2025",
       "start": "2025-11-30",
       "end": "2025-12-31",
-      "fund": "-0.6000",
-      "benchmark": "-0.2000",
-      "category": "-0.4000"
+      "fund": "0.8132",
+      "benchmark": "0.9671",
+      "category": "0.8766"
     },
     {
       "label": "Jan 2026",
       "start": "2025-12-31",
       "end": "2026-01-31",
-      "fund": "1.4000",
-      "benchmark": "1.1000",
-      "category": "1.2000"
+      "fund": "0.8124",
+      "benchmark": "0.9672",
+      "category": "0.8769"
     },
     {
       "label": "Feb 2026",
       "start": "2026-01-31",
       "end": "2026-02-28",
-      "fund": "0.9000",
-      "benchmark": null,
-      "category": "0.7000"
+      "fund": "0.7337",
+      "benchmark": "0.8732",
+      "category": "0.7912"
+    },
+    {
+      "label": "Mar 2026",
+      "start": "2026-02-28",
+      "end": "2026-03-31",
+      "fund": "0.8128",
+      "benchmark": "0.9671",
+      "category": "0.8769"
+    },
+    {
+      "label": "Apr 2026",
+      "start": "2026-03-31",
+      "end": "2026-04-30",
+      "fund": "0.7865",
+      "benchmark": "0.9358",
+      "category": "0.8481"
+    },
+    {
+      "label": "May 2026",
+      "start": "2026-04-30",
+      "end": "2026-05-31",
+      "fund": "0.8132",
+      "benchmark": "0.9672",
+      "category": "0.8769"
+    },
+    {
+      "label": "Jun 2026",
+      "start": "2026-05-31",
+      "end": "2026-06-30",
+      "fund": "0.7866",
+      "benchmark": "0.9358",
+      "category": "0.8484"
+    },
+    {
+      "label": "Jul 2026",
+      "start": "2026-06-30",
+      "end": "2026-07-31",
+      "fund": "0.8127",
+      "benchmark": "0.9672",
+      "category": "0.8766"
+    },
+    {
+      "label": "Aug 2026",
+      "start": "2026-07-31",
+      "end": "2026-08-31",
+      "fund": "0.8123",
+      "benchmark": "0.9671",
+      "category": "0.8765"
+    },
+    {
+      "label": "Sep 2026",
+      "start": "2026-08-31",
+      "end": "2026-09-30",
+      "fund": "0.7868",
+      "benchmark": "0.9358",
+      "category": "0.8483"
+    },
+    {
+      "label": "Oct 2026",
+      "start": "2026-09-30",
+      "end": "2026-10-23",
+      "fund": "0.6023",
+      "benchmark": "0.7167",
+      "category": "0.6498"
     }
   ]
 }

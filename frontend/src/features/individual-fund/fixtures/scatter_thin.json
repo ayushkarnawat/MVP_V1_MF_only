@@ -3,31 +3,21 @@
   "window_start": "2023-10-23",
   "window_end": "2026-10-23",
   "thin_category": true,
-  "peer_volatility_median": null,
+  "peer_volatility_median": "0.0048",
   "points": [
     {
-      "scheme_id": "7c9e5b0a-3f1d-4a52-8e6b-1d2f3a4b5c6d",
+      "scheme_id": "2c652f6f-008c-58a5-90a5-d1f2e331823f",
       "name": "Alpha Flexi Cap Fund - Direct Plan",
-      "return_pct": "19.0000",
-      "volatility_pct": "14.2000",
-      "is_fund": true,
-      "held": true
+      "return_pct": "9.9999",
+      "volatility_pct": "0.0050",
+      "is_fund": true
     },
     {
-      "scheme_id": "8d1f0000-0000-4000-8000-000000000001",
-      "name": "Beta Flexi Cap Fund - Direct Plan",
-      "return_pct": "16.0000",
-      "volatility_pct": "13.5000",
-      "is_fund": false,
-      "held": true
-    },
-    {
-      "scheme_id": "8d1f0000-0000-4000-8000-000000000002",
-      "name": "Gamma Flexi Cap Fund - Direct Plan",
-      "return_pct": "14.2000",
-      "volatility_pct": "12.8000",
-      "is_fund": false,
-      "held": false
+      "scheme_id": "5c2696ef-e123-52b2-9ff6-90062a0fd775",
+      "name": "Golden Peer 5 Fund",
+      "return_pct": "11.5001",
+      "volatility_pct": "0.0048",
+      "is_fund": false
     }
   ]
 }

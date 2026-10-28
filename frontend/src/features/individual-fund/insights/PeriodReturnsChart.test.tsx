@@ -61,13 +61,27 @@ describe("PeriodReturnsChart", () => {
     mount();
     await screen.findByTestId("bar-chart");
     const props = chart.props!;
-    expect(labels()).toEqual(["Nov", "Dec", "Jan", "Feb"]);
-    expect(props.buckets.map(b => b.values)).toEqual([[2.1, 1.8, 1.9], [-0.6, -0.2, -0.4], [1.4, 1.1, 1.2], [0.9, 0, 0.7]]);
+    // period_returns_1y: 13 monthly buckets, Oct 2025 (partial, from 23 Oct) to Oct 2026 (partial, to 23 Oct); every figure is present in the golden.
+    expect(labels()).toEqual(["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"]);
+    expect(props.buckets.map(b => b.values).slice(0, 3)).toEqual([[0.209, 0.2487, 0.2255], [0.786, 0.9358, 0.8482], [0.8132, 0.9671, 0.8766]]);
+    expect(props.buckets.at(-1)!.values).toEqual([0.6023, 0.7167, 0.6498]);
+    expect(props.buckets).toHaveLength(13);
     expect(props.seriesColors).toEqual(["var(--c2)", "var(--c3)", "var(--ui-text-muted)"]);
     expect(props.ariaLabel).toBe("Period returns for 1Y");
     expect(props.formatValue(2.1)).toBe("+2.1%");
     expect(props.formatValue(-0.6)).toBe("-0.6%");
     expect(props.formatValue(0)).toBe("0.0%");
+  });
+
+  it("a bucket missing one figure draws that bar at zero while its neighbours keep theirs (hand-made: the golden has no gaps)", async () => {
+    const body = y1();
+    body.buckets[0].benchmark = null;
+    api.periodReturns.mockImplementation(() => Promise.resolve(body));
+    mount();
+    await screen.findByTestId("bar-chart");
+    expect(chart.props!.seriesColors).toHaveLength(3);
+    expect(chart.props!.buckets[0].values).toEqual([0.209, 0, 0.2255]);
+    expect(chart.props!.buckets[1].values).toEqual([0.786, 0.9358, 0.8482]);
   });
 
   it("a series that has no figure in any bucket (no benchmark, no category) is not drawn, and has no legend item", async () => {
@@ -77,7 +91,7 @@ describe("PeriodReturnsChart", () => {
     mount();
     await screen.findByTestId("bar-chart");
     expect(chart.props!.seriesColors).toEqual(["var(--c2)", "var(--ui-text-muted)"]);
-    expect(chart.props!.buckets[0].values).toEqual([2.1, 1.9]);
+    expect(chart.props!.buckets[0].values).toEqual([0.209, 0.2255]);
     expect(screen.queryByTestId("period-legend-benchmark")).toBeNull();
   });
 
@@ -102,7 +116,7 @@ describe("PeriodReturnsChart", () => {
     expect(screen.getByTestId("period-note")).toHaveTextContent("Bars are quarterly for 3Y.");
     fireEvent.click(chip("5Y"));
     await act(async () => {});
-    expect(labels()).toEqual(["2022", "2023", "2024", "2025", "2026 YTD"]);
+    expect(labels()).toEqual(["2021", "2022", "2023", "2024", "2025", "2026 YTD"]);
     expect(screen.getByTestId("period-note")).toHaveTextContent("Bars are yearly for 5Y. The current year is shown year to date.");
     expect(chart.props!.ariaLabel).toBe("Period returns for 5Y");
     expect(api.periodReturns.mock.calls.map(call => call[1])).toEqual(["1Y", "1M", "3Y", "5Y"]);
@@ -112,20 +126,20 @@ describe("PeriodReturnsChart", () => {
     const pending = deferred<PeriodReturnsResponse>();
     mount();
     await screen.findByTestId("bar-chart");
-    expect(chart.props!.buckets).toHaveLength(4);
+    expect(chart.props!.buckets).toHaveLength(13);
     api.periodReturns.mockReturnValueOnce(pending.promise);
     fireEvent.click(chip("5Y"));
     expect(chip("5Y")).toHaveAttribute("aria-pressed", "true");
     expect(chip("1Y")).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByTestId("period-chart-wrap")).toHaveAttribute("aria-busy", "true");
     expect(screen.queryByRole("status", { name: "Loading period returns" })).toBeNull();
-    expect(chart.props!.buckets).toHaveLength(4);
+    expect(chart.props!.buckets).toHaveLength(13);
     // The note and the chart label still describe the bars on screen (monthly, 1Y), not the chip that was just pressed.
     expect(screen.getByTestId("period-note")).toHaveTextContent("Bars are monthly for 1Y.");
     expect(chart.props!.ariaLabel).toBe("Period returns for 1Y");
     await act(async () => { pending.resolve(y5()); });
     expect(screen.getByTestId("period-chart-wrap")).not.toHaveAttribute("aria-busy");
-    expect(chart.props!.buckets).toHaveLength(5);
+    expect(chart.props!.buckets).toHaveLength(6);
     expect(screen.getByTestId("period-note")).toHaveTextContent("Bars are yearly for 5Y.");
   });
 
@@ -149,16 +163,31 @@ describe("PeriodReturnsChart", () => {
     mount();
     await screen.findByTestId("bar-chart");
     act(() => { chart.props!.onBucketClick!(1); });
-    const dialog = screen.getByRole("dialog", { name: "Dec 2025" });
+    const dialog = screen.getByRole("dialog", { name: "Nov 2025" });
+    // Nov 2025: fund 0.7860, benchmark 0.9358, category 0.8482, one decimal and signed.
     expect(within(dialog).getAllByTestId("bar-popup-row").map(row => [within(row).getByRole("term").textContent, within(row).getByRole("definition").textContent])).toEqual([
-      ["Fund", "-0.6%"], ["Benchmark", "-0.2%"], ["Category average", "-0.4%"], ["Period", "30 Nov 2025 to 31 Dec 2025"],
+      ["Fund", "+0.8%"], ["Benchmark", "+0.9%"], ["Category average", "+0.8%"], ["Period", "31 Oct 2025 to 30 Nov 2025"],
     ]);
     fireEvent.click(within(dialog).getByRole("button", { name: "Close modal" }));
     expect(screen.queryByRole("dialog")).toBeNull();
+    // The last bucket is the month so far: it ends on the NAV date, 23 Oct 2026.
+    act(() => { chart.props!.onBucketClick!(12); });
+    const last = screen.getByRole("dialog", { name: "Oct 2026" });
+    expect(within(last).getAllByTestId("bar-popup-row").map(row => within(row).getByRole("definition").textContent)).toEqual([
+      "+0.6%", "+0.7%", "+0.6%", "30 Sep 2026 to 23 Oct 2026",
+    ]);
+  });
+
+  it("a missing figure in the popup is a dash (hand-made: the golden has no gaps)", async () => {
+    const body = y1();
+    body.buckets[3].benchmark = null;
+    api.periodReturns.mockImplementation(() => Promise.resolve(body));
+    mount();
+    await screen.findByTestId("bar-chart");
     act(() => { chart.props!.onBucketClick!(3); });
-    const feb = screen.getByRole("dialog", { name: "Feb 2026" });
-    expect(within(feb).getAllByTestId("bar-popup-row").map(row => within(row).getByRole("definition").textContent)).toEqual([
-      "+0.9%", "—", "+0.7%", "31 Jan 2026 to 28 Feb 2026",
+    const jan = screen.getByRole("dialog", { name: "Jan 2026" });
+    expect(within(jan).getAllByTestId("bar-popup-row").map(row => within(row).getByRole("definition").textContent)).toEqual([
+      "+0.8%", "—", "+0.9%", "31 Dec 2025 to 31 Jan 2026",
     ]);
   });
 
@@ -167,7 +196,7 @@ describe("PeriodReturnsChart", () => {
     await screen.findByTestId("bar-chart");
     fireEvent.click(legend("category"));
     act(() => { chart.props!.onBucketClick!(0); });
-    expect(within(screen.getByRole("dialog", { name: "Nov 2025" })).getByText("Category average")).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog", { name: "Oct 2025" })).getByText("Category average")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
     act(() => { chart.props!.onBucketClick!(40); });
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -183,10 +212,10 @@ describe("PeriodReturnsChart", () => {
     fireEvent.click(legend("fund"));
     expect(legend("fund")).toHaveAttribute("aria-pressed", "false");
     expect(chart.props!.seriesColors).toEqual(["var(--c3)", "var(--ui-text-muted)"]);
-    expect(chart.props!.buckets[0].values).toEqual([1.8, 1.9]);
+    expect(chart.props!.buckets[0].values).toEqual([0.2487, 0.2255]);
     fireEvent.click(legend("fund"));
     expect(chart.props!.seriesColors).toHaveLength(3);
-    expect(chart.props!.buckets[0].values).toEqual([2.1, 1.8, 1.9]);
+    expect(chart.props!.buckets[0].values).toEqual([0.209, 0.2487, 0.2255]);
   });
 
   it("an unavailable answer prints the shared wording and no chart, and the chips stay", async () => {

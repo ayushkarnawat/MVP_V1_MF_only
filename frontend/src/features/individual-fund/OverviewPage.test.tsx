@@ -5,7 +5,6 @@ import { ApiError } from "@/lib/apiClient";
 import { buildRegistry } from "@/shell/registry/buildRegistry";
 import { useScope } from "@/shell/scope/ScopeContext";
 import { renderInShell } from "@/shell/testing";
-import { liveFundRoutes } from "./__support__/liveRoutes";
 import { deferred } from "./__support__/deferred";
 import OverviewRoute, { OverviewPage } from "./OverviewPage";
 import { IDS, fixture } from "./fixtures";
@@ -56,7 +55,7 @@ describe("OverviewPage", () => {
     mount();
     expect(await screen.findByRole("heading", { level: 1, name: NAME })).toBeInTheDocument();
     expect(await screen.findByTestId("tile-value-figure")).toHaveTextContent("₹2,250");
-    expect(await screen.findByTestId("score-number")).toHaveTextContent("72");
+    expect(await screen.findByTestId("score-number")).toHaveTextContent("79");
     expect(await screen.findByRole("heading", { name: "Performance" })).toBeInTheDocument();
     expect(await screen.findByTestId("line-chart")).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Returns" })).toBeInTheDocument();
@@ -104,9 +103,9 @@ describe("OverviewPage", () => {
       categorySeries.resolve(fixture<CategorySeriesResponse>("peers_series_1y"));
       categoryReturns.resolve(fixture<CategoryReturnsResponse>("peers_returns"));
     });
-    expect(screen.getByTestId("score-number")).toHaveTextContent("72");
-    expect(screen.getByTestId("legend-category-figure")).toHaveTextContent("+13.1%");
-    expect(screen.getByTestId("cell-category-1Y")).toHaveTextContent("13.1%");
+    expect(screen.getByTestId("score-number")).toHaveTextContent("79");
+    expect(screen.getByTestId("legend-category-figure")).toHaveTextContent("+10.8%");
+    expect(screen.getByTestId("cell-category-1Y")).toHaveTextContent("10.8%");
   });
 
   it("test_failed_card_shows_error_and_retry_refetches_only_that_card (the score)", async () => {
@@ -116,7 +115,7 @@ describe("OverviewPage", () => {
     expect(screen.getByTestId("tile-value-figure")).toHaveTextContent("₹2,250");
     const before = { summary: api.summary.mock.calls.length, performance: api.performance.mock.calls.length, returns: api.returns.mock.calls.length };
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-    expect(await screen.findByTestId("score-number")).toHaveTextContent("72");
+    expect(await screen.findByTestId("score-number")).toHaveTextContent("79");
     expect(api.score).toHaveBeenCalledTimes(2);
     expect({ summary: api.summary.mock.calls.length, performance: api.performance.mock.calls.length, returns: api.returns.mock.calls.length }).toEqual(before);
   });
@@ -162,12 +161,12 @@ describe("OverviewPage", () => {
 
   it("a member view asks for that member's summary, score and returns", async () => {
     api.summary.mockImplementation(() => Promise.resolve(fixture<SummaryResponse>("summary_member")));
-    mount({ scope: { members, viewMode: "member", memberId: IDS.asha } });
+    mount({ scope: { members, viewMode: "member", memberId: IDS.dev } });
     await screen.findByTestId("tile-value-figure");
-    expect(screen.getByTestId("tile-value-figure")).toHaveTextContent("₹1,500");
-    expect(api.summary).toHaveBeenCalledWith(IDS.scheme, IDS.asha, expect.any(AbortSignal));
-    expect(api.score).toHaveBeenCalledWith(IDS.scheme, IDS.asha, expect.any(AbortSignal));
-    expect(api.returns).toHaveBeenCalledWith(IDS.scheme, "inception", IDS.asha, expect.any(AbortSignal));
+    expect(screen.getByTestId("tile-value-figure")).toHaveTextContent("₹750");
+    expect(api.summary).toHaveBeenCalledWith(IDS.scheme, IDS.dev, expect.any(AbortSignal));
+    expect(api.score).toHaveBeenCalledWith(IDS.scheme, IDS.dev, expect.any(AbortSignal));
+    expect(api.returns).toHaveBeenCalledWith(IDS.scheme, "inception", IDS.dev, expect.any(AbortSignal));
   });
 
   it("test_member_switch_aborts_inflight_and_refetches_personal_sections_only", async () => {
@@ -213,11 +212,11 @@ describe("OverviewPage", () => {
 
   it("test_not_held_member_shows_fund_level_cards: the tiles say who holds it, the chart and the table stay", async () => {
     api.summary.mockImplementation(() => Promise.resolve(fixture<SummaryResponse>("summary_not_held")));
-    mount({ scope: { members, viewMode: "member", memberId: IDS.meera } });
-    expect(await screen.findByTestId("not-held")).toHaveTextContent("Not held by Meera Rao");
+    mount({ scope: { members, viewMode: "member", memberId: IDS.dev } });
+    expect(await screen.findByTestId("not-held")).toHaveTextContent("Not held by Dev Rao");
     expect(await screen.findByTestId("line-chart")).toBeInTheDocument();
     expect(await screen.findByTestId("cell-fund-1Y")).toHaveTextContent("10.0%");
-    expect(screen.getByTestId("score-number")).toHaveTextContent("72");
+    expect(screen.getByTestId("score-number")).toHaveTextContent("79");
   });
 
   it("an unknown fund shows the not found page and no sections", async () => {
@@ -235,11 +234,11 @@ describe("OverviewPage", () => {
     expect(await within(right).findByRole("heading", { name: "Your Investment Details" })).toBeInTheDocument();
     expect(await within(right).findByRole("heading", { name: "Risk Metrics (3Y)" })).toBeInTheDocument();
     expect(await within(right).findByRole("heading", { name: "Fund Allocation" })).toBeInTheDocument();
-    const top = await within(left).findByRole("heading", { name: "Top 10 Holdings (38 stocks)" });
+    const top = await within(left).findByRole("heading", { name: "Top 10 Holdings (12 stocks)" });
     const returns = within(left).getByRole("heading", { name: "Returns" });
     expect(returns.compareDocumentPosition(top) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const headings = (root: HTMLElement) => within(root).getAllByRole("heading", { level: 3 }).map(h => h.textContent);
-    expect(headings(left)).toEqual(["Performance", "Returns", "Top 10 Holdings (38 stocks)"]);
+    expect(headings(left)).toEqual(["Performance", "Returns", "Top 10 Holdings (12 stocks)"]);
     expect(headings(right)).toEqual(["Your Investment Details", "Risk Metrics (3Y)", "Fund Allocation"]);
   });
 
@@ -276,8 +275,8 @@ describe("OverviewPage", () => {
       risk.resolve(fixture<RiskResponse>("risk_equity"));
       composition.resolve(fixture<CompositionResponse>("composition"));
     });
-    expect(screen.getByTestId("risk-volatility-value")).toHaveTextContent("14.2%");
-    expect(screen.getByTestId("top-row-1")).toHaveTextContent("HDFC Bank Ltd");
+    expect(screen.getByTestId("risk-volatility-value")).toHaveTextContent("0.0%");
+    expect(screen.getByTestId("top-row-1")).toHaveTextContent("Golden Stock 4");
     expect(screen.getByTestId("alloc-row-0")).toHaveTextContent("Large Cap");
   });
 
@@ -326,43 +325,43 @@ describe("OverviewPage", () => {
 
   it("test_not_held_member_shows_fund_level_cards (right column): the details say who does not hold it, the risk, holdings and allocation stay, and the centre reads 100%", async () => {
     api.summary.mockImplementation(() => Promise.resolve(fixture<SummaryResponse>("summary_not_held")));
-    mount({ scope: { members, viewMode: "member", memberId: IDS.meera } });
-    expect(await screen.findByTestId("details-not-held")).toHaveTextContent("Not held by Meera Rao.");
-    expect(await screen.findByTestId("risk-volatility-value")).toHaveTextContent("14.2%");
-    expect(await screen.findByTestId("top-row-1")).toHaveTextContent("HDFC Bank Ltd");
+    mount({ scope: { members, viewMode: "member", memberId: IDS.dev } });
+    expect(await screen.findByTestId("details-not-held")).toHaveTextContent("Not held by Dev Rao.");
+    expect(await screen.findByTestId("risk-volatility-value")).toHaveTextContent("0.0%");
+    expect(await screen.findByTestId("top-row-1")).toHaveTextContent("Golden Stock 4");
     expect(await screen.findByTestId("alloc-centre-value")).toHaveTextContent("100%");
     expect(screen.queryByTestId("detail-units")).toBeNull();
   });
 
   it("a member's own numbers show in the details after the switch, and the folio list follows the scope", async () => {
     api.summary.mockImplementation((_id: string, scope: string) =>
-      Promise.resolve(fixture<SummaryResponse>(scope === IDS.asha ? "summary_member" : "summary_family")));
-    mount({ scope: { members, viewMode: "member", memberId: IDS.asha } });
-    expect(await screen.findByTestId("detail-value-value")).toHaveTextContent("₹1,500");
-    expect(screen.getByTestId("detail-units-value")).toHaveTextContent("100.000");
-    expect(screen.getByTestId(`folio-${IDS.folioAsha}`)).toHaveTextContent("Folio number");
+      Promise.resolve(fixture<SummaryResponse>(scope === IDS.dev ? "summary_member" : "summary_family")));
+    mount({ scope: { members, viewMode: "member", memberId: IDS.dev } });
+    expect(await screen.findByTestId("detail-value-value")).toHaveTextContent("₹750");
+    expect(screen.getByTestId("detail-units-value")).toHaveTextContent("50.000");
+    expect(screen.getByTestId(`folio-${IDS.folioDev}`)).toHaveTextContent("Folio number");
+    expect(screen.queryByTestId(`folio-${IDS.folioAsha}`)).toBeNull();
   });
 });
 
 describe("Overview route", () => {
   it("the real route renders the page inside the shell at the fund URL, and the family view asks for the combined scope", async () => {
-    renderInShell(undefined, { path: PATH, routes: liveFundRoutes() });
+    renderInShell(undefined, { path: PATH });
     expect(await screen.findByRole("heading", { level: 1, name: NAME })).toBeInTheDocument();
     expect(await screen.findByTestId("tile-value-figure")).toHaveTextContent("₹2,250");
     expect(screen.getByRole("main")).toContainElement(screen.getByTestId("fund-page"));
     expect(api.summary).toHaveBeenCalledWith(IDS.scheme, "combined", expect.any(AbortSignal));
   });
 
-  it("test_route_files_are_live_and_overlap_is_placeholder: both fund route files are placeholders for now, the page modules still load and Overlap is a placeholder", async () => {
+  it("test_route_files_are_live_and_overlap_is_placeholder: the Overview and Insights route files are live and load the real page modules; Overlap stays a placeholder until IF-D", async () => {
     const routes = buildRegistry();
     const byId = (id: string) => routes.find(route => route.id === id)!;
-    // IF page not exposed yet, register C166, flip status and page when the Individual Fund backend ships.
-    expect(byId("portfolio-mutual-funds-fund")).toMatchObject({ status: "placeholder", path: "/portfolio/mutual-funds/funds/:schemeId", label: "Fund Overview", scope: "family-or-member" });
-    expect((await byId("portfolio-mutual-funds-fund").page!()).default).toBe((await import("@/shell/layout/PlaceholderPage")).default);
-    expect(byId("portfolio-mutual-funds-fund-insights")).toMatchObject({ status: "placeholder" });
+    // Register C166: the Individual Fund backend has shipped (IF-C), so the page route is exposed.
+    expect(byId("portfolio-mutual-funds-fund")).toMatchObject({ status: "live", path: "/portfolio/mutual-funds/funds/:schemeId", label: "Fund Overview", scope: "family-or-member" });
+    expect((await byId("portfolio-mutual-funds-fund").page!()).default).toBe(OverviewRoute);
+    expect(byId("portfolio-mutual-funds-fund-insights")).toMatchObject({ status: "live", path: "/portfolio/mutual-funds/funds/:schemeId/insights" });
+    expect((await byId("portfolio-mutual-funds-fund-insights").page!()).default).toBe((await import("./InsightsPage")).default);
     expect(byId("portfolio-mutual-funds-fund-overlap").status).toBe("placeholder");
-    // The page module itself still loads; the real-route test above mounts it through a live override.
-    expect(OverviewRoute).toBeTypeOf("function");
-    expect((await import("./OverviewPage")).default).toBeTypeOf("function");
+    expect((await byId("portfolio-mutual-funds-fund-overlap").page!()).default).toBe((await import("@/shell/layout/PlaceholderPage")).default);
   });
 });

@@ -25,19 +25,22 @@ beforeEach(() => {
 describe("TopHoldings", () => {
   it("test_ten_rows_in_two_columns_with_stock_count_and_as_of_date: five and five, ranked 1 to 10, with the stock count in the heading and the disclosure date under the list", () => {
     mount();
-    expect(screen.getByRole("heading", { name: "Top 10 Holdings (38 stocks)" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Top 10 Holdings (12 stocks)" })).toBeInTheDocument();
     const left = screen.getByTestId("top-col-1");
     const right = screen.getByTestId("top-col-2");
     expect(within(left).getAllByRole("button").map(b => b.getAttribute("data-testid"))).toEqual(["top-row-1", "top-row-2", "top-row-3", "top-row-4", "top-row-5"]);
     expect(within(right).getAllByRole("button").map(b => b.getAttribute("data-testid"))).toEqual(["top-row-6", "top-row-7", "top-row-8", "top-row-9", "top-row-10"]);
     const first = screen.getByTestId("top-row-1");
     expect(first).toHaveTextContent("1");
-    expect(first).toHaveTextContent("HDFC Bank Ltd");
-    expect(first).toHaveTextContent("Financial Services");
-    expect(first).toHaveTextContent("8.2%");
-    expect(screen.getByTestId("top-row-6")).toHaveTextContent("Bharti Airtel Ltd");
-    expect(screen.getByTestId("top-row-10")).toHaveTextContent("Sun Pharmaceutical Industries Ltd");
-    expect(screen.getByTestId("top-row-10")).toHaveTextContent("2.6%");
+    expect(first).toHaveTextContent("Golden Stock 4");
+    expect(first).toHaveTextContent("Healthcare");
+    expect(first).toHaveTextContent("8.0%");
+    expect(screen.getByTestId("top-row-6")).toHaveTextContent("Golden Stock 11");
+    expect(screen.getByTestId("top-row-6")).toHaveTextContent("Industrials");
+    expect(screen.getByTestId("top-row-6")).toHaveTextContent("7.0%");
+    expect(screen.getByTestId("top-row-10")).toHaveTextContent("Golden Stock 1");
+    expect(screen.getByTestId("top-row-10")).toHaveTextContent("Financial Services");
+    expect(screen.getByTestId("top-row-10")).toHaveTextContent("5.0%");
     expect(screen.getByTestId("top-asof")).toHaveTextContent("Disclosure as of 30 Sep 2026.");
     expect(screen.queryByTestId("top-age-note")).toBeNull();
   });
@@ -65,18 +68,19 @@ describe("TopHoldings", () => {
   it("test_row_opens_stock_popup: click, Enter and Space open the stock's dialog with its weight, sector and ISIN; Escape closes it", () => {
     mount();
     fireEvent.click(screen.getByTestId("top-row-3"));
-    const dialog = screen.getByRole("dialog", { name: "Infosys Ltd" });
+    // Rank 3 in the golden is "Golden Stock 12": 8.0000 percent, sector "Unclassified", ISIN INEGOLD00011.
+    const dialog = screen.getByRole("dialog", { name: "Golden Stock 12" });
     const value = (label: string) => within(dialog).getByText(label, { selector: "dt" }).nextElementSibling!.textContent;
-    expect(value("Weight in this fund")).toBe("5.40%");
-    expect(value("Sector")).toBe("Information Technology");
-    expect(value("ISIN")).toBe("INE009A01021");
+    expect(value("Weight in this fund")).toBe("8.00%");
+    expect(value("Sector")).toBe("Unclassified");
+    expect(value("ISIN")).toBe("INEGOLD00011");
     fireEvent.keyDown(document.body, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.keyDown(screen.getByTestId("top-row-1"), { key: "Enter" });
-    expect(screen.getByRole("dialog", { name: "HDFC Bank Ltd" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Golden Stock 4" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
     fireEvent.keyDown(screen.getByTestId("top-row-7"), { key: " " });
-    expect(screen.getByRole("dialog", { name: "Tata Consultancy Services Ltd" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Golden Stock 2" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
     fireEvent.keyDown(screen.getByTestId("top-row-7"), { key: "a" });
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -124,7 +128,8 @@ describe("TopHoldings", () => {
     expect(await screen.findByRole("dialog", { name: "All holdings, as of 30 Sep 2026" })).toBeInTheDocument();
     expect(api.holdings).toHaveBeenCalledTimes(1);
     expect(api.holdings).toHaveBeenCalledWith(IDS.scheme, expect.any(AbortSignal));
-    expect(screen.getAllByTestId("all-row")).toHaveLength(13);
+    // holdings_all: 14 rows (12 stocks, a government bond line and the cash line).
+    expect(screen.getAllByTestId("all-row")).toHaveLength(14);
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "View all holdings" }));
@@ -140,6 +145,6 @@ describe("TopHoldings", () => {
     const dialog = screen.getByRole("dialog", { name: "All holdings" });
     expect(within(dialog).getByRole("status", { name: "Loading holdings" })).toBeInTheDocument();
     await act(async () => { pending.resolve(fixture<HoldingsListResponse>("holdings_all")); });
-    expect(within(screen.getByRole("dialog")).getAllByTestId("all-row")).toHaveLength(13);
+    expect(within(screen.getByRole("dialog")).getAllByTestId("all-row")).toHaveLength(14);
   });
 });

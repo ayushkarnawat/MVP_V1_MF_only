@@ -1,17 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type {
-  AllocationSlice, AssetTypeSlice, CategoryReturnsResponse, CategorySeriesResponse, CompositionResponse, CurrentCells,
-  CurrentReturnsResponse, EvidenceItem, ExpenseRatio, Fact, FolioInfo, FolioNumberResponse, HoldingRowOut,
-  HoldingsListResponse, InceptionCells, InceptionReturnsResponse, InsightsResponse, ManagerOut, ManagerResponse,
-  MemberRef, PerformanceResponse, PeriodBucket, PeriodReturnsResponse, RiskMetric, RiskResponse, RollingPoint,
+  AllocationSlice, AssetTypeSlice, CategoryReturnsResponse, CategorySeriesResponse, CompareCommonHolding, CompareFund,
+  CompareMarketCap, CompareUniqueHolding, CompositionResponse, CurrentCells, CurrentReturnsResponse, EvidenceItem,
+  ExpenseRatio, Fact, FolioInfo, FolioNumberResponse, HoldingRowOut, HoldingsListResponse, ImpactAmount, InceptionCells,
+  InceptionReturnsResponse, InsightsResponse, ManagerOut, ManagerResponse, MemberRef, OverlapCommonHolding,
+  OverlapCompareResponse, OverlapDistribution, OverlapFundRef, OverlapResponse, OverlapSector, OverlapSectorStock,
+  OverlapTopFund, PerformanceResponse, PeriodBucket, PeriodReturnsResponse, RiskMetric, RiskResponse, RollingPoint,
   RollingResponse, SchemeInfo, ScatterPointOut, ScatterResponse, ScoreResponse, SeriesPoint, SummaryDetails,
   SummaryResponse, SummaryTiles, TopHolding, Unavailable,
 } from "../types";
 import { FIXTURE_NAMES, IDS, fixture } from "./index";
 import { type Schema, anything, arr, bool, either, lit, nullable, num, obj, optional, str } from "./schema";
 
-// The contract guard: every spec fixture must match the contract types field for field. When the real golden
-// files replace these, this test is what tells us the backend and types.ts still agree.
+// The contract guard: every golden fixture (a byte-identical copy of the backend file) must match the contract types
+// field for field. When the backend regenerates a golden, this test is what tells us the backend and types.ts still agree.
 const nstr = nullable(str);
 const unavailable: Schema<Unavailable> = obj<Unavailable>({ status: lit("unavailable"), reason: str });
 const tone = nullable(lit("pos", "warn", "neg", "info", "neu"));
@@ -66,7 +68,7 @@ const composition: Schema<CompositionResponse> = obj<CompositionResponse>({
   allocation: obj<CompositionResponse["allocation"]>({ market_cap: arr(slice), sector: arr(slice), asset_type: arr(assetSlice) }),
   unclassified_pct: str,
 });
-const holdingRow: Schema<HoldingRowOut> = obj<HoldingRowOut>({ name: str, isin: str, sector: str, asset_type: str, weight: str });
+const holdingRow: Schema<HoldingRowOut> = obj<HoldingRowOut>({ name: str, isin: nstr, sector: str, asset_type: str, weight: str });
 const holdings: Schema<HoldingsListResponse> = obj<HoldingsListResponse>({
   status: lit("ready"), scheme_id: str, holdings_as_of: str, age_tag: nstr, count: num, rows: arr(holdingRow),
 });
@@ -110,6 +112,38 @@ const insights: Schema<InsightsResponse> = obj<InsightsResponse>({
   status: lit("ready"), key: arr(fact), strengths: arr(fact), considerations: arr(fact), top_three: arr(fact),
 });
 
+const fundRef: Schema<OverlapFundRef> = obj<OverlapFundRef>({ scheme_id: str, scheme_name: str });
+const distribution: Schema<OverlapDistribution> = obj<OverlapDistribution>({
+  unique_to_fund_count: num, common_count: num, unique_to_others_count: num, unique_to_fund_pct: str, common_pct: str, unique_to_others_pct: str,
+});
+const overlapCommon: Schema<OverlapCommonHolding> = obj<OverlapCommonHolding>({
+  isin: str, name: str, sector: str, fund_weight: str, portfolio_weight: str, held_in_funds: arr(fundRef),
+});
+const sectorStock: Schema<OverlapSectorStock> = obj<OverlapSectorStock>({ isin: str, name: str, weight: str });
+const overlapSector: Schema<OverlapSector> = obj<OverlapSector>({ sector: str, pct: str, stocks: arr(sectorStock) });
+const topFund: Schema<OverlapTopFund> = obj<OverlapTopFund>({ scheme_id: str, scheme_name: str, overlap_pct: str, common_stock_count: num });
+const overlap: Schema<OverlapResponse> = obj<OverlapResponse>({
+  status: lit("ready"), scheme_id: str, holdings_as_of: str, overlap_pct: str, common_stock_count: num, total_stock_count: num,
+  distribution, common_holdings: arr(overlapCommon), by_sector: arr(overlapSector), top_overlap_funds: arr(topFund),
+  coverage: obj<OverlapResponse["coverage"]>({ covered_value_pct: str, funds_without_disclosure: arr(fundRef) }),
+});
+const compareFund: Schema<CompareFund> = obj<CompareFund>({ scheme_id: str, scheme_name: str, holdings_as_of: str, current_value: str });
+const impactAmount: Schema<ImpactAmount> = obj<ImpactAmount>({ amount: str, pct: str });
+const compareCommon: Schema<CompareCommonHolding> = obj<CompareCommonHolding>({
+  isin: str, name: str, sector: str, weight_a: str, weight_b: str, combined: str,
+});
+const compareUnique: Schema<CompareUniqueHolding> = obj<CompareUniqueHolding>({ isin: str, name: str, sector: str, weight: str });
+const compareCap: Schema<CompareMarketCap> = obj<CompareMarketCap>({ large: str, mid: str, small: str, other: str });
+const compare: Schema<OverlapCompareResponse> = obj<OverlapCompareResponse>({
+  status: lit("ready"), fund_a: compareFund, fund_b: compareFund, overlap_pct: str,
+  counts: obj<OverlapCompareResponse["counts"]>({ unique_a: num, common: num, unique_b: num }),
+  impact: obj<OverlapCompareResponse["impact"]>({ common_both: impactAmount, unique_a: impactAmount, unique_b: impactAmount, other_funds: impactAmount }),
+  sector_comparison: arr(obj<OverlapCompareResponse["sector_comparison"][number]>({ sector: str, common: str, a: str, b: str })),
+  common_holdings: arr(compareCommon),
+  unique_holdings: obj<OverlapCompareResponse["unique_holdings"]>({ a: arr(compareUnique), b: arr(compareUnique) }),
+  market_cap: obj<OverlapCompareResponse["market_cap"]>({ a: compareCap, b: compareCap }),
+});
+
 const SCHEMAS: Record<string, Schema<unknown>> = {
   summary_family: summary, summary_member: summary, summary_not_held: summary, summary_cas_only: summary,
   folio_number: folioNumber,
@@ -124,13 +158,14 @@ const SCHEMAS: Record<string, Schema<unknown>> = {
   period_returns_1y: periodReturns, period_returns_5y: periodReturns,
   scatter, scatter_thin: scatter,
   insights_full: insights, insights_sparse: insights,
+  overlap_fund: overlap, overlap_compare: compare, overlap_unavailable: unavailable,
 };
 
-describe("Individual Fund spec fixtures", () => {
-  it("has the 32 files named in Appendix A.3 (the three Overlap-tab files excluded)", () => {
-    expect(FIXTURE_NAMES).toHaveLength(32);
+describe("Individual Fund golden fixtures", () => {
+  it("has the 35 files of the backend golden folder (Appendix A.3), the three Overlap-tab files included", () => {
+    expect(FIXTURE_NAMES).toHaveLength(35);
     expect(FIXTURE_NAMES).toEqual(Object.keys(SCHEMAS).sort());
-    expect(FIXTURE_NAMES).not.toContain("overlap_fund");
+    expect(FIXTURE_NAMES).toEqual(expect.arrayContaining(["overlap_fund", "overlap_unavailable", "overlap_compare"]));
   });
 
   it("throws for a name that does not exist", () => {
@@ -160,6 +195,7 @@ describe("Individual Fund spec fixtures", () => {
     const reasons: Record<string, string> = {
       returns_current_not_held: "not_held", risk_no_history: "no_history", composition_no_disclosure: "no_disclosure",
       manager_none: "no_manager_data", peers_unavailable: "peers_unavailable", rolling_no_history: "no_history",
+      overlap_unavailable: "no_disclosure",
     };
     for (const [name, reason] of Object.entries(reasons)) expect(fixture(name)).toEqual({ status: "unavailable", reason });
   });
@@ -170,29 +206,61 @@ describe("Individual Fund spec fixtures", () => {
       expect(typeof value).toBe("string");
     }
     expect(body.nav_as_of).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    // The stored score carries a UTC "Z" stamp; the computed one carries an explicit +05:30 offset (a real difference between the two).
     expect(fixture<ScoreResponse>("score_stored").computed_at).toMatch(/Z$/);
+    expect(fixture<ScoreResponse>("score_computed").computed_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/);
   });
 
-  it("the family summary is hand-checkable: 150 units, 1,600 in, 2,250 now, a 650 gain, the two folios named", () => {
+  it("the golden ids are the ones IDS names, so a test can use them without reading a file", () => {
+    expect(fixture<SummaryResponse>("summary_family").scheme.id).toBe(IDS.scheme);
+    expect(fixture<SummaryResponse>("summary_family").details.folios.map(f => f.folio_id)).toEqual([IDS.folioAsha, IDS.folioDev]);
+    expect(fixture<SummaryResponse>("summary_family").details.folios.map(f => f.member_id)).toEqual([IDS.asha, IDS.dev]);
+    expect(fixture<SummaryResponse>("summary_cas_only").scheme.id).toBe(IDS.casScheme);
+    expect(fixture<FolioNumberResponse>("folio_number").folio_id).toBe(IDS.folioAsha);
+    expect(fixture<PerformanceResponse>("performance_1y_equity").scheme_id).toBe(IDS.scheme);
+    expect(fixture<PerformanceResponse>("performance_1y_debt_no_benchmark").scheme_id).toBe(IDS.debtScheme);
+    expect(fixture<PerformanceResponse>("performance_all_young_fund").scheme_id).toBe(IDS.youngScheme);
+    expect(fixture<RiskResponse>("risk_life_window").scheme_id).toBe(IDS.debtScheme);
+    expect(fixture<OverlapResponse>("overlap_fund").top_overlap_funds[0].scheme_id).toBe(IDS.peer1);
+  });
+
+  it("the family summary is hand-checkable: 150 units, 1,600 in, 2,250 now, a 650 gain, the two folios named and masked", () => {
     const body = fixture<SummaryResponse>("summary_family");
-    expect(body.scheme.id).toBe(IDS.scheme);
-    expect(body.tiles).toMatchObject({ current_value: "2250.00", invested: "1600.00", total_gain: "650.00", total_gain_pct: "40.6250", xirr: "0.185300" });
-    expect(body.details.units).toBe("150.000");
-    expect(body.details.folios.map(f => f.folio_masked)).toEqual(["XXXXX9183", "XXXXX5678"]);
+    expect(body.scope).toBe("combined");
+    expect(body.tiles).toMatchObject({
+      current_value: "2250.00", invested: "1600.00", total_gain: "650.00", total_gain_pct: "40.6250", xirr: "0.1234",
+      share_of_portfolio_pct: "94.5378", expense_ratio: { value: "0.70", reference_period: "2026-09-30", plan: "Direct" },
+    });
+    expect(body.details).toMatchObject({ units: "150.000", average_nav: "10.6667", current_nav: "15.0000", first_investment: "2025-01-01", last_investment: "2025-06-01" });
+    expect(body.details.folios.map(f => [f.member_name, f.folio_masked])).toEqual([["ASHA RAO", "XXXXX9183"], ["Dev Rao", "XXXXX5678"]]);
+    // 1,600 / 150 units = 10.6667 average NAV; 2,250 / 150 = 15.0000 current NAV; 650 / 1,600 = 40.6250 percent.
     const member = fixture<SummaryResponse>("summary_member");
-    expect(member.scope).toBe(IDS.asha);
-    expect(member.tiles.current_value).toBe("1500.00");
+    expect(member.scope).toBe(IDS.dev);
+    expect(member.held_by_other_members).toEqual([{ id: IDS.asha, name: "ASHA RAO" }]);
+    expect(member.tiles).toMatchObject({ current_value: "750.00", invested: "600.00", total_gain: "150.00", total_gain_pct: "25.0000", share_of_portfolio_pct: null });
+    expect(member.tiles.xirr).toBe("0.1735279232884757158275261014");
+    expect(member.details).toMatchObject({ units: "50.000", average_nav: "12.0000", current_nav: "15.0000" });
     expect(member.details.folios).toHaveLength(1);
+  });
+
+  it("the CAS-only summary has no history and no expense ratio, and its folio mask keeps the last four characters", () => {
+    const body = fixture<SummaryResponse>("summary_cas_only");
+    expect(body.has_history).toBe(false);
+    expect(body.tiles.expense_ratio).toBeNull();
+    expect(body.nav_as_of).toBe("2026-10-15");
+    expect(body.details.folios[0].folio_masked).toBe("XXXXXNLY1");
+    expect(body.tiles).toMatchObject({ current_value: "1060.00", invested: "1000.00", total_gain: "60.00", total_gain_pct: "6.0000", xirr: "0.1292258326537757773518355219" });
   });
 
   it("the not-held summary has every personal field null but keeps the scheme and the expense ratio", () => {
     const body = fixture<SummaryResponse>("summary_not_held");
     expect(body.held).toBe(false);
-    expect(body.held_by_other_members.map(m => m.name)).toEqual(["ASHA RAO", "Dev Rao"]);
+    expect(body.scope).toBe(IDS.dev);
+    expect(body.held_by_other_members).toEqual([{ id: IDS.asha, name: "ASHA RAO" }]);
     expect(Object.entries(body.tiles).filter(([key]) => key !== "expense_ratio").every(([, value]) => value === null)).toBe(true);
-    expect(body.tiles.expense_ratio?.value).toBe("0.62");
+    expect(body.tiles.expense_ratio?.value).toBe("0.70");
     expect(body.details.folios).toEqual([]);
-    expect(body.details.units).toBeNull();
+    expect(Object.values(body.details).filter(value => !Array.isArray(value)).every(value => value === null)).toBe(true);
   });
 
   it("the series fixtures start at 0.0000 and end at the legend figure", () => {
@@ -202,32 +270,42 @@ describe("Individual Fund spec fixtures", () => {
       expect(body.fund.at(-1)!.pct).toBe(body.period_returns.fund);
       if (body.benchmark) expect(body.benchmark.at(-1)!.pct).toBe(body.period_returns.benchmark);
     }
+    expect(fixture<PerformanceResponse>("performance_1y_equity").fund).toHaveLength(260);
+    expect(fixture<PerformanceResponse>("performance_1y_equity").benchmark_label).toBe("Nifty 500");
     expect(fixture<PerformanceResponse>("performance_1y_debt_no_benchmark").benchmark_reason).toBe("no_benchmark");
     expect(fixture<PerformanceResponse>("performance_all_young_fund").since_launch).toBe(true);
     const peers = fixture<CategorySeriesResponse>("peers_series_1y");
-    expect(peers.points.at(-1)!.pct).toBe("13.1000");
-    expect(peers.points.map(p => p.date)).toEqual(fixture<PerformanceResponse>("performance_1y_equity").fund.map(p => p.date));
+    expect(peers.points).toHaveLength(366);
+    expect(peers.points.at(-1)!.pct).toBe("10.8332");
+    expect([peers.peers_used, peers.peers_total]).toEqual([7, 9]);
   });
 
   it("the insight lists never repeat an id inside one list and top_three is drawn from the lists", () => {
-    const body = fixture<InsightsResponse>("insights_full");
-    const known = new Set([...body.key, ...body.strengths, ...body.considerations].map(f => f.id));
-    expect(body.top_three.every(f => known.has(f.id))).toBe(true);
-    expect(new Set(body.key.map(f => f.id)).size).toBe(body.key.length);
-    expect(fixture<InsightsResponse>("insights_sparse")).toMatchObject({ strengths: [], considerations: [] });
+    for (const name of ["insights_full", "insights_sparse"]) {
+      const body = fixture<InsightsResponse>(name);
+      const known = new Set([...body.key, ...body.strengths, ...body.considerations].map(f => f.id));
+      expect(body.top_three.every(f => known.has(f.id))).toBe(true);
+      expect(new Set(body.key.map(f => f.id)).size).toBe(body.key.length);
+      expect(body.top_three.length).toBeLessThanOrEqual(3);
+    }
+    expect(fixture<InsightsResponse>("insights_full").top_three.map(f => f.id)).toEqual(["long_term_vs_category", "overlap", "manager_tenure"]);
   });
 
-  it("the composition weights add up: top 10 is in descending order and the asset types total 100", () => {
+  it("the composition weights add up: top 10 is in descending order, the asset types total 94 (the golden is a partial portfolio) and the sectors 78", () => {
     const body = fixture<CompositionResponse>("composition");
     const weights = body.top10.map(h => Number(h.weight));
     expect([...weights].sort((a, b) => b - a)).toEqual(weights);
-    expect(body.allocation.asset_type.reduce((sum, s) => sum + Number(s.pct), 0)).toBeCloseTo(100, 4);
-    expect(body.allocation.market_cap.reduce((sum, s) => sum + Number(s.pct), 0)).toBeCloseTo(100, 4);
+    expect(body.allocation.asset_type.reduce((sum, s) => sum + Number(s.pct), 0)).toBeCloseTo(94, 4);
+    expect(body.allocation.sector.reduce((sum, s) => sum + Number(s.pct), 0)).toBeCloseTo(78, 4);
+    expect(body.allocation.market_cap.reduce((sum, s) => sum + Number(s.pct), 0)).toBeCloseTo(100, 3);
+    expect(body.unclassified_pct).toBe("16.0000");
     const all = fixture<HoldingsListResponse>("holdings_all");
     expect(all.count).toBe(all.rows.length);
+    expect(all.rows.filter(row => row.isin === null).map(row => row.name)).toEqual(["Government Bond", "Cash and equivalents"]);
+    expect(body.stock_count).toBe(12);
   });
 
-  it("test_additive_fields_are_optional: the validator accepts a missing optional field, checks a present one, and the returns fixtures omit benchmark_label", () => {
+  it("test_additive_fields_are_optional: the validator accepts a missing optional field, checks a present one, and the goldens omit benchmark_label", () => {
     const point = obj<{ id: string; held?: boolean }>({ id: str, held: optional(bool) });
     expect(point.check({ id: "a" }, "p")).toEqual([]);
     expect(point.check({ id: "a", held: true }, "p")).toEqual([]);
@@ -237,12 +315,37 @@ describe("Individual Fund spec fixtures", () => {
     expect(fixture("returns_current")).not.toHaveProperty("benchmark_label");
   });
 
-  it("the scatter fixtures carry the additive held flag: the fund's own dot is held, exactly one peer is held, the others are not", () => {
+  it("the scatter goldens do not carry the additive held flag (a backend ask): no point has it, exactly one dot is the fund", () => {
     for (const name of ["scatter", "scatter_thin"]) {
       const body = fixture<ScatterResponse>(name);
-      expect(body.points.every(p => typeof p.held === "boolean")).toBe(true);
-      expect(body.points.filter(p => p.is_fund).every(p => p.held)).toBe(true);
-      expect(body.points.filter(p => !p.is_fund && p.held)).toHaveLength(1);
+      expect(body.points.every(p => !("held" in p))).toBe(true);
+      expect(body.points.filter(p => p.is_fund)).toHaveLength(1);
+      expect(body.points.find(p => p.is_fund)!.scheme_id).toBe(IDS.scheme);
     }
+    expect(fixture<ScatterResponse>("scatter").points).toHaveLength(7);
+    expect(fixture<ScatterResponse>("scatter_thin")).toMatchObject({ thin_category: true });
+    expect(fixture<ScatterResponse>("scatter_thin").points).toHaveLength(2);
+  });
+
+  it("the risk goldens: an equity fund has bands and a beta, the debt fund has none of them and says why", () => {
+    const equity = fixture<RiskResponse>("risk_equity");
+    expect(equity.volatility).toEqual({ value: "0.0050", band: "Low", tone: "pos" });
+    expect(equity.beta).toEqual({ value: "0.7407", band: "Lower risk", tone: "pos" });
+    expect(equity.beta_reason).toBeNull();
+    const debt = fixture<RiskResponse>("risk_life_window");
+    expect([debt.volatility.band, debt.max_drawdown.band, debt.sharpe.band, debt.beta.value, debt.beta.band]).toEqual([null, null, null, null, null]);
+    expect(debt.beta_reason).toBe("no_benchmark");
+    expect(debt.life_window).toBe(false);
+  });
+
+  it("the overlap goldens agree with each other: the same 18 percent, three shared stocks, the same peer", () => {
+    const fundBody = fixture<OverlapResponse>("overlap_fund");
+    const compareBody = fixture<OverlapCompareResponse>("overlap_compare");
+    expect(fundBody.overlap_pct).toBe("18.0000");
+    expect(compareBody.overlap_pct).toBe("18.0000");
+    expect(fundBody.common_stock_count).toBe(3);
+    expect(compareBody.counts.common).toBe(3);
+    expect(compareBody.fund_b.scheme_id).toBe(IDS.peer1);
+    expect(compareBody.fund_a.scheme_id).toBe(IDS.scheme);
   });
 });

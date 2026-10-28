@@ -1,20 +1,20 @@
 {
   "status": "ready",
-  "scheme_id": "7c9e5b0a-3f1d-4a52-8e6b-1d2f3a4b5c6d",
-  "reference_period": "2026-09-01",
+  "scheme_id": "2c652f6f-008c-58a5-90a5-d1f2e331823f",
+  "reference_period": "2026-09-30",
   "details_available": false,
   "managers": [
     {
-      "name": "A. Kumar",
-      "role": "Fund Manager - Equity",
-      "managing_since": "2019-03-01",
-      "tenure_years": "7.6"
+      "name": "Ananya Shah",
+      "role": "Fund Manager",
+      "managing_since": "2018-04-01",
+      "tenure_years": "8.6"
     },
     {
-      "name": "R. Menon",
-      "role": "Fund Manager - Debt",
-      "managing_since": "2022-06-15",
-      "tenure_years": "4.4"
+      "name": "Vikram Iyer",
+      "role": "Co-Fund Manager",
+      "managing_since": "2021-07-01",
+      "tenure_years": "5.3"
     }
   ]
 }

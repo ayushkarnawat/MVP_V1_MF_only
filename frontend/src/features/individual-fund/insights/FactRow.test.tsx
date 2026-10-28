@@ -6,7 +6,8 @@ import type { Fact, InsightsResponse, Tone } from "../types";
 import { FactRow, ToneIcon } from "./FactRow";
 
 const facts = () => fixture<InsightsResponse>("insights_full");
-const fact = (over: Partial<Fact> = {}): Fact => ({ ...facts().key[0], ...over });
+// key[1] is the expense-ratio fact; the golden's key[0] is the overlap fact.
+const fact = (over: Partial<Fact> = {}): Fact => ({ ...facts().key[1], ...over });
 
 describe("ToneIcon (M4)", () => {
   it.each([
@@ -42,7 +43,7 @@ describe("FactRow", () => {
     expect(row).toHaveAttribute("tabindex", "0");
     expect(row).toHaveAttribute("aria-haspopup", "dialog");
     expect(row).toHaveAttribute("data-tone", "pos");
-    expect(row).toHaveTextContent("Expense ratio is 0.62%, against a category average of 0.95%.");
+    expect(row).toHaveTextContent("Expense ratio is 0.7%, against a category average of 1.033333333333333333333333333%.");
     expect(within(row).getByTestId("tone-icon")).toHaveAttribute("data-icon", "trending-up");
     expect(within(row).queryByTestId("overlap-link")).toBeNull();
   });
@@ -64,8 +65,9 @@ describe("FactRow", () => {
   });
 
   it("test_overlap_row_links_to_greyed_overlap_with_tooltip: the overlap fact still opens its evidence, and carries a greyed See Overlap link", () => {
-    const overlap = facts().considerations[0];
+    const overlap = facts().key[0];
     expect(overlap.id).toBe("overlap");
+    expect(overlap.text).toBe("Portfolio overlap with Golden Peer 1 Fund is 35%.");
     const onOpen = mount(overlap);
     const row = screen.getByTestId("fact-overlap");
     const link = within(row).getByTestId("overlap-link");

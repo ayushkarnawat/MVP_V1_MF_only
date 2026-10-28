@@ -140,6 +140,25 @@ export function seriesValues(
   return points.map((point) => Number(point.pct));
 }
 
+/**
+ * One number per wanted date, read from a date-ordered series. The category series is daily while the fund series skips days
+ * without a NAV, and the chart reads every line by position, so the category line is put on the fund's own dates: a wanted date
+ * the series lacks takes the nearest earlier point (a date before the first point takes the first value).
+ */
+export function alignToDates(
+  points: SeriesPoint[] | null | undefined,
+  dates: readonly string[]
+): number[] {
+  if (!points || points.length === 0 || dates.length === 0) return [];
+  const values: number[] = [];
+  let next = 0;
+  for (const date of dates) {
+    while (next + 1 < points.length && points[next + 1].date <= date) next += 1;
+    values.push(Number(points[next].pct));
+  }
+  return values;
+}
+
 export function lastPct(
   points: SeriesPoint[] | null | undefined
 ): string | null {

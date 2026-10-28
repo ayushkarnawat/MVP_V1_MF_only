@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { deferred } from "../__support__/deferred";
-import { fixture } from "../fixtures";
+import { IDS, fixture } from "../fixtures";
 import type { CategorySeriesResponse, PerformancePeriod, PerformanceResponse, Unavailable } from "../types";
 import { PerformanceChart } from "./PerformanceChart";
 
@@ -28,7 +28,7 @@ const api = vi.hoisted(() => ({ performance: vi.fn(), categorySeries: vi.fn() })
 vi.mock("../api", () => ({ fundPageApi: api }));
 
 const NAME = "Alpha Flexi Cap Fund - Direct Plan";
-const SID = "7c9e5b0a-3f1d-4a52-8e6b-1d2f3a4b5c6d";
+const SID = IDS.scheme;
 const perf = () => fixture<PerformanceResponse>("performance_1y_equity");
 const peers = () => fixture<CategorySeriesResponse>("peers_series_1y");
 const never = () => new Promise<never>(() => {});
@@ -84,7 +84,8 @@ describe("PerformanceChart", () => {
     expect(screen.getByTestId("legend-benchmark")).toHaveTextContent("Nifty 500");
     expect(screen.getByTestId("legend-benchmark-figure")).toHaveTextContent("+12.0%");
     expect(await screen.findByTestId("legend-category")).toHaveTextContent("Flexi Cap category average");
-    expect(screen.getByTestId("legend-category-figure")).toHaveTextContent("+13.1%");
+    // peers_series_1y ends at 10.8332 on 2026-10-23, the same day the fund (9.9997) and the benchmark (12.0000) end.
+    expect(screen.getByTestId("legend-category-figure")).toHaveTextContent("+10.8%");
   });
 
   it("test_category_line_fades_in_when_tier3_arrives_and_third_legend_item_shows_loading_before", async () => {
@@ -98,14 +99,14 @@ describe("PerformanceChart", () => {
     expect(chart.props!.series.map(s => s.key)).toEqual(["fund", "benchmark"]);
     await act(async () => { slow.resolve(peers()); });
     expect(chart.props!.series.map(s => s.key)).toEqual(["fund", "benchmark", "category"]);
-    expect(screen.getByTestId("legend-category-figure")).toHaveTextContent("+13.1%");
+    expect(screen.getByTestId("legend-category-figure")).toHaveTextContent("+10.8%");
     expect(screen.getByTestId("legend-category-figure")).not.toHaveAttribute("aria-busy");
   });
 
   it("hands the chart three series in the palette colours, with an area under the fund line only", async () => {
     mount();
     await screen.findByTestId("legend-category-figure");
-    await screen.findByText("+13.1%");
+    await screen.findByText("+10.8%");
     const series = chart.props!.series;
     expect(series.map(s => [s.key, s.name, s.color, s.area ?? false, s.visible])).toEqual([
       ["fund", NAME, "var(--c2)", true, true],
@@ -114,7 +115,31 @@ describe("PerformanceChart", () => {
     ]);
     expect(series[0].values).toEqual(nums(perf().fund));
     expect(series[1].values).toEqual(nums(perf().benchmark!));
-    expect(series[2].values).toEqual(nums(peers().points));
+    expect(series[0].values).toHaveLength(260);
+  });
+
+  it("the category line is put on the fund's own dates: the real category series is daily (366 points) while the fund series skips days without a NAV (260), and the chart reads every line by position", async () => {
+    mount();
+    await screen.findByText("+10.8%");
+    const category = chart.props!.series[2].values;
+    // One category value per fund date, none for the days the fund has no NAV (for example 25 Oct 2025, a Saturday).
+    expect(category).toHaveLength(260);
+    const byDate = new Map(peers().points.map(point => [point.date, Number(point.pct)]));
+    expect(category).toEqual(perf().fund.map(point => byDate.get(point.date)));
+    // Hand-checked against the files: fund date 2025-10-26 is the third fund point and its category value is 0.0842 (2025-10-25's 0.0561 is skipped).
+    expect(category.slice(0, 4)).toEqual([0, 0.0282, 0.0842, 0.1125]);
+    expect(category[100]).toBe(4.0511);
+    expect(category.at(-1)).toBe(10.8332);
+  });
+
+  it("a category date the series lacks takes the nearest earlier category value", async () => {
+    const sparse = peers();
+    sparse.points = sparse.points.filter(point => point.date !== "2025-10-24" && point.date !== "2025-10-26");
+    api.categorySeries.mockImplementation(() => Promise.resolve(sparse));
+    mount();
+    await screen.findByText("+10.8%");
+    // 24 Oct has no category point: the value of 23 Oct (0.0000) is held; 26 Oct has none: the value of 25 Oct (0.0561) is held.
+    expect(chart.props!.series[2].values.slice(0, 4)).toEqual([0, 0, 0.0561, 0.1125]);
   });
 
   it("labels the axis and tooltip with short and long dates, formats values as signed percent, names the chart", async () => {
@@ -123,9 +148,11 @@ describe("PerformanceChart", () => {
     const props = chart.props!;
     expect(props.ariaLabel).toBe("Performance chart for 1Y");
     expect(props.labels(0)).toBe("Oct 25");
-    expect(props.labels(12)).toBe("Oct 26");
+    expect(props.labels(259)).toBe("Oct 26");
+    expect(props.labels(100)).toBe("Mar 26");
     expect(props.tooltipLabel(0)).toBe("23 Oct 2025");
-    expect(props.tooltipLabel(12)).toBe("23 Oct 2026");
+    expect(props.tooltipLabel(100)).toBe("13 Mar 2026");
+    expect(props.tooltipLabel(259)).toBe("23 Oct 2026");
     expect(props.formatValue(10)).toBe("+10.0%");
     expect(props.formatValue(0)).toBe("0.0%");
     expect(props.formatValue(-2.5)).toBe("-2.5%");

@@ -4,7 +4,6 @@ import { ApiError } from "@/lib/apiClient";
 import { buildRegistry } from "@/shell/registry/buildRegistry";
 import { useScope } from "@/shell/scope/ScopeContext";
 import { renderInShell } from "@/shell/testing";
-import { liveFundRoutes } from "./__support__/liveRoutes";
 import { deferred } from "./__support__/deferred";
 import InsightsRoute, { InsightsPage } from "./InsightsPage";
 import { IDS, fixture } from "./fixtures";
@@ -66,7 +65,7 @@ describe("InsightsPage", () => {
     expect(screen.getByRole("heading", { name: "Rolling Returns" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Period Returns" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Risk-Return (3 Years)" })).toBeInTheDocument();
-    expect(screen.getAllByTestId("manager-name")[0]).toHaveTextContent("A. Kumar");
+    expect(screen.getAllByTestId("manager-name")[0]).toHaveTextContent("Ananya Shah");
     expect(within(screen.getByRole("navigation", { name: "Breadcrumb" })).getByText("Insights")).toHaveAttribute("aria-current", "page");
   });
 
@@ -175,7 +174,11 @@ describe("InsightsPage", () => {
   });
 
   it("a sparse fund shows what it has: one card, one key row, and the strengths card says there is nothing yet", async () => {
-    api.insights.mockImplementation(() => Promise.resolve(fixture<InsightsResponse>("insights_sparse")));
+    // Hand-made from the full golden (one fact, in the key list and the top three): the sparse golden is being regenerated, so the shape is built here.
+    const sparse = fixture<InsightsResponse>("insights_full");
+    const only = sparse.key.find(fact => fact.id === "expense_ratio_vs_category")!;
+    Object.assign(sparse, { key: [only], strengths: [], considerations: [], top_three: [only] });
+    api.insights.mockImplementation(() => Promise.resolve(sparse));
     mount();
     await settled();
     expect(screen.getAllByTestId(/^smart-card-\d+$/)).toHaveLength(1);
@@ -206,14 +209,15 @@ describe("InsightsPage", () => {
     await settled();
     expect(api.summary).toHaveBeenCalledWith(IDS.scheme, IDS.asha, expect.any(AbortSignal));
     expect(api.insights).toHaveBeenCalledWith(IDS.scheme, IDS.asha, expect.any(AbortSignal));
+    expect(api.manager).toHaveBeenCalledWith(IDS.scheme, expect.any(AbortSignal));
   });
 
   it("test_not_held_member_shows_fund_level_cards: a member who does not hold the fund still gets every Insights card", async () => {
     api.summary.mockImplementation(() => Promise.resolve(fixture<SummaryResponse>("summary_not_held")));
-    mount({ scope: { members, viewMode: "member", memberId: IDS.meera } });
+    mount({ scope: { members, viewMode: "member", memberId: IDS.dev } });
     await settled();
     expect(screen.getByTestId("insights-grid")).toBeInTheDocument();
-    expect(screen.getAllByTestId("manager-name")[0]).toHaveTextContent("A. Kumar");
+    expect(screen.getAllByTestId("manager-name")[0]).toHaveTextContent("Ananya Shah");
   });
 
   it("an unknown fund shows the not found page and no cards", async () => {
@@ -224,8 +228,8 @@ describe("InsightsPage", () => {
   });
 
   it("the tab strip leads back to Overview and marks Insights current", async () => {
-    // The tab links only render as links when the fund routes are live, so mount with the live override.
-    mount({ routes: liveFundRoutes() });
+    // The Overview and Insights routes are live, so both tabs are real links in the real registry.
+    mount();
     const tabs = await screen.findByRole("navigation", { name: "Fund sections" });
     expect(within(tabs).getByRole("link", { name: "Insights" })).toHaveAttribute("aria-current", "page");
     expect(within(tabs).getByRole("link", { name: "Overview" })).toHaveAttribute("href", `/portfolio/mutual-funds/funds/${IDS.scheme}`);
@@ -234,25 +238,21 @@ describe("InsightsPage", () => {
 
 describe("Insights route", () => {
   it("the real route renders the page inside the shell at the Insights URL", async () => {
-    renderInShell(undefined, { path: PATH, routes: liveFundRoutes() });
+    renderInShell(undefined, { path: PATH });
     expect(await screen.findByRole("heading", { level: 1, name: NAME })).toBeInTheDocument();
     expect(await screen.findByTestId("fact-expense_ratio_vs_category")).toBeInTheDocument();
     expect(screen.getByRole("main")).toContainElement(screen.getByTestId("insights-grid"));
     expect(api.insights).toHaveBeenCalledWith(IDS.scheme, "combined", expect.any(AbortSignal));
   });
 
-  it("test_route_files_are_live: both fund route files are placeholders for now, the page modules still load and Overlap is a placeholder", async () => {
+  it("test_route_files_are_live: the Insights route file is live and loads the real page module; Overview is live too and Overlap stays a placeholder", async () => {
     const routes = buildRegistry();
     const byId = (id: string) => routes.find(route => route.id === id)!;
-    // IF page not exposed yet, register C166, flip status and page when the Individual Fund backend ships.
     expect(byId("portfolio-mutual-funds-fund-insights")).toMatchObject({
-      status: "placeholder", path: "/portfolio/mutual-funds/funds/:schemeId/insights", label: "Fund Insights", scope: "family-or-member",
+      status: "live", path: "/portfolio/mutual-funds/funds/:schemeId/insights", label: "Fund Insights", scope: "family-or-member",
     });
-    expect((await byId("portfolio-mutual-funds-fund-insights").page!()).default).toBe((await import("@/shell/layout/PlaceholderPage")).default);
-    expect(byId("portfolio-mutual-funds-fund").status).toBe("placeholder");
+    expect((await byId("portfolio-mutual-funds-fund-insights").page!()).default).toBe(InsightsRoute);
+    expect(byId("portfolio-mutual-funds-fund").status).toBe("live");
     expect(byId("portfolio-mutual-funds-fund-overlap").status).toBe("placeholder");
-    // The page module itself still loads; the real-route test above mounts it through a live override.
-    expect(InsightsRoute).toBeTypeOf("function");
-    expect((await import("./InsightsPage")).default).toBeTypeOf("function");
   });
 });

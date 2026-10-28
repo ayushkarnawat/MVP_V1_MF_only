@@ -35,17 +35,18 @@ describe("FundManagerCard", () => {
     const list = screen.getByRole("list", { name: "Fund managers" });
     expect(within(list).getAllByRole("button").map(row => row.getAttribute("data-testid"))).toEqual(["manager-0", "manager-1"]);
     const first = screen.getByTestId("manager-0");
-    expect(within(first).getByTestId("manager-initials")).toHaveTextContent("AK");
+    expect(within(first).getByTestId("manager-initials")).toHaveTextContent("AS");
     expect(within(first).getByTestId("manager-initials")).toHaveAttribute("aria-hidden", "true");
-    expect(within(first).getByTestId("manager-name")).toHaveTextContent("A. Kumar");
-    expect(within(first).getByTestId("manager-role")).toHaveTextContent("Fund Manager - Equity");
-    expect(within(first).getByTestId("manager-since")).toHaveTextContent("Managing since 01 Mar 2019");
-    expect(within(first).getByTestId("manager-tenure")).toHaveTextContent("7.6 years");
+    expect(within(first).getByTestId("manager-name")).toHaveTextContent("Ananya Shah");
+    expect(within(first).getByTestId("manager-role")).toHaveTextContent("Fund Manager");
+    expect(within(first).getByTestId("manager-since")).toHaveTextContent("Managing since 01 Apr 2018");
+    expect(within(first).getByTestId("manager-tenure")).toHaveTextContent("8.6 years");
     const second = screen.getByTestId("manager-1");
-    expect(within(second).getByTestId("manager-initials")).toHaveTextContent("RM");
-    expect(within(second).getByTestId("manager-name")).toHaveTextContent("R. Menon");
-    expect(within(second).getByTestId("manager-since")).toHaveTextContent("Managing since 15 Jun 2022");
-    expect(within(second).getByTestId("manager-tenure")).toHaveTextContent("4.4 years");
+    expect(within(second).getByTestId("manager-initials")).toHaveTextContent("VI");
+    expect(within(second).getByTestId("manager-name")).toHaveTextContent("Vikram Iyer");
+    expect(within(second).getByTestId("manager-role")).toHaveTextContent("Co-Fund Manager");
+    expect(within(second).getByTestId("manager-since")).toHaveTextContent("Managing since 01 Jul 2021");
+    expect(within(second).getByTestId("manager-tenure")).toHaveTextContent("5.3 years");
     for (const row of [first, second]) {
       expect(row).toHaveAttribute("tabindex", "0");
       expect(row).toHaveAttribute("aria-haspopup", "dialog");
@@ -104,13 +105,13 @@ describe("FundManagerCard", () => {
     const dialog = screen.getByRole("dialog", { name: "Fund manager" });
     const rows = within(dialog).getAllByTestId("manager-popup-row").map(row => [within(row).getByRole("term").textContent, within(row).getByRole("definition").textContent]);
     expect(rows).toEqual([
-      ["Name", "R. Menon"], ["Role", "Fund Manager - Debt"], ["Managing since", "15 Jun 2022"], ["Tenure", "4.4 years"], ["Details as of", "01 Sep 2026"],
+      ["Name", "Vikram Iyer"], ["Role", "Co-Fund Manager"], ["Managing since", "01 Jul 2021"], ["Tenure", "5.3 years"], ["Details as of", "30 Sep 2026"],
     ]);
     expect(within(dialog).getByTestId("manager-note")).toHaveTextContent("Photo, biography and strategy are coming soon.");
     fireEvent.click(within(dialog).getByRole("button", { name: "Close modal" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.keyDown(screen.getByTestId("manager-0"), { key: "Enter" });
-    expect(within(screen.getByRole("dialog", { name: "Fund manager" })).getAllByTestId("manager-popup-row")[0]).toHaveTextContent("NameA. Kumar");
+    expect(within(screen.getByRole("dialog", { name: "Fund manager" })).getAllByTestId("manager-popup-row")[0]).toHaveTextContent("NameAnanya Shah");
     fireEvent.keyDown(window, { key: "Escape" });
     const spaceNotPrevented = fireEvent.keyDown(screen.getByTestId("manager-1"), { key: " " });
     expect(spaceNotPrevented).toBe(false);
