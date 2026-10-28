@@ -369,6 +369,8 @@ export interface InvestmentWithdrawalEntry {
   nav?: string | null;
   /** Masked by the backend: "XXXX" plus the last four letters or digits of the folio. */
   folio?: string | null;
+  /** Fund link (IF-E BE1), optional: absent on payloads stored before it. */
+  scheme_id?: string | null;
 }
 export interface InvestmentWithdrawalBucket {
   /** "YYYY-MM" for monthly buckets, "YYYY" for yearly. */

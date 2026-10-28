@@ -346,6 +346,8 @@ class InvestmentWithdrawalEntry(BaseModel):
     units: str | None = None
     nav: str | None = None
     folio: str | None = None  # masked: "XXXX" + last four alphanumerics
+    # Fund link (IF-E BE1); absent on payloads stored before it, no recompute needed.
+    scheme_id: str | None = None
 
 
 class InvestmentWithdrawalBucket(BaseModel):

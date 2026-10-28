@@ -138,6 +138,7 @@ async def compute_investment_withdrawal(
             units=str(txn.units),
             nav=str(txn.nav),
             folio=_mask_folio(folio.folio_number),
+            scheme_id=str(folio.scheme_id),
         ))
 
     opening_holdings = _sum(entries, "opening")
