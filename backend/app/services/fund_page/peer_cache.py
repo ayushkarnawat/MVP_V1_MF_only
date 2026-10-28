@@ -3,19 +3,23 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Awaitable, Callable
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Generic, TypeVar
+from zoneinfo import ZoneInfo
 
 
 T = TypeVar("T")
+
+# Keys carry the IST request date, so the stored-day check must use IST too.
+_IST = ZoneInfo("Asia/Kolkata")
 
 
 class PeerCache(Generic[T]):
     def __init__(
         self,
         clock: Callable[[], int | Decimal] = time.monotonic,
-        day: Callable[[], date] = lambda: date.today(),
+        day: Callable[[], date] = lambda: datetime.now(_IST).date(),
     ) -> None:
         self._clock = clock
         self._day = day
