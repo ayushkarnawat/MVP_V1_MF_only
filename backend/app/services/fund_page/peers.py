@@ -149,7 +149,9 @@ async def _category_series_uncached(
 async def category_series(
     db: Session, scheme: Scheme, period: str, today: date,
 ) -> CategorySeriesResponse | Unavailable:
-    key = (scheme.sebi_category, scheme.plan_type, today, "series", period)
+    # Only period "All" starts at this scheme's first NAV date; fixed windows are shared.
+    key = (scheme.sebi_category, scheme.plan_type, today, "series", period,
+           scheme.id if period_start(period, today) is None else None)
     return await peer_cache.get_or_compute(
         key, lambda: _category_series_uncached(db, scheme, period, today),
     )
@@ -224,7 +226,8 @@ async def _category_returns_uncached(
 async def category_returns(
     db: Session, scheme: Scheme, today: date,
 ) -> CategoryReturnsResponse | Unavailable:
-    key = (scheme.sebi_category, scheme.plan_type, today, "returns", None)
+    # since_inception column starts at this scheme's own first NAV: keyed per scheme.
+    key = (scheme.sebi_category, scheme.plan_type, today, "returns", None, scheme.id)
     return await peer_cache.get_or_compute(
         key, lambda: _category_returns_uncached(db, scheme, today),
     )
@@ -313,7 +316,7 @@ async def _rolling_returns_uncached(
 async def rolling_returns(
     db: Session, scheme: Scheme, window_years: int, today: date,
 ) -> RollingResponse | Unavailable:
-    key = (scheme.sebi_category, scheme.plan_type, today, "rolling", window_years)
+    key = (scheme.sebi_category, scheme.plan_type, today, "rolling", window_years, scheme.id)
     return await peer_cache.get_or_compute(
         key, lambda: _rolling_returns_uncached(db, scheme, window_years, today),
     )
@@ -449,7 +452,7 @@ async def _period_returns_uncached(
 async def period_returns(
     db: Session, scheme: Scheme, period: str, today: date,
 ) -> PeerPeriodReturnsResponse | Unavailable:
-    key = (scheme.sebi_category, scheme.plan_type, today, "period_returns", period)
+    key = (scheme.sebi_category, scheme.plan_type, today, "period_returns", period, scheme.id)
     return await peer_cache.get_or_compute(
         key, lambda: _period_returns_uncached(db, scheme, period, today),
     )
@@ -510,7 +513,7 @@ async def _calendar_year_returns_uncached(
 async def calendar_year_returns(
     db: Session, scheme: Scheme, today: date, n: int = 5,
 ) -> list[CalendarYearReturn]:
-    key = (scheme.sebi_category, scheme.plan_type, today, "calendar_years", n)
+    key = (scheme.sebi_category, scheme.plan_type, today, "calendar_years", n, scheme.id)
     return await peer_cache.get_or_compute(
         key, lambda: _calendar_year_returns_uncached(db, scheme, today, n),
     )
@@ -603,7 +606,7 @@ async def _risk_return_scatter_uncached(
 async def risk_return_scatter(
     db: Session, scheme: Scheme, today: date,
 ) -> ScatterResponse | Unavailable:
-    key = (scheme.sebi_category, scheme.plan_type, today, "scatter", None)
+    key = (scheme.sebi_category, scheme.plan_type, today, "scatter", None, scheme.id)
     return await peer_cache.get_or_compute(
         key, lambda: _risk_return_scatter_uncached(db, scheme, today),
     )
