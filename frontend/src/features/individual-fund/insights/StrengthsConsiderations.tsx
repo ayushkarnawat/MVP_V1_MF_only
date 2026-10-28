@@ -10,10 +10,12 @@ import { FactRow } from "./FactRow";
 
 export interface StrengthsConsiderationsProps {
   insights: FundSection<InsightsResponse>;
+  schemeId?: string;
 }
 
 export function StrengthsConsiderations({
   insights,
+  schemeId,
 }: StrengthsConsiderationsProps) {
   const [fact, setFact] = useState<Fact | null>(null);
 
@@ -61,7 +63,12 @@ export function StrengthsConsiderations({
                 </h4>
                 <ul aria-label="Strengths" className="mt-1 space-y-0.5">
                   {strengths.map((item) => (
-                    <FactRow key={item.id} fact={item} onOpen={setFact} />
+                    <FactRow
+                      key={item.id}
+                      fact={item}
+                      onOpen={setFact}
+                      schemeId={schemeId}
+                    />
                   ))}
                 </ul>
               </div>
@@ -79,7 +86,12 @@ export function StrengthsConsiderations({
                 </h4>
                 <ul aria-label="Considerations" className="mt-1 space-y-0.5">
                   {considerations.map((item) => (
-                    <FactRow key={item.id} fact={item} onOpen={setFact} />
+                    <FactRow
+                      key={item.id}
+                      fact={item}
+                      onOpen={setFact}
+                      schemeId={schemeId}
+                    />
                   ))}
                 </ul>
               </div>

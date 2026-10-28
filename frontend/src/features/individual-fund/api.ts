@@ -8,6 +8,8 @@ import type {
   HoldingsListResponse,
   InsightsResponse,
   ManagerResponse,
+  OverlapCompareResponse,
+  OverlapResponse,
   PerformancePeriod,
   PerformanceResponse,
   PeriodReturnsPeriod,
@@ -177,6 +179,22 @@ export const fundPageApi = {
   insights(schemeId: string, scope: string, signal?: AbortSignal): Promise<InsightsResponse | Unavailable> {
     return get<InsightsResponse | Unavailable>(
       fundPagePath(schemeId, "insights", { scope }),
+      signal
+    );
+  },
+
+  overlap(schemeId: string, scope: string, signal?: AbortSignal): Promise<OverlapResponse | Unavailable> {
+    return get<OverlapResponse | Unavailable>(fundPagePath(schemeId, "overlap", { scope }), signal);
+  },
+
+  overlapCompare(
+    schemeId: string,
+    otherSchemeId: string,
+    scope: string,
+    signal?: AbortSignal
+  ): Promise<OverlapCompareResponse | Unavailable> {
+    return get<OverlapCompareResponse | Unavailable>(
+      fundPagePath(schemeId, `overlap/${encodeURIComponent(otherSchemeId)}`, { scope }),
       signal
     );
   },

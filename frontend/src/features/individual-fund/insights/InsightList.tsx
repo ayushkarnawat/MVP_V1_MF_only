@@ -8,9 +8,10 @@ import { FactRow } from "./FactRow";
 
 export interface InsightListProps {
   insights: FundSection<InsightsResponse>;
+  schemeId?: string;
 }
 
-export function InsightList({ insights }: InsightListProps) {
+export function InsightList({ insights, schemeId }: InsightListProps) {
   const [fact, setFact] = useState<Fact | null>(null);
 
   const keyFacts = insights.data?.key ?? [];
@@ -43,7 +44,12 @@ export function InsightList({ insights }: InsightListProps) {
         ) : (
           <ul aria-label="Key insights" className="space-y-0.5">
             {keyFacts.map((item) => (
-              <FactRow key={item.id} fact={item} onOpen={setFact} />
+              <FactRow
+                key={item.id}
+                fact={item}
+                onOpen={setFact}
+                schemeId={schemeId}
+              />
             ))}
           </ul>
         )}
