@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FundLink } from "../components/FundLink";
 import { NewsCategoryIcon } from "../components/NewsCategoryIcon";
 import {
   NEWS_GENERAL_NOTE,
@@ -212,12 +213,8 @@ export function News({ status, data, refreshing, onRefresh }: NewsProps) {
               >
                 {opened.funds.map(fund => (
                   <li key={fund.scheme_id} className="flex items-baseline justify-between gap-3 py-2 text-sm">
-                    <span
-                      aria-disabled="true"
-                      title="Coming soon"
-                      className="cursor-not-allowed text-[var(--ui-disabled-text)]"
-                    >
-                      {fund.name}
+                    <span className="text-[var(--ui-text)]">
+                      <FundLink schemeId={fund.scheme_id}>{fund.name}</FundLink>
                     </span>
                     {/* The server sends its own 2-decimal text; shown untouched, and left out when it sends none. */}
                     {fund.weight_pct ? (

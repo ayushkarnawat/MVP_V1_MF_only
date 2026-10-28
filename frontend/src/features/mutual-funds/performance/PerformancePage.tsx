@@ -5,6 +5,7 @@ import { diffDecimalStrings, formatDecimal, toPercentString } from "../../../lib
 import { formatDate, formatPercent, formatRupees } from "../../../lib/format";
 import { useScope } from "../../../shell/scope/ScopeContext";
 import { getMonthDetail } from "../api";
+import { FundLink } from "../common/FundLink";
 import { InfoMark } from "../common/SectionCard";
 import { useMfAnalytics } from "../data/analyticsStore";
 import { useMfHistory, useMfHoldings, useMfSection } from "../data/useMfDashboard";
@@ -195,7 +196,9 @@ function MonthModal({
                   >
                     <td className="py-2.5 pr-3">
                       <div className="flex flex-col">
-                        <span className="font-medium text-[var(--ui-text)]">{f.scheme_name}</span>
+                        <span className="font-medium text-[var(--ui-text)]">
+                          <FundLink schemeId={f.scheme_id}>{f.scheme_name}</FundLink>
+                        </span>
                         <span className="text-[11px] text-[var(--ui-text-muted)]">{f.household_member_name}</span>
                         {!f.priced && (
                           <span className="text-[11px] text-[var(--warn-text)]">No price for this month</span>
@@ -485,7 +488,9 @@ function ReturnsBlock({
                     const diffDir = changeDirection(diff);
                     return (
                       <tr key={f.scheme_id} data-testid={`fxirr-${f.scheme_id}`}>
-                        <td className="py-2.5 pr-4 font-medium text-[var(--ui-text)]">{f.scheme_name}</td>
+                        <td className="py-2.5 pr-4 font-medium text-[var(--ui-text)]">
+                          <FundLink schemeId={f.scheme_id}>{f.scheme_name}</FundLink>
+                        </td>
                         <td className="py-2.5 px-4 font-medium text-[var(--ui-text)]">
                           {formatPercent(toPercentString(f.fund_xirr!), { digits: 1, signed: true })}
                         </td>

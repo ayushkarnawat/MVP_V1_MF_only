@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { PlanBadge } from "./PlanBadge";
 import { Modal } from "../Modal";
 import { Badge } from "../Badge";
@@ -13,12 +14,15 @@ export interface FundDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   holding: HoldingRow | null;
+  /** Optional extra line under the details (the Mutual Funds page passes its "Open fund page" link). Nothing when absent. */
+  actions?: ReactNode;
 }
 
 export function FundDetailModal({
   isOpen,
   onClose,
   holding,
+  actions,
 }: FundDetailModalProps) {
   if (!holding) return null;
 
@@ -116,6 +120,7 @@ export function FundDetailModal({
             </div>
           )}
         </div>
+        {actions}
       </div>
     </Modal>
   );

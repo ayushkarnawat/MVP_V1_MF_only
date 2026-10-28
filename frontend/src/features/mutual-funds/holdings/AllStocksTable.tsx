@@ -6,6 +6,7 @@ import { formatPercent } from "../../../lib/format";
 import { AppLink } from "../../../shell/nav/AppLink";
 import { paths } from "../../../shell/nav/paths";
 import type { AnalyticsCardProps } from "../allocation/allocationLogic";
+import { FundLink } from "../common/FundLink";
 import { SectionCard } from "../common/SectionCard";
 import type { StockHoldingsSummary } from "../types";
 import {
@@ -167,7 +168,7 @@ export function AllStocksTable({
                                   key={fund.scheme_id}
                                   data-testid={`stock-fund-${key}-${fund.scheme_id}`}
                                 >
-                                  {fund.scheme_name} · {lookthroughPercent(fund.stock_weight_pct)}% of fund ·{" "}
+                                  <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink> · {lookthroughPercent(fund.stock_weight_pct)}% of fund ·{" "}
                                   {lookthroughPercent(prod)}% of portfolio
                                   {age ? ` · ${age}` : ""}
                                 </li>

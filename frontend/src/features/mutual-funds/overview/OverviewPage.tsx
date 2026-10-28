@@ -9,6 +9,7 @@ import { useImport, useScope } from "../../../shell/scope/ScopeContext";
 import { useMfAnalytics } from "../data/analyticsStore";
 import { useMfDashboard } from "../data/useMfDashboard";
 import { MutualFundsFrame, useMfFrame } from "../frame/MutualFundsFrame";
+import { FundLink } from "../common/FundLink";
 import {
   buildOverviewInsights,
   buildSynopsis,
@@ -186,7 +187,20 @@ function OverviewBody({ query }: { query: string }) {
         ) : null}
       </div>
       <div data-legacy="dialogs" className="contents">
-        <FundDetailModal isOpen={openRow !== null} onClose={() => setOpenRow(null)} holding={openRow} />
+        <FundDetailModal
+          isOpen={openRow !== null}
+          onClose={() => setOpenRow(null)}
+          holding={openRow}
+          actions={
+            openRow?.scheme_id ? (
+              <p className="mt-4 text-sm">
+                <FundLink schemeId={openRow.scheme_id} className="font-medium text-[var(--c2)] hover:underline">
+                  Open fund page
+                </FundLink>
+              </p>
+            ) : undefined
+          }
+        />
         <DistributorComparisonModal
           isOpen={distributorsOpen}
           onClose={() => setDistributorsOpen(false)}

@@ -2,6 +2,7 @@ import { BarChart3, ChevronRight, PieChart, Table2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { formatCompactRupees, formatPercent, formatRupees } from "../../../lib/format";
 import { BarList, ChartTypeToggle, SlicedDonut, useSelectedSlice } from "../common/charts";
+import { FundLink } from "../common/FundLink";
 import { SectionCard } from "../common/SectionCard";
 import { formatXirr } from "../mfCopy";
 import type { FundManagerAllocationSummary } from "../types";
@@ -166,7 +167,7 @@ export function FundManagerCard({
                                     title={fund.scheme_name}
                                     className="font-medium text-[var(--ui-text)] truncate max-w-md"
                                   >
-                                    {fund.scheme_name}
+                                    <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink>
                                   </span>
                                   <span className="text-[var(--ui-text-muted)]">
                                     {formatRupees(fund.household_value)} · XIRR{" "}
@@ -291,7 +292,7 @@ export function FundManagerCard({
                         title={fund.scheme_name}
                         className="truncate font-medium text-[var(--ui-text)] max-w-sm"
                       >
-                        {fund.scheme_name}
+                        <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink>
                       </span>
                       <span className="shrink-0 font-medium text-[var(--ui-text-muted)]">
                         {formatRupees(fund.household_value)}
