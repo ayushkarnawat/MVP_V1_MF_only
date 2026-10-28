@@ -160,3 +160,9 @@ Landing this migration also removed every OTP/session-related route's old direct
 ## 2026-10-27 — Migration 0046: job_runs table (chains after 0044)
 
 `0046_job_runs` — new additive table `job_runs`: `job_name` (String(64) PK), `last_success_at` (`DateTime(timezone=True)`, NOT NULL). One row per batch job, written only on a successful run. First user: `refresh_news`, so the Home news route reports `feed_as_of` as the last successful refresh rather than the newest inserted article (a healthy run that finds only duplicates inserts nothing). Chain is now `0043 -> 0045 -> 0044 -> 0046`; `alembic heads` prints `0046 (head)`. SQLite round trip covered in `tests/test_migrations.py`; real Postgres round trip (`tests/functional_postgres/test_job_runs_migration_0046.py`) run against a throwaway `postgres:16-alpine` container: upgrade, insert, downgrade to 0044, upgrade, passed.
+
+
+
+## 2026-10-28 — Individual Fund routes and the ledger `scheme_id`: no migration, head stays 0046
+
+The Individual Fund page routes (PR #31) and the optional `scheme_id` on ledger entries (PR #35) read existing tables only and add no table, column or index. `alembic heads` still prints `0046 (head)`; the next migration number is `0047`.

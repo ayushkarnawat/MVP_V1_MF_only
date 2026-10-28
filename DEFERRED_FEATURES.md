@@ -447,3 +447,15 @@ Decided by the owner 2026-10-23 while resolving `Docs/orchestration/2026-10-23-m
   in place and working, just remove the visible "Download PDF" entry point from the Mutual Funds pages' UI.
   **Do not delete this code as "unused" in a later cleanup pass** — it is deliberately dormant, not dead, pending
   a real decision on combined-vs-per-page export once the new pages are built and proven.
+
+
+
+## Added 2026-10-29 (Individual Fund release — open items, not built)
+
+Source: register `Docs/orchestration/ui-redesign-decisions-register.md` (C177 to C183, L22, L23) and `Docs/orchestration/2026-10-29-orchestrator-handoff-7.md`.
+
+- **IF-E2, more fund-name links.** Not linked on purpose in IF-E: the Ledger names (BE1 `scheme_id` is merged, the link is not), the Other tab, the overlap heatmap and top pairs, benchmark rows, the Worth a look cost and concentration cards, the nested "See Overlap" link on Insights (an accessibility compromise, C181 default 14). Holdings table rows stay unlinked (C159); the greeting link needs the owner's decision (C149).
+- **Individual Fund backend asks (optional, the UI hides each element until built):** L22 BA1 to BA6 (`held` flag on scatter points, `benchmark_label`, unrounded decimals and ISO dates in insight text, category series on the fund's own dates, two missing goldens and the misnamed `risk_life_window.json`, a more realistic risk synthetic series); L23 BA1 to BA5 (`amc_name`, `aum`, `expense_ratio` on the compare route, CAGR rows, missing overlap goldens, the 35% vs 18% overlap check on real data, fund page links from `held_in_funds` / `top_overlap_funds`).
+- **Mutual Funds backend asks not built:** holdings export route, family-view coverage-gap route, optional analytics recompute after an opening-balance post.
+- **Owner sign-offs open:** Holdings lifetime XIRR (B12), the CAL1 table (B11), V7 sector-coverage numbers (no threshold), L13 (a fund redeemed on the latest price date counts in that day's change), the greeting link (C149).
+- **Release process gap:** the whole-release independent review of IF-C, IF-D, IF-E and BE1 was skipped by the owner (`decisions.md` OD2); revisit if staging QA finds correctness bugs.

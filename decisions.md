@@ -788,3 +788,14 @@ Moved here from `Docs/orchestration/2026-10-23-profile-backend-decisions-proposa
 - **PD6.** No schema change, no migration and no new job for the Profile release _Why:_ L31 removed the only option that needed new columns. _Alternative:_ none.
 - **PD8.** No backend change for editing goals and investor type: the existing `PATCH /auth/me` is used (L43), the same call onboarding uses _Why:_ reuse; behaviour for an empty goals list was to be verified (spec item 7). _Alternative:_ a Profile-specific endpoint.
 - **PD9.** The old Profile screen is deleted after the new one is accepted (L42); reused components stay _Why:_ Approach 3B kept it reachable only as a fallback until then. _Alternative:_ keep it indefinitely. **Executed on the owner's go: PR #27 (`24e84d81`, 27 Oct 2026), register row C169.** Kept: `PendingDeletionScreen`, `TermsSection`, `LogoutConfirmDialog`, `DeletePortfolioDialog`, `DeleteImportDialog`, `ImportHistorySection`, `historyGroups`, the Import health route and its dev link.
+
+
+
+## 2026-10-29 — Individual Fund release process decisions (OD1 to OD4)
+
+Owner decisions of 28-29 Oct 2026 during the Individual Fund release (register rows C181 to C183). Process and risk decisions, recorded here so they are not lost in the register.
+
+- **OD1.** IF-E (fund names open the fund page) was built before IF-D (Overlap tab) merged; its base is `66c4f2aa` _Why:_ the two packets touch disjoint files (IF-E touches nothing in `features/individual-fund`), so Gemini's time was not left idle waiting for the IF-D verification. _Alternative:_ wait for IF-D to merge, then rebase.
+- **OD2.** The whole-release independent Sonnet review of IF-C, IF-D, IF-E and BE1 was SKIPPED _Why:_ owner's call to move to staging. **Recorded risk:** these four merges were checked only by the orchestrator's own verification (type check, lint, test counts against the reference solution, injected bugs, CI) plus the 12 backend review fixes made earlier on the Individual Fund backend (C177); no reviewer read the diffs for correctness or security. Mitigation: the staging QA checklist and the overlap consistency check (L23 BA4). _Alternative:_ a read-only review of the four diffs before deploy.
+- **OD3.** The manager runs the staging deploy of the Individual Fund release only through the manager's own Claude, from the ready prompt in `Docs/orchestration/2026-10-29-staging-deploy-guide-individual-fund.md`; the orchestrator does not run it _Why:_ the VM key and the permission checks live on the manager's side. _Alternative:_ the orchestrator drives the run from the owner's laptop WSL, as on 27-28 Oct (C174, C175).
+- **OD4.** Small verified fixes may be merged straight into `leapswitch-redesign` without a pull request; anything big still gets a PR _Why:_ CI only runs on pull requests and on `main`, so a PR is worth it only when the CI run adds value. _Alternative:_ a PR for every change.
