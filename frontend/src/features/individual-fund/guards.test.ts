@@ -28,6 +28,10 @@ describe("Individual Fund front-end guards", () => {
       "InsightsPage.tsx", "insights/FactRow.tsx", "insights/EvidenceDialog.tsx", "insights/SmartInsightsCards.tsx", "insights/InsightList.tsx",
       "insights/StrengthsConsiderations.tsx", "insights/FundManagerCard.tsx", "insights/RollingReturnsChart.tsx",
       "insights/PeriodReturnsChart.tsx", "insights/RiskReturnScatter.tsx",
+      "OverlapPage.tsx", "overlap/overlapLogic.ts", "overlap/OverlapTab.tsx", "overlap/NormalState.tsx", "overlap/ComparisonState.tsx",
+      "overlap/ComparisonTabs.tsx", "overlap/ComparisonOverview.tsx", "overlap/HoldingsPanels.tsx", "overlap/BarPanels.tsx",
+      "overlap/PerformancePanel.tsx", "overlap/TopOverlapFunds.tsx", "overlap/SectorOverlap.tsx", "overlap/DistributionBar.tsx",
+      "overlap/CommonHoldingsTable.tsx", "overlap/OverlapDonut.tsx",
       "fixtures/index.ts", "fixtures/schema.ts",
     ]) {
       expect(names).toContain(expected);

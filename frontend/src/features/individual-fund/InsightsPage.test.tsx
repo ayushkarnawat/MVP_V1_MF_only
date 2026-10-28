@@ -245,7 +245,7 @@ describe("Insights route", () => {
     expect(api.insights).toHaveBeenCalledWith(IDS.scheme, "combined", expect.any(AbortSignal));
   });
 
-  it("test_route_files_are_live: the Insights route file is live and loads the real page module; Overview is live too and Overlap stays a placeholder", async () => {
+  it("test_route_files_are_live: the Insights route file is live and loads the real page module; Overview and Overlap are live too", async () => {
     const routes = buildRegistry();
     const byId = (id: string) => routes.find(route => route.id === id)!;
     expect(byId("portfolio-mutual-funds-fund-insights")).toMatchObject({
@@ -253,6 +253,6 @@ describe("Insights route", () => {
     });
     expect((await byId("portfolio-mutual-funds-fund-insights").page!()).default).toBe(InsightsRoute);
     expect(byId("portfolio-mutual-funds-fund").status).toBe("live");
-    expect(byId("portfolio-mutual-funds-fund-overlap").status).toBe("placeholder");
+    expect(byId("portfolio-mutual-funds-fund-overlap").status).toBe("live");
   });
 });
