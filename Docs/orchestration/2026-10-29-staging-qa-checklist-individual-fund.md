@@ -6,6 +6,8 @@
 
 **Date / tester / commit under test (`git log -1 --format=%h`):** ______ / ______ / ______
 
+**Already answered by the 28 to 29 Oct automated run (do not repeat):** A1 to A4, A6, A7, B3, B4, B6 pass. **Still open (manual):** A5, A8, B5, C1 to C13, D1 to D21, E1 to E9, F1 to F4. Rows D7, D8, E8, B1, B2 and the new row D22 were rewritten for the later redeploy (`2026-10-29-staging-redeploy-guide-holdings-click-and-qa-fixes.md`).
+
 **How to fill it in:** write Pass, Fail or Skip and a short note in the notes column; initials in the last column. "Expected: look for ..." means the exact text is not fixed by the sources; judge by what is described. **Rule:** any failed row blocks sign-off until it is fixed and re-run, or recorded as an owner-accepted Low with the owner's initials. Any failure in the fund page's money or percent numbers (Group C) blocks sign-off; C12 and F4 cannot be accepted as Low.
 
 ---
@@ -27,8 +29,8 @@
 
 | # | Step | How to check | Expected result | Pass / Fail / Notes | Initials |
 |---|---|---|---|---|---|
-| B1 | T14 tiers 1 and 2 | Guide step 16, the T14 command (`--scheme-filtered --schemes 4 --runs 3 --simulate-fresh-cache`) | Script's `PASS` lines: tier 1 under 300 ms; each tier 2 call under 50 ms. Paste the output | | |
-| B2 | T14 tier 3 | Guide step 17, the T14 command (`--include-score` only; times tier 3 cold, then warm) | `PASS`: first open of a category under 5 s; second open under 300 ms. If it misses, BDF13 before touching the cache design | | |
+| B1 | T14 tiers 1 and 2 | Redeploy guide step 12 (`--scheme-filtered --schemes 4 --runs 3 --simulate-fresh-cache`) | Tier 1 under 300 ms; tier 2 first call per fund under 100 ms and steady calls under 50 ms (the script may still print 50 ms for the first call: judge by 100). 28 to 29 Oct: tier 1 312 to 322 ms; tier 2 first calls 77 to 97 ms, fund 2 call 2 at 95 ms, fund 4 call 5 at 83 ms: **owner-accepted Low** (limit then 50 ms; new limit set). Rerun values must meet the new limits. Paste the output | | |
+| B2 | T14 tier 3 | Redeploy guide step 13 (`--scheme-filtered --schemes 4 --runs 3 --simulate-fresh-cache --include-score`; the flag `--simulate-fresh-cache` is required) | First open of a category under 5.5 s; second open under 300 ms. 28 to 29 Oct: fund 1 first open 5,108.9 ms (others 3.8 to 4.4 s) against the old 5 s limit: **owner-accepted Low**; second opens 3.2 to 4.8 ms. The run may write up to one `fund_scores` row per fund for today plus peer rows (expected). If it misses the new limit, BDF13 before touching the cache design | | |
 | B3 | V5 benchmark history | V5 query, guide section 1, step 13 | Both `nifty_largemidcap_250` and `nifty_midcap_150` (`tri`) return a row spanning 3 years or more | | |
 | B4 | V7 sector coverage | V7 query, guide section 1, step 13 | **Record the numbers, owner decides** (no numeric limit; not pass or fail by threshold). Owner decides whether D7 needs a follow-up | | |
 | B5 | V6 deletion leaves nothing | Guide step 19: the manager deletes a throwaway user (not the main one); Claude then runs `select count(*) from analytics_sections where user_id = '<deleted user>'` | `0` | | |
@@ -66,8 +68,9 @@ A link must be a real link with the keyboard working (Tab to it, Enter opens the
 | D4 | Home: news "Why this?" popup | Open it on a news item | Fund names are links (they used to be greyed) | | |
 | D5 | Home: Worth a look | Weak-fund and underperforming cards: "Review this fund" | Link to that fund's page. Cost and concentration cards **deliberately stay greyed** | | |
 | D6 | Home: greeting top-mover link | Click it | **Deliberately unchanged** (C149): switches Movers to Fund grouping and opens that fund's popup, not the page | | |
-| D7 | Mutual Funds: Overview holdings table | Click a fund name cell | **Deliberately not linked** (C159): opens the Fund Details popup | | |
-| D8 | Mutual Funds: Fund Details popup | Open it from the table | An "Open fund page" link at the bottom opens the fund page; with no scheme id the link is absent | | |
+| D7 | Mutual Funds: Overview holdings table | Click a holdings row, and separately a fund name; then Tab to the name link and press Enter | Opens that fund's Individual Fund page directly (`/portfolio/mutual-funds/funds/<schemeId>`), no pop-up; one navigation only, no double open; the name is a real link and is not inside a button; a click on the row elsewhere also works. Combined family view: the combined fund page opens; a member view: the member carries over to the fund page | | |
+| D8 | Fund Details pop-up | Mutual Funds Overview: click holdings rows. Then open the legacy Dashboard (`https://ls-staging.unifolio.in`) and open its fund pop-up | The pop-up no longer exists on the Mutual Funds Overview page and there is no "Open fund page" link there. It remains only in the legacy Dashboard, which still opens it | | |
+| D22 | Back button after a fund-name click | Mutual Funds Overview: click a fund name, then use the browser Back button | The Individual Fund page opens, and Back returns to Overview with the holdings table intact (same scope, no reload loop or blank table) | | |
 | D9 | Mutual Funds: AMC allocation drill popup, SIP timeline (Next chip, day popup, recent and upcoming lists) | Open each | Fund names are links | | |
 | D10 | Mutual Funds: Allocation cards | Asset class drill, Category and AMC, Fund Manager table and donut drill, Market Cap stocks | Fund names are links; manager and slice rows (buttons) are not touched | | |
 | D11 | Mutual Funds: Holdings tab | Open a stock to see the funds behind it | Fund names are links; stock rows stay buttons | | |
@@ -93,7 +96,7 @@ A link must be a real link with the keyboard working (Tab to it, Enter opens the
 | E5 | Keyboard: tabs | Tab to the fund page tab strip; open each tab | Overview, Overlap and Insights are all links; focus ring visible | | |
 | E6 | Keyboard: Overlap list | Focus "Top Funds with Overlap"; ArrowUp, ArrowDown, Home, End, Enter, Space | Moves without wrapping; Enter and Space open the comparison; heading takes focus | | |
 | E7 | Keyboard: comparison sub-tabs | Arrows, Home, End | Arrows wrap; Home and End jump; the selected panel is shown | | |
-| E8 | Keyboard: entry-point links | Tab through a Movers row, a SIP timeline entry, the Fund Details popup | Each link is reachable and opens the page on Enter; no double open | | |
+| E8 | Keyboard: entry-point links | Tab through a Movers row, a SIP timeline entry and an Overview holdings row | Each link is reachable and opens the page on Enter; no double open | | |
 | E9 | Screen reader spot check (optional) | Listbox, tabs, the nested "See Overlap" link | Announced as list, tabs and link. The "See Overlap" link sits inside a button-role row (accepted compromise in IF-D); note anything confusing | | |
 
 ## Group F: Regression and rollback
@@ -129,11 +132,11 @@ A link must be a real link with the keyboard working (Tab to it, Enter opens the
 | A Deploy health | A1 to A8 | | | |
 | B Timings and data | B1 to B6 | | | |
 | C Individual Fund page | C1 to C13 | | | |
-| D Entry-point links | D1 to D21 | | | |
+| D Entry-point links | D1 to D22 | | | |
 | E Layout, theme, keyboard | E1 to E9 | | | |
 | F Regression and rollback | F1 to F6 | | | |
 
-**Timings recorded (B1, B2):** ________________________
+**Timings recorded (B1, B2; 28 to 29 Oct misses are owner-accepted Lows, rerun under the new limits):** ________________________
 
 **Overlap agreement (C11), figures and decision:** ________________________
 

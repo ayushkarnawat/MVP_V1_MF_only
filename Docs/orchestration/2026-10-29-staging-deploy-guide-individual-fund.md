@@ -234,13 +234,13 @@ Source: IB handoff T14 and `Docs/superpowers/plans/2026-10-23-individual-fund-ba
 ```bash
 sudo docker compose run --rm -T backend python scripts/measure_fund_page_staging.py --user-id <USER_UUID> --scheme-filtered --schemes 4 --runs 3 --simulate-fresh-cache
 ```
-Expected: the script's own `PASS` lines: tier 1 under 300 ms (an estimate to confirm), each tier 2 call under 50 ms. **STOP** on a `FAIL`, a non-zero exit or a write error; paste the whole output.
+Expected: the script's own `PASS` lines: tier 1 under 300 ms (an estimate to confirm), tier 2 first call per fund under 100 ms and steady calls under 50 ms (owner limits after the 28 to 29 Oct run; the script itself may still print 50 ms for the first call; see the redeploy guide). **STOP** on a `FAIL`, a non-zero exit or a write error; paste the whole output.
 
 ### Step 17 (VM): T14 tier 3
 ```bash
-sudo docker compose run --rm -T backend python scripts/measure_fund_page_staging.py --user-id <USER_UUID> --scheme-filtered --schemes 4 --runs 3 --include-score
+sudo docker compose run --rm -T backend python scripts/measure_fund_page_staging.py --user-id <USER_UUID> --scheme-filtered --schemes 4 --runs 3 --simulate-fresh-cache --include-score
 ```
-Expected: `PASS`: first open of a category under 5 s, second open under 300 ms. **STOP** on `FAIL`: BDF13 (month-end rows chosen in SQL) comes before touching the cache design (plan T14 step 3); report to the orchestrator.
+`--simulate-fresh-cache` is required: without it the read-only write guard aborts before tier 3 is timed (found on the 28 to 29 Oct run). Expected: first open of a category under 5.5 s, second open under 300 ms (limits changed by the owner after that run; see `2026-10-29-staging-redeploy-guide-holdings-click-and-qa-fixes.md`). **STOP** on `FAIL`: BDF13 (month-end rows chosen in SQL) comes before touching the cache design (plan T14 step 3); report to the orchestrator.
 
 ### Step 18 (VM): errors since the deploy
 ```bash
