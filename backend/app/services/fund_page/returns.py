@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.decimal_utils import quantize_amount
 from app.models.enums import BenchmarkIndex, BenchmarkReturnType, TransactionType
-from app.models.reference import NavHistory, Scheme
+from app.models.reference import BenchmarkIndexHistory, NavHistory, Scheme
 from app.services.analytics.nse_indices_client import get_index_level_on_or_before
 from app.services.analytics.xirr import xirr
 from app.services.dashboard.holdings import FifoState, _load_folio_transactions, compute_holdings
@@ -197,17 +197,43 @@ def _window_flows(
     ]
     opening_units = _opening_units(db, ctx.member_ids, scheme.id, start)
     if opening_units:
-        nav_rows = _nav_rows(db, scheme.id, start)
-        opening_nav = _row_on_or_before(nav_rows, start)
+        opening_nav = db.execute(
+            select(NavHistory.date, NavHistory.nav)
+            .where(NavHistory.scheme_id == scheme.id, NavHistory.date <= start)
+            .order_by(NavHistory.date.desc())
+            .limit(1)
+        ).first()
         if opening_nav is None:
             return None
         flows.insert(0, (start, -(opening_units * opening_nav[1])))
     return flows
 
 
+TriLevels = tuple[list[date], list[Decimal]]
+
+
+def _tri_levels(db: Session, index: BenchmarkIndex, end: date) -> TriLevels:
+    """TRI history up to `end`, loaded once so every cash flow is a bisect
+    (same on-or-before rule as get_index_level_on_or_before)."""
+    rows = db.execute(
+        select(BenchmarkIndexHistory.date, BenchmarkIndexHistory.value)
+        .where(
+            BenchmarkIndexHistory.index_name == index,
+            BenchmarkIndexHistory.return_type == BenchmarkReturnType.TRI,
+            BenchmarkIndexHistory.date <= end,
+        )
+        .order_by(BenchmarkIndexHistory.date)
+    ).all()
+    return [row[0] for row in rows], [row[1] for row in rows]
+
+
+def _tri_on_or_before(levels: TriLevels, target: date) -> Decimal | None:
+    position = bisect.bisect_right(levels[0], target) - 1
+    return levels[1][position] if position >= 0 else None
+
+
 def _benchmark_xirr(
-    db: Session,
-    index: BenchmarkIndex,
+    levels: TriLevels,
     flows: list[CashFlow],
     end: date,
 ) -> Decimal | None:
@@ -216,28 +242,18 @@ def _benchmark_xirr(
     net_units = Decimal("0")
     replay: list[CashFlow] = []
     for flow_date, amount in flows:
-        level = get_index_level_on_or_before(
-            db,
-            index,
-            flow_date,
-            return_type=BenchmarkReturnType.TRI,
-        )
+        level = _tri_on_or_before(levels, flow_date)
         if level is None:
             return None
         if amount < 0:
-            net_units += -amount / level[0]
+            net_units += -amount / level
         else:
-            net_units -= amount / level[0]
+            net_units -= amount / level
         replay.append((flow_date, amount))
-    closing_level = get_index_level_on_or_before(
-        db,
-        index,
-        end,
-        return_type=BenchmarkReturnType.TRI,
-    )
+    closing_level = _tri_on_or_before(levels, end)
     if closing_level is None:
         return None
-    replay.append((end, net_units * closing_level[0]))
+    replay.append((end, net_units * closing_level))
     return xirr(replay)
 
 
@@ -288,6 +304,7 @@ async def current_returns(
     benchmark: dict[str, str | None] | None
     benchmark_index = benchmark_for(scheme)
     benchmark = {} if benchmark_index is not None else None
+    tri_levels = _tri_levels(db, benchmark_index, end) if benchmark_index is not None else None
     for column in _CURRENT_COLUMNS:
         start = (
             first_investment
@@ -307,8 +324,8 @@ async def current_returns(
             continue
         rate = xirr([*flows, (end, current_value)])
         holding[column] = plain(rate * Decimal("100"), 4) if rate is not None else None
-        if benchmark is not None and benchmark_index is not None:
-            benchmark_rate = _benchmark_xirr(db, benchmark_index, flows, end)
+        if benchmark is not None and tri_levels is not None:
+            benchmark_rate = _benchmark_xirr(tri_levels, flows, end)
             benchmark[column] = (
                 plain(benchmark_rate * Decimal("100"), 4)
                 if benchmark_rate is not None

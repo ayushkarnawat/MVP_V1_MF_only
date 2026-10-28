@@ -419,3 +419,39 @@ def test_current_all_rows_without_value_is_unavailable_not_minus_100(monkeypatch
 
     assert isinstance(response, Unavailable)
     assert response.reason == "no_history"
+
+
+def test_current_returns_issue_flat_benchmark_and_nav_queries(monkeypatch):
+    from sqlalchemy import event
+
+    from app.services.fund_page import returns as returns_module
+
+    db = make_session()
+    household, scheme, folio = _held_fund(db, "current-flat", date(2024, 1, 1), "100", "5")
+    for month in range(1, 13):
+        add_purchase(db, folio, date(2025, month, 5), Decimal("10"), Decimal("8"))
+    db.add_all([
+        NavHistory(scheme_id=scheme.id, date=date(2025, 10, 23), nav=Decimal("10")),
+        NavHistory(scheme_id=scheme.id, date=TODAY, nav=Decimal("15")),
+    ])
+    add_tri_closed_form(db, BenchmarkIndex.NIFTY_500, date(2023, 12, 1), TODAY, Decimal("1.00"))
+    db.flush()
+    # The opening NAV is a single-row lookup; loading the whole history is the bug.
+    monkeypatch.setattr(
+        returns_module, "_nav_rows",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("full NAV history loaded")),
+    )
+    statements = []
+    engine = db.get_bind()
+    listener = lambda conn, cur, stmt, *a: statements.append(stmt)  # noqa: E731
+    event.listen(engine, "before_cursor_execute", listener)
+    try:
+        response = asyncio.run(
+            current_returns(db, scheme, _member(household.asha_id), household.user_id, TODAY)
+        )
+    finally:
+        event.remove(engine, "before_cursor_execute", listener)
+
+    assert response.rows["benchmark_same_flows"]["since_first_investment"] is not None
+    tri_queries = [s for s in statements if "benchmark_index_history" in s]
+    assert len(tri_queries) <= 2, len(tri_queries)
