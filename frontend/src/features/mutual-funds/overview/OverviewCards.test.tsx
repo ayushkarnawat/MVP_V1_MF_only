@@ -15,6 +15,21 @@ const family = (over: Partial<Parameters<typeof FamilyMembersCard>[0]> = {}, sco
   renderInShell(<FamilyMembersCard holdings={loaded(fx.holdings())} members={loaded(fx.MEMBERS)} {...over} />, { path: "/portfolio/mutual-funds", scope: { members }, ...scope });
 
 describe("AmcAllocationCard", () => {
+  // jsdom cannot measure layout, so this pins the class contract that stops the legend
+  // clipping in a third-width card (stacked at lg, side by side only below lg and at 2xl+).
+  it("keeps the legend inside a narrow card: stacked at lg, truncating names, percent never shrinks", () => {
+    amc();
+    const legend = screen.getByRole("list", { name: "AMC allocation" });
+    expect(legend).toHaveClass("min-w-0");
+    const wrapper = legend.parentElement as HTMLElement;
+    expect(wrapper).toHaveClass("flex-col", "lg:flex-col", "lg:items-center", "2xl:flex-row", "2xl:items-start");
+    expect(wrapper).not.toHaveClass("flex-row");
+    const row = screen.getByTestId(`legend-${KOTAK}`);
+    expect(row).toHaveClass("min-w-0");
+    const pct = within(row).getByText(/%$/);
+    expect(pct).toHaveClass("shrink-0");
+  });
+
   it("shows the total in the centre and one legend row per AMC with its share", () => {
     amc();
     expect(screen.getByRole("heading", { name: "AMC Allocation" })).toBeInTheDocument();

@@ -82,7 +82,7 @@ export function AmcAllocationCard({ allocation, holdings }: AmcAllocationCardPro
         />
       </div>
 
-      <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+      <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start lg:flex-col lg:items-center 2xl:flex-row 2xl:items-start">
         <SlicedDonut
           slices={slices}
           selectedKey={sel.selectedKey}
@@ -98,13 +98,14 @@ export function AmcAllocationCard({ allocation, holdings }: AmcAllocationCardPro
           }}
         />
 
-        <ul aria-label="AMC allocation" className="flex flex-1 flex-col gap-2 w-full">
+        <ul aria-label="AMC allocation" className="flex min-w-0 flex-1 flex-col gap-2 w-full">
           {slices.map(slice => {
             const isSelected = sel.selectedKey === slice.key;
             return (
               <li
                 key={slice.key}
                 data-testid={`legend-${slice.key}`}
+                className="min-w-0"
                 data-value={slice.value}
                 onMouseEnter={() => sel.hover(slice.key)}
                 onMouseLeave={() => sel.hover(null)}
@@ -118,7 +119,7 @@ export function AmcAllocationCard({ allocation, holdings }: AmcAllocationCardPro
                     sel.select(slice.key);
                     setDialogOpen(true);
                   }}
-                  className={`flex w-full items-center justify-between rounded-lg p-1.5 text-xs transition-colors ${
+                  className={`flex w-full min-w-0 items-center justify-between gap-2 rounded-lg p-1.5 text-xs transition-colors ${
                     isSelected ? "bg-[var(--ui-row-hover)]" : "hover:bg-[var(--ui-row-hover)]"
                   }`}
                 >
@@ -132,7 +133,7 @@ export function AmcAllocationCard({ allocation, holdings }: AmcAllocationCardPro
                       {slice.label}
                     </span>
                   </div>
-                  <span className="font-semibold text-[var(--ui-text-muted)]">
+                  <span className="shrink-0 font-semibold text-[var(--ui-text-muted)]">
                     {formatPercent(slice.pct, { digits: 1 })}
                   </span>
                 </button>
