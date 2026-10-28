@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import uuid
+from datetime import date
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.models.enums import AssetType
+from app.models.enums import AssetType, MarketCapBucket
 from app.models.reference import MarketCapClassification
 from app.services.analytics.lookthrough import LookthroughTable, get_lookthrough_table
 from app.services.analytics.schemas import (
@@ -19,6 +20,31 @@ _ZERO = Decimal("0")
 # served on every dashboard load and posted back for the PDF). Totals and percentages
 # always cover every stock; only the drill-down row lists are capped, largest first.
 CAP_ROWS_LIMIT = 50
+
+
+class _ClassificationMap(dict[str, MarketCapBucket]):
+    """Dictionary result with dates retained for the analytics summary."""
+
+    effective_dates: dict[str, date]
+
+
+def classify_isins(
+    db: Session, isins: set[str], as_of: date | None,
+) -> dict[str, MarketCapBucket]:
+    """Return the newest holdings-dated AMFI bucket for every known ISIN."""
+    result = _ClassificationMap()
+    result.effective_dates = {}
+    if not isins or as_of is None:
+        return result
+    rows = db.query(MarketCapClassification).filter(
+        MarketCapClassification.isin.in_(isins),
+        MarketCapClassification.effective_date <= as_of,
+    ).order_by(MarketCapClassification.effective_date.desc()).all()
+    for row in rows:
+        if row.isin not in result:
+            result[row.isin] = row.bucket
+            result.effective_dates[row.isin] = row.effective_date
+    return result
 
 
 async def compute_cap_allocation(db: Session, household_member_ids: list[uuid.UUID]) -> CapAllocationSummary:
@@ -34,20 +60,14 @@ def build_cap_allocation(
     non_equity = [row for row in table.rows if row.asset_type not in equity_types]
     equity_value = sum((row.exposure_value for row in equity), _ZERO)
     isins = {row.isin for row in equity if row.isin is not None and row.asset_type in _EQUITY}
-    classifications = db.query(MarketCapClassification).filter(
-        MarketCapClassification.isin.in_(isins),
-        MarketCapClassification.effective_date <= table.holdings_as_of,
-    ).order_by(MarketCapClassification.effective_date.desc()).all() if isins and table.holdings_as_of else []
-    by_isin = {}
-    for classification in classifications:
-        by_isin.setdefault(classification.isin, classification)
+    by_isin = classify_isins(db, isins, table.holdings_as_of)
     grouped = {key: [] for key in ("LARGE", "MID", "SMALL", "OTHER")}
     used_dates = []
     for row in equity:
         classification = by_isin.get(row.isin) if row.asset_type in _EQUITY else None
-        grouped[classification.bucket.value if classification else "OTHER"].append(row)
+        grouped[classification.value if classification else "OTHER"].append(row)
         if classification:
-            used_dates.append(classification.effective_date)
+            used_dates.append(by_isin.effective_dates[row.isin])
     missing = grouped["OTHER"]
     non_equity_value = sum((row.exposure_value for row in non_equity), _ZERO)
     missing_value = sum((row.exposure_value for row in missing), _ZERO)

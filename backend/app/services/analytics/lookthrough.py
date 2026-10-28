@@ -120,9 +120,10 @@ async def get_disclosure_scope(db: Session, household_member_ids: list[uuid.UUID
 
 
 async def compute_disclosure_scope(
-    db: Session, household_member_ids: list[uuid.UUID],
+    db: Session, household_member_ids: list[uuid.UUID], *, holdings=None,
 ) -> DisclosureScope:
-    holdings = await compute_holdings(db, household_member_ids)
+    if holdings is None:
+        holdings = await compute_holdings(db, household_member_ids)
     values, total, missing = scheme_values(holdings)
     # A stale NAV must not admit a disclosure from after its valuation date.
     # The table label is the oldest NAV used; selection is per scheme.

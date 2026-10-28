@@ -1,0 +1,169 @@
+{
+  "status": "ready",
+  "key": [
+    {
+      "id": "expense_ratio_vs_category",
+      "list": "key",
+      "tone": "pos",
+      "text": "Expense ratio is 0.7%, against a category average of 1.033333333333333333333333333%.",
+      "evidence": [
+        {
+          "label": "Expense ratio",
+          "value": "0.7%"
+        },
+        {
+          "label": "Category average",
+          "value": "1.033333333333333333333333333%"
+        }
+      ],
+      "priority": 40
+    },
+    {
+      "id": "top5_weight",
+      "list": "key",
+      "tone": "neu",
+      "text": "The five largest disclosed holdings account for 38%.",
+      "evidence": [
+        {
+          "label": "Top five weight",
+          "value": "38%"
+        }
+      ],
+      "priority": 70
+    }
+  ],
+  "strengths": [
+    {
+      "id": "manager_tenure",
+      "list": "strength",
+      "tone": "pos",
+      "text": "The lead manager has managed the fund since 2018-04-01, 8.6 years.",
+      "evidence": [
+        {
+          "label": "Managing since",
+          "value": "2018-04-01"
+        },
+        {
+          "label": "Tenure",
+          "value": "8.6"
+        }
+      ],
+      "priority": 30
+    },
+    {
+      "id": "market_cap_spread",
+      "list": "strength",
+      "tone": "pos",
+      "text": "Market-cap shares are Large 33.3333%, Mid 33.3333%, and Small 33.3333%.",
+      "evidence": [
+        {
+          "label": "Large",
+          "value": "33.3333%"
+        },
+        {
+          "label": "Mid",
+          "value": "33.3333%"
+        },
+        {
+          "label": "Small",
+          "value": "33.3333%"
+        }
+      ],
+      "priority": 50
+    }
+  ],
+  "considerations": [
+    {
+      "id": "long_term_vs_category",
+      "list": "consideration",
+      "tone": "warn",
+      "text": "Five-year return is 9.97813910184841955369313962%, against 10.8396% for the category.",
+      "evidence": [
+        {
+          "label": "Fund return",
+          "value": "9.97813910184841955369313962%"
+        },
+        {
+          "label": "Category return",
+          "value": "10.8396%"
+        }
+      ],
+      "priority": 10
+    },
+    {
+      "id": "peer_beat_years",
+      "list": "consideration",
+      "tone": "warn",
+      "text": "The fund exceeded the category in 0 of 5 completed years.",
+      "evidence": [
+        {
+          "label": "Years above category",
+          "value": "0 of 5"
+        }
+      ],
+      "priority": 11
+    },
+    {
+      "id": "lagging_years",
+      "list": "consideration",
+      "tone": "neg",
+      "text": "The fund trailed the category in 5 of 5 completed years.",
+      "evidence": [
+        {
+          "label": "Years below category",
+          "value": "5 of 5"
+        }
+      ],
+      "priority": 90
+    }
+  ],
+  "top_three": [
+    {
+      "id": "long_term_vs_category",
+      "list": "consideration",
+      "tone": "warn",
+      "text": "Five-year return is 9.97813910184841955369313962%, against 10.8396% for the category.",
+      "evidence": [
+        {
+          "label": "Fund return",
+          "value": "9.97813910184841955369313962%"
+        },
+        {
+          "label": "Category return",
+          "value": "10.8396%"
+        }
+      ],
+      "priority": 10
+    },
+    {
+      "id": "manager_tenure",
+      "list": "strength",
+      "tone": "pos",
+      "text": "The lead manager has managed the fund since 2018-04-01, 8.6 years.",
+      "evidence": [
+        {
+          "label": "Managing since",
+          "value": "2018-04-01"
+        },
+        {
+          "label": "Tenure",
+          "value": "8.6"
+        }
+      ],
+      "priority": 30
+    },
+    {
+      "id": "peer_beat_years",
+      "list": "consideration",
+      "tone": "warn",
+      "text": "The fund exceeded the category in 0 of 5 completed years.",
+      "evidence": [
+        {
+          "label": "Years above category",
+          "value": "0 of 5"
+        }
+      ],
+      "priority": 11
+    }
+  ]
+}

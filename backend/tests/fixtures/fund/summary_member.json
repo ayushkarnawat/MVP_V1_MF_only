@@ -1,0 +1,55 @@
+{
+  "status": "ready",
+  "scope": "c4083fcb-1e9f-50d6-b023-a1a17a1972d1",
+  "held": true,
+  "held_by_other_members": [
+    {
+      "id": "80008f0b-4cf4-5e83-b15a-b3122e6abbf2",
+      "name": "ASHA RAO"
+    }
+  ],
+  "nav_as_of": "2026-10-23",
+  "nav_stale": false,
+  "has_history": true,
+  "scheme": {
+    "id": "2c652f6f-008c-58a5-90a5-d1f2e331823f",
+    "name": "Alpha Flexi Cap Fund - Direct Plan",
+    "plan": "Direct",
+    "category": "Equity Scheme - Flexi Cap Fund",
+    "amc_name": "Alpha AMC"
+  },
+  "tiles": {
+    "current_value": "750.00",
+    "share_of_portfolio_pct": null,
+    "invested": "600.00",
+    "total_gain": "150.00",
+    "total_gain_pct": "25.0000",
+    "xirr": "0.1735279232884757158275261014",
+    "expense_ratio": {
+      "value": "0.70",
+      "reference_period": "2026-09-30",
+      "plan": "Direct"
+    }
+  },
+  "details": {
+    "units": "50.000",
+    "average_nav": "12.0000",
+    "current_nav": "15.0000",
+    "invested": "600.00",
+    "current_value": "750.00",
+    "gain": "150.00",
+    "gain_pct": "25.0000",
+    "xirr": "0.1735279232884757158275261014",
+    "first_investment": "2025-06-01",
+    "last_investment": "2025-06-01",
+    "opening_lot": null,
+    "folios": [
+      {
+        "folio_id": "e562b2b9-d43a-5957-bee6-8b1eb24de5df",
+        "member_id": "c4083fcb-1e9f-50d6-b023-a1a17a1972d1",
+        "member_name": "Dev Rao",
+        "folio_masked": "XXXXX5678"
+      }
+    ]
+  }
+}

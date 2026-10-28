@@ -1,0 +1,18 @@
+TEMPLATES = {
+    "peer_beat_strength": "The fund exceeded the category in {count} of {total} completed years.",
+    "peer_beat_consideration": "The fund exceeded the category in {count} of {total} completed years.",
+    "expense_lower": "Expense ratio is {ter}, against a category average of {category}.",
+    "expense_higher": "Expense ratio is {ter}, against a category average of {category}.",
+    "top5_concentrated": "The five largest disclosed holdings account for {weight}, a concentrated share.",
+    "top5_neutral": "The five largest disclosed holdings account for {weight}.",
+    "top5_spread": "The five largest disclosed holdings account for {weight}, a spread-out share.",
+    "sector": "{sector} accounts for {weight} of disclosed net assets.",
+    "overlap_key": "Portfolio overlap with {fund} is {weight}.",
+    "overlap_consideration": "Portfolio overlap with {fund} is {weight}.",
+    "long_strength": "Five-year return is {fund_return}, against {category_return} for the category.",
+    "long_consideration": "Five-year return is {fund_return}, against {category_return} for the category.",
+    "manager": "The lead manager has managed the fund since {since}, {tenure} years.",
+    "cap_spread": "Market-cap shares are Large {large}, Mid {mid}, and Small {small}.",
+    "volatility": "Three-year volatility is {fund}, against a peer median of {peer}.",
+    "lagging": "The fund trailed the category in {count} of {total} completed years.",
+}

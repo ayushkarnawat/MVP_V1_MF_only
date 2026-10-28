@@ -1,0 +1,31 @@
+{
+  "status": "ready",
+  "columns": [
+    "1M",
+    "3M",
+    "6M",
+    "1Y",
+    "3Y",
+    "5Y",
+    "since_inception"
+  ],
+  "category": {
+    "1M": "0.8483",
+    "3M": "2.6247",
+    "6M": "5.2897",
+    "1Y": "10.8332",
+    "3Y": "10.8438",
+    "5Y": "10.8396",
+    "since_inception": "10.8333"
+  },
+  "peers_used": {
+    "1M": 8,
+    "3M": 8,
+    "6M": 8,
+    "1Y": 7,
+    "3Y": 7,
+    "5Y": 7,
+    "since_inception": 7
+  },
+  "thin_category": false
+}
