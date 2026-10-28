@@ -101,9 +101,9 @@ Expected: one short hash; record it as the tip. **STOP** if the fetch fails.
 
 ### Step 2 (laptop): the four merges are in
 ```bash
-for c in f8db102e f0982132 18044571 4cdf12a9; do git merge-base --is-ancestor $c origin/leapswitch-redesign && echo "$c in"; done
+for c in ce10451d f8db102e f0982132 18044571 4cdf12a9; do git merge-base --is-ancestor $c origin/leapswitch-redesign && echo "$c in"; done
 ```
-Expected: four `... in` lines (IF-C, IF-D, IF-E, BE1). **STOP** if any is missing.
+Expected: five `... in` lines (the AMC Allocation card small-screen fix C178, IF-C, IF-D, IF-E, BE1). The AMC card fix ships with this release; its checks are rows E1 and E2 of the QA checklist. **STOP** if any is missing.
 
 ### Step 3 (laptop): CI
 ```bash
