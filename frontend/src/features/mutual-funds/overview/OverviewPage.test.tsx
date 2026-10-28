@@ -143,17 +143,13 @@ describe("OverviewPage", () => {
     expect(screen.getAllByTestId(/^row-/)).toHaveLength(1);
     expect(screen.getByRole("heading", { name: "Mutual Funds (1)" })).toBeInTheDocument();
   });
-  it("opens the Fund Details popup from a row and stays on the page", async () => {
+  it("opens the fund's own page from a row, with no Fund Details popup", async () => {
     mount();
     await page();
-    fireEvent.click(within(screen.getByTestId("row-S-KOTAK:m1")).getByRole("button", { name: "Kotak Multi Cap Fund" }));
-    const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveTextContent("Fund Details");
-    expect(dialog).toHaveTextContent("Kotak Multi Cap Fund");
-    expect(dialog).toHaveTextContent("Kotak Mahindra Mutual Fund");
-    expect(dialog).toHaveTextContent("₹15,40,000");
-    expect(screen.getByTestId("loc")).toHaveTextContent(/^\/portfolio\/mutual-funds$/);
-    await waitFor(() => expect(legacy.getFundNavHistory).toHaveBeenCalledWith("S-KOTAK", expect.anything(), expect.anything()));
+    fireEvent.click(within(screen.getByTestId("row-S-KOTAK:m1")).getByRole("link", { name: "Kotak Multi Cap Fund" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByTestId("loc")).toHaveTextContent(/^\/portfolio\/mutual-funds\/funds\/S-KOTAK$/);
+    expect(legacy.getFundNavHistory).not.toHaveBeenCalled();
   });
   it("opens the Mira dialog from Analyse with Mira", async () => {
     mount();
@@ -243,28 +239,19 @@ describe("OverviewPage, the legacy parts wired back in (MF-D1)", () => {
     expect(screen.queryByRole("button", { name: /export/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/export|download pdf/i)).not.toBeInTheDocument();
   });
-  it("shows a row's own member's figures in the Fund Details popup when two members hold the fund", async () => {
-    const second = { ...fx.holdings()[0], household_member_id: "m2", household_member_name: "Aarohi", current_value: "999000.00", unrealized_gain: "99000.00", current_profit_total: "99000.00" };
-    mocks.getHoldingsBundle.mockResolvedValue(bundle([fx.holdings()[0], second]));
-    mount();
-    await screen.findByTestId("row-S-KOTAK:m2");
-    fireEvent.click(within(screen.getByTestId("row-S-KOTAK:m2")).getByTestId("invested"));
-    expect(screen.getByRole("dialog")).toHaveTextContent("₹9,99,000");
-    expect(screen.getByRole("dialog")).not.toHaveTextContent("₹15,40,000");
-    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
-    fireEvent.click(within(screen.getByTestId("row-S-KOTAK:m1")).getByTestId("invested"));
-    expect(screen.getByRole("dialog")).toHaveTextContent("₹15,40,000");
-  });
-  it("opens the popup with Enter on a row, closes it with Escape, and a fund without a price shows no price chart", async () => {
+  it("opens the fund page from a row's blank area, and Enter on a row does the same, with no popup", async () => {
     mount();
     await page();
-    fireEvent.keyDown(screen.getByTestId("row-S-AXIS:m1"), { key: "Enter" });
-    const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveTextContent("Axis Midcap Fund");
-    expect(dialog).toHaveTextContent("NAV unavailable");
-    expect(legacy.getFundNavHistory).not.toHaveBeenCalled();
-    fireEvent.keyDown(window, { key: "Escape" });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.click(within(screen.getByTestId("row-S-AXIS:m1")).getByTestId("invested"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByTestId("loc")).toHaveTextContent(/^\/portfolio\/mutual-funds\/funds\/S-AXIS$/);
+  });
+  it("opens the fund page with Enter on a row, with no popup", async () => {
+    mount();
+    await page();
+    fireEvent.keyDown(screen.getByTestId("row-S-KOTAK:m1"), { key: "Enter" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByTestId("loc")).toHaveTextContent(/^\/portfolio\/mutual-funds\/funds\/S-KOTAK$/);
   });
   it("lists the fully sold funds, collapsed, right under the holdings table", async () => {
     mount();
@@ -393,42 +380,23 @@ describe("OverviewPage, the legacy parts wired back in (MF-D1)", () => {
   });
 });
 
-describe("Holdings rows and the Fund Details popup open the fund page (IF-E)", () => {
-  it("keeps the table free of links: a row and its name still open the popup (register C159)", async () => {
+describe("Holdings rows open the fund page directly (owner decision, reverses register C159 default 1)", () => {
+  it("makes every fund name a real link to its page and opens no popup", async () => {
     mount();
     await page();
-    for (const row of screen.getAllByTestId(/^row-/)) expect(within(row).queryByRole("link")).toBeNull();
-    fireEvent.click(within(screen.getByTestId("row-S-KOTAK:m1")).getByRole("button", { name: "Kotak Multi Cap Fund" }));
-    expect(screen.getByRole("dialog")).toHaveTextContent("Fund Details");
-    expect(screen.getByTestId("loc")).toHaveTextContent(/^\/portfolio\/mutual-funds$/);
+    for (const holding of fx.holdings()) {
+      const link = within(screen.getByTestId(`row-${holding.scheme_id}:${holding.household_member_id}`)).getByRole("link", { name: holding.scheme_name });
+      expect(link).toHaveAttribute("href", `/portfolio/mutual-funds/funds/${encodeURIComponent(holding.scheme_id)}`);
+    }
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByText("Fund Details")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Open fund page" })).toBeNull();
   });
-  it("adds an Open fund page link to the popup, and following it goes to that fund's page", async () => {
-    mount();
-    await page();
-    fireEvent.click(within(screen.getByTestId("row-S-KOTAK:m1")).getByRole("button", { name: "Kotak Multi Cap Fund" }));
-    const link = within(screen.getByRole("dialog")).getByRole("link", { name: "Open fund page" });
-    expect(link).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-KOTAK");
-    fireEvent.click(link);
-    expect(screen.getByTestId("loc")).toHaveTextContent(/^\/portfolio\/mutual-funds\/funds\/S-KOTAK$/);
-  });
-  it("points the link at the fund of the row that was opened, and at nothing else", async () => {
+  it("goes to the fund page from the name link, once", async () => {
     mount();
     await page();
     const second = fx.holdings()[1];
-    fireEvent.click(within(screen.getByTestId(`row-${second.scheme_id}:${second.household_member_id}`)).getByRole("button", { name: second.scheme_name }));
-    const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveTextContent(second.scheme_name);
-    expect(within(dialog).getAllByRole("link")).toHaveLength(1);
-    expect(within(dialog).getByRole("link", { name: "Open fund page" })).toHaveAttribute("href", `/portfolio/mutual-funds/funds/${encodeURIComponent(second.scheme_id)}`);
-  });
-  it("has a keyboard-reachable link, and the popup still closes", async () => {
-    mount();
-    await page();
-    fireEvent.click(within(screen.getByTestId("row-S-KOTAK:m1")).getByRole("button", { name: "Kotak Multi Cap Fund" }));
-    const link = within(screen.getByRole("dialog")).getByRole("link", { name: "Open fund page" });
-    link.focus();
-    expect(link).toHaveFocus();
-    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
-    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(within(screen.getByTestId(`row-${second.scheme_id}:${second.household_member_id}`)).getByRole("link", { name: second.scheme_name }));
+    expect(screen.getByTestId("loc")).toHaveTextContent(new RegExp(`^/portfolio/mutual-funds/funds/${encodeURIComponent(second.scheme_id)}$`));
   });
 });

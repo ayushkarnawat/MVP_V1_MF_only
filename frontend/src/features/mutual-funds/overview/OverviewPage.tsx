@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { DistributorComparisonModal } from "../../../components/mf/DistributorComparisonModal";
-import { FundDetailModal } from "../../../components/mf/FundDetailModal";
 import { PostImportNotice } from "../../../components/mf/PostImportNotice";
 import { SoldFundsSection } from "../../../components/mf/SoldFundsSection";
 import { Skeleton } from "../../../components/ui/skeleton";
@@ -9,7 +8,6 @@ import { useImport, useScope } from "../../../shell/scope/ScopeContext";
 import { useMfAnalytics } from "../data/analyticsStore";
 import { useMfDashboard } from "../data/useMfDashboard";
 import { MutualFundsFrame, useMfFrame } from "../frame/MutualFundsFrame";
-import { FundLink } from "../common/FundLink";
 import {
   buildOverviewInsights,
   buildSynopsis,
@@ -17,10 +15,9 @@ import {
   parseSortParams,
   type SortState,
 } from "../mfCopy";
-import type { HoldingRow } from "../types";
 import { CoverageGapGate } from "./CoverageGapGate";
 import { HoldingsTable } from "./HoldingsTable";
-import { findHolding, soldFundsScope } from "./legacyLogic";
+import { soldFundsScope } from "./legacyLogic";
 import {
   AmcAllocationCard,
   FamilyMembersCard,
@@ -34,8 +31,6 @@ function OverviewBody({ query }: { query: string }) {
   const { openImport } = useImport();
   const { openMira } = useMfFrame();
   const [params, setParams] = useSearchParams();
-  // Row click opens the old Fund Details popup (Q12, the mockup's interim target) until the Individual Fund page ships.
-  const [openRow, setOpenRow] = useState<HoldingRow | null>(null);
   const [distributorsOpen, setDistributorsOpen] = useState(false);
 
   const dash = useMfDashboard();
@@ -163,9 +158,6 @@ function OverviewBody({ query }: { query: string }) {
         onSort={onSort}
         query={query}
         onAnalyse={openMira}
-        onOpenFund={(schemeId, rowMemberId) =>
-          setOpenRow(findHolding(dash.holdings.data, schemeId, rowMemberId))
-        }
         onCompareDistributors={() => setDistributorsOpen(true)}
       />
       <div data-legacy="sold-funds" className="contents">
@@ -187,20 +179,6 @@ function OverviewBody({ query }: { query: string }) {
         ) : null}
       </div>
       <div data-legacy="dialogs" className="contents">
-        <FundDetailModal
-          isOpen={openRow !== null}
-          onClose={() => setOpenRow(null)}
-          holding={openRow}
-          actions={
-            openRow?.scheme_id ? (
-              <p className="mt-4 text-sm">
-                <FundLink schemeId={openRow.scheme_id} className="font-medium text-[var(--c2)] hover:underline">
-                  Open fund page
-                </FundLink>
-              </p>
-            ) : undefined
-          }
-        />
         <DistributorComparisonModal
           isOpen={distributorsOpen}
           onClose={() => setDistributorsOpen(false)}
