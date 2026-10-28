@@ -478,3 +478,21 @@ def test_today_is_the_ist_date_on_a_utc_host_before_05_30_ist():
     assert active.call_args.kwargs["today"] == date(2026, 11, 1)
     # Last instalment 5 Sep; with no statement reference the fallback is today (1 Nov): October missed.
     assert result.sip_summary.missed_count == 1
+
+def test_entries_carry_the_funds_scheme_id():
+    db = _session()
+    member = _member(db)
+    folio = _folio(db, member)
+    _txn(db, folio, TransactionType.PURCHASE, date(2024, 3, 1), "1000.00")
+    result = _run(db, [member.id])
+    entries = [e for b in result.monthly for e in b.entries]
+    assert entries and all(e.scheme_id == str(folio.scheme_id) for e in entries)
+
+
+def test_entry_parses_without_scheme_id():
+    from app.services.analytics.schemas import InvestmentWithdrawalEntry
+    entry = InvestmentWithdrawalEntry.model_validate({
+        "transaction_id": "t", "date": "2024-03-01", "type": "purchase", "amount": "1.00",
+        "direction": "invested", "scheme_name": "F", "household_member_id": "m", "household_member_name": "M",
+    })
+    assert entry.scheme_id is None
