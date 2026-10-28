@@ -19,7 +19,7 @@ const INSIGHTS = `${OVERVIEW}/insights`;
 const members = [{ id: IDS.asha, name: "ASHA RAO" }, { id: IDS.dev, name: "Dev Rao" }];
 const summary = () => fixture<SummaryResponse>("summary_family");
 
-// The real registry: the Overview and Insights routes are live (IF-C), so the Overview and Insights tabs are real links; Overlap is not.
+// The real registry: the Overview, Insights (IF-C) and Overlap (IF-D) routes are live, so all three tabs are real links.
 const ROUTES = buildRegistry();
 
 function Location() {
@@ -100,14 +100,15 @@ describe("FundPageFrame", () => {
     expect(screen.getByTestId("location")).toHaveTextContent(OVERVIEW);
   });
 
-  it("the tab strip: Overview is current, Overlap is disabled, Insights is a link", async () => {
+  it("the tab strip: Overview is current, Overlap and Insights are links (test_overlap_tab_enabled)", async () => {
     mount();
     const tabs = await screen.findByRole("navigation", { name: "Fund sections" });
     expect(within(tabs).getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
     expect(within(tabs).getByRole("link", { name: "Overview" })).toHaveAttribute("href", OVERVIEW);
-    expect(within(tabs).getByText("Overlap")).toHaveAttribute("aria-disabled", "true");
-    expect(within(tabs).getByText("Overlap")).toHaveAttribute("title", "Coming soon");
-    expect(within(tabs).queryByRole("link", { name: "Overlap" })).toBeNull();
+    expect(within(tabs).getByRole("link", { name: "Overlap" })).toHaveAttribute("href", `${OVERVIEW}/overlap`);
+    expect(within(tabs).getByRole("link", { name: "Overlap" })).not.toHaveAttribute("aria-current");
+    expect(within(tabs).getByRole("link", { name: "Overlap" })).not.toHaveAttribute("aria-disabled");
+    expect(within(tabs).queryByText("Coming soon")).toBeNull();
     expect(within(tabs).getByRole("link", { name: "Insights" })).toHaveAttribute("href", INSIGHTS);
     expect(within(tabs).getByRole("link", { name: "Insights" })).not.toHaveAttribute("aria-current");
   });

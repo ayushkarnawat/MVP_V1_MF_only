@@ -12,7 +12,7 @@ import { COMING_SOON } from "./fundCopy";
 import { planPill, shortCategory } from "./fundFormat";
 import type { SummaryResponse } from "./types";
 
-export type FundTab = "overview" | "insights";
+export type FundTab = "overview" | "overlap" | "insights";
 
 export interface FundPageContext {
   schemeId: string;
@@ -195,7 +195,7 @@ export function FundPageFrame({
               </li>
               <li>
                 <span aria-current="page" className="text-[var(--ui-text)] font-medium">
-                  Insights
+                  {tab === "overlap" ? "Overlap" : "Insights"}
                 </span>
               </li>
             </>
@@ -270,14 +270,13 @@ export function FundPageFrame({
           >
             Overview
           </AppLink>
-          <span
-            aria-disabled="true"
-            tabIndex={0}
-            title={COMING_SOON}
-            className="pb-3 text-[var(--ui-disabled-text)] cursor-not-allowed border-b-2 border-transparent"
+          <AppLink
+            to={paths.mutualFunds.fundOverlap(schemeId)}
+            className="pb-3 text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] transition-colors border-b-2 border-transparent"
+            activeClassName="text-[var(--ui-text)] !border-[var(--ui-focus)]"
           >
             Overlap
-          </span>
+          </AppLink>
           <AppLink
             to={paths.mutualFunds.fundInsights(schemeId)}
             className="pb-3 text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] transition-colors border-b-2 border-transparent"

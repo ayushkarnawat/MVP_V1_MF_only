@@ -8,6 +8,8 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { CLICK_ROW, DISABLED } from "@/lib/clickable";
+import { AppLink } from "@/shell/nav/AppLink";
+import { paths } from "@/shell/nav/paths";
 import { COMING_SOON, TONE_ICONS } from "../fundCopy";
 import { toneChipClass } from "../fundFormat";
 import type { Fact, Tone } from "../types";
@@ -44,9 +46,11 @@ export function ToneIcon({ tone }: ToneIconProps) {
 export interface FactRowProps {
   fact: Fact;
   onOpen: (fact: Fact) => void;
+  /** When provided, the Overlap fact links to this fund's Overlap tab. */
+  schemeId?: string;
 }
 
-export function FactRow({ fact, onOpen }: FactRowProps) {
+export function FactRow({ fact, onOpen, schemeId }: FactRowProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       onOpen(fact);
@@ -70,7 +74,20 @@ export function FactRow({ fact, onOpen }: FactRowProps) {
       >
         <ToneIcon tone={fact.tone} />
         <span className="min-w-0 flex-1">{fact.text}</span>
-        {fact.id === "overlap" && (
+        {fact.id === "overlap" && schemeId !== undefined && (
+          /* Stops click and key propagation so row does not open evidence when clicking link */
+          <span
+            data-testid="overlap-link"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+            className="shrink-0 rounded-md border border-[var(--ui-divider)] px-2 py-0.5 text-xs font-medium text-[var(--c2)] hover:underline"
+          >
+            <AppLink to={paths.mutualFunds.fundOverlap(schemeId)}>
+              See Overlap
+            </AppLink>
+          </span>
+        )}
+        {fact.id === "overlap" && schemeId === undefined && (
           <span
             data-testid="overlap-link"
             aria-disabled="true"

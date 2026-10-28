@@ -38,10 +38,10 @@ export function InsightsPage({ schemeId }: InsightsPageProps) {
             <SmartInsightsCards insights={insights} />
           </div>
           <div data-testid="slot-key" className="min-w-0">
-            <InsightList insights={insights} />
+            <InsightList insights={insights} schemeId={schemeId} />
           </div>
           <div data-testid="slot-strengths" className="min-w-0">
-            <StrengthsConsiderations insights={insights} />
+            <StrengthsConsiderations insights={insights} schemeId={schemeId} />
           </div>
           <div data-testid="slot-rolling" className="min-w-0">
             <RollingReturnsChart schemeId={schemeId} />

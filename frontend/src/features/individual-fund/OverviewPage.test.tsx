@@ -353,7 +353,7 @@ describe("Overview route", () => {
     expect(api.summary).toHaveBeenCalledWith(IDS.scheme, "combined", expect.any(AbortSignal));
   });
 
-  it("test_route_files_are_live_and_overlap_is_placeholder: the Overview and Insights route files are live and load the real page modules; Overlap stays a placeholder until IF-D", async () => {
+  it("test_route_files_are_live: the Overview, Insights and Overlap route files are live and load the real page modules", async () => {
     const routes = buildRegistry();
     const byId = (id: string) => routes.find(route => route.id === id)!;
     // Register C166: the Individual Fund backend has shipped (IF-C), so the page route is exposed.
@@ -361,7 +361,7 @@ describe("Overview route", () => {
     expect((await byId("portfolio-mutual-funds-fund").page!()).default).toBe(OverviewRoute);
     expect(byId("portfolio-mutual-funds-fund-insights")).toMatchObject({ status: "live", path: "/portfolio/mutual-funds/funds/:schemeId/insights" });
     expect((await byId("portfolio-mutual-funds-fund-insights").page!()).default).toBe((await import("./InsightsPage")).default);
-    expect(byId("portfolio-mutual-funds-fund-overlap").status).toBe("placeholder");
-    expect((await byId("portfolio-mutual-funds-fund-overlap").page!()).default).toBe((await import("@/shell/layout/PlaceholderPage")).default);
+    expect(byId("portfolio-mutual-funds-fund-overlap")).toMatchObject({ status: "live", path: "/portfolio/mutual-funds/funds/:schemeId/overlap" });
+    expect((await byId("portfolio-mutual-funds-fund-overlap").page!()).default).toBe((await import("./OverlapPage")).default);
   });
 });
