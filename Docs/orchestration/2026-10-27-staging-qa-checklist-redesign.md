@@ -108,7 +108,7 @@ For each row open the page at 1280 px wide, then 1024; in light, then dark. A ro
 | E1 | Sign-up | Owner signs up on `ls-redesign.unifolio.in` with a new email | Account is created and onboarding starts | | | Backend/Frontend |
 | E2 | Sign-in check on ls-redesign.unifolio.in (guide section 10) | Owner signs out and signs in on `https://ls-redesign.unifolio.in`; then on `https://ls-staging.unifolio.in` in another profile | Same account works on both; no CORS errors in the console. Sign in with Google is not part of the redesign | | | CORS error: Ops (`ALLOWED_ORIGINS` in `.env` and recreate backend). Other: Backend |
 | E3 | CAS upload and import end to end | Upload a synthetic statement; confirm; open Mutual Funds | All funds match, no review items; totals match the old link's Dashboard | | | Backend |
-| E4 | Family member add / delete | Add a member, then delete a throwaway one | Works; no orphan data | | | |
+| E4 | Family member delete (there is no Add Member: deferred, see the Profile flows and layout docs) | Delete a throwaway non-self member that came from an import; the self card has no delete button | Works; no orphan data. A tester who reports "add/delete not implemented" is describing the deferred Add Member, so this row is Pass if delete works (same as C18) | | | |
 | E5 | Logout | Log out | Returns to sign-in; back button does not reveal data | | | |
 | E6 | Old link still fine | Dashboard, Analytics, History on `ls-staging.unifolio.in` | Unchanged; numbers equal the redesign link's matching numbers | | | |
 | E7 | Import health dev link | See D7 | | | | |
