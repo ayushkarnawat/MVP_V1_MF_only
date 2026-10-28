@@ -181,3 +181,26 @@ def test_flat_days_are_not_dropped_as_gaps():
 
     assert len(response.fund) == (TODAY - start).days + 1
     assert all(point.pct == "0.0000" for point in response.fund)
+
+
+def test_zero_nav_rows_do_not_divide_by_zero():
+    db = make_session()
+    scheme = _equity_scheme(db, "zero-nav")
+    db.add_all([
+        NavHistory(scheme_id=scheme.id, date=TODAY - timedelta(days=10), nav=Decimal("0")),
+        NavHistory(scheme_id=scheme.id, date=TODAY - timedelta(days=5), nav=Decimal("10")),
+        NavHistory(scheme_id=scheme.id, date=TODAY, nav=Decimal("11")),
+    ])
+    db.flush()
+
+    response = asyncio.run(period_series(db, scheme, "All", TODAY))
+
+    assert not isinstance(response, Unavailable)
+    assert response.fund[0].pct == "0.0000"
+    assert response.fund[-1].pct == "10.0000"
+
+    only_zero = _equity_scheme(db, "only-zero", amfi="AMFI2")
+    db.add(NavHistory(scheme_id=only_zero.id, date=TODAY, nav=Decimal("0")))
+    db.flush()
+    response = asyncio.run(period_series(db, only_zero, "All", TODAY))
+    assert isinstance(response, Unavailable)

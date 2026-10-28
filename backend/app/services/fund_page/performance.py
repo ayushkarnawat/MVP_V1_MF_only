@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import bisect
+import itertools
 import calendar
 from datetime import date
 from decimal import Decimal
@@ -120,6 +121,10 @@ async def period_series(db: Session, scheme: Scheme, period: str, today: date) -
         .where(NavHistory.scheme_id == scheme.id, NavHistory.date >= actual_start, NavHistory.date <= end)
         .order_by(NavHistory.date)
     ).all()
+    # A wound-up/segregated scheme can carry NAV 0 rows; rebasing needs a positive base.
+    fund_rows = list(itertools.dropwhile(lambda row: row[1] <= 0, fund_rows))
+    if not fund_rows:
+        return Unavailable(reason="no_history")
     sampled = fund_rows if period in _DAILY_PERIODS else _weekly(fund_rows)
     sampled = _thin(sampled, MAX_POINTS)
     fund_points = _pct_points(sampled)
