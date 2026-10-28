@@ -115,3 +115,14 @@ def test_scheme_flows_only_fund_relevant_types_ordered(db, household):
         (TransactionType.REDEMPTION, date(2025, 2, 1)),
         (TransactionType.PURCHASE, date(2025, 6, 1)),
     ]
+
+
+def test_combined_payload_missing_wrapper_key_is_none_not_keyerror(db, household):
+    put_section(
+        db, household.user_id, "combined", "benchmark_funds", {"unexpected": {}},
+        datetime(2026, 10, 1, tzinfo=timezone.utc),
+    )
+
+    assert stored_section(
+        db, household.user_id, "combined", "benchmark_funds", [household.asha_id],
+    ) is None

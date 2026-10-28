@@ -58,7 +58,10 @@ def stored_section(
     if scope_key == "combined":
         inner_key = _COMBINED_INNER_KEY.get(name)
         if inner_key is not None:
-            payload = payload[inner_key]
+            # A payload without the wrapper is unusable: treat as no stored section.
+            payload = payload.get(inner_key) if isinstance(payload, dict) else None
+            if payload is None:
+                return None
     return StoredSection(payload, row.computed_at)
 
 
