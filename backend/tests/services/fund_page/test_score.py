@@ -99,7 +99,9 @@ def test_score_computes_when_section_missing_or_stale(db, monkeypatch, stale):
     assert result.source == "computed"
     assert result.computed_at == NOW
     assert result.final_score == "73.00"
-    scorer.assert_awaited_once_with(db, scheme)
+    # The caller's date must reach the scorer: its own default is the real UTC date, which
+    # made the computed score (and the golden fixtures built from it) drift day to day.
+    scorer.assert_awaited_once_with(db, scheme, today=TODAY)
 
 
 def test_score_thin_category_and_insufficient_history_pass_through(db, monkeypatch):

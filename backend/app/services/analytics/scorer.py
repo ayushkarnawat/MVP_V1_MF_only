@@ -340,11 +340,15 @@ async def _finish_fund_score(
     )
 
 
-async def compute_fund_score(db: Session, scheme: Scheme) -> FundScoreRow:
+async def compute_fund_score(
+    db: Session, scheme: Scheme, today: date | None = None
+) -> FundScoreRow:
     if not scheme.sebi_category:
         return _empty_row(scheme, category_unavailable=True, insufficient_history=False)
 
-    today = datetime.now(timezone.utc).date()
+    # Callers that own a clock (the fund page) pass their date; others keep the UTC date.
+    if today is None:
+        today = datetime.now(timezone.utc).date()
     # One series per fund in the canonical category, same plan type as the holding -- the
     # peer set Category Ranking and Fund Ranking use (9 Oct). Scoring every plan row of the
     # merged categories made the scorer ~4x slower (Sectoral/Thematic: 1,035 rows, 256 funds).

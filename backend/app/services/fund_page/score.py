@@ -21,7 +21,6 @@ async def build_score(
     today: date,
     now: datetime,
 ) -> ScoreResponse:
-    del today
     stored = stored_section(db, user_id, ctx.scope_key, "score", ctx.member_ids)
     if stored is not None:
         match = next(
@@ -39,5 +38,7 @@ async def build_score(
             return ScoreResponse(
                 **row.model_dump(), source="stored", computed_at=computed_at,
             )
-    row = await compute_fund_score(db, scheme)
+    # Pass the request's date: the scorer's own default is the real UTC date, which moves the
+    # 1/3/5-year NAV windows (and any fixture built from them) on every calendar day.
+    row = await compute_fund_score(db, scheme, today=today)
     return ScoreResponse(**row.model_dump(), source="computed", computed_at=now)

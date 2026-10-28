@@ -77,11 +77,11 @@
       "id": "long_term_vs_category",
       "list": "consideration",
       "tone": "warn",
-      "text": "Five-year return is 9.97813910184841955369313962%, against 10.8396% for the category.",
+      "text": "Five-year return is 10.00723348918951425466156498%, against 10.8396% for the category.",
       "evidence": [
         {
           "label": "Fund return",
-          "value": "9.97813910184841955369313962%"
+          "value": "10.00723348918951425466156498%"
         },
         {
           "label": "Category return",
@@ -122,11 +122,11 @@
       "id": "long_term_vs_category",
       "list": "consideration",
       "tone": "warn",
-      "text": "Five-year return is 9.97813910184841955369313962%, against 10.8396% for the category.",
+      "text": "Five-year return is 10.00723348918951425466156498%, against 10.8396% for the category.",
       "evidence": [
         {
           "label": "Fund return",
-          "value": "9.97813910184841955369313962%"
+          "value": "10.00723348918951425466156498%"
         },
         {
           "label": "Category return",
