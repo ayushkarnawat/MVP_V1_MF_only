@@ -1,6 +1,10 @@
+import type { MouseEvent } from "react";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { formatRupees } from "../../../lib/format";
+import { paths } from "../../../shell/nav/paths";
+import { useAppNavigate } from "../../../shell/nav/useAppNavigate";
+import { FundLink } from "../common/FundLink";
 import {
   changeDirection,
   formatSignedPercent,
@@ -21,7 +25,6 @@ export interface HoldingsTableProps {
   sort: SortState | null;
   onSort: (next: SortState) => void;
   query: string;
-  onOpenFund: (schemeId: string, memberId: string) => void;
   onAnalyse: () => void;
   onCompareDistributors: () => void;
 }
@@ -32,10 +35,15 @@ export function HoldingsTable({
   sort,
   onSort,
   query,
-  onOpenFund,
   onAnalyse,
   onCompareDistributors,
 }: HoldingsTableProps) {
+  const navigate = useAppNavigate();
+  // The row is a convenience target; the name is the real link. A click that landed on a link is that link's to handle, so the row never navigates a second time.
+  const openFund = (schemeId: string) => {
+    if (schemeId) navigate(paths.mutualFunds.fund(schemeId));
+  };
+  const fromLink = (e: MouseEvent) => (e.target as HTMLElement).closest("a, [role=link]") !== null;
   if (holdings.status === "loading") {
     return (
       <section
@@ -170,10 +178,13 @@ export function HoldingsTable({
                     data-testid={`row-${row.scheme_id}:${row.household_member_id}`}
                     tabIndex={0}
                     data-clickable=""
-                    data-effect="open"
-                    onClick={() => onOpenFund(row.scheme_id, row.household_member_id)}
+                    data-effect="navigate"
+                    onClick={e => {
+                      if (!fromLink(e)) openFund(row.scheme_id);
+                    }}
                     onKeyDown={e => {
-                      if (e.key === "Enter") onOpenFund(row.scheme_id, row.household_member_id);
+                      // Enter on the name link is the link's own; only Enter on the row itself opens the fund here.
+                      if (e.key === "Enter" && e.target === e.currentTarget) openFund(row.scheme_id);
                     }}
                     className="cursor-pointer hover:bg-[var(--ui-row-hover)]"
                   >
@@ -187,19 +198,12 @@ export function HoldingsTable({
                           />
                         </span>
                         <div className="flex flex-col min-w-0">
-                          <button
-                            type="button"
+                          <span
                             title={row.scheme_name}
-                            data-clickable=""
-                            data-effect="open"
-                            onClick={e => {
-                              e.stopPropagation();
-                              onOpenFund(row.scheme_id, row.household_member_id);
-                            }}
-                            className="text-left font-medium text-[var(--ui-text)] truncate max-w-xs hover:underline"
+                            className="font-medium text-[var(--ui-text)] truncate max-w-xs"
                           >
-                            {row.scheme_name}
-                          </button>
+                            <FundLink schemeId={row.scheme_id}>{row.scheme_name}</FundLink>
+                          </span>
                           {row.amc_name && (
                             <span className="text-xs text-[var(--ui-text-muted)] truncate">
                               {row.amc_name}
