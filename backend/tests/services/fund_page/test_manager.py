@@ -83,3 +83,19 @@ def test_manager_without_since_has_null_tenure(db):
 
     assert manager.managing_since is None
     assert manager.tenure_years is None
+
+
+def test_future_managing_since_clamps_tenure_to_zero(db):
+    from app.services.fund_page.manager import build_manager
+    from datetime import timedelta
+
+    scheme = _scheme(db)
+    add_manager(
+        db, scheme, "Future Manager", date(2026, 9, 1),
+        role="Fund Manager", sequence_order=0,
+        managing_since=TODAY + timedelta(days=30),
+    )
+
+    result = build_manager(db, scheme, TODAY)
+
+    assert result.managers[0].tenure_years == "0.0"
