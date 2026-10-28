@@ -30,6 +30,10 @@ from app.services.fund_page.sections import stored_section
 from app.services.fund_page.insights.rules import ALL_RULES, Fact, InsightInputs
 
 
+# Residual buckets are not a real sector a fund can be "concentrated" in.
+_NON_SECTORS = frozenset({"Others", "Other", "Unclassified"})
+
+
 def overlap_pairs_from_stored(
     db: Session,
     scheme: Scheme,
@@ -85,7 +89,7 @@ async def gather_inputs(
         )
         sector_weights = {
             row.label: Decimal(row.pct)
-            for row in composition.allocation.sector if row.label != "Others"
+            for row in composition.allocation.sector if row.label not in _NON_SECTORS
         }
         cap_shares = {
             row.label: Decimal(row.pct) for row in composition.allocation.market_cap

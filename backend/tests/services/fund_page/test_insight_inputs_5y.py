@@ -13,7 +13,7 @@ from app.services.fund_page.scope import ScopeContext
 from tests.services.fund_page.factories import TODAY, add_scheme, add_user_household, make_session
 
 
-def _gather(monkeypatch, *, fund_5y, category_5y, blended=Decimal("0.31")):
+def _gather(monkeypatch, *, fund_5y="10", category_5y="9", blended=Decimal("0.31"), composition=None):
     from app.services.fund_page.insights import engine
 
     db = make_session()
@@ -21,7 +21,7 @@ def _gather(monkeypatch, *, fund_5y, category_5y, blended=Decimal("0.31")):
     scheme = add_scheme(db, "five-y", "Equity Scheme - Flexi Cap Fund", SchemePlanType.DIRECT, "FY")
     ctx = ScopeContext([household.asha_id], str(household.asha_id), False)
     unavailable = Unavailable(reason="x")
-    monkeypatch.setattr(engine, "build_composition", lambda *a, **k: unavailable)
+    monkeypatch.setattr(engine, "build_composition", lambda *a, **k: composition or unavailable)
     monkeypatch.setattr(engine, "build_manager", lambda *a, **k: unavailable)
     monkeypatch.setattr(engine, "build_score", AsyncMock(return_value=SimpleNamespace(
         scheme_return=str(blended), category_avg_return="0.20")))
@@ -50,3 +50,18 @@ def test_five_year_rule_inputs_none_when_either_side_missing(monkeypatch):
     assert missing_cat.category_return_5y is None
     missing_fund = _gather(monkeypatch, fund_5y=None, category_5y="12.0000")
     assert missing_fund.return_5y is None
+
+
+def test_unclassified_and_other_sectors_never_feed_the_concentration_rule(monkeypatch):
+    def row(label, pct):
+        return SimpleNamespace(label=label, pct=pct)
+
+    composition = SimpleNamespace(
+        top10=[],
+        allocation=SimpleNamespace(
+            sector=[row("Unclassified", "30"), row("Other", "20"), row("Others", "5"), row("Banks", "25")],
+            market_cap=[],
+        ),
+    )
+    inputs = _gather(monkeypatch, composition=composition)
+    assert inputs.sector_weights == {"Banks": Decimal("25")}
