@@ -459,3 +459,14 @@ Source: register `Docs/orchestration/ui-redesign-decisions-register.md` (C177 to
 - **Mutual Funds backend asks not built:** holdings export route, family-view coverage-gap route, optional analytics recompute after an opening-balance post.
 - **Owner sign-offs open:** Holdings lifetime XIRR (B12), the CAL1 table (B11), V7 sector-coverage numbers (no threshold), L13 (a fund redeemed on the latest price date counts in that day's change), the greeting link (C149).
 - **Release process gap:** the whole-release independent review of IF-C, IF-D, IF-E and BE1 was skipped by the owner (`decisions.md` OD2); revisit if staging QA finds correctness bugs.
+
+## Added 2026-10-29 (deploy hardening)
+
+Source: register C185 and `Docs/orchestration/2026-10-29-vm-disk-resize-runbook.md` (section 7). None of these is built; each needs the owner's go.
+
+- **H1, free-disk pre-check:** in `deploy-redesign.sh` before `exec deploy.sh`, and in `deploy.sh` before the front-end build (10 GB for `--full`, about 1 GB front-end only).
+- **H2, skip the unchanged backend rebuild** when `git diff --quiet <last-deployed> HEAD -- backend`.
+- **H3, one image for backend and worker:** worker `image: leapswitch-backend:latest`, no `build:` in `docker-compose.yml`.
+- **H4, build before going live:** build backend and worker before the front end goes live, so a failed `--full` changes nothing live (today the front end is already live, `:previous` equals `:latest` so `rollback.sh` is a no-op for the backend, and there is no front-end rollback).
+- **Disk alert at about 80%** (cron plus the existing ops alert path) and a build-cache cap (`docker builder prune --keep-storage`).
+- **Prerequisite, not deferred:** the VM disk resize itself (see the runbook) must happen before the next `--full`.
