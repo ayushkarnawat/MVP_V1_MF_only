@@ -322,3 +322,10 @@ Gaps and unresolved:
 2. Whether the fund page's benchmark line needs `benchmark-daily`: the sources name only the V5 check, so step 14 is conditional on V5.
 3. The V5 query checks only two indices (`nifty_largemidcap_250`, `nifty_midcap_150`). Index funds get no benchmark (D16 of the plan; the owner may want a category exception).
 4. The tier 1 limit (300 ms) is an estimate to confirm.
+
+## Known pitfalls (added after the 29 Oct redeploy: read before any deploy)
+- **Front-end-only releases use the no-flag form:** `sudo sh ./scripts/deploy-redesign.sh` (no `--full`) builds only the front end and touches no containers. Use `--full` only when something under `backend/` changed (`git diff --stat <deployed commit> <tip> -- backend` is not empty). The 29 Oct redeploy used `--full` for a front-end-only change; the backend rebuilt from scratch (about 2 GB per image, the build cache was cold), the disk filled up (239 MB free), the build failed, and the new front end had already gone live.
+- **A failed `--full` does NOT mean nothing live changed:** the front end is built first and goes live at once; only then do the backend and worker build. `:previous` and `:latest` can end up pointing at the same image, so `rollback.sh` is then a no-op for the backend, and there is no front-end rollback.
+- **Disk:** `--full` needs at least 10 GB free (two images of about 2 GB, the old tagged copies, database headroom); a front-end-only deploy needs about 1 GB. The disk (27 GB, shared with the database) must be resized in the CloudPe dashboard before the next `--full`.
+- **After a failed build,** check `sudo docker images --no-trunc` before anything else: `:latest` may point at a half-unpacked image, and any `docker compose run` or cron job would use it. Retag `:latest` to the running image only with the manager's yes.
+

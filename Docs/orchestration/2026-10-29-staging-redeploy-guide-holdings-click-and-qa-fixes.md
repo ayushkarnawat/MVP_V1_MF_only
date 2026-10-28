@@ -270,3 +270,10 @@ Gaps:
 1. Whether the merged commits contain any backend application change: step 3 shows it. This guide assumes none (as stated), so no recompute is run.
 2. The exact image names to remove in step 5 are unknown until `sudo docker images` is read; the manager approves the list.
 3. The script's built-in PASS/FAIL lines may still use the old limits (50 ms first call, 5 s tier 3); the new limits are applied by Claude's reading. Changing the script is a separate Backend task.
+
+## Known pitfalls (added after the 29 Oct redeploy: read before any deploy)
+- **Front-end-only releases use the no-flag form:** `sudo sh ./scripts/deploy-redesign.sh` (no `--full`) builds only the front end and touches no containers. Use `--full` only when something under `backend/` changed (`git diff --stat <deployed commit> <tip> -- backend` is not empty). The 29 Oct redeploy used `--full` for a front-end-only change; the backend rebuilt from scratch (about 2 GB per image, the build cache was cold), the disk filled up (239 MB free), the build failed, and the new front end had already gone live.
+- **A failed `--full` does NOT mean nothing live changed:** the front end is built first and goes live at once; only then do the backend and worker build. `:previous` and `:latest` can end up pointing at the same image, so `rollback.sh` is then a no-op for the backend, and there is no front-end rollback.
+- **Disk:** `--full` needs at least 10 GB free (two images of about 2 GB, the old tagged copies, database headroom); a front-end-only deploy needs about 1 GB. The disk (27 GB, shared with the database) must be resized in the CloudPe dashboard before the next `--full`.
+- **After a failed build,** check `sudo docker images --no-trunc` before anything else: `:latest` may point at a half-unpacked image, and any `docker compose run` or cron job would use it. Retag `:latest` to the running image only with the manager's yes.
+
