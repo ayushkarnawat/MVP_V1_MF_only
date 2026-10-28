@@ -394,3 +394,28 @@ def test_returns_do_not_call_the_network(monkeypatch):
 
     assert inception.status == "ready"
     assert current.status == "ready"
+
+
+def test_current_all_rows_without_value_is_unavailable_not_minus_100(monkeypatch):
+    from types import SimpleNamespace
+
+    from app.services.fund_page import returns as returns_module
+
+    db = make_session()
+    household, scheme, _folio = _held_fund(db, "current-noval", date(2025, 10, 23), "100", "10")
+    db.add_all([
+        NavHistory(scheme_id=scheme.id, date=date(2025, 10, 23), nav=Decimal("10")),
+        NavHistory(scheme_id=scheme.id, date=TODAY, nav=Decimal("11")),
+    ])
+    db.flush()
+    monkeypatch.setattr(
+        returns_module, "compute_holdings",
+        AsyncMock(return_value=[SimpleNamespace(current_value=None)]),
+    )
+
+    response = asyncio.run(
+        current_returns(db, scheme, _member(household.asha_id), household.user_id, TODAY)
+    )
+
+    assert isinstance(response, Unavailable)
+    assert response.reason == "no_history"

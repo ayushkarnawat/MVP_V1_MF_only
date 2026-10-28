@@ -261,6 +261,9 @@ async def current_returns(
     end = latest_nav_date(db, scheme, today)
     if scheme.amfi_code is None or end is None:
         return Unavailable(reason="no_history")
+    if all(row.current_value is None for row in holding_rows):
+        # No priced row: a zero closing flow would read as a spurious -100% XIRR.
+        return Unavailable(reason="no_history")
     current_value = quantize_amount(
         sum(
             (
