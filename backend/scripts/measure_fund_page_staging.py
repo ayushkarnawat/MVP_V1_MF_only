@@ -2,6 +2,7 @@
 
     python scripts/measure_fund_page_staging.py --user-id <uuid> [--schemes 4] [--runs 3]
         [--include-live-fetch] [--include-score] [--simulate-fresh-cache] [--risk-free 0.065]
+        [--scheme-filtered]
 
 Run it on the staging VM against the staging database, with a household that has real
 statements. It times, for a sample of the household's held funds (different categories first):
@@ -24,6 +25,10 @@ may create scheme rows from AMFI's NAVAll file and the Fund Score writes its one
 day to fund_scores, exactly what opening Analytics does; any other write aborts the run.
 --simulate-fresh-cache makes the NAV freshness check treat yesterday as today (the no-live-download path).
 The default risk-free rate (6.5%) is a placeholder for timing only, not a decision.
+
+--scheme-filtered measures the production Individual Fund services: per-scheme stored-only
+holdings, fund-level routes, then (with --include-score) a cold and warm peer-cache open.
+Its output contains only counts and milliseconds and prints strict budget verdicts.
 """
 import argparse
 import asyncio
@@ -33,7 +38,7 @@ import sys
 import time
 import uuid
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -58,6 +63,20 @@ from app.services.analytics.scorer import compute_fund_score
 from app.services.dashboard.holdings import compute_holdings, invalidate_holdings_cache
 from app.services.dashboard.household_members import list_household_members
 from app.services.dashboard.nav import get_nav_on_or_before
+from app.services.fund_page.composition import all_holdings, build_composition
+from app.services.fund_page.manager import build_manager
+from app.services.fund_page.peer_cache import peer_cache
+from app.services.fund_page.peers import (
+    category_returns,
+    category_series,
+    risk_return_scatter,
+    rolling_returns,
+)
+from app.services.fund_page.performance import period_series
+from app.services.fund_page.returns import inception_returns
+from app.services.fund_page.risk import compute_risk
+from app.services.fund_page.scope import ScopeContext
+from app.services.fund_page.score import build_score
 
 
 class WriteAttempted(RuntimeError):
@@ -104,6 +123,111 @@ def run_timed(fn, runs: int) -> list[float]:
         run_async(fn())
         out.append(ms(t0))
     return out
+
+
+def budget_verdict(label: str, values: list[float], limit_ms: float) -> tuple[bool, str]:
+    maximum = max(values, default=0.0)
+    passed = bool(values) and maximum < limit_ms
+    return passed, (
+        f"{'PASS' if passed else 'FAIL'} {label} count={len(values)} "
+        f"max_ms={maximum:.1f} limit_ms={float(limit_ms):.1f}"
+    )
+
+
+def _timed_sync(fn):
+    started = time.perf_counter()
+    result = fn()
+    return result, ms(started)
+
+
+def _timed_async(fn):
+    started = time.perf_counter()
+    result = run_async(fn())
+    return result, ms(started)
+
+
+def _run_scheme_filtered(db: Session, args, member_ids, sample: list[Scheme]) -> int:
+    """Measure only production fund-page service paths; output contains no fund names or values."""
+    passed_all = True
+    print("\n== SCHEME-FILTERED FUND PAGE ==")
+    print(f"sample_count={len(sample)} run_count={args.runs}")
+    for position, scheme in enumerate(sample, 1):
+        scheme_ids = frozenset({scheme.id})
+        for member_id in member_ids:
+            invalidate_holdings_cache(member_id)
+        rows, cold_ms = _timed_async(lambda: compute_holdings(
+            db,
+            member_ids,
+            scheme_ids=scheme_ids,
+            allow_stale_today=True,
+            stored_only=True,
+        ))
+        warm_ms = run_timed(
+            lambda: compute_holdings(
+                db,
+                member_ids,
+                scheme_ids=scheme_ids,
+                allow_stale_today=True,
+                stored_only=True,
+            ),
+            args.runs,
+        )
+        tier1_ok, line = budget_verdict(
+            f"tier1 fund={position} rows={len(rows)}",
+            [cold_ms, *warm_ms],
+            300,
+        )
+        print(line)
+        passed_all &= tier1_ok
+
+        today = date.today()
+        tier2_calls = (
+            ("performance", lambda: _timed_async(lambda: period_series(db, scheme, "1Y", today))[1]),
+            ("returns", lambda: _timed_sync(lambda: inception_returns(db, scheme, today))[1]),
+            ("risk", lambda: _timed_sync(lambda: compute_risk(db, scheme, today))[1]),
+            ("composition", lambda: _timed_sync(lambda: build_composition(db, scheme, today))[1]),
+            ("holdings", lambda: _timed_sync(lambda: all_holdings(db, scheme, today))[1]),
+            ("manager", lambda: _timed_sync(lambda: build_manager(db, scheme, today))[1]),
+        )
+        for call_index, (_label, measure) in enumerate(tier2_calls, 1):
+            elapsed = [measure() for _ in range(args.runs)]
+            ok, line = budget_verdict(
+                f"tier2 fund={position} call={call_index}", elapsed, 50,
+            )
+            print(line)
+            passed_all &= ok
+
+        if not args.include_score:
+            print(f"SKIP tier3 fund={position} count=5 include_score=0")
+            continue
+
+        context = ScopeContext(list(member_ids), "combined", True)
+
+        async def open_tier3():
+            await category_series(db, scheme, "1Y", today)
+            await category_returns(db, scheme, today)
+            await rolling_returns(db, scheme, 3, today)
+            await risk_return_scatter(db, scheme, today)
+            await build_score(
+                db, scheme, context, args.user_id, today,
+                datetime.now(timezone.utc),
+            )
+
+        peer_cache.clear()
+        _unused, first_ms = _timed_async(open_tier3)
+        _unused, second_ms = _timed_async(open_tier3)
+        first_ok, first_line = budget_verdict(
+            f"tier3_first fund={position}", [first_ms], 5000,
+        )
+        second_ok, second_line = budget_verdict(
+            f"tier3_second fund={position}", [second_ms], 300,
+        )
+        print(first_line)
+        print(second_line)
+        passed_all &= first_ok and second_ok
+
+    print(f"{'PASS' if passed_all else 'FAIL'} scheme_filtered funds={len(sample)}")
+    return 0 if passed_all else 1
 
 
 def read_nav(db: Session, scheme_id: uuid.UUID, years: int) -> tuple[list[tuple[date, float]], float]:
@@ -193,7 +317,7 @@ def batch_pass(db: Session, batches: list[DisclosureBatch]) -> dict:
     return {**groups, "top10": len(top10), "months": len(batches), "added": added, "removed": removed, "ms": ms(t0)}
 
 
-def main() -> int:
+def _main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--user-id", required=True, type=uuid.UUID)
     ap.add_argument("--schemes", type=int, default=4, help="how many held funds to sample")
@@ -202,6 +326,7 @@ def main() -> int:
     ap.add_argument("--include-live-fetch", action="store_true")
     ap.add_argument("--include-score", action="store_true")
     ap.add_argument("--simulate-fresh-cache", action="store_true")
+    ap.add_argument("--scheme-filtered", action="store_true")
     a = ap.parse_args()
 
     if a.simulate_fresh_cache:
@@ -242,7 +367,12 @@ def main() -> int:
                 invalidate_holdings_cache(i)
             t0 = time.perf_counter()
             try:
-                holdings = run_async(compute_holdings(db, ids))
+                holdings = run_async(compute_holdings(
+                    db,
+                    ids,
+                    allow_stale_today=a.scheme_filtered,
+                    stored_only=a.scheme_filtered,
+                ))
             except WriteAttempted as e:
                 print(f"household holdings cold: needs a live NAV download ({e}). Re-run with --include-live-fetch.")
                 return 2
@@ -260,6 +390,11 @@ def main() -> int:
                     sample.append(s)
             sample += [s for s in schemes if s not in sample]
             sample = sample[: a.schemes]
+
+            if a.scheme_filtered:
+                result = _run_scheme_filtered(db, a, ids, sample)
+                db.rollback()
+                return result
 
             report = []
             for n, s in enumerate(sample, 1):
@@ -351,6 +486,14 @@ def main() -> int:
     finally:
         engine.dispose()
     return 0
+
+
+def main() -> int:
+    try:
+        return _main()
+    except WriteAttempted as exc:
+        print(f"FAIL read-only guard: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

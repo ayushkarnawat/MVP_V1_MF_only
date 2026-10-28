@@ -125,7 +125,13 @@ def test_openapi_registers_exactly_six_portfolio_paths(client):
     expected = {f"/household/aggregate/{suffix}" for suffix in PORTFOLIO_SUFFIXES} | {
         f"/household-members/{{member_id}}/{suffix}" for suffix in PORTFOLIO_SUFFIXES
     }
-    assert {path for path in paths if "portfolio-" in path and not path.endswith("portfolio-insights")} == expected
+    assert {
+        path
+        for path in paths
+        if path.startswith(("/household/", "/household-members/"))
+        and "portfolio-" in path
+        and not path.endswith("portfolio-insights")
+    } == expected
     for path in expected:
         assert paths[path]["get"]["tags"] == ["portfolio"]
 

@@ -1,0 +1,23 @@
+{
+  "status": "ready",
+  "window_start": "2023-10-23",
+  "window_end": "2026-10-23",
+  "thin_category": true,
+  "peer_volatility_median": "0.0048",
+  "points": [
+    {
+      "scheme_id": "2c652f6f-008c-58a5-90a5-d1f2e331823f",
+      "name": "Alpha Flexi Cap Fund - Direct Plan",
+      "return_pct": "9.9999",
+      "volatility_pct": "0.0050",
+      "is_fund": true
+    },
+    {
+      "scheme_id": "5c2696ef-e123-52b2-9ff6-90062a0fd775",
+      "name": "Golden Peer 5 Fund",
+      "return_pct": "11.5001",
+      "volatility_pct": "0.0048",
+      "is_fund": false
+    }
+  ]
+}

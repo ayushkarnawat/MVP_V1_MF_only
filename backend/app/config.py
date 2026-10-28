@@ -1,9 +1,12 @@
+from decimal import Decimal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     # Release gate: enable only after review of the 45 hypothetical assumptions.
     scenario_hypotheticals_enabled: bool = False
+    risk_free_rate: Decimal = Decimal("0.065")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

@@ -1,0 +1,58 @@
+{
+  "status": "ready",
+  "window_start": "2023-10-23",
+  "window_end": "2026-10-23",
+  "thin_category": false,
+  "peer_volatility_median": "0.0052",
+  "points": [
+    {
+      "scheme_id": "2c652f6f-008c-58a5-90a5-d1f2e331823f",
+      "name": "Alpha Flexi Cap Fund - Direct Plan",
+      "return_pct": "9.9999",
+      "volatility_pct": "0.0050",
+      "is_fund": true
+    },
+    {
+      "scheme_id": "dfb6f3a4-ed3e-5d4c-81e4-7343b0862d60",
+      "name": "Golden Peer 1 Fund",
+      "return_pct": "7.5000",
+      "volatility_pct": "0.0062",
+      "is_fund": false
+    },
+    {
+      "scheme_id": "fbee647c-6841-5f4b-a95a-84b5ec599076",
+      "name": "Golden Peer 2 Fund",
+      "return_pct": "8.5001",
+      "volatility_pct": "0.0056",
+      "is_fund": false
+    },
+    {
+      "scheme_id": "dc9e123e-d172-5ff3-a285-a2a8722e2ce5",
+      "name": "Golden Peer 3 Fund",
+      "return_pct": "9.5000",
+      "volatility_pct": "0.0054",
+      "is_fund": false
+    },
+    {
+      "scheme_id": "c3375419-68ea-5868-8df7-b3b52d19ffa9",
+      "name": "Golden Peer 4 Fund",
+      "return_pct": "10.5000",
+      "volatility_pct": "0.0050",
+      "is_fund": false
+    },
+    {
+      "scheme_id": "5c2696ef-e123-52b2-9ff6-90062a0fd775",
+      "name": "Golden Peer 5 Fund",
+      "return_pct": "11.5001",
+      "volatility_pct": "0.0048",
+      "is_fund": false
+    },
+    {
+      "scheme_id": "d946c7ce-f238-5571-be64-daf03ad1cdc1",
+      "name": "Golden Peer 6 Fund",
+      "return_pct": "12.5000",
+      "volatility_pct": "0.0046",
+      "is_fund": false
+    }
+  ]
+}

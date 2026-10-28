@@ -1,0 +1,46 @@
+{
+  "status": "ready",
+  "scope": "combined",
+  "held": true,
+  "held_by_other_members": [],
+  "nav_as_of": "2026-10-15",
+  "nav_stale": false,
+  "has_history": false,
+  "scheme": {
+    "id": "8dab2639-73ac-56f1-be54-c1c6267bd58b",
+    "name": "Golden Statement Priced Fund",
+    "plan": "Direct",
+    "category": "Equity Scheme - Flexi Cap Fund",
+    "amc_name": "Test AMC"
+  },
+  "tiles": {
+    "current_value": "1060.00",
+    "share_of_portfolio_pct": "44.5378",
+    "invested": "1000.00",
+    "total_gain": "60.00",
+    "total_gain_pct": "6.0000",
+    "xirr": "0.1292258326537757773518355219",
+    "expense_ratio": null
+  },
+  "details": {
+    "units": "100.000",
+    "average_nav": "10.0000",
+    "current_nav": "10.6000",
+    "invested": "1000.00",
+    "current_value": "1060.00",
+    "gain": "60.00",
+    "gain_pct": "6.0000",
+    "xirr": "0.1292258326537757773518355219",
+    "first_investment": "2026-05-01",
+    "last_investment": "2026-05-01",
+    "opening_lot": null,
+    "folios": [
+      {
+        "folio_id": "444d5ba7-9f9c-55dd-af88-73c6779dd8f0",
+        "member_id": "80008f0b-4cf4-5e83-b15a-b3122e6abbf2",
+        "member_name": "ASHA RAO",
+        "folio_masked": "XXXXXNLY1"
+      }
+    ]
+  }
+}
