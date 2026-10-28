@@ -1,16 +1,23 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
+import { useLocation } from "react-router";
 import { describe, expect, it, vi } from "vitest";
+import { buildRegistry } from "@/shell/registry/buildRegistry";
+import { renderInShell } from "@/shell/testing";
 import * as fx from "../fixtures";
 import { expectInteractivity, failedLoad, loaded, loadingLoad } from "../testing";
 import { HoldingsTable } from "./HoldingsTable";
 import type { SortState } from "../mfCopy";
 import type { HoldingRow } from "../types";
 
+function Probe() { const l = useLocation(); return <output data-testid="loc">{l.pathname}</output>; }
+const NOT_LIVE = buildRegistry().map(route => (route.id === "portfolio-mutual-funds-fund" ? { ...route, status: "placeholder" as const } : route));
 const XIRR = { "S-KOTAK": "0.1420", "S-JM": "0.1860", "S-HDFC": "0.2130" };
 
-function table(over: Partial<Parameters<typeof HoldingsTable>[0]> = {}) {
-  const props = { holdings: loaded(fx.holdings()), xirrByScheme: XIRR, sort: null as SortState | null, onSort: vi.fn(), query: "", onOpenFund: vi.fn(), onAnalyse: vi.fn(), onCompareDistributors: vi.fn(), ...over };
-  return { props, ...render(<HoldingsTable {...props} />) };
+function table(over: Partial<Parameters<typeof HoldingsTable>[0]> = {}, routes = buildRegistry()) {
+  const props = { holdings: loaded(fx.holdings()), xirrByScheme: XIRR, sort: null as SortState | null, onSort: vi.fn(), query: "", onAnalyse: vi.fn(), onCompareDistributors: vi.fn(), ...over };
+  const view = (p: typeof props) => <><HoldingsTable {...p} /><Probe /></>;
+  const utils = renderInShell(view(props), { path: "/portfolio/mutual-funds", routes });
+  return { props, ...utils, rerender: (next: typeof props) => utils.rerender(view(next)) };
 }
 const rowIds = () => screen.getAllByTestId(/^row-/).map(row => row.getAttribute("data-testid")!.slice(4));
 const row = (key: string) => screen.getByTestId(`row-${key}`);
@@ -78,12 +85,12 @@ describe("HoldingsTable", () => {
     const { props, rerender } = table();
     fireEvent.click(screen.getByRole("button", { name: /^Value/ }));
     expect(props.onSort).toHaveBeenLastCalledWith({ key: "value", dir: "desc" });
-    rerender(<HoldingsTable {...props} sort={{ key: "value", dir: "desc" }} />);
+    rerender({ ...props, sort: { key: "value", dir: "desc" } });
     expect(screen.getByRole("columnheader", { name: /Value/ })).toHaveAttribute("aria-sort", "descending");
     expect(screen.getByTestId("sort-arrow")).toHaveTextContent("↓");
     fireEvent.click(screen.getByRole("button", { name: /^Value/ }));
     expect(props.onSort).toHaveBeenLastCalledWith({ key: "value", dir: "asc" });
-    rerender(<HoldingsTable {...props} sort={{ key: "value", dir: "asc" }} />);
+    rerender({ ...props, sort: { key: "value", dir: "asc" } });
     expect(screen.getByRole("columnheader", { name: /Value/ })).toHaveAttribute("aria-sort", "ascending");
     expect(screen.getByTestId("sort-arrow")).toHaveTextContent("↑");
     expect(screen.getByRole("columnheader", { name: /Invested/ })).toHaveAttribute("aria-sort", "none");
@@ -107,29 +114,67 @@ describe("HoldingsTable", () => {
     expect(screen.getByText('No funds match "zzz"')).toBeInTheDocument();
     expect(screen.queryAllByTestId(/^row-/)).toHaveLength(0);
   });
-  it("opens the fund from a click on the row or the name, and with Enter", () => {
-    const { props } = table();
-    fireEvent.click(within(row("S-JM:m2")).getByTestId("invested"));
-    expect(props.onOpenFund).toHaveBeenLastCalledWith("S-JM", "m2");
-    fireEvent.click(within(row("S-HDFC:m3")).getByRole("button", { name: "HDFC Mid-Cap Opportunities Fund" }));
-    expect(props.onOpenFund).toHaveBeenLastCalledWith("S-HDFC", "m3");
-    expect(props.onOpenFund).toHaveBeenCalledTimes(2);
-    fireEvent.keyDown(row("S-KOTAK:m1"), { key: "Enter" });
-    expect(props.onOpenFund).toHaveBeenLastCalledWith("S-KOTAK", "m1");
-  });
-  it("tells the member of the clicked row when two members hold the same fund", () => {
-    const second: HoldingRow = { ...fx.holdings()[0], household_member_id: "m2", household_member_name: "Aarohi" };
-    const { props } = table({ holdings: loaded([fx.holdings()[0], second]) });
-    fireEvent.click(within(row("S-KOTAK:m2")).getByTestId("invested"));
-    expect(props.onOpenFund).toHaveBeenLastCalledWith("S-KOTAK", "m2");
-    fireEvent.click(within(row("S-KOTAK:m1")).getByRole("button", { name: "Kotak Multi Cap Fund" }));
-    expect(props.onOpenFund).toHaveBeenLastCalledWith("S-KOTAK", "m1");
-    expect(props.onOpenFund).toHaveBeenCalledTimes(2);
-  });
-  it("marks a row and a name as opening a popup, not navigating", () => {
+  const loc = () => screen.getByTestId("loc");
+  it("makes the fund name a real link to that fund's page", () => {
     table();
-    expect(row("S-JM:m2")).toHaveAttribute("data-effect", "open");
-    expect(within(row("S-JM:m2")).getByRole("button", { name: "JM Flexi Cap Fund" })).toHaveAttribute("data-effect", "open");
+    const link = within(row("S-HDFC:m3")).getByRole("link", { name: "HDFC Mid-Cap Opportunities Fund" });
+    expect(link.tagName).toBe("A");
+    expect(link).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-HDFC");
+    expect(within(row("S-HDFC:m3")).queryByRole("button", { name: "HDFC Mid-Cap Opportunities Fund" })).toBeNull();
+  });
+  it("opens the fund page from a click anywhere on the row, exactly once", () => {
+    table();
+    fireEvent.click(within(row("S-JM:m2")).getByTestId("invested"));
+    expect(loc()).toHaveTextContent(/^\/portfolio\/mutual-funds\/funds\/S-JM$/);
+  });
+  it("opens the fund page with Enter on the row", () => {
+    table();
+    fireEvent.keyDown(row("S-KOTAK:m1"), { key: "Enter" });
+    expect(loc()).toHaveTextContent(/^\/portfolio\/mutual-funds\/funds\/S-KOTAK$/);
+  });
+  it("opens the fund page once from a click on the name link (no double navigation)", () => {
+    table();
+    const link = within(row("S-HDFC:m3")).getByRole("link", { name: "HDFC Mid-Cap Opportunities Fund" });
+    const before = window.history.length;
+    fireEvent.click(link);
+    expect(loc()).toHaveTextContent(/^\/portfolio\/mutual-funds\/funds\/S-HDFC$/);
+    expect(window.history.length - before).toBeLessThanOrEqual(1);
+  });
+  it("reaches the name link with Tab and Enter on it opens that fund once", () => {
+    table();
+    const link = within(row("S-HDFC:m3")).getByRole("link", { name: "HDFC Mid-Cap Opportunities Fund" });
+    link.focus();
+    expect(link).toHaveFocus();
+    expect(link).not.toHaveAttribute("tabindex", "-1");
+    fireEvent.keyDown(link, { key: "Enter" });
+    fireEvent.click(link);
+    expect(loc()).toHaveTextContent(/^\/portfolio\/mutual-funds\/funds\/S-HDFC$/);
+  });
+  it("no link sits inside a button or a role element, and no popup button is left on a row", () => {
+    table();
+    for (const link of screen.getAllByRole("link")) expect(link.closest("button, [role=button]")).toBeNull();
+    expect(within(row("S-JM:m2")).queryByRole("button")).toBeNull();
+  });
+  it("shows a fund with no scheme id as plain text with no link, and the row goes nowhere", () => {
+    const blank: HoldingRow = { ...fx.holdings()[0], scheme_id: "" };
+    table({ holdings: loaded([blank]) });
+    const only = screen.getAllByTestId(/^row-/)[0];
+    expect(within(only).queryByRole("link")).toBeNull();
+    expect(within(only).getByText("Kotak Multi Cap Fund")).toBeInTheDocument();
+    fireEvent.click(within(only).getByTestId("invested"));
+    expect(loc()).toHaveTextContent(/^\/portfolio\/mutual-funds$/);
+  });
+  it("keeps the greyed Coming soon look and does not navigate when the fund route is not live", () => {
+    table({}, NOT_LIVE);
+    const name = within(row("S-JM:m2")).getByRole("link", { name: "JM Flexi Cap Fund" });
+    expect(name).toHaveAttribute("aria-disabled", "true");
+    expect(name).toHaveAttribute("title", "Coming soon");
+    fireEvent.click(within(row("S-JM:m2")).getByTestId("invested"));
+    expect(loc()).toHaveTextContent(/^\/portfolio\/mutual-funds$/);
+  });
+  it("marks a row as navigating, not opening a popup", () => {
+    table();
+    expect(row("S-JM:m2")).toHaveAttribute("data-effect", "navigate");
   });
   it("has a Compare Distributors button in the card header, before Analyse with Mira", () => {
     const { props } = table();
@@ -149,9 +194,9 @@ describe("HoldingsTable", () => {
     expect(screen.queryByRole("button", { name: /export/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/export|download/i)).not.toBeInTheDocument();
   });
-  it("gives the name a tooltip with the full text", () => {
+  it("keeps the full name readable on a long name through the link's text", () => {
     table();
-    expect(within(row("S-HDFC:m3")).getByRole("button", { name: "HDFC Mid-Cap Opportunities Fund" })).toHaveAttribute("title", "HDFC Mid-Cap Opportunities Fund");
+    expect(within(row("S-HDFC:m3")).getByRole("link", { name: "HDFC Mid-Cap Opportunities Fund" })).toHaveTextContent("HDFC Mid-Cap Opportunities Fund");
   });
   it("keeps two rows of one fund held by two members apart", () => {
     const second: HoldingRow = { ...fx.holdings()[0], household_member_id: "m2", household_member_name: "Aarohi" };
@@ -163,7 +208,7 @@ describe("HoldingsTable", () => {
     expect(screen.getByTestId("foot-invested")).toHaveTextContent("₹35,78,000");
     expect(screen.getByTestId("foot-value")).toHaveTextContent("₹46,49,340");
     expect(screen.getByTestId("foot-gain")).toHaveTextContent("+₹10,71,340");
-    rerender(<HoldingsTable {...props} sort={{ key: "gain", dir: "asc" }} />);
+    rerender({ ...props, sort: { key: "gain", dir: "asc" } });
     expect(screen.getByTestId("foot-value")).toHaveTextContent("₹46,49,340");
     expect(screen.getByTestId("foot-gain")).toHaveTextContent("+₹10,71,340");
   });
@@ -185,6 +230,6 @@ describe("HoldingsTable", () => {
   });
   it("marks every control with its effect (interactivity rule)", () => {
     const { container } = table({ sort: { key: "value", dir: "desc" } });
-    expectInteractivity(container, 8);
+    expectInteractivity(container, 7);
   });
 });
