@@ -1,8 +1,9 @@
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { fixture } from "../fixtures";
 import type { WorthCardOut, WorthResponse } from "../types";
 import { WorthALook, type WorthALookProps } from "./WorthALook";
+import { renderInShell as render } from "@/shell/testing";
 
 const expense: WorthCardOut = {
   kind: "high_expense", rank: 4, scheme_id: "s", scheme_name: "Summit Small Cap Fund",
@@ -54,16 +55,16 @@ describe("WorthALook: the three cards of the golden fixture", () => {
     ]);
   });
 
-  it("shows the weak fund with its chip, score chip, headline, share and a greyed link", () => {
+  it("shows the weak fund with its chip, score chip, headline, share and a link to the fund page", () => {
     setup();
     const card = screen.getByTestId("worth-card-weak_fund");
     expect(within(card).getByText("Performance")).toBeInTheDocument();
     expect(within(card).getByText("Score: Weak")).toBeInTheDocument();
     expect(within(card).getByRole("heading", { name: "Asha Large Cap is among the weakest in its category" })).toBeInTheDocument();
     expect(card.textContent).toContain("This fund is 23.2% of your portfolio and sits in the lowest group for its category.");
-    const link = within(card).getByText("Review this fund").closest("[aria-disabled]") as HTMLElement;
-    expect(link.getAttribute("aria-disabled")).toBe("true");
-    expect(link.getAttribute("title")).toBe("Coming soon");
+    const link = within(card).getByRole("link", { name: "Review this fund" });
+    expect(link).toHaveAttribute("href", "/portfolio/mutual-funds/funds/54b8755e-6b2b-5f4f-a8fe-b41125031af6");
+    expect(link).not.toHaveAttribute("aria-disabled");
   });
 
   it("shows the underperforming fund with two comparison bars over the last year", () => {

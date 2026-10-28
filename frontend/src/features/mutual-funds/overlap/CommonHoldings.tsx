@@ -3,6 +3,7 @@ import { useState } from "react";
 import { formatPercent as formatLookthroughPercent } from "../../../components/mf/lookthroughDisplay";
 import { formatPercent } from "../../../lib/format";
 import type { AnalyticsCardProps } from "../allocation/allocationLogic";
+import { FundLink } from "../common/FundLink";
 import { SectionCard } from "../common/SectionCard";
 import type { StockHoldingsSummary } from "../types";
 import {
@@ -168,7 +169,7 @@ export function CommonHoldings({
                                   data-testid={`common-fund-${item.key}-${f.scheme_id}`}
                                   className="text-xs text-[var(--ui-text-muted)]"
                                 >
-                                  {f.scheme_name} — {formatLookthroughPercent(f.stock_weight_pct)}% of fund
+                                  <FundLink schemeId={f.scheme_id}>{f.scheme_name}</FundLink> — {formatLookthroughPercent(f.stock_weight_pct)}% of fund
                                 </li>
                               ))}
                             </ul>

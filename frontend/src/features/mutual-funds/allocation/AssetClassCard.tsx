@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { CoverageBanner } from "../../../components/mf/CoverageBanner";
 import { formatCompactRupees, formatDate, formatPercent, formatRupees } from "../../../lib/format";
 import { BarList, ChartTypeToggle } from "../common/charts";
+import { FundLink } from "../common/FundLink";
 import { SectionCard } from "../common/SectionCard";
 import { percentOf } from "../mfCopy";
 import type { AssetAllocationSummary, AssetClassKey } from "../types";
@@ -378,7 +379,7 @@ export function AssetClassCard({
                         className="flex items-center justify-between gap-3 rounded-lg border border-[var(--ui-divider)] px-3 py-2"
                       >
                         <span data-testid={`drill-fund-name-${fund.scheme_id}`} className="text-[var(--ui-text)]">
-                          {fund.scheme_name}
+                          <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink>
                         </span>
                         <span data-testid={`drill-fund-value-${fund.scheme_id}`} className="font-medium text-[var(--ui-text)]">
                           {`${formatRupees(fund.value)} · ${formatPercent(fund.percentage, { digits: 1 })} of ${selectedSlice.label}`}

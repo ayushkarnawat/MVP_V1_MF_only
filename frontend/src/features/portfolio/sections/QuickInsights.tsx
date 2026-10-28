@@ -1,5 +1,7 @@
 import { Check } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AppLink } from "@/shell/nav/AppLink";
+import { paths } from "@/shell/nav/paths";
 import { hasInsights, insightLines } from "../quickInsightsCopy";
 import type { PortfolioInsightsResponse } from "../types";
 
@@ -87,7 +89,16 @@ export function QuickInsights({ status, data, onRetry }: QuickInsightsProps) {
               {line.parts.map((part, idx) =>
                 part.bold ? (
                   <b key={idx} className="font-semibold text-[var(--ui-text-default)]">
-                    {part.text}
+                    {part.schemeId ? (
+                      <AppLink
+                        to={paths.mutualFunds.fund(part.schemeId)}
+                        className="hover:underline"
+                      >
+                        {part.text}
+                      </AppLink>
+                    ) : (
+                      part.text
+                    )}
                   </b>
                 ) : (
                   <span key={idx}>{part.text}</span>

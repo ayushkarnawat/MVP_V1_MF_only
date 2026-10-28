@@ -4,6 +4,7 @@ import { CoverageBanner, fundAgeText } from "../../../components/mf/CoverageBann
 import { formatPercent as lookthroughPercent, percentageProduct } from "../../../components/mf/lookthroughDisplay";
 import { formatCompactRupees, formatDate, formatPercent, formatRupees } from "../../../lib/format";
 import { SlicedDonut, useSelectedSlice } from "../common/charts";
+import { FundLink } from "../common/FundLink";
 import { SectionCard } from "../common/SectionCard";
 import type { CapAllocationSummary, StockHoldingRow } from "../types";
 import {
@@ -91,7 +92,7 @@ function StockList({ rows, total, idPrefix }: StockListProps) {
                           data-testid={`${idPrefix}-${index}-fund-${fund.scheme_id}`}
                           className="text-[11px] text-[var(--ui-text-muted)]"
                         >
-                          {fund.scheme_name} · {lookthroughPercent(fund.stock_weight_pct)}% of fund ·{" "}
+                          <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink> · {lookthroughPercent(fund.stock_weight_pct)}% of fund ·{" "}
                           {lookthroughPercent(prod)}% of portfolio
                           {age ? ` · ${age}` : ""}
                         </li>

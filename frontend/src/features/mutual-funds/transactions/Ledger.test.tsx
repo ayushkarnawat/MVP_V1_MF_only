@@ -126,3 +126,12 @@ describe("interactivity", () => {
     expectInteractivity(container, 6);
   });
 });
+
+describe("fund names stay plain text (IF-E)", () => {
+  // The ledger entry carries no scheme id (backend ask in packet IF-E), so a fund name cannot be linked to its page here yet.
+  it("has no link on a row, and the name is still inside the expand button", () => {
+    render(<Harness filter="all" />);
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
+    expect(within(screen.getByTestId("ledger-row-t-0067")).getByRole("button")).toHaveTextContent("Parag Parikh Flexi Cap Fund");
+  });
+});

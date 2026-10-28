@@ -5,6 +5,7 @@ import { sumDecimalStrings } from "../../../lib/decimal";
 import { formatCompactRupees, formatPercent, formatRupees } from "../../../lib/format";
 import { useScope } from "../../../shell/scope/ScopeContext";
 import { InfoMark } from "../common/SectionCard";
+import { FundLink } from "../common/FundLink";
 import { SlicedDonut, useSelectedSlice } from "../common/charts";
 import { memberInitials, percentOf, slugify } from "../mfCopy";
 import type { AllocationSummary, FamilyMemberStatus, HoldingRow, Load, Slice } from "../types";
@@ -157,7 +158,9 @@ export function AmcAllocationCard({ allocation, holdings }: AmcAllocationCardPro
                 data-value={h.current_value}
                 className="flex items-center justify-between py-2 text-sm"
               >
-                <span className="font-medium text-[var(--ui-text)]">{h.scheme_name}</span>
+                <span className="font-medium text-[var(--ui-text)]">
+                  <FundLink schemeId={h.scheme_id}>{h.scheme_name}</FundLink>
+                </span>
                 <span className="font-semibold text-[var(--ui-text)]">
                   {formatRupees(h.current_value)}
                 </span>

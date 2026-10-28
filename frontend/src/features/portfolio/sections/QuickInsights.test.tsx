@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { fixture } from "../fixtures/insights";
 import type { PortfolioInsightsResponse } from "../types";
 import { QuickInsights, type QuickInsightsProps } from "./QuickInsights";
+import { renderInShell as render } from "@/shell/testing";
 
 const get = (name: string) => fixture<PortfolioInsightsResponse>(name);
 
@@ -98,10 +99,10 @@ describe("QuickInsights: the family insights", () => {
     expect(marks[0].textContent).toBe("");
   });
 
-  it("is plain text: no link, no button, nothing to click", () => {
+  it("has no button, and its only link is the largest holding's fund name (see fundLink.test.tsx)", () => {
     setup();
-    expect(screen.queryAllByRole("link")).toHaveLength(0);
     expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(screen.getAllByRole("link").map(link => link.textContent)).toEqual(["Dev Short Duration Debt"]);
   });
 
   it("renders the figures it is given, not a fixed set (member fixture)", () => {

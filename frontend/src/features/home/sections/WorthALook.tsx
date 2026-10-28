@@ -1,5 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AppLink } from "@/shell/nav/AppLink";
+import { paths } from "@/shell/nav/paths";
 import { formatPercent, formatSignedPercent } from "../homeFormat";
 import type { WorthCardOut, WorthResponse } from "../types";
 import {
@@ -266,6 +268,10 @@ function WorthCard({ card }: { card: WorthCardOut }) {
   const headline = worthHeadline(card);
   const detail = worthDetail(card);
 
+  // Only the two cards about one named fund can open that fund's page; the cost and concentration links
+  // stay greyed (their target, a cost comparison or a holdings view, does not exist yet).
+  const reviewable = card.kind === "weak_fund" || card.kind === "underperforming";
+
   const linkText =
     card.kind === "weak_fund" || card.kind === "underperforming"
       ? "Review this fund"
@@ -315,18 +321,28 @@ function WorthCard({ card }: { card: WorthCardOut }) {
 
       <div className="mt-4 flex items-center justify-between border-t border-[var(--ui-divider)] pt-3 text-xs">
         <span />
-        <span
-          aria-disabled="true"
-          title="Coming soon"
-          className="inline-flex cursor-not-allowed items-center gap-1 text-[var(--ui-disabled-text)]"
-        >
-          <span>{linkText}</span>
-          <ArrowRight
-            size={14}
-            className="text-[var(--ui-text-muted)]"
-            aria-hidden="true"
-          />
-        </span>
+        {reviewable && card.scheme_id ? (
+          <AppLink
+            to={paths.mutualFunds.fund(card.scheme_id)}
+            className="inline-flex items-center gap-1 text-[var(--ui-text)] hover:underline"
+          >
+            <span>{linkText}</span>
+            <ArrowRight size={14} className="text-[var(--ui-text-muted)]" aria-hidden="true" />
+          </AppLink>
+        ) : (
+          <span
+            aria-disabled="true"
+            title="Coming soon"
+            className="inline-flex cursor-not-allowed items-center gap-1 text-[var(--ui-disabled-text)]"
+          >
+            <span>{linkText}</span>
+            <ArrowRight
+              size={14}
+              className="text-[var(--ui-text-muted)]"
+              aria-hidden="true"
+            />
+          </span>
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChangeBadge } from "../components/ChangeBadge";
+import { FundLink } from "../components/FundLink";
 import { MoverRow } from "../components/MoverRow";
 import { PartialDataBadge } from "../components/PartialDataBadge";
 import { changeDirection, formatRupees, formatSignedRupees } from "../homeFormat";
@@ -46,7 +47,8 @@ export function Movers({
     const row = Array.from(sectionRef.current?.querySelectorAll<HTMLElement>('[data-testid^="mover-"]') ?? []).find(
       el => el.getAttribute("data-testid") === `mover-${key}`,
     );
-    row?.focus();
+    // A row that holds a fund link is not itself focusable: its own button takes the focus back.
+    (row?.getAttribute("role") === "button" ? row : row?.querySelector<HTMLElement>("button"))?.focus();
   };
 
   useEffect(() => {
@@ -334,7 +336,9 @@ export function Movers({
                 key={fund.scheme_id}
                 className="flex items-center justify-between py-2 text-sm"
               >
-                <span className="text-[var(--ui-text)]">{fund.name}</span>
+                <span className="text-[var(--ui-text)]">
+                  <FundLink schemeId={fund.scheme_id}>{fund.name}</FundLink>
+                </span>
                 {fund.change != null ? (
                   <span
                     className="font-semibold tabular-nums"

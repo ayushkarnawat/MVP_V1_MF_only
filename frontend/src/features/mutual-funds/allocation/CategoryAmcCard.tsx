@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { formatCompactRupees, formatPercent, formatRupees } from "../../../lib/format";
 import { BarList, ChartTypeToggle, SlicedDonut, useSelectedSlice } from "../common/charts";
+import { FundLink } from "../common/FundLink";
 import { SectionCard } from "../common/SectionCard";
 import type {
   AnalyticsAllocationSummary,
@@ -297,7 +298,7 @@ export function CategoryAmcCard({
                                       title={fund.name}
                                       className="truncate font-medium text-[var(--ui-text)]"
                                     >
-                                      {fund.name}
+                                      <FundLink schemeId={fund.schemeId}>{fund.name}</FundLink>
                                     </span>
                                     {fund.largest && (
                                       <span className="rounded bg-[var(--ui-card)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--pos-text)] border border-[var(--ui-divider)]">

@@ -1,5 +1,6 @@
 import { formatPercent as formatLookthroughPercent } from "../../../components/mf/lookthroughDisplay";
 import { formatPercent } from "../../../lib/format";
+import { FundLink } from "../common/FundLink";
 import type { OverlapPair } from "../types";
 import { type Band, BAND_WORD, fundInitials } from "./overlapLogic";
 
@@ -38,7 +39,7 @@ export function PairDetail({ pair, band }: PairDetailProps) {
       <div className="flex items-start justify-between gap-2">
         <div>
           <h4 className="text-sm font-semibold text-[var(--ui-text)]">
-            {a} × {b} — shared holdings
+            <FundLink schemeId={pair.fund_a.scheme_id}>{a}</FundLink> × <FundLink schemeId={pair.fund_b.scheme_id}>{b}</FundLink> — shared holdings
           </h4>
           <span data-testid="pair-detail-summary" className="text-xs text-[var(--ui-text-muted)] block mt-0.5">
             {formatPercent(pair.overlap_pct, { digits: 2 })} overlap · {pair.common_total} shared {stockLabel}

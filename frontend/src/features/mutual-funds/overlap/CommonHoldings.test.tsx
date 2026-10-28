@@ -148,3 +148,21 @@ describe("edge states", () => {
     for (const chip of container.querySelectorAll("[data-tooltip]")) expect(chip.getAttribute("title")).toBeTruthy();
   });
 });
+
+describe("the funds behind a common stock open their fund page (IF-E)", () => {
+  it("links each fund listed under an opened stock, and leaves the initials chips and the toggle alone", () => {
+    mount();
+    const row = screen.getByTestId(`common-row-${HDFC_BANK}`);
+    expect(within(row).queryAllByRole("link")).toHaveLength(0);
+    fireEvent.click(within(row).getByRole("button"));
+    const detail = screen.getByTestId(`common-detail-${HDFC_BANK}`);
+    const links = within(detail).getAllByRole("link");
+    expect(links.length).toBeGreaterThan(1);
+    for (const link of links) {
+      const item = link.closest("li")!;
+      expect(item.textContent).toMatch(/% of fund$/);
+      expect(link.getAttribute("href")).toMatch(/^\/portfolio\/mutual-funds\/funds\/S-[A-Z]+$/);
+    }
+    expect(document.querySelectorAll("button a")).toHaveLength(0);
+  });
+});

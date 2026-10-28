@@ -6,6 +6,8 @@ export type InsightId = "largest-holding" | "spread" | "plan-split" | "largest-a
 export interface InsightPart {
   text: string;
   bold: boolean;
+  /** Set only on the fund name of the largest-holding line: that part opens the fund's page. */
+  schemeId?: string;
 }
 
 export interface InsightLine {
@@ -61,7 +63,7 @@ export function insightLines(insights: PortfolioInsights): InsightLine[] {
       id: "largest-holding",
       parts: [
         { text: "Your largest holding is ", bold: false },
-        { text: insights.largest_holding.fund_name, bold: true },
+        { text: insights.largest_holding.fund_name, bold: true, schemeId: insights.largest_holding.scheme_id },
         {
           text: ` — ${formatPercent(insights.largest_holding.pct_of_portfolio, { digits: 1 })} of your total portfolio`,
           bold: false,

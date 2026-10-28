@@ -153,3 +153,40 @@ describe("SipTimeline", () => {
     expectInteractivity(container, 5);
   });
 });
+
+describe("SipTimeline: fund names open the fund page (IF-E)", () => {
+  const page = (id: string) => `/portfolio/mutual-funds/funds/${id}`;
+  it("links the fund in the Next SIP chip, without changing the chip's words", () => {
+    mount();
+    expect(screen.getByTestId("sip-next")).toHaveTextContent("Next: Kotak Multi Cap Fund · 24 Oct · ₹3,336");
+    expect(within(screen.getByTestId("sip-next")).getByRole("link", { name: "Kotak Multi Cap Fund" })).toHaveAttribute("href", page("S-KOTAK"));
+  });
+  it("links each fund of the selected date's SIPs, and follows the date", () => {
+    mount();
+    expect(within(screen.getByTestId("sip-detail")).getByRole("link", { name: "Kotak Multi Cap Fund" })).toHaveAttribute("href", page("S-KOTAK"));
+    fireEvent.click(screen.getByTestId("sip-cap-2026-10-27"));
+    const links = within(screen.getByTestId("sip-detail")).getAllByRole("link");
+    expect(links.map(link => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["HDFC Mid-Cap Opportunities Fund", page("S-HDFC")],
+      ["Parag Parikh Flexi Cap Fund", page("S-PPFAS")],
+    ]);
+  });
+  it("links the stopped SIPs too", () => {
+    mount();
+    fireEvent.click(screen.getByRole("tab", { name: "Stopped (1)" }));
+    expect(within(screen.getByTestId("sip-stopped-S-SBI")).getByRole("link", { name: "SBI Bluechip Fund" })).toHaveAttribute("href", page("S-SBI"));
+  });
+  it("links the funds of the month list once it has loaded", async () => {
+    mount();
+    fireEvent.click(screen.getByRole("tab", { name: "This Month" }));
+    const row = await screen.findByTestId("sip-month-S-KOTAK");
+    expect(within(row).getByRole("link", { name: "Kotak Multi Cap Fund" })).toHaveAttribute("href", page("S-KOTAK"));
+  });
+  it("leaves the tabs and the month buttons as buttons, and shows an id-less SIP as plain text", () => {
+    const rows = fx.sips().sips.map((sip, index) => (index === 0 ? { ...sip, scheme_id: "" } : sip));
+    mount(loaded(rows));
+    expect(within(screen.getByTestId("sip-next")).queryByRole("link")).toBeNull();
+    expect(screen.getByTestId("sip-next")).toHaveTextContent("Next: Kotak Multi Cap Fund · 24 Oct · ₹3,336");
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
+  });
+});

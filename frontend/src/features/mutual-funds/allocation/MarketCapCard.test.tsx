@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as fb from "../fixtures/mfB";
 import { expectInteractivity } from "../testing";
 import type { CapAllocationSummary } from "../types";
 import { MarketCapCard } from "./MarketCapCard";
+import { renderInShell as render } from "@/shell/testing";
 
 const scrollIntoView = vi.fn();
 beforeEach(() => {
@@ -208,5 +209,18 @@ describe("interactivity", () => {
     fireEvent.click(row(/Large Cap/));
     fireEvent.click(within(screen.getByTestId("stock-0")).getByRole("button"));
     expectInteractivity(container, 10);
+  });
+});
+
+describe("the funds behind a stock open their fund page (IF-E)", () => {
+  it("links each fund in the opened stock, keeping the weights and the age note", () => {
+    mount();
+    fireEvent.click(row(/Large Cap/));
+    fireEvent.click(within(screen.getByTestId("stock-0")).getByRole("button"));
+    const kotak = screen.getByTestId("stock-0-fund-S-KOTAK");
+    expect(within(kotak).getByRole("link", { name: "Kotak Multi Cap Fund" })).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-KOTAK");
+    expect(kotak).toHaveTextContent("Kotak Multi Cap Fund · 7.80% of fund · 2.58% of portfolio");
+    expect(within(screen.getByTestId("stock-0-fund-S-SBI")).getByRole("link", { name: "SBI Bluechip Fund" })).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-SBI");
+    expect(document.querySelectorAll("button a")).toHaveLength(0);
   });
 });

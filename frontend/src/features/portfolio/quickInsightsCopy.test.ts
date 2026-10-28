@@ -41,7 +41,7 @@ describe("insightLines: the family fixture", () => {
   it("writes the largest holding with the fund in bold and the share to one place", () => {
     expect(insightLines(family().insights)[0].parts).toEqual([
       plain("Your largest holding is "),
-      bold("Dev Short Duration Debt"),
+      { ...bold("Dev Short Duration Debt"), schemeId: "cf09c887-92a1-5b49-a624-7f067ed6a2c8" },
       plain(" — 38.6% of your total portfolio"),
     ]);
   });

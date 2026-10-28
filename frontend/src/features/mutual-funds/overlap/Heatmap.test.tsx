@@ -113,6 +113,19 @@ describe("selecting a pair", () => {
 });
 
 describe("the detail beside the grid", () => {
+  it("links both fund names in the title to their fund pages, without changing the title's words (IF-E)", () => {
+    mount();
+    const heading = within(screen.getByTestId("pair-detail")).getByRole("heading", { name: "Kotak Multi Cap Fund × SBI Bluechip Fund — shared holdings" });
+    const links = within(heading).getAllByRole("link");
+    expect(links.map(link => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Kotak Multi Cap Fund", "/portfolio/mutual-funds/funds/S-KOTAK"],
+      ["SBI Bluechip Fund", "/portfolio/mutual-funds/funds/S-SBI"],
+    ]);
+  });
+  it("leaves the grid cells and the column and row headers free of fund links (they show initials) (IF-E)", () => {
+    mount();
+    expect(within(screen.getByRole("table", { name: "Overlap heatmap" })).queryAllByRole("link")).toHaveLength(0);
+  });
   it("is titled with both funds and shows the selected pair's overlap, the shared-stock count and its band", () => {
     mount();
     const detail = screen.getByTestId("pair-detail");
