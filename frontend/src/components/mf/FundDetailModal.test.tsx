@@ -133,4 +133,18 @@ describe("FundDetailModal", () => {
     expect(screen.getByText("-₹12,345", { selector: "span" })).toBeInTheDocument();
     expect(screen.queryByText(/₹-/)).not.toBeInTheDocument();
   });
+
+  it("shows the actions the page passes, once, under the details (IF-E)", () => {
+    render(<FundDetailModal isOpen onClose={vi.fn()} holding={sampleHolding} actions={<p data-testid="popup-actions">Open fund page</p>} />);
+    expect(screen.getAllByTestId("popup-actions")).toHaveLength(1);
+    expect(screen.getByTestId("popup-actions")).toHaveTextContent("Open fund page");
+  });
+
+  it("shows nothing extra without actions, so the old Dashboard popup is unchanged (IF-E)", () => {
+    const { rerender } = render(<FundDetailModal isOpen onClose={vi.fn()} holding={sampleHolding} />);
+    const before = document.body.innerHTML;
+    rerender(<FundDetailModal isOpen onClose={vi.fn()} holding={sampleHolding} actions={undefined} />);
+    expect(document.body.innerHTML).toBe(before);
+    expect(screen.queryByRole("link")).toBeNull();
+  });
 });

@@ -172,3 +172,31 @@ describe("QuickInsightsCard", () => {
     expect(container.querySelectorAll("button, [data-clickable]")).toHaveLength(0);
   });
 });
+
+describe("AmcAllocationCard: the funds in the drill popup open their fund page (IF-E)", () => {
+  it("links every fund row of the opened AMC to its page, keeping the value", () => {
+    amc();
+    fireEvent.click(within(screen.getByTestId("legend-hdfc-mutual-fund")).getByRole("button"));
+    const dialog = screen.getByRole("dialog", { name: "HDFC Mutual Fund" });
+    const rows = within(dialog).getAllByTestId("drill-row");
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      const link = within(row).getByRole("link");
+      const holding = fx.holdings().find(h => h.scheme_name === link.textContent)!;
+      expect(holding).toBeDefined();
+      expect(link).toHaveAttribute("href", `/portfolio/mutual-funds/funds/${encodeURIComponent(holding.scheme_id)}`);
+      expect(row).toHaveTextContent("₹");
+    }
+    expect(within(dialog).getAllByRole("link")).toHaveLength(rows.length);
+  });
+  it("shows a holding with no scheme id as plain text", () => {
+    const rows = fx.holdings().map((h, index) => (index === 0 ? { ...h, scheme_id: "" } : h));
+    const first = rows[0];
+    const allocation: AllocationSummary = { ...fx.allocation().allocation, by_amc: [{ label: first.amc_name!, current_value: first.current_value!, percentage: 100 }], total_value: first.current_value! };
+    amc({ allocation: loaded(allocation), holdings: loaded(rows) });
+    fireEvent.click(screen.getByTestId(`slice-${first.amc_name!.toLowerCase().replaceAll(" ", "-")}`));
+    const dialog = screen.getByRole("dialog", { name: first.amc_name! });
+    expect(within(dialog).queryByRole("link", { name: first.scheme_name })).toBeNull();
+    expect(within(dialog).getByText(first.scheme_name)).toBeInTheDocument();
+  });
+});

@@ -1,10 +1,11 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as fa from "../fixtures/mfAsks";
 import * as fb from "../fixtures/mfB";
 import { expectInteractivity } from "../testing";
 import type { AssetAllocationSummary } from "../types";
 import { AssetClassCard } from "./AssetClassCard";
+import { renderInShell as render } from "@/shell/testing";
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
@@ -111,5 +112,29 @@ describe("the contributing funds in the drill panel", () => {
     select(/Equity/);
     expect(fundList().queryAllByRole("button")).toEqual([]);
     expectInteractivity(container, 8);
+  });
+});
+
+describe("the contributing funds open their fund page (IF-E)", () => {
+  it("links every contributing fund of the equity class, in the same order", () => {
+    mount();
+    select(/Equity/);
+    const links = fundList().getAllByRole("link");
+    expect(links.map(link => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Kotak Multi Cap Fund", "/portfolio/mutual-funds/funds/S-KOTAK"],
+      ["JM Flexi Cap Fund", "/portfolio/mutual-funds/funds/S-JM"],
+      ["HDFC Mid-Cap Opportunities Fund", "/portfolio/mutual-funds/funds/S-HDFC"],
+      ["HDFC Arbitrage Fund", "/portfolio/mutual-funds/funds/S-HDARB"],
+      ["SBI Bluechip Fund", "/portfolio/mutual-funds/funds/S-SBI"],
+    ]);
+    expect(rowOf("S-KOTAK")).toEqual({ name: "Kotak Multi Cap Fund", value: "₹11,90,000 · 35.9% of Equity" });
+  });
+  it("shows a fund with no scheme id as plain text", () => {
+    const data = fa.assetAllocationWithFunds();
+    data.as_disclosed.classes.find(item => item.key === "equity")!.funds![0].scheme_id = "";
+    mount(data);
+    select(/Equity/);
+    expect(fundList().getAllByRole("link")).toHaveLength(4);
+    expect(fundList().queryByRole("link", { name: "Kotak Multi Cap Fund" })).toBeNull();
   });
 });

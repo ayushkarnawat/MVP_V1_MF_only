@@ -151,3 +151,16 @@ describe("interactivity", () => {
     expectInteractivity(container, 20);
   });
 });
+
+describe("the funds behind a stock open their fund page (IF-E)", () => {
+  it("links each fund listed under an opened stock, and keeps the stock row a button", () => {
+    mount();
+    fireEvent.click(within(screen.getByTestId(`stock-row-${HDFC}`)).getByRole("button"));
+    const kotak = screen.getByTestId(`stock-fund-${HDFC}-S-KOTAK`);
+    expect(within(kotak).getByRole("link", { name: "Kotak Multi Cap Fund" })).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-KOTAK");
+    expect(kotak).toHaveTextContent("Kotak Multi Cap Fund · 7.80% of fund · 2.58% of portfolio");
+    expect(within(screen.getByTestId(`stock-fund-${HDFC}-S-JM`)).getByRole("link", { name: "JM Flexi Cap Fund" })).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-JM");
+    expect(within(screen.getByTestId(`stock-detail-${HDFC}`)).getAllByRole("link")).toHaveLength(3);
+    expect(document.querySelectorAll("button a")).toHaveLength(0);
+  });
+});

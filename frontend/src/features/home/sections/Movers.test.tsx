@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { fixture } from "../fixtures";
 import type { MoversResponse } from "../types";
 import { Movers, type MoversProps } from "./Movers";
+import { renderInShell as render } from "@/shell/testing";
 
 function setup(overrides: Partial<MoversProps> = {}) {
   const handlers = { onViewChange: vi.fn(), onRetry: vi.fn() };

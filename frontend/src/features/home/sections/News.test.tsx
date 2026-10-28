@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { newsFixture } from "../fixtures/newsFixtures";
 import { NEWS_GENERAL_NOTE, NEWS_HOW_NOTE, NEWS_HOW_WE_PICK, NEWS_WHY_TEXT } from "../newsCopy";
 import type { NewsResponse } from "../types";
 import { News, type NewsProps } from "./News";
+import { renderInShell as render } from "@/shell/testing";
 
 function setup(overrides: Partial<NewsProps> = {}) {
   const onRefresh = vi.fn();
@@ -220,7 +221,7 @@ describe("News: Why this?", () => {
     expect(dialog).toHaveTextContent(NEWS_WHY_TEXT);
   });
 
-  it("lists the funds involved in the order sent, as plain greyed names (their pages do not exist yet)", () => {
+  it("lists the funds involved in the order sent, each name a link to its fund page", () => {
     setup();
     open(1);
     const dialog = screen.getByRole("dialog", { name: "Why this?" });
@@ -230,11 +231,10 @@ describe("News: Why this?", () => {
     const weights = ["38.41%", "23.22%", "19.38%", "18.99%"];
     expect(rows.map(row => row.textContent)).toEqual(names.map((name, index) => `${name}${weights[index]}`));
     rows.forEach((row, index) => {
-      const name = within(row).getByText(names[index]);
-      expect(name).toHaveAttribute("aria-disabled", "true");
-      expect(name).toHaveAttribute("title", "Coming soon");
+      const name = within(row).getByRole("link", { name: names[index] });
+      expect(name).toHaveAttribute("href", expect.stringMatching(/^\/portfolio\/mutual-funds\/funds\/[0-9a-f-]{36}$/));
     });
-    expect(within(dialog).queryByRole("link")).toBeNull();
+    expect(within(dialog).getAllByRole("link")).toHaveLength(names.length);
   });
 
   it("shows each fund's share of the portfolio as the server's own text with a percent sign, one per fund, in the sent order", () => {

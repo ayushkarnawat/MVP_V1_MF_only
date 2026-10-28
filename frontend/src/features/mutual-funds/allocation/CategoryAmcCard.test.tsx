@@ -1,10 +1,11 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as fx from "../fixtures";
 import * as fb from "../fixtures/mfB";
 import { expectInteractivity, failedLoad, loaded, loadingLoad } from "../testing";
 import type { AnalyticsAllocationSummary, HoldingRow, Load } from "../types";
 import { CategoryAmcCard } from "./CategoryAmcCard";
+import { renderInShell as render } from "@/shell/testing";
 
 const scrollIntoView = vi.fn();
 beforeEach(() => {
@@ -172,5 +173,24 @@ describe("interactivity", () => {
     const { container } = mount();
     fireEvent.click(legend().getByRole("button", { name: /Flexi Cap Fund/ }));
     expectInteractivity(container, 10);
+  });
+});
+
+describe("the contributing funds open their fund page (IF-E)", () => {
+  it("links a fund of an AMC in the drill panel", () => {
+    mount();
+    fireEvent.click(screen.getByRole("tab", { name: "By AMC" }));
+    fireEvent.click(legend("AMC breakdown").getByRole("button", { name: /HDFC Mutual Fund/ }));
+    expect(within(screen.getByTestId("drill-fund-S-HDFC")).getByRole("link", { name: "HDFC Mid-Cap Opportunities Fund" })).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-HDFC");
+    expect(screen.getByTestId("drill-fund-S-HDFC")).toHaveTextContent("₹13,10,000 · 100.0%");
+  });
+  it("links the funds of a category too, and keeps every legend row a button without a link inside", () => {
+    mount();
+    fireEvent.click(legend().getByRole("button", { name: /Flexi Cap Fund/ }));
+    const panel = screen.getByTestId("drill-panel");
+    const links = within(panel).getAllByRole("link");
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) expect(link.getAttribute("href")).toMatch(/^\/portfolio\/mutual-funds\/funds\/S-[A-Z]+$/);
+    expect(document.querySelectorAll("button a")).toHaveLength(0);
   });
 });

@@ -326,3 +326,28 @@ describe("Portfolio History block", () => {
     expect(await screen.findByTestId("point-2026-10-31")).toBeInTheDocument();
   });
 });
+
+describe("Performance: fund names in the tables open the fund page (IF-E)", () => {
+  it("links the funds of the XIRR-at-a-glance table, and the funds left out stay out", async () => {
+    mount();
+    await ready();
+    expect(within(screen.getByTestId("fxirr-S-KOTAK")).getByRole("link", { name: "Kotak Multi Cap Fund" })).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-KOTAK");
+    expect(within(screen.getByTestId("fxirr-S-JM")).getByRole("link")).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-JM");
+    expect(within(screen.getByTestId("fxirr-S-HDFC")).getByRole("link")).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-HDFC");
+    expect(screen.queryByTestId("fxirr-S-NONE")).not.toBeInTheDocument();
+  });
+  it("links the funds in the month detail table", async () => {
+    mount();
+    await ready();
+    fireEvent.click(screen.getByTestId("point-2026-08-31"));
+    fireEvent.click(screen.getByRole("button", { name: "See details" }));
+    const dialog = await screen.findByRole("dialog", { name: "August 2026" });
+    expect(within(within(dialog).getByTestId("month-row-S-KOTAK:m1")).getByRole("link", { name: "Kotak Multi Cap Fund" })).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-KOTAK");
+    expect(within(within(dialog).getByTestId("month-row-S-HDFC:m3")).getByRole("link")).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-HDFC");
+  });
+  it("keeps the fund-by-fund benchmark rows as buttons without links inside them", async () => {
+    mount();
+    await ready();
+    expect(document.querySelectorAll("button a, [role=button] a")).toHaveLength(0);
+  });
+});

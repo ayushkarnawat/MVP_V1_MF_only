@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as fb from "../fixtures/mfB";
 import { expectInteractivity } from "../testing";
 import type { FundManagerAllocationSummary } from "../types";
 import { FundManagerCard } from "./FundManagerCard";
+import { renderInShell as render } from "@/shell/testing";
 
 const scrollIntoView = vi.fn();
 beforeEach(() => {
@@ -144,5 +145,26 @@ describe("interactivity", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Donut" }));
     fireEvent.click(within(screen.getByRole("list", { name: "Fund manager breakdown" })).getByRole("button", { name: /Harsha/ }));
     expectInteractivity(container, 8);
+  });
+});
+
+describe("the managed funds open their fund page (IF-E)", () => {
+  it("links the funds listed under an opened manager in the table", () => {
+    mount();
+    fireEvent.click(within(screen.getByTestId(`manager-row-${KOTAK}`)).getByRole("button", { name: "Harsha Upadhyaya" }));
+    const row = screen.getByTestId(`manager-fund-${KOTAK}-S-KOTAK`);
+    expect(within(row).getByRole("link", { name: "Kotak Multi Cap Fund" })).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-KOTAK");
+    expect(row).toHaveTextContent("Kotak Multi Cap Fund₹15,40,000 · XIRR 14.2%");
+  });
+  it("links the funds in the donut's drill panel", () => {
+    mount();
+    fireEvent.click(screen.getByRole("radio", { name: "Donut" }));
+    fireEvent.click(screen.getByTestId(`slice-${KOTAK}`));
+    const panel = screen.getByRole("region", { name: "Harsha Upadhyaya — funds managed detail" });
+    expect(within(panel).getByRole("link", { name: "Kotak Multi Cap Fund" })).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-KOTAK");
+  });
+  it("keeps the manager rows as buttons without a link inside", () => {
+    mount();
+    expect(document.querySelectorAll("button a")).toHaveLength(0);
   });
 });

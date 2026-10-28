@@ -23,7 +23,7 @@ describe("Mutual Funds front-end guards", () => {
     const names = FILES.map(name).sort();
     for (const expected of [
       "api.ts", "mfCopy.ts", "data/analyticsStore.ts", "data/useMfDashboard.ts", "frame/MutualFundsFrame.tsx", "frame/ComingSoonPages.tsx",
-      "common/SectionCard.tsx", "common/charts.tsx", "overview/SummaryStrip.tsx", "overview/SipTimeline.tsx", "overview/HoldingsTable.tsx",
+      "common/SectionCard.tsx", "common/charts.tsx", "common/FundLink.tsx", "overview/SummaryStrip.tsx", "overview/SipTimeline.tsx", "overview/HoldingsTable.tsx",
       "overview/OverviewCards.tsx", "overview/OverviewPage.tsx", "overview/legacyLogic.ts", "overview/CoverageGapGate.tsx", "performance/PerformancePage.tsx",
       "performance/benchmarkLogic.ts", "performance/BenchmarkBlock.tsx",
       "allocation/allocationLogic.ts", "allocation/DrillPanel.tsx", "allocation/AssetClassCard.tsx", "allocation/MarketCapCard.tsx",
@@ -36,7 +36,7 @@ describe("Mutual Funds front-end guards", () => {
       "other/otherLogic.ts", "other/TerLadder.tsx", "other/ValuationSpectrum.tsx", "other/CostValuationGroup.tsx", "other/ScorerGroup.tsx",
       "other/CategoryRankingGroup.tsx", "other/FundRankingGroup.tsx", "other/OtherAnalyticsPage.tsx",
     ]) expect(names).toContain(expected);
-    expect(names).toHaveLength(53);
+    expect(names).toHaveLength(54);
   });
 
   it("never turns a money or percentage string into a float, comments included", () => {

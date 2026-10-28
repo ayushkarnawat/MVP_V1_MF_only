@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { fixture } from "../fixtures";
 import { formatSignedRupees } from "../homeFormat";
 import type { MoversResponse } from "../types";
 import { Movers, type MoversProps } from "./Movers";
+import { renderInShell as render } from "@/shell/testing";
 
 const sector = () => fixture<MoversResponse>("movers_sector");
 const byFund = () => fixture<MoversResponse>("movers_fund");
@@ -14,7 +15,7 @@ function props(overrides: Partial<MoversProps> = {}): MoversProps {
 
 describe("Movers: closing the inline popup", () => {
   it("returns focus to the row that opened it, for Escape and for the close button", () => {
-    render(<Movers {...props()} />);
+    render(<Movers {...props({ view: "sector", data: sector() })} />);
     const row = screen.getAllByRole("button").find(el => el.getAttribute("data-testid")?.startsWith("mover-") && !el.getAttribute("data-testid")?.startsWith("mover-tile"))!;
     fireEvent.click(row);
     const dialog = screen.getByRole("dialog");
@@ -25,6 +26,23 @@ describe("Movers: closing the inline popup", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(row).toHaveFocus();
+  });
+});
+
+describe("Movers: closing the popup of a fund row that holds a link", () => {
+  it("returns focus to the row's own open button, for Escape and for the close button", () => {
+    render(<Movers {...props()} />);
+    const rowElement = screen.getAllByTestId(/^mover-(?!bar|tile)/)[0];
+    expect(rowElement).not.toHaveAttribute("role");
+    const opener = within(rowElement).getByRole("button");
+    fireEvent.click(opener);
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(opener).toHaveFocus();
+    fireEvent.click(opener);
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(opener).toHaveFocus();
   });
 });
 

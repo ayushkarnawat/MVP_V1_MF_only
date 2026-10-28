@@ -392,3 +392,43 @@ describe("OverviewPage, the legacy parts wired back in (MF-D1)", () => {
     expectInteractivity(container, 15);
   });
 });
+
+describe("Holdings rows and the Fund Details popup open the fund page (IF-E)", () => {
+  it("keeps the table free of links: a row and its name still open the popup (register C159)", async () => {
+    mount();
+    await page();
+    for (const row of screen.getAllByTestId(/^row-/)) expect(within(row).queryByRole("link")).toBeNull();
+    fireEvent.click(within(screen.getByTestId("row-S-KOTAK:m1")).getByRole("button", { name: "Kotak Multi Cap Fund" }));
+    expect(screen.getByRole("dialog")).toHaveTextContent("Fund Details");
+    expect(screen.getByTestId("loc")).toHaveTextContent(/^\/portfolio\/mutual-funds$/);
+  });
+  it("adds an Open fund page link to the popup, and following it goes to that fund's page", async () => {
+    mount();
+    await page();
+    fireEvent.click(within(screen.getByTestId("row-S-KOTAK:m1")).getByRole("button", { name: "Kotak Multi Cap Fund" }));
+    const link = within(screen.getByRole("dialog")).getByRole("link", { name: "Open fund page" });
+    expect(link).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-KOTAK");
+    fireEvent.click(link);
+    expect(screen.getByTestId("loc")).toHaveTextContent(/^\/portfolio\/mutual-funds\/funds\/S-KOTAK$/);
+  });
+  it("points the link at the fund of the row that was opened, and at nothing else", async () => {
+    mount();
+    await page();
+    const second = fx.holdings()[1];
+    fireEvent.click(within(screen.getByTestId(`row-${second.scheme_id}:${second.household_member_id}`)).getByRole("button", { name: second.scheme_name }));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent(second.scheme_name);
+    expect(within(dialog).getAllByRole("link")).toHaveLength(1);
+    expect(within(dialog).getByRole("link", { name: "Open fund page" })).toHaveAttribute("href", `/portfolio/mutual-funds/funds/${encodeURIComponent(second.scheme_id)}`);
+  });
+  it("has a keyboard-reachable link, and the popup still closes", async () => {
+    mount();
+    await page();
+    fireEvent.click(within(screen.getByTestId("row-S-KOTAK:m1")).getByRole("button", { name: "Kotak Multi Cap Fund" }));
+    const link = within(screen.getByRole("dialog")).getByRole("link", { name: "Open fund page" });
+    link.focus();
+    expect(link).toHaveFocus();
+    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
