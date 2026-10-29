@@ -38,7 +38,27 @@ What stays the same: both containers keep running; the worker keeps its limits (
 
 **Caution.** `/opt/unifolio` (the main clone, `ls-staging`) still has the old compose file with a worker `build:` until it gets this change. Backend and worker deploys run only from the redesign worktree (handoff rule), and `docker compose up` from the main clone before it is updated would try to rebuild the worker. Do not run it.
 
+### 3a. The main clone and the old worker build (READ BEFORE ANY `ls-staging` DEPLOY)
+
+Until `/opt/unifolio` (the main clone, branch `feat/leapswitch-staging`, serves `ls-staging`) contains this change, its `docker-compose.yml` still gives the worker its own `build:`. Running `docker compose up -d --build`, or `deploy.sh` from that old checkout, would rebuild a separate ~2 GB worker image: the exact disk problem again, and a worker built from the old compose file.
+
+Rules until the main clone has this branch:
+1. Backend and worker deploys run only from `/opt/unifolio-redesign` (existing handoff rule).
+2. Do not run `docker compose up` or `deploy.sh` from `/opt/unifolio`.
+3. When the redesign is merged into `feat/leapswitch-staging` (section 6), that merge carries this compose change, so the main clone gets it. Before the FIRST deploy from the main clone after that merge, run `grep -n -A3 "worker:" deploy/leapswitch/docker-compose.yml` there and confirm it shows `image: leapswitch-backend:latest` and no `build:`.
+4. Never delete `/var/lib/unifolio-deploy/last-backend-commit`; if the main clone's `git cat-file` does not know the recorded commit it will rebuild (safe, but check disk first).
+
+### 3b. Do I need `--full` at all? (decide before typing it)
+
+`--full` is for a backend change only. Before choosing it, run in the clone you deploy from:
+`git diff --stat $(sudo cat /var/lib/unifolio-deploy/last-backend-commit) HEAD -- backend`
+- Empty output: front-end-only (or docs/deploy-script) change. Use the no-flag form. No `--full`.
+- Not empty: a backend change. Use `--full`; the script re-checks this itself and prints why it builds or skips.
+A changed `deploy/leapswitch/` script or compose file is not a backend change; the no-flag form plus `sudo docker compose up -d` applies it. Nothing needs to be deployed at all when only docs changed.
+
 ## 4. Safe cleanup on 29 Oct (reclaims about 4 GB, no resize)
+
+**Done by the owner on the VM, 29 Oct:** `docker rmi leapswitch-backend:pre-redesign` (untagged and deleted) and `docker builder prune -f` (4.05 GB reclaimed). `df -h /`: 29 GB, 20 GB used, **8.7 GB free (70% used)**, up from 3.5 GB. The state record was seeded with `1e1af905`. Still to do: remove the old `leapswitch-worker` tags after step 4 of section 3.
 
 Each step reversible except as noted; none touches the database volume `leapswitch_pgdata`.
 
