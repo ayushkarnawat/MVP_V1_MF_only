@@ -105,3 +105,12 @@ managers in our data has not been counted yet, and it decides how realistic a ma
 - Execution is the Claude (orchestrator) plus Codex (worker) method used for Sub-project 1, Sub-project 2 and the analytics fixes. Six Codex runs, sequential: Run 1 items 3, 13, 4, 6; Run 2 items 7, 8, 9; Run 3 items 11, 12 and the stopped-SIP fixes; Run 4 item 2; Run 5 item 1 backend; Run 6 item 1 frontend. Nothing is deployed between runs: staging happens once, as the last step, after all runs and the documentation update. About 17 to 19 working days. Detail and estimates are in the briefing's "Timeline and effort" section.
 - Recommendation: one implementation plan covering all in-scope items, organised by run (Sub-project 1 used one plan per attribute and Sub-project 2 two plans, so this is a choice, not a rule). Not written yet.
 - The stakeholder sketch image was removed from the briefing. Answered questions now show a bold ANSWERED badge and the chosen option.
+
+## Update 2026-10-30 (stakeholder changes and audits)
+
+- Item 5 reduced to a category tab on the Overlap page (drop-down: Large, Mid, Small, Flexi Cap); page look and bands 20/40 unchanged. No 35% highlight, equity filter or DIY picker. Joins Run 1 (shares the page with item 6).
+- Item 10 reduced: hide only "Fund Quality Scores" on Other Analytics, stop computing it, keep all code behind two switches. Trap found: the frontend store polls every 3 s while any name in `ANALYTICS_SECTION_NAMES` is missing, so the name list must switch with the calculation. Joins Run 2.
+- Item 9: renamed Category Average Comparison, rank removed, tables open. Item 8 (Rank/Total table) withdrawn (D33 to confirm). The user wrote "item 4 fund overlap"; it is item 5 here.
+- Audits A to D added (what "13th pct, Top 87%" means; effect of removing rank/score on backend and time; benchmark choice for item 11; contributing funds in the asset-class card). Read from code only; nothing run on real data.
+- Solved badges: D2, D5, D9, D11, D14, D15. New questions: D32 (score consumers), D33 (item 8 vs 9), D34 (benchmark mapping).
+- Nothing implemented; nothing pushed.

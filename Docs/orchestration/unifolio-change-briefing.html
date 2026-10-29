@@ -340,6 +340,15 @@ tr.stg td { background: var(--accent-soft); }
 
 .badge.chosen { background: var(--done); color: var(--surface); }
 .opt:has(.badge.chosen) { outline: 2px solid var(--done); }
+/* 30 Oct update: SOLVED badge and audit blocks */
+.dq.solved { border-left: 5px solid var(--done); }
+.dq-badge.sol { background: var(--accent); color: var(--surface); }
+.rb.sol { background: var(--accent); color: var(--surface); }
+.audit { gap: 14px; margin-bottom: 18px; }
+.audit-t { margin: 0; font-size: 1.15rem; text-wrap: balance; }
+.audit-lead { margin: 0; color: var(--muted); }
+.audit .block { min-width: 0; }
+.audit .block ol, .audit .block ul { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 6px; }
 </style>
 </head>
 <body>
@@ -429,6 +438,14 @@ tr.stg td { background: var(--accent-soft); }
     </div>
   </section>
 
+  <section class="sec" aria-labelledby="aud0">
+    <div class="sec-head">
+      <h2 id="aud0">Update 30 Oct: stakeholder changes, audits and explainers</h2>
+      <p>Five points came back from the stakeholders. Items 5 and 10 are no longer on hold in their reduced form. The audits below were done by reading the code; nothing was implemented or run against real data.</p>
+    </div>
+    <div id="audits"></div>
+  </section>
+
   <section class="sec" aria-labelledby="map0">
     <div class="sec-head">
       <h2 id="map0">Screen map: where every change goes in the new UI</h2>
@@ -467,7 +484,7 @@ tr.stg td { background: var(--accent-soft); }
       <p>How long the work should take, in the order we would release it.</p>
     </div>
     <div id="timeline" class="panel"></div>
-    <div class="sec-head"><h3>Breakdown by Claude and Codex runs</h3><p>Claude is the orchestrator and Codex the worker, as in Sub-project 1, Sub-project 2 and the analytics fixes. Items 5 and 10 are on hold and have no runs. Staging happens once, after every run and the documentation update.</p></div>
+    <div class="sec-head"><h3>Breakdown by Claude and Codex runs</h3><p>Claude is the orchestrator and Codex the worker, as in Sub-project 1, Sub-project 2 and the analytics fixes. Item 5 (category tab) joins Run 1, item 10 (hide Fund Quality Scores) joins Run 2, and item 8 is withdrawn. Staging happens once, after every run and the documentation update.</p></div>
     <div id="runs"></div>
   </section>
 
@@ -489,14 +506,14 @@ tr.stg td { background: var(--accent-soft); }
         <ul>
           <li>Item 12: make the switch state visible</li>
           <li>Item 6: remove Stock Concentration</li>
-          <li>Item 10: ON HOLD</li>
+          <li>Item 10: hide Fund Quality Scores only (30 Oct)</li>
           <li>Item 3: three-bucket market cap</li>
-          <li>Item 5A: ON HOLD</li>
+          <li>Item 5: category tab only (30 Oct)</li>
           <li>Items 7.4 and 7.5: P/E and P/B explainer and disclaimer</li>
         </ul></div>
       <div class="wave"><div class="wt">Wave 2 · Core analytics</div>
         <ul>
-          <li>Item 5C then 5B: ON HOLD</li>
+          <li>Item 5C then 5B: dropped (30 Oct)</li>
           <li>Items 13 and 7.3: asset allocation classes, fund-wise P/E and P/B</li>
           <li>Items 8 and 9: ranking and category comparison together</li>
           <li>Item 11: benchmark audit</li>
@@ -1100,6 +1117,293 @@ var ANSWERS = {
  "04": ["D7 answered: the amount is the rupee value behind the allocation percentage. The card shows manager name, AMC name, allocation percentage, and the amount of the portfolio allocated to that manager.","Open follow-up (not asked before): your answer does not say whether a co-managed fund's value is still shared equally between its managers (today's method) or goes in full to the main manager. Until told, we keep today's calculation."]
 };
 
+/* 30 Oct update: audits and explainers. Each audit: id, title, lead, blocks. Block kinds: ol, ul, p, table {head, rows}, after (green box with ul). */
+var AUDITS = [
+{ id:"aud-e", title:"What changed in this update (30 Oct)", lead:"Five points from your stakeholders. Nothing was built or changed in the product. Every point below was checked against the code on the redesign line (leapswitch-redesign, 23c26f77).",
+  blocks:[
+   { h:"A note on numbering", p:["You wrote \"item 4 fund overlap\". In this briefing, Fund Manager is item 4 and Equity Fund Overlap is item 5, so the overlap change is recorded under item 5. Your \"item 9\" text covers the ranking and category-comparison section, which this briefing split into item 8 (Performance Ranking) and item 9 (Category Average). It is recorded under item 9 and item 8 is withdrawn (see D33, please confirm)."] },
+   { h:"What we recorded", table:{ head:["Your point","Recorded as","What it means for the plan","Open question"], rows:[
+     ["Fund overlap: add a category tab only","Item 5, reduced","Everything on the Overlap page stays exactly as it looks. A new tab with a drop-down (Large, Mid, Small, Flexi Cap) shows the overlap of only the funds you hold in that category. No 35% highlight, no info button, no equity-only filter, no DIY picker. Moved into Run 1 because it shares the Overlap page with item 6.","D12 (print and mobile)"],
+     ["Remove only Fund Quality Scores from Other Analytics; hide it, stop computing it, easy to bring back","Item 10, reduced","Hide one section behind two switches (screen and calculation). Nothing deleted. Fund Ranking (Composite Ratings) stays. Found a trap: if the calculation stops but the screen's list of sections still names the score, the Mutual Funds pages would poll the server every 3 seconds forever. The two switches must move together.","D32 (what happens to Home, fund page and Insights)"],
+     ["Rename to Category Average Comparison, remove the rank and its calculation, show the 1Y/3Y/5Y table open, cleaner layout","Item 9, and item 8 withdrawn","Rename, drop the rank badge, bar, percentile text and \"rank x of y\", show every fund's table open, cleaner cards. The rank calculation is a tiny sort, so removing it saves almost no time; the helper stays because Fund Ranking uses it.","D33 (item 8 withdrawn)"],
+     ["Explain \"13th pct, Top 87%\"; explain the effect of removing scoring on backend and time","Audits A and B below","Written in simple steps with a worked example, and a table of what can and cannot be removed.","None"],
+     ["Audit the benchmark line (Nifty 50 Total Return) for a fund","Item 11, Audit C below","The benchmark is picked from the fund's category name, not from the fund's own declared benchmark. Large Cap funds get Nifty 50 (narrower than the top 100 companies that define Large Cap); Small Cap funds get the broad Nifty 500 even though a Nifty Smallcap 250 history is already in our data.","D34 (which benchmark mapping)"],
+     ["Check that the contributing funds in the asset-class card match what is inside the funds","Item 13, Audit D below","Yes by design: each fund's share comes from its own latest published portfolio rows. Seven situations that make the list differ from what you might expect are listed. Not yet run against real fund data (no database in this session).","None"]
+   ] } },
+   { h:"Questions that this update solved", p:["Six earlier questions now carry a green SOLVED badge in the decisions list: D2, D5, D9, D11, D14 and D15. Three new questions came out of the audits: D32, D33 and D34."] }
+  ] },
+
+{ id:"aud-a", title:"Audit A: what does \"13th pct · Top 87%\" mean?", lead:"\"pct\" is short for percentile. It is shown beside the rank badge on every fund in the old SEBI Category Ranking & Peer Comparison section. Source: category_ranking.py (_rank_and_percentile) and CategoryRankingGroup.tsx.",
+  blocks:[
+   { h:"How the number is made, step by step", ol:[
+     "Pick the peers: every fund in the same SEBI category and the same plan type (Direct with Direct, Regular with Regular) that has at least 3 years of NAV history. Example: Flexi Cap, Direct plan, 30 funds.",
+     "Give each fund one score: 40% of its yearly return over 3 years plus 60% of its yearly return over 5 years. A fund with only 3 years of history uses the 3-year return alone. This blended score is not shown anywhere else on the page.",
+     "Sort the 30 funds from best to worst. Rank 1 is best. Suppose your fund is rank 26 of 30.",
+     "Percentile = (funds - rank) / funds x 100 = (30 - 26) / 30 x 100 = 13.3, shown as 13. It is the share of the category that your fund beat.",
+     "So \"13th pct\" says: your fund beat about 13% of its category and about 87% did better.",
+     "\"Top 87%\" is simply 100 - 13. It means you are inside the top 87% of the list, which is the same as being near the bottom. It reads like praise but is a warning. The real signal is the colour: red below the 33rd percentile, amber from 33 to 65, green from 66 up."] },
+   { h:"Worked examples (30 funds in the category)", table:{ head:["Fund's rank","Percentile","Text shown","Colour"], rows:[
+     ["1 of 30","96.7","97th pct · Top 3%","Green"],
+     ["10 of 30","66.7","67th pct · Top 33%","Green"],
+     ["15 of 30","50.0","50th pct · Top 50%","Amber"],
+     ["26 of 30","13.3","13th pct · Top 87%","Red"],
+     ["30 of 30","0.0","0th pct · Top 100%","Red"]] } },
+   { h:"Small problems found while reading it (all disappear when the rank is removed)", ul:[
+     "The best fund can never reach the 100th percentile, because the formula counts the other funds only.",
+     "Two funds with the same blended score are ordered by list position, and the page does not say so.",
+     "The sentence under the old table says \"over 3Y\" but compares the blended 3Y/5Y score with the category average. The label and the number do not match.",
+     "The blended score cannot be seen or checked by a user, so the rank cannot be reproduced from what is on screen.",
+     "\"pct\" and \"Top x%\" are jargon for most users."] }
+  ] },
+
+{ id:"aud-b", title:"Audit B: removing the rank and the score. Effect on backend and computation time. Can we remove them?", lead:"Short answers: the rank can go with almost no change in time. The Fund Quality Score can stop being computed, but only if three other places and one list on the screen are handled in the same step. The per-section time of a recompute is not recorded today, so any saving below is an expectation, not a measurement.",
+  blocks:[
+   { h:"What each piece does and whether it can go", table:{ head:["Piece","What it does","Who else reads it","Can it go?","Time saved"], rows:[
+     ["Rank, percentile and category size on each fund (category_rank, percentile, category_size)","Sorts the category by the blended score and gives each held fund a position.","Only this section (new page, print view, mobile view, tests). Home reads only the 1-year return and 1-year category average from the same section, not the rank.","Yes. Stop showing them first; remove the three fields from the stored data in a second step after print and mobile stop reading them.","Almost none. It is a sort of at most about 1,150 numbers per held fund, done after the heavy part."],
+     ["The sort helper _rank_and_percentile","The code that does the sort.","Fund Ranking (Composite Ratings) imports it.","No. Keep it.","None"],
+     ["Blended 3Y/5Y return","The sort key for the rank.","The Scorer's category scoring reads it.","Keep while the Scorer code exists.","None"],
+     ["NAV lookups for every fund in the category, and the category averages","The expensive part: for each category it reads the NAV of every peer on four dates (1Y, 3Y, 5Y ago and today), after warming NAV history. Cached for 15 minutes and shared across the household scopes.","The table you want open needs exactly this. The Scorer and Fund Ranking reuse the same cache.","No. This is the feature.","None. Removing the rank does not shrink it."],
+     ["Fund Quality Scores (the stored section \"score\")","For each category, scores every peer on return, risk, consistency and cost, then writes score rows to the database.","Home \"Worth a look\", the Individual Fund score card, and the Insights engine.","Yes, to stop computing, if D32 is answered and the steps below are done together.","Real but not measured. It reuses the shared NAV downloads, so the saving is only its own extra work: risk series, consistency, cost context and database writes. Today only the total (6 min 25 s on staging) is known."],
+     ["Fund Ranking (Composite Ratings)","Five-factor rating shown as Fund Ranking.","Fund page peers.","Stays. You asked to remove only Fund Quality Scores.","None"]
+   ] } },
+   { h:"What happens in other places when the score stops being computed", ul:[
+     "<b>Mutual Funds pages would poll forever.</b> The screen's store asks the server every 3 seconds while any section in its list of 15 has not arrived. If the server stops writing \"score\" and the list still names it, every Mutual Funds page keeps asking. The list and the calculation must switch together.",
+     "<b>Home \"Worth a look\"</b> reads only fresh stored sections. With no score it builds the cards without a tier (it already handles a missing section). No error, but weaker wording on those cards.",
+     "<b>Individual Fund score card</b> reads the stored row and, when there is none, calculates the score live when the page opens. That works but the first open becomes slower because it loads a whole category's NAV history. Alternatively hide the card too (D32).",
+     "<b>Insights engine</b> calls the same function for its return-versus-category facts, so it also goes live or drops those lines.",
+     "<b>Old stored score rows</b> stay in the database. Whether the fund page would show a stale one is something to check in the build (Home does not, because it ignores rows older than the latest import)."] },
+   { h:"How to hide it so it is easy to bring back", after:[
+     "Backend: one setting (for example ANALYTICS_SCORE_ENABLED, default off) decides whether the score is in the list of sections each recompute builds. Turning it on makes the next recompute write the score again.",
+     "Frontend: one constant (for example SHOW_FUND_QUALITY_SCORES = false) decides whether the group is on the Other Analytics page, whether its data is requested, and whether \"score\" is in the list of section names the store waits for.",
+     "Nothing is deleted: ScorerGroup.tsx, its tests, the score code, the API route and the three database tables all stay.",
+     "Two tests: switches off (section absent, no endless polling, 14 sections per scope) and switches on (section back). The second one is what proves \"easy to unhide\".",
+     "Before anything is changed, add one log line with the time of each section in a recompute, measure a baseline, then measure again. That gives the real saving."] }
+  ] },
+
+{ id:"aud-c", title:"Audit C: the benchmark line \"Benchmark: Nifty 50 (Total Return), Fund XIRR +14.0%, Benchmark +10.0%\"", lead:"Where it appears: Mutual Funds > Performance > Fund vs benchmark, after you open a fund row (BenchmarkBlock.tsx). This audit is from reading the code and decisions. It does not use real fund numbers and does not check any fund house's own factsheet.",
+  blocks:[
+   { h:"What the three parts mean", ul:[
+     "<b>Fund XIRR +14.0%</b>: the yearly return on your actual money in that fund, using every purchase, withdrawal and today's value.",
+     "<b>Benchmark +10.0%</b>: the yearly return you would have got if each of those same purchases and withdrawals, on the same dates, had gone into the index instead. It is not the index's own return over a period; it uses your timing.",
+     "<b>Total Return</b>: the index version that counts dividends as reinvested, which is what a fund's NAV does. We decided this on 9 Oct. The label is fixed text, and it is true because the code reads only the Total Return history and does not fall back to the price index when it is missing (the number is then left blank)."] },
+   { h:"A small worked example", table:{ head:["Step","What happens","Numbers"], rows:[
+     ["1","You invest on a day when the Nifty 50 Total Return index stands at 20,000","Rs 1,00,000 buys 5 index units"],
+     ["2","Two years later the index stands at 24,200","5 units are worth Rs 1,21,000"],
+     ["3","Yearly return of that","(1.21)^(1/2) - 1 = 10.0% a year"],
+     ["4","Your fund meanwhile grew Rs 1,00,000 to Rs 1,30,000 over the same two years","14.0% a year, so the line reads +14.0% vs +10.0%"]] } },
+   { h:"How the benchmark is chosen today", ol:[
+     "The code reads the fund's SEBI category text, upper-cased. If it contains both \"LARGE\" and \"MID\" it uses Nifty LargeMidcap 250. If it contains \"LARGE\" only it uses Nifty 50. If it contains \"MID\" only it uses Nifty Midcap 150. Everything else uses Nifty 500.",
+     "It was written when only four indices were available (PRD-04 FR-9 gives Large Cap to Nifty 50, Mid Cap to Nifty Midcap 150 and Large and Mid Cap to Nifty LargeMidcap 250 as examples), with the rule never to leave a fund without a comparison. It is a judgment call recorded in the code, not a fund-by-fund decision.",
+     "Nothing stores the benchmark that each fund house names for the fund. The Individual Fund page uses the same function but shows no benchmark for debt and other non-equity funds; the stored comparison behind the Performance tab assigns Nifty 500 to them (whether the screen hides some was not checked)."] },
+   { h:"Is Nifty 50 right for a Large Cap fund? Category by category", table:{ head:["SEBI category","Benchmark used today","How good is it","Closer option"], rows:[
+     ["Large Cap","Nifty 50","Acceptable but narrow. SEBI defines Large Cap as the top 100 companies; Nifty 50 holds only 50 of them.","Nifty 100. It is already in our data (added in migration 0045) but not used for this."],
+     ["Large and Mid Cap","Nifty LargeMidcap 250","Good match.","None needed."],
+     ["Mid Cap","Nifty Midcap 150","Good match (companies ranked 101 to 250).","None needed."],
+     ["Small Cap","Nifty 500","Weak. A small-cap fund is compared with the whole market, so it can look good or bad mostly because of the size effect.","Nifty Smallcap 250, already in our data and not used."],
+     ["Flexi Cap, ELSS, Value, Contra, Focused","Nifty 500","Reasonable. Nifty 500 Total Return is a common choice for these.","Each fund house's own named index, if we stored it."],
+     ["Multi Cap","Nifty 500","Rough. These funds must hold fixed shares of large, mid and small caps; many fund houses use a mix-of-caps index that we do not have.","A multi-cap index would need new data."],
+     ["Sectoral and thematic","Nifty 500","Weak. A banking fund is compared with the whole market.","The matching sector index, which we do not have."],
+     ["Index funds and ETFs","Nifty 500","Wrong. An index fund should be compared with the index it tracks.","The tracked-index table planned in item 9 (migration 0049) can feed this too."],
+     ["Debt, liquid, gold, hybrid, international","Nifty 500 (in the stored comparison)","Not meaningful. The fund page already shows no benchmark for these.","Show no benchmark, as the fund page does."]
+   ] } },
+   { h:"Other things found", ul:[
+     "Purchases dated before the index history starts (about 10 years of history) are skipped without a message. The benchmark number then covers only part of the cash flows while the fund's XIRR covers all of them.",
+     "A switch-in is treated as a purchase and a switch-out as a withdrawal for the fund line, and switches are excluded from portfolio totals (item 12 asks to make this visible).",
+     "The windows (1Y, 3Y, 5Y) start at the last month end, while the fund-versus-category numbers use exact years back from today. A \"1Y\" label therefore means slightly different things on the same tab (D18).",
+     "There are two solvers for the yearly return (the older one and a faster one for windows). They agree to about 1e-8 for windows. The golden tests in Run 3 are there to prove this."] },
+   { h:"Answer to \"is this the correct benchmark for this fund?\"", p:["For a Large Cap fund, Nifty 50 Total Return is a fair rough comparison but not the closest one, and not necessarily the index in the fund's own factsheet. For small-cap, index, sectoral and non-equity funds the current choice is weak or wrong. To be sure for one named fund, compare with the \"Benchmark\" line in that fund's factsheet. Most fund houses name Nifty 100 TRI or a BSE 100 equivalent for Large Cap and Nifty Smallcap 250 TRI for Small Cap, but that is general market knowledge, not from our data, and should be confirmed on factsheets before any change."] },
+   { h:"Options (new question D34)", after:[
+     "A. Keep the mapping, but say on screen that the benchmark is a category-based proxy, not the fund's declared benchmark.",
+     "B. Fix the mapping in code: Large Cap to Nifty 100, Small Cap to Nifty Smallcap 250, index funds to their tracked index (from item 9), non-equity funds show none. No new data download is needed, but numbers users have seen will move and the window code must load the extra indices. Recommended.",
+     "C. Store each fund's own declared benchmark from factsheets. Most accurate, most work, and the factsheet gaps (Priority 1) make it incomplete for now."] }
+  ] },
+
+{ id:"aud-d", title:"Audit D: are the \"Contributing funds\" in the asset-class card really based on what the funds hold?", lead:"Where: Mutual Funds > Allocation > Asset class card; click a slice to see \"Contributing funds\". Source: asset_allocation_lookthrough.py and AssetClassCard.tsx. Result of reading the code: yes, by design. The list is built from each fund's own latest published portfolio, not from its name or category. It has not yet been compared with real fund data (no database in this session); a test for that is proposed.",
+  blocks:[
+   { h:"How a fund gets into a class, step by step", ol:[
+     "Take the fund's value in your portfolio today (units x latest NAV).",
+     "Take the fund's latest published portfolio that is dated on or before that NAV date.",
+     "For every row in that portfolio, work out rupees = fund value x the row's \"percent of net assets\" / 100.",
+     "File the row under a class by the row's own type: listed shares (domestic or international) and REIT/InvIT units go to Equity, bonds and similar to Debt, gold and silver to Gold, cash equivalents to Cash-like. Derivative and unknown rows are left out.",
+     "Add the rupees per class and per fund. A fund is listed under a class only if its rupees in that class are above zero.",
+     "The percentage beside a fund is its share of that class (for example 38.2% of Equity), not a share of the fund itself."] },
+   { h:"So what do you see?", ul:[
+     "A hybrid fund appears under Equity, Debt and Cash-like at once, each with its own rupees.",
+     "An index fund appears under Equity only (plus a sliver of Cash-like if its portfolio lists cash).",
+     "An arbitrage fund follows its own rows; in the arbitrage-as-cash view its whole value moves to Cash-like and its rows are skipped, consistently.",
+     "Direct and Regular plans of one fund are different schemes and are listed separately."] },
+   { h:"Seven situations where the list can differ from what you expect", ul:[
+     "A fund with no published portfolio is not listed anywhere. The coverage note names such funds, and all percentages are of covered value only.",
+     "Portfolio dates differ by fund (latest on or before the NAV date), so a list can mix a September portfolio with an older one. Age tags mark portfolios older than about 60 days.",
+     "Derivative and unknown rows are excluded, so a fund's classified rows may add up to less than 100%. The \"excluded share\" is shown.",
+     "A negative line is ignored in the list; shares are over the positive parts only, so they can differ slightly from a fund's own factsheet split.",
+     "REIT/InvIT units count as Equity today. Item 13 moves them to Real Estate, and cash into Debt. The lists follow the same mapping, so they will move automatically, but a test must prove it.",
+     "The screen shows the numbers it is sent and does not recalculate, so a wrong payload would be shown as is.",
+     "Asset type comes from how the portfolio file was parsed. A fund house that labels a row unusually (for example a REIT as \"equity\") is classified as parsed."] },
+   { h:"Check to run (test first, nothing built yet)", after:[
+     "Golden test with three synthetic funds (one hybrid, one index fund, one arbitrage fund): hand-compute each class total and each fund's share, then compare with the payload.",
+     "Real-data spot check on staging after the single release: pick three funds you know, open their latest portfolio, and compare the class rupees by hand.",
+     "After the Real Estate and Debt change: a test that a REIT row lands under Real Estate and cash rows add to Debt, with the lists following."] }
+  ] }
+];
+
+/* 30 Oct update: overrides applied after the earlier data files load. */
+(function () {
+  function dp(n) { return DEEP.filter(function (d) { return d.n === n; })[0]; }
+  var set = function (o, f) { Object.keys(f).forEach(function (k) { o[k] = f[k]; }); };
+
+  /* ---- Item 5: category tab only ---- */
+  set(dp("05"), {
+    t: "Equity Fund Overlap: category tab only", rating: "Easy to medium", er: null,
+    where: ["backend/app/services/analytics/overlap.py (compute_overlap: every held fund with a published portfolio, bands 20 and 40, matrix capped at the 12 largest funds)", "backend/app/services/analytics/scheme_universe.py (canonical_category folds spelling variants of a category name)", "frontend/src/features/mutual-funds/overlap/* (OverlapPage, Heatmap, TopPairs, ImpactDonut, CommonHoldings, StatStrip, PairDetail) and mutual-funds/types.ts (OverlapSummary)"],
+    before: ["The Overlap page compares every held fund that has a published portfolio, debt funds included, in one heatmap of the 12 largest funds by value.", "Overlap of two funds is the sum over shared stocks of the smaller weight (percent of net assets). Two bands colour the heatmap: above 20 and above 40.", "A top-pairs list, an impact donut, common holdings and a stat strip sit under the heatmap.", "There is no way to look at only one kind of fund, for example only your Large Cap funds."],
+    after: ["Nothing about today's look changes: same heatmap, same two bands (20 and 40), same lists. No simplifying, no 35% highlight, no info button, no equity-only filter, no DIY picker.", "A new tab, By category, opens a drop-down with Large Cap, Mid Cap, Small Cap and Flexi Cap. Picking one shows the same page content for only the funds you hold in that SEBI category.", "A category with fewer than two held funds shows a plain message (nothing to compare). Held funds without a published portfolio are named as not included."],
+    backend: ["Extend compute_overlap additively with a <code>by_category</code> map for the four categories. Each entry has the same shape as today's summary (matrix_funds, matrix, pairs_above_low, impact_pairs, matrix_truncated, total_fund_count). Every pair of held funds is already computed, so grouping the results costs almost nothing extra.", "Why the backend and not only a filter on the screen: today's matrix holds just the 12 largest funds overall, so a Mid Cap fund ranked 15th by value would be missing from the payload. The category matrices are built from all held funds.", "One constant lists the four categories. Stored names start with Equity Scheme - ; match through canonical_category. A test checks the constant against the category strings actually stored.", "Old stored rows have no by_category, so the tab must show a harmless updating state until the forced recompute."],
+    frontend: ["OverlapPage: a tab strip All funds | By category, with a drop-down on the second tab (menu button, arrow keys, Escape to close, current choice shown). The content below reuses Heatmap, TopPairs, ImpactDonut, CommonHoldings and StatStrip with the category's data.", "Remember the chosen category while the page is open; return to All funds when the scope changes.", "Print and mobile copies only if D12 says so."],
+    db: ["None."],
+    tests: ["Two Large Cap, one Mid Cap and one Debt fund held: the Large Cap tab shows one pair, the Mid Cap tab shows the only-one-fund message, and All funds equals today's output (golden compare).", "A Mid Cap fund ranked 15th by value still appears in its category matrix.", "A pair's overlap in a category tab equals the same pair's cell in the All funds matrix.", "A category spelled with an alias is grouped correctly; a fund with no category never appears in a tab.", "An old payload without by_category still renders All funds."],
+    risks: ["Item 6 (remove Stock Concentration) shares the page; build them in the same run.", "Fund houses whose portfolios we do not have (Priority 1 factsheet gaps) will be missing from category views too; the not-included note says so.", "The fund-page Overlap tab (PR #33) is untouched, so the two screens still agree."],
+    qs: "D12"
+  });
+
+  /* ---- Item 8: withdrawn ---- */
+  set(dp("08"), {
+    t: "Performance Ranking (WITHDRAWN 30 Oct)", rating: "Withdrawn",
+    after: ["Not built. The stakeholders asked to remove the rank and its calculation (30 Oct), so there is no Rank / Total table.", "What item 8 wanted to show per period (1Y, 3Y, 5Y) is shown by item 9 as fund return against category average, open by default.", "Index funds: nothing is ranked, so D5 no longer applies."],
+    backend: ["No per-period rank is added. See item 9 for how the old rank is removed."],
+    frontend: ["Nothing for this item."], db: ["None."],
+    tests: ["None for this item; see item 9."],
+    risks: ["Conflicts with the original request (item 8). Please confirm in D33."],
+    qs: "D33"
+  });
+
+  /* ---- Item 9: Category Average Comparison ---- */
+  set(dp("09"), {
+    t: "Category Average Comparison (rename, no rank, tables always open)", rating: "Easy to medium",
+    where: ["backend/app/services/analytics/category_ranking.py (compute_category_ranking, _rank_and_percentile, category_period_averages)", "frontend/src/features/mutual-funds/other/CategoryRankingGroup.tsx, otherLogic.ts (GROUP_TITLES, percentile helpers), OtherAnalyticsPage.tsx", "legacy views still live: features/analytics/CategoryRankingSection.tsx (print) and mobile/features/analytics (mobile)", "consumers of the same section: home/worth.py (reads only the 1-year return and 1-year category average)"],
+    before: ["The section is called SEBI Category Ranking & Peer Comparison.", "Each held fund is one row with a coloured rank badge (#13), a bar, the text 13th pct · Top 87%, and rank 13 of 25. A click opens the 1Y/3Y/5Y table (fund, category average, difference).", "The rank uses a blend of 40% of the 3-year and 60% of the 5-year return. A fund with less than 3 years of history shows Insufficient history and no table.", "The category average per period is weighted by fund size (D4 asks whether to change it).", "Index funds are compared with their whole category, not their index (D24)."],
+    after: ["Heading: Category Average Comparison.", "No rank badge, no percentile bar, no pct / Top x% text, no rank x of y, no click-to-open.", "Every fund shows its 1Y / 3Y / 5Y table in the open: Fund, Category average, Difference.", "Cleaner layout: one card per fund with name, category and plan type on top, a compact three-row table below, green or red difference, and one footnote for the peer counts. The introduction line about ranking and clicking is replaced by a one-line explanation that these are NAV returns against the average of the same category and plan type.", "The sentence Outperforming / Trailing its category average over 3Y goes (the Difference row says it, and the sentence compared a blended figure while saying 3Y).", "Funds with too little history keep their notice row. Today's 3-year floor stays, because relaxing it would change every category average."],
+    backend: ["The heading is a front-end text change; the stored section key stays category_ranking so Home and the stored rows keep working.", "Step 1: the screen stops reading category_rank, percentile and category_size. Step 2 (later): remove those three fields from the stored data, after print and mobile stop reading them. The helper _rank_and_percentile stays because Fund Ranking imports it.", "The blended 3Y/5Y return stays while the Scorer code exists (it reads it). Removing the rank does not reduce the NAV work, which the category averages still need (Audit B).", "Optional later: stop returning scheme_return, which only the rank and the removed sentence used."],
+    frontend: ["Rewrite CategoryRankingBody: remove the open/close state and chevron, always render PeriodTable inside the fund card, remove the badge, bar and percentile text. Change GROUP_TITLES in otherLogic.ts and the page tests that list titles.", "Keep ordinal and wholePercentile helpers (Fund Ranking uses them); delete the percentile tier styles only if nothing else uses them.", "Print and mobile heading and rank: per D12."],
+    db: ["None."],
+    tests: ["The page shows the heading Category Average Comparison and not the old one.", "A fund card shows its three-row table without any click, and no element carries the rank badge or pct text.", "Funds with no category or too little history keep their notice rows.", "Home Worth a look still receives the 1-year return and 1-year category average (stored fields unchanged).", "A payload that still carries the old rank fields renders without showing them."],
+    risks: ["Mobile and print still show the old title and rank unless D12 says to change them.", "Stripping the stored rank fields too early would break readers that were not updated.", "Funds younger than 3 years show no table today; showing them would change category averages (kept as is).", "Mixing this with D4 (weighted or simple average) would change figures users have already seen; that choice is still open."],
+    qs: "D4, D12, D24, D33"
+  });
+
+  /* ---- Item 10: hide Fund Quality Scores only ---- */
+  set(dp("10"), {
+    t: "Hide Fund Quality Scores (switch off, stop computing, easy to bring back)", rating: "Easy to medium",
+    where: ["frontend/src/features/mutual-funds/other/ScorerGroup.tsx (heading Fund Quality Scores) and otherLogic.ts (group list)", "backend/app/services/analytics/recompute.py (_SECTIONS, the score spec)", "frontend/src/features/mutual-funds/types.ts (ANALYTICS_SECTION_NAMES) and data/analyticsStore.ts (polls while any named section is missing)", "readers of the stored score: services/home/worth.py, services/fund_page/score.py and insights/engine.py, features/individual-fund/overview/ScoreCard.tsx"],
+    before: ["Other Analytics shows Fund Quality Scores (a 45/30/25 tier per fund) and Fund Ranking (composite ratings).", "The same stored score feeds Home Worth a look, the Individual Fund score card and fund Insights.", "The score is computed on every recompute for every scope."],
+    after: ["Other Analytics no longer shows Fund Quality Scores. Fund Ranking, Cost and Valuation and Category Average Comparison stay.", "Nothing is deleted: code, tests, the three tables and the API route stay. Two switches, both off: one for the screen and one for the calculation. Turning them on later brings the section back.", "The score is no longer computed on each recompute.", "The Composite Ratings half of the original item 10 is dropped (Fund Ranking stays)."],
+    backend: ["One setting (for example ANALYTICS_SCORE_ENABLED, default off) is read when recompute.py builds its list of sections. When off the score spec is left out. Turning it on makes the next recompute write the score again.", "The route GET /analytics/funds/{id}/score and compute_fund_score stay; the fund page falls back to them when no stored row exists.", "Old stored score rows stay in the database. Whether the fund page could show a stale one is to be checked in the build; Home ignores rows older than the latest import."],
+    frontend: ["One constant (for example SHOW_FUND_QUALITY_SCORES = false) decides whether the group is on the Other Analytics page, whether its data is requested, and whether score is in the list of section names the store waits for.", "That last part matters: the store polls every 3 seconds while any listed section has not arrived. If the server stops writing score and the list still names it, every Mutual Funds page would poll forever. The list and the calculation must switch together.", "Update the Other Analytics page test to the switched-off list and add one test with the switch on.", "Print and mobile copies: per D12."],
+    db: ["None."],
+    tests: ["Switches off: Other Analytics renders the other groups, the Fund Quality Scores heading is absent, and no request is made for the score section.", "Switches on: the heading and data are back (this proves it is easy to unhide).", "Recompute with the setting off writes 14 sections per scope and the store treats the scope as settled (no endless polling).", "Home builds Worth a look cards with no score row without error.", "Fund page score card and Insights with no stored score: hidden or computed live, whichever D32 says."],
+    risks: ["Endless polling if the section-name list is not switched together with the calculation.", "The fund page would compute the score live on each open when no stored row exists (slower first open) unless the card is hidden too.", "Insights uses the same function and would go live or drop its return-versus-category lines.", "Docs: PRD-04 and the decisions of 2026-08-13 and 2026-10-06 call the score a differentiator; they need a note that it is paused, not removed."],
+    qs: "D32, D12"
+  });
+
+  /* ---- Item 11: audit findings pointer ---- */
+  var d11 = dp("11");
+  d11.t = "Benchmark Comparison audit (findings in Audit C)";
+  d11.after = ["A written audit (Audit C in the 30 Oct section) is done from the code. No number changes until D34 is answered.", "Still to do in the build: a test that feeds known cash flows and compares with a hand-computed answer for portfolio and fund, for each window, and a short in-app method note."];
+  d11.before.push("Benchmark choice: the fund's category name decides the index (Large Cap gets Nifty 50, Large and Mid Cap gets LargeMidcap 250, Mid Cap gets Midcap 150, everything else gets Nifty 500). Nothing stores the benchmark a fund house names for the fund.");
+  d11.risks.push("The mapping is the weak point, not the cash-flow method (D34).");
+  d11.qs = "D18, D34";
+
+  /* ---- Item 13: contributing funds check ---- */
+  var d13 = dp("13");
+  d13.before.push("Contributing funds in a class are built from each fund's own latest published portfolio rows (rupees = fund value x percent of net assets), not from its category (Audit D).");
+  d13.tests.push("Golden test of the contributing-fund lists with three synthetic funds (hybrid, index, arbitrage), hand-computed.");
+  d13.risks.push("The contributing-fund lists have not yet been compared with real fund data; a spot check is planned on staging.");
+
+  /* ---- Ratings table, blast radius, plain text ---- */
+  RATINGS.forEach(function (r) {
+    if (r[0] === "05") { r[1] = "Equity overlap: category tab"; r[3] = "Easy to medium"; r[4] = "A by_category map in the overlap section plus a tab and drop-down. Everything else on the page stays."; }
+    if (r[0] === "08") { r[1] = "Performance ranking (withdrawn)"; r[3] = "Withdrawn"; r[4] = "The stakeholders removed the rank (30 Oct); item 9 carries the per-period table (D33)."; }
+    if (r[0] === "09") { r[3] = "Easy to medium"; r[4] = "Rename, remove rank from the screen, always-open tables. The index-fund mapping (D24) is the larger work if it is kept."; }
+    if (r[0] === "10") { r[1] = "Hide Fund Quality Scores"; r[3] = "Easy to medium"; r[4] = "Two switches. The trap is the section-name list that makes pages poll forever (Audit B)."; }
+    if (r[0] === "11") { r[4] = "Method is sound; the benchmark choice by category name is the weak point (Audit C, D34)."; }
+  });
+  var bl = function (n) { return BLAST.filter(function (b) { return b[0] === n; })[0]; };
+  set(bl("05"), { 1: "Equity overlap: category tab", 2: "Low", 3: "24 src, 25 tests", 4: "Overlap page only (the fund page Overlap tab is separate)", 5: "None", 6: "A category missing a fund whose portfolio we do not have" });
+  set(bl("08"), { 1: "Performance ranking (withdrawn)", 2: "None", 4: "Nothing is built", 6: "Item 9 now carries the per-period table" });
+  set(bl("09"), { 1: "Category average (rename, no rank)", 4: "Other Analytics, print, mobile; Home reads the same section (1-year fields)", 6: "Home and the Fund Ranking helper must keep working when the rank fields go" });
+  set(bl("10"), { 1: "Hide Fund Quality Scores", 2: "Medium", 4: "Other Analytics; Home Worth a look, fund page score card and Insights when the score stops being computed", 5: "None (two switches)", 6: "Pages polling forever if the section list is not switched together with the calculation" });
+
+  var pl = function (n, f) { set(PLAIN[n], f); };
+  pl("05", { plain: "The overlap page tells you how much of two funds' stock lists are the same. Stakeholders decided (30 Oct) to keep the page exactly as it is and only add a tab with a drop-down for Large Cap, Mid Cap, Small Cap and Flexi Cap. Picking one shows the overlap of the funds you hold in that category.",
+    steps: ["Write the category test: two Large Cap, one Mid Cap and one Debt fund; each tab shows the right pairs.", "Add by_category to the overlap section on the backend (all held funds, not only the 12 largest).", "Add the tab strip and the accessible drop-down on the Overlap page, reusing the existing cards.", "Show a plain message when a category has fewer than two held funds, and name funds without a published portfolio.", "Decide print and mobile with D12."] });
+  pl("08", { plain: "WITHDRAWN (30 Oct): the stakeholders asked to remove the rank and its calculation, so the Rank / Total table is not being built. The per-period comparison is delivered by item 9.", steps: ["Confirm D33.", "Nothing to build under this item."] });
+  pl("09", { plain: "The old section ranked each fund against its category. Now it becomes Category Average Comparison: no rank, no percentile, and for every fund the 1-year, 3-year and 5-year table is already open, with your fund against the category average and the difference.",
+    steps: ["Confirm D4, D12, D24 and D33.", "Write the page test: new heading, table visible without a click, no rank or pct text.", "Rewrite the section body and remove the open/close state.", "Change the heading and the page tests that list titles.", "Stop reading the rank fields; remove them from stored data in a later step.", "Match print and mobile if D12 says so."] });
+  pl("10", { plain: "Take Fund Quality Scores off the Other Analytics tab and stop calculating it, but keep all the code so it can be switched back on. Fund Ranking stays. The score is also read by Home, the fund page and Insights, so what they do without it is a question (D32).",
+    steps: ["Answer D32.", "Add per-section timing to the recompute log and measure a baseline.", "Write the tests for switches off and switches on.", "Add the backend setting and the screen constant, and make the section-name list follow the same switch.", "Check Home, the fund page card and Insights with no stored score.", "Measure the recompute again and report the saving."] });
+  pl("11", { plain: "Check that the benchmark comparison is fair. Each rupee you invested or withdrew is compared with the index on the same day. The method is sound; the weak point is which index is used, because it is guessed from the fund's category name. The full audit is written in Audit C.",
+    steps: ["Answer D34.", "Write golden tests with known cash flows and a spreadsheet answer.", "Run them; list any difference before changing any number.", "Reconcile the two solvers and the window definition (D18).", "Add the short method note and show each window's start date."] });
+  pl("13", { plain: "Look-through allocation opens each fund and shows what it really holds. The contributing funds under each slice come from each fund's own published portfolio, not its category (Audit D). The request is four slices only (Equity, Gold, Debt, Real Estate) and no market cap rings.",
+    steps: ["Confirm D6.", "Write the golden test for the contributing-fund lists (hybrid, index, arbitrage).", "Write the mapping tests (REIT to real estate, cash to debt, totals 100).", "Change the class map; keep the old fields until the UI stops reading them.", "Rebuild the card with four slices and the note; remove the outer ring.", "Match print and mobile views."] });
+
+  /* ---- Answers (Decided boxes) ---- */
+  ANSWERS["05"] = ["Decided 30 Oct: item 5 is reduced to a category tab. The page keeps its current look and bands (20 and 40). A drop-down offers Large Cap, Mid Cap, Small Cap and Flexi Cap.", "Not doing: simplifying, the 35% highlight, the info button, the equity-only filter, the DIY picker. D9, D14 and D15 are therefore solved."];
+  ANSWERS["08"] = ["Withdrawn 30 Oct: the rank and its calculation are removed, so there is no Rank / Total table. Please confirm in D33."];
+  ANSWERS["09"] = ["Decided 30 Oct: the heading becomes Category Average Comparison. The rank and its calculation go. The 1Y / 3Y / 5Y table is shown open for every fund, in a cleaner layout.", "Explained (Audits A and B): what 13th pct · Top 87% means, and that removing the rank saves almost no computing time."];
+  ANSWERS["10"] = ["Decided 30 Oct: only Fund Quality Scores is hidden from Other Analytics and no longer computed, kept easy to bring back. D2 and D11 are solved. D32 asks what Home, the fund page and Insights do without a stored score."];
+  ANSWERS["11"] = ["Asked 30 Oct: audit only. Result in Audit C. D34 asks which benchmark mapping to use."];
+  ANSWERS["13"] = ["Asked 30 Oct: check only. Result in Audit D: the contributing funds are built from the funds' own published portfolios."];
+
+  /* ---- Decisions: solved badges and new questions ---- */
+  var tagFix = { d11: "D11 · Item 10 · SOLVED 30 Oct: only the Other Analytics section goes (D32 covers the rest)", d14: "D14 · Item 5C · SOLVED 30 Oct: no equity filter; four named categories", d15: "D15 · Item 5A · SOLVED 30 Oct: nothing is simplified; the page stays as it is" };
+  NEW_DECISIONS.forEach(function (d) { if (tagFix[d.id]) d.tag = tagFix[d.id]; });
+
+  NEW_DECISIONS3.push(
+    { id: "d32", tag: "D32 · Item 10", q: "When the Fund Quality Score stops being computed, what happens to Home, the fund page score card and Insights?",
+      ctx: "They read the same stored score. Home uses only fresh stored sections and would build its Worth a look cards without a tier. The fund page card calculates the score live when no stored row exists (a slower first open, because it loads a whole category's NAV history). Insights calls the same function.",
+      opts: [
+        { n: "Hide the score everywhere it shows; Insights drops its score lines", pro: ["One consistent story", "Cheapest recompute and no live calculation"], con: ["Touches Home, the fund page and Insights copy", "Larger than the request, which names only Other Analytics"] },
+        { n: "Stop computing; let the fund page card and Insights calculate live, as they already can", pro: ["Only the screen you named changes", "Easy to switch back"], con: ["First open of a fund page gets slower", "The score still shows on the fund page while hidden on Other Analytics"] },
+        { n: "Hide on Other Analytics only and keep computing", pro: ["Smallest and safest", "Nothing else changes"], con: ["The recompute is not shortened", "Does not match stop computing"] }],
+      rec: 1, why: "It follows your words (hide there, stop computing) without removing screens you did not name. We measure the fund page after the change; if the first open is too slow we fall back to hiding the card." },
+    { id: "d33", tag: "D33 · Items 8 and 9", q: "Item 8 asked for a Rank / Total table; item 9 now says remove the rank. Which one wins?",
+      ctx: "The original request had a table showing, for example, 2/25 for 1, 3 and 5 years. The 30 Oct update asks to remove the rank and its calculation from this section.",
+      opts: [
+        { n: "Rank is dropped everywhere; item 8 is withdrawn", pro: ["Matches your latest words", "Less to build and test"], con: ["No ranking is shown anywhere in the product's analytics except Fund Ranking"] },
+        { n: "Keep a Rank / Total view somewhere else (for example the fund page)", pro: ["Keeps the original idea"], con: ["Contradicts removing the rank", "More work"] },
+        { n: "Ask the stakeholders again", pro: ["Avoids a wrong guess"], con: ["Waits"] }],
+      rec: 0, why: "It is the reading of the newest instruction. This question exists so the older request is not dropped silently." },
+    { id: "d34", tag: "D34 · Item 11", q: "Which benchmark should each fund be compared with?",
+      ctx: "Today the fund's category name picks the index: Large Cap gets Nifty 50, Large and Mid Cap gets LargeMidcap 250, Mid Cap gets Midcap 150, everything else (small cap, sectoral, index funds, debt, hybrid) gets Nifty 500. Nifty 100 and Nifty Smallcap 250 history is already in our data but unused. See Audit C.",
+      opts: [
+        { n: "Keep the mapping and label it as a category-based proxy", pro: ["No numbers change"], con: ["Small-cap, index and non-equity funds keep a poor comparison"] },
+        { n: "Fix the mapping: Large Cap to Nifty 100, Small Cap to Nifty Smallcap 250, index funds to the index they track (item 9), non-equity funds show none", pro: ["Closer match for most funds", "No new data download", "Same as the fund page for non-equity"], con: ["Numbers users have seen will move", "The window code must load the extra indices"] },
+        { n: "Store each fund's own declared benchmark from factsheets", pro: ["Most accurate"], con: ["Most work", "Factsheet gaps (Priority 1) leave holes"] }],
+      rec: 1, why: "It fixes the clearly weak cases using data we already hold. Option C can follow once the factsheet gaps are closed." }
+  );
+
+  /* ---- Plan: runs, timeline, loading, timing note ---- */
+  RUNS.forEach(function (r) {
+    if (r[0] === "Run 1") { r[2] = "Items 3, 13, 4, 6 and 5 (category tab)"; r[3] = r[3] + " Overlap page: the By category tab with the Large, Mid, Small and Flexi Cap drop-down (by_category in the overlap section)."; r[4] = r[4] + ", overlap.py"; r[6] = "About 30 files"; r[7] = "2 days, plus 0.5 day manual: count managers, verify the first LinkedIn links"; }
+    if (r[0] === "Run 2") { r[2] = "Items 7, 9 and 10"; r[3] = "Valuation per fund with the info button and disclaimer; Category Average Comparison (new heading, rank removed from the screen, tables always open, cleaner cards; simple average per D4; index-fund mapping table, migration 0049, per D24); hide Fund Quality Scores behind two switches and stop computing it (D32), with per-section timing added first."; r[7] = "1.5 to 2 days, plus 0.5 day manual: hand check of the index mapping"; }
+    if (r[0] === "Run 3") { r[3] = r[3] + " The benchmark audit write-up is done; any mapping change waits for D34."; }
+  });
+  TIMELINE[0][2] = "Answer the open questions that block a run (D19, D22, D29, D32, D33, D34 and the D7 follow-up). Write the single implementation plan and one handoff document per run. Count distinct fund managers.";
+  TIMELINE[1][2] = "Run 1 Allocation cards, Fund Manager and the Overlap category tab; Run 2 Other Analytics; Run 3 Performance and stopped SIPs; Run 4 consolidated holdings; Run 5 Head of Family backend; Run 6 Head of Family frontend. Each run is checked locally (tests, synthetic CAS gate, Postgres functional tests) before the next starts. Nothing is deployed in between.";
+  TIMELINE[4][3] = "About 17 to 19 working days, or 3.5 to 4 calendar weeks including waiting for answers and QA. The 30 Oct update moves about half a day into Run 1 and half a day out of Run 2, so the total does not change.";
+  TIMING_NOTE = TIMING_NOTE.replace(/ Items 5 and 10 are on hold\..*$/, " After the 30 Oct update, item 5 (a category tab) joins Run 1 because it shares the Overlap page with item 6, item 10 (hide Fund Quality Scores) fits inside Run 2, and item 8 is withdrawn. The stopped-score switches need per-section timing in the recompute log before they are built, so the saving can be reported as a measured number.");
+  LOADING.forEach(function (l) {
+    if (l[0].indexOf("Item 10") === 0) { l[0] = "Item 10 (hide Fund Quality Scores)"; l[1] = "Stopping the score removes one section from every recompute. It shares the peer-fund NAV downloads with Category Average Comparison and Fund Ranking (cached 15 minutes), so the saving is real but smaller than a full section: only the risk series, consistency, cost context and database writes go. Not measured yet; per-section timing is added first. If the fund page then calculates the score live when opened, its first open gets slower (D32)."; }
+    if (l[0].indexOf("Item 5B") === 0) { l[0] = "Item 5 (category tab)"; l[1] = "The category matrices are built from pair results the overlap section already computes for every pair of held funds, so the recompute grows by a small grouping step. The stored overlap payload grows by up to four small matrices. The tab itself reads stored data and does not calculate on the page."; }
+    if (l[0] === "Items 3, 7, 8, 13, 4") { l[0] = "Items 3, 7, 13, 4"; }
+    if (l[0] === "Item 9") { l[1] = "Removing the rank saves almost nothing, because the category averages still need the NAV of every peer fund (Audit B). A simple average is a single pass over the category (cached). The index mapping is one small table read. Showing every table in the open adds no server work."; }
+  });
+})();
+(function () {
+  var add = { "Item 8": " Update 30 Oct: the rank is removed, so item 8 is withdrawn (D33).", "Item 9": " Update 30 Oct: the section is renamed Category Average Comparison, the rank goes, and the tables are always open.", "Item 10": " Update 30 Oct: only Fund Quality Scores is hidden and no longer computed; Fund Ranking stays (D32).", "Item 5C": " Update 30 Oct: no equity-only filter is being built; item 5 is now a category tab." };
+  CORRECTIONS.forEach(function (c) { if (add[c[0]]) c[1] += add[c[0]]; });
+})();
+
 window.SKETCH="";
 window.MOCKS={};
 window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec only (slide 17: allocation by AMC, Market Cap, Fund Manager, Category, Asset class). There is no visual mockup for the cards, so the current built cards are the reference.", "04": "Slide 17 of the design PDF lists Fund Manager as one of the five allocation views. There is no visual mockup in the PDF for the card, so the after-change mockup above is the first picture of it.", "07": "The design PDF has no mockup for Other Analytics (valuation, ranking). Slide 15 lists the menu: Overview, Performance, Allocation, Holdings, Transactions, Overlap, Other Analytics. The look has to come from the existing built cards and the UI kit.", "08": "No mockup in the design PDF for ranking. The fund page peers block (slide 24 area) shows category average lines for reference.", "09": "No mockup for the comparison table. The Individual Fund page (slide 24) shows the fund against Nifty 500 TRI and the Flexi Cap category average, the same pairing item 9 asks for.", "10": "No mockup shows the Scorer or Composite Ratings on Other Analytics. The Individual Fund mockup (slide 24) does show a Unifolio Fund Score card (82, Very Good), which is the same scorer (see D11).", "11": "Slide 16 (text spec): Performance page shows XIRR, Absolute return and a bar graph against a benchmark, with a drop-down to choose benchmark and time frame. No visual mockup.", "12": "No visual mockup. Slide 16 describes the Performance page contents; the switch control has no design yet (D19).", "13": "Slide 17 (text spec) lists Asset class as an allocation view. No visual mockup.", "01": "The design PDF's Profile page (slide 31) shows a Primary User badge and an Access Level column (Admin, Member). That is the screen the Head badge and the Change Head button go on. See the after-change mockups above.", "02": "The design PDF's Overview slide (slide 14) is the page this table lives on. A competitor-style Family Group table was also shown by the stakeholder; its findings are written up above.", "05": "The design PDF has Fund Overlap and pair comparison slides (20 to 23). They contain no Stock Concentration card and no DIY picker.", "06": "The design PDF's Fund Overlap slide (20) has no Stock Concentration card, which agrees with removing it.", "S": "The design PDF's Overview slide (14) has a Quick insights card saying 'You have 2 inactive SIPs', so the design expects inactive SIPs to be surfaced."};
@@ -1207,27 +1511,36 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
       ["Columns follow your answer on D7: manager name, AMC, allocation percentage, and the rupee amount behind that percentage.", "The LinkedIn icon shows only for managers whose profile we have verified by hand; there is no icon otherwise.", "Clicking the icon opens that manager's LinkedIn profile page in a new browser tab (it never opens a search page, and the page behind it stays open)."])
   ];
 
-  /* ---------- 05 Overlap ---------- */
-  function hm(v) { var c = v >= 35 ? "#fecaca" : "#f3f4f6"; return '<td class="c' + (v >= 35 ? " hot" : "") + '" style="background:' + c + '">' + v + "%</td>"; }
-  var heat = '<div class="mk-tw"><table class="mk-t mk-hm"><thead><tr><th></th><th>Kotak Multi</th><th>JM Flexi</th><th>Nippon Small</th><th>HDFC Flexi</th></tr></thead><tbody>' +
-    "<tr><th>Kotak Multi Cap</th><td class='c'>–</td>" + hm(64) + hm(18) + hm(27) + "</tr>" +
-    "<tr><th>JM Flexi Cap</th>" + hm(64) + "<td class='c'>–</td>" + hm(16) + hm(25) + "</tr>" +
-    "<tr><th>Nippon Small Cap</th>" + hm(18) + hm(16) + "<td class='c'>–</td>" + hm(12) + "</tr>" +
-    "<tr><th>HDFC Flexi Cap</th>" + hm(27) + hm(25) + hm(12) + "<td class='c'>–</td></tr></tbody></table></div>";
+  /* ---------- 05 Overlap: category tab only (30 Oct) ---------- */
+  function hm(v) { var bg = v > 40 ? "#fecaca" : v > 20 ? "#fde9c4" : "#f3f4f6"; return '<td class="c' + (v > 40 ? " hot" : "") + '" style="background:' + bg + '">' + v + "%</td>"; }
+  function heatTbl(names, grid) {
+    return '<div class="mk-tw"><table class="mk-t mk-hm"><thead><tr><th></th>' + names.map(function (n) { return "<th>" + n + "</th>"; }).join("") + "</tr></thead><tbody>" +
+      names.map(function (n, i) { return "<tr><th>" + n + "</th>" + grid[i].map(function (v) { return v === null ? "<td class='c'>–</td>" : hm(v); }).join("") + "</tr>"; }).join("") + "</tbody></table></div>";
+  }
+  var legend2 = '<div class="mk-leg2"><i style="background:#f3f4f6"></i> 20% or below &nbsp; <i style="background:#fde9c4"></i> above 20% &nbsp; <i style="background:#fecaca"></i> above 40% (same bands as today)</div>';
+  var allNames = ["HDFC Flexi", "Kotak Multi", "Nippon Small", "Mirae Large", "Axis Mid"];
+  var allGrid = [[null, 64, 18, 41, 22], [64, null, 16, 38, 19], [18, 16, null, 9, 21], [41, 38, 9, null, 12], [22, 19, 21, 12, null]];
   X["05"] = [
-    m("Fund Overlap: equity funds only, one highlight, info button", "Investments › Mutual Funds › Overlap (route /portfolio/mutual-funds/overlap), tab Fund Overlap.",
-      frame("Overlap", '<div class="mk-subtabs"><span class="on">Fund Overlap</span><span>DIY Compare</span></div>' + card("Overlap heatmap", heat + '<div class="mk-leg2"><i style="background:#fecaca"></i> above 35% overlap &nbsp; <i style="background:#f3f4f6"></i> 35% or below</div>' + note("Showing 4 equity funds. 3 funds are not shown: Liquid, Short Duration and Arbitrage funds are not equity funds."), { info: 1 }), {}),
-      ["Tap the (i) to read 'Overlap is the share of a fund's money that sits in stocks the other fund also holds.'", "Only cells above 35% are coloured. The separate list of pairs above 20% is gone.", "Clicking a cell opens the pair detail (common holdings) as today."]),
-    m("DIY Compare: pick 2 to 5 funds, even ones you do not own", "Same page, second tab (new).",
-      frame("Overlap", '<div class="mk-subtabs"><span>Fund Overlap</span><span class="on">DIY Compare</span></div>' + card("Compare funds", '<div class="mk-search">Search any equity fund…</div><div class="mk-chips"><span>Kotak Multi Cap ✕</span><span>Quant Small Cap ✕</span><span>Mirae Large Cap ✕</span></div><small class="mk-m">Pick 2 to 5 funds. You can add 2 more.</small>' +
-        '<div class="mk-tw"><table class="mk-t mk-hm"><thead><tr><th></th><th>Kotak Multi</th><th>Quant Small</th><th>Mirae Large</th></tr></thead><tbody><tr><th>Kotak Multi Cap</th><td class="c">–</td>' + hm(21) + hm(38) + '</tr><tr><th>Quant Small Cap</th>' + hm(21) + '<td class="c">–</td>' + hm(9) + '</tr><tr><th>Mirae Large Cap</th>' + hm(38) + hm(9) + '<td class="c">–</td></tr></tbody></table></div>' + note("Based on each fund's latest published portfolio (September 2026)."), {}), {}),
-      ["Search lists only funds whose portfolio we hold. A fund without a published portfolio says why instead of failing.", "Same colour rule as the main heatmap (above 35%)."])
+    m("Overlap page with the new By category tab (everything else unchanged)", "Investments › Mutual Funds › Overlap (route /portfolio/mutual-funds/overlap).",
+      frame("Overlap", '<div class="mk-subtabs"><span class="on">All funds</span><span>By category ▾</span></div>' + '<div class="mk-stats"><div><small>Funds analysed</small><b>5</b></div><div><small>Pairs above 20%</small><b>6</b></div></div>' +
+        card("Overlap heatmap", heatTbl(allNames, allGrid) + legend2, {}) + card("Top overlapping pairs", '<div class="mk-ph">top pairs, impact donut and common holdings, exactly as today</div>'), {}),
+      ["The All funds tab is the page as it is today. Nothing is simplified.", "The new second tab is a drop-down button; it does not change any existing card."]),
+    m("Drop-down open: choose a category", "Same page, By category tab, drop-down open.",
+      frame("Overlap", '<div class="mk-subtabs"><span>All funds</span><span class="on">By category ▾</span></div>' +
+        card("Choose a category", '<div class="mk-opt"><div><b>Large Cap Fund</b><br><small>3 funds you hold</small></div></div><div class="mk-opt"><div><b>Mid Cap Fund</b><br><small>1 fund you hold</small></div></div><div class="mk-opt"><div><b>Small Cap Fund</b><br><small>2 funds you hold</small></div></div><div class="mk-opt on"><div><b>Flexi Cap Fund</b><br><small>3 funds you hold</small></div></div>'), {}),
+      ["Only these four categories are offered. The count is the number of held funds with a published portfolio in that category.", "Keyboard: arrow keys move, Enter picks, Escape closes."]),
+    m("Result: overlap of the Flexi Cap funds only", "Same page after picking Flexi Cap Fund.",
+      frame("Overlap", '<div class="mk-subtabs"><span>All funds</span><span class="on">By category: Flexi Cap Fund ▾</span></div>' +
+        card("Overlap heatmap, Flexi Cap funds only", heatTbl(["HDFC Flexi", "Kotak Multi", "Parag Parikh Flexi"], [[null, 64, 29], [64, null, 33], [29, 33, null]]) + legend2) +
+        card("Top overlapping pairs", '<div class="mk-ph">same list, filtered to Flexi Cap pairs</div>') +
+        note("Two held Mid Cap and Small Cap funds are compared in their own tabs. A category with only one held fund shows: You hold only one Mid Cap fund, so there is nothing to compare."), {}),
+      ["Same look as the All funds tab, only the funds change.", "A fund whose portfolio we do not have yet is named under the heatmap as not included."])
   ];
 
   /* ---------- 06 Stock concentration removed ---------- */
   X["06"] = [
     m("Overlap page layout after removing Stock Concentration", "Investments › Mutual Funds › Overlap, bottom of the page.",
-      frame("Overlap", '<div class="mk-stats"><div><small>Equity funds analysed</small><b>4 of 7</b></div><div><small>Pairs above 35%</small><b>1</b></div></div>' + card("Overlap heatmap", '<div class="mk-ph">heatmap</div>') + card("Common holdings", '<div class="mk-ph">top common stocks</div>') +
+      frame("Overlap", '<div class="mk-subtabs"><span class="on">All funds</span><span>By category ▾</span></div><div class="mk-stats"><div><small>Funds analysed</small><b>5</b></div><div><small>Pairs above 20%</small><b>6</b></div></div>' + card("Overlap heatmap", '<div class="mk-ph">heatmap</div>') + card("Common holdings", '<div class="mk-ph">top common stocks</div>') +
         '<div class="mk-removed">Stock Concentration (top 5 / 10 / 20 / 50 stocks) — removed</div>', {}),
       ["The full ranked stock list stays on Investments › Mutual Funds › Holdings (All Stocks table)."])
   ];
@@ -1246,37 +1559,33 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
       ["The pop-up shows when you tap the (i).", "A fund with less than 70% of its equity covered shows 'Not enough data' instead of a number."])
   ];
 
-  /* ---------- 08 Performance ranking ---------- */
+  /* ---------- 08 Performance ranking: withdrawn (30 Oct) ---------- */
   X["08"] = [
-    m("Performance Ranking: Rank / Total for 1, 3 and 5 years", "Investments › Mutual Funds › Other Analytics, Category Ranking group.",
-      frame("Other Analytics", card("Performance Ranking", tbl(["Fund", "SEBI category", "1 year", "3 years", "5 years"], [
-        ["<b>HDFC Flexi Cap</b>", "Flexi Cap", "<b>4</b>/38", "<b>6</b>/34", "<b>5</b>/29"],
-        ["<b>Nippon India Small Cap</b>", "Small Cap", "<b>2</b>/31", "<b>3</b>/28", "<b>2</b>/22"],
-        ["<b>Mirae Asset ELSS</b>", "ELSS", "<b>9</b>/40", "<b>12</b>/37", "<span class='mk-m'>Not enough history</span>"],
-        ["<b>UTI Nifty 50 Index</b>", "Index fund", "<span class='mk-m'>Not ranked. Compared with its index below.</span>", "", ""]
-      ], { right: [2, 3, 4] }) + note("Rank among funds in the same SEBI category and plan type (Direct with Direct). 1 is best."), { info: 1 }), {}),
-      ["No blended score is shown any more.", "Each period has its own total because newer funds have no 5 year record."])
+    m("Item 8 withdrawn: what the old rank looked like and what happens to it", "Investments › Mutual Funds › Other Analytics, Category Average Comparison group.",
+      frame("Other Analytics", card("What leaves each fund row", '<div class="mk-removed">#13 badge · bar · 13th pct · Top 87% · rank 13 of 25</div>' + note("The row keeps only the fund name, its category and plan type, and the three-period table (see item 9).")), {}),
+      ["No Rank / Total table is built. Please confirm in D33."])
   ];
 
-  /* ---------- 09 Category average ---------- */
+  /* ---------- 09 Category Average Comparison (30 Oct) ---------- */
+  function cmpCard(name, cat, plan, rows, foot) {
+    return '<div class="mk-card"><div class="mk-ch"><b>' + name + '</b><span class="mk-r">' + badge(cat) + " " + badge(plan) + "</span></div>" +
+      tbl(["", "1 year", "3 years", "5 years"], rows, { right: [1, 2, 3] }) + note(foot) + "</div>";
+  }
+  var pos = function (t) { return "<span class='mk-pos'>" + t + "</span>"; }, neg = function (t) { return "<span class='mk-neg'>" + t + "</span>"; };
   X["09"] = [
-    m("Category Average Comparison", "Same group, second card (route /portfolio/mutual-funds/analytics).",
-      frame("Other Analytics", card("Your fund vs its category", tbl(["Fund", "Period", "Fund", "Compared with", "Difference"], [
-        ["<b>HDFC Flexi Cap</b>", "1 year", "28.4%", "Category average 19.8%", "<span class='mk-pos'>+8.6 pts</span>"],
-        ["", "3 years", "16.3%", "Category average 12.7%", "<span class='mk-pos'>+3.6 pts</span>"],
-        ["", "5 years", "18.7%", "Category average 14.9%", "<span class='mk-pos'>+3.8 pts</span>"],
-        ["<b>UTI Nifty 50 Index</b>", "1 year", "12.9%", "Nifty 50 TRI 13.1%", "<span class='mk-neg'>−0.2 pts</span>"],
-        ["", "3 years", "14.2%", "Nifty 50 TRI 14.4%", "<span class='mk-neg'>−0.2 pts</span>"]
-      ], { right: [2, 4] }) + note("Category average is the simple average of all funds in the category. Index funds are compared with the index they track."), {}), {}),
-      ["The 'Compared with' text always says which comparator was used.", "These are fund returns on NAV over the period. Your own XIRR is on the Performance tab."])
+    m("Category Average Comparison: every table open, no rank", "Investments › Mutual Funds › Other Analytics (route /portfolio/mutual-funds/analytics), second group.",
+      frame("Other Analytics", card("Category Average Comparison", note("Fund returns are NAV returns over each period, compared with the average of all funds in the same category and plan type.") +
+        cmpCard("HDFC Flexi Cap Fund", "Flexi Cap", "Direct", [["Fund", "28.4%", "16.3%", "18.7%"], ["Category average", "19.8%", "12.7%", "14.9%"], ["<b>Difference</b>", pos("+8.6 pts"), pos("+3.6 pts"), pos("+3.8 pts")]], "Category average covers 38 funds (1Y), 34 (3Y), 29 (5Y).") +
+        cmpCard("Nippon India Small Cap Fund", "Small Cap", "Direct", [["Fund", "21.0%", "24.2%", "29.5%"], ["Category average", "23.1%", "22.6%", "27.2%"], ["<b>Difference</b>", neg("−2.1 pts"), pos("+1.6 pts"), pos("+2.3 pts")]], "Category average covers 31 funds (1Y), 28 (3Y), 22 (5Y).") +
+        cmpCard("Mirae Asset ELSS Tax Saver", "ELSS", "Regular", [["Fund", "17.9%", "15.1%", "<span class='mk-m'>Not enough history</span>"], ["Category average", "16.2%", "14.8%", "<span class='mk-m'>—</span>"], ["<b>Difference</b>", pos("+1.7 pts"), pos("+0.3 pts"), "<span class='mk-m'>—</span>"]], "Category average covers 40 funds (1Y), 37 (3Y)."), { info: 1 }), {}),
+      ["No rank badge, no bar, no pct text and nothing to click: every table is open.", "Green means the fund is ahead of the category average, red means behind.", "The heading and cleaner cards are the whole visual change; the numbers are the ones the old section already had.", "Index funds keep today's behaviour until D4 and D24 are answered."])
   ];
 
-  /* ---------- 10 Scorer + composite removed ---------- */
+  /* ---------- 10 Fund Quality Scores hidden (30 Oct) ---------- */
   X["10"] = [
-    m("Other Analytics page after removing the two scoring groups", "Investments › Mutual Funds › Other Analytics.",
-      frame("Other Analytics", card("Cost and Valuation", '<div class="mk-ph">TER ladder · valuation by fund</div>') + card("Category ranking", '<div class="mk-ph">Performance Ranking · Category Average Comparison</div>') +
-        '<div class="mk-removed">Fund Quality Scorer — removed from this page</div><div class="mk-removed">Composite Ratings — removed from this page</div>', {}),
-      ["Home 'Worth a look' and the fund page score card are not touched until D11 is answered."])
+    m("Other Analytics after hiding Fund Quality Scores", "Investments › Mutual Funds › Other Analytics.",
+      frame("Other Analytics", card("Cost and Valuation", '<div class="mk-ph">TER ladder · valuation by fund</div>') + '<div class="mk-removed">Fund Quality Scores — hidden (one switch brings it back)</div>' + card("Category Average Comparison", '<div class="mk-ph">tables open for every fund</div>') + card("Fund Ranking", '<div class="mk-ph">composite ratings, unchanged</div>'), {}),
+      ["Only Fund Quality Scores goes. Fund Ranking stays.", "Home, the fund page score card and Insights are covered by D32."])
   ];
 
   /* ---------- 11 Benchmark ---------- */
@@ -1319,7 +1628,7 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
   window.MOCKUPS = X;
 
   /* ---------- Screen map ---------- */
-  var pins = { "Overview": "02 holdings · SIPs", "Performance": "11 benchmark · 12 switches", "Allocation": "03 market cap · 04 manager · 13 asset class", "Holdings": "(no change)", "Transactions": "(no change)", "Overlap": "05 overlap · DIY · 06 removal", "Other Analytics": "07 valuation · 08 ranking · 09 average · 10 removal" };
+  var pins = { "Overview": "02 holdings · SIPs", "Performance": "11 benchmark · 12 switches", "Allocation": "03 market cap · 04 manager · 13 asset class", "Holdings": "(no change)", "Transactions": "(no change)", "Overlap": "05 category tab · 06 removal", "Other Analytics": "07 valuation · 09 category average (no rank) · 10 Fund Quality Scores hidden" };
   window.SCREENMAP = '<div class="mk"><div class="mk-top"><span class="mk-brand">Unifolio</span><span class="mk-crumb">Investments › Mutual Funds</span><span class="mk-scope">Family Combined ▾</span></div><div class="mk-tabs">' +
     TABS.map(function (t) { return '<span class="on">' + t + "</span>"; }).join("") + '</div><div class="mk-body"><div class="mk-map">' +
     TABS.map(function (t) { return "<div><b>" + t + "</b><small>" + pins[t] + "</small></div>"; }).join("") + "</div>" +
@@ -1369,7 +1678,7 @@ var ITEMS = [
    impact:["New column needs a migration, and the monthly factsheet import must populate it.","Ten fund houses already need a hand import each month (Priority 1 item), so manager data is thin for them."],
    watch:["Linking to a wrong person's LinkedIn profile is a real trust risk. Curate and verify.","Equal split versus full value changes every displayed number."],
    decision:"Is the amount the full fund value? Where do LinkedIn links come from?" },
- { n:"05", t:"Equity Fund Overlapping (ON HOLD)", plain:"Simplify the overlap view, add a how-to hint, add a DIY picker for 2 to 5 funds, and limit overlap to equity funds.",
+ { n:"05", t:"Equity Fund Overlapping (REDUCED 30 Oct: category tab only)", plain:"Simplify the overlap view, add a how-to hint, add a DIY picker for 2 to 5 funds, and limit overlap to equity funds.",
    d:2, scope:"Medium", built:"partial",
    reqs:[["5A.1","Simplify the presentation","none","Today: a heatmap, a pairs list, and a stock concentration block."],
          ["5A.2","Add an info (i) button explaining how to read overlap","none",""],
@@ -1425,7 +1734,7 @@ var ITEMS = [
    impact:["Reuses the category peer code and the index history table.","Overlaps the redesign branch's peer and benchmark selection code."],
    watch:["The mapping is a data problem. A wrong mapping shows a wrong number with confidence.","Weighted versus simple average changes today's displayed values."],
    decision:"Simple average or fund-size weighted?" },
- { n:"10", t:"Remove Quality Scorer and Composite Ratings (ON HOLD)", plain:"Take out both scoring features completely for now.",
+ { n:"10", t:"Remove Quality Scorer and Composite Ratings (REDUCED 30 Oct: hide Fund Quality Scores only)", plain:"Take out both scoring features completely for now.",
    d:1, scope:"Medium", built:"none",
    reqs:[["10.1","Remove the Fund Quality Scorer and Composite Ratings","none","These are two features: the Scorer (45/30/25 weighting) and the 5-factor Composite Ranking."]],
    how:["Remove both sections from the analytics page, and from the print and mobile views.","Stop computing them in the daily recompute, and remove their API routes.","Either keep the score tables unused, or add a migration that drops them."],
@@ -1545,7 +1854,7 @@ var DECISIONS = [
     { n:"The redesign line", pro:["Reuses peer ranking, benchmark windows and fund-vs-fund overlap that already exist","One UI to maintain"], con:["About 250 commits we have not reviewed in this session","Only right if this is the line that ships"] },
     { n:"Merge the redesign into this branch first", pro:["Single base for everything"], con:["Big merge with conflicts, and work stops while it happens","Brings in unfinished redesign work"] }],
    rec:1, ans:1, why:"Items 8, 9 and 11 are partly built there, so building on this branch means doing them twice. This is only right if the redesign line is what goes to staging next. If you are not sure, ask the manager before we start, because it is the one choice that is expensive to reverse." },
- { id:"d2", tag:"D2 · Item 10 · ON HOLD: item 10 paused", q:"How do we remove the Quality Scorer and Composite Ratings?",
+ { id:"d2", tag:"D2 · Item 10 · SOLVED 30 Oct: hide Fund Quality Scores only, keep the code, stop computing", q:"How do we remove the Quality Scorer and Composite Ratings?",
    ctx:"The document says remove them 'for now'. That contradicts PRD-04 and the 2026-08-13 and 2026-10-06 decisions, where the score was called the product's differentiator. A paused Scorer V2 plan also exists.",
    opts:[
     { n:"Hide in the interface, stop computing, keep code and tables", pro:["Easy to bring back, which fits 'for now'","Removes the load from the daily recompute","No database migration"], con:["Dead code stays in the repo","Docs must be updated to say it is switched off"] },
@@ -1566,7 +1875,7 @@ var DECISIONS = [
     { n:"Keep the fund-size-weighted average", pro:["Already built and tested","Better reflects where investors' money is"], con:["Not what the document says","Harder to explain in one line"] },
     { n:"Show simple average, keep weighted in a tooltip", pro:["Satisfies the document and keeps the richer figure"], con:["Two numbers invite the confusion item 9 is trying to remove"] }],
    rec:0, why:"Item 9 asks for simple, with no extra formulas. A plain average is also the easiest to defend when a user checks it by hand. We can keep the weighted code in place without displaying it." },
- { id:"d5", tag:"D5 · Items 8 and 9", q:"How do we rank index funds in Performance Ranking?",
+ { id:"d5", tag:"D5 · Items 8 and 9 · SOLVED 30 Oct: no ranking, so no index-fund ranking (see D33)", q:"How do we rank index funds in Performance Ranking?",
    ctx:"Index funds sit in one AMFI category of about 1,150 funds. A rank such as 40/1150 means nothing. Item 9.4 already says index funds should compare against their underlying index, not a category.",
    opts:[
     { n:"Skip ranking for index funds, show the benchmark comparison", pro:["Consistent with item 9.4","No misleading ranks","Works without extra data"], con:["Index funds have no rank column value","Users may ask why"] },
@@ -1594,7 +1903,7 @@ var DECISIONS = [
     { n:"Normalise silently with no note", pro:["Cleanest look","Exactly what the document shows"], con:["Quietly changes the meaning of the percentages","Hard to explain if a user checks the numbers"] },
     { n:"Keep an 'Other' slice but mute it", pro:["Most accurate"], con:["Breaks 'only three categories' and 'no other details'"] }],
    rec:0, why:"The three buckets sum to 100% as required. A one-line note about the unclassified share keeps us truthful, and it can be a tooltip so the section stays clean." },
- { id:"d9", tag:"D9 · Item 5B · ON HOLD: item 5 paused", q:"Which funds can the DIY overlap picker use?",
+ { id:"d9", tag:"D9 · Item 5B · SOLVED 30 Oct: no DIY picker; a category tab only", q:"Which funds can the DIY overlap picker use?",
    ctx:"The overlap calculation today only runs on funds the household holds. Overlap needs published portfolio holdings, which exist only for the fund houses we have imported.",
    opts:[
     { n:"Only funds the household holds", pro:["Least work","No coverage surprises"], con:["Cannot test a fund before buying it","Barely different from the existing matrix"] },
@@ -1624,18 +1933,18 @@ function optHtml(o, isRec, i) {
     '<div class="pc"><div class="pro">' + ul(o.pro) + '</div><div class="con">' + ul(o.con) + "</div></div></div>";
 }
 function decHtml(d) {
-  var tp = d.tag.split(" \u00B7 "), st = tp.filter(function (p) { return /^(ANSWERED|ON HOLD)/.test(p); })[0] || "";
-  var base = tp.filter(function (p) { return !/^(ANSWERED|ON HOLD)/.test(p); }).join(" \u00B7 ");
-  var isAns = st.indexOf("ANSWERED") === 0, isHold = st.indexOf("ON HOLD") === 0;
-  var badge = st ? '<span class="dq-badge ' + (isAns ? "ans" : "hold") + '">' + (isAns ? "\u2713 ANSWERED" : "ON HOLD") + '</span><span class="dq-stext">' + st.replace(/^(ANSWERED|ON HOLD):? ?/, "") + "</span>" : "";
-  return '<article class="dq' + (isAns ? " answered" : isHold ? " onhold" : "") + '" id="' + d.id + '"><div class="dq-head"><span class="dq-tag">' + base + "</span>" + (badge ? "<div>" + badge + "</div>" : "") + '<h3 class="q">' + d.q + '</h3><p class="ctx">' + d.ctx + "</p></div>" +
+  var tp = d.tag.split(" \u00B7 "), st = tp.filter(function (p) { return /^(ANSWERED|ON HOLD|SOLVED)/.test(p); })[0] || "";
+  var base = tp.filter(function (p) { return !/^(ANSWERED|ON HOLD|SOLVED)/.test(p); }).join(" \u00B7 ");
+  var isAns = st.indexOf("ANSWERED") === 0, isHold = st.indexOf("ON HOLD") === 0, isSol = st.indexOf("SOLVED") === 0;
+  var badge = st ? '<span class="dq-badge ' + (isAns ? "ans" : isSol ? "sol" : "hold") + '">' + (isAns ? "\u2713 ANSWERED" : isSol ? "\u2713 SOLVED" : "ON HOLD") + '</span><span class="dq-stext">' + st.replace(/^(ANSWERED|ON HOLD|SOLVED):? ?/, "") + "</span>" : "";
+  return '<article class="dq' + (isAns ? " answered" : isSol ? " solved" : isHold ? " onhold" : "") + '" id="' + d.id + '"><div class="dq-head"><span class="dq-tag">' + base + "</span>" + (badge ? "<div>" + badge + "</div>" : "") + '<h3 class="q">' + d.q + '</h3><p class="ctx">' + d.ctx + "</p></div>" +
     '<div class="opts">' + d.opts.map(function (o, i) { o.chosen = (d.ans === i); return optHtml(o, i === d.rec, i); }).join("") + "</div>" +
     '<div class="why"><b>Why I recommend ' + String.fromCharCode(65 + d.rec) + '</b><span>' + d.why + "</span></div></article>";
 }
 DECISIONS = DECISIONS.concat(NEW_DECISIONS).concat(NEW_DECISIONS2).concat(NEW_DECISIONS3);
 document.getElementById("decisions").innerHTML = DECISIONS.map(decHtml).join("");
 document.getElementById("recap").innerHTML = DECISIONS.map(function (d) {
-  return '<a href="#' + d.id + '"><span class="rid">' + d.tag.split(" · ")[0] + '</span>' + (d.tag.indexOf("ANSWERED") >= 0 ? '<b class="rb ans">ANSWERED</b>' : d.tag.indexOf("ON HOLD") >= 0 ? '<b class="rb hold">ON HOLD</b>' : "") + '<span>' + d.q + ' <span class="rpick">' + (d.ans !== undefined ? "→ your answer " + String.fromCharCode(65 + d.ans) + ": " + d.opts[d.ans].n : "→ " + String.fromCharCode(65 + d.rec) + ": " + d.opts[d.rec].n) + "</span></span></a>";
+  return '<a href="#' + d.id + '"><span class="rid">' + d.tag.split(" · ")[0] + '</span>' + (d.tag.indexOf("ANSWERED") >= 0 ? '<b class="rb ans">ANSWERED</b>' : d.tag.indexOf("SOLVED") >= 0 ? '<b class="rb sol">SOLVED</b>' : d.tag.indexOf("ON HOLD") >= 0 ? '<b class="rb hold">ON HOLD</b>' : "") + '<span>' + d.q + ' <span class="rpick">' + (d.ans !== undefined ? "→ your answer " + String.fromCharCode(65 + d.ans) + ": " + d.opts[d.ans].n : "→ " + String.fromCharCode(65 + d.rec) + ": " + d.opts[d.rec].n) + "</span></span></a>";
 }).join("");
 (function () {
   var li = function (a) { return "<ul>" + a.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>"; };
@@ -1699,7 +2008,7 @@ document.getElementById("toggleAll").addEventListener("click", function () {
     return '<div class="er-wrap"><svg class="er" viewBox="0 0 ' + (8 + PIPE.length * (w + gap)) + ' 90" role="img" aria-label="How analytics data flows from imports to the screen">' + out + "</svg></div>";
   }
 
-  var TIME = {"01":"Runs 5, 6","02":"Run 4","03":"Run 1","04":"Run 1","05":"ON HOLD","06":"Run 1","07":"Run 2","08":"Run 2","09":"Run 2","10":"ON HOLD","11":"Run 3","12":"Run 3","13":"Run 1"};
+  var TIME = {"01":"Runs 5, 6","02":"Run 4","03":"Run 1","04":"Run 1","05":"Run 1","06":"Run 1","07":"Run 2","08":"Withdrawn","09":"Run 2","10":"Run 2","11":"Run 3","12":"Run 3","13":"Run 1"};
   var MOCKS = window.MOCKS || {};
   var NOTES = window.MOCKNOTES || {};
   function mockFig(n) {
@@ -1734,7 +2043,7 @@ document.getElementById("toggleAll").addEventListener("click", function () {
   }
   function decided(n) {
     var a = (window.ANSWERS || {})[n]; if (!a) return "";
-    return '<div class="block after"><h3>Decided (29 Oct)</h3>' + ul(a) + "</div>";
+    return '<div class="block after"><h3>Decided (29 and 30 Oct)</h3>' + ul(a) + "</div>";
   }
   function edgeTable() {
     var groups = {}; (window.EDGE1 || []).forEach(function (r) { (groups[r[0]] = groups[r[0]] || []).push(r); });
@@ -1747,7 +2056,7 @@ document.getElementById("toggleAll").addEventListener("click", function () {
     var flow = '<div class="flow"><div class="block"><h3>Before: how it works today</h3>' + ol(it.before) + '</div><div class="block after"><h3>After: how it should work</h3>' + ol(it.after) + "</div></div>";
     return '<details class="card deep"><summary><span class="num">' + it.n + '</span><span class="ttl">' + it.t + '</span><span class="chev"></span>' +
       '<span class="plain">' + esc(pl.plain.split(". ")[0]) + ".</span>" +
-      '<span class="chips"><span class="chip scope">Effort: ' + it.rating + '</span><span class="chip ' + (TIME[it.n] === "ON HOLD" ? "hold" : "d2") + '">Built in: ' + (TIME[it.n] || "") + "</span>" + (it.qs ? '<span class="chip risk">Questions: ' + it.qs + "</span>" : "") + "</summary>" +
+      '<span class="chips"><span class="chip scope">Effort: ' + it.rating + '</span><span class="chip ' + (TIME[it.n] === "Withdrawn" ? "hold" : "d2") + '">Built in: ' + (TIME[it.n] || "") + "</span>" + (it.qs ? '<span class="chip risk">Questions: ' + it.qs + "</span>" : "") + "</summary>" +
       '<div class="body">' +
       block("In plain words", "<p>" + esc(pl.plain) + "</p>") + decided(it.n) +
       (EXTRA[it.n] ? EXTRA[it.n]() : "") +
@@ -1813,6 +2122,24 @@ document.getElementById("toggleAll").addEventListener("click", function () {
     document.getElementById("sitemap").innerHTML = '<div class="tblwrap"><table class="tbl wide"><thead><tr><th>Screen</th><th>Route</th><th>Code</th><th>Items</th></tr></thead><tbody>' +
       keys.map(function (k) { var r = byRoute[k]; return "<tr><td>" + r.screen + "</td><td><code>" + r.route + "</code></td><td><code>" + r.code + "</code></td><td>" + r.items.join(", ") + "</td></tr>"; }).join("") + "</tbody></table></div>";
   })();
+})();
+(function () {
+  var host = document.getElementById("audits");
+  if (!host || !window.AUDITS) return;
+  var ol = function (a) { return "<ol>" + a.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ol>"; };
+  var ul = function (a) { return "<ul>" + a.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>"; };
+  var table = function (t) {
+    return '<div class="tblwrap"><table class="tbl' + (t.head.length > 3 ? " wide" : "") + '"><thead><tr>' + t.head.map(function (h) { return "<th>" + h + "</th>"; }).join("") +
+      "</tr></thead><tbody>" + t.rows.map(function (r) { return "<tr>" + r.map(function (c, i) { return "<td>" + (i === 0 ? "<b>" + c + "</b>" : c) + "</td>"; }).join("") + "</tr>"; }).join("") + "</tbody></table></div>";
+  };
+  host.innerHTML = AUDITS.map(function (a) {
+    var body = a.blocks.map(function (b) {
+      var inner = (b.p ? b.p.map(function (x) { return "<p>" + x + "</p>"; }).join("") : "") + (b.ol ? ol(b.ol) : "") + (b.ul ? ul(b.ul) : "") + (b.table ? table(b.table) : "");
+      if (b.after) return '<div class="block after"><h3>' + b.h + "</h3>" + ul(b.after) + "</div>";
+      return '<div class="block"><h3>' + b.h + "</h3>" + inner + "</div>";
+    }).join("");
+    return '<article class="panel audit" id="' + a.id + '"><h3 class="audit-t">' + a.title + '</h3><p class="audit-lead">' + a.lead + "</p>" + body + "</article>";
+  }).join("");
 })();
 </script>
 
