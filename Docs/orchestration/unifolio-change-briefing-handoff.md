@@ -98,3 +98,10 @@ managers in our data has not been counted yet, and it decides how realistic a ma
 - D10 B and D3 B pull against each other (moving the sign-in makes relationship labels wrong unless flipped, D29). Needs the owner's confirmation. Follow-ups D28 to D31 (phone number, labels, new head already has an account, undo window) and an edge-case table are in the briefing.
 - Only existing members can be head for now; the "make the new member head at Add Member" option is in `DEFERRED_FEATURES.md`.
 - The briefing now has after-change mockups for every item and a screen map. The reference video was deleted from the repo and no frames from it, nor pages from the design PDF, are embedded.
+
+## Update 2026-10-29 (hold and run plan)
+
+- Items 5 (equity overlap) and 10 (remove Scorer and Composite Ratings) are ON HOLD. Questions D2, D9, D11, D14 and D15 wait with them. Item 6 (remove Stock Concentration) is not on hold.
+- Execution is the Claude (orchestrator) plus Codex (worker) method used for Sub-project 1, Sub-project 2 and the analytics fixes. Six Codex runs, sequential: Run 1 items 3, 13, 4, 6; Run 2 items 7, 8, 9; Run 3 items 11, 12 and the stopped-SIP fixes; Run 4 item 2; Run 5 item 1 backend; Run 6 item 1 frontend. Three staging cycles. About 17 to 20 working days. Detail and estimates are in the briefing's "Timeline and effort" section.
+- Recommendation: one implementation plan covering all in-scope items, organised by run (Sub-project 1 used one plan per attribute and Sub-project 2 two plans, so this is a choice, not a rule). Not written yet.
+- The stakeholder sketch image was removed from the briefing. Answered questions now show a bold ANSWERED badge and the chosen option.
