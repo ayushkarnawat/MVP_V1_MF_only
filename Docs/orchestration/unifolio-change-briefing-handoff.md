@@ -125,3 +125,5 @@ managers in our data has not been counted yet, and it decides how realistic a ma
 - Item 7: today's valuation section kept; excluded lists collapsible; fund-wise section below.
 - New audits: E (how P/E and P/B are made) and F (how the category average is calculated). Mockups for items 5, 7, 8, 9, 10 were redrawn from the real components.
 - Solved: D2, D9, D11, D15, D16, D33. Answered: D34. Nothing implemented; nothing pushed.
+
+- D5 answered (option A): index funds are not ranked in Performance Ranking; the row shows a disclaimer that their comparison is in the benchmark comparison.
