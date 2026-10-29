@@ -114,3 +114,14 @@ managers in our data has not been counted yet, and it decides how realistic a ma
 - Audits A to D added (what "13th pct, Top 87%" means; effect of removing rank/score on backend and time; benchmark choice for item 11; contributing funds in the asset-class card). Read from code only; nothing run on real data.
 - Solved badges: D2, D5, D9, D11, D14, D15. New questions: D32 (score consumers), D33 (item 8 vs 9), D34 (benchmark mapping).
 - Nothing implemented; nothing pushed.
+
+## Update 2026-10-30 (second round of stakeholder answers)
+
+- Item 5: 5C kept (overlap for equity funds only) plus the By category tab. D14 reopened (which categories count as equity). Today's code has no equity check.
+- Item 8: back as first proposed. Performance Ranking (Rank / Total for 1, 3, 5 years) replaces the Fund Ranking group (composite rating, leaderboard). D36: delete or only stop using the old composite code.
+- Item 9: rank badge and percentile text removed from screen and backend, including their calculation. Blended return stays as an internal helper for the Fund Quality Score.
+- Item 10: Fund Quality Scores hidden on Other Analytics only; the Individual Fund score card stays. The score keeps being computed (fund page, Home, Insights read it). D32 reworded.
+- Item 11: option C. Each fund compared with the benchmark in its own factsheet. New table scheme_benchmark (migration 0049, shared with the index-fund mapping). Many declared benchmarks have no index data; D35 asks what to show. Estimate now about 19 to 21 working days.
+- Item 7: today's valuation section kept; excluded lists collapsible; fund-wise section below.
+- New audits: E (how P/E and P/B are made) and F (how the category average is calculated). Mockups for items 5, 7, 8, 9, 10 were redrawn from the real components.
+- Solved: D2, D9, D11, D15, D16, D33. Answered: D34. Nothing implemented; nothing pushed.
