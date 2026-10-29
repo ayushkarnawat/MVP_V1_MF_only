@@ -107,7 +107,9 @@ When the main clone has the script, change the path in the cron line to `/opt/un
 
 ## 8. Verification on the VM after PR #37 is merged
 
-Run in `/opt/unifolio-redesign` as `deploy`:
+**Run every `docker compose` command from `/opt/unifolio-redesign/deploy/leapswitch`, never from the repo root.** On 29 Oct, `docker compose up -d` run in `/opt/unifolio-redesign` picked up the repo-root (local-dev) compose file and started a stray, empty Postgres container `unifolio-redesign-postgres-1` (port 5433 on all interfaces) plus a network and an anonymous volume. The real stack was not touched; the stray was stopped and then removed. `docker compose config | grep -A4 worker:` printing nothing and `no such service: backend` are the signs you are in the wrong folder.
+
+Run as `deploy`; do `git pull` in `/opt/unifolio-redesign`, then `cd deploy/leapswitch` for everything after step 1:
 1. `git pull` then `git log --oneline -1` (expect the merge of the hardening PR).
 2. `sudo docker compose config | grep -A4 "worker:"` shows `image: leapswitch-backend:latest`, no `build`.
 3. `sudo docker compose up -d` (builds nothing). Expect the worker line `Recreated`.
