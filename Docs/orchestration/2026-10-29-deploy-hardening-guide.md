@@ -93,10 +93,14 @@ Emails the ops address (SES, same path as `check-memory.sh`) when the Docker dis
 
 ```
 sudo crontab -l > ~/crontab.backup-$(date +%Y%m%d)
-( sudo crontab -l; echo '0 9,18 * * * CRON_TZ=Asia/Kolkata /opt/unifolio-redesign/deploy/leapswitch/scripts/check-disk.sh >> /var/log/unifolio-disk.log 2>&1' ) | sudo crontab -
+sudo crontab -l | head -3
+```
+Check that the installed crontab already has `CRON_TZ=Asia/Kolkata` near the top (cron applies it to every line below it). If it does, append only the job line; if it does not, append the `CRON_TZ` line first. Per-line variables are not supported by cron, so never put `CRON_TZ=` on the same line as a job.
+
+```
+( sudo crontab -l; echo '0 9,18 * * * /opt/unifolio-redesign/deploy/leapswitch/scripts/check-disk.sh >> /var/log/unifolio-disk.log 2>&1' ) | sudo crontab -
 sudo crontab -l | tail -3
 ```
-(If `CRON_TZ` is already set once near the top of the installed crontab, drop it from this line and the line inherits it only if placed after it; check that `sudo crontab -l | head` shows `CRON_TZ=Asia/Kolkata`. The line above sets it explicitly for this one entry only if your cron supports per-line variables; otherwise put the `CRON_TZ` line directly above it.)
 
 Test without waiting: `sudo /opt/unifolio-redesign/deploy/leapswitch/scripts/check-disk.sh 1` (threshold 1% forces an alert; check the inbox, then nothing else changes).
 When the main clone has the script, change the path in the cron line to `/opt/unifolio/...` or reinstall from the merged crontab file.
