@@ -340,6 +340,48 @@ tr.stg td { background: var(--accent-soft); }
 
 .badge.chosen { background: var(--done); color: var(--surface); }
 .opt:has(.badge.chosen) { outline: 2px solid var(--done); }
+
+/* Overlap page replica, taken from the real components (Heatmap.tsx, StatStrip.tsx, TopPairs.tsx, CommonHoldings.tsx, ImpactDonut.tsx) and palette-tokens.css (light) */
+.rl { display: flex; flex-direction: column; gap: 18px; font-size: 14px; }
+.rl-card { background: #fff; border: 1px solid #ececec; border-radius: 16px; padding: 20px; }
+.rl-h { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.rl-h b { font-size: 16px; font-weight: 600; color: #111; }
+.rl-i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid #ececec; color: #717171; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+.rl-m { font-size: 12px; color: #717171; margin: 0 0 12px; }
+.rl-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.rl-stat { border: 1px solid #ececec; border-radius: 16px; background: #fff; padding: 16px; }
+.rl-stat p { margin: 0; }
+.rl-stat .a { font-size: 12px; font-weight: 500; color: #717171; }
+.rl-stat .b { margin-top: 4px; font-size: 24px; font-weight: 700; color: #111; }
+.rl-stat .c { margin-top: 4px; font-size: 12px; color: #717171; }
+.rl-pills { margin: 0 0 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+.rl-pills span { border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; }
+.rl-pos { background: #eafbf0; color: #15803d; } .rl-warn { background: #fef3e2; color: #b45309; } .rl-neg { background: #fdecec; color: #c1272d; }
+.rl-hm { border-collapse: collapse; font-size: 12px; }
+.rl-hm th { padding: 8px; font-weight: 600; color: #111; min-width: 52px; }
+.rl-hm thead th { text-align: center; } .rl-hm tbody th { text-align: left; }
+.rl-hm td { padding: 4px; text-align: center; }
+.rl-cell { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 8px; font-weight: 600; }
+.rl-cell i { position: absolute; bottom: 4px; left: 6px; right: 6px; height: 4px; border-radius: 999px; background: #ececec; overflow: hidden; }
+.rl-cell i b { display: block; height: 100%; }
+.rl-self { display: inline-flex; width: 44px; height: 44px; align-items: center; justify-content: center; color: #717171; font-size: 14px; }
+.rl-t { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+.rl-t thead tr { border-bottom: 1px solid #ececec; font-size: 12px; color: #717171; }
+.rl-t th { padding: 10px 12px; font-weight: 500; }
+.rl-t td { padding: 12px; border-bottom: 1px solid #f3f3f3; color: #111; }
+.rl-t td.m { font-size: 12px; color: #717171; }
+.rl-bar { display: inline-block; vertical-align: middle; height: 6px; width: 80px; border-radius: 999px; background: #ececec; overflow: hidden; margin-right: 8px; }
+.rl-bar i { display: block; height: 100%; }
+.rl-ini { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 20px; padding: 0 4px; border-radius: 6px; background: #f5f5f5; font-size: 10px; font-weight: 600; margin-right: 6px; }
+.rl-don { display: flex; gap: 24px; align-items: center; justify-content: space-around; flex-wrap: wrap; }
+.rl-donut { width: 160px; height: 160px; border-radius: 50%; display: grid; place-items: center; }
+.rl-donut > div { width: 104px; height: 104px; border-radius: 50%; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #717171; }
+.rl-donut b { font-size: 13px; color: #111; }
+.rl-leg { list-style: none; margin: 0; padding: 0; width: 320px; max-width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.rl-leg li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-radius: 12px; }
+.rl-leg li.on { background: #f5f5f5; box-shadow: 0 0 0 1px #ececec; font-weight: 500; }
+.rl-leg i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+@media (max-width: 700px) { .rl-stats { grid-template-columns: 1fr 1fr; } }
 /* 30 Oct update: SOLVED badge and audit blocks */
 .dq.solved { border-left: 5px solid var(--done); }
 .dq-badge.sol { background: var(--accent); color: var(--surface); }
@@ -1533,38 +1575,66 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
       ["Columns follow your answer on D7: manager name, AMC, allocation percentage, and the rupee amount behind that percentage.", "The LinkedIn icon shows only for managers whose profile we have verified by hand; there is no icon otherwise.", "Clicking the icon opens that manager's LinkedIn profile page in a new browser tab (it never opens a search page, and the page behind it stays open)."])
   ];
 
-  /* ---------- 05 Overlap: category tab only (30 Oct) ---------- */
-  function hm(v) { var bg = v > 40 ? "#fecaca" : v > 20 ? "#fde9c4" : "#f3f4f6"; return '<td class="c' + (v > 40 ? " hot" : "") + '" style="background:' + bg + '">' + v + "%</td>"; }
-  function heatTbl(names, grid) {
-    return '<div class="mk-tw"><table class="mk-t mk-hm"><thead><tr><th></th>' + names.map(function (n) { return "<th>" + n + "</th>"; }).join("") + "</tr></thead><tbody>" +
-      names.map(function (n, i) { return "<tr><th>" + n + "</th>" + grid[i].map(function (v) { return v === null ? "<td class='c'>–</td>" : hm(v); }).join("") + "</tr>"; }).join("") + "</tbody></table></div>";
+  /* ---------- 05 Overlap: replica of the real page + category tab (30 Oct) ---------- */
+  var BANDC = { pos: ["#eafbf0", "#15803d"], warn: ["#fef3e2", "#b45309"], neg: ["#fdecec", "#c1272d"] };
+  function bandOf(v) { return v >= 40 ? "neg" : v >= 20 ? "warn" : "pos"; }
+  function rcard(title, info, inner) { return '<div class="rl-card"><div class="rl-h"><b>' + title + '</b><span class="rl-i">i</span></div>' + inner + "</div>"; }
+  function stat(a, b, c, bg) { return '<div class="rl-stat"' + (bg ? ' style="background:' + bg + '"' : "") + '><p class="a">' + a + '</p><p class="b">' + b + '</p><p class="c">' + c + "</p></div>"; }
+  function pills() { return '<div class="rl-pills"><span class="rl-pos">Low &lt; 20%</span><span class="rl-warn">Moderate 20–40%</span><span class="rl-neg">High ≥ 40%</span></div>'; }
+  function realHeat(names, grid) {
+    var mx = 0; grid.forEach(function (r) { r.forEach(function (v) { if (v !== null && v > mx) mx = v; }); });
+    return '<div class="mk-tw"><table class="rl-hm"><thead><tr><th></th>' + names.map(function (n) { return "<th>" + n[0] + "</th>"; }).join("") + "</tr></thead><tbody>" +
+      names.map(function (n, i) { return "<tr><th>" + n[0] + "</th>" + grid[i].map(function (v) {
+        if (v === null) return '<td><span class="rl-self">—</span></td>';
+        var c = BANDC[bandOf(v)]; return '<td><span class="rl-cell" style="background:' + c[0] + ";color:" + c[1] + '"><span>' + v + '%</span><i><b style="width:' + Math.round(v / mx * 100) + "%;background:" + c[1] + '"></b></i></span></td>'; }).join("") + "</tr>"; }).join("") + "</tbody></table></div>";
   }
-  var legend2 = '<div class="mk-leg2"><i style="background:#f3f4f6"></i> 20% or below &nbsp; <i style="background:#fde9c4"></i> above 20% &nbsp; <i style="background:#fecaca"></i> above 40% (same bands as today)</div>';
-  var allNames = ["HDFC Flexi", "Kotak Multi", "Nippon Small", "Mirae Large", "Axis Mid"];
+  function heatCard(names, grid, scope) {
+    return rcard("2. Overlap Heatmap", 1, '<p class="rl-m">' + scope + '</p><p class="rl-m">Click any cell to see the stocks shared between that pair.</p>' + pills() + realHeat(names, grid));
+  }
+  function pairsRows(rows) {
+    return rows.map(function (r, i) { var c = BANDC[bandOf(r[4])];
+      return "<tr><td class='m'>" + (i + 1) + "</td><td><span class='rl-ini'>" + r[0] + "</span>" + r[1] + "</td><td><span class='rl-ini'>" + r[2] + "</span>" + r[3] + "</td><td><span class='rl-bar'><i style='width:" + r[4] + "%;background:" + c[1] + "'></i></span><b style='font-size:12px'>" + r[4] + "%</b></td><td class='m'>" + r[5] + "</td><td style='font-size:12px'>" + r[6] + "</td></tr>"; }).join("");
+  }
+  function pairsCard(rows) {
+    return rcard("3. Top Overlapping Fund Pairs", 1, '<div class="mk-tw"><table class="rl-t"><thead><tr><th>#</th><th>Fund 1</th><th>Fund 2</th><th>Overlap</th><th>Shared Stocks</th><th>Combined Weight</th></tr></thead><tbody>' + pairsRows(rows) + "</tbody></table></div>");
+  }
+  function commonCard() {
+    var rows = [["HDFC Bank", "4 funds", "9.84%", 100, ["HF", "KM", "MS"]], ["ICICI Bank", "4 funds", "7.12%", 72, ["HF", "KM", "PP"]], ["Infosys", "3 funds", "5.40%", 55, ["HF", "KM"]]];
+    return rcard("1. Common Holdings", 1, '<p class="rl-m">Click a stock to see exactly how much of each fund it\'s held in.</p><div class="mk-tw"><table class="rl-t"><thead><tr><th>#</th><th>Stock</th><th>Held in</th><th>Total Portfolio Exposure</th><th>Top Funds</th></tr></thead><tbody>' +
+      rows.map(function (r, i) { return "<tr><td class='m'>" + (i + 1) + "</td><td>› " + r[0] + "</td><td class='m'>" + r[1] + "</td><td><b style='font-size:12px;font-weight:500'>" + r[2] + "</b> <span class='rl-bar' style='width:96px;margin-left:8px'><i style='width:" + r[3] + "%;background:#16a34a'></i></span></td><td>" + r[4].map(function (x) { return "<span class='rl-ini'>" + x + "</span>"; }).join("") + "</td></tr>"; }).join("") + "</tbody></table></div>");
+  }
+  function impactCard() {
+    return rcard("4. Overlap Impact", 1, '<p class="rl-m">How much of your portfolio sits in overlapping vs. unique holdings.</p><p style="font-size:14px;font-weight:600;margin:0 0 12px">38.4% of portfolio in top 3 overlapping pairs</p><div class="rl-don"><div class="rl-donut" style="background:conic-gradient(#16a34a 0 38.4%,#3b82f6 38.4% 52%,#9aa5b1 52% 100%)"><div><span>Portfolio</span><b>₹14,25,000</b></div></div>' +
+      '<ul class="rl-leg"><li class="on"><span><i style="background:#16a34a"></i>Top 3 overlapping pairs</span><span><b>38.4%</b> <span style="color:#717171">₹5,47,200</span></span></li><li><span><i style="background:#3b82f6"></i>Other overlapping pairs</span><span><b>13.6%</b> <span style="color:#717171">₹1,93,800</span></span></li><li><span><i style="background:#9aa5b1"></i>Unique holdings</span><span><b>48.0%</b> <span style="color:#717171">₹6,84,000</span></span></li></ul></div>');
+  }
+  var statStrip = '<div class="rl-stats">' + stat("Funds analysed", "5 of 7", "2 funds excluded — no stock holdings to look through") + stat("Fund pairs with overlap", "6 of 10", "at moderate (≥20%) or higher — possible pairs across your 5 equity funds") + stat("Highest overlap", "64%", "HDFC Flexi Cap Fund × Kotak Multicap Fund") + stat("Overlap risk", "High", "some fund pairs duplicate a large share of each other's holdings", "#fdecec") + "</div>";
+  var allNames = [["HF", "HDFC Flexi Cap Fund"], ["KM", "Kotak Multicap Fund"], ["NS", "Nippon India Small Cap Fund"], ["ML", "Mirae Asset Large Cap Fund"], ["AM", "Axis Midcap Fund"]];
   var allGrid = [[null, 64, 18, 41, 22], [64, null, 16, 38, 19], [18, 16, null, 9, 21], [41, 38, 9, null, 12], [22, 19, 21, 12, null]];
+  var topRows = [["HF", "HDFC Flexi Cap Fund", "KM", "Kotak Multicap Fund", 64, 31, "42.6%"], ["HF", "HDFC Flexi Cap Fund", "ML", "Mirae Asset Large Cap Fund", 41, 24, "36.1%"], ["KM", "Kotak Multicap Fund", "ML", "Mirae Asset Large Cap Fund", 38, 22, "33.0%"]];
+  var scopeAll = "Covered funds, largest portfolio value first";
+  function rpage(inner) { return '<div class="rl">' + inner + "</div>"; }
+  var tabsAll = '<div class="mk-subtabs"><span class="on">All funds</span><span>By category ▾</span></div>';
   X["05"] = [
-    m("Overlap page with the new By category tab (everything else unchanged)", "Investments › Mutual Funds › Overlap (route /portfolio/mutual-funds/overlap).",
-      frame("Overlap", '<div class="mk-subtabs"><span class="on">All funds</span><span>By category ▾</span></div>' + '<div class="mk-stats"><div><small>Funds analysed</small><b>5</b></div><div><small>Pairs above 20%</small><b>6</b></div></div>' +
-        card("Overlap heatmap", heatTbl(allNames, allGrid) + legend2, {}) + card("Top overlapping pairs", '<div class="mk-ph">top pairs, impact donut and common holdings, exactly as today</div>'), {}),
-      ["The All funds tab is the page as it is today. Nothing is simplified.", "The new second tab is a drop-down button; it does not change any existing card."]),
+    m("Overlap page with the new By category tab (the page itself is as it is today)", "Investments › Mutual Funds › Overlap (route /portfolio/mutual-funds/overlap). Cards, colours and wording are copied from the real components.",
+      frame("Overlap", tabsAll + rpage(statStrip + commonCard() + heatCard(allNames, allGrid, scopeAll) + pairsCard(topRows) + impactCard()), {}),
+      ["Only the small All funds | By category switch at the top is new. Every card below it is the current page.", "Cell colours follow today's bands: green below 20%, amber 20 to 40%, red from 40%."]),
     m("Drop-down open: choose a category", "Same page, By category tab, drop-down open.",
       frame("Overlap", '<div class="mk-subtabs"><span>All funds</span><span class="on">By category ▾</span></div>' +
-        card("Choose a category", '<div class="mk-opt"><div><b>Large Cap Fund</b><br><small>3 funds you hold</small></div></div><div class="mk-opt"><div><b>Mid Cap Fund</b><br><small>1 fund you hold</small></div></div><div class="mk-opt"><div><b>Small Cap Fund</b><br><small>2 funds you hold</small></div></div><div class="mk-opt on"><div><b>Flexi Cap Fund</b><br><small>3 funds you hold</small></div></div>'), {}),
+        '<div class="rl-card" style="max-width:320px"><div class="mk-opt"><div><b>Large Cap Fund</b><br><small>3 funds you hold</small></div></div><div class="mk-opt" style="margin-top:8px"><div><b>Mid Cap Fund</b><br><small>1 fund you hold</small></div></div><div class="mk-opt" style="margin-top:8px"><div><b>Small Cap Fund</b><br><small>2 funds you hold</small></div></div><div class="mk-opt on" style="margin-top:8px"><div><b>Flexi Cap Fund</b><br><small>3 funds you hold</small></div></div></div>', {}),
       ["Only these four categories are offered. The count is the number of held funds with a published portfolio in that category.", "Keyboard: arrow keys move, Enter picks, Escape closes."]),
-    m("Result: overlap of the Flexi Cap funds only", "Same page after picking Flexi Cap Fund.",
-      frame("Overlap", '<div class="mk-subtabs"><span>All funds</span><span class="on">By category: Flexi Cap Fund ▾</span></div>' +
-        card("Overlap heatmap, Flexi Cap funds only", heatTbl(["HDFC Flexi", "Kotak Multi", "Parag Parikh Flexi"], [[null, 64, 29], [64, null, 33], [29, 33, null]]) + legend2) +
-        card("Top overlapping pairs", '<div class="mk-ph">same list, filtered to Flexi Cap pairs</div>') +
-        note("Two held Mid Cap and Small Cap funds are compared in their own tabs. A category with only one held fund shows: You hold only one Mid Cap fund, so there is nothing to compare."), {}),
-      ["Same look as the All funds tab, only the funds change.", "A fund whose portfolio we do not have yet is named under the heatmap as not included."])
+    m("Result: the same page for the Flexi Cap funds only", "Same page after picking Flexi Cap Fund.",
+      frame("Overlap", '<div class="mk-subtabs"><span>All funds</span><span class="on">By category: Flexi Cap Fund ▾</span></div>' + rpage(
+        '<div class="rl-stats">' + stat("Funds analysed", "3 of 3", "all your funds have stock holdings to look through") + stat("Fund pairs with overlap", "3 of 3", "at moderate (≥20%) or higher — possible pairs across your 3 equity funds") + stat("Highest overlap", "64%", "HDFC Flexi Cap Fund × Kotak Multicap Fund") + stat("Overlap risk", "High", "some fund pairs duplicate a large share of each other's holdings", "#fdecec") + "</div>" +
+        heatCard([["HF", "HDFC Flexi Cap Fund"], ["KM", "Kotak Multicap Fund"], ["PP", "Parag Parikh Flexi Cap Fund"]], [[null, 64, 29], [64, null, 33], [29, 33, null]], "Covered funds, largest portfolio value first") +
+        pairsCard([["HF", "HDFC Flexi Cap Fund", "KM", "Kotak Multicap Fund", 64, 31, "42.6%"], ["KM", "Kotak Multicap Fund", "PP", "Parag Parikh Flexi Cap Fund", 33, 19, "28.4%"], ["HF", "HDFC Flexi Cap Fund", "PP", "Parag Parikh Flexi Cap Fund", 29, 17, "31.2%"]])), {}),
+      ["Same cards, same look; only the funds change. Common Holdings and Impact would follow the category too (to confirm in the build).", "A category with fewer than two held funds shows the page's existing line: Overlap needs at least two funds with published holdings."])
   ];
 
   /* ---------- 06 Stock concentration removed ---------- */
   X["06"] = [
-    m("Overlap page layout after removing Stock Concentration", "Investments › Mutual Funds › Overlap, bottom of the page.",
-      frame("Overlap", '<div class="mk-subtabs"><span class="on">All funds</span><span>By category ▾</span></div><div class="mk-stats"><div><small>Funds analysed</small><b>5</b></div><div><small>Pairs above 20%</small><b>6</b></div></div>' + card("Overlap heatmap", '<div class="mk-ph">heatmap</div>') + card("Common holdings", '<div class="mk-ph">top common stocks</div>') +
-        '<div class="mk-removed">Stock Concentration (top 5 / 10 / 20 / 50 stocks) — removed</div>', {}),
-      ["The full ranked stock list stays on Investments › Mutual Funds › Holdings (All Stocks table)."])
+    m("Overlap page after removing Stock Concentration", "Investments › Mutual Funds › Overlap. The page simply ends after card 4; there is no fifth card.",
+      frame("Overlap", tabsAll + rpage(statStrip + commonCard() + heatCard(allNames, allGrid, scopeAll) + pairsCard(topRows) + impactCard()), {}),
+      ["The page ends after 4. Overlap Impact. The Stock Concentration card (top 5 / 10 / 20 / 50 stocks) is gone, with nothing in its place.", "The full ranked stock list stays on Investments › Mutual Funds › Holdings (All Stocks table)."])
   ];
 
   /* ---------- 07 Valuation ---------- */
