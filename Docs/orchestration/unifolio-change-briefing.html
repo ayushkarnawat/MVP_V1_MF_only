@@ -1,0 +1,1093 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Unifolio Change Briefing</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif&display=swap">
+<style>
+/* Layout: a briefing read top to bottom. Summary and decisions first, then 13 expandable change cards, then a suggested build order. */
+:root {
+  --bg: #f4f7f8;
+  --surface: #ffffff;
+  --fg: #14212b;
+  --muted: #566672;
+  --line: #d6dfe4;
+  --accent: #0e5a70;
+  --accent-soft: #dcebf0;
+  --done: #1f7a4d;
+  --done-soft: #dcf0e4;
+  --partial: #99600a;
+  --partial-soft: #f8ecd2;
+  --none: #4d5b66;
+  --none-soft: #e6ebee;
+  --warn: #a8321f;
+  --warn-soft: #f8e0db;
+  --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e171d; --surface: #15222a; --fg: #e4edf1; --muted: #9bacb7; --line: #2a3b45;
+    --accent: #6cc0d9; --accent-soft: #1b3541;
+    --done: #62c896; --done-soft: #17382a;
+    --partial: #e5b25a; --partial-soft: #3a2f16;
+    --none: #a9b8c2; --none-soft: #223039;
+    --warn: #f19482; --warn-soft: #3d201b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e171d; --surface: #15222a; --fg: #e4edf1; --muted: #9bacb7; --line: #2a3b45;
+  --accent: #6cc0d9; --accent-soft: #1b3541;
+  --done: #62c896; --done-soft: #17382a;
+  --partial: #e5b25a; --partial-soft: #3a2f16;
+  --none: #a9b8c2; --none-soft: #223039;
+  --warn: #f19482; --warn-soft: #3d201b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+  padding-block: 32px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1, h2, h3, p, ul { margin: 0; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.2rem, 6vw, 3.2rem); line-height: 1.05; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; line-height: 1.15; text-wrap: balance; }
+h3 { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.lede { color: var(--muted); max-width: 65ch; margin-top: 12px; }
+.meta { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); letter-spacing: 0.02em; margin-bottom: 14px; }
+.banner { border: 1px solid var(--line); background: var(--surface); padding: 12px 14px; border-radius: 6px; font-size: 0.9rem; color: var(--muted); margin-top: 18px; }
+.banner strong { color: var(--fg); }
+
+/* summary */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.stat .big { font-family: var(--font-display); font-size: 2.4rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat .lab { font-size: 0.85rem; color: var(--muted); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel ul { padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
+.sec { display: flex; flex-direction: column; gap: 14px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+.sec-head p { color: var(--muted); max-width: 65ch; }
+
+/* already built list */
+.built { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.built .item { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.built .item b { font-weight: 600; }
+.built .item p { font-size: 0.88rem; color: var(--muted); }
+
+/* controls */
+.controls { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 10px; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.group .gl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-right: 2px; }
+button { font: inherit; cursor: pointer; }
+.pill { border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 4px 12px; font-size: 0.82rem; }
+.pill[aria-pressed="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+:root[data-theme="dark"] .pill[aria-pressed="true"] { color: #0e171d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pill[aria-pressed="true"] { color: #0e171d; } }
+.pill:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.link-btn { margin-left: auto; background: none; border: none; color: var(--accent); font-size: 0.85rem; text-decoration: underline; padding: 4px; }
+
+/* cards */
+.cards { display: flex; flex-direction: column; gap: 10px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; min-width: 0; }
+.card[hidden] { display: none; }
+summary { list-style: none; cursor: pointer; padding: 16px; display: grid; grid-template-columns: auto 1fr auto; gap: 4px 14px; align-items: start; }
+summary::-webkit-details-marker { display: none; }
+.num { font-family: var(--font-display); font-size: 2rem; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; grid-row: span 2; min-width: 2ch; }
+.ttl { font-weight: 600; font-size: 1.05rem; line-height: 1.3; min-width: 0; }
+.plain { color: var(--muted); font-size: 0.92rem; grid-column: 2 / 4; min-width: 0; }
+.chev { grid-column: 3; grid-row: 1; align-self: center; width: 10px; height: 10px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .15s; }
+details[open] .chev { transform: rotate(-135deg); }
+.chips { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip { font-size: 0.74rem; padding: 2px 8px; border-radius: 4px; font-weight: 500; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; }
+.chip.done { background: var(--done-soft); color: var(--done); }
+.chip.partial { background: var(--partial-soft); color: var(--partial); }
+.chip.none { background: var(--none-soft); color: var(--none); }
+.chip.scope { background: var(--accent-soft); color: var(--accent); }
+.chip.risk { background: var(--warn-soft); color: var(--warn); }
+.pips { display: inline-flex; gap: 2px; }
+.pips i { width: 6px; height: 10px; border-radius: 1px; background: currentColor; opacity: .25; }
+.pips i.on { opacity: 1; }
+.chip.d1 { background: var(--done-soft); color: var(--done); }
+.chip.d2 { background: var(--partial-soft); color: var(--partial); }
+.chip.d3 { background: var(--warn-soft); color: var(--warn); }
+.body { border-top: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+.block { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.block ul { padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.reqs { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 6px; }
+.req { display: grid; grid-template-columns: 3.2rem 1fr auto; gap: 4px 12px; padding: 10px 12px; align-items: start; }
+.req + .req { border-top: 1px solid var(--line); }
+.req .id { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); padding-top: 2px; }
+.req .tx { min-width: 0; }
+.req .tx small { display: block; color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
+.decision { border-left: 3px solid var(--warn); background: var(--warn-soft); padding: 10px 12px; border-radius: 0 6px 6px 0; font-size: 0.92rem; }
+.decision b { color: var(--warn); }
+@media (max-width: 520px) {
+  summary { grid-template-columns: auto 1fr; }
+  .chev { display: none; }
+  .plain, .chips { grid-column: 1 / -1; }
+  .req { grid-template-columns: 2.8rem 1fr; }
+  .req .chip { grid-column: 2; justify-self: start; }
+}
+
+/* decisions */
+.recap { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
+.recap a { display: flex; gap: 10px; align-items: baseline; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; color: var(--fg); text-decoration: none; font-size: 0.88rem; min-width: 0; }
+.recap a:hover { border-color: var(--accent); }
+.recap a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.recap .rid { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); flex: none; }
+.recap .rpick { color: var(--muted); }
+.decisions { display: flex; flex-direction: column; gap: 14px; }
+.dq { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; scroll-margin-top: 70px; }
+.dq-head { display: flex; flex-direction: column; gap: 6px; }
+.dq-tag { font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent); letter-spacing: 0.03em; }
+.dq h3.q { font-size: 1.08rem; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--fg); line-height: 1.35; }
+.dq .ctx { color: var(--muted); font-size: 0.92rem; max-width: 70ch; }
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.opt { border: 1px solid var(--line); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.opt.rec { border: 2px solid var(--accent); background: var(--accent-soft); }
+.opt-name { font-weight: 600; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+.opt-name .l { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }
+.badge { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; background: var(--accent); color: var(--bg); border-radius: 4px; padding: 1px 6px; }
+:root[data-theme="dark"] .badge { color: #0e171d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .badge { color: #0e171d; } }
+.pc { display: flex; flex-direction: column; gap: 6px; font-size: 0.87rem; }
+.pc ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pc li { padding-left: 18px; position: relative; }
+.pc li::before { position: absolute; left: 0; font-weight: 600; }
+.pc .pro li::before { content: "+"; color: var(--done); }
+.pc .con li::before { content: "\2212"; color: var(--warn); }
+.why { border-top: 1px solid var(--line); padding-top: 12px; font-size: 0.92rem; display: flex; flex-direction: column; gap: 4px; }
+.why b { color: var(--accent); }
+.twocol { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.twocol .panel h3 { color: var(--fg); }
+.twocol ul { list-style: none; padding: 0; }
+.twocol li { padding-left: 18px; position: relative; }
+.twocol .p li::before { content: "+"; position: absolute; left: 0; color: var(--done); font-weight: 600; }
+.twocol .c li::before { content: "\2212"; position: absolute; left: 0; color: var(--warn); font-weight: 600; }
+
+/* waves */
+.waves { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.wave { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.wave ul { padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 0.92rem; }
+.wave .wt { font-family: var(--font-display); font-size: 1.3rem; }
+.empty { color: var(--muted); padding: 20px; text-align: center; border: 1px dashed var(--line); border-radius: 6px; }
+footer { color: var(--muted); font-size: 0.82rem; }
+@media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
+</style>
+<style>body{margin:0}</style>
+<style>
+/* Deep-dive additions: reuse the page tokens, add flow columns, tables and ER diagrams. */
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.flow .block { border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+.flow .block.after { border-color: var(--accent); background: var(--accent-soft); }
+.flow ol, .block ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.deep .block code, .panel code, .sec-head code { font-family: var(--font-mono); font-size: 0.82em; overflow-wrap: anywhere; }
+.tblwrap, #surfaces, #ratings { overflow-x: auto; }
+.tbl { border-collapse: collapse; width: 100%; font-size: 0.88rem; background: var(--surface); border: 1px solid var(--line); }
+.tbl th, .tbl td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.tbl th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+#surfaces .tbl { min-width: 640px; }
+#ratings .tbl { min-width: 640px; }
+.er-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); padding: 8px; }
+svg.er { min-width: 640px; width: 100%; height: auto; display: block; }
+.er-box { fill: var(--surface); stroke: var(--line); stroke-width: 1.2; }
+.er-new { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.6; }
+.er-mod { stroke: var(--partial); stroke-width: 1.6; }
+.er-rule { stroke: var(--line); stroke-width: 1; }
+.er-link { stroke: var(--muted); stroke-width: 1.2; fill: none; }
+.er-title { fill: var(--fg); font: 600 12px var(--font-body); }
+.er-f { fill: var(--fg); font: 11px var(--font-mono); }
+.er-t { fill: var(--muted); font: 10.5px var(--font-mono); }
+.er-fnew { fill: var(--accent); font-weight: 600; }
+.er-lab { fill: var(--muted); font: 10.5px var(--font-body); }
+.er-note { color: var(--muted); font-size: 0.85rem; margin-top: 6px; }
+.deep summary .chips { margin-top: 2px; }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div class="meta">DEVELOPER CHANGE REQUIREMENTS · 13 REQUESTS · OCT 2026 · NOTHING IMPLEMENTED YET</div>
+    <h1>Unifolio change briefing</h1>
+    <p class="lede">What each of the 13 requested changes means, what the code already does, how hard it is, and how we would build it. The 13 cards were first written from <code>feat/shell-nav-switch</code>. Deep dive parts 1 to 3 were added on 29 Oct 2026 from the redesign line (<code>origin/leapswitch-redesign</code>, <code>23c26f77</code>) and are newer where they differ.</p>
+    <p class="banner"><strong>Read this first.</strong> The redesign work (windowed benchmark returns, fund page, fund-vs-fund overlap, new Mutual Funds pages) is now merged on <code>leapswitch-redesign</code>. Start with <em>Deep dive, part 1</em> below: it corrects several findings in the cards. Questions D10 to D24 are new and sit at the end of the decisions list.</p>
+  </header>
+
+  <section class="sec" aria-labelledby="sum">
+    <div class="sec-head"><h2 id="sum">At a glance</h2></div>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section class="sec" aria-labelledby="done">
+    <div class="sec-head">
+      <h2 id="done">What we already do</h2>
+      <p>You were right that some of this exists. These are the parts of the document the code already satisfies, fully or in large part.</p>
+    </div>
+    <div class="built">
+      <div class="item"><span class="chip done">Item 12 · built</span><b>Switch toggle exists</b><p>The Investment and Withdrawal section already has an "Include switches" button, off by default. What is missing is a clear on/off state (12.3).</p></div>
+      <div class="item"><span class="chip done">Item 7.1 · built</span><b>No direct equity in P/E and P/B</b><p>The app is mutual-fund-only, so the valuation section only ever looks at fund holdings. Nothing to remove.</p></div>
+      <div class="item"><span class="chip done">Item 11 · built</span><b>Cash-flow-matched benchmark XIRR</b><p>The benchmark comparison already replays every buy and sell against the index on the same date. The work here is an audit, not a rebuild.</p></div>
+      <div class="item"><span class="chip done">Item 1.1 · built</span><b>No auto "head" from another CAS</b><p>People found in someone else's CAS file are created with no relationship. Only the account owner's own row is the "self" row.</p></div>
+      <div class="item"><span class="chip partial">Item 3 · partly</span><b>Large, Mid, Small split</b><p>The three buckets and the percent-of-equity figure exist. A fourth "Other / Unclassified" bucket still shows and must go.</p></div>
+      <div class="item"><span class="chip partial">Items 5, 8, 9, 13 · partly</span><b>Overlap matrix, ranking, category average, asset classes</b><p>Each has a working version today. The change requests simplify or reshape them, so the backend is mostly reusable.</p></div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="chg">
+    <div class="sec-head">
+      <h2 id="chg">The 13 changes</h2>
+      <p>Open a card for the line-by-line status, how we would do it, and what it touches. Difficulty reflects the work that is left, not the size of the document's wording.</p>
+    </div>
+    <div class="controls" role="group" aria-label="Filters">
+      <div class="group" id="fDiff"><span class="gl">Difficulty</span></div>
+      <div class="group" id="fBuilt"><span class="gl">Status</span></div>
+      <button class="link-btn" id="toggleAll" type="button">Expand all</button>
+    </div>
+    <div class="cards" id="cards"></div>
+    <p class="empty" id="none" hidden>No change matches those filters.</p>
+    <p class="chips" style="gap:12px;color:var(--muted);font-size:.82rem">
+      <span><b>Scope:</b> Small = one layer, Medium = backend and frontend, Large = new data, schema or flows.</span>
+      <span><b>Difficulty:</b> 1 bar = easy, 3 bars = hard.</span>
+    </p>
+  </section>
+
+    <section class="sec" aria-labelledby="deep0">
+    <div class="sec-head">
+      <h2 id="deep0">Deep dive, part 1: what the redesign line changes</h2>
+      <p>Everything in this part was read from the code on the redesign line (<code>origin/leapswitch-redesign</code>, commit <code>23c26f77</code>, 29 Oct 2026). Where this part disagrees with the cards above, this part is newer. The cards above describe the older branch.</p>
+    </div>
+    <div id="corrections"></div>
+    <div class="sec-head"><h3>Where each change lands</h3><p>The same change often has to be made on several screens, or the PDF and mobile app will disagree with the main pages.</p></div>
+    <div id="surfaces"></div>
+    <div class="sec-head"><h3>How an analytics number reaches the screen</h3></div>
+    <div id="pipe"></div>
+    <div class="sec-head"><h3>Effort, re-rated on the redesign line</h3></div>
+    <div id="ratings"></div>
+  </section>
+
+  <section class="sec" aria-labelledby="deep1">
+    <div class="sec-head">
+      <h2 id="deep1">Deep dive, part 2: the 13 changes in detail</h2>
+      <p>Each card has the files involved, the flow before and after, the backend, frontend and database changes (with a data diagram where tables change), the tests to write first, and the risks. Question codes link to the decisions list at the bottom.</p>
+    </div>
+    <div class="cards" id="deepCards"></div>
+  </section>
+
+  <section class="sec" aria-labelledby="deep2">
+    <div class="sec-head">
+      <h2 id="deep2">Deep dive, part 3: cross-cutting rules</h2>
+    </div>
+    <div class="panel">
+      <ul>
+        <li><b>Migrations, in order.</b> Alembic head is 0046. Proposed: 0047 head flag, head change requests and OTP purpose (item 1); 0048 fund managers (item 4); 0049 tracked index (item 9); a later drop of score tables only if D2 picks deletion (item 10). Items 2, 3, 5, 6, 7, 8, 11, 12 and 13 need none.</li>
+        <li><b>Payload changes are additive first.</b> Add the new fields, ship the UI that reads them, force one recompute, then remove old fields in a later release. Home, the fund page and the Insights engine read stored sections, so removing a field first would break them.</li>
+        <li><b>Decimal, never float.</b> All new sums, averages and ranks use Decimal; the frontend formats strings it receives and does not add money.</li>
+        <li><b>Test-first order for every item.</b> Backend red test, backend green, payload golden fixture, frontend red test, frontend green, print and mobile parity test, then the section-list test for the page. Run only the affected test files, per project practice.</li>
+        <li><b>Docs that must change.</b> PRD-04 and the decisions of 2026-08-13 and 2026-10-06 (item 10), a new ADR or decision entry for the head of family (item 1), PRD-01 holdings table (item 2), and the redesign decisions register for the choices above.</li>
+        <li><b>Staging.</b> Items change stored analytics shape, so each release needs a recompute step and the usual data checks in the staging deploy guide.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="ord">
+    <div class="sec-head">
+      <h2 id="ord">Suggested build order</h2>
+      <p>Cheap, low-risk work first, so the analytics page gets simpler before we touch the heavier calculations.</p>
+    </div>
+    <div class="waves">
+      <div class="wave"><div class="wt">Wave 1 · Quick wins</div>
+        <ul>
+          <li>Item 12: make the switch state visible</li>
+          <li>Item 6: remove Stock Concentration</li>
+          <li>Item 10: remove scorer and composite ratings (after your decision)</li>
+          <li>Item 3: three-bucket market cap</li>
+          <li>Item 5A: simpler overlap, info button, 35% highlight</li>
+          <li>Items 7.4 and 7.5: P/E and P/B explainer and disclaimer</li>
+        </ul></div>
+      <div class="wave"><div class="wt">Wave 2 · Core analytics</div>
+        <ul>
+          <li>Item 5C then 5B: equity-only overlap, then DIY picker</li>
+          <li>Items 13 and 7.3: asset allocation classes, fund-wise P/E and P/B</li>
+          <li>Items 8 and 9: ranking and category comparison together</li>
+          <li>Item 11: benchmark audit</li>
+          <li>Item 4: fund manager card</li>
+        </ul></div>
+      <div class="wave"><div class="wt">Wave 3 · Big and risky</div>
+        <ul>
+          <li>Item 2: consolidated family holdings with per-holding XIRR</li>
+          <li>Item 1: change of Head of Family with two OTPs</li>
+        </ul>
+        <p style="font-size:.85rem;color:var(--muted)">Both touch data the app assumes never changes, and both collide with the redesign work.</p></div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="gen">
+    <div class="sec-head"><h2 id="gen">What this does to the current system</h2></div>
+    <div class="panel">
+      <ul>
+        <li><b>No migration for most items.</b> Analytics results are stored as JSON per section. Changing a section's shape needs no schema change. Old results keep serving until the next recompute, which runs daily at 06:30 or after an import. The frontend must tolerate old shapes, or we force a recompute.</li>
+        <li><b>Migrations are needed only</b> for new columns or tables: LinkedIn links (item 4), a persisted head of family (item 1), and dropping score tables if item 10 deletes them.</li>
+        <li><b>Three copies of every analytics section.</b> The desktop page, the print view, and the mobile view each reference the same sections. Every UI change has to be made in all three.</li>
+        <li><b>Tests move with the code.</b> The project requires test-first work. The analytics page test asserts the exact section list, so adding or removing a section updates it.</li>
+        <li><b>Uncommitted change in your tree.</b> <code>test_overlap.py</code> has a one-line edit I did not make. I will leave it alone unless you say otherwise.</li>
+        <li><b>Redesign collision.</b> The shell-nav redesign is replacing the old dashboard view, so holdings table work (item 2) can collide with <code>feat/portfolio-page</code> and <code>feat/mf-frontend</code>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="li">
+    <div class="sec-head">
+      <h2 id="li">LinkedIn links for fund managers (item 4.4)</h2>
+      <p>This one needs more than a pick-one answer, because we have no LinkedIn data today and every way of getting it has a cost. First whether to do it at all, then how.</p>
+    </div>
+    <div class="twocol" id="liGeneral"></div>
+    <div class="decisions" id="liOptions"></div>
+  </section>
+
+  <section class="sec" aria-labelledby="dec">
+    <div class="sec-head">
+      <h2 id="dec">Decisions we need from you</h2>
+      <p>Each question below has a fixed set of options, the trade-offs of each, my recommendation and why. These are the places where the document conflicts with existing docs, or leaves something open. I will not build any of them until you choose.</p>
+    </div>
+    <div class="recap" id="recap" aria-label="Recommendations at a glance"></div>
+    <div class="decisions" id="decisions"></div>
+  </section>
+
+  <footer>Built from the PDF "Developer Change Requirements" and a read-only scan of the repository. No code was changed and nothing was committed.</footer>
+</div>
+
+<script>
+/* Deep-dive data: read from the redesign line (detached HEAD 23c26f77 = origin/leapswitch-redesign, 29 Oct 2026). */
+var CORRECTIONS = [
+ ["Branch", "The first briefing was written from <code>feat/shell-nav-switch</code>. The redesign line now holds the Individual Fund release (PRs #32 to #36), so windowed 1Y/3Y/5Y benchmark returns, the fund page and fund-vs-fund overlap exist. D1 is largely answered: build here."],
+ ["Where the UI lives", "Analytics moved. The live pages are <code>features/mutual-funds/*</code> (Overview, Performance, Allocation, Overlap, Holdings, Transactions, Other Analytics). The old <code>AnalyticsView</code> is imported only by a test; its print copy (<code>/print/analytics</code>, used by the PDF export) and the mobile copy still run. So each UI change lands on up to four surfaces, not three (see the surfaces map)."],
+ ["Item 8", "1-year returns already exist per fund and for every peer, with a per-period category average. Only the <em>rank</em> is blended (40% of 3Y, 60% of 5Y). Easier than briefed."],
+ ["Item 9", "The per-period category average (1Y/3Y/5Y) is already computed, weighted by fund size. Switching to a simple average is a few lines. The hard part is still the index-fund mapping."],
+ ["Item 2", "Per-fund XIRR is already stored: the <code>benchmark_funds</code> section holds it per scheme, for the combined scope and for each member scope. Consolidated XIRR and per-member XIRR can both be read from there, so no new XIRR engine is needed. Folio numbers exist in <code>folios</code> but the app masks them by default (fund page shows XXXXX1234 and reveals on request)."],
+ ["Item 10", "The Scorer is not only on the Analytics page. Home's &quot;Worth a look&quot; weak-fund cards, the Individual Fund score card, and the fund Insights engine all read the stored <code>score</code> section. Removing it from the Analytics page is easy; removing it everywhere is a bigger product call (new question D11)."],
+ ["Item 12", "The new Mutual Funds pages have no &quot;Include switches&quot; toggle at all (decision C132 dropped it from Transactions). Only the old section had one. The Performance page has a Lifetime/Current basis switch, which is a different thing (new question D19)."],
+ ["Item 1", "The <code>self</code> relationship is read in 9 backend files (auth, home, member merge, member profile, household members, profile completion, import deletion, people resolution, import service), not 5."],
+ ["Item 5C", "Debt and arbitrage funds already score zero overlap but still occupy rows and columns of the matrix, because the fund list is every fund with a disclosure. There is also no scheme search endpoint anywhere in the API, which the DIY picker (5B) needs."]
+];
+
+var SURFACES = [
+ ["New Mutual Funds pages", "frontend/src/features/mutual-funds/*", "Live. This is where the redesigned screens are. Overview (HoldingsTable), Performance (BenchmarkBlock, money card), Allocation (AssetClass, MarketCap, CategoryAmc, FundManager cards), Overlap (Heatmap, TopPairs, ImpactDonut, CommonHoldings, StockConcentration), Other Analytics (CostValuation, Scorer, CategoryRanking, FundRanking groups)."],
+ ["Individual Fund page", "frontend/src/features/individual-fund/*", "Live on staging. Own Manager block, Score card, Insights, Overlap tab, Performance and peers. Touched by items 4, 8, 9, 10."],
+ ["Print / PDF export", "features/analytics/print/PrintAnalyticsView.tsx", "Still the legacy layout. The Export PDF flow posts the stored payload to a print route. If we change a section and not this view, the PDF disagrees with the screen."],
+ ["Mobile", "frontend/src/mobile/features/analytics/MobileAnalyticsView.tsx", "Separate component tree behind the mobile bottom nav. Same story as print."],
+ ["Legacy desktop view", "features/analytics/AnalyticsView.tsx", "Only a test imports it now (shell/routes/wrappers.test.tsx). Candidate to leave alone or delete later."]
+];
+
+var SECTIONS15 = "allocation, ter, ter_direct_regular, benchmark, benchmark_funds, category_ranking, ranking, score, investment_withdrawal, fund_manager, stock_holdings, valuation, overlap, asset_allocation, cap_allocation";
+
+var RATINGS = [
+ ["01","Head of Family","Hard","Hard","Needs a new flag, a request table, two OTPs and an answer to what a head controls (D10)."],
+ ["02","Consolidated holdings","Hard","Medium to hard","Per-fund and per-member XIRR are already stored. New work: grouping, folios, expandable row, masked-folio rule."],
+ ["03","Market cap","Easy","Easy","One denominator fix plus dropping Other, on 4 surfaces."],
+ ["04","Fund manager","Medium","Medium","New manager table for LinkedIn, primary rule, amount rule."],
+ ["05","Equity overlap","Medium","Medium to hard","Equity filter, 35% highlight, plus a new DIY endpoint and a fund search that does not exist yet."],
+ ["06","Remove Stock Concentration","Easy","Easy","Small code, several surfaces."],
+ ["07","P/E and P/B","Medium","Medium","Per-fund loop over data already loaded; verification is the real work."],
+ ["08","Performance ranking","Medium","Easy to medium","Period returns already exist; add a rank per period."],
+ ["09","Category average","Medium","Medium","Simple average is trivial. Index-fund mapping is the work."],
+ ["10","Remove Scorer / Composite","Easy","Medium","Home and the fund page also read the score (D11)."],
+ ["11","Benchmark audit","Medium","Medium","Windowed engine exists. Two solvers and two window definitions to reconcile (D18)."],
+ ["12","Switches visible","Easy","Unclear","The toggle is not in the new UI (D19)."],
+ ["13","Asset allocation","Medium","Medium","Add Real Estate class, fold cash, remove outer ring."]
+];
+
+var DEEP = [
+{ n:"01", t:"Head of Family", rating:"Hard", er:"er1",
+  where:["backend/app/models/user.py (HouseholdMember, partial unique index one self row per user, migration 0011)","backend/app/services/auth/otp.py (create_otp_request, verify_otp; email via SES, phone is a dev stub)","backend/app/services/dashboard/household_members.py and the 8 other files that read relationship = self","frontend/src/features/profile/* (Family page, PR-C)"],
+  before:["Sign-up creates a users row and an auth_identities row (phone, email or Google).","Onboarding creates exactly one household_members row with relationship self. The database allows only one per user.","A CAS import that finds other people creates rows with origin cas_detected and no relationship. Nobody is made head automatically (1.1 already holds).","A member's phone and email are typed by the user, unverified, and not unique (decision Q8).","OTP exists only to log in or to link an identity."],
+  after:["Profile > Family shows a Head badge on one member and a Change head button.","User picks a member and confirms that member's email (phone later, when an SMS provider exists).","The app sends one OTP to the current head's verified email and one to the new head's email. Both are shown as separate boxes.","The change stays pending until both codes verify, with an expiry (suggest 10 minutes) and a limit on wrong tries.","One database transaction moves the head flag, writes an audit row, and emails both people. A pending request can be cancelled."],
+  backend:["Migration 0047: <code>household_members.is_head boolean not null default false</code>, a partial unique index on (user_id) where is_head, and a backfill that sets is_head on each user's self row.","New table <code>head_change_requests</code> (see ER): from and to member, two OTP references, two verified-at timestamps, status, expiry. Only one open request per user (partial unique index on status = pending).","Add a <code>purpose</code> column to <code>otp_requests</code> (default login) so head-change codes cannot be replayed as login codes. Alternative: store the two code hashes on the request row itself and leave otp_requests untouched (lower regression risk; see D10 follow-up).","Endpoints: POST /household/head-change (start, sends both codes), POST /household/head-change/{id}/verify with party current or new, POST /household/head-change/{id}/cancel, GET /household/head-change/pending. GET /auth/me gains head_member_id.","Service <code>head_change.py</code> does the swap atomically and calls the same invalidation paths member merge uses (holdings cache, analytics recompute claim).","Guards: no target with an unresolved pan_conflict, no target equal to current head, throttle starts per user per day."],
+  frontend:["Family page: Head badge, Change head button, a three-step dialog (choose member, enter two codes, confirm), pending banner with cancel.","Use the existing OTP input component from auth; copy must say which email each code went to.","No change to onboarding."],
+  db:["Two new columns, one new table, one partial index. No data loss. Downgrade drops them."],
+  tests:["Backfill leaves exactly one head per user and it is the self row.","A second head for the same user is rejected by the index.","A CAS-detected member never becomes head by any import path (regression for 1.1).","Start twice returns 409 while one is pending.","Wrong code increments attempts and locks at the limit; expired request changes nothing.","Both codes are required; one alone leaves heads unchanged.","Inject a failure in the middle of the swap: no flag changes.","A head-change code cannot be used to log in, and a login code cannot complete a head change."],
+  risks:["Phone OTP has no real provider (only a dev stub), so phone cannot be one of the two proofs at launch.","Member emails are unverified and can be shared; an OTP proves control of an inbox, not consent of the person.","No PRD or ADR covers a head. PAN uniqueness and PAN matching decisions (2026-09-18, 09-24) still apply to the new head.","What the head actually controls is undefined (D10)."],
+  qs:"D3, D10" },
+
+{ n:"02", t:"Consolidated family holdings", rating:"Medium to hard", er:"er2",
+  where:["backend/app/services/dashboard/holdings.py (compute_holdings, one HoldingRow per member per scheme)","backend/app/models/folio.py (folios: member, scheme, folio_key, folio_number)","backend/app/services/fund_page/folios.py (mask_folio, full_folio_number)","frontend/src/features/mutual-funds/overview/HoldingsTable.tsx (row key scheme:member; XIRR column read from benchmark_funds)"],
+  before:["Combined view lists one row per member per fund, so the same fund held by two members appears twice.","Each row shows units, average NAV, invested, value, unrealised gain, XIRR (the household XIRR for that fund, repeated on both rows). Realised gain is computed but not shown.","Folio numbers are not in the HoldingRow at all; they are dropped when holdings are grouped.","Clicking a row opens the fund page (PR #36)."],
+  after:["Combined view shows one row per fund with summed units, invested, value, realised and unrealised gain, average price (invested / units) and the household XIRR for that fund.","A plus button expands the row into one line per member with the same columns and the member's own XIRR.","Each expanded line shows the folio number(s) of that member in that fund, masked by default.","Member view is unchanged (one member only)."],
+  backend:["Extend the holdings response additively: a <code>consolidated</code> list built after compute_holdings, grouped by scheme_id (Direct and Regular are different schemes, so they correctly stay apart). Sums are Decimal; average price is recomputed from the sums, never averaged.","Add <code>folios: [{folio_id, folio_masked, units, invested, value}]</code> to each member row. Per-folio numbers come from the same FIFO pass that already runs per folio (<code>_process_folio_lots</code>).","XIRR: no new engine. Combined-scope <code>benchmark_funds</code> gives the consolidated rate; member-scope rows give each member's rate. If a member scope has no stored row yet, show a dash, not a guess.","Keep the opening-balance disclaimer rule: a fund whose XIRR comes from a flagged scope inherits the disclaimer.","Cache: the holdings cache is keyed by member set; the consolidated list is derived from it, so it needs no new key."],
+  frontend:["HoldingsTable: group rows, add an expand control with aria-expanded and keyboard support, keep the mobile card layout (expand inside the card).","Add Realised gain and Folio columns to the expanded lines; decide whether the parent row also shows Realised (needs width design).","Reveal button for a full folio number calls the existing fund-page endpoint.","Row click on the parent row still opens the fund page for the combined scope."],
+  db:["None. Everything is derived from folios, transactions, schemes and stored analytics sections."],
+  tests:["Two members, one fund: one parent row; units, invested, value equal the sum of the children to the paisa.","Average price of the parent equals invested / units, not the mean of child prices.","Parent XIRR equals the stored combined-scope rate; child XIRR equals the member-scope rate.","Direct and Regular plans of one fund stay as two parents.","A fund held by one member is a parent with one child.","Masked folio by default; full number only through the reveal endpoint and only for the owner's folios.","A fund with a stale or missing NAV keeps its existing stale and nav_unavailable flags on parent and child."],
+  risks:["Folio numbers are personal data the app masks by default; showing them in a table is a privacy choice (D20).","Consolidated XIRR must come from merged cash flows, which the combined scope already does; do not average member rates.","The table is already wide; two extra columns need a design pass against the mockup PDF.","Member-scope stored sections cover up to 4 members; a household with more has no per-member XIRR."],
+  qs:"D20" },
+
+{ n:"03", t:"Market Cap Allocation", rating:"Easy", er:null,
+  where:["backend/app/services/analytics/cap_allocation.py (build_cap_allocation)","frontend/src/features/mutual-funds/allocation/MarketCapCard.tsx","the same data also sits inside asset_allocation (equity_outer ring)"],
+  before:["Equity holdings are grouped LARGE, MID, SMALL from the AMFI list, plus OTHER for stocks with no bucket.","percentage_equity for each bucket divides by all equity, including unclassified stocks, so Large + Mid + Small is below 100.","The OTHER bucket also absorbs non-equity value in its portfolio total, and international equity (no AMFI bucket) falls into it.","The chart and list show Other."],
+  after:["Three slices only: Large, Mid, Small, adding to 100% of classified equity.","A small note shows the unclassified share (for example 6% of equity not classified), as a tooltip or one line."],
+  backend:["Add additive fields: <code>percentage_classified</code> per bucket (value / sum of the three) and <code>unclassified_share_pct</code>. Keep old fields so stored payloads and Home keep working.","Last bucket takes the rounding remainder so the three always add to exactly 100.00.","Leave the OTHER row in the payload (drill-downs and Home read it); the UI simply stops drawing it."],
+  frontend:["MarketCapCard, print and mobile: remove the Other slice and legend row, switch to percentage_classified, add the note.","Handle zero classified equity (all funds debt, or all international): show an empty state, not NaN."],
+  db:["None."],
+  tests:["Buckets with unclassified stocks still add to 100.00.","All equity unclassified returns an empty state.","Rounding remainder lands on one bucket and the sum is exact.","Old payload without the new fields renders without crashing (frontend tolerance)."],
+  risks:["Funds of international stocks look unclassified; the chart would then say nothing about them (D21).","Same calculation feeds item 13, so build 3 and 13 together."],
+  qs:"D8, D21" },
+
+{ n:"04", t:"Fund Manager", rating:"Medium", er:"er4",
+  where:["backend/app/models/reference.py (SchemeFundManager: manager_name, role, sequence_order, reference_period)","backend/app/services/analytics/fund_manager_allocation.py","backend/app/services/fund_page/manager.py","frontend/src/features/mutual-funds/allocation/FundManagerCard.tsx and individual-fund Manager block"],
+  before:["The monthly factsheet import stores one row per manager per fund per month. Role is the source's own label or empty; sequence_order 0 is first listed.","The Allocation card groups by (manager, AMC) and splits each fund's value equally across all its managers, so the card lists every manager.","No manager entity exists: the same person is a text value repeated on every fund and every month. No LinkedIn data anywhere.","Ten fund houses are imported by hand each month and five have no factsheet (Priority 1), so manager data is thin for them."],
+  after:["Each fund shows only its primary manager: name, AMC, share of portfolio, rupee amount, LinkedIn link when we have a verified one.","Co-managed funds carry a short note such as managed with 2 others (D7).","The individual fund page keeps showing the whole team with tenure (D13)."],
+  backend:["Primary rule: the manager whose role says lead or fund manager (not assistant, not co-); else sequence_order 0. Put the rule in one function with a test table of real role strings from the data.","Amount: the primary gets the fund's full household value (D7); drop the equal split for the card.","Migration 0048: new table <code>fund_managers</code> (name_key, amc_name, linkedin_url, verified_on, verified_by). Join to scheme_fund_managers on normalised name plus AMC; do not add a foreign key, because the monthly importer writes plain strings.","Name normaliser (case, dots, honorifics, double spaces) shared by importer and lookup; a report of unmatched names.","Count distinct (name, AMC) pairs first: that number decides if a hand list is realistic."],
+  frontend:["Card: single-row layout per fund or per manager (to confirm with the mockup PDF), LinkedIn icon opening a new tab with rel noopener, hidden when no link.","Print and mobile copies."],
+  db:["One new reference table, one migration. Seed file for verified links reviewed by a person."],
+  tests:["Role strings: Fund Manager, Lead, Assistant Fund Manager, Co-Fund Manager, empty; each picks the expected primary.","Value of a fund is not split; manager totals add to at most the portfolio value.","Same person across two funds sums correctly.","Name variants map to one fund_managers row.","No LinkedIn link renders when verified_on is empty."],
+  risks:["A wrong profile link is a trust and reputational risk; show nothing when unsure.","First-listed is a guess when no role label exists (ABSL leaves every name unlabeled).","Factsheets carry no LinkedIn links, so every link is a manual task."],
+  qs:"D7, D13, LinkedIn" },
+
+{ n:"05", t:"Equity Fund Overlap", rating:"Medium to hard", er:null,
+  where:["backend/app/services/analytics/overlap.py (compute_overlap, bands 20 and 40, matrix capped at 12 funds)","backend/app/services/fund_page/overlap.py (fund-vs-fund for held funds)","frontend/src/features/mutual-funds/overlap/* (Heatmap, TopPairs, ImpactDonut, CommonHoldings, StatStrip, PairDetail, StockConcentration)"],
+  before:["The fund list is every held fund with a published disclosure, debt included. A debt fund has no stock rows, so its overlap is 0 but it still takes a row and column.","Overlap of two funds is the sum over shared stocks of the smaller weight (percent of net assets).","Two bands (20 and 40) colour the heatmap; a separate list shows pairs above 20; three impact pairs drive a donut.","Only held funds can be compared; the maximum matrix is 12 funds."],
+  after:["Equity funds only (D14). Excluded categories never appear.","One highlight at about 35%, an info button that explains how to read overlap, and no separate above-20 list.","A DIY mode: search and pick 2 to 5 funds (any fund with published holdings, D9) and see the pairwise matrix.","Optional category-wise view for funds in the same SEBI category."],
+  backend:["5C: filter <code>scope.selected</code> by category before building the matrix (constant allowlist in one place, see D14). Excluded funds go in a <code>excluded_funds</code> list with reason, so the UI can say why a held fund is missing.","5A: replace OVERLAP_BAND_LOW and HIGH with one <code>highlight_threshold = 35</code> in <code>bands</code> (keep the field name so the frontend reads it); drop <code>pairs_above_low</code> and decide on <code>impact_pairs</code> (D15). Mixed-version payloads must still load.","5B: new endpoint <code>POST /analytics/overlap/diy {scheme_ids: 2..5}</code>. Loads the latest disclosure batch per scheme, reuses <code>_stock_weights</code> and <code>compute_fund_pair_overlap</code>. Rate-limit and cap at 5 schemes. Returns the same pair shape.","New <code>GET /schemes/search?q=</code> (name, AMC, category, only schemes with a disclosure). No search endpoint exists today.","Category view: group by <code>canonical_category</code> (already used by ranking)."],
+  frontend:["Overlap page: one-threshold heatmap, info popover, DIY tab with fund picker (2 to 5, accessible combobox) and a clear message when a chosen fund has no holdings yet.","Print and mobile copies; the current 20/40 legend goes."],
+  db:["None. Disclosures are already in disclosure_batches and scheme_holdings."],
+  tests:["Debt, overnight, liquid, low-duration and arbitrage funds are excluded; an index fund and a flexi cap are not.","Pair at 34.9 is not highlighted, 35.0 is (decide the boundary and test it).","DIY with 1 or 6 funds is rejected; 2 and 5 work.","DIY result for two held funds equals the portfolio matrix cell for the same pair.","Funds without a disclosure return a named reason, not an error.","Search returns only schemes with holdings."],
+  risks:["Funds from fund houses we have not imported have no data (Priority 1 factsheet gaps).","The fund-page Overlap tab (PR #33) already compares held funds: avoid two overlap UIs that disagree.","Arbitrage funds hold equity plus futures; they would show fake overlap if not excluded."],
+  qs:"D9, D14, D15" },
+
+{ n:"06", t:"Remove Stock Concentration", rating:"Easy", er:null,
+  where:["frontend/src/features/mutual-funds/overlap/StockConcentration.tsx","backend overlap.py: compute_concentration, ConcentrationPoint, total_stock_count"],
+  before:["The Overlap page ends with a Stock Concentration card (curve of top 5, 10, 20, 50 stocks) and a link to the full stock list on the Holdings page.","The legacy Overlap card, print and mobile views hold the same block."],
+  after:["The card and its link are gone. The Holdings page keeps its All Stocks table."],
+  backend:["Stop computing the curve and delete the payload fields <em>after</em> every surface is updated (additive-removal order: UI first, backend second, so old clients never break).","Home reads concentration facts from stored stock_holdings, not from this field; confirm by test before deleting."],
+  frontend:["Delete the component, its test, its fixtures and the helper that builds the Holdings link.","Remove from the legacy section, print view and mobile view."],
+  db:["None."],
+  tests:["Overlap page no longer renders the card (update the section list test).","Home Worth a look still renders its concentration card.","Payload without the fields still parses."],
+  risks:["The briefing's note stands: it is a card inside the Overlap page, not a tab. Confirm with the manager that Overall Stock Holdings stays."],
+  qs:"" },
+
+{ n:"07", t:"P/E and P/B", rating:"Medium", er:null,
+  where:["backend/app/services/analytics/valuation.py (harmonic weighted ratio, 70% coverage floor)","backend/app/models/reference.py (StockMaster: pe_ratio, pb_ratio, pb_source, as_of_date)","frontend/src/features/mutual-funds/other/CostValuationGroup.tsx and ValuationSpectrum.tsx"],
+  before:["One portfolio-level P/E and P/B from all equity look-through rows, compared with Nifty 50 and Nifty 500.","Stocks with no valid positive ratio are listed as missing; below 70% of equity value the ratio is hidden.","Data: NSE daily file, then Yahoo, then screener.in for P/B (pb_source says which)."],
+  after:["A table of funds, each with its own P/E and P/B, coverage and data date.","An info button explaining both ratios in plain words, and a disclaimer that they are indicators, not buy or sell signals.","The portfolio line against the index may stay as a header (D16)."],
+  backend:["Add <code>funds: [ValuationFund]</code> to ValuationSummary (additive). Loop over <code>scope.selected</code>, weights = fund value x pct_to_nav, same harmonic formula, same 70% floor per fund.","Report fund coverage and the oldest as-of date per fund.","Verification script (read-only): compare StockMaster against the NSE index PE/PB files and against the fund factsheets' own reported P/E, and write the differences to a report. No data is changed."],
+  frontend:["Replace the single spectrum with a fund table plus optional portfolio headline; info popover; disclaimer text; print and mobile copies."],
+  db:["None."],
+  tests:["A fund with 100% valid ratios equals the hand-computed harmonic value.","A fund below 70% coverage shows no ratio and a reason.","A fund holding a loss-making stock excludes it and says so.","Portfolio ratio still equals the old computation (regression)."],
+  risks:["Factsheets may use an arithmetic weighted P/E; ours is harmonic, so numbers can differ legitimately (D17).","Do not claim exact accuracy; say where the data comes from and when."],
+  qs:"D16, D17" },
+
+{ n:"08", t:"Performance Ranking", rating:"Easy to medium", er:null,
+  where:["backend/app/services/analytics/category_ranking.py (_category_returns_detailed returns r1, r3, r5, blended)","backend/app/services/analytics/scheme_universe.py (CategoryPeers, canonical_category, representative_of)","frontend/src/features/mutual-funds/other/CategoryRankingGroup.tsx; individual fund peers"],
+  before:["Each held fund is ranked inside its SEBI category and plan type (Direct with Direct) on a blended return: 40% of 3Y and 60% of 5Y, or 100% of 3Y if no 5Y.","Per period the payload already carries the fund's return, the category average and the peer count, but no rank.","Funds without 3 years of history are not ranked at all.","Index funds share one category of about 1,150 funds."],
+  after:["Heading Performance Ranking. A table with a column each for 1Y, 3Y and 5Y showing Rank / Total (for example 2/25).","No blended score shown. A fund too young for a period shows not enough history.","Index funds: not ranked, compared to the index instead (D5)."],
+  backend:["For each period, rank within the pool of peers that have that period (pools differ per period, so Total differs per period). Extend PeriodReturn with <code>rank</code> and <code>total</code>.","Keep <code>category_rank</code> and the blend for now because Home and the fund Insights read them; remove only from the screen.","Relax the 3Y floor so a fund with 1Y only can still show a 1Y rank.","Index funds: set <code>ranking_mode = vs_index</code> and skip ranking (needs the mapping from item 9)."],
+  frontend:["Three-column table, Rank / Total, tooltip with the peer count and plan type, a clear state for no history and for index funds; print and mobile copies; fund page peers block keeps its own view."],
+  db:["None."],
+  tests:["Rank and total per period against a hand-built five-fund category.","A fund with only 1Y history gets a 1Y rank and dashes for 3Y and 5Y.","Ties get the same rank (decide and test).","Wound-up funds with NAV 0 are excluded from the pool.","Direct fund is never ranked against Regular peers."],
+  risks:["Ranks use exact calendar years back from today, while item 11 windows start at the last month end (D18).","Cost: a 1Y rank needs NAV for every peer, but the detailed returns already compute it and are cached 15 minutes."],
+  qs:"D5, D18" },
+
+{ n:"09", t:"Category Average Comparison", rating:"Medium", er:"er9",
+  where:["category_ranking.py (category_period_averages, AUM-weighted)","backend/app/services/analytics/benchmark.py (_benchmark_index_for_category: name keywords to 4 indices, else Nifty 500)","backend/app/services/fund_page/benchmark_select.py (equity only)","backend/app/models/enums.py (BenchmarkIndex now has 8 indices)"],
+  before:["Per period the category average is weighted by each fund's AMFI average AUM.","A fund's benchmark is guessed from its category name; Nifty 500 is the fallback. No table says which index a given index fund tracks.","Eight indices exist in the enum; history for the four new ones was added in migration 0045."],
+  after:["Active funds: fund return against the simple average of all funds in the category (same plan type), for 1Y, 3Y, 5Y.","Index funds: fund return against the index the fund tracks, same periods.","Each fund shows which comparator was used."],
+  backend:["Add a simple average next to the weighted one in <code>category_period_averages</code>; the API exposes the simple one as the comparator (D4). Keep the weighted figure in the payload until the manager signs off.","Migration 0049: <code>scheme_tracked_index</code> (scheme_id, index_name, source, verified_on). Seeded by a parser over scheme names (Nifty 50, Nifty Next 50, Midcap 150, Smallcap 250, Sensex, etc.), then hand-checked; unmapped index funds show a not-available reason, never Nifty 500 by default.","If a tracked index has no history table, list it as a data gap rather than faking it.","Return basis (D18): compare point-to-point NAV return with index return over the same dates."],
+  frontend:["Comparison row per fund and period with a label for the comparator; print and mobile copies; fund page peers block already shows category lines, align labels."],
+  db:["One new reference table (see ER) plus seed data."],
+  tests:["Simple average of a six-fund category equals the hand value; the weighted one is unchanged.","An index fund with a mapping compares to its index; without one it says why.","Index funds never fall back to Nifty 500.","Mapping parser table test of 30 real scheme names including Next 50, Sensex, Midcap 150 and international index funds."],
+  risks:["A wrong mapping prints a wrong number with confidence; the hand check is the control.","Weighted to simple average changes figures users have already seen."],
+  qs:"D4, D5, D18, D24" },
+
+{ n:"10", t:"Remove Scorer and Composite Ratings", rating:"Medium", er:"er10",
+  where:["backend sections score (scorer.py) and ranking (fund_ranking.py); models FundScore, SchemeRanking, RankingWeight","routes GET /analytics/funds/{id}/score and /ranking","consumers: home/worth.py (weak-fund cards), fund_page/score.py and insights/engine.py, dashboard/nav.py","frontend: mutual-funds/other/ScorerGroup and FundRankingGroup, individual-fund/overview/ScoreCard, legacy ScorerSection, FundRankingSection, FundScoreCard, FundScoreDetailModal, ScoreExplainer"],
+  before:["Scorer (45/30/25 tier) and Composite Ratings (3Y 25, 5Y 25, category-relative 20, volatility 15, TER 15) show on Other Analytics.","The same stored score feeds Home Worth a look, the fund page score card, and fund Insights.","Both are computed on every recompute for every scope."],
+  after:["Per D2 and D11: both sections gone from Other Analytics, print and mobile; scope beyond that is a product call.","Computation stops only when nothing else reads it."],
+  backend:["Step 1 (safe now): remove <code>score</code> and <code>ranking</code> from what the Analytics pages show.","Step 2 (after D11): if Home and the fund page also drop it, remove both specs from <code>_SECTIONS</code> in recompute.py, delete the two routes, and make Home and insights skip score-based facts.","Step 3 (only if deleting, D2 option B): migration to drop fund_scores, scheme_rankings, ranking_weights; update the staging data-wipe scripts that name them."],
+  frontend:["Delete or unwire the groups, update the Other Analytics page section list test, print and mobile views, and the fund page score card if D11 says so."],
+  db:["Hide-only: none. Delete: one migration dropping three tables."],
+  tests:["Other Analytics renders without both groups.","Recompute no longer writes the two sections (if stopped), existing rows are ignored by readers.","Home Worth a look still builds with no score row.","Fund Insights engine handles a missing score fact."],
+  risks:["Conflicts with PRD-04 and the decisions of 2026-08-13 and 2026-10-06 where the score was called the differentiator; docs must change.","Removing score facts from Insights changes copy users saw.","Scorer V2 plan becomes moot."],
+  qs:"D2, D11" },
+
+{ n:"11", t:"Benchmark Comparison audit", rating:"Medium", er:null,
+  where:["backend/app/services/analytics/benchmark.py (legacy replay) and benchmark_windows.py (1Y/3Y/5Y/SI, month-end start, xirr_fast)","decisions C20, C42, C45, C116 in the redesign register","frontend/src/features/mutual-funds/performance/BenchmarkBlock.tsx"],
+  before:["Portfolio and fund comparisons replay each transaction against the index on the same date and compute an XIRR for both.","Windows start at the month end N years before the last completed month end, so a 1Y window is 12 to 13 months, not a calendar year.","Two solvers: the legacy one and a faster one for windows; they agree to about 1e-8 for windows and exactly for since-inception.","Switches are excluded from portfolio rollups and included per fund."],
+  after:["A written audit with a test that feeds known cash flows and compares to a hand-computed answer for portfolio and fund, for each window.","A short in-app method note explaining windows and flows.","Any differences found are listed before any number changes."],
+  backend:["Golden tests: one fund with three purchases and a sale; the index replay must match a spreadsheet to the paisa.","Check the oversold-replay case (C116) and the opening-balance window case.","Report the data gap: benchmark history depth (about 10 years) means older purchases drop out of since-inception comparisons."],
+  frontend:["Method note near the benchmark block; label the window start date beside 1Y, 3Y, 5Y (the code already returns start_date)."],
+  db:["None."],
+  tests:["Hand-built golden for each window and for since-inception.","Legacy and window solvers agree within the stated tolerance.","Opening-balance inside a window shows unavailable with a reason.","A fully redeemed fund does not show a meaningless benchmark."],
+  risks:["An audit can change numbers users already saw.","Window label vs ranking years mismatch (D18)."],
+  qs:"D18" },
+
+{ n:"12", t:"Investment and Withdrawal switches", rating:"Unclear", er:null,
+  where:["legacy: features/analytics/InvestmentWithdrawalSection.tsx and investmentWithdrawalMath.ts","new UI: Performance page money card (investment_withdrawal section), Transactions CashFlowStrip (Net switched tile)","backend: investment_withdrawal.py"],
+  before:["The legacy section has an Include switches button, off by default, with a weak visual state.","The new Mutual Funds pages have no include-switches toggle (decision C132). Transactions has a Net switched tile that filters the ledger.","Net invested and absolute gain exclude switches even when the toggle is on."],
+  after:["A visible switch control with the label Switches: Included or Excluded, plus one line saying which figures change.","Placement in the new UI is undecided (D19)."],
+  backend:["Check whether investment_withdrawal already returns both with-switch and without-switch figures for the new page; if not, add them additively."],
+  frontend:["A real switch component (role switch, visible text state, not colour alone); print view keeps switches excluded and says so."],
+  db:["None."],
+  tests:["State text matches aria state.","Toggling changes the listed figures and leaves net invested unchanged.","Print always shows Excluded."],
+  risks:["If the toggle is absent in the new UI, the request may be about the old screen only (D19)."],
+  qs:"D19" },
+
+{ n:"13", t:"Look-Through Asset Allocation", rating:"Medium", er:null,
+  where:["backend/app/services/analytics/asset_allocation_lookthrough.py (ASSET_CLASS_MAP, arbitrage variant)","models/enums.py (AssetType has reit_invit as one value)","frontend/src/features/mutual-funds/allocation/AssetClassCard.tsx"],
+  before:["Classes: equity (domestic, international and REIT/InvIT), debt, gold, cash-like. Derivatives and unknown lines are excluded and counted in a coverage note.","An outer ring splits equity into Large, Mid, Small, Other.","An arbitrage-funds-as-cash toggle gives a second variant.","Percentages use the covered value as denominator."],
+  after:["Four classes: Equity, Gold, Debt, Real Estate, no market-cap ring."],
+  backend:["Map reit_invit to a new class <code>real_estate</code> (D6); fold cash_equivalent into debt, or keep as a hidden fifth if D6 says so.","Remove <code>equity_outer</code> and the embedded <code>cap_allocation</code> from the section after the UI stops reading them (market cap lives on its own card, item 3).","Decide the arbitrage toggle: keep or drop (a simplification item)."],
+  frontend:["AssetClassCard, print and mobile: four slices, no outer ring; label Real Estate (REITs and InvITs); note that cash is included under Debt."],
+  db:["None."],
+  tests:["REIT row lands in real_estate, not equity.","Cash lines add to debt and total stays 100.","Uncovered funds stay excluded and the coverage note still shows.","Class percentages add to 100 within rounding."],
+  risks:["InvITs are often infrastructure, not property.","Funds with no disclosure are excluded, so the pie may not match portfolio value."],
+  qs:"D6" }
+];
+
+var ER = {
+ er1: { w:760, h:300, ents:[
+   {id:"u", x:20, y:20, w:190, t:"users", f:[["id","PK"],["email",""],["phone_number","unique"]]},
+   {id:"m", x:290, y:20, w:220, t:"household_members", f:[["id","PK"],["user_id","FK users"],["relationship","enum"],["origin","enum"],["is_head","NEW bool","n"],["email, phone","unverified"]], mod:true},
+   {id:"h", x:560, y:20, w:190, t:"head_change_requests", nw:true, f:[["id","PK"],["user_id","FK"],["from_member_id","FK"],["to_member_id","FK"],["current_verified_at",""],["new_verified_at",""],["status, expires_at",""]]},
+   {id:"o", x:290, y:210, w:220, t:"otp_requests", f:[["id","PK"],["email or phone",""],["otp_hash, attempt_count",""],["purpose","NEW text","n"]], mod:true}
+  ], links:[["u","r","m","l","1 to many"],["m","r","h","l","from / to"],["h","b","o","r","2 codes"]],
+  note:"Highlighted rows are new. Partial unique index: one is_head row per user; one pending request per user."},
+ er2: { w:760, h:250, ents:[
+   {id:"m", x:20, y:20, w:180, t:"household_members", f:[["id","PK"],["name",""]]},
+   {id:"f", x:250, y:20, w:200, t:"folios", f:[["id","PK"],["household_member_id","FK"],["scheme_id","FK"],["folio_number","masked in UI"],["folio_key","unique per member+scheme"]]},
+   {id:"t", x:500, y:20, w:200, t:"transactions", f:[["id, date","PK"],["folio_id","FK"],["type, amount, units",""]]},
+   {id:"s", x:250, y:170, w:200, t:"schemes", f:[["id","PK"],["name, plan_type",""]]},
+   {id:"c", x:500, y:150, w:240, t:"Consolidated row (computed)", nw:true, f:[["group by","scheme_id"],["children","one per member"],["folios","masked list"]]}
+  ], links:[["m","r","f","l","1 to many"],["f","r","t","l","1 to many"],["f","b","s","t","many to 1"],["t","b","c","t","summed"]],
+  note:"No table changes. The consolidated row is built in code from these four tables and the stored benchmark_funds section."},
+ er4: { w:760, h:250, ents:[
+   {id:"s", x:20, y:20, w:170, t:"schemes", f:[["id","PK"],["amc_name",""],["sebi_category",""]]},
+   {id:"g", x:250, y:20, w:240, t:"scheme_fund_managers", f:[["scheme_id","FK"],["manager_name","text"],["role","text or null"],["sequence_order","0 = first"],["reference_period","month"]]},
+   {id:"x", x:540, y:20, w:200, t:"fund_managers", nw:true, f:[["name_key","normalised"],["amc_name",""],["linkedin_url",""],["verified_on, verified_by",""]]}
+  ], links:[["s","r","g","l","1 to many"],["g","r","x","l","join on name_key + AMC (no FK)"]],
+  note:"The importer keeps writing plain names. The join is by a shared normaliser, so a spelling change never breaks an import."},
+ er9: { w:760, h:250, ents:[
+   {id:"s", x:20, y:20, w:170, t:"schemes", f:[["id","PK"],["name",""],["sebi_category",""]]},
+   {id:"i", x:250, y:20, w:240, t:"scheme_tracked_index", nw:true, f:[["scheme_id","PK, FK"],["index_name","BenchmarkIndex"],["source","parser or manual"],["verified_on",""]]},
+   {id:"b", x:540, y:20, w:200, t:"benchmark_index_history", f:[["index_name, date","PK"],["return_type","tri/pe/pb"],["value",""]]}
+  ], links:[["s","r","i","l","0 or 1"],["i","r","b","l","by index_name"]],
+  note:"Index funds without a row show a not-available reason. Active funds do not use this table."},
+ er10: { w:760, h:250, ents:[
+   {id:"s", x:20, y:20, w:170, t:"schemes", f:[["id","PK"]]},
+   {id:"a", x:250, y:20, w:200, t:"fund_scores", f:[["scheme_id, computed_at","PK"],["final_score, tier",""]]},
+   {id:"b", x:500, y:20, w:240, t:"scheme_rankings", f:[["scheme_id, computed_at","PK"],["composite_score, category_rank",""]]},
+   {id:"c", x:500, y:150, w:240, t:"ranking_weights", f:[["id","singleton"],["five weights",""]]}
+  ], links:[["s","r","a","l",""],["a","r","b","l",""]],
+  note:"Hide-only (D2 option A) leaves all three tables untouched. Delete (option B) drops them in one migration."}
+};
+
+var PIPE = [
+ ["Transactions, folios", "CAS import"],
+ ["compute_* services", "holdings, look-through, benchmark, ranking, valuation"],
+ ["analytics_sections", "one JSON payload per user, scope, section"],
+ ["GET /analytics/{scope}", "plain row read"],
+ ["4 surfaces", "MF pages, print, mobile, fund page"]
+];
+
+var NEW_DECISIONS = [
+ { id:"d10", tag:"D10 · Item 1", q:"What does being Head of Family actually control?",
+   ctx:"The app has one login per household. Members are people inside that account, not separate accounts. The PDF asks for OTP from both the old and the new head, which suggests authority is handed over. But the data has nowhere to hand it to unless the new head gets their own login.",
+   opts:[
+    {n:"A label plus approval authority inside the same account", pro:["No new accounts or login moves","Fits the data as it is","Head can be shown on the Family page and in approvals later"], con:["Head has no extra power today, so the change is mostly symbolic","Needs a later decision on what approvals exist"]},
+    {n:"Move the account login to the new head", pro:["Matches the idea of handing over the family","Real consequence for the OTP step"], con:["Rewrites auth identities and sessions","High risk, touches PAN and consent records","Not described in any PRD or ADR"]},
+    {n:"Label only, no OTP", pro:["Simple"], con:["Contradicts the request for two OTPs"]}],
+   rec:0, why:"It is the only option that fits the current model and still delivers the two-OTP safeguard. Keep the login with the account holder, show the head, and decide later what the head can approve." },
+ { id:"d11", tag:"D11 · Item 10", q:"Does removing the Scorer also remove it from Home and the Individual Fund page?",
+   ctx:"The same stored score drives Home's Worth a look weak-fund cards, the Individual Fund score card and the fund Insights. The PDF only says remove the Scorer and Composite Ratings, in the context of the Analytics page.",
+   opts:[
+    {n:"Hide the two Analytics sections only, keep computing and keep Home and fund page", pro:["Small, safe change","Nothing else breaks","Matches the PDF literally"], con:["The product still shows scores elsewhere","Users may see a score and ask where the section went"]},
+    {n:"Remove the score everywhere users see it, stop computing", pro:["Consistent product","Cheaper recompute"], con:["Changes Home and fund Insights copy","About 20 files, more tests","Needs the manager to confirm"]},
+    {n:"Ask the manager first", pro:["Avoids rework"], con:["Blocks a quick win"]}],
+   rec:0, why:"Do the part that is clearly asked for now and ask the manager about Home and the fund page in parallel. The computation stays because other screens read it." },
+ { id:"d12", tag:"D12 · All items", q:"Which screens get each change: new pages only, or also print and mobile?",
+   ctx:"Analytics now lives on the new Mutual Funds pages. The PDF export still uses the old print layout and the phone app still has its own analytics view. A change made on one surface only makes the others disagree.",
+   opts:[
+    {n:"New Mutual Funds pages plus the PDF print view", pro:["PDF and screen agree","Mobile can follow in a second pass"], con:["Mobile stays out of date for a while"]},
+    {n:"New pages only", pro:["Fastest"], con:["PDF and mobile show removed or old sections"]},
+    {n:"New pages, print and mobile", pro:["Everything agrees"], con:["Largest effort","Mobile status unclear"]}],
+   rec:0, why:"The PDF is a document users share, so it must match the screen. Mobile needs a separate decision from the manager about whether it still ships." },
+ { id:"d13", tag:"D13 · Item 4", q:"Does the primary-manager change apply to the Individual Fund page too?",
+   ctx:"The Allocation card groups the household by manager. The fund page has a separate Manager block that lists the whole team with tenure.",
+   opts:[
+    {n:"Allocation card only; the fund page keeps the whole team", pro:["Matches the PDF wording","The team view is useful on a single fund"], con:["Two different manager views"]},
+    {n:"Both show only the primary", pro:["Consistent"], con:["Loses tenure and team information"]}],
+   rec:0, why:"The card answers who runs my money; the fund page answers who runs this fund. They serve different jobs." },
+ { id:"d14", tag:"D14 · Item 5C", q:"Which funds count as equity funds for overlap?",
+   ctx:"The PDF excludes debt, overnight, low-duration, arbitrage and liquid. It does not say what to do with index funds, ETFs, hybrids, fund-of-funds and international funds, all of which hold stocks or other funds.",
+   opts:[
+    {n:"Category allowlist: Equity schemes, equity index funds and ETFs, aggressive hybrid", pro:["Easy to explain and test","One constant"], con:["Borderline categories need a manual call"]},
+    {n:"Data rule: include a fund when disclosed domestic equity is at least a set share of NAV, minus arbitrage", pro:["Follows the real holdings"], con:["Harder to explain","Threshold needs a decision"]},
+    {n:"Only exclude the five named categories", pro:["Literal"], con:["Lets fund-of-funds and gold funds through"]}],
+   rec:0, why:"A list can be read, tested and shown to the manager in one table. Start there." },
+ { id:"d15", tag:"D15 · Item 5A", q:"What stays on the Overlap page after simplifying?",
+   ctx:"Today it has a heatmap, a top-pairs list, an impact donut, common holdings, a stat strip and the concentration card (removed by item 6).",
+   opts:[
+    {n:"Heatmap with one highlight, pair detail on click, info button", pro:["Matches simplify","Fewest parts"], con:["Loses the impact donut"]},
+    {n:"Heatmap plus top pairs", pro:["Keeps a ranked list"], con:["The PDF removes the above-threshold list"]},
+    {n:"Keep everything except the above-20 list and concentration", pro:["Least deleted"], con:["Not much simpler"]}],
+   rec:0, why:"The request is to simplify. The heatmap and the detail drawer carry the meaning." },
+ { id:"d16", tag:"D16 · Item 7", q:"Fund-wise only, or fund-wise plus a portfolio total?",
+   ctx:"Today there is one portfolio ratio compared with two indices. The PDF asks for fund-wise numbers.",
+   opts:[
+    {n:"Fund table plus one portfolio line against the index", pro:["Keeps the comparison users have","Adds what is asked"], con:["Slightly more on screen"]},
+    {n:"Fund table only", pro:["Exactly the request"], con:["Loses the portfolio versus index view"]}],
+   rec:0, why:"The portfolio line costs nothing and is already built." },
+ { id:"d17", tag:"D17 · Item 7", q:"Which averaging method do we show for fund P/E and P/B?",
+   ctx:"We use the harmonic weighted ratio (total value divided by total earnings or book). Some fact sheets report an arithmetic weighted average. The two differ, so a user comparing with a factsheet may see a gap.",
+   opts:[
+    {n:"Keep harmonic and say so in the info text", pro:["Mathematically sound","Already built and tested"], con:["May differ from factsheet figures"]},
+    {n:"Switch to arithmetic weighted", pro:["Closer to some factsheets"], con:["Overstates the ratio when a few stocks are expensive"]}],
+   rec:0, why:"It is the correct portfolio-level ratio. The info button explains the method." },
+ { id:"d18", tag:"D18 · Items 8, 9, 11", q:"One return basis and one window for ranking, category and benchmark?",
+   ctx:"Ranking and category averages use point-to-point NAV return over exact years back from today. The benchmark windows use the user's cash flows (XIRR) starting at the last month end. A 1Y label therefore means different things on the same screen.",
+   opts:[
+    {n:"Keep both bases, label each clearly (fund NAV return vs your return)", pro:["Each is right for its job","Least rework"], con:["Two definitions of 1Y remain"]},
+    {n:"Use month-end windows everywhere", pro:["One definition"], con:["Changes ranking data and the 15-minute peer cache"]},
+    {n:"Use exact trailing years everywhere", pro:["Intuitive"], con:["Breaks the benchmark windows decision C20"]}],
+   rec:0, why:"Compare like with like: fund against category on NAV return, you against the index on your own money. Make the labels say so." },
+ { id:"d19", tag:"D19 · Item 12", q:"Where does the include-switches control live in the new design?",
+   ctx:"The new pages have no such toggle. The Performance page has a money card, and Transactions has a Net switched tile.",
+   opts:[
+    {n:"On the Performance page money card", pro:["Next to the figures it changes"], con:["Needs backend figures with and without switches"]},
+    {n:"On Transactions, beside the Net switched tile", pro:["Close to switch data"], con:["Does not change Performance figures"]},
+    {n:"Not needed in the new design", pro:["Nothing to build"], con:["The PDF request is not met"]}],
+   rec:0, why:"The PDF names the Investment and Withdrawal section, which is the Performance money card." },
+ { id:"d20", tag:"D20 · Item 2", q:"Show folio numbers masked or in full in the holdings table?",
+   ctx:"The fund page shows XXXXX1234 and reveals the full number on request. The PDF only says show the folio number.",
+   opts:[
+    {n:"Masked with a reveal control", pro:["Same privacy default as the fund page"], con:["One extra click"]},
+    {n:"Full number always", pro:["Simple"], con:["Personal data on screen and in screenshots"]}],
+   rec:0, why:"Keep one rule across the app." },
+ { id:"d21", tag:"D21 · Item 3", q:"How do international equity funds appear in a three-bucket cap view?",
+   ctx:"AMFI buckets only cover Indian stocks. Overseas holdings fall into the unclassified share today.",
+   opts:[
+    {n:"Exclude from the three buckets and say so in the note", pro:["Keeps exactly three"], con:["Heavy international investors see a thin chart"]},
+    {n:"Add a fourth International slice", pro:["Complete"], con:["Contradicts only Large, Mid, Small"]}],
+   rec:0, why:"It follows the request; the unclassified note covers it." },
+ { id:"d24", tag:"D24 · Item 9", q:"How do we find which index each index fund tracks?",
+   ctx:"No mapping exists. Scheme names usually say it (Nifty 50 Index Fund). Factsheets also name a benchmark; we have not checked whether our parser keeps that field.",
+   opts:[
+    {n:"Parse scheme names, then check by hand", pro:["Works now","Every row is reviewed"], con:["Manual effort"]},
+    {n:"Use the benchmark stated on the factsheet", pro:["Official source"], con:["Not all houses are imported"]},
+    {n:"Both: parse, then cross-check with the factsheet", pro:["Highest accuracy"], con:["Most work"]}],
+   rec:2, why:"A wrong mapping prints a wrong number with confidence, so a second check is worth it for index funds." }
+];
+</script>
+<script>
+var S = { done: "Already built", partial: "Partly built", none: "Not started" };
+var ITEMS = [
+ { n:"01", t:"Head of Family", plain:"Let the user choose who is Head of the Family, and change it later only when both the old and new head confirm by OTP.",
+   d:3, scope:"Large", built:"none",
+   reqs:[["1.1","Do not auto-make another member the head when their portfolio is uploaded","done","People found in a CAS file get no relationship. Only the account owner's own row is \"self\". Worth a regression test."],
+         ["1.2","Option to change the Head of the Family","none","There is no head field today."],
+         ["1.3","Change authenticated by OTP from both old head and new person","partial","Email OTP (SES) and a request-then-verify pattern exist. SMS is a dev stub only; no real provider is connected."],
+         ["1.4","Change applies only after both OTPs verify","none","Needs a pending-change record that holds until both succeed."]],
+   how:["Decide the model first: either a new \"head\" flag on household members, or treat the existing \"self\" row as the head and make it movable.","Add a head-change request with two OTP checks, reusing the email OTP code. The OTP table has no purpose column, so add one.","Swap the head in a single database transaction after both codes verify, then re-point the places that read the self row."],
+   impact:["The self row is assumed fixed in member profile rules, member merge, account deletion, person matching and the <code>/auth/me</code> name. Moving it touches all of them.","A database rule allows exactly one self row per user, so the swap has to be atomic.","Head email and phone live on the user record, while other members hold unverified contact details."],
+   watch:["Phone OTP is blocked on an SMS provider, so the phone half cannot go live for real users.","PAN uniqueness and PAN-based matching (decisions of 2026-09-18 and 09-24) constrain the design.","No PRD or ADR mentions this. It is new product design."],
+   decision:"Is the head the same thing as today's account owner, or a new concept?" },
+ { n:"02", t:"Consolidated family holdings", plain:"When two members hold the same fund, show one row with combined numbers and a + button that expands to each member, with folio numbers.",
+   d:3, scope:"Large", built:"partial",
+   reqs:[["2.1","Merge the same fund across members into one row","none","Today there is one row per member, fund and plan."],
+         ["2.2","Show average price, invested, current value, realised, unrealised, XIRR","partial","Average NAV, invested, value, realised and unrealised gain exist. XIRR per holding does not; it exists only for the whole portfolio. The table also omits realised gain."],
+         ["2.3","\"+\" expands to each member's holding","none","No expandable rows exist."],
+         ["2.4","Expanded view shows the same columns plus folio number","none","Folio number is dropped when holdings are grouped."]],
+   how:["Add a consolidation step after the existing holdings calculation: group member rows by fund, sum units, invested and value, and recompute average price.","Carry folio numbers through the holdings row so the expanded view can show them.","Compute XIRR per holding from each folio's transactions. This is the hard part.","Build an expandable table row with proper keyboard and screen-reader behaviour."],
+   impact:["The holdings table is already tight on width and has a mobile card layout, so extra columns need a design pass.","The holdings result is cached by member set. A consolidated view needs its own cache key.","Per-holding XIRR must respect the existing opening-balance disclaimer logic."],
+   watch:["Consolidated XIRR must come from merged cash flows, not an average of member XIRRs.","Likely to collide with the redesign's portfolio page work."],
+   decision:null },
+ { n:"03", t:"Market Cap Allocation", plain:"Under Equity Allocation, show only Large, Mid and Small cap, adding to 100%, with no cash or other.",
+   d:1, scope:"Small", built:"partial",
+   reqs:[["3.1","Show only Large, Mid and Small cap","partial","The three buckets exist, alongside an \"Other / Unclassified\" bucket."],
+         ["3.2","Percentages total 100%","partial","A percent-of-equity figure already exists. It must exclude unclassified stocks to total 100."],
+         ["3.3","No cash or other details","none","Other still appears in the chart and the list."]],
+   how:["Drop the Other bucket from the display and normalise the three buckets over the classified equity only.","Use the existing percent-of-equity field. Backend change is small; most of the work is the chart and list."],
+   impact:["The same calculation feeds the asset allocation chart (item 13), so changes ripple there.","Print and mobile copies depend on it too."],
+   watch:["Hiding unclassified stocks quietly changes the totals. Consider a small note with the unclassified share."],
+   decision:"OK to normalise over classified stocks only?" },
+ { n:"04", t:"Fund Manager", plain:"Show only the primary manager with name, AMC, allocation percentage, amount, and a LinkedIn link.",
+   d:2, scope:"Medium", built:"partial",
+   reqs:[["4.1","Show only the primary fund manager","partial","A role label is stored only when the source states it. We cannot always tell who is primary."],
+         ["4.2","Remove assistant managers and extras","none","Straightforward once \"primary\" is defined."],
+         ["4.3","Name, AMC, allocation %, amount","partial","Name, AMC, current value and % of portfolio show today. Value is split equally across a fund's managers."],
+         ["4.4","LinkedIn link","none","No LinkedIn data exists anywhere in the code."]],
+   how:["Define \"primary\": the manager marked as such by the source, else the first listed. Store that choice explicitly.","Change the amount so the primary manager gets the fund's full value.","Add a LinkedIn column and fill it, either by hand for the manager list or from a vetted source.","Simplify the card."],
+   impact:["New column needs a migration, and the monthly factsheet import must populate it.","Ten fund houses already need a hand import each month (Priority 1 item), so manager data is thin for them."],
+   watch:["Linking to a wrong person's LinkedIn profile is a real trust risk. Curate and verify.","Equal split versus full value changes every displayed number."],
+   decision:"Is the amount the full fund value? Where do LinkedIn links come from?" },
+ { n:"05", t:"Equity Fund Overlapping", plain:"Simplify the overlap view, add a how-to hint, add a DIY picker for 2 to 5 funds, and limit overlap to equity funds.",
+   d:2, scope:"Medium", built:"partial",
+   reqs:[["5A.1","Simplify the presentation","none","Today: a heatmap, a pairs list, and a stock concentration block."],
+         ["5A.2","Add an info (i) button explaining how to read overlap","none",""],
+         ["5A.3","Remove the separate list of funds above 20%","none","The list exists and is built from the same data."],
+         ["5A.4","Highlight only overlap above about 35%","partial","Three colour bands exist, at 20 and 40. Move to one highlight at 35."],
+         ["5B.1","DIY: pick 2, 3, 4 or 5 funds and check overlap","none","The calculation only runs on the household's held funds. No endpoint takes an arbitrary set."],
+         ["5B.2","Category-wise overlap for same-category funds","none","No category grouping exists."],
+         ["5C.1","Equity funds only","partial","Only stock rows count, so debt funds score zero, yet they still appear in the matrix."],
+         ["5C.2","Exclude debt, overnight, low-duration, arbitrage, liquid","none","Needs a fund-type check."],
+         ["5C.3","Keep excluded categories out of the analysis","none",""]],
+   how:["5A: front-end changes plus one threshold constant.","5C: filter funds by SEBI category before the matrix is built.","5B: add an endpoint that accepts a list of scheme IDs and returns the matrix, reusing the pairwise overlap maths. The fund-vs-fund code on the redesign branch is a head start.","Group by category as an optional view of the same data."],
+   impact:["Overlap is shared with the stock concentration block (item 6), so do 5A and 6 together.","Existing overlap tests and fixtures need updating."],
+   watch:["Overlap needs published portfolio disclosures. Funds from fund houses we have not imported have no data.","Today the matrix caps at 12 funds."],
+   decision:"Can the DIY picker use any fund, or only held funds?" },
+ { n:"06", t:"Remove Stock Concentration", plain:"Delete the Stock Concentration part that follows the overlap feature.",
+   d:1, scope:"Small", built:"none",
+   reqs:[["6.1","Remove the Stock Concentration tab","none","It is not a tab. It is a block inside the Overlap card, with a curve and a \"Top N stocks\" button."]],
+   how:["Remove the block from the Overlap card and its test.","Decide whether to keep the backend calculation. Removing it is cleaner and touches the shared overlap summary type."],
+   impact:["The \"Top N stocks\" button jumps to the Overall Stock Holdings section. Removing it leaves that section reachable by scrolling.","Print view and test fixtures reference the block."],
+   watch:["Confirm the Overall Stock Holdings section is meant to stay."],
+   decision:null },
+ { n:"07", t:"P/E and P/B Analysis", plain:"Show P/E and P/B fund by fund, explain them simply, add a disclaimer, and double-check the data.",
+   d:2, scope:"Medium", built:"partial",
+   reqs:[["7.1","Exclude direct equity holdings","done","Not applicable. The app is mutual-fund-only."],
+         ["7.2","Verify P/E and P/B accuracy","none","Data comes from the NSE daily file with Yahoo and screener.in fallbacks."],
+         ["7.3","Show P/E and P/B fund by fund","none","Today it is one portfolio-level figure, with a comparison to the index."],
+         ["7.4","Info (i) button explaining P/E and P/B","none",""],
+         ["7.5","Disclaimer: indicators only, not a buy or sell signal","none",""]],
+   how:["Run the existing weighted calculation once per fund instead of across the whole portfolio, and list the results.","Verify by comparing with fund fact sheets, index values published by NSE, and a few spot checks against a third-party site. Record the differences.","Add the explainer and the disclaimer text."],
+   impact:["Output shape changes from one number to a list, so the stored section result changes.","Stocks without P/E data lower each fund's coverage. The 70% minimum coverage rule applies per fund."],
+   watch:["Do not claim exact accuracy. Say where the data is derived and how fresh it is."],
+   decision:null },
+ { n:"08", t:"Performance Ranking", plain:"Show each fund's rank within its SEBI category for 1, 3 and 5 years, as rank over total, in a simple table.",
+   d:2, scope:"Medium", built:"partial",
+   reqs:[["8.1","Rename heading to Performance Ranking","none",""],
+         ["8.2","Rankings for 1, 3 and 5 years","partial","Only 3-year and 5-year exist. There is no 1-year."],
+         ["8.3","No blended scores","partial","Today's rank blends 3Y at 40% and 5Y at 60% into one."],
+         ["8.4","Rank within the same SEBI category","done","Category ranking already does this."],
+         ["8.5","Format as Rank / Total, for example 2/25","none",""],
+         ["8.6","Simple table with a column per period","none",""]],
+   how:["Rank separately for each period using each fund's return over that period.","Return a rank and a total for each period, and render a three-column table.","Reuse the existing peer lookup and the 15-minute cache."],
+   impact:["Replaces the blended rank. The category ranking section can stay and be simplified.","1-year returns need NAV history for every peer, which makes the pass heavier."],
+   watch:["Index funds sit in one giant category of about 1,150 funds. A rank such as 40/1150 is meaningless. This ties to item 9 and to a known category-name data bug.","Funds younger than the period need a clear \"not enough history\" state."],
+   decision:"How should index funds be ranked?" },
+ { n:"09", t:"Category Average Comparison", plain:"Compare the held fund's return with its category average, or with its benchmark index if it is an index fund.",
+   d:2, scope:"Medium", built:"partial",
+   reqs:[["9.1","Keep it simple, no scoring","partial","Category average exists, with a fund-size weighting."],
+         ["9.2","Fund versus average of all funds in the category","partial","Today's average is weighted by fund size."],
+         ["9.3","1, 3 and 5 year comparisons","partial","Windowed periods are not on this branch."],
+         ["9.4","Index funds compare against their underlying index","none","No fund-to-index mapping exists. Benchmarks are guessed from the category name, with Nifty 500 as the fallback."],
+         ["9.5","Each fund gets the correct average or benchmark","partial",""]],
+   how:["Add a table that maps each index fund to the index it tracks. Build it from scheme names and check it by hand.","Add any missing indices to the index history (Nifty 250, 150 Midcap and similar). Only four indices are stored on this branch.","Compute the simple category average per period, and branch to the index for index funds."],
+   impact:["Reuses the category peer code and the index history table.","Overlaps the redesign branch's peer and benchmark selection code."],
+   watch:["The mapping is a data problem. A wrong mapping shows a wrong number with confidence.","Weighted versus simple average changes today's displayed values."],
+   decision:"Simple average or fund-size weighted?" },
+ { n:"10", t:"Remove Quality Scorer and Composite Ratings", plain:"Take out both scoring features completely for now.",
+   d:1, scope:"Medium", built:"none",
+   reqs:[["10.1","Remove the Fund Quality Scorer and Composite Ratings","none","These are two features: the Scorer (45/30/25 weighting) and the 5-factor Composite Ranking."]],
+   how:["Remove both sections from the analytics page, and from the print and mobile views.","Stop computing them in the daily recompute, and remove their API routes.","Either keep the score tables unused, or add a migration that drops them."],
+   impact:["About 20 files: two backend services, three tables, routes, eight or more frontend components and their tests.","Category Ranking does not depend on either feature, so it stays safe.","Scripts that wipe staging data reference the score tables."],
+   watch:["Conflicts with PRD-04 and the 2026-08-13 and 2026-10-06 decisions. Docs need updating, and the paused Scorer V2 plan becomes moot.","The branch with the individual fund page may reuse scorer code. Check before deleting."],
+   decision:"Hide only, or delete code and tables?" },
+ { n:"11", t:"Benchmark Comparison", plain:"Check that portfolio and fund benchmark returns use the exact cash flows and one consistent method.",
+   d:2, scope:"Medium", built:"done",
+   reqs:[["11.1","Review portfolio vs benchmark and fund vs benchmark","none","This is an audit."],
+         ["11.2","Returns use the exact cash flows","done","Each buy and sell is replayed against the index on that date."],
+         ["11.3","Consistent method for both comparisons","partial","Both use the same engine. The method is not explained to the user."],
+         ["11.4","Correct cash flows and timing","done","Switches are excluded from portfolio rollups and included per fund."]],
+   how:["Write a test that feeds known cash flows and checks both results against a hand-computed answer.","Add a short methodology note in the interface.","Check the data gap: about 10 years of benchmark history, so older purchases drop out."],
+   impact:["Likely few code changes, if the audit passes.","Windowed 1/3/5-year returns exist only on the redesign branch."],
+   watch:["Only a total-return index is used, with no price fallback, by prior decision.","An audit can reveal differences that change numbers users have already seen."],
+   decision:null },
+ { n:"12", t:"Investment and Withdrawal switches", plain:"Make it obvious whether switches are included or excluded in the portfolio view.",
+   d:1, scope:"Small", built:"partial",
+   reqs:[["12.1","Option to include or exclude switches","done","An \"Include switches\" button exists, off by default."],
+         ["12.2","Current state is unclear","partial","The button reports its state to screen readers, but the visual state is weak."],
+         ["12.3","Show enabled or disabled clearly","none","Needs a visible label such as \"Switches: Included\" or \"Excluded\"."]],
+   how:["Replace the button with a clear switch control and a visible status label.","Add an explanatory line showing which figures change."],
+   impact:["Front-end only. Print view already forces switches off."],
+   watch:["Net invested and absolute gain exclude switches even when the toggle is on. Say so in the label to avoid confusion."],
+   decision:null },
+ { n:"13", t:"Look-Through Asset Allocation", plain:"Show underlying Equity, Gold, Debt and Real Estate, without Large, Mid or Small cap.",
+   d:2, scope:"Medium", built:"partial",
+   reqs:[["13.1","Simplify the section","none","Today it is a double pie chart with an arbitrage option."],
+         ["13.2","Equity, Gold, Debt, Real Estate","partial","Equity, Debt, Gold and a Cash-like class exist. Real Estate does not; REITs and InvITs are folded into equity."],
+         ["13.3","No market cap categories","none","The outer ring shows the cap split."],
+         ["13.4","Simple and easy to understand","none",""]],
+   how:["Split REITs and InvITs out of equity into a Real Estate class, in the class map and the labels.","Decide how cash-like holdings display, then remove the outer cap ring.","Keep or drop the arbitrage option."],
+   impact:["The cap chart (item 3) is embedded here, so do both items together.","Percentages use the covered value as the denominator, and funds without published holdings are excluded."],
+   watch:["InvITs are often infrastructure, not property. Confirm the label.","Funds without disclosures are excluded, so totals may not match portfolio value."],
+   decision:"Where does cash go, and are REITs and InvITs \"real estate\"?" }
+];
+
+var state = { diff: "all", built: "all" };
+var cardsEl = document.getElementById("cards");
+var diffLabel = ["", "Easy", "Medium", "Hard"];
+
+function pips(d) { var s = ""; for (var i = 1; i <= 3; i++) s += '<i class="' + (i <= d ? "on" : "") + '"></i>'; return '<span class="pips" aria-hidden="true">' + s + "</span>"; }
+
+function render() {
+  var html = "";
+  ITEMS.forEach(function (it) {
+    var reqs = it.reqs.map(function (r) {
+      return '<div class="req"><span class="id">' + r[0] + '</span><div class="tx">' + r[1] + (r[3] ? "<small>" + r[3] + "</small>" : "") + '</div><span class="chip ' + r[2] + '">' + S[r[2]] + "</span></div>";
+    }).join("");
+    var li = function (a) { return "<ul>" + a.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>"; };
+    var doneCount = it.reqs.filter(function (r) { return r[2] === "done"; }).length;
+    var partCount = it.reqs.filter(function (r) { return r[2] === "partial"; }).length;
+    var builtChip = it.built === "none" ? '<span class="chip none">Mostly new</span>' :
+      '<span class="chip ' + (it.built === "done" ? "done" : "partial") + '">' + doneCount + " built, " + partCount + " partly, of " + it.reqs.length + "</span>";
+    html += '<details class="card" data-d="' + it.d + '" data-b="' + it.built + '">' +
+      "<summary><span class=\"num\">" + it.n + "</span><span class=\"ttl\">" + it.t + "</span><span class=\"chev\"></span>" +
+      '<span class="plain">' + it.plain + "</span>" +
+      '<span class="chips"><span class="chip d' + it.d + '">' + pips(it.d) + diffLabel[it.d] + '</span><span class="chip scope">Scope: ' + it.scope + "</span>" + builtChip + "</span></summary>" +
+      '<div class="body">' +
+      '<div class="block"><h3>Line by line, what the code does today</h3><div class="reqs">' + reqs + "</div></div>" +
+      '<div class="block"><h3>How we would do it</h3>' + li(it.how) + "</div>" +
+      '<div class="block"><h3>What it touches</h3>' + li(it.impact) + "</div>" +
+      '<div class="block"><h3>Watch out for</h3>' + li(it.watch) + "</div>" +
+      (it.decision ? '<div class="decision"><b>Your call:</b> ' + it.decision + "</div>" : "") +
+      "</div></details>";
+  });
+  cardsEl.innerHTML = html;
+}
+
+function applyFilters() {
+  var shown = 0;
+  Array.prototype.forEach.call(cardsEl.children, function (c) {
+    var ok = (state.diff === "all" || c.dataset.d === state.diff) && (state.built === "all" || (state.built === "built" ? c.dataset.b !== "none" : c.dataset.b === "none"));
+    c.hidden = !ok; if (ok) shown++;
+  });
+  document.getElementById("none").hidden = shown !== 0;
+}
+
+function makeGroup(id, key, opts) {
+  var g = document.getElementById(id);
+  opts.forEach(function (o) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "pill"; b.textContent = o[1];
+    b.setAttribute("aria-pressed", o[0] === "all" ? "true" : "false");
+    b.addEventListener("click", function () {
+      state[key] = o[0];
+      Array.prototype.forEach.call(g.querySelectorAll("button"), function (x) { x.setAttribute("aria-pressed", "false"); });
+      b.setAttribute("aria-pressed", "true");
+      applyFilters();
+    });
+    g.appendChild(b);
+  });
+}
+
+function stats() {
+  var n = ITEMS.length;
+  var easy = ITEMS.filter(function (i) { return i.d === 1; }).length;
+  var med = ITEMS.filter(function (i) { return i.d === 2; }).length;
+  var hard = ITEMS.filter(function (i) { return i.d === 3; }).length;
+  var total = 0, done = 0, part = 0;
+  ITEMS.forEach(function (i) { i.reqs.forEach(function (r) { total++; if (r[2] === "done") done++; if (r[2] === "partial") part++; }); });
+  var cells = [
+    [n, "change requests in the document"],
+    [easy + " / " + med + " / " + hard, "easy, medium, hard"],
+    [done + " of " + total, "line items already satisfied by the code"],
+    [part, "line items partly built"],
+    [total - done - part, "line items not started"]
+  ];
+  document.getElementById("stats").innerHTML = cells.map(function (c) { return '<div class="stat"><span class="big">' + c[0] + '</span><span class="lab">' + c[1] + "</span></div>"; }).join("");
+}
+
+var DECISIONS = [
+ { id:"d1", tag:"D1 · All items · ANSWERED 29 Oct: build on leapswitch-redesign", q:"Which branch do the 13 changes get built on?",
+   ctx:"This branch lacks the redesign work on fix/holdings-open-fund-page: windowed 1Y/3Y/5Y benchmark returns, the fund page, and fund-vs-fund overlap. Items 2, 8, 9 and 11 overlap it directly.",
+   opts:[
+    { n:"This branch (feat/shell-nav-switch)", pro:["Smallest, familiar starting point","No large merge before work begins"], con:["Items 8, 9 and 11 would be built a second time","Likely painful merge with the redesign later"] },
+    { n:"The redesign line", pro:["Reuses peer ranking, benchmark windows and fund-vs-fund overlap that already exist","One UI to maintain"], con:["About 250 commits we have not reviewed in this session","Only right if this is the line that ships"] },
+    { n:"Merge the redesign into this branch first", pro:["Single base for everything"], con:["Big merge with conflicts, and work stops while it happens","Brings in unfinished redesign work"] }],
+   rec:1, why:"Items 8, 9 and 11 are partly built there, so building on this branch means doing them twice. This is only right if the redesign line is what goes to staging next. If you are not sure, ask the manager before we start, because it is the one choice that is expensive to reverse." },
+ { id:"d2", tag:"D2 · Item 10", q:"How do we remove the Quality Scorer and Composite Ratings?",
+   ctx:"The document says remove them 'for now'. That contradicts PRD-04 and the 2026-08-13 and 2026-10-06 decisions, where the score was called the product's differentiator. A paused Scorer V2 plan also exists.",
+   opts:[
+    { n:"Hide in the interface, stop computing, keep code and tables", pro:["Easy to bring back, which fits 'for now'","Removes the load from the daily recompute","No database migration"], con:["Dead code stays in the repo","Docs must be updated to say it is switched off"] },
+    { n:"Delete everything, including a migration to drop tables", pro:["Cleanest codebase","Nothing left to confuse future work"], con:["About 20 files and 3 tables to remove","Bringing it back means rebuilding it","Needs the PRD and decision log rewritten"] },
+    { n:"Feature flag, off by default", pro:["Reversible with a setting","Lets you show it to some users later"], con:["Extra moving part for something not planned to return soon","Tests need both states"] }],
+   rec:0, why:"'For now' tells us the feature may come back, and the Scorer V2 plan already exists. Hiding it and stopping the computation gives users exactly what the document asks, costs the least, and keeps your options open. We can delete the code later once the decision is final." },
+ { id:"d3", tag:"D3 · Item 1", q:"What is a Head of the Family in the data, and how do both people confirm?",
+   ctx:"There is no head field today. The nearest thing is the account owner's 'self' row, which at least five places in the code assume never changes. Email OTP works through SES, but SMS is a development stub with no real provider.",
+   opts:[
+    { n:"Make the existing 'self' row movable", pro:["No new concept in the data"], con:["Touches member profile rules, member merge, account deletion, person matching and the account name","A one-self-per-user database rule must be swapped atomically","Highest risk of breaking existing behaviour"] },
+    { n:"Add a separate 'head' flag, leave 'self' alone, use email OTP for both people at launch", pro:["Existing self-row logic stays untouched","Email OTP is ready now","Phone OTP can be added when an SMS provider exists"], con:["Two ideas to explain: the account owner and the head","Document may intend phone OTP, so you must confirm email is acceptable"] },
+    { n:"Postpone item 1 until a phone OTP provider is live", pro:["Builds exactly what the document says"], con:["No timeline for the SMS provider","Leaves the smallest-risk work blocked"] }],
+   rec:1, why:"The existing self row is load-bearing, and changing it risks regressions in features that work today. A separate head flag isolates the risk. Email OTP for both parties is the only channel that is production-ready, and switching a channel later is a small change." },
+ { id:"d4", tag:"D4 · Item 9", q:"Which category average do we compare funds against?",
+   ctx:"The document says 'average performance of all funds in the same category'. Today's code weights the average by fund size using AMFI average AUM.",
+   opts:[
+    { n:"Simple average of all funds in the category", pro:["Matches the document's wording","Easy for users to understand","Simpler code"], con:["Tiny funds count as much as huge ones","Changes numbers users may have already seen"] },
+    { n:"Keep the fund-size-weighted average", pro:["Already built and tested","Better reflects where investors' money is"], con:["Not what the document says","Harder to explain in one line"] },
+    { n:"Show simple average, keep weighted in a tooltip", pro:["Satisfies the document and keeps the richer figure"], con:["Two numbers invite the confusion item 9 is trying to remove"] }],
+   rec:0, why:"Item 9 asks for simple, with no extra formulas. A plain average is also the easiest to defend when a user checks it by hand. We can keep the weighted code in place without displaying it." },
+ { id:"d5", tag:"D5 · Items 8 and 9", q:"How do we rank index funds in Performance Ranking?",
+   ctx:"Index funds sit in one AMFI category of about 1,150 funds. A rank such as 40/1150 means nothing. Item 9.4 already says index funds should compare against their underlying index, not a category.",
+   opts:[
+    { n:"Skip ranking for index funds, show the benchmark comparison", pro:["Consistent with item 9.4","No misleading ranks","Works without extra data"], con:["Index funds have no rank column value","Users may ask why"] },
+    { n:"Rank within funds tracking the same index", pro:["The meaningful comparison for index funds","Rank / Total reads sensibly"], con:["Needs the fund-to-index mapping (item 9.4) first","Mapping errors become wrong ranks"] },
+    { n:"Rank within the whole category anyway", pro:["No special case in the code"], con:["Misleading rank out of 1,150","Hard to explain"] }],
+   rec:0, why:"The document's own logic for item 9 says index funds are judged against their index. Showing 'Not ranked, compared to its index' is honest and ships without new data. Rank-by-tracked-index can follow once the mapping is built and checked." },
+ { id:"d6", tag:"D6 · Item 13", q:"Where does cash go, and are REITs and InvITs 'Real Estate'?",
+   ctx:"The document lists Equity, Gold, Debt and Real Estate. Today the app has Equity, Debt, Gold and a Cash-like class, with REITs and InvITs counted as equity. The data stores REIT and InvIT as one type, so they cannot be split apart.",
+   opts:[
+    { n:"Fold cash into Debt, show REITs and InvITs as Real Estate", pro:["Gives exactly the four classes requested","Fund houses usually report cash and money market with debt","Needs no new data"], con:["InvITs are often infrastructure, not property","Cash is no longer visible on its own"] },
+    { n:"Add a fifth Cash class and Real Estate", pro:["Most transparent","Nothing is hidden"], con:["Document lists four classes","Fifth slice adds the clutter item 13 wants removed"] },
+    { n:"Drop cash, show the four classes over the covered total", pro:["Four clean slices"], con:["Silently ignores some of the portfolio","Totals stop matching fund holdings"] }],
+   rec:0, why:"It matches the document and the way fund houses report. Label the slice 'Real Estate (REITs and InvITs)' so nobody is misled, and add a short note that cash is included under Debt." },
+ { id:"d7", tag:"D7 · Item 4", q:"What is the 'amount allocated' to the fund manager, and who is primary?",
+   ctx:"Today a fund's value is split equally across its managers. With only the primary manager shown, an equal split would understate the figure. The data carries a role label only where the fund house states one.",
+   opts:[
+    { n:"Primary gets the full fund value; primary is the source-labelled one, else the first listed", pro:["Matches 'display only the primary manager'","Simple to explain","Same rule on every fund"], con:["Overstates the share when several people manage the fund","'First listed' is a guess where no role label exists"] },
+    { n:"Keep the equal split across all managers", pro:["No change to current numbers"], con:["Contradicts showing only the primary","Percentages look wrong next to one name"] },
+    { n:"Show the full fund value, flagged as 'managed with others' when there are co-managers", pro:["Honest about shared management"], con:["More text on a card meant to be simple"] }],
+   rec:2, why:"Giving the primary manager the whole value is what the document implies, but a short 'with others' note keeps it honest for team-managed funds without adding rows. It also costs only one small label." },
+ { id:"d8", tag:"D8 · Item 3", q:"How do we get Large, Mid and Small cap to total 100%?",
+   ctx:"Some equity stocks have no cap bucket in the AMFI list. Hiding 'Other' and forcing 100% means dividing by the classified stocks only.",
+   opts:[
+    { n:"Normalise over classified stocks and show a small note with the unclassified share", pro:["Totals 100% as requested","Nothing is hidden"], con:["A line of extra text in a section meant to be bare"] },
+    { n:"Normalise silently with no note", pro:["Cleanest look","Exactly what the document shows"], con:["Quietly changes the meaning of the percentages","Hard to explain if a user checks the numbers"] },
+    { n:"Keep an 'Other' slice but mute it", pro:["Most accurate"], con:["Breaks 'only three categories' and 'no other details'"] }],
+   rec:0, why:"The three buckets sum to 100% as required. A one-line note about the unclassified share keeps us truthful, and it can be a tooltip so the section stays clean." },
+ { id:"d9", tag:"D9 · Item 5B", q:"Which funds can the DIY overlap picker use?",
+   ctx:"The overlap calculation today only runs on funds the household holds. Overlap needs published portfolio holdings, which exist only for the fund houses we have imported.",
+   opts:[
+    { n:"Only funds the household holds", pro:["Least work","No coverage surprises"], con:["Cannot test a fund before buying it","Barely different from the existing matrix"] },
+    { n:"Any fund with published holdings, chosen through search", pro:["Real DIY value: compare funds you are considering","Reuses the pairwise maths"], con:["Needs a fund search and a new endpoint","Some funds are unavailable, so the picker must say why"] },
+    { n:"Held funds first, search added in a second release", pro:["Ships sooner","Lower risk"], con:["Two releases for one feature","First version may feel incomplete"] }],
+   rec:1, why:"The point of a DIY tool is checking funds you do not own yet. A picker limited to held funds repeats what the matrix already shows. Restrict search to funds with imported holdings and show a clear note for the rest." }
+];
+
+var LI_GENERAL = {
+  pros:["Builds trust: users can see who runs their money","Matches what the document asks for","Helps users research a manager independently"],
+  cons:["We have no LinkedIn data today, so every option needs new work","A wrong link attaches our analysis to the wrong person, which is a trust and reputational risk","Links go stale when managers move or change profiles","Sends users out of the app to a site that may ask them to log in","Managers change fund houses, so the list needs upkeep"]
+};
+var LI_OPTS = { id:"li1", tag:"L1 · Item 4.4", q:"How do we get LinkedIn links?",
+  ctx:"Manager names are stored per scheme, so the same person repeats across funds. Any approach should store one link per manager and fund house, not per fund. I have not yet counted how many distinct managers our funds have. That count decides how realistic a manual list is, and I can pull it from the database first.",
+  opts:[
+    { n:"Hand-curated list, we verify each profile", pro:["Accurate when checked","Free and within LinkedIn's rules","We control what is shown"], con:["Manual effort that grows with the number of managers","Needs upkeep when managers change","Someone must own it each month"] },
+    { n:"A LinkedIn people-search link built from name and fund house", pro:["No data to store or maintain","Never asserts a wrong person","Quick to build"], con:["Opens a search page, not a profile","Viewer may need to log in","Common names return the wrong people","Weaker than the 'hyperlink to profile' the document asks for"] },
+    { n:"Scrape LinkedIn or buy data from a vendor", pro:["Automatic and broad coverage"], con:["Scraping breaks LinkedIn's terms and has led to lawsuits","Vendors in this space have been shut down","Name matching still makes wrong links","Recurring cost and legal exposure"] },
+    { n:"Take links from fund house factsheets or websites", pro:["Official source","No guessing"], con:["Fund houses rarely publish LinkedIn links","Coverage would be patchy"] },
+    { n:"Hybrid: hand-curated links for the managers who matter most, nothing shown for the rest", pro:["Real profile links where we are sure","No wrong links","Effort stays bounded"], con:["Some managers show no link","Needs a rule for who counts as 'matters most'"] }],
+  rec:4, why:"The hybrid keeps the benefit and removes the worst risk. Start with managers of funds users actually hold, verify each profile by hand, store the link with a 'verified on' date in a small manager table, and show no link when we are unsure. Open links in a new tab. Skip scraping entirely, since the legal risk outweighs the convenience. If we later want full coverage, the search-link option can fill the gaps, clearly labelled as a search." };
+
+function optHtml(o, isRec, i) {
+  var L = String.fromCharCode(65 + i);
+  var ul = function (a) { return "<ul>" + a.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>"; };
+  return '<div class="opt' + (isRec ? " rec" : "") + '"><div class="opt-name"><span class="l">' + L + '</span><span>' + o.n + '</span>' + (isRec ? '<span class="badge">Recommended</span>' : "") + '</div>' +
+    '<div class="pc"><div class="pro">' + ul(o.pro) + '</div><div class="con">' + ul(o.con) + "</div></div></div>";
+}
+function decHtml(d) {
+  return '<article class="dq" id="' + d.id + '"><div class="dq-head"><span class="dq-tag">' + d.tag + '</span><h3 class="q">' + d.q + '</h3><p class="ctx">' + d.ctx + "</p></div>" +
+    '<div class="opts">' + d.opts.map(function (o, i) { return optHtml(o, i === d.rec, i); }).join("") + "</div>" +
+    '<div class="why"><b>Why I recommend ' + String.fromCharCode(65 + d.rec) + '</b><span>' + d.why + "</span></div></article>";
+}
+DECISIONS = DECISIONS.concat(NEW_DECISIONS);
+document.getElementById("decisions").innerHTML = DECISIONS.map(decHtml).join("");
+document.getElementById("recap").innerHTML = DECISIONS.map(function (d) {
+  return '<a href="#' + d.id + '"><span class="rid">' + d.tag.split(" · ")[0] + '</span><span>' + d.q + ' <span class="rpick">→ ' + String.fromCharCode(65 + d.rec) + ": " + d.opts[d.rec].n + "</span></span></a>";
+}).join("");
+(function () {
+  var li = function (a) { return "<ul>" + a.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>"; };
+  document.getElementById("liGeneral").innerHTML = '<div class="panel p"><h3>Pros of including LinkedIn links</h3>' + li(LI_GENERAL.pros) + '</div><div class="panel c"><h3>Cons and risks</h3>' + li(LI_GENERAL.cons) + "</div>";
+  document.getElementById("liOptions").innerHTML = decHtml(LI_OPTS);
+})();
+render(); stats();
+makeGroup("fDiff", "diff", [["all", "All"], ["1", "Easy"], ["2", "Medium"], ["3", "Hard"]]);
+makeGroup("fBuilt", "built", [["all", "All"], ["built", "Partly built"], ["none", "Mostly new"]]);
+var allOpen = false;
+document.getElementById("toggleAll").addEventListener("click", function () {
+  allOpen = !allOpen;
+  Array.prototype.forEach.call(cardsEl.children, function (c) { c.open = allOpen; });
+  this.textContent = allOpen ? "Collapse all" : "Expand all";
+});
+</script>
+<script>
+(function () {
+  var ul = function (a) { return "<ul>" + a.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>"; };
+  var ol = function (a) { return "<ol>" + a.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ol>"; };
+  var esc = function (s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); };
+
+  function erSvg(spec) {
+    var ents = {}, out = "";
+    spec.ents.forEach(function (e) { e.h = 28 + 16 * e.f.length + 6; ents[e.id] = e; });
+    var anchor = function (e, side) {
+      return side === "l" ? [e.x, e.y + e.h / 2] : side === "r" ? [e.x + e.w, e.y + e.h / 2] :
+        side === "t" ? [e.x + e.w / 2, e.y] : [e.x + e.w / 2, e.y + e.h];
+    };
+    spec.links.forEach(function (l) {
+      var a = anchor(ents[l[0]], l[1]), b = anchor(ents[l[2]], l[3]);
+      out += '<line class="er-link" x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '"/>';
+      if (l[4]) out += '<text class="er-lab" x="' + ((a[0] + b[0]) / 2) + '" y="' + ((a[1] + b[1]) / 2 - 5) + '" text-anchor="middle">' + esc(l[4]) + "</text>";
+    });
+    spec.ents.forEach(function (e) {
+      var cls = e.nw ? "er-box er-new" : e.mod ? "er-box er-mod" : "er-box";
+      out += '<g><rect class="' + cls + '" x="' + e.x + '" y="' + e.y + '" width="' + e.w + '" height="' + e.h + '" rx="4"/>' +
+        '<text class="er-title" x="' + (e.x + 10) + '" y="' + (e.y + 18) + '">' + esc(e.t) + (e.nw ? "  (new)" : "") + "</text>" +
+        '<line class="er-rule" x1="' + e.x + '" y1="' + (e.y + 26) + '" x2="' + (e.x + e.w) + '" y2="' + (e.y + 26) + '"/>';
+      e.f.forEach(function (f, i) {
+        var y = e.y + 42 + i * 16;
+        var isNew = f[2] === "n";
+        out += '<text class="' + (isNew ? "er-f er-fnew" : "er-f") + '" x="' + (e.x + 10) + '" y="' + y + '">' + esc(f[0]) + "</text>" +
+          (f[1] ? '<text class="' + (isNew ? "er-t er-fnew" : "er-t") + '" x="' + (e.x + e.w - 10) + '" y="' + y + '" text-anchor="end">' + esc(f[1]) + "</text>" : "");
+      });
+      out += "</g>";
+    });
+    return '<div class="er-wrap"><svg class="er" viewBox="0 0 ' + spec.w + " " + spec.h + '" role="img" aria-label="Entity relationship diagram">' + out + "</svg></div>" +
+      '<p class="er-note">' + spec.note + "</p>";
+  }
+
+  function pipeSvg() {
+    var w = 150, gap = 22, out = "";
+    PIPE.forEach(function (p, i) {
+      var x = 8 + i * (w + gap);
+      out += '<rect class="er-box" x="' + x + '" y="12" width="' + w + '" height="64" rx="4"/>' +
+        '<text class="er-title" x="' + (x + w / 2) + '" y="36" text-anchor="middle">' + esc(p[0]) + "</text>" +
+        '<text class="er-t" x="' + (x + w / 2) + '" y="56" text-anchor="middle">' + esc(p[1].length > 26 ? p[1].slice(0, 25) + "…" : p[1]) + "</text>";
+      if (i < PIPE.length - 1) out += '<line class="er-link" x1="' + (x + w) + '" y1="44" x2="' + (x + w + gap) + '" y2="44"/>';
+    });
+    return '<div class="er-wrap"><svg class="er" viewBox="0 0 ' + (8 + PIPE.length * (w + gap)) + ' 90" role="img" aria-label="How analytics data flows from imports to the screen">' + out + "</svg></div>";
+  }
+
+  function deepCard(it) {
+    var block = function (h, body) { return '<div class="block"><h3>' + h + "</h3>" + body + "</div>"; };
+    var flow = '<div class="flow"><div class="block"><h3>Before: how it works today</h3>' + ol(it.before) + '</div><div class="block after"><h3>After: how it should work</h3>' + ol(it.after) + "</div></div>";
+    return '<details class="card deep"><summary><span class="num">' + it.n + '</span><span class="ttl">' + it.t + '</span><span class="chev"></span>' +
+      '<span class="chips"><span class="chip scope">Effort on redesign line: ' + it.rating + "</span>" + (it.qs ? '<span class="chip risk">Questions: ' + it.qs + "</span>" : "") + "</span></summary>" +
+      '<div class="body">' +
+      block("Where it lives in the code", ul(it.where)) + flow +
+      block("Backend changes", ul(it.backend)) +
+      block("Frontend changes", ul(it.frontend)) +
+      block("Database changes", ul(it.db) + (it.er ? erSvg(ER[it.er]) : "")) +
+      block("Tests to write first (red)", ul(it.tests)) +
+      block("Risks and watch-outs", ul(it.risks)) +
+      "</div></details>";
+  }
+
+  var h = "";
+  h += '<div class="panel"><ul>' + CORRECTIONS.map(function (c) { return "<li><b>" + c[0] + ".</b> " + c[1] + "</li>"; }).join("") + "</ul></div>";
+  document.getElementById("corrections").innerHTML = h;
+
+  document.getElementById("surfaces").innerHTML = '<table class="tbl"><thead><tr><th>Surface</th><th>Where</th><th>Status</th></tr></thead><tbody>' +
+    SURFACES.map(function (s) { return "<tr><td><b>" + s[0] + "</b></td><td><code>" + s[1] + "</code></td><td>" + s[2] + "</td></tr>"; }).join("") + "</tbody></table>";
+
+  document.getElementById("ratings").innerHTML = '<table class="tbl"><thead><tr><th>#</th><th>Change</th><th>First briefing</th><th>On redesign line</th><th>Why</th></tr></thead><tbody>' +
+    RATINGS.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td><td><b>" + r[3] + "</b></td><td>" + r[4] + "</td></tr>"; }).join("") + "</tbody></table>";
+
+  document.getElementById("pipe").innerHTML = pipeSvg() +
+    '<p class="er-note">Fifteen sections are stored per scope: <code>' + SECTIONS15 + '</code>. A section is recomputed daily at 06:30 and after every import. Changing a payload shape needs no migration, but old stored rows keep the old shape until the next recompute, so every frontend change must read both shapes, or we run a forced recompute after deploy.</p>';
+
+  document.getElementById("deepCards").innerHTML = DEEP.map(deepCard).join("");
+})();
+</script>
+
+</body>
+</html>
