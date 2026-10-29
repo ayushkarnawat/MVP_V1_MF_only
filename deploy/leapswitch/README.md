@@ -19,9 +19,14 @@ here changes AWS staging or production.
 - `scripts/run-job.sh` — runs one job, emails a failure alert on nonzero exit
   (reuses the existing SES email provider — see `backend/scripts/
   send_job_failure_alert.py`).
-- `scripts/deploy.sh` — builds the frontend static bundle and
-  `docker compose up -d --build`s the stack. Tags the previous backend/worker
-  images `:previous` first so `scripts/rollback.sh` can undo it.
+- `scripts/deploy.sh` — builds the backend image (skipped when `backend/` is
+  unchanged since the last deploy; the worker runs the same image), then the
+  frontend static bundle, then `docker compose up -d`. Warns before building
+  if the disk is low (`--force` to continue without asking,
+  `--rebuild-backend` to rebuild regardless). Tags the previous backend image
+  `:previous` after a successful build so `scripts/rollback.sh` can undo it.
+  Shared helpers: `scripts/lib-deploy.sh`; offline tests:
+  `sh tests/test-deploy.sh`.
 - `scripts/rollback.sh` — retags `:previous` back to `:latest` and restarts,
   no rebuild. Undoes the backend/worker image only — see its header comment
   for what it doesn't cover.
@@ -50,8 +55,10 @@ here changes AWS staging or production.
 
 ## Re-deploying after a code change
 
-`git pull && ./scripts/deploy.sh` — rebuilds the backend/worker image and the
-frontend bundle, restarts anything that changed. Postgres data persists in
+`git pull && ./scripts/deploy.sh` — rebuilds the backend/worker image only if
+`backend/` changed (the last deployed commit is recorded in
+`/var/lib/unifolio-deploy/last-backend-commit`; with no record it rebuilds),
+rebuilds the frontend bundle, restarts anything that changed. Postgres data persists in
 the `pgdata` named volume across this. If there's a DB migration, or anything
 risky, use the full checklist instead:
 `Docs/orchestration/leapswitch-staging-deploy-guide.md`.
