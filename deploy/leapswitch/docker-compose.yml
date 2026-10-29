@@ -48,6 +48,7 @@ services:
       retries: 5
 
   backend:
+    image: leapswitch-backend:latest
     build:
       context: ../../backend
     restart: unless-stopped
@@ -80,8 +81,13 @@ services:
       - "8000"
 
   worker:
-    build:
-      context: ../../backend
+    # Same code, same Dockerfile as the backend (only the command differs), so it
+    # reuses the backend's image instead of building a second ~2 GB copy. The
+    # two-build setup was compose's default, not a decision (the staging plan
+    # specifies "a second container from the same image"). pull_policy: never
+    # because the tag only ever comes from the local backend build.
+    image: leapswitch-backend:latest
+    pull_policy: never
     restart: unless-stopped
     env_file: .env
     environment:
