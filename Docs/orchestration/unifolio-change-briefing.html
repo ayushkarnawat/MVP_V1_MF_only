@@ -349,6 +349,28 @@ tr.stg td { background: var(--accent-soft); }
 .audit-lead { margin: 0; color: var(--muted); }
 .audit .block { min-width: 0; }
 .audit .block ol, .audit .block ul { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 6px; }
+/* Reading layout */
+.partnav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 8px 0; margin: 0 0 18px; background: var(--bg); border-bottom: 1px solid var(--line); }
+.partnav a { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); text-decoration: none; font-size: 0.9rem; background: var(--surface); }
+.partnav a.on { background: var(--accent); color: var(--surface); border-color: var(--accent); font-weight: 600; }
+.partnav .showall { margin-left: auto; font: inherit; font-size: 0.8rem; color: var(--muted); background: none; border: 0; text-decoration: underline; cursor: pointer; }
+.parts { display: flex; flex-direction: column; gap: 28px; }
+.part { display: flex; flex-direction: column; gap: 36px; min-width: 0; }
+.startgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.startgrid .panel h3, .panel h3 { margin-top: 0; }
+.stat4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
+.stat4 b { display: block; font-size: 1.5rem; }
+.stat4 span { color: var(--muted); font-size: 0.8rem; }
+.openq { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.openq li { padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.muted { color: var(--muted); }
+.idxrow { cursor: pointer; } .idxrow:hover td, .idxrow:focus td { background: var(--accent-soft); }
+.cardbar, .dfilter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.cardbar button, .dfilter button { font: inherit; font-size: 0.85rem; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.dfilter button.on { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.dq[hidden] { display: none; }
+@media (max-width: 520px) { .partnav .showall { margin-left: 0; } }
+.restq { margin-top: 10px; } .restq summary { cursor: pointer; color: var(--accent); }
 </style>
 </head>
 <body>
@@ -359,7 +381,7 @@ tr.stg td { background: var(--accent-soft); }
     <div class="meta">DEVELOPER CHANGE REQUIREMENTS · 13 REQUESTS + STOPPED SIPS · OCT 2026 · NOTHING IMPLEMENTED YET</div>
     <h1>Unifolio change briefing</h1>
     <p class="lede">What each of the 13 requested changes means, what the code already does, how hard it is, and how we would build it. The 13 cards were first written from <code>feat/shell-nav-switch</code>. Everything under the deep-dive headings was added on 29 Oct 2026 from the redesign line (<code>origin/leapswitch-redesign</code>, <code>23c26f77</code>) and is newer where they differ.</p>
-    <p class="banner"><strong>Read this first.</strong> The redesign work (windowed benchmark returns, fund page, fund-vs-fund overlap, new Mutual Funds pages) is merged on <code>leapswitch-redesign</code>, and that is the branch we build on (D1 answered). Start with <em>Deep dive, part 1</em>. Questions D10 to D31 are new and sit at the end of the decisions list.</p>
+    <p class="banner"><strong>Read this first.</strong> The redesign work (windowed benchmark returns, fund page, fund-vs-fund overlap, new Mutual Funds pages) is merged on <code>leapswitch-redesign</code>, and that is the branch we build on (D1 answered). Use the tabs below: <em>Start here</em> first, then <em>The changes</em>. Questions D10 to D34 are new.</p>
   </header>
 
   <section class="sec" aria-labelledby="sum">
@@ -2140,6 +2162,103 @@ document.getElementById("toggleAll").addEventListener("click", function () {
     }).join("");
     return '<article class="panel audit" id="' + a.id + '"><h3 class="audit-t">' + a.title + '</h3><p class="audit-lead">' + a.lead + "</p>" + body + "</article>";
   }).join("");
+})();
+/* Reading layout: parts (tabs), a Start here page, an item index and decision filters. Moves existing sections; no content is changed. */
+(function () {
+  var wrap = document.querySelector(".wrap"); if (!wrap) return;
+  var sec = function (hid) { var h = document.getElementById(hid); return h ? h.closest("section") : null; };
+  var esc = function (s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); };
+
+  /* ---- decision status counts ---- */
+  var st = function (d) { return /SOLVED/.test(d.tag) ? "solved" : /ANSWERED/.test(d.tag) ? "answered" : /ON HOLD/.test(d.tag) ? "hold" : "open"; };
+  var D = (window.DECISIONS || []);
+  var cnt = { open: 0, answered: 0, solved: 0, hold: 0 }; D.forEach(function (d) { cnt[st(d)]++; });
+  var openList = D.filter(function (d) { return st(d) === "open"; });
+  var blocking = { d19: 1, d22: 1, d29: 1, d32: 1, d33: 1, d34: 1 };
+
+  /* ---- Start here ---- */
+  var start = document.createElement("section"); start.className = "sec";
+  start.innerHTML =
+    '<div class="sec-head"><h2>Start here</h2><p>This page is the change briefing for 13 requested changes plus stopped SIPs. Nothing is built yet. Use the tabs above to move around; each tab holds one kind of content.</p></div>' +
+    '<div class="startgrid">' +
+    '<div class="panel"><h3>Where we are</h3><ul><li>Requests are read against the code on <code>leapswitch-redesign</code>. Nothing is implemented, nothing is pushed.</li><li>Latest stakeholder update: 30 Oct (see below).</li><li>Plan: six Codex runs, then documentation, then one staging pass. About 17 to 19 working days.</li></ul></div>' +
+    '<div class="panel"><h3>Decisions at a glance</h3><div class="stat4"><div><b>' + cnt.open + '</b><span>open</span></div><div><b>' + cnt.answered + '</b><span>answered</span></div><div><b>' + cnt.solved + '</b><span>solved</span></div><div><b>' + cnt.hold + '</b><span>on hold</span></div></div><p><a href="#p-decisions">Open the decisions tab</a></p></div>' +
+    '<div class="panel"><h3>Where to look</h3><ul><li><a href="#p-items"><b>The changes</b></a>: each item in plain words, mockups, steps, tests.</li><li><a href="#p-audits"><b>Audits</b></a>: the 13th pct explainer, score removal, benchmark, contributing funds.</li><li><a href="#p-plan"><b>Plan</b></a>: runs, timeline, blast radius, loading times.</li></ul></div>' +
+    '</div>' +
+    '<div class="panel"><h3>What I still need from you</h3><p class="muted">Open questions only. Items marked blocking stop a run from starting.</p><ul class="openq">' +
+    (function () { var li = function (d) { var id = d.id.toUpperCase(); return '<li><a href="#p-decisions" data-goto="' + d.id + '"><b>' + id + '</b></a>' + (blocking[d.id] ? ' <span class="chip risk">blocking</span>' : "") + " " + esc(d.q) + "</li>"; };
+      var bl = openList.filter(function (d) { return blocking[d.id]; }), rest = openList.filter(function (d) { return !blocking[d.id]; });
+      return bl.map(li).join("") + '</ul><details class="restq"><summary>Show the other ' + rest.length + " open questions</summary><ul class=\"openq\">" + rest.map(li).join("") + "</ul></details></div>"; })();
+
+  /* ---- Item index (top of The changes) ---- */
+  var SINCE = { "05": ["Reduced 30 Oct", "Run 1"], "08": ["Withdrawn 30 Oct", "none"], "09": ["Changed 30 Oct", "Run 2"], "10": ["Reduced 30 Oct", "Run 2"], "11": ["Audit done", "Run 3"], "13": ["Check done", "Run 1"] };
+  var RUNOF = { "01": "Runs 5, 6", "02": "Run 4", "03": "Run 1", "04": "Run 1", "05": "Run 1", "06": "Run 1", "07": "Run 2", "08": "none", "09": "Run 2", "10": "Run 2", "11": "Run 3", "12": "Run 3", "13": "Run 1" };
+  var idx = document.createElement("section"); idx.className = "sec";
+  idx.innerHTML = '<div class="sec-head"><h2>The changes at a glance</h2><p>Click a row to jump to that item and open it. Items touched by the 30 Oct update are marked.</p></div><div class="tblwrap"><table class="tbl"><thead><tr><th>#</th><th>Change</th><th>Effort</th><th>Built in</th><th>Status</th></tr></thead><tbody>' +
+    (window.DEEP || []).map(function (it, i) { var s = SINCE[it.n]; return '<tr class="idxrow" data-i="' + i + '" tabindex="0"><td><b>' + it.n + "</b></td><td>" + it.t + "</td><td>" + it.rating + "</td><td>" + (RUNOF[it.n] || "") + "</td><td>" + (s ? '<span class="chip ' + (s[0].indexOf("Withdrawn") === 0 ? "hold" : "d2") + '">' + s[0] + "</span>" : "As requested") + "</td></tr>"; }).join("") +
+    '<tr><td><b>S</b></td><td>Stopped (cancelled) SIPs</td><td>Medium</td><td>Run 3</td><td>Extra item</td></tr></tbody></table></div>';
+
+  /* ---- Parts ---- */
+  var A = document.getElementById("aud-e"), audE = A ? document.createElement("section") : null;
+  if (audE) { audE.className = "sec"; audE.innerHTML = '<div class="sec-head"><h2>What changed on 30 Oct</h2></div>'; audE.appendChild(A); }
+  var parts = [
+    ["p-start", "Start here", [start, audE]],
+    ["p-items", "The changes", [idx, sec("deep1")]],
+    ["p-audits", "Audits", [sec("aud0")]],
+    ["p-decisions", "Decisions", [sec("dec")]],
+    ["p-plan", "Plan and timing", [sec("ord"), sec("tl0"), sec("blast0"), sec("load0"), sec("deep2")]],
+    ["p-screens", "Screens", [sec("map0"), sec("sitemap0")]],
+    ["p-extra", "Extras", [sec("sip0"), sec("li")]],
+    ["p-bg", "Background", [sec("sum"), sec("done"), sec("chg"), sec("deep0"), sec("gen")]]
+  ];
+  var nav = document.createElement("nav"); nav.className = "partnav"; nav.setAttribute("aria-label", "Sections");
+  var anchor = document.querySelector("header");
+  var holder = document.createElement("div"); holder.className = "parts";
+  parts.forEach(function (p) {
+    var d = document.createElement("div"); d.className = "part"; d.id = p[0]; d.hidden = true;
+    p[2].forEach(function (s) { if (s) d.appendChild(s); });
+    holder.appendChild(d);
+    var a = document.createElement("a"); a.href = "#" + p[0]; a.textContent = p[1]; a.dataset.p = p[0]; nav.appendChild(a);
+  });
+  var all = document.createElement("button"); all.type = "button"; all.className = "showall"; all.textContent = "Show everything"; nav.appendChild(all);
+  anchor.insertAdjacentElement("afterend", nav); nav.insertAdjacentElement("afterend", holder);
+
+  var showAll = false;
+  function show(id) {
+    if (!document.getElementById(id) || !document.getElementById(id).classList.contains("part")) id = "p-start";
+    parts.forEach(function (p) { document.getElementById(p[0]).hidden = !showAll && p[0] !== id; });
+    Array.prototype.forEach.call(nav.querySelectorAll("a"), function (a) { a.classList.toggle("on", a.dataset.p === id); a.setAttribute("aria-current", a.dataset.p === id ? "page" : "false"); });
+  }
+  all.addEventListener("click", function () { showAll = !showAll; all.textContent = showAll ? "Show one tab at a time" : "Show everything"; show((location.hash || "#p-start").slice(1)); });
+  window.addEventListener("hashchange", function () { var h = location.hash.slice(1); if (document.getElementById(h) && document.getElementById(h).classList.contains("part")) { show(h); window.scrollTo(0, 0); } });
+  show((location.hash || "#p-start").slice(1));
+
+  /* ---- item index click opens the card ---- */
+  var cards = function () { return document.querySelectorAll("#deepCards > details"); };
+  function openCard(i) { var c = cards()[i]; if (!c) return; c.open = true; c.scrollIntoView({ block: "start" }); }
+  idx.addEventListener("click", function (e) { var r = e.target.closest(".idxrow"); if (r) openCard(+r.dataset.i); });
+  idx.addEventListener("keydown", function (e) { if (e.key === "Enter") { var r = e.target.closest(".idxrow"); if (r) openCard(+r.dataset.i); } });
+  /* expand / collapse all item cards */
+  var dc = document.getElementById("deepCards");
+  if (dc) { var bar = document.createElement("div"); bar.className = "cardbar"; bar.innerHTML = '<button type="button" data-a="open">Expand all</button><button type="button" data-a="close">Collapse all</button>'; dc.parentNode.insertBefore(bar, dc);
+    bar.addEventListener("click", function (e) { var a = e.target.dataset.a; if (a) Array.prototype.forEach.call(cards(), function (c) { c.open = a === "open"; }); }); }
+
+  /* ---- decision filters ---- */
+  var dh = document.getElementById("decisions");
+  if (dh) {
+    var f = document.createElement("div"); f.className = "dfilter";
+    f.innerHTML = [["all", "All " + D.length], ["open", "Open " + cnt.open], ["answered", "Answered " + cnt.answered], ["solved", "Solved " + cnt.solved], ["hold", "On hold " + cnt.hold]].map(function (x, i) { return '<button type="button" data-f="' + x[0] + '"' + (i === 0 ? ' class="on"' : "") + ">" + x[1] + "</button>"; }).join("");
+    dh.parentNode.insertBefore(f, dh);
+    function filt(v) {
+      Array.prototype.forEach.call(f.children, function (b) { b.classList.toggle("on", b.dataset.f === v); });
+      Array.prototype.forEach.call(dh.querySelectorAll(".dq"), function (el) {
+        var s = el.classList.contains("answered") ? "answered" : el.classList.contains("solved") ? "solved" : el.classList.contains("onhold") ? "hold" : "open";
+        el.hidden = v !== "all" && s !== v;
+      });
+    }
+    f.addEventListener("click", function (e) { if (e.target.dataset.f) filt(e.target.dataset.f); });
+    start.addEventListener("click", function (e) { var a = e.target.closest("[data-goto]"); if (a) { filt("open"); setTimeout(function () { var t = document.getElementById(a.dataset.goto); if (t) { var d = t.closest("details"); if (d) d.open = true; t.scrollIntoView(); } }, 50); } });
+  }
 })();
 </script>
 
