@@ -30,7 +30,7 @@ EOF
 cat >"$work/bin/df" <<'EOF'
 #!/bin/sh
 echo "Filesystem 1024-blocks Used Available Capacity Mounted"
-echo "/dev/x 100 1 ${FAKE_AVAIL_KB:-99999999} 1% /"
+echo "/dev/x 100 1 ${FAKE_AVAIL_KB:-99999999} ${FAKE_PCT:-1}% /"
 EOF
 chmod +x "$work/bin/docker" "$work/bin/df"
 
@@ -141,6 +141,25 @@ lacks "$work/buildfail.log" "docker run" "failed build never reaches the fronten
 lacks "$work/buildfail.log" "compose up" "failed build never restarts containers"
 has "$work/buildfail.log" "tag sha256:oldimage leapswitch-backend:latest" ":latest pointed back at the running image"
 [ "$(cat "$state/last-backend-commit")" = "$before" ] && ok "state not advanced by a failed build" || bad "state advanced on failure"
+
+# 9. disk alert (check-disk.sh)
+chk() { # chk <name> [args]; output in $work/<name>.log
+	name=$1
+	shift
+	LOG="$work/$name.log"
+	: >"$LOG"
+	export LOG
+	PATH="$work/bin:$PATH" sh "$repo/deploy/leapswitch/scripts/check-disk.sh" "$@" </dev/null >>"$LOG" 2>&1
+	rc=$?
+}
+FAKE_PCT=79 chk disk79
+[ "$rc" = 0 ] && lacks "$work/disk79.log" "send_job_failure_alert" "79% used -> no alert"
+FAKE_PCT=80 chk disk80
+has "$work/disk80.log" "send_job_failure_alert.py disk-usage 80" "80% used -> alert with the percent as the code"
+FAKE_PCT=93 chk disk93 90
+has "$work/disk93.log" "disk-usage 93" "custom threshold 90, 93% used -> alert"
+FAKE_PCT=85 chk disk85 90
+lacks "$work/disk85.log" "send_job_failure_alert" "custom threshold 90, 85% used -> no alert"
 
 echo
 echo "$pass passed, $fail failed"

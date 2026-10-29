@@ -84,3 +84,31 @@ Recommended order once the redesign is signed off:
 1. Merge into `feat/leapswitch-staging` as planned; point `ls-staging` at the redesign bundle (or retire `ls-redesign`). From that moment there is no old front end on the VM, so the additive-only rule ends and drops/renames become possible.
 2. Then promote to AWS staging with the existing AWS deploy process: backend image to ECR/ECS, migrations 0044 to 0046 on RDS, front end. The AWS database is separate data, so run the migrations there and compare synthetic-CAS numbers as in T6/T7. The AWS deploy steps were not re-read for this guide; confirm them before the promotion.
 Retiring `ls-staging` first (the reverse) gains nothing: the redesign is the future and the old link is only the comparison reference.
+
+## 7. Disk alert (`scripts/check-disk.sh`)
+
+Emails the ops address (SES, same path as `check-memory.sh`) when the Docker disk is 80% used or more; subject `[LeapSwitch staging] disk-usage failed (exit <percent>)`, body has `df -h` and `docker system df`. Cron lines in `crontab.leapswitch`: 09:00 and 18:00 IST. At most two mails a day while the disk stays above the threshold.
+
+**Installing it changes root's crontab, so do it by hand and keep a backup.** The cron file hard-codes `/opt/unifolio/...` (the main clone), which does not have the script until the redesign is merged into `feat/leapswitch-staging`. Until then, point the line at the redesign worktree. Do NOT reinstall the whole `crontab.leapswitch` from the redesign branch: it may differ from what is installed.
+
+```
+sudo crontab -l > ~/crontab.backup-$(date +%Y%m%d)
+( sudo crontab -l; echo '0 9,18 * * * CRON_TZ=Asia/Kolkata /opt/unifolio-redesign/deploy/leapswitch/scripts/check-disk.sh >> /var/log/unifolio-disk.log 2>&1' ) | sudo crontab -
+sudo crontab -l | tail -3
+```
+(If `CRON_TZ` is already set once near the top of the installed crontab, drop it from this line and the line inherits it only if placed after it; check that `sudo crontab -l | head` shows `CRON_TZ=Asia/Kolkata`. The line above sets it explicitly for this one entry only if your cron supports per-line variables; otherwise put the `CRON_TZ` line directly above it.)
+
+Test without waiting: `sudo /opt/unifolio-redesign/deploy/leapswitch/scripts/check-disk.sh 1` (threshold 1% forces an alert; check the inbox, then nothing else changes).
+When the main clone has the script, change the path in the cron line to `/opt/unifolio/...` or reinstall from the merged crontab file.
+
+## 8. Verification on the VM after PR #37 is merged
+
+Run in `/opt/unifolio-redesign` as `deploy`:
+1. `git pull` then `git log --oneline -1` (expect the merge of the hardening PR).
+2. `sudo docker compose config | grep -A4 "worker:"` shows `image: leapswitch-backend:latest`, no `build`.
+3. `sudo docker compose up -d` (builds nothing). Expect the worker line `Recreated`.
+4. `sudo docker compose ps`: postgres, backend, worker, caddy all Up/healthy.
+5. `for u in https://ls-staging-api.unifolio.in/health https://ls-redesign.unifolio.in/ https://ls-staging.unifolio.in/; do curl -s -o /dev/null -w "%{http_code}\n" "$u"; done`: `200` three times.
+6. `sudo docker compose run --rm -T backend alembic current`: `0046 (head)`.
+7. Only then: `sudo docker rmi leapswitch-worker:latest leapswitch-worker:previous`, then `df -h /` (expect about 2 GB more free).
+8. Dry check of the guard: `sudo sh ./scripts/deploy-redesign.sh --full` should print `backend: skipping the rebuild (backend/ is unchanged since 1e1af905)` ONLY IF `backend/` is unchanged since that commit, and then stop after building the front end. Skip this step if you do not want a front-end rebuild now; nothing else needs `--full`.
