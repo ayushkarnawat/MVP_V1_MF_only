@@ -470,3 +470,11 @@ Source: register C185 and `Docs/orchestration/2026-10-29-vm-disk-resize-runbook.
 - **H4, build before going live:** build backend and worker before the front end goes live, so a failed `--full` changes nothing live (today the front end is already live, `:previous` equals `:latest` so `rollback.sh` is a no-op for the backend, and there is no front-end rollback).
 - **Disk alert at about 80%** (cron plus the existing ops alert path) and a build-cache cap (`docker builder prune --keep-storage`).
 - **Prerequisite, not deferred:** the VM disk resize itself (see the runbook) must happen before the next `--full`.
+
+## Added 2026-10-29 (Change of Head of Family, "make this new member the head" at Add Member, not built)
+
+**For now only people already in the family can be made Head of Family.** Decided by the owner 2026-10-29 (change-briefing item 1, answers D3 option B and D10 option B in `Docs/orchestration/unifolio-change-briefing.html`). The first release adds a separate head flag, a "Change Head of Family" button on Profile > Family Members, and a two-code confirmation (one email code to the current head, one to the new head). Because option B moves the account's sign-in to the new head, a head change is the most sensitive action in the app.
+Deferred until manual Add Member is built (see "Profile redesign planning, manual Add Member" above):
+- In the Add Member dialog, an option "Make this person the Head of Family". It must use the same two-code rule and the same checks as a change of head; a person added a moment ago has no verified email, so the new head's code is the only proof.
+- The eligibility rules, edge cases and follow-up questions D28 to D31 (phone number, relationship labels, a new head who already has an account, undo window) are written up in the change briefing so they are not re-decided.
+- Open when picked up: whether a person created in the same dialog can receive the code in the same session, and what happens to the half-created member if either code is never entered.
