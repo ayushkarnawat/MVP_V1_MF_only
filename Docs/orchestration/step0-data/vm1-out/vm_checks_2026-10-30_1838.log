@@ -1,0 +1,174 @@
+=== 2026-10-30 18:38 IST | host unifolio-staging-1 | log /home/deploy/step0/out/vm_checks_2026-10-30_1838.log
+--- branch and image:
+leapswitch-redesign
+3602c510 2026-10-29 fix(deploy): make check-disk.sh executable (cron and direct calls got "command not found")
+/dev/vda1        29G   20G  8.5G  70% /
+
+=== S4a NSE per-stock P/E file (steps back up to 7 days, like the app's client)
+PE_301026.csv -> 200 0
+SYMBOL,SYMBOL P/E,ADJUSTED P/E
+THERMAX,64.42,69.51
+WHEELS,30.29,30.29
+
+=== S4b NSE security master (DDMMYYYY, gzip)
+NSE_CM_security_30102026 -> 404 0
+NSE_CM_security_29102026 -> 200 0
+
+=== S4c niftyindices total-return history (POST; last 30 days, Nifty 50)
+ 2026","TotalReturnsIndex":"34608.14","NTR_Value":"30051.8"},{"RequestNumber":"TRI63928962503152080300","Index Name":"Nifty 50","Date":"05 Oct 2026","TotalReturnsIndex":"34273.35","NTR_Value":"29761.08"},{"RequestNumber":"TRI63928962503152080300","Index Name":"Nifty 50","Date":"01 Oct 2026","TotalReturnsIndex":"34070.01","NTR_Value":"29584.52"},{"RequestNumber":"TRI63928962503152080300","Index Name":"Nifty 50","Date":"30 Sep 2026","TotalReturnsIndex":"34371.66","NTR_Value":"29846.45"}]
+HTTP 200
+--- price endpoint, Nifty 50 Arbitrage (S9 candidate)
+"HIGH":"-","LOW":"-","CLOSE":"2749.42"},{"RequestNumber":"His63928962505493532500","Index Name":"","INDEX_NAME":"Nifty 50 Arbitrage","HistoricalDate":"01 Oct 2026","OPEN":"-","HIGH":"-","LOW":"-","CLOSE":"2745.42"},{"RequestNumber":"His63928962505493532500","Index Name":"","INDEX_NAME":"Nifty 50 Arbitrage","HistoricalDate":"30 Sep 2026","OPEN":"-","HIGH":"-","LOW":"-","CLOSE":"2747.05"}]
+HTTP 200
+
+=== S4d AMFI
+HTTP/2 200 
+HTTP/1.1 200 OK
+
+=== S5 BSE (expect: price file reachable, API blocked)
+--- BSE data API root (403 or a redirect is the expected answer):
+HTTP/2 403 
+--- BSE bhavcopy: URL pattern is NOT in the repo and this pattern is UNVERIFIED; a 200 with a few hundred KB means it works
+bhavcopy 20261029 -> 200 0
+TradDt,BizDt,Sgmt,Src,FinInstrmTp,FinInstrmId,ISIN,TckrSymb,SctySrs,XpryDt,FininstrmActlXpryDt,StrkPric,OptnTp,FinInstrmNm,OpnPric,HghPric,LwPric,ClsPric,LastPric,PrvsClsgPric,UndrlygPric,SttlmPric,OpnIntrst,ChngInOpnIntrst,TtlTradgVol,TtlTrfVal,TtlN
+=== S7 database counts (read-only)
+--- distinct managers (only needed when LinkedIn resumes)
+ count 
+-------
+   565
+(1 row)
+
+--- categories real households hold (settles the judgement rows of D14)
+                         sebi_category                          | funds 
+----------------------------------------------------------------+-------
+ Equity Scheme - Small Cap Fund                                 |    12
+ Other Scheme - Index Funds                                     |     9
+ Equity Scheme - Flexi Cap Fund                                 |     8
+ Equity Schemes - ELSS- Tax Saver Fund                          |     6
+ Equity Schemes - Flexi Cap Fund                                |     6
+ Equity Schemes - Mid Cap Fund                                  |     5
+ Equity Scheme - Mid Cap Fund                                   |     5
+ Equity Scheme - ELSS                                           |     4
+ Equity Scheme - Focused Fund                                   |     4
+ Equity Scheme - Large & Mid Cap Fund                           |     3
+ Equity Schemes - Large Cap Fund                                |     3
+ Equity Schemes - Multi Cap Fund                                |     3
+ Equity Scheme - Large Cap Fund                                 |     3
+ Equity Schemes - Thematic Fund                                 |     3
+ Hybrid Schemes - Multi Asset Allocation Fund                   |     3
+ Equity Schemes - Large & Mid Cap Fund                          |     3
+ Debt Scheme - Corporate Bond Fund                              |     2
+ Equity Scheme - Contra Fund                                    |     2
+ Equity Scheme - Multi Cap Fund                                 |     2
+ Equity Scheme - Sectoral/ Thematic                             |     2
+ Equity Scheme - Value Fund                                     |     2
+ Equity Schemes - Focused Fund                                  |     2
+ Equity Schemes - Small Cap Fund                                |     2
+ Hybrid Scheme - Dynamic Asset Allocation or Balanced Advantage |     2
+ Hybrid Scheme - Multi Asset Allocation                         |     1
+ Hybrid Schemes - Aggressive Hybrid Fund                        |     1
+ Hybrid Schemes - Equity Savings Fund                           |     1
+ Hybrid Scheme - Arbitrage Fund                                 |     1
+ Income/Debt Oriented Schemes - Short Term Fund                 |     1
+ Index Funds - Equity Funds                                     |     1
+ Equity Schemes - Contra Fund                                   |     1
+ Solution Oriented Scheme - Children’s Fund                     |     1
+(32 rows)
+
+--- equity stocks held by funds with no P/E stored
+ stocks_without_pe 
+-------------------
+               278
+(1 row)
+
+--- equity stocks with no NSE symbol (BSE-only candidates)
+ stocks_not_on_nse 
+-------------------
+                96
+(1 row)
+
+--- manager coverage per fund house
+             amc_name              | funds | with_manager 
+-----------------------------------+-------+--------------
+ ICICI Prudential Mutual Fund      |  2511 |          697
+ Nippon India Mutual Fund          |  1870 |          595
+ UTI Mutual Fund                   |  1373 |          472
+ Kotak Mahindra Mutual Fund        |   943 |          419
+ HDFC Mutual Fund                  |   581 |          327
+ SBI Mutual Fund                   |   494 |          409
+ Aditya Birla Sun Life Mutual Fund |   441 |          399
+ Bandhan Mutual Fund               |   435 |          416
+ Axis Mutual Fund                  |   409 |          402
+ Tata Mutual Fund                  |   407 |          365
+ DSP Mutual Fund                   |   361 |          349
+ Franklin Templeton Mutual Fund    |   321 |          195
+ Edelweiss Mutual Fund             |   312 |          298
+ Mirae Asset Mutual Fund           |   284 |          276
+ HSBC Mutual Fund                  |   283 |          232
+ Sundaram Mutual Fund              |   277 |            0
+ Baroda BNP Paribas Mutual Fund    |   255 |          251
+ Invesco Mutual Fund               |   249 |          225
+ Motilal Oswal Mutual Fund         |   220 |          216
+ LIC Mutual Fund                   |   220 |          220
+ Groww Mutual Fund                 |   217 |          217
+ PGIM India Mutual Fund            |   199 |          199
+ JM Financial Mutual Fund          |   178 |          149
+ Union Mutual Fund                 |   151 |          148
+ quant Mutual Fund                 |   145 |          129
+ Bank of India Mutual Fund         |   144 |          136
+ Canara Robeco Mutual Fund         |   130 |          130
+ Mahindra Manulife Mutual Fund     |   122 |          122
+ ITI Mutual Fund                   |   114 |          110
+ Bajaj Finserv Mutual Fund         |   108 |            0
+ WhiteOak Capital Mutual Fund      |    80 |           70
+ Navi Mutual Fund                  |    76 |           72
+ The Wealth Company Mutual Fund    |    49 |           49
+ Trust Mutual Fund                 |    48 |           45
+ 360 ONE Mutual Fund               |    45 |           45
+ Quantum Mutual Fund               |    44 |           44
+ Taurus Mutual Fund                |    39 |           34
+ Shriram Mutual Fund               |    39 |           39
+ Jio BlackRock Mutual Fund         |    35 |           31
+ Helios Mutual Fund                |    34 |           34
+ Samco Mutual Fund                 |    29 |           29
+ PPFAS Mutual Fund                 |    28 |           28
+ NJ Mutual Fund                    |    25 |           25
+ Zerodha Mutual Fund               |    24 |           23
+ Abakkus Mutual Fund               |    19 |           19
+ Angel One Mutual Fund             |    16 |           16
+ IL&FS Mutual Fund (IDF)           |    12 |            0
+ Old Bridge Mutual Fund            |    12 |           12
+ Capitalmind Mutual Fund           |    12 |           12
+ AlphaGrep Mutual Fund             |    12 |            0
+ Choice Mutual Fund                |    10 |           10
+ ASK MUTUAL FUND                   |     8 |            8
+ Unifi Mutual Fund                 |     6 |            6
+ Carnelian Mutual Fund             |     5 |            0
+ Monarch Mutual Fund               |     4 |            0
+ Lakshya Mutual Fund               |     2 |            0
+(56 rows)
+
+--- users (copy one id for the recompute and timing steps)
+                  id                  |             email             |          created_at           
+--------------------------------------+-------------------------------+-------------------------------
+ bed26e3e-4261-4762-98ec-0f6ab582ab15 | aditi.shanbhag@unifolio.in    | 2026-10-28 06:05:36.767668+00
+ 670be74d-b718-4586-9fd8-d22eec0c662d | siddharthsurve@gmail.com      | 2026-10-28 03:41:38.303061+00
+ 24070437-643a-493a-9dfa-efa964ea4d3a | sanchetiprateek1996@gmail.com | 2026-10-23 03:24:18.236885+00
+ a9ad0791-ae32-4d32-91ba-18a954288981 | aditishanbhag272@gmail.com    | 2026-10-22 06:59:38.708886+00
+ 140148b8-b73e-421b-b567-8b8022a2dca0 | shanbhagaditi82@gmail.com     | 2026-10-22 06:36:41.300109+00
+(5 rows)
+
+
+=== health
+API /health -> 200
+NAME                    IMAGE                       COMMAND                  SERVICE    CREATED        STATUS                 PORTS
+leapswitch-backend-1    leapswitch-backend:latest   "/app/docker-entrypo…"   backend    28 hours ago   Up 28 hours            8000/tcp
+leapswitch-caddy-1      caddy:2-alpine              "caddy run --config …"   caddy      2 days ago     Up 2 days              0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp, 443/udp, 2019/tcp
+leapswitch-postgres-1   postgres:16-alpine          "docker-entrypoint.s…"   postgres   2 weeks ago    Up 2 weeks (healthy)   5432/tcp
+leapswitch-worker-1     leapswitch-backend:latest   "/app/docker-entrypo…"   worker     28 hours ago   Up 28 hours            8000/tcp, 8008/tcp
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+0046 (head)
+               total        used        free      shared  buff/cache   available
+Mem:           15988        3051        3749         813       10342       12936
+
+=== done. Log saved to /home/deploy/step0/out/vm_checks_2026-10-30_1838.log

@@ -1,0 +1,170 @@
+  <section class="sec" aria-labelledby="i1b">
+    <div class="sec-head">
+      <h2 id="i1b">Item 1 build: Change Head of Family, in detail</h2>
+      <p>Read from the code on <code>leapswitch-redesign</code> on 31 Oct. It covers how the database is swapped, which codes and emails are sent, how the phone stub appears on screen, every error state, and the label changes. Nothing is built.</p>
+    </div>
+
+    <article class="panel">
+      <div class="block after"><h3>The design in five lines</h3>
+        <ul>
+          <li><b>Same account, new sign-in.</b> The <code>users</code> row, its id and all portfolio data stay exactly where they are. Only who can sign in changes.</li>
+          <li><b>Two markers stay in step.</b> A new <code>is_head</code> flag (migration 0047) says who the head is. At the swap the <code>self</code> relationship moves to the new head in the same transaction (D29 option A), so the 15 places in the backend that test <code>relationship = self</code> keep working without edits. The flag is what new code reads, and a backfill makes it equal to <code>self</code> for every existing account.</li>
+          <li><b>Four codes.</b> Each person confirms their email and their phone. Email codes go out through the same email template as sign-in codes, with different wording. Phone codes use the existing stub (D37), and the stub code is shown on screen.</li>
+          <li><b>Nothing changes until all four are verified</b> inside 10 minutes. The swap is one database transaction and rolls back as a whole.</li>
+          <li><b>Safety:</b> the current head re-confirms to start, everyone gets an email, and the old head has a 24-hour undo link (D31).</li>
+        </ul>
+      </div>
+
+      <div class="block"><h3>The database swap, table by table</h3>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Table</th><th>What happens</th><th>Why it matters</th></tr></thead><tbody>
+          <tr><td><code>users</code></td><td><b>Changes:</b> <code>phone_number</code> and <code>email</code> become the new head's verified values. <b>Stays:</b> <code>id</code>, <code>created_at</code>, onboarding answers, goals, investor type.</td><td><code>phone_number</code> is unique and not null, so the swap must run after the old identities are cleared. There is no name column: the display name comes from the Self member row.</td></tr>
+          <tr><td><code>auth_identities</code></td><td>Delete <b>all</b> of the old head's identities (phone, email, Google, password). Insert two new ones for the new head: phone (subject = phone) and email (subject = email, email column filled).</td><td>Login lookups read this table, not <code>users</code>. A kept Google identity would let the old head still sign in and land in the new head's account. A stale <code>email</code> column would let anyone who proves that email join the account. The deleted rows are copied into the audit row so undo can restore them.</td></tr>
+          <tr><td><code>sessions</code></td><td>Delete every session for the user, including the caller's, and delete pending identity-link tokens.</td><td>There are no refresh tokens, only sessions. The screen has no global sign-out handler, so after success it must call logout itself and go to the sign-in page.</td></tr>
+          <tr><td><code>otp_requests</code></td><td>Add a <code>purpose</code> column (0047) and a TTL parameter (10 minutes for this flow; sign-in codes stay at 5). Delete the four used code rows at completion.</td><td>Today a code is keyed only by the phone or email value, with no purpose. Without a purpose column a head-change code for the new head's email would also work as that person's sign-in code. Each code is single-use, so the "verified" state of all four lives on the request row, not on these rows.</td></tr>
+          <tr><td><code>head_change_requests</code> (new)</td><td>One row per attempt: from and to member, four verified-at stamps, status, expiry, undo token hash and expiry, snapshots of what was deleted.</td><td>A partial unique index allows one open request per account. The snapshot makes undo possible. It must also be cleaned up by the account-deletion job.</td></tr>
+          <tr><td><code>household_members</code></td><td>Flip <code>is_head</code> and the <code>self</code> label, flip the other members' labels, copy the old head's contact details onto the old head's row.</td><td>The one-self rule is a unique index that is checked per statement, so the order is: update the old row, flush, then update the new row. Member ids, PAN and folios do not move.</td></tr>
+          <tr><td><code>consent_records</code></td><td>Never edited (append-only). Insert withdrawal rows with surface <code>head_change</code> for the sign-up documents.</td><td>Withdrawal makes the app ask the new head to accept the Terms and Privacy Policy at first sign-in, using the gate already built. The gate's title is fixed to "We've updated our Terms", so it needs its own wording for this case.</td></tr>
+          <tr><td>Everything else</td><td>Folios, imports, transactions, snapshots, analytics sections, recompute status, name-change history, merge history: <b>untouched</b>.</td><td>All are keyed by user id or member id, which do not change. No cache needs invalidating.</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="block"><h3>The single transaction, in order</h3>
+        <ol>
+          <li>Lock the <code>users</code> row, then the account's members (by id), then the open request (<code>FOR UPDATE</code>, which works on Postgres; it is a no-op on the SQLite used in tests).</li>
+          <li>Check again inside the lock: request open and not expired, all four codes verified, old head still head, new head still a member, account not pending deletion, no import preview open, contact details still free, PAN checks still true.</li>
+          <li>Copy the old head's contact, identities, session count and every member's label into the audit row. Store the undo token hash and its 24-hour expiry.</li>
+          <li>Delete the old identities. Flush.</li>
+          <li>Set <code>users.phone_number</code> and <code>users.email</code> to the new head's values. Flush (this is where the unique rule would fire if a race slipped past the check).</li>
+          <li>Insert the two new identities. Flush.</li>
+          <li>Members: the old head's row first (clear head, change the self label, receive the old contact details), flush, then the new head's row (set head, set self). Flip the other labels.</li>
+          <li>Delete sessions and pending link tokens. Delete the four used code rows.</li>
+          <li>Insert the consent withdrawal rows. Write the audit row. <b>Commit.</b></li>
+          <li>After the commit, send the "head changed" emails to both people and to the old head's other email, if any. A failed email never undoes the swap; it is logged and retried.</li>
+        </ol>
+        <p>If anything fails before step 9 the whole transaction rolls back and nothing has changed. A unique-rule failure at commit returns a "contact already used" error.</p>
+      </div>
+
+      <div class="block"><h3>The two checks that must pass again at the swap</h3>
+        <ul>
+          <li><b>Contact availability.</b> The existing check looks at the identity rows and at <code>users.email</code>. It does not look at the <code>email</code> column of identity rows, which is how a Google sign-in is recognised. The swap runs both that check and the sign-in collision check.</li>
+          <li><b>PAN.</b> The new head's PAN must not be held by another account and the member must not have an "on another account" conflict. Once someone is head the app does not let that row's PAN be edited, so a head with no PAN could never add one. That is why a member with no PAN is not eligible.</li>
+        </ul>
+      </div>
+
+      <div class="block"><h3>The emails</h3>
+        <p>The sign-in code email is the only email the app sends today, built in <code>email_templates.py</code> (a headline, a large code, a note and a disclaimer; dark-mode aware). Its headline says "to sign in", which is wrong here, and its 5-minute wording is fixed. The change: the template takes a <code>purpose</code>, a headline, a note and a time-to-live, and the header and footer are shared with the two notice emails, which is the second email type the module's own comment was waiting for.</p>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Email</th><th>To</th><th>Proposed wording</th></tr></thead><tbody>
+          <tr><td>Code to the current head</td><td>Current head's email</td><td><b>Subject:</b> Confirm a change of Head of Family. <b>Headline:</b> Your <b>confirmation code</b> to change the Head of Family on Unifolio is below. <b>Note:</b> This code expires in <b>10 minutes</b>. It will make <i>Aditi</i> the Head of Family and move sign-in to her. If you did not ask for this, do not share the code and contact support@unifolio.in.</td></tr>
+          <tr><td>Code to the new head</td><td>New head's email</td><td><b>Subject:</b> Confirm you are becoming Head of Family. <b>Headline:</b> Your <b>confirmation code</b> to become Head of Family on Unifolio is below. <b>Note:</b> This code expires in <b>10 minutes</b>. <i>Siddharth</i> asked to hand this family's account to you. After you both confirm, you will sign in with this email and phone number. If this is unexpected, ignore this email.</td></tr>
+          <tr><td>Head changed</td><td>Both people, and the old head's other emails</td><td><b>Subject:</b> The Head of Family on Unifolio has changed. <b>Body:</b> <i>Aditi</i> is now Head of Family and signs in with this email. <i>Siddharth</i> remains a member and no longer signs in. All portfolio data is unchanged. If this was not you, use the undo link within 24 hours.</td></tr>
+          <tr><td>Undo link</td><td>Old head's email</td><td><b>Subject:</b> Undo the Head of Family change. A single button, valid for 24 hours, that restores the previous sign-in. It will fail with a clear message if the old phone or email has been taken in the meantime.</td></tr>
+        </tbody></table></div>
+        <p>On staging the email mode is real SES, so the code arrives in a real inbox. In stub email mode the code is returned on screen the same way as the phone code.</p>
+      </div>
+
+      <div class="block"><h3>The phone stub, shown on screen</h3>
+        <ul>
+          <li>Phone codes use <code>OTP_DELIVERY_MODE = stub</code>: nothing is sent, and the API returns the code in the field <code>otp</code>. The backend refuses stub mode in production, so this can never leak there.</li>
+          <li>On the sign-in screens a "Local Dev OTP" banner already shows that value. The Profile contact-change dialog ignores it, so a tester cannot see the phone code there. The head-change dialog renders it under each phone box: <b>"Test mode: no SMS is sent yet. Your phone code is 482 913."</b> It appears only when the API returned a code.</li>
+          <li>The banner is extracted into one small component so sign-in and head change look the same.</li>
+        </ul>
+      </div>
+
+      <div class="block"><h3>Buttons</h3>
+        <ul>
+          <li>All green buttons use the brand green <code>#22C55E</code> with white text. That is already true of the shared <code>Button</code> component (primary variant) and of the hand-built page buttons that use the green token. The Change Head of Family button, Send codes, Confirm change and Confirm and move sign-in use the shared primary button, not custom colours.</li>
+          <li><b>Contrast, for your decision.</b> White text on <code>#22C55E</code> has a contrast ratio of <b>2.28 : 1</b>. The accessibility standard asks for 4.5 : 1 for normal text and 3 : 1 for large text, so it falls short on both. The existing darker green <code>#15803D</code> reaches 5.0 : 1 and <code>#16A34A</code> reaches 3.3 : 1. We build it as you asked; semibold 14 px or larger text and a visible focus ring reduce the problem. If you want it fully fixed later it is one token.</li>
+          <li>About 257 places in the app hard-code <code>#22C55E</code> instead of using the token (mostly sign-in and import screens). A cleanup pass is listed under the design rules.</li>
+        </ul>
+      </div>
+
+      <div class="block"><h3>Every error state</h3>
+        <p>The sign-in screens match error text by substring. The head-change flow instead returns <code>{code, message}</code>, and the dialog shows the message in place, next to the box it belongs to.</p>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Situation</th><th>Code and status</th><th>What the person sees</th></tr></thead><tbody>
+          <tr><td>Another request is already open</td><td><code>head_change_already_open</code> 409</td><td>"A change is already waiting for codes. Cancel it or wait for it to expire." The pending banner shows the time left.</td></tr>
+          <tr><td>The chosen member has no email or no phone</td><td><code>member_not_eligible</code> 409</td><td>Greyed in the list: "Add an email address and a phone number first."</td></tr>
+          <tr><td>Same email or phone as the current head</td><td><code>contact_same_as_head</code> 409</td><td>"This email (or phone) is the same as yours, so a code to it proves nothing. Use a different one."</td></tr>
+          <tr><td>Email or phone already used by another Unifolio sign-in</td><td><code>contact_in_use</code> 409</td><td>"This email (or phone) already belongs to another Unifolio account. They would need to use a different one. Contact support if you think this is a mistake." (D30)</td></tr>
+          <tr><td>The member's PAN is held by another account, or marked as a conflict</td><td><code>pan_registered_elsewhere</code> 409</td><td>"This person's PAN is already on another Unifolio account, so they cannot become head." The existing "on another account" wording is reused; the import pop-up itself is not, because it is import-specific.</td></tr>
+          <tr><td>The member has no PAN</td><td><code>member_not_eligible</code> 409</td><td>"Add their PAN in their profile first."</td></tr>
+          <tr><td>An import or a PAN claim is open</td><td><code>import_in_progress</code> 409</td><td>"Finish or cancel the statement you are importing, then try again."</td></tr>
+          <tr><td>Account is pending deletion</td><td>403 from the active-user check</td><td>"This account is scheduled for deletion. Reactivate it first."</td></tr>
+          <tr><td>Wrong code</td><td>401</td><td>"That code is not right." Five tries per code, then the code is locked.</td></tr>
+          <tr><td>Code expired (10 minutes)</td><td><code>request_expired</code> 410</td><td>"The codes expired. Nothing has changed. Start again."</td></tr>
+          <tr><td>Resend too fast</td><td>429</td><td>"Please wait 40 seconds before asking for another code." (60-second throttle; four codes means four separate throttles.)</td></tr>
+          <tr><td>Email could not be sent</td><td>502</td><td>"We could not send the email just now. Try again in a minute." Nothing is saved, so the throttle is not used up.</td></tr>
+          <tr><td>Phone code (stub) not visible</td><td>n/a</td><td>If the API returned no code in a non-production environment, the box says "No test code was returned. Check the server mode."</td></tr>
+          <tr><td>The new head has not accepted the Terms yet</td><td><code>consent_required</code> 422</td><td>The re-consent gate opens at first sign-in with head-change wording.</td></tr>
+          <tr><td>Contact taken before undo</td><td><code>undo_contact_taken</code> 409</td><td>"The old phone or email has been taken since the change, so it cannot be undone."</td></tr>
+          <tr><td>Undo link expired</td><td><code>undo_expired</code> 410</td><td>"The 24-hour undo window has closed."</td></tr>
+          <tr><td>The old head lost access to their email</td><td>n/a</td><td>Cannot complete. Recovery is a manual support process and is out of scope.</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="block"><h3>Relationship labels: the flip, and the situations around it</h3>
+        <p>The enum has six values: self, spouse, parent, child, sibling, other (with a required free-text label when other), plus "not set". There is <b>no gender anywhere</b>, so father versus mother, or son versus daughter, cannot be told apart by code. That is why the table uses only the neutral values and sends the unclear cases to <i>other</i> or <i>not set</i>. A wrong "spouse" or "parent" is worse than "Not set".</p>
+        <p><b>The old head's new label</b>, given the new head's old label to the old head:</p>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>New head was the old head's...</th><th>Old head's new label</th></tr></thead><tbody>
+          <tr><td>Spouse</td><td>Spouse</td></tr><tr><td>Parent</td><td>Child</td></tr><tr><td>Child</td><td>Parent</td></tr><tr><td>Sibling</td><td>Sibling</td></tr><tr><td>Other, or not set</td><td>The dialog asks; the change cannot start until the new head's label is set</td></tr>
+        </tbody></table></div>
+        <p><b>Everyone else</b>, by combining their old label with the new head's:</p>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>New head was...</th><th>Was spouse</th><th>Was parent</th><th>Was child</th><th>Was sibling</th><th>Other or not set</th></tr></thead><tbody>
+          <tr><td>Spouse</td><td>Other: second spouse</td><td>Other: parent-in-law</td><td>Child (may be a stepchild)</td><td>Other: sibling-in-law</td><td>unchanged</td></tr>
+          <tr><td>Parent</td><td>Other: child-in-law</td><td>Spouse (usually)</td><td>Other: grandchild</td><td>Child</td><td>unchanged</td></tr>
+          <tr><td>Child</td><td>Parent (may be a step-parent)</td><td>Other: grandparent</td><td>Sibling</td><td>Other: uncle or aunt</td><td>unchanged</td></tr>
+          <tr><td>Sibling</td><td>Other: sibling-in-law</td><td>Parent</td><td>Other: niece or nephew</td><td>Sibling</td><td>unchanged</td></tr>
+        </tbody></table></div>
+        <p>The dialog shows every proposed label for review before the person confirms. Where the code would have to guess it leaves the label as "Not set" and keeps the old one in the audit row.</p>
+        <p><b>More situations, each with the rule:</b></p>
+        <ul>
+          <li><b>Members with no label (found in a statement):</b> stay "not set".</li>
+          <li><b>Several spouses or several siblings:</b> only the person chosen as the new head changes meaning; everyone else follows the table.</li>
+          <li><b>Free-text "other" labels</b> such as "Mother-in-law": kept only when they read the same from either side ("Friend", "Business partner"); otherwise cleared and flagged for the new head to fill in. Code cannot invert gendered text.</li>
+          <li><b>The head must have a label to the old head before the change.</b> An unlabelled or "other" new head needs a label first, or the old head's new label cannot be worked out.</li>
+          <li><b>An account that never finished onboarding</b> (no self row): the Change Head button is hidden.</li>
+          <li><b>The Admin pill and Head badge</b> follow the head flag, not the word self.</li>
+          <li><b>Greeting and name:</b> the Home greeting and "self name" come from the head's row, so they switch to the new head's first name.</li>
+          <li><b>Onboarding answers, goals and investor type</b> describe the old head. They stay on the account until the new head edits them (D29).</li>
+          <li><b>"Member since"</b> shows the account's creation date, which is the old head's. It stays; it is the account's age.</li>
+          <li><b>Members added, removed or relabelled after the swap, then undo:</b> undo restores only the labels the swap itself changed; later edits are kept.</li>
+          <li><b>The old head's contact details</b> were stored on the account, not on their member row. They are copied onto their row, so their card shows an ordinary member's phone and email.</li>
+          <li><b>A legacy account with no email</b> cannot start the change: the current head must add and verify an email first, because they need to enter an email code.</li>
+          <li><b>Changing back</b> uses the same flow, at most once every 7 days.</li>
+        </ul>
+      </div>
+
+      <div class="block"><h3>What the screens do</h3>
+        <ul>
+          <li><b>Family page:</b> the member cards stay as they are. A <b>Change Head of Family</b> button (green, white text) is added, shown to the current head only. A pending request shows a banner with the time left and a Cancel button.</li>
+          <li><b>Dialog, three steps:</b> choose the member (greyed with a reason when not eligible); enter four codes, with the stub code visible under each phone box; a before-and-after summary that says plainly who signs in afterwards and that everyone is signed out.</li>
+          <li><b>After success:</b> the app calls logout and shows the sign-in page with a notice. The new head signs in with their own email or phone, accepts the Terms, and sees the same data.</li>
+          <li>The existing six-box code input is reused; its sign-in wrapper has fixed wording, so a small variant is needed.</li>
+        </ul>
+      </div>
+
+      <div class="block"><h3>Open points on item 1 (D40), with my recommendation for each</h3>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Point</th><th>Recommendation</th></tr></thead><tbody>
+          <tr><td>Does "the Self row is not renamed" (D3) still hold?</td><td>Self moves to the new head in the same transaction (D29 option A). The flag mirrors it. This is the smallest change to existing code, and it is what the swap table above assumes.</td></tr>
+          <tr><td>May a member with no PAN become head?</td><td>No. The head's PAN cannot be edited later, so the member must already have a verified PAN with no conflict.</td></tr>
+          <tr><td>Does the member's <code>origin</code> change?</td><td>No. The rules that read it only matter for members found in statements, and a head has a label.</td></tr>
+          <tr><td>Does the new head inherit the onboarding answers?</td><td>Yes, until they edit them, as D29 says.</td></tr>
+          <tr><td>A separate OTP table or a purpose column?</td><td>A purpose column plus the request table that holds the four verified stamps.</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="block"><h3>Tests to write first (added to the earlier list)</h3>
+        <ul>
+          <li>Swap leaves the user id, portfolio rows and analytics rows untouched, and moves exactly the rows in the table above.</li>
+          <li>A deleted Google identity cannot sign in to the account after the swap; the old email and phone become free to register.</li>
+          <li>A head-change code cannot be used to sign in, and a sign-in code cannot be used in the flow (purpose).</li>
+          <li>The one-self rule: the order old row, flush, new row never violates the unique index; a forced failure mid-way rolls back everything.</li>
+          <li>Each error code in the table is returned for its case, and the message is shown next to the right box.</li>
+          <li>The stub code appears in the dialog when the API returns it and not otherwise.</li>
+          <li>Label table: every cell, including the "other" and "not set" cases.</li>
+          <li>Undo restores identities, contact and the swap's own labels, and fails cleanly when a contact was taken.</li>
+          <li>Account deletion also removes the new request table's rows.</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+

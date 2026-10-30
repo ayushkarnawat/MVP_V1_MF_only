@@ -1,0 +1,123 @@
+  <section class="sec" aria-labelledby="i4b">
+    <div class="sec-head">
+      <h2 id="i4b">Item 3, 4 and 5 rules (answers of 31 Oct)</h2>
+      <p>The rules behind the market cap note, the main-manager choice, the LinkedIn check, and what the overlap page does when a category has no funds or one fund.</p>
+    </div>
+
+    <article class="panel">
+      <div class="block after"><h3>Item 3: what is "6% of your equity could not be sorted", and why show it?</h3>
+        <p>The market cap card does not decide a company's size. It looks every stock up in AMFI's half-yearly list, which puts the top 100 listed companies in Large, the next 150 in Mid and the rest in Small. A stock is left out of all three when the list has no row for it:</p>
+        <ul>
+          <li><b>Overseas stocks</b> (an international or Nasdaq fund) are not Indian listings, so AMFI never classes them.</li>
+          <li><b>Stocks added after the list's date</b> (a recent listing) are not on it yet.</li>
+          <li><b>Delisted, merged or renamed stocks</b>, and rows where the fund house gives no ISIN, cannot be matched.</li>
+        </ul>
+        <p>You asked for Large, Mid and Small to add to 100%. We do that by dividing by the part we could sort. The note says what the 100% is <i>of</i>. Without it, a family with a large international fund would read "Large 54%, Mid 31%, Small 15%" as a split of all their equity, when it describes 94% of it. The note costs one line and is shown only when the unsorted part is 0.5% or more; it can sit in the info tooltip instead. It is optional in the sense that the chart works without it, but it is what keeps the three numbers honest. This is D8, answered with option A.</p>
+      </div>
+
+      <div class="block"><h3>Item 4: which manager gets the fund's value</h3>
+        <p><b>Yes: the main manager gets the whole fund value</b> (D7 option A), so a co-managed fund is no longer split. Manager totals can therefore add to at most the portfolio value, and each fund counts once. The factsheet roles actually seen in our parsers are: <i>Assistant Fund Manager</i>, <i>Overseas Investments</i>, <i>Equity Portion</i>, <i>Debt Portion</i>, <i>Gold/Silver Instruments</i>, <i>Dedicated Fund Manager for ...</i>, <i>Equity</i> / <i>Debt</i> / <i>Commodity</i> / <i>Equity/Arbitrage</i> (LIC's layout), and no role at all (most houses). The rules for each situation:</p>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Situation</th><th>Who counts as main</th><th>Shown on the card</th></tr></thead><tbody>
+          <tr><td>One manager</td><td>That manager</td><td>Full fund value. No label.</td></tr>
+          <tr><td>Several managers, one marked as the manager and others as Assistant</td><td>The one not marked Assistant</td><td>Full value. "Manages this fund with N others" on the fund's row.</td></tr>
+          <tr><td>Several managers, none marked (HDFC, ABSL and most houses)</td><td>The first listed on the factsheet (D7 option A)</td><td>Full value, marked <b>assumed</b> (D38). The data records that the choice was assumed.</td></tr>
+          <tr><td><b>Exactly two co-managers</b>, equal, no main</td><td>The first listed, as above</td><td>Full value to the first listed, marked assumed, with "co-managed with X". If you prefer not to guess, D38 option B splits equally for these funds only.</td></tr>
+          <tr><td>Managers of separate parts: <i>Equity Portion</i>, <i>Debt Portion</i>, <i>Gold/Silver</i>, <i>Overseas Investments</i></td><td>The manager of the part that is the larger share of the fund's portfolio (the equity manager for an equity-oriented fund, the debt manager for a debt-oriented one)</td><td>Full value to that manager. The other part's manager is on the fund page only. Marked "assumed" when the split is not stated.</td></tr>
+          <tr><td>Only an Overseas or Gold specialist is listed</td><td>That person</td><td>Full value, marked assumed.</td></tr>
+          <tr><td>A handover announced "w.e.f." a future date</td><td>The manager listed today</td><td>No change until the next monthly import lists the successor. A date in the future is not read as a role.</td></tr>
+          <tr><td>Same person manages several of your funds</td><td>Counted per fund, then added</td><td>One card, funds listed under it.</td></tr>
+          <tr><td>Lead on one fund, assistant on another</td><td>Counted only for the funds where they are main</td><td>The assistant fund adds nothing to their total.</td></tr>
+          <tr><td>Fund has no manager data (no factsheet, or the 10 hand-import houses not yet imported)</td><td>Nobody</td><td>Counted in a line: "N funds, ₹X, have no manager data yet".</td></tr>
+          <tr><td>Same name at two fund houses, or a spelling or honorific variant</td><td>Keyed by normalised name <b>and</b> fund house</td><td>One card per person per house. A report lists unmatched names.</td></tr>
+          <tr><td>A "name" that is not a person (for example a team)</td><td>Nobody</td><td>Treated as no manager data.</td></tr>
+        </tbody></table></div>
+        <p>The rule lives in one function with a test table of the real role strings above. The card's own text "Funds with more than one manager are divided equally" is removed, because it is no longer true.</p>
+      </div>
+
+      <div class="block after"><h3>LinkedIn (ON HOLD 31 Oct): no link until the profile is verified, and how we know it is the right person</h3>
+        <p>No link is shown, and none is stored as usable, until a person has verified it. We never show a search page and never guess. A profile is accepted only when these checks are written down:</p>
+        <ol>
+          <li><b>Name.</b> The profile's name matches the factsheet name (allowing an honorific, a middle initial or a different order).</li>
+          <li><b>Employer in the headline or current position.</b> The headline or current role names the same fund house, by its brand or legal name (for example "Fund Manager at Nippon Life India Asset Management", "Portfolio Manager, HDFC AMC"). This is the strongest check, as you suggested.</li>
+          <li><b>Role.</b> The title is an investment role (fund manager, portfolio manager, head of equities, chief investment officer, analyst), not an unrelated job.</li>
+          <li><b>Dates.</b> The experience entry at that fund house covers the "managing since" date printed in the factsheet.</li>
+          <li><b>Second source, when available.</b> The fund house's own page for the manager (name, photo or qualifications) agrees with the profile.</li>
+        </ol>
+        <p><b>Rule:</b> at least checks 1, 2 and 3 must pass, and one more of 4 or 5. If two profiles both fit, or the profile is private or shows no employer, or the person has left the fund house, we do not link.</p>
+        <p><b>Process:</b> a person finds the candidate and writes down what they saw (the headline text, which checks passed, the URL, the date); a second person approves it before it can show (two-person check). Nothing is matched or scraped by code. The link is stored once per manager and fund house in <code>fund_managers</code> with columns for name key, fund house, URL, evidence note, checks passed, verified on, verified by, reviewed by and re-check due. The card shows the icon only when a verified, unexpired row exists.</p>
+        <p><b>Staying right:</b> the link expires and is re-checked every 6 months, and straight away when a monthly import shows the manager at a different fund house or off the fund. A failed re-check hides the link automatically. The link opens the profile in a new tab with <code>rel="noopener noreferrer"</code>.</p>
+      </div>
+
+      <div class="block"><h3>Item 5: what the page does when a category has no funds, or only one</h3>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Situation</th><th>What the user sees</th></tr></thead><tbody>
+          <tr><td><b>All funds</b> view: no equity funds with a published portfolio</td><td>"None of your funds can be compared yet. Overlap needs equity funds whose portfolios are published." Below it, the not-shown note lists the funds left out and why.</td></tr>
+          <tr><td><b>All funds</b> view: exactly one equity fund</td><td>"Overlap compares two or more funds. You hold one: HDFC Flexi Cap Fund." The heatmap is not drawn.</td></tr>
+          <tr><td><b>By category</b>: a category with no funds you hold</td><td>The category card is greyed and says "No funds". Choosing it shows "You do not hold any Large Cap funds."</td></tr>
+          <tr><td><b>By category</b>: a category with one fund</td><td>The card says "1 fund · Nothing to compare". Choosing it shows "You hold only one Mid Cap fund (Axis Midcap Fund). Overlap compares two or more funds. Open All funds to see how it overlaps with your other equity funds." with a button to All funds.</td></tr>
+          <tr><td><b>By category</b>: funds in the category without a published portfolio</td><td>They are not counted, and the card says "2 funds, 1 not analysed (no portfolio published)".</td></tr>
+          <tr><td>A held equity fund in another category (ELSS, Value, Focused, Sectoral and so on)</td><td>It appears in All funds only. The By category tab offers only Large, Mid, Small and Flexi Cap.</td></tr>
+          <tr><td>The category tab with two or more funds</td><td>The same cards as today, built from only those funds.</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="block"><h3>Item 5: what counts as an equity fund (D14: option A, plus what equity means by definition)</h3>
+        <p>Overlap compares stock holdings, so a fund belongs only if it holds a meaningful share of listed Indian stocks. SEBI treats a scheme as equity-oriented when at least 65% of it is in equity. The rule combines the category list with that definition:</p>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Group</th><th>Decision</th><th>How it is decided</th></tr></thead><tbody>
+          <tr><td>SEBI Equity Schemes: Large, Large and Mid, Mid, Small, Multi, Flexi, Focused, Value, Contra, Dividend Yield, Sectoral and Thematic, ELSS</td><td><b>Included</b></td><td>Category name. These are the schemes SEBI requires to be at least 65% equity.</td></tr>
+          <tr><td>Index funds and ETFs</td><td><b>Decided by the holdings</b></td><td>AMFI files index funds under "Other Scheme - Index Funds" (9 held on staging) and "Index Funds - Equity Funds" (1 held), and the first includes debt-index funds. The tracked index only becomes available in Run 3, so the equity test in Run 1 uses the data rule: included when the latest published portfolio shows at least 65% domestic equity; a debt-index fund fails it.</td></tr>
+          <tr><td>Aggressive Hybrid</td><td><b>Included</b></td><td>Category name (65 to 80% equity).</td></tr>
+          <tr><td>Balanced Advantage, Multi Asset, Equity Savings, Children's Fund, other hybrids</td><td><b>Decided by the holdings</b></td><td>Included only when the fund's latest published portfolio shows domestic equity of at least 65% of NAV <i>after</i> hedging; otherwise left out and named in the note. Staging counts (30 Oct): Multi Asset 4 funds, Balanced Advantage 2, Equity Savings 1, Children's Fund 1, so about 8 funds depend on this rule. Aggressive Hybrid (1) is included by category and Arbitrage (1) is excluded.</td></tr>
+          <tr><td>Arbitrage</td><td><b>Excluded</b></td><td>Named in the request. They hold stocks, but offset by futures.</td></tr>
+          <tr><td>Debt, overnight, liquid, low duration, money market, gilt, credit risk</td><td><b>Excluded</b></td><td>Named in the request or clearly not equity.</td></tr>
+          <tr><td>Gold and silver funds, and funds of funds on debt or gold</td><td><b>Excluded</b></td><td>No Indian stock rows to compare.</td></tr>
+          <tr><td>International equity funds and funds of funds on overseas equity</td><td><b>Excluded for now</b></td><td>Their stocks are foreign and rarely overlap with Indian holdings; a note says so. Revisit if users hold several.</td></tr>
+        </tbody></table></div>
+        <p>One constant lists the included categories. A test compares that list with the category strings actually stored, so a new SEBI category cannot slip through silently. The stored strings come in two spellings ("Equity Scheme - ..." and "Equity Schemes - ..."; for example Flexi Cap has 8 and 6 funds) plus "Index Funds - Equity Funds", so the list matches both spellings. The 30 Oct counts of what households hold are in the Step 0 results.</p>
+      </div>
+
+      <div class="block"><h3>Item 13: the Others slice</h3>
+        <ul>
+          <li>Five slices: Equity, Debt (including cash), Gold, Real Estate (REITs and InvITs) and <b>Others</b>.</li>
+          <li><b>Others</b> holds everything not placed in the four: positive derivative lines and rows the fund house leaves unclassified or labels "other". It is grey, always last, and hidden when it is 0%.</li>
+          <li>Negative derivative lines (futures that hedge an arbitrage fund, for example) are still ignored and counted in the coverage note, so Others can never be negative.</li>
+          <li>Clicking Others lists the funds behind it, like any other slice.</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+
+  <section class="sec" aria-labelledby="rules">
+    <div class="sec-head">
+      <h2 id="rules">Design rules for every changed screen</h2>
+      <p>These apply across the app, not only to the item they came up in. Each one names the files that must change.</p>
+    </div>
+
+    <article class="panel">
+      <div class="block after"><h3>1. Fund logos, everywhere a fund or fund house is named</h3>
+        <p>The shared component is <code>SchemeLogo</code>. The Mutual Funds list and the Individual Fund page already use it. It tries the fund house's Google favicon, then Clearbit, then the logo links passed to it, and falls back to a tile with the first letter. The rule: <b>wherever a fund name or fund house name is shown, show its logo the same way</b>, in size small for lists and large for page headers. Fund house rows (By AMC, manager's fund house) use the fund house logo.</p>
+        <ul>
+          <li><b>Already done:</b> Mutual Funds list, Individual Fund page header, Category ranking and Fund ranking rows, the TER ladder, the fund comparison header.</li>
+          <li><b>To add on screens in this plan:</b> Valuation by Fund (new), Performance Ranking and Category Average Comparison (kept), the Fund Manager card (fund house and fund rows), By AMC card and its drill-down, Asset Class and Market Cap drill-downs, all Overlap parts (heatmap headers now show initials chips, top pairs, pair detail, common holdings, stat strip, impact), Holdings All Stocks fund names, Performance fund rows, Benchmark rows, Transactions ledger and period drill, SIP card, Home Movers and its pop-up, Individual Fund overlap panels, Quick Insights.</li>
+          <li><b>Later, lower priority:</b> the legacy dashboard, planning and scenario rows, the phone app's cards, the print view.</li>
+          <li><b>Two cautions.</b> Logos are fetched at view time from Google and Clearbit, so a blocked network shows the fallback tile, and each page view makes outside requests; a local copy of the 35 logos would remove both problems. The fund-house matching uses a loose substring rule on names, so a test should check every logo against the real list of fund houses.</li>
+        </ul>
+      </div>
+
+      <div class="block"><h3>2. One heading per card</h3>
+        <p>On Other Analytics each group has a heading (from <code>GROUP_TITLES</code>) and its card has its own heading. Renaming both to the same words prints the title twice, which is what happened in the first mockup of item 8. Rule: <b>the group heading is the name; the card's heading must say something different or be removed</b>. Performance Ranking: group "Performance Ranking", card "Rank in your fund's category". Category Average Comparison: group "Category Average Comparison", card "Returns against the category average". The titles are repeated in tests and docs, so they change together.</p>
+      </div>
+
+      <div class="block"><h3>3. Plain words in banners</h3>
+        <p>Every top banner states what the number means in one short sentence, then gives the answer, and avoids jargon (no "pct", "TRI", "XIRR" without a word of explanation). The two new banners: Performance Ranking, <i>"A rank such as 4/38 means this fund is 4th best out of 38 funds in the same category. Lower is better."</i> Category Average Comparison, <i>"The number is your fund's return minus the average return of funds in the same category. Plus is better."</i></p>
+      </div>
+
+      <div class="block"><h3>4. Green buttons</h3>
+        <p>One brand green, <code>#22C55E</code>, with white text, through the shared button. See item 1 for the contrast figure. A cleanup moves the ~257 hard-coded copies to the token.</p>
+      </div>
+
+      <div class="block"><h3>5. Real numbers before building</h3>
+        <p>The mockups use made-up numbers. Before each run, the analytics recompute is run on a real household so the golden tests and the final screenshots use actual values. Commands are in the playbook.</p>
+      </div>
+    </article>
+  </section>
+

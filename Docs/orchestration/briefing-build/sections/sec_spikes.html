@@ -1,0 +1,299 @@
+  <section class="sec" aria-labelledby="spikes">
+    <div class="sec-head">
+      <h2 id="spikes">Step 0: the checks to run before anything is built, with commands</h2>
+      <p>Answer to "when do I do this?": <b>now, before the implementation plan is written (Run 0)</b>. These checks decide how much of item 7 (phases B and C) and item 11 (index data) is needed, and they cannot be answered from the developer machine alone because exchanges block some cloud addresses. Nothing here changes the product. Anything marked NEW is a helper script that does not exist in the repo yet; the two below were written for this briefing, are not committed anywhere, and are run from a folder, not installed.</p>
+    </div>
+
+    <article class="panel">
+      <div class="block after"><h3>Results of the first VM session (30 Oct, 18:19 to 19:41 IST)</h3>
+        <p>Run from the manager's laptop by the manager's Claude, in two sessions. Raw data: <code>results.tgz</code> and <code>results2.tgz</code>.</p>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Check</th><th>Result</th><th>What it means for the plan</th></tr></thead><tbody>
+          <tr><td>S2 factsheet fetch (40 automatic houses)</td><td>Success: <b>36 houses accepted, 4 not</b>, 1,248 schemes matched, 2 unmatched (Nippon India Silver ETF Fund of Fund, Tata Nifty Private Bank), 232 s. Not accepted: Angel One (403), Sundaram (no factsheet link on its page), SBI and Mahindra Manulife (latest file older than 45 days, "stale month"). 48 distinct PDFs saved, 288 MB, from 38 houses.</td><td>On 28 Oct it was 34 of 40; Sundaram went from a server error to a missing link and Angel One is still blocked. The 10 hand-import houses and the 5 with no factsheet are not part of this fetch.</td></tr>
+          <tr><td>S3 scan of those PDFs</td><td>4,355 pages, <b>no image-only page</b>, 5 blank or vector pages. Per-scheme P/E and P/B: Aditya Birla Sun Life (30 pages) and UTI (28 pages, fund and benchmark side by side). Edelweiss prints the <b>index's</b> P/E and P/B for its index funds, not the fund's. Every house prints a benchmark in text.</td><td>Confirms the five-house finding on current files (Invesco, ITI, Kotak by hand; UTI, ABSL automatic). Edelweiss is not a fund-level source. No OCR needed.</td></tr>
+          <tr><td>S4 and S5 sources from the VM</td><td>NSE P/E file 200 (30 Oct file), NSE security master 200, niftyindices total-return POST 200, price endpoint (Nifty 50 Arbitrage) 200, AMFI 200, <b>BSE bhavcopy 200</b> (new-format file with ISIN, ticker, series and close), BSE API root 403 (expected).</td><td>The staging VM reaches every source tried. The bhavcopy address pattern is verified (see the S4 to S6 section), so Phase B is feasible.</td></tr>
+          <tr><td>S7 counts</td><td>565 distinct managers (LinkedIn is on hold); <b>278 equity stocks with no stored P/E; 96 with no NSE symbol</b>; 32 categories held; no manager data at all for Sundaram (277 scheme rows), Bajaj Finserv (108), IL&amp;FS (12), AlphaGrep (12), Carnelian (5), Monarch (4) and Lakshya (2). Carnelian is not in the factsheet registry.</td><td>The BSE-only candidate set is small (96). The category counts settle the equity rule (Task 1.4). About 420 scheme rows show "no manager data".</td></tr>
+          <tr><td>S11 recompute</td><td>All users: <b>6 min 10.9 s</b>, no failure; one user skipped because a stale claim (left by a run that was stopped) was under 15 minutes old. A later one-household recompute of that user took 4 min 7.5 s with no failure and cleared the claim. No user has a claim in flight now.</td><td>Inside the 15-minute ceiling. Lesson: never stop a running recompute (see the playbook).</td></tr>
+          <tr><td>S11 timings, user bed26e3e (recomputed, 2 members)</td><td>Month detail <b>PASS</b>: median 261 ms (worst 393) first run, 243 ms (worst 400) warm. Fund page <b>FAIL</b> on both runs: four calls at 74 to 107 ms against 50 ms (already known and accepted below 100 ms). <b>Home and benchmark matrix blocked</b> on both runs: a live NAV download would write to <code>nav_history</code>, because today's NAV was not stored yet.</td><td>Baselines so far: month detail 243 ms, fund page 74 to 107 ms per call. Home and benchmark matrix must be re-run after the 06:00 IST NAV job.</td></tr>
+          <tr><td>Earlier timings, user 140148b8 (skipped by the recompute)</td><td>Home 18,083 ms cold, month detail 1,120 ms, fund page 80 ms, benchmark matrix aborted.</td><td>Not a baseline: stale data. Month detail was already a marginal fail on 28 Oct (1,021 ms).</td></tr>
+          <tr><td>Index data freshness</td><td>All 20 index and return-type rows are at 29 Oct.</td><td>Fresh enough for the matrix.</td></tr>
+        </tbody></table></div>
+        <p><b>Still open from Step 0:</b> S6 (NSE Integrated Filing endpoint, a bank's filing, a half-year filing); S8 (debt and hybrid index names); S9 (the Nifty 50 Arbitrage close can dip, for example 2,747.05 on 30 Sep and 2,745.42 on 1 Oct, so it still has to be compared with a factsheet figure); S10 (terms and licence); the home and benchmark-matrix baselines (after 06:35 IST on a trading day, once the 06:00 NAV job has run); and the second factsheet capture after the 10 Nov job.</p>
+      </div>
+
+      <div class="block after"><h3>The order, and who does each</h3>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>#</th><th>Check</th><th>Where</th><th>When</th><th>Passes if</th></tr></thead><tbody>
+          <tr><td>S1</td><td>Scan the 11 hand-import factsheets for P/E, P/B, benchmark, and pictures</td><td>Developer machine</td><td><b>Done 31 Oct</b> (results in the factsheet check section)</td><td>Reported</td></tr>
+          <tr><td>S2</td><td>Fetch every automatic fund house's factsheet from the VM and <b>keep the PDFs</b></td><td>VM</td><td><b>Done 30 Oct.</b> Repeat after the 10 Nov job</td><td>At least 34 of 40 houses saved (the 28 Oct result)</td></tr>
+          <tr><td>S3</td><td>Scan those PDFs with the same script as S1</td><td>VM (or copy the PDFs down)</td><td><b>Done 30 Oct</b></td><td>A row per house: P/E, P/B, benchmark, text or picture</td></tr>
+          <tr><td>S4</td><td>NSE and niftyindices sources reachable from the VM</td><td>VM</td><td><b>Done 30 Oct</b></td><td>HTTP 200 with data on the PE file, security master and TRI POST</td></tr>
+          <tr><td>S5</td><td>BSE price file works; BSE API is blocked</td><td>VM</td><td><b>Done 30 Oct</b></td><td>Price file 200; API 403 is the expected result</td></tr>
+          <tr><td>S6</td><td>NSE Integrated Filing endpoint, a bank's filing, a half-year filing</td><td>VM</td><td>Same session</td><td>200 and an XBRL file that holds equity and shares</td></tr>
+          <tr><td>S7</td><td>Four database counts: distinct managers, categories held, stocks without P/E, stocks off NSE</td><td>VM, read-only SQL</td><td><b>Done 30 Oct</b></td><td>Numbers recorded</td></tr>
+          <tr><td>S8</td><td>Find NSE trading names for debt, hybrid and savings indices (browser network trace, about 30 minutes)</td><td>Your browser</td><td>Any time this week</td><td>A name list that returns data</td></tr>
+          <tr><td>S9</td><td>Check that Nifty 50 Arbitrage and Nifty 1D Rate levels behave like total-return series (compare one period with a factsheet figure)</td><td>Developer machine</td><td>This week</td><td>Matches within rounding</td></tr>
+          <tr><td>S10</td><td>Terms-of-use check for NSE, BSE, niftyindices and AMFI automated downloads; licence enquiry to Asia Index (S&amp;P DJI) for BSE TRI, and to CRISIL</td><td>A person</td><td>Start now; slow</td><td>Written answer</td></tr>
+          <tr><td>S11</td><td>Analytics recompute and the timing scripts, to get real values and a baseline</td><td>VM</td><td><b>Partly done 30 Oct</b>: recompute, month detail and fund page done; home and benchmark matrix after 06:35 IST</td><td>Recompute under 15 minutes (last: 6 min 25 s)</td></tr>
+          <tr><td>S12</td><td>Remaining answer: the item 6 wording (stopped SIPs and LinkedIn are on hold)</td><td>You</td><td>Before Run 0 ends</td><td>Answered</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="block"><h3>Connecting, and the rules for the VM</h3>
+        <ul>
+          <li>Connect from WSL (the Windows side is refused): <code>ssh deploy@&lt;vm-ip&gt;</code>, then <code>cd /opt/unifolio-redesign/deploy/leapswitch</code>. An SSH <i>timeout</i> (not "refused") means your IP is not on the CloudPe Security Group <code>unifolio-web</code> inbound rule for port 22; add your address as /32 in the dashboard.</li>
+          <li>Run one-off commands with <code>sudo docker compose run --rm -T backend ...</code>. Use <code>run</code>, not <code>exec</code>. The image holds only <code>app/</code> and <code>scripts/</code>, so anything a job writes inside the container is lost; mount a folder with <code>-v</code> to keep files.</li>
+          <li><b>Do not run</b> on staging: <code>clean-db.sh</code>, <code>restore.sh</code>, <code>rollback.sh</code>, any deploy script, or anything with a database write. Do not run the factsheet fetch or a recompute between 05:40 and 06:35 IST, at 08:00 or at 19:00, when the scheduled jobs run.</li>
+          <li>Check disk first: <code>df -h /</code>. About 55 PDFs is under 500 MB but the disk also holds the database.</li>
+          <li>Be gentle with the exchanges: a few single requests, no loops. Retrying a 403 can get the one staging address blocked.</li>
+        </ul>
+      </div>
+
+      <div class="block"><h3>S2: fetch and keep the factsheets (the stock job keeps nothing)</h3>
+        <p>The monthly job holds each PDF in memory only and the container is thrown away, so there is nothing to scan afterwards. The 10 hand-import houses are never fetched by the job at all. This wrapper replaces the download step with one that saves each file, then runs the same function the cron job runs. <b>It also writes this month's manager rows</b>, exactly as the cron job does (an upsert, safe to repeat). The 10 hand-import houses still have to be downloaded by hand in a browser into <code>manual/</code> (some are blocked from the VM).</p>
+<pre><code># on the VM
+mkdir -p ~/step0/factsheets/auto ~/step0/factsheets/manual ~/step0/out
+cd /opt/unifolio-redesign/deploy/leapswitch
+df -h /
+# save the helper script as ~/step0/fetch_keep.py (text below), then:
+sudo docker compose run --rm -T -v /home/deploy/step0/factsheets/auto:/out backend python - &lt; ~/step0/fetch_keep.py 2&gt;&amp;1 | tee ~/step0/fm_$(date +%F).log
+# read the result
+grep -E "refresh_fund_managers_monthly|FUND_MANAGER_ALERT|success=" ~/step0/fm_*.log
+ls ~/step0/factsheets/auto | wc -l
+column -s, -t ~/step0/factsheets/auto/manifest.csv | cut -c1-150 | head -60</code></pre>
+        <p><b>Reading it:</b> good is a <code>success=True</code> line, about 34 to 40 houses processed and a manifest row for each. <code>directory_failed</code> means AMFI's directory page changed shape (every house is skipped). <code>fetch_failed</code>, <code>no_factsheet_link</code>, <code>stale_month</code> or a 403/406/timeout for a house match the 28 Oct list (Angel One 403, HSBC timeout, Sundaram 500, HDFC 403, JM 406). Compare houses against that list.</p>
+        <p><b>The wrapper (NEW, checked to compile and to patch functions that exist; not yet run against the live job):</b></p>
+<pre><code>"""Run the real monthly factsheet fetch for the ~40 automatic fund houses AND keep every PDF it downloads.
+
+The stock job (scripts/jobs/refresh_fund_managers_monthly.py) keeps nothing: PDFs live in memory only.
+This wrapper replaces the download function with one that saves each PDF, then runs the same
+refresh_fund_managers(db). It therefore ALSO writes scheme_fund_managers for the current month,
+exactly like the cron job (an upsert, safe to repeat).
+
+Run inside the backend container, with an output folder mounted at /out:
+  sudo docker compose run --rm -T -v /home/deploy/step0/factsheets/auto:/out backend python - &lt; fetch_keep.py
+
+Writes /out/&lt;fund_house&gt;__&lt;sha8&gt;.pdf and /out/manifest.csv (fund house, url, bytes, sha, file, utc).
+"""
+import asyncio, csv, datetime, hashlib, os, re
+
+import app.services.analytics.amfi_factsheet_client as c
+from app.db.session import SessionLocal
+
+OUT = os.environ.get("FS_OUT", "/out")
+os.makedirs(OUT, exist_ok=True)
+current = {"amc": "unknown"}
+manifest = open(os.path.join(OUT, "manifest.csv"), "a", newline="", encoding="utf-8")
+writer = csv.writer(manifest)
+orig_download, orig_resolve = c._download_pdf, c._resolve_and_read
+
+
+async def download(client, url):
+    data = await orig_download(client, url)
+    if data:
+        sha = hashlib.sha256(data).hexdigest()[:8]
+        name = re.sub(r"[^A-Za-z0-9]+", "_", current["amc"])[:40] + "__" + sha + ".pdf"
+        with open(os.path.join(OUT, name), "wb") as fh:
+            fh.write(data)
+        writer.writerow([current["amc"], url, len(data), sha, name, datetime.datetime.utcnow().isoformat()])
+        manifest.flush()
+    return data
+
+
+async def resolve(client, entry, *args, **kwargs):
+    current["amc"] = entry.directory_name or "unknown"
+    return await orig_resolve(client, entry, *args, **kwargs)
+
+
+c._download_pdf = download          # module-level lookups, so the patch is picked up
+c._resolve_and_read = resolve
+
+
+async def main():
+    with SessionLocal() as db:
+        print(await c.refresh_fund_managers(db))
+
+
+asyncio.run(main())</code></pre>
+      </div>
+
+      <div class="block"><h3>S3: scan the factsheets for P/E, P/B, benchmark and pictures (NEW, run and checked on 11 real files)</h3>
+        <p>Read-only: no database, no network, writes only to the output folder. Per page it records the number of text characters, the picture objects, how much of the page they cover, and a class (<code>text</code>, <code>mixed</code>, <code>image_only</code>, <code>image_small</code> or <code>blank_or_vector</code>), and it lists every line that mentions P/E, P/B or a benchmark. It ran on the 11 hand-import PDFs (85 MB) in 18 seconds.</p>
+<pre><code># on the VM (the script needs pypdfium2, which the backend image already has)
+sudo docker compose run --rm -T \
+  -v /home/deploy/step0/factsheets:/in:ro -v /home/deploy/step0/out:/out \
+  backend python - --dir /in --out /out &lt; ~/step0/scan_factsheets.py
+# then
+cat ~/step0/out/files.csv | column -s, -t | cut -c1-200
+grep -c . ~/step0/out/hits.csv
+awk -F, '$4=="PE" || $4=="PB"' ~/step0/out/hits.csv | cut -c1-200 | head -80</code></pre>
+        <p><b>How to read the files:</b> <code>files.csv</code> has one row per PDF: pages, text pages, <b>image-only pages</b>, and how many pages mention P/E, P/B or a benchmark. A house with image-only pages needs OCR before we can read it. <code>hits.csv</code> holds each matching line with the next line and its page class; a "hit" that is only a glossary definition ("Average P/E is...") has no number in it, so check the <code>numbers_in_line</code> column. A house with zero hits on text pages does not print the figure.</p>
+<pre><code>#!/usr/bin/env python3
+"""Read-only factsheet scan: which pages print P/E, P/B and a benchmark, and which pages are pictures.
+
+Usage:  python scan_factsheets.py --dir &lt;folder with PDFs&gt; --out &lt;output folder&gt;
+Needs:  pypdfium2 (already in backend/requirements.txt). No database, no network, writes only to --out.
+
+Outputs three CSV files in --out:
+  files.csv  one row per PDF: pages, text pages, image-only pages, hit counts
+  pages.csv  one row per page: characters, image objects, image coverage, page class, P/E and P/B hit flags
+  hits.csv   one row per matching line: kind (PE, PB, BENCHMARK), the line, the next line, the page class
+"""
+import argparse, csv, hashlib, os, re, sys
+import pypdfium2 as pdfium
+
+PE = re.compile(r"(p\s*/\s*e\b|price[\s/-]*(?:to)?[\s-]*earning|\bpe\s+ratio\b|\bp/e\b)", re.I)
+PB = re.compile(r"(p\s*/\s*b(?:v)?\b|price[\s/-]*(?:to)?[\s-]*book|\bpb\s+ratio\b|\bp/bv\b|\bpbv\b)", re.I)
+BM = re.compile(r"(benchmark|\btier\s*[-]?\s*(?:1|2|i|ii)\b|additional\s+benchmark)", re.I)
+NUM = re.compile(r"\d+(?:\.\d+)?")
+
+def classify(chars: int, img_count: int, img_cover: float) -&gt; str:
+    if chars &gt;= 50 and img_cover &gt;= 0.5:
+        return "mixed"
+    if chars &gt;= 50:
+        return "text"
+    if img_count &gt;= 1 and img_cover &gt;= 0.3:
+        return "image_only"
+    if img_count &gt;= 1:
+        return "image_small"
+    return "blank_or_vector"
+
+def scan_pdf(path, writers, root):
+    rel = os.path.relpath(path, root)
+    amc = os.path.splitext(os.path.basename(path))[0]
+    data = open(path, "rb").read()
+    sha = hashlib.sha256(data).hexdigest()[:12]
+    pdf = pdfium.PdfDocument(path)
+    tot = len(pdf)
+    counts = {"text": 0, "mixed": 0, "image_only": 0, "image_small": 0, "blank_or_vector": 0}
+    pe_pages = pb_pages = bm_pages = 0
+    for i in range(tot):
+        page = pdf[i]
+        tp = page.get_textpage()
+        try:
+            text = tp.get_text_range() or ""
+            chars = len("".join(text.split()))
+        finally:
+            tp.close()
+        w, h = page.get_size()
+        area = max(w * h, 1.0)
+        img_count, cover = 0, 0.0
+        try:
+            for obj in page.get_objects(filter=[pdfium.raw.FPDF_PAGEOBJ_IMAGE]):
+                img_count += 1
+                l, b, r, t = obj.get_pos()
+                cover += max(0.0, (r - l)) * max(0.0, (t - b)) / area
+        except Exception:
+            pass
+        cover = min(cover, 1.0)
+        cls = classify(chars, img_count, cover)
+        counts[cls] += 1
+        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+        pe = pb = bm = False
+        for j, ln in enumerate(lines):
+            for kind, rx in (("PE", PE), ("PB", PB), ("BENCHMARK", BM)):
+                if rx.search(ln):
+                    nxt = lines[j + 1] if j + 1 &lt; len(lines) else ""
+                    val = ";".join(NUM.findall(ln)[:4])
+                    writers["hits"].writerow([rel, amc, i + 1, kind, ln[:220], val, nxt[:160], cls])
+                    pe |= kind == "PE"; pb |= kind == "PB"; bm |= kind == "BENCHMARK"
+        pe_pages += pe; pb_pages += pb; bm_pages += bm
+        writers["pages"].writerow([rel, amc, i + 1, chars, img_count, round(cover * 100, 1), cls, int(pe), int(pb), int(bm)])
+        page.close()
+    pdf.close()
+    writers["files"].writerow([rel, amc, sha, len(data), tot, counts["text"] + counts["mixed"], counts["image_only"], counts["image_small"], counts["blank_or_vector"], pe_pages, pb_pages, bm_pages])
+    print(f"{amc:28s} pages={tot:4d} text={counts['text'] + counts['mixed']:4d} image_only={counts['image_only']:3d} blank={counts['blank_or_vector']:3d} | PE pages={pe_pages:3d} PB pages={pb_pages:3d} benchmark pages={bm_pages:3d}")
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dir", required=True)
+    ap.add_argument("--out", required=True)
+    a = ap.parse_args()
+    os.makedirs(a.out, exist_ok=True)
+    fh = {k: open(os.path.join(a.out, k + ".csv"), "w", newline="", encoding="utf-8") for k in ("files", "pages", "hits")}
+    w = {k: csv.writer(v) for k, v in fh.items()}
+    w["files"].writerow(["file", "amc", "sha256_12", "bytes", "pages", "text_pages", "image_only_pages", "image_small_pages", "blank_or_vector_pages", "pages_with_pe", "pages_with_pb", "pages_with_benchmark"])
+    w["pages"].writerow(["file", "amc", "page_no", "chars", "image_count", "image_cover_pct", "page_class", "has_pe", "has_pb", "has_benchmark"])
+    w["hits"].writerow(["file", "amc", "page_no", "kind", "line_text", "numbers_in_line", "next_line", "page_class"])
+    files = []
+    for root, _, names in os.walk(a.dir):
+        files += [os.path.join(root, n) for n in names if n.lower().endswith(".pdf")]
+    if not files:
+        sys.exit("no PDF files found under --dir")
+    for p in sorted(files):
+        try:
+            scan_pdf(p, w, a.dir)
+        except Exception as e:  # one bad file must not stop the run
+            print(f"ERROR {p}: {e}", file=sys.stderr)
+    for v in fh.values():
+        v.close()
+    print("done:", len(files), "files -&gt;", a.out)
+
+if __name__ == "__main__":
+    main()</code></pre>
+      </div>
+
+      <div class="block"><h3>S4 to S6: source reachability from the VM (single requests)</h3>
+        <p>The URLs come from the repo's own clients. Run each once. <b>200 with data</b> means reachable; <b>403 / Access Denied</b> means the exchange blocks the address (the BSE API behaves this way); <b>an empty 200 or an HTML page where a CSV is expected</b> is a bot page; a niftyindices <b>[]</b> means a wrong index name or dates, not a block.</p>
+<pre><code>UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+# S4  NSE per-stock P/E file (date DDMMYY; the client steps back up to 7 days, so try a recent trading day)
+curl -m 30 -sA "$UA" -w "%{http_code} %{size_download}\n" -o /tmp/pe.csv https://nsearchives.nseindia.com/content/equities/peDetail/PE_291026.csv
+# S4  NSE security master (DDMMYYYY)
+curl -m 30 -sA "$UA" -w "%{http_code} %{size_download}\n" -o /tmp/sec.gz https://nsearchives.nseindia.com/content/cm/NSE_CM_security_29102026.csv.gz
+# S4  niftyindices total return history (POST; redirects must not be followed)
+curl -m 30 -sA "$UA" -X POST -H 'Content-Type: application/json' -w "\n%{http_code}\n" https://www.niftyindices.com/BackPage/getTotalReturnIndexString \
+  -d '{"cinfo":"{\"name\":\"Nifty 50\",\"startDate\":\"01-Oct-2026\",\"endDate\":\"29-Oct-2026\",\"indexName\":\"Nifty 50\"}"}' | tail -c 400
+# S4  AMFI
+curl -m 30 -sIA "$UA" https://portal.amfiindia.com/spages/NAVAll.txt | head -1
+curl -m 30 -sIA "$UA" https://www.amfiindia.com/online-center/download-factsheets | head -1
+# S5  BSE: the price file (bhavcopy) should work, the data API should answer 403
+#     Verified from the VM on 30 Oct (200, new-format file): https://www.bseindia.com/download/BhavCopy/Equity/BhavCopy_BSE_CM_0_0_0_&lt;YYYYMMDD&gt;_F_0000.CSV (a recent trading day)
+curl -m 30 -sIA "$UA" https://api.bseindia.com/ | head -1          # expect 403 or a redirect
+# S6  NSE Integrated Filing: the exact endpoint is not in the repo (it was only tested by hand on 30 Oct).
+#     Take the address from your browser's network tab on the NSE corporate filings page and record it here, then fetch one
+#     consolidated filing for a non-bank stock, one bank, and one half-year (September) filing, and open the XBRL file for
+#     'equity attributable to owners', 'paid-up capital' and 'shares'.</code></pre>
+        <p><b>Update 30 Oct:</b> the BSE bhavcopy address pattern is verified from the VM: <code>https://www.bseindia.com/download/BhavCopy/Equity/BhavCopy_BSE_CM_0_0_0_&lt;YYYYMMDD&gt;_F_0000.CSV</code> (use a recent trading day) returned 200 with a new-format file. The NSE Integrated Filing endpoint (S6) is still not stored anywhere in the repo and is still open; writing its exact address into the Phase C task is part of closing S6.</p>
+      </div>
+
+      <div class="block"><h3>S7: four database counts (read-only)</h3>
+<pre><code>cd /opt/unifolio-redesign/deploy/leapswitch &amp;&amp; . ./.env
+q() { sudo docker compose exec -T postgres psql -U "$DB_USERNAME" "$DB_NAME" -c "$1"; }
+# distinct fund managers (only needed when LinkedIn resumes; on hold)
+q "select count(*) from (select distinct lower(trim(m.manager_name)), s.amc_name from scheme_fund_managers m join schemes s on s.id = m.scheme_id) t"
+# which categories real households hold (settles the 'judgement' rows of the equity rule, D14)
+q "select s.sebi_category, count(distinct s.id) as funds from folios f join schemes s on s.id = f.scheme_id group by 1 order by 2 desc"
+# equity stocks held by funds that have no P/E stored (how many the BSE phase would touch)
+q "select count(distinct h.isin) as stocks_without_pe from scheme_holdings h left join stock_master sm on sm.isin = h.isin where h.asset_type::text ilike 'equity%' and h.isin is not null and sm.pe_ratio is null"
+# equity stocks with no NSE symbol (candidates for BSE-only)
+q "select count(distinct h.isin) as stocks_not_on_nse from scheme_holdings h left join stock_master sm on sm.isin = h.isin where h.asset_type::text ilike 'equity%' and h.isin is not null and sm.nse_symbol is null"
+# manager coverage per fund house
+q "select s.amc_name, count(distinct s.id) as funds, count(distinct m.scheme_id) as with_manager from schemes s left join scheme_fund_managers m on m.scheme_id = s.id group by 1 order by 2 desc"</code></pre>
+        <p>These table and column names were read from the code but the commands have not been run; if a name is off, <code>\d schemes</code> in psql shows the real one.</p>
+      </div>
+
+      <div class="block"><h3>S11: real values (analytics recompute) and the timing baseline</h3>
+<pre><code>cd /opt/unifolio-redesign/deploy/leapswitch &amp;&amp; . ./.env
+df -h / ; date                     # avoid 00:55-06:35 IST, 08:00 and 19:00
+sudo bash -c 'time ./scripts/run-job.sh analytics-recompute-all scripts/run_analytics_recompute.py --all'
+# one household only, to get real figures for the mockups and golden tests:
+sudo docker compose exec -T postgres psql -U "$DB_USERNAME" "$DB_NAME" -c "select id, email from users order by created_at desc limit 5"
+sudo docker compose run --rm -T backend python scripts/run_analytics_recompute.py --household &lt;USER-UUID&gt;
+# baselines (all read-only; they abort on any write)
+sudo docker compose run --rm -T backend python scripts/measure_home_staging.py --user-id &lt;USER-UUID&gt; --runs 5 --limit 1.5
+sudo docker compose run --rm -T backend python scripts/measure_benchmark_matrix.py --user-id &lt;USER-UUID&gt; --runs 3
+sudo docker compose run --rm -T backend python scripts/measure_month_detail.py --aggregate --user-id &lt;USER-UUID&gt; --limit 1.0
+sudo docker compose run --rm -T backend python scripts/measure_fund_page_staging.py --user-id &lt;USER-UUID&gt; --scheme-filtered --schemes 4 --runs 3 --simulate-fresh-cache</code></pre>
+        <p><b>Health afterwards:</b> <code>curl -s -o /dev/null -w "%{http_code}\n" https://ls-staging-api.unifolio.in/health</code> (200), <code>sudo docker compose ps</code>, <code>sudo ./scripts/check-disk.sh</code>, <code>sudo ./scripts/check-memory.sh</code>, <code>sudo docker compose run --rm -T backend alembic current</code> (head 0046). The recompute is the only call in this list that needs a quiet time window; the last full run took 6 min 25 s.</p>
+      </div>
+
+      <div class="block"><h3>What the checks can change in the plan</h3>
+        <ul>
+          <li><b>S2 and S3</b> set how many funds can show a factsheet P/E or P/B (item 7) and how many have a declared benchmark we can read (item 11).</li>
+          <li><b>S4 to S6</b> decide whether Phase B (BSE price file) and Phase C (official filings) are worth building, and whether they need the VM's address to be accepted.</li>
+          <li><b>S7</b> sizes the LinkedIn list and settles the equity rule.</li>
+          <li><b>S8 and S9</b> decide which debt and hybrid benchmarks can be covered with data and which fall back to a labelled proxy.</li>
+          <li><b>S10</b> is the only check that can stop a source being used at all (terms of use, licence).</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+

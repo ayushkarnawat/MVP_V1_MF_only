@@ -1,0 +1,37 @@
+=== 2026-10-30 18:19 IST | host unifolio-staging-1 | log /home/deploy/step0/out/vm_checks_2026-10-30_1819.log
+--- branch and image:
+leapswitch-redesign
+3602c510 2026-10-29 fix(deploy): make check-disk.sh executable (cron and direct calls got "command not found")
+/dev/vda1        29G   20G  8.7G  69% /
+
+=== S4a NSE per-stock P/E file (steps back up to 7 days, like the app's client)
+PE_301026.csv -> 200 45082
+SYMBOL,SYMBOL P/E,ADJUSTED P/E
+THERMAX,64.42,69.51
+WHEELS,30.29,30.29
+
+=== S4b NSE security master (DDMMYYYY, gzip)
+NSE_CM_security_30102026 -> 404 3534
+NSE_CM_security_29102026 -> 200 1277239
+
+=== S4c niftyindices total-return history (POST; last 30 days, Nifty 50)
+ 2026","TotalReturnsIndex":"34608.14","NTR_Value":"30051.8"},{"RequestNumber":"TRI63928961385745167400","Index Name":"Nifty 50","Date":"05 Oct 2026","TotalReturnsIndex":"34273.35","NTR_Value":"29761.08"},{"RequestNumber":"TRI63928961385745167400","Index Name":"Nifty 50","Date":"01 Oct 2026","TotalReturnsIndex":"34070.01","NTR_Value":"29584.52"},{"RequestNumber":"TRI63928961385745167400","Index Name":"Nifty 50","Date":"30 Sep 2026","TotalReturnsIndex":"34371.66","NTR_Value":"29846.45"}]
+HTTP 200
+--- price endpoint, Nifty 50 Arbitrage (S9 candidate)
+"HIGH":"-","LOW":"-","CLOSE":"2749.42"},{"RequestNumber":"His63928961387923222400","Index Name":"","INDEX_NAME":"Nifty 50 Arbitrage","HistoricalDate":"01 Oct 2026","OPEN":"-","HIGH":"-","LOW":"-","CLOSE":"2745.42"},{"RequestNumber":"His63928961387923222400","Index Name":"","INDEX_NAME":"Nifty 50 Arbitrage","HistoricalDate":"30 Sep 2026","OPEN":"-","HIGH":"-","LOW":"-","CLOSE":"2747.05"}]
+HTTP 200
+
+=== S4d AMFI
+HTTP/2 200 
+HTTP/1.1 200 OK
+
+=== S5 BSE (expect: price file reachable, API blocked)
+--- BSE data API root (403 or a redirect is the expected answer):
+HTTP/2 403 
+--- BSE bhavcopy: URL pattern is NOT in the repo and this pattern is UNVERIFIED; a 200 with a few hundred KB means it works
+bhavcopy 20261029 -> 200 862490
+TradDt,BizDt,Sgmt,Src,FinInstrmTp,FinInstrmId,ISIN,TckrSymb,SctySrs,XpryDt,FininstrmActlXpryDt,StrkPric,OptnTp,FinInstrmNm,OpnPric,HghPric,LwPric,ClsPric,LastPric,PrvsClsgPric,UndrlygPric,SttlmPric,OpnIntrst,ChngInOpnIntrst,TtlTradgVol,TtlTrfVal,TtlN
+=== S7 database counts (read-only)
+/home/deploy/step0/vm_checks.sh: line 64: ./.env: Permission denied
+--- distinct managers (only needed when LinkedIn resumes)
+/home/deploy/step0/vm_checks.sh: line 65: DB_USERNAME: unbound variable

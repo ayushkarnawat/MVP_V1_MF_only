@@ -1,0 +1,91 @@
+  <section class="sec" aria-labelledby="play0">
+    <div class="sec-head">
+      <h2 id="play0">Execution playbook: what you do, what I do, and when</h2>
+      <p>The dates assume today is Friday 30 Oct. Durations are planning estimates, not promises. The fixed date is <b>Monday 10 Nov, 06:00 IST</b>, when the monthly factsheet job next runs (Priority 1).</p>
+    </div>
+
+    <article class="panel">
+      <div class="block after"><h3>Calendar</h3>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>When</th><th>You</th><th>Claude</th><th>Output</th></tr></thead><tbody>
+          <tr><td><b>Now, 30 Oct to Mon 3 Nov</b></td><td>Nothing is left to decide except the item 6 wording (SIP and LinkedIn are on hold). Start S10 (terms of use, BSE and CRISIL licence enquiries). Do S8 (browser trace for debt and hybrid index names, about 30 minutes).</td><td>Finish this briefing. Prepare the helper scripts (done: scan, fetch-and-keep).</td><td>All questions answered; list of index names</td></tr>
+          <tr><td><b>Done 30 Oct</b></td><td>The first VM session (S2 to S7 and S11) ran from the manager's laptop in two sessions; the results are in the Step 0 section.</td><td>Read the results and update the plan (done).</td><td>Factsheet and source findings; recompute time; partial baselines</td></tr>
+          <tr><td><b>Next trading morning, after 06:35 IST</b></td><td>Re-run the home and benchmark-matrix timing for the recomputed test user, twice each (the 06:00 NAV job stores today's NAV, and the scripts abort on any write). Also S6 (NSE filing endpoint, in your browser), S8 and S9.</td><td>Fold the numbers into the Run 2 baseline.</td><td>Complete baselines (G2)</td></tr>
+          <tr><td><b>Mon 10 Nov, 06:00 IST</b></td><td>Nothing to run. Before it: check <code>df -h /</code> and that the cron is installed (<code>crontab -l</code>). The 10 hand-import houses still need their own import that day or just after.</td><td>none</td><td>November manager rows (cron)</td></tr>
+          <tr><td><b>Tue 11 Nov</b></td><td>Run S2 and S3 again: the first look at November factsheets, and a rehearsal that the 40 automatic houses still work from the VM.</td><td>Compare with the October scan: did any layout change?</td><td>Second sample; parser-break check</td></tr>
+          <tr><td><b>Wed 12 to Thu 13 Nov</b></td><td>Read and approve the implementation plan.</td><td><b>Run 0:</b> one implementation plan for all in-scope items, organised by run, and one handoff document per run.</td><td>Approved plan</td></tr>
+          <tr><td><b>From Fri 14 Nov</b></td><td>Review each run's result when I report it. Decide the open points that come up.</td><td>Runs 1 to 7, one at a time (below).</td><td>Local checks per run</td></tr>
+          <tr><td><b>After the last run</b></td><td>Review the documentation diff.</td><td>Documentation update.</td><td>Docs match the product</td></tr>
+          <tr><td><b>Last step</b></td><td>The deploy and the manager's QA (through the manager's own Claude), with two real inboxes for the hand-over test.</td><td>Deploy guide, check queries.</td><td>Staging, once</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="block"><h3>Which run builds what, in the order they run</h3>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Run</th><th>Builds</th><th>Migrations</th><th>Estimate</th></tr></thead><tbody>
+          <tr><td>Run 0 (plan)</td><td>The plan and handoffs. Nothing built.</td><td>-</td><td>2 days</td></tr>
+          <tr><td>Run 1</td><td>Items 3, 13 (five slices), 4 (cards and table, main-manager rule; LinkedIn on hold), 5 (equity only, category tab, empty states), 6 (removed from every screen; the backend curve is a later release)</td><td>none (0048 is reserved for LinkedIn, on hold)</td><td>2 days</td></tr>
+          <tr><td>Run 2</td><td>Item 7 Phase A (factsheet readers, per-fund table, portfolio line on the same method, date fix), items 8, 9 and 10, and the <b>deletion of the old composite Fund Ranking</b> (code, route, tables)</td><td>0050 reported valuation, 0051 drop composite tables</td><td>5 days, plus half a day by hand: check the new numbers</td></tr>
+          <tr><td>Run 3</td><td>Item 11 (golden tests, factsheet benchmarks, benchmark registry), item 12 (switch on Transactions). Stopped SIPs are on hold.</td><td>0049 scheme benchmark and index registry</td><td>4 days (includes about 40 new NSE indices and the proxy rule), plus 1 day by hand: check the benchmark mapping</td></tr>
+          <tr><td>Run 4</td><td>Item 2 (family table with a split bar and member rows, roomier spacing)</td><td>none</td><td>2 days</td></tr>
+          <tr><td>Run 5</td><td>Item 1 backend (flag, request table, four codes, swap, undo, emails)</td><td>0047</td><td>3 days</td></tr>
+          <tr><td>Run 6</td><td>Item 1 frontend (button, dialog, banner, stub code display, re-consent wording)</td><td>-</td><td>1.5 days</td></tr>
+          <tr><td>Run 7</td><td>The logo pass across the app, the heading rule, the button token</td><td>-</td><td>2 days</td></tr>
+          <tr><td>Optional</td><td>Item 7 Phase B (BSE price file) and Phase C (official filings for P/B)</td><td>(in 0050)</td><td>1 day and 3 days; only if Step 0 shows many funds depend on the computed path</td></tr>
+          <tr><td>Docs</td><td>Documentation update, including the Fund Ranking replacement (list below)</td><td>-</td><td>1.5 days</td></tr>
+          <tr><td>Staging</td><td>Deploy once, forced recompute, timing scripts, manager QA</td><td>0047 to 0051 together</td><td>2 days</td></tr>
+        </tbody></table></div>
+        <p><b>Total:</b> about 26 to 28 working days without Phases B and C, about 30 to 32 with them, or roughly 5 to 7 calendar weeks including waiting for answers and QA. Stopped SIPs and LinkedIn are on hold and not counted. The earlier estimate of 20 to 22 days has grown for four reasons: item 7 now has a real build (Step 0 and Phase A), item 11 now includes new index data, the logo pass is app-wide, and the composite deletion needs its own migration and docs. The SMS provider is no longer a dependency because phone codes stay on the stub.</p>
+        <p><b>Migration order:</b> 0047 head of family, 0048 fund managers (reserved: LinkedIn is on hold, so it is not built), 0049 scheme benchmark and index registry, 0050 reported valuation, 0051 drop composite ranking tables. The earlier clash, where both a possible index migration and the valuation table were called 0050, is resolved: indices move to a registry table instead of new database enum values, so they share 0049 with the benchmark table.</p>
+      </div>
+
+      <div class="block"><h3>What to run after each run, and what a pass looks like</h3>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Check</th><th>Command</th><th>Pass</th></tr></thead><tbody>
+          <tr><td>Backend tests for the files touched (written first, red then green)</td><td><code>cd backend; pytest tests/&lt;touched files&gt;</code></td><td>All green; the new tests failed before the change</td></tr>
+          <tr><td>Frontend tests for the files touched</td><td><code>cd frontend; npm test -- &lt;touched files&gt;</code></td><td>All green</td></tr>
+          <tr><td>Section-list and parity tests</td><td>The analytics page test that lists sections, and the print and mobile parity tests where the print copy still reads the section</td><td>Green. Per D12 print and mobile are not changed, so their tests must still pass on the old payload shape.</td></tr>
+          <tr><td>Old payload still renders</td><td>A test that feeds the previous stored shape to the new screen</td><td>No crash; the "updating" state until the recompute</td></tr>
+          <tr><td>Postgres functional tests (needed for item 1 and any new unique rule, because the lock and index rules differ from SQLite)</td><td><code>docker compose up postgres</code>, then <code>pytest tests/functional_postgres</code> with <code>TEST_DATABASE_URL</code> set</td><td>Green, including a new test that the swap order never violates the one-self index and rolls back on failure</td></tr>
+          <tr><td>Synthetic statement gate (any run that changes money maths, holdings or imports: Runs 3, 4, 5)</td><td>The portfolio, fund and home gate scripts in <code>backend/scripts</code>, using the synthetic CAS set in <code>Docs/CAS Files/synthetic/pdfs</code> (password <code>MF@123</code>)</td><td>Every scenario matches; zero review items</td></tr>
+          <tr><td>Real figures</td><td>Analytics recompute on one real household, then compare each changed screen with the hand-worked golden numbers</td><td>Every changed number matches the golden test or is explained</td></tr>
+          <tr><td>Migration up and down</td><td><code>alembic upgrade head</code> then <code>alembic downgrade -1</code> and up again, locally on Postgres</td><td>No error; the enum and unique rules behave</td></tr>
+          <tr><td>Timing (Runs 2, 3, 4)</td><td>The measure scripts in the Step 0 section (S11), against the baseline</td><td>No script more than 10% slower than baseline; the recompute stays under 15 minutes</td></tr>
+          <tr><td>Review</td><td>One independent review per run; money maths (Run 4) and sign-in and data safety (Run 5) also get a deeper one</td><td>Findings fixed or recorded</td></tr>
+        </tbody></table></div>
+        <p>Nothing is deployed between runs, so every run must pass these locally before the next begins. The risk of one deploy at the end is that a problem found on staging could touch several runs; these gates are there to prevent that.</p>
+      </div>
+
+      <div class="block"><h3>Lessons from the first VM session (apply to the staging step too)</h3>
+        <ul>
+          <li><b>Never stop a recompute that is running.</b> A stopped run leaves its user's claim in place for 15 minutes, and a recompute started in that window skips that user ("recompute already in flight"). If one was stopped, wait 15 minutes and run a one-household recompute for that user (<code>run_analytics_recompute.py --household &lt;id&gt;</code>), which clears the claim.</li>
+          <li><b>Check for claims before the forced recompute at staging.</b> Query <code>analytics_recompute_status</code>: no user should show a claim in flight. Afterwards confirm every scope of every user has all 15 sections.</li>
+          <li><b>The wrapper script is silent until the job ends.</b> <code>run-job.sh</code> collects the output and prints it at the end. Start long jobs in the background and watch the container and the log.</li>
+          <li><b>Timing scripts need a recomputed user and today's NAV stored.</b> They abort on any database write, so run them after the 06:00 IST NAV job (after 06:35 IST), for a user whose recompute completed, twice each; the second run is the baseline.</li>
+          <li><b>The <code>deploy</code> user cannot read <code>.env</code>.</b> Commands that source it (the database counts) run under <code>sudo</code>.</li>
+        </ul>
+      </div>
+
+      <div class="block"><h3>Item-specific checks to schedule</h3>
+        <ul>
+          <li><b>Item 1 (Run 5):</b> a hand-over test on staging with <b>two real inboxes</b> (the email codes are real there; the phone code shows as the test-mode value). Also try: wrong code five times, expiry, cancel, an email already used elsewhere, a member with a PAN on another account, undo within 24 hours, and a sign-in with the old head's Google account afterwards.</li>
+          <li><b>Item 7 (Run 2):</b> hand-check every factsheet figure for three fund houses (one forward P/E, one trailing, one computed) against the PDF page. For the computed path, hand-work one fund's harmonic P/E.</li>
+          <li><b>Item 8 and 9 (Run 2):</b> hand-check a rank and a category average for one category with 5 funds. For item 9 also open a fund whose gap is under 0.5 points and check it reads "About the same".</li>
+          <li><b>Item 11 (Run 3):</b> golden test with three purchases and a sale against a spreadsheet; list every fund whose benchmark changed and by how much before any number is shown to a user; check one composite benchmark (for example a 50:30:20 blend) separately.</li>
+          <li><b>Item 13 (Run 1):</b> the golden test with three synthetic funds (hybrid, index, arbitrage), including a negative derivative line, and a real-data spot check of three funds on staging.</li>
+          <li><b>Logos (Run 7):</b> open each listed screen with a fund house that is not in the 35-house map and confirm the fallback tile; load a page with the network blocked to see the fallback.</li>
+        </ul>
+      </div>
+
+      <div class="block"><h3>Documentation update: the Fund Ranking replacement (the files to change)</h3>
+        <p>Found by searching every document. Live status and contract documents (update):</p>
+        <ul>
+          <li><code>DEFERRED_FEATURES.md</code> (the Fund Ranking entry; also the PDF-export-hidden entry), <code>decisions.md</code> (new decision: Performance Ranking replaces Fund Ranking, composite deleted), <code>log.md</code>, <code>database.md</code> (migration 0051 drops <code>scheme_rankings</code> and <code>ranking_weights</code>), <code>backend.md</code> (the <code>fund_ranking.py</code> entries).</li>
+          <li><code>Docs/PRD-04-MF-Analytics-Dashboard.md</code> (the Category Ranking and Fund Ranking requirement and the composite-rating weights).</li>
+          <li>The page design and handoffs: <code>Docs/orchestration/2026-10-23-mutual-funds-page-design.md</code>, <code>2026-10-24-mutual-funds-redesign-handoff.md</code>, <code>ui-redesign-MF-C-mutual-funds-packet.md</code> (the group titles and the Fund Ranking spec), <code>Docs/superpowers/plans/2026-10-24-mutual-funds-frontend-plan.md</code>, the restructure and backend-flow specs, and the Other Analytics mockup HTML.</li>
+          <li><code>Docs/orchestration/ui-redesign-decisions-register.md</code>: add a new row for the change. Check <code>2026-10-23-home-functionality-backend-spec.md</code>, which names <code>scheme_rankings</code>, before the table is dropped.</li>
+          <li>The staging QA checklist and the IF-E packet that mention the fund ranking cells.</li>
+          <li>Also add: the item 10 note on PRD-04 and the 2026-08-13 and 2026-10-06 decisions (the Fund Quality Score is hidden on one page, not removed); the LinkedIn verification procedure; the head-of-family decision record and a new ADR; the new tables in the schema document.</li>
+        </ul>
+        <p>Historical attribute 09 plans and specs (<code>Docs/analytics/2026-10-08-attribute-09-fund-ranking-spec.md</code>, the two identical plan files, the sub-project 1 planning documents) are left as history and marked superseded at the top. The code that goes with the composite: <code>fund_ranking.py</code>, <code>SchemeRanking</code> and <code>RankingWeight</code> in the models, migration 0034's tables (dropped by 0051), the <code>ranking</code> recompute entry, the <code>/funds/{id}/ranking</code> route, the schema types, four backend tests, the frontend <code>FundRankingGroup</code>, its legacy section, fixtures and the print block.</p>
+      </div>
+    </article>
+  </section>
+
