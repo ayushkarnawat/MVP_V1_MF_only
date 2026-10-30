@@ -7,6 +7,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&family=Manrope:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif&display=swap">
 <style>
 /* Layout: a briefing read top to bottom. Summary and decisions first, then 13 expandable change cards, then a suggested build order. */
@@ -235,93 +236,93 @@ blockquote { margin: 0; padding: 10px 14px; border-left: 3px solid var(--accent)
 .mkwhere { font-size: 0.85rem; color: var(--muted); }
 .mkwhere b { color: var(--fg); }
 .mkscroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: #e9eef1; padding: 10px; }
-.mk { min-width: 640px; max-width: 980px; background: #f7f9fa; color: #1b2430; border: 1px solid #d9e0e6; border-radius: 10px; font: 12.5px/1.45 "IBM Plex Sans", system-ui, sans-serif; overflow: hidden; position: relative; }
+.mk { min-width: 640px; max-width: 980px; background: #FCFCFC; color: #111111; border: 1px solid #ECECEC; border-radius: 10px; font: 12.5px/1.45 "IBM Plex Sans", system-ui, sans-serif; overflow: hidden; position: relative; }
 .mk * { box-sizing: border-box; }
-.mk small { font-size: 11px; color: #64707d; }
-.mk-top { display: flex; gap: 14px; align-items: center; padding: 9px 14px; background: #fff; border-bottom: 1px solid #e5e9ee; }
+.mk small { font-size: 11px; color: #717171; }
+.mk-top { display: flex; gap: 14px; align-items: center; padding: 9px 14px; background: #fff; border-bottom: 1px solid #ECECEC; }
 .mk-brand { font: 600 15px "Instrument Serif", Georgia, serif; color: #0f3d2a; }
-.mk-crumb { color: #64707d; flex: 1; }
-.mk-scope { border: 1px solid #d9e0e6; border-radius: 6px; padding: 2px 8px; background: #fff; }
-.mk-tabs { display: flex; gap: 4px; padding: 0 14px; background: #fff; border-bottom: 1px solid #e5e9ee; overflow: hidden; }
-.mk-tabs span { padding: 8px 10px; color: #64707d; border-bottom: 2px solid transparent; white-space: nowrap; }
-.mk-tabs span.on { color: #15803d; border-color: #16a34a; font-weight: 600; }
+.mk-crumb { color: #717171; flex: 1; }
+.mk-scope { border: 1px solid #ECECEC; border-radius: 6px; padding: 2px 8px; background: #fff; }
+.mk-tabs { display: flex; gap: 4px; padding: 0 14px; background: #fff; border-bottom: 1px solid #ECECEC; overflow: hidden; }
+.mk-tabs span { padding: 8px 10px; color: #717171; border-bottom: 2px solid transparent; white-space: nowrap; }
+.mk-tabs span.on { color: #15803d; border-color: #22C55E; font-weight: 600; }
 .mk-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; min-height: 120px; position: relative; }
-.mk-card { background: #fff; border: 1px solid #e5e9ee; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.mk-card { background: #fff; border: 1px solid #ECECEC; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
 .mk-ch { display: flex; align-items: center; gap: 8px; }
 .mk-ch b { font-size: 13.5px; }
-.mk-r { margin-left: auto; color: #64707d; font-size: 11.5px; }
-.mk-i { width: 15px; height: 15px; border-radius: 50%; border: 1px solid #9aa5b1; color: #64707d; font-size: 10px; display: inline-flex; align-items: center; justify-content: center; }
+.mk-r { margin-left: auto; color: #717171; font-size: 11.5px; }
+.mk-i { width: 15px; height: 15px; border-radius: 50%; border: 1px solid #B8B8B8; color: #717171; font-size: 10px; display: inline-flex; align-items: center; justify-content: center; }
 .mk-tw { overflow-x: auto; }
 .mk-t { width: 100%; border-collapse: collapse; font-size: 12px; }
-.mk-t th { text-align: left; font-weight: 600; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; color: #64707d; padding: 6px 8px; border-bottom: 1px solid #e5e9ee; white-space: nowrap; }
-.mk-t td { padding: 7px 8px; border-bottom: 1px solid #f0f3f5; vertical-align: top; }
+.mk-t th { text-align: left; font-weight: 600; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; color: #717171; padding: 6px 8px; border-bottom: 1px solid #ECECEC; white-space: nowrap; }
+.mk-t td { padding: 7px 8px; border-bottom: 1px solid #F5F5F5; vertical-align: top; }
 .mk-t .r { text-align: right; font-variant-numeric: tabular-nums; }
-.mk-t tr.hl td { background: #f0faf4; }
-.mk-t tr.sub td { background: #fafbfc; color: #46525e; }
+.mk-t tr.hl td { background: #EAFBF0; }
+.mk-t tr.sub td { background: #FCFCFC; color: #717171; }
 .mk-t tr.sub td:first-child { padding-left: 30px; }
-.mk-plus { display: inline-flex; width: 16px; height: 16px; border-radius: 50%; border: 1px solid #16a34a; color: #16a34a; align-items: center; justify-content: center; font-size: 12px; line-height: 1; }
+.mk-plus { display: inline-flex; width: 16px; height: 16px; border-radius: 50%; border: 1px solid #22C55E; color: #22C55E; align-items: center; justify-content: center; font-size: 12px; line-height: 1; }
 .mk-pos { color: #15803d; font-weight: 600; }
-.mk-neg { color: #b91c1c; font-weight: 600; }
-.mk-m { color: #8a95a1; }
-.mk-b { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: #eef1f4; color: #46525e; }
-.mk-b-g { background: #dcf3e5; color: #15803d; }
-.mk-b-a { background: #fdf0d4; color: #92590a; }
+.mk-neg { color: #C1272D; font-weight: 600; }
+.mk-m { color: #717171; }
+.mk-b { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: #F5F5F5; color: #717171; }
+.mk-b-g { background: #EAFBF0; color: #15803d; }
+.mk-b-a { background: #FEF3E2; color: #B45309; }
 .mk-in { display: inline-block; background: #0a66c2; color: #fff; font: 700 9px Arial, sans-serif; border-radius: 2px; padding: 1px 3px; margin-left: 4px; }
-.mk-bar { display: block; height: 5px; background: #eef1f4; border-radius: 3px; margin-top: 3px; min-width: 60px; }
+.mk-bar { display: block; height: 5px; background: #F5F5F5; border-radius: 3px; margin-top: 3px; min-width: 60px; }
 .mk-bar i { display: block; height: 100%; border-radius: 3px; }
-.mk-note { margin: 0; color: #64707d; font-size: 11.5px; }
+.mk-note { margin: 0; color: #717171; font-size: 11.5px; }
 .mk-row { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
 .mk-donut { width: 130px; height: 130px; border-radius: 50%; display: grid; place-items: center; flex: none; }
 .mk-donut > div { width: 84px; height: 84px; border-radius: 50%; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .mk-donut b { font-size: 14px; }
-.mk-donut span { font-size: 9.5px; color: #64707d; line-height: 1.2; padding: 0 6px; }
+.mk-donut span { font-size: 9.5px; color: #717171; line-height: 1.2; padding: 0 6px; }
 .mk-leg { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
 .mk-leg li { display: flex; gap: 8px; align-items: center; }
 .mk-leg i { width: 10px; height: 10px; border-radius: 2px; flex: none; }
 .mk-leg span { flex: 1; }
 .mk-actions { display: flex; gap: 8px; justify-content: flex-end; }
-.mk-btn { font: inherit; border: 1px solid #cfd7de; background: #fff; border-radius: 7px; padding: 5px 12px; color: #1b2430; }
-.mk-btn-p { background: #16a34a; border-color: #16a34a; color: #fff; font-weight: 600; }
+.mk-btn { font: inherit; border: 1px solid #DFDFDF; background: #fff; border-radius: 7px; padding: 5px 12px; color: #111111; }
+.mk-btn-p { background: #22C55E; border-color: #22C55E; color: #fff; font-weight: 600; }
 .mk-btn[disabled] { opacity: .5; }
 .mk-dim { position: absolute; inset: 0; background: rgba(20, 30, 40, .28); z-index: 1; }
-.mk-dlg { position: relative; z-index: 2; background: #fff; border-radius: 12px; border: 1px solid #d9e0e6; padding: 16px; width: min(440px, 100%); margin: 8px auto; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 28px rgba(0, 0, 0, .18); }
-.mk-dlg p { margin: 0; color: #46525e; }
-.mk-opt { display: flex; gap: 10px; align-items: flex-start; border: 1px solid #e5e9ee; border-radius: 8px; padding: 8px 10px; }
-.mk-opt.on { border-color: #16a34a; background: #f0faf4; }
+.mk-dlg { position: relative; z-index: 2; background: #fff; border-radius: 12px; border: 1px solid #ECECEC; padding: 16px; width: min(440px, 100%); margin: 8px auto; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 28px rgba(0, 0, 0, .18); }
+.mk-dlg p { margin: 0; color: #717171; }
+.mk-opt { display: flex; gap: 10px; align-items: flex-start; border: 1px solid #ECECEC; border-radius: 8px; padding: 8px 10px; }
+.mk-opt.on { border-color: #22C55E; background: #EAFBF0; }
 .mk-opt.off { opacity: .55; }
 .mk-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .mk-otp { display: flex; gap: 4px; margin: 6px 0; }
-.mk-otp i { width: 26px; height: 32px; border: 1px solid #cfd7de; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-style: normal; font-weight: 600; }
+.mk-otp i { width: 26px; height: 32px; border: 1px solid #DFDFDF; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-style: normal; font-weight: 600; }
 .mk-ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .mk-subtabs { display: flex; gap: 6px; }
-.mk-subtabs span { padding: 4px 12px; border-radius: 999px; border: 1px solid #d9e0e6; background: #fff; color: #46525e; }
-.mk-subtabs span.on { background: #16a34a; border-color: #16a34a; color: #fff; }
+.mk-subtabs span { padding: 4px 12px; border-radius: 999px; border: 1px solid #ECECEC; background: #fff; color: #717171; }
+.mk-subtabs span.on { background: #22C55E; border-color: #22C55E; color: #fff; }
 .mk-hm th { white-space: nowrap; }
 .mk-hm td.c { text-align: center; font-weight: 600; }
-.mk-hm td.hot { color: #b91c1c; }
-.mk-leg2 { color: #64707d; font-size: 11.5px; }
-.mk-leg2 i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; border: 1px solid #e0e5ea; }
-.mk-search { border: 1px solid #cfd7de; border-radius: 8px; padding: 7px 10px; color: #8a95a1; background: #fff; }
+.mk-hm td.hot { color: #C1272D; }
+.mk-leg2 { color: #717171; font-size: 11.5px; }
+.mk-leg2 i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; border: 1px solid #ECECEC; }
+.mk-search { border: 1px solid #DFDFDF; border-radius: 8px; padding: 7px 10px; color: #717171; background: #fff; }
 .mk-chips { display: flex; gap: 6px; flex-wrap: wrap; }
-.mk-chips span { border: 1px solid #d9e0e6; background: #fff; border-radius: 999px; padding: 3px 10px; }
-.mk-chips span.on { background: #16a34a; border-color: #16a34a; color: #fff; }
-.mk-ph { border: 1px dashed #cfd7de; border-radius: 8px; padding: 18px; text-align: center; color: #8a95a1; background: #fafbfc; }
-.mk-removed { border: 1.5px dashed #e08a8a; color: #b04747; background: #fdf3f3; border-radius: 8px; padding: 12px; text-align: center; text-decoration: line-through; }
+.mk-chips span { border: 1px solid #ECECEC; background: #fff; border-radius: 999px; padding: 3px 10px; }
+.mk-chips span.on { background: #22C55E; border-color: #22C55E; color: #fff; }
+.mk-ph { border: 1px dashed #DFDFDF; border-radius: 8px; padding: 18px; text-align: center; color: #717171; background: #FCFCFC; }
+.mk-removed { border: 1.5px dashed #E5484D; color: #C1272D; background: #FDECEC; border-radius: 8px; padding: 12px; text-align: center; text-decoration: line-through; }
 .mk-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
-.mk-stats > div { border: 1px solid #e5e9ee; border-radius: 8px; padding: 8px 10px; background: #fff; display: flex; flex-direction: column; }
+.mk-stats > div { border: 1px solid #ECECEC; border-radius: 8px; padding: 8px 10px; background: #fff; display: flex; flex-direction: column; }
 .mk-stats b { font-size: 15px; }
-.mk-sum { background: #f0faf4; border-radius: 8px; padding: 8px 10px; }
-.mk-pop { position: relative; z-index: 2; align-self: flex-start; max-width: 380px; background: #1b2430; color: #fff; border-radius: 8px; padding: 10px 12px; font-size: 11.5px; }
+.mk-sum { background: #EAFBF0; border-radius: 8px; padding: 8px 10px; }
+.mk-pop { position: relative; z-index: 2; align-self: flex-start; max-width: 380px; background: #111111; color: #fff; border-radius: 8px; padding: 10px 12px; font-size: 11.5px; }
 .mk-cmp { display: flex; flex-direction: column; gap: 10px; }
 .mk-cmp > div { display: grid; grid-template-columns: 220px 1fr; gap: 10px; align-items: center; }
 .mk-cmp span { display: flex; align-items: center; gap: 10px; }
 .mk-cmp .mk-bar { flex: 1; height: 10px; }
 .mk-sw { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.mk-toggle { width: 38px; height: 20px; border-radius: 999px; background: #cfd7de; display: inline-flex; padding: 2px; }
-.mk-toggle.on { background: #16a34a; justify-content: flex-end; }
+.mk-toggle { width: 38px; height: 20px; border-radius: 999px; background: #DFDFDF; display: inline-flex; padding: 2px; }
+.mk-toggle.on { background: #22C55E; justify-content: flex-end; }
 .mk-toggle i { width: 16px; height: 16px; background: #fff; border-radius: 50%; }
 .mk-map { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.mk-map > div { background: #fff; border: 1px solid #e5e9ee; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+.mk-map > div { background: #fff; border: 1px solid #ECECEC; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 4px; }
 .mk-map2 > div { border-style: dashed; }
 .mknotes { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.88rem; display: flex; flex-direction: column; gap: 4px; }
 
@@ -416,72 +417,79 @@ tr.stg td { background: var(--accent-soft); }
 </style>
 <style>
 /* Redesigned mockups (31 Oct): visual summaries, dumbbells, rank lanes, category cards */
-.u-hero{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:linear-gradient(135deg,#eafbf0,#fff 70%);border:1px solid #cfeedb;border-radius:16px;padding:16px 18px}
-.u-hero.warn{background:linear-gradient(135deg,#fef3e2,#fff 70%);border-color:#f6dfb8}
-.u-hero.neg{background:linear-gradient(135deg,#fdecec,#fff 70%);border-color:#f3c9c9}
+.u-hero{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:linear-gradient(135deg,#eafbf0,#fff 70%);border:1px solid rgba(34,197,94,.35);border-radius:16px;padding:16px 18px}
+.u-hero.warn{background:linear-gradient(135deg,#fef3e2,#fff 70%);border-color:rgba(217,119,6,.35)}
+.u-hero.neg{background:linear-gradient(135deg,#fdecec,#fff 70%);border-color:rgba(229,72,77,.35)}
 .u-hero .big{font-size:32px;font-weight:700;line-height:1;color:#15803d;font-family:"Instrument Serif",Georgia,serif}
 .u-hero.warn .big{color:#b45309}.u-hero.neg .big{color:#c1272d}
-.u-hero p{margin:0;color:#46525e;font-size:13px;max-width:60ch}.u-hero b{color:#111}
-.u-seg{display:inline-flex;background:#eef1f4;border-radius:12px;padding:4px;gap:4px;flex-wrap:wrap}
-.u-seg span{padding:7px 14px;border-radius:9px;font-size:13px;color:#46525e;font-weight:500;white-space:nowrap}
+.u-hero p{margin:0;color:#717171;font-size:13px;max-width:60ch}.u-hero b{color:#111}
+.u-seg{display:inline-flex;background:#F5F5F5;border-radius:12px;padding:4px;gap:4px;flex-wrap:wrap}
+.u-seg span{padding:7px 14px;border-radius:9px;font-size:13px;color:#717171;font-weight:500;white-space:nowrap}
 .u-seg span.on{background:#fff;color:#111;box-shadow:0 1px 3px rgba(0,0,0,.14);font-weight:600}
-.u-seg em{font-style:normal;background:#16a34a;color:#fff;border-radius:999px;font-size:10px;padding:1px 6px;margin-left:6px}
+.u-seg em{font-style:normal;background:#22C55E;color:#fff;border-radius:999px;font-size:10px;padding:1px 6px;margin-left:6px}
 .u-cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .u-cat{border:1px solid #ececec;border-radius:14px;padding:12px;background:#fff;display:flex;flex-direction:column;gap:4px;min-width:0}
-.u-cat.on{border-color:#16a34a;box-shadow:0 0 0 3px #dcf3e5}.u-cat.off{opacity:.55}
+.u-cat.on{border-color:#22C55E;box-shadow:0 0 0 3px #EAFBF0}.u-cat.off{opacity:.55}
 .u-cat b{font-size:13px}.u-cat small{color:#717171;font-size:11.5px}.u-cat .n{font-size:22px;font-weight:700}
 .u-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px}
 .u-grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .u-grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .u-fc{border:1px solid #ececec;border-radius:14px;background:#fff;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .u-fh{display:flex;align-items:center;gap:8px;min-width:0}.u-fh b{font-size:13px}.u-fh .r{margin-left:auto;display:flex;gap:4px}
-.u-av{width:30px;height:30px;border-radius:50%;background:#eef1f4;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#46525e;flex:none}
-.u-av.g{background:#dcf3e5;color:#15803d}.u-av.b{background:#dbeafe;color:#1d4ed8}.u-av.p{background:#ede9fe;color:#6d28d9}.u-av.a{background:#fdf0d4;color:#92590a}
+.u-av{width:30px;height:30px;border-radius:50%;background:#F5F5F5;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#717171;flex:none}
+.u-av.g{background:#EAFBF0;color:#15803d}.u-av.b{background:#DBEAFE;color:#1d4ed8}.u-av.p{background:#EDE9FE;color:#6d28d9}.u-av.a{background:#FEF3E2;color:#B45309}
 .u-sub{font-size:11px;color:#717171;margin-top:1px}
 .u-db{display:grid;grid-template-columns:30px minmax(0,1fr) 92px;gap:10px;align-items:center;font-size:12px}
 .u-db .p{color:#717171;font-weight:600}
 .u-track{position:relative;height:22px}
 .u-track:before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:#ececec}
-.u-link{position:absolute;top:9px;height:4px;border-radius:2px;background:#16a34a}.u-link.neg{background:#c1272d}
+.u-link{position:absolute;top:9px;height:4px;border-radius:2px;background:#22C55E}.u-link.neg{background:#c1272d}
 .u-pt{position:absolute;top:4px;width:14px;height:14px;border-radius:50%;transform:translateX(-50%)}
-.u-pt.f{background:#16a34a;border:2px solid #fff;box-shadow:0 0 0 1px #16a34a}.u-pt.f.neg{background:#c1272d;box-shadow:0 0 0 1px #c1272d}
-.u-pt.a{background:#fff;border:2px solid #9aa5b1}
+.u-pt.f{background:#22C55E;border:2px solid #fff;box-shadow:0 0 0 1px #22C55E}.u-pt.f.neg{background:#c1272d;box-shadow:0 0 0 1px #c1272d}
+.u-pt.a{background:#fff;border:2px solid #B8B8B8}
 .u-val{text-align:right;line-height:1.25}.u-val b{display:block;font-size:12.5px}.u-val small{color:#717171;font-size:10.5px}
 .u-key{display:flex;gap:14px;align-items:center;font-size:11.5px;color:#717171;flex-wrap:wrap}
 .u-key i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:5px}
-.u-chips{display:flex;gap:6px;flex-wrap:wrap}.u-chips span{border:1px solid #e0e5ea;background:#fff;border-radius:999px;padding:4px 12px;font-size:12px;color:#46525e}
+.u-chips{display:flex;gap:6px;flex-wrap:wrap}.u-chips span{border:1px solid #ECECEC;background:#fff;border-radius:999px;padding:4px 12px;font-size:12px;color:#717171}
 .u-chips span.on{background:#111;color:#fff;border-color:#111}
-.u-lane{display:grid;grid-template-columns:minmax(150px,1.3fr) repeat(3,minmax(0,1fr));gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid #f1f3f5;font-size:12.5px}
+.u-lane{display:grid;grid-template-columns:minmax(150px,1.3fr) repeat(3,minmax(0,1fr));gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid #F5F5F5;font-size:12.5px}
 .u-lane.h{font-size:11px;color:#717171;font-weight:600;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #ececec;padding-top:0}
 .u-rk{position:relative;height:30px}
-.u-rk .t{position:absolute;left:0;right:0;top:12px;height:6px;border-radius:3px;background:#eef1f4}
-.u-rk .q{position:absolute;left:0;top:12px;height:6px;border-radius:3px 0 0 3px;background:#cfeedb}
+.u-rk .t{position:absolute;left:0;right:0;top:12px;height:6px;border-radius:3px;background:#F5F5F5}
+.u-rk .q{position:absolute;left:0;top:12px;height:6px;border-radius:3px 0 0 3px;background:rgba(34,197,94,.35)}
 .u-rk .m{position:absolute;top:7px;width:16px;height:16px;border-radius:50%;transform:translateX(-50%);border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
 .u-rk b{position:absolute;right:0;top:-3px;font-size:11.5px}
-.u-none{border:1px dashed #cfd7de;border-radius:8px;padding:6px 8px;font-size:11px;color:#8a95a1;text-align:center}
+.u-none{border:1px dashed #DFDFDF;border-radius:8px;padding:6px 8px;font-size:11px;color:#717171;text-align:center}
 .u-jump{position:sticky;top:0;display:flex;gap:8px;flex-wrap:wrap;background:rgba(255,255,255,.92);padding:8px 0}
 .u-tile{border:1px solid #ececec;border-radius:14px;background:#fff;padding:14px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .u-tile .a{font-size:11.5px;color:#717171;font-weight:600;text-transform:uppercase;letter-spacing:.04em}.u-tile .b{font-size:24px;font-weight:700}
-.u-tile .c{font-size:12px;color:#46525e}.u-tile .go{margin-top:6px;font-size:12px;color:#15803d;font-weight:600}
+.u-tile .c{font-size:12px;color:#717171}.u-tile .go{margin-top:6px;font-size:12px;color:#15803d;font-weight:600}
 .u-steps{display:flex;gap:6px;align-items:center;margin-bottom:4px}
-.u-steps i{height:6px;flex:1;border-radius:3px;background:#e5e9ee}.u-steps i.on{background:#16a34a}
+.u-steps i{height:6px;flex:1;border-radius:3px;background:#ECECEC}.u-steps i.on{background:#22C55E}
 .u-swap{display:grid;grid-template-columns:1fr 40px 1fr;gap:8px;align-items:center}
-.u-swap .arrow{text-align:center;font-size:20px;color:#16a34a}
-.u-who{border:1px solid #e5e9ee;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
-.u-who.new{border-color:#16a34a;background:#f0faf4}
+.u-swap .arrow{text-align:center;font-size:20px;color:#22C55E}
+.u-who{border:1px solid #ECECEC;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.u-who.new{border-color:#22C55E;background:#EAFBF0}
 .u-split{display:flex;height:6px;border-radius:3px;overflow:hidden;width:120px;margin-top:4px}.u-split i{display:block;height:100%}
 .u-stack{display:flex;height:34px;border-radius:10px;overflow:hidden}.u-stack i{display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;font-style:normal}
 .u-mgr{border:1px solid #ececec;border-radius:14px;background:#fff;padding:14px;display:flex;flex-direction:column;gap:8px}
 .u-mgr .big{font-size:26px;font-weight:700;line-height:1}
-.u-mo{display:flex;gap:3px}.u-mo i{width:14px;height:14px;border-radius:4px;background:#e5e9ee;display:inline-block}
-.u-mo i.paid{background:#16a34a}.u-mo i.miss{background:#c1272d}
+.u-mo{display:flex;gap:3px}.u-mo i{width:14px;height:14px;border-radius:4px;background:#ECECEC;display:inline-block}
+.u-mo i.paid{background:#22C55E}.u-mo i.miss{background:#c1272d}
 .u-flow{display:flex;flex-direction:column;gap:6px}.u-flow .row{display:grid;grid-template-columns:130px 1fr 64px;gap:10px;align-items:center;font-size:12px}
-.u-flow .bar{height:14px;border-radius:7px;background:#eef1f4;position:relative;overflow:hidden}.u-flow .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:7px}
+.u-flow .bar{height:14px;border-radius:7px;background:#F5F5F5;position:relative;overflow:hidden}.u-flow .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:7px}
 .u-src{font-size:10px;border-radius:6px;padding:1px 6px;margin-left:6px;font-weight:600}
 .u-src.f{color:#15803d;background:#eafbf0}.u-src.c{color:#717171;background:#f5f5f5}
-.u-rng{position:relative;height:18px;min-width:120px}.u-rng:before{content:"";position:absolute;left:0;right:0;top:8px;height:3px;border-radius:2px;background:#e5e9ee}
-.u-rng .tick{position:absolute;top:2px;width:2px;height:15px;background:#a78bfa}.u-rng .dot{position:absolute;top:3px;width:12px;height:12px;border-radius:50%;background:#16a34a;transform:translateX(-50%);border:2px solid #fff;box-shadow:0 0 0 1px #16a34a}
+.u-rng{position:relative;height:18px;min-width:120px}.u-rng:before{content:"";position:absolute;left:0;right:0;top:8px;height:3px;border-radius:2px;background:#ECECEC}
+.u-rng .tick{position:absolute;top:2px;width:2px;height:15px;background:#8B5CF6}.u-rng .dot{position:absolute;top:3px;width:12px;height:12px;border-radius:50%;background:#22C55E;transform:translateX(-50%);border:2px solid #fff;box-shadow:0 0 0 1px #22C55E}
 @media (max-width:760px){.u-cats{grid-template-columns:1fr 1fr}.u-grid2,.u-grid3{grid-template-columns:1fr}.u-lane{grid-template-columns:1fr}}
+</style>
+<style>
+/* Official app fonts and palette for the mockups: DM Sans (headings), Manrope (body); colours from palette-tokens.css */
+.mk, .rl, .mk-dlg { font-family: "Manrope", system-ui, sans-serif; color: #111111; }
+.mk-ch b, .rl-h b, .rl-stat .b, .u-hero .big, .u-tile .b, .u-mgr .big, .mk-dlg > b { font-family: "DM Sans", system-ui, sans-serif; }
+.mk-btn-p { background: #22C55E; border-color: #22C55E; color: #111111; }
+.mk-pos { color: #15803D; } .mk-neg { color: #C1272D; }
 </style>
 </head>
 <body>
@@ -1895,7 +1903,7 @@ var AUDITS = [
         ["Audit C: go with the factsheets, option C", "Item 11 widened", "Each fund is compared with the benchmark its own factsheet names. New table scheme_benchmark (migration 0049, shared with the index-fund mapping of item 9). Many declared benchmarks are indices we hold no history for, and factsheet gaps leave some funds without one. Adds about 1.5 to 2 days.", "D34 answered; D35 new: what to show when it is missing"],
         ["Item 7: keep today's section; excluded lists collapsible; fund-wise section below", "Item 7", "The portfolio section is untouched except that its two excluded lists open on click. A Valuation by Fund card is added below. Audit E explains how the numbers are made today.", "D16 solved; D17 still open"]
       ] } },
-      { h: "Questions", p: ["Solved: D2, D9, D11, D15, D16, D33. Answered: D5, D34 (plus D1, D3, D7, D10, D20 earlier). Reopened: D14. New: D35, D36. D5 answered later on 30 Oct (option A). D32 is reworded."] }
+      { h: "Questions", p: ["Solved: D2, D9, D11, D15, D16, D28, D33. Answered: D5, D34 (plus D1, D3, D7, D10, D20 earlier). Reopened: D14. New: D35, D36, D37 (SMS provider, blocks item 1). D32 is reworded."] }
     ] };
 
   /* Audit B rewritten for the new answers */
@@ -1971,6 +1979,62 @@ var AUDITS = [
 
   /* Audit D: arbitrage note unchanged; Audit A unchanged */
 })();
+/* 31 Oct, round 3: item 1 phone and email for both people, item 3 donut, item 4 Cards and Table, plan total */
+(function () {
+  function dp(n) { return DEEP.filter(function (d) { return d.n === n; })[0]; }
+  var d1 = dp("01");
+  d1.after = d1.after.map(function (s) {
+    if (s.indexOf("Profile > Family Members shows a Head badge") === 0) return "The Profile > Family Members list stays exactly as it is today (member cards, Admin pill and their buttons). The only addition is a Change Head of Family button, shown to the current head only.";
+    if (s.indexOf("One code goes to the current head's email") === 0) return "Four codes: each of the two people verifies BOTH their email and their phone number, so the current head enters an email code and a phone code, and so does the new head. All four must be entered within 10 minutes.";
+    if (s.indexOf("The head picks an existing member who has an email") === 0) return "The head picks an existing member who has an email and a phone number of their own. Members who cannot qualify are greyed with the reason. Adding a brand-new person as head comes later (Deferred features).";
+    if (s.indexOf("A final screen says plainly") === 0) return "A final screen says plainly that the sign-in moves: the new head signs in with their own verified email and phone, the old head stays in the family as a member without sign-in, portfolio data does not change, and everyone is signed out.";
+    return s;
+  });
+  d1.backend = d1.backend.map(function (s) {
+    if (s.indexOf("Eligibility service") === 0) return "Eligibility service that returns a list of reasons per member (no email, no phone number, same email or phone as the head, email or phone already used by another Unifolio login, PAN held by another account, account pending deletion, import in progress).";
+    if (s.indexOf("Start step requires") === 0) return "Start step requires the current head to re-confirm (a fresh code to their verified email counts) before anything is sent.";
+    if (s.indexOf("Two-code verify endpoints") === 0) return "Four-code verify endpoints (email and phone for each person) with attempt limits and a 10-minute expiry; only one open request per account. Phone codes need a real SMS provider (D37); today phone codes are a development stub.";
+    if (s.indexOf("The swap, in one transaction") === 0) return s.replace("add an email identity for the new head", "add the new head's verified email and phone identities").replace("handle <code>users.phone_number</code> as decided in D28", "set <code>users.phone_number</code> to the new head's verified phone (D28)");
+    return s;
+  });
+  d1.frontend = ["Family page: leave the member list as it is; add a Change Head of Family button (head only), a three-step dialog (choose member, enter four codes, confirm) and a pending banner with cancel.", "Use the existing OTP input component from auth; copy must say which email and which phone each code went to.", "No change to onboarding."];
+  d1.tests = d1.tests.map(function (s) { return s === "Both codes are required; one alone leaves heads unchanged." ? "All four codes are required (email and phone, for both people); any three leave heads unchanged." : s; });
+  d1.risks = ["<b>Phone codes cannot go live today.</b> The product has only a development stub for SMS. Verifying both phone numbers needs a real SMS provider first (D37), and that blocks this item.", "A member's email and phone are typed by users and may be shared; a code proves control of that inbox or phone, not the person's consent.", "No PRD or ADR covers a head. PAN uniqueness and PAN matching decisions (2026-09-18, 09-24) still apply to the new head.", "What the head actually controls is undefined (D10)."];
+  d1.qs = "D3, D10, D37";
+  PLAIN["01"].plain += " Both people confirm both their email address and their phone number with one-time codes, four codes in all.";
+  PLAIN["01"].steps = PLAIN["01"].steps.map(function (s) { return s.indexOf("Build the Family page") === 0 ? "Build the Change Head of Family button, the three-step dialog (four codes) and the pending banner; the member list is not touched. Component tests first." : s.replace("two codes", "four codes"); });
+  ANSWERS["01"] = ANSWERS["01"].concat(["Added 30 Oct: the Family Members list stays as it is today. Both people verify BOTH their email and their phone number (four codes). This needs a real SMS provider (D37)."]);
+
+  /* D28 solved by the new rule; D37 new */
+  var all = NEW_DECISIONS.concat(NEW_DECISIONS2).concat(NEW_DECISIONS3);
+  var byId = function (id) { return all.filter(function (d) { return d.id === id; })[0]; };
+  byId("d28").tag = "D28 · Item 1 · SOLVED 30 Oct: both phones are verified, so the new head's verified phone becomes the account phone";
+  NEW_DECISIONS3.push({ id: "d37", tag: "D37 · Item 1", q: "How do we send phone codes, since the product has no real SMS provider today?",
+    ctx: "You decided that both people verify both their email and their phone number. Email codes work (Amazon SES). Phone codes are only a development stub, so nothing can send a real SMS yet. A provider and its sender registration have to be chosen and connected before item 1 can be built.",
+    opts: [
+      { n: "Connect an SMS provider now (and register the sender as India's rules require)", pro: ["Delivers what you decided", "Also unblocks phone login for everyone"], con: ["A provider contract, per-message cost and registration lead time", "New secret and configuration for staging and production"] },
+      { n: "Build item 1 with email codes first and add the phone codes when the provider is ready", pro: ["Nothing waits for the provider", "The flow is built once"], con: ["Not what you decided until the provider exists", "Needs a clear temporary rule on the dialog"] },
+      { n: "Use another phone-verification channel (for example a WhatsApp code)", pro: ["May avoid SMS registration"], con: ["Another provider to evaluate", "Not verified against our needs"] }],
+    rec: 0, why: "It is the only option that does what you decided. Option B is the fallback if the provider takes longer than the rest of the build." });
+
+  /* RUNS and timeline: Run 5 grows */
+  RUNS.forEach(function (r) {
+    if (r[0] === "Run 5") { r[3] = "Migration 0047, eligibility reasons (email and phone), start with fresh confirmation, four-code flow (email and phone for both people), SMS provider connection (D37), sign-in swap, session end, label flip, consent for the new head, audit and emails."; r[7] = "3.5 to 4 days, plus the SMS provider lead time (not included)"; }
+  });
+  TIMELINE[4][3] = "About 20 to 22 working days, or 4 to 5 calendar weeks including waiting for answers and QA. The increase over the earlier 19 to 21 is about one day for the phone codes in item 1; the SMS provider's own lead time is not included. A planning estimate, not a promise.";
+  TIMELINE[0][2] = TIMELINE[0][2].replace("D14, D19", "D14, D19, D37");
+
+  /* Item 4: Cards and Table, no Donut or Bar Chart */
+  var d4 = dp("04");
+  d4.after = d4.after.concat(["The chart-type switch changes from Table, Donut and Bar Chart to two views: Cards and Table. The card opens on Cards by default; the user can switch to Table (today's table, unchanged). The Donut and Bar Chart views are removed."]);
+  d4.frontend = ["FundManagerCard: replace the three chart types with two (Cards, Table); default view is Cards. Remove the Donut (SlicedDonut) and Bar Chart (BarList) views and their drill panel; keep the Table view as it is, with the LinkedIn icon next to a verified manager.", "Cards view: one card per manager with name, fund house, allocation percentage, rupee amount and the funds count; LinkedIn icon opening a new tab with rel noopener, hidden when no link.", "Update the tests that name the Donut and Bar Chart options. Print and mobile copies."];
+  d4.tests = d4.tests.concat(["The card opens on Cards; switching to Table shows today's table; no Donut or Bar Chart option exists."]);
+  d4.risks = d4.risks.concat(["Removing two views removes a way of reading the data some users may use; confirm no other screen links to them."]);
+  PLAIN["04"].plain += " The chart type switch now offers Cards and Table only; it opens on Cards.";
+  ANSWERS["04"] = ANSWERS["04"].concat(["Decided 30 Oct: the card has two views, Cards (the default) and Table. The Donut and Bar Chart views are removed."]);
+  ANSWERS["03"] = ["Decided 30 Oct: the Market Cap card keeps the donut, with three slices adding to 100% (the earlier bar-and-tiles idea is dropped)."];
+})();
+
 
 window.SKETCH="";
 window.MOCKS={};
@@ -1979,7 +2043,7 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
 /* After-change mockups: HTML/CSS pictures of the new screens, with sample (made-up) data. */
 (function () {
   var TABS = ["Overview", "Performance", "Allocation", "Holdings", "Transactions", "Overlap", "Other Analytics"];
-  var G = "#16a34a", B = "#3b82f6", P = "#a78bfa", A = "#f59e0b", R = "#ef4444", GR = "#9aa5b1";
+  var G = "#22C55E", B = "#2563EB", P = "#8B5CF6", A = "#D97706", R = "#E5484D", GR = "#B8B8B8";
 
   function frame(active, inner, o) {
     o = o || {};
@@ -2105,11 +2169,11 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
   function commonCard() {
     var rows = [["HDFC Bank", "4 funds", "9.84%", 100, ["HF", "KM", "MS"]], ["ICICI Bank", "4 funds", "7.12%", 72, ["HF", "KM", "PP"]], ["Infosys", "3 funds", "5.40%", 55, ["HF", "KM"]]];
     return rcard("1. Common Holdings", 1, '<p class="rl-m">Click a stock to see exactly how much of each fund it\'s held in.</p><div class="mk-tw"><table class="rl-t"><thead><tr><th>#</th><th>Stock</th><th>Held in</th><th>Total Portfolio Exposure</th><th>Top Funds</th></tr></thead><tbody>' +
-      rows.map(function (r, i) { return "<tr><td class='m'>" + (i + 1) + "</td><td>› " + r[0] + "</td><td class='m'>" + r[1] + "</td><td><b style='font-size:12px;font-weight:500'>" + r[2] + "</b> <span class='rl-bar' style='width:96px;margin-left:8px'><i style='width:" + r[3] + "%;background:#16a34a'></i></span></td><td>" + r[4].map(function (x) { return "<span class='rl-ini'>" + x + "</span>"; }).join("") + "</td></tr>"; }).join("") + "</tbody></table></div>");
+      rows.map(function (r, i) { return "<tr><td class='m'>" + (i + 1) + "</td><td>› " + r[0] + "</td><td class='m'>" + r[1] + "</td><td><b style='font-size:12px;font-weight:500'>" + r[2] + "</b> <span class='rl-bar' style='width:96px;margin-left:8px'><i style='width:" + r[3] + "%;background:#22C55E'></i></span></td><td>" + r[4].map(function (x) { return "<span class='rl-ini'>" + x + "</span>"; }).join("") + "</td></tr>"; }).join("") + "</tbody></table></div>");
   }
   function impactCard() {
-    return rcard("4. Overlap Impact", 1, '<p class="rl-m">How much of your portfolio sits in overlapping vs. unique holdings.</p><p style="font-size:14px;font-weight:600;margin:0 0 12px">38.4% of portfolio in top 3 overlapping pairs</p><div class="rl-don"><div class="rl-donut" style="background:conic-gradient(#16a34a 0 38.4%,#3b82f6 38.4% 52%,#9aa5b1 52% 100%)"><div><span>Portfolio</span><b>₹14,25,000</b></div></div>' +
-      '<ul class="rl-leg"><li class="on"><span><i style="background:#16a34a"></i>Top 3 overlapping pairs</span><span><b>38.4%</b> <span style="color:#717171">₹5,47,200</span></span></li><li><span><i style="background:#3b82f6"></i>Other overlapping pairs</span><span><b>13.6%</b> <span style="color:#717171">₹1,93,800</span></span></li><li><span><i style="background:#9aa5b1"></i>Unique holdings</span><span><b>48.0%</b> <span style="color:#717171">₹6,84,000</span></span></li></ul></div>');
+    return rcard("4. Overlap Impact", 1, '<p class="rl-m">How much of your portfolio sits in overlapping vs. unique holdings.</p><p style="font-size:14px;font-weight:600;margin:0 0 12px">38.4% of portfolio in top 3 overlapping pairs</p><div class="rl-don"><div class="rl-donut" style="background:conic-gradient(#22C55E 0 38.4%,#2563EB 38.4% 52%,#B8B8B8 52% 100%)"><div><span>Portfolio</span><b>₹14,25,000</b></div></div>' +
+      '<ul class="rl-leg"><li class="on"><span><i style="background:#22C55E"></i>Top 3 overlapping pairs</span><span><b>38.4%</b> <span style="color:#717171">₹5,47,200</span></span></li><li><span><i style="background:#2563EB"></i>Other overlapping pairs</span><span><b>13.6%</b> <span style="color:#717171">₹1,93,800</span></span></li><li><span><i style="background:#B8B8B8"></i>Unique holdings</span><span><b>48.0%</b> <span style="color:#717171">₹6,84,000</span></span></li></ul></div>');
   }
   var statStrip = '<div class="rl-stats">' + stat("Funds analysed", "5 of 7", "2 funds excluded — not equity funds, or no stock holdings to look through") + stat("Fund pairs with overlap", "6 of 10", "at moderate (≥20%) or higher — possible pairs across your 5 equity funds") + stat("Highest overlap", "64%", "HDFC Flexi Cap Fund × Kotak Multicap Fund") + stat("Overlap risk", "High", "some fund pairs duplicate a large share of each other's holdings", "#fdecec") + "</div>";
   var allNames = [["HF", "HDFC Flexi Cap Fund"], ["KM", "Kotak Multicap Fund"], ["NS", "Nippon India Small Cap Fund"], ["ML", "Mirae Asset Large Cap Fund"], ["AM", "Axis Midcap Fund"]];
@@ -2158,8 +2222,8 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
       '<p class="rl-m">Values as on 28 Oct 2026 · Holdings as on 30 Sep 2026.</p><p class="rl-m">Ratios are hidden below 50% look-through coverage and flagged "not enough data" below 70% of equity exposure.</p>' +
       '<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><span class="mk-subtabs"><span class="on">Racetrack</span><span>Bar Chart</span></span></div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
-      vpanel("P/E", "earnings", "94.1%", pin(46, "#16a34a", "You 24.8") + pin(30, "#3b82f6", "N50 22.1") + pin(66, "#a78bfa", "N500 27.4"), "Your portfolio's earnings multiple is 12.2% above Nifty 50 and 9.5% below Nifty 500.", open, peItems) +
-      vpanel("P/B", "book value", "91.3%", pin(40, "#16a34a", "You 3.9") + pin(25, "#3b82f6", "N50 3.4") + pin(70, "#a78bfa", "N500 4.2"), "Your portfolio's book-value multiple is 14.7% above Nifty 50 and 7.1% below Nifty 500.", open, pbItems) + "</div>" +
+      vpanel("P/E", "earnings", "94.1%", pin(46, "#22C55E", "You 24.8") + pin(30, "#2563EB", "N50 22.1") + pin(66, "#8B5CF6", "N500 27.4"), "Your portfolio's earnings multiple is 12.2% above Nifty 50 and 9.5% below Nifty 500.", open, peItems) +
+      vpanel("P/B", "book value", "91.3%", pin(40, "#22C55E", "You 3.9") + pin(25, "#2563EB", "N50 3.4") + pin(70, "#8B5CF6", "N500 4.2"), "Your portfolio's book-value multiple is 14.7% above Nifty 50 and 7.1% below Nifty 500.", open, pbItems) + "</div>" +
       '<p class="rl-m" style="margin-top:12px">P/E from NSE (SYMBOL P/E, reported trailing earnings); P/B from Yahoo Finance. Portfolio ratios use a weighted harmonic mean of the equity holdings with usable data.</p>');
   }
   function fundValCard() {
@@ -2200,7 +2264,7 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
   X["09"] = [
     m("Today (for comparison): rank badge, bar and percentile on every fund", "Investments › Mutual Funds › Other Analytics, SEBI Category Ranking & Peer Comparison (current section, from CategoryRankingGroup.tsx).",
       frame("Other Analytics", rpage(rcard("SEBI Category Ranking & Peer Comparison", 1, '<p class="rl-m">Ranked on the blended 3Y/5Y return. Click a fund to see its full 1Y/3Y/5Y return vs. its category.</p>' +
-        '<div style="border:1px solid #ececec;border-radius:12px;background:#f5f5f5;padding:12px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center"><span style="display:inline-flex;width:32px;height:24px;border-radius:6px;background:#eafbf0;color:#15803d;font-size:12px;font-weight:700;align-items:center;justify-content:center;margin-right:10px">#5</span>' + lg("HF") + '<b style="font-size:12px">HDFC Flexi Cap Fund</b></div><div style="display:flex;align-items:center;gap:12px"><span class="rl-bar"><i style="width:86%;background:#16a34a"></i></span><b style="font-size:12px;color:#15803d">86th pct · Top 14%</b><span>›</span></div></div><div style="font-size:11px;color:#717171">Flexi Cap Fund · rank 5 of 36 · Compared with Direct plan peers</div></div>')), {}),
+        '<div style="border:1px solid #ececec;border-radius:12px;background:#f5f5f5;padding:12px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center"><span style="display:inline-flex;width:32px;height:24px;border-radius:6px;background:#eafbf0;color:#15803d;font-size:12px;font-weight:700;align-items:center;justify-content:center;margin-right:10px">#5</span>' + lg("HF") + '<b style="font-size:12px">HDFC Flexi Cap Fund</b></div><div style="display:flex;align-items:center;gap:12px"><span class="rl-bar"><i style="width:86%;background:#22C55E"></i></span><b style="font-size:12px;color:#15803d">86th pct · Top 14%</b><span>›</span></div></div><div style="font-size:11px;color:#717171">Flexi Cap Fund · rank 5 of 36 · Compared with Direct plan peers</div></div>')), {}),
       ["This is the current look, shown only so the change is clear. Nothing on this page is drawn as removed."]),
     m("After: rank and percentile gone, every table open", "Same group, renamed Category Average Comparison.",
       frame("Other Analytics", rpage(rcard("Category Average Comparison", 1, '<p class="rl-m">Fund returns are NAV returns over each period, compared with the average of all funds in the same category and plan type.</p><div style="display:flex;flex-direction:column;gap:12px">' +
@@ -2267,7 +2331,7 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
   function fundCard(av, avk, name, cat, plan, rows, foot) {
     return '<div class="u-fc"><div class="u-fh">' + uav(av, avk) + "<div><b>" + name + '</b><div class="u-sub">' + cat + " · " + plan + " plan</div></div></div>" + rows.join("") + '<div class="u-sub">' + foot + "</div></div>";
   }
-  var uKey = '<div class="u-key"><span><i style="background:#16a34a"></i>Your fund</span><span><i style="background:#fff;border:2px solid #9aa5b1;width:10px;height:10px"></i>Category average</span><span>Line length = the gap</span></div>';
+  var uKey = '<div class="u-key"><span><i style="background:#22C55E"></i>Your fund</span><span><i style="background:#fff;border:2px solid #B8B8B8;width:10px;height:10px"></i>Category average</span><span>Line length = the gap</span></div>';
 
   /* ---- 09 Category Average Comparison ---- */
   X["09"] = [X["09"][0],
@@ -2286,7 +2350,7 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
 
   /* ---- 08 Performance Ranking ---- */
   function lane(rank, total) {
-    var pos = total > 1 ? (rank - 1) / (total - 1) * 100 : 0, q = rank / total, c = q <= .25 ? "#16a34a" : q <= .5 ? "#3b82f6" : q <= .75 ? "#f59e0b" : "#ef4444";
+    var pos = total > 1 ? (rank - 1) / (total - 1) * 100 : 0, q = rank / total, c = q <= .25 ? "#22C55E" : q <= .5 ? "#2563EB" : q <= .75 ? "#D97706" : "#E5484D";
     return '<div class="u-rk"><i class="t"></i><i class="q" style="width:25%"></i><i class="m" style="left:' + Math.max(3, Math.min(97, pos)) + "%;background:" + c + '"></i><b style="color:' + c + '">' + rank + "/" + total + "</b></div>";
   }
   function laneRow(av, avk, name, cat, cells) {
@@ -2336,7 +2400,7 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
     return '<div><div style="display:flex;align-items:baseline;gap:4px"><b style="font-size:15px">' + v + '</b><span class="u-src ' + (src === "f" ? "f" : "c") + '">' + (src === "f" ? "Factsheet" + (fwd ? " · fwd" : "") : "NSE/BSE") + '</span></div><div class="u-rng"><i class="tick" style="left:' + t + '%"></i><i class="dot" style="left:' + p + '%"></i></div></div>';
   }
   function vRow(av, avk, name, pe, pb, asOf) {
-    return '<div style="display:grid;grid-template-columns:minmax(150px,1.2fr) 1fr 1fr 70px;gap:16px;align-items:center;padding:10px 0;border-bottom:1px solid #f1f3f5"><div class="u-fh">' + uav(av, avk) + "<b style='font-size:12.5px'>" + name + "</b></div>" + pe + pb + '<span class="rl-m" style="margin:0">' + asOf + "</span></div>";
+    return '<div style="display:grid;grid-template-columns:minmax(150px,1.2fr) 1fr 1fr 70px;gap:16px;align-items:center;padding:10px 0;border-bottom:1px solid #F5F5F5"><div class="u-fh">' + uav(av, avk) + "<b style='font-size:12.5px'>" + name + "</b></div>" + pe + pb + '<span class="rl-m" style="margin:0">' + asOf + "</span></div>";
   }
   X["07"] = [X["07"][0], X["07"][1],
     m("New: Valuation by Fund as a ladder, each number against Nifty 500", "Same page, a new card under Portfolio Valuation vs. Benchmarks. Proposed layout.",
@@ -2371,7 +2435,7 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
   X["01"] = [
     m("Family Members: the Head is visible at a glance", "Profile › Family Members (route /profile/family).",
       frame("Family", card("Family Members", '<div class="u-grid2">' +
-        '<div class="u-fc" style="border-color:#16a34a;background:#f0faf4"><div class="u-fh">' + uav("SS", "g") + "<div><b>Siddharth Surve</b><div class='u-sub'>Self · sid@example.com</div></div><span class='r'>" + badge("Head of Family", "g") + "</span></div></div>" +
+        '<div class="u-fc" style="border-color:#22C55E;background:#EAFBF0"><div class="u-fh">' + uav("SS", "g") + "<div><b>Siddharth Surve</b><div class='u-sub'>Self · sid@example.com</div></div><span class='r'>" + badge("Head of Family", "g") + "</span></div></div>" +
         '<div class="u-fc"><div class="u-fh">' + uav("AS", "b") + "<div><b>Aditi Surve</b><div class='u-sub'>Spouse · aditi@example.com</div></div><span class='r'>" + badge("Member") + "</span></div></div>" +
         '<div class="u-fc"><div class="u-fh">' + uav("RS", "a") + "<div><b>Ramesh Surve</b><div class='u-sub'>Father · ramesh@example.com</div></div><span class='r'>" + badge("Member") + "</span></div></div>" +
         '<div class="u-fc"><div class="u-fh">' + uav("PS", "p") + "<div><b>Pooja Surve</b><div class='u-sub'>Mother · <span class='mk-m'>no email</span></div></div><span class='r'>" + badge("Member") + "</span></div></div></div>" +
@@ -2394,11 +2458,11 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
   ];
 
   /* ---- 02 Consolidated holdings: split bar inside the parent row ---- */
-  function splitBar(a, b) { return '<span class="u-split"><i style="width:' + a + '%;background:#16a34a"></i><i style="width:' + b + '%;background:#3b82f6"></i></span>'; }
+  function splitBar(a, b) { return '<span class="u-split"><i style="width:' + a + '%;background:#22C55E"></i><i style="width:' + b + '%;background:#2563EB"></i></span>'; }
   var h2b = tbl(["Fund", "Units", "Avg price", "Invested", "Current value", "Unrealised", "Realised", "XIRR"], [
-    { cls: "hl", cells: ["<span class='mk-plus'>−</span> <b>Invesco India Small Cap Fund</b><br><small>Direct · Growth · 2 members</small>" + splitBar(40, 60) + "<small><span style='color:#16a34a'>●</span> Prateek 40% &nbsp;<span style='color:#3b82f6'>●</span> Lalchand 60%</small>", "10,000.000", "₹42.00", "₹4,20,000", "₹5,00,000", "<span class='mk-pos'>+₹80,000<br>+19.0%</span>", "₹12,000", "16.4%"] },
-    { cls: "sub", cells: ["<span style='color:#16a34a'>●</span> Prateek<br><small>Folio XXXXX1303</small>", "4,000.000", "₹37.50", "₹1,50,000", "₹2,00,000", "<span class='mk-pos'>+₹50,000</span>", "₹0", "18.1%"] },
-    { cls: "sub", cells: ["<span style='color:#3b82f6'>●</span> Lalchand<br><small>Folio XXXXX6422</small>", "6,000.000", "₹45.00", "₹2,70,000", "₹3,00,000", "<span class='mk-pos'>+₹30,000</span>", "₹12,000", "15.2%"] },
+    { cls: "hl", cells: ["<span class='mk-plus'>−</span> <b>Invesco India Small Cap Fund</b><br><small>Direct · Growth · 2 members</small>" + splitBar(40, 60) + "<small><span style='color:#22C55E'>●</span> Prateek 40% &nbsp;<span style='color:#2563EB'>●</span> Lalchand 60%</small>", "10,000.000", "₹42.00", "₹4,20,000", "₹5,00,000", "<span class='mk-pos'>+₹80,000<br>+19.0%</span>", "₹12,000", "16.4%"] },
+    { cls: "sub", cells: ["<span style='color:#22C55E'>●</span> Prateek<br><small>Folio XXXXX1303</small>", "4,000.000", "₹37.50", "₹1,50,000", "₹2,00,000", "<span class='mk-pos'>+₹50,000</span>", "₹0", "18.1%"] },
+    { cls: "sub", cells: ["<span style='color:#2563EB'>●</span> Lalchand<br><small>Folio XXXXX6422</small>", "6,000.000", "₹45.00", "₹2,70,000", "₹3,00,000", "<span class='mk-pos'>+₹30,000</span>", "₹12,000", "15.2%"] },
     ["<span class='mk-plus'>+</span> <b>HDFC Flexi Cap Fund</b><br><small>Direct · Growth · 2 members</small>" + splitBar(70, 30), "1,428.321", "₹87.50", "₹1,25,000", "₹1,83,245", "<span class='mk-pos'>+₹58,245</span>", "₹0", "18.9%"],
     ["<b>Parag Parikh Flexi Cap Fund</b><br><small>Direct · Growth · Aditi</small>", "2,210.455", "₹68.10", "₹1,50,500", "₹1,92,400", "<span class='mk-pos'>+₹41,900</span>", "₹8,400", "17.5%"]
   ], { right: [1, 2, 3, 4, 5, 6, 7] });
@@ -2408,14 +2472,14 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
 
   /* ---- 03 Market cap ---- */
   X["03"] = [m("Market Cap: one bar that adds to 100%, with the number each slice stands for", "Investments › Mutual Funds › Allocation, Market Cap card.",
-    frame("Allocation", card("Market Cap", '<div class="u-stack"><i style="width:54%;background:#16a34a">Large 54%</i><i style="width:31%;background:#3b82f6">Mid 31%</i><i style="width:15%;background:#a78bfa">Small 15%</i></div>' +
+    frame("Allocation", card("Market Cap", '<div class="u-stack"><i style="width:54%;background:#22C55E">Large 54%</i><i style="width:31%;background:#2563EB">Mid 31%</i><i style="width:15%;background:#8B5CF6">Small 15%</i></div>' +
       '<div class="u-grid3" style="margin-top:12px"><div class="u-tile"><span class="a">Large cap</span><span class="b">54.0%</span><span class="c">₹5.3L of classified equity</span></div><div class="u-tile"><span class="a">Mid cap</span><span class="b">31.0%</span><span class="c">₹3.0L</span></div><div class="u-tile"><span class="a">Small cap</span><span class="b">15.0%</span><span class="c">₹1.5L</span></div></div>' +
       note("6% of your equity could not be classified (for example overseas stocks) and is not shown here."), { info: 1 }), {}),
     ["Three slices, exactly 100.00%. The bar is read faster than a ring, and each slice shows its rupee value.", "No Other slice."])];
 
   /* ---- 04 Fund manager ---- */
   function mgr(av, k, name, amc, pct, amt, funds, li) {
-    return '<div class="u-mgr"><div class="u-fh">' + uav(av, k) + "<div><b>" + name + (li ? " <span class='mk-in'>in</span>" : "") + "</b><div class='u-sub'>" + amc + " · " + funds + '</div></div></div><div style="display:flex;align-items:baseline;gap:8px"><span class="big">' + pct + '%</span><span class="u-sub">of your portfolio</span></div>' + bar(pct * 3.5, "#16a34a") + '<div class="u-sub">Amount <b style="color:#111">' + amt + "</b></div></div>";
+    return '<div class="u-mgr"><div class="u-fh">' + uav(av, k) + "<div><b>" + name + (li ? " <span class='mk-in'>in</span>" : "") + "</b><div class='u-sub'>" + amc + " · " + funds + '</div></div></div><div style="display:flex;align-items:baseline;gap:8px"><span class="big">' + pct + '%</span><span class="u-sub">of your portfolio</span></div>' + bar(pct * 3.5, "#22C55E") + '<div class="u-sub">Amount <b style="color:#111">' + amt + "</b></div></div>";
   }
   X["04"] = [m("Fund Manager: a card per manager, biggest first", "Investments › Mutual Funds › Allocation, Fund Manager card.",
     frame("Allocation", card("Fund Manager allocation", '<div class="u-grid2">' + mgr("AK", "g", "A. Kulkarni", "Nippon India", 22.4, "₹3,19,200", "2 funds", 1) + mgr("RM", "b", "R. Menon", "HDFC", 18.1, "₹2,57,925", "1 fund", 1) + mgr("SI", "a", "S. Iyer", "Invesco", 14.6, "₹2,08,050", "1 fund", 0) + mgr("PR", "p", "P. Rao", "Parag Parikh", 13.5, "₹1,92,400", "1 fund", 1) + "</div>" + note("Covers 68.6% of your ₹14,25,000 portfolio. 2 funds have no manager data yet."), {}), {}),
@@ -2441,7 +2505,7 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
   X["13"] = [m("Asset Class: four classes, and the funds behind the one you click", "Investments › Mutual Funds › Allocation, Asset Class card.",
     frame("Allocation", card("Asset class (look-through)", '<div class="mk-row">' + donut(ac, "₹12.9L", "covered value") + legend(ac) + "</div>" +
       '<div class="u-fc" style="margin-top:12px"><b style="font-size:13px">Contributing funds · Equity ₹8.0L</b><div class="u-flow">' +
-      '<div class="row"><span>HDFC Flexi Cap</span><div class="bar"><i style="width:38%;background:#16a34a"></i></div><b>38.2%</b></div><div class="row"><span>Parag Parikh Flexi</span><div class="bar"><i style="width:27%;background:#16a34a"></i></div><b>27.0%</b></div><div class="row"><span>Nippon Small Cap</span><div class="bar"><i style="width:21%;background:#16a34a"></i></div><b>21.4%</b></div><div class="row"><span>Kotak Multicap</span><div class="bar"><i style="width:13%;background:#16a34a"></i></div><b>13.4%</b></div></div></div>' +
+      '<div class="row"><span>HDFC Flexi Cap</span><div class="bar"><i style="width:38%;background:#22C55E"></i></div><b>38.2%</b></div><div class="row"><span>Parag Parikh Flexi</span><div class="bar"><i style="width:27%;background:#22C55E"></i></div><b>27.0%</b></div><div class="row"><span>Nippon Small Cap</span><div class="bar"><i style="width:21%;background:#22C55E"></i></div><b>21.4%</b></div><div class="row"><span>Kotak Multicap</span><div class="bar"><i style="width:13%;background:#22C55E"></i></div><b>13.4%</b></div></div></div>' +
       note("Cash is included under Debt. 2 of 14 funds have no published portfolio and are not counted."), { info: 1 }), {}),
     ["Clicking a slice shows which funds make it up and each one's share of that class, from each fund's own published portfolio.", "No market cap ring."])];
 
@@ -2453,6 +2517,92 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
       '<div class="u-fc"><div class="u-fh">' + uav("AX", "b") + "<div><b>Axis Bluechip Fund</b><div class='u-sub'>Lalchand · ₹2,000 a month</div></div><span class='r'>" + badge("Fund fully sold") + "</span></div>" + mo(9, 0) + "<div class='u-sub'>Last paid 5 Mar 2026 · fund fully sold, not a cancelled SIP</div></div></div>" +
       note("Judged on the statement dated 20 Nov 2026. Upload a newer statement to refresh.") + '<div class="mk-sum">Active: <b>HDFC Flexi Cap</b> ₹5,000 → ₹7,500 since Mar 2026 (one SIP, amount increased)</div>', {}), {}),
     ["A month strip shows what was paid and what was missed, so the reason for Stopped is visible.", "A step-up is one SIP with an amount history; a fully sold fund is labelled separately.", "'Stopped' stays the word (D26)."])];
+
+
+  /* ================= 31 Oct round: item 1 list as today, item 3 donut, item 4 Cards | Table, item 10 plain page, item 11 detail row ================= */
+  function tone(i, t) { var bg = ["#EAFBF0", "#DBEAFE", "#EDE9FE", "#FEF3E2"][i % 4], fg = ["#15803D", "#2563EB", "#8B5CF6", "#B45309"][i % 4]; return '<span style="width:40px;height:40px;border-radius:50%;background:' + bg + ";color:" + fg + ';display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none">' + t + "</span>"; }
+  function memberCard(i, ini, name, pill, pan, rel, phone, email, self, extra) {
+    return '<div style="border:1px solid #ECECEC;border-radius:12px;background:#F5F5F5;padding:16px"><div style="display:flex;align-items:center;gap:12px">' + tone(i, ini) +
+      '<div style="flex:1;min-width:0"><div style="font-family:\'DM Sans\',sans-serif;font-size:16px;font-weight:600;color:#111">' + name + "</div></div>" +
+      '<span style="border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600;' + (pill === "Admin" ? "background:#EAFBF0;color:#15803D" : "background:#fff;color:#717171;border:1px solid #ECECEC") + '">' + pill + "</span></div>" +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;font-size:13px"><div><div style="font-size:12px;font-weight:500;color:#717171">PAN</div><div style="margin-top:4px;font-weight:600">' + pan + '</div></div><div><div style="font-size:12px;font-weight:500;color:#717171">Relationship</div><div style="margin-top:4px;font-weight:600">' + rel + '</div></div><div><div style="font-size:12px;font-weight:500;color:#717171">Phone</div><div style="margin-top:4px;font-weight:600">' + phone + '</div></div><div><div style="font-size:12px;font-weight:500;color:#717171">Email</div><div style="margin-top:4px;font-weight:600">' + email + "</div></div></div>" +
+      '<div style="display:flex;align-items:center;gap:12px;margin-top:16px;font-size:12px;flex-wrap:wrap">' + (self ? '<span style="color:#15803D;font-weight:600">Change in Account Info</span>' : "") +
+      '<span style="border:1px solid #ECECEC;background:#fff;border-radius:8px;padding:6px 12px;font-weight:500">✎ Edit profile</span><span style="margin-left:auto;display:flex;gap:12px;color:#C1272D;font-weight:600">' + (self ? "" : "<span>Delete member</span>") + "<span>Delete all funds</span></span></div></div>";
+  }
+  var fo2 = { crumb: "Profile › Family Members", noTabs: true, scope: "Siddharth" };
+  function dlg2(step, body) { return '<div class="mk-dim"></div><div class="mk-dlg"><div class="u-steps"><i class="' + (step >= 1 ? "on" : "") + '"></i><i class="' + (step >= 2 ? "on" : "") + '"></i><i class="' + (step >= 3 ? "on" : "") + '"></i></div><small>Step ' + step + " of 3</small>" + body + "</div>"; }
+  function otp(n, filled) { var s = ""; for (var i = 0; i < 6; i++) s += "<i>" + (filled ? "481027".charAt(i) : "") + "</i>"; return '<div class="mk-otp">' + s + "</div>"; }
+  X["01"] = [
+    m("Family Members: the list stays as it is today; one button is added", "Profile › Family Members (route /profile/family). The member cards are today's; only the Change Head of Family button is new.",
+      frame("Family", '<div style="border:1px solid #ECECEC;border-radius:14px;background:#fff;padding:20px"><div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="font-family:\'DM Sans\',sans-serif;font-size:18px;font-weight:600">Family Members</div><div style="margin-top:4px;font-size:13px;color:#717171">The people whose portfolios you track. Add a statement to bring in their funds.</div></div><button class="mk-btn mk-btn-p">Change Head of Family</button></div>' +
+        '<div style="display:flex;flex-direction:column;gap:12px;margin-top:16px">' +
+        memberCard(0, "SS", "Siddharth Surve", "Admin", "ABCDE••••F", "Self", "+91 98•••• 4521", "sid@example.com", true) +
+        memberCard(1, "AS", "Aditi Surve", "Member", "FGHIJ••••K", "Spouse", "+91 99•••• 1033", "aditi@example.com", false) + "</div></div>", fo2),
+      ["The list, the cards and their buttons are exactly today's page. The Head is not marked on the cards in this proposal.", "The only addition is the Change Head of Family button, shown to the current head. Where it sits (section header or the head's own card) is a placement choice."]),
+    m("Step 1: choose the new head", "Dialog opened from the button.",
+      frame("Family", dlg2(1, '<b style="margin-top:6px">Who becomes Head?</b><p>Both of you will confirm your email and your phone number with codes.</p>' +
+        '<label class="mk-opt on"><input type="radio" checked>' + uav("AS", "b") + " <span><b>Aditi Surve</b> (Spouse)<br><small>Codes go to aditi@example.com and +91 99•••• 1033</small></span></label>" +
+        '<label class="mk-opt"><input type="radio">' + uav("RS", "a") + " <span><b>Ramesh Surve</b> (Father)<br><small>Codes go to ramesh@example.com and +91 98•••• 7710</small></span></label>" +
+        '<label class="mk-opt off"><input type="radio" disabled>' + uav("PS", "p") + " <span><b>Pooja Surve</b> (Mother)<br><small>Not available: add an email address and a phone number first</small></span></label>" +
+        '<div class="mk-actions"><button class="mk-btn">Cancel</button><button class="mk-btn mk-btn-p">Send codes</button></div>'), fo2),
+      ["A member can be chosen only if they have both an email and a phone number, and neither is used by another Unifolio sign-in."]),
+    m("Step 2: both people confirm their email and phone", "Same dialog. Four codes in all.",
+      frame("Family", dlg2(2, '<b style="margin-top:6px">Enter all four codes</b><p>Each person confirms their email and their phone. They expire in 10 minutes.</p><div class="mk-two">' +
+        '<div class="u-who">' + uav("SS", "g") + "<b>Siddharth (current head)</b><small>Email code sent to sid@example.com</small>" + otp(0, 1) + badge("Verified", "g") + "<small>Phone code sent to +91 98•••• 4521</small>" + otp(0, 1) + badge("Verified", "g") + "</div>" +
+        '<div class="u-who">' + uav("AS", "b") + "<b>Aditi (new head)</b><small>Email code sent to aditi@example.com</small>" + otp(0, 1) + badge("Verified", "g") + "<small>Phone code sent to +91 99•••• 1033</small>" + otp(0, 0) + badge("Waiting", "a") + "</div></div>" +
+        '<div class="mk-actions"><button class="mk-btn">Cancel request</button><button class="mk-btn mk-btn-p" disabled>Confirm change</button></div>'), fo2),
+      ["Nothing changes until all four boxes show Verified.", "Phone codes need a real SMS provider, which the product does not have yet (D37)."]),
+    m("Step 3: exactly what changes", "Final confirmation (decision D10 option B).",
+      frame("Family", dlg2(3, '<b style="margin-top:6px">This moves the sign-in</b><div class="u-swap"><div class="u-who">' + uav("SS", "g") + "<b>Today</b><small>Siddharth is Head and signs in with sid@example.com and +91 98•••• 4521</small></div><div class='arrow'>→</div><div class='u-who new'>" + uav("AS", "b") + "<b>After</b><small>Aditi is Head and signs in with aditi@example.com and +91 99•••• 1033</small></div></div>" +
+        '<ul class="mk-ul"><li>Siddharth stays as a member and can no longer sign in to this account.</li><li>All portfolio data stays as it is.</li><li>Everyone currently signed in is signed out.</li></ul><div class="mk-actions"><button class="mk-btn">Back</button><button class="mk-btn mk-btn-p">Confirm and move sign-in</button></div>'), fo2),
+      ["A before and after, so nobody is surprised about who loses sign-in."])
+  ];
+
+  /* ---- 03 Market cap: the donut again ---- */
+  X["03"] = [m("Market Cap card with three slices adding to 100%", "Investments › Mutual Funds › Allocation, Market Cap card.",
+    frame("Allocation", card("Market Cap", '<div class="mk-row">' + donut(cap, "₹9.8L", "of classified equity") + legend(cap) + "</div>" + note("6% of your equity could not be classified (for example overseas stocks) and is not shown here."), { info: 1 }), {}),
+    ["The Other slice is gone. The three slices add to exactly 100.00%.", "The note is one line and can be a tooltip.", "If no equity could be classified the card shows 'Not enough classified equity to show a split'."])];
+
+  /* ---- 04 Fund Manager Allocation: Cards (default) and Table; Donut and Bar Chart removed ---- */
+  function fmToggle(on) {
+    function opt(id, label, icon) { return '<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600;' + (on === id ? "background:#fff;color:#111;box-shadow:0 1px 3px rgba(0,0,0,.14)" : "color:#717171") + '">' + icon + " " + label + "</span>"; }
+    return '<div style="display:flex;align-items:center;gap:12px;margin:12px 0"><span style="font-size:13px;color:#717171">View</span><span style="display:inline-flex;background:#F5F5F5;border:1px solid #ECECEC;border-radius:999px;padding:3px;gap:2px">' + opt("cards", "Cards", "▦") + opt("table", "Table", "▤") + "</span></div>";
+  }
+  function fmHead(on) { return '<div style="font-family:\'DM Sans\',sans-serif;font-size:16px;font-weight:600;margin-bottom:6px">Fund Manager Allocation <span class="rl-i">i</span></div><div style="font-size:13px;color:#717171">Who is actually running your money, aggregated across your whole portfolio.</div>' + fmToggle(on) + '<div class="rl-m">Funds with more than one manager are divided equally between them.</div>'; }
+  function mcard(av, k, name, amc, pct, amt, funds, li) {
+    return '<div class="u-mgr"><div class="u-fh">' + uav(av, k) + "<div><b>" + name + (li ? " <span class='mk-in'>in</span>" : "") + "</b><div class='u-sub'>" + amc + " · " + funds + '</div></div></div><div style="display:flex;align-items:baseline;gap:8px"><span class="big">' + pct + '%</span><span class="u-sub">of your portfolio</span></div>' + bar(pct * 3.5, "#22C55E") + '<div class="u-sub">Current value <b style="color:#111">' + amt + "</b></div></div>";
+  }
+  X["04"] = [
+    m("Fund Manager Allocation opens as Cards", "Investments › Mutual Funds › Allocation, Fund Manager Allocation. The Donut and Bar Chart views are removed; Cards is the default.",
+      frame("Allocation", rpage(rcard("", 0, "").replace('<div class="rl-h"><b></b><span class="rl-i">i</span></div>', fmHead("cards") + '<div class="u-grid2" style="margin-top:12px">' + mcard("AK", "g", "A. Kulkarni", "Nippon India", 22.4, "₹3,19,200", "2 funds", 1) + mcard("RM", "b", "R. Menon", "HDFC", 18.1, "₹2,57,925", "1 fund", 1) + mcard("SI", "a", "S. Iyer", "Invesco", 14.6, "₹2,08,050", "1 fund", 0) + mcard("PR", "p", "P. Rao", "Parag Parikh", 13.5, "₹1,92,400", "1 fund", 1) + "</div>").replace(/^<div class="rl-card">/, '<div class="rl-card">')), {}),
+      ["Where today's card has Table, Donut and Bar Chart, it now has Cards and Table. It opens on Cards; the user can switch to Table.", "Each card shows the manager, fund house, allocation percentage and the rupee amount (D7). The LinkedIn icon appears only for verified profiles.", "The sentence about co-managed funds stays as it is today (D7 follow-up still open)."]),
+    m("Switching to Table: today's table, unchanged", "Same card, Table selected.",
+      frame("Allocation", rpage(rcard("", 0, "").replace('<div class="rl-h"><b></b><span class="rl-i">i</span></div>', fmHead("table") + '<div class="mk-tw" style="margin-top:8px"><table class="rl-t"><thead><tr><th>Fund manager</th><th>AMC</th><th>Current value</th><th>% of overall portfolio</th></tr></thead><tbody>' +
+        "<tr><td>⌄ <b>A. Kulkarni</b> <span class='mk-in'>in</span></td><td class='m'>Nippon India</td><td><b>₹3,19,200</b></td><td class='m'><b>22.4%</b></td></tr>" +
+        "<tr><td colspan='4' style='background:#F5F5F5'><div style='display:flex;justify-content:space-between;font-size:12px;padding:2px 0'><span>Nippon India Small Cap Fund</span><span style='color:#717171'>₹2,10,000 · XIRR 17.4%</span></div><div style='display:flex;justify-content:space-between;font-size:12px;padding:2px 0'><span>Nippon India Multi Cap Fund</span><span style='color:#717171'>₹1,09,200 · XIRR 15.9%</span></div></td></tr>" +
+        "<tr><td>› <b>R. Menon</b> <span class='mk-in'>in</span></td><td class='m'>HDFC</td><td><b>₹2,57,925</b></td><td class='m'><b>18.1%</b></td></tr>" +
+        "<tr><td>› <b>S. Iyer</b></td><td class='m'>Invesco</td><td><b>₹2,08,050</b></td><td class='m'><b>14.6%</b></td></tr>" +
+        "<tr><td>› <b>P. Rao</b> <span class='mk-in'>in</span></td><td class='m'>Parag Parikh</td><td><b>₹1,92,400</b></td><td class='m'><b>13.5%</b></td></tr></tbody></table></div>")), {}),
+      ["The table keeps today's columns and the click to open a manager's funds. The only addition is the LinkedIn icon beside a verified manager."])
+  ];
+
+  /* ---- 10 Other Analytics after hiding Fund Quality Scores: the page as it is, minus that group ---- */
+  X["10"] = [
+    m("Other Analytics with Fund Quality Scores hidden (everything else as planned in items 7 to 9)", "Investments › Mutual Funds › Other Analytics. Only the Fund Quality Scores group is missing.",
+      frame("Other Analytics", rpage(
+        grpHead("Cost & Valuation") + rcard("Total Expense Ratio (TER) & Cost Analysis", 1, '<div class="mk-ph">as today</div>') + rcard("Portfolio Valuation vs. Benchmarks", 1, '<div class="mk-ph">as today; excluded holdings collapsible (item 7)</div>') + rcard("Valuation by Fund", 1, '<div class="mk-ph">new (item 7)</div>') +
+        grpHead("Category Average Comparison") + rcard("Category Average Comparison", 1, '<div class="mk-ph">item 9</div>') +
+        grpHead("Performance Ranking") + rcard("Performance Ranking", 1, '<div class="mk-ph">item 8, replaces Fund Ranking</div>')), {}),
+      ["Fund Quality Scores is not on this page. Nothing else on the page is changed by item 10.", "The Individual Fund page keeps its score card. Home and Insights keep reading the score."])
+  ];
+
+  /* ---- 11 Benchmark: only the detail line changes ---- */
+  X["11"] = [m("Fund vs benchmark: the opened row names the factsheet benchmark", "Investments › Mutual Funds › Performance, Fund vs benchmark (the block is as today; only the opened line changes).",
+    frame("Performance", rpage(rcard("Fund vs benchmark", 1,
+      '<div style="border:1px solid #ECECEC;border-radius:12px;background:#F5F5F5;overflow:hidden"><div style="display:flex;align-items:center;gap:12px;padding:12px"><span class="rl-ini">HF</span><b style="font-size:12px;flex:1">HDFC Flexi Cap Fund</b><span style="font-size:12px;font-weight:600;color:#15803D">+4.3% vs Benchmark</span><span>⌄</span></div>' +
+      '<div style="border-top:1px solid #ECECEC;padding:12px;font-size:12px;color:#717171;display:flex;gap:16px;flex-wrap:wrap"><span>Benchmark: Nifty 500 (Total Return) <span class="u-src f">From the fund\'s factsheet</span></span><span>Fund XIRR <b style="color:#111">+18.9%</b></span><span>Benchmark <b style="color:#111">+14.6%</b></span></div></div>' +
+      '<div style="border:1px solid #ECECEC;border-radius:12px;background:#F5F5F5;display:flex;align-items:center;gap:12px;padding:12px;margin-top:8px"><span class="rl-ini">KL</span><b style="font-size:12px;flex:1">Kotak Large Cap Fund</b><span style="font-size:12px;font-weight:600;color:#C1272D">−1.3% vs Benchmark</span><span>›</span></div>')), {}),
+    ["Only the sentence in the opened row changes: it names the benchmark from the fund's own factsheet and says so (D34 option C). Where the factsheet benchmark is missing, D35 decides what shows.", "The rest of the block is today's."])];
 
 
   window.MOCKUPS = X;
@@ -2989,7 +3139,7 @@ document.getElementById("toggleAll").addEventListener("click", function () {
   start.innerHTML =
     '<div class="sec-head"><h2>Start here</h2><p>This page is the change briefing for 13 requested changes plus stopped SIPs. Nothing is built yet. Use the tabs above to move around; each tab holds one kind of content.</p></div>' +
     '<div class="startgrid">' +
-    '<div class="panel"><h3>Where we are</h3><ul><li>Requests are read against the code on <code>leapswitch-redesign</code>. Nothing is implemented, nothing is pushed.</li><li>Latest stakeholder update: 30 Oct (see below).</li><li>Plan: six Codex runs, then documentation, then one staging pass. About 19 to 21 working days.</li></ul></div>' +
+    '<div class="panel"><h3>Where we are</h3><ul><li>Requests are read against the code on <code>leapswitch-redesign</code>. Nothing is implemented, nothing is pushed.</li><li>Latest stakeholder update: 30 Oct (see below).</li><li>Plan: six Codex runs, then documentation, then one staging pass. About 20 to 22 working days.</li></ul></div>' +
     '<div class="panel"><h3>Decisions at a glance</h3><div class="stat4"><div><b>' + cnt.open + '</b><span>open</span></div><div><b>' + cnt.answered + '</b><span>answered</span></div><div><b>' + cnt.solved + '</b><span>solved</span></div><div><b>' + cnt.hold + '</b><span>on hold</span></div></div><p><a href="#p-decisions">Open the decisions tab</a></p></div>' +
     '<div class="panel"><h3>Where to look</h3><ul><li><a href="#p-items"><b>The changes</b></a>: each item in plain words, mockups, steps, tests.</li><li><a href="#p-audits"><b>Audits</b></a>: the 13th pct explainer, score removal, benchmark, contributing funds.</li><li><a href="#p-plan"><b>Plan</b></a>: runs, timeline, blast radius, loading times.</li></ul></div>' +
     '</div>' +

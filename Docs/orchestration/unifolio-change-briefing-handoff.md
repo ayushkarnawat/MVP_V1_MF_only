@@ -134,3 +134,9 @@ managers in our data has not been counted yet, and it decides how realistic a ma
 - UI mockups redesigned for all items (summary headlines, dumbbell and rank-lane visuals, overlap category cards, Other Analytics summary board).
 - Stale wording cleaned across the briefing: screen lists (item 9 no longer lists the Performance block; items 3, 11, 13 now list Home or the fund page where they change), plan total about 19 to 21 working days, items 5/8/10 status text.
 - Nothing implemented; commits are documentation only.
+
+## Update 2026-10-31
+
+- Item 1: Family Members list kept as today; only a Change Head of Family button is added. Both people verify both email and phone (four codes). New D37: no SMS provider exists yet (blocks item 1). D28 solved. Plan about 20 to 22 working days.
+- Item 3: donut kept. Item 4: Fund Manager Allocation has Cards (default) and Table; Donut and Bar Chart removed.
+- Item 10 and 11 mockups scoped back so nothing outside the item changes. Mockups use the app palette (palette-tokens.css) and fonts (DM Sans, Manrope).
