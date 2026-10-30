@@ -127,3 +127,10 @@ managers in our data has not been counted yet, and it decides how realistic a ma
 - Solved: D2, D9, D11, D15, D16, D33. Answered: D34. Nothing implemented; nothing pushed.
 
 - D5 answered (option A): index funds are not ranked in Performance Ranking; the row shows a disclaimer that their comparison is in the benchmark comparison.
+
+## Update 2026-10-30 (late)
+
+- Item 7: fund-wise P/E and P/B = factsheet value where printed, otherwise computed from NSE/BSE data; new section "Item 7 build" with verified source tests (BSE API blocked, NSE Integrated Filing works for P/B, BSE price file works).
+- UI mockups redesigned for all items (summary headlines, dumbbell and rank-lane visuals, overlap category cards, Other Analytics summary board).
+- Stale wording cleaned across the briefing: screen lists (item 9 no longer lists the Performance block; items 3, 11, 13 now list Home or the fund page where they change), plan total about 19 to 21 working days, items 5/8/10 status text.
+- Nothing implemented; commits are documentation only.

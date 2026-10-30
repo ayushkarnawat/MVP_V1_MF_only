@@ -414,6 +414,75 @@ tr.stg td { background: var(--accent-soft); }
 @media (max-width: 520px) { .partnav .showall { margin-left: 0; } }
 .restq { margin-top: 10px; } .restq summary { cursor: pointer; color: var(--accent); }
 </style>
+<style>
+/* Redesigned mockups (31 Oct): visual summaries, dumbbells, rank lanes, category cards */
+.u-hero{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:linear-gradient(135deg,#eafbf0,#fff 70%);border:1px solid #cfeedb;border-radius:16px;padding:16px 18px}
+.u-hero.warn{background:linear-gradient(135deg,#fef3e2,#fff 70%);border-color:#f6dfb8}
+.u-hero.neg{background:linear-gradient(135deg,#fdecec,#fff 70%);border-color:#f3c9c9}
+.u-hero .big{font-size:32px;font-weight:700;line-height:1;color:#15803d;font-family:"Instrument Serif",Georgia,serif}
+.u-hero.warn .big{color:#b45309}.u-hero.neg .big{color:#c1272d}
+.u-hero p{margin:0;color:#46525e;font-size:13px;max-width:60ch}.u-hero b{color:#111}
+.u-seg{display:inline-flex;background:#eef1f4;border-radius:12px;padding:4px;gap:4px;flex-wrap:wrap}
+.u-seg span{padding:7px 14px;border-radius:9px;font-size:13px;color:#46525e;font-weight:500;white-space:nowrap}
+.u-seg span.on{background:#fff;color:#111;box-shadow:0 1px 3px rgba(0,0,0,.14);font-weight:600}
+.u-seg em{font-style:normal;background:#16a34a;color:#fff;border-radius:999px;font-size:10px;padding:1px 6px;margin-left:6px}
+.u-cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.u-cat{border:1px solid #ececec;border-radius:14px;padding:12px;background:#fff;display:flex;flex-direction:column;gap:4px;min-width:0}
+.u-cat.on{border-color:#16a34a;box-shadow:0 0 0 3px #dcf3e5}.u-cat.off{opacity:.55}
+.u-cat b{font-size:13px}.u-cat small{color:#717171;font-size:11.5px}.u-cat .n{font-size:22px;font-weight:700}
+.u-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px}
+.u-grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.u-grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.u-fc{border:1px solid #ececec;border-radius:14px;background:#fff;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.u-fh{display:flex;align-items:center;gap:8px;min-width:0}.u-fh b{font-size:13px}.u-fh .r{margin-left:auto;display:flex;gap:4px}
+.u-av{width:30px;height:30px;border-radius:50%;background:#eef1f4;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#46525e;flex:none}
+.u-av.g{background:#dcf3e5;color:#15803d}.u-av.b{background:#dbeafe;color:#1d4ed8}.u-av.p{background:#ede9fe;color:#6d28d9}.u-av.a{background:#fdf0d4;color:#92590a}
+.u-sub{font-size:11px;color:#717171;margin-top:1px}
+.u-db{display:grid;grid-template-columns:30px minmax(0,1fr) 92px;gap:10px;align-items:center;font-size:12px}
+.u-db .p{color:#717171;font-weight:600}
+.u-track{position:relative;height:22px}
+.u-track:before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:#ececec}
+.u-link{position:absolute;top:9px;height:4px;border-radius:2px;background:#16a34a}.u-link.neg{background:#c1272d}
+.u-pt{position:absolute;top:4px;width:14px;height:14px;border-radius:50%;transform:translateX(-50%)}
+.u-pt.f{background:#16a34a;border:2px solid #fff;box-shadow:0 0 0 1px #16a34a}.u-pt.f.neg{background:#c1272d;box-shadow:0 0 0 1px #c1272d}
+.u-pt.a{background:#fff;border:2px solid #9aa5b1}
+.u-val{text-align:right;line-height:1.25}.u-val b{display:block;font-size:12.5px}.u-val small{color:#717171;font-size:10.5px}
+.u-key{display:flex;gap:14px;align-items:center;font-size:11.5px;color:#717171;flex-wrap:wrap}
+.u-key i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:5px}
+.u-chips{display:flex;gap:6px;flex-wrap:wrap}.u-chips span{border:1px solid #e0e5ea;background:#fff;border-radius:999px;padding:4px 12px;font-size:12px;color:#46525e}
+.u-chips span.on{background:#111;color:#fff;border-color:#111}
+.u-lane{display:grid;grid-template-columns:minmax(150px,1.3fr) repeat(3,minmax(0,1fr));gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid #f1f3f5;font-size:12.5px}
+.u-lane.h{font-size:11px;color:#717171;font-weight:600;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #ececec;padding-top:0}
+.u-rk{position:relative;height:30px}
+.u-rk .t{position:absolute;left:0;right:0;top:12px;height:6px;border-radius:3px;background:#eef1f4}
+.u-rk .q{position:absolute;left:0;top:12px;height:6px;border-radius:3px 0 0 3px;background:#cfeedb}
+.u-rk .m{position:absolute;top:7px;width:16px;height:16px;border-radius:50%;transform:translateX(-50%);border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+.u-rk b{position:absolute;right:0;top:-3px;font-size:11.5px}
+.u-none{border:1px dashed #cfd7de;border-radius:8px;padding:6px 8px;font-size:11px;color:#8a95a1;text-align:center}
+.u-jump{position:sticky;top:0;display:flex;gap:8px;flex-wrap:wrap;background:rgba(255,255,255,.92);padding:8px 0}
+.u-tile{border:1px solid #ececec;border-radius:14px;background:#fff;padding:14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.u-tile .a{font-size:11.5px;color:#717171;font-weight:600;text-transform:uppercase;letter-spacing:.04em}.u-tile .b{font-size:24px;font-weight:700}
+.u-tile .c{font-size:12px;color:#46525e}.u-tile .go{margin-top:6px;font-size:12px;color:#15803d;font-weight:600}
+.u-steps{display:flex;gap:6px;align-items:center;margin-bottom:4px}
+.u-steps i{height:6px;flex:1;border-radius:3px;background:#e5e9ee}.u-steps i.on{background:#16a34a}
+.u-swap{display:grid;grid-template-columns:1fr 40px 1fr;gap:8px;align-items:center}
+.u-swap .arrow{text-align:center;font-size:20px;color:#16a34a}
+.u-who{border:1px solid #e5e9ee;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.u-who.new{border-color:#16a34a;background:#f0faf4}
+.u-split{display:flex;height:6px;border-radius:3px;overflow:hidden;width:120px;margin-top:4px}.u-split i{display:block;height:100%}
+.u-stack{display:flex;height:34px;border-radius:10px;overflow:hidden}.u-stack i{display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;font-style:normal}
+.u-mgr{border:1px solid #ececec;border-radius:14px;background:#fff;padding:14px;display:flex;flex-direction:column;gap:8px}
+.u-mgr .big{font-size:26px;font-weight:700;line-height:1}
+.u-mo{display:flex;gap:3px}.u-mo i{width:14px;height:14px;border-radius:4px;background:#e5e9ee;display:inline-block}
+.u-mo i.paid{background:#16a34a}.u-mo i.miss{background:#c1272d}
+.u-flow{display:flex;flex-direction:column;gap:6px}.u-flow .row{display:grid;grid-template-columns:130px 1fr 64px;gap:10px;align-items:center;font-size:12px}
+.u-flow .bar{height:14px;border-radius:7px;background:#eef1f4;position:relative;overflow:hidden}.u-flow .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:7px}
+.u-src{font-size:10px;border-radius:6px;padding:1px 6px;margin-left:6px;font-weight:600}
+.u-src.f{color:#15803d;background:#eafbf0}.u-src.c{color:#717171;background:#f5f5f5}
+.u-rng{position:relative;height:18px;min-width:120px}.u-rng:before{content:"";position:absolute;left:0;right:0;top:8px;height:3px;border-radius:2px;background:#e5e9ee}
+.u-rng .tick{position:absolute;top:2px;width:2px;height:15px;background:#a78bfa}.u-rng .dot{position:absolute;top:3px;width:12px;height:12px;border-radius:50%;background:#16a34a;transform:translateX(-50%);border:2px solid #fff;box-shadow:0 0 0 1px #16a34a}
+@media (max-width:760px){.u-cats{grid-template-columns:1fr 1fr}.u-grid2,.u-grid3{grid-template-columns:1fr}.u-lane{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 
@@ -505,7 +574,7 @@ tr.stg td { background: var(--accent-soft); }
   <section class="sec" aria-labelledby="aud0">
     <div class="sec-head">
       <h2 id="aud0">Update 30 Oct: stakeholder changes, audits and explainers</h2>
-      <p>Five points came back from the stakeholders. Items 5 and 10 are no longer on hold in their reduced form. The audits below were done by reading the code; nothing was implemented or run against real data.</p>
+      <p>Two rounds of stakeholder answers came back on 30 Oct, plus follow-up checks. Item 5 (equity only plus a category tab) and item 10 (hide only) are in scope again, and item 8 is back. The audits and the source checks were done by reading the code and a few live fetches; nothing was implemented.</p>
     </div>
     <div id="audits"></div>
   </section>
@@ -548,7 +617,7 @@ tr.stg td { background: var(--accent-soft); }
       <p>How long the work should take, in the order we would release it.</p>
     </div>
     <div id="timeline" class="panel"></div>
-    <div class="sec-head"><h3>Breakdown by Claude and Codex runs</h3><p>Claude is the orchestrator and Codex the worker, as in Sub-project 1, Sub-project 2 and the analytics fixes. Item 5 (category tab) joins Run 1, item 10 (hide Fund Quality Scores) joins Run 2, and item 8 is withdrawn. Staging happens once, after every run and the documentation update.</p></div>
+    <div class="sec-head"><h3>Breakdown by Claude and Codex runs</h3><p>Claude is the orchestrator and Codex the worker, as in Sub-project 1, Sub-project 2 and the analytics fixes. Item 5 (equity only plus a category tab) joins Run 1; items 7, 8, 9 and 10 form Run 2; item 11 (factsheet benchmarks) is the largest part of Run 3. Staging happens once, after every run and the documentation update.</p></div>
     <div id="runs"></div>
   </section>
 
@@ -558,6 +627,170 @@ tr.stg td { background: var(--accent-soft); }
       <p>What the changes do to how fast pages open and how long the background calculation takes, and how we will prove it.</p>
     </div>
     <div id="loading"></div>
+  </section>
+
+  <section class="sec" aria-labelledby="valbuild">
+    <div class="sec-head">
+      <h2 id="valbuild">Item 7 build: fund-wise P/E and P/B (factsheet first, NSE/BSE second)</h2>
+      <p>The full method for the Valuation by Fund section, from where each number comes from to what changes in the backend, database and screen. Nothing is built. This replaces the earlier wording of item 7, which said to compute every fund's ratio from holdings and to add no new scraping.</p>
+    </div>
+
+    <article class="panel">
+      <div class="block after"><h3>The rule, in one place</h3>
+        <ul>
+          <li><b>Decided separately for P/E and for P/B, for every fund.</b> A fund can show its P/E from the factsheet and its P/B computed by us.</li>
+          <li><b>If the fund house's factsheet prints the number, we take it exactly as printed.</b> We do not recompute it and do not compare it with ours. It shows a small label: <i>Fund factsheet, Sep 2026</i>.</li>
+          <li><b>If the factsheet does not print it, we compute it</b> from the fund's published holdings and stock-level P/E and P/B from NSE and BSE. It shows the label <i>Computed (NSE/BSE data)</i>.</li>
+          <li>The Portfolio Valuation vs. Benchmarks section stays as it is, still computed from stocks (the earlier decision for item 7). Only its two excluded lists become collapsible.</li>
+          <li>The only check on a factsheet number is a sanity check on the <i>parsing</i>: a value that cannot be real (for example a P/E of 0 or 4,000) is treated as not found, so a misread PDF never reaches the screen. It is not a comparison with our own figure.</li>
+        </ul>
+      </div>
+
+      <div class="block"><h3>What we know about factsheets today, and what we do not</h3>
+        <p>We read the October 2026 factsheets we hold locally (11 fund houses). These are the houses whose factsheets are imported by hand. The roughly 40 houses fetched automatically were not examined, so the real coverage is unknown until Step 0 below.</p>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Fund house</th><th>Per-fund P/E and P/B printed?</th><th>What the page shows</th></tr></thead><tbody>
+          <tr><td><b>Kotak</b></td><td>Yes</td><td>Per scheme, labels P/E and P/BV, with the note: source ICRA MFI Explorer, Bloomberg. The method is not stated.</td></tr>
+          <tr><td><b>Invesco</b></td><td>Yes</td><td>"Fund P/E - FY27E" and "Fund P/B" per scheme. P/E is a <b>forward</b> figure (FY27E), P/B is trailing 12 months, both by a weighted harmonic mean.</td></tr>
+          <tr><td><b>ITI</b></td><td>Yes</td><td>A table with Average P/B and Average P/E columns per scheme. The extracted text keeps the columns but the order needs care when parsing.</td></tr>
+          <tr><td><b>HDFC, ICICI Prudential</b></td><td>Not found</td><td>The glossary defines Average P/E and Average P/BV ("weighted average basis"), but the scheme pages in the text showed no values. They may be inside images; to be confirmed.</td></tr>
+          <tr><td><b>Axis, Bandhan, Edelweiss, Trust, WhiteOak, JM Financial</b></td><td>Not found</td><td>No fund-level P/E or P/B in the text. (JM Financial mentions P/E only in commentary.)</td></tr>
+        </tbody></table></div>
+        <p>Consequences: factsheet figures will cover only some fund houses, and they are not alike (forward versus trailing, harmonic versus plain average, own calculation versus a data vendor). So the label must carry the basis, and the computed path stays the main path for many funds.</p>
+      </div>
+
+      <div class="block"><h3>End to end, step by step</h3>
+        <ol>
+          <li><b>Monthly, the factsheet import.</b> The existing monthly job (<code>fund-managers-monthly</code>, plus the hand import for the houses we cannot fetch) already downloads each fund house's factsheet. It gets a second reader that looks for P/E and P/B.</li>
+          <li><b>Parse by layout.</b> Each fund house prints these numbers differently, so each gets its own small parser, the same way fund managers are read today (<code>fund_manager_layouts.py</code>, <code>fund_manager_resolvers.py</code>). A parser returns: scheme name, P/E, P/B, the basis (trailing or forward), the averaging method if stated, the page and the factsheet date.</li>
+          <li><b>Match to our schemes.</b> The factsheet name is matched with our scheme list using the same name normaliser used for managers. A factsheet covers a scheme, not a plan, so one printed value applies to both its Direct and Regular plan (they hold the same portfolio).</li>
+          <li><b>Reject impossible values.</b> Not a number, zero or negative, or outside a wide plausible range (for example P/E outside 3 to 200, P/B outside 0.2 to 40) is dropped as a parse error and logged.</li>
+          <li><b>Store.</b> The accepted values go into a new reference table (see Database), one row per scheme, metric and factsheet month.</li>
+          <li><b>Daily, stock data keeps refreshing</b> (<code>stock-fundamentals-daily</code>, 05:45 UTC), now with BSE as a second source (Phase B) and later an official-filings route for P/B (Phase C).</li>
+          <li><b>In every analytics recompute</b>, for each held fund and each metric: use the latest stored factsheet value if it is fresh enough (Question Q1); otherwise compute it from the fund's holdings, using the same weighted harmonic mean and 70% coverage floor as the portfolio figure. Only the missing ones are computed, so the recompute gets cheaper, not heavier.</li>
+          <li><b>Store the result</b> in the existing <code>valuation</code> section as a new <code>funds</code> list. Each metric carries its value, its source (factsheet or computed), its date, its basis and, when computed, its coverage. No migration is needed for this, because stored sections are JSON.</li>
+          <li><b>The screen</b> reads the stored section and shows the Valuation by Fund card with a small source label on each number.</li>
+        </ol>
+      </div>
+
+      <div class="block"><h3>Backend changes</h3>
+        <ul>
+          <li><b>Step 0, before building: a one-off scan.</b> Run the new reader over the factsheets the monthly job already downloads for all fund houses (not only the 11 we hold), and count how many schemes get a P/E and a P/B. This tells us the real split between factsheet and computed, and whether HDFC and ICICI carry values inside images.</li>
+          <li><b>Factsheet intake</b> (<code>amfi_factsheet_client.py</code> and the manager layout files, plus the hand-import script): a valuation reader per layout, starting with Kotak, Invesco and ITI; one more for each fund house the scan finds. Parse fixtures are saved as text snippets (the PDFs themselves stay outside the repo, as today).</li>
+          <li><b>Freshness and plan mapping:</b> a printed value belongs to the factsheet month-end. It is used for the Direct and Regular plan of that scheme.</li>
+          <li><b>Phase A, fix the date label (a bug found in the audit).</b> When a P/B refresh fails, the old P/B is kept but the row's date is set to the new file date. The date must follow each ratio: <code>pe_as_of</code> and <code>pb_as_of</code> separately, and the card must show the oldest date used.</li>
+          <li><b>Phase B, BSE (reduced after testing):</b> use the BSE daily price file, which works, to recognise BSE-only stocks and price them. International holdings are counted separately and not called missing. BSE's own fundamentals API returned 403 Access Denied when tested, so reading BSE's P/E is <b>not</b> planned unless the staging VM can reach it (see the verification table below).</li>
+          <li><b>Phase C, an official source for P/B (verified for one stock):</b> read the latest year-end or half-year filing from NSE's Integrated Filing endpoint, take equity attributable to owners from its XBRL file, divide by shares in issue (already in NSE's security master) and use the day's closing price. One defined basis for every stock. Yahoo and screener.in stay only as labelled fallbacks. Banks and finance companies, the half-year filing and the staging VM still need testing.</li>
+          <li><b>Valuation calculation</b> (<code>valuation.py</code>): a new function for the per-fund list. It reads the stored factsheet value first, then computes missing ones with the existing weighted harmonic formula. The portfolio part of the section does not change.</li>
+          <li><b>Schedules and alerts:</b> no new job. The monthly job also writes the valuation rows; the daily job gets the BSE calls with the same pacing. Add an alert line when a factsheet parser finds nothing for a fund house that had values last month (a layout change).</li>
+        </ul>
+        <p>Shape of the new part of the stored <code>valuation</code> section (illustrative):</p>
+<pre><code>funds: [{
+  scheme_id, scheme_name,
+  pe: { value: "30.63", source: "factsheet", as_of: "2026-08-31",
+        basis: "forward FY27E", method: "harmonic", coverage_pct: null, reason: null },
+  pb: { value: "4.21", source: "computed", as_of: "2026-10-28",
+        basis: "trailing", method: "harmonic", coverage_pct: "91.2", reason: null }
+}]</code></pre>
+      </div>
+
+      <div class="block"><h3>Database changes</h3>
+        <p><b>Reuse first.</b> We looked at adding two columns to <code>schemes</code> instead of a table. That loses the date, the basis and the history, and the project already keeps the monthly AAUM and TER figures in small reference tables for exactly this reason. So the proposal is one small table that follows the same pattern.</p>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Change</th><th>Columns</th><th>Why</th></tr></thead><tbody>
+          <tr><td><b>New table</b> <code>scheme_reported_valuation</code></td><td>scheme_id (FK), reference_period (the factsheet month-end), metric (pe or pb), value (Numeric), basis (trailing or forward), method (harmonic, weighted average, not stated), source_file and page, parsed_at. One row per scheme, metric and month.</td><td>Holds what the fund house printed, with its date and method, and keeps monthly history.</td></tr>
+          <tr><td><b>Add to</b> <code>stock_master</code></td><td>bse_scrip_code, pe_as_of, pb_as_of, pe_source (NSE or BSE), and the existing pb_source widened for the filings route.</td><td>BSE-only stocks, and a date per ratio (fixes the date label).</td></tr>
+          <tr><td><b>No change</b></td><td>The stored valuation section is JSON.</td><td>The new <code>funds</code> list is an additive field.</td></tr>
+        </tbody></table></div>
+        <p>Migration: proposed <b>0050</b> (the new table plus the stock_master columns), after 0047 head of family, 0048 fund managers and 0049 scheme benchmark. The downgrade drops the table and the columns. No data is lost on upgrade. The staging data-wipe scripts that list reference tables need the new name.</p>
+      </div>
+
+      <div class="block"><h3>Frontend changes</h3>
+        <ul>
+          <li>A new <b>Valuation by Fund</b> card under the existing portfolio card in <code>CostValuationGroup.tsx</code>. Columns: Fund, P/E, P/B, As on. Each number has a small label: <i>Factsheet</i> or <i>NSE/BSE</i>.</li>
+          <li>The tooltip on a label gives the detail: the factsheet month, the basis (trailing or forward), the averaging method and, for computed values, the coverage. This keeps the visible label small while staying honest about forward versus trailing numbers.</li>
+          <li>States: <i>Not enough data</i> (computed value below 70% coverage) and <i>Not available</i> (no factsheet value and no computed value), with a short reason.</li>
+          <li>The new types go in <code>mutual-funds/types.ts</code> (additive, optional, so old stored sections still load).</li>
+          <li>The existing section: the two lines Equity holdings excluded from P/E and from P/B become collapsible (closed by default, count in the label).</li>
+          <li>An info button and the standard disclaimer: indicators, not advice; factsheet figures follow each fund house's own method.</li>
+          <li>The print view and the mobile view follow D12.</li>
+        </ul>
+        <p>Proposed layout (sample numbers, same card style as the app):</p>
+        <div class="mkscroll"><div class="mk"><div class="mk-body"><div class="rl">
+          <div class="rl-card"><div class="rl-h"><b>Valuation by Fund</b><span class="rl-i">i</span></div>
+          <p class="rl-m">Each fund's P/E and P/B. A small label shows where each number comes from.</p>
+          <div class="mk-tw"><table class="rl-t"><thead><tr><th>Fund</th><th>P/E</th><th>P/B</th><th>As on</th></tr></thead><tbody>
+            <tr><td><span class="rl-ini">IN</span>Invesco India Midcap Fund</td><td>30.63 <span style="font-size:10px;color:#15803d;background:#eafbf0;border-radius:6px;padding:1px 6px;margin-left:4px">Factsheet · fwd</span></td><td>4.65 <span style="font-size:10px;color:#15803d;background:#eafbf0;border-radius:6px;padding:1px 6px;margin-left:4px">Factsheet</span></td><td class="m">31 Aug</td></tr>
+            <tr><td><span class="rl-ini">KO</span>Kotak Flexicap Fund</td><td>26.2 <span style="font-size:10px;color:#15803d;background:#eafbf0;border-radius:6px;padding:1px 6px;margin-left:4px">Factsheet</span></td><td>4.2 <span style="font-size:10px;color:#15803d;background:#eafbf0;border-radius:6px;padding:1px 6px;margin-left:4px">Factsheet</span></td><td class="m">30 Sep</td></tr>
+            <tr><td><span class="rl-ini">HF</span>HDFC Flexi Cap Fund</td><td>21.4 <span style="font-size:10px;color:#717171;background:#f5f5f5;border-radius:6px;padding:1px 6px;margin-left:4px">NSE/BSE</span></td><td>3.6 <span style="font-size:10px;color:#717171;background:#f5f5f5;border-radius:6px;padding:1px 6px;margin-left:4px">NSE/BSE</span></td><td class="m">28 Oct</td></tr>
+            <tr><td><span class="rl-ini">IT</span>ITI Multi Cap Fund</td><td>34.9 <span style="font-size:10px;color:#15803d;background:#eafbf0;border-radius:6px;padding:1px 6px;margin-left:4px">Factsheet</span></td><td>5.1 <span style="font-size:10px;color:#717171;background:#f5f5f5;border-radius:6px;padding:1px 6px;margin-left:4px">NSE/BSE</span></td><td class="m">31 Aug / 28 Oct</td></tr>
+            <tr><td><span class="rl-ini">QU</span>Quant Small Cap Fund</td><td colspan="2" style="color:#717171">Not enough data (computed ratio would cover under 70% of the fund's equity)</td><td class="m">28 Oct</td></tr>
+          </tbody></table></div>
+          <p class="rl-m" style="margin-top:12px">Factsheet: printed by the fund house, in its own method. NSE/BSE: computed by Unifolio from the fund's published holdings. P/E and P/B are indicators, not a recommendation.</p></div>
+        </div></div></div></div>
+      </div>
+
+      <div class="block after"><h3>Verified on 30 Oct: what the NSE and BSE sources actually do</h3>
+        <p>Tested by fetching each source once from the developer machine (an Indian connection). Not yet tested from the staging VM, which matters because exchanges block some cloud addresses.</p>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Source</th><th>Result</th><th>What it means for the build</th></tr></thead><tbody>
+          <tr><td><b>BSE daily price file</b> (bhavcopy)</td><td>Works. About 5,000 rows with ISIN, ticker, BSE scrip code and closing price. No P/E or P/B.</td><td>Good for knowing which ISINs are BSE-listed and for a closing price. Not a source of ratios.</td></tr>
+          <tr><td><b>BSE API</b> (scrip list, stock header with fundamentals)</td><td><b>Blocked.</b> "Access Denied" (403) even with browser headers and a session cookie. An open-source wrapper's notes also mention 403 errors and a move to a new API.</td><td><b>Phase B as first written (read BSE's own P/E) is not verified and likely not workable from our servers.</b> BSE-only stocks can be identified and priced, but their ratios stay unavailable unless the staging VM can reach the API.</td></tr>
+          <tr><td><b>BSE-only stocks, scale</b></td><td>Of 4,697 BSE equity ISINs, 2,228 are not in NSE's equity master. Many are small, suspended or illiquid names (series X and XT).</td><td>The number that matters is how many of them funds actually hold. That is a one-line count against our stored holdings, to be run on staging.</td></tr>
+          <tr><td><b>NSE PE file</b> (what we use today)</td><td>Works. It has two columns, <code>SYMBOL P/E</code> and <code>ADJUSTED P/E</code>. We read only the first.</td><td>Open point: which of the two is right for us. NSE's definition of the adjusted column was not checked.</td></tr>
+          <tr><td><b>NSE results, old endpoint</b></td><td>Works but <b>stale</b>: newest quarter is Dec 2024 and the newest annual is Mar 2024. NSE moved results filed since Mar 2025 to Integrated Filing.</td><td>Do not build on it.</td></tr>
+          <tr><td><b>NSE Integrated Filing endpoint</b></td><td><b>Works and current.</b> Returned filings up to 17 Jul 2026, consolidated and standalone, each with an XBRL file link.</td><td>This is the official free source for the official-filings route (Phase C).</td></tr>
+          <tr><td><b>What the XBRL files contain</b></td><td>The year-end (March) filing has the balance sheet: equity attributable to owners, other equity, paid-up capital, face value and EPS. The June 2026 quarterly filing has EPS and paid-up capital only, <b>no balance sheet</b>. The September half-year filing was not tested.</td><td>P/B can be computed from the latest year-end or half-year filing. The book value is therefore up to 6 to 12 months old, which is normal for P/B but must be dated on screen.</td></tr>
+          <tr><td><b>Shares in issue</b></td><td>NSE's security master, which our daily job already downloads, has an issued-capital column. For Reliance it reads 13,532,538,722 shares, matching the filing (paid-up Rs 135.32 billion at face value Rs 10).</td><td>No extra source is needed for the share count.</td></tr>
+          <tr><td><b>Worked sample</b> (Reliance)</td><td>Closing price Rs 1,158.50 (BSE file, 28 Oct 2026). Book value per share = Rs 9.04 lakh crore / 13.53 billion shares = Rs 668. P/B = 1.73.</td><td>The method works end to end for one non-bank stock. It was not compared with Yahoo's figure.</td></tr>
+        </tbody></table></div>
+        <p><b>Still unverified, to settle in the spike:</b> the same fetch from the staging VM; banks, insurers and finance companies (they file in other formats); the September half-year filing; how many requests a full refresh needs (about two per stock, once per new filing); and each exchange's terms of use for automated download.</p>
+      </div>
+
+      <div class="block"><h3>Tests first</h3>
+        <ul>
+          <li><b>Parser tests per fund house</b> from saved text snippets of a real scheme page: Kotak, Invesco (forward P/E, trailing P/B), ITI (column order). A page with no values returns nothing and does not fail.</li>
+          <li>Sanity rejection: 0, negative, text and absurd values are dropped and logged.</li>
+          <li>Name matching: a factsheet scheme maps to its Direct and Regular plans; an unknown scheme is skipped, not guessed.</li>
+          <li>Resolution: factsheet value present and fresh is used exactly as stored (no recomputation); absent means computed; P/E from the factsheet with P/B computed works in one row.</li>
+          <li>The computed path gives the hand-worked harmonic value; below 70% coverage shows no value and a reason.</li>
+          <li>The portfolio part of the valuation section is unchanged (golden compare).</li>
+          <li>Date label: a retained old P/B keeps its old date (the bug fix).</li>
+          <li>BSE phase: a BSE-only stock gets a P/E marked BSE; an international holding is counted as international, not missing.</li>
+          <li>Frontend: the label shows Factsheet or NSE/BSE per number; the tooltip shows basis and month; old stored sections without <code>funds</code> still render.</li>
+        </ul>
+      </div>
+
+      <div class="block"><h3>Risks and honest limits</h3>
+        <ul>
+          <li><b>Coverage is unknown.</b> Only 3 of the 11 houses we hold publish the numbers. Until Step 0, we cannot say what share of your funds will show a factsheet value.</li>
+          <li><b>Numbers are not alike.</b> Invesco's P/E is forward, others trailing, and the method differs. Two funds from different houses in one column are not strictly comparable. The tooltip says so; we are not converting them.</li>
+          <li><b>Parsers break when a fund house changes its layout.</b> That is why a parser that suddenly finds nothing raises an alert, and why the computed path always remains behind it.</li>
+          <li><b>We trust the printed number.</b> By your decision there is no cross-check against ours, so a fund house's mistake would be shown. The sanity range only catches impossible values.</li>
+          <li><b>Factsheet gaps (Priority 1):</b> about 689 live funds need a hand import and 33 have no factsheet. Those funds use the computed path until the import is done.</li>
+          <li><b>Sources, as tested on 30 Oct:</b> the NSE filings route works and is current; BSE's fundamentals API is blocked, so BSE adds identification and prices only. Neither was tested from the staging VM, nor for banks and finance companies.</li>
+        </ul>
+      </div>
+
+      <div class="block"><h3>Effort and where it fits</h3>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Part</th><th>What</th><th>Planning estimate</th></tr></thead><tbody>
+          <tr><td>Step 0</td><td>One-off scan of all downloaded factsheets; count coverage; check HDFC and ICICI.</td><td>About 0.5 day</td></tr>
+          <tr><td>Phase A</td><td>Factsheet readers for the houses found, the new table and migration, the per-fund resolution, the payload, the card and labels, the date-label fix, tests. Uses today's NSE and Yahoo data for the computed path.</td><td>About 3 days</td></tr>
+          <tr><td>Phase B</td><td>BSE price file for identifying and pricing BSE-only stocks, and the international-holdings count. (BSE ratios only if the staging VM can reach the API.)</td><td>About 1 day</td></tr>
+          <tr><td>Phase C</td><td>Official-filings P/B: finish the spike (staging VM, banks, half-year filing), then build with a refresh only when a new filing appears.</td><td>About 3 days</td></tr>
+        </tbody></table></div>
+        <p>The estimates are planning numbers, not promises. Phase A can stand alone and gives the label behaviour you described. Phases B and C improve the computed path and can follow if the Step 0 count shows many funds depend on it. Together they add roughly 5 to 8 working days to the earlier plan; the timeline and run table are not changed yet, to be merged once the other pending changes arrive.</p>
+      </div>
+
+      <div class="block"><h3>Questions to settle before building</h3>
+        <p>These are not yet in the Decisions tab.</p>
+        <ul>
+          <li><b>Q1. How old can a factsheet value be?</b> Recommended: use it if it is the latest factsheet and no more than about 75 days old on the NAV date; otherwise fall back to computing. Alternative: always show the latest, with its date.</li>
+          <li><b>Q2. What about a forward P/E next to trailing ones?</b> Recommended: show it with the label Factsheet · fwd and a tooltip. Alternative: treat forward P/E as not available and compute the trailing one ourselves.</li>
+          <li><b>Q3. Phases.</b> Build Phase A only now, or A and B, or all three? Recommended: A now, B and C after the Step 0 count.</li>
+          <li><b>Q4. Portfolio figure.</b> Recommended: keep it computed from stocks. Alternative: build it from the fund figures, which would mix factsheet and computed numbers inside one headline.</li>
+          <li><b>Q5. Label wording.</b> Proposed: Factsheet / NSE/BSE, with the detail in a tooltip. Alternative: write it out in full under the table only.</li>
+          <li><b>Q6. D17 (averaging method) now mainly applies to the computed path.</b> Recommended: keep the weighted harmonic mean for it, since Value Research and Invesco use it too.</li>
+        </ul>
+      </div>
+    </article>
   </section>
 
   <section class="sec" aria-labelledby="ord">
@@ -643,7 +876,7 @@ var CORRECTIONS = [
 
 var SURFACES = [
  ["New Mutual Funds pages", "frontend/src/features/mutual-funds/*", "Live. This is where the redesigned screens are. Overview (HoldingsTable), Performance (BenchmarkBlock, money card), Allocation (AssetClass, MarketCap, CategoryAmc, FundManager cards), Overlap (Heatmap, TopPairs, ImpactDonut, CommonHoldings, StockConcentration), Other Analytics (CostValuation, Scorer, CategoryRanking, FundRanking groups)."],
- ["Individual Fund page", "frontend/src/features/individual-fund/*", "Live on staging. Own Manager block, Score card, Insights, Overlap tab, Performance and peers. Touched by items 4, 8, 9, 10."],
+ ["Individual Fund page", "frontend/src/features/individual-fund/*", "Live on staging. Own Manager block, Score card, Insights, Overlap tab, Performance and peers. Touched by item 4 (manager block, D13) and item 11 (the benchmark choice). Its score card and peers are not changed."],
  ["Print / PDF export", "features/analytics/print/PrintAnalyticsView.tsx", "Still the legacy layout. The Export PDF flow posts the stored payload to a print route. If we change a section and not this view, the PDF disagrees with the screen."],
  ["Mobile", "frontend/src/mobile/features/analytics/MobileAnalyticsView.tsx", "Separate component tree behind the mobile bottom nav. Same story as print."],
  ["Legacy desktop view", "features/analytics/AnalyticsView.tsx", "Only a test imports it now (shell/routes/wrappers.test.tsx). Candidate to leave alone or delete later."]
@@ -955,37 +1188,37 @@ var PLAIN = {
   screen:[["Mutual Funds > Overview (family view only)","/portfolio/mutual-funds","features/mutual-funds/overview/HoldingsTable.tsx"],["Member view","unchanged: one member's own funds","same component, no grouping"]],
   steps:["Confirm D22 (family view only) and D20 (folio numbers masked or full).","Write a backend test: two members, one fund, the parent row equals the sum of the child rows to the paisa, and the average price equals total cost divided by total units.","Build the grouping in the holdings service (in memory, after the existing calculation). Add the folio list per member row.","Read the XIRR from the stored fund results: the family-scope figure for the parent row, the member-scope figure for each child. Test that the parent figure equals a hand calculation on the merged cash flows.","Write the table test (collapsed, expanded, keyboard, mobile card), then build the expandable row.","Check the table width against the mockup and adjust columns.","Run the family-view and member-view regression tests; measure the page load before and after."] },
 "03": { plain:"The market cap chart should show only Large, Mid and Small and add up to 100 percent. Today a fourth slice called Other shows stocks we could not classify, so the three real slices add up to less than 100. We will hide Other, divide by the classified stocks only, and add a small note such as '6% of your equity could not be classified'.",
-  screen:[["Mutual Funds > Allocation > Market Cap card","/portfolio/mutual-funds/allocation","features/mutual-funds/allocation/MarketCapCard.tsx"]],
+  screen:[["Mutual Funds > Allocation > Market Cap card","/portfolio/mutual-funds/allocation","features/mutual-funds/allocation/MarketCapCard.tsx"],["Home > benchmark suggestion (reads the large/mid/small mix)","/home","backend home/benchmarks.py reads cap_allocation; features/home/components/BenchmarkSelect.tsx"]],
   steps:["Write the test: three buckets sum to exactly 100.00 even with unclassified stocks.","Add the new fields to the calculation (extra fields only, nothing removed).","Update the card, the print view and the mobile view to read the new fields and drop the Other slice.","Add the empty state for 'no classified equity' and test it.","Confirm D21 for international funds."] },
 "04": { plain:"The Fund Manager card lists each manager with their fund house, the share of your portfolio they manage, and the rupee amount behind that share. You confirmed that the amount is simply the percentage converted into rupees of the whole portfolio. LinkedIn links are added by hand and only when we are sure.",
   screen:[["Mutual Funds > Allocation > Fund Manager card","/portfolio/mutual-funds/allocation","features/mutual-funds/allocation/FundManagerCard.tsx"],["Individual fund page (manager block)","/portfolio/mutual-funds/funds/:schemeId","features/individual-fund (keeps full team, D13)"]],
   steps:["Count distinct managers in the database to size the LinkedIn work.","Write the test table of real role names (Fund Manager, Lead, Assistant, Co-fund manager, blank) and the expected main manager for each.","Check the card shows name, AMC, allocation percentage and amount, and that amount / portfolio value equals the percentage.","Add the fund_managers table (migration) and the name normaliser; seed verified links from a reviewed file.","Update the card, print and mobile views; hide the link icon when no link is verified.","Ask the follow-up on how co-managed funds are shared (see the Decided box)."] },
 "05": { plain:"ON HOLD (29 Oct): not being built in this round. The overlap page tells you how much of two funds' stock lists are the same. Three changes: only equity funds take part (a debt fund has no stocks, so it is just noise); a pair is highlighted when overlap is above about 35 percent, with an info button explaining how to read it; and a DIY mode where you pick 2 to 5 funds and see their overlap even if you do not own them yet.",
-  screen:[["Mutual Funds > Overlap","/portfolio/mutual-funds/overlap","features/mutual-funds/overlap/OverlapPage.tsx (Heatmap, TopPairs, ImpactDonut, CommonHoldings)"],["Individual fund > Overlap tab","/portfolio/mutual-funds/funds/:schemeId/overlap","features/individual-fund/OverlapPage.tsx (already compares held funds)"]],
+  screen:[["Mutual Funds > Overlap","/portfolio/mutual-funds/overlap","features/mutual-funds/overlap/OverlapPage.tsx (Heatmap, TopPairs, ImpactDonut, CommonHoldings)"]],
   steps:["Confirm D14 (which funds are equity) and D15 (what stays on the page).","5A: write the highlight-at-35 test, change the constant, remove the above-20 list, add the info button.","5C: write the equity-only test (debt and arbitrage excluded), add the filter, return the excluded funds with a reason.","5B: write the DIY endpoint tests (2 to 5 funds, same result as the matrix cell), build the endpoint and a fund search endpoint.","Build the DIY picker (search box, chips for chosen funds, matrix) with accessible keyboard handling.","Match print and mobile views."] },
 "06": { plain:"Remove the Stock Concentration card (the curve showing how much of your money sits in the top 5, 10, 20 and 50 stocks). It is a card at the bottom of the Overlap page, not a separate tab. The full stock list on the Holdings page stays.",
   screen:[["Mutual Funds > Overlap (bottom card)","/portfolio/mutual-funds/overlap","features/mutual-funds/overlap/StockConcentration.tsx"]],
   steps:["Update the page test so the card is no longer expected.","Delete the component, its test and its link helper.","Remove the same block from the print and mobile views.","Later release: remove the backend curve fields after confirming nothing reads them."] },
 "07": { plain:"P/E tells you how many years of profit you pay for; P/B compares price with the company's book value. Today we show one P/E and one P/B for the whole portfolio. The request is one pair per fund, an info button that explains both in simple words, and a note that they are indicators, not advice. The data also has to be checked for accuracy.",
-  screen:[["Mutual Funds > Other Analytics > Cost and Valuation","/portfolio/mutual-funds/analytics","features/mutual-funds/other/CostValuationGroup.tsx + ValuationSpectrum.tsx"]],
+  screen:[["Mutual Funds > Other Analytics > Cost and Valuation (Portfolio Valuation section stays; new Valuation by Fund card)","/portfolio/mutual-funds/analytics","features/mutual-funds/other/CostValuationGroup.tsx + ValuationSpectrum.tsx"]],
   steps:["Confirm D16 and D17.","Write the per-fund calculation test with a hand-worked fund.","Add the per-fund list to the valuation result.","Build the table, info popover and disclaimer.","Run the read-only verification script and write down every difference found."] },
 "08": { plain:"Ranking means: among all funds in the same SEBI category, where does this fund stand? The request is a simple table with three columns (1 year, 3 years, 5 years) showing, for example, 2/25. Today we show one blended rank. The data for each period already exists, so mostly we add the rank for each period and rebuild the table.",
   screen:[["Mutual Funds > Other Analytics > Category Ranking","/portfolio/mutual-funds/analytics","features/mutual-funds/other/CategoryRankingGroup.tsx"],["Individual fund peers block","/portfolio/mutual-funds/funds/:schemeId","features/individual-fund"]],
   steps:["Confirm D5 (index funds) and D18 (return basis).","Write the per-period rank test on a hand-built five-fund category.","Add rank and total to each period in the stored result.","Rebuild the table as Rank / Total with a 'not enough history' state.","Match print and mobile views."] },
 "09": { plain:"Show how your fund did against its category average, for 1, 3 and 5 years. For an index fund, compare it with the index it follows instead. The category average already exists but is weighted by fund size; the request is a plain average. The harder part is knowing which index each index fund follows, because we do not store that today.",
-  screen:[["Mutual Funds > Other Analytics > Category Ranking","/portfolio/mutual-funds/analytics","features/mutual-funds/other/CategoryRankingGroup.tsx"],["Performance page benchmark block","/portfolio/mutual-funds/performance","features/mutual-funds/performance/BenchmarkBlock.tsx"]],
+  screen:[["Mutual Funds > Other Analytics > Category Ranking","/portfolio/mutual-funds/analytics","features/mutual-funds/other/CategoryRankingGroup.tsx"]],
   steps:["Confirm D4, D5, D24.","Write the simple-average test; add it beside the weighted one.","Build the index-fund mapping: parse names, review by hand, store in the new table.","Write the 'index fund compares to its index; unmapped says why' test and wire it.","Show the comparator name next to each number."] },
 "10": { plain:"ON HOLD (29 Oct): not being built in this round. Take the Fund Quality Scorer and the Composite Ratings off the analytics page. Because Home and the fund page also read the score, we first hide the two sections only and ask the manager whether the score should also leave Home and the fund page (D11).",
   screen:[["Mutual Funds > Other Analytics > Scorer and Fund Ranking groups","/portfolio/mutual-funds/analytics","features/mutual-funds/other/ScorerGroup.tsx, FundRankingGroup.tsx"],["Home > Worth a look","/home","features/home/sections/WorthALook.tsx (reads the score)"],["Fund page score card","/portfolio/mutual-funds/funds/:schemeId","features/individual-fund/overview/ScoreCard.tsx"]],
   steps:["Settle D2 and D11.","Update the Other Analytics page test to the new section list.","Remove the two groups from the page, print and mobile views.","Only if D11 says so: remove the score from Home and the fund page, then stop computing it, then drop tables."] },
 "11": { plain:"Check that the benchmark comparison is fair: each rupee you invested or withdrew is compared with the index on the same day, using one consistent method for the whole portfolio and for each fund. The code already does this; the work is to prove it with hand-checked examples, explain it on screen, and fix anything the proof finds.",
-  screen:[["Mutual Funds > Performance > Benchmark block","/portfolio/mutual-funds/performance","features/mutual-funds/performance/BenchmarkBlock.tsx"]],
+  screen:[["Mutual Funds > Performance > Benchmark block","/portfolio/mutual-funds/performance","features/mutual-funds/performance/BenchmarkBlock.tsx"],["Individual fund page benchmark (same benchmark choice)","/portfolio/mutual-funds/funds/:schemeId","backend fund_page/benchmark_select.py reads the same mapping; screens under features/individual-fund"]],
   steps:["Write golden tests with known cash flows and a spreadsheet answer.","Run them; list any difference before changing any number.","Reconcile the two solvers and the window definition (D18).","Add the short method note and show each window's start date."] },
 "12": { plain:"A switch moves money between two funds of the same fund house. Users should clearly see whether switches are counted or not. Today the old screen has a button whose state is hard to see, and the new screens have no such control. We need a clear on/off switch with a visible word such as 'Switches: Included'.",
   screen:[["Mutual Funds > Performance > money card","/portfolio/mutual-funds/performance","features/mutual-funds/performance/PerformancePage.tsx (investment_withdrawal)"],["Transactions > Net switched tile","/portfolio/mutual-funds/transactions","features/mutual-funds/transactions/CashFlowStrip.tsx"]],
   steps:["Confirm D19 (where it lives).","Check whether the backend already returns figures with and without switches.","Write the label-matches-state test and the 'figures change' test.","Build the switch and the one-line explanation; print stays 'Excluded'."] },
 "13": { plain:"Look-through allocation opens each fund and shows what it really holds: shares, bonds, gold, real estate. The request is four slices only (Equity, Gold, Debt, Real Estate) and no market cap rings. REITs and InvITs become Real Estate, and cash is folded into Debt.",
-  screen:[["Mutual Funds > Allocation > Asset Class card","/portfolio/mutual-funds/allocation","features/mutual-funds/allocation/AssetClassCard.tsx"]],
+  screen:[["Mutual Funds > Allocation > Asset Class card","/portfolio/mutual-funds/allocation","features/mutual-funds/allocation/AssetClassCard.tsx"],["Home > Allocation donut (reads the asset classes)","/home","features/home/sections/Allocation.tsx, components/AllocationDonut.tsx; backend home/allocation.py reads asset_allocation"]],
   steps:["Confirm D6.","Write the mapping tests (REIT to real estate, cash to debt, totals 100).","Change the class map; keep the old fields until the UI stops reading them.","Rebuild the card with four slices and the note; remove the outer ring.","Match print and mobile views."] }
 };
 
@@ -1464,7 +1697,7 @@ var AUDITS = [
   });
 })();
 (function () {
-  var add = { "Item 8": " Update 30 Oct: the rank is removed, so item 8 is not being built (D33).", "Item 9": " Update 30 Oct: the section is renamed Category Average Comparison, the rank goes, and the tables are always open.", "Item 10": " Update 30 Oct: only Fund Quality Scores is hidden and no longer computed; Fund Ranking stays (D32).", "Item 5C": " Update 30 Oct: no equity-only filter is being built; item 5 is now a category tab." };
+  var add = { "Item 8": " Update 30 Oct: item 8 is back and replaces the Fund Ranking group; the rank is removed only from the category comparison (item 9).", "Item 9": " Update 30 Oct: the section is renamed Category Average Comparison, the rank goes, and the tables are always open.", "Item 10": " Update 30 Oct: Fund Quality Scores is hidden on Other Analytics only and keeps being computed; Fund Ranking is replaced by item 8 (D32).", "Item 5C": " Update 30 Oct: 5C is kept (equity funds only) and a category tab is added." };
   CORRECTIONS.forEach(function (c) { if (add[c[0]]) c[1] += add[c[0]]; });
 })();
 
@@ -1491,8 +1724,8 @@ var AUDITS = [
   set(dp("07"), {
     t: "P/E and P/B (keep today's section, add a fund-wise section below)", rating: "Medium",
     before: ["One portfolio-level P/E and P/B from all equity look-through rows, compared with Nifty 50 and Nifty 500 (Portfolio Valuation vs. Benchmarks).", "Stocks with no valid positive ratio are listed under Equity holdings excluded from P/E and from P/B, always open. Below 70% of equity value the ratio is hidden; below 50% look-through coverage the whole ratio is hidden.", "There is no per-fund P/E or P/B anywhere today (Audit E walks through how the portfolio figure is made, from scraping to screen)."],
-    after: ["The current Portfolio Valuation vs. Benchmarks section stays exactly as it is.", "Its two lines Equity holdings excluded from P/E and Equity holdings excluded from P/B become collapsible: closed by default, with a count, and a click opens the list.", "A new Valuation by Fund section sits below it: one row per fund with its own P/E and P/B, data covered and data date. The 70% coverage rule applies per fund.", "An info button on the new section explains both ratios in plain words, with a note that they are indicators, not buy or sell signals."],
-    backend: ["Add <code>funds: [ValuationFund]</code> to the valuation section (additive; the portfolio fields do not change). Loop over the funds already in <code>scope.selected</code>: weights = fund value x pct_to_nav, the same harmonic formula, the same 70% floor per fund (D17 asks whether to keep the harmonic method).", "Report a reason per fund when a ratio is hidden. No new scraping: stock_master already holds every stock a fund can hold."],
+    after: ["The current Portfolio Valuation vs. Benchmarks section stays exactly as it is.", "Its two lines Equity holdings excluded from P/E and Equity holdings excluded from P/B become collapsible: closed by default, with a count, and a click opens the list.", "A new Valuation by Fund section sits below it: one row per fund with its own P/E and P/B and a date. Each number is taken straight from the fund's factsheet when the fund house prints it (labelled Factsheet); otherwise it is computed from holdings with NSE/BSE data (labelled NSE/BSE). Full method: the section Item 7 build (same tab).", "An info button on the new section explains both ratios in plain words, with a note that they are indicators, not buy or sell signals."],
+    backend: ["Add <code>funds: [ValuationFund]</code> to the valuation section (additive; the portfolio fields do not change). For a fund with no factsheet figure, loop over the funds already in <code>scope.selected</code>: weights = fund value x pct_to_nav, the same harmonic formula, the same 70% floor per fund (D17 asks whether to keep the harmonic method).", "Report a reason per fund when a ratio is hidden. Where the fund house's factsheet prints the figure it is stored and used as printed (new table scheme_reported_valuation, migration 0050); the computation below runs only for the figures the factsheet does not give. See the section Item 7 build in this tab."],
     frontend: ["ValuationSpectrum: wrap each Equity holdings excluded block in a collapsible (button with aria-expanded, closed by default, count in the label). The legacy ValuationSection (print) and mobile copy follow D12.", "New ValuationByFund card below the existing one in CostValuationGroup; info popover; disclaimer text."],
     tests: ["A fund with 100% valid ratios equals the hand-computed harmonic value.", "A fund below 70% coverage shows no ratio and a reason.", "A fund holding a loss-making stock excludes it and says so.", "The portfolio ratio is unchanged by the new fund list (golden compare).", "The excluded lists start closed, open on click and close again; the count matches the list length."],
     risks: ["Factsheets may use an arithmetic weighted P/E; ours is harmonic, so numbers can differ legitimately (D17).", "P/B depends on Yahoo Finance and a screener.in fallback, both unofficial sources.", "Do not claim exact accuracy; say where the data comes from and when."],
@@ -1575,7 +1808,7 @@ var AUDITS = [
     screen: [["Mutual Funds > Other Analytics > Performance Ranking (was Fund Ranking)", "/portfolio/mutual-funds/analytics", "features/mutual-funds/other/FundRankingGroup.tsx (to be replaced)"]],
     steps: ["Confirm D18 (return basis). D5 is answered: index funds are not ranked, with a disclaimer.", "Write the per-period rank test on a hand-built five-fund category.", "Replace the ranking section's calculation with a per-period rank and total.", "Replace the Fund Ranking group with the Rank / Total table and a not-enough-history state.", "Retire the composite calculation from the recompute (D36).", "Match print and mobile views."] });
   pl("09", { plain: "The old section ranked each fund against its category and showed a badge like #5 and text like 86th pct · Top 14%. Now it is called Category Average Comparison: no rank and no percentile, on screen or in the stored data, and for every fund the 1-year, 3-year and 5-year table is already open, with your fund against the category average and the difference.",
-    screen: [["Mutual Funds > Other Analytics > Category Average Comparison (was SEBI Category Ranking)", "/portfolio/mutual-funds/analytics", "features/mutual-funds/other/CategoryRankingGroup.tsx"], ["Performance page benchmark block", "/portfolio/mutual-funds/performance", "features/mutual-funds/performance/BenchmarkBlock.tsx"]],
+    screen: [["Mutual Funds > Other Analytics > Category Average Comparison (was SEBI Category Ranking)", "/portfolio/mutual-funds/analytics", "features/mutual-funds/other/CategoryRankingGroup.tsx"]],
     steps: ["Confirm D4, D12 and D24.", "Write the page test: new heading, table visible without a click, no rank or pct text.", "Rewrite the section body and remove the open/close state.", "Remove category_rank, percentile, category_size and scheme_return from the calculation and the stored payload.", "Change the heading and the page tests that list titles.", "Delete the shared sort helper once item 8 has replaced Fund Ranking.", "Match print and mobile if D12 says so."] });
   pl("10", { plain: "Take Fund Quality Scores off the Other Analytics tab only. The Individual Fund page keeps its score card. All the code stays and one switch brings the section back later. Because the fund page, Home and Insights still read the score, it keeps being computed.",
     screen: [["Mutual Funds > Other Analytics > Fund Quality Scores (hidden)", "/portfolio/mutual-funds/analytics", "features/mutual-funds/other/ScorerGroup.tsx"], ["Fund page score card (stays)", "/portfolio/mutual-funds/funds/:schemeId", "features/individual-fund/overview/ScoreCard.tsx"]],
@@ -2024,6 +2257,204 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
       ["A step-up is one SIP with an amount history, so it no longer leaves a false Stopped row.", "A fully sold fund is labelled separately from a SIP that simply stopped.", "'Stopped' stays the word (D26)."])
   ];
 
+  /* ================= Redesigned mockups (31 Oct): visual summaries instead of long tables ================= */
+  function uav(t, k) { return '<span class="u-av ' + (k || "") + '">' + t + "</span>"; }
+  function dbRow(label, f, a, max) {
+    var pf = Math.min(97, f / max * 100), pa = Math.min(97, a / max * 100), lo = Math.min(pf, pa), hi = Math.max(pf, pa), neg = f < a, d = Math.abs(f - a).toFixed(1);
+    return '<div class="u-db"><span class="p">' + label + '</span><div class="u-track"><i class="u-link' + (neg ? " neg" : "") + '" style="left:' + lo + "%;width:" + (hi - lo) + '%"></i><i class="u-pt a" style="left:' + pa + '%"></i><i class="u-pt f' + (neg ? " neg" : "") + '" style="left:' + pf + '%"></i></div><div class="u-val"><b class="' + (neg ? "mk-neg" : "mk-pos") + '">' + (neg ? "−" : "+") + d + ' pts</b><small>' + f.toFixed(1) + "% vs " + a.toFixed(1) + "%</small></div></div>";
+  }
+  function dbNone(label, txt) { return '<div class="u-db"><span class="p">' + label + '</span><div class="u-none">' + txt + "</div><span></span></div>"; }
+  function fundCard(av, avk, name, cat, plan, rows, foot) {
+    return '<div class="u-fc"><div class="u-fh">' + uav(av, avk) + "<div><b>" + name + '</b><div class="u-sub">' + cat + " · " + plan + " plan</div></div></div>" + rows.join("") + '<div class="u-sub">' + foot + "</div></div>";
+  }
+  var uKey = '<div class="u-key"><span><i style="background:#16a34a"></i>Your fund</span><span><i style="background:#fff;border:2px solid #9aa5b1;width:10px;height:10px"></i>Category average</span><span>Line length = the gap</span></div>';
+
+  /* ---- 09 Category Average Comparison ---- */
+  X["09"] = [X["09"][0],
+    m("After: a visual comparison, every fund open, no scrolling through tables", "Investments › Mutual Funds › Other Analytics, Category Average Comparison. Proposed layout; the numbers are the same ones the old table showed.",
+      frame("Other Analytics", rpage(rcard("Category Average Comparison", 1,
+        '<div class="u-hero"><span class="big">10 of 11</span><p><b>Your funds are ahead of their category average</b> in 10 of 11 comparisons across 1, 3 and 5 years. The one to watch: Nippon India Small Cap over 1 year (−2.1 pts).</p></div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 10px"><div class="u-chips"><span class="on">All funds · 4</span><span>Behind somewhere · 1</span><span>Ahead everywhere · 3</span></div>' + uKey + "</div>" +
+        '<div class="u-grid2">' +
+        fundCard("HF", "g", "HDFC Flexi Cap Fund", "Flexi Cap", "Direct", [dbRow("1Y", 28.4, 19.8, 35), dbRow("3Y", 16.3, 12.7, 35), dbRow("5Y", 18.7, 14.9, 35)], "Category average covers 38 · 34 · 29 funds") +
+        fundCard("NS", "a", "Nippon India Small Cap Fund", "Small Cap", "Direct", [dbRow("1Y", 21.0, 23.1, 35), dbRow("3Y", 24.2, 22.6, 35), dbRow("5Y", 29.5, 27.2, 35)], "Category average covers 31 · 28 · 22 funds") +
+        fundCard("PP", "b", "Parag Parikh Flexi Cap Fund", "Flexi Cap", "Direct", [dbRow("1Y", 26.1, 19.8, 35), dbRow("3Y", 19.4, 12.7, 35), dbRow("5Y", 21.3, 14.9, 35)], "Category average covers 38 · 34 · 29 funds") +
+        fundCard("ME", "p", "Mirae Asset ELSS Tax Saver", "ELSS", "Regular", [dbRow("1Y", 17.9, 16.2, 35), dbRow("3Y", 15.1, 14.8, 35), dbNone("5Y", "Needs 5 years of history")], "Category average covers 40 · 37 funds") +
+        "</div>")), {}),
+      ["Each row shows where your fund sits against the category average on one scale: a filled dot for your fund, a hollow dot for the average, and a coloured line for the gap. The exact figures stay beside it.", "The summary at the top answers the question first (are we ahead?), so a user does not have to read every row.", "Everything is open. The chips only filter the cards; with many funds, a Show more funds button replaces the endless list.", "No rank, no percentile, no click to open."])
+  ];
+
+  /* ---- 08 Performance Ranking ---- */
+  function lane(rank, total) {
+    var pos = total > 1 ? (rank - 1) / (total - 1) * 100 : 0, q = rank / total, c = q <= .25 ? "#16a34a" : q <= .5 ? "#3b82f6" : q <= .75 ? "#f59e0b" : "#ef4444";
+    return '<div class="u-rk"><i class="t"></i><i class="q" style="width:25%"></i><i class="m" style="left:' + Math.max(3, Math.min(97, pos)) + "%;background:" + c + '"></i><b style="color:' + c + '">' + rank + "/" + total + "</b></div>";
+  }
+  function laneRow(av, avk, name, cat, cells) {
+    return '<div class="u-lane"><div class="u-fh">' + uav(av, avk) + "<div><b>" + name + '</b><div class="u-sub">' + cat + "</div></div></div>" + cells.map(function (c) { return c ? lane(c[0], c[1]) : '<div class="u-none">Not enough history</div>'; }).join("") + "</div>";
+  }
+  X["08"] = [
+    m("Performance Ranking: where each fund stands, shown as a position on a line", "Investments › Mutual Funds › Other Analytics, the group that replaces Fund Ranking.",
+      frame("Other Analytics", rpage(grpHead("Performance Ranking") + rcard("Performance Ranking", 1,
+        '<div class="u-hero"><span class="big">9 of 11</span><p><b>Top quartile</b> in 9 of 11 periods. A rank is shown as Rank / Total, with a dot on a line from best (left) to last (right). The green stretch is the top quarter.</p></div>' +
+        '<div style="margin-top:12px"><div class="u-lane h"><span>Fund</span><span>1 year</span><span>3 years</span><span>5 years</span></div>' +
+        laneRow("HF", "g", "HDFC Flexi Cap Fund", "Flexi Cap · Direct", [[4, 38], [6, 34], [5, 29]]) +
+        laneRow("NS", "a", "Nippon India Small Cap Fund", "Small Cap · Direct", [[2, 31], [3, 28], [2, 22]]) +
+        laneRow("PP", "b", "Parag Parikh Flexi Cap Fund", "Flexi Cap · Direct", [[7, 38], [9, 34], [6, 29]]) +
+        laneRow("ME", "p", "Mirae Asset ELSS Tax Saver", "ELSS · Regular", [[9, 40], [12, 37], null]) +
+        '<div class="u-lane"><div class="u-fh">' + uav("UN", "") + '<div><b>UTI Nifty 50 Index Fund</b><div class="u-sub">Index Funds</div></div></div><div class="u-none" style="grid-column:span 3">Index funds are not ranked here. Their comparison with the index they track is shown in the benchmark comparison.</div></div></div>' +
+        '<p class="rl-m" style="margin-top:12px">Rank among funds in the same SEBI category and plan type, for each period. 1 is best. There is no blended score.</p>')), {}),
+      ["The exact Rank / Total from the PDF is kept; the line adds the sense of where that is. Colour follows the quarter the fund sits in: green top quarter, blue second, amber third, red last.", "The summary at the top gives the answer before the detail.", "Index funds carry the agreed disclaimer (D5)."])
+  ];
+
+  /* ---- 05 Overlap: Overall vs By category ---- */
+  function catCard(name, n, hi, band, on, off) {
+    var c = band === "neg" ? "#c1272d" : band === "warn" ? "#b45309" : "#15803d", w = band === "neg" ? "High" : band === "warn" ? "Moderate" : "Low";
+    return '<div class="u-cat' + (on ? " on" : "") + (off ? " off" : "") + '"><b>' + name + '</b><span class="n">' + n + ' <small style="font-size:12px;font-weight:500">fund' + (n === 1 ? "" : "s") + "</small></span>" +
+      (off ? "<small>Nothing to compare</small>" : '<small><span class="u-dot" style="background:' + c + '"></span>Highest overlap <b style="color:' + c + '">' + hi + "%</b> · " + w + "</small>") + "</div>";
+  }
+  var segOverall = '<div class="u-seg"><span class="on">Overall</span><span>By category <em>4</em></span></div>';
+  var segCat = '<div class="u-seg"><span>Overall</span><span class="on">By category <em>4</em></span></div>';
+  X["05"] = [
+    m("Overall view: the page as it is, with a clear Overall | By category switch and a headline", "Investments › Mutual Funds › Overlap. The heatmap and cards are the real components; the switch and the headline are the proposed additions.",
+      frame("Overlap", rpage(segOverall +
+        '<div class="u-hero neg"><span class="big">64%</span><p><b>HDFC Flexi Cap and Kotak Multicap hold almost the same stocks.</b> Together they are 42.6% of your portfolio, so owning both adds little diversification.</p></div>' +
+        statStrip + heatCard(allNames, allGrid, scopeAll) +
+        '<p class="mk-note">Not shown (not equity funds): HDFC Liquid Fund, Nippon Arbitrage Fund. Common Holdings, Top Overlapping Fund Pairs and Overlap Impact follow below, as today.</p>'), {}),
+      ["The headline is new: it states the most important overlap in one sentence, so the user sees why the page matters before reading the grid.", "The switch is a proper segmented control. By category carries a count badge so it does not look like a minor option.", "Stat strip, heatmap, bands and colours are exactly today's page."]),
+    m("By category: pick a category card, get the same page for those funds", "Same page, By category selected, Flexi Cap chosen. Replaces the plain drop-down; the drop-down remains as the compact form on a phone.",
+      frame("Overlap", rpage(segCat +
+        '<div class="u-cats">' + catCard("Large Cap", 3, 41, "neg") + catCard("Mid Cap", 1, 0, "pos", false, true) + catCard("Small Cap", 2, 9, "pos") + catCard("Flexi Cap", 3, 64, "neg", true) + "</div>" +
+        '<div class="u-hero neg"><span class="big">64%</span><p>Among your <b>3 Flexi Cap funds</b>, HDFC Flexi Cap and Kotak Multicap overlap the most.</p></div>' +
+        '<div class="rl-stats">' + stat("Funds analysed", "3 of 3", "all your funds have stock holdings to look through") + stat("Fund pairs with overlap", "3 of 3", "at moderate (≥20%) or higher — possible pairs across your 3 equity funds") + stat("Highest overlap", "64%", "HDFC Flexi Cap Fund × Kotak Multicap Fund") + stat("Overlap risk", "High", "some fund pairs duplicate a large share of each other's holdings", "#fdecec") + "</div>" +
+        heatCard([["HF", "HDFC Flexi Cap Fund"], ["KM", "Kotak Multicap Fund"], ["PP", "Parag Parikh Flexi Cap Fund"]], [[null, 64, 29], [64, null, 33], [29, 33, null]], "Covered funds, largest portfolio value first")), {}),
+      ["Each category card shows how many funds you hold there and the worst overlap in it, with a colour dot, so the user can see which category deserves attention before opening it.", "A category with fewer than two funds is greyed and says Nothing to compare.", "The heatmap below is unchanged; only the funds differ."])
+  ];
+
+  /* ---- 07 Valuation by Fund as range ladders ---- */
+  function rngCell(v, lo, hi, tick, label, src, fwd) {
+    var p = Math.max(3, Math.min(97, (v - lo) / (hi - lo) * 100)), t = (tick - lo) / (hi - lo) * 100;
+    return '<div><div style="display:flex;align-items:baseline;gap:4px"><b style="font-size:15px">' + v + '</b><span class="u-src ' + (src === "f" ? "f" : "c") + '">' + (src === "f" ? "Factsheet" + (fwd ? " · fwd" : "") : "NSE/BSE") + '</span></div><div class="u-rng"><i class="tick" style="left:' + t + '%"></i><i class="dot" style="left:' + p + '%"></i></div></div>';
+  }
+  function vRow(av, avk, name, pe, pb, asOf) {
+    return '<div style="display:grid;grid-template-columns:minmax(150px,1.2fr) 1fr 1fr 70px;gap:16px;align-items:center;padding:10px 0;border-bottom:1px solid #f1f3f5"><div class="u-fh">' + uav(av, avk) + "<b style='font-size:12.5px'>" + name + "</b></div>" + pe + pb + '<span class="rl-m" style="margin:0">' + asOf + "</span></div>";
+  }
+  X["07"] = [X["07"][0], X["07"][1],
+    m("New: Valuation by Fund as a ladder, each number against Nifty 500", "Same page, a new card under Portfolio Valuation vs. Benchmarks. Proposed layout.",
+      frame("Other Analytics", rpage(rcard("Valuation by Fund", 1,
+        '<div class="u-hero warn"><span class="big">2 of 4</span><p>funds trade <b>richer than Nifty 500</b> on earnings (P/E above 27.4). The purple tick on each line is Nifty 500; the dot is the fund.</p></div>' +
+        '<div style="display:grid;grid-template-columns:minmax(150px,1.2fr) 1fr 1fr 70px;gap:16px;padding:14px 0 6px;font-size:11px;color:#717171;font-weight:600;text-transform:uppercase;letter-spacing:.04em"><span>Fund</span><span>P/E</span><span>P/B</span><span>As on</span></div>' +
+        vRow("IN", "g", "Invesco India Midcap Fund", rngCell(30.6, 10, 45, 27.4, "", "f", true), rngCell(4.65, 1, 8, 4.2, "", "f"), "31 Aug") +
+        vRow("KO", "b", "Kotak Flexicap Fund", rngCell(26.2, 10, 45, 27.4, "", "f"), rngCell(4.2, 1, 8, 4.2, "", "f"), "30 Sep") +
+        vRow("HF", "a", "HDFC Flexi Cap Fund", rngCell(21.4, 10, 45, 27.4, "", "c"), rngCell(3.6, 1, 8, 4.2, "", "c"), "28 Oct") +
+        vRow("NS", "p", "Nippon India Small Cap Fund", rngCell(34.8, 10, 45, 27.4, "", "c"), rngCell(5.1, 1, 8, 4.2, "", "c"), "28 Oct") +
+        '<p class="rl-m" style="margin-top:12px">Factsheet: printed by the fund house, in its own method (fwd = forward earnings). NSE/BSE: computed by Unifolio from the fund\'s published holdings. Indicators, not a recommendation.</p>')), {}),
+      ["Each number now has a position, not just a value: users see at a glance which funds are priced richer than the market.", "The Factsheet and NSE/BSE labels stay small, beside the number.", "The portfolio section above it is unchanged."])
+  ];
+
+  /* ---- 10 Other Analytics: a summary page with jump links, not one long scroll ---- */
+  function tile(a, b, c, go) { return '<div class="u-tile"><span class="a">' + a + '</span><span class="b">' + b + '</span><span class="c">' + c + '</span><span class="go">' + go + " ›</span></div>"; }
+  function collapsed(t, s) { return '<div class="rl-card" style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px"><div><b style="font-size:15px">' + t + '</b><div class="rl-m" style="margin:2px 0 0">' + s + '</div></div><span style="color:#717171">▸ Open</span></div>'; }
+  X["10"] = [
+    m("Other Analytics as a summary board with jump links", "Investments › Mutual Funds › Other Analytics. A proposed arrangement of the four groups so the page opens on answers, not on a long list.",
+      frame("Other Analytics", rpage('<div class="u-jump"><div class="u-chips"><span class="on">Overview</span><span>Cost & Valuation</span><span>Category Average</span><span>Performance Ranking</span></div></div>' +
+        '<div class="u-grid2">' + tile("Cost", "0.82%", "weighted TER, 0.31 pts below your categories' average", "Open Cost & Valuation") + tile("Valuation", "P/E 24.8", "9.5% below Nifty 500, 12.2% above Nifty 50", "Open Valuation") +
+        tile("Category average", "10 of 11", "comparisons ahead of the category average", "Open Category Average") + tile("Performance ranking", "9 of 11", "periods in the top quartile of their category", "Open Performance Ranking") + "</div>" +
+        grpHead("Cost & Valuation") + rcard("Total Expense Ratio (TER) & Cost Analysis", 1, '<div class="mk-ph">TER ladder, as today</div>') +
+        collapsed("Portfolio Valuation vs. Benchmarks", "P/E and P/B against Nifty 50 and Nifty 500; excluded holdings collapsed") + collapsed("Valuation by Fund", "4 funds · factsheet or NSE/BSE source shown per number") +
+        collapsed("Category Average Comparison", "4 funds, 1Y / 3Y / 5Y against category average") + collapsed("Performance Ranking", "Rank / Total for 1, 3 and 5 years")), {}),
+      ["The four tiles are the headline of each group; clicking one opens that group. Everything else is collapsed until wanted, which removes the long scroll.", "Fund Quality Scores is not part of this page. The jump bar stays at the top while scrolling.", "This is a proposal for how the page is arranged, beyond what was asked; the groups themselves are as described in items 7 to 9."])
+  ];
+
+  /* ---- 01 Head of Family: a stepper and a before/after ---- */
+  function dlg(step, body) { return '<div class="mk-dim"></div><div class="mk-dlg"><div class="u-steps"><i class="' + (step >= 1 ? "on" : "") + '"></i><i class="' + (step >= 2 ? "on" : "") + '"></i><i class="' + (step >= 3 ? "on" : "") + '"></i></div><small>Step ' + step + " of 3</small>" + body + "</div>"; }
+  var fo = { crumb: "Profile › Family Members", noTabs: true, scope: "Siddharth" };
+  X["01"] = [
+    m("Family Members: the Head is visible at a glance", "Profile › Family Members (route /profile/family).",
+      frame("Family", card("Family Members", '<div class="u-grid2">' +
+        '<div class="u-fc" style="border-color:#16a34a;background:#f0faf4"><div class="u-fh">' + uav("SS", "g") + "<div><b>Siddharth Surve</b><div class='u-sub'>Self · sid@example.com</div></div><span class='r'>" + badge("Head of Family", "g") + "</span></div></div>" +
+        '<div class="u-fc"><div class="u-fh">' + uav("AS", "b") + "<div><b>Aditi Surve</b><div class='u-sub'>Spouse · aditi@example.com</div></div><span class='r'>" + badge("Member") + "</span></div></div>" +
+        '<div class="u-fc"><div class="u-fh">' + uav("RS", "a") + "<div><b>Ramesh Surve</b><div class='u-sub'>Father · ramesh@example.com</div></div><span class='r'>" + badge("Member") + "</span></div></div>" +
+        '<div class="u-fc"><div class="u-fh">' + uav("PS", "p") + "<div><b>Pooja Surve</b><div class='u-sub'>Mother · <span class='mk-m'>no email</span></div></div><span class='r'>" + badge("Member") + "</span></div></div></div>" +
+        '<div class="mk-actions"><button class="mk-btn mk-btn-p">Change Head of Family</button></div>', { right: "4 members" }), fo),
+      ["The Head badge and a highlighted card replace the plain Access column. The button is shown to the current head only."]),
+    m("Step 1: choose the new head", "Dialog opened from the button.",
+      frame("Family", dlg(1, '<b style="margin-top:6px">Who becomes Head?</b><p>Both of you will confirm with a code.</p>' +
+        '<label class="mk-opt on"><input type="radio" checked>' + uav("AS", "b") + " <span><b>Aditi Surve</b> (Spouse)<br><small>Code goes to aditi@example.com</small></span></label>" +
+        '<label class="mk-opt"><input type="radio">' + uav("RS", "a") + " <span><b>Ramesh Surve</b> (Father)<br><small>Code goes to ramesh@example.com</small></span></label>" +
+        '<label class="mk-opt off"><input type="radio" disabled>' + uav("PS", "p") + " <span><b>Pooja Surve</b> (Mother)<br><small>Not available: add an email address first</small></span></label>" +
+        '<div class="mk-actions"><button class="mk-btn">Cancel</button><button class="mk-btn mk-btn-p">Send codes</button></div>'), fo),
+      ["Members who cannot qualify are greyed with the reason."]),
+    m("Step 2: both people confirm", "Same dialog.",
+      frame("Family", dlg(2, '<b style="margin-top:6px">Enter both codes</b><p>They expire in 10 minutes.</p><div class="mk-two"><div class="u-who">' + uav("SS", "g") + "<b>Siddharth (current head)</b><small>sent to sid@example.com</small><div class='mk-otp'><i>4</i><i>8</i><i>1</i><i>0</i><i>2</i><i>7</i></div>" + badge("Verified", "g") + '</div><div class="u-who">' + uav("AS", "b") + "<b>Aditi (new head)</b><small>sent to aditi@example.com</small><div class='mk-otp'><i></i><i></i><i></i><i></i><i></i><i></i></div>" + badge("Waiting", "a") + '</div></div><div class="mk-actions"><button class="mk-btn">Cancel request</button><button class="mk-btn mk-btn-p" disabled>Confirm change</button></div>'), fo),
+      ["Nothing changes until both show Verified."]),
+    m("Step 3: exactly what changes", "Final confirmation (decision D10 option B).",
+      frame("Family", dlg(3, '<b style="margin-top:6px">This moves the sign-in</b><div class="u-swap"><div class="u-who">' + uav("SS", "g") + "<b>Today</b><small>Siddharth is Head and signs in with sid@example.com</small></div><div class='arrow'>→</div><div class='u-who new'>" + uav("AS", "b") + "<b>After</b><small>Aditi is Head and signs in with aditi@example.com</small></div></div>" +
+        '<ul class="mk-ul"><li>Siddharth stays as a member and can no longer sign in to this account.</li><li>All portfolio data stays as it is.</li><li>Everyone currently signed in is signed out.</li></ul><div class="mk-actions"><button class="mk-btn">Back</button><button class="mk-btn mk-btn-p">Confirm and move sign-in</button></div>'), fo),
+      ["A before and after, so nobody is surprised about who loses sign-in."])
+  ];
+
+  /* ---- 02 Consolidated holdings: split bar inside the parent row ---- */
+  function splitBar(a, b) { return '<span class="u-split"><i style="width:' + a + '%;background:#16a34a"></i><i style="width:' + b + '%;background:#3b82f6"></i></span>'; }
+  var h2b = tbl(["Fund", "Units", "Avg price", "Invested", "Current value", "Unrealised", "Realised", "XIRR"], [
+    { cls: "hl", cells: ["<span class='mk-plus'>−</span> <b>Invesco India Small Cap Fund</b><br><small>Direct · Growth · 2 members</small>" + splitBar(40, 60) + "<small><span style='color:#16a34a'>●</span> Prateek 40% &nbsp;<span style='color:#3b82f6'>●</span> Lalchand 60%</small>", "10,000.000", "₹42.00", "₹4,20,000", "₹5,00,000", "<span class='mk-pos'>+₹80,000<br>+19.0%</span>", "₹12,000", "16.4%"] },
+    { cls: "sub", cells: ["<span style='color:#16a34a'>●</span> Prateek<br><small>Folio XXXXX1303</small>", "4,000.000", "₹37.50", "₹1,50,000", "₹2,00,000", "<span class='mk-pos'>+₹50,000</span>", "₹0", "18.1%"] },
+    { cls: "sub", cells: ["<span style='color:#3b82f6'>●</span> Lalchand<br><small>Folio XXXXX6422</small>", "6,000.000", "₹45.00", "₹2,70,000", "₹3,00,000", "<span class='mk-pos'>+₹30,000</span>", "₹12,000", "15.2%"] },
+    ["<span class='mk-plus'>+</span> <b>HDFC Flexi Cap Fund</b><br><small>Direct · Growth · 2 members</small>" + splitBar(70, 30), "1,428.321", "₹87.50", "₹1,25,000", "₹1,83,245", "<span class='mk-pos'>+₹58,245</span>", "₹0", "18.9%"],
+    ["<b>Parag Parikh Flexi Cap Fund</b><br><small>Direct · Growth · Aditi</small>", "2,210.455", "₹68.10", "₹1,50,500", "₹1,92,400", "<span class='mk-pos'>+₹41,900</span>", "₹8,400", "17.5%"]
+  ], { right: [1, 2, 3, 4, 5, 6, 7] });
+  X["02"][0] = m("Family view: one row per fund, a split bar shows who holds how much", "Investments › Mutual Funds › Overview, holdings list, Family Combined scope only.",
+    frame("Overview", card("Mutual Funds (14)", '<div class="u-key" style="margin-bottom:8px"><span>Click + to see each member, with folio (masked)</span></div>' + h2b, { right: "Family Combined" }) + note("Sample figures. The parent row is the sum of its member rows; average price = total cost / total units."), {}),
+    ["The small bar under a fund shows each member's share of the holding, so the split is visible even before opening the row.", "A fund held by one member shows no + and no bar.", "Folio numbers are masked (D20).", "Parent XIRR uses all members' cash flows together."]);
+
+  /* ---- 03 Market cap ---- */
+  X["03"] = [m("Market Cap: one bar that adds to 100%, with the number each slice stands for", "Investments › Mutual Funds › Allocation, Market Cap card.",
+    frame("Allocation", card("Market Cap", '<div class="u-stack"><i style="width:54%;background:#16a34a">Large 54%</i><i style="width:31%;background:#3b82f6">Mid 31%</i><i style="width:15%;background:#a78bfa">Small 15%</i></div>' +
+      '<div class="u-grid3" style="margin-top:12px"><div class="u-tile"><span class="a">Large cap</span><span class="b">54.0%</span><span class="c">₹5.3L of classified equity</span></div><div class="u-tile"><span class="a">Mid cap</span><span class="b">31.0%</span><span class="c">₹3.0L</span></div><div class="u-tile"><span class="a">Small cap</span><span class="b">15.0%</span><span class="c">₹1.5L</span></div></div>' +
+      note("6% of your equity could not be classified (for example overseas stocks) and is not shown here."), { info: 1 }), {}),
+    ["Three slices, exactly 100.00%. The bar is read faster than a ring, and each slice shows its rupee value.", "No Other slice."])];
+
+  /* ---- 04 Fund manager ---- */
+  function mgr(av, k, name, amc, pct, amt, funds, li) {
+    return '<div class="u-mgr"><div class="u-fh">' + uav(av, k) + "<div><b>" + name + (li ? " <span class='mk-in'>in</span>" : "") + "</b><div class='u-sub'>" + amc + " · " + funds + '</div></div></div><div style="display:flex;align-items:baseline;gap:8px"><span class="big">' + pct + '%</span><span class="u-sub">of your portfolio</span></div>' + bar(pct * 3.5, "#16a34a") + '<div class="u-sub">Amount <b style="color:#111">' + amt + "</b></div></div>";
+  }
+  X["04"] = [m("Fund Manager: a card per manager, biggest first", "Investments › Mutual Funds › Allocation, Fund Manager card.",
+    frame("Allocation", card("Fund Manager allocation", '<div class="u-grid2">' + mgr("AK", "g", "A. Kulkarni", "Nippon India", 22.4, "₹3,19,200", "2 funds", 1) + mgr("RM", "b", "R. Menon", "HDFC", 18.1, "₹2,57,925", "1 fund", 1) + mgr("SI", "a", "S. Iyer", "Invesco", 14.6, "₹2,08,050", "1 fund", 0) + mgr("PR", "p", "P. Rao", "Parag Parikh", 13.5, "₹1,92,400", "1 fund", 1) + "</div>" + note("Covers 68.6% of your ₹14,25,000 portfolio. 2 funds have no manager data yet."), {}), {}),
+    ["Name, fund house, allocation percentage and the rupee amount (D7), now as cards: the biggest exposure reads first.", "The LinkedIn icon shows only for verified profiles and opens the profile page in a new tab."])];
+
+  /* ---- 11 Benchmark ---- */
+  X["11"] = [m("Benchmark: a clear gap, and which benchmark each fund uses", "Investments › Mutual Funds › Performance.",
+    frame("Performance", card("Your return vs benchmark", '<div class="u-chips" style="margin-bottom:10px"><span>1Y (from 30 Sep 2025)</span><span class="on">3Y (from 30 Sep 2023)</span><span>5Y (from 30 Sep 2021)</span><span>Since inception</span></div>' +
+      '<div class="u-hero"><span class="big">+3.3 pts</span><p>Your portfolio earned <b>17.2% a year</b> over 3 years, against <b>13.9%</b> if the same money had gone into Nifty 500 TRI on the same dates.</p></div>' +
+      '<div class="u-grid2" style="margin-top:12px">' +
+      '<div class="u-fc"><div class="u-fh">' + uav("HF", "g") + "<div><b>HDFC Flexi Cap Fund</b><div class='u-sub'>Benchmark: Nifty 500 TRI <span class='u-src f'>From factsheet</span></div></div></div>" + dbRow("XIRR", 18.9, 14.6, 25) + "</div>" +
+      '<div class="u-fc"><div class="u-fh">' + uav("KL", "b") + "<div><b>Kotak Large Cap Fund</b><div class='u-sub'>Benchmark: Nifty 100 TRI <span class='u-src f'>From factsheet</span></div></div></div>" + dbRow("XIRR", 12.1, 13.4, 25) + "</div></div>" +
+      note("Every purchase and withdrawal is also made in the index on the same date, then the return is worked out the same way for both (XIRR)."), { info: 1 }), {}),
+    ["The headline gives the gap first; each fund shows its own benchmark and where that came from (D34 option C).", "Window start dates are shown on the chips."])];
+
+  /* ---- 12 Switches ---- */
+  X["12"] = [m("Investment and withdrawal with an unmistakable switch", "Investments › Mutual Funds › Performance, money card (position D19).",
+    frame("Performance", card("Investment and withdrawal", '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px"><div class="u-seg"><span class="on">Switches: Included</span><span>Excluded</span></div><small style="color:#717171">Money moved between funds counts as money out and money in.</small></div>' +
+      '<div class="u-grid2"><div class="u-tile"><span class="a">Invested</span><span class="b">₹18,40,000</span></div><div class="u-tile"><span class="a">Withdrawn</span><span class="b">₹2,10,000</span></div><div class="u-tile"><span class="a">Switched in</span><span class="b">₹4,00,000</span></div><div class="u-tile"><span class="a">Net invested*</span><span class="b">₹16,30,000</span></div></div>' + note("*Net invested never includes switches, whichever way the switch is set."), {}), {}),
+    ["The state is written in the control (Included or Excluded), never colour alone.", "The PDF print always shows Switches: Excluded."])];
+
+  /* ---- 13 Asset class with drill ---- */
+  X["13"] = [m("Asset Class: four classes, and the funds behind the one you click", "Investments › Mutual Funds › Allocation, Asset Class card.",
+    frame("Allocation", card("Asset class (look-through)", '<div class="mk-row">' + donut(ac, "₹12.9L", "covered value") + legend(ac) + "</div>" +
+      '<div class="u-fc" style="margin-top:12px"><b style="font-size:13px">Contributing funds · Equity ₹8.0L</b><div class="u-flow">' +
+      '<div class="row"><span>HDFC Flexi Cap</span><div class="bar"><i style="width:38%;background:#16a34a"></i></div><b>38.2%</b></div><div class="row"><span>Parag Parikh Flexi</span><div class="bar"><i style="width:27%;background:#16a34a"></i></div><b>27.0%</b></div><div class="row"><span>Nippon Small Cap</span><div class="bar"><i style="width:21%;background:#16a34a"></i></div><b>21.4%</b></div><div class="row"><span>Kotak Multicap</span><div class="bar"><i style="width:13%;background:#16a34a"></i></div><b>13.4%</b></div></div></div>' +
+      note("Cash is included under Debt. 2 of 14 funds have no published portfolio and are not counted."), { info: 1 }), {}),
+    ["Clicking a slice shows which funds make it up and each one's share of that class, from each fund's own published portfolio.", "No market cap ring."])];
+
+  /* ---- SIP ---- */
+  function mo(paid, miss) { var s = ""; for (var i = 0; i < 12; i++) s += '<i class="' + (i < paid ? "paid" : i < paid + miss ? "miss" : "") + '"></i>'; return '<div class="u-mo">' + s + "</div>"; }
+  X["S"] = [m("SIPs: the Stopped tab shows what happened, month by month", "Investments › Mutual Funds › Overview, SIPs card.",
+    frame("Overview", card("SIPs", '<div class="u-seg" style="margin-bottom:12px"><span>Upcoming</span><span>This month</span><span class="on">Stopped <em>2</em></span></div><div class="u-grid2">' +
+      '<div class="u-fc"><div class="u-fh">' + uav("SB", "a") + "<div><b>SBI Small Cap Fund</b><div class='u-sub'>Prateek · ₹5,000 a month</div></div><span class='r'>" + badge("Stopped", "a") + "</span></div>" + mo(8, 4) + "<div class='u-sub'>Last paid 5 Jul 2026 · 4 months missed (green paid, red missed)</div></div>" +
+      '<div class="u-fc"><div class="u-fh">' + uav("AX", "b") + "<div><b>Axis Bluechip Fund</b><div class='u-sub'>Lalchand · ₹2,000 a month</div></div><span class='r'>" + badge("Fund fully sold") + "</span></div>" + mo(9, 0) + "<div class='u-sub'>Last paid 5 Mar 2026 · fund fully sold, not a cancelled SIP</div></div></div>" +
+      note("Judged on the statement dated 20 Nov 2026. Upload a newer statement to refresh.") + '<div class="mk-sum">Active: <b>HDFC Flexi Cap</b> ₹5,000 → ₹7,500 since Mar 2026 (one SIP, amount increased)</div>', {}), {}),
+    ["A month strip shows what was paid and what was missed, so the reason for Stopped is visible.", "A step-up is one SIP with an amount history; a fully sold fund is labelled separately.", "'Stopped' stays the word (D26)."])];
+
+
   window.MOCKUPS = X;
 
   /* ---------- Screen map ---------- */
@@ -2031,7 +2462,7 @@ window.MOCKNOTES={"03": "The design PDF lists the Allocation page as a text spec
   window.SCREENMAP = '<div class="mk"><div class="mk-top"><span class="mk-brand">Unifolio</span><span class="mk-crumb">Investments › Mutual Funds</span><span class="mk-scope">Family Combined ▾</span></div><div class="mk-tabs">' +
     TABS.map(function (t) { return '<span class="on">' + t + "</span>"; }).join("") + '</div><div class="mk-body"><div class="mk-map">' +
     TABS.map(function (t) { return "<div><b>" + t + "</b><small>" + pins[t] + "</small></div>"; }).join("") + "</div>" +
-    '<div class="mk-map mk-map2"><div><b>Profile › Family Members</b><small>01 Head of Family</small></div><div><b>Individual fund page</b><small>04 manager block · 08, 09 peers · 10 score (D11)</small></div><div><b>Home</b><small>10 Worth a look (D11) · SIP insights</small></div></div></div></div>';
+    '<div class="mk-map mk-map2"><div><b>Profile › Family Members</b><small>01 Head of Family</small></div><div><b>Individual fund page</b><small>04 manager block · 11 benchmark choice · score card stays</small></div><div><b>Home</b><small>03 and 13 feed the allocation donut and benchmark pick · SIP insights</small></div></div></div></div>';
 })();
 
 </script>
@@ -2253,7 +2684,7 @@ var DECISIONS = [
     { n:"The redesign line", pro:["Reuses peer ranking, benchmark windows and fund-vs-fund overlap that already exist","One UI to maintain"], con:["About 250 commits we have not reviewed in this session","Only right if this is the line that ships"] },
     { n:"Merge the redesign into this branch first", pro:["Single base for everything"], con:["Big merge with conflicts, and work stops while it happens","Brings in unfinished redesign work"] }],
    rec:1, ans:1, why:"Items 8, 9 and 11 are partly built there, so building on this branch means doing them twice. This is only right if the redesign line is what goes to staging next. If you are not sure, ask the manager before we start, because it is the one choice that is expensive to reverse." },
- { id:"d2", tag:"D2 · Item 10 · SOLVED 30 Oct: hide Fund Quality Scores on Other Analytics only, keep the code", q:"How do we remove the Quality Scorer and Composite Ratings?",
+ { id:"d2", tag:"D2 · Item 10 · SOLVED 30 Oct: hide Fund Quality Scores on Other Analytics only, keep the code (D32: does it keep computing)", q:"How do we remove the Quality Scorer and Composite Ratings?",
    ctx:"The document says remove them 'for now'. That contradicts PRD-04 and the 2026-08-13 and 2026-10-06 decisions, where the score was called the product's differentiator. A paused Scorer V2 plan also exists.",
    opts:[
     { n:"Hide in the interface, stop computing, keep code and tables", pro:["Easy to bring back, which fits 'for now'","Removes the load from the daily recompute","No database migration"], con:["Dead code stays in the repo","Docs must be updated to say it is switched off"] },
@@ -2558,7 +2989,7 @@ document.getElementById("toggleAll").addEventListener("click", function () {
   start.innerHTML =
     '<div class="sec-head"><h2>Start here</h2><p>This page is the change briefing for 13 requested changes plus stopped SIPs. Nothing is built yet. Use the tabs above to move around; each tab holds one kind of content.</p></div>' +
     '<div class="startgrid">' +
-    '<div class="panel"><h3>Where we are</h3><ul><li>Requests are read against the code on <code>leapswitch-redesign</code>. Nothing is implemented, nothing is pushed.</li><li>Latest stakeholder update: 30 Oct (see below).</li><li>Plan: six Codex runs, then documentation, then one staging pass. About 17 to 19 working days.</li></ul></div>' +
+    '<div class="panel"><h3>Where we are</h3><ul><li>Requests are read against the code on <code>leapswitch-redesign</code>. Nothing is implemented, nothing is pushed.</li><li>Latest stakeholder update: 30 Oct (see below).</li><li>Plan: six Codex runs, then documentation, then one staging pass. About 19 to 21 working days.</li></ul></div>' +
     '<div class="panel"><h3>Decisions at a glance</h3><div class="stat4"><div><b>' + cnt.open + '</b><span>open</span></div><div><b>' + cnt.answered + '</b><span>answered</span></div><div><b>' + cnt.solved + '</b><span>solved</span></div><div><b>' + cnt.hold + '</b><span>on hold</span></div></div><p><a href="#p-decisions">Open the decisions tab</a></p></div>' +
     '<div class="panel"><h3>Where to look</h3><ul><li><a href="#p-items"><b>The changes</b></a>: each item in plain words, mockups, steps, tests.</li><li><a href="#p-audits"><b>Audits</b></a>: the 13th pct explainer, score removal, benchmark, contributing funds.</li><li><a href="#p-plan"><b>Plan</b></a>: runs, timeline, blast radius, loading times.</li></ul></div>' +
     '</div>' +
@@ -2580,7 +3011,7 @@ document.getElementById("toggleAll").addEventListener("click", function () {
   if (audE) { audE.className = "sec"; audE.innerHTML = '<div class="sec-head"><h2>What changed on 30 Oct</h2></div>'; audE.appendChild(A); }
   var parts = [
     ["p-start", "Start here", [start, audE]],
-    ["p-items", "The changes", [idx, sec("deep1")]],
+    ["p-items", "The changes", [idx, sec("deep1"), sec("valbuild")]],
     ["p-audits", "Audits", [sec("aud0")]],
     ["p-decisions", "Decisions", [sec("dec")]],
     ["p-plan", "Plan and timing", [sec("ord"), sec("tl0"), sec("blast0"), sec("load0"), sec("deep2")]],
