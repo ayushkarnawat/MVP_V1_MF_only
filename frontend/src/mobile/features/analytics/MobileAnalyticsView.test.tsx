@@ -164,7 +164,7 @@ describe("MobileAnalyticsView", () => {
     vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: aggregate ? "combined" : "m-1", recomputing: false, sections: buildSections(aggregate) });
     render(<MobileAnalyticsView memberId={aggregate ? null : "m-1"} />);
     expect(await screen.findByRole("heading", { name: "Fund overlap" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Top 10 stocks represent 38.00%/ }));
+    fireEvent.click(screen.getByRole("button", { name: "View all" }));
     expect(screen.getByRole("table", { name: "All stored stock holdings" })).toBeInTheDocument();
   });
   it.each([true, false])("unwraps look-through asset allocation (aggregate=%s)", async (aggregate) => {
@@ -317,4 +317,18 @@ describe("MobileAnalyticsView", () => {
     await waitFor(() => expect(api.retryAnalyticsScope).toHaveBeenCalledWith("combined"));
     await waitFor(() => expect(api.getAnalyticsScope).toHaveBeenCalledTimes(2));
   });
+  it.each([true, false])("T1.5 print_and_mobile_views_render_without_it (phone curve=%s)", async (curve) => {
+    const overlap = JSON.parse(JSON.stringify(sampleOverlap)) as typeof sampleOverlap;
+    if (!curve) {
+      Reflect.deleteProperty(overlap, "concentration");
+      Reflect.deleteProperty(overlap, "total_stock_count");
+    }
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: "combined", recomputing: false,
+      sections: { ...buildSections(true), overlap: settled({ members: [], overlap }) } });
+    render(<MobileAnalyticsView />);
+    expect(await screen.findByRole("table", { name: "Fund overlap heatmap" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /stock concentration/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Cumulative stock exposure curve")).not.toBeInTheDocument();
+  });
+
 });

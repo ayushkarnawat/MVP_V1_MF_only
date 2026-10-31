@@ -1,10 +1,8 @@
 import { percentageProduct } from "../../../components/mf/lookthroughDisplay";
 import { compareDecimalStrings, diffDecimalStrings, sumDecimalStrings } from "../../../lib/decimal";
 import { formatPercent } from "../../../lib/format";
-import { paths } from "../../../shell/nav/paths";
 import { excludedFundCount, percentOf } from "../mfCopy";
 import type {
-  ConcentrationPoint,
   FundContribution,
   OverlapFund,
   OverlapImpactPair,
@@ -256,44 +254,6 @@ export function barWidth(value: string, largest: string): string {
   if (!numLargest || numLargest <= 0) return "0";
   const numValue = Number(value);
   return String(round2((numValue / numLargest) * 100));
-}
-
-export function headlinePoint(points: ConcentrationPoint[]): ConcentrationPoint | null {
-  const valid = points.filter(p => p.stock_count <= 10);
-  if (valid.length === 0) return null;
-  return valid.reduce((best, cur) => (cur.stock_count > best.stock_count ? cur : best));
-}
-
-export interface CurvePoint {
-  n: number;
-  pct: string;
-  x: number;
-  y: number;
-}
-
-export function concentrationCurve(points: ConcentrationPoint[]): { points: CurvePoint[]; line: string } {
-  if (!points || points.length === 0) return { points: [], line: "" };
-  let maxN = 0;
-  let maxExposure = 0;
-  for (const p of points) {
-    if (p.stock_count > maxN) maxN = p.stock_count;
-    const num = Number(p.exposure_pct);
-    if (num > maxExposure) maxExposure = num;
-  }
-  const maxPct = Math.max(100, maxExposure);
-
-  const curvePoints: CurvePoint[] = points.map(p => {
-    const x = round2(40 + (p.stock_count / maxN) * 520);
-    const y = round2(160 - (Number(p.exposure_pct) / maxPct) * 130);
-    return { n: p.stock_count, pct: p.exposure_pct, x, y };
-  });
-
-  const line = curvePoints.map(p => `${p.x},${p.y}`).join(" ");
-  return { points: curvePoints, line };
-}
-
-export function allStocksPath(): string {
-  return `${paths.mutualFunds.holdings()}#all-holdings`;
 }
 
 /** The pairs the Top Pairs table lists: those above the low band plus those exactly at it (backend C160 leaves

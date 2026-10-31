@@ -1,7 +1,7 @@
 import { ValuationSection } from "@/features/analytics/ValuationSection";
-import { OverlapSection, openStockHoldings } from "@/features/analytics/OverlapSection";
+import { OverlapSection } from "@/features/analytics/OverlapSection";
 import { AssetAllocationSection } from "@/features/analytics/AssetAllocationSection";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { formatIndianCurrency } from "@/lib/decimal";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -61,7 +61,6 @@ const AGGREGATE_FIELD: Record<AnalyticsSectionName, string> = {
 
 export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProps) {
   const isAggregate = !memberId;
-  const analyticsRoot = useRef<HTMLDivElement>(null);
   const scope = memberId || "combined";
   const { sections, fetchError, hasFailedSection, isRetrying, retry } = useAnalyticsScope(scope);
 
@@ -129,7 +128,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
   const totalValStr = allocation?.total_value || "0";
 
   return (
-    <div ref={analyticsRoot} className="space-y-6 pb-24 px-3 sm:px-4 pt-3 animate-in fade-in duration-200">
+    <div className="space-y-6 pb-24 px-3 sm:px-4 pt-3 animate-in fade-in duration-200">
       {/* Mobile Header Card */}
       <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-2xs space-y-3">
         <div className="flex items-center justify-end">
@@ -176,7 +175,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
       <StockHoldingsSection data={stockHoldings} isLoading={stockHoldingsLoading} />
       <CapAllocationSection data={capAllocation} isLoading={capAllocationLoading} />
       <AssetAllocationSection data={assetAllocation} isLoading={assetAllocationLoading} />
-      <OverlapSection data={overlap} isLoading={overlapLoading} onOpenStocks={() => openStockHoldings(analyticsRoot.current)} />
+      <OverlapSection data={overlap} isLoading={overlapLoading} />
       <ValuationSection data={valuation} isLoading={valuationLoading} />
 
       {/* Section 2: TER & Cost */}

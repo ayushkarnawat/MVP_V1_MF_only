@@ -29,7 +29,7 @@ beforeEach(() => {
 });
 
 describe("the page", () => {
-  it("has the Overlap header, the tab strip with this tab current, and the six blocks in order", async () => {
+  it("has the Overlap header, the tab strip with this tab current, and the summary and four cards in order", async () => {
     mount();
     await ready();
     await screen.findByTestId("stat-strip");
@@ -37,9 +37,9 @@ describe("the page", () => {
     expect(screen.getByText("How much your equity funds duplicate each other's stock picks.")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Mutual Funds sections" }).querySelector("[data-tab=overlap] [aria-current=page]")).not.toBeNull();
     const blocks = [...screen.getByTestId("overlap-cards").children].map(block => block.getAttribute("data-testid"));
-    expect(blocks).toEqual(["card-stat-strip", "card-common-holdings", "card-heatmap", "card-top-pairs", "card-impact", "card-concentration"]);
+    expect(blocks).toEqual(["card-stat-strip", "card-common-holdings", "card-heatmap", "card-top-pairs", "card-impact"]);
     expect(screen.getAllByRole("heading", { level: 3 }).map(heading => heading.textContent)).toEqual([
-      "1. Common Holdings", "2. Overlap Heatmap", "3. Top Overlapping Fund Pairs", "4. Overlap Impact", "5. Stock Concentration",
+      "1. Common Holdings", "2. Overlap Heatmap", "3. Top Overlapping Fund Pairs", "4. Overlap Impact",
     ]);
   });
   it("puts the full coverage banner above the stat strip (audit finding 2)", async () => {
@@ -151,15 +151,15 @@ describe("errors, section by section", () => {
     await ready();
     expect(mocks.retryAnalyticsScope).toHaveBeenCalledWith("combined");
   });
-  it("lets the overlap section fail alone: the strip and the four overlap cards each offer Retry while Common Holdings still shows", async () => {
+  it("lets the overlap section fail alone: the strip and the three overlap cards each offer Retry while Common Holdings still shows", async () => {
     const response = fc.analyticsMfC();
     response.sections.overlap = { payload: null, computed_at: null, failed_at: "2026-10-26T00:00:00Z" };
     mocks.getAnalyticsScope.mockResolvedValue(response);
     mount();
-    expect(await screen.findAllByRole("button", { name: "Retry" })).toHaveLength(5);
+    expect(await screen.findAllByRole("button", { name: "Retry" })).toHaveLength(4);
     expect(screen.getByText("Couldn't load the overlap summary.")).toBeInTheDocument();
     expect(await screen.findByRole("table", { name: "Common holdings" })).toBeInTheDocument();
-    for (const title of ["2. Overlap Heatmap", "3. Top Overlapping Fund Pairs", "4. Overlap Impact", "5. Stock Concentration"]) {
+    for (const title of ["2. Overlap Heatmap", "3. Top Overlapping Fund Pairs", "4. Overlap Impact"]) {
       expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     }
   });
@@ -176,9 +176,8 @@ describe("errors, section by section", () => {
 });
 
 describe("leaving the page and the rules", () => {
-  it("opens the Holdings page, at the all-holdings card, from a concentration chip", async () => {
-    renderInShell(undefined, { path: "/portfolio/mutual-funds/overlap", scope: { members } });
-    fireEvent.click(await screen.findByTestId("conc-chip-5"));
+  it("keeps the Holdings All Stocks table at its existing route", async () => {
+    renderInShell(undefined, { path: "/portfolio/mutual-funds/holdings", scope: { members } });
     expect(await screen.findByTestId("holdings-cards")).toBeInTheDocument();
     expect(screen.getByTestId("card-all-stocks")).toHaveAttribute("id", "all-holdings");
     expect(screen.getByRole("heading", { level: 1, name: "Holdings" })).toBeInTheDocument();
@@ -281,5 +280,33 @@ describe("T1.4 equity categories", () => {
     fireEvent.click(screen.getByRole("button", { name: "Large Cap: 2 funds" }));
     expect(screen.queryByTestId(`hm-row-${other.scheme_id}`)).not.toBeInTheDocument();
     expect(screen.getAllByTestId(/^hm-row-/)).toHaveLength(2);
+  });
+});
+
+
+describe("T1.5 removal", () => {
+  it("overlap_page_has_four_cards_and_no_stock_concentration", async () => {
+    mount();
+    await screen.findByTestId("stat-strip");
+    expect(screen.getAllByRole("heading", { level: 3 }).map(h => h.textContent)).toEqual([
+      "1. Common Holdings", "2. Overlap Heatmap", "3. Top Overlapping Fund Pairs", "4. Overlap Impact",
+    ]);
+    expect(screen.queryByTestId("card-concentration")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /view all stocks/i })).not.toBeInTheDocument();
+  });
+  it.each([true, false])("payload_with_and_without_the_curve_fields_still_parses (curve=%s)", async (curve) => {
+    const payload = JSON.parse(JSON.stringify(t14Summary())) as ReturnType<typeof t14Summary>;
+    if (!curve) {
+      for (const summary of [payload, ...Object.values(payload.by_category)]) {
+        Reflect.deleteProperty(summary, "concentration");
+        Reflect.deleteProperty(summary, "total_stock_count");
+      }
+    }
+    mountT14(payload);
+    expect(await screen.findByRole("table", { name: "Overlap heatmap" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "By category" }));
+    fireEvent.click(screen.getByRole("button", { name: "Large Cap: 2 funds" }));
+    expect(screen.getByRole("table", { name: "Overlap heatmap" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /stock concentration/i })).not.toBeInTheDocument();
   });
 });

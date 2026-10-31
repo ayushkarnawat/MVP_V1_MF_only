@@ -149,3 +149,12 @@ describe("WorthALook: a cost card and edge cases", () => {
     expect(screen.getByTestId("worth-card-weak_fund").textContent).not.toContain("null");
   });
 });
+
+
+it("T1.5 home_worth_a_look_still_renders_its_concentration_card", () => {
+  setup({ data: fixture<WorthResponse>("worth_concentration_with_earlier") });
+  const card = screen.getByTestId("worth-card-concentration");
+  expect(within(card).getByRole("heading", { name: "Your portfolio is becoming more concentrated" })).toBeInTheDocument();
+  expect(within(card).getByTestId("concentration-pct")).toHaveTextContent("25%");
+  expect(within(card).getAllByTestId(/^stock-segment-/)).toHaveLength(5);
+});

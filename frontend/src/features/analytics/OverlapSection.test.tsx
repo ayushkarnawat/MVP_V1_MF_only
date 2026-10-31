@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { OverlapSection } from "./OverlapSection";
 import { sampleOverlap } from "./overlapTestData";
 
@@ -44,13 +44,8 @@ describe("OverlapSection", () => {
     expect(screen.queryByText(/Top 10 stocks represent/)).not.toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Fund overlap heatmap" })).toBeInTheDocument();
   });
-  it("opens the shared stock table from concentration and clears stale pair details", () => {
-    const open = vi.fn();
-    const { rerender } = render(<OverlapSection data={sampleOverlap} onOpenStocks={open} />);
-    fireEvent.click(screen.getByRole("button", { name: /Top 10 stocks represent 38.00%/ }));
-    expect(open).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole("button", { name: "View concentration in full stock table" }));
-    expect(open).toHaveBeenCalledTimes(2);
+  it("clears stale pair details", () => {
+    const { rerender } = render(<OverlapSection data={sampleOverlap} />);
     const table = screen.getByRole("table", { name: "Fund overlap heatmap" });
     fireEvent.click(within(table).getAllByRole("button", { name: /42.00%/ })[0]);
     rerender(<OverlapSection data={{ ...sampleOverlap, matrix: [], pairs_above_low: [] }} />);
@@ -60,5 +55,26 @@ describe("OverlapSection", () => {
     render(<OverlapSection data={{ ...sampleOverlap, bands: { low: "2E1", high: "4.2E1" } }} />);
     expect(screen.getByRole("region", { name: "Pairs above 20%" })).toBeInTheDocument();
     expect(within(screen.getByRole("table", { name: "Fund overlap heatmap" })).getAllByRole("button", { name: /42.00%/ })[0]).toHaveAttribute("data-band", "high");
+  });
+});
+
+
+describe("T1.5 legacy removal", () => {
+  it("legacy_overlap_section_no_longer_renders_concentration", () => {
+    render(<OverlapSection data={sampleOverlap} />);
+    expect(screen.getByRole("table", { name: "Fund overlap heatmap" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /stock concentration/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Cumulative stock exposure curve")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /view concentration|Top 10 stocks represent/i })).not.toBeInTheDocument();
+  });
+  it.each([true, false])("payload_with_and_without_the_curve_fields_still_parses (legacy curve=%s)", (curve) => {
+    const payload = JSON.parse(JSON.stringify(sampleOverlap)) as typeof sampleOverlap;
+    if (!curve) {
+      Reflect.deleteProperty(payload, "concentration");
+      Reflect.deleteProperty(payload, "total_stock_count");
+    }
+    render(<OverlapSection data={payload} />);
+    expect(screen.getByRole("table", { name: "Fund overlap heatmap" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /stock concentration/i })).not.toBeInTheDocument();
   });
 });

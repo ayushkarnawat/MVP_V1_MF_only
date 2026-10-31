@@ -1,7 +1,7 @@
 import { ValuationSection } from "./ValuationSection";
-import { OverlapSection, openStockHoldings } from "./OverlapSection";
+import { OverlapSection } from "./OverlapSection";
 import { AssetAllocationSection } from "./AssetAllocationSection";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { formatIndianCurrency } from "@/lib/decimal";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -73,7 +73,6 @@ export function AnalyticsView({
   onAddDataForMember,
   activeMemberName,
 }: AnalyticsViewProps) {
-  const analyticsRoot = useRef<HTMLDivElement>(null);
   const isAggregate = viewMode === "aggregate";
   const scope = isAggregate ? "combined" : memberId;
   const { sections, recomputing, fetchError, hasFailedSection, isRetrying, retry } = useAnalyticsScope(scope);
@@ -191,7 +190,7 @@ export function AnalyticsView({
   const totalValStr = allocation?.total_value || "0";
 
   return (
-    <div ref={analyticsRoot} className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-8 animate-in fade-in duration-300">
       {/* Hero Summary Header */}
       <Card className="p-6 sm:p-7 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xs relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
@@ -283,7 +282,7 @@ export function AnalyticsView({
       <StockHoldingsSection data={stockHoldings} isLoading={stockHoldingsLoading} />
       <CapAllocationSection data={capAllocation} isLoading={capAllocationLoading} />
       <AssetAllocationSection data={assetAllocation} isLoading={assetAllocationLoading} />
-      <OverlapSection data={overlap} isLoading={overlapLoading} onOpenStocks={() => openStockHoldings(analyticsRoot.current)} />
+      <OverlapSection data={overlap} isLoading={overlapLoading} />
       <ValuationSection data={valuation} isLoading={valuationLoading} />
 
       {/* Section 2: Cost / TER */}

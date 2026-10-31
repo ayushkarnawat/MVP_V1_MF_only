@@ -10,7 +10,6 @@ import { Heatmap } from "./Heatmap";
 import { ImpactDonut } from "./ImpactDonut";
 import { equityStockHoldings, findPair, highestPair, pairKeyOf } from "./overlapLogic";
 import { StatStrip } from "./StatStrip";
-import { StockConcentration } from "./StockConcentration";
 import { TopPairs } from "./TopPairs";
 
 function OverlapBody() {
@@ -164,13 +163,6 @@ function OverlapBody() {
             />
           </div>
 
-          <div data-testid="card-concentration">
-            <StockConcentration
-              state={overlap.status}
-              data={selectedData}
-              onRetry={overlap.retry}
-            />
-          </div>
         </>
       )}
     </div>

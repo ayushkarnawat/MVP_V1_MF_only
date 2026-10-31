@@ -142,7 +142,7 @@ describe("AnalyticsView", () => {
     vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: aggregate ? "combined" : "m-1", recomputing: false, sections: buildSections(aggregate) });
     render(<AnalyticsView viewMode={aggregate ? "aggregate" : "member"} memberId={aggregate ? null : "m-1"} />);
     expect(await screen.findByRole("heading", { name: "Fund overlap" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Top 10 stocks represent 38.00%/ }));
+    fireEvent.click(screen.getByRole("button", { name: "View all" }));
     expect(screen.getByRole("table", { name: "All stored stock holdings" })).toBeInTheDocument();
   });
   it.each([true, false])("unwraps look-through asset allocation (aggregate=%s)", async (aggregate) => {

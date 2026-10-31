@@ -213,4 +213,18 @@ describe("PrintAnalyticsView", () => {
       expect(screen.getByText(/% of total portfolio/)).toBeInTheDocument();
     });
   });
+  it.each([true, false])("T1.5 print_and_mobile_views_render_without_it (print curve=%s)", async (curve) => {
+    const overlap = JSON.parse(JSON.stringify(sampleOverlap)) as typeof sampleOverlap;
+    if (!curve) {
+      Reflect.deleteProperty(overlap, "concentration");
+      Reflect.deleteProperty(overlap, "total_stock_count");
+    }
+    vi.mocked(api.getExportPayload).mockResolvedValue({ ...payload, overlap, stockHoldings: sampleStockHoldings });
+    render(<PrintAnalyticsView />);
+    expect(await screen.findByRole("table", { name: "Fund overlap heatmap" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /stock concentration/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Overall stock holdings" })).toBeInTheDocument();
+    await waitFor(() => expect(document.documentElement.dataset.printReady).toBe("true"));
+  });
+
 });

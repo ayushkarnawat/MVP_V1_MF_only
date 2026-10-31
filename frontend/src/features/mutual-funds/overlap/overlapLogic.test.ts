@@ -3,8 +3,8 @@ import { compareDecimalStrings, sumDecimalStrings } from "../../../lib/decimal";
 import * as fc from "../fixtures/mfC";
 import type { OverlapFund, OverlapPair, OverlapSummary, StockHoldingRow } from "../types";
 import {
-  equityStockHoldings, allStocksPath, analysedCount, bandLegendText, bandOf, barWidth, buildOverlapInsights, combinedWeight, commonStocks, COMMON_LIMIT,
-  concentrationCurve, excludedNote, findPair, fundInitials, headlinePoint, highestPair, IMPACT_PAIRS, impactBreakdown, PAIR_LIMIT, pairCount,
+  equityStockHoldings, analysedCount, bandLegendText, bandOf, barWidth, buildOverlapInsights, combinedWeight, commonStocks, COMMON_LIMIT,
+  excludedNote, findPair, fundInitials, highestPair, IMPACT_PAIRS, impactBreakdown, PAIR_LIMIT, pairCount,
   pairKey, pairKeyOf, pairsWithOverlap, riskBand, riskNote, sortedPairs,
 } from "./overlapLogic";
 
@@ -274,31 +274,6 @@ describe("barWidth", () => {
     expect(barWidth("0.5", "0")).toBe("0");
   });
 });
-
-describe("the concentration headline and curve", () => {
-  it("takes the point with the most stocks at 10 or fewer, in any order, and none when every point is larger", () => {
-    const point = (stock_count: number) => ({ stock_count, exposure_pct: `${stock_count}.0000` });
-    expect(headlinePoint(fc.overlapSummary().concentration)?.stock_count).toBe(10);
-    expect(headlinePoint([point(20), point(7), point(3), point(50)])?.stock_count).toBe(7);
-    expect(headlinePoint([point(20), point(50)])).toBeNull();
-    expect(headlinePoint([])).toBeNull();
-  });
-  it("lays the curve out in a 600 by 180 box: x by stock count from 40 to 560, y from 160 up by 130 for 100%", () => {
-    const curve = concentrationCurve(fc.overlapSummary().concentration);
-    expect(curve.points.map(p => [p.n, p.pct, p.x, p.y])).toEqual([
-      [5, "21.9938", 123.87, 131.41], [10, "29.6693", 207.74, 121.43], [20, "40.0399", 375.48, 107.95], [31, "47.5963", 560, 98.12],
-    ]);
-    expect(curve.line).toBe("123.87,131.41 207.74,121.43 375.48,107.95 560,98.12");
-  });
-  it("scales the y axis to the largest exposure when it is above 100, and is empty without points", () => {
-    expect(concentrationCurve([{ stock_count: 4, exposure_pct: "120.0000" }]).points[0]).toEqual({ n: 4, pct: "120.0000", x: 560, y: 30 });
-    expect(concentrationCurve([])).toEqual({ points: [], line: "" });
-  });
-  it("links to the all-holdings card on the Holdings page", () => {
-    expect(allStocksPath()).toBe("/portfolio/mutual-funds/holdings#all-holdings");
-  });
-});
-
 
 it("T1.4 counts the equity funds analysed and names all funds not shown once", () => {
   const summary = Object.assign(fc.overlapSummary(), {

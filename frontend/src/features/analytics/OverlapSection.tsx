@@ -11,18 +11,7 @@ const BUTTON = "min-h-11 rounded-lg px-3 py-2 text-xs border border-[var(--color
 const pairKey = (a: string, b: string) => [a, b].sort().join(":");
 const compare = (a: string, b: string) => compareDecimalStrings(percentageProduct(a, "100"), percentageProduct(b, "100"));
 
-/** Activate attribute 06's existing full-table control within this view.
- * The -all aria-controls contract avoids changing the stock section or copying it.
- */
 const PRINT_PAIR_LIMIT = 15;
-
-export function openStockHoldings(root: HTMLElement | null) {
-  const button = root?.querySelector<HTMLButtonElement>('button[aria-controls$="-all"]');
-  if (!button) return;
-  if (button.getAttribute("aria-expanded") !== "true") button.click();
-  button.focus();
-  button.closest("section")?.scrollIntoView?.({ block: "start" });
-}
 
 function CommonStocks({ pair, limit }: { pair: OverlapPair; limit: number }) {
   return <div className="space-y-3">
@@ -37,8 +26,8 @@ function CommonStocks({ pair, limit }: { pair: OverlapPair; limit: number }) {
   </div>;
 }
 
-export function OverlapSection({ data, isLoading = false, onOpenStocks, className, printMode = false }: {
-  data: OverlapSummary | null; isLoading?: boolean; onOpenStocks?: () => void; className?: string; printMode?: boolean;
+export function OverlapSection({ data, isLoading = false, className, printMode = false }: {
+  data: OverlapSummary | null; isLoading?: boolean; className?: string; printMode?: boolean;
 }) {
   const id = useId();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -56,11 +45,6 @@ export function OverlapSection({ data, isLoading = false, onOpenStocks, classNam
   const select = (pair: OverlapPair) => setSelectedKey(prev => { const key = pairKey(pair.fund_a.scheme_id, pair.fund_b.scheme_id); return prev === key ? null : key; });
   const band = (value: string) => !data ? "low" : compare(value, data.bands.high) >= 0 ? "high" : compare(value, data.bands.low) >= 0 ? "moderate" : "low";
   const color = (value: string) => band(value) === "high" ? "var(--color-ink)" : band(value) === "moderate" ? "color-mix(in srgb, var(--color-warning) 55%, var(--color-surface))" : "color-mix(in srgb, var(--color-positive) 20%, var(--color-surface))";
-  const headline = data?.concentration.filter(p => p.stock_count <= 10).at(-1);
-  // Numeric conversions below are only SVG coordinates; labels and bands are exact.
-  const maxCount = data?.concentration.at(-1)?.stock_count ?? 1;
-  const maxPct = Math.max(100, ...(data?.concentration.map(p => Number(p.exposure_pct)) ?? []));
-  const points = data?.concentration.map(p => `${20 + p.stock_count / maxCount * 280},${110 - Number(p.exposure_pct) / maxPct * 90}`).join(" ");
   return <section id="overlap" aria-labelledby={`${id}-heading`} className={cn(CARD, "space-y-5", className)}>
     <h2 id={`${id}-heading`} className="font-display text-lg font-bold tracking-tight text-[var(--color-ink)]">Fund overlap</h2>
     {!data ? <p className="py-12 text-center text-sm text-[var(--color-text-secondary)]">No fund overlap data available</p> : <>
@@ -85,16 +69,6 @@ export function OverlapSection({ data, isLoading = false, onOpenStocks, classNam
           {printMode && data.pairs_above_low.length > PRINT_PAIR_LIMIT && <p className="text-xs text-[var(--color-text-secondary)]">Showing the {PRINT_PAIR_LIMIT} highest of {data.pairs_above_low.length} pairs; the full list is in the app.</p>}
         </div>
       </>}
-      <div className="border-t border-[var(--color-border)] pt-4 space-y-3">
-        <h3 className="text-sm font-semibold text-[var(--color-ink)]">Stock concentration</h3>
-        {!data.concentration.length ? <p className="text-xs text-[var(--color-text-secondary)]">No equity stocks disclosed for this selection</p> : <>
-          {!data.hide_headlines && headline && (printMode
-            ? <p className="font-semibold text-[var(--color-ink)]">Top {headline.stock_count} stocks represent {formatPercent(headline.exposure_pct)}% of your total MF portfolio</p>
-            : <button type="button" onClick={onOpenStocks} disabled={!onOpenStocks} className={cn(BUTTON, "text-left font-semibold text-[var(--color-ink)]")}>Top {headline.stock_count} stocks represent {formatPercent(headline.exposure_pct)}% of your total MF portfolio — view all stocks</button>)}
-          <button type="button" onClick={onOpenStocks} disabled={!onOpenStocks} aria-label="View concentration in full stock table" className="block w-full max-w-md rounded-lg focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"><svg viewBox="0 0 320 130" role="img" aria-label="Cumulative stock exposure curve" className="w-full max-w-md h-40"><polyline points={points} fill="none" stroke="var(--color-accent)" strokeWidth="3" /><line x1="20" x2="300" y1="110" y2="110" stroke="var(--color-border)" /></svg></button>
-          <ul aria-label="Concentration points" className="flex flex-wrap gap-2">{data.concentration.map(p => <li key={p.stock_count}><button type="button" onClick={onOpenStocks} disabled={!onOpenStocks} className={cn(BUTTON, "text-[var(--color-ink)] tabular-nums")}>{p.stock_count} stocks: {formatPercent(p.exposure_pct)}%</button></li>)}</ul>
-        </>}
-      </div>
     </>}
   </section>;
 }
