@@ -10,7 +10,6 @@ from sqlalchemy import event
 
 from app.models.enums import SchemePlanType
 from app.models.reference import NavHistory
-from app.services.analytics.category_ranking import category_period_averages
 from app.services.analytics.scheme_universe import CategoryPeers
 from app.services.fund_page.schemas import Unavailable
 from tests.services.fund_page.factories import (
@@ -186,7 +185,7 @@ def test_peers_computed_via_cache_second_call_does_not_reread_nav(db, monkeypatc
     assert nav_reads == after_first
 
 
-def test_category_1y_3y_5y_equal_category_ranking_averages(db, monkeypatch):
+def test_fund_page_category_1y_3y_5y_keeps_size_weighting(db, monkeypatch):
     from app.services.fund_page.peers import category_returns
 
     start_5y = date(2021, 10, 23)
@@ -205,18 +204,10 @@ def test_category_1y_3y_5y_equal_category_ranking_averages(db, monkeypatch):
     _clear_cache()
 
     result = asyncio.run(category_returns(db, peers[0], TODAY))
-    detailed = {
-        scheme.id: (annual, annual, annual, annual)
-        for scheme, annual in zip(peers, (Decimal("0.10"), Decimal("0.20"), Decimal("0.40")))
+    # (10% * 100 + 20% * 100 + 40% * 200) / 400 = 27.5% for each period.
+    assert {period: Decimal(result.category[period]) for period in ("1Y", "3Y", "5Y")} == {
+        "1Y": Decimal("27.5"), "3Y": Decimal("27.5"), "5Y": Decimal("27.5"),
     }
-    expected = category_period_averages(
-        detailed, {peers[0].id: Decimal("100"), peers[1].id: Decimal("100"), peers[2].id: Decimal("200")},
-    )
-
-    assert {
-        period: Decimal(result.category[period.upper()]) / Decimal("100")
-        for period in ("1y", "3y", "5y")
-    } == {period: value[0].quantize(Decimal("0.000001")) for period, value in expected.items()}
 
 
 def test_no_network_during_peer_pass(db, monkeypatch):

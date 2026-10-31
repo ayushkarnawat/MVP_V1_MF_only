@@ -677,3 +677,25 @@ def test_windows_survive_json_round_trip_through_analytics_sections():
         combined_fund_row.payload["comparison"]["funds"][0]["windows"][0]["fund_xirr"],
         str,
     )
+
+
+
+def test_category_comparison_writer_drops_the_retired_fields_from_stored_payload():
+    from app.services.analytics.schemas import CategoryRankRow, PeriodReturn
+    db = _session()
+    user, members = _user_with_members(db, n_members=1)
+    # A previous payload still parses, but a fresh write contains only the current fields.
+    row = CategoryRankRow.model_validate({
+        "scheme_id": str(uuid.uuid4()), "scheme_name": "Synthetic fund", "sebi_category": "Flexi Cap",
+        "category_unavailable": False, "insufficient_history": False, "thin_category": True,
+        "category_avg_return": ".2176", "category_rank": 1, "percentile": "80", "category_size": 5,
+        "scheme_return": ".168", "periods": {"1y": PeriodReturn(fund_return=".10", category_avg=".30", peers=5)},
+    })
+    _upsert_section(db, user.id, str(members[0].id), members[0].id, "category_ranking", CategoryRankingSummary(funds=[row]))
+    db.commit()
+    stored = db.query(AnalyticsSection).one()
+    assert stored.section == "category_ranking"
+    saved = stored.payload["funds"][0]
+    assert {"category_rank", "percentile", "category_size", "scheme_return"}.isdisjoint(saved)
+    assert saved["periods"]["1y"] == {"fund_return": ".10", "category_avg": ".30", "peers": 5}
+    db.close()

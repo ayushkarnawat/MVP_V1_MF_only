@@ -246,20 +246,14 @@ class PeriodReturn(BaseModel):
 
 
 class CategoryRankRow(BaseModel):
-    """PRD-04 FR-3/FR-4 — one held scheme's blended-CAGR rank within its
-    full SEBI-category peer universe, plus that category's AUM-weighted
-    average return (see category_ranking.py's module docstring for the
-    blend-weight judgment call)."""
+    """One held fund's returns against simple category-and-plan means."""
 
     scheme_id: str
     scheme_name: str
     sebi_category: str | None
     category_unavailable: bool
     insufficient_history: bool
-    scheme_return: str | None
-    category_rank: int | None
-    category_size: int
-    percentile: str | None
+    # Legacy blended mean for desktop/print/phone views until the cleanup release.
     category_avg_return: str | None
     thin_category: bool
     periods: dict[str, PeriodReturn] = Field(default_factory=dict)

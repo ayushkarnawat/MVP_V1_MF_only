@@ -359,7 +359,7 @@ def test_finish_fund_score_clamps_cost_adjustment_to_valid_range(
     }
 
     with (
-        patch("app.services.analytics.scorer._rank_and_percentile", return_value=(1, percentile)),
+        patch("app.services.analytics.scorer._score_rank_and_percentile", return_value=(1, percentile)),
         patch(
             "app.services.analytics.scorer._cost_adjustment_from_context",
             return_value=cost_adjustment,
@@ -642,3 +642,16 @@ def test_thin_category_counts_funds_with_returns_like_category_ranking():
     ):
         row = asyncio.run(compute_fund_score(db, held))
     assert row.thin_category is True  # 4 funds with returns, though 7 funds are in the peer set
+
+
+def test_score_rank_helper_matches_the_original_fixed_input():
+    import app.services.analytics.scorer as scorer
+    helper = getattr(scorer, "_score_rank_and_percentile", None)
+    assert helper is not None, "the category helper must move into the Scorer"
+    ids = [uuid.UUID(int=i) for i in range(1, 5)]
+    values = dict(zip(ids, map(Decimal, (".3", ".1", ".2", ".05"))))
+    assert helper(values, ids[0]) == (1, Decimal("75"))
+    assert helper(values, ids[2]) == (2, Decimal("50"))
+    assert helper(values, ids[3]) == (4, Decimal("0"))
+    assert helper(values, uuid.UUID(int=99)) is None
+    assert helper({}, ids[0]) is None

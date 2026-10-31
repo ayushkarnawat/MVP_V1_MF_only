@@ -683,3 +683,30 @@ def test_loader_output_builds_the_hand_fixture_cards(db_session):
         ("underperforming", "Gamma Small"),
         ("concentration", None),
     ]
+
+
+@pytest.mark.parametrize("scope", ["aggregate", "member"])
+def test_home_worth_a_look_still_gets_1y_return_and_1y_category_average(db_session, scope):
+    import asyncio
+    from unittest.mock import AsyncMock
+    import app.services.analytics.category_ranking as category
+    from app.services.analytics.scheme_universe import CategoryPeers
+    user, member = _household(db_session)
+    held, peer = _scheme(db_session), _scheme(db_session, "Peer")
+    holding = _holding(member, held)
+    detailed = {held.id: (Decimal(".05"), Decimal(".12"), None, Decimal(".12")),
+                peer.id: (Decimal(".19"), Decimal(".22"), None, Decimal(".22"))}
+    peers = CategoryPeers(schemes=[held, peer], fund_count=2, representative_of={held.id: held.id, peer.id: peer.id})
+    with patch.object(category, "compute_holdings", new=AsyncMock(return_value=[holding])), \
+         patch.object(category, "get_category_peers", new=AsyncMock(return_value=peers)), \
+         patch.object(category, "_category_returns_detailed", new=AsyncMock(return_value=detailed)):
+        summary = asyncio.run(category.compute_category_ranking(db_session, [member.id]))
+    payload = AggregateCategoryRankingResponse(members=[], ranking=summary) if scope == "aggregate" else summary
+    _upsert_section(db_session, user.id, "combined" if scope == "aggregate" else str(member.id),
+                    None if scope == "aggregate" else member.id, "category_ranking", payload)
+    db_session.commit()
+    fact = load_worth_facts(db_session, user.id, scope=scope, household_member_ids=[member.id], holdings=[holding]).funds[0]
+    # Hand worked 1Y average: (5% + 19%)/2 = 12%, without any AAUM rows.
+    assert fact.return_1y == Decimal(".05")
+    assert fact.category_avg_1y == Decimal(".12")
+    assert build_worth_cards([fact], None)[0].kind == "underperforming"

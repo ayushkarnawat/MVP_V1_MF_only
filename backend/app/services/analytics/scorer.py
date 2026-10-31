@@ -26,7 +26,6 @@ from app.services.analytics.category_ranking import (
     _aum_weighted_average,
     _category_returns,
     _latest_aaum_by_scheme,
-    _rank_and_percentile,
 )
 from app.services.analytics.risk_metrics import (
     build_monthly_series_bulk,
@@ -86,6 +85,16 @@ def _tier_from_percentile(percentile: Decimal) -> int:
     return 1
 
 
+def _score_rank_and_percentile(returns: dict[uuid.UUID, Decimal], scheme_id: uuid.UUID) -> tuple[int, Decimal] | None:
+    if scheme_id not in returns:
+        return None
+    ordered = sorted(returns, key=lambda k: returns[k], reverse=True)
+    rank = ordered.index(scheme_id) + 1
+    total = len(ordered)
+    percentile = Decimal(total - rank) / Decimal(total) * Decimal(100)
+    return rank, percentile
+
+
 async def _category_component_scores(
     db: Session, universe: list[Scheme], cache_key: str | tuple, today: date
 ) -> dict[uuid.UUID, dict[str, Decimal | None]]:
@@ -140,7 +149,7 @@ async def _compute_category_component_scores(
     for scheme_id, series in series_by_scheme.items():
         deviation = compute_downside_deviation(monthly_returns(series))
         if deviation is not None:
-            # Lower deviation is safer -> negate so `_rank_and_percentile`'s
+            # Lower deviation is safer -> negate so `_score_rank_and_percentile`'s
             # "higher value ranks better" ordering favors the lowest
             # deviation.
             downside_by_scheme[scheme_id] = -deviation
@@ -158,9 +167,9 @@ async def _compute_category_component_scores(
 
     scores: dict[uuid.UUID, dict[str, Decimal | None]] = {}
     for scheme_id in returns:
-        return_rank = _rank_and_percentile(returns, scheme_id)
+        return_rank = _score_rank_and_percentile(returns, scheme_id)
         risk_rank = (
-            _rank_and_percentile(downside_by_scheme, scheme_id)
+            _score_rank_and_percentile(downside_by_scheme, scheme_id)
             if scheme_id in downside_by_scheme
             else None
         )
@@ -280,7 +289,7 @@ async def _finish_fund_score(
     composite_by_scheme = {
         sid: s["composite"] for sid, s in scores.items() if s["composite"] is not None
     }
-    composite_rank = _rank_and_percentile(composite_by_scheme, series.id)
+    composite_rank = _score_rank_and_percentile(composite_by_scheme, series.id)
     if composite_rank is None:
         return _empty_row(scheme, category_unavailable=False, insufficient_history=True)
 

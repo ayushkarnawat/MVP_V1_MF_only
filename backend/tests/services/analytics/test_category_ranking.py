@@ -20,7 +20,6 @@ from app.services.analytics.category_ranking import (
     _blend_returns,
     _cagr,
     _category_returns,
-    _rank_and_percentile,
     compute_category_ranking,
 )
 
@@ -135,18 +134,6 @@ def test_blend_returns_weights_3yr_40_and_5yr_60():
     assert result == Decimal("0.4") * Decimal("0.20") + Decimal("0.6") * Decimal("0.10")
 
 
-def test_rank_and_percentile_orders_descending_by_return():
-    ids = [uuid.uuid4() for _ in range(4)]
-    returns = {ids[0]: Decimal("0.30"), ids[1]: Decimal("0.10"), ids[2]: Decimal("0.20"), ids[3]: Decimal("0.05")}
-    rank, percentile = _rank_and_percentile(returns, ids[2])
-    assert rank == 2
-    assert percentile == Decimal("50")
-
-
-def test_rank_and_percentile_returns_none_when_scheme_not_in_pool():
-    assert _rank_and_percentile({}, uuid.uuid4()) is None
-
-
 def test_aum_weighted_average_weights_by_aum():
     id1, id2 = uuid.uuid4(), uuid.uuid4()
     returns = {id1: Decimal("0.10"), id2: Decimal("0.20")}
@@ -182,7 +169,7 @@ def test_compute_category_ranking_marks_category_unavailable():
     assert row.sebi_category is None
 
 
-def test_compute_category_ranking_ranks_against_peers_not_thin():
+def test_compute_category_ranking_compares_all_peers_not_thin():
     db = _session()
     member = _household_member(db)
     held = _scheme(db, "Held Fund")
@@ -203,10 +190,9 @@ def test_compute_category_ranking_ranks_against_peers_not_thin():
     row = summary.funds[0]
     assert row.category_unavailable is False
     assert row.insufficient_history is False
-    assert row.category_rank == 1
-    assert row.category_size == 5
+    assert row.periods["3y"].peers == 5
     assert row.thin_category is False
-    assert Decimal(row.percentile) == Decimal("80")
+    assert Decimal(row.periods["3y"].fund_return) == _cagr(Decimal("10"), Decimal("13"), 3)
 
 
 def test_compute_category_ranking_flags_thin_category():
@@ -226,7 +212,7 @@ def test_compute_category_ranking_flags_thin_category():
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
     row = summary.funds[0]
-    assert row.category_size == 2
+    assert row.periods["3y"].peers == 2
     assert row.thin_category is True
 
 
@@ -254,7 +240,7 @@ def test_compute_category_ranking_blends_3yr_and_5yr_when_both_available():
     r3 = _cagr(Decimal("13"), Decimal("20"), 3)
     r5 = _cagr(Decimal("10"), Decimal("20"), 5)
     expected = Decimal("0.4") * r3 + Decimal("0.6") * r5
-    assert Decimal(row.scheme_return) == expected
+    assert Decimal(row.category_avg_return) == (expected + 4 * _cagr(Decimal("10"), Decimal("11"), 3)) / 5
 
 
 def test_compute_category_ranking_insufficient_history_for_held_scheme():
@@ -277,11 +263,10 @@ def test_compute_category_ranking_insufficient_history_for_held_scheme():
 
     row = summary.funds[0]
     assert row.insufficient_history is True
-    assert row.scheme_return is None
-    assert row.category_rank is None
+    assert row.periods == {}
 
 
-def test_compute_category_ranking_category_avg_none_without_aaum_data():
+def test_compute_category_ranking_category_avg_available_without_aaum_data():
     db = _session()
     member = _household_member(db)
     held = _scheme(db, "Held Fund")
@@ -293,10 +278,10 @@ def test_compute_category_ranking_category_avg_none_without_aaum_data():
     with p1, p2, p3, _mock_universe([held]):
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
-    assert summary.funds[0].category_avg_return is None
+    assert Decimal(summary.funds[0].category_avg_return) == _cagr(Decimal("10"), Decimal("13"), 3)
 
 
-def test_compute_category_ranking_uses_aum_weighted_average():
+def test_compute_category_ranking_uses_simple_average_despite_unequal_aum():
     db = _session()
     member = _household_member(db)
     held = _scheme(db, "Held Fund")
@@ -319,7 +304,7 @@ def test_compute_category_ranking_uses_aum_weighted_average():
     row = summary.funds[0]
     held_return = _cagr(Decimal("10"), Decimal("13"), 3)
     peer_return = _cagr(Decimal("10"), Decimal("12"), 3)
-    expected = (held_return * Decimal("100") + peer_return * Decimal("300")) / Decimal("400")
+    expected = (held_return + peer_return) / Decimal("2")
     assert Decimal(row.category_avg_return) == expected
 
 
@@ -528,9 +513,8 @@ def test_category_ranking_idcw_uses_growth_representative():
     with p1, p2, p3, patch("app.services.analytics.category_ranking.get_category_peers", new=AsyncMock(return_value=peers)):
         row = asyncio.run(compute_category_ranking(db, [member.id])).funds[0]
     assert row.scheme_id == str(held.id)
-    assert row.category_rank == 1
-    assert row.category_size == 2
-    assert Decimal(row.scheme_return) > Decimal("0")
+    assert row.periods["3y"].peers == 2
+    assert Decimal(row.periods["3y"].fund_return) == _cagr(Decimal("10"), Decimal("13"), 3)
 
 
 @pytest.mark.parametrize("bad", [Decimal("0"), Decimal("-1")])
@@ -566,22 +550,22 @@ def test_category_returns_cache_keeps_full_universe_and_plan_peers_separate():
     assert regular == {sid: values[3] for sid, values in results[2].items()}
 
 
-def test_category_period_averages_weights_each_period_by_aum():
+def test_category_period_averages_weights_each_fund_equally():
     from app.services.analytics.category_ranking import category_period_averages
 
     a, b = uuid.uuid4(), uuid.uuid4()
     detailed = {a: (Decimal("0.10"), Decimal("0.12"), Decimal("0.14"), Decimal("0.132")),
                 b: (Decimal("0.20"), Decimal("0.22"), None, Decimal("0.22"))}
-    assert category_period_averages(detailed, {a: Decimal("300"), b: Decimal("100")}) == {
-        "1y": (Decimal("0.125"), 2), "3y": (Decimal("0.145"), 2), "5y": (Decimal("0.14"), 1),
+    assert category_period_averages(detailed) == {
+        "1y": (Decimal("0.15"), 2), "3y": (Decimal("0.17"), 2), "5y": (Decimal("0.14"), 1),
     }
 
 
-def test_category_period_averages_are_none_without_aum_but_still_count_peers():
+def test_category_period_averages_include_negative_returns_without_aum():
     from app.services.analytics.category_ranking import category_period_averages
 
     detailed = {uuid.uuid4(): (None, Decimal("-0.12"), None, Decimal("-0.12"))}
-    assert category_period_averages(detailed, {}) == {"1y": (None, 0), "3y": (None, 1), "5y": (None, 0)}
+    assert category_period_averages(detailed) == {"1y": (None, 0), "3y": (Decimal("-0.12"), 1), "5y": (None, 0)}
 
 
 def test_category_period_averages_count_return_peers_even_if_some_lack_aum():
@@ -590,8 +574,8 @@ def test_category_period_averages_count_return_peers_even_if_some_lack_aum():
     a, b = uuid.uuid4(), uuid.uuid4()
     detailed = {a: (Decimal("0"), Decimal("-0.12"), None, Decimal("-0.12")),
                 b: (Decimal("0.2"), Decimal("0.22"), None, Decimal("0.22"))}
-    assert category_period_averages(detailed, {a: Decimal("300")}) == {
-        "1y": (Decimal("0"), 2), "3y": (Decimal("-0.12"), 2), "5y": (None, 0),
+    assert category_period_averages(detailed) == {
+        "1y": (Decimal("0.1"), 2), "3y": (Decimal("0.05"), 2), "5y": (None, 0),
     }
 
 
@@ -623,9 +607,9 @@ def test_compute_category_ranking_carries_the_three_periods_for_the_held_fund():
     row = _period_category_row()
     assert set(row.periods) == {"1y", "3y", "5y"}
     assert row.periods["3y"].fund_return == "0.12"
-    assert row.periods["3y"].category_avg == "0.145"
+    assert row.periods["3y"].category_avg == "0.17"
     assert row.periods["3y"].peers == 2
-    assert row.scheme_return == "0.132"  # Existing blended rank basis is unchanged.
+    assert row.category_avg_return == "0.182"  # Legacy simple mean of the two blended returns.
 
 
 def test_a_fund_with_no_5y_shows_no_fund_return_but_keeps_the_category_average():
@@ -683,3 +667,111 @@ def test_period_return_and_old_category_payload_defaults():
     original = _period_category_row().model_dump(exclude={"periods", "plan_type"})
     restored = CategoryRankRow.model_validate(original)
     assert restored.periods == {} and restored.plan_type is None
+
+
+# T2.7: all averages below are fractions, never percentage-point inputs.
+def _five_fund_comparison():
+    from app.models.enums import SchemePlanType
+    db = _session()
+    member = _household_member(db)
+    funds = [_scheme(db, f"Golden {i}") for i in range(5)]
+    for fund in funds:
+        fund.plan_type = SchemePlanType.DIRECT
+    _folio_with_purchase(db, member, funds[0], Decimal("1000"), Decimal("100"), Decimal("10"), _START_3Y)
+    # Hand worked: 1Y=(10+20+30+40+50)/5=30%;
+    # 3Y=(12+14+16+18+20)/5=16%; 5Y=(20+30+40)/3=30%.
+    # Blends are 16.8%, 23.6%, 30.4%, 18%, 20%; mean=21.76%.
+    raw = [(".10", ".12", ".20"), (".20", ".14", ".30"), (".30", ".16", ".40"),
+           (".40", ".18", None), (".50", ".20", None)]
+    detailed = {fund.id: (Decimal(r1), Decimal(r3), Decimal(r5) if r5 else None,
+                          _blend_returns(Decimal(r3), Decimal(r5) if r5 else None))
+                for fund, (r1, r3, r5) in zip(funds, raw)}
+    # Very unequal sizes, and the fifth fund has no AAUM. Neither may affect the mean.
+    for fund, size in zip(funds, ("900", "30", "20", "10")):
+        db.add(SchemeAaum(scheme_id=fund.id, reference_period=_TODAY, aaum_value=Decimal(size)))
+    db.commit()
+    p1, p2, p3 = _mock_nav({funds[0].id: {"today": Decimal("13")}})
+    with p1, p2, p3, _mock_universe(funds), \
+         patch.object(category_ranking_module, "_category_returns_detailed", new=AsyncMock(return_value=detailed)), \
+         patch.object(category_ranking_module, "_latest_aaum_by_scheme", wraps=category_ranking_module._latest_aaum_by_scheme) as sizes:
+        row = asyncio.run(compute_category_ranking(db, [member.id])).funds[0]
+    db.close()
+    return row, sizes.call_count
+
+
+def test_payload_has_no_rank_percentile_or_category_size():
+    row, _ = _five_fund_comparison()
+    assert {"category_rank", "percentile", "category_size", "scheme_return"}.isdisjoint(row.model_dump())
+
+
+def test_simple_average_golden_on_a_five_fund_category():
+    row, size_queries = _five_fund_comparison()
+    assert {key: (Decimal(value.category_avg), value.peers) for key, value in row.periods.items()} == {
+        "1y": (Decimal(".30"), 5), "3y": (Decimal(".16"), 5), "5y": (Decimal(".30"), 3),
+    }
+    assert row.plan_type == "direct"
+    assert size_queries == 0
+
+
+def test_legacy_category_average_is_the_simple_blended_mean():
+    row, _ = _five_fund_comparison()
+    assert Decimal(row.category_avg_return) == Decimal(".2176")
+
+
+def test_fund_with_no_size_figure_is_no_longer_dropped():
+    from app.services.analytics.category_ranking import category_period_averages
+    detailed = {uuid.uuid4(): (Decimal(".10"), Decimal(".20"), None, Decimal(".20")),
+                uuid.uuid4(): (Decimal(".30"), Decimal(".40"), None, Decimal(".40"))}
+    assert category_period_averages(detailed) == {
+        "1y": (Decimal(".20"), 2), "3y": (Decimal(".30"), 2), "5y": (None, 0),
+    }
+
+
+def test_fund_under_3_years_is_left_out_of_every_period():
+    from app.services.analytics.category_ranking import category_period_averages
+    db = _session()
+    old, young = _scheme(db, "Old"), _scheme(db, "Young")
+    navs = {old.id: {_TODAY: Decimal("20"), years_ago(_TODAY, 1): Decimal("10"), _START_3Y: Decimal("10")},
+            young.id: {_TODAY: Decimal("100"), years_ago(_TODAY, 1): Decimal("10")}}
+    with patch.object(category_ranking_module, "warm_nav_history", new=AsyncMock()), \
+         patch.object(category_ranking_module, "_bulk_nav_on_or_before", return_value=navs):
+        detailed = asyncio.run(category_ranking_module._category_returns_detailed(db, [old, young], _TODAY))
+    assert set(detailed) == {old.id}
+    assert category_period_averages(detailed)["1y"] == (Decimal("1"), 1)
+    # Even an opt-in short-history result cannot leak into category averages.
+    detailed[young.id] = (Decimal("9"), None, None, None)
+    assert category_period_averages(detailed)["1y"] == (Decimal("1"), 1)
+    db.close()
+
+
+def test_blended_helper_still_feeds_the_score():
+    import app.services.analytics.scorer as scorer
+    db = _session()
+    fund = _scheme(db)
+    navs = {fund.id: {_TODAY: Decimal("20"), _START_3Y: Decimal("10"), _START_5Y: Decimal("8")}}
+    with patch.object(category_ranking_module, "warm_nav_history", new=AsyncMock()), \
+         patch.object(category_ranking_module, "_bulk_nav_on_or_before", return_value=navs), \
+         patch.object(scorer, "build_monthly_series_bulk", return_value={fund.id: []}):
+        score = asyncio.run(scorer._compute_category_component_scores(db, [fund], _TODAY))[fund.id]
+    expected = Decimal(".4") * _cagr(Decimal("10"), Decimal("20"), 3) + Decimal(".6") * _cagr(Decimal("8"), Decimal("20"), 5)
+    assert score["scheme_return"] == expected
+    db.close()
+
+
+def test_no_module_imports_rank_and_percentile():
+    import ast
+    from pathlib import Path
+    assert not hasattr(category_ranking_module, "_rank_and_percentile")
+    for path in (Path(__file__).resolve().parents[3] / "app").rglob("*.py"):
+        for node in ast.walk(ast.parse(path.read_text())):
+            if isinstance(node, ast.ImportFrom) and node.module and node.module.endswith("category_ranking"):
+                assert all(alias.name != "_rank_and_percentile" for alias in node.names), str(path)
+
+
+def test_old_category_fields_are_ignored_when_a_payload_is_parsed():
+    from app.services.analytics.schemas import CategoryRankRow
+    row, _ = _five_fund_comparison()
+    old = row.model_dump() | {"category_rank": 4, "percentile": "50", "category_size": 8, "scheme_return": ".99"}
+    restored = CategoryRankRow.model_validate(old)
+    assert {"category_rank", "percentile", "category_size", "scheme_return"}.isdisjoint(restored.model_dump())
+    assert restored.periods == row.periods

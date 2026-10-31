@@ -1,27 +1,9 @@
-"""Category ranking (FR-3) and AUM-weighted category-average comparison
-(FR-4) — PRD-04. Ranks each held scheme against its full SEBI-category
-peer universe (`scheme_universe.py`) by a blended 3yr/5yr CAGR, and shows
-the category's AUM-weighted average return alongside it.
+"""Category Average Comparison: simple means within each category and plan.
 
-**Blend-weight judgment call**, flagged per CLAUDE.md's "stop and say so":
-the design doc's Resolved Open Questions only fixes the *inputs* ("3-year
-minimum to qualify... 5-year blended in once available... no 10-year
-window"), not the blend weights. Morningstar's published overall-rating
-methodology weights 3/5/10yr periods 20/30/50 when all three exist; with
-no 10yr window here, normalizing away that unused weight gives 3yr=40%,
-5yr=60% — used here as the blend when both windows are available. A
-scheme with only a 3yr history uses 100% 3yr.
-
-FR-3's own wording ("rank... using a defined return window... CAGR") is a
-plain return-based rank — not FR-5a's downside-weighted, risk-adjusted
-Scorer tier (a separate, later build step, depends on this one). Category-
-universe NAV lookups reuse `dashboard/nav.py`'s on-demand fetch-and-cache
-(same production caveat as holdings: a real deployment pre-warms this via
-a scheduled job, not a fetch-per-request) — `_category_returns` warms the
-whole peer universe concurrently via `warm_nav_history` first (live-verified
-2026-08-14: without this, a 100+ scheme category meant 100+ *sequential*
-live network round-trips and a multi-minute hang on first load), then reads
-NAVs from the now-local cache in its per-scheme loop.
+The 3-year eligibility floor applies to every displayed period. Internal
+return helpers also serve the Fund Quality Score: its blend remains 40% 3Y
+and 60% 5Y when both exist, otherwise 100% 3Y. Performance Ranking opts into
+short histories without changing this default or adding a second NAV pass.
 """
 
 from __future__ import annotations
@@ -208,16 +190,6 @@ async def _category_returns_detailed(
     return all_periods if include_short_history else returns
 
 
-def _rank_and_percentile(returns: dict[uuid.UUID, Decimal], scheme_id: uuid.UUID) -> tuple[int, Decimal] | None:
-    if scheme_id not in returns:
-        return None
-    ordered = sorted(returns, key=lambda k: returns[k], reverse=True)
-    rank = ordered.index(scheme_id) + 1
-    total = len(ordered)
-    percentile = Decimal(total - rank) / Decimal(total) * Decimal(100)
-    return rank, percentile
-
-
 def _aum_weighted_average(
     returns: dict[uuid.UUID, Decimal], aaum_by_scheme: dict[uuid.UUID, Decimal]
 ) -> Decimal | None:
@@ -246,14 +218,24 @@ def _latest_aaum_by_scheme(db: Session, scheme_ids: list[uuid.UUID]) -> dict[uui
     return {scheme_id: value for scheme_id, (_, value) in latest.items()}
 
 
+def _simple_average(values) -> Decimal | None:
+    values = list(values)
+    return sum(values, Decimal("0")) / Decimal(len(values)) if values else None
+
+
 def category_period_averages(
-    detailed: dict[uuid.UUID, tuple[Decimal | None, Decimal, Decimal | None, Decimal]],
-    aaum_by_scheme: dict[uuid.UUID, Decimal],
+    detailed: dict[uuid.UUID, tuple[Decimal | None, Decimal | None, Decimal | None, Decimal | None]],
 ) -> dict[str, tuple[Decimal | None, int]]:
+    """Simple per-period means, always subject to the 3Y eligibility floor.
+
+    The caller supplies one category and plan type's Growth representatives.
+    Size data is deliberately neither requested nor used.
+    """
+    eligible = [values for values in detailed.values() if values[1] is not None]
     averages = {}
     for period, index in (("1y", 0), ("3y", 1), ("5y", 2)):
-        pool = {sid: values[index] for sid, values in detailed.items() if values[index] is not None}
-        averages[period] = (_aum_weighted_average(pool, aaum_by_scheme), len(pool))
+        pool = [values[index] for values in eligible if values[index] is not None]
+        averages[period] = (_simple_average(pool), len(pool))
     return averages
 
 
@@ -269,9 +251,10 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
     }
 
     today = date.today()
-    returns_by_category: dict[tuple, dict[uuid.UUID, Decimal]] = {}
     detailed_by_category: dict[tuple, dict] = {}
     peers_by_category: dict[tuple, CategoryPeers] = {}
+    averages_by_category: dict[tuple, dict] = {}
+    legacy_average_by_category: dict[tuple, Decimal | None] = {}
     rows: list[CategoryRankRow] = []
 
     for scheme_id_str in unique_scheme_ids:
@@ -285,10 +268,6 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
                     sebi_category=None,
                     category_unavailable=True,
                     insufficient_history=False,
-                    scheme_return=None,
-                    category_rank=None,
-                    category_size=0,
-                    percentile=None,
                     category_avg_return=None,
                     thin_category=False,
                     plan_type=scheme.plan_type.value if scheme.plan_type is not None else None,
@@ -297,19 +276,23 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
             continue
 
         key = (canonical_category(sebi_category), scheme.plan_type)
-        if key not in returns_by_category:
+        if key not in detailed_by_category:
             peers = await get_category_peers(db, sebi_category, scheme.plan_type)
             peers_by_category[key] = peers
             detailed_by_category[key] = await _category_returns_detailed(db, peers.schemes, today, cache_key=("peers", *key))
-            returns_by_category[key] = {sid: values[3] for sid, values in detailed_by_category[key].items()}
-        returns = returns_by_category[key]
+            averages_by_category[key] = category_period_averages(detailed_by_category[key])
+            # Legacy: kept for desktop/print/phone views until the cleanup release.
+            # Same eligible category-and-plan pool as the period averages; no size weighting.
+            legacy_average_by_category[key] = _simple_average(
+                values[3] for values in detailed_by_category[key].values()
+                if values[1] is not None and values[3] is not None
+            )
         rep_id = peers_by_category[key].representative_of.get(scheme.id)
-        scheme_return = returns.get(rep_id)
-        rank_info = _rank_and_percentile(returns, rep_id) if rep_id else None
-        aaum_by_scheme = _latest_aaum_by_scheme(db, list(returns.keys()))
-        category_avg = _aum_weighted_average(returns, aaum_by_scheme)
-        period_averages = category_period_averages(detailed_by_category[key], aaum_by_scheme)
         own = detailed_by_category[key].get(rep_id)
+        if own is not None and own[1] is None:
+            own = None
+        period_averages = averages_by_category[key]
+        category_avg = legacy_average_by_category[key]
         periods = {
             period: PeriodReturn(
                 fund_return=str(own[index]) if own[index] is not None else None,
@@ -325,13 +308,9 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
                 scheme_name=scheme.name,
                 sebi_category=sebi_category,
                 category_unavailable=rep_id is None,
-                insufficient_history=rep_id is not None and scheme_return is None,
-                scheme_return=str(scheme_return) if scheme_return is not None else None,
-                category_rank=rank_info[0] if rank_info else None,
-                category_size=len(returns),
-                percentile=str(rank_info[1]) if rank_info else None,
+                insufficient_history=rep_id is not None and own is None,
                 category_avg_return=str(category_avg) if category_avg is not None else None,
-                thin_category=len(returns) < _THIN_CATEGORY_THRESHOLD,
+                thin_category=period_averages["3y"][1] < _THIN_CATEGORY_THRESHOLD,
                 periods=periods,
                 plan_type=scheme.plan_type.value if scheme.plan_type is not None else None,
             )
