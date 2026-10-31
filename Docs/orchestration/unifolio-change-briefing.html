@@ -1664,8 +1664,8 @@ sudo docker compose run --rm -T backend python scripts/measure_fund_page_staging
         <div class="tblwrap"><table class="tbl"><thead><tr><th>House</th><th>File</th><th>Reader accepts it (read-only probe)</th><th>What happens</th></tr></thead><tbody>
           <tr><td>Sundaram</td><td>30 Sep, 100 pages</td><td>Yes</td><td>Imported for this month only (Task 1.5b)</td></tr>
           <tr><td>Angel One</td><td>30 Sep, 30 pages</td><td>Yes</td><td>Same</td></tr>
-          <tr><td>SBI</td><td>Active and passive, 30 Sep</td><td>Active yes; <b>passive no</b> (manager layout changed)</td><td>Reader fix, then import</td></tr>
-          <tr><td>Mahindra</td><td>All schemes, 30 Sep</td><td><b>No</b> (manager layout changed)</td><td>Reader fix, then import</td></tr>
+          <tr><td>SBI</td><td>Active and passive, 30 Sep</td><td>Active yes; passive fixed 31 Oct (35 scheme pages)</td><td>Import for this month only</td></tr>
+          <tr><td>Mahindra</td><td>All schemes, 30 Sep</td><td>Fixed 31 Oct (27 scheme pages)</td><td>Import for this month only</td></tr>
           <tr><td>Axis</td><td>none</td><td>-</td><td>Stays on 31 Aug until a file is found</td></tr>
         </tbody></table></div>
         <p><b>This-month-only import:</b> the registry is not changed. A flag on the import command lets the four houses be imported once; next month the automatic job is tried again, and only a second failed month moves a house to manual. The import must actually be run at the staging deploy and checked in the live app (a Sundaram fund must show its managers).</p>

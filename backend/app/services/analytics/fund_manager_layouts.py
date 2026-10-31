@@ -776,6 +776,16 @@ def sbi_managers(page: str) -> list[dict] | None:
         for m in re.finditer(pattern, block.group(1)):
             managers.append(dict(name=_clean_name(m.group(1)), role=(m.group(2) or m.group(3) or m.group(4) or "").strip() or None, since_raw=m.group(5)))
         return managers or None
+    # September 2026 passive file: "Name of Fund Managers Mr. X Total Experience Over 19 Years
+    # Managing Since March 2026 AUM as on ..." (names and values now follow the caption directly,
+    # no longer under a "Total Experience Managing Since" column header).
+    passive = re.search(r"Name of Fund Managers?\s+((?:(?:Mr|Ms)\.? .*?)?)\s*AUM as on", text)
+    if passive:
+        pattern = r"((?:Mr|Ms)\.? [A-Za-z. ]+?)\s+Total Experience (?:Over )?\d+ [Yy]ears?\s+Managing Since\s+([A-Za-z]+ \d{4})"
+        managers = [dict(name=_clean_name(m.group(1)), role=None, since_raw=m.group(2))
+                    for m in re.finditer(pattern, passive.group(1))]
+        if managers:
+            return managers
     if "Fund Managers" in page or "Fund Manager" in page:
         # One scheme per page. Explicit name/Managing captions identify each
         # manager; the co-manager caption supplies the role, never text order.
@@ -807,8 +817,23 @@ def _mahindra_heading(page: str) -> str:
 
 
 def mahindra_managers(page: str) -> list[dict] | None:
-    return [dict(name=_clean_name(m.group(2)), role=m.group(1), since_raw=m.group(3))
-            for m in re.finditer(r"Fund Manager(?: \((Equity|Debt)\))?\s*:\s*((?:Mr|Ms)\.?\s*[A-Za-z. ]+?)\s*Total Experience:[^()]*\([Mm]anaging since ([A-Za-z]+ \d{1,2}, \d{4})\.?\)", page)] or None
+    old = [dict(name=_clean_name(m.group(2)), role=m.group(1), since_raw=m.group(3))
+           for m in re.finditer(r"Fund Manager(?: \((Equity|Debt)\))?\s*:\s*((?:Mr|Ms)\.?\s*[A-Za-z. ]+?)\s*Total Experience:[^()]*\([Mm]anaging since ([A-Za-z]+ \d{1,2}, \d{4})\.?\)", page)]
+    if old:
+        return old
+    # September 2026 layout: "Fund Manager: Mr. X Total Experience: 20 years Managing Since: 25-Sep-26 Mr. Y ..."
+    # (a second block can read "Name of Fund Manager:"; some pages kern it as "M anaging Since"). Every person
+    # in a block takes that block's "(Equity)" or "(Debt)" role, if it has one.
+    text = " ".join(page.split())
+    person = re.compile(r"((?:Mr|Ms)\.? [A-Za-z. ]+?)\s+Total Experience:\s*\d+ years\s+M ?anaging Since:\s*(\d{1,2}-[A-Za-z]{3}-\d{2,4})")
+    managers = []
+    for block in re.split(r"(?=Fund Manager(?: \((?:Equity|Debt)\))?\s*:|Name of Fund Managers?\s*:)", text):
+        head = re.match(r"Fund Manager(?: \((Equity|Debt)\))?\s*:|Name of Fund Managers?\s*:", block)
+        if not head:
+            continue
+        block = block.split("Fund Manager Details")[0]
+        managers += [dict(name=_clean_name(m.group(1)), role=head.group(1), since_raw=m.group(2)) for m in person.finditer(block)]
+    return managers or None
 
 
 def _motilal_name(raw: str) -> str:

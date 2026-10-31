@@ -14,7 +14,7 @@
 | G6 terms (S10) | **Closed by owner** | Owner decision 31 Oct: staging unchanged, written request to NSE Indices separately, policy note before production | none |
 | G7 sources / S6 | **Partly answered** | NSE list and detail addresses work (200, 31 Oct); detail has no equity/book value; XBRL zip not opened | Task 2.12 starts with the XBRL check (owner-approved download); if no equity there, Phase C stays on labelled fallbacks |
 | G8 Axis file | **Open (named fallback)** | Owner could not find an October-issue Axis file; staging holds Axis rows from the 12 Oct import of 31 Aug data | Axis stays on 31 Aug data; owner supplies a file later; hand import command is unchanged for Axis (it is registry-MANUAL) |
-| G9 SBI passive and Mahindra readers | **Open (planned work)** | Probe 31 Oct: both rejected by the existing readers (0 scheme pages); Sundaram, Angel One, SBI active accepted | Task 1.5b includes the reader fixes (1 to 2 days). If a fix fails, import that house's other files only (SBI active) or leave it for next month's automatic test |
+| G9 SBI passive and Mahindra readers | **Closed 31 Oct (fixed and tested locally; not yet on the VM)** | Probe before: both rejected (0 scheme pages). After the fix, on the real files: SBI passive 35 scheme pages, SBI active 57, Mahindra 27, Sundaram and Angel One accepted; 7 new reader tests plus 302 existing fund-manager tests pass in WSL | The fixes reach the VM only with the staging deploy; if they fail there, import SBI active only |
 
 ## 2. Precondition probes (run 31 Oct)
 
@@ -26,7 +26,7 @@
 | Node, npm, `node_modules` in WSL | `which node npm`, `ls frontend/node_modules` | **Verified** (frontend suites not run) |
 | Sundaram has a reader | `fund_manager_layouts.py:1155 "sundaram"`; reader accepted the real Sept file (100 pages) | **Verified** |
 | Angel One, SBI active accepted by their readers | `looks_like_current_factsheet` on the real files | **Verified** |
-| SBI passive and Mahindra readers | Same check: both **fail** (0 scheme pages); cause: changed manager layout | **Known problem**, in Task 1.5b |
+| SBI passive and Mahindra readers | Same check: both failed before the fix; after it both pass on the real files (35 and 27 scheme pages) | **Verified** (local) |
 | Automatic job vs manual rows | Code read of `amfi_factsheet_client.py`: job skips only `MANUAL` houses, overwrites on success, leaves rows on failure | **Verified (code read)**; a unit test is attempted in Task 1.5b |
 | Importer 45-day staleness | `looks_like_current_factsheet` docstring and code: newest "as on" within 45 days; Sept files expire 14 Nov | **Verified**; `--as-of` added to the task |
 | Only equity funds have a benchmark today | `fund_page/benchmark_select.py: benchmark_for` returns None for non-Equity | **Verified**; plan's legacy-section rule follows |
@@ -62,7 +62,7 @@ Findings and what was done. All accepted; none rejected.
 | # | Risk | Likelihood | Effect | Early signal | Fallback |
 |---|---|---|---|---|---|
 | R1 | G2 baselines missing at Run 2 start | Medium | Cannot prove "no more than 10% slower" | No timing file in `Docs/orchestration` | Manager measures after 06:35 IST; or owner accepts Run 2 gating on its own before/after run |
-| R2 | SBI passive or Mahindra reader fix takes longer | Medium | Those houses stay one month behind | Reader fixture tests fail after a day | Import SBI active only; Mahindra waits for next month's automatic job |
+| R2 | The SBI passive or Mahindra reader fix misbehaves on the VM's copy of the files | Low | Those houses stay one month behind | The import prints `not_a_factsheet` | Import SBI active only; Mahindra waits for next month's automatic job |
 | R3 | Staging import lands after 14 Nov and the file is rejected for age | High if deploy is late | Import writes nothing | "stale" message | `--as-of 2026-10-31` (built in) |
 | R4 | Axis stays stale | Certain until a file is found | 402 Axis scheme rows one month behind | Per-house query shows the 12 Oct import | Owner supplies the file; hand import of Axis needs no code |
 | R5 | A failed automatic house is unnoticed (one of the five failed houses is unidentified) | Medium | Silent staleness | `FUND_MANAGER_ALERT` not recorded durably | Task 2.2b alert; manager reads the job's own output after each run |
@@ -83,4 +83,4 @@ Every earlier decision is recorded. Remaining, none blocks Run 1:
 3. **Whether Run 2 may start without the G2 baselines** if the manager cannot measure them (recommended: do not start without).
 4. **The written request to NSE Indices and the privacy-policy note** (before production, not staging).
 5. **The 10 Nov re-check** of the factsheet publication and of the four houses' automatic job (recommended dates: 3, 6, 10 Nov for publication; after the 10 Nov job for the four houses).
-6. **If the SBI passive or Mahindra reader fix proves costly**: accept a partial import (SBI active only) for this month.
+6. **If the SBI passive or Mahindra import fails on the VM**: accept a partial import (SBI active only) for this month.
