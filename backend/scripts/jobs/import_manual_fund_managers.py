@@ -50,9 +50,7 @@ def run(db, amc_name: str, pdfs: list[Path], today: date,
         ok, reason = looks_like_current_factsheet(pages, reader, as_of if as_of is not None else today, as_on_pattern=entry.as_on_pattern, min_schemes=entry.min_schemes)
         if not ok:
             # Checked for every file before writing anything, so a wrong file changes nothing.
-            message = {"stale_month": "the factsheet date is missing or more than 45 days old",
-                       "not_a_factsheet": "the file does not contain enough readable fund manager pages"}.get(reason, "the factsheet could not be validated")
-            sys.exit(f"{pdf.name}: {message} -- download this month's factsheet and run again.")
+            sys.exit(f"{pdf.name}: {reason} -- download this month's factsheet and run again.")
         file_date = _file_as_on(pages, entry, today)
         file_dates.append((pdf.name, file_date))
         if as_of is not None and file_date is not None and (today - file_date).days > 45:
