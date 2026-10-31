@@ -4,7 +4,7 @@ import { MutualFundsFrame } from "../frame/MutualFundsFrame";
 import { CategoryRankingGroup } from "./CategoryRankingGroup";
 import { CostValuationGroup } from "./CostValuationGroup";
 import { PerformanceRankingGroup } from "./PerformanceRankingGroup";
-import { GROUP_TITLES } from "./otherLogic";
+import { GROUP_TITLES, SHOW_FUND_QUALITY_SCORES } from "./otherLogic";
 import { ScorerGroup } from "./ScorerGroup";
 
 interface GroupProps {
@@ -78,18 +78,20 @@ function OtherAnalyticsBody() {
         <CostValuationGroup />
       </Group>
 
-      <Group
-        id="scorer"
-        index={1}
-        title={GROUP_TITLES.scorer}
-        description="Unifolio's proprietary score — 45% Return, 30% Downside Risk, 25% Consistency vs. SEBI category peers, with a small TER cost nudge. Click a fund for its full breakdown."
-      >
-        <ScorerGroup />
-      </Group>
+      {SHOW_FUND_QUALITY_SCORES && (
+        <Group
+          id="scorer"
+          index={1}
+          title={GROUP_TITLES.scorer}
+          description="Unifolio's proprietary score — 45% Return, 30% Downside Risk, 25% Consistency vs. SEBI category peers, with a small TER cost nudge. Click a fund for its full breakdown."
+        >
+          <ScorerGroup />
+        </Group>
+      )}
 
       <Group
         id="category"
-        index={2}
+        index={SHOW_FUND_QUALITY_SCORES ? 2 : 1}
         title={GROUP_TITLES.category}
         description="Your fund returns compared with the simple average of funds in the same category and plan type."
       >
@@ -98,7 +100,7 @@ function OtherAnalyticsBody() {
 
       <Group
         id="ranking"
-        index={3}
+        index={SHOW_FUND_QUALITY_SCORES ? 3 : 2}
         title={GROUP_TITLES.ranking}
         description="Each period compares funds in the same SEBI category and plan type."
       >

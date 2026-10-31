@@ -14,6 +14,8 @@ import type {
   WeightedTerSummary,
 } from "../types";
 
+export const SHOW_FUND_QUALITY_SCORES = false;
+
 export const GROUP_TITLES = {
   cost: "Cost & Valuation",
   scorer: "Fund Quality Scorer",
