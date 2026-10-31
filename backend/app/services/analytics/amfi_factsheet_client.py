@@ -14,6 +14,7 @@ category, refused when the runner-up is within 0.05."""
 from __future__ import annotations
 
 import html
+import inspect
 import json
 import logging
 import re
@@ -21,7 +22,7 @@ import time
 import urllib.parse
 import uuid
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from difflib import SequenceMatcher
 
@@ -31,10 +32,11 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.session import commit_off_loop
-from app.models.reference import Scheme, SchemeFundManager
+from app.models.reference import Scheme, SchemeFundManager, SchemeReportedValuation
 from app.services.analytics.scheme_universe import canonical_category
 from app.services.analytics.fund_manager_layouts import SchemePage, LAYOUTS, Word
 from app.services.analytics.fund_manager_resolvers import AMC_RESOLVERS, ResolverEntry, ResolverKind
+from app.services.analytics.fund_valuation_layouts import NEEDS_BOXES, ValuationReading, read_valuation
 
 MATCH_METHOD_ISIN = "ISIN"
 MATCH_METHOD_EXACT = "EXACT"
@@ -304,11 +306,16 @@ def _page_words(doc, index: int) -> list[Word]:
 
 class FactsheetPages(list[str]):
     """Keep page text and optional geometry together through validation and import."""
-    def __init__(self, texts: list[str], words: list[list[Word]]):
+    def __init__(self, texts: list[str], words: list[list[Word]], *,
+                 source_files: list[str] | None = None, page_numbers: list[int] | None = None):
         if len(texts) != len(words):
             raise ValueError("Text and geometry page counts differ")
         super().__init__(texts)
         self.words = words
+        self.source_files = source_files if source_files is not None else [""] * len(texts)
+        self.page_numbers = page_numbers if page_numbers is not None else list(range(1, len(texts) + 1))
+        if len(self.source_files) != len(texts) or len(self.page_numbers) != len(texts):
+            raise ValueError("Text and source page counts differ")
 
 
 @dataclass(frozen=True)
@@ -535,7 +542,14 @@ def _latest_as_on(pages: list[str], today: date | None = None) -> date | None:
 
 
 def _read_schemes(reader, text: str, words: list[Word] | None = None) -> list[SchemePage]:
-    found = reader(text, words) if words is not None else reader(text)
+    # Some text-only manager layouts now carry boxes for the valuation reader.
+    # Pass geometry only to readers whose interface accepts it.
+    try:
+        inspect.signature(reader).bind(text, words)
+        accepts_words = True
+    except TypeError:
+        accepts_words = False
+    found = reader(text, words) if words is not None and accepts_words else reader(text)
     return [found] if isinstance(found, SchemePage) else found or []
 
 
@@ -606,6 +620,53 @@ def import_pages(
     return len(matched), unmatched
 
 
+def import_reported_valuation(
+    db: Session, amc: str, readings: list[ValuationReading], reference_period: date,
+) -> tuple[int, int]:
+    """Upsert reported metrics without committing; the caller owns the AMC transaction."""
+    if not readings:
+        previous = (reference_period.replace(day=1) - timedelta(days=1)).replace(day=1)
+        had_values = (db.query(SchemeReportedValuation.id)
+                      .join(Scheme, Scheme.id == SchemeReportedValuation.scheme_id)
+                      .filter(Scheme.amc_name == amc,
+                              SchemeReportedValuation.reference_period == previous).first())
+        if had_values:
+            _alert(amc, "valuation_missing", "No reported P/E or P/B values; last month had values")
+        return 0, 0
+    families = build_families(db.query(Scheme).filter(Scheme.amc_name == amc).all())
+    matched, unmatched, pending = set(), 0, {}
+    for reading in readings:
+        results = match_scheme_families(SchemePage(reading.heading, []), families)
+        # Reported figures must never be attached to a similar but different
+        # scheme: keep the shared matcher's exact aliases/variant handling,
+        # but refuse fuzzy matches when no exact scheme is known.
+        results = [result for result in results if result[1] in {MATCH_METHOD_EXACT, MATCH_METHOD_ISIN}]
+        if not results:
+            unmatched += 1
+            logger.info("reported valuation unmatched amc=%s heading=%r", amc, reading.heading)
+            continue
+        for family, _, _ in results:
+            for scheme in family.schemes:
+                for metric, value, basis in (("pe", reading.pe, reading.pe_basis), ("pb", reading.pb, reading.pb_basis)):
+                    if value is None:
+                        continue
+                    key = (scheme.id, reference_period, metric)
+                    row = pending.get(key)
+                    if row is None:
+                        row = db.query(SchemeReportedValuation).filter_by(
+                            scheme_id=scheme.id, reference_period=reference_period, metric=metric,
+                        ).one_or_none()
+                        if row is None:
+                            row = SchemeReportedValuation(scheme_id=scheme.id, reference_period=reference_period, metric=metric)
+                            db.add(row)
+                        pending[key] = row
+                    row.value, row.basis, row.method = value, basis, reading.method
+                    row.source_file, row.page = reading.source_file, reading.page
+                    row.parsed_at = datetime.now(timezone.utc)
+            matched.add((family.amc_name, family.base_name))
+    return len(matched), unmatched
+
+
 def _families_matched_last_month(db: Session, amc_name: str, reference_period: date) -> int:
     previous = (reference_period.replace(day=1) - timedelta(days=1)).replace(day=1)
     return (
@@ -627,7 +688,8 @@ async def _resolve_and_read(client, entry: ResolverEntry, directory: dict[str, s
             return None, "no_landing_url"
         groups = [await _static_link_candidates(client, landing, pattern)
                   for pattern in entry.documents or (entry.link_pattern,)]
-    combined, words = [], []
+    combined, words, source_files, page_numbers = [], [], [], []
+    needs_boxes = entry.needs_boxes or entry.layout in NEEDS_BOXES
     for candidates in groups:
         if not candidates:
             return None, "no_factsheet_link"
@@ -640,19 +702,20 @@ async def _resolve_and_read(client, entry: ResolverEntry, directory: dict[str, s
             if pdf is None:
                 continue
             pages = extract_page_text(pdf)
-            if entry.needs_boxes:
+            if needs_boxes:
                 pages = FactsheetPages(pages, extract_page_words(pdf))
             ok, reason = looks_like_current_factsheet(pages, reader, today, as_on_pattern=entry.as_on_pattern, min_schemes=entry.min_schemes)
             if ok:
                 combined.extend(pages)
-                if entry.needs_boxes:
-                    words.extend(pages.words)
+                words.extend(pages.words if needs_boxes else [[] for _ in pages])
+                source_files.extend([url] * len(pages))
+                page_numbers.extend(range(1, len(pages) + 1))
                 break
         else:
             return None, reason
     # Validation finishes before any import; refresh imports this union once and
     # commits once per AMC. Counts are unique families even across several files.
-    return (FactsheetPages(combined, words) if entry.needs_boxes else combined), "ok"
+    return FactsheetPages(combined, words, source_files=source_files, page_numbers=page_numbers), "ok"
 
 
 async def _json_api_candidates(client, entry: ResolverEntry) -> list[str]:
@@ -930,6 +993,8 @@ async def refresh_fund_managers(db: Session) -> FundManagerRefreshResult:
                     amcs_failed += 1
                     continue
                 matched, unmatched = import_pages(db, amc_name, pages, reader, reference_period)
+                readings = read_valuation(entry.layout, pages, getattr(pages, "words", None))
+                import_reported_valuation(db, amc_name, readings, reference_period)
                 await commit_off_loop(db)  # per AMC: a later AMC failing never undoes this one
                 last = _families_matched_last_month(db, amc_name, reference_period)
                 if last and matched < last / 2:

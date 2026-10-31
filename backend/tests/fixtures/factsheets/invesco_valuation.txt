@@ -1,0 +1,36 @@
+### source page index 11
+
+Invesco India Small Cap Fund
+(An open ended equity scheme predominantly investing in small cap stocks)
+Fund P/E - FY27E 37.78
+Fund P/B 4.84
+Fund P/E - FY27E is current price to earnings for FY26E,
+Fund P/B is 12 months trailing price to book value. Both are
+arrived at using Weighted Harmonic Mean which is an
+average resulting from the multiplication of the reciprocal
+of the observation for each component by the weightage
+of that stock in the portfolio/index. For 1,2, 5 and related
+disclaimer / notes, refer page no. 69.### source page index 12
+
+Invesco India Financial Services Fund
+(An open ended equity scheme investing in financial services sector)
+Fund P/E - FY27E 19.07
+Fund P/B 2.93
+Fund P/E - FY27E is current price to earnings for FY26E,
+Fund P/B is 12 months trailing price to book value. Both are
+arrived at using Weighted Harmonic Mean which is an
+average resulting from the multiplication of the reciprocal
+of the observation for each component by the weightage
+of that stock in the portfolio/index. For 1,2, 5 and related
+disclaimer / notes, refer page no. 69.### source page index 0
+Fact Sheet - August 2026
+Scheme Name Page No.
+Equity Funds
+Invesco India ELSS Tax Saver Fund 5
+Invesco India Multi Cap Fund 6
+Invesco India Contra Fund 7
+Invesco India Large Cap Fund 8
+Invesco India Focused Fund 9
+Invesco India Large & Mid Cap Fund 10
+Invesco India Mid Cap Fund 11
+Invesco India Small Cap Fund 12

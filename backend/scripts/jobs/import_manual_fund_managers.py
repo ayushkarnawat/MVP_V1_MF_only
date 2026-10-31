@@ -18,8 +18,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from app.db.session import SessionLocal
-from app.services.analytics.amfi_factsheet_client import FactsheetPages, _latest_as_on, _parse_managing_since, extract_page_text, extract_page_words, import_pages, looks_like_current_factsheet
+from app.services.analytics.amfi_factsheet_client import FactsheetPages, _latest_as_on, _parse_managing_since, extract_page_text, extract_page_words, import_pages, import_reported_valuation, looks_like_current_factsheet
 from app.services.analytics.fund_manager_layouts import LAYOUTS
+from app.services.analytics.fund_valuation_layouts import NEEDS_BOXES, read_valuation
 from app.services.analytics.fund_manager_resolvers import AMC_RESOLVERS, ResolverKind
 
 
@@ -39,14 +40,15 @@ def run(db, amc_name: str, pdfs: list[Path], today: date,
     if entry.layout is None:
         sys.exit(f"{amc_name!r} has no factsheet reader; no managers were imported.")
     reader = LAYOUTS[entry.layout]
+    needs_boxes = entry.needs_boxes or entry.layout in NEEDS_BOXES
     pages_per_file = []
     file_dates = []
     needs_warning = False
     for pdf in pdfs:
         pdf_bytes = pdf.read_bytes()
         pages = extract_page_text(pdf_bytes)
-        if entry.needs_boxes:
-            pages = FactsheetPages(pages, extract_page_words(pdf_bytes))
+        pages = FactsheetPages(pages, extract_page_words(pdf_bytes) if entry.needs_boxes else [[] for _ in pages],
+                               source_files=[pdf.name] * len(pages))
         ok, reason = looks_like_current_factsheet(pages, reader, as_of if as_of is not None else today, as_on_pattern=entry.as_on_pattern, min_schemes=entry.min_schemes)
         if not ok:
             # Checked for every file before writing anything, so a wrong file changes nothing.
@@ -59,12 +61,19 @@ def run(db, amc_name: str, pdfs: list[Path], today: date,
         file_dates.append((pdf.name, file_date))
         if as_of is not None and file_date is not None and (today - file_date).days > 45:
             needs_warning = True
+        # Valuation-only geometry is unnecessary for a refused file. Existing
+        # positional manager readers still receive boxes during validation.
+        if needs_boxes and not entry.needs_boxes:
+            pages = FactsheetPages(pages, extract_page_words(pdf_bytes), source_files=pages.source_files)
         pages_per_file.append(pages)
     # One import over every file: a fund printed in both files keeps both files' managers.
     all_pages = [page for pages in pages_per_file for page in pages]
-    if entry.needs_boxes:
-        all_pages = FactsheetPages(all_pages, [words for pages in pages_per_file for words in pages.words])
+    all_pages = FactsheetPages(all_pages, [words for pages in pages_per_file for words in pages.words],
+                               source_files=[source for pages in pages_per_file for source in pages.source_files],
+                               page_numbers=[number for pages in pages_per_file for number in pages.page_numbers])
     matched, unmatched = import_pages(db, amc_name, all_pages, reader, today.replace(day=1), manual=True)
+    readings = read_valuation(entry.layout, all_pages, all_pages.words)
+    import_reported_valuation(db, amc_name, readings, today.replace(day=1))
     db.commit()
     for filename, file_date in file_dates:
         print(f"{filename}: as on {file_date.isoformat() if file_date else 'date not found'}")
