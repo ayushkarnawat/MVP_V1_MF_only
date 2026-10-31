@@ -47,7 +47,7 @@ from app.services.analytics.schemas import (
     FundManagerAllocationSummary,
     AnalyticsAllocationSummary,
     CategoryRankingSummary,
-    FundRankingSummary,
+    PerformanceRankingResult,
     DirectRegularTerComparison,
     FundVsBenchmarkSummary,
     InvestmentWithdrawalResult,
@@ -100,7 +100,7 @@ _MOCK_RESULTS = {
         excluded_share=Decimal("0"), non_equity_share=Decimal("0"),
     ),
     "fund_manager": FundManagerAllocationSummary(manager_groups=[], unavailable_schemes=[]),
-    "ranking": FundRankingSummary(funds=[]),
+    "ranking": PerformanceRankingResult(funds=[]),
     "investment_withdrawal": InvestmentWithdrawalResult(
         total_invested="0.00", total_withdrawn="0.00", net_invested="0.00",
         current_value="0.00", absolute_gain="0.00", monthly=[], yearly=[],

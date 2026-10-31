@@ -396,54 +396,29 @@ class AggregateInvestmentWithdrawalResponse(BaseModel):
     data: InvestmentWithdrawalResult
 
 
-class FundRankingNeighbor(BaseModel):
+class PeriodRank(BaseModel):
+    rank: int | None = None
+    total: int = 0
+    status: Literal["ranked", "not_enough_history", "not_ranked_index_fund"] = "not_enough_history"
+
+
+class PerformanceRankingFund(BaseModel):
     scheme_id: str
     scheme_name: str
-    category_rank: int
-    composite_score: str
-
-
-class FundRankingComponent(BaseModel):
-    percentile: str | None
-    raw: str | None
-
-
-class FundRankingComponents(BaseModel):
-    return_3y: FundRankingComponent
-    return_5y: FundRankingComponent
-    category_relative: FundRankingComponent
-    low_volatility: FundRankingComponent
-    low_ter: FundRankingComponent
-
-
-class FundRankingRow(BaseModel):
-    scheme_id: str
-    scheme_name: str
-    category_name: str | None
-    category_unavailable: bool
-    insufficient_history: bool
-    thin_category: bool           # ranked funds < 5 (fix 3)
-    too_few_peers: bool           # ranked funds < 3: no rank shown (D2)
-    composite_score: str | None   # the 0-100 composite, never the percentile (fix 1)
-    category_rank: int | None
-    category_size: int            # ranked funds (3Y+ history), one per fund
-    category_universe_size: int   # funds in the category, ranked or not (fix 3, option C)
-    percentile: str | None
-    return_1y: str | None
-    ranked_as: str | None         # the series ranked when it isn't the held one (e.g. IDCW -> Growth)
-    neighbors: list[FundRankingNeighbor]
-    components: FundRankingComponents
-    horizons: dict[str, PeriodReturn] = Field(default_factory=dict)
+    sebi_category: str | None = None
     plan_type: str | None = None
+    periods: dict[Literal["1Y", "3Y", "5Y"], PeriodRank] = Field(default_factory=dict)
+    disclaimer_key: str | None = None
+    ranked_as: str | None = None
 
 
-class FundRankingSummary(BaseModel):
-    funds: list[FundRankingRow]
+class PerformanceRankingResult(BaseModel):
+    funds: list[PerformanceRankingFund] = Field(default_factory=list)
 
 
-class AggregateFundRankingResponse(BaseModel):
+class AggregatePerformanceRankingResponse(BaseModel):
     members: list[MemberStatus]
-    ranking: FundRankingSummary
+    ranking: PerformanceRankingResult
 
 
 class ManagerFundRow(BaseModel):

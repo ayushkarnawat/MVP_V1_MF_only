@@ -68,6 +68,10 @@ _BLEND_WEIGHT_5YR = Decimal("0.6")
 _CATEGORY_RETURNS_CACHE_TTL_SECONDS = 15 * 60
 _category_returns_clock = time.monotonic
 _category_returns_cache: dict[object, tuple[float, date, dict[uuid.UUID, tuple[Decimal | None, Decimal, Decimal | None, Decimal]]]] = {}
+# Extra period rows from the very same bounded NAV lookup. The existing
+# cache retains its original keys and legacy result dictionaries. Holding
+# the legacy object also invalidates this view when tests/callers clear it.
+_category_short_history_cache: dict[object, tuple[dict, dict]] = {}
 _category_returns_cache_lock = threading.Lock()
 
 logger = logging.getLogger(__name__)
@@ -118,14 +122,11 @@ def _bulk_nav_on_or_before(
 
 
 async def _compute_category_returns_detailed(
-    db: Session, universe: list[Scheme], today: date
-) -> dict[uuid.UUID, tuple[Decimal | None, Decimal, Decimal | None, Decimal]]:
-    """{scheme_id: (r1, r3, r5, blended)} -- r3/blended always present for
-    any scheme in the result (a scheme without 3Y history is simply absent,
-    same eligibility floor as the blended-only function below); r1/r5 are
-    `None` when that window isn't available yet. r1 exists only for
-    attribute 09's display-only 1yr column -- `_compute_category_returns`
-    below never surfaces it, since no existing caller needs it."""
+    db: Session, universe: list[Scheme], today: date, *, include_short_history: bool = False
+) -> dict[uuid.UUID, tuple[Decimal | None, Decimal | None, Decimal | None, Decimal | None]]:
+    """{scheme_id: (r1, r3, r5, blended)}. The default keeps the original
+    3Y eligibility floor and blended figures. The opt-in view also retains
+    shorter histories; r3/blended may then be None. Both use one NAV pass."""
     warm_start = time.perf_counter()
     await warm_nav_history(db, universe)
     warm_elapsed = time.perf_counter() - warm_start
@@ -137,11 +138,22 @@ async def _compute_category_returns_detailed(
     navs = _bulk_nav_on_or_before(db, [s.id for s in universe], [start_1y, start_3y, start_5y, today])
     lookup_elapsed = time.perf_counter() - lookup_start
 
-    detailed: dict[uuid.UUID, tuple[Decimal | None, Decimal, Decimal | None, Decimal]] = {}
+    detailed: dict[uuid.UUID, tuple[Decimal | None, Decimal | None, Decimal | None, Decimal | None]] = {}
     for scheme in universe:
         per_scheme = navs.get(scheme.id, {})
         end = per_scheme.get(today)
         start3 = per_scheme.get(start_3y)
+        if include_short_history:
+            if end is None or not end.is_finite() or end <= 0:
+                continue
+            starts = (per_scheme.get(start_1y), start3, per_scheme.get(start_5y))
+            r1, r3, r5 = [
+                _cagr(start, end, years) if start is not None and start.is_finite() and start > 0 else None
+                for start, years in zip(starts, (1, 3, 5))
+            ]
+            if any(value is not None for value in (r1, r3, r5)):
+                detailed[scheme.id] = (r1, r3, r5, _blend_returns(r3, r5) if r3 is not None else None)
+            continue
         # Wound-up/segregated schemes carry NAV 0; invalid windows have no return.
         if end is None or start3 is None or end <= 0 or start3 <= 0:
             continue
@@ -170,8 +182,8 @@ async def _category_returns(db: Session, universe: list[Scheme], today: date, *,
 
 
 async def _category_returns_detailed(
-    db: Session, universe: list[Scheme], today: date, *, cache_key=None
-) -> dict[uuid.UUID, tuple[Decimal | None, Decimal, Decimal | None, Decimal]]:
+    db: Session, universe: list[Scheme], today: date, *, cache_key=None, include_short_history: bool = False
+) -> dict[uuid.UUID, tuple[Decimal | None, Decimal | None, Decimal | None, Decimal | None]]:
     if not universe:
         return {}
     sebi_category = cache_key or universe[0].sebi_category
@@ -181,13 +193,19 @@ async def _category_returns_detailed(
     if cached is not None:
         cached_at, cached_today, returns = cached
         if cached_today == today and now - cached_at <= _CATEGORY_RETURNS_CACHE_TTL_SECONDS:
-            return returns
+            if not include_short_history:
+                return returns
+            with _category_returns_cache_lock:
+                short = _category_short_history_cache.get(sebi_category)
+            if short is not None and short[0] is returns:
+                return short[1]
 
-    returns = await _compute_category_returns_detailed(db, universe, today)
-
+    all_periods = await _compute_category_returns_detailed(db, universe, today, include_short_history=True)
+    returns = {sid: values for sid, values in all_periods.items() if values[1] is not None}
     with _category_returns_cache_lock:
         _category_returns_cache[sebi_category] = (now, today, returns)
-    return returns
+        _category_short_history_cache[sebi_category] = (returns, all_periods)
+    return all_periods if include_short_history else returns
 
 
 def _rank_and_percentile(returns: dict[uuid.UUID, Decimal], scheme_id: uuid.UUID) -> tuple[int, Decimal] | None:

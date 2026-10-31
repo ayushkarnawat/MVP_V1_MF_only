@@ -1,3 +1,4 @@
+"""Performance ranks reuse the unchanged category-return cache."""
 import asyncio
 import uuid
 from datetime import date
@@ -8,81 +9,43 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.models.enums import SchemePlanType
-from app.models.reference import NavHistory, Scheme, SchemeAaum
-from app.services.analytics import category_ranking, fund_ranking
+from app.models.reference import NavHistory, Scheme
+from app.services.analytics import category_ranking, performance_ranking
 from app.services.analytics.risk_metrics import years_ago
 from app.services.analytics.scheme_universe import CategoryPeers
 
 
-@pytest.mark.parametrize("missing_5y", [False, True])
-def test_both_sections_show_the_same_category_average_for_the_same_fund(db_session, missing_5y):
-    db = db_session
-    today = date.today()
-    schemes = [Scheme(id=uuid.uuid4(), name=f"Fund {i}", amc_name=f"AMC {i}", sebi_category="Equity Scheme - Flexi Cap Fund", plan_type=SchemePlanType.DIRECT) for i in range(4)]
-    db.add_all(schemes)
-    db.flush()
+@pytest.mark.parametrize("refresh_navs", [False, True])
+def test_performance_ranking_uses_the_same_period_returns_as_category_ranking(db_session, refresh_navs):
+    db, today = db_session, date.today()
+    schemes = [Scheme(id=uuid.uuid4(), name=f"Fund {i}", amc_name=f"AMC {i}",
+        sebi_category="Equity Scheme - Flexi Cap Fund", plan_type=SchemePlanType.DIRECT) for i in range(4)]
+    db.add_all(schemes); db.flush()
     for index, scheme in enumerate(schemes):
         for years, nav in [(5, "8"), (3, "10"), (1, "11"), (0, str(13 + index))]:
-            if years == 5 and index == 0 and missing_5y:
-                continue
             db.add(NavHistory(scheme_id=scheme.id, date=years_ago(today, years), nav=Decimal(nav)))
-        db.add(SchemeAaum(scheme_id=scheme.id, reference_period=today, aaum_value=Decimal("300") if index == 0 else Decimal("100")))
     db.commit()
     peers = CategoryPeers(schemes=schemes, fund_count=4, representative_of={s.id: s.id for s in schemes})
     holdings = [SimpleNamespace(scheme_id=str(schemes[0].id))]
     category_ranking._category_returns_cache.clear()
-    fund_ranking._category_ranking_cache.clear()
     try:
         with patch.object(category_ranking, "compute_holdings", new=AsyncMock(return_value=holdings)), \
-             patch.object(fund_ranking, "compute_holdings", new=AsyncMock(return_value=holdings)), \
+             patch.object(performance_ranking, "compute_holdings", new=AsyncMock(return_value=holdings)), \
              patch.object(category_ranking, "get_category_peers", new=AsyncMock(return_value=peers)), \
-             patch.object(fund_ranking, "get_category_peers", new=AsyncMock(return_value=peers)), \
-             patch.object(category_ranking, "warm_nav_history", new=AsyncMock()):
+             patch.object(performance_ranking, "get_category_peers", new=AsyncMock(return_value=peers)), \
+             patch.object(category_ranking, "warm_nav_history", new=AsyncMock()) as warm:
             category = asyncio.run(category_ranking.compute_category_ranking(db, [uuid.uuid4()])).funds[0]
-            ranking = asyncio.run(fund_ranking.compute_portfolio_ranking(db, [uuid.uuid4()])).funds[0]
-        for period in ("1y", "3y", "5y"):
-            left, right = category.periods[period], ranking.horizons[period]
-            assert left.category_avg is not None
-            assert left.category_avg == right.category_avg
-            assert left.peers == right.peers == (3 if period == "5y" and missing_5y else 4)
-            assert left.fund_return == right.fund_return
-        assert category.periods["5y"].fund_return is None if missing_5y else category.periods["5y"].fund_return is not None
+            if refresh_navs:
+                # A fresh lookup would now put the held fund first, not last.
+                db.get(NavHistory, (schemes[0].id, today)).nav *= 3
+                db.commit()
+            ranking = asyncio.run(performance_ranking.compute_performance_ranking(db, [uuid.uuid4()])).funds[0]
+        for period in ("1Y", "3Y", "5Y"):
+            assert category.periods[period.lower()].peers == ranking.periods[period].total == 4
+            # The held fund has the lowest return in the cached snapshot, even
+            # if all current NAVs changed between the two section calls.
+            assert ranking.periods[period].rank == 4
+            assert category.periods[period.lower()].fund_return is not None
+        warm.assert_awaited_once()
     finally:
         category_ranking._category_returns_cache.clear()
-        fund_ranking._category_ranking_cache.clear()
-
-
-def test_a_nav_refresh_between_the_two_sections_does_not_split_their_numbers(db_session):
-    db = db_session
-    today = date.today()
-    schemes = [Scheme(id=uuid.uuid4(), name=f"Fund {i}", amc_name=f"AMC {i}", sebi_category="Equity Scheme - Flexi Cap Fund", plan_type=SchemePlanType.DIRECT) for i in range(4)]
-    db.add_all(schemes)
-    db.flush()
-    for index, scheme in enumerate(schemes):
-        for years, nav in [(5, "8"), (3, "10"), (1, "11"), (0, str(13 + index))]:
-            db.add(NavHistory(scheme_id=scheme.id, date=years_ago(today, years), nav=Decimal(nav)))
-        db.add(SchemeAaum(scheme_id=scheme.id, reference_period=today, aaum_value=Decimal("100")))
-    db.commit()
-    peers = CategoryPeers(schemes=schemes, fund_count=4, representative_of={s.id: s.id for s in schemes})
-    holdings = [SimpleNamespace(scheme_id=str(schemes[0].id))]
-    category_ranking._category_returns_cache.clear()
-    fund_ranking._category_ranking_cache.clear()
-    try:
-        with patch.object(category_ranking, "compute_holdings", new=AsyncMock(return_value=holdings)), \
-             patch.object(fund_ranking, "compute_holdings", new=AsyncMock(return_value=holdings)), \
-             patch.object(category_ranking, "get_category_peers", new=AsyncMock(return_value=peers)), \
-             patch.object(fund_ranking, "get_category_peers", new=AsyncMock(return_value=peers)), \
-             patch.object(category_ranking, "warm_nav_history", new=AsyncMock()):
-            category = asyncio.run(category_ranking.compute_category_ranking(db, [uuid.uuid4()])).funds[0]
-            # the latest NAV of every fund changes after the first section was computed
-            for row in db.query(NavHistory).filter(NavHistory.date == years_ago(today, 0)).all():
-                row.nav = row.nav * 3
-            db.commit()
-            fund_ranking._category_ranking_cache.clear()  # Fund Ranking must recompute, but from the shared returns
-            ranking = asyncio.run(fund_ranking.compute_portfolio_ranking(db, [uuid.uuid4()])).funds[0]
-        for period in ("1y", "3y", "5y"):
-            assert category.periods[period].fund_return == ranking.horizons[period].fund_return
-            assert category.periods[period].category_avg == ranking.horizons[period].category_avg
-    finally:
-        category_ranking._category_returns_cache.clear()
-        fund_ranking._category_ranking_cache.clear()

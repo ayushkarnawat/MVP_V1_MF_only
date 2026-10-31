@@ -11,7 +11,7 @@ def test_0045_is_in_the_chain_and_sqlite_upgrade_then_downgrade_to_0043(tmp_path
 
     heads = _alembic("heads")
     assert heads.returncode == 0, heads.stderr
-    assert heads.stdout.strip() == "0047 (head)"
+    assert heads.stdout.strip() == "0048 (head)"
 
     up = _alembic("upgrade", "head")
     assert up.returncode == 0, up.stderr
@@ -1722,5 +1722,52 @@ def test_downgrade_drops_them(tmp_path, monkeypatch):
         assert set(inspect(engine).get_table_names()) == before_tables
         assert {c["name"] for c in inspect(engine).get_columns("stock_master")} == before_stock
         assert (again := _alembic("upgrade", "0047")).returncode == 0, again.stderr
+    finally:
+        engine.dispose()
+
+
+
+def _composite_table_shape(inspector):
+    return {name: {
+        "columns": [(c["name"], str(c["type"]), c["nullable"], c["default"]) for c in inspector.get_columns(name)],
+        "pk": inspector.get_pk_constraint(name), "fk": inspector.get_foreign_keys(name),
+        "checks": inspector.get_check_constraints(name), "unique": inspector.get_unique_constraints(name),
+        "indexes": inspector.get_indexes(name),
+    } for name in ("scheme_rankings", "ranking_weights")}
+
+
+def test_0048_upgrade_drops_only_composite_tables(tmp_path, monkeypatch):
+    from sqlalchemy import create_engine, inspect
+    from app.db.base import Base
+    path = tmp_path / "drop-composite-0048.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+    assert (up := _alembic("upgrade", "0047")).returncode == 0, up.stderr
+    engine = create_engine(f"sqlite:///{path}")
+    try:
+        before = set(inspect(engine).get_table_names())
+        assert (up := _alembic("upgrade", "0048")).returncode == 0, up.stderr
+        assert set(inspect(engine).get_table_names()) == before - {"scheme_rankings", "ranking_weights"}
+        assert not {"scheme_rankings", "ranking_weights"} & set(Base.metadata.tables)
+    finally:
+        engine.dispose()
+
+
+def test_0048_downgrade_recreates_exact_0034_tables_empty(tmp_path, monkeypatch):
+    from sqlalchemy import create_engine, inspect, text
+    path = tmp_path / "restore-composite-0048.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+    assert (up := _alembic("upgrade", "0047")).returncode == 0, up.stderr
+    engine = create_engine(f"sqlite:///{path}")
+    try:
+        shape = _composite_table_shape(inspect(engine))
+        with engine.connect() as conn:
+            assert conn.execute(text("SELECT count(*) FROM ranking_weights")).scalar_one() == 1
+        assert (up := _alembic("upgrade", "0048")).returncode == 0, up.stderr
+        assert (down := _alembic("downgrade", "0047")).returncode == 0, down.stderr
+        assert _composite_table_shape(inspect(engine)) == shape
+        with engine.connect() as conn:
+            for name in shape:
+                assert conn.execute(text(f"SELECT count(*) FROM {name}")).scalar_one() == 0
+        assert (again := _alembic("upgrade", "0048")).returncode == 0, again.stderr
     finally:
         engine.dispose()
