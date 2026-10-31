@@ -1,6 +1,6 @@
 # Handoff: Remove Stock Concentration from every screen (T1.5)
 
-**Status:** OPEN (set to IN REVIEW when Codex reports done, DONE only after the review gate below passes)
+**Status:** DONE (31 Oct 2026; Run 1 review gate passed after two fix rounds, commits 04d3834c, 61d1f0c1, 7f94e5ef)
 **Run:** 1 of 7, plan `Docs/superpowers/plans/2026-10-31-change-requests-implementation-plan.md` (the final plan, Revision 3, 31 Oct 2026)
 **Slug:** `cr-r1-remove-stock-concentration`  **Commit prefix:** `cr-r1:`  **Worker:** Codex (`codex:codex-rescue`); **orchestrator:** Claude (writes this document, verifies, commits, reviews)
 **Parallel with:** none except T1.5b. Runs last of T1.1 to T1.5 (after T1.4: both edit `OverlapPage.tsx`)

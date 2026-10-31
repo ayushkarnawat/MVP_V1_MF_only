@@ -9,6 +9,8 @@ Older "Latest"/"Previous" sections (everything up to the 2026-10-27 Profile sess
 dropped from here on 2026-10-29; their full detail lives in `log.md` and, for the UI
 redesign, in `Docs/orchestration/ui-redesign-decisions-register.md`.
 
+**Run 1 of 7 DONE (31 Oct 2026), local only, nothing pushed.** Start 9424aaf9, head 7f94e5ef, tag `cr-run-1-done`. Commits `cr-r1:` (cf1ce545 ... 7f94e5ef), five Run 1 handoffs set DONE. Next: Run 2 (blocked by G2 timing baselines, manager measures after 06:35 IST on a trading day). Open for the owner/manager: the 18-fund net-equity list (VM read-only query), the fund-manager role readings (Associate, Co-Fund Manager, portion labels, senior titles, future start dates), the 2 failing `test_benchmark.py` "switches" tests that fail at the starting commit too (look before Run 3), Home now shows Real Estate as a live slice. Codex method here: the owner runs Codex in `~/cr-run-1` from Claude's prompts; Claude commits into `wt/docs` via `git --git-dir=.git/worktrees/docs`.
+
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
