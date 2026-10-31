@@ -3,7 +3,7 @@ import { compareDecimalStrings, sumDecimalStrings } from "../../../lib/decimal";
 import * as fc from "../fixtures/mfC";
 import type { OverlapFund, OverlapPair, OverlapSummary, StockHoldingRow } from "../types";
 import {
-  allStocksPath, analysedCount, bandLegendText, bandOf, barWidth, buildOverlapInsights, combinedWeight, commonStocks, COMMON_LIMIT,
+  equityStockHoldings, allStocksPath, analysedCount, bandLegendText, bandOf, barWidth, buildOverlapInsights, combinedWeight, commonStocks, COMMON_LIMIT,
   concentrationCurve, excludedNote, findPair, fundInitials, headlinePoint, highestPair, IMPACT_PAIRS, impactBreakdown, PAIR_LIMIT, pairCount,
   pairKey, pairKeyOf, pairsWithOverlap, riskBand, riskNote, sortedPairs,
 } from "./overlapLogic";
@@ -297,4 +297,29 @@ describe("the concentration headline and curve", () => {
   it("links to the all-holdings card on the Holdings page", () => {
     expect(allStocksPath()).toBe("/portfolio/mutual-funds/holdings#all-holdings");
   });
+});
+
+
+it("T1.4 counts the equity funds analysed and names all funds not shown once", () => {
+  const summary = Object.assign(fc.overlapSummary(), {
+    excluded_funds: [{ name: "Debt", reason: "This is a debt fund, so it isn't counted in an equity overlap." }],
+  });
+  summary.total_fund_count = 2;
+  expect(analysedCount(summary)).toEqual({ analysed: 2, of: 3, excluded: 1 });
+});
+
+
+it("T1.4 common holdings contains only the selected equity funds, including funds beyond the capped matrix", () => {
+  const stocks = { ...fc.stockHoldings(), rows: [] as StockHoldingRow[] };
+  const summary = fc.overlapSummary();
+  summary.equity_funds = [fund("a", "100"), fund("b", "100"), fund("rank15", "100")];
+  const row = fc.stockHoldings().rows[0];
+  stocks.rows = [{ ...row, contributing_funds: ["a", "b", "rank15", "debt"].map(id => ({
+    ...row.contributing_funds[0], scheme_id: id, scheme_name: id,
+  })) }];
+  const selected = equityStockHoldings(stocks, summary)!;
+  expect(selected.rows[0].contributing_funds.map(f => f.scheme_id)).toEqual(["a", "b", "rank15"]);
+  expect(stocks.rows[0].contributing_funds).toHaveLength(4);
+  delete summary.equity_funds;
+  expect(equityStockHoldings(stocks, summary)).toBe(stocks); // old payload keeps its previous view
 });

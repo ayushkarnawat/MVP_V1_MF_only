@@ -446,6 +446,11 @@ export interface OverlapImpactPair {
 }
 export interface ConcentrationPoint { stock_count: number; exposure_pct: string }
 export interface OverlapSummary {
+  /** Complete eligible list, including equity funds beyond the matrix cap. */
+  equity_funds?: OverlapFund[];
+  excluded_funds?: { name: string; reason: string }[];
+  by_category?: Record<string, OverlapSummary>;
+  message?: string | null;
   /** At most 12 funds, largest household value first. */
   matrix_funds: OverlapFund[];
   /** Every pair among `matrix_funds`, in `combinations(matrix_funds, 2)` order. */

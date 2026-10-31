@@ -102,7 +102,7 @@ export function excludedNote(n: number): string {
 }
 
 export function analysedCount(summary: OverlapSummary): { analysed: number; of: number; excluded: number } {
-  const excluded = excludedFundCount(summary.coverage);
+  const excluded = summary.excluded_funds?.length ?? excludedFundCount(summary.coverage);
   const analysed = summary.total_fund_count;
   return { analysed, of: analysed + excluded, excluded };
 }
@@ -317,3 +317,19 @@ export function impactPairs(summary: OverlapSummary): OverlapImpactPair[] {
   return (summary.impact_pairs ?? []).filter(pair => pair.drivers.length > 0);
 }
 
+
+
+/** Keep Common Holdings on the same complete equity universe as the selected view. */
+export function equityStockHoldings(stocks: StockHoldingsSummary | null, summary: OverlapSummary | null): StockHoldingsSummary | null {
+  if (!stocks || !summary?.equity_funds) return stocks;
+  const ids = new Set(summary.equity_funds.map(fund => fund.scheme_id));
+  const rows = stocks.rows.flatMap(row => {
+    if (row.asset_type !== "equity_domestic" && row.asset_type !== "equity_international") return [];
+    const funds = row.contributing_funds.filter(fund => ids.has(fund.scheme_id));
+    if (funds.length < 2) return [];
+    const exposure = sumDecimalStrings(funds.map(fund => percentageProduct(fund.fund_weight_pct, fund.stock_weight_pct)));
+    return [{ ...row, contributing_funds: funds, exposure_pct: exposure,
+      exposure_value: percentageProduct(stocks.total_portfolio_value, exposure) }];
+  });
+  return { ...stocks, rows };
+}

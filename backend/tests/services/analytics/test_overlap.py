@@ -189,3 +189,150 @@ def test_impact_drivers_are_the_top_five_by_contribution_with_exact_shares(db_se
     # hand check: 8/36, 7/36, 6/36, 5/36, 4/36 of the overlap; S1, S8, S5 (3, 2, 1) are left out
     assert [d.share_of_pair_pct for d in impact.drivers] == [
         Decimal(n) / Decimal("36") * 100 for n in ("8", "7", "6", "5", "4")]
+
+
+# T1.4: category spellings come from the committed synthetic AMFI NAVAll file.
+import pytest
+from unittest.mock import patch
+
+DEBT_REASON = "This is a debt fund, so it isn't counted in an equity overlap."
+LOW_REASON = "Less than 65% of this fund is in Indian shares, so it isn't counted."
+MISSING_REASON = "We don't have this fund's holdings yet, so it isn't counted here."
+
+
+def _equity_module():
+    from app.services.analytics import equity_universe
+    return equity_universe
+
+
+def _t14_fund(db, category, equity="80", *, name=None, derivative=None):
+    scheme = _scheme(db)
+    scheme.sebi_category = category
+    if name:
+        scheme.name = name
+    db.flush()
+    if equity is not None:
+        rows = [("Shared stock", "SHARED", equity, EQ)]
+        if derivative is not None:
+            rows += [("Short future", None, derivative, AssetType.DERIVATIVE)]
+        _batch(db, scheme, rows)
+    return scheme
+
+
+@pytest.mark.parametrize("category", ["Debt Scheme - Corporate Bond Fund", "Debt Scheme - Overnight Fund", "Debt Scheme - Liquid Fund", "Debt Scheme - Low Duration Fund", "Hybrid Scheme - Arbitrage Fund"])
+def test_debt_overnight_liquid_low_duration_arbitrage_are_excluded_with_reason(db_session, monkeypatch, category):
+    scheme = _t14_fund(db_session, category)
+    result = _compute(db_session, monkeypatch, [_holding(scheme, "100")])
+    assert result.total_fund_count == 0
+    assert [(f.name, f.reason) for f in result.excluded_funds] == [(scheme.name, DEBT_REASON)]
+
+
+def test_index_fund_and_flexi_cap_are_included(db_session, monkeypatch):
+    schemes = [_t14_fund(db_session, category) for category in ["Index Funds - Equity Funds", "Equity Scheme - Flexi Cap Fund"]]
+    result = _compute(db_session, monkeypatch, [_holding(s, "100") for s in schemes])
+    assert result.excluded_funds == [] and result.total_fund_count == 2
+    assert len(result.by_category["Flexi Cap"].matrix_funds) == 1
+
+
+@pytest.mark.parametrize("category", ["Hybrid Scheme - Multi Asset Allocation", "Hybrid Scheme - Dynamic Asset Allocation or Balanced Advantage", "Hybrid Schemes - Equity Savings Fund", "Solution Oriented Scheme - Children’s Fund"])
+def test_hybrid_with_70_percent_net_domestic_equity_is_included_and_with_40_percent_is_excluded(db_session, monkeypatch, category):
+    high = _t14_fund(db_session, category, "70")
+    low = _t14_fund(db_session, category, "40")
+    result = _compute(db_session, monkeypatch, [_holding(high, "100"), _holding(low, "100")])
+    assert [f.scheme_id for f in result.matrix_funds] == [high.id]
+    assert [(f.name, f.reason) for f in result.excluded_funds] == [(low.name, LOW_REASON)]
+
+
+def test_balanced_advantage_fund_mostly_hedged_is_excluded(db_session, monkeypatch):
+    scheme = _t14_fund(db_session, "Hybrid Scheme - Balanced Advantage Fund", "80", derivative="-50")
+    result = _compute(db_session, monkeypatch, [_holding(scheme, "100")])
+    assert result.total_fund_count == 0 and result.excluded_funds[0].reason == LOW_REASON
+
+
+def test_fund_without_holdings_data_is_left_out_and_the_note_says_so_in_plain_words(db_session, monkeypatch):
+    scheme = _t14_fund(db_session, "Equity Scheme - Large Cap Fund", None)
+    result = _compute(db_session, monkeypatch, [_holding(scheme, "100")])
+    assert result.total_fund_count == 0 and result.excluded_funds[0].reason == MISSING_REASON
+
+
+def test_debt_index_fund_fails_the_data_rule_and_an_equity_index_fund_passes(db_session, monkeypatch):
+    debt = _t14_fund(db_session, "Other Scheme - Index Funds", "5")
+    equity = _t14_fund(db_session, "Other Scheme - Index Funds", "90")
+    result = _compute(db_session, monkeypatch, [_holding(debt, "100"), _holding(equity, "100")])
+    assert [f.scheme_id for f in result.matrix_funds] == [equity.id]
+    assert result.excluded_funds[0].reason == LOW_REASON
+
+
+@pytest.mark.parametrize("category", ["Equity Scheme - Large Cap Fund", "Equity Schemes - Large Cap Fund", "Index Funds - Equity Funds"])
+def test_both_stored_category_spellings_are_matched(category):
+    module = _equity_module()
+    assert category in module.EQUITY_CATEGORIES
+    assert module.is_equity_fund(category, Decimal("80"))
+    assert not module.is_equity_fund(category, None)
+
+
+def test_a_fund_ranked_15th_still_appears_in_its_category_matrix(db_session, monkeypatch):
+    schemes = [_t14_fund(db_session, "Equity Scheme - Large Cap Fund" if i < 13 else "Equity Scheme - Small Cap Fund") for i in range(15)]
+    result = _compute(db_session, monkeypatch, [_holding(s, str(1500-i*10)) for i,s in enumerate(schemes)])
+    assert len(result.matrix_funds) == 12 and schemes[-1].id not in {f.scheme_id for f in result.matrix_funds}
+    small = result.by_category["Small Cap"]
+    assert [f.scheme_id for f in small.matrix_funds] == [s.id for s in schemes[-2:]]
+    assert len(small.matrix) == 1 and small.matrix[0].overlap_pct == Decimal("80")
+
+
+def test_category_pair_equals_the_same_pair_in_all_funds(db_session, monkeypatch):
+    from app.services.analytics import overlap
+    schemes = [_t14_fund(db_session, "Equity Scheme - Mid Cap Fund", weight) for weight in ("70", "90", "80")]
+    with patch.object(overlap, "_pair_result", wraps=overlap._pair_result) as calculation:
+        result = _compute(db_session, monkeypatch, [_holding(s, "100") for s in schemes])
+    assert calculation.call_count == 3  # three funds, three pair calculations, reused by category
+    assert result.by_category["Mid Cap"].matrix == result.matrix
+
+
+def test_category_with_no_funds_or_one_fund_returns_the_message_state(db_session, monkeypatch):
+    scheme = _t14_fund(db_session, "Equity Scheme - Flexi Cap Fund")
+    result = _compute(db_session, monkeypatch, [_holding(scheme, "100")])
+    assert set(result.by_category) == {"Large Cap", "Mid Cap", "Small Cap", "Flexi Cap"}
+    assert result.by_category["Large Cap"].message and result.by_category["Large Cap"].total_fund_count == 0
+    assert result.by_category["Flexi Cap"].message and result.by_category["Flexi Cap"].total_fund_count == 1
+    assert result.by_category["Flexi Cap"].matrix == []
+
+
+def test_category_list_matches_stored_category_strings():
+    import re
+    module = _equity_module()
+    navall = Path(__file__).resolve().parents[4] / "Docs/CAS Files/synthetic/navall_2026-10-06.txt"
+    stored = set(re.findall(r"^(?:Open Ended|Close Ended|Interval Fund) Schemes\((.+)\)$", navall.read_text(), re.M))
+    equity_categories = {c for c in stored if c.startswith(("Equity Scheme -", "Equity Schemes -")) or c in {"ELSS", "Index Funds - Equity Funds", "Exchange Traded Funds (ETFs) - Equity ETF"} or "Aggressive Hybrid" in c}
+    assert len(equity_categories) >= 28
+    assert equity_categories <= set(module.EQUITY_CATEGORIES)  # a new stored equity category must be reviewed
+    assert all(module.is_equity_fund(c, Decimal("80")) for c in equity_categories)
+    assert not module.is_equity_fund("Debt Scheme - Liquid Fund", Decimal("99"))
+    assert not module.is_equity_fund("Other Scheme - FoF Overseas", Decimal("99"))
+
+
+def test_funds_analysed_counts_equity_funds_only(db_session, monkeypatch):
+    categories = ["Equity Scheme - Large Cap Fund", "Equity Scheme - Flexi Cap Fund", "Debt Scheme - Liquid Fund"]
+    schemes = [_t14_fund(db_session,c) for c in categories]
+    result = _compute(db_session, monkeypatch, [_holding(s,"100") for s in schemes])
+    assert result.total_fund_count == 2 and len(result.excluded_funds) == 1
+    assert {f.scheme_id for f in result.equity_funds} == {s.id for s in schemes[:2]}
+
+
+def test_net_domestic_equity_uses_latest_written_batch_without_household_cutoff(db_session):
+    module = _equity_module()
+    scheme = _scheme(db_session)
+    _batch(db_session, scheme, [("Old", "OLD", "90", EQ)], date(2026,8,31))
+    _batch(db_session, scheme, [("Domestic", "EQ", "80", EQ), ("Short", None, "-30", AssetType.DERIVATIVE), ("Long", None, "25", AssetType.DERIVATIVE), ("Overseas", "INT", "20", AssetType.EQUITY_INTERNATIONAL)], date(2026,10,31))
+    _batch(db_session, scheme, [("Failed", "BAD", "99", EQ)], date(2026,11,30), DisclosureBatchStatus.FAILED)
+    assert module.net_domestic_equity_pct(db_session, scheme.id) == Decimal("50")
+    assert module.net_domestic_equity_pct(db_session, _scheme(db_session).id) is None
+
+
+def test_overlap_new_fields_default_for_old_payload(db_session, monkeypatch):
+    from app.services.analytics.schemas import OverlapSummary
+    old = _compute(db_session, monkeypatch, []).model_dump()
+    for key in ("excluded_funds", "by_category", "message"):
+        old.pop(key, None)
+    parsed = OverlapSummary.model_validate(old)
+    assert parsed.excluded_funds == [] and parsed.by_category == {} and parsed.message is None

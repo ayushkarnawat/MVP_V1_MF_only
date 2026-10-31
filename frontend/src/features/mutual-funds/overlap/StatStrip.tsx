@@ -53,7 +53,10 @@ export function StatStrip({ summary }: StatStripProps) {
           {analysed} of {of}
         </p>
         <p data-testid="stat-funds-note" className="mt-1 text-xs text-[var(--ui-text-muted)]">
-          {excludedNote(excluded)}
+          {summary.excluded_funds
+            ? excluded === 0 ? "Every fund in this comparison has published holdings."
+              : `${excluded} ${excluded === 1 ? "fund is" : "funds are"} not shown in this equity comparison.`
+            : excludedNote(excluded)}
         </p>
       </div>
 

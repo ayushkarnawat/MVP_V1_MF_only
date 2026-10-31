@@ -192,3 +192,94 @@ describe("leaving the page and the rules", () => {
     expectInteractivity(container, 30);
   });
 });
+
+
+function t14Summary() {
+  const summary = fc.overlapSummary();
+  const category = (ids: string[]) => {
+    const funds = summary.matrix_funds.filter(f => ids.includes(f.scheme_id));
+    const pairs = summary.matrix.filter(p => ids.includes(p.fund_a.scheme_id) && ids.includes(p.fund_b.scheme_id));
+    return { ...summary, matrix_funds: funds, matrix: pairs, pairs_above_low: pairs,
+      impact_pairs: [], pairs_at_low_boundary: [], total_fund_count: funds.length, matrix_truncated: false };
+  };
+  return Object.assign(summary, {
+    by_category: {
+      "Large Cap": category(summary.matrix_funds.slice(0, 2).map(f => f.scheme_id)),
+      "Mid Cap": category([]),
+      "Small Cap": category([]),
+      "Flexi Cap": category([summary.matrix_funds[2].scheme_id]),
+    },
+    excluded_funds: [{ name: "Debt example", reason: "This is a debt fund, so it isn't counted in an equity overlap." }],
+  });
+}
+
+function mountT14(summary = t14Summary()) {
+  const response = fc.analyticsMfC();
+  response.sections.overlap = { payload: { members: [], overlap: summary }, computed_at: "2026-10-26T01:00:00Z", failed_at: null };
+  mocks.getAnalyticsScope.mockResolvedValue(response);
+  mount();
+}
+
+describe("T1.4 equity categories", () => {
+  it("offers All funds and By category and remembers the chosen category", async () => {
+    mountT14();
+    fireEvent.click(await screen.findByRole("tab", { name: "By category" }));
+    fireEvent.click(screen.getByRole("button", { name: "Large Cap: 2 funds" }));
+    expect(screen.getByRole("tab", { name: "Large Cap" })).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("tab", { name: "All funds" }));
+    fireEvent.click(screen.getByRole("tab", { name: "By category" }));
+    expect(screen.getByRole("tab", { name: "Large Cap" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("table", { name: "Overlap heatmap" })).toBeInTheDocument();
+  });
+  it("greys a one-fund card and opens a message with a button back to All funds", async () => {
+    mountT14();
+    fireEvent.click(await screen.findByRole("tab", { name: "By category" }));
+    const card = screen.getByRole("button", { name: "Flexi Cap: 1 fund" });
+    expect(card).toHaveClass("opacity-60");
+    fireEvent.click(card);
+    expect(screen.getByTestId("overlap-empty")).toHaveTextContent("Overlap needs at least two funds");
+    fireEvent.click(screen.getByRole("button", { name: "Back to All funds" }));
+    expect(screen.getByRole("tab", { name: "All funds" })).toHaveAttribute("aria-selected", "true");
+  });
+  it("says no funds for an empty category", async () => {
+    mountT14();
+    fireEvent.click(await screen.findByRole("tab", { name: "By category" }));
+    expect(screen.getByRole("button", { name: "Small Cap: no funds" })).toBeDisabled();
+  });
+  it("names not-shown funds and their plain reason", async () => {
+    mountT14();
+    expect(await screen.findByRole("note", { name: "Funds not shown" })).toHaveTextContent("Debt example");
+    expect(screen.getByRole("note", { name: "Funds not shown" })).toHaveTextContent("This is a debt fund, so it isn't counted in an equity overlap.");
+    expect(screen.getByTestId("stat-funds-note")).toHaveTextContent("1 fund is not shown in this equity comparison.");
+  });
+  it("shows a page-level message when there are no equity funds", async () => {
+    const data = t14Summary();
+    data.matrix_funds = []; data.matrix = []; data.total_fund_count = 0;
+    mountT14(data);
+    expect(await screen.findByTestId("overlap-empty")).toHaveTextContent("No equity funds to compare.");
+    expect(screen.queryByRole("table", { name: "Overlap heatmap" })).not.toBeInTheDocument();
+  });
+  it("says overlap needs two when there is one equity fund", async () => {
+    const data = t14Summary();
+    data.matrix_funds = data.matrix_funds.slice(0, 1); data.matrix = []; data.total_fund_count = 1;
+    mountT14(data);
+    expect(await screen.findByTestId("overlap-empty")).toHaveTextContent("Overlap needs at least two funds with published holdings.");
+    expect(await screen.findByRole("tab", { name: "All funds" })).toHaveAttribute("aria-selected", "true");
+  });
+  it("renders an old payload as All funds only", async () => {
+    mount();
+    expect(await screen.findByRole("tab", { name: "All funds" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "By category" })).not.toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Overlap heatmap" })).toBeInTheDocument();
+  });
+  it("shows other-category funds only in All funds", async () => {
+    const data = t14Summary();
+    const other = data.matrix_funds[3];
+    mountT14(data);
+    expect(await screen.findByTestId(`hm-row-${other.scheme_id}`)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "By category" }));
+    fireEvent.click(screen.getByRole("button", { name: "Large Cap: 2 funds" }));
+    expect(screen.queryByTestId(`hm-row-${other.scheme_id}`)).not.toBeInTheDocument();
+    expect(screen.getAllByTestId(/^hm-row-/)).toHaveLength(2);
+  });
+});

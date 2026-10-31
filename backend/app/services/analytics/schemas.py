@@ -661,7 +661,16 @@ class ConcentrationPoint(BaseModel):
     exposure_pct: Decimal
 
 
+class ExcludedFund(BaseModel):
+    name: str
+    reason: str
+
+
 class OverlapSummary(BaseModel):
+    equity_funds: list[OverlapFund] = Field(default_factory=list)
+    excluded_funds: list[ExcludedFund] = Field(default_factory=list)
+    by_category: dict[str, OverlapSummary] = Field(default_factory=dict)
+    message: str | None = None
     matrix_funds: list[OverlapFund]
     matrix: list[OverlapPair]  # unordered pairs; diagonal omitted
     pairs_above_low: list[OverlapPair]

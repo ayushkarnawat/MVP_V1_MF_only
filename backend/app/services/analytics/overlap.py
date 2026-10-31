@@ -10,8 +10,11 @@ from sqlalchemy.orm import Session
 
 from app.models.enums import AssetType
 from app.services.analytics.lookthrough import get_disclosure_scope, get_lookthrough_table, LookthroughTable
+from app.services.analytics.equity_universe import (
+    _is_debt_or_arbitrage, is_equity_fund, net_domestic_equity_pct,
+)
 from app.services.analytics.schemas import (
-    ConcentrationPoint, OverlapBands, OverlapCommonStock, OverlapDriver, OverlapFund, OverlapImpactPair,
+    ExcludedFund, ConcentrationPoint, OverlapBands, OverlapCommonStock, OverlapDriver, OverlapFund, OverlapImpactPair,
     OverlapPair, OverlapResult, OverlapSummary,
 )
 
@@ -74,27 +77,29 @@ async def compute_overlap(db: Session, household_member_ids: list[uuid.UUID]) ->
     rows = defaultdict(list)
     for row in scope.raw_rows:
         rows[by_batch[row.batch_id]].append(row)
-    funds = [OverlapFund(scheme_id=sid, scheme_name=scope.schemes[sid].name, current_value=scope.values[sid]) for sid in scope.selected]
+    eligible, excluded = set(), []
+    for sid in scope.values:
+        scheme = scope.schemes[sid]
+        net_equity = net_domestic_equity_pct(db, sid)
+        if net_equity is None or sid not in scope.selected:
+            reason = "We don't have this fund's holdings yet, so it isn't counted here."
+        elif _is_debt_or_arbitrage(scheme.sebi_category or ""):
+            reason = "This is a debt fund, so it isn't counted in an equity overlap."
+        elif not is_equity_fund(scheme.sebi_category, net_equity):
+            reason = "Less than 65% of this fund is in Indian shares, so it isn't counted."
+        else:
+            eligible.add(sid)
+            continue
+        excluded.append(ExcludedFund(name=scheme.name, reason=reason))
+    funds = [OverlapFund(scheme_id=sid, scheme_name=scope.schemes[sid].name, current_value=scope.values[sid]) for sid in scope.selected if sid in eligible]
     funds.sort(key=lambda f: (-f.current_value, str(f.scheme_id)))
     weights = {fund.scheme_id: _stock_weights(rows[fund.scheme_id]) for fund in funds}
-    top_ids = {f.scheme_id for f in funds[:OVERLAP_MAX_FUNDS]}
-    matrix, above, at_low = [], [], []
+    # Calculate every eligible pair once, before applying any matrix cap.
+    pairs = []
     for fund_a, fund_b in combinations(funds, 2):
         result = _pair_result(weights[fund_a.scheme_id], weights[fund_b.scheme_id])
-        pair = OverlapPair(fund_a=fund_a, fund_b=fund_b, **result.model_dump())
-        if fund_a.scheme_id in top_ids and fund_b.scheme_id in top_ids:
-            matrix.append(pair)
-        if pair.overlap_pct > OVERLAP_BAND_LOW:
-            above.append(pair)
-        elif pair.overlap_pct == OVERLAP_BAND_LOW:
-            at_low.append(pair)
-    order = lambda p: (-p.overlap_pct, str(p.fund_a.scheme_id), str(p.fund_b.scheme_id))
-    above.sort(key=order)
-    at_low.sort(key=order)
-    return OverlapSummary(
-        matrix_funds=funds[:OVERLAP_MAX_FUNDS], matrix=matrix, pairs_above_low=above,
-        impact_pairs=[_impact(pair) for pair in above[:IMPACT_PAIRS]], pairs_at_low_boundary=at_low,
-        matrix_truncated=len(funds) > OVERLAP_MAX_FUNDS, total_fund_count=len(funds),
+        pairs.append(OverlapPair(fund_a=fund_a, fund_b=fund_b, **result.model_dump()))
+    shared = dict(
         common_stock_limit=COMMON_STOCK_LIMIT,
         bands=OverlapBands(low=OVERLAP_BAND_LOW, high=OVERLAP_BAND_HIGH),
         concentration=compute_concentration(table),
@@ -103,3 +108,32 @@ async def compute_overlap(db: Session, household_member_ids: list[uuid.UUID]) ->
         total_portfolio_value=table.total_portfolio_value, coverage=table.coverage,
         hide_headlines=table.hide_headlines, excluded_share=table.excluded_share,
     )
+
+    def summary(selected_funds, selected_pairs):
+        top_ids = {f.scheme_id for f in selected_funds[:OVERLAP_MAX_FUNDS]}
+        matrix = [p for p in selected_pairs if p.fund_a.scheme_id in top_ids and p.fund_b.scheme_id in top_ids]
+        order = lambda p: (-p.overlap_pct, str(p.fund_a.scheme_id), str(p.fund_b.scheme_id))
+        above = sorted((p for p in selected_pairs if p.overlap_pct > OVERLAP_BAND_LOW), key=order)
+        at_low = sorted((p for p in selected_pairs if p.overlap_pct == OVERLAP_BAND_LOW), key=order)
+        return OverlapSummary(
+            equity_funds=selected_funds,
+            matrix_funds=selected_funds[:OVERLAP_MAX_FUNDS], matrix=matrix,
+            pairs_above_low=above, pairs_at_low_boundary=at_low,
+            impact_pairs=[_impact(pair) for pair in above[:IMPACT_PAIRS]],
+            matrix_truncated=len(selected_funds) > OVERLAP_MAX_FUNDS,
+            total_fund_count=len(selected_funds), **shared,
+        )
+
+    result = summary(funds, pairs)
+    result.excluded_funds = excluded
+    for category in ("Large Cap", "Mid Cap", "Small Cap", "Flexi Cap"):
+        # Exact category suffix: Large & Mid Cap and Multi Cap belong only in All funds.
+        category_funds = [f for f in funds if
+            scope.schemes[f.scheme_id].sebi_category.casefold().split(" - ")[-1] == f"{category.casefold()} fund"]
+        ids = {f.scheme_id for f in category_funds}
+        category_pairs = [p for p in pairs if p.fund_a.scheme_id in ids and p.fund_b.scheme_id in ids]
+        child = summary(category_funds, category_pairs)
+        if len(category_funds) < 2:
+            child.message = "No funds in this category." if not category_funds else "Overlap needs at least two funds with published holdings."
+        result.by_category[category] = child
+    return result
