@@ -28,6 +28,7 @@ CHECK_DISK=/opt/unifolio/deploy/leapswitch/scripts/check-disk.sh
 0  6  *  *  *              $RUN benchmark-daily               scripts/jobs/refresh_benchmark_daily.py
 20 6  *  *  *              $RUN ter-daily                     scripts/jobs/refresh_ter_daily.py
 0  6  10 *  *              $RUN fund-managers-monthly         scripts/jobs/refresh_fund_managers_monthly.py
+0  6  15 *  *              $RUN manual-factsheets-check       scripts/jobs/check_manual_factsheets.py
 45 5  1-20 * *             $RUN portfolio-disclosures-daily   scripts/jobs/refresh_portfolio_disclosures_daily.py
 55 5  *  *  *              $RUN stock-fundamentals-daily      scripts/jobs/refresh_stock_fundamentals_daily.py
 45 5  1-15 1,7 *           $RUN market-cap-half-yearly        scripts/jobs/refresh_market_cap_half_yearly.py

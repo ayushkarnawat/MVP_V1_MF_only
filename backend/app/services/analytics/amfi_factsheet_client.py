@@ -587,6 +587,35 @@ def _alert(amc_name: str, reason: str, detail: str) -> None:
     )
 
 
+@dataclass(frozen=True)
+class StaleHouse:
+    amc: str
+    last_import: date | None
+    days_overdue: int
+
+
+def stale_manual_houses(db: Session, today: date) -> list[StaleHouse]:
+    """Read the latest imported manager month for each manual house with a reader."""
+    # --this-month-only imports keep their automatic registry kind and are
+    # deliberately invisible here, regardless of the stored match_method.
+    manual_amcs = [amc for amc, entry in AMC_RESOLVERS.items()
+                   if entry.kind is ResolverKind.MANUAL and entry.layout]
+    if not manual_amcs:
+        return []
+    latest = dict(
+        db.query(Scheme.amc_name, func.max(SchemeFundManager.reference_period))
+        .join(SchemeFundManager, SchemeFundManager.scheme_id == Scheme.id)
+        .filter(Scheme.amc_name.in_(manual_amcs))
+        .group_by(Scheme.amc_name).all()
+    )
+    current_month = today.replace(day=1)
+    # Elapsed days in this month: 0 on the 1st, 14 on the 15th. The same
+    # measure applies to never-imported houses; it is not the age of the data.
+    days_overdue = (today - current_month).days
+    return [StaleHouse(amc, latest.get(amc), days_overdue) for amc in manual_amcs
+            if latest.get(amc) is None or latest[amc] < current_month]
+
+
 def import_pages(
     db: Session, amc_name: str, pages: list[str], reader, reference_period: date, manual: bool = False,
 ) -> tuple[int, int]:
