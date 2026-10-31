@@ -1,6 +1,6 @@
 # Handoff: Book value from official filings (T2.12)
 
-**Status:** OPEN. **Starts with a probe and an owner question; do not build before the answer.**
+**Status:** PARKED 31 Oct (owner). Probe blocked (403) from the Codex environment; `~/r2-snippets/filings/probe_nse_xbrl.py` is ready to run from an Indian-IP machine. Resume when the owner pastes its output. Nothing is built.
 **Run:** 2 of 7 (follow-on) | **Slug:** `cr-r2-filings-book-value` | **Commit prefix:** `cr-r2:` | **Tasks:** T2.12 (owner go given 31 Oct; waits on T2.11)
 **Rules:** `Docs/orchestration/cr-r2-common-rules.md` (read first). **Task text (authoritative):** plan, "Task 2.12 (gate G7: waits on S6): Phase C, book value from official filings".
 
