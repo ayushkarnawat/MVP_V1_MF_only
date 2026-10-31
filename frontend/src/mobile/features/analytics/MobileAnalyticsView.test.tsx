@@ -263,7 +263,7 @@ describe("MobileAnalyticsView", () => {
       expect(screen.getByText("Portfolio Allocation")).toBeInTheDocument();
       expect(screen.getByText("Total Expense Ratio (TER) & Cost Analysis")).toBeInTheDocument();
       expect(screen.getByText("SEBI Category Ranking & Peer Comparison")).toBeInTheDocument();
-      expect(screen.getByText("Fund Ranking")).toBeInTheDocument();
+      expect(screen.queryByText("Fund Ranking")).not.toBeInTheDocument();
       expect(screen.getByText("Fund Quality Scorer & Composite Ratings")).toBeInTheDocument();
       expect(screen.getByText("Benchmark Comparison (XIRR)")).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: "Investment & Withdrawal" })).toBeInTheDocument();

@@ -628,6 +628,23 @@ export interface FundRankingRow {
   horizons?: Partial<Record<"1y" | "3y" | "5y", PeriodReturn>>;
   plan_type?: string | null;
 }
+export type PerformancePeriod = "1Y" | "3Y" | "5Y";
+export interface PeriodRank {
+  rank: number | null;
+  total: number;
+  status: "ranked" | "not_enough_history" | "not_ranked_index_fund";
+}
+export interface PerformanceRankingFund {
+  scheme_id: string;
+  scheme_name: string;
+  sebi_category?: string | null;
+  plan_type?: string | null;
+  periods?: Partial<Record<PerformancePeriod, PeriodRank>>;
+  disclaimer_key?: "index_fund_not_ranked" | null;
+  ranked_as?: string | null;
+}
+export interface PerformanceRankingResult { funds: PerformanceRankingFund[] }
+
 export interface FundRankingSummary { funds: FundRankingRow[] }
 
 /** What useMfAnalytics(name) returns as `data`. Sections the later bundles use are typed loosely until then. */
@@ -637,7 +654,7 @@ export interface SectionPayloads {
   ter: WeightedTerSummary;
   ter_direct_regular: DirectRegularTerComparison;
   category_ranking: CategoryRankingSummary;
-  ranking: FundRankingSummary;
+  ranking: PerformanceRankingResult;
   score: PortfolioScoreSummary;
   benchmark: PortfolioBenchmarkSummary;
   benchmark_funds: FundVsBenchmarkSummary;

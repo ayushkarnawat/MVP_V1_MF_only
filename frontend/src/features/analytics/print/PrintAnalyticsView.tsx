@@ -3,7 +3,6 @@ import { getExportPayload } from "../api";
 import { AllocationSection } from "../AllocationSection";
 import { TerSection } from "../TerSection";
 import { CategoryRankingSection } from "../CategoryRankingSection";
-import { FundRankingSection } from "../FundRankingSection";
 import { FundManagerSection } from "../FundManagerSection";
 import { BenchmarkSection } from "../BenchmarkSection";
 import { FundScoreCard } from "../FundScoreCard";
@@ -117,9 +116,6 @@ export function PrintAnalyticsView() {
           <InvestmentWithdrawalSection data={payload.investmentWithdrawal} isLoading={false} printMode />
         </div>
       )}
-      <div className="print-section">
-        <FundRankingSection data={payload.fundRanking ?? null} isLoading={false} />
-      </div>
       <div className="print-section">
         <BenchmarkSection
           portfolioBenchmark={payload.portfolioBenchmark}

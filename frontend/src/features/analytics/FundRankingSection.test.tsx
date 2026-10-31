@@ -1,201 +1,27 @@
-// frontend/src/features/analytics/FundRankingSection.test.tsx
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { FundRankingSection } from "./FundRankingSection";
-import type { FundRankingSummary } from "./types";
 
-const summary: FundRankingSummary = {
-  funds: [
-    {
-      scheme_id: "s8", scheme_name: "HDFC Flexi Cap Fund", category_name: "Flexi Cap",
-      category_unavailable: false, insufficient_history: false, thin_category: false, too_few_peers: false,
-      composite_score: "81.40", category_rank: 8, category_size: 62, category_universe_size: 70, percentile: "87.10",
-      return_1y: "0.15", ranked_as: null,
-      neighbors: [
-        { scheme_id: "s6", scheme_name: "Parag Parikh Flexi Cap", category_rank: 6, composite_score: "83.90" },
-        { scheme_id: "s7", scheme_name: "Quant Flexi Cap", category_rank: 7, composite_score: "82.70" },
-        { scheme_id: "s9", scheme_name: "JM Flexi Cap", category_rank: 9, composite_score: "79.80" },
-        { scheme_id: "s10", scheme_name: "Franklin Flexi Cap", category_rank: 10, composite_score: "78.10" },
-      ],
-      components: {
-        return_3y: { percentile: "92", raw: "0.241" },
-        return_5y: { percentile: "88", raw: "0.198" },
-        category_relative: { percentile: "70", raw: "0.02" },
-        low_volatility: { percentile: "60", raw: "0.08" },
-        low_ter: { percentile: null, raw: null },
-      },
-    },
-    {
-      scheme_id: "sT", scheme_name: "Alpha Contra Fund", category_name: "Equity Scheme - Contra Fund",
-      category_unavailable: false, insufficient_history: false, thin_category: true, too_few_peers: false,
-      composite_score: "64.00", category_rank: 2, category_size: 3, category_universe_size: 5, percentile: "33.33",
-      return_1y: null, ranked_as: null, neighbors: [],
-      components: { return_3y: { percentile: "33", raw: "0.18" }, return_5y: { percentile: null, raw: null }, category_relative: { percentile: null, raw: null }, low_volatility: { percentile: null, raw: null }, low_ter: { percentile: "66", raw: "0.75" } },
-    },
-    {
-      scheme_id: "sF", scheme_name: "Lone Duration Fund", category_name: "Debt Scheme - Long Duration Fund",
-      category_unavailable: false, insufficient_history: false, thin_category: true, too_few_peers: true,
-      composite_score: null, category_rank: null, category_size: 1, category_universe_size: 1, percentile: null,
-      return_1y: null, ranked_as: null, neighbors: [],
-      components: { return_3y: { percentile: null, raw: "0.071" }, return_5y: { percentile: null, raw: null }, category_relative: { percentile: null, raw: null }, low_volatility: { percentile: null, raw: null }, low_ter: { percentile: null, raw: "0.62" } },
-    },
-    {
-      scheme_id: "sN", scheme_name: "New Fund", category_name: "Flexi Cap", category_unavailable: false,
-      insufficient_history: true, thin_category: false, composite_score: null, category_rank: null,
-      category_size: 0, category_universe_size: 70, percentile: null, return_1y: null,
-      too_few_peers: false, ranked_as: null, neighbors: [],
-      components: { return_3y: { percentile: null, raw: null }, return_5y: { percentile: null, raw: null }, category_relative: { percentile: null, raw: null }, low_volatility: { percentile: null, raw: null }, low_ter: { percentile: null, raw: null } },
-    },
-  ],
-};
+const data = { funds: [{ scheme_id: "A", scheme_name: "HDFC Flexi Cap Fund", sebi_category: "Equity Scheme - Flexi Cap Fund", plan_type: "direct",
+  periods: { "1Y": { rank: 4, total: 38, status: "ranked" }, "3Y": { rank: 2, total: 30, status: "ranked" },
+    "5Y": { rank: null, total: 20, status: "not_enough_history" } }, disclaimer_key: null, ranked_as: null }] };
 
-describe("fund return horizons", () => {
-  const horizons = {
-    "1y": { fund_return: "0.124", category_avg: "0.10", peers: 62 },
-    "3y": { fund_return: "0.241", category_avg: "0.20", peers: 62 },
-    "5y": { fund_return: null, category_avg: "0.18", peers: 40 },
-  };
-
-  it("names the basis of the overall rank", () => {
-    render(<FundRankingSection data={{ funds: [summary.funds[0]] }} />);
-    expect(screen.getByText("Overall rank = composite score: 3Y return 25%, 5Y return 25%, category-relative 20%, low volatility 15%, low TER 15%.")).toBeInTheDocument();
+describe("legacy Performance Ranking adapter", () => {
+  it("renders the new period ranks without requiring the Mutual Funds page shell", () => {
+    render(<FundRankingSection data={data} />);
+    expect(screen.getByRole("heading", { name: "Performance Ranking" })).toBeInTheDocument();
+    expect(screen.getByTestId("rank-number-A-1Y")).toHaveTextContent("4");
+    expect(screen.getByTestId("rank-cell-A-5Y")).toHaveTextContent("Not enough history for 5 years.");
   });
-
-  it("shows the returns table under the rank line when horizons are present", () => {
-    render(<FundRankingSection data={{ funds: [{ ...summary.funds[0], horizons }] }} />);
-    const rank = screen.getByText("#8 of 62 ranked · 70 in category · Top 13%");
-    const table = screen.getByRole("table");
-    expect(rank.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByText("+12.40%")).toBeInTheDocument();
-    expect(within(table).getAllByText("—")).toHaveLength(2);
-    expect(screen.queryByText(/1Y rank|3Y rank|5Y rank/i)).not.toBeInTheDocument();
+  it("shows an updating state for an old composite payload", () => {
+    render(<FundRankingSection data={{ funds: [{ scheme_id: "A", scheme_name: "Old fund", composite_score: "90", components: {} }] }} />);
+    expect(screen.getByRole("status", { name: "Updating Performance Ranking" })).toHaveTextContent("Performance rankings are updating.");
+    expect(screen.queryByText("Old fund")).not.toBeInTheDocument();
   });
-
-  it("labels the neighbour scores", () => {
-    render(<FundRankingSection data={{ funds: [summary.funds[0]] }} />);
-    expect(screen.getByText("Composite score, 0 to 100")).toBeInTheDocument();
-  });
-
-  it.each([["direct", "Direct"], ["regular", "Regular"]])("names the %s plan type of the peers", (plan_type, label) => {
-    render(<FundRankingSection data={{ funds: [{ ...summary.funds[0], plan_type }] }} />);
-    expect(screen.getByText(`Compared with ${label} plan peers`)).toBeInTheDocument();
-  });
-
-  it("an old payload without horizons still renders", () => {
-    const { container } = render(<FundRankingSection data={{ funds: [summary.funds[0]] }} />);
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    expect(screen.queryByText(/Compared with .* plan peers/)).not.toBeInTheDocument();
-    expect(screen.getByText("81.40")).toBeInTheDocument();
-    expect(container.textContent).not.toMatch(/NaN|undefined/);
-  });
-
-  it("keeps own horizons but hides category averages with fewer than three ranked funds", () => {
-    const { container } = render(<FundRankingSection data={{ funds: [{ ...summary.funds[2], horizons: {
-      "1y": { fund_return: "0.08", category_avg: null, peers: 1 },
-      "3y": { fund_return: "0.071", category_avg: null, peers: 1 },
-      "5y": { fund_return: null, category_avg: null, peers: 0 },
-    }, plan_type: "regular" }] }} />);
-    expect(screen.getByText("Not enough peers")).toBeInTheDocument();
-    expect(screen.getByText("+7.10%")).toBeInTheDocument();
-    expect(within(screen.getByRole("row", { name: /^Category average / })).getAllByText("—")).toHaveLength(3);
-    expect(within(screen.getByRole("row", { name: /^Difference / })).getAllByText("—")).toHaveLength(3);
-    expect(container.textContent).not.toMatch(/NaN|undefined/);
-  });
-});
-
-describe("FundRankingSection", () => {
-  it("renders the leaderboard with (you) tagged and all 4 neighbors in rank order", () => {
-    render(<FundRankingSection data={summary} isLoading={false} />);
-    expect(screen.getAllByText(/HDFC Flexi Cap Fund/)).toHaveLength(2);
-    expect(screen.getByText("#8 HDFC Flexi Cap Fund (you)")).toBeInTheDocument();
-    expect(screen.getByText(/Parag Parikh Flexi Cap/)).toBeInTheDocument();
-    expect(screen.getByText(/Franklin Flexi Cap/)).toBeInTheDocument();
-    expect(screen.getByText("#8 of 62 ranked · 70 in category · Top 13%")).toBeInTheDocument();
-  });
-
-  it("a thin category reads as plain words with both counts and no percentile (D1)", () => {
-    render(<FundRankingSection data={summary} isLoading={false} />);
-    expect(screen.getByText("2nd of 3 ranked Contra funds · 5 in category")).toBeInTheDocument();
-    expect(screen.getByText(/Only 3 Contra funds have a 3-year record/)).toBeInTheDocument();
-    expect(screen.getByText("Thin Category (3 peers)")).toBeInTheDocument();
-  });
-
-  it("fewer than 3 ranked funds shows no rank, only the fund's own numbers (D2)", () => {
-    render(<FundRankingSection data={summary} isLoading={false} />);
-    expect(screen.getByText("Not enough peers")).toBeInTheDocument();
-    expect(screen.getByText(/1 fund in this category has a 3-year record \(1 in category\)/)).toBeInTheDocument();
-    expect(screen.getByText("3Y return 7.10% · Expense ratio 0.62%")).toBeInTheDocument();
-  });
-
-  it("shows the Insufficient History badge and hides the leaderboard for an unranked fund", () => {
-    render(<FundRankingSection data={summary} isLoading={false} />);
-    expect(screen.getByText("Insufficient History")).toBeInTheDocument();
-  });
-
-  it("tap-through reveals the 5-factor breakdown with a dash for a missing component", () => {
-    render(<FundRankingSection data={summary} isLoading={false} />);
-    fireEvent.click(screen.getByRole("button", { name: /HDFC Flexi Cap Fund/ }));
-    expect(screen.getByText(/92nd/)).toBeInTheDocument();
-    const dashes = screen.getAllByText("—");
-    expect(dashes.length).toBeGreaterThan(0);
-  });
-
-  it("shows TER as a percent as stored, returns as fractions converted", () => {
-    render(<FundRankingSection data={summary} isLoading={false} />);
-    fireEvent.click(screen.getByRole("button", { name: /Alpha Contra Fund/ }));
-    expect(screen.getByText(/· 0\.75%/)).toBeInTheDocument();
-    expect(screen.getByText(/· 18\.00%/)).toBeInTheDocument();
-  });
-});
-
-
-describe("Fund Ranking edge states", () => {
-  it("shows the empty state for missing data and hides it while loading", () => {
-    const { rerender } = render(<FundRankingSection data={null} />);
-    expect(screen.getByText("No fund ranking data available")).toBeInTheDocument();
-    rerender(<FundRankingSection data={null} isLoading />);
-    expect(screen.queryByText("No fund ranking data available")).not.toBeInTheDocument();
-  });
-
-  it("shows Category Unavailable without a rank or neighbors", () => {
-    const fund = { ...summary.funds[0], category_unavailable: true };
-    render(<FundRankingSection data={{ funds: [fund] }} />);
-    expect(screen.getByText("Category Unavailable")).toBeInTheDocument();
-    expect(screen.queryByText(/\(you\)/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Parag Parikh/)).not.toBeInTheDocument();
-  });
-
-  it("keeps missing 5Y and TER as dashes and exposes expanded state", () => {
-    const fund = { ...summary.funds[0], components: { ...summary.funds[0].components, return_5y: { percentile: null, raw: null } } };
-    render(<FundRankingSection data={{ funds: [fund] }} />);
-    const button = screen.getByRole("button", { name: /HDFC Flexi Cap Fund/ });
-    expect(button).toHaveAttribute("aria-expanded", "false");
-    fireEvent.click(button);
-    expect(button).toHaveAttribute("aria-expanded", "true");
-    for (const label of ["5Y return (25%)", "Low TER (15%)"]) {
-      expect(within(screen.getByText(label).parentElement!).getByText("—")).toBeInTheDocument();
-    }
-    fireEvent.click(button);
-    expect(screen.queryByText("5Y return (25%)")).not.toBeInTheDocument();
-  });
-
-  it("uses ranked counts for thin copy and omits Top percentile", () => {
-    render(<FundRankingSection data={{ funds: [summary.funds[1]] }} />);
-    expect(screen.getByText("2nd of 3 ranked Contra funds · 5 in category")).toBeInTheDocument();
-    expect(screen.queryByText(/Top \d+%/)).not.toBeInTheDocument();
-  });
-
-  it.each([1, 10])("renders supplied neighbors at boundary rank %s without wrapping", (rank) => {
-    const neighbors = rank === 1 ? summary.funds[0].neighbors.slice(0, 2).map((n, i) => ({ ...n, category_rank: i + 2 })) : summary.funds[0].neighbors.slice(0, 2).map((n, i) => ({ ...n, category_rank: i + 8 }));
-    render(<FundRankingSection data={{ funds: [{ ...summary.funds[0], category_rank: rank, neighbors }] }} />);
-    expect(screen.getByText(`#${rank} HDFC Flexi Cap Fund (you)`)).toBeInTheDocument();
-    for (const n of neighbors) expect(screen.getByText(`#${n.category_rank} ${n.scheme_name}`)).toBeInTheDocument();
-    expect(screen.getByText("81.40")).toBeInTheDocument();
-  });
-
-  it("leaves out the Top % rather than showing Top 100% when no percentile is sent", () => {
-    const fund = { ...summary.funds[0], percentile: null };
-    render(<FundRankingSection data={{ funds: [fund] }} isLoading={false} />);
-    expect(screen.getByText("#8 of 62 ranked · 70 in category")).toBeInTheDocument();
+  it("keeps loading and absent-data states", () => {
+    const view = render(<FundRankingSection data={null} isLoading />);
+    expect(screen.getByLabelText("Loading Performance Ranking")).toBeInTheDocument();
+    view.rerender(<FundRankingSection data={null} />);
+    expect(screen.getByText("No performance ranking data available.")).toBeInTheDocument();
   });
 });

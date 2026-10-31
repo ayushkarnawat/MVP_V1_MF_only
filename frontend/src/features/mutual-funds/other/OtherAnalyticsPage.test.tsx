@@ -42,13 +42,13 @@ describe("the page", () => {
     await ready();
     const groups = [...screen.getByTestId("analytics-groups").children];
     expect(groups.map(group => group.getAttribute("data-testid"))).toEqual(["group-cost", "group-scorer", "group-category", "group-ranking"]);
-    const titles = ["Cost & Valuation", "Fund Quality Scorer", "SEBI Category Ranking & Peer Comparison", "Fund Ranking"];
+    const titles = ["Cost & Valuation", "Fund Quality Scorer", "SEBI Category Ranking & Peer Comparison", "Performance Ranking"];
     expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.id)).toEqual(["heading-cost", "heading-scorer", "heading-category", "heading-ranking"]);
     titles.forEach((name, index) => expect(screen.getAllByRole("heading", { level: 2 })[index]).toHaveAccessibleName(name));
     expect(screen.getByText("How expensive your funds are to hold, and how richly their holdings are priced.")).toBeInTheDocument();
     expect(screen.getByText("Unifolio's proprietary score — 45% Return, 30% Downside Risk, 25% Consistency vs. SEBI category peers, with a small TER cost nudge. Click a fund for its full breakdown.")).toBeInTheDocument();
     expect(screen.getByText("Where each fund sits among every other fund SEBI classifies in the same category.")).toBeInTheDocument();
-    expect(screen.getByText("A transparent, formula-only composite — 3Y return 25% / 5Y return 25% / category-relative 20% / low volatility 15% / low TER 15%. Distinct from the Fund Quality Scorer above, which is proprietary.")).toBeInTheDocument();
+    expect(screen.getByText("Each period compares funds in the same SEBI category and plan type.")).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.querySelector("[aria-hidden=true]")?.textContent)).toEqual(["1", "2", "3", "4"]);
   });
   it("puts the right cards in each group", async () => {
@@ -58,7 +58,7 @@ describe("the page", () => {
     expect(titles("group-cost")).toEqual(["Total Expense Ratio (TER) & Cost Analysis", "Portfolio Valuation vs. Benchmarks"]);
     expect(titles("group-scorer")).toEqual(["Fund Quality Scores"]);
     expect(titles("group-category")).toEqual(["Category Rank"]);
-    expect(titles("group-ranking")).toEqual(["Fund Leaderboard"]);
+    expect(titles("group-ranking")).toEqual(["Rank in your fund's category"]);
   });
   it("asks for the analytics once and for nothing else: every click is client side", async () => {
     mount();
@@ -68,7 +68,7 @@ describe("the page", () => {
     fireEvent.click(screen.getByTestId("score-card-S-JM"));
     fireEvent.click(screen.getByTestId("acc-evidence"));
     fireEvent.click(screen.getByTestId("cat-row-S-KOTAK"));
-    fireEvent.click(screen.getByTestId("rank-row-S-KOTAK"));
+    expect(screen.getByTestId("performance-row-S-KOTAK")).toBeInTheDocument();
     expect(mocks.getAnalyticsScope).toHaveBeenCalledTimes(1);
     expect(mocks.getHoldingsBundle).not.toHaveBeenCalled();
     expect(mocks.getAllocation).not.toHaveBeenCalled();
@@ -81,7 +81,7 @@ describe("the page", () => {
     expect(mocks.getAnalyticsScope.mock.calls[0][0]).toBe("m1");
     expect(screen.getByTestId("ter-weighted")).toHaveTextContent("0.64%");
     expect(screen.getByTestId("score-verdict")).toHaveTextContent("High Quality Portfolio");
-    expect(screen.getByTestId("rank-row-S-KOTAK")).toBeInTheDocument();
+    expect(screen.getByTestId("performance-row-S-KOTAK")).toBeInTheDocument();
   });
 });
 
@@ -107,7 +107,7 @@ describe("failure, loading and retry", () => {
     expect(screen.getAllByRole("button", { name: "Retry" })).toHaveLength(1);
     expect(within(screen.getByTestId("group-scorer")).getByRole("button", { name: "Retry" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Fund Quality Scorer" })).toBeInTheDocument();
-    expect(screen.getByTestId("rank-row-S-KOTAK")).toBeInTheDocument();
+    expect(screen.getByTestId("performance-row-S-KOTAK")).toBeInTheDocument();
     expect(screen.getByTestId("cat-row-S-KOTAK")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(mocks.retryAnalyticsScope).toHaveBeenCalledWith("combined");
@@ -121,16 +121,16 @@ describe("failure, loading and retry", () => {
     mount();
     await ready();
     expect(screen.getAllByRole("button", { name: "Retry" })).toHaveLength(3);
-    for (const title of ["Portfolio Valuation vs. Benchmarks", "Category Rank", "Fund Leaderboard"]) expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
+    for (const title of ["Portfolio Valuation vs. Benchmarks", "Category Rank", "Rank in your fund's category"]) expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
   });
   it("shows a loading status in each card whose section has not settled", async () => {
     const response = fc.analyticsMfC();
     for (const name of ["ter", "valuation", "score", "category_ranking", "ranking"] as const) response.sections[name] = UNSETTLED;
     mocks.getAnalyticsScope.mockResolvedValue(response);
     mount();
-    await screen.findByRole("status", { name: "Loading Fund Leaderboard" });
+    await screen.findByRole("status", { name: "Loading Rank in your fund's category" });
     expect(screen.getAllByRole("status").map(status => status.getAttribute("aria-label"))).toEqual([
-      "Loading Total Expense Ratio (TER) & Cost Analysis", "Loading Portfolio Valuation vs. Benchmarks", "Loading Fund Quality Scores", "Loading Category Rank", "Loading Fund Leaderboard",
+      "Loading Total Expense Ratio (TER) & Cost Analysis", "Loading Portfolio Valuation vs. Benchmarks", "Loading Fund Quality Scores", "Loading Category Rank", "Loading Rank in your fund's category",
     ]);
     expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(4);
   });
@@ -148,12 +148,12 @@ describe("one rupee value and one return per fund", () => {
     expect(ladder).toBe("15.1%");
     expect(category).toBe(ladder);
   });
-  it("shows Kotak's TER once in the ladder and the same figure as the Low TER component", async () => {
+  it("keeps Kotak's TER in the ladder without a composite ranking component", async () => {
     mount();
     await ready();
     expect(screen.getByTestId("ladder-ter-S-KOTAK")).toHaveTextContent("0.58%");
-    fireEvent.click(screen.getByTestId("rank-row-S-KOTAK"));
-    expect(screen.getByTestId("comp-low_ter-S-KOTAK")).toHaveTextContent("0.58%");
+    expect(screen.getByTestId("performance-row-S-KOTAK")).toBeInTheDocument();
+    expect(screen.queryByTestId("comp-low_ter-S-KOTAK")).not.toBeInTheDocument();
   });
 });
 
@@ -165,8 +165,8 @@ describe("every control on the page", () => {
     fireEvent.click(screen.getByTestId("score-card-S-HDFC"));
     fireEvent.click(screen.getByTestId("acc-methodology"));
     fireEvent.click(screen.getByTestId("cat-row-S-JM"));
-    fireEvent.click(screen.getByTestId("rank-row-S-JM"));
-    expectInteractivity(container, 18);
-    expect(container.querySelectorAll("[data-clickable]")).toHaveLength(18);
+    expect(screen.getByTestId("performance-row-S-JM")).toBeInTheDocument();
+    expectInteractivity(container, 15);
+    expect(container.querySelectorAll("[data-clickable]")).toHaveLength(15);
   });
 });

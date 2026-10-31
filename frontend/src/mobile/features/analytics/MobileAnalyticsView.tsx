@@ -12,7 +12,6 @@ import { StockHoldingsSection } from "@/features/analytics/StockHoldingsSection"
 import { CapAllocationSection } from "@/features/analytics/CapAllocationSection";
 import { TerSection } from "@/features/analytics/TerSection";
 import { CategoryRankingSection } from "@/features/analytics/CategoryRankingSection";
-import { FundRankingSection } from "@/features/analytics/FundRankingSection";
 import { FundManagerSection } from "@/features/analytics/FundManagerSection";
 import { ScorerSection } from "@/features/analytics/ScorerSection";
 import { InvestmentWithdrawalSection } from "@/features/analytics/InvestmentWithdrawalSection";
@@ -27,7 +26,6 @@ import type {
   AnalyticsAllocationSummary,
   AnalyticsSectionName,
   CategoryRankingSummary,
-  FundRankingSummary,
   FundManagerAllocationSummary,
   DirectRegularTerComparison,
   FundVsBenchmarkSummary,
@@ -79,7 +77,6 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
   const ter = unwrap<WeightedTerSummary>("ter");
   const terComparison = unwrap<DirectRegularTerComparison>("ter_direct_regular");
   const ranking = unwrap<CategoryRankingSummary>("category_ranking");
-  const fundRanking = unwrap<FundRankingSummary>("ranking");
   const fundManager = unwrap<FundManagerAllocationSummary>("fund_manager");
   const scoreSummary = unwrap<PortfolioScoreSummary>("score");
   const portfolioBenchmark = unwrap<PortfolioBenchmarkSummary>("benchmark");
@@ -95,7 +92,6 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
   const capAllocationLoading = !isSectionSettled(sections.cap_allocation);
   const terLoading = !isSectionSettled(sections.ter) || !isSectionSettled(sections.ter_direct_regular);
   const rankingLoading = !isSectionSettled(sections.category_ranking);
-  const fundRankingLoading = !isSectionSettled(sections.ranking);
   const fundManagerLoading = !isSectionSettled(sections.fund_manager);
   const scoreLoading = !isSectionSettled(sections.score);
   const investmentWithdrawalLoading = !isSectionSettled(sections.investment_withdrawal);
@@ -184,7 +180,6 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
       {/* Section 3: Category Ranking */}
       <CategoryRankingSection ranking={ranking} isLoading={rankingLoading} />
       <FundManagerSection data={fundManager} isLoading={fundManagerLoading} />
-      <FundRankingSection data={fundRanking} isLoading={fundRankingLoading} />
 
       {/* Section 4: Scorer */}
       <ScorerSection

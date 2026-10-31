@@ -5,12 +5,11 @@ import type {
   CategoryRankingSummary,
   CategoryRankRow,
   DirectRegularTerComparison,
-  FundRankingComponent,
-  FundRankingNeighbor,
-  FundRankingRow,
   FundScoreRow,
   FundTerRow,
   PeriodReturn,
+  PeriodRank,
+  PerformanceRankingResult,
   ValuationSummary,
   WeightedTerSummary,
 } from "../types";
@@ -19,7 +18,7 @@ export const GROUP_TITLES = {
   cost: "Cost & Valuation",
   scorer: "Fund Quality Scorer",
   category: "SEBI Category Ranking & Peer Comparison",
-  ranking: "Fund Ranking",
+  ranking: "Performance Ranking",
 } as const;
 
 export function normalizeFraction(value: string): string {
@@ -599,22 +598,6 @@ export function categoryOutperform(fund: CategoryRankRow): string | null {
   return `${out ? "Outperforming" : "Trailing"} its ${fund.sebi_category} category average over 3Y by ${ptClean}.`;
 }
 
-export const RANK_WEIGHTS = [
-  { key: "return_3y", label: "3Y return", weight: 25, unit: "fraction" },
-  { key: "return_5y", label: "5Y return", weight: 25, unit: "fraction" },
-  { key: "category_relative", label: "Category-relative", weight: 20, unit: "fraction" },
-  { key: "low_volatility", label: "Low volatility", weight: 15, unit: "fraction" },
-  { key: "low_ter", label: "Low TER", weight: 15, unit: "percent" },
-] as const;
-
-export function rankWeightsSentence(): string {
-  const parts = RANK_WEIGHTS.map(item => {
-    const lowerLabel = item.label.charAt(0).toLowerCase() + item.label.slice(1);
-    return `${lowerLabel} ${item.weight}%`;
-  });
-  return `Overall rank = composite score: ${parts.join(", ")}.`;
-}
-
 export function shortCategory(name: string | null): string {
   if (!name) return "";
   const idx = name.indexOf(" - ");
@@ -622,43 +605,48 @@ export function shortCategory(name: string | null): string {
   return part.endsWith(" Fund") ? part.slice(0, -5) : part;
 }
 
-export function rankLine(fund: FundRankingRow): string {
-  const counts = `${fund.category_universe_size} in category`;
-  if (fund.thin_category) {
-    return `${ordinal(fund.category_rank ?? 0)} of ${fund.category_size} ranked ${shortCategory(fund.category_name)} funds · ${counts}`;
-  }
-  let line = `#${fund.category_rank} of ${fund.category_size} ranked · ${counts}`;
-  if (fund.percentile !== null && fund.percentile !== undefined) {
-    line += ` · Top ${100 - wholePercentile(fund.percentile)}%`;
-  }
-  return line;
+export const PERFORMANCE_PERIODS = ["1Y", "3Y", "5Y"] as const;
+
+function rankingRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
-export function componentText(
-  component: FundRankingComponent,
-  unit: "fraction" | "percent"
-): string {
-  const left = component.percentile !== null && component.percentile !== undefined
-    ? `${ordinal(wholePercentile(component.percentile))} pct`
-    : "—";
-  let right = "";
-  if (component.raw !== null && component.raw !== undefined) {
-    right = unit === "percent" ? terText(component.raw) : rawPercent(component.raw);
-  }
-  if (left === "—" && !right) return "—";
-  if (left === "—") return `— · ${right}`;
-  if (!right) return left;
-  return `${left} · ${right}`;
+function validPeriodRank(value: unknown): value is PeriodRank {
+  if (!rankingRecord(value) || !Number.isInteger(value.total) || (value.total as number) < 0) return false;
+  if (value.status === "ranked") return Number.isInteger(value.rank) && (value.rank as number) >= 1 && (value.rank as number) <= (value.total as number);
+  return (value.status === "not_enough_history" || value.status === "not_ranked_index_fund") && value.rank === null;
 }
 
-export function splitNeighbors(
-  fund: FundRankingRow
-): { above: FundRankingNeighbor[]; below: FundRankingNeighbor[] } {
-  if (fund.category_rank === null || fund.category_rank === undefined) {
-    return { above: [], below: [] };
+export function isPerformanceRanking(value: unknown): value is PerformanceRankingResult {
+  if (!rankingRecord(value) || !Array.isArray(value.funds)) return false;
+  return value.funds.every(fund => rankingRecord(fund) && typeof fund.scheme_id === "string"
+    && typeof fund.scheme_name === "string" && rankingRecord(fund.periods)
+    && PERFORMANCE_PERIODS.every(period => validPeriodRank((fund.periods as Record<string, unknown>)[period])));
+}
+
+export function performanceComparisonCounts(data: PerformanceRankingResult): { top: number; total: number } {
+  let top = 0, total = 0;
+  for (const fund of data.funds) {
+    for (const key of PERFORMANCE_PERIODS) {
+      const period = fund.periods?.[key];
+      if (period?.status !== "ranked" || period.rank === null || period.total < 1) continue;
+      total += 1;
+      if (period.rank * 4 <= period.total) top += 1;
+    }
   }
-  const sorted = [...fund.neighbors].sort((a, b) => a.category_rank - b.category_rank);
-  const above = sorted.filter(n => n.category_rank < fund.category_rank!);
-  const below = sorted.filter(n => n.category_rank > fund.category_rank!);
-  return { above, below };
+  return { top, total };
+}
+
+export function performanceRankPosition(rank: number, total: number): number {
+  return Math.max(3, Math.min(97, total > 1 ? (rank - 1) / (total - 1) * 100 : 0));
+}
+
+export function performanceRankColor(rank: number, total: number): string {
+  return rank * 4 <= total ? "var(--pos)" : rank * 2 <= total ? "var(--c2)"
+    : rank * 4 <= total * 3 ? "var(--warn-text)" : "var(--neg)";
+}
+
+export function performanceRankBanner(data: PerformanceRankingResult): string {
+  const { top, total } = performanceComparisonCounts(data);
+  return `Your funds rank in the top quarter in ${top} of ${total} comparisons. A rank such as 4/38 means this fund is 4th best out of 38 funds in the same category. Lower is better. The dot shows where the fund sits, from best (left) to last (right); the green stretch is the top quarter.`;
 }

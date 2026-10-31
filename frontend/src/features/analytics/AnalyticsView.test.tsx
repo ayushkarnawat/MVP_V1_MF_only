@@ -429,17 +429,16 @@ describe("Fund Manager dashboard wiring", () => {
   });
 });
 
-describe("Fund Ranking dashboard wiring", () => {
+describe("Performance Ranking dashboard wiring", () => {
   it.each([true, false])("renders the snake_case ranking payload (aggregate=%s) after Category Ranking", async (isAggregate) => {
     vi.mocked(api.getAnalyticsScope).mockResolvedValue({
       scope: isAggregate ? "combined" : "m-1", recomputing: false, sections: buildSections(isAggregate),
     });
     render(<AnalyticsView viewMode={isAggregate ? "aggregate" : "member"} memberId={isAggregate ? null : "m-1"} />);
-    const fundRankingHeading = await screen.findByRole("heading", { name: "Fund Ranking" });
+    const fundRankingHeading = await screen.findByRole("heading", { name: "Performance Ranking" });
     const categoryHeading = screen.getByRole("heading", { name: "SEBI Category Ranking & Peer Comparison" });
     expect(categoryHeading.compareDocumentPosition(fundRankingHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByText("#2 Ranking Growth Fund (you)")).toBeInTheDocument();
-    expect(screen.getByText("#1 Ranking Peer Fund")).toBeInTheDocument();
-    expect(screen.getByText("Ranked on Ranking Growth Series")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Updating Performance Ranking" })).toHaveTextContent("Performance rankings are updating.");
+    expect(screen.queryByText("#2 Ranking Growth Fund (you)")).not.toBeInTheDocument();
   });
 });

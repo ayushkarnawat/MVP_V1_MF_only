@@ -2,21 +2,20 @@ import { describe, expect, it } from "vitest";
 import * as fc from "../fixtures/mfCother";
 import type { FundScoreRow, FundTerRow, ValuationSummary } from "../types";
 import {
-  assessFactor, barWidths, categoryOutperform, componentText, costLine, deltaSentence, displayTier, GROUP_TITLES, isScored, noTerNote,
+  assessFactor, barWidths, categoryOutperform, costLine, deltaSentence, displayTier, GROUP_TITLES, isScored, noTerNote,
   normalizeFraction, ordinal, percentileTier, percentileWidth, periodsFor, pinPercent, pinPositions, planState, pointsText,
-  portfolioVerdict, ratioRows, ratioState, ratioText, rankLine, RANK_WEIGHTS, rankWeightsSentence, rawPercent, savingsLine,
-  shortCategory, splitNeighbors, terBadge, terLadderRows, terScaleMax, terText, terTotals, tierCaption, TIER_STYLE, tierTone,
+  portfolioVerdict, ratioRows, ratioState, ratioText, rawPercent, savingsLine,
+  shortCategory, terBadge, terLadderRows, terScaleMax, terText, terTotals, tierCaption, TIER_STYLE, tierTone,
   unscoredReason, verdictWord, whatThisMeans, whySentence, wholePercentile,
 } from "./otherLogic";
 
 const score = (id: string): FundScoreRow => fc.scoreSummary().funds.find(fund => fund.scheme_id === id)!;
-const rank = (id: string) => fc.fundRanking().funds.find(fund => fund.scheme_id === id)!;
 const valuation = (): ValuationSummary => fc.valuationSummary();
 const fundRow = (over: Partial<FundTerRow>): FundTerRow => ({ scheme_id: "X", scheme_name: "X Fund", plan_type: "direct", ter: "0.50", value: "100.00", cost_1y: null, cost_3y: null, cost_5y: null, ...over });
 
 describe("the four group titles", () => {
   it("are exactly the signed-off names", () => {
-    expect(GROUP_TITLES).toEqual({ cost: "Cost & Valuation", scorer: "Fund Quality Scorer", category: "SEBI Category Ranking & Peer Comparison", ranking: "Fund Ranking" });
+    expect(GROUP_TITLES).toEqual({ cost: "Cost & Valuation", scorer: "Fund Quality Scorer", category: "SEBI Category Ranking & Peer Comparison", ranking: "Performance Ranking" });
   });
 });
 
@@ -299,47 +298,19 @@ describe("category and fund ranking logic", () => {
     expect(categoryOutperform(funds[3])).toBeNull();
     expect(categoryOutperform({ ...funds[0], sebi_category: null })).toBeNull();
   });
-  it("weighs the composite 25, 25, 20, 15 and 15, summing to exactly 100, in this order", () => {
-    expect(RANK_WEIGHTS.map(item => [item.key, item.label, item.weight, item.unit])).toEqual([
-      ["return_3y", "3Y return", 25, "fraction"], ["return_5y", "5Y return", 25, "fraction"], ["category_relative", "Category-relative", 20, "fraction"],
-      ["low_volatility", "Low volatility", 15, "fraction"], ["low_ter", "Low TER", 15, "percent"],
-    ]);
-    expect(RANK_WEIGHTS.reduce((sum, item) => sum + item.weight, 0)).toBe(100);
-    expect(rankWeightsSentence()).toBe("Overall rank = composite score: 3Y return 25%, 5Y return 25%, category-relative 20%, low volatility 15%, low TER 15%.");
-  });
+
   it("shortens a category name", () => {
     expect(shortCategory("Equity Scheme - Mid Cap Fund")).toBe("Mid Cap");
     expect(shortCategory("Large Cap Fund")).toBe("Large Cap");
     expect(shortCategory(null)).toBe("");
   });
-  it("writes the rank line: rank, ranked count, universe, and the top share unless the category is thin", () => {
-    expect(rankLine(rank("S-KOTAK"))).toBe("#4 of 28 ranked · 40 in category · Top 11%");
-    expect(rankLine(rank("S-JM"))).toBe("#11 of 42 ranked · 51 in category · Top 24%");
-    expect(rankLine(rank("S-HDFC"))).toBe("3rd of 4 ranked Mid Cap funds · 14 in category");
-    expect(rankLine({ ...rank("S-KOTAK"), percentile: null })).toBe("#4 of 28 ranked · 40 in category");
-    expect(rankLine({ ...rank("S-KOTAK"), percentile: "99.5" })).toBe("#4 of 28 ranked · 40 in category · Top 0%");
-  });
-  it("writes a component: percentile as an ordinal and the raw figure as a return or, for TER, a percent", () => {
-    expect(componentText({ percentile: "91.0", raw: "0.1510" }, "fraction")).toBe("91st pct · 15.1%");
-    expect(componentText({ percentile: "61.0", raw: "0.58" }, "percent")).toBe("61st pct · 0.58%");
-    expect(componentText({ percentile: "42.0", raw: "-0.0250" }, "fraction")).toBe("42nd pct · -2.5%");
-    expect(componentText({ percentile: null, raw: "0.1" }, "fraction")).toBe("— · 10.0%");
-    expect(componentText({ percentile: "11.0", raw: null }, "fraction")).toBe("11th pct");
-    expect(componentText({ percentile: null, raw: null }, "percent")).toBe("—");
-  });
-  it("splits the named neighbours above and below the fund, nearest rank first, and never includes the fund itself", () => {
-    const fund = rank("S-KOTAK");
-    const split = splitNeighbors(fund);
-    expect(split.above.map(n => n.category_rank)).toEqual([3]);
-    expect(split.below.map(n => n.category_rank)).toEqual([5]);
-    const messy = { ...fund, neighbors: [
-      { scheme_id: "a", scheme_name: "A", category_rank: 6, composite_score: "1" }, { scheme_id: "b", scheme_name: "B", category_rank: 2, composite_score: "1" },
-      { scheme_id: "c", scheme_name: "C", category_rank: 4, composite_score: "1" }, { scheme_id: "d", scheme_name: "D", category_rank: 3, composite_score: "1" },
-      { scheme_id: "e", scheme_name: "E", category_rank: 5, composite_score: "1" },
-    ] };
-    const sorted = splitNeighbors(messy);
-    expect(sorted.above.map(n => n.category_rank)).toEqual([2, 3]);
-    expect(sorted.below.map(n => n.category_rank)).toEqual([5, 6]);
-    expect(splitNeighbors({ ...fund, category_rank: null })).toEqual({ above: [], below: [] });
-  });
+
+
+
+});
+
+
+it("group_titles_are_unique", () => {
+  expect(GROUP_TITLES.ranking).toBe("Performance Ranking");
+  expect(new Set(Object.values(GROUP_TITLES)).size).toBe(4);
 });

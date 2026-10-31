@@ -3,7 +3,7 @@ import { useMfAnalytics } from "../data/analyticsStore";
 import { MutualFundsFrame } from "../frame/MutualFundsFrame";
 import { CategoryRankingGroup } from "./CategoryRankingGroup";
 import { CostValuationGroup } from "./CostValuationGroup";
-import { FundRankingGroup } from "./FundRankingGroup";
+import { PerformanceRankingGroup } from "./PerformanceRankingGroup";
 import { GROUP_TITLES } from "./otherLogic";
 import { ScorerGroup } from "./ScorerGroup";
 
@@ -100,9 +100,9 @@ function OtherAnalyticsBody() {
         id="ranking"
         index={3}
         title={GROUP_TITLES.ranking}
-        description="A transparent, formula-only composite — 3Y return 25% / 5Y return 25% / category-relative 20% / low volatility 15% / low TER 15%. Distinct from the Fund Quality Scorer above, which is proprietary."
+        description="Each period compares funds in the same SEBI category and plan type."
       >
-        <FundRankingGroup />
+        <PerformanceRankingGroup />
       </Group>
     </div>
   );

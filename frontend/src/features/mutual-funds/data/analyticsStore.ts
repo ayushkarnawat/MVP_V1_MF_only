@@ -1,6 +1,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { useScope } from "../../../shell/scope/ScopeContext";
 import { getToken } from "../../auth/session";
+import { isPerformanceRanking } from "../other/otherLogic";
 import { getAnalyticsScope, retryAnalyticsScope } from "../api";
 import {
   ANALYTICS_SECTION_NAMES,
@@ -196,6 +197,7 @@ export function useMfAnalytics<S extends AnalyticsSectionName>(name: S): {
   status: "loading" | "ready" | "failed" | "error";
   data: SectionPayload<S> | null;
   retry: () => void;
+  updating: boolean;
 } {
   const { viewMode, memberId } = useScope();
   const scope = viewMode === "aggregate" ? "combined" : memberId ?? "";
@@ -237,6 +239,9 @@ export function useMfAnalytics<S extends AnalyticsSectionName>(name: S): {
     data = null;
   }
 
+  const updating = name === "ranking" && data !== null && !isPerformanceRanking(data);
+  if (updating) data = null;
+
   const retry = useCallback(() => {
     if (!scope) return;
     void Promise.resolve(retryAnalyticsScope(scope))
@@ -244,5 +249,5 @@ export function useMfAnalytics<S extends AnalyticsSectionName>(name: S): {
       .then(() => analyticsStore.refresh(scope));
   }, [scope]);
 
-  return { status, data, retry };
+  return { status, data, retry, updating };
 }

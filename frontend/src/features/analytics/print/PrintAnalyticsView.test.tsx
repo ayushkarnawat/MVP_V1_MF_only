@@ -71,10 +71,12 @@ describe("PrintAnalyticsView", () => {
     vi.restoreAllMocks();
   });
 
-  it("prints the fund ranking leaderboard from its own export field", async () => {
+  it("legacy_print_view_compiles_without_fund_ranking", async () => {
     vi.spyOn(api, "getExportPayload").mockResolvedValue({ ...payload, fundRanking: { funds: [fundRankingRow] } });
     render(<PrintAnalyticsView />);
-    expect((await screen.findAllByText(/Ranked Flexi Cap Fund/)).length).toBeGreaterThan(0);
+    await waitFor(() => expect(document.documentElement.dataset.printReady).toBe("true"));
+    expect(screen.queryByText(/Ranked Flexi Cap Fund/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Fund Ranking" })).not.toBeInTheDocument();
   });
 
   it("prints fund managers from their own export field after Category Ranking", async () => {

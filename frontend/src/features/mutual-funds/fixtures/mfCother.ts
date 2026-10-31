@@ -3,11 +3,11 @@
 // arithmetic (cost = value x TER / 100 rounded half up to paise, 3 and 5 years are 3x and 5x; the weighted TER and the weighted score
 // are value weighted; every figure for a fund that appears in two sections is the same number in both) and validated against the
 // backend pydantic response models (WeightedTerSummary, DirectRegularTerComparison, ValuationSummary, PortfolioScoreSummary,
-// CategoryRankingSummary, FundRankingSummary in backend/app/services/analytics/schemas.py), which are authoritative.
+// CategoryRankingSummary, PerformanceRankingResult in backend/app/services/analytics/schemas.py), which are authoritative.
 // Household: the four valued funds of ./index.ts (Kotak 15,40,000, HDFC 13,10,000, JM 9,80,000, SBI Bluechip 8,19,340; total 46,49,340).
 // SBI Bluechip has no TER on file, no category and too short a history; Axis Midcap has no value so no section lists it.
 import type {
-  CategoryRankingSummary, DirectRegularTerComparison, FundRankingSummary, PortfolioScoreSummary, ValuationSummary, WeightedTerSummary,
+  CategoryRankingSummary, DirectRegularTerComparison, PerformanceRankingResult, PortfolioScoreSummary, ValuationSummary, WeightedTerSummary,
 } from "../types";
 
 const TER: WeightedTerSummary = {
@@ -489,260 +489,16 @@ const CATEGORY_RANKING: CategoryRankingSummary = {
   }
  ]
 };
-const FUND_RANKING: FundRankingSummary = {
- "funds": [
-  {
-   "scheme_id": "S-KOTAK",
-   "scheme_name": "Kotak Multi Cap Fund",
-   "category_unavailable": false,
-   "insufficient_history": false,
-   "thin_category": false,
-   "too_few_peers": false,
-   "plan_type": "direct",
-   "category_name": "Equity Scheme - Flexi Cap Fund",
-   "composite_score": "82.0",
-   "category_rank": 4,
-   "category_size": 28,
-   "category_universe_size": 40,
-   "percentile": "89.3",
-   "return_1y": "0.1840",
-   "ranked_as": "3Y and 5Y returns",
-   "neighbors": [
-    {
-     "scheme_id": "N-EDEL",
-     "scheme_name": "Edelweiss Flexi Cap Fund",
-     "category_rank": 3,
-     "composite_score": "86.0"
-    },
-    {
-     "scheme_id": "N-BARODA",
-     "scheme_name": "Baroda BNP Paribas Flexi Cap Fund",
-     "category_rank": 5,
-     "composite_score": "79.0"
-    }
-   ],
-   "components": {
-    "return_3y": {
-     "percentile": "91.0",
-     "raw": "0.1510"
-    },
-    "return_5y": {
-     "percentile": "87.0",
-     "raw": "0.1680"
-    },
-    "category_relative": {
-     "percentile": "78.0",
-     "raw": "0.0210"
-    },
-    "low_volatility": {
-     "percentile": "72.0",
-     "raw": "0.0284"
-    },
-    "low_ter": {
-     "percentile": "61.0",
-     "raw": "0.58"
-    }
-   },
-   "horizons": {
-    "1y": {
-     "fund_return": "0.1840",
-     "category_avg": "0.1520",
-     "peers": 28
-    },
-    "3y": {
-     "fund_return": "0.1510",
-     "category_avg": "0.1300",
-     "peers": 28
-    },
-    "5y": {
-     "fund_return": "0.1680",
-     "category_avg": "0.1450",
-     "peers": 24
-    }
-   }
-  },
-  {
-   "scheme_id": "S-HDFC",
-   "scheme_name": "HDFC Mid-Cap Opportunities Fund",
-   "category_unavailable": false,
-   "insufficient_history": false,
-   "thin_category": true,
-   "too_few_peers": false,
-   "plan_type": "direct",
-   "category_name": "Equity Scheme - Mid Cap Fund",
-   "composite_score": "61.0",
-   "category_rank": 3,
-   "category_size": 4,
-   "category_universe_size": 14,
-   "percentile": null,
-   "return_1y": "0.1900",
-   "ranked_as": "3Y and 5Y returns",
-   "neighbors": [
-    {
-     "scheme_id": "N-MOT",
-     "scheme_name": "Motilal Oswal Midcap Fund",
-     "category_rank": 2,
-     "composite_score": "74.0"
-    },
-    {
-     "scheme_id": "N-NIP",
-     "scheme_name": "Nippon India Growth Fund",
-     "category_rank": 4,
-     "composite_score": "55.0"
-    }
-   ],
-   "components": {
-    "return_3y": {
-     "percentile": "42.0",
-     "raw": "0.1440"
-    },
-    "return_5y": {
-     "percentile": "46.0",
-     "raw": "0.1790"
-    },
-    "category_relative": {
-     "percentile": "38.0",
-     "raw": "-0.0250"
-    },
-    "low_volatility": {
-     "percentile": "55.0",
-     "raw": "0.0391"
-    },
-    "low_ter": {
-     "percentile": "30.0",
-     "raw": "0.71"
-    }
-   },
-   "horizons": {
-    "1y": {
-     "fund_return": "0.1900",
-     "category_avg": "0.2150",
-     "peers": 14
-    },
-    "3y": {
-     "fund_return": "0.1440",
-     "category_avg": "0.1690",
-     "peers": 14
-    },
-    "5y": {
-     "fund_return": "0.1790",
-     "category_avg": "0.1920",
-     "peers": 13
-    }
-   }
-  },
-  {
-   "scheme_id": "S-JM",
-   "scheme_name": "JM Flexi Cap Fund",
-   "category_unavailable": false,
-   "insufficient_history": false,
-   "thin_category": false,
-   "too_few_peers": false,
-   "plan_type": "direct",
-   "category_name": "Equity Scheme - Flexi Cap Fund",
-   "composite_score": "71.0",
-   "category_rank": 11,
-   "category_size": 42,
-   "category_universe_size": 51,
-   "percentile": "75.6",
-   "return_1y": "0.1130",
-   "ranked_as": "3Y and 5Y returns",
-   "neighbors": [
-    {
-     "scheme_id": "N-UTI",
-     "scheme_name": "UTI Flexi Cap Fund",
-     "category_rank": 10,
-     "composite_score": "73.0"
-    },
-    {
-     "scheme_id": "N-FRK",
-     "scheme_name": "Franklin India Flexi Cap Fund",
-     "category_rank": 12,
-     "composite_score": "69.0"
-    }
-   ],
-   "components": {
-    "return_3y": {
-     "percentile": "68.0",
-     "raw": "0.1080"
-    },
-    "return_5y": {
-     "percentile": "65.0",
-     "raw": "0.1210"
-    },
-    "category_relative": {
-     "percentile": "60.0",
-     "raw": "-0.0180"
-    },
-    "low_volatility": {
-     "percentile": "49.0",
-     "raw": "0.0335"
-    },
-    "low_ter": {
-     "percentile": "52.0",
-     "raw": "0.64"
-    }
-   },
-   "horizons": {
-    "1y": {
-     "fund_return": "0.1130",
-     "category_avg": "0.1410",
-     "peers": 42
-    },
-    "3y": {
-     "fund_return": "0.1080",
-     "category_avg": "0.1260",
-     "peers": 42
-    },
-    "5y": {
-     "fund_return": "0.1210",
-     "category_avg": "0.1390",
-     "peers": 38
-    }
-   }
-  },
-  {
-   "scheme_id": "S-SBI",
-   "scheme_name": "SBI Bluechip Fund",
-   "category_unavailable": false,
-   "insufficient_history": true,
-   "thin_category": false,
-   "too_few_peers": false,
-   "plan_type": "regular",
-   "category_name": "Equity Scheme - Large Cap Fund",
-   "composite_score": null,
-   "category_rank": null,
-   "category_size": 0,
-   "category_universe_size": 0,
-   "percentile": null,
-   "return_1y": null,
-   "ranked_as": null,
-   "neighbors": [],
-   "components": {
-    "return_3y": {
-     "percentile": null,
-     "raw": null
-    },
-    "return_5y": {
-     "percentile": null,
-     "raw": null
-    },
-    "category_relative": {
-     "percentile": null,
-     "raw": null
-    },
-    "low_volatility": {
-     "percentile": null,
-     "raw": null
-    },
-    "low_ter": {
-     "percentile": null,
-     "raw": null
-    }
-   }
-  }
- ]
-};
+const FUND_RANKING: PerformanceRankingResult = { funds: [
+  { scheme_id: "S-KOTAK", scheme_name: "Kotak Multi Cap Fund", sebi_category: "Equity Scheme - Multi Cap Fund", plan_type: "direct",
+    periods: { "1Y": { rank: 4, total: 38, status: "ranked" }, "3Y": { rank: 6, total: 34, status: "ranked" }, "5Y": { rank: 5, total: 29, status: "ranked" } }, disclaimer_key: null, ranked_as: null },
+  { scheme_id: "S-JM", scheme_name: "JM Flexicap Fund", sebi_category: "Equity Scheme - Flexi Cap Fund", plan_type: "direct",
+    periods: { "1Y": { rank: 11, total: 42, status: "ranked" }, "3Y": { rank: 12, total: 37, status: "ranked" }, "5Y": { rank: null, total: 29, status: "not_enough_history" } }, disclaimer_key: null, ranked_as: null },
+  { scheme_id: "S-HDFC", scheme_name: "HDFC Mid Cap Fund", sebi_category: "Equity Scheme - Mid Cap Fund", plan_type: "regular",
+    periods: { "1Y": { rank: 3, total: 14, status: "ranked" }, "3Y": { rank: 3, total: 14, status: "ranked" }, "5Y": { rank: 2, total: 12, status: "ranked" } }, disclaimer_key: null, ranked_as: null },
+  { scheme_id: "S-SBI", scheme_name: "SBI Bluechip Fund", sebi_category: "Equity Scheme - Large Cap Fund", plan_type: "regular",
+    periods: { "1Y": { rank: 7, total: 40, status: "ranked" }, "3Y": { rank: null, total: 32, status: "not_enough_history" }, "5Y": { rank: null, total: 25, status: "not_enough_history" } }, disclaimer_key: null, ranked_as: null },
+] };
 
 export const terSummary = (): WeightedTerSummary => structuredClone(TER);
 /** The same summary with the additive `annual_ter_saving` (rupees a year) on the three Direct funds: the backend does not send it yet. */
@@ -754,4 +510,4 @@ export const terDirectRegularBoth = (): DirectRegularTerComparison => structured
 export const valuationSummary = (): ValuationSummary => structuredClone(VALUATION);
 export const scoreSummary = (): PortfolioScoreSummary => structuredClone(SCORE);
 export const categoryRanking = (): CategoryRankingSummary => structuredClone(CATEGORY_RANKING);
-export const fundRanking = (): FundRankingSummary => structuredClone(FUND_RANKING);
+export const fundRanking = (): PerformanceRankingResult => structuredClone(FUND_RANKING);
