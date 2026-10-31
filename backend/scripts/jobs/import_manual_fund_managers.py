@@ -73,7 +73,11 @@ def run(db, amc_name: str, pdfs: list[Path], today: date,
                                page_numbers=[number for pages in pages_per_file for number in pages.page_numbers])
     matched, unmatched = import_pages(db, amc_name, all_pages, reader, today.replace(day=1), manual=True)
     readings = read_valuation(entry.layout, all_pages, all_pages.words)
-    import_reported_valuation(db, amc_name, readings, today.replace(day=1))
+    # A manager-overridden old file keeps its own month, so its ratios age out under the 75-day rule
+    # instead of being relabelled as this month's.
+    dated = [file_date for _, file_date in file_dates if file_date is not None]
+    valuation_month = min(dated).replace(day=1) if needs_warning and dated else today.replace(day=1)
+    import_reported_valuation(db, amc_name, readings, valuation_month)
     db.commit()
     for filename, file_date in file_dates:
         print(f"{filename}: as on {file_date.isoformat() if file_date else 'date not found'}")

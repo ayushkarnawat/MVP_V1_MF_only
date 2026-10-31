@@ -47,4 +47,10 @@ describe("ValuationSection", () => {
     expect(screen.getByText(/0.01% cheaper on earnings than Nifty 50/)).toBeInTheDocument();
     expect(screen.getByText("Unavailable")).toBeInTheDocument();
   });
+  it("shows a portfolio total backed by fund figures even when stock-level data is short", () => {
+    render(<ValuationSection data={{ ...sampleValuation, pe: { ...sampleValuation.pe, ratio: "30", enough_data: false, coverage_pct: "0", fund_coverage_pct: "100" } }} />);
+    const pe = screen.getByRole("group", { name: "P/E valuation" });
+    expect(within(pe).getByText("30.00x")).toBeInTheDocument();
+    expect(within(pe).queryByText(/Not enough data/)).not.toBeInTheDocument();
+  });
 });

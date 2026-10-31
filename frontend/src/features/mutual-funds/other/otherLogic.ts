@@ -670,7 +670,12 @@ function categoryComparisons(fund: CategoryRankRow) {
 
 export function categoryGapText(value: string, average: string): string {
   const gap = diffDecimalStrings(normalizeFraction(value), normalizeFraction(average));
-  return rawPercent(gap, { signed: true }).replace(/%$/, " pts");
+  // Shift the point exactly and round once, so 0.149 points shows +0.1 (not 0.15 then 0.2).
+  const negative = gap.startsWith("-");
+  const [whole, fraction = ""] = (negative ? gap.slice(1) : gap).split(".");
+  const padded = fraction.padEnd(2, "0");
+  const shifted = `${whole}${padded.slice(0, 2)}`.replace(/^0+(?=\d)/, "") + (padded.length > 2 ? `.${padded.slice(2)}` : "");
+  return formatPercent(`${negative ? "-" : ""}${shifted}`, { digits: 1, signed: true }).replace(/%$/, " pts");
 }
 
 export function filterCategoryFunds(data: CategoryRankingSummary, filter: CategoryFilter): CategoryRankRow[] {

@@ -238,3 +238,17 @@ def test_as_of_with_an_old_caption_and_a_future_caption_is_refused(downloaded_pd
          patch.object(cli, "import_pages", return_value=(3, 0)) as imported, pytest.raises(SystemExit, match="stale_month"):
         cli.run(db_session, "Nippon India Mutual Fund", [downloaded_pdf], date(2026, 10, 31), this_month_only=True, as_of=date(2026, 12, 10))
     imported.assert_not_called()
+
+
+@pytest.mark.parametrize("as_of, expected", [(date(2026, 10, 31), date(2026, 9, 1)), (None, date(2026, 10, 1))])
+def test_valuation_reference_month_follows_the_files_own_date_when_overridden(downloaded_pdf, db_session, as_of, expected):
+    from app.services.analytics.fund_manager_layouts import SchemePage
+    # Old file (as on 30 Sep, imported 20 Nov with --as-of): its ratios keep September so they go stale.
+    # A current file (as on 30 Sep, imported 10 Oct): stored under the import month, as before.
+    today = date(2026, 11, 20) if as_of else date(2026, 10, 10)
+    with patch.object(cli, "extract_page_text", return_value=["As on September 30, 2026"] * 3), \
+         patch.dict(cli.LAYOUTS, {"nippon": lambda text: SchemePage("Test Fund", [])}), \
+         patch.object(cli, "import_pages", return_value=(3, 0)), \
+         patch.object(cli, "import_reported_valuation") as stored:
+        cli.run(db_session, "Nippon India Mutual Fund", [downloaded_pdf], today, this_month_only=True, as_of=as_of)
+    assert stored.call_args.args[3] == (expected if as_of else today.replace(day=1))

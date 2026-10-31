@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as fc from "../fixtures/mfCother";
 import type { FundScoreRow, FundTerRow, ValuationSummary } from "../types";
 import {
-  assessFactor, barWidths, categoryOutperform, costLine, deltaSentence, displayTier, GROUP_TITLES, isScored, noTerNote,
+  assessFactor, barWidths, categoryGapText, categoryOutperform, costLine, deltaSentence, displayTier, GROUP_TITLES, isScored, noTerNote,
   normalizeFraction, ordinal, percentileTier, percentileWidth, periodsFor, pinPercent, pinPositions, planState, pointsText,
   portfolioVerdict, ratioRows, ratioState, ratioText, rawPercent, savingsLine,
   shortCategory, terBadge, terLadderRows, terScaleMax, terText, terTotals, tierCaption, TIER_STYLE, tierTone,
@@ -335,4 +335,13 @@ it("draws negative returns on the same scale and keeps tiny exact gaps in the te
   const positions = logic.categoryLinePositions("-0.10", "-0.05", scale);
   expect(positions.fund).toBeLessThan(positions.average);
   expect(positions.fund).toBeGreaterThan(0);
+});
+
+describe("categoryGapText", () => {
+  it("rounds the exact gap once", () => {
+    expect(categoryGapText("0.10149", "0.10000")).toBe("+0.1 pts");
+    expect(categoryGapText("0.10000", "0.10149")).toBe("-0.1 pts");
+    expect(categoryGapText("0.286", "0.198")).toBe("+8.8 pts");
+    expect(categoryGapText("0.1", "0.1")).toBe("0.0 pts");
+  });
 });

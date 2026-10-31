@@ -514,6 +514,7 @@ export interface ValuationMetric {
   ratio: string | null;
   coverage_pct: string;
   enough_data: boolean;
+  fund_coverage_pct?: string;
   as_of_date: string | null;
   missing: { isin: string | null; instrument_name: string; exposure_value: string; percentage_equity: string; reason: string }[];
 }

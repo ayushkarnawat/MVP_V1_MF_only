@@ -15,7 +15,10 @@ function RatioComparison({ data, kind }: { data: ValuationSummary; kind: "pe" | 
   const metric = data[kind];
   const label = kind === "pe" ? "P/E" : "P/B";
   const basis = kind === "pe" ? "earnings" : "book value";
-  const ratio = data.hide_headlines || !metric.enough_data ? null : metric.ratio;
+  // Fresh payloads decide on fund-figure coverage (the backend leaves ratio empty when short); older
+  // payloads have no such field and keep the stock-level rule.
+  const usable = metric.fund_coverage_pct !== undefined ? metric.ratio !== null : metric.enough_data;
+  const ratio = data.hide_headlines || !usable ? null : metric.ratio;
   const rows = [{ label: "Your portfolio", ratio, date: metric.as_of_date }, ...data.indices.map(index => ({
     label: INDEX_LABELS[index.index_name], ratio: kind === "pe" ? index.pe_ratio : index.pb_ratio,
     date: kind === "pe" ? index.pe_as_of : index.pb_as_of,
@@ -25,7 +28,7 @@ function RatioComparison({ data, kind }: { data: ValuationSummary; kind: "pe" | 
   return <div role="group" aria-label={`${label} valuation`} className="rounded-lg border border-[var(--color-border)] p-4 space-y-4 min-w-0">
     <h3 className="font-display font-semibold text-[var(--color-ink)]">{label} · {basis}</h3>
     <p className="text-xs text-[var(--color-text-secondary)]">Ratio data cover {formatPercent(metric.coverage_pct, 1)}% of equity exposure · Fundamentals as on {holdingsDate(metric.as_of_date)}</p>
-    {data.hide_headlines ? <p className="text-sm text-[var(--color-text-secondary)]">Portfolio ratio hidden while published holdings cover less than 50% of your portfolio.</p> : !metric.enough_data ? <p className="text-sm text-[var(--color-text-secondary)]">Not enough data for portfolio {label} — at least 70% of equity exposure needs a usable ratio.</p> : null}
+    {data.hide_headlines ? <p className="text-sm text-[var(--color-text-secondary)]">Portfolio ratio hidden while published holdings cover less than 50% of your portfolio.</p> : !usable ? <p className="text-sm text-[var(--color-text-secondary)]">Not enough data for portfolio {label} — at least 70% of equity exposure needs a usable ratio.</p> : null}
     <ul aria-label={`${label} comparison bars`} className="space-y-4">{rows.map((row, i) => <li key={row.label}>
       <div className="flex justify-between gap-3 text-xs text-[var(--color-ink)]"><span className="font-medium">{row.label}</span><span className="tabular-nums shrink-0">{row.ratio === null ? "Unavailable" : `${formatPercent(row.ratio)}x`}</span></div>
       <div aria-hidden="true" className="mt-2 h-3 bg-[var(--color-border)] rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, Number(row.ratio ?? "0") / maximum * 100))}%`, backgroundColor: defaultPieColors[i] }} /></div>
