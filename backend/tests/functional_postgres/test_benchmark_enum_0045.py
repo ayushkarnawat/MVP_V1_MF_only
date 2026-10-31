@@ -64,7 +64,9 @@ def test_0045_new_benchmark_values_are_writable_and_upgrade_is_idempotent(
                 )
             )
         db.commit()
-        assert {row.index_name for row in db.query(BenchmarkIndexHistory).all()} == set(new_indices)
+        # 0049 keeps all enum values but the ORM now returns open text keys.
+        assert all(type(row.index_name) is str for row in db.query(BenchmarkIndexHistory).all())
+        assert {row.index_name for row in db.query(BenchmarkIndexHistory).all()} == {index.value for index in new_indices}
     finally:
         db.close()
         engine.dispose()

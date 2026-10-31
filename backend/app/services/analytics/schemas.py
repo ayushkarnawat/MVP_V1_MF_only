@@ -222,7 +222,7 @@ class FundBenchmarkRow(BaseModel):
 
     scheme_id: str
     scheme_name: str
-    benchmark_index: BenchmarkIndex
+    benchmark_index: str | None = None
     fund_xirr: str | None
     benchmark_xirr: str | None
     windows: list[FundWindowXirr] = []
@@ -705,7 +705,7 @@ class ValuationMetric(BaseModel):
 
 
 class ValuationIndex(BaseModel):
-    index_name: BenchmarkIndex
+    index_name: str
     pe_ratio: Decimal | None
     pb_ratio: Decimal | None
     pe_as_of: date | None

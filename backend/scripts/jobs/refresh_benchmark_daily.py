@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
 from app.models.enums import BenchmarkIndex, BenchmarkReturnType
+from app.models.reference import BenchmarkIndexMaster
+from app.services.analytics.benchmark_registry import INDICES
 from app.services.analytics.nse_indices_client import ensure_index_history_fresh
 from app.services.analytics.risk_metrics import years_ago
 
@@ -44,6 +46,22 @@ async def main_async(db: Session) -> None:
         for return_type in starts
         if return_type is BenchmarkReturnType.TRI or index in _PRICE_INDICES
     ]
+    # Seed new registry rows without overwriting activation decisions. Existing
+    # installations gain a verified name by adding one IndexSpec row, not a migration.
+    present = {row.key for row in db.query(BenchmarkIndexMaster).all()}
+    for spec in INDICES:
+        if spec.key not in present:
+            db.add(BenchmarkIndexMaster(**spec.__dict__))
+    db.commit()
+    for spec in db.query(BenchmarkIndexMaster).order_by(BenchmarkIndexMaster.key):
+        if spec.key in set(BenchmarkIndex):
+            continue
+        # Inactive price series are collected for the read-only printed-return
+        # check, but selection must not expose them until that check passes.
+        results.append(await ensure_index_history_fresh(
+            db, spec.key, _TRI_START, end_date,
+            return_type=BenchmarkReturnType.TRI, fresh_within=timedelta(0),
+        ))
     succeeded = sum(results)
     logger.info(
         "refresh_benchmark_daily: fetches=%d succeeded=%d success=%s",

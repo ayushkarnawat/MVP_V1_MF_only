@@ -16,6 +16,7 @@ used for this POST (confirmed HTTP 405 there).
 from __future__ import annotations
 
 import json
+import logging
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
@@ -26,6 +27,9 @@ from sqlalchemy.orm import Session
 from app.db.session import commit_off_loop
 from app.models.enums import BenchmarkIndex, BenchmarkReturnType
 from app.models.reference import BenchmarkIndexHistory
+from app.services.analytics.benchmark_registry import get_index, registered_index
+
+logger = logging.getLogger(__name__)
 
 NSE_INDICES_URL = "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString"
 NSE_TRI_URL = "https://www.niftyindices.com/BackPage/getTotalReturnIndexString"
@@ -48,8 +52,27 @@ _TRADING_INDEX_NAME: dict[BenchmarkIndex, str] = {
 }
 
 
-async def _fetch_index_history(index: BenchmarkIndex, start_date: date, end_date: date) -> list[tuple[date, Decimal]]:
-    trading_name = _TRADING_INDEX_NAME[index]
+def _validate_echo(index: str, entry: dict, field: str, expected_name: str) -> None:
+    echo = entry.get(field)
+    # Older saved responses for the legacy eight had no identity column.
+    # Validate it whenever supplied; for new keys it is mandatory.
+    if echo is None and index in _TRADING_INDEX_NAME:
+        return
+    if not isinstance(echo, str) or echo.strip().casefold() != expected_name.casefold():
+        raise ValueError(f"NSE response index name does not match {expected_name}")
+
+
+def _positive_level(value: str) -> Decimal:
+    if isinstance(value, bool) or not isinstance(value, (str, int, Decimal)):
+        raise ValueError("NSE response level must be a decimal string")
+    level = Decimal(value)
+    if not level.is_finite() or level <= 0:
+        raise ValueError("NSE response level must be positive and finite")
+    return level
+
+
+async def _fetch_index_history(index: str, start_date: date, end_date: date, *, nse_name: str | None = None) -> list[tuple[date, Decimal]]:
+    trading_name = nse_name if nse_name is not None else get_index(index).nse_name
     cinfo = json.dumps(
         {
             "name": trading_name,
@@ -74,22 +97,17 @@ async def _fetch_index_history(index: BenchmarkIndex, start_date: date, end_date
 
     rows: list[tuple[date, Decimal]] = []
     for entry in payload:
+        _validate_echo(index, entry, "INDEX_NAME", trading_name)
         parsed_date = datetime.strptime(entry["HistoricalDate"], "%d %b %Y").date()
-        # The response carries no index-identity field to cross-check against
-        # `index` (confirmed live -- just HistoricalDate/CLOSE pairs), so a
-        # date-range check is the only implementable half of "does the
-        # response actually match what was requested." Without it, a
-        # malformed/wrong-range response would be silently upserted into the
-        # cache under this index's key -- silently wrong, not just stale.
         if not (start_date <= parsed_date <= end_date):
             raise ValueError(
                 f"NSE response date {parsed_date} outside requested range {start_date}..{end_date}"
             )
-        rows.append((parsed_date, Decimal(entry["CLOSE"])))
+        rows.append((parsed_date, _positive_level(entry["CLOSE"])))
     return rows
 
 
-async def _fetch_tri_history(index: BenchmarkIndex, start_date: date, end_date: date) -> list[tuple[date, Decimal]]:
+async def _fetch_tri_history(index: str, start_date: date, end_date: date, *, nse_name: str | None = None) -> list[tuple[date, Decimal]]:
     """Mirrors _fetch_index_history exactly (same cinfo request shape, same
     host, same date-range validation) -- confirmed live 2026-10-08 that
     applying this codebase's own /BackPage/ casing fix (already proven for
@@ -98,7 +116,7 @@ async def _fetch_tri_history(index: BenchmarkIndex, start_date: date, end_date: 
     deliberately ignores NTR_Value (the net-of-withholding-tax variant,
     confirmed blank "-" for sector/style indices -- not needed for this
     attribute's dividend-reinvestment comparison use case)."""
-    trading_name = _TRADING_INDEX_NAME[index]
+    trading_name = nse_name if nse_name is not None else get_index(index).nse_name
     cinfo = json.dumps(
         {
             "name": trading_name,
@@ -114,17 +132,18 @@ async def _fetch_tri_history(index: BenchmarkIndex, start_date: date, end_date: 
 
     rows: list[tuple[date, Decimal]] = []
     for entry in payload:
+        _validate_echo(index, entry, "Index Name", trading_name)
         parsed_date = datetime.strptime(entry["Date"], "%d %b %Y").date()
         if not (start_date <= parsed_date <= end_date):
             raise ValueError(
                 f"NSE TRI response date {parsed_date} outside requested range {start_date}..{end_date}"
             )
-        rows.append((parsed_date, Decimal(entry["TotalReturnsIndex"])))
+        rows.append((parsed_date, _positive_level(entry["TotalReturnsIndex"])))
     return rows
 
 
 async def _upsert_index_history(
-    db: Session, index: BenchmarkIndex, return_type: BenchmarkReturnType, rows: list[tuple[date, Decimal]]
+    db: Session, index: str, return_type: BenchmarkReturnType, rows: list[tuple[date, Decimal]]
 ) -> None:
     existing_dates = {
         d for (d,) in db.query(BenchmarkIndexHistory.date)
@@ -138,7 +157,7 @@ async def _upsert_index_history(
 
 
 def _cached_date_bounds(
-    db: Session, index: BenchmarkIndex, return_type: BenchmarkReturnType
+    db: Session, index: str, return_type: BenchmarkReturnType
 ) -> tuple[date, date] | None:
     earliest, latest = (
         db.query(func.min(BenchmarkIndexHistory.date), func.max(BenchmarkIndexHistory.date))
@@ -156,11 +175,11 @@ _FRESH_WITHIN = timedelta(days=4)
 # Earliest start already downloaded in this process, per (index, return_type). NSE has no
 # history before an index began, so a start older than that can never be
 # covered by the saved range; asking once per process is enough.
-_fetched_from: dict[tuple[BenchmarkIndex, BenchmarkReturnType], date] = {}
+_fetched_from: dict[tuple[str, BenchmarkReturnType], date] = {}
 
 
 async def ensure_index_history_fresh(
-    db: Session, index: BenchmarkIndex, start_date: date, end_date: date, *,
+    db: Session, index: str, start_date: date, end_date: date, *,
     return_type: BenchmarkReturnType = BenchmarkReturnType.PRICE, fresh_within: timedelta = _FRESH_WITHIN,
 ) -> bool:
     """One bulk fetch of `[start_date, end_date]` per call, keyed by
@@ -186,13 +205,19 @@ async def ensure_index_history_fresh(
         return True
 
     try:
-        if return_type == BenchmarkReturnType.TRI:
-            rows = await _fetch_tri_history(index, start_date, end_date)
+        # Keep the eight existing fetch calls unchanged. New indices take both
+        # endpoint and exact name from the master, including rows added later.
+        spec = get_index(index) if index in _TRADING_INDEX_NAME else registered_index(db, index)
+        kwargs = {} if index in _TRADING_INDEX_NAME else {"nse_name": spec.nse_name}
+        if return_type == BenchmarkReturnType.TRI and spec.source == "tri_endpoint":
+            rows = await _fetch_tri_history(index, start_date, end_date, **kwargs)
         else:
-            rows = await _fetch_index_history(index, start_date, end_date)
-    except (httpx.HTTPError, KeyError, ValueError, TypeError, InvalidOperation):
+            rows = await _fetch_index_history(index, start_date, end_date, **kwargs)
+    except (httpx.HTTPError, KeyError, ValueError, TypeError, InvalidOperation, StopIteration):
+        logger.warning("BENCHMARK_ALERT index=%s reason=fetch_failed", index.value if isinstance(index, BenchmarkIndex) else index)
         return False
     if not rows:
+        logger.warning("BENCHMARK_ALERT index=%s reason=empty_response", index.value if isinstance(index, BenchmarkIndex) else index)
         return False
 
     await _upsert_index_history(db, index, return_type, rows)
@@ -201,7 +226,7 @@ async def ensure_index_history_fresh(
 
 
 def get_index_level_on_or_before(
-    db: Session, index: BenchmarkIndex, on_date: date, *, return_type: BenchmarkReturnType = BenchmarkReturnType.PRICE
+    db: Session, index: str, on_date: date, *, return_type: BenchmarkReturnType = BenchmarkReturnType.PRICE
 ) -> tuple[Decimal, date] | None:
     """Most recent trading-day index level on or before `on_date` for the
     given return type -- trading holidays/weekends mean the exact date is

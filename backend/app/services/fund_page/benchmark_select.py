@@ -4,9 +4,9 @@ from app.models.enums import BenchmarkIndex
 from app.models.reference import Scheme
 from app.services.analytics.benchmark import _benchmark_index_for_category
 from app.services.dashboard.allocation_labels import asset_class_bucket
-from app.services.home.benchmarks import HOME_BENCHMARKS
+from app.services.analytics.benchmark_registry import INDICES, index_label
 
-BENCHMARK_LABELS: dict[BenchmarkIndex, str] = {option.index: option.label for option in HOME_BENCHMARKS}
+BENCHMARK_LABELS: dict[str, str] = {spec.key: index_label(spec.key) for spec in INDICES}
 
 
 def benchmark_for(scheme: Scheme) -> BenchmarkIndex | None:

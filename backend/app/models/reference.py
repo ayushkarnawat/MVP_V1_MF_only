@@ -11,7 +11,7 @@ from sqlalchemy import Text, JSON, Date, UniqueConstraint, CheckConstraint, Bool
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.models.enums import MarketCapBucket, AssetType, DisclosureBatchStatus, ArnStatus, BenchmarkIndex, BenchmarkReturnType, PlanNameVariant, SchemeSource, SchemePlanType, enum_column
+from app.models.enums import MarketCapBucket, AssetType, DisclosureBatchStatus, ArnStatus, BenchmarkReturnType, PlanNameVariant, SchemeSource, SchemePlanType, enum_column
 
 
 class Scheme(Base):
@@ -69,10 +69,25 @@ class SchemeAaum(Base):
     aaum_value: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
 
 
+class BenchmarkIndexMaster(Base):
+    __tablename__ = "benchmark_index_master"
+    __table_args__ = (
+        CheckConstraint("source IN ('tri_endpoint', 'price_endpoint_verified')", name="ck_benchmark_index_source"),
+        CheckConstraint("return_type = 'tri'", name="ck_benchmark_index_return_type"),
+    )
+
+    key: Mapped[str] = mapped_column(Text, primary_key=True)
+    nse_name: Mapped[str] = mapped_column(Text, nullable=False)
+    family: Mapped[str] = mapped_column(Text, nullable=False)
+    source: Mapped[str] = mapped_column(Text, nullable=False)
+    return_type: Mapped[str] = mapped_column(Text, nullable=False, default="tri", server_default="tri")
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+
+
 class BenchmarkIndexHistory(Base):
     __tablename__ = "benchmark_index_history"
 
-    index_name: Mapped[BenchmarkIndex] = mapped_column(enum_column(BenchmarkIndex), primary_key=True)
+    index_name: Mapped[str] = mapped_column(Text, primary_key=True)
     date: Mapped[date_] = mapped_column(primary_key=True)
     # Python default too, not just server_default: existing code and tests create
     # rows without return_type (test_nse_indices_client.py), and an ORM insert of
@@ -81,7 +96,7 @@ class BenchmarkIndexHistory(Base):
         enum_column(BenchmarkReturnType), primary_key=True,
         default=BenchmarkReturnType.PRICE, server_default="price",
     )
-    value: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    value: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
 
 
 class ArnDirectory(Base):

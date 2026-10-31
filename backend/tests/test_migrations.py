@@ -11,7 +11,7 @@ def test_0045_is_in_the_chain_and_sqlite_upgrade_then_downgrade_to_0043(tmp_path
 
     heads = _alembic("heads")
     assert heads.returncode == 0, heads.stderr
-    assert heads.stdout.strip() == "0048 (head)"
+    assert heads.stdout.strip() == "0049 (head)"
 
     up = _alembic("upgrade", "head")
     assert up.returncode == 0, up.stderr

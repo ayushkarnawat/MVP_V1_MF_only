@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.decimal_utils import quantize_amount
-from app.models.enums import BenchmarkIndex, BenchmarkReturnType, TransactionType
+from app.models.enums import BenchmarkReturnType, TransactionType
 from app.models.reference import BenchmarkIndexHistory, NavHistory, Scheme
 from app.services.analytics.nse_indices_client import get_index_level_on_or_before
 from app.services.analytics.xirr import xirr
@@ -60,7 +60,7 @@ def _return_pct(start: NavRow, end: NavRow, *, annualised: bool) -> str | None:
 
 def _index_return(
     db: Session,
-    index: BenchmarkIndex,
+    index: str,
     start: date,
     end: date,
     *,
@@ -212,7 +212,7 @@ def _window_flows(
 TriLevels = tuple[list[date], list[Decimal]]
 
 
-def _tri_levels(db: Session, index: BenchmarkIndex, end: date) -> TriLevels:
+def _tri_levels(db: Session, index: str, end: date) -> TriLevels:
     """TRI history up to `end`, loaded once so every cash flow is a bisect
     (same on-or-before rule as get_index_level_on_or_before)."""
     rows = db.execute(
