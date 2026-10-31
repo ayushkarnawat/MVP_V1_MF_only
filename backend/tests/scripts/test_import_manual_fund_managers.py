@@ -227,3 +227,14 @@ def test_as_of_never_accepts_a_file_dated_after_the_real_today(downloaded_pdf, d
          patch.object(cli, "import_pages", return_value=(3, 0)) as imported, pytest.raises(SystemExit, match="no usable 'as on' date"):
         cli.run(db_session, "Nippon India Mutual Fund", [downloaded_pdf], date(2026, 10, 31), this_month_only=True, as_of=date(2026, 12, 10))
     imported.assert_not_called()
+
+
+def test_as_of_with_an_old_caption_and_a_future_caption_is_refused(downloaded_pdf, db_session):
+    # Review round 2: a stray future caption must not make a July file look current under --as-of.
+    from app.services.analytics.fund_manager_layouts import SchemePage
+    pages = ["As on July 31, 2026", "As on December 10, 2026", "page"]
+    with patch.object(cli, "extract_page_text", return_value=pages), \
+         patch.dict(cli.LAYOUTS, {"nippon": lambda text: SchemePage("Test Fund", [])}), \
+         patch.object(cli, "import_pages", return_value=(3, 0)) as imported, pytest.raises(SystemExit, match="stale_month"):
+        cli.run(db_session, "Nippon India Mutual Fund", [downloaded_pdf], date(2026, 10, 31), this_month_only=True, as_of=date(2026, 12, 10))
+    imported.assert_not_called()
