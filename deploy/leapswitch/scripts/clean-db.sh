@@ -48,6 +48,7 @@ REFERENCE_QUERY="
 SELECT 'schemes' t, count(*) FROM schemes
 UNION ALL SELECT 'nav_history', count(*) FROM nav_history
 UNION ALL SELECT 'scheme_ter', count(*) FROM scheme_ter
+UNION ALL SELECT 'scheme_reported_valuation', count(*) FROM scheme_reported_valuation
 UNION ALL SELECT 'scheme_aaum', count(*) FROM scheme_aaum
 UNION ALL SELECT 'benchmark_index_history', count(*) FROM benchmark_index_history
 UNION ALL SELECT 'arn_directory', count(*) FROM arn_directory

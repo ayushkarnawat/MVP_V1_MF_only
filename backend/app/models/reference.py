@@ -169,6 +169,33 @@ class SchemeFundManager(Base):
     match_confidence: Mapped[Decimal | None] = mapped_column(Numeric(4, 3), nullable=True)
 
 
+class SchemeReportedValuation(Base):
+    __tablename__ = "scheme_reported_valuation"
+    __table_args__ = (
+        UniqueConstraint("scheme_id", "reference_period", "metric",
+                         name="uq_scheme_reported_valuation_scheme_period_metric"),
+        CheckConstraint("metric IN ('pe', 'pb')", name="ck_scheme_reported_valuation_metric"),
+        CheckConstraint("basis IN ('trailing', 'forward', 'not_stated')",
+                        name="ck_scheme_reported_valuation_basis"),
+        CheckConstraint("method IN ('harmonic', 'weighted_average', 'not_stated')",
+                        name="ck_scheme_reported_valuation_method"),
+        Index("ix_scheme_reported_valuation_reference_period", "reference_period"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    scheme_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schemes.id"), nullable=False)
+    reference_period: Mapped[date_] = mapped_column(Date, nullable=False)
+    metric: Mapped[str] = mapped_column(Text, nullable=False)
+    value: Mapped[Decimal] = mapped_column(Numeric(14, 4), nullable=False)
+    basis: Mapped[str] = mapped_column(Text, nullable=False)
+    method: Mapped[str] = mapped_column(Text, nullable=False)
+    source_file: Mapped[str] = mapped_column(Text, nullable=False)
+    page: Mapped[int] = mapped_column(Integer, nullable=False)
+    parsed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc),
+    )
+
+
 class Scenario(Base):
     __tablename__ = "scenarios"
 
@@ -319,3 +346,7 @@ class StockMaster(Base):
     # daily stock job fills it (O5, not in this scope); the news tagger uses
     # it only when present, falling back to name/ISIN matching otherwise.
     nse_symbol: Mapped[str | None] = mapped_column(String(32))
+    bse_scrip_code: Mapped[str | None] = mapped_column(String)
+    pe_as_of: Mapped[date_ | None] = mapped_column(Date)
+    pb_as_of: Mapped[date_ | None] = mapped_column(Date)
+    pe_source: Mapped[str | None] = mapped_column(String)

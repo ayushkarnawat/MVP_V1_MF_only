@@ -11,7 +11,7 @@ def test_0045_is_in_the_chain_and_sqlite_upgrade_then_downgrade_to_0043(tmp_path
 
     heads = _alembic("heads")
     assert heads.returncode == 0, heads.stderr
-    assert heads.stdout.strip() == "0046 (head)"
+    assert heads.stdout.strip() == "0047 (head)"
 
     up = _alembic("upgrade", "head")
     assert up.returncode == 0, up.stderr
@@ -1620,7 +1620,7 @@ def test_stock_master_model_has_decimal_ratios_and_no_foreign_keys():
     assert not table.foreign_keys
     # nse_symbol added by migration 0044 (Home News backend, owner-approved
     # third sanctioned existing-test edit — see NB1 handoff section 13).
-    assert set(table.columns.keys()) == {"isin", "name", "sector", "pe_ratio", "pb_ratio", "as_of_date", "source", "pb_source", "footnote", "nse_symbol"}
+    assert set(table.columns.keys()) == {"isin", "name", "sector", "pe_ratio", "pb_ratio", "as_of_date", "source", "pb_source", "footnote", "nse_symbol", "bse_scrip_code", "pe_as_of", "pb_as_of", "pe_source"}
     assert all(table.c[name].type.scale == 6 for name in ("pe_ratio", "pb_ratio"))
 
 
@@ -1654,3 +1654,73 @@ def test_stock_migration_extends_postgres_native_enum(monkeypatch):
     migration.upgrade()
     assert "ALTER TYPE benchmarkreturntype ADD VALUE IF NOT EXISTS 'pe'" in statements
     assert "ALTER TYPE benchmarkreturntype ADD VALUE IF NOT EXISTS 'pb'" in statements
+
+
+VALUATION_STOCK_COLUMNS = {"bse_scrip_code", "pe_as_of", "pb_as_of", "pe_source"}
+
+
+def test_upgrade_creates_table_and_columns(tmp_path, monkeypatch):
+    from sqlalchemy import create_engine, inspect
+    from app.models.reference import SchemeReportedValuation, StockMaster
+
+    path = tmp_path / "valuation-0047.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+    up = _alembic("upgrade", "0047")
+    assert up.returncode == 0, up.stderr
+    engine = create_engine(f"sqlite:///{path}")
+    try:
+        inspector = inspect(engine)
+        table = SchemeReportedValuation.__table__
+        columns = {c["name"]: c for c in inspector.get_columns(table.name)}
+        assert set(columns) == set(table.columns.keys()) == {
+            "id", "scheme_id", "reference_period", "metric", "value", "basis",
+            "method", "source_file", "page", "parsed_at",
+        }
+        for name, column in table.columns.items():
+            assert columns[name]["nullable"] == column.nullable
+            assert str(columns[name]["type"]) == str(column.type.compile(engine.dialect))
+        assert columns["value"]["type"].precision == 14
+        assert columns["value"]["type"].scale == 4
+        assert table.c.parsed_at.type.timezone is True
+        assert inspector.get_pk_constraint(table.name)["constrained_columns"] == ["id"]
+        assert [c["column_names"] for c in inspector.get_unique_constraints(table.name)] == [
+            ["scheme_id", "reference_period", "metric"]
+        ]
+        assert {i["name"]: i["column_names"] for i in inspector.get_indexes(table.name)} == {
+            "ix_scheme_reported_valuation_reference_period": ["reference_period"]
+        }
+        fk, = inspector.get_foreign_keys(table.name)
+        assert (fk["constrained_columns"], fk["referred_table"], fk["referred_columns"]) == (
+            ["scheme_id"], "schemes", ["id"]
+        )
+        assert {c["sqltext"] for c in inspector.get_check_constraints(table.name)} == {
+            "metric IN ('pe', 'pb')",
+            "basis IN ('trailing', 'forward', 'not_stated')",
+            "method IN ('harmonic', 'weighted_average', 'not_stated')",
+        }
+        stock = {c["name"]: c for c in inspector.get_columns("stock_master")}
+        assert set(stock) == set(StockMaster.__table__.columns.keys())
+        for name in VALUATION_STOCK_COLUMNS:
+            assert stock[name]["nullable"] is True
+            assert str(stock[name]["type"]) == str(StockMaster.__table__.c[name].type)
+    finally:
+        engine.dispose()
+
+
+def test_downgrade_drops_them(tmp_path, monkeypatch):
+    from sqlalchemy import create_engine, inspect
+
+    path = tmp_path / "valuation-down-0047.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+    assert (up := _alembic("upgrade", "0046")).returncode == 0, up.stderr
+    engine = create_engine(f"sqlite:///{path}")
+    try:
+        before_tables = set(inspect(engine).get_table_names())
+        before_stock = {c["name"] for c in inspect(engine).get_columns("stock_master")}
+        assert (up := _alembic("upgrade", "0047")).returncode == 0, up.stderr
+        assert (down := _alembic("downgrade", "0046")).returncode == 0, down.stderr
+        assert set(inspect(engine).get_table_names()) == before_tables
+        assert {c["name"] for c in inspect(engine).get_columns("stock_master")} == before_stock
+        assert (again := _alembic("upgrade", "0047")).returncode == 0, again.stderr
+    finally:
+        engine.dispose()
