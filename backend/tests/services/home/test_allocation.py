@@ -117,6 +117,7 @@ def _mix(**changes):
         "equity": Decimal("54000"),
         "debt": Decimal("18000"),
         "gold": Decimal("4500"),
+        "real_estate": Decimal("0"),
         "others": Decimal("13500"),
         "total_value": Decimal("90000"),
         "covered_value": Decimal("81000"),
@@ -136,10 +137,10 @@ def test_allocation_classes_are_complete_and_ordered():
         ("equity", "Equity", "live"),
         ("debt", "Debt", "live"),
         ("gold", "Gold", "live"),
+        ("real_estate", "Real Estate (REITs and InvITs)", "live"),
         ("others", "Others", "live"),
         ("direct_stocks", "Direct stocks", "coming_soon"),
         ("fds_bonds", "FDs and bonds", "coming_soon"),
-        ("real_estate", "Real estate", "coming_soon"),
         ("us_stocks", "US stocks", "coming_soon"),
     )
 
@@ -228,11 +229,12 @@ def test_bucket_values_returns_all_keys_and_hand_fixture_totals():
         "equity": Decimal("60000.00"),
         "debt": Decimal("20000.00"),
         "gold": Decimal("5000.00"),
+        "real_estate": Decimal("0"),
         "others": Decimal("15000.00"),
     }
     assert bucket_values([]) == {
         "equity": Decimal("0"), "debt": Decimal("0"),
-        "gold": Decimal("0"), "others": Decimal("0"),
+        "gold": Decimal("0"), "real_estate": Decimal("0"), "others": Decimal("0"),
     }
 
 
@@ -248,6 +250,7 @@ def test_build_allocation_rescales_stored_mix_to_live_total():
         "equity": (Decimal("60000.00"), Decimal("60.00")),
         "debt": (Decimal("20000.00"), Decimal("20.00")),
         "gold": (Decimal("5000.00"), Decimal("5.00")),
+        "real_estate": (Decimal("0.00"), Decimal("0.00")),
         "others": (Decimal("15000.00"), Decimal("15.00")),
     }
     assert result.covered_pct == Decimal("90.00")
@@ -263,6 +266,7 @@ def test_build_allocation_awards_extra_cent_by_largest_remainder():
         "equity": Decimal("60000.01"),
         "debt": Decimal("20000.00"),
         "gold": Decimal("5000.00"),
+        "real_estate": Decimal("0"),
         "others": Decimal("15000.00"),
     }
 
@@ -281,7 +285,7 @@ def test_build_allocation_non_round_total_reconciles_and_zero_weight_stays_zero(
 def test_build_allocation_fallback_uses_exact_bucket_values():
     buckets = {
         "equity": Decimal("60000.00"), "debt": Decimal("20000.00"),
-        "gold": Decimal("5000.00"), "others": Decimal("15000.00"),
+        "gold": Decimal("5000.00"), "real_estate": Decimal("0.00"), "others": Decimal("15000.00"),
     }
     result = build_allocation(
         total_value=Decimal("100000.00"), mix=None, buckets=buckets, members=None
@@ -350,7 +354,7 @@ def test_build_allocation_coming_soon_rows_are_excluded_from_total():
         total_value=Decimal("100000.00"), mix=_mix(), buckets=None, members=None
     )
     coming = [row for row in result.classes if row.status == "coming_soon"]
-    assert len(coming) == 4
+    assert len(coming) == 3
     assert all(row.value is None and row.percentage is None for row in coming)
     assert sum((row.value for row in _live_rows(result).values()), Decimal("0")) == result.total_value
 
@@ -704,3 +708,18 @@ def test_loader_does_not_mutate_section_or_call_recompute_or_dispatch(db_session
     db_session.expire_all()
     after_row = db_session.get(AnalyticsSection, (user.id, "combined", "asset_allocation"))
     assert (after_row.payload, after_row.computed_at, after_row.failed_at) == before
+
+
+def test_home_allocation_reads_the_five_classes():
+    payload = _member_payload()
+    payload["total_portfolio_value"] = "1000"
+    payload["covered_value"] = "1000"
+    payload["as_disclosed"]["classes"] = [dict(key=key, value=value, percentage="0") for key, value in [("equity", "600"), ("debt", "200"), ("gold", "50"), ("real_estate", "100"), ("others", "50")]]
+    mix = parse_stored_allocation(payload, COMPUTED_AT)
+    assert mix is not None
+    result = build_allocation(total_value=Decimal("1000"), mix=mix, buckets=None, members=None)
+    rows = _live_rows(result)
+    assert set(rows) == {"equity", "debt", "gold", "real_estate", "others"}
+    assert {key: row.value for key, row in rows.items()} == {"equity": Decimal("600"), "debt": Decimal("200"), "gold": Decimal("50"), "real_estate": Decimal("100"), "others": Decimal("50")}
+    assert sum(row.percentage for row in rows.values()) == Decimal("100.00")
+    assert result.source == "analytics"

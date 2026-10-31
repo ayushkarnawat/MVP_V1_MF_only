@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CapAllocationSection } from "./CapAllocationSection";
 import { AssetAllocationSection } from "./AssetAllocationSection";
+import type { AssetAllocationSummary } from "./types";
 import { sampleAssetAllocation } from "./assetAllocationTestData";
 
 describe("AssetAllocationSection", () => {
@@ -57,4 +58,20 @@ describe("AssetAllocationSection", () => {
     expect(screen.getByRole("button", { name: /Cash-like.*-0.01%/ })).toBeInTheDocument();
     expect(screen.getByText(/donut shows positive exposures/)).toBeInTheDocument();
   });
+});
+
+
+it.each([false, true])("names the two new classes while keeping old cash-like rendering (print=%s)", printMode => {
+  const data: AssetAllocationSummary = structuredClone(sampleAssetAllocation);
+  data.as_disclosed.classes.push(
+    { key: "real_estate", value: "10", percentage: "1" },
+    { key: "others", value: "10", percentage: "1" },
+  );
+  render(<AssetAllocationSection data={data} printMode={printMode} />);
+  const legend = within(screen.getByLabelText("Look-through asset breakdown"));
+  expect(legend.getByRole("button", { name: /Cash-like/ })).toBeInTheDocument();
+  expect(legend.getByRole("button", { name: /Real Estate \(REITs and InvITs\)/ })).toBeInTheDocument();
+  expect(legend.getByRole("button", { name: /Others/ })).toBeInTheDocument();
+  expect(screen.getByLabelText("Asset classes ring")).toBeInTheDocument();
+  expect(screen.getByLabelText("Equity size and other asset classes ring")).toBeInTheDocument();
 });

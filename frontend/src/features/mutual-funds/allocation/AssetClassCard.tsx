@@ -1,22 +1,19 @@
 import { BarChart3, PieChart } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CoverageBanner } from "../../../components/mf/CoverageBanner";
+import { compareDecimalStrings } from "../../../lib/decimal";
 import { formatCompactRupees, formatDate, formatPercent, formatRupees } from "../../../lib/format";
 import { BarList, ChartTypeToggle } from "../common/charts";
 import { FundLink } from "../common/FundLink";
 import { SectionCard } from "../common/SectionCard";
-import { percentOf } from "../mfCopy";
 import type { AssetAllocationSummary, AssetClassKey } from "../types";
 import {
   type AnalyticsCardProps,
   assetSlices,
-  CAP_LABELS,
   chartPct,
   classFunds,
-  colorAt,
   hasNegative,
   largestSlice,
-  outerArcs,
 } from "./allocationLogic";
 import { DrillPanel } from "./DrillPanel";
 
@@ -42,15 +39,17 @@ export function AssetClassCard({
     : null;
 
   const slices = useMemo(() => {
-    return variant ? assetSlices(variant) : [];
+    return variant ? assetSlices(variant)
+      .filter(slice => slice.key !== "others" || compareDecimalStrings(slice.pct, "0") > 0)
+      .map(slice => slice.key === "others" ? { ...slice, color: "var(--ui-text-muted)" } : slice) : [];
   }, [variant]);
 
   const validSelected = slices.some(s => s.key === selected) ? selected : null;
   const focus = hovered ?? validSelected;
 
-  const arcs = useMemo(() => {
-    return variant ? outerArcs(variant) : [];
-  }, [variant]);
+  const hasFiveClasses = variant && ["equity", "debt", "gold", "real_estate", "others"].every(
+    key => variant.classes.some(cls => cls.key === key)
+  );
 
   const isCoveredEmpty =
     !data ||
@@ -64,23 +63,22 @@ export function AssetClassCard({
   const selectedSlice = validSelected ? slices.find(s => s.key === validSelected) ?? null : null;
   const funds = variant && validSelected ? classFunds(variant, validSelected) : null;
 
-  const R_OUTER = 88;
-  const R_INNER = 56;
-  const C_OUTER = 2 * Math.PI * R_OUTER;
+  const R_INNER = 70;
   const C_INNER = 2 * Math.PI * R_INNER;
   const round2 = (v: number) => Math.round(v * 100) / 100;
 
-  let cumOuter = 0;
   let cumInner = 0;
 
   return (
     <SectionCard
       title="Look-Through Asset Allocation"
-      info="What your money is really in once mutual fund holdings are looked through to equity, debt, gold and cash-like instruments."
+      info="What your money is really in once mutual fund holdings are looked through to equity, debt, gold, real estate and other holdings."
       state={state}
       onRetry={onRetry}
     >
-      {isCoveredEmpty ? (
+      {data && !hasFiveClasses ? (
+        <p role="status" className="text-xs text-[var(--ui-text-muted)]">Asset allocation is updating.</p>
+      ) : isCoveredEmpty ? (
         <p className="text-xs text-[var(--ui-text-muted)]">
           No look-through asset allocation data available
         </p>
@@ -91,8 +89,10 @@ export function AssetClassCard({
           </p>
 
           <p className="text-xs text-[var(--ui-text-muted)]">
-            Percentages of covered portfolio value — differs slightly from Market Cap below, which is scoped to total portfolio or equity only. Equity's outer ring breaks into Large/Mid/Small/Other; debt, gold and cash-like stay undivided.
+            Percentages describe the five asset classes in your published fund holdings.
           </p>
+
+          <p className="text-xs text-[var(--ui-text-muted)]">Cash is included under Debt</p>
 
           <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />
 
@@ -113,7 +113,7 @@ export function AssetClassCard({
             </label>
             <p data-testid="arbitrage-note" className="text-xs text-[var(--ui-text-muted)]">
               {data.arbitrage_funds.length > 0
-                ? `Applies to ${data.arbitrage_funds.map(f => f.scheme_name).join(", ")}. Entire fund value moves to cash-like; Equity Savings is unchanged.`
+                ? `Applies to ${data.arbitrage_funds.map(f => f.scheme_name).join(", ")}. Entire fund value moves to Debt; Equity Savings is unchanged.`
                 : "No covered Arbitrage Fund holdings for this selection."}
             </p>
           </div>
@@ -127,7 +127,7 @@ export function AssetClassCard({
 
           {chartType === "donut" ? (
             <div className="flex flex-wrap items-center gap-8">
-              {/* Nested Donut */}
+              {/* Asset classes */}
               <div className="relative h-[236px] w-[236px] shrink-0">
                 <svg
                   viewBox="0 0 200 200"
@@ -138,51 +138,11 @@ export function AssetClassCard({
                   <circle
                     cx="100"
                     cy="100"
-                    r={R_OUTER}
-                    strokeWidth={20}
-                    stroke="var(--ui-divider)"
-                    fill="none"
-                  />
-                  <circle
-                    cx="100"
-                    cy="100"
                     r={R_INNER}
                     strokeWidth={20}
                     stroke="var(--ui-divider)"
                     fill="none"
                   />
-
-                  {/* Outer ring */}
-                  {arcs.map(arc => {
-                    const pct = Math.max(0, Number(arc.pct));
-                    const length = (pct / 100) * C_OUTER;
-                    const segment = Math.max(length - 1, 0);
-                    const startDeg = -90 + cumOuter * 3.6;
-                    cumOuter += pct;
-                    const isDim = focus !== null && focus !== arc.classKey;
-
-                    return (
-                      <g
-                        key={`outer-${arc.key}-${arc.classKey}`}
-                        data-testid={`outer-${arc.key}`}
-                        data-class={arc.classKey}
-                        data-dim={isDim ? "true" : "false"}
-                        style={{ opacity: isDim ? 0.38 : 1 }}
-                        aria-hidden="true"
-                      >
-                        <circle
-                          cx="100"
-                          cy="100"
-                          r={R_OUTER}
-                          fill="none"
-                          stroke={arc.color}
-                          strokeWidth={20}
-                          strokeDasharray={`${round2(segment)} ${round2(C_OUTER - segment)}`}
-                          transform={`rotate(${round2(startDeg)} 100 100)`}
-                        />
-                      </g>
-                    );
-                  })}
 
                   {/* Inner ring */}
                   {slices.map(slice => {
@@ -312,27 +272,6 @@ export function AssetClassCard({
             />
           )}
 
-          {/* Equity outer breakdown */}
-          {variant && (
-            <ul
-              aria-label="Equity outer breakdown"
-              className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[var(--ui-text-muted)]"
-            >
-              {variant.equity_outer.map((cap, index) => (
-                <li key={cap.key} className="flex items-center gap-1.5">
-                  <span
-                    aria-hidden="true"
-                    style={{ backgroundColor: colorAt(index + 3) }}
-                    className="h-2.5 w-2.5 rounded-full"
-                  />
-                  <span>
-                    {CAP_LABELS[cap.key]}: {formatPercent(cap.percentage, { digits: 1 })}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-
           {!data.hide_headlines && largest && (
             <p data-testid="largest-asset-class" className="text-xs font-medium text-[var(--ui-text)]">
               Largest asset class: {largest.label} ({formatPercent(largest.pct, { digits: 1 })})
@@ -353,17 +292,6 @@ export function AssetClassCard({
                   {selectedSlice.label} total: {formatRupees(selectedSlice.value)} ·{" "}
                   {formatPercent(selectedSlice.pct, { digits: 1 })}
                 </li>
-                {validSelected === "equity" &&
-                  variant.equity_outer.map(cap => (
-                    <li
-                      key={cap.key}
-                      data-testid={`drill-cap-${cap.key.toLowerCase()}`}
-                      className="text-[var(--ui-text-muted)]"
-                    >
-                      {CAP_LABELS[cap.key]}: {formatRupees(cap.value)} ·{" "}
-                      {formatPercent(percentOf(cap.value, selectedSlice.value), { digits: 1 })} of equity
-                    </li>
-                  ))}
               </ul>
 
               {funds !== null && funds.length > 0 && (

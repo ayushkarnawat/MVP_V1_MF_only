@@ -292,8 +292,8 @@ def test_home_fixture_semantics():
     assert (allocation["source"], allocation["approximate"]) == ("analytics", False)
     assert len(allocation["members"]) == 2
     assert sum((Decimal(row["value"]) for row in allocation["members"]), Decimal("0")) == Decimal(allocation["total_value"])
-    assert [row["status"] for row in allocation["classes"]].count("live") == 4
-    assert [row["status"] for row in allocation["classes"]].count("coming_soon") == 4
+    assert [row["status"] for row in allocation["classes"]].count("live") == 5
+    assert [row["status"] for row in allocation["classes"]].count("coming_soon") == 3
     assert load("allocation_member.json")["members"] is None
     fallback = load("allocation_fallback.json")
     assert (fallback["source"], fallback["approximate"]) == ("dashboard_buckets", True)

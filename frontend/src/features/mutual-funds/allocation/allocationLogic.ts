@@ -23,6 +23,8 @@ export const ASSET_LABELS: Record<AssetClassKey, string> = {
   debt: "Debt",
   gold: "Gold",
   cash_like: "Cash-like",
+  real_estate: "Real Estate (REITs and InvITs)",
+  others: "Others",
 };
 
 export const CAP_LABELS: Record<CapKey, string> = {

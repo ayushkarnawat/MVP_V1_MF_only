@@ -32,20 +32,20 @@ describe("compareDecimalStrings", () => {
 describe("liveRows", () => {
   it("keeps only live classes, largest value first, and colours them by rank from the chart palette", () => {
     const rows = liveRows(fixture<AllocationResponse>("allocation_family").classes);
-    expect(rows.map(row => row.key)).toEqual(["equity", "debt", "gold", "others"]);
-    expect(rows.map(row => row.color)).toEqual(["var(--c1)", "var(--c2)", "var(--c3)", "var(--ui-divider)"]);
+    expect(rows.map(row => row.key)).toEqual(["equity", "debt", "gold", "real_estate", "others"]);
+    expect(rows.map(row => row.color)).toEqual(["var(--c1)", "var(--c2)", "var(--c3)", "var(--ui-divider)", "var(--ui-divider)"]);
     expect(rows[0]).toMatchObject({ label: "Equity", value: "2200.00", percentage: "42.21" });
   });
 
   it("re-orders when the values change (colours follow rank, not the class)", () => {
     const rows = liveRows(fixture<AllocationResponse>("allocation_member").classes);
-    expect(rows.map(row => row.key)).toEqual(["debt", "gold", "equity", "others"]);
-    expect(rows.map(row => row.color)).toEqual(["var(--c1)", "var(--c2)", "var(--ui-divider)", "var(--ui-divider)"]);
+    expect(rows.map(row => row.key)).toEqual(["debt", "gold", "equity", "real_estate", "others"]);
+    expect(rows.map(row => row.color)).toEqual(["var(--c1)", "var(--c2)", "var(--ui-divider)", "var(--ui-divider)", "var(--ui-divider)"]);
   });
 
   it("puts zero-valued classes last in their original order and gives them the muted colour", () => {
     const rows = liveRows(fixture<AllocationResponse>("allocation_empty").classes);
-    expect(rows.map(row => row.key)).toEqual(["equity", "debt", "gold", "others"]);
+    expect(rows.map(row => row.key)).toEqual(["equity", "debt", "gold", "real_estate", "others"]);
     expect(rows.every(row => row.color === "var(--ui-divider)")).toBe(true);
   });
 
@@ -68,7 +68,7 @@ describe("liveRows", () => {
 describe("soonRows", () => {
   it("keeps the coming-soon classes in the given order", () => {
     expect(soonRows(fixture<AllocationResponse>("allocation_family").classes).map(row => row.label)).toEqual([
-      "Direct stocks", "FDs and bonds", "Real estate", "US stocks",
+      "Direct stocks", "FDs and bonds", "US stocks",
     ]);
   });
 });

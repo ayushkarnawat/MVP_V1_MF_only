@@ -21,13 +21,13 @@ ALLOCATION_CLASSES: tuple[tuple[str, str, Literal["live", "coming_soon"]], ...] 
     ("equity", "Equity", "live"),
     ("debt", "Debt", "live"),
     ("gold", "Gold", "live"),
+    ("real_estate", "Real Estate (REITs and InvITs)", "live"),
     ("others", "Others", "live"),
     ("direct_stocks", "Direct stocks", "coming_soon"),
     ("fds_bonds", "FDs and bonds", "coming_soon"),
-    ("real_estate", "Real estate", "coming_soon"),
     ("us_stocks", "US stocks", "coming_soon"),
 )
-LIVE_KEYS = ("equity", "debt", "gold", "others")
+LIVE_KEYS = ("equity", "debt", "gold", "real_estate", "others")
 PERCENT_PLACES = Decimal("0.01")
 
 
@@ -65,6 +65,7 @@ class StoredMix:
     covered_value: Decimal
     nav_as_of: date | None
     computed_at: datetime
+    real_estate: Decimal = Decimal("0")
 
 
 @dataclass(frozen=True)
@@ -102,7 +103,7 @@ def parse_stored_allocation(
         covered = Decimal(str(summary["covered_value"]))
         nav_value = summary["nav_as_of"]
         nav_as_of = date.fromisoformat(nav_value) if nav_value is not None else None
-        class_values = {key: Decimal("0") for key in ("equity", "debt", "gold", "cash_like")}
+        class_values = {key: Decimal("0") for key in ("equity", "debt", "gold", "cash_like", "real_estate", "others")}
         for row in summary["as_disclosed"]["classes"]:
             key = row["key"]
             if key in class_values:
@@ -112,12 +113,15 @@ def parse_stored_allocation(
     if total <= 0 or covered <= 0 or any(value < 0 for value in class_values.values()):
         return None
     computed = computed_at if computed_at.tzinfo is not None else computed_at.replace(tzinfo=timezone.utc)
+    five_classes = any(row["key"] == "others" for row in summary["as_disclosed"]["classes"])
+    others = (class_values["others"] + max(total - sum(class_values.values(), Decimal("0")), Decimal("0"))
+              if five_classes else max(total - class_values["equity"] - class_values["debt"] - class_values["gold"], Decimal("0")))
     return StoredMix(
         equity=class_values["equity"],
         debt=class_values["debt"],
         gold=class_values["gold"],
-        others=max(total - class_values["equity"] - class_values["debt"] - class_values["gold"],
-                   Decimal("0")),
+        others=others,
+        real_estate=class_values["real_estate"],
         total_value=total,
         covered_value=covered,
         nav_as_of=nav_as_of,
@@ -163,6 +167,7 @@ def build_allocation(
             "equity": mix.equity,
             "debt": mix.debt,
             "gold": mix.gold,
+            "real_estate": mix.real_estate,
             "others": mix.others,
         }
         if weights is not None and sum(weights.values(), Decimal("0")) > 0:

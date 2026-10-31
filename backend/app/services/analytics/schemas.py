@@ -576,7 +576,7 @@ class AssetAllocationClassFund(CoverageFund):
 
 
 class AssetAllocationClass(BaseModel):
-    key: Literal["equity", "debt", "gold", "cash_like"]
+    key: Literal["equity", "debt", "gold", "cash_like", "real_estate", "others"]
     value: Decimal
     percentage: Decimal
     # Optional (MF-B ask C133, Asset Class drill): funds contributing to the class,

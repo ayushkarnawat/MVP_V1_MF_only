@@ -52,8 +52,9 @@ def _all(db):
 def test_sections_agree_on_the_same_household(db_session, monkeypatch):
     _household(db_session, monkeypatch)
     stock, cap, asset, overlap, valuation = _all(db_session)
-    # The coverage banner prints one "excluded" figure; every section must print the same one.
-    assert stock.excluded_share == cap.excluded_share == asset.excluded_share == overlap.excluded_share == valuation.excluded_share
+    # Asset allocation now includes positive Others; the other sections keep their prior coverage rule.
+    assert stock.excluded_share == cap.excluded_share == overlap.excluded_share == valuation.excluded_share
+    assert asset.excluded_share == Decimal("-4") * 6 / Decimal("1500") * 100
     # -4% futures and +2% other of a 600 holding, over the TOTAL portfolio of 1500.
     assert stock.excluded_share == Decimal("-2") * 6 / Decimal("1500") * 100
     # One household has one equity total.

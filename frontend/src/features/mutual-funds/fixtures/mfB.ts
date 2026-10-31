@@ -4511,7 +4511,20 @@ export function fundBenchmarkWithoutWindows(): FundVsBenchmarkSummary {
   for (const fund of copy.funds) delete fund.windows;
   return copy;
 }
-export const assetAllocation = (): AssetAllocationSummary => structuredClone(ASSET_ALLOCATION);
+export const assetAllocation = (): AssetAllocationSummary => {
+  const data = structuredClone(ASSET_ALLOCATION);
+  for (const [variant, debtValue, debtPct] of [
+    [data.as_disclosed, "722500.00", "17.00"],
+    [data.arbitrage_as_cash, "1062500.00", "25.00"],
+  ] as const) {
+    variant.classes = [
+      variant.classes[0], { key: "debt", value: debtValue, percentage: debtPct }, variant.classes[2],
+      { key: "real_estate", value: "0.00", percentage: "0.00" },
+      { key: "others", value: "0.00", percentage: "0.00" },
+    ];
+  }
+  return data;
+};
 export const capAllocation = (): CapAllocationSummary => {
   const data = structuredClone(CAP_ALLOCATION);
   data.unclassified_share_pct = "12.82";

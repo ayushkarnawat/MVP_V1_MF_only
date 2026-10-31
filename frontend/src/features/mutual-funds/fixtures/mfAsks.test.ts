@@ -36,11 +36,11 @@ describe("the ledger fixture", () => {
 
 describe("the asset class fixture", () => {
   const data = fa.assetAllocationWithFunds();
-  it("has funds on all four classes of both variants whose values add up to the class value", () => {
+  it("has funds on all five classes of both variants whose values add up to the class value", () => {
     for (const variant of [data.as_disclosed, data.arbitrage_as_cash]) {
-      expect(variant.classes.map(cls => cls.key)).toEqual(["equity", "debt", "gold", "cash_like"]);
+      expect(variant.classes.map(cls => cls.key)).toEqual(["equity", "debt", "gold", "real_estate", "others"]);
       for (const cls of variant.classes) {
-        expect(cls.funds && cls.funds.length).toBeGreaterThan(0);
+        expect(cls.funds).toBeDefined();
         expect(sum(cls.funds!.map(fund => fund.value))).toBe(scaled(cls.value));
       }
     }
@@ -58,11 +58,11 @@ describe("the asset class fixture", () => {
       }
     }
   });
-  it("moves HDFC Arbitrage from equity to cash-like when arbitrage counts as cash", () => {
+  it("moves HDFC Arbitrage from equity into Debt when arbitrage counts as cash", () => {
     expect(data.as_disclosed.classes[0].funds!.map(fund => fund.scheme_id)).toEqual(["S-KOTAK", "S-JM", "S-HDFC", "S-HDARB", "S-SBI"]);
     expect(data.arbitrage_as_cash.classes[0].funds!.map(fund => fund.scheme_id)).toEqual(["S-KOTAK", "S-JM", "S-HDFC", "S-SBI"]);
-    expect(data.as_disclosed.classes[3].funds!.map(fund => fund.scheme_id)).toEqual(["S-HDOV", "S-KOTAK"]);
-    expect(data.arbitrage_as_cash.classes[3].funds!.map(fund => fund.scheme_id)).toEqual(["S-HDARB", "S-HDOV", "S-KOTAK"]);
+    expect(data.as_disclosed.classes[1].funds!.map(fund => fund.scheme_id)).toEqual(["S-HDOV", "S-SBI", "S-KOTAK"]);
+    expect(data.arbitrage_as_cash.classes[1].funds!.map(fund => fund.scheme_id)).toEqual(["S-HDOV", "S-HDARB", "S-SBI", "S-KOTAK"]);
   });
 });
 

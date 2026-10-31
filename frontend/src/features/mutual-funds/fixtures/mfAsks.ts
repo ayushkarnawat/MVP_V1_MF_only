@@ -63,8 +63,10 @@ const DISCLOSED_FUNDS: Record<AssetAllocationClass["key"], AssetAllocationClassF
     f("S-HDARB", ARB, "340000.00", "10.25641025641025641025641026"),
     f("S-SBI", SBI, "297500.00", "8.974358974358974358974358974"),
   ],
-  // Debt 595000.00 = 476000.00 + 119000.00 (80 % and 20 %): SBI Bluechip is a fund in two classes.
-  debt: [f("S-HDOV", OVN, "476000.00", "80.0"), f("S-SBI", SBI, "119000.00", "20.0")],
+  // Debt includes cash: 722500 = 476000+76500 (HDOV) +119000 (SBI) +51000 (Kotak).
+  debt: [f("S-HDOV", OVN, "552500.00", "76.47058823529411764705882353"), f("S-SBI", SBI, "119000.00", "16.47058823529411764705882353"), f("S-KOTAK", KOTAK, "51000.00", "7.058823529411764705882352941")],
+  real_estate: [],
+  others: [],
   // Gold 212500.00 is one fund.
   gold: [f("S-AXINT", AXI, "212500.00", "100")],
   // Cash-like 127500.00 = 76500.00 + 51000.00 (60 % and 40 %).
@@ -80,7 +82,10 @@ const AS_CASH_FUNDS: Record<AssetAllocationClass["key"], AssetAllocationClassFun
     f("S-HDFC", HDFC, "595000.00", "20.0"),
     f("S-SBI", SBI, "297500.00", "10.0"),
   ],
-  debt: DISCLOSED_FUNDS.debt,
+  // Whole arbitrage value joins Debt: 1062500 = 552500+340000+119000+51000.
+  debt: [f("S-HDOV", OVN, "552500.00", "52"), f("S-HDARB", ARB, "340000.00", "32"), f("S-SBI", SBI, "119000.00", "11.2"), f("S-KOTAK", KOTAK, "51000.00", "4.8")],
+  real_estate: [],
+  others: [],
   gold: DISCLOSED_FUNDS.gold,
   cash_like: [
     f("S-HDARB", ARB, "340000.00", "72.72727272727272727272727273"),

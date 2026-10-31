@@ -45,7 +45,7 @@ describe("Allocation: states", () => {
     expect(screen.getByText("Add investments to see allocation")).toBeInTheDocument();
     expect(screen.queryByTestId("donut-center-value")).toBeNull();
     expect(screen.queryByTestId("legend-equity")).toBeNull();
-    expect(screen.getAllByTestId(/^legend-soon-/)).toHaveLength(4);
+    expect(screen.getAllByTestId(/^legend-soon-/)).toHaveLength(3);
     expect(screen.queryByTestId("family-bar")).toBeNull();
   });
 });
@@ -69,7 +69,7 @@ describe("Allocation: the donut and the legend", () => {
   it("lists live classes largest first with their share to one decimal place", () => {
     setup();
     const rows = screen.getAllByTestId(/^legend-(?!soon)/);
-    expect(rows.map(row => row.getAttribute("data-testid"))).toEqual(["legend-equity", "legend-debt", "legend-gold", "legend-others"]);
+    expect(rows.map(row => row.getAttribute("data-testid"))).toEqual(["legend-equity", "legend-debt", "legend-gold", "legend-real_estate", "legend-others"]);
     expect(rows[0].textContent).toContain("Equity");
     expect(rows[0].textContent).toContain("42.2%");
     expect(rows[3].textContent).toContain("0.0%");
@@ -80,7 +80,7 @@ describe("Allocation: the donut and the legend", () => {
     const { handlers } = setup();
     const soon = screen.getAllByTestId(/^legend-soon-/);
     expect(soon.map(row => row.getAttribute("data-testid"))).toEqual([
-      "legend-soon-direct_stocks", "legend-soon-fds_bonds", "legend-soon-real_estate", "legend-soon-us_stocks",
+      "legend-soon-direct_stocks", "legend-soon-fds_bonds", "legend-soon-us_stocks",
     ]);
     expect(soon[0].textContent).toContain("Direct stocks");
     expect(within(soon[0]).getByText("Coming soon")).toBeInTheDocument();

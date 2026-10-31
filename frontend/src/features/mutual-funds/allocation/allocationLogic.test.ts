@@ -28,12 +28,13 @@ describe("colours and chart percentages", () => {
 
 describe("asset class slices", () => {
   const variant = fb.assetAllocation().as_disclosed;
-  it("labels the four classes and keeps the backend's values and percentages", () => {
+  it("labels the five classes and keeps the backend's values and percentages", () => {
     expect(assetSlices(variant).map(slice => [slice.key, slice.label, slice.value, slice.pct, slice.color])).toEqual([
       ["equity", "Equity", "3315000.00", "78.00", "var(--c1)"],
-      ["debt", "Debt", "595000.00", "14.00", "var(--c2)"],
+      ["debt", "Debt", "722500.00", "17.00", "var(--c2)"],
       ["gold", "Gold", "212500.00", "5.00", "var(--c3)"],
-      ["cash_like", "Cash-like", "127500.00", "3.00", "var(--c4)"],
+      ["real_estate", "Real Estate (REITs and InvITs)", "0.00", "0.00", "var(--c4)"],
+      ["others", "Others", "0.00", "0.00", "var(--c5)"],
     ]);
   });
   it("builds the outer ring with equity replaced by its four cap arcs, each remembering its class", () => {
@@ -43,14 +44,15 @@ describe("asset class slices", () => {
       ["mid", "equity", "Mid Cap", "20.00", "var(--c5)"],
       ["small", "equity", "Small Cap", "6.00", "var(--c6)"],
       ["other", "equity", "Other / Unclassified", "10.00", "var(--c7)"],
-      ["debt", "debt", "Debt", "14.00", "var(--c2)"],
+      ["debt", "debt", "Debt", "17.00", "var(--c2)"],
       ["gold", "gold", "Gold", "5.00", "var(--c3)"],
-      ["cash_like", "cash_like", "Cash-like", "3.00", "var(--c4)"],
+      ["real_estate", "real_estate", "Real Estate (REITs and InvITs)", "0.00", "var(--c4)"],
+      ["others", "others", "Others", "0.00", "var(--c5)"],
     ]);
   });
   it("follows the arbitrage variant", () => {
     const asCash = fb.assetAllocation().arbitrage_as_cash;
-    expect(assetSlices(asCash).map(slice => slice.pct)).toEqual(["70.00", "14.00", "5.00", "11.00"]);
+    expect(assetSlices(asCash).map(slice => slice.pct)).toEqual(["70.00", "25.00", "5.00", "0.00", "0.00"]);
     expect(outerArcs(asCash).find(arc => arc.key === "other")?.pct).toBe("2.00");
   });
 });

@@ -121,9 +121,10 @@ def test_engine_writer_and_all_five_sections_on_postgres(pg, monkeypatch):
     assert any(b.key == "LARGE" and b.row_count == 1 for b in results["cap"].buckets)
     assert results["valuation"].indices[0].pe_ratio == Decimal("19.41")
     assert results["valuation"].indices[1].pb_ratio == Decimal("3.10")
-    # One banner number across sections, on Postgres too.
-    shares = {results[k].excluded_share for k in ("stock", "cap", "asset", "overlap", "valuation")}
+    # Asset allocation now includes positive Others and derivative legs; the other sections retain their rule.
+    shares = {results[k].excluded_share for k in ("stock", "cap", "overlap", "valuation")}
     assert len(shares) == 1
+    assert results["asset"].excluded_share <= 0
     # PE/PB rows must not leak into the price series.
     prices = pg.query(BenchmarkIndexHistory).filter_by(return_type=BenchmarkReturnType.PRICE).all()
     assert [p.value for p in prices] == [Decimal("25000")]

@@ -296,7 +296,7 @@ export interface CapAllocationSummary {
   hide_headlines: boolean;
   excluded_share: string;
 }
-export type AssetClassKey = "equity" | "debt" | "gold" | "cash_like";
+export type AssetClassKey = "equity" | "debt" | "gold" | "cash_like" | "real_estate" | "others";
 /** ASKS-FE-M (C160): a fund inside one asset class. `percentage` is the share of that class (positive parts only), not of the portfolio. */
 export interface AssetAllocationClassFund { scheme_id: string; scheme_name: string; value: string; percentage: string }
 export interface AssetAllocationClass {

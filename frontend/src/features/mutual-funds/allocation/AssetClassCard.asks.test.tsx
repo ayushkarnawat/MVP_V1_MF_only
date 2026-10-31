@@ -37,36 +37,34 @@ describe("the contributing funds in the drill panel", () => {
     expect(rowOf("S-HDARB")).toEqual({ name: "HDFC Arbitrage Fund", value: "₹3,40,000 · 10.3% of Equity" });
     expect(rowOf("S-SBI")).toEqual({ name: "SBI Bluechip Fund", value: "₹2,97,500 · 9.0% of Equity" });
   });
-  it("keeps the equity size split and the market-cap link, with the list between them", () => {
+  it("keeps the contributing funds before the market-cap link without repeating its size split", () => {
     mount();
     select(/Equity/);
-    const cap = screen.getByTestId("drill-cap-large");
+    expect(screen.queryByTestId("drill-cap-large")).not.toBeInTheDocument();
     const list = screen.getByRole("list", { name: "Contributing funds" });
     const link = screen.getByRole("button", { name: "See the stock-level split in Market-Cap Allocation" });
-    expect(cap.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(list.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByTestId("drill-class-total")).toHaveTextContent("Equity total: ₹33,15,000 · 78.0%");
   });
-  it("replaces the 'not available' note for debt, gold and cash-like with their own funds", () => {
+  it("shows the merged Debt and Gold contributing funds", () => {
     mount();
     select(/Debt/);
     expect(screen.queryByTestId("drill-gap-note")).not.toBeInTheDocument();
-    expect(fundList().getAllByRole("listitem")).toHaveLength(2);
-    expect(rowOf("S-HDOV").value).toBe("₹4,76,000 · 80.0% of Debt");
-    expect(rowOf("S-SBI").value).toBe("₹1,19,000 · 20.0% of Debt");
+    expect(fundList().getAllByRole("listitem")).toHaveLength(3);
+    expect(rowOf("S-HDOV").value).toBe("₹5,52,500 · 76.5% of Debt");
+    expect(rowOf("S-SBI").value).toBe("₹1,19,000 · 16.5% of Debt");
     expect(screen.queryByTestId("drill-cap-large")).not.toBeInTheDocument();
     select(/Gold/);
     expect(rowOf("S-AXINT")).toEqual({ name: "Axis International Fund of Fund", value: "₹2,12,500 · 100.0% of Gold" });
-    select(/Cash-like/);
-    expect(rowOf("S-HDOV").value).toBe("₹76,500 · 60.0% of Cash-like");
-    expect(rowOf("S-KOTAK").value).toBe("₹51,000 · 40.0% of Cash-like");
+    select(/Debt/);
+    expect(rowOf("S-KOTAK").value).toBe("₹51,000 · 7.1% of Debt");
   });
   it("lists a fund under each class it contributes to, with that class's own figures", () => {
     mount();
     select(/Equity/);
     expect(rowOf("S-SBI").value).toBe("₹2,97,500 · 9.0% of Equity");
     select(/Debt/);
-    expect(rowOf("S-SBI").value).toBe("₹1,19,000 · 20.0% of Debt");
+    expect(rowOf("S-SBI").value).toBe("₹1,19,000 · 16.5% of Debt");
   });
   it("follows the arbitrage switch: the funds of the selected class come from the variant on screen", () => {
     mount();
@@ -75,11 +73,11 @@ describe("the contributing funds in the drill panel", () => {
     expect(fundList().getAllByRole("listitem").map(item => item.getAttribute("data-testid"))).toEqual(["drill-fund-S-KOTAK", "drill-fund-S-JM", "drill-fund-S-HDFC", "drill-fund-S-SBI"]);
     expect(rowOf("S-KOTAK").value).toBe("₹11,90,000 · 40.0% of Equity");
     expect(rowOf("S-SBI").value).toBe("₹2,97,500 · 10.0% of Equity");
-    select(/Cash-like/);
-    expect(fundList().getAllByRole("listitem").map(item => item.getAttribute("data-testid"))).toEqual(["drill-fund-S-HDARB", "drill-fund-S-HDOV", "drill-fund-S-KOTAK"]);
-    expect(rowOf("S-HDARB").value).toBe("₹3,40,000 · 72.7% of Cash-like");
-    expect(rowOf("S-HDOV").value).toBe("₹76,500 · 16.4% of Cash-like");
-    expect(rowOf("S-KOTAK").value).toBe("₹51,000 · 10.9% of Cash-like");
+    select(/Debt/);
+    expect(fundList().getAllByRole("listitem").map(item => item.getAttribute("data-testid"))).toEqual(["drill-fund-S-HDOV", "drill-fund-S-HDARB", "drill-fund-S-SBI", "drill-fund-S-KOTAK"]);
+    expect(rowOf("S-HDARB").value).toBe("₹3,40,000 · 32.0% of Debt");
+    expect(rowOf("S-HDOV").value).toBe("₹5,52,500 · 52.0% of Debt");
+    expect(rowOf("S-KOTAK").value).toBe("₹51,000 · 4.8% of Debt");
   });
   it("says so, without the old note, when a class has an empty list of funds", () => {
     const data = fa.assetAllocationWithFunds();
@@ -95,7 +93,7 @@ describe("the contributing funds in the drill panel", () => {
     select(/Equity/);
     expect(screen.queryByTestId("drill-funds-title")).not.toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Contributing funds" })).not.toBeInTheDocument();
-    expect(screen.getByTestId("drill-cap-large")).toBeInTheDocument();
+    expect(screen.queryByTestId("drill-cap-large")).not.toBeInTheDocument();
     select(/Debt/);
     expect(screen.getByTestId("drill-gap-note")).toHaveTextContent(GAP_NOTE);
     expect(screen.queryByTestId("drill-funds-empty")).not.toBeInTheDocument();

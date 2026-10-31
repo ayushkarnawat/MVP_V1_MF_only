@@ -444,7 +444,7 @@ export interface AggregateFundManagerAllocationResponse {
 
 
 export interface AssetAllocationClass {
-  key: "equity" | "debt" | "gold" | "cash_like";
+  key: "equity" | "debt" | "gold" | "cash_like" | "real_estate" | "others";
   value: string;
   percentage: string;
 }

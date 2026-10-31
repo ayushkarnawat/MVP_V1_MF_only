@@ -36,8 +36,8 @@ describe("the Asset Class drill on the page", () => {
     const legend = within(await screen.findByRole("list", { name: "Look-through asset breakdown" }));
     fireEvent.click(legend.getByRole("button", { name: /Debt/ }));
     const list = within(screen.getByRole("list", { name: "Contributing funds" }));
-    expect(list.getAllByRole("listitem").map(item => item.getAttribute("data-testid"))).toEqual(["drill-fund-S-HDOV", "drill-fund-S-SBI"]);
-    expect(screen.getByTestId("drill-fund-value-S-HDOV")).toHaveTextContent("₹4,76,000 · 80.0% of Debt");
+    expect(list.getAllByRole("listitem").map(item => item.getAttribute("data-testid"))).toEqual(["drill-fund-S-HDOV", "drill-fund-S-SBI", "drill-fund-S-KOTAK"]);
+    expect(screen.getByTestId("drill-fund-value-S-HDOV")).toHaveTextContent("₹5,52,500 · 76.5% of Debt");
     expect(mocks.getAnalyticsScope).toHaveBeenCalledTimes(1);
   });
 });

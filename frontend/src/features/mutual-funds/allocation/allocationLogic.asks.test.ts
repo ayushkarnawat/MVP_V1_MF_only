@@ -8,8 +8,8 @@ describe("classFunds", () => {
     const data = fa.assetAllocationWithFunds();
     expect(classFunds(data.as_disclosed, "equity")?.map(fund => fund.scheme_id)).toEqual(["S-KOTAK", "S-JM", "S-HDFC", "S-HDARB", "S-SBI"]);
     expect(classFunds(data.arbitrage_as_cash, "equity")?.map(fund => fund.scheme_id)).toEqual(["S-KOTAK", "S-JM", "S-HDFC", "S-SBI"]);
-    expect(classFunds(data.as_disclosed, "cash_like")?.map(fund => [fund.scheme_id, fund.value])).toEqual([["S-HDOV", "76500.00"], ["S-KOTAK", "51000.00"]]);
-    expect(classFunds(data.arbitrage_as_cash, "cash_like")?.map(fund => fund.scheme_id)).toEqual(["S-HDARB", "S-HDOV", "S-KOTAK"]);
+    expect(classFunds(data.as_disclosed, "debt")?.map(fund => [fund.scheme_id, fund.value])).toEqual([["S-HDOV", "552500.00"], ["S-SBI", "119000.00"], ["S-KOTAK", "51000.00"]]);
+    expect(classFunds(data.arbitrage_as_cash, "debt")?.map(fund => fund.scheme_id)).toEqual(["S-HDOV", "S-HDARB", "S-SBI", "S-KOTAK"]);
     expect(classFunds(data.as_disclosed, "gold")).toEqual([{ scheme_id: "S-AXINT", scheme_name: "Axis International Fund of Fund", value: "212500.00", percentage: "100" }]);
   });
   it("does not re-sort or filter what it was given", () => {

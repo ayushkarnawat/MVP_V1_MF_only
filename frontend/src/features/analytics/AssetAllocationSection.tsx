@@ -9,7 +9,7 @@ import { CapAllocationSection } from "./CapAllocationSection";
 import { formatPercent, holdingsDate, percentageProduct } from "@/components/mf/lookthroughDisplay";
 import type { AssetAllocationSummary } from "./types";
 
-const LABELS = { equity: "Equity", debt: "Debt", gold: "Gold", cash_like: "Cash-like" };
+const LABELS = { equity: "Equity", debt: "Debt", gold: "Gold", cash_like: "Cash-like", real_estate: "Real Estate (REITs and InvITs)", others: "Others" };
 const CAPS = { LARGE: "Large Cap", MID: "Mid Cap", SMALL: "Small Cap", OTHER: "Other / Unclassified" };
 const CARD = "rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6 shadow-2xs";
 const compare = (a: string, b: string) => compareDecimalStrings(percentageProduct(a, "100"), percentageProduct(b, "100"));

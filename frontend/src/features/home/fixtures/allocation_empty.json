@@ -31,6 +31,13 @@
       "percentage": "0.00"
     },
     {
+      "key": "real_estate",
+      "label": "Real Estate (REITs and InvITs)",
+      "status": "live",
+      "value": "0.00",
+      "percentage": "0.00"
+    },
+    {
       "key": "others",
       "label": "Others",
       "status": "live",
@@ -47,13 +54,6 @@
     {
       "key": "fds_bonds",
       "label": "FDs and bonds",
-      "status": "coming_soon",
-      "value": null,
-      "percentage": null
-    },
-    {
-      "key": "real_estate",
-      "label": "Real estate",
       "status": "coming_soon",
       "value": null,
       "percentage": null
