@@ -50,6 +50,8 @@ def _stock_metric(entries, field, master):
                       "No ISIN disclosed" if row.isin is None else
                       "No fundamentals available for this ISIN" if stock is None else
                       stock.footnote or ("Earnings are unavailable or not positive" if field == "pe_ratio" else "P/B unavailable"))
+            if row.asset_type == AssetType.EQUITY_INTERNATIONAL:
+                reason = "Overseas stock; a ratio is not available yet."
             target = overseas if row.asset_type == AssetType.EQUITY_INTERNATIONAL else missing
             target.append(ValuationMissingHolding(
                 isin=row.isin, instrument_name=row.instrument_name, exposure_value=value,
@@ -162,9 +164,17 @@ async def compute_valuation(db: Session, household_member_ids: list[uuid.UUID]) 
             pe_as_of=index_pe.date if index_pe else None, pb_as_of=index_pb.date if index_pb else None,
             pe_delta_pct=delta(pe.ratio, index_pe), pb_delta_pct=delta(pb.ratio, index_pb),
         ))
-    notes = {s.footnote for s in master.values() if s.footnote}
-    if any(s.pb_source == "SCREENER" for s in master.values()):
+    overseas_isins = {r.isin for r in equity if r.asset_type == AssetType.EQUITY_INTERNATIONAL}
+    notes = {
+        "Overseas stocks without domestic exchange figures are reported separately."
+        if s.isin in overseas_isins and s.footnote.startswith("ISIN absent from NSE EQ security master:")
+        else s.footnote
+        for s in master.values() if s.footnote
+    }
+    if any(s.pb_source == "SCREENER" and s.source != "BSE" for s in master.values()):
         notes.add("Some P/B values use screener.in fallback (current price / book value).")
+    if any(s.pb_source == "SCREENER" and s.source == "BSE" for s in master.values()):
+        notes.add("Some P/B values use screener.in (current price / book value).")
     return ValuationSummary(
         pe=pe, pb=pb, indices=indices, funds=funds, total_equity_value=total_equity,
         total_portfolio_value=table.total_portfolio_value, nav_as_of=table.nav_as_of, holdings_as_of=table.holdings_as_of,
