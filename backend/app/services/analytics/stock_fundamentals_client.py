@@ -207,12 +207,22 @@ async def refresh_stock_fundamentals(db: Session, *, today: date | None = None,
         old = db.get(StockMaster, isin)
         info = constituents.get(isin, {})
         row = old or StockMaster(isin=isin, name=info.get("name", symbol or isin), sector=info.get("sector"), source="NSE", as_of_date=as_of)
+        # Preserve each retained ratio's last known date before the shared
+        # legacy date advances. Older stored rows only have as_of_date.
+        if old is not None:
+            if old.pe_ratio is not None and old.pe_as_of is None:
+                old.pe_as_of = old.as_of_date
+            if old.pb_ratio is not None and old.pb_as_of is None:
+                old.pb_as_of = old.as_of_date
+            if old.pe_ratio is not None and old.pe_source is None:
+                old.pe_source = old.source
         notes = []
         if not symbol:
             if old and security_as_of < old.as_of_date:
                 notes.append("Older NSE security master; previous ratios retained")
             else:
                 row.pe_ratio = row.pb_ratio = row.pb_source = None
+                row.pe_as_of = row.pb_as_of = row.pe_source = None
                 notes.append("ISIN absent from NSE EQ security master: delisted/merged or not NSE-listed (no BSE fallback)")
         else:
             if symbol in pe:
@@ -220,6 +230,7 @@ async def refresh_stock_fundamentals(db: Session, *, today: date | None = None,
                     notes.append("Older NSE P/E file; previous P/E retained")
                 else:
                     row.pe_ratio = pe[symbol]
+                    row.pe_as_of, row.pe_source = as_of, "NSE"
                     if pe[symbol] is None: notes.append("P/E excluded: loss-making or unavailable earnings")
             else:
                 notes.append("NSE P/E unavailable; previous P/E retained" if old and old.pe_ratio else "NSE P/E unavailable")
@@ -238,10 +249,11 @@ async def refresh_stock_fundamentals(db: Session, *, today: date | None = None,
                     pass
             if pb is not None:
                 row.pb_ratio, row.pb_source = pb, pb_source
+                row.pb_as_of = today
                 if pb_source == "SCREENER": notes.append("P/B from screener.in fallback (current price / book value)")
             else:
                 failed += 1
-                notes.append(f"P/B refresh failed; previous P/B retained from {old.as_of_date}" if old and old.pb_ratio else "P/B unavailable: Yahoo and screener.in both failed")
+                notes.append(f"P/B refresh failed; previous P/B retained from {old.pb_as_of or old.as_of_date}" if old and old.pb_ratio else "P/B unavailable: Yahoo and screener.in both failed")
                 logger.warning("STOCK_FUNDAMENTALS_ALERT pb_unavailable isin=%s", isin)
         row.as_of_date = max(as_of, old.as_of_date) if old else as_of
         row.footnote = "; ".join(notes) or None

@@ -707,12 +707,32 @@ class ValuationMissingHolding(BaseModel):
     reason: str
 
 
+class ValuationValue(BaseModel):
+    value: str | None = None
+    source: Literal["factsheet", "computed", "none"] = "none"
+    as_of: date
+    basis: str = "not_stated"
+    method: str = "not_stated"
+    coverage_pct: str | None = None
+    reason: str | None = None
+
+
+class ValuationFund(BaseModel):
+    scheme_id: UUID
+    scheme_name: str
+    pe: ValuationValue
+    pb: ValuationValue
+
+
 class ValuationMetric(BaseModel):
     ratio: Decimal | None
     coverage_pct: Decimal
     enough_data: bool
     as_of_date: date | None
     missing: list[ValuationMissingHolding]
+    overseas: list[ValuationMissingHolding] = Field(default_factory=list)
+    fund_coverage_pct: Decimal = Decimal("0")
+    reason: str | None = None
 
 
 class ValuationIndex(BaseModel):
@@ -726,6 +746,7 @@ class ValuationIndex(BaseModel):
 
 
 class ValuationSummary(BaseModel):
+    funds: list[ValuationFund] = Field(default_factory=list)
     pe: ValuationMetric
     pb: ValuationMetric
     indices: list[ValuationIndex]

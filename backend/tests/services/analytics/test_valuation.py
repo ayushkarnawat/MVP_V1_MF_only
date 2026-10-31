@@ -122,3 +122,154 @@ def test_valuation_shares_session_table_memo_and_wraps(db_session,monkeypatch):
     result=asyncio.run(run());assert spy.await_count==1
     spec=next(s for s in _SECTIONS if s.name=='valuation')
     assert spec.wrap_combined([],result).model_dump(mode='json') == {'members':[],'valuation':result.model_dump(mode='json')}
+
+
+# T2.3: per-fund ratios and fund-value weighting, with hand-worked goldens.
+def _reported(db, scheme, metric, value, period=date(2026, 10, 1), basis="trailing", method="harmonic"):
+    from app.models.reference import SchemeReportedValuation
+    row = SchemeReportedValuation(scheme_id=scheme.id, metric=metric, value=Decimal(value),
+        reference_period=period, basis=basis, method=method, source_file="synthetic.pdf", page=1)
+    db.add(row); db.flush(); return row
+
+
+def test_fund_with_full_coverage_equals_hand_worked_harmonic_value(db_session, monkeypatch):
+    scheme = _scheme(db_session)
+    _batch(db_session, scheme, [("A", "A", "60", AssetType.EQUITY_DOMESTIC),
+                               ("B", "B", "40", AssetType.EQUITY_DOMESTIC)])
+    _stock(db_session, "A", "10", "2"); _stock(db_session, "B", "20", "4")
+    result = _compute(db_session, monkeypatch, [_holding(scheme, "1000")])
+    fund, = result.funds
+    # P/E = 1000 / (600/10 + 400/20) = 12.5; P/B = 1000/(600/2+400/4) = 2.5.
+    assert fund.scheme_id == scheme.id and fund.scheme_name == scheme.name
+    assert Decimal(fund.pe.value) == Decimal("12.5")
+    assert Decimal(fund.pb.value) == Decimal("2.5")
+    assert (fund.pe.source, fund.pe.basis, fund.pe.method) == ("computed", "trailing", "harmonic")
+    assert Decimal(fund.pe.coverage_pct) == 100
+    assert fund.pe.as_of == date(2026, 10, 12)
+    assert result.model_dump(mode="json")["funds"][0]["pe"]["value"] == fund.pe.value
+
+
+def test_fund_below_70_percent_coverage_shows_no_value_and_a_reason(db_session, monkeypatch):
+    scheme = _scheme(db_session)
+    _batch(db_session, scheme, [("Known", "A", "69", AssetType.EQUITY_DOMESTIC),
+                               ("Unknown", "B", "31", AssetType.EQUITY_DOMESTIC)])
+    _stock(db_session, "A", "10", "2")
+    result = _compute(db_session, monkeypatch, [_holding(scheme, "1000")])
+    pe = result.funds[0].pe
+    assert pe.value is None and pe.source == "none"
+    assert Decimal(pe.coverage_pct) == 69
+    assert "70%" in pe.reason
+    assert all(word not in pe.reason.lower() for word in ("fallback", "proxy", "excluded: no data"))
+
+
+@pytest.mark.parametrize("earnings_ratio", ["-5", "0"])
+def test_loss_making_stock_is_excluded_and_named(db_session, monkeypatch, earnings_ratio):
+    scheme = _scheme(db_session)
+    _batch(db_session, scheme, [("Known", "A", "80", AssetType.EQUITY_DOMESTIC),
+                               ("Loss Company", "LOSS", "20", AssetType.EQUITY_DOMESTIC)])
+    _stock(db_session, "A", "10", "2"); _stock(db_session, "LOSS", earnings_ratio, "4")
+    result = _compute(db_session, monkeypatch, [_holding(scheme, "1000")])
+    assert Decimal(result.funds[0].pe.value) == 10
+    assert "Loss Company" in result.funds[0].pe.reason
+    assert result.pe.missing[0].instrument_name == "Loss Company"
+    assert "earnings" in result.pe.missing[0].reason
+
+
+def test_factsheet_value_older_than_75_days_falls_back_to_computed(db_session):
+    from datetime import timedelta
+    from app.services.analytics.schemas import ValuationValue
+    from app.services.analytics.valuation import resolve_fund_ratio
+    computed = ValuationValue(value="12.5", source="computed", as_of=date(2026, 10, 12),
+                              basis="trailing", method="harmonic", coverage_pct="100", reason=None)
+    scheme = _scheme(db_session)
+    reading = _reported(db_session, scheme, "pe", "33", period=date(2026, 8, 1))
+    assert resolve_fund_ratio(reading, computed, date(2026, 8, 1) + timedelta(days=76)) == computed
+    assert resolve_fund_ratio(reading, computed, date(2026, 8, 1) + timedelta(days=75)).source == "factsheet"
+    assert resolve_fund_ratio(reading, computed, date(2026, 7, 31)) == computed
+
+
+def test_forward_factsheet_pe_shows_basis_forward_in_the_fund_row_but_trailing_in_the_portfolio_total(db_session, monkeypatch):
+    scheme = _scheme(db_session)
+    _batch(db_session, scheme, [("Known", "A", "100", AssetType.EQUITY_DOMESTIC)])
+    _stock(db_session, "A", "10", "2")
+    _reported(db_session, scheme, "pe", "40", basis="forward", method="weighted_average")
+    result = _compute(db_session, monkeypatch, [_holding(scheme, "1000")])
+    assert result.funds[0].pe.value == "40.0000"
+    assert result.funds[0].pe.source == "factsheet" and result.funds[0].pe.basis == "forward"
+    assert result.pe.ratio == 10
+
+
+def test_pe_from_factsheet_with_pb_computed_in_one_row(db_session, monkeypatch):
+    scheme = _scheme(db_session)
+    _batch(db_session, scheme, [("Known", "A", "100", AssetType.EQUITY_DOMESTIC)])
+    _stock(db_session, "A", "10", "2")
+    _reported(db_session, scheme, "pe", "30", period=date(2026, 9, 1))
+    _reported(db_session, scheme, "pe", "35", period=date(2026, 10, 1))
+    _reported(db_session, scheme, "pe", "99", period=date(2026, 11, 1))
+    result = _compute(db_session, monkeypatch, [_holding(scheme, "1000")])
+    fund, = result.funds
+    assert (fund.pe.value, fund.pe.source, fund.pe.as_of) == ("35.0000", "factsheet", date(2026, 10, 1))
+    assert (Decimal(fund.pb.value), fund.pb.source, fund.pb.basis) == (Decimal(2), "computed", "trailing")
+
+
+def test_portfolio_ratio_equals_the_harmonic_mean_of_fund_figures(db_session, monkeypatch):
+    a, b = _scheme(db_session), _scheme(db_session)
+    _batch(db_session, a, [("A", "A", "100", AssetType.EQUITY_DOMESTIC)])
+    _batch(db_session, b, [("B", "B", "50", AssetType.EQUITY_DOMESTIC),
+                         ("Debt", "D", "50", AssetType.DEBT)])
+    _stock(db_session, "A", "10", "2"); _stock(db_session, "B", "20", "4")
+    result = _compute(db_session, monkeypatch, [_holding(a, "1000"), _holding(b, "3000")])
+    # Each fund has full equity-ratio coverage. Weights are each fund's EQUITY rupees (owner decision
+    # 31 Oct): 1000 and 1500 (fund B is half debt). P/E = 2500/(1000/10+1500/20) = 14.285714,
+    # P/B = 2500/(1000/2+1500/4) = 2.857143. Whole-fund weights 1000:3000 would give 16 and 3.2.
+    assert result.pe.ratio == Decimal("14.285714") and result.pb.ratio == Decimal("2.857143")
+    assert {Decimal(f.pe.value) for f in result.funds} == {Decimal(10), Decimal(20)}
+
+
+def test_overseas_holdings_are_counted_separately_not_missing(db_session, monkeypatch):
+    scheme = _scheme(db_session)
+    _batch(db_session, scheme, [("Known", "A", "80", AssetType.EQUITY_DOMESTIC),
+                               ("Overseas Company", "US1", "20", AssetType.EQUITY_INTERNATIONAL)])
+    _stock(db_session, "A", "10", "2")
+    result = _compute(db_session, monkeypatch, [_holding(scheme, "1000")])
+    assert not result.pe.missing and not result.pb.missing
+    assert [s.instrument_name for s in result.pe.overseas] == ["Overseas Company"]
+    assert sum(s.exposure_value for s in result.pe.overseas) == 200
+    assert result.pe.coverage_pct == 80 and Decimal(result.funds[0].pe.coverage_pct) == 80
+
+
+def test_old_stored_valuation_defaults_to_no_fund_rows(db_session, monkeypatch):
+    from app.services.analytics.schemas import ValuationSummary
+    payload = _compute(db_session, monkeypatch, []).model_dump(mode="json")
+    payload.pop("funds", None)
+    restored = ValuationSummary.model_validate(payload)
+    assert restored.funds == []
+
+
+
+@pytest.mark.parametrize("available_weight,shown", [("69.999", False), ("70", True)])
+def test_portfolio_fund_figure_coverage_seventy_percent_boundary(db_session, monkeypatch, available_weight, shown):
+    a, b = _scheme(db_session), _scheme(db_session)
+    _batch(db_session, a, [("No stock ratio A", "A", "100", AssetType.EQUITY_DOMESTIC)])
+    _batch(db_session, b, [("No stock ratio B", "B", "100", AssetType.EQUITY_DOMESTIC)])
+    _reported(db_session, a, "pe", "30")
+    result = _compute(db_session, monkeypatch,
+                      [_holding(a, available_weight), _holding(b, str(100 - Decimal(available_weight)))])
+    # Owner decision: fresh factsheets count even with no usable stock ratios.
+    # Equity exposures are the fund values here. Only A has a usable P/E.
+    assert result.pe.coverage_pct == 0 and not result.pe.enough_data
+    assert result.pe.fund_coverage_pct == Decimal(available_weight)
+    assert result.funds[0].pe.source == "factsheet"
+    assert result.pe.ratio == (Decimal(30) if shown else None)
+    assert result.pe.reason == (None if shown else "We could not get a P/E for enough of your funds yet.")
+    assert result.pb.ratio is None and result.pb.fund_coverage_pct == 0
+
+
+def test_forward_figure_without_computed_trailing_does_not_count_toward_portfolio_coverage(db_session, monkeypatch):
+    scheme = _scheme(db_session)
+    _batch(db_session, scheme, [("No earnings ratio", "A", "100", AssetType.EQUITY_DOMESTIC)])
+    _reported(db_session, scheme, "pe", "30", basis="forward")
+    result = _compute(db_session, monkeypatch, [_holding(scheme, "1000")])
+    assert result.funds[0].pe.source == "factsheet" and result.funds[0].pe.basis == "forward"
+    assert result.pe.ratio is None and result.pe.fund_coverage_pct == 0
+    assert result.pe.reason == "We could not get a P/E for enough of your funds yet."
