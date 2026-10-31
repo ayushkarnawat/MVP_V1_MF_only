@@ -220,3 +220,78 @@ The fallback is the plan's existing one: the stored index chosen from the fund's
 | **S8** | Exact names the niftyindices endpoint accepts for debt and hybrid indices | R4b tries 36 spellings on both endpoints | nothing; run R4b |
 | **S9** | The Nifty 50 Arbitrage price endpoint returns a close that dips day to day (2,747.05 then 2,745.42), so it may not be a total-return series; factsheets name a "Nifty 50 Arbitrage TRI" | R4b prints both endpoints' recent values, which I compare with an arbitrage fund's printed benchmark return | nothing; run R4b |
 | **S10** | **Terms of use and licence for index data.** I read the niftyindices terms of use on 30 Oct. In my reading they allow personal, non-commercial use only, prohibit systematic or automated collection (scraping, extraction) without NSE Indices' written consent, and prohibit aggregating or copying site content. They list "Data Subscription" and "Authorised Data Vendors" as the licensed routes. | I cannot grant myself consent; this is a business decision | **A decision from you or the manager:** write to NSE Indices for permission or a data subscription, or accept the risk for staging only. This affects the daily benchmark job that already runs, not only the new indices. Until answered, the plan builds the new indices but releases none of them to users |
+
+---
+
+## Revision 3 (31 Oct 2026, evening): Step 0 results and decisions
+
+This section wins over Revisions 1 and 2 where they differ. Everything below was checked on 31 Oct from the owner's laptop (read-only requests to public pages) or from the staging VM (read-only commands, plus the two agreed writes). Nothing is implemented.
+
+### R3.1 What ran, in order
+1. Owner downloaded 17 September-data factsheets (`D:\Factsheets October`) and uploaded them to `/home/deploy/factsheets-oct2026` on the VM. **No Axis file was found; Axis stays on its 31 Aug data** (the one genuinely stale house).
+2. `check_publication.py` ran on the VM (output saved in `step0-data/vm2-out/publication_2026-10-31.csv`).
+3. `verify_benchmark_sources.sh` ran on the VM (`step0-data/vm2-out/bench_verify_2026-10-31.log`).
+4. Hand import (a write, agreed), matched/unmatched: HDFC 106/1, Bandhan 87/0, ICICI 156/5, Invesco 45/0, ITI 21/0, JM 15/0, Kotak 112/0, Trust 11/0, WhiteOak 22/0 (`step0-data/vm2-out/import_output.txt`). Both passive files (Bandhan, ICICI) were accepted.
+5. `fund-managers-monthly` ran (a write, agreed): `success=True amcs_processed=35 amcs_failed=5 schemes_matched=1247 schemes_unmatched=2`. Only two of the five alerts were seen in the log tail (SBI `stale_month`, Sundaram `no_factsheet_link`); Angel One (403) and Mahindra are the likely others; the fifth is unidentified. The job's alerts are not in `docker compose logs` because it runs in its own container; Task 2.2b adds a durable record.
+6. Database check: every registered house has rows with `reference_period = 2026-10-01` **except Sundaram (0 rows)**; six houses have no registry entry (AlphaGrep, Bajaj Finserv, Carnelian, IL&FS, Lakshya, Monarch). `reference_period` is the month the import ran, not the factsheet's data month, so it cannot show whether Axis is current: Axis's rows are from the 12 Oct import of 31 Aug data.
+
+### R3.2 AMC factsheets: covered, with named gaps
+All data in the files is as of 30 Sep 2026; in this report's wording they are "the October issue". Houses that name files "October" (ABSL, Edelweiss, Mirae, Nippon, quant, UTI) name them by publication month; the others name them by data month. **No house had data past 30 Sep on 31 Oct**, so the publication check shows no house of ours to fix; it is re-run on 3, 6 and 10 Nov (later, not part of this plan). Odd month readings in `check_publication.py` (years 2038, 2050, 2027, 2061 and 0 for Baroda, NJ, LIC, Shriram, Quantum, ASK, Old Bridge, Zerodha, Jio, Mahindra) are a month-reading bug in that script, not a data problem; the job still read those houses.
+
+| Group | Houses | State |
+|---|---|---|
+| Fresh, read by the job | about 30 automatic houses | Covered |
+| Hand-imported 30 Sep | HDFC, Bandhan, ICICI, Invesco, ITI, JM, Kotak, Trust, WhiteOak | Covered |
+| **Files in hand, importer refuses** | **Angel One (static link), SBI, Sundaram, Mahindra (JSON API)** | Files are good (all 30 Sep). Fixed by Task 1.5b (R3.3) |
+| **No file** | **Axis** | Stale (31 Aug); owner supplies when found |
+| Unknown | one of the five failed automatic houses | Task 2.2b makes the alert durable |
+| No registry entry | six houses above | Out of scope |
+
+### R3.3 Decision: manual import for this month only (owner, 31 Oct)
+The registry is **not** changed. `import_manual_fund_managers.py` gets an opt-in flag (Task 1.5b) that accepts an automatic house for one run, using the house's own reader, rows marked `MANUAL`. Next month the automatic job runs unchanged: if it works, nothing more; if it fails a second month in a row, the owner moves that house to manual in the registry.
+- **Probe result (code read, 31 Oct):** the monthly job skips only `ResolverKind.MANUAL` houses and never looks at existing manual rows. For an automatic house it overwrites the month's rows when it succeeds and leaves the existing rows when it fails. So this month's manual rows survive a failing job, and next month the job is a clean test.
+- **Correction to Revision 2:** **Sundaram has a reader** (`LAYOUTS["sundaram"]`, tested 40/40 on 10 Oct); its registry entry is a JSON API that the site no longer answers.
+- **Probe result (31 Oct, each house's own reader and acceptance check run read-only on the owner's real files, in WSL):** Sundaram accepted (100 pages), Angel One accepted (30 pages), SBI active accepted (147 pages, 57 scheme pages). **SBI passive and Mahindra are rejected (`not_a_factsheet`, 0 scheme pages read)**: the files are the right ones (SBI "Passive Solutions", Mahindra's all-scheme factsheet), but both houses changed how they print fund managers (SBI passive: "Fund Manager Details" with names on separate lines; Mahindra: "Fund Manager  Mr. X, Ms. Y" with "Managing Since: 25-Sep-26" on a separate line). So Task 1.5b also needs reader fixes for those two, and the automatic job's failures for SBI and Mahindra were at least partly layout changes. Also: the importer rejects a file whose newest "as on" date is more than 45 days old, which the September files reach on 14 Nov; the flag therefore has an `--as-of` date for that check (the independent review found this).
+- The importer must actually be **run** on the VM for the four files (Task 1.5b step 5), or nothing reaches the app. After it runs, the manager checks the live app for a Sundaram fund (managers now shown).
+
+### R3.4 P/E and P/B
+The rescan of the 17 files with wider labels found per-fund P/E and P/B values only in ITI, Kotak, the ICICI passive file and Invesco (ABSL and UTI print them in their automatic files, which were not in this set). JM and Sundaram mention P/E only in market commentary. This matches 30 Oct: **no house added**. The scan is line-based; a layout with the label and value on separate runs could be missed, so "no new houses" is likely, not proven (Task 2.2 uses word boxes). **Not a major issue:** the plan's default for every house is the figure computed from holdings; printed values are a cross-check. Fund managers (item 4), P/E and P/B (item 7) and benchmarks (item 11) share one monthly factsheet import: whenever it runs, the P/E, P/B and benchmark readers must run on the same files (Tasks 2.2 and 3.2), and the Run 1 import in R3.3 happens before Runs 2 and 3 so they have the October files to test against.
+
+### R3.5 S6 (NSE filings): partly answered
+The owner supplied three working addresses from NSE's results page (list by date, list by company, filing detail). Tested read-only from the laptop on 31 Oct (HTTP 200): the detail returns sales, profit, EPS, face value and paid-up capital (51 fields) but **no equity, reserves or net worth**, so no book value. The balance sheet is in the attached XBRL zip (`attachment_filename`) for half-year and annual filings; that file has **not** been opened. Task 2.12 starts by opening one such file (a download; the executor asks first) and confirming total equity is present; if not, Phase C stays on the labelled fallbacks.
+
+### R3.6 S8 (debt and hybrid indices): not available free
+Checked three ways. (1) niftyindices' Historical Data tool lists, for Fixed Income, only G-Sec (12), Money Market (3: 1D Rate and two Financial Services debt indices), SDL (3) and Target Maturity (63) indices; its Corporate Bond list is empty; Multi Asset has 7 (none of the Hybrid Composite Debt family, none of Equity Savings). The 260-name `IndexMapping.json` agrees. (2) NSE's `ind_close_all` (167 indices) and its live list (139) have no Liquid, Low, Ultra Short, Short, Medium or Composite Debt A-I/A-II/A-III, no Hybrid Composite Debt 15:85, 50:50, 65:35 or 70:30, and no Equity Savings. (3) A web search found no free daily series (Kaggle and Yahoo carry equity indices; AMFI and CRISIL publish PDFs only). These indices exist on niftyindices.com only as factsheet and methodology PDFs. **Conclusion: cannot be built from a free source.** A blend (such as 65% Nifty 50 + 35% Composite Debt) cannot be exact either, because the Composite Debt part is not available.
+**Owner decision (31 Oct): use whichever is more accurate.** Printed benchmark returns from the fund's own factsheet are exact for the real benchmark but cover only fixed periods; the category fallback is a different index but covers any date. The check in R3.8 shows every benchmark consumer in the app needs a daily series except one table, so: **printed returns for the fund page's fixed-period returns table; the labelled fallback for everything that draws a line or compares on the user's transaction dates.**
+
+### R3.7 S9 (Nifty 50 Arbitrage): closed, usable
+The price endpoint reproduces the factsheets' printed total-return figures: 1 year 7.33% (printed 7.33, 10,733), 3 years 7.43% (printed 7.42, 12,399), 5 years 6.69% (printed 6.69, 13,825) (Trust, Bandhan, ICICI factsheets). **It is used as a total-return series** and stored under the `TRI` key (the app reads only `TRI` rows). An earlier SIP-value comparison against Kotak's factsheet differed by 1%; that was Kotak's SIP convention, not an index return. Built in Task 3.1; every other price-only index (1D Rate, G-Sec series) gets the same printed-return test before it is trusted.
+
+### R3.8 Where the app needs a daily benchmark series (checked in the code, 31 Oct)
+Every consumer reads daily levels from `benchmark_index_history` with `return_type == TRI`:
+
+| Consumer | Code | Needs a daily series? |
+|---|---|---|
+| Portfolio vs benchmark XIRR (buys the index on each of the user's transaction dates) | `analytics/benchmark.py`, `benchmark_windows.py` | **Yes** |
+| Home wealth chart | `home/wealth.py` | **Yes** |
+| Fund page performance chart | `fund_page/performance.py` | **Yes** |
+| Beta and risk metrics | `fund_page/risk.py` | **Yes** (daily returns) |
+| Peers and rolling returns | `fund_page/peers.py` | **Yes** |
+| Fund page returns table (1y, 3y, 5y, since start) | `fund_page/returns.py` | Fixed dates only: **printed returns can replace the series** |
+
+Today only **equity** funds have a benchmark at all (`benchmark_for` returns none for any other asset class), chosen by category from eight stored indices. So the category fallback is already today's behaviour and nothing regresses. The new work shows the fund's own benchmark where we hold the series, a printed return in the returns table where we do not, and a plain label saying which.
+
+### R3.9 Gold and silver
+Not an index feed (the LBMA series is licence-gated and IBJA has no free history; search findings, unverified). **Decision: a gold or silver ETF's NAV from our own history as a labelled proxy** for charts and comparisons, printed returns for the fixed periods. Check built into Task 3.1b: an ETF's 1-year return against a printed "domestic price of gold" return (ITI, HDFC and Kotak print one); within about 0.5 percentage points keep the proxy, otherwise printed returns only. Blends that include gold, silver or an unavailable index use printed returns or the labelled fallback, and say so in one plain sentence (R3.11).
+
+### R3.10 The 18 undecided funds (decision: the 65% rule)
+Hybrids (Multi Asset 4, Balanced Advantage 2, Equity Savings 1, Children's 1) and 10 index funds are decided by the data rule: a fund counts as equity if at least 65% of its holdings are **net domestic equity after hedges** (owner confirmed "net"). A Balanced Advantage fund that is mostly hedged therefore does not count. A fund with no holdings data is **not** labelled "excluded: no data"; the screen shows a plain sentence ("We don't have this fund's holdings yet, so it isn't counted in this overlap."), and the readiness review lists all 18 with their computed result.
+
+### R3.11 Plain-words rule (owner, 31 Oct)
+Every label added by this plan must be readable at a glance: no "TRI", "proxy" or "fallback" on a user screen. A blend is shown as one sentence ("This fund's benchmark is a mix: 65% Nifty 50, 22.5% debt, 10% gold, 2.5% silver. We compare returns using the figures the fund house prints."). Where we cannot draw the real benchmark, the label reads "Compared with the Nifty 100, the closest index we hold." The test for every string: would a first-time investor understand it without a hover.
+
+### R3.12 S10 (terms and licence): ignored by owner decision
+Staging keeps using the niftyindices endpoints as it does today, and the daily job does not change. The owner sends a short written request to NSE Indices separately. The privacy policy and terms get a note before production. **No release gate on S10.**
+
+### R3.13 Gates after Step 0
+G1 received. G2 partly (home and benchmark-matrix baselines still unmeasured; Run 2 waits for them). G3 received. G4 received. **G5 closed** (S8: not free, rule in R3.6; S9: usable, R3.7). **G6 closed by owner decision** (R3.12). **G7: S6 partly answered** (R3.5); Task 2.12 starts with one XBRL check. Open decisions for the owner that block Run 1: none.

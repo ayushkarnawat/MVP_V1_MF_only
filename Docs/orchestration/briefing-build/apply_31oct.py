@@ -58,7 +58,7 @@ else:
     fails.append("SINCE not found")
 
 # ---------- E. static sections ----------
-new_sections = rd("sections/sec_i1.html") + rd("sections/sec_i45.html") + rd("sections/sec_valgaps.html") + rd("sections/sec_fscheck.html") + rd("sections/sec_spikes.html") + rd("sections/sec_play.html")
+new_sections = rd("sections/sec_i1.html") + rd("sections/sec_i45.html") + rd("sections/sec_valgaps.html") + rd("sections/sec_fscheck.html") + rd("sections/sec_spikes.html") + rd("sections/sec_play.html") + rd("sections/sec_step0r3.html")
 sub1('  <section class="sec" aria-labelledby="ord">', new_sections + '  <section class="sec" aria-labelledby="ord">', "insert sections")
 sub1("<p>Cheap, low-risk work first, so the analytics page gets simpler before we touch the heavier calculations.</p>",
      "<p>Cheap, low-risk work first, so the analytics page gets simpler before we touch the heavier calculations. The run order in the execution playbook is the current plan; this list is the earlier reasoning.</p>", "ord intro")

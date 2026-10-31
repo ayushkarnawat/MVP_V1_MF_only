@@ -1,0 +1,123 @@
+== A. niftyindices endpoints, window 26-Sep-2025 .. 31-Oct-2026 ==
+--- Nifty 50 Arbitrage
+  price: rows=270 first_row={"RequestNumber": "His63929018630946507300", "Index Name": "", "INDEX_NAME": "Nifty 50 Arbitrage", "HistoricalDate": "30 Oct 2026", "OPEN": "-", "HIGH": "-", "L keys=CLOSE,HIGH,HistoricalDate,INDEX_NAME,Index Name,LOW,OPEN,RequestNumber
+  tri  : rows=0 first_row={} keys=
+--- NIFTY 50 ARBITRAGE
+  price: rows=270 first_row={"RequestNumber": "His63929018631274632900", "Index Name": "", "INDEX_NAME": "Nifty 50 Arbitrage", "HistoricalDate": "30 Oct 2026", "OPEN": "-", "HIGH": "-", "L keys=CLOSE,HIGH,HistoricalDate,INDEX_NAME,Index Name,LOW,OPEN,RequestNumber
+  tri  : rows=0 first_row={} keys=
+--- Nifty 50 Arbitrage Index
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty 1D Rate Index
+  price: rows=270 first_row={"RequestNumber": "His63929018631755535700", "Index Name": "", "INDEX_NAME": "Nifty 1D Rate Index", "HistoricalDate": "30 Oct 2026", "OPEN": "-", "HIGH": "-", " keys=CLOSE,HIGH,HistoricalDate,INDEX_NAME,Index Name,LOW,OPEN,RequestNumber
+  tri  : rows=0 first_row={} keys=
+--- NIFTY 1D Rate Index
+  price: rows=270 first_row={"RequestNumber": "His63929018632036792400", "Index Name": "", "INDEX_NAME": "Nifty 1D Rate Index", "HistoricalDate": "30 Oct 2026", "OPEN": "-", "HIGH": "-", " keys=CLOSE,HIGH,HistoricalDate,INDEX_NAME,Index Name,LOW,OPEN,RequestNumber
+  tri  : rows=0 first_row={} keys=
+--- Nifty Liquid Index A-I
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty Low Duration Debt Index A-I
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty Ultra Short Duration Debt Index A-I
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty Short Duration Debt Index A-II
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty Medium Duration Debt Index A-III
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty Composite Debt Index A-III
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty Banking & PSU Debt Index A-II
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty Corporate Bond Index A-II
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty Money Market Index A-I
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty 8-13 yr G-Sec Index
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty All Duration G-Sec Index
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty 50 Hybrid Composite Debt 50:50 Index
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty 50 Hybrid Composite Debt 65:35 Index
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty 50 Hybrid Composite Debt 15:85 Index
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty Equity Savings Index
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty 500 Multicap 50:25:25 Index
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty Bank
+  price: rows=270 first_row={"RequestNumber": "His63929018636696560700", "Index Name": "", "INDEX_NAME": "Nifty Bank", "HistoricalDate": "30 Oct 2026", "OPEN": "54907.1", "HIGH": "55068.5" keys=CLOSE,HIGH,HistoricalDate,INDEX_NAME,Index Name,LOW,OPEN,RequestNumber
+  tri  : rows=270 first_row={"RequestNumber": "TRI63929018636852802900", "Index Name": "Nifty Bank", "Date": "30 Oct 2026", "TotalReturnsIndex": "76764.73", "NTR_Value": "-"} keys=Date,Index Name,NTR_Value,RequestNumber,TotalReturnsIndex
+--- Nifty IT
+  price: rows=270 first_row={"RequestNumber": "His63929018637021240300", "Index Name": "", "INDEX_NAME": "Nifty IT", "HistoricalDate": "30 Oct 2026", "OPEN": "31987.5", "HIGH": "32705.45", keys=CLOSE,HIGH,HistoricalDate,INDEX_NAME,Index Name,LOW,OPEN,RequestNumber
+  tri  : rows=270 first_row={"RequestNumber": "TRI63929018637224370200", "Index Name": "Nifty IT", "Date": "30 Oct 2026", "TotalReturnsIndex": "47238.41", "NTR_Value": "-"} keys=Date,Index Name,NTR_Value,RequestNumber,TotalReturnsIndex
+--- Nifty Financial Services
+  price: rows=270 first_row={"RequestNumber": "His63929018637477808600", "Index Name": "", "INDEX_NAME": "Nifty Financial Services", "HistoricalDate": "30 Oct 2026", "OPEN": "24688.05", "H keys=CLOSE,HIGH,HistoricalDate,INDEX_NAME,Index Name,LOW,OPEN,RequestNumber
+  tri  : rows=270 first_row={"RequestNumber": "TRI63929018637615005200", "Index Name": "Nifty Financial Services", "Date": "30 Oct 2026", "TotalReturnsIndex": "31637.56", "NTR_Value": "-"} keys=Date,Index Name,NTR_Value,RequestNumber,TotalReturnsIndex
+--- Nifty India Consumption
+  price: rows=270 first_row={"RequestNumber": "His63929018637759054100", "Index Name": "", "INDEX_NAME": "Nifty India Consumption", "HistoricalDate": "30 Oct 2026", "OPEN": "11077.45", "HI keys=CLOSE,HIGH,HistoricalDate,INDEX_NAME,Index Name,LOW,OPEN,RequestNumber
+  tri  : rows=270 first_row={"RequestNumber": "TRI63929018638055938300", "Index Name": "Nifty India Consumption", "Date": "30 Oct 2026", "TotalReturnsIndex": "14129.83", "NTR_Value": "-"} keys=Date,Index Name,NTR_Value,RequestNumber,TotalReturnsIndex
+--- Nifty India Manufacturing
+  price: rows=270 first_row={"RequestNumber": "His63929018638271263200", "Index Name": "", "INDEX_NAME": "Nifty India Manufacturing", "HistoricalDate": "30 Oct 2026", "OPEN": "14954.7", "H keys=CLOSE,HIGH,HistoricalDate,INDEX_NAME,Index Name,LOW,OPEN,RequestNumber
+  tri  : rows=270 first_row={"RequestNumber": "TRI63929018638411895700", "Index Name": "Nifty India Manufacturing", "Date": "30 Oct 2026", "TotalReturnsIndex": "19577.70", "NTR_Value": "-" keys=Date,Index Name,NTR_Value,RequestNumber,TotalReturnsIndex
+--- Nifty Healthcare Index
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty Energy
+  price: rows=270 first_row={"RequestNumber": "His63929018638805942800", "Index Name": "", "INDEX_NAME": "Nifty Energy", "HistoricalDate": "30 Oct 2026", "OPEN": "35263.1", "HIGH": "35265. keys=CLOSE,HIGH,HistoricalDate,INDEX_NAME,Index Name,LOW,OPEN,RequestNumber
+  tri  : rows=270 first_row={"RequestNumber": "TRI63929018638911901100", "Index Name": "Nifty Energy", "Date": "30 Oct 2026", "TotalReturnsIndex": "61904.11", "NTR_Value": "-"} keys=Date,Index Name,NTR_Value,RequestNumber,TotalReturnsIndex
+--- Nifty 100 ESG
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty Total Market
+  price: rows=270 first_row={"RequestNumber": "His63929018639321566800", "Index Name": "", "INDEX_NAME": "Nifty Total Market", "HistoricalDate": "30 Oct 2026", "OPEN": "12399.35", "HIGH":  keys=CLOSE,HIGH,HistoricalDate,INDEX_NAME,Index Name,LOW,OPEN,RequestNumber
+  tri  : rows=270 first_row={"RequestNumber": "TRI63929018639446573400", "Index Name": "Nifty Total Market", "Date": "30 Oct 2026", "TotalReturnsIndex": "16349.98", "NTR_Value": "-"} keys=Date,Index Name,NTR_Value,RequestNumber,TotalReturnsIndex
+--- Nifty 200 Quality 30
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty 500 Value 50
+  price: rows=0 first_row={} keys=
+  tri  : rows=0 first_row={} keys=
+--- Nifty Private Bank
+  price: rows=270 first_row={"RequestNumber": "His63929018640040327300", "Index Name": "", "INDEX_NAME": "Nifty Private Bank", "HistoricalDate": "30 Oct 2026", "OPEN": "27056.45", "HIGH":  keys=CLOSE,HIGH,HistoricalDate,INDEX_NAME,Index Name,LOW,OPEN,RequestNumber
+  tri  : rows=270 first_row={"RequestNumber": "TRI63929018640180957600", "Index Name": "Nifty Private Bank", "Date": "30 Oct 2026", "TotalReturnsIndex": "32024.20", "NTR_Value": "-"} keys=Date,Index Name,NTR_Value,RequestNumber,TotalReturnsIndex
+--- Nifty Infrastructure
+  price: rows=270 first_row={"RequestNumber": "His63929018640318180100", "Index Name": "", "INDEX_NAME": "Nifty Infrastructure", "HistoricalDate": "30 Oct 2026", "OPEN": "8793.15", "HIGH": keys=CLOSE,HIGH,HistoricalDate,INDEX_NAME,Index Name,LOW,OPEN,RequestNumber
+  tri  : rows=270 first_row={"RequestNumber": "TRI63929018640443183900", "Index Name": "Nifty Infrastructure", "Date": "30 Oct 2026", "TotalReturnsIndex": "11622.62", "NTR_Value": "-"} keys=Date,Index Name,NTR_Value,RequestNumber,TotalReturnsIndex
+
+== A2. Nifty 50 Arbitrage: last 6 closes from each endpoint (S9, compare with a factsheet figure) ==
+https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString
+[{"RequestNumber":"His63929018640552555700","Index Name":"","INDEX_NAME":"Nifty 50 Arbitrage","HistoricalDate":"30 Oct 2026","OPEN":"-","HIGH":"-","LOW":"-","CLOSE":"2762.54"},{"RequestNumber":"His63929018640552555700","Index Name":"","INDEX_NAME":"Nifty 50 Arbitrage","HistoricalDate":"29 Oct 2026","OPEN":"-","HIGH":"-","LOW":"-","CLOSE":"2757.33"},{"RequestNumber":"His63929018640552555700","Index Name":"","INDEX_NAME":"Nifty 50 Arbitrage","HistoricalDate":"28 Oct 2026","OPEN":"-","HIGH":"-","LOW":"-","CLOSE":"2759.42"},{"RequestNumber":"His63929018640552555700","Index Name":"","INDEX_NAME":"Nifty 50 Arbitrage","HistoricalDate":"27 Oct 2026","OPEN":"-","HIGH":"-","LOW":"-","CLOSE":"2758.12"},{"RequestNumber":"His63929018640552555700","Index Name":"","INDEX_NAME":"Nifty 50 Arbitrage","HistoricalDate":"26 Oct 2026","OPEN":"-","HIGH":"-","LOW":"-","CLOSE":"2756.87"},{"RequestNumber":"His639
+https://www.niftyindices.com/BackPage/getTotalReturnIndexString
+[]
+
+== B. reachability (HTTP status, 25 s limit) ==
+200 111036B  https://www.niftyindices.com/reports/historical-data
+200 94187B  https://www.niftyindices.com/terms-of-use
+200 92062B  https://www.niftyindices.com/disclaimer
+200 16901B  https://www.bseindia.com/indices/IndexArchiveData.html
+200 9587B  https://www.bseindices.com/
+000 0B  https://www.asiaindex.co.in/
+200 97857B  https://www.crisil.com/content/crisil/en/home/what-we-do/financial-products/indices.html
+000 0B  https://www.crisilindices.com/
+200 156663B  https://www.ibjarates.com/
+200 279537B  https://www.lbma.org.uk/prices-and-data/precious-metal-prices
+200 78677B  https://www.rbi.org.in/scripts/ReferenceRateArchive.aspx
+403 415B  https://www.mcxindia.com/market-data/spot-market-price

@@ -1,0 +1,46 @@
+# Handoff: Hand import for this month only: Angel One, SBI, Sundaram, Mahindra (T1.5b)
+
+**Status:** OPEN (set to IN REVIEW when Codex reports done, DONE only after the review gate below passes)
+**Run:** 1 of 7, plan `Docs/superpowers/plans/2026-10-31-change-requests-implementation-plan.md` (the final plan, Revision 3, 31 Oct 2026)
+**Slug:** `cr-r1-this-month-import`  **Commit prefix:** `cr-r1:`  **Worker:** Codex (`codex:codex-rescue`); **orchestrator:** Claude (writes this document, verifies, commits, reviews)
+**Parallel with:** any (backend script only). The VM steps need the staging deploy first
+
+## How to work (read first)
+1. Read `AGENTS.md`, then the plan's **Global Constraints**, **Review Focus** and **Method** sections. They bind every task.
+2. Work in the Codex clone `~/cr-run-1` (native filesystem), never on the Windows drive. Run the cheap probe first (write, `git add`, `git commit` a one-line file); if Git writes fail, implement and self-check only and leave staging and commits to the orchestrator.
+3. Cycle per task: write the failing tests named below first; run them and confirm they fail for the stated reason; implement the stated signatures; run the task's test files until green; report the diff summary and the exact commands and outputs. Do not edit files outside the **Files** list without asking.
+4. Backend tests: `cd backend && .venv/bin/python -m pytest <files>` (run in WSL). Frontend: `cd frontend && npx vitest run <files>`, then `npm run build` and `npm run lint` once at the end of the run. No live network in tests.
+5. Plain words: every label added to a screen must be understood by a first-time investor at a glance (no "TRI", "proxy", "fallback", "excluded: no data").
+6. Ask the orchestrator before assuming anything the plan marks open. Do not touch SIP logic, LinkedIn, CAS import, or anything in the plan's **Untouched** list.
+
+## Scope (copied from the plan, authoritative)
+
+### Task 1.5b: Hand import for this month only, for Angel One, SBI, Sundaram and Mahindra (owner decision 31 Oct)
+
+**Why.** The four houses' automatic path is failing (Angel One 403, Sundaram no link, SBI and Mahindra stale). The owner holds September-data files for all four on the VM (`/home/deploy/factsheets-oct2026/{angelone,sbi_active,sbi_passive,sundaram,mahindra}_2026-10.pdf`). The registry is **not changed**: next month the automatic job is tried again; only if it fails a second month in a row does the owner move a house to manual.
+
+**Probe results already recorded (31 Oct, planning session, read-only, in WSL with `backend/.venv`; the executor repeats them in step 1):** `looks_like_current_factsheet` with each house's own reader on the real files: **Sundaram accepted** (100 pages), **Angel One accepted** (30 pages), **SBI active accepted** (147 pages, 57 scheme pages read). **Two fail, and the cause is in the readers, not the flag:** (a) **SBI passive** (`sbi_passive_2026-10.pdf`, "Passive Solutions: index funds, ETFs, FOFs", 105 pages) reads **0** scheme pages: it prints "Fund Manager Details" and the names on separate lines, a layout the `sbi` reader does not match; (b) **Mahindra** (`mahindra_2026-10.pdf`, 75 pages, all schemes) reads **0** pages: managers are now printed as "Fund Manager  Mr. X, Ms. Y" with "Total Experience" and "Managing Since: 25-Sep-26" on separate lines, while `mahindra_managers` expects "(managing since Month YYYY)". So the automatic job's SBI and Mahindra failures were at least partly layout changes, which is worth knowing for next month's test.
+
+**Files:** `backend/scripts/jobs/import_manual_fund_managers.py`, `backend/tests/scripts/test_import_manual_fund_managers.py`; reader fixes in `app/services/analytics/fund_manager_layouts.py` for **SBI passive and Mahindra** (and Sundaram or Angel One only if the executor's own probe disagrees), with fixtures under `tests/fixtures/factsheets/` (small text snippets, not the PDFs). `fund_manager_resolvers.py` is **not** edited (a test guards this: the four entries keep their `kind`).
+
+**Interfaces:** the CLI gains an opt-in flag `--this-month-only` and an optional `--as-of YYYY-MM-DD`. Without the flag, behaviour is unchanged. With it, `run(db, amc_name, pdfs, today, this_month_only=True, as_of=None)` accepts a house whose `kind` is not `MANUAL` and which has a reader (`entry.layout`), validates every file with `looks_like_current_factsheet` and imports with `manual=True` (rows marked `MANUAL`). **Staleness:** that check rejects a file whose newest "as on" date is more than 45 days old. The September files stop passing on 14 Nov, and this import will run at the staging deploy, after seven runs. So `--as-of` (default today) is passed to the staleness check only, the CLI prints the file's own "as on" date and one warning line when `--as-of` was needed, and the data month stays visible. **Reference period:** unchanged (`today.replace(day=1)`, the month the import runs, as for every manual import). Print `matched=N unmatched=M` and: `this-month-only import: <house> stays automatic in the registry; the monthly job will be tried again next month`. It writes nothing if any file fails.
+
+**Tests:** `this_month_only_accepts_an_automatic_house_with_a_reader` (use Nippon, which has a layout and is not manual); `without_the_flag_an_automatic_house_is_still_refused` (the existing Nippon refusal test is kept but now runs **without** the flag); `this_month_only_refuses_a_house_with_no_layout` (a registry entry with `layout=None`, built in the test); `this_month_only_never_changes_the_registry_entry`; `stale_file_is_refused_without_as_of_and_accepted_with_it_with_a_warning`; `a_wrong_file_is_still_refused_before_anything_is_written`; `sbi_takes_both_files`; reader fixture tests for the new SBI passive and Mahindra layouts, taken from the real September pages. For the overwrite behaviour (job succeeds: rows overwritten; job fails: rows kept) add a test in `tests/services/analytics/test_refresh_fund_managers_monthly.py` using that file's existing mocks of the AMFI directory; read it first, and if it cannot host the case, record the behaviour as verified by code read (done 31 Oct) and skip the test.
+
+**Steps:**
+1. **Probe first (read-only, no write):** repeat the probe above locally in WSL on the owner's files (`/mnt/d/Factsheets October`; never commit the PDFs) and record per house: accepted or not, scheme pages read. Mahindra and SBI passive need reader fixes; do those from saved page text.
+2. Write the failing tests, implement the flag and the reader fixes, tests green.
+3. Orchestrator commits (`cr-r1:`).
+4. **Run the import on the VM (a staging write, agreed; the manager runs it, one house at a time).** The VM runs the deployed image, so this belongs to the staging deploy (Task S.1) or a one-commit deploy the owner approves; never edit files on the VM. Command shape:
+```
+sudo docker compose run --rm -T -v /home/deploy/factsheets-oct2026:/fs:ro backend python scripts/jobs/import_manual_fund_managers.py --this-month-only --as-of 2026-10-31 --amc "Sundaram Mutual Fund" --pdf /fs/sundaram_2026-10.pdf
+```
+and the same for `"Angel One Mutual Fund"` (`/fs/angelone_2026-10.pdf`), `"Mahindra Manulife Mutual Fund"` (`/fs/mahindra_2026-10.pdf`) and `"SBI Mutual Fund"` (`--pdf /fs/sbi_active_2026-10.pdf --pdf /fs/sbi_passive_2026-10.pdf`). Use `--as-of` only if the plain run says the file is stale.
+5. **Prove it reached the app:** (a) the per-house newest-period query (report R3.1 step 6): Sundaram now has rows (it had 0), Angel One, SBI and Mahindra have `MANUAL` rows this month; (b) open one Sundaram fund in the live app and confirm its managers show; (c) record the `matched=` counts in the report's Revision 3 table and the Priority 1 doc.
+6. **P/E, P/B and benchmark readers on the same four files:** Tasks 2.2 and 3.2 read the same PDFs in the same pass; once they exist, re-run them on these files (the PDFs stay on the VM).
+7. **Next month (the point of this design):** after the November `fund-managers-monthly` job, check the four houses. Success: their rows carry an automatic match method and November's period, no action. Failure a second month: the owner moves that house to `MANUAL` (a separate small change). Task 2.2b only watches registry-MANUAL houses and cannot see these four, and a late import is stored under the import month; so add to the Priority 1 doc: "check the four houses after the 10 Nov job, and compare their `reference_period` and match method".
+
+Estimate 0.5 day for the flag, plus 1 to 2 days for the SBI passive and Mahindra reader fixes.
+
+## Done means
+All tests named above pass; the task's verify command passes; `git diff --stat` shows only the listed files; the orchestrator has re-run the touched-area tests and read the diff; the Run 1 review gate (`/codex:adversarial-review` over `<start commit>..HEAD`, dispatched in the background; the owner types `/codex:status <id>` and `/codex:result <id>`) has no unresolved high or medium finding.

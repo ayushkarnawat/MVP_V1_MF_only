@@ -1,0 +1,69 @@
+--- HDFC
+ Container leapswitch-postgres-1 Running 
+ Container leapswitch-postgres-1 Waiting 
+ Container leapswitch-postgres-1 Healthy 
+ Container leapswitch-backend-run-6747e1f31ef2 Creating 
+ Container leapswitch-backend-run-6747e1f31ef2 Created 
+INFO:app.services.analytics.amfi_factsheet_client:refresh_fund_managers: unmatched amc=HDFC Mutual Fund heading='HDFC Nifty G-Sec Jul 2031 Index Fund'
+matched=106 unmatched=1
+--- Bandhan
+ Container leapswitch-postgres-1 Running 
+ Container leapswitch-postgres-1 Waiting 
+ Container leapswitch-postgres-1 Healthy 
+ Container leapswitch-backend-run-92b477c77037 Creating 
+ Container leapswitch-backend-run-92b477c77037 Created 
+matched=87 unmatched=0
+--- ICICI
+ Container leapswitch-postgres-1 Running 
+ Container leapswitch-postgres-1 Waiting 
+ Container leapswitch-postgres-1 Healthy 
+ Container leapswitch-backend-run-510b29486ae6 Creating 
+ Container leapswitch-backend-run-510b29486ae6 Created 
+INFO:app.services.analytics.amfi_factsheet_client:refresh_fund_managers: unmatched amc=ICICI Prudential Mutual Fund heading='ICICI Prudential Equity - Arbitrage Fund'
+INFO:app.services.analytics.amfi_factsheet_client:refresh_fund_managers: unmatched amc=ICICI Prudential Mutual Fund heading='ICICI Prudential Nifty Smallcap 250 ETF Sectoral/Thematic ETFs'
+INFO:app.services.analytics.amfi_factsheet_client:refresh_fund_managers: unmatched amc=ICICI Prudential Mutual Fund heading='ICICI Prudential Nifty Top 15 Equal Weight ETF Debt ETFs'
+INFO:app.services.analytics.amfi_factsheet_client:refresh_fund_managers: unmatched amc=ICICI Prudential Mutual Fund heading='ICICI Prudential Nifty 10 Yr Benchmark G-Sec ETF Commodity ETFs'
+INFO:app.services.analytics.amfi_factsheet_client:refresh_fund_managers: unmatched amc=ICICI Prudential Mutual Fund heading='ICICI Prudential Silver ETF Index Schemes Market Cap Based Index Funds'
+matched=156 unmatched=5
+--- Invesco
+ Container leapswitch-postgres-1 Running 
+ Container leapswitch-postgres-1 Waiting 
+ Container leapswitch-postgres-1 Healthy 
+ Container leapswitch-backend-run-10a5861b63c8 Creating 
+ Container leapswitch-backend-run-10a5861b63c8 Created 
+matched=45 unmatched=0
+--- ITI
+ Container leapswitch-postgres-1 Running 
+ Container leapswitch-postgres-1 Waiting 
+ Container leapswitch-postgres-1 Healthy 
+ Container leapswitch-backend-run-4d72d9f85c78 Creating 
+ Container leapswitch-backend-run-4d72d9f85c78 Created 
+matched=21 unmatched=0
+--- JM
+ Container leapswitch-postgres-1 Running 
+ Container leapswitch-postgres-1 Waiting 
+ Container leapswitch-postgres-1 Healthy 
+ Container leapswitch-backend-run-b95089f84ef2 Creating 
+ Container leapswitch-backend-run-b95089f84ef2 Created 
+matched=15 unmatched=0
+--- Kotak
+ Container leapswitch-postgres-1 Running 
+ Container leapswitch-postgres-1 Waiting 
+ Container leapswitch-postgres-1 Healthy 
+ Container leapswitch-backend-run-f0bb4bf2937c Creating 
+ Container leapswitch-backend-run-f0bb4bf2937c Created 
+matched=112 unmatched=0
+--- Trust
+ Container leapswitch-postgres-1 Running 
+ Container leapswitch-postgres-1 Waiting 
+ Container leapswitch-postgres-1 Healthy 
+ Container leapswitch-backend-run-664fb20a17a1 Creating 
+ Container leapswitch-backend-run-664fb20a17a1 Created 
+matched=11 unmatched=0
+--- WhiteOak
+ Container leapswitch-postgres-1 Running 
+ Container leapswitch-postgres-1 Waiting 
+ Container leapswitch-postgres-1 Healthy 
+ Container leapswitch-backend-run-ad38d2e9fe7a Creating 
+ Container leapswitch-backend-run-ad38d2e9fe7a Created 
+matched=22 unmatched=0

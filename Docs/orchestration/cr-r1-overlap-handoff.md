@@ -1,0 +1,31 @@
+# Handoff: Overlap equity only and the By category tab (T1.4)
+
+**Status:** OPEN (set to IN REVIEW when Codex reports done, DONE only after the review gate below passes)
+**Run:** 1 of 7, plan `Docs/superpowers/plans/2026-10-31-change-requests-implementation-plan.md` (the final plan, Revision 3, 31 Oct 2026)
+**Slug:** `cr-r1-overlap`  **Commit prefix:** `cr-r1:`  **Worker:** Codex (`codex:codex-rescue`); **orchestrator:** Claude (writes this document, verifies, commits, reviews)
+**Parallel with:** none except T1.5b. Runs after T1.3 (shared `schemas.py`, `types.ts`) and before T1.5 (shared `OverlapPage.tsx`)
+
+## How to work (read first)
+1. Read `AGENTS.md`, then the plan's **Global Constraints**, **Review Focus** and **Method** sections. They bind every task.
+2. Work in the Codex clone `~/cr-run-1` (native filesystem), never on the Windows drive. Run the cheap probe first (write, `git add`, `git commit` a one-line file); if Git writes fail, implement and self-check only and leave staging and commits to the orchestrator.
+3. Cycle per task: write the failing tests named below first; run them and confirm they fail for the stated reason; implement the stated signatures; run the task's test files until green; report the diff summary and the exact commands and outputs. Do not edit files outside the **Files** list without asking.
+4. Backend tests: `cd backend && .venv/bin/python -m pytest <files>` (run in WSL). Frontend: `cd frontend && npx vitest run <files>`, then `npm run build` and `npm run lint` once at the end of the run. No live network in tests.
+5. Plain words: every label added to a screen must be understood by a first-time investor at a glance (no "TRI", "proxy", "fallback", "excluded: no data").
+6. Ask the orchestrator before assuming anything the plan marks open. Do not touch SIP logic, LinkedIn, CAS import, or anything in the plan's **Untouched** list.
+
+## Scope (copied from the plan, authoritative)
+
+### Task 1.4: Overlap equity only and the By category tab (item 5, D14, D15)
+
+**Files:** Create `app/services/analytics/equity_universe.py` (not `scheme_universe.py`, which is the AMFI ingestion module). Modify `app/services/analytics/overlap.py`, `schemas.py`, `frontend/.../overlap/OverlapPage.tsx` and its cards, `types.ts`. Create `frontend/.../overlap/CategoryTabs.tsx`. Test `test_overlap.py`, `OverlapPage.test.tsx`, `CategoryTabs.test.tsx`, `overlapLogic.test.ts`.
+
+**Interfaces:** Produces `EQUITY_CATEGORIES: tuple[str, ...]` and `is_equity_fund(sebi_category: str, net_domestic_equity_pct: Decimal | None) -> bool` (both in `equity_universe.py`) and `net_domestic_equity_pct(db, scheme_id: UUID) -> Decimal | None`, computed from the scheme's **latest published `SchemeHolding` batch regardless of household** (rows with `asset_type` `EQUITY_DOMESTIC` minus the short side of `DERIVATIVE` hedges; **the executor first reads how derivative `pct_to_nav` is signed in the stored rows and records it**, because the rule depends on it; `None` when the scheme has no holdings batch). Do not use the household-scoped `get_disclosure_scope`; `compute_overlap` adds `excluded_funds: list[ExcludedFund(name, reason)]` and `by_category: dict[str, OverlapSummary]` for `Large Cap, Mid Cap, Small Cap, Flexi Cap`; pairs are computed once for all equity funds and grouped.
+
+- [ ] **Step 1: Failing tests.** Backend: `debt_overnight_liquid_low_duration_arbitrage_are_excluded_with_reason`; `index_fund_and_flexi_cap_are_included`; `hybrid_with_70_percent_net_domestic_equity_is_included_and_with_40_percent_is_excluded`; `balanced_advantage_fund_mostly_hedged_is_excluded` (the 65% test uses domestic equity net of hedges, owner decision 31 Oct); `fund_without_holdings_data_is_left_out_and_the_note_says_so_in_plain_words`; `debt_index_fund_fails_the_data_rule_and_an_equity_index_fund_passes`; `both_stored_category_spellings_are_matched` ("Equity Scheme -" and "Equity Schemes -", plus "Index Funds - Equity Funds"); `a_fund_ranked_15th_still_appears_in_its_category_matrix`; `category_pair_equals_the_same_pair_in_all_funds`; `category_with_no_funds_or_one_fund_returns_the_message_state`; `category_list_matches_stored_category_strings` (guards new SEBI categories); `funds_analysed_counts_equity_funds_only`. Frontend: `All funds | By category switch`; `category card with one fund is greyed and opens the one-fund message with a button to All funds`; `category with no funds says no funds`; `not-shown note names excluded funds and why`; `no equity funds shows the page-level message`; `one equity fund says overlap needs two`; `old payload renders All funds only`; `funds in other categories appear only in All funds`.
+- [ ] **Step 3: Implement** the helper and `by_category`; the tab strip with an accessible drop-down (menu button, arrows, Escape) and the category cards; remember the category while the page is open.
+- **Plain wording (owner, 31 Oct).** `ExcludedFund.reason` is a sentence a first-time investor understands, never "excluded: no data": for a debt or arbitrage fund, "This is a debt fund, so it isn't counted in an equity overlap."; for a fund with under 65% equity, "Less than 65% of this fund is in Indian shares, so it isn't counted."; for a fund with no holdings data, "We don't have this fund's holdings yet, so it isn't counted here."
+- **The 18 funds.** Deliverable: the task provides the function; **the manager produces the list on the VM with a read-only query** (Codex's clone cannot reach staging) of the 18 funds (4 Multi Asset, 2 Balanced Advantage, 1 Equity Savings, 1 Children's, 10 index funds on staging) with each fund's net domestic-equity percentage and the include/exclude result, copied into the readiness review. None is left undecided.
+- Verify: those files. Gate G1 is received: the data rule decides the hybrids and index funds (the tracked index is not available until Run 3, so index funds use the holdings test in Run 1).
+
+## Done means
+All tests named above pass; the task's verify command passes; `git diff --stat` shows only the listed files; the orchestrator has re-run the touched-area tests and read the diff; the Run 1 review gate (`/codex:adversarial-review` over `<start commit>..HEAD`, dispatched in the background; the owner types `/codex:status <id>` and `/codex:result <id>`) has no unresolved high or medium finding.

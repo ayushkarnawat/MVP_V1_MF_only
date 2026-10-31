@@ -1653,6 +1653,41 @@ sudo docker compose run --rm -T backend python scripts/measure_fund_page_staging
     </article>
   </section>
 
+  <section class="sec" aria-labelledby="step0r3">
+    <div class="sec-head">
+      <h2 id="step0r3">Step 0 closed (31 Oct evening): what was found and what the owner decided</h2>
+      <p>Everything below was checked on 31 Oct from the owner's laptop or the staging VM (read-only, plus the two agreed writes). Full evidence: report "Revision 3". The final plan, the readiness review and the execution handoff are in <code>Docs/superpowers/plans/</code>.</p>
+    </div>
+    <article class="panel">
+      <div class="block"><h3>Fund houses and the October issue</h3>
+        <p>All 17 files the owner uploaded are as of 30 Sep 2026, which is "the October issue". Nine houses were hand-imported (HDFC, Bandhan, ICICI, Invesco, ITI, JM, Kotak, Trust, WhiteOak) and the monthly job ran (35 processed, 5 failed). Axis has no file and stays on 31 Aug. Sundaram has no stored managers at all.</p>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>House</th><th>File</th><th>Reader accepts it (read-only probe)</th><th>What happens</th></tr></thead><tbody>
+          <tr><td>Sundaram</td><td>30 Sep, 100 pages</td><td>Yes</td><td>Imported for this month only (Task 1.5b)</td></tr>
+          <tr><td>Angel One</td><td>30 Sep, 30 pages</td><td>Yes</td><td>Same</td></tr>
+          <tr><td>SBI</td><td>Active and passive, 30 Sep</td><td>Active yes; <b>passive no</b> (manager layout changed)</td><td>Reader fix, then import</td></tr>
+          <tr><td>Mahindra</td><td>All schemes, 30 Sep</td><td><b>No</b> (manager layout changed)</td><td>Reader fix, then import</td></tr>
+          <tr><td>Axis</td><td>none</td><td>-</td><td>Stays on 31 Aug until a file is found</td></tr>
+        </tbody></table></div>
+        <p><b>This-month-only import:</b> the registry is not changed. A flag on the import command lets the four houses be imported once; next month the automatic job is tried again, and only a second failed month moves a house to manual. The import must actually be run at the staging deploy and checked in the live app (a Sundaram fund must show its managers).</p>
+      </div>
+      <div class="block"><h3>Benchmarks: what can and cannot be built</h3>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Question</th><th>Answer</th></tr></thead><tbody>
+          <tr><td>Nifty 50 Arbitrage (S9)</td><td><b>Usable.</b> Its series reproduces the printed 1, 3 and 5 year returns (7.33%, 7.42%, 6.69%). Built with the new indices in Run 3.</td></tr>
+          <tr><td>Debt A-I/A-II/A-III, Hybrid Composite Debt, Equity Savings (S8)</td><td><b>Not available free</b> (the niftyindices tool, NSE's all-index file and live list, and a web search all checked). Printed returns are used in the fund returns table; a labelled closest index is used for every chart and comparison.</td></tr>
+          <tr><td>Where the app needs a daily series</td><td>Portfolio XIRR vs benchmark, the Home wealth chart, the fund performance chart, beta and risk, peers and rolling returns. Only the fund returns table can use printed figures.</td></tr>
+          <tr><td>Gold and silver</td><td>A gold or silver fund's price from our own data as the comparison, kept only if it is within 0.5 points of the printed gold return; otherwise printed returns only.</td></tr>
+          <tr><td>Terms of the data source (S10)</td><td>Ignored for staging by the owner. Staging stays as it is; a short request goes to NSE Indices separately; the privacy policy and terms get a note before production.</td></tr>
+        </tbody></table></div>
+        <p><b>Plain words:</b> every new label must be understood by a first-time investor at a glance (for example: "Compared with the Nifty 100, the closest index we hold.").</p>
+      </div>
+      <div class="block"><h3>The 18 funds the category list cannot decide</h3>
+        <p>Four Multi Asset, two Balanced Advantage, one Equity Savings, one Children's fund and ten index funds are decided by one rule: at least 65% of the fund is in Indian shares after hedges. A fund with no holdings data is left out with a plain sentence ("We don't have this fund's holdings yet, so it isn't counted here.").</p>
+      </div>
+      <div class="block"><h3>P/E and P/B, and NSE filings</h3>
+        <p>A wider rescan of the 17 files found no new house with per-fund P/E and P/B; the figure computed from holdings stays the default for every house, with printed values as a cross-check. NSE's results-list and filing-detail addresses work but carry no book value; the book value would come from the attached balance-sheet file, which is checked first in Task 2.12.</p>
+      </div>
+    </article>
+  </section>
   <section class="sec" aria-labelledby="ord">
     <div class="sec-head">
       <h2 id="ord">Suggested build order</h2>
