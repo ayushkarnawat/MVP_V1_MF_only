@@ -1,0 +1,11 @@
+# Handoff: Category Average Comparison backend and screen (T2.7, T2.8)
+
+**Status:** OPEN (IN REVIEW when Codex reports, DONE after the Run 2 review gate)
+**Run:** 2 of 7 | **Slug:** `cr-r2-category-average` | **Commit prefix:** `cr-r2:` | **Tasks:** T2.7, then T2.8
+**Order:** After T2.5 (T2.7 deletes `_rank_and_percentile`, a helper shared with the old ranking). T2.8 after T2.7 and after T2.6 (shares `otherLogic.ts`).
+**Rules:** `Docs/orchestration/cr-r2-common-rules.md` (read first). **Task text (authoritative):** `Docs/superpowers/plans/2026-10-31-change-requests-implementation-plan.md`, the task sections named above (Files, Interfaces, Step 1 test names, Step 3, Verify).
+
+## Corrections and notes
+- **`scripts/benchmark_diff_report.py` does not exist yet** (Run 3 creates it). For T2.7's read-only difference report, create **`backend/scripts/category_average_diff_report.py` standalone** (read-only guard like the `measure_*.py` scripts: abort on any write); it lists each held fund's category average before and after on a real household. It is run later on the VM by the manager, not by you; test only its pure comparison function.
+- Backend (`category_ranking.py`, `schemas.py`): remove `category_rank`, `percentile`, `category_size`, `scheme_return` from the calculation and the stored payload; **keep the blended 3Y/5Y helper** (it feeds the Fund Quality Score, which keeps being computed); `category_period_averages` becomes the simple average per period over the category **and plan type**; the 3-year floor stays. **Home's `home/worth.py` must still receive the 1-year return and the 1-year category average** (test named in the plan; grep `category_ranking` consumers in `app/services/home`, Insights and the fund page first and list them).
+- Frontend (T2.8, folder `mutual-funds/other/`): `CategoryRankingGroup.tsx`, `otherLogic.ts`, `types.ts`; legacy `features/analytics/CategoryRankingSection.tsx` only to keep compiling. Layout, banner text, chips and headings are in the plan (group "Category Average Comparison", card "Returns against the category average"); everything open without a click; no rank badge, no percentile text; `SchemeLogo`. A payload that still carries the old fields ignores them.
