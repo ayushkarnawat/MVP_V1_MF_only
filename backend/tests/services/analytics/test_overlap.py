@@ -197,6 +197,7 @@ from unittest.mock import patch
 
 DEBT_REASON = "This is a debt fund, so it isn't counted in an equity overlap."
 LOW_REASON = "Less than 65% of this fund is in Indian shares, so it isn't counted."
+TYPE_REASON = "This type of fund isn't counted in an equity overlap."
 MISSING_REASON = "We don't have this fund's holdings yet, so it isn't counted here."
 
 
@@ -336,3 +337,12 @@ def test_overlap_new_fields_default_for_old_payload(db_session, monkeypatch):
         old.pop(key, None)
     parsed = OverlapSummary.model_validate(old)
     assert parsed.excluded_funds == [] and parsed.by_category == {} and parsed.message is None
+
+
+@pytest.mark.parametrize("category", ["", "Other Scheme - FoF Domestic"])
+def test_a_type_we_do_not_count_gets_the_type_sentence_not_the_65_percent_one(db_session, monkeypatch, category):
+    # Review finding 6 (Run 1): 90% domestic equity, but the type itself is not in the equity universe.
+    scheme = _t14_fund(db_session, category, "90")
+    result = _compute(db_session, monkeypatch, [_holding(scheme, "100")])
+    assert result.total_fund_count == 0
+    assert [(f.name, f.reason) for f in result.excluded_funds] == [(scheme.name, TYPE_REASON)]

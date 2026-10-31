@@ -86,7 +86,10 @@ async def compute_overlap(db: Session, household_member_ids: list[uuid.UUID]) ->
         elif _is_debt_or_arbitrage(scheme.sebi_category or ""):
             reason = "This is a debt fund, so it isn't counted in an equity overlap."
         elif not is_equity_fund(scheme.sebi_category, net_equity):
-            reason = "Less than 65% of this fund is in Indian shares, so it isn't counted."
+            # A type that fails even at 100% domestic equity is left out by its category, not by the 65% rule.
+            reason = ("This type of fund isn't counted in an equity overlap."
+                      if not is_equity_fund(scheme.sebi_category, Decimal("100"))
+                      else "Less than 65% of this fund is in Indian shares, so it isn't counted.")
         else:
             eligible.add(sid)
             continue
