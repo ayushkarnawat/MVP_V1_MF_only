@@ -108,8 +108,7 @@ describe("manager slices", () => {
     expect(managerSlices(groups).map(slice => [slice.label, slice.value, slice.pct, slice.color])).toEqual([
       ["Harsha Upadhyaya", "1540000.00", "33.12", "var(--c1)"],
       ["Chirag Setalvad", "1310000.00", "28.18", "var(--c2)"],
-      ["Satish Ramanathan", "490000.00", "10.54", "var(--c3)"],
-      ["Asit Bhandarkar", "490000.00", "10.54", "var(--c4)"],
+      ["Satish Ramanathan", "980000.00", "21.08", "var(--c3)"],
     ]);
   });
 });

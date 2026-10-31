@@ -4534,7 +4534,20 @@ export const capAllocation = (): CapAllocationSummary => {
   return data;
 };
 export const analyticsAllocation = (): AnalyticsAllocationSummary => structuredClone(ALLOCATION);
-export const fundManager = (): FundManagerAllocationSummary => structuredClone(FUND_MANAGER);
+export const fundManager = (): FundManagerAllocationSummary => {
+  const data = structuredClone(FUND_MANAGER);
+  // The 980000 JM fund belongs to its Fund Manager; its Co-Fund Manager is not another allocation.
+  data.manager_groups = data.manager_groups.filter(group => group.manager_name !== "Asit Bhandarkar");
+  for (const group of data.manager_groups) {
+    group.main_source = "marked";
+    if (group.manager_name === "Satish Ramanathan") {
+      group.total_household_value = "980000.00";
+      group.percentage = "21.08";
+      group.funds[0].household_value = "980000.00";
+    }
+  }
+  return data;
+};
 export const stockHoldings = (): StockHoldingsSummary => structuredClone(STOCK_HOLDINGS);
 export const investmentWithdrawal = (): InvestmentWithdrawalResult => structuredClone(INVESTMENT);
 

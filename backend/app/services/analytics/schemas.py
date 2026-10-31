@@ -455,6 +455,7 @@ class ManagerFundRow(BaseModel):
 
 
 class ManagerGroup(BaseModel):
+    main_source: Literal["marked", "assumed"] = "assumed"
     manager_name: str
     amc_name: str = ""
     percentage: str = "0.00"

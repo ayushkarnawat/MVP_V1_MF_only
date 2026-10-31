@@ -30,7 +30,7 @@ describe("FundManagerSection", () => {
     const row = screen.getByText("Covered by manager data").closest("tr")!;
     expect(row).toHaveTextContent("₹3,50,000");
     expect(row).toHaveTextContent("87.5%");
-    expect(screen.getByText("Funds with more than one manager are divided equally between them.")).toBeInTheDocument();
+    expect(screen.getByText("Each fund's full value is counted under its main manager.")).toBeInTheDocument();
   });
   it("keeps the not-available list", () => {
     render(<FundManagerSection data={summary} />);

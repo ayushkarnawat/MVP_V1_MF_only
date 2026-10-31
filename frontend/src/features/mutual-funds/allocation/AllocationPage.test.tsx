@@ -93,7 +93,7 @@ describe("the page", () => {
     await ready();
     fireEvent.click(within(screen.getByRole("list", { name: "Category breakdown" })).getByRole("button", { name: /Flexi Cap Fund/ }));
     expect(await screen.findByText("The funds in this slice couldn't be loaded.")).toBeInTheDocument();
-    expect(within(screen.getByTestId("card-fund-manager")).getByRole("table", { name: "Fund manager allocation" })).toBeInTheDocument();
+    expect(within(screen.getByTestId("card-fund-manager")).getByRole("list", { name: "Fund manager cards" })).toBeInTheDocument();
   });
 });
 
@@ -138,7 +138,7 @@ describe("across the cards", () => {
     expect(within(screen.getByTestId("card-market-cap")).queryByRole("radiogroup", { name: "Chart type" })).not.toBeInTheDocument();
     fireEvent.click(within(pickers[0]).getByRole("radio", { name: "Bar Chart" }));
     expect(within(screen.getByTestId("card-category-amc")).getByRole("radio", { name: "Donut" })).toHaveAttribute("aria-checked", "true");
-    expect(within(screen.getByTestId("card-fund-manager")).getByRole("radio", { name: "Table" })).toHaveAttribute("aria-checked", "true");
+    expect(within(screen.getByTestId("card-fund-manager")).getByRole("radio", { name: "Cards" })).toHaveAttribute("aria-checked", "true");
   });
   it("marks every control on the page with its effect (interactivity rule)", async () => {
     const { container } = mount();

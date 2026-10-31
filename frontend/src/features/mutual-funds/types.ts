@@ -341,6 +341,8 @@ export interface ManagerFundRow {
   role?: string | null;
 }
 export interface ManagerGroup {
+  /** Missing on stored sections awaiting main-manager recomputation. */
+  main_source?: "marked" | "assumed";
   manager_name: string;
   amc_name: string;
   /** Percent of the whole portfolio. */

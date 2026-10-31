@@ -59,7 +59,7 @@ export function FundManagerSection({ data, isLoading = false, className }: FundM
         <div className="space-y-3">
           <div className="min-w-0 max-w-full">
             <Table aria-label="Fund manager allocation" className="min-w-[480px]">
-              <TableCaption>Funds with more than one manager are divided equally between them.</TableCaption>
+              <TableCaption>Each fund's full value is counted under its main manager.</TableCaption>
               <TableHeader><TableRow>
                 <TableHead scope="col">Fund manager</TableHead>
                 <TableHead scope="col">AMC</TableHead>
