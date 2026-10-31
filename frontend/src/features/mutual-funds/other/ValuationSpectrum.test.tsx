@@ -178,3 +178,19 @@ describe("every control", () => {
     expect(container.querySelectorAll("[data-clickable]")).toHaveLength(2);
   });
 });
+
+
+it("shows the portfolio reason when the backend returns no ratio", () => {
+  const data = { ...fc.valuationSummary(), pe: { ...fc.valuationSummary().pe, ratio: null,
+    fund_coverage_pct: "69", reason: "We could not get a P/E for enough of your funds yet." } };
+  mount(data);
+  expect(screen.getByTestId("state-pe")).toHaveTextContent(data.pe.reason);
+});
+
+it("uses fund-figure availability for a new payload even when stock coverage is low", () => {
+  const data = { ...fc.valuationSummary(), pe: { ...fc.valuationSummary().pe,
+    enough_data: false, coverage_pct: "0", fund_coverage_pct: "100", reason: null } };
+  mount(data);
+  expect(pin("pe", "you")).toBeInTheDocument();
+  expect(screen.queryByTestId("state-pe")).not.toBeInTheDocument();
+});

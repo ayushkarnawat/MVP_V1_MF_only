@@ -1,6 +1,7 @@
 import { SectionCard } from "../common/SectionCard";
 import { useMfAnalytics } from "../data/analyticsStore";
 import { TerLadder } from "./TerLadder";
+import { ValuationByFund } from "./ValuationByFund";
 import { ValuationSpectrum } from "./ValuationSpectrum";
 
 export function CostValuationGroup() {
@@ -38,6 +39,8 @@ export function CostValuationGroup() {
           {valuation.data && <ValuationSpectrum data={valuation.data} />}
         </SectionCard>
       </div>
+
+      {valuation.data && <ValuationByFund data={valuation.data} />}
     </div>
   );
 }

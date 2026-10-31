@@ -480,12 +480,30 @@ export interface OverlapSummary {
 // ---- MF-C: Other Analytics (backend: ValuationSummary, WeightedTerSummary, DirectRegularTerComparison, CategoryRankingSummary,
 // PortfolioScoreSummary, FundRankingSummary) ----
 export interface ValuationMissingStock { isin: string | null; instrument_name: string; exposure_value: string; percentage_equity: string; reason: string }
+export interface ValuationValue {
+  value: string | null;
+  source: "factsheet" | "computed" | "none";
+  as_of: string;
+  basis: string;
+  method: string;
+  coverage_pct: string | null;
+  reason: string | null;
+}
+export interface ValuationFund {
+  scheme_id: string;
+  scheme_name: string;
+  pe: ValuationValue;
+  pb: ValuationValue;
+}
 export interface ValuationMetric {
   ratio: string | null;
   coverage_pct: string;
   enough_data: boolean;
   as_of_date: string | null;
   missing: ValuationMissingStock[];
+  overseas?: ValuationMissingStock[];
+  fund_coverage_pct?: string;
+  reason?: string | null;
 }
 export interface ValuationIndex {
   index_name: "nifty_50" | "nifty_500";
@@ -497,6 +515,7 @@ export interface ValuationIndex {
   pb_delta_pct: string | null;
 }
 export interface ValuationSummary {
+  funds?: ValuationFund[];
   pe: ValuationMetric;
   pb: ValuationMetric;
   indices: ValuationIndex[];

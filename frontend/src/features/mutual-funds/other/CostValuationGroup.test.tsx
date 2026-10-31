@@ -138,3 +138,19 @@ describe("every control", () => {
     expectInteractivity(container, 6);
   });
 });
+
+
+it("places Valuation by Fund after the existing portfolio card using the same section", async () => {
+  const response = fc.analyticsMfC();
+  response.sections.valuation = { payload: { members: [], valuation: { ...fo.valuationSummary(), funds: [{
+    scheme_id: "NEW-FUND", scheme_name: "HDFC Flexi Cap Fund",
+    pe: { value: "25", source: "computed", as_of: "2026-10-23", basis: "trailing", method: "harmonic", coverage_pct: "100", reason: null },
+    pb: { value: "3", source: "computed", as_of: "2026-10-22", basis: "trailing", method: "harmonic", coverage_pct: "100", reason: null },
+  }] } }, computed_at: "2026-10-26T01:00:00Z", failed_at: null };
+  mount(response);
+  await screen.findByRole("heading", { name: "Valuation by Fund" });
+  expect(screen.getAllByRole("heading", { level: 3 }).map(row => row.textContent)).toEqual([
+    "Total Expense Ratio (TER) & Cost Analysis", "Portfolio Valuation vs. Benchmarks", "Valuation by Fund",
+  ]);
+  expect(mocks.getAnalyticsScope).toHaveBeenCalledTimes(1);
+});

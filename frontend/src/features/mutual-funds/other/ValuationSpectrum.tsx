@@ -30,11 +30,16 @@ interface PanelProps {
 function Panel({ data, kind, view }: PanelProps) {
   const { label, basis } = KIND_TEXT[kind];
   const metric = data[kind];
-  const state = ratioState(data, kind);
-  const rows = ratioRows(data, kind);
+  // New payloads carry backend-approved fund-figure availability. The old
+  // enough_data flag continues to describe stock coverage, not this total.
+  const comparisonData = metric.fund_coverage_pct === undefined ? data : {
+    ...data, [kind]: { ...metric, enough_data: metric.ratio !== null },
+  };
+  const state = ratioState(comparisonData, kind);
+  const rows = ratioRows(comparisonData, kind);
   const positions = pinPositions(rows);
   const widths = barWidths(rows);
-  const delta = deltaSentence(data, kind);
+  const delta = deltaSentence(comparisonData, kind);
 
   return (
     <div
@@ -54,9 +59,9 @@ function Panel({ data, kind, view }: PanelProps) {
 
       {state !== "ok" && (
         <p data-testid={`state-${kind}`} data-state={state} className="rounded-lg bg-[var(--ui-elevated)] p-2.5 text-xs text-[var(--ui-text-muted)]">
-          {state === "hidden"
+          {metric.reason ?? (state === "hidden"
             ? "Portfolio ratio hidden while published holdings cover less than 50% of your portfolio."
-            : `Not enough data for portfolio ${label} — at least 70% of equity exposure needs a usable ratio.`}
+            : `Not enough data for portfolio ${label} — at least 70% of equity exposure needs a usable ratio.`)}
         </p>
       )}
 
@@ -123,7 +128,7 @@ function Panel({ data, kind, view }: PanelProps) {
         </p>
       )}
 
-      {metric.missing.length > 0 && (
+      {data.funds === undefined && metric.missing.length > 0 && (
         <div data-testid={`excluded-${kind}`} className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-3 space-y-2 mt-2">
           <h5 className="text-xs font-semibold text-[var(--ui-text)]">
             Equity holdings excluded from {label}
@@ -155,7 +160,9 @@ export function ValuationSpectrum({ data }: ValuationSpectrumProps) {
       <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />
 
       <p data-testid="valuation-thresholds" className="text-xs text-[var(--ui-text-muted)]">
-        {'Ratios are hidden below 50% look-through coverage and flagged "not enough data" below 70% of equity exposure.'}
+        {data.pe.fund_coverage_pct !== undefined || data.pb.fund_coverage_pct !== undefined
+          ? "Portfolio ratios need usable fund figures for at least 70% of equity value and published holdings for at least 50% of the portfolio."
+          : 'Ratios are hidden below 50% look-through coverage and flagged "not enough data" below 70% of equity exposure.'}
       </p>
 
       {hasNoEquity ? (
@@ -185,7 +192,9 @@ export function ValuationSpectrum({ data }: ValuationSpectrumProps) {
 
       <div className="space-y-2 text-xs text-[var(--ui-text-muted)]">
         <p>
-          P/E from NSE (SYMBOL P/E, reported trailing earnings); P/B from Yahoo Finance. Portfolio ratios use a weighted harmonic mean of the equity holdings with usable data.
+          {data.funds === undefined
+            ? "P/E from NSE (SYMBOL P/E, reported trailing earnings); P/B from Yahoo Finance. Portfolio ratios use a weighted harmonic mean of the equity holdings with usable data."
+            : "Portfolio ratios combine usable fund figures in proportion to the amount held in each fund. Forward P/E figures stay in the fund rows; the portfolio uses trailing earnings."}
         </p>
 
         {data.footnotes && data.footnotes.length > 0 && (
