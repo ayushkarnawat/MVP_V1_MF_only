@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CoverageBanner, fundAgeText } from "../../../components/mf/CoverageBanner";
 import { formatPercent as lookthroughPercent, percentageProduct } from "../../../components/mf/lookthroughDisplay";
+import { compareDecimalStrings, diffDecimalStrings } from "../../../lib/decimal";
 import { formatCompactRupees, formatDate, formatPercent, formatRupees } from "../../../lib/format";
 import { SlicedDonut, useSelectedSlice } from "../common/charts";
 import { FundLink } from "../common/FundLink";
@@ -9,7 +10,8 @@ import { SectionCard } from "../common/SectionCard";
 import type { CapAllocationSummary, StockHoldingRow } from "../types";
 import {
   type AnalyticsCardProps,
-  capSlices,
+  CAP_LABELS,
+  colorAt,
   chartPct,
   hasNegative,
   largestSlice,
@@ -120,11 +122,22 @@ export function MarketCapCard({
   data,
   onRetry,
 }: AnalyticsCardProps<CapAllocationSummary>) {
-  const [equityOnly, setEquityOnly] = useState(false);
-
+  const hasClassifiedFields = !!data?.unclassified_share_pct && data.buckets.every(
+    bucket => typeof bucket.percentage_classified === "string" && bucket.percentage_classified !== ""
+  );
   const slices = useMemo(() => {
-    return data ? capSlices(data, equityOnly) : [];
-  }, [data, equityOnly]);
+    return data && hasClassifiedFields ? data.buckets.filter(bucket => bucket.key !== "OTHER").map((bucket, index) => ({
+      key: bucket.key.toLowerCase(),
+      label: CAP_LABELS[bucket.key],
+      value: bucket.value,
+      pct: bucket.percentage_classified!,
+      color: colorAt(index),
+    })) : [];
+  }, [data, hasClassifiedFields]);
+  const hasClassifiedEquity = slices.some(slice => compareDecimalStrings(slice.pct, "0") > 0);
+  const unclassified = data?.unclassified_share_pct || "0";
+  const showUnclassifiedNote = compareDecimalStrings(unclassified, "0.5") >= 0;
+  const notePercent = (value: string) => lookthroughPercent(value).replace(/\.?0+$/, "");
 
   const { selectedKey, activeKey, select, hover } = useSelectedSlice(slices);
 
@@ -132,9 +145,9 @@ export function MarketCapCard({
   const containsNegative = useMemo(() => hasNegative(slices), [slices]);
 
   const selectedSlice = selectedKey ? slices.find(s => s.key === selectedKey) ?? null : null;
+  const selectedBucket = data?.buckets.find(bucket => bucket.key.toLowerCase() === selectedKey);
 
-  const totalValNum = data ? Number(data.total_portfolio_value) : 0;
-  const equityValNum = data ? Number(data.total_equity_value) : 0;
+  const noHoldings = data ? compareDecimalStrings(data.total_portfolio_value, "0") === 0 : false;
 
   return (
     <SectionCard
@@ -147,6 +160,8 @@ export function MarketCapCard({
         <p className="text-xs text-[var(--ui-text-muted)]">
           No market-cap allocation data available
         </p>
+      ) : !hasClassifiedFields ? (
+        <p role="status" className="text-xs text-[var(--ui-text-muted)]">Market-cap allocation is updating.</p>
       ) : (
         <div className="flex flex-col gap-4">
           <p data-testid="as-on" className="text-xs text-[var(--ui-text-muted)]">
@@ -158,50 +173,16 @@ export function MarketCapCard({
 
           <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />
 
-          {/* Allocation denominator toggle */}
-          <div
-            role="group"
-            aria-label="Allocation denominator"
-            className="inline-flex self-start rounded-lg border border-[var(--ui-divider)] p-0.5"
-          >
-            <button
-              type="button"
-              aria-pressed={!equityOnly}
-              data-clickable=""
-              data-effect="switch"
-              onClick={() => setEquityOnly(false)}
-              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                !equityOnly
-                  ? "bg-[var(--ui-card)] text-[var(--ui-text)] shadow-sm"
-                  : "text-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
-              }`}
-            >
-              % of total portfolio
-            </button>
-            <button
-              type="button"
-              aria-pressed={equityOnly}
-              data-clickable=""
-              data-effect="switch"
-              onClick={() => setEquityOnly(true)}
-              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                equityOnly
-                  ? "bg-[var(--ui-card)] text-[var(--ui-text)] shadow-sm"
-                  : "text-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
-              }`}
-            >
-              % of equity only
-            </button>
-          </div>
+          {showUnclassifiedNote && (
+            <p className="text-xs text-[var(--ui-text-muted)]">
+              {notePercent(unclassified)}% of your equity could not be sorted into Large, Mid or Small (for example overseas stocks), so the three slices describe the other {notePercent(diffDecimalStrings("100", unclassified))}%.
+            </p>
+          )}
 
-          {equityOnly && equityValNum === 0 ? (
-            <p className="text-xs text-[var(--ui-text-muted)]">
-              No equity holdings for this selection
-            </p>
-          ) : !equityOnly && totalValNum === 0 ? (
-            <p className="text-xs text-[var(--ui-text-muted)]">
-              No holdings for this selection
-            </p>
+          {noHoldings ? (
+            <p className="text-xs text-[var(--ui-text-muted)]">No holdings for this selection</p>
+          ) : !hasClassifiedEquity ? (
+            <p className="text-xs text-[var(--ui-text-muted)]">Not enough classified equity</p>
           ) : (
             <div className="flex flex-wrap items-center gap-8">
               <SlicedDonut
@@ -211,9 +192,9 @@ export function MarketCapCard({
                 activeKey={activeKey}
                 onActiveChange={hover}
                 centre={{
-                  label: equityOnly ? "Equity only" : "Total portfolio",
+                  label: "Total portfolio",
                   value: formatCompactRupees(
-                    equityOnly ? data.total_equity_value : data.total_portfolio_value
+                    data.total_portfolio_value
                   ),
                 }}
                 ariaLabel="Market-cap allocation chart"
@@ -263,7 +244,7 @@ export function MarketCapCard({
             </div>
           )}
 
-          {!data.hide_headlines && largest && (
+          {!data.hide_headlines && hasClassifiedEquity && !noHoldings && largest && (
             <p data-testid="largest-allocation" className="text-xs font-medium text-[var(--ui-text)]">
               Largest allocation: {largest.label} ({formatPercent(largest.pct, { digits: 1 })})
             </p>
@@ -278,59 +259,8 @@ export function MarketCapCard({
           {/* Drill panel */}
           {selectedSlice && (
             <DrillPanel title={selectedSlice.label} color={selectedSlice.color}>
-              {selectedKey === "other" ? (
-                <div className="flex flex-col gap-4">
-                  {/* Block 1: Not equity */}
-                  <div className="flex flex-col gap-2">
-                    <h5 className="text-xs font-semibold text-[var(--ui-text)]">
-                      Not equity (debt, cash, gold, REITs)
-                    </h5>
-                    {equityOnly ? (
-                      <p className="text-xs text-[var(--ui-text-muted)]">
-                        Excluded from the equity-only view
-                      </p>
-                    ) : (
-                      <>
-                        <p data-testid="other-non-equity-value" className="text-xs font-medium text-[var(--ui-text)]">
-                          {formatRupees(data.other.non_equity_value)}
-                        </p>
-                        <StockList
-                          rows={data.other.non_equity_rows}
-                          total={data.other.non_equity_count}
-                          idPrefix="non-equity"
-                        />
-                      </>
-                    )}
-                  </div>
-
-                  {/* Block 2: Equity not in AMFI list */}
-                  <div className="flex flex-col gap-2">
-                    <h5 className="text-xs font-semibold text-[var(--ui-text)]">
-                      Equity not in AMFI list
-                    </h5>
-                    <p data-testid="other-unclassified-value" className="text-xs font-medium text-[var(--ui-text)]">
-                      {formatRupees(data.other.unclassified_equity_value)}
-                    </p>
-                    <StockList
-                      rows={data.other.unclassified_equity_rows}
-                      total={data.other.unclassified_equity_count}
-                      idPrefix="unclassified"
-                    />
-                  </div>
-                </div>
-              ) : (
-                (() => {
-                  const bucket = data.buckets.find(
-                    b => b.key.toLowerCase() === selectedKey
-                  );
-                  return bucket ? (
-                    <StockList
-                      rows={bucket.rows}
-                      total={bucket.row_count}
-                      idPrefix="stock"
-                    />
-                  ) : null;
-                })()
+              {selectedBucket && (
+                <StockList rows={selectedBucket.rows} total={selectedBucket.row_count} idPrefix="stock" />
               )}
             </DrillPanel>
           )}

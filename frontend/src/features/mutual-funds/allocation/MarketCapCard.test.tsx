@@ -21,13 +21,13 @@ const legend = () => within(screen.getByRole("list", { name: "Market-cap breakdo
 const row = (name: RegExp | string) => legend().getByRole("button", { name });
 
 describe("content", () => {
-  it("shows the heading, the dates with the AMFI classification date, the four buckets and the largest", () => {
+  it("shows the heading, the dates with the AMFI classification date, the three buckets and the largest", () => {
     mount();
     expect(screen.getByRole("heading", { name: "Market-Cap Allocation" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Equity holdings classified by AMFI market-cap size, looked through every fund you own." })).toBeInTheDocument();
     expect(screen.getByTestId("as-on")).toHaveTextContent("Values as on 24 Oct 2026 · Holdings as on 30 Sep 2026 · AMFI classification effective from 01 Jul 2026.");
-    expect(legend().getAllByRole("button").map(button => button.textContent)).toEqual(["Large Cap38.4%", "Mid Cap18.3%", "Small Cap5.5%", "Other / Unclassified37.8%"]);
-    expect(screen.getByTestId("largest-allocation")).toHaveTextContent("Largest allocation: Large Cap (38.4%)");
+    expect(legend().getAllByRole("button").map(button => button.textContent)).toEqual(["Large Cap61.8%", "Mid Cap29.4%", "Small Cap8.8%"]);
+    expect(screen.getByTestId("largest-allocation")).toHaveTextContent("Largest allocation: Large Cap (61.8%)");
     expect(screen.getByTestId("donut-centre-label")).toHaveTextContent("Total portfolio");
     expect(screen.getByTestId("donut-centre-value")).toHaveTextContent("₹46.49 L");
   });
@@ -82,31 +82,19 @@ describe("states", () => {
 });
 
 describe("the denominator", () => {
-  it("switches between % of total portfolio and % of equity only, in the legend, the headline and the centre", () => {
+  it("always describes classified equity without a denominator toggle", () => {
     mount();
-    const group = within(screen.getByRole("group", { name: "Allocation denominator" }));
-    expect(group.getByRole("button", { name: "% of total portfolio" })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(group.getByRole("button", { name: "% of equity only" }));
-    expect(group.getByRole("button", { name: "% of equity only" })).toHaveAttribute("aria-pressed", "true");
-    expect(group.getByRole("button", { name: "% of total portfolio" })).toHaveAttribute("aria-pressed", "false");
-    expect(legend().getAllByRole("button").map(button => button.textContent)).toEqual(["Large Cap53.9%", "Mid Cap25.6%", "Small Cap7.7%", "Other / Unclassified12.8%"]);
-    expect(screen.getByTestId("largest-allocation")).toHaveTextContent("Largest allocation: Large Cap (53.9%)");
-    expect(screen.getByTestId("donut-centre-label")).toHaveTextContent("Equity only");
-    expect(screen.getByTestId("donut-centre-value")).toHaveTextContent("₹33.15 L");
+    expect(screen.queryByRole("group", { name: "Allocation denominator" })).not.toBeInTheDocument();
+    expect(legend().getAllByRole("button")).toHaveLength(3);
   });
-  it("says so when equity-only is chosen and there is no equity", () => {
-    const data = fb.capAllocation();
+  it("shows the empty state when there is no equity", () => {
+    const data = classifiedData();
     data.total_equity_value = "0.00";
+    data.unclassified_share_pct = "100.00";
+    data.buckets.forEach(bucket => { bucket.percentage_classified = "0.00"; });
     mount(data);
-    fireEvent.click(screen.getByRole("button", { name: "% of equity only" }));
-    expect(screen.getByText("No equity holdings for this selection")).toBeInTheDocument();
+    expect(screen.getByText("Not enough classified equity")).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Market-cap breakdown" })).not.toBeInTheDocument();
-  });
-  it("notes negative net positions", () => {
-    const data = fb.capAllocation();
-    data.buckets[3].percentage_total = "-0.50";
-    mount(data);
-    expect(screen.getByText("Negative net positions are listed with their signed percentages; the donut shows positive exposures.")).toBeInTheDocument();
   });
 });
 
@@ -115,7 +103,7 @@ describe("the donut and the legend", () => {
     mount();
     fireEvent.mouseEnter(screen.getByTestId("legend-mid"));
     expect(screen.getByTestId("donut-centre-label")).toHaveTextContent("Mid Cap");
-    expect(screen.getByTestId("donut-centre-pct")).toHaveTextContent("18.3%");
+    expect(screen.getByTestId("donut-centre-pct")).toHaveTextContent("29.4%");
     expect(screen.getByTestId("donut-popup")).toHaveAttribute("data-visible", "true");
     expect(screen.getByTestId("popup-value")).toHaveTextContent("₹8,50,000");
     fireEvent.mouseLeave(screen.getByTestId("legend-mid"));
@@ -166,32 +154,13 @@ describe("the drill panel", () => {
     fireEvent.click(toggle);
     expect(screen.queryByTestId("stock-0-fund-S-KOTAK")).not.toBeInTheDocument();
   });
-  it("lists the unclassified equity and the non-equity separately for Other / Unclassified", () => {
-    mount();
-    fireEvent.click(row(/Other \/ Unclassified/));
-    const panel = screen.getByRole("region", { name: "Other / Unclassified detail" });
-    expect(within(panel).getByRole("heading", { name: "Not equity (debt, cash, gold, REITs)" })).toBeInTheDocument();
-    expect(within(panel).getByTestId("other-non-equity-value")).toHaveTextContent("₹13,34,340");
-    expect(within(panel).getByTestId("non-equity-0")).toHaveTextContent("7.18% Government of India 2033");
-    expect(within(panel).getByRole("heading", { name: "Equity not in AMFI list" })).toBeInTheDocument();
-    expect(within(panel).getByTestId("other-unclassified-value")).toHaveTextContent("₹4,25,000");
-    expect(within(panel).getByTestId("unclassified-0")).toHaveTextContent("Dixon Technologies (India) Ltd");
-  });
-  it("leaves the non-equity part out of the equity-only view and says why", () => {
-    mount();
-    fireEvent.click(row(/Other \/ Unclassified/));
-    fireEvent.click(screen.getByRole("button", { name: "% of equity only" }));
-    const panel = screen.getByRole("region", { name: "Other / Unclassified detail" });
-    expect(panel).toHaveTextContent("Excluded from the equity-only view");
-    expect(within(panel).queryByTestId("other-non-equity-value")).not.toBeInTheDocument();
-    expect(within(panel).getByTestId("other-unclassified-value")).toBeInTheDocument();
-  });
-  it("keeps the selected bucket when the denominator changes", () => {
+  it("changes the selected bucket when another slice is clicked", () => {
     mount();
     fireEvent.click(row(/Mid Cap/));
-    fireEvent.click(screen.getByRole("button", { name: "% of equity only" }));
-    expect(row(/Mid Cap/)).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("region", { name: "Mid Cap detail" })).toBeInTheDocument();
+    fireEvent.click(row(/Large Cap/));
+    expect(row(/Large Cap/)).toHaveAttribute("aria-pressed", "true");
+    expect(row(/Mid Cap/)).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("region", { name: "Large Cap detail" })).toBeInTheDocument();
   });
   it("says so for a bucket with no listed stocks", () => {
     const data = fb.capAllocation();
@@ -223,4 +192,62 @@ describe("the funds behind a stock open their fund page (IF-E)", () => {
     expect(within(screen.getByTestId("stock-0-fund-S-SBI")).getByRole("link", { name: "SBI Bluechip Fund" })).toHaveAttribute("href", "/portfolio/mutual-funds/funds/S-SBI");
     expect(document.querySelectorAll("button a")).toHaveLength(0);
   });
+});
+
+
+function classifiedData() {
+  const data = fb.capAllocation();
+  Object.assign(data, { unclassified_share_pct: "12.82" });
+  data.buckets.forEach((bucket, index) => Object.assign(bucket, { percentage_classified: ["61.76", "29.41", "8.83", "0.00"][index] }));
+  return data;
+}
+
+describe("classified equity", () => {
+  it("renders three slices and no Other slice", () => {
+    mount(classifiedData());
+    expect(legend().getAllByRole("button").map(button => button.textContent)).toEqual(["Large Cap61.8%", "Mid Cap29.4%", "Small Cap8.8%"]);
+    for (const key of ["large", "mid", "small"]) expect(screen.getByTestId(`slice-${key}`)).toBeInTheDocument();
+    expect(screen.queryByTestId("slice-other")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("legend-other")).not.toBeInTheDocument();
+  });
+  it("shows the note only when unclassified is 0.5 percent or more", () => {
+    const data = classifiedData();
+    Object.assign(data, { unclassified_share_pct: "0.50" });
+    const view = mount(data);
+    expect(screen.getByText("0.5% of your equity could not be sorted into Large, Mid or Small (for example overseas stocks), so the three slices describe the other 99.5%.")).toBeInTheDocument();
+    Object.assign(data, { unclassified_share_pct: "0.49" });
+    view.rerender(<MarketCapCard state="ready" data={data} onRetry={vi.fn()} />);
+    expect(screen.queryByText(/of your equity could not be sorted/)).not.toBeInTheDocument();
+  });
+  it("shows 'Not enough classified equity' when none classified", () => {
+    const data = classifiedData();
+    Object.assign(data, { unclassified_share_pct: "100.00" });
+    data.buckets.forEach(bucket => Object.assign(bucket, { percentage_classified: "0.00" }));
+    mount(data);
+    expect(screen.getByText("Not enough classified equity")).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "Market-cap allocation chart" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("largest-allocation")).not.toBeInTheDocument();
+  });
+  it("renders a payload without the new fields as the updating state", () => {
+    const old = fb.capAllocation();
+    delete old.unclassified_share_pct;
+    old.buckets.forEach(bucket => { delete bucket.percentage_classified; });
+    mount(old);
+    expect(screen.getByRole("status")).toHaveTextContent(/updating/i);
+    expect(screen.getByRole("heading", { name: "Market-Cap Allocation" })).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "Market-cap allocation chart" })).not.toBeInTheDocument();
+  });
+});
+
+
+it("treats defaulted empty strings and a missing bucket percentage as updating", () => {
+  const data = classifiedData();
+  data.unclassified_share_pct = "";
+  const view = mount(data);
+  expect(screen.getByRole("status")).toHaveTextContent(/updating/i);
+  data.unclassified_share_pct = "12.82";
+  delete data.buckets[0].percentage_classified;
+  view.rerender(<MarketCapCard state="ready" data={data} onRetry={vi.fn()} />);
+  expect(screen.getByRole("status")).toHaveTextContent(/updating/i);
+  expect(screen.queryByRole("img", { name: "Market-cap allocation chart" })).not.toBeInTheDocument();
 });

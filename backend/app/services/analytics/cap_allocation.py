@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal
 
 from sqlalchemy.orm import Session
 
@@ -76,17 +76,31 @@ def build_cap_allocation(
         return [StockHoldingRow.model_validate(row, from_attributes=True)
                 for row in sorted(rows, key=lambda r: -r.exposure_value)[:CAP_ROWS_LIMIT]]
 
+    classified_values = {key: sum((row.exposure_value for row in grouped[key]), _ZERO)
+                         for key in ("LARGE", "MID", "SMALL")}
+    classified_value = sum(classified_values.values(), _ZERO)
+    remaining = Decimal("100.00")
+    classified_percentages = {}
+    for key, value in classified_values.items():
+        # Fixed Large, Mid, Small order: the final bucket receives the rounding remainder.
+        percentage = (_ZERO if not classified_value else remaining if key == "SMALL" else
+                      (value / classified_value * 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN))
+        classified_percentages[key] = f"{percentage:.2f}"
+        remaining -= percentage
+    unclassified_share = (missing_value / equity_value * 100 if equity_value else Decimal("100"))
+
     buckets = []
     for key, rows in grouped.items():
         equity_part = sum((row.exposure_value for row in rows), _ZERO)
         value = equity_part + (non_equity_value if key == "OTHER" else _ZERO)
         buckets.append(CapAllocationBucket(
-            key=key, value=value,
+            key=key, value=value, percentage_classified=classified_percentages.get(key, "0.00"),
             percentage_total=value / table.total_portfolio_value * 100 if table.total_portfolio_value else _ZERO,
             percentage_equity=equity_part / equity_value * 100 if equity_value else _ZERO,
             rows=payload(rows) if key != "OTHER" else [], row_count=len(rows) if key != "OTHER" else 0,
         ))
     return CapAllocationSummary(
+        unclassified_share_pct=f"{unclassified_share.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN):.2f}",
         buckets=buckets, other=CapAllocationOther(
             non_equity_value=non_equity_value, unclassified_equity_value=missing_value,
             non_equity_rows=payload(non_equity), unclassified_equity_rows=payload(missing),

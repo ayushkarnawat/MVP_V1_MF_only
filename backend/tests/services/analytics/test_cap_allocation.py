@@ -72,12 +72,16 @@ def test_cap_allocation_empty_zero_equity_and_no_list(db_session, monkeypatch):
     empty = asyncio.run(compute_cap_allocation(db_session, []))
     assert all(b.percentage_equity == 0 and b.percentage_total == 0 for b in empty.buckets)
     assert empty.hide_headlines and empty.classification_as_of is None
+    assert empty.unclassified_share_pct == "100.00"
+    assert all(bucket.percentage_classified == "0.00" for bucket in empty.buckets)
     scheme = _scheme(db_session)
     _batch(db_session, scheme, [("Cash", None, "100", AssetType.CASH_EQUIVALENT)])
     monkeypatch.setattr(lookthrough, "compute_holdings", AsyncMock(return_value=[_holding(scheme, "1000")]))
     cash = asyncio.run(compute_cap_allocation(db_session, [uuid.uuid4()]))
     assert cash.total_equity_value == 0 and cash.buckets[-1].percentage_total == 100
     assert all(b.percentage_equity == 0 for b in cash.buckets)
+    assert cash.unclassified_share_pct == "100.00"
+    assert all(bucket.percentage_classified == "0.00" for bucket in cash.buckets)
 
 
 def test_cap_allocation_section_registered_and_wraps_combined(db_session, monkeypatch):
@@ -114,3 +118,67 @@ def test_cap_allocation_payload_caps_each_row_list_but_keeps_totals_and_counts(d
     assert large.value == sum((Decimal("1") + Decimal(i) / 100 for i in range(60)), Decimal(0)) * 10
     assert result.other.unclassified_equity_count == 55 and len(result.other.unclassified_equity_rows) == limit
     assert result.other.non_equity_count == 52 and len(result.other.non_equity_rows) == limit
+
+
+async def _cap_example(db, monkeypatch, weights=("40", "20", "10", "10", "20")):
+    from app.services.analytics import lookthrough
+    from app.services.analytics.cap_allocation import compute_cap_allocation
+    scheme = _scheme(db)
+    types = [AssetType.EQUITY_DOMESTIC] * 3 + [AssetType.EQUITY_INTERNATIONAL, AssetType.DEBT]
+    _batch(db, scheme, [(name, isin, weight, kind) for name, isin, weight, kind in
+                       zip(["Large", "Mid", "Small", "Foreign", "Bond"], ["L", "M", "S", "US1", "B"], weights, types)], date(2026, 6, 30))
+    for isin, bucket in [("L", MarketCapBucket.LARGE), ("M", MarketCapBucket.MID), ("S", MarketCapBucket.SMALL)]:
+        _classification(db, isin, bucket, date(2026, 1, 1))
+    monkeypatch.setattr(lookthrough, "compute_holdings", AsyncMock(return_value=[_holding(scheme, "1000")]))
+    return await compute_cap_allocation(db, [uuid.uuid4()])
+
+
+def test_three_buckets_sum_to_exactly_100_with_unclassified_stocks(db_session, monkeypatch):
+    result = asyncio.run(_cap_example(db_session, monkeypatch, ("25", "25", "25", "25", "0")))
+    shares = [bucket.percentage_classified for bucket in result.buckets[:3]]
+    assert shares == ["33.33", "33.33", "33.34"]
+    assert sum(map(Decimal, shares)) == Decimal("100.00")
+    assert result.buckets[-1].key == "OTHER" and result.buckets[-1].percentage_classified == "0.00"
+
+
+def test_unclassified_share_reports_the_stock_value_with_no_bucket(db_session, monkeypatch):
+    result = asyncio.run(_cap_example(db_session, monkeypatch))
+    assert result.unclassified_share_pct == "12.50"  # 100 of 800 equity, not 300 Other or 1000 portfolio
+    assert result.other.unclassified_equity_value == Decimal("100")
+    payload = result.model_dump(mode="json")
+    assert isinstance(payload["unclassified_share_pct"], str)
+    assert all(isinstance(bucket["percentage_classified"], str) for bucket in payload["buckets"])
+
+
+def test_all_equity_unclassified_returns_empty_state_fields(db_session, monkeypatch):
+    result = asyncio.run(_cap_example(db_session, monkeypatch, ("0", "0", "0", "80", "20")))
+    assert result.unclassified_share_pct == "100.00"
+    assert [bucket.percentage_classified for bucket in result.buckets] == ["0.00"] * 4
+    assert all(Decimal(bucket.percentage_classified).is_finite() for bucket in result.buckets)
+    assert "NaN" not in result.model_dump_json()
+
+
+def test_old_fields_unchanged(db_session, monkeypatch):
+    from app.services.analytics.schemas import CapAllocationSummary
+    result = asyncio.run(_cap_example(db_session, monkeypatch))
+    # Literal golden values from the pre-change computation, including Other's non-equity part.
+    assert {bucket.key: (bucket.value, bucket.percentage_total, bucket.percentage_equity) for bucket in result.buckets} == {
+        "LARGE": (Decimal("400"), Decimal("40"), Decimal("50")),
+        "MID": (Decimal("200"), Decimal("20"), Decimal("25")),
+        "SMALL": (Decimal("100"), Decimal("10"), Decimal("12.5")),
+        "OTHER": (Decimal("300"), Decimal("30"), Decimal("12.5")),
+    }
+    # Old stored JSON must still parse, with defaults marking it as awaiting recomputation.
+    old_payload = result.model_dump(mode="json")
+    old_payload.pop("unclassified_share_pct", None)
+    for bucket in old_payload["buckets"]:
+        bucket.pop("percentage_classified", None)
+    old = CapAllocationSummary.model_validate(old_payload)
+    assert old.unclassified_share_pct == ""
+    assert all(bucket.percentage_classified == "" for bucket in old.buckets)
+
+
+def test_empty_last_bucket_and_zero_equity_keep_finite_classified_percentages(db_session, monkeypatch):
+    result = asyncio.run(_cap_example(db_session, monkeypatch, ("20", "10", "0", "10", "60")))
+    assert [bucket.percentage_classified for bucket in result.buckets] == ["66.67", "33.33", "0.00", "0.00"]
+    assert sum(Decimal(bucket.percentage_classified) for bucket in result.buckets[:3]) == Decimal("100.00")

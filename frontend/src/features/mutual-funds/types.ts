@@ -268,6 +268,8 @@ export interface CapAllocationBucket {
   value: string;
   percentage_total: string;
   percentage_equity: string;
+  /** Absent or empty until this stored section is recomputed. */
+  percentage_classified?: string;
   /** Capped by the backend, largest first; value, percentages and row_count cover every stock. */
   rows: StockHoldingRow[];
   row_count: number;
@@ -281,6 +283,8 @@ export interface CapAllocationOther {
   unclassified_equity_count: number;
 }
 export interface CapAllocationSummary {
+  /** Absent or empty until this stored section is recomputed. */
+  unclassified_share_pct?: string;
   buckets: CapAllocationBucket[];
   other: CapAllocationOther;
   total_portfolio_value: string;

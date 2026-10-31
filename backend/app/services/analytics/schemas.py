@@ -68,6 +68,8 @@ class CapAllocationBucket(BaseModel):
     value: Decimal
     percentage_total: Decimal
     percentage_equity: Decimal
+    # Empty means a stored payload from before classified-equity percentages.
+    percentage_classified: str = ""
     rows: list[StockHoldingRow]
     # rows is capped (CAP_ROWS_LIMIT, largest first); the value, percentages and this count cover every stock.
     row_count: int = 0
@@ -83,6 +85,7 @@ class CapAllocationOther(BaseModel):
 
 
 class CapAllocationSummary(BaseModel):
+    unclassified_share_pct: str = ""
     buckets: list[CapAllocationBucket]
     other: CapAllocationOther
     total_portfolio_value: Decimal

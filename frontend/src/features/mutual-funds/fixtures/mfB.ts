@@ -4512,7 +4512,14 @@ export function fundBenchmarkWithoutWindows(): FundVsBenchmarkSummary {
   return copy;
 }
 export const assetAllocation = (): AssetAllocationSummary => structuredClone(ASSET_ALLOCATION);
-export const capAllocation = (): CapAllocationSummary => structuredClone(CAP_ALLOCATION);
+export const capAllocation = (): CapAllocationSummary => {
+  const data = structuredClone(CAP_ALLOCATION);
+  data.unclassified_share_pct = "12.82";
+  data.buckets.forEach((bucket, index) => {
+    bucket.percentage_classified = ["61.76", "29.41", "8.83", "0.00"][index];
+  });
+  return data;
+};
 export const analyticsAllocation = (): AnalyticsAllocationSummary => structuredClone(ALLOCATION);
 export const fundManager = (): FundManagerAllocationSummary => structuredClone(FUND_MANAGER);
 export const stockHoldings = (): StockHoldingsSummary => structuredClone(STOCK_HOLDINGS);
