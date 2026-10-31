@@ -1,22 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { compareDecimalStrings, diffDecimalStrings, toPercentString } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
-import { Award, HelpCircle, Info, TrendingDown, TrendingUp } from "lucide-react";
+import { Award, HelpCircle, Info } from "lucide-react";
 import type { CategoryRankingSummary } from "./types";
-import { formatRawFractionPercent, normalizeReturnFraction } from "./percentFormat";
 import { PeriodReturnsTable } from "./PeriodReturnsTable";
 
 export interface CategoryRankingSectionProps {
   ranking: CategoryRankingSummary | null;
   isLoading?: boolean;
   className?: string;
-}
-
-function parsePercent(val: string | null): number | null {
-  if (val === null || val === undefined) return null;
-  const num = parseFloat(val);
-  return isNaN(num) ? null : num;
 }
 
 export function CategoryRankingSection({
@@ -60,31 +52,18 @@ export function CategoryRankingSection({
       {!hasFunds ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <p className="text-sm font-medium text-[var(--color-text-secondary)]">
-            No category ranking data available
+            No category comparison data available
           </p>
           <p className="text-xs text-[var(--color-text-secondary)]/70 mt-1 max-w-sm">
-            Import holdings to see how your funds compare against category peer averages and percentile rankings.
+            Import holdings to compare returns with category averages.
           </p>
         </div>
       ) : (
         <div className="space-y-4">
           {funds.map((fund) => {
-            const percentileNum = parsePercent(fund.percentile);
-            const schemeReturnSign = fund.scheme_return == null ? null : compareDecimalStrings(normalizeReturnFraction(fund.scheme_return), "0");
-
             const isUnavailable = fund.category_unavailable;
             const isInsufficient = fund.insufficient_history;
             const isThin = fund.thin_category;
-
-            // Outperformance difference — exact decimal subtraction on the raw
-            // strings, not the already-parsed floats, per the money/percentage
-            // Decimal-discipline rule (see lib/decimal.ts).
-            const diff =
-              fund.scheme_return !== null && fund.category_avg_return !== null
-                ? toPercentString(diffDecimalStrings(normalizeReturnFraction(fund.scheme_return), normalizeReturnFraction(fund.category_avg_return)))
-                : null;
-            const isOutperforming = diff !== null && compareDecimalStrings(diff, "0") >= 0;
-
             return (
               <div
                 key={fund.scheme_id}
@@ -116,45 +95,14 @@ export function CategoryRankingSection({
 
                       {isThin && !isUnavailable && !isInsufficient && (
                         <Badge variant="outline" className="text-[10px] border-[var(--color-warning)] text-[var(--color-warning)] px-2 py-0">
-                          Thin Category ({fund.category_size} peers)
+                          Small comparison group
                         </Badge>
                       )}
                     </div>
                   </div>
 
-                  {/* Scheme Return vs Category Avg summary pill */}
-                  {!isUnavailable && !isInsufficient && schemeReturnSign !== null && (
-                    <div className="flex items-center gap-3 self-start sm:self-auto bg-[var(--color-surface)] px-3 py-1.5 rounded-lg border border-[var(--color-border)]">
-                      <div className="text-right">
-                        <span className="text-[10px] text-[var(--color-text-secondary)] uppercase block font-semibold">
-                          Fund Return
-                        </span>
-                        <span className={cn(
-                          "text-xs font-bold tabular-nums type-data",
-                          schemeReturnSign >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"
-                        )}>
-                          {formatRawFractionPercent(fund.scheme_return)}
-                        </span>
-                      </div>
-
-                      {fund.category_avg_return !== null && (
-                        <>
-                          <div className="h-6 w-px bg-[var(--color-border)]" />
-                          <div className="text-right">
-                            <span className="text-[10px] text-[var(--color-text-secondary)] uppercase block font-semibold">
-                              Category Avg
-                            </span>
-                            <span className="text-xs font-semibold text-[var(--color-ink)] tabular-nums type-data">
-                              {formatRawFractionPercent(fund.category_avg_return)}
-                            </span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
                 </div>
 
-                {!isUnavailable && !isInsufficient && <p className="text-xs text-[var(--color-text-secondary)]">Ranked on the blended 3Y/5Y return.</p>}
                 {(fund.plan_type === "direct" || fund.plan_type === "regular") && <p className="mt-1 text-xs text-[var(--color-text-secondary)]">Compared with {fund.plan_type === "direct" ? "Direct" : "Regular"} plan peers</p>}
                 <PeriodReturnsTable periods={fund.periods} />
 
@@ -162,59 +110,16 @@ export function CategoryRankingSection({
                 {isUnavailable ? (
                   <div className="mt-3 text-xs text-[var(--color-text-secondary)] bg-[var(--color-surface)] p-3 rounded-lg border border-[var(--color-border)] flex items-center gap-2">
                     <HelpCircle className="h-4 w-4 text-[var(--color-warning)] flex-shrink-0" />
-                    <span>SEBI category data is not available for this fund scheme to compute rank positioning.</span>
+                    <span>Category data is not available for this fund.</span>
                   </div>
                 ) : isInsufficient ? (
                   <div className="mt-3 text-xs text-[var(--color-text-secondary)] bg-[var(--color-surface)] p-3 rounded-lg border border-[var(--color-border)] flex items-center gap-2">
                     <Info className="h-4 w-4 text-[var(--color-warning)] flex-shrink-0" />
-                    <span>Fund has insufficient historical NAV records to meet category ranking requirements.</span>
+                    <span>Needs at least 3 years of history</span>
                   </div>
-                ) : (
-                  <div className="mt-4 pt-3 border-t border-[var(--color-border)]/60 space-y-2">
-                    {/* Percentile Rank Header & Numbers */}
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-[var(--color-ink)] flex items-center gap-1.5">
-                        <span>Category Rank:</span>
-                        <span className="text-[var(--color-accent)] font-bold tabular-nums">
-                          #{fund.category_rank ?? "N/A"} of {fund.category_size} funds
-                        </span>
-                      </span>
-
-                      {percentileNum !== null && (
-                        <span className="text-xs font-bold text-[var(--color-ink)] tabular-nums">
-                          Top {(100 - percentileNum).toFixed(0)}% ({percentileNum.toFixed(1)} percentile)
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Percentile Position Gauge Bar */}
-                    {percentileNum !== null && (
-                      <div className="relative h-2.5 w-full bg-[var(--color-surface)] rounded-full overflow-hidden border border-[var(--color-border)]">
-                        <div
-                          className="h-full bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-positive)] transition-all duration-500 rounded-full"
-                          style={{ width: `${Math.min(100, Math.max(2, percentileNum))}%` }}
-                        />
-                      </div>
-                    )}
-
-                    {/* Outperformance / Underperformance Indicator */}
-                    {diff !== null && (
-                      <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)] pt-1">
-                        {isOutperforming ? <TrendingUp className={cn(
-                          "h-3.5 w-3.5",
-                          isOutperforming ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"
-                        )} /> : <TrendingDown className="h-3.5 w-3.5 text-[var(--color-negative)]" />}
-                        <span>
-                          {isOutperforming ? (
-                            <>Outperforming category average by <strong className="text-[var(--color-positive)] font-semibold tabular-nums">+{diff}%</strong></>
-                          ) : (
-                            <>Trailing the category average by <strong className="text-[var(--color-negative)] font-semibold tabular-nums">{diff.startsWith("-") ? diff.slice(1) : diff}%</strong></>
-                          )}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                ) : !fund.periods || Object.keys(fund.periods).length === 0 ? (
+                  <p className="mt-3 text-xs text-[var(--color-text-secondary)]">Return comparisons are updating.</p>
+                ) : null}
               </div>
             );
           })}

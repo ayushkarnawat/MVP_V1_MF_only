@@ -15,7 +15,7 @@ const fundRow = (over: Partial<FundTerRow>): FundTerRow => ({ scheme_id: "X", sc
 
 describe("the four group titles", () => {
   it("are exactly the signed-off names", () => {
-    expect(GROUP_TITLES).toEqual({ cost: "Cost & Valuation", scorer: "Fund Quality Scorer", category: "SEBI Category Ranking & Peer Comparison", ranking: "Performance Ranking" });
+    expect(GROUP_TITLES).toEqual({ cost: "Cost & Valuation", scorer: "Fund Quality Scorer", category: "Category Average Comparison", ranking: "Performance Ranking" });
   });
 });
 
@@ -294,7 +294,7 @@ describe("category and fund ranking logic", () => {
     const funds = fc.categoryRanking().funds;
     expect(categoryOutperform(funds[0])).toBe("Outperforming its Flexi Cap Fund category average over 3Y by 2.1pp.");
     expect(categoryOutperform(funds[2])).toBe("Trailing its Flexi Cap Fund category average over 3Y by 1.8pp.");
-    expect(categoryOutperform({ ...funds[0], category_avg_return: funds[0].scheme_return })).toBe("Outperforming its Flexi Cap Fund category average over 3Y by 0.0pp.");
+    expect(categoryOutperform({ ...funds[0], periods: { "3y": { fund_return: "0.12", category_avg: "0.12", peers: 10 } } })).toBe("Outperforming its Flexi Cap Fund category average over 3Y by 0.0pp.");
     expect(categoryOutperform(funds[3])).toBeNull();
     expect(categoryOutperform({ ...funds[0], sebi_category: null })).toBeNull();
   });
@@ -313,4 +313,26 @@ describe("category and fund ranking logic", () => {
 it("group_titles_are_unique", () => {
   expect(GROUP_TITLES.ranking).toBe("Performance Ranking");
   expect(new Set(Object.values(GROUP_TITLES)).size).toBe(4);
+});
+
+
+it("counts only available periods, treats equality as neither ahead nor behind, and uses the worst shortfall", async () => {
+  const logic = await import("./otherLogic");
+  const row = { ...fc.categoryRanking().funds[0], scheme_name: "Equal Fund", category_unavailable: false, insufficient_history: false,
+    periods: { "1y": { fund_return: "1E-1", category_avg: "0.10", peers: 4 }, "3y": { fund_return: "0.20", category_avg: null, peers: 0 } } };
+  const data = { funds: [row] };
+  expect(logic.categoryComparisonSummary(data)).toContain("0 of 1 comparisons");
+  expect(logic.filterCategoryFunds(data, "behind")).toEqual([]);
+  expect(logic.filterCategoryFunds(data, "ahead")).toEqual([]);
+  expect(logic.categoryComparisonSummary({ funds: [] })).toContain("we do not have enough return data yet");
+});
+
+it("draws negative returns on the same scale and keeps tiny exact gaps in the text", async () => {
+  const logic = await import("./otherLogic");
+  expect(logic.categoryGapText("0.101", "0.098")).toBe("+0.3 pts");
+  expect(logic.categoryGapText("0E-27", "1E-3")).toBe("-0.1 pts");
+  const scale: [number, number] = [-0.2, 0.35];
+  const positions = logic.categoryLinePositions("-0.10", "-0.05", scale);
+  expect(positions.fund).toBeLessThan(positions.average);
+  expect(positions.fund).toBeGreaterThan(0);
 });

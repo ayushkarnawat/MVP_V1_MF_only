@@ -91,7 +91,7 @@ function OtherAnalyticsBody() {
         id="category"
         index={2}
         title={GROUP_TITLES.category}
-        description="Where each fund sits among every other fund SEBI classifies in the same category."
+        description="Your fund returns compared with the simple average of funds in the same category and plan type."
       >
         <CategoryRankingGroup />
       </Group>

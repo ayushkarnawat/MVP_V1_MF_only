@@ -71,10 +71,10 @@ export interface CategoryRankRow {
   sebi_category: string | null;
   category_unavailable: boolean;
   insufficient_history: boolean;
-  scheme_return: string | null;
-  category_rank: number | null;
-  category_size: number;
-  percentile: string | null;
+  scheme_return?: string | null;
+  category_rank?: number | null;
+  category_size?: number;
+  percentile?: string | null;
   category_avg_return: string | null;
   thin_category: boolean;
   periods?: Partial<Record<"1y" | "3y" | "5y", PeriodReturn>>;

@@ -154,6 +154,23 @@ function buildSections(isAggregate: boolean) {
 }
 
 describe("MobileAnalyticsView", () => {
+  it.each([true, false])("renders category periods without retired fields (aggregate=%s)", async aggregate => {
+    const sections = buildSections(aggregate);
+    const comparison = { funds: [{
+      scheme_id: "category-current", scheme_name: "Current Category Fund", sebi_category: "Flexi Cap",
+      category_unavailable: false, insufficient_history: false, thin_category: false,
+      category_avg_return: "0.08", plan_type: "direct",
+      periods: { "1y": { fund_return: "0.12", category_avg: "0.08", peers: 10 } },
+    }] };
+    sections.category_ranking = { payload: aggregate ? { members: [], ranking: comparison } : comparison,
+      computed_at: "2026-10-31T00:00:00Z", failed_at: null };
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: aggregate ? "combined" : "m-1", recomputing: false, sections });
+    render(<MobileAnalyticsView memberId={aggregate ? null : "m-1"} />);
+    expect(await screen.findByText("Current Category Fund")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Returns by period" })).toBeInTheDocument();
+    expect(screen.queryByText("Category Rank:")).not.toBeInTheDocument();
+  });
+
   it.each([true, false])("unwraps valuation for both scopes (aggregate=%s)", async (aggregate) => {
     vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: aggregate ? "combined" : "m-1", recomputing: false, sections: buildSections(aggregate) });
     render(<MobileAnalyticsView memberId={aggregate ? null : "m-1"} />);

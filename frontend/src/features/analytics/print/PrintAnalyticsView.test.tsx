@@ -71,6 +71,20 @@ describe("PrintAnalyticsView", () => {
     vi.restoreAllMocks();
   });
 
+  it("prints category periods without any retired fields", async () => {
+    vi.mocked(api.getExportPayload).mockResolvedValue({ ...payload, ranking: { funds: [{
+      scheme_id: "category-current", scheme_name: "Current Category Fund", sebi_category: "Flexi Cap",
+      category_unavailable: false, insufficient_history: false, thin_category: false,
+      category_avg_return: "0.08", plan_type: "direct",
+      periods: { "1y": { fund_return: "0.12", category_avg: "0.08", peers: 10 } },
+    }] } });
+    render(<PrintAnalyticsView />);
+    await waitFor(() => expect(document.documentElement.dataset.printReady).toBe("true"));
+    expect(screen.getByText("Current Category Fund")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Returns by period" })).toBeInTheDocument();
+    expect(screen.queryByText("Category Rank:")).not.toBeInTheDocument();
+  });
+
   it("legacy_print_view_compiles_without_fund_ranking", async () => {
     vi.spyOn(api, "getExportPayload").mockResolvedValue({ ...payload, fundRanking: { funds: [fundRankingRow] } });
     render(<PrintAnalyticsView />);

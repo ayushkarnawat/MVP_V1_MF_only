@@ -17,7 +17,7 @@ import type {
 export const GROUP_TITLES = {
   cost: "Cost & Valuation",
   scorer: "Fund Quality Scorer",
-  category: "SEBI Category Ranking & Peer Comparison",
+  category: "Category Average Comparison",
   ranking: "Performance Ranking",
 } as const;
 
@@ -589,13 +589,11 @@ export function unscoredReason(fund: FundScoreRow): string {
 // ---- Rankings logic ----
 
 export function categoryOutperform(fund: CategoryRankRow): string | null {
-  if (fund.scheme_return === null || fund.scheme_return === undefined || fund.category_avg_return === null || fund.category_avg_return === undefined || fund.sebi_category === null || fund.sebi_category === undefined) {
-    return null;
-  }
-  const out = compareDecimalStrings(normalizeFraction(fund.scheme_return), normalizeFraction(fund.category_avg_return)) >= 0;
-  const pt = pointsText(fund.scheme_return, fund.category_avg_return);
-  const ptClean = pt.replace(/^[+-]/, "");
-  return `${out ? "Outperforming" : "Trailing"} its ${fund.sebi_category} category average over 3Y by ${ptClean}.`;
+  const period = fund.periods?.["3y"];
+  if (!fund.sebi_category || fund.category_unavailable || fund.insufficient_history || period?.fund_return == null || period.category_avg == null) return null;
+  const out = compareDecimalStrings(normalizeFraction(period.fund_return), normalizeFraction(period.category_avg)) >= 0;
+  const gap = pointsText(period.fund_return, period.category_avg).replace(/^[+-]/, "");
+  return `${out ? "Outperforming" : "Trailing"} its ${fund.sebi_category} category average over 3Y by ${gap}.`;
 }
 
 export function shortCategory(name: string | null): string {
@@ -649,4 +647,62 @@ export function performanceRankColor(rank: number, total: number): string {
 export function performanceRankBanner(data: PerformanceRankingResult): string {
   const { top, total } = performanceComparisonCounts(data);
   return `Your funds rank in the top quarter in ${top} of ${total} comparisons. A rank such as 4/38 means this fund is 4th best out of 38 funds in the same category. Lower is better. The dot shows where the fund sits, from best (left) to last (right); the green stretch is the top quarter.`;
+}
+
+
+export const CATEGORY_PERIODS = ["1y", "3y", "5y"] as const;
+export type CategoryPeriod = typeof CATEGORY_PERIODS[number];
+export type CategoryFilter = "all" | "behind" | "ahead";
+export const CATEGORY_PERIOD_LABELS: Record<CategoryPeriod, string> = { "1y": "1 year", "3y": "3 years", "5y": "5 years" };
+
+function categoryComparisons(fund: CategoryRankRow) {
+  if (fund.category_unavailable || fund.insufficient_history) return [];
+  return CATEGORY_PERIODS.flatMap(period => {
+    const row = fund.periods?.[period];
+    if (row?.fund_return == null || row.category_avg == null) return [];
+    const value = normalizeFraction(row.fund_return), average = normalizeFraction(row.category_avg);
+    if (![value, average].every(text => /^[+-]?\d+(?:\.\d+)?$/.test(text))) return [];
+    return [{ period, value, average, gap: diffDecimalStrings(value, average) }];
+  });
+}
+
+export function categoryGapText(value: string, average: string): string {
+  const gap = diffDecimalStrings(normalizeFraction(value), normalizeFraction(average));
+  return rawPercent(gap, { signed: true }).replace(/%$/, " pts");
+}
+
+export function filterCategoryFunds(data: CategoryRankingSummary, filter: CategoryFilter): CategoryRankRow[] {
+  if (filter === "all") return data.funds;
+  return data.funds.filter(fund => {
+    const comparisons = categoryComparisons(fund);
+    return filter === "behind" ? comparisons.some(row => compareDecimalStrings(row.gap, "0") < 0)
+      : comparisons.length > 0 && comparisons.every(row => compareDecimalStrings(row.gap, "0") > 0);
+  });
+}
+
+export function categoryComparisonSummary(data: CategoryRankingSummary): string {
+  const comparisons = data.funds.flatMap(fund => categoryComparisons(fund).map(row => ({ ...row, name: fund.scheme_name })));
+  const ahead = comparisons.filter(row => compareDecimalStrings(row.gap, "0") > 0).length;
+  // Strictly greater beats the average; equal returns are neither ahead nor behind.
+  // The largest shortfall wins; ties keep payload order, then 1Y/3Y/5Y order.
+  const worst = comparisons.reduce<typeof comparisons[number] | null>((chosen, row) =>
+    compareDecimalStrings(row.gap, "0") < 0 && (!chosen || compareDecimalStrings(row.gap, chosen.gap) < 0) ? row : chosen, null);
+  const watch = worst ? `${worst.name} over ${CATEGORY_PERIOD_LABELS[worst.period]} (${categoryGapText(worst.value, worst.average)}).`
+    : comparisons.length ? "none is behind its category average." : "we do not have enough return data yet.";
+  return `Your funds beat their category average in ${ahead} of ${comparisons.length} comparisons. Each number is your fund's return minus the average return of funds in the same category, in percentage points. Plus is better. The one to watch: ${watch}`;
+}
+
+export function categoryComparisonScale(data: CategoryRankingSummary): [number, number] {
+  let low = "0", high = "0.35";
+  for (const fund of data.funds) for (const row of categoryComparisons(fund)) for (const value of [row.value, row.average]) {
+    if (compareDecimalStrings(value, low) < 0) low = value;
+    if (compareDecimalStrings(value, high) > 0) high = value;
+  }
+  // Number conversion is for CSS geometry only; gaps and classifications above stay exact strings.
+  return [Number(low), Number(high)];
+}
+
+export function categoryLinePositions(value: string, average: string, scale: [number, number]) {
+  const position = (text: string) => 3 + (Number(normalizeFraction(text)) - scale[0]) / (scale[1] - scale[0]) * 94;
+  return { fund: position(value), average: position(average) };
 }

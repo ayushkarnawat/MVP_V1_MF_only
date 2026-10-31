@@ -42,12 +42,12 @@ describe("the page", () => {
     await ready();
     const groups = [...screen.getByTestId("analytics-groups").children];
     expect(groups.map(group => group.getAttribute("data-testid"))).toEqual(["group-cost", "group-scorer", "group-category", "group-ranking"]);
-    const titles = ["Cost & Valuation", "Fund Quality Scorer", "SEBI Category Ranking & Peer Comparison", "Performance Ranking"];
+    const titles = ["Cost & Valuation", "Fund Quality Scorer", "Category Average Comparison", "Performance Ranking"];
     expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.id)).toEqual(["heading-cost", "heading-scorer", "heading-category", "heading-ranking"]);
     titles.forEach((name, index) => expect(screen.getAllByRole("heading", { level: 2 })[index]).toHaveAccessibleName(name));
     expect(screen.getByText("How expensive your funds are to hold, and how richly their holdings are priced.")).toBeInTheDocument();
     expect(screen.getByText("Unifolio's proprietary score — 45% Return, 30% Downside Risk, 25% Consistency vs. SEBI category peers, with a small TER cost nudge. Click a fund for its full breakdown.")).toBeInTheDocument();
-    expect(screen.getByText("Where each fund sits among every other fund SEBI classifies in the same category.")).toBeInTheDocument();
+    expect(screen.getByText("Your fund returns compared with the simple average of funds in the same category and plan type.")).toBeInTheDocument();
     expect(screen.getByText("Each period compares funds in the same SEBI category and plan type.")).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.querySelector("[aria-hidden=true]")?.textContent)).toEqual(["1", "2", "3", "4"]);
   });
@@ -57,7 +57,7 @@ describe("the page", () => {
     const titles = (id: string) => within(screen.getByTestId(id)).getAllByRole("heading", { level: 3 }).map(heading => heading.textContent);
     expect(titles("group-cost")).toEqual(["Total Expense Ratio (TER) & Cost Analysis", "Portfolio Valuation vs. Benchmarks"]);
     expect(titles("group-scorer")).toEqual(["Fund Quality Scores"]);
-    expect(titles("group-category")).toEqual(["Category Rank"]);
+    expect(titles("group-category")).toEqual(["Returns against the category average"]);
     expect(titles("group-ranking")).toEqual(["Rank in your fund's category"]);
   });
   it("asks for the analytics once and for nothing else: every click is client side", async () => {
@@ -67,7 +67,7 @@ describe("the page", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Bar Chart" }));
     fireEvent.click(screen.getByTestId("score-card-S-JM"));
     fireEvent.click(screen.getByTestId("acc-evidence"));
-    fireEvent.click(screen.getByTestId("cat-row-S-KOTAK"));
+    expect(screen.getByTestId("comparison-S-KOTAK-3y")).toBeInTheDocument();
     expect(screen.getByTestId("performance-row-S-KOTAK")).toBeInTheDocument();
     expect(mocks.getAnalyticsScope).toHaveBeenCalledTimes(1);
     expect(mocks.getHoldingsBundle).not.toHaveBeenCalled();
@@ -121,7 +121,7 @@ describe("failure, loading and retry", () => {
     mount();
     await ready();
     expect(screen.getAllByRole("button", { name: "Retry" })).toHaveLength(3);
-    for (const title of ["Portfolio Valuation vs. Benchmarks", "Category Rank", "Rank in your fund's category"]) expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
+    for (const title of ["Portfolio Valuation vs. Benchmarks", "Returns against the category average", "Rank in your fund's category"]) expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
   });
   it("shows a loading status in each card whose section has not settled", async () => {
     const response = fc.analyticsMfC();
@@ -130,7 +130,7 @@ describe("failure, loading and retry", () => {
     mount();
     await screen.findByRole("status", { name: "Loading Rank in your fund's category" });
     expect(screen.getAllByRole("status").map(status => status.getAttribute("aria-label"))).toEqual([
-      "Loading Total Expense Ratio (TER) & Cost Analysis", "Loading Portfolio Valuation vs. Benchmarks", "Loading Fund Quality Scores", "Loading Category Rank", "Loading Rank in your fund's category",
+      "Loading Total Expense Ratio (TER) & Cost Analysis", "Loading Portfolio Valuation vs. Benchmarks", "Loading Fund Quality Scores", "Loading Returns against the category average", "Loading Rank in your fund's category",
     ]);
     expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(4);
   });
@@ -142,9 +142,9 @@ describe("one rupee value and one return per fund", () => {
     await ready();
     expect(container.textContent!.split("₹15,40,000").length - 1).toBe(1);
     fireEvent.click(screen.getByTestId("ladder-toggle-S-KOTAK"));
-    fireEvent.click(screen.getByTestId("cat-row-S-KOTAK"));
+    expect(screen.getByTestId("comparison-S-KOTAK-3y")).toBeInTheDocument();
     const ladder = screen.getByTestId("ladder-return-S-KOTAK-3y").textContent;
-    const category = within(screen.getByRole("table", { name: "Kotak Multi Cap Fund returns by period" })).getByTestId("fund-3y").textContent;
+    const category = within(screen.getByTestId("cat-row-S-KOTAK")).getByTestId("fund-3y").textContent;
     expect(ladder).toBe("15.1%");
     expect(category).toBe(ladder);
   });
@@ -164,7 +164,7 @@ describe("every control on the page", () => {
     fireEvent.click(screen.getByTestId("ladder-toggle-S-JM"));
     fireEvent.click(screen.getByTestId("score-card-S-HDFC"));
     fireEvent.click(screen.getByTestId("acc-methodology"));
-    fireEvent.click(screen.getByTestId("cat-row-S-JM"));
+    expect(screen.getByTestId("comparison-S-JM-3y")).toBeInTheDocument();
     expect(screen.getByTestId("performance-row-S-JM")).toBeInTheDocument();
     expectInteractivity(container, 15);
     expect(container.querySelectorAll("[data-clickable]")).toHaveLength(15);
