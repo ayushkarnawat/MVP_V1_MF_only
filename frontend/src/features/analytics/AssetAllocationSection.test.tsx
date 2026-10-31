@@ -26,6 +26,15 @@ describe("AssetAllocationSection", () => {
     expect(screen.getByText("Fund A")).toBeInTheDocument();
     expect(screen.getByText(/Percentages of covered portfolio value/)).toBeInTheDocument();
   });
+  it("describes five-class payloads as Debt (cash included), not cash-like", () => {
+    const five = { ...sampleAssetAllocation, arbitrage_funds: [{ scheme_id: "arb", scheme_name: "Arb Fund" }],
+      as_disclosed: { ...sampleAssetAllocation.as_disclosed, classes: [...sampleAssetAllocation.as_disclosed.classes, { key: "others" as const, value: "0", percentage: "0" }] } };
+    render(<AssetAllocationSection data={five} />);
+    expect(screen.getByText(/Cash is included under Debt/)).toBeInTheDocument();
+    expect(screen.getByText(/Entire fund value moves to Debt/)).toBeInTheDocument();
+    expect(screen.queryByText(/Percentages of covered portfolio value/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/moves to cash-like/)).not.toBeInTheDocument();
+  });
   it("shares Other drill-down without duplicate anchors or non-equity wording", () => {
     const { container } = render(<><CapAllocationSection data={sampleAssetAllocation.as_disclosed.cap_allocation} /><AssetAllocationSection data={sampleAssetAllocation} /></>);
     fireEvent.click(screen.getByRole("button", { name: /Equity.*80.00%/ }));

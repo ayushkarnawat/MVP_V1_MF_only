@@ -21,6 +21,8 @@ export function AssetAllocationSection({ data, isLoading = false, className, pri
   if (isLoading) return <div aria-label="Loading look-through asset allocation" aria-busy="true" className={cn(CARD, "space-y-4", className)}><Skeleton className="h-6 w-48" /><Skeleton className="h-52 w-52 rounded-full mx-auto" /></div>;
   const variant = data && (asCash ? data.arbitrage_as_cash : data.as_disclosed);
   const classes = variant?.classes ?? [];
+  // New payloads fold cash into Debt and show five classes; stored ones still say cash-like.
+  const fiveClasses = classes.some(c => c.key === "others");
   const largest = [...classes].sort((a, b) => compare(b.percentage, a.percentage))[0];
   // The two rings share amounts and order, so equity's four sub-slices align
   // with its inner arc. Numeric conversion is only for SVG geometry.
@@ -30,10 +32,10 @@ export function AssetAllocationSection({ data, isLoading = false, className, pri
     <h2 id={`${id}-heading`} className="font-display text-lg font-bold tracking-tight text-[var(--color-ink)]">Look-through asset allocation</h2>
     {!data || !variant ? <p className="py-12 text-center text-sm text-[var(--color-text-secondary)]">No look-through asset allocation data available</p> : <>
       <p className="text-xs text-[var(--color-text-secondary)]">Values as on {holdingsDate(data.nav_as_of)} · Holdings as on {holdingsDate(data.holdings_as_of)}</p>
-      <p className="text-xs text-[var(--color-text-secondary)]">Percentages of covered portfolio value, so they differ from the market-cap section, which uses your total portfolio or equity only. Equity’s outer ring shows Large, Mid, Small and Other; debt, gold and cash-like stay undivided.</p>
+      <p className="text-xs text-[var(--color-text-secondary)]">{fiveClasses ? "Percentages of the holdings we could read, so they differ from the market-cap section, which uses your total portfolio or equity only. Cash is included under Debt." : "Percentages of covered portfolio value, so they differ from the market-cap section, which uses your total portfolio or equity only. Equity’s outer ring shows Large, Mid, Small and Other; debt, gold and cash-like stay undivided."}</p>
       <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />
-      {!printMode && <label className="flex gap-3 items-center min-h-11 text-sm text-[var(--color-ink)]"><input type="checkbox" checked={asCash} onChange={e => { setAsCash(e.target.checked); setEquityOpen(false); }} className="size-4 accent-[var(--color-accent)]" />Treat arbitrage funds as cash-like</label>}
-      <p className="text-xs text-[var(--color-text-secondary)]">{data.arbitrage_funds.length ? `Applies to ${data.arbitrage_funds.map(f => f.scheme_name).join(", ")}. Entire fund value moves to cash-like; Equity Savings is unchanged.` : "No covered Arbitrage Fund holdings for this selection."}</p>
+      {!printMode && <label className="flex gap-3 items-center min-h-11 text-sm text-[var(--color-ink)]"><input type="checkbox" checked={asCash} onChange={e => { setAsCash(e.target.checked); setEquityOpen(false); }} className="size-4 accent-[var(--color-accent)]" />Treat arbitrage funds as {fiveClasses ? "cash (counted under Debt)" : "cash-like"}</label>}
+      <p className="text-xs text-[var(--color-text-secondary)]">{data.arbitrage_funds.length ? `Applies to ${data.arbitrage_funds.map(f => f.scheme_name).join(", ")}. Entire fund value moves to ${fiveClasses ? "Debt" : "cash-like"}; Equity Savings is unchanged.` : "No covered Arbitrage Fund holdings for this selection."}</p>
       {compare(data.covered_value, "0") === 0 ? <p className="text-sm text-[var(--color-text-secondary)]">No covered holdings for this selection</p> : <>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
           <div className="relative w-[280px] h-[280px] max-w-full mx-auto">
@@ -45,7 +47,7 @@ export function AssetAllocationSection({ data, isLoading = false, className, pri
         <ul aria-label="Equity outer breakdown" className="flex flex-wrap gap-3 text-xs text-[var(--color-text-secondary)]">{variant.equity_outer.map((b, i) => <li key={b.key} className="flex items-center gap-2"><span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: defaultPieColors[i + 3] }} />{CAPS[b.key]}: {formatPercent(b.percentage)}%</li>)}</ul>
         {!data.hide_headlines && largest && <p className="text-sm font-semibold text-[var(--color-ink)]">Largest asset class: {LABELS[largest.key]} ({formatPercent(largest.percentage)}%)</p>}
         {(classes.some(c => compare(c.percentage, "0") < 0) || variant.equity_outer.some(b => compare(b.percentage, "0") < 0)) && <p className="text-xs text-[var(--color-text-secondary)]">Negative net positions are listed with their signed percentages; the donut shows positive exposures.</p>}
-        {printMode && data.arbitrage_funds.length > 0 && <p className="text-xs text-[var(--color-text-secondary)]">If arbitrage funds were treated as cash-like: {data.arbitrage_as_cash.classes.map((c) => `${LABELS[c.key]} ${formatPercent(c.percentage)}%`).join(" · ")}. Equity by size: {data.arbitrage_as_cash.equity_outer.map((b) => `${CAPS[b.key]} ${formatPercent(b.percentage)}%`).join(" · ")}.</p>}
+        {printMode && data.arbitrage_funds.length > 0 && <p className="text-xs text-[var(--color-text-secondary)]">If arbitrage funds were treated as {fiveClasses ? "cash (counted under Debt)" : "cash-like"}: {data.arbitrage_as_cash.classes.map((c) => `${LABELS[c.key]} ${formatPercent(c.percentage)}%`).join(" · ")}. Equity by size: {data.arbitrage_as_cash.equity_outer.map((b) => `${CAPS[b.key]} ${formatPercent(b.percentage)}%`).join(" · ")}.</p>}
         {equityOpen && <div id={`${id}-equity`} role="region" aria-label="Equity market-cap drill-down"><CapAllocationSection data={variant.cap_allocation} embedded /></div>}
       </>}
     </>}

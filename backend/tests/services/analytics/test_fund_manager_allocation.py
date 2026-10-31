@@ -506,3 +506,9 @@ def test_group_of_single_ordinary_manager_funds_is_marked(db_session):
     group = result.manager_groups[0]
     assert group.main_source == "marked"
     assert group.total_household_value == "300.00" and len(group.funds) == 2
+
+
+def test_explicit_lead_beats_fund_orientation(db_session):
+    # Review finding (Run 1): an explicit lead must not lose to an "Equity Portion" label.
+    result = _main_allocation(db_session, [("Equity fund", "AMC", "100", "Equity", [("Lead person", "Lead Fund Manager"), ("Portion person", "Equity Portion")])])
+    assert [(g.manager_name, g.total_household_value, g.main_source) for g in result.manager_groups] == [("Lead person", "100.00", "marked")]

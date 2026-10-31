@@ -4,7 +4,7 @@ import { FundManagerSection } from "./FundManagerSection";
 import type { FundManagerAllocationSummary } from "./types";
 
 const summary: FundManagerAllocationSummary = {
-  manager_groups: [{ manager_name: "Anita", amc_name: "Alpha Mutual Fund", percentage: "37.50",
+  manager_groups: [{ main_source: "marked", manager_name: "Anita", amc_name: "Alpha Mutual Fund", percentage: "37.50",
     role: null, total_household_value: "150000.00", funds: [] }],
   unavailable_schemes: [{ scheme_id: "s3", scheme_name: "HDFC Balanced Fund", amc_name: "HDFC Mutual Fund" }],
   portfolio_value: "400000.00", covered_value: "350000.00", covered_percentage: "87.50",
@@ -31,6 +31,12 @@ describe("FundManagerSection", () => {
     expect(row).toHaveTextContent("₹3,50,000");
     expect(row).toHaveTextContent("87.5%");
     expect(screen.getByText("Each fund's full value is counted under its main manager.")).toBeInTheDocument();
+  });
+  it("keeps the equal-split caption for a payload stored before the main-manager rule", () => {
+    const old = { ...summary, manager_groups: summary.manager_groups.map(({ main_source: _unused, ...group }) => group) };
+    render(<FundManagerSection data={old} />);
+    expect(screen.getByText("Funds with more than one manager are divided equally between them.")).toBeInTheDocument();
+    expect(screen.queryByText("Each fund's full value is counted under its main manager.")).not.toBeInTheDocument();
   });
   it("keeps the not-available list", () => {
     render(<FundManagerSection data={summary} />);

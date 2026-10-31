@@ -52,6 +52,9 @@ def run(db, amc_name: str, pdfs: list[Path], today: date,
             # Checked for every file before writing anything, so a wrong file changes nothing.
             sys.exit(f"{pdf.name}: {reason} -- download this month's factsheet and run again.")
         file_date = _file_as_on(pages, entry, today)
+        if as_of is not None and file_date is None:
+            # --as-of may only relax the 45-day age limit; a date later than the real today (+7 days) is never accepted.
+            sys.exit(f"{pdf.name}: no usable 'as on' date found (a future date is not accepted) -- download this month's factsheet and run again.")
         file_dates.append((pdf.name, file_date))
         if as_of is not None and file_date is not None and (today - file_date).days > 45:
             needs_warning = True

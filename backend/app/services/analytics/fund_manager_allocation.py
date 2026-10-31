@@ -94,8 +94,11 @@ def pick_main_manager(rows: list[SchemeFundManager]) -> MainManager:
 
 def _pick_for_fund(rows: list[SchemeFundManager], holding) -> MainManager:
     active = _active_rows(rows)
-    if len(active) < 2:
-        return pick_main_manager(active)
+    overall = pick_main_manager(active)
+    # An explicit main designation (lead, or one ordinary manager beside assistants)
+    # always wins; the fund's equity/debt orientation only breaks an otherwise assumed pick.
+    if len(active) < 2 or not overall.assumed:
+        return overall
     category = (holding.sebi_category or "").casefold()
     orientation = holding.asset_class.casefold()
     if category.startswith("equity scheme") or "aggressive hybrid" in category:

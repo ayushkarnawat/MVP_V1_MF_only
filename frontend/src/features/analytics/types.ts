@@ -415,6 +415,8 @@ export interface ManagerFundRow {
 }
 
 export interface ManagerGroup {
+  /** Absent on payloads stored before the main-manager rule (they split a fund equally). */
+  main_source?: "marked" | "assumed";
   manager_name: string;
   amc_name?: string;
   percentage?: string;
