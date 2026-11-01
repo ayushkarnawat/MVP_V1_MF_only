@@ -247,7 +247,7 @@ def test_load_index_levels_reads_only_tri_and_the_ten_day_lookback():
 
 
 @pytest.mark.parametrize("transaction_count", [5, 50])
-def test_load_index_levels_issues_one_statement_per_index_regardless_of_transactions(
+def test_load_index_levels_issues_one_bulk_statement_regardless_of_transactions(
     transaction_count,
 ):
     from app.services.analytics.benchmark_windows import load_index_levels
@@ -268,7 +268,7 @@ def test_load_index_levels_issues_one_statement_per_index_regardless_of_transact
     )
 
     assert list(loaded) == list(ALL_BENCHMARK_INDICES)
-    assert len(statements) == len(ALL_BENCHMARK_INDICES) == 8
+    assert len(statements) == 1
     assert all(statement.lstrip().upper().startswith("SELECT") for statement in statements)
 
 

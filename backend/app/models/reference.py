@@ -84,6 +84,29 @@ class BenchmarkIndexMaster(Base):
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
 
 
+class SchemeBenchmark(Base):
+    __tablename__ = "scheme_benchmark"
+    __table_args__ = (
+        CheckConstraint("match_quality IN ('exact', 'proxy', 'none')", name="ck_scheme_benchmark_quality"),
+        CheckConstraint("source IN ('factsheet', 'document', 'category_fallback')", name="ck_scheme_benchmark_source"),
+    )
+    scheme_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schemes.id"), primary_key=True)
+    declared_benchmark_name: Mapped[str] = mapped_column(Text, nullable=False)
+    tier2_benchmark_name: Mapped[str | None] = mapped_column(Text)
+    additional_benchmark_name: Mapped[str | None] = mapped_column(Text)
+    mapped_index_key: Mapped[str | None] = mapped_column(Text)
+    tracked_index_key: Mapped[str | None] = mapped_column(Text)
+    tracked_match_quality: Mapped[str | None] = mapped_column(Text)
+    match_quality: Mapped[str] = mapped_column(Text, nullable=False, default="none", server_default="none")
+    source: Mapped[str] = mapped_column(Text, nullable=False, default="factsheet", server_default="factsheet")
+    verified_on: Mapped[date_] = mapped_column(Date, nullable=False)
+    printed_return_1y: Mapped[Decimal | None] = mapped_column(Numeric(12, 6))
+    printed_return_3y: Mapped[Decimal | None] = mapped_column(Numeric(12, 6))
+    printed_return_5y: Mapped[Decimal | None] = mapped_column(Numeric(12, 6))
+    printed_as_of: Mapped[date_ | None] = mapped_column(Date)
+    price_only_as_tri: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+
+
 class BenchmarkIndexHistory(Base):
     __tablename__ = "benchmark_index_history"
 

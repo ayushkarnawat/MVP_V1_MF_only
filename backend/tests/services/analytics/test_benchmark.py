@@ -956,8 +956,9 @@ def test_window_work_does_not_grow_with_the_number_of_funds():
     two_funds = asyncio.run(window_statement_count(2))
     six_funds = asyncio.run(window_statement_count(6))
 
-    # One levels query per legacy index plus the two-statement re-select that refreshes rows a commit expired.
-    assert two_funds == six_funds == len(enum_module.LEGACY_BENCHMARK_INDICES) + 2
+    # One bulk levels query plus the same two-statement re-select. Adding
+    # declared choices does not add a second history/NAV pass.
+    assert two_funds == six_funds == 3
 
 
 def test_non_database_failure_in_window_inputs_does_not_roll_back_the_session():

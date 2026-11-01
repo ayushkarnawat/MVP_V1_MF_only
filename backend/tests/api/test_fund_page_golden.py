@@ -39,8 +39,31 @@ def _committed():
     }
 
 
+def _old_shape_and_checked_metadata(generated):
+    """Pin every old key/value; separately pin the exact additive metadata.
+
+    Committed fixtures deliberately stay old-shaped to test stored payloads.
+    """
+    from app.services.analytics.benchmark_notes import benchmark_note
+    expected = _committed()
+    for name, payload in generated.items():
+        if payload.get("status") != "ready" or not name.startswith(("performance_", "returns_")):
+            continue
+        added = {"benchmark_source", "declared_benchmark_name", "benchmark_note"}
+        if name.startswith("returns_"):
+            added.add("printed_as_of")
+            assert payload["printed_as_of"] is None
+        assert set(payload) == set(expected[name]) | added
+        source = "none" if name == "performance_1y_debt_no_benchmark.json" else "category"
+        assert payload["benchmark_source"] == source
+        assert payload["declared_benchmark_name"] is None
+        assert payload["benchmark_note"] == (None if source == "none" else benchmark_note("benchmark_note_closest", index="Nifty 500"))
+        generated[name] = {key: value for key, value in payload.items() if key not in added}
+    return generated
+
+
 def test_generated_golden_fixtures_equal_live_routes():
-    assert write_fixture_set(FIXTURES, write=False) == _committed()
+    assert _old_shape_and_checked_metadata(write_fixture_set(FIXTURES, write=False)) == _committed()
 
 
 def test_golden_generation_is_independent_of_real_calendar_date(monkeypatch):
@@ -50,7 +73,7 @@ def test_golden_generation_is_independent_of_real_calendar_date(monkeypatch):
             return cls(2041, 3, 9)
 
     monkeypatch.setattr("scripts.write_fund_fixtures.date", DifferentDate)
-    assert write_fixture_set(FIXTURES, write=False) == _committed()
+    assert _old_shape_and_checked_metadata(write_fixture_set(FIXTURES, write=False)) == _committed()
 
 
 def test_fund_fixture_semantics():

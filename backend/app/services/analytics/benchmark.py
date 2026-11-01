@@ -207,7 +207,7 @@ async def _window_inputs(
     db: Session,
     member_ids: list[uuid.UUID],
     earliest_transaction: date,
-    indices: tuple[BenchmarkIndex, ...],
+    indices: tuple[BenchmarkIndex, ...], *, refresh_indices=None,
 ) -> tuple[WindowContext, dict[BenchmarkIndex, IndexLevels]]:
     # `earliest_transaction` is read by the caller before this runs: the snapshot rebuild and the index
     # top-up below commit, and a commit expires every ORM row the caller already loaded.
@@ -219,7 +219,7 @@ async def _window_inputs(
     today = ist_today()
     ctx = await build_window_context(db, member_ids, today)
     earliest = min([earliest_transaction] + [start for start in ctx.starts.values() if start is not None])
-    for index in indices:
+    for index in indices if refresh_indices is None else refresh_indices:
         if index not in LEGACY_BENCHMARK_INDICES:
             await ensure_index_history_fresh(
                 db,
@@ -326,12 +326,12 @@ def _benchmark_index_for_category(sebi_category: str) -> BenchmarkIndex:
 
 
 async def compute_fund_vs_benchmark(
-    db: Session, household_member_ids: list[uuid.UUID]
+    db: Session, household_member_ids: list[uuid.UUID], *, include_declared: bool = True,
 ) -> FundVsBenchmarkSummary:
     transactions = _investment_transactions(db, household_member_ids)
     fund_level_transactions = _fund_level_transactions(db, household_member_ids)
     if not transactions and not fund_level_transactions:
-        return FundVsBenchmarkSummary(funds=[], overall_portfolio_xirr=None, overall_broad_market_xirr=None)
+        return FundVsBenchmarkSummary(funds=[], overall_portfolio_xirr=None, overall_broad_market_xirr=None, declared_comparison=[] if include_declared else None)
 
     folio_scheme = {
         f.id: f.scheme_id
@@ -345,6 +345,9 @@ async def compute_fund_vs_benchmark(
     current_value_by_scheme = _current_value_by_scheme(holdings)
     schemes = {s.id: s for s in db.query(Scheme).filter(Scheme.id.in_(grouped.keys())).all()}
 
+    from app.services.fund_page.benchmark_select import benchmark_choices
+    choices = benchmark_choices(db, schemes) if include_declared else {}
+    declared_comparison = None
     fund_rows: list[FundBenchmarkRow] = []
     window_jobs: list[
         tuple[FundBenchmarkRow, uuid.UUID, list[Transaction], BenchmarkIndex, Decimal | None, Decimal | None]
@@ -398,7 +401,8 @@ async def compute_fund_vs_benchmark(
             db,
             household_member_ids,
             min(transaction.date for transaction in window_transactions),
-            LEGACY_BENCHMARK_INDICES,
+            tuple(dict.fromkeys([*LEGACY_BENCHMARK_INDICES, *(c.index_key for c in choices.values() if c.index_key)])),
+            refresh_indices=LEGACY_BENCHMARK_INDICES,
         )
         # Refresh rows a commit above may have expired, in one statement (see the portfolio path).
         _fund_level_transactions(db, household_member_ids)
@@ -425,11 +429,57 @@ async def compute_fund_vs_benchmark(
                     exc_info=True,
                 )
 
+        if include_declared:
+            declared_comparison = compute_fund_vs_declared_benchmark(
+                window_ctx, window_levels, choices, grouped, current_value_by_scheme, schemes, fund_rows,
+            )
+
     return FundVsBenchmarkSummary(
+        declared_comparison=declared_comparison,
         funds=fund_rows,
         overall_portfolio_xirr=_xirr_str(overall_portfolio_rate),
         overall_broad_market_xirr=_xirr_str(overall_broad_market_rate),
     )
+
+
+def compute_fund_vs_declared_benchmark(ctx, levels, choices, grouped, current_values, schemes, legacy_rows):
+    """No database access: reuse the section's flows, holdings and history batch."""
+    from app.services.analytics.schemas import DeclaredFundBenchmarkRow, DeclaredFundWindowXirr
+    old = {row.scheme_id: row for row in legacy_rows}
+    result = []
+    for sid, choice in choices.items():
+        previous = old[str(sid)]
+        from app.services.analytics.benchmark_windows import IndexLevels, audited_index_replay, _cas_opening_in_window
+        windows = []
+        for old_window in previous.windows:
+            start = ctx.starts.get(old_window.window)
+            opening = ctx.fund_start_values.get(old_window.window, {}).get(sid) if start is not None else None
+            transactions = grouped.get(sid, [])
+            reason = None
+            value = None
+            if not choice.index_key:
+                reason = "No benchmark is available for this fund."
+            elif current_values.get(str(sid), Decimal("0")) == 0:
+                reason = "The fund has been fully sold."
+            elif start is not None and _cas_opening_in_window(transactions, start, ctx.today):
+                reason = "The original investment dates are not available for this period."
+            elif old_window.window != "SI" and (start is None or opening is None):
+                reason = "The starting investment value is not available for this period."
+            else:
+                flows = [(txn.date, _signed_amount(txn, frozenset({TransactionType.SWITCH_IN}))) for txn in transactions if (start is None or start < txn.date) and txn.date <= ctx.today]
+                checked = audited_index_replay(levels.get(choice.index_key, IndexLevels([], [])), flows, start, opening, ctx.today,
+                    solve=choice.index_key != previous.benchmark_index)
+                reason = checked.reason
+                if reason is None:
+                    value = old_window.benchmark_xirr if choice.index_key == previous.benchmark_index else _xirr_str(checked.rate)
+            windows.append(DeclaredFundWindowXirr(window=old_window.window, start_date=start if start is not None else min((t.date for t in transactions), default=None) if old_window.window == "SI" else None, fund_xirr=old_window.fund_xirr, benchmark_xirr=value, reason=reason))
+        result.append(DeclaredFundBenchmarkRow(
+            scheme_id=str(sid), scheme_name=schemes[sid].name,
+            index_key=choice.index_key, source=choice.source, declared_name=choice.declared_name,
+            note=choice.window_start_note, mapping_age_days=choice.mapping_age_days,
+            windows=windows,
+        ))
+    return result
 
 
 async def get_aggregate_fund_vs_benchmark(db: Session, user_id: uuid.UUID) -> AggregateFundVsBenchmarkResponse:

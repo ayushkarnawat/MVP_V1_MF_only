@@ -12,7 +12,7 @@ from app.models.enums import BenchmarkReturnType
 from app.models.reference import BenchmarkIndexHistory, NavHistory, Scheme
 from app.services.analytics.risk_metrics import years_ago
 from app.services.dashboard.allocation_labels import asset_class_bucket
-from app.services.fund_page.benchmark_select import benchmark_for
+from app.services.fund_page.benchmark_select import benchmark_for_scheme
 from app.services.fund_page.performance import latest_nav_date
 from app.services.fund_page.risk_bands import band_for
 from app.services.fund_page.schemas import RiskMetricOut, RiskResponse, Unavailable, plain
@@ -134,7 +134,7 @@ def _shared_beta(
     start: date,
     end: date,
 ) -> tuple[Decimal | None, str | None]:
-    index = benchmark_for(scheme)
+    index = benchmark_for_scheme(db, scheme.id).index_key
     if index is None:
         return None, "no_benchmark"
     benchmark_rows = db.execute(

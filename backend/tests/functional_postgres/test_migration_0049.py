@@ -24,6 +24,7 @@ def test_migration_converts_enum_to_text_and_keeps_existing_rows(dialect):
                 conn.execute(text(f'CREATE SCHEMA "{schema}"'))
                 conn.execute(text(f'SET LOCAL search_path TO "{schema}"'))
                 conn.execute(text("CREATE TYPE benchmarkindex AS ENUM ('nifty_50', 'nifty_500', 'nifty_largemidcap_250', 'nifty_midcap_150', 'nifty_next_50', 'nifty_smallcap_250', 'nifty_100', 'nifty_200')"))
+            conn.execute(text("CREATE TABLE schemes (id UUID PRIMARY KEY)"))
             kind = "benchmarkindex" if dialect == "postgres" else "VARCHAR(21)"
             conn.execute(text(f"CREATE TABLE benchmark_index_history (index_name {kind} NOT NULL, date DATE NOT NULL, return_type VARCHAR(5) NOT NULL DEFAULT 'price', value NUMERIC(12,2) NOT NULL, PRIMARY KEY (index_name,date,return_type))"))
             conn.execute(text("INSERT INTO benchmark_index_history VALUES ('nifty_50','2026-10-30','tri',12345.67)"))

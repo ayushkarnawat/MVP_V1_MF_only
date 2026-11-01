@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.models.enums import BenchmarkReturnType
 from app.models.reference import BenchmarkIndexHistory, NavHistory, Scheme
-from app.services.fund_page.benchmark_select import BENCHMARK_LABELS, benchmark_for
+from app.services.fund_page.benchmark_select import BENCHMARK_LABELS, benchmark_for_scheme
 from app.services.fund_page.schemas import (
     PerformancePoint,
     PerformanceResponse,
@@ -129,7 +129,8 @@ async def period_series(db: Session, scheme: Scheme, period: str, today: date) -
     sampled = _thin(sampled, MAX_POINTS)
     fund_points = _pct_points(sampled)
 
-    index = benchmark_for(scheme)
+    choice = benchmark_for_scheme(db, scheme.id)
+    index = choice.index_key
     benchmark_points: list[PerformancePoint] | None = None
     benchmark_reason: str | None = None
     benchmark_return: str | None = None
@@ -160,7 +161,10 @@ async def period_series(db: Session, scheme: Scheme, period: str, today: date) -
         clamped=clamped,
         since_launch=since_launch,
         fund=fund_points,
-        benchmark_index=index.value if index is not None else None,
+        benchmark_index=index,
+        benchmark_source=choice.source,
+        declared_benchmark_name=choice.declared_name,
+        benchmark_note=choice.window_start_note,
         benchmark_label=BENCHMARK_LABELS.get(index) if index is not None else None,
         benchmark=benchmark_points,
         benchmark_reason=benchmark_reason,

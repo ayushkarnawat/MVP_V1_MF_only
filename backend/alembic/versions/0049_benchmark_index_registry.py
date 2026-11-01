@@ -190,6 +190,26 @@ def upgrade() -> None:
     # 6 decimal places avoid rounding small daily moves to zero. 12 integer
     # places also leave more headroom than the former ten; no float conversion.
     _change_history(True)
+    op.create_table(
+        "scheme_benchmark",
+        sa.Column("scheme_id", sa.Uuid(), sa.ForeignKey("schemes.id"), primary_key=True),
+        sa.Column("declared_benchmark_name", sa.Text(), nullable=False),
+        sa.Column("tier2_benchmark_name", sa.Text(), nullable=True),
+        sa.Column("additional_benchmark_name", sa.Text(), nullable=True),
+        sa.Column("mapped_index_key", sa.Text(), nullable=True),
+        sa.Column("tracked_index_key", sa.Text(), nullable=True),
+        sa.Column("tracked_match_quality", sa.Text(), nullable=True),
+        sa.Column("match_quality", sa.Text(), nullable=False, server_default="none"),
+        sa.Column("source", sa.Text(), nullable=False, server_default="factsheet"),
+        sa.Column("verified_on", sa.Date(), nullable=False),
+        sa.Column("printed_return_1y", sa.Numeric(12, 6), nullable=True),
+        sa.Column("printed_return_3y", sa.Numeric(12, 6), nullable=True),
+        sa.Column("printed_return_5y", sa.Numeric(12, 6), nullable=True),
+        sa.Column("printed_as_of", sa.Date(), nullable=True),
+        sa.Column("price_only_as_tri", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.CheckConstraint("match_quality IN ('exact', 'proxy', 'none')", name="ck_scheme_benchmark_quality"),
+        sa.CheckConstraint("source IN ('factsheet', 'document', 'category_fallback')", name="ck_scheme_benchmark_source"),
+    )
 
 
 def downgrade() -> None:
@@ -197,5 +217,6 @@ def downgrade() -> None:
     keys = set(conn.execute(sa.text("SELECT DISTINCT index_name FROM benchmark_index_history")).scalars())
     if keys - set(_LEGACY):
         raise ValueError("Cannot downgrade with new index keys in history; archive those rows first")
+    op.drop_table("scheme_benchmark")
     _change_history(False)
     op.drop_table("benchmark_index_master")

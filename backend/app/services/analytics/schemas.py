@@ -228,7 +228,24 @@ class FundBenchmarkRow(BaseModel):
     windows: list[FundWindowXirr] = []
 
 
+class DeclaredFundWindowXirr(FundWindowXirr):
+    start_date: date | None = None
+    reason: str | None = None
+
+
+class DeclaredFundBenchmarkRow(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    index_key: str | None
+    source: Literal["factsheet", "closest", "category", "none"]
+    declared_name: str | None = None
+    note: str | None = None
+    mapping_age_days: int | None = None
+    windows: list[DeclaredFundWindowXirr] = Field(default_factory=list)
+
+
 class FundVsBenchmarkSummary(BaseModel):
+    declared_comparison: list[DeclaredFundBenchmarkRow] | None = None
     funds: list[FundBenchmarkRow]
     overall_portfolio_xirr: str | None
     overall_broad_market_xirr: str | None

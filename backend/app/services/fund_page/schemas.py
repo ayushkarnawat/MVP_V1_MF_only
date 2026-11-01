@@ -120,6 +120,9 @@ class PeriodReturnsOut(FundModel):
 
 
 class PerformanceResponse(FundModel):
+    benchmark_source: str | None = None
+    declared_benchmark_name: str | None = None
+    benchmark_note: str | None = None
     status: Literal["ready"] = "ready"
     scheme_id: str
     period: str
@@ -136,6 +139,10 @@ class PerformanceResponse(FundModel):
 
 
 class ReturnsResponse(FundModel):
+    benchmark_source: str | None = None
+    declared_benchmark_name: str | None = None
+    benchmark_note: str | None = None
+    printed_as_of: date | None = None
     status: Literal["ready"] = "ready"
     mode: Literal["inception", "current"]
     columns: list[str]

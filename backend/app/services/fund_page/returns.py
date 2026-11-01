@@ -15,7 +15,7 @@ from app.services.analytics.nse_indices_client import get_index_level_on_or_befo
 from app.services.analytics.xirr import xirr
 from app.services.dashboard.holdings import FifoState, _load_folio_transactions, compute_holdings
 from app.services.dashboard.xirr import _FUND_DEBIT_TYPES, _signed_amount
-from app.services.fund_page.benchmark_select import benchmark_for
+from app.services.fund_page.benchmark_select import benchmark_for_scheme
 from app.services.fund_page.performance import latest_nav_date, period_start
 from app.services.fund_page.schemas import ReturnsResponse, Unavailable, plain
 from app.services.fund_page.scope import ScopeContext
@@ -127,7 +127,8 @@ def inception_returns(
     )
     fund_dates["since_inception"] = (first[0], last[0])
 
-    benchmark_index = benchmark_for(scheme)
+    choice = benchmark_for_scheme(db, scheme.id)
+    benchmark_index = choice.index_key
     benchmark_reason: str | None = None
     benchmark: dict[str, str | None] | None = None
     if benchmark_index is None:
@@ -152,7 +153,23 @@ def inception_returns(
             benchmark = None
             benchmark_reason = "no_history"
 
+    printed_date = None
+    note = choice.window_start_note
+    if benchmark is None or choice.source != "factsheet":
+        from app.models.reference import SchemeBenchmark
+        from app.services.analytics.benchmark_notes import benchmark_note
+        row = db.get(SchemeBenchmark, scheme.id)
+        if row and row.printed_as_of and row.printed_as_of <= end:
+            values = {"1Y": row.printed_return_1y, "3Y": row.printed_return_3y, "5Y": row.printed_return_5y}
+            if any(value is not None and fund.get(period) is not None for period, value in values.items()):
+                benchmark = {column: (plain(values[column], 4) if column in values and values[column] is not None and fund.get(column) is not None else None) for column in _INCEPTION_COLUMNS}
+                printed_date = row.printed_as_of
+                note = benchmark_note("benchmark_note_printed", date=printed_date.isoformat())
+                benchmark_reason = None
     return ReturnsResponse(
+        benchmark_source=choice.source,
+        declared_benchmark_name=choice.declared_name,
+        benchmark_note=note, printed_as_of=printed_date,
         mode="inception",
         columns=_INCEPTION_COLUMNS,
         rows={"fund": fund, "benchmark": benchmark},
@@ -302,7 +319,8 @@ async def current_returns(
 
     holding: dict[str, str | None] = {}
     benchmark: dict[str, str | None] | None
-    benchmark_index = benchmark_for(scheme)
+    choice = benchmark_for_scheme(db, scheme.id)
+    benchmark_index = choice.index_key
     benchmark = {} if benchmark_index is not None else None
     tri_levels = _tri_levels(db, benchmark_index, end) if benchmark_index is not None else None
     for column in _CURRENT_COLUMNS:
@@ -340,6 +358,8 @@ async def current_returns(
         benchmark_reason = "no_history"
 
     return ReturnsResponse(
+        benchmark_source=choice.source, declared_benchmark_name=choice.declared_name,
+        benchmark_note=choice.window_start_note,
         mode="current",
         columns=_CURRENT_COLUMNS,
         rows={"holding_xirr": holding, "benchmark_same_flows": benchmark},

@@ -23,7 +23,7 @@ from app.services.analytics.risk_metrics import (
     years_ago,
 )
 from app.services.analytics.scheme_universe import get_category_peers
-from app.services.fund_page.benchmark_select import benchmark_for
+from app.services.fund_page.benchmark_select import benchmark_for_scheme
 from app.services.fund_page.peer_cache import peer_cache
 from app.services.fund_page.performance import period_start
 from app.services.fund_page.schemas import (
@@ -245,7 +245,7 @@ def _rolling_value(start: Decimal | None, end: Decimal | None, years: int) -> De
 def _benchmark_series(
     db: Session, scheme: Scheme, anchors: list[date],
 ) -> list[Decimal | None] | None:
-    index = benchmark_for(scheme)
+    index = benchmark_for_scheme(db, scheme.id).index_key
     if index is None:
         return None
     rows = list(db.execute(

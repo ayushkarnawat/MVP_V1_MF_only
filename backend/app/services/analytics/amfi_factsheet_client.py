@@ -35,6 +35,7 @@ from app.db.session import commit_off_loop
 from app.models.reference import Scheme, SchemeFundManager, SchemeReportedValuation
 from app.services.analytics.scheme_universe import canonical_category
 from app.services.analytics.fund_manager_layouts import SchemePage, LAYOUTS, Word
+from app.services.analytics.benchmark_layouts import NEEDS_BOXES as BENCHMARK_NEEDS_BOXES, read_benchmarks
 from app.services.analytics.fund_manager_resolvers import AMC_RESOLVERS, ResolverEntry, ResolverKind
 from app.services.analytics.fund_valuation_layouts import NEEDS_BOXES, ValuationReading, read_valuation
 
@@ -649,6 +650,44 @@ def import_pages(
     return len(matched), unmatched
 
 
+def import_benchmarks(db: Session, amc: str, readings, verified_on: date) -> tuple[int, int]:
+    """Upsert only exact same-house family matches; failed houses keep old rows."""
+    from app.models.reference import SchemeBenchmark
+    from app.services.analytics.benchmark_names import normalise_benchmark_name
+
+    if not readings:
+        return 0, 0
+    families = build_families(db.query(Scheme).filter(Scheme.amc_name == amc).all())
+    matched, unmatched, pending = set(), 0, {}
+    for reading in readings:
+        results = [r for r in match_scheme_families(SchemePage(reading.heading, []), families)
+                   if r[1] in {MATCH_METHOD_EXACT, MATCH_METHOD_ISIN}]
+        if not results:
+            unmatched += 1
+            continue
+        match = normalise_benchmark_name(reading.tier1_name)
+        tracked_match = normalise_benchmark_name(reading.tracked_index_name) if reading.tracked_index_name else None
+        tracked = tracked_match.key if tracked_match else None
+        for family, _, _ in results:
+            for scheme in family.schemes:
+                row = pending.get(scheme.id) or db.get(SchemeBenchmark, scheme.id)
+                if row is None:
+                    row = SchemeBenchmark(scheme_id=scheme.id)
+                    db.add(row)
+                pending[scheme.id] = row
+                row.declared_benchmark_name = reading.tier1_name
+                row.tier2_benchmark_name = reading.tier2_name
+                row.additional_benchmark_name = reading.additional_name
+                row.printed_return_1y, row.printed_return_3y, row.printed_return_5y = reading.printed_return_1y, reading.printed_return_3y, reading.printed_return_5y
+                row.printed_as_of = reading.printed_as_of
+                row.mapped_index_key, row.tracked_index_key = match.key, tracked
+                row.tracked_match_quality = tracked_match.quality if tracked_match else None
+                row.match_quality, row.source = match.quality, "factsheet"
+                row.verified_on, row.price_only_as_tri = verified_on, match.price_only_as_tri
+            matched.add((family.amc_name, family.base_name))
+    return len(matched), unmatched
+
+
 def import_reported_valuation(
     db: Session, amc: str, readings: list[ValuationReading], reference_period: date,
 ) -> tuple[int, int]:
@@ -718,7 +757,7 @@ async def _resolve_and_read(client, entry: ResolverEntry, directory: dict[str, s
         groups = [await _static_link_candidates(client, landing, pattern)
                   for pattern in entry.documents or (entry.link_pattern,)]
     combined, words, source_files, page_numbers = [], [], [], []
-    needs_boxes = entry.needs_boxes or entry.layout in NEEDS_BOXES
+    needs_boxes = entry.needs_boxes or entry.layout in NEEDS_BOXES or entry.layout in BENCHMARK_NEEDS_BOXES
     for candidates in groups:
         if not candidates:
             return None, "no_factsheet_link"
@@ -1024,6 +1063,7 @@ async def refresh_fund_managers(db: Session) -> FundManagerRefreshResult:
                 matched, unmatched = import_pages(db, amc_name, pages, reader, reference_period)
                 readings = read_valuation(entry.layout, pages, getattr(pages, "words", None))
                 import_reported_valuation(db, amc_name, readings, reference_period)
+                import_benchmarks(db, amc_name, read_benchmarks(entry.layout, pages, getattr(pages, "words", None)), today)
                 await commit_off_loop(db)  # per AMC: a later AMC failing never undoes this one
                 last = _families_matched_last_month(db, amc_name, reference_period)
                 if last and matched < last / 2:

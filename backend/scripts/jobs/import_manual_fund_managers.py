@@ -18,8 +18,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from app.db.session import SessionLocal
-from app.services.analytics.amfi_factsheet_client import FactsheetPages, _latest_as_on, _parse_managing_since, extract_page_text, extract_page_words, import_pages, import_reported_valuation, looks_like_current_factsheet
+from app.services.analytics.amfi_factsheet_client import FactsheetPages, _latest_as_on, _parse_managing_since, extract_page_text, extract_page_words, import_pages, import_benchmarks, import_reported_valuation, looks_like_current_factsheet
 from app.services.analytics.fund_manager_layouts import LAYOUTS
+from app.services.analytics.benchmark_layouts import NEEDS_BOXES as BENCHMARK_NEEDS_BOXES, read_benchmarks
 from app.services.analytics.fund_valuation_layouts import NEEDS_BOXES, read_valuation
 from app.services.analytics.fund_manager_resolvers import AMC_RESOLVERS, ResolverKind
 
@@ -40,7 +41,7 @@ def run(db, amc_name: str, pdfs: list[Path], today: date,
     if entry.layout is None:
         sys.exit(f"{amc_name!r} has no factsheet reader; no managers were imported.")
     reader = LAYOUTS[entry.layout]
-    needs_boxes = entry.needs_boxes or entry.layout in NEEDS_BOXES
+    needs_boxes = entry.needs_boxes or entry.layout in NEEDS_BOXES or entry.layout in BENCHMARK_NEEDS_BOXES
     pages_per_file = []
     file_dates = []
     needs_warning = False
@@ -78,6 +79,7 @@ def run(db, amc_name: str, pdfs: list[Path], today: date,
     dated = [file_date for _, file_date in file_dates if file_date is not None]
     valuation_month = min(dated).replace(day=1) if needs_warning and dated else today.replace(day=1)
     import_reported_valuation(db, amc_name, readings, valuation_month)
+    import_benchmarks(db, amc_name, read_benchmarks(entry.layout, all_pages, all_pages.words), today)
     db.commit()
     for filename, file_date in file_dates:
         print(f"{filename}: as on {file_date.isoformat() if file_date else 'date not found'}")

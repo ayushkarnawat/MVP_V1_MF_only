@@ -178,23 +178,19 @@ def load_index_levels(
     start: date,
     end: date,
 ) -> dict[BenchmarkIndex, IndexLevels]:
-    loaded = {}
-    for index in indices:
-        rows = (
-            db.query(BenchmarkIndexHistory.date, BenchmarkIndexHistory.value)
-            .filter(
-                BenchmarkIndexHistory.index_name == index,
-                BenchmarkIndexHistory.return_type == BenchmarkReturnType.TRI,
-                BenchmarkIndexHistory.date >= start - timedelta(days=10),
-                BenchmarkIndexHistory.date <= end,
-            )
-            .order_by(BenchmarkIndexHistory.date)
-            .all()
-        )
-        loaded[index] = IndexLevels(
-            [row.date for row in rows],
-            [row.value for row in rows],
-        )  # column rows, not ORM entities: tens of thousands of rows per call
+    keys = tuple(dict.fromkeys(indices))
+    loaded = {key: IndexLevels([], []) for key in keys}
+    if not keys:
+        return loaded
+    # One history read for the union of legacy and declared keys. No second
+    # history/NAV pass when the new comparison is requested.
+    rows = (db.query(BenchmarkIndexHistory.index_name, BenchmarkIndexHistory.date, BenchmarkIndexHistory.value)
+        .filter(BenchmarkIndexHistory.index_name.in_(keys), BenchmarkIndexHistory.return_type == BenchmarkReturnType.TRI,
+                BenchmarkIndexHistory.date >= start - timedelta(days=10), BenchmarkIndexHistory.date <= end)
+        .order_by(BenchmarkIndexHistory.index_name, BenchmarkIndexHistory.date).all())
+    for key, day, value in rows:
+        loaded[key].dates.append(day)
+        loaded[key].values.append(value)
     return loaded
 
 
@@ -237,6 +233,51 @@ def index_window_xirr(
         return None
     replayed.append((today, units * terminal_level))
     return (solver or xirr)(replayed)
+
+
+@dataclass(frozen=True)
+class BenchmarkReplay:
+    rate: Decimal | None
+    closing_value: Decimal | None
+    reason: str | None = None
+
+
+def audited_index_replay(levels: IndexLevels, flows, start, opening_value, today, *, solve=True) -> BenchmarkReplay:
+    """Strict replay for new comparisons; legacy stored numbers are untouched."""
+    units = Decimal("0")
+    cashflows = []
+
+    def level(day):
+        value = levels.on_or_before(day)
+        return value if value is not None and value.is_finite() and value > 0 else None
+
+    missing = "Index values are not available for every investment date in this period."
+    if start is not None:
+        first = level(start)
+        if first is None:
+            return BenchmarkReplay(None, None, missing)
+        if opening_value is None or not opening_value.is_finite() or opening_value < 0:
+            return BenchmarkReplay(None, None, "The starting investment value is not available for this period.")
+        units = opening_value / first
+        cashflows.append((start, -opening_value))
+    for day, amount in sorted(flows, key=lambda row: row[0]):
+        value = level(day)
+        if value is None:
+            return BenchmarkReplay(None, None, missing)
+        units -= amount / value
+        if units < -_UNITS_DUST:
+            return BenchmarkReplay(None, None, "The sale is larger than the value held in the index comparison.")
+        if units < 0:
+            units = Decimal("0")
+        cashflows.append((day, amount))
+    close = level(today)
+    if close is None:
+        return BenchmarkReplay(None, None, missing)
+    if not cashflows:
+        return BenchmarkReplay(None, None, "There are no investments to compare in this period.")
+    closing_value = units * close
+    rate = xirr_fast([*cashflows, (today, closing_value)]) if solve else None
+    return BenchmarkReplay(rate, closing_value)
 
 
 def _index_rows(
