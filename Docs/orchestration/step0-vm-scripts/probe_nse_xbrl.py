@@ -143,7 +143,8 @@ def first(row, keys):
 def eligible(row, symbol):
     if str(first(row, ("symbol", "Symbol", "SYMBOL")) or "").strip().upper() != symbol:
         return None
-    attachment = row.get("attachment_filename")
+    # Real list rows (checked 1 Nov 2026 from the VM) name the filing "xbrl" (a full URL to one .xml file).
+    attachment = row.get("attachment_filename") or row.get("xbrl")
     if not isinstance(attachment, str) or not attachment.strip():
         return None
     end = parse_date(first(row, ("to_date", "period_ended", "periodEnded", "period_end", "periodEnd", "periodEndDate", "toDate")))
@@ -261,7 +262,15 @@ def main():
         raise StopProbe("zip_download_failed")
     emit("zip_size", bytes=len(body))
     if not zipfile.is_zipfile(io.BytesIO(body)):
-        raise StopProbe("attachment_is_not_a_zip")
+        # The real attachment is a bare XBRL .xml file, not a ZIP.
+        if not body.lstrip()[:1] == b"<":
+            raise StopProbe("attachment_is_not_a_zip")
+        (folder / "filing.xml").write_bytes(body)
+        emit("xbrl_files", files=[PurePosixPath(urllib.parse.urlsplit(url).path).name])
+        if len(body) > MAX_XML_BYTES:
+            raise StopProbe("xml_size_limit")
+        inspect_xml("filing.xml", body)
+        return 0
     (folder / "filing.zip").write_bytes(body)
     with zipfile.ZipFile(io.BytesIO(body)) as archive:
         members = [item for item in archive.infolist() if not item.is_dir()]
