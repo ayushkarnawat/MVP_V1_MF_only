@@ -1250,3 +1250,11 @@ def test_folio_paisa_allocation_never_makes_a_small_positive_folio_negative():
         values = [Decimal(getattr(f, field)) for f in row.folios]
         assert min(values) >= 0
         assert sum(values, Decimal("0")) == Decimal("0.02")
+
+
+def test_average_price_is_plain_decimal_text_never_exponent_form():
+    # 5000 / 100 divides exactly and Decimal keeps "5E+1"; the screen read that as 0.00 (review 1 Nov).
+    row = _consolidation_rows()[0].model_copy(update={"units_held": "100.000", "amount_invested": "5000.00000"})
+    [parent] = _consolidate([row])
+    assert parent.average_price == "50"
+    assert parent.children[0].average_nav == "50"

@@ -257,8 +257,8 @@ describe("consolidated family holdings", () => {
     expect(parent).toHaveTextContent("₹550");
     expect(parent).toHaveTextContent("12.0%");
     expect(within(parent).getByTestId("split-bar")).toBeInTheDocument();
-    expect(within(parent).getByTestId("share-m1")).toHaveStyle({ width: "25%" });
-    expect(within(parent).getByTestId("share-m2")).toHaveStyle({ width: "75%" });
+    expect(within(parent).getByTestId("share-m1")).toHaveStyle({ width: "25.00%" });
+    expect(within(parent).getByTestId("share-m2")).toHaveStyle({ width: "75.00%" });
   });
   it("expand_opens_one_row_per_member_with_the_masked_folio", () => {
     table({ consolidated: familyParents() });
@@ -313,4 +313,16 @@ it("keeps the family totals and never counts the expanded children twice", () =>
 it("does not announce sorting on unsortable family columns", () => {
   table({ consolidated: familyParents() });
   expect(screen.getByRole("columnheader", { name: "Fund" })).not.toHaveAttribute("aria-sort");
+});
+
+
+it("split_shares_always_total_exactly_100_percent", () => {
+  const parents = familyParents();
+  const base = parents[0].children[0];
+  parents[0].children = ["m1", "m2", "m3"].map(id => ({ ...base, household_member_id: id, household_member_name: id, units_held: "10" }));
+  parents[0].units_held = "30";
+  table({ consolidated: parents });
+  const widths = ["m1", "m2", "m3"].map(id => Number.parseFloat(screen.getByTestId(`share-${id}`).style.width));
+  expect(Math.round(widths.reduce((a, b) => a + b, 0) * 100)).toBe(10000);
+  expect(widths.sort()).toEqual([33.33, 33.33, 33.34]);
 });

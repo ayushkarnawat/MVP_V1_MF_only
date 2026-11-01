@@ -9,7 +9,6 @@ import { useAppNavigate } from "../../../shell/nav/useAppNavigate";
 import { FundLink } from "../common/FundLink";
 import {
   changeDirection,
-  percentOf,
   formatSignedPercent,
   formatSignedRupees,
   formatXirr,
@@ -300,6 +299,20 @@ export function HoldingsTable({
 }
 
 
+/** Ownership shares in whole hundredths of a percent that always total exactly 100 (largest remainder). */
+function splitShares(units: string[]): string[] {
+  const scale = Math.max(0, ...units.map(u => (u.split(".")[1] ?? "").length));
+  const parse = (u: string) => { const [w, f = ""] = u.replace(/^-/, "").split("."); return BigInt(w + f.padEnd(scale, "0")); };
+  const parts = units.map(parse);
+  const total = parts.reduce((a, b) => a + b, 0n);
+  if (total === 0n) return units.map(() => "0");
+  const floors = parts.map(p => (p * 10000n) / total);
+  let left = 10000n - floors.reduce((a, b) => a + b, 0n);
+  const order = parts.map((p, i) => ({ i, rem: (p * 10000n) % total })).sort((a, b) => (a.rem < b.rem ? 1 : a.rem > b.rem ? -1 : a.i - b.i));
+  for (const { i } of order) { if (left <= 0n) break; floors[i] += 1n; left -= 1n; }
+  return floors.map(f => `${f / 100n}.${String(f % 100n).padStart(2, "0")}`);
+}
+
 const MEMBER_COLOURS = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)"];
 const FAMILY_COLUMNS: Array<{ label: string; key?: SortKey }> = [
   { label: "Fund" }, { label: "Units" }, { label: "Avg price" }, { label: "Invested", key: "invested" },
@@ -374,6 +387,7 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, onAnalyse, onCompareDi
         {shown.map(parent => {
           const key = `${parent.scheme_id}:${parent.plan_type}`;
           const open = expanded.has(key), multiple = parent.children.length > 1;
+          const shares = splitShares(parent.children.map(c => c.units_held));
           const toggle = () => setExpanded(previous => { const next = new Set(previous); if (next.has(key)) next.delete(key); else next.add(key); return next; });
           return <tbody key={key} className="mb-4 block overflow-hidden rounded-xl border border-[var(--ui-divider)] sm:mb-0 sm:table-row-group sm:rounded-none sm:border-0">
             <tr data-testid={`parent-${key}`} className="grid grid-cols-2 border-b border-[var(--ui-divider)] sm:table-row">
@@ -392,12 +406,12 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, onAnalyse, onCompareDi
                 {multiple && <div className="mt-3 space-y-2">
                   <div data-testid="split-bar" role="img" aria-label={`Ownership of ${parent.scheme_name} by member`} className="flex h-1.5 overflow-hidden rounded-full bg-[var(--ui-divider)]">
                     {parent.children.map((c, index) => <span key={c.household_member_id} data-testid={`share-${c.household_member_id}`}
-                      style={{ width: `${percentOf(c.units_held, parent.units_held) ?? "0"}%`, background: MEMBER_COLOURS[index % MEMBER_COLOURS.length] }} />)}
+                      style={{ width: `${shares[index]}%`, background: MEMBER_COLOURS[index % MEMBER_COLOURS.length] }} />)}
                   </div>
                   <ul aria-label="Member shares" className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--ui-text-muted)]">
                     {parent.children.map((c, index) => <li key={c.household_member_id} className="flex items-center gap-1">
                       <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ background: MEMBER_COLOURS[index % MEMBER_COLOURS.length] }} />
-                      {c.household_member_name} {percentOf(c.units_held, parent.units_held) ?? "0"}%
+                      {c.household_member_name} {shares[index]}%
                     </li>)}
                   </ul>
                 </div>}

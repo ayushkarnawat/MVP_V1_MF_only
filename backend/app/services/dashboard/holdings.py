@@ -387,7 +387,7 @@ def consolidate_holdings(
                 value = data[field]
                 data[field] = str(quantize_amount(Decimal(value))) if value is not None else None
             units = Decimal(row.units_held)
-            data["average_nav"] = str(Decimal(data["amount_invested"]) / units) if units else None
+            data["average_nav"] = format(Decimal(data["amount_invested"]) / units, "f") if units else None
             rate = xirr_by_scope.get(row.household_member_id, {}).get(uuid.UUID(sid)) if member_rates_available else None
             children.append(ConsolidatedHoldingChild(**data, xirr=rate))
         def summed(field):
@@ -406,7 +406,7 @@ def consolidate_holdings(
         result.append(ConsolidatedHolding(
             scheme_id=sid, scheme_name=first.scheme_name, amc_name=first.amc_name, asset_class=first.asset_class,
             plan_type=plan, plan_verified=all(c.plan_verified for c in children), sebi_category=first.sebi_category,
-            units_held=str(units), average_price=str(Decimal(invested) / units) if units else None,
+            units_held=format(units, "f"), average_price=format(Decimal(invested) / units, "f") if units and invested is not None else None,
             amount_invested=invested, current_value=summed("current_value"), realized_gain=summed("realized_gain"),
             unrealized_gain=summed("unrealized_gain"), current_profit_total=summed("current_profit_total"), today_gain=summed("today_gain"),
             current_nav=first.current_nav if all(c.current_nav == first.current_nav for c in children) else None,
