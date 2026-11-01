@@ -103,3 +103,16 @@ def test_axis_printed_returns_read_the_benchmark_row_not_the_fund_or_sip_row():
 def test_unverified_geometry_fails_closed_for_two_adjacent_index_names(layout):
     words = [(10,700,60,710,"Benchmark"),(65,700,90,710,"Nifty"),(95,700,110,710,"500"),(115,700,130,710,"TRI"),(140,700,165,710,"Nifty"),(170,700,185,710,"50"),(190,700,205,710,"TRI")]
     assert module().benchmark_block(layout, "", words) == (None,None)
+
+
+def test_whiteoak_name_above_a_lone_benchmark_label_is_read_from_real_page_coordinates():
+    from app.services.analytics.benchmark_layouts import benchmark_block
+    # Coordinates copied from the real 31 Aug 2026 WhiteOak PDF (page 8): the name sits ~12 points above its label.
+    def box(x0, y0, text):
+        return (x0, y0, x0 + 6 * len(text), y0 + 6, text)
+    words = [box(35, 654, "Fund"), box(60, 654, "Offers"), box(36, 667, "BSE"), box(55, 667, "500"), box(75, 667, "TRI"),
+             box(35, 679, "Benchmark"), box(266, 679, "to"), box(286, 679, "Invest")]
+    assert benchmark_block("whiteoak", "", words) == ("BSE 500 TRI", None)
+    # Name too far above (a different block) or no name above: no reading.
+    assert benchmark_block("whiteoak", "", [box(36, 640, "BSE"), box(35, 679, "Benchmark")]) == (None, None)
+    assert benchmark_block("whiteoak", "", [box(35, 679, "Benchmark")]) == (None, None)

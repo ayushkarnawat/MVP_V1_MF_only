@@ -105,9 +105,21 @@ def benchmark_block(layout: str, text: str, words: list[Word] | None) -> tuple[s
                 panel = [w for w in words if left <= w[0] < right and label[1] - 65 < w[1] <= label[3]]
             else:
                 if len(contiguous) == 1:
-                    continue
-                panel = contiguous
+                    if layout != "whiteoak":
+                        continue
+                    # Real WhiteOak pages (checked 1 Nov on the 31 Aug 2026 file): the name is the single
+                    # line directly above its lone "Benchmark" label, same left edge, 10 to 16 points up.
+                    above = [w for w in words if label[0] - 3 <= w[0] < label[0] + 130
+                             and label[1] - 16 <= w[1] <= label[1] - 8 and w[3] <= label[1] + 1]
+                    if not above:
+                        continue
+                    top = max(w[1] for w in above)
+                    panel = [w for w in above if abs(w[1] - top) < 3]
+                else:
+                    panel = contiguous
             block = "\n".join(" ".join(w[4] for w in row) for row in _position_lines(panel))
+            if layout == "whiteoak" and len(contiguous) == 1:
+                block = f"Benchmark: {block}"  # the label sits below the name on this layout
             found = _text_block(block)
             if found[0]:
                 # Two nearby unweighted names are ambiguous, not a blend.
