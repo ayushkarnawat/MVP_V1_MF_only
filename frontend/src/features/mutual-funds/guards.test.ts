@@ -30,13 +30,13 @@ describe("Mutual Funds front-end guards", () => {
       "allocation/CategoryAmcCard.tsx", "allocation/FundManagerCard.tsx", "allocation/AllocationPage.tsx",
       "holdings/holdingsLogic.ts", "holdings/TopHoldingsByFund.tsx", "holdings/AllStocksTable.tsx", "holdings/HoldingsPage.tsx",
       "transactions/transactionsLogic.ts", "transactions/CashFlowStrip.tsx", "transactions/CashFlowBars.tsx", "transactions/PeriodDrill.tsx",
-      "transactions/Ledger.tsx", "transactions/SipBanner.tsx", "transactions/TransactionsPage.tsx",
+      "transactions/Ledger.tsx", "transactions/SipBanner.tsx", "transactions/TransactionsPage.tsx", "transactions/SwitchesControl.tsx",
       "overlap/overlapLogic.ts", "overlap/StatStrip.tsx", "overlap/CommonHoldings.tsx", "overlap/Heatmap.tsx", "overlap/PairDetail.tsx",
       "overlap/TopPairs.tsx", "overlap/ImpactDonut.tsx", "overlap/OverlapPage.tsx", "overlap/CategoryTabs.tsx",
       "other/otherLogic.ts", "other/TerLadder.tsx", "other/ValuationSpectrum.tsx", "other/ValuationByFund.tsx", "other/CostValuationGroup.tsx", "other/ScorerGroup.tsx",
       "other/CategoryRankingGroup.tsx", "other/PerformanceRankingGroup.tsx", "other/OtherAnalyticsPage.tsx",
     ]) expect(names).toContain(expected);
-    expect(names).toHaveLength(55);
+    expect(names).toHaveLength(56);
   });
 
   it("never turns a money or percentage string into a float, comments included", () => {

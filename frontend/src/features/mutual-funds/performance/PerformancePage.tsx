@@ -414,7 +414,7 @@ function ReturnsBlock({
         {money.status === "ready" && money.data && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-3.5">
-              <span className="text-xs font-medium text-[var(--ui-text-muted)]">Total Invested</span>
+              <span className="text-xs font-medium text-[var(--ui-text-muted)]">Net invested</span>
               <p data-testid="abs-invested" className="mt-1 text-base font-semibold text-[var(--ui-text)]">
                 {formatRupees(money.data.net_invested)}
               </p>

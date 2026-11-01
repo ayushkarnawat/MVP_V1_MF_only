@@ -7,6 +7,7 @@ import { sampleStockHoldings } from "../stockHoldingsTestData";
 import { sampleCapAllocation } from "../capAllocationTestData";
 import { sampleAssetAllocation } from "../assetAllocationTestData";
 import { sampleOverlap } from "../overlapTestData";
+import { investmentWithdrawal } from "../../mutual-funds/fixtures/mfB";
 import { sampleValuation } from "../valuationTestData";
 
 const payload: AnalyticsExportPayload = {
@@ -243,4 +244,18 @@ describe("PrintAnalyticsView", () => {
     await waitFor(() => expect(document.documentElement.dataset.printReady).toBe("true"));
   });
 
+});
+
+
+it("print_stays_excluded", async () => {
+  window.history.pushState({}, "", "/print/analytics?token=tok-123");
+  vi.spyOn(api, "getExportPayload").mockResolvedValue({ ...payload, investmentWithdrawal: investmentWithdrawal() });
+  const { container } = render(<PrintAnalyticsView />);
+  await screen.findByRole("heading", { name: "Investment & Withdrawal" });
+  const section = [...container.querySelectorAll("section")].find(s => s.textContent?.includes("Investment & Withdrawal"))!;
+  expect(section.textContent).toContain("9,41,895");
+  expect(section.textContent).toContain("23,500");
+  expect(section.textContent).not.toContain("9,91,895");
+  expect(screen.queryByRole("button", { name: /Include switches|Switches:/ })).not.toBeInTheDocument();
+  vi.restoreAllMocks();
 });

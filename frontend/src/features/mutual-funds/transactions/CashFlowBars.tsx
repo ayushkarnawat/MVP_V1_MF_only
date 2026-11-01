@@ -1,3 +1,4 @@
+import { sumDecimalStrings } from "../../../lib/decimal";
 import { useMemo } from "react";
 import { formatRupees } from "../../../lib/format";
 import type { InvestmentWithdrawalBucket } from "../types";
@@ -11,6 +12,7 @@ import {
 
 export interface CashFlowBarsProps {
   buckets: InvestmentWithdrawalBucket[];
+  includeSwitches?: boolean;
   granularity: Granularity;
   onGranularity: (g: Granularity) => void;
   selectedPeriod: string | null;
@@ -19,12 +21,19 @@ export interface CashFlowBarsProps {
 
 export function CashFlowBars({
   buckets,
+  includeSwitches = false,
   granularity,
   onGranularity,
   selectedPeriod,
   onSelect,
 }: CashFlowBarsProps) {
-  const heights = useMemo(() => barHeights(buckets), [buckets]);
+  const shownBuckets = useMemo(() => buckets.map(b => ({
+    ...b,
+    invested: sumDecimalStrings([b.invested, includeSwitches ? b.switched_in ?? "0" : "0"]),
+    withdrawn: sumDecimalStrings([b.withdrawn, includeSwitches ? b.switched_out ?? "0" : "0"]),
+    switched_out: "0",
+  })), [buckets, includeSwitches]);
+  const heights = useMemo(() => barHeights(shownBuckets), [shownBuckets]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -71,14 +80,14 @@ export function CashFlowBars({
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 text-xs text-[var(--ui-text-muted)]">
+      <div data-testid="cash-bars-legend" className="flex items-center gap-4 text-xs text-[var(--ui-text-muted)]">
         <div className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-sm bg-[var(--pos)]" />
-          <span>Invested</span>
+          <span>{includeSwitches ? "Invested + switched in" : "Invested"}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-sm bg-[var(--neg)]" />
-          <span>Withdrawn + switched out</span>
+          <span>{includeSwitches ? "Withdrawn + switched out" : "Withdrawn"}</span>
         </div>
       </div>
 
@@ -89,7 +98,7 @@ export function CashFlowBars({
         data-testid="cash-bars"
         className="flex items-end gap-3 overflow-x-auto pb-2 pt-8"
       >
-        {buckets.map((b, index) => {
+        {shownBuckets.map((b, index) => {
           const isSelected = selectedPeriod === b.period;
           const h = heights[index] ?? { invested: 0, outflow: 0 };
           const outVal = outflow(b);
@@ -103,7 +112,7 @@ export function CashFlowBars({
               data-selected={isSelected ? "true" : "false"}
               aria-label={`${periodTitle(b.period)}: invested ${formatRupees(
                 b.invested
-              )}, withdrawn and switched out ${formatRupees(outVal)}`}
+              )}, ${includeSwitches ? "withdrawn and switched out" : "withdrawn"} ${formatRupees(outVal)}`}
               data-clickable=""
               data-effect="select"
               onClick={() => onSelect(b.period)}

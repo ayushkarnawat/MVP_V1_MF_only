@@ -80,17 +80,17 @@ describe("CashFlowBars", () => {
     expect(columns).toHaveLength(12);
     expect(columns[0]).toHaveTextContent("Nov ’25");
     expect(columns[11]).toHaveTextContent("Oct ’26");
-    expect(screen.getByTestId("period-2026-03")).toHaveAttribute("aria-label", "March 2026: invested ₹50,575, withdrawn and switched out ₹23,500");
+    expect(screen.getByTestId("period-2026-03")).toHaveAttribute("aria-label", "March 2026: invested ₹50,575, withdrawn ₹23,500");
     expect(screen.getByTestId("bar-invested-2025-12")).toHaveStyle({ height: "100%" });
     expect(screen.getByTestId("bar-invested-2026-01")).toHaveStyle({ height: "33.59%" });
-    expect(screen.getByTestId("bar-out-2026-06")).toHaveStyle({ height: "33.21%" });
+    expect(screen.getByTestId("bar-out-2026-06")).toHaveStyle({ height: "0%" });
     expect(screen.getByTestId("bar-out-2026-01")).toHaveStyle({ height: "0%" });
   });
   it("explains the click, names the two bars in the legend and offers Monthly and Yearly with Monthly pressed", () => {
     mount();
     expect(screen.getByText("Click any period to see its dated, per-fund transactions below.")).toBeInTheDocument();
     expect(screen.getByText("Invested")).toBeInTheDocument();
-    expect(screen.getByText("Withdrawn + switched out")).toBeInTheDocument();
+    expect(screen.getByText("Withdrawn")).toBeInTheDocument();
     const period = within(screen.getByRole("group", { name: "Period" }));
     expect(period.getByRole("button", { name: "Monthly" })).toHaveAttribute("aria-pressed", "true");
     expect(period.getByRole("button", { name: "Yearly" })).toHaveAttribute("aria-pressed", "false");

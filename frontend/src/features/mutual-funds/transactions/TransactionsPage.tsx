@@ -7,12 +7,14 @@ import { CashFlowBars } from "./CashFlowBars";
 import { CashFlowStrip } from "./CashFlowStrip";
 import { Ledger } from "./Ledger";
 import { PeriodDrill } from "./PeriodDrill";
+import { SwitchesControl } from "./SwitchesControl";
 import { SipBanner } from "./SipBanner";
 import type { Granularity, LedgerFilter } from "./transactionsLogic";
 
 function TransactionsBody() {
   const money = useMfAnalytics("investment_withdrawal");
 
+  const [includeSwitches, setIncludeSwitches] = useState(false);
   const [granularity, setGranularity] = useState<Granularity>("monthly");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [filter, setFilter] = useState<LedgerFilter>("all");
@@ -43,6 +45,8 @@ function TransactionsBody() {
   }
 
   const data = money.data;
+  const switchCount = data?.switch_count ?? 0;
+  const switchesIncluded = switchCount > 0 && includeSwitches;
 
   const handleTileFilter = (nextFilter: LedgerFilter) => {
     setFilter(nextFilter);
@@ -99,7 +103,17 @@ function TransactionsBody() {
                 data={data}
                 filter={filter}
                 onFilter={handleTileFilter}
+                includeSwitches={switchesIncluded}
               />
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-[var(--ui-text-muted)]">
+                  {switchCount > 0
+                    ? `Switched between funds: ${formatRupees(data.total_switched_out ?? "0")} in ${switchCount} ${switchCount === 1 ? "switch" : "switches"}`
+                    : "Switched between funds: none"}
+                </p>
+                <SwitchesControl included={switchesIncluded} onChange={setIncludeSwitches} disabled={switchCount === 0} />
+              </div>
+              <p className="text-xs text-[var(--ui-text-muted)]">Only invested, withdrawn and the bars change. Net invested and absolute gain stay the same.</p>
 
               {data.monthly.length === 0 ? (
                 <p className="text-xs text-[var(--ui-text-muted)] py-4">
@@ -108,6 +122,7 @@ function TransactionsBody() {
               ) : (
                 <CashFlowBars
                   buckets={shownBuckets}
+                  includeSwitches={switchesIncluded}
                   granularity={granularity}
                   onGranularity={handleGranularity}
                   selectedPeriod={selectedPeriod}

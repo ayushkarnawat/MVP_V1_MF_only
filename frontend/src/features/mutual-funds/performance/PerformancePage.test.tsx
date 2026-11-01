@@ -351,3 +351,11 @@ describe("Performance: fund names in the tables open the fund page (IF-E)", () =
     expect(document.querySelectorAll("button a, [role=button] a")).toHaveLength(0);
   });
 });
+
+
+it("performance_tile_is_labelled_net_invested", async () => {
+  mount(); await ready();
+  const tile = screen.getByTestId("abs-invested").parentElement!;
+  expect(tile).toHaveTextContent("Net invested");
+  expect(tile).not.toHaveTextContent("Total Invested");
+});

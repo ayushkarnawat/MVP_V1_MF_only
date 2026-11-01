@@ -1,3 +1,4 @@
+import { sumDecimalStrings } from "../../../lib/decimal";
 import { formatRupees } from "../../../lib/format";
 import type { InvestmentWithdrawalResult } from "../types";
 import { cashFlowTiles, type LedgerFilter } from "./transactionsLogic";
@@ -6,12 +7,13 @@ export interface CashFlowStripProps {
   data: InvestmentWithdrawalResult;
   filter: LedgerFilter;
   onFilter: (filter: LedgerFilter) => void;
+  includeSwitches?: boolean;
 }
 
 const NET_TOOLTIP =
   "Net invested is invested minus withdrawn. It has no matching transaction type, so it cannot filter the list.";
 
-export function CashFlowStrip({ data, filter, onFilter }: CashFlowStripProps) {
+export function CashFlowStrip({ data, filter, onFilter, includeSwitches = false }: CashFlowStripProps) {
   const tiles = cashFlowTiles(data);
 
   return (
@@ -40,7 +42,7 @@ export function CashFlowStrip({ data, filter, onFilter }: CashFlowStripProps) {
           data-testid="tile-invested-value"
           className="mt-1 text-base font-semibold text-[var(--ui-text)]"
         >
-          {formatRupees(tiles.invested)}
+          {formatRupees(sumDecimalStrings([tiles.invested, includeSwitches ? data.total_switched_in ?? "0" : "0"]))}
         </span>
       </button>
 
@@ -65,7 +67,7 @@ export function CashFlowStrip({ data, filter, onFilter }: CashFlowStripProps) {
           data-testid="tile-withdrawn-value"
           className="mt-1 text-base font-semibold text-[var(--ui-text)]"
         >
-          {formatRupees(tiles.withdrawn)}
+          {formatRupees(sumDecimalStrings([tiles.withdrawn, includeSwitches ? data.total_switched_out ?? "0" : "0"]))}
         </span>
       </button>
 

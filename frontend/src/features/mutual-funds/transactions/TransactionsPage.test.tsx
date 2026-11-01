@@ -223,3 +223,61 @@ describe("the ledger on the page", () => {
     expectInteractivity(container, 30);
   });
 });
+
+
+describe("include switches", () => {
+  it("state_word_matches_aria_state", async () => {
+    mount(); await ready();
+    const control = screen.getByRole("button", { name: "Switches: Excluded" });
+    expect(control).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(control);
+    expect(control).toHaveTextContent("Switches: Included");
+    expect(control).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(control);
+    expect(control).toHaveTextContent("Switches: Excluded");
+    expect(control).toHaveAttribute("aria-pressed", "false");
+  });
+  it("included_adds_switches_to_invested_and_withdrawn_tiles_and_bars", async () => {
+    mount(); await ready();
+    expect(screen.getByTestId("tile-invested-value")).toHaveTextContent("₹9,41,895");
+    expect(screen.getByTestId("tile-withdrawn-value")).toHaveTextContent("₹23,500");
+    const before = screen.getByTestId("bar-invested-2026-06").getAttribute("style");
+    fireEvent.click(screen.getByRole("button", { name: "Switches: Excluded" }));
+    expect(screen.getByTestId("tile-invested-value")).toHaveTextContent("₹9,91,895");
+    expect(screen.getByTestId("tile-withdrawn-value")).toHaveTextContent("₹73,500");
+    expect(screen.getByTestId("bar-invested-2026-06").getAttribute("style")).not.toBe(before);
+    expect(screen.getByTestId("period-2026-06")).toHaveAttribute("aria-label", expect.stringContaining("switched out ₹50,000"));
+    fireEvent.click(screen.getByRole("button", { name: "Yearly" }));
+    expect(screen.getByTestId("period-2026")).toHaveAttribute("aria-label", expect.stringContaining("switched out ₹73,500"));
+  });
+  it("net_invested_is_unchanged_either_way", async () => {
+    mount(); await ready();
+    const net = screen.getByTestId("tile-net-value").textContent;
+    fireEvent.click(screen.getByRole("button", { name: "Switches: Excluded" }));
+    expect(screen.getByTestId("tile-net-value")).toHaveTextContent(net!);
+    expect(screen.getByText("Only invested, withdrawn and the bars change. Net invested and absolute gain stay the same.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Switches: Included" }));
+    expect(screen.getByTestId("tile-net-value")).toHaveTextContent(net!);
+  });
+  it("no_switches_shows_none_and_a_disabled_control", async () => {
+    const response = fb.analyticsMfB();
+    const section = response.sections.investment_withdrawal!;
+    const body = section.payload as { members: unknown; movement: ReturnType<typeof fb.investmentWithdrawal> };
+    // Use the same envelope key as the real stored section.
+    for (const value of Object.values(body)) {
+      if (value && typeof value === "object" && "total_invested" in value) Object.assign(value, { switch_count: 0, total_switched_in: "0", total_switched_out: "0" });
+    }
+    mocks.getAnalyticsScope.mockResolvedValue(response);
+    mount(); await ready();
+    expect(screen.getByText("Switched between funds: none")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Switches: Excluded" })).toBeDisabled();
+  });
+  it("bars_label_is_consistent_with_the_switch", async () => {
+    mount(); await ready();
+    expect(screen.getByTestId("cash-bars-legend")).toHaveTextContent("Withdrawn");
+    expect(screen.getByTestId("cash-bars-legend")).not.toHaveTextContent("switched");
+    fireEvent.click(screen.getByRole("button", { name: "Switches: Excluded" }));
+    expect(screen.getByTestId("cash-bars-legend")).toHaveTextContent("Invested + switched in");
+    expect(screen.getByTestId("cash-bars-legend")).toHaveTextContent("Withdrawn + switched out");
+  });
+});
