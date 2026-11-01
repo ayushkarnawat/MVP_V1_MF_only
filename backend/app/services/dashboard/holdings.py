@@ -387,6 +387,11 @@ def consolidate_holdings(
                 value = data[field]
                 data[field] = str(quantize_amount(Decimal(value))) if value is not None else None
             units = Decimal(row.units_held)
+            # Plain decimal text everywhere the browser parses units or prices: str(Decimal) can print "1E+3".
+            data["units_held"] = format(units, "f")
+            if data["current_nav"] is not None:
+                data["current_nav"] = format(Decimal(data["current_nav"]), "f")
+            data["folios"] = [{**folio, "units": format(Decimal(folio["units"]), "f")} for folio in data["folios"]]
             data["average_nav"] = format(Decimal(data["amount_invested"]) / units, "f") if units else None
             rate = xirr_by_scope.get(row.household_member_id, {}).get(uuid.UUID(sid)) if member_rates_available else None
             children.append(ConsolidatedHoldingChild(**data, xirr=rate))

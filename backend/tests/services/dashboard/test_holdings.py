@@ -1183,6 +1183,18 @@ def test_parent_xirr_equals_stored_combined_scope_rate_and_child_equals_member_r
     assert [c.xirr for c in parent.children] == ["0.1111", None]
 
 
+def test_child_units_prices_and_folio_units_are_plain_text_never_exponent_form():
+    """A hand-built row can carry "5E+1" (review 2 Nov); the browser parses these strings, so every one is made plain."""
+    from app.services.dashboard.schemas import FolioSlice
+    rows = _consolidation_rows()
+    rows[0].units_held, rows[0].current_nav = "1E+1", "2E+1"
+    rows[0].folios = [FolioSlice(folio_id="f1", folio_masked="XXXX1234", units="1E+1", invested="100.02", value="200.01")]
+    [parent] = _consolidate(rows)
+    assert parent.children[0].units_held == "10" and parent.children[0].current_nav == "20"
+    assert parent.children[0].folios[0].units == "10"
+    assert parent.current_nav == "20"  # "2E+1" and "20" are the same price, so the parent still shows it
+
+
 def test_direct_and_regular_stay_separate_parents():
     rows = _consolidation_rows(); rows[1].plan_type = PlanType.REGULAR
     assert len(_consolidate(rows)) == 2

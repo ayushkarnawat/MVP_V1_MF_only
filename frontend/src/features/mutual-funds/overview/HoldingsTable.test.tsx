@@ -316,6 +316,15 @@ it("does not announce sorting on unsortable family columns", () => {
 });
 
 
+it("split_shares_survives_exponent_negative_or_junk_units_without_crashing", () => {
+  const parents = familyParents();
+  const base = parents[0].children[0];
+  parents[0].children = [["m1", "1E+3"], ["m2", "2"], ["m3", "-1"], ["m4", "oops"]].map(([id, units]) => ({ ...base, household_member_id: id, household_member_name: id, units_held: units }));
+  table({ consolidated: parents });
+  const widths = ["m1", "m2", "m3", "m4"].map(id => Number.parseFloat(screen.getByTestId(`share-${id}`).style.width));
+  expect(widths).toEqual([0, 100, 0, 0]);
+});
+
 it("split_shares_always_total_exactly_100_percent", () => {
   const parents = familyParents();
   const base = parents[0].children[0];

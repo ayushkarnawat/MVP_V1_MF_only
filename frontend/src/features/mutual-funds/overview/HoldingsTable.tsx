@@ -301,11 +301,13 @@ export function HoldingsTable({
 
 /** Ownership shares in whole hundredths of a percent that always total exactly 100 (largest remainder). */
 function splitShares(units: string[]): string[] {
-  const scale = Math.max(0, ...units.map(u => (u.split(".")[1] ?? "").length));
-  const parse = (u: string) => { const [w, f = ""] = u.replace(/^-/, "").split("."); return BigInt(w + f.padEnd(scale, "0")); };
+  // Anything that is not plain non-negative decimal text (exponent form, a minus, junk) counts as no units, so BigInt never throws mid-render.
+  const valid = units.map(u => /^\d+(\.\d+)?$/.test(u));
+  const scale = Math.max(0, ...units.map((u, i) => (valid[i] ? (u.split(".")[1] ?? "").length : 0)));
+  const parse = (u: string, i: number) => { if (!valid[i]) return 0n; const [w, f = ""] = u.split("."); return BigInt(w + f.padEnd(scale, "0")); };
   const parts = units.map(parse);
   const total = parts.reduce((a, b) => a + b, 0n);
-  if (total === 0n) return units.map(() => "0");
+  if (total === 0n) return units.map(() => "0.00");
   const floors = parts.map(p => (p * 10000n) / total);
   let left = 10000n - floors.reduce((a, b) => a + b, 0n);
   const order = parts.map((p, i) => ({ i, rem: (p * 10000n) % total })).sort((a, b) => (a.rem < b.rem ? 1 : a.rem > b.rem ? -1 : a.i - b.i));
