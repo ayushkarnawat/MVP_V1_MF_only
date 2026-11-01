@@ -14,6 +14,7 @@
 4. **What code and migration the VM runs:** `alembic current` inside the backend container (or the deployed commit), and whether `scripts/benchmark_series_check.py` and `scripts/benchmark_diff_report.py` exist there. Record it. This decides Part C.
 
 ## Part A: Local gates (no VM; do these first, they do not need Monday)
+**DONE on 2 Nov at tip `10df4f71`; results in `2026-11-02-local-gates-runs-3-4.md`. Skip this part** unless a later commit changed Run 3 or Run 4 code (benchmarks, holdings: `git log 10df4f71..HEAD -- backend/app/services/dashboard backend/app/services/analytics frontend/src/features/mutual-funds`). Run 5 commits (auth) do not count; they get their own full-suite gate at Run 5's close. The list below is kept as the record of what was run.
 Run only what has not already been recorded as passed.
 1. Full backend suite (ignore `tests/functional_postgres`; migration 0049 Postgres tests already passed 1 Nov). Known baseline failures only: 5 tests needing `nav_all.txt`, the 31st-of-month date tests, the `D:\tmp` test.
 2. Frontend in WSL: full `vitest run`, `tsc -b`, `oxlint`, `vite build`. Known flaky: `OverviewPage` "failed card" test, `useNews`.
