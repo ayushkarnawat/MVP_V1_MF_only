@@ -7,6 +7,7 @@ import type {
   FamilyMemberStatus,
   HistoryPoint,
   HoldingRow,
+  ConsolidatedHolding,
   Load,
   MfScopeArg,
   RealizedSummary,
@@ -84,6 +85,7 @@ export function useMfSection<T>(
 }
 
 export interface MfHoldings {
+  consolidated: Load<ConsolidatedHolding[]>;
   holdings: Load<HoldingRow[]>;
   xirr: Load<XirrBundle>;
   realized: Load<RealizedSummary | null>;
@@ -102,6 +104,7 @@ export function useMfHoldings(): MfHoldings {
   const { status, retry, data } = bundleLoad;
 
   return {
+    consolidated: { status, retry, data: viewMode === "aggregate" ? data?.consolidated ?? null : null },
     holdings: { status, retry, data: data?.holdings ?? null },
     xirr: { status, retry, data: data?.xirr ?? null },
     realized: { status, retry, data: data?.realized ?? null },

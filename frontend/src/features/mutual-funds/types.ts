@@ -10,7 +10,17 @@
 
 export type PlanType = "direct" | "regular" | "unclassified";
 
+export interface FolioSlice {
+  folio_id: string;
+  folio_masked: string;
+  units: string;
+  invested: string;
+  value: string | null;
+}
+export interface OpeningLotInfo { units: string; since: string; cost_source: "cas_cost" | "nav_on_start" | "manual" }
 export interface HoldingRow {
+  folios?: FolioSlice[];
+  opening_lot?: OpeningLotInfo | null;
   scheme_id: string;
   scheme_name: string;
   amc_name?: string;
@@ -35,6 +45,33 @@ export interface HoldingRow {
   sebi_category?: string | null;
   stale_nav?: boolean;
   price_from_statement?: boolean;
+}
+
+export interface ConsolidatedHoldingChild extends Omit<HoldingRow, "average_nav"> { average_nav: string | null; xirr: string | null }
+export interface ConsolidatedHolding {
+  scheme_id: string;
+  scheme_name: string;
+  amc_name: string;
+  asset_class: string;
+  plan_type: PlanType;
+  plan_verified: boolean;
+  sebi_category: string | null;
+  units_held: string;
+  average_price: string | null;
+  amount_invested: string;
+  current_value: string | null;
+  realized_gain: string;
+  unrealized_gain: string | null;
+  current_profit_total: string | null;
+  today_gain: string | null;
+  current_nav: string | null;
+  current_nav_date: string | null;
+  stale_nav: boolean;
+  nav_unavailable: boolean;
+  price_from_statement: boolean;
+  opening_lot: OpeningLotInfo | null;
+  xirr: string | null;
+  children: ConsolidatedHoldingChild[];
 }
 
 export interface AllocationItem { label: string; current_value: string; percentage: number }
@@ -83,6 +120,7 @@ export interface FamilyMemberStatus { id: string; name: string; has_data: boolea
 export interface XirrDisclaimer { alt_xirr: string | null; opening_cost_share: string }
 
 export interface AggregateHoldingsResponse {
+  consolidated?: ConsolidatedHolding[] | null;
   members: FamilyMemberStatus[];
   holdings: HoldingRow[];
   lifetime_xirr?: string | null;

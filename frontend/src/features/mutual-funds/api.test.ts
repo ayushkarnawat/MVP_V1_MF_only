@@ -143,3 +143,13 @@ describe("analytics scope", () => {
     expect(lastInit().method).toBe("POST");
   });
 });
+
+
+it("passes consolidated family data through once and ignores it on a member response", async () => {
+  const parents = [{ scheme_id: "shared", children: [] }];
+  mocks.cachedFetch.mockResolvedValue(ok({ ...fx.aggregateHoldings(), consolidated: parents }));
+  expect((await getHoldingsBundle(AGG)).consolidated).toEqual(parents);
+  expect(mocks.cachedFetch).toHaveBeenCalledTimes(1);
+  mocks.cachedFetch.mockResolvedValue(ok({ ...fx.memberHoldings(), consolidated: parents }));
+  expect((await getHoldingsBundle(MEM)).consolidated).toBeUndefined();
+});

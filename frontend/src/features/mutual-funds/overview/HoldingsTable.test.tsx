@@ -233,3 +233,84 @@ describe("HoldingsTable", () => {
     expectInteractivity(container, 7);
   });
 });
+
+
+function familyParents() {
+  const first = fx.holdings()[0];
+  const children = [
+    { ...first, household_member_id: "m1", household_member_name: "Asha", units_held: "10", amount_invested: "100.00", average_nav: "10", current_value: "200.00", realized_gain: "1.00", unrealized_gain: "100.00", xirr: "0.10",
+      folios: [{ folio_id: "fa", folio_masked: "XXXX9012", units: "10", invested: "100.00", value: "200.00" }] },
+    { ...first, household_member_id: "m2", household_member_name: "Dev", units_held: "30", amount_invested: "450.00", average_nav: "15", current_value: "600.00", realized_gain: "2.00", unrealized_gain: "150.00", xirr: null,
+      folios: [{ folio_id: "fb", folio_masked: "XXXX3456", units: "30", invested: "450.00", value: "600.00" }] },
+  ];
+  return [{ ...first, amc_name: first.amc_name ?? "", asset_class: first.asset_class ?? "Other", plan_verified: true,
+    sebi_category: first.sebi_category ?? null, stale_nav: false, nav_unavailable: false, price_from_statement: false,
+    current_nav_date: first.current_nav_date ?? null, units_held: "40", average_price: "13.75", amount_invested: "550.00", current_value: "800.00", unrealized_gain: "250.00", realized_gain: "3.00", xirr: "0.12", opening_lot: null, children }];
+}
+
+describe("consolidated family holdings", () => {
+  it("parent_row_shows_all_requirement_2_2_columns_and_a_split_bar", () => {
+    table({ consolidated: familyParents() });
+    expect(screen.getAllByRole("columnheader").map(x => x.textContent)).toEqual(["Fund", "Units", "Avg price", "Invested", "Current value", "Unrealised", "Realised", "XIRR"]);
+    const parent = screen.getByTestId("parent-S-KOTAK:direct");
+    expect(parent).toHaveTextContent("13.75");
+    expect(parent).toHaveTextContent("₹550");
+    expect(parent).toHaveTextContent("12.0%");
+    expect(within(parent).getByTestId("split-bar")).toBeInTheDocument();
+    expect(within(parent).getByTestId("share-m1")).toHaveStyle({ width: "25%" });
+    expect(within(parent).getByTestId("share-m2")).toHaveStyle({ width: "75%" });
+  });
+  it("expand_opens_one_row_per_member_with_the_masked_folio", () => {
+    table({ consolidated: familyParents() });
+    fireEvent.click(screen.getByRole("button", { name: "Expand Kotak Multi Cap Fund" }));
+    const a = screen.getByTestId("member-S-KOTAK:direct:m1");
+    const b = screen.getByTestId("member-S-KOTAK:direct:m2");
+    expect(a).toHaveTextContent("Asha"); expect(a).toHaveTextContent("XXXX9012");
+    expect(b).toHaveTextContent("Dev"); expect(b).toHaveTextContent("XXXX3456");
+    expect(within(a).getByTestId("child-xirr")).toHaveTextContent("10.0%");
+    expect(within(b).getByTestId("child-xirr")).toHaveTextContent("—");
+    expect(screen.getByTestId("family-phone-cards")).toBeInTheDocument();
+  });
+  it("plus_is_keyboard_operable_and_sets_aria_expanded", () => {
+    table({ consolidated: familyParents() });
+    const control = screen.getByRole("button", { name: "Expand Kotak Multi Cap Fund" });
+    expect(control.tagName).toBe("BUTTON");
+    expect(control).toHaveAttribute("aria-expanded", "false");
+    control.focus(); expect(control).toHaveFocus();
+    fireEvent.keyDown(control, { key: "Enter" });
+    fireEvent.click(control); // Browser-generated activation from Enter on a native button.
+    expect(control).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByTestId("loc")).toHaveTextContent("/portfolio/mutual-funds");
+  });
+  it("single_member_view_is_unchanged", () => {
+    table();
+    expect(screen.getAllByRole("columnheader").map(x => x.textContent?.trim())).toEqual(["Fund", "Category", "Invested", "Value", "Gain/Loss", "XIRR", "Today's change"]);
+    expect(screen.queryByTestId("split-bar")).not.toBeInTheDocument();
+  });
+  it("fund_held_by_one_member_has_no_expander_or_bar", () => {
+    const parents = familyParents(); parents[0].children = parents[0].children.slice(0, 1);
+    table({ consolidated: parents });
+    expect(screen.getByTestId("parent-S-KOTAK:direct")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Expand/ })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("split-bar")).not.toBeInTheDocument();
+  });
+  it("old_payload_without_consolidated_renders_todays_rows", () => {
+    table(); expect(rowIds()).toHaveLength(5);
+    expect(screen.queryByTestId("family-phone-cards")).not.toBeInTheDocument();
+  });
+});
+
+
+it("keeps the family totals and never counts the expanded children twice", () => {
+  table({ consolidated: familyParents() });
+  expect(screen.getByTestId("foot-invested")).toHaveTextContent("₹550");
+  expect(screen.getByTestId("foot-value")).toHaveTextContent("₹800");
+  fireEvent.click(screen.getByRole("button", { name: "Expand Kotak Multi Cap Fund" }));
+  expect(screen.getByTestId("foot-invested")).toHaveTextContent("₹550");
+  expect(screen.getByTestId("foot-gain")).toHaveTextContent("+₹250");
+  expect(screen.getByTestId("foot-realized")).toHaveTextContent("+₹3");
+});
+it("does not announce sorting on unsortable family columns", () => {
+  table({ consolidated: familyParents() });
+  expect(screen.getByRole("columnheader", { name: "Fund" })).not.toHaveAttribute("aria-sort");
+});

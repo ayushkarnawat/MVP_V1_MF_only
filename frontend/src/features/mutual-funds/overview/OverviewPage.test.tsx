@@ -400,3 +400,21 @@ describe("Holdings rows open the fund page directly (owner decision, reverses re
     expect(screen.getByTestId("loc")).toHaveTextContent(new RegExp(`^/portfolio/mutual-funds/funds/${encodeURIComponent(second.scheme_id)}$`));
   });
 });
+
+
+it("passes the family consolidation through the holdings bundle without changing member view", async () => {
+  const base = bundle(); const child = { ...base.holdings[0], folios: [], xirr: "0.1" };
+  const parent = { ...child, average_price: child.average_nav, xirr: "0.2", children: [child] };
+  mocks.getHoldingsBundle.mockResolvedValue({ ...base, consolidated: [parent] });
+  mount();
+  expect(await screen.findByTestId("parent-S-KOTAK:direct")).toBeInTheDocument();
+  expect(screen.queryByTestId("row-S-KOTAK:m1")).not.toBeInTheDocument();
+});
+
+
+it("ignores consolidated data in single-member view", async () => {
+  mocks.getHoldingsBundle.mockResolvedValue({ ...memberBundle(), consolidated: [] });
+  memberMount();
+  expect(await screen.findByTestId("row-S-KOTAK:m1")).toBeInTheDocument();
+  expect(screen.queryByTestId("family-phone-cards")).not.toBeInTheDocument();
+});

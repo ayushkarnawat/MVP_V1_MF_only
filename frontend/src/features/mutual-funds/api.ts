@@ -8,6 +8,7 @@ import type {
   FamilyMemberStatus,
   HistoryPoint,
   HoldingRow,
+  ConsolidatedHolding,
   MfScopeArg,
   MonthDetail,
   RealizedSummary,
@@ -48,6 +49,7 @@ export function mfPath(scope: MfScopeArg, suffix: string): string {
 }
 
 export interface HoldingsBundle {
+  consolidated?: ConsolidatedHolding[] | null;
   holdings: HoldingRow[];
   members: FamilyMemberStatus[];
   xirr: XirrBundle;
@@ -58,6 +60,7 @@ export async function getHoldingsBundle(scope: MfScopeArg, signal?: AbortSignal)
   const res = await authFetch(mfPath(scope, "holdings"), { signal });
   const body = await res.json();
   return {
+    ...(scope.viewMode === "aggregate" && body.consolidated != null ? { consolidated: body.consolidated } : {}),
     holdings: body.holdings ?? [],
     members: body.members ?? [],
     xirr: {

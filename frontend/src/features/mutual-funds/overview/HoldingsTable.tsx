@@ -1,4 +1,6 @@
-import type { MouseEvent } from "react";
+import { useState, type MouseEvent } from "react";
+import { Button } from "../../../components/ui/button";
+import { compareDecimalStrings, formatDecimal, sumDecimalStrings } from "../../../lib/decimal";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { formatRupees } from "../../../lib/format";
@@ -7,6 +9,7 @@ import { useAppNavigate } from "../../../shell/nav/useAppNavigate";
 import { FundLink } from "../common/FundLink";
 import {
   changeDirection,
+  percentOf,
   formatSignedPercent,
   formatSignedRupees,
   formatXirr,
@@ -17,10 +20,11 @@ import {
   type SortKey,
   type SortState,
 } from "../mfCopy";
-import type { HoldingRow, Load } from "../types";
+import type { ConsolidatedHolding, ConsolidatedHoldingChild, HoldingRow, Load } from "../types";
 
 export interface HoldingsTableProps {
   holdings: Load<HoldingRow[]>;
+  consolidated?: ConsolidatedHolding[] | null;
   xirrByScheme: Record<string, string | null | undefined>;
   sort: SortState | null;
   onSort: (next: SortState) => void;
@@ -31,6 +35,7 @@ export interface HoldingsTableProps {
 
 export function HoldingsTable({
   holdings,
+  consolidated,
   xirrByScheme,
   sort,
   onSort,
@@ -82,6 +87,9 @@ export function HoldingsTable({
       </section>
     );
   }
+
+  if (consolidated != null) return <FamilyHoldingsTable rows={consolidated} sort={sort} onSort={onSort}
+    query={query} onAnalyse={onAnalyse} onCompareDistributors={onCompareDistributors} />;
 
   const trimmedQuery = query.trim().toLowerCase();
   const filteredRows = holdings.data.filter(h => {
@@ -289,4 +297,136 @@ export function HoldingsTable({
       )}
     </section>
   );
+}
+
+
+const MEMBER_COLOURS = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)"];
+const FAMILY_COLUMNS: Array<{ label: string; key?: SortKey }> = [
+  { label: "Fund" }, { label: "Units" }, { label: "Avg price" }, { label: "Invested", key: "invested" },
+  { label: "Current value", key: "value" }, { label: "Unrealised", key: "gain" }, { label: "Realised" }, { label: "XIRR", key: "xirr" },
+];
+
+function FamilyFigures({ row, child = false }: { row: ConsolidatedHolding | ConsolidatedHoldingChild; child?: boolean }) {
+  const average = "average_price" in row ? row.average_price : row.average_nav;
+  const figures = [row.units_held, average == null ? "—" : formatDecimal(average), formatRupees(row.amount_invested),
+    row.nav_unavailable || row.current_value == null ? "—" : formatRupees(row.current_value),
+    row.nav_unavailable || row.unrealized_gain == null ? "—" : formatSignedRupees(row.unrealized_gain),
+    formatSignedRupees(row.realized_gain), formatXirr(row.xirr)];
+  return figures.map((figure, index) => <td key={FAMILY_COLUMNS[index + 1].label}
+    data-testid={child && index === 6 ? "child-xirr" : undefined}
+    className="px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap">
+    <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[index + 1].label}</span>
+    {figure}
+  </td>);
+}
+
+function FamilyHoldingStatus({ row }: { row: ConsolidatedHolding | ConsolidatedHoldingChild }) {
+  return <>
+    {row.nav_unavailable && <span className="block text-xs text-[var(--ui-text-muted)]">Price unavailable</span>}
+    {row.stale_nav && <span className="block text-xs text-[var(--ui-text-muted)]">Older price</span>}
+    {row.price_from_statement && <span className="block text-xs text-[var(--ui-text-muted)]">Price from statement</span>}
+    {row.opening_lot && <span className="block text-xs text-[var(--ui-text-muted)]">Includes an opening balance</span>}
+  </>;
+}
+
+function FamilyHoldingsTable({ rows, sort, onSort, query, onAnalyse, onCompareDistributors }: {
+  rows: ConsolidatedHolding[]; sort: SortState | null; onSort: (next: SortState) => void;
+  query: string; onAnalyse: () => void; onCompareDistributors: () => void;
+}) {
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const term = query.trim().toLowerCase();
+  const filtered = rows.filter(r => `${r.scheme_name} ${r.amc_name}`.toLowerCase().includes(term));
+  const valueFor = (r: ConsolidatedHolding): string | null => {
+    if (sort?.key === "invested") return r.amount_invested;
+    if (sort?.key === "value") return r.nav_unavailable ? null : r.current_value;
+    if (sort?.key === "gain") return r.nav_unavailable ? null : r.unrealized_gain;
+    if (sort?.key === "xirr") return r.xirr;
+    return null;
+  };
+  const shown = sort ? [...filtered].sort((a, b) => {
+    const av = valueFor(a), bv = valueFor(b);
+    if (av == null) return bv == null ? 0 : 1;
+    if (bv == null) return -1;
+    const cmp = compareDecimalStrings(av, bv);
+    return sort.dir === "asc" ? cmp : -cmp;
+  }) : filtered;
+  const totalFor = (field: "amount_invested" | "current_value" | "unrealized_gain" | "realized_gain"): string | null => {
+    const values = filtered.map(row => row[field]);
+    return values.some(value => value == null) ? null : sumDecimalStrings(values.map(value => value ?? "0"));
+  };
+  return <section className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+      <h3 id="holdings-title" className="text-base font-semibold text-[var(--ui-text)]">Mutual Funds ({shown.length})</h3>
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" size="sm" data-clickable="" data-effect="open" onClick={onCompareDistributors}>Compare Distributors</Button>
+        <Button type="button" variant="outline" size="sm" data-clickable="" data-effect="open" onClick={onAnalyse}>Analyse with Mira</Button>
+      </div>
+    </div>
+    {shown.length === 0 ? <p className="py-8 text-center text-sm text-[var(--ui-text-muted)]">No funds match "{query.trim()}"</p> :
+    <div data-testid="family-phone-cards" className="overflow-x-auto">
+      <table aria-labelledby="holdings-title" className="block w-full text-left text-sm sm:table sm:min-w-[960px]">
+        <thead className="hidden sm:table-header-group"><tr className="border-b border-[var(--ui-divider)] text-xs text-[var(--ui-text-muted)]">
+          {FAMILY_COLUMNS.map(col => <th key={col.label} className="px-4 py-4 font-medium"
+            aria-sort={col.key && sort?.key === col.key ? sort.dir === "desc" ? "descending" : "ascending" : undefined}>
+            {col.key ? <button type="button" data-clickable="" data-effect="sort" onClick={() => onSort(nextSort(sort, col.key!))}>{col.label}</button> : col.label}
+          </th>)}
+        </tr></thead>
+        {shown.map(parent => {
+          const key = `${parent.scheme_id}:${parent.plan_type}`;
+          const open = expanded.has(key), multiple = parent.children.length > 1;
+          const toggle = () => setExpanded(previous => { const next = new Set(previous); if (next.has(key)) next.delete(key); else next.add(key); return next; });
+          return <tbody key={key} className="mb-4 block overflow-hidden rounded-xl border border-[var(--ui-divider)] sm:mb-0 sm:table-row-group sm:rounded-none sm:border-0">
+            <tr data-testid={`parent-${key}`} className="grid grid-cols-2 border-b border-[var(--ui-divider)] sm:table-row">
+              <td className="col-span-2 px-4 py-5 sm:min-w-64">
+                <div className="flex items-start gap-3">
+                  <SchemeLogo amcName={parent.amc_name} schemeName={parent.scheme_name} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <FundLink schemeId={parent.scheme_id}>{parent.scheme_name}</FundLink>
+                    <span className="mt-1 block text-xs text-[var(--ui-text-muted)]">{parent.plan_type === "direct" ? "Direct" : parent.plan_type === "regular" ? "Regular" : ""}</span>
+                    <FamilyHoldingStatus row={parent} />
+                    {!multiple && parent.children[0] && <span className="mt-1 block text-xs text-[var(--ui-text-muted)]">{parent.children[0].household_member_name}{parent.children[0].folios?.map(f => ` · ${f.folio_masked}`).join("")}</span>}
+                  </div>
+                  {multiple && <Button type="button" variant="outline" size="sm" aria-label={`${open ? "Collapse" : "Expand"} ${parent.scheme_name}`}
+                    aria-expanded={open} data-clickable="" data-effect="expand" onClick={toggle}>{open ? "−" : "+"}</Button>}
+                </div>
+                {multiple && <div className="mt-3 space-y-2">
+                  <div data-testid="split-bar" role="img" aria-label={`Ownership of ${parent.scheme_name} by member`} className="flex h-1.5 overflow-hidden rounded-full bg-[var(--ui-divider)]">
+                    {parent.children.map((c, index) => <span key={c.household_member_id} data-testid={`share-${c.household_member_id}`}
+                      style={{ width: `${percentOf(c.units_held, parent.units_held) ?? "0"}%`, background: MEMBER_COLOURS[index % MEMBER_COLOURS.length] }} />)}
+                  </div>
+                  <ul aria-label="Member shares" className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--ui-text-muted)]">
+                    {parent.children.map((c, index) => <li key={c.household_member_id} className="flex items-center gap-1">
+                      <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ background: MEMBER_COLOURS[index % MEMBER_COLOURS.length] }} />
+                      {c.household_member_name} {percentOf(c.units_held, parent.units_held) ?? "0"}%
+                    </li>)}
+                  </ul>
+                </div>}
+              </td>
+              <FamilyFigures row={parent} />
+            </tr>
+            {multiple && open && parent.children.map(c => <tr key={c.household_member_id} data-testid={`member-${key}:${c.household_member_id}`}
+              className="grid grid-cols-2 border-b border-[var(--ui-divider)] bg-[var(--ui-hover)] sm:table-row">
+              <td className="col-span-2 px-6 py-4 sm:pl-12">
+                <span className="block font-medium">{c.household_member_name}</span>
+                {c.folios?.map(f => <span key={f.folio_id} className="mt-1 block text-xs text-[var(--ui-text-muted)]">{f.folio_masked}</span>)}
+                <FamilyHoldingStatus row={c} />
+              </td>
+              <FamilyFigures row={c} child />
+            </tr>)}
+          </tbody>;
+        })}
+        <tfoot className="block sm:table-footer-group">
+          <tr className="grid grid-cols-2 border-t-2 border-[var(--ui-divider)] font-semibold sm:table-row">
+            <td className="col-span-2 px-4 py-5">Total</td>
+            <td className="px-4 py-5">—</td><td className="px-4 py-5">—</td>
+            <td data-testid="foot-invested" className="px-4 py-5"><span className="block text-xs sm:hidden">Invested</span>{formatRupees(totalFor("amount_invested"))}</td>
+            <td data-testid="foot-value" className="px-4 py-5"><span className="block text-xs sm:hidden">Current value</span>{formatRupees(totalFor("current_value"))}</td>
+            <td data-testid="foot-gain" className="px-4 py-5"><span className="block text-xs sm:hidden">Unrealised</span>{formatSignedRupees(totalFor("unrealized_gain"))}</td>
+            <td data-testid="foot-realized" className="px-4 py-5"><span className="block text-xs sm:hidden">Realised</span>{formatSignedRupees(totalFor("realized_gain"))}</td>
+            <td className="px-4 py-5">—</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>}
+  </section>;
 }

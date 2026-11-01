@@ -153,6 +153,7 @@ function OverviewBody({ query }: { query: string }) {
       <SipTimeline sips={dash.sips} />
       <HoldingsTable
         holdings={dash.holdings}
+        consolidated={viewMode === "aggregate" && dash.consolidated.status === "data" ? dash.consolidated.data : null}
         xirrByScheme={xirrByScheme}
         sort={sort}
         onSort={onSort}
