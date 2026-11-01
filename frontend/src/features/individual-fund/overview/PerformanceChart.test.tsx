@@ -307,3 +307,36 @@ describe("PerformanceChart", () => {
     expect(screen.getByTestId("legend-fund-figure").className).toContain("text-[var(--neg-text)]");
   });
 });
+
+
+describe("benchmark source details", () => {
+  it("names the chosen benchmark and source, preserves the note and dates the period chip", async () => {
+    api.performance.mockResolvedValue(Object.assign(perf(), {
+      benchmark_source: "closest", declared_benchmark_name: "BSE 500 TRI", benchmark_note: "The backend's explanation exactly.",
+    }));
+    mount(); await screen.findByTestId("line-chart");
+    expect(screen.getByTestId("benchmark-details")).toHaveTextContent("Closest index we hold");
+    expect(screen.getByTestId("benchmark-details")).toHaveTextContent("Benchmark: Nifty 500");
+    expect(screen.getByTestId("benchmark-details")).toHaveTextContent("Factsheet names: BSE 500 Total Return");
+    expect(screen.getByTestId("benchmark-details")).toHaveTextContent("The backend's explanation exactly.");
+    expect(screen.getByRole("button", { name: /1Y.*23 Oct 2025/ })).toBeInTheDocument();
+  });
+  it("says No benchmark for a new none source without losing the fund chart", async () => {
+    api.performance.mockResolvedValue(Object.assign(perf(), {
+      benchmark_source: "none", benchmark: null, benchmark_label: null, benchmark_index: null, benchmark_reason: "no_benchmark",
+    }));
+    mount(); await screen.findByTestId("line-chart");
+    expect(screen.getByTestId("benchmark-details")).toHaveTextContent("No benchmark");
+  });
+});
+
+
+it("does not date a newly selected period with the previous period's start while loading", async () => {
+  const first = Object.assign(perf(), { benchmark_source: "factsheet" });
+  const pending = deferred<PerformanceResponse>();
+  api.performance.mockImplementation((_id: string, period: string) => period === "3Y" ? pending.promise : Promise.resolve(first));
+  mount(); await screen.findByTestId("line-chart");
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "3Y" })); });
+  expect(screen.getByRole("button", { name: "3Y" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByRole("button", { name: /3Y.*23 Oct 2025/ })).not.toBeInTheDocument();
+});

@@ -1,3 +1,5 @@
+import { benchmarkDisplayName, benchmarkKeyName, benchmarkSourceLabel, BENCHMARK_PERIOD_METHOD } from "@/lib/benchmarkDisplay";
+import { SchemeLogo } from "@/components/SchemeLogo";
 import { useRef, useState } from "react";
 import { LineAreaChart } from "@/components/ui/charts";
 import { fundPageApi } from "../api";
@@ -69,7 +71,7 @@ export function PerformanceChart({ schemeId, fundName }: PerformanceChartProps) 
 
   const periodOptions = PERFORMANCE_PERIODS.map((p) => ({
     value: p,
-    label: p,
+    label: shown?.benchmark_source != null && shown.period === p ? `${p} · ${formatDate(shown.start)}` : p,
   }));
 
   const renderBody = (data: PerformanceResponse) => {
@@ -134,6 +136,14 @@ export function PerformanceChart({ schemeId, fundName }: PerformanceChartProps) 
 
     return (
       <div className="space-y-4">
+        {data.benchmark_source != null && <div data-testid="benchmark-details" className="space-y-1 text-xs text-[var(--ui-text-muted)]">
+          <span className="inline-flex items-center gap-2"><SchemeLogo schemeName={fundName} size="sm" />{fundName}</span>
+          <p>{benchmarkSourceLabel(data.benchmark_source)}</p>
+          {data.benchmark_source !== "none" && <p>Benchmark: {benchmarkDisplayName(data.benchmark_label ?? (data.benchmark_index ? benchmarkKeyName(data.benchmark_index) : "No benchmark"))}</p>}
+          {data.benchmark_source !== "none" && data.declared_benchmark_name && <p>Factsheet names: {benchmarkDisplayName(data.declared_benchmark_name)}</p>}
+          {data.benchmark_note && <p>{data.benchmark_note}</p>}
+          <p>{BENCHMARK_PERIOD_METHOD}</p>
+        </div>}
         <ul aria-label="Chart legend" className="flex flex-wrap items-center gap-3 text-xs">
           {/* Fund legend item */}
           <li>
@@ -176,7 +186,7 @@ export function PerformanceChart({ schemeId, fundName }: PerformanceChartProps) 
                   className="h-2 w-2 rounded-full inline-block"
                 />
                 <span className="text-[var(--ui-text-muted)]">
-                  {data.benchmark_label ?? "Benchmark"}
+                  {data.benchmark_source != null ? benchmarkDisplayName(data.benchmark_label ?? "Benchmark") : data.benchmark_label ?? "Benchmark"}
                 </span>
                 <b data-testid="legend-benchmark-figure" className={benchDirColor}>
                   {formatSignedPercent(data.period_returns.benchmark, 1)}

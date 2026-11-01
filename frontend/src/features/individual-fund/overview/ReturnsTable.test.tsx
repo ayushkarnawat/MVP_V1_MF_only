@@ -274,3 +274,15 @@ describe("ReturnsTable", () => {
     expect(within(screen.getByTestId("row-benchmark")).getByRole("rowheader").textContent).toBe("Benchmark");
   });
 });
+
+
+it("shows the source and backend note for a printed benchmark without changing its numbers", async () => {
+  api.returns.mockResolvedValue(Object.assign(inception(), {
+    benchmark_source: "factsheet", declared_benchmark_name: "Nifty 500 TRI",
+    benchmark_note: "Printed in the factsheet as of 30 Sep 2026.", printed_as_of: "2026-09-30",
+  }));
+  mount(); await screen.findByTestId("row-fund");
+  expect(screen.getByTestId("returns-benchmark-details")).toHaveTextContent("From the fund's factsheet");
+  expect(screen.getByTestId("returns-benchmark-details")).toHaveTextContent("Printed in the factsheet as of 30 Sep 2026.");
+  expect(screen.getByTestId("returns-benchmark-details")).not.toHaveTextContent("TRI");
+});

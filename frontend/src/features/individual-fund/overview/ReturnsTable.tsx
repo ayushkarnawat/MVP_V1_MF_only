@@ -1,3 +1,4 @@
+import { benchmarkDisplayName, benchmarkSourceLabel } from "@/lib/benchmarkDisplay";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPercent } from "@/lib/format";
@@ -139,7 +140,7 @@ export function ReturnsTable({ schemeId, scope, fundName }: ReturnsTableProps) {
                       scope="row"
                       className="py-2.5 pr-4 font-normal text-[var(--ui-text-muted)]"
                     >
-                      {incData.benchmark_label || "Benchmark"}
+                      {incData.benchmark_source != null ? benchmarkDisplayName(incData.benchmark_label || "Benchmark") : incData.benchmark_label || "Benchmark"}
                     </th>
                     {incData.columns.map((col) => {
                       const val = incData.rows.benchmark![col];
@@ -411,7 +412,14 @@ export function ReturnsTable({ schemeId, scope, fundName }: ReturnsTableProps) {
           reason={active.reason}
           onRetry={active.retry}
         >
-          {active.data ? renderTable(active.data) : null}
+          {active.data ? <>
+          {active.data.benchmark_source != null && <div data-testid="returns-benchmark-details" className="text-xs text-[var(--ui-text-muted)] space-y-1">
+            <p>{benchmarkSourceLabel(active.data.benchmark_source)}</p>
+            {active.data.benchmark_source !== "none" && <p>{benchmarkDisplayName(active.data.declared_benchmark_name ?? active.data.benchmark_label ?? "No benchmark")}</p>}
+            {active.data.benchmark_note && <p>{active.data.benchmark_note}</p>}
+          </div>}
+          {renderTable(active.data)}
+        </> : null}
         </SectionState>
       )}
     </section>

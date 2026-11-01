@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as fb from "../fixtures/mfB";
 import {
   barPercent,
+  comparisonFundsForWindow,
   buildEntities,
   DEFAULT_INDICES,
   fundDifference,
@@ -194,4 +195,17 @@ describe("per-fund windows", () => {
     expect(miniTrack({ fund: "0.1", benchmark: "0.1" })).toEqual({ fund: 50, benchmark: 50 });
     expect(miniTrack({ fund: "0.1", benchmark: null })).toBeNull();
   });
+});
+
+
+it("keeps an empty declared comparison empty instead of using the legacy funds", () => {
+  expect(comparisonFundsForWindow({ ...fb.fundBenchmarkWithoutWindows(), declared_comparison: [] }, "SI")).toEqual([]);
+});
+it("never displays either rate for a declared window carrying a reason", () => {
+  const summary = { ...fb.fundBenchmarkWithoutWindows(), declared_comparison: [{
+    scheme_id: "x", scheme_name: "Fund", index_key: "nifty_500", source: "factsheet" as const,
+    declared_name: "Nifty 500", note: null, mapping_age_days: null,
+    windows: [{ window: "SI" as const, start_date: null, fund_xirr: "0.2", benchmark_xirr: "0.1", reason: "Not enough history." }],
+  }] };
+  expect(comparisonFundsForWindow(summary, "SI")[0].view).toEqual({ fund: null, benchmark: null });
 });

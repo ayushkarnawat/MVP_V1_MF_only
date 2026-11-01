@@ -36,7 +36,12 @@ const summary: Schema<SummaryResponse> = obj<SummaryResponse>({
 });
 const folioNumber: Schema<FolioNumberResponse> = obj<FolioNumberResponse>({ status: lit("ready"), folio_id: str, folio_number: str });
 const periods = lit("1M", "3M", "6M", "1Y", "3Y", "5Y", "All");
+const benchmarkDetails = {
+  benchmark_source: optional(nullable(lit("factsheet", "closest", "category", "none"))),
+  declared_benchmark_name: optional(nstr), benchmark_note: optional(nstr),
+};
 const performance: Schema<PerformanceResponse> = obj<PerformanceResponse>({
+  ...benchmarkDetails,
   status: lit("ready"), scheme_id: str, period: periods, start: str, end: str, clamped: bool, since_launch: bool, fund: arr(point),
   benchmark_index: nstr, benchmark_label: nstr, benchmark: nullable(arr(point)), benchmark_reason: nstr,
   period_returns: obj<{ fund: string | null; benchmark: string | null }>({ fund: nstr, benchmark: nstr }),
@@ -46,11 +51,13 @@ const inceptionCells: Schema<InceptionCells> = obj<InceptionCells>({
 });
 const currentCells: Schema<CurrentCells> = obj<CurrentCells>({ "1Y": nstr, "3Y": nstr, "5Y": nstr, since_first_investment: nstr });
 const inceptionReturns: Schema<InceptionReturnsResponse> = obj<InceptionReturnsResponse>({
+  ...benchmarkDetails, printed_as_of: optional(nstr),
   status: lit("ready"), mode: lit("inception"), columns: arr(lit("1M", "3M", "6M", "1Y", "3Y", "5Y", "since_inception")),
   rows: obj<InceptionReturnsResponse["rows"]>({ fund: inceptionCells, benchmark: nullable(inceptionCells) }), benchmark_reason: nstr,
   benchmark_label: optional(nstr),
 });
 const currentReturns: Schema<CurrentReturnsResponse> = obj<CurrentReturnsResponse>({
+  ...benchmarkDetails, printed_as_of: optional(nstr),
   status: lit("ready"), mode: lit("current"), columns: arr(lit("1Y", "3Y", "5Y", "since_first_investment")),
   rows: obj<CurrentReturnsResponse["rows"]>({ holding_xirr: currentCells, benchmark_same_flows: nullable(currentCells) }), benchmark_reason: nstr,
   benchmark_label: optional(nstr),
@@ -348,4 +355,11 @@ describe("Individual Fund golden fixtures", () => {
     expect(compareBody.fund_b.scheme_id).toBe(IDS.peer1);
     expect(compareBody.fund_a.scheme_id).toBe(IDS.scheme);
   });
+});
+
+
+it("accepts optional benchmark metadata while keeping old fixture contracts", () => {
+  expect(performance.check({ ...fixture<PerformanceResponse>("performance_1y_equity"),
+    benchmark_source: "closest", declared_benchmark_name: "BSE 500 TRI", benchmark_note: "Backend note.",
+  }, "performance")).toEqual([]);
 });

@@ -199,7 +199,25 @@ export interface FundBenchmarkRow {
   /** Added by the MB backend; a payload stored before it has none (the page then shows since-inception only). */
   windows?: FundWindowXirr[];
 }
+export interface DeclaredBenchmarkWindow {
+  window: BenchmarkWindow;
+  start_date: string | null;
+  fund_xirr: string | null;
+  benchmark_xirr: string | null;
+  reason: string | null;
+}
+export interface DeclaredFundBenchmarkRow {
+  scheme_id: string;
+  scheme_name: string;
+  index_key: string | null;
+  source: "factsheet" | "closest" | "category" | "none";
+  declared_name: string | null;
+  note: string | null;
+  mapping_age_days: number | null;
+  windows: DeclaredBenchmarkWindow[];
+}
 export interface FundVsBenchmarkSummary {
+  declared_comparison?: DeclaredFundBenchmarkRow[] | null;
   funds: FundBenchmarkRow[];
   overall_portfolio_xirr: string | null;
   overall_broad_market_xirr: string | null;

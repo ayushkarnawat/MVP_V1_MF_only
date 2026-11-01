@@ -362,3 +362,73 @@ describe("states and scope", () => {
     expectInteractivity(container, 8);
   });
 });
+
+
+describe("declared benchmark comparison", () => {
+  function declared(source = "factsheet", reason: string | null = null) {
+    const summary = fb.fundBenchmarkWithoutWindows();
+    Object.assign(summary, { declared_comparison: [{
+      scheme_id: "declared-fund", scheme_name: "HDFC Declared Fund",
+      index_key: source === "none" ? null : "nifty_bank", source,
+      declared_name: source === "none" ? null : "Nifty Bank", note: "A note sent by the backend, unchanged.", mapping_age_days: 4,
+      windows: [{ window: "SI", start_date: "2023-04-03", fund_xirr: "0.12", benchmark_xirr: "0.09", reason },
+        { window: "1Y", start_date: "2025-10-30", fund_xirr: "0.15", benchmark_xirr: "0.11", reason: null }],
+    }] });
+    return summary;
+  }
+  async function open(source = "factsheet", reason: string | null = null) {
+    mocks.getAnalyticsScope.mockResolvedValue(scopeWith({ funds: declared(source, reason) }));
+    mount(); await ready(); click("Per-Fund vs Benchmark", "tab");
+    fireEvent.click(screen.getByTestId("fund-toggle-declared-fund"));
+    return screen.getByTestId("fund-detail-declared-fund");
+  }
+  it("row_names_benchmark_and_source_label", async () => {
+    const detail = await open();
+    expect(detail).toHaveTextContent("Nifty Bank");
+    expect(detail).toHaveTextContent("From the fund's factsheet");
+    expect(detail).toHaveTextContent("A note sent by the backend, unchanged.");
+    expect(detail).toHaveTextContent("same cash flows");
+    expect(screen.getByTestId("fund-logo-declared-fund")).toBeInTheDocument();
+    expect(screen.getByTestId("bench-xirr-declared-fund")).toHaveTextContent("+9.0%");
+  });
+  it("proxy_is_labelled", async () => {
+    const summary = declared("closest");
+    Object.assign(summary.declared_comparison![0], { declared_name: "BSE Bankex TRI" });
+    mocks.getAnalyticsScope.mockResolvedValue(scopeWith({ funds: summary }));
+    mount(); await ready(); click("Per-Fund vs Benchmark", "tab");
+    fireEvent.click(screen.getByTestId("fund-toggle-declared-fund"));
+    const detail = screen.getByTestId("fund-detail-declared-fund");
+    expect(detail).toHaveTextContent("Closest index we hold");
+    expect(detail).toHaveTextContent("Benchmark: Nifty Bank");
+    expect(detail).toHaveTextContent("Factsheet names: BSE Bankex Total Return");
+  });
+  it("fund_without_benchmark_says_no_benchmark", async () => {
+    expect(await open("none")).toHaveTextContent("No benchmark");
+    expect(screen.queryByTestId("bench-xirr-declared-fund")).not.toBeInTheDocument();
+  });
+  it("window_chip_shows_start_date", async () => {
+    await open();
+    expect(screen.getByRole("button", { name: /Since Inception.*03 Apr 2023/ })).toBeInTheDocument();
+    click(/1Y.*30 Oct 2025/);
+    expect(screen.getByTestId("bench-xirr-declared-fund")).toHaveTextContent("+11.0%");
+  });
+  it("old_payload_without_source_renders_as_before", async () => {
+    mount(); await ready(); click("Per-Fund vs Benchmark", "tab");
+    const toggle = screen.getAllByTestId(/^fund-toggle-/)[0];
+    fireEvent.click(toggle);
+    const detail = screen.getAllByTestId(/^fund-detail-/)[0];
+    expect(detail).toHaveTextContent("(Total Return)");
+    expect(detail).not.toHaveTextContent("From the fund's factsheet");
+  });
+  it("shows a window reason instead of either rate or a difference", async () => {
+    const reason = "We need the index history for this window.";
+    expect(await open("factsheet", reason)).toHaveTextContent(reason);
+    expect(screen.queryByTestId("bench-xirr-declared-fund")).not.toBeInTheDocument();
+    expect(screen.getByTestId("fund-diff-declared-fund")).not.toHaveTextContent("+3.0%");
+  });
+  it("uses the category source label with plain words only", async () => {
+    const detail = await open("category");
+    expect(detail).toHaveTextContent("Chosen by the fund's category");
+    expect(detail.textContent).not.toMatch(/\b(?:TRI|proxy|fallback)\b/i);
+  });
+});

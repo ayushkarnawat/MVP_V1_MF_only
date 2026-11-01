@@ -105,7 +105,12 @@ export interface FolioNumberResponse {
 
 // ---- 3. performance ------------------------------------------------------------------------------------
 
-export interface PerformanceResponse {
+export interface BenchmarkDetails {
+  benchmark_source?: "factsheet" | "closest" | "category" | "none" | null;
+  declared_benchmark_name?: string | null;
+  benchmark_note?: string | null;
+}
+export interface PerformanceResponse extends BenchmarkDetails {
   status: "ready";
   scheme_id: string;
   period: PerformancePeriod;
@@ -128,7 +133,8 @@ export type CurrentColumn = "1Y" | "3Y" | "5Y" | "since_first_investment";
 export type InceptionCells = Record<InceptionColumn, string | null>;
 export type CurrentCells = Record<CurrentColumn, string | null>;
 
-export interface InceptionReturnsResponse {
+export interface InceptionReturnsResponse extends BenchmarkDetails {
+  printed_as_of?: string | null;
   status: "ready";
   mode: "inception";
   columns: InceptionColumn[];
@@ -138,7 +144,8 @@ export interface InceptionReturnsResponse {
   benchmark_label?: string | null;
 }
 
-export interface CurrentReturnsResponse {
+export interface CurrentReturnsResponse extends BenchmarkDetails {
+  printed_as_of?: string | null;
   status: "ready";
   mode: "current";
   columns: CurrentColumn[];

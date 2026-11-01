@@ -1,3 +1,5 @@
+import { SchemeLogo } from "../../../components/SchemeLogo";
+import { benchmarkDisplayName, benchmarkKeyName, benchmarkSourceLabel, BENCHMARK_FLOW_METHOD } from "../../../lib/benchmarkDisplay";
 import { Activity, BarChart3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Skeleton } from "../../../components/ui/skeleton";
@@ -19,7 +21,7 @@ import {
   type EntityKey,
   entityLabel,
   fundDifference,
-  fundsForWindow,
+  comparisonFundsForWindow,
   INDEX_DEFS,
   indexLabel,
   layoutRaceTrack,
@@ -73,8 +75,8 @@ export function BenchmarkBlock() {
   };
 
   const fundRows = useMemo(
-    () => fundsForWindow(funds.data?.funds ?? [], windowId),
-    [funds.data?.funds, windowId]
+    () => comparisonFundsForWindow(funds.data, windowId),
+    [funds.data, windowId]
   );
 
   const activeOpenFundId = fundRows.some(r => r.fund.scheme_id === openFundId)
@@ -533,7 +535,8 @@ export function BenchmarkBlock() {
               ) : (
                 <div className="flex flex-col gap-2">
                   <ul aria-label="Funds against their benchmarks" className="flex flex-col gap-2">
-                    {(showAllFunds ? fundRows : fundRows.slice(0, 5)).map(({ fund, view }) => {
+                    {(showAllFunds ? fundRows : fundRows.slice(0, 5)).map(({ fund, view, declared }) => {
+                      const declaredWindow = declared?.windows.find(w => w.window === windowId);
                       const isOpen = activeOpenFundId === fund.scheme_id;
                       const track = miniTrack(view);
                       const diff = fundDifference(view);
@@ -566,6 +569,7 @@ export function BenchmarkBlock() {
                               title={fund.scheme_name}
                               className="w-1/3 truncate text-xs font-medium text-[var(--ui-text)]"
                             >
+                              {declared && <span data-testid={`fund-logo-${fund.scheme_id}`} className="inline-flex mr-2 align-middle"><SchemeLogo schemeName={fund.scheme_name} size="sm" /></span>}
                               {fund.scheme_name}
                             </span>
 
@@ -602,9 +606,27 @@ export function BenchmarkBlock() {
                               data-testid={`fund-detail-${fund.scheme_id}`}
                               className="border-t border-[var(--ui-divider)] p-3 text-xs flex flex-wrap items-center gap-4 text-[var(--ui-text-muted)]"
                             >
-                              <span>
-                                Benchmark: {indexLabel(fund.benchmark_index)} (Total Return)
-                              </span>
+                              {declared ? (
+                                <>
+                                  <span>{benchmarkSourceLabel(declared.source)}</span>
+                                  {declared.source !== "none" && <span>Benchmark: {declared.index_key ? benchmarkKeyName(declared.index_key) : "No benchmark"}</span>}
+                                  {declared.source !== "none" && declared.declared_name && <span>Factsheet names: {benchmarkDisplayName(declared.declared_name)}</span>}
+                                  {declared.note && <p>{declared.note}</p>}
+                                  <p>{BENCHMARK_FLOW_METHOD}</p>
+                                  <div role="group" aria-label={`${fund.scheme_name} time window`} className="flex flex-wrap gap-2">
+                                    {WINDOW_DEFS.map(win => {
+                                      const row = declared.windows.find(w => w.window === win.id);
+                                      return <button key={win.id} type="button" aria-pressed={windowId === win.id}
+                                        disabled={!row} data-clickable="" data-effect="select" onClick={() => setWindowId(win.id)}
+                                        className="rounded-md border border-[var(--ui-divider)] px-2 py-1 focus-visible:outline focus-visible:outline-2">
+                                        {win.label}{row?.start_date ? ` · ${formatDate(row.start_date)}` : ""}
+                                      </button>;
+                                    })}
+                                  </div>
+                                </>
+                              ) : <span>Benchmark: {indexLabel(fund.benchmark_index)} (Total Return)</span>}
+                              {declaredWindow?.reason ? <p role="note">{declaredWindow.reason}</p> : declared?.source === "none" ? null : <>
+
                               <span>
                                 Fund XIRR{" "}
                                 <span
@@ -623,6 +645,7 @@ export function BenchmarkBlock() {
                                   {signedXirr(view.benchmark)}
                                 </span>
                               </span>
+                              </>}
                             </div>
                           )}
                         </li>

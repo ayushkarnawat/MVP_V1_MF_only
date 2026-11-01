@@ -4,6 +4,8 @@ import type {
   BenchmarkIndexKey,
   BenchmarkWindow,
   FundBenchmarkRow,
+  FundVsBenchmarkSummary,
+  DeclaredFundBenchmarkRow,
   PortfolioBenchmarkSummary,
 } from "../types";
 
@@ -332,4 +334,22 @@ export function miniTrack(
     fund: round2(5 + ((fNum - lo) / span) * 90),
     benchmark: round2(5 + ((bNum - lo) / span) * 90),
   };
+}
+
+
+/** A present new section is authoritative, even when empty or unavailable. */
+export function comparisonFundsForWindow(
+  summary: FundVsBenchmarkSummary | null | undefined, window: BenchmarkWindow
+): Array<{ fund: FundBenchmarkRow; view: FundWindowView; declared?: DeclaredFundBenchmarkRow }> {
+  if (summary?.declared_comparison == null) return fundsForWindow(summary?.funds ?? [], window);
+  return summary.declared_comparison.map(declared => {
+    const row = declared.windows.find(w => w.window === window);
+    const usable = row?.reason == null && declared.source !== "none";
+    return {
+      declared,
+      fund: { scheme_id: declared.scheme_id, scheme_name: declared.scheme_name,
+        benchmark_index: declared.index_key ?? "", fund_xirr: null, benchmark_xirr: null },
+      view: { fund: usable ? row?.fund_xirr ?? null : null, benchmark: usable ? row?.benchmark_xirr ?? null : null },
+    };
+  });
 }
