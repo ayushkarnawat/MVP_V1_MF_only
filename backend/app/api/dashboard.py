@@ -175,7 +175,8 @@ def delete_household_member_portfolio(
 
 
 #individual member dashboard
-@router.get("/household-members/{member_id}/holdings", response_model=MemberHoldingsResponse)
+@router.get("/household-members/{member_id}/holdings", response_model=MemberHoldingsResponse,
+            response_model_exclude={"holdings": {"__all__": {"folios"}}})
 async def get_member_holdings(
     member_id: uuid.UUID,
     user: User = Depends(get_active_user),

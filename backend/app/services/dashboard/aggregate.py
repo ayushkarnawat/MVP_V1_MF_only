@@ -14,10 +14,11 @@ from sqlalchemy.orm import Session
 
 from app.models.enums import ImportStatus
 from app.models.imports import Import
+from app.models.analytics import AnalyticsSection
 from app.services.dashboard.allocation import compute_allocation
 from app.services.dashboard.cash_flow import compute_cash_flow
 from app.services.dashboard.distributor_comparison import compute_distributor_comparison
-from app.services.dashboard.holdings import compute_holdings, compute_realized_summary
+from app.services.dashboard.holdings import compute_holdings, compute_realized_summary, consolidate_holdings
 from app.services.dashboard.xirr import calculate_dashboard_xirr
 from app.services.dashboard.household_members import list_household_members
 from app.services.dashboard.schemas import (
@@ -53,7 +54,23 @@ async def get_aggregate_holdings(db: Session, user_id: uuid.UUID) -> AggregateHo
     statuses = get_member_statuses(db, user_id)
     holdings = await compute_holdings(db, [m.id for m in members])
     xirr_summary = calculate_dashboard_xirr(db, [m.id for m in members], holdings)
+    # Stored analytics only: one household-scoped read, with no per-member solve.
+    rates = {"combined": {}, **{str(m.id): {} for m in members}}
+    scope_keys = list(rates) if len(members) <= 4 else ["combined"]
+    sections = db.query(AnalyticsSection).filter(AnalyticsSection.user_id == user_id,
+        AnalyticsSection.section == "benchmark_funds", AnalyticsSection.scope_key.in_(scope_keys)).all()
+    for section in sections:
+        payload = section.payload or {}
+        comparison = payload.get("comparison", {}) if section.scope_key == "combined" else payload
+        for fund in comparison.get("funds", []):
+            try:
+                sid = uuid.UUID(fund["scheme_id"])
+            except (ValueError, KeyError, TypeError):
+                continue
+            rate = fund.get("fund_xirr")
+            rates[section.scope_key][sid] = rate if isinstance(rate, str) else None
     return AggregateHoldingsResponse(
+        consolidated=consolidate_holdings(holdings, rates),
         realized_summary=compute_realized_summary(db, [m.id for m in members]),
         members=statuses,
         holdings=holdings,

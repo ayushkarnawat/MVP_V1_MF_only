@@ -521,7 +521,7 @@ def test_existing_holding_fields_unchanged():
     ), patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None):
         [row] = asyncio.run(compute_holdings(db, [member.id]))
 
-    dumped = row.model_dump(mode="json")
+    dumped = row.model_dump(mode="json", exclude={"folios"})
     assert list(dumped)[-1] == "sebi_category"
     dumped.pop("sebi_category")
     assert dumped == {
@@ -1142,3 +1142,111 @@ def test_holding_row_sebi_category_defaults_to_none_when_not_supplied():
     from app.services.dashboard.schemas import HoldingRow
 
     assert HoldingRow.model_fields["sebi_category"].default is None
+
+
+# Run 4: round child money once to paisa, then sum those displayed children.
+def _consolidation_rows():
+    from app.services.dashboard.schemas import HoldingRow
+    sid, a, b = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+    base = dict(scheme_id=str(sid), scheme_name="Shared Direct Fund", amc_name="Synthetic AMC", asset_class="Equity",
+        plan_type=PlanType.DIRECT, current_nav="20", current_nav_date=date(2026, 10, 30), today_gain="0", realized_gain="0")
+    return [HoldingRow(**base, household_member_id=str(a), household_member_name="Asha", units_held="10",
+        amount_invested="100.015", average_nav="10.0015", current_value="200.005", unrealized_gain="99.99", current_profit_total="99.99"),
+      HoldingRow(**base, household_member_id=str(b), household_member_name="Dev", units_held="30",
+        amount_invested="450.024", average_nav="15.0008", current_value="600.015", unrealized_gain="149.991", current_profit_total="149.991")]
+
+
+def _consolidate(rows, rates=None):
+    from app.services.dashboard.holdings import consolidate_holdings
+    return consolidate_holdings(rows, rates or {})
+
+
+def test_two_members_one_fund_parent_equals_sum_of_children_to_the_paisa():
+    [parent] = _consolidate(_consolidation_rows())
+    assert parent.units_held == "40"
+    for field in ("amount_invested", "current_value", "realized_gain", "unrealized_gain"):
+        assert Decimal(getattr(parent, field)) == sum((Decimal(getattr(c, field)) for c in parent.children), Decimal("0"))
+    assert parent.amount_invested == "550.04"  # 100.02 + 450.02.
+    assert parent.current_value == "800.03"  # 200.01 + 600.02.
+
+
+def test_average_price_is_total_cost_over_total_units_not_the_mean_of_child_prices():
+    [parent] = _consolidate(_consolidation_rows())
+    assert Decimal(parent.average_price) == Decimal("550.04") / Decimal("40")
+    assert Decimal(parent.average_price) != (Decimal("10.0015") + Decimal("15.0008")) / 2
+
+
+def test_parent_xirr_equals_stored_combined_scope_rate_and_child_equals_member_rate():
+    rows = _consolidation_rows(); sid = uuid.UUID(rows[0].scheme_id)
+    [parent] = _consolidate(rows, {"combined": {sid: "0.1234"}, rows[0].household_member_id: {sid: "0.1111"}})
+    assert parent.xirr == "0.1234"
+    assert [c.xirr for c in parent.children] == ["0.1111", None]
+
+
+def test_direct_and_regular_stay_separate_parents():
+    rows = _consolidation_rows(); rows[1].plan_type = PlanType.REGULAR
+    assert len(_consolidate(rows)) == 2
+
+
+def test_fund_held_by_one_member_is_a_parent_with_one_child():
+    [parent] = _consolidate(_consolidation_rows()[:1])
+    assert len(parent.children) == 1
+    assert parent.amount_invested == parent.children[0].amount_invested
+
+
+def test_folio_numbers_are_masked_only_and_never_full():
+    import asyncio
+    db = _session(); member = _household_member(db); folio = _folio(db, member, _scheme(db), folio_number="123456789012")
+    _persisted_txn(db, folio, TransactionType.PURCHASE, date(2024, 1, 1), Decimal("100"), Decimal("10"), Decimal("10"))
+    with patch("app.services.dashboard.holdings.get_navs_on_or_before", new=_mock_nav_batch((Decimal("20"), date.today()))):
+        [row] = asyncio.run(compute_holdings(db, [member.id]))
+    assert row.folios[0].folio_masked == "XXXX9012"
+    assert Decimal(row.folios[0].units) == Decimal("10")
+    assert Decimal(row.folios[0].invested) == Decimal("100")
+    assert Decimal(row.folios[0].value) == Decimal("200")
+    assert "123456789012" not in row.model_dump_json()
+    assert "123456789012" not in _consolidate([row])[0].model_dump_json()
+
+
+def test_stale_and_nav_unavailable_flags_carry_to_parent_and_child():
+    rows = _consolidation_rows(); rows[0].stale_nav = True
+    rows[1].nav_unavailable = True; rows[1].current_value = None; rows[1].unrealized_gain = None
+    [parent] = _consolidate(rows)
+    assert parent.stale_nav and parent.nav_unavailable
+    assert parent.children[0].stale_nav and parent.children[1].nav_unavailable
+    assert parent.current_value is None and parent.unrealized_gain is None
+
+
+def test_household_with_more_than_four_members_shows_dash_for_member_xirr():
+    rows = _consolidation_rows(); sid = uuid.UUID(rows[0].scheme_id)
+    rates = {"combined": {sid: "0.2"}, **{r.household_member_id: {sid: "0.1"} for r in rows}}
+    rates.update({str(uuid.uuid4()): {} for _ in range(3)})
+    [parent] = _consolidate(rows, rates)
+    assert parent.xirr == "0.2"
+    assert all(c.xirr is None for c in parent.children)
+
+
+def test_opening_balance_disclaimer_is_inherited_by_the_parent():
+    from app.services.dashboard.schemas import OpeningLotInfo
+    rows = _consolidation_rows()
+    rows[0].opening_lot = OpeningLotInfo(units="5", since=date(2020, 1, 1), cost_source="cas_cost")
+    rows[1].opening_lot = OpeningLotInfo(units="10", since=date(2019, 1, 1), cost_source="nav_on_start")
+    [parent] = _consolidate(rows)
+    assert parent.opening_lot.units == "15"
+    assert parent.opening_lot.since == date(2019, 1, 1)
+    assert parent.opening_lot.cost_source == "nav_on_start"
+    assert parent.children[0].opening_lot.cost_source == "cas_cost"
+
+
+def test_folio_paisa_allocation_never_makes_a_small_positive_folio_negative():
+    import asyncio
+    db = _session(); member = _household_member(db); scheme = _scheme(db)
+    for index in range(4):
+        folio = _folio(db, member, scheme, folio_number=f"12345678{index}")
+        _persisted_txn(db, folio, TransactionType.PURCHASE, date(2024, 1, 1), Decimal("0.01"), Decimal("0.001"), Decimal("5"))
+    with patch("app.services.dashboard.holdings.get_navs_on_or_before", new=_mock_nav_batch((Decimal("5"), date.today()))):
+        [row] = asyncio.run(compute_holdings(db, [member.id]))
+    for field in ("invested", "value"):
+        values = [Decimal(getattr(f, field)) for f in row.folios]
+        assert min(values) >= 0
+        assert sum(values, Decimal("0")) == Decimal("0.02")

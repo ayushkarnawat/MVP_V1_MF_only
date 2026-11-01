@@ -52,7 +52,16 @@ class XirrDisclaimerOut(BaseModel):
     opening_cost_share: str
 
 
+class FolioSlice(BaseModel):
+    folio_id: str
+    folio_masked: str
+    units: str
+    invested: str
+    value: str | None
+
+
 class HoldingRow(BaseModel):
+    folios: list[FolioSlice] = Field(default_factory=list)
     stale_nav: bool = False
     # A fund in no master (CAS-only): valued at the NAV its statement printed.
     price_from_statement: bool = False
@@ -77,6 +86,36 @@ class HoldingRow(BaseModel):
     nav_unavailable: bool = False
     opening_lot: OpeningLotInfo | None = None
     sebi_category: str | None = None
+
+
+class ConsolidatedHoldingChild(HoldingRow):
+    xirr: str | None = None
+
+
+class ConsolidatedHolding(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    amc_name: str
+    asset_class: str
+    plan_type: PlanType
+    plan_verified: bool = True
+    sebi_category: str | None = None
+    units_held: str
+    average_price: str | None
+    amount_invested: str
+    current_value: str | None
+    realized_gain: str
+    unrealized_gain: str | None
+    current_profit_total: str | None
+    today_gain: str | None
+    current_nav: str | None
+    current_nav_date: date | None
+    stale_nav: bool = False
+    nav_unavailable: bool = False
+    price_from_statement: bool = False
+    opening_lot: OpeningLotInfo | None = None
+    xirr: str | None = None
+    children: list[ConsolidatedHoldingChild] = Field(default_factory=list)
 
 
 class DistributorSchemeBreakdown(BaseModel):
@@ -234,6 +273,7 @@ class RealizedSummary(BaseModel):
 
 
 class AggregateHoldingsResponse(BaseModel):
+    consolidated: list[ConsolidatedHolding] | None = None
     realized_summary: RealizedSummary
     members: list[MemberStatus]
     holdings: list[HoldingRow]

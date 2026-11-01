@@ -12,7 +12,7 @@ import uuid
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_FLOOR
 
 from sqlalchemy import case
 from sqlalchemy.orm import Session
@@ -25,7 +25,7 @@ from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
 from app.services.dashboard.nav import get_nav_on_or_before, get_navs_on_or_before, get_previous_nav_from_cache
-from app.services.dashboard.schemas import HoldingRow, OpeningLotInfo, RealizedFund, RealizedSummary
+from app.services.dashboard.schemas import HoldingRow, OpeningLotInfo, RealizedFund, RealizedSummary, FolioSlice, ConsolidatedHolding, ConsolidatedHoldingChild
 from app.services.dashboard.allocation_labels import asset_class_bucket
 
 # Single source of the lot rules (Phase 3 review): see app/services/lot_rules.py.
@@ -204,6 +204,7 @@ async def compute_holdings(
 
     computed: list[tuple[uuid.UUID, Scheme, PlanType, Decimal, Decimal, Decimal]] = []
     opening_info = {}
+    folio_details = {}
     plan_verifications = {}
     for (member_id, scheme_id, plan_type), member_folios in grouped.items():
         plan_verifications[(member_id, scheme_id, plan_type)] = all(f.plan_verified for f in member_folios)
@@ -212,14 +213,18 @@ async def compute_holdings(
         total_cost = Decimal("0")
         total_realized = Decimal("0")
         openings = []
+        details = []
         for folio in member_folios:
             transactions = transactions_by_folio.get(folio.id, [])
             units_held, cost_basis, realized_gain = _process_folio_lots(transactions)
+            if units_held > 0:
+                details.append((folio, units_held, cost_basis))
             total_units += units_held
             total_cost += cost_basis
             total_realized += realized_gain
             openings.extend(t for t in transactions if t.origin == TransactionOrigin.CAS_OPENING)
 
+        folio_details[(member_id, scheme_id, plan_type)] = details
         if openings:
             opening_info[(member_id, scheme_id, plan_type)] = OpeningLotInfo(
                 units=str(sum((t.units for t in openings), Decimal("0"))),
@@ -253,9 +258,19 @@ async def compute_holdings(
     for member_id, scheme, plan_type, total_units, total_cost, total_realized in computed:
         nav_result = nav_results[scheme.id]
         average_nav = (total_cost / total_units) if total_units else None
+        slices = []
+        details = folio_details[(member_id, scheme.id, plan_type)]
+        invested_slices = _allocate_paisa([cost for _, _, cost in details])
+        value_slices = None if nav_result is None else _allocate_paisa([units * nav_result[0] for _, units, _ in details])
+        for index, (folio, units, cost) in enumerate(details):
+            invested = invested_slices[index]
+            value = value_slices[index] if value_slices is not None else None
+            slices.append(FolioSlice(folio_id=str(folio.id), folio_masked="XXXX" + folio.folio_number[-4:],
+                units=str(units), invested=str(invested), value=str(value) if value is not None else None))
         if nav_result is None:
             rows.append(
                 HoldingRow(
+                    folios=slices,
                     scheme_id=str(scheme.id),
                     scheme_name=scheme.name,
                     amc_name=scheme.amc_name,
@@ -295,6 +310,7 @@ async def compute_holdings(
 
         rows.append(
             HoldingRow(
+                folios=slices,
                 scheme_id=str(scheme.id),
                 scheme_name=scheme.name,
                 amc_name=scheme.amc_name,
@@ -332,3 +348,71 @@ async def compute_holdings(
                 cached_at=_holdings_cache_clock(),
             )
     return rows
+
+
+def _allocate_paisa(values: list[Decimal]) -> list[Decimal]:
+    """Allocate rounded total by largest fractional paisa; positive slices stay non-negative."""
+    paisa = Decimal("0.01")
+    parts = [value.quantize(paisa, rounding=ROUND_FLOOR) for value in values]
+    remainder = int((quantize_amount(sum(values, Decimal("0"))) - sum(parts, Decimal("0"))) / paisa)
+    order = sorted(range(len(values)), key=lambda index: values[index] - parts[index], reverse=True)
+    for index in order[:remainder]:
+        parts[index] += paisa
+    return parts
+
+
+_MONEY_FIELDS = ("amount_invested", "current_value", "realized_gain", "unrealized_gain", "current_profit_total", "today_gain")
+
+
+def consolidate_holdings(
+    rows: list[HoldingRow], xirr_by_scope: dict[str, dict[uuid.UUID, str | None]],
+) -> list[ConsolidatedHolding]:
+    """Pure view over the existing cached rows; no NAV reads or XIRR calculation.
+
+    Money is rounded at the child boundary, then summed, so parent and visible
+    children agree to paisa. A missing price keeps totals unknown, never partial.
+    Empty scope maps count members with no holdings towards the four-member cap.
+    """
+    member_ids = {r.household_member_id for r in rows} | (set(xirr_by_scope) - {"combined"})
+    member_rates_available = len(member_ids) <= 4
+    grouped = defaultdict(list)
+    for row in rows:
+        grouped[(row.scheme_id, row.plan_type)].append(row)
+    result = []
+    for (sid, plan), group in grouped.items():
+        children = []
+        for row in group:
+            data = row.model_dump()
+            for field in _MONEY_FIELDS:
+                value = data[field]
+                data[field] = str(quantize_amount(Decimal(value))) if value is not None else None
+            units = Decimal(row.units_held)
+            data["average_nav"] = str(Decimal(data["amount_invested"]) / units) if units else None
+            rate = xirr_by_scope.get(row.household_member_id, {}).get(uuid.UUID(sid)) if member_rates_available else None
+            children.append(ConsolidatedHoldingChild(**data, xirr=rate))
+        def summed(field):
+            values = [getattr(child, field) for child in children]
+            return None if any(v is None for v in values) else str(sum((Decimal(v) for v in values), Decimal("0")))
+        units = sum((Decimal(c.units_held) for c in children), Decimal("0"))
+        invested = summed("amount_invested")
+        openings = [c.opening_lot for c in children if c.opening_lot is not None]
+        opening = None if not openings else OpeningLotInfo(
+            units=str(sum((Decimal(o.units) for o in openings), Decimal("0"))),
+            since=min(o.since for o in openings),
+            cost_source=next((source for source in ("nav_on_start", "manual", "cas_cost") if any(o.cost_source == source for o in openings))),
+        )
+        first = children[0]
+        dates = [c.current_nav_date for c in children if c.current_nav_date is not None]
+        result.append(ConsolidatedHolding(
+            scheme_id=sid, scheme_name=first.scheme_name, amc_name=first.amc_name, asset_class=first.asset_class,
+            plan_type=plan, plan_verified=all(c.plan_verified for c in children), sebi_category=first.sebi_category,
+            units_held=str(units), average_price=str(Decimal(invested) / units) if units else None,
+            amount_invested=invested, current_value=summed("current_value"), realized_gain=summed("realized_gain"),
+            unrealized_gain=summed("unrealized_gain"), current_profit_total=summed("current_profit_total"), today_gain=summed("today_gain"),
+            current_nav=first.current_nav if all(c.current_nav == first.current_nav for c in children) else None,
+            current_nav_date=min(dates) if len(dates) == len(children) else None,
+            stale_nav=any(c.stale_nav for c in children), nav_unavailable=any(c.nav_unavailable for c in children),
+            price_from_statement=any(c.price_from_statement for c in children), opening_lot=opening,
+            xirr=xirr_by_scope.get("combined", {}).get(uuid.UUID(sid)), children=children,
+        ))
+    return result
