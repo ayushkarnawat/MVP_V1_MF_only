@@ -1,4 +1,4 @@
-import { benchmarkDisplayName, benchmarkSourceLabel } from "@/lib/benchmarkDisplay";
+import { benchmarkDisplayName, benchmarkSourceLabel, BENCHMARK_PRINTED_LABEL } from "@/lib/benchmarkDisplay";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPercent } from "@/lib/format";
@@ -414,8 +414,8 @@ export function ReturnsTable({ schemeId, scope, fundName }: ReturnsTableProps) {
         >
           {active.data ? <>
           {active.data.benchmark_source != null && <div data-testid="returns-benchmark-details" className="text-xs text-[var(--ui-text-muted)] space-y-1">
-            <p>{benchmarkSourceLabel(active.data.benchmark_source)}</p>
-            {active.data.benchmark_source !== "none" && <p>{benchmarkDisplayName(active.data.declared_benchmark_name ?? active.data.benchmark_label ?? "No benchmark")}</p>}
+            <p>{active.data.benchmark_source === "none" && active.data.declared_benchmark_name ? BENCHMARK_PRINTED_LABEL : benchmarkSourceLabel(active.data.benchmark_source)}</p>
+            {(active.data.benchmark_source !== "none" || active.data.declared_benchmark_name) && <p>{benchmarkDisplayName(active.data.declared_benchmark_name ?? active.data.benchmark_label ?? "No benchmark")}</p>}
             {active.data.benchmark_note && <p>{active.data.benchmark_note}</p>}
           </div>}
           {renderTable(active.data)}

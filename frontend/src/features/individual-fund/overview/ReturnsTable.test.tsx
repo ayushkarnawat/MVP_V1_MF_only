@@ -286,3 +286,15 @@ it("shows the source and backend note for a printed benchmark without changing i
   expect(screen.getByTestId("returns-benchmark-details")).toHaveTextContent("Printed in the factsheet as of 30 Sep 2026.");
   expect(screen.getByTestId("returns-benchmark-details")).not.toHaveTextContent("TRI");
 });
+
+
+it("says printed figures are the fund house's, not 'No benchmark', when we hold no series", async () => {
+  api.returns.mockResolvedValue(Object.assign(inception(), {
+    benchmark_source: "none", declared_benchmark_name: "CRISIL Liquid Debt A-I Index", printed_as_of: "2026-09-30",
+  }));
+  mount(); await screen.findByTestId("row-fund");
+  const details = screen.getByTestId("returns-benchmark-details");
+  expect(details).toHaveTextContent("As printed in the fund house's factsheet");
+  expect(details).toHaveTextContent("CRISIL Liquid Debt A-I Index");
+  expect(details).not.toHaveTextContent("No benchmark");
+});

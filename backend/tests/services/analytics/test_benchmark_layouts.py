@@ -116,3 +116,11 @@ def test_whiteoak_name_above_a_lone_benchmark_label_is_read_from_real_page_coord
     # Name too far above (a different block) or no name above: no reading.
     assert benchmark_block("whiteoak", "", [box(36, 640, "BSE"), box(35, 679, "Benchmark")]) == (None, None)
     assert benchmark_block("whiteoak", "", [box(35, 679, "Benchmark")]) == (None, None)
+
+
+def test_wrapped_weighted_blend_is_not_reduced_to_its_first_index():
+    from app.services.analytics.benchmark_layouts import _name
+    lines = ["(65%) + CRISIL Composite Bond Index (35%)", "NAV"]
+    assert _name(lines, "Nifty 50 TRI", 0) == "Nifty 50 TRI (65%) + CRISIL Composite Bond Index (35%)"
+    # A plain single index still stops at its own line.
+    assert _name(["Scheme Riskometer"], "Nifty 50 TRI", 0) == "Nifty 50 TRI"

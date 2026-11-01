@@ -430,9 +430,13 @@ async def compute_fund_vs_benchmark(
                 )
 
         if include_declared:
-            declared_comparison = compute_fund_vs_declared_benchmark(
-                window_ctx, window_levels, choices, grouped, current_value_by_scheme, schemes, fund_rows,
-            )
+            try:
+                declared_comparison = compute_fund_vs_declared_benchmark(
+                    window_ctx, window_levels, choices, grouped, current_value_by_scheme, schemes, fund_rows,
+                )
+            except Exception:
+                # Only the new field may be lost; every legacy number above is already final.
+                logger.warning("Declared benchmark comparison could not be computed", exc_info=True)
 
     return FundVsBenchmarkSummary(
         declared_comparison=declared_comparison,

@@ -96,7 +96,11 @@ async def _fetch_index_history(index: str, start_date: date, end_date: date, *, 
         payload = resp.json()
 
     rows: list[tuple[date, Decimal]] = []
+    if not isinstance(payload, list):
+        raise ValueError("NSE response is not a list")
     for entry in payload:
+        if not isinstance(entry, dict):
+            raise ValueError("NSE response row is not an object")
         _validate_echo(index, entry, "INDEX_NAME", trading_name)
         parsed_date = datetime.strptime(entry["HistoricalDate"], "%d %b %Y").date()
         if not (start_date <= parsed_date <= end_date):
@@ -131,7 +135,11 @@ async def _fetch_tri_history(index: str, start_date: date, end_date: date, *, ns
         payload = resp.json()
 
     rows: list[tuple[date, Decimal]] = []
+    if not isinstance(payload, list):
+        raise ValueError("NSE TRI response is not a list")
     for entry in payload:
+        if not isinstance(entry, dict):
+            raise ValueError("NSE TRI response row is not an object")
         _validate_echo(index, entry, "Index Name", trading_name)
         parsed_date = datetime.strptime(entry["Date"], "%d %b %Y").date()
         if not (start_date <= parsed_date <= end_date):
@@ -213,7 +221,7 @@ async def ensure_index_history_fresh(
             rows = await _fetch_tri_history(index, start_date, end_date, **kwargs)
         else:
             rows = await _fetch_index_history(index, start_date, end_date, **kwargs)
-    except (httpx.HTTPError, KeyError, ValueError, TypeError, InvalidOperation, StopIteration):
+    except (httpx.HTTPError, KeyError, ValueError, TypeError, AttributeError, InvalidOperation, StopIteration):
         logger.warning("BENCHMARK_ALERT index=%s reason=fetch_failed", index.value if isinstance(index, BenchmarkIndex) else index)
         return False
     if not rows:

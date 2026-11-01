@@ -46,7 +46,8 @@ def _name(lines: list[str], start: str, offset: int) -> str | None:
             continue
         if _STOP.match(line) or _LABEL.match(line) or _EXTRA.match(line):
             break
-        if collected and re.search(r"(?:TRI\)?|Index)\s*(?:\(Tier 1\))?$", collected[-1], re.I) and not re.search(r"[%+]", " ".join(collected)):
+        continues_blend = re.match(r"^(?:\(?\d+(?:\.\d+)?\s*%|\+|&)", line)
+        if collected and not continues_blend and re.search(r"(?:TRI\)?|Index)\s*(?:\(Tier 1\))?$", collected[-1], re.I) and not re.search(r"[%+]", " ".join(collected)):
             break
         collected.append(line)
     text = " ".join(collected).strip()

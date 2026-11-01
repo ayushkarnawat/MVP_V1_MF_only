@@ -5,6 +5,8 @@ export const BENCHMARK_SOURCE_LABELS = {
   category: "Chosen by the fund's category",
   none: "No benchmark",
 } as const;
+/** A fund whose benchmark we cannot build, but whose factsheet prints the returns. */
+export const BENCHMARK_PRINTED_LABEL = "As printed in the fund house's factsheet";
 export type BenchmarkSource = keyof typeof BENCHMARK_SOURCE_LABELS;
 export const BENCHMARK_FLOW_METHOD = "We compare the fund and index using the same cash flows on the same dates.";
 export const BENCHMARK_PERIOD_METHOD = "We compare the fund and index over the same dates.";

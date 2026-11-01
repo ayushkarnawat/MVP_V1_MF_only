@@ -1112,3 +1112,22 @@ def test_production_path_passes_the_legacy_since_inception_rates_to_the_window_e
         assert (si_window.window, si_window.fund_xirr, si_window.benchmark_xirr) == (
             "SI", row.fund_xirr, row.benchmark_xirr,
         )
+
+
+def test_a_failing_declared_comparison_leaves_only_the_new_field_empty():
+    from unittest.mock import patch
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db, "Large Cap Fund", sebi_category="Equity Scheme - Large Cap Fund")
+    purchase_date = date.today().replace(year=date.today().year - 1)
+    _folio_with_purchase(db, member, scheme, Decimal("1000.00"), Decimal("100.000"), Decimal("10.0000"), purchase_date)
+    for index in (BenchmarkIndex.NIFTY_50, BenchmarkIndex.NIFTY_500):
+        db.add(BenchmarkIndexHistory(index_name=index, return_type=BenchmarkReturnType.TRI, date=purchase_date, value=Decimal("100.00")))
+        db.add(BenchmarkIndexHistory(index_name=index, return_type=BenchmarkReturnType.TRI, date=date.today(), value=Decimal("110.00")))
+    db.commit()
+    p1, p2 = _mock_holdings_multi({scheme.id: Decimal("12.0000")})
+    with p1, p2, _no_fetch(), patch("app.services.analytics.benchmark.compute_fund_vs_declared_benchmark", side_effect=ValueError("boom")):
+        comparison = asyncio.run(compute_fund_vs_benchmark(db, [member.id]))
+    assert comparison.declared_comparison is None
+    assert len(comparison.funds) == 1 and comparison.funds[0].fund_xirr is not None
+    assert comparison.overall_portfolio_xirr is not None

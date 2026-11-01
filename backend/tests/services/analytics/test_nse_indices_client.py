@@ -279,3 +279,20 @@ def test_daily_job_still_tops_up_history_that_ends_yesterday():
         assert asyncio.run(ensure_index_history_fresh(
             db, BenchmarkIndex.NIFTY_50, date(2016, 1, 4), today, fresh_within=timedelta(0))) is True
     fetch.assert_awaited_once()
+
+
+def test_malformed_http_200_response_is_a_failed_fetch_not_an_exception():
+    import asyncio
+    from datetime import date
+    from unittest.mock import AsyncMock, MagicMock, patch
+    from app.services.analytics import nse_indices_client as client
+    response = MagicMock(); response.json.return_value = {"error": "temporary upstream failure"}; response.raise_for_status = MagicMock()
+    mock_client = AsyncMock(); mock_client.__aenter__.return_value = mock_client; mock_client.post.return_value = response
+    with patch("app.services.analytics.nse_indices_client.httpx.AsyncClient", return_value=mock_client):
+        for fetch in (client._fetch_index_history, client._fetch_tri_history):
+            try:
+                asyncio.run(fetch("nifty_bank", date(2026, 1, 1), date(2026, 1, 31), nse_name="Nifty Bank"))
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("a non-list response must be rejected as ValueError")
