@@ -83,6 +83,12 @@ Note: Home, the fund page and the matrix stop at their read-only guard before th
 | L16 | **Only once T2.12 Step B is built (after Run 5):** run the book-value job once on the VM (read-only against NSE, 2 seconds between requests, about 20 minutes for the held stocks, in the background) and check a sample of held stocks: book value and shares match a hand check from the filing (TCS about 328.69 on the 30 Sep 2026 filing; a bank uses capital plus reserves), and the stock's P/B updates |
 | L17 | Same job: confirm a block (401, 403 or 429 from NSE) stops it, keeps the existing values and raises the failure alert, and that the VM's address is not blocked by a normal run |
 
+### 4.6 Deliverables owed after the deploy (not checks, but promised)
+| Id | What | Needs |
+|---|---|---|
+| D1 | **The Excel for the chartered accountant: seven funds, five parameters** (large/mid/small split, category comparison, ranking, P/E and P/B, top 10 holdings). Built once, complete, from the system's own stored results; holdings as of 30 Sep 2026; Read me sheet with every date and method. Full spec, the message already to be sent to him and the CEO talking points: `2026-11-02-ca-excel-seven-funds.md` | the deploy and recompute done; T2.11 live and T2.12 Step B run once; the Bandhan September portfolio workbook loaded (a hand import of an owner-supplied file, can be done before the deploy); the CA's answer on which Motilal momentum fund |
+| D2 | Tell the CA the day the Excel will arrive as soon as the deploy date is known (he was told a date in the holding message) | S.1 scheduled |
+
 ## 5. Rollback
 Prefer restore from the pre-deploy backup, only on the manager's explicit yes (`rollback.sh` / `restore.sh`). Migration downgrades exist (0050, 0048 verified identical to 0034), but **0049's downgrade refuses once new text index keys exist**, so a downgrade after the first benchmark job needs the index rows removed first. Decide at S.1; never run a rollback script on this ledger's authority.
 
