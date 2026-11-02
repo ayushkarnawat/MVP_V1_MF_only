@@ -2,7 +2,8 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { OtpInput } from "@/components/ui/otp-input";
-import { ArrowLeft, ArrowRight, AlertCircle, Loader2, KeyRound } from "lucide-react";
+import { OtpStubBanner } from "@/components/OtpStubBanner";
+import { ArrowLeft, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { formatPhoneForDisplay, isAccountExistsError } from "./validation";
 
 
@@ -91,17 +92,7 @@ export function OtpVerify({
       </div>
 
       {/* 2. Dev OTP Helper Banner */}
-      {devOtp && (
-        <div className="flex items-center justify-between p-3 rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] text-xs text-[var(--color-ink)] font-body">
-          <div className="flex items-center gap-1.5">
-            <KeyRound className="h-3.5 w-3.5 text-[var(--color-accent)] flex-shrink-0" />
-            <span className="font-semibold text-[var(--color-accent)]">Local Dev OTP:</span>
-          </div>
-          <strong className="font-mono text-xs tracking-widest text-[var(--color-ink)] bg-[var(--color-surface)] px-2.5 py-0.5 rounded-lg border border-[var(--color-border)] shadow-xs">
-            {devOtp}
-          </strong>
-        </div>
-      )}
+      <OtpStubBanner code={devOtp} channel={channel} />
 
       {/* 3. OTP Input Field */}
       <div className="space-y-2">

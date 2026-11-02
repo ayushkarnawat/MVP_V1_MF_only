@@ -102,7 +102,7 @@ describe("AuthEntryFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
 
     await waitFor(() => expect(screen.getByLabelText(/verification code/i)).toBeInTheDocument());
-    expect(screen.getByText(/654321/)).toBeInTheDocument();
+    expect(screen.getByText(/654 321/)).toBeInTheDocument();
   });
 
   it("logs in on successful phone OTP verification", async () => {
