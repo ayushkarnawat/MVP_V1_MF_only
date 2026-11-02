@@ -11,7 +11,7 @@ from app.db.session import get_db
 from app.models.imports import Import
 from app.services.import_.preview_store import PREVIEW_STATUSES
 from app.models.user import HouseholdMember, User
-from app.services.auth.session import get_active_user
+from app.services.auth.session import get_data_user
 from app.services.dashboard.holdings import invalidate_holdings_cache
 from app.services.dashboard.household_members import get_household_member_for_user
 from app.services.dashboard.member_details import require_member
@@ -87,14 +87,14 @@ _REVIEW_REQUIRED = {
 # M18: no path may import a CAS without people detection. The route stays (rather
 # than 404) so old clients get a clear answer; it never reads the upload.
 @router.post("/cas-imports", status_code=status.HTTP_409_CONFLICT)
-async def upload_cas_import(user: User = Depends(get_active_user)):
+async def upload_cas_import(user: User = Depends(get_data_user)):
     raise HTTPException(status_code=409, detail=_REVIEW_REQUIRED)
 
 
 @router.get("/cas-imports/{import_id}", response_model=CASImportStatusResponse)
 def get_cas_import_status(
     import_id: str,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -116,7 +116,7 @@ def get_cas_import_status(
 def retry_password(
     import_id: str,
     body: PasswordRetryRequest,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -138,7 +138,7 @@ def retry_password(
 @router.get("/household-members/{member_id}/cas-imports", response_model=list[CASImportStatusResponse])
 def list_member_import_history(
     member_id: str,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -188,7 +188,7 @@ class OpeningBalanceResponse(BaseModel):
 @router.get("/household-members/{member_id}/coverage-gaps", response_model=list[CoverageGapItemResponse])
 def list_member_coverage_gaps(
     member_id: str,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -228,7 +228,7 @@ def list_member_coverage_gaps(
 def post_opening_balance(
     folio_id: str,
     body: OpeningBalanceRequest,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -293,7 +293,7 @@ def post_opening_balance(
 @router.post("/cas-imports/request", status_code=status.HTTP_201_CREATED, response_model=CAMSInitiateResponse)
 def request_cams_statement(
     body: CAMSInitiateRequest,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -325,7 +325,7 @@ def request_cams_statement(
 @router.post("/cas-imports/{import_id}/cancel", response_model=CASImportStatusResponse)
 def cancel_import_request(
     import_id: str,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     try:

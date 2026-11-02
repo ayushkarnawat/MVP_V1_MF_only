@@ -22,7 +22,7 @@ from app.services.analytics.schemas import (
     FundScoreRow,
 )
 from app.services.analytics.scorer import compute_fund_score
-from app.services.auth.session import get_active_user
+from app.services.auth.session import get_data_user
 from app.services.dashboard.member_details import require_member
 
 router = APIRouter(prefix="/analytics", tags=["analytics"]) #for analytics related endpoints
@@ -37,7 +37,7 @@ class AnalyticsExportRequest(BaseModel):
 @router.get("/funds/{scheme_id}/score", response_model=FundScoreRow)
 async def get_fund_score(
     scheme_id: uuid.UUID,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     scheme = db.get(Scheme, scheme_id)
@@ -49,7 +49,7 @@ async def get_fund_score(
 @router.get("/{scope}", response_model=AnalyticsScopeResponse)
 def get_analytics_scope(
     scope: str,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     if scope == "combined":
@@ -93,7 +93,7 @@ def get_analytics_scope(
 @router.post("/{scope}/retry", response_model=AnalyticsRetryResponse)
 def retry_analytics_scope(
     scope: str,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     if scope != "combined":
@@ -115,7 +115,7 @@ def retry_analytics_scope(
 @router.post("/export/pdf")
 async def export_analytics_pdf(
     body: AnalyticsExportRequest,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     if body.scope == "member":

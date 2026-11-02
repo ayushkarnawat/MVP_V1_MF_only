@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.api.home import get_now_ist
 from app.db.session import get_db
 from app.models.user import User
-from app.services.auth.session import get_active_user
+from app.services.auth.session import get_data_user
 from app.services.dashboard.holdings import compute_realized_summary
 from app.services.dashboard.instrument_allocation import compute_instrument_allocation
 from app.services.dashboard.portfolio_schemas import (
@@ -93,30 +93,30 @@ async def _value_series(
 
 
 @router.get("/household/aggregate/portfolio-allocation", response_model=PortfolioAllocationResponse)
-async def aggregate_portfolio_allocation(user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def aggregate_portfolio_allocation(user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _allocation(db, user, None, now)
 
 
 @router.get("/household-members/{member_id}/portfolio-allocation", response_model=PortfolioAllocationResponse)
-async def member_portfolio_allocation(member_id: uuid.UUID, user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def member_portfolio_allocation(member_id: uuid.UUID, user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _allocation(db, user, member_id, now)
 
 
 @router.get("/household/aggregate/portfolio-summary", response_model=PortfolioSummaryResponse)
-async def aggregate_portfolio_summary(user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def aggregate_portfolio_summary(user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _summary(db, user, None, now)
 
 
 @router.get("/household-members/{member_id}/portfolio-summary", response_model=PortfolioSummaryResponse)
-async def member_portfolio_summary(member_id: uuid.UUID, user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def member_portfolio_summary(member_id: uuid.UUID, user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _summary(db, user, member_id, now)
 
 
 @router.get("/household/aggregate/portfolio-value-series", response_model=PortfolioValueSeriesResponse)
-async def aggregate_portfolio_value_series(days: int = Query(30, ge=2, le=366), user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def aggregate_portfolio_value_series(days: int = Query(30, ge=2, le=366), user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _value_series(db, user, None, now, days)
 
 
 @router.get("/household-members/{member_id}/portfolio-value-series", response_model=PortfolioValueSeriesResponse)
-async def member_portfolio_value_series(member_id: uuid.UUID, days: int = Query(30, ge=2, le=366), user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def member_portfolio_value_series(member_id: uuid.UUID, days: int = Query(30, ge=2, le=366), user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _value_series(db, user, member_id, now, days)

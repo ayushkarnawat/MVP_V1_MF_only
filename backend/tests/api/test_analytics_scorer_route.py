@@ -1,6 +1,7 @@
 import uuid
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -9,6 +10,15 @@ from app.services.analytics.schemas import FundScoreRow
 
 def _client():
     return TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _no_head_change_consent_check(monkeypatch):
+    # These tests stand in a minimal fake database (only `get`); the data-route dependency's
+    # head-change consent query is covered in tests/api/test_head_change_consent.py.
+    monkeypatch.setattr(
+        "app.services.auth.head_change_consent.consent_outdated_reason", lambda db, user_id: None
+    )
 
 
 def _fake_row(scheme_id):

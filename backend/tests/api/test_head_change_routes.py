@@ -745,3 +745,75 @@ def test_eligibility_needs_a_session_and_refuses_a_pending_deletion_account(clie
         },
     )
 
+
+
+def _completed_request(client, household, *, undo_expires_at, status="completed"):
+    from app.models.auth import HeadChangeRequest
+
+    db = _db(client)
+    members = {
+        m.is_head: m
+        for m in db.query(HouseholdMember).filter(
+            HouseholdMember.user_id == uuid.UUID(household["user_id"])
+        )
+    }
+    db.add(
+        HeadChangeRequest(
+            user_id=uuid.UUID(household["user_id"]),
+            from_member_id=members[True].id,
+            to_member_id=members[False].id,
+            status=status,
+            expires_at=datetime.now(timezone.utc),
+            undo_token_hash="x" * 64,
+            undo_expires_at=undo_expires_at,
+            snapshot={},
+        )
+    )
+    db.commit()
+    db.close()
+
+
+def test_account_deletion_is_refused_while_the_undo_window_is_open(client):
+    # The new head could otherwise schedule deletion (undo refuses a pending-deletion account),
+    # wait out the 24 hours and reactivate, leaving the previous head no way back.
+    household = _household(client, suffix="d01")
+    _completed_request(
+        client, household, undo_expires_at=datetime.now(timezone.utc) + timedelta(hours=5)
+    )
+
+    response = client.post(
+        "/auth/account-deletion", json={"reason": "not_using_enough"}, headers=household["headers"]
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"].startswith(
+        "The Head of Family was changed in the last 24 hours. You can delete this account after"
+    )
+    assert client.get("/auth/me", headers=household["headers"]).json()["pending_deletion"] is False
+
+
+def test_account_deletion_is_allowed_after_the_undo_window_or_after_an_undo(client):
+    household = _household(client, suffix="d02")
+    _completed_request(
+        client, household, undo_expires_at=datetime.now(timezone.utc) - timedelta(minutes=1)
+    )
+    assert (
+        client.post(
+            "/auth/account-deletion", json={"reason": "not_using_enough"}, headers=household["headers"]
+        ).status_code
+        == 200
+    )
+
+    undone = _household(client, suffix="d03")
+    _completed_request(
+        client,
+        undone,
+        undo_expires_at=datetime.now(timezone.utc) + timedelta(hours=5),
+        status="undone",
+    )
+    assert (
+        client.post(
+            "/auth/account-deletion", json={"reason": "not_using_enough"}, headers=undone["headers"]
+        ).status_code
+        == 200
+    )

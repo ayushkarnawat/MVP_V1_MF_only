@@ -28,6 +28,7 @@ from app.services.auth.identity import (
 )
 from app.services.auth.account_deletion import reactivate_account, schedule_account_deletion
 from app.services.auth.email_provider import EmailSendError
+from app.services.auth.head_change_consent import consent_outdated_reason
 from app.services.auth.google_oauth import GoogleTokenVerificationError, verify_google_id_token
 from app.services.auth.head_change import (
     HeadChangeError,
@@ -37,6 +38,7 @@ from app.services.auth.head_change import (
     request_head_change_start_code,
     resend_head_change_code,
     start_head_change,
+    undo_window_open_until,
     list_member_eligibility,
     peek_pending_head_change,
     undo_head_change,
@@ -84,7 +86,15 @@ from app.services.auth.schemas import (
     HeadChangeVerifyBody,
     PendingHeadChangeResponse,
 ) #to validate api requests
-from app.services.auth.session import SessionIdentityChangedError, create_session, get_active_user, get_current_session, get_current_user, refresh_session
+from app.services.auth.session import (
+    SessionIdentityChangedError,
+    create_session,
+    get_active_user,
+    get_current_session,
+    get_current_user,
+    refresh_session,
+    require_session_still_active,
+)
 from app.services.legal.consent import (
     SIGNUP_DOCUMENTS,
     ConsentRequiredError,
@@ -392,7 +402,9 @@ def verify_otp_route(body: OtpVerifyBody, request: Request, db: DbSession = Depe
                 )
             presented_id = existing.id  # read before the attach commits
             try:
-                user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
+                user_id = attach_pending_identity(
+                    db, body.pending_token, existing.user_id, presented_identity_id=presented_id
+                )
             except PendingVerificationError as exc:
                 raise HTTPException(status_code=401, detail=str(exc)) from exc
         else:
@@ -494,7 +506,9 @@ def google_oauth_route(body: GoogleAuthBody, request: Request, db: DbSession = D
             raise HTTPException(status_code=401, detail="This Google account isn't linked yet.")
         presented_id = existing.id  # read before the attach commits
         try:
-            user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
+            user_id = attach_pending_identity(
+                db, body.pending_token, existing.user_id, presented_identity_id=presented_id
+            )
         except PendingVerificationError as exc:
             raise HTTPException(status_code=401, detail=str(exc)) from exc
         return _session_response(
@@ -603,6 +617,7 @@ def _me_response(user: User, db: DbSession) -> MeResponse:
         deletion_scheduled_at=deletion_scheduled_at,
         self_name=self_member.name if self_member else None,
         consent_outdated=[t.value for t in outdated_documents(db, user.id, SIGNUP_DOCUMENTS)],
+        consent_outdated_reason=consent_outdated_reason(db, user.id),
         head_member_id=str(head_member.id) if head_member else None,
         head_change_pending=_head_change_status_response(pending_status) if pending_status else None,
     )
@@ -622,6 +637,19 @@ def request_account_deletion(
 ):
     if user.pending_deletion:
         raise HTTPException(status_code=409, detail="Account deletion is already scheduled.")
+    # Locked so a Head of Family swap committing at the same moment is seen by the check below.
+    db.query(User.id).filter(User.id == user.id).with_for_update().first()
+    window_closes = undo_window_open_until(db, user)
+    if window_closes is not None:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "The Head of Family was changed in the last 24 hours. "
+                f"You can delete this account after the undo window closes on "
+                f"{window_closes.day} {window_closes:%B %Y} at {window_closes:%H:%M} UTC."
+            ),
+        )
     schedule_account_deletion(
         db, user, reason=body.reason, feedback=body.feedback, evidence=evidence_from_request(request)
     )
@@ -700,6 +728,7 @@ def request_contact_change(
 def verify_contact_change(
     body: ContactChangeVerifyBody,
     user: User = Depends(get_active_user),
+    session: SessionModel = Depends(get_current_session),
     db: DbSession = Depends(get_db),
 ):
     _assert_contact_available(db, user=user, channel=body.channel, identifier=body.identifier)
@@ -710,6 +739,17 @@ def verify_contact_change(
         )
     except OtpVerificationError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    # A Head of Family swap that commits after the session check above deletes this session and
+    # the account's identities; writing a new sign-in method after it would hand the previous
+    # head a permanent way in.
+    try:
+        require_session_still_active(db, user.id, session.id)
+    except SessionIdentityChangedError as exc:
+        raise HTTPException(
+            status_code=401, detail="This sign-in is no longer valid. Please sign in again."
+        ) from exc
+    db.refresh(user)
 
     provider = _contact_provider(body.channel)
     current_identifier = user.email if body.channel == "email" else user.phone_number

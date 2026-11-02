@@ -447,7 +447,22 @@ def complete_gated_signup(
     return user.id
 
 
-def attach_pending_identity(db: DbSession, raw_token: str, resolved_user_id: uuid.UUID) -> uuid.UUID:
+ACCOUNT_CHANGED_MESSAGE = "This sign-in is no longer valid. Please sign in again."
+
+
+def _lock_account(db: DbSession, user_id: uuid.UUID) -> None:
+    """Takes the account row lock the Head of Family swap and undo take first. Column-only reads
+    that follow in the same transaction see the committed state once the lock is granted."""
+    db.query(User.id).filter(User.id == user_id).with_for_update().first()
+
+
+def attach_pending_identity(
+    db: DbSession,
+    raw_token: str,
+    resolved_user_id: uuid.UUID,
+    *,
+    presented_identity_id: uuid.UUID | None = None,
+) -> uuid.UUID:
     """After ANY re-auth method (phone/email/Google) resolves to
     resolved_user_id, attaches the pending record's identity to that
     user. Only an actual *mismatch* is rejected: if the pending record
@@ -462,10 +477,33 @@ def attach_pending_identity(db: DbSession, raw_token: str, resolved_user_id: uui
     the phone gate is never detected earlier — the route discovers it
     only when find_identity_by_subject succeeds after a fresh phone-OTP
     verification, which is itself proof of control over that exact
-    account."""
+    account.
+
+    `presented_identity_id` is the identity row the caller just authenticated with (phone or
+    Google), when there is one. A Head of Family swap can commit between that lookup and the
+    insert below: it deletes the account's identities and its pending links, and this insert
+    would otherwise wait on the account lock and then succeed, leaving the previous head a
+    permanent sign-in. So the account is locked first and both facts are checked again."""
     pending = _consume_pending_verification(db, raw_token)
     if pending.matched_user_id is not None and pending.matched_user_id != resolved_user_id:
         raise PendingVerificationError("This verification token doesn't match the account you're linking to.")
+
+    _lock_account(db, resolved_user_id)
+    pending_still_there = (
+        db.query(PendingIdentityVerification.id)
+        .filter(PendingIdentityVerification.id == pending.id)
+        .with_for_update()
+        .first()
+    )
+    presented_still_attached = presented_identity_id is None or (
+        db.query(AuthIdentity.id)
+        .filter(AuthIdentity.id == presented_identity_id, AuthIdentity.user_id == resolved_user_id)
+        .first()
+        is not None
+    )
+    if pending_still_there is None or not presented_still_attached:
+        db.rollback()
+        raise PendingVerificationError(ACCOUNT_CHANGED_MESSAGE)
 
     # Same guard as complete_gated_signup: an unverified email claim is
     # never denormalized onto an identity row, because that row would then
@@ -519,6 +557,21 @@ def resolve_new_verified_identity(
 
     if email_for_collision is not None:
         collision = resolve_email_collision(db, email_for_collision)
+        # An auto-link adds a sign-in method to the matched account with no session or pending
+        # link to re-check afterwards, so look again under the account lock: a Head of Family
+        # swap that commits in between removes the identity this email matched, and without
+        # this the Google identity would be attached to the account after the swap.
+        for _ in range(3):
+            if collision.kind != "auto_link":
+                break
+            _lock_account(db, collision.matched_user_id)
+            again = resolve_email_collision(db, email_for_collision)
+            stable = again.kind == "auto_link" and again.matched_user_id == collision.matched_user_id
+            collision = again
+            if stable:
+                break
+        else:
+            collision = EmailCollisionResult(kind="none", matched_user_id=None)
         if collision.kind == "auto_link":
             now = datetime.now(timezone.utc)
             record_identity(db, collision.matched_user_id, provider, provider_subject, email, now)

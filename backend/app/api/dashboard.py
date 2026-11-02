@@ -10,7 +10,7 @@ from app.api.home import get_now_ist
 from app.db.session import get_db
 from app.models.reference import Scheme
 from app.models.user import User #user db model
-from app.services.auth.session import get_active_user
+from app.services.auth.session import get_data_user
 from app.services.dashboard.aggregate import (
     get_aggregate_allocation,
     get_aggregate_cash_flow,
@@ -85,7 +85,7 @@ router = APIRouter(tags=["dashboard"])
 async def get_fund_nav_history_route(
     scheme_id: uuid.UUID,
     period: Literal["1M", "1Y", "3Y", "5Y", "MAX"] = "1Y",
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     scheme = db.get(Scheme, scheme_id)
@@ -97,7 +97,7 @@ async def get_fund_nav_history_route(
 @router.post("/household-members", response_model=HouseholdMemberResponse)
 def create_member(
     body: HouseholdMemberCreate,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     try:
@@ -112,7 +112,7 @@ def create_member(
 
 #return household members
 @router.get("/household-members", response_model=list[HouseholdMemberResponse])
-def list_members(user: User = Depends(get_active_user), db: DbSession = Depends(get_db)):
+def list_members(user: User = Depends(get_data_user), db: DbSession = Depends(get_db)):
     refresh_pan_conflicts(db, user.id)
     return [member_to_response(m, user) for m in list_household_members(db, user.id)]
 
@@ -122,7 +122,7 @@ def list_members(user: User = Depends(get_active_user), db: DbSession = Depends(
 def put_member_profile(
     member_id: uuid.UUID,
     body: MemberProfileRequest,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     try:
@@ -145,7 +145,7 @@ def merge_household_member(
     member_id: uuid.UUID,
     target_id: uuid.UUID,
     background_tasks: BackgroundTasks,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     try:
@@ -163,7 +163,7 @@ def delete_household_member_portfolio(
     member_id: uuid.UUID,
     background_tasks: BackgroundTasks,
     remove_member: bool = False,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     try:
@@ -188,7 +188,7 @@ def delete_household_member_portfolio(
             response_model_exclude={"holdings": {"__all__": {"folios"}}})
 async def get_member_holdings(
     member_id: uuid.UUID,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     require_member(db, user.id, member_id)
@@ -210,7 +210,7 @@ async def get_member_holdings(
 )
 async def get_member_distributor_comparison(
     member_id: uuid.UUID,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     require_member(db, user.id, member_id)
@@ -220,7 +220,7 @@ async def get_member_distributor_comparison(
 @router.get("/household-members/{member_id}/allocation", response_model=AllocationSummary)
 async def get_member_allocation(
     member_id: uuid.UUID,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     require_member(db, user.id, member_id)
@@ -231,7 +231,7 @@ async def get_member_allocation(
 def get_member_sips(
     member_id: uuid.UUID,
     include_stopped: bool = False,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -244,7 +244,7 @@ def get_member_sips_monthly(
     member_id: uuid.UUID,
     year: int | None = None,
     month: int | None = None,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -256,7 +256,7 @@ def get_member_sips_monthly(
 @router.get("/household-members/{member_id}/cash-flow", response_model=list[CashFlowEntry])
 def get_member_cash_flow(
     member_id: uuid.UUID,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     require_member(db, user.id, member_id)
@@ -266,7 +266,7 @@ def get_member_cash_flow(
 @router.get("/household-members/{member_id}/snapshots", response_model=list[SnapshotRow])
 async def get_member_snapshots(
     member_id: uuid.UUID,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     require_member(db, user.id, member_id)
@@ -285,7 +285,7 @@ def _parse_snapshot_month(month: str) -> date:
 @router.get("/household-members/{member_id}/snapshots/{month}", response_model=MonthDetail)
 async def get_member_month_detail(
     member_id: uuid.UUID, month: str,
-    user: User = Depends(get_active_user), db: DbSession = Depends(get_db),
+    user: User = Depends(get_data_user), db: DbSession = Depends(get_db),
 ):
     require_member(db, user.id, member_id)
     result = await get_month_detail(db, [member_id], _parse_snapshot_month(month))
@@ -296,7 +296,7 @@ async def get_member_month_detail(
 
 @router.get("/household/aggregate/snapshots/{month}", response_model=MonthDetail)
 async def get_household_month_detail(
-    month: str, user: User = Depends(get_active_user), db: DbSession = Depends(get_db),
+    month: str, user: User = Depends(get_data_user), db: DbSession = Depends(get_db),
 ):
     result = await get_aggregate_month_detail(db, user.id, _parse_snapshot_month(month))
     if result is None:
@@ -307,7 +307,7 @@ async def get_household_month_detail(
 #aggregate dashboard
 @router.get("/household/aggregate/holdings", response_model=AggregateHoldingsResponse)
 async def get_household_aggregate_holdings(
-    user: User = Depends(get_active_user), db: DbSession = Depends(get_db)
+    user: User = Depends(get_data_user), db: DbSession = Depends(get_db)
 ):
     return await get_aggregate_holdings(db, user.id)
 
@@ -317,14 +317,14 @@ async def get_household_aggregate_holdings(
     response_model=AggregateDistributorComparisonResponse,
 )
 async def get_household_aggregate_distributor_comparison(
-    user: User = Depends(get_active_user), db: DbSession = Depends(get_db)
+    user: User = Depends(get_data_user), db: DbSession = Depends(get_db)
 ):
     return await get_aggregate_distributor_comparison(db, user.id)
 
 
 @router.get("/household/aggregate/allocation", response_model=AggregateAllocationResponse)
 async def get_household_aggregate_allocation(
-    user: User = Depends(get_active_user), db: DbSession = Depends(get_db)
+    user: User = Depends(get_data_user), db: DbSession = Depends(get_db)
 ):
     return await get_aggregate_allocation(db, user.id)
 
@@ -332,7 +332,7 @@ async def get_household_aggregate_allocation(
 @router.get("/household/aggregate/sips", response_model=AggregateSipsResponse)
 def get_household_aggregate_sips(
     include_stopped: bool = False,
-    user: User = Depends(get_active_user), db: DbSession = Depends(get_db),
+    user: User = Depends(get_data_user), db: DbSession = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
     return get_aggregate_sips(db, user.id, include_stopped=include_stopped, today=now.date())
@@ -342,7 +342,7 @@ def get_household_aggregate_sips(
 def get_household_aggregate_sips_monthly(
     year: int | None = None,
     month: int | None = None,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -352,13 +352,13 @@ def get_household_aggregate_sips_monthly(
 
 @router.get("/household/aggregate/cash-flow", response_model=AggregateCashFlowResponse)
 def get_household_aggregate_cash_flow(
-    user: User = Depends(get_active_user), db: DbSession = Depends(get_db)
+    user: User = Depends(get_data_user), db: DbSession = Depends(get_db)
 ):
     return get_aggregate_cash_flow(db, user.id)
 
 
 @router.get("/household/aggregate/snapshots", response_model=AggregateSnapshotsResponse)
 async def get_household_aggregate_snapshots(
-    user: User = Depends(get_active_user), db: DbSession = Depends(get_db)
+    user: User = Depends(get_data_user), db: DbSession = Depends(get_db)
 ):
     return await get_aggregate_snapshots(db, user.id)

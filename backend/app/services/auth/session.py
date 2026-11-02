@@ -78,6 +78,19 @@ def create_session(
     return session, raw_token
 
 
+def require_session_still_active(db: DbSession, user_id: uuid.UUID, session_id: uuid.UUID) -> None:
+    """For a request that already passed the session check and is about to change the account's
+    sign-in methods. Locks the account row (the lock a Head of Family swap takes first) and checks
+    the caller's session again: a swap deletes every session, and a request that checked its
+    session just before the swap committed would otherwise write after it. Raises
+    SessionIdentityChangedError, with the transaction rolled back, when the session is gone."""
+    db.query(User.id).filter(User.id == user_id).with_for_update().first()
+    still_active = db.query(SessionModel.id).filter(SessionModel.id == session_id).first()
+    if still_active is None:
+        db.rollback()
+        raise SessionIdentityChangedError()
+
+
 def refresh_session(db: DbSession, session: SessionModel) -> SessionModel:
     now = datetime.now(timezone.utc)
     session.last_active_at = now
@@ -127,5 +140,26 @@ def get_active_user(user: User = Depends(get_current_user)) -> User:
         raise HTTPException(
             status_code=403,
             detail="Account is pending deletion. Reactivate it to continue.",
+        )
+    return user
+
+
+def get_data_user(
+    user: User = Depends(get_active_user),
+    db: DbSession = Depends(get_db),
+) -> User:
+    """`get_active_user` plus the head-change consent check, for every route that serves the
+    account's data. The routes a person needs in order to agree (`/auth/me`, `/legal/*`, sign-out
+    and the rest of `/auth`) keep `get_active_user` so they stay reachable."""
+    # Imported here: the consent service pulls in the legal documents registry.
+    from app.services.auth.head_change_consent import consent_outdated_reason
+
+    if consent_outdated_reason(db, user.id) is not None:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "reconsent_required",
+                "message": "Please review and agree to the Terms to continue.",
+            },
         )
     return user

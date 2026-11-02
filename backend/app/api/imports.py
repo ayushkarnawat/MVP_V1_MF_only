@@ -18,7 +18,7 @@ from app.models.analytics import AnalyticsSection
 from app.models.reference import NavHistory, Scheme
 from app.models.enums import ConsentAction, ConsentDocumentType, ImportStatus
 from app.models.user import HouseholdMember, User
-from app.services.auth.session import get_active_user
+from app.services.auth.session import get_data_user
 from app.services.analytics.dispatch import dispatcher
 from app.services.analytics.recompute import (
     bump_recompute_generation,
@@ -103,7 +103,7 @@ _CAMS_PLACEHOLDER_STATUSES = (ImportStatus.REQUESTING_CAS, ImportStatus.WAITING_
 
 @router.get("/history", response_model=list[HouseholdImportHistoryItem])
 def list_household_import_history(
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     rows = (
@@ -141,7 +141,7 @@ def delete_household_import(
     import_id: uuid.UUID,
     background_tasks: BackgroundTasks,
     scope: Literal["person", "group"] = "person",
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -273,7 +273,7 @@ async def parse_import(
     password: str = Form(""),
     household_member_id: str = Form(...),
     pan_disclaimer_version: str = Form(None),
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
@@ -339,7 +339,7 @@ async def parse_import(
 def confirm_import_route(
     body: ImportConfirmRequest,
     background_tasks: BackgroundTasks,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     household_member_id: uuid.UUID | None = None
@@ -397,7 +397,7 @@ def confirm_import_route(
 @router.post("/sessions/{session_id}/discard", status_code=204)
 def discard_import_session_route(
     session_id: str,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ) -> Response:
     discard_import_session(db, session_id, user.id)
@@ -410,7 +410,7 @@ def discard_import_session_route(
 def resolve_name_route(
     session_id: str,
     body: ResolveNameRequest,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     return _run_resolve(lambda: resolve_name(db, session_id, user.id, body.name))
@@ -420,7 +420,7 @@ def resolve_name_route(
 def resolve_self_route(
     session_id: str,
     body: ResolveSelfRequest,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     return _run_resolve(lambda: resolve_self(db, session_id, user.id, body.person_key))
@@ -430,7 +430,7 @@ def resolve_self_route(
 def resolve_pan_route(
     session_id: str,
     body: ResolvePanRequest,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     return _run_resolve(lambda: resolve_pan(db, session_id, user.id))
@@ -440,7 +440,7 @@ def resolve_pan_route(
 def resolve_same_person_route(
     session_id: str,
     body: ResolveSamePersonRequest,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     return _run_resolve(
@@ -452,7 +452,7 @@ def resolve_same_person_route(
 def acknowledge_prompt_route(
     session_id: str,
     body: AcknowledgeRequest,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     return _run_resolve(lambda: acknowledge_prompt(db, session_id, user.id, body.code))

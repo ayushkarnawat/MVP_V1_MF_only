@@ -92,7 +92,11 @@ def test_auth_me_keeps_every_existing_field(client):
     body = _me(client, household).json()
 
     assert OLD_KEYS <= set(body)
-    assert set(body) == OLD_KEYS | {"head_member_id", "head_change_pending"}
+    assert set(body) == OLD_KEYS | {
+        "head_member_id",
+        "head_change_pending",
+        "consent_outdated_reason",
+    }
     assert body["email"] == "head-route-2@example.com"
     assert body["self_name"] == "Head 2"
 

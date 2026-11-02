@@ -23,7 +23,7 @@ from app.config import settings
 from app.db.session import get_db
 from app.models.news import JobRun, NewsItem
 from app.models.user import User
-from app.services.auth.session import get_active_user
+from app.services.auth.session import get_data_user
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.schemas import HoldingRow
 from app.services.home.allocation import load_allocation
@@ -236,7 +236,7 @@ async def _news(db: Session, user: User, member_id: uuid.UUID | None, now_ist: d
 
 @router.get("/household/aggregate/home/news", response_model=NewsResponse)
 async def aggregate_news(
-    user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist),
+    user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist),
 ) -> NewsResponse:
     return await _news(db, user, None, now)
 
@@ -244,6 +244,6 @@ async def aggregate_news(
 @router.get("/household-members/{member_id}/home/news", response_model=NewsResponse)
 async def member_news(
     member_id: uuid.UUID,
-    user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist),
+    user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist),
 ) -> NewsResponse:
     return await _news(db, user, member_id, now)

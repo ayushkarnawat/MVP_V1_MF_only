@@ -10,7 +10,7 @@ from app.api.home import get_now_ist
 from app.api.portfolio import _envelope, _load_inputs, _members
 from app.db.session import get_db
 from app.models.user import User
-from app.services.auth.session import get_active_user
+from app.services.auth.session import get_data_user
 from app.services.dashboard.portfolio_insights import compute_portfolio_insights
 from app.services.dashboard.portfolio_insights_schemas import PortfolioInsightsResponse
 from app.services.dashboard.sip import compute_active_sips
@@ -33,10 +33,10 @@ async def _insights(db: Session, user: User, member_id: uuid.UUID | None, now_is
 
 
 @router.get("/household/aggregate/portfolio-insights", response_model=PortfolioInsightsResponse)
-async def aggregate_portfolio_insights(user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def aggregate_portfolio_insights(user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _insights(db, user, None, now)
 
 
 @router.get("/household-members/{member_id}/portfolio-insights", response_model=PortfolioInsightsResponse)
-async def member_portfolio_insights(member_id: uuid.UUID, user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def member_portfolio_insights(member_id: uuid.UUID, user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _insights(db, user, member_id, now)

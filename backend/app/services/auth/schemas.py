@@ -201,6 +201,9 @@ class MeResponse(BaseModel):
     pending_deletion: bool
     deletion_scheduled_at: datetime | None
     self_name: str | None = None
+    # "head_change" while the sign-up documents were withdrawn by a Head of Family swap or undo
+    # and are not agreed to again yet; the re-consent screen uses it for its own wording.
+    consent_outdated_reason: str | None = None
     head_member_id: str | None = None
     # Quoted: the model is defined further down this file.
     head_change_pending: "HeadChangeStatusResponse | None" = None

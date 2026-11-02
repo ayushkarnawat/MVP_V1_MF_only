@@ -12,13 +12,18 @@ from tests.functional_postgres.test_head_change_swap import pg_session_factory  
 from tests.services.auth.test_head_change_swap import _evidence, _household, _ready_request
 
 
-def _swap_paused_inside_its_lock(pg_session_factory, monkeypatch, suffix):
+def _swap_paused_inside_its_lock(pg_session_factory, monkeypatch, suffix, *, prepare=None, extras=None):
+    """Starts a real swap in a thread and pauses it inside its transaction (it holds the account
+    lock). `prepare(db, household)` may add rows committed BEFORE the swap starts; what it returns
+    is copied into the `extras` dict."""
     from app.services.auth import head_change
 
     setup = pg_session_factory()
     household = _household(setup, suffix=suffix)
     request_id = _ready_request(setup, household)
     user_id = household.user.id
+    if prepare is not None:
+        extras.update(prepare(setup, household))
     setup.close()
 
     original = head_change.record_consent
@@ -138,3 +143,149 @@ class _FutureClock:
 
     def __getattr__(self, name):
         return getattr(self._real, name)
+
+
+# ---- sign-in flows that read the old head's identity before the swap and write after it -------
+
+def _prepare_links(db, household):
+    from datetime import datetime, timedelta, timezone
+
+    from app.models.auth import AuthIdentity
+    from app.models.auth import Session as SessionModel
+    from app.models.enums import AuthIdentityProvider
+    from app.services.auth.identity import create_pending_verification
+
+    phone_identity = (
+        db.query(AuthIdentity)
+        .filter_by(user_id=household.user.id, provider=AuthIdentityProvider.PHONE_OTP)
+        .one()
+    )
+    _, matched = create_pending_verification(
+        db, AuthIdentityProvider.GOOGLE, "late-google-matched", household.old_email, True,
+        matched_user_id=household.user.id,
+    )
+    _, open_link = create_pending_verification(
+        db, AuthIdentityProvider.GOOGLE, "late-google-open", None, False, matched_user_id=None
+    )
+    now = datetime.now(timezone.utc)
+    session = SessionModel(
+        user_id=household.user.id,
+        session_token_hash="old-head-session-hash",
+        auth_method=AuthIdentityProvider.PHONE_OTP,
+        created_at=now,
+        expires_at=now + timedelta(days=30),
+        last_active_at=now,
+    )
+    db.add(session)
+    db.commit()
+    return {
+        "matched_token": matched,
+        "open_token": open_link,
+        "phone_identity_id": phone_identity.id,
+        "session_id": session.id,
+        "old_email": household.old_email,
+    }
+
+
+def _run_behind_the_swap(pg_session_factory, monkeypatch, suffix, action):
+    """Runs `action(db, extras)` in a thread that must wait for the swap's lock; returns what it
+    returned or raised, plus the swap thread's outcome, after the swap has committed."""
+    extras: dict = {}
+    head_change, user_id, request_id, release, swap_thread, outcome = _swap_paused_inside_its_lock(
+        pg_session_factory, monkeypatch, suffix, prepare=_prepare_links, extras=extras
+    )
+    result: dict[str, object] = {}
+
+    def run():
+        db = pg_session_factory()
+        try:
+            result["value"] = action(db, extras, user_id)
+        except Exception as exc:  # the assertions below look at the type
+            result["value"] = exc
+        finally:
+            db.close()
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    thread.join(timeout=1.5)
+    assert thread.is_alive(), "the sign-in flow did not wait for the swap's account lock"
+    release.set()
+    swap_thread.join(timeout=15)
+    thread.join(timeout=15)
+    assert getattr(outcome["swap"], "status", None) == "completed"
+    return result["value"], user_id
+
+
+def _subjects_on_the_account(pg_session_factory, user_id):
+    from app.models.auth import AuthIdentity
+
+    check = pg_session_factory()
+    try:
+        return {row.provider_subject for row in check.query(AuthIdentity).filter_by(user_id=user_id)}
+    finally:
+        check.close()
+
+
+def test_a_pending_link_attach_that_started_before_the_swap_is_refused_after_it(
+    pg_session_factory, monkeypatch
+):
+    from app.services.auth.identity import ACCOUNT_CHANGED_MESSAGE, PendingVerificationError, attach_pending_identity
+
+    def action(db, extras, user_id):
+        return attach_pending_identity(db, extras["matched_token"], user_id)
+
+    value, user_id = _run_behind_the_swap(pg_session_factory, monkeypatch, "l1", action)
+
+    assert isinstance(value, PendingVerificationError)
+    assert str(value) == ACCOUNT_CHANGED_MESSAGE
+    assert "late-google-matched" not in _subjects_on_the_account(pg_session_factory, user_id)
+
+
+def test_a_phone_gate_attach_whose_identity_the_swap_deleted_is_refused(
+    pg_session_factory, monkeypatch
+):
+    from app.services.auth.identity import PendingVerificationError, attach_pending_identity
+
+    def action(db, extras, user_id):
+        # The old head's phone identity authenticated this flow; the open link names no account.
+        return attach_pending_identity(
+            db, extras["open_token"], user_id, presented_identity_id=extras["phone_identity_id"]
+        )
+
+    value, user_id = _run_behind_the_swap(pg_session_factory, monkeypatch, "l2", action)
+
+    assert isinstance(value, PendingVerificationError)
+    assert "late-google-open" not in _subjects_on_the_account(pg_session_factory, user_id)
+
+
+def test_a_google_auto_link_that_matched_before_the_swap_does_not_attach_after_it(
+    pg_session_factory, monkeypatch
+):
+    from app.models.enums import AuthIdentityProvider
+    from app.services.auth.identity import resolve_new_verified_identity
+
+    def action(db, extras, user_id):
+        # A new Google account whose verified email is the old head's email: before the swap
+        # that email matches an identity of this account, so the flow auto-links and logs in.
+        return resolve_new_verified_identity(
+            db, AuthIdentityProvider.GOOGLE, "auto-google-sub", extras["old_email"], True
+        )
+
+    value, user_id = _run_behind_the_swap(pg_session_factory, monkeypatch, "l3", action)
+
+    assert not isinstance(value, Exception)
+    assert value.kind != "login"
+    assert "auto-google-sub" not in _subjects_on_the_account(pg_session_factory, user_id)
+
+
+def test_a_contact_change_that_checked_its_session_before_the_swap_is_refused_after_it(
+    pg_session_factory, monkeypatch
+):
+    from app.services.auth.session import SessionIdentityChangedError, require_session_still_active
+
+    def action(db, extras, user_id):
+        return require_session_still_active(db, user_id, extras["session_id"])
+
+    value, _ = _run_behind_the_swap(pg_session_factory, monkeypatch, "l4", action)
+
+    assert isinstance(value, SessionIdentityChangedError)

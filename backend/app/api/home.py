@@ -13,7 +13,7 @@ from app.core.decimal_utils import quantize_amount
 from app.db.session import get_db
 from app.models.enums import BenchmarkIndex, Relationship
 from app.models.user import HouseholdMember, User
-from app.services.auth.session import get_active_user
+from app.services.auth.session import get_data_user
 from app.services.home.allocation import load_allocation
 from app.services.home.benchmarks import HOME_BENCHMARKS, load_cap_mix, recommend_benchmark
 from app.services.home.context import HomeInputs, ScopeContext, load_home_inputs, resolve_scope
@@ -337,60 +337,60 @@ async def _wealth(
 
 
 @router.get("/household/aggregate/home/summary", response_model=SummaryResponse)
-async def aggregate_summary(user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def aggregate_summary(user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _summary(db, user, None, now)
 
 
 @router.get("/household-members/{member_id}/home/summary", response_model=SummaryResponse)
-async def member_summary(member_id: uuid.UUID, user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def member_summary(member_id: uuid.UUID, user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _summary(db, user, member_id, now)
 
 
 @router.get("/household/aggregate/home/wealth-series", response_model=WealthSeriesResponse)
-async def aggregate_wealth(period: Period = "1M", date_from: date | None = Query(None, alias="from"), date_to: date | None = Query(None, alias="to"), benchmark: HomeBenchmark | None = None, user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def aggregate_wealth(period: Period = "1M", date_from: date | None = Query(None, alias="from"), date_to: date | None = Query(None, alias="to"), benchmark: HomeBenchmark | None = None, user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _wealth(db, user, None, now, period, date_from, date_to, benchmark)
 
 
 @router.get("/household-members/{member_id}/home/wealth-series", response_model=WealthSeriesResponse)
-async def member_wealth(member_id: uuid.UUID, period: Period = "1M", date_from: date | None = Query(None, alias="from"), date_to: date | None = Query(None, alias="to"), benchmark: HomeBenchmark | None = None, user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def member_wealth(member_id: uuid.UUID, period: Period = "1M", date_from: date | None = Query(None, alias="from"), date_to: date | None = Query(None, alias="to"), benchmark: HomeBenchmark | None = None, user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _wealth(db, user, member_id, now, period, date_from, date_to, benchmark)
 
 
 @router.get("/household/aggregate/home/allocation", response_model=AllocationResponse)
-async def aggregate_allocation(user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def aggregate_allocation(user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _allocation(db, user, None, now)
 
 
 @router.get("/household-members/{member_id}/home/allocation", response_model=AllocationResponse)
-async def member_allocation(member_id: uuid.UUID, user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def member_allocation(member_id: uuid.UUID, user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _allocation(db, user, member_id, now)
 
 
 @router.get("/household/aggregate/home/movers", response_model=MoversResponse)
-async def aggregate_movers(by: MoverView = "sector", user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def aggregate_movers(by: MoverView = "sector", user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _movers(db, user, None, now, by)
 
 
 @router.get("/household-members/{member_id}/home/movers", response_model=MoversResponse)
-async def member_movers(member_id: uuid.UUID, by: MoverView = "sector", user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def member_movers(member_id: uuid.UUID, by: MoverView = "sector", user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _movers(db, user, member_id, now, by)
 
 
 @router.get("/household/aggregate/home/worth-a-look", response_model=WorthResponse)
-async def aggregate_worth(user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def aggregate_worth(user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _worth(db, user, None, now)
 
 
 @router.get("/household-members/{member_id}/home/worth-a-look", response_model=WorthResponse)
-async def member_worth(member_id: uuid.UUID, user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def member_worth(member_id: uuid.UUID, user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _worth(db, user, member_id, now)
 
 
 @router.get("/household/aggregate/home/benchmarks", response_model=BenchmarksResponse)
-async def aggregate_benchmarks(user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def aggregate_benchmarks(user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _benchmarks(db, user, None, now)
 
 
 @router.get("/household-members/{member_id}/home/benchmarks", response_model=BenchmarksResponse)
-async def member_benchmarks(member_id: uuid.UUID, user: User = Depends(get_active_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
+async def member_benchmarks(member_id: uuid.UUID, user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
     return await _benchmarks(db, user, member_id, now)

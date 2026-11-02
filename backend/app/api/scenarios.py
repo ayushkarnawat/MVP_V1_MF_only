@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from sqlalchemy.orm import Session as DbSession
 from app.db.session import get_db
-from app.services.auth.session import get_active_user
+from app.services.auth.session import get_data_user
 from app.config import settings
 from app.models.reference import Scenario
 from app.models.user import User
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/scenarios", tags=["scenarios"])
 @router.get("", response_model=list[ScenarioSummaryRow])
 async def list_scenarios(
     curated: bool = False,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     return await asyncio.to_thread(_list_scenarios, db, curated, settings.scenario_hypotheticals_enabled)
@@ -51,7 +51,7 @@ def _list_scenarios(db: DbSession, curated: bool, hypotheticals_enabled: bool) -
 async def get_scenario_results(
     scenario_id: uuid.UUID,
     member_id: uuid.UUID | None = None,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     scenario = db.get(Scenario, scenario_id)

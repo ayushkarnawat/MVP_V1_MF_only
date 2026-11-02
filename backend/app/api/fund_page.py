@@ -14,7 +14,7 @@ from app.db.session import get_db
 from app.models.reference import Scheme
 from app.models.folio import Folio
 from app.models.user import User
-from app.services.auth.session import get_active_user
+from app.services.auth.session import get_data_user
 from app.services.fund_page.composition import all_holdings, build_composition
 from app.services.fund_page.folios import full_folio_number
 from app.services.fund_page.insights import build_insights
@@ -77,7 +77,7 @@ def _scheme_or_404(db: Session, scheme_id: uuid.UUID) -> Scheme:
 async def summary(
     scheme_id: uuid.UUID,
     scope: str = "combined",
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -90,7 +90,7 @@ async def summary(
 async def folio_number(
     scheme_id: uuid.UUID,
     folio_id: uuid.UUID,
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
 ):
     _scheme_or_404(db, scheme_id)
@@ -108,7 +108,7 @@ async def folio_number(
 async def performance(
     scheme_id: uuid.UUID,
     period: _PERIODS = "1Y",
-    _user: User = Depends(get_active_user),
+    _user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -124,7 +124,7 @@ async def returns(
     scheme_id: uuid.UUID,
     mode: _RETURN_MODES = "inception",
     scope: str = "combined",
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -141,7 +141,7 @@ async def returns(
 )
 async def risk(
     scheme_id: uuid.UUID,
-    _user: User = Depends(get_active_user),
+    _user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -155,7 +155,7 @@ async def risk(
 )
 async def portfolio_composition(
     scheme_id: uuid.UUID,
-    _user: User = Depends(get_active_user),
+    _user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -169,7 +169,7 @@ async def portfolio_composition(
 )
 async def holdings(
     scheme_id: uuid.UUID,
-    _user: User = Depends(get_active_user),
+    _user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -183,7 +183,7 @@ async def holdings(
 )
 async def manager(
     scheme_id: uuid.UUID,
-    _user: User = Depends(get_active_user),
+    _user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -195,7 +195,7 @@ async def manager(
 async def score(
     scheme_id: uuid.UUID,
     scope: str = "combined",
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -211,7 +211,7 @@ async def score(
 async def peers_series(
     scheme_id: uuid.UUID,
     period: _PERIODS = "1Y",
-    _user: User = Depends(get_active_user),
+    _user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -225,7 +225,7 @@ async def peers_series(
 )
 async def peers_returns(
     scheme_id: uuid.UUID,
-    _user: User = Depends(get_active_user),
+    _user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -240,7 +240,7 @@ async def peers_returns(
 async def peers_rolling(
     scheme_id: uuid.UUID,
     window: _RollingWindow = _RollingWindow.THREE,
-    _user: User = Depends(get_active_user),
+    _user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -255,7 +255,7 @@ async def peers_rolling(
 async def peers_period_returns(
     scheme_id: uuid.UUID,
     period: _PERIODS = "1Y",
-    _user: User = Depends(get_active_user),
+    _user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -269,7 +269,7 @@ async def peers_period_returns(
 )
 async def peers_scatter(
     scheme_id: uuid.UUID,
-    _user: User = Depends(get_active_user),
+    _user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -284,7 +284,7 @@ async def peers_scatter(
 async def overlap(
     scheme_id: uuid.UUID,
     scope: str = "combined",
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -301,7 +301,7 @@ async def overlap_comparison(
     scheme_id: uuid.UUID,
     other_scheme_id: uuid.UUID,
     scope: str = "combined",
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):
@@ -315,7 +315,7 @@ async def overlap_comparison(
 async def insights(
     scheme_id: uuid.UUID,
     scope: str = "combined",
-    user: User = Depends(get_active_user),
+    user: User = Depends(get_data_user),
     db: Session = Depends(get_db),
     now: datetime = Depends(get_now_ist),
 ):

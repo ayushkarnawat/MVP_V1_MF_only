@@ -201,6 +201,26 @@ def _completed_at(request: HeadChangeRequest) -> datetime | None:
     return _aware(request.undo_expires_at) - timedelta(hours=UNDO_TTL_HOURS)
 
 
+def undo_window_open_until(db: DbSession, user: User) -> datetime | None:
+    """When the 24-hour undo window of the account's latest Head of Family change closes, or None
+    when no window is open. Scheduling account deletion is refused until then: undo refuses an
+    account that is pending deletion, so the new head could otherwise schedule deletion, wait out
+    the window and reactivate, leaving the previous head with no way back."""
+    now = datetime.now(timezone.utc)
+    open_windows = [
+        _aware(item.undo_expires_at)
+        for item in db.query(HeadChangeRequest)
+        .filter(
+            HeadChangeRequest.user_id == user.id,
+            HeadChangeRequest.status == "completed",
+            HeadChangeRequest.undo_expires_at.is_not(None),
+        )
+        .all()
+        if _aware(item.undo_expires_at) > now
+    ]
+    return max(open_windows) if open_windows else None
+
+
 def member_in_recent_head_change(db: DbSession, member_id: uuid.UUID) -> bool:
     """True while the member is the old or the new head of a change made in the last 7 days.
 

@@ -18,6 +18,15 @@ def _client():
     return TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def _no_head_change_consent_check(monkeypatch):
+    # These tests stand in a minimal fake database (only `get`); the data-route dependency's
+    # head-change consent query is covered in tests/api/test_head_change_consent.py.
+    monkeypatch.setattr(
+        "app.services.auth.head_change_consent.consent_outdated_reason", lambda db, user_id: None
+    )
+
+
 def test_export_pdf_404_when_member_not_owned():
     from app.db.session import get_db
     from app.services.auth.session import get_current_user
