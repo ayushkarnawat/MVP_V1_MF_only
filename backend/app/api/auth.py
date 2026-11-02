@@ -27,6 +27,12 @@ from app.services.auth.identity import (
     resolve_new_verified_identity,
 )
 from app.services.auth.account_deletion import reactivate_account, schedule_account_deletion
+from app.services.auth.contact_change_events import (
+    ContactChangeError,
+    record_contact_change,
+    reverse_contact_change,
+    send_contact_change_notice,
+)
 from app.services.auth.email_provider import EmailSendError
 from app.services.auth.head_change_consent import consent_outdated_reason
 from app.services.auth.google_oauth import GoogleTokenVerificationError, verify_google_id_token
@@ -69,6 +75,7 @@ from app.services.auth.schemas import (
     UpdateMeBody,
     AccountDeletionBody,
     ContactChangeRequestBody,
+    ContactChangeReverseBody,
     ContactChangeVerifyBody,
     HeadChangeCodeResponse,
     HeadChangeCompleteBody,
@@ -789,12 +796,51 @@ def verify_contact_change(
         identity.identifier_verified_at = now
         identity.last_used_at = now
 
+    changed = _contact_key(body.channel, current_identifier) != _contact_key(body.channel, body.identifier)
     if body.channel == "email":
         user.email = body.identifier
     else:
         user.phone_number = body.identifier
+    # The previous address gets a "this wasn't me" link and the Head of Family is locked for 7
+    # days (a stolen session could otherwise take over the account through the four codes). The
+    # event row lands in the same commit as the change; the email goes out after it.
+    raw_reverse_token = (
+        record_contact_change(db, user.id, body.channel, current_identifier, body.identifier)
+        if changed
+        else None
+    )
     db.commit()
+    if raw_reverse_token is not None:
+        send_contact_change_notice(
+            channel=body.channel,
+            old_value=current_identifier,
+            account_email=user.email,
+            new_value=body.identifier,
+            raw_token=raw_reverse_token,
+        )
     return _me_response(user, db)
+
+
+def _contact_key(channel: str, value: str | None) -> str | None:
+    if value is None:
+        return None
+    return value.strip().casefold() if channel == "email" else value.strip()
+
+
+@router.post("/contact-change/reverse")
+def reverse_contact_change_route(
+    body: ContactChangeReverseBody,
+    db: DbSession = Depends(get_db),
+):
+    """The "this wasn't me" link from the notice email. No session: the person may be locked out.
+    Puts the previous email or phone back, signs everyone out, cancels an open head change."""
+    try:
+        reverse_contact_change(db, body.token)
+    except ContactChangeError as exc:
+        raise HTTPException(
+            status_code=exc.status_code, detail={"code": exc.code, "message": exc.message}
+        ) from exc
+    return {"status": "reversed"}
 
 
 def _head_change_http(exc: HeadChangeError) -> HTTPException:

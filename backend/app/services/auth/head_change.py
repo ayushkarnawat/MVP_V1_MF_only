@@ -24,6 +24,7 @@ from app.models.auth import (
 )
 from app.models.enums import AuthIdentityProvider, ConsentAction, Relationship
 from app.models.user import HouseholdMember, User
+from app.services.auth.contact_change_events import contact_changed_recently_until
 from app.services.auth.email_provider import EmailSendError, get_email_provider
 from app.services.auth.email_templates import (
     head_change_reversed_email,
@@ -245,7 +246,19 @@ def member_in_recent_head_change(db: DbSession, member_id: uuid.UUID) -> bool:
 
 def _refuse_if_changed_recently(db: DbSession, user: User) -> None:
     """Changing the head, or changing it back, is limited to once every 7 days. A change that was
-    undone still counts (the clock starts when the change was made). Undo itself is exempt."""
+    undone still counts (the clock starts when the change was made). Undo itself is exempt.
+
+    It is also refused for 7 days after the account's sign-in email or phone was changed: a stolen
+    session could otherwise change the contact to the thief's and then receive all four codes."""
+    contact_cooling_off_ends = contact_changed_recently_until(db, user.id)
+    if contact_cooling_off_ends is not None:
+        raise _error(
+            409,
+            "head_change_after_contact_change",
+            "The sign-in email or phone was changed recently, so the Head of Family cannot be "
+            f"changed until {contact_cooling_off_ends.day} {contact_cooling_off_ends:%B %Y}. "
+            "This protects your account.",
+        )
     requests = (
         db.query(HeadChangeRequest)
         .filter(

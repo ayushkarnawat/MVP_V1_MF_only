@@ -163,3 +163,26 @@ def head_change_reversed_email(
         f"All portfolio data is unchanged. If this was not you, contact {SUPPORT_EMAIL}."
     )
     return subject, text, _notice_email_html(headline=subject, body=text)
+
+
+def contact_changed_email(
+    *, channel: str, new_value_masked: str, reverse_url: str
+) -> tuple[str, str, str]:
+    """Sent to the address the account used BEFORE a sign-in email or phone change (for a phone
+    change, to the account's email). The link is a working credential: it puts the old value back
+    and signs everyone out, so it goes only to that address."""
+    what = "email address" if channel == "email" else "phone number"
+    subject = f"The sign-in {what} on your Unifolio account was changed."
+    body_without_link = (
+        f"The {what} you sign in with was changed to {new_value_masked}. "
+        "If this was you, you do not need to do anything. "
+        "If it was not you, use the link within 7 days to put the old one back and sign out "
+        "everyone. For 7 days after a change like this the Head of Family cannot be changed"
+    )
+    html = _notice_email_html(
+        headline=subject,
+        body=body_without_link + ".",
+        link_text="This was not me, undo the change",
+        link_url=reverse_url,
+    )
+    return subject, f"{body_without_link}: {reverse_url}", html

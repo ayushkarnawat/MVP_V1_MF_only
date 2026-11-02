@@ -148,3 +148,26 @@ class Session(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     last_active_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     device_info: Mapped[str | None] = mapped_column(String)
+
+
+class ContactChangeEvent(Base):
+    """One row per change of the account's sign-in email or phone through the contact-change flow.
+
+    Two jobs: the emailed "this wasn't me" link (found by the hash of its token, good for 7 days)
+    and the 7-day cooling-off during which the Head of Family cannot be changed. A stolen session
+    could otherwise change the contact to the thief's and then receive all four head-change codes.
+    """
+
+    __tablename__ = "contact_change_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    channel: Mapped[str] = mapped_column(String, nullable=False)  # "email" or "phone"
+    old_value: Mapped[str | None] = mapped_column(String)
+    new_value: Mapped[str] = mapped_column(String, nullable=False)
+    token_hash: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    reversed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

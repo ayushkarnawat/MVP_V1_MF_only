@@ -9,6 +9,7 @@ from app.models.account_deletion import AccountDeletionSurvey
 from app.models.analytics import AnalyticsRecomputeStatus, AnalyticsSection
 from app.models.auth import (
     AuthIdentity,
+    ContactChangeEvent,
     HeadChangeRequest,
     OtpRequest,
     PendingIdentityVerification,
@@ -129,6 +130,7 @@ def hard_delete_expired_accounts(
         db.query(HeadChangeRequest).filter_by(user_id=user.id).delete(
             synchronize_session=False
         )
+        db.query(ContactChangeEvent).filter_by(user_id=user.id).delete(synchronize_session=False)
 
         # otp_requests has no user_id FK -- OTPs are looked up by the raw
         # phone/email identifier (see services/auth/otp.py), so every

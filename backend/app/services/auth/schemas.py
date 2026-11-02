@@ -314,6 +314,10 @@ class HeadChangeCompleteResponse(BaseModel):
     logout_required: bool
 
 
+class ContactChangeReverseBody(BaseModel):
+    token: str
+
+
 class HeadChangeUndoBody(BaseModel):
     token: str
 
