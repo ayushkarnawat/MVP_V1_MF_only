@@ -1,6 +1,6 @@
 # Handoff: Book value from official filings (T2.12)
 
-**Status:** PARKED 31 Oct (owner). Probe blocked (403) from the Codex environment; `~/r2-snippets/filings/probe_nse_xbrl.py` is ready to run from an Indian-IP machine. Resume when the owner pastes its output. Nothing is built.
+**Status:** PARKED 31 Oct (owner); **probe DONE 1 Nov 2026 from the VM (Step A complete, Step B not started, owner decision pending).** The NSE list works and the filings carry the needed figures (TCS: equity attributable to owners; HDFC Bank: capital plus reserves; shares = paid-up capital / face value), but the list returns nothing newer than Dec 2024 quarterly and Mar 2024 annual, so book values would be stale. Recommended: close T2.12 on the labelled Yahoo and screener fallbacks; the owner leaned to agree but asked for a search for a newer source first (not done). Nothing is built. See `2026-10-31-staging-deploy-guide-change-requests.md` section 6.
 **Run:** 2 of 7 (follow-on) | **Slug:** `cr-r2-filings-book-value` | **Commit prefix:** `cr-r2:` | **Tasks:** T2.12 (owner go given 31 Oct; waits on T2.11)
 **Rules:** `Docs/orchestration/cr-r2-common-rules.md` (read first). **Task text (authoritative):** plan, "Task 2.12 (gate G7: waits on S6): Phase C, book value from official filings".
 
