@@ -32,6 +32,7 @@ from app.services.auth.google_oauth import GoogleTokenVerificationError, verify_
 from app.services.auth.head_change import (
     HeadChangeError,
     cancel_head_change,
+    complete_head_change,
     get_pending_head_change,
     request_head_change_start_code,
     resend_head_change_code,
@@ -65,6 +66,8 @@ from app.services.auth.schemas import (
     ContactChangeRequestBody,
     ContactChangeVerifyBody,
     HeadChangeCodeResponse,
+    HeadChangeCompleteBody,
+    HeadChangeCompleteResponse,
     HeadChangeResendBody,
     HeadChangeResendResponse,
     HeadChangeStartBody,
@@ -74,7 +77,7 @@ from app.services.auth.schemas import (
     HeadChangeVerifyBody,
     PendingHeadChangeResponse,
 ) #to validate api requests
-from app.services.auth.session import create_session, get_active_user, get_current_session, get_current_user, refresh_session
+from app.services.auth.session import SessionIdentityChangedError, create_session, get_active_user, get_current_session, get_current_user, refresh_session
 from app.services.legal.consent import (
     SIGNUP_DOCUMENTS,
     ConsentRequiredError,
@@ -100,9 +103,19 @@ def _consent_http(exc: ConsentRequiredError, message: str = _SIGNUP_CONSENT_MESS
     )
 
 
-def _session_response(user_id, auth_method: AuthIdentityProvider, db: DbSession) -> OtpVerifyResponse:
+def _session_response(
+    user_id, auth_method: AuthIdentityProvider, db: DbSession, *, presented_identity_id=None
+) -> OtpVerifyResponse:
     user = db.get(User, user_id)
-    _, raw_token = create_session(db, user_id, auth_method=auth_method)
+    try:
+        _, raw_token = create_session(
+            db, user_id, auth_method=auth_method, presented_identity_id=presented_identity_id
+        )
+    except SessionIdentityChangedError as exc:
+        # A Head of Family swap removed the identity this sign-in used while it was in flight.
+        raise HTTPException(
+            status_code=401, detail="This sign-in is no longer valid. Please sign in again."
+        ) from exc
     return OtpVerifyResponse(
         session_token=raw_token,
         user_id=str(user_id),
@@ -259,7 +272,9 @@ def verify_email_otp(body: EmailOtpVerifyBody, db: DbSession = Depends(get_db)):
     existing = find_identity_by_subject(db, AuthIdentityProvider.EMAIL_OTP, body.email)
     if existing is None:
         raise HTTPException(status_code=401, detail="No account found for that email — sign up instead.")
-    return _session_response(existing.user_id, AuthIdentityProvider.EMAIL_OTP, db)
+    return _session_response(
+        existing.user_id, AuthIdentityProvider.EMAIL_OTP, db, presented_identity_id=existing.id
+    )
 
 
 #otp authentication
@@ -351,6 +366,7 @@ def verify_otp_route(body: OtpVerifyBody, request: Request, db: DbSession = Depe
             # via the email gate, never a second phone number.
             raise HTTPException(status_code=401, detail="Invalid or already-used verification token.")
 
+        presented_id = None
         existing = find_or_backfill_phone_identity(db, body.phone_number)
         if existing is not None:
             if link_info.provider == AuthIdentityProvider.EMAIL_OTP:
@@ -367,6 +383,7 @@ def verify_otp_route(body: OtpVerifyBody, request: Request, db: DbSession = Depe
                     status_code=409,
                     detail="An account with this phone number already exists.",
                 )
+            presented_id = existing.id  # read before the attach commits
             try:
                 user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
             except PendingVerificationError as exc:
@@ -380,7 +397,9 @@ def verify_otp_route(body: OtpVerifyBody, request: Request, db: DbSession = Depe
                 raise HTTPException(status_code=401, detail=str(exc)) from exc
             except ConsentRequiredError as exc:
                 raise _consent_http(exc) from exc
-        return _session_response(user_id, AuthIdentityProvider.PHONE_OTP, db)
+        return _session_response(
+            user_id, AuthIdentityProvider.PHONE_OTP, db, presented_identity_id=presented_id
+        )
 
     # Phone uses find_or_backfill_phone_identity so a pre-0005-backfill `users`
     # row (identity row missing) logs in normally instead of falling through to
@@ -391,7 +410,9 @@ def verify_otp_route(body: OtpVerifyBody, request: Request, db: DbSession = Depe
             # Belt-and-braces for request_otp's own check: the number was
             # registered between request and verify. Never log in on sign-up.
             raise HTTPException(status_code=409, detail="An account with this phone number already exists.")
-        return _session_response(existing.user_id, AuthIdentityProvider.PHONE_OTP, db)
+        return _session_response(
+            existing.user_id, AuthIdentityProvider.PHONE_OTP, db, presented_identity_id=existing.id
+        )
 
     if body.flow == "login":
         raise HTTPException(status_code=401, detail="No account found for that phone number — sign up instead.")
@@ -464,15 +485,20 @@ def google_oauth_route(body: GoogleAuthBody, request: Request, db: DbSession = D
         existing = find_identity_by_subject(db, AuthIdentityProvider.GOOGLE, claims.sub)
         if existing is None:
             raise HTTPException(status_code=401, detail="This Google account isn't linked yet.")
+        presented_id = existing.id  # read before the attach commits
         try:
             user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
         except PendingVerificationError as exc:
             raise HTTPException(status_code=401, detail=str(exc)) from exc
-        return _session_response(user_id, AuthIdentityProvider.GOOGLE, db)
+        return _session_response(
+            user_id, AuthIdentityProvider.GOOGLE, db, presented_identity_id=presented_id
+        )
 
     existing = find_identity_by_subject(db, AuthIdentityProvider.GOOGLE, claims.sub)
     if existing is not None:
-        return _session_response(existing.user_id, AuthIdentityProvider.GOOGLE, db)
+        return _session_response(
+            existing.user_id, AuthIdentityProvider.GOOGLE, db, presented_identity_id=existing.id
+        )
 
     # Consent is only needed if this turns out to be a brand-new account
     # (phone_required), which resolve_new_verified_identity decides -- and it
@@ -820,6 +846,28 @@ def resend_head_change_code_route(
             verified=result.code.verified,
             otp=result.code.otp,
         ),
+    )
+
+
+@router.post("/head-change/complete", response_model=HeadChangeCompleteResponse)
+def complete_head_change_route(
+    body: HeadChangeCompleteBody,
+    request: Request,
+    user: User = Depends(_get_head_change_active_user),
+    db: DbSession = Depends(get_db),
+):
+    try:
+        result = complete_head_change(
+            db,
+            user,
+            body.request_id,
+            evidence_from_request(request),
+        )
+    except HeadChangeError as exc:
+        raise _head_change_http(exc) from exc
+    return HeadChangeCompleteResponse(
+        status=result.status,
+        logout_required=True,
     )
 
 

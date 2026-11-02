@@ -7,7 +7,13 @@ from sqlalchemy import or_
 
 from app.models.account_deletion import AccountDeletionSurvey
 from app.models.analytics import AnalyticsRecomputeStatus, AnalyticsSection
-from app.models.auth import AuthIdentity, OtpRequest, PendingIdentityVerification, Session as SessionModel
+from app.models.auth import (
+    AuthIdentity,
+    HeadChangeRequest,
+    OtpRequest,
+    PendingIdentityVerification,
+    Session as SessionModel,
+)
 from app.models.enums import AuthIdentityProvider, ConsentAction
 from app.models.folio import Folio
 from app.models.imports import Import
@@ -120,6 +126,9 @@ def hard_delete_expired_accounts(
         db.query(AnalyticsRecomputeStatus).filter_by(user_id=user.id).delete(synchronize_session=False)
         db.query(PendingIdentityVerification).filter_by(matched_user_id=user.id).delete(synchronize_session=False)
         db.query(SessionModel).filter_by(user_id=user.id).delete(synchronize_session=False)
+        db.query(HeadChangeRequest).filter_by(user_id=user.id).delete(
+            synchronize_session=False
+        )
 
         # otp_requests has no user_id FK -- OTPs are looked up by the raw
         # phone/email identifier (see services/auth/otp.py), so every

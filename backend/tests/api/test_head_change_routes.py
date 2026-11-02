@@ -77,6 +77,25 @@ def _start(client, household):
     return started
 
 
+def _verify_all_codes(client, household, started):
+    body = started.json()
+    for code in body["codes"]:
+        if code["verified"]:
+            continue
+        response = client.post(
+            "/auth/head-change/verify",
+            json={
+                "request_id": body["request"]["request_id"],
+                "party": code["party"],
+                "channel": code["channel"],
+                "code": code["otp"],
+            },
+            headers=household["headers"],
+        )
+        assert response.status_code == 200
+    return body["request"]["request_id"]
+
+
 def test_head_change_routes_return_the_run_6_contract(client):
     household = _household(client)
     started = _start(client, household)
@@ -140,6 +159,24 @@ def test_head_change_routes_return_the_run_6_contract(client):
     assert client.get(
         "/auth/head-change/pending", headers=household["headers"]
     ).json() == {"request": None}
+
+
+def test_complete_head_change_route_returns_completed_and_requires_logout(client):
+    household = _household(client, suffix="0")
+    request_id = _verify_all_codes(client, household, _start(client, household))
+
+    response = client.post(
+        "/auth/head-change/complete",
+        json={"request_id": request_id},
+        headers=household["headers"],
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "completed", "logout_required": True}
+    assert (
+        client.get("/auth/head-change/pending", headers=household["headers"]).status_code
+        == 401
+    )
 
 
 def test_stub_code_present_only_in_stub_mode(client, monkeypatch):
@@ -257,6 +294,11 @@ def test_start_code_foreign_member_is_indistinguishable_from_unknown(client):
                 "party": "current",
                 "channel": "email",
             },
+        ),
+        (
+            "post",
+            "/auth/head-change/complete",
+            {"request_id": "00000000-0000-0000-0000-000000000001"},
         ),
         ("post", "/auth/head-change/cancel", None),
         ("get", "/auth/head-change/pending", None),

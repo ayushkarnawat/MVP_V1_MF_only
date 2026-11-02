@@ -1,18 +1,33 @@
 from __future__ import annotations
 
+import hashlib
+import logging
 import math
+import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Literal
+from urllib.parse import quote
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as DbSession
 
-from app.models.auth import HeadChangeRequest, OtpRequest
+from app.config import settings
+from app.models.auth import (
+    AuthIdentity,
+    HeadChangeRequest,
+    OtpRequest,
+    PendingIdentityVerification,
+    Session as SessionModel,
+)
+from app.models.enums import AuthIdentityProvider, ConsentAction, Relationship
 from app.models.user import HouseholdMember, User
-from app.services.auth.email_provider import EmailSendError
+from app.services.auth.email_provider import EmailSendError, get_email_provider
+from app.services.auth.email_templates import head_change_undo_email, head_changed_email
 from app.services.auth.head_eligibility import EligibilityReason, member_eligibility
+from app.services.auth.head_labels import MemberLabel, flip_labels
+from app.services.auth.identity import record_identity
 from app.services.auth.otp import (
     EmailContent,
     OtpRequestThrottledError,
@@ -21,9 +36,18 @@ from app.services.auth.otp import (
     verify_otp,
 )
 from app.services.dashboard.member_details import MemberNotFoundError
+from app.services.legal.consent import (
+    SIGNUP_DOCUMENTS,
+    ConsentEvidence,
+    record_consent,
+)
+from app.services.legal.registry import current_document
 
 
 HEAD_CHANGE_TTL_MINUTES = 10
+UNDO_TTL_HOURS = 24
+
+logger = logging.getLogger(__name__)
 
 START_CODE_ELIGIBILITY_REASONS = {
     "no_email",
@@ -73,6 +97,15 @@ class HeadChangeStartResult:
 class HeadChangeResendResult:
     status: HeadChangeStatus
     code: HeadChangeCode
+
+
+@dataclass(frozen=True)
+class HeadChangeResult:
+    request_id: uuid.UUID
+    user_id: uuid.UUID
+    from_member_id: uuid.UUID
+    to_member_id: uuid.UUID
+    status: str
 
 
 class HeadChangeError(Exception):
@@ -564,3 +597,454 @@ def get_pending_head_change(
         .first()
     )
     return head_change_status(request) if request is not None else None
+
+
+def _iso(value: datetime) -> str:
+    return _aware(value).isoformat()
+
+
+def _relationship_value(value: Relationship | None) -> str | None:
+    return value.value if value is not None else None
+
+
+def _identity_snapshot(identity: AuthIdentity) -> dict[str, str | None]:
+    return {
+        "provider": identity.provider.value,
+        "provider_subject": identity.provider_subject,
+        "email": identity.email,
+        "identifier_verified_at": _iso(identity.identifier_verified_at),
+        "created_at": _iso(identity.created_at),
+        "last_used_at": _iso(identity.last_used_at),
+    }
+
+
+def _member_state(
+    member: HouseholdMember,
+    *,
+    is_head: bool,
+    relationship: Relationship | None,
+    relationship_other_label: str | None,
+    email: str | None = None,
+    phone_number: str | None = None,
+) -> dict[str, str | bool | None]:
+    return {
+        "is_head": is_head,
+        "relationship": _relationship_value(relationship),
+        "relationship_other_label": relationship_other_label,
+        "email": member.email if email is None else email,
+        "phone_number": member.phone_number if phone_number is None else phone_number,
+    }
+
+
+def _changed_request_error() -> HeadChangeError:
+    return _error(
+        409,
+        "request_changed",
+        "Something changed since you started. Nothing has changed. Start again.",
+    )
+
+
+def _not_ready_error() -> HeadChangeError:
+    return _error(
+        409,
+        "request_not_ready",
+        "Enter all four codes before confirming the change.",
+    )
+
+
+def _contact_in_use_after_integrity(
+    db: DbSession, user: User, member_id: uuid.UUID | None
+) -> HeadChangeError:
+    if member_id is None:
+        return _reason_error("email_in_use")
+    try:
+        reasons = member_eligibility(db, user, member_id)
+    except MemberNotFoundError:
+        reasons = []
+    if "phone_in_use" in reasons:
+        return _reason_error("phone_in_use")
+    return _reason_error("email_in_use")
+
+
+def _old_head_email_addresses(
+    old_account_email: str | None, identities: list[AuthIdentity]
+) -> list[str]:
+    addresses: dict[str, str] = {}
+
+    def add(value: str | None) -> None:
+        if value and value.strip():
+            addresses.setdefault(value.strip().casefold(), value.strip())
+
+    add(old_account_email)
+    for identity in identities:
+        add(identity.email)
+        if identity.provider in {
+            AuthIdentityProvider.EMAIL_OTP,
+            AuthIdentityProvider.EMAIL_PASSWORD,
+        }:
+            add(identity.provider_subject)
+    return list(addresses.values())
+
+
+def _send_completion_notices(
+    db: DbSession,
+    request: HeadChangeRequest,
+    *,
+    new_head_name: str,
+    old_head_name: str,
+    new_head_email: str,
+    old_head_emails: list[str],
+    undo_token: str,
+) -> None:
+    undo_url = (
+        f"{settings.frontend_base_url.rstrip('/')}"
+        f"/undo-head-change?token={quote(undo_token, safe='')}"
+    )
+    # The swap is already committed: no failure to find or use a provider may surface as an error.
+    try:
+        provider = get_email_provider()
+    except Exception as exc:
+        provider = None
+        logger.error(
+            "Head change notices not sent, email provider unavailable error=%s", type(exc).__name__
+        )
+    failed_roles: set[str] = set()
+
+    changed_subject, changed_text, changed_html = head_changed_email(
+        new_head_name=new_head_name,
+        old_head_name=old_head_name,
+    )
+    deliveries = [
+        ("new_head_changed", new_head_email, changed_subject, changed_text, changed_html)
+    ]
+    for address in old_head_emails:
+        deliveries.append(
+            ("old_head_changed", address, changed_subject, changed_text, changed_html)
+        )
+        undo_subject, undo_text, undo_html = head_change_undo_email(undo_url=undo_url)
+        deliveries.append(
+            ("old_head_undo", address, undo_subject, undo_text, undo_html)
+        )
+
+    for role, address, subject, text, html in deliveries:
+        if provider is None:
+            failed_roles.add(role)
+            continue
+        try:
+            provider.send_email(address, subject, text, html)
+        except Exception as exc:
+            failed_roles.add(role)
+            logger.error(
+                "Head change notice failed for role=%s error=%s",
+                role,
+                type(exc).__name__,
+            )
+
+    if not failed_roles:
+        return
+    try:
+        snapshot = dict(request.snapshot or {})
+        snapshot["notices"] = {"failed_roles": sorted(failed_roles)}
+        request.snapshot = snapshot
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.error(
+            "Could not record head change notice failures error=%s",
+            type(exc).__name__,
+        )
+
+
+def complete_head_change(
+    db: DbSession,
+    user: User,
+    request_id: uuid.UUID,
+    evidence: ConsentEvidence,
+) -> HeadChangeResult:
+    """Atomically move account sign-in and the Self/head markers to a member."""
+    now = datetime.now(timezone.utc)
+    old_head_emails: list[str] = []
+    raw_undo_token = ""
+    locked_request: HeadChangeRequest | None = None
+    locked_user: User | None = None
+    old_head: HouseholdMember | None = None
+    new_head: HouseholdMember | None = None
+
+    try:
+        # Lock order is a cross-database contract: account, members by id, request.
+        locked_user = (
+            db.query(User)
+            .filter(User.id == user.id)
+            .populate_existing()
+            .with_for_update()
+            .one_or_none()
+        )
+        if locked_user is None:
+            raise _error(404, "request_not_found", "Head change request not found.")
+        members = (
+            db.query(HouseholdMember)
+            .filter(HouseholdMember.user_id == locked_user.id)
+            .order_by(HouseholdMember.id)
+            .populate_existing()
+            .with_for_update()
+            .all()
+        )
+        locked_request = (
+            db.query(HeadChangeRequest)
+            .filter(
+                HeadChangeRequest.id == request_id,
+                HeadChangeRequest.user_id == locked_user.id,
+            )
+            .populate_existing()
+            .with_for_update()
+            .one_or_none()
+        )
+        if locked_request is None or locked_request.status != "pending":
+            raise _error(404, "request_not_found", "Head change request not found.")
+        if _aware(locked_request.expires_at) <= now:
+            locked_request.status = "expired"
+            _delete_request_otps(db, locked_request)
+            db.commit()
+            raise _error(
+                410,
+                "request_expired",
+                "The codes expired. Nothing has changed. Start again.",
+            )
+        if any(
+            value is None
+            for value in (
+                locked_request.current_email_verified_at,
+                locked_request.current_phone_verified_at,
+                locked_request.new_email_verified_at,
+                locked_request.new_phone_verified_at,
+            )
+        ):
+            raise _not_ready_error()
+
+        members_by_id = {member.id: member for member in members}
+        old_head = members_by_id.get(locked_request.from_member_id)
+        new_head = members_by_id.get(locked_request.to_member_id)
+        if (
+            old_head is None
+            or new_head is None
+            or not old_head.is_head
+            or old_head.relationship != Relationship.SELF
+            or new_head.is_head
+        ):
+            raise _changed_request_error()
+        if bool(locked_user.pending_deletion) or locked_user.deletion_scheduled_at is not None:
+            raise _reason_error("account_pending_deletion")
+
+        destinations = _destinations(locked_request)
+        current_destinations = destinations.get("current", {})
+        new_destinations = destinations.get("new", {})
+        if (
+            current_destinations.get("email") != locked_user.email
+            or current_destinations.get("phone") != locked_user.phone_number
+            or new_destinations.get("email") != new_head.email
+            or new_destinations.get("phone") != new_head.phone_number
+        ):
+            raise _changed_request_error()
+
+        try:
+            reasons = member_eligibility(db, locked_user, new_head.id)
+        except MemberNotFoundError as exc:
+            raise _error(404, exc.code, exc.message) from exc
+        reasons = [reason for reason in reasons if reason != "head_change_already_open"]
+        if reasons:
+            raise _reason_error(reasons[0])
+
+        label_plan = flip_labels(
+            new_head.relationship,
+            [
+                MemberLabel(
+                    member_id=member.id,
+                    relationship=member.relationship,
+                    relationship_other_label=member.relationship_other_label,
+                    is_new_head=member.id == new_head.id,
+                )
+                for member in members
+                if member.id != old_head.id
+            ],
+        )
+        if label_plan.old_head_new_label is None:
+            raise _reason_error("label_missing")
+
+        identities = (
+            db.query(AuthIdentity)
+            .filter(AuthIdentity.user_id == locked_user.id)
+            .order_by(AuthIdentity.id)
+            .all()
+        )
+        old_account_email = locked_user.email
+        old_account_phone = locked_user.phone_number
+        old_head_emails = _old_head_email_addresses(old_account_email, identities)
+        session_count = (
+            db.query(SessionModel).filter(SessionModel.user_id == locked_user.id).count()
+        )
+
+        member_changes = []
+        for member in members:
+            old_state = _member_state(
+                member,
+                is_head=member.is_head,
+                relationship=member.relationship,
+                relationship_other_label=member.relationship_other_label,
+            )
+            if member.id == old_head.id:
+                new_state = _member_state(
+                    member,
+                    is_head=False,
+                    relationship=label_plan.old_head_new_label,
+                    relationship_other_label=None,
+                    email=old_account_email,
+                    phone_number=old_account_phone,
+                )
+            elif member.id == new_head.id:
+                new_state = _member_state(
+                    member,
+                    is_head=True,
+                    relationship=Relationship.SELF,
+                    relationship_other_label=None,
+                )
+            else:
+                relationship = label_plan.member_labels.get(
+                    member.id, member.relationship
+                )
+                new_state = _member_state(
+                    member,
+                    is_head=member.is_head,
+                    relationship=relationship,
+                    relationship_other_label=(
+                        label_plan.member_other_labels.get(member.id)
+                        if relationship == Relationship.OTHER
+                        else None
+                    ),
+                )
+            member_changes.append(
+                {"member_id": str(member.id), "old": old_state, "new": new_state}
+            )
+
+        raw_undo_token = secrets.token_urlsafe(32)
+        undo_token_hash = hashlib.sha256(raw_undo_token.encode()).hexdigest()
+        undo_expires_at = now + timedelta(hours=UNDO_TTL_HOURS)
+        snapshot = dict(locked_request.snapshot or {})
+        snapshot.update(
+            {
+                "identities": [_identity_snapshot(identity) for identity in identities],
+                "account_contact": {
+                    "email": old_account_email,
+                    "phone_number": old_account_phone,
+                },
+                "member_changes": member_changes,
+                "session_count": session_count,
+                "undo_token_hash": undo_token_hash,
+                "undo_expires_at": undo_expires_at.isoformat(),
+                "notices": {"failed_roles": []},
+            }
+        )
+        locked_request.snapshot = snapshot
+
+        db.query(AuthIdentity).filter(AuthIdentity.user_id == locked_user.id).delete(
+            synchronize_session=False
+        )
+        db.flush()
+
+        locked_user.phone_number = new_head.phone_number
+        locked_user.email = new_head.email
+        db.flush()
+
+        record_identity(
+            db,
+            locked_user.id,
+            AuthIdentityProvider.PHONE_OTP,
+            new_head.phone_number,
+            None,
+            now,
+            commit=False,
+        )
+        record_identity(
+            db,
+            locked_user.id,
+            AuthIdentityProvider.EMAIL_OTP,
+            new_head.email,
+            new_head.email,
+            now,
+            commit=False,
+        )
+        db.flush()
+
+        old_head.is_head = False
+        old_head.relationship = label_plan.old_head_new_label
+        old_head.relationship_other_label = None
+        old_head.email = old_account_email
+        old_head.phone_number = old_account_phone
+        db.flush()
+
+        new_head.is_head = True
+        new_head.relationship = Relationship.SELF
+        new_head.relationship_other_label = None
+        for member in members:
+            if member.id in {old_head.id, new_head.id}:
+                continue
+            relationship = label_plan.member_labels.get(member.id, member.relationship)
+            member.relationship = relationship
+            member.relationship_other_label = (
+                label_plan.member_other_labels.get(member.id)
+                if relationship == Relationship.OTHER
+                else None
+            )
+
+        db.query(SessionModel).filter(SessionModel.user_id == locked_user.id).delete(
+            synchronize_session=False
+        )
+        db.query(PendingIdentityVerification).filter(
+            PendingIdentityVerification.matched_user_id == locked_user.id
+        ).delete(synchronize_session=False)
+        _delete_request_otps(db, locked_request)
+
+        record_consent(
+            db,
+            user_id=locked_user.id,
+            documents=[current_document(document) for document in SIGNUP_DOCUMENTS],
+            action=ConsentAction.WITHDRAWN,
+            surface="head_change",
+            evidence=evidence,
+            recorded_at=now,
+        )
+        locked_request.status = "completed"
+        locked_request.undo_token_hash = undo_token_hash
+        locked_request.undo_expires_at = undo_expires_at
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise _contact_in_use_after_integrity(
+            db, user, new_head.id if new_head is not None else None
+        ) from exc
+    except HeadChangeError:
+        db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        raise
+
+    assert locked_user is not None
+    assert locked_request is not None
+    assert old_head is not None
+    assert new_head is not None
+    _send_completion_notices(
+        db,
+        locked_request,
+        new_head_name=new_head.name,
+        old_head_name=old_head.name,
+        new_head_email=new_head.email,
+        old_head_emails=old_head_emails,
+        undo_token=raw_undo_token,
+    )
+    return HeadChangeResult(
+        request_id=locked_request.id,
+        user_id=locked_user.id,
+        from_member_id=old_head.id,
+        to_member_id=new_head.id,
+        status="completed",
+    )

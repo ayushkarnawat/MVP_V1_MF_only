@@ -14,6 +14,7 @@ from fastapi import Depends, Header, HTTPException
 from sqlalchemy.orm import Session as DbSession
 
 from app.db.session import get_db
+from app.models.auth import AuthIdentity
 from app.models.auth import Session as SessionModel
 from app.models.enums import AuthIdentityProvider
 from app.models.user import User
@@ -26,14 +27,41 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+class SessionIdentityChangedError(Exception):
+    """The identity a sign-in presented no longer belongs to the account (a Head of Family swap
+    removed it while the sign-in was in flight)."""
+
+
 def create_session(
-    db: DbSession, user_id: uuid.UUID, auth_method: AuthIdentityProvider, device_info: str | None = None
+    db: DbSession,
+    user_id: uuid.UUID,
+    auth_method: AuthIdentityProvider,
+    device_info: str | None = None,
+    *,
+    presented_identity_id: uuid.UUID | None = None,
 ) -> tuple[SessionModel, str]:
     """Creates and persists a Session. Returns (session, raw_token) — the
     raw token is returned to the caller exactly once and never stored.
     `auth_method` records whichever method's verification directly produced
     this session (e.g. for a phone-gated signup, that's phone_otp, the
-    completing method — not the originating Google/email identity)."""
+    completing method — not the originating Google/email identity).
+
+    `presented_identity_id`: the identity row this sign-in authenticated with. When given, the
+    account row is locked first (the same lock the Head of Family swap takes) and the session is
+    refused unless that identity still belongs to the account. Without this a sign-in that found
+    the old head's identity just before a swap could wait behind the swap's lock and then create
+    a session on the account after the old head's identities were deleted."""
+    if presented_identity_id is not None:
+        # Column-only reads: they always see the committed state once the lock is granted.
+        db.query(User.id).filter(User.id == user_id).with_for_update().first()
+        still_attached = (
+            db.query(AuthIdentity.id)
+            .filter(AuthIdentity.id == presented_identity_id, AuthIdentity.user_id == user_id)
+            .first()
+        )
+        if still_attached is None:
+            db.rollback()
+            raise SessionIdentityChangedError()
     raw_token = secrets.token_urlsafe(SESSION_TOKEN_BYTES)
     now = datetime.now(timezone.utc)
     session = SessionModel(

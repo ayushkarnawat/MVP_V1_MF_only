@@ -266,6 +266,10 @@ class HeadChangeResendBody(BaseModel):
     channel: Literal["email", "phone"]
 
 
+class HeadChangeCompleteBody(BaseModel):
+    request_id: uuid.UUID
+
+
 class HeadChangeCodeResponse(BaseModel):
     party: Literal["current", "new"]
     channel: Literal["email", "phone"]
@@ -297,3 +301,8 @@ class HeadChangeResendResponse(BaseModel):
 
 class PendingHeadChangeResponse(BaseModel):
     request: HeadChangeStatusResponse | None
+
+
+class HeadChangeCompleteResponse(BaseModel):
+    status: Literal["completed"]
+    logout_required: bool
