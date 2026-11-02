@@ -28,6 +28,14 @@ from app.services.dashboard.snapshots import invalidate_member_snapshots, rebuil
 from app.services.import_.coverage_gap import evaluate_folio_coverage_gaps
 
 
+def _in_recent_head_change(db: Session, member_id: uuid.UUID) -> bool:
+    # Merging deletes the source row, and the database then deletes its head-change request row
+    # (the undo link and the 7-day rule). Imported here to avoid loading the auth chain at start-up.
+    from app.services.auth.head_change import member_in_recent_head_change
+
+    return member_in_recent_head_change(db, member_id)
+
+
 class MergeNotAllowedError(MemberDetailsError):
     status_code = 409
     code = "merge_not_allowed"
@@ -75,6 +83,7 @@ def merge_member_into(
         or source.origin != MemberOrigin.CAS_DETECTED
         or not (is_name_only(source) or same_pan)
         or source.relationship == Relationship.SELF
+        or _in_recent_head_change(db, source.id)
     ):
         raise MergeNotAllowedError()
 

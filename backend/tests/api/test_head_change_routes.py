@@ -417,7 +417,7 @@ def _swap_through_the_routes(client, household, monkeypatch) -> tuple[str, Mailb
     assert completed.status_code == 200
     assert completed.json() == {"status": "completed", "logout_required": True}
     link = next(m["body"] for m in mailbox.sent if m["subject"] == "Undo the Head of Family change.")
-    token = link.split("/undo-head-change?token=")[1].strip()
+    token = link.split("/undo-head-change#token=")[1].strip()
     mailbox.sent.clear()
     return token, mailbox
 
@@ -691,6 +691,37 @@ def test_eligibility_sends_no_code_and_writes_nothing(client):
         assert db.query(OtpRequest).filter(OtpRequest.purpose == "head_change").count() == 0
     finally:
         db.close()
+
+
+def test_a_member_created_through_onboarding_is_the_head_end_to_end(client):
+    # Every other test here builds the head row by hand; this one goes through the real route
+    # that onboarding uses, which is how an account created after migration 0050 gets its head.
+    token, user_id = _signup(client, "+919100000e12")
+    headers = {"Authorization": f"Bearer {token}"}
+    created = client.post(
+        "/household-members",
+        json={"name": "Asha Rao", "relationship": "self"},
+        headers=headers,
+    )
+    assert created.status_code == 200
+    me = client.get("/auth/me", headers=headers).json()
+    assert me["head_member_id"] == created.json()["id"]
+
+
+def test_eligibility_for_an_account_with_no_head_is_a_clean_error_not_a_server_error(client):
+    household = _household(client, suffix="e13")
+    db = _db(client)
+    db.query(HouseholdMember).filter(
+        HouseholdMember.user_id == uuid.UUID(household["user_id"]),
+        HouseholdMember.is_head.is_(True),
+    ).update({"is_head": False})
+    db.commit()
+    db.close()
+
+    response = _eligibility(client, household)
+
+    assert response.status_code == 409
+    assert set(response.json()["detail"]) == {"code", "message"}
 
 
 def test_eligibility_needs_a_session_and_refuses_a_pending_deletion_account(client):

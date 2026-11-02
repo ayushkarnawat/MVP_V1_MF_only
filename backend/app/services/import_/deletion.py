@@ -39,6 +39,23 @@ class ImportNotFoundError(Exception):
     pass
 
 
+class MemberRemovalBlockedError(Exception):
+    """The member took part in a Head of Family change in the last 7 days."""
+
+    message = (
+        "This person was part of a recent Head of Family change, so they cannot be removed yet. "
+        "Try again in 7 days."
+    )
+
+
+def _in_recent_head_change(db: Session, member_id: uuid.UUID) -> bool:
+    # Imported here: the auth service imports a long chain of modules, and this module is loaded
+    # by the dashboard API at start-up.
+    from app.services.auth.head_change import member_in_recent_head_change
+
+    return member_in_recent_head_change(db, member_id)
+
+
 @dataclass
 class DeleteResult:
     deleted_transactions_count: int
@@ -134,6 +151,10 @@ def _delete_imports(
         member = db.get(HouseholdMember, member_id)
         if member is None or member.relationship == Relationship.SELF:
             continue  # self is never removed, and its PAN is left alone
+        if _in_recent_head_change(db, member_id):
+            # The explicit removal is refused in delete_member_portfolio before anything is
+            # deleted; this is the automatic "detected member with no statement left" removal.
+            continue
         left = db.query(Import.id).filter(Import.household_member_id == member_id, Import.status.notin_(PREVIEW_STATUSES)).first() is not None
         if left:
             continue
@@ -201,6 +222,8 @@ def delete_member_portfolio(
     member = db.query(HouseholdMember).filter_by(id=member_id, user_id=user_id).first()
     if member is None:
         raise ImportNotFoundError()
+    if remove_member and _in_recent_head_change(db, member_id):
+        raise MemberRemovalBlockedError()
     imports = db.query(Import).filter(Import.household_member_id == member_id, Import.status.notin_(PREVIEW_STATUSES)).all()
     if not imports:
         # Nothing imported: still honour remove_member for a non-self member.

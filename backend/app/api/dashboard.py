@@ -42,7 +42,11 @@ from app.services.dashboard.member_details import (
 )
 from app.services.dashboard.member_profile import MemberProfileRequest, save_member_profile
 from app.api.imports import claim_and_dispatch_recompute
-from app.services.import_.deletion import ImportNotFoundError, delete_member_portfolio
+from app.services.import_.deletion import (
+    ImportNotFoundError,
+    MemberRemovalBlockedError,
+    delete_member_portfolio,
+)
 from app.services.import_.schemas import DeleteImportResponse
 from app.services.dashboard.member_merge import merge_member_into
 from app.services.import_.name_match import InvalidPersonNameError
@@ -166,6 +170,11 @@ def delete_household_member_portfolio(
         result = delete_member_portfolio(db, user.id, member_id, remove_member, background_tasks=background_tasks)
     except ImportNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Household member not found.") from exc
+    except MemberRemovalBlockedError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "member_in_recent_head_change", "message": exc.message},
+        ) from exc
     claim_and_dispatch_recompute(db, user.id, background_tasks)
     return DeleteImportResponse(
         deleted_transactions_count=result.deleted_transactions_count,

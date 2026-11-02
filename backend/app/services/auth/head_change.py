@@ -201,6 +201,28 @@ def _completed_at(request: HeadChangeRequest) -> datetime | None:
     return _aware(request.undo_expires_at) - timedelta(hours=UNDO_TTL_HOURS)
 
 
+def member_in_recent_head_change(db: DbSession, member_id: uuid.UUID) -> bool:
+    """True while the member is the old or the new head of a change made in the last 7 days.
+
+    The request row is deleted by the database when either member row is deleted. Removing the
+    old head right after a swap would therefore erase the undo link and the 7-day rule, so such a
+    member cannot be removed until the 7 days are over (7, not 1: the rule reads the same row)."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=CHANGE_AGAIN_AFTER_DAYS)
+    requests = (
+        db.query(HeadChangeRequest)
+        .filter(
+            HeadChangeRequest.status.in_(("completed", "undone")),
+            (HeadChangeRequest.from_member_id == member_id)
+            | (HeadChangeRequest.to_member_id == member_id),
+        )
+        .all()
+    )
+    return any(
+        completed is not None and completed > cutoff
+        for completed in (_completed_at(item) for item in requests)
+    )
+
+
 def _refuse_if_changed_recently(db: DbSession, user: User) -> None:
     """Changing the head, or changing it back, is limited to once every 7 days. A change that was
     undone still counts (the clock starts when the change was made). Undo itself is exempt."""
@@ -223,6 +245,14 @@ def _refuse_if_changed_recently(db: DbSession, user: User) -> None:
             "The Head of Family was changed recently. "
             f"You can change it again on {allowed_at.day} {allowed_at:%B %Y}.",
         )
+
+
+def _start_purpose(to_member_id: uuid.UUID) -> str:
+    """The start code's email names one member ("It will make X the Head of Family"), so the code
+    is only good for starting a change to that member. It also cannot be mixed up with the
+    "current head, email" code of a request (purpose `head_change`): a resent request code is not
+    a start code."""
+    return f"head_change_start:{to_member_id}"
 
 
 def request_head_change_start_code(
@@ -254,7 +284,7 @@ def request_head_change_start_code(
             db,
             user.email,
             channel="email",
-            purpose="head_change",
+            purpose=_start_purpose(to_member_id),
             ttl_minutes=HEAD_CHANGE_TTL_MINUTES,
             email_content=_email_content(
                 party="current",
@@ -403,12 +433,16 @@ def _expire_stale_request(
     preserve_current_email_otp: bool = False,
 ) -> None:
     now = datetime.now(timezone.utc)
+    # Locked for the same reason as in cancel_head_change: marking a request that a swap is
+    # completing right now as "expired" would hide the completed swap from undo and the 7-day rule.
     requests = (
         db.query(HeadChangeRequest)
         .filter(
             HeadChangeRequest.user_id == user.id,
             HeadChangeRequest.status == "pending",
         )
+        .populate_existing()
+        .with_for_update()
         .all()
     )
     stale = [request for request in requests if _aware(request.expires_at) <= now]
@@ -469,7 +503,7 @@ def start_head_change(
             user.email,
             current_head_code,
             channel="email",
-            purpose="head_change",
+            purpose=_start_purpose(to_member_id),
         )
     except OtpVerificationError as exc:
         raise _otp_error(exc) from exc
@@ -613,12 +647,17 @@ def resend_head_change_code(
 def cancel_head_change(db: DbSession, user: User) -> HeadChangeStatus:
     _current_head(db, user)
     _expire_stale_request(db, user)
+    # Locked: a cancel that read the row as pending and then waited behind a swap's lock would
+    # otherwise write "cancelled" over the swap's "completed" once the swap commits (Postgres
+    # re-checks only the primary key for a plain UPDATE; FOR UPDATE re-checks the status).
     request = (
         db.query(HeadChangeRequest)
         .filter(
             HeadChangeRequest.user_id == user.id,
             HeadChangeRequest.status == "pending",
         )
+        .populate_existing()
+        .with_for_update()
         .first()
     )
     if request is None:
@@ -795,9 +834,11 @@ def _send_completion_notices(
     old_head_emails: list[str],
     undo_token: str,
 ) -> None:
+    # The token is in the fragment, not the query string: a fragment is never sent to the web
+    # server or proxy, so it stays out of their access logs. The page reads it and POSTs it.
     undo_url = (
         f"{settings.frontend_base_url.rstrip('/')}"
-        f"/undo-head-change?token={quote(undo_token, safe='')}"
+        f"/undo-head-change#token={quote(undo_token, safe='')}"
     )
     # The swap is already committed: no failure to find or use a provider may surface as an error.
     try:

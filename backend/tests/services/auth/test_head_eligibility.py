@@ -211,6 +211,27 @@ def test_label_missing(relationship):
     assert member_eligibility(db, user, candidate.id) == ["label_missing"]
 
 
+@pytest.mark.parametrize("free_text", ["friend", "Grandfather", "  "])
+def test_an_other_label_with_free_text_is_still_label_missing(free_text):
+    # Found in the Run 5 review: "other: friend" passed every check here, then the final step
+    # refused it (the old head's new label cannot be worked out from "other"), after all four
+    # codes had been used.
+    db, user, _, candidate = _eligible_household()
+    candidate.relationship = Relationship.OTHER
+    candidate.relationship_other_label = free_text
+
+    assert member_eligibility(db, user, candidate.id) == ["label_missing"]
+
+
+@pytest.mark.parametrize("relationship", [Relationship.SPOUSE, Relationship.PARENT, Relationship.CHILD, Relationship.SIBLING])
+def test_a_specific_label_is_enough(relationship):
+    db, user, _, candidate = _eligible_household()
+    candidate.relationship = relationship
+    candidate.relationship_other_label = None
+
+    assert member_eligibility(db, user, candidate.id) == []
+
+
 @pytest.mark.parametrize("field", ["pending_deletion", "deletion_scheduled_at"])
 def test_account_pending_deletion(field):
     db, user, _, candidate = _eligible_household()

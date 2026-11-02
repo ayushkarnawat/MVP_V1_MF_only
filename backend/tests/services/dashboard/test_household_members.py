@@ -41,6 +41,30 @@ def test_create_household_member_scoped_to_user():
     assert member.relationship == Relationship.SELF
 
 
+def test_a_new_self_member_is_the_head_of_family_and_nobody_else_is():
+    db = _session()
+    user = _user(db)
+
+    me = create_household_member(db, user.id, "Ayush", Relationship.SELF)
+    spouse = create_household_member(db, user.id, "Asha", Relationship.SPOUSE)
+
+    # Migration 0050 only backfilled Self rows that existed at deploy time; an account onboarded
+    # afterwards must get its head here or it can never use the Head of Family change.
+    assert me.is_head is True
+    assert spouse.is_head is False
+
+
+def test_renaming_the_provisional_self_keeps_it_the_head():
+    db = _session()
+    user = _user(db)
+    first = create_household_member(db, user.id, "Ayush", Relationship.SELF)
+
+    again = create_household_member(db, user.id, "Ayush K", Relationship.SELF)
+
+    assert again.id == first.id
+    assert again.is_head is True
+
+
 def test_create_household_member_with_other_relationship_label():
     db = _session()
     user = _user(db)

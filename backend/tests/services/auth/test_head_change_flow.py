@@ -179,7 +179,7 @@ def test_start_code_rejects_own_data_problem_without_creating_a_code():
         code="member_not_eligible",
         message="Add an email address and a phone number first.",
     )
-    assert db.query(OtpRequest).filter_by(purpose="head_change").count() == 0
+    assert db.query(OtpRequest).filter(OtpRequest.purpose.like("head_change%")).count() == 0
 
 
 def test_start_code_does_not_disclose_other_account_conflicts():
@@ -203,8 +203,65 @@ def test_start_code_does_not_disclose_other_account_conflicts():
         db, user, candidate.id
     )
 
-    assert request.purpose == "head_change"
+    assert request.purpose == f"head_change_start:{candidate.id}"
     assert raw_otp is not None
+
+
+def _second_candidate(db, user, suffix="2"):
+    other = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        name=f"Other candidate {suffix}",
+        relationship=Relationship.SIBLING,
+        is_head=False,
+        email=f"other-candidate{suffix}@example.com",
+        phone_number=f"+9170000000{suffix}",
+        pan_encrypted=f"encrypted-pan-other-{suffix}",
+        pan_lookup_hash=f"pan-hash-other-{suffix}",
+        created_at=NOW,
+    )
+    db.add(other)
+    db.commit()
+    return other
+
+
+def test_a_start_code_requested_for_one_member_cannot_start_a_change_to_another():
+    # Found in the Run 5 review: the start code's email says "It will make <X> the Head of
+    # Family", but the code used to start a change to anyone.
+    db = _session()
+    user, _, candidate = _household(db)
+    other = _second_candidate(db, user)
+    code_for_candidate = _start_code(db, user, candidate)
+
+    with pytest.raises(_head_change().HeadChangeError) as exc:
+        _head_change().start_head_change(db, user, other.id, code_for_candidate)
+
+    assert exc.value.code == "wrong_code"
+    assert db.query(HeadChangeRequest).count() == 0
+    # The same code still starts the change it was issued for.
+    started = _head_change().start_head_change(db, user, candidate.id, code_for_candidate)
+    assert started.request.to_member_id == candidate.id
+
+
+def test_a_resent_current_head_email_code_is_not_a_start_code():
+    db = _session()
+    user, _, candidate = _household(db)
+    started = _start(db, user, candidate)
+    request_id = started.request.id
+    # Make the resend allowed, then get a fresh "current head, email" code for the open request.
+    row = db.query(OtpRequest).filter(OtpRequest.purpose == "head_change").first()
+    if row is not None:
+        row.created_at = datetime.now(timezone.utc) - timedelta(seconds=61)
+        db.commit()
+    resent = _head_change().resend_head_change_code(db, user, request_id, "current", "email")
+
+    # The request is still open on purpose: with the old shared purpose this code would verify and
+    # the answer would be "head_change_already_open"; now the code is simply not a start code.
+    with pytest.raises(_head_change().HeadChangeError) as exc:
+        _head_change().start_head_change(db, user, candidate.id, resent.code.otp)
+
+    assert exc.value.code != "head_change_already_open"
+    assert exc.value.code in {"wrong_code", "code_expired"}
 
 
 def test_resend_new_head_email_keeps_the_new_head_wording(monkeypatch):

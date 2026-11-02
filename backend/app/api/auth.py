@@ -932,7 +932,12 @@ def get_head_change_eligibility_route(
     user: User = Depends(_get_head_change_active_user),
     db: DbSession = Depends(get_db),
 ):
-    items = list_member_eligibility(db, user)
+    try:
+        items = list_member_eligibility(db, user)
+    except HeadChangeError as exc:
+        # An account with no head (no Self member yet) gets the same {code, message} answer as
+        # every other head-change route, not a server error.
+        raise _head_change_http(exc) from exc
     return HeadChangeEligibilityResponse(
         members=[
             MemberEligibilityItem(

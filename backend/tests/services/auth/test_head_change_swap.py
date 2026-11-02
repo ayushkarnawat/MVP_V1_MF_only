@@ -531,7 +531,7 @@ def test_undo_link_appears_only_in_the_previous_heads_emails(db_session, monkeyp
         item["to"]
         for item in old_messages
         if item["subject"] == "Undo the Head of Family change."
-        and "/undo-head-change?token=" in item["body"]
+        and "/undo-head-change#token=" in item["body"]
     } == old_addresses
 
 

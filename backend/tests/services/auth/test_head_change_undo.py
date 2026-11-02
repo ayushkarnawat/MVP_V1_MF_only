@@ -78,7 +78,7 @@ def _swap(db, household: Household, monkeypatch) -> tuple[uuid.UUID, str, Mailbo
         if item["subject"] == "Undo the Head of Family change."
     ]
     assert links, "the swap should have emailed an undo link"
-    token = links[0].split("/undo-head-change?token=")[1].strip()
+    token = links[0].split("/undo-head-change#token=")[1].strip()
     mailbox.sent.clear()
     return request_id, token, mailbox
 
@@ -763,3 +763,53 @@ def test_the_reversed_email_builder_is_plain_and_has_no_link():
     assert "Old &lt;b&gt;Head&lt;/b&gt;" in html
     assert "http" not in text and "<a " not in html
     assert "support@unifolio.in" in text
+
+
+def test_the_old_head_cannot_be_removed_during_the_7_days_after_a_change(db_session, monkeypatch):
+    from app.services.import_.deletion import MemberRemovalBlockedError, delete_member_portfolio
+
+    household = _household(db_session, suffix="n")
+    request_id, token, _ = _swap(db_session, household, monkeypatch)
+
+    # The database deletes the head-change request when either member row goes, which would
+    # erase the undo link and the 7-day rule. So the removal is refused before anything changes.
+    with pytest.raises(MemberRemovalBlockedError):
+        delete_member_portfolio(
+            db_session, household.user.id, household.old_head.id, remove_member=True
+        )
+    with pytest.raises(MemberRemovalBlockedError):
+        delete_member_portfolio(
+            db_session, household.user.id, household.new_head.id, remove_member=True
+        )
+
+    db_session.expire_all()
+    assert db_session.get(HouseholdMember, household.old_head.id) is not None
+    assert db_session.get(HeadChangeRequest, request_id).status == "completed"
+    assert _undo(db_session, token).status == "undone"
+
+
+def test_a_member_of_a_change_older_than_7_days_can_be_removed(db_session, monkeypatch):
+    from app.services.import_.deletion import delete_member_portfolio
+
+    household = _household(db_session, suffix="o")
+    request_id, _, _ = _swap(db_session, household, monkeypatch)
+    _set_completed_at(db_session, request_id, datetime.now(timezone.utc) - timedelta(days=8))
+
+    result = delete_member_portfolio(
+        db_session, household.user.id, household.old_head.id, remove_member=True
+    )
+
+    assert result.removed_member_ids == [household.old_head.id]
+
+
+def test_an_unrelated_member_can_still_be_removed_right_after_a_change(db_session, monkeypatch):
+    from app.services.import_.deletion import delete_member_portfolio
+
+    household = _household(db_session, suffix="p")
+    _swap(db_session, household, monkeypatch)
+
+    result = delete_member_portfolio(
+        db_session, household.user.id, household.other_member.id, remove_member=True
+    )
+
+    assert result.removed_member_ids == [household.other_member.id]

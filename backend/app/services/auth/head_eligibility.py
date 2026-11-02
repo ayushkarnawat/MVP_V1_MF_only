@@ -112,10 +112,12 @@ def member_eligibility(
         reasons.append("pan_registered_elsewhere")
     if member.pan_lookup_hash is None and member.detected_pan_hash is None:
         reasons.append("no_pan")
-    if member.relationship is None or (
-        member.relationship == Relationship.OTHER
-        and not (member.relationship_other_label or "").strip()
-    ):
+    # "Other" (with or without free text) is as unusable as no label: the old head's new label is
+    # worked out from the new head's label and the table has no answer for "other" (head_labels,
+    # OLD_HEAD_LABEL_TABLE). The briefing says the dialog asks for a real label first; without
+    # this the member passed every check here and then failed at the final step after all four
+    # codes were used.
+    if member.relationship is None or member.relationship == Relationship.OTHER:
         reasons.append("label_missing")
     if bool(user.pending_deletion) or user.deletion_scheduled_at is not None:
         reasons.append("account_pending_deletion")

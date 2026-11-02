@@ -69,6 +69,10 @@ def create_household_member(
         created_at=datetime.now(timezone.utc),
         origin=MemberOrigin.ONBOARDING if relationship == Relationship.SELF else MemberOrigin.MANUAL,
         name_source=MemberNameSource.USER_ENTERED,
+        # The account holder is the Head of Family from the first day. Migration 0050 only marked
+        # Self rows that already existed, so without this every account onboarded afterwards had
+        # no head and could never use the Head of Family change.
+        is_head=relationship == Relationship.SELF,
     )
     db.add(member)
     db.commit()
