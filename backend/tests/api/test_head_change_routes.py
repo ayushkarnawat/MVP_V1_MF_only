@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -386,3 +386,331 @@ def test_foreign_request_route_is_indistinguishable_from_unknown(client):
             },
         ),
     ]
+
+
+UNDO_NOT_FOUND = {
+    "detail": {"code": "undo_not_found", "message": "This undo link is not valid."}
+}
+CROSS_ACCOUNT_REASONS = {"email_in_use", "phone_in_use", "pan_registered_elsewhere"}
+
+
+class Mailbox:
+    def __init__(self) -> None:
+        self.sent: list[dict] = []
+
+    def send_email(self, to, subject, body, html_body=None):
+        self.sent.append({"to": to, "subject": subject, "body": body})
+
+
+def _swap_through_the_routes(client, household, monkeypatch) -> tuple[str, Mailbox]:
+    from app.services.auth import head_change
+
+    mailbox = Mailbox()
+    monkeypatch.setattr(head_change, "get_email_provider", lambda: mailbox, raising=False)
+    started = _start(client, household)
+    request_id = _verify_all_codes(client, household, started)
+    completed = client.post(
+        "/auth/head-change/complete",
+        json={"request_id": request_id},
+        headers=household["headers"],
+    )
+    assert completed.status_code == 200
+    assert completed.json() == {"status": "completed", "logout_required": True}
+    link = next(m["body"] for m in mailbox.sent if m["subject"] == "Undo the Head of Family change.")
+    token = link.split("/undo-head-change?token=")[1].strip()
+    mailbox.sent.clear()
+    return token, mailbox
+
+
+def _undo(client, token: str):
+    return client.post("/auth/head-change/undo", json={"token": token})
+
+
+def test_undo_route_needs_no_session_and_gives_the_old_head_their_sign_in_back(
+    client, monkeypatch
+):
+    household = _household(client, suffix="u1")
+    token, mailbox = _swap_through_the_routes(client, household, monkeypatch)
+    assert client.get("/auth/me", headers=household["headers"]).status_code == 401
+
+    response = _undo(client, token)
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "undone"}
+    assert {m["subject"] for m in mailbox.sent} == {
+        "The Head of Family on Unifolio has been changed back."
+    }
+    old_phone = "+9191000000u1"
+    otp = client.post("/auth/otp/request", json={"phone_number": old_phone}).json()["otp"]
+    login = client.post("/auth/otp/verify", json={"phone_number": old_phone, "otp": otp})
+    assert login.status_code == 200
+    assert login.json()["user_id"] == household["user_id"]
+    me = client.get(
+        "/auth/me", headers={"Authorization": f"Bearer {login.json()['session_token']}"}
+    ).json()
+    assert me["phone_number"] == old_phone
+    assert me["email"] == "head-route-u1@example.com"
+    assert me["self_name"] == "Head u1"
+    new_phone = "+9181000000u1"
+    otp = client.post("/auth/otp/request", json={"phone_number": new_phone}).json()["otp"]
+    other = client.post("/auth/otp/verify", json={"phone_number": new_phone, "otp": otp})
+    assert other.json()["user_id"] != household["user_id"]
+
+
+def test_undo_route_answers_a_used_and_an_unknown_token_identically(client, monkeypatch):
+    household = _household(client, suffix="u2")
+    token, _ = _swap_through_the_routes(client, household, monkeypatch)
+
+    assert _undo(client, token).status_code == 200
+    used = _undo(client, token)
+    unknown = _undo(client, "never-issued")
+
+    assert (used.status_code, used.json()) == (404, UNDO_NOT_FOUND)
+    assert (unknown.status_code, unknown.json()) == (404, UNDO_NOT_FOUND)
+    assert used.text == unknown.text
+
+
+def test_undo_route_after_the_24_hour_window(client, monkeypatch):
+    from app.models.auth import HeadChangeRequest
+
+    household = _household(client, suffix="u3")
+    token, _ = _swap_through_the_routes(client, household, monkeypatch)
+    db = _db(client)
+    request = db.query(HeadChangeRequest).filter_by(user_id=uuid.UUID(household["user_id"])).one()
+    request.undo_expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    db.commit()
+    db.close()
+
+    response = _undo(client, token)
+
+    assert (response.status_code, response.json()) == (
+        410,
+        {"detail": {"code": "undo_expired", "message": "The 24-hour undo window has closed."}},
+    )
+
+
+def test_undo_route_when_the_old_phone_has_been_taken(client, monkeypatch):
+    household = _household(client, suffix="u4")
+    token, _ = _swap_through_the_routes(client, household, monkeypatch)
+    _signup(client, "+9191000000u4")
+
+    response = _undo(client, token)
+
+    assert (response.status_code, response.json()) == (
+        409,
+        {
+            "detail": {
+                "code": "undo_contact_taken",
+                "message": "The old phone or email has been taken since the change, so it cannot be undone.",
+            }
+        },
+    )
+
+
+def test_undo_route_rejects_a_missing_token_with_a_validation_error(client):
+    assert client.post("/auth/head-change/undo", json={}).status_code == 422
+
+
+def test_undo_route_does_not_accept_a_session_instead_of_a_token(client):
+    household = _household(client, suffix="u5")
+
+    response = client.post(
+        "/auth/head-change/undo", json={"token": household["token"]}, headers=household["headers"]
+    )
+
+    assert (response.status_code, response.json()) == (404, UNDO_NOT_FOUND)
+
+
+def _add_member(client, household, **fields) -> str:
+    db = _db(client)
+    try:
+        member = HouseholdMember(
+            id=uuid.uuid4(),
+            user_id=uuid.UUID(household["user_id"]),
+            created_at=datetime.now(timezone.utc),
+            **fields,
+        )
+        db.add(member)
+        db.commit()
+        return str(member.id)
+    finally:
+        db.close()
+
+
+def _eligibility(client, household):
+    return client.get("/auth/head-change/eligibility", headers=household["headers"])
+
+
+def _reasons(response) -> dict[str, list[str]]:
+    return {item["member_id"]: item["reasons"] for item in response.json()["members"]}
+
+
+def test_eligibility_lists_each_non_head_member_with_only_own_data_reasons(client):
+    household = _household(client, suffix="e6")
+    bare = _add_member(client, household, name="Bare", relationship=None)
+    same_email = _add_member(
+        client,
+        household,
+        name="Same Email",
+        relationship=Relationship.CHILD,
+        email="head-route-e6@example.com",
+        phone_number="+918200000006",
+        pan_lookup_hash="same-email-pan",
+        pan_encrypted="enc",
+    )
+    same_phone = _add_member(
+        client,
+        household,
+        name="Same Phone",
+        relationship=Relationship.CHILD,
+        email="same-phone@example.com",
+        phone_number="+9191000000e6",
+        pan_lookup_hash="same-phone-pan",
+        pan_encrypted="enc",
+    )
+
+    response = _eligibility(client, household)
+
+    assert response.status_code == 200
+    assert set(response.json()) == {"members"}
+    assert all(set(item) == {"member_id", "reasons"} for item in response.json()["members"])
+    assert _reasons(response) == {
+        household["candidate_id"]: [],
+        bare: ["no_email", "no_phone", "no_pan", "label_missing"],
+        same_email: ["same_email_as_head"],
+        same_phone: ["same_phone_as_head"],
+    }
+
+
+def test_eligibility_never_returns_a_head_a_foreign_member_or_a_cross_account_reason(client):
+    from app.models.enums import MemberPanConflict
+
+    household = _household(client, suffix="e7")
+    other = _household(client, suffix="e8")
+    db = _db(client)
+    other_user = db.get(User, uuid.UUID(other["user_id"]))
+    other_user.email = "candidate-route-e7@example.com"
+    other_member_id = other["candidate_id"]
+    db.get(HouseholdMember, uuid.UUID(other_member_id)).phone_number = "+9181000000e7"
+    other_user.phone_number = "+9181000000e7"
+    db.commit()
+    db.close()
+    pan_elsewhere = _add_member(
+        client,
+        household,
+        name="Pan Elsewhere",
+        relationship=Relationship.SIBLING,
+        email="pan-elsewhere@example.com",
+        phone_number="+918300000007",
+        pan_conflict=MemberPanConflict.OTHER_ACCOUNT,
+        detected_pan_hash="held-by-another-account",
+        detected_pan_encrypted="enc",
+    )
+    head_id = _head_of(client, household)
+
+    response = _eligibility(client, household)
+
+    assert response.status_code == 200
+    reasons = _reasons(response)
+    assert set(reasons) == {household["candidate_id"], pan_elsewhere}
+    assert head_id not in reasons and other_member_id not in reasons
+    assert reasons[household["candidate_id"]] == []
+    assert reasons[pan_elsewhere] == []
+    for word in CROSS_ACCOUNT_REASONS:
+        assert word not in response.text
+    sent = client.post(
+        "/auth/head-change/start-code",
+        json={"to_member_id": household["candidate_id"]},
+        headers=household["headers"],
+    )
+    assert sent.status_code == 200
+    refused = client.post(
+        "/auth/head-change/start",
+        json={"to_member_id": household["candidate_id"], "current_head_code": sent.json()["otp"]},
+        headers=household["headers"],
+    )
+    assert (refused.status_code, refused.json()["detail"]["code"]) == (409, "contact_in_use")
+
+
+def _head_of(client, household) -> str:
+    db = _db(client)
+    try:
+        return str(
+            db.query(HouseholdMember.id)
+            .filter(
+                HouseholdMember.user_id == uuid.UUID(household["user_id"]),
+                HouseholdMember.is_head.is_(True),
+            )
+            .scalar()
+        )
+    finally:
+        db.close()
+
+
+def test_eligibility_reports_an_open_change_and_an_open_statement_import(client):
+    household = _household(client, suffix="e9")
+    _start(client, household)
+    db = _db(client)
+    candidate = db.get(HouseholdMember, uuid.UUID(household["candidate_id"]))
+    candidate.pan_pending_until = datetime.now(timezone.utc) + timedelta(hours=1)
+    db.commit()
+    db.close()
+
+    reasons = _reasons(_eligibility(client, household))
+
+    assert set(reasons[household["candidate_id"]]) == {
+        "import_in_progress",
+        "head_change_already_open",
+    }
+
+
+def test_eligibility_sends_no_code_and_writes_nothing(client):
+    from app.models.auth import OtpRequest
+    from sqlalchemy import event
+
+    household = _household(client, suffix="e10")
+    db = _db(client)
+    engine = db.get_bind()
+    db.close()
+    writes: list[str] = []
+
+    def record_writes(_conn, _cursor, statement, _params, _context, _executemany):
+        if statement.lstrip().split(None, 1)[0].upper() in {"INSERT", "UPDATE", "DELETE"}:
+            writes.append(statement.split("(", 1)[0][:80])
+
+    event.listen(engine, "before_cursor_execute", record_writes)
+    try:
+        response = _eligibility(client, household)
+    finally:
+        event.remove(engine, "before_cursor_execute", record_writes)
+
+    assert response.status_code == 200
+    assert writes == []
+    db = _db(client)
+    try:
+        assert db.query(OtpRequest).filter(OtpRequest.purpose == "head_change").count() == 0
+    finally:
+        db.close()
+
+
+def test_eligibility_needs_a_session_and_refuses_a_pending_deletion_account(client):
+    household = _household(client, suffix="e11")
+
+    assert client.get("/auth/head-change/eligibility").status_code == 401
+
+    db = _db(client)
+    user = db.get(User, uuid.UUID(household["user_id"]))
+    user.pending_deletion = True
+    db.commit()
+    db.close()
+    response = _eligibility(client, household)
+    assert (response.status_code, response.json()) == (
+        403,
+        {
+            "detail": {
+                "code": "account_pending_deletion",
+                "message": "This account is scheduled for deletion. Reactivate it first.",
+            }
+        },
+    )
+

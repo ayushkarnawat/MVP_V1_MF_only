@@ -37,6 +37,9 @@ from app.services.auth.head_change import (
     request_head_change_start_code,
     resend_head_change_code,
     start_head_change,
+    list_member_eligibility,
+    peek_pending_head_change,
+    undo_head_change,
     verify_head_change_code,
 )
 from app.services.auth.otp import OtpRequestThrottledError, OtpVerificationError, create_otp_request, verify_otp
@@ -73,7 +76,11 @@ from app.services.auth.schemas import (
     HeadChangeStartBody,
     HeadChangeStartCodeBody,
     HeadChangeStartResponse,
+    HeadChangeEligibilityResponse,
     HeadChangeStatusResponse,
+    HeadChangeUndoBody,
+    HeadChangeUndoResponse,
+    MemberEligibilityItem,
     HeadChangeVerifyBody,
     PendingHeadChangeResponse,
 ) #to validate api requests
@@ -550,6 +557,19 @@ def refresh_session_route(
     refreshed = refresh_session(db, session)
     return SessionRefreshResponse(expires_at=refreshed.expires_at.isoformat())
 
+def _head_change_status_response(status) -> HeadChangeStatusResponse:
+    return HeadChangeStatusResponse(
+        request_id=status.request_id,
+        status=status.status,
+        expires_in_seconds=status.expires_in_seconds,
+        verified_count=status.verified_count,
+        ready=status.ready,
+        current_email_verified=status.current_email_verified,
+        current_phone_verified=status.current_phone_verified,
+        new_email_verified=status.new_email_verified,
+        new_phone_verified=status.new_phone_verified,
+    )
+
 #current user endpoints
 def _me_response(user: User, db: DbSession) -> MeResponse:
     deletion_scheduled_at = user.deletion_scheduled_at
@@ -564,6 +584,12 @@ def _me_response(user: User, db: DbSession) -> MeResponse:
     if created_at.tzinfo is None:
         # SQLite drops tzinfo; stored values are UTC.
         created_at = created_at.replace(tzinfo=timezone.utc)
+    head_member = (
+        db.query(HouseholdMember.id)
+        .filter(HouseholdMember.user_id == user.id, HouseholdMember.is_head.is_(True))
+        .first()
+    )
+    pending_status = peek_pending_head_change(db, user)
     return MeResponse(
         user_id=str(user.id),
         phone_number=user.phone_number,
@@ -577,6 +603,8 @@ def _me_response(user: User, db: DbSession) -> MeResponse:
         deletion_scheduled_at=deletion_scheduled_at,
         self_name=self_member.name if self_member else None,
         consent_outdated=[t.value for t in outdated_documents(db, user.id, SIGNUP_DOCUMENTS)],
+        head_member_id=str(head_member.id) if head_member else None,
+        head_change_pending=_head_change_status_response(pending_status) if pending_status else None,
     )
 
 
@@ -736,18 +764,6 @@ def _head_change_http(exc: HeadChangeError) -> HTTPException:
     )
 
 
-def _head_change_status_response(status) -> HeadChangeStatusResponse:
-    return HeadChangeStatusResponse(
-        request_id=status.request_id,
-        status=status.status,
-        expires_in_seconds=status.expires_in_seconds,
-        verified_count=status.verified_count,
-        ready=status.ready,
-        current_email_verified=status.current_email_verified,
-        current_phone_verified=status.current_phone_verified,
-        new_email_verified=status.new_email_verified,
-        new_phone_verified=status.new_phone_verified,
-    )
 
 
 def _get_head_change_active_user(
@@ -891,6 +907,40 @@ def get_pending_head_change_route(
     status = get_pending_head_change(db, user)
     return PendingHeadChangeResponse(
         request=_head_change_status_response(status) if status is not None else None
+    )
+
+
+@router.post("/head-change/undo", response_model=HeadChangeUndoResponse)
+def undo_head_change_route(
+    body: HeadChangeUndoBody,
+    request: Request,
+    db: DbSession = Depends(get_db),
+):
+    try:
+        undo_head_change(
+            db,
+            body.token,
+            evidence_from_request(request),
+        )
+    except HeadChangeError as exc:
+        raise _head_change_http(exc) from exc
+    return HeadChangeUndoResponse(status="undone")
+
+
+@router.get("/head-change/eligibility", response_model=HeadChangeEligibilityResponse)
+def get_head_change_eligibility_route(
+    user: User = Depends(_get_head_change_active_user),
+    db: DbSession = Depends(get_db),
+):
+    items = list_member_eligibility(db, user)
+    return HeadChangeEligibilityResponse(
+        members=[
+            MemberEligibilityItem(
+                member_id=str(item.member_id),
+                reasons=item.reasons,
+            )
+            for item in items
+        ]
     )
 
 

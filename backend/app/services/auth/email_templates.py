@@ -149,3 +149,17 @@ def head_change_undo_email(*, undo_url: str) -> tuple[str, str, str]:
         link_url=undo_url,
     )
     return subject, body, html
+
+
+def head_change_reversed_email(
+    *, restored_head_name: str, other_head_name: str
+) -> tuple[str, str, str]:
+    """Plain notice that an undo restored the previous Head of Family. No link: nothing here
+    can be used to change anything."""
+    subject = "The Head of Family on Unifolio has been changed back."
+    text = (
+        f"{restored_head_name} is the Head of Family again and signs in with the previous email "
+        f"and phone number. {other_head_name} remains a member and no longer signs in. "
+        f"All portfolio data is unchanged. If this was not you, contact {SUPPORT_EMAIL}."
+    )
+    return subject, text, _notice_email_html(headline=subject, body=text)

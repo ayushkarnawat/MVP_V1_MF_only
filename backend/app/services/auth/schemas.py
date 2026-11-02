@@ -201,6 +201,9 @@ class MeResponse(BaseModel):
     pending_deletion: bool
     deletion_scheduled_at: datetime | None
     self_name: str | None = None
+    head_member_id: str | None = None
+    # Quoted: the model is defined further down this file.
+    head_change_pending: "HeadChangeStatusResponse | None" = None
     # Account creation time, for the Profile "Member since" line.
     created_at: datetime
     # Sign-up documents (T&C / Privacy) without a current GIVEN row --
@@ -306,3 +309,21 @@ class PendingHeadChangeResponse(BaseModel):
 class HeadChangeCompleteResponse(BaseModel):
     status: Literal["completed"]
     logout_required: bool
+
+
+class HeadChangeUndoBody(BaseModel):
+    token: str
+
+
+class HeadChangeUndoResponse(BaseModel):
+    status: Literal["undone"]
+
+
+class MemberEligibilityItem(BaseModel):
+    member_id: str
+    reasons: list[str]
+
+
+class HeadChangeEligibilityResponse(BaseModel):
+    members: list[MemberEligibilityItem]
+

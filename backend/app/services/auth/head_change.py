@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import logging
 import math
 import secrets
@@ -24,8 +25,17 @@ from app.models.auth import (
 from app.models.enums import AuthIdentityProvider, ConsentAction, Relationship
 from app.models.user import HouseholdMember, User
 from app.services.auth.email_provider import EmailSendError, get_email_provider
-from app.services.auth.email_templates import head_change_undo_email, head_changed_email
-from app.services.auth.head_eligibility import EligibilityReason, member_eligibility
+from app.services.auth.email_templates import (
+    head_change_reversed_email,
+    head_change_undo_email,
+    head_changed_email,
+)
+from app.services.auth.head_eligibility import (
+    EligibilityReason,
+    _email_key,
+    _phone_key,
+    member_eligibility,
+)
 from app.services.auth.head_labels import MemberLabel, flip_labels
 from app.services.auth.identity import record_identity
 from app.services.auth.otp import (
@@ -46,6 +56,7 @@ from app.services.legal.registry import current_document
 
 HEAD_CHANGE_TTL_MINUTES = 10
 UNDO_TTL_HOURS = 24
+CHANGE_AGAIN_AFTER_DAYS = 7
 
 logger = logging.getLogger(__name__)
 
@@ -182,11 +193,44 @@ def _email_content(*, party: Party, current_name: str, new_name: str) -> EmailCo
     )
 
 
+def _completed_at(request: HeadChangeRequest) -> datetime | None:
+    """There is no completed-at column: the undo window is 24 hours long, so the change was made
+    24 hours before `undo_expires_at`."""
+    if request.undo_expires_at is None:
+        return None
+    return _aware(request.undo_expires_at) - timedelta(hours=UNDO_TTL_HOURS)
+
+
+def _refuse_if_changed_recently(db: DbSession, user: User) -> None:
+    """Changing the head, or changing it back, is limited to once every 7 days. A change that was
+    undone still counts (the clock starts when the change was made). Undo itself is exempt."""
+    requests = (
+        db.query(HeadChangeRequest)
+        .filter(
+            HeadChangeRequest.user_id == user.id,
+            HeadChangeRequest.status.in_(("completed", "undone")),
+        )
+        .all()
+    )
+    completed = [value for value in (_completed_at(item) for item in requests) if value is not None]
+    if not completed:
+        return
+    allowed_at = max(completed) + timedelta(days=CHANGE_AGAIN_AFTER_DAYS)
+    if datetime.now(timezone.utc) < allowed_at:
+        raise _error(
+            409,
+            "head_change_too_soon",
+            "The Head of Family was changed recently. "
+            f"You can change it again on {allowed_at.day} {allowed_at:%B %Y}.",
+        )
+
+
 def request_head_change_start_code(
     db: DbSession, user: User, to_member_id: uuid.UUID
 ) -> tuple[OtpRequest, str | None]:
     _expire_stale_request(db, user)
     head = _current_head(db, user)
+    _refuse_if_changed_recently(db, user)
     if not user.email:
         raise _error(
             409,
@@ -412,6 +456,7 @@ def start_head_change(
     current_head_code: str,
 ) -> HeadChangeStartResult:
     _expire_stale_request(db, user, preserve_current_email_otp=True)
+    _refuse_if_changed_recently(db, user)
     if not user.email:
         raise _error(
             409,
@@ -597,6 +642,60 @@ def get_pending_head_change(
         .first()
     )
     return head_change_status(request) if request is not None else None
+
+
+def peek_pending_head_change(
+    db: DbSession, user: User
+) -> HeadChangeStatus | None:
+    """Read-only twin of `get_pending_head_change` for `GET /auth/me`, which runs often and must
+    never write: a row past `expires_at` is ignored here, not marked expired."""
+    request = (
+        db.query(HeadChangeRequest)
+        .filter(
+            HeadChangeRequest.user_id == user.id,
+            HeadChangeRequest.status == "pending",
+        )
+        .first()
+    )
+    if request is None or _aware(request.expires_at) <= datetime.now(timezone.utc):
+        return None
+    return head_change_status(request)
+
+
+@dataclass(frozen=True)
+class MemberEligibility:
+    member_id: uuid.UUID
+    reasons: list[str]
+
+
+def list_member_eligibility(db: DbSession, user: User) -> list[MemberEligibility]:
+    """Each non-head member with ONLY the reasons that come from the account's own data. The
+    reasons that would reveal another account (`email_in_use`, `phone_in_use`,
+    `pan_registered_elsewhere`) are dropped here and stay behind the verified start code."""
+    _expire_stale_request(db, user)
+    _current_head(db, user)
+    members = (
+        db.query(HouseholdMember)
+        .filter(
+            HouseholdMember.user_id == user.id,
+            HouseholdMember.is_head.is_(False),
+        )
+        .order_by(HouseholdMember.created_at, HouseholdMember.id)
+        .all()
+    )
+    rows: list[MemberEligibility] = []
+    for member in members:
+        try:
+            reasons = member_eligibility(db, user, member.id)
+        except MemberNotFoundError:
+            continue
+        rows.append(
+            MemberEligibility(
+                member_id=member.id,
+                reasons=[reason for reason in reasons if reason in START_CODE_ELIGIBILITY_REASONS],
+            )
+        )
+    return rows
 
 
 def _iso(value: datetime) -> str:
@@ -1047,4 +1146,402 @@ def complete_head_change(
         from_member_id=old_head.id,
         to_member_id=new_head.id,
         status="completed",
+    )
+
+
+def _undo_not_found_error() -> HeadChangeError:
+    # One answer for an unknown, used or wrong token: nothing says which.
+    return _error(404, "undo_not_found", "This undo link is not valid.")
+
+
+def _undo_expired_error() -> HeadChangeError:
+    return _error(410, "undo_expired", "The 24-hour undo window has closed.")
+
+
+def _undo_contact_taken_error() -> HeadChangeError:
+    return _error(
+        409,
+        "undo_contact_taken",
+        "The old phone or email has been taken since the change, so it cannot be undone.",
+    )
+
+
+def _restored_identity(user_id: uuid.UUID, item: dict) -> AuthIdentity:
+    """Rebuild a deleted identity from the swap's snapshot, with its original times."""
+    return AuthIdentity(
+        user_id=user_id,
+        provider=AuthIdentityProvider(item["provider"]),
+        provider_subject=item["provider_subject"],
+        email=item.get("email"),
+        identifier_verified_at=datetime.fromisoformat(item["identifier_verified_at"]),
+        created_at=datetime.fromisoformat(item["created_at"]),
+        last_used_at=datetime.fromisoformat(item["last_used_at"]),
+    )
+
+
+def _old_contact_is_taken(
+    db: DbSession,
+    user_id: uuid.UUID,
+    *,
+    old_email: str | None,
+    old_phone: str | None,
+    restored: list[AuthIdentity],
+) -> bool:
+    """True when the old email or phone, or any restored identity's subject or email, now belongs
+    to another account (users, identities and the identity `email` column, normalised exactly as
+    the eligibility check does)."""
+    emails = {_email_key(old_email)}
+    phones = {_phone_key(old_phone)}
+    exact = set()
+    for identity in restored:
+        exact.add((identity.provider, identity.provider_subject))
+        emails.add(_email_key(identity.email))
+        if identity.provider == AuthIdentityProvider.PHONE_OTP:
+            phones.add(_phone_key(identity.provider_subject))
+        elif identity.provider in {
+            AuthIdentityProvider.EMAIL_OTP,
+            AuthIdentityProvider.EMAIL_PASSWORD,
+        }:
+            emails.add(_email_key(identity.provider_subject))
+    emails.discard(None)
+    phones.discard(None)
+
+    for row in db.query(User.email, User.phone_number).filter(User.id != user_id).all():
+        if _email_key(row.email) in emails or _phone_key(row.phone_number) in phones:
+            return True
+    for row in (
+        db.query(AuthIdentity.provider, AuthIdentity.provider_subject, AuthIdentity.email)
+        .filter(AuthIdentity.user_id != user_id)
+        .all()
+    ):
+        if (row.provider, row.provider_subject) in exact:
+            return True
+        if (
+            _email_key(row.email) in emails
+            or _email_key(row.provider_subject) in emails
+            or _phone_key(row.provider_subject) in phones
+            or _phone_key(row.email) in phones
+        ):
+            return True
+    return False
+
+
+def _relationship_from(value: str | None) -> Relationship | None:
+    return Relationship(value) if value else None
+
+
+def _restore_contact(member: HouseholdMember, change: dict | None) -> None:
+    """Email and phone go back only if they still hold what the swap put there."""
+    if change is None:
+        return
+    old, new = change["old"], change["new"]
+    if member.email == new.get("email"):
+        member.email = old.get("email")
+    if member.phone_number == new.get("phone_number"):
+        member.phone_number = old.get("phone_number")
+
+
+def _restore_label(member: HouseholdMember, change: dict | None) -> None:
+    """The label and its free text go back together, and only if neither was touched since the
+    swap. A later edit to either keeps both exactly as the user left them."""
+    if change is None:
+        return
+    old, new = change["old"], change["new"]
+    current = (_relationship_value(member.relationship), member.relationship_other_label)
+    if current == (new.get("relationship"), new.get("relationship_other_label")):
+        member.relationship = _relationship_from(old.get("relationship"))
+        member.relationship_other_label = old.get("relationship_other_label")
+
+
+def _unique_addresses(*values: str | None) -> list[str]:
+    addresses: dict[str, str] = {}
+    for value in values:
+        if value and value.strip():
+            addresses.setdefault(value.strip().casefold(), value.strip())
+    return list(addresses.values())
+
+
+def _send_reversal_notices(
+    db: DbSession,
+    request: HeadChangeRequest,
+    *,
+    restored_head_name: str,
+    other_head_name: str,
+    new_head_emails: list[str],
+    old_head_emails: list[str],
+) -> None:
+    # The undo is already committed: no failure to find or use a provider may surface as an error.
+    try:
+        provider = get_email_provider()
+    except Exception as exc:
+        provider = None
+        logger.error(
+            "Head change reversal notices not sent, email provider unavailable error=%s",
+            type(exc).__name__,
+        )
+    subject, text, html = head_change_reversed_email(
+        restored_head_name=restored_head_name, other_head_name=other_head_name
+    )
+    failed_roles: set[str] = set()
+    sent_to: set[str] = set()
+    deliveries = [("new_head_reversed", address) for address in new_head_emails] + [
+        ("old_head_reversed", address) for address in old_head_emails
+    ]
+    for role, address in deliveries:
+        key = address.casefold()
+        if key in sent_to:
+            continue
+        sent_to.add(key)
+        if provider is None:
+            failed_roles.add(role)
+            continue
+        try:
+            provider.send_email(address, subject, text, html)
+        except Exception as exc:
+            failed_roles.add(role)
+            logger.error(
+                "Head change reversal notice failed for role=%s error=%s",
+                role,
+                type(exc).__name__,
+            )
+
+    if not failed_roles:
+        return
+    try:
+        snapshot = dict(request.snapshot or {})
+        snapshot["undo_notices"] = {"failed_roles": sorted(failed_roles)}
+        request.snapshot = snapshot
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.error(
+            "Could not record head change reversal notice failures error=%s",
+            type(exc).__name__,
+        )
+
+
+def undo_head_change(
+    db: DbSession,
+    token: str,
+    evidence: ConsentEvidence,
+) -> HeadChangeResult:
+    """Atomically reverse a completed Head of Family change with its undo token.
+
+    The caller cannot sign in (the old head's identities are gone), so there is no user argument:
+    the request is found by the SHA-256 of the token. One transaction, the swap's lock order, and
+    nothing commits before the end."""
+    now = datetime.now(timezone.utc)
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    locked_request: HeadChangeRequest | None = None
+    locked_user: User | None = None
+    result_ids: tuple[uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID] | None = None
+    restored_head_name = other_head_name = ""
+    new_head_emails: list[str] = []
+    old_head_emails: list[str] = []
+
+    try:
+        # An unlocked read that only tells us which account to lock. Everything is re-checked
+        # under the lock, so two callers with the same token cannot both succeed.
+        located = (
+            db.query(HeadChangeRequest.id, HeadChangeRequest.user_id)
+            .filter(HeadChangeRequest.undo_token_hash == token_hash)
+            .first()
+        )
+        if located is None:
+            raise _undo_not_found_error()
+
+        # Lock order is a cross-database contract: account, members by id, request.
+        locked_user = (
+            db.query(User)
+            .filter(User.id == located.user_id)
+            .populate_existing()
+            .with_for_update()
+            .one_or_none()
+        )
+        if locked_user is None:
+            raise _undo_not_found_error()
+        members = (
+            db.query(HouseholdMember)
+            .filter(HouseholdMember.user_id == locked_user.id)
+            .order_by(HouseholdMember.id)
+            .populate_existing()
+            .with_for_update()
+            .all()
+        )
+        locked_request = (
+            db.query(HeadChangeRequest)
+            .filter(
+                HeadChangeRequest.id == located.id,
+                HeadChangeRequest.user_id == locked_user.id,
+            )
+            .populate_existing()
+            .with_for_update()
+            .one_or_none()
+        )
+        if (
+            locked_request is None
+            or locked_request.status != "completed"
+            or locked_request.undo_token_hash is None
+            or not hmac.compare_digest(locked_request.undo_token_hash, token_hash)
+        ):
+            raise _undo_not_found_error()
+        if locked_request.undo_expires_at is None or _aware(locked_request.undo_expires_at) <= now:
+            raise _undo_expired_error()
+        if bool(locked_user.pending_deletion) or locked_user.deletion_scheduled_at is not None:
+            raise _reason_error("account_pending_deletion")
+
+        later_changes = (
+            db.query(HeadChangeRequest)
+            .filter(
+                HeadChangeRequest.user_id == locked_user.id,
+                HeadChangeRequest.id != locked_request.id,
+                HeadChangeRequest.status.in_(("completed", "undone")),
+            )
+            .all()
+        )
+        if any(
+            item.undo_expires_at is not None
+            and _aware(item.undo_expires_at) > _aware(locked_request.undo_expires_at)
+            for item in later_changes
+        ):
+            raise _changed_request_error()
+
+        members_by_id = {member.id: member for member in members}
+        # `old_head` is the head the swap removed (to be restored); `new_head` is the head now.
+        old_head = members_by_id.get(locked_request.from_member_id)
+        new_head = members_by_id.get(locked_request.to_member_id)
+        if old_head is None or new_head is None or not new_head.is_head or old_head.is_head:
+            raise _changed_request_error()
+
+        snapshot = dict(locked_request.snapshot or {})
+        identity_items = snapshot.get("identities")
+        contact = snapshot.get("account_contact")
+        member_changes = snapshot.get("member_changes")
+        if (
+            not isinstance(identity_items, list)
+            or not isinstance(contact, dict)
+            or not isinstance(member_changes, list)
+            or not contact.get("phone_number")
+        ):
+            raise _changed_request_error()
+        try:
+            restored = [_restored_identity(locked_user.id, item) for item in identity_items]
+        except (KeyError, ValueError, TypeError) as exc:
+            raise _changed_request_error() from exc
+
+        old_email = contact.get("email")
+        old_phone = contact["phone_number"]
+        if _old_contact_is_taken(
+            db,
+            locked_user.id,
+            old_email=old_email,
+            old_phone=old_phone,
+            restored=restored,
+        ):
+            raise _undo_contact_taken_error()
+
+        changes = {
+            item.get("member_id"): item for item in member_changes if isinstance(item, dict)
+        }
+        restored_head_name = old_head.name
+        other_head_name = new_head.name
+        new_head_emails = _unique_addresses(locked_user.email, new_head.email)
+        old_head_emails = _old_head_email_addresses(old_email, restored)
+        result_ids = (
+            locked_request.id,
+            locked_user.id,
+            locked_request.from_member_id,
+            locked_request.to_member_id,
+        )
+
+        db.query(AuthIdentity).filter(AuthIdentity.user_id == locked_user.id).delete(
+            synchronize_session=False
+        )
+        db.flush()
+
+        locked_user.phone_number = old_phone
+        locked_user.email = old_email
+        db.flush()
+
+        db.add_all(restored)
+        db.flush()
+
+        # The one-head and one-Self rules are checked per statement: clear the current head
+        # first, flush, then set the old head.
+        new_head.is_head = False
+        _restore_contact(new_head, changes.get(str(new_head.id)))
+        _restore_label(new_head, changes.get(str(new_head.id)))
+        if new_head.relationship == Relationship.SELF:
+            new_change = changes.get(str(new_head.id))
+            new_head.relationship = _relationship_from(
+                new_change["old"].get("relationship") if new_change else None
+            )
+            new_head.relationship_other_label = (
+                new_change["old"].get("relationship_other_label") if new_change else None
+            )
+        db.flush()
+
+        old_head.is_head = True
+        old_head.relationship = Relationship.SELF
+        old_head.relationship_other_label = None
+        _restore_contact(old_head, changes.get(str(old_head.id)))
+        for member in members:
+            if member.id in {old_head.id, new_head.id}:
+                continue
+            _restore_label(member, changes.get(str(member.id)))
+            _restore_contact(member, changes.get(str(member.id)))
+        db.flush()
+
+        db.query(SessionModel).filter(SessionModel.user_id == locked_user.id).delete(
+            synchronize_session=False
+        )
+        db.query(PendingIdentityVerification).filter(
+            PendingIdentityVerification.matched_user_id == locked_user.id
+        ).delete(synchronize_session=False)
+        destinations = snapshot.get("destinations")
+        if isinstance(destinations, dict):
+            _delete_request_otps(db, locked_request)
+
+        record_consent(
+            db,
+            user_id=locked_user.id,
+            documents=[current_document(document) for document in SIGNUP_DOCUMENTS],
+            action=ConsentAction.WITHDRAWN,
+            surface="head_change_undo",
+            evidence=evidence,
+            recorded_at=now,
+        )
+        snapshot.pop("undo_token_hash", None)
+        snapshot["undone_at"] = now.isoformat()
+        snapshot["undo_notices"] = {"failed_roles": []}
+        locked_request.snapshot = snapshot
+        locked_request.status = "undone"
+        locked_request.undo_token_hash = None
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise _undo_contact_taken_error() from exc
+    except HeadChangeError:
+        db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        raise
+
+    assert locked_request is not None and result_ids is not None
+    _send_reversal_notices(
+        db,
+        locked_request,
+        restored_head_name=restored_head_name,
+        other_head_name=other_head_name,
+        new_head_emails=new_head_emails,
+        old_head_emails=old_head_emails,
+    )
+    request_id, user_id, from_member_id, to_member_id = result_ids
+    return HeadChangeResult(
+        request_id=request_id,
+        user_id=user_id,
+        from_member_id=from_member_id,
+        to_member_id=to_member_id,
+        status="undone",
     )
