@@ -19,6 +19,7 @@ import {
 import { isEmailRequired, isLinkRequired, isPhoneRequired } from "./types";
 import type { ExistingMethod } from "./types";
 import { useAuth } from "./AuthContext";
+import { getSignInNotice, setSignInNotice } from "./session";
 import { acceptedFor, isConsentRequired } from "../legal/api";
 import { ConsentNotice } from "../legal/ConsentNotice";
 import { useLegalDocuments } from "../legal/useLegalDocuments";
@@ -54,8 +55,11 @@ export function AuthEntryFlow({
   // Set when a Google tap returns consent_required (unknown Google account):
   // holds the id_token so Continue can retry it with accepted_documents.
   const [googleConsentToken, setGoogleConsentToken] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(() => getSignInNotice());
   const [step, setStep] = useState<Step>(initialStep);
-  const [authMode, setAuthMode] = useState<"login" | "signup">(initialMode);
+  const [authMode, setAuthMode] = useState<"login" | "signup">(() =>
+    getSignInNotice() ? "login" : initialMode,
+  );
   const [identifier, setIdentifier] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +99,10 @@ export function AuthEntryFlow({
   const goToStep = (next: Step) => {
     setError(null);
     setDevOtp(null);
+    if (next !== "landing") {
+      setNotice(null);
+      setSignInNotice(null);
+    }
     setStep(next);
   };
 
@@ -463,6 +471,8 @@ export function AuthEntryFlow({
             onModeChange={(newMode) => {
               setError(null);
               setDevOtp(null);
+              setNotice(null);
+              setSignInNotice(null);
               setAuthMode(newMode);
             }}
             onSubmitPhone={handleSignupPhoneSubmit}
@@ -470,6 +480,7 @@ export function AuthEntryFlow({
             onSelectPhone={handleSelectPhone}
             onGoogleCredential={handleGoogleCredential}
             error={error}
+            notice={notice}
             submitting={submitting}
             legalDocs={docs}
             legalLoadError={docsError}

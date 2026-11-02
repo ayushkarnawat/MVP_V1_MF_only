@@ -1,7 +1,12 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { useLocation } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { listHouseholdMembers } from "@/features/auth/api";
+import {
+  cancelHeadChange,
+  getPendingHeadChange,
+  listHouseholdMembers,
+  previewHeadChange,
+} from "@/features/auth/api";
 import type { HouseholdMember, MeResponse } from "@/features/auth/types";
 import { deleteMemberPortfolio, getHouseholdImportHistory } from "@/features/import/api";
 import { invalidateApiCache } from "@/lib/apiClient";
@@ -18,7 +23,22 @@ const auth = vi.hoisted(() => ({
   refreshMe: vi.fn(),
 }));
 vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => auth }));
-vi.mock("@/features/auth/api", () => ({ listHouseholdMembers: vi.fn() }));
+vi.mock("@/features/auth/api", async () => {
+  const actual = await vi.importActual<typeof import("@/features/auth/api")>("@/features/auth/api");
+  return {
+    ...actual,
+    listHouseholdMembers: vi.fn(),
+    getHeadChangeEligibility: vi.fn(),
+    requestHeadChangeStartCode: vi.fn(),
+    startHeadChange: vi.fn(),
+    verifyHeadChangeCode: vi.fn(),
+    resendHeadChangeCode: vi.fn(),
+    cancelHeadChange: vi.fn(),
+    getPendingHeadChange: vi.fn(),
+    previewHeadChange: vi.fn(),
+    completeHeadChange: vi.fn(),
+  };
+});
 vi.mock("@/features/import/api", () => ({ getHouseholdImportHistory: vi.fn(), deleteMemberPortfolio: vi.fn() }));
 vi.mock("@/lib/apiClient", () => ({ invalidateApiCache: vi.fn() }));
 
@@ -521,5 +541,104 @@ describe("FamilyPage: Delete member", () => {
     expect(screen.getByRole("dialog", { name: "Delete Ramesh Surve from your family?" })).toBeInTheDocument();
     expect(cardOf("Ramesh Surve")).toBeInTheDocument();
     expect(order).toEqual([]);
+  });
+});
+
+describe("FamilyPage: Change Head of Family", () => {
+  it("button_shown_to_the_head_only", async () => {
+    // 1. Payload without head_member_id behaves as not head
+    auth.me = ME_FIXTURE;
+    const { unmount } = renderInShell(<FamilyPage />, { path: "/profile/family", routes: LIVE_ROUTES });
+    await ready();
+    expect(screen.queryByRole("button", { name: "Change Head of Family" })).not.toBeInTheDocument();
+    unmount();
+
+    // 2. head_member_id points to someone else -> not shown
+    auth.me = { ...ME_FIXTURE, head_member_id: "m-spouse" };
+    const second = renderInShell(<FamilyPage />, { path: "/profile/family", routes: LIVE_ROUTES });
+    await ready();
+    expect(screen.queryByRole("button", { name: "Change Head of Family" })).not.toBeInTheDocument();
+    second.unmount();
+
+    // 3. head_member_id matches the self member -> shown
+    auth.me = { ...ME_FIXTURE, head_member_id: "m-self" };
+    renderInShell(<FamilyPage />, { path: "/profile/family", routes: LIVE_ROUTES });
+    await ready();
+    expect(screen.getByRole("button", { name: "Change Head of Family" })).toBeInTheDocument();
+  });
+
+  it("pending_banner_shows_time_left_and_cancel", async () => {
+    const pending = {
+      request_id: "req-pending-1",
+      status: "pending" as const,
+      expires_in_seconds: 545,
+      verified_count: 1,
+      ready: false,
+      current_email_verified: true,
+      current_phone_verified: false,
+      new_email_verified: false,
+      new_phone_verified: false,
+    };
+    auth.me = {
+      ...ME_FIXTURE,
+      head_member_id: "m-self",
+      head_change_pending: pending,
+    };
+    vi.mocked(cancelHeadChange).mockResolvedValue({
+      ...pending,
+      status: "cancelled",
+      expires_in_seconds: 0,
+    });
+    vi.mocked(getPendingHeadChange).mockResolvedValue({ request: pending });
+    vi.mocked(previewHeadChange).mockResolvedValue({
+      request_id: "req-pending-1",
+      old_head: { member_id: "m-self", name: "Siddharth Surve" },
+      new_head: {
+        member_id: "m-father",
+        name: "Ramesh Surve",
+        email: "ramesh@example.in",
+        phone_number: "+919812345678",
+      },
+      old_head_new_label: "child",
+      members: [],
+      everyone_signed_out: true,
+    });
+
+    mount();
+    await ready();
+
+    // Shows banner instead of the Change Head of Family button
+    expect(screen.queryByRole("button", { name: "Change Head of Family" })).not.toBeInTheDocument();
+    expect(
+      screen.getByText("A Head of Family change is waiting for codes. 9:05 left."),
+    ).toBeInTheDocument();
+
+    // Continue reopens the dialog at step 2
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(await screen.findByRole("heading", { name: "Enter the four codes" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+
+    // Cancel calls cancelHeadChange and refreshes me
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(cancelHeadChange).toHaveBeenCalledTimes(1));
+    expect(auth.refreshMe).toHaveBeenCalled();
+  });
+
+  it("member_list_cards_are_unchanged", async () => {
+    auth.me = { ...ME_FIXTURE, head_member_id: "m-self" };
+    mount();
+    await ready();
+
+    expect(cards().map(card => card.getAttribute("data-member-id"))).toEqual([
+      "m-self",
+      "m-spouse",
+      "m-father",
+    ]);
+    expect(within(cardOf("Siddharth Surve")).getByTestId("access-pill")).toHaveTextContent("Admin");
+    expect(within(cardOf("Aditi Surve")).getByTestId("access-pill")).toHaveTextContent("Member");
+    expect(within(cardOf("Ramesh Surve")).getByTestId("access-pill")).toHaveTextContent("Member");
+    expect(within(cardOf("Siddharth Surve")).getByRole("button", { name: "Change in Account Info" })).toBeInTheDocument();
+    expect(within(cardOf("Aditi Surve")).getByRole("button", { name: "Delete Aditi Surve from your family" })).toBeInTheDocument();
+    expect(within(cardOf("Ramesh Surve")).getByRole("button", { name: "Delete Ramesh Surve from your family" })).toBeInTheDocument();
   });
 });

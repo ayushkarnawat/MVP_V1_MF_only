@@ -32,10 +32,104 @@ export interface MeResponse {
   // Legal document types whose accepted version is behind the current one (the
   // re-consent gate shows while non-empty).
   consent_outdated: string[];
+  consent_outdated_reason?: "head_change" | string | null;
+  head_member_id?: string | null;
+  head_change_pending?: HeadChangeStatus | null;
   pending_deletion?: boolean;
   deletion_scheduled_at?: string | null;
   // ISO 8601 account creation time; "Member since" on Profile reads it (added to GET /auth/me by the Profile plan, task T1).
   created_at: string;
+}
+
+export type HeadChangeParty = "current" | "new";
+export type HeadChangeStatusValue = "pending" | "ready" | "cancelled" | "expired";
+
+export interface HeadChangeCode {
+  party: HeadChangeParty;
+  channel: ContactChangeChannel;
+  verified: boolean;
+  otp: string | null;
+}
+
+export interface HeadChangeStatus {
+  request_id: string;
+  status: HeadChangeStatusValue;
+  expires_in_seconds: number;
+  verified_count: number;
+  ready: boolean;
+  current_email_verified: boolean;
+  current_phone_verified: boolean;
+  new_email_verified: boolean;
+  new_phone_verified: boolean;
+}
+
+export interface HeadChangeStartResponse {
+  request: HeadChangeStatus;
+  codes: HeadChangeCode[];
+}
+
+export interface HeadChangeResendResponse {
+  request: HeadChangeStatus;
+  code: HeadChangeCode;
+}
+
+export interface PendingHeadChangeResponse {
+  request: HeadChangeStatus | null;
+}
+
+export interface HeadChangeCompleteResponse {
+  status: "completed";
+  logout_required: boolean;
+}
+
+export interface HeadChangeUndoResponse {
+  status: "undone";
+}
+
+export interface MemberEligibilityItem {
+  member_id: string;
+  reasons: string[];
+}
+
+export interface HeadChangeEligibilityResponse {
+  members: MemberEligibilityItem[];
+}
+
+export interface HeadChangePreviewOldHead {
+  member_id: string;
+  name: string;
+}
+
+export interface HeadChangePreviewNewHead {
+  member_id: string;
+  name: string;
+  email: string;
+  phone_number: string;
+}
+
+export interface HeadChangePreviewMember {
+  member_id: string;
+  name: string;
+  label_before: Relationship | null;
+  label_before_other: string | null;
+  label_after: Relationship | null;
+  label_after_other: string | null;
+  review_recommended: boolean;
+  cleared: boolean;
+}
+
+export interface HeadChangePreviewResponse {
+  request_id: string;
+  old_head: HeadChangePreviewOldHead;
+  new_head: HeadChangePreviewNewHead;
+  old_head_new_label: Relationship | null;
+  members: HeadChangePreviewMember[];
+  everyone_signed_out: boolean;
+}
+
+export interface HeadChangeErrorDetail {
+  code: string | null;
+  message: string;
 }
 
 export type AccountDeletionReason =

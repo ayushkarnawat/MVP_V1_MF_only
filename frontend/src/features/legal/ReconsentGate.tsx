@@ -17,6 +17,12 @@ export function ReconsentGate({ children }: { children: ReactNode }) {
   const outdated = (me?.consent_outdated ?? []) as LegalDocumentType[];
   if (outdated.length === 0) return <>{children}</>;
 
+  const isHeadChange = me?.consent_outdated_reason === "head_change";
+  const title = isHeadChange ? "You are now the Head of Family" : "We’ve updated our Terms";
+  const body = isHeadChange
+    ? "Please review and agree to continue using Unifolio as the Head of Family."
+    : "Please review and agree to continue using Unifolio.";
+
   const agree = async () => {
     if (!docs) return;
     setSubmitting(true);
@@ -36,8 +42,8 @@ export function ReconsentGate({ children }: { children: ReactNode }) {
       {/* Blocking on purpose: no close action, so Escape / outside click do nothing. */}
       <PromptDialog
         isOpen
-        title="We’ve updated our Terms"
-        body="Please review and agree to continue using Unifolio."
+        title={title}
+        body={body}
         onClose={() => {}}
         hideClose
         footer={

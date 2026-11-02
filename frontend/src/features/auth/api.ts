@@ -15,6 +15,16 @@ import type {
   UpdateMeBody,
   AccountDeletionReason,
   ContactChangeChannel,
+  HeadChangeCompleteResponse,
+  HeadChangeEligibilityResponse,
+  HeadChangeErrorDetail,
+  HeadChangeParty,
+  HeadChangePreviewResponse,
+  HeadChangeResendResponse,
+  HeadChangeStartResponse,
+  HeadChangeStatus,
+  HeadChangeUndoResponse,
+  PendingHeadChangeResponse,
 } from "./types";
 
 export { ApiError };
@@ -246,4 +256,155 @@ export async function verifyContactChange(
   });
   await throwIfError(response);
   return (await response.json()) as MeResponse;
+}
+
+export function parseHeadChangeError(
+  err: unknown,
+  fallback = "Something went wrong. Please try again.",
+): HeadChangeErrorDetail {
+  if (err && typeof err === "object") {
+    const payload =
+      (err as { payload?: unknown }).payload ??
+      (err as { detail?: unknown }).detail ??
+      err;
+    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      const code =
+        typeof (payload as { code?: unknown }).code === "string"
+          ? (payload as { code: string }).code
+          : null;
+      const message = (payload as { message?: unknown }).message;
+      if (typeof message === "string" && message) {
+        return { code, message };
+      }
+    }
+    if (typeof payload === "string" && payload && !/^Request failed with status \d+$/.test(payload)) {
+      return { code: null, message: payload };
+    }
+    const errMsg = (err as { message?: unknown }).message;
+    if (typeof errMsg === "string" && errMsg && !/^Request failed/.test(errMsg)) {
+      return { code: null, message: errMsg };
+    }
+  }
+  return { code: null, message: fallback };
+}
+
+export async function getHeadChangeEligibility(): Promise<HeadChangeEligibilityResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/head-change/eligibility`, {
+    headers: authHeaders(),
+  });
+  await throwIfError(response);
+  return (await response.json()) as HeadChangeEligibilityResponse;
+}
+
+export async function requestHeadChangeStartCode(toMemberId: string): Promise<OtpRequestResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/head-change/start-code`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ to_member_id: toMemberId }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as OtpRequestResponse;
+}
+
+export async function startHeadChange(
+  toMemberId: string,
+  currentHeadCode: string,
+): Promise<HeadChangeStartResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/head-change/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({
+      to_member_id: toMemberId,
+      current_head_code: currentHeadCode,
+    }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as HeadChangeStartResponse;
+}
+
+export async function verifyHeadChangeCode(
+  requestId: string,
+  party: HeadChangeParty,
+  channel: ContactChangeChannel,
+  code: string,
+): Promise<HeadChangeStatus> {
+  const response = await fetch(`${API_BASE_URL}/auth/head-change/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({
+      request_id: requestId,
+      party,
+      channel,
+      code,
+    }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as HeadChangeStatus;
+}
+
+export async function resendHeadChangeCode(
+  requestId: string,
+  party: HeadChangeParty,
+  channel: ContactChangeChannel,
+): Promise<HeadChangeResendResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/head-change/resend`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({
+      request_id: requestId,
+      party,
+      channel,
+    }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as HeadChangeResendResponse;
+}
+
+export async function cancelHeadChange(): Promise<HeadChangeStatus> {
+  const response = await fetch(`${API_BASE_URL}/auth/head-change/cancel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({}),
+  });
+  await throwIfError(response);
+  return (await response.json()) as HeadChangeStatus;
+}
+
+export async function getPendingHeadChange(): Promise<PendingHeadChangeResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/head-change/pending`, {
+    headers: authHeaders(),
+  });
+  await throwIfError(response);
+  return (await response.json()) as PendingHeadChangeResponse;
+}
+
+export async function previewHeadChange(requestId: string): Promise<HeadChangePreviewResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/auth/head-change/preview?request_id=${encodeURIComponent(requestId)}`,
+    {
+      headers: authHeaders(),
+    },
+  );
+  await throwIfError(response);
+  return (await response.json()) as HeadChangePreviewResponse;
+}
+
+export async function completeHeadChange(requestId: string): Promise<HeadChangeCompleteResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/head-change/complete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ request_id: requestId }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as HeadChangeCompleteResponse;
+}
+
+export async function undoHeadChange(token: string): Promise<HeadChangeUndoResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/head-change/undo`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as HeadChangeUndoResponse;
 }

@@ -59,7 +59,7 @@ describe("Profile (v2) front-end guards", () => {
       "components/GoalsDialog.tsx", "components/InvestorTypeDialog.tsx", "components/ContactChangeDialog.tsx", "components/PanField.tsx",
       "components/SettingsRows.tsx", "components/SubscriptionCard.tsx",
       "pages/FamilyPage.tsx", "pages/DataPrivacyPage.tsx", "lib/memberLabels.ts", "lib/statementCount.ts",
-      "components/FamilyStrip.tsx", "components/MemberCard.tsx", "components/AddStatementDialog.tsx", "components/DeleteMemberDialog.tsx",
+      "components/FamilyStrip.tsx", "components/MemberCard.tsx", "components/AddStatementDialog.tsx", "components/DeleteMemberDialog.tsx", "components/ChangeHeadDialog.tsx",
       "components/ConsentList.tsx", "components/StoredDataNote.tsx", "components/DeleteAccountDialog.tsx",
     ]) {
       expect(names).toContain(expected);

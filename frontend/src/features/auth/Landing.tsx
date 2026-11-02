@@ -19,6 +19,7 @@ interface LandingProps {
   onSelectPhone: () => void;
   onGoogleCredential: (idToken: string) => void;
   error: string | null;
+  notice?: string | null;
   submitting: boolean;
   legalDocs: LegalDocument[] | null;
   legalLoadError?: boolean;
@@ -33,6 +34,7 @@ export function Landing({
   onSelectPhone,
   onGoogleCredential,
   error,
+  notice,
   submitting,
   legalDocs,
   legalLoadError,
@@ -93,6 +95,16 @@ export function Landing({
           {mode === "signup" ? "Create your account" : "Welcome back"}
         </h1>
       </div>
+
+      {notice && (
+        <div
+          role="status"
+          data-testid="sign-in-notice"
+          className="mb-3.5 rounded-2xl border border-[#22C55E]/30 bg-[#22C55E]/10 p-3.5 text-xs font-medium text-[var(--color-ink)] font-body"
+        >
+          {notice}
+        </div>
+      )}
 
       {/* 2. Server Authentication Error Alert */}
       {error && !validationError && (

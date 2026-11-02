@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TriangleAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/AuthContext";
-import { listHouseholdMembers } from "@/features/auth/api";
-import type { HouseholdMember } from "@/features/auth/types";
+import { cancelHeadChange, listHouseholdMembers } from "@/features/auth/api";
+import type { HeadChangeStatus, HouseholdMember } from "@/features/auth/types";
 import { CompleteProfileDialog } from "@/features/dashboard/members/CompleteProfileDialog";
 import { deleteMemberPortfolio, getHouseholdImportHistory } from "@/features/import/api";
 import { DeletePortfolioDialog } from "@/features/profile/DeletePortfolioDialog";
@@ -12,10 +13,18 @@ import { useAppNavigate } from "@/shell/nav/useAppNavigate";
 import { useImport, useScope } from "@/shell/scope/ScopeContext";
 import { ProfileFrame } from "../ProfileFrame";
 import { AddStatementDialog } from "../components/AddStatementDialog";
+import { ChangeHeadDialog } from "../components/ChangeHeadDialog";
 import { DeleteMemberDialog } from "../components/DeleteMemberDialog";
 import { FamilyStrip } from "../components/FamilyStrip";
 import { MemberCard } from "../components/MemberCard";
 import { statementCount } from "../lib/statementCount";
+
+function formatCountdown(seconds: number): string {
+  const clamped = Math.max(0, Math.floor(seconds));
+  const mins = Math.floor(clamped / 60);
+  const secs = clamped % 60;
+  return `${mins}:${String(secs).padStart(2, "0")}`;
+}
 
 type HistoryRows = Awaited<ReturnType<typeof getHouseholdImportHistory>>;
 type ListState = { status: "loading" | "ready" | "error"; members: HouseholdMember[] };
@@ -36,6 +45,15 @@ export default function FamilyPage() {
   const [fundsFor, setFundsFor] = useState<HouseholdMember | null>(null);
   const [fundsPending, setFundsPending] = useState(false);
   const [fundsError, setFundsError] = useState<string | null>(null);
+  const [headDialog, setHeadDialog] = useState<{
+    open: boolean;
+    initialRequest: HeadChangeStatus | null;
+  }>({ open: false, initialRequest: null });
+  const [localPendingHeadChange, setLocalPendingHeadChange] = useState<HeadChangeStatus | null>(
+    null,
+  );
+  const [bannerSeconds, setBannerSeconds] = useState<number>(0);
+  const [cancellingHeadChange, setCancellingHeadChange] = useState(false);
 
   const requestRef = useRef(0);
   const listRef = useRef<HTMLElement>(null);
@@ -62,6 +80,42 @@ export default function FamilyPage() {
 
   const members = list.members;
   const editing = members.find(member => member.id === editingId) ?? null;
+  const selfMember = members.find(member => member.relationship === "self") ?? null;
+  const isHead = Boolean(
+    me?.head_member_id && selfMember && me.head_member_id === selfMember.id,
+  );
+  const pendingHeadChange = me?.head_change_pending ?? localPendingHeadChange;
+  const showPendingBanner = Boolean(
+    pendingHeadChange && (!me?.head_member_id || isHead),
+  );
+
+  useEffect(() => {
+    const nextPending = me?.head_change_pending ?? localPendingHeadChange;
+    setBannerSeconds(nextPending?.expires_in_seconds ?? 0);
+  }, [me?.head_change_pending, localPendingHeadChange]);
+
+  useEffect(() => {
+    if (!showPendingBanner || bannerSeconds <= 0) return;
+    const timer = window.setInterval(() => {
+      setBannerSeconds(prev => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [showPendingBanner, bannerSeconds]);
+
+  const handleCancelPendingHeadChange = async () => {
+    if (cancellingHeadChange) return;
+    setCancellingHeadChange(true);
+    try {
+      await cancelHeadChange();
+      setLocalPendingHeadChange(null);
+      await refreshMe();
+    } catch {
+      // The banner stays; refreshing tells whether the request is still open (it may have expired).
+      await refreshMe();
+    } finally {
+      setCancellingHeadChange(false);
+    }
+  };
 
   // Clear cache first so nothing reads a warm copy; then shell reloads members to drop any non-existent pick; then list reloads.
   const afterChange = () => {
@@ -154,17 +208,59 @@ export default function FamilyPage() {
               onAddStatement={addStatement}
               onSelect={selectMember}
             />
+            {showPendingBanner && pendingHeadChange ? (
+              <div
+                data-testid="head-change-pending-banner"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] px-4 py-3 text-sm text-[var(--ui-text)]"
+              >
+                <span>
+                  {`A Head of Family change is waiting for codes. ${formatCountdown(bannerSeconds)} left.`}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={cancellingHeadChange}
+                    onClick={() => void handleCancelPendingHeadChange()}
+                    className="rounded-lg border border-[var(--ui-divider)] bg-[var(--ui-card)] px-3 py-1.5 text-xs font-medium text-[var(--ui-text)] hover:bg-[var(--ui-row-hover)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]"
+                  >
+                    Cancel
+                  </button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={cancellingHeadChange}
+                    onClick={() =>
+                      setHeadDialog({ open: true, initialRequest: pendingHeadChange })
+                    }
+                  >
+                    Continue
+                  </Button>
+                </div>
+              </div>
+            ) : null}
             <section
               ref={listRef}
               data-testid="family-list"
               className="rounded-[14px] border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5 shadow-sm"
             >
-              <h2 className="font-heading text-lg font-semibold text-[var(--ui-text)]">
-                Family Members
-              </h2>
-              <p className="mt-1 text-sm text-[var(--shell-text-body)]">
-                The people whose portfolios you track. Add a statement to bring in their funds.
-              </p>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-heading text-lg font-semibold text-[var(--ui-text)]">
+                    Family Members
+                  </h2>
+                  <p className="mt-1 text-sm text-[var(--shell-text-body)]">
+                    The people whose portfolios you track. Add a statement to bring in their funds.
+                  </p>
+                </div>
+                {isHead && !showPendingBanner ? (
+                  <Button
+                    type="button"
+                    onClick={() => setHeadDialog({ open: true, initialRequest: null })}
+                  >
+                    Change Head of Family
+                  </Button>
+                ) : null}
+              </div>
               {members.length === 0 ? (
                 <p data-testid="family-empty" className="mt-4 text-sm text-[var(--shell-text-body)]">
                   No family members yet. Add a statement and we will find the people in it.
@@ -252,6 +348,24 @@ export default function FamilyPage() {
             setFundsError(null);
           }}
           onDelete={removeMember => void deleteFunds(removeMember)}
+        />
+      ) : null}
+
+      {headDialog.open ? (
+        <ChangeHeadDialog
+          members={members}
+          initialRequest={headDialog.initialRequest}
+          onClose={openRequest => {
+            setHeadDialog({ open: false, initialRequest: null });
+            if (openRequest) {
+              setLocalPendingHeadChange(openRequest);
+              void refreshMe();
+            }
+          }}
+          onCancelled={() => {
+            setLocalPendingHeadChange(null);
+            void refreshMe();
+          }}
         />
       ) : null}
     </>

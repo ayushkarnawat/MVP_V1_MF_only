@@ -13,13 +13,14 @@ import { HOUSEHOLD_FIXTURE, HOUSEHOLD_SOLO_FIXTURE } from "./members";
 // `Record<keyof T, true>` fails to compile when the type gains or loses a key, so this list cannot drift silently.
 const ME_KEYS: Record<keyof MeResponse, true> = {
   user_id: true, phone_number: true, email: true, onboarding_step: true, onboarding_completed: true, investor_type: true,
-  primary_goals: true, self_name: true, consent_outdated: true, pending_deletion: true, deletion_scheduled_at: true, created_at: true,
+  primary_goals: true, self_name: true, consent_outdated: true, consent_outdated_reason: true, head_member_id: true, head_change_pending: true,
+  pending_deletion: true, deletion_scheduled_at: true, created_at: true,
 };
 const MEMBER_KEYS: Record<keyof HouseholdMember, true> = {
   id: true, name: true, relationship: true, relationship_other_label: true, origin: true, pan_masked: true, phone_number: true, email: true,
   name_from_statement: true, pan_conflict: true, pan_editable: true, profile_completion: true, missing_fields: true, removed_with_last_import: true,
 };
-const OPTIONAL_ME = new Set(["pending_deletion", "deletion_scheduled_at"]);
+const OPTIONAL_ME = new Set(["pending_deletion", "deletion_scheduled_at", "consent_outdated_reason", "head_member_id", "head_change_pending"]);
 
 describe("SPEC FIXTURE guard", () => {
   it("marks every fixture file as a spec fixture", () => {
