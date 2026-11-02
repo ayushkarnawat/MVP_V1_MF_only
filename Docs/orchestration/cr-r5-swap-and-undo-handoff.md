@@ -14,3 +14,8 @@
 - Account deletion removes the new table's rows (`account_deletion.py`); add its test.
 - Postgres functional tests for the swap are mandatory and need `FOR UPDATE` to be real: include the concurrent-second-swap test there.
 - Report: the exact `HeadChangeResult` shape, the undo route and token delivery (email link shape), and the regression-suite run over the nine Self-reading files.
+
+## Gaps found while planning (2 Nov 2026), decide and report in T5.5
+- **The plan has no route that triggers `complete_head_change`.** The dialog has a Confirm step after the four codes, so add `POST /auth/head-change/complete` (additive, active-user dependency, same `{code, message}` errors) and list it as outside the plan's route list.
+- T5.4 records the four destinations (current email and phone, new head's email and phone) in `HeadChangeRequest.snapshot["destinations"]` when it sends the codes. The swap must re-check that the new head's member contact still equals the destination that was verified, and refuse (`request_expired` style, nothing changed) if it changed.
+- The undo link goes only to the previous head's own addresses (see the review notes in the other handoff).
