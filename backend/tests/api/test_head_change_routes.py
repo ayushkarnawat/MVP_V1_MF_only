@@ -817,3 +817,155 @@ def test_account_deletion_is_allowed_after_the_undo_window_or_after_an_undo(clie
         ).status_code
         == 200
     )
+
+
+def test_preview_foreign_unknown_and_expired_request_answer_alike(client):
+    household_a = _household(client, suffix="p1")
+    household_b = _household(client, suffix="p2")
+
+    started_b = _start(client, household_b)
+    req_b_id = started_b.json()["request"]["request_id"]
+
+    started_a = _start(client, household_a)
+    req_a_id = started_a.json()["request"]["request_id"]
+
+    # Expire household_a's request in the database
+    db = _db(client)
+    from app.models.auth import HeadChangeRequest
+    req_a = db.get(HeadChangeRequest, uuid.UUID(req_a_id))
+    req_a.expires_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+    db.commit()
+    db.close()
+
+    unknown_id = str(uuid.uuid4())
+
+    expected_body = {
+        "detail": {
+            "code": "request_not_found",
+            "message": "Head change request not found.",
+        }
+    }
+
+    # 1. Foreign request
+    res_foreign = client.get(
+        f"/auth/head-change/preview?request_id={req_b_id}",
+        headers=household_a["headers"],
+    )
+    assert res_foreign.status_code == 404
+    assert res_foreign.json() == expected_body
+
+    # 2. Unknown request
+    res_unknown = client.get(
+        f"/auth/head-change/preview?request_id={unknown_id}",
+        headers=household_a["headers"],
+    )
+    assert res_unknown.status_code == 404
+    assert res_unknown.json() == expected_body
+
+    # 3. Expired request
+    res_expired = client.get(
+        f"/auth/head-change/preview?request_id={req_a_id}",
+        headers=household_a["headers"],
+    )
+    assert res_expired.status_code == 404
+    assert res_expired.json() == expected_body
+
+    # Check that preview did not mutate the expired request status to "expired"
+    db = _db(client)
+    refreshed_req_a = db.get(HeadChangeRequest, uuid.UUID(req_a_id))
+    assert refreshed_req_a.status == "pending"
+    db.close()
+
+    # 4. Cancelled (non-pending) request
+    client.post("/auth/head-change/cancel", headers=household_b["headers"])
+    res_cancelled = client.get(
+        f"/auth/head-change/preview?request_id={req_b_id}",
+        headers=household_b["headers"],
+    )
+    assert res_cancelled.status_code == 404
+    assert res_cancelled.json() == expected_body
+
+
+def test_preview_requires_a_session_and_refuses_pending_deletion(client):
+    req_id = str(uuid.uuid4())
+    # 1. No session -> 401
+    no_auth = client.get(f"/auth/head-change/preview?request_id={req_id}")
+    assert no_auth.status_code == 401
+
+    # 2. Pending deletion -> 403 account_pending_deletion
+    household = _household(client, suffix="pdel")
+    started = _start(client, household)
+    req_id = started.json()["request"]["request_id"]
+
+    db = _db(client)
+    user = db.get(User, uuid.UUID(household["user_id"]))
+    user.pending_deletion = True
+    db.commit()
+    db.close()
+
+    response = client.get(
+        f"/auth/head-change/preview?request_id={req_id}",
+        headers=household["headers"],
+    )
+    assert response.status_code == 403
+    assert response.json() == {
+        "detail": {
+            "code": "account_pending_deletion",
+            "message": "This account is scheduled for deletion. Reactivate it first.",
+        }
+    }
+
+
+def test_preview_head_change_route_returns_run_6_contract(client):
+    household = _household(client, suffix="prun6")
+    db = _db(client)
+    user = db.get(User, uuid.UUID(household["user_id"]))
+    parent = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        name="Parent Route",
+        relationship=Relationship.PARENT,
+        is_head=False,
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(parent)
+    db.commit()
+    db.close()
+
+    started = _start(client, household)
+    req_id = started.json()["request"]["request_id"]
+
+    res = client.get(
+        f"/auth/head-change/preview?request_id={req_id}",
+        headers=household["headers"],
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert set(body) == {
+        "request_id",
+        "old_head",
+        "new_head",
+        "old_head_new_label",
+        "members",
+        "everyone_signed_out",
+    }
+    assert body["request_id"] == req_id
+    assert set(body["old_head"]) == {"member_id", "name"}
+    assert set(body["new_head"]) == {"member_id", "name", "email", "phone_number"}
+    assert body["old_head_new_label"] == "spouse"
+    assert body["everyone_signed_out"] is True
+    assert isinstance(body["members"], list)
+    assert len(body["members"]) == 2  # candidate (new head) + parent
+    member_keys = {
+        "member_id",
+        "name",
+        "label_before",
+        "label_before_other",
+        "label_after",
+        "label_after_other",
+        "review_recommended",
+        "cleared",
+    }
+    for m in body["members"]:
+        assert set(m) == member_keys
+

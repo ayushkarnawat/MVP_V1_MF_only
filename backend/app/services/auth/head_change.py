@@ -37,7 +37,7 @@ from app.services.auth.head_eligibility import (
     _phone_key,
     member_eligibility,
 )
-from app.services.auth.head_labels import MemberLabel, flip_labels
+from app.services.auth.head_labels import LabelPlan, MemberLabel, flip_labels
 from app.services.auth.identity import record_identity
 from app.services.auth.otp import (
     EmailContent,
@@ -118,6 +118,43 @@ class HeadChangeResult:
     from_member_id: uuid.UUID
     to_member_id: uuid.UUID
     status: str
+
+
+@dataclass(frozen=True)
+class HeadChangePreviewOldHead:
+    member_id: uuid.UUID
+    name: str
+
+
+@dataclass(frozen=True)
+class HeadChangePreviewNewHead:
+    member_id: uuid.UUID
+    name: str
+    email: str
+    phone_number: str
+
+
+@dataclass(frozen=True)
+class HeadChangePreviewMember:
+    member_id: uuid.UUID
+    name: str
+    label_before: str | None
+    label_before_other: str | None
+    label_after: str | None
+    label_after_other: str | None
+    review_recommended: bool
+    cleared: bool
+
+
+@dataclass(frozen=True)
+class HeadChangePreviewResult:
+    request_id: uuid.UUID
+    old_head: HeadChangePreviewOldHead
+    new_head: HeadChangePreviewNewHead
+    old_head_new_label: str | None
+    members: list[HeadChangePreviewMember]
+    everyone_signed_out: bool = True
+
 
 
 class HeadChangeError(Exception):
@@ -928,6 +965,137 @@ def _send_completion_notices(
         )
 
 
+def _build_label_plan(
+    members: list[HouseholdMember],
+    old_head_id: uuid.UUID,
+    new_head: HouseholdMember,
+) -> LabelPlan:
+    return flip_labels(
+        new_head.relationship,
+        [
+            MemberLabel(
+                member_id=member.id,
+                relationship=member.relationship,
+                relationship_other_label=member.relationship_other_label,
+                is_new_head=member.id == new_head.id,
+            )
+            for member in members
+            if member.id != old_head_id
+        ],
+    )
+
+
+def preview_head_change(
+    db: DbSession, user: User, request_id: uuid.UUID
+) -> HeadChangePreviewResult:
+    """Compute the label and contact preview for a pending change request.
+
+    Read-only: writes nothing to the database and sends no email/SMS.
+    Unknown, foreign, expired, or non-pending request IDs all answer 404 request_not_found.
+    """
+    if bool(user.pending_deletion) or user.deletion_scheduled_at is not None:
+        raise _reason_error("account_pending_deletion")
+
+    now = datetime.now(timezone.utc)
+    request = (
+        db.query(HeadChangeRequest)
+        .filter(
+            HeadChangeRequest.id == request_id,
+            HeadChangeRequest.user_id == user.id,
+        )
+        .first()
+    )
+    if (
+        request is None
+        or request.status != "pending"
+        or _aware(request.expires_at) <= now
+    ):
+        raise _error(404, "request_not_found", "Head change request not found.")
+
+    members = (
+        db.query(HouseholdMember)
+        .filter(HouseholdMember.user_id == user.id)
+        .order_by(HouseholdMember.created_at, HouseholdMember.id)
+        .all()
+    )
+    members_by_id = {member.id: member for member in members}
+    old_head = members_by_id.get(request.from_member_id)
+    new_head = members_by_id.get(request.to_member_id)
+    if (
+        old_head is None
+        or new_head is None
+        or not old_head.is_head
+        or old_head.relationship != Relationship.SELF
+        or new_head.is_head
+    ):
+        raise _changed_request_error()
+
+    label_plan = _build_label_plan(members, old_head.id, new_head)
+    if label_plan.old_head_new_label is None:
+        # The same refusal as the final step, so the person hears it here and not after pressing
+        # "Confirm" (the new head's label was changed to "other" or cleared after the request began).
+        raise _reason_error("label_missing")
+    old_head_new_label = _relationship_value(label_plan.old_head_new_label)
+
+    preview_members: list[HeadChangePreviewMember] = []
+    for member in members:
+        if member.id == old_head.id:
+            continue
+        label_before = _relationship_value(member.relationship)
+        label_before_other = member.relationship_other_label
+        if member.id == new_head.id:
+            label_after = Relationship.SELF.value
+            label_after_other = None
+            review_rec = False
+        else:
+            after_rel = label_plan.member_labels.get(member.id, member.relationship)
+            label_after = _relationship_value(after_rel)
+            label_after_other = (
+                label_plan.member_other_labels.get(member.id)
+                if after_rel == Relationship.OTHER
+                else None
+            )
+            review_rec = member.id in label_plan.review_recommended
+
+        had_other_wording = bool(
+            label_before_other and label_before_other.strip()
+        )
+        cleared = had_other_wording and not bool(
+            label_after_other
+            and label_after_other.strip() == label_before_other.strip()
+        )
+
+        preview_members.append(
+            HeadChangePreviewMember(
+                member_id=member.id,
+                name=member.name,
+                label_before=label_before,
+                label_before_other=label_before_other,
+                label_after=label_after,
+                label_after_other=label_after_other,
+                review_recommended=review_rec,
+                cleared=cleared,
+            )
+        )
+
+    return HeadChangePreviewResult(
+        request_id=request.id,
+        old_head=HeadChangePreviewOldHead(
+            member_id=old_head.id,
+            name=old_head.name,
+        ),
+        new_head=HeadChangePreviewNewHead(
+            member_id=new_head.id,
+            name=new_head.name,
+            email=new_head.email or "",
+            phone_number=new_head.phone_number or "",
+        ),
+        old_head_new_label=old_head_new_label,
+        members=preview_members,
+        everyone_signed_out=True,
+    )
+
+
 def complete_head_change(
     db: DbSession,
     user: User,
@@ -1027,19 +1195,7 @@ def complete_head_change(
         if reasons:
             raise _reason_error(reasons[0])
 
-        label_plan = flip_labels(
-            new_head.relationship,
-            [
-                MemberLabel(
-                    member_id=member.id,
-                    relationship=member.relationship,
-                    relationship_other_label=member.relationship_other_label,
-                    is_new_head=member.id == new_head.id,
-                )
-                for member in members
-                if member.id != old_head.id
-            ],
-        )
+        label_plan = _build_label_plan(members, old_head.id, new_head)
         if label_plan.old_head_new_label is None:
             raise _reason_error("label_missing")
 

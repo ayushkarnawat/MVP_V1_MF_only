@@ -725,3 +725,209 @@ def test_a_race_at_the_one_open_request_index_answers_409_not_a_server_error(mon
         message="A change is already waiting for codes. Cancel it or wait for it to expire.",
     )
     assert db.query(HeadChangeRequest).count() == 1
+
+
+def _verify_all(db, user, result):
+    for party, channel in [
+        ("current", "phone"),
+        ("new", "email"),
+        ("new", "phone"),
+    ]:
+        _head_change().verify_head_change_code(
+            db,
+            user,
+            result.request.id,
+            party,
+            channel,
+            _code(result, party, channel),
+        )
+
+
+def test_preview_matches_what_complete_does_to_the_labels():
+    from app.services.legal.consent import ConsentEvidence
+
+    db = _session()
+    user, head, candidate = _household(db, suffix="pv1")
+    parent = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        name="Parent 1",
+        relationship=Relationship.PARENT,
+        is_head=False,
+        created_at=NOW + timedelta(seconds=1),
+    )
+    child = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        name="Child 1",
+        relationship=Relationship.CHILD,
+        is_head=False,
+        created_at=NOW + timedelta(seconds=2),
+    )
+    sibling = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        name="Sibling 1",
+        relationship=Relationship.SIBLING,
+        is_head=False,
+        created_at=NOW + timedelta(seconds=3),
+    )
+    db.add_all([parent, child, sibling])
+    db.commit()
+
+    result = _start(db, user, candidate)
+    _verify_all(db, user, result)
+
+    preview = _head_change().preview_head_change(db, user, result.request.id)
+
+    # Complete the change
+    _head_change().complete_head_change(
+        db,
+        user,
+        result.request.id,
+        evidence=ConsentEvidence(
+            ip_truncated="127.0.0.0",
+            ip_hmac="test",
+            user_agent="pytest",
+            device_id=None,
+        ),
+    )
+
+    db.refresh(head)
+    db.refresh(candidate)
+    db.refresh(parent)
+    db.refresh(child)
+    db.refresh(sibling)
+
+    # Old head:
+    assert preview.old_head.member_id == head.id
+    assert preview.old_head.name == head.name
+    assert preview.old_head_new_label == head.relationship.value
+
+    # New head:
+    assert preview.new_head.member_id == candidate.id
+    assert preview.new_head.name == candidate.name
+    assert preview.new_head.email == candidate.email
+    assert preview.new_head.phone_number == candidate.phone_number
+
+    # Old head is NOT in preview.members
+    assert all(m.member_id != head.id for m in preview.members)
+
+    # Every member in preview.members matches what complete_head_change did to the labels in DB
+    preview_by_id = {m.member_id: m for m in preview.members}
+    for member in [candidate, parent, child, sibling]:
+        p = preview_by_id[member.id]
+        expected_label = member.relationship.value if member.relationship else None
+        assert p.label_after == expected_label
+        assert p.label_after_other == member.relationship_other_label
+
+    assert preview.everyone_signed_out is True
+
+
+def test_preview_writes_nothing_and_sends_nothing(monkeypatch):
+    db = _session()
+    user, head, candidate = _household(db, suffix="pv2")
+    result = _start(db, user, candidate)
+    sent = _record_email(monkeypatch)
+
+    req_status_before = result.request.status
+    req_expires_before = result.request.expires_at
+
+    preview = _head_change().preview_head_change(db, user, result.request.id)
+
+    assert len(sent) == 0
+    assert not db.dirty
+    assert not db.new
+    assert not db.deleted
+
+    db.refresh(result.request)
+    assert result.request.status == req_status_before
+    assert result.request.expires_at == req_expires_before
+    assert preview.request_id == result.request.id
+
+
+def test_preview_marks_review_recommended_and_cleared():
+    db = _session()
+    user, head, candidate = _household(db, suffix="pv3")  # candidate is SPOUSE
+    child = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        name="Child 1",
+        relationship=Relationship.CHILD,
+        is_head=False,
+        created_at=NOW + timedelta(seconds=1),
+    )
+    uncle = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        name="Uncle 1",
+        relationship=Relationship.OTHER,
+        relationship_other_label="Uncle",
+        is_head=False,
+        created_at=NOW + timedelta(seconds=2),
+    )
+    friend = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        name="Friend 1",
+        relationship=Relationship.OTHER,
+        relationship_other_label="Friend",
+        is_head=False,
+        created_at=NOW + timedelta(seconds=3),
+    )
+    db.add_all([child, uncle, friend])
+    db.commit()
+
+    result = _start(db, user, candidate)
+    preview = _head_change().preview_head_change(db, user, result.request.id)
+
+    p_map = {m.member_id: m for m in preview.members}
+
+    # Child becomes child with review_recommended=True (stepchild case)
+    assert p_map[child.id].label_before == "child"
+    assert p_map[child.id].label_after == "child"
+    assert p_map[child.id].review_recommended is True
+    assert p_map[child.id].cleared is False
+
+    # Uncle has asymmetric free text ("Uncle"), which is cleared (label_after is None)
+    assert p_map[uncle.id].label_before == "other"
+    assert p_map[uncle.id].label_before_other == "Uncle"
+    assert p_map[uncle.id].label_after is None
+    assert p_map[uncle.id].label_after_other is None
+    assert p_map[uncle.id].cleared is True
+    assert p_map[uncle.id].review_recommended is False
+
+    # Friend has symmetric free text ("Friend"), which is kept
+    assert p_map[friend.id].label_before == "other"
+    assert p_map[friend.id].label_before_other == "Friend"
+    assert p_map[friend.id].label_after == "other"
+    assert p_map[friend.id].label_after_other == "Friend"
+    assert p_map[friend.id].cleared is False
+    assert p_map[friend.id].review_recommended is False
+
+    # Candidate becomes self
+    assert p_map[candidate.id].label_before == "spouse"
+    assert p_map[candidate.id].label_after == "self"
+    assert p_map[candidate.id].cleared is False
+    assert p_map[candidate.id].review_recommended is False
+
+
+
+def test_preview_refuses_like_the_final_step_when_the_new_heads_label_is_no_longer_usable():
+    db = _session()
+    user, _, candidate = _household(db, suffix="pv4")
+    result = _start(db, user, candidate)
+    # Changed after the request began (the member's profile can be edited at any time).
+    candidate.relationship = Relationship.OTHER
+    candidate.relationship_other_label = "friend"
+    db.commit()
+
+    with pytest.raises(_head_change().HeadChangeError) as exc:
+        _head_change().preview_head_change(db, user, result.request.id)
+
+    _assert_error(
+        exc,
+        status=409,
+        code="member_not_eligible",
+        message="The change cannot start until the new head's label is set.",
+    )

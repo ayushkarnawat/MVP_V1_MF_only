@@ -334,3 +334,36 @@ class MemberEligibilityItem(BaseModel):
 class HeadChangeEligibilityResponse(BaseModel):
     members: list[MemberEligibilityItem]
 
+
+class HeadChangePreviewOldHeadResponse(BaseModel):
+    member_id: str
+    name: str
+
+
+class HeadChangePreviewNewHeadResponse(BaseModel):
+    member_id: str
+    name: str
+    email: str
+    phone_number: str
+
+
+class HeadChangePreviewMemberResponse(BaseModel):
+    member_id: str
+    name: str
+    label_before: str | None
+    label_before_other: str | None
+    label_after: str | None
+    label_after_other: str | None
+    review_recommended: bool
+    cleared: bool
+
+
+class HeadChangePreviewResponse(BaseModel):
+    request_id: str
+    old_head: HeadChangePreviewOldHeadResponse
+    new_head: HeadChangePreviewNewHeadResponse
+    old_head_new_label: str | None
+    members: list[HeadChangePreviewMemberResponse]
+    everyone_signed_out: bool = True
+
+

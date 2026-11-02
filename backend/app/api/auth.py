@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
+import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session as DbSession
 
 from app.api.legal import CONSENT_CONTINUE_MESSAGE
@@ -41,6 +42,7 @@ from app.services.auth.head_change import (
     cancel_head_change,
     complete_head_change,
     get_pending_head_change,
+    preview_head_change,
     request_head_change_start_code,
     resend_head_change_code,
     start_head_change,
@@ -86,6 +88,10 @@ from app.services.auth.schemas import (
     HeadChangeStartCodeBody,
     HeadChangeStartResponse,
     HeadChangeEligibilityResponse,
+    HeadChangePreviewMemberResponse,
+    HeadChangePreviewNewHeadResponse,
+    HeadChangePreviewOldHeadResponse,
+    HeadChangePreviewResponse,
     HeadChangeStatusResponse,
     HeadChangeUndoBody,
     HeadChangeUndoResponse,
@@ -994,6 +1000,47 @@ def get_pending_head_change_route(
     return PendingHeadChangeResponse(
         request=_head_change_status_response(status) if status is not None else None
     )
+
+
+@router.get("/head-change/preview", response_model=HeadChangePreviewResponse)
+def preview_head_change_route(
+    request_id: uuid.UUID = Query(...),
+    user: User = Depends(_get_head_change_active_user),
+    db: DbSession = Depends(get_db),
+):
+    try:
+        result = preview_head_change(db, user, request_id)
+    except HeadChangeError as exc:
+        raise _head_change_http(exc) from exc
+    return HeadChangePreviewResponse(
+        request_id=str(result.request_id),
+        old_head=HeadChangePreviewOldHeadResponse(
+            member_id=str(result.old_head.member_id),
+            name=result.old_head.name,
+        ),
+        new_head=HeadChangePreviewNewHeadResponse(
+            member_id=str(result.new_head.member_id),
+            name=result.new_head.name,
+            email=result.new_head.email,
+            phone_number=result.new_head.phone_number,
+        ),
+        old_head_new_label=result.old_head_new_label,
+        members=[
+            HeadChangePreviewMemberResponse(
+                member_id=str(m.member_id),
+                name=m.name,
+                label_before=m.label_before,
+                label_before_other=m.label_before_other,
+                label_after=m.label_after,
+                label_after_other=m.label_after_other,
+                review_recommended=m.review_recommended,
+                cleared=m.cleared,
+            )
+            for m in result.members
+        ],
+        everyone_signed_out=True,
+    )
+
 
 
 @router.post("/head-change/undo", response_model=HeadChangeUndoResponse)
