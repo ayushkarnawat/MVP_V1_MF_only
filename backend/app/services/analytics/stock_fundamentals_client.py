@@ -23,6 +23,9 @@ from app.models.reference import BenchmarkIndexHistory, DisclosureBatch, SchemeH
 from app.models.user import HouseholdMember
 from app.services.home.units import build_units_timeline
 from app.services.analytics.nse_indices_client import _TRADING_INDEX_NAME, _USER_AGENT
+from app.services.analytics.filings_book_value import (
+    FILING_SOURCE_CODE, StoredBookValue, filing_footnote, filing_pb_ratio, load_filing_values,
+)
 
 logger = logging.getLogger(__name__)
 # Valuation uses equity only; bonds, T-bills and MF units would only make junk 'delisted' rows.
@@ -30,6 +33,9 @@ _EQUITY_TYPES = (AssetType.EQUITY_DOMESTIC, AssetType.EQUITY_INTERNATIONAL)
 PE_URL = "https://nsearchives.nseindia.com/content/equities/peDetail/PE_{date}.csv"
 BSE_BHAVCOPY_URL = "https://www.bseindia.com/download/BhavCopy/Equity/BhavCopy_BSE_CM_0_0_0_{date}_F_0000.CSV"
 SECURITY_URL = "https://nsearchives.nseindia.com/content/cm/NSE_CM_security_{date}.csv.gz"
+# Day's closing prices, used only for the P/B from a company's own filing. UNVERIFIED from this machine (no network
+# here): the address and the ' SERIES' / ' CLOSE_PRICE' spellings are NSE's standard full bhavcopy; check one real file on the VM.
+NSE_CLOSE_URL = "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_{date}.csv"
 # Assumed standard exchange headers and owner-supplied groups: UNVERIFIED.
 # The owner will check a real VM file. Keep all column spellings here only.
 BSE_COLUMNS = {
@@ -65,6 +71,27 @@ def _csv_rows(data, required):
 
 def parse_pe_csv(data: bytes) -> dict[str, Decimal | None]:
     return {r["SYMBOL"].strip(): _positive(r["SYMBOL P/E"]) for r in _csv_rows(data, {"SYMBOL", "SYMBOL P/E"}) if r.get("SYMBOL") and r.get("SYMBOL P/E") is not None}
+
+
+def parse_nse_closes(data: bytes, *, file_date: date) -> dict[str, Decimal]:
+    """Symbol -> close for EQ-series rows of NSE's full bhavcopy (header cells carry leading spaces)."""
+    reader = csv.DictReader(io.StringIO(data.decode("utf-8-sig")))
+    reader.fieldnames = [(name or "").strip() for name in reader.fieldnames or []]
+    if not {"SYMBOL", "SERIES", "CLOSE_PRICE"} <= set(reader.fieldnames):
+        raise ValueError("Unrecognized NSE price file columns")
+    closes = {}
+    for row in reader:
+        if (row.get("SERIES") or "").strip() != "EQ" or not (row.get("SYMBOL") or "").strip():
+            continue
+        printed = (row.get("DATE1") or "").strip()
+        if printed and datetime.strptime(printed, "%d-%b-%Y").date() != file_date:
+            raise ValueError("NSE price file date does not match the requested day")
+        close = _positive(row.get("CLOSE_PRICE"))
+        if close is not None:
+            closes[row["SYMBOL"].strip()] = close
+    if not closes:
+        raise ValueError("No EQ closes in the NSE price file")
+    return closes
 
 
 def parse_security_master(data: bytes) -> dict[str, str]:
@@ -217,6 +244,16 @@ async def _request(client, method, url, pace_seconds, **kwargs):
     if pace_seconds:
         await asyncio.sleep(pace_seconds)
     return await client.request(method, url, **kwargs)
+
+
+async def _nse_closes(client, today, pace_seconds) -> tuple[dict[str, Decimal], date | None]:
+    """Latest published day's closes; ({}, None) on any problem, so P/B stays on the labelled Yahoo/screener value."""
+    try:
+        data, when = await _dated_file(client, NSE_CLOSE_URL, "%d%m%Y", today, pace_seconds)
+        return parse_nse_closes(data, file_date=when), when
+    except (httpx.HTTPError, ValueError, KeyError, OSError, UnicodeError) as exc:
+        logger.warning("STOCK_FUNDAMENTALS_ALERT nse_close_file_unusable reason=%s", type(exc).__name__)
+        return {}, None
 
 
 async def _dated_file(client, template, date_format, today, pace_seconds):
@@ -382,11 +419,15 @@ class StockFundamentalsRefreshResult:
 
 
 async def refresh_stock_fundamentals(db: Session, *, today: date | None = None,
-                                     client: httpx.AsyncClient | None = None, pace_seconds: float = 0.3) -> StockFundamentalsRefreshResult:
+                                     client: httpx.AsyncClient | None = None, pace_seconds: float = 0.3,
+                                     filing_values: dict[str, StoredBookValue] | None = None) -> StockFundamentalsRefreshResult:
     if client is None:
         async with httpx.AsyncClient(timeout=30, follow_redirects=True, headers={"User-Agent": _USER_AGENT}) as owned:
-            return await refresh_stock_fundamentals(db, today=today, client=owned, pace_seconds=pace_seconds)
+            return await refresh_stock_fundamentals(db, today=today, client=owned, pace_seconds=pace_seconds, filing_values=filing_values)
     started, today = time.monotonic(), today or date.today()
+    # Book values read from the companies' own filings by the separate filings job (empty until it has run).
+    if filing_values is None:
+        filing_values = load_filing_values(db)
     try:
         data, as_of = await _dated_file(client, PE_URL, "%d%m%y", today, pace_seconds)
         pe = parse_pe_csv(data)
@@ -405,6 +446,7 @@ async def refresh_stock_fundamentals(db: Session, *, today: date | None = None,
     bse_prices = await _bse_prices(client, bse_candidates, today, pace_seconds) if bse_candidates else None
     bse_yahoo = _YahooPB(client, pace_seconds, suffix=".BO")
     yahoo = _YahooPB(client, pace_seconds)
+    closes, close_date = await _nse_closes(client, today, pace_seconds) if filing_values else ({}, None)
     failed = written = 0
     for isin in sorted(universe):
         symbol = symbols.get(isin)
@@ -448,12 +490,20 @@ async def refresh_stock_fundamentals(db: Session, *, today: date | None = None,
                     if pe[symbol] is None: notes.append("P/E excluded: loss-making or unavailable earnings")
             else:
                 notes.append("NSE P/E unavailable; previous P/E retained" if old and old.pe_ratio else "NSE P/E unavailable")
-            pb = None
-            try:
-                pb = await yahoo.get(symbol)
-            except (httpx.HTTPError, ValueError, KeyError, TypeError):
-                pass
-            pb_source = "YAHOO"
+            pb, pb_date = None, today
+            # Preferred: the day's close over the book value per share in the company's own filing.
+            filing = filing_values.get(isin)
+            pb = filing_pb_ratio(filing, closes.get(symbol), close_date)
+            pb_source = FILING_SOURCE_CODE
+            if pb is not None:
+                pb_date = close_date
+                notes.append(filing_footnote(filing, close_date))
+            else:
+                try:
+                    pb = await yahoo.get(symbol)
+                except (httpx.HTTPError, ValueError, KeyError, TypeError):
+                    pass
+                pb_source = "YAHOO"
             if pb is None:
                 pb_source = "SCREENER"
                 try:
@@ -463,7 +513,7 @@ async def refresh_stock_fundamentals(db: Session, *, today: date | None = None,
                     pass
             if pb is not None:
                 row.pb_ratio, row.pb_source = pb, pb_source
-                row.pb_as_of = today
+                row.pb_as_of = pb_date
                 if pb_source == "SCREENER": notes.append("P/B from screener.in fallback (current price / book value)")
             else:
                 failed += 1

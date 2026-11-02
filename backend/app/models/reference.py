@@ -353,3 +353,10 @@ class StockMaster(Base):
     pe_as_of: Mapped[date_ | None] = mapped_column(Date)
     pb_as_of: Mapped[date_ | None] = mapped_column(Date)
     pe_source: Mapped[str | None] = mapped_column(String)
+    # Book value per share read from the company's own half-year or year-end filing (migration 0052,
+    # T2.12 Step B). The daily stock job divides each day's close by it; Yahoo and screener.in stay as
+    # the labelled fallback while these are empty. `book_value_filing_ref` is the filing's xbrl address.
+    book_value_per_share: Mapped[Decimal | None] = mapped_column(Numeric(18, 6))
+    book_value_as_of: Mapped[date_ | None] = mapped_column(Date)
+    book_value_filing_ref: Mapped[str | None] = mapped_column(Text)
+    book_value_basis: Mapped[str | None] = mapped_column(String)

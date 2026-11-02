@@ -11,7 +11,7 @@ def test_0045_is_in_the_chain_and_sqlite_upgrade_then_downgrade_to_0043(tmp_path
 
     heads = _alembic("heads")
     assert heads.returncode == 0, heads.stderr
-    assert heads.stdout.strip() == "0051 (head)"
+    assert heads.stdout.strip() == "0052 (head)"
 
     up = _alembic("upgrade", "head")
     assert up.returncode == 0, up.stderr
@@ -1620,7 +1620,9 @@ def test_stock_master_model_has_decimal_ratios_and_no_foreign_keys():
     assert not table.foreign_keys
     # nse_symbol added by migration 0044 (Home News backend, owner-approved
     # third sanctioned existing-test edit — see NB1 handoff section 13).
-    assert set(table.columns.keys()) == {"isin", "name", "sector", "pe_ratio", "pb_ratio", "as_of_date", "source", "pb_source", "footnote", "nse_symbol", "bse_scrip_code", "pe_as_of", "pb_as_of", "pe_source"}
+    assert set(table.columns.keys()) == {"isin", "name", "sector", "pe_ratio", "pb_ratio", "as_of_date", "source", "pb_source", "footnote", "nse_symbol", "bse_scrip_code", "pe_as_of", "pb_as_of", "pe_source",
+        # added by migration 0052 (T2.12 Step B)
+        "book_value_per_share", "book_value_as_of", "book_value_filing_ref", "book_value_basis"}
     assert all(table.c[name].type.scale == 6 for name in ("pe_ratio", "pb_ratio"))
 
 
@@ -1699,7 +1701,9 @@ def test_upgrade_creates_table_and_columns(tmp_path, monkeypatch):
             "method IN ('harmonic', 'weighted_average', 'not_stated')",
         }
         stock = {c["name"]: c for c in inspector.get_columns("stock_master")}
-        assert set(stock) == set(StockMaster.__table__.columns.keys())
+        # The four book value columns come from migration 0052, after the revision this test upgrades to.
+        assert set(stock) == set(StockMaster.__table__.columns.keys()) - {
+            "book_value_per_share", "book_value_as_of", "book_value_filing_ref", "book_value_basis"}
         for name in VALUATION_STOCK_COLUMNS:
             assert stock[name]["nullable"] is True
             assert str(stock[name]["type"]) == str(StockMaster.__table__.c[name].type)
