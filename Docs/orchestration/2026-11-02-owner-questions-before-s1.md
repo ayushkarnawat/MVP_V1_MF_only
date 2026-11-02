@@ -67,3 +67,30 @@ Funds that hold gold or silver show only their printed returns, not a computed c
 ## Triggers I have set
 - Reminder on **9 Nov 09:00 IST**: the fund-managers-monthly job runs tomorrow 06:00 IST; which houses need their factsheet downloaded and hand-imported first.
 - Read-only check on **10 Nov 07:00 IST**: did the 06:00 run work, which houses were skipped. These run while this app is open; if it is closed they run when it next opens.
+
+---
+
+## Owner's answers (2 Nov 2026) and what each one adds to the build
+| Q | Answer | What it becomes |
+|---|---|---|
+| Q1 | A: Real Estate shows live | nothing to build (already built); QA row Q1 |
+| Q2 | Show the portfolio P/E and P/B from **60% coverage** (not 70%); **below that, never a bare dash: show a reason** ("Not enough data: ratios are available for X% of this portfolio's shares") | **Build W1**: lower the rule to 60% (one constant) and replace the dash with a plain reason sentence and the coverage percentage, on every screen that shows the portfolio P/E and P/B (payload carries the reason; screens render it); tests |
+| Q3 | A with a fallback: the words rule ("index", "ETF") **plus** the regulator category as a second test | **Build W2**: a fund is an index fund if its name has the words OR its stored category is an index or ETF category; tests for both paths and for a fund that matches neither |
+| Q4 | A: keep the order (BSE close / Yahoo, provider ratio, screener.in); more layers welcome if research finds an accurate one | **Research R1** (no build unless a source is verified): see the notes below |
+| Q5 | B: make both weighted | **Build W3**: Category Average becomes fund-size weighted (the weighted helper `_aum_weighted_average` already exists in `category_ranking.py`; the simple helper `_simple_average` is what changes). Backend only plus one plain sentence on the screen ("weighted by fund size") and tests; funds with no size on record are left out of the weighted figure and counted in a note. **Size: about half a day.** |
+| Q6 | A with work: list the 23 indices and their sources; try again for the missing ones; explain on screen | **List R2** below; **Research R3** (re-run `verify_benchmark_sources.sh` on the candidates; each verified one is one registry row, no migration); **Build W4**: a plain "how this benchmark was chosen" explanation on every screen that shows a benchmark |
+| Q7 | A, and **make "No benchmark" the very last fallback** | **Build W5**: the selection order becomes factsheet index, then closest index we hold, then the category's standard index, and only then "No benchmark"; check every held fund on the VM before the deploy for how many still end on "No benchmark" |
+| Q8 | B with less clutter: a small "i" icon beside the benchmark name; the note shows on hover and on keyboard focus or tap | **Build W6**: an accessible info icon that shows the backend note (hover, focus and tap) |
+| Q9 | Add UTI and Groww factsheets before the deploy | Links below; then **Build W7**: the UTI and Groww benchmark and P/E readers from the real files |
+| Q10 | A | nothing to build |
+
+### R2. The 23 registered benchmark indices (all from the NSE Indices total-return endpoint unless noted)
+Nifty 50, Nifty 500, Nifty LargeMidcap 250, Nifty Midcap 150, Nifty Next 50, Nifty Smallcap 250, Nifty 100, Nifty 200, Nifty Bank, Nifty IT, Nifty Financial Services, Nifty India Consumption, Nifty India Manufacturing, Nifty Energy, Nifty Total Market, Nifty Private Bank, Nifty Infrastructure, Nifty Midcap 100, Nifty Smallcap 100, Nifty Smallcap 50, Nifty500 Multicap 50:25:25 (all total-return series from the endpoint); **Nifty 50 Arbitrage** (a verified NSE price endpoint, total-return type); **Nifty 1D Rate Index** (registered but inactive). Not found so far (candidates in `verify_benchmark_sources.sh`): Quality 30, Value 50, ESG, Healthcare, factor indices, G-Sec and SDL indices.
+
+### R1. Extra layers for BSE-only stock ratios (to research, not build yet)
+(1) BSE's own results filings in XBRL, the BSE twin of the NSE Integrated Filing source built in T2.12 (book value and EPS for BSE-only companies straight from the exchange); (2) the company's own filed results for trailing EPS. Both would replace the Yahoo step with an official source. Decision after a one-stock probe from the VM.
+
+### Where the files are
+- **Groww:** the monthly factsheet page is https://www.growwmf.in/downloads/fact-sheet ; the September 2026 file the system already fetched on 30 Oct is https://assets-netstorage.growwmf.in/compliance_docs/Downloads/Fact%20Sheet/2026%20-%202027/Monthly%20Factsheet%20Sept%202026.pdf
+- **UTI:** the factsheet is called "Fund Watch". Download both "Fund Watch (Active)" and "Fund Watch (Passive)" for September 2026 from https://www.utimf.com/downloads/fund-watch (the list loads from a protected API, so it must be a person in a browser). Save into `D:\Factsheets October`.
+- **Bandhan:** the file in `D:\Bandhan` on 2 Nov is **the wrong file**: it is the DEBT funds portfolio as on **30 Oct 2026**. I need the EQUITY portfolio that contains Bandhan Small Cap Fund, as on **30 Sep 2026** (the same date as the other houses), from https://bandhanmutual.com/downloads/portfolio-summary/monthly (the month list should have September 2026 below October).
