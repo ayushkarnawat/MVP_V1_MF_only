@@ -18,7 +18,7 @@
 | O9 | Real UTI and Groww factsheet PDFs (with word boxes) | their benchmark and valuation readers are unbuilt or fail closed; not a blocker for the deploy |
 | O11 | Confirm the orchestrator's product decisions: the 70% equity coverage rule for the portfolio P/E and P/B total; index funds detected by the words "index" or "ETF"; BSE ratio compute rule; the fund page keeps size weighting while Category Average uses simple means; 23 registered indices instead of about 40; plain-word benchmark source labels; benchmark notes in the backend only | deploying makes them live |
 | Printed returns | For `benchmark_series_check.py`: printed 1Y, 3Y, 5Y returns from the real factsheets **at the same as-on date**, for the funds the owner wants verified | the PASS table cannot be produced without them |
-| Decision | T2.12 Step B (book value from the NSE Integrated Filing feed, source verified 2 Nov, section 6): build it before this deploy or after | if built before, add its job and checks to section 4 |
+| Scheduled | T2.12 Step B (book value from the NSE Integrated Filing feed, source verified 2 Nov, section 6): **built after Run 5 is done, before Run 6** (owner's order, 2 Nov), so it ships in this deploy | when built, add its job and checks to section 4 (new rows L16 and L17) |
 
 ## 3. Deploy mechanics (to be completed at S.1)
 Follow the Individual Fund guide's steps, with these differences and the 30 Oct VM lessons:
@@ -80,6 +80,8 @@ Note: Home, the fund page and the matrix stop at their read-only guard before th
 | L13 | `0 6 15 * *` `check_manual_factsheets.py` is installed; run it by hand once (read-only) and confirm it names the houses still needing a hand import |
 | L14 | The daily NAV, benchmark and analytics jobs ran after the deploy without a failure alert; `job_runs` shows each |
 | L15 | Optional: a second factsheet capture after the 10 Nov `fund-managers-monthly` job (Priority 1 in `DEFERRED_FEATURES.md`) |
+| L16 | **Only once T2.12 Step B is built (after Run 5):** run the book-value job once on the VM (read-only against NSE, 2 seconds between requests, about 20 minutes for the held stocks, in the background) and check a sample of held stocks: book value and shares match a hand check from the filing (TCS about 328.69 on the 30 Sep 2026 filing; a bank uses capital plus reserves), and the stock's P/B updates |
+| L17 | Same job: confirm a block (401, 403 or 429 from NSE) stops it, keeps the existing values and raises the failure alert, and that the VM's address is not blocked by a normal run |
 
 ## 5. Rollback
 Prefer restore from the pre-deploy backup, only on the manager's explicit yes (`rollback.sh` / `restore.sh`). Migration downgrades exist (0050, 0048 verified identical to 0034), but **0049's downgrade refuses once new text index keys exist**, so a downgrade after the first benchmark job needs the index rows removed first. Decide at S.1; never run a rollback script on this ledger's authority.
