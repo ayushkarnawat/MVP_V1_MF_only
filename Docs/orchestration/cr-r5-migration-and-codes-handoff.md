@@ -1,6 +1,6 @@
 # Handoff: Migration 0050, OTP purpose, eligibility and the request lifecycle (T5.1 to T5.4)
 
-**Status:** OPEN (IN REVIEW when Codex reports, DONE after the Run 5 review gate)
+**Status:** DONE (Run 5 gate passed after fixes, tag cr-run-5-done 2 Nov 2026)
 **Run:** 5 of 7 | **Slug:** `cr-r5-migration-and-codes` | **Commit prefix:** `cr-r5:` | **Tasks:** T5.1, T5.2, T5.3, T5.4
 **Order:** T5.1, T5.2, T5.3, then T5.4. One task at a time; the orchestrator reviews each before the next. The swap and undo are in the second handoff.
 **Rules:** `Docs/orchestration/cr-r5-common-rules.md` (read first). **Task text (authoritative):** plan, "Task 5.1" to "Task 5.4" (Files, Interfaces, Step 1 test names, Step 3, Verify). **Design:** the briefing's "Item 1 build" section (error table and emails are verbatim sources).

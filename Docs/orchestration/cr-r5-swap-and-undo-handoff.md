@@ -1,6 +1,6 @@
 # Handoff: The swap transaction, undo and /auth/me (T5.5, T5.6)
 
-**Status:** OPEN (blocked until `cr-r5-migration-and-codes` is DONE; IN REVIEW when Codex reports, DONE after the Run 5 review gate)
+**Status:** DONE (Run 5 gate passed after fixes, tag cr-run-5-done 2 Nov 2026; deploy waits for the S.1 step; open owner decisions A to D are in the "Run 5 gate review" section below)
 **Run:** 5 of 7 | **Slug:** `cr-r5-swap-and-undo` | **Commit prefix:** `cr-r5:` | **Tasks:** T5.5, T5.6
 **Order:** T5.5 then T5.6. T5.7 (the gate) is the orchestrator's.
 **Rules:** `Docs/orchestration/cr-r5-common-rules.md` (read first). **Task text (authoritative):** plan, "Task 5.5" and "Task 5.6". **Design:** the briefing's "The single transaction, in order" list and its label tables.
