@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, Uuid
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, Uuid, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -37,6 +37,44 @@ class OtpRequest(Base):
     # "Get OTP" click (same shape as PendingIdentityVerification.consent_snapshot).
     # Verify copies it onto the pending record, so consent is timed at the click.
     consent_snapshot: Mapped[dict | None] = mapped_column(
+        JSON(none_as_null=True).with_variant(JSONB(none_as_null=True), "postgresql")
+    )
+    # NULL on rows created before migration 0050 means the original login
+    # purpose. New writes store an explicit purpose.
+    purpose: Mapped[str | None] = mapped_column(String)
+
+
+class HeadChangeRequest(Base):
+    __tablename__ = "head_change_requests"
+    __table_args__ = (
+        Index(
+            "ix_head_change_requests_one_pending_per_user",
+            "user_id",
+            unique=True,
+            sqlite_where=text("status = 'pending'"),
+            postgresql_where=text("status = 'pending'"),
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    from_member_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("household_members.id", ondelete="CASCADE"), nullable=False
+    )
+    to_member_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("household_members.id", ondelete="CASCADE"), nullable=False
+    )
+    current_email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    current_phone_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    new_email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    new_phone_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String, nullable=False, default="pending", server_default="pending")
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    undo_token_hash: Mapped[str | None] = mapped_column(String)
+    undo_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    snapshot: Mapped[dict | None] = mapped_column(
         JSON(none_as_null=True).with_variant(JSONB(none_as_null=True), "postgresql")
     )
 

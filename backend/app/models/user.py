@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, CheckConstraint, DateTime, ForeignKey, Index, String, Uuid
+from sqlalchemy import JSON, Boolean, CheckConstraint, DateTime, ForeignKey, Index, String, Uuid, false, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -70,6 +70,13 @@ class HouseholdMember(Base):
         # Non-unique by spec: the same detected PAN can sit on more than one
         # detected row of one user until those are merged.
         Index("ix_member_user_detected_pan_hash", "user_id", "detected_pan_hash"),
+        Index(
+            "ix_household_members_one_head_per_user",
+            "user_id",
+            unique=True,
+            sqlite_where=text("is_head"),
+            postgresql_where=text("is_head"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -116,3 +123,6 @@ class HouseholdMember(Base):
     detected_pan_encrypted: Mapped[str | None] = mapped_column(String)
     detected_pan_hash: Mapped[str | None] = mapped_column(String)
     pan_conflict: Mapped[MemberPanConflict | None] = mapped_column(enum_column(MemberPanConflict))
+    is_head: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
