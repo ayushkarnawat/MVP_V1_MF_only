@@ -1,30 +1,14 @@
-"""HTML body for the email-OTP message. Kept separate from email_provider.py
-so the markup can be tested in isolation and reworked without touching the
-provider/transport code -- see the OTP-email-template design discussion for
-the visual direction: no logo, accent text only (2026-10-01).
-
-Deliberately OTP-specific rather than a shared base template (YAGNI) --
-this is still the only email the app sends; extract a shared header/footer
-if and when a second email type shows up.
-"""
+"""HTML bodies for authentication and Head of Family emails."""
 
 from __future__ import annotations
 
 from html import escape
 
-# Brand accent (#22C55E, the app's --color-accent) is used only on the bold
-# highlighted words: at normal text size it is too light on white to read.
 SUPPORT_EMAIL = "support@unifolio.in"
 
 
-def otp_email_html(otp: str, ttl_minutes: int) -> str:
-    """Renders the OTP verification email's HTML body. `otp` is escaped even
-    though generate_otp() (otp.py) only ever produces digits -- this function
-    doesn't get to assume that stays true, and an unescaped value could break
-    the surrounding markup, not just look wrong."""
-    safe_otp = escape(otp)
-
-    return f"""\
+def _email_header() -> str:
+    return """\
 <!doctype html>
 <html>
 <head>
@@ -41,36 +25,127 @@ def otp_email_html(otp: str, ttl_minutes: int) -> str:
   /* Most inboxes (Gmail web/app, Outlook desktop) ignore this @font-face
      import and fall back to the system stack below -- Apple Mail and a
      few others are the exception. Harmless to include either way. */
-  body {{ margin: 0; background: #FFFFFF; color: #111111; }}
-  .wrap {{ font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 32px 24px; }}
-  .headline {{ font-size: 16px; line-height: 1.55; margin: 4px 0 26px; }}
-  .code-pill {{ color: #22C55E; font-weight: 700; }}
-  .support {{ color: #22C55E; font-weight: 700; text-decoration: none; }}
-  .otp-number {{ font-family: 'DM Sans', ui-monospace, "SF Mono", "Roboto Mono", Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 40px; font-weight: 700; letter-spacing: 0.06em; text-align: center; margin: 8px 0 26px; }}
-  .rule {{ height: 1px; border: none; background: #E5E5E5; margin: 0 0 22px; }}
-  .note {{ font-size: 13.5px; line-height: 1.65; color: #374151; margin: 0; }}
-  .disclaimer {{ font-size: 11.5px; line-height: 1.6; color: #6B7280; margin: 24px 0 0; }}
-  @media (min-width: 600px) {{
-    .otp-number {{ text-align: left; margin-left: 88px; }}
-  }}
-  @media (prefers-color-scheme: dark) {{
-    body {{ background: #0F0F0F !important; color: #F5F5F5 !important; }}
-    .code-pill {{ color: #22C55E !important; }}
-    .support {{ color: #22C55E !important; }}
-    .rule {{ background: #2A2A2A !important; }}
-    .note {{ color: #D4D4D4 !important; }}
-    .disclaimer {{ color: #9CA3AF !important; }}
-  }}
+  body { margin: 0; background: #FFFFFF; color: #111111; }
+  .wrap { font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 32px 24px; }
+  .headline { font-size: 16px; line-height: 1.55; margin: 4px 0 26px; }
+  .code-pill { color: #22C55E; font-weight: 700; }
+  .support { color: #22C55E; font-weight: 700; text-decoration: none; }
+  .otp-number { font-family: 'DM Sans', ui-monospace, "SF Mono", "Roboto Mono", Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 40px; font-weight: 700; letter-spacing: 0.06em; text-align: center; margin: 8px 0 26px; }
+  .rule { height: 1px; border: none; background: #E5E5E5; margin: 0 0 22px; }
+  .note { font-size: 13.5px; line-height: 1.65; color: #374151; margin: 0; }
+  .disclaimer { font-size: 11.5px; line-height: 1.6; color: #6B7280; margin: 24px 0 0; }
+  @media (min-width: 600px) {
+    .otp-number { text-align: left; margin-left: 88px; }
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #0F0F0F !important; color: #F5F5F5 !important; }
+    .code-pill { color: #22C55E !important; }
+    .support { color: #22C55E !important; }
+    .rule { background: #2A2A2A !important; }
+    .note { color: #D4D4D4 !important; }
+    .disclaimer { color: #9CA3AF !important; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <p class="headline">Your <span class="code-pill">verification code</span> to sign in to Unifolio is below.</p>
-  <div class="otp-number">{safe_otp}</div>
-  <hr class="rule">
-  <p class="note">This code expires in <b>{ttl_minutes} minutes</b>. If you didn't request it, contact us at <a class="support" href="mailto:{SUPPORT_EMAIL}">{SUPPORT_EMAIL}</a> and we'll look into it.</p>
+"""
+
+
+def _email_footer() -> str:
+    return f"""\
   <p class="disclaimer">This is an automated message from Unifolio. Please don't reply to this email. For help, write to {SUPPORT_EMAIL}.</p>
 </div>
 </body>
 </html>
 """
+
+
+def otp_email_html(
+    otp: str,
+    ttl_minutes: int,
+    *,
+    headline: str | None = None,
+    note: str | None = None,
+) -> str:
+    """Render an OTP email; omitted variants reproduce the sign-in HTML exactly."""
+    safe_otp = escape(otp)
+    headline_html = (
+        escape(headline)
+        if headline is not None
+        else 'Your <span class="code-pill">verification code</span> to sign in to Unifolio is below.'
+    )
+    note_html = (
+        escape(note)
+        if note is not None
+        else (
+            f'This code expires in <b>{ttl_minutes} minutes</b>. If you didn\'t request it, '
+            f'contact us at <a class="support" href="mailto:{SUPPORT_EMAIL}">{SUPPORT_EMAIL}</a> '
+            "and we'll look into it."
+        )
+    )
+
+    return f"""\
+{_email_header()}  <p class="headline">{headline_html}</p>
+  <div class="otp-number">{safe_otp}</div>
+  <hr class="rule">
+  <p class="note">{note_html}</p>
+{_email_footer()}"""
+
+
+def _notice_email_html(
+    *, headline: str, body: str, link_text: str | None = None, link_url: str | None = None
+) -> str:
+    link = ""
+    if link_text is not None and link_url is not None:
+        link = (
+            f'  <p class="note"><a class="support" href="{escape(link_url, quote=True)}">'
+            f"{escape(link_text)}</a></p>\n"
+        )
+    return (
+        _email_header()
+        + f'  <p class="headline">{escape(headline)}</p>\n'
+        + f'  <p class="note">{escape(body)}</p>\n'
+        + link
+        + _email_footer()
+    )
+
+
+def head_changed_email(
+    *, new_head_name: str, old_head_name: str, undo_url: str | None = None
+) -> tuple[str, str, str]:
+    """The notice goes to both people. The undo link is a working credential, so
+    pass `undo_url` only for the previous head's own addresses; every other
+    recipient gets the same notice with a support contact instead of a link."""
+    subject = "The Head of Family on Unifolio has changed."
+    facts = (
+        f"{new_head_name} is now Head of Family and signs in with this email. "
+        f"{old_head_name} remains a member and no longer signs in. All portfolio data is unchanged. "
+    )
+    if undo_url is None:
+        text = f"{facts}If this was not you, contact {SUPPORT_EMAIL}."
+        return subject, text, _notice_email_html(headline=subject, body=text)
+    body_without_link = f"{facts}If this was not you, use the undo link within 24 hours"
+    html = _notice_email_html(
+        headline=subject,
+        body=body_without_link + ".",
+        link_text="Undo the Head of Family change",
+        link_url=undo_url,
+    )
+    return subject, f"{body_without_link}: {undo_url}", html
+
+
+def head_change_undo_email(*, undo_url: str) -> tuple[str, str, str]:
+    subject = "Undo the Head of Family change."
+    body_without_link = (
+        "Use this link within 24 hours to restore the previous sign-in. It will fail with a clear "
+        "message if the old phone or email has been taken in the meantime"
+    )
+    body = f"{body_without_link}: {undo_url}"
+    html = _notice_email_html(
+        headline=subject,
+        body=body_without_link + ".",
+        link_text="Undo the Head of Family change",
+        link_url=undo_url,
+    )
+    return subject, body, html

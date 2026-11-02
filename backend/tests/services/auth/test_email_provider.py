@@ -15,7 +15,9 @@ def test_stub_email_provider_does_not_raise(caplog):
     caplog.set_level(logging.INFO)
     provider = StubEmailProvider()
     provider.send_email(to="a@example.com", subject="Test", body="Hello")
-    assert "a@example.com" in caplog.text
+    assert "Stub email suppressed" in caplog.text
+    assert "a@example.com" not in caplog.text
+    assert "Hello" not in caplog.text
 
 
 def test_get_email_provider_returns_stub_in_stub_mode(monkeypatch):
@@ -108,6 +110,26 @@ def test_ses_email_provider_raises_email_send_error_on_client_error(monkeypatch)
     with patch.object(email_provider_module.boto3, "client", return_value=mock_client):
         with pytest.raises(email_provider_module.EmailSendError):
             email_provider_module.SesEmailProvider().send_email(to="user@example.com", subject="s", body="b")
+
+
+def test_ses_failure_log_names_the_error_code_but_never_the_address(monkeypatch, caplog):
+    import logging
+
+    import app.services.auth.email_provider as email_provider_module
+
+    monkeypatch.setattr(email_provider_module.settings, "aws_region", "ap-south-1")
+    monkeypatch.setattr(email_provider_module.settings, "ses_from_email", "otp@unifolio.in")
+    mock_client = MagicMock()
+    mock_client.send_email.side_effect = ClientError(
+        {"Error": {"Code": "MessageRejected", "Message": "Email address not verified: user@example.com"}},
+        "SendEmail",
+    )
+    caplog.set_level(logging.ERROR)
+    with patch.object(email_provider_module.boto3, "client", return_value=mock_client):
+        with pytest.raises(email_provider_module.EmailSendError):
+            email_provider_module.SesEmailProvider().send_email(to="user@example.com", subject="s", body="b")
+    assert "MessageRejected" in caplog.text
+    assert "user@example.com" not in caplog.text
 
 
 def test_ses_email_provider_raises_when_region_unconfigured(monkeypatch):

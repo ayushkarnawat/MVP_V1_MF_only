@@ -16,6 +16,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session as DbSession
 
 from app.config import settings
@@ -53,6 +54,14 @@ def _identifier_filter(channel: Channel, identifier: str) -> dict[str, str]:
     return {"phone_number": identifier} if channel == "sms" else {"email": identifier}
 
 
+def _purpose_filter(purpose: str):
+    # Migration 0050 leaves historical rows NULL. They are sign-in rows,
+    # while every new write records its purpose explicitly.
+    if purpose == "login":
+        return or_(OtpRequest.purpose == "login", OtpRequest.purpose.is_(None))
+    return OtpRequest.purpose == purpose
+
+
 def _delivery_mode(channel: Channel) -> str:
     """Phone/SMS and email each have their own independent delivery-mode
     setting (OTP_DELIVERY_MODE / EMAIL_DELIVERY_MODE) so one channel can be
@@ -70,6 +79,10 @@ def create_otp_request(
     channel: Channel = "sms",
     metadata: RequestMetadata | None = None,
     consent_snapshot: dict | None = None,
+    *,
+    purpose: str = "login",
+    ttl_minutes: int = OTP_TTL_MINUTES,
+    commit: bool = True,
 ) -> tuple[OtpRequest, str | None]:
     """Creates or reuses an OtpRequest for either channel. Returns
     (request, raw_otp) — raw_otp is only non-None in dev-stub delivery
@@ -109,6 +122,7 @@ def create_otp_request(
     existing = (
         db.query(OtpRequest)
         .filter_by(verified_at=None, **_identifier_filter(channel, identifier))
+        .filter(_purpose_filter(purpose))
         .order_by(OtpRequest.created_at.desc())
         .first()
     )
@@ -132,10 +146,10 @@ def create_otp_request(
             to=identifier,
             subject="Your Unifolio verification code",
             body=(
-                f"Your Unifolio verification code is {otp}. It expires in {OTP_TTL_MINUTES} minutes. "
+                f"Your Unifolio verification code is {otp}. It expires in {ttl_minutes} minutes. "
                 f"If you didn't request it, contact us at {SUPPORT_EMAIL}."
             ),
-            html_body=otp_email_html(otp, OTP_TTL_MINUTES),
+            html_body=otp_email_html(otp, ttl_minutes),
         )
 
     meta = metadata or RequestMetadata()
@@ -147,8 +161,9 @@ def create_otp_request(
         # insert-always design).
         request = existing
         request.otp_hash = _hash_otp(otp)
-        request.expires_at = now + timedelta(minutes=OTP_TTL_MINUTES)
+        request.expires_at = now + timedelta(minutes=ttl_minutes)
         request.attempt_count = 0
+        request.purpose = purpose
         # Final-review fix (2026-09-28): the throttle above is measured from
         # created_at. Without this reset, created_at stays pinned to the
         # first-ever send, so once 60s have passed once, EVERY later resend
@@ -160,8 +175,9 @@ def create_otp_request(
             phone_number=identifier if channel == "sms" else None,
             email=identifier if channel == "email" else None,
             otp_hash=_hash_otp(otp),
-            expires_at=now + timedelta(minutes=OTP_TTL_MINUTES),
+            expires_at=now + timedelta(minutes=ttl_minutes),
             created_at=now,
+            purpose=purpose,
         )
         db.add(request)
 
@@ -178,7 +194,8 @@ def create_otp_request(
     if consent_snapshot is not None:
         request.consent_snapshot = consent_snapshot
 
-    db.commit()
+    if commit:
+        db.commit()
 
     raw_otp = otp if delivery_mode == "stub" else None
     return request, raw_otp
@@ -211,13 +228,22 @@ class OtpVerificationError(Exception):
     """Any OTP verification failure — no pending request, expired, wrong code, or too many attempts."""
 
 
-def verify_otp(db: DbSession, identifier: str, otp: str, channel: Channel = "sms") -> OtpRequest:
+def verify_otp(
+    db: DbSession,
+    identifier: str,
+    otp: str,
+    channel: Channel = "sms",
+    *,
+    purpose: str = "login",
+    commit: bool = True,
+) -> OtpRequest:
     """Verifies otp against the latest unverified OtpRequest for identifier
     on the given channel. Raises OtpVerificationError on any failure. On
     success, marks the request verified and returns it."""
     request = (
         db.query(OtpRequest)
         .filter_by(verified_at=None, **_identifier_filter(channel, identifier))
+        .filter(_purpose_filter(purpose))
         .order_by(OtpRequest.created_at.desc())
         .first()
     )
@@ -233,9 +259,11 @@ def verify_otp(db: DbSession, identifier: str, otp: str, channel: Channel = "sms
 
     if request.otp_hash != _hash_otp(otp):
         request.attempt_count += 1
-        db.commit()
+        if commit:
+            db.commit()
         raise OtpVerificationError("Incorrect OTP.")
 
     request.verified_at = datetime.now(timezone.utc)
-    db.commit()
+    if commit:
+        db.commit()
     return request

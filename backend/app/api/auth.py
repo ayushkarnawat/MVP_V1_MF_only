@@ -116,7 +116,7 @@ def signup_email(body: SignupEmailBody, request: Request, db: DbSession = Depend
         consent_snapshot=consent_snapshot,
     )
     try:
-        _, raw_otp = create_otp_request(db, body.email, channel="email")
+        _, raw_otp = create_otp_request(db, body.email, channel="email", purpose="login")
     except OtpRequestThrottledError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     except EmailSendError as exc:
@@ -151,7 +151,13 @@ def request_email_otp(body: EmailOtpRequestBody, request: Request, db: DbSession
         raise HTTPException(status_code=404, detail="No account found for that email — sign up instead.")
 
     try:
-        _, raw_otp = create_otp_request(db, body.email, channel="email", metadata=capture_request_metadata(request))
+        _, raw_otp = create_otp_request(
+            db,
+            body.email,
+            channel="email",
+            metadata=capture_request_metadata(request),
+            purpose="login",
+        )
     except OtpRequestThrottledError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     except EmailSendError as exc:
@@ -162,7 +168,7 @@ def request_email_otp(body: EmailOtpRequestBody, request: Request, db: DbSession
 @router.post("/email-otp/verify", response_model=OtpVerifyResponse | PhoneRequiredResponse)
 def verify_email_otp(body: EmailOtpVerifyBody, db: DbSession = Depends(get_db)):
     try:
-        verify_otp(db, body.email, body.otp, channel="email")
+        verify_otp(db, body.email, body.otp, channel="email", purpose="login")
     except OtpVerificationError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
@@ -294,7 +300,11 @@ def request_otp(body: OtpRequestBody, request: Request, db: DbSession = Depends(
 
     try:
         _, raw_otp = create_otp_request(
-            db, body.phone_number, metadata=capture_request_metadata(request), consent_snapshot=consent_snapshot
+            db,
+            body.phone_number,
+            metadata=capture_request_metadata(request),
+            consent_snapshot=consent_snapshot,
+            purpose="login",
         )
     except OtpRequestThrottledError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
@@ -307,7 +317,7 @@ def request_otp(body: OtpRequestBody, request: Request, db: DbSession = Depends(
 )
 def verify_otp_route(body: OtpVerifyBody, request: Request, db: DbSession = Depends(get_db)):
     try:
-        otp_row = verify_otp(db, body.phone_number, body.otp)
+        otp_row = verify_otp(db, body.phone_number, body.otp, purpose="login")
     except OtpVerificationError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
@@ -604,7 +614,9 @@ def request_contact_change(
     _assert_contact_available(db, user=user, channel=body.channel, identifier=body.identifier)
     otp_channel = "email" if body.channel == "email" else "sms"
     try:
-        _, raw_otp = create_otp_request(db, body.identifier, channel=otp_channel)
+        _, raw_otp = create_otp_request(
+            db, body.identifier, channel=otp_channel, purpose="login"
+        )
     except OtpRequestThrottledError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     except EmailSendError as exc:
@@ -621,7 +633,9 @@ def verify_contact_change(
     _assert_contact_available(db, user=user, channel=body.channel, identifier=body.identifier)
     otp_channel = "email" if body.channel == "email" else "sms"
     try:
-        verify_otp(db, body.identifier, body.otp, channel=otp_channel)
+        verify_otp(
+            db, body.identifier, body.otp, channel=otp_channel, purpose="login"
+        )
     except OtpVerificationError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 

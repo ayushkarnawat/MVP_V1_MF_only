@@ -35,13 +35,10 @@ class EmailProvider(Protocol):
 
 
 class StubEmailProvider:
-    """Logs instead of sending — mirrors how phone OTP behaves in stub mode
-    (see otp.py's per-channel _delivery_mode() helper). Logs only the plain
-    body, not html_body -- dumping raw HTML into dev logs would be noise,
-    and the plain body already tells you what the email contains."""
+    """Logs a delivery event without identifiers or message contents."""
 
     def send_email(self, to: str, subject: str, body: str, html_body: str | None = None) -> None:
-        logger.info("StubEmailProvider: would send to=%s subject=%r body=%r", to, subject, body)
+        logger.info("Stub email suppressed")
 
 
 class SesEmailProvider:
@@ -77,7 +74,10 @@ class SesEmailProvider:
                 },
             )
         except (BotoCoreError, ClientError) as exc:
-            logger.error("SesEmailProvider: send to %s failed: %s", to, exc)
+            # The error code names the cause (for example MessageRejected) and never the address;
+            # the full exception text can carry the recipient, so it is not logged.
+            code = exc.response.get("Error", {}).get("Code") if isinstance(exc, ClientError) else None
+            logger.error("SES email send failed: %s", code or type(exc).__name__)
             raise EmailSendError("We couldn't send that email right now.") from exc
 
 

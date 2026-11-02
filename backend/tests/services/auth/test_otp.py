@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from inspect import signature
 
 import pytest
 from sqlalchemy import create_engine
@@ -19,6 +20,103 @@ def _session():
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine, tables=[OtpRequest.__table__])
     return sessionmaker(autoflush=False, bind=engine)()
+
+
+def test_head_change_code_cannot_sign_anyone_in():
+    db = _session()
+    _, raw_otp = create_otp_request(
+        db, "+919999999999", purpose="head_change", ttl_minutes=10
+    )
+
+    with pytest.raises(OtpVerificationError, match="No pending"):
+        verify_otp(db, "+919999999999", raw_otp, purpose="login")
+
+
+def test_login_code_cannot_confirm_a_head_change():
+    db = _session()
+    _, raw_otp = create_otp_request(db, "+919999999999")
+
+    with pytest.raises(OtpVerificationError, match="No pending"):
+        verify_otp(db, "+919999999999", raw_otp, purpose="head_change")
+
+
+def test_null_purpose_on_an_old_row_means_sign_in():
+    db = _session()
+    request, raw_otp = create_otp_request(db, "+919999999999")
+    request.purpose = None
+    db.commit()
+
+    verified = verify_otp(db, "+919999999999", raw_otp)
+
+    assert verified.verified_at is not None
+
+
+def test_ttl_is_10_minutes_for_head_change_and_5_for_login():
+    db = _session()
+    login, _ = create_otp_request(db, "+919999999999")
+    head_change, _ = create_otp_request(
+        db, "+918888888888", purpose="head_change", ttl_minutes=10
+    )
+
+    assert login.expires_at - login.created_at == timedelta(minutes=5)
+    assert head_change.expires_at - head_change.created_at == timedelta(minutes=10)
+
+
+def test_stub_mode_returns_the_code_for_sms_and_email_and_ses_mode_does_not_return_it(monkeypatch):
+    import app.services.auth.otp as otp_module
+
+    db = _session()
+    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "stub")
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "stub")
+    _, sms_code = create_otp_request(db, "+919999999999", purpose="login")
+    _, email_code = create_otp_request(
+        db, "stub@example.com", channel="email", purpose="login"
+    )
+
+    class FakeProvider:
+        def send_email(self, to, subject, body, html_body=None):
+            pass
+
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "ses")
+    monkeypatch.setattr(otp_module, "get_email_provider", lambda: FakeProvider())
+    _, ses_code = create_otp_request(
+        db, "ses@example.com", channel="email", purpose="login"
+    )
+
+    assert sms_code is not None
+    assert email_code is not None
+    assert ses_code is None
+
+
+def test_purpose_and_commit_are_keyword_only_without_renaming_existing_parameters():
+    create_parameters = list(signature(create_otp_request).parameters.values())
+    verify_parameters = list(signature(verify_otp).parameters.values())
+
+    assert [parameter.name for parameter in create_parameters[:5]] == [
+        "db", "identifier", "channel", "metadata", "consent_snapshot"
+    ]
+    assert [parameter.name for parameter in verify_parameters[:4]] == [
+        "db", "identifier", "otp", "channel"
+    ]
+    for parameters in (create_parameters, verify_parameters):
+        purpose = next(parameter for parameter in parameters if parameter.name == "purpose")
+        commit = next(parameter for parameter in parameters if parameter.name == "commit")
+        assert purpose.kind.name == "KEYWORD_ONLY" and purpose.default == "login"
+        assert commit.kind.name == "KEYWORD_ONLY" and commit.default is True
+
+
+def test_commit_can_be_deferred_for_create_and_verify(monkeypatch):
+    db = _session()
+    real_commit = db.commit
+    commits = []
+    monkeypatch.setattr(db, "commit", lambda: commits.append(True))
+
+    _, raw_otp = create_otp_request(db, "+919999999999", commit=False)
+    assert commits == []
+    real_commit()
+
+    verify_otp(db, "+919999999999", raw_otp, commit=False)
+    assert commits == []
 
 
 def test_create_otp_request_returns_raw_otp_in_stub_mode(monkeypatch):
