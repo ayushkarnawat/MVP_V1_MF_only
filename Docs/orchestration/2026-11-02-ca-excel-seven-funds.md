@@ -1,6 +1,6 @@
 # Excel for the chartered accountant: seven funds, five parameters (to build after the deploy)
 
-**Status (2 Nov 2026): NOT SENT, scheduled for after the S.1 staging deploy.** The owner's decision: one complete Excel, sent once, not in parts; holdings as of the **September 2026** disclosures (no waiting for the October files around 10 Nov). Owed items are also in the deploy ledger (`2026-10-31-staging-deploy-guide-change-requests.md`, section 4.6).
+**Status (2 Nov 2026): NOT SENT, scheduled for after the S.1 staging deploy. The step-by-step runbook is `2026-11-02-ca-excel-runbook.md` (trigger phrase inside).** The owner's decision: one complete Excel, sent once, not in parts; holdings as of the **September 2026** disclosures (no waiting for the October files around 10 Nov). Owed items are also in the deploy ledger (`2026-10-31-staging-deploy-guide-change-requests.md`, section 4.6).
 
 ## What he asked for
 Funds: Nippon India Large Cap, Motilal Oswal (one of three, see below), Axis Multicap, Bandhan Small Cap, ICICI Prudential Flexi Cap, Parag Parikh Flexi Cap, and the Motilal momentum fund. Parameters: (1) large, mid and small allocation, (2) category average comparison, (3) ranking, (4) P/E and P/B, (5) top 10 stock holdings with %. Purpose: he checks our data for accuracy.
