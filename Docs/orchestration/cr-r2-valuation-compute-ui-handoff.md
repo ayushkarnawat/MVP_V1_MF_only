@@ -1,6 +1,6 @@
 # Handoff: Per-fund valuation and the Valuation by Fund screen (T2.3, T2.4)
 
-**Status:** OPEN (IN REVIEW when Codex reports, DONE after the Run 2 review gate)
+**Status:** DONE (Run 2 review gate passed; tag cr-run-2-done; timing baseline in 2026-11-02-g2-baselines-results.md, after-deploy comparison at S.1)
 **Run:** 2 of 7 | **Slug:** `cr-r2-valuation-compute-ui` | **Commit prefix:** `cr-r2:` | **Tasks:** T2.3, then T2.4
 **Order:** After T2.2 (consumes `SchemeReportedValuation`). T2.4 after T2.3.
 **Rules:** `Docs/orchestration/cr-r2-common-rules.md` (read first). **Task text (authoritative):** `Docs/superpowers/plans/2026-10-31-change-requests-implementation-plan.md`, the task sections named above (Files, Interfaces, Step 1 test names, Step 3, Verify).

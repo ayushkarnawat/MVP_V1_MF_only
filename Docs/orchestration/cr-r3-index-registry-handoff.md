@@ -1,6 +1,6 @@
 # Handoff: Index registry, new NSE indices, series checks (T3.1, T3.1b)
 
-**Status:** OPEN (IN REVIEW when Codex reports, DONE after the Run 3 review gate)
+**Status:** DONE (Run 3 review gate passed; tag cr-run-3-done 2 Nov 2026; real-data checks and new-code timing wait for the S.1 deploy, see 2026-11-02-g2-baselines-results.md)
 **Run:** 3 of 7 | **Slug:** `cr-r3-index-registry` | **Commit prefix:** `cr-r3:` | **Tasks:** T3.1, T3.1b
 **Order:** First in Run 3. T3.2 and T3.3 edit migration 0049 in place after this.
 **Rules:** `Docs/orchestration/cr-r3-common-rules.md` (read first), then `cr-r2-common-rules.md`. **Task text (authoritative):** plan, the task sections named above (Files, Interfaces, Step 1 test names, Step 3, Verify).

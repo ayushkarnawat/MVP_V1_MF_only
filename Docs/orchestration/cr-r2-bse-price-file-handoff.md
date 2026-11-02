@@ -1,6 +1,6 @@
 # Handoff: BSE price file for BSE-only stocks (T2.11)
 
-**Status:** OPEN (IN REVIEW when Codex reports, DONE after the Run 2 follow-up review)
+**Status:** DONE (Run 2 review gate passed; tag cr-run-2-done; timing baseline in 2026-11-02-g2-baselines-results.md, after-deploy comparison at S.1)
 **Run:** 2 of 7 (follow-on) | **Slug:** `cr-r2-bse-price-file` | **Commit prefix:** `cr-r2:` | **Tasks:** T2.11 (owner go given 31 Oct)
 **Rules:** `Docs/orchestration/cr-r2-common-rules.md` (read first). **Task text (authoritative):** plan, "Task 2.11 (gate G7: go): Phase B, the BSE price file".
 

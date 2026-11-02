@@ -1,6 +1,6 @@
 # Handoff: Consolidated holdings in the holdings service (T4.1)
 
-**Status:** OPEN (IN REVIEW when Codex reports, DONE after the Run 4 review gate)
+**Status:** DONE (Run 4 two review rounds passed; tag cr-run-4-done 2 Nov 2026; new-code timing waits for the S.1 deploy)
 **Run:** 4 of 7 | **Slug:** `cr-r4-consolidation-backend` | **Commit prefix:** `cr-r4:` | **Tasks:** T4.1
 **Order:** First in Run 4; T4.2 (frontend) consumes its payload.
 **Rules:** `Docs/orchestration/cr-r4-common-rules.md` (read first). **Task text (authoritative):** plan, "Task 4.1" (Files, Interfaces, Step 1 test names, Step 3, Verify).

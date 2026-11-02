@@ -1,6 +1,6 @@
 # Handoff: Family holdings table with split bar and member rows (T4.2)
 
-**Status:** OPEN (IN REVIEW when Codex reports, DONE after the Run 4 review gate)
+**Status:** DONE (Run 4 two review rounds passed; tag cr-run-4-done 2 Nov 2026; new-code timing waits for the S.1 deploy)
 **Run:** 4 of 7 | **Slug:** `cr-r4-holdings-ui` | **Commit prefix:** `cr-r4:` | **Tasks:** T4.2
 **Order:** After T4.1.
 **Rules:** `Docs/orchestration/cr-r4-common-rules.md` (read first). **Task text (authoritative):** plan, "Task 4.2".

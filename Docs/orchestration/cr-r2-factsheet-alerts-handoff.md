@@ -1,6 +1,6 @@
 # Handoff: Missed-month alert for the hand-import houses (T2.2b)
 
-**Status:** OPEN (IN REVIEW when Codex reports, DONE after the Run 2 review gate)
+**Status:** DONE (Run 2 review gate passed; tag cr-run-2-done; timing baseline in 2026-11-02-g2-baselines-results.md, after-deploy comparison at S.1)
 **Run:** 2 of 7 | **Slug:** `cr-r2-factsheet-alerts` | **Commit prefix:** `cr-r2:` | **Tasks:** T2.2b
 **Order:** After T2.2 (both touch `amfi_factsheet_client.py`).
 **Rules:** `Docs/orchestration/cr-r2-common-rules.md` (read first). **Task text (authoritative):** `Docs/superpowers/plans/2026-10-31-change-requests-implementation-plan.md`, the task sections named above (Files, Interfaces, Step 1 test names, Step 3, Verify).

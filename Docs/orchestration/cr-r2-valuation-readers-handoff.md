@@ -1,6 +1,6 @@
 # Handoff: Migration 0047 and factsheet P/E and P/B readers (T2.1, T2.2)
 
-**Status:** OPEN (IN REVIEW when Codex reports, DONE after the Run 2 review gate)
+**Status:** DONE (Run 2 review gate passed; tag cr-run-2-done; timing baseline in 2026-11-02-g2-baselines-results.md, after-deploy comparison at S.1)
 **Run:** 2 of 7 | **Slug:** `cr-r2-valuation-readers` | **Commit prefix:** `cr-r2:` | **Tasks:** T2.1, then T2.2
 **Order:** T2.1 -> T2.2 (T2.2 stores into T2.1's table). First task of Run 2.
 **Rules:** `Docs/orchestration/cr-r2-common-rules.md` (read first). **Task text (authoritative):** `Docs/superpowers/plans/2026-10-31-change-requests-implementation-plan.md`, the task sections named above (Files, Interfaces, Step 1 test names, Step 3, Verify).

@@ -1,6 +1,6 @@
 # Handoff: Hide Fund Quality Scores on Other Analytics (T2.9)
 
-**Status:** OPEN (IN REVIEW when Codex reports, DONE after the Run 2 review gate)
+**Status:** DONE (Run 2 review gate passed; tag cr-run-2-done; timing baseline in 2026-11-02-g2-baselines-results.md, after-deploy comparison at S.1)
 **Run:** 2 of 7 | **Slug:** `cr-r2-hide-quality-scores` | **Commit prefix:** `cr-r2:` | **Tasks:** T2.9
 **Order:** Last frontend task of Run 2: after T2.6 and T2.8 (shares `OtherAnalyticsPage.tsx` and `otherLogic.ts`).
 **Rules:** `Docs/orchestration/cr-r2-common-rules.md` (read first). **Task text (authoritative):** `Docs/superpowers/plans/2026-10-31-change-requests-implementation-plan.md`, the task sections named above (Files, Interfaces, Step 1 test names, Step 3, Verify).
