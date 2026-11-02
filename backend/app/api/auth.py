@@ -29,6 +29,15 @@ from app.services.auth.identity import (
 from app.services.auth.account_deletion import reactivate_account, schedule_account_deletion
 from app.services.auth.email_provider import EmailSendError
 from app.services.auth.google_oauth import GoogleTokenVerificationError, verify_google_id_token
+from app.services.auth.head_change import (
+    HeadChangeError,
+    cancel_head_change,
+    get_pending_head_change,
+    request_head_change_start_code,
+    resend_head_change_code,
+    start_head_change,
+    verify_head_change_code,
+)
 from app.services.auth.otp import OtpRequestThrottledError, OtpVerificationError, create_otp_request, verify_otp
 from app.services.auth.schemas import (
     EmailOtpRequestBody,
@@ -55,6 +64,14 @@ from app.services.auth.schemas import (
     AccountDeletionBody,
     ContactChangeRequestBody,
     ContactChangeVerifyBody,
+    HeadChangeCodeResponse,
+    HeadChangeResendBody,
+    HeadChangeResendResponse,
+    HeadChangeStartBody,
+    HeadChangeStartResponse,
+    HeadChangeStatusResponse,
+    HeadChangeVerifyBody,
+    PendingHeadChangeResponse,
 ) #to validate api requests
 from app.services.auth.session import create_session, get_active_user, get_current_session, get_current_user, refresh_session
 from app.services.legal.consent import (
@@ -683,6 +700,148 @@ def verify_contact_change(
         user.phone_number = body.identifier
     db.commit()
     return _me_response(user, db)
+
+
+def _head_change_http(exc: HeadChangeError) -> HTTPException:
+    return HTTPException(
+        status_code=exc.status_code,
+        detail={"code": exc.code, "message": exc.message},
+    )
+
+
+def _head_change_status_response(status) -> HeadChangeStatusResponse:
+    return HeadChangeStatusResponse(
+        request_id=status.request_id,
+        status=status.status,
+        expires_in_seconds=status.expires_in_seconds,
+        verified_count=status.verified_count,
+        ready=status.ready,
+        current_email_verified=status.current_email_verified,
+        current_phone_verified=status.current_phone_verified,
+        new_email_verified=status.new_email_verified,
+        new_phone_verified=status.new_phone_verified,
+    )
+
+
+def _get_head_change_active_user(
+    user: User = Depends(get_current_user),
+) -> User:
+    try:
+        return get_active_user(user)
+    except HTTPException as exc:
+        if exc.status_code != 403:
+            raise
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "account_pending_deletion",
+                "message": "This account is scheduled for deletion. Reactivate it first.",
+            },
+        ) from exc
+
+
+@router.post("/head-change/start-code", response_model=OtpRequestResponse)
+def request_head_change_start_code_route(
+    user: User = Depends(_get_head_change_active_user),
+    db: DbSession = Depends(get_db),
+):
+    try:
+        _, raw_otp = request_head_change_start_code(db, user)
+    except HeadChangeError as exc:
+        raise _head_change_http(exc) from exc
+    return OtpRequestResponse(message="Code sent.", otp=raw_otp)
+
+
+@router.post("/head-change/start", response_model=HeadChangeStartResponse)
+def start_head_change_route(
+    body: HeadChangeStartBody,
+    user: User = Depends(_get_head_change_active_user),
+    db: DbSession = Depends(get_db),
+):
+    try:
+        result = start_head_change(
+            db, user, body.to_member_id, body.current_head_code
+        )
+    except HeadChangeError as exc:
+        raise _head_change_http(exc) from exc
+    return HeadChangeStartResponse(
+        request=_head_change_status_response(result.status),
+        codes=[
+            HeadChangeCodeResponse(
+                party=code.party,
+                channel=code.channel,
+                verified=code.verified,
+                otp=code.otp,
+            )
+            for code in result.codes
+        ],
+    )
+
+
+@router.post("/head-change/verify", response_model=HeadChangeStatusResponse)
+def verify_head_change_code_route(
+    body: HeadChangeVerifyBody,
+    user: User = Depends(_get_head_change_active_user),
+    db: DbSession = Depends(get_db),
+):
+    try:
+        status = verify_head_change_code(
+            db,
+            user,
+            body.request_id,
+            body.party,
+            body.channel,
+            body.code,
+        )
+    except HeadChangeError as exc:
+        raise _head_change_http(exc) from exc
+    return _head_change_status_response(status)
+
+
+@router.post("/head-change/resend", response_model=HeadChangeResendResponse)
+def resend_head_change_code_route(
+    body: HeadChangeResendBody,
+    user: User = Depends(_get_head_change_active_user),
+    db: DbSession = Depends(get_db),
+):
+    try:
+        result = resend_head_change_code(
+            db, user, body.request_id, body.party, body.channel
+        )
+    except HeadChangeError as exc:
+        raise _head_change_http(exc) from exc
+    return HeadChangeResendResponse(
+        request=_head_change_status_response(result.status),
+        code=HeadChangeCodeResponse(
+            party=result.code.party,
+            channel=result.code.channel,
+            verified=result.code.verified,
+            otp=result.code.otp,
+        ),
+    )
+
+
+@router.post("/head-change/cancel", response_model=HeadChangeStatusResponse)
+def cancel_head_change_route(
+    user: User = Depends(_get_head_change_active_user),
+    db: DbSession = Depends(get_db),
+):
+    try:
+        status = cancel_head_change(db, user)
+    except HeadChangeError as exc:
+        raise _head_change_http(exc) from exc
+    return _head_change_status_response(status)
+
+
+@router.get("/head-change/pending", response_model=PendingHeadChangeResponse)
+def get_pending_head_change_route(
+    user: User = Depends(_get_head_change_active_user),
+    db: DbSession = Depends(get_db),
+):
+    status = get_pending_head_change(db, user)
+    return PendingHeadChangeResponse(
+        request=_head_change_status_response(status) if status is not None else None
+    )
 
 
 @router.patch("/me", response_model=MeResponse)

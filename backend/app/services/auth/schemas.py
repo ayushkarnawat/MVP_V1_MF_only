@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from typing import Literal
 
@@ -241,3 +242,54 @@ class ContactChangeRequestBody(BaseModel):
 
 class ContactChangeVerifyBody(ContactChangeRequestBody):
     otp: str
+
+
+class HeadChangeStartBody(BaseModel):
+    to_member_id: uuid.UUID
+    current_head_code: str
+
+
+class HeadChangeVerifyBody(BaseModel):
+    request_id: uuid.UUID
+    party: Literal["current", "new"]
+    channel: Literal["email", "phone"]
+    code: str
+
+
+class HeadChangeResendBody(BaseModel):
+    request_id: uuid.UUID
+    party: Literal["current", "new"]
+    channel: Literal["email", "phone"]
+
+
+class HeadChangeCodeResponse(BaseModel):
+    party: Literal["current", "new"]
+    channel: Literal["email", "phone"]
+    verified: bool
+    otp: str | None = None
+
+
+class HeadChangeStatusResponse(BaseModel):
+    request_id: uuid.UUID
+    status: Literal["pending", "ready", "cancelled", "expired"]
+    expires_in_seconds: int
+    verified_count: int
+    ready: bool
+    current_email_verified: bool
+    current_phone_verified: bool
+    new_email_verified: bool
+    new_phone_verified: bool
+
+
+class HeadChangeStartResponse(BaseModel):
+    request: HeadChangeStatusResponse
+    codes: list[HeadChangeCodeResponse]
+
+
+class HeadChangeResendResponse(BaseModel):
+    request: HeadChangeStatusResponse
+    code: HeadChangeCodeResponse
+
+
+class PendingHeadChangeResponse(BaseModel):
+    request: HeadChangeStatusResponse | None
