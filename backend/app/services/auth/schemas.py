@@ -244,6 +244,10 @@ class ContactChangeVerifyBody(ContactChangeRequestBody):
     otp: str
 
 
+class HeadChangeStartCodeBody(BaseModel):
+    to_member_id: uuid.UUID
+
+
 class HeadChangeStartBody(BaseModel):
     to_member_id: uuid.UUID
     current_head_code: str

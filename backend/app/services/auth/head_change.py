@@ -14,6 +14,7 @@ from app.models.user import HouseholdMember, User
 from app.services.auth.email_provider import EmailSendError
 from app.services.auth.head_eligibility import EligibilityReason, member_eligibility
 from app.services.auth.otp import (
+    EmailContent,
     OtpRequestThrottledError,
     OtpVerificationError,
     create_otp_request,
@@ -23,6 +24,18 @@ from app.services.dashboard.member_details import MemberNotFoundError
 
 
 HEAD_CHANGE_TTL_MINUTES = 10
+
+START_CODE_ELIGIBILITY_REASONS = {
+    "no_email",
+    "no_phone",
+    "no_pan",
+    "label_missing",
+    "same_email_as_head",
+    "same_phone_as_head",
+    "head_change_already_open",
+    "import_in_progress",
+    "account_pending_deletion",
+}
 
 Party = Literal["current", "new"]
 Channel = Literal["email", "phone"]
@@ -111,10 +124,36 @@ def _delivery_error(exc: Exception) -> HeadChangeError:
     )
 
 
+def _email_content(*, party: Party, current_name: str, new_name: str) -> EmailContent:
+    if party == "current":
+        subject = "Confirm a change of Head of Family."
+        headline = "Your confirmation code to change the Head of Family on Unifolio is below."
+        note = (
+            f"This code expires in 10 minutes. It will make {new_name} the Head of Family "
+            "and move sign-in to them. If you did not ask for this, do not share the code "
+            "and contact support@unifolio.in."
+        )
+    else:
+        subject = "Confirm you are becoming Head of Family."
+        headline = "Your confirmation code to become Head of Family on Unifolio is below."
+        note = (
+            f"This code expires in 10 minutes. {current_name} asked to hand this family's "
+            "account to you. After you both confirm, you will sign in with this email and "
+            "phone number. If this is unexpected, ignore this email."
+        )
+    return EmailContent(
+        subject=subject,
+        text=f"{headline}\n\n{{otp}}\n\n{note}",
+        headline=headline,
+        note=note,
+    )
+
+
 def request_head_change_start_code(
-    db: DbSession, user: User
+    db: DbSession, user: User, to_member_id: uuid.UUID
 ) -> tuple[OtpRequest, str | None]:
-    _current_head(db, user)
+    _expire_stale_request(db, user)
+    head = _current_head(db, user)
     if not user.email:
         raise _error(
             409,
@@ -122,12 +161,29 @@ def request_head_change_start_code(
             "Add and verify an email address on your account first.",
         )
     try:
+        reasons = member_eligibility(db, user, to_member_id)
+    except MemberNotFoundError as exc:
+        raise _error(404, exc.code, exc.message) from exc
+    reason = next(
+        (item for item in reasons if item in START_CODE_ELIGIBILITY_REASONS),
+        None,
+    )
+    if reason is not None:
+        raise _reason_error(reason)
+    candidate = db.get(HouseholdMember, to_member_id)
+    assert candidate is not None
+    try:
         return create_otp_request(
             db,
             user.email,
             channel="email",
             purpose="head_change",
             ttl_minutes=HEAD_CHANGE_TTL_MINUTES,
+            email_content=_email_content(
+                party="current",
+                current_name=head.name,
+                new_name=candidate.name,
+            ),
         )
     except (OtpRequestThrottledError, EmailSendError) as exc:
         db.rollback()
@@ -383,6 +439,15 @@ def start_head_change(
                 purpose="head_change",
                 ttl_minutes=HEAD_CHANGE_TTL_MINUTES,
                 commit=False,
+                email_content=(
+                    _email_content(
+                        party="new",
+                        current_name=head.name,
+                        new_name=candidate.name,
+                    )
+                    if party == "new" and channel == "email"
+                    else None
+                ),
             )
             codes.append(HeadChangeCode(party, channel, False, raw_otp))
         db.commit()
@@ -437,6 +502,9 @@ def resend_head_change_code(
 ) -> HeadChangeResendResult:
     request = _owned_request(db, user, request_id)
     identifier = _destination(request, party, channel)
+    current_head = db.get(HouseholdMember, request.from_member_id)
+    new_head = db.get(HouseholdMember, request.to_member_id)
+    assert current_head is not None and new_head is not None
     try:
         _, raw_otp = create_otp_request(
             db,
@@ -444,6 +512,15 @@ def resend_head_change_code(
             channel="email" if channel == "email" else "sms",
             purpose="head_change",
             ttl_minutes=HEAD_CHANGE_TTL_MINUTES,
+            email_content=(
+                _email_content(
+                    party=party,
+                    current_name=current_head.name,
+                    new_name=new_head.name,
+                )
+                if channel == "email"
+                else None
+            ),
         )
     except (OtpRequestThrottledError, EmailSendError) as exc:
         db.rollback()

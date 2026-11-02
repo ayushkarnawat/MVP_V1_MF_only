@@ -60,14 +60,16 @@ def _head_change():
     return head_change
 
 
-def _start_code(db, user):
-    _, otp = _head_change().request_head_change_start_code(db, user)
+def _start_code(db, user, candidate):
+    _, otp = _head_change().request_head_change_start_code(db, user, candidate.id)
     assert otp is not None
     return otp
 
 
 def _start(db, user, candidate):
-    return _head_change().start_head_change(db, user, candidate.id, _start_code(db, user))
+    return _head_change().start_head_change(
+        db, user, candidate.id, _start_code(db, user, candidate)
+    )
 
 
 def _code(result, party, channel):
@@ -82,6 +84,172 @@ def _assert_error(exc, *, status, code, message):
     assert exc.value.status_code == status
     assert exc.value.code == code
     assert exc.value.message == message
+
+
+def _record_email(monkeypatch):
+    from app.config import settings
+    from app.services.auth import otp as otp_module
+
+    sent = []
+
+    class RecordingProvider:
+        def send_email(self, to, subject, body, html_body=None):
+            sent.append(
+                {"to": to, "subject": subject, "body": body, "html_body": html_body}
+            )
+
+    monkeypatch.setattr(settings, "email_delivery_mode", "ses")
+    monkeypatch.setattr(otp_module, "generate_otp", lambda: "555555")
+    monkeypatch.setattr(otp_module, "get_email_provider", lambda: RecordingProvider())
+    return sent
+
+
+def test_start_code_email_names_the_candidate_and_uses_current_head_wording(monkeypatch):
+    db = _session()
+    user, _, candidate = _household(db)
+    candidate.name = 'Candidate <Admin> & "Lead"'
+    db.commit()
+    sent = _record_email(monkeypatch)
+
+    _head_change().request_head_change_start_code(db, user, candidate.id)
+
+    assert len(sent) == 1
+    email = sent[0]
+    assert email["subject"] == "Confirm a change of Head of Family."
+    headline = "Your confirmation code to change the Head of Family on Unifolio is below."
+    note = (
+        "This code expires in 10 minutes. It will make Candidate <Admin> & \"Lead\" "
+        "the Head of Family and move sign-in to them. If you did not ask for this, "
+        "do not share the code and contact support@unifolio.in."
+    )
+    assert headline in email["body"]
+    assert note in email["body"]
+    assert headline in email["html_body"]
+    assert "Candidate &lt;Admin&gt; &amp; &quot;Lead&quot;" in email["html_body"]
+    assert note not in email["html_body"]
+    assert "to sign in to Unifolio" not in email["html_body"]
+    assert "Your Unifolio verification code" not in email["subject"]
+    assert "sign in" not in email["subject"].lower()
+    assert "sign in" not in headline.lower()
+
+
+def test_new_head_email_names_the_current_head_and_uses_new_head_wording(monkeypatch):
+    db = _session()
+    user, head, candidate = _household(db)
+    head.name = 'Head <Owner> & "Lead"'
+    db.commit()
+    start_code = _start_code(db, user, candidate)
+    sent = _record_email(monkeypatch)
+
+    _head_change().start_head_change(db, user, candidate.id, start_code)
+
+    assert len(sent) == 1
+    email = sent[0]
+    assert email["to"] == candidate.email
+    assert email["subject"] == "Confirm you are becoming Head of Family."
+    headline = "Your confirmation code to become Head of Family on Unifolio is below."
+    note = (
+        "This code expires in 10 minutes. Head <Owner> & \"Lead\" asked to hand this "
+        "family's account to you. After you both confirm, you will sign in with this "
+        "email and phone number. If this is unexpected, ignore this email."
+    )
+    assert headline in email["body"]
+    assert note in email["body"]
+    assert headline in email["html_body"]
+    assert "Head &lt;Owner&gt; &amp; &quot;Lead&quot;" in email["html_body"]
+    assert note not in email["html_body"]
+    assert "to sign in to Unifolio" not in email["html_body"]
+    assert "Your Unifolio verification code" not in email["subject"]
+    assert "sign in" not in email["subject"].lower()
+    assert "sign in" not in headline.lower()
+
+
+def test_start_code_rejects_own_data_problem_without_creating_a_code():
+    db = _session()
+    user, _, candidate = _household(db)
+    candidate.email = None
+    db.commit()
+
+    with pytest.raises(_head_change().HeadChangeError) as exc:
+        _head_change().request_head_change_start_code(db, user, candidate.id)
+
+    _assert_error(
+        exc,
+        status=409,
+        code="member_not_eligible",
+        message="Add an email address and a phone number first.",
+    )
+    assert db.query(OtpRequest).filter_by(purpose="head_change").count() == 0
+
+
+def test_start_code_does_not_disclose_other_account_conflicts():
+    db = _session()
+    user, _, candidate = _household(db)
+    db.add(
+        User(
+            id=uuid.uuid4(),
+            phone_number=candidate.phone_number,
+            email=candidate.email,
+            created_at=NOW,
+        )
+    )
+    candidate.pan_encrypted = candidate.pan_lookup_hash = None
+    candidate.detected_pan_encrypted = "encrypted-conflict"
+    candidate.detected_pan_hash = "conflicting-pan"
+    candidate.pan_conflict = MemberPanConflict.OTHER_ACCOUNT
+    db.commit()
+
+    request, raw_otp = _head_change().request_head_change_start_code(
+        db, user, candidate.id
+    )
+
+    assert request.purpose == "head_change"
+    assert raw_otp is not None
+
+
+def test_resend_new_head_email_keeps_the_new_head_wording(monkeypatch):
+    db = _session()
+    user, head, candidate = _household(db)
+    result = _start(db, user, candidate)
+    new_email_code = (
+        db.query(OtpRequest)
+        .filter_by(email=candidate.email, purpose="head_change")
+        .one()
+    )
+    new_email_code.created_at = datetime.now(timezone.utc) - timedelta(seconds=61)
+    db.commit()
+    sent = _record_email(monkeypatch)
+
+    _head_change().resend_head_change_code(
+        db, user, result.request.id, "new", "email"
+    )
+
+    assert len(sent) == 1
+    email = sent[0]
+    assert email["subject"] == "Confirm you are becoming Head of Family."
+    assert head.name in email["body"]
+    assert "Your confirmation code to become Head of Family on Unifolio is below." in email[
+        "html_body"
+    ]
+
+
+def test_resend_current_head_email_keeps_the_current_head_wording(monkeypatch):
+    db = _session()
+    user, _, candidate = _household(db)
+    result = _start(db, user, candidate)
+    sent = _record_email(monkeypatch)
+
+    _head_change().resend_head_change_code(
+        db, user, result.request.id, "current", "email"
+    )
+
+    assert len(sent) == 1
+    email = sent[0]
+    assert email["subject"] == "Confirm a change of Head of Family."
+    assert candidate.name in email["body"]
+    assert "Your confirmation code to change the Head of Family on Unifolio is below." in email[
+        "html_body"
+    ]
 
 
 def test_start_requires_a_fresh_confirmation_from_the_current_head():
@@ -105,7 +273,7 @@ def test_start_requires_a_fresh_confirmation_from_the_current_head():
     assert db.query(HeadChangeRequest).count() == 0
 
     result = _head_change().start_head_change(
-        db, user, candidate.id, _start_code(db, user)
+        db, user, candidate.id, _start_code(db, user, candidate)
     )
     assert result.status.verified_count == 1
     assert result.status.current_email_verified is True
@@ -118,7 +286,7 @@ def test_start_twice_returns_409_while_one_is_open():
 
     with pytest.raises(_head_change().HeadChangeError) as exc:
         _head_change().start_head_change(
-            db, user, candidate.id, _start_code(db, user)
+            db, user, candidate.id, _start_code(db, user, candidate)
         )
 
     _assert_error(
@@ -267,7 +435,7 @@ def test_cancel_frees_the_slot():
 
     cancelled = _head_change().cancel_head_change(db, user)
     second = _head_change().start_head_change(
-        db, user, candidate.id, _start_code(db, user)
+        db, user, candidate.id, _start_code(db, user, candidate)
     )
 
     assert cancelled.status == "cancelled"
@@ -284,7 +452,7 @@ def test_expired_pending_request_does_not_block_a_new_start():
     db.commit()
 
     second = _head_change().start_head_change(
-        db, user, candidate.id, _start_code(db, user)
+        db, user, candidate.id, _start_code(db, user, candidate)
     )
 
     db.refresh(first.request)
@@ -414,7 +582,7 @@ def test_each_error_code_returns_its_own_message(case, status, code, message):
 
     with pytest.raises(_head_change().HeadChangeError) as exc:
         _head_change().start_head_change(
-            db, user, candidate.id, _start_code(db, user)
+            db, user, candidate.id, _start_code(db, user, candidate)
         )
 
     _assert_error(exc, status=status, code=code, message=message)
@@ -423,7 +591,7 @@ def test_each_error_code_returns_its_own_message(case, status, code, message):
 def test_failed_email_delivery_saves_no_request_or_new_code_and_uses_no_throttle(monkeypatch):
     db = _session()
     user, _, candidate = _household(db)
-    start_code = _start_code(db, user)
+    start_code = _start_code(db, user, candidate)
     from app.config import settings
     from app.services.auth import otp as otp_module
     from app.services.auth.email_provider import EmailSendError
@@ -453,7 +621,7 @@ def test_failed_email_delivery_saves_no_request_or_new_code_and_uses_no_throttle
     ).count() == 0
 
     monkeypatch.setattr(settings, "email_delivery_mode", "stub")
-    retry_code = _start_code(db, user)
+    retry_code = _start_code(db, user, candidate)
     retry = _head_change().start_head_change(db, user, candidate.id, retry_code)
     assert retry.request.status == "pending"
 
@@ -474,6 +642,7 @@ def test_a_race_at_the_one_open_request_index_answers_409_not_a_server_error(mon
     """Two starts can both pass the eligibility read; the database index decides, and the loser gets 409."""
     db = _session()
     user, head, candidate = _household(db)
+    start_code = _start_code(db, user, candidate)
     db.add(
         HeadChangeRequest(
             user_id=user.id,
@@ -486,7 +655,6 @@ def test_a_race_at_the_one_open_request_index_answers_409_not_a_server_error(mon
         )
     )
     db.commit()
-    start_code = _start_code(db, user)
     head_change = _head_change()
     monkeypatch.setattr(head_change, "member_eligibility", lambda *args, **kwargs: [])
 

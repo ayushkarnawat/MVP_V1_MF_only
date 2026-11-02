@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
@@ -34,12 +35,21 @@ STALE_UNVERIFIED_RETENTION_DAYS = 30
 Channel = Literal["sms", "email"]
 
 __all__ = [
+    "EmailContent",
     "OtpVerificationError",
     "OtpRequestThrottledError",
     "create_otp_request",
     "delete_otp_requests_for_identifiers",
     "verify_otp",
 ]
+
+
+@dataclass(frozen=True)
+class EmailContent:
+    subject: str
+    text: str
+    headline: str
+    note: str
 
 
 def _hash_otp(otp: str) -> str:
@@ -83,6 +93,7 @@ def create_otp_request(
     purpose: str = "login",
     ttl_minutes: int = OTP_TTL_MINUTES,
     commit: bool = True,
+    email_content: EmailContent | None = None,
 ) -> tuple[OtpRequest, str | None]:
     """Creates or reuses an OtpRequest for either channel. Returns
     (request, raw_otp) — raw_otp is only non-None in dev-stub delivery
@@ -142,14 +153,27 @@ def create_otp_request(
         # Attempt the real send BEFORE persisting anything: if this raises
         # (EmailSendError), nothing is written to the DB, so a failed send
         # never engages the resend throttle against the user's next attempt.
-        get_email_provider().send_email(
-            to=identifier,
-            subject="Your Unifolio verification code",
-            body=(
+        if email_content is None:
+            subject = "Your Unifolio verification code"
+            body = (
                 f"Your Unifolio verification code is {otp}. It expires in {ttl_minutes} minutes. "
                 f"If you didn't request it, contact us at {SUPPORT_EMAIL}."
-            ),
-            html_body=otp_email_html(otp, ttl_minutes),
+            )
+            html_body = otp_email_html(otp, ttl_minutes)
+        else:
+            subject = email_content.subject
+            body = email_content.text.replace("{otp}", otp, 1)
+            html_body = otp_email_html(
+                otp,
+                ttl_minutes,
+                headline=email_content.headline,
+                note=email_content.note,
+            )
+        get_email_provider().send_email(
+            to=identifier,
+            subject=subject,
+            body=body,
+            html_body=html_body,
         )
 
     meta = metadata or RequestMetadata()

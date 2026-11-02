@@ -103,6 +103,11 @@ def test_purpose_and_commit_are_keyword_only_without_renaming_existing_parameter
         commit = next(parameter for parameter in parameters if parameter.name == "commit")
         assert purpose.kind.name == "KEYWORD_ONLY" and purpose.default == "login"
         assert commit.kind.name == "KEYWORD_ONLY" and commit.default is True
+    email_content = next(
+        parameter for parameter in create_parameters if parameter.name == "email_content"
+    )
+    assert email_content.kind.name == "KEYWORD_ONLY"
+    assert email_content.default is None
 
 
 def test_commit_can_be_deferred_for_create_and_verify(monkeypatch):
@@ -325,6 +330,67 @@ def test_create_otp_request_email_channel_passes_html_body_containing_the_otp(mo
 
     assert sent["html_body"] is not None
     assert "555555" in sent["html_body"]
+
+
+def test_create_otp_request_accepts_custom_email_content(monkeypatch):
+    import app.services.auth.otp as otp_module
+
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "ses")
+    monkeypatch.setattr(otp_module, "generate_otp", lambda: "555555")
+    sent = {}
+
+    class FakeProvider:
+        def send_email(self, to, subject, body, html_body=None):
+            sent.update(to=to, subject=subject, body=body, html_body=html_body)
+
+    monkeypatch.setattr(otp_module, "get_email_provider", lambda: FakeProvider())
+    content = otp_module.EmailContent(
+        subject="Confirm this change.",
+        text="Use {otp} to confirm this change.",
+        headline="Your confirmation code is below.",
+        note="This code expires in 10 minutes.",
+    )
+
+    create_otp_request(
+        _session(),
+        "person@example.com",
+        channel="email",
+        purpose="head_change",
+        ttl_minutes=10,
+        email_content=content,
+    )
+
+    assert sent["subject"] == "Confirm this change."
+    assert sent["body"] == "Use 555555 to confirm this change."
+    assert "Your confirmation code is below." in sent["html_body"]
+    assert "This code expires in 10 minutes." in sent["html_body"]
+
+
+def test_default_sign_in_email_payload_is_unchanged(monkeypatch):
+    import app.services.auth.otp as otp_module
+    from app.services.auth.email_templates import SUPPORT_EMAIL, otp_email_html
+
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "ses")
+    monkeypatch.setattr(otp_module, "generate_otp", lambda: "555555")
+    sent = {}
+
+    class FakeProvider:
+        def send_email(self, to, subject, body, html_body=None):
+            sent.update(to=to, subject=subject, body=body, html_body=html_body)
+
+    monkeypatch.setattr(otp_module, "get_email_provider", lambda: FakeProvider())
+
+    create_otp_request(_session(), "person@example.com", channel="email")
+
+    assert sent == {
+        "to": "person@example.com",
+        "subject": "Your Unifolio verification code",
+        "body": (
+            "Your Unifolio verification code is 555555. It expires in 5 minutes. "
+            f"If you didn't request it, contact us at {SUPPORT_EMAIL}."
+        ),
+        "html_body": otp_email_html("555555", 5),
+    }
 
 
 def test_create_otp_request_email_channel_raises_when_no_real_provider_configured(monkeypatch):

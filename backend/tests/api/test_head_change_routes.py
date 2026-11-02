@@ -60,7 +60,9 @@ def _household(client, *, suffix: str = "1"):
 
 def _start(client, household):
     first = client.post(
-        "/auth/head-change/start-code", headers=household["headers"]
+        "/auth/head-change/start-code",
+        json={"to_member_id": household["candidate_id"]},
+        headers=household["headers"],
     )
     assert first.status_code == 200
     started = client.post(
@@ -143,7 +145,9 @@ def test_head_change_routes_return_the_run_6_contract(client):
 def test_stub_code_present_only_in_stub_mode(client, monkeypatch):
     first = _household(client, suffix="3")
     stub = client.post(
-        "/auth/head-change/start-code", headers=first["headers"]
+        "/auth/head-change/start-code",
+        json={"to_member_id": first["candidate_id"]},
+        headers=first["headers"],
     )
     assert stub.status_code == 200
     assert stub.json()["otp"] is not None
@@ -159,7 +163,9 @@ def test_stub_code_present_only_in_stub_mode(client, monkeypatch):
     monkeypatch.setattr(settings, "email_delivery_mode", "ses")
     monkeypatch.setattr(otp_module, "get_email_provider", lambda: RecordingProvider())
     ses = client.post(
-        "/auth/head-change/start-code", headers=second["headers"]
+        "/auth/head-change/start-code",
+        json={"to_member_id": second["candidate_id"]},
+        headers=second["headers"],
     )
     assert ses.status_code == 200
     assert ses.json()["otp"] is None
@@ -173,7 +179,9 @@ def test_current_email_missing_has_a_clear_code_and_message(client):
     db.close()
 
     response = client.post(
-        "/auth/head-change/start-code", headers=household["headers"]
+        "/auth/head-change/start-code",
+        json={"to_member_id": household["candidate_id"]},
+        headers=household["headers"],
     )
 
     assert response.status_code == 409
@@ -183,10 +191,49 @@ def test_current_email_missing_has_a_clear_code_and_message(client):
     }
 
 
+def test_start_code_foreign_member_is_indistinguishable_from_unknown(client):
+    first = _household(client, suffix="a")
+    second = _household(client, suffix="b")
+
+    responses = []
+    for member_id in [second["candidate_id"], str(uuid.uuid4())]:
+        response = client.post(
+            "/auth/head-change/start-code",
+            json={"to_member_id": member_id},
+            headers=first["headers"],
+        )
+        responses.append((response.status_code, response.json()))
+
+    assert responses == [
+        (
+            404,
+            {
+                "detail": {
+                    "code": "member_not_found",
+                    "message": "Household member not found.",
+                }
+            },
+        ),
+        (
+            404,
+            {
+                "detail": {
+                    "code": "member_not_found",
+                    "message": "Household member not found.",
+                }
+            },
+        ),
+    ]
+
+
 @pytest.mark.parametrize(
     ("method", "path", "json_body"),
     [
-        ("post", "/auth/head-change/start-code", None),
+        (
+            "post",
+            "/auth/head-change/start-code",
+            {"to_member_id": "00000000-0000-0000-0000-000000000001"},
+        ),
         (
             "post",
             "/auth/head-change/start",

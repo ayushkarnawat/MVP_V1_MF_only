@@ -68,6 +68,7 @@ from app.services.auth.schemas import (
     HeadChangeResendBody,
     HeadChangeResendResponse,
     HeadChangeStartBody,
+    HeadChangeStartCodeBody,
     HeadChangeStartResponse,
     HeadChangeStatusResponse,
     HeadChangeVerifyBody,
@@ -742,11 +743,12 @@ def _get_head_change_active_user(
 
 @router.post("/head-change/start-code", response_model=OtpRequestResponse)
 def request_head_change_start_code_route(
+    body: HeadChangeStartCodeBody,
     user: User = Depends(_get_head_change_active_user),
     db: DbSession = Depends(get_db),
 ):
     try:
-        _, raw_otp = request_head_change_start_code(db, user)
+        _, raw_otp = request_head_change_start_code(db, user, body.to_member_id)
     except HeadChangeError as exc:
         raise _head_change_http(exc) from exc
     return OtpRequestResponse(message="Code sent.", otp=raw_otp)
