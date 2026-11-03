@@ -1573,6 +1573,13 @@ def test_add_as_family_rejects_self_pan_from_another_review(db_session, permanen
             _resolve_family(db_session, member, sid)
         assert conflict.value.code == "pan_belongs_to_other_member"
         assert conflict.value.session_id == sid
+        assert conflict.value.details == {"member_name": "Riya Shah"}
+        assert conflict.value.message == (
+            "This statement includes a PAN that already belongs to the account holder. Upload a different file."
+            if permanent else
+            "This statement includes a PAN already assigned to the account holder. "
+            "Finish or discard the other upload before trying again."
+        )
         db_session.refresh(member)
         assert _identity_snapshot(member) == before
         assert db_session.query(Transaction).count() == rows_before

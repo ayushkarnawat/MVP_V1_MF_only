@@ -476,10 +476,17 @@ def _add_as_family_self_conflict(
     )
     if not attaches_self:
         return None
+    # A PAN Self holds for good (no pending window) leaves no other upload to finish.
+    permanent = self_member.pan_lookup_hash is not None and self_member.pan_pending_until is None
+    message = (
+        "This statement includes a PAN that already belongs to the account holder. Upload a different file."
+        if permanent else
+        "This statement includes a PAN already assigned to the account holder. "
+        "Finish or discard the other upload before trying again."
+    )
     return ImportPromptError(
         PanBelongsToOtherMemberError.code,
-        "This statement includes a PAN already assigned to the account holder. "
-        "Finish or discard the other upload before trying again.",
+        message,
         session["session_id"],
         {"member_name": self_member.name},
     )
