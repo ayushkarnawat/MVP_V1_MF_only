@@ -34,3 +34,7 @@ Items to repeat when Run 7 lands: `SchemeLogo.tsx` (exists now), card headings, 
   | `p20_20yr` | 163 / 137 | 179 / 139 | cold +10%, warm +1% |
 
   Run-to-run spread on the same commit is about +/-20%, larger than the differences, so there is **no measurable regression**; both commits are two orders of magnitude under the 1.5 s first-load budget (about 15 ms per route). The sample is small (one household, two scopes), so repeat on staging (`measure_home_staging.py --user-id ...`) at S7 for the real figure. Use these numbers as the local reference for S2 follow-ups.
+
+## Backend check of the release merge (3 Nov 2026)
+
+`ui-round-2` at the merge commit `1aad77c2` (release/change-requests merged in by the frontend session; backend conflicts resolved as agreed). Fresh WSL clone, throwaway Postgres: `alembic heads` shows exactly one head, **0053**. Full backend suite including `functional_postgres`: **5755 passed, 5 failed, 6 skipped** (12 min 23 s). The 5 failures are the known environmental ones (`test_portfolio_disclosure_client.py` x4 and `test_portfolio_disclosure_manual.py` x1 read the untracked `backend/.cache/amfi_navall/nav_all.txt`, absent in a clone); the benchmark label test that failed in the baseline passes. No backend regression from the merge.
