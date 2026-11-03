@@ -876,3 +876,75 @@ def test_old_clients_ignore_the_new_field():
     row = ClassRowOut.model_validate(old)
     assert row.funds == []
     assert row.model_dump(mode="json", exclude={"funds"}) == old
+
+
+@pytest.mark.parametrize("current_total, expected_fund_value", [("1000.00", "10.00"), ("2000.00", "20.00")])
+def test_partial_analytics_coverage_leaves_uncovered_others_unattributed(current_total, expected_fund_value):
+    payload = _fund_payload()
+    payload["total_portfolio_value"] = "1000.00"
+    payload["covered_value"] = "510.00"
+    for row in payload["as_disclosed"]["classes"]:
+        if row["key"] == "equity":
+            row["value"] = "500.00"
+            row["funds"] = [dict(scheme_id=str(uuid.UUID(int=1)), scheme_name="Covered Equity",
+                                 value="500.00", percentage="100")]
+        elif row["key"] == "others":
+            row["value"] = "10.00"
+            row["funds"] = [dict(scheme_id=str(uuid.UUID(int=2)), scheme_name="Covered Other",
+                                 value="10.00", percentage="100")]
+        else:
+            row["value"] = "0.00"
+            row["funds"] = []
+    result = _allocation_from_payload(payload, total=current_total)
+    others = _live_rows(result)["others"]
+    assert others.value == Decimal(current_total) / 2
+    fund, = others.funds
+    assert fund.name == "Covered Other"
+    assert fund.value == Decimal(expected_fund_value)
+    assert fund.share_of_class == Decimal("2.00")
+    assert sum((item.value for item in others.funds), Decimal("0")) < others.value
+
+
+def test_partial_class_shares_do_not_absorb_the_uncovered_remainder():
+    payload = _fund_payload()
+    payload["total_portfolio_value"] = "4.00"
+    payload["covered_value"] = "3.00"
+    payload["as_disclosed"]["classes"] = [
+        dict(key="equity", value="0.00", percentage="0", funds=[]),
+        dict(key="others", value="3.00", percentage="100", funds=[
+            dict(scheme_id=str(uuid.UUID(int=i)), scheme_name=f"Fund {i}",
+                 value="1.00", percentage="33.333") for i in range(1, 4)
+        ]),
+    ]
+    funds = _live_rows(_allocation_from_payload(payload, total="4.00"))["others"].funds
+    assert [fund.value for fund in funds] == [Decimal("1.00")] * 3
+    assert [fund.share_of_class for fund in funds] == [Decimal("25.00")] * 3
+    assert sum((fund.share_of_class for fund in funds), Decimal("0")) == Decimal("75.00")
+
+
+def test_full_coverage_class_still_absorbs_last_fund_rounding():
+    payload = _fund_payload()
+    payload["as_disclosed"]["classes"][0]["funds"] = [
+        dict(scheme_id=str(uuid.UUID(int=i)), scheme_name=f"Fund {i}",
+             value="30.00", percentage="33.333") for i in range(1, 4)
+    ]
+    rows = _live_rows(_allocation_from_payload(payload))
+    assert [fund.share_of_class for fund in rows["equity"].funds] == [
+        Decimal("33.33"), Decimal("33.33"), Decimal("33.34"),
+    ]
+    assert all(sum((fund.share_of_class for fund in row.funds), Decimal("0")) == Decimal("100.00")
+               for row in rows.values())
+
+
+def test_dashboard_buckets_funds_keep_full_class_values_and_shares():
+    mix = parse_stored_allocation(_fund_payload(), COMPUTED_AT)
+    result = build_allocation(
+        total_value=Decimal("120.00"), mix=None,
+        buckets={"equity": Decimal("90.00"), "debt": Decimal("10.00"), "gold": Decimal("10.00"),
+                 "real_estate": Decimal("5.00"), "others": Decimal("5.00")},
+        members=None, funds=mix.funds,
+    )
+    assert result.source == "dashboard_buckets"
+    for row in _live_rows(result).values():
+        assert sum((fund.value for fund in row.funds), Decimal("0")) == row.value
+        assert sum((fund.share_of_class for fund in row.funds), Decimal("0")) == Decimal("100.00")

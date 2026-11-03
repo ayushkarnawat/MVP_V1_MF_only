@@ -148,6 +148,7 @@ class ReturnsResponse(FundModel):
     columns: list[str]
     rows: dict[str, dict[str, str | None] | None]
     benchmark_reason: Literal["no_benchmark", "no_history"] | None
+    benchmark_label: str | None = None
 
 
 class RiskMetricOut(FundModel):

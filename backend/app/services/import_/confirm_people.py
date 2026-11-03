@@ -51,6 +51,7 @@ from app.services.dashboard.holdings import invalidate_holdings_cache
 from app.services.dashboard.snapshots import invalidate_member_snapshots
 from app.services.import_ import preview_store
 from app.services.import_.lifecycle_service import SessionExpiredError
+from app.services.import_.new_funds import find_new_funds
 from app.services.import_.crypto import hash_pan
 from app.services.import_.identify import Identification, classify_plan
 from app.services.import_ import file_storage
@@ -81,6 +82,7 @@ from app.services.import_.schemas import (
     ImportConfirmResponse,
     PersonConfirmation,
     PersonConfirmResult,
+    NewFundOut,
     SchemeConfirmation,
     SchemeMatchPreview,
 )
@@ -321,7 +323,7 @@ def _confirm_claimed(
             id=uuid.uuid4(), household_member_id=member.id, status=ImportStatus.CONFIRMED,
             source_cas_type=source_cas_type,
             raw_parser_output=_person_raw_output(parse_result.raw_json, set(work.scheme_keys)),
-            uploaded_at=now, confirmed_at=now, upload_group_id=upload_group_id,
+            uploaded_at=session["created_at"], confirmed_at=now, upload_group_id=upload_group_id,
             statement_from_date=parse_result.statement_from, statement_to_date=parse_result.statement_to,
         )
         db.add(import_rec)
@@ -341,9 +343,15 @@ def _confirm_claimed(
         import_rec.new_transactions_count = added
         import_rec.duplicate_transactions_count = skipped
         imports.append(import_rec)
+        db.flush()
+        new_funds = [] if session.get("surface") == "onboarding_upload" else [
+            NewFundOut.model_validate(fund)
+            for fund in find_new_funds(db, import_rec.id, member.id)
+        ]
         results.append(PersonConfirmResult(
             person_key=work.person_key or "", member_id=str(member.id), name=member.name,
             import_id=str(import_rec.id), added=added, skipped=skipped,
+            new_funds=new_funds, created=created,
         ))
         if work.plan is None or work.plan.status == "me":
             me_import_id = str(import_rec.id)

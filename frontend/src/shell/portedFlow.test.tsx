@@ -215,12 +215,17 @@ it("all member options are enabled, undecorated and selectable for scope and Add
   for (const option of options) { expect(option.querySelector("svg.lucide-lock")).toBeNull(); expect(option).not.toHaveTextContent("%"); }
   fireEvent.click(screen.getByRole("option", { name: "Family Combined" }));
   fireEvent.click(screen.getByRole("button", { name: "+ Add data" }));
-  const trigger = await screen.findByLabelText("Select family member to import for");
-  fireEvent.keyDown(trigger, { key: "ArrowDown" });
-  const row = await screen.findByRole("option", { name: "Ramesh Sharma" });
-  expect(row).not.toHaveAttribute("aria-disabled", "true");
+  // UI round 2: in the family view with two members, Add data first asks whose data it is (the pop-up replaces
+  // the choice that the import page's own dropdown used to offer, so the member options are checked there).
+  const picker = await screen.findByRole("dialog", { name: "Whose data are you adding?" });
+  for (const choice of within(picker).getAllByRole("radio")) {
+    expect(choice).not.toHaveAttribute("aria-disabled", "true");
+    expect(choice).not.toHaveTextContent("%");
+  }
   expect(screen.queryByText("Add details first")).not.toBeInTheDocument();
-  fireEvent.click(row); expect(await screen.findByTestId("import-for")).toHaveTextContent("m-2");
+  fireEvent.click(within(picker).getByRole("radio", { name: /Ramesh Sharma/ }));
+  fireEvent.click(within(picker).getByRole("button", { name: "Continue" }));
+  expect(await screen.findByTestId("import-for")).toHaveTextContent("m-2");
 });
 
 it("shows and dismisses the duplicate import notice after returning from Analytics", async () => {
@@ -264,5 +269,9 @@ it("ShellRoot supplies real scope and import providers inside its router", async
   expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
   expect(await screen.findByRole("combobox", { name: "Portfolio scope" })).toHaveTextContent("Family Combined");
   fireEvent.click(screen.getByRole("button", { name: "+ Add data" }));
+  // UI round 2: the family view asks whose data it is before the import page opens.
+  const picker = await screen.findByRole("dialog", { name: "Whose data are you adding?" });
+  fireEvent.click(within(picker).getAllByRole("radio")[0]);
+  fireEvent.click(within(picker).getByRole("button", { name: "Continue" }));
   expect(await screen.findByTestId("import-for")).toHaveTextContent("m-1");
 });

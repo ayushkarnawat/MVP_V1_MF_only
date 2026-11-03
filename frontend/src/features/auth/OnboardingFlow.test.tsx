@@ -54,7 +54,7 @@ describe("OnboardingFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /mostly on my own/i }));
 
     await waitFor(() => expect(screen.getByText(/what brings you to unifolio/i)).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("checkbox", { name: /consolidated portfolio view/i }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /build my wealth/i }));
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     // Q3 Continue goes straight to upload: no privacy screen, no household question
@@ -124,19 +124,19 @@ describe("OnboardingFlow", () => {
     await goToQ3();
     const cont = screen.getByRole("button", { name: "Continue" });
     expect(cont).toBeDisabled();
-    fireEvent.click(screen.getByRole("checkbox", { name: /Consolidated portfolio view/ }));
-    fireEvent.click(screen.getByRole("checkbox", { name: /Family wealth tracking/ }));
-    expect(screen.getByRole("checkbox", { name: /Family wealth tracking/ })).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(screen.getByRole("checkbox", { name: /Build my wealth/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /Fund my children's education/ }));
+    expect(screen.getByRole("checkbox", { name: /Fund my children's education/ })).toHaveAttribute("aria-checked", "true");
     expect(api.updateMe).not.toHaveBeenCalledWith(expect.objectContaining({ primary_goals: expect.anything() }));
     fireEvent.click(cont);
     await waitFor(() =>
-      expect(api.updateMe).toHaveBeenCalledWith({ primary_goals: ["consolidated_view", "family_management"] }),
+      expect(api.updateMe).toHaveBeenCalledWith({ primary_goals: ["wealth_creation", "childrens_education"] }),
     );
   });
 
   it("Q3 toggling an option twice unselects it", async () => {
     await goToQ3();
-    const opt = screen.getByRole("checkbox", { name: /Compare distributor fees/ });
+    const opt = screen.getByRole("checkbox", { name: /Buy a home/ });
     fireEvent.click(opt);
     fireEvent.click(opt);
     expect(opt).toHaveAttribute("aria-checked", "false");
@@ -202,7 +202,7 @@ describe("resumeStep", () => {
     expect(resumeStep({ ...baseMe, onboarding_step: "trust_primer", self_name: "Asha", investor_type: "self_directed" })).toBe("q3_purpose");
   });
   it("trust_primer with everything saved goes to upload", () => {
-    expect(resumeStep({ ...baseMe, onboarding_step: "trust_primer", self_name: "Asha", investor_type: "self_directed", primary_goals: ["family_management"] })).toBe("cas_upload");
+    expect(resumeStep({ ...baseMe, onboarding_step: "trust_primer", self_name: "Asha", investor_type: "self_directed", primary_goals: ["childrens_education"] })).toBe("cas_upload");
   });
   it("any step past the name without a saved name goes back to the name step", () => {
     expect(resumeStep({ ...baseMe, onboarding_step: "cas_upload" })).toBe("q1_name");

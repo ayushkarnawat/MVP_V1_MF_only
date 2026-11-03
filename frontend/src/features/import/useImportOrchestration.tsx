@@ -6,6 +6,7 @@ import { CancelImportDialog } from "./prompts/CancelImportDialog";
 import { useImportFlow } from "./useImportFlow";
 import { clearCasResumeStep2 } from "./casResumeState";
 import { buildConfirmBody } from "./confirmBody";
+import { buildImportNotice, type ImportNotice } from "./importNotice";
 import { UnidentifiedFundsDialog } from "./UnidentifiedFundsDialog";
 import type { ImportPreviewResponse, PersonConfirmation, PersonPreview, SchemeConfirmation } from "./types";
 
@@ -31,7 +32,7 @@ function otherAccountIncludes(people: PersonPreview[]): Record<string, boolean> 
  */
 export function useImportOrchestration(
   householdMemberId: string,
-  onDone?: (notice: { text: string; details?: string[] }) => void,
+  onDone?: (notice: ImportNotice) => void,
 ) {
   const flow = useImportFlow(householdMemberId);
   const { stage, preview, prompt, error } = flow;
@@ -60,15 +61,7 @@ export function useImportOrchestration(
       return;
     }
     if (!result) return;
-    const details = [
-      ...(result.people.length > 1 ? result.people.map(p =>
-        `${p.name}: ${p.added} added${p.skipped > 0 ? `, ${p.skipped} already saved` : ""}`) : []),
-      ...result.warnings,
-    ];
-    onDone?.({
-      text: `${result.added} transaction${result.added === 1 ? "" : "s"} added${result.skipped > 0 ? ` · ${result.skipped} already saved` : ""}`,
-      ...(details.length ? { details } : {}),
-    });
+    onDone?.(buildImportNotice(result));
   }, [flow.confirmResult, flow.errorCode, householdMemberId, onDone]);
 
   useEffect(() => {

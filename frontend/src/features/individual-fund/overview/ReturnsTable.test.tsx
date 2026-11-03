@@ -59,7 +59,8 @@ describe("ReturnsTable", () => {
     const headers = within(screen.getByRole("table")).getAllByRole("columnheader").map(h => h.textContent);
     expect(headers).toEqual(["Series", "1M", "3M", "6M", "1Y", "3Y", "5Y", "Since inception"]);
     expect(within(screen.getByTestId("row-fund")).getByRole("rowheader")).toHaveTextContent(NAME);
-    expect(within(screen.getByTestId("row-benchmark")).getByRole("rowheader")).toHaveTextContent("Benchmark");
+    // The golden now carries benchmark_label (backend task 4.1), so the row is named after the index.
+    expect(within(screen.getByTestId("row-benchmark")).getByRole("rowheader")).toHaveTextContent("Nifty 500");
     expect(within(screen.getByTestId("row-category")).getByRole("rowheader")).toHaveTextContent("Category average");
     expect(screen.getByTestId("returns-note")).toHaveTextContent("Up to 1 year absolute; over 1 year annualised.");
     expect(cell("cell-fund-1M")).toHaveTextContent("0.8%");

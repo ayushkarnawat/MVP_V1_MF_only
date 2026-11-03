@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { ImportFlow } from "./ImportFlow";
 import * as api from "./api";
+import * as authApi from "../auth/api";
 import { ApiError } from "./api";
 import { familyPreview, person, preview, scheme } from "./testFixtures";
 import { setCasResumeStep2, hasCasResumeStep2 } from "./casResumeState";
@@ -16,9 +17,25 @@ vi.mock("./api", async () => {
     discardImportSession: vi.fn(),
     resolvePan: vi.fn(),
     resolveName: vi.fn(),
+    resolveAddAsFamily: vi.fn(),
     acknowledgePrompt: vi.fn(),
   };
 });
+
+vi.mock("../auth/api", async () => {
+  const actual = await vi.importActual<typeof import("../auth/api")>("../auth/api");
+  return { ...actual, getHouseholdMembers: vi.fn(), listHouseholdMembers: vi.fn() };
+});
+
+// The real dialog is covered by its own tests; here only the order and the hand-over matter.
+vi.mock("../dashboard/members/CompleteProfileDialog", () => ({
+  CompleteProfileDialog: ({ member, onSaved, onClose }: { member: { name: string }; onSaved: (m: unknown) => void; onClose: () => void }) => (
+    <div role="dialog" aria-label={`Complete profile for ${member.name}`}>
+      <button type="button" onClick={onClose}>{`Skip ${member.name}`}</button>
+      <button type="button" onClick={() => { onSaved(member); onClose(); }}>{`Save ${member.name}`}</button>
+    </div>
+  ),
+}));
 
 vi.mock("../legal/api", async () => {
   const actual = await vi.importActual<typeof import("../legal/api")>("../legal/api");
@@ -279,21 +296,23 @@ describe("ImportFlow", () => {
     await waitFor(() => expect(api.discardImportSession).toHaveBeenCalledWith("s1"));
   });
 
-  it("U2: 'Yes, that’s me' on a different statement name moves on to the review", async () => {
+  it("U2: adding the statement's person as a family member moves on to the review (UI round 2, change 5)", async () => {
     vi.mocked(api.parseImport).mockRejectedValue(
       new ApiError(409, {
         code: "self_name_mismatch", message: "This statement is in a different name",
         session_id: "s1", details: { entered_name: "Aditi Rao", statement_name: "Aditi Sharma" },
       }),
     );
-    vi.mocked(api.resolveName).mockResolvedValue(SINGLE());
+    vi.mocked(api.resolveAddAsFamily).mockResolvedValue(SINGLE());
     render(<ImportFlow householdMemberId="member-1" />);
     await uploadAFile();
-    fireEvent.click(await screen.findByRole("button", { name: "Yes, that’s me" }));
+    expect(await screen.findByText("This is Aditi Rao’s account")).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Add Aditi Sharma as a family member" }));
 
     await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalled());
-    expect(api.resolveName).toHaveBeenCalledWith("s1", "Aditi Sharma");
-    expect(screen.queryByRole("button", { name: "Yes, that’s me" })).not.toBeInTheDocument();
+    expect(api.resolveAddAsFamily).toHaveBeenCalledWith("s1");
+    expect(api.resolveName).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Add Aditi Sharma as a family member" })).not.toBeInTheDocument();
   });
 
   it("U7: a statement wholly on another account can be included, giving one ribbon", async () => {
@@ -566,11 +585,11 @@ describe("ImportFlow", () => {
       .mockRejectedValueOnce(new ApiError(409, { code: "self_name_mismatch", message: "m",
         session_id: "s1", details: { entered_name: "Aditi Rao", statement_name: "Aditi Sharma" } }))
       .mockResolvedValueOnce(RESULT);
-    vi.mocked(api.resolveName).mockResolvedValue(SINGLE());
+    vi.mocked(api.resolveAddAsFamily).mockResolvedValue(SINGLE());
     const onDone = vi.fn();
     render(<ImportFlow householdMemberId="member-1" onDone={onDone} />);
     await uploadAFile();
-    fireEvent.click(await screen.findByRole("button", { name: "Yes, that’s me" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Add Aditi Sharma as a family member" }));
     await waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(api.confirmPeopleImport).toHaveBeenCalledTimes(2);
   });
@@ -586,4 +605,90 @@ describe("ImportFlow", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+});
+const NEW_FUND = {
+  scheme_id: "s1", scheme_name: "Alpha Flexi Cap Fund", amc_name: "Alpha Mutual Fund", invested_amount: "150000.00",
+  latest_transaction_date: "2026-10-28", transaction_count: 1,
+  transactions: [{ date: "2026-10-28", type: "PURCHASE", amount: "150000.00", units: "1000.0000" }],
+};
+
+describe("ImportFlow: new funds in the notice (UI round 2, change 8)", () => {
+  it("hands the new funds of an in-app import to the notice", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(SINGLE());
+    vi.mocked(api.confirmPeopleImport).mockResolvedValue({ ...RESULT, added: 5, skipped: 0, people: [{ ...RESULT.people[0], added: 5, skipped: 0, new_funds: [NEW_FUND] }] });
+    const onDone = vi.fn();
+    render(<ImportFlow householdMemberId="member-1" onDone={onDone} />);
+    await uploadAFile();
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith({
+      text: "Import complete · 1 new fund, 5 transactions added",
+      details: ["New funds: Alpha Flexi Cap Fund"],
+      newFunds: [NEW_FUND],
+    }));
+  });
+});
+
+const profileMember = (id: string, name: string) => ({
+  id, name, relationship: null, relationship_other_label: null, origin: "statement", pan_masked: null, phone_number: null,
+  email: null, name_from_statement: true, pan_conflict: null, pan_editable: true, profile_completion: 40, missing_fields: ["relationship"],
+});
+
+describe("ImportFlow: Complete profile after the import (UI round 2, change 5)", () => {
+  const confirmedWith = (created: Array<boolean | undefined>): ImportConfirmResponse => ({
+    ...RESULT,
+    people: created.map((flag, index) => ({
+      person_key: `p${index}`, member_id: `m-new${index}`, name: index === 0 ? "Ramesh Sharma" : "Priya Sharma",
+      import_id: `imp${index}`, added: 1, skipped: 0, ...(flag === undefined ? {} : { created: flag }),
+    })),
+  });
+  const run = async (result: ImportConfirmResponse) => {
+    vi.mocked(api.parseImport).mockResolvedValue(SINGLE());
+    vi.mocked(api.confirmPeopleImport).mockResolvedValue(result);
+    const onDone = vi.fn();
+    render(<ImportFlow householdMemberId="member-1" onDone={onDone} />);
+    await uploadAFile();
+    return onDone;
+  };
+  beforeEach(() => {
+    vi.mocked(authApi.getHouseholdMembers).mockReset();
+    vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([profileMember("m-new0", "Ramesh Sharma"), profileMember("m-new1", "Priya Sharma"), profileMember("member-1", "Asha Rao")] as never);
+  });
+
+  it("shows the profile dialog for each created member, in order, and finishes after the last", async () => {
+    const onDone = await run(confirmedWith([true, true]));
+    fireEvent.click(await screen.findByRole("button", { name: "Skip Ramesh Sharma" }));
+    expect(onDone).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole("button", { name: "Skip Priya Sharma" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+  it("does not ask for a member that already existed", async () => {
+    const onDone = await run(confirmedWith([false, true]));
+    expect(await screen.findByRole("button", { name: "Skip Priya Sharma" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Skip Ramesh Sharma" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Skip Priya Sharma" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+  });
+  it("saving and skipping both move on to the next member", async () => {
+    const onDone = await run(confirmedWith([true, true]));
+    fireEvent.click(await screen.findByRole("button", { name: "Save Ramesh Sharma" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Skip Priya Sharma" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+  });
+  it("asks nobody when no member was created (a sign-up import, or an old response)", async () => {
+    const onDone = await run(confirmedWith([undefined, false]));
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(authApi.getHouseholdMembers).not.toHaveBeenCalled();
+  });
+  it("still finishes when the member list cannot be loaded", async () => {
+    vi.mocked(authApi.getHouseholdMembers).mockRejectedValue(new Error("offline"));
+    const onDone = await run(confirmedWith([true]));
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+  it("hands the same notice to onDone after the dialogs as it would have without them", async () => {
+    const onDone = await run(confirmedWith([true]));
+    fireEvent.click(await screen.findByRole("button", { name: "Skip Ramesh Sharma" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith({ text: "3 transactions added · 1 already saved" }));
+  });
 });

@@ -18,6 +18,7 @@ export const paths = {
     holdings: () => `${mutualFunds}/holdings`,
     transactions: () => `${mutualFunds}/transactions`,
     overlap: () => `${mutualFunds}/overlap`,
+    compare: (fundA: string, fundB: string) => `${mutualFunds}/overlap/compare/${encodeURIComponent(fundA)}/${encodeURIComponent(fundB)}`,
     analytics: () => `${mutualFunds}/analytics`,
     history: () => `${mutualFunds}/history`,
     fund,

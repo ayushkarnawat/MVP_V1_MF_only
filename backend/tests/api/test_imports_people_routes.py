@@ -1115,3 +1115,66 @@ def test_pending_preview_is_absent_from_both_import_histories(client,tmp_path):
         response = client.get(path,headers=headers)
         assert response.status_code == 200,response.text
         assert response.json() == []
+
+
+@pytest.mark.parametrize("next_prompt", [False, True])
+def test_resolve_add_as_family_route_returns_the_next_preview_and_409_for_the_next_prompt(
+    client, tmp_path, next_prompt,
+):
+    from app.models.user import User
+    from unittest.mock import AsyncMock
+
+    headers, member_id = _authed_headers_and_member(client, "+919800008901", name="Riya Shah")
+    response = _parse(client, headers, member_id, family_result([
+        {"name": "ROHAN MEHTA", "pan": ADITI_PAN},
+    ]), tmp_path)
+    assert response.status_code == 409 and _detail(response)["code"] == "self_name_mismatch"
+    sid = _detail(response)["session_id"]
+    if next_prompt:
+        db = _test_db()
+        owner = User(phone_number="+919800008902", created_at=datetime.now(timezone.utc))
+        db.add(owner)
+        db.flush()
+        db.add(HouseholdMember(
+            user_id=owner.id, name="Other Account", relationship=Relationship.SELF,
+            created_at=datetime.now(timezone.utc),
+            pan_encrypted=encrypt_pan(ADITI_PAN), pan_lookup_hash=hash_pan(ADITI_PAN),
+        ))
+        db.commit()
+    resolved = client.post(f"/imports/sessions/{sid}/resolve-add-as-family", headers=headers)
+    assert ADITI_PAN not in resolved.text
+    if next_prompt:
+        assert resolved.status_code == 409
+        assert _detail(resolved)["code"] == "cross_account_pan_blocked"
+        assert _detail(resolved)["session_id"] == sid
+    else:
+        assert resolved.status_code == 200, resolved.text
+        body = resolved.json()
+        assert body["session_id"] == sid
+        assert body["people"][0]["status"] == "new"
+        assert body["people"][0]["is_me"] is False
+        with patch("app.api.imports._prefetch_member_nav_history", AsyncMock()), patch(
+            "app.api.imports.rebuild_member_snapshots"
+        ), patch("app.api.imports.try_claim_recompute", return_value=False):
+            confirmed = client.post("/imports/confirm", headers=headers, json={
+                "session_id": sid, "people": [{"person_key": "p1"}],
+            })
+        assert confirmed.status_code == 200, confirmed.text
+        assert confirmed.json()["people"][0]["created"] is True
+        assert confirmed.json()["people"][0]["member_id"] != member_id
+    assert _member(member_id).name == "Riya Shah"
+    assert _member(member_id).pan_lookup_hash is None
+
+
+def test_route_is_refused_for_another_users_session(client, tmp_path):
+    from tests.api.import_helpers import _authed_headers
+    headers, member_id = _authed_headers_and_member(client, "+919800008903", name="Riya Shah")
+    response = _parse(client, headers, member_id, family_result([
+        {"name": "ROHAN MEHTA", "pan": ADITI_PAN},
+    ]), tmp_path)
+    sid = _detail(response)["session_id"]
+    stranger = _authed_headers(client, "+919800008904")
+    refused = client.post(f"/imports/sessions/{sid}/resolve-add-as-family", headers=stranger)
+    assert refused.status_code == 410
+    assert not _preview_sessions[sid].get("add_as_family")
+    assert _member(member_id).name == "Riya Shah"

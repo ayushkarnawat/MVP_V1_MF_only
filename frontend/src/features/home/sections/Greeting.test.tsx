@@ -148,3 +148,24 @@ describe("Greeting: the members list behind the chip", () => {
     expect(screen.queryByRole("dialog", { name: "Family members" })).toBeNull();
   });
 });
+
+describe("Greeting: the account holder with no data (UI round 2, change 5)", () => {
+  const head = (): SummaryResponse => ({
+    ...fixture<SummaryResponse>("summary_family"),
+    display_name: "Asha",
+    data_line: "Data from 1 of 2 family members",
+    members: [
+      { id: "m-1", name: "ASHA RAO", has_data: false },
+      { id: "m-2", name: "Ramesh Sharma", has_data: true },
+    ],
+  });
+  it("names the account holder in the family view and shows No data yet beside them while another member has data", () => {
+    render(<Greeting status="data" summary={head()} onImport={() => {}} />);
+    expect(screen.getByRole("heading", { name: /Asha/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("members-chip"));
+    const items = within(screen.getByRole("dialog", { name: "Family members" })).getAllByRole("listitem");
+    expect(items[0].textContent).toContain("ASHA RAO");
+    expect(items[0].textContent).toContain("No data yet");
+    expect(items[1].textContent).toContain("Data imported");
+  });
+});

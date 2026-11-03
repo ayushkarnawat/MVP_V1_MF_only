@@ -14,6 +14,9 @@ export interface AllocationDonutProps {
   centerValue: string;
   centerLabel?: string;
   onSliceClick?: (key: string) => void;
+  activeKey?: string | null;
+  onActiveChange?: (key: string | null) => void;
+  selectedKey?: string | null;
   ariaLabel?: string;
 }
 
@@ -26,6 +29,9 @@ export function AllocationDonut({
   centerValue,
   centerLabel = "Total value",
   onSliceClick,
+  activeKey = null,
+  onActiveChange,
+  selectedKey = null,
   ariaLabel = "Asset allocation",
 }: AllocationDonutProps) {
   const nonZeroRows = rows.filter((r) => Number(r.percentage) > 0);
@@ -62,12 +68,18 @@ export function AllocationDonut({
             strokeDasharray={dashArray}
             strokeDashoffset={dashOffset}
             transform="rotate(-90 80 80)"
+            data-dim={activeKey !== null && activeKey !== row.key ? "true" : "false"}
             {...(onSliceClick
               ? {
                   role: "button",
                   tabIndex: 0,
                   "aria-label": labelText,
-                  style: { cursor: "pointer" },
+                  "aria-pressed": selectedKey === row.key,
+                  style: { cursor: "pointer", opacity: activeKey !== null && activeKey !== row.key ? 0.38 : 1 },
+                  onMouseEnter: () => onActiveChange?.(row.key),
+                  onMouseLeave: () => onActiveChange?.(null),
+                  onFocus: () => onActiveChange?.(row.key),
+                  onBlur: () => onActiveChange?.(null),
                   onClick: () => onSliceClick(row.key),
                   onKeyDown: (e: KeyboardEvent) => {
                     if (e.key === "Enter") {
@@ -78,7 +90,7 @@ export function AllocationDonut({
                     }
                   },
                 }
-              : {})}
+              : { style: { opacity: activeKey !== null && activeKey !== row.key ? 0.38 : 1 } })}
           >
             <title>{labelText}</title>
           </circle>

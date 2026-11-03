@@ -347,6 +347,8 @@ async def start_import_session(
     filename: str,
     pdf_bytes: bytes,
     client: MfApiClient | None = None,
+    *,
+    surface: str = "import_upload",
 ) -> ImportPreviewResponse:
     """Upload-time step of the two-step import: builds the preview, detects
     the people in it, then walks the prompt queue (next_prompt). A prompt
@@ -381,6 +383,7 @@ async def start_import_session(
         pan_restore={},
         me_choice=None,
         u3_declined=False,
+        surface=surface,
         same_person_declined=set(),
         # person_key -> member_id: "Yes, same person" for a name-only member (5B).
         same_person_linked={},
@@ -461,6 +464,8 @@ def _masked_member_pan(member: HouseholdMember) -> str | None:
 
 
 def _self_match(session: dict[str, Any], self_member: HouseholdMember) -> SelfMatch:
+    if session.get("add_as_family"):
+        return SelfMatch("absent", None, [])
     if session.get("me_choice") and _is_first_upload(self_member):
         return SelfMatch("exact", session["me_choice"], [session["me_choice"]])
     match = match_self(self_member, _people(session))
@@ -868,6 +873,20 @@ def _switch_or_u12(db: Session, session: dict[str, Any], member: HouseholdMember
     # Keep the earliest snapshot: that is the PAN the member had before this review.
     session["pan_restore"].setdefault(member.id, snapshot)
     _record_claim(session, member.id, person.pan)
+
+
+@_serialised
+def resolve_add_as_family(db: Session, session_id: str, user_id: uuid.UUID) -> ImportPreviewResponse:
+    """Keep the account holder unchanged and plan everyone in the file normally."""
+    session = _live_session(db, session_id, user_id)
+    current = next_prompt(db, session)
+    if current is None or current.code != "self_name_mismatch":
+        return _finish(db, session_id)
+    session["add_as_family"] = True
+    session["me_choice"] = None
+    session["u3_declined"] = False
+    db.flush()
+    return _finish(db, session_id)
 
 
 @_serialised

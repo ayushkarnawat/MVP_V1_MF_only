@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import date, datetime
-from typing import Any, Literal
+from decimal import Decimal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, PlainSerializer
 
-from app.models.enums import PlanType
+from app.models.enums import PlanType, TransactionType
 
 
 class SchemeCandidate(BaseModel):
@@ -177,6 +179,35 @@ class ImportConfirmRequest(BaseModel):
     moved_funds: dict[str, str] = Field(default_factory=dict)
 
 
+PlainDecimal = Annotated[
+    Decimal,
+    PlainSerializer(lambda value: format(value, "f"), return_type=str, when_used="json"),
+]
+
+
+class NewFundTxOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    date: date
+    type: TransactionType
+    amount: PlainDecimal
+    units: PlainDecimal
+
+
+class NewFundOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    scheme_id: uuid.UUID
+    scheme_name: str
+    amc_name: str | None
+    invested_amount: PlainDecimal = Field(
+        description="Purchases, SIPs and switch-ins in this import only; redemptions are not netted.",
+    )
+    latest_transaction_date: date
+    transaction_count: int
+    transactions: list[NewFundTxOut]
+
+
 class PersonConfirmResult(BaseModel):
     person_key: str
     member_id: str
@@ -184,6 +215,8 @@ class PersonConfirmResult(BaseModel):
     import_id: str
     added: int
     skipped: int
+    new_funds: list[NewFundOut] = Field(default_factory=list)
+    created: bool = False
 
 
 class ImportConfirmResponse(BaseModel):

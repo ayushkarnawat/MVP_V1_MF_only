@@ -1,13 +1,14 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatPercent } from "../../../lib/format";
+import { paths } from "../../../shell/nav/paths";
 import type { AnalyticsCardProps } from "../allocation/allocationLogic";
 import { SectionCard } from "../common/SectionCard";
 import type { OverlapSummary } from "../types";
 import {
   bandOf,
   buildOverlapInsights,
-  combinedWeight,
   inclusivePairs,
   PAIR_LIMIT,
   pairKeyOf,
@@ -66,7 +67,7 @@ export function TopPairs({
                         Shared Stocks
                       </th>
                       <th scope="col" className="py-2.5 pl-3 pr-2 font-medium">
-                        Combined Weight
+                        Overlap comparison
                       </th>
                     </tr>
                   </thead>
@@ -75,7 +76,6 @@ export function TopPairs({
                       const key = pairKeyOf(pair);
                       const isSelected = selectedKey === key;
                       const band = bandOf(pair.overlap_pct, data.bands);
-                      const cw = combinedWeight(pair, data.total_portfolio_value);
                       const barColor =
                         band === "low"
                           ? "var(--pos)"
@@ -137,8 +137,14 @@ export function TopPairs({
                           <td data-testid={`pair-shared-${key}`} className="py-3 px-3 text-xs text-[var(--ui-text-muted)]">
                             {pair.common_total}
                           </td>
-                          <td data-testid={`pair-combined-${key}`} className="py-3 pl-3 pr-2 text-xs text-[var(--ui-text)]">
-                            {cw ? formatPercent(cw, { digits: 1 }) : "—"}
+                          <td className="py-3 pl-3 pr-2 text-xs">
+                            <Link
+                              to={paths.mutualFunds.compare(pair.fund_a.scheme_id, pair.fund_b.scheme_id)}
+                              aria-label={`View more: ${pair.fund_a.scheme_name} and ${pair.fund_b.scheme_name}`}
+                              className="font-semibold text-[var(--pos-text)] hover:underline"
+                            >
+                              View more <span aria-hidden="true">→</span>
+                            </Link>
                           </td>
                         </tr>
                       );

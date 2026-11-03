@@ -108,6 +108,9 @@ export interface PersonConfirmation {
   accept_name_update?: boolean;
 }
 
+import type { NewFund, NewFundTx } from "@/components/mf/NewFundsList";
+export type { NewFund, NewFundTx };
+
 export interface PersonConfirmResult {
   person_key: string;
   member_id: string;
@@ -115,6 +118,10 @@ export interface PersonConfirmResult {
   import_id: string;
   added: number;
   skipped: number;
+  /** Funds this person did not hold before this import (empty for a sign-up import). */
+  new_funds?: NewFund[];
+  /** True when the person became a new household member in this confirm. */
+  created?: boolean;
 }
 
 export interface ImportConfirmResponse {
