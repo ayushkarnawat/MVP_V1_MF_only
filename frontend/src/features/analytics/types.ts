@@ -517,6 +517,7 @@ export interface ValuationMetric {
   fund_coverage_pct?: string;
   as_of_date: string | null;
   missing: { isin: string | null; instrument_name: string; exposure_value: string; percentage_equity: string; reason: string }[];
+  unavailable_reason?: string | null;
 }
 export interface ValuationIndex {
   index_name: "nifty_50" | "nifty_500";

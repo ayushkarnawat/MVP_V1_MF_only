@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { valuationSummary } from "../fixtures/mfCother";
-import type { ValuationSummary } from "../types";
+import type { ValuationSummary, ValuationValue } from "../types";
 import { CostValuationGroup } from "./CostValuationGroup";
 
 const mock = vi.hoisted(() => ({ data: null as ValuationSummary | null }));
@@ -14,13 +14,13 @@ vi.mock("../../../components/SchemeLogo", () => ({
 
 function sample() {
   const data = valuationSummary();
-  const value = (ratio: string | null, source: "factsheet" | "computed" | "none", basis = "trailing", method = "harmonic") => ({
-    value: ratio, source, basis, method, as_of: "2026-10-12", coverage_pct: source === "computed" ? "100" : null, reason: null as string | null,
+  const value = (ratio: string | null, source: "factsheet" | "computed" | "none", basis = "trailing", method = "harmonic"): ValuationValue => ({
+    value: ratio, source, basis, method, as_of: "2026-10-12", coverage_pct: source === "computed" ? "100" : null, reason: null as string | null, unavailable_reason: null,
   });
   return { ...data, funds: [
     { scheme_id: "A", scheme_name: "Invesco India Midcap Fund", pe: value("30.6", "factsheet", "forward", "weighted_average"), pb: value("4.65", "factsheet") },
     { scheme_id: "B", scheme_name: "Kotak Flexicap Fund", pe: value("21.9", "computed"), pb: { ...value("3.6", "computed"), as_of: "2026-10-10" } },
-    { scheme_id: "C", scheme_name: "HDFC Small Cap Fund", pe: { ...value(null, "none"), coverage_pct: "69", reason: "Less than 70% of this fund's equity has a usable P/E value." }, pb: value("3.1", "computed") },
+    { scheme_id: "C", scheme_name: "HDFC Small Cap Fund", pe: { ...value(null, "none"), coverage_pct: "69", reason: "Less than 60% of this fund's equity has a usable P/E value." }, pb: value("3.1", "computed") },
   ], pe: { ...data.pe, overseas: [{ isin: "US-1", instrument_name: "Overseas Company", exposure_value: "100", percentage_equity: "2", reason: "No local ratio available" }] },
   };
 }
@@ -60,12 +60,21 @@ describe("Valuation by Fund", () => {
     expect(source).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("tooltip")).toHaveTextContent("forward earnings");
   });
-  it("fund under 70 percent shows 'Not enough data' with the reason", () => {
+  it("fund without unavailable_reason keeps today's behaviour (shows 'Not enough data' with the reason)", () => {
     mount();
     const row = within(fundRow("HDFC Small Cap Fund"));
     expect(row.getByText("Not enough data")).toBeInTheDocument();
-    expect(row.getByText("Less than 70% of this fund's equity has a usable P/E value.")).toBeInTheDocument();
+    expect(row.getByText("Less than 60% of this fund's equity has a usable P/E value.")).toBeInTheDocument();
     expect(row.getByText("3.1x")).toBeInTheDocument();
+  });
+  it("fund with unavailable_reason shows the reason instead of Not enough data or a bare dash", () => {
+    const reason = "Not enough data: P/E is available for 52% of this fund's shares, and we need at least 60%.";
+    const data = sample();
+    data.funds![2].pe.unavailable_reason = reason;
+    mount(data);
+    const row = within(fundRow("HDFC Small Cap Fund"));
+    expect(row.getByText(reason)).toBeInTheDocument();
+    expect(row.queryByText("Not enough data")).not.toBeInTheDocument();
   });
   it("the two excluded lists are closed by default with a count and open on click", () => {
     mount();

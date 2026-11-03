@@ -292,7 +292,7 @@ export const KIND_TEXT: Record<ValuationKind, { label: string; basis: string }> 
 export function ratioState(data: ValuationSummary, kind: ValuationKind): "hidden" | "not_enough" | "ok" {
   if (data.hide_headlines) return "hidden";
   const metric = data[kind];
-  if (!metric.enough_data || metric.ratio === null) return "not_enough";
+  if (!metric.enough_data || metric.ratio === null || !!metric.unavailable_reason) return "not_enough";
   return "ok";
 }
 

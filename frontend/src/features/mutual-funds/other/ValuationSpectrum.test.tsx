@@ -19,7 +19,7 @@ describe("the card's frame", () => {
     expect(banner).toHaveTextContent("Axis International Fund of Fund");
     expect(banner).toHaveTextContent("Axis Midcap Fund");
     expect(banner).toHaveTextContent("Derivative and other positions excluded from this view: 2.10% (net disclosed share).");
-    expect(screen.getByTestId("valuation-thresholds")).toHaveTextContent('Ratios are hidden below 50% look-through coverage and flagged "not enough data" below 70% of equity exposure.');
+    expect(screen.getByTestId("valuation-thresholds")).toHaveTextContent('Ratios are hidden below 50% look-through coverage and flagged "not enough data" without enough equity exposure.');
     expect(screen.getByText("P/E from NSE (SYMBOL P/E, reported trailing earnings); P/B from Yahoo Finance. Portfolio ratios use a weighted harmonic mean of the equity holdings with usable data.")).toBeInTheDocument();
   });
   it("has two panels with their own coverage line and fundamentals date", () => {
@@ -138,7 +138,7 @@ describe("the threshold states", () => {
     data.pe.enough_data = false;
     mount(data);
     expect(screen.getByTestId("state-pe")).toHaveAttribute("data-state", "not_enough");
-    expect(screen.getByTestId("state-pe")).toHaveTextContent("Not enough data for portfolio P/E — at least 70% of equity exposure needs a usable ratio.");
+    expect(screen.getByTestId("state-pe")).toHaveTextContent("Not enough data for portfolio P/E — equity exposure needs a usable ratio.");
     expect(screen.queryByTestId("pin-pe-you")).not.toBeInTheDocument();
     expect(screen.queryByTestId("delta-pe")).not.toBeInTheDocument();
     expect(screen.queryByTestId("state-pb")).not.toBeInTheDocument();
@@ -149,8 +149,26 @@ describe("the threshold states", () => {
     const data = fc.valuationSummary();
     data.pb.ratio = null;
     mount(data);
-    expect(screen.getByTestId("state-pb")).toHaveTextContent("Not enough data for portfolio P/B — at least 70% of equity exposure needs a usable ratio.");
+    expect(screen.getByTestId("state-pb")).toHaveTextContent("Not enough data for portfolio P/B — equity exposure needs a usable ratio.");
     expect(screen.queryByTestId("pin-pb-you")).not.toBeInTheDocument();
+  });
+  it("shows unavailable_reason when set, never a bare dash or hard-coded 70", () => {
+    const data = fc.valuationSummary();
+    const reason = "Not enough data: P/E is available for 52% of this portfolio's shares, and we need at least 60%.";
+    data.pe.ratio = null;
+    data.pe.enough_data = false;
+    data.pe.unavailable_reason = reason;
+    mount(data);
+    expect(screen.getByTestId("state-pe")).toHaveTextContent(reason);
+    expect(screen.getByTestId("state-pe")).not.toHaveTextContent("70%");
+  });
+  it("shows unavailable_reason when portfolio ratio is hidden while holdings cover less than 50%", () => {
+    const data = fc.valuationSummary();
+    const reason = "Not enough data: we have the latest holdings for only 40% of your portfolio's value, and we need at least 50% to work out P/E.";
+    data.hide_headlines = true;
+    data.pe.unavailable_reason = reason;
+    mount(data);
+    expect(screen.getByTestId("state-pe")).toHaveTextContent(reason);
   });
   it("says hidden, not not-enough-data, when both rules apply", () => {
     const data = fc.valuationSummary();

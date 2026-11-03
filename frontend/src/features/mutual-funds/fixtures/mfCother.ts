@@ -177,6 +177,7 @@ const VALUATION: ValuationSummary = {
   "coverage_pct": "86.40",
   "enough_data": true,
   "as_of_date": "2026-10-23",
+  "unavailable_reason": null,
   "missing": [
    {
     "isin": "INE758T01015",
@@ -192,6 +193,7 @@ const VALUATION: ValuationSummary = {
   "coverage_pct": "84.20",
   "enough_data": true,
   "as_of_date": "2026-10-22",
+  "unavailable_reason": null,
   "missing": [
    {
     "isin": "INE027H01010",
