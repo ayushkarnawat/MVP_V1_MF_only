@@ -24,7 +24,7 @@ Work only in `C:\Users\Dell\ui-r2-fe`. Run from that folder in PowerShell:
 ```
 git status --short                 # expect: nothing printed (run this FIRST)
 git branch --show-current          # expect: leapswitch-redesign
-git log --oneline -3               # expect: top line "ui-s3: red tests and packet for the S3 and S5 frontend work (Gemini)" (a later docs commit may sit above it)
+git log --oneline -8              # expect: the line "ui-s3: red tests and packet for the S3 and S5 frontend work (Gemini)" appears in the list (the finished S2 work and other commits may sit above it)
 ```
 Every check goes through one command; replace `<mode and paths>`:
 ```
