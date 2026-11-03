@@ -139,12 +139,18 @@ export function PerformanceChart({ schemeId, fundName }: PerformanceChartProps) 
       <div className="space-y-4">
         {data.benchmark_source != null && <div data-testid="benchmark-details" className="space-y-1 text-xs text-[var(--ui-text-muted)]">
           <span className="inline-flex items-center gap-2"><SchemeLogo schemeName={fundName} size="sm" />{fundName}</span>
-          <p className="inline-flex items-center gap-1.5 flex-wrap">
+          {data.benchmark_source !== "none" && <p className="inline-flex items-center gap-1.5 flex-wrap">
             <span>Benchmark: {benchmarkDisplayName(data.benchmark_label ?? (data.benchmark_index ? benchmarkKeyName(data.benchmark_index) : "No benchmark"))}</span>
             <BenchmarkInfoNote note={data.benchmark_note} />
-          </p>
+          </p>}
           {data.benchmark_source !== "none" && data.declared_benchmark_name && <p>Factsheet names: {benchmarkDisplayName(data.declared_benchmark_name)}</p>}
-          <p>{benchmarkChoiceDetails(data.benchmark_source, Boolean(data.declared_benchmark_name)).fullLine}</p>
+          {/* This chart draws no printed returns, so a fund with no benchmark gets the plain "No benchmark" reason
+              here even when its factsheet names an index (the returns table shows that case). With no
+              "Benchmark:" line for "none", the note's icon sits beside this sentence instead. */}
+          <p className="inline-flex items-center gap-1.5 flex-wrap">
+            <span>{benchmarkChoiceDetails(data.benchmark_source).fullLine}</span>
+            {data.benchmark_source === "none" && <BenchmarkInfoNote note={data.benchmark_note} />}
+          </p>
           <p>{BENCHMARK_PERIOD_METHOD}</p>
         </div>}
         <ul aria-label="Chart legend" className="flex flex-wrap items-center gap-3 text-xs">

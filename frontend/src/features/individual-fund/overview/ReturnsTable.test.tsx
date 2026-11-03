@@ -312,3 +312,15 @@ it("says printed figures are the fund house's, not 'No benchmark', when we hold 
   expect(details).not.toHaveTextContent("No benchmark");
   expect(screen.queryByRole("button", { name: /benchmark note/i })).not.toBeInTheDocument();
 });
+
+
+it("names the index we show, not the factsheet's own, when the benchmark is the closest one we hold", async () => {
+  api.returns.mockResolvedValue(Object.assign(inception(), {
+    benchmark_source: "closest", benchmark_label: "Nifty 500 Total Return", declared_benchmark_name: "BSE 500 TRI",
+  }));
+  mount(); await screen.findByTestId("row-fund");
+  const details = screen.getByTestId("returns-benchmark-details");
+  expect(details).toHaveTextContent("Nifty 500 Total Return");
+  expect(details).not.toHaveTextContent("BSE 500");
+  expect(details).toHaveTextContent("How this benchmark was chosen: Closest index we hold.");
+});

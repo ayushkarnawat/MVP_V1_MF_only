@@ -310,6 +310,18 @@ describe("PerformanceChart", () => {
 
 
 describe("benchmark source details", () => {
+  it("a fund with no benchmark gets one plain No benchmark reason, never the printed-returns sentence, and no Benchmark line", async () => {
+    api.performance.mockResolvedValue(Object.assign(perf(), {
+      benchmark_source: "none", benchmark: null, benchmark_label: null, benchmark_index: null, benchmark_reason: "no_benchmark",
+      declared_benchmark_name: "CRISIL Liquid Debt A-I Index", benchmark_note: "A note from the backend.",
+    }));
+    mount(); await screen.findByTestId("line-chart");
+    const details = screen.getByTestId("benchmark-details");
+    expect(details).toHaveTextContent("How this benchmark was chosen: No benchmark. We could not find a fair benchmark for this fund.");
+    expect(details).not.toHaveTextContent("Benchmark: No benchmark");
+    expect(details).not.toHaveTextContent("printed");
+    expect(screen.getByRole("button", { name: /benchmark note/i })).toBeInTheDocument();
+  });
   it("names the chosen benchmark and source, preserves the note and dates the period chip", async () => {
     api.performance.mockResolvedValue(Object.assign(perf(), {
       benchmark_source: "closest", declared_benchmark_name: "BSE 500 TRI", benchmark_note: "The backend's explanation exactly.",

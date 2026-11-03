@@ -112,4 +112,33 @@ describe("BenchmarkInfoNote", () => {
 
     expect(tooltip).toBeVisible();
   });
+
+  it("the_note_has_its_own_width_so_it_does_not_wrap_one_word_per_line", () => {
+    render(<BenchmarkInfoNote note="A long explanation that must not collapse into a thin column." />);
+    const tooltip = screen.getByTestId("benchmark-note-tooltip");
+    expect(tooltip.className).toContain("w-max");
+    expect(tooltip.className).toContain("max-w-");
+  });
+
+  it("the_pointer_can_move_from_the_icon_onto_the_note_without_closing_it", () => {
+    render(<BenchmarkInfoNote note="Backend note to read and select." />);
+    const button = screen.getByRole("button", { name: /benchmark note/i });
+    const tooltip = screen.getByTestId("benchmark-note-tooltip");
+
+    fireEvent.mouseEnter(button);
+    expect(tooltip).toBeVisible();
+
+    // Leaving the icon for the note stays inside the wrapper.
+    fireEvent.mouseLeave(button, { relatedTarget: tooltip });
+    expect(tooltip).toBeVisible();
+
+    // Pressing on the note's text moves focus from the icon to the note: not a blur out of the wrapper.
+    fireEvent.focus(button);
+    fireEvent.blur(button, { relatedTarget: tooltip });
+    expect(tooltip).toBeVisible();
+
+    // Leaving the whole thing closes it.
+    fireEvent.mouseLeave(tooltip, { relatedTarget: document.body });
+    expect(tooltip).not.toBeVisible();
+  });
 });

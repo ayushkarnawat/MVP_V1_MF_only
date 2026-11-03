@@ -69,7 +69,7 @@ export function CategoryRankingBody({ data }: { data: CategoryRankingSummary }) 
 
 export function CategoryRankingGroup() {
   const ranking = useMfAnalytics("category_ranking");
-  return <SectionCard title={CARD_TITLES.category[0]} info="The simple average of funds in the same category and plan type. Each fund needs at least 3 years of history."
+  return <SectionCard title={CARD_TITLES.category[0]} info="The average of funds in the same category and plan type, weighted by fund size. Each fund needs at least 3 years of history."
     state={ranking.status} onRetry={ranking.retry}>
     {ranking.data && <CategoryRankingBody data={ranking.data} />}
   </SectionCard>;

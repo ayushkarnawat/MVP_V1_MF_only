@@ -33,18 +33,25 @@ export function BenchmarkInfoNote({ note, className }: BenchmarkInfoNoteProps) {
     return null;
   }
 
+  // Hover and focus are tracked on the wrapper, which contains the note, so the pointer can travel from the
+  // icon onto the note (and select its text) without closing it. The note's padded top edge touches the icon,
+  // so there is no gap to cross. The note is focusable (tabIndex -1) so pressing on its text is not a blur.
   return (
-    <span className={cn("relative inline-flex items-center align-middle", className)}>
+    <span
+      className={cn("relative inline-flex items-center align-middle", className)}
+      onMouseEnter={open}
+      onMouseLeave={() => setIsOpen(false)}
+      onFocus={open}
+      onBlur={(e) => {
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+        setIsOpen(false);
+      }}
+    >
       <button
         type="button"
         aria-label="Benchmark note"
         aria-describedby={tooltipId}
-        aria-expanded={isOpen}
         data-testid="benchmark-info-icon"
-        onMouseEnter={open}
-        onMouseLeave={() => setIsOpen(false)}
-        onFocus={open}
-        onBlur={() => setIsOpen(false)}
         onClick={() => {
           if (isOpen && Date.now() - openedAt.current < 600) return;
           setIsOpen((prev) => !prev);
@@ -60,17 +67,21 @@ export function BenchmarkInfoNote({ note, className }: BenchmarkInfoNoteProps) {
         <span aria-hidden="true">i</span>
       </button>
 
+      {/* w-max: without a width the note would shrink to the 16px wrapper and wrap one word per line. */}
       <span
         id={tooltipId}
         role="tooltip"
+        tabIndex={-1}
         data-testid="benchmark-note-tooltip"
         hidden={!isOpen}
         className={cn(
-          "absolute left-0 top-full z-50 mt-1 block max-w-xs rounded-md border border-[var(--ui-divider)] bg-[var(--ui-card)] p-2 text-xs leading-relaxed text-[var(--ui-text)] shadow-lg sm:max-w-sm",
+          "absolute left-0 top-full z-50 block w-max max-w-[min(20rem,calc(100vw-3rem))] pt-1 outline-none",
           !isOpen && "hidden"
         )}
       >
-        {note}
+        <span className="block rounded-md border border-[var(--ui-divider)] bg-[var(--ui-card)] p-2 text-xs leading-relaxed text-[var(--ui-text)] shadow-lg">
+          {note}
+        </span>
       </span>
     </span>
   );
