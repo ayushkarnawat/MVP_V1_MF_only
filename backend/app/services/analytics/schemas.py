@@ -701,6 +701,8 @@ class ValuationValue(BaseModel):
     method: str = "not_stated"
     coverage_pct: str | None = None
     reason: str | None = None
+    # A plain sentence, set only when the value is withheld; None whenever a value is shown.
+    unavailable_reason: str | None = None
 
 
 class ValuationFund(BaseModel):
@@ -719,6 +721,8 @@ class ValuationMetric(BaseModel):
     overseas: list[ValuationMissingHolding] = Field(default_factory=list)
     fund_coverage_pct: Decimal = Decimal("0")
     reason: str | None = None
+    # A plain sentence, set only when the ratio is withheld; None whenever a ratio is shown.
+    unavailable_reason: str | None = None
 
 
 class ValuationIndex(BaseModel):

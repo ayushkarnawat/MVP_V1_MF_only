@@ -3,21 +3,52 @@ from __future__ import annotations
 
 import uuid
 from datetime import date
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
 
 from sqlalchemy.orm import Session
 
 from app.models.enums import AssetType, BenchmarkIndex, BenchmarkReturnType
 from app.models.reference import BenchmarkIndexHistory, StockMaster, SchemeReportedValuation
-from app.services.analytics.lookthrough import get_lookthrough_table, get_disclosure_scope
+from app.services.analytics.lookthrough import get_lookthrough_table, get_disclosure_scope, HEADLINE_MIN_COVERAGE
 from app.services.analytics.schemas import (
     ValuationMissingHolding, ValuationMetric, ValuationIndex, ValuationSummary, ValuationValue, ValuationFund,
 )
 
-VALUATION_MIN_COVERAGE = Decimal("0.70")
+# Owner decision, 2 Nov 2026: a P/E or P/B is shown when at least 60% of the equity (by value) has a usable ratio.
+# This is the only place the number lives; every sentence that names it is built from it.
+VALUATION_MIN_COVERAGE = Decimal("0.60")
 _EQUITY = {AssetType.EQUITY_DOMESTIC, AssetType.EQUITY_INTERNATIONAL}
 _ZERO = Decimal(0)
 _PRECISION = Decimal("0.000001")
+_HUNDRED = Decimal(100)
+
+
+def _whole_percent(value: Decimal) -> int:
+    # Rounded down on purpose: a withheld value must never read "60% available, 60% needed" because 59.6 rounded up.
+    return int(value.quantize(Decimal(1), rounding=ROUND_DOWN))
+
+
+def _rule_percent() -> int:
+    return int(VALUATION_MIN_COVERAGE * _HUNDRED)
+
+
+def _label(field: str) -> str:
+    return "P/E" if field == "pe_ratio" else "P/B"
+
+
+def _withheld_reason(subject: str, field: str, share: Decimal, metric: ValuationMetric, losses: list[str]) -> str:
+    """Plain reason a P/E or P/B is withheld because of the ratio data itself. `subject` is 'portfolio' or 'fund';
+    `share` is the percentage of its shares that has a usable figure."""
+    label = _label(field)
+    if not metric.missing and not metric.overseas and not losses and metric.coverage_pct == 0 and share == 0:
+        # Every stock row is either covered, missing or overseas, so none of those means no shares at all.
+        return f"Not available: this {subject} holds no shares, so there is no {label} to show."
+    if (losses and share == 0 and not metric.overseas and len(losses) == len(metric.missing)
+            and metric.coverage_pct == 0):
+        return (f"Not available: every share in this {subject} with an earnings figure is loss-making, "
+                f"so a {label} cannot be worked out.")
+    return (f"Not enough data: {label} is available for {_whole_percent(share)}% of this {subject}'s shares, "
+            f"and we need at least {_rule_percent()}%.")
 
 
 def resolve_fund_ratio(
@@ -71,7 +102,7 @@ def _stock_metric(entries, field, master):
 def _fund_computed(metric: ValuationMetric, losses: list[str], field: str, nav_date: date) -> ValuationValue:
     notes = []
     if not metric.enough_data:
-        notes.append(f"Less than 70% of this fund's equity has a usable {'P/E' if field == 'pe_ratio' else 'P/B'} value.")
+        notes.append(f"Less than {_rule_percent()}% of this fund's equity has a usable {_label(field)} value.")
     if losses:
         notes.append("Loss-making stocks: " + ", ".join(sorted(set(losses))) + ".")
     if metric.overseas:
@@ -80,6 +111,8 @@ def _fund_computed(metric: ValuationMetric, losses: list[str], field: str, nav_d
         value=str(metric.ratio) if metric.ratio is not None else None,
         source="computed" if metric.ratio is not None else "none", as_of=metric.as_of_date or nav_date,
         basis="trailing", method="harmonic", coverage_pct=str(metric.coverage_pct), reason=" ".join(notes) or None,
+        unavailable_reason=(None if metric.ratio is not None
+                            else _withheld_reason("fund", field, metric.coverage_pct, metric, losses)),
     )
 
 
@@ -90,8 +123,9 @@ async def compute_valuation(db: Session, household_member_ids: list[uuid.UUID]) 
     total_equity = sum((r.exposure_value for r in equity), _ZERO)
     isins = {r.isin for r in scope.raw_rows if r.asset_type in _EQUITY and r.isin is not None}
     master = {s.isin: s for s in db.query(StockMaster).filter(StockMaster.isin.in_(isins)).all()} if isins else {}
-    pe, _ = _stock_metric([(r, r.exposure_value) for r in equity], "pe_ratio", master)
-    pb, _ = _stock_metric([(r, r.exposure_value) for r in equity], "pb_ratio", master)
+    pe, pe_losses = _stock_metric([(r, r.exposure_value) for r in equity], "pe_ratio", master)
+    pb, pb_losses = _stock_metric([(r, r.exposure_value) for r in equity], "pb_ratio", master)
+    stock_losses = {"pe": pe_losses, "pb": pb_losses}
     if table.hide_headlines:
         pe.ratio = pb.ratio = None
 
@@ -145,6 +179,21 @@ async def compute_valuation(db: Session, household_member_ids: list[uuid.UUID]) 
             summary.reason = "Not enough portfolio holdings are available yet."
         if available:
             summary.as_of_date = min(value.as_of for _, value, _ in available)
+        field = "pe_ratio" if metric == "pe" else "pb_ratio"
+        if summary.ratio is not None:
+            summary.unavailable_reason = None
+        elif total_equity == 0 and (not table.hide_headlines or table.total_portfolio_value == 0):
+            summary.unavailable_reason = _withheld_reason("portfolio", field, _ZERO, summary, stock_losses[metric])
+        elif table.hide_headlines:
+            # hide_headlines means too little of the portfolio's value has a holdings list yet (not a share of
+            # excluded lines such as derivatives); explain it as missing holdings data.
+            summary.unavailable_reason = (
+                f"Not enough data: we have the latest holdings for only "
+                f"{_whole_percent(table.coverage.covered_value_pct)}% of your portfolio's value, "
+                f"and we need at least {int(HEADLINE_MIN_COVERAGE * _HUNDRED)}% to work out {_label(field)}.")
+        else:
+            summary.unavailable_reason = _withheld_reason(
+                "portfolio", field, summary.fund_coverage_pct, summary, stock_losses[metric])
 
     rows = db.query(BenchmarkIndexHistory).filter(
         BenchmarkIndexHistory.index_name.in_((BenchmarkIndex.NIFTY_50, BenchmarkIndex.NIFTY_500)),

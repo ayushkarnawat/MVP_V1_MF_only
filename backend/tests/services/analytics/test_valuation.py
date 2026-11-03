@@ -48,8 +48,8 @@ def test_valuation_worked_harmonic_means_equity_rescale_and_both_indices(db_sess
     assert fifty.pe_delta_pct.quantize(Decimal('.01')) == Decimal('9.65')
 
 
-@pytest.mark.parametrize('weight,enough',[('69.999',False),('70',True)])
-def test_valuation_separate_ratio_coverage_seventy_percent_boundary(db_session,monkeypatch,weight,enough):
+@pytest.mark.parametrize('weight,enough',[('59.999',False),('60',True)])
+def test_valuation_separate_ratio_coverage_sixty_percent_boundary(db_session,monkeypatch,weight,enough):
     s = _scheme(db_session)
     _batch(db_session,s,[('Good','A',weight,AssetType.EQUITY_DOMESTIC),('Loss','B',str(100-Decimal(weight)),AssetType.EQUITY_DOMESTIC)])
     _stock(db_session,'A','25','3.35');_stock(db_session,'B',None,'3.35','Loss-making stock: negative earnings')
@@ -100,7 +100,7 @@ def test_valuation_real_disclosure_and_fundamental_fixtures_offline(db_session,m
     asyncio.run(refresh())
     result = _compute(db_session,monkeypatch,[_holding(scheme,'1000')])
     assert result.pe.ratio > 0 and result.pb.ratio > 0
-    assert result.pe.coverage_pct >= 70 and result.pb.coverage_pct >= 70
+    assert result.pe.coverage_pct >= 60 and result.pb.coverage_pct >= 60
     stocks = [r for r in sheet.holdings if r.asset_type in (AssetType.EQUITY_DOMESTIC,AssetType.EQUITY_INTERNATIONAL)]
     master = parse_security_master((FIXTURES/'security_12102026.csv').read_bytes())
     pe = parse_pe_csv((FIXTURES/'pe_121026.csv').read_bytes())
@@ -149,16 +149,16 @@ def test_fund_with_full_coverage_equals_hand_worked_harmonic_value(db_session, m
     assert result.model_dump(mode="json")["funds"][0]["pe"]["value"] == fund.pe.value
 
 
-def test_fund_below_70_percent_coverage_shows_no_value_and_a_reason(db_session, monkeypatch):
+def test_fund_below_60_percent_coverage_shows_no_value_and_a_reason(db_session, monkeypatch):
     scheme = _scheme(db_session)
-    _batch(db_session, scheme, [("Known", "A", "69", AssetType.EQUITY_DOMESTIC),
-                               ("Unknown", "B", "31", AssetType.EQUITY_DOMESTIC)])
+    _batch(db_session, scheme, [("Known", "A", "59", AssetType.EQUITY_DOMESTIC),
+                               ("Unknown", "B", "41", AssetType.EQUITY_DOMESTIC)])
     _stock(db_session, "A", "10", "2")
     result = _compute(db_session, monkeypatch, [_holding(scheme, "1000")])
     pe = result.funds[0].pe
     assert pe.value is None and pe.source == "none"
-    assert Decimal(pe.coverage_pct) == 69
-    assert "70%" in pe.reason
+    assert Decimal(pe.coverage_pct) == 59
+    assert "60%" in pe.reason
     assert all(word not in pe.reason.lower() for word in ("fallback", "proxy", "excluded: no data"))
 
 
@@ -247,8 +247,8 @@ def test_old_stored_valuation_defaults_to_no_fund_rows(db_session, monkeypatch):
 
 
 
-@pytest.mark.parametrize("available_weight,shown", [("69.999", False), ("70", True)])
-def test_portfolio_fund_figure_coverage_seventy_percent_boundary(db_session, monkeypatch, available_weight, shown):
+@pytest.mark.parametrize("available_weight,shown", [("59.999", False), ("60", True)])
+def test_portfolio_fund_figure_coverage_sixty_percent_boundary(db_session, monkeypatch, available_weight, shown):
     a, b = _scheme(db_session), _scheme(db_session)
     _batch(db_session, a, [("No stock ratio A", "A", "100", AssetType.EQUITY_DOMESTIC)])
     _batch(db_session, b, [("No stock ratio B", "B", "100", AssetType.EQUITY_DOMESTIC)])
