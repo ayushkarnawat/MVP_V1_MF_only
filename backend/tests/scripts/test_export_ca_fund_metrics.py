@@ -475,3 +475,26 @@ def test_main_aborts_with_a_clear_message_if_anything_tries_to_write(db_session,
     assert code == 2 and out == ""
     assert "read-only guard" in err
     assert db_session.query(Scheme).filter(Scheme.name == "Intruder").count() == 0
+
+
+def test_nav_cache_flag_lets_only_the_nav_history_insert_through(db_session, world):
+    from scripts.export_ca_fund_metrics import WriteAttempted, install_read_only_guard
+    install_read_only_guard(db_session, allow_nav_cache_writes=True)
+    scheme_id = db_session.query(Scheme.id).first()[0]
+    # The product's NAV warming insert (insert-or-ignore) is allowed.
+    db_session.execute(text(
+        "INSERT INTO nav_history (scheme_id, date, nav) VALUES (:s, '2030-01-01', 10) ON CONFLICT DO NOTHING"), {"s": str(scheme_id).replace("-", "")})
+    # Everything else is still refused.
+    for statement in ("DELETE FROM nav_history", "UPDATE nav_history SET nav = 1", "INSERT INTO schemes (id) VALUES ('x')",
+                      "DROP TABLE nav_history", "WITH d AS (DELETE FROM nav_history RETURNING 1) SELECT * FROM d"):
+        with pytest.raises(WriteAttempted):
+            db_session.execute(text(statement))
+    db_session.rollback()
+
+
+def test_the_nav_insert_is_refused_without_the_flag(db_session, world):
+    from scripts.export_ca_fund_metrics import WriteAttempted, install_read_only_guard
+    install_read_only_guard(db_session)
+    with pytest.raises(WriteAttempted):
+        db_session.execute(text("INSERT INTO nav_history (scheme_id, date, nav) VALUES ('x', '2030-01-01', 10)"))
+    db_session.rollback()

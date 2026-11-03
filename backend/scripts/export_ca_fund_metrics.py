@@ -115,16 +115,24 @@ class SelectionError(RuntimeError):
 _WRITE_WORDS = re.compile(r"\b(insert|update|delete|merge|drop|alter|create|truncate|grant|revoke|copy)\b", re.I)
 
 
-def _is_read_only(statement: str) -> bool:
+# The one write the product's own NAV warming makes: filling missing NAV rows (INSERT ... ON CONFLICT DO NOTHING).
+_NAV_CACHE_INSERT = re.compile(r"^\s*INSERT\s+INTO\s+nav_history\b", re.I)
+
+
+def _is_read_only(statement: str, allow_nav_cache_writes: bool = False) -> bool:
     head = statement.lstrip().upper()
     if head.startswith(("SELECT", "SHOW", "PRAGMA")):
+        return True
+    if allow_nav_cache_writes and _NAV_CACHE_INSERT.match(statement):
         return True
     # A WITH may carry a data-modifying statement (WITH d AS (DELETE ... RETURNING ...)).
     return head.startswith("WITH") and not _WRITE_WORDS.search(statement)
 
 
-def install_read_only_guard(db: Session) -> None:
-    """Aborts any ORM flush with pending changes and any SQL statement that is not a read."""
+def install_read_only_guard(db: Session, allow_nav_cache_writes: bool = False) -> None:
+    """Aborts any ORM flush with pending changes and any SQL statement that is not a read. With
+    `allow_nav_cache_writes` (the --warm-nav-cache flag) the only statement let through is the NAV cache
+    insert into nav_history that the product's own warming makes; every other write still aborts."""
     @event.listens_for(db, "before_flush")
     def _no_flush(session, flush_context, instances):
         pending = list(session.new) + list(session.deleted) + [o for o in session.dirty if session.is_modified(o)]
@@ -133,7 +141,7 @@ def install_read_only_guard(db: Session) -> None:
 
     @event.listens_for(db.get_bind(), "before_cursor_execute")
     def _no_write_sql(conn, cursor, statement, parameters, context, executemany):
-        if not _is_read_only(statement):
+        if not _is_read_only(statement, allow_nav_cache_writes):
             raise WriteAttempted(
                 f"a non-read statement ({statement.lstrip()[:12]}...) was about to run; nothing was committed.",
             )
@@ -388,6 +396,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--holdings-as-of", type=date.fromisoformat, default=DEFAULT_HOLDINGS_AS_OF)
     parser.add_argument("--export-date", type=date.fromisoformat, default=None,
                         help="end date of the return windows; default today")
+    parser.add_argument("--warm-nav-cache", action="store_true",
+                        help="let the product's own NAV warming fill missing NAV rows of the category peers "
+                             "(public mfapi downloads; the only write allowed is INSERT INTO nav_history)")
     args = parser.parse_args(argv)
     if not args.scheme_id and not args.name:
         print("error: give at least one --scheme-id or --name", file=sys.stderr)
@@ -395,8 +406,9 @@ def main(argv: list[str] | None = None) -> int:
     export_date = args.export_date or date.today()
     db = SessionLocal()
     try:
-        install_read_only_guard(db)
-        disable_live_nav_warming()
+        install_read_only_guard(db, allow_nav_cache_writes=args.warm_nav_cache)
+        if not args.warm_nav_cache:
+            disable_live_nav_warming()
         schemes = resolve_schemes(db, args.scheme_id, args.name)
         result = asyncio.run(build_export(db, schemes, args.holdings_as_of, export_date))
         print(json.dumps(result, indent=2, ensure_ascii=False))
