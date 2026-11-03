@@ -21,7 +21,7 @@ Two phases in one run. **Phase A:** the Home asset allocation donut gets the Mut
 12. **Run every command inside WSL** through the script shown in Step 0. A test that fails with "Unable to find an element ... timed out" under load: re-run that file alone before reporting it.
 
 ## Step 0: environment check (do this first, and report the output)
-Work only in `C:\Users\Dell\ui-r2-fe`. Run from that folder in PowerShell:
+Work only in `C:\Users\Dell\ui-r2-fe-2`. Run from that folder in PowerShell:
 ```
 git status --short                 # expect: nothing printed (run this FIRST)
 git branch --show-current          # expect: leapswitch-redesign
@@ -29,7 +29,7 @@ git log --oneline -3               # expect: top line "ui-s2: red tests and pack
 ```
 Every check goes through one command; replace `<mode and paths>`:
 ```
-wsl.exe -d Ubuntu -- env CR6_SRC=/mnt/c/Users/Dell/ui-r2-fe/frontend CR6_DST=/home/delladiti/ui-r2-fe-chk bash /mnt/c/Users/Dell/ui-r2-fe/Docs/orchestration/cr-r6-fe-check.sh <mode and paths>
+wsl.exe -d Ubuntu -- env CR6_SRC=/mnt/c/Users/Dell/ui-r2-fe-2/frontend CR6_DST=/home/delladiti/ui-r2-fe-2-chk bash /mnt/c/Users/Dell/ui-r2-fe-2/Docs/orchestration/cr-r6-fe-check.sh <mode and paths>
 ```
 `<mode and paths>` is `types`, `lint`, `build`, or `test <paths under src/>`. Expected before you start (these are the committed red tests):
 ```
