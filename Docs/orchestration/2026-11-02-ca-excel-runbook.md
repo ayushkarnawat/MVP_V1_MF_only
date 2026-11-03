@@ -5,11 +5,17 @@
 **Trigger the owner pastes (any time, in any session):**
 > Do the CA Excel for the seven funds. Read `Docs/orchestration/2026-11-02-ca-excel-runbook.md` and follow it from the first step that is not done. Ask me for what you need, one thing at a time.
 
-**State on 2 Nov 2026 (update this block as steps finish):**
+**Owner decisions, 3 Nov 2026 (these override anything below that says otherwise):**
+1. **Bandhan Small Cap Fund is NOT in this Excel.** The owner could not find the 30 Sep 2026 Bandhan equity portfolio file (Bandhan's page lists the October debt file; the file in `D:\Bandhan` is the debt portfolio as on 30 Oct 2026 and has no Small Cap sheet). The Excel is therefore **six funds**, and its Read me sheet states plainly that Bandhan Small Cap Fund is left out because its September 2026 portfolio file was not available, and that it can be added when the file is. **Skip Phase 1 steps 1.1 to 1.5 (no Bandhan import, no staging write at all).** Re-open them only if the owner later supplies the right file.
+2. **The CA's answer (relayed by the owner):** take all the Motilal Oswal momentum funds if needed, and include both Direct and Regular plans; these are examples for data checks. So the Excel lists all three Motilal funds, and for every fund both plans.
+3. **"Category average comparison" now means the fund-size-weighted figure** (owner decision 2 Nov, W3): the Other Analytics screen weights by fund size. Say so on the Read me sheet, and state the method in plain words.
+4. The alembic head after the deploy is **0052** (not 0050).
+
+**State on 3 Nov 2026 (update this block as steps finish):**
 | Step | State |
 |---|---|
-| 1 Bandhan September portfolio workbook | NOT DONE (file not supplied; Bandhan has no holdings in the system) |
-| 2 CA's answers (which Motilal fund, Direct or Regular) | NOT ASKED YET (the holding message asks the Motilal question; the plan type is assumed Direct, see 2.2) |
+| 1 Bandhan September portfolio workbook | **DROPPED by the owner (3 Nov): Bandhan Small Cap left out of the Excel; no import** |
+| 2 CA's answers (which Motilal fund, Direct or Regular) | **ANSWERED 3 Nov: all Motilal momentum funds, both Direct and Regular, as data-check examples** |
 | 3 Holding message sent to the CA | owner sends it (text in the other file) |
 | 4 Deploy (S.1) and the checks | NOT DONE: runs 5, 6, 7, T2.12 Step B and D.1 come first |
 | 5 Export design, build, verify, send | NOT STARTED |
@@ -42,15 +48,15 @@ Read-only SQL through the Postgres container (pattern in `Docs/orchestration/202
 ### 1.6 The CA's answers (the owner relays them)
 - 2.1 Which Motilal momentum fund: Active Momentum Fund (sectoral/thematic), Nifty 200 Momentum 30 Index Fund, or Nifty 500 Momentum 50 Index Fund.
 - 2.2 Direct or Regular plan. **Default Direct Plan - Growth** (holdings are identical across plans; only returns differ). Scheme ids on the VM on 2 Nov, Direct Growth: Axis Multicap `be51295a`, Bandhan Small Cap `51764272`, ICICI Prudential Flexi Cap `288b4e0b`, Motilal Active Momentum `f50c8e83`, Motilal Nifty 200 Momentum 30 `719c436b`, Motilal Nifty 500 Momentum 50 `35870902`, Nippon India Large Cap `119492d1`, Parag Parikh Flexi Cap `fe28bba8`. Re-read the full ids from `schemes` at run time; do not hard-code.
-- 2.3 Confirm that "category average comparison" and "ranking" mean the **Other Analytics screens** (Category Average Comparison with simple means; Performance Ranking), not the fund page's peer charts. If he means the fund page peers, the method differs (the fund page keeps size weighting): record his answer here.
+- 2.3 Confirm that "category average comparison" and "ranking" mean the **Other Analytics screens** (Category Average Comparison, now weighted by fund size (W3); Performance Ranking), not the fund page's peer charts. If he means the fund page peers, the method differs (the fund page keeps size weighting): record his answer here.
 
 ---
 ## Phase 2: after the S.1 deploy (do not start earlier)
 Check each, read-only, and stop at the first failure:
-1. The deployed commit and `alembic current = 0050` (`2026-10-31-staging-deploy-guide-change-requests.md` section 4.1, L1).
+1. The deployed commit and `alembic current = 0052` (`2026-10-31-staging-deploy-guide-change-requests.md` section 4.1, L1).
 2. The forced analytics recompute finished, 0 failed sections (section 3, step 4).
 3. T2.11 live (BSE-only stocks priced) and **T2.12 Step B built and run once** (book values), per ledger rows L16 and L17; P/E and P/B coverage re-measured for the seven funds (the 2 Nov coverage figures are in the other file; they should not be lower).
-4. Bandhan Small Cap shows holdings in the system (1.5).
+4. (Dropped 3 Nov: Bandhan Small Cap is not in this Excel.)
 5. Holdings batches for all seven funds are still the 30 Sep 2026 ones. **Use September even if the October files have arrived** (owner's decision, 2 Nov): select by `as_of_date = 2026-09-30`, not "latest".
 
 ## Phase 3: how the numbers are produced (design decision, then build)

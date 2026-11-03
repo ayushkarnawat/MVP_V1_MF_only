@@ -90,7 +90,7 @@ Note: Home, the fund page and the matrix stop at their read-only guard before th
 ### 4.6 Deliverables owed after the deploy (not checks, but promised)
 | Id | What | Needs |
 |---|---|---|
-| D1 | **The Excel for the chartered accountant: seven funds, five parameters** (large/mid/small split, category comparison, ranking, P/E and P/B, top 10 holdings). Built once, complete, from the system's own stored results; holdings as of 30 Sep 2026; Read me sheet with every date and method. **Step-by-step runbook (follow it): `2026-11-02-ca-excel-runbook.md`**; background, full spec, the message to him and the CEO talking points: `2026-11-02-ca-excel-seven-funds.md` | the deploy and recompute done; T2.11 live and T2.12 Step B run once; the Bandhan September portfolio workbook loaded (a hand import of an owner-supplied file, can be done before the deploy); the CA's answer on which Motilal momentum fund |
+| D1 | **The Excel for the chartered accountant: six funds (Bandhan Small Cap left out, 3 Nov), five parameters** (large/mid/small split, category comparison, ranking, P/E and P/B, top 10 holdings). Built once, complete, from the system's own stored results; holdings as of 30 Sep 2026; Read me sheet with every date and method. **Step-by-step runbook (follow it): `2026-11-02-ca-excel-runbook.md`**; background, full spec, the message to him and the CEO talking points: `2026-11-02-ca-excel-seven-funds.md` | the deploy and recompute done; T2.11 live and T2.12 Step B run once; Bandhan DROPPED by the owner on 3 Nov (the file was not obtainable); the CA answered: all Motilal momentum funds, both plans |
 | D2 | Tell the CA the day the Excel will arrive as soon as the deploy date is known (he was told a date in the holding message) | S.1 scheduled |
 
 ## 5. Rollback
