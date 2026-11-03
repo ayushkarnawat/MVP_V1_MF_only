@@ -179,4 +179,12 @@ describe("PerformancePanel", () => {
     }
     expect(calls().filter(call => call[0] === B_ID).map(call => call[1])).toEqual(["1Y", "1M", "3M", "6M", "3Y", "5Y", "All"]);
   });
+
+  it("renders SchemeLogo on chart legend items and comparison table headers", async () => {
+    mount();
+    await screen.findByTestId("line-chart");
+    expect(screen.getByTestId("perf-legend-a").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+    expect(screen.getByTestId("perf-legend-b").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+    expect(screen.getByRole("table", { name: "Performance comparison" }).querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs')).toHaveLength(2);
+  });
 });

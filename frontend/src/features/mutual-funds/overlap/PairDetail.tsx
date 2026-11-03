@@ -1,3 +1,4 @@
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatPercent as formatLookthroughPercent } from "../../../components/mf/lookthroughDisplay";
 import { formatPercent } from "../../../lib/format";
 import { FundLink } from "../common/FundLink";
@@ -38,6 +39,10 @@ export function PairDetail({ pair, band }: PairDetailProps) {
     >
       <div className="flex items-start justify-between gap-2">
         <div>
+          <div className="mb-1 flex items-center gap-1.5">
+            <SchemeLogo schemeName={a} size="sm" />
+            <SchemeLogo schemeName={b} size="sm" />
+          </div>
           <h4 className="text-sm font-semibold text-[var(--ui-text)]">
             <FundLink schemeId={pair.fund_a.scheme_id}>{a}</FundLink> × <FundLink schemeId={pair.fund_b.scheme_id}>{b}</FundLink> — shared holdings
           </h4>

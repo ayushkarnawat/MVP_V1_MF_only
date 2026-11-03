@@ -163,4 +163,9 @@ describe("the funds behind a stock open their fund page (IF-E)", () => {
     expect(within(screen.getByTestId(`stock-detail-${HDFC}`)).getAllByRole("link")).toHaveLength(3);
     expect(document.querySelectorAll("button a")).toHaveLength(0);
   });
+  it("renders SchemeLogo on expanded stock contributing fund rows", () => {
+    mount();
+    fireEvent.click(within(screen.getByTestId(`stock-row-${HDFC}`)).getByRole("button"));
+    expect(screen.getByTestId(`stock-fund-${HDFC}-S-KOTAK`).querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

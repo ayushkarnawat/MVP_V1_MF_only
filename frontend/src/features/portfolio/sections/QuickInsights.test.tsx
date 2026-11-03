@@ -148,4 +148,10 @@ describe("QuickInsights: partial data and missing lines", () => {
     expect(screen.getByTestId("insight-plan-split")).toHaveTextContent("69% Direct, 30% Regular, 13% Unclassified");
     expect(boldTexts(screen.getByTestId("insight-plan-split"))).toEqual(["69% Direct"]);
   });
+
+  it("renders SchemeLogo on largest holding and largest AMC insight lines", () => {
+    setup();
+    expect(screen.getByTestId("insight-largest-holding").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+    expect(screen.getByTestId("insight-largest-amc").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

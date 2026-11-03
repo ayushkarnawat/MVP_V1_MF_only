@@ -1,5 +1,6 @@
 import { BarChart3, PieChart } from "lucide-react";
 import { useMemo, useState } from "react";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { formatCompactRupees, formatPercent, formatRupees } from "../../../lib/format";
 import { BarList, ChartTypeToggle, SlicedDonut, useSelectedSlice } from "../common/charts";
@@ -212,6 +213,7 @@ export function CategoryAmcCard({
                               style={{ backgroundColor: slice.color }}
                               className="h-3 w-3 rounded-full shrink-0"
                             />
+                            {tab === "amc" && <SchemeLogo amcName={slice.label} size="sm" />}
                             <span className="text-[var(--ui-text)]">{slice.label}</span>
                           </div>
                           <span className="font-medium text-[var(--ui-text-muted)]">
@@ -233,6 +235,7 @@ export function CategoryAmcCard({
                   return formatPercent(sl?.pct ?? item.pct, { digits: 1 });
                 }}
                 ariaLabel={ariaLabel}
+                showAmcLogo={tab === "amc"}
               />
             )}
 
@@ -294,6 +297,7 @@ export function CategoryAmcCard({
                               >
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-1.5 min-w-0">
+                                    <SchemeLogo schemeName={fund.name} size="sm" />
                                     <span
                                       title={fund.name}
                                       className="truncate font-medium text-[var(--ui-text)]"

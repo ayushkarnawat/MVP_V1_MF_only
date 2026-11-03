@@ -108,4 +108,9 @@ describe("states", () => {
     fireEvent.click(screen.getByTestId("chip-S-HDFC"));
     expectInteractivity(container, 4);
   });
+  it("renders SchemeLogo on fund chips and the selected fund strip", () => {
+    mount();
+    expect(screen.getByTestId("chip-S-KOTAK").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+    expect(screen.getByTestId("fund-strip").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

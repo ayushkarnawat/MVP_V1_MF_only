@@ -251,3 +251,11 @@ it("treats defaulted empty strings and a missing bucket percentage as updating",
   expect(screen.getByRole("status")).toHaveTextContent(/updating/i);
   expect(screen.queryByRole("img", { name: "Market-cap allocation chart" })).not.toBeInTheDocument();
 });
+
+it("renders SchemeLogo on contributing fund rows when a stock is expanded", () => {
+  mount();
+  fireEvent.click(row(/Large Cap/));
+  fireEvent.click(within(screen.getByTestId("stock-0")).getByRole("button"));
+  const kotak = screen.getByTestId("stock-0-fund-S-KOTAK");
+  expect(kotak.querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+});

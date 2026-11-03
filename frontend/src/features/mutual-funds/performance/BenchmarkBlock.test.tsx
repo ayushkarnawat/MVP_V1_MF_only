@@ -431,4 +431,11 @@ describe("declared benchmark comparison", () => {
     expect(detail).toHaveTextContent("Chosen by the fund's category");
     expect(detail.textContent).not.toMatch(/\b(?:TRI|proxy|fallback)\b/i);
   });
+  it("renders SchemeLogo on non-declared per-fund benchmark rows too", async () => {
+    mount();
+    await ready();
+    click("Per-Fund vs Benchmark", "tab");
+    const row = await screen.findByTestId("fund-row-S-KOTAK");
+    expect(row.querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

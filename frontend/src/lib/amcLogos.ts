@@ -47,6 +47,15 @@ const AMC_DOMAIN_MAP: Record<string, { name: string; domain: string }> = {
   samco: { name: "Samco Mutual Fund", domain: "samcomf.com" },
   helios: { name: "Helios Mutual Fund", domain: "heliosmf.in" },
   oldbridge: { name: "Old Bridge Mutual Fund", domain: "oldbridgemf.com" },
+  bajaj: { name: "Bajaj Finserv Mutual Fund", domain: "bajajamc.com" },
+  jio: { name: "Jio BlackRock Mutual Fund", domain: "jioblackrockamc.com" },
+  nj: { name: "NJ Mutual Fund", domain: "njmutualfund.com" },
+  iti: { name: "ITI Mutual Fund", domain: "itiamc.com" },
+  jm: { name: "JM Financial Mutual Fund", domain: "jmfinancialmf.com" },
+  boi: { name: "Bank of India Mutual Fund", domain: "boimf.in" },
+  trust: { name: "Trust Mutual Fund", domain: "trustmf.com" },
+  shriram: { name: "Shriram Mutual Fund", domain: "shriramamc.in" },
+  taurus: { name: "Taurus Mutual Fund", domain: "taurusmutualfund.com" },
 };
 
 /**
@@ -147,7 +156,30 @@ const ALIAS_MAP: Record<string, string> = {
   helios: "helios",
   oldbridge: "oldbridge",
   "old bridge": "oldbridge",
+
+  bajaj: "bajaj",
+  "bajaj finserv": "bajaj",
+
+  jio: "jio",
+  "jio blackrock": "jio",
+
+  nj: "nj",
+  iti: "iti",
+
+  jm: "jm",
+  "jm financial": "jm",
+
+  boi: "boi",
+  "bank of india": "boi",
+
+  trust: "trust",
+  trustmf: "trust",
+
+  shriram: "shriram",
+  taurus: "taurus",
 };
+
+const SORTED_ALIASES = Object.entries(ALIAS_MAP).sort((a, b) => b[0].length - a[0].length);
 
 /**
  * Returns full AMC info including official logo URLs for a given AMC or scheme name.
@@ -162,9 +194,10 @@ export function getAmcInfo(
       .replace(/mutual\s+fund/g, "")
       .replace(/asset\s+management/g, "")
       .replace(/pvt\.?\s*ltd\.?/g, "")
-      .replace(/limited/g, "")
-      .replace(/mf/g, "")
+      .replace(/\blimited\b/g, "")
+      .replace(/\bmf\b/g, "")
       .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
       .trim();
 
   const candidates: string[] = [];
@@ -188,9 +221,10 @@ export function getAmcInfo(
       };
     }
 
-    // Tokenized word search
-    for (const [key, mapTarget] of Object.entries(ALIAS_MAP)) {
-      if (text.includes(key) && AMC_DOMAIN_MAP[mapTarget]) {
+    // Tokenized word search (longest alias first, whole-word boundary match)
+    for (const [key, mapTarget] of SORTED_ALIASES) {
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`(?:^|\\s)${escapedKey}(?:\\s|$)`).test(text) && AMC_DOMAIN_MAP[mapTarget]) {
         const data = AMC_DOMAIN_MAP[mapTarget];
         return {
           key: mapTarget,

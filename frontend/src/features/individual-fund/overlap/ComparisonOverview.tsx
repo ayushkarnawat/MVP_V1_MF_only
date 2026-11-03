@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SchemeLogo } from "@/components/SchemeLogo";
 import { PieChart, PieSlice } from "@/components/ui/charts";
 import { formatPercent, formatRupees } from "@/lib/format";
 import type { OverlapCompareResponse } from "../types";
@@ -74,8 +75,9 @@ export function ComparisonOverview({ data }: ComparisonOverviewProps) {
           data-testid="count-unique-a"
           className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4"
         >
-          <dt className="text-xs font-medium text-[var(--ui-text-muted)]">
-            Unique to {data.fund_a.scheme_name}
+          <dt className="flex items-center gap-1.5 text-xs font-medium text-[var(--ui-text-muted)]">
+            <SchemeLogo schemeName={data.fund_a.scheme_name} size="sm" />
+            <span>Unique to {data.fund_a.scheme_name}</span>
           </dt>
           <dd className="mt-1 text-2xl font-semibold text-[var(--ui-text)]">
             {data.counts.unique_a}
@@ -98,8 +100,9 @@ export function ComparisonOverview({ data }: ComparisonOverviewProps) {
           data-testid="count-unique-b"
           className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4"
         >
-          <dt className="text-xs font-medium text-[var(--ui-text-muted)]">
-            Unique to {data.fund_b.scheme_name}
+          <dt className="flex items-center gap-1.5 text-xs font-medium text-[var(--ui-text-muted)]">
+            <SchemeLogo schemeName={data.fund_b.scheme_name} size="sm" />
+            <span>Unique to {data.fund_b.scheme_name}</span>
           </dt>
           <dd className="mt-1 text-2xl font-semibold text-[var(--ui-text)]">
             {data.counts.unique_b}
@@ -167,6 +170,8 @@ export function ComparisonOverview({ data }: ComparisonOverviewProps) {
                         style={{ background: r.baseColor }}
                         aria-hidden="true"
                       />
+                      {r.key === "unique_a" && <SchemeLogo schemeName={data.fund_a.scheme_name} size="sm" />}
+                      {r.key === "unique_b" && <SchemeLogo schemeName={data.fund_b.scheme_name} size="sm" />}
                       <span>{r.label}</span>
                     </span>
                     <span className="text-[var(--ui-text-muted)]">

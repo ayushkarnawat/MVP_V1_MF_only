@@ -1,5 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { CoverageBanner, fundAgeText } from "../../../components/mf/CoverageBanner";
 import { formatPercent as lookthroughPercent, percentageProduct } from "../../../components/mf/lookthroughDisplay";
 import { compareDecimalStrings, diffDecimalStrings } from "../../../lib/decimal";
@@ -92,11 +93,14 @@ function StockList({ rows, total, idPrefix }: StockListProps) {
                         <li
                           key={fund.scheme_id}
                           data-testid={`${idPrefix}-${index}-fund-${fund.scheme_id}`}
-                          className="text-[11px] text-[var(--ui-text-muted)]"
+                          className="flex items-center gap-1.5 text-[11px] text-[var(--ui-text-muted)]"
                         >
-                          <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink> · {lookthroughPercent(fund.stock_weight_pct)}% of fund ·{" "}
-                          {lookthroughPercent(prod)}% of portfolio
-                          {age ? ` · ${age}` : ""}
+                          <SchemeLogo schemeName={fund.scheme_name} size="sm" />
+                          <span>
+                            <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink> · {lookthroughPercent(fund.stock_weight_pct)}% of fund ·{" "}
+                            {lookthroughPercent(prod)}% of portfolio
+                            {age ? ` · ${age}` : ""}
+                          </span>
                         </li>
                       );
                     })}

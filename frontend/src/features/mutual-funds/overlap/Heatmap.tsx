@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatPercent } from "../../../lib/format";
 import type { AnalyticsCardProps } from "../allocation/allocationLogic";
 import { SectionCard } from "../common/SectionCard";
@@ -106,7 +107,10 @@ export function Heatmap({
                         title={f.scheme_name}
                         className="p-2 font-semibold text-[var(--ui-text)] text-center min-w-[52px]"
                       >
-                        {fundInitials(f.scheme_name)}
+                        <div className="flex flex-col items-center gap-1">
+                          <SchemeLogo schemeName={f.scheme_name} size="sm" />
+                          <span>{fundInitials(f.scheme_name)}</span>
+                        </div>
                       </th>
                     ))}
                   </tr>
@@ -120,7 +124,10 @@ export function Heatmap({
                         title={rf.scheme_name}
                         className="p-2 font-semibold text-[var(--ui-text)] text-left min-w-[52px]"
                       >
-                        {fundInitials(rf.scheme_name)}
+                        <div className="flex items-center gap-1.5">
+                          <SchemeLogo schemeName={rf.scheme_name} size="sm" />
+                          <span>{fundInitials(rf.scheme_name)}</span>
+                        </div>
                       </th>
                       {data.matrix_funds.map(cf => {
                         if (rf.scheme_id === cf.scheme_id) {

@@ -97,4 +97,8 @@ describe("PeriodDrill", () => {
     fireEvent.click(screen.getByRole("button", { name: "SBI Bluechip Fund transactions" }));
     expectInteractivity(container, 9);
   });
+  it("renders SchemeLogo on fund breakdown rows", () => {
+    render(<PeriodDrill bucket={month("2026-03")} />);
+    expect(screen.getByTestId("drill-row-SBI Bluechip Fund").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

@@ -106,4 +106,9 @@ describe("TopOverlapFunds", () => {
     expect(screen.getByTestId("top-funds-empty")).toHaveTextContent("No other fund in your portfolio has published holdings to compare with.");
     expect(screen.queryByRole("listbox")).toBeNull();
   });
+
+  it("renders SchemeLogo on each peer fund option", () => {
+    mount(golden());
+    expect(options()[0].querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

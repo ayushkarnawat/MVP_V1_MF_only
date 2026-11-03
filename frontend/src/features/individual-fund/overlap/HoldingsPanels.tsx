@@ -1,3 +1,4 @@
+import { SchemeLogo } from "@/components/SchemeLogo";
 import { formatPercent, formatRupees } from "@/lib/format";
 import type { OverlapCompareResponse } from "../types";
 
@@ -24,8 +25,18 @@ export function CommonHoldingsPanel({ data }: HoldingsPanelsProps) {
           <tr className="font-medium text-[var(--ui-text-muted)]">
             <th scope="col" className="pb-2 pr-4 font-medium">Stock</th>
             <th scope="col" className="pb-2 pr-4 font-medium">Sector</th>
-            <th scope="col" className="pb-2 pr-4 font-medium">{nameA}</th>
-            <th scope="col" className="pb-2 pr-4 font-medium">{nameB}</th>
+            <th scope="col" className="pb-2 pr-4 font-medium">
+              <span className="inline-flex items-center gap-1.5">
+                <SchemeLogo schemeName={nameA} size="sm" />
+                <span>{nameA}</span>
+              </span>
+            </th>
+            <th scope="col" className="pb-2 pr-4 font-medium">
+              <span className="inline-flex items-center gap-1.5">
+                <SchemeLogo schemeName={nameB} size="sm" />
+                <span>{nameB}</span>
+              </span>
+            </th>
             <th scope="col" className="pb-2 pl-4 font-medium">Combined</th>
           </tr>
         </thead>
@@ -72,8 +83,9 @@ export function UniqueHoldingsPanel({ data }: HoldingsPanelsProps) {
           aria-labelledby="unique-a"
           className="space-y-3 rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4"
         >
-          <h4 id="unique-a" className="text-sm font-semibold text-[var(--ui-text)]">
-            {`Unique to ${nameA}`}
+          <h4 id="unique-a" className="flex items-center gap-2 text-sm font-semibold text-[var(--ui-text)]">
+            <SchemeLogo schemeName={nameA} size="sm" />
+            <span>{`Unique to ${nameA}`}</span>
           </h4>
           {data.unique_holdings.a.length === 0 ? (
             <p data-testid="unique-a-empty" className="text-xs text-[var(--ui-text-muted)]">
@@ -103,8 +115,9 @@ export function UniqueHoldingsPanel({ data }: HoldingsPanelsProps) {
           aria-labelledby="unique-b"
           className="space-y-3 rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4"
         >
-          <h4 id="unique-b" className="text-sm font-semibold text-[var(--ui-text)]">
-            {`Unique to ${nameB}`}
+          <h4 id="unique-b" className="flex items-center gap-2 text-sm font-semibold text-[var(--ui-text)]">
+            <SchemeLogo schemeName={nameB} size="sm" />
+            <span>{`Unique to ${nameB}`}</span>
           </h4>
           {data.unique_holdings.b.length === 0 ? (
             <p data-testid="unique-b-empty" className="text-xs text-[var(--ui-text-muted)]">

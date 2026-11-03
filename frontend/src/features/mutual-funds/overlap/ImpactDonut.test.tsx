@@ -1,5 +1,6 @@
 import { fireEvent, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import * as fa from "../fixtures/mfAsks";
 import * as fc from "../fixtures/mfC";
 import { renderInShell } from "../../../shell/testing";
 import { expectInteractivity } from "../testing";
@@ -120,5 +121,9 @@ describe("states and rules", () => {
     const { container } = mount();
     fireEvent.click(row("other"));
     expectInteractivity(container, 6);
+  });
+  it("renders SchemeLogo on driving pair rows", () => {
+    mount(fa.overlapSummaryWithAsks());
+    expect(screen.getByTestId("impact-pair-title-S-KOTAK~S-SBI").querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs')).toHaveLength(2);
   });
 });

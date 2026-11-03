@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatPercent } from "../../../lib/format";
 import type { AnalyticsCardProps } from "../allocation/allocationLogic";
 import { SectionCard } from "../common/SectionCard";
@@ -7,7 +8,6 @@ import {
   bandOf,
   buildOverlapInsights,
   combinedWeight,
-  fundInitials,
   inclusivePairs,
   PAIR_LIMIT,
   pairKeyOf,
@@ -106,23 +106,13 @@ export function TopPairs({
                               onClick={() => onSelect(key)}
                               className="inline-flex items-center gap-2 text-left text-[var(--ui-text)] hover:underline"
                             >
-                              <span
-                                aria-hidden="true"
-                                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--ui-card)] text-[10px] font-semibold border border-[var(--ui-divider)]"
-                              >
-                                {fundInitials(pair.fund_a.scheme_name)}
-                              </span>
+                              <SchemeLogo schemeName={pair.fund_a.scheme_name} size="sm" />
                               <span className="truncate max-w-[200px]">{pair.fund_a.scheme_name}</span>
                             </button>
                           </td>
                           <td className="py-3 px-3">
                             <div className="inline-flex items-center gap-2 text-[var(--ui-text)]">
-                              <span
-                                aria-hidden="true"
-                                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--ui-card)] text-[10px] font-semibold border border-[var(--ui-divider)]"
-                              >
-                                {fundInitials(pair.fund_b.scheme_name)}
-                              </span>
+                              <SchemeLogo schemeName={pair.fund_b.scheme_name} size="sm" />
                               <span className="truncate max-w-[200px]">{pair.fund_b.scheme_name}</span>
                             </div>
                           </td>
@@ -179,10 +169,18 @@ export function TopPairs({
                   className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-4 space-y-2 mt-4"
                 >
                   <h4 className="text-xs font-semibold text-[var(--ui-text)]">Key insights:</h4>
-                  <ul className="list-disc pl-4 space-y-1 text-xs text-[var(--ui-text-muted)]">
-                    {insights.map((sentence, idx) => (
-                      <li key={idx}>{sentence}</li>
-                    ))}
+                  <ul className="space-y-1.5 text-xs text-[var(--ui-text-muted)]">
+                    {insights.map((sentence, idx) => {
+                      const namedFunds = data.matrix_funds.filter(f => sentence.includes(f.scheme_name));
+                      return (
+                        <li key={idx} className="flex items-center gap-1.5">
+                          {namedFunds.map(f => (
+                            <SchemeLogo key={f.scheme_id} schemeName={f.scheme_name} size="sm" />
+                          ))}
+                          <span>{sentence}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </aside>
               )}

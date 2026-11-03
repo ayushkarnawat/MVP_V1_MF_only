@@ -6,6 +6,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { transactionLabel } from "../../../components/mf/periodBreakdown";
 import { formatDate, formatRupees } from "../../../lib/format";
 import type { InvestmentWithdrawalBucket } from "../types";
@@ -143,6 +144,7 @@ export function Ledger({ buckets, filter, onFilter }: LedgerProps) {
                               isOpen ? "rotate-90" : ""
                             }`}
                           />
+                          <SchemeLogo schemeName={row.entry.scheme_name} size="sm" />
                           <span>{row.entry.scheme_name}</span>
                         </button>
                         <span className="block text-[11px] text-[var(--ui-text-muted)] pl-5">

@@ -1,5 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { CoverageBanner, fundAgeText } from "../../../components/mf/CoverageBanner";
 import { formatPercent as lookthroughPercent } from "../../../components/mf/lookthroughDisplay";
 import { formatPercent } from "../../../lib/format";
@@ -167,10 +168,14 @@ export function AllStocksTable({
                                 <li
                                   key={fund.scheme_id}
                                   data-testid={`stock-fund-${key}-${fund.scheme_id}`}
+                                  className="flex items-center gap-2"
                                 >
-                                  <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink> · {lookthroughPercent(fund.stock_weight_pct)}% of fund ·{" "}
-                                  {lookthroughPercent(prod)}% of portfolio
-                                  {age ? ` · ${age}` : ""}
+                                  <SchemeLogo schemeName={fund.scheme_name} size="sm" />
+                                  <span>
+                                    <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink> · {lookthroughPercent(fund.stock_weight_pct)}% of fund ·{" "}
+                                    {lookthroughPercent(prod)}% of portfolio
+                                    {age ? ` · ${age}` : ""}
+                                  </span>
                                 </li>
                               );
                             })}

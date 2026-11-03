@@ -1,4 +1,5 @@
 import { type ComponentType, type KeyboardEvent, useState } from "react";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatCompactRupees, formatPercent, formatRupees } from "../../../lib/format";
 import type { Slice } from "../types";
 
@@ -66,6 +67,7 @@ export interface BarListProps {
   onSelect: (key: string) => void;
   formatValue: (slice: Slice) => string;
   ariaLabel?: string;
+  showAmcLogo?: boolean;
 }
 
 export function BarList({
@@ -74,6 +76,7 @@ export function BarList({
   onSelect,
   formatValue,
   ariaLabel = "Breakdown",
+  showAmcLogo = false,
 }: BarListProps) {
   return (
     <ul aria-label={ariaLabel} className="flex flex-col gap-2">
@@ -95,7 +98,10 @@ export function BarList({
               }`}
             >
               <div className="flex w-full items-center justify-between text-xs">
-                <span className="font-medium text-[var(--ui-text)]">{item.label}</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  {showAmcLogo && <SchemeLogo amcName={item.label} size="sm" />}
+                  <span className="font-medium text-[var(--ui-text)]">{item.label}</span>
+                </div>
                 <span className="text-[var(--ui-text-muted)]">{formatValue(item)}</span>
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--ui-divider)]">

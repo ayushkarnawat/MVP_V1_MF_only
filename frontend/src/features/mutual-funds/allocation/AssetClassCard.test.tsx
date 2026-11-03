@@ -244,4 +244,10 @@ describe("T1.2 five classes", () => {
     expect(screen.getByRole("heading", { name: "Look-Through Asset Allocation" })).toBeInTheDocument();
     expect(screen.queryByRole("img", { name: "Asset class chart" })).not.toBeInTheDocument();
   });
+  it("renders SchemeLogo on contributing fund rows in the drill panel", () => {
+    mount(fiveClasses());
+    fireEvent.click(legend().getByRole("button", { name: /Others/ }));
+    const row = screen.getByTestId("drill-fund-fund-other");
+    expect(row.querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

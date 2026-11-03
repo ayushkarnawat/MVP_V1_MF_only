@@ -189,4 +189,14 @@ describe("SipTimeline: fund names open the fund page (IF-E)", () => {
     expect(screen.getByTestId("sip-next")).toHaveTextContent("Next: Kotak Multi Cap Fund · 24 Oct · ₹3,336");
     expect(screen.getAllByRole("tab")).toHaveLength(3);
   });
+  it("renders SchemeLogo on next SIP, upcoming detail, this month and stopped SIP rows", async () => {
+    mount();
+    expect(screen.getByTestId("sip-next").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+    expect(screen.getByTestId("sip-detail").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "Stopped (1)" }));
+    expect(screen.getByTestId("sip-stopped-S-SBI").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "This Month" }));
+    const monthRow = await screen.findByTestId("sip-month-S-KOTAK");
+    expect(monthRow.querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

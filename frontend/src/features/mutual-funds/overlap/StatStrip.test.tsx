@@ -104,4 +104,8 @@ describe("hover text (design rule 11.1)", () => {
     expect(within(screen.getByTestId("stat-strip")).queryAllByRole("button")).toHaveLength(0);
     expectInteractivity(container, 0);
   });
+  it("renders SchemeLogo on the highest-overlap pair note", () => {
+    mount();
+    expect(screen.getByTestId("stat-highest-note").querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs')).toHaveLength(2);
+  });
 });

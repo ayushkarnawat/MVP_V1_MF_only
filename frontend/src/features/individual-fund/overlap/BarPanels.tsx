@@ -1,3 +1,4 @@
+import { SchemeLogo } from "@/components/SchemeLogo";
 import { formatPercent } from "@/lib/format";
 import type { OverlapCompareResponse } from "../types";
 import { barWidth, maxDecimal } from "./overlapLogic";
@@ -51,8 +52,18 @@ export function SectorComparisonPanel({ data }: BarPanelsProps) {
           <tr className="font-medium text-[var(--ui-text-muted)]">
             <th scope="col" className="pb-2 pr-4 font-medium">Sector</th>
             <th scope="col" className="pb-2 pr-4 font-medium">Common to both</th>
-            <th scope="col" className="pb-2 pr-4 font-medium">{nameA}</th>
-            <th scope="col" className="pb-2 pl-4 font-medium">{nameB}</th>
+            <th scope="col" className="pb-2 pr-4 font-medium">
+              <span className="inline-flex items-center gap-1.5">
+                <SchemeLogo schemeName={nameA} size="sm" />
+                <span>{nameA}</span>
+              </span>
+            </th>
+            <th scope="col" className="pb-2 pl-4 font-medium">
+              <span className="inline-flex items-center gap-1.5">
+                <SchemeLogo schemeName={nameB} size="sm" />
+                <span>{nameB}</span>
+              </span>
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[var(--ui-divider)]">
@@ -129,8 +140,18 @@ export function MarketCapPanel({ data }: BarPanelsProps) {
         <thead className="border-b border-[var(--ui-divider)]">
           <tr className="font-medium text-[var(--ui-text-muted)]">
             <th scope="col" className="pb-2 pr-4 font-medium">Size</th>
-            <th scope="col" className="pb-2 pr-4 font-medium">{nameA}</th>
-            <th scope="col" className="pb-2 pl-4 font-medium">{nameB}</th>
+            <th scope="col" className="pb-2 pr-4 font-medium">
+              <span className="inline-flex items-center gap-1.5">
+                <SchemeLogo schemeName={nameA} size="sm" />
+                <span>{nameA}</span>
+              </span>
+            </th>
+            <th scope="col" className="pb-2 pl-4 font-medium">
+              <span className="inline-flex items-center gap-1.5">
+                <SchemeLogo schemeName={nameB} size="sm" />
+                <span>{nameB}</span>
+              </span>
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[var(--ui-divider)]">

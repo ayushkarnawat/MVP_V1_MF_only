@@ -149,4 +149,9 @@ describe("states", () => {
     fireEvent.click(screen.getByRole("button", { name: "View all fund overlaps →" }));
     expectInteractivity(container, 8);
   });
+  it("renders SchemeLogo on pair rows and key insights", () => {
+    mount();
+    expect(screen.getByTestId(`pair-row-${TOP}`).querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs')).toHaveLength(2);
+    expect(screen.getByRole("complementary", { name: "Key insights" }).querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs').length).toBeGreaterThanOrEqual(2);
+  });
 });

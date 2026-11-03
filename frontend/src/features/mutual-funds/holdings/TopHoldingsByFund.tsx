@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatPercent } from "../../../lib/format";
 import type { AnalyticsCardProps } from "../allocation/allocationLogic";
 import { SectionCard } from "../common/SectionCard";
@@ -69,12 +70,13 @@ export function TopHoldingsByFund({
                     backgroundColor: isSelected ? chip.color : undefined,
                     borderColor: chip.color,
                   }}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                     isSelected
                       ? "text-white shadow-sm"
                       : "bg-[var(--ui-card)] text-[var(--ui-text)] hover:bg-[var(--ui-row-hover)]"
                   }`}
                 >
+                  <SchemeLogo schemeName={chip.name} size="sm" />
                   <span className="truncate max-w-[200px] inline-block">{chip.name}</span>
                 </button>
               );
@@ -93,6 +95,7 @@ export function TopHoldingsByFund({
                 style={{ backgroundColor: pickedChip.color }}
                 className="h-2.5 w-2.5 rounded-full shrink-0"
               />
+              <SchemeLogo schemeName={pickedChip.name} size="sm" />
               <span className="font-semibold text-[var(--ui-text)] truncate">
                 {pickedChip.name}
               </span>

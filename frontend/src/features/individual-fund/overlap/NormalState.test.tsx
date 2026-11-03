@@ -131,4 +131,10 @@ describe("NormalState", () => {
     mount(golden(), vi.fn(), "dfb6f3a4-ed3e-5d4c-81e4-7343b0862d60");
     expect(screen.getByRole("option", { name: /Golden Peer 1 Fund/ })).toHaveFocus();
   });
+
+  it("renders SchemeLogo on Also held in fund names in CommonHoldingsTable", () => {
+    mount();
+    const table = screen.getByRole("table", { name: "Common holdings" });
+    expect(table.querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs').length).toBeGreaterThanOrEqual(3);
+  });
 });

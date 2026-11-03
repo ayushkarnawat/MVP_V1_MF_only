@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { SchemeLogo } from "@/components/SchemeLogo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppLink } from "@/shell/nav/AppLink";
 import { paths } from "@/shell/nav/paths";
@@ -89,6 +90,20 @@ export function QuickInsights({ status, data, onRetry }: QuickInsightsProps) {
               {line.parts.map((part, idx) =>
                 part.bold ? (
                   <b key={idx} className="font-semibold text-[var(--ui-text-default)]">
+                    {line.id === "largest-holding" && (
+                      <SchemeLogo
+                        schemeName={data.insights.largest_holding?.fund_name ?? part.text}
+                        size="sm"
+                        className="mr-1.5 inline-flex align-middle"
+                      />
+                    )}
+                    {line.id === "largest-amc" && (
+                      <SchemeLogo
+                        amcName={data.insights.largest_amc?.amc_name ?? part.text}
+                        size="sm"
+                        className="mr-1.5 inline-flex align-middle"
+                      />
+                    )}
                     {part.schemeId ? (
                       <AppLink
                         to={paths.mutualFunds.fund(part.schemeId)}

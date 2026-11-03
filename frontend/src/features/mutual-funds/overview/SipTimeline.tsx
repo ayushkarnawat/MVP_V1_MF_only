@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { formatDate, formatRupees } from "../../../lib/format";
 import { useScope } from "../../../shell/scope/ScopeContext";
@@ -116,9 +117,12 @@ export function SipTimeline({ sips }: SipTimelineProps) {
           {nextSip && (
             <span
               data-testid="sip-next"
-              className="rounded-full bg-[var(--ui-card)] px-3 py-1 font-medium text-[var(--ui-text)] border border-[var(--ui-divider)]"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--ui-card)] px-3 py-1 font-medium text-[var(--ui-text)] border border-[var(--ui-divider)]"
             >
-              Next: <FundLink schemeId={nextSip.scheme_id}>{nextSip.scheme_name}</FundLink> · {dayMonth(nextSip.next_due_date)} · {formatRupees(nextSip.sip_amount)}
+              <SchemeLogo schemeName={nextSip.scheme_name} size="sm" />
+              <span>
+                Next: <FundLink schemeId={nextSip.scheme_id}>{nextSip.scheme_name}</FundLink> · {dayMonth(nextSip.next_due_date)} · {formatRupees(nextSip.sip_amount)}
+              </span>
             </span>
           )}
           <span
@@ -235,12 +239,15 @@ export function SipTimeline({ sips }: SipTimelineProps) {
                   <div className="flex flex-col divide-y divide-[var(--ui-divider)]">
                     {sipsForDate.map((sip, idx) => (
                       <div key={`${sip.scheme_id}-${idx}`} className="flex items-center justify-between py-2">
-                        <div>
-                          <div className="text-sm font-medium text-[var(--ui-text)]">
-                            <FundLink schemeId={sip.scheme_id}>{sip.scheme_name}</FundLink>
-                          </div>
-                          <div className="text-xs text-[var(--ui-text-muted)]">
-                            {sip.household_member_name} · {formatDate(sip.next_due_date)}
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <SchemeLogo schemeName={sip.scheme_name} size="sm" />
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-[var(--ui-text)]">
+                              <FundLink schemeId={sip.scheme_id}>{sip.scheme_name}</FundLink>
+                            </div>
+                            <div className="text-xs text-[var(--ui-text-muted)]">
+                              {sip.household_member_name} · {formatDate(sip.next_due_date)}
+                            </div>
                           </div>
                         </div>
                         <div className="text-sm font-semibold text-[var(--ui-text)]">
@@ -313,12 +320,15 @@ export function SipTimeline({ sips }: SipTimelineProps) {
                   data-testid={`sip-month-${row.scheme_id}`}
                   className="flex items-center justify-between py-2.5"
                 >
-                  <div>
-                    <div className="text-sm font-medium text-[var(--ui-text)]">
-                      <FundLink schemeId={row.scheme_id}>{row.scheme_name}</FundLink>
-                    </div>
-                    <div className="text-xs text-[var(--ui-text-muted)]">
-                      {row.household_member_name} · {formatDate(row.date)}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <SchemeLogo schemeName={row.scheme_name} size="sm" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-[var(--ui-text)]">
+                        <FundLink schemeId={row.scheme_id}>{row.scheme_name}</FundLink>
+                      </div>
+                      <div className="text-xs text-[var(--ui-text-muted)]">
+                        {row.household_member_name} · {formatDate(row.date)}
+                      </div>
                     </div>
                   </div>
                   <div className="text-sm font-semibold text-[var(--ui-text)]">
@@ -343,11 +353,14 @@ export function SipTimeline({ sips }: SipTimelineProps) {
                   data-testid={`sip-stopped-${row.scheme_id}`}
                   className="flex items-center justify-between py-2.5"
                 >
-                  <div>
-                    <div className="text-sm font-medium text-[var(--ui-text)]">
-                      <FundLink schemeId={row.scheme_id}>{row.scheme_name}</FundLink>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <SchemeLogo schemeName={row.scheme_name} size="sm" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-[var(--ui-text)]">
+                        <FundLink schemeId={row.scheme_id}>{row.scheme_name}</FundLink>
+                      </div>
+                      <div className="text-xs text-[var(--ui-text-muted)]">{row.household_member_name}</div>
                     </div>
-                    <div className="text-xs text-[var(--ui-text-muted)]">{row.household_member_name}</div>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-[var(--ui-text)]">

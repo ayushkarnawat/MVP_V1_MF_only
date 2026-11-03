@@ -56,6 +56,8 @@ export function SchemeLogo({
   if (currentSrc) {
     return (
       <div
+        data-testid="scheme-logo"
+        aria-hidden="true"
         className={cn(
           "rounded-lg bg-white dark:bg-zinc-900 border border-[var(--color-border)] p-0.5 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-2xs",
           sizeClasses,
@@ -75,6 +77,8 @@ export function SchemeLogo({
   // Fallback initial tile for AMCs with no available mapping or network failures
   return (
     <div
+      data-testid="scheme-logo"
+      aria-hidden="true"
       className={cn(
         "rounded-lg bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_20%,var(--color-border))] text-[var(--color-ink)] font-bold flex items-center justify-center flex-shrink-0 select-none shadow-2xs font-mono",
         sizeClasses,
@@ -82,7 +86,14 @@ export function SchemeLogo({
       )}
       title={amcName || schemeName || undefined}
     >
-      <span className="text-[var(--color-accent)]">{initial}</span>
+      {size === "sm" ? (
+        <span
+          data-initial={initial}
+          className="text-[var(--color-accent)] before:content-[attr(data-initial)]"
+        />
+      ) : (
+        <span className="text-[var(--color-accent)]">{initial}</span>
+      )}
     </div>
   );
 }

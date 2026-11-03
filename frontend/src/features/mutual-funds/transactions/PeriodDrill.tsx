@@ -1,5 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import {
   breakdownTotals,
   groupByFund,
@@ -189,6 +190,7 @@ export function PeriodDrill({ bucket }: { bucket: InvestmentWithdrawalBucket }) 
                               isOpen ? "rotate-90" : ""
                             }`}
                           />
+                          <SchemeLogo schemeName={row.schemeName} size="sm" />
                           <span>{row.schemeName}</span>
                         </button>
                         <span className="block text-[11px] text-[var(--ui-text-muted)] pl-5">

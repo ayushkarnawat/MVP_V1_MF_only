@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { Modal } from "../../../components/Modal";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { sumDecimalStrings } from "../../../lib/decimal";
 import { formatCompactRupees, formatPercent, formatRupees } from "../../../lib/format";
@@ -130,6 +131,7 @@ export function AmcAllocationCard({ allocation, holdings }: AmcAllocationCardPro
                       style={{ backgroundColor: slice.color }}
                       className="h-2.5 w-2.5 shrink-0 rounded-full"
                     />
+                    <SchemeLogo amcName={slice.label} size="sm" />
                     <span className="truncate font-medium text-[var(--ui-text)]">
                       {slice.label}
                     </span>
@@ -158,9 +160,12 @@ export function AmcAllocationCard({ allocation, holdings }: AmcAllocationCardPro
                 data-value={h.current_value}
                 className="flex items-center justify-between py-2 text-sm"
               >
-                <span className="font-medium text-[var(--ui-text)]">
-                  <FundLink schemeId={h.scheme_id}>{h.scheme_name}</FundLink>
-                </span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <SchemeLogo amcName={h.amc_name} schemeName={h.scheme_name} size="sm" />
+                  <span className="font-medium text-[var(--ui-text)]">
+                    <FundLink schemeId={h.scheme_id}>{h.scheme_name}</FundLink>
+                  </span>
+                </div>
                 <span className="font-semibold text-[var(--ui-text)]">
                   {formatRupees(h.current_value)}
                 </span>

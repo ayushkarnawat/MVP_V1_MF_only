@@ -165,4 +165,11 @@ describe("the funds behind a common stock open their fund page (IF-E)", () => {
     }
     expect(document.querySelectorAll("button a")).toHaveLength(0);
   });
+  it("renders SchemeLogo on top-fund chips and expanded fund rows", () => {
+    mount();
+    const row = screen.getByTestId(`common-row-${HDFC_BANK}`);
+    expect(row.querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs').length).toBeGreaterThanOrEqual(3);
+    fireEvent.click(within(row).getByRole("button"));
+    expect(screen.getByTestId(`common-fund-${HDFC_BANK}-S-KOTAK`).querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

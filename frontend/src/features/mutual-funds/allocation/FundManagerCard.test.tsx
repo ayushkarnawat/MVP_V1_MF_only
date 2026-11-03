@@ -179,4 +179,11 @@ describe("single-manager fund groups", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Table" }));
     expect(screen.queryByText(/Assumed main manager/)).not.toBeInTheDocument();
   });
+  it("renders SchemeLogo on expanded fund rows and table AMC cells", () => {
+    mount();
+    fireEvent.click(within(screen.getByTestId(`manager-row-${KOTAK}`)).getByRole("button", { name: "Harsha Upadhyaya" }));
+    expect(screen.getByTestId(`manager-fund-${KOTAK}-S-KOTAK`).querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "Table" }));
+    expect(screen.getByTestId(`manager-row-${KOTAK}`).querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

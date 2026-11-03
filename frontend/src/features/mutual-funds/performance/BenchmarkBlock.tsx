@@ -569,7 +569,7 @@ export function BenchmarkBlock() {
                               title={fund.scheme_name}
                               className="w-1/3 truncate text-xs font-medium text-[var(--ui-text)]"
                             >
-                              {declared && <span data-testid={`fund-logo-${fund.scheme_id}`} className="inline-flex mr-2 align-middle"><SchemeLogo schemeName={fund.scheme_name} size="sm" /></span>}
+                              <span data-testid={`fund-logo-${fund.scheme_id}`} className="inline-flex mr-2 align-middle"><SchemeLogo schemeName={fund.scheme_name} size="sm" /></span>
                               {fund.scheme_name}
                             </span>
 

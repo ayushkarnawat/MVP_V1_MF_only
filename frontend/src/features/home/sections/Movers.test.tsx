@@ -201,4 +201,12 @@ describe("Movers: the funds behind a row", () => {
     expect(container.innerHTML).not.toMatch(/#[0-9A-Fa-f]{3,8}\b/);
     expect(container.innerHTML).toContain("var(--ui-elevated)");
   });
+
+  it("renders SchemeLogo on fund rows inside the opened movers dialog", () => {
+    setup();
+    const data = fixture<MoversResponse>("movers_sector");
+    fireEvent.click(screen.getByTestId(`mover-${data.gains[0].key}`));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs').length).toBeGreaterThan(0);
+  });
 });

@@ -1,5 +1,6 @@
 import { BarChart3, PieChart } from "lucide-react";
 import { useMemo, useState } from "react";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { CoverageBanner } from "../../../components/mf/CoverageBanner";
 import { compareDecimalStrings } from "../../../lib/decimal";
 import { formatCompactRupees, formatDate, formatPercent, formatRupees } from "../../../lib/format";
@@ -306,9 +307,12 @@ export function AssetClassCard({
                         data-testid={`drill-fund-${fund.scheme_id}`}
                         className="flex items-center justify-between gap-3 rounded-lg border border-[var(--ui-divider)] px-3 py-2"
                       >
-                        <span data-testid={`drill-fund-name-${fund.scheme_id}`} className="text-[var(--ui-text)]">
-                          <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink>
-                        </span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <SchemeLogo schemeName={fund.scheme_name} size="sm" />
+                          <span data-testid={`drill-fund-name-${fund.scheme_id}`} className="text-[var(--ui-text)]">
+                            <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink>
+                          </span>
+                        </div>
                         <span data-testid={`drill-fund-value-${fund.scheme_id}`} className="font-medium text-[var(--ui-text)]">
                           {`${formatRupees(fund.value)} · ${formatPercent(fund.percentage, { digits: 1 })} of ${selectedSlice.label}`}
                         </span>

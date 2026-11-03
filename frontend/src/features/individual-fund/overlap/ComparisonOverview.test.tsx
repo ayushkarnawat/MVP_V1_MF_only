@@ -98,4 +98,12 @@ describe("ComparisonOverview", () => {
     expect(screen.getByTestId("impact-centre-figure")).toHaveTextContent("0.0%");
     expect(pie.props!.data.every(slice => slice.color === "var(--ui-divider)")).toBe(true);
   });
+
+  it("renders SchemeLogo on unique-to-fund count cards and impact legend rows", () => {
+    render(<ComparisonOverview data={golden()} />);
+    expect(screen.getByTestId("count-unique-a").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+    expect(screen.getByTestId("count-unique-b").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+    expect(row("unique_a").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+    expect(row("unique_b").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

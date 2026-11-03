@@ -199,4 +199,11 @@ describe("AmcAllocationCard: the funds in the drill popup open their fund page (
     expect(within(dialog).queryByRole("link", { name: first.scheme_name })).toBeNull();
     expect(within(dialog).getByText(first.scheme_name)).toBeInTheDocument();
   });
+  it("renders SchemeLogo on AMC legend rows and drill dialog rows", () => {
+    amc();
+    expect(screen.getByTestId(`legend-${KOTAK}`).querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+    fireEvent.click(within(screen.getByTestId("legend-hdfc-mutual-fund")).getByRole("button"));
+    const dialog = screen.getByRole("dialog", { name: "HDFC Mutual Fund" });
+    expect(within(dialog).getAllByTestId("drill-row")[0].querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

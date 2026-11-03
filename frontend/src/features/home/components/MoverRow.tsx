@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from "react";
 import { Briefcase, ChevronRight, Factory, Layers } from "lucide-react";
+import { SchemeLogo } from "@/components/SchemeLogo";
 import { CLICK_ROW } from "@/lib/clickable";
 import { changeDirection, formatSignedRupees } from "../homeFormat";
 import { barHalfWidth, barSubtitle } from "../moversCopy";
@@ -56,7 +57,11 @@ export function MoverRow({ bar, view, maxAbs, onOpen }: MoverRowProps) {
           data-view={view}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--ui-card)] text-[var(--ui-text-muted)]"
         >
-          <Icon size={16} aria-hidden="true" />
+          {view === "fund" ? (
+            <SchemeLogo schemeName={bar.label} size="sm" />
+          ) : (
+            <Icon size={16} aria-hidden="true" />
+          )}
         </span>
         <div className="min-w-0 flex-1">
           <div className="truncate font-medium text-[var(--ui-text)]">

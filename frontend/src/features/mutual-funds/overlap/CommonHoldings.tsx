@@ -1,5 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatPercent as formatLookthroughPercent } from "../../../components/mf/lookthroughDisplay";
 import { formatPercent } from "../../../lib/format";
 import type { AnalyticsCardProps } from "../allocation/allocationLogic";
@@ -131,9 +132,10 @@ export function CommonHoldings({
                                   title={f.scheme_name}
                                   data-tooltip={f.scheme_name}
                                   tabIndex={0}
-                                  className="inline-flex items-center justify-center rounded-md bg-[var(--ui-card)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--ui-text)] border border-[var(--ui-divider)]"
+                                  className="inline-flex items-center gap-1 rounded-md bg-[var(--ui-card)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--ui-text)] border border-[var(--ui-divider)]"
                                 >
-                                  {fundInitials(f.scheme_name)}
+                                  <SchemeLogo schemeName={f.scheme_name} size="sm" />
+                                  <span>{fundInitials(f.scheme_name)}</span>
                                 </span>
                               ))}
                               {extraFunds.length > 0 && (
@@ -167,9 +169,12 @@ export function CommonHoldings({
                                 <li
                                   key={f.scheme_id}
                                   data-testid={`common-fund-${item.key}-${f.scheme_id}`}
-                                  className="text-xs text-[var(--ui-text-muted)]"
+                                  className="flex items-center gap-2 text-xs text-[var(--ui-text-muted)]"
                                 >
-                                  <FundLink schemeId={f.scheme_id}>{f.scheme_name}</FundLink> — {formatLookthroughPercent(f.stock_weight_pct)}% of fund
+                                  <SchemeLogo schemeName={f.scheme_name} size="sm" />
+                                  <span>
+                                    <FundLink schemeId={f.scheme_id}>{f.scheme_name}</FundLink> — {formatLookthroughPercent(f.stock_weight_pct)}% of fund
+                                  </span>
                                 </li>
                               ))}
                             </ul>

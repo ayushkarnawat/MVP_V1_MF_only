@@ -134,4 +134,8 @@ describe("fund names stay plain text (IF-E)", () => {
     expect(screen.queryAllByRole("link")).toHaveLength(0);
     expect(within(screen.getByTestId("ledger-row-t-0067")).getByRole("button")).toHaveTextContent("Parag Parikh Flexi Cap Fund");
   });
+  it("renders SchemeLogo on transaction rows", () => {
+    render(<Harness filter="all" />);
+    expect(screen.getByTestId("ledger-row-t-0067").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SchemeLogo } from "@/components/SchemeLogo";
 import { LineAreaChart } from "@/components/ui/charts";
 import { fundPageApi } from "../api";
 import { SectionState } from "../components/SectionState";
@@ -111,6 +112,7 @@ export function PerformancePanel({
                 style={{ background: "var(--c2)" }}
                 aria-hidden="true"
               />
+              <SchemeLogo schemeName={aName} size="sm" />
               <span className="text-[var(--ui-text-muted)]">{aName}</span>
               <b className={`font-semibold ${returnClass(retA)}`}>{retFmtA}</b>
             </li>
@@ -120,6 +122,7 @@ export function PerformancePanel({
                 style={{ background: "var(--c3)" }}
                 aria-hidden="true"
               />
+              <SchemeLogo schemeName={bName} size="sm" />
               <span className="text-[var(--ui-text-muted)]">{bName}</span>
               <b className={`font-semibold ${returnClass(retB)}`}>{retFmtB}</b>
             </li>
@@ -140,8 +143,18 @@ export function PerformancePanel({
             <thead className="border-b border-[var(--ui-divider)]">
               <tr className="font-medium text-[var(--ui-text-muted)]">
                 <th scope="col" className="pb-2 pr-4 font-medium">Period</th>
-                <th scope="col" className="pb-2 pr-4 font-medium">{aName}</th>
-                <th scope="col" className="pb-2 pl-4 font-medium">{bName}</th>
+                <th scope="col" className="pb-2 pr-4 font-medium">
+                  <span className="inline-flex items-center gap-1.5">
+                    <SchemeLogo schemeName={aName} size="sm" />
+                    <span>{aName}</span>
+                  </span>
+                </th>
+                <th scope="col" className="pb-2 pl-4 font-medium">
+                  <span className="inline-flex items-center gap-1.5">
+                    <SchemeLogo schemeName={bName} size="sm" />
+                    <span>{bName}</span>
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--ui-divider)]">

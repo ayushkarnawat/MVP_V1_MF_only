@@ -41,9 +41,12 @@ export function FundManagerCard({ state, data, onRetry, xirrByScheme }: FundMana
   const funds = (group: ManagerGroup) => <ul aria-label={`${group.manager_name} funds`} className="flex flex-col gap-1.5">
     {group.funds.map(fund => <li key={fund.scheme_id} data-testid={`manager-fund-${managerKey(group)}-${fund.scheme_id}`}
       className="flex flex-wrap items-center justify-between gap-2 text-xs">
-      <span title={fund.scheme_name} className="font-medium text-[var(--ui-text)] truncate max-w-md">
-        <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink>
-      </span>
+      <div className="flex items-center gap-2 min-w-0">
+        <SchemeLogo amcName={group.amc_name} schemeName={fund.scheme_name} size="sm" />
+        <span title={fund.scheme_name} className="font-medium text-[var(--ui-text)] truncate max-w-md">
+          <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink>
+        </span>
+      </div>
       <span className="text-[var(--ui-text-muted)]">{formatRupees(fund.household_value)} · XIRR {formatXirr(xirrByScheme[fund.scheme_id])}</span>
     </li>)}
   </ul>;
@@ -90,7 +93,12 @@ export function FundManagerCard({ state, data, onRetry, xirrByScheme }: FundMana
                   return <Fragment key={key}>
                     <tr data-testid={`manager-row-${key}`}>
                       <th scope="row" className="py-2.5 font-normal text-[var(--ui-text)]">{toggle(group)}{marker(group)}</th>
-                      <td className="py-2.5 text-[var(--ui-text-muted)]">{group.amc_name || "—"}</td>
+                      <td className="py-2.5 text-[var(--ui-text-muted)]">
+                        <div className="flex items-center gap-2">
+                          <SchemeLogo amcName={group.amc_name} size="sm" />
+                          <span>{group.amc_name || "—"}</span>
+                        </div>
+                      </td>
                       <td className="py-2.5 text-[var(--ui-text)] font-medium">{formatRupees(group.total_household_value)}</td>
                       <td className="py-2.5 text-[var(--ui-text-muted)] font-medium">{formatPercent(group.percentage, { digits: 1 })}</td>
                     </tr>
@@ -107,7 +115,7 @@ export function FundManagerCard({ state, data, onRetry, xirrByScheme }: FundMana
           </div>}
           {unavailable.length > 0 && <div className="rounded-xl border border-[var(--ui-divider)] bg-[var(--warn-bg)] p-3 text-xs text-[var(--warn-text)]">
             <p className="font-semibold">{unavailable.length} {unavailable.length === 1 ? "fund has" : "funds have"} no manager data yet.</p>
-            <ul className="mt-1.5 list-disc pl-4 space-y-0.5">{unavailable.map(scheme => <li key={scheme.scheme_id}>{scheme.scheme_name} ({scheme.amc_name})</li>)}</ul>
+            <ul className="mt-1.5 space-y-1">{unavailable.map(scheme => <li key={scheme.scheme_id} className="flex items-center gap-2"><SchemeLogo amcName={scheme.amc_name} schemeName={scheme.scheme_name} size="sm" /><span>{scheme.scheme_name} ({scheme.amc_name})</span></li>)}</ul>
           </div>}
         </div>}
     </div>

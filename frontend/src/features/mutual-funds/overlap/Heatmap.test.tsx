@@ -202,4 +202,10 @@ describe("states and rules", () => {
     expectInteractivity(container, 12);
     expect(container.querySelectorAll("button[data-effect=select]")).toHaveLength(12);
   });
+  it("renders SchemeLogo on heatmap headers and pair detail", () => {
+    mount();
+    expect(screen.getByTestId("hm-col-S-KOTAK").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+    expect(screen.getByTestId("hm-row-S-SBI").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+    expect(screen.getByTestId("pair-detail").querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs').length).toBeGreaterThanOrEqual(2);
+  });
 });

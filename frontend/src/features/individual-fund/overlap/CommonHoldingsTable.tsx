@@ -1,3 +1,4 @@
+import { SchemeLogo } from "@/components/SchemeLogo";
 import { formatPercent } from "@/lib/format";
 import type { OverlapCommonHolding } from "../types";
 
@@ -38,7 +39,14 @@ export function CommonHoldingsTable({ holdings }: CommonHoldingsTableProps) {
                 {formatPercent(h.portfolio_weight, { digits: 1 })}
               </td>
               <td className="py-2.5 pl-4 text-[var(--ui-text-muted)]">
-                {h.held_in_funds.map((f) => f.scheme_name).join(", ")}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {h.held_in_funds.map((f, idx) => (
+                    <span key={f.scheme_id} className="inline-flex items-center gap-1.5">
+                      <SchemeLogo schemeName={f.scheme_name} size="sm" />
+                      <span>{idx < h.held_in_funds.length - 1 ? `${f.scheme_name}, ` : f.scheme_name}</span>
+                    </span>
+                  ))}
+                </div>
               </td>
             </tr>
           ))}

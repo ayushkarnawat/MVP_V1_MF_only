@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { SchemeLogo } from "@/components/SchemeLogo";
 import { formatPercent } from "@/lib/format";
 import type { OverlapTopFund } from "../types";
 import { stocks } from "./overlapLogic";
@@ -106,7 +107,10 @@ export function TopOverlapFunds({
               onKeyDown={(e) => handleKeyDown(e, index, fund.scheme_id)}
               className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-xs text-[var(--ui-text)] transition-colors hover:bg-[var(--ui-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ui-focus)]"
             >
-              <span className="font-medium">{fund.scheme_name}</span>{" "}
+              <span className="inline-flex items-center gap-2 font-medium">
+                <SchemeLogo schemeName={fund.scheme_name} size="sm" />
+                <span>{fund.scheme_name}</span>
+              </span>{" "}
               <span className="text-[var(--ui-text-muted)]">
                 {`${formatPercent(fund.overlap_pct, { digits: 1 })} overlap · ${stocks(fund.common_stock_count)} in common`}
               </span>

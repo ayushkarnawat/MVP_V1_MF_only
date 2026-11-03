@@ -128,4 +128,22 @@ describe("MarketCapPanel", () => {
     expect(screen.getByTestId("marketcap-bar-a-mid").style.width).toBe("33.33%");
     expect(screen.getByText("Share of each fund's stocks by company size.")).toBeInTheDocument();
   });
+
+  it("renders SchemeLogo on fund headers in CommonHoldingsPanel, UniqueHoldingsPanel, SectorComparisonPanel and MarketCapPanel", () => {
+    const ch = render(<CommonHoldingsPanel data={golden()} />);
+    expect(ch.container.querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs')).toHaveLength(2);
+    ch.unmount();
+
+    const uh = render(<UniqueHoldingsPanel data={golden()} />);
+    expect(uh.container.querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs')).toHaveLength(2);
+    uh.unmount();
+
+    const sc = render(<SectorComparisonPanel data={golden()} />);
+    expect(sc.container.querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs')).toHaveLength(2);
+    sc.unmount();
+
+    const mc = render(<MarketCapPanel data={golden()} />);
+    expect(mc.container.querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs')).toHaveLength(2);
+    mc.unmount();
+  });
 });

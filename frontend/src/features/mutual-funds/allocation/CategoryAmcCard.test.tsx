@@ -193,4 +193,12 @@ describe("the contributing funds open their fund page (IF-E)", () => {
     for (const link of links) expect(link.getAttribute("href")).toMatch(/^\/portfolio\/mutual-funds\/funds\/S-[A-Z]+$/);
     expect(document.querySelectorAll("button a")).toHaveLength(0);
   });
+  it("renders SchemeLogo on By AMC legend rows and drill-down fund rows", () => {
+    mount();
+    fireEvent.click(screen.getByRole("tab", { name: "By AMC" }));
+    const amcList = screen.getByRole("list", { name: "AMC breakdown" });
+    expect(amcList.querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs').length).toBeGreaterThanOrEqual(4);
+    fireEvent.click(legend("AMC breakdown").getByRole("button", { name: /HDFC Mutual Fund/ }));
+    expect(screen.getByTestId("drill-fund-S-HDFC").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

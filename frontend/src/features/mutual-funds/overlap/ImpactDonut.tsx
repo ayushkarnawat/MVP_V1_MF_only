@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatPercent, formatRupees } from "../../../lib/format";
 import type { AnalyticsCardProps } from "../allocation/allocationLogic";
 import { SectionCard } from "../common/SectionCard";
@@ -129,7 +130,11 @@ export function ImpactDonut({
                 return (
                   <div key={key} data-testid={`impact-pair-${key}`} data-pair={key} className="space-y-1.5">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <h5 data-testid={`impact-pair-title-${key}`} className="text-xs font-semibold text-[var(--ui-text)]">{title}</h5>
+                      <h5 data-testid={`impact-pair-title-${key}`} className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ui-text)]">
+                        <SchemeLogo schemeName={pair.fund_a.scheme_name} size="sm" />
+                        <SchemeLogo schemeName={pair.fund_b.scheme_name} size="sm" />
+                        <span>{title}</span>
+                      </h5>
                       <span data-testid={`impact-pair-overlap-${key}`} className="text-xs text-[var(--ui-text-muted)]">
                         {`${formatPercent(pair.overlap_pct, { digits: 0 })} overlap`}
                       </span>

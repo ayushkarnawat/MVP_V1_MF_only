@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, X } from "lucide-react";
+import { SchemeLogo } from "@/components/SchemeLogo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChangeBadge } from "../components/ChangeBadge";
 import { FundLink } from "../components/FundLink";
@@ -336,7 +337,8 @@ export function Movers({
                 key={fund.scheme_id}
                 className="flex items-center justify-between py-2 text-sm"
               >
-                <span className="text-[var(--ui-text)]">
+                <span className="flex items-center gap-2 text-[var(--ui-text)]">
+                  <SchemeLogo schemeName={fund.name} size="sm" />
                   <FundLink schemeId={fund.scheme_id}>{fund.name}</FundLink>
                 </span>
                 {fund.change != null ? (

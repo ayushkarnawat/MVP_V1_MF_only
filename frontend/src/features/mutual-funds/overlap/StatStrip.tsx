@@ -1,3 +1,4 @@
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatPercent } from "../../../lib/format";
 import type { OverlapSummary } from "../types";
 import {
@@ -89,9 +90,17 @@ export function StatStrip({ summary }: StatStripProps) {
         <p data-testid="stat-highest-value" className="mt-1 text-2xl font-bold text-[var(--ui-text)]">
           {top ? formatPercent(top.overlap_pct, { digits: 0 }) : "—"}
         </p>
-        <p data-testid="stat-highest-note" className="mt-1 text-xs text-[var(--ui-text-muted)]">
-          {top ? `${top.fund_a.scheme_name} × ${top.fund_b.scheme_name}` : "needs at least two funds"}
-        </p>
+        <div data-testid="stat-highest-note" className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[var(--ui-text-muted)]">
+          {top ? (
+            <>
+              <SchemeLogo schemeName={top.fund_a.scheme_name} size="sm" />
+              <SchemeLogo schemeName={top.fund_b.scheme_name} size="sm" />
+              <span>{`${top.fund_a.scheme_name} × ${top.fund_b.scheme_name}`}</span>
+            </>
+          ) : (
+            "needs at least two funds"
+          )}
+        </div>
       </div>
 
       {/* 4. Overlap risk */}

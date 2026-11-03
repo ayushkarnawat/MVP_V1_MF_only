@@ -359,3 +359,13 @@ it("performance_tile_is_labelled_net_invested", async () => {
   expect(tile).toHaveTextContent("Net invested");
   expect(tile).not.toHaveTextContent("Total Invested");
 });
+
+it("renders SchemeLogo on Fund XIRR at a glance rows and month detail rows", async () => {
+  mount();
+  await ready();
+  expect(screen.getByTestId("fxirr-S-KOTAK").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  fireEvent.click(screen.getByTestId("point-2026-08-31"));
+  fireEvent.click(screen.getByRole("button", { name: "See details" }));
+  const dialog = await screen.findByRole("dialog", { name: "August 2026" });
+  expect(within(dialog).getByTestId("month-row-S-KOTAK:m1").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+});

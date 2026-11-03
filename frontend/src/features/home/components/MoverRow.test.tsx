@@ -75,4 +75,9 @@ describe("MoverRow", () => {
     const { container } = render(<MoverRow bar={gain} view="sector" maxAbs={1} onOpen={() => {}} />);
     expect(container.innerHTML).not.toMatch(/#[0-9A-Fa-f]{3,8}\b/);
   });
+
+  it("renders SchemeLogo when view is fund", () => {
+    render(<MoverRow bar={{ ...gain, key: "hdfc-1", label: "HDFC Flexi Cap Fund" }} view="fund" maxAbs={38400} onOpen={() => {}} />);
+    expect(screen.getByTestId("mover-tile-hdfc-1").querySelector('[data-testid="scheme-logo"], div.shadow-2xs')).not.toBeNull();
+  });
 });

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { Modal } from "../../../components/Modal";
+import { SchemeLogo } from "../../../components/SchemeLogo";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { diffDecimalStrings, formatDecimal, toPercentString } from "../../../lib/decimal";
 import { formatDate, formatPercent, formatRupees } from "../../../lib/format";
@@ -195,14 +196,17 @@ function MonthModal({
                     data-testid={`month-row-${f.scheme_id}:${f.household_member_id}`}
                   >
                     <td className="py-2.5 pr-3">
-                      <div className="flex flex-col">
-                        <span className="font-medium text-[var(--ui-text)]">
-                          <FundLink schemeId={f.scheme_id}>{f.scheme_name}</FundLink>
-                        </span>
-                        <span className="text-[11px] text-[var(--ui-text-muted)]">{f.household_member_name}</span>
-                        {!f.priced && (
-                          <span className="text-[11px] text-[var(--warn-text)]">No price for this month</span>
-                        )}
+                      <div className="flex items-start gap-2">
+                        <SchemeLogo schemeName={f.scheme_name} size="sm" />
+                        <div className="flex flex-col">
+                          <span className="font-medium text-[var(--ui-text)]">
+                            <FundLink schemeId={f.scheme_id}>{f.scheme_name}</FundLink>
+                          </span>
+                          <span className="text-[11px] text-[var(--ui-text-muted)]">{f.household_member_name}</span>
+                          {!f.priced && (
+                            <span className="text-[11px] text-[var(--warn-text)]">No price for this month</span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="py-2.5 px-3">{formatUnits(f.units)}</td>
@@ -489,7 +493,10 @@ function ReturnsBlock({
                     return (
                       <tr key={f.scheme_id} data-testid={`fxirr-${f.scheme_id}`}>
                         <td className="py-2.5 pr-4 font-medium text-[var(--ui-text)]">
-                          <FundLink schemeId={f.scheme_id}>{f.scheme_name}</FundLink>
+                          <div className="flex items-center gap-2">
+                            <SchemeLogo schemeName={f.scheme_name} size="sm" />
+                            <FundLink schemeId={f.scheme_id}>{f.scheme_name}</FundLink>
+                          </div>
                         </td>
                         <td className="py-2.5 px-4 font-medium text-[var(--ui-text)]">
                           {formatPercent(toPercentString(f.fund_xirr!), { digits: 1, signed: true })}
