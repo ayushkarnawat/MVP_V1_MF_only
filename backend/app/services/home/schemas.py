@@ -93,12 +93,20 @@ class WealthSeriesResponse(Envelope):
     benchmark: BenchmarkSeriesOut | None
 
 
+class ClassFundOut(HomeModel):
+    scheme_id: str
+    name: str
+    value: PlainDecimal
+    share_of_class: PlainDecimal
+
+
 class ClassRowOut(HomeModel):
     key: str
     label: str
     status: Literal["live", "coming_soon"]
     value: PlainDecimal | None
     percentage: PlainDecimal | None
+    funds: list[ClassFundOut] = []
 
 
 class MemberShareOut(HomeModel):

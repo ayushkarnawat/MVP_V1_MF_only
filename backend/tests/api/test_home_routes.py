@@ -798,3 +798,25 @@ def test_synthetic_gate_collects_every_scenario_after_a_failure(monkeypatch, tmp
     results = gate._run_all_scenarios(tmp_path / "source.db", tmp_path, ("bad", "good"))
     assert calls == ["bad", "good"]
     assert [result.passed for result in results] == [False, True]
+
+
+def test_allocation_route_funds_are_present_and_typed():
+    runtime = build_home_fixture(variant="no_sections")
+    try:
+        response = runtime.client.get("/household/aggregate/home/allocation")
+        assert response.status_code == 200
+        body = response.json()
+        equity = next(row for row in body["classes"] if row["key"] == "equity")
+        assert equity["funds"] == [
+            {"scheme_id": str(uid("scheme-large")), "name": "Asha Large Cap",
+             "value": "1210.00", "share_of_class": "55.00"},
+            {"scheme_id": str(uid("scheme-flexi")), "name": "Asha Flexi Cap",
+             "value": "990.00", "share_of_class": "45.00"},
+        ]
+        assert all(isinstance(row["funds"], list) for row in body["classes"])
+        schemas = runtime.client.get("/openapi.json").json()["components"]["schemas"]
+        assert schemas["ClassRowOut"]["properties"]["funds"]["type"] == "array"
+        for field in ("value", "share_of_class"):
+            assert schemas["ClassFundOut"]["properties"][field]["type"] == "string"
+    finally:
+        runtime.close()
