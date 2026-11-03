@@ -36,6 +36,7 @@ from app.db.session import commit_off_loop
 from app.services.import_.pan_claims import (
     CrossAccountPanBlockedError,
     PanConflictError,
+    PanBelongsToOtherMemberError,
     claim_pan_for_member,
     classify_detected_pan,
     is_expired_pending,
@@ -463,6 +464,27 @@ def _masked_member_pan(member: HouseholdMember) -> str | None:
     return mask_pan(decrypt_pan(member.pan_encrypted))
 
 
+def _add_as_family_self_conflict(
+    db: Session, session: dict[str, Any], target_member_ids: tuple[uuid.UUID, ...] = (),
+) -> ImportPromptError | None:
+    self_member = _self_member(db, session["user_id"])
+    if self_member is None:
+        return None
+    attaches_self = self_member.id in target_member_ids or any(
+        person.pan and classify_detected_pan(db, session["user_id"], person.pan)[1] == self_member.id
+        for person in _people(session)
+    )
+    if not attaches_self:
+        return None
+    return ImportPromptError(
+        PanBelongsToOtherMemberError.code,
+        "This statement includes a PAN already assigned to the account holder. "
+        "Finish or discard the other upload before trying again.",
+        session["session_id"],
+        {"member_name": self_member.name},
+    )
+
+
 def _self_match(session: dict[str, Any], self_member: HouseholdMember) -> SelfMatch:
     if session.get("add_as_family"):
         return SelfMatch("absent", None, [])
@@ -554,6 +576,10 @@ def next_prompt(db: Session, session: dict[str, Any]) -> ImportPromptError | Non
     if target is None:
         raise SessionExpiredError(SESSION_EXPIRED_MESSAGE)
     self_member = _self_member(db, user_id)
+    if session.get("add_as_family"):
+        conflict = _add_as_family_self_conflict(db, session)
+        if conflict is not None:
+            return conflict
     first_upload = _is_first_upload(self_member)
     is_self_target = self_member is not None and target.id == self_member.id
     session["target_person_key"] = None
@@ -880,7 +906,15 @@ def resolve_add_as_family(db: Session, session_id: str, user_id: uuid.UUID) -> I
     """Keep the account holder unchanged and plan everyone in the file normally."""
     session = _live_session(db, session_id, user_id)
     current = next_prompt(db, session)
-    if current is None or current.code != "self_name_mismatch":
+    self_member = _self_member(db, user_id)
+    # Another review may have finalized Self between the mismatch and this answer.
+    stale_self_match = current is None and self_member is not None and any(
+        person.pan
+        and compare_names(self_member.name, person.name).result == "mismatch"
+        and classify_detected_pan(db, user_id, person.pan)[1] == self_member.id
+        for person in _people(session)
+    )
+    if not stale_self_match and (current is None or current.code != "self_name_mismatch"):
         return _finish(db, session_id)
     session["add_as_family"] = True
     session["me_choice"] = None

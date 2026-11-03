@@ -1178,3 +1178,24 @@ def test_route_is_refused_for_another_users_session(client, tmp_path):
     assert refused.status_code == 410
     assert not _preview_sessions[sid].get("add_as_family")
     assert _member(member_id).name == "Riya Shah"
+
+
+def test_add_as_family_self_pan_conflict_uses_existing_409_prompt_shape(client, tmp_path):
+    headers, member_id = _authed_headers_and_member(client, "+919800008906", name="Riya Shah")
+    own = _parse(client, headers, member_id, family_result([
+        {"name": "RIYA SHAH", "pan": ADITI_PAN},
+    ]), tmp_path)
+    assert own.status_code == 200
+    relative = _parse(client, headers, member_id, family_result([
+        {"name": "ROHAN MEHTA", "pan": ADITI_PAN},
+    ]), tmp_path)
+    assert relative.status_code == 409
+    sid = _detail(relative)["session_id"]
+    response = client.post(f"/imports/sessions/{sid}/resolve-add-as-family", headers=headers)
+    assert response.status_code == 409, response.text
+    detail = _detail(response)
+    assert set(detail) == {"code", "message", "session_id", "details"}
+    assert detail["code"] == "pan_belongs_to_other_member"
+    assert detail["session_id"] == sid
+    assert ADITI_PAN not in response.text
+    assert _member(member_id).name == "Riya Shah"

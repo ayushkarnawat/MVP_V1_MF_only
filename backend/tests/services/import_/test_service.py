@@ -1545,3 +1545,97 @@ def test_add_as_family_after_a_head_change_leaves_the_self_member_and_the_head_f
     assert _identity_snapshot(member) == before
     assert member.is_head is False and head.is_head is True
     assert all(uuid.UUID(person.member_id) not in {member.id, head.id} for person in result.people)
+
+
+@pytest.mark.parametrize("permanent", [False, True])
+@pytest.mark.parametrize("reload_review", [False, True])
+def test_add_as_family_rejects_self_pan_from_another_review(db_session, permanent, reload_review):
+    from app.models.member_history import HouseholdMemberNameChange
+    from app.services.import_ import service, preview_store
+    from tests.api.import_helpers import family_result
+
+    member = _db_member(db_session, name="Riya Shah")
+    own = _start(db_session, member, family_result([{"name": "RIYA SHAH", "pan": "ABCDE1234K"}]))
+    with pytest.raises(service.ImportPromptError) as mismatch:
+        _start(db_session, member, family_result([{"name": "ROHAN MEHTA", "pan": "ABCDE1234K"}]))
+    assert mismatch.value.code == "self_name_mismatch"
+    sid = mismatch.value.session_id
+    if permanent:
+        _confirm_family_review(db_session, member, own)
+    db_session.refresh(member)
+    before = _identity_snapshot(member)
+    rows_before = db_session.query(Transaction).count()
+    names_before = db_session.query(HouseholdMemberNameChange).count()
+    if reload_review:
+        _preview_sessions.pop(sid, None)
+    for _ in range(2):
+        with pytest.raises(service.ImportPromptError) as conflict:
+            _resolve_family(db_session, member, sid)
+        assert conflict.value.code == "pan_belongs_to_other_member"
+        assert conflict.value.session_id == sid
+        db_session.refresh(member)
+        assert _identity_snapshot(member) == before
+        assert db_session.query(Transaction).count() == rows_before
+        assert db_session.query(HouseholdMemberNameChange).count() == names_before
+        stored = preview_store.load(db_session, sid)
+        assert stored["add_as_family"] is True
+        assert stored["ready"] is False
+        _preview_sessions.pop(sid, None)
+
+
+def test_add_as_family_reupload_still_rejects_until_the_other_review_is_discarded(db_session):
+    from app.services.import_ import service
+    from tests.api.import_helpers import family_result
+
+    member = _db_member(db_session, name="Riya Shah")
+    own = _start(db_session, member, family_result([{"name": "RIYA SHAH", "pan": "ABCDE1234K"}]))
+    for _ in range(2):
+        with pytest.raises(service.ImportPromptError) as mismatch:
+            _start(db_session, member, family_result([{"name": "ROHAN MEHTA", "pan": "ABCDE1234K"}]))
+        sid = mismatch.value.session_id
+        with pytest.raises(service.ImportPromptError) as conflict:
+            _resolve_family(db_session, member, sid)
+        assert conflict.value.code == "pan_belongs_to_other_member"
+    discard_import_session(db_session, own.session_id, member.user_id)
+    preview = _resolve_family(db_session, member, sid)
+    assert preview.people[0].member_id is None
+    result = _confirm_family_review(db_session, member, preview)
+    assert result.people[0].created is True
+    db_session.refresh(member)
+    assert member.name == "Riya Shah" and member.pan_lookup_hash is None
+
+
+def test_add_as_family_without_pan_overlap_survives_reload_and_keeps_self_unchanged(db_session):
+    from app.services.import_ import preview_store
+    from app.models.member_history import HouseholdMemberNameChange
+    member, sid = _family_mismatch_review(db_session)
+    before = _identity_snapshot(member)
+    _resolve_family(db_session, member, sid)
+    assert preview_store.load(db_session, sid)["add_as_family"] is True
+    _preview_sessions.pop(sid)
+    preview = _resolve_family(db_session, member, sid)
+    assert preview.people[0].member_id is None
+    result = _confirm_family_review(db_session, member, preview)
+    assert result.people[0].created is True
+    db_session.refresh(member)
+    assert _identity_snapshot(member) == before
+    assert db_session.query(HouseholdMemberNameChange).count() == 0
+
+
+def test_add_as_family_rejects_a_late_self_pan_match_before_confirmation_writes(db_session):
+    from app.services.import_ import service
+    from tests.api.import_helpers import family_result
+    from app.models.member_history import HouseholdMemberNameChange
+
+    member, sid = _family_mismatch_review(db_session)
+    preview = _resolve_family(db_session, member, sid)
+    _start(db_session, member, family_result([{"name": "RIYA SHAH", "pan": "ABCDE1234K"}]))
+    db_session.refresh(member)
+    before = _identity_snapshot(member)
+    with pytest.raises(service.ImportPromptError) as conflict:
+        _confirm_family_review(db_session, member, preview)
+    assert conflict.value.code == "pan_belongs_to_other_member"
+    db_session.refresh(member)
+    assert _identity_snapshot(member) == before
+    assert db_session.query(Folio).count() == 0
+    assert db_session.query(HouseholdMemberNameChange).count() == 0

@@ -88,6 +88,7 @@ from app.services.import_.schemas import (
 )
 from app.services.import_.service import (
     SESSION_EXPIRED_MESSAGE,
+    _add_as_family_self_conflict,
     CONFIDENCE_THRESHOLD,
     SchemeConfidenceError,
     claim_session_for_confirm,
@@ -443,6 +444,12 @@ def _plan_works(
         works = [_resolve_member(db, user_id, person, plan, conf, []) for person, plan, conf in emptied]
     if not works:
         raise ConfirmInvalidError("There is nothing to import.")
+    if session.get("add_as_family"):
+        conflict = _add_as_family_self_conflict(
+            db, session, tuple(work.member_id for work in works if work.member_id is not None),
+        )
+        if conflict is not None:
+            raise conflict
     return works
 
 
