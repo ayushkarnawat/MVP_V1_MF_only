@@ -1,9 +1,11 @@
 export type InvestorType = "self_directed" | "advisor_assisted" | "mixed" | "beginner";
 export type PrimaryGoal =
-  | "consolidated_view"
-  | "understand_holdings"
-  | "family_management"
-  | "performance_comparison";
+  | "wealth_creation"
+  | "retirement"
+  | "childrens_education"
+  | "buy_home"
+  | "financial_freedom"
+  | "tax_planning";
 export type Relationship = "self" | "spouse" | "parent" | "child" | "sibling" | "other";
 
 export interface OtpRequestResponse {

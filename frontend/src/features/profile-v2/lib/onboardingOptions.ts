@@ -3,7 +3,6 @@ import type { InvestorType, PrimaryGoal } from "@/features/auth/types";
 export interface GoalOption {
   value: PrimaryGoal;
   title: string;
-  subtitle: string;
 }
 
 export interface InvestorOption {
@@ -12,27 +11,14 @@ export interface InvestorOption {
   subtitle: string;
 }
 
+// The single list for sign-up, the mobile goals screen and Profile. The labels come from the signed-off design.
 export const GOAL_OPTIONS: ReadonlyArray<GoalOption> = [
-  {
-    value: "consolidated_view",
-    title: "Consolidated portfolio view",
-    subtitle: "See all my mutual funds across every broker and fund house in one place",
-  },
-  {
-    value: "understand_holdings",
-    title: "Understand true performance",
-    subtitle: "See your true returns after fees, taxes and plan type",
-  },
-  {
-    value: "family_management",
-    title: "Family wealth tracking",
-    subtitle: "Managing investments for family members under one dashboard",
-  },
-  {
-    value: "performance_comparison",
-    title: "Compare distributor fees",
-    subtitle: "Compare returns and costs across different distributors",
-  },
+  { value: "wealth_creation", title: "Build my wealth" },
+  { value: "retirement", title: "Plan for retirement" },
+  { value: "childrens_education", title: "Fund my children's education" },
+  { value: "buy_home", title: "Buy a home" },
+  { value: "financial_freedom", title: "Achieve financial freedom" },
+  { value: "tax_planning", title: "Plan my taxes" },
 ];
 
 export const INVESTOR_OPTIONS: ReadonlyArray<InvestorOption> = [

@@ -3,35 +3,37 @@ import { PRIMARY_BTN, SECONDARY_BTN } from "./copy";
 
 export interface NameMismatchDialogProps {
   isOpen: boolean;
+  /** The account holder's name. It is never changed here. */
   enteredName: string;
+  /** The person the statement is in. */
   statementName: string;
-  /** Inline error from the server, e.g. “This name doesn’t match the statement”. */
+  /** Inline error from the server. */
   error?: string | null;
-  onUseName: (name: string) => void;
+  onAddAsFamily: () => void;
   /** Also the way out of ×. */
   onUploadDifferent: () => void;
 }
 
-// U2: first import, no person in the file is compatible with the onboarding name.
-// The name comes from the statement and is never typed here: the user only confirms it is them.
+// U2: first import, no person in the file is compatible with the account holder's name.
+// The account holder is never renamed: the person on the statement is added as a family member instead.
 export function NameMismatchDialog({
   isOpen,
   enteredName,
   statementName,
   error,
-  onUseName,
+  onAddAsFamily,
   onUploadDifferent,
 }: NameMismatchDialogProps) {
   return (
     <PromptDialog
       isOpen={isOpen}
-      title={`This statement is in ${statementName}’s name`}
-      body={`You entered ${enteredName}. Is that you?`}
+      title={`This is ${enteredName}’s account`}
+      body={`You uploaded ${statementName}’s file. Do you want to add ${statementName} as a family member, or upload a different file?`}
       onClose={onUploadDifferent}
       footer={
         <>
-          <button type="button" onClick={() => onUseName(statementName)} className={PRIMARY_BTN}>
-            Yes, that’s me
+          <button type="button" onClick={onAddAsFamily} className={PRIMARY_BTN}>
+            {`Add ${statementName} as a family member`}
           </button>
           <button type="button" onClick={onUploadDifferent} className={SECONDARY_BTN}>
             Upload a different file

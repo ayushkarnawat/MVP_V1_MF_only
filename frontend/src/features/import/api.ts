@@ -100,6 +100,11 @@ export function resolveName(sessionId: string, name: string): Promise<ImportPrev
   return postSession(sessionId, "resolve-name", { name });
 }
 
+/** U2, new answer: add the people on the statement as family members; the account holder is not touched. */
+export function resolveAddAsFamily(sessionId: string): Promise<ImportPreviewResponse> {
+  return postSession(sessionId, "resolve-add-as-family", {});
+}
+
 /** U3: pick which statement person is Me; null = "None of these". */
 export function resolveSelf(sessionId: string, personKey: string | null): Promise<ImportPreviewResponse> {
   return postSession(sessionId, "resolve-self", { person_key: personKey });
