@@ -1,5 +1,6 @@
 import { SectionCard } from "../common/SectionCard";
 import { useMfAnalytics } from "../data/analyticsStore";
+import { CARD_TITLES } from "./otherLogic";
 import { TerLadder } from "./TerLadder";
 import { ValuationByFund } from "./ValuationByFund";
 import { ValuationSpectrum } from "./ValuationSpectrum";
@@ -14,7 +15,7 @@ export function CostValuationGroup() {
     <div className="flex flex-col gap-[18px]">
       <div data-testid="card-ter">
         <SectionCard
-          title="Total Expense Ratio (TER) & Cost Analysis"
+          title={CARD_TITLES.cost[0]}
           info="AUM-weighted annual management fee across your portfolio, split by Direct vs. Regular plans, with a per-fund cost breakdown."
           state={ter.status}
           onRetry={ter.retry}
@@ -31,7 +32,7 @@ export function CostValuationGroup() {
 
       <div data-testid="card-valuation">
         <SectionCard
-          title="Portfolio Valuation vs. Benchmarks"
+          title={CARD_TITLES.cost[1]}
           info="Your portfolio's look-through P/E and P/B compared to Nifty 50 and Nifty 500 — a sense of whether you're paying a premium or discount for your holdings."
           state={valuation.status}
           onRetry={valuation.retry}

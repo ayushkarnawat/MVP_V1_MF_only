@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { Modal } from "../../../components/Modal";
 import { SchemeLogo } from "../../../components/SchemeLogo";
+import { Button } from "../../../components/ui/button";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { diffDecimalStrings, formatDecimal, toPercentString } from "../../../lib/decimal";
 import { formatDate, formatPercent, formatRupees } from "../../../lib/format";
@@ -779,7 +780,7 @@ function PerformanceBody() {
         <p className="text-sm text-[var(--ui-text-muted)] max-w-md">
           There was a problem reaching our servers. Your data is safe — this is just a connection issue.
         </p>
-        <button
+        <Button
           type="button"
           data-clickable=""
           data-effect="retry"
@@ -788,10 +789,10 @@ function PerformanceBody() {
             history.retry();
             money.retry();
           }}
-          className="mt-2 inline-flex items-center justify-center rounded-xl bg-[var(--pos)] px-4 py-2 text-sm font-semibold text-white hover:opacity-95"
+          className="mt-2 rounded-xl px-4 py-2 text-sm font-semibold hover:opacity-95"
         >
           Retry
-        </button>
+        </Button>
       </div>
     );
   }

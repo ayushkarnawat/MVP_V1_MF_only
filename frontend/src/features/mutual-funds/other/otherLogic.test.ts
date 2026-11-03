@@ -315,6 +315,27 @@ it("group_titles_are_unique", () => {
   expect(new Set(Object.values(GROUP_TITLES)).size).toBe(4);
 });
 
+it("group_and_card_headings_never_match", async () => {
+  const logic = (await import("./otherLogic")) as Record<string, unknown>;
+  const cardTitles = logic.CARD_TITLES as Record<keyof typeof GROUP_TITLES, readonly string[]> | undefined;
+  expect(cardTitles).toBeDefined();
+  expect(GROUP_TITLES.ranking).toBe("Performance Ranking");
+  expect(cardTitles?.ranking).toEqual(["Rank in your fund's category"]);
+  expect(GROUP_TITLES.category).toBe("Category Average Comparison");
+  expect(cardTitles?.category).toEqual(["Returns against the category average"]);
+
+  const allGroupTitles = new Set<string>(Object.values(GROUP_TITLES));
+  for (const key of Object.keys(GROUP_TITLES) as Array<keyof typeof GROUP_TITLES>) {
+    const groupHeading = GROUP_TITLES[key];
+    const cards = cardTitles?.[key] ?? [];
+    expect(cards.length).toBeGreaterThan(0);
+    for (const cardHeading of cards) {
+      expect(cardHeading).not.toBe(groupHeading);
+      expect(allGroupTitles.has(cardHeading)).toBe(false);
+    }
+  }
+});
+
 
 it("counts only available periods, treats equality as neither ahead nor behind, and uses the worst shortfall", async () => {
   const logic = await import("./otherLogic");

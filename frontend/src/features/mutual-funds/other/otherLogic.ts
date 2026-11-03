@@ -23,6 +23,17 @@ export const GROUP_TITLES = {
   ranking: "Performance Ranking",
 } as const;
 
+export const CARD_TITLES = {
+  cost: [
+    "Total Expense Ratio (TER) & Cost Analysis",
+    "Portfolio Valuation vs. Benchmarks",
+    "Valuation by Fund",
+  ],
+  scorer: ["Fund Quality Scores"],
+  category: ["Returns against the category average"],
+  ranking: ["Rank in your fund's category"],
+} as const satisfies Record<keyof typeof GROUP_TITLES, readonly string[]>;
+
 export function normalizeFraction(value: string): string {
   if (!value) return value;
   const trimmed = value.trim();

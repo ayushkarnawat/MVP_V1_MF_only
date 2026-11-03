@@ -7,7 +7,7 @@ import { compareDecimalStrings } from "../../../lib/decimal";
 import { formatDate } from "../../../lib/format";
 import { SectionCard } from "../common/SectionCard";
 import type { ValuationFund, ValuationSummary, ValuationValue } from "../types";
-import { ratioText, type ValuationKind } from "./otherLogic";
+import { CARD_TITLES, ratioText, type ValuationKind } from "./otherLogic";
 
 const LABEL = { pe: "P/E", pb: "P/B" };
 
@@ -124,7 +124,7 @@ export function ValuationByFund({ data }: { data: ValuationSummary }) {
   const maximum = (kind: ValuationKind) => [benchmarks[kind], ...funds.map(fund => fund[kind].value)]
     .filter(usable).reduce((max, value) => compareDecimalStrings(value, max) > 0 ? value : max, "1");
   const maxima = { pe: maximum("pe"), pb: maximum("pb") };
-  return <SectionCard title="Valuation by Fund" state="ready">
+  return <SectionCard title={CARD_TITLES.cost[2]} state="ready">
     <div className="space-y-4">
       <p className="rounded-xl bg-[var(--warn-bg)] p-4 text-sm font-medium text-[var(--ui-text)]">
         {richer === null ? "Nifty 500 earnings comparison is unavailable." : `${richer} of ${comparable.length} funds trade richer than Nifty 500 on earnings`}

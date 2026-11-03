@@ -2,7 +2,7 @@ import { SchemeLogo } from "../../../components/SchemeLogo";
 import { SectionCard } from "../common/SectionCard";
 import { useMfAnalytics } from "../data/analyticsStore";
 import type { PeriodRank, PerformancePeriod, PerformanceRankingFund, PerformanceRankingResult } from "../types";
-import { PERFORMANCE_PERIODS, isPerformanceRanking, performanceRankBanner, performanceRankColor, performanceRankPosition, shortCategory } from "./otherLogic";
+import { CARD_TITLES, PERFORMANCE_PERIODS, isPerformanceRanking, performanceRankBanner, performanceRankColor, performanceRankPosition, shortCategory } from "./otherLogic";
 
 const PERIOD_LABELS: Record<PerformancePeriod, string> = { "1Y": "1 year", "3Y": "3 years", "5Y": "5 years" };
 
@@ -66,7 +66,7 @@ export function PerformanceRankingContent({ data }: { data: PerformanceRankingRe
 export function PerformanceRankingGroup() {
   const { data, status, retry, updating } = useMfAnalytics("ranking");
   const old = updating || (data !== null && !isPerformanceRanking(data));
-  return <SectionCard title="Rank in your fund's category" state={status} onRetry={retry}>
+  return <SectionCard title={CARD_TITLES.ranking[0]} state={status} onRetry={retry}>
     {old ? <p role="status" aria-label="Updating Performance Ranking" className="text-sm text-[var(--ui-text-muted)]">Performance rankings are updating.</p>
       : data ? <PerformanceRankingContent data={data} /> : <p className="text-sm text-[var(--ui-text-muted)]">No performance ranking data available.</p>}
   </SectionCard>;

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Button } from "../../components/ui/button";
 import { parseHeadChangeError, reverseContactChange } from "./api";
 
 function readFragmentToken(): string | null {
@@ -103,7 +104,7 @@ export function ReverseContactChangePage() {
             </p>
 
             {done && (
-              <div className="space-y-2 rounded-lg border border-[#22C55E]/30 bg-[#22C55E]/10 p-3">
+              <div className="space-y-2 rounded-lg border border-[var(--pos)]/30 bg-[var(--pos-bg)] p-3">
                 <p className="text-sm text-[var(--color-text-primary)]">
                   The change has been undone and everyone has been signed out. Sign in with your
                   usual email or phone number.
@@ -123,14 +124,14 @@ export function ReverseContactChangePage() {
               </p>
             )}
 
-            <button
+            <Button
               type="button"
               onClick={handleReverse}
               disabled={submitting || done || terminalError}
-              className="w-full rounded-lg bg-[#22C55E] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2.5 font-semibold"
             >
               This was not me, undo the change
-            </button>
+            </Button>
           </div>
         )}
       </div>
