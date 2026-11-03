@@ -3,6 +3,7 @@ import { Button } from "../../../components/ui/button";
 import { compareDecimalStrings, formatDecimal, sumDecimalStrings } from "../../../lib/decimal";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { Skeleton } from "../../../components/ui/skeleton";
+import { categoryLabel } from "@/lib/categoryLabel";
 import { formatRupees } from "../../../lib/format";
 import { paths } from "../../../shell/nav/paths";
 import { useAppNavigate } from "../../../shell/nav/useAppNavigate";
@@ -228,7 +229,7 @@ export function HoldingsTable({
                       </div>
                     </td>
                     <td data-testid="category" className="py-3 px-4 text-[var(--ui-text-muted)]">
-                      {row.sebi_category || "—"}
+                      {categoryLabel(row.sebi_category)}
                     </td>
                     <td data-testid="invested" className="py-3 px-4 font-medium text-[var(--ui-text)]">
                       {formatRupees(row.amount_invested)}

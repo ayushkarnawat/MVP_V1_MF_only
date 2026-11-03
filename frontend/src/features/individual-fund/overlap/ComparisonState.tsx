@@ -24,12 +24,14 @@ export interface ComparisonStateProps {
   ctx: FundPageContext;
   otherSchemeId: string;
   onBack: () => void;
+  backLabel?: string;
 }
 
 export function ComparisonState({
   ctx,
   otherSchemeId,
   onBack,
+  backLabel,
 }: ComparisonStateProps) {
   const [tab, setTab] = useState<ComparisonTabId>("overview");
   const headingRef = useRef<HTMLHeadingElement | null>(null);
@@ -55,7 +57,7 @@ export function ComparisonState({
           className="inline-flex items-center gap-1.5 self-start text-xs font-medium text-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
         >
           <ArrowLeft size={16} aria-hidden="true" />
-          {`Back to ${ctx.summary.scheme.name}'s overlap`}
+          {backLabel ?? `Back to ${ctx.summary.scheme.name}'s overlap`}
         </button>
         <h2
           ref={headingRef}
