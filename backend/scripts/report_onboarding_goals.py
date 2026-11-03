@@ -3,7 +3,7 @@
 Run when needed (2026-10-01 plan, section C2):
     python3 -m scripts.report_onboarding_goals [--from 2026-10-01] [--to 2026-10-31] [--csv out.csv]
 Filtering happens in Python, not JSON SQL, so it runs unchanged on SQLite and Postgres.
-"All four" is how "Why choose? All of it." shows up: the UI saves all four goals.
+"Picked all" is how "Why choose? All of it." shows up: the UI saves all six goals.
 """
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ def goal_report(db: Session, date_from: date | None, date_to: date | None) -> di
     return {
         "total_users": len(users),
         "skipped": len(users) - len(answered),
-        "all_four": sum(1 for u in answered if set(GOALS) <= set(u.primary_goals)),
+        "picked_all": sum(1 for u in answered if set(GOALS) <= set(u.primary_goals)),
         "per_goal": per_goal,
     }
 
@@ -59,7 +59,7 @@ def main(argv: list[str] | None = None) -> int:
     db = SessionLocal()
     try:
         r = goal_report(db, a.date_from, a.date_to)
-        print(f"Users: {r['total_users']}  skipped: {r['skipped']}  all four: {r['all_four']}")
+        print(f"Users: {r['total_users']}  skipped: {r['skipped']}  picked all: {r['picked_all']}")
         for g, v in r["per_goal"].items():
             print(f"  {g:<24} {v['count']:>6}  {v['pct']:>5}%")
         if a.csv_path:

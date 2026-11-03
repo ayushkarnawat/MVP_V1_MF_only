@@ -22,9 +22,9 @@ Codex usage ran out. From here the **backend worker is a second Claude account r
 
 ## 3. Per-task setup (the orchestrator pastes this, filled in)
 ```
-rm -rf ~/ui-s<N> && git clone --branch ui-round-2 file:///mnt/c/Users/Dell/Desktop/MVP\ v1/MVP_V1_MF_only ~/ui-s<N> && cd ~/ui-s<N> && git checkout -b codex/ui-s<N>
+rm -rf ~/ui-s<N> && git clone --branch ui-round-2-src file:///mnt/c/Users/Dell/Desktop/MVP\ v1/MVP_V1_MF_only ~/ui-s<N> && cd ~/ui-s<N> && git checkout -b codex/ui-s<N>
 ```
-The orchestrator first refreshes the source ref (WSL clones read the main repo's local branch, not the remote): `git -C "C:/Users/Dell/Desktop/MVP v1/MVP_V1_MF_only" fetch origin ui-round-2:ui-round-2`. HEAD must equal the commit the prompt names. A clone made before a handoff was committed does not contain it: re-clone.
+The orchestrator first refreshes the source ref (WSL clones read the main repo's local branch, not the remote): `git -C "C:/Users/Dell/Desktop/MVP v1/MVP_V1_MF_only" fetch origin ui-round-2:refs/heads/ui-round-2-src` (ui-round-2 itself may be checked out in a worktree, so clones use the ui-round-2-src copy). HEAD must equal the commit the prompt names. A clone made before a handoff was committed does not contain it: re-clone.
 
 ## 4. The report block (reply with exactly this, nothing else)
 ```

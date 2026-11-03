@@ -11,10 +11,12 @@ class InvestorType(str, enum.Enum):
 
 
 class PrimaryGoal(str, enum.Enum):
-    CONSOLIDATED_VIEW = "consolidated_view"
-    UNDERSTAND_HOLDINGS = "understand_holdings"
-    FAMILY_MANAGEMENT = "family_management"
-    PERFORMANCE_COMPARISON = "performance_comparison"
+    WEALTH_CREATION = "wealth_creation"
+    RETIREMENT = "retirement"
+    CHILDRENS_EDUCATION = "childrens_education"
+    BUY_HOME = "buy_home"
+    FINANCIAL_FREEDOM = "financial_freedom"
+    TAX_PLANNING = "tax_planning"
 
 
 class Relationship(str, enum.Enum):

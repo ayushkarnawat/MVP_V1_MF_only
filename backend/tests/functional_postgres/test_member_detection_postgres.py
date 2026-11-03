@@ -140,25 +140,94 @@ def test_0018_backfills_preexisting_members_on_postgres(postgres_url, monkeypatc
         _alembic("downgrade", "base")
 
 
-def test_0019_primary_goals_check_constraint_on_postgres(postgres_url, monkeypatch):
-    from sqlalchemy import create_engine, text
-    from sqlalchemy.exc import IntegrityError
+_GOAL_INSERT = (
+    "INSERT INTO users (id, phone_number, created_at, primary_goals) "
+    "VALUES (gen_random_uuid(), :phone, now(), CAST(:goals AS jsonb))"
+)
+
+
+def _upgraded_engine(postgres_url, monkeypatch):
+    from sqlalchemy import create_engine
 
     monkeypatch.setenv("DATABASE_URL", postgres_url)
     _alembic("downgrade", "base")
     assert _alembic("upgrade", "head").returncode == 0
-    engine = create_engine(postgres_url)
-    # pending_deletion has a server default (0013), so no extra NOT NULL columns.
-    insert = (
-        "INSERT INTO users (id, phone_number, created_at, primary_goals) "
-        "VALUES (gen_random_uuid(), :phone, now(), CAST(:goals AS jsonb))"
-    )
+    return create_engine(postgres_url)
+
+
+def test_primary_goals_check_allows_one_to_six_new_codes(postgres_url, monkeypatch):
+    from sqlalchemy import text
+    from sqlalchemy.exc import IntegrityError
+
+    engine = _upgraded_engine(postgres_url, monkeypatch)
+    six = '["wealth_creation","retirement","childrens_education","buy_home","financial_freedom","tax_planning"]'
     try:
         with engine.begin() as conn:
-            conn.execute(text(insert), {"phone": "+919800001901", "goals": '["family_management"]'})
-        for i, bad in enumerate(('["foo"]', "[]", '"family_management"')):
+            conn.execute(text(_GOAL_INSERT), {"phone": "+919800005301", "goals": '["buy_home"]'})
+            conn.execute(text(_GOAL_INSERT), {"phone": "+919800005302", "goals": six})
+        bad = (
+            '["foo"]', "[]", '"retirement"',
+            '["family_management"]',  # old code
+            '["wealth_creation","retirement","childrens_education","buy_home","financial_freedom","tax_planning","foo"]',  # seven
+        )
+        for i, value in enumerate(bad):
             with pytest.raises(IntegrityError):
                 with engine.begin() as conn:
-                    conn.execute(text(insert), {"phone": f"+91980000191{i}", "goals": bad})
+                    conn.execute(text(_GOAL_INSERT), {"phone": f"+91980000531{i}", "goals": value})
+    finally:
+        engine.dispose()
+
+
+def test_primarygoal_enum_type_is_gone(postgres_url, monkeypatch):
+    from sqlalchemy import text
+
+    engine = _upgraded_engine(postgres_url, monkeypatch)
+    try:
+        with engine.connect() as conn:
+            n = conn.execute(text("SELECT count(*) FROM pg_type WHERE typname = 'primarygoal'")).scalar()
+        assert n == 0
+    finally:
+        engine.dispose()
+
+
+def test_users_table_has_no_primary_goal_column(postgres_url, monkeypatch):
+    from sqlalchemy import text
+
+    engine = _upgraded_engine(postgres_url, monkeypatch)
+    try:
+        with engine.connect() as conn:
+            cols = {r[0] for r in conn.execute(text(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'users'"))}
+        assert "primary_goal" not in cols
+        assert "primary_goals" in cols
+    finally:
+        engine.dispose()
+
+
+def test_0053_postgres_up_down_up_restores_old_shape_and_clears_goals(postgres_url, monkeypatch):
+    from sqlalchemy import text
+
+    engine = _upgraded_engine(postgres_url, monkeypatch)
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(_GOAL_INSERT), {"phone": "+919800005391", "goals": '["retirement"]'})
+        assert _alembic("downgrade", "-1").returncode == 0
+        with engine.connect() as conn:
+            cols = {r[0] for r in conn.execute(text(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'users'"))}
+            types = conn.execute(text("SELECT count(*) FROM pg_type WHERE typname = 'primarygoal'")).scalar()
+            goals = conn.execute(text("SELECT primary_goals FROM users WHERE phone_number = '+919800005391'")).scalar()
+        assert "primary_goal" in cols and types == 1
+        assert goals is None  # new codes cannot be represented in the old shape
+        # old CHECK is back: an old code is accepted, a new one refused
+        from sqlalchemy.exc import IntegrityError
+        with engine.begin() as conn:
+            conn.execute(text(_GOAL_INSERT), {"phone": "+919800005392", "goals": '["family_management"]'})
+        with pytest.raises(IntegrityError):
+            with engine.begin() as conn:
+                conn.execute(text(_GOAL_INSERT), {"phone": "+919800005393", "goals": '["retirement"]'})
+        with engine.begin() as conn:
+            conn.execute(text("UPDATE users SET primary_goals = NULL"))
+        assert _alembic("upgrade", "head").returncode == 0
     finally:
         engine.dispose()

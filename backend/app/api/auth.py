@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session as DbSession
 from app.api.legal import CONSENT_CONTINUE_MESSAGE
 from app.db.session import get_db #dependency for database session
 from app.models.auth import AuthIdentity, Session as SessionModel
-from app.models.enums import AuthIdentityProvider, ConsentAction, ConsentDocumentType, PrimaryGoal, Relationship
+from app.models.enums import AuthIdentityProvider, ConsentAction, ConsentDocumentType, Relationship
 from app.models.user import HouseholdMember, User
 from app.services.auth.device_info import capture_request_metadata
 from app.config import settings
@@ -1095,7 +1095,6 @@ def update_me(
     if body.primary_goals is not None:
         goals = [g.value for g in body.primary_goals]
         user.primary_goals = goals
-        user.primary_goal = PrimaryGoal(goals[0])  # dual write until 0021
     # First-completion-wins: onboarding_completed=false is not a supported
     # "un-complete" action, only forward marking is needed (PRD-02 has no
     # revert-to-onboarding flow once done).

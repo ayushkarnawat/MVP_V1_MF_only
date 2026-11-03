@@ -11,7 +11,7 @@ def test_0045_is_in_the_chain_and_sqlite_upgrade_then_downgrade_to_0043(tmp_path
 
     heads = _alembic("heads")
     assert heads.returncode == 0, heads.stderr
-    assert heads.stdout.strip() == "0052 (head)"
+    assert heads.stdout.strip() == "0053 (head)"
 
     up = _alembic("upgrade", "head")
     assert up.returncode == 0, up.stderr
@@ -1775,3 +1775,51 @@ def test_0048_downgrade_recreates_exact_0034_tables_empty(tmp_path, monkeypatch)
         assert (again := _alembic("upgrade", "0048")).returncode == 0, again.stderr
     finally:
         engine.dispose()
+
+
+def test_head_is_the_goals_migration(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'h.db'}")
+    heads = _alembic("heads")
+    assert heads.returncode == 0, heads.stderr
+    assert heads.stdout.strip() == "0053 (head)"
+
+
+def test_0053_upgrade_downgrade_upgrade_round_trip(tmp_path, monkeypatch):
+    import sqlite3
+
+    db_path = tmp_path / "goals53.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    assert _alembic("upgrade", "0052").returncode == 0
+    conn = sqlite3.connect(db_path)
+    conn.executemany(
+        "INSERT INTO users (id, phone_number, created_at, primary_goal, primary_goals) "
+        "VALUES (?, ?, '2026-09-01 10:00:00.000000', ?, ?)",
+        [
+            ("u1", "+919800000531", "family_management", '["family_management","consolidated_view"]'),
+            ("u2", "+919800000532", None, None),
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+    up = _alembic("upgrade", "0053")
+    assert up.returncode == 0, up.stderr
+    conn = sqlite3.connect(db_path)
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(users)")]
+    goals = dict(conn.execute("SELECT id, primary_goals FROM users"))
+    conn.close()
+    assert "primary_goal" not in cols
+    assert "primary_goals" in cols
+    assert goals == {"u1": None, "u2": None}  # no old code maps to a new one
+
+    down = _alembic("downgrade", "0052")
+    assert down.returncode == 0, down.stderr
+    conn = sqlite3.connect(db_path)
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(users)")]
+    goals = dict(conn.execute("SELECT id, primary_goals FROM users"))
+    conn.close()
+    assert "primary_goal" in cols
+    assert goals == {"u1": None, "u2": None}
+
+    again = _alembic("upgrade", "head")
+    assert again.returncode == 0, again.stderr

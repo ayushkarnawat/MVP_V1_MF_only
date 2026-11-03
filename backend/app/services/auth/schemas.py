@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, field_validator
 
 from app.models.enums import AuthIdentityProvider, InvestorType, PrimaryGoal
 from app.services.legal.consent import AcceptedDocument
@@ -164,20 +164,14 @@ class SessionRefreshResponse(BaseModel):
     expires_at: str
 
 
+MAX_GOALS = 6
+
+
 class UpdateMeBody(BaseModel):
     onboarding_step: str | None = None
     investor_type: InvestorType | None = None
     primary_goals: list[PrimaryGoal] | None = None
-    # Legacy single goal from a frontend built before 2026-09-30 (still cached
-    # during a rollout): folded into primary_goals so it isn't silently dropped.
-    primary_goal: PrimaryGoal | None = None
     onboarding_completed: bool | None = None
-
-    @model_validator(mode="after")
-    def _fold_legacy_goal(self) -> "UpdateMeBody":
-        if self.primary_goals is None and self.primary_goal is not None:
-            self.primary_goals = [self.primary_goal]
-        return self
 
     @field_validator("primary_goals")
     @classmethod
@@ -185,8 +179,8 @@ class UpdateMeBody(BaseModel):
         if value is None:
             return None
         unique = list(dict.fromkeys(value))
-        if not 1 <= len(unique) <= 4:
-            raise ValueError("Pick between 1 and 4 goals.")
+        if not 1 <= len(unique) <= MAX_GOALS:
+            raise ValueError("Pick between 1 and 6 goals.")
         return unique
 
 
