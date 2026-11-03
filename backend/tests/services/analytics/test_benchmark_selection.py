@@ -255,7 +255,10 @@ def test_backend_labels_match_the_frontend_words():
     if not ts.is_file():
         pytest.skip("frontend file not in this checkout")
     text = ts.read_text(encoding="utf-8")
-    found = dict(re.findall(r'^\s{2}(\w+): "([^"]+)",?$', text, re.M))
+    # Only the label map: benchmarkDisplay.ts also holds BENCHMARK_SOURCE_EXPLANATIONS (Run 7.4) with the
+    # same keys, and a whole-file scan let those longer sentences overwrite the labels.
+    block = re.search(r"BENCHMARK_SOURCE_LABELS = \{(.*?)\} as const", text, re.S).group(1)
+    found = dict(re.findall(r'^\s{2}(\w+): "([^"]+)",?$', block, re.M))
     assert {k: found[k] for k in sel.SOURCE_LABELS} == sel.SOURCE_LABELS
     assert re.search(r'BENCHMARK_PRINTED_LABEL = "([^"]+)"', text).group(1) == sel.PRINTED_LABEL
 
