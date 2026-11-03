@@ -6,7 +6,7 @@ import { fixture } from "./fixtures";
 import { formatRupees, greetingLine } from "./homeFormat";
 import { buildGlanceSentence, wealthCaption } from "./homeCopy";
 import { HomePage } from "./HomePage";
-import { ASHA, DEV, HttpFailure, MEMBERS, PENDING, mockHomeApi, type HomeRouteName } from "./testing/homeApi";
+import { ASHA, DEV, HttpFailure, MEMBERS, PENDING, mockHomeApi, type HomeCall, type HomeRouteName } from "./testing/homeApi";
 import type { AllocationResponse, MoversResponse, SummaryResponse, WealthSeriesResponse } from "./types";
 
 // The whole front-end suite runs many files at once: give async queries room so a slow machine does not fail them.
@@ -397,7 +397,7 @@ describe("HomePage: greeting follows the selected member (UI round 2, change 1)"
   }
   it("greeting heading changes when the selected member changes", async () => {
     mockHomeApi({
-      summary: call => ({
+      summary: (call: HomeCall) => ({
         ...fixture<SummaryResponse>(call.scope === "member" ? "summary_member" : "summary_family"),
         display_name: call.scope === "member" ? "Dev" : "Asha",
       }),

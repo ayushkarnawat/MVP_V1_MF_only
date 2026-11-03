@@ -23,7 +23,7 @@ Work only in `C:\Users\Dell\ui-r2-fe` (the folder you were opened in). Run from 
 ```
 git status --short                 # expect: nothing printed (run this FIRST)
 git branch --show-current          # expect: leapswitch-redesign
-git log --oneline -3               # expect: top line "ui-s1: red tests and packet for the S1 frontend fixes (Gemini)"
+git log --oneline -3               # expect: top line "ui-s1: packet red counts, type fix in the Home greeting test" (the red tests commit "ui-s1: red tests and packet for the S1 frontend fixes (Gemini)" is just below it)
 ```
 Every check goes through one command; replace `<mode and paths>`:
 ```
@@ -31,10 +31,10 @@ wsl.exe -d Ubuntu -- env CR6_SRC=/mnt/c/Users/Dell/ui-r2-fe/frontend CR6_DST=/ho
 ```
 `<mode and paths>` is `types`, `lint`, `build`, or `test <paths under src/>`. Expected before you start (these are the committed red tests):
 ```
-types                      # expect: errors, every one in a *.test.ts(x) file or about a missing module of this packet (categoryLabel, MemberPickerDialog, ComparePage, paths.mutualFunds.compare, backLabel); none anywhere else
-test src/lib/categoryLabel.test.ts src/shell/nav src/shell/registry src/features/mutual-funds/overlap src/features/mutual-funds/overview/HoldingsTable.test.tsx src/features/individual-fund/ComparePage.test.tsx src/features/individual-fund/overlap/ComparisonState.test.tsx src/features/home
-                           # expect: RED_COUNTS_FILES / RED_COUNTS_TESTS (see section 5)
+types                      # expect exactly 6 error lines, all in *.test.ts(x): ComparePage.test.tsx (cannot find ./ComparePage), ComparisonState.test.tsx (the backLabel prop), categoryLabel.test.ts (cannot find ./categoryLabel), MemberPickerDialog.test.tsx (cannot find ./MemberPickerDialog), paths.test.ts twice (paths.mutualFunds.compare); none in a source file
+test                       # the whole suite; expect: Test Files 9 failed | 403 passed (412); Tests 14 failed | 5313 passed | 2 skipped (5329)
 ```
+The 9 failing files are exactly: `lib/categoryLabel.test.ts`, `shell/nav/MemberPickerDialog.test.tsx`, `features/individual-fund/ComparePage.test.tsx` (these three cannot import their module yet), `shell/nav/ImportProvider.test.tsx` (4 tests), `shell/nav/paths.test.ts` (3), `shell/registry/registry.test.ts` (1), `features/mutual-funds/overlap/TopPairs.test.tsx` (4), `features/mutual-funds/overview/HoldingsTable.test.tsx` (1), `features/individual-fund/overlap/ComparisonState.test.tsx` (1). Every failure is a missing behaviour of this packet. If you see any other failing file, stop and report it.
 
 ## Goal
 Make every test listed in section 5 pass with the exact behaviour in section 4, and keep the rest of the suite as it was. **Non-goals:** any change to the individual fund page itself, the Home page, the backend, mobile screens, the Returns toggle (that is task 1.5, later), or any string you were not asked to change.
