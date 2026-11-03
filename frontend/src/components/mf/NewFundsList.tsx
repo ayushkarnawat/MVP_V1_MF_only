@@ -44,6 +44,7 @@ export function NewFundsList({ funds, hideValues = false, showHistoryLink = fals
     <ul className="space-y-2">
       {funds.map(fund => {
         const isOpen = open.has(fund.scheme_id);
+        const transactions = fund.transactions ?? [];
         return (
           <li key={fund.scheme_id} className="rounded-xl border border-[var(--ui-divider)]">
             <button type="button" aria-expanded={isOpen} data-clickable="" data-effect="expand" onClick={() => toggle(fund.scheme_id)}
@@ -73,7 +74,7 @@ export function NewFundsList({ funds, hideValues = false, showHistoryLink = fals
                     </tr>
                   </thead>
                   <tbody>
-                    {fund.transactions.map((tx, index) => (
+                    {transactions.map((tx, index) => (
                       <tr key={`${tx.date}-${index}`}>
                         <td className="py-1 pr-3">{formatDate(tx.date)}</td>
                         <td className="py-1 px-3">{typeLabel(tx.type)}</td>
@@ -83,7 +84,7 @@ export function NewFundsList({ funds, hideValues = false, showHistoryLink = fals
                     ))}
                   </tbody>
                 </table>
-                {showHistoryLink && fund.transaction_count > fund.transactions.length && (
+                {showHistoryLink && fund.transaction_count > transactions.length && (
                   <Link to={paths.profileImportHistory()} className="mt-2 inline-block text-xs font-semibold text-[var(--pos-text)] hover:underline">
                     View all in Import History
                   </Link>

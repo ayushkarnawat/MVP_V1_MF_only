@@ -259,3 +259,20 @@ describe("Allocation: interactive donut and the funds pop-up (UI round 2, change
     expect(handlers.onClassClick).not.toHaveBeenCalled();
   });
 });
+
+describe("Allocation: the pop-up does not reopen by itself (review fix)", () => {
+  it("forgets the open class when the response goes away, so ready data does not bring the pop-up back", () => {
+    const base: AllocationProps = {
+      status: "data", data: fixture<AllocationResponse>("allocation_family"), scope: "aggregate", memberName: null,
+      onClassClick: vi.fn(), onSelectMember: vi.fn(), onShowFamily: vi.fn(), onRetry: vi.fn(),
+    };
+    const { rerender } = render(<Allocation {...base} />);
+    fireEvent.click(screen.getByTestId("slice-equity"));
+    expect(screen.getByRole("dialog", { name: "Equity" })).toBeInTheDocument();
+    rerender(<Allocation {...base} status="loading" data={null} />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    rerender(<Allocation {...base} />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByTestId("slice-equity").getAttribute("aria-pressed")).toBe("false");
+  });
+});

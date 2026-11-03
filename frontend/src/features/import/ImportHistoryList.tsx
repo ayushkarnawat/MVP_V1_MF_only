@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/Badge";
 import { NewFundsList } from "@/components/mf/NewFundsList";
 import { getImportNewFunds, getMemberImportHistory } from "./api";
@@ -16,17 +16,28 @@ export function ImportHistoryList({ memberId }: ImportHistoryListProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [fundsById, setFundsById] = useState<Record<string, NewFund[] | "error">>({});
 
+  const inFlight = useRef(new Set<string>());
+
   const toggleFunds = (importId: string) => {
+    const opening = !expanded.has(importId);
     setExpanded(prev => {
       const next = new Set(prev);
       if (next.has(importId)) next.delete(importId); else next.add(importId);
       return next;
     });
-    if (fundsById[importId] === undefined) {
-      getImportNewFunds(importId)
-        .then(funds => setFundsById(prev => ({ ...prev, [importId]: funds })))
-        .catch(() => setFundsById(prev => ({ ...prev, [importId]: "error" })));
-    }
+    if (!opening || inFlight.current.has(importId)) return;
+    // Fetch on first open, and again after a failure; a loaded list is kept.
+    if (fundsById[importId] !== undefined && fundsById[importId] !== "error") return;
+    inFlight.current.add(importId);
+    setFundsById(prev => {
+      const next = { ...prev };
+      delete next[importId];
+      return next;
+    });
+    getImportNewFunds(importId)
+      .then(funds => setFundsById(prev => ({ ...prev, [importId]: funds })))
+      .catch(() => setFundsById(prev => ({ ...prev, [importId]: "error" })))
+      .finally(() => inFlight.current.delete(importId));
   };
 
   useEffect(() => {

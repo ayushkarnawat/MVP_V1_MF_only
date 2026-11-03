@@ -95,3 +95,22 @@ describe("ImportHistoryList: new funds per import (UI round 2, change 8)", () =>
     expect(screen.getByText(/25 new transactions/i)).toBeInTheDocument();
   });
 });
+
+describe("ImportHistoryList: a failed new-funds request can be tried again (review fix)", () => {
+  afterEach(() => { vi.restoreAllMocks(); });
+  it("shows the list on the second try after a failure", async () => {
+    vi.spyOn(api, "getMemberImportHistory").mockResolvedValue([{
+      import_id: "imp-1", household_member_id: "m-1", status: "import_successful", error_code: null, error_message: null,
+      new_transactions_count: 25, duplicate_transactions_count: 0, statement_from_date: "2023-01-01", statement_to_date: "2024-01-01",
+      source_cas_type: "cams", uploaded_at: "2024-01-02T10:00:00Z", confirmed_at: "2024-01-02T10:01:00Z",
+    }] as never);
+    const fetchFunds = vi.spyOn(api, "getImportNewFunds").mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce([NEW_FUND]);
+    render(<ImportHistoryList memberId="m-1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Show new funds" }));
+    expect(await screen.findByText("Could not load new funds.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Hide new funds" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show new funds" }));
+    expect(await screen.findByRole("button", { name: /Alpha Flexi Cap Fund/ })).toBeInTheDocument();
+    expect(fetchFunds).toHaveBeenCalledTimes(2);
+  });
+});

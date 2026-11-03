@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { ArrowLeft, ArrowRight, ChevronRight } from "lucide-react";
 import { CLICK_ROW } from "@/lib/clickable";
@@ -40,6 +40,11 @@ export function Allocation({
   const [active, setActive] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const openerRef = useRef<HTMLElement | null>(null);
+  // If the response goes away (loading, error) or no longer has the class, forget the selection, so the
+  // pop-up cannot reopen by itself when ready data comes back.
+  useEffect(() => {
+    if (selected && !data?.classes.some((row) => row.key === selected && row.status === "live")) setSelected(null);
+  }, [selected, data]);
   if (status === "loading") {
     return (
       <div className="rounded-xl bg-[var(--ui-elevated)] border border-[var(--ui-divider)] p-4">

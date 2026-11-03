@@ -91,3 +91,12 @@ describe("NewFundsList", () => {
     expect(container).toBeEmptyDOMElement();
   });
 });
+
+describe("NewFundsList: an entry without transactions (review fix)", () => {
+  it("opens without crashing and shows an empty table", () => {
+    const { transactions: _transactions, ...bare } = FUNDS[0];
+    mount({ funds: [bare as unknown as NewFund] });
+    fireEvent.click(row(/Alpha Flexi Cap Fund/));
+    expect(screen.getByRole("table", { name: "Transactions in Alpha Flexi Cap Fund - Direct Growth" })).toBeInTheDocument();
+  });
+});
