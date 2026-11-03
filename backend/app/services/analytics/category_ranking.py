@@ -301,6 +301,80 @@ def category_blended_weighted_average(
     )
 
 
+class CategoryPool(NamedTuple):
+    """Everything the comparison needs for one category and plan: the peer funds, each one's returns, and the
+    averages over them. Built once per category and plan, then read once per held fund."""
+
+    peers: CategoryPeers
+    detailed: dict[uuid.UUID, tuple[Decimal | None, Decimal | None, Decimal | None, Decimal | None]]
+    averages: dict[str, CategoryAverage]
+    legacy_average: CategoryAverage
+
+
+async def load_category_pool(db: Session, scheme: Scheme, today: date) -> CategoryPool:
+    """The category-and-plan pool for `scheme` (which must have a `sebi_category`). Shared by the household
+    comparison below and the CA export script, so both read the same peers, returns and size weights."""
+    key = (canonical_category(scheme.sebi_category), scheme.plan_type)
+    peers = await get_category_peers(db, scheme.sebi_category, scheme.plan_type)
+    detailed = await _category_returns_detailed(db, peers.schemes, today, cache_key=("peers", *key))
+    # One size lookup per category and plan, for the funds that have a return.
+    aaum = _latest_aaum_by_scheme(db, list(detailed))
+    return CategoryPool(
+        peers=peers,
+        detailed=detailed,
+        averages=category_period_weighted_averages(detailed, aaum),
+        # Legacy: kept for desktop/print/phone views until the cleanup release.
+        # Same eligible category-and-plan pool and the same weighting as the period averages.
+        legacy_average=category_blended_weighted_average(detailed, aaum),
+    )
+
+
+def category_rank_row(scheme: Scheme, pool: CategoryPool | None) -> CategoryRankRow:
+    """One fund's comparison row against its category pool (`pool` None: the fund has no category)."""
+    plan_type = scheme.plan_type.value if scheme.plan_type is not None else None
+    if pool is None:
+        return CategoryRankRow(
+            scheme_id=str(scheme.id),
+            scheme_name=scheme.name,
+            sebi_category=None,
+            category_unavailable=True,
+            insufficient_history=False,
+            category_avg_return=None,
+            thin_category=False,
+            plan_type=plan_type,
+        )
+    rep_id = pool.peers.representative_of.get(scheme.id)
+    own = pool.detailed.get(rep_id)
+    if own is not None and own[1] is None:
+        own = None
+    period_averages = pool.averages
+    category_avg = pool.legacy_average
+    periods = {
+        period: PeriodReturn(
+            fund_return=str(own[index]) if own[index] is not None else None,
+            category_avg=str(period_averages[period].value) if period_averages[period].value is not None else None,
+            peers=period_averages[period].peers,
+            weighting=period_averages[period].weighting,
+            funds_without_size=period_averages[period].funds_without_size,
+        )
+        for period, index in (("1y", 0), ("3y", 1), ("5y", 2))
+    } if own is not None else {}
+
+    return CategoryRankRow(
+        scheme_id=str(scheme.id),
+        scheme_name=scheme.name,
+        sebi_category=scheme.sebi_category,
+        category_unavailable=rep_id is None,
+        insufficient_history=rep_id is not None and own is None,
+        category_avg_return=str(category_avg.value) if category_avg.value is not None else None,
+        thin_category=period_averages["3y"].peers < _THIN_CATEGORY_THRESHOLD,
+        periods=periods,
+        plan_type=plan_type,
+        category_avg_weighting=category_avg.weighting,
+        category_avg_funds_without_size=category_avg.funds_without_size,
+    )
+
+
 async def compute_category_ranking(db: Session, household_member_ids: list[uuid.UUID]) -> CategoryRankingSummary:
     holdings = await compute_holdings(db, household_member_ids)
     if not holdings:
@@ -313,73 +387,19 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
     }
 
     today = date.today()
-    detailed_by_category: dict[tuple, dict] = {}
-    peers_by_category: dict[tuple, CategoryPeers] = {}
-    averages_by_category: dict[tuple, dict[str, CategoryAverage]] = {}
-    legacy_average_by_category: dict[tuple, CategoryAverage] = {}
+    pools: dict[tuple, CategoryPool] = {}
     rows: list[CategoryRankRow] = []
 
     for scheme_id_str in unique_scheme_ids:
         scheme = schemes_by_id[scheme_id_str]
-        sebi_category = scheme.sebi_category
-        if not sebi_category:
-            rows.append(
-                CategoryRankRow(
-                    scheme_id=scheme_id_str,
-                    scheme_name=scheme.name,
-                    sebi_category=None,
-                    category_unavailable=True,
-                    insufficient_history=False,
-                    category_avg_return=None,
-                    thin_category=False,
-                    plan_type=scheme.plan_type.value if scheme.plan_type is not None else None,
-                )
-            )
+        if not scheme.sebi_category:
+            rows.append(category_rank_row(scheme, None))
             continue
 
-        key = (canonical_category(sebi_category), scheme.plan_type)
-        if key not in detailed_by_category:
-            peers = await get_category_peers(db, sebi_category, scheme.plan_type)
-            peers_by_category[key] = peers
-            detailed_by_category[key] = await _category_returns_detailed(db, peers.schemes, today, cache_key=("peers", *key))
-            # One size lookup per category and plan, for the funds that have a return.
-            aaum = _latest_aaum_by_scheme(db, list(detailed_by_category[key]))
-            averages_by_category[key] = category_period_weighted_averages(detailed_by_category[key], aaum)
-            # Legacy: kept for desktop/print/phone views until the cleanup release.
-            # Same eligible category-and-plan pool and the same weighting as the period averages.
-            legacy_average_by_category[key] = category_blended_weighted_average(detailed_by_category[key], aaum)
-        rep_id = peers_by_category[key].representative_of.get(scheme.id)
-        own = detailed_by_category[key].get(rep_id)
-        if own is not None and own[1] is None:
-            own = None
-        period_averages = averages_by_category[key]
-        category_avg = legacy_average_by_category[key]
-        periods = {
-            period: PeriodReturn(
-                fund_return=str(own[index]) if own[index] is not None else None,
-                category_avg=str(period_averages[period].value) if period_averages[period].value is not None else None,
-                peers=period_averages[period].peers,
-                weighting=period_averages[period].weighting,
-                funds_without_size=period_averages[period].funds_without_size,
-            )
-            for period, index in (("1y", 0), ("3y", 1), ("5y", 2))
-        } if own is not None else {}
-
-        rows.append(
-            CategoryRankRow(
-                scheme_id=scheme_id_str,
-                scheme_name=scheme.name,
-                sebi_category=sebi_category,
-                category_unavailable=rep_id is None,
-                insufficient_history=rep_id is not None and own is None,
-                category_avg_return=str(category_avg.value) if category_avg.value is not None else None,
-                thin_category=period_averages["3y"].peers < _THIN_CATEGORY_THRESHOLD,
-                periods=periods,
-                plan_type=scheme.plan_type.value if scheme.plan_type is not None else None,
-                category_avg_weighting=category_avg.weighting,
-                category_avg_funds_without_size=category_avg.funds_without_size,
-            )
-        )
+        key = (canonical_category(scheme.sebi_category), scheme.plan_type)
+        if key not in pools:
+            pools[key] = await load_category_pool(db, scheme, today)
+        rows.append(category_rank_row(scheme, pools[key]))
 
     return CategoryRankingSummary(funds=rows)
 
