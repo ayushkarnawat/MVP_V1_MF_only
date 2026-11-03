@@ -9,10 +9,11 @@
 # Why a copy: the Windows clone has no node_modules (the installed ones have Linux binaries), and
 # running from /mnt/c is about ten times slower. The copy is ~/cr6-fe (node_modules is copied once).
 # Edits are always made in the Windows clone; this script only mirrors them and runs the tool.
+# A second tree can be checked at the same time: CR6_SRC=<its frontend folder> CR6_DST=$HOME/cr6-fe-<name> (node_modules copied once into that folder).
 set -euo pipefail
 
-SRC="/mnt/c/Users/Ayush/cr-run-1/frontend"
-DST="$HOME/cr6-fe"
+SRC="${CR6_SRC:-/mnt/c/Users/Ayush/cr-run-1/frontend}"
+DST="${CR6_DST:-$HOME/cr6-fe}"
 mode="${1:-test}"
 shift || true
 
