@@ -823,3 +823,10 @@ Recorded in the order they were taken. Full reasoning in the handoffs named in e
 - **T2.12 Step B.** Book value per share comes from NSE's Integrated Filing XBRL (balance sheet only in March and September filings), stored on `stock_master` (0052), weekly job; life insurers fail closed; Yahoo and screener.in stay as the labelled fallback.
 - **CA Excel: Bandhan Small Cap is left out** (3 Nov, the 30 Sep equity file could not be found); six funds; all Motilal momentum funds and both Direct and Regular plans (the CA's answer).
 - **Release branch model (3 Nov).** The deploy is built only from `release/change-requests`; `leapswitch-redesign` is frozen shared history; UI round 2 continues on `ui-round-2` and merges the release in after the staging deploy; its final merge into `leapswitch-redesign` brings everything together. `FRONTEND_BASE_URL` is set to the redesign site at the deploy so emailed links open the new pages.
+
+## 2026-11-03 (evening) — Deploy decisions
+
+- **Owner (3 Nov, evening): "you have my go for everything"** covered the push of `release/change-requests` (new branch, no force), the backup, the migrations to 0052, the forced recomputes, the cron lines, the book-value run, the four `--this-month-only` imports, and fixing the four accepted Lows if they are small. Not covered and not done: the ten hand-import fund houses, `--allow-nav-writes`, `--include-live-fetch`, any Bandhan VM import.
+- **The four Lows were fixed** (UTF-16 XBRL guard, neutral tile for an empty or "Others" house, Top Pairs insight logos, P/B jump factor 1.4).
+- **The VM runs the release branch** in `/opt/unifolio-redesign` until the UI round 2 rollout (S7); `deploy-redesign.sh` accepts `release/change-requests`.
+- **The intern's UI round 2 session takes the release in now** (merge, repeatable) rather than after QA; QA fixes are taken in later with the same merge.
