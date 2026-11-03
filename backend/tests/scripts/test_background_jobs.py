@@ -132,6 +132,7 @@ def test_refresh_benchmark_daily_fetches_price_ten_years_and_tri_from_1990(
 
     monkeypatch.setattr(job, "SessionLocal", lambda: db_session)
     monkeypatch.setattr(job, "date", LeapDay)
+    monkeypatch.setattr(job, "_PACE_SECONDS", 0)
     monkeypatch.setattr(job, "ensure_index_history_fresh", fake_ensure_index_history_fresh)
     caplog.set_level(logging.INFO)
 
@@ -246,3 +247,31 @@ def test_refresh_ter_daily_rejects_a_malformed_month():
     with pytest.raises(SystemExit):
         job.main(["--month", "2026-09"])
 
+
+
+def test_refresh_benchmark_daily_tops_up_registry_indices_instead_of_downloading_everything_each_day(
+    db_session, monkeypatch
+):
+    from decimal import Decimal
+    from app.models.reference import BenchmarkIndexHistory
+
+    job = _load_job("refresh_benchmark_daily")
+    calls = {}
+
+    async def fake_ensure(db, index, start_date, end_date, *, return_type, fresh_within):
+        calls[(index, return_type)] = start_date
+        return True
+
+    # A registry index that already has history gets a month's top-up; the others still get the full history once.
+    db_session.add(BenchmarkIndexHistory(
+        index_name="nifty_alpha_50", return_type=BenchmarkReturnType.TRI, date=date(2026, 10, 30), value=Decimal("100")))
+    db_session.commit()
+    monkeypatch.setattr(job, "SessionLocal", lambda: db_session)
+    monkeypatch.setattr(job, "_PACE_SECONDS", 0)
+    monkeypatch.setattr(job, "ensure_index_history_fresh", fake_ensure)
+
+    job.main()
+
+    assert calls[("nifty_alpha_50", BenchmarkReturnType.TRI)] == date(2026, 9, 30)
+    others = [v for (k, rt), v in calls.items() if k not in set(BenchmarkIndex) and k != "nifty_alpha_50"]
+    assert others and all(v == date(1990, 1, 1) for v in others)
