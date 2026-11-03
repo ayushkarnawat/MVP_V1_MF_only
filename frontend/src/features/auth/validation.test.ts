@@ -6,6 +6,8 @@ import {
   formatAuthErrorMessage,
   isAccountExistsError,
   validatePersonName,
+  maskPhone,
+  maskEmail,
 } from "./validation";
 import { ApiError } from "@/lib/apiClient";
 
@@ -263,5 +265,26 @@ describe("validatePersonName", () => {
     expect(validatePersonName("A")).toBe("Name must be 2 to 85 characters.");
     expect(validatePersonName("A".repeat(86))).toBe("Name must be 2 to 85 characters.");
     expect(validatePersonName("A".repeat(85))).toBeNull();
+  });
+});
+
+describe("maskPhone and maskEmail (UI round 2, S6 task 6.4)", () => {
+  it("maskPhone keeps +91 and the last five digits", () => {
+    expect(maskPhone("+919876543210")).toBe("+91 ••••• 43210");
+    expect(maskPhone("9876543210")).toBe("+91 ••••• 43210");
+    expect(maskPhone("+91 98765 43210")).toBe("+91 ••••• 43210");
+  });
+  it("maskPhone gives a safe answer for a short or empty value", () => {
+    expect(maskPhone("")).toBe("");
+    expect(maskPhone("123")).toBe("•••");
+  });
+  it("maskEmail keeps two letters of the name and the whole domain", () => {
+    expect(maskEmail("siddharth@gmail.com")).toBe("si••••••@gmail.com");
+    expect(maskEmail("ab@x.in")).toBe("ab@x.in");
+  });
+  it("maskEmail handles a one-letter name and a bad value", () => {
+    expect(maskEmail("a@gmail.com")).toBe("a@gmail.com");
+    expect(maskEmail("not an email")).toBe("not an email");
+    expect(maskEmail("")).toBe("");
   });
 });
