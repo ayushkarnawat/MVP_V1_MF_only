@@ -30,12 +30,11 @@ Every check goes through one command; replace `<mode and paths>`:
 ```
 wsl.exe -d Ubuntu -- env CR6_SRC=/mnt/c/Users/Dell/ui-r2-fe/frontend CR6_DST=/home/delladiti/ui-r2-fe-chk bash /mnt/c/Users/Dell/ui-r2-fe/Docs/orchestration/cr-r6-fe-check.sh <mode and paths>
 ```
-`<mode and paths>` is `types`, `lint`, `build`, or `test <paths under src/>`. Expected before you start (these are the committed red tests):
+`<mode and paths>` is `types`, `lint` or `test <paths under src/>`. Do **not** run `build` or the full suite: the orchestrator runs both at the gate. Do **not** run a test baseline before you start: the committed tests are red on purpose (the orchestrator measured 11 failed files and 51 failed tests across the import, home, auth, profile, dashboard, legal, components and mobile folders). Run only:
 ```
-test src/features/import src/features/home src/features/auth src/features/profile-v2 src/features/dashboard src/features/legal src/components src/mobile src/App.test.tsx   # expect: Test Files 11 failed | 172 passed (183); Tests 51 failed | 2126 passed | 2 skipped (2179)
-types                                                                                    # expect: 23 error lines, all in *.test.ts(x), all about something this packet adds (`resolveAddAsFamily`, `onAddAsFamily`, the six goal codes); none in a source file
+types                      # expect: 23 error lines, all in *.test.ts(x), all about something this packet adds (`resolveAddAsFamily`, `onAddAsFamily`, the six goal codes); none in a source file
 ```
-If you see any other failing file, stop and report it.
+If `types` shows an error in a source file, stop and report.
 
 ## Goal
 Make every test listed in section 5 pass with the behaviour in section 4, and keep the rest of the suite as it was. **Non-goals:** the sign-up redesign (stage S6), the Returns toggle, any new screen, any change to `CompleteProfileDialog` itself, the backend, the web sign-up goal screen (there is none; `Q3Purpose` is the goals screen).
@@ -481,10 +480,9 @@ Phase D: `features/profile-v2/lib/onboardingOptions.test.ts`, `goalChips.test.ts
 types                      # expect: no output
 lint                       # expect: 0 errors
 test src/features/import src/features/home src/features/auth src/features/profile-v2 src/features/dashboard src/features/legal src/features/mutual-funds src/components src/mobile src/shell src/App.test.tsx
-build                      # expect: built
 git status --short         # expect: exactly the 9 edited source files of section 3 (no test, no fixture)
 ```
-Then the full suite once: `test` with no paths. Three frontend tests fail only under load and pass alone; re-run any failure alone before reporting it.
+Do **not** run `build` or the full suite; the orchestrator runs them. If one test fails only under load, re-run that file alone before reporting it.
 
 ## 7. Report (one block, from the rules file)
-Add: the exact output of Step 0; the result of checkpoints A, B, C and D; the list of files edited (it must match section 3); every place you deviated from this packet and why; what you could not check (you cannot see the screen: the orchestrator takes the screenshots of the name-mismatch pop-up, the Complete profile dialog after an import, the family view Home with the head showing No data yet, the Profile goals dialog and chips, and the mobile goals screen).
+Add: the exact output of Step 0 (the git lines and the `types` result); the result of checkpoints A, B, C and D; the list of files edited (it must match section 3); every place you deviated from this packet and why; what you could not check (you cannot see the screen: the orchestrator takes the screenshots of the name-mismatch pop-up, the Complete profile dialog after an import, the family view Home with the head showing No data yet, the Profile goals dialog and chips, and the mobile goals screen).
