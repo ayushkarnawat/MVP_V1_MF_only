@@ -544,6 +544,7 @@ export interface ValuationValue {
   method: string;
   coverage_pct: string | null;
   reason: string | null;
+  unavailable_reason?: string | null;
 }
 export interface ValuationFund {
   scheme_id: string;
@@ -560,6 +561,7 @@ export interface ValuationMetric {
   overseas?: ValuationMissingStock[];
   fund_coverage_pct?: string;
   reason?: string | null;
+  unavailable_reason?: string | null;
 }
 export interface ValuationIndex {
   index_name: "nifty_50" | "nifty_500";

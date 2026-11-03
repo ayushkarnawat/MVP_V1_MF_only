@@ -59,9 +59,9 @@ function Panel({ data, kind, view }: PanelProps) {
 
       {state !== "ok" && (
         <p data-testid={`state-${kind}`} data-state={state} className="rounded-lg bg-[var(--ui-elevated)] p-2.5 text-xs text-[var(--ui-text-muted)]">
-          {metric.reason ?? (state === "hidden"
+          {metric.unavailable_reason ?? metric.reason ?? (state === "hidden"
             ? "Portfolio ratio hidden while published holdings cover less than 50% of your portfolio."
-            : `Not enough data for portfolio ${label} — at least 70% of equity exposure needs a usable ratio.`)}
+            : `Not enough data for portfolio ${label} — equity exposure needs a usable ratio.`)}
         </p>
       )}
 
@@ -161,8 +161,8 @@ export function ValuationSpectrum({ data }: ValuationSpectrumProps) {
 
       <p data-testid="valuation-thresholds" className="text-xs text-[var(--ui-text-muted)]">
         {data.pe.fund_coverage_pct !== undefined || data.pb.fund_coverage_pct !== undefined
-          ? "Portfolio ratios need usable fund figures for at least 70% of equity value and published holdings for at least 50% of the portfolio."
-          : 'Ratios are hidden below 50% look-through coverage and flagged "not enough data" below 70% of equity exposure.'}
+          ? "Portfolio ratios need usable fund figures for enough equity value and published holdings for at least 50% of the portfolio."
+          : 'Ratios are hidden below 50% look-through coverage and flagged "not enough data" without enough equity exposure.'}
       </p>
 
       {hasNoEquity ? (

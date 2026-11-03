@@ -52,8 +52,14 @@ function RatioCell({ value, kind, fund, benchmark, maximum }: {
   value: ValuationValue; kind: ValuationKind; fund: ValuationFund; benchmark: string | null; maximum: string;
 }) {
   if (!usable(value.value)) return <td className="p-3 align-top text-xs text-[var(--ui-text-muted)]">
-    <p className="font-medium">Not enough data</p>
-    {value.reason && <p className="mt-1 max-w-56">{value.reason}</p>}
+    {value.unavailable_reason ? (
+      <p className="max-w-56">{value.unavailable_reason}</p>
+    ) : (
+      <>
+        <p className="font-medium">Not enough data</p>
+        {value.reason && <p className="mt-1 max-w-56">{value.reason}</p>}
+      </>
+    )}
   </td>;
   return <td className="p-3 align-top">
     <div className="flex flex-wrap items-center gap-1.5">

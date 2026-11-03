@@ -174,6 +174,7 @@ describe("valuation logic", () => {
     expect(ratioState({ ...data, pb: { ...data.pb, enough_data: false } }, "pb")).toBe("not_enough");
     expect(ratioState({ ...data, pb: { ...data.pb, enough_data: false } }, "pe")).toBe("ok");
     expect(ratioState({ ...data, pe: { ...data.pe, ratio: null } }, "pe")).toBe("not_enough");
+    expect(ratioState({ ...data, pe: { ...data.pe, unavailable_reason: "Not enough data: P/E is available for 52% of this portfolio's shares, and we need at least 60%." } }, "pe")).toBe("not_enough");
   });
   it("lists you, then the indices, with the three fixed series colours", () => {
     const rows = ratioRows(valuation(), "pe");

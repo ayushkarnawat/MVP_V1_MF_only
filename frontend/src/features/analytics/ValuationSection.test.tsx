@@ -53,4 +53,17 @@ describe("ValuationSection", () => {
     expect(within(pe).getByText("30.00x")).toBeInTheDocument();
     expect(within(pe).queryByText(/Not enough data/)).not.toBeInTheDocument();
   });
+  it("shows unavailable_reason when present instead of hard-coded 70 text", () => {
+    const reason = "Not enough data: P/E is available for 52% of this portfolio's shares, and we need at least 60%.";
+    render(<ValuationSection data={{ ...sampleValuation, pe: { ...sampleValuation.pe, ratio: null, enough_data: false, unavailable_reason: reason } }} />);
+    const pe = screen.getByRole("group", { name: "P/E valuation" });
+    expect(within(pe).getByText(reason)).toBeInTheDocument();
+    expect(within(pe).queryByText(/70%/)).not.toBeInTheDocument();
+  });
+  it("shows unnumbered fallback text when unavailable_reason is missing", () => {
+    render(<ValuationSection data={{ ...sampleValuation, pe: { ...sampleValuation.pe, ratio: null, enough_data: false, unavailable_reason: null } }} />);
+    const pe = screen.getByRole("group", { name: "P/E valuation" });
+    expect(within(pe).getByText("Not enough data for portfolio P/E — equity exposure needs a usable ratio.")).toBeInTheDocument();
+    expect(within(pe).queryByText(/70%/)).not.toBeInTheDocument();
+  });
 });
