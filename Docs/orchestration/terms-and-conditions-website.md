@@ -1,0 +1,337 @@
+# Terms & Conditions
+
+**Unifolio** · a brand of Keystone Wealthtech LLP
+
+| | |
+|---|---|
+| **Version** | [1.0] |
+| **Last updated** | [DD Month YYYY] |
+| **Effective from** | [DD Month YYYY] |
+| **Applies to** | unifolio.in, the Unifolio web app and the Unifolio mobile app |
+
+> **Reader's note.** Text in [square brackets] is a placeholder to be completed before publishing. Delete this note and every bracket before go-live.
+
+---
+
+## Contents
+
+1. [Summary: Terms at a glance](#summary-terms-at-a-glance)
+2. [About these Terms](#1-about-these-terms)
+3. [Definitions](#2-definitions)
+4. [What Unifolio is, and what it is not](#3-what-unifolio-is-and-what-it-is-not)
+5. [Who can use Unifolio](#4-who-can-use-unifolio)
+6. [Your account](#5-your-account)
+7. [Uploading statements and family data](#6-uploading-statements-and-family-data)
+8. [Scores, analytics and market information](#7-scores-analytics-and-market-information)
+9. [Accuracy of information](#8-accuracy-of-information)
+10. [Free and paid features](#9-free-and-paid-features)
+11. [Acceptable use](#10-acceptable-use)
+12. [Our content and intellectual property](#11-our-content-and-intellectual-property)
+13. [Messages from us](#12-messages-from-us)
+14. [Third-party services](#13-third-party-services)
+15. [Availability and changes to the Service](#14-availability-and-changes-to-the-service)
+16. [Ending your account](#15-ending-your-account)
+17. [Disclaimers](#16-disclaimers)
+18. [Limitation of liability](#17-limitation-of-liability)
+19. [Indemnity](#18-indemnity)
+20. [Changes to these Terms](#19-changes-to-these-terms)
+21. [Governing law and disputes](#20-governing-law-and-disputes)
+22. [General](#21-general)
+23. [Contact and grievances](#22-contact-and-grievances)
+24. [Version history](#version-history)
+
+---
+
+## Summary: Terms at a glance
+
+This is a plain-language summary for convenience. The full Terms below are what legally apply.
+
+| | |
+|---|---|
+| **What Unifolio is** | A portfolio tracker. It reads the mutual fund statements you upload and shows your investments, returns and analytics in one place. |
+| **Your money** | We do not handle it. We cannot buy, sell, redeem or move your investments, and we never hold your funds. |
+| **Advice** | We do not give investment advice. Scores, signals and analytics are information to help you understand your portfolio, not recommendations to buy or sell. Decisions are always yours. |
+| **Accuracy** | Our numbers are only as good as the source data. Always check your official statements before making a financial decision. |
+| **Price** | Core features are free. Some features will be paid in future. You will always see the price first, and we will never charge you without your consent. |
+| **Your duties** | Keep your account secure, and upload only statements you are allowed to share. |
+| **Leaving** | You can delete your account at any time from inside the app. |
+
+> **Mutual fund investments are subject to market risks. Read all scheme-related documents carefully before investing. Past performance does not guarantee future results.**
+
+---
+
+## 1. About these Terms
+
+**1.1 Who we are.** These Terms & Conditions (the "**Terms**") are an agreement between you and **Keystone Wealthtech LLP** ("**Unifolio**", "**we**", "**us**", "**our**"), which owns and operates the Unifolio brand. It is a limited liability partnership registered in India under the Limited Liability Partnership Act, 2008 (LLPIN: [______]), with its registered office at **[REGISTERED ADDRESS]**.
+
+**1.2 What they cover.** The Terms cover your use of the Unifolio website, web app and mobile app (the "**Service**").
+
+**1.3 Your acceptance.** When you sign up, the screen shows the line "By continuing, you agree to our Terms & Conditions and Privacy Policy", with links to the full text of both. By pressing the button next to it (for example **Get OTP** or **Continue**), you accept these Terms and our [Privacy Policy](/privacy). There is no tick box: pressing the button is your agreement. If you do not agree, please do not use the Service.
+
+You agree again in the same way when you press **Reactivate** on an account scheduled for deletion, and when you press **Agree** after we update our documents. Each time, we record which version you agreed to and when, as explained in the Privacy Policy.
+
+**1.4 Withdrawing your agreement.** You may withdraw your agreement at any time. Because the Service cannot work without the data you give it, withdrawing means closing your account: choose **Delete account** in **Profile**. Doing so records your withdrawal and starts a 30-day grace period (see [section 15](#15-ending-your-account)). Withdrawing does not affect anything done lawfully before you withdrew. Some data may still be kept where the law requires it, as explained in the Privacy Policy.
+
+**1.5 Electronic record.** These Terms are an electronic record under the Information Technology Act, 2000 and the rules made under it. They are generated by a computer system and do not need a physical or digital signature. Pressing the button to continue is your acceptance and is as binding as a signed agreement.
+
+**1.6 Order of documents.** These Terms and our Privacy Policy together form the agreement between you and us. If there is a conflict about how your personal data is handled, the Privacy Policy prevails.
+
+---
+
+## 2. Definitions
+
+| Term | Meaning |
+|---|---|
+| **Account** | The Unifolio account you create to use the Service. |
+| **CAS** | Consolidated Account Statement, the mutual fund statement issued by CAMS or KFintech. |
+| **Family member** | Anyone whose details or statement you add to your account. |
+| **Your data** | The statements, details and other information you upload or enter into the Service. |
+| **Scores and analytics** | Returns (including XIRR), asset allocation, overlap, risk measures, fund scores and similar outputs shown in the Service. |
+| **Paid features** | Any feature or plan we offer for a fee. |
+| **SEBI** | The Securities and Exchange Board of India. |
+
+---
+
+## 3. What Unifolio is, and what it is not
+
+**3.1 What Unifolio is.** Unifolio is an information and analytics tool. You upload your Consolidated Account Statement (CAS) from CAMS or KFintech, and we organise it into a dashboard of your holdings, transactions, returns and portfolio analytics, for you and your family.
+
+**3.2 What Unifolio is not.** Unifolio is not:
+
+- an investment adviser or research analyst registered with SEBI;
+- a mutual fund distributor, stockbroker or asset management company; or
+- a bank or payment service. We never hold your money or investments, and we cannot transact on your behalf.
+
+**3.3 No advice.** Nothing in the Service is investment, financial, tax or legal advice, and nothing in it is an offer or recommendation to buy, sell or hold any investment. If you need advice for your situation, please consult a SEBI-registered investment adviser.
+
+**3.4 Your decisions.** You alone are responsible for your investment decisions and their results.
+
+---
+
+## 4. Who can use Unifolio
+
+To use the Service, you must:
+
+- be **18 years or older** and able to enter into a binding contract under Indian law; and
+- use the Service for your own personal, non-commercial purposes, or those of your family.
+
+The Service is designed for investors in India. If you are not eligible, you must not create an account.
+
+---
+
+## 5. Your account
+
+**5.1 Sign-in.** Every account has a verified mobile number. You can sign in with a one-time code (OTP) sent to your phone or email, or with Google.
+
+**5.2 Keep it secure.** Do not share your sign-in codes with anyone. **Unifolio will never ask you for an OTP.** You are responsible for activity on your account. If you think someone else has accessed it, tell us right away at **[security@unifolio.in]**.
+
+**5.3 Keep it accurate.** Make sure the information you give us is true, complete and up to date.
+
+**5.4 One person, one account.** Create only one account for yourself. To keep things accurate and private, each person's PAN can be linked to only one Unifolio account. That is why we store PANs, encrypted, as explained in our Privacy Policy. If a family member is already tracked in another account, their portfolio may be limited in yours.
+
+---
+
+## 6. Uploading statements and family data
+
+**6.1 Your confirmations.** When you upload a statement or add a family member, you confirm that:
+
+- the statement is genuine and has not been altered;
+- it belongs to you, or you have the person's permission to add it, or you are their parent or lawful guardian; and
+- you have told any family member you add that their portfolio will be visible in your account.
+
+**6.2 You keep ownership.** You own your data. You give us permission to process it only to provide the Service to you, as described in our Privacy Policy.
+
+---
+
+## 7. Scores, analytics and market information
+
+Unifolio shows scores and analytics such as returns (including XIRR), asset allocation, overlap, risk measures and fund scores. Please keep the following in mind.
+
+- **Information only.** A fund score shows how a fund has performed under our published method. It is not a recommendation to buy, sell or hold that fund.
+- **Our method is open.** Every fund score uses the same fixed, published weighting: 45% returns, 30% downside risk and 25% consistency in beating its category. [Link to methodology page.] It measures past performance only.
+- **Past performance does not guarantee future results.**
+- **Models and assumptions.** Analytics rely on assumptions, simplifications and the data available to us. They may differ from figures calculated another way.
+- **Methods may change.** We may improve our methods over time. We will update the methodology page when we do.
+
+> **Mutual fund investments are subject to market risks. Read all scheme-related documents carefully before investing.**
+
+---
+
+## 8. Accuracy of information
+
+Your portfolio data comes from the statements you upload. Market data such as NAVs, expense ratios and index levels comes from public sources including AMFI and the NSE.
+
+We take care to show accurate information, but:
+
+- data may sometimes be delayed, incomplete or incorrect, either at the source or in how a statement is read;
+- what we show depends on the statements you upload, so if a statement is old or missing, your portfolio view will be too; and
+- your official statements from the fund house, CAMS or KFintech are always the final word.
+
+If you spot something wrong, tell us and we will look into it.
+
+---
+
+## 9. Free and paid features
+
+**9.1 The core is free.** That includes importing your statements, your holdings dashboard and the core analytics.
+
+**9.2 Some features will be paid.** In future we plan to offer certain features or plans for a fee. Before you choose any paid feature, we will clearly show you what it includes, what it costs (including taxes), how often you will be charged, and how to cancel. **We will never charge you without your clear consent.**
+
+**9.3 Paid features have their own terms.** Pricing, billing, renewals, cancellations and refunds will be set out when paid features launch. Those terms will form part of these Terms. [PLACEHOLDER: payment, renewal and refund terms.]
+
+**9.4 Features may move.** We may change which features are free and which are paid. If something you use for free is going to become paid, we will tell you in advance.
+
+---
+
+## 10. Acceptable use
+
+You agree not to:
+
+- upload someone else's data without the right to do so, or upload forged or altered documents;
+- try to access another person's account or data;
+- interfere with, overload, reverse-engineer or try to break the security of the Service;
+- use bots, scrapers or other automated tools to access the Service or copy its data;
+- copy, resell or commercially exploit the Service or its content;
+- present our scores or analytics as your own, or as investment advice to others; or
+- use the Service for anything illegal, fraudulent or harmful.
+
+If you see a security problem, please tell us at **[security@unifolio.in]** rather than exploiting it.
+
+---
+
+## 11. Our content and intellectual property
+
+**11.1 Ownership.** The Unifolio name, logo, design, software, scoring methods and other content belong to us or our licensors and are protected by intellectual property laws.
+
+**11.2 Your licence.** These Terms give you a personal, non-exclusive, non-transferable, revocable right to use the Service. They do not give you ownership of it.
+
+**11.3 Your feedback.** If you send us ideas, suggestions or feedback about Unifolio, we may use them to improve the Service, without obligation or payment to you. This does not cover your personal data, which is always handled under our Privacy Policy.
+
+---
+
+## 12. Messages from us
+
+**12.1 Service messages.** By creating an account, you agree that we may send you service messages such as sign-in codes, security alerts and account notices. These continue while you have an account.
+
+**12.2 Updates and offers.** We may also send product updates and offers about Unifolio by email, SMS or WhatsApp. You can unsubscribe at any time, as explained in our Privacy Policy.
+
+**12.3 Do Not Disturb.** By giving us your mobile number, you agree to receive these messages from Unifolio even if your number is registered on the National Customer Preference Register. This consent covers only messages from Unifolio, and you can withdraw it at any time by unsubscribing.
+
+---
+
+## 13. Third-party services
+
+The Service relies on some third-party services, such as Google sign-in, AWS and public market data sources. We are not responsible for those services, and your use of them may also be subject to their own terms.
+
+---
+
+## 14. Availability and changes to the Service
+
+**14.1 Availability.** We work to keep Unifolio running smoothly, but we cannot promise it will always be available or error-free. We may pause the Service for maintenance.
+
+**14.2 Changes.** We may add, change or remove features. We will give notice of important changes where we reasonably can.
+
+**14.3 Beta features.** We may offer features marked "beta", "preview" or "early access". These are still being tested. They may change, contain errors or be withdrawn at any time, and are provided without any guarantee.
+
+---
+
+## 15. Ending your account
+
+**15.1 You can leave at any time.** Delete your account from inside the app. You have a **30-day grace period** to change your mind by signing back in and pressing **Reactivate**. After that, your account and data are permanently deleted, as explained in our Privacy Policy.
+
+**15.2 We may suspend or close your account** if you break these Terms, if we are required to by law, or to protect other users or the Service. Where reasonable, we will tell you why and give you a chance to respond.
+
+**15.3 What happens next.** When your account closes, your right to use the Service ends. Sections that are meant to continue do so, as listed in [section 21.6](#21-general).
+
+---
+
+## 16. Disclaimers
+
+To the extent the law allows, the Service is provided **"as is" and "as available"**. We do not promise that it will meet every need, or that any information in it will be complete, accurate or up to date at all times.
+
+**Any investment decision you make is your own, and so is its result.**
+
+---
+
+## 17. Limitation of liability
+
+To the extent the law allows:
+
+- we are not liable for investment losses, lost profits, or indirect or consequential losses arising from your use of the Service or reliance on information in it; and
+- our total liability to you for any claim related to the Service is limited to **the amount you paid us in the 12 months before the claim, or [₹1,000], whichever is higher**.
+
+Nothing in these Terms limits any liability that cannot be limited under Indian law, including liability that cannot be excluded under consumer protection law.
+
+---
+
+## 18. Indemnity
+
+If you break these Terms or the law, or upload data you did not have the right to share, and this leads to a claim against us, you agree to cover the reasonable losses and costs we face as a result.
+
+---
+
+## 19. Changes to these Terms
+
+We may update these Terms from time to time. If a change is important, we will tell you in the app or by email before it takes effect. If you keep using the Service after that, you accept the updated Terms. If you do not agree, you can delete your account. The "Last updated" date and the [version history](#version-history) show the current version.
+
+---
+
+## 20. Governing law and disputes
+
+**20.1 Governing law.** These Terms are governed by the laws of India.
+
+**20.2 Talk to us first.** If a dispute comes up, please contact our Grievance Officer ([section 22](#22-contact-and-grievances)). We will try to resolve it informally within 30 days.
+
+**20.3 Arbitration.** If we cannot resolve it informally, the dispute will be settled by arbitration under the Arbitration and Conciliation Act, 1996, by a sole arbitrator appointed by mutual agreement. The seat and venue will be **[CITY]**, the language will be English, and the arbitrator's decision will be final and binding on both of us.
+
+**20.4 Courts.** Subject to the arbitration clause, the courts of **[CITY]**, India, have exclusive jurisdiction. Either of us may still go to these courts for urgent interim relief.
+
+**20.5 Your statutory rights.** Nothing in this section takes away any right you have under consumer protection law or the DPDP Act, including your right to complain to the Data Protection Board of India.
+
+---
+
+## 21. General
+
+**21.1 Severability.** If any part of these Terms is found to be unenforceable, the rest still applies.
+
+**21.2 No waiver.** If we do not enforce a right straight away, we have not given it up.
+
+**21.3 Assignment.** You may not transfer your account or these Terms to anyone else. We may transfer them as part of a merger, acquisition or reorganisation, and we will tell you if that happens.
+
+**21.4 Entire agreement.** These Terms and our Privacy Policy are the entire agreement between you and us about the Service.
+
+**21.5 Events outside our control.** We are not responsible for any delay or failure caused by events beyond our reasonable control, including natural disasters, epidemics, war, government action, power or internet failures, cyber-attacks, outages at our hosting or cloud providers, and downtime at fund houses, CAMS, KFintech, AMFI or other data sources.
+
+**21.6 What survives.** These sections continue after your account is closed: intellectual property (11), disclaimers (16), limitation of liability (17), indemnity (18), governing law and disputes (20), and any other term that by its nature should continue.
+
+**21.7 Notices.** We may give you notices in the app, by email or by SMS. You may write to us at the address in [section 22](#22-contact-and-grievances).
+
+**21.8 Language.** These Terms are in English. If translated, the English version prevails.
+
+---
+
+## 22. Contact and grievances
+
+For questions or complaints about the Service, contact:
+
+> **[NAME]**, Grievance Officer
+> **Keystone Wealthtech LLP** (Unifolio)
+> **[REGISTERED ADDRESS]**
+> Email: **[support@unifolio.in]**
+> Hours: [Monday to Friday, 10:00 to 18:00 IST]
+
+We will acknowledge your message within [48 hours] and aim to resolve it within [30] days.
+
+For privacy matters, write to **[privacy@unifolio.in]**. See our [Privacy Policy](/privacy).
+
+---
+
+## Version history
+
+| Version | Date | What changed |
+|---|---|---|
+| [1.0] | [DD Month YYYY] | First published version |
+
+---
+
+*Unifolio is a brand of Keystone Wealthtech LLP. © [YEAR] Keystone Wealthtech LLP. All rights reserved.*
