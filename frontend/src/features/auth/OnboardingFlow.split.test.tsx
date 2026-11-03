@@ -38,7 +38,8 @@ function renderFlow(over: { me?: MeResponse; variant?: "split" | "legacy"; stric
   const tree = <AuthProvider><LoadedFlow variant={over.variant ?? "split"} /></AuthProvider>;
   return render(over.strict ? <StrictMode>{tree}</StrictMode> : tree);
 }
-const investing = () => screen.findByText(/how are you investing right now/i);
+// Screen 4 (the investor profile) is what follows the name on desktop sign-up.
+const investing = () => screen.findByRole("heading", { level: 1, name: "How do you usually invest?" });
 
 afterEach(() => {
   vi.unstubAllGlobals();
