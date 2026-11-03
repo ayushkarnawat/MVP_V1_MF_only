@@ -14,56 +14,64 @@
       "label": "Equity",
       "status": "live",
       "value": "0.00",
-      "percentage": "0.00"
+      "percentage": "0.00",
+      "funds": []
     },
     {
       "key": "debt",
       "label": "Debt",
       "status": "live",
       "value": "2002.00",
-      "percentage": "66.47"
+      "percentage": "66.47",
+      "funds": []
     },
     {
       "key": "gold",
       "label": "Gold",
       "status": "live",
       "value": "1010.00",
-      "percentage": "33.53"
+      "percentage": "33.53",
+      "funds": []
     },
     {
       "key": "real_estate",
       "label": "Real Estate (REITs and InvITs)",
       "status": "live",
       "value": "0.00",
-      "percentage": "0.00"
+      "percentage": "0.00",
+      "funds": []
     },
     {
       "key": "others",
       "label": "Others",
       "status": "live",
       "value": "0.00",
-      "percentage": "0.00"
+      "percentage": "0.00",
+      "funds": []
     },
     {
       "key": "direct_stocks",
       "label": "Direct stocks",
       "status": "coming_soon",
       "value": null,
-      "percentage": null
+      "percentage": null,
+      "funds": []
     },
     {
       "key": "fds_bonds",
       "label": "FDs and bonds",
       "status": "coming_soon",
       "value": null,
-      "percentage": null
+      "percentage": null,
+      "funds": []
     },
     {
       "key": "us_stocks",
       "label": "US stocks",
       "status": "coming_soon",
       "value": null,
-      "percentage": null
+      "percentage": null,
+      "funds": []
     }
   ],
   "covered_pct": "100.00",

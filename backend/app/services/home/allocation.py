@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any, Literal
@@ -32,12 +32,21 @@ PERCENT_PLACES = Decimal("0.01")
 
 
 @dataclass(frozen=True)
+class ClassFund:
+    scheme_id: str
+    name: str
+    value: Decimal
+    share_of_class: Decimal
+
+
+@dataclass(frozen=True)
 class ClassRow:
     key: str
     label: str
     status: Literal["live", "coming_soon"]
     value: Decimal | None
     percentage: Decimal | None
+    funds: tuple[ClassFund, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -66,6 +75,7 @@ class StoredMix:
     nav_as_of: date | None
     computed_at: datetime
     real_estate: Decimal = Decimal("0")
+    funds: Mapping[str, tuple[ClassFund, ...]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -104,10 +114,22 @@ def parse_stored_allocation(
         nav_value = summary["nav_as_of"]
         nav_as_of = date.fromisoformat(nav_value) if nav_value is not None else None
         class_values = {key: Decimal("0") for key in ("equity", "debt", "gold", "cash_like", "real_estate", "others")}
+        class_funds: dict[str, list[ClassFund]] = {}
         for row in summary["as_disclosed"]["classes"]:
             key = row["key"]
             if key in class_values:
                 class_values[key] = Decimal(str(row["value"]))
+                target = "others" if key == "cash_like" else key
+                for fund in row.get("funds") or ():
+                    value = Decimal(str(fund["value"]))
+                    if not value.is_finite() or value <= 0:
+                        continue
+                    class_funds.setdefault(target, []).append(ClassFund(
+                        scheme_id=str(fund["scheme_id"]),
+                        name=fund["scheme_name"],
+                        value=value,
+                        share_of_class=Decimal("0.00"),
+                    ))
     except (InvalidOperation, KeyError, TypeError, ValueError):
         return None
     if total <= 0 or covered <= 0 or any(value < 0 for value in class_values.values()):
@@ -122,6 +144,7 @@ def parse_stored_allocation(
         gold=class_values["gold"],
         others=others,
         real_estate=class_values["real_estate"],
+        funds={key: tuple(funds) for key, funds in class_funds.items()},
         total_value=total,
         covered_value=covered,
         nav_as_of=nav_as_of,
@@ -148,12 +171,38 @@ def bucket_values(items: Iterable[tuple[Decimal, str]]) -> dict[str, Decimal]:
     return result
 
 
+def _class_funds(funds: Sequence[ClassFund], class_value: Decimal) -> tuple[ClassFund, ...]:
+    if class_value <= 0 or not funds:
+        return ()
+    by_scheme: dict[str, Decimal] = {}
+    names: dict[str, str] = {}
+    for fund in funds:
+        if fund.value > 0:
+            by_scheme[fund.scheme_id] = by_scheme.get(fund.scheme_id, Decimal("0")) + fund.value
+            names[fund.scheme_id] = fund.name
+    if not by_scheme:
+        return ()
+    # Stored class weights are already rebased to current holdings; rebase their fund parts too.
+    values = spread_cents(class_value, by_scheme)
+    ordered = sorted(values, key=lambda scheme_id: (-values[scheme_id], scheme_id))
+    remaining = Decimal("100.00")
+    result = []
+    for index, scheme_id in enumerate(ordered):
+        share = remaining if index == len(ordered) - 1 else min(
+            _percentage(values[scheme_id], class_value), remaining,
+        )
+        result.append(ClassFund(scheme_id, names[scheme_id], values[scheme_id], share))
+        remaining -= share
+    return tuple(result)
+
+
 def build_allocation(
     *,
     total_value: Decimal,
     mix: StoredMix | None,
     buckets: Mapping[str, Decimal] | None,
     members: Sequence[MemberValue] | None,
+    funds: Mapping[str, Sequence[ClassFund]] | None = None,
 ) -> Allocation:
     if total_value == 0:
         source: Literal["analytics", "dashboard_buckets"] = "dashboard_buckets"
@@ -192,6 +241,7 @@ def build_allocation(
             mix_as_of = None
             mix_computed_at = None
 
+    source_funds = mix.funds if source == "analytics" else funds or {}
     classes = tuple(
         ClassRow(
             key=key,
@@ -199,6 +249,7 @@ def build_allocation(
             status=status,
             value=live_values[key] if status == "live" else None,
             percentage=_percentage(live_values[key], total_value) if status == "live" else None,
+            funds=_class_funds(source_funds.get(key, ()), live_values[key]) if status == "live" else (),
         )
         for key, label, status in ALLOCATION_CLASSES
     )
@@ -273,6 +324,7 @@ async def load_allocation(
         mix = parse_stored_allocation(section.payload, section.computed_at)
 
     buckets = None
+    funds: dict[str, list[ClassFund]] = {}
     if mix is None:
         scheme_ids = {uuid.UUID(row.scheme_id) for row, _ in valued_rows}
         categories = dict(
@@ -280,13 +332,18 @@ async def load_allocation(
             .filter(Scheme.id.in_(scheme_ids))
             .all()
         )
-        buckets = bucket_values(
-            (value, categories.get(uuid.UUID(row.scheme_id), "") or "")
-            for row, value in valued_rows
-        )
+        buckets = {key: Decimal("0.00") for key in LIVE_KEYS}
+        for row, value in valued_rows:
+            key = bucket_class(categories.get(uuid.UUID(row.scheme_id), "") or "")
+            buckets[key] += value
+            funds.setdefault(key, []).append(ClassFund(
+                scheme_id=row.scheme_id, name=row.scheme_name, value=value,
+                share_of_class=Decimal("0.00"),
+            ))
     return build_allocation(
         total_value=total_value,
         mix=mix,
         buckets=buckets,
         members=member_values,
+        funds=funds,
     )

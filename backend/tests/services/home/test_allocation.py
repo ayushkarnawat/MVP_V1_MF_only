@@ -723,3 +723,156 @@ def test_home_allocation_reads_the_five_classes():
     assert {key: row.value for key, row in rows.items()} == {"equity": Decimal("600"), "debt": Decimal("200"), "gold": Decimal("50"), "real_estate": Decimal("100"), "others": Decimal("50")}
     assert sum(row.percentage for row in rows.values()) == Decimal("100.00")
     assert result.source == "analytics"
+
+
+def _fund_payload():
+    payload = _member_payload()
+    payload["total_portfolio_value"] = "120.00"
+    payload["covered_value"] = "120.00"
+    payload["as_disclosed"]["classes"] = [
+        {"key": key, "value": value, "percentage": "0", "funds": funds}
+        for key, value, funds in [
+            ("equity", "90.00", [
+                {"scheme_id": str(uuid.UUID(int=1)), "scheme_name": "Small Equity", "value": "30.00", "percentage": "33.333"},
+                {"scheme_id": str(uuid.UUID(int=2)), "scheme_name": "Large Equity", "value": "60.00", "percentage": "66.667"},
+            ]),
+            ("debt", "10.00", [
+                {"scheme_id": str(uuid.UUID(int=3)), "scheme_name": "Debt", "value": "10.00", "percentage": "100"},
+            ]),
+            ("gold", "10.00", [
+                {"scheme_id": str(uuid.UUID(int=4)), "scheme_name": "Gold", "value": "10.00", "percentage": "100"},
+            ]),
+            ("real_estate", "5.00", [
+                {"scheme_id": str(uuid.UUID(int=5)), "scheme_name": "REIT", "value": "5.00", "percentage": "100"},
+            ]),
+            ("others", "5.00", [
+                {"scheme_id": str(uuid.UUID(int=6)), "scheme_name": "Other", "value": "5.00", "percentage": "100"},
+            ]),
+        ]
+    ]
+    return payload
+
+
+def _allocation_from_payload(payload, total="120.00"):
+    mix = parse_stored_allocation(payload, COMPUTED_AT)
+    assert mix is not None
+    return build_allocation(total_value=Decimal(total), mix=mix, buckets=None, members=None)
+
+
+def test_each_live_class_carries_its_funds_sorted_by_value():
+    rows = _live_rows(_allocation_from_payload(_fund_payload()))
+    for row in rows.values():
+        assert row.funds
+        assert [fund.value for fund in row.funds] == sorted(
+            (fund.value for fund in row.funds), reverse=True,
+        )
+        assert sum((fund.value for fund in row.funds), Decimal("0")) == row.value
+    assert [fund.name for fund in rows["equity"].funds] == ["Large Equity", "Small Equity"]
+
+
+def test_fund_shares_of_a_class_sum_to_100():
+    payload = _fund_payload()
+    payload["as_disclosed"]["classes"][0]["funds"] = [
+        {"scheme_id": str(uuid.UUID(int=i)), "scheme_name": f"Fund {i}", "value": "30.00", "percentage": "0"}
+        for i in range(1, 4)
+    ]
+    result = _allocation_from_payload(payload)
+    funds = _live_rows(result)["equity"].funds
+    assert [fund.share_of_class for fund in funds] == [
+        Decimal("33.33"), Decimal("33.33"), Decimal("33.34"),
+    ]
+    assert sum((fund.share_of_class for fund in funds), Decimal("0")) == Decimal("100.00")
+
+
+def test_class_with_no_funds_has_an_empty_list():
+    result = build_allocation(total_value=Decimal("0.00"), mix=None, buckets=None, members=None)
+    assert all(row.funds == () for row in result.classes)
+
+
+@pytest.mark.parametrize("combined", [False, True])
+def test_analytics_source_reads_funds_from_the_stored_section(db_session, combined):
+    user, members = _household(db_session, 1)
+    scheme = _scheme(db_session, "Debt Scheme - Short Duration Fund", "Holding category must not win")
+    payload = _fund_payload()
+    if combined:
+        payload = {"asset_allocation": payload}
+    scope = "aggregate" if combined else "member"
+    scope_key = "combined" if combined else str(members[0].id)
+    _section(db_session, user.id, scope_key, payload,
+             household_member_id=None if combined else members[0].id)
+    with patch("app.services.home.allocation.compute_holdings", new=AsyncMock(
+        return_value=[_holding(members[0], scheme, Decimal("120.00"))]
+    )):
+        result = __import__("asyncio").run(load_allocation(
+            db_session, user.id, scope=scope, household_member_ids=[members[0].id], members=[],
+        ))
+    assert result.source == "analytics"
+    assert [fund.name for fund in _live_rows(result)["equity"].funds] == ["Large Equity", "Small Equity"]
+
+
+def test_dashboard_buckets_source_derives_funds_from_holdings(db_session):
+    user, members = _household(db_session)
+    equity = _scheme(db_session, "Equity Scheme - Flexi Cap Fund", "Shared Equity")
+    debt = _scheme(db_session, "Debt Scheme - Short Duration Fund", "Debt")
+    rows = [
+        _holding(members[0], equity, Decimal("30.005")),
+        _holding(members[1], equity, Decimal("69.995")),
+        _holding(members[1], debt, Decimal("50.00")),
+        _holding(members[0], debt, Decimal("20.00"), nav_unavailable=True),
+    ]
+    with patch("app.services.home.allocation.compute_holdings", new=AsyncMock(return_value=rows)):
+        result = __import__("asyncio").run(load_allocation(
+            db_session, user.id, scope="aggregate", household_member_ids=[m.id for m in members],
+            members=[(m.id, m.name) for m in members],
+        ))
+    equity_row = _live_rows(result)["equity"]
+    assert result.source == "dashboard_buckets"
+    assert len(equity_row.funds) == 1
+    assert (equity_row.funds[0].scheme_id, equity_row.funds[0].name,
+            equity_row.funds[0].value, equity_row.funds[0].share_of_class) == (
+        str(equity.id), "Shared Equity", Decimal("100.01"), Decimal("100.00"),
+    )
+    assert _live_rows(result)["debt"].funds[0].value == Decimal("50.00")
+    assert _live_rows(result)["gold"].funds == ()
+
+
+def test_member_scope_lists_only_that_members_funds(db_session):
+    user, members = _household(db_session)
+    equity = _scheme(db_session, "Equity Scheme - Flexi Cap Fund", "Member Equity")
+    other = _scheme(db_session, "Debt Scheme - Short Duration Fund", "Other Member Debt")
+
+    async def scoped_holdings(db, member_ids, **kwargs):
+        return [
+            row for row in [_holding(members[0], equity, Decimal("70.00")),
+                            _holding(members[1], other, Decimal("30.00"))]
+            if uuid.UUID(row.household_member_id) in member_ids
+        ]
+
+    with patch("app.services.home.allocation.compute_holdings", new=AsyncMock(side_effect=scoped_holdings)) as lookup:
+        result = __import__("asyncio").run(load_allocation(
+            db_session, user.id, scope="member", household_member_ids=[members[0].id], members=[],
+        ))
+    lookup.assert_awaited_once_with(db_session, [members[0].id], allow_stale_today=True, stored_only=True)
+    assert [fund.name for row in result.classes for fund in row.funds] == ["Member Equity"]
+
+
+@pytest.mark.parametrize("funds_value", ["missing", None, []])
+def test_stored_section_without_funds_gives_empty_lists(funds_value):
+    payload = _member_payload()
+    for row in payload["as_disclosed"]["classes"]:
+        if funds_value == "missing":
+            row.pop("funds", None)
+        else:
+            row["funds"] = funds_value
+    result = _allocation_from_payload(payload, total="90000.00")
+    assert result.source == "analytics"
+    assert all(row.funds == () for row in result.classes)
+
+
+def test_old_clients_ignore_the_new_field():
+    from app.services.home.schemas import ClassRowOut
+
+    old = {"key": "equity", "label": "Equity", "status": "live", "value": "10.00", "percentage": "100.00"}
+    row = ClassRowOut.model_validate(old)
+    assert row.funds == []
+    assert row.model_dump(mode="json", exclude={"funds"}) == old

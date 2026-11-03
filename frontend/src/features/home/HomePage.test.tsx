@@ -1,11 +1,12 @@
 import { act, fireEvent, screen, waitFor, within, configure } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useScope } from "../../shell/scope/ScopeContext";
 import { renderInShell } from "../../shell/testing";
 import { fixture } from "./fixtures";
 import { formatRupees, greetingLine } from "./homeFormat";
 import { buildGlanceSentence, wealthCaption } from "./homeCopy";
 import { HomePage } from "./HomePage";
-import { ASHA, DEV, HttpFailure, MEMBERS, PENDING, mockHomeApi, type HomeRouteName } from "./testing/homeApi";
+import { ASHA, DEV, HttpFailure, MEMBERS, PENDING, mockHomeApi, type HomeCall, type HomeRouteName } from "./testing/homeApi";
 import type { AllocationResponse, MoversResponse, SummaryResponse, WealthSeriesResponse } from "./types";
 
 // The whole front-end suite runs many files at once: give async queries room so a slow machine does not fail them.
@@ -386,5 +387,25 @@ describe("HomePage: glance", () => {
     const sentence = buildGlanceSentence(summaryFamily(), fixture<MoversResponse>("movers_sector"));
     expect(sentence).toContain("banks contributing the most");
     expect(within(screen.getByTestId("home-glance")).getByText(sentence as string)).toBeInTheDocument();
+  });
+});
+
+describe("HomePage: greeting follows the selected member (UI round 2, change 1)", () => {
+  function SwitchToDev() {
+    const { setMember } = useScope();
+    return <button type="button" onClick={() => setMember(DEV)}>Switch to Dev</button>;
+  }
+  it("greeting heading changes when the selected member changes", async () => {
+    mockHomeApi({
+      summary: (call: HomeCall) => ({
+        ...fixture<SummaryResponse>(call.scope === "member" ? "summary_member" : "summary_family"),
+        display_name: call.scope === "member" ? "Dev" : "Asha",
+      }),
+    });
+    renderInShell(<><HomePage today={TODAY} /><SwitchToDev /></>, { scope: { members: MEMBERS } });
+    await screen.findByRole("heading", { name: greetingLine("evening", "Asha") });
+    fireEvent.click(screen.getByRole("button", { name: "Switch to Dev" }));
+    await screen.findByRole("heading", { name: greetingLine("evening", "Dev") });
+    expect(screen.queryByRole("heading", { name: greetingLine("evening", "Asha") })).toBeNull();
   });
 });

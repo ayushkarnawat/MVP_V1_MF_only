@@ -59,7 +59,11 @@ def _money(value: Decimal) -> Decimal:
     return abs(rounded) if rounded.is_zero() else rounded
 
 
-def _display_name(db: Session, user_id: uuid.UUID) -> str:
+def _display_name(db: Session, user_id: uuid.UUID, ctx: ScopeContext) -> str:
+    if ctx.scope == "member":
+        words = (ctx.member_name or "").split()
+        if words:
+            return words[0].title()
     members = (
         db.query(HouseholdMember)
         .filter(HouseholdMember.user_id == user_id)
@@ -126,7 +130,7 @@ async def _summary(db: Session, user: User, member_id: uuid.UUID | None, now_ist
     ctx = resolve_scope(db, user, member_id)
     inputs = await _inputs(db, ctx, now_ist)
     summary = build_summary(
-        display_name=_display_name(db, user.id),
+        display_name=_display_name(db, user.id, ctx),
         now_ist=now_ist,
         scope=ctx.scope,
         member_name=ctx.member_name,
@@ -209,7 +213,7 @@ async def _allocation(db: Session, user: User, member_id: uuid.UUID | None, now_
         source=allocation.source,
         approximate=allocation.approximate,
         total_value=_money(allocation.total_value),
-        classes=[ClassRowOut(**row.__dict__) for row in allocation.classes],
+        classes=[ClassRowOut.model_validate(row, from_attributes=True) for row in allocation.classes],
         covered_pct=allocation.covered_pct,
         mix_as_of=allocation.mix_as_of,
         members=None if allocation.members is None else [

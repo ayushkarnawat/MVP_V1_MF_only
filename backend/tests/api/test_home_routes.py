@@ -9,7 +9,7 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy import event
 
-from app.api.home import _total_value, get_now_ist
+from app.api.home import _display_name, _total_value, get_now_ist
 from app.core.decimal_utils import quantize_amount
 from app.db.session import get_db
 from app.models.enums import BenchmarkIndex, BenchmarkReturnType, Relationship
@@ -17,6 +17,7 @@ from app.models.reference import BenchmarkIndexHistory, NavHistory
 from app.models.user import HouseholdMember
 from app.services.auth.session import get_active_user
 from app.services.dashboard.holdings import _holdings_cache
+from app.services.home.context import ScopeContext
 from app.services.home.schemas import MissingFund, SummaryResponse
 from tests.api.home_fixture import FIXED_NOW, build_home_fixture, seed_home_household, uid
 from scripts.write_home_fixtures import REQUESTS, write_fixture_set
@@ -158,6 +159,62 @@ def home_client(client):
     yield client, household
     client.app.dependency_overrides.pop(get_active_user, None)
     client.app.dependency_overrides.pop(get_now_ist, None)
+
+
+@pytest.mark.parametrize("has_self", [True, False])
+def test_summary_greeting_name_is_the_heads_first_name_in_the_family_view(home_client, has_self):
+    client, household = home_client
+    db = next(client.app.dependency_overrides[get_db]())
+    head = db.get(HouseholdMember, household.asha_id)
+    selected = db.get(HouseholdMember, household.dev_id)
+    head.is_head = False
+    selected.is_head = True
+    if not has_self:
+        head.relationship = Relationship.PARENT
+    db.commit()
+
+    response = client.get("/household/aggregate/home/summary")
+    assert response.status_code == 200
+    assert response.json()["display_name"] == "Asha"
+
+
+def test_summary_greeting_name_is_the_selected_members_first_name_in_a_member_view(home_client):
+    client, household = home_client
+    response = client.get(f"/household-members/{household.dev_id}/home/summary")
+    assert response.status_code == 200
+    assert response.json()["display_name"] == "Dev"
+
+
+@pytest.mark.parametrize("member_name", ["", "   "])
+@pytest.mark.parametrize("has_self", [True, False])
+def test_summary_greeting_name_falls_back_to_the_head_when_the_member_name_is_empty(
+    home_client, member_name, has_self,
+):
+    client, household = home_client
+    db = next(client.app.dependency_overrides[get_db]())
+    if not has_self:
+        db.get(HouseholdMember, household.asha_id).relationship = Relationship.PARENT
+        db.commit()
+    ctx = ScopeContext(
+        scope="member",
+        member_id=household.dev_id,
+        member_ids=(household.dev_id,),
+        members=(),
+        member_name=member_name,
+    )
+
+    assert _display_name(db, household.user_id, ctx) == "Asha"
+
+
+def test_summary_greeting_name_title_cases_and_takes_the_first_word(home_client):
+    client, household = home_client
+    db = next(client.app.dependency_overrides[get_db]())
+    db.get(HouseholdMember, household.dev_id).name = "  prateek KUMAR sanjayti  "
+    db.commit()
+
+    response = client.get(f"/household-members/{household.dev_id}/home/summary")
+    assert response.status_code == 200
+    assert response.json()["display_name"] == "Prateek"
 
 
 def test_all_twelve_routes_return_exact_envelopes(home_client):
@@ -741,3 +798,25 @@ def test_synthetic_gate_collects_every_scenario_after_a_failure(monkeypatch, tmp
     results = gate._run_all_scenarios(tmp_path / "source.db", tmp_path, ("bad", "good"))
     assert calls == ["bad", "good"]
     assert [result.passed for result in results] == [False, True]
+
+
+def test_allocation_route_funds_are_present_and_typed():
+    runtime = build_home_fixture(variant="no_sections")
+    try:
+        response = runtime.client.get("/household/aggregate/home/allocation")
+        assert response.status_code == 200
+        body = response.json()
+        equity = next(row for row in body["classes"] if row["key"] == "equity")
+        assert equity["funds"] == [
+            {"scheme_id": str(uid("scheme-large")), "name": "Asha Large Cap",
+             "value": "1210.00", "share_of_class": "55.00"},
+            {"scheme_id": str(uid("scheme-flexi")), "name": "Asha Flexi Cap",
+             "value": "990.00", "share_of_class": "45.00"},
+        ]
+        assert all(isinstance(row["funds"], list) for row in body["classes"])
+        schemas = runtime.client.get("/openapi.json").json()["components"]["schemas"]
+        assert schemas["ClassRowOut"]["properties"]["funds"]["type"] == "array"
+        for field in ("value", "share_of_class"):
+            assert schemas["ClassFundOut"]["properties"][field]["type"] == "string"
+    finally:
+        runtime.close()
