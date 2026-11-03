@@ -1,16 +1,17 @@
-# Handoff: executing the UI round 2 and sign-up / sign-in redesign (2 Nov 2026), for the manager's Claude account
+# Handoff: executing the UI round 2 and sign-up / sign-in redesign (updated 3 Nov 2026), for the orchestrating Claude session
 
-Written at the end of the planning session, for the Claude account that **executes** this work. **Same owner, same repo, same branch** (`leapswitch-redesign` of `ayushkarnawat/MVP_V1_MF_only`). Nothing in the app has been built. The planning is finished, every question is answered, and the implementation plan is written. Your job is to read, get familiar, then run the plan with the Claude-Codex method: **you are the orchestrator, Codex is the worker.** Read this file top to bottom first.
+Same owner, same repo, same branch (`leapswitch-redesign` of `ayushkarnawat/MVP_V1_MF_only`). The planning is finished, every question except Q71 is answered, and the implementation plan is written. **The team changed on 3 Nov 2026: there is no manager. The owner and Claude run every stage. Claude is the orchestrator. Codex does all backend work. Antigravity (Gemini) does all frontend work.** Read this file top to bottom first.
 
 ---
 
 ## 0. The state in one minute
 
-- **What was decided and planned:** nine change requests from the owner (round 2), the sign-up, sign-in and onboarding redesign from two PDFs, six life goals (the one approved database change), and a set of amendments (round 3). All are in the planning page and turned into one step-by-step implementation plan of **8 stages (S0 to S7) and 54 tasks**.
-- **What is built:** nothing. Not one line of product code.
-- **Questions open:** none. Q1 to Q70 are answered (Q31 and Q32 were withdrawn, Q55 was superseded by Q59). The six goal codes are approved. The decisions table at the end of the planning page is the single list of what was decided.
-- **What must happen before S0:** the **whole change-requests plan** (`Docs/superpowers/plans/2026-10-31-change-requests-implementation-plan.md`, Runs 1 to 7, including Head of Family and migration 0050) is executed, merged and deployed (Q51). Check it: `git tag -l "cr-run-*"` should show `cr-run-7-done`, and `cd backend && alembic heads` should show `0050` or later. If it is not done, do not start S0. Tell the owner.
-- **Pushes:** the plan files are already on the branch (the owner pushed them). **No product code is pushed and nothing is deployed until the owner gives an explicit go at S7.** Commits are local, by the orchestrator only.
+- **What was decided and planned:** nine change requests (round 2), the sign-up, sign-in and onboarding redesign from two PDFs, six life goals (the one approved database change), and the round 3 amendments. One implementation plan of **8 stages (S0 to S7) and 54 tasks**, each task tagged **[Codex]**, **[Antigravity]** or **[Claude]**.
+- **What is built of this plan:** nothing yet.
+- **What is built underneath it:** change-requests Runs 1 to 6 (incl. Head of Family, migrations `0050` to `0052`, Alembic head `0052`) are on `leapswitch-redesign` at `6d7c84f`. **Run 7 (frontend: logos, one heading per card, green button token, benchmark explanation and info icon) is still open.** Its Antigravity handoff is `cr-r7-logo-pass-handoff.md`, rules `cr-r7-common-rules.md`.
+- **Order:** Run 7 first (it overlaps S1, S4 and S6), then S0, then S1 to S7. S0 tasks 0.1 and 0.2 are reading and can start now.
+- **Questions open:** one. **Q71** (the plan's "Open question"): should the old email address get the change notice when the email is changed on Back during sign-up? Needed only at S6 Task 6.11.
+- **Pushes:** Claude's session cannot push (HTTP 403 from its git proxy: the Claude GitHub App is not installed on this repo). Claude commits locally and tells the owner the range; the owner pushes. **Nothing is deployed until the owner gives an explicit go at S7.**
 
 ---
 
@@ -20,7 +21,7 @@ All paths are in the repo on `leapswitch-redesign`. If a file below is missing, 
 
 | What | Path | Use |
 |---|---|---|
-| **The implementation plan (execute this)** | `Docs/superpowers/plans/2026-11-02-ui-round-2-and-auth-redesign-implementation-plan.md` | Run sheet, rules, decisions, method, then S0 to S7 task by task |
+| **The implementation plan (execute this)** | `Docs/orchestration/2026-11-02-ui-round-2-and-auth-redesign-implementation-plan.md` | Run sheet, rules, decisions, method, then S0 to S7 task by task |
 | **The planning page (the spec)** | `Docs/orchestration/2026-11-02-auth-redesign-plan.html` | Mockups, flows, copy tables, every decision. Self-contained, about 4 MB, opens offline in any browser. **Render it** (Playwright is available) and look at the mockups, not only the text |
 | Earlier planning handoff | `Docs/orchestration/2026-11-02-auth-redesign-handoff.md` | History of the sign-up and sign-in work (rules, code map, PDF notes). **It stops at version 7 of the page.** Where it disagrees with the plan or the page's decisions table, the plan and the table win. Section 4.4 has the helper script for editing the HTML |
 | The change-requests plan (runs first) | `Docs/superpowers/plans/2026-10-31-change-requests-implementation-plan.md`, with `2026-10-31-execution-handoff.md`, `2026-10-31-readiness-review.md`, `Docs/orchestration/2026-11-01-orchestrator-handoff-change-requests.md` | The method this work copies, and the code it must land on first |
@@ -46,21 +47,23 @@ Then tell the owner in **under 15 lines** what you understood, what is ready and
 
 ---
 
-## 3. The job and the eight stages
+## 3. The job, the eight stages and the two lanes
 
-Each stage is one run of the Claude-Codex loop with its own start commit, Codex clone, gate and tag. The plan's run sheet has the full table. In short:
+Each stage is one run of the loop with its own start commit, gate and tag. The plan's run sheet has the full table and the "Team: who does what" section has the lane rules. In short:
 
-| Stage | What | Needs |
-|---|---|---|
-| **S0** | Record the start commit, re-read cited code, baselines, Codex clone, probe, write the S1 handoffs | The change-requests plan done |
-| **S1** | Quick fixes: greeting follows the member (1), category label (2), overlap pairs link to the comparison (4), member pop-up before Add data (7), Returns toggle renamed with info icons (9). Tasks 1.1 to 1.5 may run in parallel | S0 |
-| **S2** | Interactive Home donut with a funds pop-up (6), new funds and their transactions after an in-app upload (8) | S1 |
-| **S3** | Name mismatch adds a family member and never renames the account holder (5). The largest change in the import service | S2 |
-| **S4** | Actual XIRR graph as grouped bars, toggle moved above the period buttons, benchmark shown as pills (3) | S1 task 1.5 |
-| **S5** | The six life goals, the one migration, the schema, Profile, the mobile goals screen, the queries that read goals | S4 |
-| **S6** | The sign-up and sign-in redesign, 5 phases, with the round 3 amendments | S3 and S5 |
-| **D.1** | Documentation update by Claude, the owner reviews the diff | S6 |
-| **S7** | Staging QA and rollout, one deploy | S6, D.1 and the owner's explicit go |
+| Stage | What | Codex (backend) | Antigravity (frontend) |
+|---|---|---|---|
+| **S0** | Start commit, re-read cited code, baselines, set up both lanes, write S1 handoffs | none | none |
+| **S1** | Greeting (1), category (2), overlap compare link (4), member pop-up (7), Returns toggle labels (9) | none | 1.1 to 1.5 |
+| **S2** | Home donut (6), new funds after an upload (8) | 2.1, 2.3, 2.4 | 2.2, 2.5 |
+| **S3** | Name mismatch adds a family member (5) | 3.1, 3.2 | 3.3, 3.4, 3.5 |
+| **S4** | Actual XIRR graph, toggle up, benchmark pills (3) | 4.1 | 4.2, 4.3, 4.4 |
+| **S5** | Six life goals, the one migration `0053` | 5.1, 5.2 | 5.3 |
+| **S6** | Sign-up and sign-in redesign, 5 phases | none (Task 6.11 may need one small backend flag if Q71 says so) | 6.1 to 6.15 |
+| **D.1** | Documentation update | Claude | Claude |
+| **S7** | Staging QA and rollout, one deploy | Claude with the owner | Claude with the owner |
+
+Claude does every [Claude] task: the handoffs, the contract (example payloads) for each backend field, verification, commits, tags, reviews, the deploy guide.
 
 ---
 
@@ -102,57 +105,48 @@ These came from the owner over the whole planning session. They apply to you.
 
 ## 6. How to run a stage (the loop, concretely)
 
-The plan's Method section has the full nine points. The practical sequence for each stage:
+The plan's Method section has the nine points. The sequence for each stage:
 
-1. **Start.** Record the start commit. If the repo is on a non-native mount, clone it at that commit into a fresh native directory (`git clone --branch leapswitch-redesign file://<repo> ~/ui-s<N>`) with a throwaway branch `codex/ui-s<N>`. Run the **cheap probe**: one Codex dispatch that writes a one-line file, `git add`s it and `git commit`s it. If Git writes fail there, Codex implements and self-checks and **you** do every staging, commit and merge.
-2. **Write the handoff documents** for the stage's tasks, at `Docs/orchestration/<slug>-handoff.md` (the slugs are listed at the end of the plan). Use this skeleton (the repo's template):
+1. **Start.** Record the start commit. Sync Antigravity's Windows clone to it. For a stage with backend tasks (S2 to S5) also make a fresh Codex clone (`git clone --branch leapswitch-redesign file://<repo> ~/ui-s<N>`, branch `codex/ui-s<N>`) and run the cheap probe (one Codex dispatch that writes a one-line file and tries `git add` and `git commit`). If Git writes fail there, Claude does every staging and commit.
+2. **Write the handoff documents** at `Docs/orchestration/<slug>-handoff.md` (slugs at the end of the plan). Mark the worker at the top. For a backend task, include the exact response shape and an example payload, because the frontend worker builds against it. Skeleton:
 
 ```markdown
 # Handoff: <slug>
 **Status:** OPEN | IN_PROGRESS | REVIEW | DONE
-**Parent plan:** Docs/superpowers/plans/2026-11-02-ui-round-2-and-auth-redesign-implementation-plan.md, Stage S<N>, Task <N.M>
+**Worker:** Codex | Antigravity
+**Rules:** Docs/orchestration/ui-common-rules-codex.md | ui-common-rules-antigravity.md
+**Parent plan:** Docs/orchestration/2026-11-02-ui-round-2-and-auth-redesign-implementation-plan.md, Stage S<N>, Task <N.M>
 **Spec:** Docs/orchestration/2026-11-02-auth-redesign-plan.html, section <id>
 
 ## Task
-What Codex builds, concrete and bounded. Point at the plan's task for files, interfaces and tests. Do not restate the plan.
+Concrete and bounded. Point at the plan's task for files, interfaces and tests. Do not restate the plan.
+
+## Contract (backend fields the other lane depends on)
+Field names, types, example payload, error codes and messages.
 
 ## Constraints
-The rules that apply (Decimal not float, test first, UI only, the Inception graph is not changed, mobile unchanged ...). Reference the plan's Global Constraints, do not copy them.
+Reference the plan's Global Constraints and the rules file. Do not copy them.
 
 ## Approaches considered and rejected
-The nuance a prompt summary would lose (for example: why the new-funds list is not shown for the sign-up upload).
-
 ## Open questions
-What Codex should flag back and not guess. (For example: "if the chart cannot draw a dash for a missing value, stop and report".)
+What the worker should flag back and not guess.
 ```
 
-3. **Dispatch Codex** with `Agent(subagent_type: "codex:codex-rescue", run_in_background: true, description: "<short label>", prompt: "...")`. `description` is required. The prompt **refers to the handoff by path**. Use this shape:
-
-```text
-You are the worker in a Claude-Codex loop. Work only in this clone: <path>, branch codex/ui-s<N>.
-Read, in this order: AGENTS.md, then Docs/orchestration/<slug>-handoff.md, then the task it points to in
-Docs/superpowers/plans/2026-11-02-ui-round-2-and-auth-redesign-implementation-plan.md.
-Rules: test first. Write the failing tests named in the task, run them and show that they fail for the stated reason,
-then implement the stated signatures, then run the task's verify command. Do not change files outside the task's list
-without saying why. Do not run git add or git commit if the probe showed Git writes fail. Do not touch the existing
-Inception performance graph, mobile screens, or any answered decision. If something in the plan does not match the code,
-stop and report it. Do not guess.
-Report: files changed, test names added, commands run with their results, and anything you were unsure about.
-```
-
-   Parallel dispatch (N calls in one block) only for tasks the plan marks as sharing no files.
-4. **Verify every result yourself.** `git diff --stat`, read the changed files, re-run the touched tests, then commit with `ui-s<N>:`. If an agent's notice is missing or contradicts the repo, check `git log` and the tests directly. Never trust a self-report alone.
+3. **Give the owner the prompt for each worker.** Both rules files end with a paste-ready prompt. The owner pastes it into Codex or Antigravity and pastes the worker's report back. Backend and frontend tasks of the same stage may run at the same time. Codex may also be dispatched from this session with `Agent(subagent_type: "codex:codex-rescue", run_in_background: true, ...)` where the plugin is available.
+4. **Verify every report yourself.** `git diff --stat`, read the changed files, re-run the touched tests, copy the verified files into the repo, commit with `ui-s<N>:`. For the two lanes together, check the real endpoint against the frontend's fixture at the stage gate.
 5. **Stage checks** from the stage's section, then the full backend and frontend suites, `npm run build`, `npm run lint`.
-6. **Review gate (mandatory):** `/codex:adversarial-review` over `<start commit>..HEAD`, dispatched through `codex:codex-rescue` with `run_in_background: true`, **never `isolation: "worktree"`**. The wrapper only forwards, so **the owner has to type `/codex:status <id>` and `/codex:result <id>` and paste the output back to you.** Tell the owner this each time. Findings are never applied automatically. A verdict that contradicts a direct read of the cited lines is re-dispatched. Fix findings yourself only under the "Review-loop fix authorship" rules in the skill, then run a scoped re-review. S3 and S5 get a second scoped round.
-7. **Close the stage:** tag `ui-s<N>-done`, add one line to `Docs/orchestration/delegation-log.md` per decision (and per handoff status change), update `session.md`.
+6. **Review gate (mandatory):** `/codex:adversarial-review` over `<start commit>..HEAD`, for backend and frontend commits alike, dispatched through `codex:codex-rescue` with `run_in_background: true`, never `isolation: "worktree"`. The owner types `/codex:status <id>` and `/codex:result <id>` and pastes the output back. Findings are never applied automatically. Claude fixes findings only under the skill's "Review-loop fix authorship" rules, then a scoped re-review. S3 and S5 get a second round.
+7. **Close the stage:** tag `ui-s<N>-done`, one line per decision in `Docs/orchestration/delegation-log.md`, update `session.md`.
 
 ---
 
-## 7. What you need from the owner and the manager before and during the work
+## 7. What you need from the owner before and during the work
 
 | Need | When | Why |
 |---|---|---|
-| Confirmation that the change-requests plan is executed, merged and deployed, and the start commit | Before S0 | Q51 and Q40. Head of Family changes how the account holder is found, which S3 and S6 depend on |
+| Run 7 finished (Antigravity), reviewed and tagged `cr-run-7-done`, and the start commit | Before S0 task 0.3 | Q51 and Q40. Run 7 changes the logo, the green token and the info icon that S1, S4 and S6 reuse |
+| The answer to **Q71** | Before S6 task 6.11 | Whether the old email gets a notice during sign-up |
+| Antigravity's Windows clone path, and confirmation that the check script runs | S0 task 0.4 | It was `C:\\Users\\Ayush\\cr-run-1` for Runs 6 and 7 |
 | The Home and benchmark timing baselines | S0 task 0.3 | The change-requests handoff says they were never measured. S1 and S2 must stay within 10% of them |
 | **The eight sketch images and the logo** as crops of the two PDFs, in `frontend/public/illustrations/auth/` | Before S6 Phase 1 (task 6.5) | The PDFs are not in the repo. S1 to S5 do not need them |
 | **One real statement** to upload under a different typed name | S3 gate | The real-file check. Real statements are never committed |
@@ -161,7 +155,7 @@ Report: files changed, test names added, commands run with their results, and an
 | The owner's review of the documentation diff | Task D.1 | PRD-02 FR-7 and FR-7a conflict with the required screen 4 answers. The owner knows and decided it, the PRD still has to be updated |
 | The owner's explicit go to push and deploy | S7 | Repo rule |
 
-From the earlier handoff, check these are still true for the manager's machine: backend tests run in WSL with `backend/.venv/bin/python -m pytest`; frontend checks run in WSL only; do not run `npm` from Windows PowerShell.
+Check these are still true for the owner's machine: backend tests run in WSL with `backend/.venv/bin/python -m pytest`; frontend checks run in WSL only through `cr-r6-fe-check.sh`; do not run `npm` from Windows PowerShell.
 
 ---
 
@@ -182,9 +176,10 @@ The plan flags each of these. Decide, record it in the delegation log, and tell 
 ## 9. What to do first, in order
 
 1. Do the reading in section 2. Do not change anything.
-2. Reply to the owner in under 15 lines: what you understood (the job, the 8 stages, the rules), what is ready, and what you found that differs from this handoff (especially the change-requests state and anything that moved since `bd8cd19`).
-3. Ask the owner for: the start commit and the confirmation that the change-requests plan is deployed; the sketch images and the real statement (they can come later, see section 7); and whether the Codex plugin is installed and working on the manager's machine (`codex:codex-rescue`). If it is not, follow `references/no-codex-fallback.md` (ask once, record the answer).
-4. When the owner says go, run **S0**, then the stages in order.
+2. Tell the owner in under 15 lines what you understood and what differs from this handoff.
+3. Check Run 7: `git tag -l "cr-run-*"`, `git log --oneline -10`. If Run 7 is open, the first work is the Run 7 Antigravity task, not S0.
+4. When Run 7 is tagged and the owner says go, run **S0**, then the stages in order. Hand the owner the Antigravity prompt (and the Codex prompt where a backend task is due) from the rules files.
+5. Push access: if the session cannot push, say so once, commit locally, and give the owner the range to push.
 
 ---
 
@@ -200,11 +195,12 @@ The plan flags each of these. Decide, record it in the delegation log, and tell 
 
 ## 11. Things not to do
 
-- Do not start S0 before the change-requests plan is done.
-- Do not push product code or deploy before the owner's go at S7.
+- Do not start S0 before Run 7 is done.
+- Do not push product code or deploy before the owner's go at S7. Never push to `main` or `feat/leapswitch-staging`, never force-push.
 - Do not change the Inception performance graph, the mobile screens, today's import screens or any answered decision.
 - Do not add screens, labels or options that the plan or the PDFs do not have. Offer them instead.
-- Do not delegate architecture, multi-file interface design, migrations, final assembly or commits to Codex.
+- Do not let a worker run a git command that changes anything, and do not let Antigravity touch `backend/**` or Codex touch `frontend/**`.
+- Do not delegate architecture, multi-file interface design, migrations' text, final assembly or commits.
 - Do not skip the review gate, and never apply a finding automatically.
 - Do not switch models.
 - Do not commit statement PDFs, factsheets or any real CAS file.

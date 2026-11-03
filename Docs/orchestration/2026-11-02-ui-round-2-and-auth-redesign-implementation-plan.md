@@ -1,20 +1,20 @@
 # UI Round 2 and Sign-up / Sign-in Redesign: Implementation Plan
 
-> **Read first.** This is the one plan. Part 1 holds the method, the global rules and the decisions. Part 2 is the stages S0 to S7 in order, each with its tasks step by step. The spec is the planning page `Docs/orchestration/2026-11-02-auth-redesign-plan.html` (artifact "Unifolio Auth Redesign Plan", version 17 and later). **Where this plan and the spec disagree, stop and ask the owner.** All 42 numbered questions (Q29 to Q70, with Q31 and Q32 withdrawn) and the older Q1 to Q28 are answered. Nothing else is open.
+> **Read first.** This is the one plan. Part 1 holds the method, the global rules and the decisions. Part 2 is the stages S0 to S7 in order, each with its tasks step by step. The spec is the planning page `Docs/orchestration/2026-11-02-auth-redesign-plan.html` (artifact "Unifolio Auth Redesign Plan", version 17 and later). **Where this plan and the spec disagree, stop and ask the owner.** All 42 numbered questions (Q29 to Q70, with Q31 and Q32 withdrawn) and the older Q1 to Q28 are answered. **One new question is open: Q71** (see Part 1, Open question). It is only needed at S6 Task 6.11.
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task by task, through the Claude-Codex method of the `model-orchestration` skill (Claude orchestrates, designs interfaces, verifies, commits and reviews; Codex is the default worker; one handoff document per task, written at the start of its stage, **not in these plans**). Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Team and method (changed 3 Nov 2026).** Claude is the **orchestrator**. **Codex does all backend tasks** and **Antigravity (Gemini) does all frontend tasks**. There is no manager in the loop: the owner and Claude run every stage. Each task below carries a worker tag: **[Codex]**, **[Antigravity]** or **[Claude]**. One handoff document per task, written by Claude at the start of its stage, **not in these plans**. Each worker has one standing rules file: `Docs/orchestration/ui-common-rules-codex.md` and `Docs/orchestration/ui-common-rules-antigravity.md`. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** build, on `leapswitch-redesign`, the nine round-2 change requests of 2 Nov 2026 and the sign-up, sign-in and onboarding redesign from the two PDFs: (1) Home greeting follows the selected member, (2) category column shows only the category, (3) the Actual XIRR view of the fund's Returns gets its own grouped-bar graph, the toggle moves above the period buttons and the benchmark is named in pills, (4) overlap pairs link to the two-fund comparison, (5) a statement in a different name adds a family member and never renames the account holder, (6) the Home allocation donut becomes interactive, (7) Add data and Add Investment ask which family member first, (8) new funds and their transactions are shown after an in-app upload, (9) the Returns toggle is renamed with info icons, plus the six life goals, the new split-card auth screens, the email change on Back, required answers on screen 4, and the Connect accounts to All set path.
 
-**Architecture:** additive and staged. Eight stages (S0 to S7) in the order below, each one run of the Claude-Codex loop with its own start commit, Codex clone, gate and tag. The new auth screens are built beside the old ones behind a `variant` prop, so mobile keeps today's look and the flip in `App.tsx` is the rollback. The only schema change is the goals migration (S5). New funds, the Current graph and the greeting need no migration.
+**Architecture:** additive and staged. Eight stages (S0 to S7) in the order below, each one run of the orchestrator-and-two-workers loop with its own start commit, gate and tag. The new auth screens are built beside the old ones behind a `variant` prop, so mobile keeps today's look and the flip in `App.tsx` is the rollback. The only schema change is the goals migration (S5). New funds, the Current graph and the greeting need no migration.
 
 **Tech Stack:** FastAPI, SQLAlchemy 2, Alembic, Pydantic v2, pytest (SQLite in unit tests, Postgres in `tests/functional_postgres`); React 19, Vite, Tailwind, vitest + Testing Library, Playwright for screenshots.
 
 **Spec:** `Docs/orchestration/2026-11-02-auth-redesign-plan.html` and its handoff `Docs/orchestration/2026-11-02-auth-redesign-handoff.md`. The decisions table at the end of the page is the single list of what was decided.
 
-**Start condition (Q51, Q40):** the whole change-requests plan (`2026-10-31-change-requests-implementation-plan.md`, Runs 1 to 7, including Head of Family and migration 0050) is executed, merged and deployed **before S0 starts**. Every file and line reference in this plan was read on 2 Nov 2026 at commit `bd8cd19`, before Runs 5 to 7 landed. **S0 re-checks every cited name at the real start commit.** If a name moved, use the new one. If the behaviour cannot be kept, stop and ask.
+**Start condition (Q51, Q40) and where the branch stands.** On 3 Nov 2026 `leapswitch-redesign` is at `6d7c84f`. Runs 1 to 6 of the change-requests plan (`2026-10-31-change-requests-implementation-plan.md`) are done, including Head of Family backend and frontend (migrations `0050` to `0052`, so the Alembic head is `0052`). **Run 7 (frontend only: logos, one heading per card, the green button token, the benchmark explanation and its info icon) is still open.** Its handoff and rules are `cr-r7-logo-pass-handoff.md` and `cr-r7-common-rules.md`, the worker is Antigravity. Run 7 overlaps S1 (info icon), S4 (benchmark text) and S6 (green button, logo), so **Run 7 goes first, then S0**. S0 tasks 0.1 and 0.2 (reading) may start now. Task 0.3 baselines are taken after Run 7 is tagged `cr-run-7-done`. Every file and line reference in this plan was read on 2 Nov 2026 at commit `bd8cd19`, before Runs 5 to 7 landed. **S0 re-checks every cited name at the real start commit.** If a name moved, use the new one. If the behaviour cannot be kept, stop and ask. Reuse what the runs already built: `OtpStubBanner` for any test code shown, the Run 7 green token and the shared info icon.
 
-**Commits:** all work is committed **directly on `leapswitch-redesign`** by the orchestrator, with the message prefix `ui-s<N>:` and a local tag `ui-s<N>-done` after each stage's gate (rollback point: revert the commit range). **Nothing is pushed** and nothing is deployed until the owner gives an explicit go at S7. The owner commits and pushes these plan files and every later change manually. Never force-push.
+**Commits:** workers never run a git command that changes anything. Claude reads each diff, commits **directly on `leapswitch-redesign`** with the prefix `ui-s<N>:` and a local tag `ui-s<N>-done` after each stage's gate (rollback point: revert the commit range). **Claude's session cannot push** (its git proxy returns HTTP 403 for this repo until the Claude GitHub App is installed on it). So Claude commits locally, tells the owner the commit range, and **the owner pushes** (or fixes the access, see the handoff). Nothing is deployed until the owner gives an explicit go at S7. Never push to `main` or `feat/leapswitch-staging`, never force-push. The Windows clone that Antigravity edits is synced from the repo head before each task (see the rules file).
 
 **Test commands:** backend `cd backend && pytest <touched files>`; Postgres-only behaviour `pytest tests/functional_postgres/<file>` with `TEST_DATABASE_URL` set (`docker compose up postgres`); frontend `cd frontend && npx vitest run <touched files>`, plus `npm run build` (runs `tsc -b`) and `npm run lint` at the end of every stage. No live network in tests. Run only the touched files per task. Run the full backend and frontend suites once per stage before its handoff documents may move to DONE.
 
@@ -22,13 +22,13 @@
 
 ## Run sheet: the order, in eight steps
 
-Each stage is one run of the Claude-Codex loop (see Method). Do not start a stage before the one above it is tagged. Stage details are in Part 2.
+Each stage is one run of the orchestrator-and-two-workers loop (see Method). Do not start a stage before the one above it is tagged. Stage details are in Part 2.
 
 | Step | Stage | What | Tasks | Starts when | Ends with |
 |---|---|---|---|---|---|
-| 0 | **S0** Start and baseline | Record the start commit, re-read the cited code, take baselines, clone for Codex, write the S1 handoffs | 0.1 to 0.7 | The whole change-requests plan is merged and deployed, and the owner gives the start commit (Q51) | Tag `ui-s0-done` |
-| 1 | **S1** Quick fixes | Greeting follows the member (1), category label (2), overlap pairs link to the comparison (4), member pop-up before Add data (7), Returns toggle renamed with info icons (9) | 1.1 to 1.6 (1.1 to 1.5 may run in parallel) | S0 done | Tag `ui-s1-done` |
-| 2 | **S2** Home donut and new funds | Interactive Home donut with a funds pop-up (6), new funds and their transactions after an in-app upload (8) | 2.1 to 2.6 (change 6 and change 8 may run in parallel) | S1 done | Tag `ui-s2-done` |
+| 0 | **S0** Start and baseline | Record the start commit, re-read the cited code, take baselines, sync the Antigravity clone, make the Codex clone, write the S1 handoffs | 0.1 to 0.7 | Run 7 is tagged `cr-run-7-done` and the owner gives the start commit (Q51) | Tag `ui-s0-done` |
+| 1 | **S1** Quick fixes | Greeting follows the member (1), category label (2), overlap pairs link to the comparison (4), member pop-up before Add data (7), Returns toggle renamed with info icons (9) | 1.1 to 1.6 (all five are Antigravity tasks, run one after the other) | S0 done | Tag `ui-s1-done` |
+| 2 | **S2** Home donut and new funds | Interactive Home donut with a funds pop-up (6), new funds and their transactions after an in-app upload (8) | 2.1 to 2.6 (Codex does 2.1, 2.3, 2.4 while Antigravity does 2.2 and 2.5) | S1 done | Tag `ui-s2-done` |
 | 3 | **S3** Name mismatch | The account holder is never renamed, the statement's people are added as family (5) | 3.1 to 3.6 | S2 done (shared import confirm) | Tag `ui-s3-done` |
 | 4 | **S4** Actual XIRR graph | Toggle moved up, grouped-bar graph for Actual XIRR, benchmark pills (3) | 4.1 to 4.5 | S1 task 1.5 done | Tag `ui-s4-done` |
 | 5 | **S5** Six goals | The one migration, enum, schema, Profile, mobile screen, queries | 5.1 to 5.5 | S4 done | Tag `ui-s5-done` |
@@ -36,7 +36,7 @@ Each stage is one run of the Claude-Codex loop (see Method). Do not start a stag
 | 6b | **Task D.1** Documentation | PRD, schema doc, decisions, session, guides | D.1 | S6 done, the owner reviews the diff | Owner approves |
 | 7 | **S7** Staging QA and rollout | Deploy guide, QA checklist, one deploy | 7.1 to 7.3 | S6 and D.1 done, and the owner's explicit go | Tag `ui-s7-done` |
 
-**Every stage does the same seven things, in this order:** (1) record the start commit and make a fresh Codex clone, then the cheap probe; (2) write the handoff documents for the stage's tasks; (3) for each task: failing tests, confirm they fail for the stated reason, implement, tests green, the orchestrator reads the diff and commits `ui-s<N>:`; (4) run the stage checks; (5) the mandatory adversarial review through `codex:codex-rescue`, which the owner relays; (6) fix findings under the review-loop rules and re-review; (7) tag `ui-s<N>-done`, add the delegation-log line, update `session.md`.
+**Every stage does the same seven things, in this order:** (1) record the start commit, sync Antigravity's Windows clone to it and, for a stage with backend tasks, make a fresh Codex clone and run the cheap probe; (2) write the handoff documents for the stage's tasks; (3) for each task: failing tests, confirm they fail for the stated reason, implement, tests green, the orchestrator reads the diff and commits `ui-s<N>:`; (4) run the stage checks; (5) the mandatory adversarial review (`/codex:adversarial-review` through `codex:codex-rescue`, for backend and frontend commits alike), which the owner relays; (6) fix findings under the review-loop rules and re-review; (7) tag `ui-s<N>-done`, add the delegation-log line, update `session.md`.
 
 ---
 
@@ -47,7 +47,7 @@ Each stage is one run of the Claude-Codex loop (see Method). Do not start a stag
 Every task in every stage inherits these.
 
 - **UI only, with two approved backend exceptions.** (a) The goals change (S5): one migration, the six-value enum, the schema, the route and the report script. (b) Small additive response fields named in the stages (Home allocation `funds`, confirm `new_funds`, returns `benchmark_label`, import-resolve `add-as-family`). **No other backend change.** A new field on a response model has a default, so old clients keep working.
-- **No new migration except S5.** Run `alembic heads` at S0 and again at S5. At the time of writing the branch head was `0049`, Run 5 of the change-requests plan adds `0050`, so the goals migration is expected to be `0051`. If the number is taken, stop.
+- **No new migration except S5.** Run `alembic heads` at S0 and again at S5. At the time of writing the Alembic head is `0052` (Runs 5 and 6 added `0050` to `0052`), so the goals migration is expected to be `0053`. If the number is taken, stop.
 - **Money and units are `Decimal`**, serialised as strings. The frontend formats and never adds money. Percent figures on the Current graph are display-only numbers parsed from the response strings.
 - **Mobile is unchanged.** Under 768 px, or a `/mobile` path, the legacy look stays (Q20). The only mobile change is the goals screen (six goals, up to six, the All of it shortcut), because the backend would otherwise reject its old values.
 - **The existing Inception performance graph is not changed** (its lines, colours, legend, notes, period buttons). The only change next to it is the toggle row above its period buttons (S4).
@@ -81,6 +81,10 @@ The spec's decisions table is the source. These are the ones that shape the code
 | Screen 4 | Nothing pre-selected, no Skip, both answers required, a small error on Continue, a Select all (Clear all when all are chosen) on goals. Desktop only (Q67) | S6 |
 | Connect to All set | Step 5 of 5, today's import screens with no step bar, All set as Done, resume on All set when an import is complete (Q7, Q63, Q64) | S6 |
 
+## Open question (needed only at S6 Task 6.11)
+
+**Q71. Should the old email address get the "your email was changed" notice when a person changes their email on Back during sign-up?** The existing backend function that the change uses (`send_contact_change_notice`) always emails the **old** address a notice with a 7-day undo link. During sign-up the person typed that old address minutes ago, so the notice is noise, and a typo address would receive mail from us. **Recommendation:** leave the backend as it is (the UI-only rule), and have Claude check at S6 Task 6.11 whether the notice is sent in the sign-up flow. If it is, the owner decides whether to accept it or to approve one small backend flag that skips the notice before the account is complete. Do not start Task 6.11 before the owner answers.
+
 ## Review Focus
 
 Failure modes no single task's tests would otherwise exercise, most likely first. Each is pinned by a test in the task named.
@@ -111,13 +115,28 @@ Failure modes no single task's tests would otherwise exercise, most likely first
 | Auth redesign | `frontend/src/App.tsx`, `features/auth/AuthEntryFlow.tsx`, `OnboardingFlow.tsx`, `SoloCasUpload.tsx`, `onboardingSteps.ts`, `validation.ts`; create `styles/auth-tokens.css`, `features/auth/redesign/*`, `public/illustrations/auth/*` |
 | Docs | `Docs/PRDs/PRD-02-Signup-Onboarding.md`, `Docs/PRDs/Database-Schema-Unifolio.md`, `backend.md`, `database.md`, `decisions.md`, `log.md`, `session.md`, `DEFERRED_FEATURES.md`, the two staging DB guides, the new deploy guide |
 
-## Method: the Claude-Codex loop (as used for Sub-projects 1 and 2, the analytics UX changes and the change-requests plan)
+## Team: who does what
 
-1. **Roles.** Claude (orchestrator): all interface design, migrations, the handoff documents, verification, commits, merges, reviews and the documentation update. Codex (`codex:codex-rescue`, default worker): implements one handoff's tasks and self-checks. A genuine Claude subagent is a fallback only under the three conditions in `references/delegation-rules.md`. Opus only on the three named triggers in `references/escalation-triggers.md`, and only after asking the owner. **The model is never switched without the owner asking.**
-2. **Per stage, before any dispatch:** (a) record the starting commit on `leapswitch-redesign`; (b) if the repo is on a non-native mount, clone `leapswitch-redesign` at that commit into a fresh directory on the native filesystem (`git clone --branch leapswitch-redesign file://<repo> ~/ui-s<N>`, then a throwaway branch `codex/ui-s<N>`) and dispatch Codex there; the orchestrator copies the verified changes back and commits them on `leapswitch-redesign`; (c) run the **cheap probe first**: one dispatch to write a one-line file, `git add` it, `git commit` it, expecting that Git writes fail in the sandbox, in which case Codex implements and self-checks and **the orchestrator does every staging, commit and merge**; (d) provision `backend/.venv` and `frontend/node_modules` in the clone only after the probe passes.
+| Who | Does | Never does |
+|---|---|---|
+| **Claude** (orchestrator) | Interface design and the backend contract for every task, the migration text, the handoff documents, prompts for both workers, reading every diff, running the gates, all commits and tags, the review dispatches, the documentation update, the deploy guide | Writes product code except small review fixes under the skill's "Review-loop fix authorship" rule |
+| **Codex** (backend worker) | Every task tagged **[Codex]**: API routes, services, schemas, the goals migration, report scripts, backend tests | Any frontend file. Any git command that changes anything. A migration number or interface the handoff did not give |
+| **Antigravity** (frontend worker; Gemini 4 "Argon" first, Gemini 3.8 high if that runs out) | Every task tagged **[Antigravity]**: components, pages, hooks, styles, sketches, frontend tests, fixtures | Any `backend/**` file. Any git command that changes anything. A guess at a backend field: it builds against the contract in the handoff |
+
+**Lane rules**
+1. **Backend first, frontend against a contract.** For a stage with both lanes, the handoff states each response shape exactly (field names, types, an example payload). Antigravity builds against that payload and the fixtures in the handoff, so both lanes can run **at the same time**. Claude checks the two against each other at the stage gate with the real endpoint.
+2. **One session per worker, one task at a time.** "May run in parallel" in a stage means one Codex task and one Antigravity task together. Two tasks for the same worker run one after the other.
+3. **The owner relays.** The owner pastes Claude's prompt into the worker's tool and pastes the worker's report back. Claude never assumes a worker finished until the report is pasted and the diff is read.
+4. **Handoffs and rules files.** Each task has a handoff `Docs/orchestration/<slug>-handoff.md` (Claude writes it). Each worker's prompt names its handoff and its rules file. Paste-ready prompt templates are in the rules files.
+5. **Escalation.** A worker that hits a question the handoff does not answer stops and lists two options with a recommendation. It never decides anything about identity, consent, money or who may sign in.
+
+## Method: the orchestrator and two workers loop (as used for Sub-projects 1 and 2, the analytics UX changes and the change-requests plan)
+
+1. **Roles.** See "Team: who does what". Claude is the orchestrator and never delegates interface design, the migration, verification, commits or the review decision. Codex (`codex:codex-rescue`) implements backend tasks. Antigravity implements frontend tasks. A genuine Claude subagent is a fallback only under the three conditions in `references/delegation-rules.md`. Opus only on the three named triggers in `references/escalation-triggers.md`, and only after asking the owner. **The model is never switched without the owner asking.**
+2. **Per stage, before any dispatch:** (a) record the starting commit on `leapswitch-redesign`; (b) **Antigravity:** the orchestrator syncs the Windows clone (`C:\\Users\\Ayush\\cr-run-1`, or the folder the owner names at S0) to that commit, and Antigravity edits only there; its checks run through `Docs/orchestration/cr-r6-fe-check.sh` (`test`, `types`, `lint`, `build`) on WSL's own disk, exactly as in Runs 6 and 7. The orchestrator copies the verified files into the repo and commits. **Codex (stages with backend tasks: S2, S3, S4, S5):** clone `leapswitch-redesign` at that commit into a fresh directory on the native filesystem (`git clone --branch leapswitch-redesign file://<repo> ~/ui-s<N>`, then a throwaway branch `codex/ui-s<N>`), dispatch Codex there, then copy the verified changes back; (c) for Codex, run the **cheap probe first**: one dispatch to write a one-line file, `git add` it, `git commit` it, expecting that Git writes fail in the sandbox, in which case Codex implements and self-checks and **the orchestrator does every staging, commit and merge**; (d) provision `backend/.venv` in the Codex clone only after the probe passes. The Antigravity lane needs no probe, its rules forbid mutating git.
 3. **Per task, the standard cycle.** Step 1 failing tests (named, with assertions); Step 2 run them and confirm they fail for the stated reason; Step 3 implement the stated signatures; Step 4 run the task's test files and confirm they pass; Step 5 the orchestrator verifies the diff (`git diff --stat`, reads the changed files, re-runs touched-area tests) and commits with the prefix `ui-s<N>:`.
-4. **Handoff documents.** One per task, or per group of tasks that share files, at `Docs/orchestration/<slug>-handoff.md`, written by the orchestrator at the start of the stage from the stage's tasks. Each states scope, files, interfaces, tests, constraints and the reasoning. The Codex prompt refers to the handoff by path and to the spec section by id. Status OPEN, IN REVIEW, DONE. One line per decision goes in `Docs/orchestration/delegation-log.md`.
-5. **Parallel dispatch** only for tasks that share no files (stated per stage). Otherwise one after another.
+4. **Handoff documents.** One per task, or per group of tasks that share files and one worker, at `Docs/orchestration/<slug>-handoff.md`, written by the orchestrator at the start of the stage from the stage's tasks. Each states the worker, scope, files, interfaces (with example payloads for the backend contract), tests, constraints and the reasoning. The prompt refers to the handoff by path, to the worker's rules file and to the spec section by id. Status OPEN, IN REVIEW, DONE. One line per decision goes in `Docs/orchestration/delegation-log.md`.
+5. **Parallel dispatch** is one Codex task with one Antigravity task, and only when they share no files (stated per stage). A worker never runs two tasks at once.
 6. **Mandatory review gate before a handoff may be DONE:** `/codex:adversarial-review` against the stage's commit range (`<start commit>..HEAD`), dispatched through `codex:codex-rescue` with `run_in_background: true`, never `isolation: "worktree"`. The wrapper is forwarder-only: **the owner must type `/codex:status <id>` and `/codex:result <id>` and relay the output**. Tell the owner this when each review is dispatched. Findings are never applied automatically. A verdict that contradicts a direct read of the cited lines is re-dispatched, not acted on. The orchestrator may fix findings directly only under the "Review-loop fix authorship" criteria in the skill, followed by a scoped re-review. Stop after a round whose remaining findings are lower severity, correctness-safe and would need a bigger primitive: record them as known limits.
 7. **Verification tiering:** intermediate rounds re-run only the touched-area test files; the round expected to reach DONE, and any round touching shared code beyond the task's own files, gets the full backend and frontend suites.
 8. **Deeper check** on S3 (identity and PAN) and S5 (migration and data): a second, scoped adversarial-review round after fixes and an orchestrator hand check of the named cases.
@@ -130,21 +149,21 @@ Failure modes no single task's tests would otherwise exercise, most likely first
 
 ## Stage S0: Start, Re-read and Baseline
 
-> Run through the Claude-Codex method in Part 1. No product code is written in S0. Commit prefix `ui-s0:` (documentation only).
+> Run through the orchestrator-and-workers method in Part 1. No product code is written in S0. Commit prefix `ui-s0:` (documentation only).
 
-**Goal:** begin from the real, final code of the change-requests plan, prove every name the other stages cite, record the starting state and the baselines, and prepare the Codex clone and the handoff documents.
+**Goal:** begin from the real, final code of the change-requests plan, prove every name the other stages cite, record the starting state and the baselines, and prepare the worker lanes (Antigravity's clone, Codex's clone) and the handoff documents.
 
-**Gate to start:** the owner confirms the whole change-requests plan (Runs 1 to 7, Head of Family included) is executed, merged and deployed, and gives the start commit. Nothing in these plans starts before that (Q51).
+**Gate to start:** Run 7 is done and tagged `cr-run-7-done`, the owner confirms Runs 1 to 7 are merged (deploy is not required to start, the whole release deploys together at S7), and gives the start commit (Q51).
 
 ---
 
-### Task 0.1: Record the start
+### Task 0.1: Record the start **[Claude]**
 
 - [ ] Record the start commit of `leapswitch-redesign` and the date in `Docs/orchestration/ui-run-log.md` (create). One line per stage will be added there.
-- [ ] Run `cd backend && alembic heads` and record the head. **Expected before S5: `0050` or later** (Run 5's Head of Family). The goals migration takes the next free number after it. If two heads appear, stop.
-- [ ] Confirm the owner's list is empty. Nothing is open: the spec's decisions table shows every question answered and the goal codes approved.
+- [ ] Run `cd backend && alembic heads` and record the head. **Expected: `0052`** (Head of Family and the later runs). The goals migration takes the next free number after it. If two heads appear, stop.
+- [ ] Confirm the owner's list: only **Q71** is open (needed at S6 Task 6.11). Everything else is answered and the goal codes are approved.
 
-### Task 0.2: Re-read the code the plans cite
+### Task 0.2: Re-read the code the plans cite **[Claude]**
 
 Read each item and write one line in the run log: **unchanged**, **moved to X**, or **behaviour changed (explain)**. Where a name moved, this plan's behaviour wins and the new name is used. The stage plans were written on `bd8cd19`.
 
@@ -159,37 +178,39 @@ Read each item and write one line in the run log: **unchanged**, **moved to X**,
 | Shell | `shell/nav/ImportProvider.tsx`, `paths.ts`, `registry/registry.test.ts`, `ScopeValue` (`viewMode`, `memberId`, `members`) |
 | Goals | `PrimaryGoal` enum, `UpdateMeBody._dedupe_goals`, `update_me`, the CHECK `ck_users_primary_goals_allowed`, the frontend goal files listed in the this plan |
 
-### Task 0.3: Baselines
+### Task 0.3: Baselines **[Claude]**
 
 - [ ] Home summary and allocation timing: run the repo's Home timing script twice for a recomputed test user and record both. The change-requests handoff says the Home and benchmark baselines were never measured on 30 Oct. If they still do not exist, measure them now. **S1 and S2 must stay within 10% of these.** Per the change-requests rules: no script may be more than 10% slower than the baseline.
 - [ ] Record the full backend and frontend suite results at the start commit (counts of passed tests), so a later regression is visible.
 - [ ] Record `npm run build` and `npm run lint` results.
 - [ ] Run the synthetic CAS gates once (normal and mfapi-blocked) and record the pass counts. S2 and S3 compare against them.
 
-### Task 0.4: Codex clone and the cheap probe
+### Task 0.4: Worker lanes: Antigravity clone, Codex clone and the cheap probe **[Claude]**
 
-- [ ] Clone at the start commit into a native directory: `git clone --branch leapswitch-redesign file://<repo> ~/ui-s1` (repeat per stage with a fresh clone).
-- [ ] Run the cheap probe: one dispatch that writes a one-line file, `git add`s it and `git commit`s it. Record whether Git writes work in the sandbox. If they fail, the orchestrator does every staging and commit.
-- [ ] Provision `backend/.venv` and `frontend/node_modules` in the clone only after the probe.
+- [ ] **Antigravity:** sync the Windows clone to the start commit, check `cr-r6-fe-check.sh types` runs, and give the owner the first prompt (rules file `ui-common-rules-antigravity.md`).
+- [ ] **Codex:** clone at the start commit into a native directory: `git clone --branch leapswitch-redesign file://<repo> ~/ui-s1` (repeat per stage with a fresh clone).
+- [ ] Run the cheap probe (Codex only): one dispatch that writes a one-line file, `git add`s it and `git commit`s it. Record whether Git writes work in the sandbox. If they fail, the orchestrator does every staging and commit.
+- [ ] Provision `backend/.venv` in the Codex clone only after the probe. Frontend packages live in the WSL mirror used by the check script.
 
-### Task 0.5: Assets the owner must supply
+### Task 0.5: Assets the owner must supply **[Claude]**
 
 - [ ] **The eight sketch images** for the auth screens (laptop with asset cards, phone, envelope, ID card, person, floating cards, wallet, tick) and the logo, as the crops of the two PDFs (Q23 option B). The PDFs are not in the repo. Ask the owner to attach them, or to place the cropped files in `frontend/public/illustrations/auth/`. S6 Phase 1 needs them. Without them, S1 to S5 are unaffected.
 
-### Task 0.6: Write the handoff documents for S1
+### Task 0.6: Write the handoff documents for S1 and the two rules files **[Claude]**
 
+- [ ] Put `ui-common-rules-codex.md` and `ui-common-rules-antigravity.md` in `Docs/orchestration/` (Claude wrote them; the owner commits).
 - [ ] For each S1 task write `Docs/orchestration/<slug>-handoff.md` (status OPEN) from the S1 plan: scope, files, interfaces, tests, constraints, and the spec section id. Handoffs for later stages are written at the start of each stage.
 - [ ] Add one delegation-log line per decision.
 
-### Task 0.7: S0 gate
+### Task 0.7: S0 gate **[Claude]**
 
-- [ ] The run log has the start commit, the head, the re-read results, the baselines and the probe result. Tag `ui-s0-done` locally.
+- [ ] The run log has the start commit, the head, the re-read results, the baselines and the probe result. Tag `ui-s0-done` locally. Claude commits; the owner pushes.
 
 ---
 
 ## Stage S1: Quick Fixes (changes 1, 2, 4, 7, 9)
 
-> Run through the Claude-Codex method in Part 1. Commit prefix `ui-s1:`. Handoff slugs: `ui-s1-greeting-member`, `ui-s1-category-label`, `ui-s1-overlap-compare`, `ui-s1-member-picker`, `ui-s1-returns-toggle-labels`. Spec sections: `c1`, `c2`, `c4`, `c7`, `c9` of the planning page.
+> Run through the orchestrator-and-workers method in Part 1. Commit prefix `ui-s1:`. Handoff slugs: `ui-s1-greeting-member`, `ui-s1-category-label`, `ui-s1-overlap-compare`, `ui-s1-member-picker`, `ui-s1-returns-toggle-labels`. Spec sections: `c1`, `c2`, `c4`, `c7`, `c9` of the planning page.
 
 **Goal:** five small, independent changes with no migration. **Parallel dispatch is allowed**: the five tasks share no source files. The only shared test files are `shell/nav/paths.test.ts` and `shell/registry/registry.test.ts`, touched by T1.3 only. The orchestrator commits one task at a time.
 
@@ -197,7 +218,7 @@ Read each item and write one line in the run log: **unchanged**, **moved to X**,
 
 ---
 
-### Task 1.1: Greeting follows the selected member (change 1, Q29)
+### Task 1.1: Greeting follows the selected member (change 1, Q29) **[Antigravity]**
 
 **Cause:** `_display_name(db, user.id)` in `backend/app/api/home.py` always returns the head's first name (the member whose relationship is self, else the first member). The endpoint already resolves the scope with `resolve_scope` and holds `ctx.member_name`.
 
@@ -210,7 +231,7 @@ Read each item and write one line in the run log: **unchanged**, **moved to X**,
 - [ ] **Step 3: Implement** as above. No frontend code change is expected. If the Home page does not refetch on scope change, fix the dependency list (it should key on `scopeKey`).
 - [ ] **Step 4: Verify:** `cd backend && pytest tests/api/test_home_routes.py` and `cd frontend && npx vitest run src/features/home`. Expected all pass.
 
-### Task 1.2: Category column shows only the category (change 2, Q30)
+### Task 1.2: Category column shows only the category (change 2, Q30) **[Antigravity]**
 
 **Files:** Create `frontend/src/lib/categoryLabel.ts` and `categoryLabel.test.ts`. Modify `frontend/src/features/mutual-funds/overview/HoldingsTable.tsx` (the Category cell, `row.sebi_category || "—"`). Test `HoldingsTable.test.tsx`.
 
@@ -219,7 +240,7 @@ Read each item and write one line in the run log: **unchanged**, **moved to X**,
 - [ ] **Step 1: Failing tests.** `strips Equity Scheme`; `strips Equity Schemes` (with the s: the data is not spelled the same on every row); `strips Debt Scheme and Hybrid Scheme`; `keeps everything after the first dash` (for example `Equity Scheme - Large & Mid Cap Fund`); `returns the text when there is no dash`; `returns a dash for empty and null`. `HoldingsTable.test.tsx`: `the Category cell shows the short form`.
 - [ ] **Step 3: Implement.** **Verify:** `npx vitest run src/lib/categoryLabel.test.ts src/features/mutual-funds/overview/HoldingsTable.test.tsx`.
 
-### Task 1.3: Overlap pairs link to the two-fund comparison (change 4, Q33, Q34)
+### Task 1.3: Overlap pairs link to the two-fund comparison (change 4, Q33, Q34) **[Antigravity]**
 
 **Files:** Modify `features/mutual-funds/overlap/TopPairs.tsx`, `shell/nav/paths.ts`, `shell/registry/registry.test.ts`, `shell/nav/paths.test.ts`, `features/individual-fund/overlap/ComparisonState.tsx`. Create `shell/routes/portfolio-mutual-funds-overlap-compare.route.tsx`, `features/mutual-funds/overlap/CompareFundsPage.tsx`. Tests: `TopPairs.test.tsx`, `TopPairs.asks.test.tsx`, `CompareFundsPage.test.tsx`.
 
@@ -235,7 +256,7 @@ Read each item and write one line in the run log: **unchanged**, **moved to X**,
 - [ ] **Step 3: Implement.** Verify the endpoints the comparison calls accept any two funds the user holds in the selected view, not only a fund's own top list (read the comparison calls in `individual-fund/api.ts`; if a limit exists, record it in the delegation log and stop to ask, because lifting it is a backend change).
 - [ ] **Step 4: Verify:** `npx vitest run src/features/mutual-funds/overlap src/features/individual-fund/overlap src/shell`. Browser back after View more returns to the pair table.
 
-### Task 1.4: Which member? pop-up before Add data (change 7, Q43, Q44)
+### Task 1.4: Which member? pop-up before Add data (change 7, Q43, Q44) **[Antigravity]**
 
 **Files:** Modify `shell/nav/ImportProvider.tsx`. Create `shell/nav/MemberPickerDialog.tsx`, `MemberPickerDialog.test.tsx`. Tests: `ImportProvider.test.tsx`, `shell/layout/TopBar.test.tsx`, `shell/routes/wrappers.test.tsx`.
 
@@ -246,7 +267,7 @@ Every button already goes through `openImport` (TopBar, `PortfolioPage`, `FundPa
 - [ ] **Step 1: Failing tests.** `family view with two members opens the picker and does not navigate`; `member view navigates straight to that member`; `an explicit member id navigates straight`; `one member navigates straight`; `Continue is disabled until a member is chosen`; `Cancel closes and stays on the page`; `Continue navigates to the chosen member with the origin state`; `changing the view closes the picker`; `the header dropdown on the import page is unchanged` (existing `ImportWrapper` tests pass).
 - [ ] **Step 3: Implement.** **Verify:** `npx vitest run src/shell`.
 
-### Task 1.5: Returns toggle renamed with info icons (change 9, Q48 to Q50)
+### Task 1.5: Returns toggle renamed with info icons (change 9, Q48 to Q50) **[Antigravity]**
 
 **Files:** Modify `features/individual-fund/components/Segmented.tsx`, `features/individual-fund/overview/ReturnsTable.tsx` (`MODE_OPTIONS`). Tests: `Segmented.test.tsx`, `ReturnsTable.test.tsx`, and any test that finds the buttons by the old names `Inception` or `Current` (search `features/individual-fund` tests and the page-level tests).
 
@@ -256,7 +277,7 @@ Every button already goes through `openImport` (TopBar, `PortfolioPage`, `FundPa
 - [ ] **Step 3: Implement.** Check the layout at 1440, 1024 and 390: the group wraps under the title on narrow widths, the title is never pushed off the card.
 - [ ] **Step 4: Verify:** `npx vitest run src/features/individual-fund`.
 
-### Task 1.6: S1 integration and gate
+### Task 1.6: S1 integration and gate **[Claude]**
 
 - [ ] Section-list tests and old-payload tests (a Home summary without the changes, a Comparison without `backLabel`). `npm run build`, `npm run lint`, full suites. The Home timing script. Screenshots of: Home greeting in a member view, the Mutual Funds Category column, the Top overlapping fund pairs table and the compare page, the member pop-up, the Returns toggle with each tooltip open.
 - [ ] Review gate over the stage's commit range (`/codex:adversarial-review` through `codex:codex-rescue`, background; the owner relays status and result). Fix findings under the review-loop rules. The orchestrator commits and tags `ui-s1-done`.
@@ -265,7 +286,7 @@ Every button already goes through `openImport` (TopBar, `PortfolioPage`, `FundPa
 
 ## Stage S2: Home Allocation Donut and New Funds After an Upload (changes 6 and 8)
 
-> Run through the Claude-Codex method in Part 1. Commit prefix `ui-s2:`. Handoff slugs: `ui-s2-home-donut`, `ui-s2-new-funds`. Spec sections: `c6`, `c8` (and Q41, Q42, Q45 to Q47, Q69, Q70).
+> Run through the orchestrator-and-workers method in Part 1. Commit prefix `ui-s2:`. Handoff slugs: `ui-s2-home-donut`, `ui-s2-new-funds`. Spec sections: `c6`, `c8` (and Q41, Q42, Q45 to Q47, Q69, Q70).
 
 **Goal:** (6) the Home allocation donut gets the Mutual Funds donut's hover, click and keyboard behaviour, with a pop-up listing the class and its funds; (8) after an in-app upload, show the new funds and their transactions in a collapsible section, never for the sign-up upload.
 
@@ -277,7 +298,7 @@ Every button already goes through `openImport` (TopBar, `PortfolioPage`, `FundPa
 
 ### Change 6: Home donut (tasks 2.1 and 2.2)
 
-### Task 2.1: Funds per class on the Home allocation response (Q42)
+### Task 2.1: Funds per class on the Home allocation response (Q42) **[Codex]**
 
 **Files:** Modify `backend/app/services/home/allocation.py` (`ClassRow`, `build_allocation`, `parse_stored_allocation`, `load_allocation`), `backend/app/services/home/schemas.py` (`ClassRowOut`), `backend/app/api/home.py` (the `_allocation` route builds `ClassRowOut(**row.__dict__)`). Tests `backend/tests/services/home/test_allocation.py`, `backend/tests/api/test_home_routes.py`.
 
@@ -289,7 +310,7 @@ Every button already goes through `openImport` (TopBar, `PortfolioPage`, `FundPa
 - [ ] **Step 1: Failing tests.** `test_each_live_class_carries_its_funds_sorted_by_value`; `test_fund_shares_of_a_class_sum_to_100`; `test_class_with_no_funds_has_an_empty_list`; `test_analytics_source_reads_funds_from_the_stored_section`; `test_dashboard_buckets_source_derives_funds_from_holdings`; `test_member_scope_lists_only_that_members_funds`; `test_stored_section_without_funds_gives_empty_lists` (old payload); `test_old_clients_ignore_the_new_field` (the existing response tests pass unchanged). Route test: the field is present and typed.
 - [ ] **Step 3: Implement.** **Verify:** `cd backend && pytest tests/services/home/test_allocation.py tests/api/test_home_routes.py`. Run the Home timing script.
 
-### Task 2.2: The interactive donut and its pop-up (Q41, Q42)
+### Task 2.2: The interactive donut and its pop-up (Q41, Q42) **[Antigravity]**
 
 **Files:** Modify `frontend/src/features/home/components/AllocationDonut.tsx`, `features/home/sections/Allocation.tsx`, `features/home/types.ts` (`ClassRowOut` gets `funds?: ClassFundOut[]`). Create `features/home/components/AllocationClassDialog.tsx`. Tests `AllocationDonut.test.tsx`, `Allocation.test.tsx`, `AllocationClassDialog.test.tsx`, the Home page test.
 
@@ -301,7 +322,7 @@ Every button already goes through `openImport` (TopBar, `PortfolioPage`, `FundPa
 
 ### Change 8: New funds and their transactions (tasks 2.3 to 2.5)
 
-### Task 2.3: Find the new funds and their transactions (backend, Q46, Q47)
+### Task 2.3: Find the new funds and their transactions (backend, Q46, Q47) **[Codex]**
 
 **Files:** Create `backend/app/services/import_/new_funds.py`, `backend/tests/services/import_/test_new_funds.py`. Modify `backend/app/services/import_/schemas.py` (`PersonConfirmResult` and a new `NewFundOut`, `NewFundTxOut`), `confirm_people.py` (after a person's import is saved), `backend/app/api/imports.py`. Read first: `app/models/transaction.py`, `folio.py`, `imports.py`, `app/models/enums.py` (`TransactionType`).
 
@@ -334,7 +355,7 @@ def find_new_funds(db: Session, import_id: uuid.UUID, member_id: uuid.UUID) -> l
 - [ ] **Step 1: Failing tests** (`test_new_funds.py`, using the repo's synthetic fixtures or factories): `first_import_lists_every_fund_as_new`; `later_import_lists_only_the_fund_the_member_did_not_hold`; `a_repeat_of_the_same_file_lists_nothing`; `sold_then_bought_again_is_not_new`; `two_members_in_one_file_get_separate_lists`; `invested_amount_totals_purchases_sips_and_switch_ins_only`; `latest_date_is_the_latest_of_all_the_funds_rows_in_the_import`; `transactions_are_capped_at_20_newest_first_with_the_full_count`; `a_fund_with_only_opening_balance_is_not_new`; `funds_are_ordered_by_invested_amount`; `money_is_decimal`.
 - [ ] **Step 3: Implement.** **Verify:** `cd backend && pytest tests/services/import_/test_new_funds.py`.
 
-### Task 2.4: Confirm response, surface gating and the history endpoint
+### Task 2.4: Confirm response, surface gating and the history endpoint **[Codex]**
 
 **Files:** Modify `schemas.py`, `confirm_people.py`, `app/api/imports.py`, the parse route's session creation in `services/import_/service.py`. Tests `tests/api/test_imports_confirm_*.py` (find the existing confirm tests with `grep -l "confirm" tests/api`), `tests/services/import_/test_new_funds_surface.py`.
 
@@ -346,7 +367,7 @@ def find_new_funds(db: Session, import_id: uuid.UUID, member_id: uuid.UUID) -> l
 - [ ] **Step 1: Failing tests.** `confirm_returns_new_funds_for_an_in_app_upload`; `confirm_returns_none_for_the_onboarding_upload_and_runs_no_new_funds_query` (patch `find_new_funds` and assert not called); `old_clients_ignore_new_funds` (existing confirm tests pass); `history_endpoint_matches_the_confirm_list_for_the_same_import`; `history_endpoint_is_empty_for_a_sign_up_import`; `history_endpoint_returns_404_for_another_users_import`; `surface_is_stored_in_the_session_and_unknown_surfaces_fall_back_to_import_upload`.
 - [ ] **Step 3: Implement.** **Verify:** `pytest tests/api -k "confirm or history or new_funds" tests/services/import_/test_new_funds*.py`. Run the synthetic CAS gate.
 
-### Task 2.5: New funds section in the three places (frontend, Q45, Q69, Q70)
+### Task 2.5: New funds section in the three places (frontend, Q45, Q69, Q70) **[Antigravity]**
 
 **Files:** Modify `frontend/src/features/import/types.ts` (`PersonConfirmResult.new_funds?`, `created?`; `NewFund`, `NewFundTx`), `api.ts` (the history call `getImportNewFunds(importId)`), `useImportOrchestration.tsx` (the notice), `ImportHistoryList.tsx`. Create `features/import/NewFundsList.tsx`, `ImportStats.tsx`, tests for each. **First read** `ImportFlow.tsx` and `useImportOrchestration.tsx` to find the component that shows the result after confirm; the stage handoff names it.
 
@@ -361,7 +382,7 @@ def find_new_funds(db: Session, import_id: uuid.UUID, member_id: uuid.UUID) -> l
 - [ ] **Step 1: Failing tests.** `NewFundsList`: `lists every new fund`; `starts open and collapses and expands from the header and the keyboard`; `a fund row opens its transactions`; `shows at most 20 transactions and a View all link when there are more`; `hides amounts when values are hidden`; `renders nothing for an empty list`. `ImportStats`: three tiles with the counts. Host: `an in-app import shows the section`; `the sign-up import shows no section`; `a confirm response without new_funds renders as today`. Notice: `shows the count and two names and the View new funds action`. History: `opens an import and fetches its new funds once`; `a sign-up import shows none`.
 - [ ] **Step 3: Implement.** **Verify:** `npx vitest run src/features/import`.
 
-### Task 2.6: S2 gate
+### Task 2.6: S2 gate **[Claude]**
 
 - [ ] Section-list tests, old-payload tests (a Home allocation without `funds`, a confirm without `new_funds`), `npm run build`, `npm run lint`, full suites, the Home timing script, the synthetic CAS gates (normal and mfapi-blocked) against the S0 counts, screenshots. Review gate over the stage's range; the owner relays. Tag `ui-s2-done`.
 
@@ -369,7 +390,7 @@ def find_new_funds(db: Session, import_id: uuid.UUID, member_id: uuid.UUID) -> l
 
 ## Stage S3: Name Mismatch Adds a Family Member (change 5)
 
-> Run through the Claude-Codex method in Part 1. Commit prefix `ui-s3:`. Handoff slug: `ui-s3-add-as-family`. Spec: section `c5` and Round 3 F (Q35 to Q40, Q36 revised, Q39 B). **One handoff, one worker, one reviewer.** This is the largest change in the import service. Identity and PAN safety get a second, scoped review round (Method point 8).
+> Run through the orchestrator-and-workers method in Part 1. Commit prefix `ui-s3:`. Handoff slug: `ui-s3-add-as-family`. Spec: section `c5` and Round 3 F (Q35 to Q40, Q36 revised, Q39 B). **One handoff, one worker, one reviewer.** This is the largest change in the import service. Identity and PAN safety get a second, scoped review round (Method point 8).
 
 **Goal:** when the first statement is in a different name from the account holder's, the pop-up says whose account it is and offers `Add {name} as a family member` or `Upload a different file`. Choosing the first adds the people in the file as family members and the normal flow continues. **The account holder is never renamed, never gets another person's PAN, and keeps their data empty until their own file is uploaded.** No third link (Q39 B). A file with several people gets the same pop-up and flow (Q36 revised): the other people go through today's people-found step.
 
@@ -379,7 +400,7 @@ def find_new_funds(db: Session, import_id: uuid.UUID, member_id: uuid.UUID) -> l
 
 ---
 
-### Task 3.1: The resolver and its route (backend)
+### Task 3.1: The resolver and its route (backend) **[Codex]**
 
 **Files:** Modify `backend/app/services/import_/service.py` (near `resolve_name`, line ~874), `backend/app/services/import_/schemas.py`, `backend/app/api/imports.py` (near the other resolve routes, lines ~409 to 458). Tests: `backend/tests/services/import_/test_service.py`, `backend/tests/api/test_imports_people_routes.py`.
 
@@ -414,7 +435,7 @@ def resolve_add_as_family(db: Session, session_id: str, user_id: uuid.UUID) -> I
 - [ ] **Step 2:** run them; confirm they fail because the route and function do not exist, and (for the "no prompt fires" test) record which later step, if any, fails after the flag is added.
 - [ ] **Step 3: Implement** as above. **Verify:** `cd backend && pytest tests/services/import_/test_service.py tests/services/import_/test_confirm_people.py tests/api/test_imports_people_routes.py`.
 
-### Task 3.2: Later upload of the account holder's own file
+### Task 3.2: Later upload of the account holder's own file **[Codex]**
 
 **Files:** Tests only (`backend/tests/services/import_/test_service.py` or a new `test_add_as_family_followup.py`), plus a fix in `people_resolution.py` only if a test proves a defect.
 
@@ -424,7 +445,7 @@ def resolve_add_as_family(db: Session, session_id: str, user_id: uuid.UUID) -> I
 - Use two synthetic statements for different people from `Docs/CAS Files/synthetic/pdfs/` (`pdf_path(name)` finds a file in any subfolder; the family and couple files `r2_couple_rohan_priya_10yr.pdf` and `big_family_ayush_anand_7yr.pdf` are candidates; password `MF@123`). The orchestrator picks two and names them in the handoff.
 - [ ] **Step 3:** fix only what the tests prove. **Verify:** `pytest tests/services/import_`. On Postgres: `pytest tests/functional_postgres -k "pan or claim"` with `TEST_DATABASE_URL`.
 
-### Task 3.3: The pop-up and the new answer (frontend)
+### Task 3.3: The pop-up and the new answer (frontend) **[Antigravity]**
 
 **Files:** Modify `frontend/src/features/import/prompts/NameMismatchDialog.tsx`, `prompts/PromptHost.tsx` (the `self_name_mismatch` case), `useImportFlow.ts` (the resolve union, line ~34), `features/import/api.ts` (the resolve calls; copy the existing `resolveName` call), `types.ts`. Tests `prompts/prompts.test.tsx`, `NameMismatchDialog` tests, `useImportFlow` tests.
 
@@ -437,7 +458,7 @@ def resolve_add_as_family(db: Session, session_id: str, user_id: uuid.UUID) -> I
 - [ ] **Step 1: Failing tests.** `shows the account holder's name in the title and the statement's name in the body`; `the primary button reads Add {name} as a family member and sends the addAsFamily answer`; `Upload a different file and the close button discard the session`; `there is no Yes, that's me button`; `PromptHost sends addAsFamily for self_name_mismatch`; `the api client posts to resolve-add-as-family`; `an error from the server shows in the dialog`.
 - [ ] **Step 3: Implement.** **Verify:** `cd frontend && npx vitest run src/features/import`.
 
-### Task 3.4: Complete profile after the import (Q37)
+### Task 3.4: Complete profile after the import (Q37) **[Antigravity]**
 
 **Files:** Modify `features/import/useImportOrchestration.tsx`, the component that hosts the post-confirm step (read `ImportFlow.tsx` first), reuse `features/dashboard/members/CompleteProfileDialog`. Tests alongside.
 
@@ -446,14 +467,14 @@ def resolve_add_as_family(db: Session, session_id: str, user_id: uuid.UUID) -> I
 - [ ] **Step 1: Failing tests.** `shows the profile dialog for each created member, in order`; `does not show it for a member that already existed`; `Skip leaves the relation empty and continues`; `saving a relation calls updateMemberProfile once`; `the dialog does not appear for a sign-up import with no created members`.
 - [ ] **Step 3: Implement.** **Verify:** `npx vitest run src/features/import src/features/dashboard/members`.
 
-### Task 3.5: The account holder with no data (Home, Mutual Funds, Analytics)
+### Task 3.5: The account holder with no data (Home, Mutual Funds, Analytics) **[Antigravity]**
 
 **Files:** Tests first; fix only what a test proves. Existing: `features/home/sections/Greeting.tsx` already labels a member `No data yet` (`has_data`).
 
 - [ ] **Step 1: Failing tests.** `Home in the family view shows the head's name and No data yet beside them while another member has data`; `Home in the head's own view shows the existing empty state`; `Mutual Funds and Analytics in the head's view show their empty states`; `the greeting still names the head in the family view` (S1 T1.1).
 - [ ] **Step 3:** fix defects only. **Verify:** `npx vitest run src/features/home src/features/mutual-funds`. Take a screenshot of each state.
 
-### Task 3.6: S3 gate
+### Task 3.6: S3 gate **[Claude]**
 
 - [ ] The synthetic CAS gates (normal and mfapi-blocked) at the S0 counts, with a new scenario added to the harness for "first upload in another person's name, then add as family, then the account holder's own file". The Postgres functional tests. One real statement under a different typed name, checked by hand: the account holder unchanged, the person added, the funds on the person, the PAN on the person.
 - [ ] Full suites, build, lint, screenshots. Review gate, then a **second scoped round** focused on identity, PAN claims and the old `resolve-name` path. The owner relays each review. Tag `ui-s3-done`.
@@ -462,7 +483,7 @@ def resolve_add_as_family(db: Session, session_id: str, user_id: uuid.UUID) -> I
 
 ## Stage S4: Actual XIRR Graph, Toggle Moved Up, Benchmark Named (change 3)
 
-> Run through the Claude-Codex method in Part 1. Commit prefix `ui-s4:`. Handoff slug: `ui-s4-returns-graph`. Spec: sections `c3` and `c3ui` (3 · UI and every state) with Q52 to Q60 and Q31/Q32 withdrawn. **Depends on S1 task 1.5** (the renamed toggle with info icons). Tasks run in order: they share `ReturnsTable.tsx`, `OverviewPage.tsx` and `types.ts`.
+> Run through the orchestrator-and-workers method in Part 1. Commit prefix `ui-s4:`. Handoff slug: `ui-s4-returns-graph`. Spec: sections `c3` and `c3ui` (3 · UI and every state) with Q52 to Q60 and Q31/Q32 withdrawn. **Depends on S1 task 1.5** (the renamed toggle with info icons). Tasks run in order: they share `ReturnsTable.tsx`, `OverviewPage.tsx` and `types.ts`.
 
 **Goal:** (a) the toggle (`Model Portfolio Returns` / `Actual XIRR`) moves into the performance card, above the period buttons, and drives both the graph and the Returns table; (b) the Actual XIRR view gets a grouped bar graph drawn from the response the Current table already loads, one pair of bars per table period; (c) the Benchmark row names the benchmark as pills (index name and source), on both table views.
 
@@ -474,7 +495,7 @@ def resolve_add_as_family(db: Session, session_id: str, user_id: uuid.UUID) -> I
 
 ---
 
-### Task 4.1: `benchmark_label` on the returns response (backend, Q57, Q58)
+### Task 4.1: `benchmark_label` on the returns response (backend, Q57, Q58) **[Codex]**
 
 **Files:** Modify `backend/app/services/fund_page/schemas.py` (`ReturnsResponse`), `backend/app/services/fund_page/returns.py` (the two builders: the `ReturnsResponse(...)` returns in `inception_returns` and in `current_returns`, around lines 170 and 361 at `bd8cd19`). Tests: create `backend/tests/services/fund_page/test_returns_benchmark_label.py`.
 
@@ -483,7 +504,7 @@ def resolve_add_as_family(db: Session, session_id: str, user_id: uuid.UUID) -> I
 - [ ] **Step 1: Failing tests.** `test_inception_response_carries_the_benchmark_label`; `test_current_response_carries_the_benchmark_label`; `test_label_is_null_when_there_is_no_benchmark_index`; one test per source value (`factsheet`, `closest`, `category`, `none`): the label and `benchmark_source` are as expected; `test_existing_fields_are_unchanged` (golden compare of `rows`, `columns`, `benchmark_reason`, `benchmark_note`, `printed_as_of`).
 - [ ] **Step 3: Implement.** **Verify:** `cd backend && pytest tests/services/fund_page/test_returns_benchmark_label.py tests/services/fund_page`.
 
-### Task 4.2: Benchmark pills in the table (frontend, Q57, Q58)
+### Task 4.2: Benchmark pills in the table (frontend, Q57, Q58) **[Antigravity]**
 
 **Files:** Create `frontend/src/features/individual-fund/overview/BenchmarkPills.tsx` and `BenchmarkPills.test.tsx`. Modify `lib/benchmarkDisplay.ts` (short source words), `overview/ReturnsTable.tsx` (the Benchmark row label cell, both views). Tests `ReturnsTable.test.tsx`.
 
@@ -498,7 +519,7 @@ def resolve_add_as_family(db: Session, session_id: str, user_id: uuid.UUID) -> I
 - [ ] **Step 1: Failing tests.** One test per source value for the pills' words and kind; `name only when the source is missing`; `nothing when no name`; `the printed case shows the declared name and the dashed pill`; `ReturnsTable shows the pills under the Benchmark row in both views`; `a response without benchmark_label renders the row as today`; `the details block under the table is unchanged`.
 - [ ] **Step 3: Implement.** **Verify:** `npx vitest run src/features/individual-fund/overview src/lib/benchmarkDisplay.test.ts`.
 
-### Task 4.3: Lift the mode and the Current request; move the toggle (Q52, Q53)
+### Task 4.3: Lift the mode and the Current request; move the toggle (Q52, Q53) **[Antigravity]**
 
 **Files:** Create `overview/ReturnsModeToggle.tsx` (+ test). Modify `overview/ReturnsTable.tsx`, `OverviewPage.tsx`, `overview/PerformanceChart.tsx` (**one optional prop only**). Tests: `ReturnsTable.test.tsx`, `PerformanceChart.test.tsx` (must pass **unedited**), `OverviewPage.test.tsx`.
 
@@ -512,7 +533,7 @@ def resolve_add_as_family(db: Session, session_id: str, user_id: uuid.UUID) -> I
 - [ ] **Step 1: Failing tests.** `ReturnsModeToggle`: `shows the two options with their info icons`; `calls onChange with inception or current`. `OverviewPage`: `the toggle sits in the performance card above the period buttons`; `switching the toggle changes the table`; `the Current request is not sent until Current is chosen`; `the Returns card header has no toggle`. `ReturnsTable`: `reads current from props`. **The existing `PerformanceChart` tests pass without any edit** (this is the proof the Inception graph is unchanged). `PerformanceChart`: `renders the slot above the period buttons when given, and nothing extra when not`.
 - [ ] **Step 3: Implement.** **Verify:** `npx vitest run src/features/individual-fund`.
 
-### Task 4.4: The Actual XIRR graph, grouped bars (Q54, Q55 superseded, Q59 D)
+### Task 4.4: The Actual XIRR graph, grouped bars (Q54, Q55 superseded, Q59 D) **[Antigravity]**
 
 **Files:** Create `overview/CurrentReturnsChart.tsx` and its test. Modify `components/ui/charts/grouped-bar-chart.tsx` **only if needed for dashes** (see below). Modify `OverviewPage.tsx`, `fundCopy.ts` (the no-benchmark notice words). Tests alongside.
 
@@ -533,7 +554,7 @@ def resolve_add_as_family(db: Session, session_id: str, user_id: uuid.UUID) -> I
 - [ ] **Step 1: Failing tests.** `every bar equals its table cell` (a sample response and a synthetic one, all four columns); `a null cell draws no bars and a dash`; `a negative XIRR draws below the baseline`; `a missing benchmark row draws one series and the notice for each reason`; `the legend names the benchmark with the label and same cash flows`; `not held shows the designed state for a member and for the family view`; `Show Model Portfolio Returns switches the mode`; `loading and error use SectionState and keep the toggle`; `no period buttons are rendered in this view`; `a response with no benchmark_label falls back to the plain word Benchmark`. If the chart is extended: tests for the new optional prop and a test that all existing chart tests still pass unedited.
 - [ ] **Step 3: Implement.** **Verify:** `npx vitest run src/features/individual-fund src/components/ui/charts`.
 
-### Task 4.5: S4 gate
+### Task 4.5: S4 gate **[Claude]**
 
 - [ ] `PerformanceChart` tests unedited and green; full suites; `npm run build`; `npm run lint`; old-payload tests (a returns response without `benchmark_label`, a Current response without the benchmark row).
 - [ ] Before and after screenshots of the Inception view at 1440 and 1024: identical except the toggle row. Screenshots of every Current state. A real-statement check by hand: the bars against the Current table for one real fund, including one with an opening balance (the table's own maths already handles it).
@@ -543,21 +564,21 @@ def resolve_add_as_family(db: Session, session_id: str, user_id: uuid.UUID) -> I
 
 ## Stage S5: The Six Life Goals (the approved database change)
 
-> Run through the Claude-Codex method in Part 1. Commit prefix `ui-s5:`. Handoff slug: `ui-s5-goals-six`. Spec: the planning page's "New goals: backend and database" section and Round 3 D and E (Q13 B, Q13b B, Q68 A; the six codes approved on 2 Nov). **Deeper check** (Method point 8): a second, scoped review round and a hand check of the named cases.
+> Run through the orchestrator-and-workers method in Part 1. Commit prefix `ui-s5:`. Handoff slug: `ui-s5-goals-six`. Spec: the planning page's "New goals: backend and database" section and Round 3 D and E (Q13 B, Q13b B, Q68 A; the six codes approved on 2 Nov). **Deeper check** (Method point 8): a second, scoped review round and a hand check of the named cases.
 
 **Goal:** replace the four product goals with the six life goals, allow one to six goals (the All of it shortcut stays and now selects all six), drop the deprecated single-goal column and its native type, and make every screen and query that reads goals agree. The staging database is cleared before this ships, so no user data is converted.
 
 **The six codes (approved):** `wealth_creation` (Build my wealth), `retirement` (Plan for retirement), `childrens_education` (Fund my children's education), `buy_home` (Buy a home), `financial_freedom` (Achieve financial freedom), `tax_planning` (Plan my taxes). They replace `consolidated_view`, `understand_holdings`, `family_management`, `performance_comparison`. No old value maps onto a new one.
 
-**Migration number:** run `alembic heads` at the start of the stage. At the time of writing the head was `0049`, Run 5 of the change-requests plan adds `0050`, so this migration is expected to be `0051`. **If the number is taken, stop.** Down-revision is the head at that time.
+**Migration number:** run `alembic heads` at the start of the stage. At the time of writing the head is `0052`, so this migration is expected to be `0053`. **If the number is taken, stop.** Down-revision is the head at that time.
 
 **Stage checks:** migration up, down and up on Postgres; `pytest tests/functional_postgres` for the goals tests; the head assertion in `tests/test_migrations.py` updated; full suites; build; lint; screenshots of the mobile goals screen and the Profile goals dialog and chips.
 
 ---
 
-### Task 5.1: The migration
+### Task 5.1: The migration **[Codex]**
 
-**Files:** Create `backend/alembic/versions/<next>_primary_goals_life_goals.py`. Modify `backend/tests/test_migrations.py` (the head assertion, currently `"0049 (head)"`, and add a round-trip test), `backend/tests/functional_postgres/test_member_detection_postgres.py` (rewrite `test_0019_primary_goals_check_constraint_on_postgres`).
+**Files:** Create `backend/alembic/versions/<next>_primary_goals_life_goals.py`. Modify `backend/tests/test_migrations.py` (the head assertion, currently `"0052 (head)"`, and add a round-trip test), `backend/tests/functional_postgres/test_member_detection_postgres.py` (rewrite `test_0019_primary_goals_check_constraint_on_postgres`).
 
 **Interfaces (the shape; final code is written test-first):**
 ```python
@@ -581,14 +602,14 @@ The column is dropped, not altered, because Postgres cannot remove values from a
 - [ ] **Step 1: Failing tests.** `test_head_is_the_goals_migration`; `test_upgrade_downgrade_upgrade_round_trip` (after upgrade `primary_goal` is gone and saved goals are NULL; after downgrade the column and the old CHECK are back); Postgres: `test_primary_goals_check_allows_one_to_six_new_codes` (a bad value, an empty array, seven items and an old code are each refused by the CHECK; one and six are accepted); `test_primarygoal_enum_type_is_gone` (`pg_type` has no `primarygoal`); `test_users_table_has_no_primary_goal_column`.
 - [ ] **Step 3: Implement.** **Verify:** `cd backend && pytest tests/test_migrations.py`; `pytest tests/functional_postgres/test_member_detection_postgres.py` with `TEST_DATABASE_URL`; migration up, down, up by hand on the local Postgres.
 
-### Task 5.2: Enum, model, schema, route and report script (backend)
+### Task 5.2: Enum, model, schema, route and report script (backend) **[Codex]**
 
 **Files:** Modify `backend/app/models/enums.py` (`PrimaryGoal`: six members, lowercase values as above), `app/models/user.py` (delete the `primary_goal` column and its "dual-written until 0021" comment; update the comment on the CHECK), `app/services/auth/schemas.py` (`UpdateMeBody`: delete the legacy `primary_goal` field and `_fold_legacy_goal`, and the `model_validator` import if nothing else uses it; `_dedupe_goals` bounds `1 <= len(unique) <= MAX_GOALS` with `MAX_GOALS = 6` and the message `Pick between 1 and 6 goals.`), `app/api/auth.py` (`update_me`: delete the `user.primary_goal = PrimaryGoal(goals[0])` dual write; drop the `PrimaryGoal` import if unused), `backend/scripts/report_onboarding_goals.py` (docstring; replace the `all_four` figure with `picked_all` = users who chose all six; the per-goal counts follow `GOALS = [g.value for g in PrimaryGoal]` automatically). Tests: `tests/api/test_auth_routes.py` (the goal tests near lines 687 to 730), `tests/scripts/test_report_onboarding_goals.py`.
 
 - [ ] **Step 1: Failing tests.** `test_patch_me_saves_goal_list` (replaces the dual-write test; asserts only `primary_goals` is written); `test_patch_me_accepts_all_six_goals`; `test_patch_me_dedupes_goals`; `test_patch_me_rejects_an_old_code`; `test_patch_me_rejects_an_empty_list` (422 with the new message); `test_patch_me_rejects_an_unknown_seventh_code`; delete `test_patch_me_accepts_legacy_single_primary_goal` and add `test_patch_me_ignores_a_legacy_primary_goal_field_in_the_body` (extra field ignored or 422, whichever the model config gives; assert it is not stored); `test_user_created_without_goals_stores_sql_null` stays. Report: `test_report_counts_the_six_goals`; `test_report_picked_all_counts_users_with_all_six`; `test_report_skipped_counts_users_without_goals`.
 - [ ] **Step 3: Implement.** **Verify:** `pytest tests/api/test_auth_routes.py tests/scripts/test_report_onboarding_goals.py tests/test_migrations.py`.
 
-### Task 5.3: Frontend goal files (types, Profile, mobile screen, fixtures)
+### Task 5.3: Frontend goal files (types, Profile, mobile screen, fixtures) **[Antigravity]**
 
 **Files (verified present at `bd8cd19`):** `frontend/src/features/auth/types.ts` (`PrimaryGoal` union: six strings), `features/profile-v2/lib/onboardingOptions.ts` (`GOAL_OPTIONS`: the six, the copy slide's labels, the old subtitles dropped; this list is the single source for sign-up, the mobile screen and Profile), `features/profile-v2/lib/goalChips.ts` (**keep** the branch that collapses a full set into "All of it"; it now applies when all six are set), `features/profile-v2/components/GoalsDialog.tsx` (allow all six; keep the "Why choose? All of it." button as the select-all shortcut; add the hint `Select all that apply`), `features/auth/Q3Purpose.tsx` (the **mobile** goals screen: six options from the shared list, up to six, the All of it shortcut selects all six, Skip stays, six small drawings reusing the PDF chip icons; layout otherwise unchanged), `features/auth/OnboardingFlow.tsx` (types only), `features/profile-v2/pages/PersonalInfoPage.tsx` and `fixtures/me.ts` (new codes in fixtures; the page passes the saved list through). Tests to update: `onboardingOptions.test.ts`, `goalChips.test.ts`, `GoalsDialog.test.tsx`, `FinancialDetailsCard.test.tsx`, `PersonalInfoPage.test.tsx`, `fixtures/fixtures.test.ts`, `Q3Purpose.test.tsx`, `OnboardingFlow.test.tsx`, `AuthEntryFlow.test.tsx`, `AuthContext.test.tsx`, `auth/api.test.ts`, `App.test.tsx`, `mobile/MobileRoot.test.tsx`.
 
@@ -597,14 +618,14 @@ The column is dropped, not altered, because Postgres cannot remove values from a
 - [ ] **Step 1: Failing tests.** `onboardingOptions`: `GOAL_OPTIONS has the six codes and labels in order`. `goalChips`: `shows the saved labels`; `collapses all six to All of it`; `shows an unknown code as a humanised label` (the existing safety net). `GoalsDialog`: `allows choosing all six`; `the All of it button selects all six`; `saves the chosen codes`; `the hint reads Select all that apply`. `Q3Purpose`: `shows six options`; `the All of it shortcut selects all six`; `Skip still works`; `sends only the new codes`. Fixtures and the remaining tests: new codes in expected payloads.
 - [ ] **Step 3: Implement.** **Verify:** `cd frontend && npx vitest run src/features/auth src/features/profile-v2 src/App.test.tsx src/mobile`.
 
-### Task 5.4: Queries and guides that read goals (Q13, Round 3 E)
+### Task 5.4: Queries and guides that read goals (Q13, Round 3 E) **[Claude]**
 
 **Files:** `Docs/orchestration/2026-09-30-staging-db-verification-guide.md` (lines ~167 and ~202 select the single `primary_goal` column and **break** after the migration: change both to `primary_goals`), `Docs/orchestration/2026-10-01-post-deploy-db-check-guide.md` (line ~240, `SELECT primary_goals FROM users WHERE phone_number = :'phone';`: the query is fine, the expected values become the new codes), the new staging deploy guide (S7). Optional and offered only: a Postgres helper `SELECT g, count(*) FROM users, jsonb_array_elements_text(primary_goals) AS g GROUP BY g ORDER BY 2 DESC;`. Queries saved outside the repo (DBeaver, dashboards, spreadsheets) that filter on the four old values or select `primary_goal` are **the owner's to check**; list them in the deploy guide.
 
 - [ ] **Step 1:** a grep test in the repo's docs checks is not available, so the orchestrator runs `grep -rn "primary_goal\b" --include=*.md --include=*.sql --include=*.py .` and records every hit in the delegation log. After the stage the only hits are the migration files and the history notes.
 - [ ] **Step 3:** edit the two guides. (The wider documentation update is task D.1.)
 
-### Task 5.5: S5 gate
+### Task 5.5: S5 gate **[Claude]**
 
 - [ ] Migration up, down, up on Postgres; the Postgres functional tests; the head assertion; full suites; build; lint; old-payload tests (a `/auth/me` payload with an old code renders as a humanised label, never a crash).
 - [ ] Hand checks by the orchestrator: a PATCH with the six, with one, with an old code, with an empty list, with duplicates; `\d users` shows no `primary_goal`; `\dT` shows no `primarygoal`; the report script runs.
@@ -614,7 +635,7 @@ The column is dropped, not altered, because Postgres cannot remove values from a
 
 ## Stage S6: Sign-up, Sign-in and Onboarding Redesign (Phases 1 to 5, with the Round 3 amendments)
 
-> Run through the Claude-Codex method in Part 1. Commit prefix `ui-s6:`. Handoff slugs: `ui-s6-foundations`, `ui-s6-login`, `ui-s6-signup-front`, `ui-s6-signup-back`, `ui-s6-states`. Spec: the planning page's sections `l1` to `s6`, `connect`, `flows`, `mobile`, `system`, `gaps`, `state`, `code` and Round 3 A to D (Q1 to Q28, Q61 to Q68). **Depends on S3 and S5** (screen 4 needs the six goals; the upload step shares `SoloCasUpload` with the S3 follow-ups). It also depends on the change-requests plan being merged: it builds on `OtpStubBanner.tsx` (Run 6), the green token (Run 7), Head of Family and the changed `OtpVerify.tsx`, `ReconsentGate.tsx`, `features/auth/api.ts` and `types.ts`.
+> Run through the orchestrator-and-workers method in Part 1. Commit prefix `ui-s6:`. Handoff slugs: `ui-s6-foundations`, `ui-s6-login`, `ui-s6-signup-front`, `ui-s6-signup-back`, `ui-s6-states`. Spec: the planning page's sections `l1` to `s6`, `connect`, `flows`, `mobile`, `system`, `gaps`, `state`, `code` and Round 3 A to D (Q1 to Q28, Q61 to Q68). **Depends on S3 and S5** (screen 4 needs the six goals; the upload step shares `SoloCasUpload` with the S3 follow-ups). It also depends on the change-requests plan being merged: it builds on `OtpStubBanner.tsx` (Run 6), the green token (Run 7), Head of Family and the changed `OtpVerify.tsx`, `ReconsentGate.tsx`, `features/auth/api.ts` and `types.ts`.
 
 **Goal:** the nine PDF screens (login 1 to 3, sign-up 1 to 6) plus the derived verify-email screen (3b), built as new components **beside** the old ones, switched by a `variant` prop (`"split"` desktop, `"legacy"` mobile). One shared state machine, so fixes help both. Behaviour is unchanged except the named amendments: the email change on Back, required answers on screen 4, the resume rule, the screen order of today's flow kept.
 
@@ -632,7 +653,7 @@ The column is dropped, not altered, because Postgres cannot remove values from a
 
 Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6.5 follows 6.3.
 
-### Task 6.1: Auth tokens and motion
+### Task 6.1: Auth tokens and motion **[Antigravity]**
 
 **Files:** Create `frontend/src/styles/auth-tokens.css` (imported by the new components only), `features/auth/redesign/authMotion.test.ts`.
 
@@ -641,7 +662,7 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 - [ ] **Step 1: Failing tests.** `the css defines authFloat`; `the css turns the animation off under prefers-reduced-motion` (read the file text and assert the media block); `every sketch variant is defined`.
 - [ ] **Step 3: Implement.** **Verify:** `cd frontend && npx vitest run src/features/auth/redesign/authMotion.test.ts`.
 
-### Task 6.2: The `variant` prop
+### Task 6.2: The `variant` prop **[Antigravity]**
 
 **Files:** Modify `frontend/src/App.tsx`, `features/auth/AuthEntryFlow.tsx`, `features/auth/OnboardingFlow.tsx`. Create `features/auth/redesign/variant.ts`. Tests `App.test.tsx`, `AuthEntryFlow.test.tsx`, `OnboardingFlow.test.tsx`.
 
@@ -650,7 +671,7 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 - [ ] **Step 1: Failing tests.** `App passes split on desktop and legacy on mobile`; `AuthEntryFlow legacy renders AuthShell exactly as before` (existing tests pass unedited); `OnboardingFlow legacy is unchanged`.
 - [ ] **Step 3: Implement.**
 
-### Task 6.3: Layout components
+### Task 6.3: Layout components **[Antigravity]**
 
 **Files:** Create `features/auth/redesign/AuthSplitCard.tsx`, `AuthLeftPanel.tsx`, `StepProgress.tsx`, `AuthField.tsx`, `AuthAlert.tsx`, `SegmentedTabs.tsx`, `InfoCard.tsx`, `StatusRow.tsx`, and a test for each.
 
@@ -665,7 +686,7 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 - [ ] **Step 1: Failing tests.** `AuthSplitCard renders the three right-panel rows and centres one 360px block`; `the top bar is the same on every screen` (Back and step positions); `stacks below 1024px`; `StepProgress shows Step 2 of 5 and Done with five full bars and never of 6`; `AuthField links its hint and error to the input`; `AuthAlert is announced and shows an optional shortcut`; `AuthLeftPanel keeps rows on one left edge and applies the motion class`; `SegmentedTabs is keyboard operable`.
 - [ ] **Step 3: Implement.** **Verify:** `npx vitest run src/features/auth/redesign`.
 
-### Task 6.4: Code panel, countdown and masks
+### Task 6.4: Code panel, countdown and masks **[Antigravity]**
 
 **Files:** Create `features/auth/redesign/OtpPanel.tsx`, `useResendCountdown.ts`, tests. Modify `features/auth/validation.ts` (`maskPhone`, `maskEmail`), `validation.test.ts`.
 
@@ -677,7 +698,7 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 - [ ] **Step 1: Failing tests.** `maskPhone keeps +91 and the last five digits`; `maskEmail keeps two letters and the domain`; `maskEmail handles a one-letter name`; `the countdown starts at 60 and enables Resend at 0`; `a 429 message from the server is shown`; `six labelled cells`; `Get code via call is shown and does nothing`; `the dev code strip shows only when a code is given`; `Edit number and Back call their handlers`.
 - [ ] **Step 3: Implement.** **Verify:** `npx vitest run src/features/auth/validation.test.ts src/features/auth/redesign`.
 
-### Task 6.5: Sketches and the dev index page
+### Task 6.5: Sketches and the dev index page **[Antigravity]**
 
 **Files:** Create `frontend/public/illustrations/auth/*` (the eight sketches and the logo, from the owner, S0 task 0.5) and `features/auth/redesign/DevIndex.tsx` plus its route, **only when `import.meta.env.DEV`**.
 
@@ -690,7 +711,7 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 
 ### Phase 2: Login (`ui-s6-login`). Tasks run in order (they share `AuthEntryFlow.tsx`).
 
-### Task 6.6: Login screen 1 (Q1 to Q3, login 1 position)
+### Task 6.6: Login screen 1 (Q1 to Q3, login 1 position) **[Antigravity]**
 
 **Files:** Create `features/auth/redesign/LoginEntry.tsx`, `authConfig.ts`, tests. Modify `AuthEntryFlow.tsx` (the split branch).
 
@@ -699,7 +720,7 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 - [ ] **Step 1: Failing tests.** `Email is the default tab`; `submitting an email calls handleEmailLoginRequest`; `switching to Mobile calls handlePhoneSubmit`; `validation errors show inline`; `no account found shows the alert with a Sign up shortcut`; `no Google button when AUTH_SHOW_GOOGLE is false and it appears when true`; `Back and the Sign up link go to sign-up screen 1`; `the headline block is left-aligned`.
 - [ ] **Step 3: Implement.**
 
-### Task 6.7: Login code screens
+### Task 6.7: Login code screens **[Antigravity]**
 
 **Files:** Modify `AuthEntryFlow.tsx`. Create `redesign/LoginCode.tsx` (thin wrapper) and a test.
 
@@ -712,7 +733,7 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 
 ### Phase 3: Sign-up front (`ui-s6-signup-front`). Tasks run in order.
 
-### Task 6.8: Sign-up screen 1 (Q8, Q11)
+### Task 6.8: Sign-up screen 1 (Q8, Q11) **[Antigravity]**
 
 **Files:** Create `redesign/SignupPhoneEntry.tsx`, test. Modify `AuthEntryFlow.tsx`.
 
@@ -720,13 +741,13 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 
 - [ ] **Step 1: Failing tests.** `the field is fixed +91`; `the consent line is shown and links the legal pages`; `Get OTP is disabled until the documents load`; `submit sends the accepted versions`; `account exists shows the shortcut`; `no Back is rendered`.
 
-### Task 6.9: Sign-up screen 2
+### Task 6.9: Sign-up screen 2 **[Antigravity]**
 
 **Files:** Create `redesign/SignupCode.tsx`, test. **Interfaces:** `Quick and secure.`, `We've sent a 6-digit verification code to +91 98765 43210` (not masked, the user just typed it), `Edit number`; right `Step 2 of 5`, `Verify your number`, six cells (the PDF draws five), `Verify & Continue`. Back and Edit go to screen 1 with the number kept. A correct code leads to screen 3 through `handlePhoneOtpSubmit` (the backend answers `email_required` with a pending token).
 
 - [ ] **Step 1: Failing tests.** `six cells`; `Edit and Back return to screen 1 with the number`; `a correct code moves to screen 3`; `409 account exists shows Log in instead`.
 
-### Task 6.10: Screen 3 and 3b, the pending name, account creation
+### Task 6.10: Screen 3 and 3b, the pending name, account creation **[Antigravity]**
 
 **Files:** Create `redesign/AccountDetails.tsx`, `pendingSignup.ts`, `EmailCode.tsx`, tests. Modify `AuthEntryFlow.tsx`, `OnboardingFlow.tsx`, `SoloCasUpload.tsx` (only the self-member save point).
 
@@ -738,7 +759,7 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 
 - [ ] **Step 1: Failing tests.** `name and email are validated and required`; `the encryption line is shown and the consent line is not`; `Continue saves the pending name and requests the email code`; `the verify screen shows the masked address and counts down`; `after the session exists the self member is created once from the stored name`; `a double mount or double click creates one self member`; `a refresh between the code and the name shows only the name field with the email read-only`; `a stored name for another phone is ignored and cleared`; `sessionStorage failing does not break the screen`.
 
-### Task 6.11: The return trip, email change (Q10 amended, Q65, Q66)
+### Task 6.11: The return trip, email change (Q10 amended, Q65, Q66) **[Antigravity]**
 
 **Files:** Modify `redesign/AccountDetails.tsx`, `EmailCode.tsx`, `OnboardingFlow.tsx`. Tests alongside.
 
@@ -751,7 +772,7 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 
 ### Phase 4: Sign-up back (`ui-s6-signup-back`). Needs S5. Tasks run in order.
 
-### Task 6.12: Screen 4, investor profile (Q12 amended, Q13b B, Q67, Q68)
+### Task 6.12: Screen 4, investor profile (Q12 amended, Q13b B, Q67, Q68) **[Antigravity]**
 
 **Files:** Create `redesign/InvestorProfile.tsx`, `OptionRow.tsx`, `ChipCheckbox.tsx`, tests. Modify `OnboardingFlow.tsx`, `onboardingSteps.ts`.
 
@@ -760,13 +781,13 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 - [ ] **Step 1: Failing tests.** `nothing is pre-selected and there is no Skip`; `Continue with neither answered shows both errors and focuses the first`; `one answered and one not shows only the missing one`; `Select all selects all six and becomes Clear all`; `Clear all clears them`; `a single choice for the first question`; `Continue saves the investor type and the goals in one updateMe call`; `a tester resumed from q3_purpose sees the answers filled`; `the errors are announced`.
 - [ ] **Step 3: Implement.**
 
-### Task 6.13: Screen 5, Connect accounts
+### Task 6.13: Screen 5, Connect accounts **[Antigravity]**
 
 **Files:** Create `redesign/ConnectAccounts.tsx`, `SourceRow.tsx`, tests. **Interfaces:** `Step 5 of 5`, `What would you like to connect first?`, `You can always add more accounts later.`, **Mutual funds** active (`Import your holdings via CAMS or MF Central`, wording kept as drawn, Q15), then `Stocks & ETFs`, `PMS & AIFs`, `Real estate`, `Gold`, `Bank accounts, loans & credit cards`, each with a `Coming soon` pill and not selectable (Q14). `Continue` renders the existing `SoloCasUpload` (today's import screens, no step bar, Q17, Q64) and writes the step `cas_upload`. **No skip** (Q16 B). Back goes to screen 4 with answers filled; today's import screens keep their own links.
 
 - [ ] **Step 1: Failing tests.** `only Mutual funds is selectable`; `coming-soon rows ignore clicks and keys`; `Continue shows the import screens`; `the step is saved as cas_upload`; `Back returns to screen 4 with answers`; `there is no skip`.
 
-### Task 6.14: Screen 6, All set, and the resume rule (Q18, Q19, Q63, Q64)
+### Task 6.14: Screen 6, All set, and the resume rule (Q18, Q19, Q63, Q64) **[Antigravity]**
 
 **Files:** Create `redesign/AllSet.tsx`, tests. Modify `SoloCasUpload.tsx` (add an `onImported(result)` prop, the existing completion write moves behind the button), `OnboardingFlow.tsx` (`resumeStep`), `onboardingSteps.ts`.
 
@@ -781,7 +802,7 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 
 ### Phase 5: States, tablet, accessibility and tests (`ui-s6-states`)
 
-### Task 6.15: States and regression
+### Task 6.15: States and regression **[Antigravity]**
 
 **Files:** Modify the redesign components; add Playwright specs under the repo's existing e2e or screenshot folder.
 
@@ -790,14 +811,14 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 - [ ] **Accessibility pass:** focus order, visible focus, announced errors, labelled code cells, contrast of the mint tints, reduced motion.
 - [ ] **Tests.** `AuthEntryFlow.test.tsx` gets the split-variant cases (the legacy cases stay); `OnboardingFlow.test.tsx` gets resume and All set; `SoloCasUpload*.test.tsx` the new hook. Playwright: every screen and state against the spec's mockups at 1440 and 1024.
 
-### Task 6.16: S6 gate
+### Task 6.16: S6 gate **[Claude]**
 
 - [ ] Full suites; `npm run build`; `npm run lint`; the old-payload tests; the mobile regression; screenshots; a manual walk of sign-up (phone, code, name and email, email code, screen 4 required answers, Back and an email change, Connect accounts, an import under a different typed name from S3, All set, Home) and of login by email and by mobile.
 - [ ] Review gate over the stage's range, run per phase and once over the whole stage. The owner relays each. Tag `ui-s6-done`.
 
 ---
 
-## Task D.1: Documentation update (after S6, before S7; Claude only, the owner reviews the diff)
+## Task D.1: Documentation update **[Claude]** (after S6, before S7; the owner reviews the diff)
 
 **Files:** `Docs/PRDs/PRD-02-Signup-Onboarding.md` (FR-5 goals; FR-7 and FR-7a: screen 4 questions are now required on desktop, mobile keeps Skip; the new screen order), `Docs/PRDs/Database-Schema-Unifolio.md` (goals columns, new head migration), `backend.md`, `database.md`, `decisions.md` (one line per decision above), `log.md`, `session.md`, `DEFERRED_FEATURES.md` (the Profile financial-details entry names the stored goals), `CLAUDE.md` Session State pointer (Alembic head after S5), `Docs/orchestration/2026-09-30-staging-db-verification-guide.md` lines 167 and 202 (select `primary_goals`, not `primary_goal`), `Docs/orchestration/2026-10-01-post-deploy-db-check-guide.md` line 240 (expected values are the new codes), the Profile planning docs that name the old goals.
 
@@ -807,7 +828,7 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 
 ## Stage S7: Staging QA and Rollout
 
-> Run through the Claude-Codex method in Part 1. Commit prefix `ui-s7:` (documents only). Handoff slug: `ui-s7-staging`. **Starts only after S6 is tagged `ui-s6-done`, task D.1 (documentation update) is reviewed by the owner, and the owner gives an explicit go.** Nothing is pushed and nothing is deployed before that go (repo rule). The owner commits and pushes manually.
+> Run through the orchestrator-and-workers method in Part 1. Commit prefix `ui-s7:` (documents only). Handoff slug: `ui-s7-staging`. **Starts only after S6 is tagged `ui-s6-done`, task D.1 (documentation update) is reviewed by the owner, and the owner gives an explicit go.** Nothing is pushed and nothing is deployed before that go (repo rule). The owner commits and pushes manually.
 
 **Goal:** one staging deploy of S1 to S6 on LeapSwitch, a written deploy guide, a QA checklist per change, and a verified rollback path. The goals migration is the only schema change.
 
@@ -815,9 +836,9 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 
 ---
 
-### Task 7.1: Write the staging deploy guide
+### Task 7.1: Write the staging deploy guide **[Claude]**
 
-**Files:** Create `Docs/orchestration/<date>-staging-deploy-guide-ui-round-2.md` in the format of `2026-10-29-staging-deploy-guide-individual-fund.md` and `2026-10-20-leapswitch-staging-deploy-guide-analytics-and-chandra.md` (the manager runs it through the manager's own Claude, as for earlier releases).
+**Files:** Create `Docs/orchestration/<date>-staging-deploy-guide-ui-round-2.md` in the format of `2026-10-29-staging-deploy-guide-individual-fund.md` and `2026-10-20-leapswitch-staging-deploy-guide-analytics-and-chandra.md` (the owner runs it with Claude, as the earlier guides were run by their operator).
 
 **Contents (the sequence, from the spec's goals release section):**
 1. State of the VM before: Alembic head recorded, services healthy.
@@ -832,7 +853,7 @@ Tasks 6.1, 6.2, 6.3 and 6.4 touch different files and **may run in parallel**; 6
 
 - [ ] Claude writes it, the owner reads it, nothing runs.
 
-### Task 7.2: QA checklist (the manager runs it)
+### Task 7.2: QA checklist (the owner runs it, Claude records) **[Claude]**
 
 One row per check, with the expected result and a screenshot where noted. Use the synthetic statements in `Docs/CAS Files/synthetic/pdfs/` (password `MF@123`) and the owner's real statements, which are never committed.
 
@@ -856,11 +877,11 @@ One row per check, with the expected result and a screenshot where noted. Use th
 | 16 | Motion and accessibility | Sketches float gently and stop with reduced motion. Keyboard-only walk through sign-up |
 | 17 | Rollback | Flip the `variant` in a test build and confirm the old screens return |
 
-- [ ] The manager records pass or fail with a screenshot per row. Any fail goes back to the stage that owns it.
+- [ ] The owner records pass or fail with a screenshot per row. Any fail goes back to the stage that owns it.
 
-### Task 7.3: Rollout and close-out
+### Task 7.3: Rollout and close-out **[Claude]**
 
-- [ ] The owner reviews the QA results and gives the explicit go. The manager runs the deploy guide. The orchestrator updates `session.md`, `decisions.md`, `log.md` and the delegation log (task D.1 already prepared them) and the Priority 1 item in `CLAUDE.md` is left untouched (unrelated).
+- [ ] The owner reviews the QA results and gives the explicit go. The owner runs the deploy guide with Claude. The orchestrator updates `session.md`, `decisions.md`, `log.md` and the delegation log (task D.1 already prepared them) and the Priority 1 item in `CLAUDE.md` is left untouched (unrelated).
 - [ ] Tag `ui-s7-done`. Open items, if any, go to `DEFERRED_FEATURES.md`: layered sketches for richer motion, a shared donut ring component for Home and Mutual Funds, restyling of the screens that had no mockup (link account, re-consent gate), the optional Postgres goals-count query.
 
 
