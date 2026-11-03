@@ -18,9 +18,14 @@ import {
   verifyOtp,
 } from "./api";
 import { isEmailRequired, isLinkRequired, isPhoneRequired } from "./types";
+import { AccountDetails } from "./redesign/AccountDetails";
 import { AUTH_SHOW_GOOGLE } from "./redesign/authConfig";
+import { EmailCode } from "./redesign/EmailCode";
 import { LoginCode } from "./redesign/LoginCode";
 import { LoginEntry } from "./redesign/LoginEntry";
+import { savePendingSignup } from "./redesign/pendingSignup";
+import { SignupCode } from "./redesign/SignupCode";
+import { SignupPhoneEntry } from "./redesign/SignupPhoneEntry";
 import type { ExistingMethod } from "./types";
 import { useAuth } from "./AuthContext";
 import { getSignInNotice, setSignInNotice } from "./session";
@@ -74,6 +79,9 @@ export function AuthEntryFlow({
   // The split login screen keeps what was typed so Edit and Back from the code screens return to it filled.
   const [loginTab, setLoginTab] = useState<"email" | "phone">("email");
   const [loginValue, setLoginValue] = useState("");
+  // The split sign-up screen 3 keeps what was typed so Back and Edit from the email code return to it filled.
+  const [signupName, setSignupName] = useState("");
+  const [signupEmailInput, setSignupEmailInput] = useState("");
 
   // Mandatory phone-gate state (Design Spec §1): set when a Google/email
   // verification returns phone_required. Reuses the existing "phone"/"otp"
@@ -711,6 +719,71 @@ export function AuthEntryFlow({
         onResend={() => void handlePhoneSubmit(identifier)}
         onBack={() => goToStep("landing")}
         onEditIdentity={() => goToStep("landing")}
+      />
+    );
+  }
+
+  // The split variant redraws phone-first sign-up (screens 1 to 3b). The email-first and Google sign-up paths, the
+  // gate and link-account steps keep rendering as before.
+  const splitSignup = variant === "split" && authMode === "signup" && !googleConsentToken && !phoneGateToken && !linkInfo;
+  if (splitSignup && (step === "landing" || step === "phone")) {
+    return (
+      <SignupPhoneEntry
+        error={error}
+        submitting={submitting}
+        legalReady={Boolean(docs)}
+        legalLoadError={docsError}
+        onLegalRetry={() => void refetch()}
+        initialValue={identifier}
+        onSubmit={(phone) => void handleSignupPhoneSubmit(phone)}
+        onLogin={handleGoToLogin}
+      />
+    );
+  }
+  if (splitSignup && step === "otp") {
+    return (
+      <SignupCode
+        phone={identifier}
+        devOtp={devOtp}
+        error={error}
+        submitting={submitting}
+        onSubmit={(code) => void handlePhoneOtpSubmit(code)}
+        onResend={() => void handlePhoneSubmit(identifier)}
+        onBack={() => goToStep("landing")}
+        onEditNumber={() => goToStep("landing")}
+        onLogin={handleGoToLogin}
+      />
+    );
+  }
+  if (splitSignup && step === "email" && emailGateToken) {
+    return (
+      <AccountDetails
+        initialName={signupName}
+        initialEmail={signupEmailInput}
+        error={error}
+        submitting={submitting}
+        onBack={() => goToStep("landing")}
+        onSubmit={({ name, email }) => {
+          setSignupName(name);
+          setSignupEmailInput(email);
+          // The account is created when the email code is verified, so the name waits in sessionStorage until then.
+          savePendingSignup({ name, phone: identifier });
+          void handleEmailGateSubmit(email);
+        }}
+      />
+    );
+  }
+  if (splitSignup && step === "email_otp" && emailOtpFlow === "phone_first") {
+    return (
+      <EmailCode
+        email={emailOtpEmail}
+        devOtp={devOtp}
+        error={error}
+        submitting={submitting}
+        onSubmit={(code) => void handleEmailOtpSubmit(code)}
+        onResend={() => void handleEmailOtpResend()}
+        onBack={() => goToStep("email")}
+        onEditEmail={() => goToStep("email")}
       />
     );
   }

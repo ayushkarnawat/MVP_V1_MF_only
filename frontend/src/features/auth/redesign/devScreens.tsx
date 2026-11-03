@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AccountDetails } from "./AccountDetails";
 import { AuthAlert } from "./AuthAlert";
 import { AuthField } from "./AuthField";
 import { AuthLeftPanel } from "./AuthLeftPanel";
@@ -8,6 +9,9 @@ import { LoginCode } from "./LoginCode";
 import { LoginEntry } from "./LoginEntry";
 import { OtpPanel } from "./OtpPanel";
 import { DevTabsDemo } from "./DevTabsDemo";
+import { EmailCode } from "./EmailCode";
+import { SignupCode } from "./SignupCode";
+import { SignupPhoneEntry } from "./SignupPhoneEntry";
 import { StatusRow } from "./StatusRow";
 import { StepProgress } from "./StepProgress";
 
@@ -72,6 +76,36 @@ export const DEV_SCREENS: DevScreen[] = [
     id: "login-code-email",
     title: "Login, email code",
     render: () => <LoginCode channel="email" identity="siddharth@gmail.com" devOtp={null} error="That code has expired." submitting={false} onSubmit={noop} onResend={noop} onBack={noop} onEditIdentity={noop} />,
+  },
+  {
+    id: "signup-phone",
+    title: "Sign-up, step 1 (Let's get started)",
+    render: () => <SignupPhoneEntry error={null} submitting={false} legalReady onSubmit={noop} onLogin={noop} />,
+  },
+  {
+    id: "signup-phone-exists",
+    title: "Sign-up, step 1, account already exists",
+    render: () => <SignupPhoneEntry error="An account with this mobile number already exists." submitting={false} legalReady onSubmit={noop} onLogin={noop} />,
+  },
+  {
+    id: "signup-code",
+    title: "Sign-up, step 2 (mobile code)",
+    render: () => <SignupCode phone="+919876543210" devOtp="123456" error={null} submitting={false} onSubmit={noop} onResend={noop} onBack={noop} onEditNumber={noop} onLogin={noop} />,
+  },
+  {
+    id: "signup-account",
+    title: "Sign-up, step 3 (Create your account)",
+    render: () => <AccountDetails onSubmit={noop} onBack={noop} />,
+  },
+  {
+    id: "signup-account-locked",
+    title: "Sign-up, step 3, name only (email already verified)",
+    render: () => <AccountDetails initialEmail="siddharth@gmail.com" emailLocked onSubmit={noop} />,
+  },
+  {
+    id: "signup-email-code",
+    title: "Sign-up, step 3 (email code)",
+    render: () => <EmailCode email="siddharth@gmail.com" devOtp={null} error="That code has expired." submitting={false} onSubmit={noop} onResend={noop} onBack={noop} onEditEmail={noop} />,
   },
   {
     id: "step-progress",

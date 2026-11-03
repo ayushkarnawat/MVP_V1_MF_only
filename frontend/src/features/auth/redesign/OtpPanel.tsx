@@ -22,11 +22,17 @@ export interface OtpPanelProps {
   submitting?: boolean;
   /** The "Get code via call" line is drawn but has no function (Q4). */
   showCall?: boolean;
+  /** Replaces the heading, which is otherwise "Verify your mobile number" or "Verify your email address". */
+  title?: string;
+  /** Replaces "Enter the 6-digit code sent to {identity}." */
+  description?: string;
+  /** A green shortcut under the error, such as "Log in instead". */
+  errorAction?: { label: string; onClick: () => void };
 }
 
 export function OtpPanel({
   channel, identity, submitLabel, devOtp, error, onSubmit, onResend, onBack, onEditIdentity, editLabel = "Edit",
-  submitting = false, showCall = true,
+  submitting = false, showCall = true, title, description, errorAction,
 }: OtpPanelProps) {
   const [code, setCode] = useState("");
   const [local, setLocal] = useState<string | null>(null);
@@ -47,9 +53,9 @@ export function OtpPanel({
     <form onSubmit={submit} noValidate className="space-y-5 text-left">
       <div className="space-y-2">
         <h1 className="text-[26px] font-bold leading-tight text-[var(--ui-text)]">
-          {channel === "email" ? "Verify your email address" : "Verify your mobile number"}
+          {title ?? (channel === "email" ? "Verify your email address" : "Verify your mobile number")}
         </h1>
-        <p className="text-sm text-[var(--ui-text-muted)]">Enter the 6-digit code sent to {identity}.</p>
+        <p className="text-sm text-[var(--ui-text-muted)]">{description ?? `Enter the 6-digit code sent to ${identity}.`}</p>
         {onEditIdentity ? (
           <button type="button" onClick={onEditIdentity} className="text-xs font-semibold text-[var(--pos-text)] hover:underline">
             {editLabel}
@@ -70,7 +76,9 @@ export function OtpPanel({
           autoFocus
         />
       </div>
-      {shown ? <AuthAlert tone="error">{shown}</AuthAlert> : null}
+      {shown ? (
+        <AuthAlert tone="error" action={local ? undefined : errorAction}>{shown}</AuthAlert>
+      ) : null}
       <Button type="submit" disabled={submitting} className="h-[52px] w-full rounded-full text-[15px] font-bold">
         {submitting ? (
           <>

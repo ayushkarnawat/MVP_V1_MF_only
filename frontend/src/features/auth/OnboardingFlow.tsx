@@ -1,5 +1,5 @@
 import type { AuthVariant } from "./redesign/variant";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { currentStep, goBack, goNext, initHistory, isSkipped, markAnswered, skipToNext } from "./onboardingHistory";
 import type { HistoryState } from "./onboardingHistory";
@@ -10,7 +10,10 @@ import { Q2Investing } from "./Q2Investing";
 import { ALL_GOALS, Q3Purpose } from "./Q3Purpose";
 import { OnboardingCardStack } from "./OnboardingCardStack";
 import { SoloCasUpload } from "./SoloCasUpload";
-import { createHouseholdMember } from "./api";
+import { createHouseholdMember, listHouseholdMembers } from "./api";
+import { AccountDetails } from "./redesign/AccountDetails";
+import { AuthPage } from "./redesign/AuthPage";
+import { clearPendingSignup, readPendingSignup } from "./redesign/pendingSignup";
 import type { InvestorType, MeResponse, PrimaryGoal } from "./types";
 
 export interface OnboardingAnswers {
@@ -47,8 +50,9 @@ interface OnboardingFlowProps {
   variant?: AuthVariant;
 }
 
-export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
+export function OnboardingFlow({ isMobile = false, variant = "legacy" }: OnboardingFlowProps) {
   const { me, updateMe } = useAuth();
+  const split = variant === "split" && !isMobile;
   const [history, setHistory] = useState<HistoryState>(() => initHistory(resumeStep(me)));
   const [answers, setAnswers] = useState<OnboardingAnswers>(() => ({
     name: me?.self_name ?? "",
@@ -57,6 +61,49 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
   }));
 
   const step = currentStep(history);
+
+  // Split sign-up: the name typed on screen 3 was kept in sessionStorage because the account did not exist yet. Now
+  // it does, so the self member is created from it (list first, so a reload never makes a second one) and the flow
+  // moves on. A stored name for another phone number is dropped. If saving fails, or nothing is stored (a refresh),
+  // the name screen is shown with the verified email read-only.
+  const [handover, setHandover] = useState<"checking" | "saving" | "idle">(() => {
+    if (!split || step !== "q1_name") return "idle";
+    const pending = readPendingSignup();
+    return pending && pending.phone === me?.phone_number ? "saving" : "checking";
+  });
+  const [handoverError, setHandoverError] = useState<string | null>(null);
+  const handoverStarted = useRef(false);
+  useEffect(() => {
+    if (handover === "checking") {
+      const pending = readPendingSignup();
+      if (pending && pending.phone !== me?.phone_number) clearPendingSignup();
+      setHandover("idle");
+      return;
+    }
+    if (handover !== "saving" || handoverStarted.current) return;
+    handoverStarted.current = true;
+    const pending = readPendingSignup();
+    if (!pending) {
+      setHandover("idle");
+      return;
+    }
+    void (async () => {
+      try {
+        const members = await listHouseholdMembers();
+        if (!members.some((member) => member.relationship === "self")) {
+          await createHouseholdMember(pending.name, "self");
+        }
+        clearPendingSignup();
+        setAnswers((a) => ({ ...a, name: pending.name }));
+        setHistory((h) => goNext(markAnswered(h), "q2_investing"));
+        setHandover("idle");
+      } catch {
+        setAnswers((a) => ({ ...a, name: pending.name }));
+        setHandoverError("Couldn't save your name. Try again.");
+        setHandover("idle");
+      }
+    })();
+  }, [handover, me?.phone_number]);
 
   useEffect(() => {
     if (step !== "done") {
@@ -75,11 +122,31 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
   // the step in place and shows the error.
   const submitName = async (name: string) => {
     await createHouseholdMember(name, "self");
+    clearPendingSignup();
     setAnswers((a) => ({ ...a, name }));
     advance("q2_investing");
   };
 
   const renderStep = () => {
+    if (step === "q1_name" && split) {
+      if (handover !== "idle") {
+        return (
+          <AuthPage>
+            <p role="status" className="text-sm text-[var(--ui-text-muted)]">Setting up your profile...</p>
+          </AuthPage>
+        );
+      }
+      return (
+        <AccountDetails
+          initialName={answers.name}
+          initialEmail={me?.email ?? ""}
+          emailLocked
+          error={handoverError}
+          onSubmit={({ name }) => submitName(name)}
+        />
+      );
+    }
+
     if (step === "q1_name") {
       return isMobile ? (
         <Q1Name
