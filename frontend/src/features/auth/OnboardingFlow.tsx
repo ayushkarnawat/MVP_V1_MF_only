@@ -12,6 +12,7 @@ import { OnboardingCardStack } from "./OnboardingCardStack";
 import { SoloCasUpload } from "./SoloCasUpload";
 import { createHouseholdMember, listHouseholdMembers } from "./api";
 import { getHouseholdImportHistory } from "../import/api";
+import { isCompletedImport } from "../import/importStatus";
 import { paths } from "@/shell/nav/paths";
 import { AccountDetails } from "./redesign/AccountDetails";
 import { AllSet } from "./redesign/AllSet";
@@ -81,7 +82,7 @@ export function OnboardingFlow({ isMobile = false, variant = "legacy" }: Onboard
     getHouseholdImportHistory().then(
       (items) => {
         if (!live) return;
-        if (items.some((item) => item.status === "import_successful")) setHistory(initHistory("all_set"));
+        if (items.some((item) => isCompletedImport(item.status))) setHistory(initHistory("all_set"));
         setResuming(false);
       },
       () => {

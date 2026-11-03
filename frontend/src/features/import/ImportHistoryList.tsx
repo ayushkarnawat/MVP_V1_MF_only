@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/Badge";
 import { NewFundsList } from "@/components/mf/NewFundsList";
 import { getImportNewFunds, getMemberImportHistory } from "./api";
+import { isCompletedImport } from "./importStatus";
 import type { CASImportStatusResponse, NewFund } from "./types";
 import { FileText, AlertCircle } from "lucide-react";
 
@@ -102,7 +103,7 @@ export function ImportHistoryList({ memberId }: ImportHistoryListProps) {
   return (
     <div className="space-y-2.5">
       {history.map((item) => {
-        const isSuccess = item.status === "import_successful";
+        const isSuccess = isCompletedImport(item.status);
         const dateRange =
           item.statement_from_date && item.statement_to_date
             ? `${item.statement_from_date} to ${item.statement_to_date}`

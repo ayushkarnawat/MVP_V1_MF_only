@@ -141,6 +141,18 @@ describe("OnboardingFlow, split variant, resume (task 6.14)", () => {
     vi.mocked(importApi.getHouseholdImportHistory).mockResolvedValue([{ import_id: "i1", status: "import_successful" }] as never);
     await screen6();
   });
+  it("a statement upload is saved with the status confirmed, and that counts as a completed import", async () => {
+    renderFlow({ ...ME, onboarding_step: "cas_upload" });
+    vi.mocked(importApi.getHouseholdImportHistory).mockResolvedValue([{ import_id: "i1", status: "confirmed" }] as never);
+    await screen6();
+  });
+  it("only failed or unfinished imports do not count, so the person resumes on Connect accounts", async () => {
+    renderFlow({ ...ME, onboarding_step: "cas_upload" });
+    vi.mocked(importApi.getHouseholdImportHistory).mockResolvedValue(
+      ["failed", "import_failed", "processing", "retry_pending", "upload_started", "password_required", "validation_failed", "not_started"].map((status, index) => ({ import_id: `i${index}`, status })) as never,
+    );
+    await screen5();
+  });
   it("a saved cas_upload with no completed import resumes on Connect accounts", async () => {
     renderFlow({ ...ME, onboarding_step: "cas_upload" });
     vi.mocked(importApi.getHouseholdImportHistory).mockResolvedValue([{ import_id: "i1", status: "password_required" }] as never);
