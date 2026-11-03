@@ -55,6 +55,13 @@ it("sends exactly the goals that were ticked", () => {
   expect(onContinue).toHaveBeenCalledWith(["buy_home", "tax_planning"]);
 });
 
+it("ignores an old stored goal code: nothing looks ticked, Continue sends only the new codes", () => {
+  const { onContinue } = setup(["consolidated_view", "buy_home"]);
+  expect(screen.getAllByRole("checkbox").filter(box => (box as HTMLInputElement).checked || box.getAttribute("aria-checked") === "true")).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+  expect(onContinue).toHaveBeenCalledWith(["buy_home"]);
+});
+
 it("Skip still works", () => {
   const { onSkip, onContinue } = setup();
   fireEvent.click(screen.getByRole("button", { name: /skip/i }));

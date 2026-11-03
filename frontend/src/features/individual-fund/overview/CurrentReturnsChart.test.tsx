@@ -56,7 +56,7 @@ describe("CurrentReturnsChart: the Actual XIRR graph", () => {
       const bench = data.rows.benchmark_same_flows![col];
       expect(props.buckets[index].values[0]).toBe(holding == null ? 0 : Number(holding));
       expect(props.buckets[index].values[1]).toBe(bench == null ? 0 : Number(bench));
-      const missing = holding == null && bench == null;
+      const missing = holding == null || bench == null;
       expect(props.buckets[index].label).toBe(missing ? `${columnHeader(col)} —` : columnHeader(col));
     });
     expect(props.buckets).toHaveLength(data.columns.length);
@@ -71,6 +71,23 @@ describe("CurrentReturnsChart: the Actual XIRR graph", () => {
     const threeYears = chart.props!.buckets.find(bucket => bucket.label.startsWith("3Y"))!;
     expect(threeYears.label).toBe("3Y —");
     expect(threeYears.values).toEqual([0, 0]);
+  });
+  it("a column with only one figure missing is dashed too, and the text list says which one", () => {
+    const data = cur();
+    data.rows.holding_xirr["5Y"] = null;
+    data.rows.benchmark_same_flows!["5Y"] = "12.3000";
+    mount(section(data));
+    expect(chart.props!.buckets.find(bucket => bucket.label.startsWith("5Y"))!.label).toBe("5Y —");
+    const list = screen.getByRole("list", { name: `Actual XIRR figures for ${NAME}` });
+    expect(within(list).getByText(/^5Y: your holding not available, benchmark/)).toBeInTheDocument();
+  });
+  it("a real 0.0% is not dashed", () => {
+    const data = cur();
+    data.rows.holding_xirr["1Y"] = "0.0000";
+    data.rows.benchmark_same_flows!["1Y"] = "0.0000";
+    mount(section(data));
+    expect(chart.props!.buckets[0].label).toBe(columnHeader("1Y"));
+    expect(within(screen.getByTestId("current-chart-values")).getByText(`${columnHeader("1Y")}: your holding ${formatPercent("0", { digits: 1 })}, benchmark ${formatPercent("0", { digits: 1 })}`)).toBeInTheDocument();
   });
   it("a negative XIRR is passed through as a negative number", () => {
     const data = cur();
@@ -124,8 +141,9 @@ describe("CurrentReturnsChart: the Actual XIRR graph", () => {
     expect(onShowModel).toHaveBeenCalledTimes(1);
   });
   it("not held, in the family view: the family wording", () => {
-    mount(section(null, { status: "unavailable", reason: "not_held" }), { scope: { members, viewMode: "aggregate" } });
+    mount(section(null, { status: "unavailable", reason: "not_held" }), { scope: { members, viewMode: "aggregate", memberId: IDS.asha } });
     expect(screen.getByText("No one in your family holds this fund")).toBeInTheDocument();
+    expect(screen.queryByText(/ASHA RAO does not hold/)).toBeNull();
   });
   it("another unavailable reason shows the card's unavailable state, not the not-held box", () => {
     mount(section(null, { status: "unavailable", reason: "no_history" }));

@@ -27,7 +27,9 @@ export interface ReturnsTableProps {
 }
 
 export function ReturnsTable({ schemeId, scope, fundName, mode, current }: ReturnsTableProps) {
-  const { selectedMember } = useScope();
+  const { selectedMember: pickedMember } = useScope();
+  // The stored member is only the one a member view would show; the family view names no one.
+  const selectedMember = scope === "combined" ? null : pickedMember;
 
   const inception = useFundSection<ReturnsResponse>(
     (signal) => fundPageApi.returns(schemeId, "inception", scope, signal),
@@ -378,7 +380,7 @@ export function ReturnsTable({ schemeId, scope, fundName, mode, current }: Retur
       current.status === "unavailable" &&
       current.reason === "not_held" ? (
         <p data-testid="returns-not-held" className="text-sm text-[var(--ui-text-muted)]">
-          {`Not held by ${selectedMember?.name ?? "this member"}. Inception returns are still shown.`}
+          {`Not held by ${selectedMember ? selectedMember.name : "anyone in your family"}. Inception returns are still shown.`}
         </p>
       ) : (
         <SectionState

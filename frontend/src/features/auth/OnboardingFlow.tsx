@@ -7,7 +7,7 @@ import { isOnboardingStep } from "./onboardingSteps";
 import type { OnboardingStep } from "./onboardingSteps";
 import { Q1Name } from "./Q1Name";
 import { Q2Investing } from "./Q2Investing";
-import { Q3Purpose } from "./Q3Purpose";
+import { ALL_GOALS, Q3Purpose } from "./Q3Purpose";
 import { OnboardingCardStack } from "./OnboardingCardStack";
 import { SoloCasUpload } from "./SoloCasUpload";
 import { createHouseholdMember } from "./api";
@@ -31,7 +31,8 @@ export function resumeStep(me: MeResponse | null | undefined): OnboardingStep {
   if (step === "trust_primer") {
     if (!me?.self_name) return "q1_name";
     if (!me.investor_type) return "q2_investing";
-    if (!me.primary_goals || me.primary_goals.length === 0) return "q3_purpose";
+    // Only the six current codes count: someone who stored an old code is asked once more (decision QF).
+    if (!me.primary_goals || !me.primary_goals.some(g => ALL_GOALS.includes(g))) return "q3_purpose";
     return "cas_upload";
   }
   if (!isOnboardingStep(step) || step === "done") return "q1_name";
@@ -52,7 +53,7 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
   const [answers, setAnswers] = useState<OnboardingAnswers>(() => ({
     name: me?.self_name ?? "",
     investorType: me?.investor_type ?? null,
-    primaryGoals: me?.primary_goals ?? [],
+    primaryGoals: (me?.primary_goals ?? []).filter(g => ALL_GOALS.includes(g)),
   }));
 
   const step = currentStep(history);

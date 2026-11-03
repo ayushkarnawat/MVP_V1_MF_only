@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { PromptDialog } from "./PromptDialog";
 import { PRIMARY_BTN, SECONDARY_BTN } from "./copy";
 
@@ -24,6 +25,16 @@ export function NameMismatchDialog({
   onAddAsFamily,
   onUploadDifferent,
 }: NameMismatchDialogProps) {
+  // One request per click: a second click while the first is in flight would send resolve-add-as-family twice.
+  // An error from the server, or the dialog reopening, lets the button work again; the timer covers a repeat of the
+  // same error text, which would not change `error` and so would leave the button stuck.
+  const [sent, setSent] = useState(false);
+  useEffect(() => setSent(false), [error, isOpen]);
+  useEffect(() => {
+    if (!sent) return;
+    const timer = setTimeout(() => setSent(false), 5000);
+    return () => clearTimeout(timer);
+  }, [sent]);
   return (
     <PromptDialog
       isOpen={isOpen}
@@ -32,7 +43,15 @@ export function NameMismatchDialog({
       onClose={onUploadDifferent}
       footer={
         <>
-          <button type="button" onClick={onAddAsFamily} className={PRIMARY_BTN}>
+          <button
+            type="button"
+            disabled={sent}
+            onClick={() => {
+              setSent(true);
+              onAddAsFamily();
+            }}
+            className={PRIMARY_BTN}
+          >
             {`Add ${statementName} as a family member`}
           </button>
           <button type="button" onClick={onUploadDifferent} className={SECONDARY_BTN}>

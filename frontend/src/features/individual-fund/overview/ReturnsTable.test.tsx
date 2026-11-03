@@ -176,6 +176,11 @@ describe("ReturnsTable", () => {
     expect(screen.queryByRole("table")).toBeNull();
   });
 
+  it("not held in the family view names no member even when one is stored", async () => {
+    mount("combined", { scope: { members, viewMode: "aggregate", memberId: IDS.asha } }, { mode: "current", current: notHeld });
+    expect(await screen.findByTestId("returns-not-held")).toHaveTextContent("Not held by anyone in your family. Inception returns are still shown.");
+  });
+
   it("test_non_equity_has_no_benchmark_row, and says why", async () => {
     const body = inception();
     body.rows.benchmark = null;

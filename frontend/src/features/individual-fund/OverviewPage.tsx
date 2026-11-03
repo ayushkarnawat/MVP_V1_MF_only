@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
 import { fundPageApi } from "./api";
 import { FundPageFrame } from "./FundPageFrame";
@@ -26,7 +26,18 @@ export function OverviewPage({ schemeId }: { schemeId: string }) {
   // made once, when Actual XIRR is first chosen, and read by both.
   const [mode, setMode] = useState<ReturnsMode>("inception");
   const [wantCurrent, setWantCurrent] = useState(false);
+  // Keyboard users: the toggle is drawn in a different card per mode, so the button that has focus is replaced.
+  // When focus was inside the performance card, it is handed to the same option in the card that is now shown.
+  const perfSlot = useRef<HTMLDivElement>(null);
+  const refocusToggle = useRef(false);
+  useEffect(() => {
+    if (!refocusToggle.current) return;
+    refocusToggle.current = false;
+    const buttons = perfSlot.current?.querySelectorAll<HTMLElement>('[role="group"][aria-label="Returns basis"] button[aria-pressed="true"]');
+    [...(buttons ?? [])].find(button => !button.closest("[hidden]"))?.focus();
+  }, [mode]);
   const changeMode = (next: ReturnsMode) => {
+    refocusToggle.current = perfSlot.current?.contains(document.activeElement) ?? false;
     setMode(next);
     if (next === "current") setWantCurrent(true);
   };
@@ -66,16 +77,19 @@ export function OverviewPage({ schemeId }: { schemeId: string }) {
             className="contents min-w-0 xl:block xl:space-y-5"
           >
             <div
+              ref={perfSlot}
               data-testid="slot-performance"
               className="order-1 min-w-0 xl:order-none"
             >
-              {mode === "inception" ? (
+              {/* Kept mounted (hidden) in Actual XIRR so the chosen period, the hidden lines and the loaded data survive the switch. */}
+              <div hidden={mode !== "inception"}>
                 <PerformanceChart
                   schemeId={schemeId}
                   fundName={ctx.summary.scheme.name}
                   toggleSlot={toggle}
                 />
-              ) : (
+              </div>
+              {mode === "current" && (
                 <CurrentReturnsChart
                   current={current}
                   fundName={ctx.summary.scheme.name}

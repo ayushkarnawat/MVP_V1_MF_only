@@ -203,6 +203,7 @@ describe("resumeStep", () => {
   });
   it("trust_primer with everything saved goes to upload", () => {
     expect(resumeStep({ ...baseMe, onboarding_step: "trust_primer", self_name: "Asha", investor_type: "self_directed", primary_goals: ["childrens_education"] })).toBe("cas_upload");
+    expect(resumeStep({ ...baseMe, onboarding_step: "trust_primer", self_name: "Asha", investor_type: "self_directed", primary_goals: ["consolidated_view"] as never })).toBe("q3_purpose");
   });
   it("any step past the name without a saved name goes back to the name step", () => {
     expect(resumeStep({ ...baseMe, onboarding_step: "cas_upload" })).toBe("q1_name");

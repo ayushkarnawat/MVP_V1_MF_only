@@ -51,7 +51,7 @@ export function Q3Purpose({
   currentStepIndex = 2,
   totalSteps = 4,
 }: Q3PurposeProps) {
-  const [picked, setPicked] = useState<PrimaryGoal[]>(selectedValues);
+  const [picked, setPicked] = useState<PrimaryGoal[]>(() => selectedValues.filter(g => ALL_GOALS.includes(g)));
   const allPicked = ALL_GOALS.every((g) => picked.includes(g));
   // "Why choose? All of it." is purely a UI shortcut: it saves the six real goal values, no seventh value (decision Q7).
   const toggleAll = () => setPicked(allPicked ? [] : [...ALL_GOALS]);

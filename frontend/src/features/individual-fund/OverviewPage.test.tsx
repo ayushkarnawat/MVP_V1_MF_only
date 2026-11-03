@@ -405,13 +405,38 @@ describe("OverviewPage: the returns toggle and the Actual XIRR graph (UI round 2
     await screen.findByTestId("line-chart");
     chooseActual();
     expect(await screen.findByTestId("grouped-bar-chart")).toBeInTheDocument();
-    expect(screen.queryByTestId("line-chart")).toBeNull();
+    expect(screen.getByTestId("line-chart")).not.toBeVisible();
     expect(screen.queryByRole("group", { name: "Performance period" })).toBeNull();
     expect(screen.getByRole("group", { name: "Returns basis" })).toBeInTheDocument();
     expect(within(screen.getByTestId("slot-returns")).getByText("Your holding (XIRR)")).toBeInTheDocument();
     chooseModel();
     expect(await screen.findByTestId("line-chart")).toBeInTheDocument();
     expect(screen.queryByTestId("grouped-bar-chart")).toBeNull();
+  });
+  it("the chosen period and a hidden line survive a round trip through Actual XIRR", async () => {
+    mount();
+    await screen.findByTestId("line-chart");
+    fireEvent.click(screen.getByRole("button", { name: "5Y" }));
+    fireEvent.click(screen.getByTestId("legend-benchmark"));
+    chooseActual();
+    await screen.findByTestId("grouped-bar-chart");
+    chooseModel();
+    expect(screen.getByRole("button", { name: "5Y" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("legend-benchmark")).toHaveAttribute("aria-pressed", "false");
+  });
+  it("keyboard focus stays on the toggle option when the mode changes", async () => {
+    mount();
+    await screen.findByTestId("line-chart");
+    const actual = within(toggle()).getByRole("button", { name: "Actual XIRR" });
+    actual.focus();
+    fireEvent.click(actual);
+    await screen.findByTestId("grouped-bar-chart");
+    expect(document.activeElement).toBe(within(toggle()).getByRole("button", { name: "Actual XIRR" }));
+    const model = within(toggle()).getByRole("button", { name: "Model Portfolio Returns" });
+    model.focus();
+    fireEvent.click(model);
+    await screen.findByTestId("line-chart");
+    expect(document.activeElement).toBe(within(toggle()).getByRole("button", { name: "Model Portfolio Returns" }));
   });
   it("the Current request follows the scope once Actual XIRR has been chosen", async () => {
     function Picker() {

@@ -36,13 +36,15 @@ function Legend({ items }: { items: { color: string; name: string }[] }) {
   );
 }
 
+const figure = (value: string | null | undefined) => (value == null ? "not available" : formatPercent(String(value), { digits: 1 }));
+
 function Bars({ data, fundName }: { data: CurrentReturnsResponse; fundName: string }) {
   const bench = data.rows.benchmark_same_flows;
   const buckets = data.columns.map((col) => {
     const holding = data.rows.holding_xirr[col];
     const other = bench ? bench[col] : null;
     // The chart draws a missing value as a zero-height bar; the dash in the label says it is missing, not zero.
-    const missing = holding == null && other == null;
+    const missing = holding == null || (bench ? other == null : false);
     return {
       label: missing ? `${columnHeader(col)} —` : columnHeader(col),
       values: bench ? [holding == null ? 0 : Number(holding), other == null ? 0 : Number(other)] : [holding == null ? 0 : Number(holding)],
@@ -60,13 +62,23 @@ function Bars({ data, fundName }: { data: CurrentReturnsResponse; fundName: stri
         ariaLabel={`Actual XIRR for ${fundName}`}
         height={250}
       />
+      {/* The bars cannot tell a missing figure from 0.0%, so the figures are also given as text, like the table cells. */}
+      <ul data-testid="current-chart-values" aria-label={`Actual XIRR figures for ${fundName}`} className="sr-only">
+        {data.columns.map(col => (
+          <li key={col}>
+            {`${columnHeader(col)}: your holding ${figure(data.rows.holding_xirr[col])}${bench ? `, benchmark ${figure(bench[col])}` : ""}`}
+          </li>
+        ))}
+      </ul>
       {note && <p data-testid="current-chart-note" className="text-xs text-[var(--ui-text-muted)]">{note}</p>}
     </div>
   );
 }
 
 export function CurrentReturnsChart({ current, fundName, toggleSlot, onShowModel }: CurrentReturnsChartProps) {
-  const { selectedMember } = useScope();
+  const { selectedMember: pickedMember, viewMode } = useScope();
+  // The stored member is only the one a member view would show; the family view names no one.
+  const selectedMember = viewMode === "member" ? pickedMember : null;
   const notHeld = current.status === "unavailable" && current.reason === "not_held";
   return (
     <section aria-labelledby="perf-title" className="space-y-4 rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4">
