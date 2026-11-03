@@ -9,7 +9,7 @@ import type { MeResponse } from "./types";
 
 vi.mock("./api", async () => {
   const actual = await vi.importActual<typeof import("./api")>("./api");
-  return { ...actual, getMe: vi.fn(), updateMe: vi.fn(), createHouseholdMember: vi.fn(), listHouseholdMembers: vi.fn(), updateMemberProfile: vi.fn() };
+  return { ...actual, getMe: vi.fn(), updateMe: vi.fn(), createHouseholdMember: vi.fn(), listHouseholdMembers: vi.fn(), updateMemberProfile: vi.fn(), requestContactChange: vi.fn() };
 });
 vi.mock("../import/api", async () => {
   const actual = await vi.importActual<typeof import("../import/api")>("../import/api");
@@ -199,6 +199,22 @@ describe("OnboardingFlow, split variant, Back from screen 4 (task 6.11)", () => 
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     await screen4();
     expect(api.updateMemberProfile).toHaveBeenCalledWith("self-1", { name: "Asha Kumar" });
+  });
+  it("a name saved on the return trip is kept when the email request fails and the person goes Back and returns", async () => {
+    renderFlow();
+    await screen4();
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    await screen.findByRole("heading", { name: "Create your account" });
+    vi.mocked(api.requestContactChange).mockRejectedValue(new Error("offline"));
+    fireEvent.change(screen.getByLabelText("Full name (as per PAN card)"), { target: { value: "Asha Kumar" } });
+    fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "new@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("alert");
+    fireEvent.click(within(screen.getByTestId("auth-topbar")).getByRole("button", { name: "Back" }));
+    await screen4();
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    await screen.findByRole("heading", { name: "Create your account" });
+    expect((screen.getByLabelText("Full name (as per PAN card)") as HTMLInputElement).value).toBe("Asha Kumar");
   });
   it("Back on the return trip goes back to screen 4", async () => {
     renderFlow();

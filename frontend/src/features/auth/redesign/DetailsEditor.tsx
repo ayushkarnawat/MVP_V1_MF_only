@@ -11,8 +11,8 @@ export interface DetailsEditorProps {
   initialEmail: string;
   /** Called once every changed value is saved (or nothing changed). */
   onDone: (saved: { name: string }) => void;
-  /** Back to screen 4 without saving anything more. */
-  onBack: () => void;
+  /** Back to screen 4 without saving anything more. Hands up the name as it is saved now (it may have been saved already). */
+  onBack: (saved: { name: string }) => void;
 }
 
 const EMAIL_NOTE = "If you change it, we send a new code to the new address.";
@@ -104,7 +104,7 @@ export function DetailsEditor({ initialName, initialEmail, onDone, onBack }: Det
       emailNote={EMAIL_NOTE}
       error={error}
       submitting={submitting}
-      onBack={onBack}
+      onBack={() => onBack({ name: savedName })}
       onSubmit={submit}
     />
   );

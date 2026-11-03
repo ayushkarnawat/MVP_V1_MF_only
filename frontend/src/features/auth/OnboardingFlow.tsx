@@ -217,7 +217,10 @@ export function OnboardingFlow({ isMobile = false, variant = "legacy" }: Onboard
         <DetailsEditor
           initialName={answers.name || me?.self_name || ""}
           initialEmail={me?.email ?? ""}
-          onBack={() => jump("q2_investing")}
+          onBack={({ name }) => {
+            setAnswers((a) => ({ ...a, name }));
+            jump("q2_investing");
+          }}
           onDone={({ name }) => {
             setEditingDetails(false);
             setAnswers((a) => ({ ...a, name }));

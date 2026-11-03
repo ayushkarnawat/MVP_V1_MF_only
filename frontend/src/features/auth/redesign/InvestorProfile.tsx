@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { GOAL_OPTIONS } from "@/features/profile-v2/lib/onboardingOptions";
 import type { InvestorType, PrimaryGoal } from "../types";
@@ -31,6 +32,7 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const firstOption = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const firstChip = useRef<HTMLButtonElement>(null);
 
   const allGoals = GOAL_OPTIONS.map((option) => option.value);
@@ -38,6 +40,20 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
   const toggleGoal = (goal: PrimaryGoal) => {
     setGoalsError(false);
     setGoals((current) => (current.includes(goal) ? current.filter((item) => item !== goal) : [...current, goal]));
+  };
+
+  // A radio group is one Tab stop (the chosen answer, or the first when none is chosen); the arrow keys move and choose.
+  const stopIndex = Math.max(0, INVESTOR_PROFILE_OPTIONS.findIndex((option) => option.value === investorType));
+  const moveOption = (event: KeyboardEvent<HTMLButtonElement>, from: number) => {
+    const last = INVESTOR_PROFILE_OPTIONS.length - 1;
+    let to = from;
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") to = from === last ? 0 : from + 1;
+    else if (event.key === "ArrowUp" || event.key === "ArrowLeft") to = from === 0 ? last : from - 1;
+    else return;
+    event.preventDefault();
+    setInvestorType(INVESTOR_PROFILE_OPTIONS[to].value);
+    setTypeError(false);
+    optionRefs.current[to]?.focus();
   };
 
   const submit = async () => {
@@ -85,7 +101,12 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
                 {INVESTOR_PROFILE_OPTIONS.map((option, index) => (
                   <OptionRow
                     key={option.value}
-                    ref={index === 0 ? firstOption : undefined}
+                    ref={(node) => {
+                      optionRefs.current[index] = node;
+                      if (index === 0) firstOption.current = node;
+                    }}
+                    tabStop={index === stopIndex}
+                    onKeyDown={(event) => moveOption(event, index)}
                     title={option.title}
                     subtitle={option.subtitle}
                     selected={investorType === option.value}

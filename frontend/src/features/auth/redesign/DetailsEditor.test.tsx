@@ -142,6 +142,22 @@ describe("DetailsEditor, the return trip to screen 3 (task 6.11)", () => {
     await screen.findByRole("heading", { name: "Verify your email address" });
     expect(order).toEqual(["name", "email"]);
   });
+  it("Back after the name was saved but the email request failed hands the saved name up", async () => {
+    auth.requestContactChange.mockRejectedValue(new ApiError(409, "That email address is already in use."));
+    const { onBack } = mount();
+    change(nameField(), "Asha Kumar");
+    change(emailField(), "taken@example.com");
+    next();
+    await screen.findByRole("alert");
+    expect(api.updateMemberProfile).toHaveBeenCalledWith("self-1", { name: "Asha Kumar" });
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(onBack).toHaveBeenCalledWith({ name: "Asha Kumar" });
+  });
+  it("Back with nothing saved hands up the name it started with", () => {
+    const { onBack } = mount();
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(onBack).toHaveBeenCalledWith({ name: "Asha Rao" });
+  });
   it("a name already saved is not saved again after Back from the verify screen", async () => {
     auth.requestContactChange.mockResolvedValue({ message: "sent", otp: null });
     mount();

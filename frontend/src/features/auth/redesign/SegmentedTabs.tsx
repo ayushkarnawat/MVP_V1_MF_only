@@ -20,6 +20,8 @@ export function SegmentedTabs<V extends string>({ label, options, value, onChang
     else return;
     event.preventDefault();
     onChange(options[to].value);
+    // Focus follows the selection, or the next arrow key would start again from the tab that still has focus.
+    event.currentTarget.parentElement?.querySelectorAll<HTMLElement>('[role="tab"]')[to]?.focus();
   };
   return (
     <div role="tablist" aria-label={label} className="grid grid-flow-col auto-cols-fr rounded-xl bg-[var(--ui-hover)] p-1">

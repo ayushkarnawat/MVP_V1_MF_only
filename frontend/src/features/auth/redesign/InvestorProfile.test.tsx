@@ -60,6 +60,27 @@ describe("InvestorProfile, sign-up screen 4 (task 6.12)", () => {
     fireEvent.click(options()[2]);
     expect(options().map((option) => option.getAttribute("aria-checked"))).toEqual(["false", "false", "true", "false"]);
   });
+  it("the four answers are one Tab stop: the chosen one (or the first when none), and the arrow keys move and choose", () => {
+    mount();
+    expect(options().map((option) => option.getAttribute("tabindex"))).toEqual(["0", "-1", "-1", "-1"]);
+    options()[0].focus();
+    fireEvent.keyDown(options()[0], { key: "ArrowDown" });
+    expect(document.activeElement).toBe(options()[1]);
+    expect(options()[1]).toHaveAttribute("aria-checked", "true");
+    expect(options().map((option) => option.getAttribute("tabindex"))).toEqual(["-1", "0", "-1", "-1"]);
+    fireEvent.keyDown(options()[1], { key: "ArrowRight" });
+    expect(options()[2]).toHaveAttribute("aria-checked", "true");
+    fireEvent.keyDown(options()[2], { key: "ArrowUp" });
+    expect(document.activeElement).toBe(options()[1]);
+    fireEvent.keyDown(options()[1], { key: "ArrowLeft" });
+    fireEvent.keyDown(options()[0], { key: "ArrowUp" });
+    expect(document.activeElement).toBe(options()[3]);
+    expect(options()[3]).toHaveAttribute("aria-checked", "true");
+  });
+  it("a saved answer is the Tab stop", () => {
+    mount({ initialInvestorType: "advisor_assisted" });
+    expect(options().map((option) => option.getAttribute("tabindex"))).toEqual(["-1", "-1", "0", "-1"]);
+  });
   it("Select all picks all six and becomes Clear all, which clears them", () => {
     mount();
     fireEvent.click(screen.getByRole("button", { name: "Select all" }));
