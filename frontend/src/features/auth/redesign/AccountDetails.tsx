@@ -18,6 +18,8 @@ export interface AccountDetailsProps {
   emailLocked?: boolean;
   /** Called with the cleaned name and the trimmed email. May be async; a rejection is shown on the screen. */
   onSubmit: (values: { name: string; email: string }) => void | Promise<void>;
+  /** Shown under the email field on the return trip, where a changed email gets a new code. */
+  emailNote?: string;
   /** Back to screen 1. Leave out when there is nothing to go back to. */
   onBack?: () => void;
   error?: string | null;
@@ -27,7 +29,7 @@ export interface AccountDetailsProps {
 const cleanName = (raw: string) => raw.replace(/[’‘]/g, "'").split(/\s+/).filter(Boolean).join(" ");
 
 /** Sign-up screen 3: the PAN name and the email, together. */
-export function AccountDetails({ initialName = "", initialEmail = "", emailLocked = false, onSubmit, onBack, error = null, submitting = false }: AccountDetailsProps) {
+export function AccountDetails({ initialName = "", initialEmail = "", emailLocked = false, emailNote, onSubmit, onBack, error = null, submitting = false }: AccountDetailsProps) {
   const [name, setName] = useState(initialName);
   const [email, setEmail] = useState(initialEmail);
   const [nameError, setNameError] = useState<string | null>(null);
@@ -90,7 +92,7 @@ export function AccountDetails({ initialName = "", initialEmail = "", emailLocke
               label="Email address"
               type="email"
               placeholder="e.g. siddharth@gmail.com"
-              hint={emailLocked ? "This email address is verified." : "We'll use this for important updates about your account."}
+              hint={emailLocked ? "This email address is verified." : `We'll use this for important updates about your account.${emailNote ? ` ${emailNote}` : ""}`}
               autoComplete="email"
               value={email}
               readOnly={emailLocked}

@@ -6,6 +6,9 @@ export const ONBOARDING_STEPS = [
   "q2_investing",
   "q3_purpose",
   "cas_upload",
+  // Desktop sign-up screens 5 and 6. They are never written as the saved onboarding step.
+  "connect_accounts",
+  "all_set",
   "done",
 ] as const;
 

@@ -11,8 +11,15 @@ import { ALL_GOALS, Q3Purpose } from "./Q3Purpose";
 import { OnboardingCardStack } from "./OnboardingCardStack";
 import { SoloCasUpload } from "./SoloCasUpload";
 import { createHouseholdMember, listHouseholdMembers } from "./api";
+import { getHouseholdImportHistory } from "../import/api";
+import { paths } from "@/shell/nav/paths";
 import { AccountDetails } from "./redesign/AccountDetails";
+import { AllSet } from "./redesign/AllSet";
 import { AuthPage } from "./redesign/AuthPage";
+import { ConnectAccounts } from "./redesign/ConnectAccounts";
+import { DetailsEditor } from "./redesign/DetailsEditor";
+import { InvestorProfile } from "./redesign/InvestorProfile";
+import { resumeStepSplit } from "./onboardingResume";
 import { clearPendingSignup, readPendingSignup } from "./redesign/pendingSignup";
 import type { InvestorType, MeResponse, PrimaryGoal } from "./types";
 
@@ -53,7 +60,7 @@ interface OnboardingFlowProps {
 export function OnboardingFlow({ isMobile = false, variant = "legacy" }: OnboardingFlowProps) {
   const { me, updateMe } = useAuth();
   const split = variant === "split" && !isMobile;
-  const [history, setHistory] = useState<HistoryState>(() => initHistory(resumeStep(me)));
+  const [history, setHistory] = useState<HistoryState>(() => initHistory(split ? resumeStepSplit(me, false) : resumeStep(me)));
   const [answers, setAnswers] = useState<OnboardingAnswers>(() => ({
     name: me?.self_name ?? "",
     investorType: me?.investor_type ?? null,
@@ -61,6 +68,30 @@ export function OnboardingFlow({ isMobile = false, variant = "legacy" }: Onboard
   }));
 
   const step = currentStep(history);
+  const jump = (next: OnboardingStep) => setHistory(initHistory(next));
+  // Back from screen 4 shows screen 3 again with both fields editable (the return trip).
+  const [editingDetails, setEditingDetails] = useState(false);
+
+  // Resume on screen 6: a saved cas_upload plus a completed import means only the last click was missing. One read of
+  // the import history, no new endpoint; if it fails the person starts from screen 5.
+  const [resuming, setResuming] = useState(() => split && me?.onboarding_step === "cas_upload" && Boolean(me?.self_name));
+  useEffect(() => {
+    if (!resuming) return;
+    let live = true;
+    getHouseholdImportHistory().then(
+      (items) => {
+        if (!live) return;
+        if (items.some((item) => item.status === "import_successful")) setHistory(initHistory("all_set"));
+        setResuming(false);
+      },
+      () => {
+        if (live) setResuming(false);
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [resuming]);
 
   // Split sign-up: the name typed on screen 3 was kept in sessionStorage because the account did not exist yet. Now
   // it does, so the self member is created from it (list first, so a reload never makes a second one) and the flow
@@ -106,7 +137,7 @@ export function OnboardingFlow({ isMobile = false, variant = "legacy" }: Onboard
   }, [handover, me?.phone_number]);
 
   useEffect(() => {
-    if (step !== "done") {
+    if (step !== "done" && step !== "connect_accounts" && step !== "all_set") {
       void updateMe({ onboarding_step: step });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,7 +158,73 @@ export function OnboardingFlow({ isMobile = false, variant = "legacy" }: Onboard
     advance("q2_investing");
   };
 
+  // All set: write the completion, then open the chosen place. The address is set first because the app switches to
+  // the signed-in shell (which reads the address) the moment the completion is saved; a failed save puts it back.
+  const finish = async (target: "home" | "import-history") => {
+    const previous = window.location.pathname + window.location.search;
+    window.history.pushState(null, "", target === "home" ? "/home" : paths.profileImportHistory());
+    try {
+      await updateMe({ onboarding_completed: true });
+    } catch (err) {
+      window.history.replaceState(null, "", previous);
+      throw err;
+    }
+  };
+
   const renderStep = () => {
+    if (split && resuming) {
+      return (
+        <AuthPage>
+          <p role="status" className="text-sm text-[var(--ui-text-muted)]">Setting up your profile...</p>
+        </AuthPage>
+      );
+    }
+    if (split && step === "q2_investing") {
+      return (
+        <InvestorProfile
+          initialInvestorType={answers.investorType}
+          initialGoals={answers.primaryGoals}
+          onBack={() => {
+            setEditingDetails(true);
+            jump("q1_name");
+          }}
+          onSubmit={async ({ investorType, goals }) => {
+            await updateMe({ investor_type: investorType, primary_goals: goals, onboarding_step: "q2_investing" });
+            setAnswers((a) => ({ ...a, investorType, primaryGoals: goals }));
+            jump("connect_accounts");
+          }}
+        />
+      );
+    }
+    if (split && step === "connect_accounts") {
+      return <ConnectAccounts onBack={() => jump("q2_investing")} onContinue={() => jump("cas_upload")} />;
+    }
+    if (split && step === "cas_upload") {
+      return (
+        <div className="w-full min-h-dvh bg-[var(--color-bg)] flex flex-col justify-start items-center p-2 sm:p-6 lg:p-8 box-border">
+          <div className="w-full max-w-[1600px] mx-auto">
+            <SoloCasUpload name={answers.name} onImported={() => jump("all_set")} />
+          </div>
+        </div>
+      );
+    }
+    if (split && step === "all_set") {
+      return <AllSet onFinish={finish} />;
+    }
+    if (step === "q1_name" && split && (editingDetails || me?.self_name)) {
+      return (
+        <DetailsEditor
+          initialName={answers.name || me?.self_name || ""}
+          initialEmail={me?.email ?? ""}
+          onBack={() => jump("q2_investing")}
+          onDone={({ name }) => {
+            setEditingDetails(false);
+            setAnswers((a) => ({ ...a, name }));
+            jump("q2_investing");
+          }}
+        />
+      );
+    }
     if (step === "q1_name" && split) {
       if (handover !== "idle") {
         return (

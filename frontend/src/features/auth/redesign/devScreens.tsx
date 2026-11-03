@@ -1,10 +1,13 @@
 import type { ReactNode } from "react";
 import { AccountDetails } from "./AccountDetails";
+import { AllSet } from "./AllSet";
+import { ConnectAccounts } from "./ConnectAccounts";
 import { AuthAlert } from "./AuthAlert";
 import { AuthField } from "./AuthField";
 import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthSplitCard } from "./AuthSplitCard";
 import { InfoCard } from "./InfoCard";
+import { InvestorProfile } from "./InvestorProfile";
 import { LoginCode } from "./LoginCode";
 import { LoginEntry } from "./LoginEntry";
 import { OtpPanel } from "./OtpPanel";
@@ -106,6 +109,21 @@ export const DEV_SCREENS: DevScreen[] = [
     id: "signup-email-code",
     title: "Sign-up, step 3 (email code)",
     render: () => <EmailCode email="siddharth@gmail.com" devOtp={null} error="That code has expired." submitting={false} onSubmit={noop} onResend={noop} onBack={noop} onEditEmail={noop} />,
+  },
+  {
+    id: "signup-profile",
+    title: "Sign-up, step 4 (investor profile)",
+    render: () => <InvestorProfile onSubmit={noop} onBack={noop} />,
+  },
+  {
+    id: "signup-connect",
+    title: "Sign-up, step 5 (Connect accounts)",
+    render: () => <ConnectAccounts onContinue={noop} onBack={noop} />,
+  },
+  {
+    id: "signup-all-set",
+    title: "Sign-up, step 6 (All set)",
+    render: () => <AllSet onFinish={noop} />,
   },
   {
     id: "step-progress",
