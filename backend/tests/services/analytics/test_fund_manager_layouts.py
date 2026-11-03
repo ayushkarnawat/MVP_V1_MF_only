@@ -550,3 +550,18 @@ def test_icici_table_name_starting_just_left_of_a_column_boundary_stays_whole():
     ]
     pages = LAYOUTS["icici"]("Fund Manager Details", words)
     assert [p.managers for p in pages] == [[{"name": "Masoomi Jhurmarvala", "role": None, "since_raw": "Nov-24"}]]
+
+
+
+def test_sundaram_reader_drops_the_printed_ordinals_and_splits_the_semicolon_list():
+    # The real September 2026 file (taken from the pages for Aggressive Hybrid and Banking and PSU Debt): a bullet
+    # before each line, "I. Name; II. Name" on one line, and an ordinal before every name.
+    from app.services.analytics.fund_manager_layouts import sundaram_managers
+    bullet = chr(0xFFFD)
+    page = (f"Name of Fund Managers:" + chr(13) + chr(10) + bullet + " I. Clyton Richard Fernandes; II. Bharath S" + chr(13) + chr(10)
+            + bullet + " III. Kumaresh Ramakrishnan" + chr(13) + chr(10) + bullet + " IV. Shalav Saket (Overseas)" + chr(13) + chr(10)
+            + "Total Experience: 20 years Managing Since: 05 Jan 2024 (Rohit)")
+    names = [(m["name"], m["role"]) for m in sundaram_managers(page)]
+    assert names == [("Clyton Richard Fernandes", None), ("Bharath S", None), ("Kumaresh Ramakrishnan", None), ("Shalav Saket", "Overseas")]
+    twice = page.replace("III. Kumaresh Ramakrishnan", "III. Bharath S")
+    assert [m["name"] for m in sundaram_managers(twice)].count("Bharath S") == 1
