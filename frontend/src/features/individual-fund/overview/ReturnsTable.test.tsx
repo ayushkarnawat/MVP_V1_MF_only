@@ -4,6 +4,7 @@ import { renderInShell } from "@/shell/testing";
 import { deferred } from "../__support__/deferred";
 import { IDS, fixture } from "../fixtures";
 import type { CategoryReturnsResponse, InceptionReturnsResponse, ReturnsResponse, Unavailable } from "../types";
+import type { FundSection } from "../useFundSection";
 import { ReturnsTable } from "./ReturnsTable";
 
 const api = vi.hoisted(() => ({ returns: vi.fn(), categoryReturns: vi.fn() }));
@@ -15,8 +16,13 @@ const current = () => fixture<ReturnsResponse>("returns_current");
 const category = () => fixture<CategoryReturnsResponse>("peers_returns");
 const members = [{ id: IDS.asha, name: "ASHA RAO" }, { id: IDS.dev, name: "Dev Rao" }];
 
-function mount(scope = "combined", options: Parameters<typeof renderInShell>[1] = {}) {
-  return renderInShell(<ReturnsTable schemeId={IDS.scheme} scope={scope} fundName={NAME} />, options);
+// UI round 2 (task 4.3): the page owns the mode and the Current request; the table gets them as props.
+const NO_CURRENT: FundSection<ReturnsResponse> = { status: "loading", data: null, reason: null, error: null, retry: () => {} };
+const ready = (data: ReturnsResponse): FundSection<ReturnsResponse> => ({ status: "ready", data, reason: null, error: null, retry: vi.fn() });
+const notHeld: FundSection<ReturnsResponse> = { status: "unavailable", data: null, reason: "not_held", error: null, retry: vi.fn() };
+
+function mount(scope = "combined", options: Parameters<typeof renderInShell>[1] = {}, props: { mode?: "inception" | "current"; current?: FundSection<ReturnsResponse> } = {}) {
+  return renderInShell(<ReturnsTable schemeId={IDS.scheme} scope={scope} fundName={NAME} mode={props.mode ?? "inception"} current={props.current ?? NO_CURRENT} />, options);
 }
 const cell = (id: string) => screen.getByTestId(id);
 
@@ -36,12 +42,12 @@ describe("ReturnsTable", () => {
     expect(api.categoryReturns).toHaveBeenCalledWith(IDS.scheme, expect.any(AbortSignal));
   });
 
-  it("has a heading and an Inception | Current toggle with Inception pressed", async () => {
+  it("has a Returns heading and no toggle of its own (the toggle moved into the performance card)", async () => {
     mount();
     await screen.findByTestId("row-fund");
     expect(screen.getByRole("heading", { name: "Returns" })).toBeInTheDocument();
-    const toggle = screen.getByRole("group", { name: "Returns basis" });
-    expect(within(toggle).getAllByRole("button").map(b => [b.textContent, b.getAttribute("aria-pressed")])).toEqual([["Inception", "true"], ["Current", "false"]]);
+    expect(screen.queryByRole("group", { name: "Returns basis" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Actual XIRR" })).toBeNull();
   });
 
   it("shows a loading status, then the table", async () => {
@@ -140,24 +146,14 @@ describe("ReturnsTable", () => {
     expect(api.returns).toHaveBeenCalledTimes(1);
   });
 
-  it("test_toggle_to_current_fetches_once_and_keeps_result", async () => {
-    mount();
-    await screen.findByTestId("row-fund");
-    fireEvent.click(screen.getByRole("button", { name: "Current" }));
+  it("never asks for the Current returns itself: it reads them from props", async () => {
+    mount("combined", {}, { mode: "current", current: ready(current()) });
     await screen.findByText("Your holding (XIRR)");
-    expect(api.returns).toHaveBeenCalledTimes(2);
-    expect(api.returns).toHaveBeenLastCalledWith(IDS.scheme, "current", "combined", expect.any(AbortSignal));
-    fireEvent.click(screen.getByRole("button", { name: "Inception" }));
-    await screen.findByTestId("cell-fund-1M");
-    fireEvent.click(screen.getByRole("button", { name: "Current" }));
-    await screen.findByText("Your holding (XIRR)");
-    expect(api.returns).toHaveBeenCalledTimes(2);
+    expect(api.returns).not.toHaveBeenCalledWith(IDS.scheme, "current", expect.anything(), expect.anything());
   });
 
   it("Current mode shows your XIRR against the same cash flows, dashes the periods longer than the holding, and its footnote", async () => {
-    mount();
-    await screen.findByTestId("row-fund");
-    fireEvent.click(screen.getByRole("button", { name: "Current" }));
+    mount("combined", {}, { mode: "current", current: ready(current()) });
     await screen.findByText("Your holding (XIRR)");
     const headers = within(screen.getByRole("table")).getAllByRole("columnheader").map(h => h.textContent);
     expect(headers).toEqual(["Series", "1Y", "3Y", "5Y", "Since first investment"]);
@@ -174,15 +170,10 @@ describe("ReturnsTable", () => {
     expect(screen.getByTestId("returns-note")).toHaveTextContent("Periods longer than you have held the fund are dashed.");
   });
 
-  it("test_not_held_current_mode_shows_not_held_message, and Inception still works", async () => {
-    api.returns.mockImplementation((_id: string, mode: string) => Promise.resolve(mode === "current" ? fixture<Unavailable>("returns_current_not_held") : inception()));
-    mount(IDS.dev, { scope: { members, viewMode: "member", memberId: IDS.dev } });
-    await screen.findByTestId("row-fund");
-    fireEvent.click(screen.getByRole("button", { name: "Current" }));
+  it("test_not_held_current_mode_shows_not_held_message", async () => {
+    mount(IDS.dev, { scope: { members, viewMode: "member", memberId: IDS.dev } }, { mode: "current", current: notHeld });
     expect(await screen.findByTestId("returns-not-held")).toHaveTextContent("Not held by Dev Rao. Inception returns are still shown.");
     expect(screen.queryByRole("table")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Inception" }));
-    expect(await screen.findByTestId("row-fund")).toBeInTheDocument();
   });
 
   it("test_non_equity_has_no_benchmark_row, and says why", async () => {
@@ -225,7 +216,7 @@ describe("ReturnsTable", () => {
   it("a new scope refetches the returns for it (and the category, which is fund-level, is not asked again)", async () => {
     const view = mount(IDS.asha);
     await screen.findByTestId("row-fund");
-    view.rerender(<ReturnsTable schemeId={IDS.scheme} scope={IDS.dev} fundName={NAME} />);
+    view.rerender(<ReturnsTable schemeId={IDS.scheme} scope={IDS.dev} fundName={NAME} mode="inception" current={NO_CURRENT} />);
     await act(async () => {});
     expect(api.returns).toHaveBeenLastCalledWith(IDS.scheme, "inception", IDS.dev, expect.any(AbortSignal));
     expect(api.returns).toHaveBeenCalledTimes(2);
@@ -237,7 +228,7 @@ describe("ReturnsTable", () => {
     const second = deferred<ReturnsResponse>();
     api.returns.mockImplementation((_id: string, _mode: string, scope: string) => (scope === IDS.asha ? first.promise : second.promise));
     const view = mount(IDS.asha);
-    view.rerender(<ReturnsTable schemeId={IDS.scheme} scope={IDS.dev} fundName={NAME} />);
+    view.rerender(<ReturnsTable schemeId={IDS.scheme} scope={IDS.dev} fundName={NAME} mode="inception" current={NO_CURRENT} />);
     const newer = inception();
     newer.rows.fund["1Y"] = "21.0000";
     await act(async () => { second.resolve(newer); });
@@ -245,15 +236,10 @@ describe("ReturnsTable", () => {
     expect(cell("cell-fund-1Y")).toHaveTextContent("21.0%");
   });
 
-  it("the Current result is fetched for the scope it was chosen in and refetched when the scope changes", async () => {
-    const view = mount(IDS.asha);
-    await screen.findByTestId("row-fund");
-    fireEvent.click(screen.getByRole("button", { name: "Current" }));
-    await screen.findByText("Your holding (XIRR)");
-    view.rerender(<ReturnsTable schemeId={IDS.scheme} scope={IDS.dev} fundName={NAME} />);
-    await screen.findByText("Your holding (XIRR)");
-    const calls = api.returns.mock.calls.map(call => `${call[1]}:${call[2]}`);
-    expect(calls).toEqual([`inception:${IDS.asha}`, `current:${IDS.asha}`, `inception:${IDS.dev}`, `current:${IDS.dev}`]);
+  it("a Current section still loading shows the loading status", async () => {
+    mount("combined", {}, { mode: "current", current: NO_CURRENT });
+    expect(await screen.findByRole("status", { name: "Loading returns" })).toBeInTheDocument();
+    expect(screen.queryByTestId("row-fund")).toBeNull();
   });
 
   it("test_benchmark_row_uses_the_api_label_when_present_and_falls_back_to_Benchmark (additive field, register C124)", async () => {
@@ -263,8 +249,9 @@ describe("ReturnsTable", () => {
     mount();
     await screen.findByTestId("row-fund");
     expect(within(screen.getByTestId("row-benchmark")).getByRole("rowheader")).toHaveTextContent("Nifty 500 TRI");
-    fireEvent.click(screen.getByRole("button", { name: "Current" }));
+    cleanup();
     // The Current table compares the same cash flows, so its row keeps its own wording.
+    mount("combined", {}, { mode: "current", current: ready({ ...current(), benchmark_label: "Nifty 500 TRI" } as ReturnsResponse) });
     expect(await screen.findByText("Benchmark, same cash flows")).toBeInTheDocument();
     cleanup();
     const unlabelled = inception();

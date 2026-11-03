@@ -354,3 +354,17 @@ it("does not date a newly selected period with the previous period's start while
   expect(screen.getByRole("button", { name: "3Y" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.queryByRole("button", { name: /3Y.*23 Oct 2025/ })).not.toBeInTheDocument();
 });
+
+describe("PerformanceChart: the toggle slot (UI round 2, task 4.3)", () => {
+  it("renders the slot above the period buttons when given", async () => {
+    render(<PerformanceChart schemeId={SID} fundName={NAME} toggleSlot={<div data-testid="my-slot">toggle</div>} />);
+    const slot = await screen.findByTestId("my-slot");
+    const periods = screen.getByRole("group", { name: "Performance period" });
+    expect(slot.compareDocumentPosition(periods) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+  it("renders nothing extra without a slot", async () => {
+    render(<PerformanceChart schemeId={SID} fundName={NAME} />);
+    await screen.findByRole("group", { name: "Performance period" });
+    expect(screen.queryByTestId("perf-toggle-slot")).toBeNull();
+  });
+});

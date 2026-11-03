@@ -18,6 +18,7 @@ vi.mock("@/components/ui/charts", () => ({
   LineAreaChart: () => <div data-testid="line-chart" />,
   PieChart: ({ children }: { children?: ReactNode }) => <div data-testid="pie-chart">{children}</div>,
   PieSlice: ({ index }: { index: number }) => <i data-testid={`pie-slice-${index}`} />,
+  GroupedBarChart: () => <div data-testid="grouped-bar-chart" />,
 }));
 const api = vi.hoisted(() => ({
   summary: vi.fn(), performance: vi.fn(), returns: vi.fn(), score: vi.fn(), categorySeries: vi.fn(), categoryReturns: vi.fn(),
@@ -363,5 +364,77 @@ describe("Overview route", () => {
     expect((await byId("portfolio-mutual-funds-fund-insights").page!()).default).toBe((await import("./InsightsPage")).default);
     expect(byId("portfolio-mutual-funds-fund-overlap")).toMatchObject({ status: "live", path: "/portfolio/mutual-funds/funds/:schemeId/overlap" });
     expect((await byId("portfolio-mutual-funds-fund-overlap").page!()).default).toBe((await import("./OverlapPage")).default);
+  });
+});
+
+describe("OverviewPage: the returns toggle and the Actual XIRR graph (UI round 2, tasks 4.3 and 4.4)", () => {
+  const toggle = () => screen.getByRole("group", { name: "Returns basis" });
+  const chooseActual = () => fireEvent.click(within(toggle()).getByRole("button", { name: "Actual XIRR" }));
+  const chooseModel = () => fireEvent.click(within(toggle()).getByRole("button", { name: "Model Portfolio Returns" }));
+  const currentCalls = () => api.returns.mock.calls.filter(call => call[1] === "current");
+
+  it("the toggle sits in the performance card above the period buttons", async () => {
+    mount();
+    await screen.findByTestId("line-chart");
+    const card = screen.getByTestId("slot-performance");
+    expect(within(card).getByRole("group", { name: "Returns basis" })).toBeInTheDocument();
+    const periods = within(card).getByRole("group", { name: "Performance period" });
+    expect(toggle().compareDocumentPosition(periods) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+  it("the Returns card has no toggle of its own", async () => {
+    mount();
+    await screen.findByTestId("cell-fund-1Y");
+    expect(within(screen.getByTestId("slot-returns")).queryByRole("group", { name: "Returns basis" })).toBeNull();
+  });
+  it("the Current request is not sent until Actual XIRR is chosen, then sent once and kept while switching back and forth", async () => {
+    mount();
+    await screen.findByTestId("cell-fund-1Y");
+    expect(currentCalls()).toHaveLength(0);
+    chooseActual();
+    await within(screen.getByTestId("slot-returns")).findByText("Your holding (XIRR)");
+    expect(currentCalls()).toHaveLength(1);
+    expect(api.returns).toHaveBeenCalledWith(IDS.scheme, "current", "combined", expect.any(AbortSignal));
+    chooseModel();
+    await screen.findByTestId("cell-fund-1M");
+    chooseActual();
+    await within(screen.getByTestId("slot-returns")).findByText("Your holding (XIRR)");
+    expect(currentCalls()).toHaveLength(1);
+  });
+  it("Actual XIRR changes the table and the graph, and the period buttons go away", async () => {
+    mount();
+    await screen.findByTestId("line-chart");
+    chooseActual();
+    expect(await screen.findByTestId("grouped-bar-chart")).toBeInTheDocument();
+    expect(screen.queryByTestId("line-chart")).toBeNull();
+    expect(screen.queryByRole("group", { name: "Performance period" })).toBeNull();
+    expect(screen.getByRole("group", { name: "Returns basis" })).toBeInTheDocument();
+    expect(within(screen.getByTestId("slot-returns")).getByText("Your holding (XIRR)")).toBeInTheDocument();
+    chooseModel();
+    expect(await screen.findByTestId("line-chart")).toBeInTheDocument();
+    expect(screen.queryByTestId("grouped-bar-chart")).toBeNull();
+  });
+  it("the Current request follows the scope once Actual XIRR has been chosen", async () => {
+    function Picker() {
+      const { setMember } = useScope();
+      return <button type="button" onClick={() => setMember(IDS.dev)}>Pick Dev</button>;
+    }
+    renderInShell(<><OverviewPage schemeId={IDS.scheme} /><Picker /></>, { path: PATH, scope: { members, viewMode: "aggregate" } });
+    await screen.findByTestId("cell-fund-1Y");
+    chooseActual();
+    await within(screen.getByTestId("slot-returns")).findByText("Your holding (XIRR)");
+    fireEvent.click(screen.getByRole("button", { name: "Pick Dev" }));
+    await act(async () => {});
+    expect(currentCalls().map(call => call[2])).toEqual(["combined", IDS.dev]);
+  });
+  it("not held in Actual XIRR shows the designed state, and its button goes back to Model Portfolio Returns", async () => {
+    api.returns.mockImplementation((_id: string, mode: string) => Promise.resolve(mode === "current" ? fixture<Unavailable>("returns_current_not_held") : fixture<InceptionReturnsResponse>("returns_inception")));
+    mount({ scope: { members, viewMode: "member", memberId: IDS.dev } });
+    await screen.findByTestId("cell-fund-1Y");
+    chooseActual();
+    expect(await screen.findByText("Dev Rao does not hold this fund")).toBeInTheDocument();
+    expect(within(screen.getByTestId("slot-returns")).getByTestId("returns-not-held")).toHaveTextContent("Not held by Dev Rao. Inception returns are still shown.");
+    fireEvent.click(screen.getByRole("button", { name: "Show Model Portfolio Returns" }));
+    expect(await screen.findByTestId("line-chart")).toBeInTheDocument();
+    expect(within(toggle()).getByRole("button", { name: "Model Portfolio Returns" })).toHaveAttribute("aria-pressed", "true");
   });
 });
