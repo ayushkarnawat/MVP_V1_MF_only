@@ -170,6 +170,28 @@ def canonical_category(category: str) -> str:
     return _CATEGORY_ALIASES.get(text, text)
 
 
+# The index/ETF word rule moved here unchanged from performance_ranking.py:
+# whole words only, so "Indexation" is not an index fund.
+_INDEX_FUND_WORDS = re.compile(r"\b(?:index|etfs?)\b", re.I)
+
+
+def is_index_fund(name: str | None, sebi_category: str | None) -> bool:
+    """True for an index fund or ETF (never ranked against active funds).
+
+    No model flag exists, so two plain signals are read: the index/ETF words in
+    the scheme name, or the stored regulator category being an index or ETF one
+    (AMFI spells these "Other Scheme - Index Funds", "Other Scheme - Other ETFs",
+    "Index Funds - Equity Funds", "Exchange Traded Funds (ETFs) - Equity ETF", and
+    so on, under either prefix spelling). The category catches index funds whose
+    name has no such word, e.g. a debt index fund named after its maturity date.
+    Never inferred from the fund's return level.
+    """
+    if _INDEX_FUND_WORDS.search(name or ""):
+        return True
+    category = " ".join((sebi_category or "").split())
+    return bool(_INDEX_FUND_WORDS.search(category) or re.search(r"\bexchange traded\b", category, re.I))
+
+
 @dataclass
 class CategoryPeers:
     schemes: list[Scheme]                      # one series per fund: the ranked set

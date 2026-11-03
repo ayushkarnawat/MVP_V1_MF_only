@@ -697,5 +697,8 @@ def test_category_comparison_writer_drops_the_retired_fields_from_stored_payload
     assert stored.section == "category_ranking"
     saved = stored.payload["funds"][0]
     assert {"category_rank", "percentile", "category_size", "scheme_return"}.isdisjoint(saved)
-    assert saved["periods"]["1y"] == {"fund_return": ".10", "category_avg": ".30", "peers": 5}
+    # A payload stored before weighting existed carries no weighting; the new fields take their defaults.
+    assert saved["periods"]["1y"] == {
+        "fund_return": ".10", "category_avg": ".30", "peers": 5, "weighting": None, "funds_without_size": 0,
+    }
     db.close()

@@ -1,7 +1,6 @@
 """Return ranks within one category and plan type, independently per period."""
 from __future__ import annotations
 
-import re
 import uuid
 from datetime import date
 
@@ -10,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.models.reference import Scheme
 from app.services.analytics.category_ranking import _category_returns_detailed
 from app.services.analytics.schemas import PeriodRank, PerformanceRankingFund, PerformanceRankingResult
-from app.services.analytics.scheme_universe import canonical_category, get_category_peers
+from app.services.analytics.scheme_universe import canonical_category, get_category_peers, is_index_fund
 from app.services.dashboard.holdings import compute_holdings
 
 _PERIODS = (("1Y", 0), ("3Y", 1), ("5Y", 2))
@@ -18,9 +17,8 @@ INDEX_FUND_DISCLAIMER_KEY = "index_fund_not_ranked"
 
 
 def _is_index(scheme: Scheme) -> bool:
-    # No dedicated model flag exists. Use explicit index/ETF words in the
-    # scheme name or SEBI category; never infer this from its return level.
-    return bool(re.search(r"\b(?:index|etfs?)\b", f"{scheme.name} {scheme.sebi_category}", re.I))
+    # The rule (name words or an index/ETF regulator category) lives in one place.
+    return is_index_fund(scheme.name, scheme.sebi_category)
 
 
 async def compute_performance_ranking(db: Session, scope: list[uuid.UUID]) -> PerformanceRankingResult:

@@ -1,4 +1,8 @@
-"""Category Average Comparison: simple means within each category and plan.
+"""Category Average Comparison: averages within each category and plan, weighted
+by fund size (average assets under management), the same as the fund page.
+
+A fund with no size on record is left out of the weighted figure and counted;
+if no fund in the pool has a size, the plain mean is shown and flagged.
 
 The 3-year eligibility floor applies to every displayed period. Internal
 return helpers also serve the Fund Quality Score: its blend remains 40% 3Y
@@ -14,6 +18,7 @@ import time
 import uuid
 from datetime import date
 from decimal import Decimal
+from typing import NamedTuple
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -228,8 +233,9 @@ def category_period_averages(
 ) -> dict[str, tuple[Decimal | None, int]]:
     """Simple per-period means, always subject to the 3Y eligibility floor.
 
-    The caller supplies one category and plan type's Growth representatives.
-    Size data is deliberately neither requested nor used.
+    Not used by the comparison itself any more (it is fund-size weighted, see
+    `category_period_weighted_averages`); kept for the diff report script, which
+    compares the two methods.
     """
     eligible = [values for values in detailed.values() if values[1] is not None]
     averages = {}
@@ -237,6 +243,62 @@ def category_period_averages(
         pool = [values[index] for values in eligible if values[index] is not None]
         averages[period] = (_simple_average(pool), len(pool))
     return averages
+
+
+class CategoryAverage(NamedTuple):
+    """One category-and-plan average and how it was weighted."""
+
+    value: Decimal | None
+    peers: int                    # funds with a return in the period (the old count, unchanged)
+    weighting: str | None         # "fund_size", "equal" (nobody has a size), None (no average)
+    funds_without_size: int       # funds in the pool with no usable size on record
+
+
+def _has_usable_size(size: Decimal | None) -> bool:
+    return size is not None and size.is_finite() and size > 0
+
+
+def _fund_size_average(returns: dict[uuid.UUID, Decimal], aaum_by_scheme: dict[uuid.UUID, Decimal]) -> CategoryAverage:
+    """Mean of `returns` weighted by average assets under management, the same
+    size figure and weighting helper the fund page uses. A fund with no usable
+    size is left out of the weighted figure and counted. If no fund has a size,
+    fall back to the plain mean for the category and say so (`weighting="equal"`)
+    rather than showing nothing."""
+    if not returns:
+        return CategoryAverage(None, 0, None, 0)
+    sized = {sid: value for sid, value in returns.items() if _has_usable_size(aaum_by_scheme.get(sid))}
+    without_size = len(returns) - len(sized)
+    weighted = _aum_weighted_average(sized, aaum_by_scheme)
+    if weighted is None:
+        return CategoryAverage(_simple_average(returns.values()), len(returns), "equal", without_size)
+    return CategoryAverage(weighted, len(returns), "fund_size", without_size)
+
+
+def category_period_weighted_averages(
+    detailed: dict[uuid.UUID, tuple[Decimal | None, Decimal | None, Decimal | None, Decimal | None]],
+    aaum_by_scheme: dict[uuid.UUID, Decimal],
+) -> dict[str, CategoryAverage]:
+    """Fund-size-weighted per-period averages, with the same 3Y eligibility floor
+    and the same pools as `category_period_averages`."""
+    eligible = {sid: values for sid, values in detailed.items() if values[1] is not None}
+    return {
+        period: _fund_size_average(
+            {sid: values[index] for sid, values in eligible.items() if values[index] is not None}, aaum_by_scheme,
+        )
+        for period, index in (("1y", 0), ("3y", 1), ("5y", 2))
+    }
+
+
+def category_blended_weighted_average(
+    detailed: dict[uuid.UUID, tuple[Decimal | None, Decimal | None, Decimal | None, Decimal | None]],
+    aaum_by_scheme: dict[uuid.UUID, Decimal],
+) -> CategoryAverage:
+    """The legacy 40/60 blended average, weighted the same way (and over the same
+    pool) as the period averages, so every screen shows one method."""
+    return _fund_size_average(
+        {sid: values[3] for sid, values in detailed.items() if values[1] is not None and values[3] is not None},
+        aaum_by_scheme,
+    )
 
 
 async def compute_category_ranking(db: Session, household_member_ids: list[uuid.UUID]) -> CategoryRankingSummary:
@@ -253,8 +315,8 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
     today = date.today()
     detailed_by_category: dict[tuple, dict] = {}
     peers_by_category: dict[tuple, CategoryPeers] = {}
-    averages_by_category: dict[tuple, dict] = {}
-    legacy_average_by_category: dict[tuple, Decimal | None] = {}
+    averages_by_category: dict[tuple, dict[str, CategoryAverage]] = {}
+    legacy_average_by_category: dict[tuple, CategoryAverage] = {}
     rows: list[CategoryRankRow] = []
 
     for scheme_id_str in unique_scheme_ids:
@@ -280,13 +342,12 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
             peers = await get_category_peers(db, sebi_category, scheme.plan_type)
             peers_by_category[key] = peers
             detailed_by_category[key] = await _category_returns_detailed(db, peers.schemes, today, cache_key=("peers", *key))
-            averages_by_category[key] = category_period_averages(detailed_by_category[key])
+            # One size lookup per category and plan, for the funds that have a return.
+            aaum = _latest_aaum_by_scheme(db, list(detailed_by_category[key]))
+            averages_by_category[key] = category_period_weighted_averages(detailed_by_category[key], aaum)
             # Legacy: kept for desktop/print/phone views until the cleanup release.
-            # Same eligible category-and-plan pool as the period averages; no size weighting.
-            legacy_average_by_category[key] = _simple_average(
-                values[3] for values in detailed_by_category[key].values()
-                if values[1] is not None and values[3] is not None
-            )
+            # Same eligible category-and-plan pool and the same weighting as the period averages.
+            legacy_average_by_category[key] = category_blended_weighted_average(detailed_by_category[key], aaum)
         rep_id = peers_by_category[key].representative_of.get(scheme.id)
         own = detailed_by_category[key].get(rep_id)
         if own is not None and own[1] is None:
@@ -296,8 +357,10 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
         periods = {
             period: PeriodReturn(
                 fund_return=str(own[index]) if own[index] is not None else None,
-                category_avg=str(period_averages[period][0]) if period_averages[period][0] is not None else None,
-                peers=period_averages[period][1],
+                category_avg=str(period_averages[period].value) if period_averages[period].value is not None else None,
+                peers=period_averages[period].peers,
+                weighting=period_averages[period].weighting,
+                funds_without_size=period_averages[period].funds_without_size,
             )
             for period, index in (("1y", 0), ("3y", 1), ("5y", 2))
         } if own is not None else {}
@@ -309,10 +372,12 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
                 sebi_category=sebi_category,
                 category_unavailable=rep_id is None,
                 insufficient_history=rep_id is not None and own is None,
-                category_avg_return=str(category_avg) if category_avg is not None else None,
-                thin_category=period_averages["3y"][1] < _THIN_CATEGORY_THRESHOLD,
+                category_avg_return=str(category_avg.value) if category_avg.value is not None else None,
+                thin_category=period_averages["3y"].peers < _THIN_CATEGORY_THRESHOLD,
                 periods=periods,
                 plan_type=scheme.plan_type.value if scheme.plan_type is not None else None,
+                category_avg_weighting=category_avg.weighting,
+                category_avg_funds_without_size=category_avg.funds_without_size,
             )
         )
 

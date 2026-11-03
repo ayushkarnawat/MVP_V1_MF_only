@@ -94,6 +94,40 @@ def test_index_fund_is_not_ranked_and_carries_the_disclaimer_key(db_session, mon
     assert all(value.rank is None and value.status == "not_ranked_index_fund" for value in row.periods.values())
 
 
+@pytest.mark.parametrize("name, category, expected", [
+    # Name words only (the category says nothing about indices).
+    ("Synthetic Nifty 50 Index Fund", "Equity Scheme - Large Cap Fund", True),
+    ("Synthetic Nifty 50 ETF", "Equity Scheme - Large Cap Fund", True),
+    ("Synthetic Gold ETFs Fund", "Equity Scheme - Large Cap Fund", True),
+    # Category only: the name has no index word (a debt index fund, a misleading name).
+    ("Synthetic Target Maturity 2030 Fund", "Other Scheme - Index Funds", True),
+    ("Synthetic Bluechip Opportunities Fund", "Index Funds - Equity Funds", True),
+    ("Synthetic Bluechip Opportunities Fund", "Exchange Traded Funds (ETFs) - Equity ETF", True),
+    ("Synthetic Gilt Fund", "Other Scheme - Other ETFs", True),
+    ("Synthetic Gilt Fund", "Other Scheme - Exchange Traded Fund", True),
+    # Both.
+    ("Synthetic Nifty 50 Index Fund", "Other Scheme - Index Funds", True),
+    # Neither, including a debt fund and the near-miss word "Indexation".
+    ("Synthetic Flexi Cap Fund", "Equity Scheme - Flexi Cap Fund", False),
+    ("Synthetic Short Duration Fund", "Debt Scheme - Short Duration Fund", False),
+    ("Synthetic Indexation Benefit Fund", "Debt Scheme - Corporate Bond Fund", False),
+    ("Synthetic Bluechip Fund", None, False),
+    ("Synthetic Bluechip Fund", "", False),
+])
+def test_is_index_fund_reads_the_name_words_or_the_stored_category(name, category, expected):
+    from app.services.analytics.scheme_universe import is_index_fund
+    assert is_index_fund(name, category) is expected
+
+
+def test_index_category_with_a_plain_name_is_not_ranked_and_carries_the_disclaimer_key(db_session, monkeypatch):
+    plain = _seed(db_session, 0, name="Synthetic Target Maturity 2030 Fund")
+    plain.sebi_category = "Other Scheme - Index Funds"
+    db_session.commit()
+    row, = _compute(db_session, monkeypatch, [plain]).funds
+    assert row.disclaimer_key == "index_fund_not_ranked"
+    assert all(value.rank is None and value.status == "not_ranked_index_fund" for value in row.periods.values())
+
+
 def test_ranking_section_key_is_unchanged_in_recompute():
     from app.services.analytics.recompute import _SECTIONS
     spec, = [entry for entry in _SECTIONS if entry.name == "ranking"]

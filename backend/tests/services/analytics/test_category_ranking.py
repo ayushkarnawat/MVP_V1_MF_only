@@ -281,7 +281,7 @@ def test_compute_category_ranking_category_avg_available_without_aaum_data():
     assert Decimal(summary.funds[0].category_avg_return) == _cagr(Decimal("10"), Decimal("13"), 3)
 
 
-def test_compute_category_ranking_uses_simple_average_despite_unequal_aum():
+def test_compute_category_ranking_weights_the_average_by_fund_size():
     db = _session()
     member = _household_member(db)
     held = _scheme(db, "Held Fund")
@@ -304,8 +304,10 @@ def test_compute_category_ranking_uses_simple_average_despite_unequal_aum():
     row = summary.funds[0]
     held_return = _cagr(Decimal("10"), Decimal("13"), 3)
     peer_return = _cagr(Decimal("10"), Decimal("12"), 3)
-    expected = (held_return + peer_return) / Decimal("2")
+    # Changed from the simple mean (held + peer) / 2: sizes 100 and 300 now weight the figure.
+    expected = (held_return * Decimal("100") + peer_return * Decimal("300")) / Decimal("400")
     assert Decimal(row.category_avg_return) == expected
+    assert row.category_avg_weighting == "fund_size" and row.category_avg_funds_without_size == 0
 
 
 def test_category_returns_caches_across_calls_for_same_category():
@@ -607,9 +609,11 @@ def test_compute_category_ranking_carries_the_three_periods_for_the_held_fund():
     row = _period_category_row()
     assert set(row.periods) == {"1y", "3y", "5y"}
     assert row.periods["3y"].fund_return == "0.12"
-    assert row.periods["3y"].category_avg == "0.17"
+    # Changed from the simple means 0.17 and 0.182: sizes 300 (held) and 100 (peer) now weight them.
+    assert row.periods["3y"].category_avg == "0.145"  # (0.12*300 + 0.22*100) / 400
     assert row.periods["3y"].peers == 2
-    assert row.category_avg_return == "0.182"  # Legacy simple mean of the two blended returns.
+    assert row.periods["3y"].weighting == "fund_size" and row.periods["3y"].funds_without_size == 0
+    assert row.category_avg_return == "0.157"  # Legacy blended figure, (0.132*300 + 0.232*100) / 400.
 
 
 def test_a_fund_with_no_5y_shows_no_fund_return_but_keeps_the_category_average():
@@ -663,7 +667,9 @@ def test_detailed_returns_are_computed_once_for_the_blended_and_the_period_views
 def test_period_return_and_old_category_payload_defaults():
     from app.services.analytics.schemas import CategoryRankRow, PeriodReturn
 
-    assert PeriodReturn().model_dump() == {"fund_return": None, "category_avg": None, "peers": 0}
+    assert PeriodReturn().model_dump() == {
+        "fund_return": None, "category_avg": None, "peers": 0, "weighting": None, "funds_without_size": 0,
+    }
     original = _period_category_row().model_dump(exclude={"periods", "plan_type"})
     restored = CategoryRankRow.model_validate(original)
     assert restored.periods == {} and restored.plan_type is None
@@ -686,7 +692,7 @@ def _five_fund_comparison():
     detailed = {fund.id: (Decimal(r1), Decimal(r3), Decimal(r5) if r5 else None,
                           _blend_returns(Decimal(r3), Decimal(r5) if r5 else None))
                 for fund, (r1, r3, r5) in zip(funds, raw)}
-    # Very unequal sizes, and the fifth fund has no AAUM. Neither may affect the mean.
+    # Very unequal sizes, and the fifth fund has no AAUM: it is left out of the weighted figure and counted.
     for fund, size in zip(funds, ("900", "30", "20", "10")):
         db.add(SchemeAaum(scheme_id=fund.id, reference_period=_TODAY, aaum_value=Decimal(size)))
     db.commit()
@@ -704,18 +710,28 @@ def test_payload_has_no_rank_percentile_or_category_size():
     assert {"category_rank", "percentile", "category_size", "scheme_return"}.isdisjoint(row.model_dump())
 
 
-def test_simple_average_golden_on_a_five_fund_category():
+def test_fund_size_weighted_golden_on_a_five_fund_category():
+    # Changed from the simple-mean golden (.30 / .16 / .30). Hand worked with sizes 900, 30, 20, 10
+    # (the fifth fund has none, so it is left out and counted):
+    # 1Y = (.10*900 + .20*30 + .30*20 + .40*10) / 960 = 106 / 960
+    # 3Y = (.12*900 + .14*30 + .16*20 + .18*10) / 960 = 117.2 / 960
+    # 5Y = (.20*900 + .30*30 + .40*20) / 950 = 197 / 950   (the 5Y pool is the first three funds)
     row, size_queries = _five_fund_comparison()
-    assert {key: (Decimal(value.category_avg), value.peers) for key, value in row.periods.items()} == {
-        "1y": (Decimal(".30"), 5), "3y": (Decimal(".16"), 5), "5y": (Decimal(".30"), 3),
+    assert {key: (Decimal(value.category_avg), value.peers, value.weighting, value.funds_without_size)
+            for key, value in row.periods.items()} == {
+        "1y": (Decimal("106") / Decimal("960"), 5, "fund_size", 1),
+        "3y": (Decimal("117.2") / Decimal("960"), 5, "fund_size", 1),
+        "5y": (Decimal("197") / Decimal("950"), 3, "fund_size", 0),
     }
     assert row.plan_type == "direct"
-    assert size_queries == 0
+    assert size_queries == 1  # one size lookup for the whole category and plan
 
 
-def test_legacy_category_average_is_the_simple_blended_mean():
+def test_legacy_category_average_is_the_blended_figure_weighted_by_fund_size():
+    # Changed from the simple blended mean .2176. Blends .168, .236, .304, .18 with sizes 900, 30, 20, 10.
     row, _ = _five_fund_comparison()
-    assert Decimal(row.category_avg_return) == Decimal(".2176")
+    assert Decimal(row.category_avg_return) == Decimal("166.16") / Decimal("960")
+    assert row.category_avg_weighting == "fund_size" and row.category_avg_funds_without_size == 1
 
 
 def test_fund_with_no_size_figure_is_no_longer_dropped():
@@ -775,3 +791,104 @@ def test_old_category_fields_are_ignored_when_a_payload_is_parsed():
     restored = CategoryRankRow.model_validate(old)
     assert {"category_rank", "percentile", "category_size", "scheme_return"}.isdisjoint(restored.model_dump())
     assert restored.periods == row.periods
+
+
+# W3: fund-size weighting, its "no size" rules and payload compatibility.
+def test_weighted_period_average_equals_the_hand_computed_weighted_mean():
+    from app.services.analytics.category_ranking import category_period_weighted_averages
+    a, b, c = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+    detailed = {a: (Decimal("0.10"), Decimal("0.12"), Decimal("0.14"), Decimal("0.132")),
+                b: (Decimal("0.20"), Decimal("0.22"), None, Decimal("0.22")),
+                c: (Decimal("0.40"), Decimal("0.30"), Decimal("0.50"), Decimal("0.42"))}
+    aaum = {a: Decimal("100"), b: Decimal("300"), c: Decimal("600")}
+    result = category_period_weighted_averages(detailed, aaum)
+    # 1Y = (.10*100 + .20*300 + .40*600) / 1000 = 0.31
+    # 3Y = (.12*100 + .22*300 + .30*600) / 1000 = 0.258
+    # 5Y = (.14*100 + .50*600) / 700 = 314 / 700 (b has no 5Y return, so its size does not count)
+    assert result["1y"] == (Decimal("0.31"), 3, "fund_size", 0)
+    assert result["3y"] == (Decimal("0.258"), 3, "fund_size", 0)
+    assert result["5y"] == (Decimal("314") / Decimal("700"), 2, "fund_size", 0)
+
+
+def test_a_fund_with_no_size_is_left_out_of_the_weighted_figure_and_counted():
+    from app.services.analytics.category_ranking import category_period_weighted_averages
+    sized, unsized = uuid.uuid4(), uuid.uuid4()
+    detailed = {sized: (None, Decimal("0.10"), None, Decimal("0.10")),
+                unsized: (None, Decimal("0.50"), None, Decimal("0.50"))}
+    result = category_period_weighted_averages(detailed, {sized: Decimal("200")})
+    # The unsized fund's 50% return plays no part; peers still counts every fund with a return.
+    assert result["3y"] == (Decimal("0.10"), 2, "fund_size", 1)
+    assert result["1y"] == (None, 0, None, 0)
+
+
+@pytest.mark.parametrize("size", [None, Decimal("0"), Decimal("-5"), Decimal("NaN")])
+def test_a_missing_zero_negative_or_invalid_size_is_not_usable(size):
+    from app.services.analytics.category_ranking import category_period_weighted_averages
+    good, bad = uuid.uuid4(), uuid.uuid4()
+    detailed = {good: (None, Decimal("0.10"), None, Decimal("0.10")), bad: (None, Decimal("0.90"), None, Decimal("0.90"))}
+    sizes = {good: Decimal("50")} | ({bad: size} if size is not None else {})
+    assert category_period_weighted_averages(detailed, sizes)["3y"] == (Decimal("0.10"), 2, "fund_size", 1)
+
+
+def test_when_no_fund_has_a_size_the_plain_mean_is_shown_and_flagged():
+    from app.services.analytics.category_ranking import category_period_weighted_averages
+    detailed = {uuid.uuid4(): (Decimal("0.10"), Decimal("0.20"), None, Decimal("0.20")),
+                uuid.uuid4(): (Decimal("0.30"), Decimal("0.40"), None, Decimal("0.40"))}
+    result = category_period_weighted_averages(detailed, {})
+    assert result["1y"] == (Decimal("0.20"), 2, "equal", 2)
+    assert result["3y"] == (Decimal("0.30"), 2, "equal", 2)
+    assert result["5y"] == (None, 0, None, 0)
+
+
+def test_a_single_fund_category_is_its_own_average():
+    from app.services.analytics.category_ranking import category_blended_weighted_average, category_period_weighted_averages
+    only = uuid.uuid4()
+    detailed = {only: (Decimal("0.10"), Decimal("0.12"), None, Decimal("0.12"))}
+    assert category_period_weighted_averages(detailed, {only: Decimal("7")})["3y"] == (Decimal("0.12"), 1, "fund_size", 0)
+    assert category_period_weighted_averages(detailed, {})["3y"] == (Decimal("0.12"), 1, "equal", 1)
+    assert category_blended_weighted_average(detailed, {only: Decimal("7")}) == (Decimal("0.12"), 1, "fund_size", 0)
+
+
+def test_weighted_average_keeps_the_three_year_floor():
+    from app.services.analytics.category_ranking import category_period_weighted_averages
+    old, young = uuid.uuid4(), uuid.uuid4()
+    detailed = {old: (Decimal("0.10"), Decimal("0.12"), None, Decimal("0.12")),
+                young: (Decimal("9"), None, None, None)}
+    result = category_period_weighted_averages(detailed, {old: Decimal("1"), young: Decimal("1000")})
+    assert result["1y"] == (Decimal("0.10"), 1, "fund_size", 0)
+
+
+def test_all_without_size_falls_back_end_to_end_and_flags_each_period():
+    db = _session()
+    member = _household_member(db)
+    held, peer = _scheme(db, "Held Fund"), _scheme(db, "Peer Fund")
+    _folio_with_purchase(db, member, held, Decimal("1000"), Decimal("100"), Decimal("10"), _START_3Y)
+    detailed = {held.id: (Decimal("0.10"), Decimal("0.12"), None, Decimal("0.12")),
+                peer.id: (Decimal("0.20"), Decimal("0.22"), None, Decimal("0.22"))}
+    peers = CategoryPeers(schemes=[held, peer], fund_count=2, representative_of={held.id: held.id, peer.id: peer.id})
+    p1, p2, p3 = _mock_nav({held.id: {"today": Decimal("13")}})
+    with p1, p2, p3, patch.object(category_ranking_module, "get_category_peers", new=AsyncMock(return_value=peers)), \
+         patch.object(category_ranking_module, "_compute_category_returns_detailed", new=AsyncMock(return_value=detailed)):
+        row = asyncio.run(compute_category_ranking(db, [member.id])).funds[0]
+    db.close()
+    assert row.periods["3y"].category_avg == "0.17"
+    assert (row.periods["3y"].weighting, row.periods["3y"].funds_without_size) == ("equal", 2)
+    assert row.category_avg_return == "0.17" and row.category_avg_weighting == "equal"
+    assert row.category_avg_funds_without_size == 2
+
+
+def test_payloads_stored_before_weighting_still_load_with_neutral_defaults():
+    from app.services.analytics.schemas import CategoryRankRow, PeriodReturn
+    old_period = {"fund_return": "0.10", "category_avg": "0.30", "peers": 5}
+    restored = PeriodReturn.model_validate(old_period)
+    assert (restored.weighting, restored.funds_without_size) == (None, 0)
+    old_row = {"scheme_id": "x", "scheme_name": "Old", "sebi_category": "Flexi Cap", "category_unavailable": False,
+               "insufficient_history": False, "category_avg_return": "0.2176", "thin_category": False,
+               "periods": {"1y": old_period}, "plan_type": "direct"}
+    row = CategoryRankRow.model_validate(old_row)
+    assert row.category_avg_return == "0.2176" and row.periods["1y"].peers == 5
+    assert (row.category_avg_weighting, row.category_avg_funds_without_size) == (None, 0)
+    # A new payload round-trips, and every existing key is still present.
+    new_row = CategoryRankRow.model_validate(_period_category_row().model_dump())
+    assert set(old_row) <= set(new_row.model_dump())
+    assert set(old_period) <= set(new_row.periods["3y"].model_dump())

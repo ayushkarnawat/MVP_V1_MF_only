@@ -260,21 +260,32 @@ class PeriodReturn(BaseModel):
     fund_return: str | None = None
     category_avg: str | None = None
     peers: int = 0
+    # How `category_avg` was weighted: "fund_size" (weighted by average assets
+    # under management; funds with no size on record are left out of it and
+    # counted in `funds_without_size`), or "equal" (a plain mean, used only when
+    # no fund in the pool has a size). None when there is no average, and on
+    # payloads stored before weighting existed (those were plain means, so the
+    # screen must not claim a weighting for them).
+    weighting: Literal["fund_size", "equal"] | None = None
+    funds_without_size: int = 0
 
 
 class CategoryRankRow(BaseModel):
-    """One held fund's returns against simple category-and-plan means."""
+    """One held fund's returns against category-and-plan averages weighted by fund size."""
 
     scheme_id: str
     scheme_name: str
     sebi_category: str | None
     category_unavailable: bool
     insufficient_history: bool
-    # Legacy blended mean for desktop/print/phone views until the cleanup release.
+    # Legacy blended average for desktop/print/phone views until the cleanup release.
     category_avg_return: str | None
     thin_category: bool
     periods: dict[str, PeriodReturn] = Field(default_factory=dict)
     plan_type: str | None = None
+    # Same meaning as PeriodReturn.weighting / funds_without_size, for the legacy figure.
+    category_avg_weighting: Literal["fund_size", "equal"] | None = None
+    category_avg_funds_without_size: int = 0
 
 
 class FundScoreRow(BaseModel):
