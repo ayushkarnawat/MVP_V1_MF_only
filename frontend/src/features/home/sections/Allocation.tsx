@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { ArrowLeft, ArrowRight, ChevronRight } from "lucide-react";
 import { CLICK_ROW } from "@/lib/clickable";
@@ -8,6 +9,7 @@ import {
   liveRows,
   soonRows,
 } from "../allocationCopy";
+import { AllocationClassDialog } from "../components/AllocationClassDialog";
 import { AllocationDonut } from "../components/AllocationDonut";
 import { FamilyCards } from "../components/FamilyCards";
 import { PartialDataBadge } from "../components/PartialDataBadge";
@@ -35,6 +37,9 @@ export function Allocation({
   onShowFamily,
   onRetry,
 }: AllocationProps) {
+  const [active, setActive] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
   if (status === "loading") {
     return (
       <div className="rounded-xl bg-[var(--ui-elevated)] border border-[var(--ui-divider)] p-4">
@@ -122,6 +127,13 @@ export function Allocation({
   const donutRows = live.filter(
     (row) => compareDecimalStrings(row.value, "0") !== 0
   );
+  const openClass = (key: string) => {
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setSelected(key);
+    onClassClick?.(key);
+  };
+  // Look the row up in the response, not in liveRows(): that helper keeps only the five display fields.
+  const selectedRow = selected ? data.classes.find((row) => row.key === selected) : undefined;
 
   return (
     <div className="rounded-xl bg-[var(--ui-elevated)] border border-[var(--ui-divider)] p-4">
@@ -155,19 +167,21 @@ export function Allocation({
           <AllocationDonut
             rows={donutRows}
             centerValue={formatCompactRupees(data.total_value)}
-            onSliceClick={onClassClick}
+            onSliceClick={openClass}
+            activeKey={active}
+            onActiveChange={setActive}
+            selectedKey={selected}
           />
         </div>
         <div className="w-full flex-1 space-y-1">
           {live.map((row) => {
-            const isClickable = Boolean(onClassClick);
+            const isClickable = compareDecimalStrings(row.value, "0") !== 0;
             const handleKeyDown = (e: KeyboardEvent) => {
-              if (!onClassClick) return;
               if (e.key === "Enter") {
-                onClassClick(row.key);
+                openClass(row.key);
               } else if (e.key === " " || e.key === "Spacebar") {
                 e.preventDefault();
-                onClassClick(row.key);
+                openClass(row.key);
               }
             };
 
@@ -176,13 +190,18 @@ export function Allocation({
                 key={row.key}
                 data-testid={`legend-${row.key}`}
                 data-color={row.color}
+                data-active={active === row.key ? "true" : "false"}
                 {...(isClickable
                   ? {
                       role: "button",
                       tabIndex: 0,
                       className: `flex items-center justify-between p-1.5 rounded-lg text-sm text-[var(--ui-text)] ${CLICK_ROW}`,
-                      onClick: () => onClassClick!(row.key),
+                      onClick: () => openClass(row.key),
                       onKeyDown: handleKeyDown,
+                      onMouseEnter: () => setActive(row.key),
+                      onMouseLeave: () => setActive(null),
+                      onFocus: () => setActive(row.key),
+                      onBlur: () => setActive(null),
                     }
                   : {
                       className:
@@ -226,6 +245,8 @@ export function Allocation({
           ))}
         </div>
       </div>
+
+      {selectedRow ? <AllocationClassDialog open row={selectedRow} onClose={() => setSelected(null)} returnFocusRef={openerRef} /> : null}
 
       {data.members != null ? (
         <FamilyCards members={data.members} onSelectMember={onSelectMember} />

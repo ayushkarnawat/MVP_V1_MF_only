@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/Badge";
-import { getMemberImportHistory } from "./api";
-import type { CASImportStatusResponse } from "./types";
+import { NewFundsList } from "@/components/mf/NewFundsList";
+import { getImportNewFunds, getMemberImportHistory } from "./api";
+import type { CASImportStatusResponse, NewFund } from "./types";
 import { FileText, AlertCircle } from "lucide-react";
 
 interface ImportHistoryListProps {
@@ -12,6 +13,21 @@ export function ImportHistoryList({ memberId }: ImportHistoryListProps) {
   const [history, setHistory] = useState<CASImportStatusResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [fundsById, setFundsById] = useState<Record<string, NewFund[] | "error">>({});
+
+  const toggleFunds = (importId: string) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(importId)) next.delete(importId); else next.add(importId);
+      return next;
+    });
+    if (fundsById[importId] === undefined) {
+      getImportNewFunds(importId)
+        .then(funds => setFundsById(prev => ({ ...prev, [importId]: funds })))
+        .catch(() => setFundsById(prev => ({ ...prev, [importId]: "error" })));
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -82,8 +98,8 @@ export function ImportHistoryList({ memberId }: ImportHistoryListProps) {
             : `Uploaded ${new Date(item.uploaded_at).toLocaleDateString()}`;
 
         return (
+          <div key={item.import_id} className="space-y-2">
           <div
-            key={item.import_id}
             className="p-3.5 sm:p-4 rounded-xl border border-[var(--color-border)]/70 bg-[var(--color-bg)] hover:bg-[var(--color-surface)] transition-colors flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap"
           >
             <div className="flex items-start gap-3 min-w-0">
@@ -119,6 +135,22 @@ export function ImportHistoryList({ memberId }: ImportHistoryListProps) {
                 </Badge>
               )}
             </div>
+          </div>
+          {isSuccess && (
+            <div className="pl-1">
+              <button type="button" aria-expanded={expanded.has(item.import_id)} data-clickable="" data-effect="expand"
+                onClick={() => toggleFunds(item.import_id)} className="text-xs font-semibold text-[var(--color-accent)] hover:underline">
+                {expanded.has(item.import_id) ? "Hide new funds" : "Show new funds"}
+              </button>
+              {expanded.has(item.import_id) && (() => {
+                const funds = fundsById[item.import_id];
+                if (funds === undefined) return <p className="mt-2 text-xs">Loading new funds...</p>;
+                if (funds === "error") return <p className="mt-2 text-xs">Could not load new funds.</p>;
+                if (funds.length === 0) return <p className="mt-2 text-xs">No new funds in this import.</p>;
+                return <div className="mt-2"><NewFundsList funds={funds} /></div>;
+              })()}
+            </div>
+          )}
           </div>
         );
       })}

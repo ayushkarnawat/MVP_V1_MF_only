@@ -72,12 +72,14 @@ export interface WealthSeriesResponse extends Envelope {
   benchmark: BenchmarkSeriesOut | null;
 }
 
+export interface ClassFundOut { scheme_id: string; name: string; value: string; share_of_class: string }
 export interface ClassRowOut {
   key: string;
   label: string;
   status: "live" | "coming_soon";
   value: string | null;
   percentage: string | null;
+  funds?: ClassFundOut[];
 }
 export interface MemberShareOut { id: string; name: string; value: string; percentage: string }
 export interface AllocationResponse extends Envelope {

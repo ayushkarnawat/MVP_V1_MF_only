@@ -312,14 +312,14 @@ describe("Individual Fund golden fixtures", () => {
     expect(body.stock_count).toBe(12);
   });
 
-  it("test_additive_fields_are_optional: the validator accepts a missing optional field, checks a present one, and the goldens omit benchmark_label", () => {
+  it("test_additive_fields_are_optional: the validator accepts a missing optional field, checks a present one, and the returns goldens carry benchmark_label (backend task 4.1)", () => {
     const point = obj<{ id: string; held?: boolean }>({ id: str, held: optional(bool) });
     expect(point.check({ id: "a" }, "p")).toEqual([]);
     expect(point.check({ id: "a", held: true }, "p")).toEqual([]);
     expect(point.check({ id: "a", held: "yes" }, "p")).toEqual(["p.held: expected boolean, got string"]);
     expect(point.check({ id: "a", other: 1 }, "p")).toEqual(["p.other: not in the contract"]);
-    expect(fixture("returns_inception")).not.toHaveProperty("benchmark_label");
-    expect(fixture("returns_current")).not.toHaveProperty("benchmark_label");
+    expect(fixture("returns_inception")).toHaveProperty("benchmark_label");
+    expect(fixture("returns_current")).toHaveProperty("benchmark_label");
   });
 
   it("the scatter goldens do not carry the additive held flag (a backend ask): no point has it, exactly one dot is the fund", () => {

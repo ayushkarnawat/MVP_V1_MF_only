@@ -7,6 +7,7 @@ import type {
   CoverageGapItem,
   ImportConfirmResponse,
   ImportPreviewResponse,
+  NewFund,
   OpeningBalancePayload,
   OpeningBalanceResponse,
   ParseErrorPayload,
@@ -298,4 +299,15 @@ export async function cancelImportRequest(
   }
 
   return (await response.json()) as CASImportStatusResponse;
+}
+
+export async function getImportNewFunds(importId: string): Promise<NewFund[]> {
+  const response = await fetch(`${API_BASE_URL}/imports/${encodeURIComponent(importId)}/new-funds`, {
+    method: "GET",
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
+  }
+  return (await response.json()) as NewFund[];
 }

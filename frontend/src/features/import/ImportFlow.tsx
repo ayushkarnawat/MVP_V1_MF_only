@@ -5,12 +5,13 @@ import { ParsingIndicator } from "./ParsingIndicator";
 import { ImportError } from "./ImportError";
 import { ReviewExpiryBanner } from "./ReviewExpiryBanner";
 import { useImportOrchestration } from "./useImportOrchestration";
+import type { ImportNotice } from "./importNotice";
 import { isTestEnv } from "@/lib/motion";
 import type { UploadSurface } from "@/features/legal/panDisclaimerStore";
 
 interface ImportFlowProps {
   householdMemberId: string;
-  onDone?: (notice?: { text: string; details?: string[] }) => void;
+  onDone?: (notice?: ImportNotice) => void;
   defaultTab?: "choice" | "request" | "upload" | "history" | "waiting";
   /** Which screen the upload came from, for the PAN disclaimer record. */
   surface?: UploadSurface;
