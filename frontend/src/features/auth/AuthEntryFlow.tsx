@@ -1,3 +1,4 @@
+import type { AuthVariant } from "./redesign/variant";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Landing } from "./Landing";
@@ -43,6 +44,8 @@ function errorMessage(err: unknown, fallback: string): string {
 export interface AuthEntryFlowProps {
   initialMode?: "login" | "signup";
   initialStep?: Step;
+  /** "split" is the redesigned desktop layout (built in later S6 tasks); "legacy" is today's screens. Defaults to legacy. */
+  variant?: AuthVariant;
 }
 
 export function AuthEntryFlow({

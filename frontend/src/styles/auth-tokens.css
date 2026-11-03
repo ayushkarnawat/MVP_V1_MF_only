@@ -1,0 +1,62 @@
+/* Tokens and motion for the redesigned sign-up and sign-in screens. Imported by the new auth components only. */
+:root {
+  --auth-mint-from: #E4FAEC;
+  --auth-mint-to: #F6FEF9;
+  --auth-card-shadow: 0 24px 60px -24px rgba(16, 24, 40, 0.18), 0 2px 6px rgba(16, 24, 40, 0.06);
+  --auth-step-on: var(--pos, #16a34a);
+  --auth-step-off: #D6EFDF;
+}
+
+.auth-left-panel {
+  background: linear-gradient(160deg, var(--auth-mint-from) 0%, var(--auth-mint-to) 100%);
+}
+
+@keyframes authFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(calc(var(--auth-float-distance, 6px) * -1));
+  }
+}
+
+@keyframes authFloatTilt {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(calc(var(--auth-float-distance, 5px) * -1)) rotate(1deg);
+  }
+}
+
+@keyframes authBreathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.015);
+  }
+}
+
+/* The whole sketch moves as one; only transform changes, so nothing shifts in the layout. */
+.auth-sketch {
+  animation: authFloat var(--auth-float-duration, 7s) ease-in-out infinite;
+  will-change: transform;
+}
+
+.auth-sketch[data-motion="tilt"] {
+  animation-name: authFloatTilt;
+}
+
+.auth-sketch[data-motion="breathe"] {
+  animation-name: authBreathe;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-sketch {
+    animation: none;
+  }
+}

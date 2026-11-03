@@ -418,3 +418,21 @@ export function validatePersonName(raw: string): string | null {
   if (name.length < 2 || name.length > 85) return "Name must be 2 to 85 characters.";
   return null;
 }
+
+/** "+919876543210" -> "+91 ••••• 43210": keeps +91 and the last five digits (design Q6). */
+export function maskPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 0) return "";
+  if (digits.length < 10) return "•".repeat(digits.length);
+  return `+91 ••••• ${digits.slice(-5)}`;
+}
+
+/** "siddharth@gmail.com" -> "si••••••@gmail.com": two letters of the name and the whole domain (design Q6). */
+export function maskEmail(email: string): string {
+  const at = email.lastIndexOf("@");
+  if (at < 1) return email;
+  const name = email.slice(0, at);
+  if (name.length <= 2) return email;
+  return `${name.slice(0, 2)}••••••${email.slice(at)}`;
+}
+

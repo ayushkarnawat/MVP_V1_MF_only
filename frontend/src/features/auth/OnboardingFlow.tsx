@@ -1,3 +1,4 @@
+import type { AuthVariant } from "./redesign/variant";
 import { useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { currentStep, goBack, goNext, initHistory, isSkipped, markAnswered, skipToNext } from "./onboardingHistory";
@@ -41,6 +42,8 @@ export function resumeStep(me: MeResponse | null | undefined): OnboardingStep {
 
 interface OnboardingFlowProps {
   isMobile?: boolean;
+  /** See AuthEntryFlow: "legacy" by default. */
+  variant?: AuthVariant;
 }
 
 export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
