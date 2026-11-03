@@ -26,6 +26,8 @@ def _household(client, *, suffix: str = "1"):
     db = _db(client)
     user = db.get(User, uuid.UUID(user_id))
     user.email = f"head-route-{suffix}@example.com"
+    # A household that has finished sign-up: contact changes mail the old address only then.
+    user.onboarding_completed_at = datetime.now(timezone.utc)
     head = HouseholdMember(
         id=uuid.uuid4(),
         user_id=user.id,

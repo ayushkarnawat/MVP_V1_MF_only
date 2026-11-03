@@ -302,3 +302,60 @@ def test_the_link_names_the_changed_channel_so_the_page_can_say_which(client, ma
     assert mailbox.sent[1]["body"].rstrip().endswith("&channel=phone")
     # The token is still the only secret part of the link.
     assert "&channel=" not in _token_from(mailbox.sent[0])
+
+
+def _incomplete_household(client, suffix):
+    """A person still in sign-up: has an email, but onboarding_completed_at is None."""
+    token, user_id = _signup(client, f"+9194100000{suffix}")
+    db = _db(client)
+    user = db.get(User, uuid.UUID(user_id))
+    user.email = f"signup-{suffix}@example.com"
+    assert user.onboarding_completed_at is None
+    db.commit()
+    db.close()
+    return {"headers": {"Authorization": f"Bearer {token}"}, "user_id": user_id}
+
+
+def test_an_email_change_before_sign_up_is_complete_sends_no_notice(client, mailbox):
+    household = _incomplete_household(client, "01")
+
+    changed = _change(client, household, "email", "retyped-01@example.com")
+
+    assert changed.status_code == 200
+    assert changed.json()["email"] == "retyped-01@example.com"
+    assert mailbox.sent == []
+    db = _db(client)
+    event = db.query(ContactChangeEvent).filter_by(user_id=uuid.UUID(household["user_id"])).one()
+    assert (event.channel, event.old_value, event.new_value) == (
+        "email", "signup-01@example.com", "retyped-01@example.com"
+    )
+    db.close()
+
+
+def test_a_phone_change_before_sign_up_is_complete_sends_no_notice(client, mailbox):
+    household = _incomplete_household(client, "02")
+
+    changed = _change(client, household, "phone", "+919400000902")
+
+    assert changed.status_code == 200
+    assert changed.json()["phone_number"] == "+919400000902"
+    assert mailbox.sent == []
+    db = _db(client)
+    event = db.query(ContactChangeEvent).filter_by(user_id=uuid.UUID(household["user_id"])).one()
+    assert event.channel == "phone" and event.new_value == "+919400000902"
+    db.close()
+
+
+def test_an_email_change_after_sign_up_is_complete_still_sends_the_notice_to_the_old_address(
+    client, mailbox
+):
+    household = _incomplete_household(client, "03")
+    db = _db(client)
+    db.get(User, uuid.UUID(household["user_id"])).onboarding_completed_at = datetime.now(timezone.utc)
+    db.commit()
+    db.close()
+
+    changed = _change(client, household, "email", "new-03@example.com")
+
+    assert changed.status_code == 200
+    assert [m["to"] for m in mailbox.sent] == ["signup-03@example.com"]

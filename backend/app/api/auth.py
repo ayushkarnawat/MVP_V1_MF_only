@@ -816,7 +816,9 @@ def verify_contact_change(
         else None
     )
     db.commit()
-    if raw_reverse_token is not None:
+    # Owner decision (Q71): during sign-up the old address was typed minutes ago, so only the email
+    # is skipped until onboarding is complete. The event and the cooling-off are still recorded above.
+    if raw_reverse_token is not None and user.onboarding_completed_at is not None:
         send_contact_change_notice(
             channel=body.channel,
             old_value=current_identifier,
