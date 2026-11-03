@@ -44,6 +44,7 @@ export function LoginEntry({
       const result = validateEmail(emailValue.trim());
       if (!result.isValid) {
         setFieldError(result.error);
+        document.getElementById("login-email")?.focus();
         return;
       }
       setFieldError(null);
@@ -53,6 +54,7 @@ export function LoginEntry({
     const result = validateIndianPhone(phoneValue);
     if (!result.isValid) {
       setFieldError(result.error);
+      document.getElementById("login-phone")?.focus();
       return;
     }
     setFieldError(null);
@@ -81,17 +83,20 @@ export function LoginEntry({
             <SegmentedTabs
               label="Log in with"
               options={TABS}
+              panelId="login-panel"
               value={tab}
               onChange={(next) => {
                 setTab(next);
                 setFieldError(null);
               }}
             />
+            <div id="login-panel" role="tabpanel">
             {tab === "email" ? (
               <AuthField id="login-email" label="Email address" type="email" autoComplete="email" placeholder="you@example.com" value={emailValue} error={fieldError} onChange={(event) => setEmailValue(event.target.value)} />
             ) : (
               <AuthField id="login-phone" label="Mobile number" type="tel" inputMode="tel" autoComplete="tel" placeholder="98765 43210" value={phoneValue} error={fieldError} onChange={(event) => setPhoneValue(event.target.value)} />
             )}
+            </div>
             {error ? (
               isNoAccountError(error) ? (
                 <AuthAlert tone="error" action={{ label: "Sign up", onClick: onSignUp }}>{error}</AuthAlert>

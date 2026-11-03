@@ -44,7 +44,10 @@ export function AccountDetails({ initialName = "", initialEmail = "", emailLocke
     const emailProblem = emailResult && !emailResult.isValid ? emailResult.error : null;
     setNameError(nameProblem);
     setEmailError(emailProblem);
-    if (nameProblem || emailProblem) return;
+    if (nameProblem || emailProblem) {
+      document.getElementById(nameProblem ? "account-name" : "account-email")?.focus();
+      return;
+    }
     setSaveError(null);
     setSaving(true);
     try {
@@ -101,7 +104,7 @@ export function AccountDetails({ initialName = "", initialEmail = "", emailLocke
             />
             {shownError ? <AuthAlert tone="error">{shownError}</AuthAlert> : null}
             <Button type="submit" disabled={submitting || saving} className="h-[52px] w-full rounded-full text-[15px] font-bold">
-              {submitting || saving ? "Saving..." : "Continue"}
+              {saving ? "Saving..." : submitting ? "Sending..." : "Continue"}
             </Button>
           </form>
         }

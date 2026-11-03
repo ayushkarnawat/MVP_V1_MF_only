@@ -9,6 +9,8 @@
 
 .auth-left-panel {
   background: linear-gradient(160deg, var(--auth-mint-from) 0%, var(--auth-mint-to) 100%);
+  /* The shared muted grey is 4.46:1 on the darker mint stop; this one is above 5:1 on both stops (WCAG AA is 4.5). */
+  --ui-text-muted: #666666;
 }
 
 @keyframes authFloat {

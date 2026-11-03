@@ -23,8 +23,8 @@ export function AuthSplitCard({ left, right, step, done, onBack, bottom }: AuthS
       className="auth-card mx-auto grid w-full max-w-[1100px] grid-cols-1 overflow-hidden rounded-3xl bg-white lg:grid-cols-2"
       style={{ boxShadow: "var(--auth-card-shadow)" }}
     >
-      <div data-testid="auth-left-slot" className="p-10">{left}</div>
-      <div data-testid="auth-right" className="grid grid-rows-[3.5rem_1fr_3.5rem] p-10">
+      <div data-testid="auth-left-slot" className="order-2 p-10 lg:order-1">{left}</div>
+      <div data-testid="auth-right" className="order-1 grid grid-rows-[3.5rem_1fr_3.5rem] p-10 lg:order-2">
         <div data-testid="auth-topbar" className="flex h-14 items-center justify-between">
           <div>
             {onBack ? (

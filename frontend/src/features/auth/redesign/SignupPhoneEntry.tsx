@@ -34,6 +34,7 @@ export function SignupPhoneEntry({ onSubmit, onLogin, error, submitting, legalRe
     const result = validateIndianPhone(value);
     if (!result.isValid) {
       setFieldError(result.error);
+      document.getElementById("signup-phone")?.focus();
       return;
     }
     setFieldError(null);

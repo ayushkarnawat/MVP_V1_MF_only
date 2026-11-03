@@ -5,9 +5,11 @@ export interface SegmentedTabsProps<V extends string> {
   options: readonly { value: V; label: string }[];
   value: V;
   onChange: (value: V) => void;
+  /** The id of the panel the tabs switch. The selected tab points to it with `aria-controls`; each tab gets the id `${panelId}-tab-${value}`. The panel is left unnamed on purpose: naming it after the tab would give two things the same name as the field inside. */
+  panelId?: string;
 }
 
-export function SegmentedTabs<V extends string>({ label, options, value, onChange }: SegmentedTabsProps<V>) {
+export function SegmentedTabs<V extends string>({ label, options, value, onChange, panelId }: SegmentedTabsProps<V>) {
   const move = (event: KeyboardEvent<HTMLButtonElement>, from: number) => {
     const last = options.length - 1;
     let to = from;
@@ -28,6 +30,8 @@ export function SegmentedTabs<V extends string>({ label, options, value, onChang
             key={option.value}
             type="button"
             role="tab"
+            id={panelId ? `${panelId}-tab-${option.value}` : undefined}
+            aria-controls={panelId && selected ? panelId : undefined}
             aria-selected={selected}
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(option.value)}
