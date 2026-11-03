@@ -27,6 +27,7 @@ const urlMap = [
   ["portfolio-mutual-funds-analytics", "/portfolio/mutual-funds/analytics"],
   ["portfolio-mutual-funds-history", "/portfolio/mutual-funds/history"],
   ["portfolio-mutual-funds-fund", "/portfolio/mutual-funds/funds/:schemeId"],
+  ["portfolio-mutual-funds-overlap-compare", "/portfolio/mutual-funds/overlap/compare/:fundA/:fundB"],
   ["portfolio-mutual-funds-fund-overlap", "/portfolio/mutual-funds/funds/:schemeId/overlap"],
   ["portfolio-mutual-funds-fund-insights", "/portfolio/mutual-funds/funds/:schemeId/insights"],
   ["liabilities", "/liabilities"],

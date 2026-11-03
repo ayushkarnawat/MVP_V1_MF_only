@@ -27,9 +27,9 @@ const ctx = (over: Partial<FundPageContext> = {}): FundPageContext => ({
 const tabs = () => within(screen.getByRole("tablist", { name: "Comparison views" })).getAllByRole("tab");
 const tab = (name: string) => screen.getByRole("tab", { name });
 
-function mount(props: { context?: FundPageContext; onBack?: () => void } = {}) {
+function mount(props: { context?: FundPageContext; onBack?: () => void; backLabel?: string } = {}) {
   const onBack = props.onBack ?? vi.fn();
-  render(<ComparisonState ctx={props.context ?? ctx()} otherSchemeId={IDS.peer1} onBack={onBack} />);
+  render(<ComparisonState ctx={props.context ?? ctx()} otherSchemeId={IDS.peer1} onBack={onBack} backLabel={props.backLabel} />);
   return onBack;
 }
 
@@ -73,6 +73,14 @@ describe("ComparisonState", () => {
     const onBack = mount();
     await screen.findByRole("tablist");
     fireEvent.click(screen.getByRole("button", { name: `Back to ${A}'s overlap` }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("backLabel overrides the back text, and the default text is unchanged (UI round 2, change 4)", async () => {
+    const onBack = mount({ backLabel: "Back to Overlap" });
+    await screen.findByRole("tablist");
+    expect(screen.queryByRole("button", { name: `Back to ${A}'s overlap` })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Back to Overlap" }));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 

@@ -4,6 +4,7 @@ import * as fc from "../fixtures/mfC";
 import { renderInShell } from "../../../shell/testing";
 import { expectInteractivity } from "../testing";
 import type { OverlapPair, OverlapSummary } from "../types";
+import { combinedWeight } from "./overlapLogic";
 import { TopPairs } from "./TopPairs";
 
 const TOP = "S-KOTAK~S-SBI";
@@ -27,12 +28,12 @@ function manyPairs(): OverlapSummary {
 }
 
 describe("the table", () => {
-  it("has the numbered heading, the info mark and the six columns", () => {
+  it("has the numbered heading, the info mark and the six columns (the last is the comparison link)", () => {
     mount();
     expect(screen.getByRole("heading", { name: "3. Top Overlapping Fund Pairs" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /pairs of your funds that share the most/i })).toBeInTheDocument();
     expect(within(screen.getByRole("table", { name: "Top overlapping fund pairs" })).getAllByRole("columnheader").map(h => h.textContent)).toEqual(
-      ["#", "Fund 1", "Fund 2", "Overlap", "Shared Stocks", "Combined Weight"]);
+      ["#", "Fund 1", "Fund 2", "Overlap", "Shared Stocks", "Overlap comparison"]);
   });
   it("lists the pairs above the low band largest overlap first, numbered, with both fund names", () => {
     mount();
@@ -44,11 +45,10 @@ describe("the table", () => {
     expect(screen.getByTestId("pair-row-S-JM~S-SBI")).toHaveTextContent("2");
     expect(screen.getByTestId("pair-row-S-JM~S-KOTAK")).toHaveTextContent("JM Flexi Cap Fund");
   });
-  it("shows the overlap in whole percent, the shared stock count and the combined weight to one place", () => {
+  it("shows the overlap in whole percent and the shared stock count", () => {
     mount();
     expect([TOP, "S-JM~S-SBI", "S-JM~S-KOTAK"].map(key => screen.getByTestId(`pair-overlap-${key}`).textContent)).toEqual(["41%", "26%", "24%"]);
     expect([TOP, "S-JM~S-SBI", "S-JM~S-KOTAK"].map(key => screen.getByTestId(`pair-shared-${key}`).textContent)).toEqual(["12", "4", "4"]);
-    expect([TOP, "S-JM~S-SBI", "S-JM~S-KOTAK"].map(key => screen.getByTestId(`pair-combined-${key}`).textContent)).toEqual(["50.7%", "38.7%", "54.2%"]);
   });
   it("draws a coloured bar as wide as the overlap, banded from the payload", () => {
     mount();
@@ -148,6 +148,34 @@ describe("states", () => {
     const { container } = mount(manyPairs());
     fireEvent.click(screen.getByRole("button", { name: "View all fund overlaps →" }));
     expectInteractivity(container, 8);
+  });
+  it("no longer renders a Combined Weight column or cell", () => {
+    mount();
+    expect(screen.queryByRole("columnheader", { name: "Combined Weight" })).toBeNull();
+    expect(screen.queryByTestId(`pair-combined-${TOP}`)).toBeNull();
+  });
+  it("renders a View more link per row to the comparison of its two funds", () => {
+    mount();
+    const links = screen.getAllByRole("link", { name: /View more/ });
+    expect(links.map(link => link.getAttribute("href"))).toEqual([
+      "/portfolio/mutual-funds/overlap/compare/S-KOTAK/S-SBI",
+      "/portfolio/mutual-funds/overlap/compare/S-JM/S-SBI",
+      "/portfolio/mutual-funds/overlap/compare/S-KOTAK/S-JM",
+    ]);
+    expect(within(screen.getByTestId(`pair-row-${TOP}`)).getByRole("link", { name: "View more: Kotak Multi Cap Fund and SBI Bluechip Fund" })).toHaveAttribute("href", "/portfolio/mutual-funds/overlap/compare/S-KOTAK/S-SBI");
+  });
+  it("clicking the link does not select the pair", () => {
+    const { onSelect } = mount();
+    fireEvent.click(within(screen.getByTestId("pair-row-S-JM~S-SBI")).getByRole("link", { name: /View more/ }));
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+  it("clicking the first fund still selects the pair", () => {
+    const { onSelect } = mount();
+    fireEvent.click(screen.getByTestId("pair-button-S-JM~S-SBI"));
+    expect(onSelect).toHaveBeenCalledWith("S-JM~S-SBI");
+  });
+  it("keeps combinedWeight exported for the Key insights sentence", () => {
+    expect(typeof combinedWeight).toBe("function");
   });
   it("renders SchemeLogo on pair rows and key insights", () => {
     mount();

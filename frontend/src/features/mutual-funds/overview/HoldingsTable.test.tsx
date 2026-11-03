@@ -335,3 +335,13 @@ it("split_shares_always_total_exactly_100_percent", () => {
   expect(Math.round(widths.reduce((a, b) => a + b, 0) * 100)).toBe(10000);
   expect(widths.sort()).toEqual([33.33, 33.33, 33.34]);
 });
+
+describe("Category column (UI round 2, change 2)", () => {
+  it("the Category cell shows the short form and a dash when there is none", () => {
+    const categories = ["Equity Scheme - Flexi Cap Fund", "Equity Schemes - Mid Cap Fund", "Debt Scheme - Liquid Fund", "Large Cap Fund", null];
+    const rows = fx.holdings().map((holding, index) => ({ ...holding, sebi_category: categories[index] }));
+    table({ holdings: loaded(rows) });
+    const byFund = Object.fromEntries(screen.getAllByTestId(/^row-/).map(tr => [tr.getAttribute("data-testid")!.slice(4).split(":")[0], within(tr).getByTestId("category").textContent]));
+    expect(byFund).toEqual({ "S-KOTAK": "Flexi Cap Fund", "S-JM": "Mid Cap Fund", "S-HDFC": "Liquid Fund", "S-SBI": "Large Cap Fund", "S-AXIS": "—" });
+  });
+});

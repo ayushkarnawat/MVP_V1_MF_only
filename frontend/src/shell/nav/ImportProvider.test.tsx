@@ -1,13 +1,13 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Outlet, Route, Routes, useLocation, useNavigate } from "react-router";
 import { StrictMode } from "react";
-import { beforeEach, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useEffect } from "react";
 import { clearCasResumeStep2 } from "../../features/import/casResumeState";
 import { FocusLayout } from "../layout/FocusLayout";
 import ImportWrapper from "../wrappers/ImportWrapper";
 import { TestScopeProvider } from "../testing";
-import { useImport } from "../scope/ScopeContext";
+import { useImport, useScope } from "../scope/ScopeContext";
 import { ImportProvider } from "./ImportProvider";
 
 vi.mock("../../features/import/casResumeState", () => ({ clearCasResumeStep2: vi.fn() }));
@@ -140,4 +140,84 @@ it("does not clear resume state while import stays mounted under StrictMode", as
   await screen.findByTestId("flow");
   await new Promise(resolve => setTimeout(resolve, 20));
   expect(clearCasResumeStep2).not.toHaveBeenCalled();
+});
+
+// UI round 2, change 7: which member? pop-up before Add data in the family view.
+function PickerProbe() {
+  const { openImport } = useImport();
+  const location = useLocation();
+  const { setMember, setAggregate } = useScope();
+  return <>
+    <button onClick={() => openImport()}>Generic import</button>
+    <button onClick={() => openImport("b")}>Explicit import</button>
+    <button onClick={() => setMember("a")}>Switch to Alice</button>
+    <button onClick={() => setAggregate()}>Switch to family</button>
+    <output data-testid="where">{JSON.stringify({ path: location.pathname + location.search, state: location.state })}</output>
+  </>;
+}
+const TWO = [{ id: "a", name: "Alice Rao" }, { id: "b", name: "Bob Rao" }];
+function mountPicker(scope: Parameters<typeof TestScopeProvider>[0]["scope"] = { viewMode: "aggregate", memberId: null, members: TWO }) {
+  return render(<MemoryRouter initialEntries={["/portfolio/mutual-funds/analytics?period=1"]}>
+    <TestScopeProvider scope={scope}><ImportProvider><PickerProbe /></ImportProvider></TestScopeProvider>
+  </MemoryRouter>);
+}
+const where = () => JSON.parse(screen.getByTestId("where").textContent!);
+const HERE = { path: "/portfolio/mutual-funds/analytics?period=1", state: null };
+
+describe("Which member? pop-up", () => {
+  it("family view with two members opens the pop-up and does not navigate", () => {
+    mountPicker();
+    fireEvent.click(screen.getByRole("button", { name: "Generic import" }));
+    expect(screen.getByRole("dialog", { name: "Whose data are you adding?" })).toBeInTheDocument();
+    expect(where()).toEqual(HERE);
+  });
+  it("member view goes straight to that member", () => {
+    mountPicker({ viewMode: "member", memberId: "a", members: TWO });
+    fireEvent.click(screen.getByRole("button", { name: "Generic import" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(where()).toEqual({ path: "/import?member=a", state: { origin: "/portfolio/mutual-funds/analytics" } });
+  });
+  it("an explicit member id goes straight, even in the family view", () => {
+    mountPicker();
+    fireEvent.click(screen.getByRole("button", { name: "Explicit import" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(where()).toEqual({ path: "/import?member=b", state: { origin: "/portfolio/mutual-funds/analytics" } });
+  });
+  it("one member goes straight", () => {
+    mountPicker({ viewMode: "aggregate", memberId: null, members: [TWO[0]] });
+    fireEvent.click(screen.getByRole("button", { name: "Generic import" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(where()).toEqual({ path: "/import", state: { origin: "/portfolio/mutual-funds/analytics" } });
+  });
+  it("no members goes straight", () => {
+    mountPicker({ viewMode: "aggregate", memberId: null, members: [] });
+    fireEvent.click(screen.getByRole("button", { name: "Generic import" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(where().path).toBe("/import");
+  });
+  it("Continue is disabled until a member is chosen, then goes to that member with the origin state", () => {
+    mountPicker();
+    fireEvent.click(screen.getByRole("button", { name: "Generic import" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByRole("button", { name: "Continue" })).toBeDisabled();
+    fireEvent.click(within(dialog).getByRole("radio", { name: /Bob Rao/ }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Continue" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(where()).toEqual({ path: "/import?member=b", state: { origin: "/portfolio/mutual-funds/analytics" } });
+  });
+  it("Cancel closes the pop-up and stays on the page", () => {
+    mountPicker();
+    fireEvent.click(screen.getByRole("button", { name: "Generic import" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(where()).toEqual(HERE);
+  });
+  it("changing the view closes the pop-up", () => {
+    mountPicker();
+    fireEvent.click(screen.getByRole("button", { name: "Generic import" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Switch to Alice", hidden: true }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(where()).toEqual(HERE);
+  });
 });

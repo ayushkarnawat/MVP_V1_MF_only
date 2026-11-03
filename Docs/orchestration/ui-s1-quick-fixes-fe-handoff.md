@@ -1,6 +1,6 @@
 # Handoff: ui-s1 quick fixes, frontend (tasks 1.2, 1.3, 1.4 and the frontend test of 1.1)
 
-**Status:** OPEN. **Worker:** Antigravity. **Rules:** `Docs/orchestration/ui-common-rules-antigravity.md`. **Plan:** `Docs/orchestration/2026-11-02-ui-round-2-and-auth-redesign-implementation-plan.md`, Stage S1. Spec sections `c1`, `c2`, `c4`, `c7` of `2026-11-02-auth-redesign-plan.html` (only if you need a mockup).
+**Status:** WITHDRAWN (replaced by `ui-s1-fe-packet.md`, red tests committed first). **Worker:** Antigravity. **Rules:** `Docs/orchestration/ui-common-rules-antigravity.md`. **Plan:** `Docs/orchestration/2026-11-02-ui-round-2-and-auth-redesign-implementation-plan.md`, Stage S1. Spec sections `c1`, `c2`, `c4`, `c7` of `2026-11-02-auth-redesign-plan.html` (only if you need a mockup).
 
 **Work only in** `C:\Users\Dell\ui-r2-fe` (synced to `68f761bd`). Never in `wt/docs`. This head includes the manager's Run 7 task 7.1 (fund logos), which changed `TopPairs.tsx`, `TopPairs.test.tsx` and the Home movers. **Keep the logos.** Run 7 is not finished: the green token, the one-heading-per-card change and the benchmark info icon are not in yet, so do not build on them.
 

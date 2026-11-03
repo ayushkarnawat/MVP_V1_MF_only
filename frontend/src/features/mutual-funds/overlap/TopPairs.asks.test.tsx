@@ -19,11 +19,10 @@ describe("the pairs at exactly the low band", () => {
     expect(rows()).toEqual([TOP, "S-JM~S-SBI", "S-JM~S-KOTAK", EDGE]);
     expect(screen.getByTestId(`pair-row-${EDGE}`).querySelector("td")).toHaveTextContent("4");
   });
-  it("show their own overlap, shared stocks, combined weight and band", () => {
+  it("show their own overlap, shared stocks and band", () => {
     mount(fa.overlapSummaryWithAsks());
     expect(screen.getByTestId(`pair-overlap-${EDGE}`)).toHaveTextContent("20%");
     expect(screen.getByTestId(`pair-shared-${EDGE}`)).toHaveTextContent("3");
-    expect(screen.getByTestId(`pair-combined-${EDGE}`)).toHaveTextContent("45.8%");
     expect(screen.getByTestId(`pair-bar-${EDGE}`)).toHaveAttribute("data-band", "moderate");
     expect(screen.getByTestId(`pair-bar-${EDGE}`)).toHaveStyle({ width: "20%" });
     expect(screen.getByTestId(`pair-row-${EDGE}`)).toHaveTextContent("HDFC Mid-Cap Opportunities Fund");

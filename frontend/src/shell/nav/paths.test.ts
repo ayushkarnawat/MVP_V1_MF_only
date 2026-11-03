@@ -24,6 +24,7 @@ const cases = [
   [() => paths.mutualFunds.analytics(), "/portfolio/mutual-funds/analytics", "portfolio-mutual-funds-analytics"],
   [() => paths.mutualFunds.history(), "/portfolio/mutual-funds/history", "portfolio-mutual-funds-history"],
   [() => paths.mutualFunds.fund("INF123"), "/portfolio/mutual-funds/funds/INF123", "portfolio-mutual-funds-fund"],
+  [() => paths.mutualFunds.compare("INF123", "INF456"), "/portfolio/mutual-funds/overlap/compare/INF123/INF456", "portfolio-mutual-funds-overlap-compare"],
   [() => paths.mutualFunds.fundOverlap("INF123"), "/portfolio/mutual-funds/funds/INF123/overlap", "portfolio-mutual-funds-fund-overlap"],
   [() => paths.mutualFunds.fundInsights("INF123"), "/portfolio/mutual-funds/funds/INF123/insights", "portfolio-mutual-funds-fund-insights"],
   [() => paths.liabilities(), "/liabilities", "liabilities"],
@@ -61,6 +62,10 @@ it("encodes scheme ids as one path segment for all three fund builders", () => {
   expect(paths.mutualFunds.fund(id)).toBe("/portfolio/mutual-funds/funds/INF%20%2F%3F%23%25");
   expect(paths.mutualFunds.fundOverlap(id)).toBe("/portfolio/mutual-funds/funds/INF%20%2F%3F%23%25/overlap");
   expect(paths.mutualFunds.fundInsights(id)).toBe("/portfolio/mutual-funds/funds/INF%20%2F%3F%23%25/insights");
+});
+
+it("encodes both scheme ids of the compare path as one segment each", () => {
+  expect(paths.mutualFunds.compare("INF /?#%", "B/2")).toBe("/portfolio/mutual-funds/overlap/compare/INF%20%2F%3F%23%25/B%2F2");
 });
 
 it("encodes the optional member query and leaves the import pathname unchanged", () => {
