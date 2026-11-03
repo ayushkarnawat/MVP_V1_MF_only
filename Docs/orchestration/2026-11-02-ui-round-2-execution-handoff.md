@@ -9,9 +9,9 @@ Same owner, same repo, same branch (`leapswitch-redesign` of `ayushkarnawat/MVP_
 - **What was decided and planned:** nine change requests (round 2), the sign-up, sign-in and onboarding redesign from two PDFs, six life goals (the one approved database change), and the round 3 amendments. One implementation plan of **8 stages (S0 to S7) and 54 tasks**, each task tagged **[Codex]**, **[Antigravity]** or **[Claude]**.
 - **What is built of this plan:** nothing yet.
 - **What is built underneath it:** change-requests Runs 1 to 6 (incl. Head of Family, migrations `0050` to `0052`, Alembic head `0052`) are on `leapswitch-redesign` at `6d7c84f`. **Run 7 (frontend: logos, one heading per card, green button token, benchmark explanation and info icon) is still open.** Its Antigravity handoff is `cr-r7-logo-pass-handoff.md`, rules `cr-r7-common-rules.md`.
-- **Order:** Run 7 first (it overlaps S1, S4 and S6), then S0, then S1 to S7. S0 tasks 0.1 and 0.2 are reading and can start now.
+- **Order:** start now. The manager builds Run 7 in parallel. Hold list (wait for Run 7): task 1.5, tasks 4.2 to 4.4, all of S6.
 - **Questions open:** one. **Q71** (the plan's "Open question"): should the old email address get the change notice when the email is changed on Back during sign-up? Needed only at S6 Task 6.11.
-- **Pushes:** Claude's session cannot push (HTTP 403 from its git proxy: the Claude GitHub App is not installed on this repo). Claude commits locally and tells the owner the range; the owner pushes. **Nothing is deployed until the owner gives an explicit go at S7.**
+- **Where to work and push:** only the `wt/docs` worktree on `leapswitch-redesign`. Pull (`--ff-only`) before every commit. No deploy and no product-code push before the owner's go at S7.
 
 ---
 
@@ -78,7 +78,7 @@ These came from the owner over the whole planning session. They apply to you.
 5. **The existing Inception performance graph is not changed.** Its style, layout and behaviour stay. The only change next to it is the toggle row above its period buttons (S4).
 6. **Plain writing**, in documents and on screen: short sentences, no em-dashes, no "not X but Y" constructions, no invented scare-quoted labels, no jargon in the UI ("TRI", "proxy" and "fallback" never appear on screen).
 7. **The model is never switched without the owner asking.** Opus only on the three named triggers in `references/escalation-triggers.md`, and only with the owner's approval.
-8. **Commits:** local, by the orchestrator, on `leapswitch-redesign`, prefix `ui-s<N>:` for stage work (`docs:` for pure documentation), a local tag `ui-s<N>-done` after each stage's gate. **Never push to `main` or `feat/leapswitch-staging`. Never force-push.** No product push and no deploy until the owner's explicit go at S7. Never commit statement PDFs or any CAS file.
+8. **Commits and pushes:** only in the `wt/docs` worktree, on `leapswitch-redesign` (no side branch), by the orchestrator, prefix `ui-s<N>:` (`docs:` for documentation), a local tag `ui-s<N>-done` after each stage's gate. **Never push to `main` or `feat/leapswitch-staging`. Never force-push.** No deploy and no product-code push before the owner's explicit go at S7. Never commit statement PDFs or any CAS file.
 9. **Never run on staging:** `clean-db.sh`, `restore.sh`, `rollback.sh`, any deploy script, or any write, except at S7 with the owner's go. Never add `--allow-nav-writes`. Never stop a running recompute. Never edit files on the VM. (From the change-requests handoff; re-read its section 6 for the full list.)
 10. The owner decides fast and gives short answers ("A", "B", "yes"). Keep your questions short, give a recommendation, and number your options.
 
@@ -144,9 +144,9 @@ What the worker should flag back and not guess.
 
 | Need | When | Why |
 |---|---|---|
-| Run 7 finished (Antigravity), reviewed and tagged `cr-run-7-done`, and the start commit | Before S0 task 0.3 | Q51 and Q40. Run 7 changes the logo, the green token and the info icon that S1, S4 and S6 reuse |
+| Run 7 on the branch (the manager builds it) | Before the hold-list tasks (1.5, 4.2 to 4.4, S6) | They reuse its logo, green token, info icon and benchmark text |
 | The answer to **Q71** | Before S6 task 6.11 | Whether the old email gets a notice during sign-up |
-| Antigravity's Windows clone path, and confirmation that the check script runs | S0 task 0.4 | It was `C:\\Users\\Ayush\\cr-run-1` for Runs 6 and 7 |
+| Antigravity's Windows clone path, and confirmation that the check script runs | S0 task 0.4 | It was `C:\\Users\\Dell` is this machine; ask which folder is the separate Antigravity clone |
 | The Home and benchmark timing baselines | S0 task 0.3 | The change-requests handoff says they were never measured. S1 and S2 must stay within 10% of them |
 | **The eight sketch images and the logo** as crops of the two PDFs, in `frontend/public/illustrations/auth/` | Before S6 Phase 1 (task 6.5) | The PDFs are not in the repo. S1 to S5 do not need them |
 | **One real statement** to upload under a different typed name | S3 gate | The real-file check. Real statements are never committed |
@@ -177,9 +177,9 @@ The plan flags each of these. Decide, record it in the delegation log, and tell 
 
 1. Do the reading in section 2. Do not change anything.
 2. Tell the owner in under 15 lines what you understood and what differs from this handoff.
-3. Check Run 7: `git tag -l "cr-run-*"`, `git log --oneline -10`. If Run 7 is open, the first work is the Run 7 Antigravity task, not S0.
-4. When Run 7 is tagged and the owner says go, run **S0**, then the stages in order. Hand the owner the Antigravity prompt (and the Codex prompt where a backend task is due) from the rules files.
-5. Push access: if the session cannot push, say so once, commit locally, and give the owner the range to push.
+3. Check where Run 7 stands (`git log --oneline -10`), but do not build it.
+4. When the owner says go, run **S0**, then the first batch (see the orchestrator handoff section 4). Hand the owner the worker prompts from the rules files.
+5. Work and push only from `wt/docs`.
 
 ---
 
@@ -195,7 +195,7 @@ The plan flags each of these. Decide, record it in the delegation log, and tell 
 
 ## 11. Things not to do
 
-- Do not start S0 before Run 7 is done.
+- Do not build Run 7 and do not start the hold-list tasks before it is on the branch.
 - Do not push product code or deploy before the owner's go at S7. Never push to `main` or `feat/leapswitch-staging`, never force-push.
 - Do not change the Inception performance graph, the mobile screens, today's import screens or any answered decision.
 - Do not add screens, labels or options that the plan or the PDFs do not have. Offer them instead.

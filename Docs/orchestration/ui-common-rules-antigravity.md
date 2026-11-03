@@ -7,8 +7,8 @@ Every `ui-s*` handoff tagged **[Antigravity]** points here. Plan: `Docs/orchestr
 - **You never run `git add`, `git commit`, `git push`, `git checkout`, `git stash`, `git reset` or any git command that changes anything.** Read-only git (`status`, `diff`, `log`, `show`) is fine.
 
 ## Where to work and how to check
-- Edit files in the Windows clone the orchestrator names in the handoff (it was `C:\Users\Ayush\cr-run-1`). The orchestrator syncs it to the repo head before each task. Never edit `D:\Unifolio code`.
-- Checks run on WSL's own disk through one script that mirrors the clone and runs the tool:
+- Edit files in the Windows clone the orchestrator names in the handoff (a separate clone under `C:\Users\Dell`, never the orchestrator's `wt/docs` worktree). The orchestrator syncs it to the repo head before each task. Never edit `D:\Unifolio code`.
+- If the handoff says WSL is not set up on this machine, run the checks directly in PowerShell inside the clone: `npx vitest run <paths>`, `npx tsc -b`, `npx oxlint <paths>`, `npm run build`. Otherwise checks run on WSL's own disk through one script that mirrors the clone and runs the tool:
   - Tests: `wsl.exe -d Ubuntu -- bash "/mnt/d/Unifolio code/Docs/orchestration/cr-r6-fe-check.sh" test <paths under src/>`
   - Types: `... cr-r6-fe-check.sh types`; lint: `... lint`; build: `... build`.
 - Real PDFs and real data are never used. You cannot look at the screen: say so in the report wherever a visual check applies. The orchestrator takes the screenshots.
