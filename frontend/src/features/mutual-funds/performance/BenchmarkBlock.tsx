@@ -1,5 +1,6 @@
 import { SchemeLogo } from "../../../components/SchemeLogo";
-import { benchmarkDisplayName, benchmarkKeyName, benchmarkSourceLabel, BENCHMARK_FLOW_METHOD } from "../../../lib/benchmarkDisplay";
+import { BenchmarkInfoNote } from "../../../components/BenchmarkInfoNote";
+import { benchmarkChoiceDetails, benchmarkDisplayName, benchmarkKeyName, BENCHMARK_FLOW_METHOD } from "../../../lib/benchmarkDisplay";
 import { Activity, BarChart3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Skeleton } from "../../../components/ui/skeleton";
@@ -608,10 +609,12 @@ export function BenchmarkBlock() {
                             >
                               {declared ? (
                                 <>
-                                  <span>{benchmarkSourceLabel(declared.source)}</span>
-                                  {declared.source !== "none" && <span>Benchmark: {declared.index_key ? benchmarkKeyName(declared.index_key) : "No benchmark"}</span>}
+                                  <span className="inline-flex items-center gap-1.5 flex-wrap">
+                                    <span>{declared.source !== "none" ? `Benchmark: ${declared.index_key ? benchmarkKeyName(declared.index_key) : "No benchmark"}` : "No benchmark"}</span>
+                                    <BenchmarkInfoNote note={declared.note} />
+                                  </span>
                                   {declared.source !== "none" && declared.declared_name && <span>Factsheet names: {benchmarkDisplayName(declared.declared_name)}</span>}
-                                  {declared.note && <p>{declared.note}</p>}
+                                  <p>{benchmarkChoiceDetails(declared.source, Boolean(declared.declared_name)).fullLine}</p>
                                   <p>{BENCHMARK_FLOW_METHOD}</p>
                                   <div role="group" aria-label={`${fund.scheme_name} time window`} className="flex flex-wrap gap-2">
                                     {WINDOW_DEFS.map(win => {

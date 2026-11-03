@@ -386,10 +386,21 @@ describe("declared benchmark comparison", () => {
     const detail = await open();
     expect(detail).toHaveTextContent("Nifty Bank");
     expect(detail).toHaveTextContent("From the fund's factsheet");
+    expect(detail).toHaveTextContent("How this benchmark was chosen: From the fund's factsheet. This is the index named in the fund's own factsheet.");
     expect(detail).toHaveTextContent("A note sent by the backend, unchanged.");
     expect(detail).toHaveTextContent("same cash flows");
     expect(screen.getByTestId("fund-logo-declared-fund")).toBeInTheDocument();
     expect(screen.getByTestId("bench-xirr-declared-fund")).toHaveTextContent("+9.0%");
+
+    const infoBtn = screen.getByRole("button", { name: /benchmark note/i });
+    expect(infoBtn).toBeInTheDocument();
+    const tooltip = screen.getByTestId("benchmark-note-tooltip");
+    expect(tooltip).not.toBeVisible();
+    fireEvent.click(infoBtn);
+    expect(tooltip).toBeVisible();
+    expect(tooltip).toHaveTextContent("A note sent by the backend, unchanged.");
+    fireEvent.keyDown(infoBtn, { key: "Escape" });
+    expect(tooltip).not.toBeVisible();
   });
   it("proxy_is_labelled", async () => {
     const summary = declared("closest");
@@ -399,12 +410,21 @@ describe("declared benchmark comparison", () => {
     fireEvent.click(screen.getByTestId("fund-toggle-declared-fund"));
     const detail = screen.getByTestId("fund-detail-declared-fund");
     expect(detail).toHaveTextContent("Closest index we hold");
+    expect(detail).toHaveTextContent("How this benchmark was chosen: Closest index we hold. The fund's factsheet names an index we do not hold, so we show the closest index we do hold. Figures can differ a little from the fund's own comparison.");
     expect(detail).toHaveTextContent("Benchmark: Nifty Bank");
     expect(detail).toHaveTextContent("Factsheet names: BSE Bankex Total Return");
   });
   it("fund_without_benchmark_says_no_benchmark", async () => {
-    expect(await open("none")).toHaveTextContent("No benchmark");
+    const summary = declared("none");
+    summary.declared_comparison![0].note = null;
+    mocks.getAnalyticsScope.mockResolvedValue(scopeWith({ funds: summary }));
+    mount(); await ready(); click("Per-Fund vs Benchmark", "tab");
+    fireEvent.click(screen.getByTestId("fund-toggle-declared-fund"));
+    const detail = screen.getByTestId("fund-detail-declared-fund");
+    expect(detail).toHaveTextContent("No benchmark");
+    expect(detail).toHaveTextContent("How this benchmark was chosen: No benchmark. We could not find a fair benchmark for this fund.");
     expect(screen.queryByTestId("bench-xirr-declared-fund")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /benchmark note/i })).not.toBeInTheDocument();
   });
   it("window_chip_shows_start_date", async () => {
     await open();
