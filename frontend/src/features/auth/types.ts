@@ -86,6 +86,10 @@ export interface HeadChangeUndoResponse {
   status: "undone";
 }
 
+export interface ContactChangeReverseResponse {
+  status: "reversed";
+}
+
 export interface MemberEligibilityItem {
   member_id: string;
   reasons: string[];

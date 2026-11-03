@@ -8,6 +8,8 @@ import { MobileLandingPage } from "./mobile/features/landing/MobileLandingPage";
 import { MobileJourneyContext } from "./features/auth/mobileJourneyContext";
 import type { MobileJourneyStep } from "./features/auth/mobileJourneyContext";
 import { ReconsentGate } from "./features/legal/ReconsentGate";
+import { ReverseContactChangePage } from "./features/auth/ReverseContactChangePage";
+import { UndoHeadChangePage } from "./features/auth/UndoHeadChangePage";
 import { PendingDeletionScreen } from "./features/profile/PendingDeletionScreen";
 import { MaintenanceBanner } from "./components/core/maintenance-banner";
 
@@ -133,6 +135,12 @@ function MainApp() {
 }
 
 function App() {
+  if (typeof window !== "undefined" && window.location.pathname === "/undo-head-change") {
+    return <UndoHeadChangePage />;
+  }
+  if (typeof window !== "undefined" && window.location.pathname === "/reverse-contact-change") {
+    return <ReverseContactChangePage />;
+  }
   return (
     <AuthProvider>
       <MaintenanceBanner />

@@ -15,6 +15,7 @@ import type {
   UpdateMeBody,
   AccountDeletionReason,
   ContactChangeChannel,
+  ContactChangeReverseResponse,
   HeadChangeCompleteResponse,
   HeadChangeEligibilityResponse,
   HeadChangeErrorDetail,
@@ -407,4 +408,14 @@ export async function undoHeadChange(token: string): Promise<HeadChangeUndoRespo
   });
   await throwIfError(response);
   return (await response.json()) as HeadChangeUndoResponse;
+}
+
+export async function reverseContactChange(token: string): Promise<ContactChangeReverseResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/contact-change/reverse`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as ContactChangeReverseResponse;
 }
