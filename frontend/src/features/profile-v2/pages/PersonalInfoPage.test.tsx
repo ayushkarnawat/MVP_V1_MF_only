@@ -127,7 +127,7 @@ describe("PersonalInfoPage: the account's own data", () => {
     expect(screen.getByTestId("row-email")).toHaveTextContent("siddharth@example.in");
     expect(screen.getByTestId("row-phone")).toHaveTextContent("+919876543210");
     expect(screen.getByTestId("row-investor-type")).toHaveTextContent("A mix of both");
-    expect(screen.getAllByTestId("goal-chip").map(chip => chip.textContent)).toEqual(["Consolidated portfolio view", "Family wealth tracking"]);
+    expect(screen.getAllByTestId("goal-chip").map(chip => chip.textContent)).toEqual(["Build my wealth", "Fund my children's education"]);
   });
 
   it("for an account that has answered nothing: name falls back to the phone, 'Not added' for the email, 'Not answered' twice, Add goals", async () => {
@@ -235,7 +235,7 @@ describe("PersonalInfoPage: the dialogs opened from the cards", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(auth.updateMe).toHaveBeenCalledWith({
-      primary_goals: ["consolidated_view", "understand_holdings", "family_management", "performance_comparison"],
+      primary_goals: ["wealth_creation", "retirement", "childrens_education", "buy_home", "financial_freedom", "tax_planning"],
     });
   });
 

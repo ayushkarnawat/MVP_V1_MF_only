@@ -10,7 +10,7 @@ export const ME_FIXTURE: MeResponse = {
   onboarding_step: null,
   onboarding_completed: true,
   investor_type: "mixed",
-  primary_goals: ["consolidated_view", "family_management"],
+  primary_goals: ["wealth_creation", "childrens_education"],
   self_name: "Siddharth Surve",
   consent_outdated: [],
   created_at: "2025-10-14T09:30:00+05:30",

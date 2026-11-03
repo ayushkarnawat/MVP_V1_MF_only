@@ -61,23 +61,44 @@ describe("U1 NameVariantNotice", () => {
   });
 });
 
-describe("U2 NameMismatchDialog", () => {
-  it("name mismatch asks is that you, with no text box", () => {
-    const onUseName = vi.fn();
+describe("U2 NameMismatchDialog (UI round 2, change 5)", () => {
+  const mountIt = (error: string | null = null) => {
+    const onAddAsFamily = vi.fn();
     const onUploadDifferent = vi.fn();
     render(
-      <NameMismatchDialog isOpen enteredName="Ayush Karnawat" statementName="Ramesh Sharma"
-        error="This name doesn’t match the statement" onUseName={onUseName} onUploadDifferent={onUploadDifferent} />,
+      <NameMismatchDialog isOpen enteredName="Ayush Karnawat" statementName="Ramesh Sharma" error={error}
+        onAddAsFamily={onAddAsFamily} onUploadDifferent={onUploadDifferent} />,
     );
+    return { onAddAsFamily, onUploadDifferent };
+  };
+  it("shows the account holder's name in the title and the statement's name in the body", () => {
+    mountIt();
+    expect(screen.getByText("This is Ayush Karnawat’s account")).toBeInTheDocument();
+    expect(screen.getByText("You uploaded Ramesh Sharma’s file. Do you want to add Ramesh Sharma as a family member, or upload a different file?")).toBeInTheDocument();
     expect(screen.queryByRole("textbox")).toBeNull();
-    expect(screen.getByText("This statement is in Ramesh Sharma’s name")).toBeInTheDocument();
-    expect(screen.getByText(/Is that you\?/)).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent("This name doesn’t match the statement");
-    click("Yes, that’s me");
-    expect(onUseName).toHaveBeenCalledWith("Ramesh Sharma");
+  });
+  it("the primary button adds the person on the statement as a family member", () => {
+    const { onAddAsFamily, onUploadDifferent } = mountIt();
+    click("Add Ramesh Sharma as a family member");
+    expect(onAddAsFamily).toHaveBeenCalledTimes(1);
+    expect(onUploadDifferent).not.toHaveBeenCalled();
+  });
+  it("Upload a different file and the close button both discard", () => {
+    const { onUploadDifferent, onAddAsFamily } = mountIt();
     click("Upload a different file");
     close();
     expect(onUploadDifferent).toHaveBeenCalledTimes(2);
+    expect(onAddAsFamily).not.toHaveBeenCalled();
+  });
+  it("there is no Yes, that's me button, and nothing renames the account holder", () => {
+    mountIt();
+    expect(screen.queryByRole("button", { name: /that.s me/i })).toBeNull();
+    expect(screen.getAllByRole("button").map(button => button.textContent)).toEqual(
+      expect.arrayContaining(["Add Ramesh Sharma as a family member", "Upload a different file"]));
+  });
+  it("an error from the server shows in the dialog", () => {
+    mountIt("Something went wrong. Please try again.");
+    expect(screen.getByRole("alert")).toHaveTextContent("Something went wrong. Please try again.");
   });
 });
 
@@ -268,14 +289,14 @@ describe("PromptHost", () => {
     unmount();
   });
 
-  it("self_name_mismatch and which_is_self map to name / self actions", () => {
+  it("self_name_mismatch and which_is_self map to addAsFamily / self actions", () => {
     const onResolve = vi.fn();
     const { rerender } = render(
       <PromptHost onResolve={onResolve}
         prompt={p("self_name_mismatch", { entered_name: "A B", statement_name: "C D" })} />,
     );
-    click("Yes, that’s me");
-    expect(onResolve).toHaveBeenLastCalledWith({ kind: "name", name: "C D" });
+    click("Add C D as a family member");
+    expect(onResolve).toHaveBeenLastCalledWith({ kind: "addAsFamily" });
     rerender(
       <PromptHost onResolve={onResolve}
         prompt={p("which_is_self", { candidates: [{ person_key: "k", name: "N", pan_masked: "AB******4K" }] })} />,

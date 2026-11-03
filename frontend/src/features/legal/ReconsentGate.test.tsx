@@ -29,7 +29,7 @@ const BASE_ME: MeResponse = {
   onboarding_step: null,
   onboarding_completed: true,
   investor_type: "mixed",
-  primary_goals: ["family_management"],
+  primary_goals: ["childrens_education"],
   self_name: "Aditi Surve",
   consent_outdated: ["terms_of_service", "privacy_policy"],
   created_at: "2025-10-14T09:30:00+05:30",

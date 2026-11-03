@@ -26,7 +26,7 @@ beforeEach(() => { vi.clearAllMocks(); });
 
 describe("FinancialDetailsCard: investor type", () => {
   it("has the heading and the subtitle", () => {
-    render(<FinancialDetailsCard investorType="mixed" goals={["consolidated_view"]} />);
+    render(<FinancialDetailsCard investorType="mixed" goals={["wealth_creation"]} />);
     expect(screen.getByRole("heading", { level: 2, name: "Financial Details" })).toBeInTheDocument();
     expect(screen.getByText("From your onboarding answers. Used to personalise insights.")).toBeInTheDocument();
   });
@@ -43,45 +43,45 @@ describe("FinancialDetailsCard: investor type", () => {
   });
 
   it("shows 'Not answered' when there is no investor type", () => {
-    render(<FinancialDetailsCard investorType={null} goals={["consolidated_view"]} />);
+    render(<FinancialDetailsCard investorType={null} goals={["wealth_creation"]} />);
     expect(screen.getByTestId("row-investor-type")).toHaveTextContent("Investor typeNot answered");
   });
 });
 
 describe("FinancialDetailsCard: goals", () => {
   it("shows the known goals as chips with their onboarding titles, in onboarding order, not stored order", () => {
-    render(<FinancialDetailsCard investorType="mixed" goals={["family_management", "consolidated_view"]} />);
-    expect(chipTexts()).toEqual(["Consolidated portfolio view", "Family wealth tracking"]);
+    render(<FinancialDetailsCard investorType="mixed" goals={["childrens_education", "wealth_creation"]} />);
+    expect(chipTexts()).toEqual(["Build my wealth", "Fund my children's education"]);
     for (const chip of screen.getAllByTestId("goal-chip")) {
       expect(chip).toHaveAttribute("data-unknown", "false");
       expect(chip.className).not.toContain("border-dashed");
     }
   });
 
-  it("collapses all four known goals into one 'All of it' chip", () => {
+  it("collapses all six known goals into one 'All of it' chip", () => {
     render(
       <FinancialDetailsCard
         investorType="mixed"
-        goals={["performance_comparison", "family_management", "understand_holdings", "consolidated_view"]}
+        goals={["tax_planning", "financial_freedom", "buy_home", "childrens_education", "retirement", "wealth_creation"]}
       />,
     );
     expect(chipTexts()).toEqual(["All of it"]);
   });
 
   it("keeps a code it does not know, humanised, in a dashed chip after the known ones", () => {
-    render(<FinancialDetailsCard investorType="mixed" goals={["retirement_planning", "consolidated_view"]} />);
-    expect(chipTexts()).toEqual(["Consolidated portfolio view", "Retirement planning"]);
+    render(<FinancialDetailsCard investorType="mixed" goals={["retirement_planning", "wealth_creation"]} />);
+    expect(chipTexts()).toEqual(["Build my wealth", "Retirement planning"]);
     const unknown = screen.getAllByTestId("goal-chip")[1];
     expect(unknown).toHaveAttribute("data-unknown", "true");
     expect(unknown.className).toContain("border-dashed");
     expect(unknown).toHaveAttribute("title", "A newer option this screen does not know yet");
   });
 
-  it("shows 'All of it' and the unknown chip when all four known goals and an unknown one are stored", () => {
+  it("shows 'All of it' and the unknown chip when all six known goals and an unknown one are stored", () => {
     render(
       <FinancialDetailsCard
         investorType={null}
-        goals={["consolidated_view", "understand_holdings", "family_management", "performance_comparison", "retirement_planning"]}
+        goals={["wealth_creation", "retirement", "childrens_education", "buy_home", "financial_freedom", "tax_planning", "retirement_planning"]}
       />,
     );
     expect(chipTexts()).toEqual(["All of it", "Retirement planning"]);
@@ -96,7 +96,7 @@ describe("FinancialDetailsCard: goals", () => {
   });
 
   it("offers Edit goals (not Add goals) when goals are stored", () => {
-    render(<FinancialDetailsCard investorType="mixed" goals={["consolidated_view"]} />);
+    render(<FinancialDetailsCard investorType="mixed" goals={["wealth_creation"]} />);
     expect(screen.getByRole("button", { name: "Edit goals" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add goals" })).not.toBeInTheDocument();
   });
@@ -124,7 +124,7 @@ describe("FinancialDetailsCard: the greyed rows", () => {
 
 describe("FinancialDetailsCard: editing", () => {
   it("opens the investor type dialog with the stored value, and closes it", () => {
-    render(<FinancialDetailsCard investorType="mixed" goals={["consolidated_view"]} />);
+    render(<FinancialDetailsCard investorType="mixed" goals={["wealth_creation"]} />);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Edit investor type" }));
     expect(screen.getByRole("dialog", { name: "stub investor" })).toBeInTheDocument();
@@ -134,10 +134,10 @@ describe("FinancialDetailsCard: editing", () => {
   });
 
   it("opens the goals dialog with the stored list as it is (unknown codes included), and closes it", () => {
-    render(<FinancialDetailsCard investorType="mixed" goals={["retirement_planning", "consolidated_view"]} />);
+    render(<FinancialDetailsCard investorType="mixed" goals={["retirement_planning", "wealth_creation"]} />);
     fireEvent.click(screen.getByRole("button", { name: "Edit goals" }));
     expect(screen.getByRole("dialog", { name: "stub goals" })).toBeInTheDocument();
-    expect(screen.getByTestId("stub-stored")).toHaveTextContent('["retirement_planning","consolidated_view"]');
+    expect(screen.getByTestId("stub-stored")).toHaveTextContent('["retirement_planning","wealth_creation"]');
     fireEvent.click(screen.getByRole("button", { name: "stub close goals" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -149,7 +149,7 @@ describe("FinancialDetailsCard: editing", () => {
   });
 
   it("has only the two edit buttons and never two dialogs at once", () => {
-    render(<FinancialDetailsCard investorType="mixed" goals={["consolidated_view"]} />);
+    render(<FinancialDetailsCard investorType="mixed" goals={["wealth_creation"]} />);
     expect(screen.getAllByRole("button").map(button => button.getAttribute("aria-label"))).toEqual(["Edit investor type", "Edit goals"]);
     fireEvent.click(screen.getByRole("button", { name: "Edit investor type" }));
     fireEvent.click(screen.getByRole("button", { name: "Edit goals" }));

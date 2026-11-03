@@ -12,6 +12,7 @@ import {
   deleteHouseholdImport,
   deleteMemberPortfolio,
   resolveName,
+  resolveAddAsFamily,
   resolveSelf,
   resolvePan,
   resolveSamePerson,
@@ -353,6 +354,7 @@ describe("session resolve and people-confirm calls", () => {
 
   it.each([
     ["resolve-name", () => resolveName("s 1", "Ayush"), { name: "Ayush" }],
+    ["resolve-add-as-family", () => resolveAddAsFamily("s 1"), {}],
     ["resolve-self", () => resolveSelf("s 1", null), { person_key: null }],
     ["resolve-pan", () => resolvePan("s 1"), { choice: "statement" }],
     ["resolve-same-person", () => resolveSamePerson("s 1", "p1", "m2", false), { person_key: "p1", member_id: "m2", same: false }],

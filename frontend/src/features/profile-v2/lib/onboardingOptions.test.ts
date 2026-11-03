@@ -3,16 +3,18 @@ import type { InvestorType, PrimaryGoal } from "@/features/auth/types";
 import { GOAL_OPTIONS, INVESTOR_OPTIONS, humanizeCode } from "./onboardingOptions";
 
 // Compile-time exhaustiveness: if the PrimaryGoal / InvestorType unions gain or lose a code, these literals stop type-checking.
-const ALL_GOALS: Record<PrimaryGoal, true> = { consolidated_view: true, understand_holdings: true, family_management: true, performance_comparison: true };
+const ALL_GOALS: Record<PrimaryGoal, true> = { wealth_creation: true, retirement: true, childrens_education: true, buy_home: true, financial_freedom: true, tax_planning: true };
 const ALL_INVESTOR_TYPES: Record<InvestorType, true> = { self_directed: true, advisor_assisted: true, mixed: true, beginner: true };
 
 describe("GOAL_OPTIONS and INVESTOR_OPTIONS (copied from the onboarding screens Q3Purpose and Q2Investing, in onboarding order)", () => {
-  it("lists the four goals with their onboarding titles and subtitles", () => {
+  it("lists the six life goals with their titles, in order, and no subtitles", () => {
     expect(GOAL_OPTIONS).toEqual([
-      { value: "consolidated_view", title: "Consolidated portfolio view", subtitle: "See all my mutual funds across every broker and fund house in one place" },
-      { value: "understand_holdings", title: "Understand true performance", subtitle: "See your true returns after fees, taxes and plan type" },
-      { value: "family_management", title: "Family wealth tracking", subtitle: "Managing investments for family members under one dashboard" },
-      { value: "performance_comparison", title: "Compare distributor fees", subtitle: "Compare returns and costs across different distributors" },
+      { value: "wealth_creation", title: "Build my wealth" },
+      { value: "retirement", title: "Plan for retirement" },
+      { value: "childrens_education", title: "Fund my children's education" },
+      { value: "buy_home", title: "Buy a home" },
+      { value: "financial_freedom", title: "Achieve financial freedom" },
+      { value: "tax_planning", title: "Plan my taxes" },
     ]);
   });
 

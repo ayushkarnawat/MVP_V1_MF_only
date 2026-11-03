@@ -12,6 +12,7 @@ vi.mock("./api", async () => {
     ...actual,
     parseImport: vi.fn(),
     resolveName: vi.fn(),
+    resolveAddAsFamily: vi.fn(),
     resolveSelf: vi.fn(),
     resolvePan: vi.fn(),
     resolveSamePerson: vi.fn(),
@@ -113,6 +114,35 @@ describe("useImportFlow", () => {
     expect(api.confirmPeopleImport).toHaveBeenCalledWith("s1", people, { t1: "p2" });
     expect(result.current.stage).toBe("confirming");
     expect(result.current.confirmResult).toEqual(CONFIRMED);
+  });
+
+  it("the addAsFamily answer posts resolve-add-as-family and walks on without a prompt", async () => {
+    vi.mocked(api.parseImport).mockRejectedValue(
+      new ApiError(409, { code: "self_name_mismatch", message: "m", session_id: "s1", details: {} }),
+    );
+    vi.mocked(api.resolveAddAsFamily).mockResolvedValue(preview({ people: [person({ is_me: false, name: "Ramesh Sharma" })] }));
+    const { result } = renderHook(() => useImportFlow("m1"));
+    await act(async () => { await result.current.upload(FILE, "pw"); });
+    expect(result.current.prompt?.code).toBe("self_name_mismatch");
+    await act(async () => { await result.current.resolve({ kind: "addAsFamily" }); });
+    expect(api.resolveAddAsFamily).toHaveBeenCalledExactlyOnceWith("s1");
+    expect(api.resolveName).not.toHaveBeenCalled();
+    expect(result.current.prompt).toBeNull();
+    expect(result.current.stage).not.toBe("prompt");
+  });
+
+  it("a follow-up 409 after addAsFamily becomes the next prompt", async () => {
+    vi.mocked(api.parseImport).mockRejectedValue(
+      new ApiError(409, { code: "self_name_mismatch", message: "m", session_id: "s1", details: {} }),
+    );
+    vi.mocked(api.resolveAddAsFamily).mockRejectedValue(
+      new ApiError(409, { code: "cross_account_pan_blocked", message: "n", session_id: "s1", details: {} }),
+    );
+    const { result } = renderHook(() => useImportFlow("m1"));
+    await act(async () => { await result.current.upload(FILE, ""); });
+    await act(async () => { await result.current.resolve({ kind: "addAsFamily" }); });
+    expect(result.current.stage).toBe("prompt");
+    expect(result.current.prompt?.code).toBe("cross_account_pan_blocked");
   });
 
   it("goes straight to confirming for a single, named person with nothing unassigned", async () => {
