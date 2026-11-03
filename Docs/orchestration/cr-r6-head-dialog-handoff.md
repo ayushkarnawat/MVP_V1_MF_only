@@ -1,6 +1,6 @@
 # Handoff: Head of Family frontend and the two small backend pieces it needs (T6.0 to T6.3)
 
-**Status:** OPEN (IN REVIEW when the worker reports, DONE after the Run 6 gate)
+**Status:** DONE (Run 6 gate passed after an independent review and fixes; tag cr-run-6-done 3 Nov 2026; the QA hand-over with two real inboxes is in the staging step)
 **Run:** 6 of 7 | **Slug:** `cr-r6-head-dialog` | **Commit prefix:** `cr-r6:` | **Tasks:** T6.0, T6.1, T6.2, T6.3 (the Run 6 gate is the orchestrator's, plan "Task 6.3")
 **Order:** T6.0, then T6.1, then T6.2, then T6.3. **One task at a time:** report after each; the orchestrator reviews, commits and syncs the clone before the next.
 **Rules:** `Docs/orchestration/cr-r6-common-rules.md` (read first, all of it). **Task text (authoritative for the screens):** plan, "Run 6". **Design:** the briefing's "Item 1 build" section. **Backend contract:** the sections below (they are what the server really does after the Run 5 review).
