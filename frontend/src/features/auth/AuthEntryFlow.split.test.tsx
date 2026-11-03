@@ -48,9 +48,9 @@ describe("AuthEntryFlow, split variant, login (UI round 2, S6 tasks 6.6 and 6.7)
     expect(await screen.findByRole("button", { name: /continue with email/i })).toBeEnabled();
     expect(screen.queryByRole("tab", { name: "Mobile number" })).toBeNull();
   });
-  it("sign-up mode is still today's screen in this packet", async () => {
+  it("sign-up mode shows the new Let's get started screen, not Welcome back", async () => {
     renderSplit("signup");
-    expect(await screen.findByText(/create your account/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Let's get started" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Welcome back" })).toBeNull();
   });
   it("email login: Get OTP requests a login code and shows the email code screen with the masked address", async () => {
@@ -123,12 +123,12 @@ describe("AuthEntryFlow, split variant, login (UI round 2, S6 tasks 6.6 and 6.7)
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(/No account found/);
     fireEvent.click(within(alert).getByRole("button", { name: "Sign up" }));
-    expect(await screen.findByText(/create your account/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Let's get started" })).toBeInTheDocument();
   });
   it("Back on Welcome back goes to sign-up screen 1", async () => {
     renderSplit();
     fireEvent.click(await screen.findByRole("button", { name: "Back" }));
-    expect(await screen.findByText(/create your account/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Let's get started" })).toBeInTheDocument();
   });
   it("the Log in link on sign-up leads to the new Welcome back screen", async () => {
     renderSplit("signup");
