@@ -30,6 +30,8 @@ def _canonical(raw: str) -> str:
     return re.sub(r"[^a-z0-9]", "", text)
 
 
+canonical_index_name = _canonical  # public spelling for the closest-index table (benchmark_selection)
+
 _ALIASES = {_canonical(spec.nse_name): spec.key for spec in INDICES}
 _ALIASES[_canonical("Nifty LargeMidcap 250")] = "nifty_largemidcap_250"
 # Similar broad-market universes, always marked as a different index. Other

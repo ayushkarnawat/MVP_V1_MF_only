@@ -15,27 +15,18 @@ def benchmark_for(scheme: Scheme) -> BenchmarkIndex | None:
     return _benchmark_index_for_category(scheme.sebi_category)
 
 
-from dataclasses import dataclass
-from datetime import date
 import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.models.reference import SchemeBenchmark, BenchmarkIndexMaster
-from app.services.analytics.benchmark_notes import benchmark_note
-from app.services.analytics.benchmark_names import normalise_benchmark_name
-
-
-@dataclass(frozen=True)
-class BenchmarkChoice:
-    index_key: str | None
-    source: str
-    declared_name: str | None = None
-    window_start_note: str | None = None
-    mapping_age_days: int | None = None
+from app.services.analytics.benchmark_selection import BenchmarkChoice, choose_benchmark  # noqa: F401  (BenchmarkChoice is re-exported)
 
 
 def benchmark_choices(db: Session, schemes: dict[uuid.UUID, Scheme]) -> dict[uuid.UUID, BenchmarkChoice]:
-    """One metadata batch. Never selects any printed-return column."""
+    """One metadata batch. Never selects any printed-return column.
+
+    Only gathers inputs; the order (factsheet, closest, category, none) and the label are
+    decided by `choose_benchmark` in analytics/benchmark_selection.py."""
     from app.services.analytics.benchmark_windows import ist_today
     if not schemes:
         return {}
@@ -51,36 +42,15 @@ def benchmark_choices(db: Session, schemes: dict[uuid.UUID, Scheme]) -> dict[uui
     result = {}
     for sid, scheme in schemes.items():
         row = rows.get(sid)
-        declared = row.declared_benchmark_name if row else None
-        age = max(0, (ist_today() - row.verified_on).days) if row else None
-        key = (row.tracked_index_key or row.mapped_index_key) if row else None
-        if key and active.get(key, False):
-            quality = (row.tracked_match_quality or row.match_quality) if row.tracked_index_key else row.match_quality
-            source = "closest" if quality == "proxy" else "factsheet"
-            note = benchmark_note("benchmark_note_closest", index=labels[key]) if source == "closest" else None
-            result[sid] = BenchmarkChoice(key, source, declared, note, age)
-            continue
-        category = scheme.sebi_category.lower()
-        equity = asset_class_bucket(scheme.sebi_category) == "Equity"
-        if not equity:
-            result[sid] = BenchmarkChoice(None, "none", declared, None, age)
-            continue
-        if "small" in category:
-            key = "nifty_smallcap_250"
-        elif "large" in category and "mid" not in category:
-            key = "nifty_100"
-        else:
-            key = _benchmark_index_for_category(scheme.sebi_category).value
-        if not active.get(key, False):
-            result[sid] = BenchmarkChoice(None, "none", declared, None, age)
-            continue
-        note = benchmark_note("benchmark_note_closest", index=labels[key])
-        match = normalise_benchmark_name(declared) if declared else None
-        if match and match.blend:
-            import re
-            weights = ", ".join(f"{weight}% {re.sub(r'(?i)total returns? index|\bTRI\b', '', name).strip()}" for name, weight in match.blend)
-            note = benchmark_note("benchmark_note_mix", weights=weights)
-        result[sid] = BenchmarkChoice(key, "closest" if declared else "category", declared, note, age)
+        result[sid] = choose_benchmark(
+            category=scheme.sebi_category, scheme_name=scheme.name,
+            declared=row.declared_benchmark_name if row else None,
+            mapped_key=row.mapped_index_key if row else None, mapped_quality=row.match_quality if row else None,
+            tracked_key=row.tracked_index_key if row else None,
+            tracked_quality=row.tracked_match_quality if row else None,
+            age=max(0, (ist_today() - row.verified_on).days) if row else None,
+            is_active=lambda key: active.get(key, False), label_of=lambda key: labels.get(key, key),
+        )
     return result
 
 
