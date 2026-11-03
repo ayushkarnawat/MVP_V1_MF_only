@@ -100,7 +100,7 @@ export function Landing({
         <div
           role="status"
           data-testid="sign-in-notice"
-          className="mb-3.5 rounded-2xl border border-[#22C55E]/30 bg-[#22C55E]/10 p-3.5 text-xs font-medium text-[var(--color-ink)] font-body"
+          className="mb-3.5 rounded-2xl border border-[var(--pos)]/30 bg-[var(--pos-bg)] p-3.5 text-xs font-medium text-[var(--color-ink)] font-body"
         >
           {notice}
         </div>

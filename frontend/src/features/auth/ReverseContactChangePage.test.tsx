@@ -137,7 +137,9 @@ describe("ReverseContactChangePage", () => {
     render(<ReverseContactChangePage />);
 
     const button = screen.getByRole("button", { name: "This was not me, undo the change" });
+    expect(button.className).toContain("bg-[var(--pos)]");
     expect(button.className).toContain("text-white");
+    expect(button.className).not.toContain("#22C55E");
     expect(button.className).not.toContain("text-black");
   });
 

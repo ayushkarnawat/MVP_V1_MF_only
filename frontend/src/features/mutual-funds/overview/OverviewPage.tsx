@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router";
 import { DistributorComparisonModal } from "../../../components/mf/DistributorComparisonModal";
 import { PostImportNotice } from "../../../components/mf/PostImportNotice";
 import { SoldFundsSection } from "../../../components/mf/SoldFundsSection";
+import { Button } from "../../../components/ui/button";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { useImport, useScope } from "../../../shell/scope/ScopeContext";
 import { useMfAnalytics } from "../data/analyticsStore";
@@ -81,7 +82,7 @@ function OverviewBody({ query }: { query: string }) {
         <p className="text-sm text-[var(--ui-text-muted)] max-w-md">
           There was a problem reaching our servers. Your data is safe — this is just a connection issue.
         </p>
-        <button
+        <Button
           type="button"
           data-clickable=""
           data-effect="retry"
@@ -89,10 +90,10 @@ function OverviewBody({ query }: { query: string }) {
             dash.holdings.retry();
             dash.allocation.retry();
           }}
-          className="mt-2 inline-flex items-center justify-center rounded-xl bg-[var(--pos)] px-4 py-2 text-sm font-semibold text-white hover:opacity-95"
+          className="mt-2 rounded-xl px-4 py-2 text-sm font-semibold hover:opacity-95"
         >
           Retry
-        </button>
+        </Button>
       </div>
     );
   }
@@ -109,15 +110,15 @@ function OverviewBody({ query }: { query: string }) {
         <p className="text-sm text-[var(--ui-text-muted)] max-w-md">
           Import your family's CAS statement and every fund, its value, and its performance will show up here.
         </p>
-        <button
+        <Button
           type="button"
           data-clickable=""
           data-effect="open"
           onClick={() => openImport(importFor)}
-          className="mt-2 inline-flex items-center justify-center rounded-full bg-[var(--pos)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-95"
+          className="mt-2 rounded-full px-5 py-2.5 text-sm font-semibold hover:opacity-95"
         >
           Add your first investment
-        </button>
+        </Button>
       </div>
     );
   }

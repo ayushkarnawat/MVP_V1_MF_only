@@ -7,6 +7,7 @@ import { useMfAnalytics } from "../data/analyticsStore";
 import type { PortfolioScoreSummary } from "../types";
 import {
   assessFactor,
+  CARD_TITLES,
   costLine,
   displayTier,
   FACTOR_KEYS,
@@ -468,7 +469,7 @@ export function ScorerGroup() {
 
   return (
     <SectionCard
-      title="Fund Quality Scores"
+      title={CARD_TITLES.scorer[0]}
       info="Unifolio's own score for each fund you hold, against the other funds in its SEBI category."
       state={score.status}
       onRetry={score.retry}

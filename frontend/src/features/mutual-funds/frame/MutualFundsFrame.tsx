@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { Button } from "../../../components/ui/button";
 import { PageLayout } from "../../../shell/layout/PageLayout";
 import { MiraComingSoonDialog } from "../../../shell/mira/MiraComingSoonDialog";
 import { AppLink } from "../../../shell/nav/AppLink";
@@ -108,15 +109,15 @@ export function MutualFundsFrame({ tab, children, utility }: MutualFundsFramePro
 
   const actions =
     tab === "overview" ? (
-      <button
+      <Button
         type="button"
         data-clickable=""
         data-effect="open"
         onClick={() => openImport(importFor)}
-        className="inline-flex items-center justify-center rounded-full bg-[var(--pos)] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95"
+        className="rounded-full px-4 py-2 text-sm font-semibold hover:opacity-95"
       >
         Add Investment
-      </button>
+      </Button>
     ) : undefined;
 
   const tabs = (

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Button } from "../../../components/ui/button";
 import { useMfAnalytics } from "../data/analyticsStore";
 import { useMfHoldings } from "../data/useMfDashboard";
 import { MutualFundsFrame } from "../frame/MutualFundsFrame";
@@ -43,15 +44,15 @@ function AllocationBody() {
         <p className="max-w-md text-sm text-[var(--ui-text-muted)]">
           There was a problem reaching our servers. Your data is safe — this is just a connection issue.
         </p>
-        <button
+        <Button
           type="button"
           data-clickable=""
           data-effect="retry"
           onClick={() => asset.retry()}
-          className="mt-2 inline-flex items-center justify-center rounded-xl bg-[var(--pos)] px-4 py-2 text-sm font-semibold text-white hover:opacity-95"
+          className="mt-2 rounded-xl px-4 py-2 text-sm font-semibold hover:opacity-95"
         >
           Retry
-        </button>
+        </Button>
       </div>
     );
   }

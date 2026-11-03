@@ -5,7 +5,7 @@ import { SectionCard } from "../common/SectionCard";
 import { useMfAnalytics } from "../data/analyticsStore";
 import type { CategoryRankingSummary, CategoryRankRow } from "../types";
 import {
-  CATEGORY_PERIODS, CATEGORY_PERIOD_LABELS, categoryComparisonScale, categoryComparisonSummary,
+  CARD_TITLES, CATEGORY_PERIODS, CATEGORY_PERIOD_LABELS, categoryComparisonScale, categoryComparisonSummary,
   categoryGapText, categoryLinePositions, filterCategoryFunds, normalizeFraction, rawPercent, shortCategory,
 } from "./otherLogic";
 import type { CategoryFilter, CategoryPeriod } from "./otherLogic";
@@ -65,7 +65,7 @@ export function CategoryRankingBody({ data }: { data: CategoryRankingSummary }) 
 
 export function CategoryRankingGroup() {
   const ranking = useMfAnalytics("category_ranking");
-  return <SectionCard title="Returns against the category average" info="The simple average of funds in the same category and plan type. Each fund needs at least 3 years of history."
+  return <SectionCard title={CARD_TITLES.category[0]} info="The simple average of funds in the same category and plan type. Each fund needs at least 3 years of history."
     state={ranking.status} onRetry={ranking.retry}>
     {ranking.data && <CategoryRankingBody data={ranking.data} />}
   </SectionCard>;
