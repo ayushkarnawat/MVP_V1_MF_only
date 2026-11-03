@@ -323,7 +323,7 @@ def _confirm_claimed(
             id=uuid.uuid4(), household_member_id=member.id, status=ImportStatus.CONFIRMED,
             source_cas_type=source_cas_type,
             raw_parser_output=_person_raw_output(parse_result.raw_json, set(work.scheme_keys)),
-            uploaded_at=now, confirmed_at=now, upload_group_id=upload_group_id,
+            uploaded_at=session["created_at"], confirmed_at=now, upload_group_id=upload_group_id,
             statement_from_date=parse_result.statement_from, statement_to_date=parse_result.statement_to,
         )
         db.add(import_rec)

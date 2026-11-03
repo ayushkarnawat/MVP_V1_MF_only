@@ -188,3 +188,38 @@ def test_history_new_funds_compares_aware_completion_with_naive_sqlite_upload(cl
         assert response.json() == body["people"][0]["new_funds"]
     finally:
         client.app.dependency_overrides.pop(get_data_user, None)
+
+
+@pytest.mark.parametrize("surface", ["onboarding_upload", "import_upload"])
+def test_confirm_preserves_parse_time_for_signup_and_delayed_ordinary_uploads(
+    client, upload_session, surface,
+):
+    db = _test_db()
+    if surface == "onboarding_upload":
+        owner = db.query(User).one()
+        owner.onboarding_completed_at = None
+        db.commit()
+    headers, member_id, preview = upload_session(surface, family=True)
+    parse_time = _preview_sessions[preview["session_id"]]["created_at"]
+    if surface == "onboarding_upload":
+        owner = db.get(User, db.get(HouseholdMember, uuid.UUID(member_id)).user_id)
+        owner.onboarding_completed_at = datetime.now(timezone.utc)
+        db.commit()
+    body = _confirm(client, headers, preview)
+    for person in body["people"]:
+        response = client.get(f"/imports/{person["import_id"]}/new-funds", headers=headers)
+        assert response.status_code == 200
+        if surface == "onboarding_upload":
+            assert response.json() == []
+        else:
+            assert response.json() == person["new_funds"]
+            assert response.json()
+        imported = db.get(Import, uuid.UUID(person["import_id"]))
+        uploaded = imported.uploaded_at
+        confirmed = imported.confirmed_at
+        if uploaded.tzinfo is None:
+            uploaded = uploaded.replace(tzinfo=timezone.utc)
+        if confirmed.tzinfo is None:
+            confirmed = confirmed.replace(tzinfo=timezone.utc)
+        assert uploaded == parse_time
+        assert confirmed > uploaded

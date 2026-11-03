@@ -15,7 +15,7 @@ from app.services.analytics.nse_indices_client import get_index_level_on_or_befo
 from app.services.analytics.xirr import xirr
 from app.services.dashboard.holdings import FifoState, _load_folio_transactions, compute_holdings
 from app.services.dashboard.xirr import _FUND_DEBIT_TYPES, _signed_amount
-from app.services.fund_page.benchmark_select import benchmark_for_scheme
+from app.services.fund_page.benchmark_select import BENCHMARK_LABELS, benchmark_for_scheme
 from app.services.fund_page.performance import latest_nav_date, period_start
 from app.services.fund_page.schemas import ReturnsResponse, Unavailable, plain
 from app.services.fund_page.scope import ScopeContext
@@ -167,6 +167,7 @@ def inception_returns(
                 note = benchmark_note("benchmark_note_printed", date=printed_date.isoformat())
                 benchmark_reason = None
     return ReturnsResponse(
+        benchmark_label=BENCHMARK_LABELS.get(choice.index_key) if choice.index_key is not None else None,
         benchmark_source=choice.source,
         declared_benchmark_name=choice.declared_name,
         benchmark_note=note, printed_as_of=printed_date,
@@ -358,6 +359,7 @@ async def current_returns(
         benchmark_reason = "no_history"
 
     return ReturnsResponse(
+        benchmark_label=BENCHMARK_LABELS.get(choice.index_key) if choice.index_key is not None else None,
         benchmark_source=choice.source, declared_benchmark_name=choice.declared_name,
         benchmark_note=choice.window_start_note,
         mode="current",

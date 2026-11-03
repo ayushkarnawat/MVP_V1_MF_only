@@ -21,5 +21,6 @@
       "since_first_investment": "12.0000"
     }
   },
-  "benchmark_reason": null
+  "benchmark_reason": null,
+  "benchmark_label": "Nifty 500"
 }

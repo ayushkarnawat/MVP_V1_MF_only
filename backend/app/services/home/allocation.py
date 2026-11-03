@@ -76,6 +76,7 @@ class StoredMix:
     computed_at: datetime
     real_estate: Decimal = Decimal("0")
     funds: Mapping[str, tuple[ClassFund, ...]] = field(default_factory=dict)
+    disclosed_values: Mapping[str, Decimal] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -145,6 +146,10 @@ def parse_stored_allocation(
         others=others,
         real_estate=class_values["real_estate"],
         funds={key: tuple(funds) for key, funds in class_funds.items()},
+        disclosed_values={
+            key: class_values[key] if key != "others" else class_values["others"] + class_values["cash_like"]
+            for key in class_funds
+        },
         total_value=total,
         covered_value=covered,
         nav_as_of=nav_as_of,
@@ -171,8 +176,11 @@ def bucket_values(items: Iterable[tuple[Decimal, str]]) -> dict[str, Decimal]:
     return result
 
 
-def _class_funds(funds: Sequence[ClassFund], class_value: Decimal) -> tuple[ClassFund, ...]:
-    if class_value <= 0 or not funds:
+def _class_funds(
+    funds: Sequence[ClassFund], class_value: Decimal, *, covered_value: Decimal | None = None,
+) -> tuple[ClassFund, ...]:
+    covered_value = class_value if covered_value is None else covered_value
+    if class_value <= 0 or covered_value <= 0 or not funds:
         return ()
     by_scheme: dict[str, Decimal] = {}
     names: dict[str, str] = {}
@@ -182,15 +190,15 @@ def _class_funds(funds: Sequence[ClassFund], class_value: Decimal) -> tuple[Clas
             names[fund.scheme_id] = fund.name
     if not by_scheme:
         return ()
-    # Stored class weights are already rebased to current holdings; rebase their fund parts too.
-    values = spread_cents(class_value, by_scheme)
+    # Uncovered exposure belongs to the class, but must not inflate its known funds.
+    values = spread_cents(covered_value, by_scheme)
     ordered = sorted(values, key=lambda scheme_id: (-values[scheme_id], scheme_id))
     remaining = Decimal("100.00")
     result = []
     for index, scheme_id in enumerate(ordered):
-        share = remaining if index == len(ordered) - 1 else min(
-            _percentage(values[scheme_id], class_value), remaining,
-        )
+        share = _percentage(values[scheme_id], class_value)
+        if covered_value == class_value:
+            share = remaining if index == len(ordered) - 1 else min(share, remaining)
         result.append(ClassFund(scheme_id, names[scheme_id], values[scheme_id], share))
         remaining -= share
     return tuple(result)
@@ -242,6 +250,13 @@ def build_allocation(
             mix_computed_at = None
 
     source_funds = mix.funds if source == "analytics" else funds or {}
+    covered_values = dict(live_values)
+    if source == "analytics":
+        for key in LIVE_KEYS:
+            if weights[key] > 0 and key in mix.disclosed_values:
+                covered_values[key] = min(live_values[key], quantize_amount(
+                    live_values[key] * mix.disclosed_values[key] / weights[key]
+                ))
     classes = tuple(
         ClassRow(
             key=key,
@@ -249,7 +264,9 @@ def build_allocation(
             status=status,
             value=live_values[key] if status == "live" else None,
             percentage=_percentage(live_values[key], total_value) if status == "live" else None,
-            funds=_class_funds(source_funds.get(key, ()), live_values[key]) if status == "live" else (),
+            funds=_class_funds(
+                source_funds.get(key, ()), live_values[key], covered_value=covered_values[key],
+            ) if status == "live" else (),
         )
         for key, label, status in ALLOCATION_CLASSES
     )
