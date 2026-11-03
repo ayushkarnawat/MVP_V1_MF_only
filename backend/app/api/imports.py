@@ -75,6 +75,7 @@ from app.services.import_.service import (  # logic to process & confirm import
     confirm_import,
     discard_import_session,
     resolve_name,
+    resolve_add_as_family,
     resolve_pan,
     resolve_same_person,
     resolve_self,
@@ -442,6 +443,15 @@ def discard_import_session_route(
 
 # Upload-time prompt answers (Task 7). Plain `def` (F31): they commit, so they
 # run in the threadpool rather than on the event loop.
+@router.post("/sessions/{session_id}/resolve-add-as-family", response_model=ImportPreviewResponse)
+def resolve_add_as_family_route(
+    session_id: str,
+    user: User = Depends(get_data_user),
+    db: Session = Depends(get_db),
+):
+    return _run_resolve(lambda: resolve_add_as_family(db, session_id, user.id))
+
+
 @router.post("/sessions/{session_id}/resolve-name", response_model=ImportPreviewResponse)
 def resolve_name_route(
     session_id: str,

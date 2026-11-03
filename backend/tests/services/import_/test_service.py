@@ -1391,3 +1391,157 @@ def test_not_listed_reuse_keeps_the_confirmed_plan_and_identical_reupload_is_alr
     db.refresh(folio)
     assert (folio.plan_type.value, folio.plan_verified) == ("direct", True)
     assert db.query(Scheme).filter_by(isin="INF999X01ZZ9").count() == 0
+
+
+def _family_mismatch_review(db, *, count=1):
+    from app.services.import_.service import ImportPromptError
+    from tests.api.import_helpers import family_result
+
+    member = _db_member(db, name="Riya Shah")
+    people = [
+        {"name": "ROHAN MEHTA", "pan": "ABCDE1234K"},
+        {"name": "PRIYA MEHTA", "pan": "BXQPS5678L"},
+    ][:count]
+    with pytest.raises(ImportPromptError) as error:
+        _start(db, member, family_result(people))
+    assert error.value.code == "self_name_mismatch"
+    return member, error.value.session_id
+
+
+def _resolve_family(db, member, sid):
+    from app.services.import_ import service
+    return service.resolve_add_as_family(db, sid, member.user_id)
+
+
+def _confirm_family_review(db, member, preview):
+    from app.services.import_.confirm_people import confirm_people_import
+    from app.services.import_.schemas import PersonConfirmation
+    return confirm_people_import(
+        db, preview.session_id, member.user_id,
+        [PersonConfirmation(person_key=person.person_key) for person in preview.people],
+    )
+
+
+def _identity_snapshot(member):
+    fields = (
+        "name", "name_source", "name_updated_at", "pan_encrypted", "pan_lookup_hash",
+        "pan_pending_until", "pan_source", "pan_verified_at", "detected_pan_encrypted",
+        "detected_pan_hash", "pan_conflict",
+    )
+    return tuple(getattr(member, field) for field in fields)
+
+
+def test_add_as_family_leaves_the_account_holder_untouched(db_session):
+    from app.models.member_history import HouseholdMemberNameChange
+    member, sid = _family_mismatch_review(db_session)
+    before = _identity_snapshot(member)
+    preview = _resolve_family(db_session, member, sid)
+    _confirm_family_review(db_session, member, preview)
+    db_session.refresh(member)
+    assert _identity_snapshot(member) == before
+    assert db_session.query(HouseholdMemberNameChange).count() == 0
+
+
+def test_add_as_family_creates_the_statements_person_as_a_new_member_with_relationship_none(db_session):
+    member, sid = _family_mismatch_review(db_session)
+    result = _confirm_family_review(db_session, member, _resolve_family(db_session, member, sid))
+    person, = result.people
+    assert person.created is True
+    assert uuid.UUID(person.member_id) != member.id
+    added = db_session.get(HouseholdMember, uuid.UUID(person.member_id))
+    assert added.name == "ROHAN MEHTA" and added.relationship is None
+
+
+def test_add_as_family_attaches_the_funds_to_the_new_member_not_the_account_holder(db_session):
+    member, sid = _family_mismatch_review(db_session)
+    result = _confirm_family_review(db_session, member, _resolve_family(db_session, member, sid))
+    folio, = db_session.query(Folio).all()
+    assert str(folio.household_member_id) == result.people[0].member_id
+    assert folio.household_member_id != member.id
+    assert db_session.query(Transaction).count() == 1
+
+
+def test_add_as_family_stores_the_people_pan_on_the_new_member_only(db_session):
+    member, sid = _family_mismatch_review(db_session)
+    preview = _resolve_family(db_session, member, sid)
+    assert _preview_sessions[sid]["pending_claims"] == []
+    db_session.refresh(member)
+    assert member.pan_lookup_hash is None and member.pan_encrypted is None
+    result = _confirm_family_review(db_session, member, preview)
+    added = db_session.get(HouseholdMember, uuid.UUID(result.people[0].member_id))
+    assert added.pan_lookup_hash == hash_pan("ABCDE1234K")
+    assert added.pan_pending_until is None
+    db_session.refresh(member)
+    assert member.pan_lookup_hash is None and member.pan_encrypted is None
+
+
+def test_add_as_family_with_several_people_creates_each_through_the_normal_people_found_step(db_session):
+    member, sid = _family_mismatch_review(db_session, count=2)
+    preview = _resolve_family(db_session, member, sid)
+    assert [person.status for person in preview.people] == ["new", "new"]
+    assert not any(person.is_me for person in preview.people)
+    result = _confirm_family_review(db_session, member, preview)
+    assert len(result.people) == 2
+    assert all(person.created for person in result.people)
+    assert {db_session.get(HouseholdMember, uuid.UUID(person.member_id)).pan_lookup_hash
+            for person in result.people} == {hash_pan("ABCDE1234K"), hash_pan("BXQPS5678L")}
+
+
+def test_add_as_family_when_the_account_holder_is_in_the_file_is_never_reached(db_session):
+    member = _db_member(db_session)
+    preview = _start(db_session, member, _with_pan(_sample_parse_result(), "ABCDE1234F"))
+    assert preview.people[0].is_me is True
+    assert not _preview_sessions[preview.session_id].get("add_as_family")
+    assert _resolve_family(db_session, member, preview.session_id).people[0].is_me is True
+
+
+def test_add_as_family_outside_a_name_mismatch_prompt_just_finishes(db_session):
+    member = _db_member(db_session)
+    preview = _start(db_session, member, _sample_parse_result())
+    before = _identity_snapshot(member)
+    result = _resolve_family(db_session, member, preview.session_id)
+    assert result.session_id == preview.session_id
+    assert not _preview_sessions[preview.session_id].get("add_as_family")
+    assert _identity_snapshot(member) == before
+
+
+def test_resolve_name_still_renames_for_old_clients(db_session):
+    from app.services.import_.service import resolve_name
+    member, sid = _family_mismatch_review(db_session)
+    preview = resolve_name(db_session, sid, member.user_id)
+    assert preview.people[0].is_me is True
+    db_session.refresh(member)
+    assert member.name == "ROHAN MEHTA"
+    assert not _preview_sessions[sid].get("add_as_family")
+
+
+def test_no_member_not_in_file_or_self_claim_prompt_fires_for_the_first_upload_with_no_account_holder(db_session):
+    from app.services.import_.service import next_prompt
+    member, sid = _family_mismatch_review(db_session)
+    preview = _resolve_family(db_session, member, sid)
+    session = _preview_sessions[sid]
+    assert next_prompt(db_session, session) is None
+    assert session["me_key"] is None
+    assert session["pending_claims"] == []
+    assert preview.people[0].is_me is False
+    _confirm_family_review(db_session, member, preview)
+    db_session.refresh(member)
+    assert member.pan_lookup_hash is None
+
+
+def test_add_as_family_after_a_head_change_leaves_the_self_member_and_the_head_flag_untouched(db_session):
+    member, sid = _family_mismatch_review(db_session)
+    owner = db_session.get(User, member.user_id)
+    head = _db_member(db_session, name="Existing Head", relationship=Relationship.SPOUSE, user=owner)
+    # Test-only head setup/inspection is explicitly authorized.
+    head.is_head = True
+    member.is_head = False
+    db_session.commit()
+    before = _identity_snapshot(member)
+    result = _confirm_family_review(db_session, member, _resolve_family(db_session, member, sid))
+    db_session.refresh(member)
+    db_session.refresh(head)
+    assert member.relationship is Relationship.SELF
+    assert _identity_snapshot(member) == before
+    assert member.is_head is False and head.is_head is True
+    assert all(uuid.UUID(person.member_id) not in {member.id, head.id} for person in result.people)
