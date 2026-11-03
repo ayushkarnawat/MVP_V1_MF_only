@@ -7,6 +7,7 @@ import {
   getCasImportStatus,
   getMemberCoverageGaps,
   getMemberImportHistory,
+  getImportNewFunds,
   getHouseholdImportHistory,
   deleteHouseholdImport,
   deleteMemberPortfolio,
@@ -389,5 +390,20 @@ describe("session resolve and people-confirm calls", () => {
     expect(mockFetch.mock.calls[0][0]).toContain("/imports/imp-1?scope=group");
     expect(mockFetch.mock.calls[1][0]).toContain("/household-members/m-1/portfolio?remove_member=true");
     expect(mockFetch.mock.calls[1][1].method).toBe("DELETE");
+  });
+});
+
+describe("getImportNewFunds (UI round 2, change 8)", () => {
+  it("reads the new funds of one import", async () => {
+    const funds = [{ scheme_id: "s1", scheme_name: "Alpha Flexi Cap Fund", amc_name: null, invested_amount: "1.00", latest_transaction_date: "2026-10-28", transaction_count: 1, transactions: [] }];
+    const mockFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify(funds), { status: 200 }));
+    vi.stubGlobal("fetch", mockFetch);
+    expect(await getImportNewFunds("imp-9")).toEqual(funds);
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("/imports/imp-9/new-funds");
+  });
+  it("throws an ApiError with the status when the server refuses", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail: "Not found" }), { status: 404 })));
+    await expect(getImportNewFunds("imp-9")).rejects.toMatchObject({ status: 404 });
   });
 });

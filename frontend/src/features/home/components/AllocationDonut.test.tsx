@@ -101,3 +101,41 @@ describe("AllocationDonut", () => {
     expect(container.innerHTML).toContain("var(--ui-text)");
   });
 });
+
+describe("AllocationDonut: hover, focus and selected state (UI round 2, change 6)", () => {
+  it("dims every other slice when a class is active, from outside (the legend)", () => {
+    render(<AllocationDonut rows={ROWS} centerValue="x" onSliceClick={() => {}} activeKey="debt" />);
+    expect(slice("debt").getAttribute("data-dim")).toBe("false");
+    expect(slice("debt").style.opacity).toBe("1");
+    for (const key of ["equity", "gold"]) {
+      expect(slice(key).getAttribute("data-dim")).toBe("true");
+      expect(slice(key).style.opacity).toBe("0.38");
+    }
+  });
+  it("dims nothing when no class is active", () => {
+    render(<AllocationDonut rows={ROWS} centerValue="x" onSliceClick={() => {}} activeKey={null} />);
+    for (const row of ROWS) expect(slice(row.key).getAttribute("data-dim")).toBe("false");
+  });
+  it("reports the hovered and the focused slice, and null when the pointer or focus leaves", () => {
+    const onActiveChange = vi.fn();
+    render(<AllocationDonut rows={ROWS} centerValue="x" onSliceClick={() => {}} onActiveChange={onActiveChange} />);
+    fireEvent.mouseEnter(slice("gold"));
+    fireEvent.mouseLeave(slice("gold"));
+    fireEvent.focus(slice("equity"));
+    fireEvent.blur(slice("equity"));
+    expect(onActiveChange.mock.calls.map(call => call[0])).toEqual(["gold", null, "equity", null]);
+  });
+  it("marks the selected slice with aria-pressed and the others as not pressed", () => {
+    render(<AllocationDonut rows={ROWS} centerValue="x" onSliceClick={() => {}} selectedKey="debt" />);
+    expect(slice("debt").getAttribute("aria-pressed")).toBe("true");
+    expect(slice("equity").getAttribute("aria-pressed")).toBe("false");
+    expect(slice("gold").getAttribute("aria-pressed")).toBe("false");
+  });
+  it("a donut without a click handler has no pressed state and does not report hover", () => {
+    const onActiveChange = vi.fn();
+    render(<AllocationDonut rows={ROWS} centerValue="x" onActiveChange={onActiveChange} />);
+    expect(slice("debt").getAttribute("aria-pressed")).toBeNull();
+    fireEvent.mouseEnter(slice("debt"));
+    expect(onActiveChange).not.toHaveBeenCalled();
+  });
+});

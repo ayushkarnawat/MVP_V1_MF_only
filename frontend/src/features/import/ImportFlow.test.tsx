@@ -587,3 +587,23 @@ describe("ImportFlow", () => {
   });
 
 });
+const NEW_FUND = {
+  scheme_id: "s1", scheme_name: "Alpha Flexi Cap Fund", amc_name: "Alpha Mutual Fund", invested_amount: "150000.00",
+  latest_transaction_date: "2026-10-28", transaction_count: 1,
+  transactions: [{ date: "2026-10-28", type: "PURCHASE", amount: "150000.00", units: "1000.0000" }],
+};
+
+describe("ImportFlow: new funds in the notice (UI round 2, change 8)", () => {
+  it("hands the new funds of an in-app import to the notice", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(SINGLE());
+    vi.mocked(api.confirmPeopleImport).mockResolvedValue({ ...RESULT, added: 5, skipped: 0, people: [{ ...RESULT.people[0], added: 5, skipped: 0, new_funds: [NEW_FUND] }] });
+    const onDone = vi.fn();
+    render(<ImportFlow householdMemberId="member-1" onDone={onDone} />);
+    await uploadAFile();
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith({
+      text: "Import complete · 1 new fund, 5 transactions added",
+      details: ["New funds: Alpha Flexi Cap Fund"],
+      newFunds: [NEW_FUND],
+    }));
+  });
+});
