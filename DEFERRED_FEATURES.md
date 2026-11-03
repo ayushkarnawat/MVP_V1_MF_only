@@ -494,3 +494,17 @@ Deferred until manual Add Member is built (see "Profile redesign planning, manua
 | Prettier labels for the 56 new indices (they show the upper-case NSE name); chart pickers for planning and scenarios know only 8 legacy keys | Cosmetic | One label function; keys fall back to the raw key |
 | Remaining hard-coded `#22C55E` (about 250 places); a local copy of the 35 fund-house logos; removal of the Stock Concentration backend curve, `equity_outer` and the old rank, percentile and composite shapes | Later cleanup release | Tracked backlog, after staging is accepted |
 | After an undo the previous head sees "You are now the Head of Family" on the agreement screen | Accepted | Wording only; change if it reads wrong |
+
+## Added 2026-11-03 (after the Run 7 independent reviews: accepted Lows)
+
+| Item | Status | Why deferred |
+|---|---|---|
+| XBRL DOCTYPE guard misses UTF-16 input (`filings_book_value.py`) | Accepted Low | expat 2.6.4 stops entity bombs and the address must be on nseindia.com; to be fixed with a parser that forbids DTDs |
+| `_taken_by_another_account` scans every user and identity in Python on the public reverse route | Accepted Low | only after a valid token; an indexed lookup later |
+| Fallback logo tile for an empty fund house or an "Others" bucket shows an initial; TopPairs insight logos use a plain substring test | Accepted Low | cosmetic; fix with the logo local-copy cleanup |
+| Size-weighted Category Average has no minimum number of funds with a size | Accepted | the card shows how many funds were left out |
+| Filing P/B guard misses a 1:2 bonus (factor 0.67) and has no previous P/B to compare on a stock's first filing value | Accepted | needs share-count or corporate-action data |
+| Revised filing choice (`select_filing` takes the lexically largest address) is unverified against a real revision | To check on the VM | no real revision seen yet |
+| New indices are `active=True` before the printed-return check (L7) | Accepted by the handoff | the owner reviews the L7 report; switch a row off with one update if it fails |
+| UTI and Groww return tie check tolerance (1 percent) | Accepted | a wrong column is unlikely given the header proof |
+| A first-time deadlock between two accounts' locks in the Google auto-link loop | Very unlikely | needs mirror-image concurrent sign-ins |

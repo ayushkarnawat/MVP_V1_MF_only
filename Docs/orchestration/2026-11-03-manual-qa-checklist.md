@@ -113,6 +113,8 @@ Setup: sign in as the account holder (the current Head). On the **Family** page 
 | 10.5 | Right after any contact change, try Change Head of Family. | Refused: "The sign-in email or phone was changed recently, so the Head of Family cannot be changed until {date}. This protects your account." (this also applies after you reversed the change). | |
 | 10.6 | Add an email to an account that had none. | No notice is sent (there is no old address), but the Head of Family lock still applies. | |
 | 10.7 | After a reverse, press the same link again. | "This link is not valid." | |
+| 10.8 | (Needs a Google account for the NEW address.) Change the account email to that Google address (Inbox C), then sign in with Google as that address in a private window, then press the "This was not me" link from Inbox A. | After the reverse, signing in with Google as that address no longer opens the account (the Google sign-in was removed with the change). The old email and phone still work. | |
+| 10.9 | Change the account EMAIL to Inbox C, then change the PHONE. | Inbox A (the first, original email) receives the phone-change notice too, with its own working link. | |
 
 ## 11. Statement import and people (regression, takes 20 minutes)
 | # | Do this | Expected | Result |
