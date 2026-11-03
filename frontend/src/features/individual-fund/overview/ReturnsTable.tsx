@@ -1,13 +1,11 @@
 import { benchmarkChoiceDetails, benchmarkDisplayName } from "@/lib/benchmarkDisplay";
 import { BenchmarkInfoNote } from "@/components/BenchmarkInfoNote";
-import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPercent } from "@/lib/format";
 import { useScope } from "@/shell/scope/ScopeContext";
 import { fundPageApi } from "../api";
-import { useFundSection } from "../useFundSection";
+import { useFundSection, type FundSection } from "../useFundSection";
 import { SectionState } from "../components/SectionState";
-import { Segmented } from "../components/Segmented";
 import { columnHeader, unavailableText } from "../fundCopy";
 import { changeDirection } from "../fundFormat";
 import type {
@@ -22,34 +20,18 @@ export interface ReturnsTableProps {
   schemeId: string;
   scope: string;
   fundName: string;
+  /** Owned by the page: the toggle lives in the performance card and drives the graph too. */
+  mode: ReturnsMode;
+  /** The Current returns, fetched by the page when Actual XIRR is first chosen. */
+  current: FundSection<ReturnsResponse>;
 }
 
-const MODE_OPTIONS: readonly { value: ReturnsMode; label: string }[] = [
-  { value: "inception", label: "Inception" },
-  { value: "current", label: "Current" },
-];
-
-export function ReturnsTable({ schemeId, scope, fundName }: ReturnsTableProps) {
+export function ReturnsTable({ schemeId, scope, fundName, mode, current }: ReturnsTableProps) {
   const { selectedMember } = useScope();
-  const [mode, setMode] = useState<ReturnsMode>("inception");
-  const [wantCurrent, setWantCurrent] = useState(false);
-
-  const handleModeChange = (nextMode: ReturnsMode) => {
-    setMode(nextMode);
-    if (nextMode === "current") {
-      setWantCurrent(true);
-    }
-  };
 
   const inception = useFundSection<ReturnsResponse>(
     (signal) => fundPageApi.returns(schemeId, "inception", scope, signal),
     [schemeId, scope]
-  );
-
-  const current = useFundSection<ReturnsResponse>(
-    (signal) => fundPageApi.returns(schemeId, "current", scope, signal),
-    [schemeId, scope],
-    { enabled: wantCurrent }
   );
 
   const category = useFundSection<CategoryReturnsResponse>(
@@ -388,17 +370,9 @@ export function ReturnsTable({ schemeId, scope, fundName }: ReturnsTableProps) {
       aria-labelledby="returns-title"
       className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4 space-y-4"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 id="returns-title" className="text-base font-semibold text-[var(--ui-text)]">
-          Returns
-        </h3>
-        <Segmented
-          label="Returns basis"
-          options={MODE_OPTIONS}
-          value={mode}
-          onChange={handleModeChange}
-        />
-      </div>
+      <h3 id="returns-title" className="text-base font-semibold text-[var(--ui-text)]">
+        Returns
+      </h3>
 
       {mode === "current" &&
       current.status === "unavailable" &&

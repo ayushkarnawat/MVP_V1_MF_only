@@ -1,15 +1,18 @@
+import { useState } from "react";
 import { useParams } from "react-router";
 import { fundPageApi } from "./api";
 import { FundPageFrame } from "./FundPageFrame";
 import { useFundPageScope, useFundSection } from "./useFundSection";
 import { FundAllocation } from "./overview/FundAllocation";
 import { InvestmentDetails } from "./overview/InvestmentDetails";
+import { CurrentReturnsChart } from "./overview/CurrentReturnsChart";
 import { PerformanceChart } from "./overview/PerformanceChart";
+import { ReturnsModeToggle } from "./overview/ReturnsModeToggle";
 import { ReturnsTable } from "./overview/ReturnsTable";
 import { RiskMetrics } from "./overview/RiskMetrics";
 import { StatBand } from "./overview/StatBand";
 import { TopHoldings } from "./overview/TopHoldings";
-import type { CompositionResponse, ScoreResponse } from "./types";
+import type { CompositionResponse, ReturnsMode, ReturnsResponse, ScoreResponse } from "./types";
 
 export function OverviewPage({ schemeId }: { schemeId: string }) {
   const scope = useFundPageScope();
@@ -18,6 +21,21 @@ export function OverviewPage({ schemeId }: { schemeId: string }) {
     (signal) => fundPageApi.score(schemeId, scope, signal),
     [schemeId, scope]
   );
+
+  // The returns basis is shared by the performance card (graph) and the Returns table. The Current request is
+  // made once, when Actual XIRR is first chosen, and read by both.
+  const [mode, setMode] = useState<ReturnsMode>("inception");
+  const [wantCurrent, setWantCurrent] = useState(false);
+  const changeMode = (next: ReturnsMode) => {
+    setMode(next);
+    if (next === "current") setWantCurrent(true);
+  };
+  const current = useFundSection<ReturnsResponse>(
+    (signal) => fundPageApi.returns(schemeId, "current", scope, signal),
+    [schemeId, scope],
+    { enabled: wantCurrent }
+  );
+  const toggle = <ReturnsModeToggle mode={mode} onChange={changeMode} />;
 
   // Fund-level composition: single request shared by Top 10 Holdings and Fund Allocation
   const composition = useFundSection<CompositionResponse>(
@@ -51,10 +69,20 @@ export function OverviewPage({ schemeId }: { schemeId: string }) {
               data-testid="slot-performance"
               className="order-1 min-w-0 xl:order-none"
             >
-              <PerformanceChart
-                schemeId={schemeId}
-                fundName={ctx.summary.scheme.name}
-              />
+              {mode === "inception" ? (
+                <PerformanceChart
+                  schemeId={schemeId}
+                  fundName={ctx.summary.scheme.name}
+                  toggleSlot={toggle}
+                />
+              ) : (
+                <CurrentReturnsChart
+                  current={current}
+                  fundName={ctx.summary.scheme.name}
+                  toggleSlot={toggle}
+                  onShowModel={() => changeMode("inception")}
+                />
+              )}
             </div>
             <div
               data-testid="slot-returns"
@@ -64,6 +92,8 @@ export function OverviewPage({ schemeId }: { schemeId: string }) {
                 schemeId={schemeId}
                 scope={ctx.scope}
                 fundName={ctx.summary.scheme.name}
+                mode={mode}
+                current={current}
               />
             </div>
             <div

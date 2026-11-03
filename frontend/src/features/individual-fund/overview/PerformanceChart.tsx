@@ -1,6 +1,7 @@
 import { benchmarkChoiceDetails, benchmarkDisplayName, benchmarkKeyName, BENCHMARK_PERIOD_METHOD } from "@/lib/benchmarkDisplay";
 import { BenchmarkInfoNote } from "@/components/BenchmarkInfoNote";
 import { SchemeLogo } from "@/components/SchemeLogo";
+import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { LineAreaChart } from "@/components/ui/charts";
 import { fundPageApi } from "../api";
@@ -32,9 +33,11 @@ import type {
 export interface PerformanceChartProps {
   schemeId: string;
   fundName: string;
+  /** Drawn above the period buttons (the Model Portfolio Returns | Actual XIRR toggle). */
+  toggleSlot?: ReactNode;
 }
 
-export function PerformanceChart({ schemeId, fundName }: PerformanceChartProps) {
+export function PerformanceChart({ schemeId, fundName, toggleSlot }: PerformanceChartProps) {
   const [period, setPeriod] = useState<PerformancePeriod>(DEFAULT_PERIOD);
   const [hidden, setHidden] = useState<Record<"fund" | "benchmark" | "category", boolean>>({
     fund: false,
@@ -302,6 +305,7 @@ export function PerformanceChart({ schemeId, fundName }: PerformanceChartProps) 
       aria-labelledby="perf-title"
       className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4 space-y-4"
     >
+      {toggleSlot ? <div data-testid="perf-toggle-slot">{toggleSlot}</div> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 id="perf-title" className="text-base font-semibold text-[var(--ui-text)]">
           Performance
