@@ -282,9 +282,21 @@ it("shows the source and backend note for a printed benchmark without changing i
     benchmark_note: "Printed in the factsheet as of 30 Sep 2026.", printed_as_of: "2026-09-30",
   }));
   mount(); await screen.findByTestId("row-fund");
-  expect(screen.getByTestId("returns-benchmark-details")).toHaveTextContent("From the fund's factsheet");
-  expect(screen.getByTestId("returns-benchmark-details")).toHaveTextContent("Printed in the factsheet as of 30 Sep 2026.");
-  expect(screen.getByTestId("returns-benchmark-details")).not.toHaveTextContent("TRI");
+  const details = screen.getByTestId("returns-benchmark-details");
+  expect(details).toHaveTextContent("From the fund's factsheet");
+  expect(details).toHaveTextContent("How this benchmark was chosen: From the fund's factsheet. This is the index named in the fund's own factsheet.");
+  expect(details).toHaveTextContent("Printed in the factsheet as of 30 Sep 2026.");
+  expect(details).not.toHaveTextContent("TRI");
+
+  const infoBtn = screen.getByRole("button", { name: /benchmark note/i });
+  expect(infoBtn).toBeInTheDocument();
+  const tooltip = screen.getByTestId("benchmark-note-tooltip");
+  expect(tooltip).not.toBeVisible();
+  fireEvent.focus(infoBtn);
+  expect(tooltip).toBeVisible();
+  expect(tooltip).toHaveTextContent("Printed in the factsheet as of 30 Sep 2026.");
+  fireEvent.blur(infoBtn);
+  expect(tooltip).not.toBeVisible();
 });
 
 
@@ -295,6 +307,8 @@ it("says printed figures are the fund house's, not 'No benchmark', when we hold 
   mount(); await screen.findByTestId("row-fund");
   const details = screen.getByTestId("returns-benchmark-details");
   expect(details).toHaveTextContent("As printed in the fund house's factsheet");
+  expect(details).toHaveTextContent("How this benchmark was chosen: As printed in the fund house's factsheet. We cannot build this index ourselves. These returns are printed in the fund house's factsheet.");
   expect(details).toHaveTextContent("CRISIL Liquid Debt A-I Index");
   expect(details).not.toHaveTextContent("No benchmark");
+  expect(screen.queryByRole("button", { name: /benchmark note/i })).not.toBeInTheDocument();
 });

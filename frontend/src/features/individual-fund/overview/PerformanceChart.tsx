@@ -1,4 +1,5 @@
-import { benchmarkDisplayName, benchmarkKeyName, benchmarkSourceLabel, BENCHMARK_PERIOD_METHOD } from "@/lib/benchmarkDisplay";
+import { benchmarkChoiceDetails, benchmarkDisplayName, benchmarkKeyName, BENCHMARK_PERIOD_METHOD } from "@/lib/benchmarkDisplay";
+import { BenchmarkInfoNote } from "@/components/BenchmarkInfoNote";
 import { SchemeLogo } from "@/components/SchemeLogo";
 import { useRef, useState } from "react";
 import { LineAreaChart } from "@/components/ui/charts";
@@ -138,10 +139,12 @@ export function PerformanceChart({ schemeId, fundName }: PerformanceChartProps) 
       <div className="space-y-4">
         {data.benchmark_source != null && <div data-testid="benchmark-details" className="space-y-1 text-xs text-[var(--ui-text-muted)]">
           <span className="inline-flex items-center gap-2"><SchemeLogo schemeName={fundName} size="sm" />{fundName}</span>
-          <p>{benchmarkSourceLabel(data.benchmark_source)}</p>
-          {data.benchmark_source !== "none" && <p>Benchmark: {benchmarkDisplayName(data.benchmark_label ?? (data.benchmark_index ? benchmarkKeyName(data.benchmark_index) : "No benchmark"))}</p>}
+          <p className="inline-flex items-center gap-1.5 flex-wrap">
+            <span>Benchmark: {benchmarkDisplayName(data.benchmark_label ?? (data.benchmark_index ? benchmarkKeyName(data.benchmark_index) : "No benchmark"))}</span>
+            <BenchmarkInfoNote note={data.benchmark_note} />
+          </p>
           {data.benchmark_source !== "none" && data.declared_benchmark_name && <p>Factsheet names: {benchmarkDisplayName(data.declared_benchmark_name)}</p>}
-          {data.benchmark_note && <p>{data.benchmark_note}</p>}
+          <p>{benchmarkChoiceDetails(data.benchmark_source, Boolean(data.declared_benchmark_name)).fullLine}</p>
           <p>{BENCHMARK_PERIOD_METHOD}</p>
         </div>}
         <ul aria-label="Chart legend" className="flex flex-wrap items-center gap-3 text-xs">

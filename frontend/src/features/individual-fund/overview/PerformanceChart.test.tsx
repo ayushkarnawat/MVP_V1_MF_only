@@ -316,17 +316,31 @@ describe("benchmark source details", () => {
     }));
     mount(); await screen.findByTestId("line-chart");
     expect(screen.getByTestId("benchmark-details")).toHaveTextContent("Closest index we hold");
+    expect(screen.getByTestId("benchmark-details")).toHaveTextContent("How this benchmark was chosen: Closest index we hold. The fund's factsheet names an index we do not hold, so we show the closest index we do hold. Figures can differ a little from the fund's own comparison.");
     expect(screen.getByTestId("benchmark-details")).toHaveTextContent("Benchmark: Nifty 500");
     expect(screen.getByTestId("benchmark-details")).toHaveTextContent("Factsheet names: BSE 500 Total Return");
     expect(screen.getByTestId("benchmark-details")).toHaveTextContent("The backend's explanation exactly.");
     expect(screen.getByRole("button", { name: /1Y.*23 Oct 2025/ })).toBeInTheDocument();
+
+    // Small "i" info icon beside benchmark name
+    const infoBtn = screen.getByRole("button", { name: /benchmark note/i });
+    expect(infoBtn).toBeInTheDocument();
+    const tooltip = screen.getByTestId("benchmark-note-tooltip");
+    expect(tooltip).not.toBeVisible();
+    fireEvent.mouseEnter(infoBtn);
+    expect(tooltip).toBeVisible();
+    expect(tooltip).toHaveTextContent("The backend's explanation exactly.");
+    fireEvent.keyDown(infoBtn, { key: "Escape" });
+    expect(tooltip).not.toBeVisible();
   });
-  it("says No benchmark for a new none source without losing the fund chart", async () => {
+  it("says No benchmark for a new none source without losing the fund chart and without note icon", async () => {
     api.performance.mockResolvedValue(Object.assign(perf(), {
       benchmark_source: "none", benchmark: null, benchmark_label: null, benchmark_index: null, benchmark_reason: "no_benchmark",
     }));
     mount(); await screen.findByTestId("line-chart");
     expect(screen.getByTestId("benchmark-details")).toHaveTextContent("No benchmark");
+    expect(screen.getByTestId("benchmark-details")).toHaveTextContent("How this benchmark was chosen: No benchmark. We could not find a fair benchmark for this fund.");
+    expect(screen.queryByRole("button", { name: /benchmark note/i })).not.toBeInTheDocument();
   });
 });
 
