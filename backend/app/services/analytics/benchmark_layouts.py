@@ -17,7 +17,9 @@ logger = logging.getLogger(__name__)
 NEEDS_BOXES = frozenset({"whiteoak", "uti", "groww", "franklin"})
 _LABEL = re.compile(r"^\s*[#*]*(?:(?:AMFI\s+)?Tier\s*(?:I|1)\s+|First\s+Tier\s+|Scheme\s+)?Benchmark(?:\s+(?:Name|Index))?\s*[:–-]?\s*(.*)$", re.I)
 _EXTRA = re.compile(r"^\s*[#*]*(?:Additional|Addl\.?)\s*(?:Benchmark)(?:\s+Index)?\s*[:–-]?\s*(.*)$", re.I)
-_START = re.compile(r"^(?:NIFTY|S&P|BSE|CRISIL|Domestic|Gold|Silver|MSCI|NASDAQ|FTSE|SENSEX|\d+(?:\.\d+)?\s*%)(?:\b|(?<=%))", re.I)
+# UTI prints "Nifty200 Momentum 30" and "NIFTY50 Equal Weight" with the number straight after the
+# family name, and "Price of Gold" as the Gold ETF's benchmark.
+_START = re.compile(r"^(?:NIFTY|S&P|BSE|CRISIL|Domestic|Gold|Silver|Price of (?:Gold|Silver)|MSCI|NASDAQ|FTSE|SENSEX|\d+(?:\.\d+)?\s*%)(?:\b|(?<=%)|(?<=NIFTY)(?=\d))", re.I)
 _STOP = re.compile(r"^(?:NAV|FUND|MANAGER|MONTH|MINIMUM|ALLOTMENT|DATE|INCEPTION|EXIT|ENTRY|LOAD|AUM|TOTAL|SCHEME|RISK|RETURNS?|PERFORMANCE|REGULAR|DIRECT|AS ON|MR\.|MS\.|TRACKING|INVESTMENT|EXPENSE|OPTION|TYPE|PORTFOLIO)", re.I)
 
 
@@ -80,12 +82,237 @@ def _text_block(text: str) -> tuple[str | None, str | None]:
             additional[0] if len(set(additional)) == 1 and additional else None)
 
 
+def unique_words(words: list[Word]) -> list[Word]:
+    """Drop exact overlay duplicates (some pages draw the same text twice)."""
+    seen, kept = set(), []
+    for word in words:
+        key = (round(word[0]), round(word[1]), word[4])
+        if key not in seen:
+            seen.add(key)
+            kept.append(word)
+    return kept
+
+
+def row_groups(words: list[Word], tol: float = 3.5) -> list[tuple[float, list[Word]]]:
+    """(vertical centre, words left to right), top row first. Rows on these pages are
+    at least 7 points apart, but words on one printed row differ by up to 4 points."""
+    rows: list[list] = []
+    for word in sorted(words, key=lambda w: -(w[1] + w[3]) / 2):
+        centre = (word[1] + word[3]) / 2
+        if rows and abs(centre - rows[-1][0]) <= tol:
+            rows[-1][1].append(word)
+        else:
+            rows.append([centre, [word]])
+    return [(centre, sorted(row, key=lambda w: w[0])) for centre, row in rows]
+
+
+def _cy(word: Word) -> float:
+    return (word[1] + word[3]) / 2
+
+
+# --- UTI "Fund Watch" and Groww monthly factsheet (checked 3 Nov 2026 against the real
+# --- Sept/Oct 2026 files: 83 UTI scheme pages, 62 Groww scheme pages). Both read from
+# --- word boxes: UTI's text stream separates labels from values; Groww's wrapped names
+# --- are not in reading order in the stream.
+_MARKS = "*#^@†‡§¹²³⁰⁴⁵⁶⁷⁸⁹"
+_NO_VALUE = {"N.A", "N.A.", "NA", "N/A", "-", "–"}
+_UTI_PCT = re.compile(r"-?\d+\.\d{2}")
+_UTI_AMOUNT = re.compile(r"\d{1,3}(?:,\d{2,3})*")
+_GROWW_PCT = re.compile(r"-?\d+\.\d{4}")
+_GROWW_AMOUNT = re.compile(r"\d{1,3}(?:,\d{3})*\.\d{2}")
+_UTI_LEFT = 213  # the right-hand tables start at x=215..220 on every checked page
+
+
+def _same_name(a: str, b: str) -> bool:
+    from app.services.analytics.benchmark_names import _canonical
+    strip = lambda s: re.sub(r"\((?![^)]*%)[^)]*\)", " ", s)  # remarks like "(based on ...)"; never a weight
+    return bool(_canonical(strip(a))) and _canonical(strip(a)) == _canonical(strip(b))
+
+
+def _ties(ret: Decimal, value: Decimal, years: int) -> bool:
+    """The printed 'value of 10,000' must equal compounding the printed return (UTI and
+    Groww print both). A shifted column or a misread cell breaks this tie."""
+    base = Decimal(1) + ret / 100
+    return base > 0 and value > 0 and abs(Decimal(10000) * base ** years / value - 1) < Decimal("0.01")
+
+
+def _cell(token: str, pct: re.Pattern, amount: re.Pattern, ret: bool) -> Decimal | None | bool:
+    """Decimal when the cell is a well-formed number, None when it prints 'no value',
+    False when it is anything else (for example a footnote digit glued to the number)."""
+    token = token.rstrip(_MARKS)
+    if token.upper() in _NO_VALUE:
+        return None
+    if (pct if ret else amount).fullmatch(token):
+        return Decimal(token.replace(",", ""))
+    return False
+
+
+def _printed_triplet(cells: dict[int, tuple[str, str]], pct: re.Pattern, amount: re.Pattern):
+    """{years: (return token, value token)} -> (1y, 3y, 5y), all None unless every
+    printed return ties to its printed value."""
+    out = {1: None, 3: None, 5: None}
+    for years, (ret_token, value_token) in cells.items():
+        ret, value = _cell(ret_token, pct, amount, True), _cell(value_token, pct, amount, False)
+        if ret is False or value is False:
+            continue  # one unreadable cell leaves that period empty
+        if ret is None or value is None:
+            continue
+        if not _ties(ret, value, years):
+            return (None, None, None)  # misaligned columns: trust none of the table
+        out[years] = ret
+    return (out[1], out[3], out[5])
+
+
+def _uti_block(words: list[Word]) -> tuple[str | None, str | None]:
+    """Left panel: 'Benchmark Index' label, then the name (one to four rows, blends wrap),
+    then the 'Fund Manager' label. Anything else leaves the stored mapping alone."""
+    rows = row_groups([w for w in unique_words(words) if w[0] < _UTI_LEFT])
+    labels = [i for i, (_, row) in enumerate(rows) if [w[4] for w in row] == ["Benchmark", "Index"] and row[0][0] < 60]
+    if len(labels) != 1:
+        return None, None
+    block, previous = [], rows[labels[0]][0]
+    for centre, row in rows[labels[0] + 1:labels[0] + 7]:
+        if [w[4] for w in row[:2]] == ["Fund", "Manager"]:
+            break
+        if previous - centre > 14:
+            return None, None
+        block.append(row)
+        previous = centre
+    else:
+        return None, None
+    text = " ".join(w[4] for row in block for w in row)
+    return (text, None) if block and len(block) <= 4 and _START.match(text) else (None, None)
+
+
+def _uti_returns(text: str, words: list[Word] | None, declared: str):
+    """The 'Fund Performance Vs Benchmark (CAGR)' table: Period | Fund % | Benchmark % |
+    [Additional % |] value columns. The benchmark column is proven by its own header."""
+    empty = ((None, None, None, None), None)
+    if not words:
+        return empty
+    words = unique_words(words)
+    titles = [w for w in words if w[4] == "Vs"
+              and any(p[4] == "Performance" and 0 <= w[0] - p[2] <= 10 and abs(_cy(p) - _cy(w)) < 6 for p in words)
+              and any(b[4] == "Benchmark" and 0 <= b[0] - w[2] <= 10 and abs(_cy(b) - _cy(w)) < 6 for b in words)]
+    if len(titles) != 1:
+        return empty
+    title = titles[0]
+    perf = next(p for p in words if p[4] == "Performance" and 0 <= title[0] - p[2] <= 10 and abs(_cy(p) - _cy(title)) < 6)
+    fund = [w for w in words if w[4] == "Fund" and 0 <= perf[0] - w[2] <= 12 and abs(_cy(w) - _cy(perf)) < 6]
+    if len(fund) != 1:
+        return empty
+    left = fund[0][0]
+    below = row_groups([w for w in words if w[0] >= left - 10 and _cy(w) < _cy(title) - 3])
+    first = next((i for i, (_, row) in enumerate(below) if abs(row[0][0] - left) < 12
+                  and re.fullmatch(r"\d+|SI\*?|Last", row[0][4])), None)
+    if first is None:
+        return empty
+    header, data = below[:first], []
+    for centre, row in below[first:]:
+        if abs(row[0][0] - left) >= 12 or not re.fullmatch(r"\d+|SI\*?|Last", row[0][4]):
+            break
+        data.append(row)
+    widths = {len(row) - 2 for row in data if len(row) > 2 and row[1][4] == "Y"}
+    cols = max(widths, default=0)
+    if cols not in (4, 6):
+        return empty
+    reference = next((row for row in data if len(row) - 2 == cols and row[1][4] == "Y"), None)
+    if reference is None:
+        return empty
+    k = cols // 2
+    centres = [(w[0] + w[2]) / 2 for w in reference[2:]]
+    def header_text(j: int) -> str:
+        low = (centres[j - 1] + centres[j]) / 2
+        high = (centres[j] + centres[j + 1]) / 2
+        picked = [w for _, row in header for w in row if low <= (w[0] + w[2]) / 2 < high]
+        return " ".join(w[4] for _, row in row_groups(picked) for w in row)
+    benchmark_header = re.sub(r"\(%\)", " ", header_text(1)).strip()
+    if not (_same_name(benchmark_header, declared) or re.fullmatch(r"Benchmark[@*#^]*", benchmark_header)):
+        return empty
+    extra = re.sub(r"\([^)]*\)", " ", header_text(2)).strip() if k == 3 else ""
+    additional = " ".join(extra.split()) if extra and _START.match(extra) else None
+    cells = {}
+    for row in data:
+        found = re.fullmatch(r"(\d+)", row[0][4])
+        if found and int(found[1]) in (1, 3, 5) and len(row) > 1 and row[1][4] == "Y" and len(row) - 2 == cols:
+            tokens = [w[4] for w in row[2:]]
+            cells[int(found[1])] = (tokens[1], tokens[k + 1])
+    stated = re.search(r"Fund Performance Vs Benchmark \(CAGR\) as on ([^\n]+?) Growth of", " ".join(text.split()))
+    from app.services.analytics.amfi_factsheet_client import _latest_as_on
+    as_of = _latest_as_on(["as on " + stated[1]], date.today()) if stated else None
+    triplet = _printed_triplet(cells, _UTI_PCT, _UTI_AMOUNT)
+    return ((*triplet, as_of) if as_of else (None, None, None, None)), additional
+
+
+def _groww_block(words: list[Word]) -> tuple[str | None, str | None]:
+    """Snapshot panel: a centred 'BENCHMARK' label, then the name on one to three centred
+    rows (7 points apart), then the next label ('PORTFOLIO DETAILS' or similar) 14+ points on."""
+    words = [w for w in unique_words(words) if 55 <= w[0] < 185]
+    labels = [w for w in words if w[4] == "BENCHMARK" and 85 <= w[0] <= 120]
+    if len(labels) != 1:
+        return None, None
+    label = labels[0]
+    rows = [(c, r) for c, r in row_groups([w for w in words if _cy(w) < _cy(label) - 4])]
+    block, previous = [], _cy(label)
+    for centre, row in rows:
+        if previous - centre > (20 if not block else 10):
+            break
+        block.append(row)
+        previous = centre
+    text = " ".join(w[4] for row in block for w in row)
+    return (text, None) if block and len(block) <= 3 and _START.match(text) else (None, None)
+
+
+def _groww_returns(text: str, declared: str):
+    """Regular and Direct tables share one benchmark column; its 1/3/5 year returns are
+    identical across the two plans, so a difference between plans means a misread."""
+    empty = ((None, None, None, None), None)
+    lines = [line.strip() for line in text.replace("\r", "").split("\n") if line.strip()]
+    start = next((i for i, line in enumerate(lines)
+                  if re.fullmatch(r"Scheme\s+Benchmark\*\s+Add[a-z]*onal\s+Benchmark\*\*", line)), None)
+    if start is None:
+        return empty
+    gathered: dict[int, set] = {1: set(), 3: set(), 5: set()}
+    foot = None
+    for line in lines[start + 1:]:
+        if line.startswith("*"):
+            foot = line
+            break
+        row = re.fullmatch(r"(?:Last\s+)?(1|3|5)\s+Years?\s+(.+)", line)
+        if row:
+            tokens = row[2].split()
+            if len(tokens) == 6:
+                gathered[int(row[1])].add((tokens[2], tokens[3]))
+    names = re.fullmatch(r"\*\s*([^*]+?)\s*,?\s*(?:\*\*\s*(.*))?", foot or "")
+    if not names or not _same_name(names[1], declared):
+        return empty
+    additional = None
+    if names[2]:
+        candidate = re.split(r"\.\s+(?=[A-Z])", names[2].strip())[0].strip(" .,")
+        additional = candidate if _START.match(candidate) else None
+    cells = {}
+    for years, found in gathered.items():
+        if len(found) == 1:
+            cells[years] = next(iter(found))
+        elif len(found) > 1:
+            cells[years] = ("x", "x")  # plans disagree: leaves the period empty
+    stated = re.search(r"Data as on\s+([^\n.]+\d{4})", text)
+    from app.services.analytics.amfi_factsheet_client import _latest_as_on
+    as_of = _latest_as_on(["as on " + stated[1]], date.today()) if stated else None
+    triplet = _printed_triplet(cells, _GROWW_PCT, _GROWW_AMOUNT)
+    return ((*triplet, as_of) if as_of else (None, None, None, None)), additional
+
+
 def benchmark_block(layout: str, text: str, words: list[Word] | None) -> tuple[str | None, str | None]:
+    if layout in ("uti", "groww"):
+        if not words:
+            return None, None
+        return _uti_block(words) if layout == "uti" else _groww_block(words)
     if layout not in NEEDS_BOXES:
         return _text_block(text)
     if not words:
         return None, None
-    # WhiteOak, UTI and Groww: UNVERIFIED against real geometry. Accept only
+    # WhiteOak and Franklin: accept only
     # an unambiguous contiguous same-row label/value run; no guessed column
     # widths or vertical reading order. Owner checks their real PDFs in review.
     # Franklin's left-panel width (132 points) is the existing real-box reader's
@@ -154,9 +381,14 @@ def read_benchmarks(layout: str, pages, boxes=None) -> list[BenchmarkReading]:
             if tier2:
                 secondary = _name(text.splitlines(), tier2[1], j + 1)
                 break
-        printed = read_printed_returns(text, primary)
-        result.append(BenchmarkReading(schemes[0].heading, primary, additional, tracked_name,
-                                       secondary, *printed))
+        if layout == "uti":
+            printed, printed_additional = _uti_returns(text, words, primary)
+        elif layout == "groww":
+            printed, printed_additional = _groww_returns(text, primary)
+        else:
+            printed, printed_additional = read_printed_returns(text, primary), None
+        result.append(BenchmarkReading(schemes[0].heading, primary, additional or printed_additional,
+                                       tracked_name, secondary, *printed))
     return result
 
 

@@ -48,8 +48,9 @@ def test_a_house_that_failed_this_month_keeps_last_months_mapping_marked_with_it
     assert module().mapping_age_days(row, date(2026, 10, 1)) == 30
 
 
-@pytest.mark.parametrize("layout", ["whiteoak", "uti", "groww", "franklin"])
+@pytest.mark.parametrize("layout", ["whiteoak", "franklin"])
 def test_layout_with_label_and_value_in_separate_runs_reads_the_value(layout):
+    # UTI and Groww have their own real-geometry readers (test_benchmark_layouts_uti_groww.py).
     # Synthetic geometry: the holdings column must never supply the index name.
     words = [(10, 700, 80, 710, "BENCHMARK"), (90, 700, 115, 710, "Nifty"), (120, 700, 135, 710, "500"), (140, 700, 160, 710, "TRI"),
              (300, 700, 325, 710, "Nifty"), (330, 700, 340, 710, "50"), (345, 700, 365, 710, "TRI")]

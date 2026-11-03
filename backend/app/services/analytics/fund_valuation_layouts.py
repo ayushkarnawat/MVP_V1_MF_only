@@ -7,7 +7,7 @@ import re
 from app.services.analytics.fund_manager_layouts import Word, _brand_line_heading, _invesco_heading
 
 logger = logging.getLogger(__name__)
-NEEDS_BOXES = frozenset({"iti", "kotak"})
+NEEDS_BOXES = frozenset({"iti", "kotak", "uti"})
 
 
 @dataclass(frozen=True)
@@ -116,12 +116,55 @@ def _absl(page: str, words) -> list[ValuationReading]:
     return readings
 
 
-LAYOUTS = {"invesco": _invesco, "iti": _iti, "kotak": _kotak, "absl": _absl}
+_UTI_RATIO = re.compile(r"\d+\.\d{2}")
+
+
+def _uti(page: str, words) -> list[ValuationReading]:
+    # Real "Fund Watch" (Active) pages, checked 3 Nov 2026 on 26 scheme pages: a table headed
+    # "Quantitative Indicators | Fund | Benchmark" with rows "P/B" and "P/E" (the text stream
+    # lists all labels before all values, so only geometry pairs them). The Fund column is the
+    # first value column; hybrid funds print it on their second page. A note on the same page
+    # says "P/E and P/B are based on harmonic mean" and "All figures are based on trailing
+    # twelve months (TTM) data". The Passive file prints no P/E or P/B at all.
+    if not words:
+        return []
+    from app.services.analytics.benchmark_layouts import unique_words
+    from app.services.analytics.fund_manager_layouts import _uti_heading
+    words = unique_words(words)
+    centre = lambda w: (w[1] + w[3]) / 2
+    quant = [w for w in words if w[4] == "Quantitative"
+             and any(i[4] == "Indicators" and 0 <= i[0] - w[2] <= 8 and abs(centre(i) - centre(w)) < 3 for i in words)]
+    heading = _uti_heading(page)
+    if len(quant) != 1 or not heading:
+        return []
+    anchor = quant[0]
+    fund = [w for w in words if w[4] == "Fund" and w[0] > anchor[2] and abs(centre(w) - centre(anchor)) < 3]
+    if len(fund) != 1:
+        return []
+    fund_centre = (fund[0][0] + fund[0][2]) / 2
+    found = {}
+    for metric in ("P/B", "P/E"):
+        labels = [w for w in words if w[4] == metric and abs(w[0] - anchor[0]) < 8 and 0 < centre(anchor) - centre(w) < 110]
+        if len(labels) != 1:
+            return []
+        values = [w for w in words if w[0] > labels[0][2] and abs(centre(w) - centre(labels[0])) < 3
+                  and abs((w[0] + w[2]) / 2 - fund_centre) <= 16]
+        raw = values[0][4].rstrip("*#^@") if len(values) == 1 else None
+        # Exactly two decimals as printed; a footnote digit glued on ("42.221") is not a value.
+        found[metric] = raw if raw and _UTI_RATIO.fullmatch(raw) else None
+    flat = " ".join(page.split())
+    return _reading(heading, found["P/E"], found["P/B"], "uti",
+                    "trailing" if re.search(r"trailing twelve months", flat, re.I) else "not_stated",
+                    "trailing" if re.search(r"trailing twelve months", flat, re.I) else "not_stated",
+                    "harmonic" if re.search(r"P/E and P/B are based on harmonic mean", flat, re.I) else "not_stated")
+
+
+LAYOUTS = {"invesco": _invesco, "iti": _iti, "kotak": _kotak, "absl": _absl, "uti": _uti}
 
 
 def read_valuation(layout: str, pages: list[str], boxes=None) -> list[ValuationReading]:
     # ABSL's current manager layout uses this suffix; its valuation layout is
-    # still the same verified Equity Snapshot. UTI deliberately has no reader.
+    # still the same verified Equity Snapshot. Groww prints no P/E or P/B: no reader.
     layout = "absl" if layout == "absl_september" else layout
     reader = LAYOUTS.get(layout)
     if reader is None:

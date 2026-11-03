@@ -191,3 +191,70 @@ def test_sanity_range_endpoints_are_included(pe, pb):
     text = _pages("invesco")[0].replace("37.78", pe).replace("4.84", pb)
     row, = read_valuation("invesco", [text], None)
     assert (row.pe, row.pb) == (Decimal(pe), Decimal(pb))
+
+
+# ---- UTI "Fund Watch" (Active): real Oct 2026 pages 29, 34, 36, 38 (30 Sep 2026 data) ----
+
+def test_uti_reads_the_fund_column_with_trailing_and_harmonic_wording():
+    rows = _read("uti")
+    assert [(r.heading, r.pe, r.pb, r.page) for r in rows] == [
+        ("UTI HEALTHCARE FUND", Decimal("42.22"), Decimal("5.32"), 29),          # benchmark column prints 43.41 / 5.47
+        ("UTI BALANCED ADVANTAGE FUND", Decimal("20.32"), Decimal("2.87"), 34),  # second page of a hybrid fund
+        ("UTI MULTI ASSET ALLOCATION FUND", Decimal("23.54"), Decimal("4.53"), 36),
+        ("UTI AGGRESSIVE HYBRID FUND", Decimal("16.38"), Decimal("2.29"), 38),   # other tables share the row
+    ]
+    assert all((r.pe_basis, r.pb_basis, r.method) == ("trailing", "trailing", "harmonic") for r in rows)
+
+
+def test_uti_wording_is_not_stated_when_the_note_is_absent():
+    from app.services.analytics.fund_valuation_layouts import read_valuation
+    pages = _pages("uti")
+    page = re.sub(r"(?s)Calculation Methodology.*", "", pages[0])
+    row, = read_valuation("uti", [page], [pages.words[0]])
+    assert (row.pe, row.pb, row.pe_basis, row.pb_basis, row.method) == (Decimal("42.22"), Decimal("5.32"), "not_stated", "not_stated", "not_stated")
+
+
+def _uti_with(old, new):
+    from app.services.analytics.fund_valuation_layouts import read_valuation
+    pages = _pages("uti")
+    boxes = [[*w[:4], new] if w[4] == old else w for w in pages.words[0]]
+    return read_valuation("uti", [pages[0]], [boxes])
+
+
+def test_uti_footnote_digit_glued_to_a_value_drops_only_that_value():
+    row, = _uti_with("42.22", "42.221")
+    assert (row.pe, row.pb) == (None, Decimal("5.32"))
+    row, = _uti_with("5.32", "5.32*")  # a symbol is a footnote mark, not part of the number
+    assert (row.pe, row.pb) == (Decimal("42.22"), Decimal("5.32"))
+
+
+@pytest.mark.parametrize("value", ["2.99", "200.01", "N.A", "-15.00"])
+def test_uti_out_of_range_or_missing_pe_is_dropped(value):
+    row, = _uti_with("42.22", value)
+    assert row.pe is None and row.pb == Decimal("5.32")
+
+
+def test_uti_without_geometry_or_the_table_or_a_heading_returns_nothing():
+    from app.services.analytics.fund_valuation_layouts import read_valuation
+    pages = _pages("uti")
+    assert read_valuation("uti", pages, None) == []
+    assert read_valuation("uti", pages, [[] for _ in pages]) == []
+    no_header = [[w for w in page if w[4] != "Indicators"] for page in pages.words]
+    assert read_valuation("uti", pages, no_header) == []
+    # A page whose text carries no scheme heading is skipped; the others are untouched.
+    assert [r.heading for r in read_valuation("uti", ["no heading here"] + list(pages[1:]), pages.words)][0] == "UTI BALANCED ADVANTAGE FUND"
+    two_labels = list(pages.words[0]) + [[w[0], w[1] - 6, w[2], w[3] - 6, w[4]] for w in pages.words[0] if w[4] == "P/E"]
+    assert read_valuation("uti", [pages[0]], [two_labels]) == []
+
+
+def test_groww_prints_no_pe_or_pb_so_it_has_no_valuation_reader():
+    from app.services.analytics.fund_valuation_layouts import read_valuation, LAYOUTS
+    assert "groww" not in LAYOUTS
+    pages = _pages("uti")
+    assert read_valuation("groww", pages, pages.words) == []
+    assert read_valuation("uti_passive", pages, pages.words) == []  # the Passive file prints no ratios either
+
+
+def test_uti_needs_word_boxes_like_the_other_positional_houses():
+    from app.services.analytics.fund_valuation_layouts import NEEDS_BOXES, LAYOUTS
+    assert {"iti", "kotak", "uti"} <= NEEDS_BOXES and set(LAYOUTS) == {"invesco", "iti", "kotak", "absl", "uti"}
