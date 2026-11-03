@@ -4,6 +4,8 @@ import { AuthField } from "./AuthField";
 import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthSplitCard } from "./AuthSplitCard";
 import { InfoCard } from "./InfoCard";
+import { LoginCode } from "./LoginCode";
+import { LoginEntry } from "./LoginEntry";
 import { OtpPanel } from "./OtpPanel";
 import { DevTabsDemo } from "./DevTabsDemo";
 import { StatusRow } from "./StatusRow";
@@ -55,6 +57,21 @@ export const DEV_SCREENS: DevScreen[] = [
         right={<OtpPanel channel="email" identity="si••••••@gmail.com" submitLabel="Verify & Continue" devOtp={null} error="That code has expired." onSubmit={noop} onResend={noop} onEditIdentity={noop} editLabel="Edit email address" showCall={false} />}
       />
     ),
+  },
+  {
+    id: "login-entry",
+    title: "Login, step 1 (Welcome back)",
+    render: () => <LoginEntry error={null} submitting={false} onSubmitEmail={noop} onSubmitPhone={noop} onSignUp={noop} />,
+  },
+  {
+    id: "login-code-phone",
+    title: "Login, mobile code",
+    render: () => <LoginCode channel="phone" identity="+919876543210" devOtp="123456" error={null} submitting={false} onSubmit={noop} onResend={noop} onBack={noop} onEditIdentity={noop} />,
+  },
+  {
+    id: "login-code-email",
+    title: "Login, email code",
+    render: () => <LoginCode channel="email" identity="siddharth@gmail.com" devOtp={null} error="That code has expired." submitting={false} onSubmit={noop} onResend={noop} onBack={noop} onEditIdentity={noop} />,
   },
   {
     id: "step-progress",

@@ -7,7 +7,7 @@ export interface AuthLeftPanelProps {
   headline: ReactNode;
   paragraph: ReactNode;
   /** The three plain feature rows. */
-  rows?: { text: string; icon?: ReactNode }[];
+  rows?: { text: string; /** A smaller line under the title. */ detail?: string; icon?: ReactNode }[];
   /** Instead of the rows: an info card (sign-up screen 3). */
   infoCard?: ReactNode;
   /** Instead of the rows: status rows (the All set screen). */
@@ -36,9 +36,16 @@ export function AuthLeftPanel({ sketch, headline, paragraph, rows, infoCard, sta
         {rows ? (
           <ul className="mt-6 space-y-4">
             {rows.map((row) => (
-              <li key={row.text} className="flex items-center gap-3 text-sm text-[var(--ui-text)]">
+              <li key={row.text} className="flex items-start gap-3 text-sm text-[var(--ui-text)]">
                 {row.icon}
-                {row.text}
+                {row.detail ? (
+                  <span>
+                    <strong className="block font-semibold">{row.text}</strong>
+                    <span className="block text-xs text-[var(--ui-text-muted)]">{row.detail}</span>
+                  </span>
+                ) : (
+                  row.text
+                )}
               </li>
             ))}
           </ul>

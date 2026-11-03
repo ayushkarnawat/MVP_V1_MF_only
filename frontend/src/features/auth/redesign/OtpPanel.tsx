@@ -49,7 +49,7 @@ export function OtpPanel({
         <h1 className="text-[26px] font-bold leading-tight text-[var(--ui-text)]">
           {channel === "email" ? "Verify your email address" : "Verify your mobile number"}
         </h1>
-        <p className="text-sm text-[var(--ui-text-muted)]">We sent a 6-digit code to {identity}</p>
+        <p className="text-sm text-[var(--ui-text-muted)]">Enter the 6-digit code sent to {identity}.</p>
         {onEditIdentity ? (
           <button type="button" onClick={onEditIdentity} className="text-xs font-semibold text-[var(--pos-text)] hover:underline">
             {editLabel}
@@ -82,7 +82,7 @@ export function OtpPanel({
         )}
       </Button>
       <div className="flex items-center justify-between text-xs text-[var(--ui-text-muted)]">
-        <span>Didn&apos;t get the code?</span>
+        <span>Didn&apos;t receive the code?</span>
         <button
           type="button"
           disabled={countdown.active}
