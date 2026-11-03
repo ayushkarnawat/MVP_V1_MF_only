@@ -616,6 +616,56 @@ export function shortCategory(name: string | null): string {
   return part.endsWith(" Fund") ? part.slice(0, -5) : part;
 }
 
+export type CategoryAverageWeighting = "fund_size" | "equal" | null;
+
+export function categoryAverageSentence(
+  weightingOrRow?:
+    | CategoryAverageWeighting
+    | {
+        category_avg_weighting?: CategoryAverageWeighting;
+        category_avg_funds_without_size?: number;
+        weighting?: CategoryAverageWeighting;
+        funds_without_size?: number;
+        periods?: Partial<Record<"1y" | "3y" | "5y", Partial<PeriodReturn>>>;
+      },
+  fundsWithoutSize?: number | null,
+): string | null {
+  let weighting: CategoryAverageWeighting = null;
+  let count = 0;
+
+  if (typeof weightingOrRow === "object" && weightingOrRow !== null) {
+    if (weightingOrRow.category_avg_weighting !== undefined && weightingOrRow.category_avg_weighting !== null) {
+      weighting = weightingOrRow.category_avg_weighting;
+      count = weightingOrRow.category_avg_funds_without_size ?? 0;
+    } else if (weightingOrRow.weighting !== undefined && weightingOrRow.weighting !== null) {
+      weighting = weightingOrRow.weighting;
+      count = weightingOrRow.funds_without_size ?? 0;
+    } else if (weightingOrRow.periods) {
+      const p = (["3y", "1y", "5y"] as const)
+        .map(k => weightingOrRow.periods?.[k])
+        .find(item => item?.weighting != null);
+      weighting = p?.weighting ?? null;
+      count = p?.funds_without_size ?? 0;
+    }
+  } else {
+    weighting = weightingOrRow ?? null;
+    count = fundsWithoutSize ?? 0;
+  }
+
+  if (weighting === "equal") {
+    return "Equal average: no fund in this category has a size on record.";
+  }
+  if (weighting === "fund_size") {
+    if (count > 0) {
+      return count === 1
+        ? "Weighted by fund size. 1 fund has no size on record and is left out."
+        : `Weighted by fund size. ${count} funds have no size on record and are left out.`;
+    }
+    return "Weighted by fund size.";
+  }
+  return null;
+}
+
 export const PERFORMANCE_PERIODS = ["1Y", "3Y", "5Y"] as const;
 
 function rankingRecord(value: unknown): value is Record<string, unknown> {

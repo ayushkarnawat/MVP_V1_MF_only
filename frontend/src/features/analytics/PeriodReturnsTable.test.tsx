@@ -60,4 +60,65 @@ describe("PeriodReturnsTable", () => {
     expect(screen.getByRole("table").parentElement).toHaveClass("overflow-auto");
     expect(screen.getByRole("table").parentElement).toHaveClass("w-full");
   });
+
+  describe("category average weighting sentence", () => {
+    it("renders Weighted by fund size. when weighting is fund_size and no funds are without size", () => {
+      render(
+        <PeriodReturnsTable
+          periods={{
+            "1y": { fund_return: "0.12", category_avg: "0.10", peers: 12, weighting: "fund_size", funds_without_size: 0 },
+            "3y": { fund_return: "0.15", category_avg: "0.12", peers: 10, weighting: "fund_size", funds_without_size: 0 },
+            "5y": { fund_return: "0.18", category_avg: "0.14", peers: 7, weighting: "fund_size", funds_without_size: 0 },
+          }}
+        />,
+      );
+      expect(screen.getByText("Weighted by fund size.")).toBeInTheDocument();
+      expect(screen.getByText("Category average covers 12 funds (1Y), 10 (3Y), 7 (5Y).")).toBeInTheDocument();
+    });
+
+    it("renders singular sentence when 1 fund has no size on record", () => {
+      render(
+        <PeriodReturnsTable
+          periods={{
+            "3y": { fund_return: "0.15", category_avg: "0.12", peers: 10, weighting: "fund_size", funds_without_size: 1 },
+          }}
+        />,
+      );
+      expect(screen.getByText("Weighted by fund size. 1 fund has no size on record and is left out.")).toBeInTheDocument();
+    });
+
+    it("renders plural sentence when multiple funds have no size on record", () => {
+      render(
+        <PeriodReturnsTable
+          periods={{
+            "3y": { fund_return: "0.15", category_avg: "0.12", peers: 10, weighting: "fund_size", funds_without_size: 2 },
+          }}
+        />,
+      );
+      expect(screen.getByText("Weighted by fund size. 2 funds have no size on record and are left out.")).toBeInTheDocument();
+    });
+
+    it("renders Equal average sentence when weighting is equal", () => {
+      render(
+        <PeriodReturnsTable
+          periods={{
+            "3y": { fund_return: "0.15", category_avg: "0.12", peers: 10, weighting: "equal", funds_without_size: 10 },
+          }}
+        />,
+      );
+      expect(screen.getByText("Equal average: no fund in this category has a size on record.")).toBeInTheDocument();
+    });
+
+    it("renders no weighting sentence for old payload or null weighting", () => {
+      render(
+        <PeriodReturnsTable
+          periods={{
+            "3y": { fund_return: "0.15", category_avg: "0.12", peers: 10, weighting: null, funds_without_size: 0 },
+          }}
+        />,
+      );
+      expect(screen.queryByText(/Weighted by fund size/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Equal average/)).not.toBeInTheDocument();
+    });
+  });
 });

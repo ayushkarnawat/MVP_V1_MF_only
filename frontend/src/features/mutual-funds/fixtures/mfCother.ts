@@ -393,21 +393,29 @@ const CATEGORY_RANKING: CategoryRankingSummary = {
    "percentile": "59.3",
    "category_avg_return": "0.1300",
    "thin_category": false,
+   "category_avg_weighting": "fund_size",
+   "category_avg_funds_without_size": 0,
    "periods": {
     "1y": {
      "fund_return": "0.1840",
      "category_avg": "0.1520",
-     "peers": 28
+     "peers": 28,
+     "weighting": "fund_size",
+     "funds_without_size": 0
     },
     "3y": {
      "fund_return": "0.1510",
      "category_avg": "0.1300",
-     "peers": 28
+     "peers": 28,
+     "weighting": "fund_size",
+     "funds_without_size": 0
     },
     "5y": {
      "fund_return": "0.1680",
      "category_avg": "0.1450",
-     "peers": 24
+     "peers": 24,
+     "weighting": "fund_size",
+     "funds_without_size": 0
     }
    },
    "plan_type": "direct"
@@ -424,21 +432,29 @@ const CATEGORY_RANKING: CategoryRankingSummary = {
    "percentile": "23.1",
    "category_avg_return": "0.1690",
    "thin_category": true,
+   "category_avg_weighting": "fund_size",
+   "category_avg_funds_without_size": 0,
    "periods": {
     "1y": {
      "fund_return": "0.1900",
      "category_avg": "0.2150",
-     "peers": 14
+     "peers": 14,
+     "weighting": "fund_size",
+     "funds_without_size": 0
     },
     "3y": {
      "fund_return": "0.1440",
      "category_avg": "0.1690",
-     "peers": 14
+     "peers": 14,
+     "weighting": "fund_size",
+     "funds_without_size": 0
     },
     "5y": {
      "fund_return": "0.1790",
      "category_avg": "0.1920",
-     "peers": 13
+     "peers": 13,
+     "weighting": "fund_size",
+     "funds_without_size": 0
     }
    },
    "plan_type": "direct"
@@ -455,21 +471,29 @@ const CATEGORY_RANKING: CategoryRankingSummary = {
    "percentile": "19.5",
    "category_avg_return": "0.1260",
    "thin_category": false,
+   "category_avg_weighting": "fund_size",
+   "category_avg_funds_without_size": 0,
    "periods": {
     "1y": {
      "fund_return": "0.1130",
      "category_avg": "0.1410",
-     "peers": 42
+     "peers": 42,
+     "weighting": "fund_size",
+     "funds_without_size": 0
     },
     "3y": {
      "fund_return": "0.1080",
      "category_avg": "0.1260",
-     "peers": 42
+     "peers": 42,
+     "weighting": "fund_size",
+     "funds_without_size": 0
     },
     "5y": {
      "fund_return": "0.1210",
      "category_avg": "0.1390",
-     "peers": 38
+     "peers": 38,
+     "weighting": "fund_size",
+     "funds_without_size": 0
     }
    },
    "plan_type": "direct"
@@ -486,6 +510,8 @@ const CATEGORY_RANKING: CategoryRankingSummary = {
    "percentile": null,
    "category_avg_return": null,
    "thin_category": false,
+   "category_avg_weighting": null,
+   "category_avg_funds_without_size": 0,
    "periods": {},
    "plan_type": "regular"
   }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as fc from "../fixtures/mfCother";
 import type { FundScoreRow, FundTerRow, ValuationSummary } from "../types";
 import {
-  assessFactor, barWidths, categoryGapText, categoryOutperform, costLine, deltaSentence, displayTier, GROUP_TITLES, isScored, noTerNote,
+  assessFactor, barWidths, categoryAverageSentence, categoryGapText, categoryOutperform, costLine, deltaSentence, displayTier, GROUP_TITLES, isScored, noTerNote,
   normalizeFraction, ordinal, percentileTier, percentileWidth, periodsFor, pinPercent, pinPositions, planState, pointsText,
   portfolioVerdict, ratioRows, ratioState, ratioText, rawPercent, savingsLine,
   shortCategory, terBadge, terLadderRows, terScaleMax, terText, terTotals, tierCaption, TIER_STYLE, tierTone,
@@ -365,5 +365,81 @@ describe("categoryGapText", () => {
     expect(categoryGapText("0.10000", "0.10149")).toBe("-0.1 pts");
     expect(categoryGapText("0.286", "0.198")).toBe("+8.8 pts");
     expect(categoryGapText("0.1", "0.1")).toBe("0.0 pts");
+  });
+});
+
+describe("categoryAverageSentence", () => {
+  it("returns Weighted by fund size. when weighting is fund_size and no funds are without size", () => {
+    expect(categoryAverageSentence("fund_size", 0)).toBe("Weighted by fund size.");
+    expect(categoryAverageSentence("fund_size")).toBe("Weighted by fund size.");
+  });
+
+  it("returns singular sentence when weighting is fund_size and exactly 1 fund has no size", () => {
+    expect(categoryAverageSentence("fund_size", 1)).toBe(
+      "Weighted by fund size. 1 fund has no size on record and is left out.",
+    );
+  });
+
+  it("returns plural sentence when weighting is fund_size and multiple funds have no size", () => {
+    expect(categoryAverageSentence("fund_size", 3)).toBe(
+      "Weighted by fund size. 3 funds have no size on record and are left out.",
+    );
+  });
+
+  it("returns Equal average sentence when weighting is equal regardless of count", () => {
+    expect(categoryAverageSentence("equal")).toBe(
+      "Equal average: no fund in this category has a size on record.",
+    );
+    expect(categoryAverageSentence("equal", 2)).toBe(
+      "Equal average: no fund in this category has a size on record.",
+    );
+  });
+
+  it("returns null when weighting is null or absent (old payload)", () => {
+    expect(categoryAverageSentence(null)).toBeNull();
+    expect(categoryAverageSentence(undefined)).toBeNull();
+  });
+
+  it("accepts row or period objects with optional fields", () => {
+    expect(
+      categoryAverageSentence({
+        category_avg_weighting: "fund_size",
+        category_avg_funds_without_size: 1,
+      }),
+    ).toBe("Weighted by fund size. 1 fund has no size on record and is left out.");
+
+    expect(
+      categoryAverageSentence({
+        weighting: "fund_size",
+        funds_without_size: 0,
+      }),
+    ).toBe("Weighted by fund size.");
+
+    expect(
+      categoryAverageSentence({
+        category_avg_weighting: "equal",
+        category_avg_funds_without_size: 2,
+      }),
+    ).toBe("Equal average: no fund in this category has a size on record.");
+
+    expect(
+      categoryAverageSentence({
+        category_avg_weighting: null,
+      }),
+    ).toBeNull();
+
+    expect(
+      categoryAverageSentence({
+        periods: {
+          "3y": {
+            fund_return: "0.1",
+            category_avg: "0.1",
+            peers: 5,
+            weighting: "fund_size",
+            funds_without_size: 2,
+          },
+        },
+      }),
+    ).toBe("Weighted by fund size. 2 funds have no size on record and are left out.");
   });
 });
