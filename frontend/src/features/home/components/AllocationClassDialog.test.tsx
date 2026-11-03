@@ -52,6 +52,43 @@ describe("AllocationClassDialog", () => {
     expect(dialog).toHaveTextContent("••••••");
     expect(dialog).toHaveTextContent(formatLegendPercent("68.18"));
   });
+  it("full coverage shows no remainder line", () => {
+    open();
+    expect(screen.queryByTestId("class-remainder")).toBeNull();
+  });
+  it("partial coverage shows what is not attributed to a fund, as its own line and not as a fund row", () => {
+    // Backend example: a class worth 500.00 of which one disclosed fund is 10.00 (2.00% of the class).
+    open({ key: "others", label: "Others", status: "live", value: "500.00", percentage: "50.00", funds: [
+      { scheme_id: "s9", name: "Covered Other", value: "10.00", share_of_class: "2.00" },
+    ] });
+    const table = screen.getByRole("table", { name: "Funds in Others" });
+    expect(within(table).getAllByRole("row").slice(1)).toHaveLength(1);
+    const line = screen.getByTestId("class-remainder");
+    expect(line).toHaveTextContent("Not attributed to a fund");
+    expect(line).toHaveTextContent(formatRupees("490.00"));
+    expect(line).toHaveTextContent(formatLegendPercent("98.00"));
+    expect(table).not.toHaveTextContent("Not attributed");
+  });
+  it("the remainder is worked out in whole paise, so decimal sums do not leave a phantom line", () => {
+    open({ key: "debt", label: "Debt", status: "live", value: "0.30", percentage: "5.00", funds: [
+      { scheme_id: "a", name: "A", value: "0.10", share_of_class: "33.33" },
+      { scheme_id: "b", name: "B", value: "0.20", share_of_class: "66.67" },
+    ] });
+    expect(screen.queryByTestId("class-remainder")).toBeNull();
+  });
+  it("hides the remainder amount when values are hidden, and keeps its share", () => {
+    open({ key: "others", label: "Others", status: "live", value: "500.00", percentage: "50.00", funds: [
+      { scheme_id: "s9", name: "Covered Other", value: "10.00", share_of_class: "2.00" },
+    ] }, { hideValues: true });
+    const line = screen.getByTestId("class-remainder");
+    expect(line.textContent).not.toContain("₹");
+    expect(line).toHaveTextContent("••••••");
+    expect(line).toHaveTextContent(formatLegendPercent("98.00"));
+  });
+  it("a class with no funds shows no remainder line, only the plain message", () => {
+    open({ ...ROW, funds: [] });
+    expect(screen.queryByTestId("class-remainder")).toBeNull();
+  });
   it("Esc and the Close button call onClose", () => {
     const onClose = vi.fn();
     open(ROW, { onClose });
