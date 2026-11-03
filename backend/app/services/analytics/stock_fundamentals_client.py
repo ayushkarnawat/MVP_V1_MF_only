@@ -493,7 +493,7 @@ async def refresh_stock_fundamentals(db: Session, *, today: date | None = None,
             pb, pb_date = None, today
             # Preferred: the day's close over the book value per share in the company's own filing.
             filing = filing_values.get(isin)
-            pb = filing_pb_ratio(filing, closes.get(symbol), close_date)
+            pb = filing_pb_ratio(filing, closes.get(symbol), close_date, previous=old.pb_ratio if old else None)
             pb_source = FILING_SOURCE_CODE
             if pb is not None:
                 pb_date = close_date

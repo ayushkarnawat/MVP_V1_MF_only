@@ -538,8 +538,8 @@ def test_pb_is_close_over_book_value_and_fails_closed_on_missing_or_stale_inputs
     assert filing_pb_ratio(stored, None, date(2026, 11, 2)) is None
     assert filing_pb_ratio(stored, Decimal("0"), date(2026, 11, 2)) is None
     assert filing_pb_ratio(stored, Decimal("300"), date(2026, 9, 1)) is None            # filing dated after the close
-    assert filing_pb_ratio(stored, Decimal("300"), date(2028, 6, 30)) == Decimal("10.000000")   # still inside 640 days
-    assert filing_pb_ratio(stored, Decimal("300"), date(2028, 7, 2)) is None           # filing far too old
+    assert filing_pb_ratio(stored, Decimal("300"), date(2027, 11, 4)) == Decimal("10.000000")   # still inside 400 days
+    assert filing_pb_ratio(stored, Decimal("300"), date(2027, 11, 6)) is None           # filing far too old
     assert filing_pb_ratio(StoredBookValue(Decimal("0"), SEP_30, "x", BASIS_CONSOLIDATED), Decimal("300"), date(2026, 11, 2)) is None
 
 
@@ -763,3 +763,16 @@ def test_job_with_no_held_stock_that_has_a_symbol_alerts_and_exits_1(db_session,
     job, _ = _job_with(monkeypatch, targets=())
     assert asyncio.run(job.main_async(db_session, source=FakeSource({}, {}), today=TODAY)) == 1
     assert "no_held_stocks_with_symbol" in caplog.text
+
+
+
+def test_a_filing_pb_that_disagrees_wildly_with_the_previous_one_is_not_used():
+    # Run 7 backend review: the book value per share is at the balance-sheet date, the close is after any bonus
+    # issue or split, so the P/B would be wrong (a 1:1 bonus halves it) until the next filing. The previous stored
+    # P/B is the cross-check; an ordinary difference between sources is far smaller than this.
+    stored = StoredBookValue(Decimal("30"), SEP_30, "x", BASIS_CONSOLIDATED)
+    assert filing_pb_ratio(stored, Decimal("300"), date(2026, 11, 2), previous=Decimal("9.5")) == Decimal("10.000000")
+    assert filing_pb_ratio(stored, Decimal("300"), date(2026, 11, 2), previous=Decimal("14")) == Decimal("10.000000")
+    assert filing_pb_ratio(stored, Decimal("150"), date(2026, 11, 2), previous=Decimal("10")) is None   # halved
+    assert filing_pb_ratio(stored, Decimal("600"), date(2026, 11, 2), previous=Decimal("10")) is None   # doubled
+    assert filing_pb_ratio(stored, Decimal("150"), date(2026, 11, 2), previous=None) == Decimal("5.000000")
