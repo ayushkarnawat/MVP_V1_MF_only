@@ -34,6 +34,18 @@ canonical_index_name = _canonical  # public spelling for the closest-index table
 
 _ALIASES = {_canonical(spec.nse_name): spec.key for spec in INDICES}
 _ALIASES[_canonical("Nifty LargeMidcap 250")] = "nifty_largemidcap_250"
+# Printed spellings the normaliser cannot derive from the registered NSE name. Spacing, case, hyphens,
+# brackets, "Index", "TRI" and "&" versus "and" are already ignored by _canonical, so "Nifty 200 Quality 30
+# Index (TRI)", "NIFTY200 QUALITY 30" and "Nifty Mid Small Healthcare" need no row here. Only a different
+# word needs one: factsheets also say "Equal Weighted" for the same equal-weight indices.
+_PRINTED_ALIASES = {
+    "Nifty 50 Equal Weighted": "nifty50_equal_weight",
+    "Nifty 100 Equal Weighted": "nifty100_equal_weight",
+    "Nifty 500 Equal Weighted": "nifty500_equal_weight",
+    "Nifty Top 20 Equal Weighted": "nifty_top_20_equal_weight",
+}
+for _printed, _key in _PRINTED_ALIASES.items():
+    _ALIASES.setdefault(_canonical(_printed), _key)
 # Similar broad-market universes, always marked as a different index. Other
 # BSE families (sector/style/size rules differ) stay unmapped, not guessed.
 _BSE = {"bse500": "nifty_500", "bse100": "nifty_100", "bse200": "nifty_200", "bsesensex": "nifty_50"}

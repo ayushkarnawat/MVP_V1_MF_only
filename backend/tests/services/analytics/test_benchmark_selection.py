@@ -89,13 +89,49 @@ def test_factsheet_beats_closest_beats_category_beats_none():
 
 
 def test_closest_is_preferred_over_the_category_index_when_the_named_index_has_a_close_sibling():
-    choice = pick("Equity Scheme - Large Cap Fund", declared="Nifty 100 ESG TRI")
+    choice = pick("Equity Scheme - Small Cap Fund", declared="Nifty Smallcap250 Momentum Quality 100 TRI")
+    assert (choice.index_key, choice.source) == ("nifty_smallcap_250", "closest")
+    # A named index with a close sibling beats the category's own index: a mid cap fund naming the
+    # Nifty Financial Services 25/50 gets the financial services index, not the Midcap 150.
+    choice = pick("Equity Scheme - Mid Cap Fund", declared="Nifty Financial Services 25/50 TRI")
+    assert (choice.index_key, choice.source) == ("nifty_financial_services", "closest")
+    assert choice.declared_name == "Nifty Financial Services 25/50 TRI"
+    assert "Nifty Financial Services" in choice.window_start_note
+
+
+# ---- W8: names registered on 3 Nov 2026 are step 1 (their own series), not step 2 ------------------
+
+@pytest.mark.parametrize("category,declared,key", [
+    ("Equity Scheme - Large Cap Fund", "Nifty 100 ESG Index TRI", "nifty100_esg"),
+    ("Equity Scheme - Large Cap Fund", "Nifty 50 Value 20 TRI", "nifty50_value_20"),
+    ("Equity Scheme - Flexi Cap Fund", "Nifty 500 Quality 50 TRI", "nifty500_quality_50"),
+    ("Equity Scheme - Value Fund", "Nifty 500 Value 50 TRI", "nifty500_value_50"),
+    ("Equity Scheme - Mid Cap Fund", "Nifty Midcap150 Momentum 50 TRI", "nifty_midcap150_momentum_50"),
+    ("Equity Scheme - Small Cap Fund", "Nifty Smallcap250 Quality 50 TRI", "nifty_smallcap250_quality_50"),
+    ("Other Scheme - Index Funds", "Nifty 200 Alpha 30 TRI", "nifty200_alpha_30"),
+    ("Other Scheme - Index Funds", "Nifty100 Equal Weight Index (TRI)", "nifty100_equal_weight"),
+    ("Equity Scheme - Sectoral/ Thematic", "Nifty Auto TRI", "nifty_auto"),
+])
+def test_a_newly_registered_index_named_by_the_factsheet_gets_its_own_series(category, declared, key):
+    from app.services.analytics.benchmark_names import normalise_benchmark_name
+    match = normalise_benchmark_name(declared)   # what the importer stores in mapped_index_key / match_quality
+    assert (match.key, match.quality) == (key, "exact")
+    choice = pick(category, declared=declared, mapped=match.key, quality=match.quality)
+    assert (choice.index_key, choice.source, choice.declared_name) == (key, "factsheet", declared)
+    assert choice.window_start_note is None
+    assert choice.label == "From the fund's factsheet"
+
+
+def test_a_newly_registered_index_switched_off_falls_to_the_category_index():
+    flags = {**ACTIVE, "nifty100_esg": False}
+    choice = pick("Equity Scheme - Large Cap Fund", declared="Nifty 100 ESG Index TRI", mapped="nifty100_esg", active=flags)
+    # Not held, and no longer a closest row either: the category's index, labelled as the closest we hold.
     assert (choice.index_key, choice.source) == ("nifty_100", "closest")
-    choice = pick("Equity Scheme - Large Cap Fund", declared="Nifty 50 Value 20 TRI")
-    # A large-cap fund that names a Nifty 50 strategy index gets Nifty 50, not the category's Nifty 100.
-    assert (choice.index_key, choice.source) == ("nifty_50", "closest")
-    assert choice.declared_name == "Nifty 50 Value 20 TRI"
-    assert "Nifty 50" in choice.window_start_note
+
+
+def test_the_closest_table_keeps_only_names_that_are_not_registered():
+    assert [row.declared for row in sel.CLOSEST_INDEX] == [
+        "Nifty Midcap 50", "Nifty Smallcap250 Momentum Quality 100", "Nifty Financial Services 25/50"]
 
 
 def test_a_registered_named_index_that_is_switched_off_falls_to_closest_then_category():

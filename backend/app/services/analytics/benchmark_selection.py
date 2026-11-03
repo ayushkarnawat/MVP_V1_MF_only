@@ -71,24 +71,11 @@ class ClosestRow:
 # index is a slice of the larger one. Other providers' names (BSE) are handled where the
 # factsheet is read, and sector or theme names we do not hold are NOT here: a different
 # sector is not "close". No gold, silver, debt, hybrid or overseas names, ever.
+# A name that is registered as its own index (the 56 added on 3 Nov 2026, for example Nifty 500 Quality 50 or
+# Nifty 100 ESG) is NOT here: step 1 gives it its own series. A row is removed here when its name is registered.
 CLOSEST_INDEX: tuple[ClosestRow, ...] = (
     ClosestRow("Nifty Midcap 50", "nifty_midcap_150", "The top 50 names of the Midcap 150: same family and size band."),
-    ClosestRow("Nifty Midcap 150 Quality 50", "nifty_midcap_150", "Strategy slice drawn from the Midcap 150 universe."),
-    ClosestRow("Nifty Midcap150 Momentum 50", "nifty_midcap_150", "Strategy slice drawn from the Midcap 150 universe."),
-    ClosestRow("Nifty Smallcap 250 Quality 50", "nifty_smallcap_250", "Strategy slice drawn from the Smallcap 250 universe."),
     ClosestRow("Nifty Smallcap250 Momentum Quality 100", "nifty_smallcap_250", "Strategy slice drawn from the Smallcap 250 universe."),
-    ClosestRow("Nifty 500 Quality 50", "nifty_500", "Strategy slice drawn from the Nifty 500 universe."),
-    ClosestRow("Nifty 500 Value 50", "nifty_500", "Strategy slice drawn from the Nifty 500 universe."),
-    ClosestRow("Nifty 500 Shariah", "nifty_500", "Rule-screened subset of the Nifty 500 universe."),
-    ClosestRow("Nifty 200 Momentum 30", "nifty_200", "Strategy slice drawn from the Nifty 200 universe."),
-    ClosestRow("Nifty 200 Alpha 30", "nifty_200", "Strategy slice drawn from the Nifty 200 universe."),
-    ClosestRow("Nifty 200 Quality 30", "nifty_200", "Strategy slice drawn from the Nifty 200 universe."),
-    ClosestRow("Nifty 100 Quality 30", "nifty_100", "Strategy slice drawn from the Nifty 100 universe."),
-    ClosestRow("Nifty 100 ESG", "nifty_100", "Rule-screened subset of the Nifty 100 universe."),
-    ClosestRow("Nifty 100 Equal Weight", "nifty_100", "Same 100 names as the Nifty 100, weighted differently."),
-    ClosestRow("Nifty 100 Low Volatility 30", "nifty_100", "Strategy slice drawn from the Nifty 100 universe."),
-    ClosestRow("Nifty 50 Value 20", "nifty_50", "Strategy slice drawn from the Nifty 50 universe."),
-    ClosestRow("Nifty 50 Equal Weight", "nifty_50", "Same 50 names as the Nifty 50, weighted differently."),
     ClosestRow("Nifty Financial Services 25/50", "nifty_financial_services", "Capped variant of the same financial services sector index."),
 )
 _CLOSEST = {canonical_index_name(row.declared): row for row in CLOSEST_INDEX}

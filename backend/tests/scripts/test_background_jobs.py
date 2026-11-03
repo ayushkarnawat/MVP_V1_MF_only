@@ -137,7 +137,7 @@ def test_refresh_benchmark_daily_fetches_price_ten_years_and_tri_from_1990(
 
     job.main()
 
-    assert len(calls) == 31
+    assert len(calls) == 87  # 16 legacy-enum fetches + 15 older registry rows + 56 indices added 3 Nov 2026
     assert all(c[2] is BenchmarkReturnType.TRI for c in calls if c[1] not in set(BenchmarkIndex))
     calls = [c for c in calls if c[1] in set(BenchmarkIndex)]
     assert len(calls) == len(BenchmarkIndex) * 2
@@ -147,7 +147,7 @@ def test_refresh_benchmark_daily_fetches_price_ten_years_and_tri_from_1990(
     assert all(c[3] == date(2014, 2, 28) for c in calls if c[2] is BenchmarkReturnType.PRICE)
     assert all(c[3] == date(1990, 1, 1) for c in calls if c[2] is BenchmarkReturnType.TRI)
     assert all(c[4] == date(2024, 2, 29) for c in calls)
-    assert "refresh_benchmark_daily: fetches=31 succeeded=29 success=False" in caplog.messages
+    assert "refresh_benchmark_daily: fetches=87 succeeded=85 success=False" in caplog.messages
 
 
 def test_delete_expired_accounts_daily_runs_hard_delete_service(db_session, monkeypatch, caplog):

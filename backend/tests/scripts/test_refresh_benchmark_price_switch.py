@@ -24,7 +24,7 @@ def test_default_still_fetches_price_and_tri_for_every_index(db_session, monkeyp
 
     calls = _run_job(db_session, monkeypatch, job._PRICE_INDICES)
 
-    assert len(calls) == 31
+    assert len(calls) == 87  # 16 enum fetches + 71 registry-only rows (15 older + 56 added 3 Nov 2026)
     calls = [(i, t) for i, t in calls if i in set(BenchmarkIndex)]
     assert len(calls) == 16
 
@@ -32,7 +32,7 @@ def test_default_still_fetches_price_and_tri_for_every_index(db_session, monkeyp
 def test_limiting_price_to_the_legacy_four_keeps_tri_for_all_eight(db_session, monkeypatch):
     calls = _run_job(db_session, monkeypatch, LEGACY_BENCHMARK_INDICES)
 
-    assert len(calls) == 27
+    assert len(calls) == 83  # 12 enum fetches + 71 registry-only rows
     calls = [(i, t) for i, t in calls if i in set(BenchmarkIndex)]
     assert len(calls) == 12
     assert {index for index, kind in calls if kind is BenchmarkReturnType.TRI} == set(BenchmarkIndex)
