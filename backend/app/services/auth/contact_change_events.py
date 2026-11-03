@@ -116,7 +116,8 @@ def send_contact_change_notice(
     if not recipient or not recipient.strip():
         return
     reverse_url = (
-        f"{settings.frontend_base_url.rstrip('/')}/reverse-contact-change#token={quote(raw_token, safe='')}"
+        f"{settings.frontend_base_url.rstrip('/')}/reverse-contact-change"
+        f"#token={quote(raw_token, safe='')}&channel={channel}"
     )
     subject, text, html = contact_changed_email(
         channel=channel, new_value_masked=mask_value(channel, new_value), reverse_url=reverse_url

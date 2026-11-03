@@ -240,4 +240,36 @@ describe("ReverseContactChangePage", () => {
     expect(link).toHaveAttribute("href", "/");
     expect(button).toBeDisabled();
   });
+
+  it("heading_names_the_changed_contact_when_the_link_carries_the_channel", () => {
+    window.history.replaceState(null, "", "/reverse-contact-change#token=tok-chan-1&channel=email");
+    const { unmount } = render(<App />);
+    expect(
+      screen.getByRole("heading", { name: "The sign-in email address on your account was changed" }),
+    ).toBeInTheDocument();
+    unmount();
+
+    window.history.replaceState(null, "", "/reverse-contact-change#token=tok-chan-2&channel=phone");
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { name: "The sign-in phone number on your account was changed" }),
+    ).toBeInTheDocument();
+  });
+
+  it("an_older_link_without_a_channel_keeps_the_general_heading", () => {
+    window.history.replaceState(null, "", "/reverse-contact-change#token=tok-chan-3&channel=carrier-pigeon");
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { name: "The sign-in email or phone on your account was changed" }),
+    ).toBeInTheDocument();
+  });
+
+  it("a_trailing_slash_still_opens_the_page", () => {
+    window.history.replaceState(null, "", "/reverse-contact-change/#token=tok-slash-1&channel=email");
+    render(<App />);
+    expect(
+      screen.getByRole("button", { name: "This was not me, undo the change" }),
+    ).toBeEnabled();
+    expect(api.getMe).not.toHaveBeenCalled();
+  });
 });

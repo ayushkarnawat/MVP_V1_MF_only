@@ -10,6 +10,14 @@ function readFragmentToken(): string | null {
   return token.length > 0 ? token : null;
 }
 
+// The emailed link also carries which kind of contact was changed ("&channel=email" or "&channel=phone"). It is
+// not secret; an older link without it gets the general wording.
+function readFragmentChannel(): "email" | "phone" | null {
+  if (typeof window === "undefined") return null;
+  const channel = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("channel");
+  return channel === "email" || channel === "phone" ? channel : null;
+}
+
 function isPermanentReverseFailure(err: unknown, code: string | null): boolean {
   const status =
     err && typeof err === "object" && typeof (err as { status?: unknown }).status === "number"
@@ -25,6 +33,8 @@ function isPermanentReverseFailure(err: unknown, code: string | null): boolean {
 
 export function ReverseContactChangePage() {
   const [token] = useState<string | null>(() => readFragmentToken());
+  const [channel] = useState<"email" | "phone" | null>(() => readFragmentChannel());
+  const kind = channel === "email" ? "email address" : channel === "phone" ? "phone number" : "email or phone";
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [terminalError, setTerminalError] = useState(false);
@@ -70,7 +80,7 @@ export function ReverseContactChangePage() {
           Unifolio
         </div>
         <h1 className="text-xl font-semibold">
-          The sign-in email or phone on your account was changed
+          The sign-in {kind} on your account was changed
         </h1>
 
         {!token ? (

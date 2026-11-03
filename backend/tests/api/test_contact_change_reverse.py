@@ -45,7 +45,8 @@ def _change(client, household, channel, identifier):
 
 
 def _token_from(mailbox_entry) -> str:
-    return mailbox_entry["body"].split("/reverse-contact-change#token=")[1].strip()
+    # The link ends "#token=<token>&channel=<email|phone>"; only the token is a credential.
+    return mailbox_entry["body"].split("/reverse-contact-change#token=")[1].split("&channel=")[0].strip()
 
 
 def _reverse(client, token):
@@ -290,3 +291,14 @@ def test_reversing_cancels_an_open_head_change_request(client, mailbox):
     request = db.query(HeadChangeRequest).one()
     assert request.status == "cancelled"
     db.close()
+
+
+def test_the_link_names_the_changed_channel_so_the_page_can_say_which(client, mailbox):
+    household = _household(client, suffix="r15")
+    _change(client, household, "email", "thief-r15@example.com")
+    _change(client, household, "phone", "+919400000015")
+
+    assert mailbox.sent[0]["body"].rstrip().endswith("&channel=email")
+    assert mailbox.sent[1]["body"].rstrip().endswith("&channel=phone")
+    # The token is still the only secret part of the link.
+    assert "&channel=" not in _token_from(mailbox.sent[0])

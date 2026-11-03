@@ -231,4 +231,11 @@ describe("UndoHeadChangePage", () => {
     expect(link).toHaveAttribute("href", "/");
     expect(button).toBeDisabled();
   });
+
+  it("a_trailing_slash_still_opens_the_page", () => {
+    window.history.replaceState(null, "", "/undo-head-change/#token=tok-slash-undo-1");
+    render(<App />);
+    expect(screen.getByRole("button", { name: "Undo the change" })).toBeEnabled();
+    expect(api.getMe).not.toHaveBeenCalled();
+  });
 });

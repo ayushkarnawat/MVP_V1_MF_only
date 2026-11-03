@@ -135,10 +135,10 @@ function MainApp() {
 }
 
 function App() {
-  if (typeof window !== "undefined" && window.location.pathname === "/undo-head-change") {
+  if (typeof window !== "undefined" && window.location.pathname.replace(/\/+$/, "") === "/undo-head-change") {
     return <UndoHeadChangePage />;
   }
-  if (typeof window !== "undefined" && window.location.pathname === "/reverse-contact-change") {
+  if (typeof window !== "undefined" && window.location.pathname.replace(/\/+$/, "") === "/reverse-contact-change") {
     return <ReverseContactChangePage />;
   }
   return (
