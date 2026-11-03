@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -52,7 +52,8 @@ export default function FamilyPage() {
   const [localPendingHeadChange, setLocalPendingHeadChange] = useState<HeadChangeStatus | null>(
     null,
   );
-  const [bannerSeconds, setBannerSeconds] = useState<number>(0);
+  // The banner's clock; the time left is worked out from the request's end time on every tick.
+  const [clock, setClock] = useState<number>(() => Date.now());
   const [cancellingHeadChange, setCancellingHeadChange] = useState(false);
 
   const requestRef = useRef(0);
@@ -84,37 +85,73 @@ export default function FamilyPage() {
   const isHead = Boolean(
     me?.head_member_id && selfMember && me.head_member_id === selfMember.id,
   );
+  // The account's own answer wins; the local copy only bridges the moment between the dialog closing
+  // and the account being read again (it is cleared as soon as that read comes back).
   const pendingHeadChange = me?.head_change_pending ?? localPendingHeadChange;
+  // The time left is counted from when this copy of the request arrived, so a refreshed copy restarts
+  // from the server's own number and a hidden tab cannot drift.
+  const bannerTimes = useMemo(() => {
+    if (!pendingHeadChange) return null;
+    const startedAt = Date.now();
+    return { startedAt, endAt: startedAt + pendingHeadChange.expires_in_seconds * 1000 };
+  }, [pendingHeadChange]);
+  const bannerSeconds = bannerTimes
+    ? Math.max(0, Math.ceil((bannerTimes.endAt - Math.max(clock, bannerTimes.startedAt)) / 1000))
+    : 0;
+  // A banner with no time left is not shown ("0:00 left" would be a lie: the request has expired).
   const showPendingBanner = Boolean(
-    pendingHeadChange && (!me?.head_member_id || isHead),
+    pendingHeadChange && bannerSeconds > 0 && (!me?.head_member_id || isHead),
   );
 
   useEffect(() => {
-    const nextPending = me?.head_change_pending ?? localPendingHeadChange;
-    setBannerSeconds(nextPending?.expires_in_seconds ?? 0);
-  }, [me?.head_change_pending, localPendingHeadChange]);
-
-  useEffect(() => {
-    if (!showPendingBanner || bannerSeconds <= 0) return;
-    const timer = window.setInterval(() => {
-      setBannerSeconds(prev => (prev <= 1 ? 0 : prev - 1));
-    }, 1000);
+    if (!bannerTimes) return;
+    const timer = window.setInterval(() => setClock(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [showPendingBanner, bannerSeconds]);
+  }, [bannerTimes]);
+
+  // Read the account again after a failed or finished change so the banner is what the server says.
+  // (refreshMe is not a stable function, so it is read through a ref to keep this one stable.)
+  const refreshMeRef = useRef(refreshMe);
+  useEffect(() => {
+    refreshMeRef.current = refreshMe;
+  });
+  const readAccountAgain = useCallback(async () => {
+    try {
+      await refreshMeRef.current();
+      setLocalPendingHeadChange(null);
+    } catch {
+      // The read failed; keep what is shown rather than guess.
+    }
+  }, []);
+
+  // Read the account once on arrival, so a request started elsewhere (or before the last sign-in)
+  // is shown, and one that has ended is not.
+  useEffect(() => {
+    void readAccountAgain();
+  }, [readAccountAgain]);
+
+  // When the request runs out, take the banner away and ask the server what is true now.
+  const expiredRequestRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!pendingHeadChange || !bannerTimes || bannerSeconds > 0) return;
+    if (expiredRequestRef.current === pendingHeadChange.request_id) return;
+    expiredRequestRef.current = pendingHeadChange.request_id;
+    setLocalPendingHeadChange(null);
+    void readAccountAgain();
+  }, [pendingHeadChange, bannerTimes, bannerSeconds, readAccountAgain]);
 
   const handleCancelPendingHeadChange = async () => {
     if (cancellingHeadChange) return;
     setCancellingHeadChange(true);
     try {
       await cancelHeadChange();
-      setLocalPendingHeadChange(null);
-      await refreshMe();
     } catch {
-      // The banner stays; refreshing tells whether the request is still open (it may have expired).
-      await refreshMe();
-    } finally {
-      setCancellingHeadChange(false);
+      // Whatever went wrong (it may already have expired), the local copy must not bring the banner
+      // back; the account read below says whether the request is still open.
     }
+    setLocalPendingHeadChange(null);
+    await readAccountAgain();
+    setCancellingHeadChange(false);
   };
 
   // Clear cache first so nothing reads a warm copy; then shell reloads members to drop any non-existent pick; then list reloads.
@@ -230,7 +267,11 @@ export default function FamilyPage() {
                     size="sm"
                     disabled={cancellingHeadChange}
                     onClick={() =>
-                      setHeadDialog({ open: true, initialRequest: pendingHeadChange })
+                      // Hand over the time that is left now, not the number the account was read with.
+                      setHeadDialog({
+                        open: true,
+                        initialRequest: { ...pendingHeadChange, expires_in_seconds: bannerSeconds },
+                      })
                     }
                   >
                     Continue
@@ -357,15 +398,12 @@ export default function FamilyPage() {
           initialRequest={headDialog.initialRequest}
           onClose={openRequest => {
             setHeadDialog({ open: false, initialRequest: null });
-            if (openRequest) {
-              setLocalPendingHeadChange(openRequest);
-              void refreshMe();
-            }
+            // A request that was just made may not have reached the dialog (a lost reply), so the
+            // account is read again on every close, not only when a request is handed back.
+            if (openRequest) setLocalPendingHeadChange(openRequest);
+            void readAccountAgain();
           }}
-          onCancelled={() => {
-            setLocalPendingHeadChange(null);
-            void refreshMe();
-          }}
+          onCancelled={() => setLocalPendingHeadChange(null)}
         />
       ) : null}
     </>

@@ -98,11 +98,59 @@ describe("UndoHeadChangePage", () => {
 
     render(<UndoHeadChangePage />);
 
-    expect(screen.getByText("This undo link is not valid.")).toBeInTheDocument();
+    // Changed from the bare "This undo link is not valid.": a refreshed page has lost its token, so say what to do.
+    expect(
+      screen.getByText(
+        "This undo link is not valid. If you refreshed this page, open the link in your email again.",
+      ),
+    ).toBeInTheDocument();
     const link = screen.getByRole("link", { name: /sign in/i });
     expect(link).toHaveAttribute("href", "/");
     expect(screen.queryByRole("button", { name: "Undo the change" })).not.toBeInTheDocument();
     expect(api.undoHeadChange).not.toHaveBeenCalled();
+  });
+
+  it("a_refresh_after_the_token_was_removed_shows_the_open-the-link-again_message_and_stores_nothing", () => {
+    window.history.replaceState(null, "", "/undo-head-change#token=secret-undo-tok-r");
+    const first = render(<UndoHeadChangePage />);
+    expect(window.location.hash).toBe("");
+    first.unmount();
+
+    render(<UndoHeadChangePage />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("If you refreshed this page, open the link in your email again.");
+    expect(JSON.stringify({ ...localStorage })).not.toContain("secret-undo-tok-r");
+    expect(JSON.stringify({ ...sessionStorage })).not.toContain("secret-undo-tok-r");
+  });
+
+  it("the_green_button_has_white_text", () => {
+    window.history.replaceState(null, "", "/undo-head-change#token=secret-undo-tok-w");
+    render(<UndoHeadChangePage />);
+
+    const button = screen.getByRole("button", { name: "Undo the change" });
+    expect(button.className).toContain("text-white");
+    expect(button.className).not.toContain("text-black");
+  });
+
+  it("errors_use_the_negative_text_token_and_sign_in_links_the_positive_one", async () => {
+    window.history.replaceState(null, "", "/undo-head-change#token=secret-undo-tok-c");
+    const view = render(<UndoHeadChangePage />);
+    vi.mocked(api.undoHeadChange).mockRejectedValueOnce(
+      new api.ApiError(409, { code: "request_changed", message: "Another change happened." }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Undo the change" }));
+    const alert = await screen.findByRole("alert");
+    expect(alert.className).toContain("text-[var(--neg-text)]");
+    expect(alert.className).not.toContain("text-red-500");
+
+    vi.mocked(api.undoHeadChange).mockResolvedValueOnce({ status: "undone" });
+    fireEvent.click(screen.getByRole("button", { name: "Undo the change" }));
+    expect(await screen.findByRole("link", { name: /sign in/i })).toHaveClass("text-[var(--pos-text)]");
+    view.unmount();
+
+    window.history.replaceState(null, "", "/undo-head-change");
+    render(<UndoHeadChangePage />);
+    expect(screen.getByRole("link", { name: /sign in/i })).toHaveClass("text-[var(--pos-text)]");
   });
 
   it("each_error_message_is_shown", async () => {

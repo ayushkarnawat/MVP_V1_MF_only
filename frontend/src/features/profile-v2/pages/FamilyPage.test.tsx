@@ -3,11 +3,14 @@ import { useLocation } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   cancelHeadChange,
+  getHeadChangeEligibility,
   getPendingHeadChange,
   listHouseholdMembers,
   previewHeadChange,
+  requestHeadChangeStartCode,
+  startHeadChange,
 } from "@/features/auth/api";
-import type { HouseholdMember, MeResponse } from "@/features/auth/types";
+import type { HeadChangeStatus, HouseholdMember, MeResponse } from "@/features/auth/types";
 import { deleteMemberPortfolio, getHouseholdImportHistory } from "@/features/import/api";
 import { invalidateApiCache } from "@/lib/apiClient";
 import { buildRegistry } from "@/shell/registry/buildRegistry";
@@ -17,12 +20,42 @@ import { HISTORY_FIXTURE, type ImportHistoryRow } from "../fixtures/importHistor
 import { HOUSEHOLD_FIXTURE } from "../fixtures/members";
 import FamilyPage from "./FamilyPage";
 
-const auth = vi.hoisted(() => ({
-  me: null as MeResponse | null,
-  logout: vi.fn(),
-  refreshMe: vi.fn(),
-}));
-vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => auth }));
+// `setMe` plays what the real AuthContext does when `refreshMe` stores a new account: every component reading it renders again.
+const auth = vi.hoisted(() => {
+  const listeners = new Set<() => void>();
+  const value: {
+    me: MeResponse | null;
+    logout: ReturnType<typeof vi.fn>;
+    refreshMe: ReturnType<typeof vi.fn>;
+    listeners: Set<() => void>;
+    setMe: (next: MeResponse | null) => void;
+  } = {
+    me: null,
+    logout: vi.fn(),
+    refreshMe: vi.fn(),
+    listeners,
+    setMe(next) {
+      value.me = next;
+      listeners.forEach(listener => listener());
+    },
+  };
+  return value;
+});
+vi.mock("@/features/auth/AuthContext", async () => {
+  const React = await import("react");
+  return {
+    useAuth: () => {
+      const [, force] = React.useReducer((n: number) => n + 1, 0);
+      React.useEffect(() => {
+        auth.listeners.add(force);
+        return () => {
+          auth.listeners.delete(force);
+        };
+      }, []);
+      return auth;
+    },
+  };
+});
 vi.mock("@/features/auth/api", async () => {
   const actual = await vi.importActual<typeof import("@/features/auth/api")>("@/features/auth/api");
   return {
@@ -104,6 +137,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   Reflect.deleteProperty(window.HTMLElement.prototype, "scrollIntoView");
 });
 
@@ -124,7 +158,8 @@ describe("FamilyPage: the page", () => {
     expect(getHouseholdImportHistory).toHaveBeenCalledTimes(1);
     expect(deleteMemberPortfolio).not.toHaveBeenCalled();
     expect(invalidateApiCache).not.toHaveBeenCalled();
-    expect(auth.refreshMe).not.toHaveBeenCalled();
+    // Changed from "not called": the page now reads the account once on arrival so a waiting Head of Family change is current.
+    expect(auth.refreshMe).toHaveBeenCalledTimes(1);
   });
 
   it("shows the Family Account strip and the Family Members list with their sub-titles", async () => {
@@ -370,6 +405,7 @@ describe("FamilyPage: Edit profile", () => {
     const refreshMembers = vi.fn(() => { order.push("refreshMembers"); });
     mount({ refreshMembers });
     await ready();
+    order.length = 0; // the page's own read of the account on arrival is not part of this order
     fireEvent.click(within(cardOf("Aditi Surve")).getByRole("button", { name: /60% complete/ }));
     fireEvent.click(screen.getByRole("button", { name: "stub saved" }));
     expect(order).toEqual(["invalidate", "refreshMembers", "refreshMe"]);
@@ -381,6 +417,7 @@ describe("FamilyPage: Edit profile", () => {
   it("after a merge: closes the dialog, reloads the household, clears the cache, reloads the shell's members and refreshes the account", async () => {
     const refreshMembers = await open(/60% complete/);
     expect(listHouseholdMembers).toHaveBeenCalledTimes(1);
+    auth.refreshMe.mockClear(); // not counting the page's own read of the account on arrival
     fireEvent.click(screen.getByRole("button", { name: "stub merged" }));
     await waitFor(() => expect(listHouseholdMembers).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -618,10 +655,17 @@ describe("FamilyPage: Change Head of Family", () => {
     expect(await screen.findByRole("heading", { name: "Enter the four codes" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
 
-    // Cancel calls cancelHeadChange and refreshes me
+    // Cancel calls cancelHeadChange and refreshes me; the server now says nothing is pending
+    auth.refreshMe.mockImplementation(async () => {
+      auth.setMe({ ...ME_FIXTURE, head_member_id: "m-self", head_change_pending: null });
+    });
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(cancelHeadChange).toHaveBeenCalledTimes(1));
     expect(auth.refreshMe).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.queryByTestId("head-change-pending-banner")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "Change Head of Family" })).toBeInTheDocument();
   });
 
   it("member_list_cards_are_unchanged", async () => {
@@ -640,5 +684,200 @@ describe("FamilyPage: Change Head of Family", () => {
     expect(within(cardOf("Siddharth Surve")).getByRole("button", { name: "Change in Account Info" })).toBeInTheDocument();
     expect(within(cardOf("Aditi Surve")).getByRole("button", { name: "Delete Aditi Surve from your family" })).toBeInTheDocument();
     expect(within(cardOf("Ramesh Surve")).getByRole("button", { name: "Delete Ramesh Surve from your family" })).toBeInTheDocument();
+  });
+});
+
+describe("FamilyPage: the pending Head of Family banner stays true to the server", () => {
+  const settle = () =>
+    act(async () => {
+      for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    });
+
+  const pendingStatus = (seconds: number): HeadChangeStatus => ({
+    request_id: "req-pending-1",
+    status: "pending",
+    expires_in_seconds: seconds,
+    verified_count: 1,
+    ready: false,
+    current_email_verified: true,
+    current_phone_verified: false,
+    new_email_verified: false,
+    new_phone_verified: false,
+  });
+
+  const BANNER = "head-change-pending-banner";
+  // What the server says is pending; refreshMe copies it into the account the page reads.
+  let serverPending: HeadChangeStatus | null = null;
+
+  beforeEach(() => {
+    serverPending = null;
+    auth.me = { ...ME_FIXTURE, head_member_id: "m-self" };
+    auth.refreshMe.mockImplementation(async () => {
+      auth.setMe({ ...ME_FIXTURE, head_member_id: "m-self", head_change_pending: serverPending });
+    });
+    vi.mocked(getHeadChangeEligibility).mockResolvedValue({
+      members: [{ member_id: "m-father", reasons: [] }],
+    });
+    vi.mocked(requestHeadChangeStartCode).mockResolvedValue({ message: "Code sent.", otp: null });
+    vi.mocked(startHeadChange).mockResolvedValue({
+      request: pendingStatus(590),
+      codes: [
+        { party: "current", channel: "email", verified: true, otp: null },
+        { party: "current", channel: "phone", verified: false, otp: null },
+        { party: "new", channel: "email", verified: false, otp: null },
+        { party: "new", channel: "phone", verified: false, otp: null },
+      ],
+    });
+    vi.mocked(getPendingHeadChange).mockResolvedValue({ request: pendingStatus(590) });
+    vi.mocked(previewHeadChange).mockResolvedValue({
+      request_id: "req-pending-1",
+      old_head: { member_id: "m-self", name: "Siddharth Surve" },
+      new_head: { member_id: "m-father", name: "Ramesh Surve", email: "r@example.in", phone_number: "+919812345678" },
+      old_head_new_label: "child",
+      members: [],
+      everyone_signed_out: true,
+    });
+  });
+
+  async function openDialogToStep2() {
+    fireEvent.click(screen.getByRole("button", { name: "Change Head of Family" }));
+    await settle();
+    fireEvent.click(screen.getByRole("radio", { name: /Ramesh Surve/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await settle();
+    fireEvent.change(screen.getByLabelText(/your email code/i), { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await settle();
+    expect(screen.getByRole("heading", { name: "Enter the four codes" })).toBeInTheDocument();
+  }
+
+  it("reads_the_account_once_on_arrival_so_the_banner_is_current", async () => {
+    serverPending = pendingStatus(300);
+    mount();
+    await settle();
+
+    expect(auth.refreshMe).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId(BANNER)).toHaveTextContent("A Head of Family change is waiting for codes. 5:00 left.");
+  });
+
+  it("the_banner_goes_away_when_its_countdown_reaches_zero", async () => {
+    vi.useFakeTimers();
+    serverPending = pendingStatus(3);
+    mount();
+    await settle();
+    expect(screen.getByTestId(BANNER)).toHaveTextContent("0:03 left");
+    serverPending = null; // by the time the clock runs out the server no longer has the request
+    auth.refreshMe.mockClear();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+
+    expect(screen.queryByTestId(BANNER)).not.toBeInTheDocument();
+    expect(screen.queryByText(/0:00 left/)).not.toBeInTheDocument();
+    expect(auth.refreshMe).toHaveBeenCalledTimes(1);
+  });
+
+  it("a_banner_that_counts_down_follows_the_clock_not_the_ticks", async () => {
+    vi.useFakeTimers();
+    serverPending = pendingStatus(545);
+    mount();
+    await settle();
+    expect(screen.getByTestId(BANNER)).toHaveTextContent("9:05 left");
+
+    await act(async () => {
+      vi.setSystemTime(Date.now() + 60_000);
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+
+    expect(screen.getByTestId(BANNER)).toHaveTextContent("8:04 left");
+  });
+
+  it("closing_the_dialog_at_step_one_still_refreshes_the_account_so_a_request_the_server_made_shows_its_banner", async () => {
+    mount();
+    await settle();
+    fireEvent.click(screen.getByRole("button", { name: "Change Head of Family" }));
+    await settle();
+    expect(screen.getByRole("heading", { name: "Choose who will be Head of Family" })).toBeInTheDocument();
+    // The response to "start" was lost, but the server did create the request.
+    serverPending = pendingStatus(500);
+    auth.refreshMe.mockClear();
+
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
+    await settle();
+
+    expect(auth.refreshMe).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId(BANNER)).toBeInTheDocument();
+  });
+
+  it("a_request_handed_back_by_the_dialog_does_not_outlive_a_refresh_that_says_nothing_is_pending", async () => {
+    mount();
+    await settle();
+    await openDialogToStep2();
+    // The server no longer has the request (it expired while the dialog was open).
+    serverPending = null;
+
+    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+    await settle();
+
+    expect(screen.queryByTestId(BANNER)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Change Head of Family" })).toBeInTheDocument();
+  });
+
+  it("a_failed_cancel_clears_the_local_copy_so_the_banner_cannot_come_back_from_it", async () => {
+    mount();
+    await settle();
+    await openDialogToStep2();
+    serverPending = pendingStatus(500);
+    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+    await settle();
+    expect(screen.getByTestId(BANNER)).toBeInTheDocument();
+
+    // The request is gone on the server, so cancelling it fails with "not found".
+    serverPending = null;
+    // The same shape as the app's ApiError (this file replaces the module that defines it).
+    vi.mocked(cancelHeadChange).mockRejectedValueOnce(
+      Object.assign(new Error("Head change request not found."), {
+        status: 404,
+        payload: { code: "request_not_found", message: "Head change request not found." },
+      }),
+    );
+    fireEvent.click(within(screen.getByTestId(BANNER)).getByRole("button", { name: "Cancel" }));
+    await settle();
+
+    expect(screen.queryByTestId(BANNER)).not.toBeInTheDocument();
+  });
+
+  it("reopening_from_the_banner_uses_the_time_that_is_left", async () => {
+    vi.useFakeTimers();
+    serverPending = pendingStatus(545);
+    vi.mocked(getPendingHeadChange).mockReturnValue(new Promise(() => {}));
+    vi.mocked(previewHeadChange).mockReturnValue(new Promise(() => {}));
+    mount();
+    await settle();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+
+    fireEvent.click(within(screen.getByTestId(BANNER)).getByRole("button", { name: "Continue" }));
+    await settle();
+
+    expect(screen.getByRole("heading", { name: "Enter the four codes" })).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog")).getByText("9:00 left")).toBeInTheDocument();
+  });
+
+  it("reopening_from_the_banner_when_nothing_is_pending_goes_back_to_step_one", async () => {
+    serverPending = pendingStatus(545);
+    vi.mocked(getPendingHeadChange).mockResolvedValue({ request: null });
+    mount();
+    await settle();
+
+    fireEvent.click(within(screen.getByTestId(BANNER)).getByRole("button", { name: "Continue" }));
+    await settle();
+
+    expect(screen.getByRole("heading", { name: "Choose who will be Head of Family" })).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog")).getByRole("alert")).toHaveTextContent(
+      "That change is no longer open. You can start again.",
+    );
   });
 });

@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as authApi from "@/features/auth/api";
 import { getSignInNotice, setSignInNotice } from "@/features/auth/session";
 import type {
@@ -345,6 +345,8 @@ describe("ChangeHeadDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
     expect(authApi.cancelHeadChange).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledTimes(1);
+    // The open request is handed back so the page can show its banner.
+    expect(onClose).toHaveBeenCalledWith(PENDING_STATUS);
   });
 
   it("preview_labels_and_review_notes_are_shown", async () => {
@@ -368,10 +370,10 @@ describe("ChangeHeadDialog", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("All portfolio data stays exactly as it is.")).toBeInTheDocument();
 
-    expect(screen.getByText(/Siddharth Surve: self becomes child/)).toBeInTheDocument();
-    expect(screen.getByText(/Ramesh Surve: parent becomes self/)).toBeInTheDocument();
-    expect(screen.getByText(/Aditi Surve: spouse becomes child-in-law/)).toBeInTheDocument();
-    expect(screen.getByText(/Mohan Surve: Uncle becomes not set/)).toBeInTheDocument();
+    expect(screen.getByText(/Siddharth Surve: Head of Family becomes Child/)).toBeInTheDocument();
+    expect(screen.getByText(/Ramesh Surve: Parent becomes Head of Family/)).toBeInTheDocument();
+    expect(screen.getByText(/Aditi Surve: Spouse becomes child-in-law/)).toBeInTheDocument();
+    expect(screen.getByText(/Mohan Surve: Uncle becomes Not set/)).toBeInTheDocument();
     expect(screen.getAllByText(/Please check this one after the change\./)).toHaveLength(2);
     expect(screen.getByText(/Their note 'Uncle' will be removed\./)).toBeInTheDocument();
   });
@@ -393,5 +395,430 @@ describe("ChangeHeadDialog", () => {
     expect(getSignInNotice()).toBe(
       "The Head of Family has been changed. Sign in with the new Head's email or phone number.",
     );
+  });
+
+  // ---- Review fixes (F2 to F14) ----
+
+  const settle = () =>
+    act(async () => {
+      for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const READY_START: HeadChangeStartResponse = {
+    request: READY_STATUS,
+    codes: START_STUB_RESPONSE.codes.map(c => ({ ...c, verified: true, otp: null })),
+  };
+
+  async function toStep2(
+    onClose: () => void = vi.fn(),
+    start: HeadChangeStartResponse = START_STUB_RESPONSE,
+    extra: { onCompleted?: () => void } = {},
+  ) {
+    vi.mocked(authApi.startHeadChange).mockResolvedValueOnce(start);
+    render(<ChangeHeadDialog members={HOUSEHOLD_FIXTURE} onClose={onClose} onCompleted={extra.onCompleted} />);
+    await settle();
+    fireEvent.click(screen.getByRole("radio", { name: /Ramesh Surve/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await settle();
+    fireEvent.change(screen.getByLabelText(/your email code/i), { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await settle();
+  }
+
+  async function toStep3() {
+    await toStep2(vi.fn(), READY_START);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await settle();
+  }
+
+  const NETWORK_SENTENCE = "We could not reach the server. Check your connection and try again.";
+  const STEP1_TITLE = "Choose who will be Head of Family";
+
+  it("a_failed_cancel_on_step_two_is_shown_on_step_two", async () => {
+    vi.mocked(authApi.cancelHeadChange).mockRejectedValueOnce(
+      new ApiError(502, { message: "Could not cancel the change. Try again." }),
+    );
+    const onClose = vi.fn();
+    await toStep2(onClose);
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel this change" }));
+    await settle();
+
+    expect(screen.getByRole("heading", { name: "Enter the four codes" })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not cancel the change. Try again.");
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("a_preview_failure_disables_confirm_and_offers_try_again", async () => {
+    vi.mocked(authApi.previewHeadChange).mockRejectedValueOnce(
+      new ApiError(503, { message: "The service is busy. Try again." }),
+    );
+    await toStep3();
+
+    expect(screen.getByRole("heading", { name: "Review the change" })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("The service is busy. Try again.");
+    expect(screen.getByRole("button", { name: "Confirm the change" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await settle();
+
+    expect(authApi.previewHeadChange).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("button", { name: "Confirm the change" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("a_network_failure_on_the_preview_says_so_in_plain_words", async () => {
+    vi.mocked(authApi.previewHeadChange).mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    await toStep3();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(NETWORK_SENTENCE);
+    expect(screen.getByRole("button", { name: "Confirm the change" })).toBeDisabled();
+  });
+
+  it("reopening_when_no_request_is_open_goes_back_to_step_one", async () => {
+    vi.mocked(authApi.getPendingHeadChange).mockResolvedValue({ request: null });
+    render(
+      <ChangeHeadDialog members={HOUSEHOLD_FIXTURE} initialRequest={PENDING_STATUS} onClose={vi.fn()} />,
+    );
+    await settle();
+
+    expect(screen.getByRole("heading", { name: STEP1_TITLE })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "That change is no longer open. You can start again.",
+    );
+  });
+
+  it("reopening_when_the_lookup_fails_goes_back_to_step_one", async () => {
+    vi.mocked(authApi.getPendingHeadChange).mockRejectedValue(new TypeError("Failed to fetch"));
+    render(
+      <ChangeHeadDialog members={HOUSEHOLD_FIXTURE} initialRequest={PENDING_STATUS} onClose={vi.fn()} />,
+    );
+    await settle();
+
+    expect(screen.getByRole("heading", { name: STEP1_TITLE })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "That change is no longer open. You can start again.",
+    );
+  });
+
+  it("reopening_starts_the_countdown_from_the_time_passed_in", async () => {
+    vi.mocked(authApi.getPendingHeadChange).mockReturnValue(new Promise(() => {}));
+    vi.mocked(authApi.previewHeadChange).mockReturnValue(new Promise(() => {}));
+    render(
+      <ChangeHeadDialog
+        members={HOUSEHOLD_FIXTURE}
+        initialRequest={{ ...PENDING_STATUS, expires_in_seconds: 300 }}
+        onClose={vi.fn()}
+      />,
+    );
+    await settle();
+
+    expect(screen.getByText("5:00 left")).toBeInTheDocument();
+  });
+
+  it.each(["verify", "resend"])(
+    "a_%s_that_finds_no_request_goes_back_to_step_one_with_the_server_message",
+    async kind => {
+      const err = new ApiError(404, { code: "request_not_found", message: "Head change request not found." });
+      if (kind === "verify") vi.mocked(authApi.verifyHeadChangeCode).mockRejectedValueOnce(err);
+      else vi.mocked(authApi.resendHeadChangeCode).mockRejectedValueOnce(err);
+      await toStep2();
+
+      const box = screen.getByTestId("code-box-current-phone");
+      if (kind === "verify") {
+        fireEvent.change(within(box).getAllByRole("textbox")[0], { target: { value: "111222" } });
+        fireEvent.click(within(box).getByRole("button", { name: "Verify" }));
+      } else {
+        fireEvent.click(within(box).getByRole("button", { name: "Send again" }));
+      }
+      await settle();
+
+      expect(screen.getByRole("heading", { name: STEP1_TITLE })).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toHaveTextContent("Head change request not found.");
+    },
+  );
+
+  it("complete_that_finds_no_request_goes_back_to_step_one", async () => {
+    vi.mocked(authApi.completeHeadChange).mockRejectedValueOnce(
+      new ApiError(404, { code: "request_not_found", message: "Head change request not found." }),
+    );
+    await toStep3();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm the change" }));
+    await settle();
+
+    expect(screen.getByRole("heading", { name: STEP1_TITLE })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Head change request not found.");
+  });
+
+  it.each([
+    ["request_expired", 410, "The codes expired. Start again."],
+    ["request_changed", 409, "Something changed since the codes were sent. Start again."],
+  ])("complete_with_%s_goes_back_to_step_one_with_the_server_message", async (code, status, message) => {
+    vi.mocked(authApi.completeHeadChange).mockRejectedValueOnce(new ApiError(status, { code, message }));
+    await toStep3();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm the change" }));
+    await settle();
+
+    expect(screen.getByRole("heading", { name: STEP1_TITLE })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(message);
+    expect(auth.logout).not.toHaveBeenCalled();
+    expect(auth.refreshMe).not.toHaveBeenCalled();
+  });
+
+  it("complete_with_a_business_error_shows_it_and_does_not_check_the_session", async () => {
+    vi.mocked(authApi.completeHeadChange).mockRejectedValueOnce(
+      new ApiError(409, {
+        code: "request_not_ready",
+        message: "Enter all four codes before confirming the change.",
+      }),
+    );
+    await toStep3();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm the change" }));
+    await settle();
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter all four codes before confirming the change.");
+    expect(screen.getByRole("heading", { name: "Review the change" })).toBeInTheDocument();
+    expect(auth.refreshMe).not.toHaveBeenCalled();
+    expect(auth.logout).not.toHaveBeenCalled();
+  });
+
+  it("complete_that_fails_by_network_with_the_session_gone_takes_the_success_path", async () => {
+    vi.mocked(authApi.completeHeadChange).mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    auth.refreshMe.mockRejectedValueOnce(new ApiError(401, { message: "Invalid session." }));
+    const onCompleted = vi.fn();
+    await toStep2(vi.fn(), READY_START, { onCompleted });
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await settle();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm the change" }));
+    await settle();
+
+    expect(auth.refreshMe).toHaveBeenCalledTimes(1);
+    expect(auth.logout).toHaveBeenCalledTimes(1);
+    expect(getSignInNotice()).toBe(
+      "The Head of Family has been changed. Sign in with the new Head's email or phone number.",
+    );
+    expect(onCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  it("complete_that_times_out_with_the_session_gone_takes_the_success_path", async () => {
+    vi.mocked(authApi.completeHeadChange).mockRejectedValueOnce(new ApiError(504, "Gateway Timeout"));
+    auth.refreshMe.mockRejectedValueOnce(new ApiError(401, { message: "Invalid session." }));
+    await toStep3();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm the change" }));
+    await settle();
+
+    expect(auth.logout).toHaveBeenCalledTimes(1);
+    expect(getSignInNotice()).toBe(
+      "The Head of Family has been changed. Sign in with the new Head's email or phone number.",
+    );
+  });
+
+  it("complete_that_fails_by_network_with_the_session_still_valid_shows_the_error", async () => {
+    vi.mocked(authApi.completeHeadChange).mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    auth.refreshMe.mockResolvedValueOnce(undefined);
+    await toStep3();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm the change" }));
+    await settle();
+
+    expect(auth.refreshMe).toHaveBeenCalledTimes(1);
+    expect(auth.logout).not.toHaveBeenCalled();
+    expect(getSignInNotice()).toBeNull();
+    expect(screen.getByRole("alert")).toHaveTextContent(NETWORK_SENTENCE);
+    expect(screen.getByRole("heading", { name: "Review the change" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm the change" })).toBeEnabled();
+  });
+
+  it("a_too_soon_error_after_a_contact_change_is_shown_on_step_one", async () => {
+    const message =
+      "The sign-in email or phone was changed recently, so the Head of Family cannot be changed until 9 November 2026. This protects your account.";
+    vi.mocked(authApi.requestHeadChangeStartCode).mockRejectedValueOnce(
+      new ApiError(409, { code: "head_change_after_contact_change", message }),
+    );
+    render(<ChangeHeadDialog members={HOUSEHOLD_FIXTURE} onClose={vi.fn()} />);
+    await settle();
+    fireEvent.click(screen.getByRole("radio", { name: /Ramesh Surve/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await settle();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(message);
+    expect(screen.getByRole("heading", { name: STEP1_TITLE })).toBeInTheDocument();
+  });
+
+  it("a_too_soon_error_after_a_contact_change_is_also_shown_when_starting", async () => {
+    const message = "The sign-in email or phone was changed recently, so the Head of Family cannot be changed.";
+    vi.mocked(authApi.startHeadChange).mockRejectedValueOnce(
+      new ApiError(409, { code: "head_change_after_contact_change", message }),
+    );
+    render(<ChangeHeadDialog members={HOUSEHOLD_FIXTURE} onClose={vi.fn()} />);
+    await settle();
+    fireEvent.click(screen.getByRole("radio", { name: /Ramesh Surve/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await settle();
+    fireEvent.change(screen.getByLabelText(/your email code/i), { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await settle();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(message);
+    expect(screen.getByRole("heading", { name: STEP1_TITLE })).toBeInTheDocument();
+  });
+
+  it("resend_throttling_shows_the_wait_message_beside_that_box_and_keeps_the_old_code", async () => {
+    vi.mocked(authApi.resendHeadChangeCode).mockRejectedValueOnce(
+      new ApiError(429, {
+        code: "otp_throttled",
+        message: "Please wait 40 seconds before asking for another code.",
+      }),
+    );
+    await toStep2();
+
+    const box = screen.getByTestId("code-box-new-phone");
+    fireEvent.click(within(box).getByRole("button", { name: "Send again" }));
+    await settle();
+
+    expect(within(box).getByRole("alert")).toHaveTextContent(
+      "Please wait 40 seconds before asking for another code.",
+    );
+    expect(within(box).getByText("Test mode: no SMS is sent yet. Your phone code is 555 666.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Enter the four codes" })).toBeInTheDocument();
+    expect(within(box).getByRole("button", { name: "Send again" })).toBeEnabled();
+  });
+
+  it("the_start_code_can_be_sent_again_and_a_throttle_message_shows_inline", async () => {
+    vi.mocked(authApi.requestHeadChangeStartCode)
+      .mockResolvedValueOnce({ message: "Code sent.", otp: "123456" })
+      .mockRejectedValueOnce(
+        new ApiError(429, {
+          code: "otp_throttled",
+          message: "Please wait 30 seconds before asking for another code.",
+        }),
+      )
+      .mockResolvedValueOnce({ message: "Code sent.", otp: "654321" });
+    render(<ChangeHeadDialog members={HOUSEHOLD_FIXTURE} onClose={vi.fn()} />);
+    await settle();
+    fireEvent.click(screen.getByRole("radio", { name: /Ramesh Surve/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await settle();
+
+    fireEvent.click(screen.getByRole("button", { name: "Send the code again" }));
+    await settle();
+    expect(authApi.requestHeadChangeStartCode).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Please wait 30 seconds before asking for another code.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Send the code again" }));
+    await settle();
+    expect(authApi.requestHeadChangeStartCode).toHaveBeenCalledTimes(3);
+    expect(authApi.requestHeadChangeStartCode).toHaveBeenLastCalledWith("m-father");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText("Test mode: your email code is 654 321.")).toBeInTheDocument();
+  });
+
+  it("the_countdown_follows_the_clock_so_a_hidden_tab_does_not_drift", async () => {
+    vi.useFakeTimers();
+    await toStep2();
+    expect(screen.getByText("9:50 left")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(screen.getByText("9:40 left")).toBeInTheDocument();
+
+    // A hidden tab: the clock jumps a minute while only one tick fires.
+    await act(async () => {
+      vi.setSystemTime(Date.now() + 60_000);
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(screen.getByText("8:39 left")).toBeInTheDocument();
+  });
+
+  it("at_zero_on_step_two_the_dialog_goes_back_to_step_one_with_the_expiry_message", async () => {
+    vi.useFakeTimers();
+    await toStep2();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(590_000);
+    });
+
+    expect(screen.getByRole("heading", { name: STEP1_TITLE })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("The codes expired. Nothing has changed. Start again.");
+    expect(screen.queryByText(/ left$/)).not.toBeInTheDocument();
+  });
+
+  it("step_three_shows_the_time_left_and_goes_back_to_step_one_at_zero", async () => {
+    vi.useFakeTimers();
+    await toStep3();
+    expect(screen.getByRole("heading", { name: "Review the change" })).toBeInTheDocument();
+    expect(screen.getByText("9:50 left")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(screen.getByText("9:20 left")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(560_000);
+    });
+    expect(screen.getByRole("heading", { name: STEP1_TITLE })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("The codes expired. Nothing has changed. Start again.");
+  });
+
+  it("focus_moves_to_the_step_heading_when_the_step_changes", async () => {
+    await toStep2(vi.fn(), READY_START);
+    expect(screen.getByRole("heading", { name: "Enter the four codes" })).toHaveFocus();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await settle();
+    expect(screen.getByRole("heading", { name: "Review the change" })).toHaveFocus();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    await settle();
+    expect(screen.getByRole("heading", { name: "Enter the four codes" })).toHaveFocus();
+  });
+
+  it("focus_moves_to_the_heading_when_the_focused_verify_button_disappears", async () => {
+    vi.mocked(authApi.verifyHeadChangeCode).mockResolvedValueOnce({
+      ...PENDING_STATUS,
+      verified_count: 2,
+      current_phone_verified: true,
+    });
+    await toStep2();
+    const box = screen.getByTestId("code-box-current-phone");
+    fireEvent.change(within(box).getAllByRole("textbox")[0], { target: { value: "111222" } });
+    const verify = within(box).getByRole("button", { name: "Verify" });
+    verify.focus();
+    expect(verify).toHaveFocus();
+    fireEvent.click(verify);
+    await settle();
+
+    expect(within(box).getByText("Verified")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Enter the four codes" })).toHaveFocus();
+  });
+
+  it("a_member_whose_label_does_not_change_but_needs_a_check_gets_one_plain_sentence", async () => {
+    vi.mocked(authApi.previewHeadChange).mockResolvedValueOnce({
+      ...PREVIEW_FIXTURE,
+      members: [
+        {
+          member_id: "m-sibling",
+          name: "Neha Surve",
+          label_before: "parent",
+          label_before_other: null,
+          label_after: "parent",
+          label_after_other: null,
+          review_recommended: true,
+          cleared: false,
+        },
+      ],
+    });
+    await toStep3();
+
+    expect(screen.getByText("Neha Surve: Parent. Please check this one after the change.")).toBeInTheDocument();
+    expect(screen.queryByText(/parent becomes parent/i)).not.toBeInTheDocument();
   });
 });

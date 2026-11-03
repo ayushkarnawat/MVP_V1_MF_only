@@ -263,6 +263,10 @@ export function parseHeadChangeError(
   err: unknown,
   fallback = "Something went wrong. Please try again.",
 ): HeadChangeErrorDetail {
+  // fetch() rejects with a TypeError ("Failed to fetch") when the server cannot be reached at all.
+  if (err instanceof TypeError) {
+    return { code: null, message: "We could not reach the server. Check your connection and try again." };
+  }
   if (err && typeof err === "object") {
     const payload =
       (err as { payload?: unknown }).payload ??

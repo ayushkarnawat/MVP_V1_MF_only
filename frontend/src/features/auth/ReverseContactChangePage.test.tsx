@@ -105,13 +105,61 @@ describe("ReverseContactChangePage", () => {
 
     render(<ReverseContactChangePage />);
 
-    expect(screen.getByText("This link is not valid.")).toBeInTheDocument();
+    // Changed from the bare "This link is not valid.": a refreshed page has lost its token, so say what to do.
+    expect(
+      screen.getByText(
+        "This link is not valid. If you refreshed this page, open the link in your email again.",
+      ),
+    ).toBeInTheDocument();
     const link = screen.getByRole("link", { name: /sign in/i });
     expect(link).toHaveAttribute("href", "/");
     expect(
       screen.queryByRole("button", { name: "This was not me, undo the change" }),
     ).not.toBeInTheDocument();
     expect(api.reverseContactChange).not.toHaveBeenCalled();
+  });
+
+  it("a_refresh_after_the_token_was_removed_shows_the_open-the-link-again_message_and_stores_nothing", () => {
+    window.history.replaceState(null, "", "/reverse-contact-change#token=secret-reverse-tok-r");
+    const first = render(<ReverseContactChangePage />);
+    expect(window.location.hash).toBe("");
+    first.unmount();
+
+    render(<ReverseContactChangePage />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("If you refreshed this page, open the link in your email again.");
+    expect(JSON.stringify({ ...localStorage })).not.toContain("secret-reverse-tok-r");
+    expect(JSON.stringify({ ...sessionStorage })).not.toContain("secret-reverse-tok-r");
+  });
+
+  it("the_green_button_has_white_text", () => {
+    window.history.replaceState(null, "", "/reverse-contact-change#token=secret-reverse-tok-w");
+    render(<ReverseContactChangePage />);
+
+    const button = screen.getByRole("button", { name: "This was not me, undo the change" });
+    expect(button.className).toContain("text-white");
+    expect(button.className).not.toContain("text-black");
+  });
+
+  it("errors_use_the_negative_text_token_and_sign_in_links_the_positive_one", async () => {
+    window.history.replaceState(null, "", "/reverse-contact-change#token=secret-reverse-tok-c");
+    const view = render(<ReverseContactChangePage />);
+    vi.mocked(api.reverseContactChange).mockRejectedValueOnce(
+      new api.ApiError(409, { code: "reverse_changed", message: "This was changed again since." }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "This was not me, undo the change" }));
+    const alert = await screen.findByRole("alert");
+    expect(alert.className).toContain("text-[var(--neg-text)]");
+    expect(alert.className).not.toContain("text-red-500");
+
+    vi.mocked(api.reverseContactChange).mockResolvedValueOnce({ status: "reversed" });
+    fireEvent.click(screen.getByRole("button", { name: "This was not me, undo the change" }));
+    expect(await screen.findByRole("link", { name: /sign in/i })).toHaveClass("text-[var(--pos-text)]");
+    view.unmount();
+
+    window.history.replaceState(null, "", "/reverse-contact-change");
+    render(<ReverseContactChangePage />);
+    expect(screen.getByRole("link", { name: /sign in/i })).toHaveClass("text-[var(--pos-text)]");
   });
 
   it("each_error_message_is_shown", async () => {

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef } from "react";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { X } from "lucide-react";
 import styles from "./Modal.module.css";
 
@@ -9,9 +9,11 @@ export interface ModalProps {
   title?: string;
   children: ReactNode;
   variant?: "center" | "sheet";
+  /** Lets a caller move focus to the title (for example when a multi-step dialog changes step). */
+  titleRef?: Ref<HTMLHeadingElement>;
 }
 
-export function Modal({ isOpen, onClose, title, children, variant = "center" }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, variant = "center", titleRef }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   // Kept in a ref so a parent re-rendering with a fresh inline onClose does not re-run the
@@ -58,7 +60,12 @@ export function Modal({ isOpen, onClose, title, children, variant = "center" }: 
       >
         <div className={styles.header}>
           {title && (
-            <h2 id={titleId} className={`type-h2 ${styles.title}`}>
+            <h2
+              id={titleId}
+              ref={titleRef}
+              tabIndex={titleRef ? -1 : undefined}
+              className={`type-h2 ${styles.title}${titleRef ? " outline-none" : ""}`}
+            >
               {title}
             </h2>
           )}

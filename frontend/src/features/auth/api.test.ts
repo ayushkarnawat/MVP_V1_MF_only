@@ -13,6 +13,7 @@ import {
   verifyGoogleCredential,
   verifyOtp,
   reactivateAccount,
+  parseHeadChangeError,
 } from "./api";
 import { clearToken, setToken } from "./session";
 
@@ -328,5 +329,20 @@ describe("auth api", () => {
     const [url, options] = mockFetch.mock.calls[0];
     expect(url).toContain("/auth/reactivate");
     expect(JSON.parse(options.body as string)).toEqual({ accepted_documents: ACCEPTED });
+  });
+
+  it("parseHeadChangeError gives a plain sentence for a network failure", () => {
+    expect(parseHeadChangeError(new TypeError("Failed to fetch"))).toEqual({
+      code: null,
+      message: "We could not reach the server. Check your connection and try again.",
+    });
+  });
+
+  it("parseHeadChangeError still shows a server message as sent and falls back for anything else", () => {
+    expect(parseHeadChangeError({ payload: { code: "wrong_code", message: "That code is not right." } })).toEqual({
+      code: "wrong_code",
+      message: "That code is not right.",
+    });
+    expect(parseHeadChangeError({})).toEqual({ code: null, message: "Something went wrong. Please try again." });
   });
 });

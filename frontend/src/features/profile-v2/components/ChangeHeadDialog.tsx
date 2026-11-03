@@ -60,6 +60,7 @@ const REASON_SENTENCES: Record<string, string> = {
 };
 
 const EXPIRED_FALLBACK_MESSAGE = "The codes expired. Nothing has changed. Start again.";
+const NO_LONGER_OPEN_MESSAGE = "That change is no longer open. You can start again.";
 const SIGN_IN_NOTICE =
   "The Head of Family has been changed. Sign in with the new Head's email or phone number.";
 
@@ -70,10 +71,17 @@ function formatCountdown(seconds: number): string {
   return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
-function formatPreviewLabel(label: Relationship | null, otherLabel: string | null): string {
-  if (label === null) return "not set";
-  if (label === "other") return otherLabel?.trim() || "other";
-  return label;
+// The same wording the member cards use ("Me", "Spouse", the free-text note for "other", "Not set").
+function previewLabelText(label: Relationship | null, otherLabel: string | null): string {
+  // "Me" reads wrongly in a sentence about two people; the account holder is the Head of Family here.
+  if (label === "self") return "Head of Family";
+  return relationshipText({ relationship: label, relationship_other_label: otherLabel } as HouseholdMember);
+}
+
+// The error may come from the app's ApiError or a look-alike; read the status without depending on the class.
+function errorStatus(err: unknown): number | null {
+  const status = err && typeof err === "object" ? (err as { status?: unknown }).status : null;
+  return typeof status === "number" ? status : null;
 }
 
 function isBoxVerified(status: HeadChangeStatus | null, key: BoxKey): boolean {
@@ -106,7 +114,7 @@ export function ChangeHeadDialog({
   onCancelled,
   onCompleted,
 }: ChangeHeadDialogProps) {
-  const { logout } = useAuth();
+  const { logout, refreshMe } = useAuth();
 
   const [step, setStep] = useState<Step>(() => (initialRequest ? 2 : 1));
   const [eligibility, setEligibility] = useState<MemberEligibilityItem[]>([]);
@@ -122,6 +130,14 @@ export function ChangeHeadDialog({
   const [remainingSeconds, setRemainingSeconds] = useState<number>(
     initialRequest?.expires_in_seconds ?? 0,
   );
+  // The countdown is read from an end time, not counted in ticks, so a hidden tab (whose timers slow
+  // down) cannot show more time than is really left.
+  const [initialEndAt] = useState<number | null>(() =>
+    initialRequest ? Date.now() + initialRequest.expires_in_seconds * 1000 : null,
+  );
+  const endAtRef = useRef<number | null>(initialEndAt);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const previousStepRef = useRef<Step>(step);
   const [newHeadName, setNewHeadName] = useState<string>("");
   const [boxValues, setBoxValues] = useState<Record<BoxKey, string>>({
     "current:email": "",
@@ -143,9 +159,11 @@ export function ChangeHeadDialog({
   });
   const [busyBox, setBusyBox] = useState<BoxKey | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [step2Error, setStep2Error] = useState<string | null>(null);
 
   const [preview, setPreview] = useState<HeadChangePreviewResponse | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewFailed, setPreviewFailed] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [step3Error, setStep3Error] = useState<string | null>(null);
 
@@ -180,14 +198,17 @@ export function ChangeHeadDialog({
     }
     let active = true;
     Promise.all([
-      getPendingHeadChange().catch(() => null),
+      // A failed lookup is treated like "nothing is open": the person can start again from step 1.
+      getPendingHeadChange().then(res => res.request, () => null),
       previewHeadChange(initialRequest.request_id).catch(() => null),
-    ]).then(([pendingRes, previewRes]) => {
+    ]).then(([pending, previewRes]) => {
       if (!active || !mountedRef.current) return;
-      if (pendingRes?.request) {
-        setStatus(pendingRes.request);
-        setRemainingSeconds(pendingRes.request.expires_in_seconds);
+      if (!pending) {
+        resetToStep1WithMessage(NO_LONGER_OPEN_MESSAGE);
+        return;
       }
+      setStatus(pending);
+      startCountdown(pending.expires_in_seconds);
       if (previewRes) {
         setNewHeadName(cleanName(previewRes.new_head.name));
       }
@@ -197,36 +218,62 @@ export function ChangeHeadDialog({
     };
   }, [initialRequest]);
 
-  const resetToStep1WithMessage = (message: string) => {
+  function startCountdown(seconds: number) {
+    endAtRef.current = Date.now() + seconds * 1000;
+    setRemainingSeconds(Math.max(0, Math.ceil(seconds)));
+  }
+
+  function resetToStep1WithMessage(message: string) {
+    endAtRef.current = null;
     setStatus(null);
     setRemainingSeconds(0);
     setPreview(null);
+    setPreviewFailed(false);
     setStartCodeSent(false);
     setStartCodeOtp(null);
     setCurrentHeadCode("");
+    setStep2Error(null);
     setStep3Error(null);
     setStep1Error(message);
     setStep(1);
     loadEligibility();
-  };
+  }
 
+  const countdownRunning = (step === 2 || step === 3) && status !== null;
   useEffect(() => {
-    if (step !== 2 || !status) return;
-    if (remainingSeconds <= 0) {
-      resetToStep1WithMessage(EXPIRED_FALLBACK_MESSAGE);
-      return;
-    }
-    const timer = window.setInterval(() => {
-      setRemainingSeconds(prev => {
-        if (prev <= 1) {
-          window.clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    if (!countdownRunning) return;
+    const tick = () => {
+      const endAt = endAtRef.current;
+      if (endAt === null) return;
+      const left = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+      setRemainingSeconds(left);
+      if (left <= 0) {
+        window.clearInterval(timer);
+        resetToStep1WithMessage(EXPIRED_FALLBACK_MESSAGE);
+      }
+    };
+    const timer = window.setInterval(tick, 1000);
+    tick();
     return () => window.clearInterval(timer);
-  }, [step, status, remainingSeconds]);
+  }, [countdownRunning]);
+
+  // Keyboard and screen-reader users must not be left on <body> when the step changes: move focus
+  // to the title. The title is the only part that stays on screen across steps.
+  useEffect(() => {
+    if (previousStepRef.current === step) return;
+    previousStepRef.current = step;
+    titleRef.current?.focus();
+  }, [step]);
+
+  // A box turning "Verified" removes the button that had focus; put focus on the title instead.
+  useEffect(() => {
+    if (step !== 2) return;
+    const active = document.activeElement;
+    const dialog = titleRef.current?.closest('[role="dialog"]');
+    if (!active || active === document.body || (dialog && !dialog.contains(active))) {
+      titleRef.current?.focus();
+    }
+  }, [status, step]);
 
   const handleModalClose = () => {
     if (completing || cancelling) return;
@@ -261,7 +308,8 @@ export function ChangeHeadDialog({
       const chosen = members.find(m => m.id === selectedMemberId);
       setNewHeadName(cleanName(chosen?.name) || "Family member");
       setStatus(res.request);
-      setRemainingSeconds(res.request.expires_in_seconds);
+      startCountdown(res.request.expires_in_seconds);
+      setStep2Error(null);
       const nextStubs: Record<BoxKey, string | null> = {
         "current:email": null,
         "current:phone": null,
@@ -308,11 +356,11 @@ export function ChangeHeadDialog({
       const updated = await verifyHeadChangeCode(status.request_id, party, channel, code);
       if (!mountedRef.current) return;
       setStatus(updated);
-      setRemainingSeconds(updated.expires_in_seconds);
+      startCountdown(updated.expires_in_seconds);
     } catch (err) {
       if (!mountedRef.current) return;
       const parsed = parseHeadChangeError(err);
-      if (parsed.code === "request_expired") {
+      if (parsed.code === "request_expired" || parsed.code === "request_not_found") {
         resetToStep1WithMessage(parsed.message);
         return;
       }
@@ -334,12 +382,12 @@ export function ChangeHeadDialog({
       const res = await resendHeadChangeCode(status.request_id, party, channel);
       if (!mountedRef.current) return;
       setStatus(res.request);
-      setRemainingSeconds(res.request.expires_in_seconds);
+      startCountdown(res.request.expires_in_seconds);
       setStubOtps(prev => ({ ...prev, [key]: res.code.otp }));
     } catch (err) {
       if (!mountedRef.current) return;
       const parsed = parseHeadChangeError(err);
-      if (parsed.code === "request_expired") {
+      if (parsed.code === "request_expired" || parsed.code === "request_not_found") {
         resetToStep1WithMessage(parsed.message);
         return;
       }
@@ -349,13 +397,14 @@ export function ChangeHeadDialog({
     }
   };
 
-  const handleGoToStep3 = async () => {
-    if (!status || !status.ready) return;
-    setStep(3);
+  // Confirm stays disabled until this has succeeded, so a person never confirms a change they have not seen.
+  const loadPreview = async (requestId: string) => {
     setStep3Error(null);
+    setPreviewFailed(false);
+    setPreview(null);
     setPreviewLoading(true);
     try {
-      const res = await previewHeadChange(status.request_id);
+      const res = await previewHeadChange(requestId);
       if (!mountedRef.current) return;
       setPreview(res);
       setNewHeadName(cleanName(res.new_head.name));
@@ -372,14 +421,23 @@ export function ChangeHeadDialog({
         return;
       }
       setStep3Error(parsed.message);
+      setPreviewFailed(true);
     } finally {
       if (mountedRef.current) setPreviewLoading(false);
     }
   };
 
+  const handleGoToStep3 = async () => {
+    if (!status || !status.ready) return;
+    setStep2Error(null);
+    setStep(3);
+    await loadPreview(status.request_id);
+  };
+
   const handleCancelRequest = async () => {
     if (cancelling || completing) return;
     setCancelling(true);
+    setStep2Error(null);
     try {
       await cancelHeadChange();
       if (!mountedRef.current) return;
@@ -391,10 +449,28 @@ export function ChangeHeadDialog({
       if (step === 3) {
         setStep3Error(parsed.message);
       } else {
-        setStep1Error(parsed.message);
+        setStep2Error(parsed.message);
       }
     } finally {
       if (mountedRef.current) setCancelling(false);
+    }
+  };
+
+  const finishSignedOut = () => {
+    setSignInNotice(SIGN_IN_NOTICE);
+    logout();
+    onCompleted?.();
+  };
+
+  // The change deletes every session, so after an answer we cannot trust (no answer, or a server
+  // error) the server may already have done it. Ask the server who we are: 401 means we are signed out.
+  // Not every 401 is "signed out" (a wrong code is a 401 too), so only this check decides.
+  const sessionIsGone = async (): Promise<boolean> => {
+    try {
+      await refreshMe();
+      return false;
+    } catch (err) {
+      return errorStatus(err) === 401;
     }
   };
 
@@ -404,21 +480,26 @@ export function ChangeHeadDialog({
     setStep3Error(null);
     try {
       await completeHeadChange(status.request_id);
-      setSignInNotice(SIGN_IN_NOTICE);
-      logout();
-      onCompleted?.();
+      finishSignedOut();
     } catch (err) {
-      if (!mountedRef.current) return;
       const parsed = parseHeadChangeError(err);
       if (
         parsed.code === "request_expired" ||
         parsed.code === "request_changed" ||
         parsed.code === "request_not_found"
       ) {
+        if (!mountedRef.current) return;
         setCompleting(false);
         resetToStep1WithMessage(parsed.message);
         return;
       }
+      const serverStatus = errorStatus(err);
+      const answeredWithBusinessError = parsed.code !== null && (serverStatus === null || serverStatus < 500);
+      if (!answeredWithBusinessError && (await sessionIsGone())) {
+        finishSignedOut();
+        return;
+      }
+      if (!mountedRef.current) return;
       setStep3Error(parsed.message);
       setCompleting(false);
     }
@@ -437,7 +518,7 @@ export function ChangeHeadDialog({
     "New Head";
 
   return (
-    <Modal isOpen onClose={handleModalClose} title={title}>
+    <Modal isOpen onClose={handleModalClose} title={title} titleRef={titleRef}>
       {step === 1 ? (
         <div className="space-y-4">
           {loadingEligibility ? (
@@ -518,6 +599,14 @@ export function ChangeHeadDialog({
                 disabled={step1Submitting !== null}
               />
               <OtpStubBanner code={startCodeOtp} channel="email" />
+              <button
+                type="button"
+                disabled={step1Submitting !== null}
+                onClick={() => void handleRequestStartCode()}
+                className="text-xs font-semibold text-[var(--pos-text)] hover:underline disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]"
+              >
+                Send the code again
+              </button>
             </div>
           ) : null}
 
@@ -639,6 +728,12 @@ export function ChangeHeadDialog({
             })}
           </div>
 
+          {step2Error ? (
+            <p role="alert" className="text-sm text-[var(--neg-text)]">
+              {step2Error}
+            </p>
+          ) : null}
+
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
@@ -659,6 +754,10 @@ export function ChangeHeadDialog({
         </div>
       ) : (
         <div className="space-y-4">
+          <p className="text-xs font-medium text-[var(--ui-text-muted)]">
+            {formatCountdown(remainingSeconds)} left
+          </p>
+
           {previewLoading && !preview ? (
             <p className="text-sm text-[var(--shell-text-body)]">Loading summary…</p>
           ) : preview ? (
@@ -678,18 +777,24 @@ export function ChangeHeadDialog({
               <ul className="space-y-2 rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-3 text-sm text-[var(--ui-text)]">
                 {preview.old_head_new_label ? (
                   <li>
-                    {cleanName(preview.old_head.name)}: self becomes {preview.old_head_new_label}
+                    {cleanName(preview.old_head.name)}: {previewLabelText("self", null)} becomes{" "}
+                    {previewLabelText(preview.old_head_new_label, null)}
                   </li>
                 ) : null}
                 {preview.members.filter(hasLabelChange).map(member => {
-                  const before = formatPreviewLabel(
-                    member.label_before,
-                    member.label_before_other,
-                  );
-                  const after = formatPreviewLabel(
-                    member.label_after,
-                    member.label_after_other,
-                  );
+                  const before = previewLabelText(member.label_before, member.label_before_other);
+                  const after = previewLabelText(member.label_after, member.label_after_other);
+                  // Same label before and after: "X: parent becomes parent" would be meaningless, so
+                  // say the label once and ask for a check.
+                  if (before === after && member.review_recommended && !member.cleared) {
+                    return (
+                      <li key={member.member_id}>
+                        <p>
+                          {`${cleanName(member.name)}: ${before}. Please check this one after the change.`}
+                        </p>
+                      </li>
+                    );
+                  }
                   return (
                     <li key={member.member_id} className="space-y-0.5">
                       <p>
@@ -717,6 +822,15 @@ export function ChangeHeadDialog({
               {step3Error}
             </p>
           ) : null}
+          {previewFailed && !previewLoading && status ? (
+            <button
+              type="button"
+              onClick={() => void loadPreview(status.request_id)}
+              className="rounded-lg border border-[var(--ui-divider)] bg-[var(--ui-card)] px-4 py-2 text-sm font-medium text-[var(--ui-text)] hover:bg-[var(--ui-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]"
+            >
+              Try again
+            </button>
+          ) : null}
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
             <button
@@ -738,7 +852,7 @@ export function ChangeHeadDialog({
               </button>
               <Button
                 type="button"
-                disabled={completing || previewLoading || cancelling}
+                disabled={!preview || completing || previewLoading || cancelling}
                 onClick={() => void handleComplete()}
               >
                 Confirm the change

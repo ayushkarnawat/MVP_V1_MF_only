@@ -76,11 +76,11 @@ export function ReverseContactChangePage() {
         {!token ? (
           <div className="space-y-4">
             <p className="text-sm text-[var(--color-text-secondary)]" role="alert">
-              This link is not valid.
+              This link is not valid. If you refreshed this page, open the link in your email again.
             </p>
             <a
               href="/"
-              className="inline-block text-sm font-medium text-[#22C55E] hover:underline"
+              className="inline-block text-sm font-medium text-[var(--pos-text)] hover:underline"
             >
               Sign in
             </a>
@@ -100,7 +100,7 @@ export function ReverseContactChangePage() {
                 </p>
                 <a
                   href="/"
-                  className="inline-block text-sm font-medium text-[#22C55E] hover:underline"
+                  className="inline-block text-sm font-medium text-[var(--pos-text)] hover:underline"
                 >
                   Sign in
                 </a>
@@ -108,7 +108,7 @@ export function ReverseContactChangePage() {
             )}
 
             {errorMessage && (
-              <p className="text-sm text-red-500" role="alert">
+              <p className="text-sm text-[var(--neg-text)]" role="alert">
                 {errorMessage}
               </p>
             )}
@@ -117,7 +117,7 @@ export function ReverseContactChangePage() {
               type="button"
               onClick={handleReverse}
               disabled={submitting || done || terminalError}
-              className="w-full rounded-lg bg-[#22C55E] px-4 py-2.5 text-sm font-semibold text-black disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-lg bg-[#22C55E] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               This was not me, undo the change
             </button>
