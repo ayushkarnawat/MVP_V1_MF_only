@@ -215,6 +215,8 @@ class PersonConfirmResult(BaseModel):
     import_id: str
     added: int
     skipped: int
+    new_funds: list[NewFundOut] = Field(default_factory=list)
+    created: bool = False
 
 
 class ImportConfirmResponse(BaseModel):

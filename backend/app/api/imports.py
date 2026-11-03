@@ -1,7 +1,7 @@
 import hashlib
 import logging
 import uuid
-from datetime import date
+from datetime import date, timezone
 
 from collections.abc import Callable
 from typing import Literal
@@ -40,12 +40,14 @@ from app.services.import_.preview_store import PREVIEW_STATUSES
 from app.services.import_.deletion import ImportNotFoundError, delete_import
 from app.services.import_.confirm_people import AlreadyImportedError, ConfirmInvalidError, confirm_people_import
 from app.services.import_.name_match import InvalidPersonNameError
+from app.services.import_.new_funds import find_new_funds
 from app.services.import_.parser import ParseError, parse_cas_pdf_bytes #parsing logic
 from app.services.import_.schemas import (
     DeleteImportResponse,
     HouseholdImportHistoryItem,
     ImportConfirmRequest,
     ImportConfirmResponse,
+    NewFundOut,
     AcknowledgeRequest,
     ImportPreviewResponse,
     ImportPromptDetail,
@@ -124,6 +126,37 @@ def list_household_import_history(
     return [
         _history_item(import_record, name, people_in_group.get(import_record.upload_group_id, 1))
         for import_record, name in rows
+    ]
+
+
+@router.get("/{import_id}/new-funds", response_model=list[NewFundOut])
+def list_import_new_funds(
+    import_id: uuid.UUID,
+    user: User = Depends(get_data_user),
+    db: Session = Depends(get_db),
+) -> list[NewFundOut]:
+    imported = (
+        db.query(Import)
+        .join(HouseholdMember, HouseholdMember.id == Import.household_member_id)
+        .filter(Import.id == import_id, HouseholdMember.user_id == user.id)
+        .first()
+    )
+    if imported is None:
+        raise HTTPException(status_code=404, detail="Import not found.")
+    completed_at = user.onboarding_completed_at
+    if not getattr(user, "onboarding_completed", completed_at is not None):
+        return []
+    if completed_at is not None:
+        uploaded_at = imported.uploaded_at
+        if uploaded_at.tzinfo is None:
+            uploaded_at = uploaded_at.replace(tzinfo=timezone.utc)
+        if completed_at.tzinfo is None:
+            completed_at = completed_at.replace(tzinfo=timezone.utc)
+        if uploaded_at < completed_at:
+            return []
+    return [
+        NewFundOut.model_validate(fund)
+        for fund in find_new_funds(db, imported.id, imported.household_member_id)
     ]
 
 
@@ -310,12 +343,13 @@ async def parse_import(
     # unsupported file) -- the user did authorise sharing this file.
     documents = validate_pan_disclaimer(pan_disclaimer_version)
     surface = request.headers.get("x-upload-surface")
+    surface = surface if surface in _UPLOAD_SURFACES else "import_upload"
     record_consent(
         db,
         user_id=user.id,
         documents=documents,
         action=ConsentAction.GIVEN,
-        surface=surface if surface in _UPLOAD_SURFACES else "import_upload",
+        surface=surface,
         evidence=evidence_from_request(request),
         related_file_sha256=hashlib.sha256(pdf_bytes).hexdigest(),
     )
@@ -327,7 +361,9 @@ async def parse_import(
         raise HTTPException(status_code=422, detail={"code": exc.code, "message": exc.message}) from exc
 
     try:
-        return await start_import_session(db, user.id, member, parse_result, file.filename, pdf_bytes)
+        return await start_import_session(
+            db, user.id, member, parse_result, file.filename, pdf_bytes, surface=surface,
+        )
     except ImportPromptError as exc:
         raise _prompt_http(exc) from exc
     except PanConflictError as exc:

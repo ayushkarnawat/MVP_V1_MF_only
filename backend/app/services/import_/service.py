@@ -347,6 +347,8 @@ async def start_import_session(
     filename: str,
     pdf_bytes: bytes,
     client: MfApiClient | None = None,
+    *,
+    surface: str = "import_upload",
 ) -> ImportPreviewResponse:
     """Upload-time step of the two-step import: builds the preview, detects
     the people in it, then walks the prompt queue (next_prompt). A prompt
@@ -381,6 +383,7 @@ async def start_import_session(
         pan_restore={},
         me_choice=None,
         u3_declined=False,
+        surface=surface,
         same_person_declined=set(),
         # person_key -> member_id: "Yes, same person" for a name-only member (5B).
         same_person_linked={},
