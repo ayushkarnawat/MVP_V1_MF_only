@@ -286,12 +286,17 @@ def sundaram_managers(page: str) -> list[dict] | None:
     if not block_names:
         return None
     managers = []
-    for raw in re.split(r"•|,", block_names.group(1)):
+    # The September 2026 file prints "I. Clyton Richard Fernandes; II. Bharath S" with a bullet (a private-use or
+    # replacement character once extracted) before each line: split on those and on ";" and ",", and drop the
+    # printed ordinal ("I.", "II.", "IV.") so the stored name is the person's own.
+    for raw in re.split(r"[•�;,]", block_names.group(1)):
         if not raw.strip():
             continue
         role = re.search(r"\(([^)]+)\)", raw)
-        managers.append({"name": _clean_name(re.sub(r"\([^)]*\)", "", raw)),
-                         "role": role.group(1) if role else None, "since_raw": None})
+        name = _clean_name(re.sub(r"^\s*[IVX]+\.\s*", "", re.sub(r"\([^)]*\)", "", raw)))
+        if not name or any(m["name"] == name for m in managers):
+            continue
+        managers.append({"name": name, "role": role.group(1) if role else None, "since_raw": None})
     block = re.search(r"Managing Since:(.*?)Minimum Investment", page, re.S)
     if block:
         for match in re.finditer(rf"(\d{{1,2}} {_MONTH} \d{{4}})\s*\(([^)]+)\)", " ".join(block.group(1).split())):

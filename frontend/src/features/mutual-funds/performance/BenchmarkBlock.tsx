@@ -614,7 +614,7 @@ export function BenchmarkBlock() {
                                     <BenchmarkInfoNote note={declared.note} />
                                   </span>
                                   {declared.source !== "none" && declared.declared_name && <span>Factsheet names: {benchmarkDisplayName(declared.declared_name)}</span>}
-                                  <p>{benchmarkChoiceDetails(declared.source, Boolean(declared.declared_name)).fullLine}</p>
+                                  <p>{benchmarkChoiceDetails(declared.source).fullLine}</p>
                                   <p>{BENCHMARK_FLOW_METHOD}</p>
                                   <div role="group" aria-label={`${fund.scheme_name} time window`} className="flex flex-wrap gap-2">
                                     {WINDOW_DEFS.map(win => {

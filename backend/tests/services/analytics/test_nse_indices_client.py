@@ -296,3 +296,16 @@ def test_malformed_http_200_response_is_a_failed_fetch_not_an_exception():
                 pass
             else:
                 raise AssertionError("a non-list response must be rejected as ValueError")
+
+
+
+def test_the_name_nse_echoes_for_largemidcap_250_is_accepted_though_the_request_name_differs():
+    # Found on the VM on 3 Nov 2026: NSE asks for "NIFTY LARGEMID250" but echoes "NIFTY LargeMidcap 250", and
+    # the echo check added in Run 3 made every fetch of this index fail, so its series stopped on 2 Nov.
+    from app.services.analytics.nse_indices_client import _validate_echo
+    entry = {"INDEX_NAME": "NIFTY LargeMidcap 250"}
+    _validate_echo(BenchmarkIndex.NIFTY_LARGEMIDCAP_250, entry, "INDEX_NAME", "NIFTY LARGEMID250")
+    with pytest.raises(ValueError):
+        _validate_echo(BenchmarkIndex.NIFTY_LARGEMIDCAP_250, {"INDEX_NAME": "NIFTY MIDCAP 150"}, "INDEX_NAME", "NIFTY LARGEMID250")
+    with pytest.raises(ValueError):   # the alias belongs to this index only
+        _validate_echo(BenchmarkIndex.NIFTY_500, entry, "INDEX_NAME", "Nifty 500")

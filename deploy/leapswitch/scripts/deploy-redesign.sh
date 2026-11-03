@@ -28,8 +28,9 @@ cd "$(dirname "$0")/.."
 
 branch="$(git rev-parse --abbrev-ref HEAD)"
 case "$branch" in
-	leapswitch-redesign) ;;
-	*) echo "refusing: this worktree is on '$branch', expected leapswitch-redesign"; exit 1 ;;
+	# release/change-requests: the change requests release (3 Nov 2026), deployed on its own before UI round 2.
+	leapswitch-redesign|release/change-requests) ;;
+	*) echo "refusing: this worktree is on '$branch', expected leapswitch-redesign or release/change-requests"; exit 1 ;;
 esac
 
 expected="$(cd ../.. && pwd)/frontend/dist"

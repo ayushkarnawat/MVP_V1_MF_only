@@ -392,7 +392,11 @@ export function ReturnsTable({ schemeId, scope, fundName, mode, current }: Retur
           {active.data ? <>
           {active.data.benchmark_source != null && <div data-testid="returns-benchmark-details" className="text-xs text-[var(--ui-text-muted)] space-y-1">
             <p className="inline-flex items-center gap-1.5 flex-wrap">
-              <span>{benchmarkDisplayName(active.data.declared_benchmark_name ?? active.data.benchmark_label ?? "No benchmark")}</span>
+              {/* For "closest" and "category" the index we show is benchmark_label (the factsheet's own index is one we
+                  do not hold or did not name); naming the factsheet's index here would contradict the sentence below. */}
+              <span>{benchmarkDisplayName((active.data.benchmark_source === "closest" || active.data.benchmark_source === "category"
+                ? active.data.benchmark_label ?? active.data.declared_benchmark_name
+                : active.data.declared_benchmark_name ?? active.data.benchmark_label) ?? "No benchmark")}</span>
               <BenchmarkInfoNote note={active.data.benchmark_note} />
             </p>
             <p>{benchmarkChoiceDetails(active.data.benchmark_source, Boolean(active.data.declared_benchmark_name)).fullLine}</p>

@@ -200,6 +200,26 @@ def test_unlisted_unreadable_house_funds_fail_closed_never_guessed():
         assert (choice.index_key, choice.source) == (None, "none")
 
 
+@pytest.mark.parametrize("category,name,declared", [
+    # Run 7 backend review: the category step gave these Nifty 500 and called it the closest index we hold.
+    ("Index Funds - Equity Funds", "XYZ Nifty Next 50 Index Fund", "Nifty Next 50 TRI"),
+    ("Index Funds - Equity Funds", "Motilal Oswal S&P 500 Index Fund", "S&P 500 TRI"),
+    ("Exchange Traded Funds (ETFs) - Equity ETF", "ABC Nifty Bank ETF", "Nifty Bank TRI"),
+    ("Equity Scheme - Sectoral/Thematic", "ICICI Prudential US Bluechip Equity Fund", "S&P 500 TRI"),
+    ("Equity Scheme - Sectoral/ Thematic", "Franklin India Feeder Franklin US Opportunities", "Russell 3000 Growth"),
+    ("Fund of Funds - Equity Oriented", "X Equity FoF", "Nifty 500 TRI"),
+    ("Equity Scheme - Sectoral/Thematic", "X Gold Mining Equity Fund", "NYSE Arca Gold Miners"),
+])
+def test_wrapper_overseas_and_gold_miner_funds_never_get_the_domestic_category_index(category, name, declared):
+    choice = pick(category, name=name, declared=declared)
+    assert (choice.index_key, choice.source) == (None, "none")
+
+
+def test_an_ordinary_domestic_equity_fund_with_an_unheld_index_still_gets_its_category_index():
+    choice = pick("Equity Scheme - Multi Cap Fund", name="X Multi Cap Fund", declared="Some Unheld TRI")
+    assert (choice.index_key, choice.source) == ("nifty_500", "closest")
+
+
 def test_unknown_category_ends_on_none():
     assert pick("Some Brand New Category - Weird Fund").source == "none"
 
@@ -255,8 +275,7 @@ def test_backend_labels_match_the_frontend_words():
     if not ts.is_file():
         pytest.skip("frontend file not in this checkout")
     text = ts.read_text(encoding="utf-8")
-    # Only the label map: benchmarkDisplay.ts also holds BENCHMARK_SOURCE_EXPLANATIONS (Run 7.4) with the
-    # same keys, and a whole-file scan let those longer sentences overwrite the labels.
+    # Only the labels object: BENCHMARK_SOURCE_EXPLANATIONS has the same keys and would overwrite these.
     block = re.search(r"BENCHMARK_SOURCE_LABELS = \{(.*?)\} as const", text, re.S).group(1)
     found = dict(re.findall(r'^\s{2}(\w+): "([^"]+)",?$', block, re.M))
     assert {k: found[k] for k in sel.SOURCE_LABELS} == sel.SOURCE_LABELS

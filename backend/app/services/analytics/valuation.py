@@ -47,6 +47,11 @@ def _withheld_reason(subject: str, field: str, share: Decimal, metric: Valuation
             and metric.coverage_pct == 0):
         return (f"Not available: every share in this {subject} with an earnings figure is loss-making, "
                 f"so a {label} cannot be worked out.")
+    if subject == "portfolio":
+        # For the portfolio `share` is the part of the equity held in funds that HAVE a figure, not a share of
+        # stocks: two funds each 55% covered are both withheld, so this is 0% although 55% of the stocks have one.
+        return (f"Not enough data: {label} is available for funds holding {_whole_percent(share)}% of your equity, "
+                f"and we need at least {_rule_percent()}%.")
     return (f"Not enough data: {label} is available for {_whole_percent(share)}% of this {subject}'s shares, "
             f"and we need at least {_rule_percent()}%.")
 

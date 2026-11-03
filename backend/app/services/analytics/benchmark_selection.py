@@ -129,6 +129,19 @@ CATEGORY_INDEX: tuple[CategoryRow, ...] = (
 )
 
 
+# The category's standard index is a domestic one. An index fund, an ETF, a fund of funds or an overseas fund can sit
+# in an AMFI category that says "Equity" (for example "Index Funds - Equity Funds") without holding Indian equity at
+# all, and a gold-miners equity fund holds foreign mining shares, so none of them gets the Nifty 500 as a stand-in.
+_GOLD_OR_SILVER_NAME = re.compile(r"\b(gold|silver)\b", re.I)
+
+
+def _category_index_applies(category: str, scheme_name: str, row: CategoryRow) -> bool:
+    wanted = "Debt-short" if row.bucket == "Hybrid" else "Equity"   # the only Hybrid row is arbitrage
+    if underlying_asset_class(category, scheme_name) != wanted:
+        return False
+    return not (row.bucket == "Equity" and _GOLD_OR_SILVER_NAME.search(scheme_name))
+
+
 def category_row(category: str) -> CategoryRow | None:
     lower = category.lower()
     bucket = asset_class_bucket(category)
@@ -171,6 +184,8 @@ def choose_benchmark(
     # 3. The category's standard index. A fund that names a benchmark we cannot match keeps the
     #    existing "closest" label (its own index is not held), shown with the name beside it.
     row = category_row(category)
+    if row is not None and not _category_index_applies(category, scheme_name, row):
+        row = None
     if row is not None and is_active(row.target):
         note = benchmark_note("benchmark_note_closest", index=label_of(row.target))
         match = normalise_benchmark_name(declared) if declared else None

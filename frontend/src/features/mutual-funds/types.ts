@@ -613,7 +613,13 @@ export interface WeightedTerSummary {
   funds?: FundTerRow[];
 }
 export interface DirectRegularTerComparison { direct: WeightedTerSummary; regular: WeightedTerSummary }
-export interface PeriodReturn { fund_return: string | null; category_avg: string | null; peers: number }
+export interface PeriodReturn {
+  fund_return: string | null;
+  category_avg: string | null;
+  peers: number;
+  weighting?: "fund_size" | "equal" | null;
+  funds_without_size?: number;
+}
 export interface CategoryRankRow {
   scheme_id: string;
   scheme_name: string;
@@ -628,6 +634,8 @@ export interface CategoryRankRow {
   thin_category: boolean;
   periods?: Partial<Record<"1y" | "3y" | "5y", PeriodReturn>>;
   plan_type?: string | null;
+  category_avg_weighting?: "fund_size" | "equal" | null;
+  category_avg_funds_without_size?: number;
 }
 export interface CategoryRankingSummary { funds: CategoryRankRow[] }
 export interface FundScoreRow {

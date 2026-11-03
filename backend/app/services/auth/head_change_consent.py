@@ -24,12 +24,14 @@ HEAD_CHANGE_REASON = "head_change"
 
 
 def consent_outdated_reason(db: DbSession, user_id: uuid.UUID) -> str | None:
-    """`"head_change"` while the account's most recent consent record is a head-change withdrawal
-    and the sign-up documents are still not agreed to; otherwise None. One indexed query on every
-    data request; the heavier check only runs for an account in that state."""
+    """`"head_change"` while the account's most recent SIGN-UP-document consent record is a head-change
+    withdrawal and the sign-up documents are still not agreed to; otherwise None. Rows for other documents
+    (a PAN disclaimer written by an upload that was already past the gate when the swap committed) must not
+    clear it. One indexed query on every data request; the heavier check only runs for an account in that
+    state."""
     latest = (
         db.query(ConsentRecord.action, ConsentRecord.surface)
-        .filter(ConsentRecord.user_id == user_id)
+        .filter(ConsentRecord.user_id == user_id, ConsentRecord.document_type.in_(SIGNUP_DOCUMENTS))
         .order_by(ConsentRecord.recorded_at.desc(), ConsentRecord.id.desc())
         .first()
     )

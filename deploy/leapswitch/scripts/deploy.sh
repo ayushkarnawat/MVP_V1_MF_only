@@ -56,8 +56,14 @@ if [ "$build" = 1 ]; then
 		fi
 		exit 1
 	fi
+	# The old image can already be gone after the build (seen twice on 3 Nov 2026: "No such image"). Do not stop the
+	# deploy for that, but say plainly that :previous was NOT moved, so nobody trusts it as the image just replaced.
 	if [ -n "$old_id" ]; then
-		docker tag "$old_id" leapswitch-backend:previous
+		if docker image inspect "$old_id" >/dev/null 2>&1; then
+			docker tag "$old_id" leapswitch-backend:previous
+		else
+			echo "WARNING: the image that was running ($old_id) no longer exists; leapswitch-backend:previous was NOT updated."
+		fi
 	fi
 fi
 

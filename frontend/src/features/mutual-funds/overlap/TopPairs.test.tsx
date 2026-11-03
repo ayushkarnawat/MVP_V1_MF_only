@@ -127,6 +127,18 @@ describe("the key insights callout", () => {
   });
 });
 
+describe("the key insights logos", () => {
+  it("draws one logo per fund the sentence names, in the sentence's order, not one for a name contained in another", () => {
+    const data = fc.overlapSummary();
+    // A fund whose whole name sits inside another fund's name, listed first in the matrix.
+    data.matrix_funds = [{ ...data.matrix_funds[0], scheme_id: "S-NESTED", scheme_name: "SBI Bluechip" }, ...data.matrix_funds.slice().reverse()];
+    mount(data);
+    const first = within(screen.getByRole("complementary", { name: "Key insights" })).getAllByRole("listitem")[0];
+    const logos = within(first).getAllByTestId("scheme-logo");
+    expect(logos.map(logo => logo.querySelector("img")?.getAttribute("alt"))).toEqual(["Kotak Multi Cap Fund", "SBI Bluechip Fund"]);
+  });
+});
+
 describe("states", () => {
   it("says there are no pairs above the threshold and shows neither a table nor insights", () => {
     const data = fc.overlapSummary();

@@ -93,7 +93,7 @@ function OtherAnalyticsBody() {
         id="category"
         index={SHOW_FUND_QUALITY_SCORES ? 2 : 1}
         title={GROUP_TITLES.category}
-        description="Your fund returns compared with the simple average of funds in the same category and plan type."
+        description="Your fund returns compared with the average of funds in the same category and plan type, weighted by fund size."
       >
         <CategoryRankingGroup />
       </Group>

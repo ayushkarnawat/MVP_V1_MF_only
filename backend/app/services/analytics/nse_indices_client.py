@@ -52,13 +52,20 @@ _TRADING_INDEX_NAME: dict[BenchmarkIndex, str] = {
 }
 
 
+# The name NSE echoes back when it differs from the name the request must carry (seen on the VM, 3 Nov 2026).
+_ECHO_ALIASES: dict[BenchmarkIndex, tuple[str, ...]] = {
+    BenchmarkIndex.NIFTY_LARGEMIDCAP_250: ("NIFTY LargeMidcap 250",),
+}
+
+
 def _validate_echo(index: str, entry: dict, field: str, expected_name: str) -> None:
     echo = entry.get(field)
     # Older saved responses for the legacy eight had no identity column.
     # Validate it whenever supplied; for new keys it is mandatory.
     if echo is None and index in _TRADING_INDEX_NAME:
         return
-    if not isinstance(echo, str) or echo.strip().casefold() != expected_name.casefold():
+    accepted = {expected_name.casefold(), *(a.casefold() for a in _ECHO_ALIASES.get(index, ()))}
+    if not isinstance(echo, str) or echo.strip().casefold() not in accepted:
         raise ValueError(f"NSE response index name does not match {expected_name}")
 
 

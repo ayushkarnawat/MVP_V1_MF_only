@@ -414,6 +414,16 @@ describe("declared benchmark comparison", () => {
     expect(detail).toHaveTextContent("Benchmark: Nifty Bank");
     expect(detail).toHaveTextContent("Factsheet names: BSE Bankex Total Return");
   });
+  it("none_with_a_declared_name_is_still_no_benchmark_here_because_no_printed_returns_are_shown", async () => {
+    const summary = declared("none");
+    summary.declared_comparison![0].declared_name = "CRISIL Liquid Debt A-I Index";
+    mocks.getAnalyticsScope.mockResolvedValue(scopeWith({ funds: summary }));
+    mount(); await ready(); click("Per-Fund vs Benchmark", "tab");
+    fireEvent.click(screen.getByTestId("fund-toggle-declared-fund"));
+    const detail = screen.getByTestId("fund-detail-declared-fund");
+    expect(detail).toHaveTextContent("How this benchmark was chosen: No benchmark. We could not find a fair benchmark for this fund.");
+    expect(detail).not.toHaveTextContent("printed");
+  });
   it("fund_without_benchmark_says_no_benchmark", async () => {
     const summary = declared("none");
     summary.declared_comparison![0].note = null;

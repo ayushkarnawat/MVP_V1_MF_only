@@ -166,3 +166,12 @@ Landing this migration also removed every OTP/session-related route's old direct
 ## 2026-10-28 — Individual Fund routes and the ledger `scheme_id`: no migration, head stays 0046
 
 The Individual Fund page routes (PR #31) and the optional `scheme_id` on ledger entries (PR #35) read existing tables only and add no table, column or index. `alembic heads` still prints `0046 (head)`; the next migration number is `0047`.
+## 2026-11-02/03 — Migrations 0047 to 0052 (the change requests release; head goes 0046 to 0052)
+
+- **0047** — `scheme_reported_valuation` (fund-factsheet P/E and P/B as printed, with `as_of`, basis and method) and new `stock_master` columns `bse_scrip_code`, `pe_as_of`, `pb_as_of`, `pe_source` (BSE price file and the per-stock ratio dates).
+- **0048** — drops the composite ranking tables (`scheme_rankings`, `ranking_weights` from 0034) because Performance Ranking replaces Fund Ranking; the downgrade recreates them (verified identical to 0034). Check `Docs/orchestration/2026-10-23-home-functionality-backend-spec.md` for any reader of `scheme_rankings` before the deploy.
+- **0049** — benchmark registry: `benchmark_index_history.index_name` from an enum to text, new `benchmark_index_master` (23 rows seeded; further indices are one `IndexSpec` row in `benchmark_registry.py`, no migration: 79 now) and `scheme_benchmark` (declared name, mapped and tracked index key, match quality). Its downgrade refuses once new text index keys exist.
+- **0050** — Head of Family: `household_members.is_head` (BOOLEAN, partial unique index one head per user, backfilled from the Self row), `head_change_requests` (status, four verified-at stamps, snapshot JSON, `undo_token_hash`, `undo_expires_at`, partial unique index one pending request per user, FKs cascade on user and member delete) and `otp_requests.purpose` (NULL means sign-in).
+- **0051** — `contact_change_events` (`user_id` FK cascade, `channel`, `old_value`, `new_value`, unique `token_hash`, `created_at`, `expires_at`, `reversed_at`): the "this was not me" link (7 days) and the 7-day cooling-off.
+- **0052** — `stock_master.book_value_per_share` NUMERIC(18,6), `book_value_as_of` DATE, `book_value_filing_ref` TEXT, `book_value_basis` VARCHAR (all nullable): book value read from NSE filings (T2.12 Step B).
+Up, down, up was run on Postgres for 0050, 0051 and 0052. The next free number is `0053` (reserved by the UI round 2 plan for its goals migration; its `down_revision` must be `"0052"`).

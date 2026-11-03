@@ -30,6 +30,7 @@ from app.services.auth.identity import (
 from app.services.auth.account_deletion import reactivate_account, schedule_account_deletion
 from app.services.auth.contact_change_events import (
     ContactChangeError,
+    open_previous_emails,
     record_contact_change,
     reverse_contact_change,
     send_contact_change_notice,
@@ -825,6 +826,7 @@ def verify_contact_change(
             account_email=user.email,
             new_value=body.identifier,
             raw_token=raw_reverse_token,
+            also_notify=open_previous_emails(db, user.id),
         )
     return _me_response(user, db)
 

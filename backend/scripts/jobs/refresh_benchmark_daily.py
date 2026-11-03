@@ -12,7 +12,7 @@ from app.db.session import SessionLocal
 from app.models.enums import BenchmarkIndex, BenchmarkReturnType
 from app.models.reference import BenchmarkIndexMaster
 from app.services.analytics.benchmark_registry import INDICES
-from app.services.analytics.nse_indices_client import ensure_index_history_fresh
+from app.services.analytics.nse_indices_client import _cached_date_bounds, ensure_index_history_fresh
 from app.services.analytics.risk_metrics import years_ago
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,12 @@ _TRI_START = date(1990, 1, 1)
 # because this loop covers every enum member and test_refresh_benchmark_daily_* pins 16 fetches. To stop,
 # set this to LEGACY_BENCHMARK_INDICES and change that test to expect 12.
 _PRICE_INDICES = tuple(BenchmarkIndex)
+
+# The registry indices beyond the legacy enum (71 of them) are fetched one after another. Each is topped up from a
+# month before its newest stored day (a full history only the first time), and the loop waits between requests so
+# one morning's run is never a burst of dozens of ~1 MB downloads from the same address (Run 7 backend review).
+_TOP_UP_DAYS = 30
+_PACE_SECONDS = 1.0
 
 
 async def main_async(db: Session) -> None:
@@ -58,10 +64,13 @@ async def main_async(db: Session) -> None:
             continue
         # Inactive price series are collected for the read-only printed-return
         # check, but selection must not expose them until that check passes.
+        bounds = _cached_date_bounds(db, spec.key, BenchmarkReturnType.TRI)
+        start = _TRI_START if bounds is None else bounds[1] - timedelta(days=_TOP_UP_DAYS)
         results.append(await ensure_index_history_fresh(
-            db, spec.key, _TRI_START, end_date,
+            db, spec.key, start, end_date,
             return_type=BenchmarkReturnType.TRI, fresh_within=timedelta(0),
         ))
+        await asyncio.sleep(_PACE_SECONDS)
     succeeded = sum(results)
     logger.info(
         "refresh_benchmark_daily: fetches=%d succeeded=%d success=%s",

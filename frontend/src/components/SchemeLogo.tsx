@@ -43,8 +43,9 @@ export function SchemeLogo({
 
   const currentSrc = candidates[failCount] || null;
 
-  const nameForInitial = (amcName || schemeName || "U").trim();
-  const initial = nameForInitial.charAt(0).toUpperCase();
+  const nameForInitial = (amcName || schemeName || "").trim();
+  // No name, or the "Others" bucket, is not a fund house: a neutral dash, not an initial that looks like one.
+  const initial = !nameForInitial || /^others?$/i.test(nameForInitial) ? "–" : nameForInitial.charAt(0).toUpperCase();
 
   const sizeClasses =
     size === "sm"
