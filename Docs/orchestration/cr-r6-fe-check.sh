@@ -25,7 +25,7 @@ fi
 mkdir -p "$DST"
 rsync -a --delete --exclude node_modules --exclude dist "$SRC/" "$DST/"
 cd "$DST"
-export PATH=/usr/bin:/bin
+export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:/usr/bin:/bin"  # node comes from nvm on this machine
 
 case "$mode" in
   test)  exec npx --no-install vitest run "$@" --maxWorkers=2 ;;

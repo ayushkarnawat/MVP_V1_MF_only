@@ -2,7 +2,7 @@
 
 **Status:** OPEN. **Worker:** Antigravity. **Rules:** `Docs/orchestration/ui-common-rules-antigravity.md`. **Plan:** `Docs/orchestration/2026-11-02-ui-round-2-and-auth-redesign-implementation-plan.md`, Stage S1. Spec sections `c1`, `c2`, `c4`, `c7` of `2026-11-02-auth-redesign-plan.html` (only if you need a mockup).
 
-**Work only in** `C:\Users\Dell\ui-r2-fe` (synced to `0b73a390`). Never in `wt/docs`.
+**Work only in** `C:\Users\Dell\ui-r2-fe` (synced to `68f761bd`). Never in `wt/docs`. This head includes the manager's Run 7 task 7.1 (fund logos), which changed `TopPairs.tsx`, `TopPairs.test.tsx` and the Home movers. **Keep the logos.** Run 7 is not finished: the green token, the one-heading-per-card change and the benchmark info icon are not in yet, so do not build on them.
 
 **Checks (WSL is set up here).** Edit in the clone, then run, one command per check:
 ```
