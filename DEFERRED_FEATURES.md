@@ -478,3 +478,19 @@ Deferred until manual Add Member is built (see "Profile redesign planning, manua
 - In the Add Member dialog, an option "Make this person the Head of Family". It must use the same two-code rule and the same checks as a change of head; a person added a moment ago has no verified email, so the new head's code is the only proof.
 - The eligibility rules, edge cases and follow-up questions D28 to D31 (phone number, relationship labels, a new head who already has an account, undo window) are written up in the change briefing so they are not re-decided.
 - Open when picked up: whether a person created in the same dialog can receive the code in the same session, and what happens to the half-created member if either code is never entered.
+## Added 2026-11-03 (change requests release: deferred or open)
+
+| Item | Status | Why deferred |
+|---|---|---|
+| Debt, liquid and hybrid composite benchmark indices (CRISIL composites, Nifty Liquid, Low Duration, G-Sec total return) | Not built | NSE's endpoint has no total-return series for them (G-Sec indices return a price series only, which leaves out interest); CRISIL has pages but no download API found. Those funds show "As printed in the fund house's factsheet" or "No benchmark" |
+| Printed-return check (`benchmark_series_check.py`, ledger L7) for the 56 newly registered indices | To run at the staging deploy on a sample | Existence and freshness of the series were verified, not their agreement with printed returns |
+| Notice to the previous PHONE after a contact change; a code to the old address | Not built | SMS is still a stub; the owner chose the lighter safeguard (notice plus 7-day lock) |
+| Server-side consent for an ordinary new Terms version | Not built | Only a head change is enforced on data routes; enforcing every version bump needs its own decision |
+| Retry or re-issue of a failed head-change notice email or a lost undo link | Not built | Failures are only recorded in the snapshot |
+| OTP rows are keyed by destination (two accounts sharing a member's contact can cancel each other's codes); eligibility and contact-taken checks scan every user | Accepted Low | Scale and rarity; fix with request-scoped purposes and indexed lookups later |
+| `find_or_backfill_phone_identity` is not guarded against a swap race | Accepted Low | Only accounts from before the old identity backfill |
+| BSE filings as an official source for BSE-only stock ratios (replace the Yahoo step) | Research | One-stock probe from the VM first |
+| UTI and Groww: since-inception returns; UTI hybrid P/E and P/B basis (whole fund or equity part) | Not read / to check by hand | No field for since-inception; the page does not say |
+| Prettier labels for the 56 new indices (they show the upper-case NSE name); chart pickers for planning and scenarios know only 8 legacy keys | Cosmetic | One label function; keys fall back to the raw key |
+| Remaining hard-coded `#22C55E` (about 250 places); a local copy of the 35 fund-house logos; removal of the Stock Concentration backend curve, `equity_outer` and the old rank, percentile and composite shapes | Later cleanup release | Tracked backlog, after staging is accepted |
+| After an undo the previous head sees "You are now the Head of Family" on the agreement screen | Accepted | Wording only; change if it reads wrong |

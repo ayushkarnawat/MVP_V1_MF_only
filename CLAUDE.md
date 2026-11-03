@@ -60,7 +60,7 @@ instead. See `docs/agents/domain.md`.
 
 ## Session State
 
-*(Updated 2026-10-07. This section is a one-line current-status pointer, not a log —
+*(Updated 2026-11-03. This section is a one-line current-status pointer, not a log —
 do not append session narrative here again. Full current status: `session.md` at repo
 root, overwritten each session. Full permanent history: `log.md` (append-only, never
 trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.md`
@@ -69,6 +69,8 @@ trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.m
 `DEFERRED_FEATURES.md`.)*
 
 **⚠ PRIORITY 1 — open, deadline 10 Nov 2026 06:00 IST (the next `fund-managers-monthly` run):** fund-manager factsheet access gaps. 10 fund houses (689 live funds) need a monthly hand import and 5 (33 funds) have no factsheet; no alert exists for a skipped month; AWS-blocking of the 40 "automatic" ones is only partly answered (the 28 Oct run from the LeapSwitch VM processed 34 of 40; HDFC 403 and JM 406 still blocked); HDFC's passive file is untested; the long-term fix (ask AMCs / license vendor data) is undecided. **When asked what's left, start here:** `DEFERRED_FEATURES.md`'s top section (to-do list in order) and `Docs/orchestration/subproject1-execution/a04-factsheet-access-gaps.html`.
+
+**Latest (2026-11-03):** the 13 change requests release (Runs 1 to 7, Head of Family with contact-change safeguard, benchmark registry of 79 indices, 60 percent valuation rule, book value from NSE filings; Alembic head 0052) is built and reviewed on `release/change-requests` (worktree `D:\unifolio-release`), the ONLY branch the staging deploy is built from; nothing is pushed or deployed. `leapswitch-redesign` is frozen shared history, UI round 2 continues on `ui-round-2` and merges the release in after the deploy (`Docs/orchestration/2026-11-03-release-branch-model.md`). Deploy only on the owner's explicit go and push word, guide: `Docs/orchestration/2026-10-31-staging-deploy-guide-change-requests.md`; manual QA: `2026-11-03-manual-qa-checklist.md`. Detail: `session.md`, ADR-007, `decisions.md` 3 Nov. The missed-month factsheet alert in Priority 1 is now built.
 
 **Latest (2026-10-29):** UI redesign, the Individual Fund release is fully merged into `leapswitch-redesign` (IF-C PR #32, IF-D Overlap tab PR #33, IF-E fund-name links PR #34, BE1 optional `scheme_id` on ledger entries PR #35; Alembic head stays 0046, no migration). Not yet run on staging: the manager runs `Docs/orchestration/2026-10-29-staging-deploy-guide-individual-fund.md` through the manager's own Claude. Owner decisions OD1 to OD4 are in `decisions.md` (the whole-release review was skipped, a recorded risk). Open: that staging run, the 35% vs 18% overlap check on real data, Holdings XIRR B12 / CAL1 B11 sign-offs, IF-E2, optional backend asks, housekeeping deletions awaiting the owner's word. Detail: `session.md`; next orchestrator: `Docs/orchestration/2026-10-29-orchestrator-handoff-7.md`; register C170 to C183, L21 to L23.
 
