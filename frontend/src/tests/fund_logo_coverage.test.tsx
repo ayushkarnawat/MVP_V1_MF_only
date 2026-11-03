@@ -60,6 +60,16 @@ describe("SchemeLogo and AMC logo map", () => {
     expect(tile.querySelector("[data-initial]")?.getAttribute("data-initial") ?? tile.textContent).toBe("U");
   });
 
+  it("an empty fund house or an Others bucket gets a neutral tile, not an initial that looks like a house", () => {
+    for (const amc of ["", "   ", "Others", "others"]) {
+      const { container, unmount } = render(<SchemeLogo amcName={amc} size="sm" />);
+      expect(container.querySelector("img")).toBeNull();
+      const tile = screen.getByTestId("scheme-logo");
+      expect(tile.querySelector("[data-initial]")?.getAttribute("data-initial") ?? tile.textContent).toBe("–");
+      unmount();
+    }
+  });
+
   it("logo_map_matches_the_real_list_of_fund_houses", () => {
     const realHouses: Array<[string, string, string]> = [
       ["HDFC Mutual Fund", "HDFC Flexi Cap Fund", "hdfc"],

@@ -171,7 +171,13 @@ export function TopPairs({
                   <h4 className="text-xs font-semibold text-[var(--ui-text)]">Key insights:</h4>
                   <ul className="space-y-1.5 text-xs text-[var(--ui-text-muted)]">
                     {insights.map((sentence, idx) => {
-                      const namedFunds = data.matrix_funds.filter(f => sentence.includes(f.scheme_name));
+                      // Funds the sentence names, in the order it names them. A fund whose whole name is part of another
+                      // matched fund's name is that other fund's text, not a second mention, so it gets no logo.
+                      const matched = data.matrix_funds.filter(f => f.scheme_name && sentence.includes(f.scheme_name));
+                      const namedFunds = matched
+                        .filter(f => !matched.some(g => g !== f && g.scheme_name.length > f.scheme_name.length && g.scheme_name.includes(f.scheme_name)))
+                        .filter((f, i, all) => all.findIndex(g => g.scheme_name === f.scheme_name) === i)
+                        .sort((a, b) => sentence.indexOf(a.scheme_name) - sentence.indexOf(b.scheme_name));
                       return (
                         <li key={idx} className="flex items-center gap-1.5">
                           {namedFunds.map(f => (

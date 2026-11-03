@@ -323,6 +323,8 @@ def parse_book_value(data: bytes, *, balance_sheet_date: date, standalone: bool 
     """
     if len(data) > MAX_XBRL_BYTES:
         raise FilingDataError("file_too_large")
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff") or b"\x00" in data[:400]:   # UTF-16 or UTF-32: NSE files are UTF-8
+        raise FilingDataError("encoding_not_allowed")
     upper = data.upper()
     if b"<!DOCTYPE" in upper or b"<!ENTITY" in upper:     # no entity tricks in a file we do not control
         raise FilingDataError("dtd_not_allowed")
@@ -509,8 +511,8 @@ async def refresh_filings_book_values(store: BookValueStore, targets: Sequence[t
 
 # A filing P/B further than this from the previous stored P/B (either source) is distrusted: a bonus issue or share
 # split after the balance-sheet date changes the close but not the stored book value per share, and the ISIN does not
-# change, so nothing else would catch it. 1:1 bonus gives 0.5; ordinary differences between sources are well inside.
-MAX_PB_JUMP_FACTOR = Decimal("1.67")
+# change, so nothing else would catch it. 1:1 bonus gives 0.5, a 1:2 bonus 0.67; ordinary differences between sources are smaller, and a trip only means the labelled Yahoo value is used.
+MAX_PB_JUMP_FACTOR = Decimal("1.4")
 
 
 def filing_pb_ratio(

@@ -772,7 +772,19 @@ def test_a_filing_pb_that_disagrees_wildly_with_the_previous_one_is_not_used():
     # P/B is the cross-check; an ordinary difference between sources is far smaller than this.
     stored = StoredBookValue(Decimal("30"), SEP_30, "x", BASIS_CONSOLIDATED)
     assert filing_pb_ratio(stored, Decimal("300"), date(2026, 11, 2), previous=Decimal("9.5")) == Decimal("10.000000")
-    assert filing_pb_ratio(stored, Decimal("300"), date(2026, 11, 2), previous=Decimal("14")) == Decimal("10.000000")
+    assert filing_pb_ratio(stored, Decimal("300"), date(2026, 11, 2), previous=Decimal("13")) == Decimal("10.000000")
     assert filing_pb_ratio(stored, Decimal("150"), date(2026, 11, 2), previous=Decimal("10")) is None   # halved
     assert filing_pb_ratio(stored, Decimal("600"), date(2026, 11, 2), previous=Decimal("10")) is None   # doubled
+    assert filing_pb_ratio(stored, Decimal("200"), date(2026, 11, 2), previous=Decimal("10")) is None   # a 1:2 bonus (0.667)
     assert filing_pb_ratio(stored, Decimal("150"), date(2026, 11, 2), previous=None) == Decimal("5.000000")
+
+
+
+def test_a_utf16_file_cannot_hide_a_dtd_from_the_guard():
+    # Run 7 backend review: the byte search for "<!DOCTYPE" missed UTF-16 text. NSE files are UTF-8; anything
+    # else is refused before parsing.
+    body = '<?xml version="1.0" encoding="UTF-16"?><!DOCTYPE a [<!ENTITY x "y">]><a/>'
+    for data in (body.encode("utf-16"), body.encode("utf-16-le"), body.encode("utf-16-be")):
+        with pytest.raises(FilingDataError) as raised:
+            parse_book_value(data, balance_sheet_date=SEP_30)
+        assert raised.value.reason in ("dtd_not_allowed", "encoding_not_allowed")
