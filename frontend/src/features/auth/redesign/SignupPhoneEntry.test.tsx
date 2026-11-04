@@ -88,4 +88,25 @@ describe("SignupPhoneEntry, sign-up screen 1 (task 6.8)", () => {
     mount({ submitting: true });
     expect(screen.getByRole("button", { name: "Sending..." })).toBeDisabled();
   });
+  it("shows +91 and country-chevron in the country part", () => {
+    mount();
+    const code = screen.getByTestId("country-code");
+    expect(code).toHaveTextContent("+91");
+    expect(within(code).getByTestId("country-chevron")).toBeInTheDocument();
+  });
+  it("button has auth-btn-arrow and no arrow while submitting", () => {
+    const { rerender } = render(<SignupPhoneEntry error={null} submitting={false} legalReady onSubmit={vi.fn()} onLogin={vi.fn()} />);
+    expect(screen.getByTestId("auth-btn-arrow")).toBeInTheDocument();
+    rerender(<SignupPhoneEntry error={null} submitting={true} legalReady onSubmit={vi.fn()} onLogin={vi.fn()} />);
+    expect(screen.queryByTestId("auth-btn-arrow")).toBeNull();
+  });
+  it("renders a wide card", () => {
+    mount();
+    expect(screen.getByTestId("auth-card")).toHaveAttribute("data-layout", "wide");
+  });
+  it("renders three icon-badge elements in the left panel", () => {
+    mount();
+    const badges = screen.getAllByTestId("icon-badge");
+    expect(badges).toHaveLength(3);
+  });
 });

@@ -125,4 +125,34 @@ describe("InvestorProfile, sign-up screen 4 (task 6.12)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
+  it("renders option rows with icon badge and radio indicator, with inner dot when selected", () => {
+    mount();
+    const rows = options();
+    rows.forEach((row) => {
+      expect(within(row).getByTestId("icon-badge")).toBeInTheDocument();
+      expect(within(row).getByTestId("option-radio")).toBeInTheDocument();
+    });
+    expect(rows[0].querySelector("[data-testid='option-radio'] span")).toBeNull();
+    fireEvent.click(rows[0]);
+    const dot = rows[0].querySelector("[data-testid='option-radio'] span");
+    expect(dot).toBeInTheDocument();
+    expect(dot?.className).toContain("rounded-full");
+  });
+  it("renders six chips with icon and chip-box, inside a grid-cols-3 container", () => {
+    mount();
+    const boxes = goalBoxes();
+    expect(boxes).toHaveLength(6);
+    boxes.forEach((box) => {
+      expect(box.querySelector("svg")).toBeInTheDocument();
+      expect(within(box).getByTestId("chip-box")).toBeInTheDocument();
+    });
+    const grid = screen.getByRole("group", { name: "What are you working towards?" });
+    expect(grid).toHaveClass("grid-cols-3");
+  });
+  it("goals heading is a flex row with whitespace-nowrap and Select all / Clear all button", () => {
+    mount();
+    const headingRow = screen.getByRole("heading", { level: 2, name: /What are you working towards\?/ }).parentElement;
+    expect(headingRow).toHaveClass("flex");
+    expect(headingRow).toHaveClass("whitespace-nowrap");
+  });
 });

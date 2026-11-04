@@ -380,3 +380,41 @@ describe("PerformanceChart: the toggle slot (UI round 2, task 4.3)", () => {
     expect(screen.queryByTestId("perf-toggle-slot")).toBeNull();
   });
 });
+
+describe("PerformanceChart: calm layout (T11)", () => {
+  it("benchmark strip contains expected strings and does not contain fund name", async () => {
+    api.performance.mockResolvedValue(Object.assign(perf(), {
+      benchmark_source: "closest", declared_benchmark_name: "BSE 500 TRI", benchmark_note: "Explanation note.",
+    }));
+    mount();
+    await screen.findByTestId("line-chart");
+    const strip = screen.getByTestId("benchmark-details");
+    expect(strip).toHaveTextContent("Benchmark: Nifty 500");
+    expect(strip).toHaveTextContent("Factsheet names: BSE 500 Total Return");
+    expect(strip).toHaveTextContent(/How this benchmark was chosen: Closest index we hold/);
+    expect(strip).toHaveTextContent("We compare the fund and index over the same dates.");
+    expect(strip).not.toHaveTextContent(NAME);
+  });
+
+  it("the fund name appears in the legend button and a long name has title equal to the full name", async () => {
+    mount();
+    await screen.findByTestId("line-chart");
+    const fundBtn = screen.getByTestId("legend-fund");
+    expect(fundBtn).toHaveTextContent(NAME);
+    const nameSpan = fundBtn.querySelector("span[title]");
+    expect(nameSpan).toHaveAttribute("title", NAME);
+    expect(nameSpan).toHaveClass("truncate");
+    expect(fundBtn.querySelector("[data-testid='scheme-logo']")).toBeInTheDocument();
+  });
+
+  it("legend items are pill shaped buttons", async () => {
+    mount();
+    await screen.findByTestId("line-chart");
+    const fundBtn = screen.getByTestId("legend-fund");
+    expect(fundBtn).toHaveClass("rounded-full");
+    const benchBtn = screen.getByTestId("legend-benchmark");
+    expect(benchBtn).toHaveClass("rounded-full");
+    const catBtn = await screen.findByTestId("legend-category");
+    expect(catBtn).toHaveClass("rounded-full");
+  });
+});

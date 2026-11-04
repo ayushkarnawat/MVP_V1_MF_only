@@ -1,16 +1,31 @@
 import { useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
-import { Button } from "@/components/ui/button";
+import type { KeyboardEvent, ReactNode } from "react";
+import {
+  BarChart3,
+  Briefcase,
+  FileText,
+  GraduationCap,
+  Home,
+  Sprout,
+  Sun,
+  Umbrella,
+  Users,
+} from "lucide-react";
 import { GOAL_OPTIONS } from "@/features/profile-v2/lib/onboardingOptions";
 import type { InvestorType, PrimaryGoal } from "../types";
 import { AuthAlert } from "./AuthAlert";
+import { AuthButton } from "./AuthButton";
 import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
 import { PROFILE_ROW_ICONS } from "./authRowIcons";
 import { ChipCheckbox } from "./ChipCheckbox";
 import {
-  INVESTOR_PROFILE_OPTIONS, PROFILE_HEADLINE_ACCENT, PROFILE_HEADLINE_BEFORE, PROFILE_PARAGRAPH, PROFILE_ROWS,
+  INVESTOR_PROFILE_OPTIONS,
+  PROFILE_HEADLINE_ACCENT,
+  PROFILE_HEADLINE_BEFORE,
+  PROFILE_PARAGRAPH,
+  PROFILE_ROWS,
 } from "./finishCopy";
 import { OptionRow } from "./OptionRow";
 
@@ -23,6 +38,22 @@ export interface InvestorProfileProps {
   /** Back to screen 3, where the name and the email can be changed. */
   onBack: () => void;
 }
+
+const INVESTOR_ICONS: Record<InvestorType, ReactNode> = {
+  beginner: <Sprout aria-hidden="true" />,
+  self_directed: <BarChart3 aria-hidden="true" />,
+  advisor_assisted: <Users aria-hidden="true" />,
+  mixed: <Briefcase aria-hidden="true" />,
+};
+
+const GOAL_ICONS: Record<PrimaryGoal, ReactNode> = {
+  wealth_creation: <BarChart3 size={20} aria-hidden="true" />,
+  retirement: <Umbrella size={20} aria-hidden="true" />,
+  childrens_education: <GraduationCap size={20} aria-hidden="true" />,
+  buy_home: <Home size={20} aria-hidden="true" />,
+  financial_freedom: <Sun size={20} aria-hidden="true" />,
+  tax_planning: <FileText size={20} aria-hidden="true" />,
+};
 
 /** Sign-up screen 4. Both answers are required; nothing is pre-selected and there is no Skip (design Q12, Q67, Q68). */
 export function InvestorProfile({ initialInvestorType = null, initialGoals = [], onSubmit, onBack }: InvestorProfileProps) {
@@ -93,13 +124,13 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
           />
         }
         right={
-          <div className="space-y-6 text-left">
-            <section className="space-y-3">
-              <div className="space-y-1">
-                <h1 className="text-[22px] font-bold leading-tight text-[var(--ui-text)]">How do you usually invest?</h1>
-                <p className="text-sm text-[var(--ui-text-muted)]">This helps us tailor your experience and insights.</p>
+          <div className="flex flex-col gap-[var(--auth-gap)] text-left">
+            <section className="flex flex-col gap-[var(--auth-gap-sm)]">
+              <div className="flex flex-col gap-1">
+                <h1 className="auth-h1">How do you usually invest?</h1>
+                <p className="auth-sub">This helps us tailor your experience and insights.</p>
               </div>
-              <div role="radiogroup" aria-label="How do you usually invest?" className="space-y-2">
+              <div role="radiogroup" aria-label="How do you usually invest?" className="flex flex-col gap-[var(--auth-gap-sm)]">
                 {INVESTOR_PROFILE_OPTIONS.map((option, index) => (
                   <OptionRow
                     key={option.value}
@@ -112,6 +143,7 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
                     title={option.title}
                     subtitle={option.subtitle}
                     selected={investorType === option.value}
+                    icon={INVESTOR_ICONS[option.value]}
                     onSelect={() => {
                       setInvestorType(option.value);
                       setTypeError(false);
@@ -119,12 +151,12 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
                   />
                 ))}
               </div>
-              {typeError ? <p role="alert" className="text-xs text-[var(--neg-text)]">Choose how you usually invest.</p> : null}
+              {typeError ? <p role="alert" className="text-[13px] text-[var(--neg-text)]">Choose how you usually invest.</p> : null}
             </section>
-            <section className="space-y-3">
-              <div className="flex items-baseline justify-between gap-3">
-                <h2 className="text-base font-bold text-[var(--ui-text)]">
-                  What are you working towards? <span className="text-xs font-normal text-[var(--ui-text-muted)]">(Select all that apply)</span>
+            <section className="flex flex-col gap-[var(--auth-gap-sm)]">
+              <div className="flex items-center justify-between gap-3 whitespace-nowrap">
+                <h2 className="text-[15px] font-semibold text-[var(--auth-ink)]">
+                  What are you working towards? <span className="ml-1 text-[13px] font-normal text-[var(--auth-muted)]">(Select all that apply)</span>
                 </h2>
                 <button
                   type="button"
@@ -132,28 +164,29 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
                     setGoalsError(false);
                     setGoals(allChosen ? [] : [...allGoals]);
                   }}
-                  className="shrink-0 text-xs font-semibold text-[var(--pos-text)] hover:underline"
+                  className="shrink-0 text-[13px] font-semibold text-[var(--auth-green-ink)] hover:underline"
                 >
                   {allChosen ? "Clear all" : "Select all"}
                 </button>
               </div>
-              <div role="group" aria-label="What are you working towards?" className="flex flex-wrap gap-2">
+              <div role="group" aria-label="What are you working towards?" className="grid grid-cols-3 gap-[var(--auth-gap-sm)]">
                 {GOAL_OPTIONS.map((option, index) => (
                   <ChipCheckbox
                     key={option.value}
                     ref={index === 0 ? firstChip : undefined}
                     label={option.title}
                     checked={goals.includes(option.value)}
+                    icon={GOAL_ICONS[option.value]}
                     onToggle={() => toggleGoal(option.value)}
                   />
                 ))}
               </div>
-              {goalsError ? <p role="alert" className="text-xs text-[var(--neg-text)]">Choose at least one goal.</p> : null}
+              {goalsError ? <p role="alert" className="text-[13px] text-[var(--neg-text)]">Choose at least one goal.</p> : null}
             </section>
             {saveError ? <AuthAlert tone="error">{saveError}</AuthAlert> : null}
-            <Button type="button" onClick={() => void submit()} disabled={saving} className="h-[52px] w-full rounded-full text-[15px] font-bold">
+            <AuthButton type="button" onClick={() => void submit()} disabled={saving}>
               {saving ? "Saving..." : "Continue"}
-            </Button>
+            </AuthButton>
           </div>
         }
       />

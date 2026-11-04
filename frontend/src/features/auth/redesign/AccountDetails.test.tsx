@@ -106,4 +106,18 @@ describe("AccountDetails, sign-up screen 3 (task 6.10)", () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
     finish();
   });
+  it("renders leading icons, info hint on name, no hint icon on email, and arrow on Continue", () => {
+    mount();
+    const nameField = screen.getByLabelText("Full name (as per PAN card)").closest(".auth-field");
+    expect(nameField?.querySelector("svg")).toBeInTheDocument();
+    const nameHint = screen.getByText("Enter your name exactly as it appears on your PAN card.");
+    expect(nameHint.querySelector("svg")).toBeInTheDocument();
+
+    const emailField = screen.getByLabelText("Email address").closest(".auth-field");
+    expect(emailField?.querySelector("svg")).toBeInTheDocument();
+    const emailHint = screen.getByText(/We'll use this for important updates/);
+    expect(emailHint.querySelector("svg")).toBeNull();
+
+    expect(screen.getByTestId("auth-btn-arrow")).toBeInTheDocument();
+  });
 });

@@ -17,7 +17,7 @@ describe("ConnectAccounts, sign-up screen 5 (task 6.13)", () => {
     expect(within(left).getByRole("heading", { level: 2 })).toHaveTextContent("Bring your investments together.");
     expect(within(left).getByText("Connect your accounts to see your family's investments in one place and understand how they fit together.")).toBeInTheDocument();
     for (const row of ["Secure & Private", "Takes just a few minutes", "All major asset types"]) expect(within(left).getByText(row)).toBeInTheDocument();
-    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/wallet.svg");
+    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/cards.svg");
   });
   it("lists the six sources in order with the drawn wording", () => {
     mount();
@@ -25,11 +25,11 @@ describe("ConnectAccounts, sign-up screen 5 (task 6.13)", () => {
     expect(screen.getByText("You can always add more accounts later.")).toBeInTheDocument();
     expect(rows().map((row) => row.textContent)).toEqual([
       "Mutual fundsImport your holdings via CAMS or MF Central",
-      "Stocks & ETFsConnect your demat accounts (NSDL / CDSL)Coming soon",
-      "PMS & AIFsAdd your PMS and alternative investmentsComing soon",
-      "Real estateTrack the value of your propertiesComing soon",
-      "GoldTrack your digital and physical goldComing soon",
-      "Bank accounts, loans & credit cardsTrack your cash, loans and credit cardsComing soon",
+      "Stocks & ETFsComing soonConnect your demat accounts (NSDL / CDSL)",
+      "PMS & AIFsComing soonAdd your PMS and alternative investments",
+      "Real estateComing soonTrack the value of your properties",
+      "GoldComing soonTrack your digital and physical gold",
+      "Bank accounts, loans & credit cardsComing soonTrack your cash, loans and credit cards",
     ]);
   });
   it("only Mutual funds is selectable and it starts selected", () => {
@@ -55,5 +55,19 @@ describe("ConnectAccounts, sign-up screen 5 (task 6.13)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(onBack).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/skip/i)).toBeNull();
+  });
+  it("renders six icon-badge in right panel, six chevrons, inline coming-soon pill, and arrow on Continue", () => {
+    mount();
+    const rightPanel = screen.getByRole("radiogroup", { name: "What would you like to connect first?" });
+    expect(within(rightPanel).getAllByTestId("icon-badge")).toHaveLength(6);
+    expect(screen.getAllByTestId("icon-badge")).toHaveLength(9); // 3 left + 6 right
+    const chevrons = screen.getAllByTestId("source-chevron");
+    expect(chevrons).toHaveLength(6);
+
+    const comingSoonPill = screen.getAllByText("Coming soon")[0];
+    const title = screen.getByText("Stocks & ETFs");
+    expect(comingSoonPill.parentElement).toBe(title.parentElement);
+
+    expect(screen.getByTestId("auth-btn-arrow")).toBeInTheDocument();
   });
 });

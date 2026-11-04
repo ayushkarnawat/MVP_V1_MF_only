@@ -10,6 +10,7 @@ export interface OtpInputProps {
   disabled?: boolean;
   id?: string;
   className?: string;
+  cellClassName?: string;
   "aria-label"?: string;
 }
 
@@ -21,6 +22,7 @@ export function OtpInput({
   disabled = false,
   id = "otp-input",
   className,
+  cellClassName,
 }: OtpInputProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -129,7 +131,8 @@ export function OtpInput({
           className={cn(
             "flex-1 min-w-0 h-11 xs:h-12 sm:h-14 max-w-[44px] sm:max-w-[48px] text-center text-lg xs:text-xl sm:text-2xl font-bold font-mono rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-ink)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 transition-all selection:bg-transparent shadow-2xs box-border",
             digit && "border-[var(--color-accent)]/50 bg-[var(--color-surface)]",
-            disabled && "opacity-50 cursor-not-allowed"
+            disabled && "opacity-50 cursor-not-allowed",
+            cellClassName
           )}
         />
       ))}

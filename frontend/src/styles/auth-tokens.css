@@ -38,8 +38,8 @@
   --auth-logo-h: 34px;
 }
 
-/* Windows shorter than 760 px (most 15 inch laptops with the browser bars showing). */
-@media (max-height: 759px) {
+/* Windows shorter than 760 px (most 15 inch laptops with the browser bars showing), or narrower than 1200 px (1024 px wide windows). */
+@media (max-height: 759px), (max-width: 1199px) {
   :root {
     --auth-pad-y: 28px;
     --auth-gap: 16px;
@@ -59,16 +59,16 @@
 /* Windows shorter than 680 px (small laptops, zoomed browsers). */
 @media (max-height: 679px) {
   :root {
-    --auth-pad-y: 20px;
-    --auth-gap: 12px;
-    --auth-gap-sm: 7px;
+    --auth-pad-y: 14px;
+    --auth-gap: 10px;
+    --auth-gap-sm: 5px;
     --auth-h1: 26px;
     --auth-h2: 27px;
     --auth-body: 13.5px;
     --auth-btn-h: 44px;
     --auth-field-h: 44px;
     --auth-row-h: 46px;
-    --auth-chip-h: 38px;
+    --auth-chip-h: 34px;
     --auth-badge-size: 34px;
     --auth-logo-h: 26px;
   }
@@ -386,4 +386,27 @@
 .auth-choice:focus-visible {
   outline: 2px solid var(--auth-green);
   outline-offset: 2px;
+}
+
+/* The one-time-code cells. A class (not Tailwind utilities) because the shared OtpInput already sets its own border and ring
+   colours; this selector is more specific, so the cell is a white rounded square that turns green when focused, as drawn. */
+.auth-page input.auth-otp-cell {
+  height: calc(var(--auth-field-h) + 8px);
+  max-width: none;
+  border: 1px solid #D9DDE4;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: none;
+  color: var(--auth-ink);
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+/* !important because index.css has a global "div > input:focus" rule (made for the phone-group inner fields) that sets the
+   border transparent with !important; the code cells are such inputs and would show no focus at all. Scoped to the auth page. */
+.auth-page div > input.auth-otp-cell:focus,
+.auth-page div > input.auth-otp-cell:focus-visible {
+  border-color: var(--auth-green) !important;
+  box-shadow: 0 0 0 3px rgba(9, 177, 88, 0.16) !important;
 }

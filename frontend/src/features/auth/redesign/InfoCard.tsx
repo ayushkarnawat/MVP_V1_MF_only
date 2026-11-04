@@ -9,9 +9,9 @@ export interface InfoCardProps {
 export function InfoCard({ title, children }: InfoCardProps) {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="rounded-2xl border border-[var(--ui-divider)] bg-white/70 p-4 text-left">
-      <h3 id={id} className="text-sm font-semibold text-[var(--ui-text)]">{title}</h3>
-      <p className="mt-1 text-xs text-[var(--ui-text-muted)]">{children}</p>
+    <section aria-labelledby={id} className="rounded-2xl border border-[var(--auth-hairline)] bg-white p-4 text-left">
+      <h3 id={id} className="text-[15px] font-semibold text-[var(--auth-ink)]">{title}</h3>
+      <p className="mt-1 text-[13px] leading-snug text-[var(--auth-muted)]">{children}</p>
     </section>
   );
 }

@@ -16,11 +16,11 @@ describe("AuthSplitCard", () => {
     expect(right.firstElementChild).toBe(screen.getByTestId("auth-topbar"));
     expect(right.lastElementChild).toBe(screen.getByTestId("auth-bottom"));
   });
-  it("centres one 440 px block both ways in the content row (auto margins, so a tall block scrolls instead of clipping)", () => {
+  it("centres one 520 px block both ways in the content row (auto margins, so a tall block scrolls instead of clipping)", () => {
     mount();
     const block = screen.getByTestId("auth-block");
     expect(block.className).toContain("m-auto");
-    expect(block.className).toContain("max-w-[440px]");
+    expect(block.className).toContain("max-w-[520px]");
     expect(block.className).toContain("w-full");
     expect(screen.getByTestId("auth-content").className).toContain("overflow-y-auto");
     expect(within(block).getByTestId("the-form")).toBeInTheDocument();

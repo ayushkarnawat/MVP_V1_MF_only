@@ -1,9 +1,9 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Mail, ShieldCheck, User } from "lucide-react";
 import { formatAuthErrorMessage, validateEmail, validatePersonName } from "../validation";
 import { AuthAlert } from "./AuthAlert";
+import { AuthButton } from "./AuthButton";
 import { AuthField } from "./AuthField";
 import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
@@ -76,10 +76,10 @@ export function AccountDetails({ initialName = "", initialEmail = "", emailLocke
           />
         }
         right={
-          <form onSubmit={(event) => void submit(event)} noValidate className="space-y-5 text-left">
-            <div className="space-y-2">
-              <h1 className="text-[26px] font-bold leading-tight text-[var(--ui-text)]">Create your account</h1>
-              <p className="text-sm text-[var(--ui-text-muted)]">Tell us a few basic details to get started.</p>
+          <form onSubmit={(event) => void submit(event)} noValidate className="auth-form">
+            <div className="flex flex-col gap-[var(--auth-gap-sm)]">
+              <h1 className="auth-h1">Create your account</h1>
+              <p className="auth-sub">Tell us a few basic details to get started.</p>
             </div>
             <AuthField
               id="account-name"
@@ -89,6 +89,7 @@ export function AccountDetails({ initialName = "", initialEmail = "", emailLocke
               autoComplete="name"
               value={name}
               error={nameError}
+              icon={<User size={20} />}
               onChange={(event) => setName(event.target.value)}
               autoFocus
             />
@@ -98,21 +99,23 @@ export function AccountDetails({ initialName = "", initialEmail = "", emailLocke
               type="email"
               placeholder="e.g. siddharth@gmail.com"
               hint={emailLocked ? "This email address is verified." : `We'll use this for important updates about your account.${emailNote ? ` ${emailNote}` : ""}`}
+              hintIcon={false}
               autoComplete="email"
               value={email}
               readOnly={emailLocked}
               error={emailError}
+              icon={<Mail size={20} />}
               onChange={(event) => setEmail(event.target.value)}
             />
             {shownError ? <AuthAlert tone="error">{shownError}</AuthAlert> : null}
-            <Button type="submit" disabled={submitting || saving} className="h-[52px] w-full rounded-full text-[15px] font-bold">
+            <AuthButton type="submit" disabled={submitting || saving}>
               {saving ? "Saving..." : submitting ? "Sending..." : "Continue"}
-            </Button>
+            </AuthButton>
           </form>
         }
         bottom={
-          <span className="inline-flex items-center gap-1.5 text-xs text-[var(--ui-text-muted)]">
-            <ShieldCheck size={14} aria-hidden="true" />
+          <span className="inline-flex items-center gap-1.5 text-xs text-[var(--auth-muted)]">
+            <ShieldCheck size={16} aria-hidden="true" />
             Your data is encrypted and protected.
           </span>
         }

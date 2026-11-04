@@ -36,4 +36,13 @@ describe("SegmentedTabs", () => {
     fireEvent.keyDown(screen.getByRole("tab", { name: "Mobile number" }), { key: "Home" });
     expect(onChange).toHaveBeenLastCalledWith("email");
   });
+  it("renders an icon for tabs when provided", () => {
+    const opts = [
+      { value: "email", label: "Email", icon: <svg data-testid="icon-email" /> },
+      { value: "phone", label: "Mobile number", icon: <svg data-testid="icon-phone" /> },
+    ];
+    render(<SegmentedTabs label="Log in with" options={opts} value="email" onChange={vi.fn()} />);
+    expect(screen.getByTestId("icon-email")).toBeInTheDocument();
+    expect(screen.getByTestId("icon-phone")).toBeInTheDocument();
+  });
 });

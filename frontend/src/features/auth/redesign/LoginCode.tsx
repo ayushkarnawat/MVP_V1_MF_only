@@ -1,3 +1,4 @@
+import { Mail, Pencil, Phone } from "lucide-react";
 import { maskEmail, maskPhone } from "../validation";
 import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
@@ -31,17 +32,40 @@ export function LoginCode({ channel, identity, devOtp, error, submitting, onSubm
             sketch={channel === "phone" ? "phone" : "envelope"}
             headline="Welcome back."
             paragraph={CODE_SCREEN_PARAGRAPH}
-            infoCard={
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-[var(--ui-text)]">{masked}</p>
-                <button type="button" onClick={onEditIdentity} className="text-xs font-semibold text-[var(--pos-text)] hover:underline">
+            identity={
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-[17px] font-medium text-[var(--auth-ink)]">
+                  {channel === "phone" ? (
+                    <Phone size={18} aria-hidden="true" className="shrink-0 text-[var(--auth-green-ink)]" />
+                  ) : (
+                    <Mail size={18} aria-hidden="true" className="shrink-0 text-[var(--auth-green-ink)]" />
+                  )}
+                  <span>{masked}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={onEditIdentity}
+                  className="flex items-center gap-1.5 text-[14px] font-medium text-[var(--auth-green-ink)] hover:underline"
+                >
+                  <Pencil size={16} aria-hidden="true" />
                   {channel === "phone" ? "Edit number" : "Edit email address"}
                 </button>
               </div>
             }
           />
         }
-        right={<OtpPanel channel={channel} identity={masked} submitLabel="Verify and log in" devOtp={devOtp} error={error} submitting={submitting} onSubmit={onSubmit} onResend={onResend} />}
+        right={
+          <OtpPanel
+            channel={channel}
+            identity={masked}
+            submitLabel="Verify and log in"
+            devOtp={devOtp}
+            error={error}
+            submitting={submitting}
+            onSubmit={onSubmit}
+            onResend={onResend}
+          />
+        }
       />
     </AuthPage>
   );

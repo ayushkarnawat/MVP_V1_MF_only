@@ -1,3 +1,4 @@
+import { Pencil } from "lucide-react";
 import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
@@ -32,10 +33,15 @@ export function SignupCode({ phone, devOtp, error, submitting, onSubmit, onResen
             sketch="phone"
             headline={SIGNUP_CODE_HEADLINE}
             paragraph={SIGNUP_CODE_LEAD}
-            infoCard={
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-[var(--ui-text)]">{shown}</p>
-                <button type="button" onClick={onEditNumber} className="text-xs font-semibold text-[var(--pos-text)] hover:underline">
+            identity={
+              <div className="space-y-2">
+                <p className="text-[17px] font-medium text-[var(--auth-ink)]">{shown}</p>
+                <button
+                  type="button"
+                  onClick={onEditNumber}
+                  className="flex items-center gap-1.5 text-[14px] font-medium text-[var(--auth-green-ink)] hover:underline"
+                >
+                  <Pencil size={16} aria-hidden="true" />
                   Edit number
                 </button>
               </div>

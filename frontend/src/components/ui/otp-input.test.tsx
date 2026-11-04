@@ -77,4 +77,18 @@ describe("OtpInput", () => {
 
     expect(handleChange).toHaveBeenCalledWith("12");
   });
+
+  it("applies cellClassName to every cell when provided, and none when undefined", () => {
+    const { rerender } = render(<OtpInput value="" onChange={vi.fn()} />);
+    let inputs = screen.getAllByRole("textbox");
+    inputs.forEach((input) => {
+      expect(input.className).not.toContain("x-cell");
+    });
+
+    rerender(<OtpInput value="" onChange={vi.fn()} cellClassName="x-cell" />);
+    inputs = screen.getAllByRole("textbox");
+    inputs.forEach((input) => {
+      expect(input.className).toContain("x-cell");
+    });
+  });
 });

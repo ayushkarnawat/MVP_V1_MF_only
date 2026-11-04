@@ -1,9 +1,10 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, Mail, Phone } from "lucide-react";
 import { GoogleButton } from "../GoogleButton";
 import { isNoAccountError, validateEmail, validateIndianPhone } from "../validation";
 import { AuthAlert } from "./AuthAlert";
+import { AuthButton } from "./AuthButton";
 import { AUTH_SHOW_GOOGLE } from "./authConfig";
 import { AuthField } from "./AuthField";
 import { AuthLeftPanel } from "./AuthLeftPanel";
@@ -28,7 +29,10 @@ export interface LoginEntryProps {
   onGoogleCredential?: (idToken: string) => void;
 }
 
-const TABS = [{ value: "email", label: "Email" }, { value: "phone", label: "Mobile number" }] as const;
+const TABS = [
+  { value: "email", label: "Email", icon: <Mail size={18} aria-hidden="true" /> },
+  { value: "phone", label: "Mobile number", icon: <Phone size={18} aria-hidden="true" /> },
+] as const;
 
 export function LoginEntry({
   onSubmitEmail, onSubmitPhone, onSignUp, error, submitting, notice, initialTab = "email", initialValue = "",
@@ -66,6 +70,7 @@ export function LoginEntry({
     <AuthPage>
       <AuthSplitCard
         layout="wide"
+        bottomRule={false}
         onBack={onSignUp}
         left={
           <AuthLeftPanel
@@ -77,10 +82,10 @@ export function LoginEntry({
           />
         }
         right={
-          <form onSubmit={submit} noValidate className="space-y-5 text-left">
-            <div className="space-y-2">
-              <h1 className="text-[26px] font-bold leading-tight text-[var(--ui-text)]">Welcome back</h1>
-              <p className="text-sm text-[var(--ui-text-muted)]">Log in to continue to your Unifolio account.</p>
+          <form onSubmit={submit} noValidate className="auth-form">
+            <div className="flex flex-col gap-[var(--auth-gap-sm)]">
+              <h1 className="auth-h1">Welcome back</h1>
+              <p className="auth-sub">Log in to continue to your Unifolio account.</p>
             </div>
             {notice ? <AuthAlert tone="info">{notice}</AuthAlert> : null}
             <SegmentedTabs
@@ -94,11 +99,32 @@ export function LoginEntry({
               }}
             />
             <div id="login-panel" role="tabpanel">
-            {tab === "email" ? (
-              <AuthField id="login-email" label="Email address" type="email" autoComplete="email" placeholder="you@example.com" value={emailValue} error={fieldError} onChange={(event) => setEmailValue(event.target.value)} />
-            ) : (
-              <AuthField id="login-phone" label="Mobile number" type="tel" inputMode="tel" autoComplete="tel" placeholder="98765 43210" value={phoneValue} error={fieldError} onChange={(event) => setPhoneValue(event.target.value)} />
-            )}
+              {tab === "email" ? (
+                <AuthField
+                  id="login-email"
+                  label="Email address"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={emailValue}
+                  error={fieldError}
+                  icon={<Mail size={20} />}
+                  onChange={(event) => setEmailValue(event.target.value)}
+                />
+              ) : (
+                <AuthField
+                  id="login-phone"
+                  label="Mobile number"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="98765 43210"
+                  value={phoneValue}
+                  error={fieldError}
+                  icon={<Phone size={20} />}
+                  onChange={(event) => setPhoneValue(event.target.value)}
+                />
+              )}
             </div>
             {error ? (
               isNoAccountError(error) ? (
@@ -107,18 +133,23 @@ export function LoginEntry({
                 <AuthAlert tone="error">{error}</AuthAlert>
               )
             ) : null}
-            <Button type="submit" disabled={submitting} className="h-[52px] w-full rounded-full text-[15px] font-bold">
+            <AuthButton type="submit" disabled={submitting}>
               {submitting ? "Sending..." : "Get OTP"}
-            </Button>
-            <p className="text-center text-xs text-[var(--ui-text-muted)]">OR</p>
+            </AuthButton>
+            <div className="auth-or" role="separator"><span>OR</span></div>
             {showGoogle && onGoogleCredential ? <GoogleButton onCredential={onGoogleCredential} /> : null}
           </form>
         }
         bottom={
           <span className="text-[var(--ui-text-muted)]">
             New to Unifolio?{" "}
-            <button type="button" onClick={onSignUp} className="font-semibold text-[var(--pos-text)] hover:underline">
-              Sign up →
+            <button
+              type="button"
+              onClick={onSignUp}
+              aria-label="Sign up →"
+              className="inline-flex items-center gap-1 font-semibold text-[var(--auth-green-ink)] hover:underline"
+            >
+              Sign up <ArrowRight size={16} aria-hidden="true" />
             </button>
           </span>
         }

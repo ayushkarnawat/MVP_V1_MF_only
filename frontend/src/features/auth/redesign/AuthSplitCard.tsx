@@ -59,12 +59,12 @@ export function AuthSplitCard({ left, right, step, done, onBack, bottom, bottomR
             <div>{step !== undefined ? <StepProgress step={step} done={done} /> : null}</div>
           </div>
           <div data-testid="auth-content" className="flex min-h-0 flex-1 overflow-y-auto">
-            <div data-testid="auth-block" className="m-auto w-full max-w-[440px] py-2">{right}</div>
+            <div data-testid="auth-block" className="m-auto w-full max-w-[520px] py-2">{right}</div>
           </div>
           {bottom ? (
             <div
               data-testid="auth-bottom"
-              className={`mx-auto w-full max-w-[440px] shrink-0 pt-4 text-center text-sm ${bottomRule ? "border-t border-[var(--auth-hairline)]" : ""}`}
+              className={`mx-auto w-full max-w-[520px] shrink-0 pt-4 text-center text-sm ${bottomRule ? "border-t border-[var(--auth-hairline)]" : ""}`}
             >
               {bottom}
             </div>
