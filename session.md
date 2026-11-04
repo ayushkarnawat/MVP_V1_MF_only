@@ -1,4 +1,4 @@
-# Session state — 2026-11-03
+# Session state — 2026-11-04
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -17,6 +17,18 @@ anything by re-reading the whole repo.**
 - 10 fund houses need a monthly hand import (ICICI, Kotak, HDFC ×2 files, Axis, Bandhan, Invesco, WhiteOak, ITI, JM, Trust; 689 live funds); 5 have no factsheet (Bajaj, AlphaGrep, IL&FS, Lakshya, Monarch; 33 funds).
 - Evidence so far (28 Oct, from the LeapSwitch VM's Indian IP): the monthly job processed 34 of 40 automatic houses (Angel One 403, HSBC timeout, Sundaram 500, three stale-month); HDFC 403 and JM 406 still blocked from that address. The missed-month alert is now built (Run 2); the run of 10 Nov 06:00 IST needs a read-only check afterwards (a scheduled reminder exists).
 - Detail and the ordered to-do table: `DEFERRED_FEATURES.md` (top section). Background and options: `Docs/orchestration/subproject1-execution/a04-factsheet-access-gaps.html`.
+
+## Latest (2026-11-04): UI round 2 is built and tagged; D.1 done; the staging deploy guide is drafted, nothing deployed
+
+**Branch:** `ui-round-2` (shared integration branch; Alembic head **0053**, `down_revision` `0052`). Stages S0 to S6 are built and tagged `ui-s0-done` to `ui-s6-done` (local tags on the merge commit `1aad77c2`, which merged `release/change-requests` into `ui-round-2`). `leapswitch-redesign` is frozen at `8dc7d9ba` until the owner's final merge. Staging runs `release/change-requests` (Alembic 0052) until the UI round 2 rollout.
+
+**Done on the backend:** Home greeting, Home allocation funds, new funds after an upload, add-as-family (with the Self PAN guard), `benchmark_label`, the six life goals (migration 0053), the sign-up notice flag; baselines and review gates recorded in `Docs/orchestration/ui-run-log.md` and `delegation-log.md`. Full backend suite on the merged head: 5755 passed, 5 failed (known, they read the untracked `backend/.cache/amfi_navall/nav_all.txt`), 6 skipped. D.1 (this documentation update) is done.
+
+**Open:**
+1. **Final merge and S7** (owner's explicit go): merge `ui-round-2` into `leapswitch-redesign` as a reviewed merge commit, then run `Docs/orchestration/2026-11-04-staging-deploy-guide-ui-round-2.md` (backup first; stop old backend, deploy, migrate 0053 at once, restart), then the QA checklist (Task 7.2, not yet written) and close-out (7.3).
+2. **Parked decision, owner:** the opening-cost convention for a partly sold opening lot (3 of 88 synthetic gate runs fail, older than this round): `Docs/investigations/2026-11-03-p20-opening-cost-convention-gate-failure.md`, `DEFERRED_FEATURES.md`.
+3. Accepted risks: the Self PAN guard has no row lock; `0053` drops `users.primary_goal` in the same release that stops using it (the guide stops old tasks first); the staging timing check on real data at S7 (`measure_home_staging.py`).
+4. The change-requests release items below (QA by the intern, the CA Excel, owner decisions O6 and O7, the hand imports) are unchanged.
 
 ## Latest (2026-11-03, evening): the change requests release is DEPLOYED to staging; QA and the CA Excel are next
 

@@ -212,7 +212,7 @@ heuristic rather than restructuring to always-mounted dual panels.
 
 ## Added 2026-09-30 (staging QA fixes)
 
-- **Migration 0024 — drop `users.primary_goal`** (renumbered from "0021" on 2026-10-01 because 0021/0022 shipped the member contact fields and consent table, then from "0023" because 0023 shipped member profile completion, 2026-10-01). Ship one release after 0019 is live on every ECS task. First re-backfill `primary_goals` from `primary_goal` where `primary_goals IS NULL` (old tasks write only the old column during the rollout), then drop the column and `DROP TYPE IF EXISTS primarygoal` on Postgres, and remove the dual write in `auth.py update_me`. Downgrade keeps one goal per user. If this hasn't shipped before the CAS import fix plan’s migrations, it is renumbered after `0029` (the plan’s 0025 revises 0023).
+- ~~**Migration 0024 — drop `users.primary_goal`** (renumbered from "0021" on 2026-10-01 because 0021/0022 shipped the member contact fields and consent table, then from "0023" because 0023 shipped member profile completion, 2026-10-01). Ship one release after 0019 is live on every ECS task. First re-backfill `primary_goals` from `primary_goal` where `primary_goals IS NULL` (old tasks write only the old column during the rollout), then drop the column and `DROP TYPE IF EXISTS primarygoal` on Postgres, and remove the dual write in `auth.py update_me`. Downgrade keeps one goal per user. If this hasn't shipped before the CAS import fix plan’s migrations, it is renumbered after `0029` (the plan’s 0025 revises 0023).~~ **Done by migration 0053 on 2026-11-03 (UI round 2, the six life goals): saved goals were cleared instead of re-backfilled, because no old goal maps to a new one.**
 
 
 ## Added 2026-10-01 (consent, onboarding and profile changes)
@@ -398,7 +398,7 @@ it can be built later without re-deciding it:
 
 **Profile > Personal Information > Financial Details: only the onboarding answers are built; the other fields are deferred.** Decided by the owner 2026-10-23 (planning workbook
 `Docs/orchestration/2026-10-23-profile-planning-decisions-v1.html`, decisions L31, L43; the owner asked for this entry in answer G9). Built now: investor type and goals, read from
-the onboarding answers already stored (`investor_type`, `primary_goals`) and edited with the existing `PATCH /auth/me`. Deferred, shown as greyed "Coming soon" rows: occupation,
+the onboarding answers already stored (`investor_type`, `primary_goals`; since 2026-11-03 `primary_goals` holds one to six of the six life-goal codes `wealth_creation`, `retirement`, `childrens_education`, `buy_home`, `financial_freedom`, `tax_planning`, and the old four product goals are gone) and edited with the existing `PATCH /auth/me`. Deferred, shown as greyed "Coming soon" rows: occupation,
 industry, annual income range, net worth range, risk profile, investment experience. Kept here so the work is not re-decided:
 - Storage (answer F4 A): nullable columns on the existing `users` table, validated pick-lists as check constraints (the pattern `primary_goals` uses). No new table.
 - Pick-lists (answer F5 A): annual income: below 5 lakh; 5 to 10 lakh; 10 to 25 lakh; 25 to 50 lakh; 50 lakh to 1 crore; above 1 crore. Net worth: below 50 lakh; 50 lakh to 1 crore;

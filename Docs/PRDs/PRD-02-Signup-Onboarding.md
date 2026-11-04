@@ -1,8 +1,8 @@
 ---
 artifact: prd
-version: "1.3"
+version: "1.5"
 created: 2026-07-22
-updated: 2026-08-05
+updated: 2026-11-04
 status: draft
 product: Unifolio
 module: Signup & Onboarding
@@ -229,17 +229,29 @@ directly with the goal of a frictionless first step. See the Authentication sect
   This single question set is used for both retail and HNI users (see the HNI decision
   below) and is used for later dashboard personalization only, never advice generation.
 - FR-5: Capture primary goals at a light-touch level (not a full financial plan) — informs
-  future dashboard framing only.
+  future dashboard framing only. *(Amended 2026-11-04, UI round 2: six life goals, `wealth_creation`,
+  `retirement`, `childrens_education`, `buy_home`, `financial_freedom`, `tax_planning`; one to six
+  may be picked; stored as `users.primary_goals`; the old four product goals and the single
+  `primary_goal` column are gone, migration 0053.)*
 - FR-6: Household members are detected from the first CAS. Relationship and PAN are collected when the user first opens that member. *(Amended 2026-09-29, CAS member detection; superseded text follows.)* ~~Family/household setup as a core onboarding step: add members, define
   relationship, indicate whether each member's own CAS will be imported now or later.~~
 - FR-7: Every step must be skippable or deferrable except the ones required to reach the
-  CAS import step — nothing blocks a user from getting to their portfolio.
+  CAS import step — nothing blocks a user from getting to their portfolio. *(Amended 2026-11-04,
+  UI round 2, sign-up redesign: on the redesigned desktop sign-up, **screen 4 ("Help us personalise
+  your experience") has no Skip and both answers are required**: how the person usually invests,
+  and one or more goals. A small error on Continue names what is missing. The mobile app keeps
+  its own screens, where goals and investor type can still be skipped. Nothing else changes:
+  everything after screen 4 is still reachable without an import being forced, and answers can
+  be changed later in Profile.)*
 - FR-7a **(added v1.3):** Skippable means genuinely revisitable, not a one-way door — a
   user must be able to go back and answer a question they skipped (or change one they
   already answered) via ordinary back-navigation, not just by re-running the whole
   questionnaire from the start. This was implicit in FR-7's original wording but not
   concretely specified; making it explicit now that it's actually being built, so "skippable"
-  isn't read as "skip and lose the chance to go back."
+  isn't read as "skip and lose the chance to go back." *(Amended 2026-11-04: on the redesigned
+  desktop sign-up the two screen 4 answers are required, so there is nothing to skip there; Back
+  returns to them with the answers kept, and a changed email on Back is saved only after the new
+  address is verified.)*
 
 ### Onboarding Questionnaire (Draft)
 
@@ -276,11 +288,23 @@ target range without a separate HNI-branded question.
 *Amended 2026-09-30 (staging QA): multi-select. "Pick all that apply"; answers save on
 Continue (disabled until at least one is picked), Skip still works. Stored as
 `users.primary_goals`. See `Docs/orchestration/2026-09-30-staging-qa-findings-map.html`.*
-- "See all my mutual funds in one place"
-- "Actually understand what I'm invested in" (signals analytics-dashboard-eager users)
-- "Managing investments for my family, not just myself" (signals family-setup-eager users
-  — can pre-select "yes" on Q4 below)
-- "Compare how my funds are really performing" (signals benchmark/XIRR-eager users)
+
+*Amended 2026-11-04 (UI round 2, six life goals and the redesigned screen 4): the question on the
+redesigned desktop sign-up is "What are you working towards? (Select all that apply)", asked next
+to "How do you usually invest?" on one screen (screen 4 of 5). Nothing is pre-selected, there is no
+Skip on desktop and both answers are required (mobile keeps Skip), a **Select all** link on the
+goals heading becomes **Clear all** when all six are chosen. The six goals, in this order
+(codes in brackets): "Build my wealth" (`wealth_creation`), "Plan for retirement" (`retirement`),
+"Fund my children's education" (`childrens_education`), "Buy a home" (`buy_home`), "Achieve financial
+freedom" (`financial_freedom`), "Plan my taxes" (`tax_planning`). One to six are stored. The four
+product goals below were retired; no old answer maps to a new one, so every saved answer was cleared
+by migration 0053 and users are asked again.*
+
+~~Original four options (retired 2026-11-03):~~
+- ~~"See all my mutual funds in one place"~~
+- ~~"Actually understand what I'm invested in"~~
+- ~~"Managing investments for my family, not just myself"~~
+- ~~"Compare how my funds are really performing"~~
 
 **Q4 — Household (REMOVED 2026-09-29, CAS member detection)**
 Household members are detected from the first CAS. Relationship and PAN are collected
@@ -288,6 +312,17 @@ when the user first opens that member. The "Just you, or tracking for family too
 and the "Family too" add-member / Family CAS Upload branch no longer exist; Q3 (Purpose)
 now leads to the privacy page and then straight to the CAS upload. [Updated 2026-10-01: the privacy page / trust primer is removed; Q3 leads straight to the CAS upload, and the name is saved at the name step and stays provisional until the first CAS.] The name question
 (Q1) now asks for the name exactly as on the PAN card.
+
+**Screen order on the redesigned desktop sign-up (added 2026-11-04, UI round 2):** screens 1 to 3 create
+the account (contact details and the codes, then the name as on the PAN card and the email, which stays
+editable on Back: a changed email goes through the contact-change flow and is saved only once the new
+address is verified; during sign-up the old address is not emailed a "changed" notice, the event and the
+cooling-off are still recorded), (4) investor profile and goals, both required, (5) "What would you
+like to connect first?" with Mutual funds the only live row (the others show "Coming soon"), which leads
+to the existing CAS upload screens, then (6) "You're all set!" shown after the import and before
+onboarding is marked complete. On resume, a person with a
+completed import and onboarding not complete lands on "All set". The saved step values stay
+`q1_name`, `q2_investing`, `cas_upload`; the new screens save none of their own.
 
 **Closing step — the payoff, not a fifth question**
 > "Let's bring in your first portfolio." → CAS upload (PRD-01). For a solo user this is
@@ -514,3 +549,4 @@ each other later.
 | 1.2 | 2026-07-22 | Claude (PM partner) | Noted foundational `otp_requests`/`sessions` tables now exist in the Database Schema doc, unblocking basic login at MVP; full auth/security policy remains deferred as before |
 | 1.3 | 2026-08-05 | Claude (PM partner), from team brainstorm relayed by Ayush | Added FR-2b (Sign Up/Log In landing screen before the phone-number field); added FR-7a (skipped questions must be genuinely revisitable via back-navigation, not just a one-way skip); added the Family CAS Upload section (FR-10-FR-14) for multi-member households — per-member upload cards, independent state per member, "Upload your own CAS?" Now/Later, and a queue-then-batch-parse pattern (Parse Files) instead of parse-on-upload, sequencing into PRD-01's existing Import Review screen unchanged, once per member; resolved the "before or after own CAS import" open question accordingly; updated FR-9 and Design Handoff Alignment to match |
 | 1.4 | 2026-08-17 | Claude (PM partner) | FR-2 revised twice same day: first to email+password for the email signup path (password-manager-autofill rationale), then reversed back to email+OTP for both signup and login (management decision) — phone+OTP, Google, and email are all passwordless again, no password field anywhere. See decisions.md's two 2026-08-17 entries for the full sequence. |
+| 1.5 | 2026-11-04 | Claude | UI round 2: FR-5 six life goals (migration 0053, one to six stored, old four retired, saved answers cleared); FR-7 and FR-7a amended for the redesigned desktop sign-up (screen 4 has no Skip, both answers required, mobile keeps Skip; Back keeps answers; changed email on Back verified before it is saved); the new screen order (account creation, investor profile and goals, Connect accounts, All set) and the resume rule. Earlier amendments dated 2026-09-29 and later (FR-6 member detection, onboarding privacy page removal) are recorded inline and are not yet in this table. |
