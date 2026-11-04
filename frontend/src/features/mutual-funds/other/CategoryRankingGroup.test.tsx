@@ -46,7 +46,7 @@ describe("Category Average Comparison", () => {
     expect(within(line).getByTestId("category-dot")).toBeInTheDocument();
     expect(within(line).getByTestId("category-dot")).toHaveClass("border-2");
     expect(within(line).getByTestId("gap-line")).toBeInTheDocument();
-    expect(line).toHaveTextContent("+8.6 pts");
+    expect(line).toHaveTextContent("+8.6%");
     expect(line).toHaveTextContent("28.4% vs 19.8%");
     const f = parseFloat(within(line).getByTestId("fund-dot").style.left);
     const a = parseFloat(within(line).getByTestId("category-dot").style.left);
@@ -63,7 +63,7 @@ describe("Category Average Comparison", () => {
   });
   it("summary_counts_ahead_comparisons_and_names_the_one_to_watch", () => {
     mount();
-    expect(screen.getByTestId("category-summary")).toHaveTextContent("Your funds beat their category average in 4 of 5 comparisons. Each number is your fund's return minus the average return of funds in the same category, in percentage points. Plus is better. The one to watch: Beta Fund over 1 year (-2.1 pts).");
+    expect(screen.getByTestId("category-summary")).toHaveTextContent("Your funds beat their category average in 4 of 5 comparisons. Each number is your fund's return minus the average return of funds in the same category. Plus is better. The one to watch: Beta Fund over 1 year (-2.1%).");
   });
   it("chips_filter_the_cards", () => {
     mount();

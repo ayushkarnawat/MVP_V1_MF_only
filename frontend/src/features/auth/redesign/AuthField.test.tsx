@@ -19,12 +19,12 @@ describe("AuthField", () => {
     expect(input.getAttribute("aria-describedby")).toBe("email-error email-hint");
     expect(screen.getByRole("alert")).toHaveTextContent("Enter a valid email.");
   });
-  it("is 48 px high with a 12 px radius and passes input props through", () => {
+  it("draws the shell with auth-field and passes input props through", () => {
     const onChange = vi.fn();
     render(<AuthField id="p" label="Mobile" placeholder="98765 43210" onChange={onChange} />);
     const input = screen.getByLabelText("Mobile");
-    expect(input.className).toContain("h-12");
-    expect(input.className).toContain("rounded-xl");
+    const shell = input.parentElement;
+    expect(shell).toHaveClass("auth-field");
     fireEvent.change(input, { target: { value: "9" } });
     expect(onChange).toHaveBeenCalled();
     expect(input).toHaveAttribute("placeholder", "98765 43210");

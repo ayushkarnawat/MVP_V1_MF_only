@@ -88,4 +88,15 @@ describe("OtpPanel", () => {
     mount({ submitting: true });
     expect(screen.getByRole("button", { name: /Verifying code/ })).toBeDisabled();
   });
+  it("shows the arrow button, one auth-or, phone icon in the call line, and one resend sequence", () => {
+    mount();
+    expect(screen.getByTestId("auth-btn-arrow")).toBeInTheDocument();
+    expect(document.querySelectorAll(".auth-or")).toHaveLength(1);
+    const call = screen.getByText("Get code via call");
+    const callControl = call.closest("[aria-disabled='true']");
+    expect(callControl).toBeInTheDocument();
+    expect(callControl?.querySelector("svg")).toBeInTheDocument();
+    const resendContainer = screen.getByText(/Didn't receive the code\?/).parentElement;
+    expect(resendContainer).toHaveTextContent("Didn't receive the code? Resend code in 01:00");
+  });
 });

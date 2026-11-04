@@ -16,24 +16,26 @@ describe("AuthSplitCard", () => {
     expect(right.firstElementChild).toBe(screen.getByTestId("auth-topbar"));
     expect(right.lastElementChild).toBe(screen.getByTestId("auth-bottom"));
   });
-  it("centres one 360 px block both ways in the content row", () => {
+  it("centres one 520 px block both ways in the content row (auto margins, so a tall block scrolls instead of clipping)", () => {
     mount();
-    const content = screen.getByTestId("auth-content");
-    expect(content.className).toContain("items-center");
-    expect(content.className).toContain("justify-center");
     const block = screen.getByTestId("auth-block");
-    expect(block.className).toContain("max-w-[360px]");
+    expect(block.className).toContain("m-auto");
+    expect(block.className).toContain("max-w-[520px]");
     expect(block.className).toContain("w-full");
+    expect(screen.getByTestId("auth-content").className).toContain("overflow-y-auto");
     expect(within(block).getByTestId("the-form")).toBeInTheDocument();
   });
-  it("the top bar and the bottom row keep their 56 px height, with or without content", () => {
+  it("the top bar is the same height on every screen; the bottom row only exists when given, with a hairline unless switched off", () => {
     const { unmount } = mount();
-    expect(screen.getByTestId("auth-topbar").className).toContain("h-14");
-    expect(screen.getByTestId("auth-bottom").className).toContain("h-14");
+    expect(screen.getByTestId("auth-topbar").className).toContain("h-10");
+    expect(screen.queryByTestId("auth-bottom")).toBeNull();
     unmount();
-    mount({ step: 3, onBack: () => {}, bottom: <a href="/">Log in</a> });
-    expect(screen.getByTestId("auth-topbar").className).toContain("h-14");
-    expect(screen.getByTestId("auth-bottom").className).toContain("h-14");
+    const second = mount({ step: 3, onBack: () => {}, bottom: <a href="/">Log in</a> });
+    expect(screen.getByTestId("auth-topbar").className).toContain("h-10");
+    expect(screen.getByTestId("auth-bottom").className).toContain("border-t");
+    second.unmount();
+    mount({ bottom: <a href="/">Log in</a>, bottomRule: false });
+    expect(screen.getByTestId("auth-bottom").className).not.toContain("border-t");
   });
   it("shows Back on the left and the step on the right, the same on every screen", () => {
     const onBack = vi.fn();
@@ -54,12 +56,21 @@ describe("AuthSplitCard", () => {
     mount({ step: 5, done: true });
     expect(screen.getByText("Done")).toBeInTheDocument();
   });
-  it("has 40 px padding on both panels, equal heights, and stacks below 1024 px", () => {
+  it("is as tall as the window allows (the height budget), and stacks below 1024 px", () => {
     mount();
     const card = screen.getByTestId("auth-card");
     expect(card.className).toContain("grid-cols-1");
     expect(card.className).toMatch(/lg:grid-cols-/);
-    expect(screen.getByTestId("auth-right").className).toContain("p-10");
-    expect(screen.getByTestId("auth-left-slot").className).toContain("p-10");
+    expect(card.className).toContain("lg:h-[var(--auth-card-h)]");
+  });
+  it("tells the left panel which layout and tone it has, as data attributes (wide for sign-up 1 and log-in 1)", () => {
+    const { unmount } = mount();
+    expect(screen.getByTestId("auth-card")).toHaveAttribute("data-layout", "stacked");
+    expect(screen.getByTestId("auth-card")).toHaveAttribute("data-tone", "mint");
+    unmount();
+    mount({ layout: "wide", tone: "white" });
+    expect(screen.getByTestId("auth-card")).toHaveAttribute("data-layout", "wide");
+    expect(screen.getByTestId("auth-card")).toHaveAttribute("data-tone", "white");
+    expect(screen.getByTestId("auth-left-slot").className).toContain("auth-left-white");
   });
 });

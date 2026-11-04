@@ -17,4 +17,19 @@ describe("StatusRow", () => {
     rerender(<StatusRow label="Preparing your dashboard" state="done" />);
     expect(screen.getByText("Done")).toHaveClass("sr-only");
   });
+  it("done row has green check circle, active row has spinner, pending has neither", () => {
+    const { rerender } = render(<StatusRow label="Item" state="done" />);
+    const doneRow = screen.getByTestId("status-row");
+    expect(doneRow.querySelector("svg")).toBeInTheDocument();
+    expect(doneRow.querySelector(".animate-spin")).toBeNull();
+
+    rerender(<StatusRow label="Item" state="active" />);
+    const activeRow = screen.getByTestId("status-row");
+    expect(activeRow.querySelector(".animate-spin")).toBeInTheDocument();
+
+    rerender(<StatusRow label="Item" state="pending" />);
+    const pendingRow = screen.getByTestId("status-row");
+    expect(pendingRow.querySelector("svg")).toBeNull();
+    expect(pendingRow.querySelector(".animate-spin")).toBeNull();
+  });
 });

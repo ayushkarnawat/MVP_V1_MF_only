@@ -20,7 +20,7 @@ describe("EmailCode, sign-up screen 3b (task 6.10)", () => {
     expect(within(left).getByText("Confirm your email so we can keep your account secure and send you important updates.")).toBeInTheDocument();
     expect(within(left).getByText("si••••••@gmail.com")).toBeInTheDocument();
     expect(within(left).getByRole("button", { name: "Edit email address" })).toBeInTheDocument();
-    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/envelope-code.webp");
+    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/envelope.svg");
   });
   it("still says Step 3 of 5, because the email check is a sub-step of step 3", () => {
     mount();

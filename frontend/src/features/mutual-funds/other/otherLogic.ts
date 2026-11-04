@@ -736,7 +736,7 @@ export function categoryGapText(value: string, average: string): string {
   const [whole, fraction = ""] = (negative ? gap.slice(1) : gap).split(".");
   const padded = fraction.padEnd(2, "0");
   const shifted = `${whole}${padded.slice(0, 2)}`.replace(/^0+(?=\d)/, "") + (padded.length > 2 ? `.${padded.slice(2)}` : "");
-  return formatPercent(`${negative ? "-" : ""}${shifted}`, { digits: 1, signed: true }).replace(/%$/, " pts");
+  return formatPercent(`${negative ? "-" : ""}${shifted}`, { digits: 1, signed: true });
 }
 
 export function filterCategoryFunds(data: CategoryRankingSummary, filter: CategoryFilter): CategoryRankRow[] {
@@ -757,7 +757,7 @@ export function categoryComparisonSummary(data: CategoryRankingSummary): string 
     compareDecimalStrings(row.gap, "0") < 0 && (!chosen || compareDecimalStrings(row.gap, chosen.gap) < 0) ? row : chosen, null);
   const watch = worst ? `${worst.name} over ${CATEGORY_PERIOD_LABELS[worst.period]} (${categoryGapText(worst.value, worst.average)}).`
     : comparisons.length ? "none is behind its category average." : "we do not have enough return data yet.";
-  return `Your funds beat their category average in ${ahead} of ${comparisons.length} comparisons. Each number is your fund's return minus the average return of funds in the same category, in percentage points. Plus is better. The one to watch: ${watch}`;
+  return `Your funds beat their category average in ${ahead} of ${comparisons.length} comparisons. Each number is your fund's return minus the average return of funds in the same category. Plus is better. The one to watch: ${watch}`;
 }
 
 export function categoryComparisonScale(data: CategoryRankingSummary): [number, number] {

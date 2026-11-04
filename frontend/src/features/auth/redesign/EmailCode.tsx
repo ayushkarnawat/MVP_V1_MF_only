@@ -1,3 +1,4 @@
+import { Mail, Pencil } from "lucide-react";
 import { maskEmail } from "../validation";
 import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
@@ -31,10 +32,18 @@ export function EmailCode({ email, devOtp, error, submitting, onSubmit, onResend
             sketch="envelope"
             headline={EMAIL_CODE_HEADLINE}
             paragraph={EMAIL_CODE_PARAGRAPH}
-            infoCard={
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-[var(--ui-text)]">{masked}</p>
-                <button type="button" onClick={onEditEmail} className="text-xs font-semibold text-[var(--pos-text)] hover:underline">
+            identity={
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-[17px] font-medium text-[var(--auth-ink)]">
+                  <Mail size={18} aria-hidden="true" className="shrink-0 text-[var(--auth-green-ink)]" />
+                  <span>{masked}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={onEditEmail}
+                  className="flex items-center gap-1.5 text-[14px] font-medium text-[var(--auth-green-ink)] hover:underline"
+                >
+                  <Pencil size={16} aria-hidden="true" />
                   Edit email address
                 </button>
               </div>

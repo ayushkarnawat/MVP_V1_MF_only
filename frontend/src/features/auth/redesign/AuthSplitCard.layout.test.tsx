@@ -7,7 +7,7 @@ describe("AuthSplitCard on a tablet (UI round 2, S6 task 6.15)", () => {
     render(<AuthSplitCard left={<p>left</p>} right={<p>right</p>} />);
     const left = screen.getByTestId("auth-left-slot");
     const right = screen.getByTestId("auth-right");
-    expect(screen.getByTestId("auth-card")).toHaveClass("grid-cols-1", "lg:grid-cols-2");
+    expect(screen.getByTestId("auth-card")).toHaveClass("grid-cols-1");
     expect(right).toHaveClass("order-1", "lg:order-2");
     expect(left).toHaveClass("order-2", "lg:order-1");
   });

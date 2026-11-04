@@ -119,6 +119,25 @@ describe("LoginEntry: the right panel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Continue with Google" }));
     expect(onGoogleCredential).toHaveBeenCalledWith("google-token");
   });
+  it("both tabs render an icon", () => {
+    mount();
+    expect(tab("Email").querySelector("svg")).toBeInTheDocument();
+    expect(tab("Mobile number").querySelector("svg")).toBeInTheDocument();
+  });
+  it("renders one auth-or separator", () => {
+    mount();
+    const orElements = document.querySelectorAll(".auth-or");
+    expect(orElements).toHaveLength(1);
+    expect(orElements[0]).toHaveAttribute("role", "separator");
+  });
+  it("renders an arrow on Get OTP button", () => {
+    mount();
+    expect(screen.getByTestId("auth-btn-arrow")).toBeInTheDocument();
+  });
+  it("renders a wide card", () => {
+    mount();
+    expect(screen.getByTestId("auth-card")).toHaveAttribute("data-layout", "wide");
+  });
 });
 
 describe("LoginEntry: the left panel (login 1 copy slide)", () => {
@@ -138,6 +157,6 @@ describe("LoginEntry: the left panel (login 1 copy slide)", () => {
   });
   it("draws the laptop sketch", () => {
     mount();
-    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/laptop-assets.webp");
+    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/laptop.svg");
   });
 });

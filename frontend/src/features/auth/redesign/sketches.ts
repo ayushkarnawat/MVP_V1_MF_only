@@ -1,16 +1,19 @@
 export type SketchName = "laptop" | "phone" | "envelope" | "idCard" | "person" | "cards" | "wallet" | "tick";
 
-export const LOGO_FILE = "unifolio-logo.webp";
+/** The official wordmark (tight crop, transparent), the same file the rest of the app uses. */
+export const LOGO_FILE = "/brand/unifolio-logo-light.png";
 
+/** Hand-drawn sketches (vector, except the person) with transparent backgrounds, drawn for the redesign (see public/illustrations/auth/README.md). */
 export const SKETCH_FILES: Record<SketchName, string> = {
-  laptop: "laptop-assets.webp",
-  phone: "phone-code.webp",
-  envelope: "envelope-code.webp",
-  idCard: "id-card.webp",
-  person: "person-thinking.webp",
-  cards: "floating-cards.webp",
-  wallet: "wallet-folder.webp",
-  tick: "tick.webp",
+  laptop: "laptop.svg",
+  phone: "phone.svg",
+  envelope: "envelope.svg",
+  idCard: "id-card.svg",
+  // The one sketch that is the designer's own drawing (cut from the owner's mockup PDF, background made transparent) instead of a redraw; the owner approved this on 4 Nov 2026.
+  person: "person.png",
+  cards: "cards.svg",
+  wallet: "wallet.svg",
+  tick: "tick.svg",
 };
 
 export interface SketchMotion {
@@ -35,4 +38,4 @@ export const SKETCH_MOTION: Record<SketchName, SketchMotion> = {
 
 const BASE = "/illustrations/auth/";
 export const sketchSrc = (name: SketchName): string => `${BASE}${SKETCH_FILES[name]}`;
-export const logoSrc = (): string => `${BASE}${LOGO_FILE}`;
+export const logoSrc = (): string => LOGO_FILE;

@@ -140,23 +140,35 @@ export function PerformanceChart({ schemeId, fundName, toggleSlot }: Performance
 
     return (
       <div className="space-y-4">
-        {data.benchmark_source != null && <div data-testid="benchmark-details" className="space-y-1 text-xs text-[var(--ui-text-muted)]">
-          <span className="inline-flex items-center gap-2"><SchemeLogo schemeName={fundName} size="sm" />{fundName}</span>
-          {data.benchmark_source !== "none" && <p className="inline-flex items-center gap-1.5 flex-wrap">
-            <span>Benchmark: {benchmarkDisplayName(data.benchmark_label ?? (data.benchmark_index ? benchmarkKeyName(data.benchmark_index) : "No benchmark"))}</span>
-            <BenchmarkInfoNote note={data.benchmark_note} />
-          </p>}
-          {data.benchmark_source !== "none" && data.declared_benchmark_name && <p>Factsheet names: {benchmarkDisplayName(data.declared_benchmark_name)}</p>}
-          {/* This chart draws no printed returns, so a fund with no benchmark gets the plain "No benchmark" reason
-              here even when its factsheet names an index (the returns table shows that case). With no
-              "Benchmark:" line for "none", the note's icon sits beside this sentence instead. */}
-          <p className="inline-flex items-center gap-1.5 flex-wrap">
-            <span>{benchmarkChoiceDetails(data.benchmark_source).fullLine}</span>
-            {data.benchmark_source === "none" && <BenchmarkInfoNote note={data.benchmark_note} />}
-          </p>
-          <p>{BENCHMARK_PERIOD_METHOD}</p>
-        </div>}
-        <ul aria-label="Chart legend" className="flex flex-wrap items-center gap-3 text-xs">
+        {data.benchmark_source != null && (
+          <div data-testid="benchmark-details" className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-hover)] px-4 py-3 text-xs text-[var(--ui-text-muted)] space-y-1.5">
+            {data.benchmark_source !== "none" && (
+              <div className="flex items-center gap-x-2 gap-y-1 flex-wrap">
+                <span>Benchmark: <span className="text-[13px] font-semibold text-[var(--ui-text)]">{benchmarkDisplayName(data.benchmark_label ?? (data.benchmark_index ? benchmarkKeyName(data.benchmark_index) : "No benchmark"))}</span></span>
+                <BenchmarkInfoNote note={data.benchmark_note} />
+                {data.declared_benchmark_name ? (
+                  <>
+                    <span className="text-[var(--ui-text-muted)]">·</span>
+                    <span>Factsheet names: {benchmarkDisplayName(data.declared_benchmark_name)}</span>
+                  </>
+                ) : null}
+              </div>
+            )}
+            <p className="leading-relaxed max-w-[75ch]">
+              {benchmarkChoiceDetails(data.benchmark_source).fullLine} {BENCHMARK_PERIOD_METHOD}
+              {data.benchmark_source === "none" && (
+                /* This chart draws no printed returns, so a fund with no benchmark gets the plain "No benchmark" reason
+                   here even when its factsheet names an index (the returns table shows that case). With no
+                   "Benchmark:" line for "none", the note's icon sits beside this sentence instead. */
+                <>
+                  {" "}
+                  <BenchmarkInfoNote note={data.benchmark_note} />
+                </>
+              )}
+            </p>
+          </div>
+        )}
+        <ul aria-label="Chart legend" className="flex flex-wrap items-center gap-2 text-xs">
           {/* Fund legend item */}
           <li>
             <button
@@ -164,48 +176,54 @@ export function PerformanceChart({ schemeId, fundName, toggleSlot }: Performance
               aria-pressed={!hidden.fund}
               data-testid="legend-fund"
               onClick={() => toggleHidden("fund")}
-              className={`inline-flex items-center gap-1.5 rounded px-2 py-1 transition-opacity ${
+              className={`inline-flex items-center gap-2 rounded-full border border-[var(--ui-divider)] bg-[var(--ui-elevated)] px-3 py-1.5 transition-opacity ${
                 hidden.fund ? "opacity-50" : ""
               }`}
             >
               <i
                 aria-hidden="true"
                 style={{ background: "var(--c2)" }}
-                className="h-2 w-2 rounded-full inline-block"
+                className="h-2.5 w-2.5 rounded-full inline-block shrink-0"
               />
-              <span className="text-[var(--ui-text-muted)]">{fundName}</span>
-              <b data-testid="legend-fund-figure" className={fundDirColor}>
+              <SchemeLogo schemeName={fundName} size="sm" />
+              <span className="max-w-[16rem] truncate text-xs text-[var(--ui-text)]" title={fundName}>
+                {fundName}
+              </span>
+              <b data-testid="legend-fund-figure" className={`text-xs font-semibold ${fundDirColor}`}>
                 {formatSignedPercent(data.period_returns.fund, 1)}
               </b>
             </button>
           </li>
 
           {/* Benchmark legend item */}
-          {data.benchmark !== null && (
-            <li>
-              <button
-                type="button"
-                aria-pressed={!hidden.benchmark}
-                data-testid="legend-benchmark"
-                onClick={() => toggleHidden("benchmark")}
-                className={`inline-flex items-center gap-1.5 rounded px-2 py-1 transition-opacity ${
-                  hidden.benchmark ? "opacity-50" : ""
-                }`}
-              >
-                <i
-                  aria-hidden="true"
-                  style={{ background: "var(--c3)" }}
-                  className="h-2 w-2 rounded-full inline-block"
-                />
-                <span className="text-[var(--ui-text-muted)]">
-                  {data.benchmark_source != null ? benchmarkDisplayName(data.benchmark_label ?? "Benchmark") : data.benchmark_label ?? "Benchmark"}
-                </span>
-                <b data-testid="legend-benchmark-figure" className={benchDirColor}>
-                  {formatSignedPercent(data.period_returns.benchmark, 1)}
-                </b>
-              </button>
-            </li>
-          )}
+          {data.benchmark !== null && (() => {
+            const benchName = data.benchmark_source != null ? benchmarkDisplayName(data.benchmark_label ?? "Benchmark") : data.benchmark_label ?? "Benchmark";
+            return (
+              <li>
+                <button
+                  type="button"
+                  aria-pressed={!hidden.benchmark}
+                  data-testid="legend-benchmark"
+                  onClick={() => toggleHidden("benchmark")}
+                  className={`inline-flex items-center gap-2 rounded-full border border-[var(--ui-divider)] bg-[var(--ui-elevated)] px-3 py-1.5 transition-opacity ${
+                    hidden.benchmark ? "opacity-50" : ""
+                  }`}
+                >
+                  <i
+                    aria-hidden="true"
+                    style={{ background: "var(--c3)" }}
+                    className="h-2.5 w-2.5 rounded-full inline-block shrink-0"
+                  />
+                  <span className="max-w-[16rem] truncate text-xs text-[var(--ui-text)]" title={benchName}>
+                    {benchName}
+                  </span>
+                  <b data-testid="legend-benchmark-figure" className={`text-xs font-semibold ${benchDirColor}`}>
+                    {formatSignedPercent(data.period_returns.benchmark, 1)}
+                  </b>
+                </button>
+              </li>
+            );
+          })()}
 
           {/* Category legend item */}
           {category.status !== "unavailable" && (
@@ -218,28 +236,30 @@ export function PerformanceChart({ schemeId, fundName, toggleSlot }: Performance
                 {...(category.status === "error"
                   ? { title: "Category figures could not be loaded" }
                   : {})}
-                className={`inline-flex items-center gap-1.5 rounded px-2 py-1 transition-opacity ${
+                className={`inline-flex items-center gap-2 rounded-full border border-[var(--ui-divider)] bg-[var(--ui-elevated)] px-3 py-1.5 transition-opacity ${
                   hidden.category ? "opacity-50" : ""
                 }`}
               >
                 <i
                   aria-hidden="true"
                   style={{ background: "var(--ui-text-muted)" }}
-                  className="h-2 w-2 rounded-full inline-block"
+                  className="h-2.5 w-2.5 rounded-full inline-block shrink-0"
                 />
-                <span className="text-[var(--ui-text-muted)]">{categoryName}</span>
+                <span className="max-w-[16rem] truncate text-xs text-[var(--ui-text)]" title={categoryName}>
+                  {categoryName}
+                </span>
                 {category.status === "loading" ? (
                   <b
                     data-testid="legend-category-figure"
                     aria-busy="true"
-                    className="text-[var(--ui-text)]"
+                    className="text-xs font-semibold text-[var(--ui-text)]"
                   >
                     …
                   </b>
                 ) : category.status === "error" ? (
                   <b
                     data-testid="legend-category-figure"
-                    className="text-[var(--ui-text)]"
+                    className="text-xs font-semibold text-[var(--ui-text)]"
                   >
                     —
                   </b>
@@ -256,7 +276,7 @@ export function PerformanceChart({ schemeId, fundName, toggleSlot }: Performance
                     return (
                       <b
                         data-testid="legend-category-figure"
-                        className={catDirColor}
+                        className={`text-xs font-semibold ${catDirColor}`}
                       >
                         {formatSignedPercent(pctVal, 1)}
                       </b>

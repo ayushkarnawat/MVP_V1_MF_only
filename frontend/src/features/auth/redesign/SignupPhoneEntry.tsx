@@ -1,12 +1,14 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
 import { ConsentNotice } from "../../legal/ConsentNotice";
 import { isAccountExistsError, validateIndianPhone } from "../validation";
 import { AuthAlert } from "./AuthAlert";
+import { AuthButton } from "./AuthButton";
 import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
+import { LOGIN_ROW_ICONS } from "./authRowIcons";
 import { LOGIN_HEADLINE_ACCENT, LOGIN_HEADLINE_BEFORE, LOGIN_ROWS } from "./loginCopy";
 import { SIGNUP_PARAGRAPH } from "./signupCopy";
 
@@ -45,24 +47,29 @@ export function SignupPhoneEntry({ onSubmit, onLogin, error, submitting, legalRe
     <AuthPage>
       <AuthSplitCard
         step={1}
+        layout="wide"
         left={
           <AuthLeftPanel
             sketch="laptop"
             headline={<>{LOGIN_HEADLINE_BEFORE}<span className="text-[var(--pos-text)]">{LOGIN_HEADLINE_ACCENT}</span></>}
             paragraph={SIGNUP_PARAGRAPH}
             rows={LOGIN_ROWS}
+            rowIcons={LOGIN_ROW_ICONS}
           />
         }
         right={
-          <form onSubmit={submit} noValidate className="space-y-5 text-left">
-            <div className="space-y-2">
-              <h1 className="text-[26px] font-bold leading-tight text-[var(--ui-text)]">Let&apos;s get started</h1>
-              <p className="text-sm text-[var(--ui-text-muted)]">Enter your mobile number to create your Unifolio account.</p>
+          <form onSubmit={submit} noValidate className="auth-form">
+            <div className="flex flex-col gap-[var(--auth-gap-sm)]">
+              <h1 className="auth-h1">Let&apos;s get started</h1>
+              <p className="auth-sub">Enter your mobile number to create your Unifolio account.</p>
             </div>
-            <div className="space-y-1.5">
-              <label htmlFor="signup-phone" className="block text-[13px] font-medium text-[var(--ui-text)]">Mobile number</label>
-              <div className="flex h-12 items-center rounded-xl border border-[var(--ui-divider)] bg-white focus-within:ring-2 focus-within:ring-[var(--auth-step-on)]">
-                <span className="flex h-full items-center border-r border-[var(--ui-divider)] px-4 text-sm font-semibold text-[var(--ui-text)]">+91</span>
+            <div>
+              <label htmlFor="signup-phone" className="auth-label mb-2">Mobile number</label>
+              <div className="auth-field" data-invalid={fieldError ? "true" : undefined}>
+                <span data-testid="country-code" className="flex items-center gap-1.5 text-[15px] font-semibold text-[var(--auth-ink)]">
+                  +91 <ChevronDown size={16} aria-hidden="true" data-testid="country-chevron" />
+                </span>
+                <span aria-hidden className="h-6 w-px bg-[var(--auth-line)]" />
                 <input
                   id="signup-phone"
                   type="tel"
@@ -73,11 +80,10 @@ export function SignupPhoneEntry({ onSubmit, onLogin, error, submitting, legalRe
                   aria-invalid={fieldError ? true : undefined}
                   aria-describedby={fieldError ? "signup-phone-error" : undefined}
                   onChange={(event) => setValue(event.target.value)}
-                  className="h-full min-w-0 flex-1 bg-transparent px-4 text-sm text-[var(--ui-text)] outline-none"
                   autoFocus
                 />
               </div>
-              {fieldError ? <p id="signup-phone-error" role="alert" className="text-xs text-[var(--neg-text)]">{fieldError}</p> : null}
+              {fieldError ? <p id="signup-phone-error" role="alert" className="mt-1.5 text-[13px] text-[var(--neg-text)]">{fieldError}</p> : null}
             </div>
             {error ? (
               isAccountExistsError(error) ? (
@@ -86,10 +92,10 @@ export function SignupPhoneEntry({ onSubmit, onLogin, error, submitting, legalRe
                 <AuthAlert tone="error">{error}</AuthAlert>
               )
             ) : null}
-            <Button type="submit" disabled={submitting || !legalReady} className="h-[52px] w-full rounded-full text-[15px] font-bold">
+            <AuthButton type="submit" disabled={submitting || !legalReady} arrow={!submitting}>
               {submitting ? "Sending..." : "Get OTP"}
-            </Button>
-            <ConsentNotice loadError={legalLoadError} onRetry={onLegalRetry} />
+            </AuthButton>
+            <ConsentNotice loadError={legalLoadError} onRetry={onLegalRetry} className="!text-left [&_p]:!text-[13px] [&_p]:!text-[var(--auth-muted)] [&_a]:!text-[var(--auth-green-ink)]" />
           </form>
         }
         bottom={
