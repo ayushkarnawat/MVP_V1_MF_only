@@ -9,7 +9,7 @@ describe("AllSet, sign-up screen 6 (task 6.14)", () => {
     render(<AllSet onFinish={vi.fn()} />);
     expect(screen.getByRole("group", { name: "Done" })).toBeInTheDocument();
     expect(screen.getAllByTestId("step-segment").every((segment) => segment.getAttribute("data-filled") === "true")).toBe(true);
-    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/tick.webp");
+    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/tick.svg");
     expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
   });
   it("has the left headline, paragraph and the three status rows", () => {

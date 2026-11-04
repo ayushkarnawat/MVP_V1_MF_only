@@ -9,6 +9,7 @@ import { AuthField } from "./AuthField";
 import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
+import { LOGIN_ROW_ICONS } from "./authRowIcons";
 import { LOGIN_HEADLINE_ACCENT, LOGIN_HEADLINE_BEFORE, LOGIN_PARAGRAPH, LOGIN_ROWS } from "./loginCopy";
 import { SegmentedTabs } from "./SegmentedTabs";
 
@@ -64,6 +65,7 @@ export function LoginEntry({
   return (
     <AuthPage>
       <AuthSplitCard
+        layout="wide"
         onBack={onSignUp}
         left={
           <AuthLeftPanel
@@ -71,6 +73,7 @@ export function LoginEntry({
             headline={<>{LOGIN_HEADLINE_BEFORE}<span className="text-[var(--pos-text)]">{LOGIN_HEADLINE_ACCENT}</span></>}
             paragraph={LOGIN_PARAGRAPH}
             rows={LOGIN_ROWS}
+            rowIcons={LOGIN_ROW_ICONS}
           />
         }
         right={

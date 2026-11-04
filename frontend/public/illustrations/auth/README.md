@@ -1,17 +1,12 @@
 # Auth screen illustrations
 
-Cropped from the owner's two mockup PDFs and taken, on 3 Nov 2026, from the planning page
-`Docs/orchestration/2026-11-02-auth-redesign-plan.html` (where each sits beside the screen it belongs to).
-All are lossy WebP on an off-white background (no transparency). Nothing here is generated or redrawn.
+Eight hand-authored vector sketches (SVG, transparent background, no embedded raster), drawn on 4 Nov 2026 to match the
+owner's sign-up and log-in mockups: `laptop`, `phone`, `envelope`, `id-card`, `person`, `cards`, `wallet`, `tick`.
+They share one style: a dark ink line with a light roughen filter, soft mint washes and green accents. The whole image
+floats (see `SKETCH_MOTION` in `features/auth/redesign/sketches.ts`), so nothing inside is animated.
 
-| File | Size | What it shows | Used by (as in the planning page) |
-|---|---|---|---|
-| `unifolio-logo.webp` | 296 x 100 | The Unifolio wordmark | the left panel of every auth screen |
-| `laptop-assets.webp` | 423 x 587 | A laptop dashboard with Stocks, Mutual Funds, Gold, Real Estate and Family View cards | login screen 1 and sign-up screen 1 |
-| `phone-code.webp` | 415 x 315 | A phone with a code bubble, a shield and a plant | the phone code screens |
-| `envelope-code.webp` | 435 x315 | An envelope with a code card, a shield and a plant | the email code screens |
-| `id-card.webp` | 395 x 220 | An ID card and a pen | sign-up screen 3 (your details) |
-| `person-thinking.webp` | 410 x 295 | A person thinking, with chart, pie and house bubbles | screen 4 (investor profile) |
-| `floating-cards.webp` | 490 x 295 | Floating Mutual Funds, Stocks, PMS and Real Estate cards | screen 5 (Connect accounts), wide layout |
-| `wallet-folder.webp` | 475 x 330 | A folder with documents and the logo mark, with the same cards around it | screen 5 (Connect accounts) |
-| `tick.webp` | 175 x 122 | A tick in a green circle | screen 6 (All set) |
+The logo is not stored here: the screens use the app's official wordmark, `public/brand/unifolio-logo-light.png`.
+
+If the designer sends original artwork, replace the file of the same name (keep the aspect ratio close) and nothing else changes.
+
+The older lossy `.webp` files and the `mobile_*.png` files in this folder are not used by the desktop auth screens.

@@ -20,7 +20,7 @@ describe("SignupCode, sign-up screen 2 (task 6.9)", () => {
     expect(within(left).getByText("We've sent a 6-digit verification code to")).toBeInTheDocument();
     expect(within(left).getByText("+91 98765 43210")).toBeInTheDocument();
     expect(within(left).getByRole("button", { name: "Edit number" })).toBeInTheDocument();
-    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/phone-code.webp");
+    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/phone.svg");
   });
   it("has the step bar and the code panel with the design's words and six cells", () => {
     mount();

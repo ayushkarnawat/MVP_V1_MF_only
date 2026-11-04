@@ -1,16 +1,262 @@
-/* Tokens and motion for the redesigned sign-up and sign-in screens. Imported by the new auth components only. */
+/* Tokens, layout budget and motion for the redesigned sign-up and sign-in screens (desktop only).
+   Imported by the new auth components only. Colours are measured from the owner's mockup pictures. */
 :root {
-  --auth-mint-from: #E4FAEC;
-  --auth-mint-to: #F6FEF9;
-  --auth-card-shadow: 0 24px 60px -24px rgba(16, 24, 40, 0.18), 0 2px 6px rgba(16, 24, 40, 0.06);
-  --auth-step-on: var(--pos, #16a34a);
-  --auth-step-off: #D6EFDF;
+  --auth-mint-from: #F2FCF6;
+  --auth-mint-to: #F8FDF9;
+  --auth-green: #09B158;
+  --auth-green-ink: #067A3D;
+  --auth-step-on: #07B659;
+  --auth-step-off: #E6E8EE;
+  --auth-ink: #0B1220;
+  --auth-muted: #667085;
+  --auth-line: #E5E7EC;
+  --auth-hairline: #E9EBF0;
+  --auth-badge: #E8F9EE;
+  --auth-badge-strong: #DEF8E7;
+  --auth-sel-bg: #F4FCF6;
+  --auth-sel-border: #40CD7B;
+  --auth-card-shadow: 0 30px 70px -30px rgba(16, 24, 40, 0.16), 0 2px 8px rgba(16, 24, 40, 0.05);
+  --auth-btn-shadow: 0 10px 22px -10px rgba(9, 177, 88, 0.55);
+
+  /* The layout budget. The card is as tall as the window minus the page padding, never taller than the design (780),
+     so every screen fits one window on any desktop. The spacing tokens below shrink in steps as the window gets
+     shorter, to keep breathing room instead of cramming (see the @media blocks). */
+  --auth-card-w: min(1240px, calc(100vw - 64px));
+  --auth-card-h: min(780px, calc(100dvh - 48px));
+  --auth-pad-x: 48px;
+  --auth-pad-y: 36px;
+  --auth-gap: 22px;
+  --auth-gap-sm: 12px;
+  --auth-h1: 34px;
+  --auth-h2: 38px;
+  --auth-body: 15px;
+  --auth-btn-h: 54px;
+  --auth-field-h: 54px;
+  --auth-row-h: 64px;
+  --auth-chip-h: 48px;
+  --auth-badge-size: 44px;
+  --auth-logo-h: 34px;
 }
 
+/* Windows shorter than 760 px (most 15 inch laptops with the browser bars showing). */
+@media (max-height: 759px) {
+  :root {
+    --auth-pad-y: 28px;
+    --auth-gap: 16px;
+    --auth-gap-sm: 9px;
+    --auth-h1: 30px;
+    --auth-h2: 32px;
+    --auth-body: 14px;
+    --auth-btn-h: 48px;
+    --auth-field-h: 48px;
+    --auth-row-h: 54px;
+    --auth-chip-h: 42px;
+    --auth-badge-size: 38px;
+    --auth-logo-h: 30px;
+  }
+}
+
+/* Windows shorter than 680 px (small laptops, zoomed browsers). */
+@media (max-height: 679px) {
+  :root {
+    --auth-pad-y: 20px;
+    --auth-gap: 12px;
+    --auth-gap-sm: 7px;
+    --auth-h1: 26px;
+    --auth-h2: 27px;
+    --auth-body: 13.5px;
+    --auth-btn-h: 44px;
+    --auth-field-h: 44px;
+    --auth-row-h: 46px;
+    --auth-chip-h: 38px;
+    --auth-badge-size: 34px;
+    --auth-logo-h: 26px;
+  }
+}
+
+/* The page: a very light mint wash with two faint arcs, the card floats on it. */
+.auth-page {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(1100px 600px at 18% 8%, rgba(34, 197, 94, 0.07), transparent 60%),
+    radial-gradient(900px 520px at 90% 95%, rgba(34, 197, 94, 0.06), transparent 60%),
+    linear-gradient(160deg, #F8FEFA 0%, #F4FBF6 100%);
+  --ui-text: var(--auth-ink);
+  --ui-divider: var(--auth-line);
+}
+
+.auth-page::before,
+.auth-page::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  border: 1.5px solid rgba(34, 197, 94, 0.14);
+  border-radius: 9999px;
+}
+
+.auth-page::before {
+  width: 920px;
+  height: 920px;
+  left: -420px;
+  bottom: -520px;
+}
+
+.auth-page::after {
+  width: 1100px;
+  height: 1100px;
+  right: -560px;
+  top: -700px;
+}
+
+/* The left panels. Mint is the very light tint of the mockup; white has a short hairline on its right edge. */
 .auth-left-panel {
-  background: linear-gradient(160deg, var(--auth-mint-from) 0%, var(--auth-mint-to) 100%);
-  /* The shared muted grey is 4.46:1 on the darker mint stop; this one is above 5:1 on both stops (WCAG AA is 4.5). */
-  --ui-text-muted: #666666;
+  --ui-text-muted: #5B6472;
+  --ui-text: var(--auth-ink);
+}
+
+.auth-left-mint {
+  background: linear-gradient(160deg, var(--auth-mint-from) 0%, var(--auth-mint-to) 60%, #F6FCF8 100%);
+}
+
+.auth-left-white {
+  background: #FFFFFF;
+  position: relative;
+}
+
+.auth-left-white::after {
+  content: "";
+  position: absolute;
+  top: 56px;
+  bottom: 56px;
+  right: 0;
+  width: 1px;
+  background: var(--auth-hairline);
+}
+
+/* The soft green glow behind a sketch. */
+.auth-sketch-glow {
+  position: relative;
+}
+
+.auth-sketch-glow::before {
+  content: "";
+  position: absolute;
+  inset: 8% 4%;
+  z-index: 0;
+  border-radius: 46% 54% 52% 48% / 52% 46% 54% 48%;
+  background: radial-gradient(closest-side, rgba(34, 197, 94, 0.13), rgba(34, 197, 94, 0) 100%);
+  filter: blur(6px);
+}
+
+.auth-sketch-glow > img {
+  position: relative;
+  z-index: 1;
+}
+
+/* Shared controls. */
+.auth-btn {
+  display: inline-flex;
+  width: 100%;
+  height: var(--auth-btn-h);
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 9999px;
+  background: var(--auth-green);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: var(--auth-btn-shadow);
+  transition: filter 150ms ease, transform 150ms ease;
+}
+
+.auth-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.auth-btn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.auth-btn:disabled {
+  opacity: 0.55;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.auth-btn:focus-visible {
+  outline: 2px solid var(--auth-green);
+  outline-offset: 3px;
+}
+
+.auth-btn-quiet {
+  display: inline-flex;
+  width: 100%;
+  height: var(--auth-btn-h);
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 9999px;
+  background: #F4F5F7;
+  color: var(--auth-ink);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.auth-field {
+  display: flex;
+  height: var(--auth-field-h);
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--auth-line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 0 16px;
+  color: var(--auth-muted);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.auth-field:focus-within {
+  border-color: var(--auth-green);
+  box-shadow: 0 0 0 3px rgba(9, 177, 88, 0.16);
+  color: var(--auth-ink);
+}
+
+.auth-field input {
+  min-width: 0;
+  flex: 1;
+  height: 100%;
+  background: transparent;
+  font-size: 15px;
+  color: var(--auth-ink);
+  outline: none;
+}
+
+.auth-field input::placeholder {
+  color: #A0A7B4;
+}
+
+.auth-field[data-invalid="true"] {
+  border-color: var(--neg-text, #DC2626);
+}
+
+.auth-or {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: #98A2B3;
+}
+
+.auth-or::before,
+.auth-or::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--auth-hairline);
 }
 
 @keyframes authFloat {
@@ -61,4 +307,83 @@
   .auth-sketch {
     animation: none;
   }
+}
+
+/* The green second half of a headline. Slightly deeper than the button green so large text keeps 3:1 on near-white. */
+:root {
+  --auth-accent: #0A9F50;
+}
+
+.auth-left-panel h2 > span,
+.auth-page h1 > span {
+  color: var(--auth-accent);
+}
+
+/* Very short windows: the one-line detail under each feature row gives way so the sketch keeps its room. */
+@media (max-height: 639px) {
+  .auth-row-detail {
+    display: none;
+  }
+}
+
+/* The heading takes focus when a screen opens so a screen reader announces it; a heading is not a control, so it draws no ring. */
+.auth-page h1:focus,
+.auth-page h1:focus-visible {
+  outline: none;
+}
+
+/* Text styles and the form column shared by every right panel. */
+.auth-h1 {
+  font-size: var(--auth-h1);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--auth-ink);
+}
+
+.auth-sub {
+  font-size: var(--auth-body);
+  line-height: 1.5;
+  color: var(--auth-muted);
+}
+
+.auth-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--auth-ink);
+}
+
+.auth-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--auth-muted);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--auth-gap);
+  text-align: left;
+}
+
+/* One selectable row or chip (investor type, goal, source): the selected state is a green border on a faint green fill. */
+.auth-choice {
+  border: 1px solid var(--auth-line);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.auth-choice[aria-checked="true"] {
+  border-color: var(--auth-sel-border);
+  background: var(--auth-sel-bg);
+  box-shadow: 0 0 0 3px rgba(9, 177, 88, 0.1);
+}
+
+.auth-choice:focus-visible {
+  outline: 2px solid var(--auth-green);
+  outline-offset: 2px;
 }

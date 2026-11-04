@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="432" height="296" viewBox="0 0 432 296" fill="none">
+  <defs>
+    <filter id="rough-envelope" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <linearGradient id="envelope-leaf" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#CDF3DC"/>
+      <stop offset="1" stop-color="#22C55E"/>
+    </linearGradient>
+    <linearGradient id="envelope-shield" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E4FAEC"/>
+      <stop offset="1" stop-color="#8BE3AB"/>
+    </linearGradient>
+    <linearGradient id="envelope-flap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#CDF3DC"/>
+      <stop offset="1" stop-color="#E4FAEC"/>
+    </linearGradient>
+    <linearGradient id="envelope-base" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#9FE8BB"/>
+      <stop offset="0.55" stop-color="#E4FAEC"/>
+      <stop offset="1" stop-color="#F4FDF7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- loose brush-stroke wash behind the scene -->
+  <path d="M50 182 C38 134 100 92 180 98 C256 76 356 100 386 160 C410 214 358 262 276 272 C196 288 90 280 60 242 C46 220 54 202 50 182 Z" fill="#DDF7E7" opacity="0.8"/>
+  <path d="M96 238 C130 268 210 276 300 262 C320 260 322 252 300 250 C230 262 150 262 110 232 Z" fill="#A7EBC1" opacity="0.55"/>
+  <path d="M74 250 C124 276 224 282 304 268 C244 290 124 292 74 250 Z" fill="#CDF3DC" opacity="0.7"/>
+
+  <g filter="url(#rough-envelope)" stroke="#0F1F17" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- ground -->
+    <path d="M8 268 C100 262 270 264 424 278" stroke-width="2"/>
+    <path d="M150 290 L176 289" stroke-width="1.8"/>
+    <path d="M262 286 L286 285" stroke-width="1.8"/>
+
+    <!-- envelope, tilted a little -->
+    <g transform="translate(16 4) rotate(-7 195 205)">
+      <path d="M97 166 L282 150 L292 248 L108 264 Z" fill="#CDF3DC"/>
+      <path d="M97 166 L200 100 L282 150 Z" fill="url(#envelope-flap)"/>
+
+      <!-- code card rising out -->
+      <g transform="rotate(4 180 143)">
+        <rect x="122" y="82" width="122" height="120" rx="9" fill="#FFFFFF"/>
+        <rect x="133" y="93" width="98" height="13" rx="6.5" fill="#E4FAEC" stroke-width="1.8"/>
+        <path d="M134 121 L206 121" stroke="#CDF3DC" stroke-width="5"/>
+        <path d="M134 133 L182 133" stroke="#CDF3DC" stroke-width="5"/>
+        <circle cx="148" cy="156" r="3.8" fill="#16A34A" stroke-width="1.4"/>
+        <circle cx="166" cy="156" r="3.8" fill="#16A34A" stroke-width="1.4"/>
+        <circle cx="184" cy="156" r="3.8" fill="#16A34A" stroke-width="1.4"/>
+        <circle cx="202" cy="156" r="3.8" fill="#16A34A" stroke-width="1.4"/>
+      </g>
+
+      <!-- front pocket -->
+      <path d="M97 166 L192 204 L108 264 Z" fill="#FFFFFF"/>
+      <path d="M282 150 L192 204 L292 248 Z" fill="#FFFFFF"/>
+      <path d="M108 264 L192 204 L292 248 Z" fill="url(#envelope-base)"/>
+      <path d="M110 258 L192 207" stroke="#22C55E" stroke-width="3" opacity="0.5"/>
+    </g>
+
+    <!-- shield with check -->
+    <path d="M55 170 L82 180 L82 208 C82 224 70 234 55 240 C40 234 28 224 28 208 L28 180 Z" fill="url(#envelope-shield)"/>
+    <path d="M55 176 L76 184 L76 208 C76 220 67 229 55 234" stroke-width="1.2" opacity="0.6"/>
+    <path d="M42 206 L52 216 L69 195" stroke-width="3.2"/>
+
+    <!-- paper plane and its dashed trail -->
+    <path d="M258 118 C268 86 290 62 328 48" stroke-width="1.8" stroke-dasharray="3 5"/>
+    <path d="M326 38 L382 14 L358 60 L346 46 Z" fill="#FFFFFF"/>
+    <path d="M346 46 L382 14"/>
+    <path d="M346 46 L358 60 L360 42 Z" fill="#8BE3AB" stroke-width="2"/>
+
+    <!-- plant in a pot -->
+    <path d="M347 226 C347 202 346 188 346 170" stroke-width="2.2"/>
+    <path d="M347 208 C352 180 368 154 394 142 C398 172 378 200 347 208 Z" fill="url(#envelope-leaf)"/>
+    <path d="M347 208 C362 188 376 166 392 146" stroke-width="1.4"/>
+    <path d="M346 192 C332 190 320 178 318 162 C334 162 346 174 346 192 Z" fill="url(#envelope-leaf)"/>
+    <path d="M346 184 C336 168 340 150 354 138 C362 154 358 172 346 184 Z" fill="url(#envelope-leaf)"/>
+    <path d="M347 216 C358 208 370 208 378 214 C370 224 356 224 347 216 Z" fill="url(#envelope-leaf)"/>
+    <path d="M347 216 C336 210 326 210 320 216 C328 224 340 224 347 216 Z" fill="url(#envelope-leaf)"/>
+    <path d="M318 226 L376 226 L368 272 L328 272 Z" fill="#E4FAEC"/>
+    <path d="M316 226 L378 226 L377 236 L317 236 Z" fill="#CDF3DC"/>
+    <path d="M322 244 L326 262" stroke="#FFFFFF" stroke-width="3" opacity="0.8"/>
+
+    <!-- sparkles -->
+    <path d="M90 92 Q90 100 98 100 Q90 100 90 108 Q90 100 82 100 Q90 100 90 92 Z" stroke-width="1.8"/>
+    <path d="M267 52 Q267 60 275 60 Q267 60 267 68 Q267 60 259 60 Q267 60 267 52 Z" stroke-width="1.8"/>
+    <path d="M420 214 Q420 222 428 222 Q420 222 420 230 Q420 222 412 222 Q420 222 420 214 Z" stroke-width="1.8"/>
+
+    <!-- small ticks beside the card -->
+    <path d="M315 106 L319 116" stroke-width="2"/>
+    <path d="M325 106 L331 116" stroke-width="2"/>
+    <path d="M330 122 L338 124" stroke-width="2"/>
+  </g>
+</svg>

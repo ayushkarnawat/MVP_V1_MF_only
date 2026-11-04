@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="472 234 434 584" width="434" height="584" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <filter id="rough-laptop" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="4" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <linearGradient id="lp-screen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F1FCF5"/>
+    </linearGradient>
+    <linearGradient id="lp-mug" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.55" stop-color="#F4FDF8"/>
+      <stop offset="1" stop-color="#BDEFD0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- soft washes behind the scene -->
+  <path d="M520 330 C560 290 700 300 790 320 C870 335 892 420 880 500 C872 580 880 650 820 700 C760 740 640 790 560 760 C500 735 496 650 520 590 C534 540 480 400 520 330 Z" fill="#DDF7E7" opacity="0.8"/>
+  <ellipse cx="690" cy="655" rx="190" ry="34" fill="#CDF3DC" opacity="0.7"/>
+  <ellipse cx="585" cy="745" rx="62" ry="14" fill="#CDF3DC" opacity="0.9"/>
+
+  <g filter="url(#rough-laptop)" stroke="#0F1F17" stroke-width="2.4">
+    <!-- dotted orbit lines -->
+    <g stroke-width="1.1" stroke-dasharray="3 5" opacity="0.65" fill="none">
+      <path d="M716 246 C778 244 836 258 834 283"/>
+      <path d="M834 283 C846 330 820 372 790 412"/>
+      <path d="M615 352 C598 380 604 410 620 409"/>
+      <path d="M495 516 C486 560 520 592 562 602"/>
+      <path d="M829 706 C838 650 864 600 880 548"/>
+      <path d="M883 451 C890 478 880 506 874 522"/>
+      <path d="M757 432 C772 428 782 420 788 410"/>
+    </g>
+
+    <!-- laptop base (deck) -->
+    <path d="M574 608 L774 572 L884 586 L676 664 L640 656 L590 630 Z" fill="#F7FFFA"/>
+    <path d="M590 630 L590 637 L640 663 L676 671 L884 593 L884 586" fill="none"/>
+    <path d="M640 656 L640 663 M676 664 L676 671" fill="none"/>
+    <path d="M590 637 L640 663" stroke="#16A34A" stroke-width="3" fill="none"/>
+    <path d="M606 620 L738 596 M620 630 L752 606 M640 640 L770 612" stroke-width="1.2" opacity="0.7" fill="none"/>
+    <path d="M652 648 L694 654 L736 638 L694 632 Z" stroke-width="1.4" fill="#E9FAEF"/>
+
+    <!-- laptop screen -->
+    <path d="M556 456 L758 424 L774 570 L576 608 Z" fill="#FFFFFF"/>
+    <path d="M556 456 L567 465 L584 597 L576 608 Z" fill="#2BAA62" stroke-width="1.8"/>
+    <path d="M576 608 L584 597 L764 561 L774 570 Z" fill="#CDF3DC" stroke-width="1.8"/>
+    <path d="M567 465 L750 436 L764 561 L584 597 Z" fill="url(#lp-screen)" stroke-width="1.6"/>
+    <circle cx="664" cy="441" r="1.8" fill="#0F1F17"/>
+    <circle cx="585" cy="470" r="1.5" fill="#16A34A" stroke="none"/>
+    <circle cx="591" cy="469" r="1.5" fill="#16A34A" stroke="none"/>
+    <circle cx="597" cy="468" r="1.5" fill="#16A34A" stroke="none"/>
+    <!-- donut -->
+    <g transform="translate(634 522) rotate(-8)">
+      <circle r="32" fill="#1E9A52"/>
+      <path d="M0 0 L0 -32 A32 32 0 0 1 31 8 Z" fill="#7FE0A5" stroke-width="1.6"/>
+      <path d="M0 0 L31 8 A32 32 0 0 1 12 30 Z" fill="#0F6B38" stroke-width="1.6"/>
+      <circle r="17" fill="#FFFFFF"/>
+    </g>
+    <!-- checklist -->
+    <g transform="rotate(-8 700 510)" stroke-width="1.6">
+      <rect x="690" y="483" width="9" height="9" rx="2" fill="#E4FAEC"/>
+      <rect x="690" y="505" width="9" height="9" rx="2" fill="#E4FAEC"/>
+      <rect x="690" y="527" width="9" height="9" rx="2" fill="#E4FAEC"/>
+      <path d="M708 487 L748 487 M708 491 L738 491 M708 509 L748 509 M708 513 L738 513 M708 531 L748 531" stroke-width="1.4"/>
+    </g>
+    <path d="M606 578 L612 577 M618 576 L632 574" stroke-width="1.6"/>
+    <circle cx="607" cy="578" r="2.4" fill="#16A34A" stroke-width="1.4"/>
+
+    <!-- coffee mug -->
+    <path d="M547 692 L552 738 Q585 760 619 738 L624 692 Z" fill="url(#lp-mug)"/>
+    <ellipse cx="585" cy="692" rx="38" ry="10" fill="#FFFFFF"/>
+    <ellipse cx="585" cy="693" rx="31" ry="7.5" fill="#15803D" stroke-width="1.6"/>
+    <path d="M548 702 C524 698 524 736 553 730" fill="none"/>
+    <path d="M550 710 C538 709 539 724 553 722" fill="none" stroke-width="1.6"/>
+
+    <!-- pen -->
+    <g transform="translate(796 746) rotate(11) scale(0.85)">
+      <rect x="-52" y="-4.5" width="96" height="9" rx="4.5" fill="#173424"/>
+      <rect x="-30" y="-4.5" width="6" height="9" fill="#FFFFFF" stroke-width="1.2"/>
+      <path d="M-52 -3 L-62 0 L-52 3 Z" fill="#22C55E" stroke-width="1.6"/>
+      <path d="M44 -2 L58 -1 L58 1 L44 2" stroke-width="1.6" fill="#16A34A"/>
+    </g>
+
+    <!-- paper -->
+    <path d="M618 776 L702 750 L786 774 L712 804 Z" fill="#FFFFFF" stroke-width="2"/>
+    <path d="M644 774 L702 758 M654 781 L722 762 M668 788 L740 769 M684 795 L752 777" stroke-width="1.2" opacity="0.8"/>
+    <!-- ground line and hatching, as in the mockup -->
+    <path d="M488 726 C560 748 680 740 790 726 C830 721 868 716 902 712" stroke-width="1.3" opacity="0.55"/>
+    <path d="M516 752 L534 756 M524 760 L548 764 M606 766 L626 762 M850 730 L872 726" stroke="#16A34A" stroke-width="1.6" opacity="0.7"/>
+
+    <!-- floating card: Mutual Funds -->
+    <g transform="translate(692 310) rotate(-9)">
+      <rect x="-58" y="-42" width="116" height="84" rx="9" fill="#FFFFFF"/>
+      <text transform="rotate(-8 -44 -20)" x="-44" y="-20" font-family="Manrope, Inter, system-ui, sans-serif" font-weight="700" font-size="10.5" fill="#0F1F17" stroke="none">Mutual Funds</text>
+      <path d="M-40 26 L-40 -4 M-40 26 L44 26" stroke-width="1.4"/>
+      <path d="M-38 24 L-18 6 L-2 18 L18 -2 L28 6 L42 -8" stroke="#16A34A" stroke-width="2.6" fill="none"/>
+      <path d="M-38 24 L-18 6 L-2 18 L18 -2 L28 6 L42 -8 L42 24 Z" fill="#CDF3DC" opacity="0.7" stroke="none"/>
+    </g>
+
+    <!-- floating card: Stocks -->
+    <g transform="translate(529 392) rotate(-9)">
+      <rect x="-44" y="-44" width="88" height="86" rx="9" fill="#FFFFFF"/>
+      <text transform="rotate(-6 -32 -18)" x="-32" y="-18" font-family="Manrope, Inter, system-ui, sans-serif" font-weight="700" font-size="10" fill="#0F1F17" stroke="none">Stocks</text>
+      <rect x="-24" y="8" width="9" height="16" rx="1.5" fill="#22C55E" stroke-width="1.8"/>
+      <rect x="-9" y="0" width="9" height="24" rx="1.5" fill="#22C55E" stroke-width="1.8"/>
+      <rect x="6" y="-8" width="9" height="32" rx="1.5" fill="#16A34A" stroke-width="1.8"/>
+      <path d="M-30 28 L24 28 M22 -4 L30 -8 M22 6 L32 6" stroke-width="1.2" stroke-dasharray="2 3"/>
+    </g>
+
+    <!-- floating card: Gold -->
+    <g transform="translate(834 368) rotate(8)">
+      <rect x="-54" y="-42" width="108" height="84" rx="9" fill="#FFFFFF"/>
+      <text transform="rotate(-3 -38 -20)" x="-38" y="-20" font-family="Manrope, Inter, system-ui, sans-serif" font-weight="700" font-size="10" fill="#0F1F17" stroke="none">Gold</text>
+      <!-- three stacked gold bars: top face, then front face -->
+      <g stroke-width="1.8">
+        <path d="M-34 24 L-24 14 L-4 14 L-12 24 Z" fill="#E4FAEC"/>
+        <path d="M-34 24 L-12 24 L-12 34 L-34 34 Z" fill="#FFFFFF"/>
+        <path d="M2 24 L12 14 L32 14 L24 24 Z" fill="#E4FAEC"/>
+        <path d="M2 24 L24 24 L24 34 L2 34 Z" fill="#FFFFFF"/>
+        <path d="M-16 10 L-6 0 L14 0 L6 10 Z" fill="#CDF3DC"/>
+        <path d="M-16 10 L6 10 L6 20 L-16 20 Z" fill="#FFFFFF"/>
+      </g>
+      <path d="M-40 -2 L-34 -3 L-34 6" stroke="#16A34A" stroke-width="2.4"/>
+    </g>
+
+    <!-- floating card: Real Estate -->
+    <g transform="translate(845 514) rotate(6)">
+      <rect x="-50" y="-43" width="100" height="86" rx="9" fill="#FFFFFF"/>
+      <text transform="rotate(-4 -40 -20)" x="-40" y="-20" font-family="Manrope, Inter, system-ui, sans-serif" font-weight="700" font-size="10" fill="#0F1F17" stroke="none">Real Estate</text>
+      <path d="M-14 22 L-14 4 L6 -12 L26 4 L26 22 Z" fill="#FFFFFF" stroke-width="2"/>
+      <path d="M-20 6 L6 -16 L32 6" stroke-width="2.4" fill="none"/>
+      <rect x="-1" y="8" width="12" height="14" rx="1.5" fill="#22C55E" stroke-width="1.8"/>
+      <path d="M-34 -4 L-34 12 M-34 -4 L-26 -1 L-34 2" stroke="#16A34A" stroke-width="2" fill="#22C55E"/>
+    </g>
+
+    <!-- floating card: Family View -->
+    <g transform="translate(762 656) rotate(-12) scale(0.9)">
+      <rect x="-60" y="-46" width="120" height="92" rx="9" fill="#FFFFFF"/>
+      <text transform="rotate(-4 -46 -24)" x="-46" y="-24" font-family="Manrope, Inter, system-ui, sans-serif" font-weight="700" font-size="10" fill="#0F1F17" stroke="none">Family View</text>
+      <g stroke-width="2">
+        <circle cx="-24" cy="-2" r="6" fill="#FFFFFF"/>
+        <path d="M-36 20 C-36 8 -12 8 -12 20 Z" fill="#E4FAEC"/>
+        <circle cx="24" cy="-2" r="6" fill="#FFFFFF"/>
+        <path d="M12 20 C12 8 36 8 36 20 Z" fill="#E4FAEC"/>
+        <circle cx="0" cy="-8" r="7.5" fill="#22C55E"/>
+        <path d="M-14 22 C-14 5 14 5 14 22 Z" fill="#22C55E"/>
+      </g>
+    </g>
+
+    <!-- tiny marks -->
+    <path d="M598 394 L601 396" stroke-width="2.2"/>
+    <path d="M806 438 L810 434 M800 445 L805 441" stroke-width="1.4"/>
+  </g>
+
+  <!-- green dots -->
+  <g fill="#22C55E">
+    <circle cx="716" cy="246" r="5"/>
+    <circle cx="834" cy="283" r="4"/>
+    <circle cx="620" cy="409" r="3.5"/>
+    <circle cx="495" cy="516" r="3.5"/>
+    <circle cx="829" cy="706" r="3.5"/>
+    <circle cx="883" cy="451" r="3"/>
+  </g>
+</svg>

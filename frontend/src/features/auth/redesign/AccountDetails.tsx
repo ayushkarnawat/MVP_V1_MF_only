@@ -64,6 +64,8 @@ export function AccountDetails({ initialName = "", initialEmail = "", emailLocke
     <AuthPage>
       <AuthSplitCard
         step={3}
+        tone="white"
+        bottomRule={false}
         onBack={onBack}
         left={
           <AuthLeftPanel

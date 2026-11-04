@@ -38,6 +38,7 @@ export function AllSet({ onFinish }: AllSetProps) {
     <AuthPage>
       <AuthSplitCard
         step={5}
+        tone="white"
         done
         left={
           <AuthLeftPanel

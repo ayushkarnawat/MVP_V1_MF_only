@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
+import { CONNECT_ROW_ICONS } from "./authRowIcons";
 import { CONNECT_HEADLINE_ACCENT, CONNECT_HEADLINE_BEFORE, CONNECT_PARAGRAPH, CONNECT_ROWS, CONNECT_SOURCES } from "./finishCopy";
 import { SourceRow } from "./SourceRow";
 
@@ -20,6 +21,7 @@ export function ConnectAccounts({ onContinue, onBack }: ConnectAccountsProps) {
     <AuthPage>
       <AuthSplitCard
         step={5}
+        tone="white"
         onBack={onBack}
         left={
           <AuthLeftPanel
@@ -27,6 +29,7 @@ export function ConnectAccounts({ onContinue, onBack }: ConnectAccountsProps) {
             headline={<>{CONNECT_HEADLINE_BEFORE}<span className="text-[var(--pos-text)]">{CONNECT_HEADLINE_ACCENT}</span></>}
             paragraph={CONNECT_PARAGRAPH}
             rows={CONNECT_ROWS}
+            rowIcons={CONNECT_ROW_ICONS}
           />
         }
         right={

@@ -17,7 +17,7 @@ describe("ConnectAccounts, sign-up screen 5 (task 6.13)", () => {
     expect(within(left).getByRole("heading", { level: 2 })).toHaveTextContent("Bring your investments together.");
     expect(within(left).getByText("Connect your accounts to see your family's investments in one place and understand how they fit together.")).toBeInTheDocument();
     for (const row of ["Secure & Private", "Takes just a few minutes", "All major asset types"]) expect(within(left).getByText(row)).toBeInTheDocument();
-    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/wallet-folder.webp");
+    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/wallet.svg");
   });
   it("lists the six sources in order with the drawn wording", () => {
     mount();

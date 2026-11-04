@@ -10,15 +10,15 @@ export function StepProgress({ step, total = 5, done = false }: StepProgressProp
   const label = done ? "Done" : `Step ${current} of ${total}`;
   const filled = done ? total : current;
   return (
-    <div role="group" aria-label={label} className="flex items-center gap-3">
-      <span className="text-xs font-medium text-[var(--ui-text-muted)]">{label}</span>
-      <div className="flex gap-1" aria-hidden="true">
+    <div role="group" aria-label={label} className="flex items-center gap-4">
+      <span className="text-[13px] font-medium text-[var(--auth-muted)]">{label}</span>
+      <div className="flex gap-1.5" aria-hidden="true">
         {Array.from({ length: total }, (_, index) => (
           <span
             key={index}
             data-testid="step-segment"
             data-filled={index < filled}
-            className="h-1 w-6 rounded-full"
+            className="h-[6px] w-9 rounded-full"
             style={{ background: index < filled ? "var(--auth-step-on)" : "var(--auth-step-off)" }}
           />
         ))}

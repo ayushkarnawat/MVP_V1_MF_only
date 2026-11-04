@@ -16,8 +16,10 @@ const block = (start: string) => {
 
 describe("auth-tokens.css", () => {
   it("defines the mint tints, the card shadow and the step-bar colours", () => {
-    expect(css).toMatch(/--auth-mint-from:\s*#E4FAEC/i);
-    expect(css).toMatch(/--auth-mint-to:\s*#F6FEF9/i);
+    expect(css).toMatch(/--auth-mint-from:\s*#F2FCF6/i);
+    expect(css).toMatch(/--auth-mint-to:\s*#F8FDF9/i);
+    expect(css).toMatch(/--auth-green:\s*#09B158/i);
+    expect(css).toMatch(/--auth-card-h:/);
     expect(css).toMatch(/--auth-card-shadow:/);
     expect(css).toMatch(/--auth-step-on:/);
     expect(css).toMatch(/--auth-step-off:/);

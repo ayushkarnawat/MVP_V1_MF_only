@@ -138,6 +138,6 @@ describe("LoginEntry: the left panel (login 1 copy slide)", () => {
   });
   it("draws the laptop sketch", () => {
     mount();
-    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/laptop-assets.webp");
+    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/laptop.svg");
   });
 });

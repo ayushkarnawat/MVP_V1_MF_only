@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="396" height="262" viewBox="0 0 396 262" fill="none">
+  <defs>
+    <filter id="rough-id-card" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="3" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <linearGradient id="idcard-edge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9FE8BB"/>
+      <stop offset="1" stop-color="#4ADE80"/>
+    </linearGradient>
+  </defs>
+
+  <!-- loose brush-stroke washes behind the card -->
+  <path d="M18 122 C8 92 60 62 122 70 C192 50 272 62 332 102 C352 142 332 202 282 226 C222 256 92 262 42 226 C16 202 26 152 18 122 Z" fill="#DDF7E7" opacity="0.8"/>
+  <path d="M30 196 C72 238 172 250 252 230 C204 258 82 260 30 196 Z" fill="#CDF3DC" opacity="0.8"/>
+  <path d="M60 84 C100 70 160 68 214 76 C170 82 110 86 60 84 Z" fill="#CDF3DC" opacity="0.7"/>
+  <path d="M100 60 C170 44 260 52 326 92 C300 84 210 70 120 78 Z" fill="#CDF3DC" opacity="0.6"/>
+  <path d="M250 190 C290 170 330 150 340 120 C346 170 300 222 232 236 Z" fill="#CDF3DC" opacity="0.6"/>
+  <path d="M44 150 C60 132 84 126 100 138 C80 168 64 200 70 216 C50 206 38 176 44 150 Z" fill="#CDF3DC" opacity="0.8"/>
+
+  <g filter="url(#rough-id-card)" stroke="#0F1F17" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- the tilted ID card, with a thick green edge on its lower left -->
+    <g transform="translate(205 150) rotate(-9)">
+      <rect x="-103" y="-52" width="190" height="124" rx="10" fill="url(#idcard-edge)"/>
+      <rect x="-95" y="-62" width="190" height="124" rx="10" fill="#FFFFFF"/>
+      <!-- person -->
+      <rect x="-80" y="-38" width="48" height="54" rx="4" fill="#DDF7E7" stroke="none"/>
+      <circle cx="-56" cy="-19" r="9" fill="#FFFFFF" stroke-width="2.6"/>
+      <path d="M-72 16 C-72 -2 -63 -6 -56 -6 C-49 -6 -40 -2 -40 16" fill="#FFFFFF" stroke-width="2.6"/>
+      <!-- text bars -->
+      <rect x="-14" y="-36" width="82" height="7" rx="3.5" fill="#86E3A8" stroke-width="2"/>
+      <rect x="-14" y="-18" width="76" height="7" rx="3.5" fill="#86E3A8" stroke-width="2"/>
+      <rect x="-14" y="0" width="44" height="7" rx="3.5" fill="#86E3A8" stroke-width="2"/>
+    </g>
+
+    <!-- the pen lying across the card -->
+    <path d="M287 210 L290.5 186.5 L367.5 46.5 L381.8 54.5 L304.7 194.7 Z" fill="#E4FAEC"/>
+    <path d="M290.5 186.5 L304.7 194.7 L336.6 137 L322.4 129 Z" fill="#22C55E" stroke-width="2.2"/>
+    <path d="M287 210 L290.5 186.5 L304.7 194.7 Z" fill="#0F1F17"/>
+    <path d="M297 175 L310 182" stroke-width="1.6"/>
+    <path d="M358 72 L371 79" stroke-width="2.2"/>
+    <path d="M367.5 46.5 L381.8 54.5 L387 45 L372.7 37 Z" fill="#0F1F17" stroke-width="2"/>
+    <path d="M356 100 L368 62" stroke-width="1.4" opacity="0.6"/>
+
+    <!-- radiating ticks -->
+    <path d="M86 88 L100 96"/>
+    <path d="M108 68 L113 80"/>
+    <path d="M124 68 L126 78"/>
+    <path d="M247 33 L250 45"/>
+    <path d="M266 29 L271 42"/>
+    <path d="M368 125 L387 127"/>
+    <path d="M362 152 L380 160"/>
+    <path d="M78 142 L92 142"/>
+    <path d="M66 165 L88 157"/>
+    <path d="M88 182 L95 187"/>
+  </g>
+</svg>

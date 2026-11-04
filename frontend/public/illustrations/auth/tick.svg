@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 421 296" width="421" height="296" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <filter id="rough-tick" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="7" result="n" />
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </defs>
+  <g transform="translate(-37 -39.5) scale(2.5)">
+    <!-- loose wash, then the mint disc -->
+    <path d="M46 84 C42 50 68 24 100 26 C134 26 160 50 156 86 C152 118 128 134 98 132 C66 132 48 112 46 84 Z" fill="#DDF7E7" opacity="0.8" />
+    <circle cx="100" cy="75" r="53" fill="#CDF3DC" />
+  </g>
+  <g filter="url(#rough-tick)">
+    <g transform="translate(-37 -39.5) scale(2.5)" stroke="#0F1F17" stroke-width="1.9">
+      <path d="M77 78 L94 93 L122 57" stroke-width="2.7" />
+      <path d="M18 63 H30" />
+      <path d="M30 36 L38 42" />
+      <path d="M167 25 L159 33" />
+      <path d="M169 50 L180 48" />
+    </g>
+  </g>
+</svg>

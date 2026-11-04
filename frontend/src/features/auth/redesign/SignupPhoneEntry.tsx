@@ -7,6 +7,7 @@ import { AuthAlert } from "./AuthAlert";
 import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
+import { LOGIN_ROW_ICONS } from "./authRowIcons";
 import { LOGIN_HEADLINE_ACCENT, LOGIN_HEADLINE_BEFORE, LOGIN_ROWS } from "./loginCopy";
 import { SIGNUP_PARAGRAPH } from "./signupCopy";
 
@@ -45,12 +46,14 @@ export function SignupPhoneEntry({ onSubmit, onLogin, error, submitting, legalRe
     <AuthPage>
       <AuthSplitCard
         step={1}
+        layout="wide"
         left={
           <AuthLeftPanel
             sketch="laptop"
             headline={<>{LOGIN_HEADLINE_BEFORE}<span className="text-[var(--pos-text)]">{LOGIN_HEADLINE_ACCENT}</span></>}
             paragraph={SIGNUP_PARAGRAPH}
             rows={LOGIN_ROWS}
+            rowIcons={LOGIN_ROW_ICONS}
           />
         }
         right={

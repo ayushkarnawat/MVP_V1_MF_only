@@ -20,7 +20,7 @@ describe("LoginCode, mobile", () => {
     expect(within(left).getByText("Enter the code we sent to verify your identity and securely access your Unifolio account.")).toBeInTheDocument();
     expect(within(left).getByText("+91 ••••• 43210")).toBeInTheDocument();
     expect(within(left).getByRole("button", { name: "Edit number" })).toBeInTheDocument();
-    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/phone-code.webp");
+    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/phone.svg");
   });
   it("has the code panel on the right with the design's words", () => {
     mount();
@@ -63,7 +63,7 @@ describe("LoginCode, email", () => {
     const left = screen.getByTestId("auth-left-text");
     expect(within(left).getByText("si••••••@gmail.com")).toBeInTheDocument();
     expect(within(left).getByRole("button", { name: "Edit email address" })).toBeInTheDocument();
-    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/envelope-code.webp");
+    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/envelope.svg");
   });
   it("has the email heading and sentence, and still draws Get code via call as in the mockup", () => {
     mount({ channel: "email", identity: "siddharth@gmail.com" });

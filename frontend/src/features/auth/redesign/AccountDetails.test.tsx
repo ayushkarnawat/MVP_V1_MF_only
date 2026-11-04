@@ -21,7 +21,7 @@ describe("AccountDetails, sign-up screen 3 (task 6.10)", () => {
     expect(screen.getByRole("group", { name: "Step 3 of 5" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Create your account" })).toBeInTheDocument();
     expect(screen.getByText("Tell us a few basic details to get started.")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/id-card.webp");
+    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/id-card.svg");
   });
   it("has the left headline with the accent and the PAN info card instead of a paragraph", () => {
     mount();

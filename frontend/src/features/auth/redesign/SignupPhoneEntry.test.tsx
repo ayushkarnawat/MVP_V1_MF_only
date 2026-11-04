@@ -22,7 +22,7 @@ describe("SignupPhoneEntry, sign-up screen 1 (task 6.8)", () => {
     expect(within(left).getByRole("heading", { level: 2 })).toHaveTextContent("One dashboard for your family's financial life");
     expect(within(left).getByText("Bring your family's investments together, uncover deeper insights, and make more informed financial decisions.")).toBeInTheDocument();
     for (const row of ["All your investments", "Insights that matter", "Your family's wealth, together"]) expect(within(left).getByText(row)).toBeInTheDocument();
-    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/laptop-assets.webp");
+    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/laptop.svg");
   });
   it("the country part is a fixed +91 with no drop-down", () => {
     mount();

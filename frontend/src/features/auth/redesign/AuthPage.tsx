@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
+import "../../../styles/auth-tokens.css";
 
 /**
- * The page the split card sits on: light only, centred, with room around the card.
+ * The page the split card sits on: light only, centred, with room around the card, a very light mint wash and two faint
+ * arcs (the .auth-page class in auth-tokens.css).
  * Light only (design Q21): the document is put on the light theme while an auth screen is shown and given back
  * afterwards, so the tokens and the shared components (buttons, the code cells, the consent line) all stay light even
  * when the person's system or saved theme is dark.
@@ -31,7 +33,7 @@ export function AuthPage({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div ref={page} className="flex min-h-dvh items-center justify-center bg-[#F4FAF6] p-6">
+    <div ref={page} className="auth-page flex min-h-dvh items-center justify-center overflow-hidden p-6">
       {children}
     </div>
   );

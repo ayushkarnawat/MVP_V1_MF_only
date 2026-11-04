@@ -7,6 +7,7 @@ import { AuthAlert } from "./AuthAlert";
 import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
+import { PROFILE_ROW_ICONS } from "./authRowIcons";
 import { ChipCheckbox } from "./ChipCheckbox";
 import {
   INVESTOR_PROFILE_OPTIONS, PROFILE_HEADLINE_ACCENT, PROFILE_HEADLINE_BEFORE, PROFILE_PARAGRAPH, PROFILE_ROWS,
@@ -88,6 +89,7 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
             headline={<>{PROFILE_HEADLINE_BEFORE}<span className="text-[var(--pos-text)]">{PROFILE_HEADLINE_ACCENT}</span></>}
             paragraph={PROFILE_PARAGRAPH}
             rows={PROFILE_ROWS}
+            rowIcons={PROFILE_ROW_ICONS}
           />
         }
         right={

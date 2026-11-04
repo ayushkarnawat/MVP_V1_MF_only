@@ -1,4 +1,4 @@
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import { describe, expect, it } from "vitest";
 import { LOGO_FILE, SKETCH_FILES, SKETCH_MOTION, logoSrc, sketchSrc, type SketchName } from "./sketches";
@@ -11,11 +11,23 @@ describe("the auth sketches", () => {
   });
   it("every file exists under public/illustrations/auth", () => {
     for (const name of NAMES) expect(existsSync(resolve("public/illustrations/auth", SKETCH_FILES[name])), name).toBe(true);
-    expect(existsSync(resolve("public/illustrations/auth", LOGO_FILE))).toBe(true);
+    expect(existsSync(resolve("public", LOGO_FILE.replace(/^\//, "")))).toBe(true);
+  });
+  it("every sketch is a vector file with a transparent background (no raster, no white backdrop)", () => {
+    for (const name of NAMES) {
+      const file = SKETCH_FILES[name];
+      expect(file, name).toMatch(/\.svg$/);
+      const svg = readFileSync(resolve("public/illustrations/auth", file), "utf8");
+      expect(svg, name).not.toMatch(/<image|data:image|xlink:href="http/i);
+      expect(svg, name).not.toMatch(/<rect[^>]*width="100%"[^>]*height="100%"[^>]*fill="#?(fff|ffffff|white)"/i);
+    }
+  });
+  it("the logo is the official brand file", () => {
+    expect(LOGO_FILE).toBe("/brand/unifolio-logo-light.png");
   });
   it("builds a root-relative address for each", () => {
-    expect(sketchSrc("laptop")).toBe("/illustrations/auth/laptop-assets.webp");
-    expect(logoSrc()).toBe("/illustrations/auth/unifolio-logo.webp");
+    expect(sketchSrc("laptop")).toBe("/illustrations/auth/laptop.svg");
+    expect(logoSrc()).toBe("/brand/unifolio-logo-light.png");
   });
   it("has the motion of the design's table (distance in px, duration in s)", () => {
     expect(SKETCH_MOTION.laptop).toEqual({ motion: "float", distance: 6, duration: 7 });

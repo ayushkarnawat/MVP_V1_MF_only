@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="240 280 362 300" width="362" height="300" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <filter id="rough-phone" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <linearGradient id="ph-leaf" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#CDF3DC"/>
+      <stop offset="1" stop-color="#22C55E"/>
+    </linearGradient>
+    <linearGradient id="ph-side" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6EDB9B"/>
+      <stop offset="1" stop-color="#D2F7DF"/>
+    </linearGradient>
+    <linearGradient id="ph-shield" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7FE0A5"/>
+      <stop offset="0.5" stop-color="#7FE0A5"/>
+      <stop offset="0.5" stop-color="#D2F7DF"/>
+      <stop offset="1" stop-color="#D2F7DF"/>
+    </linearGradient>
+    <linearGradient id="ph-ground" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0F1F17" stop-opacity="0"/>
+      <stop offset="0.2" stop-color="#0F1F17" stop-opacity="1"/>
+      <stop offset="0.85" stop-color="#0F1F17" stop-opacity="1"/>
+      <stop offset="1" stop-color="#0F1F17" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- washes -->
+  <path d="M262 380 C300 330 380 340 430 350 C500 340 560 380 556 450 C560 510 510 560 420 560 C340 566 280 540 262 480 C252 440 248 410 262 380 Z" fill="#DDF7E7" opacity="0.8"/>
+  <ellipse cx="400" cy="548" rx="150" ry="14" fill="#CDF3DC" opacity="0.8"/>
+
+  <g filter="url(#rough-phone)" stroke="#0F1F17" stroke-width="2.4">
+    <!-- ground line first, so the phone hides it where they meet -->
+    <path d="M246 541 C330 534 420 524 505 524 C540 524 570 520 596 514" stroke-width="2"/>
+    <path d="M352 573 L402 571 M458 570 L492 568" stroke-width="2"/>
+    <path d="M300 552 L330 548 M520 548 L556 544 M270 560 L292 558" stroke="#16A34A" stroke-width="1.6" opacity="0.7"/>
+
+    <!-- phone: side wall then face -->
+    <g transform="translate(408 436) rotate(-8)">
+      <rect x="-68" y="-116" width="124" height="236" rx="17" fill="url(#ph-side)"/>
+      <rect x="-62" y="-118" width="120" height="236" rx="16" fill="#FFFFFF"/>
+      <rect x="-54" y="-109" width="104" height="218" rx="10" fill="#FBFFFD" stroke-width="1.6"/>
+      <path d="M-14 -105 L14 -105" stroke-width="2.6"/>
+      <circle cx="-22" cy="-105" r="1.6" fill="#0F1F17" stroke="none"/>
+      <rect x="-42" y="-84" width="80" height="16" rx="4" fill="#E9F8EF" stroke-width="1" stroke="#CFE6D8"/>
+      <rect x="-42" y="-60" width="52" height="11" rx="4" fill="#E9F8EF" stroke-width="1" stroke="#CFE6D8"/>
+      <rect x="-42" y="50" width="80" height="16" rx="4" fill="#E9F8EF" stroke-width="1" stroke="#CFE6D8"/>
+      <rect x="-42" y="73" width="46" height="11" rx="4" fill="#E9F8EF" stroke-width="1" stroke="#CFE6D8"/>
+      <!-- chat bubble -->
+      <path d="M-44 -30 H44 Q50 -30 50 -24 V 12 Q50 18 44 18 H-22 L-36 32 L-32 18 H-44 Q-50 18 -50 12 V-24 Q-50 -30 -44 -30 Z" fill="#F0FCF4" stroke-width="2"/>
+      <circle cx="-27" cy="-4" r="4.2" fill="#16A34A" stroke-width="1.6"/>
+      <circle cx="-9" cy="-4" r="4.2" fill="#16A34A" stroke-width="1.6"/>
+      <circle cx="9" cy="-4" r="4.2" fill="#16A34A" stroke-width="1.6"/>
+      <circle cx="27" cy="-4" r="4.2" fill="#16A34A" stroke-width="1.6"/>
+      <path d="M-14 100 L14 100" stroke-width="1.6" opacity="0.7"/>
+    </g>
+
+    <!-- shield -->
+    <g transform="translate(283 437) rotate(-8) scale(0.9)">
+      <path d="M0 -33 L27 -22 V5 C27 21 12 31 0 37 C-12 31 -27 21 -27 5 V-22 Z" fill="url(#ph-shield)" stroke-width="2.4"/>
+      <path d="M0 -26 L20 -18 V5 C20 17 9 25 0 30 C-9 25 -20 17 -20 5 V-18 Z" fill="none" stroke-width="1.4" opacity="0.7"/>
+      <path d="M-11 2 L-3 11 L13 -9" stroke-width="3.4" fill="none"/>
+    </g>
+
+    <!-- paper plane and trail -->
+    <path d="M474 320 L525 291 L499 338 L493 321 Z" fill="#FFFFFF" stroke-width="2.2"/>
+    <path d="M525 291 L493 321 L497 337 L505 320 Z" fill="#7FE0A5" stroke-width="1.6"/>
+    <path d="M493 321 L499 338" stroke-width="1.6"/>
+    <path d="M468 328 C458 332 452 334 448 340 M440 343 L436 345" stroke-width="1.4" stroke-dasharray="3 4"/>
+
+    <!-- sparkles -->
+    <g stroke-width="1.6" fill="none">
+      <path d="M294 357 Q294 365 286 365 Q294 365 294 373 Q294 365 302 365 Q294 365 294 357 Z"/>
+      <path d="M531 326 Q531 334 523 334 Q531 334 531 342 Q531 334 539 334 Q531 334 531 326 Z"/>
+      <path d="M574 468 Q574 476 566 476 Q574 476 574 484 Q574 476 582 476 Q574 476 574 468 Z"/>
+      <path d="M269 490 Q269 498 261 498 Q269 498 269 506 Q269 498 277 498 Q269 498 269 490 Z"/>
+    </g>
+    <!-- motion ticks near the bubble -->
+    <path d="M479 376 L485 386 M491 372 L497 380" stroke-width="1.8"/>
+    <path d="M389 285 L391 286" stroke-width="2"/>
+
+    <!-- plant -->
+    <g transform="translate(514 484) scale(1.18) translate(-514 -484)">
+    <path d="M513 484 C512 470 512 455 514 440" stroke-width="2" fill="none"/>
+    <path d="M514 462 C498 458 488 446 488 432 C503 434 514 446 514 462 Z" fill="url(#ph-leaf)" stroke-width="2"/>
+    <path d="M514 462 C532 458 546 440 544 420 C528 424 514 442 514 462 Z" fill="url(#ph-leaf)" stroke-width="2"/>
+    <path d="M514 470 L542 424 M514 462 L490 436" stroke-width="1.2" opacity="0.8"/>
+    <path d="M514 448 C506 436 508 422 520 414 C528 426 524 440 514 448 Z" fill="url(#ph-leaf)" stroke-width="2"/>
+    </g>
+    <path d="M489 486 H539 L533 523 Q514 530 495 523 Z" fill="#D2F7DF" stroke-width="2.2"/>
+    <ellipse cx="514" cy="486" rx="25" ry="5.5" fill="#FFFFFF"/>
+    <path d="M496 506 Q514 512 532 506" stroke-width="1.2" opacity="0.7"/>
+
+  </g>
+</svg>
