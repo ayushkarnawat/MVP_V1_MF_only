@@ -1,16 +1,16 @@
 # Staging Deploy Guide: UI round 2 and the six life goals (`leapswitch-redesign`, final merge) to `ls-redesign.unifolio.in`
 
-Task 7.1 of the UI round 2 plan. **DRAFT: nothing here runs until S6 is tagged, task D.1 is reviewed by the owner and the owner gives an explicit go.** Written 4 Nov 2026 from the real state of staging recorded in `2026-11-03-staging-deploy-record-change-requests.md`. Modelled on `2026-10-29-staging-deploy-guide-individual-fund.md` and `2026-10-31-staging-deploy-guide-change-requests.md` (the manager's real-run fixes are kept: `sudo sh` for the deploy script, the dump goes to object storage, queries go through the compose Postgres container because the host has no `psql`, read `.env` under `sudo`).
+Task 7.1 of the UI round 2 plan. **Status (4 Nov 2026): ready to run on the owner's go.** S6 is tagged `ui-s6-done`, the documentation update (D.1) is done and the QA checklist is written. The executor still stops at every GATE below and waits for a yes in the chat. Written 4 Nov 2026 from the real state of staging recorded in `2026-11-03-staging-deploy-record-change-requests.md`. Modelled on `2026-10-29-staging-deploy-guide-individual-fund.md` and `2026-10-31-staging-deploy-guide-change-requests.md` (the manager's real-run fixes are kept: `sudo sh` for the deploy script, the dump goes to object storage, queries go through the compose Postgres container because the host has no `psql`, read `.env` under `sudo`).
 
 ## Facts that decide the order of this guide
 - **Staging today:** the VM worktree `/opt/unifolio-redesign` is on **`release/change-requests`** at `0dfd1261` (or later: the manager may add QA fixes there). Alembic head on the VM is **`0052`**. The front end is `ls-redesign.unifolio.in`, the shared API is `ls-staging-api.unifolio.in`, and `ls-staging.unifolio.in` (the main link) shares the backend.
 - **This release** moves the VM to the **final merge commit on `leapswitch-redesign`**, which holds the change-requests release (already deployed) plus UI round 2: Home allocation funds, new funds after an upload, add-as-family, the Actual XIRR graph and benchmark label, the six life goals, and the redesigned sign-up and sign-in.
 - **One migration: `0053`** (`down_revision` `0052`). It sets every user's saved goals to NULL (no old goal maps to a new one), swaps the Postgres CHECK `ck_users_primary_goals_allowed` to the six new codes (1 to 6 items), **drops `users.primary_goal` and the enum type `primarygoal`**. After it, **every user has no saved goals** and is asked again.
 - **Old code on the new schema breaks every `users` query** (the old model selects the dropped column). **New code on the old schema works** except saving the new goal codes (the old CHECK refuses them). So the order is: stop the old backend and worker, start the new code, migrate at once, restart. Never leave the old containers running across the migration. (The change-requests deploy ran its migration while old containers still served for about four minutes; this guide does not repeat that.)
-- **Deploy branch: `leapswitch-redesign` only**, at the final merge commit. Never `main`, never `feat/leapswitch-staging`, never `release/change-requests` for this release. Nothing is pushed to `leapswitch-redesign` before the owner's go.
+- **Deploy branch: `leapswitch-redesign` only**, at the final merge commit. Never `main`, never `feat/leapswitch-staging`, never `release/change-requests` for this release. **Step 0 is the first thing this guide does: it merges `ui-round-2` into `leapswitch-redesign` and pushes it (a GATE).** Nothing else pushes to that branch, and nothing is ever force-pushed.
 - **No analytics recompute is required:** no stored analytics section changed. (If a stored field is later found to have changed, add the recompute step and tell the owner.)
 - **When.** Weekday, outside the cron windows: avoid 00:55 to 06:35 IST (batch jobs) and 08:00 and 19:00 (account deletion, CAS expiry); `news-refresh` runs at :15 past 07, 10, 13, 16, 19, 22 and 23:30. **Time:** about 30 minutes. The API is down from step 10 until step 14 (about 6 to 10 minutes).
-- **Who runs what.** The owner, with Claude as the only executor, from the laptop's WSL (`ssh deploy@202.66.174.251`; the Windows side is refused; an SSH timeout, as opposed to a refusal, is the CloudPe Security Group IP allowlist, see the staging plan's Troubleshooting). Claude runs every VM command itself and pastes each output. Sign-in, sign-up, codes and the deletion of a throwaway user are the owner's job in the browser.
+- **Who runs what.** The manager runs the deploy with the owner's go, with Claude as the only executor, from the laptop's WSL (`ssh deploy@202.66.174.251`; the Windows side is refused; an SSH timeout, as opposed to a refusal, is the CloudPe Security Group IP allowlist, see the staging plan's Troubleshooting). Claude runs every VM command itself and pastes each output. Sign-in, sign-up, codes and the deletion of a throwaway user are the owner's job in the browser.
 
 ## What ships
 - **Backend:** Home `allocation` gains `funds` per class; `GET /imports/{id}/new-funds` and `new_funds` plus `created` on each confirm result; `POST /imports/sessions/{id}/resolve-add-as-family` (the account holder is never changed; a PAN that already belongs to the account holder gives a 409 `pan_belongs_to_other_member`); `benchmark_label` on the fund returns response; `PATCH /auth/me` takes 1 to 6 of the six goal codes (an old code or an empty list gives 422); the contact-change notice is not emailed before sign-up is complete (the event and the 7-day cooling-off are still recorded); **migration `0053`**.
@@ -23,7 +23,7 @@ Paste the block below into Claude (WSL terminal on the laptop) as the first mess
 ```text
 You are executing the staging deploy guide "2026-11-04-staging-deploy-guide-ui-round-2.md" (folder Docs/orchestration of the repo) on the LeapSwitch VM. You are the only executor: you run every command yourself; the owner only answers GATEs and uses the browser.
 
-FIRST: read the whole guide, then the whole QA checklist the owner names, before running anything. Confirm in one line that you have read both.
+FIRST: read the whole guide and the whole QA checklist before running anything. If the merge in step 0 has not happened yet, read them from the branch: git fetch origin, then git show origin/ui-round-2:Docs/orchestration/2026-11-04-staging-deploy-guide-ui-round-2.md and the same for 2026-11-04-staging-qa-checklist-ui-round-2.md. Confirm in one line that you have read both.
 
 HOW YOU CONNECT: from the laptop's WSL with the SSH key held there: ssh deploy@202.66.174.251. If you are not in WSL, stop and tell the owner. Run each VM command as: ssh deploy@202.66.174.251 "cd /opt/unifolio-redesign/deploy/leapswitch && <command>".
 
@@ -35,7 +35,7 @@ HOW YOU WORK:
 5. Database: only the statements in the guide. The only write is `alembic upgrade head` in step 12. No inserts, updates, deletes or drops by hand. Do NOT run clean-db.sh, restore.sh or rollback.sh unless the owner gives that exact instruction at that moment.
 6. No deletes of files, images, containers or volumes. No change to .env, no crontab change. Never stop a running recompute. Never add --allow-nav-writes.
 7. Never create accounts, never type or store passwords, codes or keys. Browser steps are the owner's: tell the owner exactly what to do and wait.
-8. Never push, commit or edit anything in the repo on the laptop or the VM, other than the git fetch and checkout in step 5. The deploy branch is leapswitch-redesign ONLY.
+8. Never push, commit or edit anything in the repo on the laptop or the VM, other than: step 0 (the merge commit on a throwaway local branch and ONE normal push of it to origin leapswitch-redesign, after the GATE) and the git fetch and checkout in step 5. Never force-push, never push to any other branch (not main, not feat/leapswitch-staging, not release/change-requests, not ui-round-2). The deploy branch is leapswitch-redesign ONLY.
 9. Use sudo exactly as written. If sudo asks for a password, stop.
 
 WHEN FINISHED give the final report in the format of step 20, then say "Technical steps done; hand the QA checklist to the owner." Do not fill in the QA checklist yourself.
@@ -44,7 +44,8 @@ WHEN FINISHED give the final report in the format of step 20, then say "Technica
 ## Before you start
 | Item | Needed in | Who |
 |---|---|---|
-| **The owner's go**, S6 tagged `ui-s6-done`, D.1 reviewed, and the final merge of `ui-round-2` into `leapswitch-redesign` reviewed and pushed (`<FINAL-COMMIT>` = its head) | Step 1 | Owner |
+| **The owner's go** (S6 is tagged `ui-s6-done`, D.1 is done) | Step 0 | Owner |
+| **A clone of the repo on the laptop** with push rights to `origin` and a clean working tree (it is used only for step 0 and the laptop checks) | Steps 0 to 3 | Manager |
 | **A decision on `clean-db.sh`** (default: **not run**; see step 9) | Step 9 | Owner |
 | **Free disk of 10 GB or more** (the deploy script's own guard; the change-requests deploy stopped at 8 GB) | Step 4 | Claude checks; STOP if under 10 GB |
 | **A throwaway Google or email account** for the sign-up walk, and one existing account for sign-in | QA | Owner |
@@ -53,6 +54,7 @@ WHEN FINISHED give the final report in the format of step 20, then say "Technica
 ## Section 1: steps
 | Step | What | Gate |
 |---|---|---|
+| 0 | Laptop: merge `ui-round-2` into `leapswitch-redesign` and push | GATE before the push |
 | 1 to 3 | Laptop: the final commit, one migration, CI | |
 | 4 | VM pre-checks | |
 | 5 | Switch the worktree to `leapswitch-redesign` | |
@@ -65,11 +67,46 @@ WHEN FINISHED give the final report in the format of step 20, then say "Technica
 | 16 to 19 | Goals checks, error grep, smoke, the owner's saved queries | |
 | 20 | Final report | |
 
+### Step 0 (laptop): the final merge of `ui-round-2` into `leapswitch-redesign`
+This is the only push this guide makes. On 4 Nov 2026 `leapswitch-redesign` was still at `8dc7d9ba` (frozen) and `ui-round-2` was 55 commits ahead and contained it, so the merge is a fast-forward in content; it is done as a merge commit (`--no-ff`) so the final merge is one visible, revertable commit. Run in the laptop clone, never on the VM.
+```bash
+git status --short
+```
+Expected: prints nothing. **STOP** if it lists files (do not stash or discard).
+```bash
+git fetch origin && git rev-parse origin/leapswitch-redesign origin/ui-round-2
+```
+Record both hashes. Expected: `origin/leapswitch-redesign` is `8dc7d9ba...`. **STOP and ask** if it is anything else (someone pushed; the manager decides).
+```bash
+git merge-base --is-ancestor origin/leapswitch-redesign origin/ui-round-2 && echo contains
+```
+Expected: `contains`. **STOP** if not.
+```bash
+git switch -c final-merge origin/leapswitch-redesign && git merge --no-ff origin/ui-round-2 -m "Merge ui-round-2: UI round 2, the six life goals and the sign-up redesign (final merge)"
+```
+Expected: a merge commit with no conflicts. **STOP** on any conflict: nothing is pushed; report which files. Then:
+```bash
+git diff --quiet origin/ui-round-2 HEAD && echo "tree identical to ui-round-2"
+git log --oneline --graph -4
+git diff --stat origin/leapswitch-redesign HEAD | tail -1
+```
+Expected: `tree identical to ui-round-2` (the merge adds nothing of its own); the graph shows the new merge commit on top; the stat line is the whole of UI round 2. Record `git rev-parse HEAD` as `<FINAL-COMMIT>`.
+
+**GATE: ask the manager's or owner's explicit yes before the push.** Then:
+```bash
+git push origin final-merge:leapswitch-redesign
+```
+Expected: `8dc7d9ba..<FINAL-COMMIT>  final-merge -> leapswitch-redesign` (a normal fast-forward update). **STOP** if it is rejected: someone pushed in between; never force. Then:
+```bash
+git fetch origin && git rev-parse origin/leapswitch-redesign
+```
+Expected: equals `<FINAL-COMMIT>`. This is the commit every later step deploys.
+
 ### Step 1 (laptop): the final commit is on the deploy branch
 ```bash
 git fetch origin && git log -1 --format=%H origin/leapswitch-redesign
 ```
-Expected: one full hash; record it as `<FINAL-COMMIT>`. **STOP** if the fetch fails or the hash is not the commit the owner pushed.
+Expected: one full hash equal to the merge commit pushed in step 0 (`<FINAL-COMMIT>`). **STOP** if the fetch fails or the hash differs.
 ```bash
 for c in 0dfd1261 1aad77c2 9cf80dc8 0bd86f88 4ee95496; do git merge-base --is-ancestor $c origin/leapswitch-redesign && echo "$c in"; done
 ```
@@ -233,6 +270,7 @@ The owner checks every saved query outside the repo (DBeaver, dashboards, spread
 ### Step 20: final report (Claude fills this in)
 | Item | Value |
 |---|---|
+| Merge commit pushed to `leapswitch-redesign` in step 0 (`<FINAL-COMMIT>`) and `origin/leapswitch-redesign` before it | |
 | Deployed commit (`git rev-parse HEAD` on the VM) | |
 | `alembic current` (must print `0053 (head)`) | |
 | Backup file name in object storage | |
@@ -250,6 +288,7 @@ The owner checks every saved query outside the repo (DBeaver, dashboards, spread
 - A timing check of Home, the fund page and the month detail with the earlier scripts is optional here: the 3 Nov results after the change-requests deploy were within the hard limits (Home 304 / 353 ms against 1,500; the fund page's first call per fund was 105 to 108 ms against 100) and this release changes no hot path except two small additive fields. If the owner wants it, use `measure_home_staging.py --user-id <uuid> --simulate-fresh-cache`.
 
 ## Section 3: rollback (only on the owner's yes)
+The merge in step 0 is not undone by any of this. If it must be undone, that is a new revert commit on `leapswitch-redesign` decided by the owner and pushed normally (never a force-push, never a history rewrite).
 The database must go back **first**, while the new image still holds the `0053` file, then the code:
 1. **Migration down** (new image still `:latest`): `sudo docker compose run --rm -T backend alembic downgrade -1`. Expected `Running downgrade 0053 -> 0052`. This recreates `users.primary_goal` and the enum type, clears goals (they were already cleared) and restores the four-code CHECK. If this fails, stop and ask: the next option is a full restore from the step 6 backup.
 2. **Backend and worker image back:** `sudo sh ./scripts/rollback.sh` (points `:latest` at `:previous` and runs `docker compose up -d`). Expected `Started` for both. It does not touch the database or the front end. If step 11 warned that `:previous` was not moved, do **not** use this: rebuild from `<LAST-DEPLOYED-COMMIT>` instead.
