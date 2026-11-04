@@ -831,6 +831,15 @@ Recorded in the order they were taken. Full reasoning in the handoffs named in e
 - **The VM runs the release branch** in `/opt/unifolio-redesign` until the UI round 2 rollout (S7); `deploy-redesign.sh` accepts `release/change-requests`.
 - **The intern's UI round 2 session takes the release in now** (merge, repeatable) rather than after QA; QA fixes are taken in later with the same merge.
 
+## 2026-11-03 (night) — Owner decisions after the deploy
+
+- **O6 and O7 confirmed as read** (`2026-11-03-o6-o7-readings.md`), including the two oddities: ICICI Prudential Aggressive Hybrid counts in the overlap at 0.0% net equity (an empty holdings batch, the next ICICI import will show the real figure), and the two Motilal Oswal index funds show Rakesh Shetty [Debt Component] as main manager.
+- **Hand imports for the hand-import fund houses: go** (run 22:00 IST, 9 houses; Axis has no file). The 10 Nov 06:00 `fund-managers-monthly` run and its 9 Nov reminder stay scheduled.
+- **The CA workbook has been sent by the owner; it is frozen** (no further edits). Items raised afterwards about its wording are not acted on.
+- **Export script and the extracted valuation, category and ranking functions need NOT be live on staging**: the script ran once from a temporary folder; the code is only on the release branch and reaches staging with the next backend deploy (the UI round 2 rollout S7).
+- **NAV freshness for the whole app: no full warm.** The daily NAV job (06:00) already warms every held fund and every peer in the held funds' categories; a fund that no household holds in a category nobody holds is warmed at the first recompute that needs it. A one-off warm of all 14,441 active funds would be about 14,000 downloads and tens of millions of rows on a shared 29 GB disk, for funds no one reads. The CA export's one-time warm (owner approved) already moved the categories of those seven funds.
+- **Flow of the branches (confirmed):** `release/change-requests` (deployed, on origin) is merged into `ui-round-2` by the intern's session (a merge, repeatable); `ui-round-2` is merged into `leapswitch-redesign` at her final merge on the owner's go, so `leapswitch-redesign` receives the release and UI round 2 together; then her S7 rollout moves the VM to `leapswitch-redesign` and adds migration 0053 (backup first, disk resized first). `main` is not touched by any of this.
+
 ## 2026-11-04 — UI round 2 and the six life goals (decisions, one line each)
 
 Plan: `Docs/orchestration/2026-11-02-ui-round-2-and-auth-redesign-implementation-plan.md`. Registers: `delegation-log.md`, `ui-run-log.md`. Owner decisions are marked "owner".
