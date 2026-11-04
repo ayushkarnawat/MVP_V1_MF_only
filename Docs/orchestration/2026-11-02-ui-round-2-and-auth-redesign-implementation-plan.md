@@ -461,6 +461,8 @@ def resolve_add_as_family(db: Session, session_id: str, user_id: uuid.UUID) -> I
 
 ### Task 3.4: Complete profile after the import (Q37) **[Antigravity]**
 
+> **SUPERSEDED 4 Nov 2026 (owner, QA).** The queue of Complete profile dialogs after an import was removed from `useImportOrchestration` (decisions.md, 4 Nov). Q37 was a Name mismatch answer; this task widened it to every import that creates a member, which made new users wait and type before reaching the app. The text below is kept as history only.
+
 **Files:** Modify `features/import/useImportOrchestration.tsx`, the component that hosts the post-confirm step (read `ImportFlow.tsx` first), reuse `features/dashboard/members/CompleteProfileDialog`. Tests alongside.
 
 **Interfaces:** after confirm, for each `people[]` entry with `created === true` show the existing `CompleteProfileDialog` for that member, one after another, skippable, so the user can set the relation, and the other details, with the profile-completed percentage the dialog already shows. A member that already existed is not asked. Nothing new is drawn. The dialog's data comes from `listHouseholdMembers` / `updateMemberProfile` (existing).

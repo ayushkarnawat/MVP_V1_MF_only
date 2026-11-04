@@ -7,9 +7,6 @@ import { useImportFlow } from "./useImportFlow";
 import { clearCasResumeStep2 } from "./casResumeState";
 import { buildConfirmBody } from "./confirmBody";
 import { buildImportNotice, type ImportNotice } from "./importNotice";
-import { getHouseholdMembers } from "../auth/api";
-import type { HouseholdMember } from "../auth/types";
-import { CompleteProfileDialog } from "../dashboard/members/CompleteProfileDialog";
 import { UnidentifiedFundsDialog } from "./UnidentifiedFundsDialog";
 import type { ImportPreviewResponse, PersonConfirmation, PersonPreview, SchemeConfirmation } from "./types";
 
@@ -52,20 +49,10 @@ export function useImportOrchestration(
 
   const autoAttempt = useRef<ImportPreviewResponse | null>(null);
   const completionSent = useRef(false);
-  // Members this import created: each gets the Complete profile dialog, one after another, before onDone runs.
-  const [profileQueue, setProfileQueue] = useState<HouseholdMember[]>([]);
-  const pendingNotice = useRef<ImportNotice | null>(null);
-  const finishAfterProfiles = useCallback(() => {
-    const notice = pendingNotice.current;
-    pendingNotice.current = null;
-    if (notice) onDone?.(notice);
-  }, [onDone]);
-  const nextProfile = () => {
-    const rest = profileQueue.slice(1);
-    setProfileQueue(rest);
-    if (rest.length === 0) finishAfterProfiles();
-  };
-
+  // Deliberately no "Complete profile" dialog here. A new member (detected from the CAS or
+  // added through "Add X as a family member") is completed later, inside the app, from the
+  // "N% complete" pill or Profile > Family. Asking during onboarding or an import makes the
+  // user wait and type before they reach the app (owner decision, 4 Nov 2026 QA).
   useEffect(() => {
     const result = flow.confirmResult;
     const duplicate = flow.errorCode === "already_imported";
@@ -77,21 +64,8 @@ export function useImportOrchestration(
       return;
     }
     if (!result) return;
-    const notice = buildImportNotice(result);
-    const createdIds = result.people.filter((p) => p.created === true).map((p) => p.member_id);
-    if (createdIds.length === 0) {
-      onDone?.(notice);
-      return;
-    }
-    pendingNotice.current = notice;
-    getHouseholdMembers()
-      .then((members) => {
-        const queue = createdIds.flatMap((id) => members.find((m) => m.id === id) ?? []);
-        if (queue.length === 0) finishAfterProfiles();
-        else setProfileQueue(queue);
-      })
-      .catch(() => finishAfterProfiles());
-  }, [flow.confirmResult, flow.errorCode, householdMemberId, onDone, finishAfterProfiles]);
+    onDone?.(buildImportNotice(result));
+  }, [flow.confirmResult, flow.errorCode, householdMemberId, onDone]);
 
   useEffect(() => {
     if (stage === "upload" && flow.errorCode === "session_expired") setUploadMessage(error);
@@ -222,15 +196,6 @@ export function useImportOrchestration(
         rejectedMessage={flow.confirmRejected ? error : null}
         onUploadAgain={() => void cancelImport()}
       />
-      {profileQueue.length > 0 && (
-        <CompleteProfileDialog
-          key={profileQueue[0].id}
-          member={profileQueue[0]}
-          onSaved={() => {}}
-          onMerged={nextProfile}
-          onClose={nextProfile}
-        />
-      )}
       <CancelImportDialog
         isOpen={cancelOpen}
         peopleCount={preview?.people.length ?? 1}

@@ -27,7 +27,7 @@ vi.mock("../auth/api", async () => {
   return { ...actual, getHouseholdMembers: vi.fn(), listHouseholdMembers: vi.fn() };
 });
 
-// The real dialog is covered by its own tests; here only the order and the hand-over matter.
+// Stands in for the real dialog so the tests below can prove it never appears inside an import.
 vi.mock("../dashboard/members/CompleteProfileDialog", () => ({
   CompleteProfileDialog: ({ member, onSaved, onClose }: { member: { name: string }; onSaved: (m: unknown) => void; onClose: () => void }) => (
     <div role="dialog" aria-label={`Complete profile for ${member.name}`}>
@@ -632,7 +632,11 @@ const profileMember = (id: string, name: string) => ({
   email: null, name_from_statement: true, pan_conflict: null, pan_editable: true, profile_completion: 40, missing_fields: ["relationship"],
 });
 
-describe("ImportFlow: Complete profile after the import (UI round 2, change 5)", () => {
+// 4 Nov 2026 QA: the Complete profile dialog must never appear inside an import. Onboarding
+// and every import (plain, add-as-family, from inside the app) go straight to onDone after the
+// "N people found" and importing steps; the profile is completed later from the "N% complete"
+// pill and Profile > Family (their own tests live with MemberBanners and FamilyPage).
+describe("ImportFlow: no Complete profile dialog after the import", () => {
   const confirmedWith = (created: Array<boolean | undefined>): ImportConfirmResponse => ({
     ...RESULT,
     people: created.map((flag, index) => ({
@@ -653,42 +657,29 @@ describe("ImportFlow: Complete profile after the import (UI round 2, change 5)",
     vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([profileMember("m-new0", "Ramesh Sharma"), profileMember("m-new1", "Priya Sharma"), profileMember("member-1", "Asha Rao")] as never);
   });
 
-  it("shows the profile dialog for each created member, in order, and finishes after the last", async () => {
+  it("finishes straight away, with no profile dialog, when the import created members", async () => {
     const onDone = await run(confirmedWith([true, true]));
-    fireEvent.click(await screen.findByRole("button", { name: "Skip Ramesh Sharma" }));
-    expect(onDone).not.toHaveBeenCalled();
-    fireEvent.click(await screen.findByRole("button", { name: "Skip Priya Sharma" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^(Skip|Save) / })).toBeNull();
+  });
+  it("does not even load the member list to ask about new members", async () => {
+    const onDone = await run(confirmedWith([true, true]));
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    expect(authApi.getHouseholdMembers).not.toHaveBeenCalled();
+  });
+  it("finishes the same way when only some members were created", async () => {
+    const onDone = await run(confirmedWith([false, true]));
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
-  it("does not ask for a member that already existed", async () => {
-    const onDone = await run(confirmedWith([false, true]));
-    expect(await screen.findByRole("button", { name: "Skip Priya Sharma" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Skip Ramesh Sharma" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Skip Priya Sharma" }));
-    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
-  });
-  it("saving and skipping both move on to the next member", async () => {
-    const onDone = await run(confirmedWith([true, true]));
-    fireEvent.click(await screen.findByRole("button", { name: "Save Ramesh Sharma" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Skip Priya Sharma" }));
-    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
-  });
-  it("asks nobody when no member was created (a sign-up import, or an old response)", async () => {
+  it("finishes the same way when no member was created (an old response has no created flag)", async () => {
     const onDone = await run(confirmedWith([undefined, false]));
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(authApi.getHouseholdMembers).not.toHaveBeenCalled();
   });
-  it("still finishes when the member list cannot be loaded", async () => {
-    vi.mocked(authApi.getHouseholdMembers).mockRejectedValue(new Error("offline"));
+  it("hands onDone the import notice, unchanged", async () => {
     const onDone = await run(confirmedWith([true]));
-    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
-    expect(screen.queryByRole("dialog")).toBeNull();
-  });
-  it("hands the same notice to onDone after the dialogs as it would have without them", async () => {
-    const onDone = await run(confirmedWith([true]));
-    fireEvent.click(await screen.findByRole("button", { name: "Skip Ramesh Sharma" }));
     await waitFor(() => expect(onDone).toHaveBeenCalledWith({ text: "3 transactions added · 1 already saved" }));
   });
 });
