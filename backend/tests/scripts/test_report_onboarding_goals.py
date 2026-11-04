@@ -9,23 +9,39 @@ def _user(db, phone, goals, created="2026-10-01"):
     db.add(u); db.commit(); return u
 
 
-ALL = ["consolidated_view", "understand_holdings", "family_management", "performance_comparison"]
+ALL = ["wealth_creation", "retirement", "childrens_education", "buy_home", "financial_freedom", "tax_planning"]
 
 
-def test_report_counts(db_session):
+def test_report_counts_the_six_goals(db_session):
     _user(db_session, "+911", ALL)
-    _user(db_session, "+912", ["family_management"])
+    _user(db_session, "+912", ["retirement"])
     _user(db_session, "+913", None)
     r = goal_report(db_session, None, None)
-    assert r["total_users"] == 3 and r["skipped"] == 1 and r["all_four"] == 1
-    assert r["per_goal"]["family_management"] == {"count": 2, "pct": 100.0}
-    assert r["per_goal"]["consolidated_view"] == {"count": 1, "pct": 50.0}
+    assert list(r["per_goal"]) == ALL
+    assert r["per_goal"]["retirement"] == {"count": 2, "pct": 100.0}
+    assert r["per_goal"]["tax_planning"] == {"count": 1, "pct": 50.0}
+    assert r["per_goal"]["buy_home"] == {"count": 1, "pct": 50.0}
+
+
+def test_report_picked_all_counts_users_with_all_six(db_session):
+    _user(db_session, "+911", ALL)
+    _user(db_session, "+912", ALL[:5])
+    r = goal_report(db_session, None, None)
+    assert r["picked_all"] == 1
+    assert "all_four" not in r
+
+
+def test_report_skipped_counts_users_without_goals(db_session):
+    _user(db_session, "+911", ["retirement"])
+    _user(db_session, "+913", None)
+    r = goal_report(db_session, None, None)
+    assert r["total_users"] == 2 and r["skipped"] == 1
 
 
 def test_date_filter_and_rows(db_session):
-    _user(db_session, "+914", ["family_management"], created="2026-09-01")
-    _user(db_session, "+915", ["consolidated_view"], created="2026-10-02")
+    _user(db_session, "+914", ["retirement"], created="2026-09-01")
+    _user(db_session, "+915", ["buy_home"], created="2026-10-02")
     r = goal_report(db_session, date(2026, 10, 1), None)
     assert r["total_users"] == 1
     rows = goal_rows(db_session, None, None)
-    assert {row[2] for row in rows} == {"family_management", "consolidated_view"}
+    assert {row[2] for row in rows} == {"retirement", "buy_home"}

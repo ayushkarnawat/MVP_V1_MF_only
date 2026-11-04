@@ -37,6 +37,10 @@ CHECK_DISK=/opt/unifolio/deploy/leapswitch/scripts/check-disk.sh
 0  8  *  *  *              $RUN delete-expired-accounts-daily scripts/jobs/delete_expired_accounts_daily.py
 0  19 *  *  *              $RUN cas-file-expiry-daily         -m app.scripts.expire_cas_files
 
+# T2.12 Step B: weekly book value per share from NSE's Integrated Filing XBRL (about 20 minutes for the held stocks,
+# 2 seconds between requests, stops on a 401/403/429). Sunday 04:30 sits before the 05:20 symbol fill and the batch window.
+30 4  *  *  0              $RUN filings-book-value            scripts/jobs/refresh_filings_book_value.py
+
 # L17: weekly NSE symbol fill for stock_master.nse_symbol (NULL-only, idempotent). A no-op unless
 # NSE_SYMBOL_FILL_ENABLED=true is in the VM .env. Sunday 05:20 sits before the 05:40 batch window.
 20 5  *  *  0              $RUN nse-symbol-fill              scripts/jobs/fill_nse_symbols.py

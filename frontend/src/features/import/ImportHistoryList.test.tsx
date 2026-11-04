@@ -65,6 +65,13 @@ describe("ImportHistoryList: new funds per import (UI round 2, change 8)", () =>
     await screen.findAllByText(/2023-01-01 to 2024-01-01/i);
     expect(screen.getAllByRole("button", { name: "Show new funds" })).toHaveLength(1);
   });
+  it("an import saved as confirmed (the normal statement upload) is shown as Imported with its new funds button", async () => {
+    vi.spyOn(api, "getMemberImportHistory").mockResolvedValue([item({ status: "confirmed" })] as never);
+    render(<ImportHistoryList memberId="m-1" />);
+    expect(await screen.findByText("Imported")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show new funds" })).toBeInTheDocument();
+    expect(screen.queryByText("confirmed")).toBeNull();
+  });
   it("opens an import, fetches its new funds once and lists them", async () => {
     vi.spyOn(api, "getMemberImportHistory").mockResolvedValue([item()] as never);
     const fetchFunds = vi.spyOn(api, "getImportNewFunds").mockResolvedValue([NEW_FUND]);

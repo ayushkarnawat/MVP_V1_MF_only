@@ -1,15 +1,18 @@
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
 import { fundPageApi } from "./api";
 import { FundPageFrame } from "./FundPageFrame";
 import { useFundPageScope, useFundSection } from "./useFundSection";
 import { FundAllocation } from "./overview/FundAllocation";
 import { InvestmentDetails } from "./overview/InvestmentDetails";
+import { CurrentReturnsChart } from "./overview/CurrentReturnsChart";
 import { PerformanceChart } from "./overview/PerformanceChart";
+import { ReturnsModeToggle } from "./overview/ReturnsModeToggle";
 import { ReturnsTable } from "./overview/ReturnsTable";
 import { RiskMetrics } from "./overview/RiskMetrics";
 import { StatBand } from "./overview/StatBand";
 import { TopHoldings } from "./overview/TopHoldings";
-import type { CompositionResponse, ScoreResponse } from "./types";
+import type { CompositionResponse, ReturnsMode, ReturnsResponse, ScoreResponse } from "./types";
 
 export function OverviewPage({ schemeId }: { schemeId: string }) {
   const scope = useFundPageScope();
@@ -18,6 +21,32 @@ export function OverviewPage({ schemeId }: { schemeId: string }) {
     (signal) => fundPageApi.score(schemeId, scope, signal),
     [schemeId, scope]
   );
+
+  // The returns basis is shared by the performance card (graph) and the Returns table. The Current request is
+  // made once, when Actual XIRR is first chosen, and read by both.
+  const [mode, setMode] = useState<ReturnsMode>("inception");
+  const [wantCurrent, setWantCurrent] = useState(false);
+  // Keyboard users: the toggle is drawn in a different card per mode, so the button that has focus is replaced.
+  // When focus was inside the performance card, it is handed to the same option in the card that is now shown.
+  const perfSlot = useRef<HTMLDivElement>(null);
+  const refocusToggle = useRef(false);
+  useEffect(() => {
+    if (!refocusToggle.current) return;
+    refocusToggle.current = false;
+    const buttons = perfSlot.current?.querySelectorAll<HTMLElement>('[role="group"][aria-label="Returns basis"] button[aria-pressed="true"]');
+    [...(buttons ?? [])].find(button => !button.closest("[hidden]"))?.focus();
+  }, [mode]);
+  const changeMode = (next: ReturnsMode) => {
+    refocusToggle.current = perfSlot.current?.contains(document.activeElement) ?? false;
+    setMode(next);
+    if (next === "current") setWantCurrent(true);
+  };
+  const current = useFundSection<ReturnsResponse>(
+    (signal) => fundPageApi.returns(schemeId, "current", scope, signal),
+    [schemeId, scope],
+    { enabled: wantCurrent }
+  );
+  const toggle = <ReturnsModeToggle mode={mode} onChange={changeMode} />;
 
   // Fund-level composition: single request shared by Top 10 Holdings and Fund Allocation
   const composition = useFundSection<CompositionResponse>(
@@ -48,13 +77,26 @@ export function OverviewPage({ schemeId }: { schemeId: string }) {
             className="contents min-w-0 xl:block xl:space-y-5"
           >
             <div
+              ref={perfSlot}
               data-testid="slot-performance"
               className="order-1 min-w-0 xl:order-none"
             >
-              <PerformanceChart
-                schemeId={schemeId}
-                fundName={ctx.summary.scheme.name}
-              />
+              {/* Kept mounted (hidden) in Actual XIRR so the chosen period, the hidden lines and the loaded data survive the switch. */}
+              <div hidden={mode !== "inception"}>
+                <PerformanceChart
+                  schemeId={schemeId}
+                  fundName={ctx.summary.scheme.name}
+                  toggleSlot={toggle}
+                />
+              </div>
+              {mode === "current" && (
+                <CurrentReturnsChart
+                  current={current}
+                  fundName={ctx.summary.scheme.name}
+                  toggleSlot={toggle}
+                  onShowModel={() => changeMode("inception")}
+                />
+              )}
             </div>
             <div
               data-testid="slot-returns"
@@ -64,6 +106,8 @@ export function OverviewPage({ schemeId }: { schemeId: string }) {
                 schemeId={schemeId}
                 scope={ctx.scope}
                 fundName={ctx.summary.scheme.name}
+                mode={mode}
+                current={current}
               />
             </div>
             <div

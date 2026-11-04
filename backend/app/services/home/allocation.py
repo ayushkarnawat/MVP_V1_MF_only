@@ -4,12 +4,12 @@ import uuid
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
-from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
-from app.core.decimal_utils import quantize_amount
+from app.core.decimal_utils import AMOUNT_PLACES, quantize_amount
 from app.models.reference import Scheme
 from app.services.dashboard.allocation_labels import asset_class_bucket
 from app.services.dashboard.holdings import compute_holdings
@@ -180,6 +180,9 @@ def _class_funds(
     funds: Sequence[ClassFund], class_value: Decimal, *, covered_value: Decimal | None = None,
 ) -> tuple[ClassFund, ...]:
     covered_value = class_value if covered_value is None else covered_value
+    # Whole cents, rounded down: spread_cents works in cents, so a sub-cent covered value could
+    # push the summed floors above target_units (a cap the disclosed percent must not exceed).
+    covered_value = covered_value.quantize(AMOUNT_PLACES, rounding=ROUND_DOWN)
     if class_value <= 0 or covered_value <= 0 or not funds:
         return ()
     by_scheme: dict[str, Decimal] = {}
@@ -193,12 +196,29 @@ def _class_funds(
     # Uncovered exposure belongs to the class, but must not inflate its known funds.
     values = spread_cents(covered_value, by_scheme)
     ordered = sorted(values, key=lambda scheme_id: (-values[scheme_id], scheme_id))
+    partial_shares: dict[str, Decimal] = {}
+    if covered_value < class_value:
+        parts = {
+            scheme_id: divmod(value * Decimal("10000"), class_value)
+            for scheme_id, value in values.items()
+        }
+        target_units = divmod(covered_value * Decimal("10000"), class_value)[0]
+        extra_units = max(0, int(target_units - sum((part[0] for part in parts.values()), Decimal("0"))))
+        ranked = sorted(parts, key=lambda scheme_id: (-parts[scheme_id][1], scheme_id))
+        winners = set(ranked[:extra_units])
+        partial_shares = {
+            scheme_id: (whole + (Decimal("1") if scheme_id in winners else Decimal("0"))) * PERCENT_PLACES
+            for scheme_id, (whole, _) in parts.items()
+        }
     remaining = Decimal("100.00")
     result = []
     for index, scheme_id in enumerate(ordered):
-        share = _percentage(values[scheme_id], class_value)
         if covered_value == class_value:
-            share = remaining if index == len(ordered) - 1 else min(share, remaining)
+            share = remaining if index == len(ordered) - 1 else min(
+                _percentage(values[scheme_id], class_value), remaining,
+            )
+        else:
+            share = partial_shares[scheme_id]
         result.append(ClassFund(scheme_id, names[scheme_id], values[scheme_id], share))
         remaining -= share
     return tuple(result)

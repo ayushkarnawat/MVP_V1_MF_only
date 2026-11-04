@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import type { AuthVariant } from "./redesign/variant";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { currentStep, goBack, goNext, initHistory, isSkipped, markAnswered, skipToNext } from "./onboardingHistory";
 import type { HistoryState } from "./onboardingHistory";
@@ -6,10 +7,21 @@ import { isOnboardingStep } from "./onboardingSteps";
 import type { OnboardingStep } from "./onboardingSteps";
 import { Q1Name } from "./Q1Name";
 import { Q2Investing } from "./Q2Investing";
-import { Q3Purpose } from "./Q3Purpose";
+import { ALL_GOALS, Q3Purpose } from "./Q3Purpose";
 import { OnboardingCardStack } from "./OnboardingCardStack";
 import { SoloCasUpload } from "./SoloCasUpload";
-import { createHouseholdMember } from "./api";
+import { createHouseholdMember, listHouseholdMembers } from "./api";
+import { getHouseholdImportHistory } from "../import/api";
+import { isCompletedImport } from "../import/importStatus";
+import { paths } from "@/shell/nav/paths";
+import { AccountDetails } from "./redesign/AccountDetails";
+import { AllSet } from "./redesign/AllSet";
+import { AuthPage } from "./redesign/AuthPage";
+import { ConnectAccounts } from "./redesign/ConnectAccounts";
+import { DetailsEditor } from "./redesign/DetailsEditor";
+import { InvestorProfile } from "./redesign/InvestorProfile";
+import { resumeStepSplit } from "./onboardingResume";
+import { clearPendingSignup, readPendingSignup } from "./redesign/pendingSignup";
 import type { InvestorType, MeResponse, PrimaryGoal } from "./types";
 
 export interface OnboardingAnswers {
@@ -30,7 +42,8 @@ export function resumeStep(me: MeResponse | null | undefined): OnboardingStep {
   if (step === "trust_primer") {
     if (!me?.self_name) return "q1_name";
     if (!me.investor_type) return "q2_investing";
-    if (!me.primary_goals || me.primary_goals.length === 0) return "q3_purpose";
+    // Only the six current codes count: someone who stored an old code is asked once more (decision QF).
+    if (!me.primary_goals || !me.primary_goals.some(g => ALL_GOALS.includes(g))) return "q3_purpose";
     return "cas_upload";
   }
   if (!isOnboardingStep(step) || step === "done") return "q1_name";
@@ -41,21 +54,91 @@ export function resumeStep(me: MeResponse | null | undefined): OnboardingStep {
 
 interface OnboardingFlowProps {
   isMobile?: boolean;
+  /** See AuthEntryFlow: "legacy" by default. */
+  variant?: AuthVariant;
 }
 
-export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
+export function OnboardingFlow({ isMobile = false, variant = "legacy" }: OnboardingFlowProps) {
   const { me, updateMe } = useAuth();
-  const [history, setHistory] = useState<HistoryState>(() => initHistory(resumeStep(me)));
+  const split = variant === "split" && !isMobile;
+  const [history, setHistory] = useState<HistoryState>(() => initHistory(split ? resumeStepSplit(me, false) : resumeStep(me)));
   const [answers, setAnswers] = useState<OnboardingAnswers>(() => ({
     name: me?.self_name ?? "",
     investorType: me?.investor_type ?? null,
-    primaryGoals: me?.primary_goals ?? [],
+    primaryGoals: (me?.primary_goals ?? []).filter(g => ALL_GOALS.includes(g)),
   }));
 
   const step = currentStep(history);
+  const jump = (next: OnboardingStep) => setHistory(initHistory(next));
+  // Back from screen 4 shows screen 3 again with both fields editable (the return trip).
+  const [editingDetails, setEditingDetails] = useState(false);
+
+  // Resume on screen 6: a saved cas_upload plus a completed import means only the last click was missing. One read of
+  // the import history, no new endpoint; if it fails the person starts from screen 5.
+  const [resuming, setResuming] = useState(() => split && me?.onboarding_step === "cas_upload" && Boolean(me?.self_name));
+  useEffect(() => {
+    if (!resuming) return;
+    let live = true;
+    getHouseholdImportHistory().then(
+      (items) => {
+        if (!live) return;
+        if (items.some((item) => isCompletedImport(item.status))) setHistory(initHistory("all_set"));
+        setResuming(false);
+      },
+      () => {
+        if (live) setResuming(false);
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [resuming]);
+
+  // Split sign-up: the name typed on screen 3 was kept in sessionStorage because the account did not exist yet. Now
+  // it does, so the self member is created from it (list first, so a reload never makes a second one) and the flow
+  // moves on. A stored name for another phone number is dropped. If saving fails, or nothing is stored (a refresh),
+  // the name screen is shown with the verified email read-only.
+  const [handover, setHandover] = useState<"checking" | "saving" | "idle">(() => {
+    if (!split || step !== "q1_name") return "idle";
+    const pending = readPendingSignup();
+    return pending && pending.phone === me?.phone_number ? "saving" : "checking";
+  });
+  const [handoverError, setHandoverError] = useState<string | null>(null);
+  const handoverStarted = useRef(false);
+  useEffect(() => {
+    if (handover === "checking") {
+      const pending = readPendingSignup();
+      if (pending && pending.phone !== me?.phone_number) clearPendingSignup();
+      setHandover("idle");
+      return;
+    }
+    if (handover !== "saving" || handoverStarted.current) return;
+    handoverStarted.current = true;
+    const pending = readPendingSignup();
+    if (!pending) {
+      setHandover("idle");
+      return;
+    }
+    void (async () => {
+      try {
+        const members = await listHouseholdMembers();
+        if (!members.some((member) => member.relationship === "self")) {
+          await createHouseholdMember(pending.name, "self");
+        }
+        clearPendingSignup();
+        setAnswers((a) => ({ ...a, name: pending.name }));
+        setHistory((h) => goNext(markAnswered(h), "q2_investing"));
+        setHandover("idle");
+      } catch {
+        setAnswers((a) => ({ ...a, name: pending.name }));
+        setHandoverError("Couldn't save your name. Try again.");
+        setHandover("idle");
+      }
+    })();
+  }, [handover, me?.phone_number]);
 
   useEffect(() => {
-    if (step !== "done") {
+    if (step !== "done" && step !== "connect_accounts" && step !== "all_set") {
       void updateMe({ onboarding_step: step });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -71,11 +154,100 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
   // the step in place and shows the error.
   const submitName = async (name: string) => {
     await createHouseholdMember(name, "self");
+    clearPendingSignup();
     setAnswers((a) => ({ ...a, name }));
     advance("q2_investing");
   };
 
+  // All set: write the completion, then open the chosen place. The address is set first because the app switches to
+  // the signed-in shell (which reads the address) the moment the completion is saved; a failed save puts it back.
+  const finish = async (target: "home" | "import-history") => {
+    const previous = window.location.pathname + window.location.search;
+    window.history.pushState(null, "", target === "home" ? "/home" : paths.profileImportHistory());
+    try {
+      await updateMe({ onboarding_completed: true });
+    } catch (err) {
+      window.history.replaceState(null, "", previous);
+      throw err;
+    }
+  };
+
   const renderStep = () => {
+    if (split && resuming) {
+      return (
+        <AuthPage>
+          <p role="status" className="text-sm text-[var(--ui-text-muted)]">Setting up your profile...</p>
+        </AuthPage>
+      );
+    }
+    if (split && step === "q2_investing") {
+      return (
+        <InvestorProfile
+          initialInvestorType={answers.investorType}
+          initialGoals={answers.primaryGoals}
+          onBack={() => {
+            setEditingDetails(true);
+            jump("q1_name");
+          }}
+          onSubmit={async ({ investorType, goals }) => {
+            await updateMe({ investor_type: investorType, primary_goals: goals, onboarding_step: "q2_investing" });
+            setAnswers((a) => ({ ...a, investorType, primaryGoals: goals }));
+            jump("connect_accounts");
+          }}
+        />
+      );
+    }
+    if (split && step === "connect_accounts") {
+      return <ConnectAccounts onBack={() => jump("q2_investing")} onContinue={() => jump("cas_upload")} />;
+    }
+    if (split && step === "cas_upload") {
+      return (
+        <div className="w-full min-h-dvh bg-[var(--color-bg)] flex flex-col justify-start items-center p-2 sm:p-6 lg:p-8 box-border">
+          <div className="w-full max-w-[1600px] mx-auto">
+            <SoloCasUpload name={answers.name} onImported={() => jump("all_set")} />
+          </div>
+        </div>
+      );
+    }
+    if (split && step === "all_set") {
+      return <AllSet onFinish={finish} />;
+    }
+    if (step === "q1_name" && split && (editingDetails || me?.self_name)) {
+      return (
+        <DetailsEditor
+          initialName={answers.name || me?.self_name || ""}
+          initialEmail={me?.email ?? ""}
+          onBack={({ name }) => {
+            setAnswers((a) => ({ ...a, name }));
+            jump("q2_investing");
+          }}
+          onDone={({ name }) => {
+            setEditingDetails(false);
+            setAnswers((a) => ({ ...a, name }));
+            jump("q2_investing");
+          }}
+        />
+      );
+    }
+    if (step === "q1_name" && split) {
+      if (handover !== "idle") {
+        return (
+          <AuthPage>
+            <p role="status" className="text-sm text-[var(--ui-text-muted)]">Setting up your profile...</p>
+          </AuthPage>
+        );
+      }
+      return (
+        <AccountDetails
+          initialName={answers.name}
+          initialEmail={me?.email ?? ""}
+          emailLocked
+          error={handoverError}
+          onSubmit={({ name }) => submitName(name)}
+        />
+      );
+    }
+
     if (step === "q1_name") {
       return isMobile ? (
         <Q1Name

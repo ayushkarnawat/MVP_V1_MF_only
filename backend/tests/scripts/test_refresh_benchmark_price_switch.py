@@ -15,6 +15,7 @@ def _run_job(db_session, monkeypatch, price_indices):
     monkeypatch.setattr(job, "SessionLocal", lambda: db_session)
     monkeypatch.setattr(job, "ensure_index_history_fresh", fake_ensure_index_history_fresh)
     monkeypatch.setattr(job, "_PRICE_INDICES", price_indices)
+    monkeypatch.setattr(job, "_PACE_SECONDS", 0)
     job.main()
     return calls
 

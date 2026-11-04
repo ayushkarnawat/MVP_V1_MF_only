@@ -212,7 +212,7 @@ heuristic rather than restructuring to always-mounted dual panels.
 
 ## Added 2026-09-30 (staging QA fixes)
 
-- **Migration 0024 — drop `users.primary_goal`** (renumbered from "0021" on 2026-10-01 because 0021/0022 shipped the member contact fields and consent table, then from "0023" because 0023 shipped member profile completion, 2026-10-01). Ship one release after 0019 is live on every ECS task. First re-backfill `primary_goals` from `primary_goal` where `primary_goals IS NULL` (old tasks write only the old column during the rollout), then drop the column and `DROP TYPE IF EXISTS primarygoal` on Postgres, and remove the dual write in `auth.py update_me`. Downgrade keeps one goal per user. If this hasn't shipped before the CAS import fix plan’s migrations, it is renumbered after `0029` (the plan’s 0025 revises 0023).
+- ~~**Migration 0024 — drop `users.primary_goal`** (renumbered from "0021" on 2026-10-01 because 0021/0022 shipped the member contact fields and consent table, then from "0023" because 0023 shipped member profile completion, 2026-10-01). Ship one release after 0019 is live on every ECS task. First re-backfill `primary_goals` from `primary_goal` where `primary_goals IS NULL` (old tasks write only the old column during the rollout), then drop the column and `DROP TYPE IF EXISTS primarygoal` on Postgres, and remove the dual write in `auth.py update_me`. Downgrade keeps one goal per user. If this hasn't shipped before the CAS import fix plan’s migrations, it is renumbered after `0029` (the plan’s 0025 revises 0023).~~ **Done by migration 0053 on 2026-11-03 (UI round 2, the six life goals): saved goals were cleared instead of re-backfilled, because no old goal maps to a new one.**
 
 
 ## Added 2026-10-01 (consent, onboarding and profile changes)
@@ -398,7 +398,7 @@ it can be built later without re-deciding it:
 
 **Profile > Personal Information > Financial Details: only the onboarding answers are built; the other fields are deferred.** Decided by the owner 2026-10-23 (planning workbook
 `Docs/orchestration/2026-10-23-profile-planning-decisions-v1.html`, decisions L31, L43; the owner asked for this entry in answer G9). Built now: investor type and goals, read from
-the onboarding answers already stored (`investor_type`, `primary_goals`) and edited with the existing `PATCH /auth/me`. Deferred, shown as greyed "Coming soon" rows: occupation,
+the onboarding answers already stored (`investor_type`, `primary_goals`; since 2026-11-03 `primary_goals` holds one to six of the six life-goal codes `wealth_creation`, `retirement`, `childrens_education`, `buy_home`, `financial_freedom`, `tax_planning`, and the old four product goals are gone) and edited with the existing `PATCH /auth/me`. Deferred, shown as greyed "Coming soon" rows: occupation,
 industry, annual income range, net worth range, risk profile, investment experience. Kept here so the work is not re-decided:
 - Storage (answer F4 A): nullable columns on the existing `users` table, validated pick-lists as check constraints (the pattern `primary_goals` uses). No new table.
 - Pick-lists (answer F5 A): annual income: below 5 lakh; 5 to 10 lakh; 10 to 25 lakh; 25 to 50 lakh; 50 lakh to 1 crore; above 1 crore. Net worth: below 50 lakh; 50 lakh to 1 crore;
@@ -478,3 +478,38 @@ Deferred until manual Add Member is built (see "Profile redesign planning, manua
 - In the Add Member dialog, an option "Make this person the Head of Family". It must use the same two-code rule and the same checks as a change of head; a person added a moment ago has no verified email, so the new head's code is the only proof.
 - The eligibility rules, edge cases and follow-up questions D28 to D31 (phone number, relationship labels, a new head who already has an account, undo window) are written up in the change briefing so they are not re-decided.
 - Open when picked up: whether a person created in the same dialog can receive the code in the same session, and what happens to the half-created member if either code is never entered.
+
+## Added 2026-11-03 (opening-cost convention for a partly sold opening lot: OPEN, kept as is for now)
+
+**Decision parked by the owner, 3 Nov 2026: document it and keep the current behaviour; take the call later.** For a statement whose window starts after a fund's first purchase, when some of the opening units are sold inside the window, `price_opening_lot` (`backend/app/services/import_/opening_balance.py`) costs the opening lot from **average cost** first (Root Cause A, commit `b584ef07`, 20 Oct 2026). The synthetic CAS generator prints the **FIFO remaining-lot cost** instead. Result: 3 of the 88 synthetic gate runs fail (`p20_3yr` normal and blocked, `p20_7yr` blocked; the Nippon Index Fund invested amount is off by about 7.2 lakh and 4.5 lakh). The same three fail at the start commit of UI round 2 (`0b73a390`), so it is not from that round; both passed before `b584ef07`.
+- **Not settled:** which convention real CAMS and KFintech statements print. The evidence for average cost is casparser's source and web explainers; both real Chandra folios behind the fix had untouched opening lots, where the two readings are equal. No real statement with a partly sold opening lot has been checked.
+- **Real-world effect if average cost is wrong:** funds with a partly sold opening lot get a shifted held-cost basis, invested amount, unrealised and realised gain, and XIRR opening flow. Funds with untouched opening lots, full-history statements and no opening balance are unaffected.
+- **To settle it:** compare, on a real long-history statement (one CAMS, one KFintech), the FIFO-remaining cost and the average cost computed from the full ledger with the printed "Total Cost Value" for funds with partial sales. Then either re-baseline the generator (average is right), restore FIFO-first for touched lots (FIFO is right), or choose by RTA.
+- **Full write-up, evidence, options and reproduction:** `Docs/investigations/2026-11-03-p20-opening-cost-convention-gate-failure.md`. Until decided, the gate's expected result is 85 of 88.
+## Added 2026-11-03 (change requests release: deferred or open)
+
+| Item | Status | Why deferred |
+|---|---|---|
+| Debt, liquid and hybrid composite benchmark indices (CRISIL composites, Nifty Liquid, Low Duration, G-Sec total return) | Not built | NSE's endpoint has no total-return series for them (G-Sec indices return a price series only, which leaves out interest); CRISIL has pages but no download API found. Those funds show "As printed in the fund house's factsheet" or "No benchmark" |
+| Printed-return check (`benchmark_series_check.py`, ledger L7) for the 56 newly registered indices | To run at the staging deploy on a sample | Existence and freshness of the series were verified, not their agreement with printed returns |
+| Notice to the previous PHONE after a contact change; a code to the old address | Not built | SMS is still a stub; the owner chose the lighter safeguard (notice plus 7-day lock) |
+| Server-side consent for an ordinary new Terms version | Not built | Only a head change is enforced on data routes; enforcing every version bump needs its own decision |
+| Retry or re-issue of a failed head-change notice email or a lost undo link | Not built | Failures are only recorded in the snapshot |
+| OTP rows are keyed by destination (two accounts sharing a member's contact can cancel each other's codes); eligibility and contact-taken checks scan every user | Accepted Low | Scale and rarity; fix with request-scoped purposes and indexed lookups later |
+| `find_or_backfill_phone_identity` is not guarded against a swap race | Accepted Low | Only accounts from before the old identity backfill |
+| BSE filings as an official source for BSE-only stock ratios (replace the Yahoo step) | Research | One-stock probe from the VM first |
+| UTI and Groww: since-inception returns; UTI hybrid P/E and P/B basis (whole fund or equity part) | Not read / to check by hand | No field for since-inception; the page does not say |
+| Prettier labels for the 56 new indices (they show the upper-case NSE name); chart pickers for planning and scenarios know only 8 legacy keys | Cosmetic | One label function; keys fall back to the raw key |
+| Remaining hard-coded `#22C55E` (about 250 places); a local copy of the 35 fund-house logos; removal of the Stock Concentration backend curve, `equity_outer` and the old rank, percentile and composite shapes | Later cleanup release | Tracked backlog, after staging is accepted |
+| After an undo the previous head sees "You are now the Head of Family" on the agreement screen | Accepted | Wording only; change if it reads wrong |
+
+## Added 2026-11-03 (after the Run 7 independent reviews: accepted Lows)
+
+| Item | Status | Why deferred |
+|---|---|---|
+| `_taken_by_another_account` scans every user and identity in Python on the public reverse route | Accepted Low | only after a valid token; an indexed lookup later |
+| Size-weighted Category Average has no minimum number of funds with a size | Accepted | the card shows how many funds were left out |
+| Revised filing choice (`select_filing` takes the lexically largest address) is unverified against a real revision | To check on the VM | no real revision seen yet |
+| New indices are `active=True` before the printed-return check (L7) | Accepted by the handoff | the owner reviews the L7 report; switch a row off with one update if it fails |
+| UTI and Groww return tie check tolerance (1 percent) | Accepted | a wrong column is unlikely given the header proof |
+| A first-time deadlock between two accounts' locks in the Google auto-link loop | Very unlikely | needs mirror-image concurrent sign-ins |

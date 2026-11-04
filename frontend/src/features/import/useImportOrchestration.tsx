@@ -7,6 +7,9 @@ import { useImportFlow } from "./useImportFlow";
 import { clearCasResumeStep2 } from "./casResumeState";
 import { buildConfirmBody } from "./confirmBody";
 import { buildImportNotice, type ImportNotice } from "./importNotice";
+import { getHouseholdMembers } from "../auth/api";
+import type { HouseholdMember } from "../auth/types";
+import { CompleteProfileDialog } from "../dashboard/members/CompleteProfileDialog";
 import { UnidentifiedFundsDialog } from "./UnidentifiedFundsDialog";
 import type { ImportPreviewResponse, PersonConfirmation, PersonPreview, SchemeConfirmation } from "./types";
 
@@ -49,6 +52,19 @@ export function useImportOrchestration(
 
   const autoAttempt = useRef<ImportPreviewResponse | null>(null);
   const completionSent = useRef(false);
+  // Members this import created: each gets the Complete profile dialog, one after another, before onDone runs.
+  const [profileQueue, setProfileQueue] = useState<HouseholdMember[]>([]);
+  const pendingNotice = useRef<ImportNotice | null>(null);
+  const finishAfterProfiles = useCallback(() => {
+    const notice = pendingNotice.current;
+    pendingNotice.current = null;
+    if (notice) onDone?.(notice);
+  }, [onDone]);
+  const nextProfile = () => {
+    const rest = profileQueue.slice(1);
+    setProfileQueue(rest);
+    if (rest.length === 0) finishAfterProfiles();
+  };
 
   useEffect(() => {
     const result = flow.confirmResult;
@@ -61,8 +77,21 @@ export function useImportOrchestration(
       return;
     }
     if (!result) return;
-    onDone?.(buildImportNotice(result));
-  }, [flow.confirmResult, flow.errorCode, householdMemberId, onDone]);
+    const notice = buildImportNotice(result);
+    const createdIds = result.people.filter((p) => p.created === true).map((p) => p.member_id);
+    if (createdIds.length === 0) {
+      onDone?.(notice);
+      return;
+    }
+    pendingNotice.current = notice;
+    getHouseholdMembers()
+      .then((members) => {
+        const queue = createdIds.flatMap((id) => members.find((m) => m.id === id) ?? []);
+        if (queue.length === 0) finishAfterProfiles();
+        else setProfileQueue(queue);
+      })
+      .catch(() => finishAfterProfiles());
+  }, [flow.confirmResult, flow.errorCode, householdMemberId, onDone, finishAfterProfiles]);
 
   useEffect(() => {
     if (stage === "upload" && flow.errorCode === "session_expired") setUploadMessage(error);
@@ -193,6 +222,15 @@ export function useImportOrchestration(
         rejectedMessage={flow.confirmRejected ? error : null}
         onUploadAgain={() => void cancelImport()}
       />
+      {profileQueue.length > 0 && (
+        <CompleteProfileDialog
+          key={profileQueue[0].id}
+          member={profileQueue[0]}
+          onSaved={() => {}}
+          onMerged={nextProfile}
+          onClose={nextProfile}
+        />
+      )}
       <CancelImportDialog
         isOpen={cancelOpen}
         peopleCount={preview?.people.length ?? 1}

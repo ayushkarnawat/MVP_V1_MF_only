@@ -61,4 +61,16 @@ describe("amcLogos utility", () => {
     expect(getAmcInfo("Retirement Solutions Mutual Fund", "Retirement Solutions Fund")).toBeNull();
     expect(getAmcInfo("Unlisted Boutique Mutual Fund", "Unlisted Boutique Opportunities Fund")).toBeNull();
   });
+
+  it("the_fund_house_named_first_wins_over_a_generic_word_later_in_the_name", () => {
+    expect(getAmcInfo(undefined, "Tata Quant Fund Direct Growth")?.key).toBe("tata");
+    expect(getAmcInfo(undefined, "DSP Quant Fund")?.key).toBe("dsp");
+    expect(getAmcInfo(undefined, "Axis Quant Fund")?.key).toBe("axis");
+    expect(getAmcInfo(undefined, "SBI Quant Fund")?.key).toBe("sbi");
+    expect(getAmcInfo(undefined, "UTI Quant Fund")?.key).toBe("uti");
+    expect(getAmcInfo(undefined, "Groww Quant Fund")?.key).toBe("groww");
+    expect(getAmcInfo(undefined, "Quant Tata Fund")?.key).toBe("quant");
+    // A longer alias that starts at the same place still beats its shorter prefix.
+    expect(getAmcInfo(undefined, "Quantum Long Term Equity Value Fund")?.key).toBe("quantum");
+  });
 });

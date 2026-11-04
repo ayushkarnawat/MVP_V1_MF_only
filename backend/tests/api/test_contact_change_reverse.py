@@ -302,3 +302,101 @@ def test_the_link_names_the_changed_channel_so_the_page_can_say_which(client, ma
     assert mailbox.sent[1]["body"].rstrip().endswith("&channel=phone")
     # The token is still the only secret part of the link.
     assert "&channel=" not in _token_from(mailbox.sent[0])
+
+
+def _incomplete_household(client, suffix):
+    """A person still in sign-up: has an email, but onboarding_completed_at is None."""
+    token, user_id = _signup(client, f"+9194100000{suffix}")
+    db = _db(client)
+    user = db.get(User, uuid.UUID(user_id))
+    user.email = f"signup-{suffix}@example.com"
+    assert user.onboarding_completed_at is None
+    db.commit()
+    db.close()
+    return {"headers": {"Authorization": f"Bearer {token}"}, "user_id": user_id}
+
+
+def test_an_email_change_before_sign_up_is_complete_sends_no_notice(client, mailbox):
+    household = _incomplete_household(client, "01")
+
+    changed = _change(client, household, "email", "retyped-01@example.com")
+
+    assert changed.status_code == 200
+    assert changed.json()["email"] == "retyped-01@example.com"
+    assert mailbox.sent == []
+    db = _db(client)
+    event = db.query(ContactChangeEvent).filter_by(user_id=uuid.UUID(household["user_id"])).one()
+    assert (event.channel, event.old_value, event.new_value) == (
+        "email", "signup-01@example.com", "retyped-01@example.com"
+    )
+    db.close()
+
+
+def test_a_phone_change_before_sign_up_is_complete_sends_no_notice(client, mailbox):
+    household = _incomplete_household(client, "02")
+
+    changed = _change(client, household, "phone", "+919400000902")
+
+    assert changed.status_code == 200
+    assert changed.json()["phone_number"] == "+919400000902"
+    assert mailbox.sent == []
+    db = _db(client)
+    event = db.query(ContactChangeEvent).filter_by(user_id=uuid.UUID(household["user_id"])).one()
+    assert event.channel == "phone" and event.new_value == "+919400000902"
+    db.close()
+
+
+def test_an_email_change_after_sign_up_is_complete_still_sends_the_notice_to_the_old_address(
+    client, mailbox
+):
+    household = _incomplete_household(client, "03")
+    db = _db(client)
+    db.get(User, uuid.UUID(household["user_id"])).onboarding_completed_at = datetime.now(timezone.utc)
+    db.commit()
+    db.close()
+
+    changed = _change(client, household, "email", "new-03@example.com")
+
+    assert changed.status_code == 200
+    assert [m["to"] for m in mailbox.sent] == ["signup-03@example.com"]
+def test_reversing_also_removes_a_google_sign_in_added_after_the_change(client, mailbox):
+    # Found by the Run 7 backend review: the thief changes the email to thief2@, signs in with Google as
+    # thief2@ (auto-linked to the account because that address is now a verified identity of it), and the
+    # owner's "this was not me" would otherwise leave that Google identity as a permanent way back in.
+    from app.services.auth.identity import resolve_new_verified_identity
+
+    household = _household(client, suffix="r20")
+    assert _change(client, household, "email", "thief2@example.com").status_code == 200
+    db = _db(client)
+    resolved = resolve_new_verified_identity(
+        db, AuthIdentityProvider.GOOGLE, "google-sub-thief", "thief2@example.com", True
+    )
+    assert resolved.user_id == uuid.UUID(household["user_id"])
+    db.close()
+
+    assert _reverse(client, _token_from(mailbox.sent[0])).status_code == 200
+
+    db = _db(client)
+    remaining = {
+        (i.provider, i.provider_subject)
+        for i in db.query(AuthIdentity).filter_by(user_id=uuid.UUID(household["user_id"]))
+    }
+    assert (AuthIdentityProvider.GOOGLE, "google-sub-thief") not in remaining
+    assert all("thief2" not in subject for _, subject in remaining)
+    # The owner's own sign-in methods are still there.
+    assert (AuthIdentityProvider.EMAIL_OTP, "head-route-r20@example.com") in remaining
+    db.close()
+
+
+def test_a_phone_change_after_an_email_change_also_notifies_the_first_email_the_owner_had(client, mailbox):
+    # Found by the Run 7 backend review: after the thief's email change, the account email IS the thief's,
+    # so a phone-change notice sent only to the account email never reached the owner.
+    household = _household(client, suffix="r21")
+    assert _change(client, household, "email", "thief@example.com").status_code == 200
+    assert _change(client, household, "phone", "+919411111121").status_code == 200
+
+    phone_notices = [m for m in mailbox.sent if "phone number" in m["subject"]]
+    assert "head-route-r21@example.com" in {m["to"] for m in phone_notices}
+    # Each notice carries its own working link.
+    owner_copy = next(m for m in phone_notices if m["to"] == "head-route-r21@example.com")
+    assert "/reverse-contact-change#token=" in owner_copy["body"]

@@ -1,4 +1,7 @@
 ---
+
+> **Update, 3 Nov 2026 (change requests release).** Performance Ranking replaces Fund Ranking (the composite score and its weights are deleted, migration 0048); the Category Average Comparison is weighted by fund size; Fund Quality Scores are hidden on the Other Analytics page; the portfolio and per-fund P/E and P/B are shown from 60 percent coverage with a plain reason when withheld; benchmarks follow factsheet index, closest index, category index, and only then "No benchmark". Where this document says otherwise, `decisions.md` (3 Nov 2026) governs.
+
 artifact: prd
 version: "1.0"
 created: 2026-07-22

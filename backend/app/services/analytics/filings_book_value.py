@@ -49,7 +49,7 @@ MAX_LIST_BYTES = 4 * 1024 * 1024
 MAX_FILING_AGE_DAYS = 400
 # A value already stored is used for P/B for at most this long (a year-and-a-half: if the job has not renewed it
 # by then the company stopped filing or the job stopped running, and the labelled Yahoo/screener value is better).
-MAX_STORED_VALUE_AGE_DAYS = 640
+MAX_STORED_VALUE_AGE_DAYS = 400
 # Stop the run after this many stocks in a row whose request itself failed (not their data): that is a
 # block or an outage, not a few odd companies.
 MAX_CONSECUTIVE_SOURCE_FAULTS = 5
@@ -323,6 +323,8 @@ def parse_book_value(data: bytes, *, balance_sheet_date: date, standalone: bool 
     """
     if len(data) > MAX_XBRL_BYTES:
         raise FilingDataError("file_too_large")
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff") or b"\x00" in data[:400]:   # UTF-16 or UTF-32: NSE files are UTF-8
+        raise FilingDataError("encoding_not_allowed")
     upper = data.upper()
     if b"<!DOCTYPE" in upper or b"<!ENTITY" in upper:     # no entity tricks in a file we do not control
         raise FilingDataError("dtd_not_allowed")
@@ -507,7 +509,15 @@ async def refresh_filings_book_values(store: BookValueStore, targets: Sequence[t
 
 # --------------------------------------------------------------------------------------- P/B from the stored value
 
-def filing_pb_ratio(stored: StoredBookValue | None, close: Decimal | None, close_date: date | None) -> Decimal | None:
+# A filing P/B further than this from the previous stored P/B (either source) is distrusted: a bonus issue or share
+# split after the balance-sheet date changes the close but not the stored book value per share, and the ISIN does not
+# change, so nothing else would catch it. 1:1 bonus gives 0.5, a 1:2 bonus 0.67; ordinary differences between sources are smaller, and a trip only means the labelled Yahoo value is used.
+MAX_PB_JUMP_FACTOR = Decimal("1.4")
+
+
+def filing_pb_ratio(
+    stored: StoredBookValue | None, close: Decimal | None, close_date: date | None, *, previous: Decimal | None = None,
+) -> Decimal | None:
     """Day's close / book value per share, or None (the daily job then uses the labelled Yahoo/screener value)."""
     if stored is None or close is None or close_date is None:
         return None
@@ -515,7 +525,12 @@ def filing_pb_ratio(stored: StoredBookValue | None, close: Decimal | None, close
         return None
     if (close_date - stored.balance_sheet_date).days > MAX_STORED_VALUE_AGE_DAYS:
         return None           # the stored filing is far too old to describe the company any more
-    return (close / stored.book_value_per_share).quantize(_SIX_PLACES, rounding=ROUND_HALF_UP)
+    ratio = (close / stored.book_value_per_share).quantize(_SIX_PLACES, rounding=ROUND_HALF_UP)
+    if previous is not None and previous > 0 and ratio > 0:
+        jump = ratio / previous
+        if jump > MAX_PB_JUMP_FACTOR or jump < 1 / MAX_PB_JUMP_FACTOR:
+            return None
+    return ratio
 
 
 FILING_FOOTNOTE = (

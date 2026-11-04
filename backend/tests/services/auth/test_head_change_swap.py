@@ -78,8 +78,7 @@ def _household(db, *, suffix: str = "1") -> Household:
         onboarding_step="complete",
         onboarding_completed_at=NOW,
         investor_type=InvestorType.SELF_DIRECTED,
-        primary_goal=PrimaryGoal.FAMILY_MANAGEMENT,
-        primary_goals=[PrimaryGoal.FAMILY_MANAGEMENT.value],
+        primary_goals=[PrimaryGoal.RETIREMENT.value],
     )
     old_head = HouseholdMember(
         id=uuid.uuid4(),

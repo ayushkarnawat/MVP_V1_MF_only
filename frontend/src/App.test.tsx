@@ -80,7 +80,8 @@ describe("App", () => {
 
     render(<App />);
 
-    await waitFor(() => expect(screen.getByLabelText(/full name as per pan/i)).toBeInTheDocument());
+    // Desktop uses the split variant: with nothing stored, the name screen is the sign-up Create your account screen (name only).
+    await waitFor(() => expect(screen.getByLabelText("Full name (as per PAN card)")).toBeInTheDocument());
   });
 
   it("shows the Home shell when the session is valid and onboarding is complete on desktop viewport", async () => {

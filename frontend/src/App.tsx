@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./features/auth/AuthContext";
 import { AuthEntryFlow } from "./features/auth/AuthEntryFlow";
 import { OnboardingFlow } from "./features/auth/OnboardingFlow";
+import { variantFor } from "./features/auth/redesign/variant";
+import { devIndexEnabled } from "./features/auth/redesign/devIndexGuard";
 import { ShellRoot } from "./shell/ShellRoot";
 import { MobileRoot } from "./mobile/MobileRoot";
 import { MobileLandingPage } from "./mobile/features/landing/MobileLandingPage";
@@ -12,6 +14,9 @@ import { ReverseContactChangePage } from "./features/auth/ReverseContactChangePa
 import { UndoHeadChangePage } from "./features/auth/UndoHeadChangePage";
 import { PendingDeletionScreen } from "./features/profile/PendingDeletionScreen";
 import { MaintenanceBanner } from "./components/core/maintenance-banner";
+
+// The dev index of the new auth screens is a separate chunk, reachable only in a development build.
+const DevIndex = lazy(() => import("./features/auth/redesign/DevIndex").then((m) => ({ default: m.DevIndex })));
 
 function useIsMobileViewport(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(() => {
@@ -50,9 +55,9 @@ function MobileInitialFlow({ authInitialMode }: { authInitialMode: "login" | "si
         {/* Foreground Content Card with physics-based fluid transition */}
         <div className="relative z-10 w-full min-h-full flex flex-col">
           {!me ? (
-            <AuthEntryFlow initialMode={authInitialMode} />
+            <AuthEntryFlow initialMode={authInitialMode} variant="legacy" />
           ) : (
-            <OnboardingFlow isMobile={true} />
+            <OnboardingFlow isMobile={true} variant="legacy" />
           )}
         </div>
       </div>
@@ -120,11 +125,11 @@ function MainApp() {
 
   // 2. Desktop Web Initial Flow (Untouched)
   if (!me) {
-    return <AuthEntryFlow initialMode={authInitialMode} />;
+    return <AuthEntryFlow initialMode={authInitialMode} variant={variantFor(false)} />;
   }
 
   if (!me.onboarding_completed) {
-    return <OnboardingFlow isMobile={false} />;
+    return <OnboardingFlow isMobile={false} variant={variantFor(false)} />;
   }
 
   return (
@@ -135,6 +140,13 @@ function MainApp() {
 }
 
 function App() {
+  if (typeof window !== "undefined" && devIndexEnabled(import.meta.env.DEV, window.location.pathname)) {
+    return (
+      <Suspense fallback={null}>
+        <DevIndex />
+      </Suspense>
+    );
+  }
   if (typeof window !== "undefined" && window.location.pathname.replace(/\/+$/, "") === "/undo-head-change") {
     return <UndoHeadChangePage />;
   }

@@ -684,33 +684,61 @@ def _goal_headers(client, phone):
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_patch_me_saves_goal_list_and_dual_writes_first_item(client):
+SIX_GOALS = ["wealth_creation", "retirement", "childrens_education", "buy_home", "financial_freedom", "tax_planning"]
+
+
+def test_patch_me_saves_goal_list(client):
     headers = _goal_headers(client, "+919811100010")
-    r = client.patch("/auth/me", json={"primary_goals": ["family_management", "consolidated_view"]}, headers=headers)
+    r = client.patch("/auth/me", json={"primary_goals": ["retirement", "buy_home"]}, headers=headers)
     assert r.status_code == 200
-    assert r.json()["primary_goals"] == ["family_management", "consolidated_view"]
+    assert r.json()["primary_goals"] == ["retirement", "buy_home"]
+    assert client.get("/auth/me", headers=headers).json()["primary_goals"] == ["retirement", "buy_home"]
     from app.models.user import User
 
     db = _db(client)
     user = db.query(User).filter_by(phone_number="+919811100010").one()
-    assert user.primary_goal.value == "family_management"  # old tasks during a rolling deploy read this
+    assert user.primary_goals == ["retirement", "buy_home"]
+    assert not hasattr(user, "primary_goal")  # the single-goal column is gone
 
 
-def test_patch_me_dedupes_goals_and_rejects_bad_values(client):
-    headers = _goal_headers(client, "+919811100011")
-    ok = client.patch("/auth/me", json={"primary_goals": ["family_management", "family_management"]}, headers=headers)
-    assert ok.json()["primary_goals"] == ["family_management"]
-    assert client.patch("/auth/me", json={"primary_goals": ["foo"]}, headers=headers).status_code == 422
-    assert client.patch("/auth/me", json={"primary_goals": []}, headers=headers).status_code == 422
-
-
-def test_patch_me_accepts_legacy_single_primary_goal(client):
-    """Go-live audit R3: an old cached frontend still sends primary_goal
-    during the rollout; it must be saved, not silently dropped."""
-    headers = _goal_headers(client, "+919811100012")
-    r = client.patch("/auth/me", json={"primary_goal": "family_management"}, headers=headers)
+def test_patch_me_accepts_all_six_goals(client):
+    headers = _goal_headers(client, "+919811100014")
+    r = client.patch("/auth/me", json={"primary_goals": SIX_GOALS}, headers=headers)
     assert r.status_code == 200
-    assert r.json()["primary_goals"] == ["family_management"]
+    assert r.json()["primary_goals"] == SIX_GOALS
+
+
+def test_patch_me_dedupes_goals(client):
+    headers = _goal_headers(client, "+919811100011")
+    ok = client.patch("/auth/me", json={"primary_goals": ["retirement", "retirement", "buy_home"]}, headers=headers)
+    assert ok.status_code == 200
+    assert ok.json()["primary_goals"] == ["retirement", "buy_home"]
+
+
+def test_patch_me_rejects_an_old_code(client):
+    headers = _goal_headers(client, "+919811100015")
+    for old in ("family_management", "consolidated_view", "understand_holdings", "performance_comparison"):
+        assert client.patch("/auth/me", json={"primary_goals": [old]}, headers=headers).status_code == 422
+
+
+def test_patch_me_rejects_an_empty_list(client):
+    headers = _goal_headers(client, "+919811100016")
+    r = client.patch("/auth/me", json={"primary_goals": []}, headers=headers)
+    assert r.status_code == 422
+    assert "Pick between 1 and 6 goals." in r.text
+
+
+def test_patch_me_rejects_an_unknown_seventh_code(client):
+    headers = _goal_headers(client, "+919811100017")
+    assert client.patch("/auth/me", json={"primary_goals": SIX_GOALS + ["foo"]}, headers=headers).status_code == 422
+    assert client.patch("/auth/me", json={"primary_goals": ["foo"]}, headers=headers).status_code == 422
+
+
+def test_patch_me_ignores_a_legacy_primary_goal_field_in_the_body(client):
+    headers = _goal_headers(client, "+919811100012")
+    r = client.patch("/auth/me", json={"primary_goal": "retirement"}, headers=headers)
+    assert r.status_code == 200  # extra field ignored by the model config
+    assert r.json()["primary_goals"] is None  # and not stored as a goal
 
 
 def test_user_created_without_goals_stores_sql_null(client):

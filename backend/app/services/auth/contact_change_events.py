@@ -107,13 +107,46 @@ def contact_changed_recently_until(db: DbSession, user_id: uuid.UUID) -> datetim
     return ends if ends > now else None
 
 
+def open_previous_emails(db: DbSession, user_id: uuid.UUID) -> list[str]:
+    """The previous emails of this account's email changes that can still be reversed. After a thief
+    changes the email, the account email IS the thief's; the owner is still reachable at these."""
+    now = datetime.now(timezone.utc)
+    rows = (
+        db.query(ContactChangeEvent.old_value, ContactChangeEvent.expires_at)
+        .filter(
+            ContactChangeEvent.user_id == user_id,
+            ContactChangeEvent.channel == "email",
+            ContactChangeEvent.reversed_at.is_(None),
+        )
+        .all()
+    )
+    return [r.old_value for r in rows if r.old_value and _aware(r.expires_at) > now]
+
+
 def send_contact_change_notice(
-    *, channel: str, old_value: str | None, account_email: str | None, new_value: str, raw_token: str
+    *,
+    channel: str,
+    old_value: str | None,
+    account_email: str | None,
+    new_value: str,
+    raw_token: str,
+    also_notify: list[str] | None = None,
 ) -> None:
-    """After the commit. An email change goes to the OLD email; a phone change goes to the
-    account's email (no SMS is sent yet). Nothing here may fail the request."""
-    recipient = old_value if channel == "email" else account_email
-    if not recipient or not recipient.strip():
+    """After the commit. An email change goes to the OLD email; a phone change goes to the account's
+    email (no SMS is sent yet) AND to the previous email of any email change that can still be
+    reversed, because that email change may be the thief's. Nothing here may fail the request."""
+    if channel == "email":
+        candidates = [old_value]
+    else:
+        candidates = [account_email, *(also_notify or [])]
+    recipients: list[str] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        if not candidate or not candidate.strip() or candidate.strip().casefold() in seen:
+            continue
+        seen.add(candidate.strip().casefold())
+        recipients.append(candidate)
+    if not recipients:
         return
     reverse_url = (
         f"{settings.frontend_base_url.rstrip('/')}/reverse-contact-change"
@@ -122,10 +155,11 @@ def send_contact_change_notice(
     subject, text, html = contact_changed_email(
         channel=channel, new_value_masked=mask_value(channel, new_value), reverse_url=reverse_url
     )
-    try:
-        get_email_provider().send_email(recipient, subject, text, html)
-    except Exception as exc:
-        logger.error("Contact change notice not sent error=%s", type(exc).__name__)
+    for recipient in recipients:
+        try:
+            get_email_provider().send_email(recipient, subject, text, html)
+        except Exception as exc:
+            logger.error("Contact change notice not sent error=%s", type(exc).__name__)
 
 
 def _not_found() -> ContactChangeError:
@@ -206,6 +240,20 @@ def reverse_contact_change(db: DbSession, token: str) -> uuid.UUID:
             AuthIdentity.provider == provider,
             AuthIdentity.provider_subject == (current or event.new_value),
         ).delete(synchronize_session=False)
+        # Every other sign-in method added after the change goes too: the thief may have signed in with
+        # Google as the new address (which auto-links it to this account) and would otherwise keep a way
+        # back in. A sign-in method the owner added in that window is removed with it; they sign in again
+        # with the email or phone code. The owner's own methods from before the change are untouched.
+        event_created = _aware(event.created_at)
+        new_key = _key(channel, event.new_value)
+        for identity in db.query(AuthIdentity).filter(AuthIdentity.user_id == user.id).all():
+            added_since = _aware(identity.created_at) > event_created
+            names_new_address = new_key is not None and new_key in {
+                _key(channel, identity.provider_subject),
+                _key(channel, identity.email),
+            }
+            if added_since or names_new_address:
+                db.delete(identity)
         db.flush()
         if event.old_value:
             already = (

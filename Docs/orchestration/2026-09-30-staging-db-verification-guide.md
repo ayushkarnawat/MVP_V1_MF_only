@@ -164,12 +164,12 @@ SELECT phone_number, email, verified_at FROM otp_requests WHERE email = :'email'
 **Endpoint:** `POST /auth/email-otp/verify`. One transaction creates the account.
 
 ```sql
-SELECT id, phone_number, email, onboarding_step, investor_type, primary_goal,
+SELECT id, phone_number, email, onboarding_step, investor_type, primary_goals,
        onboarding_completed_at, pending_deletion
 FROM users WHERE phone_number = :'phone';
 ```
 **Expected, 1 row:** your phone and email; `onboarding_step`, `investor_type`,
-`primary_goal`, `onboarding_completed_at` all NULL; `pending_deletion = f`.
+`primary_goals`, `onboarding_completed_at` all NULL; `pending_deletion = f`.
 
 ```sql
 SELECT a.provider, a.provider_subject, a.email
@@ -199,19 +199,20 @@ and email.
 
 Each screen saves the current step to `users.onboarding_step`:
 ```sql
-SELECT onboarding_step, investor_type, primary_goal FROM users WHERE phone_number = :'phone';
+SELECT onboarding_step, investor_type, primary_goals FROM users WHERE phone_number = :'phone';
 ```
-| After you… | onboarding_step | investor_type | primary_goal |
+| After you… | onboarding_step | investor_type | primary_goals |
 |---|---|---|---|
 | land on Q1 (name) | `q1_name` | NULL | NULL |
 | submit Q1 | `q2_investing` | NULL | NULL |
 | answer Q2 | `q3_purpose` | your answer, e.g. `self_directed` | NULL |
-| answer Q3 | `trust_primer` | same | your answer, e.g. `consolidated_view` |
+| answer Q3 | `trust_primer` | same | your answers, e.g. `["retirement","buy_home"]` |
 | continue past the trust screen | `cas_upload` | same | same |
 
 - Q2 values: `self_directed`, `advisor_assisted`, `mixed`, `beginner`.
-- Q3 values: `consolidated_view`, `understand_holdings`, `family_management`,
-  `performance_comparison`.
+- Q3 values (the six life goals, pick 1 to 6; the column is `primary_goals`, a list; after migration
+  0053 the old single `primary_goal` column no longer exists): `wealth_creation`, `retirement`,
+  `childrens_education`, `buy_home`, `financial_freedom`, `tax_planning`.
 - Skipping a question leaves that column NULL.
 
 **The Q1 name is not saved at Q1.** `users` has no name column. It's used at Step 6 to

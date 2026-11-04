@@ -56,7 +56,7 @@ export function GoalsDialog({ stored, onClose }: GoalsDialogProps) {
     <Modal isOpen onClose={onClose} title="What brings you to Unifolio?">
       <div className="space-y-4">
         <p className="text-sm text-[var(--shell-text-body)]">
-          Pick all that apply. These are your onboarding answers.
+          Select all that apply
         </p>
 
         <div className="space-y-2">
@@ -74,9 +74,6 @@ export function GoalsDialog({ stored, onClose }: GoalsDialogProps) {
               <span className="min-w-0">
                 <span className="block font-semibold text-[var(--ui-text)]">
                   {option.title}
-                </span>
-                <span className="block text-xs text-[var(--ui-text-muted)]">
-                  {option.subtitle}
                 </span>
               </span>
             </label>

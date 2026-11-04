@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session as DbSession
 from app.api.legal import CONSENT_CONTINUE_MESSAGE
 from app.db.session import get_db #dependency for database session
 from app.models.auth import AuthIdentity, Session as SessionModel
-from app.models.enums import AuthIdentityProvider, ConsentAction, ConsentDocumentType, PrimaryGoal, Relationship
+from app.models.enums import AuthIdentityProvider, ConsentAction, ConsentDocumentType, Relationship
 from app.models.user import HouseholdMember, User
 from app.services.auth.device_info import capture_request_metadata
 from app.config import settings
@@ -30,6 +30,7 @@ from app.services.auth.identity import (
 from app.services.auth.account_deletion import reactivate_account, schedule_account_deletion
 from app.services.auth.contact_change_events import (
     ContactChangeError,
+    open_previous_emails,
     record_contact_change,
     reverse_contact_change,
     send_contact_change_notice,
@@ -816,13 +817,16 @@ def verify_contact_change(
         else None
     )
     db.commit()
-    if raw_reverse_token is not None:
+    # Owner decision (Q71): during sign-up the old address was typed minutes ago, so only the email
+    # is skipped until onboarding is complete. The event and the cooling-off are still recorded above.
+    if raw_reverse_token is not None and user.onboarding_completed_at is not None:
         send_contact_change_notice(
             channel=body.channel,
             old_value=current_identifier,
             account_email=user.email,
             new_value=body.identifier,
             raw_token=raw_reverse_token,
+            also_notify=open_previous_emails(db, user.id),
         )
     return _me_response(user, db)
 
@@ -1095,7 +1099,6 @@ def update_me(
     if body.primary_goals is not None:
         goals = [g.value for g in body.primary_goals]
         user.primary_goals = goals
-        user.primary_goal = PrimaryGoal(goals[0])  # dual write until 0021
     # First-completion-wins: onboarding_completed=false is not a supported
     # "un-complete" action, only forward marking is needed (PRD-02 has no
     # revert-to-onboarding flow once done).

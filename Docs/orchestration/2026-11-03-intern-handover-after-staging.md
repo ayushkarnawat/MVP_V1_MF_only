@@ -1,0 +1,28 @@
+# What the owner gives the intern after the staging deploy (3 Nov 2026, evening)
+
+Two separate jobs, two separate things to hand over. Pick who does which; the owner decides.
+
+## A. Continuing the UI round 2 session (her worktrees `wt\ui-fe` and `wt\docs-be`, branch `ui-round-2`)
+1. **Paste** the text block in `2026-11-03-prompt-for-ui-round-2-after-release.md` (the code block) into her UI round 2 session. It tells her to merge `origin/release/change-requests` into `ui-fe-lane`, publish to `ui-round-2`, keep the goals migration at `0053` on `0052`, and report back.
+2. **Tell her, in your own words, these four things** (they are also in the prompt):
+   - The release is live on staging and **the branch is on origin**. Merge it (not rebase). A later QA fix is taken in with the same command; she does not wait for QA.
+   - **Do not push to `release/change-requests`** and do not merge it into `leapswitch-redesign`. Only `ui-round-2` goes into `leapswitch-redesign`, at her final merge, on the owner's go.
+   - On the VM the redesign worktree is on the release branch now. Her own rollout (S7) switches it to the final `leapswitch-redesign` and applies migration `0053`; backup first.
+   - Tailwind 3 does not generate `border-[var(--x)]/30` (an opacity modifier on a var() colour): use `color-mix`.
+3. **Files she needs, all on `origin/release/change-requests` (she gets them with the merge):** `2026-11-03-release-branch-model.md`, `2026-11-03-staging-deploy-record-change-requests.md`, `2026-10-31-staging-deploy-guide-change-requests.md` (the ledger of checks), `cr-r7-logo-pass-handoff.md`, `cr-r6-head-dialog-handoff.md`, `cr-r5-swap-and-undo-handoff.md`. Nothing else has to be sent by hand.
+4. **What she sends back:** the merge commit, the files she resolved by hand, her test results, `alembic heads`, and anything the release changes for her next stage.
+
+## B. The manual and visual QA of the release (DECIDED 3 Nov, evening: the intern does it)
+**Message the owner sends her (plain text):** "The change-requests release is live on https://ls-redesign.unifolio.in. Please do the manual and visual QA with the sheet Docs/orchestration/2026-11-03-manual-qa-checklist.md (it is on the branch origin/release/change-requests; open it with `git show origin/release/change-requests:Docs/orchestration/2026-11-03-manual-qa-checklist.md` or after your merge). Sections 8 to 10 need two or three real email inboxes you can read and should be done with me on the call. Fill the Result column for every row; for each failure give the row number, what you saw and a screenshot; add anything odd that is not on the sheet. Do not retest a failure until I tell you a fix is deployed. The 'known and accepted' list below is not a failure."
+
+1. **The sheet:** `2026-11-03-manual-qa-checklist.md` (printable, rows with Do this / Expected / Result). Sections 8 and 9 (Head of Family hand-over and undo) and section 10 (this was not me) need **two or three real inboxes and phone numbers the tester can read** and should be done **with the owner on the call**. Row 10.8 also needs a Google account for a second address.
+2. **Where:** `https://ls-redesign.unifolio.in` (the release bundle) and its API `https://ls-staging-api.unifolio.in`. The old main bundle `https://ls-staging.unifolio.in` is unchanged and is not under test. SMS is a stub (codes are shown on screen for a phone; emails are real through SES).
+3. **Test data on the VM now (nothing is wiped):** 6 accounts; the usual test household is the one the owner uses (user id starts `bed26e3e`, 2 members, 8 held schemes). The tester signs in with the owner's test login; **the orchestrator does not hold or type passwords**. If the tester needs a fresh account the owner runs `deploy/leapswitch/scripts/clean-db.sh` on the VM (it wipes user data, never reference data) only on the owner's word.
+4. **What is already proved (do not retest by hand):** migrations to `0052`; all 17 analytics scopes recomputed, 15 sections each, 0 failed; the 28 benchmark indices that factsheets print returns for match them to 0.02 points; the Head of Family flow has automated tests including two real-Postgres race tests. The record is `2026-11-03-staging-deploy-record-change-requests.md`.
+5. **What the tester reports:** each failing row (row number, what was seen, a screenshot), anything odd that is not on the sheet, and for the emailed links the exact address the link opened (it must be `ls-redesign.unifolio.in/undo-head-change/` or `/reverse-contact-change/`, never the sign-in screen).
+6. **Known and accepted before QA** (tell the tester, so these are not reported as new): the fund page's first call per fund takes 86 to 108 ms (limit 100); funds of fund houses that need a hand import (ICICI, HDFC, Kotak, Axis, Bandhan, Invesco, WhiteOak, ITI, JM, Trust) show "No benchmark" or printed returns until their factsheets are imported; P/B from filings appears on the valuation page after the next daily stock job (05:55 IST) and recompute (06:30 IST); the 56 newly registered indices show their upper-case NSE names; some funds show no benchmark by design (debt, liquid, gold, silver, overseas, equity savings).
+
+## C. Things only the owner can do now
+1. Decide who does B and send them the checklist.
+2. Give the go for the "after staging" work the orchestrator is preparing: the CA Excel (six funds), the `--this-month-only` imports and the Sundaram check (the owner supplies any file the orchestrator cannot find, see `2026-11-03-post-staging-work.md`).
+3. Install nothing by hand: the two cron lines (`manual-factsheets-check`, `filings-book-value`) are already in root's crontab on the VM.

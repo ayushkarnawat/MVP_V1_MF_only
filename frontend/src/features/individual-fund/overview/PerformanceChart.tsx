@@ -1,6 +1,7 @@
 import { benchmarkChoiceDetails, benchmarkDisplayName, benchmarkKeyName, BENCHMARK_PERIOD_METHOD } from "@/lib/benchmarkDisplay";
 import { BenchmarkInfoNote } from "@/components/BenchmarkInfoNote";
 import { SchemeLogo } from "@/components/SchemeLogo";
+import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { LineAreaChart } from "@/components/ui/charts";
 import { fundPageApi } from "../api";
@@ -32,9 +33,11 @@ import type {
 export interface PerformanceChartProps {
   schemeId: string;
   fundName: string;
+  /** Drawn above the period buttons (the Model Portfolio Returns | Actual XIRR toggle). */
+  toggleSlot?: ReactNode;
 }
 
-export function PerformanceChart({ schemeId, fundName }: PerformanceChartProps) {
+export function PerformanceChart({ schemeId, fundName, toggleSlot }: PerformanceChartProps) {
   const [period, setPeriod] = useState<PerformancePeriod>(DEFAULT_PERIOD);
   const [hidden, setHidden] = useState<Record<"fund" | "benchmark" | "category", boolean>>({
     fund: false,
@@ -139,12 +142,18 @@ export function PerformanceChart({ schemeId, fundName }: PerformanceChartProps) 
       <div className="space-y-4">
         {data.benchmark_source != null && <div data-testid="benchmark-details" className="space-y-1 text-xs text-[var(--ui-text-muted)]">
           <span className="inline-flex items-center gap-2"><SchemeLogo schemeName={fundName} size="sm" />{fundName}</span>
-          <p className="inline-flex items-center gap-1.5 flex-wrap">
+          {data.benchmark_source !== "none" && <p className="inline-flex items-center gap-1.5 flex-wrap">
             <span>Benchmark: {benchmarkDisplayName(data.benchmark_label ?? (data.benchmark_index ? benchmarkKeyName(data.benchmark_index) : "No benchmark"))}</span>
             <BenchmarkInfoNote note={data.benchmark_note} />
-          </p>
+          </p>}
           {data.benchmark_source !== "none" && data.declared_benchmark_name && <p>Factsheet names: {benchmarkDisplayName(data.declared_benchmark_name)}</p>}
-          <p>{benchmarkChoiceDetails(data.benchmark_source, Boolean(data.declared_benchmark_name)).fullLine}</p>
+          {/* This chart draws no printed returns, so a fund with no benchmark gets the plain "No benchmark" reason
+              here even when its factsheet names an index (the returns table shows that case). With no
+              "Benchmark:" line for "none", the note's icon sits beside this sentence instead. */}
+          <p className="inline-flex items-center gap-1.5 flex-wrap">
+            <span>{benchmarkChoiceDetails(data.benchmark_source).fullLine}</span>
+            {data.benchmark_source === "none" && <BenchmarkInfoNote note={data.benchmark_note} />}
+          </p>
           <p>{BENCHMARK_PERIOD_METHOD}</p>
         </div>}
         <ul aria-label="Chart legend" className="flex flex-wrap items-center gap-3 text-xs">
@@ -302,6 +311,7 @@ export function PerformanceChart({ schemeId, fundName }: PerformanceChartProps) 
       aria-labelledby="perf-title"
       className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4 space-y-4"
     >
+      {toggleSlot ? <div data-testid="perf-toggle-slot">{toggleSlot}</div> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 id="perf-title" className="text-base font-semibold text-[var(--ui-text)]">
           Performance

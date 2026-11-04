@@ -6,6 +6,7 @@ import {
   discardImportSession,
   parseImport,
   resolveName,
+  resolveAddAsFamily,
   resolvePan,
   resolveSamePerson,
   resolveSelf,
@@ -32,6 +33,7 @@ export type ImportFlowStage =
 
 export type PromptAction =
   | { kind: "name"; name: string }
+  | { kind: "addAsFamily" }
   | { kind: "self"; personKey: string | null }
   | { kind: "pan" }
   | { kind: "samePerson"; personKey: string; memberId: string; same: boolean }
@@ -186,6 +188,9 @@ export function useImportFlow(householdMemberId: string) {
         switch (action.kind) {
           case "name":
             next = await resolveName(sessionId, action.name);
+            break;
+          case "addAsFamily":
+            next = await resolveAddAsFamily(sessionId);
             break;
           case "self":
             next = await resolveSelf(sessionId, action.personKey);

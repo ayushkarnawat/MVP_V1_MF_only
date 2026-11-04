@@ -53,12 +53,12 @@ def test_portfolio_boundary_is_sixty_percent(db_session, monkeypatch, available,
         assert result.pe.unavailable_reason is None and result.pe.reason is None
     else:
         assert result.pe.unavailable_reason == (
-            "Not enough data: P/E is available for 59% of this portfolio's shares, and we need at least 60%.")
+            "Not enough data: P/E is available for funds holding 59% of your equity, and we need at least 60%.")
         # The older sentence is untouched.
         assert result.pe.reason == "We could not get a P/E for enough of your funds yet."
     # P/B has no figure for any fund, so it is withheld and says so with its own name and 0%.
     assert result.pb.unavailable_reason == (
-        "Not enough data: P/B is available for 0% of this portfolio's shares, and we need at least 60%.")
+        "Not enough data: P/B is available for funds holding 0% of your equity, and we need at least 60%.")
 
 
 def test_the_reason_names_the_real_percentage(db_session, monkeypatch):
@@ -154,3 +154,19 @@ def test_no_sentence_still_says_seventy(db_session, monkeypatch):
     result = _compute(db_session, monkeypatch, [_holding(s, "1000")])
     texts = _all_reasons(result)
     assert texts and not any("70" in t for t in texts)
+
+
+def test_the_portfolio_reason_counts_equity_in_funds_that_have_a_figure_not_shares(db_session, monkeypatch):
+    # Run 7 backend review: two funds each with 55% of their equity covered are both withheld (below 60%), so
+    # the share of equity in funds WITH a figure is 0%. The old sentence called that "0% of this portfolio's
+    # shares", although 55% of the shares do have a P/E.
+    a, b = _scheme(db_session), _scheme(db_session)
+    _batch(db_session, a, [("Known A", "A", "55", EQ), ("Unknown A", "X", "45", EQ)])
+    _batch(db_session, b, [("Known B", "B", "55", EQ), ("Unknown B", "Y", "45", EQ)])
+    _stock(db_session, "A", "10", "2")
+    _stock(db_session, "B", "12", "3")
+    result = _compute(db_session, monkeypatch, [_holding(a, "500"), _holding(b, "500")])
+    assert result.pe.ratio is None
+    assert result.pe.unavailable_reason == (
+        "Not enough data: P/E is available for funds holding 0% of your equity, and we need at least 60%.")
+    assert "shares" not in result.pe.unavailable_reason

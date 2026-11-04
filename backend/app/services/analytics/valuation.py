@@ -4,6 +4,7 @@ from __future__ import annotations
 import uuid
 from datetime import date
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
+from typing import NamedTuple
 
 from sqlalchemy.orm import Session
 
@@ -47,6 +48,11 @@ def _withheld_reason(subject: str, field: str, share: Decimal, metric: Valuation
             and metric.coverage_pct == 0):
         return (f"Not available: every share in this {subject} with an earnings figure is loss-making, "
                 f"so a {label} cannot be worked out.")
+    if subject == "portfolio":
+        # For the portfolio `share` is the part of the equity held in funds that HAVE a figure, not a share of
+        # stocks: two funds each 55% covered are both withheld, so this is 0% although 55% of the stocks have one.
+        return (f"Not enough data: {label} is available for funds holding {_whole_percent(share)}% of your equity, "
+                f"and we need at least {_rule_percent()}%.")
     return (f"Not enough data: {label} is available for {_whole_percent(share)}% of this {subject}'s shares, "
             f"and we need at least {_rule_percent()}%.")
 
@@ -116,6 +122,47 @@ def _fund_computed(metric: ValuationMetric, losses: list[str], field: str, nav_d
     )
 
 
+class FundValuationParts(NamedTuple):
+    """One fund's P/E and P/B, keyed "pe" / "pb": the stock-by-stock figure (`computed`), what the screens
+    show (`resolved`: a fresh factsheet figure when there is one, otherwise `computed`) and the ratio details
+    behind `computed` (coverage, stocks left out)."""
+
+    computed: dict[str, ValuationValue]
+    resolved: dict[str, ValuationValue]
+    details: dict[str, ValuationMetric]
+
+
+def fund_valuation(
+    stocks, master: dict[str, StockMaster], reported: dict[str, SchemeReportedValuation | None], nav_date: date,
+) -> FundValuationParts:
+    """The per-fund core of `compute_valuation`, shared with the CA export script so there is one formula.
+
+    `stocks` is [(holding row, weight)] over the fund's equity rows; the weight may be rupees or a percentage
+    of NAV because the ratio and its coverage depend only on the relative weights. `reported` holds the latest
+    factsheet reading on or before `nav_date` for each metric, or None."""
+    computed, resolved, details = {}, {}, {}
+    for metric, field in (("pe", "pe_ratio"), ("pb", "pb_ratio")):
+        detail, losses = _stock_metric(stocks, field, master)
+        details[metric] = detail
+        computed[metric] = _fund_computed(detail, losses, field, nav_date)
+        resolved[metric] = resolve_fund_ratio(reported.get(metric), computed[metric], nav_date)
+    return FundValuationParts(computed, resolved, details)
+
+
+def latest_reported_valuations(
+    db: Session, scheme_ids, nav_date: date,
+) -> dict[tuple[uuid.UUID, str], SchemeReportedValuation]:
+    """{(scheme_id, metric): newest factsheet reading with reference_period on or before `nav_date`}."""
+    latest: dict[tuple[uuid.UUID, str], SchemeReportedValuation] = {}
+    reported = db.query(SchemeReportedValuation).filter(
+        SchemeReportedValuation.scheme_id.in_(scheme_ids),
+        SchemeReportedValuation.reference_period <= nav_date,
+    ).order_by(SchemeReportedValuation.reference_period.desc()).all()
+    for reading in reported:
+        latest.setdefault((reading.scheme_id, reading.metric), reading)
+    return latest
+
+
 async def compute_valuation(db: Session, household_member_ids: list[uuid.UUID]) -> ValuationSummary:
     table = await get_lookthrough_table(db, household_member_ids)
     scope = await get_disclosure_scope(db, household_member_ids)
@@ -139,20 +186,15 @@ async def compute_valuation(db: Session, household_member_ids: list[uuid.UUID]) 
             entries[sid].append((row, scope.values[sid] * row.pct_to_nav / 100))
     latest = {}
     if table.nav_as_of is not None and entries:
-        reported = db.query(SchemeReportedValuation).filter(
-            SchemeReportedValuation.scheme_id.in_(entries),
-            SchemeReportedValuation.reference_period <= table.nav_as_of,
-        ).order_by(SchemeReportedValuation.reference_period.desc()).all()
-        for reading in reported:
-            latest.setdefault((reading.scheme_id, reading.metric), reading)
+        latest = latest_reported_valuations(db, list(entries), table.nav_as_of)
     funds, portfolio_values = [], {"pe": [], "pb": []}
     if table.nav_as_of is not None:
         for sid, stocks in entries.items():
-            computed, resolved = {}, {}
-            for metric, field in (("pe", "pe_ratio"), ("pb", "pb_ratio")):
-                detail, losses = _stock_metric(stocks, field, master)
-                computed[metric] = _fund_computed(detail, losses, field, table.nav_as_of)
-                resolved[metric] = resolve_fund_ratio(latest.get((sid, metric)), computed[metric], table.nav_as_of)
+            parts = fund_valuation(
+                stocks, master, {metric: latest.get((sid, metric)) for metric in ("pe", "pb")}, table.nav_as_of,
+            )
+            computed, resolved = parts.computed, parts.resolved
+            for metric in ("pe", "pb"):
                 total_value = computed[metric] if metric == "pe" and resolved[metric].basis == "forward" else resolved[metric]
                 equity_value = sum((value for _, value in stocks), _ZERO)
                 # Weight by the fund's equity rupees: its P/E or P/B describes only its shares (owner, 31 Oct).

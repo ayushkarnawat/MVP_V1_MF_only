@@ -72,7 +72,7 @@ Landing this migration also removed every OTP/session-related route's old direct
 
 - **`0019_user_primary_goals`** (expand phase): `users.primary_goals` — JSONB on Postgres with CHECK `ck_users_primary_goals_allowed` (array of 1–4 items, contained in the four allowed goals; written as a CASE so a scalar fails the CHECK instead of raising), JSON on SQLite. Backfilled from `primary_goal`; `primary_goal` is kept for rolling deploys. **Not run on Postgres** (no TEST_DATABASE_URL).
 - **`0020_import_statement_period_backfill`** (data only): fills `imports.statement_from_date` / `statement_to_date` from `raw_parser_output.statement_period` (`from_` or `from`, `DD-Mon-YYYY` or ISO); unreadable rows stay NULL. Downgrade is a no-op.
-- **Pending, later release — `0023`** (was reserved as "0021"): re-backfill `primary_goals` from `primary_goal` for rows old tasks wrote during the rollout, then drop `users.primary_goal` and the `primarygoal` enum type.
+- ~~**Pending, later release — `0023`** (was reserved as "0021"): re-backfill `primary_goals` from `primary_goal` for rows old tasks wrote during the rollout, then drop `users.primary_goal` and the `primarygoal` enum type.~~ **Done by migration 0053 (2026-11-03), without the re-backfill: the UI round 2 goals change cleared every saved goal because no old goal maps to a new one.**
 
 `Database-Schema-Unifolio.md` synced through 0020 (v1.7).
 
@@ -84,7 +84,7 @@ Landing this migration also removed every OTP/session-related route's old direct
 - **Append-only triggers**: SQLite `trg_consent_no_update` / `trg_consent_no_delete`; Postgres function `consent_records_append_only()` plus trigger `trg_consent_append_only` (BEFORE UPDATE OR DELETE). SQL is a frozen copy of `app/db/consent_trigger_sql.py`. The model also attaches the triggers via `after_create` so `create_all` test DBs get them.
 - **`pending_identity_verifications.consent_snapshot`**: the sign-up consent the user accepted is held here until the OTP verifies, then written as `consent_records` rows.
 - **Not verified on Postgres**: `tests/functional_postgres` (cascade deletes, trigger test) could not be run — no Postgres available in the session. Run once before merge.
-- Pending, now numbered **0023**: drop `users.primary_goal` (see `DEFERRED_FEATURES.md`; it was reserved as "0021").
+- ~~Pending, now numbered **0023**: drop `users.primary_goal`~~ (done by 0053, see below).
 
 ## 2026-10-01 — Migration 0023: member profile completion
 
@@ -92,7 +92,7 @@ Landing this migration also removed every OTP/session-related route's old direct
 - `household_members`: drops `details_completed_at`, `lock_reason`, `ck_member_relationship_when_complete`, `ck_member_lock_reason` and the never-relock trigger (SQLite `trg_member_never_relock` / Postgres `member_never_relock()`). Adds `pan_conflict` (`memberpanconflict`, `other_account`) with CHECK `ck_member_pan_conflict_has_pan`. `MemberNameSource` gains `user_edited`.
 - **Backfill:** a locked row's `detected_pan_*` is copied into `pan_encrypted` / `pan_lookup_hash` (`pan_source='cas'`, verified now), only for the earliest row per hash and only when no row already holds that hash; rows whose PAN another account holds (and later same-account duplicates) keep `detected_pan_*` and are flagged `pan_conflict='other_account'`.
 - Downgrade restores the columns and trigger from a frozen SQL copy.
-- The deferred `users.primary_goal` drop is renumbered 0023 -> **0024** (`DEFERRED_FEATURES.md`).
+- ~~The deferred `users.primary_goal` drop is renumbered 0023 -> **0024**~~ (done by 0053, see below).
 
 ## 2026-10-06 — Migration 0025: transaction origin and cost source
 
@@ -166,3 +166,22 @@ Landing this migration also removed every OTP/session-related route's old direct
 ## 2026-10-28 — Individual Fund routes and the ledger `scheme_id`: no migration, head stays 0046
 
 The Individual Fund page routes (PR #31) and the optional `scheme_id` on ledger entries (PR #35) read existing tables only and add no table, column or index. `alembic heads` still prints `0046 (head)`; the next migration number is `0047`.
+## 2026-11-02/03 — Migrations 0047 to 0052 (the change requests release; head goes 0046 to 0052)
+
+- **0047** — `scheme_reported_valuation` (fund-factsheet P/E and P/B as printed, with `as_of`, basis and method) and new `stock_master` columns `bse_scrip_code`, `pe_as_of`, `pb_as_of`, `pe_source` (BSE price file and the per-stock ratio dates).
+- **0048** — drops the composite ranking tables (`scheme_rankings`, `ranking_weights` from 0034) because Performance Ranking replaces Fund Ranking; the downgrade recreates them (verified identical to 0034). Check `Docs/orchestration/2026-10-23-home-functionality-backend-spec.md` for any reader of `scheme_rankings` before the deploy.
+- **0049** — benchmark registry: `benchmark_index_history.index_name` from an enum to text, new `benchmark_index_master` (23 rows seeded; further indices are one `IndexSpec` row in `benchmark_registry.py`, no migration: 79 now) and `scheme_benchmark` (declared name, mapped and tracked index key, match quality). Its downgrade refuses once new text index keys exist.
+- **0050** — Head of Family: `household_members.is_head` (BOOLEAN, partial unique index one head per user, backfilled from the Self row), `head_change_requests` (status, four verified-at stamps, snapshot JSON, `undo_token_hash`, `undo_expires_at`, partial unique index one pending request per user, FKs cascade on user and member delete) and `otp_requests.purpose` (NULL means sign-in).
+- **0051** — `contact_change_events` (`user_id` FK cascade, `channel`, `old_value`, `new_value`, unique `token_hash`, `created_at`, `expires_at`, `reversed_at`): the "this was not me" link (7 days) and the 7-day cooling-off.
+- **0052** — `stock_master.book_value_per_share` NUMERIC(18,6), `book_value_as_of` DATE, `book_value_filing_ref` TEXT, `book_value_basis` VARCHAR (all nullable): book value read from NSE filings (T2.12 Step B).
+Up, down, up was run on Postgres for 0050, 0051 and 0052. The next free number is `0053` (reserved by the UI round 2 plan for its goals migration; its `down_revision` must be `"0052"`).
+
+## 2026-11-03/04 — Migration 0053 (UI round 2, the six life goals; head goes 0052 to 0053)
+
+- **`0053_primary_goals_life_goals`** (`down_revision` `"0052"`; file `backend/alembic/versions/0053_primary_goals_life_goals.py`):
+  - **Upgrade:** `UPDATE users SET primary_goals = NULL` (no old goal maps to a new one, so saved goals are cleared, not converted); on Postgres drop and recreate the CHECK `ck_users_primary_goals_allowed` as `primary_goals IS NULL OR` an array of **1 to 6** items all contained in `["wealth_creation","retirement","childrens_education","buy_home","financial_freedom","tax_planning"]` (the same `CASE WHEN jsonb_typeof(...) = 'array'` form as 0019); drop column `users.primary_goal`; on Postgres `DROP TYPE IF EXISTS primarygoal`. The column is dropped, not altered, because Postgres cannot remove values from an enum.
+  - **Downgrade:** clear goals, drop the new CHECK, recreate the `primarygoal` type (the four old values) and the `primary_goal` column, restore the old four-code 1 to 4 CHECK.
+  - **Verified:** up, down, up on Postgres 16; a row seeded with an old code before 0053 is NULL after; the CHECK refuses a bad value, an empty list, seven items, an old code and a scalar and accepts one and six; `\d users` has no `primary_goal`, `pg_type` has no `primarygoal`; the SQLite round trip in `tests/test_migrations.py`; `tests/functional_postgres` 46 passed.
+  - **Release note:** old code on the new schema fails every `users` query (the old model selects the dropped column); new code on the old schema works except saving the new goal codes. The deploy guide therefore stops the backend and worker, starts the new code and migrates at once (`Docs/orchestration/2026-11-04-staging-deploy-guide-ui-round-2.md`).
+- This completes the old deferred "drop `users.primary_goal`" item (reserved as 0021, then 0023, then 0024).
+- `alembic heads` prints exactly `0053 (head)` on the merge of the change-requests release into UI round 2 (commit `1aad77c2`); the release itself ends at `0052`. The next free number is `0054`; the manager asks the owner before taking it (`Docs/orchestration/2026-11-03-release-branch-model.md`).

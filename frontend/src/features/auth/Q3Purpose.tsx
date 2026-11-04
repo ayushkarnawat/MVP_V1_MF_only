@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Armchair, Check, GraduationCap, House, Plane, Receipt, TrendingUp, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GOAL_OPTIONS } from "@/features/profile-v2/lib/onboardingOptions";
 import type { PrimaryGoal } from "./types";
 import { OnboardingIllustration } from "./OnboardingIllustration";
 import { MobileOnboardingScreen } from "./MobileOnboardingScreen";
@@ -28,85 +29,16 @@ interface Q3PurposeProps {
   totalSteps?: number;
 }
 
-interface PurposeOption {
-  value: PrimaryGoal;
-  title: string;
-  subtitle: string;
-  renderIllustration: () => React.ReactNode;
-}
+const GOAL_ICONS: Record<PrimaryGoal, LucideIcon> = {
+  wealth_creation: TrendingUp,
+  retirement: Armchair,
+  childrens_education: GraduationCap,
+  buy_home: House,
+  financial_freedom: Plane,
+  tax_planning: Receipt,
+};
 
-const OPTIONS: PurposeOption[] = [
-  {
-    value: "consolidated_view",
-    title: "Consolidated portfolio view",
-    subtitle: "See all my mutual funds across every broker and fund house in one place",
-    renderIllustration: () => (
-      <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-11 sm:h-11 select-none" fill="none">
-        <path d="M24 5 V8 M12 8 L15 11 M36 8 L33 11" stroke="var(--color-accent)" strokeWidth="1.75" strokeLinecap="round" />
-        <rect x="10" y="12" width="28" height="9" rx="3" fill="color-mix(in srgb, var(--color-accent) 20%, transparent)" stroke="currentColor" strokeWidth="2" />
-        <circle cx="24" cy="16.5" r="1.5" fill="currentColor" />
-        <rect x="10" y="21" width="28" height="9" rx="3" fill="color-mix(in srgb, var(--color-accent) 15%, transparent)" stroke="currentColor" strokeWidth="2" />
-        <circle cx="24" cy="25.5" r="1.5" fill="var(--color-accent)" />
-        <rect x="8" y="30" width="32" height="11" rx="3" fill="var(--color-surface)" stroke="currentColor" strokeWidth="2" />
-        <rect x="20" y="34" width="8" height="3" rx="1.5" fill="var(--color-accent)" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M12 34 H16" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    value: "understand_holdings",
-    title: "Understand true performance",
-    subtitle: "See your true returns after fees, taxes and plan type",
-    renderIllustration: () => (
-      <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-11 sm:h-11 select-none" fill="none">
-        <path d="M16 26 L20 18 H28 L32 26 L24 34 Z" fill="color-mix(in srgb, var(--color-accent) 20%, transparent)" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-        <path d="M20 18 L24 26 L28 18 M16 26 H32 M24 26 V34" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-        <circle cx="23" cy="21" r="11" stroke="currentColor" strokeWidth="2.25" fill="color-mix(in srgb, var(--color-accent) 15%, transparent)" />
-        <path d="M16 16 C18 13 22 12 25 13" stroke="var(--color-accent)" strokeWidth="1.75" strokeLinecap="round" />
-        <path d="M31 29 L41 39" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-        <circle cx="40" cy="38" r="2" fill="var(--color-accent)" />
-        <path d="M35 10 V14 M33 12 H37" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="11" cy="14" r="1.5" fill="var(--color-accent)" />
-      </svg>
-    ),
-  },
-  {
-    value: "family_management",
-    title: "Family wealth tracking",
-    subtitle: "Managing investments for family members under one dashboard",
-    renderIllustration: () => (
-      <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-11 sm:h-11 select-none" fill="none">
-        <path d="M9 22 C9 13.5 15.5 8 24 8 C32.5 8 39 13.5 39 22 C34 20 29 22 24 20 C19 22 14 20 9 22 Z" fill="color-mix(in srgb, var(--color-accent) 20%, transparent)" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-        <path d="M24 5 V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        <path d="M24 20 V33 C24 35.5 22 37 20 37 C18 37 16.5 35.5 16.5 34" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="16" cy="27" r="4.5" fill="color-mix(in srgb, var(--color-accent) 30%, transparent)" stroke="currentColor" strokeWidth="1.75" />
-        <circle cx="16" cy="27" r="1.5" fill="var(--color-accent)" />
-        <circle cx="32" cy="27" r="4.5" fill="color-mix(in srgb, var(--color-accent) 25%, transparent)" stroke="currentColor" strokeWidth="1.75" />
-        <circle cx="32" cy="27" r="1.5" fill="var(--color-accent)" />
-        <path d="M30 13 L33 11 M35 15 L38 14" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    value: "performance_comparison",
-    title: "Compare distributor fees",
-    subtitle: "Compare returns and costs across different distributors",
-    renderIllustration: () => (
-      <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-11 sm:h-11 select-none" fill="none">
-        <path d="M24 9 V37 M18 37 H30" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="24" cy="11" r="2.5" fill="color-mix(in srgb, var(--color-accent) 20%, transparent)" stroke="currentColor" strokeWidth="1.75" />
-        <path d="M10 15 L38 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        <path d="M10 15 L7 24 M10 15 L15 24" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M6 24 C6 24 11 27 16 24 Z" fill="color-mix(in srgb, var(--color-accent) 30%, transparent)" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
-        <circle cx="11" cy="22" r="2" fill="var(--color-accent)" />
-        <path d="M38 19 L33 30 M38 19 L43 30" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M32 30 C32 30 38 33 44 30 Z" fill="color-mix(in srgb, var(--color-accent) 20%, transparent)" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
-        <rect x="36" y="26" width="4" height="4" rx="1" fill="var(--color-accent)" stroke="currentColor" strokeWidth="1.25" />
-        <path d="M7 11 L5 9 M10 8 L9 5" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-];
+const OPTIONS = GOAL_OPTIONS.map((option) => ({ ...option, Icon: GOAL_ICONS[option.value] }));
 
 export const ALL_GOALS: PrimaryGoal[] = OPTIONS.map((o) => o.value);
 
@@ -119,9 +51,9 @@ export function Q3Purpose({
   currentStepIndex = 2,
   totalSteps = 4,
 }: Q3PurposeProps) {
-  const [picked, setPicked] = useState<PrimaryGoal[]>(selectedValues);
+  const [picked, setPicked] = useState<PrimaryGoal[]>(() => selectedValues.filter(g => ALL_GOALS.includes(g)));
   const allPicked = ALL_GOALS.every((g) => picked.includes(g));
-  // "Why choose? All of it." is purely a UI shortcut: it saves the four real goal values, no fifth value (decision Q7).
+  // "Why choose? All of it." is purely a UI shortcut: it saves the six real goal values, no seventh value (decision Q7).
   const toggleAll = () => setPicked(allPicked ? [] : [...ALL_GOALS]);
   const toggle = (v: PrimaryGoal) => setPicked((p) => (p.includes(v) ? p.filter((x) => x !== v) : [...p, v]));
 
@@ -165,7 +97,7 @@ export function Q3Purpose({
                   : "bg-[#22C55E]/10 text-[var(--color-ink)] group-hover:bg-[#22C55E]/15 group-hover:text-[#22C55E]"
               )}
             >
-              {option.renderIllustration()}
+              <option.Icon className="h-5 w-5" aria-hidden="true" />
             </div>
 
             {/* Title & Subtitle */}
@@ -180,9 +112,6 @@ export function Q3Purpose({
               >
                 {option.title}
               </strong>
-              <span className="block text-[11px] sm:text-xs text-[#5C5C5C] dark:text-[#A3A3A3] leading-snug font-normal">
-                {option.subtitle}
-              </span>
             </div>
 
             {/* Right check mark */}

@@ -221,19 +221,27 @@ export function getAmcInfo(
       };
     }
 
-    // Tokenized word search (longest alias first, whole-word boundary match)
+    // Whole-word search. The alias that appears EARLIEST in the name wins, because a scheme name starts with its
+    // fund house ("Tata Quant Fund" is Tata's, not Quant's); among aliases starting at the same place the
+    // longest wins (SORTED_ALIASES is longest first and the comparison is strict, so "quantum" beats "quant").
+    let best: { index: number; target: string } | null = null;
     for (const [key, mapTarget] of SORTED_ALIASES) {
+      if (!AMC_DOMAIN_MAP[mapTarget]) continue;
       const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      if (new RegExp(`(?:^|\\s)${escapedKey}(?:\\s|$)`).test(text) && AMC_DOMAIN_MAP[mapTarget]) {
-        const data = AMC_DOMAIN_MAP[mapTarget];
-        return {
-          key: mapTarget,
-          name: data.name,
-          domain: data.domain,
-          officialLogoUrl: `https://www.google.com/s2/favicons?domain=${data.domain}&sz=128`,
-          clearbitLogoUrl: `https://logo.clearbit.com/${data.domain}`,
-        };
-      }
+      const found = new RegExp(`(?:^|\\s)${escapedKey}(?:\\s|$)`).exec(text);
+      if (!found) continue;
+      const index = found.index + (found[0].startsWith(" ") ? 1 : 0);
+      if (best === null || index < best.index) best = { index, target: mapTarget };
+    }
+    if (best) {
+      const data = AMC_DOMAIN_MAP[best.target];
+      return {
+        key: best.target,
+        name: data.name,
+        domain: data.domain,
+        officialLogoUrl: `https://www.google.com/s2/favicons?domain=${data.domain}&sz=128`,
+        clearbitLogoUrl: `https://logo.clearbit.com/${data.domain}`,
+      };
     }
   }
 

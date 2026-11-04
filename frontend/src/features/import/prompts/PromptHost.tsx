@@ -123,7 +123,7 @@ export function PromptHost({
           enteredName={str(d.entered_name)}
           statementName={str(d.statement_name)}
           error={error}
-          onUseName={(name) => onResolve({ kind: "name", name })}
+          onAddAsFamily={() => onResolve({ kind: "addAsFamily" })}
           onUploadDifferent={() => discard()}
         />
       );

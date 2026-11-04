@@ -7,9 +7,14 @@ import { PRIMARY_BTN } from "../import/prompts/copy";
 
 interface SoloCasUploadProps {
   name: string;
+  /**
+   * Desktop sign-up: called when the import is done instead of marking onboarding complete, so the All set screen can
+   * show first. That screen writes the completion itself.
+   */
+  onImported?: () => void;
 }
 
-export function SoloCasUpload({ name }: SoloCasUploadProps) {
+export function SoloCasUpload({ name, onImported }: SoloCasUploadProps) {
   const { updateMe } = useAuth();
   const [memberId, setMemberId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +74,10 @@ export function SoloCasUpload({ name }: SoloCasUploadProps) {
   // finishFailed stays set during a retry, so the upload form doesn't flash
   // back while the request is in flight; on success onboarding moves on.
   const handleDone = async () => {
+    if (onImported) {
+      onImported();
+      return;
+    }
     try {
       await updateMe({ onboarding_completed: true });
     } catch {

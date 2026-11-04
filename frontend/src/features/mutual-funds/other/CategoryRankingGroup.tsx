@@ -5,7 +5,7 @@ import { SectionCard } from "../common/SectionCard";
 import { useMfAnalytics } from "../data/analyticsStore";
 import type { CategoryRankingSummary, CategoryRankRow } from "../types";
 import {
-  CARD_TITLES, CATEGORY_PERIODS, CATEGORY_PERIOD_LABELS, categoryComparisonScale, categoryComparisonSummary,
+  CARD_TITLES, CATEGORY_PERIODS, CATEGORY_PERIOD_LABELS, categoryAverageSentence, categoryComparisonScale, categoryComparisonSummary,
   categoryGapText, categoryLinePositions, filterCategoryFunds, normalizeFraction, rawPercent, shortCategory,
 } from "./otherLogic";
 import type { CategoryFilter, CategoryPeriod } from "./otherLogic";
@@ -47,6 +47,7 @@ export function CategoryRankingBody({ data }: { data: CategoryRankingSummary }) 
         const notice = fund.category_unavailable ? "Category data is not available for this fund."
           : fund.insufficient_history ? "Needs at least 3 years of history"
             : !fund.periods || Object.keys(fund.periods).length === 0 ? "Return comparisons are updating." : null;
+        const sentence = categoryAverageSentence(fund);
         return <li key={fund.scheme_id} data-testid={`cat-row-${fund.scheme_id}`} className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-4 space-y-4">
           <div className="flex items-start gap-2.5">
             <span data-testid="fund-logo" aria-hidden="true"><SchemeLogo schemeName={fund.scheme_name} size="sm" /></span>
@@ -55,7 +56,10 @@ export function CategoryRankingBody({ data }: { data: CategoryRankingSummary }) 
           </div>
           {notice ? <p className="text-xs text-[var(--ui-text-muted)]">{notice}</p> : <>
             <div className="space-y-4">{CATEGORY_PERIODS.map(period => <ComparisonRow key={period} fund={fund} period={period} scale={scale} />)}</div>
-            <p className="text-xs text-[var(--ui-text-muted)]">Category average covers {fund.periods?.["1y"]?.peers ?? 0} funds (1Y), {fund.periods?.["3y"]?.peers ?? 0} (3Y), {fund.periods?.["5y"]?.peers ?? 0} (5Y).</p>
+            <p className="text-xs text-[var(--ui-text-muted)]">
+              <span>Category average covers {fund.periods?.["1y"]?.peers ?? 0} funds (1Y), {fund.periods?.["3y"]?.peers ?? 0} (3Y), {fund.periods?.["5y"]?.peers ?? 0} (5Y).</span>
+              {sentence && <> <span>{sentence}</span></>}
+            </p>
           </>}
         </li>;
       })}</ul>}
@@ -65,7 +69,7 @@ export function CategoryRankingBody({ data }: { data: CategoryRankingSummary }) 
 
 export function CategoryRankingGroup() {
   const ranking = useMfAnalytics("category_ranking");
-  return <SectionCard title={CARD_TITLES.category[0]} info="The simple average of funds in the same category and plan type. Each fund needs at least 3 years of history."
+  return <SectionCard title={CARD_TITLES.category[0]} info="The average of funds in the same category and plan type, weighted by fund size. Each fund needs at least 3 years of history."
     state={ranking.status} onRetry={ranking.retry}>
     {ranking.data && <CategoryRankingBody data={ranking.data} />}
   </SectionCard>;

@@ -238,7 +238,7 @@ WHERE u.phone_number = :'phone';
 **Expected:** right after the name step there is a Self row with your typed name,
 `origin = onboarding` and `name_source = user_entered`. That name is provisional: the
 first CAS replaces it silently. Goals: `SELECT primary_goals FROM users WHERE phone_number = :'phone';`.
-"All of it" gives all four.
+"All of it" gives all six (`wealth_creation`, `retirement`, `childrens_education`, `buy_home`, `financial_freedom`, `tax_planning`).
 
 ### 2.4 Upload a CAS (PAN disclaimer ticked), before Confirm
 

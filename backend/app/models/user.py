@@ -12,7 +12,6 @@ from app.models.enums import (
     MemberOrigin,
     MemberPanConflict,
     MemberPanSource,
-    PrimaryGoal,
     Relationship,
     enum_column,
 )
@@ -29,10 +28,9 @@ class User(Base):
     onboarding_step: Mapped[str | None] = mapped_column(String)
     onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     investor_type: Mapped[InvestorType | None] = mapped_column(enum_column(InvestorType))
-    primary_goal: Mapped[PrimaryGoal | None] = mapped_column(enum_column(PrimaryGoal))
-    # Staging-QA fix 2 (2026-09-30), expand phase: the list is the source of
-    # truth; primary_goal is dual-written (first item) until migration 0021
-    # drops it. Always ASSIGN a new list -- in-place .append() isn't tracked.
+    # Six life goals, 1 to 6 per user (migration 0053 swapped the CHECK and
+    # dropped the old single primary_goal column). Always ASSIGN a new list --
+    # in-place .append() isn't tracked.
     # none_as_null: None must be SQL NULL -- a JSON null fails Postgres's
     # ck_users_primary_goals_allowed.
     primary_goals: Mapped[list[str] | None] = mapped_column(

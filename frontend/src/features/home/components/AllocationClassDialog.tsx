@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatLegendPercent } from "../allocationCopy";
 import { formatRupees } from "../homeFormat";
-import type { ClassRowOut } from "../types";
+import type { ClassFundOut, ClassRowOut } from "../types";
 
 export interface AllocationClassDialogProps {
   open: boolean;
@@ -15,9 +15,27 @@ export interface AllocationClassDialogProps {
 
 const MASK = "••••••";
 
+// Whole paise from a decimal string, by text, so nothing goes through a float (a Home rule).
+const paise = (value: string | null) => {
+  const [whole, fraction = ""] = (value ?? "0").trim().split(".");
+  return Number(`${whole}${fraction.padEnd(2, "0").slice(0, 2)}`);
+};
+const fromPaise = (amount: number) => `${Math.floor(amount / 100)}.${String(amount % 100).padStart(2, "0")}`;
+
+// Partial coverage (backend, S2): funds[] holds only the funds the analytics section disclosed, and each share is of the
+// whole class, so the shares add up to less than 100. What is left is not a fund and is never drawn as a table row.
+function remainderOf(row: ClassRowOut, funds: ClassFundOut[]) {
+  if (funds.length === 0 || row.value === null) return null;
+  const valuePaise = paise(row.value) - funds.reduce((sum, fund) => sum + paise(fund.value), 0);
+  if (valuePaise <= 0) return null;
+  const sharePaise = 10000 - funds.reduce((sum, fund) => sum + paise(fund.share_of_class), 0);
+  return { value: fromPaise(valuePaise), share: fromPaise(Math.max(sharePaise, 0)) };
+}
+
 export function AllocationClassDialog({ open, onClose, row, hideValues = false, returnFocusRef }: AllocationClassDialogProps) {
   const money = (value: string | null) => (hideValues ? MASK : formatRupees(value));
   const funds = row.funds ?? [];
+  const remainder = remainderOf(row, funds);
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent onCloseAutoFocus={(event) => { if (returnFocusRef?.current) { event.preventDefault(); returnFocusRef.current.focus(); } }}>
@@ -54,6 +72,11 @@ export function AllocationClassDialog({ open, onClose, row, hideValues = false, 
             </tbody>
           </table>
         )}
+        {remainder ? (
+          <p data-testid="class-remainder" className="text-xs text-[var(--ui-text-muted)]">
+            Not attributed to a fund: {money(remainder.value)} ({formatLegendPercent(remainder.share)} of this class)
+          </p>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

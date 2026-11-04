@@ -948,3 +948,89 @@ def test_dashboard_buckets_funds_keep_full_class_values_and_shares():
     for row in _live_rows(result).values():
         assert sum((fund.value for fund in row.funds), Decimal("0")) == row.value
         assert sum((fund.share_of_class for fund in row.funds), Decimal("0")) == Decimal("100.00")
+
+
+def test_partial_shares_use_largest_remainders_without_exceeding_disclosed_percent():
+    from app.services.home.allocation import ClassFund, _class_funds
+    funds = tuple(ClassFund(str(uuid.UUID(int=i)), f"Fund {i}", Decimal("1000.00"), Decimal("0"))
+                  for i in range(1, 8))
+    result = _class_funds(funds, Decimal("7000.01"), covered_value=Decimal("7000.00"))
+    assert [fund.value for fund in result] == [Decimal("1000.00")] * 7
+    assert [fund.share_of_class for fund in result] == [
+        Decimal("14.29"), Decimal("14.29"), Decimal("14.29"),
+        Decimal("14.28"), Decimal("14.28"), Decimal("14.28"), Decimal("14.28"),
+    ]
+    assert sum((fund.share_of_class for fund in result), Decimal("0")) == Decimal("99.99")
+
+
+def test_partial_share_apportionment_properties_over_varied_splits():
+    from app.services.home.allocation import ClassFund, _class_funds
+    rng = random.Random(43173)
+    for _ in range(120):
+        parts = [rng.randint(1, 200000) for _ in range(rng.randint(2, 15))]
+        covered_cents = sum(parts)
+        class_cents = covered_cents + rng.randint(1, 20000)
+        ids = [str(uuid.UUID(int=i + 1)) for i in range(len(parts))]
+        funds = tuple(
+            ClassFund(sid, f"Fund {index}", Decimal(value) / 100, Decimal("0"))
+            for index, (sid, value) in enumerate(zip(ids, parts))
+        )
+        result = _class_funds(
+            funds, Decimal(class_cents) / 100, covered_value=Decimal(covered_cents) / 100,
+        )
+        by_id = {fund.scheme_id: fund for fund in result}
+        assert {sid: fund.value for sid, fund in by_id.items()} == {
+            sid: Decimal(value) / 100 for sid, value in zip(ids, parts)
+        }
+        units = {sid: int(fund.share_of_class * 100) for sid, fund in by_id.items()}
+        cap = covered_cents * 10000 // class_cents
+        assert sum(units.values()) == cap
+        assert sum(units.values()) <= 10000
+        floors = {sid: value * 10000 // class_cents for sid, value in zip(ids, parts)}
+        ranks = {sid: (-(value * 10000 % class_cents), sid) for sid, value in zip(ids, parts)}
+        awarded = [sid for sid in ids if units[sid] == floors[sid] + 1]
+        not_awarded = [sid for sid in ids if units[sid] == floors[sid]]
+        assert len(awarded) + len(not_awarded) == len(ids)
+        assert all(ranks[winner] <= ranks[loser] for winner in awarded for loser in not_awarded)
+        assert [fund.value for fund in result] == sorted(
+            (Decimal(value) / 100 for value in parts), reverse=True,
+        )
+
+
+def test_partial_share_never_exceeds_the_cap_when_covered_value_is_not_whole_cents():
+    from app.services.home.allocation import ClassFund, _class_funds
+    funds = (ClassFund(str(uuid.UUID(int=1)), "Fund 1", Decimal("98.55"), Decimal("0")),)
+    result = _class_funds(funds, Decimal("691.13"), covered_value=Decimal("98.555"))
+    assert [fund.share_of_class for fund in result] == [Decimal("14.25")]
+
+
+def test_partial_share_cap_holds_over_seeded_splits_with_sub_cent_covered_value():
+    from app.services.home.allocation import ClassFund, _class_funds
+    rng = random.Random(90210)
+    for _ in range(400):
+        parts = [rng.randint(1, 200000) for _ in range(rng.randint(1, 15))]
+        covered_cents = sum(parts)
+        class_cents = covered_cents + rng.randint(1, 20000)
+        sub_cent = Decimal(rng.randint(1, 9)) / 1000  # deliberately not a whole number of cents
+        covered = Decimal(covered_cents) / 100 + sub_cent
+        ids = [str(uuid.UUID(int=i + 1)) for i in range(len(parts))]
+        funds = tuple(
+            ClassFund(sid, f"Fund {index}", Decimal(value) / 100, Decimal("0"))
+            for index, (sid, value) in enumerate(zip(ids, parts))
+        )
+        result = _class_funds(funds, Decimal(class_cents) / 100, covered_value=covered)
+        total_units = sum(int(fund.share_of_class * 100) for fund in result)
+        cap = covered_cents * 10000 // class_cents  # covered rounded DOWN to whole cents
+        assert total_units <= cap
+        assert total_units <= 10000
+        assert all(Decimal("0") <= fund.share_of_class <= Decimal("100.00") for fund in result)
+
+
+def test_full_coverage_keeps_existing_last_fund_rounding():
+    from app.services.home.allocation import ClassFund, _class_funds
+    funds = tuple(ClassFund(str(uuid.UUID(int=i)), f"Fund {i}", Decimal("1000.00"), Decimal("0"))
+                  for i in range(1, 8))
+    result = _class_funds(funds, Decimal("7000.00"))
+    assert [fund.value for fund in result] == [Decimal("1000.00")] * 7
+    assert [fund.share_of_class for fund in result] == [Decimal("14.29")] * 6 + [Decimal("14.26")]
+    assert sum((fund.share_of_class for fund in result), Decimal("0")) == Decimal("100.00")

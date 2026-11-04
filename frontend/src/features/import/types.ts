@@ -172,6 +172,7 @@ export type ImportLifecycleStatus =
   | "processing"
   | "retry_pending"
   | "import_successful"
+  | "confirmed"
   | "import_failed"
   | "expired";
 

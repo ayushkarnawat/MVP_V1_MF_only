@@ -131,4 +131,47 @@ describe("Category Average Comparison", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
     expect(mocks.retryAnalyticsScope).toHaveBeenCalledWith("combined");
   });
+
+  describe("category average weighting sentence on card", () => {
+    it("renders Weighted by fund size. when fund_size with 0 without size", () => {
+      const data = sample();
+      data.funds[0].category_avg_weighting = "fund_size";
+      data.funds[0].category_avg_funds_without_size = 0;
+      mount(data);
+      expect(within(row("A")).getByText("Weighted by fund size.")).toBeInTheDocument();
+      expect(within(row("A")).getByText("Category average covers 10 funds (1Y), 10 (3Y), 10 (5Y).")).toBeInTheDocument();
+    });
+
+    it("renders singular sentence when 1 fund has no size on record", () => {
+      const data = sample();
+      data.funds[0].category_avg_weighting = "fund_size";
+      data.funds[0].category_avg_funds_without_size = 1;
+      mount(data);
+      expect(within(row("A")).getByText("Weighted by fund size. 1 fund has no size on record and is left out.")).toBeInTheDocument();
+    });
+
+    it("renders plural sentence when 3 funds have no size on record", () => {
+      const data = sample();
+      data.funds[0].category_avg_weighting = "fund_size";
+      data.funds[0].category_avg_funds_without_size = 3;
+      mount(data);
+      expect(within(row("A")).getByText("Weighted by fund size. 3 funds have no size on record and are left out.")).toBeInTheDocument();
+    });
+
+    it("renders Equal average sentence when weighting is equal", () => {
+      const data = sample();
+      data.funds[0].category_avg_weighting = "equal";
+      data.funds[0].category_avg_funds_without_size = 10;
+      mount(data);
+      expect(within(row("A")).getByText("Equal average: no fund in this category has a size on record.")).toBeInTheDocument();
+    });
+
+    it("renders no weighting sentence when weighting is null or absent", () => {
+      const data = sample();
+      data.funds[0].category_avg_weighting = null;
+      mount(data);
+      expect(within(row("A")).queryByText(/Weighted by fund size/)).not.toBeInTheDocument();
+      expect(within(row("A")).queryByText(/Equal average/)).not.toBeInTheDocument();
+    });
+  });
 });

@@ -1,13 +1,11 @@
 import { benchmarkChoiceDetails, benchmarkDisplayName } from "@/lib/benchmarkDisplay";
 import { BenchmarkInfoNote } from "@/components/BenchmarkInfoNote";
-import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPercent } from "@/lib/format";
 import { useScope } from "@/shell/scope/ScopeContext";
 import { fundPageApi } from "../api";
-import { useFundSection } from "../useFundSection";
+import { useFundSection, type FundSection } from "../useFundSection";
 import { SectionState } from "../components/SectionState";
-import { Segmented } from "../components/Segmented";
 import { columnHeader, unavailableText } from "../fundCopy";
 import { changeDirection } from "../fundFormat";
 import type {
@@ -22,34 +20,20 @@ export interface ReturnsTableProps {
   schemeId: string;
   scope: string;
   fundName: string;
+  /** Owned by the page: the toggle lives in the performance card and drives the graph too. */
+  mode: ReturnsMode;
+  /** The Current returns, fetched by the page when Actual XIRR is first chosen. */
+  current: FundSection<ReturnsResponse>;
 }
 
-const MODE_OPTIONS: readonly { value: ReturnsMode; label: string }[] = [
-  { value: "inception", label: "Inception" },
-  { value: "current", label: "Current" },
-];
-
-export function ReturnsTable({ schemeId, scope, fundName }: ReturnsTableProps) {
-  const { selectedMember } = useScope();
-  const [mode, setMode] = useState<ReturnsMode>("inception");
-  const [wantCurrent, setWantCurrent] = useState(false);
-
-  const handleModeChange = (nextMode: ReturnsMode) => {
-    setMode(nextMode);
-    if (nextMode === "current") {
-      setWantCurrent(true);
-    }
-  };
+export function ReturnsTable({ schemeId, scope, fundName, mode, current }: ReturnsTableProps) {
+  const { selectedMember: pickedMember } = useScope();
+  // The stored member is only the one a member view would show; the family view names no one.
+  const selectedMember = scope === "combined" ? null : pickedMember;
 
   const inception = useFundSection<ReturnsResponse>(
     (signal) => fundPageApi.returns(schemeId, "inception", scope, signal),
     [schemeId, scope]
-  );
-
-  const current = useFundSection<ReturnsResponse>(
-    (signal) => fundPageApi.returns(schemeId, "current", scope, signal),
-    [schemeId, scope],
-    { enabled: wantCurrent }
   );
 
   const category = useFundSection<CategoryReturnsResponse>(
@@ -388,23 +372,15 @@ export function ReturnsTable({ schemeId, scope, fundName }: ReturnsTableProps) {
       aria-labelledby="returns-title"
       className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4 space-y-4"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 id="returns-title" className="text-base font-semibold text-[var(--ui-text)]">
-          Returns
-        </h3>
-        <Segmented
-          label="Returns basis"
-          options={MODE_OPTIONS}
-          value={mode}
-          onChange={handleModeChange}
-        />
-      </div>
+      <h3 id="returns-title" className="text-base font-semibold text-[var(--ui-text)]">
+        Returns
+      </h3>
 
       {mode === "current" &&
       current.status === "unavailable" &&
       current.reason === "not_held" ? (
         <p data-testid="returns-not-held" className="text-sm text-[var(--ui-text-muted)]">
-          {`Not held by ${selectedMember?.name ?? "this member"}. Inception returns are still shown.`}
+          {`Not held by ${selectedMember ? selectedMember.name : "anyone in your family"}. Inception returns are still shown.`}
         </p>
       ) : (
         <SectionState
@@ -416,7 +392,11 @@ export function ReturnsTable({ schemeId, scope, fundName }: ReturnsTableProps) {
           {active.data ? <>
           {active.data.benchmark_source != null && <div data-testid="returns-benchmark-details" className="text-xs text-[var(--ui-text-muted)] space-y-1">
             <p className="inline-flex items-center gap-1.5 flex-wrap">
-              <span>{benchmarkDisplayName(active.data.declared_benchmark_name ?? active.data.benchmark_label ?? "No benchmark")}</span>
+              {/* For "closest" and "category" the index we show is benchmark_label (the factsheet's own index is one we
+                  do not hold or did not name); naming the factsheet's index here would contradict the sentence below. */}
+              <span>{benchmarkDisplayName((active.data.benchmark_source === "closest" || active.data.benchmark_source === "category"
+                ? active.data.benchmark_label ?? active.data.declared_benchmark_name
+                : active.data.declared_benchmark_name ?? active.data.benchmark_label) ?? "No benchmark")}</span>
               <BenchmarkInfoNote note={active.data.benchmark_note} />
             </p>
             <p>{benchmarkChoiceDetails(active.data.benchmark_source, Boolean(active.data.declared_benchmark_name)).fullLine}</p>

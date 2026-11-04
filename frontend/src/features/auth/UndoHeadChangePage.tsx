@@ -93,7 +93,7 @@ export function UndoHeadChangePage() {
             </p>
 
             {done && (
-              <div className="space-y-2 rounded-lg border border-[var(--pos)]/30 bg-[var(--pos-bg)] p-3">
+              <div className="space-y-2 rounded-lg border border-[color-mix(in_srgb,var(--pos)_30%,transparent)] bg-[var(--pos-bg)] p-3">
                 <p className="text-sm text-[var(--color-text-primary)]">
                   The change has been undone. Sign in with your usual email or phone number.
                 </p>
@@ -116,7 +116,7 @@ export function UndoHeadChangePage() {
               type="button"
               onClick={handleUndo}
               disabled={submitting || done || terminalError}
-              className="w-full px-4 py-2.5 font-semibold"
+              className="h-auto w-full whitespace-normal px-4 py-2.5 text-center font-semibold"
             >
               Undo the change
             </Button>

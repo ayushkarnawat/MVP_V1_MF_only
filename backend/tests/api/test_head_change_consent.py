@@ -103,3 +103,29 @@ def test_only_the_most_recent_consent_record_counts(client):
 
     assert client.get("/household-members", headers=headers).status_code == 200
     assert client.get("/auth/me", headers=headers).json()["consent_outdated_reason"] is None
+
+
+def test_a_pan_disclaimer_given_after_the_withdrawal_does_not_reopen_the_data_routes(client):
+    # Run 7 backend review: a CAS upload that passed the gate before the swap committed can write a GIVEN
+    # PAN-disclaimer row dated after the withdrawal. Only the sign-up documents decide the gate.
+    import uuid
+    from app.services.legal.consent import UPLOAD_DOCUMENTS
+
+    headers, user_id = _signed_up_and_consented(client, "+919300000009")
+    _withdraw(client, user_id, "head_change")
+    db = _db(client)
+    record_consent(
+        db,
+        user_id=uuid.UUID(user_id),
+        documents=[current_document(d) for d in UPLOAD_DOCUMENTS],
+        action=ConsentAction.GIVEN,
+        surface="cas_upload",
+        evidence=ConsentEvidence(ip_truncated=None, ip_hmac=None, user_agent=None, device_id=None),
+        recorded_at=datetime.now(timezone.utc) + timedelta(seconds=5),
+    )
+    db.commit()
+    db.close()
+
+    refused = client.get("/household-members", headers=headers)
+    assert refused.status_code == 403
+    assert client.get("/auth/me", headers=headers).json()["consent_outdated_reason"] == "head_change"

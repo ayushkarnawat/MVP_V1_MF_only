@@ -1,8 +1,8 @@
 ---
 artifact: database-schema
-version: "1.9"
+version: "2.0"
 created: 2026-07-22
-updated: 2026-10-06
+updated: 2026-11-04
 status: draft
 product: Unifolio
 target: "AWS RDS for PostgreSQL (ADR-003)"
@@ -86,8 +86,7 @@ The account holder — phone-number-authenticated, per PRD-02's auth decision.
 | `onboarding_step` | `VARCHAR` NULLABLE | For resume, per PRD-02 FR-8; null once complete |
 | `onboarding_completed_at` | `TIMESTAMPTZ` NULLABLE | |
 | `investor_type` | `ENUM('self_directed','advisor_assisted','mixed','beginner')` NULLABLE | Q2 answer, PRD-02 FR-4 — personalization only, never advice input |
-| `primary_goal` | `ENUM('consolidated_view','understand_holdings','family_management','performance_comparison')` NULLABLE | Q3 answer, PRD-02 FR-5. **Deprecated 2026-09-30**: dual-written (first goal) until migration 0021 drops it |
-| `primary_goals` | `JSONB` (Postgres) / `JSON` (SQLite) NULLABLE, CHECK `ck_users_primary_goals_allowed` (Postgres: array of 1–4 items, each one of the four goal values) | Q3 answers, multi-select (migration 0019, 2026-09-30) |
+| `primary_goals` | `JSONB` (Postgres) / `JSON` (SQLite) NULLABLE, CHECK `ck_users_primary_goals_allowed` (Postgres: array of 1–6 items, each one of `wealth_creation`, `retirement`, `childrens_education`, `buy_home`, `financial_freedom`, `tax_planning`) | Q3 answers, multi-select (migration 0019, 2026-09-30); six life goals since migration 0053 (2026-11-03: every saved list was cleared, no old goal maps to a new one). The old single `primary_goal` column and its enum type `primarygoal` were dropped by 0053 |
 
 ### `household_members`
 One row per person whose portfolio is tracked — **including the primary account holder**
@@ -489,3 +488,4 @@ None remaining from this pass.
 | 1.7 | 2026-09-30 | Claude | Staging QA fixes: `users.primary_goals` (0019, JSONB + CHECK on Postgres; `primary_goal` deprecated, dropped by the pending 0021); `imports.statement_from_date`/`statement_to_date` are now written at Confirm and backfilled by data migration 0020. No other schema change: the duplicate-member fixes reuse `household_members.detected_pan_*` and `household_member_merges`. Current through 0020. |
 | 1.8 | 2026-10-01 | Claude | Member profile completion (migration 0023): `household_members` lost `details_completed_at` / `lock_reason` (detected-member lock removed); gained `pan_conflict`; `name_source` gained `user_edited`; `detected_pan_*` now holds only a PAN another account holds |
 | 1.9 | 2026-10-06 | Claude | CAS import fixes (migrations 0025-0029): `transactions` gained `origin`, `cost_source` (0025), `balance_units`, `occurrence` and four type values `reversal`/`gift_in`/`gift_out`/`bonus`, dedupe key now includes `occurrence` (0026); `folios.folio_key` with new unique key `(household_member_id, scheme_id, folio_key)` and new `transaction_imports` link table (0027); `schemes` master columns `isin_reinvest`, `base_name`, `plan_type`, `is_active`, `source`, nullable `amfi_code`, plus `folios.plan_verified` (0028); `portfolio_snapshots.invested_value`/`is_partial`/`missing_scheme_ids`/`data_version`, `imports.preview_state` and `imports.status` value `previewing` (0029). Current through 0029 (0024 is reserved for the deferred `users.primary_goal` drop; 0025 chains from 0023). |
+| 2.0 | 2026-11-04 | Claude | UI round 2, six life goals (migration 0053, `down_revision` 0052): `users.primary_goals` CHECK now allows 1–6 items from the six life-goal codes; `users.primary_goal` and the Postgres enum type `primarygoal` dropped (this also completes the old deferred "drop `users.primary_goal`" item that was reserved as 0021, then 0023, then 0024). Saved goals were set to NULL by the migration. **This document describes the schema through 0029 only; migrations 0030 to 0052 are recorded in `database.md` and are not yet merged into the tables above.** |

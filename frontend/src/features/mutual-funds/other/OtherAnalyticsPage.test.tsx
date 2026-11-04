@@ -63,7 +63,7 @@ describe("the page", () => {
     titles.forEach((name, index) => expect(screen.getAllByRole("heading", { level: 2 })[index]).toHaveAccessibleName(name));
     expect(screen.getByText("How expensive your funds are to hold, and how richly their holdings are priced.")).toBeInTheDocument();
     expect(screen.getByText("Unifolio's proprietary score — 45% Return, 30% Downside Risk, 25% Consistency vs. SEBI category peers, with a small TER cost nudge. Click a fund for its full breakdown.")).toBeInTheDocument();
-    expect(screen.getByText("Your fund returns compared with the simple average of funds in the same category and plan type.")).toBeInTheDocument();
+    expect(screen.getByText("Your fund returns compared with the average of funds in the same category and plan type, weighted by fund size.")).toBeInTheDocument();
     expect(screen.getByText("Each period compares funds in the same SEBI category and plan type.")).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.querySelector("[aria-hidden=true]")?.textContent)).toEqual(["1", "2", "3", "4"]);
   });

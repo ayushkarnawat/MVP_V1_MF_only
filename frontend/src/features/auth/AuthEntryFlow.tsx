@@ -1,3 +1,4 @@
+import type { AuthVariant } from "./redesign/variant";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Landing } from "./Landing";
@@ -17,6 +18,14 @@ import {
   verifyOtp,
 } from "./api";
 import { isEmailRequired, isLinkRequired, isPhoneRequired } from "./types";
+import { AccountDetails } from "./redesign/AccountDetails";
+import { AUTH_SHOW_GOOGLE } from "./redesign/authConfig";
+import { EmailCode } from "./redesign/EmailCode";
+import { LoginCode } from "./redesign/LoginCode";
+import { LoginEntry } from "./redesign/LoginEntry";
+import { savePendingSignup } from "./redesign/pendingSignup";
+import { SignupCode } from "./redesign/SignupCode";
+import { SignupPhoneEntry } from "./redesign/SignupPhoneEntry";
 import type { ExistingMethod } from "./types";
 import { useAuth } from "./AuthContext";
 import { getSignInNotice, setSignInNotice } from "./session";
@@ -43,11 +52,14 @@ function errorMessage(err: unknown, fallback: string): string {
 export interface AuthEntryFlowProps {
   initialMode?: "login" | "signup";
   initialStep?: Step;
+  /** "split" is the redesigned desktop layout (built in later S6 tasks); "legacy" is today's screens. Defaults to legacy. */
+  variant?: AuthVariant;
 }
 
 export function AuthEntryFlow({
   initialMode = "signup",
   initialStep = "landing",
+  variant = "legacy",
 }: AuthEntryFlowProps = {}) {
   const { login } = useAuth();
   const { docs, error: docsError, refetch } = useLegalDocuments();
@@ -64,6 +76,12 @@ export function AuthEntryFlow({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [devOtp, setDevOtp] = useState<string | null>(null);
+  // The split login screen keeps what was typed so Edit and Back from the code screens return to it filled.
+  const [loginTab, setLoginTab] = useState<"email" | "phone">("email");
+  const [loginValue, setLoginValue] = useState("");
+  // The split sign-up screen 3 keeps what was typed so Back and Edit from the email code return to it filled.
+  const [signupName, setSignupName] = useState("");
+  const [signupEmailInput, setSignupEmailInput] = useState("");
 
   // Mandatory phone-gate state (Design Spec §1): set when a Google/email
   // verification returns phone_required. Reuses the existing "phone"/"otp"
@@ -645,6 +663,130 @@ export function AuthEntryFlow({
         return 0;
     }
   };
+
+  // The split variant redraws login (screens 1 to 3). Everything else, including sign-up and the gate and link steps,
+  // still renders as before until later S6 tasks replace it.
+  const splitLogin =
+    variant === "split" && authMode === "login" && !googleConsentToken && !phoneGateToken && !emailGateToken && !linkInfo;
+  if (splitLogin && (step === "landing" || step === "email" || step === "phone")) {
+    return (
+      <LoginEntry
+        error={error}
+        notice={notice}
+        submitting={submitting}
+        initialTab={loginTab}
+        initialValue={loginValue}
+        showGoogle={AUTH_SHOW_GOOGLE}
+        onGoogleCredential={(idToken) => void handleGoogleCredential(idToken)}
+        onSignUp={handleGoToSignup}
+        onSubmitEmail={(email) => {
+          setLoginTab("email");
+          setLoginValue(email);
+          void handleEmailLoginRequest(email);
+        }}
+        onSubmitPhone={(phone) => {
+          setLoginTab("phone");
+          setLoginValue(phone);
+          void handlePhoneSubmit(phone);
+        }}
+      />
+    );
+  }
+  if (splitLogin && step === "email_otp" && emailOtpFlow === "login") {
+    return (
+      <LoginCode
+        channel="email"
+        identity={emailOtpEmail}
+        devOtp={devOtp}
+        error={error}
+        submitting={submitting}
+        onSubmit={(code) => void handleEmailOtpSubmit(code)}
+        onResend={() => void handleEmailOtpResend()}
+        onBack={() => goToStep("landing")}
+        onEditIdentity={() => goToStep("landing")}
+      />
+    );
+  }
+  if (splitLogin && step === "otp") {
+    return (
+      <LoginCode
+        channel="phone"
+        identity={identifier}
+        devOtp={devOtp}
+        error={error}
+        submitting={submitting}
+        onSubmit={(code) => void handlePhoneOtpSubmit(code)}
+        onResend={() => void handlePhoneSubmit(identifier)}
+        onBack={() => goToStep("landing")}
+        onEditIdentity={() => goToStep("landing")}
+      />
+    );
+  }
+
+  // The split variant redraws phone-first sign-up (screens 1 to 3b). The email-first and Google sign-up paths, the
+  // gate and link-account steps keep rendering as before.
+  const splitSignup = variant === "split" && authMode === "signup" && !googleConsentToken && !phoneGateToken && !linkInfo;
+  if (splitSignup && (step === "landing" || step === "phone")) {
+    return (
+      <SignupPhoneEntry
+        error={error}
+        submitting={submitting}
+        legalReady={Boolean(docs)}
+        legalLoadError={docsError}
+        onLegalRetry={() => void refetch()}
+        initialValue={identifier}
+        onSubmit={(phone) => void handleSignupPhoneSubmit(phone)}
+        onLogin={handleGoToLogin}
+      />
+    );
+  }
+  if (splitSignup && step === "otp") {
+    return (
+      <SignupCode
+        phone={identifier}
+        devOtp={devOtp}
+        error={error}
+        submitting={submitting}
+        onSubmit={(code) => void handlePhoneOtpSubmit(code)}
+        onResend={() => void handlePhoneSubmit(identifier)}
+        onBack={() => goToStep("landing")}
+        onEditNumber={() => goToStep("landing")}
+        onLogin={handleGoToLogin}
+      />
+    );
+  }
+  if (splitSignup && step === "email" && emailGateToken) {
+    return (
+      <AccountDetails
+        initialName={signupName}
+        initialEmail={signupEmailInput}
+        error={error}
+        submitting={submitting}
+        onBack={() => goToStep("landing")}
+        onSubmit={({ name, email }) => {
+          setSignupName(name);
+          setSignupEmailInput(email);
+          // The account is created when the email code is verified, so the name waits in sessionStorage until then.
+          savePendingSignup({ name, phone: identifier });
+          void handleEmailGateSubmit(email);
+        }}
+      />
+    );
+  }
+  if (splitSignup && step === "email_otp" && emailOtpFlow === "phone_first") {
+    return (
+      <EmailCode
+        email={emailOtpEmail}
+        devOtp={devOtp}
+        error={error}
+        submitting={submitting}
+        onSubmit={(code) => void handleEmailOtpSubmit(code)}
+        onResend={() => void handleEmailOtpResend()}
+        onBack={() => goToStep("email")}
+        onEditEmail={() => goToStep("email")}
+      />
+    );
+  }
 
   return (
     <AuthShell
