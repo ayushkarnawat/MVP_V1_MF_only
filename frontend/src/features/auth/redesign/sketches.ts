@@ -3,13 +3,14 @@ export type SketchName = "laptop" | "phone" | "envelope" | "idCard" | "person" |
 /** The official wordmark (tight crop, transparent), the same file the rest of the app uses. */
 export const LOGO_FILE = "/brand/unifolio-logo-light.png";
 
-/** Hand-drawn vector sketches with transparent backgrounds, drawn for the redesign (see public/illustrations/auth/README.md). */
+/** Hand-drawn sketches (vector, except the person) with transparent backgrounds, drawn for the redesign (see public/illustrations/auth/README.md). */
 export const SKETCH_FILES: Record<SketchName, string> = {
   laptop: "laptop.svg",
   phone: "phone.svg",
   envelope: "envelope.svg",
   idCard: "id-card.svg",
-  person: "person.svg",
+  // The one sketch that is the designer's own drawing (cut from the owner's mockup PDF, background made transparent) instead of a redraw; the owner approved this on 4 Nov 2026.
+  person: "person.png",
   cards: "cards.svg",
   wallet: "wallet.svg",
   tick: "tick.svg",

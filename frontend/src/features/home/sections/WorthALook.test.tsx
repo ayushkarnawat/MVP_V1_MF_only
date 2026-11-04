@@ -106,7 +106,7 @@ describe("WorthALook: the three cards of the golden fixture", () => {
     setup({ data: fixture<WorthResponse>("worth_concentration_with_earlier") });
     const card = screen.getByTestId("worth-card-concentration");
     expect(within(card).getByRole("heading", { name: "Your portfolio is becoming more concentrated" })).toBeInTheDocument();
-    expect(within(card).getByTestId("concentration-trend").textContent).toBe("▲ 15 pts");
+    expect(within(card).getByTestId("concentration-trend").textContent).toBe("▲ 15%");
     expect(card.textContent).toContain("10% earlier");
   });
 });

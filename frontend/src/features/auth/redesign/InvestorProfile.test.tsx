@@ -20,7 +20,7 @@ describe("InvestorProfile, sign-up screen 4 (task 6.12)", () => {
     expect(within(left).getByRole("heading", { level: 2 })).toHaveTextContent("Help us personalise your experience.");
     expect(within(left).getByText("Tell us a little about how you invest and what you're working towards, so we can make your insights more relevant.")).toBeInTheDocument();
     for (const row of ["More relevant insights", "A tailored experience", "You're always in control"]) expect(within(left).getByText(row)).toBeInTheDocument();
-    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/person.svg");
+    expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/person.png");
   });
   it("asks the first question with the four designed answers, in order, and the second with the six goals", () => {
     mount();

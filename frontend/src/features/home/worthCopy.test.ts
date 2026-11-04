@@ -136,11 +136,11 @@ describe("concentrationTrend", () => {
   });
 
   it("shows the change in points and the earlier share", () => {
-    expect(concentrationTrend(earlier()[2].evidence)).toEqual({ chip: "▲ 15 pts", earlier: "10% earlier" });
+    expect(concentrationTrend(earlier()[2].evidence)).toEqual({ chip: "▲ 15%", earlier: "10% earlier" });
   });
 
   it("points down when the share fell, and says no change for under half a point", () => {
-    expect(concentrationTrend({ top5_pct: "20.00", earlier_top5_pct: "25.00" })).toEqual({ chip: "▼ 5 pts", earlier: "25% earlier" });
+    expect(concentrationTrend({ top5_pct: "20.00", earlier_top5_pct: "25.00" })).toEqual({ chip: "▼ 5%", earlier: "25% earlier" });
     expect(concentrationTrend({ top5_pct: "20.20", earlier_top5_pct: "20.00" })).toEqual({ chip: "No change", earlier: "20% earlier" });
   });
 });

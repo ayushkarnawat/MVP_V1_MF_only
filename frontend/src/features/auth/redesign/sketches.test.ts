@@ -13,8 +13,14 @@ describe("the auth sketches", () => {
     for (const name of NAMES) expect(existsSync(resolve("public/illustrations/auth", SKETCH_FILES[name])), name).toBe(true);
     expect(existsSync(resolve("public", LOGO_FILE.replace(/^\//, "")))).toBe(true);
   });
-  it("every sketch is a vector file with a transparent background (no raster, no white backdrop)", () => {
-    for (const name of NAMES) {
+  it("the person is the designer's own drawing as a PNG with an alpha channel (owner-approved exception), so it has no box", () => {
+    expect(SKETCH_FILES.person).toBe("person.png");
+    const png = readFileSync(resolve("public/illustrations/auth", SKETCH_FILES.person));
+    expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
+    expect(png[25], "PNG colour type 6 is RGBA").toBe(6);
+  });
+  it("every other sketch is a vector file with a transparent background (no raster, no white backdrop)", () => {
+    for (const name of NAMES.filter((n) => n !== "person")) {
       const file = SKETCH_FILES[name];
       expect(file, name).toMatch(/\.svg$/);
       const svg = readFileSync(resolve("public/illustrations/auth", file), "utf8");

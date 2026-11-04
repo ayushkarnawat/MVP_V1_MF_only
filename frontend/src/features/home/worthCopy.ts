@@ -151,7 +151,7 @@ export function concentrationTrend(
   }
 
   const chip =
-    points === 0n ? "No change" : isNeg ? `▼ ${points} pts` : `▲ ${points} pts`;
+    points === 0n ? "No change" : isNeg ? `▼ ${points}%` : `▲ ${points}%`;
   const earlierText = `${formatPercent(earlier, { digits: 0 })} earlier`;
 
   return { chip, earlier: earlierText };
