@@ -27,7 +27,8 @@ panel and the page). Narrow set, also 10 screens: 1100x800, 1024x768 and 1024x70
 ## Other changes in this release
 | Change | Evidence |
 |---|---|
-| Category card `%` instead of `pts` | `otherLogic.ts`; 196 tests in `mutual-funds/other`; Home "Worth a look" chip not changed (open question) |
+| Category card `%` instead of `pts` | `otherLogic.ts`; 196 tests in `mutual-funds/other` |
+| Home "Worth a look" chip `%` instead of `pts` | `worthCopy.ts` (`▲ 15%`, `▼ 5%`); Home tests pass (722) |
 | Performance card (Model Portfolio Returns) | Screenshot with fixture data: one bordered strip (Benchmark line, then one paragraph), fund name once (legend pill, truncated with the full name on hover), no overlap. Not checked: the chart itself (unchanged code; it did not draw in headless capture), the Actual XIRR side (already compact, not changed) |
 
 ## What this gate did not check
@@ -41,3 +42,16 @@ the code-cell look moved into one CSS class that also overrides a global `div > 
 the focused cell show no border at all, scoped to the auth page only); Connect rows 6 px shorter; the "Coming soon" pill no
 longer wraps; chip text 12.5 px; the shortest spacing tier slightly tighter; the compact spacing tier now also applies below
 1200 px width; hairline border on the benchmark strip.
+
+## Sketches, second pass (4 Nov, evening)
+Seven sketches were redrawn (thinner variable ink, lighter washes, the solid green slabs removed): laptop, phone, envelope,
+id-card, cards, wallet, tick. The person on "How do you usually invest" is now **the designer's own drawing from the mockup
+PDF**, cut out with its background made transparent (`person.png`, alpha channel, feathered edges) after the owner approved
+that exception, because three redraws did not match. Known differences: the redrawn ones are cleaner than the pencil-wash
+originals and the card labels use a system sans font, not the designer's handwriting font; the person PNG is the mockup's
+own resolution (about 500 px wide, upscaled 2x), so it is softer than the vector sketches on a high-density screen.
+
+## Live check on staging (after the deploy, `ls-redesign.unifolio.in`, commit `b782be23`)
+Sign-up 1 and log-in 1 at 1440x810 (measured: no page scroll either way, card 1240 x 762 inside the 810 window), screenshots
+at 1920x1080, 1366x650 and 1024x768 (all fit); no Google button. Not checked live (needs a real code, the owner's job): sign-up
+2 to 6 and the log-in code screens, QA groups G and H beyond the first screens.
