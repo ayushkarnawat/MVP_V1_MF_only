@@ -351,8 +351,8 @@ it("counts only available periods, treats equality as neither ahead nor behind, 
 
 it("draws negative returns on the same scale and keeps tiny exact gaps in the text", async () => {
   const logic = await import("./otherLogic");
-  expect(logic.categoryGapText("0.101", "0.098")).toBe("+0.3 pts");
-  expect(logic.categoryGapText("0E-27", "1E-3")).toBe("-0.1 pts");
+  expect(logic.categoryGapText("0.101", "0.098")).toBe("+0.3%");
+  expect(logic.categoryGapText("0E-27", "1E-3")).toBe("-0.1%");
   const scale: [number, number] = [-0.2, 0.35];
   const positions = logic.categoryLinePositions("-0.10", "-0.05", scale);
   expect(positions.fund).toBeLessThan(positions.average);
@@ -361,10 +361,10 @@ it("draws negative returns on the same scale and keeps tiny exact gaps in the te
 
 describe("categoryGapText", () => {
   it("rounds the exact gap once", () => {
-    expect(categoryGapText("0.10149", "0.10000")).toBe("+0.1 pts");
-    expect(categoryGapText("0.10000", "0.10149")).toBe("-0.1 pts");
-    expect(categoryGapText("0.286", "0.198")).toBe("+8.8 pts");
-    expect(categoryGapText("0.1", "0.1")).toBe("0.0 pts");
+    expect(categoryGapText("0.10149", "0.10000")).toBe("+0.1%");
+    expect(categoryGapText("0.10000", "0.10149")).toBe("-0.1%");
+    expect(categoryGapText("0.286", "0.198")).toBe("+8.8%");
+    expect(categoryGapText("0.1", "0.1")).toBe("0.0%");
   });
 });
 

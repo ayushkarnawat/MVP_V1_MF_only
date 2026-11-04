@@ -46,6 +46,12 @@
 | B23 | Sign-up 6 | Status rows | Solid green check circle, ring spinner | Bare tick, small spinner | T8 |
 | B24 | Sign-up 6 | Cards | "Accounts being imported" with badge icons and right-hand check; grey "While we fetch your data" card with bulb badge | Plain text rows | T8 |
 
+## B2. Two extra changes the owner asked for (not part of the auth screens)
+| # | Where | Owner's request | Status |
+|---|---|---|---|
+| X1 | Mutual funds, "Returns against the category average" | Show `%` (for example `-1.6%`), not `pts`; the summary sentence no longer says "in percentage points" | DONE by the orchestrator (`otherLogic.ts`; 196 tests in `mutual-funds/other` pass). The Home page "Worth a look" chip `▲ 15 pts` is a different card and was left alone (ask the owner) |
+| X2 | Individual fund, Performance card | Less cluttered; data and all notes stay | T11 in `vf-packet.md` (benchmark strip, one fund name, pill legend; fixes the overlap of the fund name and "Benchmark:") |
+
 ## C. Known differences we accept or must ask about
 - **Code length:** the sign-up 2 mockup draws five cells; the app sends and checks six digits. Six stays (behaviour).
 - **Copy:** words come from the copy sheets, not the clean pictures (for example the headline "One dashboard for your family's financial life", the new paragraphs, "Select all that apply" instead of "Select up to 3"). Pill "One dashboard for your entire financial life" is inside red circle 1 and is not drawn.
