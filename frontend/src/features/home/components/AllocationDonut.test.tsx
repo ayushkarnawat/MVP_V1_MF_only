@@ -106,10 +106,13 @@ describe("AllocationDonut: hover, focus and selected state (UI round 2, change 6
   it("dims every other slice when a class is active, from outside (the legend)", () => {
     render(<AllocationDonut rows={ROWS} centerValue="x" onSliceClick={() => {}} activeKey="debt" />);
     expect(slice("debt").getAttribute("data-dim")).toBe("false");
-    expect(slice("debt").style.opacity).toBe("1");
+    // QA fixes, A2: dimming is a class (so it can fade), never an inline opacity.
+    expect(slice("debt").style.opacity).toBe("");
+    expect(slice("debt").getAttribute("class") ?? "").not.toContain("opacity-[0.38]");
     for (const key of ["equity", "gold"]) {
       expect(slice(key).getAttribute("data-dim")).toBe("true");
-      expect(slice(key).style.opacity).toBe("0.38");
+      expect(slice(key).style.opacity).toBe("");
+      expect(slice(key).getAttribute("class") ?? "").toContain("opacity-[0.38]");
     }
   });
   it("dims nothing when no class is active", () => {

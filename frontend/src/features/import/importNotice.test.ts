@@ -21,7 +21,13 @@ describe("buildImportNotice: today's text is unchanged when there are no new fun
   });
   it("several people keep their detail lines and the warnings", () => {
     const notice = buildImportNotice(result({ added: 5, skipped: 0, warnings: ["One fund needs a price"], people: [person("Asha", { added: 2 }), person("Dev", { added: 3, skipped: 1 })] }));
-    expect(notice).toEqual({ text: "5 transactions added", details: ["Asha: 2 added", "Dev: 3 added, 1 already saved", "One fund needs a price"] });
+    // QA fixes, A1: the same text and detail lines (the mobile and older views read them), plus structured fields.
+    expect(notice).toEqual({
+      text: "5 transactions added",
+      details: ["Asha: 2 added", "Dev: 3 added, 1 already saved", "One fund needs a price"],
+      members: [{ name: "Asha", added: 2, skipped: 0 }, { name: "Dev", added: 3, skipped: 1 }],
+      warnings: ["One fund needs a price"],
+    });
   });
   it("an empty new_funds list or a missing one gives the same notice", () => {
     expect(buildImportNotice(result({ people: [person("Asha", { skipped: 1, new_funds: [] })] }))).toEqual({ text: "3 transactions added · 1 already saved" });
