@@ -813,3 +813,66 @@ def test_an_unrelated_member_can_still_be_removed_right_after_a_change(db_sessio
     )
 
     assert result.removed_member_ids == [household.other_member.id]
+
+
+def test_member_head_change_lock_until_is_completed_at_plus_seven_days(db_session, monkeypatch):
+    from app.services.auth.head_change import member_head_change_lock_until
+
+    household = _household(db_session, suffix="q")
+    request_id, _, _ = _swap(db_session, household, monkeypatch)
+    completed_at = datetime.now(timezone.utc) - timedelta(days=2)
+    _set_completed_at(db_session, request_id, completed_at)
+
+    for member in (household.old_head, household.new_head):
+        lock = member_head_change_lock_until(db_session, member.id)
+        assert lock is not None and lock.tzinfo is not None
+        assert abs((lock - (completed_at + timedelta(days=7))).total_seconds()) < 5
+
+
+def test_member_head_change_lock_until_is_none_when_older_than_seven_days(db_session, monkeypatch):
+    from app.services.auth.head_change import member_head_change_lock_until
+
+    household = _household(db_session, suffix="r")
+    request_id, _, _ = _swap(db_session, household, monkeypatch)
+    _set_completed_at(db_session, request_id, datetime.now(timezone.utc) - timedelta(days=8))
+
+    assert member_head_change_lock_until(db_session, household.old_head.id) is None
+
+
+def test_lock_until_is_set_exactly_when_member_in_recent_head_change_is_true(db_session, monkeypatch):
+    from app.services.auth.head_change import (
+        member_head_change_lock_until,
+        member_in_recent_head_change,
+    )
+
+    household = _household(db_session, suffix="s")
+    request_id, _, _ = _swap(db_session, household, monkeypatch)
+
+    for age_days in (0, 3, 6, 8, 30):
+        _set_completed_at(
+            db_session, request_id, datetime.now(timezone.utc) - timedelta(days=age_days)
+        )
+        for member in (household.old_head, household.new_head):
+            assert (member_head_change_lock_until(db_session, member.id) is not None) == (
+                member_in_recent_head_change(db_session, member.id)
+            )
+
+
+def test_removal_refusal_carries_the_date_it_ends_and_names_it_in_india_time(db_session, monkeypatch):
+    from app.core.time_format import format_ist_date
+    from app.services.import_.deletion import MemberRemovalBlockedError, delete_member_portfolio
+
+    household = _household(db_session, suffix="t")
+    _swap(db_session, household, monkeypatch)
+
+    with pytest.raises(MemberRemovalBlockedError) as raised:
+        delete_member_portfolio(
+            db_session, household.user.id, household.old_head.id, remove_member=True
+        )
+
+    available_after = raised.value.available_after
+    assert available_after.tzinfo is not None
+    assert raised.value.message == (
+        "This person was part of a recent Head of Family change, so they cannot be removed yet. "
+        f"You can remove them on {format_ist_date(available_after)}."
+    )

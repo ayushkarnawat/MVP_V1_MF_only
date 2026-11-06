@@ -173,7 +173,11 @@ def delete_household_member_portfolio(
     except MemberRemovalBlockedError as exc:
         raise HTTPException(
             status_code=409,
-            detail={"code": "member_in_recent_head_change", "message": exc.message},
+            detail={
+                "code": "member_in_recent_head_change",
+                "message": exc.message,
+                "available_after": exc.available_after.isoformat(),
+            },
         ) from exc
     claim_and_dispatch_recompute(db, user.id, background_tasks)
     return DeleteImportResponse(

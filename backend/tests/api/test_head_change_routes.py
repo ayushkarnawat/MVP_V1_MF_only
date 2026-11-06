@@ -788,9 +788,16 @@ def test_account_deletion_is_refused_while_the_undo_window_is_open(client):
     )
 
     assert response.status_code == 409
-    assert response.json()["detail"].startswith(
-        "The Head of Family was changed in the last 24 hours. You can delete this account after"
+    detail = response.json()["detail"]
+    assert set(detail) == {"code", "message", "available_after"}
+    assert detail["code"] == "head_change_undo_window"
+    assert detail["message"].startswith(
+        "The Head of Family was changed in the last 24 hours. You can delete this account after "
+        "the undo window closes on "
     )
+    assert detail["message"].endswith(" IST.")
+    assert "UTC" not in detail["message"]
+    assert datetime.fromisoformat(detail["available_after"]).tzinfo is not None
     assert client.get("/auth/me", headers=household["headers"]).json()["pending_deletion"] is False
 
 
@@ -971,3 +978,34 @@ def test_preview_head_change_route_returns_run_6_contract(client):
     for m in body["members"]:
         assert set(m) == member_keys
 
+
+
+def test_member_removal_refusal_has_a_code_a_message_and_an_iso_date(client):
+    household = _household(client, suffix="m01")
+    _completed_request(
+        client, household, undo_expires_at=datetime.now(timezone.utc) + timedelta(hours=5)
+    )
+    db = _db(client)
+    old_head = (
+        db.query(HouseholdMember)
+        .filter(
+            HouseholdMember.user_id == uuid.UUID(household["user_id"]),
+            HouseholdMember.is_head.is_(True),
+        )
+        .one()
+    )
+    member_id = old_head.id
+    db.close()
+
+    response = client.delete(
+        f"/household-members/{member_id}/portfolio?remove_member=true",
+        headers=household["headers"],
+    )
+
+    assert response.status_code == 409
+    detail = response.json()["detail"]
+    assert set(detail) == {"code", "message", "available_after"}
+    assert detail["code"] == "member_in_recent_head_change"
+    assert "You can remove them on " in detail["message"]
+    assert "Try again in 7 days" not in detail["message"]
+    assert datetime.fromisoformat(detail["available_after"]).tzinfo is not None

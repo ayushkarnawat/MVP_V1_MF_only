@@ -259,13 +259,9 @@ def undo_window_open_until(db: DbSession, user: User) -> datetime | None:
     return max(open_windows) if open_windows else None
 
 
-def member_in_recent_head_change(db: DbSession, member_id: uuid.UUID) -> bool:
-    """True while the member is the old or the new head of a change made in the last 7 days.
-
-    The request row is deleted by the database when either member row is deleted. Removing the
-    old head right after a swap would therefore erase the undo link and the 7-day rule, so such a
-    member cannot be removed until the 7 days are over (7, not 1: the rule reads the same row)."""
-    cutoff = datetime.now(timezone.utc) - timedelta(days=CHANGE_AGAIN_AFTER_DAYS)
+def member_head_change_lock_until(db: DbSession, member_id: uuid.UUID) -> datetime | None:
+    """The moment (timezone-aware UTC) the member may be removed again, or None when they are not
+    locked: 7 days after the latest completed or undone Head of Family change they took part in."""
     requests = (
         db.query(HeadChangeRequest)
         .filter(
@@ -275,10 +271,20 @@ def member_in_recent_head_change(db: DbSession, member_id: uuid.UUID) -> bool:
         )
         .all()
     )
-    return any(
-        completed is not None and completed > cutoff
-        for completed in (_completed_at(item) for item in requests)
-    )
+    completed = [value for value in (_completed_at(item) for item in requests) if value is not None]
+    if not completed:
+        return None
+    lock_until = max(completed) + timedelta(days=CHANGE_AGAIN_AFTER_DAYS)
+    return lock_until if lock_until > datetime.now(timezone.utc) else None
+
+
+def member_in_recent_head_change(db: DbSession, member_id: uuid.UUID) -> bool:
+    """True while the member is the old or the new head of a change made in the last 7 days.
+
+    The request row is deleted by the database when either member row is deleted. Removing the
+    old head right after a swap would therefore erase the undo link and the 7-day rule, so such a
+    member cannot be removed until the 7 days are over (7, not 1: the rule reads the same row)."""
+    return member_head_change_lock_until(db, member_id) is not None
 
 
 def _refuse_if_changed_recently(db: DbSession, user: User) -> None:

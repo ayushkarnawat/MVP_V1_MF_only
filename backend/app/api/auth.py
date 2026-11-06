@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session as DbSession
 
 from app.api.legal import CONSENT_CONTINUE_MESSAGE
+from app.core.time_format import format_ist_datetime
 from app.db.session import get_db #dependency for database session
 from app.models.auth import AuthIdentity, Session as SessionModel
 from app.models.enums import AuthIdentityProvider, ConsentAction, ConsentDocumentType, Relationship
@@ -658,11 +659,15 @@ def request_account_deletion(
         db.rollback()
         raise HTTPException(
             status_code=409,
-            detail=(
-                "The Head of Family was changed in the last 24 hours. "
-                f"You can delete this account after the undo window closes on "
-                f"{window_closes.day} {window_closes:%B %Y} at {window_closes:%H:%M} UTC."
-            ),
+            detail={
+                "code": "head_change_undo_window",
+                "message": (
+                    "The Head of Family was changed in the last 24 hours. You can delete this "
+                    "account after the undo window closes on "
+                    f"{format_ist_datetime(window_closes)}."
+                ),
+                "available_after": window_closes.isoformat(),
+            },
         )
     schedule_account_deletion(
         db, user, reason=body.reason, feedback=body.feedback, evidence=evidence_from_request(request)

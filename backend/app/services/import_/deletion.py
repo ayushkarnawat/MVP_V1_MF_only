@@ -8,11 +8,13 @@ from __future__ import annotations
 import logging
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Literal
 
 from sqlalchemy.orm import Session
 from fastapi import BackgroundTasks
 
+from app.core.time_format import format_ist_date
 from app.models.analytics import AnalyticsSection
 from app.models.enums import Relationship
 from app.models.folio import Folio
@@ -40,20 +42,24 @@ class ImportNotFoundError(Exception):
 
 
 class MemberRemovalBlockedError(Exception):
-    """The member took part in a Head of Family change in the last 7 days."""
+    """The member took part in a Head of Family change in the last 7 days. `available_after` is the
+    UTC moment the lock ends; the message names it as an India date."""
 
-    message = (
-        "This person was part of a recent Head of Family change, so they cannot be removed yet. "
-        "Try again in 7 days."
-    )
+    def __init__(self, available_after: datetime) -> None:
+        super().__init__()
+        self.available_after = available_after
+        self.message = (
+            "This person was part of a recent Head of Family change, so they cannot be removed "
+            f"yet. You can remove them on {format_ist_date(available_after)}."
+        )
 
 
-def _in_recent_head_change(db: Session, member_id: uuid.UUID) -> bool:
+def _head_change_lock_until(db: Session, member_id: uuid.UUID) -> datetime | None:
     # Imported here: the auth service imports a long chain of modules, and this module is loaded
     # by the dashboard API at start-up.
-    from app.services.auth.head_change import member_in_recent_head_change
+    from app.services.auth.head_change import member_head_change_lock_until
 
-    return member_in_recent_head_change(db, member_id)
+    return member_head_change_lock_until(db, member_id)
 
 
 @dataclass
@@ -151,7 +157,7 @@ def _delete_imports(
         member = db.get(HouseholdMember, member_id)
         if member is None or member.relationship == Relationship.SELF:
             continue  # self is never removed, and its PAN is left alone
-        if _in_recent_head_change(db, member_id):
+        if _head_change_lock_until(db, member_id) is not None:
             # The explicit removal is refused in delete_member_portfolio before anything is
             # deleted; this is the automatic "detected member with no statement left" removal.
             continue
@@ -222,8 +228,10 @@ def delete_member_portfolio(
     member = db.query(HouseholdMember).filter_by(id=member_id, user_id=user_id).first()
     if member is None:
         raise ImportNotFoundError()
-    if remove_member and _in_recent_head_change(db, member_id):
-        raise MemberRemovalBlockedError()
+    if remove_member:
+        lock_until = _head_change_lock_until(db, member_id)
+        if lock_until is not None:
+            raise MemberRemovalBlockedError(lock_until)
     imports = db.query(Import).filter(Import.household_member_id == member_id, Import.status.notin_(PREVIEW_STATUSES)).all()
     if not imports:
         # Nothing imported: still honour remove_member for a non-self member.
