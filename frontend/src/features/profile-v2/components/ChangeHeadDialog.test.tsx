@@ -169,11 +169,14 @@ describe("ChangeHeadDialog", () => {
       await screen.findByRole("heading", { name: "Choose who will be Head of Family" }),
     ).toBeInTheDocument();
 
-    const spouseRadio = screen.getByRole("radio", { name: /Aditi Surve/i });
     const fatherRadio = screen.getByRole("radio", { name: /Ramesh Surve/i });
 
-    expect(spouseRadio).toBeDisabled();
-    expect(screen.getByText("Add an email address and a phone number first.")).toBeInTheDocument();
+    // QA fixes, C1: a member whose only reasons can be fixed here is a clickable row, not a disabled radio.
+    expect(screen.queryByRole("radio", { name: /Aditi Surve/i })).toBeNull();
+    const spouseRow = screen.getByRole("button", { name: /Aditi Surve/i });
+    expect(spouseRow).toBeEnabled();
+    expect(within(spouseRow).getByText("Add details")).toBeInTheDocument();
+    expect(within(spouseRow).getByText("Needs an email address and a phone number.")).toBeInTheDocument();
     expect(fatherRadio).toBeEnabled();
 
     const nextButton = screen.getByRole("button", { name: "Next" });
@@ -359,23 +362,31 @@ describe("ChangeHeadDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
     expect(await screen.findByRole("heading", { name: "Review the change" })).toBeInTheDocument();
-    expect(
-      screen.getByText("Ramesh Surve will sign in with ramesh@example.in and +919812345678."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Siddharth Surve stays as a member and will no longer sign in."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("You and everyone else on this account will be signed out."),
-    ).toBeInTheDocument();
+
+    // QA fixes, C2: the same facts in blocks (the sentences are gone).
+    expect(screen.getByTestId("head-review-title")).toHaveTextContent("Ramesh Surve becomes Head of Family");
+    const signin = screen.getByTestId("head-review-signin");
+    expect(within(signin).getByText("Signs in from now with")).toBeInTheDocument();
+    expect(within(signin).getByText("ramesh@example.in")).toBeInTheDocument();
+    expect(within(signin).getByText("+919812345678")).toBeInTheDocument();
     expect(screen.getByText("All portfolio data stays exactly as it is.")).toBeInTheDocument();
 
-    expect(screen.getByText(/Siddharth Surve: Head of Family becomes Child/)).toBeInTheDocument();
-    expect(screen.getByText(/Ramesh Surve: Parent becomes Head of Family/)).toBeInTheDocument();
-    expect(screen.getByText(/Aditi Surve: Spouse becomes child-in-law/)).toBeInTheDocument();
-    expect(screen.getByText(/Mohan Surve: Uncle becomes Not set/)).toBeInTheDocument();
+    const changes = screen.getByTestId("head-review-changes");
+    expect(within(changes).getByText("What changes")).toBeInTheDocument();
+    const changeRow = (name: string) => within(changes).getByText(name).closest("[data-testid='head-review-change']") as HTMLElement;
+    expect(within(changeRow("Siddharth Surve")).getByText("Head of Family → Child")).toBeInTheDocument();
+    expect(within(changeRow("Ramesh Surve")).getByText("Parent → Head of Family")).toBeInTheDocument();
+    expect(within(changeRow("Aditi Surve")).getByText("Spouse → child-in-law")).toBeInTheDocument();
+    expect(within(changeRow("Mohan Surve")).getByText("Uncle → Not set")).toBeInTheDocument();
     expect(screen.getAllByText(/Please check this one after the change\./)).toHaveLength(2);
     expect(screen.getByText(/Their note 'Uncle' will be removed\./)).toBeInTheDocument();
+
+    const signout = screen.getByTestId("head-review-signout");
+    expect(signout).toHaveTextContent("You will be signed out.");
+    expect(signout).toHaveTextContent("So will everyone else on this account.");
+    expect(signout).toHaveTextContent("Siddharth Surve can no longer sign in.");
+    expect(screen.queryByText("You and everyone else on this account will be signed out.")).toBeNull();
+    expect(screen.queryByText(/will sign in with/)).toBeNull();
   });
 
   it("success_calls_logout", async () => {
@@ -392,9 +403,13 @@ describe("ChangeHeadDialog", () => {
 
     await waitFor(() => expect(authApi.completeHeadChange).toHaveBeenCalledWith("req-1"));
     expect(auth.logout).toHaveBeenCalledTimes(1);
-    expect(getSignInNotice()).toBe(
-      "The Head of Family has been changed. Sign in with the new Head's email or phone number.",
-    );
+    // QA fixes, C3: a title and a body with the new head's contact masked (never the full email or number).
+    expect(getSignInNotice()).toEqual({
+      title: "Head of Family changed",
+      body: "Sign in with ra••••••@example.in or +91 ••••• 45678. Siddharth Surve can no longer sign in.",
+    });
+    expect(JSON.stringify(getSignInNotice())).not.toContain("ramesh@");
+    expect(JSON.stringify(getSignInNotice())).not.toContain("9812345678");
   });
 
   // ---- Review fixes (F2 to F14) ----
@@ -599,9 +614,13 @@ describe("ChangeHeadDialog", () => {
 
     expect(auth.refreshMe).toHaveBeenCalledTimes(1);
     expect(auth.logout).toHaveBeenCalledTimes(1);
-    expect(getSignInNotice()).toBe(
-      "The Head of Family has been changed. Sign in with the new Head's email or phone number.",
-    );
+    // QA fixes, C3: a title and a body with the new head's contact masked (never the full email or number).
+    expect(getSignInNotice()).toEqual({
+      title: "Head of Family changed",
+      body: "Sign in with ra••••••@example.in or +91 ••••• 45678. Siddharth Surve can no longer sign in.",
+    });
+    expect(JSON.stringify(getSignInNotice())).not.toContain("ramesh@");
+    expect(JSON.stringify(getSignInNotice())).not.toContain("9812345678");
     expect(onCompleted).toHaveBeenCalledTimes(1);
   });
 
@@ -613,9 +632,13 @@ describe("ChangeHeadDialog", () => {
     await settle();
 
     expect(auth.logout).toHaveBeenCalledTimes(1);
-    expect(getSignInNotice()).toBe(
-      "The Head of Family has been changed. Sign in with the new Head's email or phone number.",
-    );
+    // QA fixes, C3: a title and a body with the new head's contact masked (never the full email or number).
+    expect(getSignInNotice()).toEqual({
+      title: "Head of Family changed",
+      body: "Sign in with ra••••••@example.in or +91 ••••• 45678. Siddharth Surve can no longer sign in.",
+    });
+    expect(JSON.stringify(getSignInNotice())).not.toContain("ramesh@");
+    expect(JSON.stringify(getSignInNotice())).not.toContain("9812345678");
   });
 
   it("complete_that_fails_by_network_with_the_session_still_valid_shows_the_error", async () => {
@@ -818,7 +841,22 @@ describe("ChangeHeadDialog", () => {
     });
     await toStep3();
 
-    expect(screen.getByText("Neha Surve: Parent. Please check this one after the change.")).toBeInTheDocument();
+    const row = within(screen.getByTestId("head-review-changes")).getByText("Neha Surve").closest("[data-testid='head-review-change']") as HTMLElement;
+    expect(within(row).getByText("Parent")).toBeInTheDocument();
+    expect(within(row).getByText("Please check this one after the change.")).toBeInTheDocument();
+    expect(within(row).queryByText(/→/)).toBeNull();
     expect(screen.queryByText(/parent becomes parent/i)).not.toBeInTheDocument();
+  });
+
+  it("the review shows the time left as a chip next to the headline (QA fixes, C2)", async () => {
+    await toStep3();
+    const title = screen.getByTestId("head-review-title");
+    expect(title.parentElement).toContainElement(screen.getByText("9:50 left"));
+  });
+
+  it("Confirm stays disabled while the summary is missing, so the notice always has the new head to name (QA fixes, C2, C3)", async () => {
+    vi.mocked(authApi.previewHeadChange).mockRejectedValue(new Error("down"));
+    await toStep3();
+    expect(screen.getByRole("button", { name: "Confirm the change" })).toBeDisabled();
   });
 });
