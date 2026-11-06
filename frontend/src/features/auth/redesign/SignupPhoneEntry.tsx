@@ -5,6 +5,7 @@ import { ConsentNotice } from "../../legal/ConsentNotice";
 import { isAccountExistsError, validateIndianPhone } from "../validation";
 import { AuthAlert } from "./AuthAlert";
 import { AuthButton } from "./AuthButton";
+import { AuthInlineError } from "./AuthInlineError";
 import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
@@ -83,7 +84,7 @@ export function SignupPhoneEntry({ onSubmit, onLogin, error, submitting, legalRe
                   autoFocus
                 />
               </div>
-              {fieldError ? <p id="signup-phone-error" role="alert" className="mt-1.5 text-[13px] text-[var(--neg-text)]">{fieldError}</p> : null}
+              {fieldError ? <AuthInlineError id="signup-phone-error">{fieldError}</AuthInlineError> : null}
             </div>
             {error ? (
               isAccountExistsError(error) ? (

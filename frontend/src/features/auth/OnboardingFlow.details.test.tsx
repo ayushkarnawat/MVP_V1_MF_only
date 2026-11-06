@@ -67,7 +67,8 @@ describe("View details during sign-up stays on All set (QA fixes, B3)", () => {
     openDetails();
     const dialog = await screen.findByRole("dialog", { name: "Import details" });
     expect(await within(dialog).findByText("289 transactions · Imported")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 1, name: "Getting your accounts ready" })).toBeInTheDocument();
+    // The dialog is a real modal: the page behind stays on screen but is hidden from assistive technology.
+    expect(screen.getByRole("heading", { level: 1, name: "Getting your accounts ready", hidden: true })).toBeInTheDocument();
     expect(completionCalls()).toHaveLength(0);
     expect(window.location.pathname).toBe("/");
   });
@@ -99,20 +100,21 @@ describe("View details during sign-up stays on All set (QA fixes, B3)", () => {
     await gone();
     expect(completionCalls()).toHaveLength(0);
   });
-  it("it can be opened and closed again, one history entry each time, without stacking", async () => {
+  it("it can be opened and closed again, each time through one history entry, without stacking", async () => {
     renderFlow();
     await toScreen6();
-    const start = window.history.length;
     openDetails();
     await screen.findByRole("dialog");
-    expect(window.history.length).toBe(start + 1);
+    expect(window.history.state).toMatchObject({ onboardingDetails: true });
     fireEvent.click(screen.getByRole("button", { name: /Back/ }));
     await gone();
+    expect(window.history.state?.onboardingDetails).toBeUndefined();
     openDetails();
     await screen.findByRole("dialog");
+    expect(window.history.state).toMatchObject({ onboardingDetails: true });
     act(() => { window.history.back(); });
     await gone();
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(window.history.state?.onboardingDetails).toBeUndefined();
   });
   it("Go to my dashboard, after looking at the details, saves completion once and opens Home", async () => {
     renderFlow();

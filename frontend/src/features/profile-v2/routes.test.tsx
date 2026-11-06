@@ -159,12 +159,13 @@ describe("Personal Information, Settings, Import History and Subscription are re
     expect(screen.getByTestId("location")).toHaveTextContent("/profile/settings/import-history");
   });
 
-  it("/profile/settings/import-history shows the existing history section and a Back link to Settings", async () => {
+  it("/profile/settings/import-history shows the existing history section and a Back button that falls back to Settings", async () => {
     for (let visit = 0; visit < 2; visit++) {
       const view = mount("/profile/settings/import-history");
       expect(await screen.findByRole("heading", { level: 2, name: "Import History" })).toBeInTheDocument();
       expect(await screen.findByText("No imports yet.")).toBeInTheDocument();
-      expect(within(screen.getByTestId("profile-content")).getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/profile/settings");
+      // QA fixes, B3: a Back button (first screen of the visit, so it falls back to Settings), not a link.
+      expect(within(screen.getByTestId("profile-content")).getByRole("button", { name: "Back" })).toBeInTheDocument();
       expect(currentLabel()).toBe("Settings");
       view.unmount();
     }

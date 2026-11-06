@@ -1,10 +1,13 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import authTokensCss from "@/styles/auth-tokens.css?raw";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import alertSource from "./AuthAlert.tsx?raw";
 import fieldSource from "./AuthField.tsx?raw";
 import profileSource from "./InvestorProfile.tsx?raw";
 import phoneSource from "./SignupPhoneEntry.tsx?raw";
+// The stylesheet is read from disk: Vitest turns a CSS import into an empty string, even with ?raw.
+const authTokensCss = readFileSync(resolve(process.cwd(), "src/styles/auth-tokens.css"), "utf-8");
 import { AuthAlert } from "./AuthAlert";
 import { AuthField } from "./AuthField";
 import { AuthInlineError } from "./AuthInlineError";

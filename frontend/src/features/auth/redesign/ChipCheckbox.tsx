@@ -7,11 +7,12 @@ export interface ChipCheckboxProps {
   checked: boolean;
   onToggle: () => void;
   icon?: ReactNode;
+  invalid?: boolean;
 }
 
 /** One answer of a multiple-choice question: a checkbox drawn as a chip. */
 export const ChipCheckbox = forwardRef<HTMLButtonElement, ChipCheckboxProps>(function ChipCheckbox(
-  { label, checked, onToggle, icon },
+  { label, checked, onToggle, icon, invalid },
   ref,
 ) {
   return (
@@ -21,6 +22,7 @@ export const ChipCheckbox = forwardRef<HTMLButtonElement, ChipCheckboxProps>(fun
       role="checkbox"
       aria-checked={checked}
       onClick={onToggle}
+      data-invalid={invalid ? "true" : undefined}
       className="auth-choice flex items-center gap-2 rounded-[14px] px-2.5 text-left min-h-[var(--auth-chip-h)] w-full"
     >
       {icon ? (

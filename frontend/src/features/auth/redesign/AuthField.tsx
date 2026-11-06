@@ -1,5 +1,6 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { Info } from "lucide-react";
+import { AuthInlineError } from "./AuthInlineError";
 
 export interface AuthFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "id"> {
   id: string;
@@ -47,9 +48,9 @@ export function AuthField({
         </p>
       ) : null}
       {error ? (
-        <p id={`${id}-error`} role="alert" className="mt-1.5 text-[13px] text-[var(--neg-text)]">
+        <AuthInlineError id={`${id}-error`}>
           {error}
-        </p>
+        </AuthInlineError>
       ) : null}
     </div>
   );

@@ -13,16 +13,18 @@ import { StatusRow } from "./StatusRow";
 
 export interface AllSetProps {
   /** Writes the completion and opens the chosen place. May be async; a rejection shows the retry message. */
-  onFinish: (target: "home" | "import-history") => void | Promise<void>;
+  onFinish: (target: "home") => void | Promise<void>;
+  /** Opens the read-only import details over this screen. It never finishes onboarding. */
+  onViewDetails: () => void;
 }
 
 /** Sign-up screen 6. Shown after a real import, before onboarding is marked complete. No timed redirect (design Q18). */
-export function AllSet({ onFinish }: AllSetProps) {
+export function AllSet({ onFinish, onViewDetails }: AllSetProps) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const inFlight = useRef(false);
 
-  const finish = async (target: "home" | "import-history") => {
+  const finish = async (target: "home") => {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusy(true);
@@ -71,7 +73,7 @@ export function AllSet({ onFinish }: AllSetProps) {
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => void finish("import-history")}
+                  onClick={onViewDetails}
                   aria-label="View details ›"
                   className="inline-flex items-center gap-1 text-[13px] font-semibold text-[var(--auth-green-ink)] hover:underline disabled:opacity-60"
                 >

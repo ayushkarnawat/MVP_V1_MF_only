@@ -123,7 +123,7 @@ export const DEV_SCREENS: DevScreen[] = [
   {
     id: "signup-all-set",
     title: "Sign-up, step 6 (All set)",
-    render: () => <AllSet onFinish={noop} />,
+    render: () => <AllSet onFinish={noop} onViewDetails={noop} />,
   },
   {
     id: "step-progress",

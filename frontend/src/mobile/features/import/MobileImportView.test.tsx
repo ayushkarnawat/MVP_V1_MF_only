@@ -291,6 +291,8 @@ describe("MobileImportView", () => {
     fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
     await waitFor(() => expect(onNavigateDashboard).toHaveBeenCalledWith({
       text: "8 transactions added", details: ["History starts mid-year."],
+      // QA fixes, A1: the notice also carries a structured copy of the warnings; the mobile view still reads only text and details.
+      warnings: ["History starts mid-year."],
     }));
     rerender(<MobileImportView defaultMemberId="m-1" onNavigateDashboard={onNavigateDashboard} />);
     expect(onNavigateDashboard).toHaveBeenCalledTimes(1);

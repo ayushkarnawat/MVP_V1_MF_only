@@ -12,7 +12,7 @@ export function AuthAlert({ tone, children, action }: AuthAlertProps) {
   return (
     <div
       role={isError ? "alert" : "status"}
-      className={`space-y-2 rounded-[14px] border p-3.5 text-[14px] ${isError ? "border-[var(--neg-text)]/30 bg-[var(--neg-text)]/10 text-[var(--neg-text)]" : "border-[var(--auth-step-on)]/30 bg-[var(--auth-step-on)]/10 text-[var(--ui-text)]"}`}
+      className={`space-y-2 rounded-[14px] border p-3.5 text-[14px] ${isError ? "border-[var(--auth-error-line)] bg-[var(--auth-error-bg)] text-[var(--auth-error)]" : "border-[var(--auth-step-on)]/30 bg-[var(--auth-step-on)]/10 text-[var(--ui-text)]"}`}
     >
       <p className="text-[14px]">{children}</p>
       {action ? (
