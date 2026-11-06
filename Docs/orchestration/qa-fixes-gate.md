@@ -10,7 +10,7 @@ Lane `qa-fixes-lane` (worktree `wt/qa-fixes`) on top of `origin/leapswitch-redes
 | Front end lint | 0 errors, 30 warnings (28 before this release; the two extra were not traced to a file) |
 | Front end build | built; no errors |
 | Back end, core, auth, api, import suites (after Task 2) | 1520 passed, 5 skipped |
-| Back end, full suite without the Postgres-only tests | **running when this record was written** (about 40 minutes in); result to be added here before the push |
+| Back end, full suite without the Postgres-only tests | 5737 passed, 8 skipped, **6 failed**: `test_pdf_export_integration` (needs a Playwright browser, not installed on this machine) and five `test_portfolio_disclosure_*` tests (they read a data cache that is not in the repository). **The same six fail on the commit before this release (`72badaef`)**, so none is caused by it |
 | Back end, Postgres functional tests | not run for this release (no schema change and no query changed; the only back end code touched is two route bodies, one helper, one email module). Run them on the CI before the deploy |
 
 ## What the release touches
