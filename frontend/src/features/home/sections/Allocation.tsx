@@ -1,20 +1,19 @@
-import { useEffect, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
-import { ArrowLeft, ArrowRight, ChevronRight } from "lucide-react";
-import { CLICK_ROW } from "@/lib/clickable";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   compareDecimalStrings,
-  formatLegendPercent,
   liveRows,
   soonRows,
 } from "../allocationCopy";
 import { AllocationClassDialog } from "../components/AllocationClassDialog";
 import { AllocationDonut } from "../components/AllocationDonut";
+import { AllocationLegendRow } from "../components/AllocationLegendRow";
 import { FamilyCards } from "../components/FamilyCards";
 import { PartialDataBadge } from "../components/PartialDataBadge";
 import { formatCompactRupees } from "../homeFormat";
 import type { AllocationResponse } from "../types";
+import { useHeldActive } from "../useHeldActive";
 
 export interface AllocationProps {
   status: "loading" | "error" | "data";
@@ -37,14 +36,32 @@ export function Allocation({
   onShowFamily,
   onRetry,
 }: AllocationProps) {
-  const [active, setActive] = useState<string | null>(null);
+  const { active, enter, leave } = useHeldActive();
+  const setActive = useCallback((key: string | null) => (key === null ? leave() : enter(key)), [enter, leave]);
   const [selected, setSelected] = useState<string | null>(null);
   const openerRef = useRef<HTMLElement | null>(null);
+
+  const openClass = useCallback(
+    (key: string) => {
+      openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      setSelected(key);
+      onClassClick?.(key);
+    },
+    [onClassClick]
+  );
+
+  const live = useMemo(() => (data ? liveRows(data.classes) : []), [data]);
+  const donutRows = useMemo(
+    () => live.filter((row) => compareDecimalStrings(row.value, "0") !== 0),
+    [live]
+  );
+
   // If the response goes away (loading, error) or no longer has the class, forget the selection, so the
   // pop-up cannot reopen by itself when ready data comes back.
   useEffect(() => {
     if (selected && !data?.classes.some((row) => row.key === selected && row.status === "live")) setSelected(null);
   }, [selected, data]);
+
   if (status === "loading") {
     return (
       <div className="rounded-xl bg-[var(--ui-elevated)] border border-[var(--ui-divider)] p-4">
@@ -127,16 +144,7 @@ export function Allocation({
     );
   }
 
-  const live = liveRows(data.classes);
   const soon = soonRows(data.classes);
-  const donutRows = live.filter(
-    (row) => compareDecimalStrings(row.value, "0") !== 0
-  );
-  const openClass = (key: string) => {
-    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setSelected(key);
-    onClassClick?.(key);
-  };
   // Look the row up in the response, not in liveRows(): that helper keeps only the five display fields.
   const selectedRow = selected ? data.classes.find((row) => row.key === selected) : undefined;
 
@@ -179,59 +187,16 @@ export function Allocation({
           />
         </div>
         <div className="w-full flex-1 space-y-1">
-          {live.map((row) => {
-            const isClickable = compareDecimalStrings(row.value, "0") !== 0;
-            const handleKeyDown = (e: KeyboardEvent) => {
-              if (e.key === "Enter") {
-                openClass(row.key);
-              } else if (e.key === " " || e.key === "Spacebar") {
-                e.preventDefault();
-                openClass(row.key);
-              }
-            };
-
-            return (
-              <div
-                key={row.key}
-                data-testid={`legend-${row.key}`}
-                data-color={row.color}
-                data-active={active === row.key ? "true" : "false"}
-                {...(isClickable
-                  ? {
-                      role: "button",
-                      tabIndex: 0,
-                      className: `flex items-center justify-between p-1.5 rounded-lg text-sm text-[var(--ui-text)] ${CLICK_ROW}`,
-                      onClick: () => openClass(row.key),
-                      onKeyDown: handleKeyDown,
-                      onMouseEnter: () => setActive(row.key),
-                      onMouseLeave: () => setActive(null),
-                      onFocus: () => setActive(row.key),
-                      onBlur: () => setActive(null),
-                    }
-                  : {
-                      className:
-                        "flex items-center justify-between p-1.5 rounded-lg text-sm text-[var(--ui-text)]",
-                    })}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    style={{ backgroundColor: row.color }}
-                    className="h-2.5 w-2.5 rounded-sm shrink-0"
-                  />
-                  <span className="truncate">{row.label}</span>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="font-semibold text-sm">
-                    {formatLegendPercent(row.percentage)}
-                  </span>
-                  <ChevronRight
-                    className="h-4 w-4 text-[var(--ui-text-muted)]"
-                    aria-hidden="true"
-                  />
-                </div>
-              </div>
-            );
-          })}
+          {live.map((row) => (
+            <AllocationLegendRow
+              key={row.key}
+              row={row}
+              isActive={active === row.key}
+              onOpen={openClass}
+              onEnter={enter}
+              onLeave={leave}
+            />
+          ))}
           {soon.map((row) => (
             <div
               key={row.key}
