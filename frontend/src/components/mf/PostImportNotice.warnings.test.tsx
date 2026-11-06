@@ -17,4 +17,29 @@ describe("PostImportNotice: a warning is shown once (QA fixes, A1)", () => {
     render(<MemoryRouter initialEntries={[{ pathname: "/x", state: { importNotice: notice, importNoticeUser: "u-1" } }]}><PostImportNotice /></MemoryRouter>);
     expect(screen.getAllByText("One fund needs a price")).toHaveLength(1);
   });
+  const many = (count: number) => ({
+    text: "Import complete · 3 new funds, 9 transactions added",
+    counts: { newFunds: 3, added: 9, skipped: 0 },
+    warnings: Array.from({ length: count }, (_, index) => `Skipped transaction ${index + 1}`),
+  });
+  const show = (notice: object) =>
+    render(<MemoryRouter initialEntries={[{ pathname: "/x", state: { importNotice: notice, importNoticeUser: "u-1" } }]}><PostImportNotice /></MemoryRouter>);
+
+  it("shows at most two warnings and counts the rest, so a long list does not fill the page", () => {
+    show(many(7));
+    expect(screen.getByText("Skipped transaction 1")).toBeInTheDocument();
+    expect(screen.getByText("Skipped transaction 2")).toBeInTheDocument();
+    expect(screen.queryByText("Skipped transaction 3")).toBeNull();
+    expect(screen.getByText("+5 more notes")).toBeInTheDocument();
+  });
+  it("says '+1 more note' for exactly three warnings", () => {
+    show(many(3));
+    expect(screen.getByText("+1 more note")).toBeInTheDocument();
+    expect(screen.queryByText("Skipped transaction 3")).toBeNull();
+  });
+  it("shows two warnings or fewer in full with no counter", () => {
+    show(many(2));
+    expect(screen.getByText("Skipped transaction 2")).toBeInTheDocument();
+    expect(screen.queryByText(/more note/)).toBeNull();
+  });
 });

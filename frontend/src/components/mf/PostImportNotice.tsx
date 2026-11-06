@@ -95,15 +95,23 @@ export function PostImportNotice() {
         </p>
       ))}
 
+      {/* At most two warnings are written out; a statement can carry dozens (QA fixes, A1). */}
       {notice.warnings && notice.warnings.length > 0 && (
-        notice.warnings.map((warning, index) => (
-          <p
-            key={index}
-            className="border-t border-[var(--ui-divider)] py-1.5 text-[12.5px] text-[var(--ui-text-muted)]"
-          >
-            {warning}
-          </p>
-        ))
+        <>
+          {notice.warnings.slice(0, 2).map((warning, index) => (
+            <p
+              key={index}
+              className="border-t border-[var(--ui-divider)] py-1.5 text-[12.5px] text-[var(--ui-text-muted)]"
+            >
+              {warning}
+            </p>
+          ))}
+          {notice.warnings.length > 2 && (
+            <p className="border-t border-[var(--ui-divider)] py-1.5 text-[12.5px] text-[var(--ui-text-muted)]">
+              +{notice.warnings.length - 2} more {notice.warnings.length - 2 === 1 ? "note" : "notes"}
+            </p>
+          )}
+        </>
       )}
 
       {notice.newFunds && notice.newFunds.length > 0 && (
