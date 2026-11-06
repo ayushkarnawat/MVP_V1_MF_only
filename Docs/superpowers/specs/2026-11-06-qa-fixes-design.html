@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA Fix Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout concept: a review document. A sticky jump bar, one stacked card per change (what QA saw, why, the proposal, a before and after mockup, where it changes), then the cross-cutting plan and the open questions. */
+:root{
+  --bg:#F5F7F6; --card:#FFFFFF; --fg:#14201A; --muted:#566660; --line:#DAE2DD; --soft:#EEF3F0;
+  --accent:#0B8A4C; --accent-soft:#E2F4EA; --accent-fg:#FFFFFF;
+  --fe:#1B5FC4; --fe-soft:#E4EDFB; --be:#9A4E0B; --be-soft:#FBEBDB; --ask:#A3260F; --ask-soft:#FCE6E1;
+  --warn:#8A6A00; --warn-soft:#FFF3C9;
+  --font:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"DM Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1411; --card:#141D18; --fg:#E7EFEA; --muted:#9AAAA2; --line:#26332C; --soft:#1A241F;
+  --accent:#3DD68C; --accent-soft:#16301F; --accent-fg:#06210F;
+  --fe:#7FB0FF; --fe-soft:#14233E; --be:#F0A860; --be-soft:#3A2410; --ask:#FF9A86; --ask-soft:#3E1B14;
+  --warn:#E8C65C; --warn-soft:#352C0B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1411; --card:#141D18; --fg:#E7EFEA; --muted:#9AAAA2; --line:#26332C; --soft:#1A241F;
+  --accent:#3DD68C; --accent-soft:#16301F; --accent-fg:#06210F;
+  --fe:#7FB0FF; --fe-soft:#14233E; --be:#F0A860; --be-soft:#3A2410; --ask:#FF9A86; --ask-soft:#3E1B14;
+  --warn:#E8C65C; --warn-soft:#352C0B; color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.6;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+.wrap{max-width:1080px;margin:0 auto}
+h1,h2,h3,h4{line-height:1.2;text-wrap:balance;margin:0}
+h1{font-size:clamp(28px,4.6vw,42px);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(21px,3vw,27px);font-weight:700;letter-spacing:-.01em;margin:56px 0 14px}
+h3{font-size:18px;font-weight:700}
+h4{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:20px 0 6px}
+p{margin:0 0 10px;max-width:70ch}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.86em}
+code{background:var(--soft);border:1px solid var(--line);border-radius:5px;padding:1px 5px;word-break:break-word}
+ul,ol{margin:0 0 10px;padding-left:20px}li{margin:3px 0}
+.hero{padding:44px 0 8px}
+.hero p.lead{font-size:17px;color:var(--muted);margin-top:12px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;color:var(--muted);font-size:13px}
+nav.jump{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line);margin:0 -16px;padding:8px 16px;overflow-x:auto;white-space:nowrap}
+nav.jump a{display:inline-block;text-decoration:none;color:var(--muted);font-size:13px;font-weight:600;padding:5px 10px;border-radius:999px}
+nav.jump a:hover,nav.jump a:focus-visible{background:var(--accent-soft);color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin:0 0 18px}
+.card.soft{background:var(--soft)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+.stat{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--card)}
+.stat b{display:block;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:13px}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:999px;vertical-align:middle;white-space:nowrap}
+.t-fe{background:var(--fe-soft);color:var(--fe)}.t-be{background:var(--be-soft);color:var(--be)}
+.t-ask{background:var(--ask-soft);color:var(--ask)}.t-ok{background:var(--accent-soft);color:var(--accent)}
+.t-size{background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:620px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--soft);position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+td.id{font-family:var(--mono);font-weight:500;white-space:nowrap}
+.item-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-bottom:12px}
+.item-head .id{font-family:var(--mono);font-weight:600;background:var(--accent);color:var(--accent-fg);border-radius:8px;padding:2px 9px;font-size:13px}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:6px 16px;margin:6px 0}
+.kv dt{color:var(--muted);font-size:13px;font-weight:600}.kv dd{margin:0}
+@media(max-width:640px){.kv{grid-template-columns:1fr}.kv dt{margin-top:8px}}
+.callout{border-left:4px solid var(--accent);background:var(--accent-soft);padding:12px 14px;border-radius:0 10px 10px 0;margin:12px 0}
+.callout.warn{border-color:var(--warn);background:var(--warn-soft)}
+.callout.ask{border-color:var(--ask);background:var(--ask-soft)}
+.callout p:last-child{margin:0}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:10px 0 4px}
+.ba3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:10px 0 4px}
+@media(max-width:900px){.ba,.ba3{grid-template-columns:1fr}}
+.pane{min-width:0}
+.cap{font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px;display:flex;gap:8px;align-items:center}
+.cap.b{color:var(--ask)}.cap.a{color:var(--accent)}
+.note{font-size:12.5px;color:var(--muted);margin-top:6px}
+pre.mermaid{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;overflow-x:auto;margin:8px 0}
+/* mockup scopes: independent of the page theme, they show the product's own look */
+.m{border-radius:12px;padding:16px;font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;border:1px solid rgba(128,140,134,.35);overflow:hidden}
+.m *{box-sizing:border-box}.m p{margin:0 0 6px;max-width:none}
+.m-dark{--m-bg:#0F1512;--m-card:#171F1B;--m-line:#2A362F;--m-text:#E9F0EC;--m-muted:#9AA9A1;--m-green:#34D17F;--m-greenbg:rgba(52,209,127,.12);--m-greenline:rgba(52,209,127,.35);--m-red:#F87171;--m-redbg:rgba(248,113,113,.12);--m-info:#7FB0FF;--m-infobg:rgba(127,176,255,.12);background:var(--m-bg);color:var(--m-text)}
+.m-light{--m-bg:#F4FBF7;--m-card:#FFFFFF;--m-line:#E3E8E5;--m-text:#0B1220;--m-muted:#667085;--m-green:#09B158;--m-greenink:#067A3D;--m-greenbg:#E8F9EE;--m-err:#B42318;--m-errbg:#FEF3F2;--m-errline:#FDA29B;--m-oldred:#F87171;--m-infobg:#EEF4FF;--m-info:#1D4ED8;--m-infoline:#B2CCFF;background:var(--m-bg);color:var(--m-text)}
+.m .btn{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 14px;font-weight:600;font-size:12.5px;border:1px solid transparent}
+.m-dark .btn.g{background:var(--m-green);color:#06210F}.m-dark .btn.o{border-color:var(--m-greenline);color:var(--m-green);background:transparent}.m-dark .btn.q{border-color:var(--m-line);color:var(--m-text)}
+.m-dark .btn.r{background:#C0262D;color:#fff}
+.m-light .btn.g{background:var(--m-green);color:#fff}.m-light .btn.q{border-color:var(--m-line);color:var(--m-text);background:#fff}
+.m .chip{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:600}
+.m-dark .chip{background:var(--m-greenbg);color:var(--m-green);border:1px solid var(--m-greenline)}
+.m-dark .chip.mute{background:transparent;color:var(--m-muted);border:1px solid var(--m-line)}
+.m-dark .row{border:1px solid var(--m-line);background:var(--m-card);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.m-dark .row.dis{opacity:.55}.m-dark .row.sel{border-color:var(--m-greenline);background:var(--m-greenbg);opacity:1}
+.m-dark .muted,.m-light .muted{color:var(--m-muted)}.m .sm{font-size:11.5px}
+.m .flex{display:flex;gap:8px;align-items:center}.m .between{justify-content:space-between}
+.m-dark .field,.m-light .field{border:1px solid var(--m-line);border-radius:9px;padding:8px 10px;margin:3px 0 9px;font-size:12.5px;min-height:34px}
+.m-dark .field{background:#0F1512}.m-light .field{background:#fff}
+.m-dark .dialog{background:var(--m-card);border:1px solid var(--m-line);border-radius:14px;padding:14px}
+.m-dark .dialog h5,.m-light .dialog h5{margin:0 0 8px;font-size:15px}
+.m-dark .ico{width:18px;height:18px;flex:none}
+.m-dark .alert-red{border:1px solid rgba(248,113,113,.35);background:var(--m-redbg);color:var(--m-red);border-radius:10px;padding:8px 10px}
+.m-dark .alert-info{border:1px solid rgba(127,176,255,.35);background:var(--m-infobg);color:var(--m-info);border-radius:10px;padding:9px 10px}
+.m-light .opt{border:1px solid var(--m-line);background:#fff;border-radius:12px;padding:9px 12px;margin-bottom:7px;display:flex;justify-content:space-between;gap:8px}
+.m-light .opt.bad{border-color:var(--m-errline)}
+.m-light .chips{display:grid;grid-template-columns:1fr 1fr;gap:7px}.m-light .gchip{border:1px solid var(--m-line);background:#fff;border-radius:11px;padding:8px 10px;font-size:12px}
+.m-light .gchips.bad .gchip{border-color:var(--m-errline)}
+.m-light .errold{color:var(--m-oldred);font-size:13px;margin-top:4px}
+.m-light .errnew{display:flex;gap:7px;align-items:center;color:var(--m-err);background:var(--m-errbg);border:1px solid var(--m-errline);border-radius:10px;padding:7px 10px;font-size:13.5px;font-weight:600;margin-top:6px}
+.m-light .infocard{display:flex;gap:10px;border:1px solid var(--m-infoline);background:var(--m-infobg);color:#1B2A57;border-radius:14px;padding:11px 12px;margin-bottom:14px}
+.m-light h6{margin:0 0 4px;font-size:15px}
+.mail{background:#fff;color:#0B1220;border:1px solid #E3E8E5;border-radius:12px;padding:14px 16px;font:13px/1.5 system-ui,sans-serif}
+.mail .sub{font-size:11.5px;color:#667085;border-bottom:1px solid #EEF0F2;padding-bottom:6px;margin-bottom:10px}
+.mail .cta{display:inline-block;background:#09B158;color:#fff;font-weight:700;border-radius:999px;padding:9px 18px;margin:6px 0 4px;text-decoration:none}
+.mail small{display:block;color:#667085;font-size:11.5px}
+.mail p{margin:0 0 8px;max-width:none}
+.donutdemo{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.donutdemo svg{flex:none}
+.legend{display:flex;flex-direction:column;gap:5px;min-width:140px}
+.legend div{padding:4px 8px;border-radius:8px;font-size:12.5px;display:flex;gap:8px;align-items:center;cursor:pointer}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.d-now circle{transition:none}.d-new circle{transition:opacity .16s ease,stroke-width .16s ease}
+@media(prefers-reduced-motion:reduce){.d-new circle{transition:none}}
+.qs{counter-reset:q}
+.q{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:16px 18px;margin-bottom:12px}
+.q h3{font-size:15.5px;display:flex;gap:10px;align-items:flex-start}
+.q h3 .n{font-family:var(--mono);background:var(--ask-soft);color:var(--ask);border-radius:8px;padding:1px 8px;font-size:13px;flex:none}
+.q .opts{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.q .opts span{border:1px solid var(--line);background:var(--soft);border-radius:999px;padding:3px 11px;font-size:12.5px}
+.q .opts span.rec{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.q .why{color:var(--muted);font-size:13.5px;margin:0}
+.wave{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:14px 16px}
+.wave b{display:block;margin-bottom:4px}
+footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+<header class="hero">
+  <span class="tag t-ok">PLANNING ONLY · NOTHING IS BUILT YET</span> <span class="tag t-ok">ALL QUESTIONS ANSWERED · READY FOR EXECUTION PLANS</span>
+  <h1 style="margin-top:12px">Staging QA fix plan</h1>
+  <p class="lead">Every change that came out of both QA sheets (the UI round 2 sheet and the change requests sheet), how each will be built, what moves where, before and after flows, mockups, and the questions that need your answer before we write the execution plans.</p>
+  <div class="meta"><span>Prepared 6 Nov 2026</span><span>Source: QA report of 5 Nov (tester Aditi, intern) and the staging code on <code>leapswitch-redesign</code></span><span>No migration, no new dependency</span></div>
+</header>
+
+<nav class="jump" aria-label="Jump to a section">
+  <a href="#glance">At a glance</a><a href="#decisions">Decisions</a><a href="#source">What QA found</a><a href="#approach">How we will build it</a>
+  <a href="#a1">A1 Notice</a><a href="#a2">A2 Donut</a><a href="#b1">B1 Errors</a><a href="#b2">B2 Login landing</a><a href="#b3">B3 Back</a>
+  <a href="#c1">C1 Add details</a><a href="#c2">C2 Review</a><a href="#c3">C3 Sign-in banner</a><a href="#c4">C4 Refusals</a><a href="#c5">C5 Undo email</a>
+  <a href="#open">Withdrawn items</a><a href="#map">Files map</a><a href="#risks">Risks</a><a href="#questions">Open questions</a>
+</nav>
+
+<section id="glance">
+<h2>At a glance</h2>
+<div class="grid3" style="grid-template-columns:repeat(4,1fr)">
+  <div class="stat"><b>10</b><span>changes to build (8 front end only, 1 back end only, 1 both)</span></div>
+  <div class="stat"><b>0</b><span>database migrations</span></div>
+  <div class="stat"><b>14 of 14</b><span>questions answered, plus the 5 confirmations</span></div>
+  <div class="stat"><b>0</b><span>open items; waiting only for your go to write the execution plans</span></div>
+</div>
+<style>@media(max-width:860px){#glance .grid3{grid-template-columns:1fr 1fr!important}}</style>
+<div class="callout"><p><b>Result of QA in one line:</b> no row failed. These are polish and clarity changes, plus one UX suggestion, found while the release was being checked. The Head of Family rules (who can become head, the four codes, the 7-day and 24-hour locks) are not changed by anything here.</p></div>
+
+<div class="tablewrap"><table>
+<thead><tr><th>ID</th><th>Change</th><th>Where QA saw it</th><th>Layer</th><th>Size</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">A1</td><td>Redesign the new-funds notice after an import</td><td>C1, C3 (screenshot 1)</td><td><span class="tag t-fe">FRONT END</span></td><td><span class="tag t-size">S</span></td><td><span class="tag t-ok">DECIDED</span></td></tr>
+<tr><td class="id">A2</td><td>Smooth the Home donut hover and click</td><td>B2 to B6</td><td><span class="tag t-fe">FRONT END</span></td><td><span class="tag t-size">M</span></td><td><span class="tag t-ok">DECIDED</span></td></tr>
+<tr><td class="id">B1</td><td>Make sign-up screen 4 errors clearly visible</td><td>G3</td><td><span class="tag t-fe">FRONT END</span></td><td><span class="tag t-size">S</span></td><td><span class="tag t-ok">DECIDED</span></td></tr>
+<tr><td class="id">B2</td><td>After logging in, land on Home (not the last page)</td><td>H1</td><td><span class="tag t-fe">FRONT END</span></td><td><span class="tag t-size">S</span></td><td><span class="tag t-ok">DECIDED</span></td></tr>
+<tr><td class="id">B3</td><td>Back from "View details" and from Import History</td><td>G10</td><td><span class="tag t-fe">FRONT END</span></td><td><span class="tag t-size">S</span></td><td><span class="tag t-ok">DECIDED</span></td></tr>
+<tr><td class="id">C1</td><td>Fix a member's missing details from the Choose head dialog (existing Complete profile dialog)</td><td>Your suggestion (screenshot 7)</td><td><span class="tag t-fe">FRONT END</span></td><td><span class="tag t-size">L</span></td><td><span class="tag t-ok">DECIDED</span></td></tr>
+<tr><td class="id">C2</td><td>Redesign the review step before confirming a head change</td><td>8.9</td><td><span class="tag t-fe">FRONT END</span></td><td><span class="tag t-size">M</span></td><td><span class="tag t-ok">DECIDED</span></td></tr>
+<tr><td class="id">C3</td><td>Redesign the notice on the sign-in page after a head change</td><td>8.10</td><td><span class="tag t-fe">FRONT END</span></td><td><span class="tag t-size">S</span></td><td><span class="tag t-ok">DECIDED</span></td></tr>
+<tr><td class="id">C4</td><td>Show the real reason when deleting a member or the account is refused</td><td>8.15, 8.16 (screenshots 5, 6)</td><td><span class="tag t-fe">FRONT END</span> <span class="tag t-be">BACK END</span></td><td><span class="tag t-size">M</span></td><td><span class="tag t-ok">DECIDED</span></td></tr>
+<tr><td class="id">C5</td><td>New email templates (buttons, wording for each recipient); sending stays as it is</td><td>8.11 and section 9 (finding 8, 12)</td><td><span class="tag t-be">BACK END</span></td><td><span class="tag t-size">M</span></td><td><span class="tag t-ok">DECIDED</span></td></tr>
+</tbody></table></div>
+<p class="note">Size is relative: S about half a day of build and review, M about a day, L two days or more. Withdrawn: finding 7 (the "Parent" label), see "Withdrawn and process items". Process items that are not code (server rows, J2 to J4, the signed visual gate) are listed there too.</p>
+</section>
+
+<section id="decisions">
+<h2>Decisions recorded (6 Nov)</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Q</th><th>Topic</th><th>Your decision</th><th>Effect on the plan</th></tr></thead>
+<tbody>
+<tr><td class="id">Q1</td><td>A1 notice</td><td>Up to 3 fund chips and "+N more"</td><td>As drawn. It stays until dismissed (confirmed, R5).</td></tr>
+<tr><td class="id">Q2</td><td>A2 donut</td><td>Fade plus a 3 px grow</td><td>As in the live demo.</td></tr>
+<tr><td class="id">Q3</td><td>B1 errors</td><td>Alert with icon and a red outline on the group</td><td>As drawn.</td></tr>
+<tr><td class="id">Q4</td><td>B2 login landing</td><td>Home after a manual logout; the page you opened if you came from a link or an expired session</td><td>As drawn.</td></tr>
+<tr><td class="id">Q5</td><td>B3 Back</td><td>Sign-up: Back (button and browser) returns to All set. In the account: Back returns to the last screen.</td><td>Confirmed (R3): Import details as a read-only dialog over All set; onboarding saved complete only on "Go to my dashboard".</td></tr>
+<tr><td class="id">Q6</td><td>C1 details</td><td>Reuse the existing Complete profile dialog</td><td>Confirmed (R4): the Choose head dialog steps aside while the profile dialog is open and returns after, never stacked.</td></tr>
+<tr><td class="id">Q7</td><td>C1</td><td>Select the member automatically once eligible</td><td>As drawn.</td></tr>
+<tr><td class="id">Q8</td><td>C2, C3</td><td>Review shows the new head's email and phone; the sign-in card shows them masked</td><td>As drawn.</td></tr>
+<tr><td class="id">Q9</td><td>C4</td><td>Calm information notice with the date and a single OK</td><td>As drawn.</td></tr>
+<tr><td class="id">Q10</td><td>C4, C5</td><td>India time (IST) wherever users read a time</td><td>Applies to the refusal messages and the emails.</td></tr>
+<tr><td class="id">Q11</td><td>C5 emails</td><td>Keep the current email system; update only the templates (buttons, wording)</td><td>Confirmed (R2): three emails as today, new templates, plus one sentence in the old head's notice that points to the undo email.</td></tr>
+<tr><td class="id">Q12</td><td>D1</td><td>Sheet 2 sections 2 to 7: all good, no changes</td><td>No work planned there. The D1 item and its screen inventory are removed. The E1 note is closed the same way (E1 passed, no change requested).</td></tr>
+<tr><td class="id">Q13</td><td>Scope</td><td>Desktop only. Do not change anything in the mobile app.</td><td>Mobile screens and mobile paths are untouched, and every shared piece we edit gets a test proving the mobile behaviour is unchanged.</td></tr>
+<tr><td class="id">Q14</td><td>Who builds</td><td>This setup: Claude orchestrates, Codex is the worker, for the front end as well</td><td>Codex packets for every change. If Codex usage runs out, the Claude worker in WSL takes over, as before.</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="source">
+<h2>What QA found (both sheets combined)</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Sheet</th><th>What was run</th><th>Result</th><th>Notes that became changes</th></tr></thead>
+<tbody>
+<tr><td>UI round 2 and the six life goals (groups A to K)</td><td>Sign-up walk, login, Home and donut, imports and new funds, fund page, goals, add as family member, mobile and accessibility, visual gate</td><td><span class="tag t-ok">ALL PASS</span></td><td>G3 error lines faint (B1) · G10 Back goes to Home (B3) · H1 lands on Profile (B2) · C1/C3 notice looks unfinished (A1) · B2 to B6 donut jittery (A2)</td></tr>
+<tr><td>Change requests release (sections 1 to 12)</td><td>Fund logos and headings, market cap, valuation, benchmarks, switches, family holdings, Head of Family hand-over and undo, "This was not me", import regression</td><td><span class="tag t-ok">ALL PASS</span></td><td>8.9 review step UI (C2) · 8.10 sign-in banner UI (C3) · 8.15, 8.16 no reason shown (C4) · 8.11 undo link was in a second email and was missed (C5) · your suggestion for the Choose head dialog (C1). Sections 2 to 7 were noted as "UI could improve"; you reviewed them and asked for no changes.</td></tr>
+</tbody></table></div>
+<p class="note">Still not reported and not code: server rows A1 to A7, F7 and F8; sheet 2 section 1 and sheet 1 rows J2 to J4; the signed visual-gate table.</p>
+</section>
+
+<section id="approach">
+<h2>How we will build it</h2>
+<div class="grid2">
+  <div class="card"><h3>Principles</h3>
+  <ul>
+    <li><b>Tests first</b> for every change: a failing test, then the code, as in UI round 2.</li>
+    <li><b>Mockups are the acceptance picture.</b> After each change the orchestrator takes a screenshot and puts it next to the mockup on this page. Nothing is called done on tests alone (that is what went wrong with the sign-up screens).</li>
+    <li><b>Behaviour stays.</b> Rules, flows and copy that QA passed do not change unless this plan says so.</li>
+    <li><b>Head of Family security is untouched:</b> eligibility, the four codes, the locks and the undo window stay exactly as built; the server still decides everything.</li>
+    <li><b>Old cached front ends keep working:</b> every back end change is additive or keeps the old reading valid.</li>
+  </ul></div>
+  <div class="card"><h3>Branch, release and rollback</h3>
+  <ul>
+    <li>One branch <code>ui-qa-fixes</code> cut from <code>origin/leapswitch-redesign</code>, merged after the QA rows pass.</li>
+    <li>No migration. Back end changes (C4, C5) need a backend rebuild and restart only; no stop, migrate, start sequence.</li>
+    <li>Front end and back end ship together in one deploy. A short deploy guide is written in the execution plan.</li>
+    <li>Rollback: previous front end commit, and the previous backend image (<code>:previous</code> must be confirmed first, it was stale after the last deploy).</li>
+  </ul></div>
+</div>
+<h4>Proposed waves (the real execution plans come after you say go)</h4>
+<div class="grid3">
+  <div class="wave"><b>Wave 1: back end (Codex)</b>Packet <code>qa-be-1</code>: C5 email templates, C4 refusal bodies. Small and independent, so the front end can rely on the new shapes.</div>
+  <div class="wave"><b>Wave 2: front end (Codex), three packets</b><code>qa-fe-1</code>: A1, A2 · <code>qa-fe-2</code>: B1, B2, B3 · <code>qa-fe-3</code>: C1, C2, C3, C4 (front). Codex cannot see the screen, so the orchestrator takes every screenshot.</div>
+  <div class="wave"><b>Wave 3: integrate and check (Claude)</b>Merge, full suites, screenshots against these mockups, re-run the QA rows listed in each change, deploy, then the owner's QA pass.</div>
+</div>
+<div class="callout warn"><p><b>Who builds:</b> Claude is the orchestrator (writes the packets, reviews every diff, takes every screenshot, runs the gates) and Codex is the worker for back end and front end. If Codex usage runs out, the Claude worker in WSL takes over with the same packets, as it did in UI round 2. <b>Desktop only:</b> mobile screens and the <code>/mobile</code> paths are not touched.</p></div>
+</section>
+
+<!-- ============================ A1 ============================ -->
+<section id="a1">
+<h2>A. Import and Home</h2>
+<article class="card">
+  <div class="item-head"><span class="id">A1</span><h3>Redesign the new-funds notice after an import</h3><span class="tag t-fe">FRONT END</span><span class="tag t-size">S</span></div>
+  <div class="callout"><p><b>Decided:</b> Q1: up to 3 fund chips and "+N more". It stays until the user dismisses it.</p></div>
+  <dl class="kv">
+    <dt>What QA saw</dt><dd>Rows C1 and C3 passed, but the notice is a plain bordered box of unstyled lines, and the two actions run together as "View new fundsDismiss" (screenshot 1).</dd>
+    <dt>Why it happens</dt><dd><code>PostImportNotice.tsx</code> prints every line as a bare <code>&lt;p&gt;</code> and puts two unstyled <code>&lt;button&gt;</code> elements next to each other. The app resets button styling, so they read as text with no gap.</dd>
+    <dt>Proposal</dt><dd>A structured card: a header with a check icon, "Import complete" and a close button; one summary line ("6 new funds · 448 transactions added"); one row per person with their count; a "New funds" line with at most 3 fund names as chips and "+3 more"; and one clear action, "View new funds", which opens the existing list dialog. The data, the "shown only to the user it was written for" rule and the dismiss behaviour do not change.</dd>
+  </dl>
+  <div class="ba">
+    <div class="pane"><div class="cap b">Before (staging today)</div>
+      <div class="m m-dark">
+        <div style="border:1px solid var(--m-greenline);background:var(--m-greenbg);border-radius:12px;padding:12px">
+          <p>Import complete · 6 new funds, 448 transactions added</p>
+          <p>SURESH RAMAN IYER: 289 added</p>
+          <p>LAKSHMI SURESH IYER: 159 added</p>
+          <p>New funds: HDFC Children's Fund - Direct Plan - Growth Option, HDFC Flexi Cap Fund - Direct Plan - Growth Option and 4 more</p>
+          <p style="margin:0">View new fundsDismiss</p>
+        </div>
+      </div></div>
+    <div class="pane"><div class="cap a">After (proposed)</div>
+      <div class="m m-dark">
+        <div style="border:1px solid var(--m-line);background:var(--m-card);border-radius:14px;padding:14px">
+          <div class="flex between" style="margin-bottom:6px">
+            <div class="flex"><svg class="ico" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="#34D17F" stroke-width="1.6"/><path d="M6 10.4l2.6 2.6L14 7.6" stroke="#34D17F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><b style="font-size:14.5px">Import complete</b></div>
+            <span class="muted" aria-hidden="true" style="font-size:16px">✕</span>
+          </div>
+          <p class="muted" style="margin-bottom:10px"><b style="color:var(--m-text)">6 new funds</b> · 448 transactions added</p>
+          <div class="flex between" style="padding:6px 0;border-top:1px solid var(--m-line)"><span>Suresh Raman Iyer</span><span class="chip">289 added</span></div>
+          <div class="flex between" style="padding:6px 0;border-top:1px solid var(--m-line)"><span>Lakshmi Suresh Iyer</span><span class="chip">159 added</span></div>
+          <div style="padding:8px 0 10px;border-top:1px solid var(--m-line)">
+            <div class="muted sm" style="margin-bottom:5px">New funds</div>
+            <span class="chip mute">HDFC Children's Fund</span> <span class="chip mute">HDFC Flexi Cap Fund</span> <span class="chip mute">UTI Nifty 50 Index Fund</span> <span class="muted sm">+3 more</span>
+          </div>
+          <span class="btn o">View new funds</span>
+        </div>
+      </div></div>
+  </div>
+  <dl class="kv">
+    <dt>Where it changes</dt><dd><code>frontend/src/components/mf/PostImportNotice.tsx</code> (markup and layout) · <code>features/import/importNotice.ts</code> only if the member lines need to arrive as data instead of text · <code>PostImportNotice.test.tsx</code>. Mounted by <code>features/mutual-funds/overview/OverviewPage.tsx</code>.</dd>
+    <dt>Tests</dt><dd>Keep: shown only to the same user, dismiss clears it, the list opens. Add: the two actions are separate buttons; at most 3 chips and a "+N more"; the status role and labels are kept; narrow width stacks cleanly.</dd>
+    <dt>Re-check in QA</dt><dd>C1, C3, C6 (and a new row: dismiss, then reload).</dd>
+  </dl>
+</article>
+
+<!-- ============================ A2 ============================ -->
+<article class="card" id="a2">
+  <div class="item-head"><span class="id">A2</span><h3>Smooth the Home donut hover and click</h3><span class="tag t-fe">FRONT END</span><span class="tag t-size">M</span></div>
+  <div class="callout"><p><b>Decided:</b> Q2: fade plus a 3 px grow.</p></div>
+  <dl class="kv">
+    <dt>What QA saw</dt><dd>Rows B2 to B6 passed, but hover and the pop-up feel jittery.</dd>
+    <dt>Why it happens</dt><dd>Four things in <code>AllocationDonut.tsx</code> and <code>sections/Allocation.tsx</code>: (1) dimming is set directly to 38% opacity with no transition, so it snaps; (2) every slice clears the hover when the pointer leaves and sets it again on the next slice, so for a moment nothing is dimmed and the donut flashes; (3) the hover state lives in the whole Allocation section, so each change re-renders the section, legend and cards; (4) the slices are 22 px wide arcs with small gaps, so the pointer drops out between them.</dd>
+    <dt>Proposal</dt><dd>A 160 ms ease on opacity (and a gentle grow of the active slice if you want it, Q2); keep the highlight while the pointer moves between slices and clear it only when the pointer leaves the donut and its legend together; a wider invisible hit area so gaps do not drop the hover; memoise the donut and the legend rows so only the changed parts redraw; no motion when the system asks for reduced motion. Keyboard focus, Enter and Space, and the pop-up behaviour are unchanged.</dd>
+  </dl>
+  <h4>Try it: move the pointer quickly across the slices</h4>
+  <div class="ba">
+    <div class="pane"><div class="cap b">Now</div>
+      <div class="m m-dark"><div class="donutdemo d-now" id="demo-now"></div><p class="muted sm" style="margin-top:8px">Dimming snaps and the whole donut flashes bright between slices.</p></div></div>
+    <div class="pane"><div class="cap a">Proposed</div>
+      <div class="m m-dark"><div class="donutdemo d-new" id="demo-new"></div><p class="muted sm" style="margin-top:8px">160 ms fade, the highlight holds between slices, the active slice grows 3 px.</p></div></div>
+  </div>
+  <dl class="kv">
+    <dt>Where it changes</dt><dd><code>features/home/components/AllocationDonut.tsx</code> · <code>features/home/sections/Allocation.tsx</code> (the <code>active</code> state and the legend rows) · a small style rule · <code>AllocationDonut.test.tsx</code>.</dd>
+    <dt>Tests</dt><dd>Enter and leave behaviour with the hold; keyboard focus still sets and clears the highlight; the dim state is a class, not an inline style; the reduced-motion rule is present.</dd>
+    <dt>Re-check in QA</dt><dd>B2 to B6, plus the same hover on a phone-sized window.</dd>
+  </dl>
+</article>
+</section>
+
+<!-- ============================ B ============================ -->
+<section id="b">
+<h2>B. Sign-up and sign-in</h2>
+<article class="card" id="b1">
+  <div class="item-head"><span class="id">B1</span><h3>Make sign-up screen 4 errors clearly visible</h3><span class="tag t-fe">FRONT END</span><span class="tag t-size">S</span></div>
+  <div class="callout"><p><b>Decided:</b> Q3: an alert with an icon plus a red outline on the group that is missing an answer.</p></div>
+  <dl class="kv">
+    <dt>What QA saw</dt><dd>G3 passed (both errors appear and focus moves to the first) but the error lines look faint and odd.</dd>
+    <dt>Why it happens</dt><dd>The two messages are plain 13 px text in the app's <code>--neg-text</code> colour. That colour is a strong red in the light theme but switches to a pale red (#F87171) in the dark theme, and the sign-up card is <b>always light</b>. For anyone using dark mode it is pale red on near-white. To be confirmed in the browser before the fix.</dd>
+    <dt>Proposal</dt><dd>Give the auth screens their own error colours that never change with the theme (a deep red text, a light red fill, a red outline), show each error as a small alert with an icon, and outline the group that is missing an answer. Use the same tokens for every other error on the sign-up and sign-in screens so they match.</dd>
+  </dl>
+  <div class="ba">
+    <div class="pane"><div class="cap b">Before</div>
+      <div class="m m-light"><div style="font-weight:700;font-size:13.5px;margin-bottom:7px">How do you usually invest?</div>
+        <div class="opt"><span>I'm just getting started</span><span class="muted">○</span></div><div class="opt"><span>I manage my own investments</span><span class="muted">○</span></div>
+        <div class="errold">Choose how you usually invest.</div>
+        <div style="font-weight:700;font-size:13.5px;margin:12px 0 7px">What are you working towards? <span class="muted" style="font-weight:400">(Select all that apply)</span></div>
+        <div class="chips"><div class="gchip">Build my wealth</div><div class="gchip">Plan for retirement</div></div>
+        <div class="errold">Choose at least one goal.</div></div></div>
+    <div class="pane"><div class="cap a">After</div>
+      <div class="m m-light"><div style="font-weight:700;font-size:13.5px;margin-bottom:7px">How do you usually invest?</div>
+        <div class="opt bad"><span>I'm just getting started</span><span class="muted">○</span></div><div class="opt bad"><span>I manage my own investments</span><span class="muted">○</span></div>
+        <div class="errnew"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#B42318" stroke-width="1.5"/><path d="M8 4.5v4.2M8 11.2v.1" stroke="#B42318" stroke-width="1.7" stroke-linecap="round"/></svg>Choose how you usually invest.</div>
+        <div style="font-weight:700;font-size:13.5px;margin:12px 0 7px">What are you working towards? <span class="muted" style="font-weight:400">(Select all that apply)</span></div>
+        <div class="chips gchips bad"><div class="gchip">Build my wealth</div><div class="gchip">Plan for retirement</div></div>
+        <div class="errnew"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#B42318" stroke-width="1.5"/><path d="M8 4.5v4.2M8 11.2v.1" stroke="#B42318" stroke-width="1.7" stroke-linecap="round"/></svg>Choose at least one goal.</div></div></div>
+  </div>
+  <dl class="kv">
+    <dt>Where it changes</dt><dd><code>styles/auth-tokens.css</code> (new <code>--auth-error</code>, <code>--auth-error-bg</code>, <code>--auth-error-line</code>) · <code>features/auth/redesign/InvestorProfile.tsx</code> (the two messages and the group outlines) · <code>AuthAlert.tsx</code> and <code>AuthField.tsx</code> (use the same tokens) · every other use of <code>--neg-text</code> under <code>features/auth/redesign</code> (the execution plan lists them).</dd>
+    <dt>Tests</dt><dd>Both messages render with the new classes and stay announced (<code>role="alert"</code>), focus still goes to the first error, the outline appears only on the failing group, and no auth component still reads <code>--neg-text</code>.</dd>
+    <dt>Re-check in QA</dt><dd>G3, H4 (wrong and expired code errors), and a dark-mode browser pass.</dd>
+  </dl>
+</article>
+
+<article class="card" id="b2">
+  <div class="item-head"><span class="id">B2</span><h3>After logging in, land on Home (not the last page)</h3><span class="tag t-fe">FRONT END</span><span class="tag t-size">S</span><span class="tag t-ask">Q4</span></div>
+  <div class="callout"><p><b>Decided:</b> Q4: Home after a manual logout; the page the user opened if they came from a link or an expired session. Desktop only: the mobile app keeps its current behaviour, and the change is guarded and tested so it cannot reach <code>/mobile</code>.</p></div>
+  <dl class="kv">
+    <dt>What QA saw</dt><dd>H1 passed, but after logging out and back in the user lands on the Profile page instead of Home.</dd>
+    <dt>Why it happens</dt><dd><code>logout()</code> in <code>AuthContext.tsx</code> clears the session but leaves the page address alone. When the user signs in again the app draws the signed-in screens at that same address, for example <code>/profile/family</code>.</dd>
+    <dt>Proposal</dt><dd>Log out to the root address, so the existing root redirect sends a fresh login to <code>/home</code>. Keep one exception: when someone opens a page directly while signed out (a pasted link, or a session that expired), return them to that page after login. The public undo and "this was not me" pages are not affected.</dd>
+  </dl>
+  <div class="ba">
+    <div class="pane"><div class="cap b">Before</div>
+<pre class="mermaid">flowchart TD
+  A["Log out from Profile, Family"] --> B["Address stays /profile/family"]
+  B --> C["Sign in again"]
+  C --> D["Lands on Profile, Family"]</pre></div>
+    <div class="pane"><div class="cap a">After</div>
+<pre class="mermaid">flowchart TD
+  A["Log out"] --> B["Address reset to /"]
+  B --> C["Sign in again"]
+  C --> D{"Opened a page directly while signed out?"}
+  D -- "yes" --> E["Open that page"]
+  D -- "no" --> F["Open Home"]</pre></div>
+  </div>
+  <dl class="kv">
+    <dt>Where it changes</dt><dd><code>features/auth/AuthContext.tsx</code> (logout) · <code>features/auth/AuthEntryFlow.tsx</code> (after a successful login, honour a saved return address) · the root route already redirects <code>/</code> to <code>/home</code> (<code>shell/routes/root.route.tsx</code>) · tests for AuthContext and the app shell.</dd>
+    <dt>Re-check in QA</dt><dd>H1, H2, plus new rows: open a deep link while signed out, and an expired session.</dd>
+  </dl>
+</article>
+
+<article class="card" id="b3">
+  <div class="item-head"><span class="id">B3</span><h3>Back from "View details" and from Import History</h3><span class="tag t-fe">FRONT END</span><span class="tag t-size">M</span><span class="tag t-ok">DECIDED</span></div>
+  <div class="callout"><p><b>Decided (Q5):</b> while signing up, "View details" opens the import details and Back (the button and the browser's Back) returns to the All set screen. Inside the account (Profile, Settings, Import History), Back returns to the last screen the user was on.</p></div>
+  <dl class="kv">
+    <dt>What QA saw</dt><dd>G10 passed, but Back goes to Home, not to All set.</dd>
+    <dt>Why it happens today</dt><dd><code>OnboardingFlow.finish("import-history")</code> opens the Import History address and saves "onboarding complete" in the same moment. All set only exists while onboarding is incomplete, so once it is saved there is no All set to return to. The Import History page itself belongs to the signed-in app, which only opens after onboarding is complete, and its only back control is a fixed "← Settings" link.</dd>
+    <dt>What has to change</dt><dd><b>1. Sign-up.</b> "View details" no longer completes onboarding. It opens an <b>Import details</b> view inside the sign-up flow, built from the existing <code>ImportHistorySection</code> (it takes its loaders as props, so it does not need the signed-in app). A Back button and the browser's Back (a history entry is pushed and watched) close it and show All set again. Onboarding is saved complete only when the user presses "Go to my dashboard". If they close the tab on All set or on Import details, the existing resume rule brings them back to All set.<br><b>2. In the account.</b> The Import History page replaces its fixed "← Settings" link with "← Back", which goes to the screen the user came from (Settings, or Mutual Funds when they arrived from the new-funds list), falling back to Settings if there is no history.</dd>
+    <dt>Confirmed shape (R3)</dt><dd>Show Import details as a <b>dialog over All set</b>, not a full page: the sign-up page is always light, while the Import History list is styled for the app's theme (it would clash for dark-mode users). A dialog uses the same light prompt styling as the other sign-up pop-ups, and closing it is the Back. It is read-only during sign-up (no delete).</dd>
+  </dl>
+  <div class="ba">
+    <div class="pane"><div class="cap b">Before</div>
+      <div class="m m-dark"><div class="muted sm" style="margin-bottom:6px">All set → View details</div><b style="font-size:16px">Import History (in the signed-in app)</b><p class="muted" style="margin-top:6px">Onboarding is already saved complete. "← Settings" is the only back control, and the browser Back lands on Home.</p></div></div>
+    <div class="pane"><div class="cap a">After: during sign-up</div>
+      <div class="m m-light"><div style="text-align:center;font-weight:700;font-size:15px;margin-bottom:8px">You're all set!</div>
+        <div style="border:1px solid var(--m-line);background:#fff;border-radius:14px;padding:12px;margin-bottom:10px">
+          <div class="flex between"><b style="font-size:14px">Import details</b><span class="muted" aria-hidden="true">✕</span></div>
+          <div class="muted sm" style="margin:3px 0 8px">Your imported statements</div>
+          <div class="flex between" style="padding:6px 0;border-top:1px solid var(--m-line)"><span>Mutual Funds · CAS statement</span><span class="muted sm">289 transactions · Imported</span></div>
+          <div style="margin-top:8px"><span class="btn q">← Back</span></div>
+        </div>
+        <div style="text-align:center"><span class="btn g">Go to my dashboard</span></div></div></div>
+  </div>
+  <div class="ba">
+    <div class="pane"><div class="cap a">After: from Settings</div>
+<pre class="mermaid">flowchart LR
+  A["Profile, Settings"] --> B["Import History"]
+  B -- "Back" --> A</pre></div>
+    <div class="pane"><div class="cap a">After: from the new-funds list</div>
+<pre class="mermaid">flowchart LR
+  A["Mutual Funds"] --> B["New funds list, View all"]
+  B --> C["Import History"]
+  C -- "Back" --> A</pre></div>
+  </div>
+  <dl class="kv">
+    <dt>Where it changes</dt><dd><code>features/auth/OnboardingFlow.tsx</code> (drop <code>finish("import-history")</code>, own the details view and its history entry) · a new <code>OnboardingImportDetails.tsx</code> reusing <code>features/profile/ImportHistorySection.tsx</code> · <code>features/auth/redesign/AllSet.tsx</code> (View details opens the view) · <code>features/profile-v2/pages/ImportHistoryPage.tsx</code> (Back goes to the previous screen) · tests. Mobile onboarding (<code>isMobile</code> / <code>variant="legacy"</code>) is not touched.</dd>
+    <dt>Tests</dt><dd>View details does not save completion; Back button and browser Back both return to All set; Go to my dashboard saves once; a reload on Import details resumes on All set; the account page Back returns to the previous screen and falls back to Settings.</dd>
+    <dt>Re-check in QA</dt><dd>G9, G10, G11 (resume), and Back from Import History reached from Settings and from the new-funds list.</dd>
+  </dl>
+</article>
+</section>
+
+<!-- ============================ C ============================ -->
+<section id="c">
+<h2>C. Head of Family</h2>
+<div class="callout"><p>All five changes here keep the rules exactly as built. The server still decides who is eligible, still checks the four codes and still enforces the locks. Only what the person sees and how they fix a missing detail change.</p></div>
+
+<article class="card" id="c1">
+  <div class="item-head"><span class="id">C1</span><h3>Fix a member's missing details from the Choose head dialog</h3><span class="tag t-fe">FRONT END</span><span class="tag t-size">M</span><span class="tag t-ok">DECIDED</span></div>
+  <div class="callout"><p><b>Decided (Q6, Q7):</b> reuse the existing Complete profile dialog, and select the member automatically once they are eligible.</p></div>
+  <dl class="kv">
+    <dt>What QA saw</dt><dd>Your suggestion. Members without an email and phone are greyed and cannot be clicked. To fix that the user must close the dialog, go to Family, edit the member, and come back.</dd>
+    <dt>Today</dt><dd>The server returns up to 12 reasons per member. The dialog shows only the first as small grey text. The Family page already opens the Complete profile dialog (<code>features/dashboard/members/CompleteProfileDialog.tsx</code>, fields: name, relationship, phone, email, PAN, with duplicate-PAN, other-account and success steps) with <code>onSaved</code> and <code>onClose</code>.</dd>
+    <dt>Proposal</dt><dd>Split the reasons into <b>fixable here</b> (<code>no_email</code>, <code>no_phone</code>, <code>no_pan</code>, <code>label_missing</code>, <code>same_email_as_head</code>, <code>same_phone_as_head</code>, <code>email_in_use</code>, <code>phone_in_use</code>) and <b>not fixable here</b> (<code>pan_registered_elsewhere</code>, <code>account_pending_deletion</code>, <code>import_in_progress</code>, <code>head_change_already_open</code>). A member with a fixable reason gets an "Add details" chip and can be clicked. Clicking opens the existing Complete profile dialog for that member. When its sequence ends (Save, Exit, success, or a merge) the Choose head dialog comes back with the list reloaded from the server; if the member is now eligible they are selected automatically, otherwise the remaining reason shows on their row.</dd>
+    <dt>One technical point</dt><dd>The two dialogs are not shown stacked. This app's dialog component has its own focus trap and Escape handler, and two of them open together fight for focus. So the Choose head dialog steps aside (its state is kept) while the profile dialog is open, then returns. To the user it reads as one continuous flow. Confirmed (R4).</dd>
+    <dt>Unchanged on purpose</dt><dd>Eligibility is still computed on the server. The email and phone typed here are still verified later by the codes in step 2. A PAN used elsewhere shows the same warnings as in Profile.</dd>
+  </dl>
+  <div class="ba3">
+    <div class="pane"><div class="cap b">Before: greyed, dead end</div>
+      <div class="m m-dark"><div class="dialog"><h5>Choose who will be Head of Family</h5>
+        <div class="row dis"><div class="flex between"><b>Suresh Raman Iyer</b><span class="muted sm">Not set</span></div><div class="muted sm">Add an email address and a phone number first.</div></div>
+        <div class="row dis"><div class="flex between"><b>Lakshmi Suresh Iyer</b><span class="muted sm">Not set</span></div><div class="muted sm">Add an email address and a phone number first.</div></div>
+        <div class="row"><div class="flex between"><b>Aarav Suresh Iyer</b><span class="muted sm">Sibling</span></div></div>
+        <div class="flex" style="justify-content:flex-end;gap:8px;margin-top:6px"><span class="btn q">Cancel</span><span class="btn g" style="opacity:.5">Next</span></div></div></div></div>
+    <div class="pane"><div class="cap a">After: list</div>
+      <div class="m m-dark"><div class="dialog"><h5>Choose who will be Head of Family</h5>
+        <div class="row"><div class="flex between"><b>Suresh Raman Iyer</b><span class="chip">Add details</span></div><div class="muted sm">Needs an email address and a phone number.</div></div>
+        <div class="row"><div class="flex between"><b>Lakshmi Suresh Iyer</b><span class="chip">Add details</span></div><div class="muted sm">Needs an email address and a phone number.</div></div>
+        <div class="row"><div class="flex between"><b>Aarav Suresh Iyer</b><span class="muted sm">Sibling</span></div></div>
+        <div class="row dis"><div class="flex between"><b>Meera Iyer</b><span class="muted sm">Parent</span></div><div class="muted sm">A statement is being imported. Finish it first.</div></div>
+        <div class="flex" style="justify-content:flex-end;gap:8px;margin-top:6px"><span class="btn q">Cancel</span><span class="btn g" style="opacity:.5">Next</span></div></div></div></div>
+    <div class="pane"><div class="cap a">After: a fixable member is clicked</div>
+      <div class="m m-dark"><div style="border:1.5px dashed var(--m-line);border-radius:14px;padding:16px;text-align:center"><b>The existing Complete profile dialog opens here, unchanged</b><div class="muted sm" style="margin-top:6px">Name, relationship, phone, email, PAN. Save, Exit, duplicate-PAN and other-account warnings, success screen.</div><div class="muted sm" style="margin-top:8px">The Choose head dialog is hidden while it is open.</div></div>
+        <div class="muted sm" style="margin-top:10px">On close: list reloaded. Suresh is now eligible, so he is selected and Next is enabled.</div>
+        <div class="row sel" style="margin-top:8px"><div class="flex between"><b>Suresh Raman Iyer</b><span class="chip">Selected</span></div></div></div></div>
+  </div>
+  <div class="ba">
+    <div class="pane"><div class="cap b">Flow before</div>
+<pre class="mermaid">flowchart TD
+  A["A member is greyed"] --> B["Close the dialog"]
+  B --> C["Profile, Family"]
+  C --> D["Open the member, edit, save"]
+  D --> E["Press Change Head of Family again"]
+  E --> F["Choose the member"]</pre></div>
+    <div class="pane"><div class="cap a">Flow after</div>
+<pre class="mermaid">flowchart TD
+  A["Click a member with Add details"] --> B["Complete profile dialog opens"]
+  B --> C["Save or Exit"]
+  C --> D["Choose head dialog returns, list reloaded"]
+  D --> E{"Eligible now?"}
+  E -- "yes" --> F["Member selected, press Next"]
+  E -- "no" --> G["Reason shown on the row"]</pre></div>
+  </div>
+  <dl class="kv">
+    <dt>Where it changes</dt><dd><code>features/profile-v2/components/ChangeHeadDialog.tsx</code>: the step 1 rows (clickable when the reason is fixable, an "Add details" chip), a new <code>detailsFor</code> state that renders <code>CompleteProfileDialog</code> in place of the dialog, and a reload of eligibility on close, merge or save · import of <code>CompleteProfileDialog</code> from <code>features/dashboard/members</code> · <code>ChangeHeadDialog.test.tsx</code>. <b>No back end change. No new form to build.</b></dd>
+    <dt>Tests</dt><dd>Each reason is classed fixable or not; a fixable row opens the profile dialog for that member and hides the head dialog; on close the list is reloaded and an eligible member is selected; a member merged away disappears; non-fixable rows stay disabled; rows stay disabled once the start code has been sent; the existing dialog tests still pass.</dd>
+    <dt>Re-check in QA</dt><dd>8.2, 8.3, plus new rows: add details for a greyed member, a PAN used elsewhere, an email already in use, Exit without saving.</dd>
+  </dl>
+  <div class="callout warn"><p>The only change that touches a security-sensitive screen. It gets a second, scoped review before it is called done. It is smaller than first planned because no new form is needed.</p></div>
+</article>
+
+<article class="card" id="c2">
+  <div class="item-head"><span class="id">C2</span><h3>Redesign the review step before confirming a head change</h3><span class="tag t-fe">FRONT END</span><span class="tag t-size">M</span><span class="tag t-ask">Q8</span></div>
+  <div class="callout"><p><b>Decided:</b> Q8: the review shows the new head's email and phone.</p></div>
+  <dl class="kv">
+    <dt>What QA saw</dt><dd>8.9 passed, but the review step needs better UI. Today it is a stack of sentences ("Priya will sign in with ...", "Rohan stays as a member ...", "You and everyone else ... signed out", "All portfolio data stays ...") plus the label changes.</dd>
+    <dt>Proposal</dt><dd>The same facts in three clear blocks with a headline: <b>Who signs in from now</b> (the new head with the email and phone they will use), <b>What changes</b> (a small before and after table of labels), and a <b>You will be signed out</b> callout; data staying unchanged becomes a one-line reassurance. The countdown stays visible, and Confirm stays disabled until the preview has loaded (an existing safety rule).</dd>
+  </dl>
+  <div class="ba">
+    <div class="pane"><div class="cap b">Before</div>
+      <div class="m m-dark"><div class="dialog"><h5>Review the change</h5>
+        <p>Priya Rohan Kulkarni will sign in with priya@example.com and +91 98765 43210.</p><p>Rohan Vijay Kulkarni stays as a member and will no longer sign in.</p><p>You and everyone else on this account will be signed out.</p><p>All portfolio data stays exactly as it is.</p><p class="muted">Rohan Vijay Kulkarni: Head of Family becomes Spouse<br>Priya Rohan Kulkarni: Spouse becomes Head of Family</p>
+        <div class="flex" style="justify-content:flex-end;gap:8px"><span class="btn q">Back</span><span class="btn g">Confirm the change</span></div></div></div></div>
+    <div class="pane"><div class="cap a">After</div>
+      <div class="m m-dark"><div class="dialog"><div class="flex between"><h5 style="margin:0">Priya Rohan Kulkarni becomes Head of Family</h5><span class="chip mute">7:42 left</span></div>
+        <div class="row" style="margin-top:10px"><div class="muted sm">Signs in from now with</div><b>priya@example.com</b> · <b>+91 98765 43210</b></div>
+        <div class="row"><div class="muted sm" style="margin-bottom:4px">What changes</div>
+          <div class="flex between"><span>Rohan Vijay Kulkarni</span><span class="muted sm">Head of Family → Spouse</span></div>
+          <div class="flex between"><span>Priya Rohan Kulkarni</span><span class="muted sm">Spouse → Head of Family</span></div></div>
+        <div class="alert-info" style="margin-bottom:8px"><b>You will be signed out.</b> So will everyone else on this account. Rohan can no longer sign in.</div>
+        <div class="muted sm" style="margin-bottom:8px">All portfolio data stays exactly as it is.</div>
+        <div class="flex" style="justify-content:flex-end;gap:8px"><span class="btn q">Back</span><span class="btn g">Confirm the change</span></div></div></div></div>
+  </div>
+  <dl class="kv">
+    <dt>Where it changes</dt><dd><code>ChangeHeadDialog.tsx</code>, the step 3 review markup (near the end of the file) · <code>ChangeHeadDialog.test.tsx</code>. No data or API change: it uses the preview the server already returns.</dd>
+    <dt>Re-check in QA</dt><dd>8.9.</dd>
+  </dl>
+</article>
+
+<article class="card" id="c3">
+  <div class="item-head"><span class="id">C3</span><h3>Redesign the notice on the sign-in page after a head change</h3><span class="tag t-fe">FRONT END</span><span class="tag t-size">S</span><span class="tag t-ask">Q8</span></div>
+  <div class="callout"><p><b>Decided:</b> Q8: the sign-in card shows the new head's email and phone masked.</p></div>
+  <dl class="kv">
+    <dt>What QA saw</dt><dd>8.10 passed, but the banner "The Head of Family has been changed. Sign in with the new Head's email or phone number." needs better UI.</dd>
+    <dt>Why it happens</dt><dd>After confirming, <code>ChangeHeadDialog.tsx</code> stores one fixed sentence (<code>SIGN_IN_NOTICE</code>) in <code>features/auth/session.ts</code>, signs out, and <code>AuthEntryFlow.tsx</code> shows it as a plain notice line.</dd>
+    <dt>Proposal</dt><dd>A proper info card above the sign-in form: an icon, a title, and the instruction with the new head's contact shown masked (for example <code>pr••••@gmail.com</code> and <code>+91 ••••• 43210</code>), plus a line saying the previous head can no longer sign in. The notice object carries these fields in memory only (never stored in the browser).</dd>
+  </dl>
+  <div class="ba">
+    <div class="pane"><div class="cap b">Before</div>
+      <div class="m m-light"><div style="font-size:13px;margin-bottom:10px;color:#1D4ED8">The Head of Family has been changed. Sign in with the new Head's email or phone number.</div><h6>Welcome back</h6><div class="muted sm">Log in to continue to your Unifolio account.</div></div></div>
+    <div class="pane"><div class="cap a">After</div>
+      <div class="m m-light"><div class="infocard"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex:none;margin-top:1px"><circle cx="10" cy="10" r="9" stroke="#1D4ED8" stroke-width="1.6"/><path d="M10 9v5M10 6v.1" stroke="#1D4ED8" stroke-width="1.8" stroke-linecap="round"/></svg><div><b>Head of Family changed</b><div style="font-size:12.5px">Sign in with pr••••@gmail.com or +91 ••••• 43210. Rohan can no longer sign in.</div></div></div><h6>Welcome back</h6><div class="muted sm">Log in to continue to your Unifolio account.</div></div></div>
+  </div>
+  <dl class="kv">
+    <dt>Where it changes</dt><dd><code>features/profile-v2/components/ChangeHeadDialog.tsx</code> (build the notice at confirm) · <code>features/auth/session.ts</code> (store an object, not a string) · <code>features/auth/AuthEntryFlow.tsx</code> (show it) · the info tone of <code>AuthAlert.tsx</code> · tests.</dd>
+    <dt>Re-check in QA</dt><dd>8.10, 8.13.</dd>
+  </dl>
+</article>
+
+<article class="card" id="c4">
+  <div class="item-head"><span class="id">C4</span><h3>Show the real reason when deleting a member or the account is refused</h3><span class="tag t-fe">FRONT END</span><span class="tag t-be">BACK END</span><span class="tag t-size">M</span><span class="tag t-ask">Q9 · Q10</span></div>
+  <div class="callout"><p><b>Decided:</b> Q9: a calm information notice with the date and a single OK. Q10: dates and times in India time (IST).</p></div>
+  <dl class="kv">
+    <dt>What QA saw</dt><dd>8.15 and 8.16 are correctly refused, but both screens only say "Could not delete this member. Please try again." and "Could not schedule account deletion. Please try again." (screenshots 5 and 6). "Try again" is misleading: trying again will not help until a date.</dd>
+    <dt>Why it happens</dt><dd><code>DeleteMemberDialog.tsx</code> and <code>DeleteAccountDialog.tsx</code> catch every error and show the generic text. The server does send a reason. Member removal: <code>409 {code: "member_in_recent_head_change", message: "This person was part of a recent Head of Family change, so they cannot be removed yet. Try again in 7 days."}</code>. Account deletion: <code>409</code> with a plain string, "The Head of Family was changed in the last 24 hours. You can delete this account after the undo window closes on ... UTC."</dd>
+    <dt>Proposal</dt><dd><b>Back end:</b> make both 409 bodies the same shape, <code>{code, message, available_after}</code>, where <code>available_after</code> is the real date and time; the member message names the actual date instead of "7 days". <b>Front end:</b> read the refusal, show it as a calm information notice (not a red error) with the date, disable the destructive button, and offer a single OK. Any other failure keeps the generic message. An old cached front end still shows the generic message, so nothing breaks.</dd>
+  </dl>
+  <div class="ba">
+    <div class="pane"><div class="cap b">Before</div>
+      <div class="m m-dark"><div class="dialog"><h5>Delete Riya Sharma from your family?</h5><p class="muted">This removes all of their funds from your statements and removes them from your family. Other people's funds stay.</p><div class="alert-red" style="margin-bottom:8px">Could not delete this member. Please try again.</div><div class="flex" style="justify-content:flex-end;gap:8px"><span class="btn q">Keep</span><span class="btn r">Delete member</span></div></div></div></div>
+    <div class="pane"><div class="cap a">After</div>
+      <div class="m m-dark"><div class="dialog"><h5>Riya Sharma can't be removed yet</h5><div class="alert-info" style="margin-bottom:10px">She was part of a recent Head of Family change. You can remove her on <b>12 Nov 2026</b>.</div><div class="flex" style="justify-content:flex-end;gap:8px"><span class="btn q">OK</span></div></div></div></div>
+  </div>
+  <div class="ba">
+    <div class="pane"><div class="cap b">Before: account deletion</div>
+      <div class="m m-dark"><div class="dialog"><h5>Confirm account deletion</h5><p class="muted">Your account and all household data will be permanently deleted in 30 days. You can cancel anytime before then.</p><div class="alert-red" style="margin-bottom:8px">Could not schedule account deletion. Please try again.</div><div class="flex" style="justify-content:flex-end;gap:8px"><span class="btn q">Cancel</span><span class="btn r">Confirm deletion</span></div></div></div></div>
+    <div class="pane"><div class="cap a">After</div>
+      <div class="m m-dark"><div class="dialog"><h5>You can't delete this account yet</h5><div class="alert-info" style="margin-bottom:10px">The Head of Family was changed in the last 24 hours. You can delete the account after the undo window closes on <b>6 Nov 2026, 3:33 PM IST</b>.</div><div class="flex" style="justify-content:flex-end;gap:8px"><span class="btn q">OK</span></div></div></div></div>
+  </div>
+  <dl class="kv">
+    <dt>Where it changes</dt><dd><b>Back end:</b> <code>backend/app/api/dashboard.py</code> (member removal 409) · <code>backend/app/api/auth.py</code> (account deletion 409, now a body with a code) · <code>backend/app/services/import_/deletion.py</code> (<code>MemberRemovalBlockedError</code> carries the date) · where the 24-hour window is computed (<code>undo_window_open_until</code>, <code>head_change.py</code>) · pytest for both. <b>Front end:</b> <code>features/profile-v2/components/DeleteMemberDialog.tsx</code> and <code>DeleteAccountDialog.tsx</code> · a small shared helper that reads a refusal from the API error · tests.</dd>
+    <dt>Re-check in QA</dt><dd>8.15, 8.16 (the screen now states the date), plus a normal delete still works.</dd>
+  </dl>
+</article>
+
+<article class="card" id="c5">
+  <div class="item-head"><span class="id">C5</span><h3>New email templates (buttons, wording for each recipient); sending stays as it is</h3><span class="tag t-be">BACK END</span><span class="tag t-size">S</span><span class="tag t-ok">DECIDED</span></div>
+  <div class="callout"><p><b>Decided (Q11, Q10):</b> keep the current email system and update only the templates, with the buttons and layout shown in the mockups. Times in the emails are shown in IST.</p></div>
+  <dl class="kv">
+    <dt>What QA saw</dt><dd>After a head change both mailboxes showed one notice that says to contact support and has no link (screenshot 4). The undo link is in a separate second email, which was missed until a search found it. Section 9 then passed.</dd>
+    <dt>Today</dt><dd><code>_send_completion_notices</code> in <code>head_change.py</code> sends three emails: a notice to the new head, a notice to each old-head address, and a separate "Undo the Head of Family change." to each old-head address. The notice text is the same for both people ("X is now Head of Family and signs in with this email"), which reads wrongly in the old head's inbox.</dd>
+    <dt>Proposal</dt><dd>The same three emails go out in the same order to the same people. Only the templates change: <b>(1) New head:</b> worded for them ("You are now Head of Family; sign in with this email"). <b>(2) Old head's notice:</b> worded for them (you remain a member and can no longer sign in), plus one sentence saying that <b>a second email titled "Undo the Head of Family change." has the link to undo this</b>. <b>(3) Undo email:</b> the green "Undo the Head of Family change" button, the plain link under it, and "valid until {time in IST}". All three share one cleaner layout.</dd>
+    <dt>Confirmed (R2)</dt><dd>The sending code stays unchanged, so the old head still gets two emails, and the sentence in (2) pointing to the second email is included.</dd>
+  </dl>
+  <div class="ba">
+    <div class="pane"><div class="cap b">Before: old head's inbox</div>
+      <div class="mail"><div class="sub">no-reply@unifolio.in · 3:33 PM · The Head of Family on Unifolio has changed.</div><p><b>The Head of Family on Unifolio has changed.</b></p><p>ROHAN VIJAY KULKARNI is now Head of Family and signs in with this email. Riya Sharma remains a member and no longer signs in. If this was not you, contact support@unifolio.in.</p></div>
+      <div class="mail" style="margin-top:8px"><div class="sub">no-reply@unifolio.in · 3:33 PM · Undo the Head of Family change.</div><p>Use this link within 24 hours to restore the previous sign-in.</p><small>The link is a plain line of text.</small></div></div>
+    <div class="pane"><div class="cap a">After: old head's inbox (still two emails)</div>
+      <div class="mail"><div class="sub">no-reply@unifolio.in · The Head of Family on Unifolio has changed.</div><p><b>The Head of Family on your account has changed.</b></p><p>Rohan Vijay Kulkarni is now Head of Family and signs in with his own email and phone. You (Riya Sharma) remain a member and can no longer sign in with this email. All portfolio data is unchanged.</p><p>Did not agree to this? <b>A second email, "Undo the Head of Family change.", has the link to undo it.</b> If this was not you, contact support@unifolio.in.</p></div>
+      <div class="mail" style="margin-top:8px"><div class="sub">no-reply@unifolio.in · Undo the Head of Family change.</div><p><b>Undo the Head of Family change</b></p><p>Use this button to restore the previous sign-in.</p><span class="cta">Undo the Head of Family change</span><small>Valid until 6 Nov 2026, 3:33 PM IST. It stops working if the old phone or email is taken meanwhile.</small><small>Button not working? Copy this link: https://ls-redesign.unifolio.in/undo-head-change#token=...</small></div>
+      <div class="mail" style="margin-top:8px"><div class="sub">no-reply@unifolio.in · New head's inbox</div><p><b>You are now Head of Family.</b></p><p>Sign in with this email or your phone number. All portfolio data is unchanged. If this was not you, contact support@unifolio.in.</p></div></div>
+  </div>
+  <dl class="kv">
+    <dt>Where it changes</dt><dd><code>backend/app/services/auth/email_templates.py</code>: the new-head and old-head versions of <code>head_changed_email</code>, the button block in <code>head_change_undo_email</code>, the shared layout, an IST time helper · <code>backend/app/services/auth/head_change.py</code>: only to pass the recipient role and the undo expiry time to the templates (<code>_send_completion_notices</code> keeps its three deliveries and the recorded <code>failed_roles</code>) · template tests · <code>backend.md</code>. The undo token, the link address and who receives the link are unchanged.</dd>
+    <dt>Tests</dt><dd>Each of the three emails renders its own wording; the button and the plain link appear only in the undo email and only for the old head's addresses; the expiry is shown in IST; plain-text parts stay readable; the existing sending and failure-recording tests still pass.</dd>
+    <dt>Re-check in QA</dt><dd>8.11, 9.1 to 9.5 on a fresh account, checking the look in Gmail.</dd>
+  </dl>
+</article>
+</section>
+
+<!-- ============================ Needs input ============================ -->
+<section id="open">
+<h2>Withdrawn and process items</h2>
+<div class="grid2">
+  <article class="card"><h3>Finding 7 is withdrawn</h3>
+  <p>I earlier flagged that the account holder was shown as "Parent" in the Choose head dialog. The server never lists the current head in that dialog (the eligibility check treats the head as not found), so that row was an ordinary member whose relationship label is Parent. No change needed.</p></article>
+  <article class="card"><h3>Process items, not code</h3>
+  <ul><li>Server rows A1 to A7, F7 and F8 (the manager's Claude and me).</li><li>Sheet 2 section 1 and sheet 1 rows J2 to J4 (the tester).</li><li>The signed visual-gate table (you).</li><li>Skipped by design: 9.6, 9.7, F1, B7, D7, D8, C9.</li></ul></article>
+</div>
+</section>
+
+<section id="map">
+<h2>What changes where (all files)</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Area</th><th>File</th><th>Changes</th></tr></thead>
+<tbody>
+<tr><td>Front end</td><td><code>components/mf/PostImportNotice.tsx</code> (+ test, maybe <code>features/import/importNotice.ts</code>)</td><td>A1</td></tr>
+<tr><td>Front end</td><td><code>features/home/components/AllocationDonut.tsx</code>, <code>features/home/sections/Allocation.tsx</code> (+ tests, a style rule)</td><td>A2</td></tr>
+<tr><td>Front end</td><td><code>styles/auth-tokens.css</code>, <code>features/auth/redesign/InvestorProfile.tsx</code>, <code>AuthAlert.tsx</code>, <code>AuthField.tsx</code> (+ tests)</td><td>B1, C3</td></tr>
+<tr><td>Front end</td><td><code>features/auth/AuthContext.tsx</code>, <code>features/auth/AuthEntryFlow.tsx</code>, <code>features/auth/session.ts</code></td><td>B2, C3</td></tr>
+<tr><td>Front end</td><td><code>features/auth/OnboardingFlow.tsx</code>, <code>features/auth/redesign/AllSet.tsx</code>, a new <code>OnboardingImportDetails.tsx</code> reusing <code>features/profile/ImportHistorySection.tsx</code>, and <code>features/profile-v2/pages/ImportHistoryPage.tsx</code></td><td>B3</td></tr>
+<tr><td>Front end</td><td><code>features/profile-v2/components/ChangeHeadDialog.tsx</code> (reusing <code>features/dashboard/members/CompleteProfileDialog.tsx</code>, tests)</td><td>C1, C2, C3</td></tr>
+<tr><td>Front end</td><td><code>features/profile-v2/components/DeleteMemberDialog.tsx</code>, <code>DeleteAccountDialog.tsx</code> (+ a shared refusal reader)</td><td>C4</td></tr>
+<tr><td>Back end</td><td><code>backend/app/api/dashboard.py</code>, <code>backend/app/api/auth.py</code>, <code>services/import_/deletion.py</code>, <code>services/auth/head_change.py</code></td><td>C4</td></tr>
+<tr><td>Back end</td><td><code>services/auth/email_templates.py</code> and a small pass-through in <code>services/auth/head_change.py</code> (+ template tests)</td><td>C5</td></tr>
+<tr><td>Docs</td><td><code>backend.md</code>, <code>decisions.md</code>, QA checklist rows, <code>session.md</code></td><td>all</td></tr>
+</tbody></table></div>
+<p class="note">Not touched: the database, the eligibility rules, the four-code flow, the lock and undo-window timing, the import engine, the mobile app and its <code>/mobile</code> paths (desktop only, Q13).</p>
+</section>
+
+<section id="risks">
+<h2>Risks and how we handle them</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Risk</th><th>Where</th><th>Handling</th></tr></thead>
+<tbody>
+<tr><td>Dialogs fight for focus, or a mistake lets someone become head without the checks</td><td>C1</td><td>The head dialog steps aside while the profile dialog is open (never stacked). The server still decides eligibility and still verifies the four codes; details are saved through the existing profile dialog and route. A second scoped review before it is called done.</td></tr>
+<tr><td>The undo link is lost or reaches the wrong address</td><td>C5</td><td>The sending code does not change, only the templates. Tests that the button and link appear only in the undo email for the old head's own addresses; QA rows 8.11 and 9.1 to 9.5 re-run on a fresh account (the current ones are locked for 7 days).</td></tr>
+<tr><td>Moving the "onboarding complete" write leaves someone half-way</td><td>B3</td><td>Completion is saved on "Go to my dashboard"; a closed tab resumes on All set (existing rule, tested). Tests that View details does not save it.</td></tr>
+<tr><td>Shared code changes reach the mobile app</td><td>B2, B3</td><td>Edits to shared auth and onboarding code are guarded to desktop and covered by tests that the <code>/mobile</code> behaviour is unchanged.</td></tr>
+<tr><td>Login landing breaks deep links or the public undo pages</td><td>B2</td><td>Return-to-page only for pages opened while signed out; tests for <code>/undo-head-change</code> and <code>/reverse-contact-change</code> staying public.</td></tr>
+<tr><td>Old cached front end meets the new back end</td><td>C4, C5</td><td>Refusal bodies keep the old status codes; the old screens catch any error and show the generic text. Email changes do not touch the front end.</td></tr>
+<tr><td>Donut change hurts keyboard or screen-reader use</td><td>A2</td><td>Focus and key handling kept and tested; reduced motion honoured.</td></tr>
+<tr><td>Rollback image is stale</td><td>Deploy</td><td>The previous backend image on the VM was not updated at the last deploy; confirm or rebuild before relying on it.</td></tr>
+<tr><td>Looks wrong again after "tests pass"</td><td>All front end</td><td>Screenshot next to the mockup on this page for every change, signed off by you.</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="questions">
+<h2>Open questions</h2>
+<div class="callout"><p><b>None.</b> All 14 questions and the 5 confirmations (R1 to R5) are answered and recorded in "Decisions recorded". Nothing blocks the execution plans.</p></div>
+<p>Next, when you say go, I write one execution plan per packet (<code>qa-be-1</code>, <code>qa-fe-1</code> to <code>qa-fe-3</code>) with the failing tests first, the exact files, the screenshot check against the mockups on this page, and the QA rows to re-run. Wave 1 (back end) goes to Codex first.</p>
+</section>
+
+<footer>
+  <p><b>Next step, only when you say go:</b> the execution plans, then Wave 1.</p>
+  <p>Mockups show the intended layout and wording, drawn to match the product's look; final spacing is checked against them on staging.</p>
+</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+(function(){
+  try{ if(window.mermaid){ window.mermaid.initialize({startOnLoad:true,theme:"neutral",securityLevel:"strict"}); } }catch(e){}
+  var rows=[{k:"Equity",v:42.21,c:"#34D17F"},{k:"Debt",v:38.41,c:"#5B8DEF"},{k:"Gold",v:19.38,c:"#F2B84B"}];
+  var R=58,C=2*Math.PI*R;
+  function build(rootId,proposed){
+    var root=document.getElementById(rootId); if(!root) return;
+    var NS="http://www.w3.org/2000/svg", active=null, timer=null;
+    var svg=document.createElementNS(NS,"svg"); svg.setAttribute("viewBox","0 0 160 160"); svg.setAttribute("width","160"); svg.setAttribute("height","160"); svg.setAttribute("role","img"); svg.setAttribute("aria-label","Asset allocation demo");
+    var legend=document.createElement("div"); legend.className="legend";
+    var off=0, circles={}, items={};
+    rows.forEach(function(r){
+      var len=C*r.v/100;
+      var c=document.createElementNS(NS,"circle");
+      c.setAttribute("r",R);c.setAttribute("cx",80);c.setAttribute("cy",80);c.setAttribute("fill","none");c.setAttribute("stroke",r.c);c.setAttribute("stroke-width",22);
+      c.setAttribute("stroke-dasharray",(len-1.5).toFixed(2)+" "+(C-len+1.5).toFixed(2));c.setAttribute("stroke-dashoffset",(-off).toFixed(2));c.setAttribute("transform","rotate(-90 80 80)");
+      c.style.cursor="pointer"; off+=len; circles[r.k]=c; svg.appendChild(c);
+      var d=document.createElement("div"); d.innerHTML='<i style="background:'+r.c+'"></i><span>'+r.k+" "+r.v.toFixed(1)+"%</span>"; items[r.k]=d; legend.appendChild(d);
+      function enter(){ if(timer){clearTimeout(timer);timer=null;} set(r.k); }
+      function leave(){ if(!proposed){ set(null); } }
+      c.addEventListener("mouseenter",enter); c.addEventListener("mouseleave",leave);
+      d.addEventListener("mouseenter",enter); d.addEventListener("mouseleave",leave);
+    });
+    function set(k){
+      active=k;
+      rows.forEach(function(r){
+        var dim=active!==null&&active!==r.k;
+        circles[r.k].style.opacity=dim?"0.38":"1";
+        if(proposed){ circles[r.k].setAttribute("stroke-width",(active===r.k)?25:22); }
+        items[r.k].style.opacity=dim?".5":"1";
+      });
+    }
+    if(proposed){
+      root.addEventListener("mouseleave",function(){ timer=setTimeout(function(){set(null);},90); });
+    }
+    var tx=document.createElementNS(NS,"text"); tx.setAttribute("x",80);tx.setAttribute("y",78);tx.setAttribute("text-anchor","middle");tx.setAttribute("fill","#E9F0EC");tx.setAttribute("font-size","14");tx.setAttribute("font-weight","700");tx.textContent="₹1,05,64,652"; svg.appendChild(tx);
+    var t2=document.createElementNS(NS,"text"); t2.setAttribute("x",80);t2.setAttribute("y",95);t2.setAttribute("text-anchor","middle");t2.setAttribute("fill","#9AA9A1");t2.setAttribute("font-size","10");t2.textContent="Total value"; svg.appendChild(t2);
+    root.appendChild(svg); root.appendChild(legend);
+  }
+  build("demo-now",false); build("demo-new",true);
+})();
+</script>
+
+</body>
+</html>
