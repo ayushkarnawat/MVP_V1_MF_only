@@ -1,4 +1,5 @@
 import hashlib
+from datetime import datetime, timezone
 from inspect import signature
 
 import app.services.auth.email_templates as email_templates
@@ -28,41 +29,90 @@ def test_head_change_headline_does_not_say_to_sign_in():
     assert "sign in" not in html.lower()
 
 
-def test_head_changed_email_uses_the_notice_wording():
-    subject, body, html = email_templates.head_changed_email(
-        new_head_name="Aditi",
-        old_head_name="Siddharth",
-        undo_url="https://example.test/undo",
+def test_new_head_email_is_worded_for_the_new_head_and_has_no_link():
+    subject, body, html = email_templates.head_changed_for_new_head_email(
+        new_head_name="Aditi", old_head_name="Siddharth"
     )
 
     assert subject == "The Head of Family on Unifolio has changed."
-    assert body == (
-        "Aditi is now Head of Family and signs in with this email. Siddharth remains a member "
-        "and no longer signs in. All portfolio data is unchanged. If this was not you, use the "
-        "undo link within 24 hours: https://example.test/undo"
-    )
-    assert "All portfolio data is unchanged." in html
-
-
-def test_head_changed_email_without_an_undo_url_carries_no_link():
-    subject, body, html = email_templates.head_changed_email(new_head_name="Aditi", old_head_name="Siddharth")
-
-    assert subject == "The Head of Family on Unifolio has changed."
-    assert "contact support@unifolio.in" in body
-    for text in (body, html):
-        assert "undo" not in text.lower()
+    assert "You are now Head of Family." in body and "You are now Head of Family." in html
+    assert (
+        "Sign in with this email or your phone number. All portfolio data is unchanged. "
+        "If this was not you, contact support@unifolio.in."
+    ) in body
+    assert "undo" not in body.lower() and "undo" not in html.lower()
     assert "<a " not in html  # the shared header's font address is a stylesheet link, not an anchor
 
 
-def test_head_change_undo_email_has_one_24_hour_link():
+def test_old_head_notice_is_worded_for_the_old_head_and_names_the_second_email():
+    subject, body, html = email_templates.head_changed_for_old_head_email(
+        new_head_name="Aditi", old_head_name="Siddharth"
+    )
+
+    assert subject == "The Head of Family on Unifolio has changed."
+    assert "The Head of Family on your account has changed." in body
+    assert (
+        "Aditi is now Head of Family and signs in with their own email and phone. "
+        "You (Siddharth) remain a member and can no longer sign in with this email. "
+        "All portfolio data is unchanged."
+    ) in body
+    assert (
+        'Did not agree to this? A second email, "Undo the Head of Family change.", has the link '
+        "to undo it. If this was not you, contact support@unifolio.in."
+    ) in body
+    assert " his " not in f" {body.lower()} "  # never guess a pronoun
+
+
+def test_old_head_notice_has_no_link_or_button():
+    _, body, html = email_templates.head_changed_for_old_head_email(
+        new_head_name="Aditi", old_head_name="Siddharth"
+    )
+
+    assert "http" not in body
+    assert "<a " not in html
+    assert "cta" not in html.lower()
+
+
+def test_undo_email_has_one_button_the_plain_link_and_the_ist_expiry():
+    valid_until = datetime(2026, 11, 7, 10, 3, tzinfo=timezone.utc)
     subject, body, html = email_templates.head_change_undo_email(
-        undo_url="https://example.test/undo"
+        undo_url="https://example.test/undo#token=abc", valid_until=valid_until
     )
 
     assert subject == "Undo the Head of Family change."
-    assert body.count("https://example.test/undo") == 1
-    assert "24 hours" in body
-    assert html.count('href="https://example.test/undo"') == 1
+    assert html.count('href="https://example.test/undo#token=abc"') == 1
+    assert html.count("<a ") == 1
+    assert "Undo the Head of Family change</a>" in html
+    assert "Use this button to restore the previous sign-in." in html
+    assert "Valid until 7 Nov 2026, 3:33 PM IST." in html and "Valid until 7 Nov 2026, 3:33 PM IST." in body
+    assert "It stops working if the old phone or email is taken meanwhile." in html
+    assert "Button not working? Copy this link: https://example.test/undo#token=abc" in html
+    assert body.count("https://example.test/undo#token=abc") == 1
+    assert "UTC" not in body and "UTC" not in html
+
+
+def test_undo_email_html_escapes_the_url_and_the_plain_text_part_carries_it_unescaped():
+    url = 'https://example.test/undo#token=a"b<c'
+    _, body, html = email_templates.head_change_undo_email(
+        undo_url=url, valid_until=datetime(2026, 11, 7, 10, 3, tzinfo=timezone.utc)
+    )
+
+    assert url in body
+    assert 'a"b<c' not in html
+    assert "a&quot;b&lt;c" in html
+
+
+def test_new_and_old_head_emails_escape_names_in_html():
+    _, _, html = email_templates.head_changed_for_old_head_email(
+        new_head_name="<b>New</b>", old_head_name="<i>Old</i>"
+    )
+
+    assert "<b>New</b>" not in html and "&lt;b&gt;New&lt;/b&gt;" in html
+    assert "<i>Old</i>" not in html and "&lt;i&gt;Old&lt;/i&gt;" in html
+
+
+def test_the_old_combined_notice_builder_is_gone():
+    assert not hasattr(email_templates, "head_changed_email")
 
 
 def test_otp_email_html_contains_the_otp():

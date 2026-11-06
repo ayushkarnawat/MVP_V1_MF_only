@@ -29,7 +29,8 @@ from app.services.auth.email_provider import EmailSendError, get_email_provider
 from app.services.auth.email_templates import (
     head_change_reversed_email,
     head_change_undo_email,
-    head_changed_email,
+    head_changed_for_new_head_email,
+    head_changed_for_old_head_email,
 )
 from app.services.auth.head_eligibility import (
     EligibilityReason,
@@ -926,21 +927,22 @@ def _send_completion_notices(
         )
     failed_roles: set[str] = set()
 
-    changed_subject, changed_text, changed_html = head_changed_email(
+    new_subject, new_text, new_html = head_changed_for_new_head_email(
         new_head_name=new_head_name,
         old_head_name=old_head_name,
     )
-    deliveries = [
-        ("new_head_changed", new_head_email, changed_subject, changed_text, changed_html)
-    ]
+    old_subject, old_text, old_html = head_changed_for_old_head_email(
+        new_head_name=new_head_name,
+        old_head_name=old_head_name,
+    )
+    undo_valid_until = _aware(request.undo_expires_at)
+    deliveries = [("new_head_changed", new_head_email, new_subject, new_text, new_html)]
     for address in old_head_emails:
-        deliveries.append(
-            ("old_head_changed", address, changed_subject, changed_text, changed_html)
+        deliveries.append(("old_head_changed", address, old_subject, old_text, old_html))
+        undo_subject, undo_text, undo_html = head_change_undo_email(
+            undo_url=undo_url, valid_until=undo_valid_until
         )
-        undo_subject, undo_text, undo_html = head_change_undo_email(undo_url=undo_url)
-        deliveries.append(
-            ("old_head_undo", address, undo_subject, undo_text, undo_html)
-        )
+        deliveries.append(("old_head_undo", address, undo_subject, undo_text, undo_html))
 
     for role, address, subject, text, html in deliveries:
         if provider is None:

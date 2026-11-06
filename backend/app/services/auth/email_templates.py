@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from html import escape
+
+from app.core.time_format import format_ist_datetime
 
 SUPPORT_EMAIL = "support@unifolio.in"
 
@@ -94,8 +97,14 @@ def otp_email_html(
 
 
 def _notice_email_html(
-    *, headline: str, body: str, link_text: str | None = None, link_url: str | None = None
+    *,
+    headline: str,
+    body: str | list[str],
+    link_text: str | None = None,
+    link_url: str | None = None,
 ) -> str:
+    """A notice email. `body` is one paragraph, or a list of paragraphs."""
+    paragraphs = [body] if isinstance(body, str) else body
     link = ""
     if link_text is not None and link_url is not None:
         link = (
@@ -105,50 +114,84 @@ def _notice_email_html(
     return (
         _email_header()
         + f'  <p class="headline">{escape(headline)}</p>\n'
-        + f'  <p class="note">{escape(body)}</p>\n'
+        + "".join(f'  <p class="note">{escape(paragraph)}</p>\n' for paragraph in paragraphs)
         + link
         + _email_footer()
     )
 
 
-def head_changed_email(
-    *, new_head_name: str, old_head_name: str, undo_url: str | None = None
+HEAD_CHANGED_SUBJECT = "The Head of Family on Unifolio has changed."
+UNDO_SUBJECT = "Undo the Head of Family change."
+
+
+def head_changed_for_new_head_email(
+    *, new_head_name: str, old_head_name: str
 ) -> tuple[str, str, str]:
-    """The notice goes to both people. The undo link is a working credential, so
-    pass `undo_url` only for the previous head's own addresses; every other
-    recipient gets the same notice with a support contact instead of a link."""
-    subject = "The Head of Family on Unifolio has changed."
-    facts = (
-        f"{new_head_name} is now Head of Family and signs in with this email. "
-        f"{old_head_name} remains a member and no longer signs in. All portfolio data is unchanged. "
+    """Sent to the new head's email. No link: nothing here changes anything. The names are not
+    used (the email is addressed to the new head) but are kept so both notice builders share one
+    call shape."""
+    headline = "You are now Head of Family."
+    body = (
+        "Sign in with this email or your phone number. All portfolio data is unchanged. "
+        f"If this was not you, contact {SUPPORT_EMAIL}."
     )
-    if undo_url is None:
-        text = f"{facts}If this was not you, contact {SUPPORT_EMAIL}."
-        return subject, text, _notice_email_html(headline=subject, body=text)
-    body_without_link = f"{facts}If this was not you, use the undo link within 24 hours"
-    html = _notice_email_html(
-        headline=subject,
-        body=body_without_link + ".",
-        link_text="Undo the Head of Family change",
-        link_url=undo_url,
+    return (
+        HEAD_CHANGED_SUBJECT,
+        f"{headline}\n\n{body}",
+        _notice_email_html(headline=headline, body=body),
     )
-    return subject, f"{body_without_link}: {undo_url}", html
 
 
-def head_change_undo_email(*, undo_url: str) -> tuple[str, str, str]:
-    subject = "Undo the Head of Family change."
-    body_without_link = (
-        "Use this link within 24 hours to restore the previous sign-in. It will fail with a clear "
-        "message if the old phone or email has been taken in the meantime"
+def head_changed_for_old_head_email(
+    *, new_head_name: str, old_head_name: str
+) -> tuple[str, str, str]:
+    """Sent to each of the previous head's own addresses. It carries no link: the undo link is a
+    working credential and goes in its own email, which this one points to."""
+    headline = "The Head of Family on your account has changed."
+    paragraphs = [
+        f"{new_head_name} is now Head of Family and signs in with their own email and phone. "
+        f"You ({old_head_name}) remain a member and can no longer sign in with this email. "
+        "All portfolio data is unchanged.",
+        f'Did not agree to this? A second email, "{UNDO_SUBJECT}", has the link to undo it. '
+        f"If this was not you, contact {SUPPORT_EMAIL}.",
+    ]
+    return (
+        HEAD_CHANGED_SUBJECT,
+        "\n\n".join([headline, *paragraphs]),
+        _notice_email_html(headline=headline, body=paragraphs),
     )
-    body = f"{body_without_link}: {undo_url}"
-    html = _notice_email_html(
-        headline=subject,
-        body=body_without_link + ".",
-        link_text="Undo the Head of Family change",
-        link_url=undo_url,
+
+
+# Inline styles on purpose: the shared email header's CSS is pinned by a hash test for the sign-in
+# email, and inline styles survive the clients that strip <style> blocks.
+_BUTTON_STYLE = (
+    "display:inline-block;background:#22C55E;color:#0B1F12;font-weight:700;font-size:14px;"
+    "text-decoration:none;padding:12px 22px;border-radius:10px;"
+)
+
+
+def head_change_undo_email(*, undo_url: str, valid_until: datetime) -> tuple[str, str, str]:
+    """The only email with the undo link; it goes to the previous head's own addresses."""
+    headline = "Undo the Head of Family change"
+    instruction = "Use this button to restore the previous sign-in."
+    validity = (
+        f"Valid until {format_ist_datetime(valid_until)}. "
+        "It stops working if the old phone or email is taken meanwhile."
     )
-    return subject, body, html
+    text = (
+        f"{headline}\n\n{validity}\n\nUse this link to restore the previous sign-in: {undo_url}"
+    )
+    html = (
+        _email_header()
+        + f'  <p class="headline">{escape(headline)}</p>\n'
+        + f'  <p class="note">{escape(instruction)}</p>\n'
+        + f'  <p class="note"><a href="{escape(undo_url, quote=True)}" style="{_BUTTON_STYLE}">'
+        + f"{escape(headline)}</a></p>\n"
+        + f'  <p class="note">{escape(validity)}</p>\n'
+        + f'  <p class="note">Button not working? Copy this link: {escape(undo_url)}</p>\n'
+        + _email_footer()
+    )
+    return UNDO_SUBJECT, text, html
 
 
 def head_change_reversed_email(

@@ -532,6 +532,22 @@ def test_undo_link_appears_only_in_the_previous_heads_emails(db_session, monkeyp
         if item["subject"] == "Undo the Head of Family change."
         and "/undo-head-change#token=" in item["body"]
     } == old_addresses
+    # The three messages are worded for their own reader, and the sign-in notices carry no button.
+    assert "You are now Head of Family." in new_messages[0]["body"]
+    old_notices = [
+        item for item in old_messages if item["subject"] == "The Head of Family on Unifolio has changed."
+    ]
+    assert old_notices and all(
+        "The Head of Family on your account has changed." in item["body"]
+        and "second email" in item["body"]
+        and "<a " not in item["html"]
+        for item in old_notices
+    )
+    assert all(
+        "Valid until" in item["body"] and "IST" in item["body"]
+        for item in old_messages
+        if item["subject"] == "Undo the Head of Family change."
+    )
 
 
 def test_snapshot_and_logs_contain_no_raw_token_and_no_code(db_session, monkeypatch, caplog):
