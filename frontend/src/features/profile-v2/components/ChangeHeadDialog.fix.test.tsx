@@ -186,4 +186,15 @@ describe("ChangeHeadDialog: fix a member's missing details from the list (QA fix
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+  it("when the member being edited disappears from the page (merged into another), the list is read again and the dialog comes back", async () => {
+    const view = render(<ChangeHeadDialog members={MEMBERS} onClose={vi.fn()} onMembersChanged={vi.fn()} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Aditi Surve/ }));
+    expect(profileDialog()).not.toBeNull();
+    vi.mocked(authApi.getHeadChangeEligibility).mockResolvedValue({ members: ELIGIBILITY.members.filter(item => item.member_id !== "m-spouse") });
+    view.rerender(<ChangeHeadDialog members={MEMBERS.filter(m => m.id !== "m-spouse")} onClose={vi.fn()} onMembersChanged={vi.fn()} />);
+    await screen.findByRole("radio", { name: /Ramesh Surve/ });
+    expect(profileDialog()).toBeNull();
+    expect(authApi.getHeadChangeEligibility).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText(/Aditi Surve/)).toBeNull();
+  });
 });
