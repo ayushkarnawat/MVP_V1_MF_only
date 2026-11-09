@@ -1,0 +1,563 @@
+<title>Explore Feature Decisions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky contents rail + one reading column. Planning workbook in the same style as the Individual Fund and Planning Scenarios workbooks (same tokens, same decision cards). */
+:root{
+  --bg:#f6f8f6; --surface:#ffffff; --surface-2:#eef2ee; --line:#d9e0d9;
+  --fg:#16211a; --muted:#566259; --accent:#128a4a; --accent-soft:#e1f3e8;
+  --locked:#2f5fb3; --locked-soft:#e6eefb; --open:#a8610a; --open-soft:#fbefd9;
+  --rec:#128a4a; --danger:#b3321f; --danger-soft:#fbe9e5;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'DM Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'DM Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; --danger-soft:#3a1d18; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+  --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+  --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+  --rec:#4cc582; --danger:#f08a78; --danger-soft:#3a1d18; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;margin:0;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent)}
+code{font:500 12.5px var(--f-mono);background:var(--surface-2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent)}
+nav.toc .grp{margin-top:14px}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:68ch;margin:0 0 10px}
+.rule{margin-top:18px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 16px;max-width:78ch}
+.rule b{color:var(--accent)}
+section{margin-top:52px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:72ch}
+h3.sub{font-size:17px;margin:22px 0 8px}
+p{max-width:78ch}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:10px 0}
+table{border-collapse:collapse;width:100%;min-width:700px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700;white-space:nowrap}
+.tag{display:inline-block;font:500 11px var(--f-mono);padding:2px 8px;border-radius:99px;letter-spacing:.03em;white-space:nowrap}
+.tag.ready{background:var(--accent-soft);color:var(--accent)}
+.tag.small{background:var(--open-soft);color:var(--open)}
+.tag.new{background:var(--locked-soft);color:var(--locked)}
+.tag.user{background:var(--danger-soft);color:var(--danger)}
+.tag.rec{background:var(--accent-soft);color:var(--rec)}
+.tag.open{background:var(--open-soft);color:var(--open)}
+.tag.locked{background:var(--locked-soft);color:var(--locked)}
+.reply{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px;max-width:80ch}
+.reply b.t{color:var(--accent)}
+.warn{border:1px solid var(--open);background:var(--open-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px;max-width:80ch}
+.warn b.t{color:var(--open)}
+.stop{border:1px solid var(--danger);background:var(--danger-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px;max-width:80ch}
+.stop b.t{color:var(--danger)}
+ul,ol{max-width:78ch}
+li{margin:3px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:16px 0}
+.stat{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:12px 14px}
+.stat .n{font:700 28px var(--f-display);color:var(--accent);line-height:1}
+.stat .l{font-size:12.5px;color:var(--muted);margin-top:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.chip{font:500 12px var(--f-mono);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:5px 12px;border-radius:99px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] .chip[aria-pressed="true"]{color:#0f1511}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .chip[aria-pressed="true"]{color:#0f1511}}
+.chip:focus-visible,button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--locked);outline-offset:2px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:12px 0}
+.card{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 16px}
+.card h3{font-size:16px;margin-bottom:6px}
+.card p{margin:6px 0;font-size:14px}
+.card .meta{font:500 11px var(--f-mono);color:var(--muted);margin-top:8px}
+.card.pick{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+figure{margin:14px 0}
+figure svg{width:100%;height:auto;min-width:720px;display:block}
+figcaption{font-size:13px;color:var(--muted);margin-top:6px;max-width:78ch}
+.svgbox{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px}
+.svgbox text{font-family:'DM Sans','Segoe UI',system-ui,sans-serif;fill:var(--fg)}
+.svgbox .lbl{font-family:'DM Mono',ui-monospace,monospace;fill:var(--muted)}
+.dec{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:16px 18px;margin:14px 0}
+.dec header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:6px}
+.dec header .id{font:700 12px var(--f-mono);background:var(--surface-2);padding:2px 8px;border-radius:6px}
+.dec header h3{font-size:18px;flex:1 1 240px}
+.dec .why{color:var(--muted);margin:4px 0 10px;font-size:14px}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;cursor:pointer;background:var(--surface)}
+.opt:hover{border-color:var(--accent)}
+.opt input{margin-top:4px}
+.opt .body{min-width:0}
+.opt .body b{display:block}
+.opt .body span{font-size:13.5px;color:var(--muted)}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.dec textarea{width:100%;min-height:54px;font:14px var(--f-body);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:8px;resize:vertical}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}
+button.primary{font:500 13px var(--f-mono);background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 14px;cursor:pointer}
+:root[data-theme="dark"] button.primary{color:#0f1511}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.primary{color:#0f1511}}
+button.ghost{font:500 13px var(--f-mono);background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:9px 14px;cursor:pointer}
+#out{width:100%;min-height:120px;font:12.5px var(--f-mono);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px}
+@media (max-width:860px){
+  .wrap{grid-template-columns:minmax(0,1fr);gap:16px;padding-block:20px 60px}
+  nav.toc{position:static;max-height:none;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 14px}
+  nav.toc .links{columns:2}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <h4>Contents</h4>
+  <div class="links">
+    <a href="#verdict">Verdict</a>
+    <a href="#fit">What Explore is</a>
+    <a href="#fifteen">The 15 analytics</a>
+    <a href="#inventory">Everything we compute</a>
+    <a href="#new">New, from existing data</a>
+    <a href="#scale">What stops it scaling</a>
+    <a href="#coverage">Data coverage</a>
+    <a href="#approaches">Approaches</a>
+    <a href="#risks">Risks and open points</a>
+    <a href="#conflicts">Conflicts with docs</a>
+    <a href="#decisions">Questions for you</a>
+    <a href="#provenance">What was verified</a>
+  </div>
+</nav>
+
+<main>
+<div class="hero">
+  <h1>Explore Feature Decisions</h1>
+  <p>Planning only. Nothing is built or changed. This page answers one question first: of everything Unifolio computes, what can run for a fund the user does not hold, with no portfolio and no cash flows? It then lays out what it would take, what could go wrong, and the decisions only you can make.</p>
+  <p>Drafted 9 Nov 2026 on <code>leapswitch-redesign</code>. Sources: the codebase (a read-only audit plus four spot checks), the analytics PDF gap analysis, the Individual Fund spec, the nav shell contract, and the data resources reference.</p>
+  <div class="rule"><b>How to use this page.</b> Sections 1 to 10 are findings. Section 11 holds the questions, each with options and my pick. Choose what you like, add notes, and press <b>Copy my answers</b>. Paste the result into the chat and I will turn it into the design.</div>
+</div>
+
+<!-- 1 -->
+<section id="verdict">
+  <h2>1. Verdict</h2>
+  <p class="lead">Explore is feasible, and most of the hard maths already exists. The work is in scale, search and coverage, not in new formulas.</p>
+  <div class="stats">
+    <div class="stat"><div class="n">8 of 15</div><div class="l">PDF attributes already work for any single fund, with no user data</div></div>
+    <div class="stat"><div class="n">3 of 15</div><div class="l">need a small wrapper (overlap, scenarios, valuation)</div></div>
+    <div class="stat"><div class="n">2 of 15</div><div class="l">are portfolio-level but have a browse twin (AMC, category)</div></div>
+    <div class="stat"><div class="n">2 of 15</div><div class="l">are user-only: XIRR and investment/withdrawal</div></div>
+    <div class="stat"><div class="n">0</div><div class="l">search, list or screener endpoints exist today</div></div>
+  </div>
+  <ul>
+    <li><b>One fund at a time already works.</b> Every <code>/fund-page/{scheme_id}/...</code> route except <code>/summary</code> serves a fund nobody holds. A test asserts this (<code>test_not_held_scope_still_serves_fund_level_routes</code>). Only the header route returns 404 for an unheld fund.</li>
+    <li><b>Many funds at once does not work yet.</b> Scores, peer stats and ranks are computed on the request and held in process memory. Nothing stores them per fund for the whole market. A list of 50 funds with scores would trigger category-wide computation 50 times.</li>
+    <li><b>Prices are fresh only where users already are.</b> The nightly price job refreshes held funds and their category peers. Every other category depends on a one-off backfill, so a non-held fund can show stale numbers with no warning.</li>
+    <li><b>Coverage is uneven.</b> Doc-level counts suggest managers for about 62% of schemes, expense ratios for about 49%, holdings for about 56%. See section 7 for what these numbers can and cannot tell us.</li>
+    <li><b>Two non-technical questions come first:</b> whether ranked fund lists count as investment advice for us, and whether Explore is for signed-in users only. Both are in section 11.</li>
+  </ul>
+</section>
+
+<!-- 2 -->
+<section id="fit">
+  <h2>2. What Explore is, and how it sits with what exists</h2>
+  <p class="lead">Today every number in Unifolio starts from the user's own funds. Explore reverses the starting point: it starts from the market, and the user's portfolio becomes an optional lens.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Today</th><th>Explore</th></tr></thead>
+    <tbody>
+      <tr><td>Entry point is a held fund (Home, lists, Mutual Funds page).</td><td>Entry point is search, a category, a fund house or a filter.</td></tr>
+      <tr><td>The Individual Fund page is "held funds only" (decision L6). A fund nobody in the household holds is a 404 on <code>/summary</code>.</td><td>The same page, in a "not held" mode: no personal tiles, all fund-level sections on.</td></tr>
+      <tr><td>Insights come from the user's portfolio (overlap, XIRR, allocation).</td><td>Insights come from the fund versus its category and benchmark. Overlap becomes "overlap with what you hold", an optional lens.</td></tr>
+      <tr><td>Search is on hold (L46). Another session is now planning page-wise search.</td><td>Explore needs fund search ("All funds" group of decision L39). That is a shared dependency with the search session.</td></tr>
+      <tr><td>Planning has a card named "Explore market scenarios".</td><td>The word Explore is already used in the product. See question Q6.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="reply"><b class="t">Your intent, as I read it.</b> Show people funds they do not own, explain how those funds work, and give basic analytics on them. Not the user's portfolio, and not funds they already hold. I have taken "not already invested in" to mean a filter we can apply (hide held funds), which does use the user's holdings in a trivial way. Q5 asks you to confirm.</div>
+</section>
+
+<!-- 3 -->
+<section id="fifteen">
+  <h2>3. The 15 analytics, one by one</h2>
+  <p class="lead">From the analytics PDF that is the build target. Each row says what the attribute becomes in Explore.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>#</th><th>Attribute</th><th>Explore verdict</th><th>What it becomes, and what is missing</th></tr></thead>
+    <tbody>
+      <tr><td class="k">01</td><td>Portfolio XIRR</td><td><span class="tag user">User only</span></td><td>Needs the user's cash flows. Replace with the fund's own trailing and rolling returns, plus a new "what if you had invested" calculator on the fund's NAV history (section 5).</td></tr>
+      <tr><td class="k">02</td><td>Large, mid, small cap</td><td><span class="tag ready">Ready</span></td><td>Fund-level version is the Market Cap tab on the fund page (<code>build_composition</code>). Depends on a holdings file for that fund.</td></tr>
+      <tr><td class="k">03</td><td>AMC allocation</td><td><span class="tag new">Browse twin</span></td><td>Portfolio split by fund house needs holdings. The Explore twin is "browse funds by fund house", from <code>Scheme.amc_name</code>. Not built.</td></tr>
+      <tr><td class="k">04</td><td>Fund manager allocation</td><td><span class="tag ready">Ready, gaps</span></td><td>Fund-level manager card works for any scheme. Ten fund houses need a monthly hand import and five publish nothing (Priority 1). "Browse by manager" is new.</td></tr>
+      <tr><td class="k">05</td><td>Category allocation</td><td><span class="tag new">Browse twin</span></td><td>Twin is "browse by category" with a ranked list. Pool data exists (<code>load_category_pool</code>) but no endpoint returns it.</td></tr>
+      <tr><td class="k">06</td><td>Overall stock holdings</td><td><span class="tag ready">Ready</span></td><td>Fund's top 10 and full holdings work for any scheme. New idea: reverse lookup, "which funds hold this stock".</td></tr>
+      <tr><td class="k">07</td><td>Total expense ratio</td><td><span class="tag ready">Ready</span></td><td>Fund TER and Direct versus Regular gap logic are scheme-only. The gap helper takes holding rows today and needs a small extraction.</td></tr>
+      <tr><td class="k">08</td><td>Category average comparison</td><td><span class="tag ready">Ready</span></td><td>Category line, returns table, rolling, calendar-year and scatter all work per fund.</td></tr>
+      <tr><td class="k">09</td><td>Mutual fund ranking</td><td><span class="tag ready">Ready per fund</span></td><td>Rank k of n and the Unifolio score work per fund. Lists need precomputation (section 6).</td></tr>
+      <tr><td class="k">10</td><td>Portfolio overlap</td><td><span class="tag small">Small change</span></td><td>The pair maths is a pure function. The fund-page wrapper is held-only. Fund versus fund, and "versus my portfolio", are small additions.</td></tr>
+      <tr><td class="k">11</td><td>Drawdown scenarios</td><td><span class="tag small">Small change</span></td><td>Scenario results are precomputed for every active scheme. The route is household-only. A single-fund route is a thin wrapper.</td></tr>
+      <tr><td class="k">12</td><td>Returns versus benchmark</td><td><span class="tag ready">Ready</span></td><td>Chart and returns table work for any scheme with NAV history. Benchmark mapping is equity-oriented.</td></tr>
+      <tr><td class="k">13</td><td>Asset allocation</td><td><span class="tag ready">Ready</span></td><td>Fund-level Asset Type tab. Needs the fund's holdings file.</td></tr>
+      <tr><td class="k">14</td><td>Investment and withdrawal</td><td><span class="tag user">User only</span></td><td>Reads the user's transactions. No Explore version.</td></tr>
+      <tr><td class="k">15</td><td>P/E and P/B</td><td><span class="tag small">Small change</span></td><td>Core function <code>fund_valuation</code> takes one fund's holdings. Needs a wrapper that loads the latest holdings batch.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 4 -->
+<section id="inventory">
+  <h2>4. Everything else we compute, sorted by what it needs</h2>
+  <p class="lead">The full list from the code audit, beyond the 15. Use the chips to filter. File names are where to look; line numbers are in the audit and will be re-checked in the spec phase.</p>
+  <div class="chips" role="group" aria-label="Filter inventory">
+    <button class="chip" data-f="all" aria-pressed="true">All</button>
+    <button class="chip" data-f="ready" aria-pressed="false">Ready</button>
+    <button class="chip" data-f="small" aria-pressed="false">Small change</button>
+    <button class="chip" data-f="user" aria-pressed="false">Needs user data</button>
+  </div>
+  <div class="scroll"><table id="inv">
+    <thead><tr><th>Feature</th><th>Status</th><th>Inputs</th><th>Notes for Explore</th></tr></thead>
+    <tbody>
+      <tr data-t="ready"><td class="k">NAV chart versus benchmark</td><td><span class="tag ready">Ready</span></td><td>NAV history, index total return</td><td>1M to All. Unavailable if the scheme has no AMFI code or no NAV rows.</td></tr>
+      <tr data-t="ready"><td class="k">Trailing returns (1M to since inception)</td><td><span class="tag ready">Ready</span></td><td>NAV history, TRI</td><td>3Y and 5Y annualised. Benchmark falls back to the factsheet's printed returns.</td></tr>
+      <tr data-t="ready"><td class="k">Risk: volatility, max drawdown, Sharpe, beta</td><td><span class="tag ready">Ready</span></td><td>3 years of NAV, TRI, risk-free rate setting</td><td>Needs 365 days of history. Band labels (Low, Moderate, High) exist only for equity funds.</td></tr>
+      <tr data-t="ready"><td class="k">Composition: top 10, market cap, sector, asset type</td><td><span class="tag ready">Ready</span></td><td>Latest written disclosure batch, stock master, AMFI cap list</td><td>Carries an age tag when the batch is over 60 days old.</td></tr>
+      <tr data-t="ready"><td class="k">Full holdings list</td><td><span class="tag ready">Ready</span></td><td>Same</td><td>Basis for the reverse lookup in section 5.</td></tr>
+      <tr data-t="ready"><td class="k">Fund manager and tenure</td><td><span class="tag ready">Ready</span></td><td>Factsheet-derived manager table</td><td>Shows "no manager data" where a fund house has none.</td></tr>
+      <tr data-t="ready"><td class="k">Category average, rolling, period and calendar-year returns, scatter</td><td><span class="tag ready">Ready</span></td><td>Peer NAV, AUM weights</td><td>Cached in process for 6 hours. First open of a category costs 2 to 4.5 s (measured on staging).</td></tr>
+      <tr data-t="ready"><td class="k">Unifolio Fund Score (v1)</td><td><span class="tag ready">Ready</span></td><td>Scheme only, plus peers</td><td>Return 45%, risk 30%, consistency 25%, cost nudge. Scorer V2 is on hold. Writes a row on a GET request.</td></tr>
+      <tr data-t="ready"><td class="k">Category rank, performance rank (1Y, 3Y, 5Y)</td><td><span class="tag ready">Ready</span></td><td>Scheme only, plus peers</td><td>Index funds and ETFs are never ranked. A scheme with no plan type is not rankable.</td></tr>
+      <tr data-t="ready"><td class="k">Expense ratio, category average TER</td><td><span class="tag ready">Ready</span></td><td>Scheme id</td><td>Plan-aware: Direct with Direct.</td></tr>
+      <tr data-t="ready"><td class="k">Benchmark choice for a scheme</td><td><span class="tag ready">Ready</span></td><td>Scheme, factsheet benchmark, category map</td><td>Debt, gold and most hybrids fall back to an equity index or nothing.</td></tr>
+      <tr data-t="ready"><td class="k">Insights engine (key, strengths, considerations)</td><td><span class="tag ready">Ready</span></td><td>All of the above</td><td>The overlap rule is skipped silently for a non-held fund. Everything else runs.</td></tr>
+      <tr data-t="small"><td class="k">Overlap, fund versus fund</td><td><span class="tag small">Small change</span></td><td>Two funds' holdings</td><td>Pure function <code>compute_fund_pair_overlap</code>. New path needed that does not use the household scope.</td></tr>
+      <tr data-t="small"><td class="k">Fund header and expense tile</td><td><span class="tag small">Small change</span></td><td>Scheme, latest NAV</td><td>Add a "not held" branch before the 404. The response shape already allows empty tiles.</td></tr>
+      <tr data-t="small"><td class="k">Scenario results for one fund</td><td><span class="tag small">Small change</span></td><td>Precomputed table</td><td>Computed for every active scheme and scenario, real or proxied. Route is household-only today.</td></tr>
+      <tr data-t="small"><td class="k">P/E and P/B for one fund</td><td><span class="tag small">Small change</span></td><td>Holdings, stock master, reported valuation</td><td>Core function takes one fund's rows.</td></tr>
+      <tr data-t="small"><td class="k">Direct versus Regular cost gap</td><td><span class="tag small">Small change</span></td><td>AMC and base name sibling join, TER</td><td>Extract from the portfolio helper.</td></tr>
+      <tr data-t="small"><td class="k">Category pool listing</td><td><span class="tag small">Small change</span></td><td>Peer pool with returns, AUM, TER</td><td>Data is built today, but only to score one fund. No endpoint returns the pool.</td></tr>
+      <tr data-t="user"><td class="k">XIRR (fund and portfolio)</td><td><span class="tag user">User</span></td><td>Transactions</td><td>No Explore version. Hypothetical XIRR is new (section 5).</td></tr>
+      <tr data-t="user"><td class="k">Held tiles: value, invested, gain, share, folios</td><td><span class="tag user">User</span></td><td>Holdings, lots, folios</td><td>Hidden in not-held mode.</td></tr>
+      <tr data-t="user"><td class="k">Look-through, cap, asset, valuation and manager allocation (rupees)</td><td><span class="tag user">User</span></td><td>Holdings value weights</td><td>Per-stock helpers inside them are reusable.</td></tr>
+      <tr data-t="user"><td class="k">Portfolio TER, cost 1Y/3Y/5Y</td><td><span class="tag user">User</span></td><td>Holding values</td><td>Not needed.</td></tr>
+      <tr data-t="user"><td class="k">Investment and withdrawal, SIP stats</td><td><span class="tag user">User</span></td><td>Transactions</td><td>Not needed.</td></tr>
+      <tr data-t="user"><td class="k">Distributor comparison</td><td><span class="tag user">User</span></td><td>ARN per folio</td><td>Not needed.</td></tr>
+      <tr data-t="user"><td class="k">Portfolio score, portfolio scenario impact</td><td><span class="tag user">User</span></td><td>Holdings</td><td>The per-fund parts are already user-free.</td></tr>
+      <tr data-t="user"><td class="k">All stored analytics sections</td><td><span class="tag user">User</span></td><td>Per user, per scope</td><td>Wrong shape for market-wide results.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 5 -->
+<section id="new">
+  <h2>5. Explore-only features the existing data would support</h2>
+  <p class="lead">None of these exist as code. All could be built from tables that are already loaded. Effort tags are my estimate and will change in the spec phase.</p>
+  <div class="cards">
+    <div class="card"><h3>Fund search</h3><p>Find any fund by name, fund house or ISIN. Also the "All funds" group of the top-bar search (L39).</p><p><span class="tag new">New endpoint</span> <span class="tag small">Shared with search session</span></p><div class="meta">No search code exists today</div></div>
+    <div class="card"><h3>Browse by category</h3><p>Ranked list per SEBI category: returns, risk, cost, size. The peer pool already exists.</p><p><span class="tag new">New endpoint</span></p><div class="meta">Needs Q3 (which funds) and the precompute in section 6</div></div>
+    <div class="card"><h3>Screener</h3><p>Filter by category, plan, cost, size, return, risk, fund house. Sort on any column.</p><p><span class="tag new">New table likely</span></p><div class="meta">Needs a per-fund metrics table</div></div>
+    <div class="card"><h3>Fund page, not-held mode</h3><p>The Individual Fund page for any fund: performance, risk, holdings, manager, peers, insights, score.</p><p><span class="tag small">Small change</span></p><div class="meta">Mostly the header route and the entry point</div></div>
+    <div class="card"><h3>Compare two or three funds</h3><p>Side by side: returns, risk, cost, holdings overlap, manager. Overlap maths is ready.</p><p><span class="tag small">Small change</span></p></div>
+    <div class="card"><h3>Similar funds</h3><p>"Funds that hold similar stocks", ranked by pair overlap inside the category.</p><p><span class="tag new">New</span></p><div class="meta">Needs a precompute for speed</div></div>
+    <div class="card"><h3>Which funds hold this stock</h3><p>Reverse lookup over holdings rows: the funds with the largest weight in a stock.</p><p><span class="tag new">New</span></p><div class="meta">Data is loaded; no code reads it this way</div></div>
+    <div class="card"><h3>What if you had invested</h3><p>Hypothetical SIP or lump sum on the fund's own NAV, with XIRR and a benchmark twin. No user data.</p><p><span class="tag new">New</span></p><div class="meta">Reuses the XIRR and benchmark code on made-up cash flows</div></div>
+    <div class="card"><h3>Fund house and manager pages</h3><p>All funds of a house, or of a manager, with simple roll-ups.</p><p><span class="tag new">New</span></p><div class="meta">Manager page is limited by coverage gaps</div></div>
+    <div class="card"><h3>Market scenarios per fund</h3><p>How the fund did in each crash or rally window. Precomputed for every active scheme.</p><p><span class="tag small">Small change</span></p></div>
+    <div class="card"><h3>New funds</h3><p>Funds launched in the last 90 days, from the first NAV date.</p><p><span class="tag new">New</span></p><div class="meta">Limited history, so most metrics will say unavailable</div></div>
+    <div class="card"><h3>How it works, in plain words</h3><p>What a Flexi Cap or a Liquid fund is, who it suits, what to watch. This is content, not computation.</p><p><span class="tag open">Needs a writer</span></p><div class="meta">See Q7</div></div>
+  </div>
+  <div class="warn"><b class="t">Not proposed: "popular with other users".</b> It would need to aggregate holdings across users. That is a privacy and consent question under the existing consent model, and it is not needed for a useful first version.</div>
+  <p style="color:var(--muted);font-size:13.5px">Prior art, from general knowledge of how Indian fund apps organise discovery, not verified in this session: category and fund-house browsing, a screener with filters, a compare view, and "top funds" lists are common. The last of these is the one with a regulatory question (section 9).</p>
+</section>
+
+<!-- 6 -->
+<section id="scale">
+  <h2>6. What stops it scaling from one fund to a catalogue</h2>
+  <p class="lead">The maths is not the problem. The problem is that every result is computed when someone asks, for one fund, and the data underneath is kept fresh only for funds users hold.</p>
+  <figure>
+    <div class="svgbox"><svg viewBox="0 0 900 250" role="img" aria-labelledby="pt pd">
+      <title id="pt">Explore data pipeline</title>
+      <desc id="pd">Public sources feed nightly jobs, which fill reference tables. A new metrics table and nightly job would sit between the tables and a new Explore API that feeds the screens.</desc>
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <g fill="none" stroke-width="1.5">
+        <rect x="10" y="70" width="150" height="110" rx="8" fill="var(--surface-2)" stroke="var(--line)"/>
+        <rect x="190" y="70" width="150" height="110" rx="8" fill="var(--surface-2)" stroke="var(--line)"/>
+        <rect x="370" y="70" width="150" height="110" rx="8" fill="var(--surface-2)" stroke="var(--line)"/>
+        <rect x="550" y="70" width="150" height="110" rx="8" fill="var(--locked-soft)" stroke="var(--locked)" stroke-dasharray="5 4"/>
+        <rect x="730" y="70" width="160" height="110" rx="8" fill="var(--locked-soft)" stroke="var(--locked)" stroke-dasharray="5 4"/>
+        <path d="M160 125H186" stroke="var(--muted)" marker-end="url(#ar)"/>
+        <path d="M340 125H366" stroke="var(--muted)" marker-end="url(#ar)"/>
+        <path d="M520 125H546" stroke="var(--muted)" marker-end="url(#ar)"/>
+        <path d="M700 125H726" stroke="var(--muted)" marker-end="url(#ar)"/>
+      </g>
+      <text x="85" y="98" text-anchor="middle" font-size="13" font-weight="700">Public sources</text>
+      <text x="85" y="120" text-anchor="middle" font-size="12">AMFI NAV, TER, AAUM</text>
+      <text x="85" y="138" text-anchor="middle" font-size="12">AMC holdings, factsheets</text>
+      <text x="85" y="156" text-anchor="middle" font-size="12">NSE index series</text>
+      <text x="265" y="98" text-anchor="middle" font-size="13" font-weight="700">Nightly jobs</text>
+      <text x="265" y="120" text-anchor="middle" font-size="12">exist, but price job</text>
+      <text x="265" y="138" text-anchor="middle" font-size="12">covers held funds and</text>
+      <text x="265" y="156" text-anchor="middle" font-size="12">their peers only</text>
+      <text x="445" y="98" text-anchor="middle" font-size="13" font-weight="700">Reference tables</text>
+      <text x="445" y="120" text-anchor="middle" font-size="12">schemes, nav_history,</text>
+      <text x="445" y="138" text-anchor="middle" font-size="12">holdings, managers,</text>
+      <text x="445" y="156" text-anchor="middle" font-size="12">TER, AUM, indices</text>
+      <text x="625" y="98" text-anchor="middle" font-size="13" font-weight="700">Metrics table (new)</text>
+      <text x="625" y="120" text-anchor="middle" font-size="12">one row per fund:</text>
+      <text x="625" y="138" text-anchor="middle" font-size="12">returns, risk, score,</text>
+      <text x="625" y="156" text-anchor="middle" font-size="12">rank, cost, size</text>
+      <text x="810" y="98" text-anchor="middle" font-size="13" font-weight="700">Explore API (new)</text>
+      <text x="810" y="120" text-anchor="middle" font-size="12">search, list, filter,</text>
+      <text x="810" y="138" text-anchor="middle" font-size="12">plus existing</text>
+      <text x="810" y="156" text-anchor="middle" font-size="12">/fund-page routes</text>
+      <text x="85" y="206" text-anchor="middle" class="lbl" font-size="11">solid = exists today</text>
+      <text x="715" y="206" text-anchor="middle" class="lbl" font-size="11">dashed blue = would be new</text>
+    </svg></div>
+    <figcaption>The existing fund page can read straight from the reference tables, one fund at a time. A catalogue view cannot, because it would repeat category-wide computation for every row.</figcaption>
+  </figure>
+  <h3 class="sub">The blockers, in order of how much they matter</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>#</th><th>Blocker</th><th>What happens today</th><th>What it needs</th></tr></thead>
+    <tbody>
+      <tr><td class="k">B1</td><td>Price freshness outside held categories</td><td>The 06:00 job warms held funds plus their category peers (checked in <code>refresh_nav_daily.py</code>). Other categories rely on a one-off backfill. Reads do not check freshness, so a stale fund looks normal.</td><td>A daily price job for the whole Explore universe. AMFI's daily file already carries every scheme's NAV, but per the audit it is not stored in <code>nav_history</code>. To confirm in the spec phase.</td></tr>
+      <tr><td class="k">B2</td><td>No per-fund stored metrics</td><td>Score, peer series and ranks are computed per request and cached in process for 15 minutes to 6 hours, per worker. <code>fund_scores</code> is written but nothing reads it.</td><td>A nightly job and a table with one row per fund. This is the "small reference-data cache table" the Individual Fund spec said it would propose only if staging numbers demanded it.</td></tr>
+      <tr><td class="k">B3</td><td>No search, list or screener</td><td>Confirmed by grep: no search or filter code in the API layer.</td><td>New endpoints, an index on name, and the filters of Q3.</td></tr>
+      <tr><td class="k">B4</td><td>Header route returns 404 for an unheld fund</td><td><code>summary.py</code> raises 404 when nobody in the household holds the fund (checked).</td><td>A not-held branch. The response already allows empty tiles and has a <code>held</code> flag.</td></tr>
+      <tr><td class="k">B5</td><td>Writes during GET requests</td><td>Scoring commits a row, the category universe can insert schemes, and price warming can download full history inside a request.</td><td>Move these into jobs before exposing the catalogue to many users.</td></tr>
+      <tr><td class="k">B6</td><td>Plan type and peer rules</td><td>Peers are one series per fund, same plan type, Growth preferred. Funds not in the latest AMFI file within 30 days are not peers.</td><td>A rule for how Direct and Regular siblings appear in a list (Q3).</td></tr>
+      <tr><td class="k">B7</td><td>Category quirks</td><td>174 of 255 sectoral and thematic funds still carry the old label, so their peer sets mix single-sector and multi-sector funds. This is the open Scorer V2 item.</td><td>Either accept it for those categories, or finish the reclassifier first.</td></tr>
+      <tr><td class="k">B8</td><td>Equity-shaped labels</td><td>Risk bands exist only for equity. Benchmarks for debt, gold and most hybrids are missing or an equity index.</td><td>Show numbers without labels for those funds, or limit v1 to equity and hybrid (Q3).</td></tr>
+      <tr><td class="k">B9</td><td>Everything needs a signed-in user</td><td>The auth check requires a session and head-of-family consent. No household or import is required.</td><td>Nothing for signed-in v1. A public Explore would need its own endpoints and abuse limits (Q2).</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 7 -->
+<section id="coverage">
+  <h2>7. Data coverage: what a user would actually see</h2>
+  <p class="lead">These are the latest numbers written in our own docs. They are not live counts and they mix plan variants, so treat the percentages as a rough shape.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Data</th><th>Doc-level figure</th><th>Date and source</th><th>Rough share of ~14,400 active schemes</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Active schemes</td><td>14,356</td><td>10 Oct run, deploy guide for sub-project 1</td><td>base</td></tr>
+      <tr><td class="k">NAV history</td><td>all but about 80</td><td>Same run, local backfill</td><td>about 99%, but not kept fresh outside held categories</td></tr>
+      <tr><td class="k">Fund managers</td><td>19,389 rows across 8,898 schemes, 50 fund houses</td><td>database.md, migration 0035, 10 Oct</td><td>about 62%</td></tr>
+      <tr><td class="k">Expense ratio</td><td>7,041 schemes linked by exact name</td><td>decisions.md, 8 Oct</td><td>about 49%; later work may have changed this</td></tr>
+      <tr><td class="k">Portfolio holdings</td><td>8,111 scheme batches across 14,371 schemes; 16 non-manual fund houses had written nothing yet</td><td>Sub-project 2 handoff</td><td>about 56% at that time</td></tr>
+      <tr><td class="k">Manual-import fund houses</td><td>10 for managers (689 funds), 7 for holdings; 5 houses with no factsheet (33 funds)</td><td>Priority 1 in DEFERRED_FEATURES.md</td><td>depends on a monthly hand step</td></tr>
+      <tr><td class="k">Benchmark index registry</td><td>79 indices</td><td>CLAUDE.md, 3 Nov</td><td>covers equity well; debt and gold need workarounds</td></tr>
+    </tbody>
+  </table></div>
+  <div class="warn"><b class="t">What this means for the product.</b> Roughly half the catalogue would show an empty expense ratio, holdings or manager section if we do nothing. The existing "unavailable, with a reason" pattern already handles one fund. For lists, we need a rule: hide, flag or show a coverage chip (Q8).</div>
+  <p><b>Counts to run before the design is final</b> (one SQL query each, by distinct <code>scheme_id</code>): <code>scheme_ter</code>, <code>scheme_aaum</code>, <code>scheme_benchmark</code>, <code>scheme_reported_valuation</code>, written <code>disclosure_batches</code> by fund house, <code>scheme_fund_managers</code>, and funds with a NAV row in the last 3 days, all split by plan type and category. I have not run these.</p>
+</section>
+
+<!-- 8 -->
+<section id="approaches">
+  <h2>8. Three ways to build it</h2>
+  <p class="lead">These are about how, once you have settled what. I recommend the third.</p>
+  <div class="cards">
+    <div class="card"><h3>A. Open the door, compute on demand</h3>
+      <p>Add search and a not-held mode, reuse every fund-page route as it is. No new table, no new job.</p>
+      <p><b>Good:</b> smallest build. Honours the earlier "no new table" stance. Search plus fund page is a real feature.</p>
+      <p><b>Bad:</b> no lists, no screener, no "top funds". First open of a category costs 2 to 4.5 s per fund and repeats per worker. Stale prices go unnoticed.</p>
+      <div class="meta">Fits: single fund discovery only</div></div>
+    <div class="card"><h3>B. Precomputed Explore layer</h3>
+      <p>New nightly job and metrics table. Lists, categories, screener and compare read from it. The fund page can read from it too.</p>
+      <p><b>Good:</b> fast lists, honest freshness stamp, no writes on GET, one source of truth for ranks.</p>
+      <p><b>Bad:</b> a new table and migration, a heavier nightly job, and the whole universe now needs fresh prices.</p>
+      <div class="meta">Fits: category pages, screener, similar funds</div></div>
+    <div class="card pick"><h3>C. Phased: A, then B <span class="tag rec">my pick</span></h3>
+      <p>Phase 1: search plus the fund page for any fund. Phase 2: price job and metrics table, then category pages. Phase 3: screener, compare, similar funds, "what if".</p>
+      <p><b>Good:</b> something real ships early. Phase 2 is justified by measured numbers from Phase 1, which is the condition the earlier spec set for a cache table.</p>
+      <p><b>Bad:</b> two rounds of design. Phase 1 will show stale or empty funds until Phase 2 lands, so Phase 1 needs a visible "as of" date.</p>
+      <div class="meta">Needs your OK on the new table (Q9)</div></div>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="risks">
+  <h2>9. Risks and open points</h2>
+  <div class="stop"><b class="t">Compliance, needs an answer before design.</b> A ranked "top funds" list, or a score shown next to funds the user does not own, can read as a recommendation. Whether that needs registration or specific disclaimers for us is a legal question, and I have not checked current SEBI rules. The Individual Fund spec already bans advice wording in generated text, and that rule would carry over. Please confirm who gives the compliance view. See Q4.</div>
+  <ul>
+    <li><b>Cost spikes.</b> Category pools reach 1,000+ rows for index funds. A cold open is fine for one fund and not fine for a list.</li>
+    <li><b>Misleading emptiness.</b> A fund with no holdings file looks like a fund with no holdings. Every empty section needs its reason in words.</li>
+    <li><b>Score comparability.</b> Score is a percentile within category, so it says nothing across categories. Lists that sort by score across categories would mislead.</li>
+    <li><b>Stale data hidden.</b> Reads do not check price age. Every Explore number needs an "as of" date.</li>
+    <li><b>Scorer V2 on hold.</b> Whatever score we show now is v1 (three components). Showing it prominently on 14,000 funds raises the stakes on a score you plan to replace.</li>
+    <li><b>Search overlap.</b> Another session is designing page-wise search. Explore needs fund search. We should agree one endpoint, not build two.</li>
+    <li><b>Scope creep.</b> AGENTS.md says do not gold-plate features that were not scoped. This feature is new scope and needs a PRD before code.</li>
+  </ul>
+</section>
+
+<!-- 10 -->
+<section id="conflicts">
+  <h2>10. Conflicts with existing documents</h2>
+  <p class="lead">Per the working style in CLAUDE.md, I am stating these and not resolving them. Nothing has been edited.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Document</th><th>What it says</th><th>Conflict</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Individual Fund PRD and spec (L6, E4)</td><td>Held funds only. An unheld fund is a 404 on the header route.</td><td>Explore reverses this. The PRD lists "funds the household does not hold" as out of scope.</td></tr>
+      <tr><td class="k">Nav shell contract v1.4</td><td>Four main items (Home, Portfolio, Liabilities, Planning). Search on hold (L46).</td><td>Explore needs a place, either a fifth item or inside Portfolio. Needs a contract change note. Fund search conflicts with L46.</td></tr>
+      <tr><td class="k">Planning page copy</td><td>Card named "Explore market scenarios".</td><td>Same word, different thing. See Q6.</td></tr>
+      <tr><td class="k">Individual Fund spec, section 11</td><td>No new table. Cache table only if measurements demand it.</td><td>Explore is that case. Needs your OK.</td></tr>
+      <tr><td class="k">PRD-03 and PRD-04</td><td>Describe analytics and ranking for the user's holdings.</td><td>Rankings now apply to unheld funds. A note may be needed.</td></tr>
+      <tr><td class="k">Scorer V2 resume file</td><td>Sectoral and thematic reclassifier decision pending (A or B).</td><td>Explore category pages for those categories inherit the unresolved decision.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 11 -->
+<section id="decisions">
+  <h2>11. Questions for you</h2>
+  <p class="lead">Eleven questions. The first three change the most. Pick an option or write your own answer in the box. My pick is marked on each.</p>
+  <div id="cards"></div>
+  <div class="bar">
+    <button class="primary" id="copy" type="button">Copy my answers</button>
+    <button class="ghost" id="clear" type="button">Clear all</button>
+    <span id="status" role="status" style="font-size:13px;color:var(--muted)"></span>
+  </div>
+  <textarea id="out" readonly aria-label="Answers to copy" placeholder="Your answers will appear here when you press Copy my answers."></textarea>
+</section>
+
+<!-- 12 -->
+<section id="provenance">
+  <h2>12. What was verified, and what was reported</h2>
+  <div class="reply"><b class="t">Checked by me in the code on 9 Nov.</b>
+    <ul>
+      <li>The header route raises 404 when nobody in the household holds the fund (<code>fund_page/summary.py</code>).</li>
+      <li>Other fund-page routes only look up the scheme and do not check holdings (<code>api/fund_page.py</code>).</li>
+      <li>The nightly price job covers held funds plus category peers (<code>scripts/jobs/refresh_nav_daily.py</code>).</li>
+      <li>No search or filter code exists in the API layer (grep).</li>
+    </ul></div>
+  <div class="warn"><b class="t">Reported by a read-only audit agent, not independently re-read.</b> The input and caching details for each analytic, the table list and job times, the claim that AMFI's daily NAV file is not stored in <code>nav_history</code>, the write-on-GET behaviour, and every line number. All are specific enough to recheck in the spec phase. The doc-level counts in section 7 come from our own docs and are as old as their dates.</div>
+  <p style="color:var(--muted);font-size:13.5px">Not done: running any query against a database, running any test, reading the frontend, or measuring cold-start speed.</p>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+  var Q=[
+    {id:"Q1",t:"What should a user do after exploring?",why:"This sets what Explore must make easy: learning, shortlisting, or comparing against what they hold. Unifolio does not transact, so the end of the journey matters.",
+     opts:[
+      {k:"learn",l:"Learn and understand",d:"Mainly education: how a category works, what a fund holds, how it behaved. No shortlist, no calls to action."},
+      {k:"shortlist",l:"Learn, then shortlist",d:"Add a watchlist or shortlist so users can come back. Needs a place to store it per user."},
+      {k:"lens",l:"Learn, then compare with my holdings",d:"The end point is a view such as overlap with what I own, or a gap in my allocation.",rec:true}
+     ]},
+    {id:"Q2",t:"Who can open Explore?",why:"Every endpoint today needs a signed-in user. A public Explore is an acquisition tool and a different project: public endpoints, abuse limits, caching, and its own privacy and compliance review.",
+     opts:[
+      {k:"signed",l:"Signed-in users only, for now",d:"Reuses existing auth and the whole fund page. Public can come later as its own decision.",rec:true},
+      {k:"public",l:"Public as well",d:"Anyone can browse. Higher reach, higher cost and risk."}
+     ]},
+    {id:"Q3",t:"Which funds are in the catalogue?",why:"About 14,400 active schemes, including Direct, Regular, Growth, IDCW, index funds, ETFs, debt and gold. Each choice changes cost, coverage and how many empty sections users see.",
+     opts:[
+      {k:"dg_eq",l:"Direct Growth, equity and hybrid, first",d:"Cleanest peer logic and best data coverage. Debt, gold and liquid funds join once benchmarks and risk bands exist.",rec:true},
+      {k:"pair",l:"Both plans, shown as a pair",d:"One row per fund with Direct and Regular side by side, ranked on Direct. Matches your distributor-comparison story but is more work."},
+      {k:"all",l:"Everything active",d:"Largest and most uneven. Many rows will have gaps."},
+      {k:"cur",l:"A curated list",d:"A fixed set, for example the largest funds per category. Smallest, but someone must maintain it."}
+     ]},
+    {id:"Q4",t:"How do we treat the score and rankings on funds users do not own?",why:"This is where a recommendation risk sits. The score is a percentile inside a category, so it never compares across categories.",
+     opts:[
+      {k:"facts",l:"Facts only on unheld funds",d:"Returns, risk, cost, size and holdings. No score and no rank. Lowest risk, least distinctive."},
+      {k:"page",l:"Score on each fund page, no 'top funds' lists",d:"Lists sort by a fact the user picks, never by score by default. Score appears with its breakdown.",rec:true},
+      {k:"full",l:"Score and rank everywhere, including lists",d:"Most useful, most exposed. Needs your compliance view first."}
+     ]},
+    {id:"Q5",t:"How should the user's portfolio feature in Explore?",why:"You said 'not already in the portfolio'. That is a filter on held funds, which uses the portfolio in a light way. Overlap and gap views use it more.",
+     opts:[
+      {k:"none",l:"No portfolio use",d:"Pure market view. Held funds look like any other."},
+      {k:"hide",l:"Hide or badge funds the user holds",d:"A simple filter and a 'You hold this' badge. Cheap.",rec:true},
+      {k:"lens",l:"Also overlap with my portfolio",d:"A per-fund 'overlap with what you hold' number. The maths is ready. Better as phase 2."}
+     ]},
+    {id:"Q6",t:"Where does Explore live, and what is it called?",why:"Planning already has 'Explore market scenarios'. The nav shell has four main items and a contract that needs a note for any change.",
+     opts:[
+      {k:"main",l:"New main nav item",d:"Highest visibility. Needs a contract change, and a rename of the Planning card or of this feature."},
+      {k:"tab",l:"A tab inside Portfolio, Mutual Funds",d:"Keeps the nav unchanged, but hides it from people with no funds yet."},
+      {k:"rename",l:"Main item with a different name, for example Discover",d:"Avoids the clash. Your call on the word.",rec:true}
+     ]},
+    {id:"Q7",t:"Who writes the 'how it works' content?",why:"Computation will not explain what a Flexi Cap fund is. This is editorial content and someone has to own it.",
+     opts:[
+      {k:"static",l:"Written once per SEBI category",d:"About three dozen short explainers, reviewed by you. Accurate and stable."},
+      {k:"template",l:"Template blurbs from data, plus a glossary",d:"Same fixed-template approach as the insights engine. No writer, less depth.",rec:true},
+      {k:"mira",l:"Wait for Mira",d:"Ask Mira questions on the page once it exists. Blocks this part."}
+     ]},
+    {id:"Q8",t:"What do lists do with funds that have missing data?",why:"Section 7 suggests about half the catalogue lacks an expense ratio, holdings or manager.",
+     opts:[
+      {k:"show",l:"Show them, with a 'limited data' chip",d:"Honest and complete. Lists look uneven.",rec:true},
+      {k:"hide",l:"Hide funds below a minimum",d:"Cleaner lists, but absent funds look like funds that do not exist."},
+      {k:"split",l:"Hide by default, with a switch",d:"Clean by default, complete on request."}
+     ]},
+    {id:"Q9",t:"May I propose one new table and nightly job?",why:"The earlier spec said a cache table would be proposed only if measurements demanded it. A catalogue is that case, but it is your call.",
+     opts:[
+      {k:"phase",l:"Yes, phased: search and fund page first, table after measuring",d:"Matches approach C.",rec:true},
+      {k:"now",l:"Yes, design it up front",d:"One design round, bigger first build."},
+      {k:"no",l:"No new table, on-demand only",d:"Approach A. No lists or screener."}
+     ]},
+    {id:"Q10",t:"What ships first?",why:"The first slice should prove value and give us real timing numbers.",
+     opts:[
+      {k:"page",l:"Search plus the fund page for any fund",d:"Smallest, shares the endpoint with the search session.",rec:true},
+      {k:"cat",l:"Category pages with a ranked list",d:"More visible. Needs the metrics table first."},
+      {k:"screen",l:"Screener",d:"Most powerful, needs everything."}
+     ]},
+    {id:"Q11",t:"How does this rank against what is already open?",why:"Priority 1 (fund-manager factsheet access, deadline 10 Nov) and the page-wise search work are both running. Explore leans on manager data and on search.",
+     opts:[
+      {k:"after",l:"Plan now, build after Priority 1 and the search design",d:"Gives us coverage numbers and one shared search endpoint.",rec:true},
+      {k:"par",l:"Build in parallel",d:"Faster, with a risk of two search designs."},
+      {k:"other",l:"Something else",d:"Say so in the note."}
+     ]}
+  ];
+  var KEY="explore-decisions-v1", S={};
+  try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+  var root=document.getElementById("cards");
+  Q.forEach(function(q){
+    var d=document.createElement("div");d.className="dec";d.id=q.id;
+    var h='<header><span class="id">'+q.id+'</span><h3>'+esc(q.t)+'</h3><span class="tag open" data-st>unanswered</span></header><p class="why">'+esc(q.why)+'</p>';
+    q.opts.forEach(function(o){
+      h+='<label class="opt" data-k="'+o.k+'"><input type="radio" name="'+q.id+'" id="'+q.id+'-'+o.k+'" value="'+o.k+'"><span class="body"><b>'+esc(o.l)+(o.rec?' <span class="tag rec">my pick</span>':'')+'</b><span>'+esc(o.d)+'</span></span></label>';
+    });
+    h+='<textarea id="'+q.id+'-n" aria-label="Notes for '+q.id+'" placeholder="Your own answer or notes"></textarea>';
+    d.innerHTML=h;root.appendChild(d);
+    var st=d.querySelector("[data-st]"),ta=d.querySelector("textarea");
+    function paint(){
+      var a=S[q.id]||{};
+      d.querySelectorAll(".opt").forEach(function(l){var on=a.k===l.getAttribute("data-k");l.classList.toggle("sel",on);l.querySelector("input").checked=on});
+      ta.value=a.n||"";
+      var done=a.k||(a.n&&a.n.trim());
+      st.textContent=done?"answered":"unanswered";st.className="tag "+(done?"ready":"open");
+    }
+    d.querySelectorAll("input[type=radio]").forEach(function(r){r.addEventListener("change",function(){S[q.id]=S[q.id]||{};S[q.id].k=r.value;save();paint()})});
+    ta.addEventListener("input",function(){S[q.id]=S[q.id]||{};S[q.id].n=ta.value;save();paint()});
+    paint();
+  });
+  var out=document.getElementById("out"),status=document.getElementById("status");
+  function build(){
+    var lines=["Explore decisions, answered "+new Date().toISOString().slice(0,10)];
+    Q.forEach(function(q){
+      var a=S[q.id]||{},o=q.opts.filter(function(x){return x.k===a.k})[0];
+      lines.push(q.id+" "+q.t+" -> "+(o?o.l:"(no option chosen)")+(a.n&&a.n.trim()?" | Note: "+a.n.trim():""));
+    });
+    return lines.join("\n");
+  }
+  document.getElementById("copy").addEventListener("click",function(){
+    var t=build();out.value=t;
+    var done=function(){status.textContent="Copied. Paste it into the chat."};
+    var fail=function(){out.focus();out.select();status.textContent="Select the text below and copy it."};
+    try{navigator.clipboard.writeText(t).then(done,fail)}catch(e){fail()}
+  });
+  document.getElementById("clear").addEventListener("click",function(){
+    S={};save();out.value="";status.textContent="Cleared.";
+    document.querySelectorAll(".dec").forEach(function(d){
+      d.querySelectorAll(".opt").forEach(function(l){l.classList.remove("sel");l.querySelector("input").checked=false});
+      d.querySelector("textarea").value="";var st=d.querySelector("[data-st]");st.textContent="unanswered";st.className="tag open";
+    });
+  });
+  var chips=document.querySelectorAll(".chip"),rows=document.querySelectorAll("#inv tbody tr");
+  chips.forEach(function(c){c.addEventListener("click",function(){
+    var f=c.getAttribute("data-f");
+    chips.forEach(function(x){x.setAttribute("aria-pressed",x===c?"true":"false")});
+    rows.forEach(function(r){r.hidden=!(f==="all"||r.getAttribute("data-t")===f)});
+  })});
+})();
+</script>
