@@ -7,9 +7,8 @@ one feature: re-run it, unchanged, for every future push to
 `ls-staging.unifolio.in`. Full migration rationale/decisions:
 `Docs/orchestration/leapswitch-staging-plan.html`.
 
-**Needs:** SSH access to `deploy@202.66.174.251` (your IP must be in
-CloudPe's `unifolio-web` security group — see the plan's Troubleshooting
-section if SSH times out), the repo cloned locally to run `git push` from.
+**Needs:** SSH access to `deploy@ls-redesign.unifolio.in` (run it from the laptop's WSL, not Windows; the VM's public IP is `45.64.107.180` since 9 Nov 2026, it changed once, so always use the hostname; your IP must be in
+CloudPe's `unifolio-web` security group, which must be the group on the VM's `public` interface). **Before any staging task run the pre-flight check in `Docs/orchestration/2026-11-09-runbook-staging-network-and-access.md`.** If SSH times out, read that runbook's section 5 first: when HTTPS also fails, the public network interface is the problem, not an SSH rule, the repo cloned locally to run `git push` from.
 
 **Not yet exercised live, as of 16 Oct 2026:** the `:previous` tagging in
 `deploy.sh` and `rollback.sh` itself were written and pulled onto the VM,
@@ -84,7 +83,7 @@ git status --short --untracked-files=all | grep -i "deploy/leapswitch/.env"
 ## Step 1 — SSH in, pull
 
 ```bash
-ssh deploy@202.66.174.251
+ssh deploy@ls-redesign.unifolio.in
 cd /opt/unifolio/deploy/leapswitch
 git pull
 ```
@@ -335,7 +334,7 @@ then Step 6's health check passing again.
 Steps 1, 3, 5, 6 collapse to:
 
 ```bash
-ssh deploy@202.66.174.251
+ssh deploy@ls-redesign.unifolio.in
 cd /opt/unifolio/deploy/leapswitch
 git pull
 ./scripts/deploy.sh

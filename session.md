@@ -8,6 +8,9 @@ permanent, append-only record is `log.md` (session-by-session),
 Older "Latest"/"Previous" sections were dropped from here on 2026-11-03; their full detail lives in `log.md` and, for the UI
 redesign, in `Docs/orchestration/ui-redesign-decisions-register.md`.
 
+## Latest (2026-11-09): staging VM network fixed, QA-fixes deploy still waiting
+The staging VM's public interface was detached by mistake; fixed and verified (new public IP `45.64.107.180`, DNS and `unifolio-web` restored, spare interface removed). **Use the hostname `ls-redesign.unifolio.in` and run SSH from WSL; run the pre-flight in `Docs/orchestration/2026-11-09-runbook-staging-network-and-access.md` before any staging task.** The QA-fixes deploy (`2026-11-06-staging-deploy-guide-qa-fixes.md`) is paused at Step 3 done / Step 4 not started: the VM is at `39a67410`, clean, 0 recompute rows, 9.8 GB free; origin's `leapswitch-redesign` has moved since (re-run Step 1 against the final head); the owner's yes is needed before Step 4 and again before Step 6. No CI run exists for the head (CI only runs on pull requests); the owner accepted the local gate evidence instead.
+
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 

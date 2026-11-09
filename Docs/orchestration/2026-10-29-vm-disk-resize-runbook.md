@@ -4,7 +4,7 @@ Written 2026-10-29. Docs only: nothing here has been run. Do it BEFORE the next 
 
 **Who does what.**
 - **Human (browser):** every CloudPe dashboard step, the browser smoke test, every GATE yes.
-- **Manager's Claude (laptop WSL, `ssh deploy@202.66.174.251`, folder `/opt/unifolio-redesign/deploy/leapswitch`):** the VM commands. Same rules as the deploy prompt: read-only unless a step says "CHANGES", an explicit yes from the human at each GATE, never improvise, stop and report on any unexpected output.
+- **Manager's Claude (laptop WSL, `ssh deploy@ls-redesign.unifolio.in`, folder `/opt/unifolio-redesign/deploy/leapswitch`):** the VM commands. Same rules as the deploy prompt: read-only unless a step says "CHANGES", an explicit yes from the human at each GATE, never improvise, stop and report on any unexpected output.
 
 Steps marked **RISKY** can lose data or take the site down if done wrong.
 
@@ -114,7 +114,7 @@ Human says: backup verified, snapshot taken or consciously skipped, window agree
 
 ## 4. The dashboard step (human, browser)
 
-1. Note the VM's public IP (`202.66.174.251`) and your current public IP (`curl https://api.ipify.org` on the laptop).
+1. Note the VM's public IP (`45.64.107.180` since 9 Nov 2026; confirm with `dig +short ls-redesign.unifolio.in @8.8.8.8` and the interfaces call in `Docs/orchestration/2026-11-09-runbook-staging-network-and-access.md`) and your current public IP (`curl https://api.ipify.org` on the laptop).
 2. **RISKY, only if the dashboard step needs the VM off** (the dashboard's own wording says so; if unsure, ask support): have the manager's Claude stop the stack cleanly first, after a GATE:
 
 ```
@@ -124,7 +124,7 @@ Expected: `Container ... Stopped` for caddy, backend, worker, postgres (Postgres
 
 3. In the CloudPe dashboard open the VM, find its volume or disk settings, and increase the size to the target (60 GB or more) using the dashboard's own resize wording. Growing is normally one-way: a disk cannot be shrunk later. Wait until the dashboard shows the new size applied.
 4. If the dashboard says to power off, restart or detach the volume, follow it. Then power the VM back on.
-5. After the VM is back, check: the public IP must still be `202.66.174.251` (if it changed, stop and tell the owner; DNS and the `.env` domains depend on it), and the security group `unifolio-web` must still list your current IP for SSH. Diagnosis from the staging plan: an SSH **timeout** (it hangs, not "refused") while the websites still answer is the security-group IP allowlist, not the VM. Fix in the dashboard: Security Groups, `unifolio-web`, Inbound, add SSH port 22 from your current IP /32 (effective at once). A **refusal** is a different problem (fail2ban ban), see the plan's Phase 2 notes.
+5. After the VM is back, check: the public IP must still be the one you noted in step 1 (if it changed, stop and tell the owner; the three Route 53 A records depend on it, see `Docs/orchestration/2026-11-09-runbook-staging-network-and-access.md` section 5.2), and the VM must still have exactly one `public` interface carrying `unifolio-web` (a resize or rebuild can drop it; never click Detach), and the security group `unifolio-web` must still list your current IP for SSH. Diagnosis from the staging plan: an SSH **timeout** (it hangs, not "refused") while the websites still answer is the security-group IP allowlist, not the VM. Fix in the dashboard: Security Groups, `unifolio-web`, Inbound, add SSH port 22 from your current IP /32 (effective at once). A **refusal** is a different problem (fail2ban ban), see the plan's Phase 2 notes.
 6. Tell the manager's Claude: "dashboard resize done, new size X GB, VM is on".
 
 **STOP:** if the dashboard shows an error, the VM does not come back, or the size did not change: do not run step 5; contact CloudPe support with the VM ID.

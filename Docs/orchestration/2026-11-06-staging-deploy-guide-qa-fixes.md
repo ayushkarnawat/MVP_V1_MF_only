@@ -16,6 +16,9 @@ Rules: run one command at a time and show its output; at every STOP, stop and re
 At the end fill in step 12 and give the owner the report.
 ```
 
+## Network pre-flight (added 9 Nov 2026, run before Step 3)
+On 9 Nov 2026 the VM's public interface was detached by mistake and its public IP changed (now `45.64.107.180`; use the hostname `ls-redesign.unifolio.in`, never the IP). **SSH is run from the laptop's WSL**, as `ssh deploy@ls-redesign.unifolio.in`, not from Windows. Before Step 3 run the four-part pre-flight in `Docs/orchestration/2026-11-09-runbook-staging-network-and-access.md` section 4 (site 200s, DNS matches, SSH host key matches, exactly two interfaces with `unifolio-web` on the public one). **STOP** if any part differs and follow that runbook's section 5. Wherever this guide says "the VM", it means that SSH session.
+
 ## Section 1: steps
 
 ### Step 0 (laptop): put the work on the deploy branch
