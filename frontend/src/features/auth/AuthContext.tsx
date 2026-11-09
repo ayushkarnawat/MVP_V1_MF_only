@@ -79,6 +79,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearToken();
     setTokenState(null);
     setMe(null);
+    // Desktop only; the mobile app keeps its own behaviour (same test App.tsx uses to detect a mobile route).
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/mobile") && !window.location.hash.startsWith("#/mobile")) {
+      window.history.replaceState(null, "", "/");
+    }
   };
 
   const updateMe = async (body: UpdateMeBody) => {

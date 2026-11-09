@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Modal } from "@/components/Modal";
 import { useAuth } from "@/features/auth/AuthContext";
+import { readRefusal, type Refusal } from "@/features/auth/refusal";
 import type { AccountDeletionReason } from "@/features/auth/types";
+import { InfoNotice } from "./InfoNotice";
 
 export interface DeleteAccountDialogProps {
   onClose: () => void;
@@ -23,6 +25,7 @@ export function DeleteAccountDialog({ onClose }: DeleteAccountDialogProps) {
   const [feedback, setFeedback] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refusal, setRefusal] = useState<Refusal | null>(null);
 
   // Closing while the request is out would look like "cancel" although the deletion still gets scheduled.
   const close = () => {
@@ -37,16 +40,42 @@ export function DeleteAccountDialog({ onClose }: DeleteAccountDialogProps) {
     try {
       await requestAccountDeletion(reason, feedback);
       onClose();
-    } catch {
-      setError("Could not schedule account deletion. Please try again.");
+    } catch (err) {
+      const ref = readRefusal(err);
+      if (ref?.code === "head_change_undo_window") {
+        setRefusal(ref);
+      } else {
+        setError("Could not schedule account deletion. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
+  const title = refusal
+    ? "You can't delete this account yet"
+    : step === "survey"
+      ? "Why are you leaving?"
+      : "Confirm account deletion";
+
   return (
-    <Modal isOpen onClose={close} title={step === "survey" ? "Why are you leaving?" : "Confirm account deletion"}>
-      {step === "survey" ? (
+    <Modal isOpen onClose={close} title={title}>
+      {refusal ? (
+        <div className="space-y-5">
+          <InfoNotice role="status" testId="refusal-notice">
+            {refusal.message}
+          </InfoNotice>
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={close}
+              className="rounded-lg border border-[var(--ui-divider)] bg-[var(--ui-card)] px-4 py-2 text-sm font-medium text-[var(--ui-text)] hover:bg-[var(--ui-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      ) : step === "survey" ? (
         <div className="space-y-5">
           <fieldset className="space-y-2">
             <legend className="mb-2 text-sm font-semibold text-[var(--ui-text)]">

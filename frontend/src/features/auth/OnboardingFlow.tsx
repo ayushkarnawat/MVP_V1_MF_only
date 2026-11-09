@@ -13,12 +13,12 @@ import { SoloCasUpload } from "./SoloCasUpload";
 import { createHouseholdMember, listHouseholdMembers } from "./api";
 import { getHouseholdImportHistory } from "../import/api";
 import { isCompletedImport } from "../import/importStatus";
-import { paths } from "@/shell/nav/paths";
 import { AccountDetails } from "./redesign/AccountDetails";
 import { AllSet } from "./redesign/AllSet";
 import { AuthPage } from "./redesign/AuthPage";
 import { ConnectAccounts } from "./redesign/ConnectAccounts";
 import { DetailsEditor } from "./redesign/DetailsEditor";
+import { ImportDetailsDialog } from "./redesign/ImportDetailsDialog";
 import { InvestorProfile } from "./redesign/InvestorProfile";
 import { resumeStepSplit } from "./onboardingResume";
 import { clearPendingSignup, readPendingSignup } from "./redesign/pendingSignup";
@@ -159,11 +159,22 @@ export function OnboardingFlow({ isMobile = false, variant = "legacy" }: Onboard
     advance("q2_investing");
   };
 
-  // All set: write the completion, then open the chosen place. The address is set first because the app switches to
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const openDetails = () => { window.history.pushState({ onboardingDetails: true }, "", window.location.href); setDetailsOpen(true); };
+  // The dialog's Back, cross and Escape go through the browser history so that the entry opening pushed is consumed.
+  const closeDetails = () => { if (window.history.state?.onboardingDetails) window.history.back(); else setDetailsOpen(false); };
+  useEffect(() => {
+    if (!detailsOpen) return;
+    const onPop = () => setDetailsOpen(false);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [detailsOpen]);
+
+  // All set: write the completion, then open home. The address is set first because the app switches to
   // the signed-in shell (which reads the address) the moment the completion is saved; a failed save puts it back.
-  const finish = async (target: "home" | "import-history") => {
+  const finish = async () => {
     const previous = window.location.pathname + window.location.search;
-    window.history.pushState(null, "", target === "home" ? "/home" : paths.profileImportHistory());
+    window.history.pushState(null, "", "/home");
     try {
       await updateMe({ onboarding_completed: true });
     } catch (err) {
@@ -210,7 +221,12 @@ export function OnboardingFlow({ isMobile = false, variant = "legacy" }: Onboard
       );
     }
     if (split && step === "all_set") {
-      return <AllSet onFinish={finish} />;
+      return (
+        <>
+          <AllSet onFinish={finish} onViewDetails={openDetails} />
+          <ImportDetailsDialog open={detailsOpen} onClose={closeDetails} />
+        </>
+      );
     }
     if (step === "q1_name" && split && (editingDetails || me?.self_name)) {
       return (

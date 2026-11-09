@@ -509,6 +509,9 @@ describe("ImportFlow", () => {
     await waitFor(() => expect(onDone).toHaveBeenCalledWith({
       text: "12 transactions added · 2 already saved",
       details: ["Aditi Sharma: 3 added", "Ramesh Sharma: 9 added, 2 already saved", "History starts mid-year."],
+      // QA fixes, A1: the structured fields the notice card reads
+      members: [{ name: "Aditi Sharma", added: 3, skipped: 0 }, { name: "Ramesh Sharma", added: 9, skipped: 2 }],
+      warnings: ["History starts mid-year."],
     }));
   });
 
@@ -623,6 +626,7 @@ describe("ImportFlow: new funds in the notice (UI round 2, change 8)", () => {
       text: "Import complete · 1 new fund, 5 transactions added",
       details: ["New funds: Alpha Flexi Cap Fund"],
       newFunds: [NEW_FUND],
+      counts: { newFunds: 1, added: 5, skipped: 0 },
     }));
   });
 });

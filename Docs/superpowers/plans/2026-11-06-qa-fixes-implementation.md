@@ -44,7 +44,7 @@ Failure modes the spec implies but no single task's happy path exercises, most l
 | Back end refusals | | `backend/app/services/auth/head_change.py`, `backend/app/services/import_/deletion.py`, `backend/app/api/dashboard.py`, `backend/app/api/auth.py` |
 | Back end emails | | `backend/app/services/auth/email_templates.py`, `backend/app/services/auth/head_change.py` |
 | Import notice | | `frontend/src/components/mf/PostImportNotice.tsx`, `frontend/src/features/import/importNotice.ts` |
-| Donut | `frontend/src/features/home/lib/useHeldActive.ts` | `frontend/src/features/home/components/AllocationDonut.tsx`, `frontend/src/features/home/sections/Allocation.tsx` |
+| Donut | `frontend/src/features/home/useHeldActive.ts` and `components/AllocationLegendRow.tsx` | `frontend/src/features/home/components/AllocationDonut.tsx`, `frontend/src/features/home/sections/Allocation.tsx` |
 | Auth errors | | `frontend/src/styles/auth-tokens.css`, `features/auth/redesign/InvestorProfile.tsx`, `AuthAlert.tsx`, `AuthField.tsx`, `SignupPhoneEntry.tsx` |
 | Login landing | | `frontend/src/features/auth/AuthContext.tsx` |
 | Back from details | `features/auth/redesign/ImportDetailsDialog.tsx`, `frontend/src/shell/nav/useBack.ts` | `features/auth/OnboardingFlow.tsx`, `features/auth/redesign/AllSet.tsx`, `features/profile/ImportHistorySection.tsx`, `features/profile-v2/pages/ImportHistoryPage.tsx` |
@@ -138,7 +138,7 @@ All front end paths above are relative to `frontend/src/` unless they start with
 ### Task 4: Home donut hover (A2) · packet `qa-fe-1`
 
 **Files:**
-- Create: `frontend/src/features/home/lib/useHeldActive.ts`
+- Create: `frontend/src/features/home/useHeldActive.ts` and `components/AllocationLegendRow.tsx`
 - Modify: `frontend/src/features/home/components/AllocationDonut.tsx`, `frontend/src/features/home/sections/Allocation.tsx:40,176-209`
 - Test: `frontend/src/features/home/lib/useHeldActive.test.ts`, `frontend/src/features/home/components/AllocationDonut.test.tsx`
 
@@ -197,7 +197,7 @@ All front end paths above are relative to `frontend/src/` unless they start with
 
 **Files:**
 - Create: `frontend/src/features/auth/redesign/ImportDetailsDialog.tsx`, `frontend/src/shell/nav/useBack.ts`
-- Modify: `features/auth/OnboardingFlow.tsx:164-173`, `features/auth/redesign/AllSet.tsx:16,74`, `features/profile/ImportHistorySection.tsx` (add `readOnly?: boolean`), `features/profile-v2/pages/ImportHistoryPage.tsx`
+- Modify: `features/auth/OnboardingFlow.tsx:164-173`, `features/auth/redesign/AllSet.tsx:16,74`, `features/profile-v2/pages/ImportHistoryPage.tsx`
 - Test: `features/auth/redesign/AllSet.test.tsx`, `features/auth/redesign/ImportDetailsDialog.test.tsx`, `features/auth/OnboardingFlow.test.tsx`, `shell/nav/useBack.test.ts`, `features/profile-v2/pages/ImportHistoryPage.test.tsx`
 
 **Interfaces:**
@@ -325,3 +325,12 @@ All front end paths above are relative to `frontend/src/` unless they start with
 - **Names and types:** `format_ist_date` and `format_ist_datetime` (Task 1) are consumed in Task 2; `AuthAlert`'s `title` (Task 5) is consumed in Task 10; `SignInNotice` is the only new type shared between `session.ts`, `AuthEntryFlow` and `LoginEntry`; `useHeldActive` and `useBack` are each defined once and used where stated.
 - **Order:** Tasks 1 and 2 first (the front end reads the new bodies); Task 5 before Task 10 (shared `AuthAlert.tsx`); Tasks 8, 9, 10, 11 run in that order in one worker session because they all edit `ChangeHeadDialog.tsx` or its neighbours.
 - **Proportion:** each task names files, interfaces, tests and the check; pixel-level specs live in the packets, which are written from these tasks and the spec.
+
+---
+
+## Amendments made while writing the packets (6 Nov)
+
+- **B3:** the import details dialog is its own small read-only list (built on `PromptDialog`), not `ImportHistorySection`: that section is themed for the signed-in app and carries delete controls. So `ImportHistorySection.tsx` is **not** changed and the `readOnly` prop is dropped. `useBack` lives in `shell/nav/useBack.ts`.
+- **A2:** the hook lives in `features/home/useHeldActive.ts`; the legend row becomes `components/AllocationLegendRow.tsx`.
+- **C1:** `ChangeHeadDialog` gets an optional `onMembersChanged` prop that `FamilyPage` passes, so the Family list stays fresh while the dialog is open. A shared `InfoNotice` (neutral, because the app has no blue info token) serves C2 and C4.
+- **Order:** the three packets run in one worker clone, one after the other (QA-FE-1, then 2, then 3), because they share `AuthAlert.tsx` and `ChangeHeadDialog.tsx`. Only green work is merged into `leapswitch-redesign`; red tests and packets live on `qa-fixes-src`.

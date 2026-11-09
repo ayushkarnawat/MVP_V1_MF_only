@@ -11,11 +11,12 @@ export interface OptionRowProps {
   /** Roving tab stop: only one answer of the group is reachable with Tab. */
   tabStop?: boolean;
   onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
+  invalid?: boolean;
 }
 
 /** One answer of a single-choice question: a radio button drawn as a card. */
 export const OptionRow = forwardRef<HTMLButtonElement, OptionRowProps>(function OptionRow(
-  { title, subtitle, selected, onSelect, icon, tabStop = true, onKeyDown },
+  { title, subtitle, selected, onSelect, icon, tabStop = true, onKeyDown, invalid },
   ref,
 ) {
   return (
@@ -27,6 +28,7 @@ export const OptionRow = forwardRef<HTMLButtonElement, OptionRowProps>(function 
       tabIndex={tabStop ? 0 : -1}
       onKeyDown={onKeyDown}
       onClick={onSelect}
+      data-invalid={invalid ? "true" : undefined}
       className="flex w-full items-center gap-3.5 rounded-2xl px-4 text-left min-h-[var(--auth-row-h)] auth-choice"
     >
       {icon ? <IconBadge icon={icon} tone="strong" /> : null}

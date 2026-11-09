@@ -1,5 +1,5 @@
 import { fireEvent, screen, within } from "@testing-library/react";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildRegistry } from "@/shell/registry/buildRegistry";
 import { renderInShell } from "@/shell/testing";
@@ -72,16 +72,31 @@ describe("ImportHistoryPage", () => {
     expect(typeof props?.onChanged).toBe("function");
   });
 
-  it("shows a Settings back link above the section, and it is the only link in the content", () => {
+  it("shows a Back button above the section, and no link in the content (QA fixes, B3)", () => {
     mount();
     const content = screen.getByTestId("profile-content");
-    const links = within(content).getAllByRole("link");
-    expect(links).toHaveLength(1);
-    expect(links[0]).toHaveTextContent("Settings");
-    expect(links[0]).toHaveAttribute("href", "/profile/settings");
-    expect(links[0].compareDocumentPosition(screen.getByTestId("section-stub")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    fireEvent.click(links[0]);
+    expect(within(content).queryAllByRole("link")).toHaveLength(0);
+    const back = within(content).getByRole("button", { name: "Back" });
+    expect(back.compareDocumentPosition(screen.getByTestId("section-stub")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(content).queryByText("Settings")).toBeNull();
+  });
+
+  it("Back opens Settings when this is the first screen of the visit", () => {
+    mount();
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByTestId("location")).toHaveTextContent("/profile/settings");
+  });
+
+  it("Back returns to the screen the person came from", () => {
+    function Go() {
+      const navigate = useNavigate();
+      return <button type="button" onClick={() => void navigate("/profile/settings/import-history")}>arrive</button>;
+    }
+    renderInShell(<><Go /><ImportHistoryPage /><Probe /></>, { path: "/portfolio/mutual-funds", routes: LIVE_ROUTES, scope: { refreshMembers: vi.fn() } });
+    fireEvent.click(screen.getByRole("button", { name: "arrive" }));
+    expect(screen.getByTestId("location")).toHaveTextContent("/profile/settings/import-history");
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByTestId("location")).toHaveTextContent("/portfolio/mutual-funds");
   });
 
   it("after an import is deleted, clears the cached member data and then reloads the shell's member list", () => {

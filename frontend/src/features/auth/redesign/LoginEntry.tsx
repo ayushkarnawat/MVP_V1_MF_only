@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { ArrowRight, Mail, Phone } from "lucide-react";
 import { GoogleButton } from "../GoogleButton";
+import type { SignInNotice } from "../session";
 import { isNoAccountError, validateEmail, validateIndianPhone } from "../validation";
 import { AuthAlert } from "./AuthAlert";
 import { AuthButton } from "./AuthButton";
@@ -22,7 +23,7 @@ export interface LoginEntryProps {
   onSignUp: () => void;
   error: string | null;
   submitting: boolean;
-  notice?: string | null;
+  notice?: string | SignInNotice | null;
   initialTab?: "email" | "phone";
   initialValue?: string;
   showGoogle?: boolean;
@@ -87,7 +88,13 @@ export function LoginEntry({
               <h1 className="auth-h1">Welcome back</h1>
               <p className="auth-sub">Log in to continue to your Unifolio account.</p>
             </div>
-            {notice ? <AuthAlert tone="info">{notice}</AuthAlert> : null}
+            {notice ? (
+              typeof notice === "string" ? (
+                <AuthAlert tone="info">{notice}</AuthAlert>
+              ) : (
+                <AuthAlert tone="info" title={notice.title}>{notice.body}</AuthAlert>
+              )
+            ) : null}
             <SegmentedTabs
               label="Log in with"
               options={TABS}

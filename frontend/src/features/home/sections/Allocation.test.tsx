@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { fixture } from "../fixtures";
 import type { AllocationResponse } from "../types";
@@ -196,21 +196,47 @@ describe("Allocation: interactive donut and the funds pop-up (UI round 2, change
     expect(legend("equity").getAttribute("data-active")).toBe("false");
     expect(slice("equity").getAttribute("data-dim")).toBe("true");
     expect(slice("debt").getAttribute("data-dim")).toBe("false");
-    fireEvent.mouseLeave(slice("debt"));
-    expect(legend("debt").getAttribute("data-active")).toBe("false");
-    expect(slice("equity").getAttribute("data-dim")).toBe("false");
+    // QA fixes, A2: leaving clears only after a short hold (90 ms), so moving to the next slice never flashes.
+    vi.useFakeTimers();
+    try {
+      fireEvent.mouseLeave(slice("debt"));
+      expect(legend("debt").getAttribute("data-active")).toBe("true");
+      act(() => { vi.advanceTimersByTime(90); });
+      expect(legend("debt").getAttribute("data-active")).toBe("false");
+      expect(slice("equity").getAttribute("data-dim")).toBe("false");
+    } finally { vi.useRealTimers(); }
+  });
+  it("moving from one slice straight to the next never leaves a moment with nothing dimmed", () => {
+    setup({ data: withFunds() });
+    vi.useFakeTimers();
+    try {
+      fireEvent.mouseEnter(slice("equity"));
+      fireEvent.mouseLeave(slice("equity"));
+      act(() => { vi.advanceTimersByTime(40); });
+      expect(slice("debt").getAttribute("data-dim")).toBe("true");
+      fireEvent.mouseEnter(slice("debt"));
+      act(() => { vi.advanceTimersByTime(500); });
+      expect(legend("debt").getAttribute("data-active")).toBe("true");
+      expect(legend("equity").getAttribute("data-active")).toBe("false");
+      expect(slice("equity").getAttribute("data-dim")).toBe("true");
+    } finally { vi.useRealTimers(); }
   });
   it("hovering or focusing a legend row dims the other slices", () => {
     setup({ data: withFunds() });
-    fireEvent.mouseEnter(legend("gold"));
-    expect(slice("gold").getAttribute("data-dim")).toBe("false");
-    expect(slice("equity").getAttribute("data-dim")).toBe("true");
-    fireEvent.mouseLeave(legend("gold"));
-    fireEvent.focus(legend("debt"));
-    expect(slice("equity").getAttribute("data-dim")).toBe("true");
-    expect(legend("debt").getAttribute("data-active")).toBe("true");
-    fireEvent.blur(legend("debt"));
-    expect(slice("equity").getAttribute("data-dim")).toBe("false");
+    vi.useFakeTimers();
+    try {
+      fireEvent.mouseEnter(legend("gold"));
+      expect(slice("gold").getAttribute("data-dim")).toBe("false");
+      expect(slice("equity").getAttribute("data-dim")).toBe("true");
+      fireEvent.mouseLeave(legend("gold"));
+      fireEvent.focus(legend("debt"));
+      act(() => { vi.advanceTimersByTime(500); });
+      expect(slice("equity").getAttribute("data-dim")).toBe("true");
+      expect(legend("debt").getAttribute("data-active")).toBe("true");
+      fireEvent.blur(legend("debt"));
+      act(() => { vi.advanceTimersByTime(90); });
+      expect(slice("equity").getAttribute("data-dim")).toBe("false");
+    } finally { vi.useRealTimers(); }
   });
   it("clicking a slice opens the pop-up for that class and still tells the page", () => {
     const { handlers } = setup({ data: withFunds() });

@@ -17,6 +17,7 @@ import {
   verifyHeadChangeCode,
 } from "@/features/auth/api";
 import { setSignInNotice } from "@/features/auth/session";
+import { maskEmail, maskPhone } from "@/features/auth/validation";
 import type {
   ContactChangeChannel,
   HeadChangeParty,
@@ -27,11 +28,15 @@ import type {
   MemberEligibilityItem,
   Relationship,
 } from "@/features/auth/types";
+import { CompleteProfileDialog } from "@/features/dashboard/members/CompleteProfileDialog";
+import { FIXABLE_REASONS, fixableHint, isFixable } from "../lib/headEligibility";
 import { cleanName, relationshipText } from "../lib/memberLabels";
+import { InfoNotice } from "./InfoNotice";
 
 export interface ChangeHeadDialogProps {
   members: readonly HouseholdMember[];
   initialRequest?: HeadChangeStatus | null;
+  onMembersChanged?: () => void;
   onClose: (openRequest?: HeadChangeStatus | null) => void;
   onCancelled?: () => void;
   onCompleted?: () => void;
@@ -110,11 +115,15 @@ function hasLabelChange(member: HeadChangePreviewMember): boolean {
 export function ChangeHeadDialog({
   members,
   initialRequest = null,
+  onMembersChanged,
   onClose,
   onCancelled,
   onCompleted,
 }: ChangeHeadDialogProps) {
-  const { logout, refreshMe } = useAuth();
+  const { logout, refreshMe, me } = useAuth();
+
+  const [detailsFor, setDetailsFor] = useState<string | null>(null);
+  const pendingSelect = useRef<string | null>(null);
 
   const [step, setStep] = useState<Step>(() => (initialRequest ? 2 : 1));
   const [eligibility, setEligibility] = useState<MemberEligibilityItem[]>([]);
@@ -181,6 +190,18 @@ export function ChangeHeadDialog({
       .then(res => {
         if (!mountedRef.current) return;
         setEligibility(res.members);
+        setSelectedMemberId(prev => {
+          const stillEligible = prev !== null && res.members.some(item => item.member_id === prev && item.reasons.length === 0);
+          return stillEligible ? prev : null;
+        });
+        const pendingId = pendingSelect.current;
+        if (pendingId && !startCodeSent) {
+          const nowEligible = res.members.some(item => item.member_id === pendingId && item.reasons.length === 0);
+          if (nowEligible) {
+            setSelectedMemberId(pendingId);
+          }
+        }
+        pendingSelect.current = null;
       })
       .catch(err => {
         if (!mountedRef.current) return;
@@ -457,7 +478,14 @@ export function ChangeHeadDialog({
   };
 
   const finishSignedOut = () => {
-    setSignInNotice(SIGN_IN_NOTICE);
+    if (preview) {
+      setSignInNotice({
+        title: "Head of Family changed",
+        body: `Sign in with ${maskEmail(preview.new_head.email)} or ${maskPhone(preview.new_head.phone_number)}. ${cleanName(preview.old_head.name)} can no longer sign in.`,
+      });
+    } else {
+      setSignInNotice(SIGN_IN_NOTICE);
+    }
     logout();
     onCompleted?.();
   };
@@ -505,6 +533,35 @@ export function ChangeHeadDialog({
     }
   };
 
+  // A merge in the profile dialog removes the person from the page's member list while that dialog is still showing.
+  // Then there is nothing left to edit: come back to the list and read it again, so the merged person is not listed.
+  const detailsMemberGone = detailsFor !== null && !members.some(m => m.id === detailsFor);
+  useEffect(() => {
+    if (!detailsMemberGone) return;
+    setDetailsFor(null);
+    loadEligibility();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailsMemberGone]);
+
+  const editingMember = members.find(m => m.id === detailsFor);
+  if (detailsFor && editingMember) {
+    return (
+      <CompleteProfileDialog
+        key={detailsFor}
+        member={editingMember}
+        accountPhone={me?.phone_number}
+        accountEmail={me?.email}
+        onSaved={() => onMembersChanged?.()}
+        onMerged={() => onMembersChanged?.()}
+        onClose={() => {
+          pendingSelect.current = detailsFor;
+          setDetailsFor(null);
+          loadEligibility();
+        }}
+      />
+    );
+  }
+
   const title =
     step === 1
       ? "Choose who will be Head of Family"
@@ -531,9 +588,38 @@ export function ChangeHeadDialog({
                 const memberName = cleanName(member?.name) || "Family member";
                 const relText = member ? relationshipText(member) : "Not set";
                 const eligible = item.reasons.length === 0;
-                const firstReason = item.reasons[0];
-                const reasonText = firstReason
-                  ? (REASON_SENTENCES[firstReason] ?? "This family member is not eligible right now.")
+                const fixable = isFixable(item.reasons);
+
+                if (fixable) {
+                  return (
+                    <button
+                      key={item.member_id}
+                      type="button"
+                      data-testid="head-fixable-row"
+                      disabled={startCodeSent || step1Submitting !== null}
+                      onClick={() => setDetailsFor(item.member_id)}
+                      className="flex w-full items-start gap-3 rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-3 text-left text-sm hover:bg-[var(--ui-row-hover)] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="truncate font-semibold text-[var(--ui-text)]">
+                            {memberName}
+                          </span>
+                          <span className="shrink-0 rounded-full border border-[var(--pos)]/35 bg-[var(--pos-bg)] px-2 py-0.5 text-[11.5px] font-semibold text-[var(--pos-text)]">
+                            Add details
+                          </span>
+                        </span>
+                        <span className="mt-1 block text-xs text-[var(--ui-text-muted)]">
+                          {fixableHint(item.reasons)}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                }
+
+                const firstUnfixable = item.reasons.find(r => !FIXABLE_REASONS.has(r)) ?? item.reasons[0];
+                const reasonText = firstUnfixable
+                  ? (REASON_SENTENCES[firstUnfixable] ?? "This family member is not eligible right now.")
                   : null;
 
                 return (
@@ -754,67 +840,90 @@ export function ChangeHeadDialog({
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-xs font-medium text-[var(--ui-text-muted)]">
-            {formatCountdown(remainingSeconds)} left
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <p data-testid="head-review-title" className="text-base font-semibold leading-snug text-[var(--ui-text)]">
+              {(preview ? cleanName(preview.new_head.name) : resolvedNewHeadName)} becomes Head of Family
+            </p>
+            <span className="shrink-0 rounded-full border border-[var(--ui-divider)] px-2.5 py-0.5 text-xs font-medium text-[var(--ui-text-muted)]">
+              {formatCountdown(remainingSeconds)} left
+            </span>
+          </div>
 
           {previewLoading && !preview ? (
             <p className="text-sm text-[var(--shell-text-body)]">Loading summary…</p>
           ) : preview ? (
-            <>
-              <div className="space-y-2 text-sm text-[var(--ui-text)]">
-                <p>
-                  {cleanName(preview.new_head.name)} will sign in with {preview.new_head.email} and{" "}
-                  {preview.new_head.phone_number}.
+            <div className="space-y-3">
+              <div data-testid="head-review-signin" className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-3">
+                <p className="text-xs text-[var(--ui-text-muted)]">Signs in from now with</p>
+                <p className="mt-0.5 text-sm text-[var(--ui-text)]">
+                  <strong className="font-semibold">{preview.new_head.email}</strong>
+                  <span className="text-[var(--ui-text-muted)]"> · </span>
+                  <strong className="font-semibold">{preview.new_head.phone_number}</strong>
                 </p>
-                <p>
-                  {cleanName(preview.old_head.name)} stays as a member and will no longer sign in.
-                </p>
-                <p>You and everyone else on this account will be signed out.</p>
-                <p>All portfolio data stays exactly as it is.</p>
               </div>
 
-              <ul className="space-y-2 rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-3 text-sm text-[var(--ui-text)]">
-                {preview.old_head_new_label ? (
-                  <li>
-                    {cleanName(preview.old_head.name)}: {previewLabelText("self", null)} becomes{" "}
-                    {previewLabelText(preview.old_head_new_label, null)}
-                  </li>
-                ) : null}
-                {preview.members.filter(hasLabelChange).map(member => {
-                  const before = previewLabelText(member.label_before, member.label_before_other);
-                  const after = previewLabelText(member.label_after, member.label_after_other);
-                  // Same label before and after: "X: parent becomes parent" would be meaningless, so
-                  // say the label once and ask for a check.
-                  if (before === after && member.review_recommended && !member.cleared) {
+              <div data-testid="head-review-changes" className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-3">
+                <p className="mb-1 text-xs text-[var(--ui-text-muted)]">What changes</p>
+                <ul className="divide-y divide-[var(--ui-divider)]">
+                  {preview.old_head_new_label ? (
+                    <li data-testid="head-review-change" className="py-1.5 text-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="min-w-0 break-words text-[var(--ui-text)]">
+                          {cleanName(preview.old_head.name)}
+                        </span>
+                        <span className="shrink-0 text-xs text-[var(--ui-text-muted)]">
+                          {`${previewLabelText("self", null)} → ${previewLabelText(preview.old_head_new_label, null)}`}
+                        </span>
+                      </div>
+                    </li>
+                  ) : null}
+                  {preview.members.filter(hasLabelChange).map(member => {
+                    const before = previewLabelText(member.label_before, member.label_before_other);
+                    const after = previewLabelText(member.label_after, member.label_after_other);
+                    const name = cleanName(member.name);
+                    if (before === after && member.review_recommended && !member.cleared) {
+                      return (
+                        <li key={member.member_id} data-testid="head-review-change" className="py-1.5 text-sm">
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="min-w-0 break-words text-[var(--ui-text)]">{name}</span>
+                            <span className="shrink-0 text-xs text-[var(--ui-text-muted)]">{before}</span>
+                          </div>
+                          <p className="mt-0.5 text-xs text-[var(--ui-text-muted)]">
+                            Please check this one after the change.
+                          </p>
+                        </li>
+                      );
+                    }
                     return (
-                      <li key={member.member_id}>
-                        <p>
-                          {`${cleanName(member.name)}: ${before}. Please check this one after the change.`}
-                        </p>
+                      <li key={member.member_id} data-testid="head-review-change" className="py-1.5 text-sm">
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="min-w-0 break-words text-[var(--ui-text)]">{name}</span>
+                          <span className="shrink-0 text-xs text-[var(--ui-text-muted)]">
+                            {`${before} → ${after}`}
+                          </span>
+                        </div>
+                        {member.review_recommended ? (
+                          <p className="mt-0.5 text-xs text-[var(--ui-text-muted)]">
+                            Please check this one after the change.
+                          </p>
+                        ) : null}
+                        {member.cleared && member.label_before_other ? (
+                          <p className="mt-0.5 text-xs text-[var(--ui-text-muted)]">
+                            {`Their note '${member.label_before_other}' will be removed.`}
+                          </p>
+                        ) : null}
                       </li>
                     );
-                  }
-                  return (
-                    <li key={member.member_id} className="space-y-0.5">
-                      <p>
-                        {cleanName(member.name)}: {before} becomes {after}
-                      </p>
-                      {member.review_recommended ? (
-                        <p className="text-xs text-[var(--ui-text-muted)]">
-                          Please check this one after the change.
-                        </p>
-                      ) : null}
-                      {member.cleared && member.label_before_other ? (
-                        <p className="text-xs text-[var(--ui-text-muted)]">
-                          {`Their note '${member.label_before_other}' will be removed.`}
-                        </p>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
+                  })}
+                </ul>
+              </div>
+
+              <InfoNotice testId="head-review-signout">
+                <strong className="font-semibold">You will be signed out.</strong> So will everyone else on this account. {cleanName(preview.old_head.name)} can no longer sign in.
+              </InfoNotice>
+
+              <p className="text-xs text-[var(--ui-text-muted)]">All portfolio data stays exactly as it is.</p>
+            </div>
           ) : null}
 
           {step3Error ? (

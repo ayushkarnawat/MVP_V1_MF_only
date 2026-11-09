@@ -6,14 +6,14 @@ afterEach(() => vi.useRealTimers());
 
 describe("AllSet, sign-up screen 6 (task 6.14)", () => {
   it("has the Done bar with every segment full and the tick sketch", () => {
-    render(<AllSet onFinish={vi.fn()} />);
+    render(<AllSet onFinish={vi.fn()} onViewDetails={vi.fn()} />);
     expect(screen.getByRole("group", { name: "Done" })).toBeInTheDocument();
     expect(screen.getAllByTestId("step-segment").every((segment) => segment.getAttribute("data-filled") === "true")).toBe(true);
     expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/wallet.svg");
     expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
   });
   it("has the left headline, paragraph and the three status rows", () => {
-    render(<AllSet onFinish={vi.fn()} />);
+    render(<AllSet onFinish={vi.fn()} onViewDetails={vi.fn()} />);
     const left = screen.getByTestId("auth-left-text");
     expect(within(left).getByRole("heading", { level: 2, name: "You're all set!" })).toBeInTheDocument();
     expect(within(left).getByText("We're importing your investment data and getting your dashboard ready. This may take a few minutes.")).toBeInTheDocument();
@@ -23,7 +23,7 @@ describe("AllSet, sign-up screen 6 (task 6.14)", () => {
     expect(within(left).getByText("Your investments will come together in one view as your data becomes available.")).toBeInTheDocument();
   });
   it("lists only the real row, Mutual Funds imported via a CAS statement", () => {
-    render(<AllSet onFinish={vi.fn()} />);
+    render(<AllSet onFinish={vi.fn()} onViewDetails={vi.fn()} />);
     expect(screen.getByRole("heading", { level: 1, name: "Getting your accounts ready" })).toBeInTheDocument();
     const section = screen.getByRole("region", { name: "Accounts being imported" });
     expect(within(section).getAllByRole("listitem")).toHaveLength(1);
@@ -35,7 +35,7 @@ describe("AllSet, sign-up screen 6 (task 6.14)", () => {
   it("Go to my dashboard asks to finish once, even when clicked twice", async () => {
     let finish: () => void = () => {};
     const onFinish = vi.fn(() => new Promise<void>((resolve) => { finish = resolve; }));
-    render(<AllSet onFinish={onFinish} />);
+    render(<AllSet onFinish={onFinish} onViewDetails={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Go to my dashboard" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Opening..." })).toBeDisabled());
     fireEvent.click(screen.getByRole("button", { name: "Opening..." }));
@@ -43,15 +43,23 @@ describe("AllSet, sign-up screen 6 (task 6.14)", () => {
     expect(onFinish).toHaveBeenCalledWith("home");
     await act(async () => finish());
   });
-  it("View details asks to finish and open Import History", async () => {
+  it("View details opens the import details and does not finish", () => {
     const onFinish = vi.fn().mockResolvedValue(undefined);
-    render(<AllSet onFinish={onFinish} />);
+    const onViewDetails = vi.fn();
+    render(<AllSet onFinish={onFinish} onViewDetails={onViewDetails} />);
     fireEvent.click(screen.getByRole("button", { name: "View details ›" }));
-    await waitFor(() => expect(onFinish).toHaveBeenCalledWith("import-history"));
+    expect(onViewDetails).toHaveBeenCalledTimes(1);
+    expect(onFinish).not.toHaveBeenCalled();
+  });
+  it("View details is not blocked while a finish is running, and Go to my dashboard asks for home only", async () => {
+    const onFinish = vi.fn().mockResolvedValue(undefined);
+    render(<AllSet onFinish={onFinish} onViewDetails={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Go to my dashboard" }));
+    await waitFor(() => expect(onFinish).toHaveBeenCalledWith("home"));
   });
   it("a failed finish shows the message and the button works again", async () => {
     const onFinish = vi.fn().mockRejectedValueOnce(new Error("offline")).mockResolvedValue(undefined);
-    render(<AllSet onFinish={onFinish} />);
+    render(<AllSet onFinish={onFinish} onViewDetails={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Go to my dashboard" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Your statement is saved, but we couldn't finish setting up your account. Try again.");
     fireEvent.click(screen.getByRole("button", { name: "Go to my dashboard" }));
@@ -61,12 +69,12 @@ describe("AllSet, sign-up screen 6 (task 6.14)", () => {
   it("never redirects by itself", () => {
     vi.useFakeTimers();
     const onFinish = vi.fn();
-    render(<AllSet onFinish={onFinish} />);
+    render(<AllSet onFinish={onFinish} onViewDetails={vi.fn()} />);
     act(() => { vi.advanceTimersByTime(10 * 60 * 1000); });
     expect(onFinish).not.toHaveBeenCalled();
   });
   it("renders the tick sketch in the right panel and the arrow on Go to my dashboard", () => {
-    render(<AllSet onFinish={vi.fn()} />);
+    render(<AllSet onFinish={vi.fn()} onViewDetails={vi.fn()} />);
     expect(screen.getByTestId("right-sketch-tick")).toHaveAttribute("src", "/illustrations/auth/tick.svg");
     expect(screen.getByTestId("auth-btn-arrow")).toBeInTheDocument();
   });

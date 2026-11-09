@@ -1,4 +1,6 @@
+import { memo } from "react";
 import type { KeyboardEvent } from "react";
+import { cn } from "@/lib/utils";
 import { formatLegendPercent } from "../allocationCopy";
 
 export interface AllocationDonutRow {
@@ -24,7 +26,7 @@ const R = 58;
 const C = 2 * Math.PI * R;
 const round2 = (x: number) => Math.round(x * 100) / 100;
 
-export function AllocationDonut({
+export const AllocationDonut = memo(function AllocationDonut({
   rows,
   centerValue,
   centerLabel = "Total value",
@@ -37,6 +39,17 @@ export function AllocationDonut({
   const nonZeroRows = rows.filter((r) => Number(r.percentage) > 0);
 
   let offset = 0;
+  const slices = nonZeroRows.map((row) => {
+    const length = (C * Number(row.percentage)) / 100;
+    const currentOffset = offset;
+    offset += length;
+
+    const dashArray = `${round2(length)} ${round2(C - length)}`;
+    const dashOffset = -round2(currentOffset) || 0;
+    const labelText = `${row.label} ${formatLegendPercent(row.percentage)}`;
+
+    return { row, dashArray, dashOffset, labelText };
+  });
 
   return (
     <svg
@@ -46,36 +59,57 @@ export function AllocationDonut({
       role="img"
       aria-label={ariaLabel}
     >
-      {nonZeroRows.map((row) => {
-        const length = (C * Number(row.percentage)) / 100;
-        const currentOffset = offset;
-        offset += length;
-
-        const dashArray = `${round2(length)} ${round2(C - length)}`;
-        const dashOffset = -round2(currentOffset) || 0;
-        const labelText = `${row.label} ${formatLegendPercent(row.percentage)}`;
+      {onSliceClick &&
+        slices.map(({ row, dashArray, dashOffset }) => (
+          <circle
+            key={`hit-${row.key}`}
+            data-testid={`hit-${row.key}`}
+            aria-hidden="true"
+            r="58"
+            cx="80"
+            cy="80"
+            fill="none"
+            stroke="transparent"
+            strokeWidth="28"
+            strokeDasharray={dashArray}
+            strokeDashoffset={dashOffset}
+            transform="rotate(-90 80 80)"
+            pointerEvents="stroke"
+            style={{ cursor: "pointer" }}
+            onMouseEnter={() => onActiveChange?.(row.key)}
+            onMouseLeave={() => onActiveChange?.(null)}
+            onClick={() => onSliceClick(row.key)}
+          />
+        ))}
+      {slices.map(({ row, dashArray, dashOffset, labelText }) => {
+        const dimmed = activeKey !== null && activeKey !== row.key;
+        const isActive = activeKey === row.key;
 
         return (
           <circle
             key={row.key}
             data-testid={`slice-${row.key}`}
+            className={cn(
+              "transition-[opacity,stroke-width] duration-150 ease-out motion-reduce:transition-none",
+              dimmed && "opacity-[0.38]"
+            )}
             r="58"
             cx="80"
             cy="80"
             fill="none"
             stroke={row.color}
-            strokeWidth="22"
+            strokeWidth={isActive ? 25 : 22}
             strokeDasharray={dashArray}
             strokeDashoffset={dashOffset}
             transform="rotate(-90 80 80)"
-            data-dim={activeKey !== null && activeKey !== row.key ? "true" : "false"}
+            data-dim={dimmed ? "true" : "false"}
             {...(onSliceClick
               ? {
                   role: "button",
                   tabIndex: 0,
                   "aria-label": labelText,
                   "aria-pressed": selectedKey === row.key,
-                  style: { cursor: "pointer", opacity: activeKey !== null && activeKey !== row.key ? 0.38 : 1 },
+                  style: { cursor: "pointer" },
                   onMouseEnter: () => onActiveChange?.(row.key),
                   onMouseLeave: () => onActiveChange?.(null),
                   onFocus: () => onActiveChange?.(row.key),
@@ -90,7 +124,7 @@ export function AllocationDonut({
                     }
                   },
                 }
-              : { style: { opacity: activeKey !== null && activeKey !== row.key ? 0.38 : 1 } })}
+              : {})}
           >
             <title>{labelText}</title>
           </circle>
@@ -125,4 +159,4 @@ export function AllocationDonut({
       </text>
     </svg>
   );
-}
+});

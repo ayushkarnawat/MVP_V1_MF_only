@@ -115,12 +115,13 @@ describe("OnboardingFlow, split variant, screens 4 to 6 (UI round 2, S6 tasks 6.
     expect(completionCalls()[0][0]).toEqual({ onboarding_completed: true });
     expect(window.location.pathname).toBe("/home");
   });
-  it("View details completes onboarding and opens Import History", async () => {
+  it("View details opens the import details over All set and does not complete onboarding (QA fixes, B3)", async () => {
     renderFlow();
     await toScreen6();
     fireEvent.click(screen.getByRole("button", { name: "View details ›" }));
-    await waitFor(() => expect(completionCalls()).toHaveLength(1));
-    expect(window.location.pathname).toBe("/profile/settings/import-history");
+    expect(await screen.findByRole("dialog", { name: "Import details" })).toBeInTheDocument();
+    expect(completionCalls()).toHaveLength(0);
+    expect(window.location.pathname).not.toBe("/profile/settings/import-history");
   });
   it("a failed completion shows the retry message, puts the address back and works on the next click", async () => {
     renderFlow();

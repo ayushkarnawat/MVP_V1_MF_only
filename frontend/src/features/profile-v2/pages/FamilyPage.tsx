@@ -396,6 +396,10 @@ export default function FamilyPage() {
         <ChangeHeadDialog
           members={members}
           initialRequest={headDialog.initialRequest}
+          onMembersChanged={() => {
+            refreshEverywhere();
+            load();
+          }}
           onClose={openRequest => {
             setHeadDialog({ open: false, initialRequest: null });
             // A request that was just made may not have reached the dialog (a lost reply), so the

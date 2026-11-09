@@ -28,7 +28,7 @@ import { SignupCode } from "./redesign/SignupCode";
 import { SignupPhoneEntry } from "./redesign/SignupPhoneEntry";
 import type { ExistingMethod } from "./types";
 import { useAuth } from "./AuthContext";
-import { getSignInNotice, setSignInNotice } from "./session";
+import { getSignInNotice, setSignInNotice, type SignInNotice } from "./session";
 import { acceptedFor, isConsentRequired } from "../legal/api";
 import { ConsentNotice } from "../legal/ConsentNotice";
 import { useLegalDocuments } from "../legal/useLegalDocuments";
@@ -67,7 +67,7 @@ export function AuthEntryFlow({
   // Set when a Google tap returns consent_required (unknown Google account):
   // holds the id_token so Continue can retry it with accepted_documents.
   const [googleConsentToken, setGoogleConsentToken] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(() => getSignInNotice());
+  const [notice, setNotice] = useState<string | SignInNotice | null>(() => getSignInNotice());
   const [step, setStep] = useState<Step>(initialStep);
   const [authMode, setAuthMode] = useState<"login" | "signup">(() =>
     getSignInNotice() ? "login" : initialMode,
@@ -498,7 +498,7 @@ export function AuthEntryFlow({
             onSelectPhone={handleSelectPhone}
             onGoogleCredential={handleGoogleCredential}
             error={error}
-            notice={notice}
+            notice={typeof notice === "string" ? notice : notice ? notice.body : null}
             submitting={submitting}
             legalDocs={docs}
             legalLoadError={docsError}

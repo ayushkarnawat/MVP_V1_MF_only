@@ -15,6 +15,7 @@ import { GOAL_OPTIONS } from "@/features/profile-v2/lib/onboardingOptions";
 import type { InvestorType, PrimaryGoal } from "../types";
 import { AuthAlert } from "./AuthAlert";
 import { AuthButton } from "./AuthButton";
+import { AuthInlineError } from "./AuthInlineError";
 import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
@@ -144,6 +145,7 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
                     subtitle={option.subtitle}
                     selected={investorType === option.value}
                     icon={INVESTOR_ICONS[option.value]}
+                    invalid={typeError}
                     onSelect={() => {
                       setInvestorType(option.value);
                       setTypeError(false);
@@ -151,7 +153,7 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
                   />
                 ))}
               </div>
-              {typeError ? <p role="alert" className="text-[13px] text-[var(--neg-text)]">Choose how you usually invest.</p> : null}
+              {typeError ? <AuthInlineError>Choose how you usually invest.</AuthInlineError> : null}
             </section>
             <section className="flex flex-col gap-[var(--auth-gap-sm)]">
               <div className="flex items-center justify-between gap-3 whitespace-nowrap">
@@ -177,11 +179,12 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
                     label={option.title}
                     checked={goals.includes(option.value)}
                     icon={GOAL_ICONS[option.value]}
+                    invalid={goalsError}
                     onToggle={() => toggleGoal(option.value)}
                   />
                 ))}
               </div>
-              {goalsError ? <p role="alert" className="text-[13px] text-[var(--neg-text)]">Choose at least one goal.</p> : null}
+              {goalsError ? <AuthInlineError>Choose at least one goal.</AuthInlineError> : null}
             </section>
             {saveError ? <AuthAlert tone="error">{saveError}</AuthAlert> : null}
             <AuthButton type="button" onClick={() => void submit()} disabled={saving}>

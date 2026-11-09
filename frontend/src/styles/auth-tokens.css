@@ -17,6 +17,9 @@
   --auth-sel-border: #40CD7B;
   --auth-card-shadow: 0 30px 70px -30px rgba(16, 24, 40, 0.16), 0 2px 8px rgba(16, 24, 40, 0.05);
   --auth-btn-shadow: 0 10px 22px -10px rgba(9, 177, 88, 0.55);
+  --auth-error: #B42318;
+  --auth-error-bg: #FEF3F2;
+  --auth-error-line: #FDA29B;
 
   /* The layout budget. The card is as tall as the window minus the page padding, never taller than the design (780),
      so every screen fits one window on any desktop. The spacing tokens below shrink in steps as the window gets
@@ -239,7 +242,7 @@
 }
 
 .auth-field[data-invalid="true"] {
-  border-color: var(--neg-text, #DC2626);
+  border-color: var(--auth-error);
 }
 
 .auth-or {
@@ -381,6 +384,15 @@
   border-color: var(--auth-sel-border);
   background: var(--auth-sel-bg);
   box-shadow: 0 0 0 3px rgba(9, 177, 88, 0.1);
+}
+
+.auth-choice[data-invalid="true"] { border-color: var(--auth-error-line); }
+
+.auth-inline-error {
+  display: flex; align-items: center; gap: 7px; margin-top: 6px; padding: 7px 10px;
+  border: 1px solid var(--auth-error-line); border-radius: 10px;
+  background: var(--auth-error-bg); color: var(--auth-error);
+  font-size: 13.5px; font-weight: 600; line-height: 1.35;
 }
 
 .auth-choice:focus-visible {
