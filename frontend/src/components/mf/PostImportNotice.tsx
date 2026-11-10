@@ -61,6 +61,15 @@ export function PostImportNotice() {
             {notice.counts.newFunds} {notice.counts.newFunds === 1 ? "new fund" : "new funds"}
           </b>
           {" "}· {notice.counts.added} {notice.counts.added === 1 ? "transaction" : "transactions"} added
+          {/* Total skipped across all people, shown only when something was skipped (QA 9 Nov). */}
+          {notice.counts.skipped > 0 && (
+            <>
+              {" "}·{" "}
+              <b data-testid="import-notice-skipped" className="font-semibold text-[var(--pos-text)]">
+                {notice.counts.skipped} {notice.counts.skipped === 1 ? "duplicate" : "duplicates"} skipped
+              </b>
+            </>
+          )}
         </p>
       )}
 
@@ -147,7 +156,7 @@ export function PostImportNotice() {
             View new funds
           </button>
           <Dialog open={listOpen} onOpenChange={setListOpen}>
-            <DialogContent>
+            <DialogContent className="max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>New funds in this statement</DialogTitle>
               </DialogHeader>

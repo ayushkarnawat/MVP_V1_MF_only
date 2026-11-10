@@ -21,6 +21,10 @@ anything by re-reading the whole repo.**
 - Evidence so far (28 Oct, from the LeapSwitch VM's Indian IP): the monthly job processed 34 of 40 automatic houses (Angel One 403, HSBC timeout, Sundaram 500, three stale-month); HDFC 403 and JM 406 still blocked from that address. The missed-month alert is now built (Run 2); the run of 10 Nov 06:00 IST needs a read-only check afterwards (a scheduled reminder exists).
 - Detail and the ordered to-do table: `DEFERRED_FEATURES.md` (top section). Background and options: `Docs/orchestration/subproject1-execution/a04-factsheet-access-gaps.html`.
 
+## Latest (2026-11-10): QA fixes round 2 built on `qa-fixes-2-lane`, front end only, not deployed
+
+From the 9 Nov QA report: View new funds pop-up overflow fixed (names wrap), "N duplicates skipped" added to the Import complete summary line, Enter on the Head of Family code steps. Front end suite 5986 passed, type check clean, no migration (Alembic 0053). Left out by the owner: the email wording, the stray Go to dashboard pop-up, the post-import landing page. Next: the owner's go to merge the lane into `leapswitch-redesign` and run `Docs/orchestration/2026-11-10-staging-deploy-guide-qa-fixes-2.md`, then the checklist `2026-11-10-staging-qa-checklist-qa-fixes-2.md` and the new QA report.
+
 ## Latest (2026-11-04): UI round 2 is built and tagged; D.1 done; the staging deploy guide is drafted, nothing deployed
 
 **Branch:** `ui-round-2` (shared integration branch; Alembic head **0053**, `down_revision` `0052`). Stages S0 to S6 are built and tagged `ui-s0-done` to `ui-s6-done` (local tags on the merge commit `1aad77c2`, which merged `release/change-requests` into `ui-round-2`). `leapswitch-redesign` is frozen at `8dc7d9ba` until the owner's final merge. Staging runs `release/change-requests` (Alembic 0052) until the UI round 2 rollout.

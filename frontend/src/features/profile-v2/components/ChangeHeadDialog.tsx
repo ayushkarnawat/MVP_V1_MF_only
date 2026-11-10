@@ -683,6 +683,10 @@ export function ChangeHeadDialog({
                 value={currentHeadCode}
                 onChange={setCurrentHeadCode}
                 disabled={step1Submitting !== null}
+                // Enter does what Continue does, under the same conditions as the button (QA 9 Nov, D2.1).
+                onEnter={() => {
+                  if (currentHeadCode.trim().length >= 6 && step1Submitting === null) void handleStart();
+                }}
               />
               <OtpStubBanner code={startCodeOtp} channel="email" />
               <button
@@ -782,6 +786,10 @@ export function ChangeHeadDialog({
                         }
                         autoFocus={false}
                         disabled={busyBox === key}
+                        // Enter verifies only this box, with the same conditions as its Verify button.
+                        onEnter={() => {
+                          if (value.trim().length >= 6 && busyBox === null) void handleVerifyBox(key, party, channel);
+                        }}
                       />
                       <OtpStubBanner code={stubOtp} channel={channel} />
                       <div className="flex items-center justify-between gap-2 pt-1">

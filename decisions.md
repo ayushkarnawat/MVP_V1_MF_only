@@ -866,3 +866,9 @@ Plan: `Docs/orchestration/2026-11-02-ui-round-2-and-auth-redesign-implementation
 ## 2026-11-09 — Staging network: hostnames only, one public interface, `unifolio-web` on it
 
 The owner authorised fixing the detached public network end to end. Decisions: (1) all staging guides, scripts and commands use the hostname `ls-redesign.unifolio.in`, never the raw public IP, because the IP changed once and can again; (2) the VM has exactly one public interface, carrying `unifolio-web`, never `default`; (3) SSH is run from the laptop's WSL, not Windows; (4) the CloudPe REST API replaces the broken OpenStack CLI for network checks; (5) the owner gave a full-access CloudPe API key for this test environment (kept out of the repo). **Why:** the 9 Nov outage came from an accidental Detach and from guides that hard-coded an IP. **How to apply:** run the pre-flight check in `Docs/orchestration/2026-11-09-runbook-staging-network-and-access.md` before every staging task.
+
+## 2026-11-10 - QA fixes round 2 (owner decisions, one line each)
+- Fund names in the View new funds pop-up wrap; they are never cut off, and the pop-up never scrolls sideways.
+- The skipped-duplicates count goes in the existing Import complete summary line ("· N duplicates skipped", only when N > 0), not in a new line and not in the pop-up.
+- Enter submits the Head of Family code steps (Continue on step 1, Verify on the box in focus on step 2).
+- Not changed for now: the Head of Family email wording (to agree with Surve), the stray "Import complete / Go to dashboard" pop-up after Add details, the landing page after an import from Home.

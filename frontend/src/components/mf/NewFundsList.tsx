@@ -41,7 +41,9 @@ export function NewFundsList({ funds, hideValues = false, showHistoryLink = fals
     return next;
   });
   return (
-    <ul className="space-y-2">
+    // min-w-0 lets the list shrink to its container: inside the pop-up's grid a long fund name used to stretch the
+    // list past the box (QA 9 Nov, A1.2). Names now wrap instead of being cut off.
+    <ul className="min-w-0 space-y-2">
       {funds.map(fund => {
         const isOpen = open.has(fund.scheme_id);
         const transactions = fund.transactions ?? [];
@@ -51,7 +53,7 @@ export function NewFundsList({ funds, hideValues = false, showHistoryLink = fals
               className="flex w-full items-center gap-3 px-3 py-2 text-left">
               <SchemeLogo schemeName={fund.scheme_name} size="sm" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-[var(--ui-text)]">{fund.scheme_name}</span>
+                <span className="block break-words text-sm font-medium text-[var(--ui-text)]">{fund.scheme_name}</span>
                 <span className="block text-xs text-[var(--ui-text-muted)]">
                   {fund.amc_name ? `${fund.amc_name} · ` : ""}{fund.transaction_count} {fund.transaction_count === 1 ? "transaction" : "transactions"}
                 </span>

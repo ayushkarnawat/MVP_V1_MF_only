@@ -12,6 +12,8 @@ export interface OtpInputProps {
   className?: string;
   cellClassName?: string;
   "aria-label"?: string;
+  /** Called when Enter is pressed in a cell. The caller decides whether the code is complete enough to submit. */
+  onEnter?: () => void;
 }
 
 export function OtpInput({
@@ -23,6 +25,7 @@ export function OtpInput({
   id = "otp-input",
   className,
   cellClassName,
+  onEnter,
 }: OtpInputProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -88,6 +91,9 @@ export function OtpInput({
         focusInput(index - 1);
       }
       e.preventDefault();
+    } else if (e.key === "Enter" && onEnter) {
+      e.preventDefault();
+      onEnter();
     } else if (e.key === "ArrowLeft" && index > 0) {
       focusInput(index - 1);
       e.preventDefault();

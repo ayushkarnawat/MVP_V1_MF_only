@@ -54,6 +54,34 @@ describe("PostImportNotice: the structured card (QA fixes, A1)", () => {
     mount({ importNotice: { ...CARD_NOTICE, newFunds: [FUNDS[0]], counts: { newFunds: 1, added: 1, skipped: 0 }, members: undefined, details: undefined }, importNoticeUser: "u-1" });
     expect(screen.getByTestId("import-notice-summary").textContent).toBe("1 new fund · 1 transaction added");
   });
+  it("adds the skipped count to the summary line only when something was skipped", () => {
+    mount({ importNotice: { ...CARD_NOTICE, counts: { newFunds: 6, added: 448, skipped: 12 } }, importNoticeUser: "u-1" });
+    expect(screen.getByTestId("import-notice-summary").textContent).toBe("6 new funds · 448 transactions added · 12 duplicates skipped");
+    expect(screen.getByTestId("import-notice-skipped").textContent).toBe("12 duplicates skipped");
+  });
+  it("says '1 duplicate skipped' for one, and adds no line of its own", () => {
+    const { container } = mount({ importNotice: { ...CARD_NOTICE, counts: { newFunds: 6, added: 448, skipped: 1 } }, importNoticeUser: "u-1" });
+    expect(screen.getByTestId("import-notice-skipped").textContent).toBe("1 duplicate skipped");
+    expect(container.querySelectorAll("[data-testid='import-notice-summary']")).toHaveLength(1);
+  });
+  it("leaves the summary line unchanged when nothing was skipped", () => {
+    mount({ importNotice: CARD_NOTICE, importNoticeUser: "u-1" });
+    expect(screen.queryByTestId("import-notice-skipped")).toBeNull();
+  });
+  it("does not put a skipped line in the View new funds pop-up", () => {
+    mount({ importNotice: { ...CARD_NOTICE, counts: { newFunds: 6, added: 448, skipped: 12 } }, importNoticeUser: "u-1" });
+    fireEvent.click(screen.getByRole("button", { name: "View new funds" }));
+    expect(within(screen.getByRole("dialog")).queryByText(/skipped/)).toBeNull();
+  });
+  it("lets a very long fund name wrap inside the pop-up instead of cutting it off or stretching the list", () => {
+    const LONG = "ICICI Prudential Large Cap Fund (erstwhile Bluechip Fund) - Direct Plan - Growth Option";
+    mount({ importNotice: { ...CARD_NOTICE, newFunds: [{ ...BASE_FUND, scheme_name: LONG }] }, importNoticeUser: "u-1" });
+    fireEvent.click(screen.getByRole("button", { name: "View new funds" }));
+    const name = within(screen.getByRole("dialog")).getByText(LONG);
+    expect(name.className).not.toMatch(/truncate/);
+    expect(name.className).toMatch(/break-words/);
+    expect(name.closest("ul")?.className).toMatch(/min-w-0/);
+  });
   it("shows one row per person with a count chip, and the already-saved count when there is one", () => {
     mount({ importNotice: CARD_NOTICE, importNoticeUser: "u-1" });
     const rows = screen.getAllByTestId("import-notice-member");

@@ -298,6 +298,46 @@ describe("ChangeHeadDialog", () => {
     expect(nextButton).toBeEnabled();
   });
 
+  async function openStep1WithCodeSent() {
+    render(<ChangeHeadDialog members={HOUSEHOLD_FIXTURE} onClose={vi.fn()} />);
+    fireEvent.click(await screen.findByRole("radio", { name: /Ramesh Surve/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    return screen.findByLabelText(/your email code/i);
+  }
+
+  it("enter_in_the_step_one_code_does_what_continue_does", async () => {
+    const codeInput = await openStep1WithCodeSent();
+    fireEvent.change(codeInput, { target: { value: "123456" } });
+    fireEvent.keyDown(codeInput, { key: "Enter" });
+    await screen.findByRole("heading", { name: "Enter the four codes" });
+    expect(authApi.startHeadChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("enter_with_an_incomplete_step_one_code_does_nothing", async () => {
+    const codeInput = await openStep1WithCodeSent();
+    fireEvent.change(codeInput, { target: { value: "123" } });
+    fireEvent.keyDown(codeInput, { key: "Enter" });
+    expect(authApi.startHeadChange).not.toHaveBeenCalled();
+  });
+
+  it("enter_in_a_code_box_verifies_only_that_box", async () => {
+    await advanceToStep2();
+    const box = screen.getByTestId("code-box-current-phone");
+    const firstCell = within(box).getAllByRole("textbox")[0];
+    fireEvent.change(firstCell, { target: { value: "111222" } });
+    fireEvent.keyDown(firstCell, { key: "Enter" });
+    await waitFor(() => expect(authApi.verifyHeadChangeCode).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(authApi.verifyHeadChangeCode).mock.calls[0]).toContain("111222");
+  });
+
+  it("enter_in_a_code_box_with_an_incomplete_code_does_nothing", async () => {
+    await advanceToStep2();
+    const firstCell = within(screen.getByTestId("code-box-new-email")).getAllByRole("textbox")[0];
+    fireEvent.change(firstCell, { target: { value: "12" } });
+    fireEvent.keyDown(firstCell, { key: "Enter" });
+    expect(authApi.verifyHeadChangeCode).not.toHaveBeenCalled();
+  });
+
   it("each_error_message_appears_beside_its_box", async () => {
     vi.mocked(authApi.verifyHeadChangeCode).mockRejectedValueOnce(
       new ApiError(401, { code: "wrong_code", message: "That code is not right." }),
