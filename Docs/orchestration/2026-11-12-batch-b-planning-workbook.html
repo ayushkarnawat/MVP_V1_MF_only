@@ -1,0 +1,1138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Batch B Planning</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky contents rail + one reading column. Brand: DM Sans headings, Manrope body, #22C55E for actions, a deeper green for text and links. Mockups are drawn at real window sizes and scaled to fit the column. */
+:root{
+ --bg:#FCFCFC; --surface:#FFFFFF; --surface-2:#F3F5F3; --line:#E5E5E5;
+ --fg:#111111; --muted:#5C5C5C; --accent:#22C55E; --accent-deep:#15803D; --accent-soft:#EAFBF0;
+ --warn:#B45309; --warn-soft:#FEF3E2; --info:#2F5FB3; --info-soft:#E8EFFB;
+ --danger:#B3321F; --danger-soft:#FBE6E2; --on-accent:#0B1F12;
+ --f-display:'DM Sans','Segoe UI',system-ui,sans-serif;
+ --f-body:'Manrope','Segoe UI',system-ui,sans-serif;
+ --f-mono:ui-monospace,'SF Mono',Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+ padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4,h5{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent-deep)}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent-deep)}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:70ch;margin:0 0 10px}
+.meta{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+section{margin-top:56px;scroll-margin-top:16px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:74ch}
+h3.sub{font-size:18px;margin:28px 0 8px}
+h4.mini{font-size:15px;margin:18px 0 6px}
+p{margin:8px 0}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700}
+.tag{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.fe{background:var(--info-soft);color:var(--info)}
+.tag.be{background:var(--warn-soft);color:var(--warn)}
+.tag.db{background:var(--danger-soft);color:var(--danger)}
+.tag.ok{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.none{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tag.me{background:var(--accent-soft);color:var(--accent-deep);margin-left:6px}
+.tag.chosen{background:var(--accent);color:var(--on-accent);margin-left:6px}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul,ul.tight{margin:6px 0;padding-left:20px}
+.sumbox li,ul.tight li{margin:5px 0}
+.callout{background:var(--warn-soft);border-radius:10px;padding:12px 14px;margin:14px 0;font-size:14px}
+.callout.good{background:var(--accent-soft)}
+.callout.info{background:var(--info-soft)}
+.callout.bad{background:var(--danger-soft)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.cols>div{min-width:0}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.flow>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 16px;min-width:0}
+.flow h4{font-size:15px;margin-bottom:6px}
+.flow ol{margin:4px 0;padding-left:20px}.flow li{margin:5px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.stat .n{font:700 26px var(--f-display)}.stat .l{font-size:12.5px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin:12px 0;align-items:start}
+@media (max-width:860px){.pair{grid-template-columns:minmax(0,1fr)}}
+.cap{margin:14px 0 6px;font-size:13px}
+.cap b{font-family:var(--f-display)}
+.note{color:var(--muted);font-size:12.5px}
+.winbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.winbar span{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.winbar button{padding:6px 12px;font-size:12.5px;background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.winbar button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+/* decision cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:60px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:600 12px var(--f-body);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--accent)}
+.opt.on{background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt input:disabled{cursor:default}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.why{border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--accent-deep)}
+.reply{background:var(--info-soft);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:14px}
+.reply p{margin:6px 0}.reply ul{margin:6px 0;padding-left:20px}
+.commit{border-left:3px solid var(--info);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.commit b{color:var(--info)}
+textarea{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-height:56px;resize:vertical}
+label.nl{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin:10px 0 4px}
+button{font:inherit;font-size:14px;font-weight:600;padding:9px 16px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);cursor:pointer}
+button.ghost{background:transparent;color:var(--accent-deep)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.status{font:600 11px var(--f-body)}.status.todo{color:var(--warn)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.out{min-height:240px;font-family:var(--f-mono);font-size:12.5px}
+.tabs{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.doc{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:18px 20px;margin:12px 0}
+.doc h4{font-size:17px;margin-bottom:8px}
+.doc h5{font-size:14px;margin:14px 0 4px}
+.doc ul{margin:6px 0;padding-left:20px}.doc li{margin:4px 0}
+
+/* ---------- scaled real-size frames ---------- */
+.vp{position:relative;width:100%;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#fff}
+.vp-in{position:absolute;left:0;top:0;transform-origin:0 0;background:#fff;color:#111;font-family:'Manrope','Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}
+.vp-in *{box-sizing:border-box}
+.vp-in h5,.vp-in h4,.vp-in h3,.vp-in h2,.vp-in h1{font-family:'DM Sans','Segoe UI',system-ui,sans-serif;margin:0}
+.vp-in p{margin:0}
+.chrome{height:40px;background:#EEF1EE;border-bottom:1px solid #D9DED9;display:flex;align-items:center;gap:8px;padding:0 14px}
+.chrome i{width:11px;height:11px;border-radius:50%;background:#C8CFC8;display:block;flex:none}
+.chrome span{flex:1;max-width:520px;margin-left:12px;background:#fff;border:1px solid #D9DED9;border-radius:99px;padding:3px 14px;font-size:12px;color:#5C5C5C}
+.w1280{--vw:1280px;--vh:600px;--card-h:552px;--pad-y:14px;--gap:10px;--gap-sm:5px;--h1:26px;--btn-h:44px;--row-h:46px;--chip-h:34px;--badge:34px;--body:13.5px}
+.w1440{--vw:1440px;--vh:810px;--card-h:762px;--pad-y:36px;--gap:22px;--gap-sm:12px;--h1:34px;--btn-h:54px;--row-h:64px;--chip-h:48px;--badge:44px;--body:15px}
+.w1536{--vw:1536px;--vh:730px;--card-h:682px;--pad-y:28px;--gap:16px;--gap-sm:9px;--h1:30px;--btn-h:48px;--row-h:54px;--chip-h:42px;--badge:38px;--body:14px}
+.d-page{height:var(--vh);display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#EEF9F1,#F8FDF9)}
+.d-card{width:min(1240px,calc(var(--vw) - 64px));height:var(--card-h);background:#fff;border-radius:28px;box-shadow:0 18px 50px rgba(20,48,31,.13);display:grid;grid-template-columns:.95fr 1fr;overflow:hidden}
+.d-left{padding:var(--pad-y) 40px;display:flex;flex-direction:column;background:linear-gradient(160deg,#F2FCF6,#E7F7EC);min-height:0;overflow:hidden}
+.d-left.white{background:#fff}
+.d-logo{font:700 26px 'DM Sans',sans-serif;color:#111;flex:none}
+.d-sketch{margin:var(--gap) auto;flex:1;min-height:60px;max-height:230px;width:70%;max-width:330px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#D6F3DF,#EAFBF0);color:#15803D;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.d-h2{font:700 calc(var(--h1) + 2px) 'DM Sans',sans-serif;line-height:1.15;flex:none}
+.d-h2 span{color:#15803D}
+.d-p{color:#5C5C5C;font-size:var(--body);margin-top:var(--gap-sm);flex:none}
+.d-bul{display:flex;gap:10px;align-items:center;margin-top:var(--gap-sm);font-size:var(--body);flex:none}
+.d-bul i{flex:none;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #D2EEDB;display:block}
+.d-right{padding:var(--pad-y) 48px;display:flex;flex-direction:column;min-height:0}
+.d-top{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;color:#5C5C5C;font-size:13px}
+.d-steps{display:flex;gap:6px;align-items:center}.d-steps i{width:34px;height:5px;border-radius:3px;background:#22C55E;display:block}.d-steps i.off{background:#E5E7EC}
+.d-content{flex:1;min-height:0;overflow-y:auto;display:flex}
+.d-inner{margin:auto;width:100%;max-width:520px;padding:8px 0}
+.fitb{position:absolute;right:10px;bottom:10px;z-index:3;font:600 12px 'Manrope',sans-serif;padding:4px 10px;border-radius:99px;background:#EAFBF0;color:#15803D;border:1px solid #BFE9CC}
+.fitb.bad{background:#FBE6E2;color:#B3321F;border-color:#F3B8AE}
+.o-stack{display:flex;flex-direction:column;gap:var(--gap)}
+.o-sec{display:flex;flex-direction:column;gap:var(--gap-sm)}
+.o-h1{font:700 var(--h1) 'DM Sans',sans-serif;line-height:1.15}
+.o-sub{color:#667085;font-size:var(--body)}
+.o-opt{display:flex;align-items:center;gap:12px;min-height:var(--row-h);border:1px solid #E5E7EC;border-radius:16px;padding:0 16px;background:#fff}
+.o-opt.tt{min-height:min(var(--row-h),54px)}
+.o-opt.sel{border-color:#22C55E;background:#F4FCF6;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.o-opt.quiet{border-color:transparent;background:#F6F8F6}
+.o-badge{flex:none;width:var(--badge);height:var(--badge);border-radius:50%;background:#EAFBF0;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:11px}
+.o-opt b{display:block;font-size:var(--body);font-weight:600}
+.o-opt small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.o-rad{margin-left:auto;flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid #C5CBC5}
+.o-opt.sel .o-rad{background:#22C55E;border-color:#22C55E;box-shadow:inset 0 0 0 4px #fff}
+.o-grp{border:1px solid #E5E7EC;border-radius:16px;overflow:hidden}
+.o-grp .o-opt{border:0;border-radius:0;border-bottom:1px solid #EEF0EE}
+.o-grp .o-opt:last-child{border-bottom:0}
+.o-h2{display:flex;justify-content:space-between;align-items:baseline;gap:10px;white-space:nowrap}
+.o-h2 b{font:600 15px 'DM Sans',sans-serif}
+.o-h2 span{font-size:13px;color:#667085;font-weight:400}
+.o-h2 a{font-size:13px;color:#15803D;font-weight:600}
+.o-chips{display:grid;gap:var(--gap-sm)}
+.o-chips.c3{grid-template-columns:repeat(3,1fr)}.o-chips.c2{grid-template-columns:repeat(2,1fr)}
+.o-chip{display:flex;align-items:center;gap:8px;min-height:var(--chip-h);border:1px solid #E5E7EC;border-radius:14px;padding:0 10px;font-size:12.5px;line-height:1.25;background:#fff}
+.o-chip i{flex:none;width:20px;height:20px;border-radius:6px;background:#EAFBF0;display:block}
+.o-chip em{margin-left:auto;flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid #C5CBC5}
+.o-chip.sel{border-color:#22C55E;background:#F4FCF6}.o-chip.sel em{background:#22C55E;border-color:#22C55E}
+.o-pills{display:flex;flex-wrap:wrap;gap:var(--gap-sm)}
+.o-pill{display:flex;align-items:center;gap:8px;border:1px solid #E5E7EC;border-radius:99px;min-height:var(--chip-h);padding:0 14px;font-size:13px;background:#fff}
+.o-pill i{width:16px;height:16px;border-radius:50%;background:#EAFBF0;display:block}
+.o-pill.sel{background:#22C55E;border-color:#22C55E;color:#0B1F12;font-weight:600}.o-pill.sel i{background:rgba(11,31,18,.25)}
+.o-panel{background:#F6F9F6;border-radius:18px;padding:14px}
+.o-go{height:var(--btn-h);border-radius:99px;background:#22C55E;color:#0B1F12;font:700 15px 'Manrope',sans-serif;display:flex;align-items:center;justify-content:center}
+.o-go.dis{background:#E5E7EC;color:#6B7280}
+.o-tabs{display:flex;background:#F1F3F1;border-radius:99px;padding:3px;gap:3px}
+.o-tabs span{flex:1;text-align:center;padding:7px;border-radius:99px;font-size:13px;color:#667085}
+.o-tabs span.on{background:#fff;color:#111;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.o-field{border:1px solid #D0D5DD;border-radius:12px;padding:11px 14px;font-size:14px}
+.o-lab{font-size:13px;font-weight:600;margin-bottom:5px}
+.o-alert{background:#FEF3F2;border:1px solid #FDA29B;color:#B42318;border-radius:12px;padding:10px 14px;font-size:13.5px}
+.o-red{color:#B42318;font-size:13px;margin-top:6px}
+.st{display:flex;gap:12px;align-items:flex-start;margin-top:var(--gap-sm)}
+.st i{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:13px;background:#22C55E;color:#0B1F12;margin-top:2px}
+.st i.spin{background:transparent;border:2.5px solid #E5E7EC;border-top-color:#22C55E}
+.st i.big{transform:scale(1.28)}
+.st b{display:block;font-size:var(--body);font-weight:600}.st small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.a-card{border:1px solid #E5E7EC;border-radius:16px;padding:12px 16px}
+.a-info{background:#F3F5F3;border-radius:16px;padding:12px 16px}
+.a-info b{display:block}
+/* dialogs */
+.dlg-bg{height:720px;position:relative;background:#F4F6F4;overflow:hidden}
+.dlg-bg .fake{position:absolute;inset:60px 90px;border:2px dashed #C8D3C8;border-radius:20px;filter:blur(2px);opacity:.9;background:#fff}
+.dlg-bg .dim{position:absolute;inset:0;background:rgba(17,17,17,.5);display:flex;align-items:center;justify-content:center}
+.dlg{background:#fff;border-radius:16px;padding:24px;width:448px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg h5{font-size:18px;font-weight:700;line-height:1.25}
+.dlg .body{color:#5C5C5C;font-size:14px}
+.dlg .foot{display:flex;gap:8px;justify-content:flex-end}
+.dlg.ph{width:100%}
+.dlg.ph .foot{flex-direction:column-reverse}
+.dbtn{font:700 13.5px 'Manrope',sans-serif;padding:10px 16px;border-radius:12px;border:1.5px solid #22C55E;background:#22C55E;color:#0B1F12;text-align:center}
+.dbtn.o{background:#fff;color:#15803D}
+.dwarn{display:flex;gap:10px;align-items:flex-start;background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:14px;padding:12px 14px;font-size:13.5px}
+.dwarn b{display:block;margin-bottom:2px}
+.dwarn i{flex:none;width:22px;height:22px;border-radius:50%;background:#F59E0B;color:#fff;font:700 13px 'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;font-style:normal;margin-top:1px}
+/* phone shell */
+.phs{width:390px;padding:14px;background:#111;border-radius:46px}
+.phs .scr{background:#fff;border-radius:34px;overflow:hidden;min-height:700px;position:relative}
+.phs .sb{height:34px;display:flex;justify-content:center;align-items:center}
+.phs .sb b{width:96px;height:22px;background:#111;border-radius:99px;display:block}
+.phs.dark .scr{background:#0F0F0F}
+/* email */
+.emx{--e-bg:#EEF6F0;--e-card:#fff;--e-ink:#111;--e-muted:#5C5C5C;--e-green:#15803D;--e-pale:#EEF8F0;--e-dark:#14301F;--e-line:#E5E5E5;--e-ic:#EAFBF0;--e-ill:#EAFBF0;--e-linkb:#D9E0D9;--e-small:#4ADE80;padding:20px 14px;background:var(--e-bg)}
+.emx.dark{--e-bg:#0F0F0F;--e-card:#1A1A1A;--e-ink:#F5F5F5;--e-muted:#A3A3A3;--e-green:#34D399;--e-pale:#17261C;--e-dark:#14301F;--e-line:#2A2A2A;--e-ic:#1F3B28;--e-ill:#F2FCF6;--e-linkb:#2F3A31;--e-small:#4ADE80}
+.emx.narrow{padding:12px 8px}
+.em-card{background:var(--e-card);color:var(--e-ink);border-radius:18px;padding:22px 22px 16px;width:100%}
+.narrow .em-card{padding:16px 14px 12px}
+.em-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.em-logo{font:700 24px 'DM Sans',sans-serif;color:var(--e-ink)}
+.em-tag{font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;color:var(--e-green)}
+.em-hd{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.em-hd>div:first-child{min-width:0}
+.em-h1{font:700 32px 'DM Sans',sans-serif;line-height:1.1}
+.em-h1 span{color:var(--e-green)}
+.narrow .em-h1{font-size:25px}
+.em-sub{color:var(--e-muted);margin-top:10px;font-size:15px}
+.narrow .em-sub{font-size:13.5px}
+.em-ill{flex:none;width:150px;height:118px;border-radius:50%;background:var(--e-ill);color:#15803D;font-size:11px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.narrow .em-ill{width:96px;height:78px;font-size:9px}
+.em-dark{background:var(--e-dark);color:#fff;border-radius:14px;padding:16px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:15px}
+.narrow .em-dark{padding:12px;gap:10px;font-size:13.5px}
+.em-dark>div{min-width:0}
+.em-dark small{display:block;color:var(--e-small);font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;margin-bottom:2px}
+.em-dark b{display:block;font:700 19px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-ic{flex:none;width:44px;height:44px;border-radius:50%;background:var(--e-ic);color:#15803D;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center}
+.narrow .em-ic{width:34px;height:34px;font-size:8px}
+.em-pale{background:var(--e-pale);border-radius:14px;padding:14px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:14.5px}
+.narrow .em-pale{padding:10px 12px;gap:10px;font-size:13px}
+.em-pale>div{min-width:0}
+.em-pale b{display:block;color:var(--e-green);font:700 17px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-line{display:flex;gap:14px;align-items:center;margin:0 0 12px;font-size:14.5px}
+.narrow .em-line{gap:10px;font-size:13px}
+.em-line>div{min-width:0}
+.em-btn{display:block;text-align:center;background:#22C55E;color:#0B1F12;font:700 17px 'Manrope',sans-serif;padding:16px;border-radius:99px;margin:0 0 16px}
+.narrow .em-btn{font-size:15px;padding:13px}
+.em-link{border:1px solid var(--e-linkb);border-radius:12px;padding:9px 12px;font-size:12.5px;color:var(--e-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:8px;max-width:100%}
+.em-foot{border-top:1px solid var(--e-line);margin-top:14px;padding-top:12px;font-size:13px;color:var(--e-muted)}
+.em-foot a{color:var(--e-green)}
+.em-foot b{display:block;color:var(--e-ink);font:700 16px 'DM Sans',sans-serif;margin-top:10px}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}nav.toc{position:static;max-height:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+ <h4>Start here</h4>
+ <a href="#where">1. Where we stand</a>
+ <h4>The five items</h4>
+ <a href="#i2">2. Wrong-person warning</a>
+ <a href="#i4">3. OTP countdown and IP limit</a>
+ <a href="#i6">4. Spinner to tick</a>
+ <a href="#i3">5. Onboarding layout</a>
+ <a href="#i18">6. Head of Family emails</a>
+ <h4>For stakeholders</h4>
+ <a href="#sec">7. Security explanation</a>
+ <h4>How we build it</h4>
+ <a href="#strategy">8. Orchestrator and workers</a>
+ <a href="#program">9. Program strategy</a>
+ <a href="#tasks">10. Task list</a>
+ <a href="#risks">11. Risks and tests</a>
+ <h4>Your call</h4>
+ <a href="#questions">12. Questions (28)</a>
+ <a href="#copy">13. Copy my answers</a>
+ <a href="#prov">What I checked</a>
+</nav>
+
+<main>
+<div class="hero">
+ <h1>Batch B Planning</h1>
+ <div class="meta">Planning only &middot; nothing built &middot; 12 Nov 2026 &middot; updated with your answers &middot; branch leapswitch-redesign</div>
+ <p>The journey quick wins: five changes in sign-up, login, import and the Head of Family emails. Screens are now drawn at real window sizes (laptop and phone) and scaled to fit the page, so it is best viewed on a laptop. 21 of 28 questions are answered. Open ones are in section 12.</p>
+ <p>Every statement about the code comes from three read-only research passes made today, not from my own reading, so each is labelled &ldquo;reported&rdquo; until a spec re-checks it. Heights and timings are proposals, not measurements.</p>
+</div>
+
+<section id="where">
+ <h2>1. Where we stand</h2>
+ <p class="lead">Five items. Two of your answers changed the size of the batch: the per-IP limit (Q10) and the emails&rsquo; dark mode (Q19).</p>
+ <div class="stats">
+  <div class="stat"><div class="n">5</div><div class="l">items in this batch</div></div>
+  <div class="stat"><div class="n">0 or 1</div><div class="l">database migration (depends on Q23)</div></div>
+  <div class="stat"><div class="n">21 / 28</div><div class="l">questions answered</div></div>
+  <div class="stat"><div class="n">18</div><div class="l">tasks in the list (section 10)</div></div>
+ </div>
+ <div class="scroll"><table>
+  <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (reported)</th><th>What changes</th><th>Layers</th></tr></thead>
+  <tbody>
+   <tr><td class="k">2. Wrong-person warning</td><td>Warn that the file belongs to someone else.</td><td>A pop-up already says the person is not in the statement and names who is. No warning about where the data goes.</td><td>Add an amber warning block to the pop-up. Copy only.</td><td><span class="tag fe">frontend</span></td></tr>
+   <tr><td class="k">4. OTP timer</td><td>Different email or phone gets a code at once; the same one shows a countdown with a reason.</td><td>A different registered email or phone is not blocked today. An unregistered one gets &ldquo;No account found&rdquo;. The same one gets a red sentence, with no countdown.</td><td>Button counts down with a one-line red reason. Server sends the seconds. <b>New: a per-IP limit (Q10).</b></td><td><span class="tag fe">frontend</span> <span class="tag be">backend</span> <span class="tag db">database?</span></td></tr>
+   <tr><td class="k">6. Spinner to tick</td><td>Spin 2 to 3 seconds, become a tick that pops, change the text.</td><td>The spinner is decoration and spins forever. The &ldquo;importing&rdquo; text is untrue because the import already finished.</td><td>A 2.5 second timer, a tick pop, new honest copy; the paragraph and right heading follow (Q13).</td><td><span class="tag fe">frontend</span></td></tr>
+   <tr><td class="k">3. Onboarding layout</td><td>Declutter the right panel, same copy, same options.</td><td>Four option cards, a crowded heading row, six two-line chips. Must fit 1280&times;600.</td><td>Spacing and grouping only. Pick a layout (Q4). Screens switch to the brand green (Q5).</td><td><span class="tag fe">frontend</span></td></tr>
+   <tr><td class="k">18. Head of Family emails</td><td>Your six designs, plus the &ldquo;changed back&rdquo; email, with dark mode.</td><td>All three emails exist in plain form. No logo, images or table layout.</td><td>Rebuild four emails: new layout, images cropped from your pictures, dark mode.</td><td><span class="tag be">backend</span> <span class="tag fe">assets</span></td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout"><b>Scope changed.</b> &ldquo;No database change&rdquo; is no longer certain: the per-IP limit may need one small table (Q23 option B). With Q10 the batch now also does security work, and the stakeholder security note (section 7) is written for the batch as planned.</div>
+</section>
+
+<!-- ============ ITEM 2 ============ -->
+<section id="i2">
+ <h2>2. Wrong-person warning</h2>
+ <p class="lead">When the file does not contain the person you chose, the pop-up says whose data is about to be imported.</p>
+ <div class="callout info"><b>About the line you asked me to remove.</b> The pop-up only appears when the chosen person is <i>not</i> found in the file (matched by PAN, or by name for people without one). If Lalchand&rsquo;s file did contain Prateek, there would be no pop-up and his funds would go to him. So the line was true, but it can read as if it also covers the other case, so I took it out. The warning now says only what the file belongs to and what happens to it.</div>
+ <div class="flow">
+  <div><h4>Before</h4><ol>
+   <li>Prateek is selected. They upload Lalchand&rsquo;s statement.</li>
+   <li>Pop-up: &ldquo;Prateek isn&rsquo;t in this statement&rdquo;, with a line that the file has Lalchand.</li>
+   <li>&ldquo;Import for these people&rdquo; imports straight away for a one-person file.</li>
+   <li>Nothing warns where the funds go.</li></ol></div>
+  <div><h4>After</h4><ol>
+   <li>The same pop-up with an amber warning between the text and the buttons.</li>
+   <li>It says the statement belongs to Lalchand, not Prateek, and that the funds are added for Lalchand, with a new family member created if needed.</li>
+   <li>Buttons and behaviour unchanged (Q3).</li>
+   <li>Closing, Esc and an outside click still discard the file.</li></ol></div>
+ </div>
+ <h3 class="sub">Laptop (1280&times;720)</h3>
+ <p class="cap"><b>Today</b></p><div data-frame="dlg-today"></div>
+ <p class="cap"><b>Proposed</b> (draft wording)</p><div data-frame="dlg-new"></div>
+ <h3 class="sub">Phone (the same pop-up is used on the phone import)</h3>
+ <div class="cols">
+  <div><p class="cap"><b>Today</b></p><div data-frame="dlg-ph-today"></div></div>
+  <div><p class="cap"><b>Proposed</b></p><div data-frame="dlg-ph-new"></div></div>
+ </div>
+ <h3 class="sub">What changes, by layer (reported)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>frontend/src/features/import/prompts/MemberNotInFileDialog.tsx</code> passes a warning block as <code>children</code> to <code>PromptDialog</code>, between the body and the footer. One change covers web and the phone import view. Words available: the selected member&rsquo;s name, their masked PAN, and the names of the people in the file. A warning style exists in <code>ReviewExpiryBanner.tsx</code> (amber tint).</td></tr>
+   <tr><td class="k"><span class="tag be">backend</span> <span class="tag db">database</span></td><td>None.</td></tr>
+   <tr><td class="k">Tests</td><td>The existing test checks the exact title and body as single text, so the warning must be its own element. Add tests for one person, several people, and no names.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ ITEM 4 ============ -->
+<section id="i4">
+ <h2>3. OTP countdown and IP limit (your item 4)</h2>
+ <p class="lead">The button counts down with a red reason line. A different email or phone is never held by that countdown. A new per-IP limit protects against spraying many addresses.</p>
+ <div class="callout good"><b>Your requirement, checked against the code.</b> A different email or phone gets its own, separate wait, so it can get a code within the minute. That already works for registered addresses (reported, from code and tests; nobody ran the app). The new screen must also drop the countdown the moment the typed email or phone no longer matches the one that was just used.</div>
+ <div class="reply"><b>Your Q6, what a different unregistered email does today (reported).</b> The server answers 404 &ldquo;No account found for that email, sign up instead.&rdquo; and the screen shows it in the red box. No code is sent and there is no wait. That is not a countdown problem, so under your answer nothing changes for it. I will only add a test that an unregistered address never shows a wait. Note: this message is also what lets anyone check whether an email is registered. You accepted that trade-off on 30 Sep, and the per-IP limit below makes bulk checking harder.</div>
+ <div class="flow">
+  <div><h4>Before</h4><ol>
+   <li>Enter an email, press Get OTP. The code screen shows a 60 second resend timer.</li>
+   <li>Go Back, enter the <b>same</b> email within a minute: a red sentence, no countdown.</li>
+   <li>A <b>different registered</b> email: a code at once.</li>
+   <li>A <b>different unregistered</b> email: &ldquo;No account found&rdquo;.</li>
+   <li>No limit per IP address.</li></ol></div>
+  <div><h4>After (your choices, Q7 and Q10)</h4><ol>
+   <li>Same email or phone within the minute: the Get OTP button stays and counts down, with a one-line red reason below it.</li>
+   <li>Edit the field to a different email or phone: the button is live again at once and sends a code.</li>
+   <li>A different unregistered email: unchanged.</li>
+   <li>The server still refuses a real resend inside the minute, and sends the seconds left.</li>
+   <li>New: one IP address can only try a limited number of different addresses in a window (Q23, Q24).</li></ol></div>
+ </div>
+ <h3 class="sub">Laptop screens</h3>
+ <div class="winbar" data-sec="i4"><span>Laptop window</span><button type="button" data-win="w1280" aria-pressed="true">1280&times;600</button><button type="button" data-win="w1440" aria-pressed="false">1440&times;810</button><button type="button" data-win="w1536" aria-pressed="false">1536&times;730</button></div>
+ <p class="cap"><b>Today:</b> the red box</p><div data-frame="otp-today"></div>
+ <p class="cap"><b>Proposed:</b> button counts down, one red line says why</p><div data-frame="otp-count"></div>
+ <p class="cap"><b>After editing the email:</b> the button is live again, no line</p><div data-frame="otp-edit"></div>
+ <p class="note">The wording on these screens is illustrative; the app&rsquo;s own strings are kept. The red is the same error red the app uses today (#B42318). The line has no box. It tells the user why they are waiting.</p>
+ <h3 class="sub">What changes, by layer (reported)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag be">backend</span></td><td><code>backend/app/services/auth/otp.py</code> and <code>backend/app/api/auth.py</code>: the 429 reply carries a structured body with the seconds left, next to the readable sentence (the Head of Family routes already do this with <code>otp_throttled</code>). <b>New:</b> a per-IP guard before any code is created, using the existing client-IP helper (it takes the last forwarded address because of the load balancer). The per-identifier 60 second rule, the 5 minute life and the 5 wrong guesses do not change. Tests that assert the plain sentence must be updated.</td></tr>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>frontend/src/features/auth/api.ts</code> and <code>validation.ts</code> read the seconds. The login entry screen (<code>LoginEntry.tsx</code>, <code>AuthEntryFlow.tsx</code>) shows the countdown button and the red line, and resets as soon as the typed value differs from the one that was throttled. <code>useResendCountdown.ts</code> must start from a given number of seconds. Desktop split screens only (Q9); phone screens stay as they are, so they keep the plain message.</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>The per-identifier wait reads the existing <code>otp_requests</code> table. The per-IP limit may need one small table, depending on Q23 (option B).</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout"><b>Honest limit of a per-IP rule.</b> Many people can share one IP (an office, a phone network), so a strict limit can block real users; Q24 proposes limiting <i>different addresses per IP</i>, so one person retrying their own email is never hit by it. On the staging server the visible IP depends on how traffic reaches the app, which has to be checked when the spec is written.</div>
+</section>
+
+<!-- ============ ITEM 6 ============ -->
+<section id="i6">
+ <h2>4. Spinner to tick (your item 6)</h2>
+ <p class="lead">The spinner on &ldquo;You&rsquo;re all set&rdquo; is decoration, so a timed change loses nothing.</p>
+ <div class="flow">
+  <div><h4>Before</h4><ol>
+   <li>The third row shows a spinner that never stops.</li>
+   <li>The text says the import &ldquo;may take a few minutes&rdquo;. It is already done.</li>
+   <li>The button works at once, but nothing says so.</li></ol></div>
+  <div><h4>After (your Q12 and Q13)</h4><ol>
+   <li>The spinner turns about 2.5 seconds.</li>
+   <li>It becomes a tick that grows about 25 percent, then settles to the size of the others.</li>
+   <li>Row 3 reads &ldquo;Your dashboard is ready / Go to my dashboard to start your journey.&rdquo;</li>
+   <li>The left paragraph and the right heading change to match, after the tick.</li>
+   <li>With reduced motion on, no pop. The button is never held back.</li></ol></div>
+ </div>
+ <h3 class="sub">Laptop screens: three moments</h3>
+ <div class="winbar" data-sec="i6"><span>Laptop window</span><button type="button" data-win="w1280" aria-pressed="false">1280&times;600</button><button type="button" data-win="w1440" aria-pressed="true">1440&times;810</button><button type="button" data-win="w1536" aria-pressed="false">1536&times;730</button></div>
+ <p class="cap"><b>0 s:</b> spinner (as today, with today&rsquo;s text)</p><div data-frame="all-0"></div>
+ <p class="cap"><b>2.5 s:</b> the tick pops</p><div data-frame="all-1"></div>
+ <p class="cap"><b>About 3 s:</b> settled, texts changed (draft wording)</p><div data-frame="all-2"></div>
+ <h3 class="sub">What changes, by layer (reported)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>redesign/AllSet.tsx</code>: a timer of about 2500 ms (cleared when the screen closes) flips the third row from active to done and swaps the paragraph and right heading. <code>StatusRow.tsx</code> gets a pop for a row that has just turned done. <code>auth-tokens.css</code> gets one keyframe with a reduced-motion rule (the guard test checks that block). <code>finishCopy.ts</code> holds the new strings. The button colour follows Q5.</td></tr>
+   <tr><td class="k"><span class="tag be">backend</span> <span class="tag db">database</span></td><td>None.</td></tr>
+   <tr><td class="k">Tests that must change</td><td>The test expecting <code>done, done, active</code> becomes time-aware (fake timers). The test that nothing redirects by itself must keep passing. A screen reader hears the state change politely.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout"><b>Watch the promise, and two more stale texts.</b> &ldquo;Your dashboard is ready&rdquo; must be true; if Home is slow to open (your item 7), it would over-promise. The grey card &ldquo;While we fetch your data...&rdquo; and the card &ldquo;Accounts being imported&rdquo; also describe work in progress and were not in your answer. Tell me if they should change too.</div>
+</section>
+
+<!-- ============ ITEM 3 ============ -->
+<section id="i3">
+ <h2>5. Onboarding layout (your item 3)</h2>
+ <p class="lead">&ldquo;How do you usually invest?&rdquo; with the same words, the same four options and six goals, arranged to breathe. These drawings use the app&rsquo;s own size rules for each window, so you can see which layouts fit.</p>
+ <div class="callout info"><b>Hard limits (reported).</b> The screen must fit one window at 1280&times;600, where the app shrinks spacing and row heights. If the content is taller than the panel, the panel scrolls, and each drawing tells you by how much <i>in the drawing</i> (not measured in the app). Mobile uses a different flow. Two layout checks in the tests change with the layout. Goal labels are shared with Profile and cannot change. Your Q5 answer turns the buttons and ticks on this screen to #22C55E, as drawn.</div>
+ <div class="callout good"><b>No scrolling in the three new options.</b> They leave out the line &ldquo;This helps us tailor your experience and insights.&rdquo; (you said that is fine) and use rows no taller than 54 px, a little shorter than today&rsquo;s 64 px on large windows. In my drawings none of them scrolls at 1280&times;600, 1440&times;810 or 1536&times;730. Today&rsquo;s layout is drawn as it is now, with the line. The build must keep the check at the five window sizes.</div>
+ <div class="winbar" data-sec="i3"><span>Laptop window</span><button type="button" data-win="w1280" aria-pressed="true">1280&times;600</button><button type="button" data-win="w1440" aria-pressed="false">1440&times;810</button><button type="button" data-win="w1536" aria-pressed="false">1536&times;730</button></div>
+ <p class="cap"><b>Today</b></p><div data-frame="ob-today"></div>
+ <p class="cap"><b>Option A (my pick):</b> one grouped list, two-column chips, helper text under the heading, subtitle line removed</p><div data-frame="ob-a"></div>
+ <p class="cap"><b>Option B:</b> separate quiet cards, pill chips that flow, subtitle line removed</p><div data-frame="ob-b"></div>
+ <p class="cap"><b>Option C:</b> each question in its own soft panel, subtitle line removed</p><div data-frame="ob-c"></div>
+ <p class="note">Icons are shown as plain shapes. In the app they are the existing icons. Also check 1920&times;1080 and 1366&times;650 before building; one screen is known to scroll 22 px at 1024&times;600 today.</p>
+ <h3 class="sub">What changes, by layer (reported)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>redesign/InvestorProfile.tsx</code>, possibly <code>OptionRow.tsx</code> and <code>ChipCheckbox.tsx</code>, and <code>auth-tokens.css</code>. The save on Continue and the validation do not change. The line &ldquo;This helps us tailor your experience and insights.&rdquo; is removed from this screen, so any test or other screen that reads it must be checked.</td></tr>
+   <tr><td class="k"><span class="tag be">backend</span> <span class="tag db">database</span></td><td>None.</td></tr>
+   <tr><td class="k">Tests</td><td>Update the two layout checks (three columns, no-wrap heading row). Keep the roles, names, option order and the <code>span.font-semibold</code> title class. Add a fit check at five window sizes.</td></tr>
+   <tr><td class="k">Overlap</td><td>Item 6 (spinner) also edits <code>auth-tokens.css</code>, and Q5 changes the tokens, so these must not run at the same time on that file.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ ITEM 18 ============ -->
+<section id="i18">
+ <h2>6. Head of Family emails (your item 18)</h2>
+ <p class="lead">Your six designs are three emails, each at desktop and phone width. Per your Q18 a fourth, &ldquo;changed back&rdquo;, gets the same look. Your Q19 adds dark mode.</p>
+ <div class="callout info"><b>What exists (reported).</b> All three emails already exist, plain: a headline, a few lines, a footer; no logo, pictures or table layout. The undo email already has a button, a &ldquo;valid until&rdquo; line in IST and a copy-the-link line. The link lasts 24 hours and puts the token after a <code>#</code>, so it stays out of server logs.</div>
+ <div class="winbar"><span>Email theme</span><button type="button" id="em-light" aria-pressed="true">Light</button><button type="button" id="em-dark" aria-pressed="false">Dark</button></div>
+ <div id="emails"></div>
+ <p class="note">Round shapes stand in for the illustrations and icons, which will be cropped from your pictures. Copy is from your images (including &ldquo;their&rdquo; and the sample names), with the typo &ldquo;autonated&rdquo; corrected. The fourth email is my draft, built from the existing wording; it needs your review and ideally a designer&rsquo;s pass.</p>
+ <h3 class="sub">The images: what your pictures allow</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Picture</th><th>Size (from the file header)</th><th>Meaning</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Three desktop emails</td><td>919, 914 and 853 px wide, 1280 tall</td><td>An email is 600 px wide on screen, so these are only about 1.5 times that. Illustrations (about 150 to 260 px in the picture) will be soft on high-resolution screens.</td></tr>
+   <tr><td class="k">Three phone emails</td><td>720 px wide, 1280 tall, inside a phone frame</td><td>The email itself is about 520 px of that. Use the desktop pictures as the source for crops.</td></tr>
+   <tr><td class="k">Dark mode images</td><td>None</td><td>Your pictures are light only. The logo has a dark version in the repo. Illustrations will sit on a light circle so they stay visible on dark. A designer&rsquo;s dark versions would be better.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">What changes, by layer (reported)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag be">backend</span></td><td><code>backend/app/services/auth/email_templates.py</code>: a new layout function for the four builders, in tables with inline styles. It does not touch the shared header, because a test pins that header&rsquo;s hash. The send code in <code>head_change.py</code> already passes the names and the undo link. Dark mode uses a colour-scheme meta and a dark-scheme style block. The pronoun test is changed (your Q17).</td></tr>
+   <tr><td class="k">Assets</td><td>Logo, illustrations and icons as PNGs in the app&rsquo;s public folder, linked by absolute address from <code>FRONTEND_BASE_URL</code> (Q15). Cropped from your pictures (Q16).</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>None.</td></tr>
+   <tr><td class="k">Preview</td><td>There is no email preview or test-send today. A small preview script writes sample HTML files (light and dark, desktop and phone width) so we can look before sending. It does not replace the two-inbox check.</td></tr>
+   <tr><td class="k">Tests</td><td>New copy and escaping tests; rewrite the three builder tests and add one for the fourth. No visual tests exist for email, so the real check is two inboxes (<code>2026-11-03-manual-qa-checklist.md</code> sections 8 to 10) in Gmail web, Gmail app, Apple Mail and Outlook if available.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout"><b>The risk to know.</b> Many email apps block images until allowed, and Gmail and Outlook ignore web fonts and some styling. Each image gets alt text and the key facts sit in real text. Fonts will show as the system font for most readers.</div>
+</section>
+
+<!-- ============ SECURITY EXPLANATION ============ -->
+<section id="sec">
+ <h2>7. Security explanation for stakeholders (draft)</h2>
+ <p class="lead">You asked for both versions now. Both assume Batch B is built as planned, including the per-IP limit and the countdown. Numbers in square brackets are placeholders until Q24 is decided. If a change is dropped, remove its line.</p>
+ <div class="tabs"><button type="button" id="sv-a" aria-pressed="true">Version 1: what is in place</button><button type="button" id="sv-b" aria-pressed="false">Version 2: the full picture</button></div>
+ <div class="doc" id="doc-a">
+  <h4>How Unifolio protects sign-in codes</h4>
+  <p>When someone signs in with their email, Unifolio sends a one-time code. These are the protections around that code.</p>
+  <ul>
+   <li><b>Strong codes.</b> A code is 6 digits from a secure random generator. Unifolio keeps only a scrambled form of it, never the code itself.</li>
+   <li><b>Short life.</b> A code works for 5 minutes and allows 5 wrong tries. After that a new code is needed.</li>
+   <li><b>One code a minute for the same address.</b> A new code for the same email can be requested once every 60 seconds. The screen shows a countdown and says why, so the user is never left guessing.</li>
+   <li><b>Fair to genuine users.</b> A different email or phone number has its own timer, so someone who made a typo is not held up.</li>
+   <li><b>A cap per internet address.</b> From one internet address, codes can be requested for only [10] different emails or phone numbers in [10] minutes. This stops one source from sending codes to many people.</li>
+   <li><b>Codes only go to real accounts.</b> A login code is sent only if an account exists for that email. Unknown addresses receive nothing, so strangers are not emailed.</li>
+   <li><b>Failures do not lock people out.</b> If an email could not be sent, the timer does not start.</li>
+  </ul>
+  <p class="note">Scope: this covers sign-in codes sent by email. Sign-in codes by phone message are not yet delivered by a provider.</p>
+ </div>
+ <div class="doc" id="doc-b" hidden>
+  <h4>How Unifolio protects sign-in codes: the full picture</h4>
+  <h5>In place</h5>
+  <ul>
+   <li>Codes: 6 digits, secure random, stored only in scrambled form; valid 5 minutes; 5 wrong tries per code.</li>
+   <li>One new code a minute for the same email or phone, with a countdown and a plain reason on screen. A different address has its own timer.</li>
+   <li>A cap per internet address: [10] different emails or phone numbers in [10] minutes, and [30] address checks in [10] minutes (after Batch B).</li>
+   <li>Login codes only go to existing accounts. Failed sends do not start the timer.</li>
+  </ul>
+  <h5>Not in place, with what that means</h5>
+  <ul>
+   <li><b>No lockout across codes.</b> A new code resets the 5 tries, so an attacker could make about 300 guesses an hour against one account. With a million possible codes, that is roughly a 1 in 3,300 chance of a lucky guess in an hour of continuous trying (my estimate, not a measurement). Each new code is random, so earlier guesses do not help.</li>
+   <li><b>Anyone can check whether an email or phone is registered.</b> The messages &ldquo;No account found&rdquo; and &ldquo;already exists&rdquo; reveal it. This was an accepted trade-off on 30 Sep 2026. The per-IP cap slows bulk checking but does not remove it.</li>
+   <li><b>No bot check.</b> There is no CAPTCHA or similar test on the code request.</li>
+   <li><b>Shared networks.</b> A per-IP cap can slow genuine users behind one shared address, such as an office. The limits are set generously for that reason and should be watched.</li>
+   <li><b>Phone codes are not live.</b> No text-message provider is built, so none of this applies to phone sign-in yet. Choosing one, with its own limits and costs, is a separate task.</li>
+   <li><b>No alerting.</b> Nothing warns the team when code requests spike.</li>
+  </ul>
+  <h5>Recommended next steps</h5>
+  <ul>
+   <li>A bot check on the code request and per-account alerts when requests or failures spike.</li>
+   <li>A firewall rule at the entrance to the app as a second layer.</li>
+   <li>A text-message provider with its own rate limits and spending cap before phone sign-in goes live.</li>
+   <li>Revisit the &ldquo;No account found&rdquo; messages if the product&rsquo;s risk view changes.</li>
+  </ul>
+ </div>
+ <div class="callout"><b>Check before sending.</b> Both versions describe protections that exist only after Batch B is built (the per-IP cap and the countdown reason). The earlier go-live report already recommended the cap. Counsel or a security reviewer should read version 2 before it goes outside the team.</div>
+</section>
+
+<!-- ============ STRATEGY ============ -->
+<section id="strategy">
+ <h2>8. Orchestrator and workers</h2>
+ <p class="lead">Project rule: Claude orchestrates and never hands off architecture, integration or the final check. Every worker change gets a handoff document and an adversarial review before it counts as done. Your Q20: Codex for code and tests, Antigravity (Gemini) for the onboarding layout and the email HTML.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Role</th><th>Who</th><th>What they do in Batch B</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Orchestrator</td><td>Claude</td><td>Writes the specs, handoffs and packets; decides shared pieces (the OTP reply format, the per-IP rule, copy strings, asset rules); runs tests; makes every commit; checks screens against your pictures at each window size; writes the stakeholder security note; assembles the batch.</td></tr>
+   <tr><td class="k">Code worker</td><td>Codex</td><td>Backend (OTP reply, per-IP limit, email builders&rsquo; logic, tests) and the test-heavy frontend (import pop-up, All set, OTP countdown).</td></tr>
+   <tr><td class="k">Visual worker</td><td>Antigravity (Gemini)</td><td>The onboarding layout and the email HTML and CSS, from detailed packets.</td></tr>
+   <tr><td class="k">Reviewer</td><td>Codex adversarial review</td><td>One per handoff, then one whole-batch review before staging (Q21). Findings are never applied automatically.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout"><b>Known limits (from the project&rsquo;s own notes).</b> Codex in this environment cannot run <code>git add</code> or <code>git commit</code> and cannot reach dependencies outside its folder, so it writes code and reads it back while I run the tests and make every commit. A review job cannot be polled; the result arrives as a notification. The orchestration skill covers Codex only, so the Gemini hand-off is a manual relay: you carry the packet over and the result back.</div>
+ <h3 class="sub">Packets for Gemini (your Q20 note: detailed, so the output looks like the images)</h3>
+ <p>Each packet is one self-contained document. Nothing is left to guess.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Packet part</th><th>What it contains</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Reference images</td><td>Your six pictures, copied into a folder in the repo, with each element numbered on an annotated copy (logo, tag, headline, illustration, panels, icons, button, link box, footer).</td></tr>
+   <tr><td class="k">Measurements</td><td>For every element: width, height, padding, margin, radius, font size and weight, line height, colour, read from the pictures and written in pixels at 600 px email width and at phone width. The same for the four onboarding layouts at the three window sizes.</td></tr>
+   <tr><td class="k">Brand rules</td><td>Colours (#22C55E for actions, the deeper green for text and links, the dark panel colour, neutrals), fonts (DM Sans headings, Manrope body, with system fallbacks), and what changes only because of the brand (fonts and colours differ from the pictures; placement does not).</td></tr>
+   <tr><td class="k">Exact copy</td><td>Every string, character for character, with the placeholders ({name}, {date}, {link}).</td></tr>
+   <tr><td class="k">Structure and technique</td><td>For email: table layout, inline styles, 600 px fluid, image rules, alt text, dark-mode block, the fallback when images are blocked. For onboarding: the existing components to reuse and the test hooks that must stay.</td></tr>
+   <tr><td class="k">Assets</td><td>File names, sizes and where each crop comes from, plus the folder they go in.</td></tr>
+   <tr><td class="k">Do not touch</td><td>The files and strings that tests pin (shared email header, <code>span.font-semibold</code>, role and name queries).</td></tr>
+   <tr><td class="k">Acceptance test</td><td>I render the result at the same widths and compare it with your pictures side by side. Differences allowed: fonts and colours only. Anything else that moves is a defect. Desktop 600 px, phone about 375 px, light and dark; onboarding at five window sizes.</td></tr>
+   <tr><td class="k">Report format</td><td>A short list of what was built, what was not, and any measurement that could not be matched.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Lanes that can run at the same time</h3>
+ <div class="cols">
+  <div class="flow" style="display:block"><h4>Lane 1: import</h4><p>Item 2. Only the import prompts folder and its tests.</p></div>
+  <div class="flow" style="display:block"><h4>Lane 2: sign-in and sign-up screens</h4><p>Items 4, 6 and 3 (and the green switch) are in the auth folder; items 6 and 3 and Q5 all touch <code>auth-tokens.css</code>. Item 4 first or beside; then item 6; then item 3.</p></div>
+  <div class="flow" style="display:block"><h4>Lane 3: emails</h4><p>Item 18. <code>email_templates.py</code>, its tests and new image files. Independent of the others.</p></div>
+  <div class="flow" style="display:block"><h4>Lane 4: backend limit</h4><p>The per-IP limit (Q10). Shares <code>auth.py</code> and <code>otp.py</code> with item 4&rsquo;s reply change, so it goes with item 4, not beside it.</p></div>
+ </div>
+</section>
+
+<!-- ============ PROGRAM STRATEGY ============ -->
+<section id="program">
+ <h2>9. Program strategy: order, deploy, plans</h2>
+ <p class="lead">You asked for this now so the next batches know what came before and what follows. All of it is a proposal for you to decide (Q26 to Q28).</p>
+ <h3 class="sub">A. Execution order</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Wave</th><th>Batches</th><th>Needs</th><th>Why here</th></tr></thead>
+  <tbody>
+   <tr><td class="k">1</td><td>B (this batch), C (holdings hygiene), L (portfolio disclosures audit), GA4 foundation</td><td>Nothing waits; 17a needs A</td><td>Independent of NAV and of each other. Different lanes, so they can run together.</td></tr>
+   <tr><td class="k">2</td><td>A (truth-finding)</td><td>Manager&rsquo;s NAV fix</td><td>Every check reads NAV.</td></tr>
+   <tr><td class="k">3</td><td>D (charts)</td><td>NAV fix</td><td>Benchmark series and day change.</td></tr>
+   <tr><td class="k">4</td><td>K steps 1 to 2 (search foundation, Mutual Funds tabs)</td><td>Manager returns the search plan</td><td>Settles page headers before later batches touch them.</td></tr>
+   <tr><td class="k">5</td><td>E (explainers and dates)</td><td>A, the date decision, fact sheet fixes</td><td>Needs correct numbers first.</td></tr>
+   <tr><td class="k">6</td><td>K steps 3 to 4, F (section index)</td><td>D, E, one shared section list</td><td>Planned together on one list of sections.</td></tr>
+   <tr><td class="k">7</td><td>I (PDF export)</td><td>A, E, F, Standard/Pro plan</td><td>Mirrors the final sections.</td></tr>
+   <tr><td class="k">8</td><td>GA4 custom events, H (video recording)</td><td>D, E, F, K stable; CAMS screen stable</td><td>Events attach to screens that must stop changing.</td></tr>
+  </tbody>
+ </table></div>
+ <h4 class="mini">What Batch B leaves behind for later waves</h4>
+ <ul class="tight">
+  <li><b>The per-IP limit and the structured 429 reply</b> become the shared sign-in guard. GA4 and search can rely on it; GA4 consent adds a purpose to the same consent code.</li>
+  <li><b>Migration numbers.</b> The Explore workbook&rsquo;s draft used 0054 and 0055, and Q23 option B would take 0054 now. Every plan takes the next free number at build time, not the one in its draft.</li>
+  <li><b><code>auth-tokens.css</code> and the green switch (Q5, Q25)</b> change the sign-up look for all later auth work.</li>
+  <li><b>The email layout function and the image folder</b> are what any future email (contact change, codes) would reuse.</li>
+  <li><b>The window-size fit check (five sizes)</b> becomes the standard check for any auth screen.</li>
+ </ul>
+ <h3 class="sub">B. When do we deploy? (your Q22 note)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Option</th><th>How it works</th><th>For</th><th>Against</th></tr></thead>
+  <tbody>
+   <tr><td class="k">A. Build everything, deploy once at the end (your lean)</td><td>All batches are built and reviewed, then one staging deploy and one QA round, then production.</td><td>One QA round and one deploy guide. Stakeholders see the finished whole.</td><td>One very large change: harder to find which change broke something; a whole-program review becomes huge; a long gap before stakeholders see anything; your manager&rsquo;s NAV fix and other work keep landing on the base branch, so merges grow; migrations from several batches arrive together; a bug in one batch holds up all.</td></tr>
+   <tr><td class="k">B. Deploy after every batch</td><td>Each batch is deployed to staging when done.</td><td>Small, easy to check; feedback early.</td><td>Many deploy guides and QA rounds; email checks need real inboxes each time.</td></tr>
+   <tr><td class="k">C. Milestone deploys (my pick)</td><td>Build everything on one integration branch kept up to date with the base. Deploy to staging at a few milestones: after wave 1, after waves 2 to 3, after the search and navigation work, and a final one. Production only once at the end.</td><td>Keeps your single production release; each staging deploy is small enough to check; emails get tested early; bugs surface close to the change that caused them.</td><td>A few more staging rounds than option A; the integration branch needs steady merging.</td></tr>
+  </tbody>
+ </table></div>
+ <p>Your option A can work if the integration branch is merged with the base branch regularly and each batch is tested on its own before it joins. My concern is the size of the final QA round and finding the cause of a failure across five or six batches at once.</p>
+ <h3 class="sub">C. How do we write the implementation plans? (your question)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Option</th><th>How it works</th><th>For</th><th>Against</th></tr></thead>
+  <tbody>
+   <tr><td class="k">A. One plan for all batches</td><td>A single document covering every batch.</td><td>One place to read.</td><td>Very long; goes stale as soon as the NAV fix, the search plan or an answer changes; later batches depend on results of earlier ones (the findings of batch A decide what batch E says).</td></tr>
+   <tr><td class="k">B. One plan per batch, plus a short program index (my pick)</td><td>Each batch gets its own plan, written just before it is built. A program index lists the order, the shared files, migration numbers and the interfaces between batches.</td><td>Matches how this repo already works: the CAS import fixes have an index and plans p1 to p7, and the October releases have a backend and a frontend plan each. Plans stay current. Context carries forward through the index.</td><td>More documents; the index must be kept up to date.</td></tr>
+   <tr><td class="k">C. One plan per item</td><td>Five plans for this batch alone.</td><td>Fine-grained.</td><td>Too heavy for small changes; the shared files make items interdependent.</td></tr>
+  </tbody>
+ </table></div>
+ <p>Large pieces keep their own plan inside the pattern: search (21 tasks) and the Head of Family emails (assets, preview, dark mode) are big enough to be separate plans, with this batch&rsquo;s index pointing to them.</p>
+ <h4 class="mini">What the program index would hold</h4>
+ <ul class="tight">
+  <li>The wave table above, with status.</li>
+  <li>A map of shared files and who touches them (the auth stylesheet, the page header slot, the section list, the consent code).</li>
+  <li>The migration number ledger.</li>
+  <li>For each finished batch: what changed, what it leaves for later batches, what to re-check.</li>
+  <li>The deploy milestones and the checklist for each.</li>
+ </ul>
+ <div class="callout good"><b>Where the plans go.</b> The repo keeps plans in <code>Docs/superpowers/plans/</code> and specs in <code>Docs/superpowers/specs/</code>. Each plan would be written with the writing-plans step after you approve the design of its batch.</div>
+</section>
+
+<section id="tasks">
+ <h2>10. Task list</h2>
+ <p class="lead">Same IDs as the Notion pack (B-1 to B-12), plus five new tasks. Item numbers are yours.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Item</th><th>Task</th><th>Worker</th><th>Size</th><th>Status</th></tr></thead>
+  <tbody>
+   <tr><td class="k">B-1</td><td>2</td><td>Warning copy and look</td><td>Claude</td><td>S</td><td><span class="tag ok">Decided</span> (Q1 to Q3)</td></tr>
+   <tr><td class="k">B-2</td><td>2</td><td>Build and test the warning block</td><td>Codex</td><td>S</td><td>Ready to spec</td></tr>
+   <tr><td class="k">B-3</td><td>4</td><td>Check what the OTP resend does today</td><td>Research</td><td>S</td><td><span class="tag ok">Done</span></td></tr>
+   <tr><td class="k">B-4</td><td>4</td><td>Design the countdown, the reason line and the reset on edit</td><td>Claude</td><td>S</td><td><span class="tag ok">Decided</span> (Q7 to Q9)</td></tr>
+   <tr><td class="k">B-5a</td><td>4</td><td>Backend: structured 429 reply with seconds left; tests updated</td><td>Codex</td><td>S</td><td>Ready to spec</td></tr>
+   <tr><td class="k">B-5b</td><td>4</td><td>Frontend: countdown button, red line, reset on edit</td><td>Codex</td><td>M</td><td>After B-5a</td></tr>
+   <tr><td class="k">B-5c (new)</td><td>4</td><td>Backend: per-IP limit and its tests (and a migration if Q23 B)</td><td>Codex</td><td>M</td><td>Waiting for Q23, Q24</td></tr>
+   <tr><td class="k">B-6</td><td>4</td><td>Security explanation for stakeholders</td><td>Claude</td><td>M</td><td>Drafted in section 7</td></tr>
+   <tr><td class="k">B-7</td><td>6</td><td>Timer, tick pop, new copy (row, paragraph, heading), tests</td><td>Codex</td><td>S</td><td>Ready to spec</td></tr>
+   <tr><td class="k">B-8</td><td>3</td><td>Onboarding layout mockups</td><td>Claude</td><td>M</td><td>Drawn; waiting for Q4</td></tr>
+   <tr><td class="k">B-9</td><td>3</td><td>Build the chosen layout, green switch, tests, fit check at five window sizes</td><td>Gemini, Codex for tests</td><td>M</td><td>Waiting for Q4, Q25</td></tr>
+   <tr><td class="k">B-10</td><td>18</td><td>Get the email designs</td><td>You</td><td>S</td><td><span class="tag ok">Done</span></td></tr>
+   <tr><td class="k">B-11</td><td>18</td><td>Compare designs with current templates and settle the copy</td><td>Claude</td><td>S</td><td><span class="tag ok">Decided</span> (Q17)</td></tr>
+   <tr><td class="k">B-12</td><td>18</td><td>Crop assets, build the layout and four emails with dark mode, preview script, two-inbox check</td><td>Gemini (HTML), Codex (logic and tests)</td><td>L</td><td>Ready to write packet</td></tr>
+   <tr><td class="k">B-13 (new)</td><td>all</td><td>Whole-batch adversarial review, staging deploy</td><td>Claude</td><td>M</td><td>After all items</td></tr>
+   <tr><td class="k">B-14 (new)</td><td>3, 18</td><td>Write the two Gemini packets (onboarding, emails)</td><td>Claude</td><td>M</td><td>After Q4</td></tr>
+   <tr><td class="k">B-15 (new)</td><td>all</td><td>Program index document</td><td>Claude</td><td>S</td><td>After Q26 to Q28</td></tr>
+   <tr><td class="k">B-16 (new)</td><td>18</td><td>Copy the six reference images into the repo for the packets</td><td>Claude</td><td>S</td><td>Ready</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="risks">
+ <h2>11. Risks and tests</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Risk</th><th>Item</th><th>What we do</th></tr></thead>
+  <tbody>
+   <tr><td>The warning reads as scary or is missed</td><td>2</td><td>Amber callout; tests for one, several and no names.</td></tr>
+   <tr><td>Changing the OTP reply breaks old screens or the phone screens</td><td>4</td><td>Keep the readable sentence next to the new number; update the tests; no change to mobile.</td></tr>
+   <tr><td>The per-IP limit blocks genuine users on a shared network</td><td>4</td><td>Limit different addresses per IP, not retries; generous numbers; clear message; watch it after release.</td></tr>
+   <tr><td>The visible client IP is wrong behind the proxy (staging server versus the load balancer)</td><td>4</td><td>Check how the address arrives on each host when writing the spec; test with a real request.</td></tr>
+   <tr><td>The new migration number clashes with another plan</td><td>4</td><td>Take the next free number at build time (see section 9).</td></tr>
+   <tr><td>The stakeholder note overclaims</td><td>4</td><td>Two versions; counsel or a security reviewer reads version 2.</td></tr>
+   <tr><td>The tick pop is distracting or inaccessible; &ldquo;ready&rdquo; is untrue if Home is slow</td><td>6</td><td>Reduced-motion rule, polite announcement, check Home load time (item 7).</td></tr>
+   <tr><td>The new layout does not fit 1280&times;600; white text on #22C55E is hard to read</td><td>3, 6</td><td>Use the existing shrink tokens; measure at five sizes; buttons use dark text on the brand green, as in the emails.</td></tr>
+   <tr><td>Two greens inside one sign-up flow if only two screens change</td><td>3, 6</td><td>Q25: switch all ten auth screens through the tokens.</td></tr>
+   <tr><td>Items 6 and 3 and the green switch clash in <code>auth-tokens.css</code></td><td>3, 6</td><td>Run one after the other.</td></tr>
+   <tr><td>Soft illustrations from 919 px pictures; no dark-mode art</td><td>18</td><td>Crop from the largest picture; light circle behind illustrations in dark mode; swap in designer originals later.</td></tr>
+   <tr><td>Images blocked, fonts ignored, dark mode inconsistent across email apps</td><td>18</td><td>Alt text, facts in real text, system fallback, tables and inline styles, four-app check.</td></tr>
+   <tr><td>Editing the shared email header breaks the OTP email test</td><td>18</td><td>New layout function; shared header untouched.</td></tr>
+   <tr><td>A Gemini result drifts from the pictures</td><td>3, 18</td><td>Detailed packets; side-by-side check; fonts and colours are the only allowed differences.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Tests, in short</h3>
+ <ul class="tight">
+  <li><b>Frontend:</b> Vitest. Update the import prompt test, the All set and status row tests (time-aware), the onboarding layout checks, the login screen tests. From <code>frontend/</code>: <code>npm test</code>, <code>npm run lint</code>, <code>npm run build</code>.</li>
+  <li><b>Backend:</b> pytest. Update the OTP 429 tests (<code>test_otp.py</code>, <code>test_auth_routes.py</code>, <code>test_email_otp_routes.py</code>); add per-IP tests; rewrite the email builder tests and change the pronoun test.</li>
+  <li><b>By eye:</b> screens at five window sizes against your pictures; emails in real inboxes, light and dark.</li>
+ </ul>
+ <div class="callout good"><b>Deploy.</b> Per your Q22: one staging deploy for the batch, then the two-inbox email check; the program-level timing is Q26. With Q23 B there is one small migration, so the deploy guide must say so.</div>
+</section>
+
+<!-- ============ QUESTIONS ============ -->
+<section id="questions">
+ <h2>12. Questions</h2>
+ <p class="lead">28 questions. Your 21 answers are recorded and locked, with an &ldquo;answered&rdquo; badge and a &ldquo;Chosen&rdquo; badge on the picked option. Seven are open: Q4 and the new Q23 to Q28.</p>
+ <div class="bar"><span class="status" id="prog">0 of 28 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
+ <div id="cards"></div>
+</section>
+
+<section id="copy">
+ <h2>13. Copy my answers</h2>
+ <p class="lead">Press the button, then paste the text in chat. If it does nothing, select the text below and copy it yourself.</p>
+ <button id="copyBtn" type="button">Copy my answers</button> <span class="status" id="copyMsg"></span>
+ <label class="nl" for="outTa">Your answers as text</label>
+ <textarea id="outTa" class="out" readonly></textarea>
+</section>
+
+<section id="prov">
+ <h2>What I checked</h2>
+ <p>Three research passes read the code and reported back: the import, onboarding and All set screens; the OTP flow; the Head of Family emails and brand tokens. I did not re-read those files myself, so each statement marked &ldquo;reported&rdquo; should be re-checked when its spec is written. Nobody ran the app, so the OTP behaviour is from code and tests. The image sizes come from reading the file headers.</p>
+ <p><b>Not verified:</b> the two brand PDFs could not be opened here. I used #22C55E for actions, #15803D from the app&rsquo;s own palette file as the deeper green, and DM Sans with Manrope from the design brief. Please check the deeper green against the palette PDF. The dark green email panel is estimated from your images.</p>
+ <p><b>Drawn, not measured:</b> the window drawings use the app&rsquo;s size rules (from <code>auth-tokens.css</code>) but are my reconstruction, so a fit result is a guide. Heights, timings and limits are proposals.</p>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+/* ================= frame builders ================= */
+function vp(inner,w,h,cls,attrs){return '<div class="vp '+(cls||'')+'" data-w="'+w+'"'+(h?' data-h="'+h+'"':'')+(attrs||'')+'><div class="vp-in">'+inner+'</div></div>'}
+function chrome(url){return '<div class="chrome"><i></i><i></i><i></i><span>'+url+'</span></div>'}
+var DLG_BODY='This statement doesn’t show PRATEEK BHUSHAN SANCHETI’s PAN (FS*******7M). It has Lalchand Sancheti.';
+var WARN='<div class="dwarn"><i>!</i><div><b>Check before you continue</b>This statement belongs to Lalchand Sancheti, not PRATEEK BHUSHAN SANCHETI. If you import it, the funds are added for Lalchand Sancheti, and a new family member is created if they are not already in your family.</div></div>';
+function dlg(withWarn,phone){
+ return '<div class="dlg'+(phone?' ph':'')+'"><h5>PRATEEK BHUSHAN SANCHETI isn’t in this statement</h5><div class="body">'+DLG_BODY+'</div>'+(withWarn?WARN:'')+'<div class="foot"><span class="dbtn o">Upload a different file</span><span class="dbtn">Import for these people</span></div></div>';
+}
+function dlgDesk(w){return vp(chrome('ls-redesign.unifolio.in/import')+'<div class="dlg-bg"><div class="fake"></div><div class="dim">'+dlg(w,false)+'</div></div>',1280,760)}
+function dlgPh(w){return vp('<div class="phs"><div class="scr"><div class="sb"><b></b></div><div style="position:relative;min-height:690px;background:#F4F6F4"><div style="position:absolute;inset:30px 16px;border:2px dashed #C8D3C8;border-radius:18px;background:#fff;filter:blur(2px)"></div><div style="position:absolute;inset:0;background:rgba(17,17,17,.5);display:flex;align-items:center;padding:16px">'+dlg(w,true)+'</div></div></div></div>',390,0)}
+function steps(n){var s='';for(var i=1;i<=5;i++)s+='<i'+(i>n?' class="off"':'')+'></i>';return '<div class="d-steps">'+s+'</div>'}
+function shell(left,rightTop,rightInner,white){
+ return chrome('ls-redesign.unifolio.in')+'<div class="d-page"><div class="d-card"><div class="d-left'+(white?' white':'')+'">'+left+'</div><div class="d-right"><div class="d-top">'+rightTop+'</div><div class="d-content"><div class="d-inner">'+rightInner+'</div></div></div></div></div>';
+}
+function auth(inner,attr){return '<div class="vp w1280" data-auth="1" data-w="1280" data-h="640"'+(attr||'')+'><div class="vp-in">'+inner+'</div><span class="fitb" hidden></span></div>'}
+var LEFT_OB='<div class="d-logo">Unifolio</div><div class="d-sketch">person illustration</div><div class="d-h2">Help us personalise your <span>experience.</span></div><p class="d-p">Tell us a little about how you invest and what you’re working towards, so we can make your insights more relevant.</p><div class="d-bul"><i></i><div>More relevant insights</div></div><div class="d-bul"><i></i><div>A tailored experience</div></div><div class="d-bul"><i></i><div>You’re always in control</div></div>';
+var OPTS=[["I’m just getting started","I’m new to investing or still building my portfolio."],["I manage my own investments","I choose and manage investments myself."],["I work with a financial professional","I invest with help from an advisor, distributor or family office."],["A mix of both","I manage some investments myself and get professional guidance for others."]];
+var GOALS=["Build my wealth","Plan for retirement","Fund my children’s education","Buy a home","Achieve financial freedom","Plan my taxes"];
+function optRow(o,cls){return '<div class="o-opt '+(cls||'')+'"><span class="o-badge">●</span><div><b>'+o[0]+'</b><small>'+o[1]+'</small></div><span class="o-rad"></span></div>'}
+function opts(cls,grp){var h=OPTS.map(function(o,i){return optRow(o,(i===0&&cls==='quiet'?'sel':cls)+((grp||cls==='quiet')?' tt':''))}).join('');return grp?'<div class="o-grp">'+h+'</div>':'<div class="o-sec">'+h+'</div>'}
+function chips(c,sel){return '<div class="o-chips '+c+'">'+GOALS.map(function(g,i){return '<div class="o-chip'+(sel&&i===0?' sel':'')+'"><i></i><span>'+g+'</span><em></em></div>'}).join('')+'</div>'}
+function pills(){return '<div class="o-pills">'+GOALS.map(function(g,i){return '<span class="o-pill'+(i===0?' sel':'')+'"><i></i>'+g+'</span>'}).join('')+'</div>'}
+var H1='<div><div class="o-h1">How do you usually invest?</div><p class="o-sub">This helps us tailor your experience and insights.</p></div>';
+var H1N='<div><div class="o-h1">How do you usually invest?</div></div>';
+var GO='<div class="o-go">Continue →</div>';
+function obRight(v){
+ if(v==='today')return '<div class="o-stack">'+H1+opts('')+'<div class="o-sec"><div class="o-h2"><b>What are you working towards? <span>(Select all that apply)</span></b><a>Select all</a></div>'+chips('c3')+'</div>'+GO+'</div>';
+ if(v==='a')return '<div class="o-stack">'+H1N+opts('',true)+'<div class="o-sec"><div class="o-h2"><b>What are you working towards?</b><a>Select all</a></div><p class="o-sub" style="font-size:12.5px;line-height:1.2">(Select all that apply)</p>'+chips('c2')+'</div>'+GO+'</div>';
+ if(v==='b')return '<div class="o-stack">'+H1N+opts('quiet')+'<div class="o-sec"><div class="o-h2"><b>What are you working towards? <span>(Select all that apply)</span></b><a>Select all</a></div>'+pills()+'</div>'+GO+'</div>';
+ return '<div class="o-stack"><div class="o-panel" style="padding:10px">'+H1N+'<div style="height:var(--gap-sm)"></div>'+opts('',true)+'</div><div class="o-panel" style="padding:10px"><div class="o-h2"><b>What are you working towards? <span>(Select all that apply)</span></b><a>Select all</a></div><div style="height:var(--gap-sm)"></div>'+chips('c2')+'</div>'+GO+'</div>';
+}
+function obFrame(v){return auth(shell(LEFT_OB,'<span>← Back</span>Step 4 of 5'+steps(4),obRight(v)),' data-ob="1"')}
+var LEFT_LOGIN='<div class="d-logo">Unifolio</div><div class="d-sketch">illustration</div><div class="d-h2">Welcome <span>back.</span></div><p class="d-p">Log in to see your whole family’s portfolio in one place.</p>';
+function loginRight(state){
+ var em='prateek@example.com';
+ var mid='<div class="o-stack"><div><div class="o-h1">Log in</div><p class="o-sub">Enter your email or mobile number.</p></div><div class="o-tabs"><span class="on">Email</span><span>Phone</span></div><div><div class="o-lab">Email address</div><div class="o-field">'+(state==='edit'?'rohan@example.com':em)+'</div></div>';
+ if(state==='today')mid+='<div class="o-alert">Please wait 42s before requesting another code.</div><div class="o-go">Get OTP</div>';
+ if(state==='count')mid+='<div><div class="o-go dis">Get OTP again in 00:42</div><div class="o-red">We just sent a code to this email. For your security, you can request another one once the timer ends.</div></div>';
+ if(state==='edit')mid+='<div class="o-go">Get OTP</div>';
+ return mid+'</div>';
+}
+function loginFrame(st){return auth(shell(LEFT_LOGIN,'<span>← Back</span><span></span>',loginRight(st)))}
+function allSet(stage){
+ var settled=stage===2;
+ var r3=stage===0?'<i class="spin"></i>':'<i class="'+(stage===1?'big':'')+'">✓</i>';
+ var t3=stage===0?['Preparing your dashboard','Your investments will come together in one view as your data becomes available.']:['Your dashboard is ready','Go to my dashboard to start your journey.'];
+ var para=settled?'Your investment data is in and your dashboard is ready.':'We’re importing your investment data and getting your dashboard ready. This may take a few minutes.';
+ var right=settled?'Your accounts are ready':'Getting your accounts ready';
+ var left='<div class="d-logo">Unifolio</div><div class="d-sketch" style="max-height:120px">wallet illustration</div><div class="d-h2">You’re all set!</div><p class="d-p">'+para+'</p><div style="margin-top:var(--gap-sm)"><div class="st"><i>✓</i><div><b>Accounts connected</b><small>Your account connections have been initiated.</small></div></div><div class="st"><i>✓</i><div><b>Importing your investment data</b><small>We’re retrieving your holdings from the connected accounts.</small></div></div><div class="st">'+r3+'<div><b>'+t3[0]+'</b><small>'+t3[1]+'</small></div></div></div>';
+ var rin='<div class="o-stack"><div style="text-align:center"><div class="d-sketch" style="width:90px;height:90px;margin:0 auto 8px;flex:none;max-height:none;font-size:10px">tick</div><div class="o-h1" style="font-size:calc(var(--h1) - 4px)">'+right+'</div></div><div class="a-card"><div style="display:flex;justify-content:space-between"><b>Accounts being imported</b><a style="color:#15803D;font-weight:600;font-size:13px">View details ›</a></div><div style="display:flex;justify-content:space-between;margin-top:6px"><span>Mutual Funds<small style="display:block;color:#667085;font-size:12.5px">Imported via CAS statement</small></span><span style="color:#22C55E;font-weight:700">✓</span></div></div><div class="a-info"><b>While we fetch your data...</b>We’ll analyse your portfolio, organise everything in one place and prepare personalised insights for you.</div><div class="o-go">Go to my dashboard →</div></div>';
+ return auth(shell(left,'<span></span>'+steps(5),rin,true))
+}
+var EM=[
+ {name:"1. To the new Head of Family",tag:"ACCOUNT UPDATE",h:["You’re now the ","Head of Family."],sub:"The Head of Family role for your Unifolio account has been transferred to you.",ill:"id cards, arrow right",
+  blocks:[{t:"dark",ic:"crown",body:"You can now sign in using your own email address or mobile number to access and manage your family’s combined financial view."},{t:"pale",ic:"layers",head:"Your family’s portfolio data remains unchanged.",body:"All existing investments and financial information remain intact."}],
+  foot:["This is an automated account notification. Please do not reply.","Need help? We’re here at <a>support@unifolio.in</a>."]},
+ {name:"2. Undo link, to the previous head",tag:"ACCOUNT SECURITY",h:["Want to ","reverse"," this change?"],sub:"If you didn’t authorise the change to your family’s Head of Family, you can restore the previous sign-in using the button below.",ill:"id cards, arrow left",
+  blocks:[{t:"btn",body:"Undo Head of Family Change"},{t:"line",ic:"date",body:"This link is valid until <b>10 November 2026, 5:07 PM IST.</b>"},{t:"line",ic:"warn",body:"Please note: The link will expire earlier if the previous phone number or email address is used for another account in the meantime."},{t:"pale",ic:"link",head:"Having trouble with the button?",body:"You can copy and paste the link below into your browser:",link:"https://ls-redesign.unifolio.in/undo-head-change#token=…"}],
+  foot:["This is an automated security email. Please do not reply.","Need help? Contact us at <a>support@unifolio.in</a>."]},
+ {name:"3. To the previous head, after the change",tag:"",h:["Your family’s account has been ","updated."],sub:"The Head of Family for your Unifolio account has changed.",ill:"id cards, arrow right",
+  blocks:[{t:"dark",ic:"person",small:"NEW HEAD OF FAMILY",head:"Rohan Shanbhag",body:"Will access Unifolio using their own email address and mobile number."},{t:"line",ic:"people",body:"You (Aditi Shanbhag) will remain a family member, but you will no longer be able to sign in using this email address."},{t:"line",ic:"layers",body:"Your family’s portfolio data remains unchanged."},{t:"pale",ic:"shield",head:"Didn’t authorise this change?",body:"We’ve sent you a separate email with a link to reverse this change. If you don’t recognise this activity, please contact us at <a>support@unifolio.in</a>."}],
+  foot:["We’re here if you need us.","This is an automated notification. Please do not reply to this email."]},
+ {name:"4. Changed back (new, my draft)",tag:"ACCOUNT UPDATE",h:["The change has been ","reversed."],sub:"The Head of Family for your Unifolio account is back to the previous setup.",ill:"id cards, arrow left",
+  blocks:[{t:"dark",ic:"crown",small:"HEAD OF FAMILY AGAIN",head:"Aditi Shanbhag",body:"Signs in with the previous email address and mobile number."},{t:"line",ic:"people",body:"Rohan Shanbhag remains a family member and no longer signs in as Head of Family."},{t:"line",ic:"layers",body:"Your family’s portfolio data remains unchanged."},{t:"pale",ic:"shield",head:"Didn’t expect this?",body:"If you don’t recognise this activity, please contact us at <a>support@unifolio.in</a>."}],
+  foot:["We’re here if you need us.","This is an automated notification. Please do not reply to this email."]}
+];
+function emCard(e,narrow,dark){
+ var h=e.h.map(function(x,i){return i===1?"<span>"+x+"</span>":x}).join("");
+ var s='<div class="emx'+(narrow?' narrow':'')+(dark?' dark':'')+'"><div class="em-card"><div class="em-top"><span class="em-logo">Unifolio</span><span class="em-tag">'+e.tag+'</span></div>';
+ s+='<div class="em-hd"><div><div class="em-h1">'+h+'</div><p class="em-sub">'+e.sub+'</p></div><div class="em-ill">'+e.ill+'</div></div>';
+ e.blocks.forEach(function(b){
+  if(b.t==="dark")s+='<div class="em-dark"><span class="em-ic">'+b.ic+'</span><div>'+(b.small?'<small>'+b.small+'</small>':'')+(b.head?'<b>'+b.head+'</b>':'')+b.body+'</div></div>';
+  if(b.t==="pale")s+='<div class="em-pale"><span class="em-ic">'+b.ic+'</span><div><b>'+b.head+'</b>'+b.body+(b.link?'<div class="em-link">'+b.link+'</div>':'')+'</div></div>';
+  if(b.t==="line")s+='<div class="em-line"><span class="em-ic">'+b.ic+'</span><div>'+b.body+'</div></div>';
+  if(b.t==="btn")s+='<span class="em-btn">'+b.body+'</span>';
+ });
+ s+='<div class="em-foot">'+e.foot.join("<br>")+'<b>Team Unifolio</b></div></div></div>';
+ return s;
+}
+var emDark=false;
+function renderEmails(){
+ var host=document.getElementById("emails"),hh="";
+ EM.forEach(function(e){
+  hh+='<h4 class="mini">'+e.name+'</h4><div class="pair"><div><p class="cap"><b>Desktop (600 px wide)</b></p>'+vp(emCard(e,false,emDark),600,0,'')+'</div><div><p class="cap"><b>Phone</b></p>'+vp('<div class="phs'+(emDark?' dark':'')+'"><div class="scr"><div class="sb"><b></b></div>'+emCard(e,true,emDark)+'</div></div>',390,0,'')+'</div></div>';
+ });
+ host.innerHTML=hh;layout();
+}
+var MAP={
+ 'dlg-today':function(){return dlgDesk(false)},'dlg-new':function(){return dlgDesk(true)},
+ 'dlg-ph-today':function(){return dlgPh(false)},'dlg-ph-new':function(){return dlgPh(true)},
+ 'otp-today':function(){return loginFrame('today')},'otp-count':function(){return loginFrame('count')},'otp-edit':function(){return loginFrame('edit')},
+ 'all-0':function(){return allSet(0)},'all-1':function(){return allSet(1)},'all-2':function(){return allSet(2)},
+ 'ob-today':function(){return obFrame('today')},'ob-a':function(){return obFrame('a')},'ob-b':function(){return obFrame('b')},'ob-c':function(){return obFrame('c')}
+};
+document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=MAP[el.getAttribute('data-frame')]()});
+/* ================= scaling and fit ================= */
+function layout(){
+ document.querySelectorAll('.vp').forEach(function(v){
+  var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');
+  inn.style.width=w+'px';
+  inn.style.height=h?h+'px':'auto';
+  var hh=h||inn.offsetHeight;
+  var sc=Math.min(1,v.clientWidth/w);
+  inn.style.transform='scale('+sc+')';
+  v.style.height=Math.ceil(hh*sc)+'px';
+  var fb=v.querySelector('.fitb');
+  if(fb&&v.hasAttribute('data-ob')){
+   var c=v.querySelector('.d-content');var over=c.scrollHeight-c.clientHeight;
+   fb.hidden=false;fb.className='fitb'+(over>1?' bad':'');
+   fb.textContent=over>1?'In this drawing: scrolls by '+Math.round(over)+' px':'In this drawing: fits';
+  }
+ });
+}
+function setWin(sec,win){
+ var secEl=document.getElementById(sec);
+ secEl.querySelectorAll('.vp[data-auth]').forEach(function(v){
+  v.classList.remove('w1280','w1440','w1536');v.classList.add(win);
+  var dims={w1280:[1280,640],w1440:[1440,850],w1536:[1536,770]}[win];
+  v.setAttribute('data-w',dims[0]);v.setAttribute('data-h',dims[1]);
+ });
+ secEl.querySelectorAll('.winbar button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-win')===win)});
+ layout();
+}
+document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){
+ var sec=bar.getAttribute('data-sec');
+ bar.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){setWin(sec,b.getAttribute('data-win'))})});
+ var on=bar.querySelector('button[aria-pressed="true"]');if(on)setWin(sec,on.getAttribute('data-win'));
+});
+renderEmails();
+window.addEventListener('resize',layout);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layout);
+setTimeout(layout,400);
+var el=document.getElementById('em-light'),ed=document.getElementById('em-dark');
+el.addEventListener('click',function(){emDark=false;el.setAttribute('aria-pressed','true');ed.setAttribute('aria-pressed','false');renderEmails()});
+ed.addEventListener('click',function(){emDark=true;ed.setAttribute('aria-pressed','true');el.setAttribute('aria-pressed','false');renderEmails()});
+var sa=document.getElementById('sv-a'),sb=document.getElementById('sv-b');
+sa.addEventListener('click',function(){document.getElementById('doc-a').hidden=false;document.getElementById('doc-b').hidden=true;sa.setAttribute('aria-pressed','true');sb.setAttribute('aria-pressed','false')});
+sb.addEventListener('click',function(){document.getElementById('doc-a').hidden=true;document.getElementById('doc-b').hidden=false;sb.setAttribute('aria-pressed','true');sa.setAttribute('aria-pressed','false')});
+
+/* ================= questions ================= */
+var KEY="batch-b-planning-v2",S={};
+try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+var Q=[
+{id:"Q1",item:"Item 2",title:"How should the warning look and where does it go?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"An amber callout between the text and the buttons",rec:1,d:"Good: clearly visible, the same warm style the app already uses for notices, and the existing test for the title and body keeps passing. Bad: one more block in a small pop-up."},
+ {k:"B",l:"A red callout",d:"Good: strongest. Bad: red reads as an error; nothing has failed. It may frighten people who simply chose the right file for someone else."},
+ {k:"C",l:"One extra sentence added to the body text",d:"Good: no new block. Bad: easy to skim past, and it breaks the existing test that expects the exact body text."}],
+ why:"The warning is the whole point, so it must stand apart from the text, and amber says take care without saying something broke."},
+{id:"Q2",item:"Item 2",title:"How specific should the warning be about who is affected?",ask:"Pick one.",
+ ctx:"Today the pop-up knows the names of the people in the file, but not whether each is already in the family or would be created as a new family member.",
+ opts:[
+ {k:"A",l:"Generic: name the people and say a new family member is created if they are not already in the family",rec:1,d:"Good: no backend change; the wording is true either way. Bad: it does not say which case applies."},
+ {k:"B",l:"Exact: the backend also sends, for each person, whether they are new or existing",d:"Good: the pop-up can say exactly what will happen. Bad: one backend change and one test change, for a small gain."}],
+ why:"The generic wording is accurate and keeps this a front-end-only item."},
+{id:"Q3",item:"Item 2",title:"Do the button labels change?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Keep &ldquo;Upload a different file&rdquo; and &ldquo;Import for these people&rdquo;",rec:1,d:"Good: you did not ask for a change; existing tests stay. Bad: &ldquo;these people&rdquo; is vague."},
+ {k:"B",l:"Rename the second to &ldquo;Import for {names}&rdquo;",d:"Good: the button says who gets the data. Bad: a long label with several names, and tests change."},
+ {k:"C",l:"Make &ldquo;Upload a different file&rdquo; the filled button",d:"Good: nudges people to the safe choice. Bad: makes the legitimate case (importing for a family member on purpose) look wrong."}],
+ why:"The new warning does the explaining. Leave the buttons alone."},
+{id:"Q4",item:"Item 3",title:"Which onboarding layout?",ask:"Look at the four drawings in section 5, at each laptop window size. Pick one.",
+ opts:[
+ {k:"A",l:"One grouped list for the four options, two-column chips, the helper text under the heading, the line &ldquo;This helps us tailor your experience and insights.&rdquo; removed",rec:1,d:"Good: fewer boxes, no two-line chips, a clear gap between the two questions, no scrolling. Bad: the options lose their separate card look, and the subtitle line goes."},
+ {k:"B",l:"Separate quiet cards and pill-shaped chips that flow, subtitle line removed",d:"Good: lightest and friendliest, no scrolling. Bad: chips have uneven widths, so the rows look less tidy; most change to the existing code."},
+ {k:"C",l:"Each question in its own soft panel, subtitle line removed",d:"Good: the clearest grouping, no scrolling in my drawings. Bad: panels use all the space at 1280&times;600 (no room to spare), so any later change could bring the scroll back."}],
+ why:"In my drawings none of the three scrolls at 1280&times;600, 1440&times;810 or 1536&times;730 (drawn, not measured in the app). At the tightest window, 1280&times;600, A has about 15 px to spare, B about 20 px and C none. A removes the most clutter and keeps a little room. Check the fit note on each drawing at each window size before choosing."},
+{id:"Q5",item:"Item 3",title:"Which green on the onboarding and All set screens?",ask:"Pick one.",
+ ctx:"The signed-in app and the emails use #22C55E. The redesigned sign-up and login screens use their own greens (about #09B158 and #067A3D), measured from your earlier mockups. My drawings use #22C55E.",
+ opts:[
+ {k:"A",l:"Keep the current sign-up greens on these screens",rec:1,d:"Good: the screens stay consistent with the rest of sign-up. Bad: two greens exist in the product."},
+ {k:"B",l:"Switch these screens to #22C55E",d:"Good: one green. Bad: it changes the look of every sign-up screen, which is outside this batch."}],
+ why:"Changing one screen would make it stand out from the others. Unifying greens is a separate job."},
+{id:"Q6",item:"Item 4 (OTP)",title:"What exactly did you see?",type:"text",ask:"Tell me the steps.",
+ ctx:"The code says a different email or phone is not blocked. If you saw a wait for a different one, I need to know which email or phone it was, whether it was registered, and the exact message.",
+ ph:"Same email or different? Registered or not? Exact words on screen? Phone or email?"},
+{id:"Q7",item:"Item 4 (OTP)",title:"What happens when the same email is entered again inside the minute?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"The Get OTP button stays on the entry screen and counts down",d:"Good: simple. Bad: the user already has a code in their inbox and is kept waiting for a second one."},
+ {k:"B",l:"Go straight to the code screen with the real time left on the resend timer",rec:1,d:"Good: matches reality, since the first code is still valid for 5 minutes. Bad: slightly more change, in the screen flow."},
+ {k:"C",l:"Keep the red box, but make the number tick down",d:"Good: smallest. Bad: a red error is still the wrong tone for a normal wait."}],
+ why:"A person who types the same email again almost always wants to type the code they already received."},
+{id:"Q8",item:"Item 4 (OTP)",title:"Where does the countdown get its seconds?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"The server sends the seconds left in its reply",rec:1,d:"Good: always right, even after a refresh or on another device. Bad: a small backend change and test updates."},
+ {k:"B",l:"The browser remembers when it last sent a code",d:"Good: front end only. Bad: wrong after a refresh, a second tab or another device."},
+ {k:"C",l:"Read the number out of the existing sentence",d:"Good: no backend change. Bad: breaks the day anyone rewords the sentence."}],
+ why:"The server is the one that knows when the code was sent."},
+{id:"Q9",item:"Item 4 (OTP)",title:"Do the phone screens get the countdown too?",ask:"Pick one.",
+ ctx:"The phone-sized login has no resend timer at all today. An earlier decision (Q20) and a guard test say the mobile screens stay unchanged.",
+ opts:[
+ {k:"A",l:"Desktop screens only for now",rec:1,d:"Good: respects the earlier decision; smaller change. Bad: phone users keep the plain message."},
+ {k:"B",l:"Both",d:"Good: consistent. Bad: reopens the mobile decision and the guard test."}],
+ why:"Do not reopen a decision inside a quick-win batch."},
+{id:"Q10",item:"Item 4 (OTP)",title:"Do we add a limit per IP address in this batch?",ask:"Pick one.",
+ ctx:"There is no limit per IP, device or overall. One actor can send codes to many different registered emails. The earlier go-live report already recommends adding one.",
+ opts:[
+ {k:"A",l:"No, make it a separate item after Batch B",rec:1,d:"Good: keeps this batch small. Bad: the gap stays open for now."},
+ {k:"B",l:"Yes, add it now",d:"Good: closes the biggest gap. Bad: a real design question (where, how many, behind the load balancer) that this batch is not sized for."},
+ {k:"C",l:"No, not planned",d:"Not recommended while the document for stakeholders describes the protections."}],
+ why:"It is a real security task of its own and deserves its own plan."},
+{id:"Q11",item:"Item 4 (OTP)",title:"How do we describe security to the stakeholders?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Honest and complete: what exists, what does not, and the recommended next step",rec:1,d:"Good: they decide with the facts, and nobody is surprised later. Bad: it shows gaps."},
+ {k:"B",l:"Only what exists",d:"Good: shorter and reassuring. Bad: overclaims; if asked, it will look like a gap was hidden."}],
+ why:"Section 7 lists what I can and cannot say. Phone codes in particular are not delivered by any provider yet."},
+{id:"Q12",item:"Item 6 (spinner)",title:"Which wording after the tick?",ask:"Pick one set. Timing is about 2.5 seconds.",
+ opts:[
+ {k:"A",l:"Row: &ldquo;Your dashboard is ready&rdquo; &middot; &ldquo;Go to my dashboard to start your journey.&rdquo;",rec:1,d:"Good: plain, matches your own wording. Bad: promises ready."},
+ {k:"B",l:"Row: &ldquo;All set. Your journey starts here&rdquo; &middot; &ldquo;Tap Go to my dashboard whenever you are ready.&rdquo;",d:"Good: warmer, no claim about the data. Bad: less clear what is done."},
+ {k:"C",l:"Row: &ldquo;Dashboard ready&rdquo; &middot; no second line",d:"Good: shortest. Bad: loses the invitation to click."}],
+ why:"A matches what you asked for. Use B if you worry that the first dashboard load can still be slow."},
+{id:"Q13",item:"Item 6 (spinner)",title:"Do the paragraph and the right-hand heading change too?",ask:"Pick one.",
+ ctx:"The paragraph says &ldquo;We&rsquo;re importing... may take a few minutes&rdquo; and the right side says &ldquo;Getting your accounts ready&rdquo;. Both would be stale after the tick.",
+ opts:[
+ {k:"A",l:"Yes, change both to match, after the tick",rec:1,d:"Good: the whole screen tells one story. Bad: two more strings and tests."},
+ {k:"B",l:"Only the third row",d:"Good: smallest. Bad: the screen would say both &ldquo;ready&rdquo; and &ldquo;may take a few minutes&rdquo;."}],
+ why:"A tick next to an old promise to wait looks like a mistake."},
+{id:"Q14",item:"Item 18 (emails)",title:"How faithfully do we build your designs?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Full: tables and inline styles, hosted images for logo, illustrations and icons, with alt text and a readable fallback",rec:1,d:"Good: closest to your designs. Bad: the most work, and clients that block images show a plainer email."},
+ {k:"B",l:"Lighter: the same colours and blocks, logo only, no illustrations or icons",d:"Good: robust everywhere, quick. Bad: visibly simpler than your designs."}],
+ why:"You asked for these designs. A builds them and still reads well with images off."},
+{id:"Q15",item:"Item 18 (emails)",title:"Where do the email images live?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"In the app&rsquo;s public folder, served from the same address as the app",rec:1,d:"Good: no new service, versioned with the code. Bad: staging emails use staging addresses, and the images break if that host is down."},
+ {k:"B",l:"In cloud storage with a content network",d:"Good: independent of the app. Bad: new infrastructure to set up and pay for."},
+ {k:"C",l:"No images except the logo",d:"Good: nothing to host. Bad: no illustrations (this is option B of the question before)."}],
+ why:"One less moving part for a small set of images."},
+{id:"Q16",item:"Item 18 (emails)",title:"Who supplies the image files?",ask:"Pick one.",
+ ctx:"You attached whole-email pictures. Each illustration and icon is needed separately as a PNG at about twice the display size.",
+ opts:[
+ {k:"A",l:"You send me the originals: the logo, the three illustrations, and the icons",rec:1,d:"Good: sharp images in your exact style."},
+ {k:"B",l:"I crop them from your pictures",d:"Good: no wait. Bad: blurry on high-resolution screens."},
+ {k:"C",l:"I draw the icons from the app&rsquo;s own icon set and reuse the existing illustrations",d:"Good: no wait. Bad: not your designs; the id-card illustrations do not exist in the repo."}],
+ why:"Illustrations in an email must be sharp. A is the only option that matches your designs."},
+{id:"Q17",item:"Item 18 (emails)",title:"Copy points to settle",type:"mixed",ask:"Pick one, and say what you want for the subject lines.",
+ ctx:"1) The design says &ldquo;their own email address&rdquo;; an existing test forbids pronouns in these emails. 2) The desktop undo email says &ldquo;autonated&rdquo;. 3) The design shows <code>?token=</code>; the code uses <code>#token=</code> to keep it out of logs. 4) Today emails 1 and 2 share one subject line.",
+ opts:[
+ {k:"A",l:"Use the design copy, with: no pronoun (reworded), &ldquo;automated&rdquo;, the <code>#</code> link, and your subject lines",rec:1,d:"Good: your copy with the three safe fixes."},
+ {k:"B",l:"Use the design copy exactly, including &ldquo;their&rdquo;, and change the test",d:"Good: matches the pictures word for word. Bad: removes a rule the project set on purpose; the typo and link still need fixing."}],
+ why:"The pronoun rule was a deliberate choice; I would not drop it without your say. Tell me the subject lines you want in the box.",
+ ph:"Subject lines for the three emails: ..."},
+{id:"Q18",item:"Item 18 (emails)",title:"Which other emails get the same look?",ask:"Pick one.",
+ ctx:"After an undo, a fourth email (&ldquo;changed back&rdquo;) goes to both heads in the old style. There are also sign-in code emails and a contact-change email.",
+ opts:[
+ {k:"A",l:"The three, plus the &ldquo;changed back&rdquo; email",rec:1,d:"Good: the whole Head of Family story looks the same. Bad: one more design you have not drawn."},
+ {k:"B",l:"Only the three you drew",d:"Good: exactly the scope. Bad: the fourth email will look out of place."},
+ {k:"C",l:"Also the contact-change and code emails",d:"Good: all emails match. Bad: a much bigger job, and a test pins the code email."}],
+ why:"A fourth email in the old style after an undo would look like a different company. I would draw it with you."},
+{id:"Q19",item:"Item 18 (emails)",title:"Dark mode for the emails",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Light only, as in your designs",rec:1,d:"Good: matches the pictures; much less work. Bad: dark-mode readers may see the app invert some colours."},
+ {k:"B",l:"Also support dark mode",d:"Good: nicer in dark mode. Bad: more design and testing; your designs are light only."}],
+ why:"You designed light only. Dark mode in email is unreliable across apps anyway."},
+{id:"Q20",item:"How we build",title:"Which worker builds the visual front-end work?",ask:"Pick one.",
+ ctx:"The project default is Codex for everything. Your Explore plan sent frontend work to Antigravity (Gemini).",
+ opts:[
+ {k:"A",l:"Codex for the code and the tests; Antigravity (Gemini) for the onboarding layout and the email HTML",rec:1,d:"Good: the pixel work goes to the tool you chose for visuals. Bad: a second tool in the loop, and the review still goes through Codex."},
+ {k:"B",l:"Codex for everything",d:"Good: one tool, the project&rsquo;s own process end to end. Bad: less tuned for visual matching."},
+ {k:"C",l:"Antigravity for all frontend",d:"Good: one front-end tool. Bad: the logic-heavy pieces (OTP, All set) are test-heavy, which suits Codex."}],
+ why:"Visual fidelity is the risk in items 3 and 18; the others are mostly logic and tests."},
+{id:"Q21",item:"How we build",title:"How much review?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"An adversarial review on each handoff, then one whole-batch review before staging",rec:1,d:"Good: matches the project process. Bad: slower."},
+ {k:"B",l:"Each handoff only",d:"Good: faster. Bad: nothing looks at how the five items fit together, like the shared stylesheet."}],
+ why:"Items 6 and 3 share a stylesheet and item 4 touches shared sign-in code."},
+{id:"Q22",item:"How we build",title:"How do we deploy?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"One staging deploy for the whole batch, then the two-inbox email check",rec:1,d:"Good: one deploy, one checking round. Bad: one slow item holds the rest."},
+ {k:"B",l:"Each item as it finishes",d:"Good: quick wins land early. Bad: several deploys and checking rounds."}],
+ why:"None of the items has a migration, and they are small. One checking round is cheaper."},
+{id:"Q23",item:"Item 4 (IP limit)",title:"How do we build the per-IP limit?",ask:"Pick one.",
+ ctx:"You said yes to a limit now (Q10). The app already records the IP on each code request, but a request for an unknown email creates no record, so a plain count would not see probing.",
+ opts:[
+ {k:"A",l:"Count from the existing code-request records",d:"Good: no migration; smallest. Bad: it does not count probes (unknown email, existing email at sign-up), which is where the registered-address checking happens."},
+ {k:"B",l:"A new small table that records every sign-in request per IP, cleaned daily",rec:1,d:"Good: counts probes too, so it also slows bulk checking of which emails are registered. Bad: one migration (the next free number) and a daily cleanup."},
+ {k:"C",l:"At the entrance to the app (load balancer, firewall or the proxy on the staging server)",d:"Good: no app code. Bad: different on staging and on AWS, coarse, and it is infrastructure work outside this batch."}],
+ why:"The gap you want closed is bulk guessing and bulk checking. Only B sees both. The migration is small."},
+{id:"Q24",item:"Item 4 (IP limit)",title:"What are the limits, and what does the user see?",type:"mixed",ask:"Pick one, and change the numbers if you like.",
+ ctx:"Numbers are proposals, not measurements. Many genuine users can share one IP (an office, a phone network), so the rule limits <i>different addresses per IP</i>, never one person retrying their own email, which the 60 second rule already handles.",
+ opts:[
+ {k:"A",l:"10 different emails or phones per IP in 10 minutes for code requests; 30 for address checks; the user sees the same countdown message with the seconds left",rec:1,d:"Good: generous for offices, strong against spraying. Bad: an attacker with many IPs is not stopped (a bot check or firewall would be the next layer)."},
+ {k:"B",l:"Stricter: 5 and 15 in 10 minutes",d:"Good: tighter. Bad: more risk of blocking a family or office signing in together."},
+ {k:"C",l:"Looser: 20 and 60 in 60 minutes",d:"Good: almost never blocks a genuine user. Bad: allows a lot of spraying."}],
+ why:"Start generous, watch real numbers after release, tighten later.",
+ ph:"Different numbers? ..."},
+{id:"Q25",item:"Item 3",title:"How far does the green switch (Q5 B) go?",ask:"Pick one.",
+ ctx:"The sign-up and login screens share one set of green tokens. Switching only two screens would show two greens inside one flow. Also white text on #22C55E is hard to read, so the buttons would use dark text, as the emails already do.",
+ opts:[
+ {k:"A",l:"Switch all ten sign-up and login screens through the shared tokens",rec:1,d:"Good: one green everywhere in the flow, and it is less work than scoping two screens. Bad: the look of screens outside Batch B changes, so they must be checked."},
+ {k:"B",l:"Only the onboarding step 4 and All set screens",d:"Good: strictly what you named. Bad: two greens in one flow; extra code to scope the override."}],
+ why:"You said switch these screens. The cleanest way to do that is to change the token, which moves every screen."},
+{id:"Q26",item:"Program",title:"When do we deploy across all batches?",ask:"Pick one. See section 9 B.",
+ opts:[
+ {k:"A",l:"Build everything, deploy once at the end (your lean)",d:"Good: one QA round and one deploy guide. Bad: one very large change; hard to find causes; merges with your manager&rsquo;s work and the NAV fix keep growing; several migrations arrive together."},
+ {k:"B",l:"Deploy after every batch",d:"Good: small and easy to check. Bad: many deploys and QA rounds."},
+ {k:"C",l:"Milestone deploys to staging (after wave 1, after waves 2 and 3, after search and navigation, and a final one), production once at the end",rec:1,d:"Good: keeps your single production release; each staging deploy is small enough to check; emails are tested early. Bad: a few more staging rounds than A; the integration branch needs steady merging."}],
+ why:"Same single production release you want, with fewer unknowns at the end."},
+{id:"Q27",item:"Program",title:"How do we write the implementation plans?",ask:"Pick one. See section 9 C.",
+ opts:[
+ {k:"A",l:"One plan for all batches",d:"Good: one document. Bad: very long and stale as soon as the NAV fix or an answer changes."},
+ {k:"B",l:"One plan per batch, written just before it is built, plus a short program index",rec:1,d:"Good: matches how this repo already works (an index and plans, or backend and frontend plans per release); plans stay current. Bad: more documents; the index must be kept up to date."},
+ {k:"C",l:"One plan per item",d:"Good: fine-grained. Bad: too heavy for small changes; shared files make items depend on each other."}],
+ why:"Later batches depend on what earlier ones find, so their plans should be written when they start."},
+{id:"Q28",item:"Program",title:"Is the execution order right?",type:"mixed",ask:"Pick one. The order is in section 9 A.",
+ opts:[
+ {k:"A",l:"Yes: wave 1 (B, C, L, GA4 foundation), 2 (A), 3 (D), 4 (K steps 1 and 2), 5 (E), 6 (K steps 3 and 4 with F), 7 (I), 8 (GA4 events, H recording)",rec:1,d:"Good: follows the dependencies and the manager&rsquo;s fixes. Bad: search waits a long time."},
+ {k:"B",l:"No, change it",d:"Say how in the box."}],
+ why:"Search and the navigation index must be planned together, and charts and truth-finding both need the NAV fix.",
+ ph:"What to change: ..."}
+];
+var LOCK={Q1:1,Q2:1,Q3:1,Q5:1,Q6:1,Q7:1,Q8:1,Q9:1,Q10:1,Q11:1,Q12:1,Q13:1,Q14:1,Q15:1,Q16:1,Q17:1,Q18:1,Q19:1,Q20:1,Q21:1,Q22:1};
+var PRE={
+ Q1:{k:"A"},Q2:{k:"A"},Q3:{k:"A"},Q5:{k:"B"},
+ Q6:{t:"different email, not registered. i just want you to check what happens and if it is currently what we want, then no need to change"},
+ Q7:{k:"A",n:"if the user comes back and clicks get otp with the same email/phone number within a minute, the timer should come up with the one-line reason, as discussed in the first message"},
+ Q8:{k:"A"},Q9:{k:"A"},Q10:{k:"B"},
+ Q11:{k:"B",n:"give me both actually and give it to me now only (assuming these changes we are currently planning are made), dont wait for execution"},
+ Q12:{k:"A"},Q13:{k:"A"},Q14:{k:"A"},Q15:{k:"A"},
+ Q16:{k:"B",n:"take them from the pictures i sent you, but use the best quality possible, the placing, etc should be the same as the images and the final email template should look the same as the images except for the fonts and colours. fonts and colours should be the brand fonts and colours from the colour palette committed earlier"},
+ Q17:{k:"B"},
+ Q18:{k:"A",n:"add the ui mockup for this"},
+ Q19:{k:"B"},
+ Q20:{k:"A",n:"but make sure the packets built for gemini will be detailed and in depth, so that the output will look same as the images given"},
+ Q21:{k:"A"},
+ Q22:{k:"A",n:"for this also we need to brainstorm whether we deploy this batch first, or execute all batches and then deploy together. i recommend executing all first and then deploying. also, we need to come up with the batches execution strategy as well, which batch will be executed when and in what order. lets do that also now only so when we plan the next batches, they have this context of what has happened before them and what will happen after. we also need to come up with the execution plan. like, how are we going to write the implementation plans? are we going to write one whole implementation plan for all of the batches? or are we writing different implementation plans for all of the batches? we need to discuss or brainstorm the best option for that as well."}
+};
+var FU={
+ Q2:"<p><b>Updated after your comment.</b> The line &ldquo;nothing is added for {selected person}&rdquo; is gone from the warning. The pop-up only appears when the chosen person is not found in the file, so the line was true, but it could be misread. The warning now says what the statement belongs to and what happens to it.</p>",
+ Q6:"<p><b>What happens today (reported).</b> A different, unregistered email gets the answer &ldquo;No account found for that email, sign up instead.&rdquo; in the red box. No code is sent and there is no wait. It is not a countdown, so there is no change planned for it, only a test that an unregistered address never shows a wait.</p><p>The same message also lets anyone check whether an email is registered. You accepted that on 30 Sep. The IP limit (Q10, Q23) makes bulk checking harder but does not remove it.</p>",
+ Q10:"<p><b>This widens the batch.</b> It adds backend work in lane 4, a possible migration (Q23), thresholds to decide (Q24) and a new line in the security note. The risk list now includes shared networks and the visible client address on staging.</p>",
+ Q11:"<p><b>Both versions are in section 7</b>, written for the batch as planned. They stay on this page for you to take as text.</p>",
+ Q13:"<p><b>Two more texts look stale after the tick:</b> the grey card &ldquo;While we fetch your data...&rdquo; and the card &ldquo;Accounts being imported&rdquo;. They were not in your answer. Tell me if they should change too.</p>",
+ Q16:"<p><b>What the pictures allow.</b> The three desktop pictures are 919, 914 and 853 px wide, about 1.5 times an email&rsquo;s 600 px, so illustrations will be a little soft on high-resolution screens. The phone pictures are 720 px wide inside a phone frame, so crops come from the desktop ones. I can crop them and place them exactly as in the pictures. I cannot add resolution that is not there; a designer&rsquo;s originals can be swapped in later without code changes.</p>",
+ Q17:"<p><b>You chose the design copy exactly.</b> I will still correct the typo &ldquo;autonated&rdquo; and keep the real link in the <code>#</code> form (the box only shows a shortened link), because the first is plainly a mistake and the second keeps the secret out of server logs. Say so if you want either left as drawn. The subject lines still need your words.</p>",
+ Q18:"<p><b>The fourth email is drawn in section 6</b> (draft wording built from the existing text, for your review).</p>",
+ Q19:"<p><b>Dark mode is drawn in section 6</b> with a light and dark toggle. No dark-mode artwork exists in your pictures, so the illustrations sit on a light circle on dark.</p>",
+ Q22:"<p><b>This answer asked for more.</b> Section 9 sets out the execution order, the deploy options and the plan options, with my view. Your decisions on it are Q26 (deploy), Q27 (plans) and Q28 (order).</p>"
+};
+var CM={
+ Q1:"The warning is a separate block passed into the existing pop-up, so the existing title and body tests keep passing.",
+ Q2:"No backend change. The wording is generic: it names the people and says a new family member is created if needed.",
+ Q3:"The buttons and their behaviour stay as they are today.",
+ Q5:"The onboarding step 4 and All set screens use #22C55E. The sign-up and login screens share one set of green tokens, so how far this goes is Q25. Buttons need dark text on this green (white text is hard to read). This touches <code>auth-tokens.css</code>, which items 6 and 3 also edit.",
+ Q6:"No change for an unregistered address. A test will make sure it never shows a wait.",
+ Q7:"The Get OTP button stays on the entry screen and counts down, with one red line explaining why. Editing the field to a different email or phone makes the button live again at once. The seconds come from the server (Q8).",
+ Q8:"The server sends the seconds left next to the readable sentence. The tests that assert the plain sentence are updated.",
+ Q9:"Only the desktop screens get the countdown. The phone screens keep the plain message.",
+ Q10:"A per-IP limit is built in this batch (see Q23 and Q24). It is the main scope change since the last version.",
+ Q11:"Both versions of the stakeholder explanation are written now, in section 7.",
+ Q12:"After the tick, row 3 reads &ldquo;Your dashboard is ready&rdquo; with &ldquo;Go to my dashboard to start your journey.&rdquo;",
+ Q13:"The paragraph and the right-hand heading change after the tick, drawn in section 4.",
+ Q14:"Four emails in tables with inline styles, hosted images, alt text and a readable fallback.",
+ Q15:"Images live in the app&rsquo;s public folder and are linked from <code>FRONTEND_BASE_URL</code>. A staging email shows staging images.",
+ Q16:"Images are cropped from your pictures, placed as in the pictures, in the best quality they allow.",
+ Q17:"The design copy is used as drawn, including &ldquo;their&rdquo;, so the pronoun test changes. Typo and link form as noted above.",
+ Q18:"The &ldquo;changed back&rdquo; email is rebuilt in the same look. Code emails and the contact-change email are untouched.",
+ Q19:"Dark mode is built with a colour-scheme setting and a dark style block, tested in four apps where possible.",
+ Q20:"Codex builds the code and tests. Antigravity (Gemini) builds the onboarding layout and the email HTML from packets with measurements, exact copy and an acceptance check against your pictures (section 8).",
+ Q21:"An adversarial review after each handoff and one whole-batch review before staging.",
+ Q22:"One staging deploy for the batch, then the two-inbox email check. The wider question of when to deploy all batches is Q26."
+};
+var cards=document.getElementById("cards");
+Object.keys(PRE).forEach(function(k){if(LOCK[k])S[k]=JSON.parse(JSON.stringify(PRE[k]))});
+Q.forEach(function(q){
+ var c=document.createElement("div");c.className="card";c.id=q.id.toLowerCase();c.setAttribute("data-q",q.id);
+ var h='<header><span class="id">'+q.id+' &middot; '+q.item+'</span><h3>'+q.title+'</h3><span class="status todo" data-st>unanswered</span></header>';
+ h+='<p><b>'+q.ask+'</b></p>';
+ if(q.ctx)h+='<p class="ctx">'+q.ctx+'</p>';
+ if(q.opts){h+='<div class="opts">';
+  q.opts.forEach(function(o){
+   h+='<label class="opt'+(o.rec?' isrec':'')+'"><input type="radio" name="'+q.id+'" value="'+o.k+'"'+(LOCK[q.id]?' disabled':'')+'><div><b>'+o.k+'. '+o.l+(o.rec?'<span class="tag me">my pick</span>':'')+'<span class="tag chosen" hidden>Chosen</span></b><span class="d">'+o.d+'</span></div></label>';
+  });h+='</div>';}
+ if(q.why)h+='<div class="why"><b>Why my pick.</b> '+q.why+'</div>';
+ if(FU[q.id])h+='<div class="reply">'+FU[q.id]+'</div>';
+ if(CM[q.id])h+='<div class="commit"><b>What this answer commits us to.</b> '+CM[q.id]+'</div>';
+ if(q.type==="text"||q.type==="mixed"||q.ph)h+='<label class="nl" for="t-'+q.id+'">'+(q.type==="text"?"Your answer":"Details")+'</label><textarea id="t-'+q.id+'"'+(LOCK[q.id]?' readonly':'')+' placeholder="'+(q.ph||"")+'"></textarea>';
+ h+='<label class="nl" for="n-'+q.id+'">Notes (optional)</label><textarea id="n-'+q.id+'"'+(LOCK[q.id]?' readonly':'')+' placeholder="Anything I should know"></textarea>';
+ c.innerHTML=h;cards.appendChild(c);
+});
+function answered(q){if(LOCK[q.id])return true;var a=S[q.id]||{};return q.type==="text"?!!(a.t&&a.t.trim()):(!!a.k||!!(a.t&&a.t.trim()))}
+function setSt(st,ok){st.textContent=ok?"answered":"unanswered";st.className=ok?"tag ok":"status todo"}
+function build(){
+ var L=["BATCH B PLANNING: MY ANSWERS (12 Nov 2026, update)",""];
+ Q.forEach(function(q){
+  var a=S[q.id]||{},ln=q.id+" ("+q.item+") "+q.title+"\n  Answer: ";
+  if(a.k){var o=q.opts.filter(function(x){return x.k===a.k})[0];ln+=a.k+". "+o.l.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")}
+  else if(!(a.t&&a.t.trim()))ln+="NOT ANSWERED";
+  if(a.t&&a.t.trim())ln+=(a.k?"\n  Details: ":"")+a.t.trim();
+  if(a.n&&a.n.trim())ln+="\n  Note: "+a.n.trim();
+  L.push(ln);L.push("");
+ });
+ return L.join("\n");
+}
+function paint(){
+ var n=0;
+ Q.forEach(function(q){
+  var c=document.getElementById(q.id.toLowerCase()),a=S[q.id]||{};
+  c.querySelectorAll(".opt").forEach(function(o){var r=o.querySelector("input");r.checked=(a.k===r.value);o.classList.toggle("on",r.checked);var b=o.querySelector(".chosen");if(b)b.hidden=!r.checked});
+  var t=document.getElementById("t-"+q.id);if(t&&document.activeElement!==t)t.value=a.t||"";
+  var nn=document.getElementById("n-"+q.id);if(nn&&document.activeElement!==nn)nn.value=a.n||"";
+  var ok=answered(q);if(ok)n++;setSt(c.querySelector("[data-st]"),ok);
+ });
+ document.getElementById("prog").textContent=n+" of "+Q.length+" answered";
+ document.getElementById("outTa").value=build();
+}
+cards.addEventListener("change",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.type==="radio")S[q].k=e.target.value;save();paint()});
+cards.addEventListener("input",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};
+ if(e.target.id==="t-"+q)S[q].t=e.target.value;if(e.target.id==="n-"+q)S[q].n=e.target.value;save();
+ document.getElementById("outTa").value=build();
+ var qq=Q.filter(function(x){return x.id===q})[0];setSt(c.querySelector("[data-st]"),answered(qq));
+ var n=0;Q.forEach(function(x){if(answered(x))n++});document.getElementById("prog").textContent=n+" of "+Q.length+" answered";});
+function copy(){
+ var ta=document.getElementById("outTa"),m=document.getElementById("copyMsg");ta.value=build();
+ function fb(){ta.removeAttribute("readonly");ta.select();try{document.execCommand("copy");m.textContent="Copied (or select and copy the text below)"}catch(e){m.textContent="Select the text below and copy it"}ta.setAttribute("readonly","")}
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(function(){m.textContent="Copied. Paste it in chat."},fb)}else fb();
+}
+document.getElementById("copyBtn").addEventListener("click",copy);
+document.getElementById("copyTop").addEventListener("click",function(){copy();document.getElementById("copy").scrollIntoView()});
+document.getElementById("jump").addEventListener("click",function(){for(var i=0;i<Q.length;i++){if(!answered(Q[i])){document.getElementById(Q[i].id.toLowerCase()).scrollIntoView({behavior:"smooth"});return}}});
+paint();
+})();
+</script>
+</body>
+</html>
