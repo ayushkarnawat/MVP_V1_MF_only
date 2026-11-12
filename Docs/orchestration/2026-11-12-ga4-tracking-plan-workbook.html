@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>GA4 Tracking Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky contents rail + one reading column, planning workbook in the same house style as the Individual Fund, Search and Explore workbooks. */
+:root{
+ --bg:#f6f8f6; --surface:#ffffff; --surface-2:#eef2ee; --line:#d9e0d9;
+ --fg:#16211a; --muted:#566259; --accent:#128a4a; --accent-soft:#e1f3e8;
+ --locked:#2f5fb3; --locked-soft:#e6eefb; --open:#a8610a; --open-soft:#fbefd9;
+ --danger:#b3321f; --danger-soft:#fbe6e2;
+ --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+ --f-body:'DM Sans','Segoe UI',system-ui,sans-serif;
+ --f-mono:'DM Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+ --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+ --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+ --danger:#f08a78; --danger-soft:#3a1c17; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#0f1511; --surface:#17201a; --surface-2:#1e2a22; --line:#2c3a30;
+ --fg:#e6efe8; --muted:#98a89c; --accent:#4cc582; --accent-soft:#17301f;
+ --locked:#8ab4f5; --locked-soft:#1a2740; --open:#f0b25a; --open-soft:#3a2a12;
+ --danger:#f08a78; --danger-soft:#3a1c17; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+ padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent)}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent)}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:68ch;margin:0 0 10px}
+.meta{font:500 12px var(--f-mono);color:var(--muted);margin-bottom:14px}
+section{margin-top:52px;scroll-margin-top:16px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:72ch}
+h3.sub{font-size:17px;margin:24px 0 8px}
+p{margin:8px 0}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700;white-space:nowrap}
+.tag{display:inline-block;font:500 11px var(--f-mono);padding:2px 8px;border-radius:99px;letter-spacing:.03em;white-space:nowrap}
+.tag.me{background:var(--accent-soft);color:var(--accent)}
+.tag.you{background:var(--open-soft);color:var(--open)}
+.tag.both{background:var(--locked-soft);color:var(--locked)}
+.tag.other{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tag.gate{background:var(--danger-soft);color:var(--danger)}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul,ul.tight{margin:6px 0;padding-left:20px}
+.sumbox li,ul.tight li{margin:5px 0}
+.callout{background:var(--open-soft);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:14px}
+.callout.good{background:var(--accent-soft)}
+.callout.info{background:var(--locked-soft)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:12px 0}
+.cols>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 16px;min-width:0}
+.cols h4{font-size:16px;margin-bottom:6px}
+.cols ul{margin:4px 0;padding-left:18px}
+.cols li{margin:5px 0}
+.cols .me h4{color:var(--accent)} .cols .you h4{color:var(--open)} .cols .give h4{color:var(--locked)} .cols .oth h4{color:var(--muted)}
+.check{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.check:last-child{border-bottom:0}
+.check input{margin-top:4px;accent-color:var(--accent);width:16px;height:16px}
+.check b{display:block}
+.check small{display:block;color:var(--muted);font-size:13px}
+.checks{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:12px 0}
+/* decision cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:16px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:500 12px var(--f-mono);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--accent)}
+.opt.on{background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.opt .tag{margin-left:6px}
+.why{border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--accent)}
+textarea,input[type=text]{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+textarea{min-height:56px;resize:vertical}
+label.nl{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin:10px 0 4px}
+button{font:inherit;font-size:14px;padding:9px 16px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-weight:500}
+button.ghost{background:transparent;color:var(--accent)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--locked);outline-offset:2px}
+.status{font:500 11px var(--f-mono)}
+.status.done{color:var(--accent)} .status.todo{color:var(--open)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.out{width:100%;min-height:220px;font-family:var(--f-mono);font-size:12.5px}
+
+.mk{background:#fff;color:#16211a;border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px;line-height:1.45}
+.mk *{box-sizing:border-box}
+.mk-top{background:#eef2ee;padding:8px 12px;display:flex;gap:8px;align-items:center;border-bottom:1px solid #d9e0d9}
+.mk-dot{width:9px;height:9px;border-radius:50%;background:#c5cfc5;flex:none}
+.mk-url{flex:1;min-width:0;background:#fff;border:1px solid #d9e0d9;border-radius:99px;padding:2px 10px;font-size:11.5px;color:#5d6b61;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mk-page{position:relative;padding:16px;height:250px;overflow:hidden}
+.mk-sk{height:10px;background:#e8eee8;border-radius:5px;margin:9px 0}
+.mk-sk.h{height:18px;width:60%;background:#d6e3d9}
+.mk-ban{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #d9e0d9;box-shadow:0 -4px 14px rgba(22,33,26,.12);padding:12px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.mk-ban p{margin:0;flex:1;min-width:180px;color:#16211a}
+.mk-ban small{display:block;color:#5d6b61;margin-top:3px}
+.mk-btn{font:600 12.5px 'DM Sans',system-ui,sans-serif;padding:7px 14px;border-radius:8px;border:1px solid #128a4a;background:#128a4a;color:#fff;white-space:nowrap}
+.mk-btn.o{background:#fff;color:#128a4a}
+.mk-link{color:#128a4a;text-decoration:underline;font-size:12px;white-space:nowrap}
+.mk-dim{position:absolute;inset:0;background:rgba(22,33,26,.38);display:flex;align-items:center;justify-content:center;padding:14px}
+.mk-dlg{background:#fff;border-radius:14px;padding:16px;max-width:360px;width:100%;box-shadow:0 10px 30px rgba(22,33,26,.25)}
+.mk-dlg h5{font:700 15px 'Bricolage Grotesque',system-ui,sans-serif;margin:0 0 6px}
+.mk-dlg ul{margin:6px 0 10px;padding-left:18px;font-size:12.5px}
+.mk-dlg li{margin:3px 0}
+.mk-row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.mk-set{padding:14px 16px}
+.mk-set h5{font:700 15px 'Bricolage Grotesque',system-ui,sans-serif;margin:0 0 10px}
+.mk-item{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:1px solid #e2e8e2}
+.mk-item b{display:block}
+.mk-item small{color:#5d6b61;display:block;max-width:34ch}
+.mk-sw{width:36px;height:20px;border-radius:99px;background:#c5cfc5;position:relative;flex:none;margin-top:2px}
+.mk-sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff}
+.mk-sw.on{background:#128a4a}
+.mk-sw.on::after{left:18px}
+.mk-lock{font:500 11px 'DM Mono',monospace;color:#5d6b61;margin-top:4px}
+.mk-cap{margin:0 0 6px;font-size:13px}
+.mk-cap b{font-family:var(--f-display)}
+.tag.chosen{background:var(--accent);color:#fff;margin-left:6px}
+.tag.done{background:var(--accent-soft);color:var(--accent)}
+.opt input:disabled{cursor:default}
+.reply{background:var(--locked-soft);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:14px}
+.reply b.t{color:var(--locked)}
+.reply p{margin:6px 0}
+.reply ul{margin:6px 0;padding-left:20px}
+.commit{border-left:3px solid var(--locked);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.commit b{color:var(--locked)}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}nav.toc{position:static;max-height:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+ <h4>Start here</h4>
+ <a href="#summary">1. What we know</a>
+ <a href="#plan">2. The plan, end to end</a>
+ <h4>Who does what</h4>
+ <a href="#who">3. You, me, others</a>
+ <a href="#manual">4. Your Google steps</a>
+ <a href="#measure">5. What GA4 can answer</a>
+ <h4>Your call</h4>
+ <a href="#consent">6. What consent looks like</a>
+ <a href="#questions">7. Questions (18)</a>
+ <a href="#copy">8. Copy my answers</a>
+</nav>
+
+<main>
+<div class="hero">
+ <h1>GA4 Tracking Plan</h1>
+ <div class="meta">PLANNING ONLY &middot; NOTHING BUILT &middot; 12 NOV 2026 &middot; UPDATED WITH YOUR ANSWERS &middot; WEBSITE + WEB APP &middot; BRANCH leapswitch-redesign</div>
+ <p>One page that walks the whole job from the first decision to the last report: what happens at each step, who does it, what you have to click in Google yourself, what I need from you, and every question still open. Answer the cards in section 7, press <b>Copy my answers</b> in section 8, and paste the result in chat.</p>
+ <p>Facts about Google Analytics 4 below were checked on 12 Nov 2026 against public sources (listed at the end), mostly secondary ones. Click paths in Google&rsquo;s admin screens come from general knowledge and will be re-checked step by step when we do them together.</p>
+</div>
+
+<section id="summary">
+ <h2>1. What we know</h2>
+ <p class="lead">Your goal, what already exists in the repo, and one correction to what I said earlier.</p>
+ <div class="sumbox">
+  <h3>Your goal</h3>
+  <ul>
+   <li>Track the <b>website</b> (separate repo) and the <b>web app</b> (this repo) with Google Analytics 4, under one Unifolio parent account.</li>
+   <li>Learn: <b>where users came from, where they are, where they click most, which sections hold their time, which sections they skip</b>.</li>
+   <li>Connect the two surfaces so a visitor&rsquo;s path from website to sign-up can be read as one story.</li>
+  </ul>
+ </div>
+ <h3 class="sub">What is already in the repo (read-only check, nothing changed)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Finding</th><th>Meaning for this plan</th></tr></thead>
+  <tbody>
+   <tr><td>No analytics code in the web app: no gtag, no GA4 tag, no cookie banner.</td><td>We start from zero in the app. The website&rsquo;s state is unknown to me (question 13).</td></tr>
+   <tr><td>A Home-only GA4 plan exists: <code>Docs/orchestration/2026-10-23-home-tracking-ga4-plan.md</code>, deferred as Priority 2 in <code>DEFERRED_FEATURES.md</code>. Seven events on Home only.</td><td>Its design is a good base. Its scope is much smaller than yours now.</td></tr>
+   <tr><td>That plan fixed these decisions for Home: opt-in consent; Google Consent Mode starting denied; <b>no user ID</b>; fixed-label parameters only (no amounts, fund names, member names); separate staging and production properties; Google Signals and ad personalisation off; 14-month retention; frontend only.</td><td>They were made for a Home-only plan. Opt-in consent and &ldquo;no user ID&rdquo; will undercount a website funnel, so I treat them as inputs to revisit (questions 4, 6, 7, 8).</td></tr>
+   <tr><td>The app has an append-only consent system (<code>consent_records</code>, purposes, document versions, a re-consent gate).</td><td>The old plan adds an <code>analytics</code> purpose to it. That touches shared consent code and needs a migration, so it needs your approval (question 6).</td></tr>
+   <tr><td>The search plan puts the typed query in the address (<code>?q=</code>, <code>?f=</code>).</td><td>New finding: if GA4 records page URLs automatically, search text would be sent to Google. This is why I lean towards sanitised page views (question 9).</td></tr>
+   <tr><td>The website is in another repo whose name, stack and location I do not know.</td><td>Question 13 and your inputs list in section 3.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout"><b>Correction to my earlier message.</b> I said one property with two data streams (website and app) looked best. The sources I checked now say the opposite for a single visitor journey: cross-domain measurement works only inside <b>one web data stream</b>, and a person who moves between two separate streams can be counted as a new user in each. So the better fit for &ldquo;one story from website to app&rdquo; is <b>one property and one web stream across both</b>, split in reports by hostname. Question 1 lays out all four ways, with this change.</div>
+ <div class="callout info"><b>Where your &ldquo;parent account&rdquo; fits.</b> In Google Analytics the order is <b>Account, then Property, then Data stream</b>. Your &ldquo;Unifolio parent&rdquo; is the <b>Account</b>. The two &ldquo;sections&rdquo; can be two properties or two streams or one stream with a hostname split. Question 1 decides which.</div>
+ <div class="callout good"><b>What your answers changed (12 Nov, update).</b>
+  <ul class="tight">
+   <li><b>Domains known:</b> the website is unifolio.in and the app is ls-redesign.unifolio.in (staging only for now). They share one root domain, so one stream across both needs no cross-domain setup. The production app address is still missing.</li>
+   <li><b>Staging (Q3):</b> you switched to a separate staging property, so test data and real data never mix.</li>
+   <li><b>User ID (Q7) is open again.</b> If you choose it, it adds a small backend piece; the card explains.</li>
+   <li><b>Consent (Q4 to Q6):</b> mockups of what the user would see are in section 6. Consent Mode is optional; consent itself is a legal question for counsel.</li>
+  </ul></div>
+</section>
+
+<section id="plan">
+ <h2>2. The plan, end to end</h2>
+ <p class="lead">Nine steps. Each has an owner, what it needs, and whether it stops at an approval gate. The tags: <span class="tag me">me</span> I do it on my own, <span class="tag you">you</span> you do it manually, <span class="tag both">both</span> we do it together, <span class="tag other">others</span> someone else, <span class="tag gate">gate</span> nothing continues until you approve.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Step</th><th>What happens</th><th>Who</th><th>Needs</th><th>Ends at</th></tr></thead>
+  <tbody>
+   <tr><td class="k">1. Decide</td><td>You answer the 18 questions in section 6. I turn the answers into one written design.</td><td><span class="tag you">you</span> <span class="tag me">me</span></td><td>Your answers; the domains; the website repo location.</td><td><span class="tag gate">gate</span> You approve the written design.</td></tr>
+   <tr><td class="k">2. Set up Google</td><td>Create the Analytics account, properties and data streams, and switch off the Google settings we do not want (section 4).</td><td><span class="tag you">you</span> (I guide)</td><td>A company-owned Google account; the answers to questions 1, 3, 14.</td><td>You send me the measurement IDs (<code>G-XXXXXXXXXX</code>). They are not secrets, but they differ per environment.</td></tr>
+   <tr><td class="k">3. Audit</td><td>Read-only look at both codebases: how routes and sections are built, how consent works today, whether the website already has tags or a cookie banner.</td><td><span class="tag me">me</span></td><td>Access to the website repo in the session (or its files).</td><td>Two short audit notes.</td></tr>
+   <tr><td class="k">4. Design</td><td>Write the event schema (names, parameters, what is never sent), the consent flow for app and website, the section list, and the privacy wording for review.</td><td><span class="tag me">me</span> <span class="tag both">both</span></td><td>Your answers to questions 4 to 12.</td><td><span class="tag gate">gate</span> You approve the schema. <span class="tag gate">gate</span> Counsel reviews the wording (question 15).</td></tr>
+   <tr><td class="k">5. Build the foundation</td><td>Web app: a small tracking module, consent handling, sanitised page views, source capture. Website: the same in its repo. Tests that make no real network call. Backend worker (Codex) and a review step as the project rules require.</td><td><span class="tag me">me</span></td><td>Approved design; measurement IDs for staging.</td><td>Foundation on staging.</td></tr>
+   <tr><td class="k">6. Check on staging</td><td>Open the staging app and website with Google&rsquo;s DebugView and Tag Assistant; confirm each event once; confirm nothing personal is sent; confirm no event fires before consent.</td><td><span class="tag both">both</span></td><td>Your browser for DebugView (I prepare the checklist and read the results you paste).</td><td><span class="tag gate">gate</span> You sign off staging.</td></tr>
+   <tr><td class="k">7. Production switch</td><td>Put the production measurement IDs in the production build settings; enable the internal-traffic filter; deploy.</td><td><span class="tag me">me</span> <span class="tag you">you</span></td><td>Counsel-approved privacy and consent wording.</td><td><span class="tag gate">gate</span> Your explicit go.</td></tr>
+   <tr><td class="k">8. Custom events</td><td>Clicks, section views, time per section, skipped sections, search events, onboarding and import funnel. Added after batches D, E, F and K settle, so events do not point at screens that are about to change.</td><td><span class="tag me">me</span></td><td>The section list from the navigation work; the search release.</td><td>Events live on staging, then production.</td></tr>
+   <tr><td class="k">9. Reports</td><td>Register the custom dimensions, then build the GA4 views that answer your five questions; optionally a stakeholder dashboard.</td><td><span class="tag you">you</span> (I specify)</td><td>Question 17.</td><td>Reports your stakeholders can open.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>What can start now, before the UI batches:</b> steps 1 to 7 for the <b>foundation</b> (page views, traffic source, consent, structure). Only step 8 waits. That matches the batch plan: foundation now, custom events later.</div>
+</section>
+
+<section id="who">
+ <h2>3. You, me, others</h2>
+ <p class="lead">Four lists. Keep this section open while we work.</p>
+ <div class="cols">
+  <div class="me"><h4>I do on my own</h4><ul>
+   <li>Read both codebases (read-only) and write the audit notes</li>
+   <li>Write the event schema and the written design</li>
+   <li>Draft the consent dialog and privacy wording for counsel</li>
+   <li>Build the tracking module, consent handling, page views and events, with tests that never touch the network</li>
+   <li>Prepare the DebugView checklist and read the results you paste back</li>
+   <li>Write the list of custom dimensions to register and the report layouts</li>
+   <li>Keep the docs in step: <code>decisions.md</code>, <code>DEFERRED_FEATURES.md</code>, the Notion pack</li>
+  </ul></div>
+  <div class="you"><h4>You do manually</h4><ul>
+   <li>Create or approve the Google account that will own Analytics</li>
+   <li>Create the account, properties and data streams (section 4)</li>
+   <li>Switch off the Google settings we do not want</li>
+   <li>Register custom dimensions and the internal-traffic filter in the console</li>
+   <li>Open DebugView and test on staging while I watch</li>
+   <li>Approve the schema, the consent wording and the production switch</li>
+   <li>Build the reports in Analytics (I tell you exactly what to click)</li>
+  </ul></div>
+  <div class="give"><h4>You give me</h4><ul>
+   <li>The <b>production</b> app address (you gave me the website, unifolio.in, and the staging app, ls-redesign.unifolio.in) &mdash; question 2</li>
+   <li>The website repo: where it is, its stack, who edits it &mdash; question 13</li>
+   <li>The Google account and the admin email addresses &mdash; question 14</li>
+   <li>The measurement IDs, one per environment, after step 2</li>
+   <li>Team IP addresses to exclude &mdash; question 16</li>
+   <li>Counsel&rsquo;s name or contact, or confirmation that you will brief them &mdash; question 15</li>
+   <li>The 18 answers</li>
+  </ul></div>
+  <div class="oth"><h4>Others</h4><ul>
+   <li><b>Website developer or agency:</b> deploy changes in the website repo, if I cannot</li>
+   <li><b>Counsel:</b> review privacy policy and consent wording before production</li>
+   <li><b>Your manager:</b> admin access in Analytics; review of the design</li>
+   <li><b>Whoever owns DNS or the Google Workspace:</b> only if the account needs a company email</li>
+  </ul></div>
+ </div>
+</section>
+
+<section id="manual">
+ <h2>4. Your Google steps</h2>
+ <p class="lead">Do these in order after you answer questions 1, 3 and 14. Ticks are saved in your browser. Menu names can differ slightly, so tell me where a screen looks different and I will adjust.</p>
+ <div class="checks" id="chk"></div>
+ <div class="callout">Do not do steps 7 to 9 until the event schema is approved, because the custom dimensions come from it. Do not paste any measurement ID into code yourself; send it to me.</div>
+</section>
+
+<section id="measure">
+ <h2>5. What GA4 can and cannot answer</h2>
+ <p class="lead">Your five questions, matched to what GA4 does on its own and what needs custom events.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Your question</th><th>What GA4 gives for free</th><th>What needs our own events</th><th>Honest limit</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Where did they come from?</td><td>Session and first-user source, medium and campaign from the referrer and UTM tags on links.</td><td>Carrying the source from website to app sign-up (question 1). Naming campaign tags consistently.</td><td>Needs consent to be fully counted. Links without UTM tags show up as direct or referral.</td></tr>
+   <tr><td class="k">Where are they?</td><td>Page views by page.</td><td>Sanitised page views for the app, because it is a single-page app and its URLs can carry ids and search text (question 9).</td><td>Only counts people who consent.</td></tr>
+   <tr><td class="k">Where do they click most?</td><td>Outbound link clicks and file downloads only.</td><td>Our own click events on named buttons and links (question 11).</td><td>GA4 has no click heatmap. A heatmap needs a separate tool (question 10).</td></tr>
+   <tr><td class="k">Which section holds their time?</td><td>Engagement time per page.</td><td>A section view event, and time per section, using the shared section list from the navigation work (question 10).</td><td>Time per section is our own measurement, not a built-in report.</td></tr>
+   <tr><td class="k">Which sections do they skip?</td><td>Nothing directly.</td><td>Compare section views to the list of sections on that page, using a Funnel or Path exploration.</td><td>Needs the section list to be stable first, which is why this waits for batch F.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">In short: what GA4 does by itself, and what needs our own events</h3>
+ <div class="cols">
+  <div class="me"><h4>GA4 does on its own</h4><ul>
+   <li>Where visitors came from: source, medium, campaign, referrer, and links tagged with UTM</li>
+   <li>Device, browser, operating system, language, approximate country and city</li>
+   <li>New versus returning visitors, sessions, users, how long a page was in front of them</li>
+   <li>Page views on the website</li>
+   <li>Clicks on links that leave the site, and file downloads</li>
+   <li>Scrolling to the bottom of a page (90 percent)</li>
+   <li>Reports built from events: funnels, paths, retention, audiences, key events</li>
+   <li>Realtime view and DebugView for testing</li>
+  </ul></div>
+  <div class="you"><h4>Needs our own events</h4><ul>
+   <li>Page views inside the web app (a single-page app, and we send clean page names)</li>
+   <li>Clicks on specific buttons and links</li>
+   <li>Which sections were seen, time per section, sections skipped</li>
+   <li>Sign-up and login steps, onboarding steps, import started, finished or failed</li>
+   <li>Choices inside the app: period selected, benchmark selected, tab switched, filters used</li>
+   <li>Search: what kind of result was clicked (labels only, never the text typed)</li>
+   <li>Labels such as plan tier attached to a visitor, if you want them</li>
+   <li>Carrying the website source into the app sign-up, if the two are not one stream</li>
+  </ul></div>
+  <div class="oth"><h4>Neither can do</h4><ul>
+   <li>Heatmaps or replays of what people did on screen (a different tool, and not recommended for financial screens)</li>
+   <li>Anything involving amounts, holdings or names (we never send them)</li>
+   <li>Link Google&rsquo;s data to a person in our database, unless a user ID is sent (Q7)</li>
+   <li>Count people who say no to cookies</li>
+  </ul></div>
+ </div>
+ <div class="callout info"><b>Rule of thumb.</b> GA4 tells you who came, from where, and how each page did. Our own events tell you what they did inside the product.</div>
+ <h3 class="sub">Limits that apply to everything</h3>
+ <ul class="tight">
+  <li><b>Consent undercount.</b> With opt-in, people who decline are not counted (or only partly modelled, see question 4). Counts understate real use.</li>
+  <li><b>Ad blockers</b> block Google&rsquo;s script for many users, more in finance and tech audiences.</li>
+  <li><b>Retention.</b> Event-level data in custom Explorations is kept 2 months by default, up to 14 months if you change it. Standard reports are not affected. The change is not retroactive, so set it before collecting.</li>
+  <li><b>Limits per property</b> (standard): about 50 event-scoped and 25 user-scoped custom dimensions per third-party sources, which Google&rsquo;s own page I could confirm only in part. The schema must stay small.</li>
+  <li><b>No per-customer deletion</b> and no joining to our database unless a user ID is sent (question 7).</li>
+  <li><b>Data leaves India.</b> Google processes it abroad, which is why counsel review matters (question 15).</li>
+ </ul>
+</section>
+
+<section id="consent">
+ <h2>6. What consent looks like</h2>
+ <p class="lead">You asked whether the consent we would ask for is about cookies. The answer first, then the screens.</p>
+ <div class="sumbox">
+  <h3>What we would be asking permission for</h3>
+  <ul>
+   <li><b>Yes, cookies, and a little more.</b> Google&rsquo;s analytics tag stores small identifier cookies in the browser, which is how it tells one visitor from another, and it sends usage events to Google: which page, which button, which section. The permission covers both the cookies and the events.</li>
+   <li><b>Not everything.</b> The cookies that keep someone signed in are strictly necessary and need no permission. The consents the app already has (terms, CAS import) are separate and unchanged.</li>
+   <li><b>Never part of it:</b> amounts, holdings, fund names, member names, PAN, folio, email, phone. That is the rule you chose in Q8.</li>
+   <li><b>Two places to ask:</b> the website, where visitors are anonymous (a banner), and the app, where users are signed in (a one-time dialog and a switch in Profile).</li>
+  </ul>
+ </div>
+ <div class="callout">The wording now follows the common cookie-banner pattern: a short, plain question, Accept and Reject side by side, and a link to a Cookie Policy. The details (what is measured, that Google processes it outside India, what is never sent) move to that linked Cookie Policy page, and counsel must check that the short banner plus the policy says enough. &ldquo;Reject&rdquo; is drawn as prominent as &ldquo;Accept&rdquo; on purpose: a hidden or weaker refuse button is a known way to make consent invalid. Every word needs counsel&rsquo;s review (Q15).</div>
+
+ <h3 class="sub">A. Website (unifolio.in), first visit, before anyone chooses</h3>
+ <div class="cols">
+  <div>
+   <p class="mk-cap"><b>A1. The banner.</b> Shows once. Google loads only after Accept.</p>
+   <div class="mk"><div class="mk-top"><span class="mk-dot"></span><span class="mk-dot"></span><span class="mk-dot"></span><span class="mk-url">unifolio.in</span></div>
+    <div class="mk-page"><div class="mk-sk h"></div><div class="mk-sk" style="width:85%"></div><div class="mk-sk" style="width:70%"></div><div class="mk-sk" style="width:78%"></div><div class="mk-sk" style="width:50%"></div>
+     <div class="mk-ban"><p>We use cookies to give you a better experience on our website. Do you agree to the use of cookies?<small>Learn more in our <span class="mk-link">Cookie Policy</span>. You can change your choice any time in Cookie settings.</small></p>
+      <span class="mk-row"><span class="mk-btn o">Reject</span><span class="mk-btn">Accept</span></span></div></div></div>
+  </div>
+  <div>
+   <p class="mk-cap"><b>A2. Cookie settings,</b> opened from a link in the footer, so the choice can be changed.</p>
+   <div class="mk"><div class="mk-top"><span class="mk-dot"></span><span class="mk-dot"></span><span class="mk-dot"></span><span class="mk-url">unifolio.in</span></div>
+    <div class="mk-page"><div class="mk-sk h"></div><div class="mk-sk" style="width:80%"></div>
+     <div class="mk-dim"><div class="mk-dlg"><h5>Cookie settings</h5>
+      <div class="mk-item"><div><b>Essential</b><small>Needed for the site to work. Always on.</small></div><span class="mk-sw on"></span></div>
+      <div class="mk-item"><div><b>Analytics cookies</b><small>Helps us understand how the site is used so we can improve it.</small></div><span class="mk-sw"></span></div>
+      <div class="mk-row" style="margin-top:8px"><span class="mk-btn">Save</span></div></div></div></div></div>
+  </div>
+ </div>
+
+ <h3 class="sub">B. Web app (signed in)</h3>
+ <div class="cols">
+  <div>
+   <p class="mk-cap"><b>B1. One-time dialog</b> after sign-in. &ldquo;Reject&rdquo; changes nothing in the app.</p>
+   <div class="mk"><div class="mk-top"><span class="mk-dot"></span><span class="mk-dot"></span><span class="mk-dot"></span><span class="mk-url">ls-redesign.unifolio.in/home</span></div>
+    <div class="mk-page" style="height:310px"><div class="mk-sk h"></div><div class="mk-sk" style="width:90%"></div><div class="mk-sk" style="width:60%"></div>
+     <div class="mk-dim"><div class="mk-dlg"><h5>Do you agree to cookies?</h5><p style="margin:0 0 10px">We use cookies to understand how Unifolio is used and to make it better. <span class="mk-link">Learn more</span></p><p style="margin:0 0 10px;color:#5d6b61;font-size:12px">You can change your choice any time in Profile, Data and privacy.</p><div class="mk-row"><span class="mk-btn o">Reject</span><span class="mk-btn">Accept</span></div></div></div></div></div>
+  </div>
+  <div>
+   <p class="mk-cap"><b>B2. Profile, Data and privacy:</b> the switch, with the record next to the other consents.</p>
+   <div class="mk"><div class="mk-top"><span class="mk-dot"></span><span class="mk-dot"></span><span class="mk-dot"></span><span class="mk-url">ls-redesign.unifolio.in/profile</span></div>
+    <div class="mk-set" style="height:310px"><h5>Data and privacy</h5>
+     <div class="mk-item"><div><b>Terms and privacy policy</b><small>Accepted. Version on file.</small></div><span class="mk-sw on"></span></div>
+     <div class="mk-item"><div><b>Import from CAMS</b><small>Allowed when you add a statement.</small></div><span class="mk-sw on"></span></div>
+     <div class="mk-item"><div><b>Analytics cookies</b><small>Allowed on 12 Nov 2026. Turn off any time; the change is recorded.</small><div class="mk-lock">NEW: this row would be added</div></div><span class="mk-sw on"></span></div></div></div>
+  </div>
+ </div>
+
+ <h3 class="sub">C. If you choose notice plus opt-out (Q4 or Q5 option C)</h3>
+ <div class="cols">
+  <div>
+   <p class="mk-cap"><b>C1. A notice instead of a question.</b> Google is already running when the visitor arrives.</p>
+   <div class="mk"><div class="mk-top"><span class="mk-dot"></span><span class="mk-dot"></span><span class="mk-dot"></span><span class="mk-url">unifolio.in</span></div>
+    <div class="mk-page" style="height:190px"><div class="mk-sk h"></div><div class="mk-sk" style="width:85%"></div><div class="mk-sk" style="width:70%"></div>
+     <div class="mk-ban"><p>This site uses cookies to improve your experience. <span class="mk-link">Opt out</span><small>Learn more in our Cookie Policy.</small></p><span class="mk-row"><span class="mk-btn">Got it</span></span></div></div></div>
+  </div>
+ </div>
+
+ <h3 class="sub">How each answer changes what the user sees</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Option</th><th>On the website</th><th>In the app</th><th>Behind the scenes</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Q4 and Q5 A: ask first</td><td>Banner A1 and settings A2.</td><td>Dialog B1 and the Profile switch B2.</td><td>Google is not loaded until Accept. No Consent Mode needed.</td></tr>
+   <tr><td class="k">Q4 and Q5 B: Advanced</td><td>The same screens as A.</td><td>The same screens as A.</td><td>Google loads at once in a denied state and sends cookieless pings before the choice, so it can model the missing users. Needs Consent Mode.</td></tr>
+   <tr><td class="k">Q4 and Q5 C: notice and opt-out</td><td>Notice C1, no question.</td><td>A notice in the app and the Profile switch B2 to opt out.</td><td>Google runs from the first visit. Most legal risk.</td></tr>
+   <tr><td class="k">Q6 A: browser for the website, records for the app</td><td>The choice is remembered in the browser only.</td><td>A new row in the consent records; the Profile switch changes it.</td><td>Needs one database change and your approval.</td></tr>
+   <tr><td class="k">Q6 B: browser for both</td><td>The same.</td><td>The Profile switch applies to that browser only.</td><td>No database change, no record, and a withdrawal does not reach other devices.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="questions">
+ <h2>7. Questions</h2>
+ <p class="lead">18 questions, each with options, what each costs, my pick and why. Pick one option, add a note if you like, and move on. Answers save in this browser as you go. An &ldquo;answered&rdquo; badge sits on every answered card, with a &ldquo;Chosen&rdquo; badge on the picked option. Answered cards are locked; tell me in chat if you want one reopened.</p>
+ <div class="callout good"><b>Where we stand.</b> Answered (8): Q2, Q3 (switched to A), Q6, Q8, Q11, Q12, Q14, Q15. Still open (10): Q1, Q4, Q5, Q7, Q9, Q10, Q13, Q16, Q17, Q18. Q4 and Q5 carry your notes and my answers, with the consent mockups in section 6; Q6 is answered (A) and still depends on Q4 and Q5.</div>
+ <div class="bar"><span class="status" id="prog">0 of 18 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
+ <div id="cards"></div>
+</section>
+
+<section id="copy">
+ <h2>8. Copy my answers</h2>
+ <p class="lead">Press the button, then paste the text in chat. If the button does nothing, select the text below and copy it yourself.</p>
+ <button id="copyBtn" type="button">Copy my answers</button> <span class="status" id="copyMsg"></span>
+ <label class="nl" for="outTa">Your answers as text</label>
+ <textarea id="outTa" class="out" readonly></textarea>
+</section>
+
+<section id="sources">
+ <h2>Sources checked</h2>
+ <ul class="tight">
+  <li><a href="https://support.google.com/analytics/answer/10071811">Google: set up cross-domain measurement</a> (the tag on each page must use the same tag ID from the same web data stream).</li>
+  <li><a href="https://optimizesmart.com/p/tracking-subdomains-in-ga4-one-data-stream-or-several">Optimize Smart: tracking subdomains in GA4, one data stream or several</a> and <a href="https://adswerve.com/blog/cross-domain-measurement-in-google-analytics">Adswerve: cross-domain measurement in GA4</a> (secondary).</li>
+  <li><a href="https://analytify.io/google-analytics-limits/">Analytify: GA4 limits</a> and <a href="https://www.analyticsmania.com/post/2-month-data-in-google-analytics-4">Analytics Mania: 2-month data</a> (secondary: retention and custom dimension limits).</li>
+  <li><a href="https://www.uniconsent.com/google-consent-mode-ga4">UniConsent: Consent Mode for GA4</a> and <a href="https://www.secureprivacy.ai/blog/google-consent-mode-ga4-cmp-requirements-2025">Secure Privacy</a> (secondary: modelling thresholds disagree between sources).</li>
+ </ul>
+ <p class="ctx">Not legal advice. Consent, privacy wording and cross-border transfer need counsel&rsquo;s view.</p>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+var KEY="ga4-tracking-plan-v2", S={}, CK={};
+try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
+try{CK=JSON.parse(localStorage.getItem(KEY+"-chk")||"{}")}catch(e){CK={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function saveC(){try{localStorage.setItem(KEY+"-chk",JSON.stringify(CK))}catch(e){}}
+
+/* ------------- manual console steps ------------- */
+var STEPS=[
+ ["Sign in with the company-owned Google account","Go to analytics.google.com. Use the account you chose in question 14, not a personal one."],
+ ["Create the Analytics account named Unifolio","Admin (gear icon), Create, Account. Untick every data-sharing option offered (Google products and services, benchmarking, technical support, account specialists)."],
+ ["Create the property (or properties) from question 1 and 3","Set the reporting time zone to India and the currency to rupees. Name them so they are obvious, for example the environment in the name."],
+ ["Create the web data stream and note its measurement ID","Admin, Data streams, Add stream, Web. Enter the domain. In the stream settings decide which Enhanced measurement items stay on (I recommend we turn off site search and keep outbound clicks only if we want them). Copy the ID that starts with G- and send it to me."],
+ ["Turn off Google signals and ad personalisation","Admin, Data collection and modification, Data collection: Google signals off. Make sure no ads features are linked. I will confirm the exact switch for ad personalisation with you on screen."],
+ ["Set event data retention to 14 months","Admin, Data collection and modification, Data retention. Choose 14 months for event data. Do this before data arrives; it is not retroactive."],
+ ["Define internal traffic and switch the filter on (after question 16)","Data stream, Configure tag settings, Define internal traffic, add the team IPs. Then Admin, Data filters: set the internal-traffic filter to Testing, check it, then Active. Sources say an active filter cannot be undone and can take up to about 38 hours to start working. Do this on the production property."],
+ ["Cross-domain setup (only if the website and the app are on different root domains)","Data stream, Configure tag settings, Configure your domains. Add both domains. Subdomains of one root domain need no setup. List unwanted referrals only if we find stray ones later."],
+ ["Register the custom dimensions from the approved schema","Admin, Custom definitions. I give you the exact list: name, scope and parameter. Keep it small."],
+ ["Mark the key events we agree on","Admin, Key events. For example sign-up completed and import completed."],
+ ["Give access to the manager and a backup person","Admin, Access management. Admin for the owner and a backup, Editor or Viewer for others."],
+ ["On staging: open DebugView while I test","Admin, DebugView. Keep it open while we click through the staging app and website. Paste what you see."]
+];
+var chk=document.getElementById("chk");
+STEPS.forEach(function(s,i){
+ var d=document.createElement("label");d.className="check";
+ var cb=document.createElement("input");cb.type="checkbox";cb.id="c"+i;cb.checked=!!CK[i];
+ cb.addEventListener("change",function(){CK[i]=cb.checked;saveC()});
+ var w=document.createElement("div");
+ w.innerHTML="<b>"+(i+1)+". "+s[0]+"</b><small>"+s[1]+"</small>";
+ d.appendChild(cb);d.appendChild(w);chk.appendChild(d);
+});
+
+/* ------------- questions ------------- */
+var Q=[
+{id:"Q1",title:"How should the Analytics structure look?",ask:"Your parent is the Account. Which layout sits under it?",
+ ctx:"Facts from the sources: cross-domain measurement works only inside one web data stream; the tag on every page must use the same tag ID from that stream; a person who moves between separate streams can be counted as a new user in each; subdomains of one root domain share cookies when they use the same stream.",
+ opts:[
+ {k:"A",l:"Two properties, one for the website and one for the web app, under the Unifolio account",d:"Good: clean separation, simple permissions, each team sees only its data. Bad: no built-in link between them. A visitor who goes from the website to the app is two unrelated people in two reports."},
+ {k:"B",l:"One property with two web data streams (website and app)",d:"Looks like what you described, but it is weaker than it seems. Separate streams per host do not stitch visitors across them, so you get the shared property without the shared journey."},
+ {k:"C",l:"One property and one web stream covering both, separated in reports by hostname",rec:1,d:"Good: one visitor, one story from first visit to sign-up. Subdomains of one root domain need no setup. Different root domains need the cross-domain setting. Bad: shared settings, so a tag mistake in one surface affects both. Separation is by hostname filters, not by structure."},
+ {k:"D",l:"Two properties, plus a hand-off: the website passes campaign details (and a first-touch tag) in the sign-up link, and the app records them as an event",d:"Good: full separation and you can still tie a sign-up to its source. Bad: more custom work, the link is approximate, and the app cannot see what the person did on the website before the link."}],
+ why:"Your first question is where users came from and your connection goal is one story. That is what one stream is built for. If the website and the app turn out to be on different root domains, C still works with the cross-domain setting; if you need hard separation between teams, D is the fallback. Your Unifolio account sits above the property in every case. Which one depends on question 2."},
+{id:"Q2",title:"What are the actual domains?",type:"text",ask:"Give me the website domain and the app domains, production and staging.",
+ ctx:"This decides whether Q1 option C needs no extra setup (both under one root domain, for example subdomains of unifolio.in) or needs the cross-domain setting. From the repo I only know of staging hosts such as ls-staging.unifolio.in; I will not guess production.",
+ ph:"Website: ...  App production: ...  App staging: ...  Website staging, if any: ..."},
+{id:"Q3",title:"Staging and production: how do we keep test data out of the real numbers?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Separate properties for staging and production",rec:1,d:"Good: production numbers are never polluted; the old Home plan already chose this; costs nothing. Bad: one more property to set up and keep in step with the first."},
+ {k:"B",l:"One property, staging excluded by a filter on the hostname",d:"Good: one place to look. Bad: one wrong filter setting and test data leaks into the real reports; the filter is easy to turn off by mistake."},
+ {k:"C",l:"No analytics at all on staging; test only with DebugView",d:"Good: simplest. Bad: DebugView needs the tag active, so we would have to enable it on staging anyway. We could not rehearse the real setup."}],
+ why:"Staging is where we confirm each event and prove no personal data is sent. That needs its own clean property. It also matches the decision already made for Home."},
+{id:"Q4",title:"Consent in the web app: what happens before the user agrees?",ask:"Pick one model for the app.",
+ ctx:"The old plan chose opt-in. With Consent Mode there are two flavours: Basic, where the Google tag is not loaded until consent (no data at all before), and Advanced, where the tag loads and sends cookieless pings before consent, which Google uses to model the gaps. Sources disagree on the thresholds for modelling, and some regulators question whether the pings themselves need consent.",
+ opts:[
+ {k:"A",l:"Opt-in, Basic mode: nothing is sent and nothing loads until the user agrees",rec:1,d:"Good: cleanest for a financial app and for India&rsquo;s data protection law; nothing before consent. Bad: counts understate real use, probably by a lot."},
+ {k:"B",l:"Opt-in, Advanced mode: tag loads, cookieless pings before consent, Google models the rest",d:"Good: better counts. Bad: you send a signal to Google before the user chose; counsel must decide whether that is acceptable."},
+ {k:"C",l:"Notice plus opt-out: collect by default, user can switch off",d:"Good: highest counts. Bad: weakest fit with the consent standard the old plan cited (free, specific, informed, unambiguous); most legal risk."}],
+ why:"Your tool holds portfolio data and the app already treats consent seriously. A: undercount is the lesser cost. We can revisit after counsel&rsquo;s view (Q15)."},
+{id:"Q5",title:"Consent on the website, before anyone signs in",ask:"Pick one. Also tell me if the website already has a cookie banner.",
+ opts:[
+ {k:"A",l:"A simple banner with Accept and Reject; Google loads only after Accept",rec:1,d:"Good: same model as the app; no third-party service. Bad: we maintain it in the website repo; wording needs counsel."},
+ {k:"B",l:"A third-party consent platform (a cookie banner service)",d:"Good: ready-made, handles regions and records. Bad: a monthly cost, another script on the page, a vendor to choose; I will not pick a vendor without your say."},
+ {k:"C",l:"A notice only, no choice",d:"Good: nothing to build. Bad: not consent; the same legal risk as Q4 option C."}],
+ why:"Visitors are anonymous, so the choice has to live in their browser (see Q6). A matches the app and keeps the website light. If the site already has a banner, we reuse it instead.",
+ note:true},
+{id:"Q6",title:"Where is the analytics consent stored?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Website: in the browser only. App: a new analytics purpose in the existing consent records",rec:1,d:"Good: the app keeps an auditable, withdrawable record next to the others. Bad: the app part touches shared consent code and needs a database migration and your approval."},
+ {k:"B",l:"Both in the browser only",d:"Good: no migration, quick. Bad: no audit trail; withdrawal in one browser does not reach another device; weaker proof if asked."},
+ {k:"C",l:"Both in the database",d:"Not possible for the website: anonymous visitors have no account to attach a record to."}],
+ why:"Anonymous visitors can only be remembered by the browser. Signed-in users are the ones whose consent we can and should record properly."},
+{id:"Q7",title:"Do we send any user ID to Google?",ask:"Pick one.",
+ ctx:"Without an ID, GA counts browsers, not people, and nothing links Google&rsquo;s data to your accounts. It also means Google&rsquo;s data cannot be deleted per customer and cannot be joined to your own database.",
+ opts:[
+ {k:"A",l:"No user ID (the old plan&rsquo;s choice)",rec:1,d:"Good: least data to Google; simplest consent story. Bad: no cross-device view; no per-customer deletion; no link to our database."},
+ {k:"B",l:"A pseudonymous ID in the app only (a keyed hash of the account ID)",d:"Good: cross-device view in the app and deletion by ID. Bad: Google holds a stable ID per customer; the website still cannot use it; another privacy decision for counsel."},
+ {k:"C",l:"A real account ID",d:"Not recommended for a financial app."}],
+ why:"You have not asked for per-person analysis. Start without an ID and add B later if a real need appears."},
+{id:"Q8",title:"What is never sent to Google?",ask:"Confirm or change the rule.",
+ ctx:"The old plan: only fixed labels from an allow-list; no amounts, units, percentages, fund names, scheme ids, member names, search text, PAN, folio, email or phone, and no URLs with ids.",
+ opts:[
+ {k:"A",l:"Keep the strict rule: fixed labels only",rec:1,d:"Good: nothing personal can leak by mistake; easy to test. Bad: reports say &ldquo;a fund page&rdquo; and never which category or fund."},
+ {k:"B",l:"Strict, plus public labels such as a category name or fund house on public-style pages",d:"Good: richer insight into what people explore. Bad: a fund name tied to a visit can hint at holdings; needs a careful allow-list and counsel."}],
+ why:"Start strict. Explore, when it exists, is the natural place to open up public labels."},
+{id:"Q9",title:"How are page views recorded in the web app?",ask:"Pick one.",
+ ctx:"The app is a single-page app. Search will put <code>?q=</code> in the address, and some pages carry ids.",
+ opts:[
+ {k:"A",l:"Our own page view on each route change, sending a cleaned route name (for example /funds/:schemeId)",rec:1,d:"Good: no ids or search text can leak; consistent names. Bad: we write and maintain it, and every new page must be registered."},
+ {k:"B",l:"GA4&rsquo;s automatic page views on history change",d:"Good: no code. Bad: sends the full address, including search text and ids; no control."},
+ {k:"C",l:"Automatic, with address cleaning rules in the tag settings",d:"Good: less code. Bad: fragile; one new query parameter leaks until someone remembers to add a rule."}],
+ why:"Privacy by construction beats cleaning up afterwards. The old plan chose the same."},
+{id:"Q10",title:"How do we measure time per section and skipped sections?",ask:"Pick one.",
+ ctx:"GA4 measures engagement time per page, not per section. It has no heatmaps.",
+ opts:[
+ {k:"A",l:"Our own events: a section is &ldquo;viewed&rdquo; when it is mostly on screen for a moment; time per section is added up while it is",rec:1,d:"Good: answers both of your questions inside GA4. Bad: needs the shared list of sections per tab, so it waits for the navigation work; some tuning of what counts as viewed."},
+ {k:"B",l:"GA4&rsquo;s built-in scroll (reaches 90 percent) and page engagement time only",d:"Good: no code. Bad: too coarse; no per-section answer."},
+ {k:"C",l:"Add a heatmap or session-replay tool as well",d:"Good: shows clicks and scroll visually. Bad: another vendor, replays of financial screens are a serious privacy issue, and it is outside GA4. Not recommended."}],
+ why:"A is the only one that answers the two questions you asked, inside the tool you chose. Page-level now, sections later."},
+{id:"Q11",title:"How do we record clicks?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Mark each trackable button or link with a short label; one listener sends the click, only for labels on an approved list",rec:1,d:"Good: easy to add, hard to leak, one place to test. Bad: someone must add a label for each thing worth tracking."},
+ {k:"B",l:"Hand-written tracking calls at each place",d:"Good: very explicit. Bad: many code touches; more room for mistakes (the old Home plan did it this way for seven events)."},
+ {k:"C",l:"Capture every click automatically",d:"Good: nothing is missed. Bad: noisy, and it can capture text or ids you did not intend."}],
+ why:"With 20-odd screens, A scales and keeps the privacy rule in one list."},
+{id:"Q12",title:"Do we also track the sign-up, login, onboarding and import funnel?",ask:"This is not in your original list but it is where people are lost.",
+ opts:[
+ {k:"A",l:"Yes: login or sign-up started and completed, each onboarding step viewed and completed, import started, finished or failed",rec:1,d:"Good: tells you exactly where new users drop out, with only labels, never values. Bad: more events and more dimensions to register."},
+ {k:"B",l:"Only what you listed (source, location, clicks, section time, skips)",d:"Good: smaller schema. Bad: you would see people arrive and see people leave, but not the steps between."},
+ {k:"C",l:"Add the funnel in a later round",d:"Good: keeps round one small. Bad: no baseline data for the first weeks."}],
+ why:"&ldquo;Where they are&rdquo; and &ldquo;what they skip&rdquo; matter most in onboarding. It costs little now."},
+{id:"Q13",title:"How does the website load Google?",type:"mixed",ask:"Pick one, and tell me the website&rsquo;s stack and who edits it.",
+ opts:[
+ {k:"A",l:"The tag added directly in the website code",d:"Good: simple, no extra service. Bad: every change needs a code change and a deploy; needs a developer."},
+ {k:"B",l:"Google Tag Manager",d:"Good: marketing can add tags without deploys. Bad: a bigger setup; consent must be wired in carefully; one more place a tag can leak data."},
+ {k:"C",l:"Whatever is there now, if the website already has one",d:"I do not yet know whether it has one."}],
+ why:"I cannot recommend before I know the stack. Tell me and I will pick. In the app we use a direct module, because we need to control what is sent.",
+ ph:"Stack (WordPress, Next.js, Webflow, ...), repo location, who edits it, existing Google tags or banner: ..."},
+{id:"Q14",title:"Who owns the Google account?",type:"mixed",ask:"Pick one and give the admin email addresses.",
+ opts:[
+ {k:"A",l:"A company-owned Google account (a shared company address)",rec:1,d:"Good: survives staff changes; one owner. Bad: someone must create and look after that address."},
+ {k:"B",l:"Your own Google account",d:"Good: quick. Bad: if you leave or lose access, the data goes with it."},
+ {k:"C",l:"Your manager&rsquo;s account",d:"Good: the company owns it through them. Bad: same single-person risk."}],
+ why:"Analytics data is a company asset. Whoever owns it should not be one person&rsquo;s inbox. Give a backup admin too.",
+ ph:"Owner address: ...  Backup admins: ..."},
+{id:"Q15",title:"Legal review and where the data goes",ask:"Pick one.",
+ ctx:"Google processes this data outside India. Consent wording, the privacy policy and cross-border transfer need counsel. The old plan listed a fallback if counsel objects: the same tracking module could send to a self-hosted or India-region tool.",
+ opts:[
+ {k:"A",l:"Build and test on staging; counsel reviews the wording; production only after that",rec:1,d:"Good: no real user data goes to Google before the wording is approved. Bad: production waits on counsel&rsquo;s timing."},
+ {k:"B",l:"Go to production with consent and fix the wording later",d:"Good: faster. Bad: real data flows before approval; not recommended."},
+ {k:"C",l:"Choose a non-Google tool instead (self-hosted or India-region)",d:"Good: data stays under your control. Bad: you chose GA4; more to run; fewer built-in reports. Keep as the fallback."}],
+ why:"Staging proves the build; counsel gates production. Tell me who counsel is, or that you will brief them.",note:true},
+{id:"Q16",title:"Which traffic do we exclude as internal?",type:"text",ask:"Give me the office and VPN IP addresses (or say you will do it later).",
+ ctx:"Without this, your team&rsquo;s testing pollutes the production numbers. Only IP addresses, no personal details.",
+ ph:"Office IPs: ...  VPN IPs: ...  Other: ..."},
+{id:"Q17",title:"How do stakeholders see the results?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"GA4&rsquo;s own reports and Explorations only",d:"Good: nothing extra to build. Bad: stakeholders need a Google login; Explorations keep data only for the retention period (14 months at most)."},
+ {k:"B",l:"GA4, plus a simple Looker Studio dashboard shared with stakeholders (later)",rec:1,d:"Good: free; a clean page for non-analysts; built after the data exists. Bad: another thing to set up and share."},
+ {k:"C",l:"Export to BigQuery for deeper analysis",d:"Good: full raw data. Bad: cost and effort; the old plan said not now."}],
+ why:"You need to show stakeholders something readable. Build it once there is real data."},
+{id:"Q18",title:"Order and timing",type:"mixed",ask:"Pick one, and say what to do with the seven Home events from the old plan.",
+ opts:[
+ {k:"A",l:"Foundation now in both repos; custom events after batches D, E, F and K",rec:1,d:"Good: data starts collecting early; events are not rebuilt when screens change. Bad: for a while you have sources and page views but not clicks and section time."},
+ {k:"B",l:"Everything after the UI batches",d:"Good: one build. Bad: no data for weeks; no baseline."},
+ {k:"C",l:"Website first, app second",d:"Good: the website is where &ldquo;where did they come from&rdquo; starts. Bad: the app side waits."}],
+ why:"Foundation is small and independent of the UI work; custom events are where rework would hurt.",
+ ph:"The seven Home events (home viewed, period selected, benchmark selected, mover opened, Worth a look clicked, news clicked, Mira popup opened): fold into the new plan? Keep as is? Drop? ..."}
+];
+
+var LOCK={Q2:1,Q3:1,Q6:1,Q8:1,Q11:1,Q12:1,Q14:1,Q15:1};
+var PRE={
+ Q2:{t:"the website is at unifolio.in\nweb app is at ls-redesign.unifolio.in for now for staging only"},
+ Q3:{k:"A"},Q6:{k:"A",n:"will be answered on the basis of the answer to the last two questions"},Q8:{k:"A"},Q11:{k:"A"},Q12:{k:"A"},Q14:{k:"A"},Q15:{k:"A"},
+ Q4:{n:"do have to take consent? can we do it without consent mode?"},
+ Q5:{n:"same question as before: do have to take consent? can we do it without consent mode?"}
+};
+Object.keys(PRE).forEach(function(k){
+ if(LOCK[k]){S[k]=JSON.parse(JSON.stringify(PRE[k]))}
+ else{S[k]=S[k]||{};if(PRE[k].n&&!S[k].n)S[k].n=PRE[k].n}
+});
+var CONSENT_REPLY="<p><b>What the user sees:</b> mockups in <a href='#consent'>section 6</a>.</p><p><b>Do we have to take consent?</b> That is a legal question, not a Google setting. India&rsquo;s data protection law has no cookie-specific rule. The commentary I found (law-firm and vendor articles, no official text) mostly reads non-essential analytics cookies as needing the user&rsquo;s opt-in, and says refusing must not block the service and withdrawing must be as easy as agreeing. The sources disagree on whether consent must be separate for each purpose. I cannot settle this; counsel can (Q15). Until then, treat consent as needed.</p><p><b>Can we do it without Consent Mode?</b> Yes. Consent Mode is Google&rsquo;s technical signal to its tags. Sources say it is not required unless you have users in the EEA, UK or Switzerland. You can gate Google without it: simply do not load the Google tag until the user agrees. That is what option A means, and it needs no Consent Mode at all. Only option B (Advanced) needs it, to let Google model the missing users.</p><p><b>So there are three real paths:</b></p><ul><li><b>Ask first, load Google only after Accept.</b> Option A. No Consent Mode needed. My pick.</li><li><b>Load by default with a notice and an opt-out.</b> Option C. No Consent Mode needed, but the most legal risk.</li><li><b>Load Google at once in a denied state (Consent Mode Advanced).</b> Option B. Better counts, but a signal reaches Google before the user chose.</li></ul>";
+var FU={
+ Q7:"<p><b>Before you decide.</b> Option B sends a stable ID per customer to Google. The ID cannot be made safely in the browser (it needs a secret key), so it adds a small backend piece and a secret to look after, which the old Home plan did not have. In return, per-customer deletion in Google becomes possible. It must be named in the consent text and the privacy policy, and only be sent after consent (Q4 to Q6). The website cannot use it, so the website-to-app link would rest on the shared cookie (Q1). Option A has none of this.</p>",
+ Q10:"<p><b>Before you decide.</b> With option A, section events need the shared list of sections per tab from the navigation work (task F-1), so page-level data comes first and section events are built after that. Option B needs nothing extra but cannot answer your section questions.</p>",
+ Q1:"<p><b>Update after your answers.</b> Q2 gives the website as unifolio.in and the app as ls-redesign.unifolio.in (staging for now). Both sit under one root domain, so option C needs no cross-domain setup, because subdomains of one root share cookies when they use the same stream. Q3 (a separate staging property) fits C too: the production property holds one stream across the website and the app. Still missing: the production app address.</p>",
+ Q3:"<p><b>Changed from B to A on 12 Nov.</b> After you chose B I checked and found that GA4 has no hostname filter at property level, only internal-traffic (by IP address) and developer-traffic filters. A separate staging property avoids the problem: test clicks can never reach the real numbers.</p>",
+ Q4:"<b class=t>My answer to your note.</b>"+CONSENT_REPLY+"<p>For the signed-in app: users accepted the terms and privacy policy at sign-up, but a separate analytics purpose is the conservative reading. The app already has a consent system, which is why Q6 option A exists.</p>",
+ Q5:"<b class=t>My answer to your note.</b><p>Same answer as Q4. The website is public and anonymous, so a banner (or nothing) is the only place to ask.</p>"+CONSENT_REPLY,
+ Q6:"<b class=t>How your Q4 and Q5 answers will decide this.</b><p>The switch in Profile and the website settings panel are drawn in <a href='#consent'>section 6</a>.</p><ul><li>Ask first (Q4 A, Q5 A): Q6 option A applies. The website remembers the choice in the browser, the app records it as a new purpose in the consent records.</li><li>Opt-out or no consent (Q4 C, Q5 C): there is little to store; a withdrawal record is still needed for opt-out, in the app.</li><li>Consent Mode Advanced (Q4 B): the same storage as A, and the choice must also be passed to Google as a signal.</li></ul><p><b>You answered A.</b> It still depends on Q4 and Q5, so if you later choose a different path there, tell me and I will reopen this card.</p>"
+};
+var CM={
+ Q6:"The website remembers the choice in the browser. The app records analytics as a new purpose in the consent records, so the Profile switch (mockup B2) changes a stored record. That touches shared consent code and needs a database migration and your approval; the migration is not written or numbered yet.",
+ Q2:"The website and the app share the root domain unifolio.in. Only the staging app address is known. I still need the production app address.",
+ Q3:"Two properties, each with its own measurement ID: one for staging, one for production. The staging build and the production build use different IDs, and I need both from you after the Google steps. The internal-traffic filter is still needed on production (Q16).",
+ Q8:"An allow-list of fixed labels in code. Anything else is dropped before sending, and a test fails if an unknown value appears.",
+ Q11:"A short approved list of click labels. I will draft it with the schema for you to review.",
+ Q12:"About a dozen funnel events with labels only, never values. I draft the list in the schema step for your approval.",
+ Q14:"I still need the company address and the admin email addresses from you (section 3).",
+ Q15:"Production stays off until counsel approves the wording. I need counsel&rsquo;s contact, or your confirmation that you will brief them."
+};
+function setSt(st,ok){st.textContent=ok?"answered":"unanswered";st.className=ok?"tag done":"status todo"}
+function esc(s){return String(s).replace(/</g,"&lt;")}
+Q.forEach(function(q){
+ var c=document.createElement("div");c.className="card";c.id=q.id.toLowerCase();c.setAttribute("data-q",q.id);
+ var h='<header><span class="id">'+q.id+'</span><h3>'+q.title+'</h3><span class="status todo" data-st>unanswered</span></header>';
+ h+='<p class="ask"><b>'+q.ask+'</b></p>';
+ if(q.ctx)h+='<p class="ctx">'+q.ctx+'</p>';
+ if(q.opts){
+  h+='<div class="opts">';
+  q.opts.forEach(function(o){
+   h+='<label class="opt'+(o.rec?' isrec':'')+'"><input type="radio" name="'+q.id+'" value="'+o.k+'"'+(LOCK[q.id]?' disabled':'')+'><div><b>'+o.k+'. '+o.l+(o.rec?'<span class="tag me">my pick</span>':'')+'<span class="tag chosen" hidden>Chosen</span></b><span class="d">'+o.d+'</span></div></label>';
+  });
+  h+='</div>';
+ }
+ if(q.why)h+='<div class="why"><b>Why my pick.</b> '+q.why+'</div>';
+ if(FU[q.id])h+='<div class="reply">'+FU[q.id]+'</div>';
+ if(CM[q.id])h+='<div class="commit"><b>What this answer commits us to.</b> '+CM[q.id]+'</div>';
+ if(q.type==="text"||q.type==="mixed"||q.ph){
+  h+='<label class="nl" for="t-'+q.id+'">'+(q.type==="text"?"Your answer":"Details")+'</label><textarea id="t-'+q.id+'"'+(LOCK[q.id]?' readonly':'')+' placeholder="'+(q.ph||"")+'"></textarea>';
+ }
+ h+='<label class="nl" for="n-'+q.id+'">Notes (optional)</label><textarea id="n-'+q.id+'" placeholder="Anything I should know"></textarea>';
+ c.innerHTML=h;cards.appendChild(c);
+});
+
+function answered(q){if(LOCK[q.id])return true;var a=S[q.id]||{};
+ if(q.type==="text")return !!(a.t&&a.t.trim());
+ return !!a.k || !!(a.t&&a.t.trim());}
+function paint(){
+ var n=0;
+ Q.forEach(function(q){
+  var c=document.getElementById(q.id.toLowerCase()),a=S[q.id]||{};
+  c.querySelectorAll(".opt").forEach(function(o){
+   var r=o.querySelector("input");r.checked=(a.k===r.value);o.classList.toggle("on",r.checked);var cbd=o.querySelector(".chosen");if(cbd)cbd.hidden=!r.checked;
+  });
+  var t=document.getElementById("t-"+q.id);if(t&&document.activeElement!==t)t.value=a.t||"";
+  var nn=document.getElementById("n-"+q.id);if(nn&&document.activeElement!==nn)nn.value=a.n||"";
+  var ok=answered(q);if(ok)n++;
+  var st=c.querySelector("[data-st]");setSt(st,ok);
+ });
+ document.getElementById("prog").textContent=n+" of "+Q.length+" answered";
+ document.getElementById("outTa").value=build();
+}
+function build(){
+ var L=["GA4 TRACKING PLAN: MY ANSWERS (12 Nov 2026)",""];
+ Q.forEach(function(q){
+  var a=S[q.id]||{},line=q.id+" "+q.title+"\n  Answer: ";
+  if(a.k){var o=q.opts.filter(function(x){return x.k===a.k})[0];line+=a.k+". "+o.l.replace(/&[a-z]+;/g,"'")}
+  else line+=(q.type==="text"?"":"(no option chosen)");
+  if(a.t&&a.t.trim())line+=(a.k?"\n  Details: ":"")+a.t.trim();
+  if(!a.k&&!(a.t&&a.t.trim()))line="  "+q.id+" "+q.title+"\n  Answer: NOT ANSWERED";
+  if(a.n&&a.n.trim())line+="\n  Note: "+a.n.trim();
+  L.push(line);L.push("");
+ });
+ var done=[];STEPS.forEach(function(s,i){if(CK[i])done.push(i+1)});
+ L.push("Google steps ticked in section 4: "+(done.length?done.join(", "):"none"));
+ return L.join("\n");
+}
+cards.addEventListener("change",function(e){
+ var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");S[q]=S[q]||{};
+ if(e.target.type==="radio")S[q].k=e.target.value;
+ save();paint();
+});
+cards.addEventListener("input",function(e){
+ var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");S[q]=S[q]||{};
+ if(e.target.id==="t-"+q)S[q].t=e.target.value;
+ if(e.target.id==="n-"+q)S[q].n=e.target.value;
+ save();document.getElementById("outTa").value=build();
+ var qq=Q.filter(function(x){return x.id===q})[0],st=c.querySelector("[data-st]"),ok=answered(qq);
+ setSt(st,ok);
+ var n=0;Q.forEach(function(x){if(answered(x))n++});document.getElementById("prog").textContent=n+" of "+Q.length+" answered";
+});
+chk.addEventListener("change",function(){document.getElementById("outTa").value=build()});
+
+function copy(){
+ var ta=document.getElementById("outTa"),m=document.getElementById("copyMsg");
+ ta.value=build();
+ function fb(){ta.removeAttribute("readonly");ta.select();try{document.execCommand("copy");m.textContent="Copied (or select and copy the text below)"}catch(e){m.textContent="Select the text below and copy it"}ta.setAttribute("readonly","")}
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(function(){m.textContent="Copied. Paste it in chat."},fb)}else fb();
+}
+document.getElementById("copyBtn").addEventListener("click",copy);
+document.getElementById("copyTop").addEventListener("click",function(){copy();document.getElementById("copy").scrollIntoView()});
+document.getElementById("jump").addEventListener("click",function(){
+ for(var i=0;i<Q.length;i++){if(!answered(Q[i])){document.getElementById(Q[i].id.toLowerCase()).scrollIntoView({behavior:"smooth"});return}}
+});
+paint();
+})();
+</script>
+</body>
+</html>
