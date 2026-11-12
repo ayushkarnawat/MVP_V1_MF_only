@@ -1,0 +1,1074 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Batch C Planning</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+
+<style>
+
+/* Layout: sticky contents rail + one reading column. Brand: DM Sans headings, Manrope body, #22C55E for actions, a deeper green for text and links. Mockups are drawn at real window sizes and scaled to fit the column. */
+:root{
+ --bg:#FCFCFC; --surface:#FFFFFF; --surface-2:#F3F5F3; --line:#E5E5E5;
+ --fg:#111111; --muted:#5C5C5C; --accent:#22C55E; --accent-deep:#15803D; --accent-soft:#EAFBF0;
+ --warn:#B45309; --warn-soft:#FEF3E2; --info:#2F5FB3; --info-soft:#E8EFFB;
+ --danger:#B3321F; --danger-soft:#FBE6E2; --on-accent:#0B1F12;
+ --f-display:'DM Sans','Segoe UI',system-ui,sans-serif;
+ --f-body:'Manrope','Segoe UI',system-ui,sans-serif;
+ --f-mono:ui-monospace,'SF Mono',Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+ padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4,h5{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent-deep)}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent-deep)}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:70ch;margin:0 0 10px}
+.meta{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+section{margin-top:56px;scroll-margin-top:16px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:74ch}
+h3.sub{font-size:18px;margin:28px 0 8px}
+h4.mini{font-size:15px;margin:18px 0 6px}
+p{margin:8px 0}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700}
+.tag{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.fe{background:var(--info-soft);color:var(--info)}
+.tag.be{background:var(--warn-soft);color:var(--warn)}
+.tag.db{background:var(--danger-soft);color:var(--danger)}
+.tag.ok{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.none{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tag.me{background:var(--accent-soft);color:var(--accent-deep);margin-left:6px}
+.tag.chosen{background:var(--accent);color:var(--on-accent);margin-left:6px}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul,ul.tight{margin:6px 0;padding-left:20px}
+.sumbox li,ul.tight li{margin:5px 0}
+.callout{background:var(--warn-soft);border-radius:10px;padding:12px 14px;margin:14px 0;font-size:14px}
+.callout.good{background:var(--accent-soft)}
+.callout.info{background:var(--info-soft)}
+.callout.bad{background:var(--danger-soft)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.cols>div{min-width:0}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.flow>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 16px;min-width:0}
+.flow h4{font-size:15px;margin-bottom:6px}
+.flow ol{margin:4px 0;padding-left:20px}.flow li{margin:5px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.stat .n{font:700 26px var(--f-display)}.stat .l{font-size:12.5px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin:12px 0;align-items:start}
+@media (max-width:860px){.pair{grid-template-columns:minmax(0,1fr)}}
+.cap{margin:14px 0 6px;font-size:13px}
+.cap b{font-family:var(--f-display)}
+.note{color:var(--muted);font-size:12.5px}
+.winbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.winbar span{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.winbar button{padding:6px 12px;font-size:12.5px;background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.winbar button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+/* decision cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:60px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:600 12px var(--f-body);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--accent)}
+.opt.on{background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt input:disabled{cursor:default}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.why{border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--accent-deep)}
+.reply{background:var(--info-soft);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:14px}
+.reply p{margin:6px 0}.reply ul{margin:6px 0;padding-left:20px}
+.commit{border-left:3px solid var(--info);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.commit b{color:var(--info)}
+textarea{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-height:56px;resize:vertical}
+label.nl{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin:10px 0 4px}
+button{font:inherit;font-size:14px;font-weight:600;padding:9px 16px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);cursor:pointer}
+button.ghost{background:transparent;color:var(--accent-deep)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.status{font:600 11px var(--f-body)}.status.todo{color:var(--warn)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.out{min-height:240px;font-family:var(--f-mono);font-size:12.5px}
+.tabs{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.doc{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:18px 20px;margin:12px 0}
+.doc h4{font-size:17px;margin-bottom:8px}
+.doc h5{font-size:14px;margin:14px 0 4px}
+.doc ul{margin:6px 0;padding-left:20px}.doc li{margin:4px 0}
+
+/* ---------- scaled real-size frames ---------- */
+.vp{position:relative;width:100%;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#fff}
+.vp-in{position:absolute;left:0;top:0;transform-origin:0 0;background:#fff;color:#111;font-family:'Manrope','Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}
+.vp-in *{box-sizing:border-box}
+.vp-in h5,.vp-in h4,.vp-in h3,.vp-in h2,.vp-in h1{font-family:'DM Sans','Segoe UI',system-ui,sans-serif;margin:0}
+.vp-in p{margin:0}
+.chrome{height:40px;background:#EEF1EE;border-bottom:1px solid #D9DED9;display:flex;align-items:center;gap:8px;padding:0 14px}
+.chrome i{width:11px;height:11px;border-radius:50%;background:#C8CFC8;display:block;flex:none}
+.chrome span{flex:1;max-width:520px;margin-left:12px;background:#fff;border:1px solid #D9DED9;border-radius:99px;padding:3px 14px;font-size:12px;color:#5C5C5C}
+.w1280{--vw:1280px;--vh:600px;--card-h:552px;--pad-y:14px;--gap:10px;--gap-sm:5px;--h1:26px;--btn-h:44px;--row-h:46px;--chip-h:34px;--badge:34px;--body:13.5px}
+.w1440{--vw:1440px;--vh:810px;--card-h:762px;--pad-y:36px;--gap:22px;--gap-sm:12px;--h1:34px;--btn-h:54px;--row-h:64px;--chip-h:48px;--badge:44px;--body:15px}
+.w1536{--vw:1536px;--vh:730px;--card-h:682px;--pad-y:28px;--gap:16px;--gap-sm:9px;--h1:30px;--btn-h:48px;--row-h:54px;--chip-h:42px;--badge:38px;--body:14px}
+.d-page{height:var(--vh);display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#EEF9F1,#F8FDF9)}
+.d-card{width:min(1240px,calc(var(--vw) - 64px));height:var(--card-h);background:#fff;border-radius:28px;box-shadow:0 18px 50px rgba(20,48,31,.13);display:grid;grid-template-columns:.95fr 1fr;overflow:hidden}
+.d-left{padding:var(--pad-y) 40px;display:flex;flex-direction:column;background:linear-gradient(160deg,#F2FCF6,#E7F7EC);min-height:0;overflow:hidden}
+.d-left.white{background:#fff}
+.d-logo{font:700 26px 'DM Sans',sans-serif;color:#111;flex:none}
+.d-sketch{margin:var(--gap) auto;flex:1;min-height:60px;max-height:230px;width:70%;max-width:330px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#D6F3DF,#EAFBF0);color:#15803D;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.d-h2{font:700 calc(var(--h1) + 2px) 'DM Sans',sans-serif;line-height:1.15;flex:none}
+.d-h2 span{color:#15803D}
+.d-p{color:#5C5C5C;font-size:var(--body);margin-top:var(--gap-sm);flex:none}
+.d-bul{display:flex;gap:10px;align-items:center;margin-top:var(--gap-sm);font-size:var(--body);flex:none}
+.d-bul i{flex:none;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #D2EEDB;display:block}
+.d-right{padding:var(--pad-y) 48px;display:flex;flex-direction:column;min-height:0}
+.d-top{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;color:#5C5C5C;font-size:13px}
+.d-steps{display:flex;gap:6px;align-items:center}.d-steps i{width:34px;height:5px;border-radius:3px;background:#22C55E;display:block}.d-steps i.off{background:#E5E7EC}
+.d-content{flex:1;min-height:0;overflow-y:auto;display:flex}
+.d-inner{margin:auto;width:100%;max-width:520px;padding:8px 0}
+.fitb{position:absolute;right:10px;bottom:10px;z-index:3;font:600 12px 'Manrope',sans-serif;padding:4px 10px;border-radius:99px;background:#EAFBF0;color:#15803D;border:1px solid #BFE9CC}
+.fitb.bad{background:#FBE6E2;color:#B3321F;border-color:#F3B8AE}
+.o-stack{display:flex;flex-direction:column;gap:var(--gap)}
+.o-sec{display:flex;flex-direction:column;gap:var(--gap-sm)}
+.o-h1{font:700 var(--h1) 'DM Sans',sans-serif;line-height:1.15}
+.o-sub{color:#667085;font-size:var(--body)}
+.o-opt{display:flex;align-items:center;gap:12px;min-height:var(--row-h);border:1px solid #E5E7EC;border-radius:16px;padding:0 16px;background:#fff}
+.o-opt.tt{min-height:min(var(--row-h),54px)}
+.o-opt.sel{border-color:#22C55E;background:#F4FCF6;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.o-opt.quiet{border-color:transparent;background:#F6F8F6}
+.o-badge{flex:none;width:var(--badge);height:var(--badge);border-radius:50%;background:#EAFBF0;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:11px}
+.o-opt b{display:block;font-size:var(--body);font-weight:600}
+.o-opt small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.o-rad{margin-left:auto;flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid #C5CBC5}
+.o-opt.sel .o-rad{background:#22C55E;border-color:#22C55E;box-shadow:inset 0 0 0 4px #fff}
+.o-grp{border:1px solid #E5E7EC;border-radius:16px;overflow:hidden}
+.o-grp .o-opt{border:0;border-radius:0;border-bottom:1px solid #EEF0EE}
+.o-grp .o-opt:last-child{border-bottom:0}
+.o-h2{display:flex;justify-content:space-between;align-items:baseline;gap:10px;white-space:nowrap}
+.o-h2 b{font:600 15px 'DM Sans',sans-serif}
+.o-h2 span{font-size:13px;color:#667085;font-weight:400}
+.o-h2 a{font-size:13px;color:#15803D;font-weight:600}
+.o-chips{display:grid;gap:var(--gap-sm)}
+.o-chips.c3{grid-template-columns:repeat(3,1fr)}.o-chips.c2{grid-template-columns:repeat(2,1fr)}
+.o-chip{display:flex;align-items:center;gap:8px;min-height:var(--chip-h);border:1px solid #E5E7EC;border-radius:14px;padding:0 10px;font-size:12.5px;line-height:1.25;background:#fff}
+.o-chip i{flex:none;width:20px;height:20px;border-radius:6px;background:#EAFBF0;display:block}
+.o-chip em{margin-left:auto;flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid #C5CBC5}
+.o-chip.sel{border-color:#22C55E;background:#F4FCF6}.o-chip.sel em{background:#22C55E;border-color:#22C55E}
+.o-pills{display:flex;flex-wrap:wrap;gap:var(--gap-sm)}
+.o-pill{display:flex;align-items:center;gap:8px;border:1px solid #E5E7EC;border-radius:99px;min-height:var(--chip-h);padding:0 14px;font-size:13px;background:#fff}
+.o-pill i{width:16px;height:16px;border-radius:50%;background:#EAFBF0;display:block}
+.o-pill.sel{background:#22C55E;border-color:#22C55E;color:#0B1F12;font-weight:600}.o-pill.sel i{background:rgba(11,31,18,.25)}
+.o-panel{background:#F6F9F6;border-radius:18px;padding:14px}
+.o-go{height:var(--btn-h);border-radius:99px;background:#22C55E;color:#0B1F12;font:700 15px 'Manrope',sans-serif;display:flex;align-items:center;justify-content:center}
+.o-go.dis{background:#E5E7EC;color:#6B7280}
+.o-tabs{display:flex;background:#F1F3F1;border-radius:99px;padding:3px;gap:3px}
+.o-tabs span{flex:1;text-align:center;padding:7px;border-radius:99px;font-size:13px;color:#667085}
+.o-tabs span.on{background:#fff;color:#111;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.o-field{border:1px solid #D0D5DD;border-radius:12px;padding:11px 14px;font-size:14px}
+.o-lab{font-size:13px;font-weight:600;margin-bottom:5px}
+.o-alert{background:#FEF3F2;border:1px solid #FDA29B;color:#B42318;border-radius:12px;padding:10px 14px;font-size:13.5px}
+.o-red{color:#B42318;font-size:13px;margin-top:6px}
+.st{display:flex;gap:12px;align-items:flex-start;margin-top:var(--gap-sm)}
+.st i{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:13px;background:#22C55E;color:#0B1F12;margin-top:2px}
+.st i.spin{background:transparent;border:2.5px solid #E5E7EC;border-top-color:#22C55E}
+.st i.big{transform:scale(1.28)}
+.st b{display:block;font-size:var(--body);font-weight:600}.st small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.a-card{border:1px solid #E5E7EC;border-radius:16px;padding:12px 16px}
+.a-info{background:#F3F5F3;border-radius:16px;padding:12px 16px}
+.a-info b{display:block}
+/* dialogs */
+.dlg-bg{height:720px;position:relative;background:#F4F6F4;overflow:hidden}
+.dlg-bg .fake{position:absolute;inset:60px 90px;border:2px dashed #C8D3C8;border-radius:20px;filter:blur(2px);opacity:.9;background:#fff}
+.dlg-bg .dim{position:absolute;inset:0;background:rgba(17,17,17,.5);display:flex;align-items:center;justify-content:center}
+.dlg{background:#fff;border-radius:16px;padding:24px;width:448px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg h5{font-size:18px;font-weight:700;line-height:1.25}
+.dlg .body{color:#5C5C5C;font-size:14px}
+.dlg .foot{display:flex;gap:8px;justify-content:flex-end}
+.dlg.ph{width:100%}
+.dlg.ph .foot{flex-direction:column-reverse}
+.dbtn{font:700 13.5px 'Manrope',sans-serif;padding:10px 16px;border-radius:12px;border:1.5px solid #22C55E;background:#22C55E;color:#0B1F12;text-align:center}
+.dbtn.o{background:#fff;color:#15803D}
+.dwarn{display:flex;gap:10px;align-items:flex-start;background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:14px;padding:12px 14px;font-size:13.5px}
+.dwarn b{display:block;margin-bottom:2px}
+.dwarn i{flex:none;width:22px;height:22px;border-radius:50%;background:#F59E0B;color:#fff;font:700 13px 'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;font-style:normal;margin-top:1px}
+/* phone shell */
+.phs{width:390px;padding:14px;background:#111;border-radius:46px}
+.phs .scr{background:#fff;border-radius:34px;overflow:hidden;min-height:700px;position:relative}
+.phs .sb{height:34px;display:flex;justify-content:center;align-items:center}
+.phs .sb b{width:96px;height:22px;background:#111;border-radius:99px;display:block}
+.phs.dark .scr{background:#0F0F0F}
+/* email */
+.emx{--e-bg:#EEF6F0;--e-card:#fff;--e-ink:#111;--e-muted:#5C5C5C;--e-green:#15803D;--e-pale:#EEF8F0;--e-dark:#14301F;--e-line:#E5E5E5;--e-ic:#EAFBF0;--e-ill:#EAFBF0;--e-linkb:#D9E0D9;--e-small:#4ADE80;padding:20px 14px;background:var(--e-bg)}
+.emx.dark{--e-bg:#0F0F0F;--e-card:#1A1A1A;--e-ink:#F5F5F5;--e-muted:#A3A3A3;--e-green:#34D399;--e-pale:#17261C;--e-dark:#14301F;--e-line:#2A2A2A;--e-ic:#1F3B28;--e-ill:#F2FCF6;--e-linkb:#2F3A31;--e-small:#4ADE80}
+.emx.narrow{padding:12px 8px}
+.em-card{background:var(--e-card);color:var(--e-ink);border-radius:18px;padding:22px 22px 16px;width:100%}
+.narrow .em-card{padding:16px 14px 12px}
+.em-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.em-logo{font:700 24px 'DM Sans',sans-serif;color:var(--e-ink)}
+.em-tag{font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;color:var(--e-green)}
+.em-hd{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.em-hd>div:first-child{min-width:0}
+.em-h1{font:700 32px 'DM Sans',sans-serif;line-height:1.1}
+.em-h1 span{color:var(--e-green)}
+.narrow .em-h1{font-size:25px}
+.em-sub{color:var(--e-muted);margin-top:10px;font-size:15px}
+.narrow .em-sub{font-size:13.5px}
+.em-ill{flex:none;width:150px;height:118px;border-radius:50%;background:var(--e-ill);color:#15803D;font-size:11px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.narrow .em-ill{width:96px;height:78px;font-size:9px}
+.em-dark{background:var(--e-dark);color:#fff;border-radius:14px;padding:16px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:15px}
+.narrow .em-dark{padding:12px;gap:10px;font-size:13.5px}
+.em-dark>div{min-width:0}
+.em-dark small{display:block;color:var(--e-small);font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;margin-bottom:2px}
+.em-dark b{display:block;font:700 19px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-ic{flex:none;width:44px;height:44px;border-radius:50%;background:var(--e-ic);color:#15803D;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center}
+.narrow .em-ic{width:34px;height:34px;font-size:8px}
+.em-pale{background:var(--e-pale);border-radius:14px;padding:14px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:14.5px}
+.narrow .em-pale{padding:10px 12px;gap:10px;font-size:13px}
+.em-pale>div{min-width:0}
+.em-pale b{display:block;color:var(--e-green);font:700 17px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-line{display:flex;gap:14px;align-items:center;margin:0 0 12px;font-size:14.5px}
+.narrow .em-line{gap:10px;font-size:13px}
+.em-line>div{min-width:0}
+.em-btn{display:block;text-align:center;background:#22C55E;color:#0B1F12;font:700 17px 'Manrope',sans-serif;padding:16px;border-radius:99px;margin:0 0 16px}
+.narrow .em-btn{font-size:15px;padding:13px}
+.em-link{border:1px solid var(--e-linkb);border-radius:12px;padding:9px 12px;font-size:12.5px;color:var(--e-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:8px;max-width:100%}
+.em-foot{border-top:1px solid var(--e-line);margin-top:14px;padding-top:12px;font-size:13px;color:var(--e-muted)}
+.em-foot a{color:var(--e-green)}
+.em-foot b{display:block;color:var(--e-ink);font:700 16px 'DM Sans',sans-serif;margin-top:10px}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}nav.toc{position:static;max-height:none}}
+
+/* ---------- Batch C additions: app-style mockups (cards, tables, donut, menus) ---------- */
+.ap{background:#F6F8F6;font-size:13.5px;color:#111}
+.ap-top{height:56px;background:#fff;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;gap:20px;padding:0 24px}
+.ap-logo{font:700 20px 'DM Sans',sans-serif}
+.ap-nav{display:flex;gap:6px;flex:1}
+.ap-nav span{padding:6px 12px;border-radius:8px;color:#5C5C5C}
+.ap-nav span.on{background:#EAFBF0;color:#15803D;font-weight:600}
+.ap-sel{border:1px solid #D0D5DD;border-radius:10px;padding:7px 12px;min-width:200px;display:flex;justify-content:space-between;gap:10px;background:#fff;position:relative}
+.ap-sel.open{border-color:#22C55E;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.ap-menu{position:absolute;left:-1px;right:-1px;top:calc(100% + 4px);background:#fff;border:1px solid #D0D5DD;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.14);padding:4px;z-index:3}
+.ap-menu div{padding:7px 10px;border-radius:7px}
+.ap-menu div.on{background:#EAFBF0;color:#15803D;font-weight:600}
+.ap-body{padding:20px 24px}
+.ap-h{font:700 20px 'DM Sans',sans-serif;margin-bottom:12px}
+.ap-card{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:16px}
+.ap-card h5{font:700 16px 'DM Sans',sans-serif;margin-bottom:4px}
+.ap-mut{color:#667085;font-size:12px}
+.ap-banner{background:#EAFBF0;border:1px solid #BFE9CC;border-radius:12px;padding:10px 14px;color:#14532D;display:flex;justify-content:space-between;gap:12px;margin-bottom:14px}
+.ap-banner b{font-weight:700}
+.ap-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.ap-tile{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:10px 12px}
+.ap-tile small{display:block;color:#667085;font-size:11.5px}
+.ap-tile b{font:700 18px 'DM Sans',sans-serif}
+.ap-t{width:100%;min-width:0;border-collapse:collapse;font-size:12.5px}
+.ap-t th{background:#fff;color:#667085;font:600 11.5px 'Manrope',sans-serif;letter-spacing:0;text-transform:none;text-align:left;padding:8px 10px;border-bottom:1px solid #E5E7EB}
+.ap-t td{padding:9px 10px;border-bottom:1px solid #EEF0EE;vertical-align:top}
+.ap-t tr.kid td{background:#F6F9F6}
+.ap-t tr.tot td{font-weight:700;border-top:2px solid #E5E7EB}
+.ap-fund{display:flex;gap:10px;align-items:flex-start}
+.ap-logoc{flex:none;width:28px;height:28px;border-radius:8px;background:#EAFBF0;color:#15803D;font:700 11px 'DM Sans';display:flex;align-items:center;justify-content:center}
+.ap-fund a{color:#111;font-weight:600;text-decoration:none}
+.ap-split{display:flex;height:6px;border-radius:99px;overflow:hidden;background:#E5E7EB;margin-top:8px;width:200px}
+.ap-split i{display:block;height:100%}
+.ap-legend{display:flex;gap:10px;color:#667085;font-size:11.5px;margin-top:5px;flex-wrap:wrap}
+.ap-legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;background:var(--c)}
+.folio{font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11.5px;color:#667085;display:block;margin-top:3px;overflow-wrap:anywhere}
+.folio.new{color:#14532D;background:#EAFBF0;border-radius:5px;padding:1px 5px;display:inline-block}
+.circ{outline:2px solid #D92D20;outline-offset:2px;border-radius:8px}
+.hl{background:#FEF3E2;border-radius:6px;padding:1px 5px}
+.dn{display:grid;grid-template-columns:200px minmax(0,1fr);gap:22px;align-items:center}
+.dn .ring{width:200px;height:200px;border-radius:50%;position:relative}
+.dn .ring::after{content:"";position:absolute;inset:36px;border-radius:50%;background:#fff}
+.dn .ctr{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.dn .ctr b{font:700 20px 'DM Sans'}
+.dn .ctr small{color:#667085;font-size:11px}
+.lg{display:grid;grid-template-columns:1fr auto;gap:4px 14px}
+.lg div{display:flex;align-items:center;gap:8px;padding:2px 4px}
+.lg div i{flex:none;width:10px;height:10px;border-radius:50%}
+.lg span.p{text-align:right;font-weight:600}
+.mg{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.mc{border:1px solid #E5E7EB;border-radius:12px;padding:14px;background:#fff}
+.mc .top{display:flex;gap:10px;align-items:flex-start}
+.mc .nm{font-weight:600}
+.mc .val{font:700 17px 'DM Sans';margin-top:10px}
+.mc .asm{margin-top:5px;font-size:12px;color:#667085}
+.ledrow{display:grid;grid-template-columns:110px 1fr 120px;gap:10px;padding:10px 12px;border-bottom:1px solid #EEF0EE;align-items:start}
+.ledd{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;background:#F6F9F6;padding:10px 12px;font-size:12px;border-radius:8px;margin:0 12px 10px}
+.ledd dt{color:#667085}.ledd dd{margin:0;font-weight:600}
+.fpr{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #EEF0EE}
+.fpr b.cp{font:600 12.5px ui-monospace,Consolas,monospace;display:inline-flex;gap:8px;align-items:center}
+.vs{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+.vs>div{flex:1 1 280px;min-width:0}
+.steps5{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:12px 0}
+.steps5>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13.5px}
+.steps5 b{display:block;font-family:var(--f-display);margin-bottom:3px}
+.code2{font-family:var(--f-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow:auto;white-space:pre;margin:8px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+ <h4>Start here</h4>
+ <a href="#where">1. Where we stand</a>
+ <h4>The four items</h4>
+ <a href="#i17a">2. Duplicate categories (17a)</a>
+ <a href="#i17b">3. Manager line (17b)</a>
+ <a href="#i17c">4. Full folio number (17c)</a>
+ <a href="#i17d">5. New member in the drop-down (17d)</a>
+ <h4>How we build it</h4>
+ <a href="#strategy">6. Orchestrator and workers</a>
+ <a href="#program">7. Fit with the other batches</a>
+ <a href="#tasks">8. Task list</a>
+ <a href="#risks">9. Risks, tests, staging check</a>
+ <h4>Your call</h4>
+ <a href="#questions">10. Questions (16)</a>
+ <a href="#copy">11. Copy my answers</a>
+ <a href="#prov">What I checked</a>
+</nav>
+
+<main>
+<div class="hero">
+ <h1>Batch C Planning</h1>
+ <div class="meta">Planning only &middot; nothing built &middot; 12 Nov 2026 &middot; updated with your answers &middot; branch leapswitch-redesign</div>
+ <p>Holdings hygiene: four small fixes on the Mutual Funds screens (your item 17, parts a to d). Each one has a before and after flow, the exact files that change, what the database does (nothing), drawings of the screens, who builds it, and the questions I need you to answer before I write the plans. Drawings are made at real window size and scaled to fit the page, so it is best viewed on a laptop.</p>
+ <p><b>Updated with your answers.</b> All 16 questions are answered and locked. The sections below now describe the decided plan, and each place where an answer changed the text says so. Your notes on Q5, Q10, Q12 and Q13 are recorded as you gave them, with the three points you confirmed about Q12 and Q13.</p>
+ <p><b>Read this first.</b> I read the code today, read-only, to find the cause of each of the four problems. All four are now explained (section 1). Nothing was run: no app, no test, no query. Every statement about the code is labelled <em>read in code</em> until a spec re-checks it. <b>The screenshots you attached did not reach me in this session</b>, so I used the written descriptions of them in the handoff (section 3 of it). If a drawing here looks different from your screenshot, trust the screenshot and tell me.</p>
+</div>
+
+<!-- ============ 1. WHERE WE STAND ============ -->
+<section id="where">
+ <h2>1. Where we stand</h2>
+ <p class="lead">Four items, no database change, and three findings that change the plan you gave me: 17a no longer waits for Batch A, 17c has a second problem under the privacy question, and 17d is a screen-state bug, not a cache bug.</p>
+ <div class="stats">
+  <div class="stat"><div class="n">4</div><div class="l">items (17a, 17b, 17c, 17d)</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">database migrations</div></div>
+  <div class="stat"><div class="n">16 / 16</div><div class="l">questions answered</div></div>
+  <div class="stat"><div class="n">13</div><div class="l">tasks in the list (section 8)</div></div>
+ </div>
+ <div class="scroll"><table>
+  <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (read in code)</th><th>What changes</th><th>Layers</th></tr></thead>
+  <tbody>
+   <tr><td class="k">17a. Duplicate categories</td><td>Find why &ldquo;Equity Scheme - Flexi Cap Fund&rdquo; and &ldquo;Equity Schemes - Flexi Cap Fund&rdquo; show as two slices, and fix it.</td><td>The category donut groups holdings by the raw category text stored on each fund. That text comes from AMFI, which spells the same category differently per fund house (&ldquo;Scheme&rdquo; and &ldquo;Schemes&rdquo;). A merge function already exists and is used by rankings and peers, but the donut does not call it.</td><td>Group by the merged name in one place. Recompute every household&rsquo;s stored analytics once during the staging deploy (Q10).</td><td><span class="tag be">backend</span> <span class="tag none">no frontend</span> <span class="tag none">no database</span></td></tr>
+   <tr><td class="k">17b. Manager line</td><td>Remove &ldquo;Assumed main manager: none was marked for at least one fund.&rdquo; Keep the behaviour.</td><td>One text constant and one small function in the Fund Manager card, used in the card view and the table view.</td><td>Delete the line and its function. The data field and the rule stay, so nothing else changes.</td><td><span class="tag fe">frontend</span></td></tr>
+   <tr><td class="k">17c. Folio numbers</td><td>Show the full folio number, not &ldquo;XXXX / 0&rdquo;.</td><td>Three different masking rules in three backend files plus one in the browser. The holdings table keeps the last four <em>characters</em>, and a folio ends in &ldquo; / 0&rdquo;, so the mask shows nothing useful. That is why it reads &ldquo;XXXX / 0&rdquo;.</td><td>Send and show the full number, as printed, on every screen that shows a folio (Q3, Q4). The old masked fields are removed in the same change (Q5).</td><td><span class="tag fe">frontend</span> <span class="tag be">backend</span> <span class="tag none">no database</span></td></tr>
+   <tr><td class="k">17d. New member missing</td><td>New member must appear in the drop-down after an import, without a hard refresh.</td><td>The list of family members lives in the screen&rsquo;s memory and is loaded once after sign-in. The Profile pages tell it to reload; the Add Data page does not. The server answer is not cached, so this is not a cache problem.</td><td>Reload the member list when an import finishes, in the background (Q13). Stay on the viewed member, except when the file belonged to someone else: then land on that person (Q12).</td><td><span class="tag fe">frontend</span></td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>Decided (Q15): 17a moves out of Batch A.</b> Your plan said 17a needed Batch A&rsquo;s root cause. I found the cause by reading the code, so 17a can be built in this batch, before the NAV fix lands. It does not read NAV prices to group categories. &ldquo;17a root cause&rdquo; comes off Batch A&rsquo;s list. I update the handoff and Batch A notes when you tell me to.</div>
+ <div class="callout info"><b>17c has two problems, not one.</b> (1) The privacy question: do you want full numbers on screen? (2) Even the masked form is inconsistent: the same folio looks like &ldquo;XXXX / 0&rdquo; on one screen, &ldquo;XXXXX5670&rdquo; (five X) on the fund page and &ldquo;XXXX5670&rdquo; on the ledger. You chose full numbers (Q3), so the one rule is the full number as printed.</div>
+ <div class="callout"><b>17d is not a cache problem.</b> Your note guessed a cache issue. The members request is a plain fetch with no caching in this app. The member list is stored in the page&rsquo;s own memory, and nothing refreshes it after an import. A hard refresh rebuilds that memory, which is why Ctrl+Shift+R fixed it.</div>
+</section>
+
+<!-- ============ 2. 17a ============ -->
+<section id="i17a">
+ <h2>2. Duplicate categories in the allocation view (17a)</h2>
+ <p class="lead">One category, two slices, because two spellings of the same name are treated as two categories.</p>
+
+ <h3 class="sub">What you saw</h3>
+ <p>In the Allocation tab&rsquo;s category donut, &ldquo;Equity Scheme - Flexi Cap Fund&rdquo; (15.2%) and &ldquo;Equity Schemes - Flexi Cap Fund&rdquo; (2.8%) appear as separate slices in the 44.97L donut; &ldquo;Large Cap&rdquo; splits the same way (8.6% and 2.5%) in the 93.13L donut. The two names differ by one letter.</p>
+
+ <h3 class="sub">Why it happens (read in code)</h3>
+ <ol class="tight">
+  <li>Each fund in our reference table has a <code>sebi_category</code> text copied from AMFI&rsquo;s NAV file. AMFI prints that file with one heading per fund house, so the <em>same</em> SEBI category appears under several spellings. A comment in <code>backend/app/services/analytics/scheme_universe.py</code> says so: &ldquo;101 headings for ~80 categories&rdquo;.</li>
+  <li>That file already has the fix: <code>canonical_category()</code> turns &ldquo;Equity Schemes - X&rdquo; into &ldquo;Equity Scheme - X&rdquo; (and a short list of other known respellings). It is used by the category ranking, performance ranking, scorer and peer lookups.</li>
+  <li><code>compute_category_allocation()</code> in <code>backend/app/services/analytics/allocation.py</code> does not call it. It builds the donut with <code>by_category[category] += value</code> using the raw text, so two spellings become two buckets.</li>
+  <li>So the two funds in your screenshot most likely come from fund houses whose headings in AMFI&rsquo;s file are spelled differently. I have not checked the actual rows; the build confirms it with a test.</li>
+ </ol>
+ <div class="callout info"><b>Already fine (read in code).</b> The asset-class donut on Home (<code>by_asset_class</code>) turns each category into a broad bucket (Equity, Debt and so on) through a separate helper, so it does not show the two spellings. The AMC donut groups by fund house. Overlap&rsquo;s category tabs match the end of the name (&ldquo;Large Cap Fund&rdquo;), so spelling of the first words does not matter. The Category column in the holdings table already strips everything before &ldquo; - &rdquo; (<code>lib/categoryLabel.ts</code>), so a row reads &ldquo;Flexi Cap Fund&rdquo; either way and will match the merged slice.</div>
+
+ <h3 class="sub">Before and after</h3>
+ <div class="flow">
+  <div><h4>Before</h4><ol>
+   <li>User holds two Flexi Cap funds from different fund houses.</li>
+   <li>The donut builds one slice per raw text, so &ldquo;Scheme&rdquo; and &ldquo;Schemes&rdquo; are two slices.</li>
+   <li>The legend shows the same category twice with two small percentages.</li>
+   <li>Totals are right; the split is misleading, and any &ldquo;largest category&rdquo; reading is wrong.</li>
+  </ol></div>
+  <div><h4>After</h4><ol>
+   <li>The donut asks <code>canonical_category()</code> for the bucket name before adding the value.</li>
+   <li>Both funds land in one slice: 15.2% + 2.8% = 18.0%.</li>
+   <li>The label shown is the merged name, &ldquo;Equity Scheme - Flexi Cap Fund&rdquo;, the same one rankings and peers already use.</li>
+   <li>The total and the sum of percentages do not change.</li>
+  </ol></div>
+ </div>
+
+ <h3 class="sub">The screen (Allocation tab, category donut)</h3>
+ <p class="cap"><b>Today:</b> the same category twice (circled)</p><div data-frame="cat-today"></div>
+ <p class="cap"><b>After:</b> one slice</p><div data-frame="cat-after"></div>
+ <p class="note">Numbers are taken from your screenshots (15.2 + 2.8, 8.6 + 2.5); the other slices are made up. The colours are placeholders. After the fix the legend has one row fewer per merged category, and the colours of later slices shift by one position.</p>
+
+ <h3 class="sub">What else the merge function changes (decided: Q11 A)</h3>
+ <p><code>canonical_category()</code> is not only the &ldquo;Scheme/Schemes&rdquo; fix. It also folds a short list of other known respellings. You chose to use it as it is, so the donut agrees with the rankings. It changes some names you may see today:</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Raw text from AMFI</th><th>Merged name the donut would show</th><th>What the owner sees</th></tr></thead>
+  <tbody>
+   <tr><td>Equity Schemes - Flexi Cap Fund</td><td>Equity Scheme - Flexi Cap Fund</td><td>Your 17a case: the duplicate disappears.</td></tr>
+   <tr><td>Hybrid Schemes - ... / Solution Oriented Schemes - ...</td><td>Hybrid Scheme - ... / Solution Oriented Scheme - ...</td><td>Same fix for hybrid and solution-oriented categories.</td></tr>
+   <tr><td>Income/Debt Oriented Schemes - ...</td><td>Debt Scheme - ...</td><td>The old &ldquo;Income/Debt Oriented&rdquo; prefix is renamed to &ldquo;Debt&rdquo;.</td></tr>
+   <tr><td>Equity Scheme - Sectoral Fund <b>and</b> Equity Scheme - Thematic Fund</td><td>Equity Scheme - Sectoral/ Thematic <b>(one slice)</b></td><td><b>Two slices become one.</b> This is a real change, not a respelling.</td></tr>
+   <tr><td>Equity Scheme - ELSS- Tax Saver Fund</td><td>Equity Scheme - ELSS</td><td>Label shortens.</td></tr>
+   <tr><td>Debt Scheme - Ultra Short Term Fund / Short Term Fund / Medium Term Fund / Long Term Fund ...</td><td>... Ultra Short Duration / Short Duration / Medium Duration / Long Duration ...</td><td>Old &ldquo;Term&rdquo; names take the new &ldquo;Duration&rdquo; names.</td></tr>
+   <tr><td>Hybrid Scheme - Balanced Advantage Fund/ Dynamic Asset Allocation, Equity Savings Fund, Multi Asset Allocation Fund</td><td>... Dynamic Asset Allocation or Balanced Advantage, Equity Savings, Multi Asset Allocation</td><td>Labels shorten.</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">From the alias lists in <code>scheme_universe.py</code> as I read them today; the build re-reads the file. Every row applies, including Sectoral and Thematic becoming one slice.</p>
+
+ <h3 class="sub">Existing households: the stored results (Q10)</h3>
+ <p>The Analytics results are computed in the background and <b>stored</b> per household (table <code>analytics_sections</code>, written by <code>recompute.py</code>). The screen reads the stored copy. So after the code fix, a household&rsquo;s donut stays duplicated until its results are recomputed. A recompute script exists (<code>backend/scripts/run_analytics_recompute.py --all</code>) and a daily backstop job runs it (the October staging guides show the command). <b>Your answer (Q10):</b> the whole database is cleaned once while these changes are staged, so this is not an issue. I read that as: recompute every household&rsquo;s stored analytics once, as a step in the staging deploy guide right after the deploy (the same script as the daily job, with <code>--all</code>). I do <b>not</b> read it as changing the category text in the <code>schemes</code> table, which Q9 leaves alone. Tell me if you meant something else. No database migration is involved: it is a data refresh, not a schema change.</p>
+
+ <h3 class="sub">What changes, by layer (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag be">backend</span></td><td><code>backend/app/services/analytics/allocation.py</code>: in <code>compute_category_allocation()</code>, replace the key <code>category</code> with <code>canonical_category(category)</code> (imported from <code>scheme_universe.py</code>). One line plus one import. The &ldquo;Unclassified&rdquo; fallback passes through unchanged. Values stay Decimal; percentages are still computed against the same total, so the buckets still sum to 100.</td></tr>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td>None. The donut and legend render whatever labels the server sends.</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>None. <code>schemes.sebi_category</code> is left as AMFI sent it (your Q9 answer).</td></tr>
+   <tr><td class="k">Deploy</td><td>One one-time recompute of all households (see above), as a step in the staging deploy guide.</td></tr>
+   <tr><td class="k">Tests</td><td>Add to <code>backend/tests/services/analytics/test_allocation.py</code>: two funds with the two spellings produce one bucket with the summed value and percentage; the Sectoral and Thematic pair become one bucket (Q11 A); the buckets still sum to the total; &ldquo;Unclassified&rdquo; unchanged. Write the failing test first, as the project requires.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout"><b>Not investigated, only noticed.</b> The ranking code already merges spellings, but your item 10 (rank &ldquo;7 out of 33&rdquo;) is a different question. I have not looked at whether the merge list is complete enough for ranks. That stays in Batch A.</div>
+</section>
+
+<!-- ============ 3. 17b ============ -->
+<section id="i17b">
+ <h2>3. Remove the &ldquo;assumed main manager&rdquo; line (17b)</h2>
+ <p class="lead">Delete one sentence. The rule that picks the main manager does not change.</p>
+
+ <h3 class="sub">What you saw</h3>
+ <p>On the Fund Manager Allocation cards (for example Chirag Setalvad under HDFC Mutual Fund, Tanvi Kacheria under Jio BlackRock) a grey line reads &ldquo;Assumed main manager: none was marked for at least one fund.&rdquo;</p>
+
+ <h3 class="sub">How it works today (read in code)</h3>
+ <ol class="tight">
+  <li>When a fund has several managers and none is marked as the main one, the server picks one (<code>fund_manager_allocation.py</code>). It labels each manager group <code>main_source</code> as &ldquo;marked&rdquo; or &ldquo;assumed&rdquo;.</li>
+  <li>In <code>frontend/src/features/mutual-funds/allocation/FundManagerCard.tsx</code>, the constant <code>ASSUMED</code> holds the sentence and the function <code>marker()</code> prints it under any group whose <code>main_source</code> is &ldquo;assumed&rdquo;. It is used in two places: the card view and the table view.</li>
+  <li>The same file uses <code>main_source == null</code> to show &ldquo;Fund manager allocation is updating&rdquo; for older stored results. That is a different use of the field and must stay.</li>
+ </ol>
+
+ <h3 class="sub">Before and after</h3>
+ <div class="flow">
+  <div><h4>Before</h4><ol><li>A group picked by assumption shows the grey sentence under the fund house name, in both Cards and Table.</li><li>Groups with a marked main manager show nothing.</li></ol></div>
+  <div><h4>After</h4><ol><li>No sentence in either view, for any group.</li><li>The server still picks the same manager the same way. Amounts, percentages and the order of cards do not change.</li><li>The &ldquo;updating&rdquo; message for old stored results still appears.</li></ol></div>
+ </div>
+ <p class="cap"><b>Today:</b> the line under the fund house</p><div data-frame="mgr-today"></div>
+ <p class="cap"><b>After:</b> the line is gone, nothing else moves</p><div data-frame="mgr-after"></div>
+ <p class="note">Manager names in the drawing are made up. The card shrinks by one small line (about 18 px).</p>
+
+ <h3 class="sub">What changes, by layer (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>FundManagerCard.tsx</code>: delete the <code>ASSUMED</code> constant, the <code>marker()</code> function and its two uses (in the card and in the table cell). Keep the <code>main_source</code> field in <code>types.ts</code> and keep the <code>updating</code> check. Check that no import or style becomes unused.</td></tr>
+   <tr><td class="k"><span class="tag be">backend</span> <span class="tag db">database</span></td><td>None. The server keeps sending <code>main_source</code>.</td></tr>
+   <tr><td class="k">Tests</td><td><code>FundManagerCard.test.tsx</code>: the test &ldquo;shows an assumed marker on assumed managers&rdquo; asserts the opposite of what you want, so it is rewritten to assert the sentence is <b>never</b> shown, even for an assumed group, in both views. The two assertions in the single-manager test that the sentence is absent stay as they are. The &ldquo;updating&rdquo; test stays.</td></tr>
+   <tr><td class="k">Not touched</td><td>The older <code>features/analytics/FundManagerSection.tsx</code> has no such sentence (read in code). No PDF export text, mobile view or documentation was found containing the sentence; the build searches once more before finishing.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout"><b>One trade-off to know.</b> The sentence was the only place the app admitted the main manager was a guess. You chose no trace (Q2 A). If stakeholders later ask how the main manager is chosen, the explainers batch (E) is the place for it.</div>
+</section>
+
+<!-- ============ 4. 17c ============ -->
+<section id="i17c">
+ <h2>4. Show the full folio number (17c)</h2>
+ <p class="lead">Decided: full numbers as printed (Q3 A). Today&rsquo;s masking is also inconsistent and, on the holdings table, shows nothing useful, and that goes away in the same change.</p>
+
+ <h3 class="sub">What you saw</h3>
+ <p>In the holdings table (Family Combined), expanded rows list folios as &ldquo;XXXX / 0&rdquo; under each member&rsquo;s name. You want the full number.</p>
+
+ <h3 class="sub">Why it reads &ldquo;XXXX / 0&rdquo; (read in code)</h3>
+ <p>A CAMS folio is printed like <code>10234567 / 0</code>: the folio, a slash, and a sub-folio digit. The holdings code masks it by keeping the last four <b>characters</b>, which are &ldquo; / 0&rdquo;. There are four separate masks, all different:</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Where</th><th>File</th><th>Rule</th><th>Folio <code>10234567 / 0</code> shows as</th></tr></thead>
+  <tbody>
+   <tr><td>Holdings table (family rows)</td><td><code>backend/app/services/dashboard/holdings.py</code></td><td>&ldquo;XXXX&rdquo; + last 4 characters</td><td><b>XXXX / 0</b> (your screenshot)</td></tr>
+   <tr><td>Fund page (folio rows and the dialog)</td><td><code>backend/app/services/fund_page/folios.py</code></td><td>&ldquo;XXXXX&rdquo; (five) + last 4 letters or digits</td><td>XXXXX5670</td></tr>
+   <tr><td>Transactions ledger (&ldquo;Folio&rdquo; in the row detail)</td><td><code>backend/app/services/analytics/investment_withdrawal.py</code></td><td>&ldquo;XXXX&rdquo; + last 4 letters or digits</td><td>XXXX5670</td></tr>
+   <tr><td>Coverage-gap dialog (opening balance)</td><td><code>frontend/src/components/mf/OpeningBalanceModal.tsx</code></td><td>&ldquo;XXXX&rdquo; + last 4 characters, in the browser</td><td>XXXX / 0</td></tr>
+  </tbody>
+ </table></div>
+ <p>So even a user who is happy with masked numbers is badly served today: the holdings table cannot tell two folios of one fund apart.</p>
+
+ <h3 class="sub">The privacy question (decided: Q3 A)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Consideration</th><th>What I found</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Who can see it today</td><td>Only the signed-in owner, for their own household members. The folio-number endpoint checks that the folio belongs to a member of the signed-in user (<code>full_folio_number()</code> in <code>fund_page/folios.py</code>). Full numbers already travel to the browser on request: the fund page&rsquo;s Copy button calls that endpoint.</td></tr>
+   <tr><td class="k">What our own schema says</td><td>The database schema document classes <code>folios</code> as &ldquo;Sensitive (financial)&rdquo; with &ldquo;no special masking needed, these are the user&rsquo;s own numbers&rdquo;. PAN is different and is never sent, which does not change.</td></tr>
+   <tr><td class="k">What full numbers add</td><td>Anyone looking at the screen sees them: screen sharing in a demo, screenshots sent to a stakeholder, a shoulder-surfer. A folio alone does not give access to the money, but with a PAN it identifies an investor account at the fund house.</td></tr>
+   <tr><td class="k">Where it must not travel</td><td>GA4 (already ruled out in the tracking plan: never folio, name, amounts); logs; and the new PDF export (item 19), which must follow whatever you choose here. I will write that into the item 19 plan.</td></tr>
+  </tbody>
+ </table></div>
+ <p>You chose the full number as plain text, with no switch (Q3 A). The exposure in the table above is accepted. The last row still holds: never GA4, never logs, and the PDF export follows the same rule.</p>
+
+ <h3 class="sub">Before and after</h3>
+ <div class="flow">
+  <div><h4>Before</h4><ol>
+   <li>Open Family Combined and expand a fund held by two members.</li>
+   <li>Each member row shows &ldquo;XXXX / 0&rdquo;. Two folios of one fund look identical.</li>
+   <li>Fund page folio rows show &ldquo;XXXXX5670&rdquo;; the ledger shows &ldquo;XXXX5670&rdquo;. Three looks for one folio.</li>
+   <li>To read the real number the user opens the fund page and uses Copy.</li>
+  </ol></div>
+  <div><h4>After (your answers)</h4><ol>
+   <li>The same expanded row shows &ldquo;10234567 / 0&rdquo;, as printed on the statement.</li>
+   <li>The fund page, the ledger, the coverage-gap dialog and any phone view that shows a folio show the same text (Q4 A).</li>
+   <li>Long numbers wrap inside the cell (monospace, no cut-off).</li>
+   <li>The fund page Copy button still works and copies the same number.</li>
+  </ol></div>
+ </div>
+
+ <h3 class="sub">The screens</h3>
+ <div class="winbar" data-sec="i17c"><span>Holdings table view</span><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="after" aria-pressed="false">After</button></div>
+ <div data-frame="folio-table"></div>
+ <p class="note">Fund names and folio numbers are made up. In the real table the family row also shows units, average price, invested, value, unrealised and realised figures, drawn here in short.</p>
+ <div class="pair">
+  <div><p class="cap"><b>Fund page, folio rows</b> (today / after)</p><div data-frame="folio-fund"></div></div>
+  <div><p class="cap"><b>Transactions ledger, row detail</b> (today / after)</p><div data-frame="folio-ledger"></div></div>
+ </div>
+ <p class="cap"><b>Phone</b> (the holdings row; the phone width is the hardest place for a long number)</p>
+ <div class="winbar" data-sec="i17c-ph"><span>Phone view</span><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="after" aria-pressed="false">After</button></div>
+ <div data-frame="folio-phone" style="max-width:420px"></div>
+
+ <h3 class="sub">How the number travels (decided: Q5 A, with your note)</h3>
+ <p><b>Your answer:</b> add a new field <code>folio_number</code>, and remove the old one <b>now</b>, in the same change, not in a later cleanup. Today the server sends <code>folio_masked</code> in two payloads (the holdings rows, <code>FolioSlice</code> in <code>dashboard/schemas.py</code>, and the fund page, <code>FolioOut</code> in <code>fund_page/schemas.py</code>) and a masked <code>folio</code> in the ledger entry (<code>analytics/schemas.py</code>). After the change all three carry <code>folio_number</code> and nothing masked. The four masking helpers become unused and are deleted: the inline one in <code>holdings.py</code>, <code>mask_folio</code> in <code>fund_page/folios.py</code>, <code>_mask_folio</code> in <code>investment_withdrawal.py</code> and <code>maskFolio</code> in <code>OpeningBalanceModal.tsx</code>. The screens use only the new field, with no fallback to a masked one.</p><div class="callout"><b>Consequence of removing the old field now.</b> A new front end talking to an old back end (or the other way round) would show empty folio rows. So the back end and the front end must be deployed together. The deploy guide will say so in its first lines, and a backend test asserts the old fields are gone.</div>
+
+ <h3 class="sub">What changes, by layer (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag be">backend</span></td><td><b>Holdings:</b> <code>dashboard/holdings.py</code> (the <code>FolioSlice</code> built near line 268) and <code>dashboard/schemas.py</code>: replace <code>folio_masked</code> with <code>folio_number = folio.folio_number</code>. <b>Fund page:</b> <code>fund_page/summary.py</code>, <code>fund_page/schemas.py</code> and <code>fund_page/folios.py</code>: the same swap in <code>FolioOut</code>; delete <code>mask_folio</code>. The folio-number endpoint and its ownership check stay (Q7). <b>Ledger:</b> <code>analytics/investment_withdrawal.py</code> and <code>analytics/schemas.py</code>: the entry&rsquo;s <code>folio</code> field becomes <code>folio_number</code> with the full text; delete <code>_mask_folio</code>. The stored folio text is returned as first printed (the column is documented as &ldquo;as first printed; display only&rdquo;), so nothing is cleaned or reformatted (Q8 A). The member-only holdings route still leaves folios out of its reply (<code>response_model_exclude</code> in <code>api/dashboard.py</code>), so the member view is unchanged (Q6 A).</td></tr>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>mutual-funds/overview/HoldingsTable.tsx</code> (two spots: the single-member line and the expanded member rows), <code>individual-fund/overview/InvestmentDetails.tsx</code> and <code>TileDialog.tsx</code> (fund page), <code>mutual-funds/transactions/transactionsLogic.ts</code> and <code>Ledger.tsx</code> (ledger), <code>components/mf/OpeningBalanceModal.tsx</code> (remove its own mask), and the types in <code>mutual-funds/types.ts</code> and <code>individual-fund/types.ts</code>. Show the number in the existing monospace style with wrapping. The Copy button&rsquo;s accessible label changes from &ldquo;Copy folio number XXXX...&rdquo; to the number.</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>None. The folio number is already stored in full.</td></tr>
+   <tr><td class="k">Tests</td><td><b>Backend:</b> <code>tests/services/dashboard/test_holdings.py</code>, <code>tests/services/fund_page/test_summary.py</code>, <code>tests/services/analytics/test_investment_withdrawal.py</code> assert the masked text today; they change to assert the full number and that the old masked fields are gone, including a folio with a slash and a short folio. <b>Frontend:</b> <code>HoldingsTable.test.tsx</code>, <code>InvestmentDetails.test.tsx</code>, <code>StatBand.test.tsx</code>, <code>Ledger.asks.test.tsx</code>, <code>transactionsLogic.asks.test.ts</code>, <code>TransactionsPage.asks.test.tsx</code>, <code>OpeningBalanceModal.test.tsx</code> and the fixtures in <code>mfAsks.ts</code> and the fund page fixtures.</td></tr>
+   <tr><td class="k">Phone app (in scope, Q4 A)</td><td>I do not yet know whether the older phone views (<code>frontend/src/mobile/...</code>) show a folio from these payloads: my search for the word also matched &ldquo;portfolio&rdquo;, so it proved nothing. The spec checks, and any phone screen that does show one is updated in the same change, so the phone does not become the one place still masked.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout"><b>Order of work.</b> Q3 to Q8 are answered, so 17c can be specced now. Because the old fields are removed in the same change, it is also the lane that decides the &ldquo;deploy both halves together&rdquo; instruction.</div>
+</section>
+
+<!-- ============ 5. 17d ============ -->
+<section id="i17d">
+ <h2>5. New member missing from the drop-down (17d)</h2>
+ <p class="lead">After Add Data creates a new family member, the header drop-down only learns about them on the next full page load.</p>
+
+ <h3 class="sub">What you saw</h3>
+ <p>You imported Lalchand&rsquo;s statement while viewing Prateek. The banner read &ldquo;Import complete, 14 new funds, 58 transactions added&rdquo; but the drop-down listed only Prateek, until Ctrl+Shift+R. The page&rsquo;s own totals showed Prateek&rsquo;s numbers (44,97,253 value, XIRR 8.6%).</p>
+
+ <h3 class="sub">Why it happens (read in code)</h3>
+ <ol class="tight">
+  <li>The drop-down (<code>shell/layout/FamilySelector.tsx</code>) shows the list kept by <code>ScopeProvider</code> (<code>shell/scope/ScopeProvider.tsx</code>) in React state.</li>
+  <li>That list is fetched once when you sign in, and again only when <code>refreshMembers()</code> is called.</li>
+  <li><code>refreshMembers()</code> is called by the Profile pages that change members (Family, Personal info, Import history). It is <b>not</b> called by the Add Data page: in <code>shell/wrappers/ImportWrapper.tsx</code> the <code>onDone</code> handler only navigates back with the notice.</li>
+  <li>The members request (<code>listHouseholdMembers</code> in <code>features/auth/api.ts</code>) is a plain fetch, so there is no cache to blame. A hard refresh rebuilds the page state, which is why it &ldquo;fixed&rdquo; the problem.</li>
+ </ol>
+ <p>A second effect you did not mention: with one member the drop-down has no &ldquo;Family Combined&rdquo; row at all (<code>FamilySelector</code> hides it when there is a single member), and the page stays in &ldquo;member&rdquo; mode on Prateek. So even after a reload, the user lands on Prateek&rsquo;s numbers while the banner talks about 14 funds that belong to Lalchand. Your answer to Q12 keeps it that way for a normal import. The exception is the wrong-person case, described below.</p>
+
+ <h3 class="sub">Before and after</h3>
+ <div class="flow">
+  <div><h4>Before</h4><ol>
+   <li>Prateek is selected. Add Data, upload Lalchand&rsquo;s file, confirm. A new member is created on the server.</li>
+   <li>The app goes back to the Mutual Funds page with the banner.</li>
+   <li>The drop-down still lists one member, no Family Combined.</li>
+   <li>The user must reload the browser to see Lalchand.</li>
+  </ol></div>
+  <div><h4>After (your answers: Q12 A with your exception, Q13 B)</h4><ol><li>Same upload. When the import finishes, the app goes back at once and reloads the member list in the background (small request, Q13).</li><li>The drop-down lists Family Combined, Prateek and Lalchand a moment later. No reload needed.</li><li>The view stays on the member the user was viewing (Q12 A).</li><li><b>Exception:</b> if the user chose &ldquo;Import for these people&rdquo; on the wrong-person pop-up, the page lands on the person the file belongs to, new or existing.</li></ol></div>
+ </div>
+
+ <h3 class="sub">The screens</h3>
+ <div class="winbar" data-sec="i17d"><span>After the import</span><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="a" aria-pressed="false">After, normal import</button><button type="button" data-v="b" aria-pressed="false">After, wrong-person import</button></div>
+ <div data-frame="member-flow"></div>
+ <p class="note">The drawing opens the drop-down so you can see its list. Totals are illustrative, except the banner words, which are yours.</p>
+
+ <h3 class="sub">Every way a member can appear or disappear (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Path</th><th>Refreshes the list today?</th><th>Plan</th></tr></thead>
+  <tbody>
+   <tr><td>Add Data import on the desktop shell (also &ldquo;Request from CAMS&rdquo;, which ends in the same screen)</td><td><b>No</b></td><td>Fix: refresh before navigating back (<code>ImportWrapper.tsx</code>). This is the single choke point.</td></tr>
+   <tr><td>Wrong-person import (Batch B item 2: funds go to a new family member)</td><td>No, same path</td><td>Fixed by the same change, and it is the one case that lands on the new person (see the next heading). It also makes the new warning&rsquo;s promise (&ldquo;a new family member is created&rdquo;) visible straight away.</td></tr>
+   <tr><td>Profile: Family page, Personal info, Import history delete</td><td>Yes</td><td>No change.</td></tr>
+   <tr><td>Onboarding family upload</td><td>Not checked</td><td>Spec checks it. Onboarding ends by loading the dashboard fresh, so likely fine.</td></tr>
+   <tr><td>Phone import (<code>mobile/features/import/MobileImportView.tsx</code>)</td><td>Keeps its own list, reloaded inside that screen</td><td>Spec checks the phone dashboard picks it up; fix only if it does not (Q14 A).</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">The one exception: the wrong-person import (your Q12 note)</h3>
+ <p>This is the case Batch B&rsquo;s item 2 covers. Prateek is selected, the user uploads a file that belongs to Lalchand, the pop-up says &ldquo;Prateek isn&rsquo;t in this statement&rdquo; and warns that the funds go to Lalchand, and the user clicks &ldquo;Import for these people&rdquo;.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Question</th><th>Decided (you confirmed on 12 Nov)</th></tr></thead>
+  <tbody>
+   <tr><td class="k">When does it apply?</td><td>Only when the import is aimed at one person and the file belongs to one other person. A normal family file with several people does not trigger it.</td></tr>
+   <tr><td class="k">New or existing person?</td><td>Both. If Lalchand is already in the family, or is created by this import, the page lands on Lalchand, because that is whose funds were just added.</td></tr>
+   <tr><td class="k">What does the page do?</td><td>It waits for the refreshed member list, selects that person, then goes back to the Mutual Funds page. The banner and the numbers agree.</td></tr>
+   <tr><td class="k">Why wait here only?</td><td>Landing on someone the screen does not know yet fails: the page would fall back to its default view. Every other import goes back at once (Q13 B). You accepted this single exception.</td></tr>
+   <tr><td class="k">How does the code know?</td><td>The import flow already has a prompt code <code>member_not_in_file</code> that the user acknowledges (<code>PromptHost.tsx</code>) and a list of the people in the file (the preview). The plan is to carry the person&rsquo;s id out through <code>onDone</code> when that prompt was acknowledged and exactly one person was imported. I have read where the prompt is handled; I have <b>not</b> read the whole flow, so the spec confirms the exact hook.</td></tr>
+   <tr><td class="k">When it cannot apply</td><td>If the person in the file is on another Unifolio account and left out (<code>other_account</code>), nothing was imported for them, so the page stays on the viewed member.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout"><b>One thing the spec must test.</b> <code>shell/scope/resetRule.ts</code> sends the view back to Family Combined when a household of two or more moves between two sidebar rows. Whether leaving the import page counts as such a move is not checked yet. If it does, both the &ldquo;stay on the member&rdquo; rule and the landing on the new person would be undone by that reset, and the spec adds the fix.</div>
+
+ <h3 class="sub">What changes, by layer (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>shell/wrappers/ImportWrapper.tsx</code>: read <code>refreshMembers</code> from <code>useScope()</code>. In the <code>onDone</code> handler: <b>normal import</b>, call <code>refreshMembers()</code> without waiting and navigate as today (Q13 B), keeping the viewed member (<code>refreshMembers</code> already keeps the old selection). <b>Wrong-person import</b>, wait for <code>refreshMembers()</code>, call <code>setMember(personId)</code>, then navigate. If the refresh fails, navigate and stay on the viewed member. <code>features/import/useImportOrchestration.tsx</code> (and the prompt host) passes <code>personId</code> out with the notice in the wrong-person case. The import notice and its navigation state are otherwise untouched. No change to <code>ScopeProvider.tsx</code> is expected, unless the reset rule above needs one.</td></tr>
+   <tr><td class="k"><span class="tag be">backend</span> <span class="tag db">database</span></td><td>None. <code>GET /household-members</code> already returns the new member.</td></tr>
+   <tr><td class="k">Tests</td><td><code>ScopeProvider.test.tsx</code> and a new <code>ImportWrapper</code> test: a normal import triggers a second members request and navigates without waiting, and the new member appears in the drop-down without a remount; the view stays on the viewed member; a wrong-person import (new person) lands on that person; a wrong-person import for a member who already exists lands on that person; a family file with several people does not; a failed refresh does not block navigation; the reset rule does not undo the landing; a second import does not leave a stale list (the provider already ignores out-of-date answers).</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 6. STRATEGY ============ -->
+<section id="strategy">
+ <h2>6. Orchestrator and workers</h2>
+ <p class="lead">Same rules as Batch B: I orchestrate, Codex writes code and tests, every handoff gets an adversarial review, and I do the integration and the final check. This batch needs no visual worker.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Role</th><th>Who</th><th>What they do in Batch C</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Orchestrator</td><td>Claude</td><td>Re-reads each &ldquo;read in code&rdquo; statement before writing its spec; writes specs and handoffs; decides shared pieces (the folio field name, the merged-category rule, the scope rule after import); runs the affected tests; writes the deploy guide and QA checklist; does the whole-batch check. <b>Commits:</b> none from me unless you say so (your standing rule). At execution you tell me who commits.</td></tr>
+   <tr><td class="k">Code worker</td><td>Codex</td><td>All four items: they are small, test-heavy and mostly one or two files each. Backend: 17a, 17c. Frontend: 17b, 17c, 17d.</td></tr>
+   <tr><td class="k">Visual worker</td><td>Antigravity (Gemini)</td><td><b>Not used.</b> 17b removes a line, 17c shows a longer string in existing styles, 17d has no new screen. A visual worker would add a relay step for nothing. Q12 chose no banner link, so there is nothing visual to build.</td></tr>
+   <tr><td class="k">Reviewer</td><td>Codex adversarial review</td><td>One review per handoff, then one whole-batch review before staging. Findings are never applied automatically; I read each and decide.</td></tr>
+  </tbody>
+ </table></div>
+ <p><b>Known limits from the project notes (also in Batch B):</b> Codex in this environment cannot run <code>git add</code> or <code>git commit</code> and cannot reach dependencies outside its folder, so it writes the code and I run the tests; a review job cannot be polled and arrives as a notification. Per your standing instruction I run only the test files each change touches, listed per step in the plans, not the full suites.</p>
+
+ <h3 class="sub">Lanes that can run at the same time</h3>
+ <div class="cols">
+  <div class="doc"><h4>Lane 1: 17b manager line</h4><ul><li><code>FundManagerCard.tsx</code> and its test only.</li><li>Smallest change; can be done first as the pipeline check.</li></ul></div>
+  <div class="doc"><h4>Lane 2: 17d member refresh</h4><ul><li><code>ImportWrapper.tsx</code>, <code>ScopeProvider.tsx</code> and their tests.</li><li>Ready to spec. Needs a small hook to carry the person&rsquo;s id out of the import flow.</li></ul></div>
+  <div class="doc"><h4>Lane 3: 17a categories</h4><ul><li><code>analytics/allocation.py</code> and its test only.</li><li>Ready to spec. The deploy step is the one-time recompute (Q10).</li></ul></div>
+  <div class="doc"><h4>Lane 4: 17c folios</h4><ul><li>Three backend payloads plus about eight frontend files and their tests.</li><li>Ready to spec. Largest lane, and it decides the &ldquo;deploy both halves together&rdquo; instruction (Q5).</li></ul></div>
+ </div>
+ <p>No file is shared between the four lanes (read in code), so none blocks another. Lane 4 is the largest and shares no file with the other lanes.</p>
+
+ <h3 class="sub">What each handoff document contains</h3>
+ <div class="steps5">
+  <div><b>1. Goal and boundary</b>The one problem and the files allowed to change.</div>
+  <div><b>2. Failing test first</b>The exact test to write first, so red comes before green.</div>
+  <div><b>3. Facts to re-check</b>Each &ldquo;read in code&rdquo; statement the worker re-verifies before editing.</div>
+  <div><b>4. Do not touch</b>Pinned strings and tests, Decimal rules, the folio-number endpoint&rsquo;s ownership check.</div>
+  <div><b>5. Tests to run</b>The affected files only, with commands.</div>
+  <div><b>6. Report format</b>What changed, what did not, anything that surprised them.</div>
+ </div>
+</section>
+
+<!-- ============ 7. PROGRAM FIT ============ -->
+<section id="program">
+ <h2>7. Fit with the other batches</h2>
+ <p class="lead">Batch C belongs in the first wave: it does not read NAV prices and it conflicts with no other batch&rsquo;s files.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Other batch</th><th>Relationship</th></tr></thead>
+  <tbody>
+   <tr><td class="k">B (journey quick wins)</td><td>Different folders: B edits <code>features/import/prompts/</code>, <code>features/auth/</code>, <code>auth-tokens.css</code> and <code>email_templates.py</code>; C edits <code>shell/wrappers/ImportWrapper.tsx</code>, the Fund Manager card, the holdings and fund page files, and <code>analytics/allocation.py</code>. No overlap. B&rsquo;s item 2 and C&rsquo;s 17d work well together (see section 5).</td></tr>
+   <tr><td class="k">A (truth-finding)</td><td>17a leaves A (decided, Q15). A still owns XIRR, rank denominators, the category-average calculation and load times. One link: if A finds the merge list is incomplete for ranks, the same list improves this donut for free.</td></tr>
+   <tr><td class="k">D, E, F, I (charts, explainers and dates, section index, PDF)</td><td>17b and the manager explanation may meet in E; 17c&rsquo;s privacy rule must be applied by the PDF export (I). Both are written into those plans&rsquo; notes.</td></tr>
+   <tr><td class="k">G (GA4)</td><td>The tracking plan already forbids sending folio numbers, names or amounts. Showing the full folio on screen does not change that. A future &ldquo;folio shown&rdquo; event would still carry no value.</td></tr>
+   <tr><td class="k">C4 (Standard vs Pro)</td><td>Folios and fund managers are likely Pro-style detail. Nothing here hard-codes a section list, so a tier can hide them later.</td></tr>
+   <tr><td class="k">K (search)</td><td>The search plan lists &ldquo;folios&rdquo; and &ldquo;fund managers&rdquo; as result types. Folio search shows the full number, following Q3 A. I will note that in the search plan.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>Migrations: none.</b> Batch B may take number 0054 (its Q23 option B), so Batch C takes no number and cannot clash. The 17a data refresh is a script, not a migration.</div>
+ <p><b>Deploy timing</b> follows whatever you choose in Batch B&rsquo;s Q26 (milestone deploys, my pick). Batch C would ride in the first staging milestone with Batch B. It adds one deploy step (the one-time analytics recompute, Q10), one instruction (deploy back end and front end together, Q5) and no schema change, so the deploy guide stays short.</p>
+</section>
+
+<!-- ============ 8. TASKS ============ -->
+<section id="tasks">
+ <h2>8. Task list</h2>
+ <p class="lead">Thirteen tasks, numbered C-1 to C-13. &ldquo;Waiting&rdquo; means a question blocks the spec, not the whole batch.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Item</th><th>Task</th><th>Worker</th><th>Size</th><th>Status</th></tr></thead>
+  <tbody>
+   <tr><td>C-1</td><td>all</td><td>Re-check every &ldquo;read in code&rdquo; statement, then write one spec per lane</td><td>Claude</td><td>M</td><td>After your answers</td></tr>
+   <tr><td>C-2</td><td>17b</td><td>Remove the line and its function; rewrite the assumed-marker test; check for unused code</td><td>Codex</td><td>S</td><td>Ready to spec</td></tr>
+   <tr><td>C-3</td><td>17d</td><td>Refresh members in the background after an import; in the wrong-person case wait, then land on that person; tests</td><td>Codex</td><td>M</td><td>Ready to spec</td></tr>
+   <tr><td>C-4</td><td>17d</td><td>Check the onboarding family upload and phone import paths (read-only), fix only if broken</td><td>Claude, then Codex</td><td>S</td><td>Ready: checked in the spec (Q14 A)</td></tr>
+   <tr><td>C-5</td><td>17a</td><td>Group the category donut by merged name; the two-spelling test written first</td><td>Codex</td><td>S</td><td>Ready to spec</td></tr>
+   <tr><td>C-6</td><td>17a</td><td>Add the one-time recompute of all households to the staging deploy guide</td><td>Claude</td><td>S</td><td>Ready to spec</td></tr>
+   <tr><td>C-7</td><td>17c</td><td>Backend: replace the masked folio fields with <code>folio_number</code> in the holdings, fund page and ledger payloads; delete the mask helpers</td><td>Codex</td><td>M</td><td>Ready to spec</td></tr>
+   <tr><td>C-8</td><td>17c</td><td>Frontend: show the full number on the agreed screens; drop the browser mask; phone views</td><td>Codex</td><td>M</td><td>After C-7</td></tr>
+   <tr><td>C-9</td><td>17c</td><td>Tests on both sides and the fixtures (list in section 4)</td><td>Codex</td><td>M</td><td>With C-7, C-8</td></tr>
+   <tr><td>C-10</td><td>all</td><td>Write the handoff documents (one per lane)</td><td>Claude</td><td>S</td><td>After C-1</td></tr>
+   <tr><td>C-11</td><td>all</td><td>Adversarial review per handoff, then the whole-batch review</td><td>Codex, then Claude</td><td>M</td><td>After the builds</td></tr>
+   <tr><td>C-12</td><td>all</td><td>Staging deploy guide and QA checklist (section 9)</td><td>Claude</td><td>M</td><td>After C-11</td></tr>
+   <tr><td>C-13</td><td>all</td><td>Staging check, then update <code>decisions.md</code>, <code>session.md</code> and the Notion pack on your go</td><td>You, then Claude</td><td>S</td><td>Last</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 9. RISKS ============ -->
+<section id="risks">
+ <h2>9. Risks, tests and the staging check</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Risk</th><th>Item</th><th>What we do</th></tr></thead>
+  <tbody>
+   <tr><td>The merge changes more than the one spelling (Sectoral and Thematic become one slice; some labels shorten)</td><td>17a</td><td>You chose the full merge (Q11 A). A test fixes the exact buckets, and the QA checklist lists the expected label changes.</td></tr>
+   <tr><td>The donut stays duplicated after deploy because stored results are old</td><td>17a</td><td>One-time recompute during the staging deploy (Q10); the checklist verifies it with a two-fund household.</td></tr>
+   <tr><td>A category the merge list does not know about stays duplicated</td><td>17a</td><td>The list is explicit by design (no fuzzy matching). The spec adds a test that scans stored categories for names that differ only by &ldquo;Scheme/Schemes&rdquo; and still survive; if any appear, the list is extended.</td></tr>
+   <tr><td>Removing the sentence hides that a manager was guessed</td><td>17b</td><td>Decided (Q2 A). The rule and the data field are untouched.</td></tr>
+   <tr><td>Full folio numbers are exposed in a screenshot or a shared screen</td><td>17c</td><td>Accepted (Q3 A). Never sent to GA4 or logs; the PDF export follows the same rule; the ownership check on the endpoint stays.</td></tr>
+   <tr><td>Front end and back end deployed one at a time: the folio rows would be empty</td><td>17c</td><td>The old fields are removed now (Q5 note), so the deploy guide says &ldquo;deploy both together&rdquo;, and a backend test asserts the old fields are gone. No fallback code.</td></tr>
+   <tr><td>A long folio overflows a table cell or the phone width</td><td>17c</td><td>Wrap and monospace; checked at the phone width and at 1280 px.</td></tr>
+   <tr><td>The phone views stay masked and look like a bug</td><td>17c</td><td>The spec finds any phone use of the payloads and updates it in the same change.</td></tr>
+   <tr><td>Refresh on import slows the return to the page, or fails</td><td>17d</td><td>Normal imports refresh in the background (Q13 B); a failure is swallowed. In the wrong-person case only we wait, and a failure falls back to staying on the viewed member.</td></tr>
+   <tr><td>Landing on the other person after a wrong-person import surprises the user</td><td>17d</td><td>Only in that case, and the Batch B warning has already told them the funds go to that person. The banner names the funds added.</td></tr>
+   <tr><td>The navigation reset rule undoes &ldquo;stay on the member&rdquo; or the landing</td><td>17d</td><td>The spec reads <code>resetRule.ts</code> and adds a test (see section 5).</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">Tests, in short</h3>
+ <ul class="tight">
+  <li><b>Frontend (Vitest), affected files only:</b> <code>FundManagerCard.test.tsx</code>; <code>ScopeProvider.test.tsx</code> and a new <code>ImportWrapper</code> test; <code>HoldingsTable.test.tsx</code>, <code>InvestmentDetails.test.tsx</code>, <code>StatBand.test.tsx</code>, the three ledger tests, <code>OpeningBalanceModal.test.tsx</code>. Then <code>npm run lint</code> and <code>npm run build</code> from <code>frontend/</code> for type errors.</li>
+  <li><b>Backend (pytest), affected files only:</b> <code>test_allocation.py</code>, <code>test_holdings.py</code>, <code>test_summary.py</code>, <code>test_investment_withdrawal.py</code>.</li>
+  <li><b>By eye:</b> the screens in section 4 and 5 at 1280&times;600, 1440&times;810 and a phone width, light and dark.</li>
+  <li>Red before green: the failing test is written and shown failing before any change, for every item.</li>
+ </ul>
+
+ <h3 class="sub">Staging check (draft; the real guide is C-12)</h3>
+ <div class="steps5">
+  <div><b>17a</b>Open Allocation on a household with funds from two houses that AMFI spells differently. One slice per category. Totals match the header. Compare to the labels table in section 2.</div>
+  <div><b>17b</b>Open Fund Manager Allocation, Cards and Table. The sentence appears nowhere. Values and order are unchanged.</div>
+  <div><b>17c</b>Family Combined, expand a fund held by two members: the full folio shows. Check the fund page rows, a ledger row detail, a coverage-gap dialog if one exists, and the phone width. Copy on the fund page copies the shown number.</div>
+  <div><b>17d</b>With Prateek selected, import a normal file that adds a member: the drop-down lists them without a reload and the page stays on Prateek. Then upload a file that belongs to someone else, choose &ldquo;Import for these people&rdquo;: the page lands on that person. Repeat for a person who already exists.</div>
+ </div>
+ <p class="note">Test data: the screenshots show real-looking data on staging; for 17a the unit test uses made-up funds with both spellings, so the check does not depend on real uploads (Q16).</p>
+</section>
+
+<!-- ============ QUESTIONS ============ -->
+<section id="questions">
+ <h2>10. Questions</h2>
+ <p class="lead">16 questions, all answered on 12 Nov and locked. Each card shows the option you chose, my original pick, and your note where you added one. Tell me in chat if you want one reopened.</p>
+ <div class="bar"><span class="status" id="prog">0 of 16 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
+ <div id="cards"></div>
+</section>
+
+<section id="copy">
+ <h2>11. Copy my answers</h2>
+ <p class="lead">Press the button, then paste the text in chat. If it does nothing, select the text below and copy it yourself.</p>
+ <button id="copyBtn" type="button">Copy my answers</button> <span class="status" id="copyMsg"></span>
+ <label class="nl" for="outTa">Your answers as text</label>
+ <textarea id="outTa" class="out" readonly></textarea>
+</section>
+
+<section id="prov">
+ <h2>What I checked</h2>
+ <p><b>Read today, read-only, by me:</b> <code>FundManagerCard.tsx</code> and its tests; the four folio masks (<code>holdings.py</code>, <code>fund_page/folios.py</code>, <code>investment_withdrawal.py</code>, <code>OpeningBalanceModal.tsx</code>); <code>HoldingsTable.tsx</code>, <code>Ledger.tsx</code>, <code>InvestmentDetails.tsx</code>; <code>ScopeProvider.tsx</code>, <code>FamilySelector.tsx</code>, <code>ImportProvider.tsx</code>, <code>ImportWrapper.tsx</code>; <code>analytics/allocation.py</code>, <code>scheme_universe.py</code> (<code>canonical_category</code> and its alias lists), <code>recompute.py</code> and <code>run_analytics_recompute.py</code>; <code>lib/categoryLabel.ts</code>; the database schema document&rsquo;s note on folios. This is a step further than Batch B&rsquo;s workbook, whose code statements came from helper passes.</p>
+ <p><b>Not done:</b> nothing was run (no app, no test, no query, no staging check). I did not read the mobile files, and my one search of them for &ldquo;folio&rdquo; also matched &ldquo;portfolio&rdquo;, so it told me nothing about phone folios. I did not check what real data on staging contains, so I cannot say how many households currently have a duplicated category. The statement that stored analytics results are read by the screen is from the code path, not from watching it.</p>
+ <p><b>Added on 12 Nov, after your answers:</b> I read <code>shell/scope/resetRule.ts</code> and where the wrong-person prompt (<code>member_not_in_file</code>) is handled. I did <b>not</b> verify what the reset rule does when leaving the import page, nor how the import flow will expose the person&rsquo;s id; both are named as spec checks in section 5.</p>
+ <p><b>Not seen:</b> your attached screenshots. They did not reach me this session. I relied on the handoff&rsquo;s written descriptions of them, so the drawings follow those words.</p>
+ <p><b>Drawn, not measured:</b> every mockup is my reconstruction in the app&rsquo;s look, not a capture. Heights, colours and the made-up names and numbers are illustrative. Nothing was committed, pushed or deployed.</p>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+/* ================= frame builders ================= */
+function vp(inner,w,h,cls,attrs){return '<div class="vp '+(cls||'')+'" data-w="'+w+'"'+(h?' data-h="'+h+'"':'')+(attrs||'')+'><div class="vp-in">'+inner+'</div></div>'}
+function chrome(url){return '<div class="chrome"><i></i><i></i><i></i><span>'+url+'</span></div>'}
+function top(sel,open,menu){
+ return '<div class="ap-top"><span class="ap-logo">Unifolio</span><div class="ap-nav"><span>Home</span><span class="on">Portfolio</span><span>Planning</span><span>History</span></div><div class="ap-sel'+(open?' open':'')+'"><span>'+sel+'</span><span>&#9662;</span>'+(open?'<div class="ap-menu">'+menu+'</div>':'')+'</div></div>';
+}
+function mi(t,on){return '<div'+(on?' class="on"':'')+'>'+t+'</div>'}
+
+/* ---------- 17a: donut ---------- */
+var COL=['#22C55E','#86EFAC','#15803D','#4ADE80','#0EA5E9','#7DD3FC','#F59E0B','#FCD34D','#A78BFA','#94A3B8'];
+function donut(rows,circ,total){
+ var acc=0,stops=[];
+ rows.forEach(function(r,i){stops.push(COL[i%COL.length]+' '+acc+'% '+(acc+r[1])+'%');acc+=r[1]});
+ var lg=rows.map(function(r,i){
+  var c=circ&&circ.indexOf(i)>-1?' class="circ"':'';
+  return '<div'+c+'><i style="background:'+COL[i%COL.length]+'"></i>'+r[0]+'</div><span class="p">'+r[1].toFixed(1)+'%</span>';
+ }).join('');
+ return '<div class="dn"><div class="ring" style="background:conic-gradient('+stops.join(',')+')"><div class="ctr"><b>'+total+'</b><small>Total value</small></div></div><div class="lg">'+lg+'</div></div>';
+}
+var CAT_T=[['Equity Scheme - Flexi Cap Fund',15.2],['Equity Schemes - Flexi Cap Fund',2.8],['Equity Scheme - Large Cap Fund',8.6],['Equity Schemes - Large Cap Fund',2.5],['Equity Scheme - Mid Cap Fund',12.4],['Equity Scheme - Small Cap Fund',9.8],['Equity Scheme - ELSS',7.1],['Other Scheme - Index Funds',11.6],['Debt Scheme - Short Duration Fund',14.0],['Debt Scheme - Liquid Fund',8.0],['Other',8.0]];
+var CAT_A=[['Equity Scheme - Flexi Cap Fund',18.0],['Equity Scheme - Large Cap Fund',11.1],['Equity Scheme - Mid Cap Fund',12.4],['Equity Scheme - Small Cap Fund',9.8],['Equity Scheme - ELSS',7.1],['Other Scheme - Index Funds',11.6],['Debt Scheme - Short Duration Fund',14.0],['Debt Scheme - Liquid Fund',8.0],['Other',8.0]];
+function catFrame(after){
+ var rows=after?CAT_A:CAT_T;
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/allocation')+'<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Category</h5><p class="ap-mut" style="margin-bottom:12px">Where your money sits, by SEBI category.</p>'+donut(rows,after?null:[0,1,2,3],'44.97L')+'</div></div></div>',900,0);
+}
+
+/* ---------- 17b: manager cards ---------- */
+function mcard(nm,amc,val,pct,asm){
+ return '<div class="mc"><div class="top"><span class="ap-logoc">'+amc.charAt(0)+'</span><div><div class="nm">&#9656; '+nm+'</div><div class="ap-mut" style="margin-top:3px">'+amc+'</div>'+(asm?'<div class="asm circ" style="display:inline-block;margin-top:5px">Assumed main manager: none was marked for at least one fund.</div>':'')+'</div></div><div class="val">'+val+'</div><div class="ap-mut">'+pct+' of overall portfolio</div></div>';
+}
+function mgrFrame(after){
+ var a=!after;
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/allocation')+'<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Fund Manager Allocation</h5><p class="ap-mut" style="margin-bottom:12px">Who is actually running your money, aggregated across your whole portfolio.</p><div class="mg">'+mcard('Anita Rao','Alpha Mutual Fund','&#8377;9,84,200','21.9%',a)+mcard('Vikram Shah','Beacon Mutual Fund','&#8377;7,12,640','15.8%',a)+mcard('Meera Iyer','Cedar Mutual Fund','&#8377;5,40,100','12.0%',false)+mcard('Sunil Verma','Delta Mutual Fund','&#8377;4,02,310','8.9%',false)+'</div><p class="ap-mut" style="margin-top:12px">Covered by manager data: &#8377;26,39,250 &middot; 58.7%</p></div></div></div>',900,0);
+}
+
+/* ---------- 17c: folios ---------- */
+var F1=['XXXX / 0','10234567 / 0'],F2=['XXXX / 12','9087654321 / 12'],F3=['XXXX / 0','4400918 / 3'];
+function fol(i,after){var f=[F1,F2,F3][i];return '<span class="folio'+(after?' new':'')+'">'+f[after?1:0]+'</span>'}
+function folioTable(after){
+ var kid=function(n,c,i,u,inv,val){return '<tr class="kid"><td style="padding-left:50px"><b>'+n+'</b>'+fol(i,after)+'</td><td>'+u+'</td><td></td><td>'+inv+'</td><td>'+val+'</td><td></td><td></td><td></td></tr>'};
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds')+'<div class="ap">'+top('Family Combined',false,'')+'<div class="ap-body"><div class="ap-h">Holdings</div><div class="ap-card" style="padding:0;overflow:hidden"><table class="ap-t"><thead><tr><th>Fund</th><th>Units</th><th>Avg price</th><th>Invested</th><th>Current value</th><th>Unrealised</th><th>Realised</th><th>XIRR</th></tr></thead><tbody>'
+ +'<tr><td><div class="ap-fund"><span class="ap-logoc">A</span><div><a>Alpha Flexi Cap Fund</a><div class="ap-mut">Direct</div><div class="ap-split"><i style="width:75%;background:#22C55E"></i><i style="width:25%;background:#0EA5E9"></i></div><div class="ap-legend"><span style="--c:#22C55E">Prateek 75%</span><span style="--c:#0EA5E9">Lalchand 25%</span></div></div></div></td><td>1,240.5</td><td>&#8377;118.40</td><td>&#8377;1,46,900</td><td>&#8377;1,71,300</td><td>+&#8377;24,400</td><td>&#8212;</td><td>13.2%</td></tr>'
+ +kid('Prateek',0,0,'930.4','&#8377;1,10,200','&#8377;1,28,500')
+ +kid('Lalchand',0,1,'310.1','&#8377;36,700','&#8377;42,800')
+ +'<tr><td><div class="ap-fund"><span class="ap-logoc">B</span><div><a>Beacon Large Cap Fund</a><div class="ap-mut">Regular</div><div class="ap-split"><i style="width:100%;background:#22C55E"></i></div></div></div></td><td>640.0</td><td>&#8377;96.10</td><td>&#8377;61,500</td><td>&#8377;66,900</td><td>+&#8377;5,400</td><td>&#8212;</td><td>9.1%</td></tr>'
+ +kid('Prateek',0,2,'640.0','&#8377;61,500','&#8377;66,900')
+ +'<tr class="tot"><td>Total</td><td></td><td></td><td>&#8377;2,08,400</td><td>&#8377;2,38,200</td><td></td><td></td><td></td></tr></tbody></table></div></div></div>',1100,0,'');
+}
+function folioFund(after){
+ var f=function(l,i){return '<div class="fpr"><span class="ap-mut">'+l+'</span><b class="cp">'+(after?[F1,F2][i][1]:'XXXXX'+['5670','3212'][i])+' <span>&#10697;</span></b></div>'};
+ return vp('<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Investment details</h5>'+f('Folio &middot; Prateek',0)+f('Folio &middot; Lalchand',1)+'</div></div></div>',560,0);
+}
+function folioLedger(after){
+ return vp('<div class="ap"><div class="ap-body" style="padding:12px"><div class="ap-card" style="padding:0"><div class="ledrow"><span>12 Mar 2026</span><span><b>Alpha Flexi Cap Fund</b><br><span class="ap-mut">SIP instalment</span></span><span style="text-align:right"><b>&#8377;5,000</b></span></div><dl class="ledd" style="margin-bottom:12px"><div><dt>Units</dt><dd>41.208</dd></div><div><dt>NAV</dt><dd>&#8377;121.33</dd></div><div><dt>Folio</dt><dd style="font-family:ui-monospace,Consolas,monospace;font-size:11.5px">'+(after?'10234567 / 0':'XXXX5670')+'</dd></div></dl></div></div></div>',560,0);
+}
+function folioPhone(after){
+ return vp('<div class="phs"><div class="scr" style="min-height:420px"><div class="sb"><b></b></div><div class="ap" style="min-height:300px"><div class="ap-body" style="padding:12px"><div class="ap-card"><div class="ap-fund"><span class="ap-logoc">A</span><div><a>Alpha Flexi Cap Fund</a><div class="ap-mut">Direct</div></div></div><div style="margin:10px 0 0 38px"><b>Lalchand</b>'+fol(1,after)+'</div><div style="margin:8px 0 0 38px"><b>Prateek</b>'+fol(0,after)+'</div><div class="ap-mut" style="margin-top:10px">Current value &#8377;1,71,300 &middot; XIRR 13.2%</div></div></div></div></div></div>',390,0);
+}
+
+/* ---------- 17d: member flow ---------- */
+function memberFrame(v){
+ var wp=v==='b',after=v!=='today';
+ var banner='<div class="ap-banner"><div><b>Import complete</b> &middot; 14 new funds, 58 transactions added</div><span>&#10005;</span></div>';
+ var sel=wp?'Lalchand':'Prateek';
+ var menu=after?(mi('Family Combined',false)+mi('Prateek',!wp)+mi('Lalchand',wp)):mi('Prateek',true);
+ var tiles=wp?['Total portfolio value|&#8377;26,43,057','Invested|&#8377;23,98,400','XIRR|9.9%','Funds|14']:['Total portfolio value|&#8377;44,97,253','Invested|&#8377;40,10,602','XIRR|8.6%','Funds|11'];
+ var t=tiles.map(function(x){var p=x.split('|');return '<div class="ap-tile"><small>'+p[0]+'</small><b>'+p[1]+'</b></div>'}).join('');
+ var note=v==='today'?'<p class="ap-mut" style="margin-top:10px">The drop-down has one member and no Family Combined row. Lalchand is missing until a hard refresh.</p>':(wp?'<p class="ap-mut" style="margin-top:10px">Prateek was selected, the file belonged to Lalchand and the user chose &ldquo;Import for these people&rdquo;, so the page lands on Lalchand. The numbers include the funds the banner mentions.</p>':'<p class="ap-mut" style="margin-top:10px">A normal import that adds a member: the new member is in the list and the page stays on Prateek, as you chose.</p>');
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds')+'<div class="ap" style="min-height:430px">'+top(sel,true,menu)+'<div class="ap-body">'+banner+'<div class="ap-tiles">'+t+'</div>'+note+'</div></div>',1100,0);
+}
+
+var STATE={'i17c':'today','i17c-ph':'today','i17d':'today'};
+function frame(name){
+ var s=STATE['i17c'];
+ switch(name){
+  case 'cat-today':return catFrame(false);
+  case 'cat-after':return catFrame(true);
+  case 'mgr-today':return mgrFrame(false);
+  case 'mgr-after':return mgrFrame(true);
+  case 'folio-table':return folioTable(STATE['i17c']==='after');
+  case 'folio-fund':return folioFund(STATE['i17c']==='after');
+  case 'folio-ledger':return folioLedger(STATE['i17c']==='after');
+  case 'folio-phone':return folioPhone(STATE['i17c-ph']==='after');
+  case 'member-flow':return memberFrame(STATE['i17d']);
+ }
+ return '';
+}
+function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});layout()}
+
+/* ================= scaling ================= */
+function layout(){
+ document.querySelectorAll('.vp').forEach(function(v){
+  var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');
+  inn.style.width=w+'px';inn.style.height=h?h+'px':'auto';
+  var hh=h||inn.offsetHeight;var sc=Math.min(1,v.clientWidth/w);
+  inn.style.transform='scale('+sc+')';v.style.height=Math.ceil(hh*sc)+'px';
+ });
+}
+document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){
+ var sec=bar.getAttribute('data-sec');
+ bar.querySelectorAll('button').forEach(function(b){
+  b.addEventListener('click',function(){
+   STATE[sec]=b.getAttribute('data-v');
+   bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+   renderAll();
+  });
+ });
+});
+renderAll();
+window.addEventListener('resize',layout);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layout);
+setTimeout(layout,400);
+
+/* ================= questions ================= */
+var KEY="batch-c-planning-v1",S={};
+try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+var Q=[
+{id:"Q1",item:"17b",title:"Remove the manager line entirely?",ask:"Answered from your original list.",
+ opts:[{k:"A",l:"Remove the sentence everywhere. Keep the rule that assumes a main manager.",d:"This is what your list said. The data field and the &ldquo;updating&rdquo; message stay."}],
+ why:"Your words: the behaviour stays, only the line goes."},
+{id:"Q2",item:"17b",title:"Leave any trace that the main manager was a guess?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"No trace. The line is simply gone.",rec:1,d:"Good: exactly what you asked; the card is cleaner. Bad: nothing in the app says a manager was assumed."},
+ {k:"B",l:"A small &ldquo;i&rdquo; next to the manager name that explains the assumption on hover or tap",d:"Good: honest and unobtrusive. Bad: one new element and test; it is a design decision beyond what you asked."},
+ {k:"C",l:"No trace now; explain it later in the explainers batch (E)",d:"Good: keeps this batch minimal; the explanation lands with the other &ldquo;i&rdquo; icons. Bad: nothing until then."}],
+ why:"You asked for the line to go. If stakeholders later ask how the main manager is chosen, C gives you a place for it without reopening this batch.",
+ commit:"A or C: delete the constant, the function and its two uses. B: also add one &ldquo;i&rdquo; element with its text and a test."},
+{id:"Q3",item:"17c",title:"Show full folio numbers? (the privacy decision)",ask:"Please confirm this is intended. Pick one.",
+ ctx:"Full numbers appear on screen for the signed-in owner only. They are never sent to GA4 or logs. The database schema document says folios need no special masking. Showing them makes screenshots and screen-sharing reveal them.",
+ opts:[
+ {k:"A",l:"Full number, as plain text, everywhere",rec:1,d:"Good: what you asked; matches the statement; simplest. Bad: visible in demos and screenshots."},
+ {k:"B",l:"Full number, but hidden behind one &ldquo;Show folio numbers&rdquo; switch per screen (hidden by default)",d:"Good: safe by default for demos. Bad: one more control and a remembered setting; an extra click to read the number."},
+ {k:"C",l:"Keep masking, but fix it: one consistent rule that keeps the last four digits of the folio part (for example XXXX4567 / 0)",d:"Good: least exposure; also fixes the &ldquo;XXXX / 0&rdquo; problem. Bad: not what you asked; two folios ending in the same four digits still look alike."}],
+ why:"You asked for the full number and the data already reaches the owner&rsquo;s browser. B is the quick fallback if your stakeholders raise a privacy concern in a demo.",
+ commit:"A: backend sends the full number, screens print it. B: A plus a switch. C: one shared mask rule on the server and no new field."},
+{id:"Q4",item:"17c",title:"Which screens show the full number?",ask:"Pick one. Applies to whichever option you picked in Q3.",
+ opts:[
+ {k:"A",l:"Every screen that shows a folio: holdings table, fund page, ledger row detail, coverage-gap dialog, and the phone views",rec:1,d:"Good: one rule everywhere; no screen looks like a bug. Bad: the largest change (about eight frontend files)."},
+ {k:"B",l:"Only the holdings table (the one in your screenshot)",d:"Good: smallest change. Bad: the fund page and the ledger still show different masked forms, three looks for one folio."},
+ {k:"C",l:"Holdings table and fund page; not the ledger or the dialogs",d:"Good: covers the two places people look at folios. Bad: still inconsistent in two places."}],
+ why:"A mixed result is the exact thing that made &ldquo;XXXX / 0&rdquo; confusing."},
+{id:"Q5",item:"17c",title:"How does the full number travel from server to screen?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Add a new field <code>folio_number</code> next to the old masked field; screens use the new one; remove the old one in a later cleanup",rec:1,d:"Good: safe during deploys (old and new versions never miss a field); easy to roll back. Bad: the old field lingers for a release."},
+ {k:"B",l:"Keep the old field name but put the full number in it",d:"Good: fewest edits. Bad: the name <code>folio_masked</code> now lies; a trap for the next developer."},
+ {k:"C",l:"Rename the field everywhere in one go",d:"Good: cleanest result. Bad: widest edit, and a deploy in which front end and back end disagree breaks the folio rows."}],
+ why:"One new field is the least risky path on a staging setup that deploys the two halves separately.",
+ commit:"<b>Recorded with your note:</b> option A, but the old field is removed now, not later. So the back end and the front end must be deployed together, and the screens have no fallback to a masked value."},
+{id:"Q6",item:"17c",title:"Show folios in the single-member holdings view too?",ask:"Pick one.",
+ ctx:"Today the single-member table shows no folio at all: the member-only route leaves folios out of its reply on purpose. Family Combined shows them in expanded rows.",
+ opts:[
+ {k:"A",l:"No, keep it as it is",rec:1,d:"Good: you did not ask for it; no change in what a member view contains. Bad: the folio is visible in one view and not the other."},
+ {k:"B",l:"Yes, show the full folio under each fund in the member view as well",d:"Good: consistent. Bad: new payload on the member route and a new row on the screen; bigger than a fix."}],
+ why:"This batch fixes what is shown wrongly, not what was never shown."},
+{id:"Q7",item:"17c",title:"The Copy button on the fund page",ask:"Pick one.",
+ ctx:"Today the button copies the full number by calling a separate endpoint, while the screen shows the masked one.",
+ opts:[
+ {k:"A",l:"Keep the button and the endpoint as they are",rec:1,d:"Good: no change to something that works; the endpoint keeps its ownership check. Bad: the extra call is redundant once the number is already on screen."},
+ {k:"B",l:"Copy the number already loaded; stop calling the endpoint (leave the endpoint in place, unused)",d:"Good: one fewer request and failure mode. Bad: a small behaviour change to test; an unused route."}],
+ why:"It works today, so I would not touch it in a hygiene batch."},
+{id:"Q8",item:"17c",title:"How is the folio text formatted?",ask:"Pick one.",
+ ctx:"Statements print a folio like <code>10234567 / 0</code>. The database also keeps a space-free key (<code>10234567/0</code>) for matching.",
+ opts:[
+ {k:"A",l:"As first printed on the statement, spaces included",rec:1,d:"Good: matches what the user sees on the statement; what the code calls the display form. Bad: the same folio could differ in spacing across two imports (the first one wins)."},
+ {k:"B",l:"Always without spaces",d:"Good: one look. Bad: no longer matches the statement text people search for."}],
+ why:"People compare it with their statement. Spacing differences are cosmetic."},
+{id:"Q9",item:"17a",title:"Where do we fix the duplicate categories?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"At the donut: group by the merged category name in the allocation calculation; leave the stored text alone",rec:1,d:"Good: one line, one place; matches how rankings already work; nothing in the database changes. Bad: any new screen that groups by category must remember to do the same."},
+ {k:"B",l:"Also normalise the category name on the way into the database (and fix the existing rows)",d:"Good: every screen is right by construction. Bad: a data migration; the original AMFI wording is lost; other code (rankings, peers) already assumes the raw text and the merge."},
+ {k:"C",l:"Fix it in the browser: merge labels when drawing the donut",d:"Good: no backend change. Bad: percentages and rows are computed on the server, so the browser would be re-summing numbers (the project rule is Decimal on the server, never re-summed client-side)."}],
+ why:"The function already exists and is used by the other category features. Calling it here makes the donut consistent with them."},
+{id:"Q10",item:"17a",title:"Existing households: when do their stored results get corrected?",ask:"Pick one.",
+ ctx:"The donut reads stored analytics results, written in the background. After the code fix, a household&rsquo;s stored copy stays old until it is recomputed.",
+ opts:[
+ {k:"A",l:"Run the existing recompute for everyone right after the deploy (one command in the deploy guide)",rec:1,d:"Good: correct immediately; the script and the daily job already exist. Bad: one more deploy step and a short load on the server."},
+ {k:"B",l:"Wait for the daily job or the next import to refresh each household",d:"Good: no extra step. Bad: the duplicates stay visible for up to a day, right after you announce the fix."},
+ {k:"C",l:"Merge labels when the stored copy is read, so old and new copies both look right",d:"Good: instant, no recompute. Bad: a second place that knows about categories; more code to retire later."}],
+ why:"Your stakeholders will look at it right after the deploy.",
+ commit:"<b>Recorded from your note:</b> the whole database is cleaned once while the changes are staged. I read it as option A (one recompute of all households during the staging deploy), not as a change to the stored category text. Tell me if that is wrong."},
+{id:"Q11",item:"17a",title:"How far should the merge go?",ask:"Pick one.",
+ ctx:"The existing merge function fixes &ldquo;Scheme/Schemes&rdquo; and also folds several other known respellings, including joining Sectoral and Thematic into one slice (see the table in section 2).",
+ opts:[
+ {k:"A",l:"Use the existing function as it is, so the donut agrees with rankings and peers",rec:1,d:"Good: one naming everywhere. Bad: Sectoral and Thematic become one slice, and some labels change."},
+ {k:"B",l:"Fix only the Scheme/Schemes prefix spelling; leave every other label as AMFI sent it",d:"Good: the smallest change to what users see. Bad: a second, narrower rule next to the existing one; the donut and the rankings can disagree on names."},
+ {k:"C",l:"Use the existing function, but keep Sectoral and Thematic as two slices",d:"Good: keeps a split some users care about. Bad: needs a special case and a test; the donut then differs from the ranking categories."}],
+ why:"The rankings already treat Sectoral and Thematic as one category for peer comparison. The donut should not name them differently.",
+ commit:"A: one line plus an import. B or C: a small extra rule and test."},
+{id:"Q12",item:"17d",title:"Which view does the user land on after an import creates a new member?",ask:"Pick one.",
+ ctx:"With one member selected, a second member appears. Today the page keeps showing the first member while the banner counts the second member&rsquo;s funds.",
+ opts:[
+ {k:"A",l:"Stay on the member they were viewing; the new member is simply in the drop-down",d:"Good: no surprise; smallest change. Bad: the banner says 14 new funds but the numbers do not move."},
+ {k:"B",l:"Switch to Family Combined, only when the household just grew",rec:1,d:"Good: the banner and the numbers agree; the user sees the new funds at once. Bad: a view change they did not click; someone who wanted to stay on a member must switch back."},
+ {k:"C",l:"Stay on the member, and add a &ldquo;View Lalchand&rdquo; link to the banner",d:"Good: user stays in control and has a one-click path. Bad: a new element on a shared banner; copy and tests to add."}],
+ why:"The mismatch in your screenshot (banner about funds that are not in the numbers) is the real confusion, and B removes it with the least new UI.",
+ commit:"<b>Recorded with your note:</b> option A, plus one exception. If the import was a wrong-person case (aimed at one person, file belongs to one other person), the page lands on that person, whether they are new or already in the family. A normal family file does not trigger it. In that case only, we wait for the member list before navigating (see Q13)."},
+{id:"Q13",item:"17d",title:"Wait for the member list before leaving the import page?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Wait for the refreshed list (one small request), then navigate; if it fails, navigate anyway",rec:1,d:"Good: the drop-down is right the moment the page appears. Bad: the return waits for that request; very slow networks feel it."},
+ {k:"B",l:"Navigate at once and refresh in the background",d:"Good: instant return. Bad: the drop-down may be right a moment later, and Q12&rsquo;s view switch would flicker."}],
+ why:"The request is tiny, and a switch of view should happen before the page draws, not after.",
+ commit:"<b>Recorded:</b> option B for normal imports. For the wrong-person landing from Q12 we wait for the list, because the page cannot select someone it does not know yet. You accepted this single exception on 12 Nov."},
+{id:"Q14",item:"17d",title:"Other places that add members: what is in scope?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Fix the desktop Add Data page; check the onboarding family upload and the phone import in the spec, and fix them only if they show the same bug",rec:1,d:"Good: finds out before building; no guesswork. Bad: the batch may grow slightly if the phone path has the bug."},
+ {k:"B",l:"Fix the desktop Add Data page only",d:"Good: smallest batch. Bad: if the phone path has the same bug, it stays."},
+ {k:"C",l:"Fix all three paths now, without checking first",d:"Good: sure to cover everything. Bad: edits to code that may already be fine."}],
+ why:"I have not read the phone and onboarding paths in detail yet. Checking first is cheaper than editing blind."},
+{id:"Q15",item:"batch",title:"Move 17a out of Batch A and into this batch?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Yes. The cause is found and the fix does not need NAV, so build it now. Remove &ldquo;17a root cause&rdquo; from Batch A.",rec:1,d:"Good: a visible stakeholder fix earlier; Batch A gets smaller. Bad: Batch A&rsquo;s write-up loses one line item to update."},
+ {k:"B",l:"No, keep 17a in Batch A and do it after the NAV fix",d:"Good: your original plan stays as written. Bad: a fix that is ready waits for something it does not need."}],
+ why:"The fix does not read NAV prices to group categories, so waiting buys nothing."},
+{id:"Q16",item:"batch",title:"Test data for the staging check",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Unit tests use made-up funds with both spellings; the staging check uses your own household (it already shows both spellings)",rec:1,d:"Good: the proof lives in a repeatable test; staging confirms with real data. Bad: staging depends on your household still showing the problem."},
+ {k:"B",l:"Also build a synthetic statement with both spellings for the staging check",d:"Good: repeatable on any account. Bad: extra work, and it must match AMFI headings that the synthetic files may not contain."}],
+ why:"You have a household that reproduces it, and a unit test covers the rest."}
+];
+var PRE={
+ Q1:{k:"A"},Q2:{k:"A"},Q3:{k:"A"},Q4:{k:"A"},
+ Q5:{k:"A",n:"option A but remove the old one now only, not later"},
+ Q6:{k:"A"},Q7:{k:"A"},Q8:{k:"A"},Q9:{k:"A"},
+ Q10:{k:"A",n:"this will not be an issue as will clean the whole database once while staging these changes (recorded as option A; see the note above)"},
+ Q11:{k:"A"},
+ Q12:{k:"A",n:"but if it is one of the wrong member warning cases we talked about in batch b, then it should land on the new member. Confirmed 12 Nov: applies only when the import is aimed at one person and the file belongs to another (a normal family file does not trigger it); lands on that person whether new or already a member."},
+ Q13:{k:"B",n:"Accepted 12 Nov: in the wrong-person case only, wait for the member list before navigating."},
+ Q14:{k:"A"},Q15:{k:"A"},Q16:{k:"A"}
+};
+var LOCK={};
+Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
+var cards=document.getElementById("cards");
+Q.forEach(function(q){
+ var c=document.createElement("div");c.className="card";c.id=q.id.toLowerCase();c.setAttribute("data-q",q.id);
+ var h='<header><span class="id">'+q.id+' &middot; item '+q.item+'</span><h3>'+q.title+'</h3><span class="status todo" data-st>unanswered</span></header><p class="ask"><b>'+q.ask+'</b></p>';
+ if(q.ctx)h+='<p class="ctx">'+q.ctx+'</p>';
+ h+='<div class="opts">';
+ q.opts.forEach(function(o){h+='<label class="opt'+(o.rec?' isrec':'')+'"><input type="radio" name="'+q.id+'" value="'+o.k+'"'+(LOCK[q.id]?' disabled':'')+'><div><b>'+o.k+'. '+o.l+(o.rec?'<span class="tag me">my pick</span>':'')+'<span class="tag chosen" hidden>Chosen option</span></b><span class="d">'+o.d+'</span></div></label>'});
+ h+='</div>';
+ if(q.why)h+='<div class="why"><b>Why my pick.</b> '+q.why+'</div>';
+ if(q.commit)h+='<div class="commit"><b>What this answer commits us to.</b> '+q.commit+'</div>';
+ h+='<label class="nl" for="n-'+q.id+'">Notes (optional)</label><textarea id="n-'+q.id+'" placeholder="Anything I should know"'+(LOCK[q.id]?' readonly':'')+'></textarea>';
+ c.innerHTML=h;cards.appendChild(c);
+});
+function answered(q){if(LOCK[q.id])return true;var a=S[q.id]||{};return !!a.k}
+function setSt(st,ok){st.textContent=ok?"answered":"unanswered";st.className=ok?"tag ok":"status todo"}
+function build(){
+ var L=["BATCH C PLANNING: MY ANSWERS (12 Nov 2026)",""];
+ Q.forEach(function(q){
+  var a=S[q.id]||{},ln=q.id+" ("+q.item+") "+q.title.replace(/<[^>]*>/g,"")+"\n  Answer: ";
+  if(a.k){var o=q.opts.filter(function(x){return x.k===a.k})[0];ln+=a.k+". "+o.l.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")}else ln+="NOT ANSWERED";
+  if(a.n&&a.n.trim())ln+="\n  Note: "+a.n.trim();
+  L.push(ln);L.push("");
+ });
+ return L.join("\n");
+}
+function paint(){
+ var n=0;
+ Q.forEach(function(q){
+  var c=document.getElementById(q.id.toLowerCase()),a=S[q.id]||{};
+  c.querySelectorAll(".opt").forEach(function(o){var r=o.querySelector("input");r.checked=(a.k===r.value);o.classList.toggle("on",r.checked);var b=o.querySelector(".chosen");if(b)b.hidden=!r.checked});
+  var nn=document.getElementById("n-"+q.id);if(nn&&document.activeElement!==nn)nn.value=a.n||"";
+  var ok=answered(q);if(ok)n++;setSt(c.querySelector("[data-st]"),ok);
+ });
+ document.getElementById("prog").textContent=n+" of "+Q.length+" answered";
+ document.getElementById("outTa").value=build();
+}
+cards.addEventListener("change",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.type==="radio")S[q].k=e.target.value;save();paint()});
+cards.addEventListener("input",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.id==="n-"+q)S[q].n=e.target.value;save();document.getElementById("outTa").value=build()});
+function copy(){
+ var ta=document.getElementById("outTa"),m=document.getElementById("copyMsg");ta.value=build();
+ function fb(){ta.removeAttribute("readonly");ta.select();try{document.execCommand("copy");m.textContent="Copied (or select and copy the text below)"}catch(e){m.textContent="Select the text below and copy it"}ta.setAttribute("readonly","")}
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(function(){m.textContent="Copied. Paste it in chat."},fb)}else fb();
+}
+document.getElementById("copyBtn").addEventListener("click",copy);
+document.getElementById("copyTop").addEventListener("click",function(){copy();document.getElementById("copy").scrollIntoView()});
+document.getElementById("jump").addEventListener("click",function(){for(var i=0;i<Q.length;i++){if(!answered(Q[i])){document.getElementById(Q[i].id.toLowerCase()).scrollIntoView({behavior:"smooth"});return}}});
+paint();
+})();
+</script>
+</body>
+</html>
