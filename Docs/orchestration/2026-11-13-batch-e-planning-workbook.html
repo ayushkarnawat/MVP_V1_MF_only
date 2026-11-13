@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Batch E Planning</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+
+<style>
+
+/* Layout: sticky contents rail + one reading column. Brand: DM Sans headings, Manrope body, #22C55E for actions, a deeper green for text and links. Mockups are drawn at real window sizes and scaled to fit the column. */
+:root{
+ --bg:#FCFCFC; --surface:#FFFFFF; --surface-2:#F3F5F3; --line:#E5E5E5;
+ --fg:#111111; --muted:#5C5C5C; --accent:#22C55E; --accent-deep:#15803D; --accent-soft:#EAFBF0;
+ --warn:#B45309; --warn-soft:#FEF3E2; --info:#2F5FB3; --info-soft:#E8EFFB;
+ --danger:#B3321F; --danger-soft:#FBE6E2; --on-accent:#0B1F12;
+ --f-display:'DM Sans','Segoe UI',system-ui,sans-serif;
+ --f-body:'Manrope','Segoe UI',system-ui,sans-serif;
+ --f-mono:ui-monospace,'SF Mono',Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+ padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4,h5{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent-deep)}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent-deep)}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:70ch;margin:0 0 10px}
+.meta{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+section{margin-top:56px;scroll-margin-top:16px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:74ch}
+h3.sub{font-size:18px;margin:28px 0 8px}
+h4.mini{font-size:15px;margin:18px 0 6px}
+p{margin:8px 0}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700}
+.tag{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.fe{background:var(--info-soft);color:var(--info)}
+.tag.be{background:var(--warn-soft);color:var(--warn)}
+.tag.db{background:var(--danger-soft);color:var(--danger)}
+.tag.ok{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.none{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tag.me{background:var(--accent-soft);color:var(--accent-deep);margin-left:6px}
+.tag.chosen{background:var(--accent);color:var(--on-accent);margin-left:6px}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul,ul.tight{margin:6px 0;padding-left:20px}
+.sumbox li,ul.tight li{margin:5px 0}
+.callout{background:var(--warn-soft);border-radius:10px;padding:12px 14px;margin:14px 0;font-size:14px}
+.callout.good{background:var(--accent-soft)}
+.callout.info{background:var(--info-soft)}
+.callout.bad{background:var(--danger-soft)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.cols>div{min-width:0}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.flow>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 16px;min-width:0}
+.flow h4{font-size:15px;margin-bottom:6px}
+.flow ol{margin:4px 0;padding-left:20px}.flow li{margin:5px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.stat .n{font:700 26px var(--f-display)}.stat .l{font-size:12.5px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin:12px 0;align-items:start}
+@media (max-width:860px){.pair{grid-template-columns:minmax(0,1fr)}}
+.cap{margin:14px 0 6px;font-size:13px}
+.cap b{font-family:var(--f-display)}
+.note{color:var(--muted);font-size:12.5px}
+.winbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.winbar span{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.winbar button{padding:6px 12px;font-size:12.5px;background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.winbar button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+/* decision cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:60px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:600 12px var(--f-body);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--accent)}
+.opt.on{background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt input:disabled{cursor:default}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.why{border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--accent-deep)}
+.reply{background:var(--info-soft);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:14px}
+.reply p{margin:6px 0}.reply ul{margin:6px 0;padding-left:20px}
+.commit{border-left:3px solid var(--info);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.commit b{color:var(--info)}
+textarea{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-height:56px;resize:vertical}
+label.nl{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin:10px 0 4px}
+button{font:inherit;font-size:14px;font-weight:600;padding:9px 16px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);cursor:pointer}
+button.ghost{background:transparent;color:var(--accent-deep)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.status{font:600 11px var(--f-body)}.status.todo{color:var(--warn)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.out{min-height:240px;font-family:var(--f-mono);font-size:12.5px}
+.tabs{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.doc{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:18px 20px;margin:12px 0}
+.doc h4{font-size:17px;margin-bottom:8px}
+.doc h5{font-size:14px;margin:14px 0 4px}
+.doc ul{margin:6px 0;padding-left:20px}.doc li{margin:4px 0}
+
+/* ---------- scaled real-size frames ---------- */
+.vp{position:relative;width:100%;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#fff}
+.vp-in{position:absolute;left:0;top:0;transform-origin:0 0;background:#fff;color:#111;font-family:'Manrope','Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}
+.vp-in *{box-sizing:border-box}
+.vp-in h5,.vp-in h4,.vp-in h3,.vp-in h2,.vp-in h1{font-family:'DM Sans','Segoe UI',system-ui,sans-serif;margin:0}
+.vp-in p{margin:0}
+.chrome{height:40px;background:#EEF1EE;border-bottom:1px solid #D9DED9;display:flex;align-items:center;gap:8px;padding:0 14px}
+.chrome i{width:11px;height:11px;border-radius:50%;background:#C8CFC8;display:block;flex:none}
+.chrome span{flex:1;max-width:520px;margin-left:12px;background:#fff;border:1px solid #D9DED9;border-radius:99px;padding:3px 14px;font-size:12px;color:#5C5C5C}
+.w1280{--vw:1280px;--vh:600px;--card-h:552px;--pad-y:14px;--gap:10px;--gap-sm:5px;--h1:26px;--btn-h:44px;--row-h:46px;--chip-h:34px;--badge:34px;--body:13.5px}
+.w1440{--vw:1440px;--vh:810px;--card-h:762px;--pad-y:36px;--gap:22px;--gap-sm:12px;--h1:34px;--btn-h:54px;--row-h:64px;--chip-h:48px;--badge:44px;--body:15px}
+.w1536{--vw:1536px;--vh:730px;--card-h:682px;--pad-y:28px;--gap:16px;--gap-sm:9px;--h1:30px;--btn-h:48px;--row-h:54px;--chip-h:42px;--badge:38px;--body:14px}
+.d-page{height:var(--vh);display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#EEF9F1,#F8FDF9)}
+.d-card{width:min(1240px,calc(var(--vw) - 64px));height:var(--card-h);background:#fff;border-radius:28px;box-shadow:0 18px 50px rgba(20,48,31,.13);display:grid;grid-template-columns:.95fr 1fr;overflow:hidden}
+.d-left{padding:var(--pad-y) 40px;display:flex;flex-direction:column;background:linear-gradient(160deg,#F2FCF6,#E7F7EC);min-height:0;overflow:hidden}
+.d-left.white{background:#fff}
+.d-logo{font:700 26px 'DM Sans',sans-serif;color:#111;flex:none}
+.d-sketch{margin:var(--gap) auto;flex:1;min-height:60px;max-height:230px;width:70%;max-width:330px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#D6F3DF,#EAFBF0);color:#15803D;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.d-h2{font:700 calc(var(--h1) + 2px) 'DM Sans',sans-serif;line-height:1.15;flex:none}
+.d-h2 span{color:#15803D}
+.d-p{color:#5C5C5C;font-size:var(--body);margin-top:var(--gap-sm);flex:none}
+.d-bul{display:flex;gap:10px;align-items:center;margin-top:var(--gap-sm);font-size:var(--body);flex:none}
+.d-bul i{flex:none;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #D2EEDB;display:block}
+.d-right{padding:var(--pad-y) 48px;display:flex;flex-direction:column;min-height:0}
+.d-top{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;color:#5C5C5C;font-size:13px}
+.d-steps{display:flex;gap:6px;align-items:center}.d-steps i{width:34px;height:5px;border-radius:3px;background:#22C55E;display:block}.d-steps i.off{background:#E5E7EC}
+.d-content{flex:1;min-height:0;overflow-y:auto;display:flex}
+.d-inner{margin:auto;width:100%;max-width:520px;padding:8px 0}
+.fitb{position:absolute;right:10px;bottom:10px;z-index:3;font:600 12px 'Manrope',sans-serif;padding:4px 10px;border-radius:99px;background:#EAFBF0;color:#15803D;border:1px solid #BFE9CC}
+.fitb.bad{background:#FBE6E2;color:#B3321F;border-color:#F3B8AE}
+.o-stack{display:flex;flex-direction:column;gap:var(--gap)}
+.o-sec{display:flex;flex-direction:column;gap:var(--gap-sm)}
+.o-h1{font:700 var(--h1) 'DM Sans',sans-serif;line-height:1.15}
+.o-sub{color:#667085;font-size:var(--body)}
+.o-opt{display:flex;align-items:center;gap:12px;min-height:var(--row-h);border:1px solid #E5E7EC;border-radius:16px;padding:0 16px;background:#fff}
+.o-opt.tt{min-height:min(var(--row-h),54px)}
+.o-opt.sel{border-color:#22C55E;background:#F4FCF6;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.o-opt.quiet{border-color:transparent;background:#F6F8F6}
+.o-badge{flex:none;width:var(--badge);height:var(--badge);border-radius:50%;background:#EAFBF0;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:11px}
+.o-opt b{display:block;font-size:var(--body);font-weight:600}
+.o-opt small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.o-rad{margin-left:auto;flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid #C5CBC5}
+.o-opt.sel .o-rad{background:#22C55E;border-color:#22C55E;box-shadow:inset 0 0 0 4px #fff}
+.o-grp{border:1px solid #E5E7EC;border-radius:16px;overflow:hidden}
+.o-grp .o-opt{border:0;border-radius:0;border-bottom:1px solid #EEF0EE}
+.o-grp .o-opt:last-child{border-bottom:0}
+.o-h2{display:flex;justify-content:space-between;align-items:baseline;gap:10px;white-space:nowrap}
+.o-h2 b{font:600 15px 'DM Sans',sans-serif}
+.o-h2 span{font-size:13px;color:#667085;font-weight:400}
+.o-h2 a{font-size:13px;color:#15803D;font-weight:600}
+.o-chips{display:grid;gap:var(--gap-sm)}
+.o-chips.c3{grid-template-columns:repeat(3,1fr)}.o-chips.c2{grid-template-columns:repeat(2,1fr)}
+.o-chip{display:flex;align-items:center;gap:8px;min-height:var(--chip-h);border:1px solid #E5E7EC;border-radius:14px;padding:0 10px;font-size:12.5px;line-height:1.25;background:#fff}
+.o-chip i{flex:none;width:20px;height:20px;border-radius:6px;background:#EAFBF0;display:block}
+.o-chip em{margin-left:auto;flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid #C5CBC5}
+.o-chip.sel{border-color:#22C55E;background:#F4FCF6}.o-chip.sel em{background:#22C55E;border-color:#22C55E}
+.o-pills{display:flex;flex-wrap:wrap;gap:var(--gap-sm)}
+.o-pill{display:flex;align-items:center;gap:8px;border:1px solid #E5E7EC;border-radius:99px;min-height:var(--chip-h);padding:0 14px;font-size:13px;background:#fff}
+.o-pill i{width:16px;height:16px;border-radius:50%;background:#EAFBF0;display:block}
+.o-pill.sel{background:#22C55E;border-color:#22C55E;color:#0B1F12;font-weight:600}.o-pill.sel i{background:rgba(11,31,18,.25)}
+.o-panel{background:#F6F9F6;border-radius:18px;padding:14px}
+.o-go{height:var(--btn-h);border-radius:99px;background:#22C55E;color:#0B1F12;font:700 15px 'Manrope',sans-serif;display:flex;align-items:center;justify-content:center}
+.o-go.dis{background:#E5E7EC;color:#6B7280}
+.o-tabs{display:flex;background:#F1F3F1;border-radius:99px;padding:3px;gap:3px}
+.o-tabs span{flex:1;text-align:center;padding:7px;border-radius:99px;font-size:13px;color:#667085}
+.o-tabs span.on{background:#fff;color:#111;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.o-field{border:1px solid #D0D5DD;border-radius:12px;padding:11px 14px;font-size:14px}
+.o-lab{font-size:13px;font-weight:600;margin-bottom:5px}
+.o-alert{background:#FEF3F2;border:1px solid #FDA29B;color:#B42318;border-radius:12px;padding:10px 14px;font-size:13.5px}
+.o-red{color:#B42318;font-size:13px;margin-top:6px}
+.st{display:flex;gap:12px;align-items:flex-start;margin-top:var(--gap-sm)}
+.st i{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:13px;background:#22C55E;color:#0B1F12;margin-top:2px}
+.st i.spin{background:transparent;border:2.5px solid #E5E7EC;border-top-color:#22C55E}
+.st i.big{transform:scale(1.28)}
+.st b{display:block;font-size:var(--body);font-weight:600}.st small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.a-card{border:1px solid #E5E7EC;border-radius:16px;padding:12px 16px}
+.a-info{background:#F3F5F3;border-radius:16px;padding:12px 16px}
+.a-info b{display:block}
+/* dialogs */
+.dlg-bg{height:720px;position:relative;background:#F4F6F4;overflow:hidden}
+.dlg-bg .fake{position:absolute;inset:60px 90px;border:2px dashed #C8D3C8;border-radius:20px;filter:blur(2px);opacity:.9;background:#fff}
+.dlg-bg .dim{position:absolute;inset:0;background:rgba(17,17,17,.5);display:flex;align-items:center;justify-content:center}
+.dlg{background:#fff;border-radius:16px;padding:24px;width:448px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg h5{font-size:18px;font-weight:700;line-height:1.25}
+.dlg .body{color:#5C5C5C;font-size:14px}
+.dlg .foot{display:flex;gap:8px;justify-content:flex-end}
+.dlg.ph{width:100%}
+.dlg.ph .foot{flex-direction:column-reverse}
+.dbtn{font:700 13.5px 'Manrope',sans-serif;padding:10px 16px;border-radius:12px;border:1.5px solid #22C55E;background:#22C55E;color:#0B1F12;text-align:center}
+.dbtn.o{background:#fff;color:#15803D}
+.dwarn{display:flex;gap:10px;align-items:flex-start;background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:14px;padding:12px 14px;font-size:13.5px}
+.dwarn b{display:block;margin-bottom:2px}
+.dwarn i{flex:none;width:22px;height:22px;border-radius:50%;background:#F59E0B;color:#fff;font:700 13px 'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;font-style:normal;margin-top:1px}
+/* phone shell */
+.phs{width:390px;padding:14px;background:#111;border-radius:46px}
+.phs .scr{background:#fff;border-radius:34px;overflow:hidden;min-height:700px;position:relative}
+.phs .sb{height:34px;display:flex;justify-content:center;align-items:center}
+.phs .sb b{width:96px;height:22px;background:#111;border-radius:99px;display:block}
+.phs.dark .scr{background:#0F0F0F}
+/* email */
+.emx{--e-bg:#EEF6F0;--e-card:#fff;--e-ink:#111;--e-muted:#5C5C5C;--e-green:#15803D;--e-pale:#EEF8F0;--e-dark:#14301F;--e-line:#E5E5E5;--e-ic:#EAFBF0;--e-ill:#EAFBF0;--e-linkb:#D9E0D9;--e-small:#4ADE80;padding:20px 14px;background:var(--e-bg)}
+.emx.dark{--e-bg:#0F0F0F;--e-card:#1A1A1A;--e-ink:#F5F5F5;--e-muted:#A3A3A3;--e-green:#34D399;--e-pale:#17261C;--e-dark:#14301F;--e-line:#2A2A2A;--e-ic:#1F3B28;--e-ill:#F2FCF6;--e-linkb:#2F3A31;--e-small:#4ADE80}
+.emx.narrow{padding:12px 8px}
+.em-card{background:var(--e-card);color:var(--e-ink);border-radius:18px;padding:22px 22px 16px;width:100%}
+.narrow .em-card{padding:16px 14px 12px}
+.em-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.em-logo{font:700 24px 'DM Sans',sans-serif;color:var(--e-ink)}
+.em-tag{font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;color:var(--e-green)}
+.em-hd{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.em-hd>div:first-child{min-width:0}
+.em-h1{font:700 32px 'DM Sans',sans-serif;line-height:1.1}
+.em-h1 span{color:var(--e-green)}
+.narrow .em-h1{font-size:25px}
+.em-sub{color:var(--e-muted);margin-top:10px;font-size:15px}
+.narrow .em-sub{font-size:13.5px}
+.em-ill{flex:none;width:150px;height:118px;border-radius:50%;background:var(--e-ill);color:#15803D;font-size:11px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.narrow .em-ill{width:96px;height:78px;font-size:9px}
+.em-dark{background:var(--e-dark);color:#fff;border-radius:14px;padding:16px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:15px}
+.narrow .em-dark{padding:12px;gap:10px;font-size:13.5px}
+.em-dark>div{min-width:0}
+.em-dark small{display:block;color:var(--e-small);font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;margin-bottom:2px}
+.em-dark b{display:block;font:700 19px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-ic{flex:none;width:44px;height:44px;border-radius:50%;background:var(--e-ic);color:#15803D;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center}
+.narrow .em-ic{width:34px;height:34px;font-size:8px}
+.em-pale{background:var(--e-pale);border-radius:14px;padding:14px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:14.5px}
+.narrow .em-pale{padding:10px 12px;gap:10px;font-size:13px}
+.em-pale>div{min-width:0}
+.em-pale b{display:block;color:var(--e-green);font:700 17px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-line{display:flex;gap:14px;align-items:center;margin:0 0 12px;font-size:14.5px}
+.narrow .em-line{gap:10px;font-size:13px}
+.em-line>div{min-width:0}
+.em-btn{display:block;text-align:center;background:#22C55E;color:#0B1F12;font:700 17px 'Manrope',sans-serif;padding:16px;border-radius:99px;margin:0 0 16px}
+.narrow .em-btn{font-size:15px;padding:13px}
+.em-link{border:1px solid var(--e-linkb);border-radius:12px;padding:9px 12px;font-size:12.5px;color:var(--e-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:8px;max-width:100%}
+.em-foot{border-top:1px solid var(--e-line);margin-top:14px;padding-top:12px;font-size:13px;color:var(--e-muted)}
+.em-foot a{color:var(--e-green)}
+.em-foot b{display:block;color:var(--e-ink);font:700 16px 'DM Sans',sans-serif;margin-top:10px}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}nav.toc{position:static;max-height:none}}
+
+/* ---------- Batch A additions: app-style mockups ---------- */
+.ap{background:#F6F8F6;font-size:13.5px;color:#111}
+.ap-body{padding:20px 24px}
+.ap-h{font:700 20px 'DM Sans',sans-serif;margin-bottom:12px}
+.ap-card{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:16px}
+.ap-card h5{font:700 16px 'DM Sans',sans-serif;margin-bottom:4px}
+.ap-mut{color:#667085;font-size:12px}
+.ap-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ap-tile{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:10px 12px}
+.ap-tile small{display:block;color:#667085;font-size:11.5px}
+.ap-tile b{font:700 20px 'DM Sans',sans-serif}
+.ap-tile .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.seg{display:inline-flex;border:1px solid #E5E7EB;border-radius:8px;padding:2px;font-size:11px}
+.seg span{padding:2px 8px;border-radius:6px;color:#667085}
+.seg span.on{background:#F1F3F1;color:#111;font-weight:600}
+.ap-t{width:100%;min-width:0;border-collapse:collapse;font-size:12.5px}
+.ap-t th{background:#fff;color:#667085;font:600 11.5px 'Manrope',sans-serif;letter-spacing:0;text-transform:none;text-align:left;padding:8px 10px;border-bottom:1px solid #E5E7EB}
+.ap-t td{padding:9px 10px;border-bottom:1px solid #EEF0EE;vertical-align:top}
+.ap-logoc{flex:none;width:28px;height:28px;border-radius:8px;background:#EAFBF0;color:#15803D;font:700 11px 'DM Sans';display:flex;align-items:center;justify-content:center}
+.ap-fund{display:flex;gap:10px;align-items:flex-start}
+.note-box{background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:8px 10px;font-size:12px;margin-top:8px}
+.circ{outline:2px solid #D92D20;outline-offset:2px;border-radius:8px}
+.rk{display:inline-block;font:700 13px 'DM Sans',sans-serif;background:#EAFBF0;color:#15803D;border-radius:99px;padding:2px 10px}
+.rk small{font:500 11px 'Manrope',sans-serif;color:#667085;margin-left:3px}
+.fn{display:grid;gap:6px}
+.fn .r{display:grid;grid-template-columns:230px 1fr 90px;gap:10px;align-items:center;font-size:12.5px}
+.fn .b{height:18px;border-radius:5px;background:#22C55E}
+.fn .b.x{background:#F59E0B}
+.fn .n{font-weight:700;text-align:right}
+.cmp{display:grid;gap:14px}
+.cmp .p{display:grid;grid-template-columns:44px 1fr 150px;gap:12px;align-items:center}
+.cmp .trk{position:relative;height:22px}
+.cmp .trk::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:#E5E7EB}
+.cmp .d{position:absolute;top:4px;width:14px;height:14px;border-radius:50%;transform:translateX(-7px)}
+.cmp .d.f{background:#22C55E}
+.cmp .d.c{border:2px solid #667085;background:#fff}
+.cmp .v{font-size:12px;color:#667085}
+.lab{font:600 11px 'Manrope',sans-serif;color:#B42318;background:#FDECEA;border-radius:99px;padding:1px 8px;margin-left:6px}
+.wf{display:grid;gap:7px}
+.wf .r{display:grid;grid-template-columns:210px 1fr 80px;gap:10px;align-items:center;font-size:12px}
+.wf .tr{position:relative;height:16px;background:#F1F3F1;border-radius:4px}
+.wf .tr i{position:absolute;top:0;bottom:0;border-radius:4px;background:#0EA5E9}
+.wf .tr i.s{background:#F59E0B}
+.wf .n{text-align:right;font-weight:600}
+.steps5{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+.steps5>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13.5px}
+.steps5 b{display:block;font-family:var(--f-display);margin-bottom:3px}
+.code2{font-family:var(--f-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow:auto;white-space:pre;margin:8px 0}
+.xl{background:#fff;font-size:12px}
+.xl .tabs2{display:flex;gap:2px;background:#E8ECE8;padding:6px 8px 0;font-size:12px}
+.xl .tabs2 span{padding:5px 12px;border-radius:6px 6px 0 0;background:#F3F5F3;color:#444}
+.xl .tabs2 span.on{background:#fff;font-weight:700;color:#107C41}
+.xl .fx{display:flex;gap:8px;align-items:center;border-bottom:1px solid #D9DED9;padding:4px 10px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#333;background:#fff}
+.xl .fx b{color:#107C41;font-family:Manrope,sans-serif}
+.xl table.g{border-collapse:collapse;width:100%;min-width:0;font-size:12px}
+.xl table.g th{background:#F3F5F3;border:1px solid #D9DED9;padding:4px 8px;text-align:left;font:600 11.5px Manrope,sans-serif;color:#333;text-transform:none;letter-spacing:0}
+.xl table.g td{border:1px solid #E6EAE6;padding:4px 8px;vertical-align:top}
+.xl td.f{font-family:ui-monospace,Consolas,monospace;background:#F1FAF4;color:#14532D}
+.xl td.ok{color:#14532D;font-weight:700}
+.xl td.no{color:#B42318;font-weight:700}
+.pend{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;background:var(--warn-soft);color:var(--warn)}
+
+/* ---------- Batch E additions ---------- */
+.dtab{width:100%;border-collapse:collapse;font-size:12.5px;min-width:0}
+.dtab th{background:#fff;color:#667085;font:600 11.5px 'Manrope',sans-serif;text-transform:none;letter-spacing:0;text-align:left;padding:8px 10px;border-bottom:1px solid #E5E7EB}
+.dtab td{padding:8px 10px;border-bottom:1px solid #EEF0EE;vertical-align:top}
+.dtab td.w{white-space:nowrap;font-weight:600}
+.lbl{display:inline-block;background:#F3F5F3;border-radius:6px;padding:2px 7px;color:#344054}
+.lbl.bad{background:#FDECEA;color:#B42318}
+.lbl.none{background:#FEF3E2;color:#B45309}
+.lbl.ok{background:#EAFBF0;color:#14532D}
+.strip{display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:8px 12px;font-size:12.5px;color:#344054}
+.strip b{font-weight:700}
+.i{display:inline-flex;width:16px;height:16px;border-radius:50%;border:1px solid #98A2B3;color:#667085;font:600 10px Manrope,sans-serif;align-items:center;justify-content:center;vertical-align:middle;background:#fff}
+.i.on{border-color:#22C55E;color:#15803D;box-shadow:0 0 0 3px rgba(34,197,94,.18)}
+.pop{position:absolute;z-index:4;width:420px;background:#fff;border:1px solid #D0D5DD;border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.18);padding:14px 16px;font-size:12.5px;line-height:1.5;color:#344054}
+.pop h6{font:700 13.5px 'DM Sans',sans-serif;color:#111;margin:0 0 6px}
+.pop .sec{margin-top:10px}
+.pop .sec b{display:block;font:600 11px Manrope,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#667085;margin-bottom:3px}
+.pop ul{margin:4px 0 0;padding-left:18px}
+.pop li{margin:3px 0}
+.pop .legend{display:grid;gap:5px;margin-top:4px}
+.pop .legend div{display:flex;gap:8px;align-items:center}
+.pop .dot{width:11px;height:11px;border-radius:50%;display:inline-block;flex:none}
+.pop .dot.o{border:2px solid #667085;background:#fff}
+.pop .dot.g{background:#22C55E}.pop .dot.r{background:#D92D20}
+.pill2{display:inline-block;border:1px solid #D0D5DD;border-radius:99px;padding:1px 8px;font-size:10.5px;color:#667085;margin-left:6px}
+.rel{position:relative}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+ <h4>Start here</h4>
+ <a href="#where">1. Where we stand</a>
+ <h4>The three items</h4>
+ <a href="#i11">2. Dates across the app (11)</a>
+ <a href="#i9">3. Category average legend (9)</a>
+ <a href="#i16">4. PE/PB source icon (16)</a>
+ <a href="#info">5. One shared &ldquo;i&rdquo; component</a>
+ <h4>How we build it</h4>
+ <a href="#strategy">6. Orchestrator and workers</a>
+ <a href="#program">7. Fit with the other batches</a>
+ <a href="#tasks">8. Task list</a>
+ <a href="#risks">9. Risks, tests, checks</a>
+ <h4>Your call</h4>
+ <a href="#questions">10. Questions (2)</a>
+ <a href="#copy">11. Copy my answers</a>
+ <a href="#prov">What I checked</a>
+</nav>
+
+<main>
+<div class="hero">
+ <h1>Batch E Planning</h1>
+ <div class="meta">Planning only &middot; nothing built or run &middot; 13 Nov 2026 &middot; updated with your answers &middot; branch leapswitch-redesign</div>
+ <p>Explainability and dates: three changes that make the numbers easier to trust and read. A <b>single date policy</b> for the whole app, so different sections stop looking inconsistent (item 11); an <b>&ldquo;i&rdquo; icon with a legend and the calculation</b> on the category-average card (item 9, copy only; the stakeholder Excel moved to Batch A); and <b>one &ldquo;i&rdquo; icon per fund</b> that replaces the P/E and P/B source pills (item 16). The output is one date module, one shared &ldquo;i&rdquo; component, and two sets of plain-language copy.</p>
+ <p><b>How this was made.</b> I read the code for all three items today, read-only: every place the app prints a date, the helpers behind them, where each date comes from on the server, the existing &ldquo;i&rdquo; components, and the P/E and P/B table. Every statement about the code is labelled <em>read in code</em>. Nothing was run, and I did not look at the live app. Mockups are my reconstructions with made-up numbers and <b>show laptop views only</b>: the phone view is out of scope for every batch. <b>Updated 13 Nov:</b> both questions are answered and recorded (two date tiers; one strip under the tabs with details in each card&rsquo;s &ldquo;i&rdquo;). This batch can be planned now; the wording of the category-average legend waits for Batch A&rsquo;s verdict on the calculation, and the source labels in item 16 wait for the fact-sheet fixes your manager is building.</p>
+</div>
+
+<!-- ============ 1. WHERE WE STAND ============ -->
+<section id="where">
+ <h2>1. Where we stand</h2>
+ <p class="lead">Three items, no database change, and seven findings. The inconsistency you saw is less about how dates are written and more about <b>which</b> dates are shown, what they mean, and the many different &ldquo;i&rdquo; patterns.</p>
+ <div class="stats">
+  <div class="stat"><div class="n">3</div><div class="l">items (11, 9, 16)</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">database migrations planned</div></div>
+  <div class="stat"><div class="n">2 / 2</div><div class="l">questions answered</div></div>
+  <div class="stat"><div class="n">14</div><div class="l">tasks in the list (section 8)</div></div>
+ </div>
+ <div class="scroll"><table>
+  <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (read in code)</th><th>What changes</th><th>Layers</th></tr></thead>
+  <tbody>
+   <tr><td class="k">11. Date consistency</td><td>Make the dates consistent across sections (for example &ldquo;data acquired November 2026&rdquo;).</td><td>About 20 &ldquo;as on&rdquo; or &ldquo;as of&rdquo; labels in about 15 files, written with at least six helpers and a dozen different phrasings. The figures themselves are dated differently: daily prices, monthly disclosures, ratio dates, a monthly fee date. Several figures show <b>no date at all</b>: the XIRR tile, the category average and the rank.</td><td>One date policy (Q1), one date module and label component, one place where dates are shown (Q2), a price date on the three undated figures.</td><td><span class="tag fe">frontend</span> <span class="tag be">backend (small)</span></td></tr>
+   <tr><td class="k">9. Category average: legend and &ldquo;i&rdquo;</td><td>An &ldquo;i&rdquo; icon (hover or click) with a legend and the calculation. The Excel is separate.</td><td>The card has a one-sentence hover tooltip and a footer legend line. It cannot hold a legend plus a calculation.</td><td>A richer &ldquo;i&rdquo; popover for this card, with the legend and the calculation in plain words.</td><td><span class="tag fe">frontend</span> <span class="tag none">copy</span></td></tr>
+   <tr><td class="k">16. PE/PB source icon</td><td>Remove the source pills (NSE, BSE, factsheet); one &ldquo;i&rdquo; next to the fund name explains the source.</td><td>Each fund shows two pills (one for P/E, one for P/B), each reading &ldquo;Factsheet&rdquo;, &ldquo;Factsheet fwd&rdquo; or &ldquo;NSE/BSE&rdquo;, with a hover note, plus a footnote and an &ldquo;As on&rdquo; column.</td><td>Delete the pills; add one &ldquo;i&rdquo; per fund whose popover explains both figures; fold the footnote into it.</td><td><span class="tag fe">frontend</span> <span class="tag none">copy</span></td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">Seven findings (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>#</th><th>Finding</th><th>Why it matters</th></tr></thead>
+  <tbody>
+   <tr><td>F1</td><td>Dates are written by <b>six helpers</b> with different results: <code>formatDate</code> &ldquo;12 Oct 2026&rdquo;; <code>formatExactDate</code> &ldquo;12 October 2026&rdquo;; <code>holdingsDate</code> (a browser formatter, which may print &ldquo;Sept&rdquo; for September; not checked); <code>formatDayMonth</code> &ldquo;12 Oct&rdquo;; <code>formatAsOf</code> &ldquo;as of 12 Oct&rdquo;; and two functions both named <code>formatMonthYear</code>, one printing &ldquo;October 2026&rdquo; and one &ldquo;Oct 2026&rdquo;.</td><td>The same kind of date can read three ways on three screens, and a developer cannot tell which helper is the standard.</td></tr>
+   <tr><td>F2</td><td>The wording differs by area: the Mutual Funds tabs say <b>&ldquo;as on&rdquo;</b> (&ldquo;Values as on&rdquo;, &ldquo;Holdings as on&rdquo;, &ldquo;Fundamentals as on&rdquo;, an &ldquo;As on&rdquo; column), Home and the fund page say <b>&ldquo;as of&rdquo;</b>, and others use &ldquo;Ref:&rdquo;, &ldquo;Updated&rdquo;, &ldquo;Details as of&rdquo;, &ldquo;NAV as of&rdquo;, &ldquo;Disclosure as of&rdquo;.</td><td>Looks like different products on different pages.</td></tr>
+   <tr><td>F3</td><td>The XIRR tile, the category average and the rank show <b>no date</b> (no date helper is used in those components). The server&rsquo;s rank and average replies carry no price date either; only the stored section has a <code>computed_at</code> time.</td><td>These are the numbers stakeholders question most, and nothing says which prices they were computed on.</td></tr>
+   <tr><td>F4</td><td>The dates mean different things: <b>daily prices</b> (the NAV day); <b>monthly disclosures</b> (month-end, for example 30 Sep); a fund&rsquo;s P/E date is the <b>oldest</b> of its stocks&rsquo; ratio dates; the fee date is a month-end; the market-cap list has an <b>effective</b> date (1 Jul); a score has a <b>computed</b> time.</td><td>One rule such as &ldquo;show only the month&rdquo; fits some of these and hides what matters for others (a NAV day).</td></tr>
+   <tr><td>F5</td><td>Home already has a rule for &ldquo;the price day&rdquo;: the latest recent day on which funds holding at least half of the portfolio have a price (<code>movers.py</code>). Other screens read their own <code>nav_as_of</code>.</td><td>With the NAV bug, two screens can show two different &ldquo;prices as on&rdquo; dates for the same moment.</td></tr>
+   <tr><td>F6</td><td>The existing &ldquo;i&rdquo; (<code>InfoMark</code>, used by about 20 cards through <code>SectionCard</code>) is a <b>hover-only, one-sentence</b> tooltip with no click behaviour. At least <b>four other patterns</b> exist: a Radix tooltip pill (the source pills), an inline &ldquo;i &middot; How the portfolio average works&rdquo; button, a &ldquo;How is this calculated?&rdquo; button on Home, and a score explainer button.</td><td>Items 9 and 16 need something richer, and a fifth pattern would add to the mess. One shared component is the cleaner answer (section 5).</td></tr>
+   <tr><td>F7</td><td>The installed Radix packages are <b>tooltip and dialog</b>; there is no popover package.</td><td>A proper popover (hover or click, keyboard and touch friendly) needs either one small new package from the same library or a workaround on the tooltip (section 5).</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>Moved out and moved in.</b> The detailed category-average Excel for stakeholders is in Batch A, as you decided. This batch only does the on-screen legend and &ldquo;i&rdquo;. The legend&rsquo;s final wording waits for Batch A&rsquo;s verdict on the calculation.</div>
+</section>
+
+<!-- ============ 2. ITEM 11 ============ -->
+<section id="i11">
+ <h2>2. Dates across the app (item 11)</h2>
+ <p class="lead">Different sections show different dates, and that is not wrong: each shows when its own data was acquired. The goal is to make that obvious and consistent.</p>
+
+ <h3 class="sub">What each date means (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Figure</th><th>What the date really is</th><th>How often it changes</th><th>What the screen says today</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Values, NAV, today&rsquo;s change</td><td>The price day (Home: the latest day on which funds holding at least half the portfolio have a price)</td><td>Daily (partial until late-publishing houses report)</td><td><span class="lbl">Values as on 12 Oct 2026</span> (Mutual Funds tabs), <span class="lbl">as of 12 Oct</span> (Home), <span class="lbl">NAV as of 12 Oct 2026</span> (fund page)</td></tr>
+   <tr><td class="k">Asset mix, market cap, overlap, top holdings</td><td>The fund houses&rsquo; disclosure date (month-end, or half-yearly for some)</td><td>Monthly</td><td><span class="lbl">Holdings as on 30 Sep 2026</span>, <span class="lbl">Disclosure as of 30 Sep 2026</span>, <span class="lbl">All holdings, as of 30 Sep 2026</span></td></tr>
+   <tr><td class="k">P/E and P/B</td><td>A fund&rsquo;s figure is either printed on its factsheet (month-end) or worked out from its stocks&rsquo; ratios, dated by the <b>oldest</b> of those</td><td>Daily for stocks; monthly for factsheets</td><td><span class="lbl">Fundamentals as on 12 Oct 2026</span> and an <span class="lbl">As on</span> column with a date per fund</td></tr>
+   <tr><td class="k">Fund fee (TER)</td><td>The fee&rsquo;s reference month (stored as a month-end date)</td><td>Monthly</td><td><span class="lbl">Ref: 30 Sep 2026</span> (a month shown as an exact day)</td></tr>
+   <tr><td class="k">Market-cap list</td><td>The AMFI list&rsquo;s effective date</td><td>Half-yearly</td><td><span class="lbl">AMFI classification effective from 1 Jul 2026</span></td></tr>
+   <tr><td class="k">Category average, rank</td><td>The latest prices at the time the stored result was built</td><td>Daily</td><td><span class="lbl none">no date shown</span></td></tr>
+   <tr><td class="k">XIRR (portfolio and per fund)</td><td>Today&rsquo;s value as the final cash flow</td><td>Daily</td><td><span class="lbl none">no date shown</span></td></tr>
+   <tr><td class="k">Benchmark returns</td><td>The start of the measured window</td><td>Daily</td><td><span class="lbl">Measured from 12 Oct 2025</span></td></tr>
+   <tr><td class="k">Fund manager</td><td>A reference date of the details; a start date</td><td>Occasionally</td><td><span class="lbl">Details as of 30 Sep 2026</span>, <span class="lbl">Managing since 3 Mar 2019</span></td></tr>
+   <tr><td class="k">Fund score</td><td>When the score was computed</td><td>Daily</td><td><span class="lbl">Updated 12 Nov 2026</span></td></tr>
+   <tr><td class="k">News</td><td>When the feed last refreshed</td><td>Hourly</td><td><span class="lbl">Updated 3 hours ago</span> (relative)</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">The labels are quoted from the code. Fund and fee dates are shown from the code&rsquo;s own fixtures, not from live data. The full audit of every date on every screen is task E-2.</p>
+
+ <h3 class="sub">What the user reads today, and the three policies (decided: Q1 B, two tiers)</h3>
+ <div class="winbar" data-sec="i11"><span>Policy</span><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="a" aria-pressed="false">A. Month only</button><button type="button" data-v="b" aria-pressed="false">B. Two tiers (chosen)</button><button type="button" data-v="c" aria-pressed="false">C. Exact, unified</button></div>
+ <div data-frame="dates"></div>
+ <p class="note">Made-up dates. &ldquo;Event&rdquo; dates (a transaction, a SIP due date, &ldquo;managing since&rdquo;, first and last investment) are real dates of things that happened; they stay exact in every policy. The policy is only about <b>data as-of</b> labels.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Option</th><th>The rule</th><th>Strength</th><th>Weakness</th></tr></thead>
+  <tbody>
+   <tr><td class="k">A. Month only</td><td>Every data label shows only a month: &ldquo;November 2026&rdquo;.</td><td>The simplest and the calmest; no day-to-day jitter; matches your example.</td><td>A daily price shown as just &ldquo;November&rdquo; hides whether it is today&rsquo;s or three weeks old, which is exactly what matters for NAV and returns.</td></tr>
+   <tr><td class="k">B. Two tiers (chosen)</td><td><b>Daily data</b> (prices, NAV, today&rsquo;s change, and the rank, average and XIRR that are built on them) show an exact day, in one phrase: <b>&ldquo;Prices as on 12 Nov 2026&rdquo;</b>. <b>Monthly data</b> (holdings, fees, factsheet ratios, manager details) show a month: <b>&ldquo;Holdings as on September 2026&rdquo;</b>.</td><td>Matches what each date really is; a month for month-end data stops it reading like a daily figure; the NAV day stays visible.</td><td>Two forms to learn; needs a clear rule for which figure is which (the date module holds it).</td></tr>
+   <tr><td class="k">C. Exact, unified</td><td>Always an exact day, but one wording and one format: &ldquo;as on 30 Sep 2026&rdquo;.</td><td>Nothing is hidden; the smallest change from today.</td><td>A month-end date on a monthly figure still looks like a daily one, and the page stays busy.</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">Where the dates live (decided: Q2 B, one strip with details in the &ldquo;i&rdquo;)</h3>
+ <div class="winbar" data-sec="i11b"><span>Layout</span><button type="button" data-v="cards" aria-pressed="false">A. On every card</button><button type="button" data-v="strip" aria-pressed="true">B. One strip, details in the &ldquo;i&rdquo; (chosen)</button><button type="button" data-v="hybrid" aria-pressed="false">C. Strip, plus a card line only when it differs</button></div>
+ <div data-frame="layout"></div>
+ <p class="note">Policy B (two tiers) is drawn in every layout. The strip sits <b>under the page header and tabs, above the cards</b>, so it does not use the header slot that search, the section index and the PDF button share. The older-data marker (right of the strip) is explained below.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Option</th><th>How it works</th><th>Strength</th><th>Weakness</th></tr></thead>
+  <tbody>
+   <tr><td class="k">A. On every card</td><td>Each card keeps its own footer line, now in the same words and format.</td><td>The date is next to the figure it describes; the smallest structural change.</td><td>The same date is repeated on many cards; a busy page.</td></tr>
+   <tr><td class="k">B. One strip only (chosen)</td><td>A single line under the tabs: &ldquo;Prices as on 12 Nov 2026 &middot; Holdings as on September 2026&rdquo;. Card details sit in each card&rsquo;s &ldquo;i&rdquo;.</td><td>Calm; one place to look; the same line on every tab.</td><td>A card whose data is older than the strip (for example a late disclosure) is no longer obvious. <b>Mitigation, built in: the older-data marker below.</b></td></tr>
+   <tr><td class="k">C. Strip plus exceptions</td><td>The strip shows the page&rsquo;s dates. A card adds its own line <b>only when its date differs</b> from the strip, for example &ldquo;Holdings for this fund as on June 2026&rdquo;.</td><td>Calm in the normal case, loud when something is stale.</td><td>Slightly more logic; needs the rule for &ldquo;differs&rdquo; (the date module holds it).</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">What the strip shows, and the older-data marker</h3>
+ <p>The strip lists only the data kinds the tab actually uses, each as one short entry. My reading of which tab uses what (the audit, task E-2, confirms it):</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Tab</th><th>Strip entries</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Overview</td><td>Prices as on 12 Nov 2026</td></tr>
+   <tr><td class="k">Transactions</td><td>No strip: the ledger shows event dates only</td></tr>
+   <tr><td class="k">Holdings, Overlap</td><td>Prices as on 12 Nov 2026 &middot; Holdings as on September 2026</td></tr>
+   <tr><td class="k">Performance</td><td>Prices as on 12 Nov 2026</td></tr>
+   <tr><td class="k">Other analytics</td><td>Prices as on 12 Nov 2026 &middot; Holdings as on September 2026 &middot; Ratios as on 12 Nov 2026 &middot; Fees as on September 2026</td></tr>
+   <tr><td class="k">Allocation</td><td>Prices as on 12 Nov 2026 &middot; Holdings as on September 2026 &middot; Market-cap list effective 1 Jul 2026</td></tr>
+  </tbody>
+ </table></div>
+ <ul class="tight">
+  <li><b>The &ldquo;i&rdquo; on the strip</b> opens a popover that lists each entry with what it means and how often it changes (the table in this section, in plain words).</li>
+  <li><b>Each card&rsquo;s own &ldquo;i&rdquo;</b> names the date of that card&rsquo;s data, so detail is where the reader asks for it.</li>
+  <li><b>The older-data marker.</b> A strip hides the one case worth noticing: a card whose data is older than its usual cycle (for example holdings older than about 60 days, or a half-yearly disclosure past its due date). So the strip shows a small amber marker, such as &ldquo;2 funds have older holdings&rdquo;, and its &ldquo;i&rdquo; names them. The stock-holdings reply already carries a cadence and an age tag for each fund (seen in the older analytics view&rsquo;s types; the spec confirms the current replies). If a data kind has no such tag, it shows no marker.</li>
+ </ul>
+
+ <h3 class="sub">The rules behind both choices (my defaults)</h3>
+ <ul class="tight">
+  <li><b>One word:</b> &ldquo;as on&rdquo; everywhere. It is the Indian financial usage, how fund houses print their disclosures, and already on the Mutual Funds tabs. Tell me if you prefer &ldquo;as of&rdquo;.</li>
+  <li><b>One price date:</b> every &ldquo;Prices as on&rdquo; uses Home&rsquo;s rule (the latest recent day on which funds holding at least half the portfolio have a price), so a late publisher does not drag the date back. Funds still waiting show the existing &ldquo;Partial&rdquo; badge. This follows Batch A&rsquo;s common end date for returns.</li>
+  <li><b>The three undated figures get a date:</b> the XIRR tile, the category average and the rank say &ldquo;Based on prices as on 12 Nov 2026&rdquo;. The server adds that one date to their replies (a small, additive backend change; see below).</li>
+  <li><b>Month-end dates become a month</b> under policy B (the fee&rsquo;s &ldquo;Ref: 30 Sep 2026&rdquo; becomes &ldquo;as on September 2026&rdquo;).</li>
+  <li><b>Not changed:</b> transaction dates, SIP due dates, &ldquo;managing since&rdquo;, first and last investment, chart axis labels and tooltips (those are Batch D&rsquo;s chart). News keeps its relative &ldquo;Updated 3 hours ago&rdquo;.</li>
+ </ul>
+
+ <h3 class="sub">Before and after</h3>
+ <div class="flow">
+  <div><h4>Before</h4><ol><li>The same kind of date reads &ldquo;12 Oct 2026&rdquo;, &ldquo;12 October 2026&rdquo;, &ldquo;as of 12 Oct&rdquo; or &ldquo;Oct 2026&rdquo; depending on the screen.</li><li>&ldquo;As on&rdquo; and &ldquo;as of&rdquo; are mixed.</li><li>The XIRR, the average and the rank carry no date.</li></ol></div>
+  <div><h4>After (your answers)</h4><ol><li>One module decides the words and the format for every data date.</li><li>Prices read &ldquo;Prices as on 12 Nov 2026&rdquo;; monthly data reads &ldquo;as on September 2026&rdquo;.</li><li>The page strip states the dates once; each card&rsquo;s &ldquo;i&rdquo; names its own; an older-data marker warns when something is behind.</li><li>The three undated figures say which prices they are based on.</li></ol></div>
+ </div>
+
+ <h3 class="sub">What changes, by layer</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><b>New:</b> one date module (the kinds of date, the wording, the format, the older-data rule) and one small label component; the strip on the Mutual Funds frame (<code>mutual-funds/frame/MutualFundsFrame.tsx</code>). <b>Changed:</b> every as-of label (about 20, in the allocation, other-analytics, overlap, holdings and fund-page components, and Home) to use the module instead of calling a date helper directly. The six helpers stay for event dates; the duplicate <code>formatMonthYear</code> is merged. A test fails if a screen hard-codes &ldquo;as on&rdquo; or &ldquo;as of&rdquo; wording. The per-card footer lines are removed in favour of the strip and the cards&rsquo; &ldquo;i&rdquo;.</td></tr>
+   <tr><td class="k"><span class="tag be">backend</span></td><td>Small and additive: add one <code>prices_as_on</code> date to the category-average, rank and portfolio-summary (XIRR) replies, set from Batch A&rsquo;s common end date. Nothing existing is renamed or removed. No stored result is recomputed for this, but results stored before the deploy lack the new field until their next recompute (the screens show nothing extra for them until then).</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>None.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 3. ITEM 9 ============ -->
+<section id="i9">
+ <h2>3. Category average: the legend and the &ldquo;i&rdquo; (item 9)</h2>
+ <p class="lead">A popover on the category card that shows the legend and explains the calculation. The words are written now; the numbers in them are checked against Batch A&rsquo;s verdict before they ship.</p>
+
+ <h3 class="sub">What the card has today (read in code)</h3>
+ <ul class="tight">
+  <li>A one-sentence tooltip on the card title: &ldquo;The average of funds in the same category and plan type, weighted by fund size. Each fund needs at least 3 years of history.&rdquo;</li>
+  <li>Under the rows: &ldquo;Category average covers 31 funds (1Y), 31 (3Y), 24 (5Y).&rdquo; and the legend line &ldquo;Filled dot: your fund. Hollow dot: category average. Green means ahead; red means behind.&rdquo;</li>
+  <li>Each period row (1Y, 3Y, 5Y) shows a coloured gap such as <b>+1.2%</b> over <b>4.6% vs 3.4%</b>. Those are the &ldquo;three values&rdquo; you described in Batch A.</li>
+ </ul>
+
+ <h3 class="sub">The proposed &ldquo;i&rdquo; popover</h3>
+ <div class="winbar" data-sec="i9"><span>State</span><button type="button" data-v="closed" aria-pressed="false">Closed</button><button type="button" data-v="open" aria-pressed="true">Open</button></div>
+ <div data-frame="catpop"></div>
+ <p class="note">Made-up fund and numbers; laptop view. The popover opens when the icon is hovered or focused and stays open when it is clicked; Escape or a click outside closes it.</p>
+ <p><b>Draft copy</b> (plain words; final after Batch A&rsquo;s verdict):</p>
+ <div class="doc">
+  <h4>How to read this</h4>
+  <ul><li><b>Filled dot</b> is your fund. <b>Hollow dot</b> is the category average.</li><li>The <b>number above the dots</b> is the gap: your fund&rsquo;s return minus the category average. Green means ahead, red means behind.</li><li>The <b>second line</b> shows the two returns: your fund against the category.</li><li>There is one row for each period: 1 year, 3 years and 5 years.</li></ul>
+  <h4>How the average is worked out</h4>
+  <ul><li>We take every fund in the same SEBI category and the same plan (Direct with Direct, Regular with Regular).</li><li>Only funds with at least 3 years of history count, in every period.</li><li>Each fund counts in proportion to its size (its average assets under management), so a large fund moves the average more than a small one. A fund with no size on record is left out of the weighting.</li><li>If no fund in the category has a size, we show a plain average and say so.</li></ul>
+  <h4>Good to know</h4>
+  <ul><li>Categories with fewer than 5 funds are marked as small, so treat the average with care.</li><li>Returns are based on prices as on 12 Nov 2026 (the date follows the policy: Q1 B).</li></ul>
+ </div>
+ <h3 class="sub">What changes, by layer</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>mutual-funds/other/CategoryRankingGroup.tsx</code>: use the shared &ldquo;i&rdquo; popover (section 5) with the legend and the explanation; the footer legend line moves into it, so the card is shorter. The existing one-sentence tooltip is replaced, not duplicated.</td></tr>
+   <tr><td class="k"><span class="tag be">backend</span> <span class="tag db">database</span></td><td>None for this item (the date field is in item 11).</td></tr>
+   <tr><td class="k">Copy</td><td>The wording above, kept in one copy file (like the existing <code>mfCopy.ts</code>) so it changes in one place. Final wording after Batch A: if a fix changes the weighting, the 3-year floor or the fallback, the text follows.</td></tr>
+   <tr><td class="k">Tests</td><td>The popover shows both parts and the right date; it opens on hover, focus and click and closes on Escape; the legend text matches the card&rsquo;s own colours; a thin-category case adds the &ldquo;small category&rdquo; line.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 4. ITEM 16 ============ -->
+<section id="i16">
+ <h2>4. P/E and P/B: one &ldquo;i&rdquo; instead of source pills (item 16)</h2>
+ <p class="lead">Remove the pills from every value and put one &ldquo;i&rdquo; next to the fund name that explains where each figure came from.</p>
+
+ <h3 class="sub">What the table does today (read in code)</h3>
+ <ul class="tight">
+  <li>Each fund row has a P/E cell and a P/B cell. Each shows the figure, a <b>source pill</b> (&ldquo;Factsheet&rdquo;, &ldquo;Factsheet fwd&rdquo; or &ldquo;NSE/BSE&rdquo;) with a hover note &ldquo;Basis: trailing earnings. Method: harmonic mean.&rdquo;, and a small range bar with a Nifty 500 tick.</li>
+  <li>A fourth column, &ldquo;As on&rdquo;, shows one date or two (P/E and P/B) per fund.</li>
+  <li>A footnote under the table: &ldquo;Factsheet: printed by the fund house; fwd means forward earnings. NSE/BSE: calculated from published holdings. Indicators, not a recommendation.&rdquo;</li>
+ </ul>
+ <div class="winbar" data-sec="i16"><span>Table</span><button type="button" data-v="before" aria-pressed="false">Today</button><button type="button" data-v="after" aria-pressed="true">After</button><button type="button" data-v="open" aria-pressed="false">After, &ldquo;i&rdquo; open</button></div>
+ <div data-frame="pepb"></div>
+ <p class="note">Made-up funds and numbers; laptop view. After the change the figures and range bars stay; the pills and the footnote go.</p>
+
+ <h3 class="sub">Where each figure comes from (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Source on screen today</th><th>What it really is</th><th>What the popover says</th></tr></thead>
+  <tbody>
+   <tr><td><span class="pill2" style="margin:0">Factsheet</span> / <span class="pill2" style="margin:0">Factsheet fwd</span></td><td>The fund&rsquo;s own P/E or P/B printed on its monthly factsheet (a reference month-end). &ldquo;fwd&rdquo; means forward earnings. The method may be stated (for example harmonic mean) or not.</td><td>&ldquo;Printed on the fund&rsquo;s factsheet for September 2026, based on forward earnings.&rdquo;</td></tr>
+   <tr><td><span class="pill2" style="margin:0">NSE/BSE</span></td><td>Calculated by us from the fund&rsquo;s published holdings: each stock&rsquo;s P/E comes from the exchanges&rsquo; daily files (NSE, and BSE for stocks only listed there); P/B uses book value from company filings. The fund&rsquo;s figure is a harmonic mean of its stocks&rsquo; ratios, shown only when at least 60% of its equity has a usable ratio. The date is the <b>oldest</b> stock-ratio date.</td><td>&ldquo;Worked out from the fund&rsquo;s published holdings. Stock ratios come from NSE and BSE daily data, combined as a harmonic mean. Covers 92% of the fund&rsquo;s equity. Ratios as on 12 Nov 2026.&rdquo;</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">The proposed &ldquo;i&rdquo; (one per fund)</h3>
+ <ul class="tight">
+  <li>Sits <b>right after the fund name</b>, so it is easy to find and does not crowd the figures.</li>
+  <li>The popover has two short parts, <b>P/E</b> and <b>P/B</b>, each with: the source, the basis (trailing or forward earnings; trailing book value), the method (harmonic mean or weighted average), the coverage (computed figures only), and the date in the policy&rsquo;s form.</li>
+  <li>If a figure is withheld (not enough data), the popover says why in the same plain words the cell shows today.</li>
+  <li>The line &ldquo;Indicators, not a recommendation.&rdquo; stays, inside the popover.</li>
+  <li>The &ldquo;As on&rdquo; column goes: each fund&rsquo;s date moves into its &ldquo;i&rdquo; and the page strip carries the usual one (item 11, my default; tell me if you want the column kept).</li>
+ </ul>
+ <div class="callout"><b>Depends on the fact-sheet fixes (C3).</b> Your manager is changing how fact-sheet figures are loaded (manual and automatic). If a new source such as &ldquo;loaded by hand&rdquo; appears, the popover needs a sentence for it. The words live in one source-to-sentence map, so a new source is one line, and I check the final list when the fixes land.</div>
+
+ <h3 class="sub">What changes, by layer</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>mutual-funds/other/ValuationByFund.tsx</code>: delete the <code>Source</code> pill component and its two uses, the footnote and the &ldquo;As on&rdquo; column and <code>AsOn</code>; add the shared &ldquo;i&rdquo; after the fund name; the source-to-sentence map goes in <code>otherLogic.ts</code> or the copy file. The range bars, the Nifty 500 tick and the &ldquo;how the portfolio average works&rdquo; section stay (that button moves to the shared &ldquo;i&rdquo; pattern in section 5).</td></tr>
+   <tr><td class="k"><span class="tag be">backend</span> <span class="tag db">database</span></td><td>None. The reply already carries source, basis, method, coverage and date for each value.</td></tr>
+   <tr><td class="k">Tests</td><td>No pill remains; each fund has one &ldquo;i&rdquo;; the popover shows the right source sentence for a factsheet, a forward factsheet and a computed figure; a withheld figure shows its reason; keyboard and hover both open it.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 5. INFO COMPONENT ============ -->
+<section id="info">
+ <h2>5. One shared &ldquo;i&rdquo; component</h2>
+ <p class="lead">Items 9 and 16 both need a richer &ldquo;i&rdquo;. Build it once, and let the existing cards keep working.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Behaviour</th><th>How it works</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Opens</td><td>On hover (after a short pause) or keyboard focus; a click or Enter <b>pins</b> it open. It is a button, so it is reachable and understandable with a keyboard and a screen reader.</td></tr>
+   <tr><td class="k">Closes</td><td>Escape, a click outside, or moving away if it was only hovered. Focus returns to the icon.</td></tr>
+   <tr><td class="k">Content</td><td>A title and any of: short paragraphs, a legend (a coloured dot and a sentence), a short list. Long content scrolls inside; the width is capped.</td></tr>
+   <tr><td class="k">Compatibility</td><td>The current <code>InfoMark</code> (a one-sentence tooltip) keeps working, by the same name and the same <code>text</code> property, but is built on the new component. The roughly 20 cards that use it through <code>SectionCard</code> need no edit, and gain click and keyboard behaviour for free.</td></tr>
+   <tr><td class="k">Look</td><td>The same small circled &ldquo;i&rdquo; as today; the popover uses the app&rsquo;s card colours and works in light and dark.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">The one technical choice</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Approach</th><th>Strength</th><th>Weakness</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Add <code>@radix-ui/react-popover</code> (my default)</td><td>The right tool for hover-or-click content: handles focus, placement, outside clicks and Escape; same family as the tooltip and dialog already installed.</td><td>One new small dependency (a stack-level change, so I am flagging it rather than assuming).</td></tr>
+   <tr><td class="k">Build on the installed tooltip</td><td>No new package.</td><td>A tooltip is meant for short text; rich content with a legend is weaker for keyboard and screen-reader users, and the existing source pill already needs workarounds to open on click.</td></tr>
+  </tbody>
+ </table></div>
+ <p><b>Migrating the others.</b> The component replaces the inline &ldquo;i &middot; How the portfolio average works&rdquo; button (item 16&rsquo;s table) in this batch. The other bespoke explainers (Home&rsquo;s &ldquo;How is this calculated?&rdquo; buttons, the score explainer, the fund page&rsquo;s info button) are listed for a later cleanup and not touched here, to keep the batch small.</p>
+</section>
+
+<!-- ============ 6. STRATEGY ============ -->
+<section id="strategy">
+ <h2>6. Orchestrator and workers</h2>
+ <p class="lead">Same rules as the other batches. The copy is a real deliverable here, so I write it; Codex builds; Gemini draws the new strip and popover.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Role</th><th>Who</th><th>What they do in Batch E</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Orchestrator</td><td>Claude</td><td>Finishes the date audit (E-2); writes the date rules, the legend and explainer copy, the source-to-sentence map; decides the date module&rsquo;s interface; writes the specs and the Gemini packet; checks every screen against the mockups at three laptop sizes, light and dark; runs the affected tests.</td></tr>
+   <tr><td class="k">Code worker</td><td>Codex</td><td>The date module and label component, replacing the as-of labels, the small backend date field, the shared popover, the two card changes, and all tests.</td></tr>
+   <tr><td class="k">Visual worker</td><td>Antigravity (Gemini)</td><td>The page strip and the popover, from a packet (measurements, copy, states). The relay is manual, as in Batch B.</td></tr>
+   <tr><td class="k">Reviewer</td><td>Codex adversarial review</td><td>One review per handoff, then one whole-batch review before staging.</td></tr>
+  </tbody>
+ </table></div>
+ <p>Phone is out of scope, so no phone work is planned or checked. Nothing in the code changes until your reviewed answers are in and the plans are written.</p>
+ <h3 class="sub">Lanes that can run at the same time</h3>
+ <div class="cols">
+  <div class="doc"><h4>Lane 1: dates (item 11)</h4><ul><li>The date module, the label component, the strip, the label replacements, the backend date field.</li><li>Touches about 15 frontend files and the three replies.</li></ul></div>
+  <div class="doc"><h4>Lane 2: the &ldquo;i&rdquo; (items 9 and 16)</h4><ul><li>The shared popover, the category card, the P/E and P/B table.</li><li>Touches <code>SectionCard.tsx</code>, <code>CategoryRankingGroup.tsx</code>, <code>ValuationByFund.tsx</code>.</li></ul></div>
+ </div>
+ <p>The lanes share one file family: the card footers in <code>ValuationByFund.tsx</code> and <code>CategoryRankingGroup.tsx</code> are touched by both, so those two edits go in order.</p>
+</section>
+
+<!-- ============ 7. PROGRAM ============ -->
+<section id="program">
+ <h2>7. Fit with the other batches</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Other batch</th><th>Relationship</th></tr></thead>
+  <tbody>
+   <tr><td class="k">A (truth-finding)</td><td>The category-average legend text and the date on the rank, average and XIRR follow A&rsquo;s verdicts: the verified calculation and the common end date (FX-10c). If A changes the weighting or the 3-year floor, the copy changes with it. The Excel for item 9 is built in A.</td></tr>
+   <tr><td class="k">D (charts)</td><td>Chart axis dates and tooltips follow D and are not changed here; the graph&rsquo;s &ldquo;prices as on&rdquo; note uses this batch&rsquo;s date wording. An &ldquo;i&rdquo; explaining the two scales (rupees left, percent right) is a good first user of the shared component, but is not built here.</td></tr>
+   <tr><td class="k">C (holdings hygiene)</td><td>No shared files.</td></tr>
+   <tr><td class="k">F, K, I (section index, search, PDF)</td><td>The strip sits below the header and tabs, not in the header slot those three share. The PDF export uses the same date wording and module so a printed page agrees with the screen. Search&rsquo;s &ldquo;terms&rdquo; results can reuse the explainer copy.</td></tr>
+   <tr><td class="k">G (GA4)</td><td>An &ldquo;i opened&rdquo; event could carry only the label of the explainer, never a value; the shared component makes that one hook.</td></tr>
+   <tr><td class="k">C3 (fact-sheet fixes, your manager)</td><td>Item 16&rsquo;s source sentences depend on the final list of sources.</td></tr>
+   <tr><td class="k">C4 (Standard vs Pro)</td><td>Nothing hard-coded: the strip&rsquo;s entries and the popover content are data, so a tier can hide Pro ones.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>Migrations: none planned.</b> The one backend change adds a field to three replies and needs no database change. Batch B may take 0054; this batch takes none.</div>
+ <p><b>Deploy.</b> A staging milestone (the one you choose in Batch B&rsquo;s Q26), with the normal frontend and backend deploy together because the screens read the new date field. Stored results from before the deploy lack that field until their next recompute, and the screens show nothing extra for them; if Batch A&rsquo;s one-time recompute is in the same milestone, that is covered.</p>
+</section>
+
+<!-- ============ 8. TASKS ============ -->
+<section id="tasks">
+ <h2>8. Task list</h2>
+ <p class="lead">Fourteen tasks. Sizes: S about half a day, M one to two days, L more.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Item</th><th>Task</th><th>Worker</th><th>Size</th><th>When</th></tr></thead>
+  <tbody>
+   <tr><td>E-1</td><td>all</td><td>Re-check every &ldquo;read in code&rdquo; line; write the specs and the Gemini packet</td><td>Claude</td><td>M</td><td>After your answers</td></tr>
+   <tr><td>E-2</td><td>11</td><td>Finish the date audit: every date label on every screen (the seven Mutual Funds tabs, Home, the fund page, Portfolio), with the helper, the wording, the meaning</td><td>Claude</td><td>M</td><td>Now (read-only)</td></tr>
+   <tr><td>E-3</td><td>11</td><td>Date module and label component (kinds, wording, format, the older-data rule), tests first</td><td>Codex</td><td>M</td><td>Ready: Q1 and Q2 are answered</td></tr>
+   <tr><td>E-4</td><td>11</td><td>Replace the about 20 as-of labels; merge the duplicate month helper; add the test against hard-coded wording</td><td>Codex</td><td>M</td><td>After E-3</td></tr>
+   <tr><td>E-5</td><td>11</td><td>Backend: add the price date to the category-average, rank and portfolio-summary replies</td><td>Codex</td><td>S</td><td>After Batch A&rsquo;s common end date</td></tr>
+   <tr><td>E-6</td><td>11</td><td>The page strip on the Mutual Funds frame, with its &ldquo;i&rdquo; and the older-data marker; remove the per-card footer lines</td><td>Gemini, Codex</td><td>M</td><td>After E-3</td></tr>
+   <tr><td>E-7</td><td>9, 16</td><td>The shared &ldquo;i&rdquo; popover; rebuild <code>InfoMark</code> on it; add the dependency if you agree</td><td>Codex, Gemini</td><td>M</td><td>Now (no data needed)</td></tr>
+   <tr><td>E-8</td><td>9</td><td>Write the legend and explainer copy; build it into the category card</td><td>Claude, Codex</td><td>S</td><td>After E-7 and Batch A&rsquo;s verdict</td></tr>
+   <tr><td>E-9</td><td>16</td><td>Replace the pills with one &ldquo;i&rdquo; per fund; source-to-sentence map; remove the footnote and the column</td><td>Codex, Claude</td><td>M</td><td>After E-7 and the fact-sheet fixes</td></tr>
+   <tr><td>E-10</td><td>all</td><td>Dark mode and three laptop sizes, keyboard and screen-reader checks, against the mockups</td><td>Claude</td><td>M</td><td>After E-6, E-8, E-9</td></tr>
+   <tr><td>E-11</td><td>all</td><td>Adversarial review per handoff, then the whole batch</td><td>Codex, Claude</td><td>M</td><td>Before staging</td></tr>
+   <tr><td>E-12</td><td>all</td><td>Staging deploy guide and QA checklist</td><td>Claude</td><td>M</td><td>After E-11</td></tr>
+   <tr><td>E-13</td><td>all</td><td>Staging check</td><td>You</td><td>S</td><td>After E-12</td></tr>
+   <tr><td>E-14</td><td>all</td><td>Update <code>decisions.md</code>, <code>session.md</code> and the Notion pack on your go</td><td>Claude</td><td>S</td><td>Last</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">E-2 and E-7 need no data and can start before anything else.</p>
+</section>
+
+<!-- ============ 9. RISKS ============ -->
+<section id="risks">
+ <h2>9. Risks, tests and checks</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Risk</th><th>Item</th><th>What we do</th></tr></thead>
+  <tbody>
+   <tr><td>A month shown for daily data hides how fresh it is</td><td>11</td><td>That is why your chosen policy keeps the exact day for prices and the figures built on them.</td></tr>
+   <tr><td>The strip hides a card whose data is old (the known weakness of a strip-only layout)</td><td>11</td><td>The older-data marker on the strip and the card&rsquo;s own &ldquo;i&rdquo;; one module decides both; the marker rule has its own tests.</td></tr>
+   <tr><td>A late publisher makes the &ldquo;prices as on&rdquo; date jump back and forth</td><td>11</td><td>Home&rsquo;s at-least-half rule, the same as Batch A&rsquo;s common end date, and the &ldquo;Partial&rdquo; badge.</td></tr>
+   <tr><td>A screen is missed in the date audit and keeps the old wording</td><td>11</td><td>E-2 lists every label; a test scans the screens for hard-coded &ldquo;as on&rdquo; and &ldquo;as of&rdquo;.</td></tr>
+   <tr><td>The legend says something Batch A later changes</td><td>9</td><td>The copy lives in one file; the wording is final only after A&rsquo;s verdict.</td></tr>
+   <tr><td>A source in item 16 appears that the popover has no sentence for</td><td>16</td><td>One source-to-sentence map with a safe default sentence; a test fails on an unknown source; I check C3&rsquo;s final list.</td></tr>
+   <tr><td>The popover is not usable with a keyboard or screen reader, or covers content</td><td>9, 16</td><td>It is a button with the right attributes; focus is managed; placement flips at screen edges; tested at the three laptop sizes.</td></tr>
+   <tr><td>The new package conflicts with the stack rule</td><td>9, 16</td><td>Flagged here; the tooltip fallback exists if you say no.</td></tr>
+   <tr><td>Changing about 20 labels breaks existing tests that read the old text</td><td>11</td><td>Those tests are updated in the same change; each old string is listed in the spec.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Tests, in short</h3>
+ <ul class="tight">
+  <li><b>Frontend (Vitest), affected files only:</b> the date module and label component, the strip, <code>SectionCard</code> and the shared popover, <code>CategoryRankingGroup</code>, <code>ValuationByFund</code> and every component whose label changes; then <code>npm run lint</code> and <code>npm run build</code>.</li>
+  <li><b>Backend (pytest), affected files only:</b> the three replies carry the new date and nothing else changed.</li>
+  <li><b>By eye:</b> the mockups against the real screens at 1280&times;600, 1440&times;810 and 1536&times;730, light and dark. The phone view is out of scope.</li>
+  <li>Red before green for every change.</li>
+ </ul>
+ <h3 class="sub">Staging check (draft; the real guide is E-12)</h3>
+ <div class="steps5">
+  <div><b>11</b>Open each Mutual Funds tab, Home and a fund page: dates follow the policy, one wording, no &ldquo;as of&rdquo; next to &ldquo;as on&rdquo;; the XIRR tile, the average and the rank say which prices they use.</div>
+  <div><b>9</b>The category card&rsquo;s &ldquo;i&rdquo; opens on hover and click with the legend and the calculation; the numbers in the text match the card.</div>
+  <div><b>16</b>No source pill remains; each fund has one &ldquo;i&rdquo; whose popover names the source of P/E and P/B correctly.</div>
+  <div><b>All</b>Dark mode; keyboard only (Tab to an &ldquo;i&rdquo;, Enter, Escape); the three laptop sizes.</div>
+ </div>
+</section>
+
+<!-- ============ QUESTIONS ============ -->
+<section id="questions">
+ <h2>10. Questions</h2>
+ <p class="lead">Both questions are answered on 13 Nov and locked. Each card shows the option you chose, my original pick, and your note. Tell me in chat if you want one reopened. Below: the defaults I will use, and the decisions I will bring you later with evidence.</p>
+ <div class="bar"><span class="status" id="prog">0 of 2 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
+ <div id="cards"></div>
+ <h3 class="sub">Defaults I will use (tell me in chat if you want any changed)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Topic</th><th>Default</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Wording</td><td>&ldquo;as on&rdquo; everywhere (Indian financial usage), never a mix with &ldquo;as of&rdquo;.</td></tr>
+   <tr><td class="k">The price date</td><td>Home&rsquo;s at-least-half rule for every &ldquo;Prices as on&rdquo;, the same as Batch A&rsquo;s common end date.</td></tr>
+   <tr><td class="k">Undated figures</td><td>The XIRR tile, the category average and the rank say &ldquo;Based on prices as on&hellip;&rdquo;; the server adds one date to their replies.</td></tr>
+   <tr><td class="k">Strip contents</td><td>Only the data kinds the tab uses (table in section 2); no strip on Transactions; an amber older-data marker when a kind is behind its usual cycle.</td></tr>
+   <tr><td class="k">Event dates</td><td>Transactions, SIP due dates, &ldquo;managing since&rdquo;, first and last investment stay exact and unchanged.</td></tr>
+   <tr><td class="k">News</td><td>Keeps its relative &ldquo;Updated 3 hours ago&rdquo;.</td></tr>
+   <tr><td class="k">The &ldquo;i&rdquo; component</td><td>One shared popover (hover or focus opens, click pins, Escape closes); <code>InfoMark</code> rebuilt on it; the new Radix popover package added (the tooltip fallback if you say no); other bespoke explainers listed for later.</td></tr>
+   <tr><td class="k">The P/E and P/B &ldquo;As on&rdquo; column</td><td>Removed; each fund&rsquo;s date moves into its &ldquo;i&rdquo; and the strip.</td></tr>
+   <tr><td class="k">Copy</td><td>The category legend and the source sentences are written in plain words by me and kept in one copy file; final after Batch A&rsquo;s verdict and the fact-sheet fixes.</td></tr>
+   <tr><td class="k">Phone view</td><td>Out of scope; planned later.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Decisions I will bring you later, with the evidence in hand</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Decision</th><th>When it comes up</th><th>What you will see</th></tr></thead>
+  <tbody>
+   <tr><td class="k">The final legend wording</td><td>After Batch A&rsquo;s verdict on the calculation</td><td>The wording with the confirmed numbers, for your read.</td></tr>
+   <tr><td class="k">The sentence for any new fact-sheet source</td><td>When the fact-sheet fixes land</td><td>The list of sources and one sentence each.</td></tr>
+   <tr><td class="k">Any screen where the policy does not fit</td><td>After the date audit (E-2)</td><td>The screen, the figure, and my suggestion.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="copy">
+ <h2>11. Copy my answers</h2>
+ <p class="lead">Press the button, then paste the text in chat. If it does nothing, select the text below and copy it yourself.</p>
+ <button id="copyBtn" type="button">Copy my answers</button> <span class="status" id="copyMsg"></span>
+ <label class="nl" for="outTa">Your answers as text</label>
+ <textarea id="outTa" class="out" readonly></textarea>
+</section>
+
+<section id="prov">
+ <h2>What I checked</h2>
+ <p><b>Read today, read-only, by me:</b> the date helpers (<code>lib/format.ts</code>, <code>lib/dateRange.ts</code>, <code>components/mf/lookthroughDisplay.ts</code>, <code>features/home/homeFormat.ts</code>, <code>worthCopy.ts</code>) and their call sites in the Mutual Funds, Home, fund-page and Portfolio folders; <code>ValuationByFund.tsx</code> and <code>ValuationSpectrum.tsx</code>; <code>CategoryRankingGroup.tsx</code>; <code>SectionCard.tsx</code> and <code>InfoMark</code>; <code>services/analytics/valuation.py</code> and <code>stock_fundamentals_client.py</code> (where ratios and their dates come from); <code>services/home/movers.py</code> (the price-day rule); the reply classes for the rank, average and XIRR; <code>package.json</code> (installed Radix packages).</p>
+ <p><b>Not done:</b> nothing was run. I did not open the live app, so the labels are quoted from code and fixtures, not from real data. The date audit is not complete: I covered the call sites that show data as-of labels and the Mutual Funds, Home and fund-page folders, not every tab&rsquo;s every card, and not Portfolio in detail (task E-2). I did not check how the browser formats September in <code>holdingsDate</code>. I did not read the older analytics view (<code>features/analytics</code>), which the redesign no longer uses. The Radix popover package is not installed, so its behaviour is from its documentation, not tested here.</p>
+ <p><b>Drawn, not measured:</b> every mockup is my reconstruction with invented funds, numbers and dates; the popover copy is a draft. Laptop only: the phone view is out of scope. Nothing was committed or deployed.</p>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+function vp(inner,w,h,cls,attrs){return '<div class="vp '+(cls||'')+'" data-w="'+w+'"'+(h?' data-h="'+h+'"':'')+(attrs||'')+'><div class="vp-in">'+inner+'</div></div>'}
+function chrome(url){return '<div class="chrome"><i></i><i></i><i></i><span>'+url+'</span></div>'}
+
+/* ---- date policy table ---- */
+var ROWS=[
+ ['Allocation tab, asset-class card','Values as on 12 Nov 2026 &middot; Holdings as on 30 Sep 2026','Values: November 2026 &middot; Holdings: September 2026','Prices as on 12 Nov 2026 &middot; Holdings as on September 2026','Prices as on 12 Nov 2026 &middot; Holdings as on 30 Sep 2026'],
+ ['Other tab, P/E and P/B','Fundamentals as on 12 Oct 2026 &middot; an &ldquo;As on&rdquo; column','Ratios: November 2026','Ratios as on 12 Nov 2026 (in the &ldquo;i&rdquo;)','Ratios as on 12 Nov 2026'],
+ ['Other tab, fund fee (TER)','Ref: 30 Sep 2026','Fees: September 2026','Fees as on September 2026','Fees as on 30 Sep 2026'],
+ ['Other tab, category average and rank','<span class="lbl none">no date</span>','Based on November 2026','Based on prices as on 12 Nov 2026','Based on prices as on 12 Nov 2026'],
+ ['Overview, XIRR tile','<span class="lbl none">no date</span>','Based on November 2026','Based on prices as on 12 Nov 2026','Based on prices as on 12 Nov 2026'],
+ ['Home, wealth card and movers','as of 12 Nov','Prices: November 2026','Prices as on 12 Nov 2026','Prices as on 12 Nov 2026'],
+ ['Fund page, NAV and holdings','NAV as of 12 Nov 2026 &middot; Disclosure as of 30 Sep 2026','Prices: November 2026 &middot; Holdings: September 2026','Prices as on 12 Nov 2026 &middot; Holdings as on September 2026','Prices as on 12 Nov 2026 &middot; Holdings as on 30 Sep 2026']
+];
+function dates(v){
+ var col={today:1,a:2,b:3,c:4}[v];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card" style="padding:0"><table class="dtab"><thead><tr><th style="width:26%">Where</th><th>What the user reads ('+({today:'today',a:'policy A',b:'policy B',c:'policy C'}[v])+')</th></tr></thead><tbody>';
+ ROWS.forEach(function(r){var txt=r[col];var cls=v==='today'?'lbl':(v==='b'?'lbl ok':'lbl');h+='<tr><td class="w">'+r[0]+'</td><td>'+(txt.indexOf('class="lbl')>-1?txt:'<span class="'+cls+'">'+txt+'</span>')+'</td></tr>'});
+ h+='</tbody></table></div></div></div>';
+ return vp(chrome('ls-redesign.unifolio.in')+h,1000,0);
+}
+/* ---- layout: cards vs strip vs hybrid ---- */
+function card(title,body,foot,wide){return '<div class="ap-card" style="'+(wide?'grid-column:span 2':'')+'"><h5>'+title+'</h5><div class="ap-mut" style="margin:6px 0">'+body+'</div>'+(foot?'<div class="ap-mut" style="border-top:1px solid #EEF0EE;padding-top:6px;margin-top:8px">'+foot+'</div>':'')+'</div>'}
+function layout(v){
+ var strip='<div class="strip"><b>Data dates</b><span>Prices as on <b>12 Nov 2026</b></span><span>Holdings as on <b>September 2026</b></span><span>Ratios as on <b>12 Nov 2026</b></span><span class="i">i</span>'+(v==='strip'?'<span class="lbl none">2 funds have older holdings</span>':'')+'</div>';
+ var f={cards:['Values as on 12 Nov 2026 &middot; Holdings as on September 2026','Fundamentals as on 12 Nov 2026','Fees as on September 2026','Based on prices as on 12 Nov 2026'],
+        strip:['','','',''],
+        hybrid:['','','Holdings for 2 funds as on June 2026','']}[v];
+ var body='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:'+(v==='cards'?0:10)+'px">'+card('Asset mix','Equity 72% &middot; Debt 21% &middot; Gold 4% &middot; Other 3%',f[0])+card('P/E and P/B','Portfolio P/E 24.1 &middot; P/B 3.4',f[1])+card('Fund fees (TER)','Weighted fee 0.82% a year',f[2])+card('Category average','3 of 5 funds ahead over 3 years',f[3])+'</div>';
+ var tabs='<div class="ap-nav" style="display:flex;gap:6px;margin-bottom:12px"><span style="padding:6px 12px;border-radius:8px;color:#5C5C5C">Overview</span><span style="padding:6px 12px;border-radius:8px;color:#5C5C5C">Transactions</span><span style="padding:6px 12px;border-radius:8px;background:#EAFBF0;color:#15803D;font-weight:600">Other analytics</span><span style="padding:6px 12px;border-radius:8px;color:#5C5C5C">Allocation</span></div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/other')+'<div class="ap"><div class="ap-body"><div class="ap-h">Mutual Funds</div>'+tabs+(v==='cards'?'':strip)+body+'</div></div>',1000,0);
+}
+/* ---- category average popover ---- */
+function catpop(v){
+ var rows=[['1Y',58,50,'+1.2%','4.6% vs 3.4%',true],['3Y',44,50,'&minus;1.1%','12.8% vs 13.9%',false],['5Y',30,62,'&minus;4.8%','6.4% vs 11.2%',false]];
+ var r='<div class="cmp" style="margin-top:12px">';
+ rows.forEach(function(x){var c=x[5]?'#15803D':'#D92D20';r+='<div class="p"><b>'+x[0]+'</b><div class="trk"><span class="d c" style="left:'+x[2]+'%"></span><span class="d f" style="left:'+x[1]+'%;background:'+c+'"></span></div><span class="v" style="text-align:right"><b style="color:'+c+'">'+x[3]+'</b><br>'+x[4]+'</span></div>'});
+ r+='</div>';
+ var pop=v==='open'?'<div class="pop" style="left:150px;top:34px"><h6>Returns against the category average</h6><div class="sec"><b>How to read this</b><div class="legend"><div><span class="dot g"></span>Filled dot: your fund</div><div><span class="dot o"></span>Hollow dot: the category average</div><div><span class="dot g"></span><span class="dot r"></span>The number above is the gap: green when ahead, red when behind</div><div>One row each for 1 year, 3 years and 5 years</div></div></div><div class="sec"><b>How the average is worked out</b><ul><li>Funds in the same SEBI category and plan</li><li>Only funds with at least 3 years of history</li><li>Larger funds count for more (weighted by size)</li><li>No sizes on record: a plain average, and we say so</li></ul></div><div class="sec"><b>Good to know</b>Categories with fewer than 5 funds are marked small. Based on prices as on 12 Nov 2026.</div></div>':'';
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card rel" style="min-height:360px"><div style="display:flex;align-items:center;gap:8px"><h5 style="margin:0">Returns against the category average</h5><span class="i'+(v==='open'?' on':'')+'">i</span></div><div class="ap-fund" style="margin-top:12px"><span class="ap-logoc">A</span><div><b>Alpha Flexi Cap Fund</b><div class="ap-mut">Flexi Cap &middot; Direct plan</div></div></div>'+r+'<div class="ap-mut" style="margin-top:12px">Category average covers 31 funds (1Y), 31 (3Y), 24 (5Y). Based on prices as on 12 Nov 2026.</div>'+pop+'</div></div></div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/other')+h,1000,0);
+}
+/* ---- PE/PB table ---- */
+function pepb(v){
+ var before=v==='before';
+ function ratio(val,pill,pos){return '<td style="width:34%"><b style="font-size:14px">'+val+'</b>'+(before?'<span class="pill2">'+pill+'</span>':'')+'<div style="position:relative;height:8px;border-radius:99px;background:#EEF0EE;margin-top:10px"><span style="position:absolute;top:-4px;left:'+(pos+8)+'%;width:2px;height:16px;background:#6366F1"></span><span style="position:absolute;top:-2px;left:'+pos+'%;width:12px;height:12px;border-radius:50%;background:#22C55E;border:2px solid #fff"></span></div></td>'}
+ function fund(n,pe,pi,pb,pbi,pe_,pb_,date,withI){
+  var ic=(!before)?' <span class="i'+(withI&&v==='open'?' on':'')+'">i</span>':'';
+  var pop=(withI&&v==='open')?'<div class="pop" style="left:70px;top:128px;width:400px"><h6>Where these figures come from</h6><div class="sec"><b>P/E 24.1</b>Worked out from the fund&rsquo;s published holdings. Each stock&rsquo;s P/E comes from NSE and BSE daily data, combined as a harmonic mean on trailing earnings. Covers 92% of the fund&rsquo;s equity. Ratios as on 12 Nov 2026.</div><div class="sec"><b>P/B 3.4</b>Printed on the fund&rsquo;s factsheet for September 2026, based on trailing book value.</div><div class="sec" style="color:#667085">Indicators, not a recommendation.</div></div>':'';
+  return '<tr><td style="width:'+(before?'24%':'32%')+'"><div class="ap-fund"><span class="ap-logoc">'+n.charAt(0)+'</span><div><b>'+n+'</b>'+ic+pop+'</div></div></td>'+ratio(pe,pi,pe_)+ratio(pb,pbi,pb_)+(before?'<td class="ap-mut">'+date+'</td>':'')+'</tr>';
+ }
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card rel" style="min-height:430px"><h5>P/E and P/B by fund</h5><div class="ap-mut" style="margin:4px 0 12px">3 of 5 funds trade richer than Nifty 500 on earnings. The tick is Nifty 500; the dot is the fund.</div><table class="ap-t"><thead><tr><th>Fund</th><th>P/E</th><th>P/B</th>'+(before?'<th>As on</th>':'')+'</tr></thead><tbody>'
+ +fund('Alpha Flexi Cap Fund','24.1','NSE/BSE','3.4','Factsheet',40,34,'12 Nov 2026',true)
+ +fund('Beacon Large Cap Fund','22.8','Factsheet fwd','3.1','Factsheet',36,30,'30 Sep 2026',false)
+ +fund('Cedar Mid Cap Fund','31.5','NSE/BSE','4.6','NSE/BSE',58,52,'12 Nov 2026',false)
+ +'</tbody></table>'+(before?'<div class="ap-mut" style="margin-top:12px">Factsheet: printed by the fund house; fwd means forward earnings. NSE/BSE: calculated from published holdings. Indicators, not a recommendation.</div>':'')+'</div></div></div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/other')+h,1000,0);
+}
+var STATE={'i11':'today','i11b':'strip','i9':'open','i16':'after'};
+function frame(n){switch(n){case 'dates':return dates(STATE['i11']);case 'layout':return layout(STATE['i11b']);case 'catpop':return catpop(STATE['i9']);case 'pepb':return pepb(STATE['i16']);}return ''}
+function layoutAll(){document.querySelectorAll('.vp').forEach(function(v){var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');inn.style.width=w+'px';inn.style.height=h?h+'px':'auto';var hh=h||inn.offsetHeight;var sc=Math.min(1,v.clientWidth/w);inn.style.transform='scale('+sc+')';v.style.height=Math.ceil(hh*sc)+'px'})}
+function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});layoutAll()}
+document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){var sec=bar.getAttribute('data-sec');bar.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){STATE[sec]=b.getAttribute('data-v');bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});renderAll()})})});
+renderAll();window.addEventListener('resize',layoutAll);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layoutAll);setTimeout(layoutAll,400);
+
+/* ================= questions ================= */
+var KEY="batch-e-planning-v1",S={};
+try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+var Q=[
+{id:"Q1",item:"11",title:"What is the date policy for the whole app?",ask:"Pick one. Section 2 shows each one on seven real screens.",
+ ctx:"This applies to <b>data as-of</b> labels only. Event dates (transactions, SIP due dates, &ldquo;managing since&rdquo;) always stay exact.",
+ opts:[
+ {k:"A",l:"Month only, everywhere (&ldquo;November 2026&rdquo;)",d:"Good: the simplest and calmest; matches your example. Bad: a daily price shown as just &ldquo;November&rdquo; hides whether it is today&rsquo;s or weeks old, which is what matters for NAV and returns."},
+ {k:"B",l:"Two tiers: an exact day for prices and the figures built on them; a month for monthly data",rec:1,d:"Good: matches what each date really is; month-end data stops looking like a daily figure; the NAV day stays visible. Bad: two forms to learn, held in one module."},
+ {k:"C",l:"Exact day everywhere, with one wording and one format",d:"Good: nothing is hidden; the smallest change. Bad: a month-end date on a monthly figure still reads as daily, and the page stays busy."}],
+ why:"Prices change every day and a reader should see which day. Disclosures and fees are monthly and should read as a month. One rule for both would hide one of them.",
+ commit:"<b>Recorded:</b> option B. Two kinds of date in the date module (a day for prices and the figures built on them; a month for monthly data), with the rule for which figure is which."},
+{id:"Q2",item:"11",title:"Where do the dates appear?",ask:"Pick one. The mockups in section 2 draw all three.",
+ opts:[
+ {k:"A",l:"On every card, in the same words and format",d:"Good: the date sits next to its figure; the smallest structural change. Bad: the same date repeated on many cards; a busy page."},
+ {k:"B",l:"One strip under the tabs; details in each card&rsquo;s &ldquo;i&rdquo;",d:"Good: calm; one place to look. Bad: a card whose data is older than the strip is no longer obvious."},
+ {k:"C",l:"One strip, plus a line on a card only when its own date differs",rec:1,d:"Good: calm normally, loud when something is stale. Bad: slightly more logic (the date module holds it)."}],
+ why:"Most cards share the page&rsquo;s dates, so repeating them is noise; the exception is exactly the case a reader needs to notice.",
+ commit:"<b>Recorded:</b> option B, one strip under the tabs with the details in each card&rsquo;s &ldquo;i&rdquo;. Because a strip-only layout can hide an old card, the plan adds an older-data marker to the strip (section 2). If you would rather not have the marker, tell me and it comes out."}
+];
+var PRE={Q1:{k:"B"},Q2:{k:"B"}};
+var LOCK={};
+Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
+var cards=document.getElementById("cards");
+Q.forEach(function(q){
+ var c=document.createElement("div");c.className="card";c.id=q.id.toLowerCase();c.setAttribute("data-q",q.id);
+ var h='<header><span class="id">'+q.id+' &middot; item '+q.item+'</span><h3>'+q.title+'</h3><span class="status todo" data-st>unanswered</span></header><p class="ask"><b>'+q.ask+'</b></p>';
+ if(q.ctx)h+='<p class="ctx">'+q.ctx+'</p>';
+ h+='<div class="opts">';
+ q.opts.forEach(function(o){h+='<label class="opt'+(o.rec?' isrec':'')+'"><input type="radio" name="'+q.id+'" value="'+o.k+'"'+(LOCK[q.id]?' disabled':'')+'><div><b>'+o.k+'. '+o.l+(o.rec?'<span class="tag me">my pick</span>':'')+'<span class="tag chosen" hidden>Chosen option</span></b><span class="d">'+o.d+'</span></div></label>'});
+ h+='</div>';
+ if(q.why)h+='<div class="why"><b>Why my pick.</b> '+q.why+'</div>';
+ if(q.commit)h+='<div class="commit"><b>What this answer commits us to.</b> '+q.commit+'</div>';
+ h+='<label class="nl" for="n-'+q.id+'">Notes (optional)</label><textarea id="n-'+q.id+'" placeholder="Anything I should know"'+(LOCK[q.id]?' readonly':'')+'></textarea>';
+ c.innerHTML=h;cards.appendChild(c);
+});
+function answered(q){if(LOCK[q.id])return true;var a=S[q.id]||{};return !!a.k}
+function setSt(st,ok){st.textContent=ok?"answered":"unanswered";st.className=ok?"tag ok":"status todo"}
+function build(){
+ var L=["BATCH E PLANNING: MY ANSWERS (13 Nov 2026)",""];
+ Q.forEach(function(q){
+  var a=S[q.id]||{},ln=q.id+" ("+q.item+") "+q.title.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")+"\n  Answer: ";
+  if(a.k){var o=q.opts.filter(function(x){return x.k===a.k})[0];ln+=a.k+". "+o.l.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")}else ln+="NOT ANSWERED";
+  if(a.n&&a.n.trim())ln+="\n  Note: "+a.n.trim();
+  L.push(ln);L.push("");
+ });
+ return L.join("\n");
+}
+function paint(){
+ var n=0;
+ Q.forEach(function(q){
+  var c=document.getElementById(q.id.toLowerCase()),a=S[q.id]||{};
+  c.querySelectorAll(".opt").forEach(function(o){var r=o.querySelector("input");r.checked=(a.k===r.value);o.classList.toggle("on",r.checked);var b=o.querySelector(".chosen");if(b)b.hidden=!r.checked});
+  var nn=document.getElementById("n-"+q.id);if(nn&&document.activeElement!==nn)nn.value=a.n||"";
+  var ok=answered(q);if(ok)n++;setSt(c.querySelector("[data-st]"),ok);
+ });
+ document.getElementById("prog").textContent=n+" of "+Q.length+" answered";
+ document.getElementById("outTa").value=build();
+}
+cards.addEventListener("change",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.type==="radio")S[q].k=e.target.value;save();paint()});
+cards.addEventListener("input",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.id==="n-"+q)S[q].n=e.target.value;save();document.getElementById("outTa").value=build()});
+function copy(){
+ var ta=document.getElementById("outTa"),m=document.getElementById("copyMsg");ta.value=build();
+ function fb(){ta.removeAttribute("readonly");ta.select();try{document.execCommand("copy");m.textContent="Copied (or select and copy the text below)"}catch(e){m.textContent="Select the text below and copy it"}ta.setAttribute("readonly","")}
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(function(){m.textContent="Copied. Paste it in chat."},fb)}else fb();
+}
+document.getElementById("copyBtn").addEventListener("click",copy);
+document.getElementById("copyTop").addEventListener("click",function(){copy();document.getElementById("copy").scrollIntoView()});
+document.getElementById("jump").addEventListener("click",function(){for(var i=0;i<Q.length;i++){if(!answered(Q[i])){document.getElementById(Q[i].id.toLowerCase()).scrollIntoView({behavior:"smooth"});return}}});
+paint();
+})();
+</script>
+</body>
+</html>
