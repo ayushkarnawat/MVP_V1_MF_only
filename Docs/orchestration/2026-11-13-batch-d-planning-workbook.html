@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Batch D Planning</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+
+<style>
+
+/* Layout: sticky contents rail + one reading column. Brand: DM Sans headings, Manrope body, #22C55E for actions, a deeper green for text and links. Mockups are drawn at real window sizes and scaled to fit the column. */
+:root{
+ --bg:#FCFCFC; --surface:#FFFFFF; --surface-2:#F3F5F3; --line:#E5E5E5;
+ --fg:#111111; --muted:#5C5C5C; --accent:#22C55E; --accent-deep:#15803D; --accent-soft:#EAFBF0;
+ --warn:#B45309; --warn-soft:#FEF3E2; --info:#2F5FB3; --info-soft:#E8EFFB;
+ --danger:#B3321F; --danger-soft:#FBE6E2; --on-accent:#0B1F12;
+ --f-display:'DM Sans','Segoe UI',system-ui,sans-serif;
+ --f-body:'Manrope','Segoe UI',system-ui,sans-serif;
+ --f-mono:ui-monospace,'SF Mono',Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+ padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4,h5{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent-deep)}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent-deep)}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:70ch;margin:0 0 10px}
+.meta{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+section{margin-top:56px;scroll-margin-top:16px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:74ch}
+h3.sub{font-size:18px;margin:28px 0 8px}
+h4.mini{font-size:15px;margin:18px 0 6px}
+p{margin:8px 0}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700}
+.tag{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.fe{background:var(--info-soft);color:var(--info)}
+.tag.be{background:var(--warn-soft);color:var(--warn)}
+.tag.db{background:var(--danger-soft);color:var(--danger)}
+.tag.ok{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.none{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tag.me{background:var(--accent-soft);color:var(--accent-deep);margin-left:6px}
+.tag.chosen{background:var(--accent);color:var(--on-accent);margin-left:6px}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul,ul.tight{margin:6px 0;padding-left:20px}
+.sumbox li,ul.tight li{margin:5px 0}
+.callout{background:var(--warn-soft);border-radius:10px;padding:12px 14px;margin:14px 0;font-size:14px}
+.callout.good{background:var(--accent-soft)}
+.callout.info{background:var(--info-soft)}
+.callout.bad{background:var(--danger-soft)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.cols>div{min-width:0}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.flow>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 16px;min-width:0}
+.flow h4{font-size:15px;margin-bottom:6px}
+.flow ol{margin:4px 0;padding-left:20px}.flow li{margin:5px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.stat .n{font:700 26px var(--f-display)}.stat .l{font-size:12.5px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin:12px 0;align-items:start}
+@media (max-width:860px){.pair{grid-template-columns:minmax(0,1fr)}}
+.cap{margin:14px 0 6px;font-size:13px}
+.cap b{font-family:var(--f-display)}
+.note{color:var(--muted);font-size:12.5px}
+.winbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.winbar span{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.winbar button{padding:6px 12px;font-size:12.5px;background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.winbar button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+/* decision cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:60px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:600 12px var(--f-body);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--accent)}
+.opt.on{background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt input:disabled{cursor:default}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.why{border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--accent-deep)}
+.reply{background:var(--info-soft);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:14px}
+.reply p{margin:6px 0}.reply ul{margin:6px 0;padding-left:20px}
+.commit{border-left:3px solid var(--info);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.commit b{color:var(--info)}
+textarea{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-height:56px;resize:vertical}
+label.nl{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin:10px 0 4px}
+button{font:inherit;font-size:14px;font-weight:600;padding:9px 16px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);cursor:pointer}
+button.ghost{background:transparent;color:var(--accent-deep)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.status{font:600 11px var(--f-body)}.status.todo{color:var(--warn)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.out{min-height:240px;font-family:var(--f-mono);font-size:12.5px}
+.tabs{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.doc{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:18px 20px;margin:12px 0}
+.doc h4{font-size:17px;margin-bottom:8px}
+.doc h5{font-size:14px;margin:14px 0 4px}
+.doc ul{margin:6px 0;padding-left:20px}.doc li{margin:4px 0}
+
+/* ---------- scaled real-size frames ---------- */
+.vp{position:relative;width:100%;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#fff}
+.vp-in{position:absolute;left:0;top:0;transform-origin:0 0;background:#fff;color:#111;font-family:'Manrope','Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}
+.vp-in *{box-sizing:border-box}
+.vp-in h5,.vp-in h4,.vp-in h3,.vp-in h2,.vp-in h1{font-family:'DM Sans','Segoe UI',system-ui,sans-serif;margin:0}
+.vp-in p{margin:0}
+.chrome{height:40px;background:#EEF1EE;border-bottom:1px solid #D9DED9;display:flex;align-items:center;gap:8px;padding:0 14px}
+.chrome i{width:11px;height:11px;border-radius:50%;background:#C8CFC8;display:block;flex:none}
+.chrome span{flex:1;max-width:520px;margin-left:12px;background:#fff;border:1px solid #D9DED9;border-radius:99px;padding:3px 14px;font-size:12px;color:#5C5C5C}
+.w1280{--vw:1280px;--vh:600px;--card-h:552px;--pad-y:14px;--gap:10px;--gap-sm:5px;--h1:26px;--btn-h:44px;--row-h:46px;--chip-h:34px;--badge:34px;--body:13.5px}
+.w1440{--vw:1440px;--vh:810px;--card-h:762px;--pad-y:36px;--gap:22px;--gap-sm:12px;--h1:34px;--btn-h:54px;--row-h:64px;--chip-h:48px;--badge:44px;--body:15px}
+.w1536{--vw:1536px;--vh:730px;--card-h:682px;--pad-y:28px;--gap:16px;--gap-sm:9px;--h1:30px;--btn-h:48px;--row-h:54px;--chip-h:42px;--badge:38px;--body:14px}
+.d-page{height:var(--vh);display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#EEF9F1,#F8FDF9)}
+.d-card{width:min(1240px,calc(var(--vw) - 64px));height:var(--card-h);background:#fff;border-radius:28px;box-shadow:0 18px 50px rgba(20,48,31,.13);display:grid;grid-template-columns:.95fr 1fr;overflow:hidden}
+.d-left{padding:var(--pad-y) 40px;display:flex;flex-direction:column;background:linear-gradient(160deg,#F2FCF6,#E7F7EC);min-height:0;overflow:hidden}
+.d-left.white{background:#fff}
+.d-logo{font:700 26px 'DM Sans',sans-serif;color:#111;flex:none}
+.d-sketch{margin:var(--gap) auto;flex:1;min-height:60px;max-height:230px;width:70%;max-width:330px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#D6F3DF,#EAFBF0);color:#15803D;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.d-h2{font:700 calc(var(--h1) + 2px) 'DM Sans',sans-serif;line-height:1.15;flex:none}
+.d-h2 span{color:#15803D}
+.d-p{color:#5C5C5C;font-size:var(--body);margin-top:var(--gap-sm);flex:none}
+.d-bul{display:flex;gap:10px;align-items:center;margin-top:var(--gap-sm);font-size:var(--body);flex:none}
+.d-bul i{flex:none;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #D2EEDB;display:block}
+.d-right{padding:var(--pad-y) 48px;display:flex;flex-direction:column;min-height:0}
+.d-top{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;color:#5C5C5C;font-size:13px}
+.d-steps{display:flex;gap:6px;align-items:center}.d-steps i{width:34px;height:5px;border-radius:3px;background:#22C55E;display:block}.d-steps i.off{background:#E5E7EC}
+.d-content{flex:1;min-height:0;overflow-y:auto;display:flex}
+.d-inner{margin:auto;width:100%;max-width:520px;padding:8px 0}
+.fitb{position:absolute;right:10px;bottom:10px;z-index:3;font:600 12px 'Manrope',sans-serif;padding:4px 10px;border-radius:99px;background:#EAFBF0;color:#15803D;border:1px solid #BFE9CC}
+.fitb.bad{background:#FBE6E2;color:#B3321F;border-color:#F3B8AE}
+.o-stack{display:flex;flex-direction:column;gap:var(--gap)}
+.o-sec{display:flex;flex-direction:column;gap:var(--gap-sm)}
+.o-h1{font:700 var(--h1) 'DM Sans',sans-serif;line-height:1.15}
+.o-sub{color:#667085;font-size:var(--body)}
+.o-opt{display:flex;align-items:center;gap:12px;min-height:var(--row-h);border:1px solid #E5E7EC;border-radius:16px;padding:0 16px;background:#fff}
+.o-opt.tt{min-height:min(var(--row-h),54px)}
+.o-opt.sel{border-color:#22C55E;background:#F4FCF6;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.o-opt.quiet{border-color:transparent;background:#F6F8F6}
+.o-badge{flex:none;width:var(--badge);height:var(--badge);border-radius:50%;background:#EAFBF0;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:11px}
+.o-opt b{display:block;font-size:var(--body);font-weight:600}
+.o-opt small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.o-rad{margin-left:auto;flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid #C5CBC5}
+.o-opt.sel .o-rad{background:#22C55E;border-color:#22C55E;box-shadow:inset 0 0 0 4px #fff}
+.o-grp{border:1px solid #E5E7EC;border-radius:16px;overflow:hidden}
+.o-grp .o-opt{border:0;border-radius:0;border-bottom:1px solid #EEF0EE}
+.o-grp .o-opt:last-child{border-bottom:0}
+.o-h2{display:flex;justify-content:space-between;align-items:baseline;gap:10px;white-space:nowrap}
+.o-h2 b{font:600 15px 'DM Sans',sans-serif}
+.o-h2 span{font-size:13px;color:#667085;font-weight:400}
+.o-h2 a{font-size:13px;color:#15803D;font-weight:600}
+.o-chips{display:grid;gap:var(--gap-sm)}
+.o-chips.c3{grid-template-columns:repeat(3,1fr)}.o-chips.c2{grid-template-columns:repeat(2,1fr)}
+.o-chip{display:flex;align-items:center;gap:8px;min-height:var(--chip-h);border:1px solid #E5E7EC;border-radius:14px;padding:0 10px;font-size:12.5px;line-height:1.25;background:#fff}
+.o-chip i{flex:none;width:20px;height:20px;border-radius:6px;background:#EAFBF0;display:block}
+.o-chip em{margin-left:auto;flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid #C5CBC5}
+.o-chip.sel{border-color:#22C55E;background:#F4FCF6}.o-chip.sel em{background:#22C55E;border-color:#22C55E}
+.o-pills{display:flex;flex-wrap:wrap;gap:var(--gap-sm)}
+.o-pill{display:flex;align-items:center;gap:8px;border:1px solid #E5E7EC;border-radius:99px;min-height:var(--chip-h);padding:0 14px;font-size:13px;background:#fff}
+.o-pill i{width:16px;height:16px;border-radius:50%;background:#EAFBF0;display:block}
+.o-pill.sel{background:#22C55E;border-color:#22C55E;color:#0B1F12;font-weight:600}.o-pill.sel i{background:rgba(11,31,18,.25)}
+.o-panel{background:#F6F9F6;border-radius:18px;padding:14px}
+.o-go{height:var(--btn-h);border-radius:99px;background:#22C55E;color:#0B1F12;font:700 15px 'Manrope',sans-serif;display:flex;align-items:center;justify-content:center}
+.o-go.dis{background:#E5E7EC;color:#6B7280}
+.o-tabs{display:flex;background:#F1F3F1;border-radius:99px;padding:3px;gap:3px}
+.o-tabs span{flex:1;text-align:center;padding:7px;border-radius:99px;font-size:13px;color:#667085}
+.o-tabs span.on{background:#fff;color:#111;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.o-field{border:1px solid #D0D5DD;border-radius:12px;padding:11px 14px;font-size:14px}
+.o-lab{font-size:13px;font-weight:600;margin-bottom:5px}
+.o-alert{background:#FEF3F2;border:1px solid #FDA29B;color:#B42318;border-radius:12px;padding:10px 14px;font-size:13.5px}
+.o-red{color:#B42318;font-size:13px;margin-top:6px}
+.st{display:flex;gap:12px;align-items:flex-start;margin-top:var(--gap-sm)}
+.st i{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:13px;background:#22C55E;color:#0B1F12;margin-top:2px}
+.st i.spin{background:transparent;border:2.5px solid #E5E7EC;border-top-color:#22C55E}
+.st i.big{transform:scale(1.28)}
+.st b{display:block;font-size:var(--body);font-weight:600}.st small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.a-card{border:1px solid #E5E7EC;border-radius:16px;padding:12px 16px}
+.a-info{background:#F3F5F3;border-radius:16px;padding:12px 16px}
+.a-info b{display:block}
+/* dialogs */
+.dlg-bg{height:720px;position:relative;background:#F4F6F4;overflow:hidden}
+.dlg-bg .fake{position:absolute;inset:60px 90px;border:2px dashed #C8D3C8;border-radius:20px;filter:blur(2px);opacity:.9;background:#fff}
+.dlg-bg .dim{position:absolute;inset:0;background:rgba(17,17,17,.5);display:flex;align-items:center;justify-content:center}
+.dlg{background:#fff;border-radius:16px;padding:24px;width:448px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg h5{font-size:18px;font-weight:700;line-height:1.25}
+.dlg .body{color:#5C5C5C;font-size:14px}
+.dlg .foot{display:flex;gap:8px;justify-content:flex-end}
+.dlg.ph{width:100%}
+.dlg.ph .foot{flex-direction:column-reverse}
+.dbtn{font:700 13.5px 'Manrope',sans-serif;padding:10px 16px;border-radius:12px;border:1.5px solid #22C55E;background:#22C55E;color:#0B1F12;text-align:center}
+.dbtn.o{background:#fff;color:#15803D}
+.dwarn{display:flex;gap:10px;align-items:flex-start;background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:14px;padding:12px 14px;font-size:13.5px}
+.dwarn b{display:block;margin-bottom:2px}
+.dwarn i{flex:none;width:22px;height:22px;border-radius:50%;background:#F59E0B;color:#fff;font:700 13px 'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;font-style:normal;margin-top:1px}
+/* phone shell */
+.phs{width:390px;padding:14px;background:#111;border-radius:46px}
+.phs .scr{background:#fff;border-radius:34px;overflow:hidden;min-height:700px;position:relative}
+.phs .sb{height:34px;display:flex;justify-content:center;align-items:center}
+.phs .sb b{width:96px;height:22px;background:#111;border-radius:99px;display:block}
+.phs.dark .scr{background:#0F0F0F}
+/* email */
+.emx{--e-bg:#EEF6F0;--e-card:#fff;--e-ink:#111;--e-muted:#5C5C5C;--e-green:#15803D;--e-pale:#EEF8F0;--e-dark:#14301F;--e-line:#E5E5E5;--e-ic:#EAFBF0;--e-ill:#EAFBF0;--e-linkb:#D9E0D9;--e-small:#4ADE80;padding:20px 14px;background:var(--e-bg)}
+.emx.dark{--e-bg:#0F0F0F;--e-card:#1A1A1A;--e-ink:#F5F5F5;--e-muted:#A3A3A3;--e-green:#34D399;--e-pale:#17261C;--e-dark:#14301F;--e-line:#2A2A2A;--e-ic:#1F3B28;--e-ill:#F2FCF6;--e-linkb:#2F3A31;--e-small:#4ADE80}
+.emx.narrow{padding:12px 8px}
+.em-card{background:var(--e-card);color:var(--e-ink);border-radius:18px;padding:22px 22px 16px;width:100%}
+.narrow .em-card{padding:16px 14px 12px}
+.em-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.em-logo{font:700 24px 'DM Sans',sans-serif;color:var(--e-ink)}
+.em-tag{font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;color:var(--e-green)}
+.em-hd{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.em-hd>div:first-child{min-width:0}
+.em-h1{font:700 32px 'DM Sans',sans-serif;line-height:1.1}
+.em-h1 span{color:var(--e-green)}
+.narrow .em-h1{font-size:25px}
+.em-sub{color:var(--e-muted);margin-top:10px;font-size:15px}
+.narrow .em-sub{font-size:13.5px}
+.em-ill{flex:none;width:150px;height:118px;border-radius:50%;background:var(--e-ill);color:#15803D;font-size:11px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.narrow .em-ill{width:96px;height:78px;font-size:9px}
+.em-dark{background:var(--e-dark);color:#fff;border-radius:14px;padding:16px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:15px}
+.narrow .em-dark{padding:12px;gap:10px;font-size:13.5px}
+.em-dark>div{min-width:0}
+.em-dark small{display:block;color:var(--e-small);font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;margin-bottom:2px}
+.em-dark b{display:block;font:700 19px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-ic{flex:none;width:44px;height:44px;border-radius:50%;background:var(--e-ic);color:#15803D;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center}
+.narrow .em-ic{width:34px;height:34px;font-size:8px}
+.em-pale{background:var(--e-pale);border-radius:14px;padding:14px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:14.5px}
+.narrow .em-pale{padding:10px 12px;gap:10px;font-size:13px}
+.em-pale>div{min-width:0}
+.em-pale b{display:block;color:var(--e-green);font:700 17px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-line{display:flex;gap:14px;align-items:center;margin:0 0 12px;font-size:14.5px}
+.narrow .em-line{gap:10px;font-size:13px}
+.em-line>div{min-width:0}
+.em-btn{display:block;text-align:center;background:#22C55E;color:#0B1F12;font:700 17px 'Manrope',sans-serif;padding:16px;border-radius:99px;margin:0 0 16px}
+.narrow .em-btn{font-size:15px;padding:13px}
+.em-link{border:1px solid var(--e-linkb);border-radius:12px;padding:9px 12px;font-size:12.5px;color:var(--e-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:8px;max-width:100%}
+.em-foot{border-top:1px solid var(--e-line);margin-top:14px;padding-top:12px;font-size:13px;color:var(--e-muted)}
+.em-foot a{color:var(--e-green)}
+.em-foot b{display:block;color:var(--e-ink);font:700 16px 'DM Sans',sans-serif;margin-top:10px}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}nav.toc{position:static;max-height:none}}
+
+/* ---------- Batch A additions: app-style mockups ---------- */
+.ap{background:#F6F8F6;font-size:13.5px;color:#111}
+.ap-body{padding:20px 24px}
+.ap-h{font:700 20px 'DM Sans',sans-serif;margin-bottom:12px}
+.ap-card{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:16px}
+.ap-card h5{font:700 16px 'DM Sans',sans-serif;margin-bottom:4px}
+.ap-mut{color:#667085;font-size:12px}
+.ap-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ap-tile{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:10px 12px}
+.ap-tile small{display:block;color:#667085;font-size:11.5px}
+.ap-tile b{font:700 20px 'DM Sans',sans-serif}
+.ap-tile .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.seg{display:inline-flex;border:1px solid #E5E7EB;border-radius:8px;padding:2px;font-size:11px}
+.seg span{padding:2px 8px;border-radius:6px;color:#667085}
+.seg span.on{background:#F1F3F1;color:#111;font-weight:600}
+.ap-t{width:100%;min-width:0;border-collapse:collapse;font-size:12.5px}
+.ap-t th{background:#fff;color:#667085;font:600 11.5px 'Manrope',sans-serif;letter-spacing:0;text-transform:none;text-align:left;padding:8px 10px;border-bottom:1px solid #E5E7EB}
+.ap-t td{padding:9px 10px;border-bottom:1px solid #EEF0EE;vertical-align:top}
+.ap-logoc{flex:none;width:28px;height:28px;border-radius:8px;background:#EAFBF0;color:#15803D;font:700 11px 'DM Sans';display:flex;align-items:center;justify-content:center}
+.ap-fund{display:flex;gap:10px;align-items:flex-start}
+.note-box{background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:8px 10px;font-size:12px;margin-top:8px}
+.circ{outline:2px solid #D92D20;outline-offset:2px;border-radius:8px}
+.rk{display:inline-block;font:700 13px 'DM Sans',sans-serif;background:#EAFBF0;color:#15803D;border-radius:99px;padding:2px 10px}
+.rk small{font:500 11px 'Manrope',sans-serif;color:#667085;margin-left:3px}
+.fn{display:grid;gap:6px}
+.fn .r{display:grid;grid-template-columns:230px 1fr 90px;gap:10px;align-items:center;font-size:12.5px}
+.fn .b{height:18px;border-radius:5px;background:#22C55E}
+.fn .b.x{background:#F59E0B}
+.fn .n{font-weight:700;text-align:right}
+.cmp{display:grid;gap:14px}
+.cmp .p{display:grid;grid-template-columns:44px 1fr 150px;gap:12px;align-items:center}
+.cmp .trk{position:relative;height:22px}
+.cmp .trk::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:#E5E7EB}
+.cmp .d{position:absolute;top:4px;width:14px;height:14px;border-radius:50%;transform:translateX(-7px)}
+.cmp .d.f{background:#22C55E}
+.cmp .d.c{border:2px solid #667085;background:#fff}
+.cmp .v{font-size:12px;color:#667085}
+.lab{font:600 11px 'Manrope',sans-serif;color:#B42318;background:#FDECEA;border-radius:99px;padding:1px 8px;margin-left:6px}
+.wf{display:grid;gap:7px}
+.wf .r{display:grid;grid-template-columns:210px 1fr 80px;gap:10px;align-items:center;font-size:12px}
+.wf .tr{position:relative;height:16px;background:#F1F3F1;border-radius:4px}
+.wf .tr i{position:absolute;top:0;bottom:0;border-radius:4px;background:#0EA5E9}
+.wf .tr i.s{background:#F59E0B}
+.wf .n{text-align:right;font-weight:600}
+.steps5{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+.steps5>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13.5px}
+.steps5 b{display:block;font-family:var(--f-display);margin-bottom:3px}
+.code2{font-family:var(--f-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow:auto;white-space:pre;margin:8px 0}
+.xl{background:#fff;font-size:12px}
+.xl .tabs2{display:flex;gap:2px;background:#E8ECE8;padding:6px 8px 0;font-size:12px}
+.xl .tabs2 span{padding:5px 12px;border-radius:6px 6px 0 0;background:#F3F5F3;color:#444}
+.xl .tabs2 span.on{background:#fff;font-weight:700;color:#107C41}
+.xl .fx{display:flex;gap:8px;align-items:center;border-bottom:1px solid #D9DED9;padding:4px 10px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#333;background:#fff}
+.xl .fx b{color:#107C41;font-family:Manrope,sans-serif}
+.xl table.g{border-collapse:collapse;width:100%;min-width:0;font-size:12px}
+.xl table.g th{background:#F3F5F3;border:1px solid #D9DED9;padding:4px 8px;text-align:left;font:600 11.5px Manrope,sans-serif;color:#333;text-transform:none;letter-spacing:0}
+.xl table.g td{border:1px solid #E6EAE6;padding:4px 8px;vertical-align:top}
+.xl td.f{font-family:ui-monospace,Consolas,monospace;background:#F1FAF4;color:#14532D}
+.xl td.ok{color:#14532D;font-weight:700}
+.xl td.no{color:#B42318;font-weight:700}
+.pend{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;background:var(--warn-soft);color:var(--warn)}
+
+/* ---------- Batch D additions ---------- */
+.chart{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:16px}
+.ch-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.ch-val{font:700 26px 'DM Sans',sans-serif}
+.ch-chg{font-size:13px;color:#15803D;font-weight:600}
+.ch-sel{border:1px solid #D0D5DD;border-radius:10px;padding:6px 12px;font-size:12.5px;display:inline-flex;gap:8px;align-items:center;background:#fff}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;gap:6px;align-items:center;border:1px solid #D0D5DD;border-radius:99px;padding:3px 10px;font-size:12px;background:#fff}
+.chip i{width:10px;height:10px;border-radius:50%;display:block}
+.chip.off{color:#98A2B3;background:#F6F8F6}
+.ch-per{display:flex;gap:4px;margin-top:10px}
+.ch-per span{padding:4px 12px;border-radius:8px;font-size:12px;color:#667085}
+.ch-per span.on{background:#F1F3F1;color:#111;font-weight:600}
+.ch-note{font-size:12px;color:#667085;margin-top:8px}
+.swatches{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+.sw{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13px}
+.sw .dots{display:flex;gap:8px;margin-bottom:6px}
+.sw .dots i{width:26px;height:26px;border-radius:50%;display:block;border:1px solid rgba(0,0,0,.08)}
+.sw .dots i.d{box-shadow:0 0 0 3px #1A1A1A inset}
+.dlgx{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);width:640px;max-height:640px;display:flex;flex-direction:column}
+.dlgx header{display:flex;justify-content:space-between;align-items:flex-start;padding:18px 20px 10px;border-bottom:1px solid #EEF0EE}
+.dlgx header h5{font:700 18px 'DM Sans',sans-serif}
+.dlgx .bd{padding:12px 20px;overflow:auto}
+.mv{display:grid;grid-template-columns:1fr 150px 90px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid #F1F3F1;font-size:12.5px}
+.mv .bar{height:8px;border-radius:4px;background:#22C55E}
+.mv .bar.n{background:#EF4444}
+.mv b.p{color:#15803D;text-align:right}
+.mv b.m{color:#B42318;text-align:right}
+.grp{font:600 11px 'Manrope',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#667085;margin:12px 0 2px}
+.place{display:grid;gap:6px;border:1px solid #D9DED9;border-radius:10px;background:#F6F8F6;padding:8px;font-size:11.5px}
+.place div{border-radius:6px;padding:6px 8px;background:#fff;border:1px solid #E5E7EB}
+.place div.g{background:#EAFBF0;border-color:#22C55E;font-weight:700;color:#15803D}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+ <h4>Start here</h4>
+ <a href="#where">1. Where we stand</a>
+ <h4>The three items</h4>
+ <a href="#i13">2. Benchmark line on Home (13)</a>
+ <a href="#i14">3. The graph on MF Overview (14)</a>
+ <a href="#i15">4. Day&rsquo;s change pop-up (15)</a>
+ <a href="#nav">5. Prices and the NAV fix</a>
+ <h4>How we build it</h4>
+ <a href="#strategy">6. Orchestrator and workers</a>
+ <a href="#program">7. Fit with the other batches</a>
+ <a href="#tasks">8. Task list</a>
+ <a href="#risks">9. Risks, tests, checks</a>
+ <h4>Your call</h4>
+ <a href="#questions">10. Questions (2)</a>
+ <a href="#copy">11. Copy my answers</a>
+ <a href="#prov">What I checked</a>
+</nav>
+
+<main>
+<div class="hero">
+ <h1>Batch D Planning</h1>
+ <div class="meta">Planning only &middot; nothing built or run on staging &middot; 13 Nov 2026 &middot; updated with your answers and the diagnosis kit &middot; branch leapswitch-redesign</div>
+ <p>Charts: three changes on the Home and Mutual Funds screens. Bring the benchmark line back on the Home graph, with a different colour for each benchmark (item 13); put the same graph on the Mutual Funds Overview (item 14); and make &ldquo;View all by day&rsquo;s change&rdquo; open a pop-up with everything that changed today (item 15). The output is <b>one reusable graph component</b>, used on both pages, plus the pop-up.</p>
+ <p><b>How this was made.</b> I read the code for all three items today, read-only. Every statement about the code is labelled <em>read in code</em>. Nothing was run, no real data was touched, and I did not look at the live Home page, so <b>why the line is missing is not yet known</b>: the code builds it end to end, and section 2 plans how to find out. Mockups are my reconstructions with made-up numbers. This batch needs the NAV fix for execution only; it can be planned now.</p>
+ <p><b>Updated 13 Nov.</b> Both questions are answered and recorded (up to three benchmarks at once; the graph goes directly under the summary strip). Section 2 now has a <b>read-only diagnosis kit</b>, a script and a prompt your manager&rsquo;s Claude can run on the staging VM, and a table that turns its output into a cause and a planned fix, so the fix can be planned in this workbook as soon as you send the output. <b>The phone view is out of scope for every batch</b>, so there are no phone mockups here; it is planned later.</p>
+ <p><b>Diagnosis result (13 Nov).</b> Your manager ran the kit. The server side is clean: all 20 checks say the line would draw. <b>The root cause is in the browser code: the line is drawn but invisible, because the colour it uses is defined in a file that is never loaded.</b> I tested this in a browser, checked the deployed commit, and a Console check on the live staging page confirmed it. Section 2 has the evidence, the fix plan and its tests for you to review before any code changes.</p>
+</div>
+
+<!-- ============ 1. WHERE WE STAND ============ -->
+<section id="where">
+ <h2>1. Where we stand</h2>
+ <p class="lead">Three items. The line is not missing from the code, which makes finding the cause the first task. The pop-up needs a small server change. The Overview graph is mostly reuse.</p>
+ <div class="stats">
+  <div class="stat"><div class="n">3</div><div class="l">items (13, 14, 15)</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">database migrations planned</div></div>
+  <div class="stat"><div class="n">2 / 2</div><div class="l">questions answered</div></div>
+  <div class="stat"><div class="n">15</div><div class="l">tasks in the list (section 8)</div></div>
+ </div>
+ <div class="scroll"><table>
+  <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (read in code)</th><th>What changes</th><th>Layers</th></tr></thead>
+  <tbody>
+   <tr><td class="k">13. Benchmark line on Home</td><td>Bring back the line from the redesign planning, one colour per benchmark.</td><td>Built end to end: a benchmark drop-down (5 indices, a recommended pick, remembered per device), a server series, a chart that can draw a second line on a right-hand axis, and a blue colour token. The line is drawn only if three conditions all hold; otherwise only a text line (&ldquo;Nifty 500 +12.3%&rdquo;) or a note shows. One benchmark at a time, one fixed colour (blue).</td><td><b>Found:</b> the line is drawn invisible (a colour variable that is never loaded). Fix it, give each benchmark its own fixed colour, and allow up to three at once (Q1).</td><td><span class="tag fe">frontend</span> <span class="tag be">backend</span></td></tr>
+   <tr><td class="k">14. Same graph on MF Overview</td><td>Keep it on Home and add it to the Overview; plan where it fits.</td><td>The Overview has a monthly sparkline in its summary strip and a SIP timeline, but no daily value graph. The graph&rsquo;s server route already serves a whole family or one member.</td><td>Move the Home graph into one shared component; add it directly under the summary strip (Q2).</td><td><span class="tag fe">frontend</span></td></tr>
+   <tr><td class="k">15. &ldquo;What moved today&rdquo; pop-up</td><td>Make &ldquo;view by day&rsquo;s change&rdquo; open a pop-up with everything that changed.</td><td>The link is a <b>disabled placeholder</b> (&ldquo;Coming soon&rdquo;). The card shows the top 2 gainers and top 2 losers. The server sends only a count and a total for all the others, not the rows.</td><td>Send every row from the server; build the pop-up; enable the link.</td><td><span class="tag fe">frontend</span> <span class="tag be">backend</span></td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">Early findings (read in code, to be tested)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>#</th><th>Finding</th><th>Why it matters</th></tr></thead>
+  <tbody>
+   <tr><td>F1</td><td>The line draws only when the benchmark data is <b>available</b>, <b>not clipped</b> (the period does not start before the stored index history) and has <b>exactly as many points</b> as the portfolio series (<code>WealthCard.tsx</code>, lines 243 to 261).</td><td>A tiny mismatch in the number of points hides the whole line with no message. That makes a silent failure possible, and it is the first thing to check against a real response.</td></tr>
+   <tr><td>F2</td><td>The benchmark colour is one token, <code>--home-bench</code>, set to the palette&rsquo;s blue (<code>--c3</code>). The palette has six colours: green is the portfolio, and <code>--c2</code>, <code>--c3</code>, <code>--c4</code>, <code>--c5</code> and <code>--c6</code> are free, enough for the five benchmarks Home offers.</td><td>One colour per benchmark needs no new palette; it needs a fixed mapping.</td></tr>
+   <tr><td>F3</td><td>The graph is drawn with <b>rupees on the left axis</b> (portfolio) and the <b>benchmark&rsquo;s return in percent on a right axis</b>, starting at 0% at the start of the period. That was a recorded Home decision.</td><td>Two lines on two scales cannot be compared by where they cross. We keep the decision but the mockups and legend must make the scales clear.</td></tr>
+   <tr><td>F4</td><td>The server builds one point per calendar day, and the last point is replaced by today&rsquo;s headline value only when the series really ends on the latest price date.</td><td>With partial prices (the NAV bug), the last point and the day&rsquo;s change mix dates. See section 5.</td></tr>
+   <tr><td>F6</td><td><b>Root cause of item 13 (13 Nov):</b> <code>WealthCard.tsx</code> paints the benchmark line and its text with <code>var(--home-bench)</code>. That variable is defined only in <code>features/home/home-tokens.css</code>, and nothing imports that file (only its own test does). An undefined variable on an SVG stroke makes the stroke <b>none</b>.</td><td>The server sends a correct series and the chart draws it, but nobody can see it. This is a one-cause fix, and it protects the Overview graph (item 14), which reuses the same component.</td></tr>
+   <tr><td>F5</td><td>The movers pop-up that exists today is a small panel for <b>one row&rsquo;s funds</b>, opened from a row. It is not a list of everything.</td><td>Item 15 is a new pop-up, not a change to that one; the two must not be confused.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout info"><b>How this batch works.</b> Item 13&rsquo;s missing line was a bug hunt first: your manager ran the read-only diagnosis kit and the cause is now found (section 2). The fix is planned there for your review before any code changes (the same review gate as Batch A). Items 14 and 15 are builds, planned below, with mockups for you to review before anything is built.</div>
+</section>
+
+<!-- ============ 2. ITEM 13 ============ -->
+<section id="i13">
+ <h2>2. Benchmark line on Home (item 13)</h2>
+ <p class="lead">First find out why the line does not draw. Then fix it, then give each benchmark its own colour.</p>
+
+ <h3 class="sub">What the Home graph is meant to show (read in code and the Home plan)</h3>
+ <ul class="tight">
+  <li><b>Green area:</b> the portfolio&rsquo;s rupee value over the chosen period (1D, 1W, 1M, 1Y or custom dates up to 10 years), on the left axis.</li>
+  <li><b>Blue line:</b> the benchmark&rsquo;s total-return percentage over the same period, on the right axis, starting at 0%.</li>
+  <li><b>A drop-down</b> inside the card chooses the benchmark: Nifty 50, Nifty 500, Nifty LargeMidcap 250, Nifty Midcap 150 or Nifty Smallcap 250. A recommended one (chosen from the portfolio&rsquo;s large, mid and small mix) is pre-selected and the choice is remembered on that device.</li>
+  <li><b>Under the value:</b> the portfolio&rsquo;s change (excluding new money) and a line such as &ldquo;Nifty 500 +12.3%&rdquo;.</li>
+ </ul>
+ <div class="winbar" data-sec="i13"><span>Home graph</span><button type="button" data-v="today" aria-pressed="true">Today (line hidden)</button><button type="button" data-v="one" aria-pressed="false">After: one benchmark</button><button type="button" data-v="three" aria-pressed="false">After: three (Q1 option B)</button></div>
+ <div data-frame="wealth"></div>
+ <p class="note">Made-up numbers. The first state is what the diagnosis found: the line is drawn but invisible, and the text line under the value loses its colour, so it reads as plain text. The other two states use the colours proposed below.</p>
+
+ <h3 class="sub">Why the line may be missing: the hypotheses (outcomes in the next section)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Hypothesis</th><th>What we look at (read-only)</th><th>What each result means</th></tr></thead>
+  <tbody>
+   <tr><td style="white-space:nowrap">H13-1</td><td>The benchmark-list route fails, so no benchmark is asked for. (The five options come from a fixed list in the server code, so the list cannot be empty by itself.)</td><td>The kit runs the same function the route uses (the recommendation) and reports any error.</td><td>An error: a backend cause; the drop-down would be empty too.</td></tr>
+   <tr><td style="white-space:nowrap">H13-2</td><td>The index history for the chosen benchmark is missing or short, so the server says &ldquo;not available&rdquo;.</td><td>For each of the 5 indices: how many rows of total-return history are stored and the last date (counts only).</td><td>Missing or old: the daily benchmark job did not store it; the screen shows &ldquo;Benchmark data is not available for this period&rdquo;.</td></tr>
+   <tr><td style="white-space:nowrap">H13-3</td><td>The period starts before the stored history within the window the server reads, so the series is &ldquo;clipped&rdquo; and the line is dropped.</td><td>The series reply for each period (1D, 1W, 1M, 1Y, custom): the <code>clipped</code> flag and the effective start.</td><td>Clipped true: the chart refuses to draw instead of drawing from where data begins.</td></tr>
+   <tr><td style="white-space:nowrap">H13-4</td><td>The benchmark has fewer points than the portfolio (for example a gap in the index data near the start), so the equal-count rule hides the line.</td><td>The number of portfolio points and benchmark points per period.</td><td>Counts differ: a silent failure; the fix is to match by date.</td></tr>
+   <tr><td style="white-space:nowrap">H13-5</td><td>A stored drop-down choice on that device names an index no longer offered, or the blue token is unreadable in one theme.</td><td>The stored choice (<code>home.benchmark</code>); the chart in light and dark.</td><td>Falls back to another index, or the line is there but invisible.</td></tr>
+   <tr><td style="white-space:nowrap">H13-6</td><td>The deployed build is older than the code that wires the line.</td><td>The deployed commit against the Home files.</td><td>Not a bug in the code; a deploy gap.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">The diagnosis result (13 Nov 2026, run at 12:54 to 12:56 IST)</h3>
+ <p>Your manager&rsquo;s Claude ran the kit for the household with the most folios (2 members, 42 folios, 25 funds). It exited cleanly and printed no errors. Two commands needed a change on the VM (<code>sudo</code> for docker, and <code>-e PYTHONPATH=/app</code>); the script itself was not changed, and the copy matched the checksum.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>What the output showed</th><th>What it means</th></tr></thead>
+  <tbody>
+   <tr><td><b>20 of 20 checks would draw</b> (4 periods &times; 5 benchmarks). Every one: not clipped, not empty, portfolio points equal benchmark points, first and last points match the series start and end, text line shows.</td><td>The server is correct for this household. Hypotheses H13-3 and H13-4 are ruled out for these periods.</td></tr>
+   <tr><td>Index history is current for all five indices: last date 12 Nov (1 day behind), 271 rows in the last 400 days, largest gap 4 days (a long weekend); total-return history from 1995 to 2005 onward.</td><td>H13-2 is ruled out: the data is there and fresh.</td></tr>
+   <tr><td>The recommendation worked (Nifty 500, &ldquo;broad mixed&rdquo;).</td><td>H13-1 is ruled out: the route does not fail.</td></tr>
+   <tr><td>The build on the VM is commit <code>07a3057c</code> (10 Nov), database version 0053, all four containers up three days.</td><td>H13-6: the deployed code is the one I read, and it has the same gap (below), so an older build is not the reason.</td></tr>
+   <tr><td><b>Also seen:</b> 25 funds, 0 without any price, latest price date 12 Nov, <b>partial prices flag on, 5 funds missing today&rsquo;s price</b>, at about 13:00 India time on 13 Nov.</td><td>This is the NAV bug showing on real data: five funds are still waiting for the day&rsquo;s price in the early afternoon. It supports Batch A&rsquo;s findings F7 and F8 and is not the cause of the missing line.</td></tr>
+  </tbody>
+ </table></div>
+ <p><b>Index returns the kit printed</b> (percent, for the check): 1M Nifty 50 +13.22, Nifty 500 +9.45, LargeMidcap 250 +8.77, Midcap 150 +5.37, Smallcap 250 +1.33; 1Y Nifty 50 &minus;1.22, Nifty 500 +1.01, LargeMidcap 250 +1.28, Midcap 150 +2.30, Smallcap 250 +5.75.</p>
+
+ <h3 class="sub">The root cause (found in code, tested in a browser, confirmed on staging)</h3>
+ <ol class="tight">
+  <li>The benchmark line and the text line under the portfolio value are painted with the colour variable <code>--home-bench</code> (<code>features/home/sections/WealthCard.tsx</code>, lines 260 and 344).</li>
+  <li><code>--home-bench</code> is defined in exactly one place: <code>features/home/home-tokens.css</code> (set to the palette blue).</li>
+  <li><b>Nothing imports that file.</b> <code>src/index.css</code> imports <code>tokens.css</code> and <code>palette-tokens.css</code> but not <code>home-tokens.css</code>, in the deployed commit <code>07a3057c</code> and in the current branch. The only reference to the file anywhere is its own test, and the file was never imported at any point in the history (the one commit that mentions it added that test).</li>
+  <li>So at runtime the variable does not exist. I tested what a browser does with that: an SVG line whose stroke is an undefined variable gets <b>stroke = none</b> (invisible), while a line using a defined variable such as <code>--c1</code> draws normally. The text line falls back to the surrounding text colour.</li>
+  <li>The existing test checks that the <i>file</i> defines the tokens, so it passes while the app never loads them. That is why nobody caught it.</li>
+  <li><b>Confirmed on staging (13 Nov):</b> on the live Home page, <code>getComputedStyle(document.documentElement).getPropertyValue('--home-bench')</code> in the browser Console returned an empty string, so the variable is not defined at runtime.</li>
+ </ol>
+  <h3 class="sub">The fix, for your review (nothing is changed until you approve)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Step</th><th>What happens</th><th>Why</th></tr></thead>
+  <tbody>
+   <tr><td class="k">1. Test first (red)</td><td>A new test reads every <code>var(--name)</code> used in the Home files and checks that each name is defined in a stylesheet that <code>src/index.css</code> actually loads. It fails today for <code>--home-bench</code>. A second test checks the chart gives the second line a colour from a defined token.</td><td>Proves the problem, and keeps it from coming back for any token.</td></tr>
+   <tr><td class="k">2. The fix (green)</td><td>Replace <code>--home-bench</code> with the <b>fixed per-benchmark colours</b> from the palette tokens that are always loaded (<code>--c2</code> to <code>--c6</code>, the mapping in this section). The text line under the value uses the same colour as its line. No new CSS file is imported.</td><td>One change restores the line and delivers item 13&rsquo;s &ldquo;one colour per benchmark&rdquo; at the same time. It cannot be undefined because the palette file is already loaded.</td></tr>
+   <tr><td class="k">3. Dead code</td><td>The unused <code>home-tokens.css</code> and its test are removed, or kept and left alone: your call at review. They define three other tokens that nothing uses.</td><td>Removing is cleaner; leaving is zero risk.</td></tr>
+   <tr><td class="k">4. Verify</td><td>Home in light and dark at 1280&times;600, 1440&times;810 and 1536&times;730: the line is visible for 1D, 1W, 1M and 1Y; each benchmark has its colour; the text line is coloured; the legend and hover tooltip name the benchmark. Then the same on the Overview graph (item 14).</td><td>Compares against the mockups above.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="flow">
+  <div><h4>Before</h4><ol><li>The server sends the benchmark series; the chart draws it with an undefined colour, so the line is invisible.</li><li>The text line under the value has no colour.</li><li>No test notices.</li></ol></div>
+  <div><h4>After</h4><ol><li>The line is drawn in the benchmark&rsquo;s fixed colour on Home and on the Overview.</li><li>The text line matches the line.</li><li>A test fails if any colour variable the Home screen uses is not loaded.</li></ol></div>
+ </div>
+ <p><b>Files:</b> <code>features/home/sections/WealthCard.tsx</code>, a new benchmark-colour map (one small file), <code>features/home/home-tokens.css</code> and its test (removed or left), and one new test file. <b>No backend change, no database change, no migration, no deploy step except the normal frontend deploy.</b> This fix does not depend on the NAV fix and can ship early. The multi-benchmark controls (Q1 B) are built on top of it afterwards (task D-5).</p>
+
+ <h3 class="sub">The diagnosis kit (run by your manager, read-only)</h3>
+ <p>Two files, both in the repo worktree and not yet committed: the script <code>backend/scripts/diagnose_home_benchmark_line.py</code> and the prompt <code>Docs/orchestration/2026-11-13-batch-d-benchmark-diagnosis-prompt.md</code>, which your manager gives to his Claude. The prompt tells it exactly what to run on the staging VM and to return the output unedited.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Question</th><th>Answer</th></tr></thead>
+  <tbody>
+   <tr><td class="k">What does the script do?</td><td>For each period (1D, 1W, 1M, 1Y) and each of the five benchmarks it calls the <b>same server functions the Home screen calls</b>, then applies the <b>same test the browser applies</b> before drawing the line: available, not clipped, and equal point counts. It also reports how much index history is stored for each benchmark, the database version, and whether prices are partial.</td></tr>
+   <tr><td class="k">Is it safe?</td><td>Read-only: any write or ORM flush aborts the run (the same guard as the chartered-accountant export). Stored prices only, no live downloads, as the Home screen does. It prints counts, dates, flags and index returns in percent: <b>no names, folios, rupee amounts or emails</b>. The only identifiers are the user and member ids you pass in.</td></tr>
+   <tr><td class="k">Has it been tested?</td><td>Yes, on invented data: the real database queries on a test database, with the Home functions replaced by fakes that produce each failure case (clipped, not available, point counts differ, no benchmark, would draw). All five were classified correctly, no rupee sign appeared, and the temporary test was removed. It has <b>not</b> been run on staging.</td></tr>
+   <tr><td class="k">What does it need?</td><td>A user id on staging (the script lists the candidates with member and folio counts only) and, optionally, one member id. Your manager&rsquo;s Claude asks for them.</td></tr>
+   <tr><td class="k">How long?</td><td>A few minutes, about 20 small checks.</td></tr>
+  </tbody>
+ </table></div>
+ <p><b>The prompt also asks for three small extras</b> that need no script: the deployed commit and the container status on the VM (for H13-6), and, if a browser is at hand, the benchmark block of the real <code>wealth-series</code> reply (counts only, never values), the stored drop-down choice and any console errors (for H13-5).</p>
+
+ <h3 class="sub">What each output means, and the fix we would plan</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>If the output shows&hellip;</th><th>Cause</th><th>The planned fix (reviewed by you before any code changes)</th></tr></thead>
+  <tbody>
+   <tr><td>Most <code>reason</code> lines say <b>NOT AVAILABLE</b>, and <code>index_history</code> shows few rows, an old <code>last_date</code> or a large <code>days_since_last</code></td><td>H13-2: the index history was not stored or has stopped updating.</td><td><b>FX-13a.</b> Load the missing history for the five indices; make the daily benchmark job report a failure when an index is behind; confirm the job runs after the later NAV job too. Data work, no code change to the screen.</td></tr>
+   <tr><td>Lines say <b>CLIPPED</b></td><td>H13-3: the period starts before the first stored row inside the window the server reads (the server reads from 10 days before the start).</td><td><b>FX-13b.</b> Draw the line from where the data begins (match by date), with the note that already exists; separately widen the window if the stored history does cover the period.</td></tr>
+   <tr><td>Lines say <b>POINT COUNTS DIFFER</b> (for example portfolio 30 vs benchmark 28)</td><td>H13-4: a gap in the index data near the start, or a start-of-period edge case, makes the equal-count rule hide the line.</td><td><b>FX-13b.</b> Match benchmark and portfolio points by date and carry the last index level forward over gaps, so the line is never dropped for a count mismatch.</td></tr>
+   <tr><td>Every cell <b>would draw</b> and the sums agree</td><td>The server is fine. The cause is in the browser: H13-5 (a stored drop-down choice, the colour, the theme) or H13-6 (an older build is deployed).</td><td>Use the optional browser facts and the commit in the output. A stale build: deploy. A browser cause: <b>FX-13c</b>.</td></tr>
+   <tr><td>The kit prints an <code>error</code> for the recommendation or for a period</td><td>H13-1: the Home server code fails for this household.</td><td>A separate bug, found from the error text; planned and reviewed like any other.</td></tr>
+   <tr><td>A mix of the above across periods</td><td>More than one cause.</td><td>The <code>summary.reasons</code> counts say which is the main one; each gets its own fix proposal.</td></tr>
+  </tbody>
+ </table></div>
+ <p>When you send the output, I read it against this table, write the root-cause note, and plan the fix and its implementation here, in this workbook, for you to review before any code changes.</p>
+
+ <h3 class="sub">Status of the earlier fix ideas</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Idea</th><th>Status after the diagnosis</th></tr></thead>
+  <tbody>
+   <tr><td style="white-space:nowrap">FX-13a</td><td>Load missing index history</td><td><b>Not needed.</b> The data is current.</td></tr>
+   <tr><td style="white-space:nowrap">FX-13b</td><td>Match the benchmark to the portfolio by date and draw what exists</td><td><b>Not the cause.</b> I keep it only as a small hardening inside the multi-benchmark change (task D-5), because that change rewrites the same function; it is not needed to restore the line.</td></tr>
+   <tr><td style="white-space:nowrap">FX-13c</td><td>Unknown stored choice, colour</td><td><b>Replaced by the root-cause fix above</b> (FX-13d, the table of steps).</td></tr>
+   <tr><td style="white-space:nowrap">FX-13d</td><td>Benchmark colours come from tokens that are always loaded; a test guards every colour variable</td><td><b>Proposed, awaiting your review.</b></td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">One colour per benchmark (proposal)</h3>
+ <p>Each benchmark gets <b>one fixed colour</b> from the existing chart palette, so Nifty 50 is the same colour on every screen, in every session, whatever was chosen before. Green stays the portfolio&rsquo;s. The dark-theme tints already exist in the palette file.</p>
+ <div class="swatches">
+  <div class="sw"><div class="dots"><i style="background:#2563EB"></i><i class="d" style="background:#60A5FA"></i></div><b>Nifty 50</b><br><span class="note">blue (<code>--c3</code>), as today</span></div>
+  <div class="sw"><div class="dots"><i style="background:#8B5CF6"></i><i class="d" style="background:#A78BFA"></i></div><b>Nifty 500</b><br><span class="note">violet (<code>--c5</code>)</span></div>
+  <div class="sw"><div class="dots"><i style="background:#D97706"></i><i class="d" style="background:#FBBF24"></i></div><b>Nifty LargeMidcap 250</b><br><span class="note">amber (<code>--c6</code>)</span></div>
+  <div class="sw"><div class="dots"><i style="background:#6366F1"></i><i class="d" style="background:#818CF8"></i></div><b>Nifty Midcap 150</b><br><span class="note">indigo (<code>--c4</code>)</span></div>
+  <div class="sw"><div class="dots"><i style="background:#0D9488"></i><i class="d" style="background:#2DD4BF"></i></div><b>Nifty Smallcap 250</b><br><span class="note">teal (<code>--c2</code>)</span></div>
+ </div>
+ <p class="note">Light colour on the left, dark-theme colour on the right of each pair, from <code>styles/palette-tokens.css</code>. Teal sits close to the portfolio green and indigo close to violet and blue, so we do not rely on colour alone: each line is labelled at its end and in the legend, and the tooltip names the benchmark. The spec checks them on the real chart in both themes.</p>
+
+ <h3 class="sub">What happens when several are compared (decided: Q1 B, up to three at once)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Option</th><th>How it works</th><th>Strength</th><th>Weakness</th></tr></thead>
+  <tbody>
+   <tr><td class="k">A. One at a time</td><td>The drop-down stays a single choice. Each benchmark has its own fixed colour.</td><td>Smallest change; matches the original design; always readable.</td><td>You cannot see two benchmarks together.</td></tr>
+   <tr><td class="k">B. Up to three at once (chosen)</td><td>The drop-down becomes a checklist; at most 3 are on at a time; each in its fixed colour with a legend chip you can click to hide; a fourth shows &ldquo;Choose up to 3&rdquo;.</td><td>Real comparison with a readable chart.</td><td>A new control, a list reply from the server, more tests.</td></tr>
+   <tr><td class="k">C. All five at once</td><td>The same checklist with no limit.</td><td>Complete.</td><td>Five coloured lines on one small chart are hard to read.</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">Before and after</h3>
+ <div class="flow">
+  <div><h4>Before</h4><ol><li>Home shows the portfolio area and a text line &ldquo;Nifty 500 +12.3%&rdquo;.</li><li>No benchmark line is drawn, and nothing explains why.</li><li>One blue colour for whichever benchmark is picked.</li></ol></div>
+  <div><h4>After</h4><ol><li>The benchmark line is drawn for every period for which any data exists, starting where the data begins if the period starts earlier, with the existing note.</li><li>Each benchmark has its own colour, shown in a legend and on the line.</li><li>Up to three benchmarks compared at once (your choice, Q1 B).</li></ol></div>
+ </div>
+
+ <h3 class="sub">What changes, by layer (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag be">backend</span></td><td><code>services/home/wealth.py</code> and <code>api/home.py</code>: the series route accepts a list of benchmarks (up to 3) and returns a list; match points by date (FX-13b). One implementation for one or several. The index history job is unchanged unless H13-2 is the cause.</td></tr>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>features/home/sections/WealthCard.tsx</code> and <code>components/BenchmarkSelect.tsx</code> (checklist and legend), the benchmark-to-colour map, and <code>components/ui/charts/line-area-chart.tsx</code> (more than one second line, end labels). The stored choice becomes a list.</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>None. The index history table already holds the data.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 3. ITEM 14 ============ -->
+<section id="i14">
+ <h2>3. The same graph on the MF Overview (item 14)</h2>
+ <p class="lead">One shared graph component, two pages. Choose where it goes on the Overview.</p>
+
+ <h3 class="sub">How the Overview is laid out today (read in code)</h3>
+ <ol class="tight">
+  <li><b>Summary strip:</b> total value, invested, gain, today&rsquo;s change, XIRR (with the Lifetime and Current switch), a small monthly sparkline.</li>
+  <li><b>SIP timeline.</b></li>
+  <li><b>Holdings table</b> (the main content).</li>
+  <li>Sold funds; then a row of three cards: AMC allocation, family members, quick insights.</li>
+ </ol>
+ <p>The Overview&rsquo;s own history is <b>monthly snapshots</b> (the sparkline). The Home graph uses daily values from a different route that also serves a whole family or one member, so no new data source is needed.</p>
+
+ <h3 class="sub">Where it goes (decided: Q2 A, directly under the summary strip)</h3>
+ <div class="cols">
+  <div class="doc"><h4>A. Under the summary strip (chosen)</h4><div class="place"><div>Summary strip</div><div class="g">Graph (full width)</div><div>SIP timeline</div><div>Holdings table</div></div><p class="note">Value, return and graph read together at the top. Pushes the table down by one card.</p></div>
+  <div class="doc"><h4>B. Between the SIP timeline and the table</h4><div class="place"><div>Summary strip</div><div>SIP timeline</div><div class="g">Graph (full width)</div><div>Holdings table</div></div><p class="note">Keeps the strip and the SIPs together. The graph sits right above the table it summarises.</p></div>
+  <div class="doc"><h4>C. Below the table</h4><div class="place"><div>Summary strip</div><div>SIP timeline</div><div>Holdings table</div><div class="g">Graph (full width)</div></div><p class="note">Does not move the table. The graph is easy to miss.</p></div>
+ </div>
+ <p class="cap"><b>The Overview with the graph in place A (laptop)</b></p>
+ <div data-frame="overview"></div>
+ <p class="note">Made-up funds and numbers. The phone view is out of scope for every batch and is planned later.</p>
+
+ <h3 class="sub">How it is built: one component</h3>
+ <ol class="tight">
+  <li>The graph part of the Home card (the chart, the period buttons, the custom-date calendar, the benchmark control, the note) moves into a <b>shared component</b>. Home&rsquo;s card keeps its headline value and the hide-values button and uses the shared graph. The Overview uses the same one.</li>
+  <li>The Home screen must look and behave <b>exactly as before</b>: the Home tests are the safety net, and the first task is to move the code with no visible change.</li>
+  <li><b>Scope:</b> on the Overview the graph follows the page&rsquo;s own selector (Family Combined or one member), as the rest of the Overview does.</li>
+  <li><b>Remembered choices:</b> the benchmark choice is shared between the two pages (one device setting). The period starts at the same default on each page and is not shared.</li>
+  <li><b>Hide values:</b> the Overview graph uses the same rule as Home for hiding rupee amounts. The spec checks whether the Overview has such a control today and, if not, hides amounts only when Home&rsquo;s setting is on.</li>
+ </ol>
+
+ <h3 class="sub">Before and after</h3>
+ <div class="flow">
+  <div><h4>Before</h4><ol><li>Home has a daily graph; the Overview shows only a monthly sparkline.</li><li>To see how the portfolio moved against a benchmark, a user must go to Home.</li></ol></div>
+  <div><h4>After</h4><ol><li>The Overview shows the same graph for the family or the selected member, with the same periods and benchmark choice.</li><li>Home is unchanged to the eye.</li></ol></div>
+ </div>
+
+ <h3 class="sub">What changes, by layer (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td>New shared graph component (taken from <code>WealthCard.tsx</code>); <code>mutual-funds/overview/OverviewPage.tsx</code> adds it in the chosen place; a data hook for the series route in the Mutual Funds data folder; tests for both pages. The monthly sparkline in the summary strip stays.</td></tr>
+   <tr><td class="k"><span class="tag be">backend</span></td><td>None for this item: the route already takes a scope. (The benchmark list change belongs to item 13.)</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>None.</td></tr>
+   <tr><td class="k">Speed</td><td>One more request on the Overview. Batch A measures the Overview&rsquo;s requests, so we add this one to that measurement and load the graph after the strip and the table so it does not delay them.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 4. ITEM 15 ============ -->
+<section id="i15">
+ <h2>4. &ldquo;View all by day&rsquo;s change&rdquo; pop-up (item 15)</h2>
+ <p class="lead">Turn a disabled placeholder into a pop-up that lists everything that changed today.</p>
+
+ <h3 class="sub">What the card does today (read in code)</h3>
+ <ul class="tight">
+  <li>&ldquo;What moved today&rdquo; shows the net change, a gained-versus-lost bar, the <b>top 2 gainers</b> and <b>top 2 losers</b>, and one summary row for all the others (&ldquo;N others&rdquo; with a single total). The group switch has Sector, Category and Fund.</li>
+  <li>At the bottom, &ldquo;View all by day&rsquo;s change&rdquo; with an arrow is a <b>disabled placeholder</b> with the hint &ldquo;Coming soon&rdquo;.</li>
+  <li>Clicking a row opens a small panel with <b>that row&rsquo;s funds</b>. That stays as it is.</li>
+  <li>Badges say when the figures are &ldquo;Estimated&rdquo; (the sector view spreads each fund&rsquo;s change over its sectors) or &ldquo;Partial&rdquo; (some funds have no new price yet, with their names).</li>
+ </ul>
+
+ <h3 class="sub">The proposed pop-up</h3>
+ <div data-frame="popup"></div>
+ <p class="note">Made-up funds and numbers. The real list is as long as the user&rsquo;s holdings and scrolls inside the pop-up. Laptop only; the phone version is planned later.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Part</th><th>What it shows</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Title and totals</td><td>&ldquo;Everything that changed today&rdquo;, the date, the net change, and Gained and Lost totals. Close with the cross, the Escape key or a click outside.</td></tr>
+   <tr><td class="k">Group switch</td><td>Fund, Category, Sector (the same three as the card), starting on the one the card was showing.</td></tr>
+   <tr><td class="k">Rows</td><td>Every row of that grouping, largest rise first, each with its change in rupees and a bar. Fund rows link to the fund page and show the fund logo, as on the card.</td></tr>
+   <tr><td class="k">No change</td><td>Rows whose change is zero, in a collapsed group at the end.</td></tr>
+   <tr><td class="k">Waiting for today&rsquo;s price</td><td>Funds that have no new price yet are listed separately with &ldquo;Waiting for today&rsquo;s price&rdquo;, never as zero change. See section 5.</td></tr>
+   <tr><td class="k">Check line</td><td>&ldquo;Rows add up to the net change&rdquo; (or the estimate line for the sector view), as on the card.</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">Before and after</h3>
+ <div class="flow">
+  <div><h4>Before</h4><ol><li>The user sees the top four and a total for &ldquo;others&rdquo;.</li><li>The link at the bottom does nothing.</li></ol></div>
+  <div><h4>After</h4><ol><li>The link opens the pop-up with every row in the chosen grouping.</li><li>The user can switch the grouping, see what is waiting for a price, and close it to return to the card unchanged.</li></ol></div>
+ </div>
+
+ <h3 class="sub">What changes, by layer (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag be">backend</span></td><td><code>services/home/movers.py</code>, <code>schemas.py</code> and <code>api/home.py</code>: the movers route gains a way to return <b>all</b> rows (for example an <code>all</code> switch) in the same shape as today&rsquo;s response, with the funds that have no new price listed apart. The card&rsquo;s own request is unchanged, so its payload and speed stay the same. One implementation, not a second route. All amounts stay exact decimals; the rows must add up to the net change, as the card&rsquo;s rows do.</td></tr>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>features/home/sections/Movers.tsx</code>: enable the link; a new pop-up component (new file) with the group switch and the list; a request that fetches all rows only when the pop-up opens. The existing one-row panel is untouched.</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>None.</td></tr>
+   <tr><td class="k">Accessibility</td><td>A real dialog: focus moves in, is trapped, returns to the link on close; Escape closes; rows are in a list a screen reader can walk.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 5. NAV ============ -->
+<section id="nav">
+ <h2>5. Prices and the NAV fix</h2>
+ <p class="lead">You said this batch needs the NAV fix for execution. Here is exactly where, so we plan around it and not just wait for it.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Where</th><th>What the early, partial prices do</th><th>What we plan</th></tr></thead>
+  <tbody>
+   <tr><td class="k">The graph&rsquo;s last point</td><td>Some fund houses publish after the 06:00 job, so today&rsquo;s point can use older prices for some funds. The server already keeps the series&rsquo; date and the headline value apart (read in code).</td><td>The chart stops at the latest date on which the prices are complete enough, and says so, rather than drawing a falling last point. Rule agreed with Batch A&rsquo;s common end date (their FX-10c).</td></tr>
+   <tr><td class="k">The day&rsquo;s change pop-up</td><td>A fund with no new price would look like zero change. The card already marks this as &ldquo;Partial&rdquo; and names the funds.</td><td>Those funds are listed separately in the pop-up, as &ldquo;Waiting for today&rsquo;s price&rdquo;, never as zero.</td></tr>
+   <tr><td class="k">The benchmark line</td><td>Index closes arrive with the 06:00 benchmark job; the index is not affected by fund-house delays.</td><td>No special case, but the line ends on the same date as the portfolio line.</td></tr>
+   <tr><td class="k">Testing</td><td>Early-morning screens differ from evening screens.</td><td>Mockup and visual checks are done at a stated time of day; official checks after the later price job exists.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout info"><b>Seen in the 13 Nov output.</b> At about 13:00 India time, five of the household&rsquo;s 25 funds still had no price for 13 Nov, the latest price date was 12 Nov, and the partial-prices flag was on. That is the NAV bug on real data. It is why the chart ends on 12 Nov, and it is the same effect Batch A&rsquo;s findings F7 and F8 describe.</div>
+ <p><b>What can start before the fix:</b> the diagnosis kit (the benchmark data is index data, which the NAV bug does not touch), the shared component, the colour map, the pop-up and the movers change, all with invented data. <b>What waits:</b> the visual checks on real data, and any backend fix, to follow your rule to branch for backend changes after the fix.</p>
+</section>
+
+<!-- ============ 6. STRATEGY ============ -->
+<section id="strategy">
+ <h2>6. Orchestrator and workers</h2>
+ <p class="lead">Same rules as the other batches. This one has real screens, so it uses the visual worker for the new pop-up.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Role</th><th>Who</th><th>What they do in Batch D</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Orchestrator</td><td>Claude</td><td>Writes the specs and packets; diagnoses the missing line and writes the root-cause note and fix proposal for your review; decides the shared pieces (the colour map, the all-rows shape of the movers reply, the shared component&rsquo;s interface); checks every screen against the mockups at three laptop window sizes, light and dark; runs the affected tests.</td></tr>
+   <tr><td class="k">Code worker</td><td>Codex</td><td>The shared graph component, the benchmark list and by-date matching, the movers all-rows change, the data hooks, and all tests. Moves the Home graph with no visible change before anything is added.</td></tr>
+   <tr><td class="k">Visual worker</td><td>Antigravity (Gemini)</td><td>The pop-up and the multi-benchmark legend, from detailed packets (measurements, copy, states). The relay is manual, as in Batch B.</td></tr>
+   <tr><td class="k">Reviewer</td><td>Codex adversarial review</td><td>One review per handoff, then one whole-batch review before staging.</td></tr>
+  </tbody>
+ </table></div>
+ <p><b>Review gate.</b> For item 13&rsquo;s bug, nothing changes in the code until you have reviewed the root-cause note and the fix proposal. For the builds (items 14 and 15, and the colours), the mockups here are what you review; you approve the placement and the options before any build.</p>
+ <h3 class="sub">Lanes that can run at the same time</h3>
+ <div class="cols">
+  <div class="doc"><h4>Lane 1: graph (items 13 and 14)</h4><ul><li>Diagnosis, the shared component, colours, benchmark list, the Overview placement.</li><li>Touches <code>WealthCard.tsx</code>, <code>line-area-chart.tsx</code>, <code>wealth.py</code>, <code>OverviewPage.tsx</code>.</li></ul></div>
+  <div class="doc"><h4>Lane 2: pop-up (item 15)</h4><ul><li>The movers change and the pop-up.</li><li>Touches <code>Movers.tsx</code>, <code>movers.py</code>, <code>HomePage.tsx</code> (the request).</li></ul></div>
+ </div>
+ <p>The two lanes share only <code>HomePage.tsx</code>, so they go in order on that one file, not at the same moment.</p>
+</section>
+
+<!-- ============ 7. PROGRAM ============ -->
+<section id="program">
+ <h2>7. Fit with the other batches</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Other batch</th><th>Relationship</th></tr></thead>
+  <tbody>
+   <tr><td class="k">A (truth-finding)</td><td>Batch A measures the Overview&rsquo;s requests and loading; this batch adds one request and one graph to it, so the two share a measurement. A&rsquo;s common end date for returns decides where the chart&rsquo;s last point stops.</td></tr>
+   <tr><td class="k">C (holdings hygiene)</td><td>No shared files. C&rsquo;s member-list refresh helps the Overview&rsquo;s scope.</td></tr>
+   <tr><td class="k">E (explainability and dates)</td><td>The date shown on the graph axis and the &ldquo;as of&rdquo; wording follow E&rsquo;s date policy. An &ldquo;i&rdquo; icon on the graph could explain the two scales; that is E&rsquo;s explainer, not built here.</td></tr>
+   <tr><td class="k">F, K, I (section index, search, PDF export)</td><td>The Overview&rsquo;s header slot is shared by those three. The graph sits in the page body and does not use that slot. The PDF export may want the graph later; the shared component makes that possible.</td></tr>
+   <tr><td class="k">G (GA4)</td><td>The Home tracking plan already names events for period chosen, benchmark chosen and a mover opened. The new component and the pop-up carry the same labels so those events keep working.</td></tr>
+   <tr><td class="k">C4 (Standard vs Pro)</td><td>Comparing several benchmarks may be a Pro feature. Nothing is hard-coded: the limit of 3 is a setting.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>Migrations: none planned.</b> Batch B may take 0054; this batch takes none. If index history is missing (H13-2) it is loaded as data, not as a migration.</div>
+ <p><b>Deploy.</b> The batch ships in a staging milestone (the one you choose in Batch B&rsquo;s Q26). It adds no deploy step except, if H13-2 is the cause, loading the index history.</p>
+</section>
+
+<!-- ============ 8. TASKS ============ -->
+<section id="tasks">
+ <h2>8. Task list</h2>
+ <p class="lead">Fifteen tasks. &ldquo;After the fix&rdquo; means after the NAV fix lands. Sizes: S about half a day, M one to two days, L more.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Item</th><th>Task</th><th>Worker</th><th>Size</th><th>When</th></tr></thead>
+  <tbody>
+   <tr><td>D-1</td><td>all</td><td>Re-check every &ldquo;read in code&rdquo; line; write the specs and the Gemini packet</td><td>Claude</td><td>M</td><td>After your answers</td></tr>
+   <tr><td>D-2</td><td>13</td><td><b>Done 13 Nov:</b> the kit ran; root cause found; fix plan written in section 2 <b>for your review</b></td><td>Manager&rsquo;s Claude, then Claude</td><td>S</td><td>Done</td></tr>
+   <tr><td>D-3</td><td>13</td><td>Build FX-13d <b>once you approve it</b>: the token test first (red), then the per-benchmark colours (green), then verify in light and dark</td><td>Codex</td><td>S</td><td>After your approval; does not need the NAV fix</td></tr>
+   <tr><td>D-4</td><td>13, 14</td><td>Move the Home graph into one shared component with <b>no visible change</b>; Home tests stay green</td><td>Codex</td><td>M</td><td>Now (no prices)</td></tr>
+   <tr><td>D-5</td><td>13</td><td>Benchmark-to-colour map, legend, end labels, light and dark; the list reply for several benchmarks (as Q1 decides)</td><td>Codex, Gemini</td><td>M</td><td>After D-4 and Q1</td></tr>
+   <tr><td>D-6</td><td>14</td><td>Add the graph to the Overview in the chosen place; scope and remembered choice</td><td>Codex</td><td>M</td><td>After D-4 and Q2</td></tr>
+   <tr><td>D-7</td><td>15</td><td>Movers: return all rows, with funds waiting for a price listed apart; the rows still add up to the net change</td><td>Codex</td><td>M</td><td>Now (no prices)</td></tr>
+   <tr><td>D-8</td><td>15</td><td>The pop-up component, from the Gemini packet</td><td>Gemini, Codex for tests</td><td>M</td><td>After D-7</td></tr>
+   <tr><td>D-9</td><td>15</td><td>Enable the link; fetch rows only on open; focus and keyboard behaviour</td><td>Codex</td><td>S</td><td>After D-8</td></tr>
+   <tr><td>D-10</td><td>13, 14, 15</td><td>Dark mode and three laptop sizes, checked against the mockups</td><td>Claude</td><td>M</td><td>After D-5, D-6, D-9</td></tr>
+   <tr><td>D-11</td><td>14</td><td>Overview request count and time with the graph (Batch A&rsquo;s method)</td><td>Codex, Claude</td><td>S</td><td>After the fix</td></tr>
+   <tr><td>D-12</td><td>all</td><td>Adversarial review per handoff, then the whole batch</td><td>Codex, Claude</td><td>M</td><td>Before staging</td></tr>
+   <tr><td>D-13</td><td>all</td><td>Staging deploy guide and QA checklist</td><td>Claude</td><td>M</td><td>After D-12</td></tr>
+   <tr><td>D-14</td><td>all</td><td>Staging check at a stated time of day, then the evening check after the later price job</td><td>You</td><td>S</td><td>After D-13</td></tr>
+   <tr><td>D-15</td><td>all</td><td>Update <code>decisions.md</code>, <code>session.md</code> and the Notion pack on your go</td><td>Claude</td><td>S</td><td>Last</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">D-4 and D-7 need no prices and can start before the NAV fix.</p>
+</section>
+
+<!-- ============ 9. RISKS ============ -->
+<section id="risks">
+ <h2>9. Risks, tests and checks</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Risk</th><th>Item</th><th>What we do</th></tr></thead>
+  <tbody>
+   <tr><td>Moving the Home graph into a shared component changes how Home looks or behaves</td><td>13, 14</td><td>Move first with no change; Home&rsquo;s existing tests and screenshots at three window sizes must match before anything is added.</td></tr>
+   <tr><td>The line is still silently hidden in a case we did not think of</td><td>13</td><td>Draw by date and draw what exists; a test for every period; a note whenever a line is shortened.</td></tr>
+   <tr><td>Several coloured lines are hard to read on a small chart or for colour-blind users</td><td>13</td><td>Limit of 3 (if Q1 B); end labels and legend chips so colour is never the only cue; checked in light and dark.</td></tr>
+   <tr><td>Two scales (rupees left, percent right) mislead readers</td><td>13, 14</td><td>Keep the recorded Home decision; axis titles and a short note under the chart; an &ldquo;i&rdquo; explainer in Batch E.</td></tr>
+   <tr><td>The graph slows the Overview</td><td>14</td><td>Load it after the strip and the table; Batch A&rsquo;s measurement includes it; a target is set there.</td></tr>
+   <tr><td>The pop-up shows zero for a fund that simply has no price yet</td><td>15</td><td>Funds without a new price are listed apart, with a test.</td></tr>
+   <tr><td>The pop-up&rsquo;s rows do not add up to the card&rsquo;s net change</td><td>15</td><td>A test that the all-rows list sums to the net change for each grouping; exact decimals, no floats.</td></tr>
+   <tr><td>The all-rows reply is large for a big household</td><td>15</td><td>Fetched only when the pop-up opens; one row per fund, grouped on the server; size checked on the 40L test household from Batch A.</td></tr>
+   <tr><td>The pop-up is confused with the existing one-row panel</td><td>15</td><td>Different title and size; the existing panel is not touched; tests for both.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Tests, in short</h3>
+ <ul class="tight">
+  <li><b>Frontend (Vitest), affected files only:</b> <code>WealthCard</code> tests (unchanged first, then extended), the new shared graph, <code>BenchmarkSelect</code>, <code>Movers</code> and the new pop-up, the Overview page; then <code>npm run lint</code> and <code>npm run build</code>.</li>
+  <li><b>Backend (pytest), affected files only:</b> the wealth-series tests (by-date matching, clipped series, several benchmarks) and the movers tests (all rows, funds with no price, rows sum to the net change).</li>
+  <li><b>By eye:</b> the mockups against the real screens at 1280&times;600, 1440&times;810 and 1536&times;730, light and dark. The phone view is out of scope.</li>
+  <li>Red before green for every behaviour change.</li>
+ </ul>
+ <h3 class="sub">Staging check (draft; the real guide is D-13)</h3>
+ <div class="steps5">
+  <div><b>13</b>Home: the benchmark line is drawn for 1W, 1M, 1Y and a custom range; each benchmark has its own colour; a period that starts before the history shows a shortened line with the note; the choice is remembered.</div>
+  <div><b>14</b>MF Overview: the graph is in the chosen place for the family and for one member; periods and benchmark work; Home looks the same as before.</div>
+  <div><b>15</b>Home: &ldquo;View all by day&rsquo;s change&rdquo; opens the pop-up; the three groupings; the totals match the card; a fund without a price is listed apart; Escape closes and focus returns.</div>
+  <div><b>All</b>Dark mode, and the Overview&rsquo;s load time against Batch A&rsquo;s target.</div>
+ </div>
+</section>
+
+<!-- ============ QUESTIONS ============ -->
+<section id="questions">
+ <h2>10. Questions</h2>
+ <p class="lead">Both questions are answered on 13 Nov and locked. Each card shows the option you chose, my original pick, and your note. Tell me in chat if you want one reopened. Below: the defaults I will use, and the decisions I will bring you later with evidence.</p>
+ <div class="bar"><span class="status" id="prog">0 of 2 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
+ <div id="cards"></div>
+ <h3 class="sub">Defaults I will use (tell me in chat if you want any changed)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Topic</th><th>Default</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Why the line is missing</td><td>The diagnosis kit first; a root-cause note and fix plan for your review; no code change before you approve.</td></tr>
+   <tr><td class="k">A shortened benchmark</td><td>Draw it from where its data begins, with the existing note, instead of dropping the line.</td></tr>
+   <tr><td class="k">Colours</td><td>The fixed mapping in section 2, from the existing palette, with legend and end labels.</td></tr>
+   <tr><td class="k">Two scales on the graph</td><td>Keep the recorded Home decision (rupees left, benchmark percent right).</td></tr>
+   <tr><td class="k">The Overview graph</td><td>The same component as Home: same periods, custom dates, benchmark choice; follows the Overview&rsquo;s own family or member selector; loaded after the strip and the table.</td></tr>
+   <tr><td class="k">The pop-up</td><td>All rows in the three groupings, funds without a new price listed apart, a check line; the existing one-row panel untouched.</td></tr>
+   <tr><td class="k">Phone view</td><td>Out of scope for every batch. Nothing here changes it; it is planned later.</td></tr>
+   <tr><td class="k">Gemini for visuals</td><td>The pop-up and the multi-benchmark legend, from detailed packets; everything else by Codex.</td></tr>
+   <tr><td class="k">Test data</td><td>Invented households; the staging household the kit uses is chosen by you, and nothing personal is printed.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Decisions I will bring you later, with the evidence in hand</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Decision</th><th>When it comes up</th><th>What you will see</th></tr></thead>
+  <tbody>
+   <tr><td class="k">The fix for the missing line (FX-13d)</td><td>Now: section 2, for your review</td><td>The root cause, the steps, the files and the tests. Whether to remove or keep the unused <code>home-tokens.css</code>.</td></tr>
+   <tr><td class="k">The final colours, if two lines look too alike on the real chart</td><td>After the first build on real data</td><td>Screenshots of the five colours in light and dark, and a suggested swap.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="copy">
+ <h2>11. Copy my answers</h2>
+ <p class="lead">Press the button, then paste the text in chat. If it does nothing, select the text below and copy it yourself.</p>
+ <button id="copyBtn" type="button">Copy my answers</button> <span class="status" id="copyMsg"></span>
+ <label class="nl" for="outTa">Your answers as text</label>
+ <textarea id="outTa" class="out" readonly></textarea>
+</section>
+
+<section id="prov">
+ <h2>What I checked</h2>
+ <p><b>Read today, read-only, by me:</b> <code>features/home/sections/WealthCard.tsx</code>, <code>components/BenchmarkSelect.tsx</code>, <code>components/benchmarkChoice.ts</code>, <code>HomePage.tsx</code> (benchmark wiring); <code>components/ui/charts/line-area-chart.tsx</code> (second series); <code>features/home/sections/Movers.tsx</code>; <code>services/home/wealth.py</code>, <code>series.py</code> (<code>benchmark_return</code>), <code>benchmarks.py</code>, <code>movers.py</code>; <code>mutual-funds/overview/OverviewPage.tsx</code> and the history call; the palette tokens; the Home plan and backend spec (the blue line, the right axis, the five benchmarks); the shell route for Home.</p>
+ <p><b>Added 13 Nov:</b> I wrote the diagnosis script and smoke-tested it on invented data with the real database queries and faked Home functions (all five outcomes classified correctly, no rupee amounts printed). I read <code>api/home.py</code> (<code>_wealth</code>, <code>_inputs</code>), <code>services/home/context.py</code>, the Dockerfile and the compose file to write the VM commands. The deployed image does not contain a new script, so the prompt mounts it for one run.</p>
+ <p><b>Added 13 Nov (diagnosis result):</b> the output came from your manager&rsquo;s Claude (run 12:54 to 12:56 IST). I did not run it myself. I then read <code>home-tokens.css</code>, <code>index.css</code> and the Home tests, searched the frontend for imports of the token file, and ran a small browser test of an undefined variable on an SVG stroke (stroke computed to <i>none</i>). I checked the deployed commit <code>07a3057c</code>&rsquo;s <code>index.css</code> and the git history of the token file.</p>
+ <p><b>Not done:</b> I did not run anything on staging, read any real data, open the live Home page, or run the app. The root cause is established from the output, the code and a browser test, and was confirmed on the live staging Home page by the Console check (an empty string for <code>--home-bench</code>, 13 Nov). I did not read the line-area-chart&rsquo;s drawing code in full, the Overview&rsquo;s summary strip or SIP timeline code, the movers server code beyond its limits, or the phone views. The movers all-rows shape is a proposal, not a read fact.</p>
+ <p><b>Not checked:</b> the member-level run (no member id was given) and the other optional browser facts (the real <code>wealth-series</code> reply, the stored drop-down choice, console errors). The one Console check was run.</p>
+ <p><b>Not seen:</b> the original redesign artifact with the blue line; I used the Home plan&rsquo;s written description of it. If it differs from section 2&rsquo;s description, trust the artifact and tell me.</p>
+ <p><b>Drawn, not measured:</b> every mockup is my reconstruction with invented funds and numbers; the colours and the placements are proposals. Nothing was committed or deployed.</p>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+function vp(inner,w,h,cls,attrs){return '<div class="vp '+(cls||'')+'" data-w="'+w+'"'+(h?' data-h="'+h+'"':'')+(attrs||'')+'><div class="vp-in">'+inner+'</div></div>'}
+function chrome(url){return '<div class="chrome"><i></i><i></i><i></i><span>'+url+'</span></div>'}
+
+/* ---- chart svg ---- */
+var BM={n50:['Nifty 50','#2563EB'],n500:['Nifty 500','#8B5CF6'],lm:['Nifty LargeMidcap 250','#D97706'],m150:['Nifty Midcap 150','#6366F1'],s250:['Nifty Smallcap 250','#0D9488']};
+function walk(n,seed,drift,vol){var a=[],v=0,s=seed;for(var i=0;i<n;i++){s=(s*9301+49297)%233280;var r=(s/233280-0.5);v+=drift+r*vol;a.push(v)}return a}
+function chartSvg(w,h,lines){
+ var padL=58,padR=lines.length?62:14,padT=10,padB=26,n=60,iw=w-padL-padR,ih=h-padT-padB;
+ var pv=walk(n,11,0.55,2.4).map(function(x,i){return 4012300*0.9+x*30000+i*12000});
+ var pmin=Math.min.apply(null,pv),pmax=Math.max.apply(null,pv);
+ function px(i){return padL+i*iw/(n-1)}
+ function py(v){return padT+ih-(v-pmin)/(pmax-pmin)*ih*0.92-ih*0.04}
+ var d='',a='';
+ pv.forEach(function(v,i){d+=(i?'L':'M')+px(i).toFixed(1)+' '+py(v).toFixed(1)});
+ a=d+'L'+px(n-1)+' '+(padT+ih)+'L'+px(0)+' '+(padT+ih)+'Z';
+ var svg='<svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'" xmlns="http://www.w3.org/2000/svg" style="display:block">';
+ for(var g=0;g<4;g++){var y=padT+g*ih/3;svg+='<line x1="'+padL+'" x2="'+(w-padR)+'" y1="'+y+'" y2="'+y+'" stroke="#EEF0EE"/>';var val=pmax-(pmax-pmin)*g/3;svg+='<text x="'+(padL-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="#667085">&#8377;'+(val/100000).toFixed(1)+'L</text>'}
+ var xs=['12 Oct','19 Oct','26 Oct','2 Nov','9 Nov'];xs.forEach(function(t,i){svg+='<text x="'+(padL+i*iw/4)+'" y="'+(h-6)+'" text-anchor="middle" font-size="11" fill="#667085">'+t+'</text>'});
+ svg+='<path d="'+a+'" fill="rgba(34,197,94,.14)"/><path d="'+d+'" fill="none" stroke="#22C55E" stroke-width="2.2"/>';
+ var ends=[];
+ lines.forEach(function(k,j){var s=walk(n,31+j*17,0.18+j*0.05,1.6),mn=Math.min.apply(null,s),mx=Math.max.apply(null,s);
+  var dd='';s.forEach(function(v,i){var y=padT+ih-(v-mn)/(mx-mn)*ih*0.8-ih*0.1;dd+=(i?'L':'M')+px(i).toFixed(1)+' '+y.toFixed(1);if(i===n-1)ends.push([BM[k][1],BM[k][0],y,v-s[0]])});
+  svg+='<path d="'+dd+'" fill="none" stroke="'+BM[k][1]+'" stroke-width="2"/>'});
+ if(lines.length){var tk=['+14%','+10%','+6%','+2%'];for(var g=0;g<4;g++){svg+='<text x="'+(w-padR+8)+'" y="'+(padT+g*ih/3+4)+'" font-size="11" fill="#667085">'+tk[g]+'</text>'}
+  ends.forEach(function(e){svg+='<circle cx="'+px(n-1)+'" cy="'+e[2].toFixed(1)+'" r="3.5" fill="'+e[0]+'"/>'})}
+ return svg+'</svg>';
+}
+function wealth(v){
+ var lines=v==='today'?[]:(v==='one'?['n500']:['n50','n500','lm']);
+ var chips='';
+ if(v==='three'){chips='<div class="chips" style="margin-top:8px"><span class="chip"><i style="background:#22C55E"></i>Portfolio</span><span class="chip"><i style="background:#2563EB"></i>Nifty 50 &#10005;</span><span class="chip"><i style="background:#8B5CF6"></i>Nifty 500 &#10005;</span><span class="chip"><i style="background:#D97706"></i>Nifty LargeMidcap 250 &#10005;</span><span class="chip off">+ add (up to 3)</span></div>'}
+ else if(v==='one'){chips='<div class="chips" style="margin-top:8px"><span class="chip"><i style="background:#22C55E"></i>Portfolio</span><span class="chip"><i style="background:#8B5CF6"></i>Nifty 500</span></div>'}
+ var line=v==='today'?'<div class="ch-chg" style="color:#667085">Nifty 500 +12.3%</div>':(v==='one'?'<div class="ch-chg" style="color:#8B5CF6">Nifty 500 +12.3%</div>':'<div class="ch-chg"><span style="color:#2563EB">Nifty 50 +10.8%</span> &nbsp; <span style="color:#8B5CF6">Nifty 500 +12.3%</span> &nbsp; <span style="color:#D97706">LargeMidcap 250 +13.1%</span></div>');
+ var sel=v==='three'?'<span class="ch-sel">3 benchmarks &#9662;</span>':'<span class="ch-sel">Nifty 500 &#9662;</span>';
+ var circ=v==='today'?' circ':'';
+ var h='<div class="ap"><div class="ap-body"><div class="chart"><div class="ch-top"><div><div class="ap-mut">Portfolio value</div><div class="ch-val">&#8377;40,12,300</div><div class="ch-chg">+&#8377;1,84,200 (+4.8%) this month &middot; excludes new money</div>'+line+'</div>'+sel+'</div>'+chips+'<div class="'+circ+'" style="margin-top:8px">'+chartSvg(900,250,lines)+'</div><div class="ch-per"><span>1D</span><span>1W</span><span class="on">1M</span><span>1Y</span><span>Custom</span></div><div class="ch-note">'+(v==='today'?'Note: no benchmark line is drawn and nothing says why.':'Left axis: portfolio value. Right axis: benchmark return since the start of the period.')+'</div></div></div></div>';
+ return vp(chrome('ls-redesign.unifolio.in/home')+h,1000,0);
+}
+function overview(v){
+ var strip='<div class="ap-tiles" style="grid-template-columns:repeat(5,1fr)"><div class="ap-tile"><small>Total value</small><b>&#8377;40.1L</b></div><div class="ap-tile"><small>Invested</small><b>&#8377;31.4L</b></div><div class="ap-tile"><small>Unrealised</small><b style="color:#15803D">+8.7L</b></div><div class="ap-tile"><small>Today</small><b style="color:#15803D">+&#8377;12,300</b></div><div class="ap-tile"><small>XIRR</small><b>9.4%</b></div></div>';
+ var gr='<div class="chart" style="margin-top:12px"><div class="ch-top"><div><b style="font:700 15px DM Sans,sans-serif">Value over time</b><div class="ap-mut">Family Combined</div></div><span class="ch-sel">Nifty 500 &#9662;</span></div>'+(v==='phone'?'':chartSvg(900,210,['n500']))+'<div class="ch-per"><span>1D</span><span>1W</span><span class="on">1M</span><span>1Y</span><span>Custom</span></div></div>';
+ var rest='<div class="ap-card" style="margin-top:12px"><b>SIP timeline</b><div class="ap-mut">4 instalments due this month</div></div><div class="ap-card" style="margin-top:12px;padding:0"><table class="ap-t"><thead><tr><th>Fund</th><th>Units</th><th>Invested</th><th>Current value</th><th>XIRR</th></tr></thead><tbody><tr><td><b>Alpha Flexi Cap Fund</b></td><td>1,240.5</td><td>&#8377;1,46,900</td><td>&#8377;1,71,300</td><td>13.2%</td></tr><tr><td><b>Beacon Large Cap Fund</b></td><td>640.0</td><td>&#8377;61,500</td><td>&#8377;66,900</td><td>9.1%</td></tr></tbody></table></div>';
+ if(v==='phone'){
+  var ph='<div class="phs"><div class="scr"><div class="sb"><b></b></div><div class="ap" style="min-height:560px"><div class="ap-body" style="padding:12px"><div class="ap-tiles" style="grid-template-columns:repeat(2,1fr)"><div class="ap-tile"><small>Total value</small><b>&#8377;40.1L</b></div><div class="ap-tile"><small>XIRR</small><b>9.4%</b></div></div><div class="chart" style="margin-top:10px;padding:12px"><b style="font:700 14px DM Sans,sans-serif">Value over time</b><div class="ch-sel" style="margin:6px 0">Nifty 500 &#9662;</div>'+chartSvg(330,150,['n500']).replace('width="330"','width="100%"')+'<div class="ch-per" style="flex-wrap:wrap"><span>1D</span><span>1W</span><span class="on">1M</span><span>1Y</span><span>Custom</span></div></div><div class="ap-card" style="margin-top:10px"><b>SIP timeline</b></div></div></div></div></div>';
+  return vp(ph,390,0);
+ }
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds')+'<div class="ap"><div class="ap-body">'+strip+gr+rest+'</div></div>',1100,0);
+}
+function popup(v){
+ var rows=[['Alpha Flexi Cap Fund',38,'+&#8377;4,210',0],['Beacon Large Cap Fund',30,'+&#8377;3,320',0],['Cedar Mid Cap Fund',22,'+&#8377;2,440',0],['Delta Small Cap Fund',-26,'&minus;&#8377;2,870',1],['Echo Index Fund',-14,'&minus;&#8377;1,540',1]];
+ var list=rows.map(function(r){return '<div class="mv"><span>'+r[0]+'</span><span><div class="bar'+(r[3]?' n':'')+'" style="width:'+Math.abs(r[1])*2.4+'px"></div></span><b class="'+(r[3]?'m':'p')+'">'+r[2]+'</b></div>'});
+ var inner='<div class="grp">Lifted your portfolio</div>'+list.slice(0,3).join('')+'<div class="grp">Pulled it down</div>'+list.slice(3).join('')+'<div class="grp">No change (3 funds)</div><div class="ap-mut" style="padding:4px 0">Show</div><div class="grp">Waiting for today&rsquo;s price (2 funds)</div><div class="mv"><span>Foxtrot Debt Fund</span><span class="ap-mut">price expected later today</span><b style="text-align:right;color:#667085">&mdash;</b></div><div class="mv"><span>Gamma Hybrid Fund</span><span class="ap-mut">price expected later today</span><b style="text-align:right;color:#667085">&mdash;</b></div>';
+ var head='<header><div><h5>Everything that changed today</h5><div class="ap-mut">Thursday 12 Nov 2026</div></div><span style="font-size:18px;color:#667085">&#10005;</span></header>';
+ var sub='<div style="padding:10px 20px 0"><div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap"><div><div class="ap-mut">Net change</div><b style="font:700 20px DM Sans,sans-serif;color:#15803D">+&#8377;5,560</b></div><div class="ap-mut">Gained &#8377;9,970 &middot; Lost &#8377;4,410</div><span class="seg" style="margin-left:auto"><span>Sector</span><span>Category</span><span class="on">Fund</span></span></div></div>';
+ var foot='<div class="ap-mut" style="padding:8px 20px 14px;border-top:1px solid #EEF0EE">Rows add up to the net change.</div>';
+ var card=head+sub+'<div class="bd">'+inner+'</div>'+foot;
+ if(v==='phone'){
+  return vp('<div class="phs"><div class="scr" style="background:#111"><div class="sb"><b></b></div><div style="background:rgba(17,17,17,.55);min-height:700px;position:relative"><div class="dlgx" style="position:absolute;left:0;right:0;bottom:0;width:auto;max-height:640px;border-radius:18px 18px 0 0">'+card+'</div></div></div></div>',390,0);
+ }
+ return vp(chrome('ls-redesign.unifolio.in/home')+'<div style="background:#E9EDE9;min-height:720px;display:flex;align-items:center;justify-content:center;position:relative"><div style="position:absolute;inset:0;background:rgba(17,17,17,.5)"></div><div class="dlgx" style="position:relative">'+card+'</div></div>',1000,0);
+}
+var STATE={'i13':'today','i14':'a','i15':'desk'};
+function frame(n){switch(n){case 'wealth':return wealth(STATE['i13']);case 'overview':return overview(STATE['i14']==='phone'?'phone':'a');case 'popup':return popup(STATE['i15']);}return ''}
+function layout(){document.querySelectorAll('.vp').forEach(function(v){var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');inn.style.width=w+'px';inn.style.height=h?h+'px':'auto';var hh=h||inn.offsetHeight;var sc=Math.min(1,v.clientWidth/w);inn.style.transform='scale('+sc+')';v.style.height=Math.ceil(hh*sc)+'px'})}
+function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});layout()}
+document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){var sec=bar.getAttribute('data-sec');bar.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){STATE[sec]=b.getAttribute('data-v');bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});renderAll()})})});
+renderAll();window.addEventListener('resize',layout);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layout);setTimeout(layout,400);
+
+/* ================= questions ================= */
+var KEY="batch-d-planning-v1",S={};
+try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+var Q=[
+{id:"Q1",item:"13",title:"What happens when several benchmarks are compared?",ask:"Pick one.",
+ ctx:"Each benchmark gets its own fixed colour either way (section 2). This is about how many can be on the graph at once.",
+ opts:[
+ {k:"A",l:"One at a time: the drop-down stays a single choice",d:"Good: smallest change; matches the original design; always readable. Bad: two benchmarks cannot be seen together."},
+ {k:"B",l:"Up to three at once, each in its fixed colour, with a legend you can click to hide a line",rec:1,d:"Good: a real comparison that stays readable on a small chart. Bad: a new control, a list reply from the server, more tests."},
+ {k:"C",l:"All five at once, no limit",d:"Good: complete. Bad: five lines on one small chart are hard to read."}],
+ why:"Three lines is about what a chart this size can carry. The limit is a setting, so a Pro tier could raise it later.",
+ commit:"<b>Recorded:</b> option B. The series route takes a list of up to 3 benchmarks and returns a list; the drop-down becomes a checklist with a legend that hides a line; the limit of 3 is a setting."},
+{id:"Q2",item:"14",title:"Where does the graph go on the MF Overview?",ask:"Pick one. Section 3 has the three layouts.",
+ opts:[
+ {k:"A",l:"Directly under the summary strip, above the SIP timeline",rec:1,d:"Good: value, return and graph read together at the top. Bad: pushes the holdings table down by one card."},
+ {k:"B",l:"Between the SIP timeline and the holdings table",d:"Good: the strip and the SIPs stay together; the graph sits right above the table. Bad: the graph is further down the page."},
+ {k:"C",l:"Below the holdings table",d:"Good: does not move the table. Bad: easy to miss, and users may never scroll to it."}],
+ why:"A user who opens the Overview first wants the shape of the portfolio and how it compares, before the detail of each fund.",
+ commit:"<b>Recorded:</b> option A. The graph is a full-width card directly under the summary strip, above the SIP timeline; the holdings table moves down by one card."}
+];
+var PRE={Q1:{k:"B"},Q2:{k:"A"}};
+var LOCK={};
+Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
+var cards=document.getElementById("cards");
+Q.forEach(function(q){
+ var c=document.createElement("div");c.className="card";c.id=q.id.toLowerCase();c.setAttribute("data-q",q.id);
+ var h='<header><span class="id">'+q.id+' &middot; item '+q.item+'</span><h3>'+q.title+'</h3><span class="status todo" data-st>unanswered</span></header><p class="ask"><b>'+q.ask+'</b></p>';
+ if(q.ctx)h+='<p class="ctx">'+q.ctx+'</p>';
+ h+='<div class="opts">';
+ q.opts.forEach(function(o){h+='<label class="opt'+(o.rec?' isrec':'')+'"><input type="radio" name="'+q.id+'" value="'+o.k+'"'+(LOCK[q.id]?' disabled':'')+'><div><b>'+o.k+'. '+o.l+(o.rec?'<span class="tag me">my pick</span>':'')+'<span class="tag chosen" hidden>Chosen option</span></b><span class="d">'+o.d+'</span></div></label>'});
+ h+='</div>';
+ if(q.why)h+='<div class="why"><b>Why my pick.</b> '+q.why+'</div>';
+ if(q.commit)h+='<div class="commit"><b>What this answer commits us to.</b> '+q.commit+'</div>';
+ h+='<label class="nl" for="n-'+q.id+'">Notes (optional)</label><textarea id="n-'+q.id+'" placeholder="Anything I should know"'+(LOCK[q.id]?' readonly':'')+'></textarea>';
+ c.innerHTML=h;cards.appendChild(c);
+});
+function answered(q){if(LOCK[q.id])return true;var a=S[q.id]||{};return !!a.k}
+function setSt(st,ok){st.textContent=ok?"answered":"unanswered";st.className=ok?"tag ok":"status todo"}
+function build(){
+ var L=["BATCH D PLANNING: MY ANSWERS (13 Nov 2026)",""];
+ Q.forEach(function(q){
+  var a=S[q.id]||{},ln=q.id+" ("+q.item+") "+q.title.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")+"\n  Answer: ";
+  if(a.k){var o=q.opts.filter(function(x){return x.k===a.k})[0];ln+=a.k+". "+o.l.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")}else ln+="NOT ANSWERED";
+  if(a.n&&a.n.trim())ln+="\n  Note: "+a.n.trim();
+  L.push(ln);L.push("");
+ });
+ return L.join("\n");
+}
+function paint(){
+ var n=0;
+ Q.forEach(function(q){
+  var c=document.getElementById(q.id.toLowerCase()),a=S[q.id]||{};
+  c.querySelectorAll(".opt").forEach(function(o){var r=o.querySelector("input");r.checked=(a.k===r.value);o.classList.toggle("on",r.checked);var b=o.querySelector(".chosen");if(b)b.hidden=!r.checked});
+  var nn=document.getElementById("n-"+q.id);if(nn&&document.activeElement!==nn)nn.value=a.n||"";
+  var ok=answered(q);if(ok)n++;setSt(c.querySelector("[data-st]"),ok);
+ });
+ document.getElementById("prog").textContent=n+" of "+Q.length+" answered";
+ document.getElementById("outTa").value=build();
+}
+cards.addEventListener("change",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.type==="radio")S[q].k=e.target.value;save();paint()});
+cards.addEventListener("input",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.id==="n-"+q)S[q].n=e.target.value;save();document.getElementById("outTa").value=build()});
+function copy(){
+ var ta=document.getElementById("outTa"),m=document.getElementById("copyMsg");ta.value=build();
+ function fb(){ta.removeAttribute("readonly");ta.select();try{document.execCommand("copy");m.textContent="Copied (or select and copy the text below)"}catch(e){m.textContent="Select the text below and copy it"}ta.setAttribute("readonly","")}
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(function(){m.textContent="Copied. Paste it in chat."},fb)}else fb();
+}
+document.getElementById("copyBtn").addEventListener("click",copy);
+document.getElementById("copyTop").addEventListener("click",function(){copy();document.getElementById("copy").scrollIntoView()});
+document.getElementById("jump").addEventListener("click",function(){for(var i=0;i<Q.length;i++){if(!answered(Q[i])){document.getElementById(Q[i].id.toLowerCase()).scrollIntoView({behavior:"smooth"});return}}});
+paint();
+})();
+</script>
+</body>
+</html>
