@@ -1,0 +1,1151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Batch A Planning</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+
+<style>
+
+/* Layout: sticky contents rail + one reading column. Brand: DM Sans headings, Manrope body, #22C55E for actions, a deeper green for text and links. Mockups are drawn at real window sizes and scaled to fit the column. */
+:root{
+ --bg:#FCFCFC; --surface:#FFFFFF; --surface-2:#F3F5F3; --line:#E5E5E5;
+ --fg:#111111; --muted:#5C5C5C; --accent:#22C55E; --accent-deep:#15803D; --accent-soft:#EAFBF0;
+ --warn:#B45309; --warn-soft:#FEF3E2; --info:#2F5FB3; --info-soft:#E8EFFB;
+ --danger:#B3321F; --danger-soft:#FBE6E2; --on-accent:#0B1F12;
+ --f-display:'DM Sans','Segoe UI',system-ui,sans-serif;
+ --f-body:'Manrope','Segoe UI',system-ui,sans-serif;
+ --f-mono:ui-monospace,'SF Mono',Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+ padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4,h5{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent-deep)}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent-deep)}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:70ch;margin:0 0 10px}
+.meta{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+section{margin-top:56px;scroll-margin-top:16px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:74ch}
+h3.sub{font-size:18px;margin:28px 0 8px}
+h4.mini{font-size:15px;margin:18px 0 6px}
+p{margin:8px 0}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700}
+.tag{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.fe{background:var(--info-soft);color:var(--info)}
+.tag.be{background:var(--warn-soft);color:var(--warn)}
+.tag.db{background:var(--danger-soft);color:var(--danger)}
+.tag.ok{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.none{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tag.me{background:var(--accent-soft);color:var(--accent-deep);margin-left:6px}
+.tag.chosen{background:var(--accent);color:var(--on-accent);margin-left:6px}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul,ul.tight{margin:6px 0;padding-left:20px}
+.sumbox li,ul.tight li{margin:5px 0}
+.callout{background:var(--warn-soft);border-radius:10px;padding:12px 14px;margin:14px 0;font-size:14px}
+.callout.good{background:var(--accent-soft)}
+.callout.info{background:var(--info-soft)}
+.callout.bad{background:var(--danger-soft)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.cols>div{min-width:0}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.flow>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 16px;min-width:0}
+.flow h4{font-size:15px;margin-bottom:6px}
+.flow ol{margin:4px 0;padding-left:20px}.flow li{margin:5px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.stat .n{font:700 26px var(--f-display)}.stat .l{font-size:12.5px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin:12px 0;align-items:start}
+@media (max-width:860px){.pair{grid-template-columns:minmax(0,1fr)}}
+.cap{margin:14px 0 6px;font-size:13px}
+.cap b{font-family:var(--f-display)}
+.note{color:var(--muted);font-size:12.5px}
+.winbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.winbar span{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.winbar button{padding:6px 12px;font-size:12.5px;background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.winbar button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+/* decision cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:60px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:600 12px var(--f-body);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--accent)}
+.opt.on{background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt input:disabled{cursor:default}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.why{border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--accent-deep)}
+.reply{background:var(--info-soft);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:14px}
+.reply p{margin:6px 0}.reply ul{margin:6px 0;padding-left:20px}
+.commit{border-left:3px solid var(--info);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.commit b{color:var(--info)}
+textarea{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-height:56px;resize:vertical}
+label.nl{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin:10px 0 4px}
+button{font:inherit;font-size:14px;font-weight:600;padding:9px 16px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);cursor:pointer}
+button.ghost{background:transparent;color:var(--accent-deep)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.status{font:600 11px var(--f-body)}.status.todo{color:var(--warn)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.out{min-height:240px;font-family:var(--f-mono);font-size:12.5px}
+.tabs{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.doc{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:18px 20px;margin:12px 0}
+.doc h4{font-size:17px;margin-bottom:8px}
+.doc h5{font-size:14px;margin:14px 0 4px}
+.doc ul{margin:6px 0;padding-left:20px}.doc li{margin:4px 0}
+
+/* ---------- scaled real-size frames ---------- */
+.vp{position:relative;width:100%;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#fff}
+.vp-in{position:absolute;left:0;top:0;transform-origin:0 0;background:#fff;color:#111;font-family:'Manrope','Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}
+.vp-in *{box-sizing:border-box}
+.vp-in h5,.vp-in h4,.vp-in h3,.vp-in h2,.vp-in h1{font-family:'DM Sans','Segoe UI',system-ui,sans-serif;margin:0}
+.vp-in p{margin:0}
+.chrome{height:40px;background:#EEF1EE;border-bottom:1px solid #D9DED9;display:flex;align-items:center;gap:8px;padding:0 14px}
+.chrome i{width:11px;height:11px;border-radius:50%;background:#C8CFC8;display:block;flex:none}
+.chrome span{flex:1;max-width:520px;margin-left:12px;background:#fff;border:1px solid #D9DED9;border-radius:99px;padding:3px 14px;font-size:12px;color:#5C5C5C}
+.w1280{--vw:1280px;--vh:600px;--card-h:552px;--pad-y:14px;--gap:10px;--gap-sm:5px;--h1:26px;--btn-h:44px;--row-h:46px;--chip-h:34px;--badge:34px;--body:13.5px}
+.w1440{--vw:1440px;--vh:810px;--card-h:762px;--pad-y:36px;--gap:22px;--gap-sm:12px;--h1:34px;--btn-h:54px;--row-h:64px;--chip-h:48px;--badge:44px;--body:15px}
+.w1536{--vw:1536px;--vh:730px;--card-h:682px;--pad-y:28px;--gap:16px;--gap-sm:9px;--h1:30px;--btn-h:48px;--row-h:54px;--chip-h:42px;--badge:38px;--body:14px}
+.d-page{height:var(--vh);display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#EEF9F1,#F8FDF9)}
+.d-card{width:min(1240px,calc(var(--vw) - 64px));height:var(--card-h);background:#fff;border-radius:28px;box-shadow:0 18px 50px rgba(20,48,31,.13);display:grid;grid-template-columns:.95fr 1fr;overflow:hidden}
+.d-left{padding:var(--pad-y) 40px;display:flex;flex-direction:column;background:linear-gradient(160deg,#F2FCF6,#E7F7EC);min-height:0;overflow:hidden}
+.d-left.white{background:#fff}
+.d-logo{font:700 26px 'DM Sans',sans-serif;color:#111;flex:none}
+.d-sketch{margin:var(--gap) auto;flex:1;min-height:60px;max-height:230px;width:70%;max-width:330px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#D6F3DF,#EAFBF0);color:#15803D;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.d-h2{font:700 calc(var(--h1) + 2px) 'DM Sans',sans-serif;line-height:1.15;flex:none}
+.d-h2 span{color:#15803D}
+.d-p{color:#5C5C5C;font-size:var(--body);margin-top:var(--gap-sm);flex:none}
+.d-bul{display:flex;gap:10px;align-items:center;margin-top:var(--gap-sm);font-size:var(--body);flex:none}
+.d-bul i{flex:none;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #D2EEDB;display:block}
+.d-right{padding:var(--pad-y) 48px;display:flex;flex-direction:column;min-height:0}
+.d-top{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;color:#5C5C5C;font-size:13px}
+.d-steps{display:flex;gap:6px;align-items:center}.d-steps i{width:34px;height:5px;border-radius:3px;background:#22C55E;display:block}.d-steps i.off{background:#E5E7EC}
+.d-content{flex:1;min-height:0;overflow-y:auto;display:flex}
+.d-inner{margin:auto;width:100%;max-width:520px;padding:8px 0}
+.fitb{position:absolute;right:10px;bottom:10px;z-index:3;font:600 12px 'Manrope',sans-serif;padding:4px 10px;border-radius:99px;background:#EAFBF0;color:#15803D;border:1px solid #BFE9CC}
+.fitb.bad{background:#FBE6E2;color:#B3321F;border-color:#F3B8AE}
+.o-stack{display:flex;flex-direction:column;gap:var(--gap)}
+.o-sec{display:flex;flex-direction:column;gap:var(--gap-sm)}
+.o-h1{font:700 var(--h1) 'DM Sans',sans-serif;line-height:1.15}
+.o-sub{color:#667085;font-size:var(--body)}
+.o-opt{display:flex;align-items:center;gap:12px;min-height:var(--row-h);border:1px solid #E5E7EC;border-radius:16px;padding:0 16px;background:#fff}
+.o-opt.tt{min-height:min(var(--row-h),54px)}
+.o-opt.sel{border-color:#22C55E;background:#F4FCF6;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.o-opt.quiet{border-color:transparent;background:#F6F8F6}
+.o-badge{flex:none;width:var(--badge);height:var(--badge);border-radius:50%;background:#EAFBF0;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:11px}
+.o-opt b{display:block;font-size:var(--body);font-weight:600}
+.o-opt small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.o-rad{margin-left:auto;flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid #C5CBC5}
+.o-opt.sel .o-rad{background:#22C55E;border-color:#22C55E;box-shadow:inset 0 0 0 4px #fff}
+.o-grp{border:1px solid #E5E7EC;border-radius:16px;overflow:hidden}
+.o-grp .o-opt{border:0;border-radius:0;border-bottom:1px solid #EEF0EE}
+.o-grp .o-opt:last-child{border-bottom:0}
+.o-h2{display:flex;justify-content:space-between;align-items:baseline;gap:10px;white-space:nowrap}
+.o-h2 b{font:600 15px 'DM Sans',sans-serif}
+.o-h2 span{font-size:13px;color:#667085;font-weight:400}
+.o-h2 a{font-size:13px;color:#15803D;font-weight:600}
+.o-chips{display:grid;gap:var(--gap-sm)}
+.o-chips.c3{grid-template-columns:repeat(3,1fr)}.o-chips.c2{grid-template-columns:repeat(2,1fr)}
+.o-chip{display:flex;align-items:center;gap:8px;min-height:var(--chip-h);border:1px solid #E5E7EC;border-radius:14px;padding:0 10px;font-size:12.5px;line-height:1.25;background:#fff}
+.o-chip i{flex:none;width:20px;height:20px;border-radius:6px;background:#EAFBF0;display:block}
+.o-chip em{margin-left:auto;flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid #C5CBC5}
+.o-chip.sel{border-color:#22C55E;background:#F4FCF6}.o-chip.sel em{background:#22C55E;border-color:#22C55E}
+.o-pills{display:flex;flex-wrap:wrap;gap:var(--gap-sm)}
+.o-pill{display:flex;align-items:center;gap:8px;border:1px solid #E5E7EC;border-radius:99px;min-height:var(--chip-h);padding:0 14px;font-size:13px;background:#fff}
+.o-pill i{width:16px;height:16px;border-radius:50%;background:#EAFBF0;display:block}
+.o-pill.sel{background:#22C55E;border-color:#22C55E;color:#0B1F12;font-weight:600}.o-pill.sel i{background:rgba(11,31,18,.25)}
+.o-panel{background:#F6F9F6;border-radius:18px;padding:14px}
+.o-go{height:var(--btn-h);border-radius:99px;background:#22C55E;color:#0B1F12;font:700 15px 'Manrope',sans-serif;display:flex;align-items:center;justify-content:center}
+.o-go.dis{background:#E5E7EC;color:#6B7280}
+.o-tabs{display:flex;background:#F1F3F1;border-radius:99px;padding:3px;gap:3px}
+.o-tabs span{flex:1;text-align:center;padding:7px;border-radius:99px;font-size:13px;color:#667085}
+.o-tabs span.on{background:#fff;color:#111;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.o-field{border:1px solid #D0D5DD;border-radius:12px;padding:11px 14px;font-size:14px}
+.o-lab{font-size:13px;font-weight:600;margin-bottom:5px}
+.o-alert{background:#FEF3F2;border:1px solid #FDA29B;color:#B42318;border-radius:12px;padding:10px 14px;font-size:13.5px}
+.o-red{color:#B42318;font-size:13px;margin-top:6px}
+.st{display:flex;gap:12px;align-items:flex-start;margin-top:var(--gap-sm)}
+.st i{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:13px;background:#22C55E;color:#0B1F12;margin-top:2px}
+.st i.spin{background:transparent;border:2.5px solid #E5E7EC;border-top-color:#22C55E}
+.st i.big{transform:scale(1.28)}
+.st b{display:block;font-size:var(--body);font-weight:600}.st small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.a-card{border:1px solid #E5E7EC;border-radius:16px;padding:12px 16px}
+.a-info{background:#F3F5F3;border-radius:16px;padding:12px 16px}
+.a-info b{display:block}
+/* dialogs */
+.dlg-bg{height:720px;position:relative;background:#F4F6F4;overflow:hidden}
+.dlg-bg .fake{position:absolute;inset:60px 90px;border:2px dashed #C8D3C8;border-radius:20px;filter:blur(2px);opacity:.9;background:#fff}
+.dlg-bg .dim{position:absolute;inset:0;background:rgba(17,17,17,.5);display:flex;align-items:center;justify-content:center}
+.dlg{background:#fff;border-radius:16px;padding:24px;width:448px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg h5{font-size:18px;font-weight:700;line-height:1.25}
+.dlg .body{color:#5C5C5C;font-size:14px}
+.dlg .foot{display:flex;gap:8px;justify-content:flex-end}
+.dlg.ph{width:100%}
+.dlg.ph .foot{flex-direction:column-reverse}
+.dbtn{font:700 13.5px 'Manrope',sans-serif;padding:10px 16px;border-radius:12px;border:1.5px solid #22C55E;background:#22C55E;color:#0B1F12;text-align:center}
+.dbtn.o{background:#fff;color:#15803D}
+.dwarn{display:flex;gap:10px;align-items:flex-start;background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:14px;padding:12px 14px;font-size:13.5px}
+.dwarn b{display:block;margin-bottom:2px}
+.dwarn i{flex:none;width:22px;height:22px;border-radius:50%;background:#F59E0B;color:#fff;font:700 13px 'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;font-style:normal;margin-top:1px}
+/* phone shell */
+.phs{width:390px;padding:14px;background:#111;border-radius:46px}
+.phs .scr{background:#fff;border-radius:34px;overflow:hidden;min-height:700px;position:relative}
+.phs .sb{height:34px;display:flex;justify-content:center;align-items:center}
+.phs .sb b{width:96px;height:22px;background:#111;border-radius:99px;display:block}
+.phs.dark .scr{background:#0F0F0F}
+/* email */
+.emx{--e-bg:#EEF6F0;--e-card:#fff;--e-ink:#111;--e-muted:#5C5C5C;--e-green:#15803D;--e-pale:#EEF8F0;--e-dark:#14301F;--e-line:#E5E5E5;--e-ic:#EAFBF0;--e-ill:#EAFBF0;--e-linkb:#D9E0D9;--e-small:#4ADE80;padding:20px 14px;background:var(--e-bg)}
+.emx.dark{--e-bg:#0F0F0F;--e-card:#1A1A1A;--e-ink:#F5F5F5;--e-muted:#A3A3A3;--e-green:#34D399;--e-pale:#17261C;--e-dark:#14301F;--e-line:#2A2A2A;--e-ic:#1F3B28;--e-ill:#F2FCF6;--e-linkb:#2F3A31;--e-small:#4ADE80}
+.emx.narrow{padding:12px 8px}
+.em-card{background:var(--e-card);color:var(--e-ink);border-radius:18px;padding:22px 22px 16px;width:100%}
+.narrow .em-card{padding:16px 14px 12px}
+.em-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.em-logo{font:700 24px 'DM Sans',sans-serif;color:var(--e-ink)}
+.em-tag{font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;color:var(--e-green)}
+.em-hd{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.em-hd>div:first-child{min-width:0}
+.em-h1{font:700 32px 'DM Sans',sans-serif;line-height:1.1}
+.em-h1 span{color:var(--e-green)}
+.narrow .em-h1{font-size:25px}
+.em-sub{color:var(--e-muted);margin-top:10px;font-size:15px}
+.narrow .em-sub{font-size:13.5px}
+.em-ill{flex:none;width:150px;height:118px;border-radius:50%;background:var(--e-ill);color:#15803D;font-size:11px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.narrow .em-ill{width:96px;height:78px;font-size:9px}
+.em-dark{background:var(--e-dark);color:#fff;border-radius:14px;padding:16px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:15px}
+.narrow .em-dark{padding:12px;gap:10px;font-size:13.5px}
+.em-dark>div{min-width:0}
+.em-dark small{display:block;color:var(--e-small);font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;margin-bottom:2px}
+.em-dark b{display:block;font:700 19px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-ic{flex:none;width:44px;height:44px;border-radius:50%;background:var(--e-ic);color:#15803D;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center}
+.narrow .em-ic{width:34px;height:34px;font-size:8px}
+.em-pale{background:var(--e-pale);border-radius:14px;padding:14px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:14.5px}
+.narrow .em-pale{padding:10px 12px;gap:10px;font-size:13px}
+.em-pale>div{min-width:0}
+.em-pale b{display:block;color:var(--e-green);font:700 17px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-line{display:flex;gap:14px;align-items:center;margin:0 0 12px;font-size:14.5px}
+.narrow .em-line{gap:10px;font-size:13px}
+.em-line>div{min-width:0}
+.em-btn{display:block;text-align:center;background:#22C55E;color:#0B1F12;font:700 17px 'Manrope',sans-serif;padding:16px;border-radius:99px;margin:0 0 16px}
+.narrow .em-btn{font-size:15px;padding:13px}
+.em-link{border:1px solid var(--e-linkb);border-radius:12px;padding:9px 12px;font-size:12.5px;color:var(--e-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:8px;max-width:100%}
+.em-foot{border-top:1px solid var(--e-line);margin-top:14px;padding-top:12px;font-size:13px;color:var(--e-muted)}
+.em-foot a{color:var(--e-green)}
+.em-foot b{display:block;color:var(--e-ink);font:700 16px 'DM Sans',sans-serif;margin-top:10px}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}nav.toc{position:static;max-height:none}}
+
+/* ---------- Batch A additions: app-style mockups ---------- */
+.ap{background:#F6F8F6;font-size:13.5px;color:#111}
+.ap-body{padding:20px 24px}
+.ap-h{font:700 20px 'DM Sans',sans-serif;margin-bottom:12px}
+.ap-card{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:16px}
+.ap-card h5{font:700 16px 'DM Sans',sans-serif;margin-bottom:4px}
+.ap-mut{color:#667085;font-size:12px}
+.ap-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ap-tile{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:10px 12px}
+.ap-tile small{display:block;color:#667085;font-size:11.5px}
+.ap-tile b{font:700 20px 'DM Sans',sans-serif}
+.ap-tile .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.seg{display:inline-flex;border:1px solid #E5E7EB;border-radius:8px;padding:2px;font-size:11px}
+.seg span{padding:2px 8px;border-radius:6px;color:#667085}
+.seg span.on{background:#F1F3F1;color:#111;font-weight:600}
+.ap-t{width:100%;min-width:0;border-collapse:collapse;font-size:12.5px}
+.ap-t th{background:#fff;color:#667085;font:600 11.5px 'Manrope',sans-serif;letter-spacing:0;text-transform:none;text-align:left;padding:8px 10px;border-bottom:1px solid #E5E7EB}
+.ap-t td{padding:9px 10px;border-bottom:1px solid #EEF0EE;vertical-align:top}
+.ap-logoc{flex:none;width:28px;height:28px;border-radius:8px;background:#EAFBF0;color:#15803D;font:700 11px 'DM Sans';display:flex;align-items:center;justify-content:center}
+.ap-fund{display:flex;gap:10px;align-items:flex-start}
+.note-box{background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:8px 10px;font-size:12px;margin-top:8px}
+.circ{outline:2px solid #D92D20;outline-offset:2px;border-radius:8px}
+.rk{display:inline-block;font:700 13px 'DM Sans',sans-serif;background:#EAFBF0;color:#15803D;border-radius:99px;padding:2px 10px}
+.rk small{font:500 11px 'Manrope',sans-serif;color:#667085;margin-left:3px}
+.fn{display:grid;gap:6px}
+.fn .r{display:grid;grid-template-columns:230px 1fr 90px;gap:10px;align-items:center;font-size:12.5px}
+.fn .b{height:18px;border-radius:5px;background:#22C55E}
+.fn .b.x{background:#F59E0B}
+.fn .n{font-weight:700;text-align:right}
+.cmp{display:grid;gap:14px}
+.cmp .p{display:grid;grid-template-columns:44px 1fr 150px;gap:12px;align-items:center}
+.cmp .trk{position:relative;height:22px}
+.cmp .trk::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:#E5E7EB}
+.cmp .d{position:absolute;top:4px;width:14px;height:14px;border-radius:50%;transform:translateX(-7px)}
+.cmp .d.f{background:#22C55E}
+.cmp .d.c{border:2px solid #667085;background:#fff}
+.cmp .v{font-size:12px;color:#667085}
+.lab{font:600 11px 'Manrope',sans-serif;color:#B42318;background:#FDECEA;border-radius:99px;padding:1px 8px;margin-left:6px}
+.wf{display:grid;gap:7px}
+.wf .r{display:grid;grid-template-columns:210px 1fr 80px;gap:10px;align-items:center;font-size:12px}
+.wf .tr{position:relative;height:16px;background:#F1F3F1;border-radius:4px}
+.wf .tr i{position:absolute;top:0;bottom:0;border-radius:4px;background:#0EA5E9}
+.wf .tr i.s{background:#F59E0B}
+.wf .n{text-align:right;font-weight:600}
+.steps5{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+.steps5>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13.5px}
+.steps5 b{display:block;font-family:var(--f-display);margin-bottom:3px}
+.code2{font-family:var(--f-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow:auto;white-space:pre;margin:8px 0}
+.xl{background:#fff;font-size:12px}
+.xl .tabs2{display:flex;gap:2px;background:#E8ECE8;padding:6px 8px 0;font-size:12px}
+.xl .tabs2 span{padding:5px 12px;border-radius:6px 6px 0 0;background:#F3F5F3;color:#444}
+.xl .tabs2 span.on{background:#fff;font-weight:700;color:#107C41}
+.xl .fx{display:flex;gap:8px;align-items:center;border-bottom:1px solid #D9DED9;padding:4px 10px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#333;background:#fff}
+.xl .fx b{color:#107C41;font-family:Manrope,sans-serif}
+.xl table.g{border-collapse:collapse;width:100%;min-width:0;font-size:12px}
+.xl table.g th{background:#F3F5F3;border:1px solid #D9DED9;padding:4px 8px;text-align:left;font:600 11.5px Manrope,sans-serif;color:#333;text-transform:none;letter-spacing:0}
+.xl table.g td{border:1px solid #E6EAE6;padding:4px 8px;vertical-align:top}
+.xl td.f{font-family:ui-monospace,Consolas,monospace;background:#F1FAF4;color:#14532D}
+.xl td.ok{color:#14532D;font-weight:700}
+.xl td.no{color:#B42318;font-weight:700}
+.pend{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;background:var(--warn-soft);color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+ <h4>Start here</h4>
+ <a href="#where">1. Where we stand</a>
+ <a href="#nav">2. What the NAV fix changes</a>
+ <h4>The four investigations</h4>
+ <a href="#i8">3. XIRR (item 8)</a>
+ <a href="#i10">4. Rank denominators (item 10)</a>
+ <a href="#i9">5. Category average (item 9)</a>
+ <a href="#i7">6. Load times (item 7)</a>
+ <h4>What you get</h4>
+ <a href="#evidence">7. Evidence pack</a>
+ <h4>How we build it</h4>
+ <a href="#strategy">8. Orchestrator and workers</a>
+ <a href="#program">9. Fit with the other batches</a>
+ <a href="#tasks">10. Task list</a>
+ <a href="#risks">11. Risks, tests, checks</a>
+ <h4>Your call</h4>
+ <a href="#questions">12. Questions (4)</a>
+ <a href="#copy">13. Copy my answers</a>
+ <a href="#prov">What I checked</a>
+</nav>
+
+<main>
+<div class="hero">
+ <h1>Batch A Planning</h1>
+ <div class="meta">Planning only &middot; nothing built or run on staging &middot; 13 Nov 2026 &middot; updated with your answers &middot; fixes in scope, Excel moved in &middot; branch leapswitch-redesign</div>
+ <p>Truth-finding and fixing: four pieces of work on numbers and speed that stakeholders have questioned. Each one follows the same path: <b>find the real problem, propose the fix to you for review, and only after you approve it build it (failing test first), prove it with a before and after, and write the evidence for stakeholders</b>. XIRR (item 8), the &ldquo;7 out of 33&rdquo; rank (item 10), the category average (item 9, now including the detailed stakeholder Excel) and slow load times at about 40 lakh (item 7). Item 17a already moved to Batch C. A number that turns out correct gets the evidence; a real problem gets a fix, not just a report. <b>No code changes until you have reviewed and approved the fix.</b></p>
+ <p><b>Changed on 13 Nov.</b> (1) The investigations now end in fixes. The idea of showing a note such as &ldquo;one fund is excluded&rdquo; is dropped: every held fund now gets a value instead (FX-8a). (2) The Excel for item 9 moved here from Batch E. The legend and &ldquo;i&rdquo; icon wording stay in Batch E. The questions are cut to the four that genuinely need you; everything else is a stated default (section 12). <b>All four are now answered</b> and recorded below. Your NAV answer added two findings (F7, F8) and a new fix (FX-10c); your Advisorkhoj answer changed the order of the rank investigation (section 4).</p>
+ <p><b>How this was made.</b> I read the code for all four items today, read-only, and ran one timing of the XIRR solver on invented cash flows. Every statement about the code is labelled <em>read in code</em> and every number I measured is labelled <em>measured here</em>. Nothing was run on staging, no real household data was touched, and the NAV bug is as you described it (section 2). Mockups are my reconstructions with made-up funds and numbers.</p>
+</div>
+
+<!-- ============ 1. WHERE WE STAND ============ -->
+<section id="where">
+ <h2>1. Where we stand</h2>
+ <p class="lead">Four investigations, no schema change planned, and six early findings from the code that point at specific things to test.</p>
+ <div class="stats">
+  <div class="stat"><div class="n">4</div><div class="l">investigations (items 8, 10, 9, 7)</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">database migrations planned</div></div>
+  <div class="stat"><div class="n">4 / 4</div><div class="l">questions answered</div></div>
+  <div class="stat"><div class="n">24</div><div class="l">tasks in the list (section 10)</div></div>
+ </div>
+ <div class="scroll"><table>
+  <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (read in code)</th><th>What this batch does</th><th>NAV fix needed?</th></tr></thead>
+  <tbody>
+   <tr><td class="k">8. XIRR</td><td>Verify the formula and what it shows.</td><td>One solver (Newton, with a fallback), one convention (actual days over 365, like Excel), fed by about seven callers that each build their own cash flows. Two portfolio figures (Lifetime and Current) plus a per-fund figure from a different, stored source.</td><td>Prove the solver against an independent calculation; audit every caller&rsquo;s inputs; <b>fix</b> every real problem found (a fund with no price, the date of the final flow, tile versus table, very short periods).</td><td><span class="tag be">numbers: yes</span> <span class="tag ok">code audit: no</span></td></tr>
+   <tr><td class="k">10. Rank &ldquo;out of N&rdquo;</td><td>Check the &ldquo;out of&rdquo; value against Advisorkhoj; make ours right or prove theirs wrong.</td><td>N is the size of a filtered pool: same category and plan, one Growth series per fund, live in the last 30 days, active, not an index fund, with a return for that period. It differs per period.</td><td>First check whether <b>Advisorkhoj&rsquo;s figures are themselves correct</b>; then rebuild the pool independently from AMFI&rsquo;s file, list every excluded fund and why, and find where ours goes wrong (the total, and the rank with it); propose a fix for every gap that is ours, and bring any definition difference to you with the evidence.</td><td><span class="tag be">yes</span> (price history feeds the pool)</td></tr>
+   <tr><td class="k">9. Category average</td><td>Check the calculation, and the detailed Excel for stakeholders (moved here from Batch E).</td><td>Fund-size-weighted average (AAUM), per period, over the funds that have a 3-year history; a plain-mean fallback; a legacy 40/60 blended figure still sent for older views.</td><td>Recompute the averages independently; <b>fix</b> anything wrong; build the detailed Excel (section 5). The legend and &ldquo;i&rdquo; icon wording stay in Batch E.</td><td><span class="tag be">yes</span></td></tr>
+   <tr><td class="k">7. Load times at 40L</td><td>Why is the MF Overview slow on some stakeholder laptops; audit every page at about 40 lakh.</td><td>Overview fires about six requests; XIRR is recomputed in pure Decimal on every request that needs it, with no cache found. Earlier work already added NAV and holdings caches.</td><td>Build a repeatable 40L test household, measure server, network and browser separately, collect the slow-laptop facts, then <b>fix every proven cause</b>.</td><td><span class="tag be">yes</span> (NAV fetch is part of the load)</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">Six early findings (read in code, to be tested, not yet conclusions)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>#</th><th>Finding</th><th>Why it matters</th><th>Tested and fixed in</th></tr></thead>
+  <tbody>
+   <tr><td>F1</td><td>A held fund with <b>no NAV</b> has <code>current_value=None</code>. The dashboard XIRR leaves its value out of the final amount but keeps its purchases in the cash flows.</td><td>The portfolio XIRR would be <b>understated</b> without any warning. The fund page guards against this; the dashboard does not.</td><td>T8-4 &rarr; fix FX-8a</td></tr>
+   <tr><td>F2</td><td>The per-fund job (<code>analytics/benchmark.py</code>) sums <code>Decimal(h.current_value)</code> over every holding. For a no-NAV holding that value is <code>None</code>.</td><td>It would raise an error instead of giving a number, which could blank the per-fund XIRR column.</td><td>T8-5 &rarr; fix FX-8b</td></tr>
+   <tr><td>F3</td><td>The headline XIRR tile is computed live; the per-fund XIRR in the table comes from a <b>stored</b> analytics result. The final cash flow is dated <code>date.today()</code> on the server, not the NAV date.</td><td>Two figures on one page can be computed at different times, and a weekend or holiday NAV is dated as if it were today.</td><td>T8-6, T8-7 &rarr; fixes FX-8c, FX-8d</td></tr>
+   <tr><td>F4</td><td>A rank&rsquo;s &ldquo;out of&rdquo; counts only funds that have a return <b>for that period</b>, so it is smaller for 5Y than for 1Y. If a peer&rsquo;s price history fails to load, the fund silently drops out of the count.</td><td>This is the most likely reason ours differs from a site that counts the whole category. It is a definition difference, a data gap, or both.</td><td>Exclusion ledger &rarr; fixes FX-10a, FX-10b</td></tr>
+   <tr><td>F5</td><td>The category card is three periods (1Y, 3Y, 5Y), each with the fund&rsquo;s return and the category average, and the average is size-weighted with a 3Y floor.</td><td>&ldquo;The three values&rdquo; in your list are these period rows: your Q2 examples match them exactly.</td><td>Item 9 and its Excel (Q2)</td></tr>
+   <tr><td>F6</td><td>One XIRR call took <b>0.48 s</b> for 1,801 flows (<em>measured here</em>, one invented input, my machine). The dashboard recomputes it for each basis and on each of several routes, with no cache found.</td><td>A real candidate for slow loads on big households. It is <b>not</b> a laptop effect, so it cannot explain &ldquo;slow only on some laptops&rdquo; by itself.</td><td>Server timings &rarr; fixes FX-7a to FX-7d</td></tr>
+   <tr><td>F7</td><td>Each fund&rsquo;s return ends at <b>its own</b> latest price on or before today. At 06:00 some fund houses have not yet published today&rsquo;s NAV (your description of the NAV bug), so their funds end one or two days earlier than the rest of the pool.</td><td>Returns inside one pool end on different dates. The rank counts how many pool funds have a higher return, so a mixed pool shifts the <b>rank itself</b>, not only the total. This could be part of why the rank looks wrong.</td><td>T10-4 &rarr; fix FX-10c</td></tr>
+   <tr><td>F8</td><td>The price job runs at 06:00 and the analytics recompute at 06:30 (<code>deploy/leapswitch/crontab.leapswitch</code>). The stored XIRR, rank and average are built from the early, partial prices and stay until the next 06:30 run or an import.</td><td>Even after a later price job exists, the stored results stay on the early data unless a recompute follows it. The screens would keep showing numbers from the partial state.</td><td>T8-7, T10-5 &rarr; fix FX-8d, and a request to the NAV fix (section 2)</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>Moved out and moved in.</b> 17a (duplicate categories) is in Batch C, as you decided. The detailed category-average Excel moved here from Batch E (section 5). Nothing in Batch A waits for either.</div>
+ <div class="callout info"><b>What each investigation ends in.</b> The root cause, then a <b>written fix proposal that you review</b>, then (only after you approve it) the fix and the proof. Nothing in the code changes before that approval. For a <b>bug</b> (a failing test shows it), the proposal says what is wrong, why, and exactly what would change. For a <b>definition difference</b> (for example how many funds a site counts), the proposal is a choice between options. For a number that is <b>correct</b>, we write the evidence. Nothing is left at &ldquo;this is wrong&rdquo;, and nothing is changed unreviewed.</div>
+ <h3 class="sub">The review gate: what each fix proposal contains</h3>
+ <div class="steps5">
+  <div><b>1. Root cause</b>What is wrong and why, with the evidence: the test or the measurement that shows it.</div>
+  <div><b>2. Proposed change</b>The files and behaviour that would change, in plain words, and what would not.</div>
+  <div><b>3. Before and after</b>The same fixture or household before the change and what it would give after, so you see the effect.</div>
+  <div><b>4. Risk and reach</b>What else the change touches: other screens, the PDF, stored results, deploy steps.</div>
+  <div><b>5. The test written first</b>The failing test that proves the problem and will prove the fix.</div>
+  <div><b>6. Your decision</b>Approve, change, or reject, one proposal at a time. Only an approved proposal is built.</div>
+ </div>
+ <p class="note">I bring the proposals as one short document per item (a root-cause note), so you can review them without reading the code. The fix tables in sections 3, 4 and 6 are my starting proposals from reading the code. The tests may change them, and then the root-cause note says so.</p>
+</section>
+
+<!-- ============ 2. NAV ============ -->
+<section id="nav">
+ <h2>2. What the NAV bug means for this batch</h2>
+ <p class="lead">As you described it: some fund houses publish their NAV after the 06:00 price job (around 10 or 11, or later). The dashboards then hold partial prices, show a &ldquo;partial NAV&rdquo; warning, and fall back to older prices. Your manager&rsquo;s plan is a second, later job. This is how that touches each item.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Item</th><th>What the early, partial prices do (read in code unless marked)</th><th>What we do about it</th></tr></thead>
+  <tbody>
+   <tr><td class="k">8. XIRR</td><td>The final value mixes prices from different days, and the final flow is dated today whatever the price date (F3).</td><td>FX-8c dates the flow with the price date; FX-8a keeps the older-price fallback; FX-8d makes the tile and the per-fund column agree.</td></tr>
+   <tr><td class="k">10. Rank</td><td>Returns in a pool end on different dates (F7), so the <b>rank and the total both move</b> with the time of day.</td><td>FX-10c: compute every pool fund&rsquo;s return to one common end date. This also makes our rank comparable with a site that uses one date.</td></tr>
+   <tr><td class="k">9. Category average</td><td>The same mixed end dates enter the average.</td><td>The same common-date rule (FX-9a, with FX-10c).</td></tr>
+   <tr><td class="k">All stored results</td><td>The recompute runs at 06:30 from the 06:00 prices (F8).</td><td>A recompute must follow the later job. This is a request to the NAV fix, not something this batch can do alone (two questions for your manager below).</td></tr>
+   <tr><td class="k">7. Load times</td><td>The second job adds server work later in the day, and a day with partial prices may take a slower path (<em>not checked</em>).</td><td>Measure before and after the later job exists; include a cold open at 07:00 and one in the evening.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">The rule for evidence and for timing</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Part of Batch A</th><th>Before the fix lands</th><th>After the fix lands</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Reading code, writing fixtures, writing the independent calculators, building the 40L test household</td><td><b>Can be done.</b> None of it reads live prices.</td><td>Nothing to redo.</td></tr>
+   <tr><td class="k">Solver proof (known cash flows with known answers)</td><td><b>Can be done.</b> Pure arithmetic.</td><td>Nothing to redo.</td></tr>
+   <tr><td class="k">Any statement that &ldquo;our XIRR / rank / average is right or wrong&rdquo; for real funds</td><td>Not claimed from early-morning runs. A run is labelled with its time and how many funds had that day&rsquo;s price.</td><td>Run at a time when every fund house has published (for example the evening), and compare with the early run.</td></tr>
+   <tr><td class="k">New test T-NAV</td><td>Run the same recount and the same household at about 07:00 and again in the evening, the same day.</td><td>The difference between the two <b>is</b> the effect of the NAV bug on our numbers. It goes in the evidence pack.</td></tr>
+   <tr><td class="k">Building the fixes</td><td>Tests and fixtures can be written now. The fix code waits for two things: your approval of each proposal, and your rule to branch after the NAV fix lands, to avoid backend conflicts.</td><td>Branch from the fixed code; build each approved fix with its failing test first.</td></tr>
+   <tr><td class="k">Load-time numbers</td><td>A labelled baseline, taken at a stated time of day, to show the before and after of the fix itself.</td><td>The official numbers.</td></tr>
+   <tr><td class="k">Evidence for stakeholders</td><td>Not issued.</td><td>Issued only from post-fix runs at a time when all prices are in.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout"><b>Two things to ask your manager (not for you to answer now).</b> (1) What time will the later price job run, and is it one run or several? (2) Will it trigger a recompute of the stored analytics (F8)? If not, the stored XIRR, rank and average keep the 06:00 data all day, and I would add the recompute to the plan as part of FX-8d.</div>
+</section>
+
+<!-- ============ 3. XIRR ============ -->
+<section id="i8">
+ <h2>3. XIRR (item 8)</h2>
+ <p class="lead">Is the formula right, are the inputs right, and does the screen say what the number means?</p>
+
+ <h3 class="sub">What the user sees today</h3>
+ <p>On the Mutual Funds Overview, the summary strip has an XIRR tile with a switch between <b>Lifetime</b> (&ldquo;Since inception&rdquo;) and <b>Current</b> (&ldquo;Current holdings&rdquo;). The tooltip says: &ldquo;Annualised return since inception. May include an opening balance from before you started tracking in Unifolio.&rdquo; Each fund row in the holdings table also has its own XIRR. The number is shown to one decimal place, and as &ldquo;&mdash;&rdquo; when it cannot be computed.</p>
+ <div class="winbar" data-sec="i8"><span>XIRR tile</span><button type="button" data-v="today" aria-pressed="true">Today, all prices present</button><button type="button" data-v="f1" aria-pressed="false">Today, one fund has no price (F1)</button><button type="button" data-v="fix" aria-pressed="false">After the fix</button></div>
+ <div data-frame="xirr-tile"></div>
+ <p class="note">Made-up numbers. The middle state is what finding F1 does: one fund with no price is dropped from the final amount but its purchases stay, so the rate falls from 9.4% to 6.1% with nothing on screen to say why. After the fix the fund is valued (FX-8a), so the tile reads 9.4% again. There is no warning note: the problem is removed, not announced.</p>
+
+ <h3 class="sub">How it is calculated (read in code)</h3>
+ <ol class="tight">
+  <li><b>The solver</b> (<code>backend/app/services/analytics/xirr.py</code>): finds the rate that makes the discounted cash flows add up to zero, with each flow discounted by (actual days since the first flow) / 365. That is the same convention as Excel&rsquo;s XIRR. It uses exact <code>Decimal</code> arithmetic (no floats), starts from 10%, and falls back to a bracketed search when it does not converge. It returns nothing when there is no money in and money out.</li>
+  <li><b>The flows</b> (<code>dashboard/xirr.py</code>): purchases, SIP instalments, opening balances and gifts received count as money put in (negative, with stamp duty); redemptions, dividend payouts, reversals and gifts given count as money taken out (positive); the <b>current value is added as a final inflow dated today</b>. Reinvested dividends, bonus units and segregated units are not cash flows.</li>
+  <li><b>Switches:</b> the Lifetime figure leaves them out (they are internal moves). The Current-holdings figure and the per-fund figure count a switch-in as money put in and a switch-out as money taken out.</li>
+  <li><b>Lifetime vs Current:</b> Lifetime uses every transaction, including funds you sold. Current uses only the funds you still hold.</li>
+  <li><b>Opening balances:</b> a statement that starts mid-history carries an &ldquo;opening balance&rdquo; dated at the statement start, not its real purchase date. If a figure is above 35% and removing that undated piece would bring it back under 35%, the tile shows a disclaimer with an alternative figure.</li>
+ </ol>
+
+ <h3 class="sub">Every place a XIRR is computed (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Where</th><th>File</th><th>What it feeds</th><th>Same inputs as the tile?</th></tr></thead>
+  <tbody>
+   <tr><td>Portfolio, Lifetime and Current (+ disclaimer)</td><td><code>dashboard/xirr.py</code> (<code>calculate_dashboard_xirr</code>)</td><td>Overview tile, Portfolio summary and allocation, member holdings</td><td>It is the tile.</td></tr>
+   <tr><td>Per fund</td><td><code>analytics/benchmark.py</code></td><td>Holdings table XIRR column (a <b>stored</b> result)</td><td>Own flows; switch-in counted; no-NAV guard missing (F2)</td></tr>
+   <tr><td>Per fund on the fund page</td><td><code>fund_page/summary.py</code>, <code>fund_page/returns.py</code></td><td>Fund page tile and returns table</td><td>Reads the stored value first; computes only if a price exists</td></tr>
+   <tr><td>Benchmark same-flow XIRR</td><td><code>analytics/benchmark.py</code>, <code>fund_page/returns.py</code></td><td>&ldquo;vs benchmark&rdquo; comparisons</td><td>Same flows, index units instead of fund units</td></tr>
+   <tr><td>Window XIRRs (1Y, 3Y, 5Y)</td><td><code>analytics/benchmark_windows.py</code></td><td>Windowed comparisons</td><td>Window-specific flows and its own end date</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">What we test (each with a pass or fail)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Test</th><th>Pass means</th><th>NAV-sensitive?</th></tr></thead>
+  <tbody>
+   <tr><td style="white-space:nowrap">T8-1</td><td><b>Solver against an independent calculation.</b> About 25 hand-built cash-flow sets (single lump sum, monthly SIP, SIP with redemptions, negative return, under a year, steep fall, same-day flows) solved by the app&rsquo;s solver and by an independent method (a separate high-precision solver and Excel&rsquo;s XIRR on the same flows).</td><td>All agree to 6 decimal places (1e-6).</td><td>No</td></tr>
+   <tr><td style="white-space:nowrap">T8-2</td><td><b>Convention check.</b> The same flows through Excel&rsquo;s XIRR and through the app, including a leap year.</td><td>Identical to Excel&rsquo;s result.</td><td>No</td></tr>
+   <tr><td style="white-space:nowrap">T8-3</td><td><b>Caller audit.</b> For one fixture household, print every caller&rsquo;s input list side by side (dates, amounts, signs) and compare with a hand calculation.</td><td>Every difference between callers is explained and intended.</td><td>No</td></tr>
+   <tr><td style="white-space:nowrap">T8-4</td><td><b>No-NAV fund (F1).</b> A household where one held fund has no price.</td><td>The fund is valued, so the rate is the same as if its price had been there. Today&rsquo;s expected result: silently understated.</td><td>Yes</td></tr>
+   <tr><td style="white-space:nowrap">T8-5</td><td><b>No-NAV fund in the per-fund job (F2).</b></td><td>The job returns a number or a clear &ldquo;&mdash;&rdquo;, never an error.</td><td>Yes</td></tr>
+   <tr><td style="white-space:nowrap">T8-6</td><td><b>Dating (F3).</b> Run around a weekend and around midnight India time with the server clock set to UTC.</td><td>The final flow carries the date of the price it uses.</td><td>Yes</td></tr>
+   <tr><td style="white-space:nowrap">T8-7</td><td><b>Tile vs table.</b> The tile (live) and the per-fund column (stored) for the same household and day.</td><td>They agree, or the screen says when each was computed.</td><td>Yes</td></tr>
+   <tr><td style="white-space:nowrap">T8-8</td><td><b>Opening balance and the 35% disclaimer.</b> Fixtures with a statement that starts mid-history.</td><td>The disclaimer appears only when removing the opening piece really explains the number.</td><td>No</td></tr>
+   <tr><td style="white-space:nowrap">T8-9</td><td><b>Edge cases.</b> A fund held under a year (annualising a short period can give an absurd percentage), fully sold funds, gifts, reversals, a single flow.</td><td>No silent wrong value; a meaningful figure for short periods (decision gate, section 12).</td><td>No</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">The proposed fixes (built only after your review, each with a failing test first)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Problem</th><th>The fix</th><th>How we prove it</th></tr></thead>
+  <tbody>
+   <tr><td style="white-space:nowrap">FX-8a</td><td>A held fund with no price drops out of the final value but stays in the flows (F1).</td><td><b>Give every held fund a value.</b> In order: the stored price on or before today (the lookup already does this and keeps the date); if none is stored, retry the live source; then the latest stored price of any age, marked stale as the screens already do; then the statement&rsquo;s own closing price for that fund. Only a fund that has never had a price anywhere is left out, and then both its flows and its value are left out together, as the totals already do. Partial NAV (a fund house that has not yet published today&rsquo;s price) already falls back to the older price; this fix is for the rarer case of a fund with no price at all. The spec checks which steps already exist.</td><td>T8-4: a household with one unpriced fund gives the same XIRR as when the price is present (stale or statement price), and a consistent rate for the never-priced case.</td></tr>
+   <tr><td style="white-space:nowrap">FX-8b</td><td>The per-fund job reads <code>Decimal(h.current_value)</code> and fails on a missing value (F2).</td><td>Skip a fund without a value inside the job, and fix the cause with FX-8a so it rarely happens.</td><td>T8-5: the job completes and every other fund keeps its figure.</td></tr>
+   <tr><td style="white-space:nowrap">FX-8c</td><td>The final flow is dated <code>date.today()</code> on the server (F3).</td><td>Date it with the price date it uses, which is the standard practice.</td><td>T8-6: weekend and midnight cases give the same rate as Excel on the same dates.</td></tr>
+   <tr><td style="white-space:nowrap">FX-8d</td><td>The tile is live and the per-fund column is stored, so they can differ (F3).</td><td>Compute both from the same inputs and the same price date, or read both from one stored result, whichever the spec finds simpler and faster. Make sure a recompute follows the later NAV job (F8).</td><td>T8-7: tile and column agree for the same household and day.</td></tr>
+   <tr><td style="white-space:nowrap">FX-8e</td><td>A fund held for a few months is annualised into an extreme percentage (T8-9).</td><td>The rule is a decision we bring you with examples (section 12).</td><td>T8-9 on short-period fixtures.</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">Before and after</h3>
+ <div class="flow">
+  <div><h4>Before</h4><ol><li>A stakeholder doubts the XIRR number.</li><li>Nobody can say how it is calculated or show it matches Excel.</li><li>The same number may be computed in several places with slightly different rules.</li></ol></div>
+  <div><h4>After</h4><ol><li>The solver is proven against Excel and an independent calculation.</li><li>Every difference between callers is explained. Each real bug (FX-8a to FX-8e) is written up for your review and, once approved, fixed with a before and after on the same fixture.</li><li>A one-page note for stakeholders: the formula, the convention, the inputs, a table of our value next to the independent value, and what was fixed.</li></ol></div>
+ </div>
+
+ <h3 class="sub">What changes, by layer</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag be">backend</span></td><td>New: the fixtures and the independent calculator under <code>backend/tests/</code>. Changed (after the NAV fix lands): <code>dashboard/xirr.py</code> (the value of every held fund, the date of the final flow), <code>dashboard/holdings.py</code> and <code>dashboard/nav.py</code> (the price fallbacks of FX-8a, only where the spec finds a step missing), <code>analytics/benchmark.py</code> (the guard and the shared inputs). The solver&rsquo;s results do not change: the existing XIRR tests must pass unchanged.</td></tr>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td>None expected for the fixes. FX-8e may change how a short-period figure is labelled. The legend and &ldquo;i&rdquo; icon wording belong to Batch E.</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>None.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 4. RANK ============ -->
+<section id="i10">
+ <h2>4. Rank denominators (item 10)</h2>
+ <p class="lead">The &ldquo;7&rdquo; in &ldquo;7 out of 33&rdquo; is a rank among funds. The &ldquo;33&rdquo; is how many funds were counted, and that is what stakeholders found different from Advisorkhoj. Our job: find out why, fix what is ours, and bring the number to the best accuracy we can.</p>
+
+ <h3 class="sub">How the investigation runs (your framing)</h3>
+ <p>You are confident our method is right and suspect the <b>denominator</b> goes wrong somewhere, which also throws off the <b>rank</b>. That is a sound suspicion and a useful one to test, because the rank is 1 plus the number of pool funds with a higher return: <b>a pool that is wrong changes both numbers together</b>. So the order is:</p>
+ <div class="steps5">
+  <div><b>0. Terms first</b>Check Advisorkhoj&rsquo;s terms of use before reading anything (task A-6).</div>
+  <div><b>1. Is Advisorkhoj right?</b>Check <b>their</b> list and figures against AMFI&rsquo;s file: closed or merged schemes, duplicate options of one fund, wrong plan, old as-of date.</div>
+  <div><b>2. Is ours right?</b>Rebuild our pool independently and compare step by step. Include the end-date mix (F7).</div>
+  <div><b>3. Where does ours go wrong?</b>If anywhere: which step, which funds, how much it moves the total and the rank.</div>
+  <div><b>4. Proposals</b>Fix proposals for what is ours; evidence for what is theirs; a choice for what is only a definition.</div>
+ </div>
+ <p class="note">I will not assume either site is right at the start. Your confidence in our method is a hypothesis we test in step 2, and if it holds, the evidence says so.</p>
+
+ <h3 class="sub">What the user sees today</h3>
+ <p>On the Performance tab, each held fund has a rank for 1Y, 3Y and 5Y. Each is &ldquo;rank of total&rdquo;, and the total is <b>different for each period</b>.</p>
+ <div data-frame="rank-rows"></div>
+ <p class="note">Made-up fund and numbers. Notice 33, 29 and 21: the count shrinks as the period gets longer.</p>
+
+ <h3 class="sub">How the number is made (read in code)</h3>
+ <ol class="tight">
+  <li><b>The universe.</b> The AMFI daily price file (<code>NAVAll.txt</code>), every scheme in the same SEBI category. Category spellings are merged first (the same function Batch C uses for 17a).</li>
+  <li><b>Live funds only.</b> A scheme whose last price is more than 30 days old is dropped (closed funds and matured plans).</li>
+  <li><b>One series per fund.</b> Schemes are grouped by fund house and base name. Of each group, the series with the <b>same plan type</b> as the held fund (Direct with Direct, Regular with Regular) is kept, preferring the Growth option. A held IDCW plan is ranked by its fund&rsquo;s Growth series, and the screen says &ldquo;ranked as&rdquo;.</li>
+  <li><b>Excluded from the pool:</b> inactive schemes, and any <b>index fund or ETF</b> (by name words or category).</li>
+  <li><b>A return for each period.</b> Price on or before the start date and on or before today; 1Y, 3Y and 5Y return from those two prices. A fund with no price on or before the start date has no return for that period and is left out <b>of that period&rsquo;s count only</b>.</li>
+  <li><b>The rank</b> is 1 + the number of pool funds with a strictly higher return (equal returns share a rank). <b>The total is the number of funds in that period&rsquo;s pool.</b></li>
+ </ol>
+
+ <h3 class="sub">Why ours could differ from Advisorkhoj</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>#</th><th>Possible reason</th><th>Kind</th><th>How we find out</th></tr></thead>
+  <tbody>
+   <tr><td>R1</td><td>They count the <b>whole category</b>; we count funds with a return for that period (short-history funds are left out).</td><td>Definition</td><td>Exclusion ledger, step &ldquo;has a return&rdquo;</td></tr>
+   <tr><td>R2</td><td>They rank Direct and Regular together, or count them as separate funds; we rank like with like.</td><td>Definition</td><td>Ledger, step &ldquo;plan type&rdquo;</td></tr>
+   <tr><td>R3</td><td>They include or exclude index funds, ETFs and funds of funds differently.</td><td>Definition</td><td>Ledger, step &ldquo;index or ETF&rdquo;</td></tr>
+   <tr><td>R4</td><td>Their category is not the SEBI category of the same name, or merges categories.</td><td>Definition</td><td>Compare category names and members</td></tr>
+   <tr><td>R5</td><td>Different as-of dates for prices and returns.</td><td>Timing</td><td>Check both as-of dates; recompute on theirs</td></tr>
+   <tr><td>R6</td><td>A peer whose price history <b>failed to load</b> is silently left out of our pool.</td><td><b>Our bug</b></td><td>Ledger: schemes with no stored history</td></tr>
+   <tr><td>R7</td><td>The same fund is counted twice or two funds are merged because their &ldquo;base name&rdquo; was parsed differently.</td><td><b>Our bug</b></td><td>Ledger: groups with more than one member of the same plan</td></tr>
+   <tr><td>R8</td><td>The &ldquo;live within 30 days&rdquo; rule drops a fund that still trades but publishes late.</td><td>Definition or bug</td><td>Ledger: last price date of each dropped fund</td></tr>
+   <tr><td>R9</td><td>Our rule ranks strictly (ties share a rank); theirs may order ties differently.</td><td>Definition</td><td>Check ties in the fixture</td></tr>
+   <tr><td>R10</td><td><b>Advisorkhoj itself is wrong:</b> it counts closed or merged schemes, counts two options of one fund twice, mixes plans, or shows an old as-of date.</td><td><b>Their error</b></td><td>Their fund list against AMFI&rsquo;s file, scheme by scheme (step 1)</td></tr>
+   <tr><td>R11</td><td>Returns in our pool end on different dates because some fund houses had not published that day&rsquo;s NAV (F7).</td><td><b>Our bug</b></td><td>A table of every pool fund&rsquo;s end date; T10-4</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">The method: an independent recount and an exclusion ledger</h3>
+ <p>Instead of arguing from memory, we <b>recount the pool from the source</b> and write down every fund that is left out, with the reason. The funnel below is the one-page picture that goes in the evidence pack, one per category. The bars are illustrative.</p>
+ <div data-frame="funnel"></div>
+ <div class="steps5">
+  <div><b>1. Recount</b>A scratch script reads AMFI&rsquo;s file independently of the app&rsquo;s code and counts the category step by step.</div>
+  <div><b>2. Reconcile</b>The recount must equal the app&rsquo;s pool at every step. A mismatch is a finding (R6, R7, R8).</div>
+  <div><b>3. Returns spot check</b>For 5 funds, recompute the 1Y, 3Y and 5Y returns from a second price source and compare.</div>
+  <div><b>4. Read Advisorkhoj</b>For every held category (Q1), note their total, their fund list, rank and as-of date. Check <strong>their</strong> list against AMFI first, then place each difference in R1 to R11.</div>
+  <div><b>5. Conclude</b>Per category: <strong>same</strong>, <strong>different by definition</strong> (explained) or <strong>our error</strong> (fix planned).</div>
+ </div>
+
+ <h3 class="sub">What we test</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Test</th><th>Pass means</th></tr></thead>
+  <tbody>
+   <tr><td style="white-space:nowrap">T10-1</td><td>Our pool rebuilt independently from AMFI&rsquo;s file, step by step, for every held category.</td><td>Equal to the app&rsquo;s pool at every step; every difference named.</td></tr>
+   <tr><td style="white-space:nowrap">T10-2</td><td><b>Their</b> fund list and total against AMFI&rsquo;s file, scheme by scheme.</td><td>Each fund they count is a live scheme of that category and plan, counted once; or the difference is listed as their error (R10).</td></tr>
+   <tr><td style="white-space:nowrap">T10-3</td><td>Returns for 5 funds recomputed from a second price source.</td><td>Match to 2 decimal places.</td></tr>
+   <tr><td style="white-space:nowrap">T10-4</td><td>End dates: every pool fund&rsquo;s return end date (F7), and the rank on the mixed dates against the rank on one common date.</td><td>No pool fund ends earlier than the rest, or the effect on the rank is measured and fixed (FX-10c).</td></tr>
+   <tr><td style="white-space:nowrap">T10-5</td><td>The stored rank (built at 06:30) against a fresh computation in the evening (F8).</td><td>They agree, or the gap is measured and goes in the evidence.</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">Advisorkhoj: your decision (Q1: automated reading, every held category)</h3>
+ <div class="callout"><b>Two conditions on that choice.</b> (1) <b>Terms first.</b> You asked me to check their terms of use first. I do that before any reading (task A-6). If the terms forbid automated reading, I stop, tell you, and fall back to a manual sample of about 15 funds. (2) <b>The 8 Oct decision.</b> The team decided then not to scrape MoneyControl, AdvisorKhoj or CRISIL <em>for the product</em> (a legal and durability risk of re-displaying their ranking). This is verification only: nothing from their pages appears in the app or in anything stakeholders see except as cited evidence. I record that distinction in <code>decisions.md</code> on your go.</div>
+ <div class="scroll"><table>
+  <thead><tr><th>How we read their pages</th><th>Why</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Public pages only</td><td>No login, no paid area, no workaround of any block or limit.</td></tr>
+   <tr><td class="k">Slowly</td><td>A few requests a minute, so we do not load their service.</td></tr>
+   <tr><td class="k">Saved with a date</td><td>Each page we read is stored with the time we read it, so the evidence can be checked later.</td></tr>
+   <tr><td class="k">Not redistributed</td><td>Used for checking. Quoted only as the figures needed as evidence.</td></tr>
+   <tr><td class="k">If they change or block</td><td>We stop; we do not retry around it.</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">What we do with each result (proposed fixes, built after your review)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>If the ledger shows&hellip;</th><th>The fix</th><th>How we prove it</th></tr></thead>
+  <tbody>
+   <tr><td style="white-space:nowrap">FX-10a</td><td>A peer left out because its price history did not load (R6), two funds merged or one fund counted twice (R7), or a live fund dropped by the 30-day rule (R8).</td><td>Retry and complete the price history for every peer before a total is shown, so a load failure can no longer shrink the count silently; correct the grouping of schemes into funds; replace the 30-day rule with a better test if the ledger shows it drops live funds.</td><td>The recount and the app agree at every step of the funnel for all sampled categories, after the fix.</td></tr>
+   <tr><td style="white-space:nowrap">FX-10c</td><td>Returns in a pool end on different dates when some fund houses publish late (F7, R11).</td><td>Compute every pool fund&rsquo;s return to one common end date: the latest date on which almost all pool funds have a price. The rank and the total then describe the same moment. This should hold even after the later NAV job exists, so the code does not depend on timing.</td><td>A pool with deliberately mixed end dates ranks the same as the same pool on one common date; T10-4.</td></tr>
+   <tr><td style="white-space:nowrap">FX-10b</td><td>A difference that is only a definition (R1 to R5, R9).</td><td>A decision we bring you (section 12): keep ours and explain it, change ours, or show both.</td><td>The evidence page states which; any change has a test with the new definition.</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">What changes, by layer</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag be">backend</span></td><td>None for the investigation (new scratch scripts and tests only). For the fixes above: <code>analytics/scheme_universe.py</code> (pool building, the 30-day rule, base-name grouping), <code>analytics/category_ranking.py</code> (history loading) and <code>performance_ranking.py</code> (what counts toward a total), only the parts the ledger proves wrong.</td></tr>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td>None for the fixes. If the answer is &ldquo;different by definition&rdquo;, the line under the rank (for example &ldquo;among 33 active Direct Growth funds with a 3-year history&rdquo;) belongs to Batch E&rsquo;s explainers.</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>None.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 5. CATEGORY AVERAGE ============ -->
+<section id="i9">
+ <h2>5. Category average comparison: calculation and the Excel (item 9)</h2>
+ <p class="lead">Prove the numbers are right, fix anything that is not, and build the detailed Excel for stakeholders. This work moved here from Batch E. The legend and the &ldquo;i&rdquo; icon wording stay in Batch E, and they use this batch&rsquo;s result.</p>
+
+ <h3 class="sub">What the user sees today (read in code)</h3>
+ <div data-frame="cat-card"></div>
+ <p class="note">Made-up fund; the three rows use your three examples. A filled dot is the fund, a hollow dot is the category average; green means ahead, red means behind (from the card&rsquo;s own legend line). The sentence under the rows says how many funds the average covers for each period.</p>
+
+ <h3 class="sub">How the average is calculated (read in code)</h3>
+ <ol class="tight">
+  <li><b>Pool:</b> the same pool as the rank: same category and plan, one Growth series per fund, live in the last 30 days.</li>
+  <li><b>Eligibility floor:</b> a fund must have a <b>3-year return</b> to count in any period. So the 1Y average is over funds that also have 3 years of history.</li>
+  <li><b>Weighting:</b> each fund&rsquo;s return is weighted by its latest average assets under management (AAUM). A fund with no size on record is left out of the weighted figure and counted. If <b>no</b> fund has a size, a plain average is shown and flagged.</li>
+  <li><b>Three periods</b> (1Y, 3Y, 5Y), each with the number of funds it covers. A category with fewer than 5 funds is flagged &ldquo;thin&rdquo;.</li>
+  <li><b>A legacy figure</b> (40% of the 3Y and 60% of the 5Y return, weighted the same way) is still sent for desktop, print and phone views &ldquo;until the cleanup release&rdquo;.</li>
+ </ol>
+
+ <h3 class="sub">What we test, and what we fix</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Test</th><th>Pass means</th></tr></thead>
+  <tbody>
+   <tr><td style="white-space:nowrap">T9-1</td><td>Recompute the weighted average for 3 categories (one large, one thin, one with funds missing a size) in a spreadsheet from the same prices and sizes.</td><td>Equal to the app to 4 decimal places.</td></tr>
+   <tr><td style="white-space:nowrap">T9-2</td><td>The 3Y floor: a category where some funds have only 1Y or 2Y history.</td><td>They are excluded from all three averages, and the &ldquo;covers N funds&rdquo; counts match.</td></tr>
+   <tr><td style="white-space:nowrap">T9-3</td><td>Size data: how old is the AAUM, how many categories have funds with no size?</td><td>Stale or missing sizes are visible in the Excel, not hidden.</td></tr>
+   <tr><td style="white-space:nowrap">T9-4</td><td>The plain-average fallback and the &ldquo;thin&rdquo; flag.</td><td>Triggered only in the cases described, and labelled.</td></tr>
+   <tr><td style="white-space:nowrap">T9-5</td><td>The legacy blended figure against the period figures.</td><td>Consistent method; no screen shows a figure that contradicts another; the legacy figure is checked too.</td></tr>
+   <tr><td style="white-space:nowrap">T9-6</td><td>The rank pool and the average pool use the same funds (except the index-fund rule).</td><td>Differences are listed and explained.</td></tr>
+  </tbody>
+ </table></div>
+ <p><b>Fix FX-9a.</b> Any test above that fails is written up as a proposed fix for your review, then built with its failing test first (for example, a wrong weight, a stale size used silently, or a pool that differs from the rank&rsquo;s). The pool problems found for item 10 (FX-10a) fix this average too, because both read the same pool.</p>
+ <div class="callout good"><b>The three values (your answer, Q2).</b> You pasted three examples: <b>+1.2%</b> with <b>4.6% vs 3.4%</b>, <b>&minus;1.1%</b> with <b>12.8% vs 13.9%</b>, and <b>&minus;4.8%</b> with <b>6.4% vs 11.2%</b>. In the code each is one period&rsquo;s row on the card: a coloured <b>gap</b> (the fund minus the category average, green when ahead, red when behind) above <b>&ldquo;fund vs category average&rdquo;</b>. So &ldquo;the three values&rdquo; are the three period rows (1Y, 3Y, 5Y), each holding the gap and the two returns. I read it that way; tell me if you meant something else. The Excel&rsquo;s Read me explains all of it, and the legend in Batch E leads with it.</div>
+
+ <h3 class="sub">The Excel for stakeholders (moved here from Batch E)</h3>
+ <p>A single workbook that explains the category average <b>in as much detail as possible, for every category</b>, and lets a reader <b>check the arithmetic themselves</b>, because the averages are written as live Excel formulas over the listed funds, next to the value the app shows. It is built from the product&rsquo;s own functions, as the earlier chartered-accountant export is (<code>backend/scripts/export_ca_fund_metrics.py</code>, which calls <code>load_category_pool</code> and <code>category_rank_row</code> and contains no formula of its own), so it cannot drift from the screen.</p>
+ <div class="winbar" data-sec="i9"><span>Sheet</span><button type="button" data-v="summary" aria-pressed="true">Summary</button><button type="button" data-v="pool" aria-pressed="false">Pool</button><button type="button" data-v="checks" aria-pressed="false">Checks</button></div>
+ <div data-frame="xlsx"></div>
+ <p class="note">Invented funds and numbers. The real workbook has about 80 categories in two plans; each Summary figure is a formula over that category&rsquo;s rows in the Pool sheet.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Sheet</th><th>What it holds</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Read me</td><td>What the average is, in plain words; how to read the card (the fund dot, the category dot, the gap, the three periods; the three values as decided in Q2); the method in numbered steps; the date of every kind of figure (price date, size month, fund list date); what is left out and why; how to verify; export date and the version of the app.</td></tr>
+   <tr><td class="k">Summary</td><td>One row per category and plan: funds in the pool, funds covered in 1Y, 3Y and 5Y, the size-weighted average for each period <b>(an Excel formula)</b>, the plain average for comparison, funds without a size, the weighting used (size, or plain), the thin flag, the value the app shows, and the difference.</td></tr>
+   <tr><td class="k">Pool</td><td>One row per fund in each pool: category, plan, fund, fund house, size (&#8377; crore) and its month, returns for 1Y, 3Y and 5Y, whether it counts (3-year floor), its weight (a formula) and its contribution (a formula).</td></tr>
+   <tr><td class="k">Excluded</td><td>Every scheme left out of a pool, with the reason: not live, another plan type, a second option of the same fund, inactive, no 3-year history, no size.</td></tr>
+   <tr><td class="k">Worked examples</td><td>Three funds taken step by step, in the card&rsquo;s own shape: the gap, the fund&rsquo;s return against the category average, and how a reader would reproduce each number.</td></tr>
+   <tr><td class="k">Checks</td><td>For each category: Excel&rsquo;s recomputed average against the app&rsquo;s, the largest difference, whether the weights add to 100%, and the dates. A pass or fail per row.</td></tr>
+   <tr><td class="k">Glossary</td><td>AAUM, CAGR, category, plan, Growth and IDCW, thin category, eligibility floor, in plain words.</td></tr>
+  </tbody>
+ </table></div>
+ <p><b>Rules for the file.</b> Public fund data only: no household, folio, account or member data and no internal ids. The workbook is a deliverable, not committed; the script and its tests are. Every figure carries its date, and the Read me states plainly where a figure cannot be as of a single date (returns end at the latest price; size is monthly). Where the workbook has a number the app does not (the plain average), it is labelled &ldquo;for comparison only&rdquo;.</p>
+ <p><b>Scope and the chartered-accountant Excel (my defaults).</b> Every category, in both plans. The CA workbook is seven funds with five parameters; this one is every category and one parameter in depth. Both come from one export module, so the category-comparison sheet is built once. If the all-category build proves too large or slow, I narrow it to the categories your stakeholders hold and tell you.</p>
+
+ <h3 class="sub">What changes, by layer</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag be">backend</span></td><td><b>New:</b> an export script (for example <code>backend/scripts/export_category_average_excel.py</code>) and a small shared module for the workbook, with tests that open the generated file and check every formula against the product&rsquo;s own result. <b>Changed:</b> only what a failed test shows (FX-9a), most likely in <code>analytics/category_ranking.py</code> or the pool code shared with item 10.</td></tr>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td>None. The legend and &ldquo;i&rdquo; icon are Batch E.</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>None. The export is read-only: no insert, update or delete, and no price download, as in the CA export. The price history it needs must already be stored, which is one more reason this waits for the NAV fix.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 6. LOAD TIMES ============ -->
+<section id="i7">
+ <h2>6. Load times at about 40 lakh (item 7)</h2>
+ <p class="lead">Why is the Overview slow only for some people, and how long does every other page take? The method separates the server, the network and the laptop, so each cause is measured on its own.</p>
+
+ <h3 class="sub">What we know</h3>
+ <ul class="tight">
+  <li>It is fine on your laptop and your manager&rsquo;s, slow on some stakeholder laptops. That pattern points at the laptop, the browser, the network, or the <b>account</b> (a bigger household) rather than at the server alone.</li>
+  <li><b>What the Overview asks for</b> (read in code, <code>useMfDashboard.ts</code> and <code>OverviewPage.tsx</code>): holdings with the XIRR bundle, allocation, coverage gaps, history points, SIPs, and the stored per-fund analytics. About six requests, started together.</li>
+  <li><b>Work already done earlier:</b> a day-keyed holdings cache, a background price prefetch, and fixes for a stuck loading state (<code>Docs/orchestration/dashboard-nav-perf-handoff.md</code>, BUG-001 and BUG-002 notes). This batch builds on them, not from zero.</li>
+  <li><b>Server cost that grows with history:</b> XIRR is recomputed with exact decimals on every request that needs it (F6). It took <b>0.05 s</b> for 97 flows, <b>0.15 s</b> for 481, and <b>0.48 s</b> for 1,801 (<em>measured here</em>, invented flows, my machine, not the staging server). The dashboard calls it for Lifetime and for Current, once more when a rate is above 35% (the opening-balance check), and again on each Portfolio route that needs it. I found no cache.</li>
+ </ul>
+
+ <h3 class="sub">The suspects</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Suspect</th><th>Would explain &ldquo;only some laptops&rdquo;?</th><th>How we test it</th></tr></thead>
+  <tbody>
+   <tr><td>L1</td><td>Repeated pure-Decimal XIRR on large histories.</td><td>Only if those accounts have more transactions.</td><td>Time the routes on the 40L household; count calls per page.</td></tr>
+   <tr><td>L2</td><td>Cold caches: the first open of the day fetches prices live.</td><td>Yes, if slow users are the first of the day or on different data.</td><td>Cold and warm runs; check the cache keys.</td></tr>
+   <tr><td>L3</td><td>Many requests at once on a small server (one VM) and a single database.</td><td>Yes, if several people open it together.</td><td>Concurrent runs (2, 5, 10 users).</td></tr>
+   <tr><td>L4</td><td>Browser work: the big holdings table, the charts, and history points drawn on a slow CPU.</td><td><b>Yes.</b> Slow CPU or memory-starved laptops.</td><td>Browser performance recording with the CPU slowed 4&times; and 6&times;.</td></tr>
+   <tr><td>L5</td><td>Large downloads: the size of each reply and of the app files on a slow connection.</td><td><b>Yes.</b> Different network or VPN.</td><td>Network throttling (slow 4G) and a size table per request.</td></tr>
+   <tr><td>L6</td><td>Extensions, security software or VPN on those laptops.</td><td><b>Yes.</b></td><td>Intake form and a private-window test on one slow laptop.</td></tr>
+   <tr><td>L8</td><td>The state of the day&rsquo;s prices: before the later NAV job a day has partial prices and the screens may take a slower path; the later job adds server work.</td><td>Possibly: depends on when each person opens it.</td><td>Cold opens at about 07:00 and in the evening, before and after the later job exists.</td></tr>
+   <tr><td>L7</td><td>Those accounts are different: more members, more funds, no price for some funds (a retry loop).</td><td>Yes.</td><td>Ask which accounts; compare sizes (counts only, no personal data).</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">The test household (about 40 lakh)</h3>
+ <p>A repeatable <b>synthetic</b> household built from invented statements: the project already has synthetic statement files and a seeding script (<code>Docs/CAS Files/synthetic/</code>, <code>backend/scripts/seed_dev_household_member.py</code>, <code>portfolio_synthetic_gate.py</code>). Proposed shape (tell me in chat if you want a different one): 3 members, about 15 funds, 10 years of monthly SIPs plus some redemptions and switches, total value near &#8377;40 lakh. A second smaller household (about &#8377;5 lakh) shows how time grows with size. Your real household stays untouched unless you choose otherwise.</p>
+
+ <h3 class="sub">What we measure, page by page</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Page</th><th>What to measure</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Home, Portfolio (summary, allocation, value series), Planning, History, Import history, Profile</td><td>Time until the page is usable, the number and size of requests, the slowest request.</td></tr>
+   <tr><td class="k">Mutual Funds: Overview, Transactions, Holdings, Performance, Overlap, Other Analytics, Allocation</td><td>The same, cold and warm, for Family Combined and for one member.</td></tr>
+   <tr><td class="k">Fund page (one fund, a few funds)</td><td>The same, with the existing fund-page timing script as a base (<code>measure_fund_page_staging.py</code>).</td></tr>
+  </tbody>
+ </table></div>
+ <p><b>Each number is taken three ways:</b> <b>server</b> (how long each route takes on its own, from the existing timing scripts and a small timing wrapper), <b>network</b> (a browser waterfall: when each request starts and ends, and the size), and <b>browser</b> (the main-thread work, with the CPU slowed down to imitate a weak laptop). The waterfall below shows the shape of what we will draw for the Overview, with made-up durations.</p>
+ <div data-frame="waterfall"></div>
+ <p class="note">Illustrative only. The orange bar is a request that stays slow for the whole page; the real durations come from the measurement.</p>
+
+ <h3 class="sub">Proposed speed targets (tell me in chat to change them)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Page</th><th>Warm (second open)</th><th>Cold (first open of the day)</th></tr></thead>
+  <tbody>
+   <tr><td>Mutual Funds Overview, 40L</td><td>usable in 3 seconds</td><td>usable in 8 seconds</td></tr>
+   <tr><td>Every other page, 40L</td><td>usable in 2 seconds</td><td>usable in 5 seconds</td></tr>
+   <tr><td>A weak laptop (CPU slowed 4&times;)</td><td>no more than 2&times; the targets above</td><td>no more than 2&times;</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">These are proposals, not measurements, and not taken from any existing standard in the repo.</p>
+
+ <h3 class="sub">What we do with each cause (proposed fixes, built after your review)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>If measured as a cause</th><th>The fix</th><th>How we prove it</th></tr></thead>
+  <tbody>
+   <tr><td style="white-space:nowrap">FX-7a</td><td>L1: XIRR recomputed many times per visit.</td><td>Compute the XIRR once per request and reuse it across the tiles and the routes that need it; keep a stored result per household and day, invalidated by an import or a price update the way the holdings cache already is. If the solver is still the main cost, make it faster <b>without changing a single result</b> (the 25 fixtures must agree to 1e-9).</td><td>Server time of the affected routes before and after on the 40L household; T8-1 unchanged.</td></tr>
+   <tr><td style="white-space:nowrap">FX-7b</td><td>L2 and L3: cold caches, many requests at once.</td><td>Warm the day&rsquo;s prices and results earlier (the daily job already prefetches; extend it to the pieces that are slow), and limit how many heavy computations run at the same moment.</td><td>Cold-open time and the 5- and 10-user runs, before and after.</td></tr>
+   <tr><td style="white-space:nowrap">FX-7c</td><td>L4: the browser does too much at once on a weak CPU.</td><td>Load the lower cards only when they come into view, draw long tables in parts, and do the chart and sparkline work after the first usable paint.</td><td>Browser recording at 4&times; and 6&times; slow CPU, before and after.</td></tr>
+   <tr><td style="white-space:nowrap">FX-7d</td><td>L5: large replies and app files on a slow connection.</td><td>Trim what each route sends to what the screen draws, compress, and split the app code so the first page loads only what it needs.</td><td>Bytes per request and time on throttled 4G, before and after.</td></tr>
+   <tr><td style="white-space:nowrap">L6, L7</td><td>Extensions or VPN; accounts of unusual shape.</td><td>L6 is outside the app: we document what we found and the setting to change. L7 gets its own fix once the account facts are in.</td><td>The same laptop before and after, where possible.</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">Each fix has an expected gain written <b>before</b> it is built, and a measured gain after. The fixes are chosen from the measured causes, not before; that is why the measuring comes first.</p>
+
+ <h3 class="sub">What I need from the stakeholders&rsquo; slow laptops</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Ask</th><th>Why</th></tr></thead>
+  <tbody>
+   <tr><td>Laptop model, processor, memory</td><td>L4</td></tr>
+   <tr><td>Browser and version; private window or normal; extensions</td><td>L4, L6</td></tr>
+   <tr><td>Network: office Wi-Fi, home, VPN, phone hotspot</td><td>L5</td></tr>
+   <tr><td>Which account and roughly how big (members, funds), no names</td><td>L7</td></tr>
+   <tr><td>When it was slow: the first open of the day, or always; the page and the time of day</td><td>L2, L3</td></tr>
+   <tr><td>How slow: a rough stopwatch time to a usable page, and what they see while waiting</td><td>baseline</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">What changes, by layer</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag be">backend</span></td><td>First, measurement: a timing helper behind the staging flag and new scripts. Then the chosen fixes: the one-time XIRR computation and its stored result, a faster solver that returns identical results, the earlier warming, and a limit on simultaneous heavy work (FX-7a, FX-7b).</td></tr>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td>The chosen fixes: lazy-loaded lower cards, tables drawn in parts, chart work after first paint, smaller replies and app files (FX-7c, FX-7d). Which of these is needed depends on the measurements.</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>None expected. If a slow query needs an index, or the stored XIRR result needs a table, that is a migration, and I flag it before building it.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 7. EVIDENCE ============ -->
+<section id="evidence">
+ <h2>7. The evidence pack for stakeholders</h2>
+ <p class="lead">What your stakeholders actually receive. Written in plain words, issued only from post-fix runs, and nothing in it contains a name, a folio or an account. Each document says <b>what was found and what we changed</b>, not only what we checked.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Item</th><th>Document</th><th>What it contains</th></tr></thead>
+  <tbody>
+   <tr><td class="k">8. XIRR</td><td>&ldquo;How we calculate XIRR, the check, and what we fixed&rdquo; (one to two pages)</td><td>The formula in words, the convention, the cash-flow rules, a table of 25 sets with our value, the independent value and Excel&rsquo;s value, and a before and after for each fix (FX-8a to FX-8e).</td></tr>
+   <tr><td class="k">10. Rank</td><td>&ldquo;How the rank is counted, and what we fixed&rdquo; (one page per category, plus a summary)</td><td>The funnel from the whole category to the pool, the excluded-funds list with reasons, the comparison with Advisorkhoj for the sample, what was ours and fixed, and what is a definition difference (with your decision).</td></tr>
+   <tr><td class="k">9. Category average</td><td><b>The Excel</b> (section 5) and a one-page note</td><td>The workbook for every category, with live formulas and checks; the note says how the average is calculated, what was fixed, and how to read the workbook. The legend in the app is Batch E.</td></tr>
+   <tr><td class="k">7. Load times</td><td>&ldquo;Speed at 40 lakh, before and after&rdquo; (one page)</td><td>A table of every page, cold and warm, before and after each fix, the causes found, what remains, and the effect on weak laptops.</td></tr>
+  </tbody>
+ </table></div>
+ <p><b>Format and home (my default).</b> The working notes go to <code>Docs/orchestration/</code> as <code>.md</code> files, per your standing rule. The stakeholder-facing version is a short HTML or PDF page per item, plus the item 9 Excel. The 25-set XIRR table and the exclusion ledgers can go into one more Excel. The Excel files are deliverables and are not committed; the scripts that build them are. I do not publish the stakeholder pack anywhere without your go.</p>
+</section>
+
+<!-- ============ 8. STRATEGY ============ -->
+<section id="strategy">
+ <h2>8. Orchestrator and workers</h2>
+ <p class="lead">Same rules as Batches B and C, with one difference: most of the work is <b>reading, measuring and writing evidence</b>, not building.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Role</th><th>Who</th><th>What they do in Batch A</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Orchestrator</td><td>Claude</td><td>Writes each spec; finds the root cause and writes each fix as a proposal for your review; reads every result; writes the stakeholder pack; runs the affected tests. <b>Builds nothing until you approve the proposal.</b></td></tr>
+   <tr><td class="k">Code worker</td><td>Codex</td><td>Builds the fixtures, the independent calculators, the timing helper and the Excel exporter; writes the failing tests; builds every fix. Codex cannot commit; I do, only when you say.</td></tr>
+   <tr><td class="k">Research</td><td>Claude (read-only)</td><td>The AMFI recount, the Advisorkhoj terms check, the second price source for the returns check, the root-cause and fix designs, the Excel&rsquo;s Read me and glossary text. Public data only.</td></tr>
+   <tr><td class="k">Visual worker</td><td>Antigravity (Gemini)</td><td><b>Not used.</b> No new screen is planned: the fixes are numbers and speed, and the workbook is a spreadsheet. The evidence documents are written by me.</td></tr>
+   <tr><td class="k">Reviewer</td><td>Codex adversarial review</td><td>One review per handoff, then one whole-batch review before anything reaches stakeholders.</td></tr>
+  </tbody>
+ </table></div>
+ <p><b>Hard rules for this batch</b> (from the project&rsquo;s own runbooks): the investigation and the Excel export are <b>read-only</b> on staging except for the test household you agree to; <b>no code is changed before you approve the fix proposal</b>; fixes reach staging only through the normal deploy; never run <code>clean-db</code>, <code>restore</code>, <code>rollback</code> or a deploy; no real folio, name or account data in any note or file; every measurement script prints counts and times only; I run only the test files each change touches.</p>
+
+ <h3 class="sub">Lanes that can run at the same time</h3>
+ <div class="cols">
+  <div class="doc"><h4>Lane 1: XIRR (item 8)</h4><ul><li>Fixtures, the independent solver, the caller audit, T8-1 to T8-9, then FX-8a to FX-8e.</li><li>Shares <code>dashboard/xirr.py</code> with Lane 3&rsquo;s FX-7a.</li></ul></div>
+  <div class="doc"><h4>Lane 2: rank and average (items 10 and 9)</h4><ul><li>One lane: both use the same pool code (<code>category_ranking.py</code>, <code>scheme_universe.py</code>).</li><li>Starts with the recount, which needs no prices; then FX-10a, FX-9a. Lane 4 reads its result.</li></ul></div>
+  <div class="doc"><h4>Lane 3: load times (item 7)</h4><ul><li>Test household, timing helper, intake form, measurements, then the speed fixes.</li><li>Needs the post-fix environment for official numbers. Its XIRR fix (FX-7a) shares <code>dashboard/xirr.py</code> with Lane 1, so those two go in order, not at once.</li></ul></div>
+  <div class="doc"><h4>Lane 4: category-average Excel (item 9)</h4><ul><li>The exporter module, the workbook, its tests and its checks.</li><li>Starts with synthetic data now; real data after the NAV fix.</li></ul></div>
+ </div>
+ <h3 class="sub">What each handoff contains</h3>
+ <div class="steps5">
+  <div><b>1. Question</b>The one question the lane answers, and what &ldquo;correct&rdquo; means.</div>
+  <div><b>2. Facts to re-check</b>Every &ldquo;read in code&rdquo; line the worker confirms before starting.</div>
+  <div><b>3. Fixtures</b>Exactly which invented data to build and the expected answers.</div>
+  <div><b>4. Do not touch</b>Production behaviour; real data; the solver&rsquo;s results (they are the thing being tested).</div>
+  <div><b>5. Output</b>Counts, times and tables only, in a named file.</div>
+  <div><b>6. Report</b>What passed, what failed, and anything surprising.</div>
+ </div>
+</section>
+
+<!-- ============ 9. PROGRAM ============ -->
+<section id="program">
+ <h2>9. Fit with the other batches</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Other batch</th><th>Relationship</th></tr></thead>
+  <tbody>
+   <tr><td class="k">NAV fix (your manager)</td><td>This batch depends on it for official numbers and for the fix builds, and it must be told about F8: a recompute should follow the later price job. Item 10&rsquo;s common end date (FX-10c) means the rank does not depend on the job&rsquo;s timing.</td></tr>
+   <tr><td class="k">C (holdings hygiene)</td><td>17a left this batch (decided). Batch C&rsquo;s category merge helps Lane 2: the same function builds the rank pool, so both batches agree on category names.</td></tr>
+   <tr><td class="k">B (journey quick wins)</td><td>The &ldquo;All set&rdquo; screen promises &ldquo;Your dashboard is ready&rdquo;. If the Overview is slow, that promise is only true if load times are fixed. Lane 3&rsquo;s result is an input to Batch B&rsquo;s copy.</td></tr>
+   <tr><td class="k">D (charts)</td><td>D reads the same prices. Its charts add load: Lane 3 measures the Overview before D, and again after, so the cost of the new graph is known.</td></tr>
+   <tr><td class="k">E (explainability and dates)</td><td>The <b>Excel for item 9 is now built here</b>. E keeps the category-average legend and &ldquo;i&rdquo; icon wording, the rank explainer, the XIRR wording and the date policy for item 11. E needs this batch&rsquo;s verdicts and fixes first (finding F3 shows the final XIRR flow is dated differently from the price).</td></tr>
+   <tr><td class="k">I (PDF export)</td><td>The PDF must show the same XIRR and ranks. Any fix here changes what the PDF prints, so it waits for this batch.</td></tr>
+   <tr><td class="k">G (GA4)</td><td>A page-load timing event is useful later. It is not part of this batch.</td></tr>
+   <tr><td class="k">K (search)</td><td>Search adds one request per page; Lane 3 budgets for it.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>Migrations: none planned.</b> If a slow query needs an index, or the stored XIRR result needs a table, that would be the first migration in the batch, and I flag it in the Lane 3 findings before building it. Batch B may take 0054; Batch C takes none; this batch takes the next free number at build time.</div>
+ <p><b>Deploy.</b> This batch now ships changes, so it rides in a staging milestone (the one you choose in Batch B&rsquo;s Q26). Because XIRR, rank and average results change, the deploy also needs the one-time recompute of stored analytics, as in Batch C&rsquo;s Q10. The deploy guide lists the numbers users will see change, with before and after.</p>
+</section>
+
+<!-- ============ 10. TASKS ============ -->
+<section id="tasks">
+ <h2>10. Task list</h2>
+ <p class="lead">Twenty-four tasks. &ldquo;After the fix&rdquo; means after the NAV fix lands. Sizes: S about half a day, M one to two days, L more. Every fix build waits for your approval of its proposal and starts with a failing test.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Item</th><th>Task</th><th>Worker</th><th>Size</th><th>When</th></tr></thead>
+  <tbody>
+   <tr><td>A-1</td><td>all</td><td>Re-check every &ldquo;read in code&rdquo; line; write one spec per lane</td><td>Claude</td><td>M</td><td>After your answers</td></tr>
+   <tr><td>A-2</td><td>8</td><td>Build the 25 cash-flow fixtures and the independent calculator; run T8-1, T8-2, T8-3, T8-8, T8-9</td><td>Codex</td><td>M</td><td>Now (no prices)</td></tr>
+   <tr><td>A-3</td><td>8</td><td>Run the price and dating tests T8-4 to T8-7</td><td>Codex</td><td>S</td><td>After the fix</td></tr>
+   <tr><td>A-4</td><td>8</td><td>XIRR root-cause note and fix proposals FX-8a to FX-8e, <b>for your review</b></td><td>Claude</td><td>S</td><td>After A-2, A-3</td></tr>
+   <tr><td>A-5</td><td>8</td><td>Build the FX-8 fixes <b>you approved</b>, each with its failing test first</td><td>Codex</td><td>M</td><td>After your approval and the NAV fix</td></tr>
+   <tr><td>A-6</td><td>10</td><td>Advisorkhoj terms-of-use check; the go or no-go for automated reading (Q1)</td><td>Claude</td><td>S</td><td>First (Q1)</td></tr>
+   <tr><td>A-7</td><td>10, 9</td><td>Independent AMFI recount script and the exclusion ledger for the sampled categories</td><td>Codex</td><td>M</td><td>Now (no prices)</td></tr>
+   <tr><td>A-8</td><td>10</td><td>Reconcile the ledger with the app&rsquo;s pool; returns spot check on 5 funds</td><td>Codex</td><td>M</td><td>After the fix</td></tr>
+   <tr><td>A-9</td><td>10</td><td>Read Advisorkhoj for every held category, and check <b>their</b> list against AMFI first (if their terms allow; otherwise a manual sample)</td><td>Claude, or you</td><td>M</td><td>After A-8</td></tr>
+   <tr><td>A-10</td><td>10</td><td>Rank root-cause note and proposals FX-10a, FX-10b, <b>for your review</b></td><td>Claude</td><td>S</td><td>After A-8, A-9</td></tr>
+   <tr><td>A-11</td><td>10, 9</td><td>Build the FX-10 fixes <b>you approved</b> (FX-10b only if you choose to change the definition), failing tests first</td><td>Codex</td><td>M</td><td>After your approval and the NAV fix</td></tr>
+   <tr><td>A-12</td><td>9</td><td>Category-average checks T9-1 to T9-6; if any fails, a proposal FX-9a for your review, then the fix once approved</td><td>Codex, Claude</td><td>M</td><td>After the fix</td></tr>
+   <tr><td>A-13</td><td>9</td><td>Excel design sign-off: your review of the sheets and the mockup</td><td>Claude, you</td><td>S</td><td>Now</td></tr>
+   <tr><td>A-14</td><td>9</td><td>Build the exporter module and the workbook, with tests that check every formula; synthetic data first</td><td>Codex</td><td>L</td><td>Now (synthetic), real data after the fix</td></tr>
+   <tr><td>A-15</td><td>9</td><td>Verify the Excel: formulas against the app, 10 funds checked by hand, dates and Read me</td><td>Claude</td><td>M</td><td>After A-14 on real data</td></tr>
+   <tr><td>A-16</td><td>7</td><td>Build the 40L and 5L synthetic households and the timing helper</td><td>Codex</td><td>M</td><td>Now</td></tr>
+   <tr><td>A-17</td><td>7</td><td>Write the slow-laptop intake form; you send it to stakeholders</td><td>Claude, you</td><td>S</td><td>Now</td></tr>
+   <tr><td>A-18</td><td>7</td><td>Measure every page: server, network, browser (cold and warm, throttled)</td><td>Codex, you</td><td>L</td><td>After the fix</td></tr>
+   <tr><td>A-19</td><td>7</td><td>Root causes and speed-fix proposals with an expected gain for each, <b>for your review</b></td><td>Claude</td><td>M</td><td>After A-18</td></tr>
+   <tr><td>A-20</td><td>7</td><td>Build the FX-7 fixes <b>you approved</b>; re-measure each</td><td>Codex</td><td>L</td><td>After your approval of A-19</td></tr>
+   <tr><td>A-21</td><td>all</td><td>Adversarial review per handoff, then the whole batch</td><td>Codex, Claude</td><td>M</td><td>Before anything reaches staging</td></tr>
+   <tr><td>A-22</td><td>all</td><td>Staging deploy guide and QA checklist, with the list of numbers users will see change and the one-time recompute</td><td>Claude</td><td>M</td><td>After A-21</td></tr>
+   <tr><td>A-23</td><td>all</td><td>Evidence pack for stakeholders (section 7)</td><td>Claude</td><td>M</td><td>After staging passes</td></tr>
+   <tr><td>A-24</td><td>all</td><td>Update <code>decisions.md</code>, <code>session.md</code>, the Notion pack and Batch E&rsquo;s notes (Excel moved here), on your go</td><td>Claude</td><td>S</td><td>Last</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">A-2, A-7, A-13, A-14 (synthetic part), A-16 and A-17 need no prices and can start before the NAV fix.</p>
+</section>
+
+<!-- ============ 11. RISKS ============ -->
+<section id="risks">
+ <h2>11. Risks, tests and checks</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Risk</th><th>Item</th><th>What we do</th></tr></thead>
+  <tbody>
+   <tr><td>We report a &ldquo;wrong&rdquo; number that is only the NAV bug</td><td>8, 10, 9</td><td>No claim from pre-fix runs. Post-fix reruns, and both results shown.</td></tr>
+   <tr><td>The independent calculator shares a mistake with the app</td><td>8</td><td>Use a different method <b>and</b> Excel as a third reference; Excel is the tie-breaker.</td></tr>
+   <tr><td>Advisorkhoj terms forbid the comparison we planned</td><td>10</td><td>Check first (A-6). If they forbid automated reading, stop, tell you, and use a manual sample of about 15 funds.</td></tr>
+   <tr><td>Their page changes or blocks us mid-reading</td><td>10</td><td>Stop; no workaround; use what was saved, with its date.</td></tr>
+   <tr><td>We read their pages in a way that breaks their rules or loads their service</td><td>10</td><td>Public pages only, a few requests a minute, no login, terms checked first.</td></tr>
+   <tr><td>We assume our method is right and miss a fault in it</td><td>10</td><td>Step 2 tests our pool as hard as theirs; the end-date mix (F7) is tested even though the denominator is the main suspect.</td></tr>
+   <tr><td>The answer is &ldquo;different by definition&rdquo; and stakeholders still want theirs</td><td>10</td><td>You decide whether to change the definition once the evidence is in; explainers live in Batch E.</td></tr>
+   <tr><td>A synthetic household does not behave like a real large one</td><td>7</td><td>Match counts to a real account&rsquo;s sizes (counts only); confirm on your real household only if you allow it.</td></tr>
+   <tr><td>Measuring on staging disturbs other testers</td><td>7</td><td>Agree a quiet window; concurrent tests last minutes; read-only routes.</td></tr>
+   <tr><td>The slow laptops cannot be reproduced</td><td>7</td><td>CPU and network throttling; one screen-share with a slow laptop if the form is not enough.</td></tr>
+   <tr><td>A fix changes numbers the PDF, GA4 or search already assume</td><td>8, 10</td><td>Listed in section 9; each fix passes the T8-1 set unchanged.</td></tr>
+   <tr><td>A fix changes numbers users already see, and a stakeholder asks why</td><td>8, 10, 9</td><td>Every fix has a before and after on the same fixture; the deploy guide lists the user-visible changes; the evidence pack explains each.</td></tr>
+   <tr><td>A fix to the shared pool or XIRR code breaks another screen, the PDF export or search</td><td>8, 10, 9, 7</td><td>The existing XIRR, ranking and category tests must pass unchanged; the affected screens are on the QA checklist; Lanes 1 and 3 touch <code>dashboard/xirr.py</code> in order, not at once.</td></tr>
+   <tr><td>Stored analytics keep the old numbers after the deploy</td><td>8, 10, 9</td><td>One-time recompute during the staging deploy (as in Batch C).</td></tr>
+   <tr><td>The speed fix changes a result in the last decimal places</td><td>7</td><td>The 25 fixtures must agree to 1e-9 before and after; any difference blocks the change.</td></tr>
+   <tr><td>The Excel disagrees with the app, or claims more accuracy than it has</td><td>9</td><td>Formulas are checked against the product&rsquo;s own result by a test; the Read me states every date and limit; 10 funds checked by hand.</td></tr>
+   <tr><td>The all-category Excel is too large or too slow to build</td><td>9</td><td>Built read-only from stored prices; size and run time measured early; narrowing to the categories your stakeholders hold is the fallback.</td></tr>
+   <tr><td>Real data leaks into the evidence or the Excel</td><td>all</td><td>Invented households only; public fund data only in the Excel; counts and times only elsewhere; a last check before anything is sent.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Tests, in short</h3>
+ <ul class="tight">
+  <li><b>New backend tests (pytest), affected files only:</b> the XIRR fixtures and the independent calculator under <code>backend/tests/services/</code>, one failing test per fix, the pool recount, the category-average recompute, and the Excel formula tests. Existing: <code>test_xirr.py</code>, <code>test_xirr_fast.py</code>, <code>test_xirr_steep_declines.py</code> must keep passing unchanged.</li>
+  <li><b>Frontend:</b> only the components a speed fix or the short-period rule touches; then only those tests.</li>
+  <li><b>By measurement:</b> the tables in sections 3 to 6, with a date and an environment on every one.</li>
+  <li>Red before green for every fix: the failing test is written and shown failing first.</li>
+ </ul>
+</section>
+
+<!-- ============ QUESTIONS ============ -->
+<section id="questions">
+ <h2>12. Questions</h2>
+ <p class="lead">Four questions, all answered on 13 Nov and locked. Each card shows the option you chose, my original pick, and your note. Tell me in chat if you want one reopened. Below them: the defaults I will use, and the two decisions I will bring you later with evidence.</p>
+ <div class="bar"><span class="status" id="prog">0 of 4 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
+ <div id="cards"></div>
+ <h3 class="sub">Defaults I will use (tell me in chat if you want any changed)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Topic</th><th>Default</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Which XIRR figures</td><td>All of them: the two portfolio figures, the per-fund figure, the fund page, the benchmark and the window figures.</td></tr>
+   <tr><td class="k">XIRR reference</td><td>Excel&rsquo;s XIRR on the same flows, plus a separately written high-precision solver; Excel breaks any tie.</td></tr>
+   <tr><td class="k">A held fund with no price</td><td>Always find a price (FX-8a); never show a note about an excluded fund.</td></tr>
+   <tr><td class="k">Date of the final XIRR flow</td><td>The date of the price used.</td></tr>
+   <tr><td class="k">Rank check size</td><td>Every held category (your answer to Q1), each with a full recount.</td></tr>
+   <tr><td class="k">Legacy blended average</td><td>Verified and fixed along with the period averages.</td></tr>
+   <tr><td class="k">Excel scope and shape</td><td>Every category in both plans, live formulas, built from the product&rsquo;s own functions, one export module shared with the CA workbook.</td></tr>
+   <tr><td class="k">Test household</td><td>Synthetic: 3 members, about 15 funds, 10 years, about &#8377;40 lakh, plus a smaller one. Your real household only if you allow it.</td></tr>
+   <tr><td class="k">Where we measure</td><td>Staging for the official numbers, a local run only to separate server from laptop effects; a labelled baseline before the NAV fix.</td></tr>
+   <tr><td class="k">Slow-laptop facts</td><td>I write the one-page form (section 6); you send it; a screen-share with one slow laptop if the form is not enough.</td></tr>
+   <tr><td class="k">Speed targets</td><td>The proposals in section 6.</td></tr>
+   <tr><td class="k">Fixes</td><td><b>Review gate:</b> every fix is first proposed to you (root cause, evidence, proposed change, before and after, risk). It is built only after you approve it, one proposal at a time.</td></tr>
+   <tr><td class="k">Evidence format</td><td>Working notes as <code>.md</code> in <code>Docs/orchestration/</code>; stakeholder pages as HTML or PDF; the Excel files as downloads, not committed.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Decisions I will bring you later, with the evidence in hand</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Decision</th><th>When it comes up</th><th>What you will see</th></tr></thead>
+  <tbody>
+   <tr><td class="k">If our rank total differs from Advisorkhoj only by definition: keep ours and explain it, change ours, or show both</td><td>After the exclusion ledger and the Advisorkhoj reading</td><td>The funnel for each category, the differences placed in R1 to R11, and my recommendation.</td></tr>
+   <tr><td class="k">How a fund held under a year shows its return (FX-8e)</td><td>After the edge-case tests</td><td>The same fund shown three ways with real numbers, and my recommendation.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="copy">
+ <h2>13. Copy my answers</h2>
+ <p class="lead">Press the button, then paste the text in chat. If it does nothing, select the text below and copy it yourself.</p>
+ <button id="copyBtn" type="button">Copy my answers</button> <span class="status" id="copyMsg"></span>
+ <label class="nl" for="outTa">Your answers as text</label>
+ <textarea id="outTa" class="out" readonly></textarea>
+</section>
+
+<section id="prov">
+ <h2>What I checked</h2>
+ <p><b>Read today, read-only, by me:</b> <code>analytics/xirr.py</code>, <code>dashboard/xirr.py</code>, <code>lot_rules.py</code> (<code>paid_amount</code>), <code>dashboard/cash_flow.py</code>, <code>dashboard/holdings.py</code> (the no-NAV branch), <code>analytics/benchmark.py</code> (per-fund XIRR), <code>fund_page/summary.py</code>, <code>api/portfolio.py</code>; <code>analytics/performance_ranking.py</code>, <code>category_ranking.py</code>, <code>scheme_universe.py</code>; the Overview and its hooks, <code>SummaryStrip.tsx</code> and <code>CategoryRankingGroup.tsx</code>; the 8 Oct decision on scraping; the earlier performance notes (titles and openings only); on 13 Nov also <code>deploy/leapswitch/crontab.leapswitch</code> (the 06:00 and 06:30 jobs), the category row in <code>CategoryRankingGroup.tsx</code>, <code>dashboard/nav.py</code> (how a price lookup can return nothing) and the earlier chartered-accountant Excel spec and export script.</p>
+ <p><b>Measured:</b> one run of the app&rsquo;s own XIRR solver on three sets of invented monthly flows (97, 481 and 1,801 flows) on my machine. This says how cost grows with history. It does not say how long staging takes or what a stakeholder&rsquo;s laptop sees.</p>
+ <p><b>Not done:</b> nothing was run on staging; no real data was read; no price was fetched; I did not open Advisorkhoj or its terms; I did not read every performance note in full, the performance and overlap tabs&rsquo; frontend code, or the route handlers for the other pages. The NAV bug is as you described it (a later job for fund houses that publish late). I have not seen its design, so I do not know whether it triggers a recompute (F8) or exactly which price fallbacks already exist. The list of other XIRR callers (benchmark windows, fund page returns) is from search results, not a full read.</p>
+ <p><b>Drawn, not measured:</b> every mockup, funnel and waterfall is my reconstruction with invented funds and numbers. The speed targets in section 6 are proposals. Nothing was committed or deployed.</p>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+function vp(inner,w,h,cls,attrs){return '<div class="vp '+(cls||'')+'" data-w="'+w+'"'+(h?' data-h="'+h+'"':'')+(attrs||'')+'><div class="vp-in">'+inner+'</div></div>'}
+function chrome(url){return '<div class="chrome"><i></i><i></i><i></i><span>'+url+'</span></div>'}
+
+/* ---- item 8: XIRR tile ---- */
+function xirrTile(v){
+ var val=v==='f1'?'6.1%':'9.4%';
+ var extra=v==='f1'?'<div class="note-box circ" style="margin-top:10px">One fund has no price today. Its purchases are counted, its value is not, so the rate falls. <b>Nothing on screen says so.</b></div>':'';
+ var tiles='<div class="ap-tile"><small>Total portfolio value</small><b>&#8377;40,12,300</b></div><div class="ap-tile"><small>Invested</small><b>&#8377;31,40,000</b></div><div class="ap-tile"><small>Unrealised</small><b>+&#8377;8,72,300</b></div>';
+ var x='<div class="ap-tile"><div class="row"><small>XIRR</small><span class="seg"><span class="on">Lifetime</span><span>Current</span></span></div><b>'+val+'</b><small>Since inception</small>'+extra+'</div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds')+'<div class="ap"><div class="ap-body"><div class="ap-tiles">'+tiles+x+'</div></div></div>',1100,0);
+}
+/* ---- item 10: rank rows ---- */
+function rankRows(){
+ var f=function(n,c,a,b,d,hl){return '<tr><td><div class="ap-fund"><span class="ap-logoc">'+n.charAt(0)+'</span><div><b>'+n+'</b><div class="ap-mut">'+c+'</div></div></div></td><td><span class="rk'+(hl?' circ':'')+'">7<small>of 33</small></span></td><td><span class="rk'+(hl?' circ':'')+'">6<small>of 29</small></span></td><td><span class="rk'+(hl?' circ':'')+'">5<small>of 21</small></span></td></tr>'};
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/performance')+'<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Performance ranking</h5><p class="ap-mut" style="margin-bottom:10px">Rank within category and plan, for each period.</p><table class="ap-t"><thead><tr><th>Fund</th><th>1 year</th><th>3 years</th><th>5 years</th></tr></thead><tbody>'+f('Alpha Flexi Cap Fund','Flexi Cap &middot; Direct plan',0,0,0,true)+'</tbody></table></div></div></div>',1000,0);
+}
+/* ---- item 10: funnel ---- */
+function funnel(){
+ var rows=[['Every scheme in the category (AMFI file)',61,0],['Live: price within 30 days',55,0],['One series per fund, same plan (Direct), Growth',41,0],['Active and not an index fund or ETF',38,0],['Has a 1-year return  (the app&rsquo;s total for 1Y)',33,1],['Has a 5-year return  (the app&rsquo;s total for 5Y)',21,1]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Flexi Cap, Direct: how the total is counted</h5><p class="ap-mut" style="margin-bottom:12px">One page of the evidence pack. Numbers invented.</p><div class="fn">';
+ rows.forEach(function(r){h+='<div class="r"><span>'+r[0]+'</span><div><div class="b'+(r[2]?' x':'')+'" style="width:'+Math.round(r[1]/61*100)+'%"></div></div><span class="n">'+r[1]+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">Each step lists the funds that dropped out and why. The app&rsquo;s result must match every step; a gap is a finding.</p></div></div></div>';
+ return vp(h,900,0);
+}
+/* ---- item 9: category card ---- */
+function catCard(){
+ var rows=[['1Y',58,50,'+1.2%','4.6% vs 3.4%',true],['3Y',44,50,'&minus;1.1%','12.8% vs 13.9%',false],['5Y',30,62,'&minus;4.8%','6.4% vs 11.2%',false]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><div class="ap-fund"><span class="ap-logoc">A</span><div><b>Alpha Flexi Cap Fund</b><div class="ap-mut">Flexi Cap &middot; Direct plan</div></div></div><div class="cmp" style="margin-top:14px">';
+ rows.forEach(function(r){var c=r[5]?'#15803D':'#D92D20';h+='<div class="p"><b>'+r[0]+'</b><div class="trk"><span class="d c" style="left:'+r[2]+'%"></span><span class="d f" style="left:'+r[1]+'%;background:'+c+'"></span></div><span class="v" style="text-align:right"><b style="color:'+c+'">'+r[3]+'</b><br>'+r[4]+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">Category average covers 31 funds (1Y), 31 (3Y), 24 (5Y). Weighted by fund size.</p><p class="ap-mut" style="margin-top:6px">Filled dot: your fund. Hollow dot: category average. Green means ahead; red means behind.</p></div></div></div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/other')+h,1000,0);
+}
+/* ---- item 7: waterfall ---- */
+function waterfall(){
+ var rs=[['holdings + XIRR bundle',0,62,1],['allocation',2,18,0],['coverage gaps',2,12,0],['history points',3,30,0],['SIPs',3,14,0],['stored per-fund analytics',4,22,0]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Mutual Funds Overview: requests (illustrative)</h5><p class="ap-mut" style="margin-bottom:12px">Bar position is when the request starts; length is how long it takes.</p><div class="wf">';
+ rs.forEach(function(r){h+='<div class="r"><span>'+r[0]+'</span><div class="tr"><i class="'+(r[3]?'s':'')+'" style="left:'+r[1]+'%;width:'+r[2]+'%"></i></div><span class="n">'+(r[3]?'slowest':'')+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">What we read off the real version: which request ends last, which is large, and what the browser does after the last reply.</p></div></div></div>';
+ return vp(h,900,0);
+}
+function xlsx(v){
+ var tabs=['Read me','Summary','Pool','Excluded','Worked examples','Checks','Glossary'],on={summary:'Summary',pool:'Pool',checks:'Checks'}[v];
+ var th='<div class="tabs2">'+tabs.map(function(x){return '<span'+(x===on?' class="on"':'')+'>'+x+'</span>'}).join('')+'</div>';
+ var body='';
+ if(v==='summary'){
+  body='<div class="fx"><b>fx</b> =SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$F:$F="Y")*Pool!$H:$H*Pool!$D:$D)/SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$F:$F="Y")*Pool!$D:$D)</div><table class="g"><thead><tr><th>Category and plan</th><th>Funds in pool</th><th>Covered 1Y / 3Y / 5Y</th><th>3Y average (formula)</th><th>3Y plain average</th><th>No size</th><th>Weighting</th><th>Thin?</th><th>App shows</th><th>Difference</th></tr></thead><tbody>'
+  +'<tr><td>Equity Scheme - Flexi Cap Fund, Direct</td><td>31</td><td>31 / 31 / 24</td><td class="f">14.82%</td><td>14.11%</td><td>1</td><td>size</td><td>no</td><td>14.82%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Equity Scheme - Large Cap Fund, Direct</td><td>29</td><td>29 / 29 / 26</td><td class="f">13.40%</td><td>13.05%</td><td>0</td><td>size</td><td>no</td><td>13.40%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Hybrid Scheme - Equity Savings, Regular</td><td>4</td><td>4 / 4 / 3</td><td class="f">8.90%</td><td>8.60%</td><td>0</td><td>size</td><td>yes</td><td>8.90%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Debt Scheme - Gilt Fund, Direct</td><td>11</td><td>11 / 11 / 9</td><td class="f">7.21%</td><td>7.18%</td><td>11</td><td>plain (no sizes)</td><td>no</td><td>7.18%</td><td class="ok">0.0000</td></tr></tbody></table>';
+ } else if(v==='pool'){
+  body='<div class="fx"><b>fx</b> =IF(F2="Y",D2/SUMIFS($D:$D,$A:$A,A2,$F:$F,"Y"),0)</div><table class="g"><thead><tr><th>Category and plan</th><th>Fund</th><th>Fund house</th><th>Size (&#8377; cr) and month</th><th>1Y / 3Y / 5Y return</th><th>Counts (3Y floor)</th><th>Weight</th><th>Contribution to 3Y</th></tr></thead><tbody>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Alpha Flexi Cap Fund</td><td>Alpha MF</td><td>18,400 &middot; Oct 2026</td><td>12.1% / 14.0% / 16.3%</td><td>Y</td><td class="f">0.1120</td><td class="f">1.57%</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Beacon Flexi Cap Fund</td><td>Beacon MF</td><td>9,250 &middot; Oct 2026</td><td>9.8% / 15.2% / 15.4%</td><td>Y</td><td class="f">0.0563</td><td class="f">0.86%</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Cedar Flexi Cap Fund</td><td>Cedar MF</td><td>no size on record</td><td>10.5% / 13.1% / &mdash;</td><td>Y</td><td class="f">0 (counted, no weight)</td><td class="f">&mdash;</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Delta Flexi Cap Fund</td><td>Delta MF</td><td>2,100 &middot; Oct 2026</td><td>8.0% / &mdash; / &mdash;</td><td>N (under 3 years)</td><td class="f">0</td><td class="f">&mdash;</td></tr></tbody></table>';
+ } else {
+  body='<table class="g"><thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead><tbody>'
+  +'<tr><td>Excel average equals the app&rsquo;s, every category</td><td class="ok">PASS</td><td>Largest difference 0.0000 across 158 category-and-plan rows</td></tr>'
+  +'<tr><td>Weights add to 100% in every pool</td><td class="ok">PASS</td><td>Smallest 100.0000%, largest 100.0000%</td></tr>'
+  +'<tr><td>Every excluded scheme has a reason</td><td class="ok">PASS</td><td>0 without a reason</td></tr>'
+  +'<tr><td>Size data newer than 45 days</td><td class="no">3 categories</td><td>Listed on the Excluded sheet; shown, not hidden</td></tr>'
+  +'<tr><td>Dates stated</td><td class="ok">PASS</td><td>Price date, size month, fund list date, export date, app version</td></tr></tbody></table>';
+ }
+ return vp('<div class="xl">'+th+body+'</div>',1000,0);
+}
+var STATE={'i8':'today','i9':'summary'};
+function frame(n){switch(n){
+ case 'xirr-tile':return xirrTile(STATE['i8']);
+ case 'rank-rows':return rankRows();
+ case 'funnel':return funnel();
+ case 'cat-card':return catCard();
+ case 'waterfall':return waterfall();
+ case 'xlsx':return xlsx(STATE['i9']);}return ''}
+function layout(){document.querySelectorAll('.vp').forEach(function(v){var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');inn.style.width=w+'px';inn.style.height=h?h+'px':'auto';var hh=h||inn.offsetHeight;var sc=Math.min(1,v.clientWidth/w);inn.style.transform='scale('+sc+')';v.style.height=Math.ceil(hh*sc)+'px'})}
+function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});layout()}
+document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){var sec=bar.getAttribute('data-sec');bar.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){STATE[sec]=b.getAttribute('data-v');bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});renderAll()})})});
+renderAll();window.addEventListener('resize',layout);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layout);setTimeout(layout,400);
+
+/* ================= questions ================= */
+var KEY="batch-a-planning-v1",S={};
+try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+var Q=[
+{id:"Q1",item:"10",title:"How do we use Advisorkhoj?",ask:"Pick one.",
+ ctx:"On 8 Oct the team decided not to scrape these sites for the product. Their terms of use still need checking before we use their pages for verification. I would check them first either way.",
+ opts:[
+ {k:"A",l:"Manual sample: a person reads public pages for about 15 funds; no automation; terms checked first",rec:1,d:"Good: lowest risk; enough to place each difference. Bad: small sample; takes a person&rsquo;s time."},
+ {k:"B",l:"Automated reading of their pages for every held category",d:"Good: large and repeatable. Bad: depends on their terms; fragile; reverses the 8 Oct direction."},
+ {k:"C",l:"No Advisorkhoj at all: our own AMFI recount and a written explanation of how sites can differ",d:"Good: no dependency; evidence is ours. Bad: no side-by-side with their numbers."}],
+ why:"Our independent recount is the strongest evidence either way. The manual sample shows where the sites differ and why, with the lowest legal exposure.",
+ commit:"<b>Recorded with your note:</b> option B, with two conditions: I check their terms first and fall back to a manual sample if they forbid it; and the order is first &ldquo;is Advisorkhoj right?&rdquo;, then &ldquo;is ours right?&rdquo;, then &ldquo;where does ours go wrong?&rdquo;."},
+{id:"Q2",item:"9",title:"What are &ldquo;the three values&rdquo; in the category average?",ask:"Pick the closest, and say more in the note if none fits.",
+ opts:[
+ {k:"A",l:"The three periods: 1Y, 3Y and 5Y",rec:1,d:"The card shows a fund return and a category average for each of the three."},
+ {k:"B",l:"For each period: the fund&rsquo;s return, the category average, and the gap between them",d:"Three numbers that a reader compares."},
+ {k:"C",l:"Three kinds of average: the period averages, the legacy blended average, and a plain average",d:"The code carries all three."}],
+ why:"The Excel explains all of them either way. Your answer decides what the legend in Batch E leads with.",
+ commit:"<b>Recorded from your three examples (my reading):</b> option B. Each example is one period&rsquo;s row: the gap (for example +1.2%) over the fund against the category average (4.6% vs 3.4%). You did not pick an option, so tell me if that is not what you meant."},
+{id:"Q3",item:"all",title:"What is the NAV bug?",type:"text",ask:"Tell me where it is described, or paste a few lines: what it affects and what the fix will change.",
+ ctx:"Answered on 13 Nov. Section 2 says what it means for each item.",
+ ph:"Where it is described, what it affects (stale prices, missing prices, wrong dates, stored history), and any date for the fix: ..."},
+{id:"Q4",item:"all",title:"When do stakeholders need this, and in what order?",type:"text",ask:"Tell me the date and which of the four matters most.",
+ ctx:"Answered on 13 Nov: your default. The order of work follows it.",
+ ph:"Date or milestone, and the order of importance of items 8, 10, 9, 7: ..."}
+];
+
+var PRE={
+ Q1:{k:"B",n:"Another thing to keep in mind for the advisor coach issue: first we need to figure out if what they are doing, what they are displaying is correct or not in the first place. Because the thing is, I have confidence that what we are doing is correct, just that our denominator number is going wrong somewhere, because of which our numerator, that is the rank, is also going wrong. So that is the main gist of this particular investigation, to first make sure that advisor coach is correct or wrong, and then even if they are correct or wrong, figuring out what we if we are doing anything wrong, and if it is, then what it is."},
+ Q2:{k:"B",n:"+1.2%\n4.6% vs 3.4%\n\n-1.1%\n12.8% vs 13.9%\n\n-4.8%\n6.4% vs 11.2%\n\nthese three values   (recorded as option B from your examples; see the note above)"},
+ Q3:{t:"Okay, so basically, the nav bug is that for a few AMCs, like I think in Westco, I'm not sure, but a few AMCs, they send out or they disclose their nav a little later in the day, right? So our nav job runs at 6 a.m. in the morning, around 6 a.m. in the morning. So some of the AMCs, they release their nav later in the day, let's say at 10, 11, or maybe even later. So because of that, we get partial data, and most of our dashboards have warnings called partial nav, and it basically takes a 2 day back nav from 2 days back. So we were thinking of adding another small job that picks up the nav maybe somewhere later in the day. So that is basically the nav bug and how we were planning on fixing it."},
+ Q4:{t:"your default"}
+};
+var LOCK={};
+Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
+var cards=document.getElementById("cards");
+Q.forEach(function(q){
+ var c=document.createElement("div");c.className="card";c.id=q.id.toLowerCase();c.setAttribute("data-q",q.id);
+ var h='<header><span class="id">'+q.id+' &middot; item '+q.item+'</span><h3>'+q.title+'</h3><span class="status todo" data-st>unanswered</span></header><p class="ask"><b>'+q.ask+'</b></p>';
+ if(q.ctx)h+='<p class="ctx">'+q.ctx+'</p>';
+ if(q.opts){h+='<div class="opts">';
+  q.opts.forEach(function(o){h+='<label class="opt'+(o.rec?' isrec':'')+'"><input type="radio" name="'+q.id+'" value="'+o.k+'"'+(LOCK[q.id]?' disabled':'')+'><div><b>'+o.k+'. '+o.l+(o.rec?'<span class="tag me">my pick</span>':'')+'<span class="tag chosen" hidden>Chosen option</span></b><span class="d">'+o.d+'</span></div></label>'});
+  h+='</div>';}
+ if(q.why)h+='<div class="why"><b>Why my pick.</b> '+q.why+'</div>';
+ if(q.commit)h+='<div class="commit"><b>What this answer commits us to.</b> '+q.commit+'</div>';
+ if(q.type==="text")h+='<label class="nl" for="t-'+q.id+'">Your answer</label><textarea id="t-'+q.id+'" placeholder="'+(q.ph||"")+'"'+(LOCK[q.id]?' readonly':'')+'></textarea>';
+ h+='<label class="nl" for="n-'+q.id+'">Notes (optional)</label><textarea id="n-'+q.id+'" placeholder="Anything I should know"'+(LOCK[q.id]?' readonly':'')+'></textarea>';
+ c.innerHTML=h;cards.appendChild(c);
+});
+function answered(q){if(LOCK[q.id])return true;var a=S[q.id]||{};return q.type==="text"?!!(a.t&&a.t.trim()):!!a.k}
+function setSt(st,ok){st.textContent=ok?"answered":"unanswered";st.className=ok?"tag ok":"status todo"}
+function build(){
+ var L=["BATCH A PLANNING: MY ANSWERS (13 Nov 2026)",""];
+ Q.forEach(function(q){
+  var a=S[q.id]||{},ln=q.id+" ("+q.item+") "+q.title.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")+"\n  Answer: ";
+  if(a.k){var o=q.opts.filter(function(x){return x.k===a.k})[0];ln+=a.k+". "+o.l.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")}
+  else if(!(a.t&&a.t.trim()))ln+="NOT ANSWERED";
+  if(a.t&&a.t.trim())ln+=(a.k?"\n  Details: ":"")+a.t.trim();
+  if(a.n&&a.n.trim())ln+="\n  Note: "+a.n.trim();
+  L.push(ln);L.push("");
+ });
+ return L.join("\n");
+}
+function paint(){
+ var n=0;
+ Q.forEach(function(q){
+  var c=document.getElementById(q.id.toLowerCase()),a=S[q.id]||{};
+  c.querySelectorAll(".opt").forEach(function(o){var r=o.querySelector("input");r.checked=(a.k===r.value);o.classList.toggle("on",r.checked);var b=o.querySelector(".chosen");if(b)b.hidden=!r.checked});
+  var t=document.getElementById("t-"+q.id);if(t&&document.activeElement!==t)t.value=a.t||"";
+  var nn=document.getElementById("n-"+q.id);if(nn&&document.activeElement!==nn)nn.value=a.n||"";
+  var ok=answered(q);if(ok)n++;setSt(c.querySelector("[data-st]"),ok);
+ });
+ document.getElementById("prog").textContent=n+" of "+Q.length+" answered";
+ document.getElementById("outTa").value=build();
+ document.querySelectorAll("#cards textarea[readonly]").forEach(function(x){x.style.height="auto";x.style.height=Math.min(x.scrollHeight+4,420)+"px"});
+}
+cards.addEventListener("change",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.type==="radio")S[q].k=e.target.value;save();paint()});
+cards.addEventListener("input",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};
+ if(e.target.id==="t-"+q)S[q].t=e.target.value;if(e.target.id==="n-"+q)S[q].n=e.target.value;save();
+ document.getElementById("outTa").value=build();
+ var qq=Q.filter(function(x){return x.id===q})[0];setSt(c.querySelector("[data-st]"),answered(qq));
+ var n=0;Q.forEach(function(x){if(answered(x))n++});document.getElementById("prog").textContent=n+" of "+Q.length+" answered";});
+function copy(){
+ var ta=document.getElementById("outTa"),m=document.getElementById("copyMsg");ta.value=build();
+ function fb(){ta.removeAttribute("readonly");ta.select();try{document.execCommand("copy");m.textContent="Copied (or select and copy the text below)"}catch(e){m.textContent="Select the text below and copy it"}ta.setAttribute("readonly","")}
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(function(){m.textContent="Copied. Paste it in chat."},fb)}else fb();
+}
+document.getElementById("copyBtn").addEventListener("click",copy);
+document.getElementById("copyTop").addEventListener("click",function(){copy();document.getElementById("copy").scrollIntoView()});
+document.getElementById("jump").addEventListener("click",function(){for(var i=0;i<Q.length;i++){if(!answered(Q[i])){document.getElementById(Q[i].id.toLowerCase()).scrollIntoView({behavior:"smooth"});return}}});
+paint();
+})();
+</script>
+</body>
+</html>
