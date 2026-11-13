@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Batch F Planning</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+
+<style>
+
+/* Layout: sticky contents rail + one reading column. Brand: DM Sans headings, Manrope body, #22C55E for actions, a deeper green for text and links. Mockups are drawn at real window sizes and scaled to fit the column. */
+:root{
+ --bg:#FCFCFC; --surface:#FFFFFF; --surface-2:#F3F5F3; --line:#E5E5E5;
+ --fg:#111111; --muted:#5C5C5C; --accent:#22C55E; --accent-deep:#15803D; --accent-soft:#EAFBF0;
+ --warn:#B45309; --warn-soft:#FEF3E2; --info:#2F5FB3; --info-soft:#E8EFFB;
+ --danger:#B3321F; --danger-soft:#FBE6E2; --on-accent:#0B1F12;
+ --f-display:'DM Sans','Segoe UI',system-ui,sans-serif;
+ --f-body:'Manrope','Segoe UI',system-ui,sans-serif;
+ --f-mono:ui-monospace,'SF Mono',Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+ padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4,h5{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent-deep)}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent-deep)}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:70ch;margin:0 0 10px}
+.meta{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+section{margin-top:56px;scroll-margin-top:16px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:74ch}
+h3.sub{font-size:18px;margin:28px 0 8px}
+h4.mini{font-size:15px;margin:18px 0 6px}
+p{margin:8px 0}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700}
+.tag{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.fe{background:var(--info-soft);color:var(--info)}
+.tag.be{background:var(--warn-soft);color:var(--warn)}
+.tag.db{background:var(--danger-soft);color:var(--danger)}
+.tag.ok{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.none{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tag.me{background:var(--accent-soft);color:var(--accent-deep);margin-left:6px}
+.tag.chosen{background:var(--accent);color:var(--on-accent);margin-left:6px}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul,ul.tight{margin:6px 0;padding-left:20px}
+.sumbox li,ul.tight li{margin:5px 0}
+.callout{background:var(--warn-soft);border-radius:10px;padding:12px 14px;margin:14px 0;font-size:14px}
+.callout.good{background:var(--accent-soft)}
+.callout.info{background:var(--info-soft)}
+.callout.bad{background:var(--danger-soft)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.cols>div{min-width:0}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.flow>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 16px;min-width:0}
+.flow h4{font-size:15px;margin-bottom:6px}
+.flow ol{margin:4px 0;padding-left:20px}.flow li{margin:5px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.stat .n{font:700 26px var(--f-display)}.stat .l{font-size:12.5px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin:12px 0;align-items:start}
+@media (max-width:860px){.pair{grid-template-columns:minmax(0,1fr)}}
+.cap{margin:14px 0 6px;font-size:13px}
+.cap b{font-family:var(--f-display)}
+.note{color:var(--muted);font-size:12.5px}
+.winbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.winbar span{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.winbar button{padding:6px 12px;font-size:12.5px;background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.winbar button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+/* decision cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:60px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:600 12px var(--f-body);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--accent)}
+.opt.on{background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt input:disabled{cursor:default}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.why{border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--accent-deep)}
+.reply{background:var(--info-soft);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:14px}
+.reply p{margin:6px 0}.reply ul{margin:6px 0;padding-left:20px}
+.commit{border-left:3px solid var(--info);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.commit b{color:var(--info)}
+textarea{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-height:56px;resize:vertical}
+label.nl{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin:10px 0 4px}
+button{font:inherit;font-size:14px;font-weight:600;padding:9px 16px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);cursor:pointer}
+button.ghost{background:transparent;color:var(--accent-deep)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.status{font:600 11px var(--f-body)}.status.todo{color:var(--warn)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.out{min-height:240px;font-family:var(--f-mono);font-size:12.5px}
+.tabs{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.doc{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:18px 20px;margin:12px 0}
+.doc h4{font-size:17px;margin-bottom:8px}
+.doc h5{font-size:14px;margin:14px 0 4px}
+.doc ul{margin:6px 0;padding-left:20px}.doc li{margin:4px 0}
+
+/* ---------- scaled real-size frames ---------- */
+.vp{position:relative;width:100%;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#fff}
+.vp-in{position:absolute;left:0;top:0;transform-origin:0 0;background:#fff;color:#111;font-family:'Manrope','Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}
+.vp-in *{box-sizing:border-box}
+.vp-in h5,.vp-in h4,.vp-in h3,.vp-in h2,.vp-in h1{font-family:'DM Sans','Segoe UI',system-ui,sans-serif;margin:0}
+.vp-in p{margin:0}
+.chrome{height:40px;background:#EEF1EE;border-bottom:1px solid #D9DED9;display:flex;align-items:center;gap:8px;padding:0 14px}
+.chrome i{width:11px;height:11px;border-radius:50%;background:#C8CFC8;display:block;flex:none}
+.chrome span{flex:1;max-width:520px;margin-left:12px;background:#fff;border:1px solid #D9DED9;border-radius:99px;padding:3px 14px;font-size:12px;color:#5C5C5C}
+.w1280{--vw:1280px;--vh:600px;--card-h:552px;--pad-y:14px;--gap:10px;--gap-sm:5px;--h1:26px;--btn-h:44px;--row-h:46px;--chip-h:34px;--badge:34px;--body:13.5px}
+.w1440{--vw:1440px;--vh:810px;--card-h:762px;--pad-y:36px;--gap:22px;--gap-sm:12px;--h1:34px;--btn-h:54px;--row-h:64px;--chip-h:48px;--badge:44px;--body:15px}
+.w1536{--vw:1536px;--vh:730px;--card-h:682px;--pad-y:28px;--gap:16px;--gap-sm:9px;--h1:30px;--btn-h:48px;--row-h:54px;--chip-h:42px;--badge:38px;--body:14px}
+.d-page{height:var(--vh);display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#EEF9F1,#F8FDF9)}
+.d-card{width:min(1240px,calc(var(--vw) - 64px));height:var(--card-h);background:#fff;border-radius:28px;box-shadow:0 18px 50px rgba(20,48,31,.13);display:grid;grid-template-columns:.95fr 1fr;overflow:hidden}
+.d-left{padding:var(--pad-y) 40px;display:flex;flex-direction:column;background:linear-gradient(160deg,#F2FCF6,#E7F7EC);min-height:0;overflow:hidden}
+.d-left.white{background:#fff}
+.d-logo{font:700 26px 'DM Sans',sans-serif;color:#111;flex:none}
+.d-sketch{margin:var(--gap) auto;flex:1;min-height:60px;max-height:230px;width:70%;max-width:330px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#D6F3DF,#EAFBF0);color:#15803D;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.d-h2{font:700 calc(var(--h1) + 2px) 'DM Sans',sans-serif;line-height:1.15;flex:none}
+.d-h2 span{color:#15803D}
+.d-p{color:#5C5C5C;font-size:var(--body);margin-top:var(--gap-sm);flex:none}
+.d-bul{display:flex;gap:10px;align-items:center;margin-top:var(--gap-sm);font-size:var(--body);flex:none}
+.d-bul i{flex:none;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #D2EEDB;display:block}
+.d-right{padding:var(--pad-y) 48px;display:flex;flex-direction:column;min-height:0}
+.d-top{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;color:#5C5C5C;font-size:13px}
+.d-steps{display:flex;gap:6px;align-items:center}.d-steps i{width:34px;height:5px;border-radius:3px;background:#22C55E;display:block}.d-steps i.off{background:#E5E7EC}
+.d-content{flex:1;min-height:0;overflow-y:auto;display:flex}
+.d-inner{margin:auto;width:100%;max-width:520px;padding:8px 0}
+.fitb{position:absolute;right:10px;bottom:10px;z-index:3;font:600 12px 'Manrope',sans-serif;padding:4px 10px;border-radius:99px;background:#EAFBF0;color:#15803D;border:1px solid #BFE9CC}
+.fitb.bad{background:#FBE6E2;color:#B3321F;border-color:#F3B8AE}
+.o-stack{display:flex;flex-direction:column;gap:var(--gap)}
+.o-sec{display:flex;flex-direction:column;gap:var(--gap-sm)}
+.o-h1{font:700 var(--h1) 'DM Sans',sans-serif;line-height:1.15}
+.o-sub{color:#667085;font-size:var(--body)}
+.o-opt{display:flex;align-items:center;gap:12px;min-height:var(--row-h);border:1px solid #E5E7EC;border-radius:16px;padding:0 16px;background:#fff}
+.o-opt.tt{min-height:min(var(--row-h),54px)}
+.o-opt.sel{border-color:#22C55E;background:#F4FCF6;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.o-opt.quiet{border-color:transparent;background:#F6F8F6}
+.o-badge{flex:none;width:var(--badge);height:var(--badge);border-radius:50%;background:#EAFBF0;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:11px}
+.o-opt b{display:block;font-size:var(--body);font-weight:600}
+.o-opt small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.o-rad{margin-left:auto;flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid #C5CBC5}
+.o-opt.sel .o-rad{background:#22C55E;border-color:#22C55E;box-shadow:inset 0 0 0 4px #fff}
+.o-grp{border:1px solid #E5E7EC;border-radius:16px;overflow:hidden}
+.o-grp .o-opt{border:0;border-radius:0;border-bottom:1px solid #EEF0EE}
+.o-grp .o-opt:last-child{border-bottom:0}
+.o-h2{display:flex;justify-content:space-between;align-items:baseline;gap:10px;white-space:nowrap}
+.o-h2 b{font:600 15px 'DM Sans',sans-serif}
+.o-h2 span{font-size:13px;color:#667085;font-weight:400}
+.o-h2 a{font-size:13px;color:#15803D;font-weight:600}
+.o-chips{display:grid;gap:var(--gap-sm)}
+.o-chips.c3{grid-template-columns:repeat(3,1fr)}.o-chips.c2{grid-template-columns:repeat(2,1fr)}
+.o-chip{display:flex;align-items:center;gap:8px;min-height:var(--chip-h);border:1px solid #E5E7EC;border-radius:14px;padding:0 10px;font-size:12.5px;line-height:1.25;background:#fff}
+.o-chip i{flex:none;width:20px;height:20px;border-radius:6px;background:#EAFBF0;display:block}
+.o-chip em{margin-left:auto;flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid #C5CBC5}
+.o-chip.sel{border-color:#22C55E;background:#F4FCF6}.o-chip.sel em{background:#22C55E;border-color:#22C55E}
+.o-pills{display:flex;flex-wrap:wrap;gap:var(--gap-sm)}
+.o-pill{display:flex;align-items:center;gap:8px;border:1px solid #E5E7EC;border-radius:99px;min-height:var(--chip-h);padding:0 14px;font-size:13px;background:#fff}
+.o-pill i{width:16px;height:16px;border-radius:50%;background:#EAFBF0;display:block}
+.o-pill.sel{background:#22C55E;border-color:#22C55E;color:#0B1F12;font-weight:600}.o-pill.sel i{background:rgba(11,31,18,.25)}
+.o-panel{background:#F6F9F6;border-radius:18px;padding:14px}
+.o-go{height:var(--btn-h);border-radius:99px;background:#22C55E;color:#0B1F12;font:700 15px 'Manrope',sans-serif;display:flex;align-items:center;justify-content:center}
+.o-go.dis{background:#E5E7EC;color:#6B7280}
+.o-tabs{display:flex;background:#F1F3F1;border-radius:99px;padding:3px;gap:3px}
+.o-tabs span{flex:1;text-align:center;padding:7px;border-radius:99px;font-size:13px;color:#667085}
+.o-tabs span.on{background:#fff;color:#111;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.o-field{border:1px solid #D0D5DD;border-radius:12px;padding:11px 14px;font-size:14px}
+.o-lab{font-size:13px;font-weight:600;margin-bottom:5px}
+.o-alert{background:#FEF3F2;border:1px solid #FDA29B;color:#B42318;border-radius:12px;padding:10px 14px;font-size:13.5px}
+.o-red{color:#B42318;font-size:13px;margin-top:6px}
+.st{display:flex;gap:12px;align-items:flex-start;margin-top:var(--gap-sm)}
+.st i{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:13px;background:#22C55E;color:#0B1F12;margin-top:2px}
+.st i.spin{background:transparent;border:2.5px solid #E5E7EC;border-top-color:#22C55E}
+.st i.big{transform:scale(1.28)}
+.st b{display:block;font-size:var(--body);font-weight:600}.st small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.a-card{border:1px solid #E5E7EC;border-radius:16px;padding:12px 16px}
+.a-info{background:#F3F5F3;border-radius:16px;padding:12px 16px}
+.a-info b{display:block}
+/* dialogs */
+.dlg-bg{height:720px;position:relative;background:#F4F6F4;overflow:hidden}
+.dlg-bg .fake{position:absolute;inset:60px 90px;border:2px dashed #C8D3C8;border-radius:20px;filter:blur(2px);opacity:.9;background:#fff}
+.dlg-bg .dim{position:absolute;inset:0;background:rgba(17,17,17,.5);display:flex;align-items:center;justify-content:center}
+.dlg{background:#fff;border-radius:16px;padding:24px;width:448px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg h5{font-size:18px;font-weight:700;line-height:1.25}
+.dlg .body{color:#5C5C5C;font-size:14px}
+.dlg .foot{display:flex;gap:8px;justify-content:flex-end}
+.dlg.ph{width:100%}
+.dlg.ph .foot{flex-direction:column-reverse}
+.dbtn{font:700 13.5px 'Manrope',sans-serif;padding:10px 16px;border-radius:12px;border:1.5px solid #22C55E;background:#22C55E;color:#0B1F12;text-align:center}
+.dbtn.o{background:#fff;color:#15803D}
+.dwarn{display:flex;gap:10px;align-items:flex-start;background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:14px;padding:12px 14px;font-size:13.5px}
+.dwarn b{display:block;margin-bottom:2px}
+.dwarn i{flex:none;width:22px;height:22px;border-radius:50%;background:#F59E0B;color:#fff;font:700 13px 'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;font-style:normal;margin-top:1px}
+/* phone shell */
+.phs{width:390px;padding:14px;background:#111;border-radius:46px}
+.phs .scr{background:#fff;border-radius:34px;overflow:hidden;min-height:700px;position:relative}
+.phs .sb{height:34px;display:flex;justify-content:center;align-items:center}
+.phs .sb b{width:96px;height:22px;background:#111;border-radius:99px;display:block}
+.phs.dark .scr{background:#0F0F0F}
+/* email */
+.emx{--e-bg:#EEF6F0;--e-card:#fff;--e-ink:#111;--e-muted:#5C5C5C;--e-green:#15803D;--e-pale:#EEF8F0;--e-dark:#14301F;--e-line:#E5E5E5;--e-ic:#EAFBF0;--e-ill:#EAFBF0;--e-linkb:#D9E0D9;--e-small:#4ADE80;padding:20px 14px;background:var(--e-bg)}
+.emx.dark{--e-bg:#0F0F0F;--e-card:#1A1A1A;--e-ink:#F5F5F5;--e-muted:#A3A3A3;--e-green:#34D399;--e-pale:#17261C;--e-dark:#14301F;--e-line:#2A2A2A;--e-ic:#1F3B28;--e-ill:#F2FCF6;--e-linkb:#2F3A31;--e-small:#4ADE80}
+.emx.narrow{padding:12px 8px}
+.em-card{background:var(--e-card);color:var(--e-ink);border-radius:18px;padding:22px 22px 16px;width:100%}
+.narrow .em-card{padding:16px 14px 12px}
+.em-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.em-logo{font:700 24px 'DM Sans',sans-serif;color:var(--e-ink)}
+.em-tag{font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;color:var(--e-green)}
+.em-hd{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.em-hd>div:first-child{min-width:0}
+.em-h1{font:700 32px 'DM Sans',sans-serif;line-height:1.1}
+.em-h1 span{color:var(--e-green)}
+.narrow .em-h1{font-size:25px}
+.em-sub{color:var(--e-muted);margin-top:10px;font-size:15px}
+.narrow .em-sub{font-size:13.5px}
+.em-ill{flex:none;width:150px;height:118px;border-radius:50%;background:var(--e-ill);color:#15803D;font-size:11px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.narrow .em-ill{width:96px;height:78px;font-size:9px}
+.em-dark{background:var(--e-dark);color:#fff;border-radius:14px;padding:16px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:15px}
+.narrow .em-dark{padding:12px;gap:10px;font-size:13.5px}
+.em-dark>div{min-width:0}
+.em-dark small{display:block;color:var(--e-small);font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;margin-bottom:2px}
+.em-dark b{display:block;font:700 19px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-ic{flex:none;width:44px;height:44px;border-radius:50%;background:var(--e-ic);color:#15803D;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center}
+.narrow .em-ic{width:34px;height:34px;font-size:8px}
+.em-pale{background:var(--e-pale);border-radius:14px;padding:14px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:14.5px}
+.narrow .em-pale{padding:10px 12px;gap:10px;font-size:13px}
+.em-pale>div{min-width:0}
+.em-pale b{display:block;color:var(--e-green);font:700 17px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-line{display:flex;gap:14px;align-items:center;margin:0 0 12px;font-size:14.5px}
+.narrow .em-line{gap:10px;font-size:13px}
+.em-line>div{min-width:0}
+.em-btn{display:block;text-align:center;background:#22C55E;color:#0B1F12;font:700 17px 'Manrope',sans-serif;padding:16px;border-radius:99px;margin:0 0 16px}
+.narrow .em-btn{font-size:15px;padding:13px}
+.em-link{border:1px solid var(--e-linkb);border-radius:12px;padding:9px 12px;font-size:12.5px;color:var(--e-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:8px;max-width:100%}
+.em-foot{border-top:1px solid var(--e-line);margin-top:14px;padding-top:12px;font-size:13px;color:var(--e-muted)}
+.em-foot a{color:var(--e-green)}
+.em-foot b{display:block;color:var(--e-ink);font:700 16px 'DM Sans',sans-serif;margin-top:10px}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}nav.toc{position:static;max-height:none}}
+
+/* ---------- Batch A additions: app-style mockups ---------- */
+.ap{background:#F6F8F6;font-size:13.5px;color:#111}
+.ap-body{padding:20px 24px}
+.ap-h{font:700 20px 'DM Sans',sans-serif;margin-bottom:12px}
+.ap-card{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:16px}
+.ap-card h5{font:700 16px 'DM Sans',sans-serif;margin-bottom:4px}
+.ap-mut{color:#667085;font-size:12px}
+.ap-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ap-tile{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:10px 12px}
+.ap-tile small{display:block;color:#667085;font-size:11.5px}
+.ap-tile b{font:700 20px 'DM Sans',sans-serif}
+.ap-tile .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.seg{display:inline-flex;border:1px solid #E5E7EB;border-radius:8px;padding:2px;font-size:11px}
+.seg span{padding:2px 8px;border-radius:6px;color:#667085}
+.seg span.on{background:#F1F3F1;color:#111;font-weight:600}
+.ap-t{width:100%;min-width:0;border-collapse:collapse;font-size:12.5px}
+.ap-t th{background:#fff;color:#667085;font:600 11.5px 'Manrope',sans-serif;letter-spacing:0;text-transform:none;text-align:left;padding:8px 10px;border-bottom:1px solid #E5E7EB}
+.ap-t td{padding:9px 10px;border-bottom:1px solid #EEF0EE;vertical-align:top}
+.ap-logoc{flex:none;width:28px;height:28px;border-radius:8px;background:#EAFBF0;color:#15803D;font:700 11px 'DM Sans';display:flex;align-items:center;justify-content:center}
+.ap-fund{display:flex;gap:10px;align-items:flex-start}
+.note-box{background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:8px 10px;font-size:12px;margin-top:8px}
+.circ{outline:2px solid #D92D20;outline-offset:2px;border-radius:8px}
+.rk{display:inline-block;font:700 13px 'DM Sans',sans-serif;background:#EAFBF0;color:#15803D;border-radius:99px;padding:2px 10px}
+.rk small{font:500 11px 'Manrope',sans-serif;color:#667085;margin-left:3px}
+.fn{display:grid;gap:6px}
+.fn .r{display:grid;grid-template-columns:230px 1fr 90px;gap:10px;align-items:center;font-size:12.5px}
+.fn .b{height:18px;border-radius:5px;background:#22C55E}
+.fn .b.x{background:#F59E0B}
+.fn .n{font-weight:700;text-align:right}
+.cmp{display:grid;gap:14px}
+.cmp .p{display:grid;grid-template-columns:44px 1fr 150px;gap:12px;align-items:center}
+.cmp .trk{position:relative;height:22px}
+.cmp .trk::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:#E5E7EB}
+.cmp .d{position:absolute;top:4px;width:14px;height:14px;border-radius:50%;transform:translateX(-7px)}
+.cmp .d.f{background:#22C55E}
+.cmp .d.c{border:2px solid #667085;background:#fff}
+.cmp .v{font-size:12px;color:#667085}
+.lab{font:600 11px 'Manrope',sans-serif;color:#B42318;background:#FDECEA;border-radius:99px;padding:1px 8px;margin-left:6px}
+.wf{display:grid;gap:7px}
+.wf .r{display:grid;grid-template-columns:210px 1fr 80px;gap:10px;align-items:center;font-size:12px}
+.wf .tr{position:relative;height:16px;background:#F1F3F1;border-radius:4px}
+.wf .tr i{position:absolute;top:0;bottom:0;border-radius:4px;background:#0EA5E9}
+.wf .tr i.s{background:#F59E0B}
+.wf .n{text-align:right;font-weight:600}
+.steps5{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+.steps5>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13.5px}
+.steps5 b{display:block;font-family:var(--f-display);margin-bottom:3px}
+.code2{font-family:var(--f-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow:auto;white-space:pre;margin:8px 0}
+.xl{background:#fff;font-size:12px}
+.xl .tabs2{display:flex;gap:2px;background:#E8ECE8;padding:6px 8px 0;font-size:12px}
+.xl .tabs2 span{padding:5px 12px;border-radius:6px 6px 0 0;background:#F3F5F3;color:#444}
+.xl .tabs2 span.on{background:#fff;font-weight:700;color:#107C41}
+.xl .fx{display:flex;gap:8px;align-items:center;border-bottom:1px solid #D9DED9;padding:4px 10px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#333;background:#fff}
+.xl .fx b{color:#107C41;font-family:Manrope,sans-serif}
+.xl table.g{border-collapse:collapse;width:100%;min-width:0;font-size:12px}
+.xl table.g th{background:#F3F5F3;border:1px solid #D9DED9;padding:4px 8px;text-align:left;font:600 11.5px Manrope,sans-serif;color:#333;text-transform:none;letter-spacing:0}
+.xl table.g td{border:1px solid #E6EAE6;padding:4px 8px;vertical-align:top}
+.xl td.f{font-family:ui-monospace,Consolas,monospace;background:#F1FAF4;color:#14532D}
+.xl td.ok{color:#14532D;font-weight:700}
+.xl td.no{color:#B42318;font-weight:700}
+.pend{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;background:var(--warn-soft);color:var(--warn)}
+
+/* ---------- Batch F additions ---------- */
+.tabbar{display:flex;flex-wrap:nowrap;align-items:center;gap:4px;background:#fff;border:1px solid #E5E7EB;border-radius:16px;padding:8px;font-size:12px}
+.tabbar .t{padding:6px 12px;border-radius:12px;color:#667085;white-space:nowrap}
+.tabbar .t.on{background:#EAFBF0;color:#15803D;font-weight:600}
+.tabbar .u{margin-left:auto;border:1px solid #E5E7EB;border-radius:12px;padding:6px 12px;color:#98A2B3;white-space:nowrap}
+.subrow{display:flex;gap:6px;flex-wrap:nowrap;align-items:center;background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:6px 8px;margin-top:6px;font-size:12px;overflow:hidden}
+.subrow .s{padding:4px 11px;border-radius:99px;color:#475467;white-space:nowrap;border:1px solid transparent}
+.subrow .s.on{background:#EAFBF0;color:#15803D;font-weight:600;border-color:#BFE9CC}
+.subrow .lead{font:600 11px Manrope,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#98A2B3;margin-right:4px}
+.rail{position:absolute;right:14px;top:150px;width:170px;font-size:12px;border-left:2px solid #E5E7EB;padding-left:10px}
+.rail div{padding:5px 0;color:#667085}
+.rail div.on{color:#15803D;font-weight:700;border-left:2px solid #22C55E;margin-left:-12px;padding-left:10px}
+.blk{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:12px 16px;margin-top:10px;color:#667085;font-size:12px}
+.blk b{color:#111;font:700 14px 'DM Sans',sans-serif;display:block;margin-bottom:4px}
+.fits{display:grid;grid-template-columns:90px 1fr 80px;gap:8px;align-items:center;font-size:12px;margin:4px 0}
+.fits .bar{height:14px;border-radius:4px;background:#22C55E}
+.fits .bar.x{background:#F59E0B}
+.fits .bar.t2{background:#94A3B8}
+.vline{border-left:3px solid #22C55E;padding-left:10px}
+.strip{display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:8px 12px;font-size:12.5px;color:#344054}
+.strip b{font-weight:700}
+.i{display:inline-flex;width:16px;height:16px;border-radius:50%;border:1px solid #98A2B3;color:#667085;font:600 10px Manrope,sans-serif;align-items:center;justify-content:center;background:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+ <h4>Start here</h4>
+ <a href="#where">1. Where we stand</a>
+ <h4>Item 12</h4>
+ <a href="#sections">2. The sections on each tab</a>
+ <a href="#options">3. How the index looks</a>
+ <a href="#behaviour">4. How it behaves</a>
+ <a href="#config">5. One list, shared</a>
+ <h4>How we build it</h4>
+ <a href="#strategy">6. Orchestrator and workers</a>
+ <a href="#program">7. Fit with the other batches</a>
+ <a href="#tasks">8. Task list</a>
+ <a href="#risks">9. Risks, tests, checks</a>
+ <h4>Your call</h4>
+ <a href="#questions">10. Questions (3)</a>
+ <a href="#copy">11. Copy my answers</a>
+ <a href="#prov">What I checked</a>
+</nav>
+
+<main>
+<div class="hero">
+ <h1>Batch F Planning</h1>
+ <div class="meta">Planning only &middot; nothing built or run &middot; 13 Nov 2026 &middot; updated with your answers &middot; branch leapswitch-redesign</div>
+ <p>Navigation: item 12, the <b>section index within tabs</b>. The Mutual Funds tabs have several sections each, and the long ones feel like a scrolling black hole. Your idea: when the user is on a tab, that tab expands to show its sections; a click jumps to one, and normal scrolling still works. You also said you are open to other ideas, so this workbook compares your idea with four alternatives, with mockups, and recommends one. The output is <b>one section index</b> that works on every Mutual Funds tab, driven by <b>one shared list of sections</b> that search and the PDF export reuse, on the Mutual Funds tabs and the fund page.</p>
+ <p><b>Updated 13 Nov.</b> Q2 and Q3 are answered and recorded: the index covers the seven Mutual Funds tabs <b>and the fund page&rsquo;s three tabs</b>, and the tab bar sticks on every tab. <b>Q1, the shape of the index, is still open.</b> The fund page turned out to be a separate frame with only three tabs, where your expanding-tab idea does fit, so section 3 now compares the two frames.</p>
+ <p><b>How this was made.</b> I read the code, read-only: the seven tabs and every section on them, the page frame and tab bar, the layout that decides what scrolls, the route registry, and the existing scroll and anchor code. Every statement about the code is labelled <em>read in code</em>. Nothing was run and I did not look at the live app, so the width estimates are labelled estimates. Mockups are my reconstructions with made-up numbers and <b>show laptop views only</b>: the phone view is out of scope for every batch.</p>
+</div>
+
+<!-- ============ 1. WHERE WE STAND ============ -->
+<section id="where">
+ <h2>1. Where we stand</h2>
+ <p class="lead">One item, no backend or database change, and six findings. The main surprise: your idea of an expanding tab does not fit on a laptop for the four-section tabs or the Overview, which are the tabs that most need it, so the plan needs a variation.</p>
+ <div class="stats">
+  <div class="stat"><div class="n">1</div><div class="l">item (12)</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">backend or database changes</div></div>
+  <div class="stat"><div class="n">2 / 3</div><div class="l">questions answered</div></div>
+  <div class="stat"><div class="n">13</div><div class="l">tasks in the list (section 8)</div></div>
+ </div>
+ <div class="scroll"><table>
+  <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (read in code)</th><th>What changes</th><th>Layers</th></tr></thead>
+  <tbody>
+   <tr><td class="k">12. Section index within tabs</td><td>Make long tabs easier to navigate: the tab shows its sections, a click jumps, scrolling still works. Open to other ideas.</td><td>Seven tabs, each a route; the tab bar is a card of plain links that scrolls away with the page. The sections have no stable ids, no scroll-spy and no jump links. Section counts range from 2 to 8.</td><td>A section index (shape: Q1, still open) on the seven Mutual Funds tabs and the fund page&rsquo;s three tabs (Q2 B), with a sticky tab bar (Q3 A), driven by one shared list of sections per tab.</td><td><span class="tag fe">frontend</span> <span class="tag none">no backend</span></td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Six findings (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>#</th><th>Finding</th><th>Why it matters</th></tr></thead>
+  <tbody>
+   <tr><td>F1</td><td><b>What scrolls is the page area, not the window.</b> <code>AppLayout.tsx</code> is a full-height flex layout whose <code>&lt;main&gt;</code> has <code>overflow-y-auto</code>. The top bar (search, Import, Mira, family selector, theme) sits outside it and never scrolls.</td><td>A sticky index must stick inside <code>&lt;main&gt;</code>, and scroll-spy must watch <code>&lt;main&gt;</code>, not the window. The router does not scroll to hashes by itself.</td></tr>
+   <tr><td>F2</td><td>The tab bar is a rounded card with seven links on the left and a <code>utility</code> slot on the right. It is <b>not sticky</b>. Only the Overview uses the slot today, for a page-local &ldquo;Search investments&hellip;&rdquo; box.</td><td>That slot is the one search (K), the section index and the PDF button (I) all want. And on a long page the tabs scroll out of view, so there is no way to switch tab without scrolling back up.</td></tr>
+   <tr><td>F3</td><td>Section counts differ a lot: Overview 7 (8 with Batch D&rsquo;s graph), Allocation 4, Overlap 4, Other Analytics 4 groups holding 6 cards, Performance 3, Holdings 2, Transactions 2. The fund page&rsquo;s tabs have 5 to 6 sections each (section 2).</td><td>The long tabs need the index; the 2-section tabs barely need one. A rule (&ldquo;show when 3 or more&rdquo;) avoids clutter.</td></tr>
+   <tr><td>F4</td><td>There is <b>no stable id</b> on most sections. <code>SectionCard</code> makes its heading id with <code>useId()</code> (a random value), and some sections are not cards at all (the Overview&rsquo;s summary strip, the holdings table, the Cash Flow strip). A few headings have fixed ids (<code>holdings-title</code>, <code>sip-title</code>).</td><td>Every section needs a stable anchor first; that is the real groundwork of this batch.</td></tr>
+   <tr><td>F5</td><td>The sidebar is <b>224 px</b> wide and the page area has 24 px padding, so at 1280 px wide the content is about 1008 px. My estimate of the seven tab labels at the current size is about 620 px, leaving about 370 px.</td><td>Not enough to expand even a 4-section tab inline (about 430 px by estimate), let alone the Overview&rsquo;s 7 sections (about 730 px). Section 3 shows this.</td></tr>
+   <tr><td>F7</td><td><b>The fund page is a separate frame</b> (<code>FundPageFrame.tsx</code>): a breadcrumb, a fund header, a stat band above the tabs (Overview only), then <b>three</b> underline-style tabs (Overview, Overlap, Insights). The tab strip is a plain row of links and is not sticky.</td><td>With only three short tabs there is plenty of room, so your expanding-tab idea fits here (section 3). But the two frames look different, and one component should serve both (Q2 B).</td></tr>
+   <tr><td>F6</td><td>Search&rsquo;s plan and the PDF export (Batch I) both want a slot in the same header area, and Batch E adds a &ldquo;data dates&rdquo; strip under the tabs.</td><td>The layout has to be planned as one stack: header, tabs, section index, data strip, content (section 5).</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 2. SECTIONS ============ -->
+<section id="sections">
+ <h2>2. The sections on each tab</h2>
+ <p class="lead">What the index would list. This is the list the code renders today, in the order it renders; the full audit with stable ids is task F-2.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Tab</th><th>Sections in order (read in code)</th><th>Count</th><th>Index?</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Overview</td><td>Summary (the value strip), <i>Value over time (Batch D&rsquo;s graph)</i>, SIPs, Mutual Funds (the holdings table), Sold funds, AMC Allocation, Family Members, Quick Insights</td><td>7 (8)</td><td>Yes</td></tr>
+   <tr><td class="k">Performance</td><td>Returns, Portfolio History, Benchmark Comparison (XIRR)</td><td>3</td><td>Yes</td></tr>
+   <tr><td class="k">Allocation</td><td>Look-Through Asset Allocation, Market-Cap Allocation, Portfolio Allocation (category and fund house), Fund Manager Allocation</td><td>4</td><td>Yes</td></tr>
+   <tr><td class="k">Holdings</td><td>Top Holdings by Fund, All Holdings Across Your Portfolio</td><td>2</td><td>No (under the rule)</td></tr>
+   <tr><td class="k">Transactions</td><td>Cash Flow Over Time, All Transactions</td><td>2</td><td>No (under the rule)</td></tr>
+   <tr><td class="k">Overlap</td><td>1 Common Holdings, 2 Overlap Heatmap, 3 Top Overlapping Fund Pairs, 4 Overlap Impact</td><td>4</td><td>Yes</td></tr>
+   <tr><td class="k">Other Analytics</td><td>Cost &amp; Valuation (TER and Cost Analysis; Portfolio Valuation vs. Benchmarks; Valuation by Fund), Fund Quality Scorer, Category Average Comparison, Performance Ranking</td><td>4 groups, 6 cards</td><td>Yes</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">Titles are quoted from the code. Two things the audit settles: (1) whether the Summary strip and Sold funds count as sections (they have no heading of their own), and (2) for Other Analytics, whether the index lists the 4 groups or the 6 cards (the proposal: the 4 groups, because they are the page&rsquo;s own headings). The fund page&rsquo;s tabs are in Q2.</p>
+ <h3 class="sub">The fund page tabs (added with Q2 B)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Tab</th><th>Sections in order (read in code)</th><th>Count</th><th>Index?</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Overview</td><td>Performance (a chart, in one of two modes), Returns, Top Holdings, Your Investment Details, Risk Metrics, Fund Allocation. The stat band (value, gain, XIRR and so on) sits <b>above the tabs</b> and is not a section.</td><td>6</td><td>Yes</td></tr>
+   <tr><td class="k">Overlap</td><td>Overlap with Your Portfolio, Overlap Summary, Common Holdings by Sector, Common Holdings, Quick insights</td><td>5</td><td>Yes</td></tr>
+   <tr><td class="k">Insights</td><td>Key Insights, Strengths and Considerations, Rolling Returns, Period Returns, a risk and return scatter (title to confirm), Fund Manager and Strategy</td><td>6</td><td>Yes</td></tr>
+   <tr><td class="k">Compare two funds (a separate route)</td><td>Fund comparison, Key takeaways</td><td>2</td><td>No (under the rule)</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">Titles are quoted from the code where a title exists; the Overview&rsquo;s Risk Metrics and score card and the Insights scatter have titles the audit (task F-2) confirms.</p>
+ <div class="callout info"><b>Two tabs, two phrases.</b> The Overlap sections are numbered &ldquo;1.&rdquo; to &ldquo;4.&rdquo; in their titles, and the page&rsquo;s order matches. The index shows the titles without the numbers, because the order in the index already says it.</div>
+</section>
+
+<!-- ============ 3. OPTIONS ============ -->
+<section id="options">
+ <h2>3. How the index looks</h2>
+ <p class="lead">Your idea, plus four alternatives, drawn on the Allocation and Overview tabs at a 1280-pixel laptop.</p>
+
+ <h3 class="sub">Does your idea fit? (an estimate)</h3>
+ <p>Your idea: the active tab opens in place to show its sections, so the tab row reads <b>Overview &rsaquo; Summary &middot; Value over time &middot; SIPs &middot; Mutual Funds &middot; Sold funds &middot; AMC Allocation &middot; Family Members &middot; Quick Insights</b>, with the other six tabs still on the row. These are my estimates, not measurements, from the label lengths and the current tab size.</p>
+ <div data-frame="fits"></div>
+ <p class="note">Estimated widths in pixels. The row has about 1008 px of room at 1280 px wide (the page area), less the card&rsquo;s own padding and the search slot. Green fits, amber does not, grey is the room left.</p>
+ <p><b>On the fund page your idea fits</b>: it has only three tabs (about 214 px by estimate), so even six sections fit on the row. <b>On the Mutual Funds tabs it does not</b>: your idea fits only on tabs with <b>three sections or fewer</b> (Performance; Holdings and Transactions would not show an index anyway). It does <b>not</b> fit on Allocation, Overlap, Other Analytics or the Overview, which are the tabs that most need it, unless the other tabs fold away while the active one is open (option A below). That is why I propose a variation, and one component that looks the same on both frames.</p>
+
+ <h3 class="sub">The options</h3>
+ <div class="winbar" data-sec="opt"><span>Option</span><button type="button" data-v="a" aria-pressed="false">A. Your idea: the tab expands</button><button type="button" data-v="b" aria-pressed="true">B. A section row under the tabs</button><button type="button" data-v="c" aria-pressed="false">C. A side rail</button><button type="button" data-v="f" aria-pressed="false">B on the fund page</button></div>
+ <div data-frame="opt"></div>
+ <p class="note">Made-up numbers; laptop at 1280 px. In A, the other tabs fold into a &ldquo;More&rdquo; menu while sections are open, otherwise the row overflows. B and C are drawn on the Allocation tab; the last button draws B on the fund page, under its underline tabs.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Option</th><th>What it is</th><th>Strength</th><th>Weakness</th></tr></thead>
+  <tbody>
+   <tr><td class="k">A. Your idea: the active tab expands</td><td>The active tab opens inline into its sections; the others shrink or fold into &ldquo;More&rdquo;.</td><td>Closest to what you described; no extra row; the tab and its sections read as one thing.</td><td>Does not fit on the four longest tabs at laptop width by my estimate, so the other tabs must fold away; the tab row changes shape on every click; folding tabs into &ldquo;More&rdquo; hides navigation exactly when a user is exploring.</td></tr>
+   <tr><td class="k">B. A section row under the tabs (my pick)</td><td>A slim second row directly under the tab bar, visually attached to the active tab, listing its sections as small chips. The active section is highlighted as you scroll; a click jumps. Both rows stay stuck at the top while scrolling.</td><td>Always fits (it can scroll sideways if it ever overflows); the tabs never change; the same behaviour on every tab; keeps tabs visible while scrolling, which also fixes F2.</td><td>Uses two stuck rows of height (about 90 px by estimate), which matters on a short window. Mitigation in section 4.</td></tr>
+   <tr><td class="k">C. A side rail</td><td>A thin &ldquo;On this page&rdquo; list down the right side of the content, sticking as you scroll.</td><td>No height cost; shows every section at once; familiar from documentation sites.</td><td>Takes about 170 px of width from the cards (already tight at 1008 px); hidden or crowded below about 1280 px; far from where the eye is when choosing a tab.</td></tr>
+   <tr><td class="k">D. A &ldquo;Jump to&rdquo; menu</td><td>A single drop-down button in the tab bar&rsquo;s right slot listing the sections.</td><td>Smallest; works at any width; no height cost.</td><td>Hides the sections behind a click, so the page still feels like a black hole until you open it; no scroll-spy position.</td></tr>
+   <tr><td class="k">E. Collapsible sections</td><td>Each section becomes an accordion that can be folded, so a page can be shortened to its headings.</td><td>Solves length directly; the user controls it.</td><td>Hides data by default or by habit; a large redesign of every card; does not answer &ldquo;where is X&rdquo;.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>My recommendation: B, on both frames.</b> It keeps your idea (the tab and its sections read as one group, and clicking jumps) and avoids the width problem. If you want your original shape, the closest honest version of A is B with the sections row connected to the active tab by a small notch, which is how I would draw it. D is a cheap addition that can sit beside B later if you want it.</div>
+</section>
+
+<!-- ============ 4. BEHAVIOUR ============ -->
+<section id="behaviour">
+ <h2>4. How it behaves</h2>
+ <p class="lead">The details of option B (and most of them apply to any option). Defaults I will use unless you say otherwise.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Behaviour</th><th>How it works</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Where it sticks</td><td>The tab row and the section row stay at the top of the page area while the content scrolls beneath them. The top bar (search, Import, family selector) is outside the scroll area and unaffected.</td></tr>
+   <tr><td class="k">Height budget</td><td>At a short window such as 1280&times;600, two sticky rows cost about 90 px (an estimate), leaving about 440 px for content. To protect short windows, <b>the tab row hides while scrolling down and returns when scrolling up</b>, leaving only the section row stuck (about 40 px) most of the time. Both stay visible at the top of the page.</td></tr>
+   <tr><td class="k">Jump</td><td>Clicking a chip scrolls the page area so the section&rsquo;s heading lands just below the sticky rows (smooth scroll, instant for people who prefer reduced motion). Focus moves to the section&rsquo;s heading so keyboard and screen-reader users land there.</td></tr>
+   <tr><td class="k">Scroll-spy</td><td>The chip of the section nearest the top is highlighted as you scroll. It watches the page area, not the window. A section that is still loading keeps its place (see Risks).</td></tr>
+   <tr><td class="k">Address</td><td>The jump writes the section into the page address (<code>#allocation-market-cap</code>), so a link or a refresh returns to that section, and the Back button steps back through jumps. Opening a tab with no hash starts at the top, as today.</td></tr>
+   <tr><td class="k">Keyboard and screen readers</td><td>Each chip is a link to the section; the row is a labelled navigation region; the current section carries <code>aria-current</code>. Tab, Enter and Escape behave as on any link.</td></tr>
+   <tr><td class="k">On the fund page</td><td>The fund header and the stat band scroll away as today; the tab strip (Overview, Overlap, Insights) sticks, with the section row directly under it. The chips take the same look as on the Mutual Funds frame, adapted to the underline tabs. Your answer to Q3 is read as covering the fund page&rsquo;s tab strip too.</td></tr>
+   <tr><td class="k">When the index shows</td><td>On tabs with 3 or more sections (a setting). On the others the row is simply not drawn, and the tab bar still sticks.</td></tr>
+   <tr><td class="k">Loading, empty and error</td><td>A section that is empty or failed still appears in the index so the list never jumps around; an empty tab (no funds yet) shows no index.</td></tr>
+   <tr><td class="k">With the other batches</td><td>Order of the stack, top to bottom: page title, tab row, section row, the data strip from Batch E, then the content. Search (K) and the PDF button (I) use the tab bar&rsquo;s right slot (section 5).</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Before and after</h3>
+ <div class="flow">
+  <div><h4>Before</h4><ol><li>The user opens Allocation or the Overview and scrolls a long page with no sense of what is below.</li><li>The tabs scroll away; to switch tab or jump to a lower card the user scrolls all the way up or down.</li><li>There is no link to a section.</li></ol></div>
+  <div><h4>After (option B)</h4><ol><li>A chip row names every section of the tab and highlights where you are.</li><li>The tabs and the chips stay at the top; a click jumps to the section.</li><li>Every section has a stable link that survives a refresh.</li></ol></div>
+ </div>
+</section>
+
+<!-- ============ 5. CONFIG ============ -->
+<section id="config">
+ <h2>5. One list, shared</h2>
+ <p class="lead">The index, search&rsquo;s &ldquo;page sections&rdquo; results and the PDF export must all show the same sections. Define the list once.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Piece</th><th>What it is</th></tr></thead>
+  <tbody>
+   <tr><td class="k">The list</td><td>One configuration per tab, for <b>both frames</b> (the seven Mutual Funds tabs and the fund page&rsquo;s three): an ordered list of entries <code>{ id, title, anchor, tier }</code>, kept next to the tab definitions in <code>MutualFundsFrame.tsx</code> (where <code>TAB_DEFS</code> already lives) and <code>FundPageFrame.tsx</code>, or in the route registry. <code>tier</code> lets Standard hide Pro sections later (Batch C4); it is unused today.</td></tr>
+   <tr><td class="k">The anchor</td><td>Each section element gets <code>id</code> from the list, plus a <code>scroll-margin-top</code> that equals the sticky height. <code>SectionCard</code> gains an <code>anchor</code> property; the sections that are not cards (the Overview&rsquo;s strip and table, the Cash Flow strip) get a small wrapper.</td></tr>
+   <tr><td class="k">Who reads it</td><td>The index (this batch); search&rsquo;s &ldquo;page sections&rdquo; results (K); the PDF export&rsquo;s section selection and order (I); Batch E&rsquo;s strip entries can reuse the same ids. Nothing else may hard-code a section list.</td></tr>
+   <tr><td class="k">A guard test</td><td>A test checks that every id in the list exists on its page, and that every card on a page appears in the list or is marked as intentionally excluded.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">The header stack</h3>
+ <div class="winbar" data-sec="stack"><span>Layout</span><button type="button" data-v="stack" aria-pressed="true">Top to bottom</button></div>
+ <div data-frame="stack"></div>
+ <p class="note">Laptop, made-up. The search box (K) and the PDF button (I) sit in the tab bar&rsquo;s right slot; the data strip (E) sits under the section row. Nothing uses the same space.</p>
+</section>
+
+<!-- ============ 6. STRATEGY ============ -->
+<section id="strategy">
+ <h2>6. Orchestrator and workers</h2>
+ <p class="lead">Same rules as the other batches. This is front-end work with a real design element, so the visual worker draws the new rows.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Role</th><th>Who</th><th>What they do in Batch F</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Orchestrator</td><td>Claude</td><td>Finishes the section audit (F-2); writes the section list and the anchor rules; decides the shared interface; writes the specs and the Gemini packet; checks every tab against the mockups at three laptop sizes, light and dark; runs the affected tests.</td></tr>
+   <tr><td class="k">Code worker</td><td>Codex</td><td>The section list, the anchors on every section, scroll-spy, the sticky rows, the address handling, focus and keyboard behaviour, and all tests.</td></tr>
+   <tr><td class="k">Visual worker</td><td>Antigravity (Gemini)</td><td>The section row and its notch from a packet (measurements, states, light and dark). The relay is manual, as in Batch B.</td></tr>
+   <tr><td class="k">Reviewer</td><td>Codex adversarial review</td><td>One review per handoff, then one whole-batch review before staging.</td></tr>
+  </tbody>
+ </table></div>
+ <p>Phone is out of scope, so no phone work is planned or checked. Nothing in the code changes until your reviewed answers are in and the plans are written.</p>
+ <h3 class="sub">Lanes that can run at the same time</h3>
+ <div class="cols">
+  <div class="doc"><h4>Lane 1: groundwork</h4><ul><li>The shared list, the anchors and <code>SectionCard</code>&rsquo;s anchor, the wrappers for non-card sections, the guard test.</li><li>Touches every tab&rsquo;s page and card files on both frames, by one small edit each.</li></ul></div>
+  <div class="doc"><h4>Lane 2: the index</h4><ul><li>The sticky rows, the chip row, scroll-spy, jump, address and focus, as one component.</li><li>Touches <code>MutualFundsFrame.tsx</code>, <code>FundPageFrame.tsx</code> and new files.</li></ul></div>
+ </div>
+ <p>Lane 2 needs Lane 1&rsquo;s list but not its anchors for most of the work, so the two overlap.</p>
+</section>
+
+<!-- ============ 7. PROGRAM ============ -->
+<section id="program">
+ <h2>7. Fit with the other batches</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Other batch</th><th>Relationship</th></tr></thead>
+  <tbody>
+   <tr><td class="k">D (charts)</td><td>D adds the Overview graph, which becomes the second Overview section. Its lazy loading changes the page height as it loads, so scroll-spy and jumps must cope with sections that grow after the first paint.</td></tr>
+   <tr><td class="k">E (explainability and dates)</td><td>E&rsquo;s data strip sits directly under the section row. Both are part of the header stack in section 5. E&rsquo;s strip is not sticky; the section row is.</td></tr>
+   <tr><td class="k">K (search)</td><td>Search&rsquo;s &ldquo;page sections&rdquo; result type reads this batch&rsquo;s list, and its page-local box takes the tab bar&rsquo;s right slot (today the Overview&rsquo;s page-local box is there). Plan the two together: one list, one slot rule.</td></tr>
+   <tr><td class="k">I (PDF export)</td><td>The export button takes the same right slot and uses the list for which sections to print and in what order.</td></tr>
+   <tr><td class="k">G (GA4)</td><td>A &ldquo;section jumped to&rdquo; event could carry the section id only. The tracking plan&rsquo;s section-view events (&ldquo;which sections do users skip&rdquo;) use the same ids, so this batch is what makes G&rsquo;s section questions answerable.</td></tr>
+   <tr><td class="k">C4 (Standard vs Pro)</td><td>The list&rsquo;s <code>tier</code> field lets a tier hide a section, so the index, search and the PDF all follow.</td></tr>
+   <tr><td class="k">A, B, C</td><td>No shared files.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>Migrations: none. Backend: none.</b> Batch B may take 0054; this batch takes none.</div>
+ <p><b>Deploy.</b> Front end only, in a staging milestone (the one you choose in Batch B&rsquo;s Q26).</p>
+</section>
+
+<!-- ============ 8. TASKS ============ -->
+<section id="tasks">
+ <h2>8. Task list</h2>
+ <p class="lead">Thirteen tasks. Sizes: S about half a day, M one to two days, L more.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Task</th><th>Worker</th><th>Size</th><th>When</th></tr></thead>
+  <tbody>
+   <tr><td>F-1</td><td>Re-check every &ldquo;read in code&rdquo; line; write the specs and the Gemini packet</td><td>Claude</td><td>M</td><td>After your answers</td></tr>
+   <tr><td>F-2</td><td>Finish the section audit: every section on the seven tabs and on the fund page&rsquo;s tabs, with its stable id, whether it is a card, and whether it can be empty</td><td>Claude</td><td>M</td><td>Now (read-only)</td></tr>
+   <tr><td>F-3</td><td>The shared section list and its guard test, tests first</td><td>Codex</td><td>S</td><td>After F-2</td></tr>
+   <tr><td>F-4</td><td>Anchors on both frames: <code>anchor</code> on <code>SectionCard</code> and on the fund page&rsquo;s own section blocks; wrappers for non-card sections; <code>scroll-margin-top</code></td><td>Codex</td><td>L</td><td>After F-3</td></tr>
+   <tr><td>F-5</td><td>The sticky tab row and section row in <code>MutualFundsFrame</code> and <code>FundPageFrame</code>; hide the Mutual Funds tab row on scroll down</td><td>Codex, Gemini</td><td>L</td><td>After Q1</td></tr>
+   <tr><td>F-6</td><td>Scroll-spy on the page area, with sections that load late</td><td>Codex</td><td>M</td><td>After F-4</td></tr>
+   <tr><td>F-7</td><td>Jump, smooth scroll and reduced motion, focus to the heading, address handling and Back behaviour</td><td>Codex</td><td>M</td><td>After F-4</td></tr>
+   <tr><td>F-8</td><td>Keyboard and screen-reader behaviour; the &ldquo;3 or more sections&rdquo; rule; empty and error cases</td><td>Codex</td><td>S</td><td>After F-5</td></tr>
+   <tr><td>F-9</td><td>Dark mode, three laptop sizes (including a short window), both frames, against the mockups</td><td>Claude</td><td>M</td><td>After F-5 to F-8</td></tr>
+   <tr><td>F-10</td><td>Adversarial review per handoff, then the whole batch</td><td>Codex, Claude</td><td>M</td><td>Before staging</td></tr>
+   <tr><td>F-11</td><td>Staging deploy guide and QA checklist</td><td>Claude</td><td>M</td><td>After F-10</td></tr>
+   <tr><td>F-12</td><td>Staging check</td><td>You</td><td>S</td><td>After F-11</td></tr>
+   <tr><td>F-13</td><td>Update <code>decisions.md</code>, <code>session.md</code> and the Notion pack on your go</td><td>Claude</td><td>S</td><td>Last</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">F-2 needs no code and can start before anything else.</p>
+</section>
+
+<!-- ============ 9. RISKS ============ -->
+<section id="risks">
+ <h2>9. Risks, tests and checks</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Risk</th><th>What we do</th></tr></thead>
+  <tbody>
+   <tr><td>Two sticky rows eat too much of a short window</td><td>The tab row hides while scrolling down and returns on scrolling up; both are checked at 1280&times;600; the section row is only about 40 px.</td></tr>
+   <tr><td>Sticky and scroll-spy are wrong because the page area, not the window, scrolls</td><td>Both are built against the page area from the start; tests simulate scrolling inside it.</td></tr>
+   <tr><td>Sections load late and shift the page, so the highlight or a jump lands in the wrong place</td><td>Jumps re-measure after loading settles; scroll-spy uses the section&rsquo;s own position, not a fixed height; Batch D&rsquo;s lazy graph is a named test case.</td></tr>
+   <tr><td>The list and the page disagree (a section is added and the index misses it)</td><td>The guard test fails when a card on a page is not in the list or marked excluded.</td></tr>
+   <tr><td>The smooth scroll or the sticky rows bother some users</td><td>Reduced-motion users get an instant jump; the tab row&rsquo;s hide-on-scroll can be turned off by a setting.</td></tr>
+   <tr><td>The two frames (seven tabs; three underline tabs) look or behave differently</td><td>One component with a frame-specific wrapper; both frames are in the same mockups and the same checks.</td></tr>
+   <tr><td>The index and the Overview&rsquo;s page-local search fight for the right slot</td><td>They are placed in the stack in section 5; the slot rule is agreed with search&rsquo;s plan (K) before building.</td></tr>
+   <tr><td>The Back button fills with jumps</td><td>A jump replaces the hash entry rather than adding one for repeated jumps within a tab (to be confirmed in the spec).</td></tr>
+   <tr><td>A rarely used tab (2 sections) looks inconsistent without the row</td><td>The tab bar still sticks on every tab; only the chip row is skipped, by the 3-section rule.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Tests, in short</h3>
+ <ul class="tight">
+  <li><b>Frontend (Vitest), affected files only:</b> the section list and its guard test, <code>MutualFundsFrame</code>, <code>FundPageFrame</code>, <code>SectionCard</code>, the new index component, and one test per tab page on both frames for its anchors; then <code>npm run lint</code> and <code>npm run build</code>.</li>
+  <li><b>By eye:</b> every tab against the mockups at 1280&times;600, 1440&times;810 and 1536&times;730, light and dark; keyboard only; a reduced-motion setting. The phone view is out of scope.</li>
+  <li>Red before green for every behaviour.</li>
+ </ul>
+ <h3 class="sub">Staging check (draft; the real guide is F-11)</h3>
+ <div class="steps5">
+  <div><b>Index</b>On Overview, Allocation, Overlap, Performance and Other Analytics a chip row lists the sections; Holdings and Transactions show none.</div>
+  <div><b>Jump and spy</b>A click lands the section&rsquo;s heading just below the rows; scrolling moves the highlight; a refresh on <code>#section</code> returns to it.</div>
+  <div><b>Sticky</b>Tabs and chips stay at the top; the tab row hides on scrolling down and returns on scrolling up; nothing covers a heading.</div>
+  <div><b>All</b>Dark mode; keyboard only (Tab, Enter); reduced motion; a short window; the other batches&rsquo; items (the graph, the data strip) in place.</div>
+ </div>
+</section>
+
+<!-- ============ QUESTIONS ============ -->
+<section id="questions">
+ <h2>10. Questions</h2>
+ <p class="lead">Q2 and Q3 are answered and locked; <b>Q1 is still open</b>. Everything else is a default below, or a decision I bring you later with evidence.</p>
+ <div class="bar"><span class="status" id="prog">0 of 3 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
+ <div id="cards"></div>
+ <h3 class="sub">Defaults I will use (tell me in chat if you want any changed)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Topic</th><th>Default</th></tr></thead>
+  <tbody>
+   <tr><td class="k">When the index shows</td><td>On tabs with 3 or more sections, on both frames; the tab bar sticks on every tab. The compare-two-funds page (2 sections) has none.</td></tr>
+   <tr><td class="k">Sticky height</td><td>The tab row hides on scrolling down and returns on scrolling up; the section row stays.</td></tr>
+   <tr><td class="k">Other Analytics</td><td>The index lists its 4 groups, not the 6 cards.</td></tr>
+   <tr><td class="k">Numbers in titles</td><td>The Overlap numbering (&ldquo;1.&rdquo; to &ldquo;4.&rdquo;) is left out of the chips.</td></tr>
+   <tr><td class="k">Jump</td><td>Smooth scroll (instant under reduced motion); focus moves to the heading; the hash is written to the address.</td></tr>
+   <tr><td class="k">The list</td><td>One configuration next to <code>TAB_DEFS</code>, with a <code>tier</code> field that is unused today; a guard test keeps it in step with the pages.</td></tr>
+   <tr><td class="k">Search and PDF</td><td>They share the tab bar&rsquo;s right slot with each other, not with the index.</td></tr>
+   <tr><td class="k">Phone view</td><td>Out of scope; planned later.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Decisions I will bring you later, with the evidence in hand</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Decision</th><th>When it comes up</th><th>What you will see</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Whether the Summary strip and Sold funds count as sections</td><td>After the section audit (F-2)</td><td>The two blocks, why they have no heading, and my suggestion.</td></tr>
+   <tr><td class="k">The final chip labels (shortened titles)</td><td>With the Gemini mockups</td><td>The real titles against the width they need.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="copy">
+ <h2>11. Copy my answers</h2>
+ <p class="lead">Press the button, then paste the text in chat. If it does nothing, select the text below and copy it yourself.</p>
+ <button id="copyBtn" type="button">Copy my answers</button> <span class="status" id="copyMsg"></span>
+ <label class="nl" for="outTa">Your answers as text</label>
+ <textarea id="outTa" class="out" readonly></textarea>
+</section>
+
+<section id="prov">
+ <h2>What I checked</h2>
+ <p><b>Read today, read-only, by me:</b> <code>MutualFundsFrame.tsx</code> (the tab definitions and tab bar), <code>PageLayout.tsx</code>, <code>AppLayout.tsx</code> (what scrolls), <code>TopBar.tsx</code>, <code>Sidebar.tsx</code> (its width), <code>OverviewPage.tsx</code> (the right-hand slot); the seven tab pages and their cards (<code>SectionCard</code> titles and page headings); the route registry types and route list; a search for existing scroll, anchor and hash code; <code>FundPageFrame.tsx</code> and the fund page&rsquo;s page files (names and titles of what each renders).</p>
+ <p><b>Not done:</b> nothing was run and I did not open the live app. The pixel widths in section 3 are my estimates from label lengths, not measurements; the height numbers in section 4 are estimates too. I did not read the card bodies, so which sections can be empty is for the audit. I read the fund page frame&rsquo;s structure (header, tabs) but not its section bodies, so its sticky behaviour and which blocks can be empty are for the audit. I did not read Sold funds&rsquo; internal structure (no heading element was found by search). Whether <code>position: sticky</code> inside the page area needs extra offsets because of its 24 px padding is an implementation detail for the spec.</p>
+ <p><b>Drawn, not measured:</b> every mockup is my reconstruction with invented numbers; the chips&rsquo; labels are the real titles but their widths are drawn. Laptop only: the phone view is out of scope. Nothing was committed or deployed.</p>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+function vp(inner,w,h,cls,attrs){return '<div class="vp '+(cls||'')+'" data-w="'+w+'"'+(h?' data-h="'+h+'"':'')+(attrs||'')+'><div class="vp-in">'+inner+'</div></div>'}
+function chrome(url){return '<div class="chrome"><i></i><i></i><i></i><span>'+url+'</span></div>'}
+var TABS=['Overview','Performance','Allocation','Holdings','Transactions','Overlap','Other Analytics'];
+function tabrow(active,opts){
+ opts=opts||{};
+ var h='<div class="tabbar">';
+ TABS.forEach(function(t){
+  if(opts.fold && t!==active && opts.fold.indexOf(t)>-1)return;
+  h+='<span class="t'+(t===active?' on':'')+'">'+t+'</span>';
+ });
+ if(opts.more)h+='<span class="t">More &#9662;</span>';
+ if(opts.util)h+='<span class="u">'+opts.util+'</span>';
+ return h+'</div>';
+}
+function shell(inner,h){
+ var side='<div style="width:224px;flex:none;background:#fff;border-right:1px solid #E5E7EB;padding:14px 12px;font-size:12px;color:#667085"><div style="font:700 18px DM Sans,sans-serif;color:#111;margin-bottom:14px">Unifolio</div><div style="padding:6px 8px">Home</div><div style="padding:6px 8px;background:#EAFBF0;color:#15803D;border-radius:8px;font-weight:600">Portfolio</div><div style="padding:6px 8px">Planning</div><div style="padding:6px 8px">History</div></div>';
+ var top='<div style="height:56px;border-bottom:1px solid #E5E7EB;background:#fff;display:flex;align-items:center;gap:10px;padding:0 24px;font-size:12px;color:#98A2B3"><span style="border:1px solid #E5E7EB;border-radius:10px;padding:7px 12px;width:300px;margin-right:auto">Search</span><span style="border:1px solid #E5E7EB;border-radius:10px;padding:7px 12px">Import</span><span style="border:1px solid #E5E7EB;border-radius:10px;padding:7px 12px">Family Combined</span></div>';
+ return '<div style="display:flex;height:'+h+'px;background:#F6F8F6">'+side+'<div style="flex:1;min-width:0;display:flex;flex-direction:column">'+top+'<div class="ap" style="flex:1;overflow:hidden;padding:24px;position:relative">'+inner+'</div></div></div>';
+}
+/* ---- fit estimate ---- */
+function fits(){
+ var rows=[['MF: Performance (3)',620,3*98+40],['MF: Allocation (4)',620,4*98+40],['MF: Overview (7)',620,7*98+40],['Fund page: Overview (6)',214,6*98+40],['Fund page: Overlap (5)',214,5*98+40]];
+ var room=1008-16;
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Estimated width of the tab row when the active tab expands (all seven tabs kept)</h5><p class="ap-mut" style="margin-bottom:10px">Room: about '+room+' px at 1280 px wide. Tabs: about 620 px. Sections: about 98 px each (estimate).</p>';
+ rows.forEach(function(r){
+  var need=r[1]+r[2]; var fit=need<=room;
+  h+='<div class="fits"><span>'+r[0]+'</span><div style="display:flex;height:14px;gap:2px"><div class="bar t2" style="width:'+Math.round(r[1]/room*100*0.78)+'%"></div><div class="bar'+(fit?'':' x')+'" style="width:'+Math.round(r[2]/room*100*0.78)+'%"></div></div><b style="font-size:12px;color:'+(fit?'#15803D':'#B45309')+'">'+need+' px '+(fit?'fits':'too wide')+'</b></div>';
+ });
+ h+='<p class="ap-mut" style="margin-top:10px">Grey: the tabs (seven on the Mutual Funds frame, three on the fund page). Green or amber: the active tab&rsquo;s sections. Estimates, not measurements.</p></div></div></div>';
+ return vp(h,1000,0);
+}
+/* ---- options ---- */
+function allocBody(){return '<div class="blk"><b>Look-Through Asset Allocation</b>Equity 72% &middot; Debt 21% &middot; Gold 4% &middot; Other 3%</div><div class="blk"><b>Market-Cap Allocation</b>Large 58% &middot; Mid 27% &middot; Small 15%</div><div class="blk"><b>Portfolio Allocation</b>By category and fund house</div>'}
+function opt(v){
+ var h;
+ if(v==='f'){
+  var crumb='<div class="ap-mut" style="margin-bottom:8px">Mutual Funds &rsaquo; Alpha Flexi Cap Fund</div>';
+  var hdr='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span class="ap-logoc" style="width:36px;height:36px;font-size:13px">A</span><div><b style="font:700 18px DM Sans,sans-serif">Alpha Flexi Cap Fund</b><div class="ap-mut">Flexi Cap &middot; Direct plan</div></div></div>';
+  var tiles='<div class="ap-tiles" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px"><div class="ap-tile"><small>Current value</small><b>&#8377;1,71,300</b></div><div class="ap-tile"><small>Invested</small><b>&#8377;1,46,900</b></div><div class="ap-tile"><small>Gain</small><b style="color:#15803D">+16.6%</b></div><div class="ap-tile"><small>XIRR</small><b>13.2%</b></div></div>';
+  var tabs='<div style="display:flex;gap:24px;border-bottom:1px solid #E5E7EB;font-size:13px;font-weight:600"><span style="padding-bottom:10px;border-bottom:2px solid #22C55E;color:#111">Overview</span><span style="padding-bottom:10px;color:#667085">Overlap</span><span style="padding-bottom:10px;color:#667085">Insights</span></div>';
+  var secs=['Performance','Returns','Top Holdings','Your Investment Details','Risk Metrics','Fund Allocation'];
+  var sub='<div class="subrow" style="margin-top:8px"><span class="lead">On this tab</span>'+secs.map(function(s,i){return '<span class="s'+(i===1?' on':'')+'">'+s+'</span>'}).join('')+'</div>';
+  h=crumb+hdr+tiles+tabs+sub+'<div class="blk"><b>Returns</b>1Y 12.1% &middot; 3Y 14.0% &middot; 5Y 16.3%</div><div class="blk"><b>Top Holdings</b>Ten largest stock positions</div>';
+  return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/funds/alpha')+shell(h,560),1280,0);
+ }
+ if(v==='a'){
+  var secs=['Look-Through','Market-Cap','Portfolio','Fund Manager'];
+  var row='<div class="tabbar"><span class="t">Overview</span><span class="t">Performance</span><span class="t on" style="display:inline-flex;gap:6px;align-items:center;padding:4px 8px">Allocation <span style="color:#98A2B3">&rsaquo;</span>'+secs.map(function(s,i){return '<span style="padding:2px 9px;border-radius:99px;background:'+(i===1?'#fff':'transparent')+';border:1px solid '+(i===1?'#BFE9CC':'transparent')+';font-weight:'+(i===1?700:500)+'">'+s+'</span>'}).join('')+'</span><span class="t">More &#9662;</span></div>';
+  h='<div class="ap-h" style="margin-bottom:10px">Allocation</div>'+row+allocBody();
+  return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/allocation')+shell(h,520),1280,0);
+ }
+ if(v==='b'){
+  var sec=['Look-Through Asset Allocation','Market-Cap Allocation','Portfolio Allocation','Fund Manager Allocation'];
+  var sub='<div class="subrow"><span class="lead">On this tab</span>'+sec.map(function(s,i){return '<span class="s'+(i===1?' on':'')+'">'+s+'</span>'}).join('')+'</div>';
+  h='<div class="ap-h" style="margin-bottom:10px">Allocation</div>'+tabrow('Allocation',{util:'Search'})+sub+allocBody();
+  return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/allocation')+shell(h,520),1280,0);
+ }
+ var rail='<div class="rail"><div>Look-Through Asset Allocation</div><div class="on">Market-Cap Allocation</div><div>Portfolio Allocation</div><div>Fund Manager Allocation</div></div>';
+ h='<div class="ap-h" style="margin-bottom:10px">Allocation</div>'+tabrow('Allocation',{util:'Search'})+'<div style="width:760px">'+allocBody()+'</div>'+rail;
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/allocation')+shell(h,520),1280,0);
+}
+/* ---- header stack ---- */
+function stack(){
+ var sec=['Summary','Value over time','SIPs','Mutual Funds','Sold funds','AMC Allocation','Family Members','Quick Insights'];
+ var sub='<div class="subrow"><span class="lead">On this tab</span>'+sec.map(function(s,i){return '<span class="s'+(i===3?' on':'')+'">'+s+'</span>'}).join('')+'</div>';
+ var strip='<div class="strip" style="margin-top:8px"><b>Data dates</b><span>Prices as on <b>12 Nov 2026</b></span><span class="i">i</span></div>';
+ var h='<div class="ap-h" style="margin-bottom:10px">All Investments</div>'+tabrow('Overview',{util:'Search &nbsp;&middot;&nbsp; Export PDF'})+sub+strip+'<div class="blk"><b>Mutual Funds (12)</b>Holdings table</div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds')+shell(h,520),1280,0);
+}
+var STATE={'opt':'b','stack':'stack'};
+function frame(n){switch(n){case 'fits':return fits();case 'opt':return opt(STATE['opt']);case 'stack':return stack();}return ''}
+function layoutAll(){document.querySelectorAll('.vp').forEach(function(v){var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');inn.style.width=w+'px';inn.style.height=h?h+'px':'auto';var hh=h||inn.offsetHeight;var sc=Math.min(1,v.clientWidth/w);inn.style.transform='scale('+sc+')';v.style.height=Math.ceil(hh*sc)+'px'})}
+function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});layoutAll()}
+document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){var sec=bar.getAttribute('data-sec');bar.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){STATE[sec]=b.getAttribute('data-v');bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});renderAll()})})});
+renderAll();window.addEventListener('resize',layoutAll);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layoutAll);setTimeout(layoutAll,400);
+
+/* ================= questions ================= */
+var KEY="batch-f-planning-v1",S={};
+try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+var Q=[
+{id:"Q1",item:"12",title:"Which shape does the section index take?",ask:"Pick one. Section 3 draws A to C at a 1280-pixel laptop.",
+ ctx:"Your own idea is option A. By my estimate it does not fit on the longer Mutual Funds tabs at laptop width, but it does fit on the fund page (three tabs). Because the answer to Q2 puts both frames in scope and one component should look the same on both, I recommend B. Still open.",
+ opts:[
+ {k:"A",l:"Your idea: the active tab expands inline into its sections (the other tabs fold into a &ldquo;More&rdquo; menu while open)",d:"Good: closest to what you described; no extra row. Bad: does not fit on the four longest tabs by my estimate, so the other tabs fold away; the tab row changes shape on every click; folding the tabs hides navigation."},
+ {k:"B",l:"A section row directly under the tab bar, attached to the active tab; both rows stay stuck while scrolling",rec:1,d:"Good: always fits; the tabs never change; the same behaviour on every tab; keeps the tabs visible while scrolling. Bad: about 90 px of sticky height, reduced by hiding the tab row while scrolling down."},
+ {k:"C",l:"A thin &ldquo;On this page&rdquo; rail down the right side",d:"Good: no height cost; shows every section at once. Bad: takes about 170 px of width from the cards and is crowded below about 1280 px; far from the tabs."}],
+ why:"It keeps your idea (the tab and its sections read as one group, and a click jumps) and fits every tab. D (a &ldquo;Jump to&rdquo; menu) and E (collapsible sections) are drawn in the comparison but are weaker answers to the black-hole problem.",
+ commit:"A: the tab row folds and reflows. B: a second sticky row and a hide-on-scroll rule for the tab row. C: a right-hand rail and a narrower content column."},
+{id:"Q2",item:"12",title:"Which pages get the index in this batch?",ask:"Pick one.",
+ ctx:"The Mutual Funds tabs are what you named. The fund page (a single fund) has three tabs with 5 or 6 sections each. Home, Portfolio and Planning are shorter.",
+ opts:[
+ {k:"A",l:"The seven Mutual Funds tabs only",rec:1,d:"Good: exactly what you named; the smallest change. Bad: the fund page stays a long scroll."},
+ {k:"B",l:"The Mutual Funds tabs and the fund page&rsquo;s tabs",d:"Good: both long areas are covered by one component. Bad: a larger batch; the fund page frame differs from the Mutual Funds frame and needs its own check."},
+ {k:"C",l:"Only the long tabs (Overview, Allocation, Overlap, Other Analytics), whatever the page",d:"Good: no index where it adds little. Bad: users meet it on some tabs and not others, which the 3-section rule already handles."}],
+ why:"You named the Mutual Funds tabs. The component is built to be reused, so adding the fund page later is a small follow-up that I would plan once this one is reviewed.",
+ commit:"<b>Recorded:</b> option B. Two frames: the seven Mutual Funds tabs and the fund page&rsquo;s three tabs. The fund page&rsquo;s sections are inventoried in F-2 and its frame gets the sticky tab strip and the section row."},
+{id:"Q3",item:"12",title:"Should the tab bar stick while the page scrolls, even on tabs without an index?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Yes, the tab bar sticks on every Mutual Funds tab",rec:1,d:"Good: switching tab no longer needs a scroll to the top; consistent. Bad: a little height on every tab (reduced by hiding it while scrolling down)."},
+ {k:"B",l:"Only on tabs that have the index",d:"Good: the short tabs are unchanged. Bad: inconsistent behaviour from tab to tab."},
+ {k:"C",l:"No: only the section row sticks",d:"Good: the least height. Bad: the tabs scroll away on long pages, which is part of the black-hole feeling."}],
+ why:"The tab bar scrolling away is half of what makes a long page hard to use, and it is cheap to fix once there is a sticky row anyway.",
+ commit:"<b>Recorded:</b> option A. The tab bar sticks on every Mutual Funds tab, and (my reading, since Q2 B brings the fund page in) on the fund page&rsquo;s tab strip too. Tell me if you meant only the seven tabs."}
+];
+var PRE={Q2:{k:"B"},Q3:{k:"A"}};
+var LOCK={};
+Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
+var cards=document.getElementById("cards");
+Q.forEach(function(q){
+ var c=document.createElement("div");c.className="card";c.id=q.id.toLowerCase();c.setAttribute("data-q",q.id);
+ var h='<header><span class="id">'+q.id+' &middot; item '+q.item+'</span><h3>'+q.title+'</h3><span class="status todo" data-st>unanswered</span></header><p class="ask"><b>'+q.ask+'</b></p>';
+ if(q.ctx)h+='<p class="ctx">'+q.ctx+'</p>';
+ h+='<div class="opts">';
+ q.opts.forEach(function(o){h+='<label class="opt'+(o.rec?' isrec':'')+'"><input type="radio" name="'+q.id+'" value="'+o.k+'"'+(LOCK[q.id]?' disabled':'')+'><div><b>'+o.k+'. '+o.l+(o.rec?'<span class="tag me">my pick</span>':'')+'<span class="tag chosen" hidden>Chosen option</span></b><span class="d">'+o.d+'</span></div></label>'});
+ h+='</div>';
+ if(q.why)h+='<div class="why"><b>Why my pick.</b> '+q.why+'</div>';
+ if(q.commit)h+='<div class="commit"><b>What this answer commits us to.</b> '+q.commit+'</div>';
+ h+='<label class="nl" for="n-'+q.id+'">Notes (optional)</label><textarea id="n-'+q.id+'" placeholder="Anything I should know"'+(LOCK[q.id]?' readonly':'')+'></textarea>';
+ c.innerHTML=h;cards.appendChild(c);
+});
+function answered(q){if(LOCK[q.id])return true;var a=S[q.id]||{};return !!a.k}
+function setSt(st,ok){st.textContent=ok?"answered":"unanswered";st.className=ok?"tag ok":"status todo"}
+function build(){
+ var L=["BATCH F PLANNING: MY ANSWERS (13 Nov 2026)",""];
+ Q.forEach(function(q){
+  var a=S[q.id]||{},ln=q.id+" ("+q.item+") "+q.title.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")+"\n  Answer: ";
+  if(a.k){var o=q.opts.filter(function(x){return x.k===a.k})[0];ln+=a.k+". "+o.l.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")}else ln+="NOT ANSWERED";
+  if(a.n&&a.n.trim())ln+="\n  Note: "+a.n.trim();
+  L.push(ln);L.push("");
+ });
+ return L.join("\n");
+}
+function paint(){
+ var n=0;
+ Q.forEach(function(q){
+  var c=document.getElementById(q.id.toLowerCase()),a=S[q.id]||{};
+  c.querySelectorAll(".opt").forEach(function(o){var r=o.querySelector("input");r.checked=(a.k===r.value);o.classList.toggle("on",r.checked);var b=o.querySelector(".chosen");if(b)b.hidden=!r.checked});
+  var nn=document.getElementById("n-"+q.id);if(nn&&document.activeElement!==nn)nn.value=a.n||"";
+  var ok=answered(q);if(ok)n++;setSt(c.querySelector("[data-st]"),ok);
+ });
+ document.getElementById("prog").textContent=n+" of "+Q.length+" answered";
+ document.getElementById("outTa").value=build();
+}
+cards.addEventListener("change",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.type==="radio")S[q].k=e.target.value;save();paint()});
+cards.addEventListener("input",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.id==="n-"+q)S[q].n=e.target.value;save();document.getElementById("outTa").value=build()});
+function copy(){
+ var ta=document.getElementById("outTa"),m=document.getElementById("copyMsg");ta.value=build();
+ function fb(){ta.removeAttribute("readonly");ta.select();try{document.execCommand("copy");m.textContent="Copied (or select and copy the text below)"}catch(e){m.textContent="Select the text below and copy it"}ta.setAttribute("readonly","")}
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(function(){m.textContent="Copied. Paste it in chat."},fb)}else fb();
+}
+document.getElementById("copyBtn").addEventListener("click",copy);
+document.getElementById("copyTop").addEventListener("click",function(){copy();document.getElementById("copy").scrollIntoView()});
+document.getElementById("jump").addEventListener("click",function(){for(var i=0;i<Q.length;i++){if(!answered(Q[i])){document.getElementById(Q[i].id.toLowerCase()).scrollIntoView({behavior:"smooth"});return}}});
+paint();
+})();
+</script>
+</body>
+</html>
