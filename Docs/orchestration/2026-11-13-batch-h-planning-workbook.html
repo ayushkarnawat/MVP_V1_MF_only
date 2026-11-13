@@ -434,6 +434,19 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 .dnote{background:#FFF4E0;border:1px solid #F7D9A0;border-radius:10px;padding:9px 12px;font-size:12px;color:#7A4B00;margin:10px 0}
 .dbn{background:#EAFBF0;border:1px solid #BBF7D0;border-radius:10px;padding:9px 12px;font-size:12px;color:#15803D;margin:10px 0;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .codeb{background:#0F172A;color:#E2E8F0;border-radius:10px;padding:12px 14px;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace;overflow:auto;white-space:pre}
+
+.vtool{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.vbtn{background:#22C55E;color:#fff;font-weight:700;border:0;border-radius:10px;padding:10px 18px;font-size:14px;cursor:pointer}.vbtn.o{background:#fff;color:#15803D;border:1px solid #22C55E}
+#vmodal{position:fixed;inset:0;background:rgba(17,17,17,.62);z-index:9999;display:none;align-items:center;justify-content:center;padding:16px}
+#vmodal.on{display:flex}
+#vmodal .vd{background:#fff;border-radius:16px;width:min(860px,100%);max-height:96vh;overflow:auto;padding:18px 20px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+#vmodal .vh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}#vmodal .vh b{font:700 17px 'DM Sans',sans-serif;color:#111}
+#vmodal .vx{border:0;background:none;font-size:24px;cursor:pointer;color:#667085}
+#vmodal video{width:100%;border-radius:10px;background:#000;display:block;aspect-ratio:16/9}
+#vmodal .vc{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+#vmodal .vc button{border:1px solid #D0D5DD;background:#fff;border-radius:99px;padding:4px 14px;font-size:13px;cursor:pointer;color:#344054}#vmodal .vc button.on{background:#EAFBF0;border-color:#22C55E;color:#15803D;font-weight:700}
+#vmodal .vf{display:none;justify-content:flex-end;gap:8px;margin-top:12px}#vmodal .vf.on{display:flex}
+.vlink{display:inline-flex;gap:6px;align-items:center;color:#15803D;font-weight:600;font-size:13px;border-bottom:1px solid #86EFAC;cursor:pointer;background:none;border-top:0;border-left:0;border-right:0;padding:0 0 1px}
 .hchip{border:1px solid #D0D5DD;border-radius:99px;padding:3px 12px;font-size:12px;color:#344054}.hchip.on{background:#EAFBF0;border-color:#22C55E;color:#15803D;font-weight:600}
 </style>
 </head>
@@ -449,6 +462,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <a href="#interactive">4b. Interactive alternatives</a>
  <a href="#placement">4c. Where each one lives</a>
  <a href="#floating">4d. Floating checklist in depth</a>
+ <a href="#videos">4e. The two videos, playing</a>
  <a href="#rules">5. Accuracy and privacy rules</a>
  <h4>How we build it</h4>
  <a href="#strategy">6. Who does what</a>
@@ -738,6 +752,26 @@ window.open(request.cams_url, "_blank");                // as today</div>
  <h3 class="sub">What I corrected in other sections</h3>
  <p>While reading the browser documentation I found three sentences of mine that were wrong or too vague, and fixed them in 4b and 4c: the window <b>cannot be placed by us</b> (the browser decides and remembers where the user moved it, so I removed &ldquo;bottom-right by default&rdquo;); support is <b>desktop Chrome and Edge from version 116</b> (no longer &ldquo;as I understand it&rdquo;); and the window <b>cannot force the user back to the Unifolio tab</b> (the browser offers a <i>Back to tab</i> control), so the flow in 4c now moves the same window on to the wait step instead of promising to return the user.</p>
 </section>
+
+<section id="videos">
+ <h2>4e. The two videos, playing in the pop-up</h2>
+ <p class="lead">You asked to see how the videos would actually look. Below, the link on the Request from CAMS screen is live: press it and the pop-up opens and plays a real video. Two videos were made, one for Look 1 (stylised) and one for Look 2 (realistic), and you can switch between them inside the pop-up.</p>
+ <div class="callout info"><b>What these are, and what they are not.</b> They are <b>working previews</b>, not the final videos. They are silent (no voice-over and no music, because Q2 is not answered yet), with the captions burned into the picture; the real build keeps captions as a separate file the user can switch off. They use the <b>real Unifolio logos</b>, the real labels and wording from the live CAMS form, and made-up data (a dummy email and password, made-up funds). The CAMS form in Look 2 is <b>my redrawing</b> of the live page, not a screen recording: the final Look 2 uses a real recording (task H-1). The cursor, rings, callouts and timing show the intended style. Each is 1280 by 720 at 24 frames a second (Look 1: 80 seconds, 1.7 MB; Look 2: 84 seconds, 2.2 MB).</div>
+ <div class="vtool"><button type="button" class="vbtn" id="vplay2">&#9654; Play Look 2 (realistic)</button><button type="button" class="vbtn o" id="vplay1">&#9654; Play Look 1 (stylised)</button></div>
+ <p class="note">Or open the real screen first: press the link below, as a user would.</p>
+ <div data-frame="vs"></div>
+ <h3 class="sub">What the pop-up does</h3>
+ <ul class="tight">
+  <li><b>Opens over the screen</b> when the link is pressed; the page behind stays put. It closes with the &times; or the Escape key.</li>
+  <li><b>Chapter buttons</b> (Request, Fill the form, Inbox, Upload) jump to that part of the video.</li>
+  <li><b>When the video ends</b>, two buttons appear: <i>Watch again</i> and <i>Request Statement on CAMS</i>.</li>
+  <li><b>Look switcher</b> (this preview only): so you can compare the two without closing it. In the real product there would be one video.</li>
+  <li>Playback uses the browser&rsquo;s own controls here; the real pop-up would add a captions switch.</li>
+ </ul>
+ <h3 class="sub">How the previews were made</h3>
+ <p>Each video is an animation built in code from the real logos and the wording above, then recorded frame by frame and encoded to a standard MP4 that plays in every current browser. This shows the style and pacing without anyone filming a screen. For the final version, the realistic look would use a recording of the real CAMS form (H-1), dressed in the same way. The two files are also saved on your computer next to the workbook (see my message), so you can send them to your manager.</p>
+</section>
+<div id="vmodal" role="dialog" aria-modal="true" aria-label="How to request your statement from CAMS"><div class="vd"><div class="vh"><b>How to request your statement from CAMS</b><button type="button" class="vx" id="vclose" aria-label="Close">&times;</button></div><video id="vvid" controls playsinline preload="none" poster=""></video><div class="vc" id="vchap"></div><div class="vc" style="margin-top:8px"><button type="button" id="vl2">Look 2: realistic</button><button type="button" id="vl1">Look 1: stylised</button></div><div class="vf" id="vend"><button type="button" class="vbtn o" id="vagain">Watch again</button><button type="button" class="vbtn" id="vreq">Request Statement on CAMS</button></div></div></div>
 
 <section id="rules">
  <h2>5. Accuracy and privacy rules</h2>
@@ -1058,12 +1092,40 @@ function pp(v){
  return vp(chrome('ls-redesign.unifolio.in/import')+inner,1000,0);
 }
 var STATE={sb:'0',rl:'0',pp:'a',cn:'A',pl:'V',pv:'S2'};
-function frame(n){return n==='sb'?scene(+STATE.sb):n==='rl'?rscene(+STATE.rl):n==='cn'?cmock(STATE.cn):n==='pm'?(PS.v=STATE.pv,pmock()):pp(STATE.pp)}
+function frame(n){return n==='sb'?scene(+STATE.sb):n==='rl'?rscene(+STATE.rl):n==='cn'?cmock(STATE.cn):n==='pm'?(PS.v=STATE.pv,pmock()):n==='vs'?vscreen():pp(STATE.pp)}
 function layoutAll(){document.querySelectorAll('.vp').forEach(function(v){var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');inn.style.width=w+'px';inn.style.height=h?h+'px':'auto';var hh=h||inn.offsetHeight;var sc=Math.min(1,v.clientWidth/w);inn.style.transform='scale('+sc+')';v.style.height=Math.ceil(hh*sc)+'px'})}
 function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});document.querySelectorAll('[data-plb]').forEach(function(b){b.style.display=b.getAttribute('data-plb')===STATE.pl?'block':'none'});var nn=document.getElementById('cnnote');if(nn)nn.textContent=CNOTE[STATE.cn]+' Made-up details; laptop view.';var pn=document.getElementById('pmnote');if(pn)pn.textContent=PNOTE[STATE.pv]+' Made-up details; laptop view.';layoutAll()}
 document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){var sec=bar.getAttribute('data-sec');bar.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){STATE[sec]=b.getAttribute('data-v');bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});renderAll()})})});
 renderAll();window.addEventListener('resize',layoutAll);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layoutAll);setTimeout(layoutAll,400);
 
+
+/* ---- live video pop-up preview ---- */
+function vscreen(){return vp(chrome('ls-redesign.unifolio.in/import')+'<div style="background:#F6F8F6;padding:30px 20px;min-height:430px">'+screenBack(false).replace('<div class="dbtn" style="display:block;text-align:center;margin-top:14px">Request Statement on CAMS</div>','<div class="dbtn" style="display:block;text-align:center;margin-top:14px">Request Statement on CAMS</div>').replace('Request from CAMS</div>','Request from CAMS</div><div style="margin:2px 0 6px"><button type="button" class="vlink" data-vopen="2">'+PLAY+' Watch how it works (1 min 20 s)</button></div>')+'</div>',1000,0)}
+var VCH={'1':[['1 Request',6],['2 Fill the form',18],['3 Inbox',42],['4 Upload',56]],'2':[['1 Request',6],['2 Fill the form',16],['3 Inbox',56],['4 Upload',66]]};
+var VLOOK='2',VSRC={'1':'video/look1.mp4','2':'video/look2.mp4'};
+function vload(look,keepTime){
+ var v=document.getElementById('vvid');VLOOK=look;var was=keepTime&&v.currentTime?v.currentTime:0;
+ v.src=VSRC[look];v.load();if(was)v.addEventListener('loadedmetadata',function f(){v.currentTime=was;v.removeEventListener('loadedmetadata',f)});
+ document.getElementById('vchap').innerHTML=VCH[look].map(function(c){return '<button type="button" data-vt="'+c[1]+'">'+c[0]+'</button>'}).join('');
+ document.getElementById('vl1').className=look==='1'?'on':'';document.getElementById('vl2').className=look==='2'?'on':'';
+ document.getElementById('vend').classList.remove('on');
+}
+function vopen(look){var m=document.getElementById('vmodal');m.classList.add('on');vload(look,false);var p=document.getElementById('vvid').play();if(p&&p.catch)p.catch(function(){})}
+function vshut(){var m=document.getElementById('vmodal'),v=document.getElementById('vvid');v.pause();m.classList.remove('on')}
+document.addEventListener('click',function(e){
+ var o=e.target.closest('[data-vopen]');if(o){vopen(o.getAttribute('data-vopen'));return}
+ var c=e.target.closest('[data-vt]');if(c){var v=document.getElementById('vvid');v.currentTime=+c.getAttribute('data-vt');v.play();document.getElementById('vend').classList.remove('on')}
+});
+document.getElementById('vplay2').addEventListener('click',function(){vopen('2')});
+document.getElementById('vplay1').addEventListener('click',function(){vopen('1')});
+document.getElementById('vclose').addEventListener('click',vshut);
+document.getElementById('vmodal').addEventListener('click',function(e){if(e.target.id==='vmodal')vshut()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')vshut()});
+document.getElementById('vl1').addEventListener('click',function(){vload('1',false);document.getElementById('vvid').play()});
+document.getElementById('vl2').addEventListener('click',function(){vload('2',false);document.getElementById('vvid').play()});
+document.getElementById('vvid').addEventListener('ended',function(){document.getElementById('vend').classList.add('on')});
+document.getElementById('vagain').addEventListener('click',function(){var v=document.getElementById('vvid');document.getElementById('vend').classList.remove('on');v.currentTime=0;v.play()});
+document.getElementById('vreq').addEventListener('click',function(){vshut()});
 /* ================= questions ================= */
 var KEY="batch-h-planning-v1",S={};
 try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
