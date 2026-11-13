@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Batch I Planning</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+
+<style>
+
+
+/* Layout: sticky contents rail + one reading column. Brand: DM Sans headings, Manrope body, #22C55E for actions, a deeper green for text and links. Mockups are drawn at real window sizes and scaled to fit the column. */
+:root{
+ --bg:#FCFCFC; --surface:#FFFFFF; --surface-2:#F3F5F3; --line:#E5E5E5;
+ --fg:#111111; --muted:#5C5C5C; --accent:#22C55E; --accent-deep:#15803D; --accent-soft:#EAFBF0;
+ --warn:#B45309; --warn-soft:#FEF3E2; --info:#2F5FB3; --info-soft:#E8EFFB;
+ --danger:#B3321F; --danger-soft:#FBE6E2; --on-accent:#0B1F12;
+ --f-display:'DM Sans','Segoe UI',system-ui,sans-serif;
+ --f-body:'Manrope','Segoe UI',system-ui,sans-serif;
+ --f-mono:ui-monospace,'SF Mono',Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+ padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4,h5{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent-deep)}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent-deep)}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:70ch;margin:0 0 10px}
+.meta{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+section{margin-top:56px;scroll-margin-top:16px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:74ch}
+h3.sub{font-size:18px;margin:28px 0 8px}
+h4.mini{font-size:15px;margin:18px 0 6px}
+p{margin:8px 0}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700}
+.tag{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.fe{background:var(--info-soft);color:var(--info)}
+.tag.be{background:var(--warn-soft);color:var(--warn)}
+.tag.db{background:var(--danger-soft);color:var(--danger)}
+.tag.ok{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.none{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tag.me{background:var(--accent-soft);color:var(--accent-deep);margin-left:6px}
+.tag.chosen{background:var(--accent);color:var(--on-accent);margin-left:6px}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul,ul.tight{margin:6px 0;padding-left:20px}
+.sumbox li,ul.tight li{margin:5px 0}
+.callout{background:var(--warn-soft);border-radius:10px;padding:12px 14px;margin:14px 0;font-size:14px}
+.callout.good{background:var(--accent-soft)}
+.callout.info{background:var(--info-soft)}
+.callout.bad{background:var(--danger-soft)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.cols>div{min-width:0}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.flow>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 16px;min-width:0}
+.flow h4{font-size:15px;margin-bottom:6px}
+.flow ol{margin:4px 0;padding-left:20px}.flow li{margin:5px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.stat .n{font:700 26px var(--f-display)}.stat .l{font-size:12.5px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin:12px 0;align-items:start}
+@media (max-width:860px){.pair{grid-template-columns:minmax(0,1fr)}}
+.cap{margin:14px 0 6px;font-size:13px}
+.cap b{font-family:var(--f-display)}
+.note{color:var(--muted);font-size:12.5px}
+.winbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.winbar span{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.winbar button{padding:6px 12px;font-size:12.5px;background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.winbar button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+/* decision cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:60px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:600 12px var(--f-body);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--accent)}
+.opt.on{background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt input:disabled{cursor:default}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.why{border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--accent-deep)}
+.reply{background:var(--info-soft);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:14px}
+.reply p{margin:6px 0}.reply ul{margin:6px 0;padding-left:20px}
+.commit{border-left:3px solid var(--info);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.commit b{color:var(--info)}
+textarea{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-height:56px;resize:vertical}
+label.nl{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin:10px 0 4px}
+button{font:inherit;font-size:14px;font-weight:600;padding:9px 16px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);cursor:pointer}
+button.ghost{background:transparent;color:var(--accent-deep)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.status{font:600 11px var(--f-body)}.status.todo{color:var(--warn)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.out{min-height:240px;font-family:var(--f-mono);font-size:12.5px}
+.tabs{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.doc{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:18px 20px;margin:12px 0}
+.doc h4{font-size:17px;margin-bottom:8px}
+.doc h5{font-size:14px;margin:14px 0 4px}
+.doc ul{margin:6px 0;padding-left:20px}.doc li{margin:4px 0}
+
+/* ---------- scaled real-size frames ---------- */
+.vp{position:relative;width:100%;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#fff}
+.vp-in{position:absolute;left:0;top:0;transform-origin:0 0;background:#fff;color:#111;font-family:'Manrope','Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}
+.vp-in *{box-sizing:border-box}
+.vp-in h5,.vp-in h4,.vp-in h3,.vp-in h2,.vp-in h1{font-family:'DM Sans','Segoe UI',system-ui,sans-serif;margin:0}
+.vp-in p{margin:0}
+.chrome{height:40px;background:#EEF1EE;border-bottom:1px solid #D9DED9;display:flex;align-items:center;gap:8px;padding:0 14px}
+.chrome i{width:11px;height:11px;border-radius:50%;background:#C8CFC8;display:block;flex:none}
+.chrome span{flex:1;max-width:520px;margin-left:12px;background:#fff;border:1px solid #D9DED9;border-radius:99px;padding:3px 14px;font-size:12px;color:#5C5C5C}
+.w1280{--vw:1280px;--vh:600px;--card-h:552px;--pad-y:14px;--gap:10px;--gap-sm:5px;--h1:26px;--btn-h:44px;--row-h:46px;--chip-h:34px;--badge:34px;--body:13.5px}
+.w1440{--vw:1440px;--vh:810px;--card-h:762px;--pad-y:36px;--gap:22px;--gap-sm:12px;--h1:34px;--btn-h:54px;--row-h:64px;--chip-h:48px;--badge:44px;--body:15px}
+.w1536{--vw:1536px;--vh:730px;--card-h:682px;--pad-y:28px;--gap:16px;--gap-sm:9px;--h1:30px;--btn-h:48px;--row-h:54px;--chip-h:42px;--badge:38px;--body:14px}
+.d-page{height:var(--vh);display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#EEF9F1,#F8FDF9)}
+.d-card{width:min(1240px,calc(var(--vw) - 64px));height:var(--card-h);background:#fff;border-radius:28px;box-shadow:0 18px 50px rgba(20,48,31,.13);display:grid;grid-template-columns:.95fr 1fr;overflow:hidden}
+.d-left{padding:var(--pad-y) 40px;display:flex;flex-direction:column;background:linear-gradient(160deg,#F2FCF6,#E7F7EC);min-height:0;overflow:hidden}
+.d-left.white{background:#fff}
+.d-logo{font:700 26px 'DM Sans',sans-serif;color:#111;flex:none}
+.d-sketch{margin:var(--gap) auto;flex:1;min-height:60px;max-height:230px;width:70%;max-width:330px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#D6F3DF,#EAFBF0);color:#15803D;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.d-h2{font:700 calc(var(--h1) + 2px) 'DM Sans',sans-serif;line-height:1.15;flex:none}
+.d-h2 span{color:#15803D}
+.d-p{color:#5C5C5C;font-size:var(--body);margin-top:var(--gap-sm);flex:none}
+.d-bul{display:flex;gap:10px;align-items:center;margin-top:var(--gap-sm);font-size:var(--body);flex:none}
+.d-bul i{flex:none;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #D2EEDB;display:block}
+.d-right{padding:var(--pad-y) 48px;display:flex;flex-direction:column;min-height:0}
+.d-top{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;color:#5C5C5C;font-size:13px}
+.d-steps{display:flex;gap:6px;align-items:center}.d-steps i{width:34px;height:5px;border-radius:3px;background:#22C55E;display:block}.d-steps i.off{background:#E5E7EC}
+.d-content{flex:1;min-height:0;overflow-y:auto;display:flex}
+.d-inner{margin:auto;width:100%;max-width:520px;padding:8px 0}
+.fitb{position:absolute;right:10px;bottom:10px;z-index:3;font:600 12px 'Manrope',sans-serif;padding:4px 10px;border-radius:99px;background:#EAFBF0;color:#15803D;border:1px solid #BFE9CC}
+.fitb.bad{background:#FBE6E2;color:#B3321F;border-color:#F3B8AE}
+.o-stack{display:flex;flex-direction:column;gap:var(--gap)}
+.o-sec{display:flex;flex-direction:column;gap:var(--gap-sm)}
+.o-h1{font:700 var(--h1) 'DM Sans',sans-serif;line-height:1.15}
+.o-sub{color:#667085;font-size:var(--body)}
+.o-opt{display:flex;align-items:center;gap:12px;min-height:var(--row-h);border:1px solid #E5E7EC;border-radius:16px;padding:0 16px;background:#fff}
+.o-opt.tt{min-height:min(var(--row-h),54px)}
+.o-opt.sel{border-color:#22C55E;background:#F4FCF6;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.o-opt.quiet{border-color:transparent;background:#F6F8F6}
+.o-badge{flex:none;width:var(--badge);height:var(--badge);border-radius:50%;background:#EAFBF0;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:11px}
+.o-opt b{display:block;font-size:var(--body);font-weight:600}
+.o-opt small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.o-rad{margin-left:auto;flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid #C5CBC5}
+.o-opt.sel .o-rad{background:#22C55E;border-color:#22C55E;box-shadow:inset 0 0 0 4px #fff}
+.o-grp{border:1px solid #E5E7EC;border-radius:16px;overflow:hidden}
+.o-grp .o-opt{border:0;border-radius:0;border-bottom:1px solid #EEF0EE}
+.o-grp .o-opt:last-child{border-bottom:0}
+.o-h2{display:flex;justify-content:space-between;align-items:baseline;gap:10px;white-space:nowrap}
+.o-h2 b{font:600 15px 'DM Sans',sans-serif}
+.o-h2 span{font-size:13px;color:#667085;font-weight:400}
+.o-h2 a{font-size:13px;color:#15803D;font-weight:600}
+.o-chips{display:grid;gap:var(--gap-sm)}
+.o-chips.c3{grid-template-columns:repeat(3,1fr)}.o-chips.c2{grid-template-columns:repeat(2,1fr)}
+.o-chip{display:flex;align-items:center;gap:8px;min-height:var(--chip-h);border:1px solid #E5E7EC;border-radius:14px;padding:0 10px;font-size:12.5px;line-height:1.25;background:#fff}
+.o-chip i{flex:none;width:20px;height:20px;border-radius:6px;background:#EAFBF0;display:block}
+.o-chip em{margin-left:auto;flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid #C5CBC5}
+.o-chip.sel{border-color:#22C55E;background:#F4FCF6}.o-chip.sel em{background:#22C55E;border-color:#22C55E}
+.o-pills{display:flex;flex-wrap:wrap;gap:var(--gap-sm)}
+.o-pill{display:flex;align-items:center;gap:8px;border:1px solid #E5E7EC;border-radius:99px;min-height:var(--chip-h);padding:0 14px;font-size:13px;background:#fff}
+.o-pill i{width:16px;height:16px;border-radius:50%;background:#EAFBF0;display:block}
+.o-pill.sel{background:#22C55E;border-color:#22C55E;color:#0B1F12;font-weight:600}.o-pill.sel i{background:rgba(11,31,18,.25)}
+.o-panel{background:#F6F9F6;border-radius:18px;padding:14px}
+.o-go{height:var(--btn-h);border-radius:99px;background:#22C55E;color:#0B1F12;font:700 15px 'Manrope',sans-serif;display:flex;align-items:center;justify-content:center}
+.o-go.dis{background:#E5E7EC;color:#6B7280}
+.o-tabs{display:flex;background:#F1F3F1;border-radius:99px;padding:3px;gap:3px}
+.o-tabs span{flex:1;text-align:center;padding:7px;border-radius:99px;font-size:13px;color:#667085}
+.o-tabs span.on{background:#fff;color:#111;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.o-field{border:1px solid #D0D5DD;border-radius:12px;padding:11px 14px;font-size:14px}
+.o-lab{font-size:13px;font-weight:600;margin-bottom:5px}
+.o-alert{background:#FEF3F2;border:1px solid #FDA29B;color:#B42318;border-radius:12px;padding:10px 14px;font-size:13.5px}
+.o-red{color:#B42318;font-size:13px;margin-top:6px}
+.st{display:flex;gap:12px;align-items:flex-start;margin-top:var(--gap-sm)}
+.st i{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:13px;background:#22C55E;color:#0B1F12;margin-top:2px}
+.st i.spin{background:transparent;border:2.5px solid #E5E7EC;border-top-color:#22C55E}
+.st i.big{transform:scale(1.28)}
+.st b{display:block;font-size:var(--body);font-weight:600}.st small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.a-card{border:1px solid #E5E7EC;border-radius:16px;padding:12px 16px}
+.a-info{background:#F3F5F3;border-radius:16px;padding:12px 16px}
+.a-info b{display:block}
+/* dialogs */
+.dlg-bg{height:720px;position:relative;background:#F4F6F4;overflow:hidden}
+.dlg-bg .fake{position:absolute;inset:60px 90px;border:2px dashed #C8D3C8;border-radius:20px;filter:blur(2px);opacity:.9;background:#fff}
+.dlg-bg .dim{position:absolute;inset:0;background:rgba(17,17,17,.5);display:flex;align-items:center;justify-content:center}
+.dlg{background:#fff;border-radius:16px;padding:24px;width:448px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg h5{font-size:18px;font-weight:700;line-height:1.25}
+.dlg .body{color:#5C5C5C;font-size:14px}
+.dlg .foot{display:flex;gap:8px;justify-content:flex-end}
+.dlg.ph{width:100%}
+.dlg.ph .foot{flex-direction:column-reverse}
+.dbtn{font:700 13.5px 'Manrope',sans-serif;padding:10px 16px;border-radius:12px;border:1.5px solid #22C55E;background:#22C55E;color:#0B1F12;text-align:center}
+.dbtn.o{background:#fff;color:#15803D}
+.dwarn{display:flex;gap:10px;align-items:flex-start;background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:14px;padding:12px 14px;font-size:13.5px}
+.dwarn b{display:block;margin-bottom:2px}
+.dwarn i{flex:none;width:22px;height:22px;border-radius:50%;background:#F59E0B;color:#fff;font:700 13px 'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;font-style:normal;margin-top:1px}
+/* phone shell */
+.phs{width:390px;padding:14px;background:#111;border-radius:46px}
+.phs .scr{background:#fff;border-radius:34px;overflow:hidden;min-height:700px;position:relative}
+.phs .sb{height:34px;display:flex;justify-content:center;align-items:center}
+.phs .sb b{width:96px;height:22px;background:#111;border-radius:99px;display:block}
+.phs.dark .scr{background:#0F0F0F}
+/* email */
+.emx{--e-bg:#EEF6F0;--e-card:#fff;--e-ink:#111;--e-muted:#5C5C5C;--e-green:#15803D;--e-pale:#EEF8F0;--e-dark:#14301F;--e-line:#E5E5E5;--e-ic:#EAFBF0;--e-ill:#EAFBF0;--e-linkb:#D9E0D9;--e-small:#4ADE80;padding:20px 14px;background:var(--e-bg)}
+.emx.dark{--e-bg:#0F0F0F;--e-card:#1A1A1A;--e-ink:#F5F5F5;--e-muted:#A3A3A3;--e-green:#34D399;--e-pale:#17261C;--e-dark:#14301F;--e-line:#2A2A2A;--e-ic:#1F3B28;--e-ill:#F2FCF6;--e-linkb:#2F3A31;--e-small:#4ADE80}
+.emx.narrow{padding:12px 8px}
+.em-card{background:var(--e-card);color:var(--e-ink);border-radius:18px;padding:22px 22px 16px;width:100%}
+.narrow .em-card{padding:16px 14px 12px}
+.em-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.em-logo{font:700 24px 'DM Sans',sans-serif;color:var(--e-ink)}
+.em-tag{font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;color:var(--e-green)}
+.em-hd{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.em-hd>div:first-child{min-width:0}
+.em-h1{font:700 32px 'DM Sans',sans-serif;line-height:1.1}
+.em-h1 span{color:var(--e-green)}
+.narrow .em-h1{font-size:25px}
+.em-sub{color:var(--e-muted);margin-top:10px;font-size:15px}
+.narrow .em-sub{font-size:13.5px}
+.em-ill{flex:none;width:150px;height:118px;border-radius:50%;background:var(--e-ill);color:#15803D;font-size:11px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.narrow .em-ill{width:96px;height:78px;font-size:9px}
+.em-dark{background:var(--e-dark);color:#fff;border-radius:14px;padding:16px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:15px}
+.narrow .em-dark{padding:12px;gap:10px;font-size:13.5px}
+.em-dark>div{min-width:0}
+.em-dark small{display:block;color:var(--e-small);font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;margin-bottom:2px}
+.em-dark b{display:block;font:700 19px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-ic{flex:none;width:44px;height:44px;border-radius:50%;background:var(--e-ic);color:#15803D;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center}
+.narrow .em-ic{width:34px;height:34px;font-size:8px}
+.em-pale{background:var(--e-pale);border-radius:14px;padding:14px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:14.5px}
+.narrow .em-pale{padding:10px 12px;gap:10px;font-size:13px}
+.em-pale>div{min-width:0}
+.em-pale b{display:block;color:var(--e-green);font:700 17px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-line{display:flex;gap:14px;align-items:center;margin:0 0 12px;font-size:14.5px}
+.narrow .em-line{gap:10px;font-size:13px}
+.em-line>div{min-width:0}
+.em-btn{display:block;text-align:center;background:#22C55E;color:#0B1F12;font:700 17px 'Manrope',sans-serif;padding:16px;border-radius:99px;margin:0 0 16px}
+.narrow .em-btn{font-size:15px;padding:13px}
+.em-link{border:1px solid var(--e-linkb);border-radius:12px;padding:9px 12px;font-size:12.5px;color:var(--e-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:8px;max-width:100%}
+.em-foot{border-top:1px solid var(--e-line);margin-top:14px;padding-top:12px;font-size:13px;color:var(--e-muted)}
+.em-foot a{color:var(--e-green)}
+.em-foot b{display:block;color:var(--e-ink);font:700 16px 'DM Sans',sans-serif;margin-top:10px}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}nav.toc{position:static;max-height:none}}
+
+/* ---------- Batch A additions: app-style mockups ---------- */
+.ap{background:#F6F8F6;font-size:13.5px;color:#111}
+.ap-body{padding:20px 24px}
+.ap-h{font:700 20px 'DM Sans',sans-serif;margin-bottom:12px}
+.ap-card{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:16px}
+.ap-card h5{font:700 16px 'DM Sans',sans-serif;margin-bottom:4px}
+.ap-mut{color:#667085;font-size:12px}
+.ap-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ap-tile{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:10px 12px}
+.ap-tile small{display:block;color:#667085;font-size:11.5px}
+.ap-tile b{font:700 20px 'DM Sans',sans-serif}
+.ap-tile .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.seg{display:inline-flex;border:1px solid #E5E7EB;border-radius:8px;padding:2px;font-size:11px}
+.seg span{padding:2px 8px;border-radius:6px;color:#667085}
+.seg span.on{background:#F1F3F1;color:#111;font-weight:600}
+.ap-t{width:100%;min-width:0;border-collapse:collapse;font-size:12.5px}
+.ap-t th{background:#fff;color:#667085;font:600 11.5px 'Manrope',sans-serif;letter-spacing:0;text-transform:none;text-align:left;padding:8px 10px;border-bottom:1px solid #E5E7EB}
+.ap-t td{padding:9px 10px;border-bottom:1px solid #EEF0EE;vertical-align:top}
+.ap-logoc{flex:none;width:28px;height:28px;border-radius:8px;background:#EAFBF0;color:#15803D;font:700 11px 'DM Sans';display:flex;align-items:center;justify-content:center}
+.ap-fund{display:flex;gap:10px;align-items:flex-start}
+.note-box{background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:8px 10px;font-size:12px;margin-top:8px}
+.circ{outline:2px solid #D92D20;outline-offset:2px;border-radius:8px}
+.rk{display:inline-block;font:700 13px 'DM Sans',sans-serif;background:#EAFBF0;color:#15803D;border-radius:99px;padding:2px 10px}
+.rk small{font:500 11px 'Manrope',sans-serif;color:#667085;margin-left:3px}
+.fn{display:grid;gap:6px}
+.fn .r{display:grid;grid-template-columns:230px 1fr 90px;gap:10px;align-items:center;font-size:12.5px}
+.fn .b{height:18px;border-radius:5px;background:#22C55E}
+.fn .b.x{background:#F59E0B}
+.fn .n{font-weight:700;text-align:right}
+.cmp{display:grid;gap:14px}
+.cmp .p{display:grid;grid-template-columns:44px 1fr 150px;gap:12px;align-items:center}
+.cmp .trk{position:relative;height:22px}
+.cmp .trk::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:#E5E7EB}
+.cmp .d{position:absolute;top:4px;width:14px;height:14px;border-radius:50%;transform:translateX(-7px)}
+.cmp .d.f{background:#22C55E}
+.cmp .d.c{border:2px solid #667085;background:#fff}
+.cmp .v{font-size:12px;color:#667085}
+.lab{font:600 11px 'Manrope',sans-serif;color:#B42318;background:#FDECEA;border-radius:99px;padding:1px 8px;margin-left:6px}
+.wf{display:grid;gap:7px}
+.wf .r{display:grid;grid-template-columns:210px 1fr 80px;gap:10px;align-items:center;font-size:12px}
+.wf .tr{position:relative;height:16px;background:#F1F3F1;border-radius:4px}
+.wf .tr i{position:absolute;top:0;bottom:0;border-radius:4px;background:#0EA5E9}
+.wf .tr i.s{background:#F59E0B}
+.wf .n{text-align:right;font-weight:600}
+.steps5{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+.steps5>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13.5px}
+.steps5 b{display:block;font-family:var(--f-display);margin-bottom:3px}
+.code2{font-family:var(--f-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow:auto;white-space:pre;margin:8px 0}
+.xl{background:#fff;font-size:12px}
+.xl .tabs2{display:flex;gap:2px;background:#E8ECE8;padding:6px 8px 0;font-size:12px}
+.xl .tabs2 span{padding:5px 12px;border-radius:6px 6px 0 0;background:#F3F5F3;color:#444}
+.xl .tabs2 span.on{background:#fff;font-weight:700;color:#107C41}
+.xl .fx{display:flex;gap:8px;align-items:center;border-bottom:1px solid #D9DED9;padding:4px 10px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#333;background:#fff}
+.xl .fx b{color:#107C41;font-family:Manrope,sans-serif}
+.xl table.g{border-collapse:collapse;width:100%;min-width:0;font-size:12px}
+.xl table.g th{background:#F3F5F3;border:1px solid #D9DED9;padding:4px 8px;text-align:left;font:600 11.5px Manrope,sans-serif;color:#333;text-transform:none;letter-spacing:0}
+.xl table.g td{border:1px solid #E6EAE6;padding:4px 8px;vertical-align:top}
+.xl td.f{font-family:ui-monospace,Consolas,monospace;background:#F1FAF4;color:#14532D}
+.xl td.ok{color:#14532D;font-weight:700}
+.xl td.no{color:#B42318;font-weight:700}
+.pend{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;background:var(--warn-soft);color:var(--warn)}
+
+
+
+/* ---------- Batch I additions ---------- */
+.a4{width:595px;height:842px;background:#fff;border:1px solid #D0D5DD;box-shadow:0 8px 30px rgba(0,0,0,.10);position:relative;font-family:'Manrope',sans-serif;color:#111;overflow:hidden;margin:0 auto}
+.a4 .hd{display:flex;justify-content:space-between;font-size:9px;color:#667085;padding:22px 36px 8px;border-bottom:1px solid #EEF0EE}
+.a4 .ft{position:absolute;left:36px;right:36px;bottom:20px;display:flex;justify-content:space-between;font-size:8.5px;color:#98A2B3;border-top:1px solid #EEF0EE;padding-top:6px}
+.a4 h1{font:700 30px 'DM Sans',sans-serif;line-height:1.1;margin:0}
+.a4 h2{font:700 17px 'DM Sans',sans-serif;margin:0 0 6px}
+.a4 .brand{font:700 22px 'DM Sans',sans-serif}
+.a4 .acc{height:10px;background:#22C55E}
+.a4 .meta2{font-size:11px;color:#475467;line-height:1.7}
+.a4 .toc div{display:flex;justify-content:space-between;font-size:10.5px;padding:3px 0;border-bottom:1px dotted #D0D5DD}
+.a4 .toc b{font:700 11px 'DM Sans',sans-serif;display:block;margin-top:10px;color:#15803D}
+.dlg2{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);width:560px;padding:22px 24px;font-size:13px;color:#344054}
+.dlg2 h5{font:700 18px 'DM Sans',sans-serif;color:#111;margin:0 0 4px}
+.dlg2 .sec{margin-top:14px}
+.dlg2 .sec b{display:block;font:600 11px Manrope,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#667085;margin-bottom:6px}
+.dlg2 .rad{display:flex;gap:8px;align-items:center;padding:5px 0}
+.dlg2 .rad i{width:14px;height:14px;border-radius:50%;border:1.5px solid #98A2B3;display:inline-block;flex:none}
+.dlg2 .rad i.on{border-color:#22C55E;background:radial-gradient(#22C55E 45%,#fff 50%)}
+.dlg2 .chk{display:flex;gap:8px;align-items:center;padding:3px 0}
+.dlg2 .chk i{width:14px;height:14px;border-radius:4px;border:1.5px solid #98A2B3;display:inline-block;flex:none}
+.dlg2 .chk i.on{background:#22C55E;border-color:#22C55E;box-shadow:inset 0 0 0 2px #fff}
+.dlg2 .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.dlg2 .pre{display:flex;gap:6px;margin-bottom:8px}
+.dlg2 .pre span{border:1px solid #D0D5DD;border-radius:99px;padding:3px 12px;font-size:12px}
+.dlg2 .pre span.on{background:#EAFBF0;border-color:#22C55E;color:#15803D;font-weight:600}
+.prog{height:8px;border-radius:99px;background:#E5E7EB;overflow:hidden;margin:10px 0}
+.prog i{display:block;height:100%;background:#22C55E}
+.flowrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:12px 0}
+.flowrow>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13px}
+.flowrow b{display:block;font-family:var(--f-display);margin-bottom:3px}
+.flowrow .x{border-color:var(--danger);background:var(--danger-soft)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+ <h4>Start here</h4>
+ <a href="#where">1. Where we stand</a>
+ <h4>Item 19</h4>
+ <a href="#approach">2. How the PDF is made</a>
+ <a href="#user">3. What the user does</a>
+ <a href="#pdf">4. What the PDF looks like</a>
+ <a href="#privacy">5. Privacy and safety</a>
+ <h4>How we build it</h4>
+ <a href="#strategy">6. Orchestrator and workers</a>
+ <a href="#program">7. Fit with the other batches</a>
+ <a href="#tasks">8. Task list</a>
+ <a href="#risks">9. Risks, tests, checks</a>
+ <h4>Your call</h4>
+ <a href="#questions">10. Questions (3)</a>
+ <a href="#copy">11. Copy my answers</a>
+ <a href="#prov">What I checked</a>
+</nav>
+
+<main>
+<div class="hero">
+ <h1>Batch I Planning</h1>
+ <div class="meta">Planning only &middot; nothing built or run &middot; 13 Nov 2026 &middot; updated with your answers &middot; branch leapswitch-redesign</div>
+ <p>The common PDF export (item 19): one shared export button that makes a PDF with the Unifolio cover page, a consistent template and the user&rsquo;s name, for the whole family or for one member. You left two decisions for planning time: <b>how the PDF is generated</b> (server or browser) and what it contains. A PDF pipeline <b>already exists</b> in the code, so this batch starts by finding out what state it is in.</p>
+ <p><b>Updated 13 Nov.</b> Q1 and Q2 are answered and recorded: the PDF is made on the server with the headless browser already in the image (repaired, one browser on demand), and the export opens a dialog with the presets Full report, This tab and Custom plus a checklist of sections. <b>Q3, folio numbers in the PDF, is still open.</b> Until you answer it, the plan assumes no folios (my pick); the PAN rule does not depend on it.</p>
+ <p><b>How this was made.</b> I read the code, read-only: the existing PDF export (backend and front end), how the backend runs on staging, how fonts load, the account&rsquo;s name field, and the logo assets. Every statement about the code is labelled <em>read in code</em>. Nothing was run, and I did not look at the live app or try the old export, so several findings are <b>to be confirmed on staging</b>. Mockups are my reconstructions with made-up names and numbers, laptop only: the phone view is out of scope for every batch.</p>
+</div>
+
+<!-- ============ 1. WHERE WE STAND ============ -->
+<section id="where">
+ <h2>1. Where we stand</h2>
+ <p class="lead">One item, and a surprise: most of the machinery exists but is attached to a screen the redesign no longer uses, and it has a likely fault on the way staging runs.</p>
+ <div class="stats">
+  <div class="stat"><div class="n">1</div><div class="l">item (19)</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">database migrations planned</div></div>
+  <div class="stat"><div class="n">2 / 3</div><div class="l">questions answered</div></div>
+  <div class="stat"><div class="n">16</div><div class="l">tasks in the list (section 8)</div></div>
+ </div>
+ <div class="scroll"><table>
+  <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (read in code)</th><th>What changes</th><th>Layers</th></tr></thead>
+  <tbody>
+   <tr><td class="k">19. Common PDF export</td><td>One export button; a PDF with the Unifolio cover page, template and the user&rsquo;s name; choose the whole family or one member.</td><td>A server-side pipeline exists (headless Chromium prints a print page to PDF), but it is wired to the <b>older analytics screen</b> only. The redesigned tabs have no export button. Fonts, the cover page and the print layout are not ready for a branded report.</td><td>A shared export dialog and button, a branded cover and template, a way to choose scope and contents, and a repaired, multi-worker-safe pipeline.</td><td><span class="tag fe">frontend</span> <span class="tag be">backend</span> <span class="tag none">no database</span></td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Nine findings (read in code, to be confirmed on staging where marked)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>#</th><th>Finding</th><th>Why it matters</th></tr></thead>
+  <tbody>
+   <tr><td>F1</td><td><b>The pipeline exists and is server-side.</b> <code>POST /analytics/export/pdf</code> stores the data under a random one-time token, opens a headless Chromium (Playwright) on the front end&rsquo;s print page (<code>/print/analytics?token=</code>), waits for a ready marker, and returns an A4 PDF with backgrounds. Chromium is installed in the backend image and started at app start-up.</td><td>You do not need a new PDF engine. The decision is whether to keep this approach (Q1).</td></tr>
+   <tr><td>F2</td><td><b>It is attached to the old screen.</b> The export button and the print page belong to the legacy analytics view (<code>features/analytics</code>). The redesigned &ldquo;Other Analytics&rdquo; route uses a different page, and the old wrapper is not routed to. So the redesigned app most likely has <b>no export today</b> (to be confirmed in the live app).</td><td>The new export is a build, not a tweak.</td></tr>
+   <tr><td>F3</td><td><b>A likely fault with several workers.</b> The one-time token and its data are kept in a plain dictionary inside one backend process. Staging runs the backend with <b>three</b> worker processes. The request that makes the PDF and the request the browser makes to fetch the data can land on different workers, and the second would not find the token (<em>to be confirmed on staging</em>). The code comment says it is fine for &ldquo;a single process&rdquo;.</td><td>On staging the old export would fail about two times in three. Any new export must not rely on one process&rsquo;s memory.</td></tr>
+   <tr><td>F4</td><td><b>The data comes from the browser.</b> The old export posts the figures the screen already loaded. The redesigned tabs load their sections lazily, one tab at a time.</td><td>A full report, or a report for a member other than the one on screen, cannot be built from what a tab happens to have loaded.</td></tr>
+   <tr><td>F5</td><td><b>Fonts load from Google</b> (<code>index.html</code>) at render time. The headless browser needs outbound access to fetch them; if it cannot, the PDF silently uses a fallback font.</td><td>The brand look would vary by environment. The print template should carry its fonts with it.</td></tr>
+   <tr><td>F6</td><td>The print style sheet is <b>27 lines</b>: A4 with margins, a page break after a cover class, and a few break rules. The old view had a simple cover.</td><td>The branded cover, contents, running header and footer, and print versions of the redesigned cards are the real work.</td></tr>
+   <tr><td>F7</td><td>Every backend worker starts <b>its own Chromium</b> at start-up (three on staging).</td><td>Three idle browsers use memory all the time, on a server that is already tight (Batch A&rsquo;s load work). The new design should start one on demand.</td></tr>
+   <tr><td>F8</td><td>The renderer opens <code>FRONTEND_BASE_URL</code>. The example settings file points at <code>ls-staging.unifolio.in</code>, while the redesign runs at <code>ls-redesign.unifolio.in</code>.</td><td>If the live setting still points at the old front end, the PDF would be made from the old UI. The deploy guide must check it.</td></tr>
+   <tr><td>F9</td><td>The account&rsquo;s own name is available (<code>self_name</code>, the self member&rsquo;s name) and the logo files exist in the repo (<code>Logo/</code>: transparent, ring, master and white-text versions).</td><td>The cover page has what it needs. A family export names the account holder &ldquo;and family&rdquo;; a member export names the member (section 4).</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout"><b>An existing precedent.</b> An earlier decision (12 Oct) said not to add Playwright as a <i>production</i> dependency for the portfolio-disclosure work. That was about scraping AMC sites. The export is different: Playwright and Chromium are already in the production image for the PDF export, so using them here adds nothing new to the stack.</div>
+</section>
+
+<!-- ============ 2. APPROACH ============ -->
+<section id="approach">
+ <h2>2. How the PDF is made</h2>
+ <p class="lead">Your decision from the list (server or browser), with the facts, and the two sub-decisions that follow from it.</p>
+ <h3 class="sub">Server or browser (Q1)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Approach</th><th>How it works</th><th>Strength</th><th>Weakness</th></tr></thead>
+  <tbody>
+   <tr><td class="k">A. Server-side Chromium (my pick)</td><td>The server opens a headless browser on a print page, waits until every section has loaded, and prints it to PDF. This is the pipeline that exists.</td><td>One result for every user and browser; exact control of cover, fonts, headers and page breaks; the same components and numbers as the screen; nothing for the user to set up; works with the family or member the user picks.</td><td>Uses server memory and CPU while rendering; needs the repairs in F3, F5, F7; a render takes seconds to a minute for a large household.</td></tr>
+   <tr><td class="k">B. In the browser (print to PDF)</td><td>The app opens a print-styled page and the user saves it from the browser&rsquo;s print dialog.</td><td>No server load; no new backend.</td><td>The result depends on the user&rsquo;s browser and settings (margins, headers, background colours); no reliable running header or page numbers; a dialog the user must understand; hard to guarantee the cover and brand.</td></tr>
+   <tr><td class="k">C. Server-side, a new engine</td><td>A report library (for example a templating-to-PDF tool) builds the PDF from data, not from the screens.</td><td>Lighter than a browser; strong print control.</td><td>A second layout for every section, which must be kept in step with the screens; a new dependency; charts need separate drawing code.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>My recommendation: A.</b> It already exists in the image, it gives the same branded result for everyone, and it reuses the screens. Its weak points are known and fixable (below). B is fine as a fallback for a user whose export fails, but not as the main path.</div>
+
+ <h3 class="sub">How the print page gets its data (a technical choice, my default)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Option</th><th>How it works</th><th>Strength</th><th>Weakness</th></tr></thead>
+  <tbody>
+   <tr><td class="k">P1. The browser posts the data (today&rsquo;s way)</td><td>The page the user is on sends the figures it has.</td><td>Simple; already built.</td><td>Cannot make a full report or another member&rsquo;s report (F4); large uploads; depends on one process&rsquo;s memory (F3).</td></tr>
+   <tr><td class="k">P2. The server builds a data bundle</td><td>The server calls its own services for every section of the chosen scope and hands the bundle to the print page.</td><td>One consistent snapshot; any scope or contents.</td><td>A second way of assembling every reply; the print page&rsquo;s components must be taught to read a bundle.</td></tr>
+   <tr><td class="k">P3. A short-lived, read-only export pass (my default)</td><td>When the user exports, the server issues a pass that works for <b>one scope, for a few minutes, for reads only</b>. The print page, run by our own headless browser, loads the real sections through the normal routes with that pass. Nothing is held in one process&rsquo;s memory.</td><td>Reuses every route and component unchanged; any scope and any contents; works across all workers; a new section needs only a print style.</td><td>A new kind of credential, so it needs a security review (section 5); the print page makes many requests.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">How the pages are drawn (my default)</h3>
+ <ul class="tight">
+  <li><b>Reuse the screens in a print mode</b> (no sticky rows, no buttons, tables fully expanded, charts at a fixed width, animations off, light colours). Where a card looks wrong on paper, it gets its own print variant. The audit of every section (task I-7) uses Batch F&rsquo;s section list.</li>
+  <li><b>The cover, contents, running header and footer</b> are new, built as the print template (section 4).</li>
+  <li><b>Fonts are bundled</b> with the print template, so the PDF does not depend on Google at render time.</li>
+  <li><b>One browser, started when needed</b>, and closed after a quiet period, instead of one in every worker; at most two exports at once, the rest wait.</li>
+ </ul>
+</section>
+
+<!-- ============ 3. USER ============ -->
+<section id="user">
+ <h2>3. What the user does</h2>
+ <p class="lead">One button, one dialog, the same everywhere it appears.</p>
+ <h3 class="sub">Where the button is</h3>
+ <p>The &ldquo;Export PDF&rdquo; button sits in the tab bar&rsquo;s right-hand slot on the seven Mutual Funds tabs and on the fund page, in the stack agreed with search and the section index (Batch F, section 5). It is one component. In the dialog the user chooses <b>who</b> and <b>what</b>; it does not simply print the page they are on.</p>
+ <div class="winbar" data-sec="dlg"><span>Dialog</span><button type="button" data-v="a" aria-pressed="true">1. Choose</button><button type="button" data-v="b" aria-pressed="false">2. Preparing</button><button type="button" data-v="c" aria-pressed="false">3. Ready</button><button type="button" data-v="d" aria-pressed="false">4. If it fails</button></div>
+ <div data-frame="dlg"></div>
+ <p class="note">Made-up names and numbers; laptop view. The presets (Full report, This tab, Custom) fill the checklist from Batch F&rsquo;s shared list of sections, so the dialog never hard-codes a section.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Part</th><th>What it does</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Who is it for</td><td>Family Combined (everyone in the household), or one member. It starts on whatever the page is showing, but the user can change it; the choice is independent of the page&rsquo;s own selector.</td></tr>
+   <tr><td class="k">What to include</td><td>Three presets: <b>Full report</b> (every section on every Mutual Funds tab), <b>This tab</b> (the tab or fund page the user is on), <b>Custom</b> (a checklist of sections grouped by tab, with counts). Which sections are offered comes from the shared list, so a tier can hide Pro ones.</td></tr>
+   <tr><td class="k">Options</td><td>Cover page (on). &ldquo;Data dates&rdquo; (on): the page strip&rsquo;s dates, printed on the cover and in each section&rsquo;s footer (Batch E).</td></tr>
+   <tr><td class="k">While it runs</td><td>A progress state with plain words (&ldquo;Preparing your report&hellip; this can take a minute for a large household&rdquo;) and a Cancel button. The user can keep using the app; the dialog can be closed and reopened to the same job (see I-10).</td></tr>
+   <tr><td class="k">When it is ready</td><td>The file downloads with a plain name such as <code>Unifolio-portfolio-report-2026-11-13.pdf</code> (no name, PAN or folio in it), and the dialog offers a second download. The file is not kept on our server.</td></tr>
+   <tr><td class="k">If it fails</td><td>A clear message with Try again; for a report that is too large, an offer to export fewer sections. The failure is logged without any content.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Before and after</h3>
+ <div class="flow">
+  <div><h4>Before</h4><ol><li>There is no export in the redesigned app (most likely, F2).</li><li>The old pipeline prints only the old analytics screen, from data on the page, and probably fails on staging (F3).</li></ol></div>
+  <div><h4>After</h4><ol><li>One &ldquo;Export PDF&rdquo; button on every Mutual Funds tab and the fund page.</li><li>A dialog to choose who and what, then a branded report with a cover, contents and the user&rsquo;s name.</li><li>The same numbers and wording as the screens (dates from Batch E, fixes from Batch A).</li></ol></div>
+ </div>
+</section>
+
+<!-- ============ 4. PDF ============ -->
+<section id="pdf">
+ <h2>4. What the PDF looks like</h2>
+ <p class="lead">A4 portrait, light colours whatever the screen theme, the app&rsquo;s fonts and brand green. Four representative pages, drawn at A4 proportions.</p>
+ <div class="winbar" data-sec="pdf"><span>Page</span><button type="button" data-v="cover" aria-pressed="true">Cover</button><button type="button" data-v="toc" aria-pressed="false">Contents</button><button type="button" data-v="sec" aria-pressed="false">A section</button><button type="button" data-v="end" aria-pressed="false">Last page</button></div>
+ <div data-frame="pdf"></div>
+ <p class="note">Made-up name, funds and numbers. The real section pages are the screens&rsquo; cards in print mode; the donut here only stands for a card.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Part</th><th>What it contains</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Cover</td><td>The Unifolio logo and a green band; the title &ldquo;Mutual Fund Portfolio Report&rdquo;; <b>&ldquo;Prepared for&rdquo;</b> the user&rsquo;s name (see below); the scope (&ldquo;Family combined, 3 members&rdquo; or the member&rsquo;s name); the date it was generated; the data dates in Batch E&rsquo;s words; and a one-line confidentiality note. No PAN, no folio, no contact details.</td></tr>
+   <tr><td class="k">The name on the cover</td><td><b>Family:</b> the account holder&rsquo;s name and &ldquo;and family&rdquo; (from <code>self_name</code>, for example &ldquo;Asha Rao and family&rdquo;). <b>One member:</b> that member&rsquo;s name. If the account holder&rsquo;s name is missing, the cover says &ldquo;Your family&rdquo; or leaves the line out; it never guesses.</td></tr>
+   <tr><td class="k">Contents</td><td>The chosen sections by tab, with page numbers, from the shared section list.</td></tr>
+   <tr><td class="k">Section pages</td><td>A running header (Unifolio, the report title, the scope) and footer (page &ldquo;n of N&rdquo;, the date generated); each section in the screens&rsquo; own look, kept together on a page where it fits; the section&rsquo;s data dates in its footer.</td></tr>
+   <tr><td class="k">Last page</td><td>Notes: how the numbers are calculated in brief (with the same explanations as the &ldquo;i&rdquo; icons, Batch E), what the dates mean, and the usual line that the figures are indicators and not a recommendation.</td></tr>
+   <tr><td class="k">Always light</td><td>The PDF ignores the screen&rsquo;s dark mode.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 5. PRIVACY ============ -->
+<section id="privacy">
+ <h2>5. Privacy and safety</h2>
+ <p class="lead">A PDF is a portable copy of personal financial data, so the rules are stricter than for a screen. These are the rules the plan builds in.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Concern</th><th>What we do</th></tr></thead>
+  <tbody>
+   <tr><td class="k">PAN</td><td>Never printed, in any form. (The app never returns it; the export must not add it.)</td></tr>
+   <tr><td class="k">Folio numbers</td><td>Your decision (Q3, still open). Batch C chose to show them in full on screen; a PDF can travel, so the default I recommend is none in the PDF.</td></tr>
+   <tr><td class="k">Names</td><td>Member names appear (the report is for them). The file name has no name, PAN or folio.</td></tr>
+   <tr><td class="k">Where the PDF lives</td><td>Generated on request and sent straight to the user; <b>not stored on our server</b>, in line with the project&rsquo;s rule against keeping documents.</td></tr>
+   <tr><td class="k">The export pass (P3)</td><td>Issued only to a signed-in user for scopes they own; valid for one export and a few minutes; <b>read-only</b> (it cannot change anything); tied to one scope; usable only by our own renderer; revoked as soon as the export ends. A separate security review before it ships (task I-4), in the same spirit as the earlier adversarial reviews.</td></tr>
+   <tr><td class="k">Logs and analytics</td><td>Only that an export happened and its size and duration, never its content. A GA4 &ldquo;export started&rdquo; event, if Batch G adds it, carries a label only.</td></tr>
+   <tr><td class="k">Abuse</td><td>At most two exports render at once and each user has a short cooldown, so one user cannot tie up the browser; a failed export cleans up its browser page.</td></tr>
+   <tr><td class="k">Consent</td><td>The export shows the user their own data; it needs no new consent. The existing consent rules for imports are unaffected.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<!-- ============ 6. STRATEGY ============ -->
+<section id="strategy">
+ <h2>6. Orchestrator and workers</h2>
+ <p class="lead">Same rules as the other batches. This one has both a backend part (the pipeline and the pass) and a lot of print styling.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Role</th><th>Who</th><th>What they do in Batch I</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Orchestrator</td><td>Claude</td><td>Confirms the existing pipeline on staging; writes the specs, the security review brief for the export pass, the print-template packet and the cover copy; audits every section for print; checks the PDFs page by page against the mockups for three test households; runs the affected tests.</td></tr>
+   <tr><td class="k">Code worker</td><td>Codex</td><td>The multi-worker repair, the export pass and its tests, the on-demand browser and its limits, the print route and print mode, the section print variants, the dialog logic, progress and download, and all tests. Codex cannot commit; I do, only when you say.</td></tr>
+   <tr><td class="k">Visual worker</td><td>Antigravity (Gemini)</td><td>The cover, contents, running header and footer, and the export dialog, from detailed packets. The relay is manual, as in Batch B.</td></tr>
+   <tr><td class="k">Reviewer</td><td>Codex adversarial review</td><td>One review per handoff; a dedicated security review of the export pass; then one whole-batch review.</td></tr>
+  </tbody>
+ </table></div>
+ <p>Phone is out of scope, so no phone work is planned or checked. Nothing in the code changes until your reviewed answers are in and the plans are written.</p>
+ <h3 class="sub">Lanes that can run at the same time</h3>
+ <div class="cols">
+  <div class="doc"><h4>Lane 1: the pipeline (backend)</h4><ul><li>The multi-worker repair, the export pass, the on-demand browser, limits, tests.</li><li>Touches <code>pdf_export.py</code>, <code>api/analytics.py</code> (or a new export route), <code>main.py</code>, the auth layer for the pass.</li></ul></div>
+  <div class="doc"><h4>Lane 2: the print template and sections</h4><ul><li>The print route, print mode, bundled fonts, cover and contents, header and footer, the section print variants.</li><li>Touches <code>main.tsx</code> (print route) and many section components.</li></ul></div>
+  <div class="doc"><h4>Lane 3: the button and dialog</h4><ul><li>The button in the shared slot, the dialog, progress and download.</li><li>Touches the two frames and new files.</li></ul></div>
+ </div>
+</section>
+
+<!-- ============ 7. PROGRAM ============ -->
+<section id="program">
+ <h2>7. Fit with the other batches</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Other batch</th><th>Relationship</th></tr></thead>
+  <tbody>
+   <tr><td class="k">A (truth-finding)</td><td>The report must print the same XIRR, ranks and averages as the screens, so any fix there changes the PDF; this batch waits for A&rsquo;s verdicts. A&rsquo;s load measurements also set how big a report can be before it needs a background job, and the three idle Chromium processes (F7) are part of A&rsquo;s memory picture.</td></tr>
+   <tr><td class="k">B (journey quick wins)</td><td>No shared files.</td></tr>
+   <tr><td class="k">C (holdings hygiene)</td><td>Batch C chose to show full folios on screen and noted that the PDF must follow the same rule; Q3 here sets that rule for the PDF.</td></tr>
+   <tr><td class="k">D (charts)</td><td>The Home and Overview graph needs a static print version (fixed width, no hover, colours that print); the legend and colours come from D.</td></tr>
+   <tr><td class="k">E (dates and explainers)</td><td>The cover, the footers and the last page use E&rsquo;s date wording and module, and the &ldquo;i&rdquo; explanations; one source of text for screen and paper.</td></tr>
+   <tr><td class="k">F (section index)</td><td>The shared section list drives the dialog&rsquo;s checklist, the contents page and the order of the report. Build F&rsquo;s list first.</td></tr>
+   <tr><td class="k">K (search)</td><td>The button shares the tab bar&rsquo;s right slot with search; one slot rule.</td></tr>
+   <tr><td class="k">G (GA4)</td><td>Optional events: export started, finished, failed, each with the preset and a count, never a value.</td></tr>
+   <tr><td class="k">C4 (Standard vs Pro)</td><td>The section list&rsquo;s tier field decides which sections the dialog offers. Whether export itself is a Pro feature is a later decision; nothing is hard-coded.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>Migrations: none planned.</b> The export pass is a signed, short-lived token, not a table. If the review prefers a stored pass, it would be the first migration here and I would flag it first. Batch B may take 0054; this batch takes none.</div>
+ <p><b>Deploy.</b> A staging milestone (the one you choose in Batch B&rsquo;s Q26), with a deploy-guide check of <code>FRONTEND_BASE_URL</code>, outbound access of the renderer if fonts are not bundled, and the memory after removing the idle browsers.</p>
+</section>
+
+<!-- ============ 8. TASKS ============ -->
+<section id="tasks">
+ <h2>8. Task list</h2>
+ <p class="lead">Sixteen tasks. Sizes: S about half a day, M one to two days, L more.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Task</th><th>Worker</th><th>Size</th><th>When</th></tr></thead>
+  <tbody>
+   <tr><td>I-1</td><td>Re-check every &ldquo;read in code&rdquo; line; write the specs and the Gemini packets</td><td>Claude</td><td>M</td><td>After your answers</td></tr>
+   <tr><td>I-2</td><td>Confirm the existing pipeline on staging with a small read-only script (does it work? how often does it fail? how long does it take?), in the style of Batch D&rsquo;s kit; check <code>FRONTEND_BASE_URL</code> and the Chromium memory</td><td>Claude, your manager</td><td>S</td><td>Now (read-only)</td></tr>
+   <tr><td>I-3</td><td>Repair the multi-worker fault and start the browser on demand (one, with limits); tests first</td><td>Codex</td><td>M</td><td>After Q1</td></tr>
+   <tr><td>I-4</td><td>The export pass (short-lived, read-only, one scope) and its security review</td><td>Codex, Claude</td><td>L</td><td>After Q1</td></tr>
+   <tr><td>I-5</td><td>The print route and print mode: wait for every section, bundled fonts, A4 styles, always light</td><td>Codex</td><td>M</td><td>After I-4</td></tr>
+   <tr><td>I-6</td><td>Section audit for print (every section in Batch F&rsquo;s list): wide tables, charts, controls, empty and error states; print variants where needed</td><td>Claude, then Codex</td><td>L</td><td>After Batch F&rsquo;s list</td></tr>
+   <tr><td>I-7</td><td>The cover, contents, running header and footer, and last page</td><td>Gemini, Codex</td><td>M</td><td>After I-5</td></tr>
+   <tr><td>I-8</td><td>The Export button in the shared slot and the dialog (presets, checklist, scope)</td><td>Gemini, Codex</td><td>M</td><td>After Batch F&rsquo;s list</td></tr>
+   <tr><td>I-9</td><td>Progress, cancel, download, errors and the file name; limits on concurrent exports</td><td>Codex</td><td>M</td><td>After I-3</td></tr>
+   <tr><td>I-10</td><td>Measure render time and memory for a 5 lakh and a 40 lakh household; decide whether a large report needs a background job (and, if so, plan it)</td><td>Codex, Claude</td><td>M</td><td>After I-5 and the NAV fix</td></tr>
+   <tr><td>I-11</td><td>Static print version of the graph (with Batch D)</td><td>Codex</td><td>S</td><td>After Batch D</td></tr>
+   <tr><td>I-12</td><td>Page-by-page visual check of the PDFs for three households, against the mockups</td><td>Claude</td><td>M</td><td>After I-7, I-11</td></tr>
+   <tr><td>I-13</td><td>Adversarial review per handoff, the export-pass review, then the whole batch</td><td>Codex, Claude</td><td>M</td><td>Before staging</td></tr>
+   <tr><td>I-14</td><td>Staging deploy guide and QA checklist</td><td>Claude</td><td>M</td><td>After I-13</td></tr>
+   <tr><td>I-15</td><td>Staging check</td><td>You</td><td>S</td><td>After I-14</td></tr>
+   <tr><td>I-16</td><td>Update <code>decisions.md</code>, <code>session.md</code> and the Notion pack on your go</td><td>Claude</td><td>S</td><td>Last</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">I-2 needs no code change and can start before anything else.</p>
+</section>
+
+<!-- ============ 9. RISKS ============ -->
+<section id="risks">
+ <h2>9. Risks, tests and checks</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Risk</th><th>What we do</th></tr></thead>
+  <tbody>
+   <tr><td>The export fails intermittently on staging because of several workers (F3)</td><td>The export pass removes the dependence on one process; a test runs the two steps in separate processes; I-2 measures the old behaviour first.</td></tr>
+   <tr><td>A large report takes too long or uses too much memory</td><td>One browser, at most two exports at once; measured for 5 and 40 lakh (I-10); a background job is planned only if the numbers need it; a size limit with an offer to export fewer sections.</td></tr>
+   <tr><td>The brand font is missing, so the PDF looks different</td><td>Fonts are bundled with the print template; a test checks the PDF embeds them.</td></tr>
+   <tr><td>A card looks wrong on paper (cut-off table, unreadable chart, hover-only content)</td><td>The section audit (I-6); print variants; every section is checked page by page (I-12).</td></tr>
+   <tr><td>The PDF shows different numbers from the screen</td><td>It reads the same routes through the same components; a test compares chosen figures in the PDF text with the screen&rsquo;s.</td></tr>
+   <tr><td>The export pass is misused</td><td>One scope, read-only, a few minutes, bound to our renderer, revoked at the end; a dedicated security review.</td></tr>
+   <tr><td>A PDF leaks something it should not (PAN, folio, contact details)</td><td>The cover and footers have a fixed list of fields; a test scans the PDF text for PAN patterns and for folios when Q3 says none.</td></tr>
+   <tr><td>The renderer opens the wrong front end (F8)</td><td>The deploy guide checks <code>FRONTEND_BASE_URL</code>; the PDF carries the app version.</td></tr>
+   <tr><td>The dialog offers a section that is empty or failed for this household</td><td>The report notes it in place instead of leaving a gap; the dialog warns before exporting.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Tests, in short</h3>
+ <ul class="tight">
+  <li><b>Backend (pytest), affected files only:</b> the export pass (scope, expiry, read-only, revocation), the two-step flow across processes, limits, the existing <code>test_analytics_export_route.py</code> updated.</li>
+  <li><b>Frontend (Vitest), affected files only:</b> the print mode of each changed section, the dialog and its presets, the button in both frames; then <code>npm run lint</code> and <code>npm run build</code>.</li>
+  <li><b>By eye and by text:</b> three sample PDFs checked page by page; the PDF text scanned for forbidden fields. The phone view is out of scope.</li>
+  <li>Red before green for every behaviour.</li>
+ </ul>
+ <h3 class="sub">Staging check (draft; the real guide is I-14)</h3>
+ <div class="steps5">
+  <div><b>Export</b>From a Mutual Funds tab and from a fund page: the button opens the dialog; Full report, This tab and Custom work; Family and one member both export.</div>
+  <div><b>PDF</b>Cover with the right name and scope; contents with page numbers; every chosen section present; dates in Batch E&rsquo;s words; no PAN, and folios as Q3 says.</div>
+  <div><b>Reliability</b>Five exports in a row all succeed; two at once both finish; a cancelled export leaves nothing running.</div>
+  <div><b>Look</b>Brand fonts embedded, light colours, A4, headers and footers on every page.</div>
+ </div>
+</section>
+
+<!-- ============ QUESTIONS ============ -->
+<section id="questions">
+ <h2>10. Questions</h2>
+ <p class="lead">Q1 and Q2 are answered and locked; <b>Q3 is still open</b>. These are decisions only you can make. Everything else is a default below, or a decision I bring you later with evidence.</p>
+ <div class="bar"><span class="status" id="prog">0 of 3 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
+ <div id="cards"></div>
+ <h3 class="sub">Defaults I will use (tell me in chat if you want any changed)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Topic</th><th>Default</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Data delivery</td><td>The short-lived, read-only export pass (P3), after a security review; not a table.</td></tr>
+   <tr><td class="k">How pages are drawn</td><td>The screens in print mode, with print variants only where a card needs one; the cover, contents, header and footer are new.</td></tr>
+   <tr><td class="k">Browser handling</td><td>One browser started when needed, closed after a quiet period; at most two exports at once; a short cooldown per user.</td></tr>
+   <tr><td class="k">Fonts</td><td>Bundled with the print template.</td></tr>
+   <tr><td class="k">Page and colour</td><td>A4 portrait, light, whatever the screen theme.</td></tr>
+   <tr><td class="k">Name on the cover</td><td>Family: the account holder&rsquo;s name and &ldquo;and family&rdquo;; one member: the member&rsquo;s name.</td></tr>
+   <tr><td class="k">PAN</td><td>Never in a PDF.</td></tr>
+   <tr><td class="k">File</td><td>Not stored on our server; a plain name with no personal detail.</td></tr>
+   <tr><td class="k">Large reports</td><td>Synchronous with a progress state first; a background job only if the measurements (I-10) need it.</td></tr>
+   <tr><td class="k">Where the button appears</td><td>The seven Mutual Funds tabs and the fund page, in the shared slot.</td></tr>
+   <tr><td class="k">Phone view</td><td>Out of scope; planned later.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Decisions I will bring you later, with the evidence in hand</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Decision</th><th>When it comes up</th><th>What you will see</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Whether a large report needs a background job</td><td>After the measurements (I-10)</td><td>Render times and memory for 5 and 40 lakh, and my recommendation.</td></tr>
+   <tr><td class="k">Whether to keep the older print page after the new export ships</td><td>After the staging check</td><td>What still uses it, and a retirement suggestion.</td></tr>
+   <tr><td class="k">Whether export is a Pro feature</td><td>With the Standard and Pro planning (C4)</td><td>The section list&rsquo;s tier field is ready for it.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="copy">
+ <h2>11. Copy my answers</h2>
+ <p class="lead">Press the button, then paste the text in chat. If it does nothing, select the text below and copy it yourself.</p>
+ <button id="copyBtn" type="button">Copy my answers</button> <span class="status" id="copyMsg"></span>
+ <label class="nl" for="outTa">Your answers as text</label>
+ <textarea id="outTa" class="out" readonly></textarea>
+</section>
+
+<section id="prov">
+ <h2>What I checked</h2>
+ <p><b>Read today, read-only, by me:</b> <code>services/analytics/pdf_export.py</code> (the token store, the shared browser, the render function); the export routes in <code>api/analytics.py</code>; the start-up hook in <code>main.py</code>; <code>requirements.txt</code> and the <code>Dockerfile</code> (Playwright and Chromium); <code>deploy/leapswitch/docker-compose.yml</code> (three workers); <code>.env.example</code> (<code>FRONTEND_BASE_URL</code>); the front end&rsquo;s <code>main.tsx</code> print route, <code>PrintAnalyticsView.tsx</code>, <code>print.css</code>, the export calls in <code>features/analytics/api.ts</code>; the shell routes and wrappers (to see what the old export is attached to); <code>index.html</code> (font loading); <code>MeResponse</code> (<code>self_name</code>); the <code>Logo/</code> folder.</p>
+ <p><b>Not done:</b> nothing was run. I did not open the live app, try the old export, or call any export route, so F2 and F3 (the old export being absent from the redesign and failing on staging) are conclusions from code, to be confirmed by task I-2. I did not read the old print view&rsquo;s section components, the backend export test, the redesigned section components for print behaviour, or the Caddy configuration (how requests are spread across workers). The time and memory of a render are not measured. The A4 pages are drawn to proportion but not measured.</p>
+ <p><b>Drawn, not measured:</b> every mockup is my reconstruction with an invented name, funds and numbers. Laptop only: the phone view is out of scope. Nothing was committed or deployed.</p>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+function vp(inner,w,h,cls,attrs){return '<div class="vp '+(cls||'')+'" data-w="'+w+'"'+(h?' data-h="'+h+'"':'')+(attrs||'')+'><div class="vp-in">'+inner+'</div></div>'}
+function chrome(url){return '<div class="chrome"><i></i><i></i><i></i><span>'+url+'</span></div>'}
+
+/* ---- export dialog ---- */
+function dialog(v){
+ var body='';
+ if(v==='a'){
+  body='<h5>Export a PDF report</h5><div class="ap-mut">A copy you can save or share. It is made for you and not stored.</div>'
+  +'<div class="sec"><b>Who is it for</b><div class="rad"><i class="on"></i>Family Combined (3 members)</div><div class="rad"><i></i>Asha Rao</div><div class="rad"><i></i>Ravi Rao</div><div class="rad"><i></i>Meera Rao</div></div>'
+  +'<div class="sec"><b>What to include</b><div class="pre"><span class="on">Full report</span><span>This tab</span><span>Custom</span></div>'
+  +'<div class="chk"><i class="on"></i>Overview <span class="ap-mut">(7)</span></div><div class="chk"><i class="on"></i>Performance <span class="ap-mut">(3)</span></div><div class="chk"><i class="on"></i>Allocation <span class="ap-mut">(4)</span></div><div class="chk"><i class="on"></i>Holdings <span class="ap-mut">(2)</span></div><div class="chk"><i class="on"></i>Transactions <span class="ap-mut">(2)</span></div><div class="chk"><i class="on"></i>Overlap <span class="ap-mut">(4)</span></div><div class="chk"><i class="on"></i>Other Analytics <span class="ap-mut">(4)</span></div></div>'
+  +'<div class="sec"><b>Options</b><div class="chk"><i class="on"></i>Cover page</div><div class="chk"><i class="on"></i>Data dates on every page</div></div>'
+  +'<div class="ap-mut" style="margin-top:10px">Takes about a minute for a large household.</div><div class="foot"><span class="dbtn o">Cancel</span><span class="dbtn">Export PDF</span></div>';
+ } else if(v==='b'){
+  body='<h5>Preparing your report</h5><div class="ap-mut">Family Combined &middot; Full report &middot; 26 sections</div><div class="prog"><i style="width:58%"></i></div><div class="ap-mut">Collecting your Allocation section&hellip; This can take a minute for a large household. You can keep using Unifolio.</div><div class="foot"><span class="dbtn o">Cancel</span></div>';
+ } else if(v==='c'){
+  body='<h5>Your report is ready</h5><div class="ap-mut">Unifolio-portfolio-report-2026-11-13.pdf &middot; 14 pages &middot; 1.2 MB</div><div class="prog"><i style="width:100%"></i></div><div class="ap-mut">It downloaded to your device. We do not keep a copy.</div><div class="foot"><span class="dbtn o">Download again</span><span class="dbtn">Done</span></div>';
+ } else {
+  body='<h5>We could not make the report</h5><div class="note-box" style="background:#FDECEA;border-color:#F3B8AE;margin-top:10px">Something went wrong while preparing it. Nothing was saved. You can try again, or choose fewer sections.</div><div class="foot"><span class="dbtn o">Choose fewer sections</span><span class="dbtn">Try again</span></div>';
+ }
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds')+'<div style="background:#E9EDE9;min-height:'+(v==='a'?760:420)+'px;display:flex;align-items:center;justify-content:center;position:relative"><div style="position:absolute;inset:0;background:rgba(17,17,17,.5)"></div><div class="dlg2" style="position:relative">'+body+'</div></div>',1000,0);
+}
+/* ---- A4 pages ---- */
+function page(which){
+ var inner='';
+ if(which==='cover'){
+  inner='<div class="acc"></div><div style="padding:60px 48px 0"><div class="brand">Unifolio</div><div style="margin-top:150px"><h1>Mutual Fund<br>Portfolio Report</h1><div style="width:60px;height:4px;background:#22C55E;margin:20px 0"></div><div class="meta2"><div style="font-size:10px;color:#98A2B3;text-transform:uppercase;letter-spacing:.08em">Prepared for</div><div style="font:700 18px DM Sans,sans-serif;color:#111">Asha Rao and family</div><div style="margin-top:12px">Family combined &middot; 3 members &middot; 25 funds</div><div>Generated on 13 November 2026</div><div style="margin-top:12px;font-size:10px">Prices as on 12 Nov 2026 &middot; Holdings as on September 2026</div></div></div></div><div class="ft" style="border:0"><span>Confidential. Prepared for the account holder only. Figures are indicators, not a recommendation.</span><span></span></div>';
+ } else if(which==='toc'){
+  inner='<div class="hd"><span>Unifolio &middot; Mutual Fund Portfolio Report</span><span>Asha Rao and family</span></div><div style="padding:30px 48px"><h2>Contents</h2><div class="toc"><b>Overview</b><div><span>Summary</span><span>3</span></div><div><span>SIPs</span><span>3</span></div><div><span>Mutual Funds</span><span>4</span></div><div><span>Sold funds</span><span>5</span></div><b>Performance</b><div><span>Returns</span><span>6</span></div><div><span>Portfolio History</span><span>6</span></div><div><span>Benchmark Comparison (XIRR)</span><span>7</span></div><b>Allocation</b><div><span>Look-Through Asset Allocation</span><span>8</span></div><div><span>Market-Cap Allocation</span><span>9</span></div><div><span>Portfolio Allocation</span><span>9</span></div><div><span>Fund Manager Allocation</span><span>10</span></div><b>Other Analytics</b><div><span>Cost &amp; Valuation</span><span>11</span></div><div><span>Fund Quality Scorer</span><span>12</span></div></div></div><div class="ft"><span>Generated 13 Nov 2026</span><span>2 of 14</span></div>';
+ } else if(which==='sec'){
+  inner='<div class="hd"><span>Unifolio &middot; Mutual Fund Portfolio Report</span><span>Asha Rao and family</span></div><div style="padding:26px 40px"><div style="font:600 9px Manrope;letter-spacing:.08em;text-transform:uppercase;color:#98A2B3">Allocation</div><h2>Look-Through Asset Allocation</h2><div class="meta2" style="font-size:10px;margin-bottom:12px">What your money is in once fund holdings are looked through.</div><div style="display:flex;gap:26px;align-items:center;border:1px solid #E5E7EB;border-radius:10px;padding:16px"><div style="width:130px;height:130px;border-radius:50%;background:conic-gradient(#22C55E 0 72%,#0EA5E9 72% 93%,#F59E0B 93% 97%,#94A3B8 97% 100%);position:relative"><div style="position:absolute;inset:30px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font:700 11px DM Sans">&#8377;71.4L</div></div><div style="font-size:11px;line-height:1.9"><div><span style="color:#22C55E">&#9679;</span> Equity 72%</div><div><span style="color:#0EA5E9">&#9679;</span> Debt 21%</div><div><span style="color:#F59E0B">&#9679;</span> Gold 4%</div><div><span style="color:#94A3B8">&#9679;</span> Other 3%</div></div></div><div style="font-size:9px;color:#98A2B3;margin-top:8px">Prices as on 12 Nov 2026 &middot; Holdings as on September 2026</div></div><div class="ft"><span>Generated 13 Nov 2026</span><span>8 of 14</span></div>';
+ } else {
+  inner='<div class="hd"><span>Unifolio &middot; Mutual Fund Portfolio Report</span><span>Asha Rao and family</span></div><div style="padding:30px 48px"><h2>Notes</h2><div class="meta2" style="font-size:10.5px"><p><b>Dates.</b> Prices are as on 12 Nov 2026. Holdings, fees and factsheet ratios are monthly and are shown as on September 2026.</p><p><b>How the numbers are worked out.</b> XIRR is the annualised return from every cash flow. The category average is weighted by fund size and counts funds with at least three years of history. A short note on each is in the app&rsquo;s &ldquo;i&rdquo; icons.</p><p><b>Not advice.</b> The figures are indicators, not a recommendation to buy, sell or hold.</p><p><b>Where this came from.</b> Generated from the statements you imported into Unifolio, for you only. We do not keep a copy of this file.</p></div></div><div class="ft"><span>Generated 13 Nov 2026</span><span>14 of 14</span></div>';
+ }
+ return vp('<div style="background:#F3F5F3;padding:24px 0"><div class="a4">'+inner+'</div></div>',640,0,'',' style="max-width:640px;margin:0 auto"');
+}
+var STATE={'dlg':'a','pdf':'cover'};
+function frame(n){switch(n){case 'dlg':return dialog(STATE['dlg']);case 'pdf':return page(STATE['pdf']);}return ''}
+function layoutAll(){document.querySelectorAll('.vp').forEach(function(v){var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');inn.style.width=w+'px';inn.style.height=h?h+'px':'auto';var hh=h||inn.offsetHeight;var sc=Math.min(1,v.clientWidth/w);inn.style.transform='scale('+sc+')';v.style.height=Math.ceil(hh*sc)+'px'})}
+function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});layoutAll()}
+document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){var sec=bar.getAttribute('data-sec');bar.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){STATE[sec]=b.getAttribute('data-v');bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});renderAll()})})});
+renderAll();window.addEventListener('resize',layoutAll);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layoutAll);setTimeout(layoutAll,400);
+
+/* ================= questions ================= */
+var KEY="batch-i-planning-v1",S={};
+try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+var Q=[
+{id:"Q1",item:"19",title:"How is the PDF generated?",ask:"Pick one. This is the decision you left for planning time.",
+ opts:[
+ {k:"A",l:"On the server, with the headless browser that is already in the image (repaired, one browser on demand)",rec:1,d:"Good: the same branded result for everyone; full control of cover, fonts and page breaks; reuses the screens and numbers; no setup for the user. Bad: uses server memory and CPU while rendering; needs the repairs (workers, fonts, browser handling)."},
+ {k:"B",l:"In the user&rsquo;s browser, through its print dialog",d:"Good: no server load or new backend. Bad: the result depends on each user&rsquo;s browser and settings; no reliable page numbers or running header; the brand cover cannot be guaranteed."},
+ {k:"C",l:"On the server, with a new report engine that draws from data, not from the screens",d:"Good: lighter than a browser. Bad: a second layout for every section to keep in step with the screens; a new dependency; charts drawn twice."}],
+ why:"The engine and its pieces already exist and give one consistent result. Its weak points are known and fixable, and the repairs also help the memory picture.",
+ commit:"<b>Recorded:</b> option A. Server-side Chromium with the repairs (multi-worker fault, one browser on demand, bundled fonts) and the export pass, subject to its security review."},
+{id:"Q2",item:"19",title:"What does the export contain?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Only the tab or fund page the user is on",d:"Good: the simplest; what you see is what you get. Bad: no way to get a whole-portfolio report in one file."},
+ {k:"B",l:"Always the full report (every section of every Mutual Funds tab)",d:"Good: one predictable document. Bad: large, slow, and often more than the user needed."},
+ {k:"C",l:"A dialog with presets (Full report, This tab, Custom) and a checklist of sections",rec:1,d:"Good: one dialog covers both; the checklist and contents come from Batch F&rsquo;s shared list, so nothing is hard-coded; a tier can hide Pro sections. Bad: a little more interface and a few more tests."}],
+ why:"Different people want different things from the same button. The shared section list makes the chooser nearly free, and the presets keep it simple.",
+ commit:"<b>Recorded:</b> option C. The dialog in section 3, with presets and a custom checklist driven by Batch F's shared section list, which the pipeline must support."},
+{id:"Q3",item:"19",title:"What about folio numbers in the PDF?",ask:"Pick one. PAN is never included whatever you choose.",
+ ctx:"Batch C chose to show the full folio number on screen. A PDF can be emailed and kept, so it is a different risk.",
+ opts:[
+ {k:"A",l:"Full folio numbers, the same as on screen",d:"Good: matches the screen and statements; useful for reconciling. Bad: a portable file with account identifiers."},
+ {k:"B",l:"Masked: only the last four digits",d:"Good: still tells two folios apart; less exposure. Bad: a third form of the folio to explain."},
+ {k:"C",l:"No folio numbers at all",rec:1,d:"Good: nothing to leak; a report does not need them to be read. Bad: a user wanting to match a statement must use the app."}],
+ why:"The report is for understanding the portfolio, not for servicing an account. Leaving folios out is the safest default and is easy to loosen later.",
+ commit:"A: folios printed in full. B: a mask rule shared with the screens. C: no folio field in any PDF section, enforced by a test."}
+];
+var PRE={Q1:{k:"A"},Q2:{k:"C"}};
+var LOCK={};
+Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
+var cards=document.getElementById("cards");
+Q.forEach(function(q){
+ var c=document.createElement("div");c.className="card";c.id=q.id.toLowerCase();c.setAttribute("data-q",q.id);
+ var h='<header><span class="id">'+q.id+' &middot; item '+q.item+'</span><h3>'+q.title+'</h3><span class="status todo" data-st>unanswered</span></header><p class="ask"><b>'+q.ask+'</b></p>';
+ if(q.ctx)h+='<p class="ctx">'+q.ctx+'</p>';
+ h+='<div class="opts">';
+ q.opts.forEach(function(o){h+='<label class="opt'+(o.rec?' isrec':'')+'"><input type="radio" name="'+q.id+'" value="'+o.k+'"'+(LOCK[q.id]?' disabled':'')+'><div><b>'+o.k+'. '+o.l+(o.rec?'<span class="tag me">my pick</span>':'')+'<span class="tag chosen" hidden>Chosen option</span></b><span class="d">'+o.d+'</span></div></label>'});
+ h+='</div>';
+ if(q.why)h+='<div class="why"><b>Why my pick.</b> '+q.why+'</div>';
+ if(q.commit)h+='<div class="commit"><b>What this answer commits us to.</b> '+q.commit+'</div>';
+ h+='<label class="nl" for="n-'+q.id+'">Notes (optional)</label><textarea id="n-'+q.id+'" placeholder="Anything I should know"'+(LOCK[q.id]?' readonly':'')+'></textarea>';
+ c.innerHTML=h;cards.appendChild(c);
+});
+function answered(q){if(LOCK[q.id])return true;var a=S[q.id]||{};return !!a.k}
+function setSt(st,ok){st.textContent=ok?"answered":"unanswered";st.className=ok?"tag ok":"status todo"}
+function build(){
+ var L=["BATCH I PLANNING: MY ANSWERS (13 Nov 2026)",""];
+ Q.forEach(function(q){
+  var a=S[q.id]||{},ln=q.id+" ("+q.item+") "+q.title.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")+"\n  Answer: ";
+  if(a.k){var o=q.opts.filter(function(x){return x.k===a.k})[0];ln+=a.k+". "+o.l.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")}else ln+="NOT ANSWERED";
+  if(a.n&&a.n.trim())ln+="\n  Note: "+a.n.trim();
+  L.push(ln);L.push("");
+ });
+ return L.join("\n");
+}
+function paint(){
+ var n=0;
+ Q.forEach(function(q){
+  var c=document.getElementById(q.id.toLowerCase()),a=S[q.id]||{};
+  c.querySelectorAll(".opt").forEach(function(o){var r=o.querySelector("input");r.checked=(a.k===r.value);o.classList.toggle("on",r.checked);var b=o.querySelector(".chosen");if(b)b.hidden=!r.checked});
+  var nn=document.getElementById("n-"+q.id);if(nn&&document.activeElement!==nn)nn.value=a.n||"";
+  var ok=answered(q);if(ok)n++;setSt(c.querySelector("[data-st]"),ok);
+ });
+ document.getElementById("prog").textContent=n+" of "+Q.length+" answered";
+ document.getElementById("outTa").value=build();
+}
+cards.addEventListener("change",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.type==="radio")S[q].k=e.target.value;save();paint()});
+cards.addEventListener("input",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.id==="n-"+q)S[q].n=e.target.value;save();document.getElementById("outTa").value=build()});
+function copy(){
+ var ta=document.getElementById("outTa"),m=document.getElementById("copyMsg");ta.value=build();
+ function fb(){ta.removeAttribute("readonly");ta.select();try{document.execCommand("copy");m.textContent="Copied (or select and copy the text below)"}catch(e){m.textContent="Select the text below and copy it"}ta.setAttribute("readonly","")}
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(function(){m.textContent="Copied. Paste it in chat."},fb)}else fb();
+}
+document.getElementById("copyBtn").addEventListener("click",copy);
+document.getElementById("copyTop").addEventListener("click",function(){copy();document.getElementById("copy").scrollIntoView()});
+document.getElementById("jump").addEventListener("click",function(){for(var i=0;i<Q.length;i++){if(!answered(Q[i])){document.getElementById(Q[i].id.toLowerCase()).scrollIntoView({behavior:"smooth"});return}}});
+paint();
+})();
+</script>
+</body>
+</html>
