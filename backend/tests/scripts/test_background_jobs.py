@@ -32,6 +32,10 @@ def _scheme(code: str) -> Scheme:
     )
 
 
+async def _amfi_down():
+    raise RuntimeError("AMFI unreachable (test double)")
+
+
 def test_refresh_nav_daily_warms_held_funds_then_their_category_peers(db_session, monkeypatch, caplog):
     job = _load_job("refresh_nav_daily")
     user = User(phone_number="+910000000101", created_at=datetime.now(timezone.utc))
@@ -67,9 +71,12 @@ def test_refresh_nav_daily_warms_held_funds_then_their_category_peers(db_session
     monkeypatch.setattr(job, "SessionLocal", lambda: db_session)
     monkeypatch.setattr(job, "warm_nav_history", fake_warm_nav_history)
     monkeypatch.setattr(job, "get_category_peers", fake_peers)
+    # AMFI unreachable: the job falls back to the old refresh, warming held funds then peers (the held-fund
+    # path through AMFI's own dates is covered in test_refresh_nav_daily_flags.py and test_held_nav_refresh.py).
+    monkeypatch.setattr(job, "fetch_amfi_rows", _amfi_down)
     caplog.set_level(logging.INFO)
 
-    job.main()
+    job.main([])
 
     assert warmed == [{held_a.id, held_b.id}, {peer.id}]
     assert categories == [("Equity Scheme - Flexi Cap Fund", None)]
@@ -235,8 +242,9 @@ def test_refresh_nav_daily_keeps_going_when_one_category_fails(db_session, monke
     monkeypatch.setattr(job, "SessionLocal", lambda: db_session)
     monkeypatch.setattr(job, "warm_nav_history", fake_warm)
     monkeypatch.setattr(job, "get_category_peers", fake_peers)
+    monkeypatch.setattr(job, "fetch_amfi_rows", _amfi_down)
     caplog.set_level(logging.INFO)
-    job.main()
+    job.main([])
     assert warmed[-1] == {peer.id}
     assert rollbacks == [1]  # a failed category leaves the session usable (8 Oct re-review)
 

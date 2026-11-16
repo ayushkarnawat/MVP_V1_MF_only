@@ -19,6 +19,14 @@ here changes AWS staging or production.
 - `scripts/run-job.sh` — runs one job, emails a failure alert on nonzero exit
   (reuses the existing SES email provider — see `backend/scripts/
   send_job_failure_alert.py`).
+- `scripts/nav-digest.sh` + `logrotate.unifolio-nav` — the nav-daily runs append to
+  `/var/log/unifolio-nav.log` (one `NAV_SUMMARY` line per run, plus `NAV_PROBLEM` /
+  `NAV_NOTE` lines); the digest emails the day's lines at 14:10 (subject says OK or
+  ATTENTION), through `backend/scripts/send_job_digest.py`. Recipients for all job
+  emails: `OPS_ALERT_EMAIL` in the VM's `.env` (comma-separated). Read the log with
+  `ssh deploy@ls-redesign.unifolio.in 'tail -20 /var/log/unifolio-nav.log'`. The
+  logrotate file is installed once, by hand, as root:
+  `cp deploy/leapswitch/logrotate.unifolio-nav /etc/logrotate.d/unifolio-nav`.
 - `scripts/deploy.sh` — builds the backend image (skipped when `backend/` is
   unchanged since the last deploy; the worker runs the same image), then the
   frontend static bundle, then `docker compose up -d`. Warns before building

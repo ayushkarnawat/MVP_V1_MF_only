@@ -17,13 +17,22 @@ RUN=/opt/unifolio/deploy/leapswitch/scripts/run-job.sh
 CHECK_MEM=/opt/unifolio/deploy/leapswitch/scripts/check-memory.sh
 BACKUP=/opt/unifolio/deploy/leapswitch/scripts/backup.sh
 CHECK_DISK=/opt/unifolio/deploy/leapswitch/scripts/check-disk.sh
+NAV_DIGEST=/opt/unifolio/deploy/leapswitch/scripts/nav-digest.sh
 
 # Nightly pg_dump, before the 05:45 batch-job window starts. This line was
 # planned (see the staging plan doc) but never actually added here -- caught
 # by the Phase 6 restore test finding no dump to restore.
 0  1  *  *  *              $BACKUP >> /var/log/unifolio-backup.log 2>&1
 
-0  6  *  *  *              $RUN nav-daily                    scripts/jobs/refresh_nav_daily.py
+# nav-daily (16 Nov 2026 fix): held funds are refreshed EVERY run from AMFI's own dates; peers keep the
+# 3-day rule. Output goes to /var/log/unifolio-nav.log (rotated by /etc/logrotate.d/unifolio-nav) so a run is
+# never invisible again. 06:00 is the full run; 10:30 (after the 10:00 deadline for funds with overseas
+# holdings) and 14:00 are held-only retries; the 14:00 run exits nonzero on any NAV_PROBLEM, which makes
+# run-job.sh email it. The digest at 14:10 emails the day's summary lines either way.
+0  6  *  *  *              $RUN nav-daily                    scripts/jobs/refresh_nav_daily.py >> /var/log/unifolio-nav.log 2>&1
+30 10 *  *  *              $RUN nav-daily-retry-1            scripts/jobs/refresh_nav_daily.py --held-only >> /var/log/unifolio-nav.log 2>&1
+0  14 *  *  *              $RUN nav-daily-retry-2            scripts/jobs/refresh_nav_daily.py --held-only --alert-if-behind >> /var/log/unifolio-nav.log 2>&1
+10 14 *  *  *              $NAV_DIGEST >> /var/log/unifolio-nav.log 2>&1
 15 6  *  *  *              $RUN scheme-master-daily           scripts/jobs/refresh_scheme_master_daily.py
 0  6  *  *  *              $RUN benchmark-daily               scripts/jobs/refresh_benchmark_daily.py
 20 6  *  *  *              $RUN ter-daily                     scripts/jobs/refresh_ter_daily.py

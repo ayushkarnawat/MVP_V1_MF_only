@@ -1,0 +1,12 @@
+# Rotation for the nav-daily log (crontab.leapswitch appends every nav-daily run here).
+# Install on the VM as root:  cp deploy/leapswitch/logrotate.unifolio-nav /etc/logrotate.d/unifolio-nav
+# 30 days of history is plenty: each run is a few lines, and the daily digest reads only today's.
+/var/log/unifolio-nav.log {
+    daily
+    rotate 30
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 root root
+}

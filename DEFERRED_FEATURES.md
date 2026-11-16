@@ -266,7 +266,7 @@ Change map: https://claude.ai/artifact/VjuDFpFp9EELeT7fcDuA7s ("Inputs check" se
 
 **What the check found** (code-level, 7 Oct). Done naively, it would have repeated the TER mistake:
 - `benchmark-daily` saves only the **last 10 years**, but Analytics asks from the household’s **first transaction** (p20 starts 2006, “CAS 10 Yr” Jan 2016). Read-only Analytics would silently leave older purchases out of the benchmark XIRR: a wrong number, with no error.
-- `nav-daily` skips any fund with a NAV in the last 3 days, so saved NAVs can be up to 3 days old.
+- `nav-daily` skips any fund with a NAV in the last 3 days, so saved NAVs can be up to 3 days old. **Held-fund part FIXED 16 Nov 2026** (`dashboard/held_nav_refresh.py`: held funds are compared with AMFI's own per-scheme date and filled every run; retries at 10:30 and 14:00 IST; peers deliberately keep the 3-day rule). Found because Home and Portfolio became stored-only and held funds sat 1-3 days behind.
 - A category nobody held by 06:00 (a new user, or a first fund in a new category) has no peer NAVs saved until the next morning.
 
 Doing it properly takes four changes together (~3 h): `benchmark-daily` saves full history from each index’s earliest NSE date; `nav-daily` refreshes held funds every day; Analytics values holdings at the saved NAV (the dashboard stays live); a one-time download for a never-seen category. Fix F’s test would then become “no network at all”.
