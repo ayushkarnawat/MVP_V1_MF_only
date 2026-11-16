@@ -17,7 +17,9 @@ RUN=/opt/unifolio/deploy/leapswitch/scripts/run-job.sh
 CHECK_MEM=/opt/unifolio/deploy/leapswitch/scripts/check-memory.sh
 BACKUP=/opt/unifolio/deploy/leapswitch/scripts/backup.sh
 CHECK_DISK=/opt/unifolio/deploy/leapswitch/scripts/check-disk.sh
-NAV_DIGEST=/opt/unifolio/deploy/leapswitch/scripts/nav-digest.sh
+# nav-digest.sh lives in the redesign worktree until leapswitch-redesign is merged into the main clone
+# (/opt/unifolio is still on feat/leapswitch-staging); then point this at /opt/unifolio/... like the others.
+NAV_DIGEST=/opt/unifolio-redesign/deploy/leapswitch/scripts/nav-digest.sh
 
 # Nightly pg_dump, before the 05:45 batch-job window starts. This line was
 # planned (see the staging plan doc) but never actually added here -- caught
