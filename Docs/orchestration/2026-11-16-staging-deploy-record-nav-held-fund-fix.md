@@ -52,6 +52,10 @@ stayed 1 to 3 days behind until some live page happened to refresh it. Found on 
   amfi_newest=2026-11-15`. Held funds' newest NAV before: 45 on Fri 13 Nov, 1 on Sat 14 Nov; after: 45 on Fri 13 Nov,
   1 on Sun 15 Nov (PPFAS Liquid). Equity funds had no newer NAV to take because AMFI's own date for them is Fri 13 Nov.
 
+- Then a held-only and a full run, both through `run-job.sh` into `/var/log/unifolio-nav.log` (13:27 IST, exit 0 each):
+  `mode=full held=46 behind=0 ... amfi_newest=2026-11-15`; peers `404 of 1062` fetched (3-day rule unchanged), 20 categories,
+  3 ongoing scenarios recomputed; the full run took 43 s. The log file works and rotation config passed `logrotate -d`.
+
 ## Honest list of what is not as hoped
 - **No rollback image.** The build removed the previous image before `deploy.sh` could tag it (the warning it prints:
   "`:previous` was NOT updated", seen before on 3 Nov), and I had already removed the older `:previous` to free space. Rollback
