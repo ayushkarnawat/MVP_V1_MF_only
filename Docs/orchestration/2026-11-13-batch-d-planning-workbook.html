@@ -387,7 +387,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h1>Batch D Planning</h1>
  <div class="meta">Planning only &middot; nothing built or run on staging &middot; 13 Nov 2026 &middot; updated with your answers and the diagnosis kit &middot; branch leapswitch-redesign</div>
  <p>Charts: three changes on the Home and Mutual Funds screens. Bring the benchmark line back on the Home graph, with a different colour for each benchmark (item 13); put the same graph on the Mutual Funds Overview (item 14); and make &ldquo;View all by day&rsquo;s change&rdquo; open a pop-up with everything that changed today (item 15). The output is <b>one reusable graph component</b>, used on both pages, plus the pop-up.</p>
- <p><b>How this was made.</b> I read the code for all three items today, read-only. Every statement about the code is labelled <em>read in code</em>. Nothing was run, no real data was touched, and I did not look at the live Home page, so <b>why the line is missing is not yet known</b>: the code builds it end to end, and section 2 plans how to find out. Mockups are my reconstructions with made-up numbers. This batch needs the NAV fix for execution only; it can be planned now.</p>
+ <p><b>How this was made.</b> I read the code for all three items today, read-only. Every statement about the code is labelled <em>read in code</em>. Nothing was run, no real data was touched, and I did not look at the live Home page, so <b>why the line is missing is not yet known</b>: the code builds it end to end, and section 2 plans how to find out. Mockups are my reconstructions with made-up numbers. The NAV fix landed on 16 Nov (section 5), so nothing in this batch waits for it any more.</p>
  <p><b>Updated 13 Nov.</b> Both questions are answered and recorded (up to three benchmarks at once; the graph goes directly under the summary strip). Section 2 now has a <b>read-only diagnosis kit</b>, a script and a prompt your manager&rsquo;s Claude can run on the staging VM, and a table that turns its output into a cause and a planned fix, so the fix can be planned in this workbook as soon as you send the output. <b>The phone view is out of scope for every batch</b>, so there are no phone mockups here; it is planned later.</p>
  <p><b>Diagnosis result (13 Nov).</b> Your manager ran the kit. The server side is clean: all 20 checks say the line would draw. <b>The root cause is in the browser code: the line is drawn but invisible, because the colour it uses is defined in a file that is never loaded.</b> I tested this in a browser, checked the deployed commit, and a Console check on the live staging page confirmed it. Section 2 has the evidence, the fix plan and its tests for you to review before any code changes.</p>
 </div>
@@ -418,7 +418,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>F1</td><td>The line draws only when the benchmark data is <b>available</b>, <b>not clipped</b> (the period does not start before the stored index history) and has <b>exactly as many points</b> as the portfolio series (<code>WealthCard.tsx</code>, lines 243 to 261).</td><td>A tiny mismatch in the number of points hides the whole line with no message. That makes a silent failure possible, and it is the first thing to check against a real response.</td></tr>
    <tr><td>F2</td><td>The benchmark colour is one token, <code>--home-bench</code>, set to the palette&rsquo;s blue (<code>--c3</code>). The palette has six colours: green is the portfolio, and <code>--c2</code>, <code>--c3</code>, <code>--c4</code>, <code>--c5</code> and <code>--c6</code> are free, enough for the five benchmarks Home offers.</td><td>One colour per benchmark needs no new palette; it needs a fixed mapping.</td></tr>
    <tr><td>F3</td><td>The graph is drawn with <b>rupees on the left axis</b> (portfolio) and the <b>benchmark&rsquo;s return in percent on a right axis</b>, starting at 0% at the start of the period. That was a recorded Home decision.</td><td>Two lines on two scales cannot be compared by where they cross. We keep the decision but the mockups and legend must make the scales clear.</td></tr>
-   <tr><td>F4</td><td>The server builds one point per calendar day, and the last point is replaced by today&rsquo;s headline value only when the series really ends on the latest price date.</td><td>With partial prices (the NAV bug), the last point and the day&rsquo;s change mix dates. See section 5.</td></tr>
+   <tr><td>F4</td><td>The server builds one point per calendar day, and the last point is replaced by today&rsquo;s headline value only when the series really ends on the latest price date.</td><td>With partial prices, the last point and the day&rsquo;s change mix dates. After the 16 Nov NAV fix this should happen less often (held funds are refreshed every day from AMFI&rsquo;s own dates), but a fund house that really has not published still causes it. See section 5.</td></tr>
    <tr><td>F6</td><td><b>Root cause of item 13 (13 Nov):</b> <code>WealthCard.tsx</code> paints the benchmark line and its text with <code>var(--home-bench)</code>. That variable is defined only in <code>features/home/home-tokens.css</code>, and nothing imports that file (only its own test does). An undefined variable on an SVG stroke makes the stroke <b>none</b>.</td><td>The server sends a correct series and the chart draws it, but nobody can see it. This is a one-cause fix, and it protects the Overview graph (item 14), which reuses the same component.</td></tr>
    <tr><td>F5</td><td>The movers pop-up that exists today is a small panel for <b>one row&rsquo;s funds</b>, opened from a row. It is not a list of everything.</td><td>Item 15 is a new pop-up, not a change to that one; the two must not be confused.</td></tr>
   </tbody>
@@ -463,7 +463,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>Index history is current for all five indices: last date 12 Nov (1 day behind), 271 rows in the last 400 days, largest gap 4 days (a long weekend); total-return history from 1995 to 2005 onward.</td><td>H13-2 is ruled out: the data is there and fresh.</td></tr>
    <tr><td>The recommendation worked (Nifty 500, &ldquo;broad mixed&rdquo;).</td><td>H13-1 is ruled out: the route does not fail.</td></tr>
    <tr><td>The build on the VM is commit <code>07a3057c</code> (10 Nov), database version 0053, all four containers up three days.</td><td>H13-6: the deployed code is the one I read, and it has the same gap (below), so an older build is not the reason.</td></tr>
-   <tr><td><b>Also seen:</b> 25 funds, 0 without any price, latest price date 12 Nov, <b>partial prices flag on, 5 funds missing today&rsquo;s price</b>, at about 13:00 India time on 13 Nov.</td><td>This is the NAV bug showing on real data: five funds are still waiting for the day&rsquo;s price in the early afternoon. It supports Batch A&rsquo;s findings F7 and F8 and is not the cause of the missing line.</td></tr>
+   <tr><td><b>Also seen:</b> 25 funds, 0 without any price, latest price date 12 Nov, <b>partial prices flag on, 5 funds missing today&rsquo;s price</b>, at about 13:00 India time on 13 Nov.</td><td>Five funds had older prices than the rest in the early afternoon. The 16 Nov fix found the main cause: <code>nav-daily</code> skipped held funds that already had a price from the last 3 days, so some sat 1 to 3 days behind (on staging that day, 8 of 46 held funds). I have not matched these five to those eight; a rerun after 17 Nov will show whether the flag clears. It is not the cause of the missing line.</td></tr>
   </tbody>
  </table></div>
  <p><b>Index returns the kit printed</b> (percent, for the check): 1M Nifty 50 +13.22, Nifty 500 +9.45, LargeMidcap 250 +8.77, Midcap 150 +5.37, Smallcap 250 +1.33; 1Y Nifty 50 &minus;1.22, Nifty 500 +1.01, LargeMidcap 250 +1.28, Midcap 150 +2.30, Smallcap 250 +5.75.</p>
@@ -669,19 +669,19 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 
 <!-- ============ 5. NAV ============ -->
 <section id="nav">
- <h2>5. Prices and the NAV fix</h2>
- <p class="lead">You said this batch needs the NAV fix for execution. Here is exactly where, so we plan around it and not just wait for it.</p>
+ <h2>5. Prices and the NAV fix (landed 16 Nov)</h2>
+ <p class="lead">The fix is in (commit <code>b231b6f4</code>, on staging). Held funds are refreshed every day from AMFI&rsquo;s own dates (06:00, then 10:30 and 14:00); category peers keep their 3-day rule; the stored analytics still rebuild once, at 06:30. This is where that touches this batch.</p>
  <div class="scroll"><table>
   <thead><tr><th>Where</th><th>What the early, partial prices do</th><th>What we plan</th></tr></thead>
   <tbody>
-   <tr><td class="k">The graph&rsquo;s last point</td><td>Some fund houses publish after the 06:00 job, so today&rsquo;s point can use older prices for some funds. The server already keeps the series&rsquo; date and the headline value apart (read in code).</td><td>The chart stops at the latest date on which the prices are complete enough, and says so, rather than drawing a falling last point. Rule agreed with Batch A&rsquo;s common end date (their FX-10c).</td></tr>
-   <tr><td class="k">The day&rsquo;s change pop-up</td><td>A fund with no new price would look like zero change. The card already marks this as &ldquo;Partial&rdquo; and names the funds.</td><td>Those funds are listed separately in the pop-up, as &ldquo;Waiting for today&rsquo;s price&rdquo;, never as zero.</td></tr>
+   <tr><td class="k">The graph&rsquo;s last point</td><td>Before the fix, held funds could be 1 to 3 days behind, so today&rsquo;s point used older prices for some of them. Now that lag is gone; a fund house that really has not published yet can still leave a gap. The server already keeps the series&rsquo; date and the headline value apart (read in code).</td><td>The chart stops at the latest date on which the prices are complete enough, and says so, rather than drawing a falling last point. Rule agreed with Batch A&rsquo;s common end date (their FX-10c).</td></tr>
+   <tr><td class="k">The day&rsquo;s change pop-up</td><td>A fund with no new price would look like zero change. The card already marks this as &ldquo;Partial&rdquo; and names the funds. Expect this less often now, but it is still needed for a real publishing delay.</td><td>Those funds are listed separately in the pop-up, as &ldquo;Waiting for today&rsquo;s price&rdquo;, never as zero.</td></tr>
    <tr><td class="k">The benchmark line</td><td>Index closes arrive with the 06:00 benchmark job; the index is not affected by fund-house delays.</td><td>No special case, but the line ends on the same date as the portfolio line.</td></tr>
-   <tr><td class="k">Testing</td><td>Early-morning screens differ from evening screens.</td><td>Mockup and visual checks are done at a stated time of day; official checks after the later price job exists.</td></tr>
+   <tr><td class="k">Testing</td><td>Early-morning screens differ from evening screens.</td><td>Mockup and visual checks at a stated time of day; official checks after the first clean unattended NAV run (17 Nov), once in the morning and once after the 14:00 run.</td></tr>
   </tbody>
  </table></div>
- <div class="callout info"><b>Seen in the 13 Nov output.</b> At about 13:00 India time, five of the household&rsquo;s 25 funds still had no price for 13 Nov, the latest price date was 12 Nov, and the partial-prices flag was on. That is the NAV bug on real data. It is why the chart ends on 12 Nov, and it is the same effect Batch A&rsquo;s findings F7 and F8 describe.</div>
- <p><b>What can start before the fix:</b> the diagnosis kit (the benchmark data is index data, which the NAV bug does not touch), the shared component, the colour map, the pop-up and the movers change, all with invented data. <b>What waits:</b> the visual checks on real data, and any backend fix, to follow your rule to branch for backend changes after the fix.</p>
+ <div class="callout info"><b>Seen in the 13 Nov output.</b> At about 13:00 India time, five of the household&rsquo;s 25 funds had older prices than the rest, the latest price date was 12 Nov, and the partial-prices flag was on. That is consistent with the bug the fix removed, and it is why the chart ended on 12 Nov. Part of it is normal: an equity fund&rsquo;s price for the day is not published until the evening, so a 13:00 chart ending on the previous trading day is correct. Whether the flag still shows on a normal afternoon is something to check after 17 Nov, not assume.</div>
+ <p><b>What can start now:</b> everything. The diagnosis kit (benchmark data is index data, which the NAV fix does not touch), the shared component, the colour map, the pop-up and the movers change. Backend changes branch from <code>c4434e15</code> or later, as you asked. <b>What still waits:</b> only the visual checks on real data, until the first clean unattended run on 17 Nov.</p>
 </section>
 
 <!-- ============ 6. STRATEGY ============ -->
@@ -727,13 +727,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <!-- ============ 8. TASKS ============ -->
 <section id="tasks">
  <h2>8. Task list</h2>
- <p class="lead">Fifteen tasks. &ldquo;After the fix&rdquo; means after the NAV fix lands. Sizes: S about half a day, M one to two days, L more.</p>
+ <p class="lead">Fifteen tasks. &ldquo;After the fix&rdquo; now means after the first clean unattended NAV run (17 Nov); the fix itself has landed. Sizes: S about half a day, M one to two days, L more.</p>
  <div class="scroll"><table>
   <thead><tr><th>ID</th><th>Item</th><th>Task</th><th>Worker</th><th>Size</th><th>When</th></tr></thead>
   <tbody>
    <tr><td>D-1</td><td>all</td><td>Re-check every &ldquo;read in code&rdquo; line; write the specs and the Gemini packet</td><td>Claude</td><td>M</td><td>After your answers</td></tr>
    <tr><td>D-2</td><td>13</td><td><b>Done 13 Nov:</b> the kit ran; root cause found; fix plan written in section 2 <b>for your review</b></td><td>Manager&rsquo;s Claude, then Claude</td><td>S</td><td>Done</td></tr>
-   <tr><td>D-3</td><td>13</td><td>Build FX-13d <b>once you approve it</b>: the token test first (red), then the per-benchmark colours (green), then verify in light and dark</td><td>Codex</td><td>S</td><td>After your approval; does not need the NAV fix</td></tr>
+   <tr><td>D-3</td><td>13</td><td>Build FX-13d <b>once you approve it</b>: the token test first (red), then the per-benchmark colours (green), then verify in light and dark</td><td>Codex</td><td>S</td><td>After your approval</td></tr>
    <tr><td>D-4</td><td>13, 14</td><td>Move the Home graph into one shared component with <b>no visible change</b>; Home tests stay green</td><td>Codex</td><td>M</td><td>Now (no prices)</td></tr>
    <tr><td>D-5</td><td>13</td><td>Benchmark-to-colour map, legend, end labels, light and dark; the list reply for several benchmarks (as Q1 decides)</td><td>Codex, Gemini</td><td>M</td><td>After D-4 and Q1</td></tr>
    <tr><td>D-6</td><td>14</td><td>Add the graph to the Overview in the chosen place; scope and remembered choice</td><td>Codex</td><td>M</td><td>After D-4 and Q2</td></tr>
@@ -744,11 +744,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>D-11</td><td>14</td><td>Overview request count and time with the graph (Batch A&rsquo;s method)</td><td>Codex, Claude</td><td>S</td><td>After the fix</td></tr>
    <tr><td>D-12</td><td>all</td><td>Adversarial review per handoff, then the whole batch</td><td>Codex, Claude</td><td>M</td><td>Before staging</td></tr>
    <tr><td>D-13</td><td>all</td><td>Staging deploy guide and QA checklist</td><td>Claude</td><td>M</td><td>After D-12</td></tr>
-   <tr><td>D-14</td><td>all</td><td>Staging check at a stated time of day, then the evening check after the later price job</td><td>You</td><td>S</td><td>After D-13</td></tr>
+   <tr><td>D-14</td><td>all</td><td>Staging check at a stated time of day, then the evening check after the 14:00 held-only run</td><td>You</td><td>S</td><td>After D-13</td></tr>
    <tr><td>D-15</td><td>all</td><td>Update <code>decisions.md</code>, <code>session.md</code> and the Notion pack on your go</td><td>Claude</td><td>S</td><td>Last</td></tr>
   </tbody>
  </table></div>
- <p class="note">D-4 and D-7 need no prices and can start before the NAV fix.</p>
+ <p class="note">The NAV fix has landed, so nothing waits for it. D-4 and D-7 need no prices at all; checks on real data wait for the first clean run on 17 Nov.</p>
 </section>
 
 <!-- ============ 9. RISKS ============ -->

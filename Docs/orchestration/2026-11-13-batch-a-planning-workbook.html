@@ -355,10 +355,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <main>
 <div class="hero">
  <h1>Batch A Planning</h1>
- <div class="meta">Planning only &middot; nothing built or run on staging &middot; 13 Nov 2026 &middot; updated with your answers &middot; fixes in scope, Excel moved in &middot; branch leapswitch-redesign</div>
+ <div class="meta">Planning only &middot; nothing built or run on staging &middot; 13 Nov 2026 &middot; updated with your answers and the 16 Nov NAV fix &middot; fixes in scope, Excel moved in &middot; branch leapswitch-redesign</div>
  <p>Truth-finding and fixing: four pieces of work on numbers and speed that stakeholders have questioned. Each one follows the same path: <b>find the real problem, propose the fix to you for review, and only after you approve it build it (failing test first), prove it with a before and after, and write the evidence for stakeholders</b>. XIRR (item 8), the &ldquo;7 out of 33&rdquo; rank (item 10), the category average (item 9, now including the detailed stakeholder Excel) and slow load times at about 40 lakh (item 7). Item 17a already moved to Batch C. A number that turns out correct gets the evidence; a real problem gets a fix, not just a report. <b>No code changes until you have reviewed and approved the fix.</b></p>
- <p><b>Changed on 13 Nov.</b> (1) The investigations now end in fixes. The idea of showing a note such as &ldquo;one fund is excluded&rdquo; is dropped: every held fund now gets a value instead (FX-8a). (2) The Excel for item 9 moved here from Batch E. The legend and &ldquo;i&rdquo; icon wording stay in Batch E. The questions are cut to the four that genuinely need you; everything else is a stated default (section 12). <b>All four are now answered</b> and recorded below. Your NAV answer added two findings (F7, F8) and a new fix (FX-10c); your Advisorkhoj answer changed the order of the rank investigation (section 4).</p>
- <p><b>How this was made.</b> I read the code for all four items today, read-only, and ran one timing of the XIRR solver on invented cash flows. Every statement about the code is labelled <em>read in code</em> and every number I measured is labelled <em>measured here</em>. Nothing was run on staging, no real household data was touched, and the NAV bug is as you described it (section 2). Mockups are my reconstructions with made-up funds and numbers.</p>
+ <p><b>Changed on 13 Nov.</b> (1) The investigations now end in fixes. The idea of showing a note such as &ldquo;one fund is excluded&rdquo; is dropped: every held fund now gets a value instead (FX-8a). (2) The Excel for item 9 moved here from Batch E. The legend and &ldquo;i&rdquo; icon wording stay in Batch E. The questions are cut to the four that genuinely need you; everything else is a stated default (section 12). <b>The four are answered</b> and recorded below; Q5 (16 Nov) is new and open. Your NAV answer added two findings (F7, F8) and a new fix (FX-10c); your Advisorkhoj answer changed the order of the rank investigation (section 4).</p>
+ <p><b>Update 16 Nov: the NAV fix has landed.</b> Your manager&rsquo;s fix is on the branch (commit <code>b231b6f4</code>, deployed to staging the same day, deploy record <code>2026-11-16-staging-deploy-record-nav-held-fund-fix.md</code>). I read the code and the record. Three things change for this batch. (1) The blocker is gone: fix builds can branch from it. (2) The cause was not the one described in the Q3 answer, so section 2 is rewritten. (3) Finding F7 still stands, and F8 is only partly closed, which gives one new question (Q5). <b>Your recorded answers are untouched.</b></p>
+ <p><b>How this was made.</b> I read the code for all four items today, read-only, and ran one timing of the XIRR solver on invented cash flows. Every statement about the code is labelled <em>read in code</em> and every number I measured is labelled <em>measured here</em>. Nothing was run on staging, no real household data was touched, and the NAV fix landed on 16 Nov after this was first written (section 2 is updated). Mockups are my reconstructions with made-up funds and numbers.</p>
 </div>
 
 <!-- ============ 1. WHERE WE STAND ============ -->
@@ -368,11 +369,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="stats">
   <div class="stat"><div class="n">4</div><div class="l">investigations (items 8, 10, 9, 7)</div></div>
   <div class="stat"><div class="n">0</div><div class="l">database migrations planned</div></div>
-  <div class="stat"><div class="n">4 / 4</div><div class="l">questions answered</div></div>
+  <div class="stat"><div class="n">4 / 5</div><div class="l">questions answered (Q5 is new)</div></div>
   <div class="stat"><div class="n">24</div><div class="l">tasks in the list (section 10)</div></div>
  </div>
  <div class="scroll"><table>
-  <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (read in code)</th><th>What this batch does</th><th>NAV fix needed?</th></tr></thead>
+  <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (read in code)</th><th>What this batch does</th><th>Needed the NAV fix? (landed 16 Nov)</th></tr></thead>
   <tbody>
    <tr><td class="k">8. XIRR</td><td>Verify the formula and what it shows.</td><td>One solver (Newton, with a fallback), one convention (actual days over 365, like Excel), fed by about seven callers that each build their own cash flows. Two portfolio figures (Lifetime and Current) plus a per-fund figure from a different, stored source.</td><td>Prove the solver against an independent calculation; audit every caller&rsquo;s inputs; <b>fix</b> every real problem found (a fund with no price, the date of the final flow, tile versus table, very short periods).</td><td><span class="tag be">numbers: yes</span> <span class="tag ok">code audit: no</span></td></tr>
    <tr><td class="k">10. Rank &ldquo;out of N&rdquo;</td><td>Check the &ldquo;out of&rdquo; value against Advisorkhoj; make ours right or prove theirs wrong.</td><td>N is the size of a filtered pool: same category and plan, one Growth series per fund, live in the last 30 days, active, not an index fund, with a return for that period. It differs per period.</td><td>First check whether <b>Advisorkhoj&rsquo;s figures are themselves correct</b>; then rebuild the pool independently from AMFI&rsquo;s file, list every excluded fund and why, and find where ours goes wrong (the total, and the rank with it); propose a fix for every gap that is ours, and bring any definition difference to you with the evidence.</td><td><span class="tag be">yes</span> (price history feeds the pool)</td></tr>
@@ -391,8 +392,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>F4</td><td>A rank&rsquo;s &ldquo;out of&rdquo; counts only funds that have a return <b>for that period</b>, so it is smaller for 5Y than for 1Y. If a peer&rsquo;s price history fails to load, the fund silently drops out of the count.</td><td>This is the most likely reason ours differs from a site that counts the whole category. It is a definition difference, a data gap, or both.</td><td>Exclusion ledger &rarr; fixes FX-10a, FX-10b</td></tr>
    <tr><td>F5</td><td>The category card is three periods (1Y, 3Y, 5Y), each with the fund&rsquo;s return and the category average, and the average is size-weighted with a 3Y floor.</td><td>&ldquo;The three values&rdquo; in your list are these period rows: your Q2 examples match them exactly.</td><td>Item 9 and its Excel (Q2)</td></tr>
    <tr><td>F6</td><td>One XIRR call took <b>0.48 s</b> for 1,801 flows (<em>measured here</em>, one invented input, my machine). The dashboard recomputes it for each basis and on each of several routes, with no cache found.</td><td>A real candidate for slow loads on big households. It is <b>not</b> a laptop effect, so it cannot explain &ldquo;slow only on some laptops&rdquo; by itself.</td><td>Server timings &rarr; fixes FX-7a to FX-7d</td></tr>
-   <tr><td>F7</td><td>Each fund&rsquo;s return ends at <b>its own</b> latest price on or before today. At 06:00 some fund houses have not yet published today&rsquo;s NAV (your description of the NAV bug), so their funds end one or two days earlier than the rest of the pool.</td><td>Returns inside one pool end on different dates. The rank counts how many pool funds have a higher return, so a mixed pool shifts the <b>rank itself</b>, not only the total. This could be part of why the rank looks wrong.</td><td>T10-4 &rarr; fix FX-10c</td></tr>
-   <tr><td>F8</td><td>The price job runs at 06:00 and the analytics recompute at 06:30 (<code>deploy/leapswitch/crontab.leapswitch</code>). The stored XIRR, rank and average are built from the early, partial prices and stay until the next 06:30 run or an import.</td><td>Even after a later price job exists, the stored results stay on the early data unless a recompute follows it. The screens would keep showing numbers from the partial state.</td><td>T8-7, T10-5 &rarr; fix FX-8d, and a request to the NAV fix (section 2)</td></tr>
+   <tr><td>F7</td><td>Each fund&rsquo;s return ends at <b>its own</b> latest price on or before today. At 06:00 some fund houses have not yet published today&rsquo;s NAV (your description of the NAV bug; the fix found a different main cause, see section 2), so their funds end one or two days earlier than the rest of the pool.</td><td>Returns inside one pool end on different dates. The rank counts how many pool funds have a higher return, so a mixed pool shifts the <b>rank itself</b>, not only the total. This could be part of why the rank looks wrong. <b>Update 16 Nov:</b> the fix refreshes held funds from AMFI&rsquo;s own dates every day but deliberately keeps the 3-day rule for the ~1,500 category peers, so a pool can still end on dates up to three days apart, and a held fund is now often the newest in its pool. F7 stands, and FX-10c is still needed.</td><td>T10-4 &rarr; fix FX-10c</td></tr>
+   <tr><td>F8</td><td>The price job runs at 06:00 and the analytics recompute at 06:30 (<code>deploy/leapswitch/crontab.leapswitch</code>). The stored XIRR, rank and average are built from the early, partial prices and stay until the next 06:30 run or an import.</td><td>Even after a later price job exists, the stored results stay on the early data unless a recompute follows it. The screens would keep showing numbers from the partial state. <b>Update 16 Nov:</b> the 10:30 and 14:00 runs refresh held funds only and do not trigger a recompute; the recompute still runs at 06:30. F8 stands with a smaller reach, because at 06:00 held funds now carry AMFI&rsquo;s newest price, so the 06:30 recompute starts from better data. A fund that only fills at 10:30 or 14:00 enters the stored results the next morning. See Q5.</td><td>T8-7, T10-5 &rarr; fix FX-8d, and a request to the NAV fix (section 2)</td></tr>
   </tbody>
  </table></div>
  <div class="callout good"><b>Moved out and moved in.</b> 17a (duplicate categories) is in Batch C, as you decided. The detailed category-average Excel moved here from Batch E (section 5). Nothing in Batch A waits for either.</div>
@@ -411,32 +412,44 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 
 <!-- ============ 2. NAV ============ -->
 <section id="nav">
- <h2>2. What the NAV bug means for this batch</h2>
- <p class="lead">As you described it: some fund houses publish their NAV after the 06:00 price job (around 10 or 11, or later). The dashboards then hold partial prices, show a &ldquo;partial NAV&rdquo; warning, and fall back to older prices. Your manager&rsquo;s plan is a second, later job. This is how that touches each item.</p>
+ <h2>2. What the NAV fix changed for this batch</h2>
+ <p class="lead">Your manager&rsquo;s fix landed on 16 Nov (commit <code>b231b6f4</code>) and is deployed on staging. I read the code and the deploy record and rewrote this section from what the fix really does. Your 13 Nov answer (Q3) stays recorded as you gave it. The root cause turned out to be a little different.</p>
+ <div class="callout good"><b>The bug in plain words (read in code and in the deploy record).</b> Home and Portfolio read stored prices only. The 06:00 job <code>nav-daily</code> skipped any fund that already had a price from the last 3 days. That rule was written for the ~1,500 category peers and was reused for the funds people hold, so a held fund could sit 1 to 3 days behind until some live page happened to refresh it. On 13 Nov, 8 of 46 held funds on staging were behind while mfapi.in already had their latest price. The record says it was not fund-house lateness and not mfapi lag. Fund houses that really publish late are a smaller, separate effect.</div>
+ <h3 class="sub">What the fix does now</h3>
  <div class="scroll"><table>
-  <thead><tr><th>Item</th><th>What the early, partial prices do (read in code unless marked)</th><th>What we do about it</th></tr></thead>
+  <thead><tr><th>Part</th><th>Now</th></tr></thead>
   <tbody>
-   <tr><td class="k">8. XIRR</td><td>The final value mixes prices from different days, and the final flow is dated today whatever the price date (F3).</td><td>FX-8c dates the flow with the price date; FX-8a keeps the older-price fallback; FX-8d makes the tile and the per-fund column agree.</td></tr>
-   <tr><td class="k">10. Rank</td><td>Returns in a pool end on different dates (F7), so the <b>rank and the total both move</b> with the time of day.</td><td>FX-10c: compute every pool fund&rsquo;s return to one common end date. This also makes our rank comparable with a site that uses one date.</td></tr>
-   <tr><td class="k">9. Category average</td><td>The same mixed end dates enter the average.</td><td>The same common-date rule (FX-9a, with FX-10c).</td></tr>
-   <tr><td class="k">All stored results</td><td>The recompute runs at 06:30 from the 06:00 prices (F8).</td><td>A recompute must follow the later job. This is a request to the NAV fix, not something this batch can do alone (two questions for your manager below).</td></tr>
-   <tr><td class="k">7. Load times</td><td>The second job adds server work later in the day, and a day with partial prices may take a slower path (<em>not checked</em>).</td><td>Measure before and after the later job exists; include a cold open at 07:00 and one in the evening.</td></tr>
+   <tr><td class="k">Held funds</td><td>Each one is compared with the date AMFI&rsquo;s file lists for it and refreshed every run. Behind by a few days: AMFI&rsquo;s own row is written. More than 4 days behind, nothing stored, or fewer than 30 stored rows: full history from mfapi.in first, then AMFI&rsquo;s row. A fund not in the AMFI file keeps the old refresh.</td></tr>
+   <tr><td class="k">Category peers</td><td><b>Unchanged.</b> The 3-day rule stays, on purpose.</td></tr>
+   <tr><td class="k">When it runs</td><td>06:00 full; 10:30 and 14:00 held funds only; 14:10 a digest email (OK, recovered or ATTENTION). Output goes to <code>/var/log/unifolio-nav.log</code> with one <code>NAV_SUMMARY</code> line per run.</td></tr>
+   <tr><td class="k">Stored analytics</td><td><b>Unchanged.</b> The recompute still runs once, at 06:30. The 10:30 and 14:00 runs do not trigger it (read in <code>refresh_nav_daily.py</code>).</td></tr>
+   <tr><td class="k">Proof so far</td><td>Two staging runs on 16 Nov, both clean. The first unattended 06:00 run is on <b>17 Nov</b>; expect <code>still_behind=0</code> in the log and an OK digest at 14:10.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">What it means for each item</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Item</th><th>What remains true (read in code unless marked)</th><th>What we do</th></tr></thead>
+  <tbody>
+   <tr><td class="k">8. XIRR</td><td>Held-fund values are fresher, so the final amount mixes prices from different days less often. F3 is untouched: the final flow is still dated the server&rsquo;s today, not the price date. A fund missing from the AMFI file still keeps the old refresh and can still have no value (F1, F2).</td><td>FX-8a to FX-8d stay as planned. FX-8c (date the flow with the price date) matters on weekends and holidays whatever the job does.</td></tr>
+   <tr><td class="k">10. Rank</td><td>Peers keep the 3-day rule, so returns inside one pool can still end on different dates (F7), and the held fund is now often the newest.</td><td>FX-10c (one common end date for the whole pool) stays, and is no less important.</td></tr>
+   <tr><td class="k">9. Category average</td><td>The same mixed end dates enter the average.</td><td>FX-9a with FX-10c, as before.</td></tr>
+   <tr><td class="k">All stored results</td><td>Built at 06:30 from the 06:00 prices (F8). The later runs do not feed them.</td><td>New question Q5. Until you decide, the plan assumes no change.</td></tr>
+   <tr><td class="k">7. Load times</td><td>The fix adds server work at 06:00 (the full run took 43 s on staging, per the record) and two light runs later. The page itself still reads stored prices, so its load path is unchanged.</td><td>Note the job windows (06:00 to 06:30, 10:30, 14:00) in every timing log so a slow reading is not blamed on the page.</td></tr>
   </tbody>
  </table></div>
  <h3 class="sub">The rule for evidence and for timing</h3>
  <div class="scroll"><table>
-  <thead><tr><th>Part of Batch A</th><th>Before the fix lands</th><th>After the fix lands</th></tr></thead>
+  <thead><tr><th>Part of Batch A</th><th>Now</th></tr></thead>
   <tbody>
-   <tr><td class="k">Reading code, writing fixtures, writing the independent calculators, building the 40L test household</td><td><b>Can be done.</b> None of it reads live prices.</td><td>Nothing to redo.</td></tr>
-   <tr><td class="k">Solver proof (known cash flows with known answers)</td><td><b>Can be done.</b> Pure arithmetic.</td><td>Nothing to redo.</td></tr>
-   <tr><td class="k">Any statement that &ldquo;our XIRR / rank / average is right or wrong&rdquo; for real funds</td><td>Not claimed from early-morning runs. A run is labelled with its time and how many funds had that day&rsquo;s price.</td><td>Run at a time when every fund house has published (for example the evening), and compare with the early run.</td></tr>
-   <tr><td class="k">New test T-NAV</td><td>Run the same recount and the same household at about 07:00 and again in the evening, the same day.</td><td>The difference between the two <b>is</b> the effect of the NAV bug on our numbers. It goes in the evidence pack.</td></tr>
-   <tr><td class="k">Building the fixes</td><td>Tests and fixtures can be written now. The fix code waits for two things: your approval of each proposal, and your rule to branch after the NAV fix lands, to avoid backend conflicts.</td><td>Branch from the fixed code; build each approved fix with its failing test first.</td></tr>
-   <tr><td class="k">Load-time numbers</td><td>A labelled baseline, taken at a stated time of day, to show the before and after of the fix itself.</td><td>The official numbers.</td></tr>
-   <tr><td class="k">Evidence for stakeholders</td><td>Not issued.</td><td>Issued only from post-fix runs at a time when all prices are in.</td></tr>
+   <tr><td class="k">Reading code, fixtures, independent calculators, the 40L test household, the solver proof</td><td>Unchanged. None of it reads live prices.</td></tr>
+   <tr><td class="k">Any statement that &ldquo;our XIRR / rank / average is right or wrong&rdquo; for real funds</td><td>Only from runs <b>after the first clean unattended run on 17 Nov</b>, labelled with the time and how many funds had the day&rsquo;s price. Earlier runs are labelled &ldquo;before the fix&rdquo; and used as the baseline.</td></tr>
+   <tr><td class="k">Test T-NAV</td><td>Kept, with a new meaning: the same recount and household at about 07:00 and again in the evening. The gap is now the <b>remaining</b> effect of late publishers and of the peers&rsquo; 3-day rule. A large gap means something besides the fixed bug.</td></tr>
+   <tr><td class="k">Building the fixes</td><td>No longer waits for the NAV fix. Branch from commit <code>c4434e15</code> or later. Each fix still waits for your approval and starts with a failing test.</td></tr>
+   <tr><td class="k">Load-time numbers</td><td>Official numbers from staging after 17 Nov, with the job windows noted. The numbers taken before the fix stay as the labelled baseline.</td></tr>
+   <tr><td class="k">Evidence for stakeholders</td><td>Issued from post-17 Nov runs only.</td></tr>
   </tbody>
  </table></div>
- <div class="callout"><b>Two things to ask your manager (not for you to answer now).</b> (1) What time will the later price job run, and is it one run or several? (2) Will it trigger a recompute of the stored analytics (F8)? If not, the stored XIRR, rank and average keep the 06:00 data all day, and I would add the recompute to the plan as part of FX-8d.</div>
+ <div class="callout"><b>The two questions for your manager, now answered from the code.</b> (1) Later job: 06:00 full run, then held-only runs at 10:30 and 14:00. (2) Recompute: no, it stays at 06:30. That second answer is the one open point, now Q5. Not verified by me: the 10:00 deadline the record mentions for funds with large overseas holdings is the record&rsquo;s own understanding of the SEBI rule, not checked in the repo.</div>
 </section>
 
 <!-- ============ 3. XIRR ============ -->
@@ -509,7 +522,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>Layer</th><th>Change</th></tr></thead>
   <tbody>
-   <tr><td class="k"><span class="tag be">backend</span></td><td>New: the fixtures and the independent calculator under <code>backend/tests/</code>. Changed (after the NAV fix lands): <code>dashboard/xirr.py</code> (the value of every held fund, the date of the final flow), <code>dashboard/holdings.py</code> and <code>dashboard/nav.py</code> (the price fallbacks of FX-8a, only where the spec finds a step missing), <code>analytics/benchmark.py</code> (the guard and the shared inputs). The solver&rsquo;s results do not change: the existing XIRR tests must pass unchanged.</td></tr>
+   <tr><td class="k"><span class="tag be">backend</span></td><td>New: the fixtures and the independent calculator under <code>backend/tests/</code>. Changed (the NAV fix has landed; branch from it): <code>dashboard/xirr.py</code> (the value of every held fund, the date of the final flow), <code>dashboard/holdings.py</code> and <code>dashboard/nav.py</code> (the price fallbacks of FX-8a, only where the spec finds a step missing), <code>analytics/benchmark.py</code> (the guard and the shared inputs). The solver&rsquo;s results do not change: the existing XIRR tests must pass unchanged.</td></tr>
    <tr><td class="k"><span class="tag fe">frontend</span></td><td>None expected for the fixes. FX-8e may change how a short-period figure is labelled. The legend and &ldquo;i&rdquo; icon wording belong to Batch E.</td></tr>
    <tr><td class="k"><span class="tag db">database</span></td><td>None.</td></tr>
   </tbody>
@@ -681,7 +694,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <tbody>
    <tr><td class="k"><span class="tag be">backend</span></td><td><b>New:</b> an export script (for example <code>backend/scripts/export_category_average_excel.py</code>) and a small shared module for the workbook, with tests that open the generated file and check every formula against the product&rsquo;s own result. <b>Changed:</b> only what a failed test shows (FX-9a), most likely in <code>analytics/category_ranking.py</code> or the pool code shared with item 10.</td></tr>
    <tr><td class="k"><span class="tag fe">frontend</span></td><td>None. The legend and &ldquo;i&rdquo; icon are Batch E.</td></tr>
-   <tr><td class="k"><span class="tag db">database</span></td><td>None. The export is read-only: no insert, update or delete, and no price download, as in the CA export. The price history it needs must already be stored, which is one more reason this waits for the NAV fix.</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>None. The export is read-only: no insert, update or delete, and no price download, as in the CA export. The price history it needs must already be stored, which is why it waited on the NAV fix, now landed.</td></tr>
   </tbody>
  </table></div>
 </section>
@@ -815,7 +828,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <div class="doc"><h4>Lane 1: XIRR (item 8)</h4><ul><li>Fixtures, the independent solver, the caller audit, T8-1 to T8-9, then FX-8a to FX-8e.</li><li>Shares <code>dashboard/xirr.py</code> with Lane 3&rsquo;s FX-7a.</li></ul></div>
   <div class="doc"><h4>Lane 2: rank and average (items 10 and 9)</h4><ul><li>One lane: both use the same pool code (<code>category_ranking.py</code>, <code>scheme_universe.py</code>).</li><li>Starts with the recount, which needs no prices; then FX-10a, FX-9a. Lane 4 reads its result.</li></ul></div>
   <div class="doc"><h4>Lane 3: load times (item 7)</h4><ul><li>Test household, timing helper, intake form, measurements, then the speed fixes.</li><li>Needs the post-fix environment for official numbers. Its XIRR fix (FX-7a) shares <code>dashboard/xirr.py</code> with Lane 1, so those two go in order, not at once.</li></ul></div>
-  <div class="doc"><h4>Lane 4: category-average Excel (item 9)</h4><ul><li>The exporter module, the workbook, its tests and its checks.</li><li>Starts with synthetic data now; real data after the NAV fix.</li></ul></div>
+  <div class="doc"><h4>Lane 4: category-average Excel (item 9)</h4><ul><li>The exporter module, the workbook, its tests and its checks.</li><li>Starts with synthetic data now; real data from runs after 17 Nov (first clean unattended NAV run).</li></ul></div>
  </div>
  <h3 class="sub">What each handoff contains</h3>
  <div class="steps5">
@@ -834,7 +847,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>Other batch</th><th>Relationship</th></tr></thead>
   <tbody>
-   <tr><td class="k">NAV fix (your manager)</td><td>This batch depends on it for official numbers and for the fix builds, and it must be told about F8: a recompute should follow the later price job. Item 10&rsquo;s common end date (FX-10c) means the rank does not depend on the job&rsquo;s timing.</td></tr>
+   <tr><td class="k">NAV fix (your manager)</td><td><b>Landed 16 Nov.</b> Official numbers come from runs after the first clean unattended run on 17 Nov. F8 is only partly closed (the 06:30 recompute is not triggered by the later runs): Q5. FX-10c still makes the rank independent of the job&rsquo;s timing.</td></tr>
    <tr><td class="k">C (holdings hygiene)</td><td>17a left this batch (decided). Batch C&rsquo;s category merge helps Lane 2: the same function builds the rank pool, so both batches agree on category names.</td></tr>
    <tr><td class="k">B (journey quick wins)</td><td>The &ldquo;All set&rdquo; screen promises &ldquo;Your dashboard is ready&rdquo;. If the Overview is slow, that promise is only true if load times are fixed. Lane 3&rsquo;s result is an input to Batch B&rsquo;s copy.</td></tr>
    <tr><td class="k">D (charts)</td><td>D reads the same prices. Its charts add load: Lane 3 measures the Overview before D, and again after, so the cost of the new graph is known.</td></tr>
@@ -859,13 +872,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>A-2</td><td>8</td><td>Build the 25 cash-flow fixtures and the independent calculator; run T8-1, T8-2, T8-3, T8-8, T8-9</td><td>Codex</td><td>M</td><td>Now (no prices)</td></tr>
    <tr><td>A-3</td><td>8</td><td>Run the price and dating tests T8-4 to T8-7</td><td>Codex</td><td>S</td><td>After the fix</td></tr>
    <tr><td>A-4</td><td>8</td><td>XIRR root-cause note and fix proposals FX-8a to FX-8e, <b>for your review</b></td><td>Claude</td><td>S</td><td>After A-2, A-3</td></tr>
-   <tr><td>A-5</td><td>8</td><td>Build the FX-8 fixes <b>you approved</b>, each with its failing test first</td><td>Codex</td><td>M</td><td>After your approval and the NAV fix</td></tr>
+   <tr><td>A-5</td><td>8</td><td>Build the FX-8 fixes <b>you approved</b>, each with its failing test first</td><td>Codex</td><td>M</td><td>After your approval (the NAV fix has landed)</td></tr>
    <tr><td>A-6</td><td>10</td><td>Advisorkhoj terms-of-use check; the go or no-go for automated reading (Q1)</td><td>Claude</td><td>S</td><td>First (Q1)</td></tr>
    <tr><td>A-7</td><td>10, 9</td><td>Independent AMFI recount script and the exclusion ledger for the sampled categories</td><td>Codex</td><td>M</td><td>Now (no prices)</td></tr>
    <tr><td>A-8</td><td>10</td><td>Reconcile the ledger with the app&rsquo;s pool; returns spot check on 5 funds</td><td>Codex</td><td>M</td><td>After the fix</td></tr>
    <tr><td>A-9</td><td>10</td><td>Read Advisorkhoj for every held category, and check <b>their</b> list against AMFI first (if their terms allow; otherwise a manual sample)</td><td>Claude, or you</td><td>M</td><td>After A-8</td></tr>
    <tr><td>A-10</td><td>10</td><td>Rank root-cause note and proposals FX-10a, FX-10b, <b>for your review</b></td><td>Claude</td><td>S</td><td>After A-8, A-9</td></tr>
-   <tr><td>A-11</td><td>10, 9</td><td>Build the FX-10 fixes <b>you approved</b> (FX-10b only if you choose to change the definition), failing tests first</td><td>Codex</td><td>M</td><td>After your approval and the NAV fix</td></tr>
+   <tr><td>A-11</td><td>10, 9</td><td>Build the FX-10 fixes <b>you approved</b> (FX-10b only if you choose to change the definition), failing tests first</td><td>Codex</td><td>M</td><td>After your approval (the NAV fix has landed)</td></tr>
    <tr><td>A-12</td><td>9</td><td>Category-average checks T9-1 to T9-6; if any fails, a proposal FX-9a for your review, then the fix once approved</td><td>Codex, Claude</td><td>M</td><td>After the fix</td></tr>
    <tr><td>A-13</td><td>9</td><td>Excel design sign-off: your review of the sheets and the mockup</td><td>Claude, you</td><td>S</td><td>Now</td></tr>
    <tr><td>A-14</td><td>9</td><td>Build the exporter module and the workbook, with tests that check every formula; synthetic data first</td><td>Codex</td><td>L</td><td>Now (synthetic), real data after the fix</td></tr>
@@ -881,7 +894,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>A-24</td><td>all</td><td>Update <code>decisions.md</code>, <code>session.md</code>, the Notion pack and Batch E&rsquo;s notes (Excel moved here), on your go</td><td>Claude</td><td>S</td><td>Last</td></tr>
   </tbody>
  </table></div>
- <p class="note">A-2, A-7, A-13, A-14 (synthetic part), A-16 and A-17 need no prices and can start before the NAV fix.</p>
+ <p class="note">The NAV fix has landed, so no task waits for it any more. A-2, A-7, A-13, A-14 (synthetic part), A-16 and A-17 still need no prices. Anything that reports a real number waits for the first clean unattended run on 17 Nov.</p>
 </section>
 
 <!-- ============ 11. RISKS ============ -->
@@ -922,7 +935,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <!-- ============ QUESTIONS ============ -->
 <section id="questions">
  <h2>12. Questions</h2>
- <p class="lead">Four questions, all answered on 13 Nov and locked. Each card shows the option you chose, my original pick, and your note. Tell me in chat if you want one reopened. Below them: the defaults I will use, and the two decisions I will bring you later with evidence.</p>
+ <p class="lead">Five questions. Four were answered on 13 Nov and are locked; Q5 is new on 16 Nov and open. Each card shows the option you chose, my original pick, and your note. Tell me in chat if you want one reopened. Below them: the defaults I will use, and the two decisions I will bring you later with evidence.</p>
  <div class="bar"><span class="status" id="prog">0 of 4 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
  <div id="cards"></div>
  <h3 class="sub">Defaults I will use (tell me in chat if you want any changed)</h3>
@@ -937,7 +950,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">Legacy blended average</td><td>Verified and fixed along with the period averages.</td></tr>
    <tr><td class="k">Excel scope and shape</td><td>Every category in both plans, live formulas, built from the product&rsquo;s own functions, one export module shared with the CA workbook.</td></tr>
    <tr><td class="k">Test household</td><td>Synthetic: 3 members, about 15 funds, 10 years, about &#8377;40 lakh, plus a smaller one. Your real household only if you allow it.</td></tr>
-   <tr><td class="k">Where we measure</td><td>Staging for the official numbers, a local run only to separate server from laptop effects; a labelled baseline before the NAV fix.</td></tr>
+   <tr><td class="k">Where we measure</td><td>Staging for the official numbers, a local run only to separate server from laptop effects; the numbers taken before the fix are kept as a labelled baseline.</td></tr>
    <tr><td class="k">Slow-laptop facts</td><td>I write the one-page form (section 6); you send it; a screen-share with one slow laptop if the form is not enough.</td></tr>
    <tr><td class="k">Speed targets</td><td>The proposals in section 6.</td></tr>
    <tr><td class="k">Fixes</td><td><b>Review gate:</b> every fix is first proposed to you (root cause, evidence, proposed change, before and after, risk). It is built only after you approve it, one proposal at a time.</td></tr>
@@ -966,7 +979,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h2>What I checked</h2>
  <p><b>Read today, read-only, by me:</b> <code>analytics/xirr.py</code>, <code>dashboard/xirr.py</code>, <code>lot_rules.py</code> (<code>paid_amount</code>), <code>dashboard/cash_flow.py</code>, <code>dashboard/holdings.py</code> (the no-NAV branch), <code>analytics/benchmark.py</code> (per-fund XIRR), <code>fund_page/summary.py</code>, <code>api/portfolio.py</code>; <code>analytics/performance_ranking.py</code>, <code>category_ranking.py</code>, <code>scheme_universe.py</code>; the Overview and its hooks, <code>SummaryStrip.tsx</code> and <code>CategoryRankingGroup.tsx</code>; the 8 Oct decision on scraping; the earlier performance notes (titles and openings only); on 13 Nov also <code>deploy/leapswitch/crontab.leapswitch</code> (the 06:00 and 06:30 jobs), the category row in <code>CategoryRankingGroup.tsx</code>, <code>dashboard/nav.py</code> (how a price lookup can return nothing) and the earlier chartered-accountant Excel spec and export script.</p>
  <p><b>Measured:</b> one run of the app&rsquo;s own XIRR solver on three sets of invented monthly flows (97, 481 and 1,801 flows) on my machine. This says how cost grows with history. It does not say how long staging takes or what a stakeholder&rsquo;s laptop sees.</p>
- <p><b>Not done:</b> nothing was run on staging; no real data was read; no price was fetched; I did not open Advisorkhoj or its terms; I did not read every performance note in full, the performance and overlap tabs&rsquo; frontend code, or the route handlers for the other pages. The NAV bug is as you described it (a later job for fund houses that publish late). I have not seen its design, so I do not know whether it triggers a recompute (F8) or exactly which price fallbacks already exist. The list of other XIRR callers (benchmark windows, fund page returns) is from search results, not a full read.</p>
+ <p><b>Not done:</b> nothing was run on staging; no real data was read; no price was fetched; I did not open Advisorkhoj or its terms; I did not read every performance note in full, the performance and overlap tabs&rsquo; frontend code, or the route handlers for the other pages. On 16 Nov I read the NAV fix (commit b231b6f4: <code>held_nav_refresh.py</code>, <code>refresh_nav_daily.py</code>, the crontab and the deploy record). I did not run it; its first unattended run is 17 Nov. It does not trigger a recompute (F8), and I have not checked which price fallbacks the XIRR code already has. The list of other XIRR callers (benchmark windows, fund page returns) is from search results, not a full read.</p>
  <p><b>Drawn, not measured:</b> every mockup, funnel and waterfall is my reconstruction with invented funds and numbers. The speed targets in section 6 are proposals. Nothing was committed or deployed.</p>
 </section>
 </main>
@@ -1074,11 +1087,19 @@ var Q=[
  why:"The Excel explains all of them either way. Your answer decides what the legend in Batch E leads with.",
  commit:"<b>Recorded from your three examples (my reading):</b> option B. Each example is one period&rsquo;s row: the gap (for example +1.2%) over the fund against the category average (4.6% vs 3.4%). You did not pick an option, so tell me if that is not what you meant."},
 {id:"Q3",item:"all",title:"What is the NAV bug?",type:"text",ask:"Tell me where it is described, or paste a few lines: what it affects and what the fix will change.",
- ctx:"Answered on 13 Nov. Section 2 says what it means for each item.",
+ ctx:"Answered on 13 Nov. Update 16 Nov: the fix is in, and its cause differs from this description (held funds were skipped by a 3-day rule, not only late fund houses). Section 2 says what it means for each item. Your answer stays as given.",
  ph:"Where it is described, what it affects (stale prices, missing prices, wrong dates, stored history), and any date for the fix: ..."},
 {id:"Q4",item:"all",title:"When do stakeholders need this, and in what order?",type:"text",ask:"Tell me the date and which of the four matters most.",
  ctx:"Answered on 13 Nov: your default. The order of work follows it.",
- ph:"Date or milestone, and the order of importance of items 8, 10, 9, 7: ..."}
+ ph:"Date or milestone, and the order of importance of items 8, 10, 9, 7: ..."},
+{id:"Q5",item:"8, 10, 9",title:"Should the stored XIRR, rank and average be recomputed after a later price run?",ask:"Pick one.",
+ ctx:"New on 16 Nov. The stored results are built once, at 06:30. The 10:30 and 14:00 price runs do not rebuild them (read in code).",
+ opts:[
+ {k:"A",l:"No: keep the single 06:30 recompute; look at the logs first",rec:1,d:"Good: no extra work, nothing to build. Held funds are already filled at 06:00 from AMFI&rsquo;s newest row, so a later run should rarely change anything. The log shows how often (filled_amfi on the retry runs). Bad: a fund that only fills at 10:30 or 14:00 shows its old figure until next morning."},
+ {k:"B",l:"Yes, one recompute after the 14:00 run, only when that run filled something",d:"Good: stored figures catch up the same day. Bad: one more job to build and watch; I have not measured how long a recompute takes."},
+ {k:"C",l:"Yes, after every price run",d:"Good: always current. Bad: three recomputes a day and more load on the server."}],
+ why:"The log is free and gives the answer with data. If retries fill funds often, we add B. This is the question for your manager.",
+ commit:"<b>If you pick A:</b> no build, and Batch A adds a one-line check of the retry results to its evidence. <b>If B or C:</b> a small job change is added to FX-8d and its test."}
 ];
 
 var PRE={
