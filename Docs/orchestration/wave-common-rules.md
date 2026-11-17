@@ -27,6 +27,10 @@ Read this **after** `ui-common-rules-codex.md` (backend) or `ui-common-rules-ant
 - **Run only the affected tests** the task names. Never the full suites. Frontend: `npx vitest run <file>`, then `npx tsc -b` and `npx oxlint <folder>` for the touched folders. Backend: `cd backend && pytest <file>::<test>`.
 - Red test files written by Codex or Claude are **fixed**: Antigravity does not edit, weaken or delete them. If one looks wrong, say which and why under Open questions, and make the rest pass.
 
+## The workbook is the design (all batches)
+- Every screen, state, copy string, measurement, colour and the CAMS tutorial video **must match the batch's planning workbook** (its mockups and drawings, and the 17 Nov updates). The plan says which workbook; the orchestrator's packet quotes the exact drawing. A deviation is a defect, not a choice: if the workbook and the live code or a worker's result disagree, stop and ask the user. Mockups are artifact drawings made from reading the code, so where a drawing shows something the real component cannot do, report it instead of improvising.
+- The CAMS tutorial video (Batch H) is built by **Claude only** in the chosen Look 2 style.
+
 ## Visual work (Antigravity)
 - You cannot see the screen. Use only the sizes, classes, tokens and copy the packet gives, exactly. Where the packet says nothing, keep what the file does today. Colours only through the app tokens (`--ui-*`, `--pos`, `--pos-text`, `--pos-bg`); **no hex colours** unless the packet gives the token's own value.
 - Every state in the packet (default, hover, focus, active, disabled, loading, empty, error, dark mode) must exist. Keyboard focus is always visible; motion respects `prefers-reduced-motion`.

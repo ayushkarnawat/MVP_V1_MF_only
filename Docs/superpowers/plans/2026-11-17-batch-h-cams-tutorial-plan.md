@@ -14,7 +14,7 @@
 
 - **Packets and handoffs are not written here.** The orchestrator writes the Antigravity packets (pop-up look, the checklist window and its fallback panel, the screen notes) and each Codex handoff in detail when the task starts, from the workbook's drawings and the live CAMS form's own words.
 - **Two parts, two waves.** Part 1 (H-2 to H-6) rides with M2 and **waits for C's import-screen change (17d)**: both edit the import wrapper and screens (program section 5: C and B first, then H). Part 2 (H-7 to H-10) waits for B, C and the import screens to be stable and for the user's real CAMS checks (wave 5, M4).
-- **Production work is not code.** The video is made by the user's team or an outside designer (Q3); Claude writes the script, captions text and the transcript; Codex cannot produce video. Part 1 can ship with a placeholder video so the pop-up is tested before the real one exists.
+- **The video is made by Claude only (Q3, answered 17 Nov), in the chosen Look 2 style.** Claude builds it in code from the user's real recordings, the same way `Docs/orchestration/video/look2-v5.mp4` was made (frame-by-frame render, encoded to MP4), and **it must match the workbook's Look 2 exactly** (scenes, timing, captions, glass guide card, progress indicator). Codex does not produce the video. The user supplies only what Claude cannot: recordings and screenshots (see H-5). Part 1 can ship with `look2-v5.mp4` or a short placeholder so the pop-up is tested before the final cut exists.
 - **Open items from the workbook (need the user, not blockers for part 1):** a real inbox email screenshot with details hidden; confirmation that CAMS accepts a ten-year range when submitted; settling the screen copy that says "10-year duration" and "with zero folios" against the live form's words (Specific Period with From and To dates; With zero balance folios). The screen text is **not changed by this plan** unless the user approves (it is Batch B/C screen-copy territory); flag it.
 - **Wave-start check:** confirm `features/import/RequestCamsPath.tsx` (title "Request from CAMS", the three options card, three steps, green button "Request Statement on CAMS"), `WaitingForCasView.tsx` ("usually arrives in 5 to 10 minutes", "Already got the email? Upload it now"), `casResumeState.ts`, `TwoPathImportContainer.tsx`, `components/ui/dialog.tsx`, `frontend/public/` holds images only (no video); that C's change to `shell/wrappers/ImportWrapper.tsx` is merged; and the current live CAMS form wording (a person opens it; do not automate it). Report drift.
 - **Branch:** `batch/h-tutorial` from `leapswitch-redesign`. Part 1 after C merges (wave 2); part 2 rebased at wave 5.
@@ -67,7 +67,7 @@
 | H-2 | Script, on-screen text and transcript matched to the live form | Claude | S | any time |
 | H-3 | Red tests for the pop-up and the link | Codex | M | part 1 |
 | H-4 | Pop-up and link look | Antigravity (G-a) | M | part 1 |
-| H-5 | Production, frame review and encode of the video (not code) | User or designer, Claude | L | part 1 (placeholder first) |
+| H-5 | Build, frame-review and encode the final Look 2 video | Claude (the user supplies recordings) | L | part 1 (placeholder first) |
 | H-6 | Logic: lazy source, reduced motion, end action, waiting-screen link; placeholder video | Codex | M | part 1 |
 | H-7 | Spike: floating window from the import screen in Chrome and Edge | Codex, Claude | S | part 2 |
 | H-8 | Red tests for the checklist (API faked) | Codex | M | part 2 |
@@ -104,9 +104,11 @@
 
 - [ ] **Step 1:** H-3's tests drive it. **Step 2: Implement.** **Step 3: Run** the H-3 files plus `TwoPathImportContainer.test.tsx` and `ImportFlow.test.tsx`. Expected: PASS. Ship with a placeholder video so M2 can deploy before the real one exists.
 
-### Task H-5: The real video (not code)
+### Task H-5: The final video (Claude builds it)
 
-- [ ] **Step 1:** The user or a designer produces the video from the storyboard using a real capture of the live CAMS form (dummy email and password; clean profile); Claude reviews frame by frame for stray details (tabs, bookmarks, autofill, notifications); encode about 53 s, 720p, 30 fps, no audio, with a poster still; the file replaces the placeholder with no code change except the URL constant if it moves to storage. Final swap rides with M4 at the latest.
+- [ ] **Step 1 (inputs from the user):** a fresh recording of the password step with a valid made-up password (the earlier one was rejected by the form); a real recording of the Unifolio request, upload and funds scenes once the pop-up and import screens exist (replacing the redrawn ones); a screenshot of the real CAMS email with details hidden for the inbox scene; confirmation that CAMS accepts a ten-year range when submitted; recorded with autofill off and a clean browser profile. The user's earlier CAMS recording is already used.
+- [ ] **Step 2 (Claude):** Rebuild the scenes in code on the existing Look 2 build (`Docs/orchestration/video/look2-v5.mp4` is the current cut, 53 s, 30 fps), swapping each redrawn scene for the real capture, matching the workbook's Look 2 section 3 and 4 exactly; no audio track; captions burned into the picture; review frame by frame for stray details (tabs, bookmarks, autofill, notifications, any real name or address); encode 720p, small file, with a poster still and the transcript text file from H-2.
+- [ ] **Step 3:** The file replaces the placeholder in `frontend/public/tutorial/` with no code change except the URL constant if it moves to storage. The user reviews the cut and the manager signs off that CAMS's name and page may appear (not legal advice). Final swap rides with M4 at the latest.
 
 ### Task H-7: Spike (part 2)
 
@@ -142,5 +144,5 @@
 ## Self-Review notes
 
 - Spec coverage: item 5 (all of sections 2 to 7): link, pop-up, loading rules, hosting, accessibility, checklist, fallback, privacy.
-- The video production (H-5) is not code and belongs to the user or a designer; the plan ships part 1 with a placeholder.
+- The video (H-5) is built by Claude in the chosen Look 2 style (Q3); the plan ships part 1 with `look2-v5.mp4` or a placeholder and swaps in the final cut by M4.
 - Packets and handoffs: not written here, by instruction.

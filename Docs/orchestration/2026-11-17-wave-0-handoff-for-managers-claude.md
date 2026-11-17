@@ -35,6 +35,8 @@ Also written: `Docs/orchestration/wave-common-rules.md` (standing rules for ever
 
 - **Packets and handoffs.** Each plan lists, per task, what a packet or handoff must contain. The orchestrator writes each Antigravity packet (measurements, states, copy, tokens, allowed files, red tests) and each Codex handoff **in detail when that task starts**, from the plan, the batch workbook's drawings and the repo as it is that day. Antigravity needs detailed packets so the UI turns out exactly as planned; red tests are committed first.
 - **The four milestone deploy guides (M1 to M4)** and **the combined QA checklist.** Written when each milestone is reached (the guide) and before the QA round (the checklist). Each plan's last task lists the facts its batch gives to the guide.
+- **The CAMS tutorial video (Batch H, task H-5).** Claude builds it (Q3, answered 17 Nov), in the chosen Look 2 style, in code from the user's real recordings, as the preview `Docs/orchestration/video/look2-v5.mp4` was made. The user supplies only recordings and screenshots (a valid-password recording, real-app captures, an inbox screenshot with details hidden). It is not made by Codex or Antigravity.
+- **UI and video must match the workbooks.** Every screen, state, copy string and the video follow each batch's planning workbook exactly (rule added to `wave-common-rules.md`).
 - **Notion pack and `decisions.md` / `session.md` updates**, on the user's go.
 
 ## Order and dependencies (from the program plan, section 3 to 5)
