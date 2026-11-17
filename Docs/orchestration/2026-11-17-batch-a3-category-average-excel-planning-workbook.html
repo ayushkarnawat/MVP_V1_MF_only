@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Batch A3: Category Average and Excel Planning</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+
+<style>
+
+/* Layout: sticky contents rail + one reading column. Brand: DM Sans headings, Manrope body, #22C55E for actions, a deeper green for text and links. Mockups are drawn at real window sizes and scaled to fit the column. */
+:root{
+ --bg:#FCFCFC; --surface:#FFFFFF; --surface-2:#F3F5F3; --line:#E5E5E5;
+ --fg:#111111; --muted:#5C5C5C; --accent:#22C55E; --accent-deep:#15803D; --accent-soft:#EAFBF0;
+ --warn:#B45309; --warn-soft:#FEF3E2; --info:#2F5FB3; --info-soft:#E8EFFB;
+ --danger:#B3321F; --danger-soft:#FBE6E2; --on-accent:#0B1F12;
+ --f-display:'DM Sans','Segoe UI',system-ui,sans-serif;
+ --f-body:'Manrope','Segoe UI',system-ui,sans-serif;
+ --f-mono:ui-monospace,'SF Mono',Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+ padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4,h5{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent-deep)}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent-deep)}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:70ch;margin:0 0 10px}
+.meta{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+section{margin-top:56px;scroll-margin-top:16px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:74ch}
+h3.sub{font-size:18px;margin:28px 0 8px}
+h4.mini{font-size:15px;margin:18px 0 6px}
+p{margin:8px 0}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700}
+.tag{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.fe{background:var(--info-soft);color:var(--info)}
+.tag.be{background:var(--warn-soft);color:var(--warn)}
+.tag.db{background:var(--danger-soft);color:var(--danger)}
+.tag.ok{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.none{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tag.me{background:var(--accent-soft);color:var(--accent-deep);margin-left:6px}
+.tag.chosen{background:var(--accent);color:var(--on-accent);margin-left:6px}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul,ul.tight{margin:6px 0;padding-left:20px}
+.sumbox li,ul.tight li{margin:5px 0}
+.callout{background:var(--warn-soft);border-radius:10px;padding:12px 14px;margin:14px 0;font-size:14px}
+.callout.good{background:var(--accent-soft)}
+.callout.info{background:var(--info-soft)}
+.callout.bad{background:var(--danger-soft)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.cols>div{min-width:0}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.flow>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 16px;min-width:0}
+.flow h4{font-size:15px;margin-bottom:6px}
+.flow ol{margin:4px 0;padding-left:20px}.flow li{margin:5px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.stat .n{font:700 26px var(--f-display)}.stat .l{font-size:12.5px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin:12px 0;align-items:start}
+@media (max-width:860px){.pair{grid-template-columns:minmax(0,1fr)}}
+.cap{margin:14px 0 6px;font-size:13px}
+.cap b{font-family:var(--f-display)}
+.note{color:var(--muted);font-size:12.5px}
+.winbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.winbar span{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.winbar button{padding:6px 12px;font-size:12.5px;background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.winbar button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+/* decision cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:60px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:600 12px var(--f-body);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--accent)}
+.opt.on{background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt input:disabled{cursor:default}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.why{border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--accent-deep)}
+.reply{background:var(--info-soft);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:14px}
+.reply p{margin:6px 0}.reply ul{margin:6px 0;padding-left:20px}
+.commit{border-left:3px solid var(--info);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.commit b{color:var(--info)}
+textarea{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-height:56px;resize:vertical}
+label.nl{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin:10px 0 4px}
+button{font:inherit;font-size:14px;font-weight:600;padding:9px 16px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);cursor:pointer}
+button.ghost{background:transparent;color:var(--accent-deep)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.status{font:600 11px var(--f-body)}.status.todo{color:var(--warn)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.out{min-height:240px;font-family:var(--f-mono);font-size:12.5px}
+.tabs{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.doc{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:18px 20px;margin:12px 0}
+.doc h4{font-size:17px;margin-bottom:8px}
+.doc h5{font-size:14px;margin:14px 0 4px}
+.doc ul{margin:6px 0;padding-left:20px}.doc li{margin:4px 0}
+
+/* ---------- scaled real-size frames ---------- */
+.vp{position:relative;width:100%;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#fff}
+.vp-in{position:absolute;left:0;top:0;transform-origin:0 0;background:#fff;color:#111;font-family:'Manrope','Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}
+.vp-in *{box-sizing:border-box}
+.vp-in h5,.vp-in h4,.vp-in h3,.vp-in h2,.vp-in h1{font-family:'DM Sans','Segoe UI',system-ui,sans-serif;margin:0}
+.vp-in p{margin:0}
+.chrome{height:40px;background:#EEF1EE;border-bottom:1px solid #D9DED9;display:flex;align-items:center;gap:8px;padding:0 14px}
+.chrome i{width:11px;height:11px;border-radius:50%;background:#C8CFC8;display:block;flex:none}
+.chrome span{flex:1;max-width:520px;margin-left:12px;background:#fff;border:1px solid #D9DED9;border-radius:99px;padding:3px 14px;font-size:12px;color:#5C5C5C}
+.w1280{--vw:1280px;--vh:600px;--card-h:552px;--pad-y:14px;--gap:10px;--gap-sm:5px;--h1:26px;--btn-h:44px;--row-h:46px;--chip-h:34px;--badge:34px;--body:13.5px}
+.w1440{--vw:1440px;--vh:810px;--card-h:762px;--pad-y:36px;--gap:22px;--gap-sm:12px;--h1:34px;--btn-h:54px;--row-h:64px;--chip-h:48px;--badge:44px;--body:15px}
+.w1536{--vw:1536px;--vh:730px;--card-h:682px;--pad-y:28px;--gap:16px;--gap-sm:9px;--h1:30px;--btn-h:48px;--row-h:54px;--chip-h:42px;--badge:38px;--body:14px}
+.d-page{height:var(--vh);display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#EEF9F1,#F8FDF9)}
+.d-card{width:min(1240px,calc(var(--vw) - 64px));height:var(--card-h);background:#fff;border-radius:28px;box-shadow:0 18px 50px rgba(20,48,31,.13);display:grid;grid-template-columns:.95fr 1fr;overflow:hidden}
+.d-left{padding:var(--pad-y) 40px;display:flex;flex-direction:column;background:linear-gradient(160deg,#F2FCF6,#E7F7EC);min-height:0;overflow:hidden}
+.d-left.white{background:#fff}
+.d-logo{font:700 26px 'DM Sans',sans-serif;color:#111;flex:none}
+.d-sketch{margin:var(--gap) auto;flex:1;min-height:60px;max-height:230px;width:70%;max-width:330px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#D6F3DF,#EAFBF0);color:#15803D;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.d-h2{font:700 calc(var(--h1) + 2px) 'DM Sans',sans-serif;line-height:1.15;flex:none}
+.d-h2 span{color:#15803D}
+.d-p{color:#5C5C5C;font-size:var(--body);margin-top:var(--gap-sm);flex:none}
+.d-bul{display:flex;gap:10px;align-items:center;margin-top:var(--gap-sm);font-size:var(--body);flex:none}
+.d-bul i{flex:none;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #D2EEDB;display:block}
+.d-right{padding:var(--pad-y) 48px;display:flex;flex-direction:column;min-height:0}
+.d-top{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;color:#5C5C5C;font-size:13px}
+.d-steps{display:flex;gap:6px;align-items:center}.d-steps i{width:34px;height:5px;border-radius:3px;background:#22C55E;display:block}.d-steps i.off{background:#E5E7EC}
+.d-content{flex:1;min-height:0;overflow-y:auto;display:flex}
+.d-inner{margin:auto;width:100%;max-width:520px;padding:8px 0}
+.fitb{position:absolute;right:10px;bottom:10px;z-index:3;font:600 12px 'Manrope',sans-serif;padding:4px 10px;border-radius:99px;background:#EAFBF0;color:#15803D;border:1px solid #BFE9CC}
+.fitb.bad{background:#FBE6E2;color:#B3321F;border-color:#F3B8AE}
+.o-stack{display:flex;flex-direction:column;gap:var(--gap)}
+.o-sec{display:flex;flex-direction:column;gap:var(--gap-sm)}
+.o-h1{font:700 var(--h1) 'DM Sans',sans-serif;line-height:1.15}
+.o-sub{color:#667085;font-size:var(--body)}
+.o-opt{display:flex;align-items:center;gap:12px;min-height:var(--row-h);border:1px solid #E5E7EC;border-radius:16px;padding:0 16px;background:#fff}
+.o-opt.tt{min-height:min(var(--row-h),54px)}
+.o-opt.sel{border-color:#22C55E;background:#F4FCF6;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.o-opt.quiet{border-color:transparent;background:#F6F8F6}
+.o-badge{flex:none;width:var(--badge);height:var(--badge);border-radius:50%;background:#EAFBF0;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:11px}
+.o-opt b{display:block;font-size:var(--body);font-weight:600}
+.o-opt small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.o-rad{margin-left:auto;flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid #C5CBC5}
+.o-opt.sel .o-rad{background:#22C55E;border-color:#22C55E;box-shadow:inset 0 0 0 4px #fff}
+.o-grp{border:1px solid #E5E7EC;border-radius:16px;overflow:hidden}
+.o-grp .o-opt{border:0;border-radius:0;border-bottom:1px solid #EEF0EE}
+.o-grp .o-opt:last-child{border-bottom:0}
+.o-h2{display:flex;justify-content:space-between;align-items:baseline;gap:10px;white-space:nowrap}
+.o-h2 b{font:600 15px 'DM Sans',sans-serif}
+.o-h2 span{font-size:13px;color:#667085;font-weight:400}
+.o-h2 a{font-size:13px;color:#15803D;font-weight:600}
+.o-chips{display:grid;gap:var(--gap-sm)}
+.o-chips.c3{grid-template-columns:repeat(3,1fr)}.o-chips.c2{grid-template-columns:repeat(2,1fr)}
+.o-chip{display:flex;align-items:center;gap:8px;min-height:var(--chip-h);border:1px solid #E5E7EC;border-radius:14px;padding:0 10px;font-size:12.5px;line-height:1.25;background:#fff}
+.o-chip i{flex:none;width:20px;height:20px;border-radius:6px;background:#EAFBF0;display:block}
+.o-chip em{margin-left:auto;flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid #C5CBC5}
+.o-chip.sel{border-color:#22C55E;background:#F4FCF6}.o-chip.sel em{background:#22C55E;border-color:#22C55E}
+.o-pills{display:flex;flex-wrap:wrap;gap:var(--gap-sm)}
+.o-pill{display:flex;align-items:center;gap:8px;border:1px solid #E5E7EC;border-radius:99px;min-height:var(--chip-h);padding:0 14px;font-size:13px;background:#fff}
+.o-pill i{width:16px;height:16px;border-radius:50%;background:#EAFBF0;display:block}
+.o-pill.sel{background:#22C55E;border-color:#22C55E;color:#0B1F12;font-weight:600}.o-pill.sel i{background:rgba(11,31,18,.25)}
+.o-panel{background:#F6F9F6;border-radius:18px;padding:14px}
+.o-go{height:var(--btn-h);border-radius:99px;background:#22C55E;color:#0B1F12;font:700 15px 'Manrope',sans-serif;display:flex;align-items:center;justify-content:center}
+.o-go.dis{background:#E5E7EC;color:#6B7280}
+.o-tabs{display:flex;background:#F1F3F1;border-radius:99px;padding:3px;gap:3px}
+.o-tabs span{flex:1;text-align:center;padding:7px;border-radius:99px;font-size:13px;color:#667085}
+.o-tabs span.on{background:#fff;color:#111;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.o-field{border:1px solid #D0D5DD;border-radius:12px;padding:11px 14px;font-size:14px}
+.o-lab{font-size:13px;font-weight:600;margin-bottom:5px}
+.o-alert{background:#FEF3F2;border:1px solid #FDA29B;color:#B42318;border-radius:12px;padding:10px 14px;font-size:13.5px}
+.o-red{color:#B42318;font-size:13px;margin-top:6px}
+.st{display:flex;gap:12px;align-items:flex-start;margin-top:var(--gap-sm)}
+.st i{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:13px;background:#22C55E;color:#0B1F12;margin-top:2px}
+.st i.spin{background:transparent;border:2.5px solid #E5E7EC;border-top-color:#22C55E}
+.st i.big{transform:scale(1.28)}
+.st b{display:block;font-size:var(--body);font-weight:600}.st small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.a-card{border:1px solid #E5E7EC;border-radius:16px;padding:12px 16px}
+.a-info{background:#F3F5F3;border-radius:16px;padding:12px 16px}
+.a-info b{display:block}
+/* dialogs */
+.dlg-bg{height:720px;position:relative;background:#F4F6F4;overflow:hidden}
+.dlg-bg .fake{position:absolute;inset:60px 90px;border:2px dashed #C8D3C8;border-radius:20px;filter:blur(2px);opacity:.9;background:#fff}
+.dlg-bg .dim{position:absolute;inset:0;background:rgba(17,17,17,.5);display:flex;align-items:center;justify-content:center}
+.dlg{background:#fff;border-radius:16px;padding:24px;width:448px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg h5{font-size:18px;font-weight:700;line-height:1.25}
+.dlg .body{color:#5C5C5C;font-size:14px}
+.dlg .foot{display:flex;gap:8px;justify-content:flex-end}
+.dlg.ph{width:100%}
+.dlg.ph .foot{flex-direction:column-reverse}
+.dbtn{font:700 13.5px 'Manrope',sans-serif;padding:10px 16px;border-radius:12px;border:1.5px solid #22C55E;background:#22C55E;color:#0B1F12;text-align:center}
+.dbtn.o{background:#fff;color:#15803D}
+.dwarn{display:flex;gap:10px;align-items:flex-start;background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:14px;padding:12px 14px;font-size:13.5px}
+.dwarn b{display:block;margin-bottom:2px}
+.dwarn i{flex:none;width:22px;height:22px;border-radius:50%;background:#F59E0B;color:#fff;font:700 13px 'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;font-style:normal;margin-top:1px}
+/* phone shell */
+.phs{width:390px;padding:14px;background:#111;border-radius:46px}
+.phs .scr{background:#fff;border-radius:34px;overflow:hidden;min-height:700px;position:relative}
+.phs .sb{height:34px;display:flex;justify-content:center;align-items:center}
+.phs .sb b{width:96px;height:22px;background:#111;border-radius:99px;display:block}
+.phs.dark .scr{background:#0F0F0F}
+/* email */
+.emx{--e-bg:#EEF6F0;--e-card:#fff;--e-ink:#111;--e-muted:#5C5C5C;--e-green:#15803D;--e-pale:#EEF8F0;--e-dark:#14301F;--e-line:#E5E5E5;--e-ic:#EAFBF0;--e-ill:#EAFBF0;--e-linkb:#D9E0D9;--e-small:#4ADE80;padding:20px 14px;background:var(--e-bg)}
+.emx.dark{--e-bg:#0F0F0F;--e-card:#1A1A1A;--e-ink:#F5F5F5;--e-muted:#A3A3A3;--e-green:#34D399;--e-pale:#17261C;--e-dark:#14301F;--e-line:#2A2A2A;--e-ic:#1F3B28;--e-ill:#F2FCF6;--e-linkb:#2F3A31;--e-small:#4ADE80}
+.emx.narrow{padding:12px 8px}
+.em-card{background:var(--e-card);color:var(--e-ink);border-radius:18px;padding:22px 22px 16px;width:100%}
+.narrow .em-card{padding:16px 14px 12px}
+.em-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.em-logo{font:700 24px 'DM Sans',sans-serif;color:var(--e-ink)}
+.em-tag{font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;color:var(--e-green)}
+.em-hd{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.em-hd>div:first-child{min-width:0}
+.em-h1{font:700 32px 'DM Sans',sans-serif;line-height:1.1}
+.em-h1 span{color:var(--e-green)}
+.narrow .em-h1{font-size:25px}
+.em-sub{color:var(--e-muted);margin-top:10px;font-size:15px}
+.narrow .em-sub{font-size:13.5px}
+.em-ill{flex:none;width:150px;height:118px;border-radius:50%;background:var(--e-ill);color:#15803D;font-size:11px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.narrow .em-ill{width:96px;height:78px;font-size:9px}
+.em-dark{background:var(--e-dark);color:#fff;border-radius:14px;padding:16px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:15px}
+.narrow .em-dark{padding:12px;gap:10px;font-size:13.5px}
+.em-dark>div{min-width:0}
+.em-dark small{display:block;color:var(--e-small);font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;margin-bottom:2px}
+.em-dark b{display:block;font:700 19px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-ic{flex:none;width:44px;height:44px;border-radius:50%;background:var(--e-ic);color:#15803D;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center}
+.narrow .em-ic{width:34px;height:34px;font-size:8px}
+.em-pale{background:var(--e-pale);border-radius:14px;padding:14px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:14.5px}
+.narrow .em-pale{padding:10px 12px;gap:10px;font-size:13px}
+.em-pale>div{min-width:0}
+.em-pale b{display:block;color:var(--e-green);font:700 17px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-line{display:flex;gap:14px;align-items:center;margin:0 0 12px;font-size:14.5px}
+.narrow .em-line{gap:10px;font-size:13px}
+.em-line>div{min-width:0}
+.em-btn{display:block;text-align:center;background:#22C55E;color:#0B1F12;font:700 17px 'Manrope',sans-serif;padding:16px;border-radius:99px;margin:0 0 16px}
+.narrow .em-btn{font-size:15px;padding:13px}
+.em-link{border:1px solid var(--e-linkb);border-radius:12px;padding:9px 12px;font-size:12.5px;color:var(--e-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:8px;max-width:100%}
+.em-foot{border-top:1px solid var(--e-line);margin-top:14px;padding-top:12px;font-size:13px;color:var(--e-muted)}
+.em-foot a{color:var(--e-green)}
+.em-foot b{display:block;color:var(--e-ink);font:700 16px 'DM Sans',sans-serif;margin-top:10px}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}nav.toc{position:static;max-height:none}}
+
+/* ---------- Batch A additions: app-style mockups ---------- */
+.ap{background:#F6F8F6;font-size:13.5px;color:#111}
+.ap-body{padding:20px 24px}
+.ap-h{font:700 20px 'DM Sans',sans-serif;margin-bottom:12px}
+.ap-card{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:16px}
+.ap-card h5{font:700 16px 'DM Sans',sans-serif;margin-bottom:4px}
+.ap-mut{color:#667085;font-size:12px}
+.ap-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ap-tile{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:10px 12px}
+.ap-tile small{display:block;color:#667085;font-size:11.5px}
+.ap-tile b{font:700 20px 'DM Sans',sans-serif}
+.ap-tile .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.seg{display:inline-flex;border:1px solid #E5E7EB;border-radius:8px;padding:2px;font-size:11px}
+.seg span{padding:2px 8px;border-radius:6px;color:#667085}
+.seg span.on{background:#F1F3F1;color:#111;font-weight:600}
+.ap-t{width:100%;min-width:0;border-collapse:collapse;font-size:12.5px}
+.ap-t th{background:#fff;color:#667085;font:600 11.5px 'Manrope',sans-serif;letter-spacing:0;text-transform:none;text-align:left;padding:8px 10px;border-bottom:1px solid #E5E7EB}
+.ap-t td{padding:9px 10px;border-bottom:1px solid #EEF0EE;vertical-align:top}
+.ap-logoc{flex:none;width:28px;height:28px;border-radius:8px;background:#EAFBF0;color:#15803D;font:700 11px 'DM Sans';display:flex;align-items:center;justify-content:center}
+.ap-fund{display:flex;gap:10px;align-items:flex-start}
+.note-box{background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:8px 10px;font-size:12px;margin-top:8px}
+.circ{outline:2px solid #D92D20;outline-offset:2px;border-radius:8px}
+.rk{display:inline-block;font:700 13px 'DM Sans',sans-serif;background:#EAFBF0;color:#15803D;border-radius:99px;padding:2px 10px}
+.rk small{font:500 11px 'Manrope',sans-serif;color:#667085;margin-left:3px}
+.fn{display:grid;gap:6px}
+.fn .r{display:grid;grid-template-columns:230px 1fr 90px;gap:10px;align-items:center;font-size:12.5px}
+.fn .b{height:18px;border-radius:5px;background:#22C55E}
+.fn .b.x{background:#F59E0B}
+.fn .n{font-weight:700;text-align:right}
+.cmp{display:grid;gap:14px}
+.cmp .p{display:grid;grid-template-columns:44px 1fr 150px;gap:12px;align-items:center}
+.cmp .trk{position:relative;height:22px}
+.cmp .trk::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:#E5E7EB}
+.cmp .d{position:absolute;top:4px;width:14px;height:14px;border-radius:50%;transform:translateX(-7px)}
+.cmp .d.f{background:#22C55E}
+.cmp .d.c{border:2px solid #667085;background:#fff}
+.cmp .v{font-size:12px;color:#667085}
+.lab{font:600 11px 'Manrope',sans-serif;color:#B42318;background:#FDECEA;border-radius:99px;padding:1px 8px;margin-left:6px}
+.wf{display:grid;gap:7px}
+.wf .r{display:grid;grid-template-columns:210px 1fr 80px;gap:10px;align-items:center;font-size:12px}
+.wf .tr{position:relative;height:16px;background:#F1F3F1;border-radius:4px}
+.wf .tr i{position:absolute;top:0;bottom:0;border-radius:4px;background:#0EA5E9}
+.wf .tr i.s{background:#F59E0B}
+.wf .n{text-align:right;font-weight:600}
+.steps5{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+.steps5>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13.5px}
+.steps5 b{display:block;font-family:var(--f-display);margin-bottom:3px}
+.code2{font-family:var(--f-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow:auto;white-space:pre;margin:8px 0}
+.xl{background:#fff;font-size:12px}
+.xl .tabs2{display:flex;gap:2px;background:#E8ECE8;padding:6px 8px 0;font-size:12px}
+.xl .tabs2 span{padding:5px 12px;border-radius:6px 6px 0 0;background:#F3F5F3;color:#444}
+.xl .tabs2 span.on{background:#fff;font-weight:700;color:#107C41}
+.xl .fx{display:flex;gap:8px;align-items:center;border-bottom:1px solid #D9DED9;padding:4px 10px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#333;background:#fff}
+.xl .fx b{color:#107C41;font-family:Manrope,sans-serif}
+.xl table.g{border-collapse:collapse;width:100%;min-width:0;font-size:12px}
+.xl table.g th{background:#F3F5F3;border:1px solid #D9DED9;padding:4px 8px;text-align:left;font:600 11.5px Manrope,sans-serif;color:#333;text-transform:none;letter-spacing:0}
+.xl table.g td{border:1px solid #E6EAE6;padding:4px 8px;vertical-align:top}
+.xl td.f{font-family:ui-monospace,Consolas,monospace;background:#F1FAF4;color:#14532D}
+.xl td.ok{color:#14532D;font-weight:700}
+.xl td.no{color:#B42318;font-weight:700}
+.pend{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;background:var(--warn-soft);color:var(--warn)}
+.a4{width:595px;height:842px;background:#fff;border:1px solid #D0D5DD;box-shadow:0 8px 30px rgba(0,0,0,.10);position:relative;font-family:'Manrope',sans-serif;color:#111;overflow:hidden;margin:0 auto}
+.a4 .hd{display:flex;justify-content:space-between;font-size:9px;color:#667085;padding:22px 36px 8px;border-bottom:1px solid #EEF0EE}
+.a4 .ft{position:absolute;left:36px;right:36px;bottom:20px;display:flex;justify-content:space-between;font-size:8.5px;color:#98A2B3;border-top:1px solid #EEF0EE;padding-top:6px}
+.a4 h1{font:700 30px 'DM Sans',sans-serif;line-height:1.1;margin:0}
+.a4 h2{font:700 17px 'DM Sans',sans-serif;margin:0 0 6px}
+.a4 .brand{font:700 22px 'DM Sans',sans-serif}
+.a4 .acc{height:10px;background:#22C55E}
+.a4 .meta2{font-size:11px;color:#475467;line-height:1.7}
+.a4 .toc div{display:flex;justify-content:space-between;font-size:10.5px;padding:3px 0;border-bottom:1px dotted #D0D5DD}
+.a4 .toc b{font:700 11px 'DM Sans',sans-serif;display:block;margin-top:10px;color:#15803D}
+.a4 table{width:100%!important;min-width:0!important;table-layout:fixed;border-collapse:collapse}.a4 th,.a4 td{background:none!important;text-transform:none!important;letter-spacing:0!important;font-size:inherit!important;font-weight:inherit;padding:5px 4px 5px 0!important;border-left:0;border-right:0}.a4 th{font-weight:600!important;color:#667085}.a4 td:first-child{font-weight:inherit}
+.xdoc{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:16px 18px;margin:12px 0}
+.dt{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:12px 0}.dt>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13px}.dt b{display:block;font-family:var(--f-display);margin-bottom:3px}.dt .y{border-color:var(--accent);background:var(--accent-soft)}.dt .n{border-color:var(--danger);background:var(--danger-soft)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+ <h4>Start here</h4>
+ <a href="#where">1. Where we stand</a>
+ <a href="#nav">2. What the NAV fix changed</a>
+ <h4>Item 9</h4>
+ <a href="#i9">3. The calculation and the Excel</a>
+ <a href="#evidence">4. The note that goes with it</a>
+ <h4>How we build it</h4>
+ <a href="#strategy">5. Orchestrator and workers</a>
+ <a href="#tasks">7. Task list</a>
+ <a href="#program">8. Fit with other plans</a>
+ <a href="#risks">9. Risks, tests, checks</a>
+ <h4>Your call</h4>
+ <a href="#questions">10. Questions (2)</a>
+ <a href="#copy">11. Copy my answers</a>
+ <a href="#prov">What I checked</a>
+</nav>
+
+<main>
+<div class="hero">
+ <h1>Batch A3: Category Average and the Excel</h1>
+ <div class="meta">Planning only &middot; nothing built or run on staging &middot; 17 Nov 2026 &middot; split from Batch A &middot; branch leapswitch-redesign</div>
+ <p>Item 9: prove the size-weighted category average is right, fix anything that is not, and build the detailed Excel for stakeholders, with live formulas so a reader can check the arithmetic themselves. With the on-screen &ldquo;i&rdquo; dropped, the Excel is the only explanation, so it gets the depth here: every sheet is drawn, the build and the hand check are written step by step.</p>
+ <p><b>What changed on 17 Nov.</b> The &ldquo;i&rdquo; is dropped; <b>IDCW options are not included</b> (a new line on the card, in the Read me and in the glossary); the card shows no date. Everything else is carried over from the old Batch A, with the Excel&rsquo;s mockups extended from three sheets to all seven.</p>
+ <p><b>How this was made.</b> I took everything about item 9 from the old Batch A workbook and kept your recorded answer (Q2). Every statement about the code is labelled <em>read in code</em>; nothing was run on staging. Mockups use invented funds and numbers, laptop only.</p>
+</div>
+<section id="where">
+ <h2>1. Where we stand</h2>
+ <p class="lead">Item 9 on its own: prove the category average is right, fix anything that is not, and build the detailed Excel for stakeholders. This is the third of four plans that replace the old Batch A, and the first in which the Excel is <b>the</b> explanation: there is no on-screen &ldquo;i&rdquo;.</p>
+ <div class="stats">
+  <div class="stat"><div class="n">1</div><div class="l">investigation (item 9) plus the Excel</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">database migrations planned</div></div>
+  <div class="stat"><div class="n">1 / 2</div><div class="l">questions answered (Q3 is open)</div></div>
+  <div class="stat"><div class="n">12</div><div class="l">tasks in the list (section 7)</div></div>
+ </div>
+ <div class="callout good"><b>Decided 17 Nov.</b> (1) The category average gets <b>no &ldquo;i&rdquo; and no popover</b>; only the Excel explains it. (2) <b>IDCW options are not included</b> in the average (as in the rank), and the card, the Excel and the evidence say so. (3) The card shows no new date.</div>
+ <div class="scroll"><table>
+  <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (read in code)</th><th>What this plan does</th></tr></thead>
+  <tbody>
+   <tr><td class="k">9. Category average</td><td>Check the calculation, and the detailed Excel for stakeholders (moved here from Batch E).</td><td>Fund-size-weighted average (AAUM), per period, over the funds that have a 3-year history; a plain-mean fallback; a legacy 40/60 blended figure still sent for older views.</td><td>Recompute the averages independently; <b>fix</b> anything wrong; build the detailed Excel (section 3) with live formulas; add the Growth-only line.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Early findings (read in code, to be tested, not yet conclusions)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>#</th><th>Finding</th><th>Why it matters</th><th>Tested and fixed in</th></tr></thead>
+  <tbody>
+   <tr><td>F5</td><td>The category card is three periods (1Y, 3Y, 5Y), each with the fund&rsquo;s return and the category average, and the average is size-weighted with a 3Y floor.</td><td>&ldquo;The three values&rdquo; in your list are these period rows: your Q2 examples match them exactly.</td><td>Item 9 and its Excel (Q2)</td></tr>
+   <tr><td>F10</td><td>The average reads the <b>same pool</b> as the rank. A pool problem in A2 (a peer without history, a duplicate, a mixed end date) changes this average too.</td><td>The numbers are only as good as the pool, so this plan re-checks after A2&rsquo;s fixes.</td><td>T9-6 &rarr; after FX-10a, FX-10c, FX-10d</td></tr>
+   <tr><td>F11</td><td>A fund with no size on record is counted but left out of the weighted figure; if no fund has a size a plain average is shown. How often, and how old the sizes are, is not known.</td><td>A stale or missing size changes the weighted average without any sign on screen.</td><td>T9-3; shown on the Excluded sheet</td></tr>
+   <tr><td>F8</td><td>The stored average is built at 06:30; the 10:30 and 14:00 price runs do not rebuild it (Q3).</td><td>A late-filled fund enters the stored average the next morning.</td><td>T9-6; Q3</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout info"><b>What the investigation ends in.</b> The root cause, then a <b>written fix proposal that you review</b>, then (only after you approve it) the fix and the proof. Nothing changes before that approval. If the average is <b>correct</b>, the Excel is the evidence.</div>
+</section>
+
+<section id="nav">
+ <h2>2. What the NAV fix changed for the average</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Part</th><th>What remains true</th><th>What we do</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Mixed end dates inside the pool</td><td>The same peers-keep-the-3-day-rule effect as the rank (F7 in A2).</td><td>The common end date (A2: FX-10c) also fixes the average; the Excel states the end date used.</td></tr>
+   <tr><td class="k">The stored average</td><td>Built at 06:30; not rebuilt by the later runs.</td><td>Q3 (open).</td></tr>
+   <tr><td class="k">Real-data runs and the Excel</td><td>Official figures only from runs after the first clean unattended run on 17 Nov, labelled with the time.</td><td>The Excel is built with synthetic data first, real data after.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="i9">
+ <h2>3. The calculation and the Excel in depth (item 9)</h2>
+ <p class="lead">Prove the numbers are right, fix anything that is not, and build the detailed Excel for stakeholders. This work moved here from Batch E. On 17 Nov you also dropped the on-screen &ldquo;i&rdquo; for the category average: <b>the Excel is the only explanation</b>, so it has to be complete.</p>
+
+ <h3 class="sub">What the user sees today (read in code)</h3>
+ <div data-frame="cat-card"></div>
+ <p class="note">Made-up fund; the three rows use your three examples. A filled dot is the fund, a hollow dot is the category average; green means ahead, red means behind (from the card&rsquo;s own legend line). The sentence under the rows says how many funds the average covers for each period.</p>
+
+
+ <h3 class="sub">What the card shows after this plan</h3>
+ <div class="winbar" data-sec="ccard"><span>Card</span><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="after" aria-pressed="false">After: with the Growth-only line</button></div>
+ <div data-frame="cat-card2"></div>
+ <p class="note">The only visible change is one short line under the existing sentence. The card has no &ldquo;i&rdquo; and no date (both decided 17 Nov); everything else is explained in the Excel.</p>
+ <h3 class="sub">How the average is calculated (read in code)</h3>
+ <ol class="tight">
+  <li><b>Pool:</b> the same pool as the rank (A2): same category and plan, one <b>Growth</b> series per fund, live in the last 30 days. <b>IDCW (dividend) options are not included</b> (decided 17 Nov).</li>
+  <li><b>Eligibility floor:</b> a fund must have a <b>3-year return</b> to count in any period. So the 1Y average is over funds that also have 3 years of history.</li>
+  <li><b>Weighting:</b> each fund&rsquo;s return is weighted by its latest average assets under management (AAUM). A fund with no size on record is left out of the weighted figure and counted. If <b>no</b> fund has a size, a plain average is shown and flagged.</li>
+  <li><b>Three periods</b> (1Y, 3Y, 5Y), each with the number of funds it covers. A category with fewer than 5 funds is flagged &ldquo;thin&rdquo;.</li>
+  <li><b>A legacy figure</b> (40% of the 3Y and 60% of the 5Y return, weighted the same way) is still sent for desktop, print and phone views &ldquo;until the cleanup release&rdquo;.</li>
+ </ol>
+
+ <h3 class="sub">What we test, and what we fix</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Test</th><th>Pass means</th></tr></thead>
+  <tbody>
+   <tr><td style="white-space:nowrap">T9-1</td><td>Recompute the weighted average for 3 categories (one large, one thin, one with funds missing a size) in a spreadsheet from the same prices and sizes.</td><td>Equal to the app to 4 decimal places.</td></tr>
+   <tr><td style="white-space:nowrap">T9-2</td><td>The 3Y floor: a category where some funds have only 1Y or 2Y history.</td><td>They are excluded from all three averages, and the &ldquo;covers N funds&rdquo; counts match.</td></tr>
+   <tr><td style="white-space:nowrap">T9-3</td><td>Size data: how old is the AAUM, how many categories have funds with no size?</td><td>Stale or missing sizes are visible in the Excel, not hidden.</td></tr>
+   <tr><td style="white-space:nowrap">T9-4</td><td>The plain-average fallback and the &ldquo;thin&rdquo; flag.</td><td>Triggered only in the cases described, and labelled.</td></tr>
+   <tr><td style="white-space:nowrap">T9-5</td><td>The legacy blended figure against the period figures.</td><td>Consistent method; no screen shows a figure that contradicts another; the legacy figure is checked too.</td></tr>
+   <tr><td style="white-space:nowrap">T9-6</td><td>The rank pool and the average pool use the same funds (except the index-fund rule).</td><td>Differences are listed and explained.</td></tr>
+   <tr><td style="white-space:nowrap">T9-7</td><td><b>Growth only (new, 17 Nov).</b> No IDCW or dividend series is in any pool the average uses.</td><td>Zero IDCW series in every pool; the number set aside is on the Excluded sheet. The same test as T10-6 in A2; one result serves both.</td></tr>
+  </tbody>
+ </table></div>
+ <p><b>Fix FX-9a.</b> Any test above that fails is written up as a proposed fix for your review, then built with its failing test first (for example, a wrong weight, a stale size used silently, or a pool that differs from the rank&rsquo;s). The pool problems found for item 10 (A2: FX-10a, FX-10c, FX-10d) fix this average too, because both read the same pool, so this plan re-runs its checks after A2&rsquo;s fixes.</p>
+ <div class="callout good"><b>The three values (your answer, Q2).</b> You pasted three examples: <b>+1.2%</b> with <b>4.6% vs 3.4%</b>, <b>&minus;1.1%</b> with <b>12.8% vs 13.9%</b>, and <b>&minus;4.8%</b> with <b>6.4% vs 11.2%</b>. In the code each is one period&rsquo;s row on the card: a coloured <b>gap</b> (the fund minus the category average, green when ahead, red when behind) above <b>&ldquo;fund vs category average&rdquo;</b>. So &ldquo;the three values&rdquo; are the three period rows (1Y, 3Y, 5Y), each holding the gap and the two returns. I read it that way; tell me if you meant something else. The Excel&rsquo;s Read me explains all of it, and the legend in Batch E leads with it.</div>
+
+ <h3 class="sub">The Excel for stakeholders (moved here from Batch E)</h3>
+ <p>A single workbook that explains the category average <b>in as much detail as possible, for every category</b>, and lets a reader <b>check the arithmetic themselves</b>, because the averages are written as live Excel formulas over the listed funds, next to the value the app shows. It is built from the product&rsquo;s own functions, as the earlier chartered-accountant export is (<code>backend/scripts/export_ca_fund_metrics.py</code>, which calls <code>load_category_pool</code> and <code>category_rank_row</code> and contains no formula of its own), so it cannot drift from the screen.</p>
+ <div class="winbar" data-sec="i9"><span>Sheet</span><button type="button" data-v="readme" aria-pressed="false">Read me</button><button type="button" data-v="summary" aria-pressed="true">Summary</button><button type="button" data-v="pool" aria-pressed="false">Pool</button><button type="button" data-v="excluded" aria-pressed="false">Excluded</button><button type="button" data-v="worked" aria-pressed="false">Worked example</button><button type="button" data-v="checks" aria-pressed="false">Checks</button><button type="button" data-v="glossary" aria-pressed="false">Glossary</button></div>
+ <div data-frame="xlsx"></div>
+ <p class="note">Invented funds and numbers. The real workbook has about 80 categories in two plans; each Summary figure is a formula over that category&rsquo;s rows in the Pool sheet.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Sheet</th><th>What it holds</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Read me</td><td>What the average is, in plain words; how to read the card (the fund dot, the category dot, the gap, the three periods; the three values as decided in Q2); the method in numbered steps; the date of every kind of figure (price date, size month, fund list date); what is left out and why, including that <b>IDCW options are not included</b>; how to verify; export date and the version of the app.</td></tr>
+   <tr><td class="k">Summary</td><td>One row per category and plan: funds in the pool, funds covered in 1Y, 3Y and 5Y, the size-weighted average for each period <b>(an Excel formula)</b>, the plain average for comparison, funds without a size, the weighting used (size, or plain), the thin flag, the value the app shows, and the difference.</td></tr>
+   <tr><td class="k">Pool</td><td>One row per fund in each pool: category, plan, fund, fund house, size (&#8377; crore) and its month, returns for 1Y, 3Y and 5Y, whether it counts (3-year floor), its weight (a formula) and its contribution (a formula).</td></tr>
+   <tr><td class="k">Excluded</td><td>Every scheme left out of a pool, with the reason: not live, another plan type, a second option of the same fund, inactive, no 3-year history, no size.</td></tr>
+   <tr><td class="k">Worked examples</td><td>Three funds taken step by step, in the card&rsquo;s own shape: the gap, the fund&rsquo;s return against the category average, and how a reader would reproduce each number.</td></tr>
+   <tr><td class="k">Checks</td><td>For each category: Excel&rsquo;s recomputed average against the app&rsquo;s, the largest difference, whether the weights add to 100%, and the dates. A pass or fail per row.</td></tr>
+   <tr><td class="k">Glossary</td><td>AAUM, CAGR, category, plan, Growth and IDCW (and that IDCW is not included), thin category, eligibility floor, in plain words.</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">How the workbook is built, end to end</h3>
+ <div class="steps5">
+  <div><b>1. Read the pool</b>The export script calls the product&rsquo;s own pool function for every category and plan (read-only, from stored prices).</div>
+  <div><b>2. Write the sheets</b>Pool rows as values; Summary figures as <b>Excel formulas</b> over the Pool rows; the app&rsquo;s value beside each for comparison.</div>
+  <div><b>3. Check itself</b>A test opens the file, recalculates, and compares every Summary formula with the app&rsquo;s own result (Checks sheet).</div>
+  <div><b>4. Stamp it</b>Price date, size month, fund-list date, export date and the app version on the Read me.</div>
+  <div><b>5. Hand it over</b>A download for stakeholders; not committed. The script and its tests are.</div>
+ </div>
+ <h3 class="sub">How a reader checks one number, by hand</h3>
+ <div class="steps5">
+  <div><b>1. Pick a category</b>On Summary, choose &ldquo;Flexi Cap, Direct&rdquo; and read its 3Y average.</div>
+  <div><b>2. Open Pool</b>Filter the same category. Each fund has its size, 3Y return and a weight (a formula).</div>
+  <div><b>3. Multiply and add</b>Weight &times; return for each counted fund, added up. That is the formula in the Summary cell.</div>
+  <div><b>4. Compare</b>It equals the app&rsquo;s value shown beside it; Checks says PASS or FAIL.</div>
+  <div><b>5. See what is left out</b>Excluded lists every scheme not counted, with the reason (including IDCW).</div>
+ </div>
+ <p><b>Rules for the file.</b> Public fund data only: no household, folio, account or member data and no internal ids. The workbook is a deliverable, not committed; the script and its tests are. Every figure carries its date, and the Read me states plainly where a figure cannot be as of a single date (returns end at the latest price; size is monthly). Where the workbook has a number the app does not (the plain average), it is labelled &ldquo;for comparison only&rdquo;.</p>
+ <p><b>Scope and the chartered-accountant Excel (my defaults).</b> Every category, in both plans. The CA workbook is seven funds with five parameters; this one is every category and one parameter in depth. Both come from one export module, so the category-comparison sheet is built once. If the all-category build proves too large or slow, I narrow it to the categories your stakeholders hold and tell you.</p>
+
+ <h3 class="sub">What changes, by layer</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><span class="tag be">backend</span></td><td><b>New:</b> an export script (for example <code>backend/scripts/export_category_average_excel.py</code>) and a small shared module for the workbook, with tests that open the generated file and check every formula against the product&rsquo;s own result. <b>Changed:</b> only what a failed test shows (FX-9a), most likely in <code>analytics/category_ranking.py</code> or the pool code shared with item 10.</td></tr>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td>None. No legend or &ldquo;i&rdquo; (dropped 17 Nov).</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>None. The export is read-only: no insert, update or delete, and no price download, as in the CA export. The price history it needs must already be stored, which is why it waited on the NAV fix, now landed.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="evidence">
+ <h2>4. The one-page note that goes with the Excel</h2>
+ <p class="lead">Stakeholders receive the workbook and a one-page note. The note is plain words; the workbook is the proof.</p>
+ <div class="winbar" data-sec="cnote"><span>Note</span><button type="button" data-v="n1" aria-pressed="true">The note</button></div>
+ <div data-frame="cat-note"></div>
+ <div class="scroll"><table>
+  <thead><tr><th>Part</th><th>What it contains</th></tr></thead>
+  <tbody>
+   <tr><td class="k">The note</td><td>How the average is calculated in four sentences; how to read the card (the fund dot, the category dot, the gap, the three periods); what is left out and why (including IDCW); what was fixed; how to check one number in the workbook.</td></tr>
+   <tr><td class="k">Format and home</td><td>Working notes as <code>.md</code> in <code>Docs/orchestration/</code>; the note as HTML or PDF; the workbook as a download, not committed (the script is). Nothing is published without your go.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="strategy">
+ <h2>5. Orchestrator and workers</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Role</th><th>Who</th><th>What they do for the average and the Excel</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Orchestrator</td><td>Claude</td><td>Writes the spec and the Read me and glossary text; reads every result; writes each fix as a proposal; verifies the workbook by hand on 10 funds; writes the note. Builds nothing until you approve a fix.</td></tr>
+   <tr><td class="k">Code worker</td><td>Codex</td><td>Builds the export module and the workbook with tests that check every formula against the product&rsquo;s own result; builds each approved fix.</td></tr>
+   <tr><td class="k">Visual worker</td><td>Antigravity (Gemini)</td><td><b>Not used.</b> No new screen; the workbook is a spreadsheet.</td></tr>
+   <tr><td class="k">Reviewer</td><td>Codex adversarial review</td><td>One review per handoff, then one whole-plan review.</td></tr>
+  </tbody>
+ </table></div>
+ <p><b>Hard rules:</b> the export is read-only and downloads no prices; public fund data only (no household, folio, account or member data and no internal ids); no code change before you approve a proposal; the workbook is a deliverable and is not committed.</p>
+ <div class="steps5">
+  <div><b>1. Question</b>The one question the lane answers.</div>
+  <div><b>2. Facts to re-check</b>Every &ldquo;read in code&rdquo; line.</div>
+  <div><b>3. Fixtures</b>A pool with a thin category, a fund with no size, a fund under 3 years, an IDCW series.</div>
+  <div><b>4. Do not touch</b>The product&rsquo;s result (the Excel must match it, not change it).</div>
+  <div><b>5. Output</b>The workbook and a counts-only log.</div>
+  <div><b>6. Report</b>Which checks passed.</div>
+ </div>
+</section>
+
+<section id="tasks">
+ <h2>7. Task list</h2>
+ <p class="lead">Twelve tasks (CA-1 to CA-12). Sizes: S about half a day, M one to two days, L more.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Task</th><th>Worker</th><th>Size</th><th>When</th></tr></thead>
+  <tbody>
+   <tr><td>CA-1</td><td>Re-check every &ldquo;read in code&rdquo; line; write the spec</td><td>Claude</td><td>M</td><td>After your answers</td></tr>
+   <tr><td>CA-2</td><td>Excel design sign-off: your review of the sheets and the mockups in section 3</td><td>Claude, you</td><td>S</td><td>Now</td></tr>
+   <tr><td>CA-3</td><td>Run the checks T9-1 to T9-7 on synthetic then real pools</td><td>Codex</td><td>M</td><td>Synthetic now; real after 17 Nov</td></tr>
+   <tr><td>CA-4</td><td>If any check fails: proposal FX-9a for your review</td><td>Claude</td><td>S</td><td>After CA-3</td></tr>
+   <tr><td>CA-5</td><td>Build the fixes <b>you approved</b>, failing tests first</td><td>Codex</td><td>M</td><td>After your approval</td></tr>
+   <tr><td>CA-6</td><td>Build the exporter module and the workbook, with tests that check every formula; synthetic data first</td><td>Codex</td><td>L</td><td>Now (synthetic)</td></tr>
+   <tr><td>CA-7</td><td>Write the Read me, glossary and the Growth-only wording; the one-page note</td><td>Claude</td><td>S</td><td>Now</td></tr>
+   <tr><td>CA-8</td><td>The one-line Growth-only note on the card, and its test</td><td>Codex</td><td>S</td><td>After CA-2</td></tr>
+   <tr><td>CA-9</td><td>Verify the workbook on real data: formulas against the app, 10 funds by hand, dates and the Read me</td><td>Claude</td><td>M</td><td>After CA-6 and A2&rsquo;s fixes</td></tr>
+   <tr><td>CA-10</td><td>Adversarial review per handoff, then the whole plan</td><td>Codex, Claude</td><td>M</td><td>Before staging</td></tr>
+   <tr><td>CA-11</td><td>Staging deploy guide and QA checklist; then build and hand over the workbook</td><td>Claude</td><td>M</td><td>After CA-10</td></tr>
+   <tr><td>CA-12</td><td>Update <code>decisions.md</code>, <code>session.md</code>, the Notion pack and Batch E&rsquo;s notes (Excel moved here, &ldquo;i&rdquo; dropped), on your go</td><td>Claude</td><td>S</td><td>Last</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="program">
+ <h2>8. Fit with the other batches and plans</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Other</th><th>Relationship</th></tr></thead>
+  <tbody>
+   <tr><td class="k">A2 (rank denominators)</td><td>Shares the pool code and the IDCW wording; its pool fixes also correct this average, so A3&rsquo;s numbers are rechecked after them. The IDCW test (T9-7) is the same as A2&rsquo;s T10-6.</td></tr>
+   <tr><td class="k">A1 (XIRR), A4 (load times)</td><td>Shared stored-result question (Q3). A4 measures the export&rsquo;s run time only if you later choose to.</td></tr>
+   <tr><td class="k">E (explainability and dates)</td><td>The legend and &ldquo;i&rdquo; for this card were dropped on 17 Nov; E has no work here. E keeps the date policy for other figures.</td></tr>
+   <tr><td class="k">The chartered-accountant export</td><td>Both come from one export module (<code>backend/scripts/export_ca_fund_metrics.py</code> is the model), so the category-comparison sheet is built once.</td></tr>
+   <tr><td class="k">I (PDF export)</td><td>Prints the same averages.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>Migrations: none planned.</b> <b>Deploy.</b> An average fix changes figures users see, so the staging deploy needs the one-time recompute; the deploy guide lists the changes. The Excel is built after the deploy, from the deployed data.</div>
+</section>
+
+<section id="risks">
+ <h2>9. Risks, tests and checks</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Risk</th><th>What we do</th></tr></thead>
+  <tbody>
+   <tr><td>The Excel disagrees with the app, or claims more accuracy than it has</td><td>Formulas are checked against the product&rsquo;s own result by a test; the Read me states every date and limit; 10 funds checked by hand.</td></tr>
+   <tr><td>The all-category Excel is too large or too slow to build</td><td>Built read-only from stored prices; size and run time measured early; narrowing to the categories your stakeholders hold is the fallback.</td></tr>
+   <tr><td>With no &ldquo;i&rdquo;, a stakeholder cannot find the explanation</td><td>The Read me is the first sheet; the one-page note leads with how to read the card; the deploy note tells the team where it lives.</td></tr>
+   <tr><td>An IDCW series slips into a pool</td><td>T9-7 (shared with A2&rsquo;s T10-6); the Excluded sheet counts them.</td></tr>
+   <tr><td>A pool fix in A2 changes these averages after the Excel is built</td><td>The Excel is built after A2&rsquo;s fixes deploy; it carries the app version and the export date.</td></tr>
+   <tr><td>Stale or missing fund sizes change the weighted average silently</td><td>Shown on the Excluded sheet and in Checks, not hidden.</td></tr>
+   <tr><td>Real data leaks into the Excel</td><td>Public fund data only; no household or internal ids; a last check before anything is sent.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Tests, in short</h3>
+ <ul class="tight">
+  <li><b>New backend tests (pytest), affected files only:</b> the average recompute, the Growth-only test, and the Excel formula tests (the test opens the generated file and compares every Summary formula with the product&rsquo;s result).</li>
+  <li><b>Frontend:</b> the category card&rsquo;s test for the one-line note.</li>
+  <li>Red before green for every fix.</li>
+ </ul>
+</section>
+
+<section id="questions">
+ <h2>10. Questions</h2>
+ <p class="lead">Two questions: Q2 is answered and locked; Q3 (the shared recompute question) is open.</p>
+ <div class="bar"><span class="status" id="prog">0 of 2 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
+ <div id="cards"></div>
+ <h3 class="sub">Defaults I will use (tell me in chat if you want any changed)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Topic</th><th>Default</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Legacy blended average</td><td>Verified and fixed along with the period averages.</td></tr>
+   <tr><td class="k">Excel scope and shape</td><td>Every category in both plans, live formulas, built from the product&rsquo;s own functions, one export module shared with the CA workbook.</td></tr>
+   <tr><td class="k">IDCW</td><td>Not included; stated on the card, the Read me, the glossary and the note.</td></tr>
+   <tr><td class="k">Card</td><td>No &ldquo;i&rdquo;, no date; one Growth-only line.</td></tr>
+   <tr><td class="k">Fixes</td><td><b>Review gate:</b> every fix is proposed first and built only after you approve it.</td></tr>
+   <tr><td class="k">Evidence format</td><td>Working notes as <code>.md</code>; the note as HTML or PDF; the Excel as a download, not committed.</td></tr>
+   <tr><td class="k">Phone view</td><td>Out of scope; planned later.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Decisions I will bring you later, with the evidence in hand</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Decision</th><th>When it comes up</th><th>What you will see</th></tr></thead>
+  <tbody>
+   <tr><td class="k">If the all-category build is too large: narrow it to the categories stakeholders hold</td><td>After the first synthetic build (CA-6)</td><td>File size, run time, and the list of categories dropped.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="copy">
+ <h2>11. Copy my answers</h2>
+ <p class="lead">Press the button, then paste the text in chat. If it does nothing, select the text below and copy it yourself.</p>
+ <button id="copyBtn" type="button">Copy my answers</button> <span class="status" id="copyMsg"></span>
+ <label class="nl" for="outTa">Your answers as text</label>
+ <textarea id="outTa" class="out" readonly></textarea>
+</section>
+
+<section id="prov">
+ <h2>What I checked</h2>
+ <p><b>Read today, read-only, by me:</b> <code>analytics/category_ranking.py</code>, <code>analytics/scheme_universe.py</code>, the card component, <code>backend/scripts/export_ca_fund_metrics.py</code> (the model for the export), the NAV fix.</p>
+ <p><b>Not done:</b> nothing was run; no workbook was generated (the sheets are drawings); the fund-size data&rsquo;s age and coverage are not known (T9-3). The workbook&rsquo;s run time and size are not measured (decision in section 10).</p>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+function vp(inner,w,h,cls,attrs){return '<div class="vp '+(cls||'')+'" data-w="'+w+'"'+(h?' data-h="'+h+'"':'')+(attrs||'')+'><div class="vp-in">'+inner+'</div></div>'}
+function chrome(url){return '<div class="chrome"><i></i><i></i><i></i><span>'+url+'</span></div>'}
+
+/* ---- item 8: XIRR tile ---- */
+function xirrTile(v){
+ var val=v==='f1'?'6.1%':'9.4%';
+ var extra=v==='f1'?'<div class="note-box circ" style="margin-top:10px">One fund has no price today. Its purchases are counted, its value is not, so the rate falls. <b>Nothing on screen says so.</b></div>':'';
+ var tiles='<div class="ap-tile"><small>Total portfolio value</small><b>&#8377;40,12,300</b></div><div class="ap-tile"><small>Invested</small><b>&#8377;31,40,000</b></div><div class="ap-tile"><small>Unrealised</small><b>+&#8377;8,72,300</b></div>';
+ var x='<div class="ap-tile"><div class="row"><small>XIRR</small><span class="seg"><span class="on">Lifetime</span><span>Current</span></span></div><b>'+val+'</b><small>Since inception</small>'+extra+'</div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds')+'<div class="ap"><div class="ap-body"><div class="ap-tiles">'+tiles+x+'</div></div></div>',1100,0);
+}
+/* ---- item 10: rank rows ---- */
+function rankRows(){
+ var f=function(n,c,a,b,d,hl){return '<tr><td><div class="ap-fund"><span class="ap-logoc">'+n.charAt(0)+'</span><div><b>'+n+'</b><div class="ap-mut">'+c+'</div></div></div></td><td><span class="rk'+(hl?' circ':'')+'">7<small>of 33</small></span></td><td><span class="rk'+(hl?' circ':'')+'">6<small>of 29</small></span></td><td><span class="rk'+(hl?' circ':'')+'">5<small>of 21</small></span></td></tr>'};
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/performance')+'<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Performance ranking</h5><p class="ap-mut" style="margin-bottom:10px">Rank within category and plan, for each period.</p><table class="ap-t"><thead><tr><th>Fund</th><th>1 year</th><th>3 years</th><th>5 years</th></tr></thead><tbody>'+f('Alpha Flexi Cap Fund','Flexi Cap &middot; Direct plan',0,0,0,true)+'</tbody></table></div></div></div>',1000,0);
+}
+/* ---- item 10: funnel ---- */
+function funnel(){
+ var rows=[['Every scheme in the category (AMFI file)',61,0],['Live: price within 30 days',55,0],['One series per fund, same plan (Direct), Growth',41,0],['Active and not an index fund or ETF',38,0],['Has a 1-year return  (the app&rsquo;s total for 1Y)',33,1],['Has a 5-year return  (the app&rsquo;s total for 5Y)',21,1]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Flexi Cap, Direct: how the total is counted</h5><p class="ap-mut" style="margin-bottom:12px">One page of the evidence pack. Numbers invented.</p><div class="fn">';
+ rows.forEach(function(r){h+='<div class="r"><span>'+r[0]+'</span><div><div class="b'+(r[2]?' x':'')+'" style="width:'+Math.round(r[1]/61*100)+'%"></div></div><span class="n">'+r[1]+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">Each step lists the funds that dropped out and why. The app&rsquo;s result must match every step; a gap is a finding.</p></div></div></div>';
+ return vp(h,900,0);
+}
+/* ---- item 9: category card ---- */
+function catCard(){
+ var rows=[['1Y',58,50,'+1.2%','4.6% vs 3.4%',true],['3Y',44,50,'&minus;1.1%','12.8% vs 13.9%',false],['5Y',30,62,'&minus;4.8%','6.4% vs 11.2%',false]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><div class="ap-fund"><span class="ap-logoc">A</span><div><b>Alpha Flexi Cap Fund</b><div class="ap-mut">Flexi Cap &middot; Direct plan</div></div></div><div class="cmp" style="margin-top:14px">';
+ rows.forEach(function(r){var c=r[5]?'#15803D':'#D92D20';h+='<div class="p"><b>'+r[0]+'</b><div class="trk"><span class="d c" style="left:'+r[2]+'%"></span><span class="d f" style="left:'+r[1]+'%;background:'+c+'"></span></div><span class="v" style="text-align:right"><b style="color:'+c+'">'+r[3]+'</b><br>'+r[4]+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">Category average covers 31 funds (1Y), 31 (3Y), 24 (5Y). Weighted by fund size.</p><p class="ap-mut" style="margin-top:6px">Filled dot: your fund. Hollow dot: category average. Green means ahead; red means behind.</p></div></div></div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/other')+h,1000,0);
+}
+/* ---- item 7: waterfall ---- */
+function waterfall(){
+ var rs=[['holdings + XIRR bundle',0,62,1],['allocation',2,18,0],['coverage gaps',2,12,0],['history points',3,30,0],['SIPs',3,14,0],['stored per-fund analytics',4,22,0]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Mutual Funds Overview: requests (illustrative)</h5><p class="ap-mut" style="margin-bottom:12px">Bar position is when the request starts; length is how long it takes.</p><div class="wf">';
+ rs.forEach(function(r){h+='<div class="r"><span>'+r[0]+'</span><div class="tr"><i class="'+(r[3]?'s':'')+'" style="left:'+r[1]+'%;width:'+r[2]+'%"></i></div><span class="n">'+(r[3]?'slowest':'')+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">What we read off the real version: which request ends last, which is large, and what the browser does after the last reply.</p></div></div></div>';
+ return vp(h,900,0);
+}
+function xlsx(v){
+ var tabs=['Read me','Summary','Pool','Excluded','Worked examples','Checks','Glossary'],on={summary:'Summary',pool:'Pool',checks:'Checks'}[v];
+ var th='<div class="tabs2">'+tabs.map(function(x){return '<span'+(x===on?' class="on"':'')+'>'+x+'</span>'}).join('')+'</div>';
+ var body='';
+ if(v==='summary'){
+  body='<div class="fx"><b>fx</b> =SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$F:$F="Y")*Pool!$H:$H*Pool!$D:$D)/SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$F:$F="Y")*Pool!$D:$D)</div><table class="g"><thead><tr><th>Category and plan</th><th>Funds in pool</th><th>Covered 1Y / 3Y / 5Y</th><th>3Y average (formula)</th><th>3Y plain average</th><th>No size</th><th>Weighting</th><th>Thin?</th><th>App shows</th><th>Difference</th></tr></thead><tbody>'
+  +'<tr><td>Equity Scheme - Flexi Cap Fund, Direct</td><td>31</td><td>31 / 31 / 24</td><td class="f">14.82%</td><td>14.11%</td><td>1</td><td>size</td><td>no</td><td>14.82%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Equity Scheme - Large Cap Fund, Direct</td><td>29</td><td>29 / 29 / 26</td><td class="f">13.40%</td><td>13.05%</td><td>0</td><td>size</td><td>no</td><td>13.40%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Hybrid Scheme - Equity Savings, Regular</td><td>4</td><td>4 / 4 / 3</td><td class="f">8.90%</td><td>8.60%</td><td>0</td><td>size</td><td>yes</td><td>8.90%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Debt Scheme - Gilt Fund, Direct</td><td>11</td><td>11 / 11 / 9</td><td class="f">7.21%</td><td>7.18%</td><td>11</td><td>plain (no sizes)</td><td>no</td><td>7.18%</td><td class="ok">0.0000</td></tr></tbody></table>';
+ } else if(v==='pool'){
+  body='<div class="fx"><b>fx</b> =IF(F2="Y",D2/SUMIFS($D:$D,$A:$A,A2,$F:$F,"Y"),0)</div><table class="g"><thead><tr><th>Category and plan</th><th>Fund</th><th>Fund house</th><th>Size (&#8377; cr) and month</th><th>1Y / 3Y / 5Y return</th><th>Counts (3Y floor)</th><th>Weight</th><th>Contribution to 3Y</th></tr></thead><tbody>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Alpha Flexi Cap Fund</td><td>Alpha MF</td><td>18,400 &middot; Oct 2026</td><td>12.1% / 14.0% / 16.3%</td><td>Y</td><td class="f">0.1120</td><td class="f">1.57%</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Beacon Flexi Cap Fund</td><td>Beacon MF</td><td>9,250 &middot; Oct 2026</td><td>9.8% / 15.2% / 15.4%</td><td>Y</td><td class="f">0.0563</td><td class="f">0.86%</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Cedar Flexi Cap Fund</td><td>Cedar MF</td><td>no size on record</td><td>10.5% / 13.1% / &mdash;</td><td>Y</td><td class="f">0 (counted, no weight)</td><td class="f">&mdash;</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Delta Flexi Cap Fund</td><td>Delta MF</td><td>2,100 &middot; Oct 2026</td><td>8.0% / &mdash; / &mdash;</td><td>N (under 3 years)</td><td class="f">0</td><td class="f">&mdash;</td></tr></tbody></table>';
+ } else {
+  body='<table class="g"><thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead><tbody>'
+  +'<tr><td>Excel average equals the app&rsquo;s, every category</td><td class="ok">PASS</td><td>Largest difference 0.0000 across 158 category-and-plan rows</td></tr>'
+  +'<tr><td>Weights add to 100% in every pool</td><td class="ok">PASS</td><td>Smallest 100.0000%, largest 100.0000%</td></tr>'
+  +'<tr><td>Every excluded scheme has a reason</td><td class="ok">PASS</td><td>0 without a reason</td></tr>'
+  +'<tr><td>Size data newer than 45 days</td><td class="no">3 categories</td><td>Listed on the Excluded sheet; shown, not hidden</td></tr>'
+  +'<tr><td>Dates stated</td><td class="ok">PASS</td><td>Price date, size month, fund list date, export date, app version</td></tr></tbody></table>';
+ }
+ return vp('<div class="xl">'+th+body+'</div>',1000,0);
+}
+
+function catCard2(v){
+ var rows=[['1Y',58,50,'+1.2%','4.6% vs 3.4%',true],['3Y',44,50,'&minus;1.1%','12.8% vs 13.9%',false],['5Y',30,62,'&minus;4.8%','6.4% vs 11.2%',false]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><div class="ap-fund"><span class="ap-logoc">A</span><div><b>Alpha Flexi Cap Fund</b><div class="ap-mut">Flexi Cap &middot; Direct plan</div></div></div><div class="cmp" style="margin-top:14px">';
+ rows.forEach(function(r){var c=r[5]?'#15803D':'#D92D20';h+='<div class="p"><b>'+r[0]+'</b><div class="trk"><span class="d c" style="left:'+r[2]+'%"></span><span class="d f" style="left:'+r[1]+'%;background:'+c+'"></span></div><span class="v" style="text-align:right"><b style="color:'+c+'">'+r[3]+'</b><br>'+r[4]+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">Category average covers 31 funds (1Y), 31 (3Y), 24 (5Y). Weighted by fund size.</p>'+(v==='after'?'<p class="ap-mut" style="margin-top:4px">Averages use Growth options only. IDCW (dividend) options are not included.</p>':'')+'<p class="ap-mut" style="margin-top:6px">Filled dot: your fund. Hollow dot: category average. Green means ahead; red means behind.</p></div></div></div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/other')+h,1000,0);
+}
+function xlsx(v){
+ var tabs=['Read me','Summary','Pool','Excluded','Worked example','Checks','Glossary'],on={readme:'Read me',summary:'Summary',pool:'Pool',excluded:'Excluded',worked:'Worked example',checks:'Checks',glossary:'Glossary'}[v];
+ var th='<div class="tabs2">'+tabs.map(function(x){return '<span'+(x===on?' class="on"':'')+'>'+x+'</span>'}).join('')+'</div>';
+ var body='';
+ if(v==='readme'){
+  body='<div style="padding:16px 22px;font-size:12.5px;line-height:1.65;color:#344054;max-width:780px"><b style="font:700 17px DM Sans;color:#111">Category average comparison: how to read this workbook</b><p>The category average is the return of the funds in the same category and plan, each weighted by its size. Your fund is compared with it for 1, 3 and 5 years.</p><b>The card</b><p>A filled dot is your fund; a hollow dot is the average. The number above the dots is the gap: your fund minus the average. The second line shows the two returns.</p><b>Method</b><ol style="margin:4px 0;padding-left:18px"><li>Take every live Growth scheme in the category and plan, one per fund.</li><li>Keep funds with a 3-year return.</li><li>Weight each by its latest size (AAUM). A fund with no size counts but carries no weight.</li><li>Add up weight &times; return.</li></ol><b>What is not included</b><p><span style="background:#FEF3E2;padding:1px 6px;border-radius:4px">IDCW (dividend) options are not included.</span> Index funds and ETFs, plans of another type, and funds without a 3-year return are not included either; each is listed on the Excluded sheet.</p><b>Dates</b><p>Prices as on 12 Nov 2026 &middot; sizes: October 2026 &middot; fund list: AMFI file of 12 Nov 2026 &middot; exported 20 Nov 2026 &middot; app version 5.4.</p><b>Check it yourself</b><p>See the Worked example sheet, and the Checks sheet for a pass or fail on every category.</p></div>';
+ } else if(v==='summary'){
+  body='<div class="fx"><b>fx</b> =SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$F:$F="Y")*Pool!$H:$H*Pool!$D:$D)/SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$F:$F="Y")*Pool!$D:$D)</div><table class="g"><thead><tr><th>Category and plan</th><th>Funds in pool</th><th>Covered 1Y / 3Y / 5Y</th><th>Size-weighted 3Y</th><th>Plain average (comparison only)</th><th>Funds without a size</th><th>Weighting</th><th>Thin</th><th>App shows</th><th>Difference</th></tr></thead><tbody>'
+  +'<tr><td>Equity Scheme - Flexi Cap Fund, Direct</td><td>31</td><td>31 / 31 / 24</td><td class="f">14.82%</td><td>14.11%</td><td>1</td><td>size</td><td>no</td><td>14.82%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Equity Scheme - Large Cap Fund, Direct</td><td>29</td><td>29 / 29 / 26</td><td class="f">13.40%</td><td>13.05%</td><td>0</td><td>size</td><td>no</td><td>13.40%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Hybrid Scheme - Equity Savings, Regular</td><td>4</td><td>4 / 4 / 3</td><td class="f">8.90%</td><td>8.60%</td><td>0</td><td>size</td><td>yes</td><td>8.90%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Debt Scheme - Gilt Fund, Direct</td><td>11</td><td>11 / 11 / 9</td><td class="f">7.21%</td><td>7.18%</td><td>11</td><td>plain (no sizes)</td><td>no</td><td>7.18%</td><td class="ok">0.0000</td></tr></tbody></table>';
+ } else if(v==='pool'){
+  body='<div class="fx"><b>fx</b> =IF(F2="Y",D2/SUMIFS($D:$D,$A:$A,A2,$F:$F,"Y"),0)</div><table class="g"><thead><tr><th>Category and plan</th><th>Fund</th><th>Fund house</th><th>Size (&#8377; cr) and month</th><th>1Y / 3Y / 5Y return</th><th>Counts (3Y floor)</th><th>Weight</th><th>Contribution to 3Y</th></tr></thead><tbody>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Alpha Flexi Cap Fund</td><td>Alpha MF</td><td>18,400 &middot; Oct 2026</td><td>12.1% / 14.0% / 16.3%</td><td>Y</td><td class="f">0.1120</td><td class="f">1.57%</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Beacon Flexi Cap Fund</td><td>Beacon MF</td><td>9,250 &middot; Oct 2026</td><td>9.8% / 15.2% / 15.4%</td><td>Y</td><td class="f">0.0563</td><td class="f">0.86%</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Cedar Flexi Cap Fund</td><td>Cedar MF</td><td>no size on record</td><td>10.5% / 13.1% / &mdash;</td><td>Y</td><td class="f">0 (counted, no weight)</td><td class="f">&mdash;</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Delta Flexi Cap Fund</td><td>Delta MF</td><td>2,100 &middot; Oct 2026</td><td>8.0% / &mdash; / &mdash;</td><td>N (under 3 years)</td><td class="f">0</td><td class="f">&mdash;</td></tr></tbody></table>';
+ } else if(v==='excluded'){
+  body='<table class="g"><thead><tr><th>Category and plan</th><th>Scheme</th><th>Why it is not counted</th></tr></thead><tbody>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Alpha Flexi Cap Fund - IDCW Payout</td><td>IDCW option (not included)</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Alpha Flexi Cap Fund - IDCW Reinvestment</td><td>IDCW option (not included)</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Echo Flexi Cap Fund - Growth</td><td>Not live: last price 61 days ago</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Foxtrot Flexi Cap Fund - Growth</td><td>Second option of the same fund (kept: Direct Growth)</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Gamma Nifty Flexi Index Fund</td><td>Index fund</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Delta Flexi Cap Fund - Growth</td><td>Under 3 years of history (3Y floor)</td></tr></tbody></table><p style="padding:8px 12px;font-size:12px;color:#667085">Every scheme left out of a pool is listed with its reason. IDCW series set aside in this category: 2.</p>';
+ } else if(v==='worked'){
+  body='<div style="padding:14px 20px;font-size:12.5px;line-height:1.7;color:#344054"><b style="font:700 15px DM Sans;color:#111">Worked example: Alpha Flexi Cap Fund, 3 years</b><table class="g" style="margin:10px 0"><tbody><tr><td>Fund 3Y return</td><td>14.0%</td></tr><tr><td>Category average 3Y (size-weighted, 31 funds)</td><td>14.82%</td></tr><tr><td>Gap (fund minus average)</td><td class="no">&minus;0.82%</td></tr></tbody></table><p>On the card the 3Y row shows <b>&minus;0.8%</b> above <b>14.0% vs 14.8%</b>, with the fund&rsquo;s dot left of the average&rsquo;s.</p><b>To reproduce:</b> filter Pool to Flexi Cap, Direct; for each fund marked Y, multiply Weight by the 3Y return; add up the 31 products; it equals the Summary cell.</div>';
+ } else if(v==='checks'){
+  body='<table class="g"><thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead><tbody>'
+  +'<tr><td>Excel average equals the app&rsquo;s, every category</td><td class="ok">PASS</td><td>Largest difference 0.0000 across 158 category-and-plan rows</td></tr>'
+  +'<tr><td>Weights add to 100% in every pool</td><td class="ok">PASS</td><td>Smallest 100.0000%, largest 100.0000%</td></tr>'
+  +'<tr><td>Every excluded scheme has a reason</td><td class="ok">PASS</td><td>0 without a reason</td></tr>'
+  +'<tr><td>No IDCW series in any pool</td><td class="ok">PASS</td><td>0 found; 212 set aside, all listed on Excluded</td></tr>'
+  +'<tr><td>Size data newer than 45 days</td><td class="no">3 categories</td><td>Listed on the Excluded sheet; shown, not hidden</td></tr>'
+  +'<tr><td>Dates stated</td><td class="ok">PASS</td><td>Price date, size month, fund list date, export date, app version</td></tr></tbody></table>';
+ } else {
+  body='<table class="g"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td>AAUM</td><td>Average assets under management: the fund&rsquo;s size, averaged over a month.</td></tr><tr><td>CAGR</td><td>The yearly rate that turns the start price into the end price over the period.</td></tr><tr><td>Category, plan</td><td>The SEBI category (for example Flexi Cap) and Direct or Regular.</td></tr><tr><td>Growth and IDCW</td><td>Growth keeps profits in the price; IDCW pays them out and the price falls. <b>IDCW options are not included here.</b></td></tr><tr><td>Thin category</td><td>Fewer than 5 funds: treat the average with care.</td></tr><tr><td>Eligibility floor</td><td>A fund needs a 3-year return to count in any period.</td></tr></tbody></table>';
+ }
+ return vp('<div class="xl">'+th+body+'</div>',1000,0);
+}
+function catNote(){
+ var h='<div class="a4" style="width:595px"><div class="hd"><span>Unifolio &middot; How the category average works</span><span>November 2026</span></div><div style="padding:24px 36px"><h2>How the category average works</h2><p style="font-size:11px;color:#475467;line-height:1.6">Each fund is compared with the average of funds in its own category and plan, for 1, 3 and 5 years. The average gives bigger funds more weight.</p><h2 style="margin-top:14px">Reading the card</h2><ul style="font-size:11px;color:#344054;line-height:1.7;margin:0;padding-left:16px"><li>Filled dot: your fund. Hollow dot: the category average.</li><li>The number above the dots is the gap; green is ahead, red is behind.</li><li>The second line shows the two returns.</li></ul><h2 style="margin-top:14px">What is not included</h2><p style="font-size:11px;color:#475467;line-height:1.6">IDCW (dividend) options, index funds and ETFs, the other plan type, and funds with under three years of history. Each is listed in the workbook.</p><h2 style="margin-top:14px">Check it yourself</h2><p style="font-size:11px;color:#475467;line-height:1.6">Open the workbook, go to Pool, filter one category and multiply each weight by its return. The sum equals the Summary cell.</p></div><div class="ft"><span>Unifolio</span><span>1 of 1</span></div></div>';
+ return vp(h,640,0);
+}
+
+var STATE={'i8':'today','i9':'readme','ccard':'after','cnote':'n1'};
+function frame(n){switch(n){
+ case 'cat-card':return catCard();
+ case 'cat-card2':return catCard2(STATE['ccard']);
+ case 'xlsx':return xlsx(STATE['i9']);
+ case 'cat-note':return catNote();
+ }return ''}
+function layout(){document.querySelectorAll('.vp').forEach(function(v){var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');inn.style.width=w+'px';inn.style.height=h?h+'px':'auto';var hh=h||inn.offsetHeight;var sc=Math.min(1,v.clientWidth/w);inn.style.transform='scale('+sc+')';v.style.height=Math.ceil(hh*sc)+'px'})}
+function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});layout()}
+document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){var sec=bar.getAttribute('data-sec');bar.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){STATE[sec]=b.getAttribute('data-v');bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});renderAll()})})});
+renderAll();window.addEventListener('resize',layout);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layout);setTimeout(layout,400);
+
+/* ================= questions ================= */
+var KEY="batch-a3-category-planning-v1",S={};
+try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+var Q=[
+{id:"Q2",item:"9",title:"What are &ldquo;the three values&rdquo; in the category average?",ask:"Pick the closest, and say more in the note if none fits.",
+ opts:[
+ {k:"A",l:"The three periods: 1Y, 3Y and 5Y",rec:1,d:"The card shows a fund return and a category average for each of the three."},
+ {k:"B",l:"For each period: the fund&rsquo;s return, the category average, and the gap between them",d:"Three numbers that a reader compares."},
+ {k:"C",l:"Three kinds of average: the period averages, the legacy blended average, and a plain average",d:"The code carries all three."}],
+ why:"The Excel explains all of them either way. Your answer decides what the Excel&rsquo;s Read me leads with.",
+ commit:"<b>Recorded from your three examples (my reading):</b> option B. Each example is one period&rsquo;s row: the gap (for example +1.2%) over the fund against the category average (4.6% vs 3.4%). You did not pick an option, so tell me if that is not what you meant."},
+{id:"Q3",item:"9",title:"Should the stored category average be recomputed after a later price run?",ask:"Pick one.",
+ ctx:"The same question as in A1 (Q5) and A2: the stored XIRR, rank and average are built once, at 06:30, and the 10:30 and 14:00 price runs do not rebuild them. One answer covers all three plans.",
+ opts:[
+ {k:"A",l:"No: keep the single 06:30 recompute; look at the logs first",rec:1,d:"Good: nothing to build. Bad: a fund that only fills at 10:30 or 14:00 shows its old figure until next morning."},
+ {k:"B",l:"Yes, one recompute after the 14:00 run, only when that run filled something",d:"Good: catches up the same day. Bad: one more job to build and watch."},
+ {k:"C",l:"Yes, after every price run",d:"Good: always current. Bad: three recomputes a day."}],
+ why:"The log is free and gives the answer with data. This is the question for your manager.",
+ commit:"A: no build. B or C: a small job change, tested."}
+];
+
+var PRE={
+ Q2:{k:"B",n:"+1.2%\n4.6% vs 3.4%\n\n-1.1%\n12.8% vs 13.9%\n\n-4.8%\n6.4% vs 11.2%\n\nthese three values   (recorded as option B from your examples; see the note above)"}
+};
+var LOCK={};
+Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
+var cards=document.getElementById("cards");
+Q.forEach(function(q){
+ var c=document.createElement("div");c.className="card";c.id=q.id.toLowerCase();c.setAttribute("data-q",q.id);
+ var h='<header><span class="id">'+q.id+' &middot; item '+q.item+'</span><h3>'+q.title+'</h3><span class="status todo" data-st>unanswered</span></header><p class="ask"><b>'+q.ask+'</b></p>';
+ if(q.ctx)h+='<p class="ctx">'+q.ctx+'</p>';
+ if(q.opts){h+='<div class="opts">';
+  q.opts.forEach(function(o){h+='<label class="opt'+(o.rec?' isrec':'')+'"><input type="radio" name="'+q.id+'" value="'+o.k+'"'+(LOCK[q.id]?' disabled':'')+'><div><b>'+o.k+'. '+o.l+(o.rec?'<span class="tag me">my pick</span>':'')+'<span class="tag chosen" hidden>Chosen option</span></b><span class="d">'+o.d+'</span></div></label>'});
+  h+='</div>';}
+ if(q.why)h+='<div class="why"><b>Why my pick.</b> '+q.why+'</div>';
+ if(q.commit)h+='<div class="commit"><b>What this answer commits us to.</b> '+q.commit+'</div>';
+ if(q.type==="text")h+='<label class="nl" for="t-'+q.id+'">Your answer</label><textarea id="t-'+q.id+'" placeholder="'+(q.ph||"")+'"'+(LOCK[q.id]?' readonly':'')+'></textarea>';
+ h+='<label class="nl" for="n-'+q.id+'">Notes (optional)</label><textarea id="n-'+q.id+'" placeholder="Anything I should know"'+(LOCK[q.id]?' readonly':'')+'></textarea>';
+ c.innerHTML=h;cards.appendChild(c);
+});
+function answered(q){if(LOCK[q.id])return true;var a=S[q.id]||{};return q.type==="text"?!!(a.t&&a.t.trim()):!!a.k}
+function setSt(st,ok){st.textContent=ok?"answered":"unanswered";st.className=ok?"tag ok":"status todo"}
+function build(){
+ var L=["BATCH A3 PLANNING (CATEGORY AVERAGE AND EXCEL): MY ANSWERS (17 Nov 2026)",""];
+ Q.forEach(function(q){
+  var a=S[q.id]||{},ln=q.id+" ("+q.item+") "+q.title.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")+"\n  Answer: ";
+  if(a.k){var o=q.opts.filter(function(x){return x.k===a.k})[0];ln+=a.k+". "+o.l.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")}
+  else if(!(a.t&&a.t.trim()))ln+="NOT ANSWERED";
+  if(a.t&&a.t.trim())ln+=(a.k?"\n  Details: ":"")+a.t.trim();
+  if(a.n&&a.n.trim())ln+="\n  Note: "+a.n.trim();
+  L.push(ln);L.push("");
+ });
+ return L.join("\n");
+}
+function paint(){
+ var n=0;
+ Q.forEach(function(q){
+  var c=document.getElementById(q.id.toLowerCase()),a=S[q.id]||{};
+  c.querySelectorAll(".opt").forEach(function(o){var r=o.querySelector("input");r.checked=(a.k===r.value);o.classList.toggle("on",r.checked);var b=o.querySelector(".chosen");if(b)b.hidden=!r.checked});
+  var t=document.getElementById("t-"+q.id);if(t&&document.activeElement!==t)t.value=a.t||"";
+  var nn=document.getElementById("n-"+q.id);if(nn&&document.activeElement!==nn)nn.value=a.n||"";
+  var ok=answered(q);if(ok)n++;setSt(c.querySelector("[data-st]"),ok);
+ });
+ document.getElementById("prog").textContent=n+" of "+Q.length+" answered";
+ document.getElementById("outTa").value=build();
+ document.querySelectorAll("#cards textarea[readonly]").forEach(function(x){x.style.height="auto";x.style.height=Math.min(x.scrollHeight+4,420)+"px"});
+}
+cards.addEventListener("change",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.type==="radio")S[q].k=e.target.value;save();paint()});
+cards.addEventListener("input",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};
+ if(e.target.id==="t-"+q)S[q].t=e.target.value;if(e.target.id==="n-"+q)S[q].n=e.target.value;save();
+ document.getElementById("outTa").value=build();
+ var qq=Q.filter(function(x){return x.id===q})[0];setSt(c.querySelector("[data-st]"),answered(qq));
+ var n=0;Q.forEach(function(x){if(answered(x))n++});document.getElementById("prog").textContent=n+" of "+Q.length+" answered";});
+function copy(){
+ var ta=document.getElementById("outTa"),m=document.getElementById("copyMsg");ta.value=build();
+ function fb(){ta.removeAttribute("readonly");ta.select();try{document.execCommand("copy");m.textContent="Copied (or select and copy the text below)"}catch(e){m.textContent="Select the text below and copy it"}ta.setAttribute("readonly","")}
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(function(){m.textContent="Copied. Paste it in chat."},fb)}else fb();
+}
+document.getElementById("copyBtn").addEventListener("click",copy);
+document.getElementById("copyTop").addEventListener("click",function(){copy();document.getElementById("copy").scrollIntoView()});
+document.getElementById("jump").addEventListener("click",function(){for(var i=0;i<Q.length;i++){if(!answered(Q[i])){document.getElementById(Q[i].id.toLowerCase()).scrollIntoView({behavior:"smooth"});return}}});
+paint();
+})();
+</script>
+</body>
+</html>

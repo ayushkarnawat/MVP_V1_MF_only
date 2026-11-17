@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Batch A4: Load Times Investigation Report</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+
+<style>
+
+/* Layout: sticky contents rail + one reading column. Brand: DM Sans headings, Manrope body, #22C55E for actions, a deeper green for text and links. Mockups are drawn at real window sizes and scaled to fit the column. */
+:root{
+ --bg:#FCFCFC; --surface:#FFFFFF; --surface-2:#F3F5F3; --line:#E5E5E5;
+ --fg:#111111; --muted:#5C5C5C; --accent:#22C55E; --accent-deep:#15803D; --accent-soft:#EAFBF0;
+ --warn:#B45309; --warn-soft:#FEF3E2; --info:#2F5FB3; --info-soft:#E8EFFB;
+ --danger:#B3321F; --danger-soft:#FBE6E2; --on-accent:#0B1F12;
+ --f-display:'DM Sans','Segoe UI',system-ui,sans-serif;
+ --f-body:'Manrope','Segoe UI',system-ui,sans-serif;
+ --f-mono:ui-monospace,'SF Mono',Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+ padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4,h5{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent-deep)}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent-deep)}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:70ch;margin:0 0 10px}
+.meta{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+section{margin-top:56px;scroll-margin-top:16px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:74ch}
+h3.sub{font-size:18px;margin:28px 0 8px}
+h4.mini{font-size:15px;margin:18px 0 6px}
+p{margin:8px 0}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700}
+.tag{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.fe{background:var(--info-soft);color:var(--info)}
+.tag.be{background:var(--warn-soft);color:var(--warn)}
+.tag.db{background:var(--danger-soft);color:var(--danger)}
+.tag.ok{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.none{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tag.me{background:var(--accent-soft);color:var(--accent-deep);margin-left:6px}
+.tag.chosen{background:var(--accent);color:var(--on-accent);margin-left:6px}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul,ul.tight{margin:6px 0;padding-left:20px}
+.sumbox li,ul.tight li{margin:5px 0}
+.callout{background:var(--warn-soft);border-radius:10px;padding:12px 14px;margin:14px 0;font-size:14px}
+.callout.good{background:var(--accent-soft)}
+.callout.info{background:var(--info-soft)}
+.callout.bad{background:var(--danger-soft)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.cols>div{min-width:0}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.flow>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 16px;min-width:0}
+.flow h4{font-size:15px;margin-bottom:6px}
+.flow ol{margin:4px 0;padding-left:20px}.flow li{margin:5px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.stat .n{font:700 26px var(--f-display)}.stat .l{font-size:12.5px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin:12px 0;align-items:start}
+@media (max-width:860px){.pair{grid-template-columns:minmax(0,1fr)}}
+.cap{margin:14px 0 6px;font-size:13px}
+.cap b{font-family:var(--f-display)}
+.note{color:var(--muted);font-size:12.5px}
+.winbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.winbar span{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.winbar button{padding:6px 12px;font-size:12.5px;background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.winbar button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+/* decision cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:60px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:600 12px var(--f-body);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--accent)}
+.opt.on{background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt input:disabled{cursor:default}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.why{border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--accent-deep)}
+.reply{background:var(--info-soft);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:14px}
+.reply p{margin:6px 0}.reply ul{margin:6px 0;padding-left:20px}
+.commit{border-left:3px solid var(--info);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.commit b{color:var(--info)}
+textarea{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-height:56px;resize:vertical}
+label.nl{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin:10px 0 4px}
+button{font:inherit;font-size:14px;font-weight:600;padding:9px 16px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);cursor:pointer}
+button.ghost{background:transparent;color:var(--accent-deep)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.status{font:600 11px var(--f-body)}.status.todo{color:var(--warn)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.out{min-height:240px;font-family:var(--f-mono);font-size:12.5px}
+.tabs{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.doc{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:18px 20px;margin:12px 0}
+.doc h4{font-size:17px;margin-bottom:8px}
+.doc h5{font-size:14px;margin:14px 0 4px}
+.doc ul{margin:6px 0;padding-left:20px}.doc li{margin:4px 0}
+
+/* ---------- scaled real-size frames ---------- */
+.vp{position:relative;width:100%;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#fff}
+.vp-in{position:absolute;left:0;top:0;transform-origin:0 0;background:#fff;color:#111;font-family:'Manrope','Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}
+.vp-in *{box-sizing:border-box}
+.vp-in h5,.vp-in h4,.vp-in h3,.vp-in h2,.vp-in h1{font-family:'DM Sans','Segoe UI',system-ui,sans-serif;margin:0}
+.vp-in p{margin:0}
+.chrome{height:40px;background:#EEF1EE;border-bottom:1px solid #D9DED9;display:flex;align-items:center;gap:8px;padding:0 14px}
+.chrome i{width:11px;height:11px;border-radius:50%;background:#C8CFC8;display:block;flex:none}
+.chrome span{flex:1;max-width:520px;margin-left:12px;background:#fff;border:1px solid #D9DED9;border-radius:99px;padding:3px 14px;font-size:12px;color:#5C5C5C}
+.w1280{--vw:1280px;--vh:600px;--card-h:552px;--pad-y:14px;--gap:10px;--gap-sm:5px;--h1:26px;--btn-h:44px;--row-h:46px;--chip-h:34px;--badge:34px;--body:13.5px}
+.w1440{--vw:1440px;--vh:810px;--card-h:762px;--pad-y:36px;--gap:22px;--gap-sm:12px;--h1:34px;--btn-h:54px;--row-h:64px;--chip-h:48px;--badge:44px;--body:15px}
+.w1536{--vw:1536px;--vh:730px;--card-h:682px;--pad-y:28px;--gap:16px;--gap-sm:9px;--h1:30px;--btn-h:48px;--row-h:54px;--chip-h:42px;--badge:38px;--body:14px}
+.d-page{height:var(--vh);display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#EEF9F1,#F8FDF9)}
+.d-card{width:min(1240px,calc(var(--vw) - 64px));height:var(--card-h);background:#fff;border-radius:28px;box-shadow:0 18px 50px rgba(20,48,31,.13);display:grid;grid-template-columns:.95fr 1fr;overflow:hidden}
+.d-left{padding:var(--pad-y) 40px;display:flex;flex-direction:column;background:linear-gradient(160deg,#F2FCF6,#E7F7EC);min-height:0;overflow:hidden}
+.d-left.white{background:#fff}
+.d-logo{font:700 26px 'DM Sans',sans-serif;color:#111;flex:none}
+.d-sketch{margin:var(--gap) auto;flex:1;min-height:60px;max-height:230px;width:70%;max-width:330px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#D6F3DF,#EAFBF0);color:#15803D;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.d-h2{font:700 calc(var(--h1) + 2px) 'DM Sans',sans-serif;line-height:1.15;flex:none}
+.d-h2 span{color:#15803D}
+.d-p{color:#5C5C5C;font-size:var(--body);margin-top:var(--gap-sm);flex:none}
+.d-bul{display:flex;gap:10px;align-items:center;margin-top:var(--gap-sm);font-size:var(--body);flex:none}
+.d-bul i{flex:none;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #D2EEDB;display:block}
+.d-right{padding:var(--pad-y) 48px;display:flex;flex-direction:column;min-height:0}
+.d-top{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;color:#5C5C5C;font-size:13px}
+.d-steps{display:flex;gap:6px;align-items:center}.d-steps i{width:34px;height:5px;border-radius:3px;background:#22C55E;display:block}.d-steps i.off{background:#E5E7EC}
+.d-content{flex:1;min-height:0;overflow-y:auto;display:flex}
+.d-inner{margin:auto;width:100%;max-width:520px;padding:8px 0}
+.fitb{position:absolute;right:10px;bottom:10px;z-index:3;font:600 12px 'Manrope',sans-serif;padding:4px 10px;border-radius:99px;background:#EAFBF0;color:#15803D;border:1px solid #BFE9CC}
+.fitb.bad{background:#FBE6E2;color:#B3321F;border-color:#F3B8AE}
+.o-stack{display:flex;flex-direction:column;gap:var(--gap)}
+.o-sec{display:flex;flex-direction:column;gap:var(--gap-sm)}
+.o-h1{font:700 var(--h1) 'DM Sans',sans-serif;line-height:1.15}
+.o-sub{color:#667085;font-size:var(--body)}
+.o-opt{display:flex;align-items:center;gap:12px;min-height:var(--row-h);border:1px solid #E5E7EC;border-radius:16px;padding:0 16px;background:#fff}
+.o-opt.tt{min-height:min(var(--row-h),54px)}
+.o-opt.sel{border-color:#22C55E;background:#F4FCF6;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.o-opt.quiet{border-color:transparent;background:#F6F8F6}
+.o-badge{flex:none;width:var(--badge);height:var(--badge);border-radius:50%;background:#EAFBF0;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:11px}
+.o-opt b{display:block;font-size:var(--body);font-weight:600}
+.o-opt small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.o-rad{margin-left:auto;flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid #C5CBC5}
+.o-opt.sel .o-rad{background:#22C55E;border-color:#22C55E;box-shadow:inset 0 0 0 4px #fff}
+.o-grp{border:1px solid #E5E7EC;border-radius:16px;overflow:hidden}
+.o-grp .o-opt{border:0;border-radius:0;border-bottom:1px solid #EEF0EE}
+.o-grp .o-opt:last-child{border-bottom:0}
+.o-h2{display:flex;justify-content:space-between;align-items:baseline;gap:10px;white-space:nowrap}
+.o-h2 b{font:600 15px 'DM Sans',sans-serif}
+.o-h2 span{font-size:13px;color:#667085;font-weight:400}
+.o-h2 a{font-size:13px;color:#15803D;font-weight:600}
+.o-chips{display:grid;gap:var(--gap-sm)}
+.o-chips.c3{grid-template-columns:repeat(3,1fr)}.o-chips.c2{grid-template-columns:repeat(2,1fr)}
+.o-chip{display:flex;align-items:center;gap:8px;min-height:var(--chip-h);border:1px solid #E5E7EC;border-radius:14px;padding:0 10px;font-size:12.5px;line-height:1.25;background:#fff}
+.o-chip i{flex:none;width:20px;height:20px;border-radius:6px;background:#EAFBF0;display:block}
+.o-chip em{margin-left:auto;flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid #C5CBC5}
+.o-chip.sel{border-color:#22C55E;background:#F4FCF6}.o-chip.sel em{background:#22C55E;border-color:#22C55E}
+.o-pills{display:flex;flex-wrap:wrap;gap:var(--gap-sm)}
+.o-pill{display:flex;align-items:center;gap:8px;border:1px solid #E5E7EC;border-radius:99px;min-height:var(--chip-h);padding:0 14px;font-size:13px;background:#fff}
+.o-pill i{width:16px;height:16px;border-radius:50%;background:#EAFBF0;display:block}
+.o-pill.sel{background:#22C55E;border-color:#22C55E;color:#0B1F12;font-weight:600}.o-pill.sel i{background:rgba(11,31,18,.25)}
+.o-panel{background:#F6F9F6;border-radius:18px;padding:14px}
+.o-go{height:var(--btn-h);border-radius:99px;background:#22C55E;color:#0B1F12;font:700 15px 'Manrope',sans-serif;display:flex;align-items:center;justify-content:center}
+.o-go.dis{background:#E5E7EC;color:#6B7280}
+.o-tabs{display:flex;background:#F1F3F1;border-radius:99px;padding:3px;gap:3px}
+.o-tabs span{flex:1;text-align:center;padding:7px;border-radius:99px;font-size:13px;color:#667085}
+.o-tabs span.on{background:#fff;color:#111;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.o-field{border:1px solid #D0D5DD;border-radius:12px;padding:11px 14px;font-size:14px}
+.o-lab{font-size:13px;font-weight:600;margin-bottom:5px}
+.o-alert{background:#FEF3F2;border:1px solid #FDA29B;color:#B42318;border-radius:12px;padding:10px 14px;font-size:13.5px}
+.o-red{color:#B42318;font-size:13px;margin-top:6px}
+.st{display:flex;gap:12px;align-items:flex-start;margin-top:var(--gap-sm)}
+.st i{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:13px;background:#22C55E;color:#0B1F12;margin-top:2px}
+.st i.spin{background:transparent;border:2.5px solid #E5E7EC;border-top-color:#22C55E}
+.st i.big{transform:scale(1.28)}
+.st b{display:block;font-size:var(--body);font-weight:600}.st small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.a-card{border:1px solid #E5E7EC;border-radius:16px;padding:12px 16px}
+.a-info{background:#F3F5F3;border-radius:16px;padding:12px 16px}
+.a-info b{display:block}
+/* dialogs */
+.dlg-bg{height:720px;position:relative;background:#F4F6F4;overflow:hidden}
+.dlg-bg .fake{position:absolute;inset:60px 90px;border:2px dashed #C8D3C8;border-radius:20px;filter:blur(2px);opacity:.9;background:#fff}
+.dlg-bg .dim{position:absolute;inset:0;background:rgba(17,17,17,.5);display:flex;align-items:center;justify-content:center}
+.dlg{background:#fff;border-radius:16px;padding:24px;width:448px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg h5{font-size:18px;font-weight:700;line-height:1.25}
+.dlg .body{color:#5C5C5C;font-size:14px}
+.dlg .foot{display:flex;gap:8px;justify-content:flex-end}
+.dlg.ph{width:100%}
+.dlg.ph .foot{flex-direction:column-reverse}
+.dbtn{font:700 13.5px 'Manrope',sans-serif;padding:10px 16px;border-radius:12px;border:1.5px solid #22C55E;background:#22C55E;color:#0B1F12;text-align:center}
+.dbtn.o{background:#fff;color:#15803D}
+.dwarn{display:flex;gap:10px;align-items:flex-start;background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:14px;padding:12px 14px;font-size:13.5px}
+.dwarn b{display:block;margin-bottom:2px}
+.dwarn i{flex:none;width:22px;height:22px;border-radius:50%;background:#F59E0B;color:#fff;font:700 13px 'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;font-style:normal;margin-top:1px}
+/* phone shell */
+.phs{width:390px;padding:14px;background:#111;border-radius:46px}
+.phs .scr{background:#fff;border-radius:34px;overflow:hidden;min-height:700px;position:relative}
+.phs .sb{height:34px;display:flex;justify-content:center;align-items:center}
+.phs .sb b{width:96px;height:22px;background:#111;border-radius:99px;display:block}
+.phs.dark .scr{background:#0F0F0F}
+/* email */
+.emx{--e-bg:#EEF6F0;--e-card:#fff;--e-ink:#111;--e-muted:#5C5C5C;--e-green:#15803D;--e-pale:#EEF8F0;--e-dark:#14301F;--e-line:#E5E5E5;--e-ic:#EAFBF0;--e-ill:#EAFBF0;--e-linkb:#D9E0D9;--e-small:#4ADE80;padding:20px 14px;background:var(--e-bg)}
+.emx.dark{--e-bg:#0F0F0F;--e-card:#1A1A1A;--e-ink:#F5F5F5;--e-muted:#A3A3A3;--e-green:#34D399;--e-pale:#17261C;--e-dark:#14301F;--e-line:#2A2A2A;--e-ic:#1F3B28;--e-ill:#F2FCF6;--e-linkb:#2F3A31;--e-small:#4ADE80}
+.emx.narrow{padding:12px 8px}
+.em-card{background:var(--e-card);color:var(--e-ink);border-radius:18px;padding:22px 22px 16px;width:100%}
+.narrow .em-card{padding:16px 14px 12px}
+.em-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.em-logo{font:700 24px 'DM Sans',sans-serif;color:var(--e-ink)}
+.em-tag{font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;color:var(--e-green)}
+.em-hd{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.em-hd>div:first-child{min-width:0}
+.em-h1{font:700 32px 'DM Sans',sans-serif;line-height:1.1}
+.em-h1 span{color:var(--e-green)}
+.narrow .em-h1{font-size:25px}
+.em-sub{color:var(--e-muted);margin-top:10px;font-size:15px}
+.narrow .em-sub{font-size:13.5px}
+.em-ill{flex:none;width:150px;height:118px;border-radius:50%;background:var(--e-ill);color:#15803D;font-size:11px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.narrow .em-ill{width:96px;height:78px;font-size:9px}
+.em-dark{background:var(--e-dark);color:#fff;border-radius:14px;padding:16px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:15px}
+.narrow .em-dark{padding:12px;gap:10px;font-size:13.5px}
+.em-dark>div{min-width:0}
+.em-dark small{display:block;color:var(--e-small);font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;margin-bottom:2px}
+.em-dark b{display:block;font:700 19px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-ic{flex:none;width:44px;height:44px;border-radius:50%;background:var(--e-ic);color:#15803D;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center}
+.narrow .em-ic{width:34px;height:34px;font-size:8px}
+.em-pale{background:var(--e-pale);border-radius:14px;padding:14px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:14.5px}
+.narrow .em-pale{padding:10px 12px;gap:10px;font-size:13px}
+.em-pale>div{min-width:0}
+.em-pale b{display:block;color:var(--e-green);font:700 17px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-line{display:flex;gap:14px;align-items:center;margin:0 0 12px;font-size:14.5px}
+.narrow .em-line{gap:10px;font-size:13px}
+.em-line>div{min-width:0}
+.em-btn{display:block;text-align:center;background:#22C55E;color:#0B1F12;font:700 17px 'Manrope',sans-serif;padding:16px;border-radius:99px;margin:0 0 16px}
+.narrow .em-btn{font-size:15px;padding:13px}
+.em-link{border:1px solid var(--e-linkb);border-radius:12px;padding:9px 12px;font-size:12.5px;color:var(--e-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:8px;max-width:100%}
+.em-foot{border-top:1px solid var(--e-line);margin-top:14px;padding-top:12px;font-size:13px;color:var(--e-muted)}
+.em-foot a{color:var(--e-green)}
+.em-foot b{display:block;color:var(--e-ink);font:700 16px 'DM Sans',sans-serif;margin-top:10px}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}nav.toc{position:static;max-height:none}}
+
+/* ---------- Batch A additions: app-style mockups ---------- */
+.ap{background:#F6F8F6;font-size:13.5px;color:#111}
+.ap-body{padding:20px 24px}
+.ap-h{font:700 20px 'DM Sans',sans-serif;margin-bottom:12px}
+.ap-card{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:16px}
+.ap-card h5{font:700 16px 'DM Sans',sans-serif;margin-bottom:4px}
+.ap-mut{color:#667085;font-size:12px}
+.ap-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ap-tile{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:10px 12px}
+.ap-tile small{display:block;color:#667085;font-size:11.5px}
+.ap-tile b{font:700 20px 'DM Sans',sans-serif}
+.ap-tile .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.seg{display:inline-flex;border:1px solid #E5E7EB;border-radius:8px;padding:2px;font-size:11px}
+.seg span{padding:2px 8px;border-radius:6px;color:#667085}
+.seg span.on{background:#F1F3F1;color:#111;font-weight:600}
+.ap-t{width:100%;min-width:0;border-collapse:collapse;font-size:12.5px}
+.ap-t th{background:#fff;color:#667085;font:600 11.5px 'Manrope',sans-serif;letter-spacing:0;text-transform:none;text-align:left;padding:8px 10px;border-bottom:1px solid #E5E7EB}
+.ap-t td{padding:9px 10px;border-bottom:1px solid #EEF0EE;vertical-align:top}
+.ap-logoc{flex:none;width:28px;height:28px;border-radius:8px;background:#EAFBF0;color:#15803D;font:700 11px 'DM Sans';display:flex;align-items:center;justify-content:center}
+.ap-fund{display:flex;gap:10px;align-items:flex-start}
+.note-box{background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:8px 10px;font-size:12px;margin-top:8px}
+.circ{outline:2px solid #D92D20;outline-offset:2px;border-radius:8px}
+.rk{display:inline-block;font:700 13px 'DM Sans',sans-serif;background:#EAFBF0;color:#15803D;border-radius:99px;padding:2px 10px}
+.rk small{font:500 11px 'Manrope',sans-serif;color:#667085;margin-left:3px}
+.fn{display:grid;gap:6px}
+.fn .r{display:grid;grid-template-columns:230px 1fr 90px;gap:10px;align-items:center;font-size:12.5px}
+.fn .b{height:18px;border-radius:5px;background:#22C55E}
+.fn .b.x{background:#F59E0B}
+.fn .n{font-weight:700;text-align:right}
+.cmp{display:grid;gap:14px}
+.cmp .p{display:grid;grid-template-columns:44px 1fr 150px;gap:12px;align-items:center}
+.cmp .trk{position:relative;height:22px}
+.cmp .trk::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:#E5E7EB}
+.cmp .d{position:absolute;top:4px;width:14px;height:14px;border-radius:50%;transform:translateX(-7px)}
+.cmp .d.f{background:#22C55E}
+.cmp .d.c{border:2px solid #667085;background:#fff}
+.cmp .v{font-size:12px;color:#667085}
+.lab{font:600 11px 'Manrope',sans-serif;color:#B42318;background:#FDECEA;border-radius:99px;padding:1px 8px;margin-left:6px}
+.wf{display:grid;gap:7px}
+.wf .r{display:grid;grid-template-columns:210px 1fr 80px;gap:10px;align-items:center;font-size:12px}
+.wf .tr{position:relative;height:16px;background:#F1F3F1;border-radius:4px}
+.wf .tr i{position:absolute;top:0;bottom:0;border-radius:4px;background:#0EA5E9}
+.wf .tr i.s{background:#F59E0B}
+.wf .n{text-align:right;font-weight:600}
+.steps5{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+.steps5>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13.5px}
+.steps5 b{display:block;font-family:var(--f-display);margin-bottom:3px}
+.code2{font-family:var(--f-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow:auto;white-space:pre;margin:8px 0}
+.xl{background:#fff;font-size:12px}
+.xl .tabs2{display:flex;gap:2px;background:#E8ECE8;padding:6px 8px 0;font-size:12px}
+.xl .tabs2 span{padding:5px 12px;border-radius:6px 6px 0 0;background:#F3F5F3;color:#444}
+.xl .tabs2 span.on{background:#fff;font-weight:700;color:#107C41}
+.xl .fx{display:flex;gap:8px;align-items:center;border-bottom:1px solid #D9DED9;padding:4px 10px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#333;background:#fff}
+.xl .fx b{color:#107C41;font-family:Manrope,sans-serif}
+.xl table.g{border-collapse:collapse;width:100%;min-width:0;font-size:12px}
+.xl table.g th{background:#F3F5F3;border:1px solid #D9DED9;padding:4px 8px;text-align:left;font:600 11.5px Manrope,sans-serif;color:#333;text-transform:none;letter-spacing:0}
+.xl table.g td{border:1px solid #E6EAE6;padding:4px 8px;vertical-align:top}
+.xl td.f{font-family:ui-monospace,Consolas,monospace;background:#F1FAF4;color:#14532D}
+.xl td.ok{color:#14532D;font-weight:700}
+.xl td.no{color:#B42318;font-weight:700}
+.pend{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;background:var(--warn-soft);color:var(--warn)}
+.a4{width:595px;height:842px;background:#fff;border:1px solid #D0D5DD;box-shadow:0 8px 30px rgba(0,0,0,.10);position:relative;font-family:'Manrope',sans-serif;color:#111;overflow:hidden;margin:0 auto}
+.a4 .hd{display:flex;justify-content:space-between;font-size:9px;color:#667085;padding:22px 36px 8px;border-bottom:1px solid #EEF0EE}
+.a4 .ft{position:absolute;left:36px;right:36px;bottom:20px;display:flex;justify-content:space-between;font-size:8.5px;color:#98A2B3;border-top:1px solid #EEF0EE;padding-top:6px}
+.a4 h1{font:700 30px 'DM Sans',sans-serif;line-height:1.1;margin:0}
+.a4 h2{font:700 17px 'DM Sans',sans-serif;margin:0 0 6px}
+.a4 .brand{font:700 22px 'DM Sans',sans-serif}
+.a4 .acc{height:10px;background:#22C55E}
+.a4 .meta2{font-size:11px;color:#475467;line-height:1.7}
+.a4 .toc div{display:flex;justify-content:space-between;font-size:10.5px;padding:3px 0;border-bottom:1px dotted #D0D5DD}
+.a4 .toc b{font:700 11px 'DM Sans',sans-serif;display:block;margin-top:10px;color:#15803D}
+.a4 table{width:100%!important;min-width:0!important;table-layout:fixed;border-collapse:collapse}.a4 th,.a4 td{background:none!important;text-transform:none!important;letter-spacing:0!important;font-size:inherit!important;font-weight:inherit;padding:5px 4px 5px 0!important;border-left:0;border-right:0}.a4 th{font-weight:600!important;color:#667085}.a4 td:first-child{font-weight:inherit}
+.xdoc{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:16px 18px;margin:12px 0}
+.dt{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:12px 0}.dt>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13px}.dt b{display:block;font-family:var(--f-display);margin-bottom:3px}.dt .y{border-color:var(--accent);background:var(--accent-soft)}.dt .n{border-color:var(--danger);background:var(--danger-soft)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+ <h4>Start here</h4>
+ <a href="#status">0. Status and scope</a>
+ <a href="#summary">1. Summary</a>
+ <h4>What we know</h4>
+ <a href="#symptom">2. The symptom</a>
+ <a href="#anatomy">3. How a page load works</a>
+ <a href="#findings">4. What the code shows so far</a>
+ <h4>How we would find out</h4>
+ <a href="#hyp">5. The hypotheses</a>
+ <a href="#design">6. Measurement design</a>
+ <a href="#pages">7. Every page</a>
+ <a href="#laptops">8. The slow laptops</a>
+ <a href="#analysis">9. Reading the results</a>
+ <h4>What it could lead to</h4>
+ <a href="#fixes">10. Candidate fixes (not approved)</a>
+ <a href="#targets">11. Proposed targets</a>
+ <a href="#limits">12. Risks and limits</a>
+ <a href="#report">13. The final report</a>
+ <a href="#before">14. Needed before we execute</a>
+ <a href="#prov">What I checked</a>
+</nav>
+
+<main>
+<div class="hero">
+ <h1>Batch A4: Load Times Investigation Report</h1>
+ <div class="meta">Investigation documentation only &middot; nothing measured on staging, nothing changed &middot; 17 Nov 2026 &middot; item 7 &middot; for your review; execution later</div>
+ <p><b>What this is.</b> The report for item 7: why the Mutual Funds Overview is slow on some stakeholder laptops, and how long every other page takes at about 40 lakh. It is a <b>reading of the code and a design for the investigation</b>, not a set of measurements. It records what the code shows, what is still unknown, exactly how we would measure it, how we would read the results, and which fixes each possible result would point to. <b>No fix is planned or approved here.</b> You will review this and decide when to execute.</p>
+ <p><b>How this was made.</b> I read the code, read-only: the Overview&rsquo;s data hook and page, the backend caches, every place the XIRR is computed, the staging compose file and the cron schedule, and the front-end build configuration. Every statement about the code is labelled <em>read in code</em>; anything I only suspect is labelled <em>to be confirmed</em>. Nothing was run on staging, no real data was read, and I did not open the live app. The one number I have (the XIRR solver time) was measured on my machine on invented flows. Mockups are drawings with made-up numbers, laptop only; the phone view is out of scope.</p>
+</div>
+<section id="status">
+ <h2>0. Status and scope</h2>
+ <div class="callout"><b>Documentation only.</b> This report plans and structures the investigation. It does not measure anything, change any code, or propose a fix for approval. Execution is a separate step you will start after reviewing this.</div>
+ <div class="stats">
+  <div class="stat"><div class="n">10</div><div class="l">hypotheses (L1 to L10)</div></div>
+  <div class="stat"><div class="n">7</div><div class="l">findings from the code</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">things measured so far on staging</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">fixes proposed for approval</div></div>
+ </div>
+ <div class="scroll"><table>
+  <thead><tr><th>In scope</th><th>Out of scope for now</th></tr></thead>
+  <tbody><tr><td><ul class="tight"><li>Every page at about 40 lakh: Home, Portfolio, Mutual Funds (seven tabs), fund page, Planning, History, Import history, Profile.</li><li>Separating server, network and laptop time.</li><li>The slow-laptop facts we need from stakeholders.</li><li>The shape of the final report.</li></ul></td><td><ul class="tight"><li>Any code change or fix.</li><li>Running measurements (that is the execution step).</li><li>The phone view.</li><li>Real household data (only an invented household, unless you allow otherwise).</li></ul></td></tr></tbody>
+ </table></div>
+</section>
+
+<section id="summary">
+ <h2>1. Summary</h2>
+ <div class="callout good"><b>In five sentences.</b> The Overview asks the server for about four-plus-N requests at once, where N is the number of members. On the server, the holdings work is cached <b>inside each of the three backend processes separately</b>, and the XIRR is recomputed in exact arithmetic on several routes with no cache found. The front end is delivered as <b>one bundle</b>: I found only one lazily loaded screen, a developer index. Several of the plausible causes would hit only some people (a weak laptop, a slow network, a bigger household, a cold process), which matches &ldquo;fine for us, slow for some&rdquo;. Which of them is the real cause is <b>not known</b>: that is what the measurements are for.</div>
+ <div class="scroll"><table>
+  <thead><tr><th>We know (read in code)</th><th>We do not know yet</th></tr></thead>
+  <tbody><tr><td><ul class="tight"><li>The Overview request fan-out and what each request does.</li><li>Where the XIRR is recomputed (four routes) and that one call took 0.48 s for 1,801 flows on my machine.</li><li>That caches are per process, with three processes.</li><li>That the app is not code-split beyond one screen.</li><li>When the daily jobs run (06:00 to 06:30, 10:30, 14:00).</li></ul></td><td><ul class="tight"><li>How long each page really takes at 40 lakh, cold and warm.</li><li>How much is server, network or laptop.</li><li>How big the replies and the app bundle are.</li><li>What the slow laptops, networks and accounts have in common.</li><li>Whether the per-process caches cause visible cold opens in practice.</li></ul></td></tr></tbody>
+ </table></div>
+</section>
+
+<section id="symptom">
+ <h2>2. The symptom, and what its pattern suggests</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>What was reported</th><th>What it points at</th></tr></thead>
+  <tbody>
+   <tr><td>Fine on your laptop and your manager&rsquo;s; slow on some stakeholder laptops.</td><td>Something that differs between people: the laptop (CPU, memory, browser, extensions), the network, the account (size), the time of day, or which backend process answers. A pure server fault would be slow for everyone.</td></tr>
+   <tr><td>The Mutual Funds Overview in particular.</td><td>It is the heaviest page: the largest table, a chart, several requests, and the XIRR work.</td></tr>
+   <tr><td>&ldquo;Audit every page at about 40 lakh.&rdquo;</td><td>The cost grows with the household&rsquo;s size, so we need a repeatable large household and a small one for comparison.</td></tr>
+  </tbody>
+ </table></div>
+ <p>This is why the plan separates <b>three kinds of time</b> for every page: <b>server</b> (how long each route takes), <b>network</b> (when each request starts and ends, and how many bytes), and <b>browser</b> (the main-thread work after the data arrives, with the CPU slowed to imitate a weak laptop). A slowdown that appears in only one kind names its cause.</p>
+</section>
+
+<section id="anatomy">
+ <h2>3. How a page load works today (read in code)</h2>
+ <h3 class="sub">The path of one request</h3>
+ <div class="steps5">
+  <div><b>1. Browser</b>Loads the app files, then asks for data (about 4 plus one per member on the Overview).</div>
+  <div><b>2. Caddy</b>The web server on the staging VM passes the request on.</div>
+  <div><b>3. One of 3 backend processes</b>Three uvicorn workers; each is a separate process with its <b>own memory</b>.</div>
+  <div><b>4. Postgres</b>One database container on the same VM.</div>
+  <div><b>5. Reply</b>JSON back to the browser, which then builds the table and charts on the laptop&rsquo;s CPU.</div>
+ </div>
+ <h3 class="sub">What the Mutual Funds Overview asks for</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Request</th><th>Called from</th><th>What the server does</th><th>Note</th></tr></thead>
+  <tbody>
+   <tr><td>Holdings bundle</td><td><code>getHoldingsBundle(scope)</code></td><td>Holdings for the scope with the XIRR bundle and stored per-fund analytics</td><td>The heaviest; XIRR is computed here</td></tr>
+   <tr><td>History points</td><td><code>getHistoryPoints(scope)</code></td><td>The value series for the sparkline</td><td></td></tr>
+   <tr><td>Allocation</td><td><code>getAllocation(scope)</code></td><td>Category and fund-house split</td><td></td></tr>
+   <tr><td>SIPs</td><td><code>getSips(scope, true)</code></td><td>Instalments for the SIP timeline</td><td></td></tr>
+   <tr><td>Coverage gaps</td><td><code>getCoverageGaps(memberId)</code></td><td>Per member: statement coverage gaps</td><td><b>One request per member</b> (to be confirmed for the family view)</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">All started together by <code>useMfDashboard.ts</code>. A request that ends last decides when the page is complete.</p>
+ <div class="winbar" data-sec="wfall"><span>Illustrative waterfall</span><button type="button" data-v="a" aria-pressed="true">What we will draw</button></div>
+ <div data-frame="waterfall"></div>
+ <p class="note">Invented durations. The real chart is drawn from a browser recording of the Overview: which request ends last, which is large, and what the browser does after the last reply.</p>
+ <h3 class="sub">Where the XIRR is computed on the server (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Route or service</th><th>File and line</th><th>Used by</th></tr></thead>
+  <tbody>
+   <tr><td>Member dashboard</td><td><code>api/dashboard.py</code> line 200</td><td>One member&rsquo;s figures</td></tr>
+   <tr><td>Family aggregate</td><td><code>services/dashboard/aggregate.py</code> line 56</td><td>Family Combined</td></tr>
+   <tr><td>Portfolio route (two places)</td><td><code>api/portfolio.py</code> lines 63 and 73</td><td>Portfolio summary and allocation</td></tr>
+  </tbody>
+ </table></div>
+ <p>One solver call took <b>0.05 s</b> for 97 flows, <b>0.15 s</b> for 481 and <b>0.48 s</b> for 1,801 (<em>measured on my machine, invented flows, not the staging server</em>). The dashboard computes it for Lifetime and for Current, once more when a rate is above 35% (the opening-balance check), and again on each of the routes above. I found no result cache for it.</p>
+ <h3 class="sub">Caches, and why three processes matter</h3>
+ <div class="dt">
+  <div class="y"><b>Process 1</b>Holdings cache: warm for a household after the first request it served.</div>
+  <div class="n"><b>Process 2</b>Holdings cache: empty. The same household&rsquo;s next request that lands here recomputes everything.</div>
+  <div class="n"><b>Process 3</b>Holdings cache: empty. Same.</div>
+ </div>
+ <p>The holdings cache is an in-memory dictionary inside each backend process (<code>dashboard/holdings.py</code>, 15-minute lifetime, keyed by the members and the date). Staging runs <b>three</b> backend processes (<code>deploy/leapswitch/docker-compose.yml</code>). A request is answered by whichever process is free, so a household&rsquo;s &ldquo;second open&rdquo; can still be cold. <em>To be confirmed</em> by measurement: how often this shows as a cold open, and whether the cache is invalidated across processes after an import (a side finding, section 4).</p>
+ <h3 class="sub">How the app reaches the laptop</h3>
+ <p>The front end is a React and Vite app. <code>vite.config.ts</code> has no manual chunking, and in the source I found <b>one</b> lazily loaded screen (a developer index, <code>App.tsx</code>) and no other dynamic imports. So the Overview&rsquo;s code, and every other page&rsquo;s, probably ships in <b>one bundle</b>, loaded before anything appears (<em>to be confirmed</em> by building and measuring the bundle).</p>
+ <h3 class="sub">The daily schedule that shares the same server</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Time (India)</th><th>Job</th><th>Why it matters for speed</th></tr></thead>
+  <tbody>
+   <tr><td>05:40 to 06:35</td><td>Memory checks every 5 minutes</td><td>The team watches memory in exactly the window when the heavy jobs run.</td></tr>
+   <tr><td>06:00</td><td>Held-fund price refresh (43 s on 16 Nov), peers, benchmark job</td><td>Server busy; a page opened now is competing for CPU and memory.</td></tr>
+   <tr><td>06:30</td><td>Analytics recompute for all households</td><td>The heaviest scheduled job.</td></tr>
+   <tr><td>10:30, 14:00</td><td>Held-fund price retries</td><td>Light.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="findings">
+ <h2>4. What the code shows so far</h2>
+ <p class="lead">Seven findings. They are readings of the code, not measurements, and not conclusions.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>#</th><th>Finding</th><th>Why it matters</th><th>Status</th></tr></thead>
+  <tbody>
+   <tr><td>FL1</td><td>The Overview fires about four requests plus one per member, all at once.</td><td>On a slow network, the number of requests and their sizes both count.</td><td>Read in code; to be measured</td></tr>
+   <tr><td>FL2</td><td>The XIRR is computed in exact Decimal on four routes and again inside the Overview&rsquo;s bundle; no result cache found. One call: 0.48 s at 1,801 flows (my machine).</td><td>A real candidate for slow loads on big households. It cannot explain &ldquo;slow only on some laptops&rdquo; by itself.</td><td>Measured on invented flows only</td></tr>
+   <tr><td>FL3</td><td>The holdings cache is per backend process, lifetime 15 minutes; three processes run on staging.</td><td>The second open of the day can still be cold, which could look like &ldquo;slow sometimes&rdquo;.</td><td>Read in code; to be confirmed</td></tr>
+   <tr><td>FL4</td><td>One bundle: a single lazily loaded screen, no manual chunks.</td><td>Every page pays for every page&rsquo;s code on first load; worst on a slow network or slow CPU.</td><td>Read in code; bundle size to be measured</td></tr>
+   <tr><td>FL5</td><td>The memory watch runs 05:40 to 06:35 and the heaviest jobs run 06:00 to 06:30.</td><td>A page opened in that window competes with them.</td><td>Read in the crontab</td></tr>
+   <tr><td>FL6</td><td>Earlier work already added a day-keyed holdings cache, a background price prefetch and fixes for a stuck loading state (<code>Docs/orchestration/dashboard-nav-perf-handoff.md</code>).</td><td>This investigation builds on that work, not from zero.</td><td>Read</td></tr>
+   <tr><td>FL7 (side finding)</td><td>Cache invalidation after an import calls a function that clears the cache of the <b>process that handled the import</b>. I did not find a mechanism that tells the other two processes.</td><td>A user could see old holdings for up to 15 minutes after an import, depending on which process answers. A correctness question as much as a speed one.</td><td>To be confirmed; outside this report&rsquo;s speed scope</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="hyp">
+ <h2>5. The hypotheses</h2>
+ <p class="lead">Each hypothesis has a signature: what we would see if it is the cause. The measurements are designed to show those signatures.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Hypothesis</th><th>Explains &ldquo;only some laptops&rdquo;?</th><th>Signature in the measurements</th><th>Evidence so far</th></tr></thead>
+  <tbody>
+   <tr><td>L1</td><td>Repeated exact-Decimal XIRR on large histories.</td><td>Only if those accounts are bigger.</td><td>Server time of the bundle route grows with the number of transactions; XIRR is a large share of its time.</td><td>Solver timed on invented flows</td></tr>
+   <tr><td>L2</td><td>Cold caches: the first open of the day fetches prices and recomputes.</td><td>Yes, if slow users are first of the day.</td><td>Cold run much slower than warm on the server side.</td><td>Daily price jobs and caches read</td></tr>
+   <tr><td>L3</td><td>Many requests at once on one small VM and one database.</td><td>Yes, if several people open it together.</td><td>Time per request rises with 2, 5, 10 concurrent users.</td><td>Single VM, three processes read</td></tr>
+   <tr><td>L4</td><td>Browser work: the big table, charts and history drawn on a slow CPU.</td><td><b>Yes.</b></td><td>With the CPU slowed 4&times; and 6&times;, the time after the last reply grows the most.</td><td>None yet</td></tr>
+   <tr><td>L5</td><td>Large replies and a large app bundle on a slow connection.</td><td><b>Yes.</b></td><td>Time grows sharply on throttled 4G; a few requests or the bundle dominate bytes.</td><td>One-bundle reading (FL4)</td></tr>
+   <tr><td>L6</td><td>Extensions, security software or a VPN on those laptops.</td><td><b>Yes.</b></td><td>Fast in a private window on the same laptop.</td><td>None yet</td></tr>
+   <tr><td>L7</td><td>Those accounts are different: more members, more funds, a fund with no price.</td><td>Yes.</td><td>Slow users&rsquo; account sizes are larger than ours.</td><td>None yet</td></tr>
+   <tr><td>L8</td><td>The time of day: the early window overlaps the price jobs and the recompute (FL5).</td><td>Possibly.</td><td>Cold opens at 06:10, 07:00 and in the evening differ.</td><td>Crontab read</td></tr>
+   <tr><td>L9</td><td>Per-process caches (FL3): a request landing on a cold process.</td><td>Possibly.</td><td>Repeated requests for the same household alternate between fast and slow.</td><td>Code read</td></tr>
+   <tr><td>L10</td><td>One bundle (FL4): code for all pages loaded up front.</td><td><b>Yes</b>, on slow networks and CPUs.</td><td>Large JavaScript transfer and parse time before the first request starts.</td><td>Code read</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="design">
+ <h2>6. Measurement design</h2>
+ <h3 class="sub">Environments</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Environment</th><th>Used for</th><th>Rule</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Staging (<code>ls-redesign</code>)</td><td>The official numbers</td><td>A quiet window agreed with the team; read-only routes; never during a deploy or the 06:00 to 06:35 window unless that window is the test (L8).</td></tr>
+   <tr><td class="k">A local run</td><td>Separating server time from laptop and network effects</td><td>Same invented data.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">The test households (invented)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Household</th><th>Shape</th><th>Built from</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Large (about 40 lakh)</td><td>3 members, about 15 funds, 10 years of monthly SIPs plus some redemptions and switches</td><td>The project&rsquo;s synthetic statements and seeding script (<code>Docs/CAS Files/synthetic/</code>, <code>backend/scripts/seed_dev_household_member.py</code>, <code>portfolio_synthetic_gate.py</code>)</td></tr>
+   <tr><td class="k">Small (about 5 lakh)</td><td>1 member, about 5 funds, 3 years</td><td>The same tools</td></tr>
+   <tr><td class="k">Your real household</td><td>Untouched unless you allow it</td><td>Counts only, never names or folios</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">The scenarios (each page is measured in the cells that apply)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Dimension</th><th>Values</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Cache state</td><td>Cold (first open after the processes were idle) and warm (second open); repeated 5 times to catch the per-process effect (L9)</td></tr>
+   <tr><td class="k">Scope</td><td>Family Combined and one member</td></tr>
+   <tr><td class="k">Concurrency</td><td>1, 2, 5 and 10 simultaneous users on the large household</td></tr>
+   <tr><td class="k">CPU</td><td>Normal, slowed 4&times;, slowed 6&times;</td></tr>
+   <tr><td class="k">Network</td><td>Office, throttled fast 3G-like, throttled slow 4G</td></tr>
+   <tr><td class="k">Browser state</td><td>Normal and private window</td></tr>
+   <tr><td class="k">Time of day</td><td>06:10, 07:00, mid-day, evening (L8)</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">What we record for each run</h3>
+ <div class="dt">
+  <div><b>Server</b>Per route: time in the handler, time in the XIRR, number of database queries, cache hit or miss, which process answered.</div>
+  <div><b>Network</b>Per request: start, end, bytes sent and received, whether compressed.</div>
+  <div><b>Browser</b>Time to first paint, time until the page is usable, long tasks, script parse and run time, memory.</div>
+  <div><b>Context</b>Environment, date and time, household, scope, throttling, browser version.</div>
+ </div>
+ <h3 class="sub">&ldquo;Usable&rdquo; defined</h3>
+ <p>The page is usable when the summary strip shows its figures and the holdings table shows its first rows. We take the time to that point, because the stopwatch a stakeholder would use is &ldquo;when can I read it&rdquo;, not &ldquo;when did the last request finish&rdquo;.</p>
+ <h3 class="sub">Tools and how many runs</h3>
+ <ul class="tight">
+  <li><b>Server:</b> the existing staging timing scripts (<code>measure_fund_page_staging.py</code> as the base) and a small timing wrapper behind the staging flag; counts and times only.</li>
+  <li><b>Network and browser:</b> an automated browser (Playwright) with a performance recording and throttling, the same way the app is already tested.</li>
+  <li><b>Statistics:</b> five runs per cell; report the median and the slowest; flag any cell whose runs differ by more than a factor of two.</li>
+  <li><b>Safety:</b> only invented data; nothing writes; a quiet window; nothing runs during a deploy.</li>
+ </ul>
+</section>
+
+<section id="pages">
+ <h2>7. Every page, and what we would read for each</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Page</th><th>Known requests</th><th>Why it might be slow</th><th>Status</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Mutual Funds: Overview</td><td>Bundle, history, allocation, SIPs, coverage gaps per member</td><td>XIRR work, big table, chart</td><td>Read (section 3)</td></tr>
+   <tr><td class="k">Mutual Funds: Performance, Allocation, Holdings, Transactions, Overlap, Other Analytics</td><td>Lazy per tab</td><td>Overlap and Other Analytics compute across funds</td><td>To be read in the measurement task</td></tr>
+   <tr><td class="k">Fund page</td><td>Several cards</td><td>Per-fund history and returns</td><td>Existing timing script</td></tr>
+   <tr><td class="k">Home</td><td>Snapshot sections</td><td>Value series and movers</td><td>To be read</td></tr>
+   <tr><td class="k">Portfolio (summary, allocation)</td><td>XIRR twice (<code>api/portfolio.py</code>)</td><td>XIRR work</td><td>Read in code</td></tr>
+   <tr><td class="k">Planning, History, Import history, Profile</td><td>Smaller</td><td>Probably light</td><td>To be read</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">&ldquo;To be read&rdquo; means the request list for that page is filled in by reading its data hook in the first measurement task; I did not read every page&rsquo;s hooks for this report.</p>
+</section>
+
+<section id="laptops">
+ <h2>8. The slow laptops</h2>
+ <p>Four of the ten hypotheses (L4, L5, L6, L7) depend on facts only the stakeholders can give. This is the form I would send, drawn as it would look. Nothing identifying is asked.</p>
+ <div data-frame="intake"></div>
+ <p class="note">A form mockup. It asks for no name, email, account or amount.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Ask</th><th>Why</th></tr></thead>
+  <tbody>
+   <tr><td>Laptop model, processor, memory</td><td>L4</td></tr>
+   <tr><td>Browser and version; private or normal window; extensions</td><td>L4, L6</td></tr>
+   <tr><td>Network: office, home, VPN, phone hotspot</td><td>L5</td></tr>
+   <tr><td>Roughly how big the account is (members, funds), no names</td><td>L7</td></tr>
+   <tr><td>When it was slow: the first open of the day or always; the page and the time</td><td>L2, L3, L8, L9</td></tr>
+   <tr><td>How slow: a rough stopwatch time to a readable page, and what they see while waiting</td><td>The baseline</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">If the form is not enough</h3>
+ <p>One screen-share with a slow laptop: open the Overview with the browser&rsquo;s performance recording on, in a normal and then a private window. This separates the laptop from the account in one sitting.</p>
+</section>
+
+<section id="analysis">
+ <h2>9. Reading the results</h2>
+ <p>Each page&rsquo;s time is split into the three kinds and drawn as one attribution chart per page. The pattern in the chart points at a family of causes.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>If we see&hellip;</th><th>It points at</th><th>Candidate family</th></tr></thead>
+  <tbody>
+   <tr><td>The bundle route is slow and grows with transactions; XIRR is a big share</td><td>L1</td><td>Compute once and reuse; faster solver with identical results</td></tr>
+   <tr><td>Cold much slower than warm; alternating fast and slow runs</td><td>L2, L9</td><td>Warm earlier; a cache shared across processes</td></tr>
+   <tr><td>Time per request rises sharply with 5 and 10 users</td><td>L3</td><td>Limit simultaneous heavy work; more capacity</td></tr>
+   <tr><td>After the last reply, a long browser task that grows at 4&times; and 6&times; slow CPU</td><td>L4</td><td>Draw less at once; lazy-load lower cards; tables in parts</td></tr>
+   <tr><td>Large bytes or a long script transfer on throttled 4G</td><td>L5, L10</td><td>Smaller replies; compression; split the app code</td></tr>
+   <tr><td>Fast in a private window on the same laptop</td><td>L6</td><td>Documentation, not code</td></tr>
+   <tr><td>Only larger accounts are slow</td><td>L7, L1</td><td>The account-size fix once known</td></tr>
+   <tr><td>Slow only in the early window</td><td>L8</td><td>Schedule or capacity</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="fixes">
+ <h2>10. Candidate fixes, for when we execute (not approved, not planned)</h2>
+ <div class="callout"><b>Nothing here is a proposal for approval.</b> These are the fix families the results could point to, with the expected gain I would write <i>before</i> building each, so a fix can be judged by what it was meant to do. They are chosen only after the measurements, not before.</div>
+ <div class="scroll"><table>
+  <thead><tr><th>Family</th><th>If the cause is&hellip;</th><th>Idea</th><th>Expected gain, to be written before building</th><th>Care needed</th></tr></thead>
+  <tbody>
+   <tr><td>FX-7a</td><td>L1</td><td>Compute the XIRR once per request and reuse it; keep a stored result per household and day, invalidated by an import or a price update; if the solver is still the cost, make it faster without changing a single result.</td><td>Server time of the affected routes on the large household</td><td>The 25 XIRR fixtures (A1) must agree to 1e-9 before and after; shares <code>dashboard/xirr.py</code> with A1&rsquo;s fixes, so they go in order</td></tr>
+   <tr><td>FX-7b</td><td>L2, L3, L9</td><td>Warm the day&rsquo;s results earlier; limit simultaneous heavy work; share the holdings cache across processes (for example in the database or one cache service).</td><td>Cold-open time; the 5- and 10-user runs</td><td>A shared cache is a design change; may need a migration, flagged first</td></tr>
+   <tr><td>FX-7c</td><td>L4</td><td>Load lower cards only when they come into view; draw long tables in parts; do chart work after the first usable paint.</td><td>Browser time at 4&times; and 6&times; slow CPU</td><td>Existing screen tests must pass</td></tr>
+   <tr><td>FX-7d</td><td>L5, L10</td><td>Send only what each screen draws; compress; split the app code by page.</td><td>Bytes and time on throttled 4G</td><td>A change in how the app is built and shipped</td></tr>
+   <tr><td>L6</td><td>Extensions or VPN</td><td>Document what we found and the setting to change.</td><td>The same laptop before and after</td><td>Outside the app</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="targets">
+ <h2>11. Proposed speed targets</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Page</th><th>Warm (second open)</th><th>Cold (first open of the day)</th></tr></thead>
+  <tbody>
+   <tr><td>Mutual Funds Overview, 40 lakh</td><td>usable in 3 seconds</td><td>usable in 8 seconds</td></tr>
+   <tr><td>Every other page, 40 lakh</td><td>usable in 2 seconds</td><td>usable in 5 seconds</td></tr>
+   <tr><td>A weak laptop (CPU slowed 4&times;)</td><td>no more than 2&times; the targets above</td><td>no more than 2&times;</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">Proposals only, not measurements, and not taken from any standard in the repo. You can change them in chat.</p>
+</section>
+
+<section id="limits">
+ <h2>12. Risks and limits of the investigation</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Risk or limit</th><th>What we do</th></tr></thead>
+  <tbody>
+   <tr><td>A synthetic household does not behave like a real large one</td><td>Match its counts to a real account&rsquo;s sizes (counts only); confirm on your real household only if you allow it.</td></tr>
+   <tr><td>Measuring on staging disturbs other testers</td><td>An agreed quiet window; concurrent tests last minutes; read-only routes.</td></tr>
+   <tr><td>The slow laptops cannot be reproduced</td><td>CPU and network throttling; one screen-share with a slow laptop if the form is not enough.</td></tr>
+   <tr><td>The result differs by time of day</td><td>Cells at four times of day (L8); every number carries its time.</td></tr>
+   <tr><td>A fix changes a number in the last decimal places</td><td>The XIRR fixtures must agree to 1e-9 before and after; any difference blocks the change.</td></tr>
+   <tr><td>My local numbers are not staging numbers</td><td>They are labelled as such; only staging numbers go in the final report.</td></tr>
+   <tr><td>This report is a reading of the code, so some statements may be wrong</td><td>Each is labelled; the first measurement task re-checks every &ldquo;read in code&rdquo; line.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="report">
+ <h2>13. What the final report will contain</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Part</th><th>What it shows</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Baseline table</td><td>Every page, cold and warm, server, network and browser time, on the large and small households, with date and environment on every number.</td></tr>
+   <tr><td class="k">Attribution charts</td><td>For each page, one chart splitting its time into the three kinds.</td></tr>
+   <tr><td class="k">Causes found</td><td>Each hypothesis marked confirmed, rejected or not decided, with the measurement that shows it.</td></tr>
+   <tr><td class="k">Slow-laptop findings</td><td>What the stakeholders&rsquo; laptops, networks and accounts have in common.</td></tr>
+   <tr><td class="k">Fix proposals</td><td>For each confirmed cause: the idea, the expected gain, the risk, for your review. Nothing is built before you approve.</td></tr>
+   <tr><td class="k">After each approved fix</td><td>The same cells re-measured; the gain against what was expected.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="before">
+ <h2>14. What I need from you before we execute</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>#</th><th>Need</th><th>Default if you say nothing</th></tr></thead>
+  <tbody>
+   <tr><td>1</td><td>Agree the quiet window on staging for measurements.</td><td>An evening window, announced to testers.</td></tr>
+   <tr><td>2</td><td>Send the slow-laptop form (section 8) to stakeholders.</td><td>I write it; you send it.</td></tr>
+   <tr><td>3</td><td>Confirm the household shapes (section 6), or give a different shape.</td><td>The shapes in section 6.</td></tr>
+   <tr><td>4</td><td>Confirm the targets (section 11), or change them.</td><td>The proposed targets.</td></tr>
+   <tr><td>5</td><td>Decide whether the side finding on cache invalidation after an import (FL7) should be checked in the same pass.</td><td>Yes: it is a quick check and it could matter for correctness.</td></tr>
+   <tr><td>6</td><td>Say when to start execution.</td><td>After your review of this report.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="prov">
+ <h2>What I checked</h2>
+ <p><b>Read today, read-only, by me:</b> <code>features/mutual-funds/data/useMfDashboard.ts</code>, <code>App.tsx</code>, <code>vite.config.ts</code>, <code>services/dashboard/holdings.py</code> (the cache), <code>services/dashboard/distributor_comparison.py</code> (a second cache), the four XIRR call sites, <code>deploy/leapswitch/docker-compose.yml</code>, <code>crontab.leapswitch</code>, the 16 Nov deploy record.</p>
+ <p><b>Not done:</b> nothing was run on staging or locally except one XIRR timing on invented flows (on my machine); no real data was read; I did not build the front end to measure the bundle; I did not read the data hooks of pages other than the Overview; I did not verify how the cache is shared or invalidated across the three processes (FL3, FL7); I did not look at the live app.</p>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+function vp(inner,w,h,cls,attrs){return '<div class="vp '+(cls||'')+'" data-w="'+w+'"'+(h?' data-h="'+h+'"':'')+(attrs||'')+'><div class="vp-in">'+inner+'</div></div>'}
+function chrome(url){return '<div class="chrome"><i></i><i></i><i></i><span>'+url+'</span></div>'}
+
+/* ---- item 8: XIRR tile ---- */
+function xirrTile(v){
+ var val=v==='f1'?'6.1%':'9.4%';
+ var extra=v==='f1'?'<div class="note-box circ" style="margin-top:10px">One fund has no price today. Its purchases are counted, its value is not, so the rate falls. <b>Nothing on screen says so.</b></div>':'';
+ var tiles='<div class="ap-tile"><small>Total portfolio value</small><b>&#8377;40,12,300</b></div><div class="ap-tile"><small>Invested</small><b>&#8377;31,40,000</b></div><div class="ap-tile"><small>Unrealised</small><b>+&#8377;8,72,300</b></div>';
+ var x='<div class="ap-tile"><div class="row"><small>XIRR</small><span class="seg"><span class="on">Lifetime</span><span>Current</span></span></div><b>'+val+'</b><small>Since inception</small>'+extra+'</div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds')+'<div class="ap"><div class="ap-body"><div class="ap-tiles">'+tiles+x+'</div></div></div>',1100,0);
+}
+/* ---- item 10: rank rows ---- */
+function rankRows(){
+ var f=function(n,c,a,b,d,hl){return '<tr><td><div class="ap-fund"><span class="ap-logoc">'+n.charAt(0)+'</span><div><b>'+n+'</b><div class="ap-mut">'+c+'</div></div></div></td><td><span class="rk'+(hl?' circ':'')+'">7<small>of 33</small></span></td><td><span class="rk'+(hl?' circ':'')+'">6<small>of 29</small></span></td><td><span class="rk'+(hl?' circ':'')+'">5<small>of 21</small></span></td></tr>'};
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/performance')+'<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Performance ranking</h5><p class="ap-mut" style="margin-bottom:10px">Rank within category and plan, for each period.</p><table class="ap-t"><thead><tr><th>Fund</th><th>1 year</th><th>3 years</th><th>5 years</th></tr></thead><tbody>'+f('Alpha Flexi Cap Fund','Flexi Cap &middot; Direct plan',0,0,0,true)+'</tbody></table></div></div></div>',1000,0);
+}
+/* ---- item 10: funnel ---- */
+function funnel(){
+ var rows=[['Every scheme in the category (AMFI file)',61,0],['Live: price within 30 days',55,0],['One series per fund, same plan (Direct), Growth',41,0],['Active and not an index fund or ETF',38,0],['Has a 1-year return  (the app&rsquo;s total for 1Y)',33,1],['Has a 5-year return  (the app&rsquo;s total for 5Y)',21,1]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Flexi Cap, Direct: how the total is counted</h5><p class="ap-mut" style="margin-bottom:12px">One page of the evidence pack. Numbers invented.</p><div class="fn">';
+ rows.forEach(function(r){h+='<div class="r"><span>'+r[0]+'</span><div><div class="b'+(r[2]?' x':'')+'" style="width:'+Math.round(r[1]/61*100)+'%"></div></div><span class="n">'+r[1]+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">Each step lists the funds that dropped out and why. The app&rsquo;s result must match every step; a gap is a finding.</p></div></div></div>';
+ return vp(h,900,0);
+}
+/* ---- item 9: category card ---- */
+function catCard(){
+ var rows=[['1Y',58,50,'+1.2%','4.6% vs 3.4%',true],['3Y',44,50,'&minus;1.1%','12.8% vs 13.9%',false],['5Y',30,62,'&minus;4.8%','6.4% vs 11.2%',false]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><div class="ap-fund"><span class="ap-logoc">A</span><div><b>Alpha Flexi Cap Fund</b><div class="ap-mut">Flexi Cap &middot; Direct plan</div></div></div><div class="cmp" style="margin-top:14px">';
+ rows.forEach(function(r){var c=r[5]?'#15803D':'#D92D20';h+='<div class="p"><b>'+r[0]+'</b><div class="trk"><span class="d c" style="left:'+r[2]+'%"></span><span class="d f" style="left:'+r[1]+'%;background:'+c+'"></span></div><span class="v" style="text-align:right"><b style="color:'+c+'">'+r[3]+'</b><br>'+r[4]+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">Category average covers 31 funds (1Y), 31 (3Y), 24 (5Y). Weighted by fund size.</p><p class="ap-mut" style="margin-top:6px">Filled dot: your fund. Hollow dot: category average. Green means ahead; red means behind.</p></div></div></div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/other')+h,1000,0);
+}
+/* ---- item 7: waterfall ---- */
+function waterfall(){
+ var rs=[['holdings + XIRR bundle',0,62,1],['allocation',2,18,0],['coverage gaps',2,12,0],['history points',3,30,0],['SIPs',3,14,0],['stored per-fund analytics',4,22,0]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Mutual Funds Overview: requests (illustrative)</h5><p class="ap-mut" style="margin-bottom:12px">Bar position is when the request starts; length is how long it takes.</p><div class="wf">';
+ rs.forEach(function(r){h+='<div class="r"><span>'+r[0]+'</span><div class="tr"><i class="'+(r[3]?'s':'')+'" style="left:'+r[1]+'%;width:'+r[2]+'%"></i></div><span class="n">'+(r[3]?'slowest':'')+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">What we read off the real version: which request ends last, which is large, and what the browser does after the last reply.</p></div></div></div>';
+ return vp(h,900,0);
+}
+function xlsx(v){
+ var tabs=['Read me','Summary','Pool','Excluded','Worked examples','Checks','Glossary'],on={summary:'Summary',pool:'Pool',checks:'Checks'}[v];
+ var th='<div class="tabs2">'+tabs.map(function(x){return '<span'+(x===on?' class="on"':'')+'>'+x+'</span>'}).join('')+'</div>';
+ var body='';
+ if(v==='summary'){
+  body='<div class="fx"><b>fx</b> =SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$F:$F="Y")*Pool!$H:$H*Pool!$D:$D)/SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$F:$F="Y")*Pool!$D:$D)</div><table class="g"><thead><tr><th>Category and plan</th><th>Funds in pool</th><th>Covered 1Y / 3Y / 5Y</th><th>3Y average (formula)</th><th>3Y plain average</th><th>No size</th><th>Weighting</th><th>Thin?</th><th>App shows</th><th>Difference</th></tr></thead><tbody>'
+  +'<tr><td>Equity Scheme - Flexi Cap Fund, Direct</td><td>31</td><td>31 / 31 / 24</td><td class="f">14.82%</td><td>14.11%</td><td>1</td><td>size</td><td>no</td><td>14.82%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Equity Scheme - Large Cap Fund, Direct</td><td>29</td><td>29 / 29 / 26</td><td class="f">13.40%</td><td>13.05%</td><td>0</td><td>size</td><td>no</td><td>13.40%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Hybrid Scheme - Equity Savings, Regular</td><td>4</td><td>4 / 4 / 3</td><td class="f">8.90%</td><td>8.60%</td><td>0</td><td>size</td><td>yes</td><td>8.90%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Debt Scheme - Gilt Fund, Direct</td><td>11</td><td>11 / 11 / 9</td><td class="f">7.21%</td><td>7.18%</td><td>11</td><td>plain (no sizes)</td><td>no</td><td>7.18%</td><td class="ok">0.0000</td></tr></tbody></table>';
+ } else if(v==='pool'){
+  body='<div class="fx"><b>fx</b> =IF(F2="Y",D2/SUMIFS($D:$D,$A:$A,A2,$F:$F,"Y"),0)</div><table class="g"><thead><tr><th>Category and plan</th><th>Fund</th><th>Fund house</th><th>Size (&#8377; cr) and month</th><th>1Y / 3Y / 5Y return</th><th>Counts (3Y floor)</th><th>Weight</th><th>Contribution to 3Y</th></tr></thead><tbody>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Alpha Flexi Cap Fund</td><td>Alpha MF</td><td>18,400 &middot; Oct 2026</td><td>12.1% / 14.0% / 16.3%</td><td>Y</td><td class="f">0.1120</td><td class="f">1.57%</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Beacon Flexi Cap Fund</td><td>Beacon MF</td><td>9,250 &middot; Oct 2026</td><td>9.8% / 15.2% / 15.4%</td><td>Y</td><td class="f">0.0563</td><td class="f">0.86%</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Cedar Flexi Cap Fund</td><td>Cedar MF</td><td>no size on record</td><td>10.5% / 13.1% / &mdash;</td><td>Y</td><td class="f">0 (counted, no weight)</td><td class="f">&mdash;</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Delta Flexi Cap Fund</td><td>Delta MF</td><td>2,100 &middot; Oct 2026</td><td>8.0% / &mdash; / &mdash;</td><td>N (under 3 years)</td><td class="f">0</td><td class="f">&mdash;</td></tr></tbody></table>';
+ } else {
+  body='<table class="g"><thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead><tbody>'
+  +'<tr><td>Excel average equals the app&rsquo;s, every category</td><td class="ok">PASS</td><td>Largest difference 0.0000 across 158 category-and-plan rows</td></tr>'
+  +'<tr><td>Weights add to 100% in every pool</td><td class="ok">PASS</td><td>Smallest 100.0000%, largest 100.0000%</td></tr>'
+  +'<tr><td>Every excluded scheme has a reason</td><td class="ok">PASS</td><td>0 without a reason</td></tr>'
+  +'<tr><td>Size data newer than 45 days</td><td class="no">3 categories</td><td>Listed on the Excluded sheet; shown, not hidden</td></tr>'
+  +'<tr><td>Dates stated</td><td class="ok">PASS</td><td>Price date, size month, fund list date, export date, app version</td></tr></tbody></table>';
+ }
+ return vp('<div class="xl">'+th+body+'</div>',1000,0);
+}
+
+function intake(){
+ var f=function(l,v){return '<div style="margin-bottom:12px"><div style="font:600 12.5px Manrope;margin-bottom:4px">'+l+'</div><div style="border:1px solid #D0D5DD;border-radius:10px;padding:9px 12px;font-size:13px;color:#98A2B3">'+v+'</div></div>'};
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card" style="max-width:640px"><h5>Help us make Unifolio faster</h5><p class="ap-mut" style="margin:4px 0 14px">Five short questions. Please do not include your name, account or any amounts.</p>'+f('Laptop (model, processor, memory)','e.g. a 2019 laptop, i5, 8 GB')+f('Browser, and whether you used a private window','e.g. Chrome 130, normal window, 4 extensions')+f('Where were you? (office Wi-Fi, home, VPN, phone hotspot)','e.g. home Wi-Fi')+f('Roughly how big is the account? (members, funds)','e.g. 3 members, about 15 funds')+f('When was it slow, and how slow?','e.g. the first open in the morning, about 25 seconds before I could read the table')+'<div style="background:#22C55E;color:#0B1F12;border-radius:10px;padding:10px;text-align:center;font:700 13.5px Manrope">Send</div></div></div></div>';
+ return vp(chrome('A form (not part of the app)')+h,900,0);
+}
+
+var STATE={'i8':'today','i9':'summary','wfall':'a'};
+function frame(n){switch(n){
+ case 'waterfall':return waterfall();
+ case 'intake':return intake();
+ }return ''}
+function layout(){document.querySelectorAll('.vp').forEach(function(v){var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');inn.style.width=w+'px';inn.style.height=h?h+'px':'auto';var hh=h||inn.offsetHeight;var sc=Math.min(1,v.clientWidth/w);inn.style.transform='scale('+sc+')';v.style.height=Math.ceil(hh*sc)+'px'})}
+function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});layout()}
+document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){var sec=bar.getAttribute('data-sec');bar.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){STATE[sec]=b.getAttribute('data-v');bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});renderAll()})})});
+renderAll();window.addEventListener('resize',layout);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layout);setTimeout(layout,400);
+
+
+})();
+</script>
+</body>
+</html>
