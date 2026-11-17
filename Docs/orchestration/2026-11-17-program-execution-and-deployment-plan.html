@@ -461,6 +461,20 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">5. Export and the tutorial</td><td>I; H&rsquo;s floating checklist and the final video</td><td>Codex: export pipeline; Antigravity: export dialog, checklist</td><td><b>M4</b>, then production</td><td>The PDF mirrors the final sections; the checklist waits for the import screens and the CAMS page to be stable.</td></tr>
   </tbody>
  </table></div>
+ <h3 class="sub">What runs in parallel: Codex and Gemini (Antigravity), wave by wave</h3>
+ <p class="lead">At any moment at most one Codex task and one Gemini task run at the same time (Q3), with Claude orchestrating. This is how each wave splits between them, from each batch&rsquo;s own plan.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Wave</th><th>Codex (backend and code-heavy, all tests)</th><th>Gemini / Antigravity (screens and visuals)</th><th>Claude (alongside)</th></tr></thead>
+  <tbody>
+   <tr><td class="k">0. Now</td><td>Idle</td><td>Idle</td><td>Plans for wave 1, baseline, the M1 guide</td></tr>
+   <tr><td class="k">1. Foundations</td><td>B: the OTP limit reply and per-IP limit, the email templates&rsquo; backend. C: the category merge (17a), <code>folio_number</code> added beside the old fields (17c), the manager line removed from the payload (17b)</td><td>B: wrong-person warning, spinner to tick, onboarding layout, green tokens, emails&rsquo; look. C: the eye icon, the new member in the drop-down (17d), merged categories on screen</td><td>The A investigations (fixtures, recount, Excel script on synthetic data), the L audit, specs and packets, reviews</td></tr>
+   <tr><td class="k">2. Numbers and charts</td><td>The A fixes you approve (A1, A2, A3), the stored-result rebuild step, D&rsquo;s day-change backend switch</td><td>D: benchmark lines and colours, the Overview graph (shared component), the day&rsquo;s-change pop-up. H: the tutorial link and video pop-up</td><td>Fix proposals and evidence packs, the M2 guide, the before-and-after check</td></tr>
+   <tr><td class="k">3. Search and the section list</td><td>K: the search-index endpoint, the matcher and its tests. F: the one section list, anchors and the guard test</td><td>K: the top-bar box, the dropdown and every page (the longest queue)</td><td>Search&rsquo;s four review gates, the whole-release review</td></tr>
+   <tr><td class="k">4. Dates and navigation</td><td>E: the date module and the strip&rsquo;s logic, the shared popover. F: the rail&rsquo;s scroll-spy, jump and address logic</td><td>E: the strip and the &ldquo;i&rdquo; visuals. F: the frosted glass rail from its packet</td><td>The M3 guide and QA checklist</td></tr>
+   <tr><td class="k">5. Export and the tutorial</td><td>I: the repaired pipeline, the export route, print mode, the security pass</td><td>I: the export dialog, the top-bar button, the browser fallback. H: the floating checklist and the final video swap</td><td>The M4 guide, the production gate, the evidence packs</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout info"><b>How the hand-off works.</b> Gemini builds a screen from a packet (measurements, states, and red tests already written by Codex or me), so within a batch Codex or Claude goes first and Gemini follows, and the relay between them is manual. The two keep busy by working on <b>different batches</b> at the same time: for example, in wave 1 Codex is on C&rsquo;s backend while Gemini is on B&rsquo;s screens. When a batch has only backend or only frontend work, the other builder takes the next batch&rsquo;s task. If one queue runs dry, it waits rather than starting a second task, and Claude uses the gap for reviews.</div>
  <h3 class="sub">What changed against Batch B&rsquo;s wave table, and why</h3>
  <div class="scroll"><table>
   <thead><tr><th>Change</th><th>Reason</th></tr></thead>
