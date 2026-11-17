@@ -418,7 +418,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">Search ships in one release with one staging check</td><td>Search plan, Q18</td><td>Search is one lane and one release inside M3 (section 3).</td></tr>
    <tr><td class="k">Every fix is proposed to you and built only after approval; failing test first</td><td>A1 to A3</td><td>The review gate stays inside the loop (section 8).</td></tr>
    <tr><td class="k">No phone changes in any batch</td><td>Standing rule</td><td>The mobile code is not touched; Batch C&rsquo;s older phone rows are the only exception already agreed.</td></tr>
-   <tr><td class="k">The old folio field is removed in the same change</td><td>Batch C, Q5</td><td>Needs a decision about the old staging link (Q2, section 15).</td></tr>
+   <tr><td class="k">The old folio field is removed in the same change</td><td>Batch C, Q5</td><td><b>Changed by Q2 (17 Nov):</b> the old link stays untouched, so the old field is kept and only hidden in the new screens. Batch C&rsquo;s note needs updating (section 7).</td></tr>
   </tbody>
  </table></div>
  <h3 class="sub">Implementation plans: separate, not one whole plan</h3>
@@ -451,14 +451,14 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h3 class="sub">The whole order at a glance</h3>
  <div data-frame="timeline"></div>
  <div class="scroll"><table>
-  <thead><tr><th>Wave</th><th>Batches</th><th>Lanes in parallel</th><th>Ships in</th><th>Why here</th></tr></thead>
+  <thead><tr><th>Wave</th><th>Batches</th><th>Parallel work</th><th>Ships in</th><th>Why here</th></tr></thead>
   <tbody>
-   <tr><td class="k">0. Now</td><td>No code: decisions, a plan per batch, the baseline, deploy preparation</td><td>1</td><td>&mdash;</td><td>Everything below starts clean.</td></tr>
-   <tr><td class="k">1. Foundations</td><td>B, C, and the read-only A investigations (A1 fixtures, A2 recount, A3 export script on synthetic data)</td><td>3 to 4</td><td><b>M1</b>: B and C</td><td>Independent of prices; the A work reads only, so it ships nothing yet.</td></tr>
-   <tr><td class="k">2. Numbers and charts</td><td>The A fixes you approve, then D; H&rsquo;s link and pop-up</td><td>3</td><td><b>M2</b></td><td>Official numbers need the first clean NAV runs (17 Nov). D&rsquo;s chart end date follows A2&rsquo;s common end date. H&rsquo;s pop-up waits for C&rsquo;s import-screen change.</td></tr>
-   <tr><td class="k">3. Search and the section list</td><td>K (all four steps) and F&rsquo;s section audit, list and anchors</td><td>2 to 3</td><td>part of <b>M3</b></td><td>Search is the largest change and edits the shell and every page header, so it goes before E and F&rsquo;s visible index. Search&rsquo;s section registry and F&rsquo;s list must be one list.</td></tr>
-   <tr><td class="k">4. Dates and navigation</td><td>E, then F&rsquo;s visible index</td><td>2</td><td><b>M3</b> (with wave 3)</td><td>E and F both change the Mutual Funds frame; E first so F sits above a settled strip. Needs A&rsquo;s verdicts.</td></tr>
-   <tr><td class="k">5. Export and the tutorial</td><td>I; H&rsquo;s floating checklist and the final video</td><td>2</td><td><b>M4</b>, then production</td><td>The PDF mirrors the final sections; the checklist waits for the import screens and the CAMS page to be stable.</td></tr>
+   <tr><td class="k">0. Now</td><td>No code: decisions, a plan per batch, the baseline, deploy preparation</td><td>Claude only (plans, baseline, deploy preparation)</td><td>&mdash;</td><td>Everything below starts clean.</td></tr>
+   <tr><td class="k">1. Foundations</td><td>B, C, and the read-only A investigations (A1 fixtures, A2 recount, A3 export script on synthetic data)</td><td>Codex: B and C backend; Antigravity: B and C screens; Claude: the A investigations</td><td><b>M1</b>: B and C</td><td>Independent of prices; the A work reads only, so it ships nothing yet.</td></tr>
+   <tr><td class="k">2. Numbers and charts</td><td>The A fixes you approve, then D; H&rsquo;s link and pop-up</td><td>Codex: A fixes, D&rsquo;s backend switch; Antigravity: D&rsquo;s charts and pop-up, H&rsquo;s link</td><td><b>M2</b></td><td>Official numbers need the first clean NAV runs (17 Nov). D&rsquo;s chart end date follows A2&rsquo;s common end date. H&rsquo;s pop-up waits for C&rsquo;s import-screen change.</td></tr>
+   <tr><td class="k">3. Search and the section list</td><td>K (all four steps) and F&rsquo;s section audit, list and anchors</td><td>Codex: search endpoint, F&rsquo;s section list; Antigravity: search screens (the longest queue)</td><td>part of <b>M3</b></td><td>Search is the largest change and edits the shell and every page header, so it goes before E and F&rsquo;s visible index. Search&rsquo;s section registry and F&rsquo;s list must be one list.</td></tr>
+   <tr><td class="k">4. Dates and navigation</td><td>E, then F&rsquo;s visible index</td><td>Antigravity: E, then the rail; Codex: date module, tests</td><td><b>M3</b> (with wave 3)</td><td>E and F both change the Mutual Funds frame; E first so F sits above a settled strip. Needs A&rsquo;s verdicts.</td></tr>
+   <tr><td class="k">5. Export and the tutorial</td><td>I; H&rsquo;s floating checklist and the final video</td><td>Codex: export pipeline; Antigravity: export dialog, checklist</td><td><b>M4</b>, then production</td><td>The PDF mirrors the final sections; the checklist waits for the import screens and the CAMS page to be stable.</td></tr>
   </tbody>
  </table></div>
  <h3 class="sub">What changed against Batch B&rsquo;s wave table, and why</h3>
@@ -472,7 +472,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">A runs as investigation first, fixes in wave 2</td><td>The recount, fixtures and Excel script need no prices, so they start now; every fix needs your approval first.</td></tr>
   </tbody>
  </table></div>
- <p class="note">If you prefer Batch B&rsquo;s original order or search last, see Q1 (section 15).</p>
+ <p class="note">Read the &ldquo;Parallel work&rdquo; column as: at most one Codex task and one Antigravity task at the same time (Q3). Claude&rsquo;s own work runs alongside. If you prefer Batch B&rsquo;s original order or search last, see Q1 (section 15).</p>
 </section>
 
 <section id="deps">
@@ -482,7 +482,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <thead><tr><th>Batch</th><th>Waits for</th><th>Why</th></tr></thead>
   <tbody>
    <tr><td class="k">B</td><td>Item 18 needs your email screenshots</td><td>The emails cannot be designed blind. Real inboxes are needed to test. (Q24 and Q25 are answered.)</td></tr>
-   <tr><td class="k">C</td><td>Q2: the old staging link decision</td><td>Removing the old folio field in the same change would break the old link (section 7).</td></tr>
+   <tr><td class="k">C</td><td>Nothing waits (Q2 is answered)</td><td>The old staging link is left as it is (Q2), so C keeps the old folio field and adds the new one beside it; the old field is not removed.</td></tr>
    <tr><td class="k">A1, A2, A3 (fixes)</td><td>First clean NAV runs (17 Nov), then your approval of each proposal</td><td>Official numbers; review gate.</td></tr>
    <tr><td class="k">D</td><td>A2&rsquo;s common end date (FX-10c) for the chart&rsquo;s last point; C for nothing</td><td>The chart stops on the latest complete price date, the same rule.</td></tr>
    <tr><td class="k">H (link and pop-up)</td><td>C&rsquo;s import-screen change (17d)</td><td>Both edit the import wrapper.</td></tr>
@@ -536,7 +536,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <tbody>
    <tr><td class="k">Integration branch</td><td><code>leapswitch-redesign</code> stays the one branch that staging is built from. Nothing is pushed to it that has not passed its batch gate. Hotfixes made on the old staging branch are merged into it first (the README&rsquo;s standing rule).</td></tr>
    <tr><td class="k">Batch branches</td><td>One per batch, cut from the integration branch at the start of its wave: <code>batch/b-journey</code>, <code>batch/c-hygiene</code>, <code>batch/a-numbers</code>, <code>batch/d-charts</code>, <code>batch/k-search</code>, <code>batch/f-nav</code>, <code>batch/e-dates</code>, <code>batch/h-tutorial</code>, <code>batch/i-export</code>.</td></tr>
-   <tr><td class="k">Worktrees</td><td>One Windows worktree per active lane (the planning docs stay in this one), so a checkout in one cannot disturb another. Codex works only in its lane&rsquo;s worktree.</td></tr>
+   <tr><td class="k">Worktrees and clones</td><td>Two builders work at once (Q3): Codex in its own Windows worktree, Antigravity in its own separate clone (the planning docs stay in this worktree), so neither can disturb the other. Each takes one task at a time from its own queue.</td></tr>
    <tr><td class="k">Merging in</td><td>A batch merges into the integration branch when its tests are green and its review is done. Before merging, it merges the integration branch into itself, so conflicts are solved on the batch side, with its tests.</td></tr>
    <tr><td class="k">Cadence</td><td>Each lane merges the integration branch into its own branch at least once a week and always before a merge in.</td></tr>
    <tr><td class="k">Milestone tags</td><td>A release candidate is tagged <code>m1-rc</code>, and the commit before it <code>pre-m1</code>; the same for each milestone. The deploy and the rollback both name a tag, not a branch tip.</td></tr>
@@ -553,7 +553,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <thead><tr><th>Rule</th><th>What it means</th></tr></thead>
   <tbody>
    <tr><td class="k">Additive first</td><td>New fields and routes ship any time. Removing or renaming a field is a separate, later step, taken only when no frontend reads it.</td></tr>
-   <tr><td class="k">Decide the old link (Q2)</td><td>Either retire or redirect it before M1, so removals are safe; or keep it and delay removals to a cleanup step in wave 5 (which contradicts Batch C&rsquo;s note); or accept that the old link may show blanks. My pick: retire it at M1.</td></tr>
+   <tr><td class="k">The old link stays as it is (Q2, 17 Nov)</td><td>You said to keep it and not touch it, so it keeps sharing the backend. Every backend change must therefore be <b>additive only</b>: no field is removed, renamed or changed in meaning while the old link exists. Batch C keeps the old folio field and adds the full folio number beside it; the new screens read the new one. Nothing is retired, redirected or edited on the old link.</td></tr>
    <tr><td class="k">Backend before frontend</td><td>At a milestone with a new route (search, the movers &ldquo;all&rdquo; switch), the backend deploys first; a frontend that loads before it degrades gracefully (search&rsquo;s plan already says so).</td></tr>
    <tr><td class="k">Contracts in tests</td><td>Each backend change has a test for the response shape, so a frontend and a backend cannot drift.</td></tr>
   </tbody>
@@ -660,7 +660,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">One migration at most</td><td>The ledger (section 7) matches what production has; the downgrade, if any, was tested.</td></tr>
    <tr><td class="k">Numbers rebuilt</td><td>The stored XIRR, rank and average were rebuilt after the last numbers change and after the production deploy.</td></tr>
    <tr><td class="k">Rollback ready</td><td>A <code>:previous</code> image, a database backup taken that day, the previous frontend tag.</td></tr>
-   <tr><td class="k">Contract cleanup done</td><td>Any old field kept for the old link is removed, or the old link is gone.</td></tr>
+   <tr><td class="k">Old fields kept</td><td>Fields kept for the old link are still in place and listed in the deploy record. They are removed only when you retire the old link, a separate decision outside this program.</td></tr>
    <tr><td class="k">Evidence issued</td><td>The stakeholder packs (XIRR note, rank workbook and note, category average Excel and note) are issued from the final numbers.</td></tr>
    <tr><td class="k">Your go</td><td>A written go, per your standing rule for anything outward-facing.</td></tr>
   </tbody>
@@ -670,7 +670,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <section id="size">
  <h2>12. Size and duration (estimates, not measurements)</h2>
  <div data-frame="sizechart"></div>
- <p>Counting each plan&rsquo;s own sizes with S as half a day, M as a day and a half, L as three days, the in-scope work is about <b>190 worker-days</b> (this includes reviews, writing and your own checks, not only code). With <b>three lanes running at once</b> that is roughly <b>12 to 13 working weeks</b>; with <b>two lanes</b> about 19 weeks; with <b>four</b> about 9 to 10. Calendar time is longer because of your reviews, the QA rounds and waiting for answers.</p>
+ <p>Counting each plan&rsquo;s own sizes with S as half a day, M as a day and a half, L as three days, the in-scope work is about <b>190 worker-days</b> (this includes reviews, writing and your own checks, not only code). <b>With your capacity model (Q3: Codex on backend and Antigravity on frontend, one task each at the same time, Claude orchestrating), the finish time is set by the busier of the two queues, not by the total.</b> I expect the frontend queue to be the busier one (search, the section rail, dates, charts, export dialog, tutorial), so the program is likely to run about <b>15 to 20 working weeks</b>. That range is a guess: it will be recomputed once each batch&rsquo;s own plan splits its tasks between the two builders, and again after M1 when we have a real pace. Claude&rsquo;s own work (plans, investigations, guides, reviews, evidence) runs alongside and is not on either queue.</p>
  <div class="callout info"><b>Read this as a shape, not a promise.</b> The estimate leaves out GA4 and A4 (paused) and Batch L&rsquo;s approved fixes (the audit itself is about 8 to 10 worker-days and is not in the chart); each adds to it when scheduled. The sizes are each plan&rsquo;s rough estimate, search&rsquo;s are the largest, and I have not measured how fast the workers actually go. The first wave will show the real pace, and I will revise this after M1.</div>
 </section>
 
@@ -679,7 +679,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>Risk</th><th>What we do</th></tr></thead>
   <tbody>
-   <tr><td>The old staging link breaks when the backend changes</td><td>Section 7: additive first and a decision on the old link (Q2).</td></tr>
+   <tr><td>The old staging link breaks when the backend changes</td><td>Section 7: additive-only backend while the old link stays (Q2); a response-shape test per change; the deploy guide lists what the old link would see.</td></tr>
    <tr><td>Merge conflicts in the shared frame and pages</td><td>Section 5 order rules; weekly merges; one owner per file at a time.</td></tr>
    <tr><td>Search is too big to review or QA in one go</td><td>The plan keeps its four review gates and a whole-release review; M3 can be split in two (Q4) if QA is too large.</td></tr>
    <tr><td>A deploy leaves no rollback image (it happened on 16 Nov)</td><td>Pre-flight checks the image and the disk before every build.</td></tr>
@@ -702,15 +702,15 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">Batch L (portfolio disclosures audit)</td><td><b>Planned.</b> Read-only, wave 1, no deploy. Its time depends on the fund houses, not the program: the first useful pass is once the by-hand imports are done (about day 10 to 12 of a month), the final after day 20. Approved fixes would touch only the <code>portfolio_disclosure_*</code> files.</td></tr>
    <tr><td class="k">Explore, Standard/Pro, stopped SIP, fact sheet fixes</td><td>Later, planned separately. Search, the section list and E&rsquo;s popover are built to be reused by them; the section list carries a tier field, unused for now.</td></tr>
    <tr><td class="k">How production differs from staging</td><td>I read the cutover outline in the runbook but not a finished production runbook; the production gate lists only what this program adds.</td></tr>
-   <tr><td class="k">Team capacity</td><td>The durations assume the worker counts in section 12; I do not know how many lanes you can review at once (Q3).</td></tr>
+   <tr><td class="k">Team capacity</td><td>Decided (Q3): two builders at once (Codex backend, Antigravity frontend), one task each, with Claude orchestrating. The estimate is a guess until tasks are split by builder.</td></tr>
   </tbody>
  </table></div>
 </section>
 
 <section id="questions">
  <h2>15. Decisions</h2>
- <p class="lead">Five decisions this plan needs. Each has my pick, and the rest of the plan is written for it. Nothing here blocks wave 0.</p>
- <div class="bar"><span class="status" id="prog">0 of 5 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
+ <p class="lead">Five decisions this plan needs. <b>All five are answered (17 Nov).</b> Q2 is read as: keep the old link untouched, so the backend stays additive only.</p>
+ <div class="bar"><span class="status" id="prog">5 of 5 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
  <div id="cards"></div>
  <h3 class="sub">Defaults I will use (tell me in chat if you want any changed)</h3>
  <div class="scroll"><table>
@@ -812,7 +812,7 @@ function xlsx(v){
 }
 
 var WV=[
- {t:'Wave 0: now (no code)',who:'You, Claude',items:['Answer the five decisions below (B Q24, Q25 and F Q1 are answered).','Decide the old staging link (Q2) before wave 1 ends.','Write each batch’s build plan just before its wave opens (Q27); wave 1’s plans first.','Take the baseline: green suites on the integration branch, screenshots of the key pages, the current migration head.','Prepare deploy: confirm the VM has disk and a rollback image path; write the M1 guide and checklist.','Produce the video and the sample files in parallel (done or in hand).'],gate:'Exit: wave 1 plans written; answers in; baseline green.'},
+ {t:'Wave 0: now (no code)',who:'You, Claude',items:['All five program decisions are answered (17 Nov).','The old staging link is left as it is (Q2); backend changes stay additive only.','Write each batch’s build plan just before its wave opens (Q27); wave 1’s plans first.','Take the baseline: green suites on the integration branch, screenshots of the key pages, the current migration head.','Prepare deploy: confirm the VM has disk and a rollback image path; write the M1 guide and checklist.','Produce the video and the sample files in parallel (done or in hand).'],gate:'Exit: wave 1 plans written; answers in; baseline green.'},
  {t:'Wave 1: foundations',who:'Codex lanes, Gemini for UI',items:['B: wrong-person warning, OTP timer with the structured limit reply, spinner to tick, onboarding layout, Head of Family emails (after your screenshots).','C: merged categories (17a), manager line removed (17b), folio_number and the eye icon (17c), new member in the drop-down (17d).','A1, A2, A3 investigations, read-only: fixtures and the independent XIRR calculator, the AMFI recount and ledger, the workbook export scripts on synthetic data. These ship nothing.','L (portfolio disclosures audit): read-only queries on staging, the coverage report, the by-hand to-do list and fix proposals. No deploy; it needs no code unless you approve a fix.','GA4 foundation (paused): reserved slot, to be picked up later.'],gate:'Exit: B and C merged with tests and review; investigations report their findings; M1 tagged.'},
  {t:'Wave 2: numbers and charts',who:'Codex, Gemini for the pop-up',items:['A1 fixes (no-price fund, final-flow date, tile and column agree), A2 fixes (pool, common end date, Growth only, the disclaimer line), A3 fixes and the workbook, each only after you approve its proposal.','D: benchmark lines and colours, the Overview graph (shared component), the day’s-change pop-up with its backend switch. D’s chart end date follows A2’s common end date.','H: the “Watch how it works” link and the video pop-up (after C’s import change).'],gate:'Exit: official numbers from runs after 17 Nov; M2 tagged with the rebuild step.'},
  {t:'Wave 3: search and the section list',who:'Gemini for UI, Codex for the endpoint',items:['K: the household index endpoint, the shell (top bar, page header slot), the shared box and dropdown, the matcher, then every page (T00 to T20). One release.','F: the section audit, the one shared section list and the anchors on every Mutual Funds section. Search’s registry reads this list.','Four review gates inside search, plus one whole-release review.'],gate:'Exit: search and the section list merged; backend endpoint deployable ahead of the frontend.'},
@@ -820,10 +820,10 @@ var WV=[
  {t:'Wave 5: export and the tutorial',who:'Codex, Gemini',items:['I: the repaired pipeline (workers, fonts, one browser on demand), the export pass and its security review, print mode for every section, the dialog, the top-bar button, the browser fallback.','H: the floating checklist (spike first), the final video swap after your real CAMS checks.','Any old field kept for the old link is removed.'],gate:'Exit: M4 tagged; production gate (section 11).'}
 ];
 var MS=[
- {t:'M1: after wave 1',contains:['Batch B (auth and onboarding; the limit reply; migration 0054 only if Q23 B)','Batch C (categories, manager line, folios and the eye, new member)'],backend:'Yes: B (reply and limit), C (folio_number and merged categories).',db:'Possibly 0054 (B).',recompute:'Yes: the category merge changes stored results (C 17a).',pre:['The old staging link decided (Q2) before this deploy.','Real inbox and phone ready for the emails and OTP.','Disk and the rollback image checked.'],verify:['Sign-up, OTP countdown, the limit message; the Head of Family email in a real inbox; the wrong-person warning.','A family import: the drop-down updates; the view that lands; folios show with the eye; the category donut shows one name per category.','The manager line is gone.'],rb:'Frontend: previous tag. Backend: the previous image; 0054 downgrade only if written. Rebuild the stored results.'},
+ {t:'M1: after wave 1',contains:['Batch B (auth and onboarding; the limit reply; migration 0054 only if Q23 B)','Batch C (categories, manager line, folios and the eye, new member)'],backend:'Yes: B (reply and limit), C (folio_number and merged categories).',db:'Possibly 0054 (B).',recompute:'Yes: the category merge changes stored results (C 17a).',pre:['The old link is left as it is (Q2): confirm the change is additive and check the old link still loads.','Real inbox and phone ready for the emails and OTP.','Disk and the rollback image checked.'],verify:['Sign-up, OTP countdown, the limit message; the Head of Family email in a real inbox; the wrong-person warning.','A family import: the drop-down updates; the view that lands; folios show with the eye; the category donut shows one name per category.','The manager line is gone.'],rb:'Frontend: previous tag. Backend: the previous image; 0054 downgrade only if written. Rebuild the stored results.'},
  {t:'M2: numbers and charts',contains:['A1, A2, A3 fixes you approved (the XIRR, the rank pool and its disclaimer line, the category average)','D (charts, pop-up)','H link and pop-up'],backend:'Yes: A fixes, D’s movers switch.',db:'None.',recompute:'Yes: numbers change. The stakeholder packs are issued after M2 passes.',pre:['The first clean unattended NAV runs on record.','Every fix has its approved proposal and its before and after.'],verify:['The same household before and after: the tile and the column agree; a rank and total; the average.','The Growth-only line under the ranks; a held IDCW fund shows “ranked as Growth”.','Up to three benchmark lines; the Overview graph; the pop-up in each state; the video pop-up plays and closes.'],rb:'Frontend: previous tag. Backend: the previous image; then rebuild the stored numbers.'},
  {t:'M3: search and navigation',contains:['K (search on every page, the household index endpoint)','F (the section list, anchors and the visible index)','E (the date strip and “i”)'],backend:'Yes: one new read-only endpoint, deployed first.',db:'None (head stays).',recompute:'No.',pre:['Search’s four gates and whole-release review done.','The glass rail built to the packet (Q1 C is decided).'],verify:['Search on each page; a jump with a member switch; Undo; logout then login shows nothing from the first user.','The index on each of the seven tabs; only it sticks; the date strip and its “i”; the XIRR, rank and average still undated.'],rb:'Frontend alone: previous tag (the endpoint is harmless alone). No migration.'},
- {t:'M4: final',contains:['I (PDF export, top-bar button, fallback)','H floating checklist and the final video','Contract cleanup'],backend:'Yes: the export route and the image with the browser and fonts.',db:'None.',recompute:'No.',pre:['Memory headroom checked; the deploy is outside the job windows.','FRONTEND_BASE_URL points at the redesign.','The export pass passed its security review.'],verify:['A full report for the large household; page count and look; the disclaimer line; a failed export offers the browser fallback; two exports at once.','The floating checklist in Chrome and Edge, and the in-page panel elsewhere; the final video plays.'],rb:'Frontend: previous tag. Backend: the previous image (the export route is unused alone).'}
+ {t:'M4: final',contains:['I (PDF export, top-bar button, fallback)','H floating checklist and the final video','Old-field list recorded (the fields kept for the old link)'],backend:'Yes: the export route and the image with the browser and fonts.',db:'None.',recompute:'No.',pre:['Memory headroom checked; the deploy is outside the job windows.','FRONTEND_BASE_URL points at the redesign.','The export pass passed its security review.'],verify:['A full report for the large household; page count and look; the disclaimer line; a failed export offers the browser fallback; two exports at once.','The floating checklist in Chrome and Edge, and the in-page panel elsewhere; the final video plays.'],rb:'Frontend: previous tag. Backend: the previous image (the export route is unused alone).'}
 ];
 function wave(v){var w=WV[+v];var h='<div class="xdoc"><h4 style="font:700 18px DM Sans;margin:0 0 4px">'+w.t+'</h4><p class="note" style="margin:0 0 8px">Who: '+w.who+'</p><ul class="tight">'+w.items.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul><div class="callout good" style="margin-bottom:0"><b>'+w.gate+'</b></div></div>';return h}
 function milestone(v){var m=MS[+v-1];function L(a){return '<ul class="tight">'+a.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>'}
@@ -878,18 +878,18 @@ var Q=[
 {id:"Q2",item:"backend",title:"What happens to the old staging link (ls-staging) before M1?",ask:"Pick one.",
  ctx:"It shares the backend and the database with the redesign link. Batch C&rsquo;s answer was to remove the old folio field in the same change, which would blank folios on the old link.",
  opts:[
- {k:"A",l:"Retire or redirect it to the redesign link before M1",rec:1,d:"Good: backend changes and removals are safe from then on; Batch C stays as decided. Bad: nobody can compare with the old look."},
- {k:"B",l:"Keep it, and delay field removals to a cleanup step in wave 5",d:"Good: the old link keeps working. Bad: contradicts Batch C&rsquo;s note; a cleanup step and a second check."},
+ {k:"A",l:"Retire or redirect it to the redesign link before M1",d:"Good: backend changes and removals are safe from then on. Bad: nobody can compare with the old look."},
+ {k:"B",l:"Keep it as it is and never touch it; backend changes are additive only, and old fields stay",rec:1,d:"Your answer (17 Nov). Good: the old link keeps working. Bad: Batch C&rsquo;s &ldquo;remove the old field now&rdquo; no longer applies; old fields stay until you retire the old link."},
  {k:"C",l:"Keep it and accept blanks or errors on it",d:"Good: no extra work. Bad: a half-working link that confuses testers."}],
- why:"One link, one truth: the redesign is the product now.",
- commit:"A: a one-line change to the web server config and a note to testers. B: an additive-only rule and a cleanup task. C: nothing, with the risk."},
-{id:"Q3",item:"capacity",title:"How many lanes can you review at once?",ask:"Pick one.",
+ why:"You said to keep it as is and not touch it, which is option B.",
+ commit:"Recorded 17 Nov: B. Backend changes are additive only; Batch C keeps the old folio field and adds the new one; no cleanup step is scheduled."},
+{id:"Q3",item:"capacity",title:"How much can be built at the same time?",ask:"Pick one.",
  opts:[
- {k:"A",l:"Three lanes at a time",rec:1,d:"About 12 to 13 working weeks of work (section 12)."},
- {k:"B",l:"Two lanes at a time",d:"About 19 weeks; fewer merges to watch."},
- {k:"C",l:"Four lanes at a time",d:"About 9 to 10 weeks; more conflicts and more to review."}],
- why:"Three matches the number of independent lanes in waves 1 and 2.",
- commit:"This sets how many worktrees run together and the pace I plan."},
+ {k:"A",l:"Two builders at once: Codex on backend and Antigravity on frontend, one task each, with Claude orchestrating",rec:1,d:"Your answer (17 Nov). Finish time is set by the busier queue, likely frontend: about 15 to 20 working weeks, a guess until tasks are split by builder."},
+ {k:"B",l:"Three batch lanes at a time (my earlier proposal)",d:"About 12 to 13 working weeks, but it assumed more builders than you have."},
+ {k:"C",l:"One builder at a time",d:"About 19 weeks or more; the safest to review."}],
+ why:"It matches the two builders you actually have.",
+ commit:"Each wave’s tasks are queued per builder: a backend task for Codex and a frontend task for Antigravity at the same time, never two of the same kind. A batch with only backend work leaves the frontend builder free for another batch."},
 {id:"Q4",item:"M3",title:"Should M3 (search, navigation and dates) be one deploy or two?",ask:"Pick one.",
  opts:[
  {k:"A",l:"One deploy, as decided in Q26, with a release valve: split into search, then dates and navigation, only if QA is too large",rec:1,d:"Good: matches your decision; one announcement. Bad: the largest QA round."},
@@ -904,7 +904,7 @@ var Q=[
  commit:"A: each guide names the window. B: milestones wait for the slot."}
 ];
 
-var PRE={};
+var PRE={Q1:{k:"A",n:"Answered 17 Nov."},Q2:{k:"B",n:"Answered 17 Nov: keep it as is, do not touch it (interpreted as option B: additive-only backend, old fields stay)."},Q4:{k:"A",n:"Answered 17 Nov."},Q5:{k:"A",n:"Answered 17 Nov."},Q3:{k:"A",n:"Answered 17 Nov: Codex (backend) and Antigravity (frontend) can work at the same time, one task each; Claude orchestrates."}};
 var LOCK={};
 Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
 var cards=document.getElementById("cards");
