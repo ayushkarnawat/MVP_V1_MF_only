@@ -1,0 +1,966 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Program Execution and Deployment Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+
+<style>
+
+/* Layout: sticky contents rail + one reading column. Brand: DM Sans headings, Manrope body, #22C55E for actions, a deeper green for text and links. Mockups are drawn at real window sizes and scaled to fit the column. */
+:root{
+ --bg:#FCFCFC; --surface:#FFFFFF; --surface-2:#F3F5F3; --line:#E5E5E5;
+ --fg:#111111; --muted:#5C5C5C; --accent:#22C55E; --accent-deep:#15803D; --accent-soft:#EAFBF0;
+ --warn:#B45309; --warn-soft:#FEF3E2; --info:#2F5FB3; --info-soft:#E8EFFB;
+ --danger:#B3321F; --danger-soft:#FBE6E2; --on-accent:#0B1F12;
+ --f-display:'DM Sans','Segoe UI',system-ui,sans-serif;
+ --f-body:'Manrope','Segoe UI',system-ui,sans-serif;
+ --f-mono:ui-monospace,'SF Mono',Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+ padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4,h5{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent-deep)}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent-deep)}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:70ch;margin:0 0 10px}
+.meta{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+section{margin-top:56px;scroll-margin-top:16px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:74ch}
+h3.sub{font-size:18px;margin:28px 0 8px}
+h4.mini{font-size:15px;margin:18px 0 6px}
+p{margin:8px 0}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700}
+.tag{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.fe{background:var(--info-soft);color:var(--info)}
+.tag.be{background:var(--warn-soft);color:var(--warn)}
+.tag.db{background:var(--danger-soft);color:var(--danger)}
+.tag.ok{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.none{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tag.me{background:var(--accent-soft);color:var(--accent-deep);margin-left:6px}
+.tag.chosen{background:var(--accent);color:var(--on-accent);margin-left:6px}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul,ul.tight{margin:6px 0;padding-left:20px}
+.sumbox li,ul.tight li{margin:5px 0}
+.callout{background:var(--warn-soft);border-radius:10px;padding:12px 14px;margin:14px 0;font-size:14px}
+.callout.good{background:var(--accent-soft)}
+.callout.info{background:var(--info-soft)}
+.callout.bad{background:var(--danger-soft)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.cols>div{min-width:0}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.flow>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 16px;min-width:0}
+.flow h4{font-size:15px;margin-bottom:6px}
+.flow ol{margin:4px 0;padding-left:20px}.flow li{margin:5px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.stat .n{font:700 26px var(--f-display)}.stat .l{font-size:12.5px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin:12px 0;align-items:start}
+@media (max-width:860px){.pair{grid-template-columns:minmax(0,1fr)}}
+.cap{margin:14px 0 6px;font-size:13px}
+.cap b{font-family:var(--f-display)}
+.note{color:var(--muted);font-size:12.5px}
+.winbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.winbar span{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.winbar button{padding:6px 12px;font-size:12.5px;background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.winbar button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+/* decision cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:60px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:600 12px var(--f-body);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--accent)}
+.opt.on{background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt input:disabled{cursor:default}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.why{border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--accent-deep)}
+.reply{background:var(--info-soft);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:14px}
+.reply p{margin:6px 0}.reply ul{margin:6px 0;padding-left:20px}
+.commit{border-left:3px solid var(--info);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.commit b{color:var(--info)}
+textarea{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-height:56px;resize:vertical}
+label.nl{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin:10px 0 4px}
+button{font:inherit;font-size:14px;font-weight:600;padding:9px 16px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);cursor:pointer}
+button.ghost{background:transparent;color:var(--accent-deep)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.status{font:600 11px var(--f-body)}.status.todo{color:var(--warn)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.out{min-height:240px;font-family:var(--f-mono);font-size:12.5px}
+.tabs{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.doc{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:18px 20px;margin:12px 0}
+.doc h4{font-size:17px;margin-bottom:8px}
+.doc h5{font-size:14px;margin:14px 0 4px}
+.doc ul{margin:6px 0;padding-left:20px}.doc li{margin:4px 0}
+
+/* ---------- scaled real-size frames ---------- */
+.vp{position:relative;width:100%;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#fff}
+.vp-in{position:absolute;left:0;top:0;transform-origin:0 0;background:#fff;color:#111;font-family:'Manrope','Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}
+.vp-in *{box-sizing:border-box}
+.vp-in h5,.vp-in h4,.vp-in h3,.vp-in h2,.vp-in h1{font-family:'DM Sans','Segoe UI',system-ui,sans-serif;margin:0}
+.vp-in p{margin:0}
+.chrome{height:40px;background:#EEF1EE;border-bottom:1px solid #D9DED9;display:flex;align-items:center;gap:8px;padding:0 14px}
+.chrome i{width:11px;height:11px;border-radius:50%;background:#C8CFC8;display:block;flex:none}
+.chrome span{flex:1;max-width:520px;margin-left:12px;background:#fff;border:1px solid #D9DED9;border-radius:99px;padding:3px 14px;font-size:12px;color:#5C5C5C}
+.w1280{--vw:1280px;--vh:600px;--card-h:552px;--pad-y:14px;--gap:10px;--gap-sm:5px;--h1:26px;--btn-h:44px;--row-h:46px;--chip-h:34px;--badge:34px;--body:13.5px}
+.w1440{--vw:1440px;--vh:810px;--card-h:762px;--pad-y:36px;--gap:22px;--gap-sm:12px;--h1:34px;--btn-h:54px;--row-h:64px;--chip-h:48px;--badge:44px;--body:15px}
+.w1536{--vw:1536px;--vh:730px;--card-h:682px;--pad-y:28px;--gap:16px;--gap-sm:9px;--h1:30px;--btn-h:48px;--row-h:54px;--chip-h:42px;--badge:38px;--body:14px}
+.d-page{height:var(--vh);display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#EEF9F1,#F8FDF9)}
+.d-card{width:min(1240px,calc(var(--vw) - 64px));height:var(--card-h);background:#fff;border-radius:28px;box-shadow:0 18px 50px rgba(20,48,31,.13);display:grid;grid-template-columns:.95fr 1fr;overflow:hidden}
+.d-left{padding:var(--pad-y) 40px;display:flex;flex-direction:column;background:linear-gradient(160deg,#F2FCF6,#E7F7EC);min-height:0;overflow:hidden}
+.d-left.white{background:#fff}
+.d-logo{font:700 26px 'DM Sans',sans-serif;color:#111;flex:none}
+.d-sketch{margin:var(--gap) auto;flex:1;min-height:60px;max-height:230px;width:70%;max-width:330px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#D6F3DF,#EAFBF0);color:#15803D;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.d-h2{font:700 calc(var(--h1) + 2px) 'DM Sans',sans-serif;line-height:1.15;flex:none}
+.d-h2 span{color:#15803D}
+.d-p{color:#5C5C5C;font-size:var(--body);margin-top:var(--gap-sm);flex:none}
+.d-bul{display:flex;gap:10px;align-items:center;margin-top:var(--gap-sm);font-size:var(--body);flex:none}
+.d-bul i{flex:none;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #D2EEDB;display:block}
+.d-right{padding:var(--pad-y) 48px;display:flex;flex-direction:column;min-height:0}
+.d-top{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;color:#5C5C5C;font-size:13px}
+.d-steps{display:flex;gap:6px;align-items:center}.d-steps i{width:34px;height:5px;border-radius:3px;background:#22C55E;display:block}.d-steps i.off{background:#E5E7EC}
+.d-content{flex:1;min-height:0;overflow-y:auto;display:flex}
+.d-inner{margin:auto;width:100%;max-width:520px;padding:8px 0}
+.fitb{position:absolute;right:10px;bottom:10px;z-index:3;font:600 12px 'Manrope',sans-serif;padding:4px 10px;border-radius:99px;background:#EAFBF0;color:#15803D;border:1px solid #BFE9CC}
+.fitb.bad{background:#FBE6E2;color:#B3321F;border-color:#F3B8AE}
+.o-stack{display:flex;flex-direction:column;gap:var(--gap)}
+.o-sec{display:flex;flex-direction:column;gap:var(--gap-sm)}
+.o-h1{font:700 var(--h1) 'DM Sans',sans-serif;line-height:1.15}
+.o-sub{color:#667085;font-size:var(--body)}
+.o-opt{display:flex;align-items:center;gap:12px;min-height:var(--row-h);border:1px solid #E5E7EC;border-radius:16px;padding:0 16px;background:#fff}
+.o-opt.tt{min-height:min(var(--row-h),54px)}
+.o-opt.sel{border-color:#22C55E;background:#F4FCF6;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.o-opt.quiet{border-color:transparent;background:#F6F8F6}
+.o-badge{flex:none;width:var(--badge);height:var(--badge);border-radius:50%;background:#EAFBF0;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:11px}
+.o-opt b{display:block;font-size:var(--body);font-weight:600}
+.o-opt small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.o-rad{margin-left:auto;flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid #C5CBC5}
+.o-opt.sel .o-rad{background:#22C55E;border-color:#22C55E;box-shadow:inset 0 0 0 4px #fff}
+.o-grp{border:1px solid #E5E7EC;border-radius:16px;overflow:hidden}
+.o-grp .o-opt{border:0;border-radius:0;border-bottom:1px solid #EEF0EE}
+.o-grp .o-opt:last-child{border-bottom:0}
+.o-h2{display:flex;justify-content:space-between;align-items:baseline;gap:10px;white-space:nowrap}
+.o-h2 b{font:600 15px 'DM Sans',sans-serif}
+.o-h2 span{font-size:13px;color:#667085;font-weight:400}
+.o-h2 a{font-size:13px;color:#15803D;font-weight:600}
+.o-chips{display:grid;gap:var(--gap-sm)}
+.o-chips.c3{grid-template-columns:repeat(3,1fr)}.o-chips.c2{grid-template-columns:repeat(2,1fr)}
+.o-chip{display:flex;align-items:center;gap:8px;min-height:var(--chip-h);border:1px solid #E5E7EC;border-radius:14px;padding:0 10px;font-size:12.5px;line-height:1.25;background:#fff}
+.o-chip i{flex:none;width:20px;height:20px;border-radius:6px;background:#EAFBF0;display:block}
+.o-chip em{margin-left:auto;flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid #C5CBC5}
+.o-chip.sel{border-color:#22C55E;background:#F4FCF6}.o-chip.sel em{background:#22C55E;border-color:#22C55E}
+.o-pills{display:flex;flex-wrap:wrap;gap:var(--gap-sm)}
+.o-pill{display:flex;align-items:center;gap:8px;border:1px solid #E5E7EC;border-radius:99px;min-height:var(--chip-h);padding:0 14px;font-size:13px;background:#fff}
+.o-pill i{width:16px;height:16px;border-radius:50%;background:#EAFBF0;display:block}
+.o-pill.sel{background:#22C55E;border-color:#22C55E;color:#0B1F12;font-weight:600}.o-pill.sel i{background:rgba(11,31,18,.25)}
+.o-panel{background:#F6F9F6;border-radius:18px;padding:14px}
+.o-go{height:var(--btn-h);border-radius:99px;background:#22C55E;color:#0B1F12;font:700 15px 'Manrope',sans-serif;display:flex;align-items:center;justify-content:center}
+.o-go.dis{background:#E5E7EC;color:#6B7280}
+.o-tabs{display:flex;background:#F1F3F1;border-radius:99px;padding:3px;gap:3px}
+.o-tabs span{flex:1;text-align:center;padding:7px;border-radius:99px;font-size:13px;color:#667085}
+.o-tabs span.on{background:#fff;color:#111;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.o-field{border:1px solid #D0D5DD;border-radius:12px;padding:11px 14px;font-size:14px}
+.o-lab{font-size:13px;font-weight:600;margin-bottom:5px}
+.o-alert{background:#FEF3F2;border:1px solid #FDA29B;color:#B42318;border-radius:12px;padding:10px 14px;font-size:13.5px}
+.o-red{color:#B42318;font-size:13px;margin-top:6px}
+.st{display:flex;gap:12px;align-items:flex-start;margin-top:var(--gap-sm)}
+.st i{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:13px;background:#22C55E;color:#0B1F12;margin-top:2px}
+.st i.spin{background:transparent;border:2.5px solid #E5E7EC;border-top-color:#22C55E}
+.st i.big{transform:scale(1.28)}
+.st b{display:block;font-size:var(--body);font-weight:600}.st small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.a-card{border:1px solid #E5E7EC;border-radius:16px;padding:12px 16px}
+.a-info{background:#F3F5F3;border-radius:16px;padding:12px 16px}
+.a-info b{display:block}
+/* dialogs */
+.dlg-bg{height:720px;position:relative;background:#F4F6F4;overflow:hidden}
+.dlg-bg .fake{position:absolute;inset:60px 90px;border:2px dashed #C8D3C8;border-radius:20px;filter:blur(2px);opacity:.9;background:#fff}
+.dlg-bg .dim{position:absolute;inset:0;background:rgba(17,17,17,.5);display:flex;align-items:center;justify-content:center}
+.dlg{background:#fff;border-radius:16px;padding:24px;width:448px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg h5{font-size:18px;font-weight:700;line-height:1.25}
+.dlg .body{color:#5C5C5C;font-size:14px}
+.dlg .foot{display:flex;gap:8px;justify-content:flex-end}
+.dlg.ph{width:100%}
+.dlg.ph .foot{flex-direction:column-reverse}
+.dbtn{font:700 13.5px 'Manrope',sans-serif;padding:10px 16px;border-radius:12px;border:1.5px solid #22C55E;background:#22C55E;color:#0B1F12;text-align:center}
+.dbtn.o{background:#fff;color:#15803D}
+.dwarn{display:flex;gap:10px;align-items:flex-start;background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:14px;padding:12px 14px;font-size:13.5px}
+.dwarn b{display:block;margin-bottom:2px}
+.dwarn i{flex:none;width:22px;height:22px;border-radius:50%;background:#F59E0B;color:#fff;font:700 13px 'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;font-style:normal;margin-top:1px}
+/* phone shell */
+.phs{width:390px;padding:14px;background:#111;border-radius:46px}
+.phs .scr{background:#fff;border-radius:34px;overflow:hidden;min-height:700px;position:relative}
+.phs .sb{height:34px;display:flex;justify-content:center;align-items:center}
+.phs .sb b{width:96px;height:22px;background:#111;border-radius:99px;display:block}
+.phs.dark .scr{background:#0F0F0F}
+/* email */
+.emx{--e-bg:#EEF6F0;--e-card:#fff;--e-ink:#111;--e-muted:#5C5C5C;--e-green:#15803D;--e-pale:#EEF8F0;--e-dark:#14301F;--e-line:#E5E5E5;--e-ic:#EAFBF0;--e-ill:#EAFBF0;--e-linkb:#D9E0D9;--e-small:#4ADE80;padding:20px 14px;background:var(--e-bg)}
+.emx.dark{--e-bg:#0F0F0F;--e-card:#1A1A1A;--e-ink:#F5F5F5;--e-muted:#A3A3A3;--e-green:#34D399;--e-pale:#17261C;--e-dark:#14301F;--e-line:#2A2A2A;--e-ic:#1F3B28;--e-ill:#F2FCF6;--e-linkb:#2F3A31;--e-small:#4ADE80}
+.emx.narrow{padding:12px 8px}
+.em-card{background:var(--e-card);color:var(--e-ink);border-radius:18px;padding:22px 22px 16px;width:100%}
+.narrow .em-card{padding:16px 14px 12px}
+.em-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.em-logo{font:700 24px 'DM Sans',sans-serif;color:var(--e-ink)}
+.em-tag{font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;color:var(--e-green)}
+.em-hd{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.em-hd>div:first-child{min-width:0}
+.em-h1{font:700 32px 'DM Sans',sans-serif;line-height:1.1}
+.em-h1 span{color:var(--e-green)}
+.narrow .em-h1{font-size:25px}
+.em-sub{color:var(--e-muted);margin-top:10px;font-size:15px}
+.narrow .em-sub{font-size:13.5px}
+.em-ill{flex:none;width:150px;height:118px;border-radius:50%;background:var(--e-ill);color:#15803D;font-size:11px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.narrow .em-ill{width:96px;height:78px;font-size:9px}
+.em-dark{background:var(--e-dark);color:#fff;border-radius:14px;padding:16px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:15px}
+.narrow .em-dark{padding:12px;gap:10px;font-size:13.5px}
+.em-dark>div{min-width:0}
+.em-dark small{display:block;color:var(--e-small);font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;margin-bottom:2px}
+.em-dark b{display:block;font:700 19px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-ic{flex:none;width:44px;height:44px;border-radius:50%;background:var(--e-ic);color:#15803D;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center}
+.narrow .em-ic{width:34px;height:34px;font-size:8px}
+.em-pale{background:var(--e-pale);border-radius:14px;padding:14px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:14.5px}
+.narrow .em-pale{padding:10px 12px;gap:10px;font-size:13px}
+.em-pale>div{min-width:0}
+.em-pale b{display:block;color:var(--e-green);font:700 17px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-line{display:flex;gap:14px;align-items:center;margin:0 0 12px;font-size:14.5px}
+.narrow .em-line{gap:10px;font-size:13px}
+.em-line>div{min-width:0}
+.em-btn{display:block;text-align:center;background:#22C55E;color:#0B1F12;font:700 17px 'Manrope',sans-serif;padding:16px;border-radius:99px;margin:0 0 16px}
+.narrow .em-btn{font-size:15px;padding:13px}
+.em-link{border:1px solid var(--e-linkb);border-radius:12px;padding:9px 12px;font-size:12.5px;color:var(--e-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:8px;max-width:100%}
+.em-foot{border-top:1px solid var(--e-line);margin-top:14px;padding-top:12px;font-size:13px;color:var(--e-muted)}
+.em-foot a{color:var(--e-green)}
+.em-foot b{display:block;color:var(--e-ink);font:700 16px 'DM Sans',sans-serif;margin-top:10px}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}nav.toc{position:static;max-height:none}}
+
+/* ---------- Batch A additions: app-style mockups ---------- */
+.ap{background:#F6F8F6;font-size:13.5px;color:#111}
+.ap-body{padding:20px 24px}
+.ap-h{font:700 20px 'DM Sans',sans-serif;margin-bottom:12px}
+.ap-card{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:16px}
+.ap-card h5{font:700 16px 'DM Sans',sans-serif;margin-bottom:4px}
+.ap-mut{color:#667085;font-size:12px}
+.ap-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ap-tile{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:10px 12px}
+.ap-tile small{display:block;color:#667085;font-size:11.5px}
+.ap-tile b{font:700 20px 'DM Sans',sans-serif}
+.ap-tile .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.seg{display:inline-flex;border:1px solid #E5E7EB;border-radius:8px;padding:2px;font-size:11px}
+.seg span{padding:2px 8px;border-radius:6px;color:#667085}
+.seg span.on{background:#F1F3F1;color:#111;font-weight:600}
+.ap-t{width:100%;min-width:0;border-collapse:collapse;font-size:12.5px}
+.ap-t th{background:#fff;color:#667085;font:600 11.5px 'Manrope',sans-serif;letter-spacing:0;text-transform:none;text-align:left;padding:8px 10px;border-bottom:1px solid #E5E7EB}
+.ap-t td{padding:9px 10px;border-bottom:1px solid #EEF0EE;vertical-align:top}
+.ap-logoc{flex:none;width:28px;height:28px;border-radius:8px;background:#EAFBF0;color:#15803D;font:700 11px 'DM Sans';display:flex;align-items:center;justify-content:center}
+.ap-fund{display:flex;gap:10px;align-items:flex-start}
+.note-box{background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:8px 10px;font-size:12px;margin-top:8px}
+.circ{outline:2px solid #D92D20;outline-offset:2px;border-radius:8px}
+.rk{display:inline-block;font:700 13px 'DM Sans',sans-serif;background:#EAFBF0;color:#15803D;border-radius:99px;padding:2px 10px}
+.rk small{font:500 11px 'Manrope',sans-serif;color:#667085;margin-left:3px}
+.fn{display:grid;gap:6px}
+.fn .r{display:grid;grid-template-columns:230px 1fr 90px;gap:10px;align-items:center;font-size:12.5px}
+.fn .b{height:18px;border-radius:5px;background:#22C55E}
+.fn .b.x{background:#F59E0B}
+.fn .n{font-weight:700;text-align:right}
+.cmp{display:grid;gap:14px}
+.cmp .p{display:grid;grid-template-columns:44px 1fr 150px;gap:12px;align-items:center}
+.cmp .trk{position:relative;height:22px}
+.cmp .trk::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:#E5E7EB}
+.cmp .d{position:absolute;top:4px;width:14px;height:14px;border-radius:50%;transform:translateX(-7px)}
+.cmp .d.f{background:#22C55E}
+.cmp .d.c{border:2px solid #667085;background:#fff}
+.cmp .v{font-size:12px;color:#667085}
+.lab{font:600 11px 'Manrope',sans-serif;color:#B42318;background:#FDECEA;border-radius:99px;padding:1px 8px;margin-left:6px}
+.wf{display:grid;gap:7px}
+.wf .r{display:grid;grid-template-columns:210px 1fr 80px;gap:10px;align-items:center;font-size:12px}
+.wf .tr{position:relative;height:16px;background:#F1F3F1;border-radius:4px}
+.wf .tr i{position:absolute;top:0;bottom:0;border-radius:4px;background:#0EA5E9}
+.wf .tr i.s{background:#F59E0B}
+.wf .n{text-align:right;font-weight:600}
+.steps5{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+.steps5>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13.5px}
+.steps5 b{display:block;font-family:var(--f-display);margin-bottom:3px}
+.code2{font-family:var(--f-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow:auto;white-space:pre;margin:8px 0}
+.xl{background:#fff;font-size:12px}
+.xl .tabs2{display:flex;gap:2px;background:#E8ECE8;padding:6px 8px 0;font-size:12px}
+.xl .tabs2 span{padding:5px 12px;border-radius:6px 6px 0 0;background:#F3F5F3;color:#444}
+.xl .tabs2 span.on{background:#fff;font-weight:700;color:#107C41}
+.xl .fx{display:flex;gap:8px;align-items:center;border-bottom:1px solid #D9DED9;padding:4px 10px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#333;background:#fff}
+.xl .fx b{color:#107C41;font-family:Manrope,sans-serif}
+.xl table.g{border-collapse:collapse;width:100%;min-width:0;font-size:12px}
+.xl table.g th{background:#F3F5F3;border:1px solid #D9DED9;padding:4px 8px;text-align:left;font:600 11.5px Manrope,sans-serif;color:#333;text-transform:none;letter-spacing:0}
+.xl table.g td{border:1px solid #E6EAE6;padding:4px 8px;vertical-align:top}
+.xl td.f{font-family:ui-monospace,Consolas,monospace;background:#F1FAF4;color:#14532D}
+.xl td.ok{color:#14532D;font-weight:700}
+.xl td.no{color:#B42318;font-weight:700}
+.pend{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;background:var(--warn-soft);color:var(--warn)}
+.a4{width:595px;height:842px;background:#fff;border:1px solid #D0D5DD;box-shadow:0 8px 30px rgba(0,0,0,.10);position:relative;font-family:'Manrope',sans-serif;color:#111;overflow:hidden;margin:0 auto}
+.a4 .hd{display:flex;justify-content:space-between;font-size:9px;color:#667085;padding:22px 36px 8px;border-bottom:1px solid #EEF0EE}
+.a4 .ft{position:absolute;left:36px;right:36px;bottom:20px;display:flex;justify-content:space-between;font-size:8.5px;color:#98A2B3;border-top:1px solid #EEF0EE;padding-top:6px}
+.a4 h1{font:700 30px 'DM Sans',sans-serif;line-height:1.1;margin:0}
+.a4 h2{font:700 17px 'DM Sans',sans-serif;margin:0 0 6px}
+.a4 .brand{font:700 22px 'DM Sans',sans-serif}
+.a4 .acc{height:10px;background:#22C55E}
+.a4 .meta2{font-size:11px;color:#475467;line-height:1.7}
+.a4 .toc div{display:flex;justify-content:space-between;font-size:10.5px;padding:3px 0;border-bottom:1px dotted #D0D5DD}
+.a4 .toc b{font:700 11px 'DM Sans',sans-serif;display:block;margin-top:10px;color:#15803D}
+.a4 table{width:100%!important;min-width:0!important;table-layout:fixed;border-collapse:collapse}.a4 th,.a4 td{background:none!important;text-transform:none!important;letter-spacing:0!important;font-size:inherit!important;font-weight:inherit;padding:5px 4px 5px 0!important;border-left:0;border-right:0}.a4 th{font-weight:600!important;color:#667085}.a4 td:first-child{font-weight:inherit}
+.xdoc{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:16px 18px;margin:12px 0}
+.dt{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:12px 0}.dt>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13px}.dt b{display:block;font-family:var(--f-display);margin-bottom:3px}.dt .y{border-color:var(--accent);background:var(--accent-soft)}.dt .n{border-color:var(--danger);background:var(--danger-soft)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+ <h4>Start here</h4>
+ <a href="#where">1. Where we stand</a>
+ <a href="#strategy">2. The strategy in one page</a>
+ <h4>The order</h4>
+ <a href="#order">3. Waves and milestones</a>
+ <a href="#deps">4. What waits for what</a>
+ <a href="#files">5. Shared files and conflict rules</a>
+ <h4>How we keep it clean</h4>
+ <a href="#branches">6. Branches and integration</a>
+ <a href="#backend">7. Shared backend and migrations</a>
+ <a href="#loop">8. How each batch is executed</a>
+ <h4>How it ships</h4>
+ <a href="#deploy">9. The four staging milestones</a>
+ <a href="#qa">10. QA strategy</a>
+ <a href="#prod">11. Production</a>
+ <h4>Reality check</h4>
+ <a href="#size">12. Size and duration</a>
+ <a href="#risks">13. Risks</a>
+ <a href="#gaps">14. Gaps and what I have not seen</a>
+ <h4>Your call</h4>
+ <a href="#questions">15. Decisions (5)</a>
+ <a href="#copy">16. Copy my answers</a>
+ <a href="#prov">What I checked</a>
+</nav>
+
+<main>
+<div class="hero">
+ <h1>Program Execution and Deployment Plan</h1>
+ <div class="meta">Planning only &middot; nothing built or deployed &middot; 17 Nov 2026 &middot; replaces the open &ldquo;execution order&rdquo; question (Batch B, Q28) &middot; branch leapswitch-redesign</div>
+ <p>How to build and ship every planned batch, plus search, in the cleanest order: <b>what runs in parallel, what waits, how the work is kept apart on branches, how it reaches staging in four milestones, and how production follows once at the end.</b> It builds on what you already decided (milestone deploys, one plan per batch, search in one release, the review gate) and fits the way the repo and the staging server really work.</p>
+ <div class="callout"><b>In this pass: not GA4 (Batch G), not A4 (load times).</b> You said these are out of this pass, so they are not scheduled here. That removes the GA4 consent and event work, the optional analytics labels in other batches, search and PDF events, and the speed fixes that would have shared <code>dashboard/xirr.py</code> with the XIRR fixes. Where something leaves a gap (for example &ldquo;an event we would have added&rdquo;), it is noted, not planned. Batch L (portfolio disclosures audit) is listed in Batch B&rsquo;s wave table but I have not seen its plan, so it is not scheduled here either (section 14).</div>
+ <p><b>How this was made.</b> I read the staging runbook and deploy scripts, the release-branch model, the planning handoff, every batch workbook&rsquo;s program-fit section, task list and open questions, the search plan, and the 16 Nov deploy record. Every size and date below is an <em>estimate</em> unless it says it was read in the repo; nothing was run on staging.</p>
+</div>
+<section id="where">
+ <h2>1. Where we stand</h2>
+ <p class="lead">Eleven pieces of work are planned and reviewed. Every question in scope is answered, including B&rsquo;s Q24 and Q25 and F&rsquo;s Q1 (17 Nov). Nothing is built yet.</p>
+ <div class="stats">
+  <div class="stat"><div class="n">11</div><div class="l">pieces in scope (A1, A2, A3, B, C, D, E, F, H, I, K)</div></div>
+  <div class="stat"><div class="n">4</div><div class="l">staging milestones, then production once</div></div>
+  <div class="stat"><div class="n">1</div><div class="l">possible migration (Batch B, number 0054)</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">open questions in scope (the five decisions below are this plan&rsquo;s own)</div></div>
+ </div>
+ <div class="scroll"><table>
+  <thead><tr><th>Piece</th><th>What it is</th><th>Plan</th><th>Open in scope</th><th>Tasks (S / M / L)</th><th>Touches</th></tr></thead>
+  <tbody>
+   <tr><td class="k">B</td><td>Journey quick wins: wrong-person warning, OTP timer and limits, spinner to tick, Head of Family emails, onboarding layout</td><td>Reviewed (27 of 28; Q28 is answered by this plan)</td><td>None; email screenshots for item 18 are still needed</td><td>19 (11 / 7 / 1)</td><td><span class="tag fe">front</span> <span class="tag be">back</span> <span class="tag db">maybe 0054</span></td></tr>
+   <tr><td class="k">C</td><td>Holdings hygiene: merged categories, manager line removed, full folio numbers with the eye icon, new member in the drop-down</td><td>Answered (16 of 16)</td><td>None</td><td>13 (6 / 7 / 0)</td><td><span class="tag fe">front</span> <span class="tag be">back</span></td></tr>
+   <tr><td class="k">A1, A2, A3</td><td>XIRR, rank denominators (Growth only, in-house verification and reference workbook), category average and its Excel. A4 is not in this pass</td><td>Answered</td><td>None</td><td>36 (13 / 21 / 2)</td><td><span class="tag be">back</span> <span class="tag fe">one line</span></td></tr>
+   <tr><td class="k">D</td><td>Charts: benchmark lines and colours, Overview graph, the day&rsquo;s-change pop-up</td><td>Answered</td><td>None</td><td>15 (6 / 9 / 0)</td><td><span class="tag fe">front</span> <span class="tag be">back (movers)</span></td></tr>
+   <tr><td class="k">K (search)</td><td>The search box on every page, a household index endpoint</td><td>Reviewed (21 tasks, one release)</td><td>None in the plan</td><td>21 (9 / 9 / 3)</td><td><span class="tag fe">front</span> <span class="tag be">one endpoint</span></td></tr>
+   <tr><td class="k">F</td><td>Section index inside tabs, one shared section list</td><td>Reviewed</td><td>None (Q1 C: the frosted glass side rail)</td><td>13 (4 / 7 / 2)</td><td><span class="tag fe">front</span></td></tr>
+   <tr><td class="k">E</td><td>Date policy and strip, the P/E and P/B &ldquo;i&rdquo;</td><td>Answered</td><td>None</td><td>12 (2 / 10 / 0)</td><td><span class="tag fe">front</span></td></tr>
+   <tr><td class="k">H</td><td>CAMS tutorial: video pop-up and the floating checklist</td><td>Answered</td><td>None (a real inbox email screenshot and a CAMS ten-year check are still needed)</td><td>14 (11 / 2 / 1)</td><td><span class="tag fe">front</span></td></tr>
+   <tr><td class="k">I</td><td>PDF export: pipeline repairs, export dialog, top-bar button</td><td>Answered</td><td>None</td><td>16 (4 / 10 / 2)</td><td><span class="tag fe">front</span> <span class="tag be">back</span></td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">Task sizes are each plan&rsquo;s own (S about half a day, M one to two days, L more). Search&rsquo;s plan counts them a little larger. Open questions were read from each workbook on 17 Nov.</p>
+</section>
+
+<section id="strategy">
+ <h2>2. The strategy in one page</h2>
+ <div class="callout good"><b>The recommendation.</b> Build in <b>five waves</b> on one integration branch, with one worktree and one branch per batch so lanes never collide. Merge a batch into the integration branch only after its own tests and review pass. Deploy to staging at <b>four milestones</b>, each small enough to check and each with its own rollback. Go to production <b>once</b>, after the fourth milestone. Backend changes are <b>additive first</b>, because the old staging link shares the same API and database.</div>
+ <h3 class="sub">What is already decided (not reopened here)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Decision</th><th>Where</th><th>What it means for this plan</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Milestone deploys: after wave 1, after waves 2 and 3, after search and navigation, a final one; production once</td><td>Batch B, Q26</td><td>Section 9: four milestones M1 to M4.</td></tr>
+   <tr><td class="k">One plan per batch, written just before it is built, plus a short program index</td><td>Batch B, Q27</td><td>This document is the index; each batch&rsquo;s build plan is written when its wave starts.</td></tr>
+   <tr><td class="k">Search ships in one release with one staging check</td><td>Search plan, Q18</td><td>Search is one lane and one release inside M3 (section 3).</td></tr>
+   <tr><td class="k">Every fix is proposed to you and built only after approval; failing test first</td><td>A1 to A3</td><td>The review gate stays inside the loop (section 8).</td></tr>
+   <tr><td class="k">No phone changes in any batch</td><td>Standing rule</td><td>The mobile code is not touched; Batch C&rsquo;s older phone rows are the only exception already agreed.</td></tr>
+   <tr><td class="k">The old folio field is removed in the same change</td><td>Batch C, Q5</td><td>Needs a decision about the old staging link (Q2, section 15).</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Implementation plans: separate, not one whole plan</h3>
+ <div class="callout good"><b>Separate implementation plans, one per batch, plus this document as the index.</b> This is your Q27 decision, and I recommend keeping it. Each plan is written just before its batch is built, from the batch workbook and your answers, in <code>Docs/superpowers/plans/</code>. This plan does not replace them; it only fixes the order, the milestones and the shared rules.</div>
+ <div class="scroll"><table>
+  <thead><tr><th>Plan</th><th>Written when</th><th>Contains</th></tr></thead>
+  <tbody>
+   <tr><td class="k">This program plan (the index)</td><td>Now</td><td>Order, milestones, branches, shared files, deploy and production rules.</td></tr>
+   <tr><td class="k">One implementation plan per batch: B, C, A (A1, A2, A3 as one plan with three parts, since they share the pool code and the rebuild), D, K (search, already has its own 21-task plan), F, E, H, I</td><td>When its wave opens (wave 1 first: B, C, A investigations)</td><td>Exact tasks, failing tests first, files, affected tests to run, review gates, QA checklist.</td></tr>
+   <tr><td class="k">One deploy guide per milestone (M1 to M4)</td><td>Before each milestone</td><td>Pre-flight, steps, verification, rollback.</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note"><b>Why not one whole plan:</b> it would be written months before the code it describes and go stale as each batch teaches us something (the NAV fix already changed two plans); it would be too large to review; and a late change in one batch would force rewriting everything. The shared parts (order, files, deploys) live here, so nothing is lost by splitting.</p>
+ <h3 class="sub">Principles</h3>
+ <ul class="tight">
+  <li><b>Numbers before presentation.</b> The truth-finding fixes (A1 to A3) land before charts, dates and exports repeat those numbers.</li>
+  <li><b>Settle shared places early.</b> The top bar, page headers and the section list change once, early, so later batches build on a stable frame.</li>
+  <li><b>Small, checkable releases.</b> Four staging milestones, each with a written checklist, instead of one large final round.</li>
+  <li><b>Backend additive first.</b> A new field or route can go out at any time; an old one is removed only when nothing reads it.</li>
+  <li><b>One owner per shared file at a time</b> (section 5).</li>
+  <li><b>Production once</b>, only after the last milestone passes, with the recompute and a rollback written down.</li>
+ </ul>
+</section>
+
+<section id="order">
+ <h2>3. Waves and milestones</h2>
+ <p class="lead">Five waves, four staging milestones. Pick a wave or a milestone to see what is in it, why it is there, and what has to be true before and after.</p>
+ <div class="winbar" data-sec="wv"><span>Wave</span><button type="button" data-v="0" aria-pressed="true">0. Now</button><button type="button" data-v="1" aria-pressed="false">1. Foundations</button><button type="button" data-v="2" aria-pressed="false">2. Numbers and charts</button><button type="button" data-v="3" aria-pressed="false">3. Search and the section list</button><button type="button" data-v="4" aria-pressed="false">4. Dates and navigation</button><button type="button" data-v="5" aria-pressed="false">5. Export and the tutorial</button></div>
+ <div data-frame="wave"></div>
+ <h3 class="sub">The whole order at a glance</h3>
+ <div data-frame="timeline"></div>
+ <div class="scroll"><table>
+  <thead><tr><th>Wave</th><th>Batches</th><th>Lanes in parallel</th><th>Ships in</th><th>Why here</th></tr></thead>
+  <tbody>
+   <tr><td class="k">0. Now</td><td>No code: decisions, a plan per batch, the baseline, deploy preparation</td><td>1</td><td>&mdash;</td><td>Everything below starts clean.</td></tr>
+   <tr><td class="k">1. Foundations</td><td>B, C, and the read-only A investigations (A1 fixtures, A2 recount, A3 export script on synthetic data)</td><td>3 to 4</td><td><b>M1</b>: B and C</td><td>Independent of prices; the A work reads only, so it ships nothing yet.</td></tr>
+   <tr><td class="k">2. Numbers and charts</td><td>The A fixes you approve, then D; H&rsquo;s link and pop-up</td><td>3</td><td><b>M2</b></td><td>Official numbers need the first clean NAV runs (17 Nov). D&rsquo;s chart end date follows A2&rsquo;s common end date. H&rsquo;s pop-up waits for C&rsquo;s import-screen change.</td></tr>
+   <tr><td class="k">3. Search and the section list</td><td>K (all four steps) and F&rsquo;s section audit, list and anchors</td><td>2 to 3</td><td>part of <b>M3</b></td><td>Search is the largest change and edits the shell and every page header, so it goes before E and F&rsquo;s visible index. Search&rsquo;s section registry and F&rsquo;s list must be one list.</td></tr>
+   <tr><td class="k">4. Dates and navigation</td><td>E, then F&rsquo;s visible index</td><td>2</td><td><b>M3</b> (with wave 3)</td><td>E and F both change the Mutual Funds frame; E first so F sits above a settled strip. Needs A&rsquo;s verdicts.</td></tr>
+   <tr><td class="k">5. Export and the tutorial</td><td>I; H&rsquo;s floating checklist and the final video</td><td>2</td><td><b>M4</b>, then production</td><td>The PDF mirrors the final sections; the checklist waits for the import screens and the CAMS page to be stable.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">What changed against Batch B&rsquo;s wave table, and why</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Change</th><th>Reason</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Search is one lane in wave 3, as one release, instead of two halves</td><td>You decided one release (Q18). Splitting it would put the shell change in M2 and the pages in M3, two QA rounds for one feature.</td></tr>
+   <tr><td class="k">F&rsquo;s section list and anchors move up beside search</td><td>Search&rsquo;s &ldquo;page sections&rdquo; and the section index read the same list. Building the list once, first, avoids two versions. The visible index (the shape, Q1) follows in wave 4.</td></tr>
+   <tr><td class="k">E before F&rsquo;s visible index</td><td>Both edit the Mutual Funds frame. E&rsquo;s strip sits under the tabs; F&rsquo;s row or rail sits with the page. One order, no rebasing of one over the other.</td></tr>
+   <tr><td class="k">H split in two</td><td>The link and pop-up ride with M2 (placeholder or final video); the floating checklist and the real recording wait for M4. The video itself is produced in parallel from now.</td></tr>
+   <tr><td class="k">A runs as investigation first, fixes in wave 2</td><td>The recount, fixtures and Excel script need no prices, so they start now; every fix needs your approval first.</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">If you prefer Batch B&rsquo;s original order or search last, see Q1 (section 15).</p>
+</section>
+
+<section id="deps">
+ <h2>4. What waits for what</h2>
+ <p class="lead">Read across: the row waits for the columns marked. Everything not marked can start as soon as its wave opens.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Batch</th><th>Waits for</th><th>Why</th></tr></thead>
+  <tbody>
+   <tr><td class="k">B</td><td>Item 18 needs your email screenshots</td><td>The emails cannot be designed blind. Real inboxes are needed to test. (Q24 and Q25 are answered.)</td></tr>
+   <tr><td class="k">C</td><td>Q2: the old staging link decision</td><td>Removing the old folio field in the same change would break the old link (section 7).</td></tr>
+   <tr><td class="k">A1, A2, A3 (fixes)</td><td>First clean NAV runs (17 Nov), then your approval of each proposal</td><td>Official numbers; review gate.</td></tr>
+   <tr><td class="k">D</td><td>A2&rsquo;s common end date (FX-10c) for the chart&rsquo;s last point; C for nothing</td><td>The chart stops on the latest complete price date, the same rule.</td></tr>
+   <tr><td class="k">H (link and pop-up)</td><td>C&rsquo;s import-screen change (17d)</td><td>Both edit the import wrapper.</td></tr>
+   <tr><td class="k">K (search)</td><td>The shell frame settled by B and C; F&rsquo;s section list</td><td>One section list; the top bar is changed once.</td></tr>
+   <tr><td class="k">E</td><td>A&rsquo;s verdicts; K merged</td><td>Wording follows the verified numbers; K edits the same page headers.</td></tr>
+   <tr><td class="k">F (visible index)</td><td>E merged; the section list from wave 3</td><td>The shape is decided (the glass rail); the frame must be stable.</td></tr>
+   <tr><td class="k">I</td><td>E, F, K merged; A&rsquo;s fixes</td><td>The PDF mirrors the final sections, dates and numbers, and the top bar already holds search.</td></tr>
+   <tr><td class="k">H (checklist, final video)</td><td>B, C and the import screens stable; your real CAMS checks</td><td>Instructions must match the real flow and the real form.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Shared interfaces: agree them once, early</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Interface</th><th>Who defines it</th><th>Who reads it</th></tr></thead>
+  <tbody>
+   <tr><td class="k">The section list (ids, titles, tiers)</td><td>F, wave 3</td><td>K, E (strip entries), I (export checklist)</td></tr>
+   <tr><td class="k">The price-date rule (one common end date)</td><td>A1 (FX-8c) and A2 (FX-10c)</td><td>D (chart end), E (the strip&rsquo;s &ldquo;Prices as on&rdquo;), I (printed dates)</td></tr>
+   <tr><td class="k">The category merge function</td><td>C (17a)</td><td>A2, A3 (same pool)</td></tr>
+   <tr><td class="k">The shared popover (the &ldquo;i&rdquo;)</td><td>E</td><td>The date strip&rsquo;s own &ldquo;i&rdquo;</td></tr>
+   <tr><td class="k">The shared graph component</td><td>D</td><td>Home and the Overview</td></tr>
+   <tr><td class="k">The top bar</td><td>K (search box, re-spacing)</td><td>I (Export PDF button)</td></tr>
+   <tr><td class="k">The stored-result rebuild</td><td>The staging deploy step (decided)</td><td>A1, A2, A3, C (17a)</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="files">
+ <h2>5. Shared files and conflict rules</h2>
+ <p class="lead">These are the files more than one batch will touch. The rule for each is who goes first, and that the second batch rebases onto the first before starting.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>File or area</th><th>Batches that touch it</th><th>Rule</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><code>shell/layout/TopBar.tsx</code> and the page header slot</td><td>K, I</td><td>K first (search box and re-spacing); I adds its button after K is merged.</td></tr>
+   <tr><td class="k"><code>mutual-funds/frame/MutualFundsFrame.tsx</code> (tabs, strip, index)</td><td>F, E, K</td><td>K, then E, then F&rsquo;s visible index. F&rsquo;s section list is data, in its own file, so it can go in early.</td></tr>
+   <tr><td class="k"><code>components/SectionCard.tsx</code> and every Mutual Funds card</td><td>F (anchors), E (&ldquo;i&rdquo;), K (page search)</td><td>F&rsquo;s anchors first (small, mechanical); E and K rebase onto them.</td></tr>
+   <tr><td class="k"><code>shell/wrappers/ImportWrapper.tsx</code> and the import screens</td><td>C (17d), B, H</td><td>C and B first; H&rsquo;s link and pop-up after.</td></tr>
+   <tr><td class="k"><code>dashboard/xirr.py</code>, <code>dashboard/holdings.py</code>, <code>dashboard/nav.py</code></td><td>A1</td><td>One owner. (A4&rsquo;s speed work, which shared this file, is not in this pass.)</td></tr>
+   <tr><td class="k"><code>analytics/scheme_universe.py</code>, <code>category_ranking.py</code></td><td>C (17a merge), A2, A3</td><td>C first (the merge), then A2 and A3 together, since both read the same pool.</td></tr>
+   <tr><td class="k"><code>home/movers.py</code>, <code>HoldingsTable.tsx</code>, fund page cards</td><td>D, C</td><td>Different parts; each rebases on merge; tests catch overlaps.</td></tr>
+   <tr><td class="k">Auth screens, the sign-up stylesheet, <code>otp.py</code></td><td>B</td><td>One owner.</td></tr>
+   <tr><td class="k">The deploy scripts and the backend image</td><td>K (new endpoint), I (Chromium and fonts), B (limit)</td><td>Each milestone&rsquo;s deploy guide lists what changed in the image.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="branches">
+ <h2>6. Branches, worktrees and integration</h2>
+ <p class="lead">The repo already has a model for two lines of work meeting (<code>2026-11-03-release-branch-model.md</code>). This is the same idea, extended to many lanes.</p>
+ <div data-frame="branchmap"></div>
+ <div class="scroll"><table>
+  <thead><tr><th>Piece</th><th>Rule</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Integration branch</td><td><code>leapswitch-redesign</code> stays the one branch that staging is built from. Nothing is pushed to it that has not passed its batch gate. Hotfixes made on the old staging branch are merged into it first (the README&rsquo;s standing rule).</td></tr>
+   <tr><td class="k">Batch branches</td><td>One per batch, cut from the integration branch at the start of its wave: <code>batch/b-journey</code>, <code>batch/c-hygiene</code>, <code>batch/a-numbers</code>, <code>batch/d-charts</code>, <code>batch/k-search</code>, <code>batch/f-nav</code>, <code>batch/e-dates</code>, <code>batch/h-tutorial</code>, <code>batch/i-export</code>.</td></tr>
+   <tr><td class="k">Worktrees</td><td>One Windows worktree per active lane (the planning docs stay in this one), so a checkout in one cannot disturb another. Codex works only in its lane&rsquo;s worktree.</td></tr>
+   <tr><td class="k">Merging in</td><td>A batch merges into the integration branch when its tests are green and its review is done. Before merging, it merges the integration branch into itself, so conflicts are solved on the batch side, with its tests.</td></tr>
+   <tr><td class="k">Cadence</td><td>Each lane merges the integration branch into its own branch at least once a week and always before a merge in.</td></tr>
+   <tr><td class="k">Milestone tags</td><td>A release candidate is tagged <code>m1-rc</code>, and the commit before it <code>pre-m1</code>; the same for each milestone. The deploy and the rollback both name a tag, not a branch tip.</td></tr>
+   <tr><td class="k">Commits</td><td>Claude commits only when you say, as now; Codex cannot commit. Plans and workbooks are committed per your instruction.</td></tr>
+   <tr><td class="k">Docs</td><td>The shared logs (<code>delegation-log.md</code>, <code>session.md</code>) are append-only: both sides keep their lines when merging.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="backend">
+ <h2>7. Shared backend, the old link and migrations</h2>
+ <div class="callout bad"><b>The one structural trap.</b> <code>ls-redesign.unifolio.in</code> is a <b>frontend-only</b> bundle that calls the <b>same API, database and worker</b> as the original <code>ls-staging</code> link (read in the README). A backend change therefore reaches the old link at once. Batch C&rsquo;s decision (&ldquo;remove the old folio field now&rdquo;) would blank folios on the old link, and any renamed or removed field would break it.</div>
+ <div class="scroll"><table>
+  <thead><tr><th>Rule</th><th>What it means</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Additive first</td><td>New fields and routes ship any time. Removing or renaming a field is a separate, later step, taken only when no frontend reads it.</td></tr>
+   <tr><td class="k">Decide the old link (Q2)</td><td>Either retire or redirect it before M1, so removals are safe; or keep it and delay removals to a cleanup step in wave 5 (which contradicts Batch C&rsquo;s note); or accept that the old link may show blanks. My pick: retire it at M1.</td></tr>
+   <tr><td class="k">Backend before frontend</td><td>At a milestone with a new route (search, the movers &ldquo;all&rdquo; switch), the backend deploys first; a frontend that loads before it degrades gracefully (search&rsquo;s plan already says so).</td></tr>
+   <tr><td class="k">Contracts in tests</td><td>Each backend change has a test for the response shape, so a frontend and a backend cannot drift.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Migration ledger</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Number</th><th>Owner</th><th>Status</th></tr></thead>
+  <tbody>
+   <tr><td class="k">0053</td><td>Goals (UI round 2)</td><td>Current head on the branch (<code>0053_primary_goals_life_goals.py</code>)</td></tr>
+   <tr><td class="k">0054</td><td>Batch B, only if Q23 B (a per-IP limit table) is built</td><td>Takes the next free number at build time</td></tr>
+   <tr><td class="k">Others</td><td>C, A1 to A3, D, K, E, F, H, I</td><td><b>None planned.</b> If one appears (for example a stored XIRR table), it is flagged before building.</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">So at most one migration in the whole program, at M1. Search&rsquo;s plan states head stays 0053 for its own changes.</p>
+</section>
+
+<section id="loop">
+ <h2>8. How each batch is executed</h2>
+ <div class="steps5">
+  <div><b>1. Plan</b>The batch&rsquo;s build plan is written when its wave opens (Q27), from its workbook and your answers.</div>
+  <div><b>2. Red tests</b>Failing tests first, committed on the batch branch, with a note of how many fail and why.</div>
+  <div><b>3. Build</b>Codex builds backend and code-heavy tasks; Gemini builds UI from packets; I orchestrate and integrate.</div>
+  <div><b>4. Check</b>Only the affected tests, then screenshots against the mockups for UI work.</div>
+  <div><b>5. Review</b>An adversarial review per handoff, then one review of the whole batch.</div>
+  <div><b>6. Merge</b>Into the integration branch, after merging it into the batch.</div>
+  <div><b>7. Batch QA</b>Your check on a local build or on staging at the milestone, against the batch&rsquo;s own checklist.</div>
+ </div>
+ <h3 class="sub">Roles and how the budget is spent</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Who</th><th>Does</th><th>Rule</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Claude (orchestrator)</td><td>Specs, packets, fix proposals, integration, reviews, deploy guides, QA checklists, evidence</td><td>Builds nothing in A until you approve each proposal; commits only on your word.</td></tr>
+   <tr><td class="k">Codex</td><td>Backend and code-heavy frontend, all tests</td><td>Cannot commit; works in one lane&rsquo;s worktree.</td></tr>
+   <tr><td class="k">Gemini (Antigravity)</td><td>UI from packets with red tests already written (search, glass rail, pop-ups)</td><td>Separate clone; screenshots next to the mockup before a task is done.</td></tr>
+   <tr><td class="k">You and your team</td><td>Decisions, the CAMS checks and recordings, email inbox tests, staging QA</td><td>Sign-off column in each checklist.</td></tr>
+   <tr><td class="k">Manager&rsquo;s Claude or you</td><td>Run the staging deploys from the written guide</td><td>Claude never runs a deploy.</td></tr>
+  </tbody>
+ </table></div>
+ <p><b>Budget rules (your standing ones):</b> batch small tasks, use the cheaper model by default, the strongest model only for the riskiest task and the final review of a batch, lean prompts, and keep every review gate. Run only the affected tests, never the full suites; the plans list them.</p>
+ <h3 class="sub">Ready and done, for every batch</h3>
+ <div class="scroll"><table>
+  <thead><tr><th></th><th>Ready to start when</th><th>Done when</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Every batch</td><td>Its workbook is reviewed; its questions are answered or have a stated default; its blockers (section 4) are cleared; its build plan is written.</td><td>Failing tests were written first and now pass; affected tests pass; the whole-batch review has no open high finding; the diff touches only its own files plus listed shared ones; its QA checklist is written; documents (<code>decisions.md</code>, <code>session.md</code>) are updated on your go.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="deploy">
+ <h2>9. The four staging milestones</h2>
+ <p class="lead">Pick a milestone. Each is small enough to check in one sitting, names exactly what it contains, and carries its own checks and rollback.</p>
+ <div class="winbar" data-sec="ms"><span>Milestone</span><button type="button" data-v="1" aria-pressed="true">M1: after wave 1</button><button type="button" data-v="2" aria-pressed="false">M2: numbers and charts</button><button type="button" data-v="3" aria-pressed="false">M3: search and navigation</button><button type="button" data-v="4" aria-pressed="false">M4: final</button></div>
+ <div data-frame="milestone"></div>
+ <h3 class="sub">The same steps every time (the deploy guide for each milestone fills in the details)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Stage</th><th>What happens</th><th>Who</th></tr></thead>
+  <tbody>
+   <tr><td class="k">1. Freeze</td><td>The milestone is tagged <code>mN-rc</code>; nothing else merges into the integration branch until it is deployed and checked.</td><td>Claude</td></tr>
+   <tr><td class="k">2. Pre-flight</td><td>Free disk on the VM (the 16 Nov deploy started at 7.6 GB and needed a prune to reach 12 GB); confirm a <code>:previous</code> backend image exists (the 16 Nov build removed it before it could be tagged, leaving no rollback image, so tag it first); an on-demand backup; the migration head; not inside the job windows (05:40 to 06:35, 10:30, 14:00 to 14:15); testers told.</td><td>Deployer, with my checklist</td></tr>
+   <tr><td class="k">3. Deploy</td><td>On the VM, in the redesign worktree: fast-forward to the tag, then <code>deploy-redesign.sh</code> (frontend only), <code>--full</code> (backend and worker too) or <code>--rebuild-backend</code> as the guide says; migrations if any; backend before frontend when a route is new.</td><td>Manager&rsquo;s Claude or you</td></tr>
+   <tr><td class="k">4. Verify</td><td>Health and both domains answer; the post-deploy checks for that milestone; the stored-analytics rebuild where the milestone changes numbers.</td><td>You, with my checklist</td></tr>
+   <tr><td class="k">5. QA</td><td>Your manual QA against the checklist; each defect becomes a failing test first, then a fix, then a patch deploy.</td><td>You, Claude, Codex</td></tr>
+   <tr><td class="k">6. Record</td><td>A deploy record (like the 16 Nov one): what changed, evidence, what is not as hoped, how to roll back.</td><td>Claude</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout"><b>Rollback, in plain words.</b> The frontend rolls back by deploying the previous tag. The backend rolls back by the <code>:previous</code> image, which is why it must exist before the build. A migration is rolled back only if its downgrade was written and tested; M1 is the only one that may carry one. A rebuilt analytics result is rebuilt again after a rollback.</div>
+</section>
+
+<section id="qa">
+ <h2>10. QA strategy</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Level</th><th>What</th><th>When</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Per task</td><td>Failing test, then green; only the affected tests.</td><td>While building</td></tr>
+   <tr><td class="k">Per batch</td><td>The whole-batch review; screenshots against the mockups; the batch&rsquo;s own checklist from its workbook.</td><td>Before merging into the integration branch</td></tr>
+   <tr><td class="k">Per milestone</td><td>The milestone checklist (section 9), plus the cross-batch regression list below, on staging.</td><td>After each deploy</td></tr>
+   <tr><td class="k">Before production</td><td>One last pass over every milestone&rsquo;s checks on the final build, plus the production gate (section 11).</td><td>After M4</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Cross-batch regression list (checked at every milestone that could affect it)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Area</th><th>Check</th><th>Why</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Sign-up, sign-in, OTP</td><td>A real inbox and a real phone; the countdown, the limit message, the Head of Family email</td><td>B changes auth; emails need real inboxes</td></tr>
+   <tr><td class="k">Import and the new member</td><td>Upload a family file; the drop-down, the view that lands, the wrong-person case; the tutorial link</td><td>C, B, H all touch it</td></tr>
+   <tr><td class="k">The numbers</td><td>XIRR tile and column agree; a rank and its total; the category average; the same household before and after</td><td>A1 to A3; D, E and I repeat them</td></tr>
+   <tr><td class="k">Folios</td><td>The eye icon hides and shows everywhere; a copy while hidden</td><td>C</td></tr>
+   <tr><td class="k">Charts</td><td>Up to three benchmarks, the colours, the Overview graph, the day&rsquo;s-change pop-up in each state</td><td>D</td></tr>
+   <tr><td class="k">Search</td><td>The box on every page; scope switching and Undo; logout clears it</td><td>K</td></tr>
+   <tr><td class="k">Navigation and dates</td><td>The section index on each tab; the strip; no new dates where none existed</td><td>F, E</td></tr>
+   <tr><td class="k">PDF</td><td>A full report for a large household; the disclaimer line; memory stays within limits during an export; a failed export offers the browser fallback</td><td>I</td></tr>
+   <tr><td class="k">Browser and size</td><td>Chrome and Edge at three laptop sizes, light and dark; Firefox and Safari for the tutorial fallback</td><td>All; phone is out of scope</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="prod">
+ <h2>11. Production</h2>
+ <p class="lead">Once, after M4. The cutover steps already live in the LeapSwitch runbook (Part 8: test, upgrade, cut over, roll back); this section only adds what the program needs on top.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Gate</th><th>Must be true</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Every milestone passed</td><td>M1 to M4 checklists signed off on staging, with no open high defect.</td></tr>
+   <tr><td class="k">One migration at most</td><td>The ledger (section 7) matches what production has; the downgrade, if any, was tested.</td></tr>
+   <tr><td class="k">Numbers rebuilt</td><td>The stored XIRR, rank and average were rebuilt after the last numbers change and after the production deploy.</td></tr>
+   <tr><td class="k">Rollback ready</td><td>A <code>:previous</code> image, a database backup taken that day, the previous frontend tag.</td></tr>
+   <tr><td class="k">Contract cleanup done</td><td>Any old field kept for the old link is removed, or the old link is gone.</td></tr>
+   <tr><td class="k">Evidence issued</td><td>The stakeholder packs (XIRR note, rank workbook and note, category average Excel and note) are issued from the final numbers.</td></tr>
+   <tr><td class="k">Your go</td><td>A written go, per your standing rule for anything outward-facing.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="size">
+ <h2>12. Size and duration (estimates, not measurements)</h2>
+ <div data-frame="sizechart"></div>
+ <p>Counting each plan&rsquo;s own sizes with S as half a day, M as a day and a half, L as three days, the in-scope work is about <b>190 worker-days</b> (this includes reviews, writing and your own checks, not only code). With <b>three lanes running at once</b> that is roughly <b>12 to 13 working weeks</b>; with <b>two lanes</b> about 19 weeks; with <b>four</b> about 9 to 10. Calendar time is longer because of your reviews, the QA rounds and waiting for answers.</p>
+ <div class="callout info"><b>Read this as a shape, not a promise.</b> The sizes are each plan&rsquo;s rough estimate, search&rsquo;s are the largest, and I have not measured how fast the workers actually go. The first wave will show the real pace, and I will revise this after M1.</div>
+</section>
+
+<section id="risks">
+ <h2>13. Risks</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Risk</th><th>What we do</th></tr></thead>
+  <tbody>
+   <tr><td>The old staging link breaks when the backend changes</td><td>Section 7: additive first and a decision on the old link (Q2).</td></tr>
+   <tr><td>Merge conflicts in the shared frame and pages</td><td>Section 5 order rules; weekly merges; one owner per file at a time.</td></tr>
+   <tr><td>Search is too big to review or QA in one go</td><td>The plan keeps its four review gates and a whole-release review; M3 can be split in two (Q4) if QA is too large.</td></tr>
+   <tr><td>A deploy leaves no rollback image (it happened on 16 Nov)</td><td>Pre-flight checks the image and the disk before every build.</td></tr>
+   <tr><td>PDF export strains the server (a browser per export) at the same time as the daily jobs</td><td>One browser on demand, at most two exports at once (Batch I); the deploy avoids the 05:40 to 06:35 window; memory is checked during the M4 test.</td></tr>
+   <tr><td>The numbers change under users and stakeholders ask why</td><td>The deploy guide lists every user-visible change with before and after; the evidence packs go out only after M2 passes.</td></tr>
+   <tr><td>Answers or inputs arrive late</td><td>Each wave lists its blockers; a blocked batch is skipped, not waited on; defaults are stated for small questions.</td></tr>
+   <tr><td>Real data leaks into evidence or videos</td><td>Invented households only; a last check before anything is sent (the earlier tutorial video had to be re-cut for this).</td></tr>
+   <tr><td>The program is paused halfway</td><td>Each milestone is a consistent, deployable state, so stopping after any milestone leaves staging working.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="gaps">
+ <h2>14. Gaps and what I have not seen</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Gap</th><th>Effect on this plan</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Batch G (GA4) is out of this pass</td><td>No tracking work, no consent purpose added, no events in search or export. When it returns, its foundation can go in any milestone; its custom events should follow M3 and M4 so they attach to settled screens.</td></tr>
+   <tr><td class="k">A4 (load times) is out of this pass</td><td>No speed work is scheduled. Its report stays for review. If the Overview is slow for stakeholders, M1 to M3 do not fix it; Batch B&rsquo;s &ldquo;your dashboard is ready&rdquo; copy should not promise speed.</td></tr>
+   <tr><td class="k">Batch L (portfolio disclosures audit)</td><td>Appears in Batch B&rsquo;s wave table as independent of everything. I have not seen its plan, so I did not schedule it. Tell me where it stands and I will slot it into wave 1.</td></tr>
+   <tr><td class="k">Explore, Standard/Pro, stopped SIP, fact sheet fixes</td><td>Later, planned separately. Search, the section list and E&rsquo;s popover are built to be reused by them; the section list carries a tier field, unused for now.</td></tr>
+   <tr><td class="k">How production differs from staging</td><td>I read the cutover outline in the runbook but not a finished production runbook; the production gate lists only what this program adds.</td></tr>
+   <tr><td class="k">Team capacity</td><td>The durations assume the worker counts in section 12; I do not know how many lanes you can review at once (Q3).</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="questions">
+ <h2>15. Decisions</h2>
+ <p class="lead">Five decisions this plan needs. Each has my pick, and the rest of the plan is written for it. Nothing here blocks wave 0.</p>
+ <div class="bar"><span class="status" id="prog">0 of 5 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
+ <div id="cards"></div>
+ <h3 class="sub">Defaults I will use (tell me in chat if you want any changed)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Topic</th><th>Default</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Branch names and worktrees</td><td>As in section 6.</td></tr>
+   <tr><td class="k">Deploy window</td><td>An evening window outside the job times; testers told the same day.</td></tr>
+   <tr><td class="k">Who deploys</td><td>The manager&rsquo;s Claude or you, from my written guide; I never run a deploy.</td></tr>
+   <tr><td class="k">Recompute of stored numbers</td><td>At M1 (for the category merge) and at M2 (for the number fixes), as a step in the guide.</td></tr>
+   <tr><td class="k">Plans per batch</td><td>Written when the wave opens, in <code>Docs/superpowers/plans/</code>, as decided in Q27.</td></tr>
+   <tr><td class="k">Commits</td><td>Only when you say.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="copy">
+ <h2>16. Copy my answers</h2>
+ <p class="lead">Press the button, then paste the text in chat. If it does nothing, select the text below and copy it yourself.</p>
+ <button id="copyBtn" type="button">Copy my answers</button> <span class="status" id="copyMsg"></span>
+ <label class="nl" for="outTa">Your answers as text</label>
+ <textarea id="outTa" class="out" readonly></textarea>
+</section>
+
+<section id="prov">
+ <h2>What I checked</h2>
+ <p><b>Read today, read-only, by me:</b> <code>deploy/leapswitch/README.md</code> and <code>scripts/deploy-redesign.sh</code>, the staging runbook&rsquo;s headings, <code>2026-11-03-release-branch-model.md</code>, the 12 Nov planning handoff, the search plan (tasks, steps, release and rollback), Batch B&rsquo;s program section (Q26 to Q28 and the wave table), the 16 Nov deploy record, the migration folder, and each workbook&rsquo;s task table and open questions.</p>
+ <p><b>Not done:</b> nothing was run or deployed; I did not read Batch G or A4 beyond their status (out of this pass); I have not seen Batch L; I did not read the production runbook (it is an outline); the durations are my arithmetic on the plans&rsquo; own sizes, not measurements.</p>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+function vp(inner,w,h,cls,attrs){return '<div class="vp '+(cls||'')+'" data-w="'+w+'"'+(h?' data-h="'+h+'"':'')+(attrs||'')+'><div class="vp-in">'+inner+'</div></div>'}
+function chrome(url){return '<div class="chrome"><i></i><i></i><i></i><span>'+url+'</span></div>'}
+
+/* ---- item 8: XIRR tile ---- */
+function xirrTile(v){
+ var val=v==='f1'?'6.1%':'9.4%';
+ var extra=v==='f1'?'<div class="note-box circ" style="margin-top:10px">One fund has no price today. Its purchases are counted, its value is not, so the rate falls. <b>Nothing on screen says so.</b></div>':'';
+ var tiles='<div class="ap-tile"><small>Total portfolio value</small><b>&#8377;40,12,300</b></div><div class="ap-tile"><small>Invested</small><b>&#8377;31,40,000</b></div><div class="ap-tile"><small>Unrealised</small><b>+&#8377;8,72,300</b></div>';
+ var x='<div class="ap-tile"><div class="row"><small>XIRR</small><span class="seg"><span class="on">Lifetime</span><span>Current</span></span></div><b>'+val+'</b><small>Since inception</small>'+extra+'</div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds')+'<div class="ap"><div class="ap-body"><div class="ap-tiles">'+tiles+x+'</div></div></div>',1100,0);
+}
+/* ---- item 10: rank rows ---- */
+function rankRows(){
+ var f=function(n,c,a,b,d,hl){return '<tr><td><div class="ap-fund"><span class="ap-logoc">'+n.charAt(0)+'</span><div><b>'+n+'</b><div class="ap-mut">'+c+'</div></div></div></td><td><span class="rk'+(hl?' circ':'')+'">7<small>of 33</small></span></td><td><span class="rk'+(hl?' circ':'')+'">6<small>of 29</small></span></td><td><span class="rk'+(hl?' circ':'')+'">5<small>of 21</small></span></td></tr>'};
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/performance')+'<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Performance ranking</h5><p class="ap-mut" style="margin-bottom:10px">Rank within category and plan, for each period.</p><table class="ap-t"><thead><tr><th>Fund</th><th>1 year</th><th>3 years</th><th>5 years</th></tr></thead><tbody>'+f('Alpha Flexi Cap Fund','Flexi Cap &middot; Direct plan',0,0,0,true)+'</tbody></table></div></div></div>',1000,0);
+}
+/* ---- item 10: funnel ---- */
+function funnel(){
+ var rows=[['Every scheme in the category (AMFI file)',61,0],['Live: price within 30 days',55,0],['One series per fund, same plan (Direct), Growth',41,0],['Active and not an index fund or ETF',38,0],['Has a 1-year return  (the app&rsquo;s total for 1Y)',33,1],['Has a 5-year return  (the app&rsquo;s total for 5Y)',21,1]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Flexi Cap, Direct: how the total is counted</h5><p class="ap-mut" style="margin-bottom:12px">One page of the evidence pack. Numbers invented.</p><div class="fn">';
+ rows.forEach(function(r){h+='<div class="r"><span>'+r[0]+'</span><div><div class="b'+(r[2]?' x':'')+'" style="width:'+Math.round(r[1]/61*100)+'%"></div></div><span class="n">'+r[1]+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">Each step lists the funds that dropped out and why. The app&rsquo;s result must match every step; a gap is a finding.</p></div></div></div>';
+ return vp(h,900,0);
+}
+/* ---- item 9: category card ---- */
+function catCard(){
+ var rows=[['1Y',58,50,'+1.2%','4.6% vs 3.4%',true],['3Y',44,50,'&minus;1.1%','12.8% vs 13.9%',false],['5Y',30,62,'&minus;4.8%','6.4% vs 11.2%',false]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><div class="ap-fund"><span class="ap-logoc">A</span><div><b>Alpha Flexi Cap Fund</b><div class="ap-mut">Flexi Cap &middot; Direct plan</div></div></div><div class="cmp" style="margin-top:14px">';
+ rows.forEach(function(r){var c=r[5]?'#15803D':'#D92D20';h+='<div class="p"><b>'+r[0]+'</b><div class="trk"><span class="d c" style="left:'+r[2]+'%"></span><span class="d f" style="left:'+r[1]+'%;background:'+c+'"></span></div><span class="v" style="text-align:right"><b style="color:'+c+'">'+r[3]+'</b><br>'+r[4]+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">Category average covers 31 funds (1Y), 31 (3Y), 24 (5Y). Weighted by fund size.</p><p class="ap-mut" style="margin-top:6px">Filled dot: your fund. Hollow dot: category average. Green means ahead; red means behind.</p></div></div></div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/other')+h,1000,0);
+}
+/* ---- item 7: waterfall ---- */
+function waterfall(){
+ var rs=[['holdings + XIRR bundle',0,62,1],['allocation',2,18,0],['coverage gaps',2,12,0],['history points',3,30,0],['SIPs',3,14,0],['stored per-fund analytics',4,22,0]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Mutual Funds Overview: requests (illustrative)</h5><p class="ap-mut" style="margin-bottom:12px">Bar position is when the request starts; length is how long it takes.</p><div class="wf">';
+ rs.forEach(function(r){h+='<div class="r"><span>'+r[0]+'</span><div class="tr"><i class="'+(r[3]?'s':'')+'" style="left:'+r[1]+'%;width:'+r[2]+'%"></i></div><span class="n">'+(r[3]?'slowest':'')+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">What we read off the real version: which request ends last, which is large, and what the browser does after the last reply.</p></div></div></div>';
+ return vp(h,900,0);
+}
+function xlsx(v){
+ var tabs=['Read me','Summary','Pool','Excluded','Worked examples','Checks','Glossary'],on={summary:'Summary',pool:'Pool',checks:'Checks'}[v];
+ var th='<div class="tabs2">'+tabs.map(function(x){return '<span'+(x===on?' class="on"':'')+'>'+x+'</span>'}).join('')+'</div>';
+ var body='';
+ if(v==='summary'){
+  body='<div class="fx"><b>fx</b> =SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$F:$F="Y")*Pool!$H:$H*Pool!$D:$D)/SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$F:$F="Y")*Pool!$D:$D)</div><table class="g"><thead><tr><th>Category and plan</th><th>Funds in pool</th><th>Covered 1Y / 3Y / 5Y</th><th>3Y average (formula)</th><th>3Y plain average</th><th>No size</th><th>Weighting</th><th>Thin?</th><th>App shows</th><th>Difference</th></tr></thead><tbody>'
+  +'<tr><td>Equity Scheme - Flexi Cap Fund, Direct</td><td>31</td><td>31 / 31 / 24</td><td class="f">14.82%</td><td>14.11%</td><td>1</td><td>size</td><td>no</td><td>14.82%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Equity Scheme - Large Cap Fund, Direct</td><td>29</td><td>29 / 29 / 26</td><td class="f">13.40%</td><td>13.05%</td><td>0</td><td>size</td><td>no</td><td>13.40%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Hybrid Scheme - Equity Savings, Regular</td><td>4</td><td>4 / 4 / 3</td><td class="f">8.90%</td><td>8.60%</td><td>0</td><td>size</td><td>yes</td><td>8.90%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Debt Scheme - Gilt Fund, Direct</td><td>11</td><td>11 / 11 / 9</td><td class="f">7.21%</td><td>7.18%</td><td>11</td><td>plain (no sizes)</td><td>no</td><td>7.18%</td><td class="ok">0.0000</td></tr></tbody></table>';
+ } else if(v==='pool'){
+  body='<div class="fx"><b>fx</b> =IF(F2="Y",D2/SUMIFS($D:$D,$A:$A,A2,$F:$F,"Y"),0)</div><table class="g"><thead><tr><th>Category and plan</th><th>Fund</th><th>Fund house</th><th>Size (&#8377; cr) and month</th><th>1Y / 3Y / 5Y return</th><th>Counts (3Y floor)</th><th>Weight</th><th>Contribution to 3Y</th></tr></thead><tbody>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Alpha Flexi Cap Fund</td><td>Alpha MF</td><td>18,400 &middot; Oct 2026</td><td>12.1% / 14.0% / 16.3%</td><td>Y</td><td class="f">0.1120</td><td class="f">1.57%</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Beacon Flexi Cap Fund</td><td>Beacon MF</td><td>9,250 &middot; Oct 2026</td><td>9.8% / 15.2% / 15.4%</td><td>Y</td><td class="f">0.0563</td><td class="f">0.86%</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Cedar Flexi Cap Fund</td><td>Cedar MF</td><td>no size on record</td><td>10.5% / 13.1% / &mdash;</td><td>Y</td><td class="f">0 (counted, no weight)</td><td class="f">&mdash;</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Delta Flexi Cap Fund</td><td>Delta MF</td><td>2,100 &middot; Oct 2026</td><td>8.0% / &mdash; / &mdash;</td><td>N (under 3 years)</td><td class="f">0</td><td class="f">&mdash;</td></tr></tbody></table>';
+ } else {
+  body='<table class="g"><thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead><tbody>'
+  +'<tr><td>Excel average equals the app&rsquo;s, every category</td><td class="ok">PASS</td><td>Largest difference 0.0000 across 158 category-and-plan rows</td></tr>'
+  +'<tr><td>Weights add to 100% in every pool</td><td class="ok">PASS</td><td>Smallest 100.0000%, largest 100.0000%</td></tr>'
+  +'<tr><td>Every excluded scheme has a reason</td><td class="ok">PASS</td><td>0 without a reason</td></tr>'
+  +'<tr><td>Size data newer than 45 days</td><td class="no">3 categories</td><td>Listed on the Excluded sheet; shown, not hidden</td></tr>'
+  +'<tr><td>Dates stated</td><td class="ok">PASS</td><td>Price date, size month, fund list date, export date, app version</td></tr></tbody></table>';
+ }
+ return vp('<div class="xl">'+th+body+'</div>',1000,0);
+}
+
+var WV=[
+ {t:'Wave 0: now (no code)',who:'You, Claude',items:['Answer the five decisions below (B Q24, Q25 and F Q1 are answered).','Decide the old staging link (Q2) before wave 1 ends.','Write each batch’s build plan just before its wave opens (Q27); wave 1’s plans first.','Take the baseline: green suites on the integration branch, screenshots of the key pages, the current migration head.','Prepare deploy: confirm the VM has disk and a rollback image path; write the M1 guide and checklist.','Produce the video and the sample files in parallel (done or in hand).'],gate:'Exit: wave 1 plans written; answers in; baseline green.'},
+ {t:'Wave 1: foundations',who:'Codex lanes, Gemini for UI',items:['B: wrong-person warning, OTP timer with the structured limit reply, spinner to tick, onboarding layout, Head of Family emails (after your screenshots).','C: merged categories (17a), manager line removed (17b), folio_number and the eye icon (17c), new member in the drop-down (17d).','A1, A2, A3 investigations, read-only: fixtures and the independent XIRR calculator, the AMFI recount and ledger, the workbook export scripts on synthetic data. These ship nothing.','L: not scheduled (section 14).'],gate:'Exit: B and C merged with tests and review; investigations report their findings; M1 tagged.'},
+ {t:'Wave 2: numbers and charts',who:'Codex, Gemini for the pop-up',items:['A1 fixes (no-price fund, final-flow date, tile and column agree), A2 fixes (pool, common end date, Growth only, the disclaimer line), A3 fixes and the workbook, each only after you approve its proposal.','D: benchmark lines and colours, the Overview graph (shared component), the day’s-change pop-up with its backend switch. D’s chart end date follows A2’s common end date.','H: the “Watch how it works” link and the video pop-up (after C’s import change).'],gate:'Exit: official numbers from runs after 17 Nov; M2 tagged with the rebuild step.'},
+ {t:'Wave 3: search and the section list',who:'Gemini for UI, Codex for the endpoint',items:['K: the household index endpoint, the shell (top bar, page header slot), the shared box and dropdown, the matcher, then every page (T00 to T20). One release.','F: the section audit, the one shared section list and the anchors on every Mutual Funds section. Search’s registry reads this list.','Four review gates inside search, plus one whole-release review.'],gate:'Exit: search and the section list merged; backend endpoint deployable ahead of the frontend.'},
+ {t:'Wave 4: dates and navigation',who:'Gemini, Codex',items:['E: the date module and the strip under the tabs, the shared popover and the P/E and P/B “i”; no new dates where none are shown today.','F: the visible section index as the frosted glass rail (Q1 C), on the seven Mutual Funds tabs only, with only the rail in view while scrolling.','Waves 3 and 4 together form M3.'],gate:'Exit: M3 tagged; QA split into search and navigation parts if needed (Q4).'},
+ {t:'Wave 5: export and the tutorial',who:'Codex, Gemini',items:['I: the repaired pipeline (workers, fonts, one browser on demand), the export pass and its security review, print mode for every section, the dialog, the top-bar button, the browser fallback.','H: the floating checklist (spike first), the final video swap after your real CAMS checks.','Any old field kept for the old link is removed.'],gate:'Exit: M4 tagged; production gate (section 11).'}
+];
+var MS=[
+ {t:'M1: after wave 1',contains:['Batch B (auth and onboarding; the limit reply; migration 0054 only if Q23 B)','Batch C (categories, manager line, folios and the eye, new member)'],backend:'Yes: B (reply and limit), C (folio_number and merged categories).',db:'Possibly 0054 (B).',recompute:'Yes: the category merge changes stored results (C 17a).',pre:['The old staging link decided (Q2) before this deploy.','Real inbox and phone ready for the emails and OTP.','Disk and the rollback image checked.'],verify:['Sign-up, OTP countdown, the limit message; the Head of Family email in a real inbox; the wrong-person warning.','A family import: the drop-down updates; the view that lands; folios show with the eye; the category donut shows one name per category.','The manager line is gone.'],rb:'Frontend: previous tag. Backend: the previous image; 0054 downgrade only if written. Rebuild the stored results.'},
+ {t:'M2: numbers and charts',contains:['A1, A2, A3 fixes you approved (the XIRR, the rank pool and its disclaimer line, the category average)','D (charts, pop-up)','H link and pop-up'],backend:'Yes: A fixes, D’s movers switch.',db:'None.',recompute:'Yes: numbers change. The stakeholder packs are issued after M2 passes.',pre:['The first clean unattended NAV runs on record.','Every fix has its approved proposal and its before and after.'],verify:['The same household before and after: the tile and the column agree; a rank and total; the average.','The Growth-only line under the ranks; a held IDCW fund shows “ranked as Growth”.','Up to three benchmark lines; the Overview graph; the pop-up in each state; the video pop-up plays and closes.'],rb:'Frontend: previous tag. Backend: the previous image; then rebuild the stored numbers.'},
+ {t:'M3: search and navigation',contains:['K (search on every page, the household index endpoint)','F (the section list, anchors and the visible index)','E (the date strip and “i”)'],backend:'Yes: one new read-only endpoint, deployed first.',db:'None (head stays).',recompute:'No.',pre:['Search’s four gates and whole-release review done.','The glass rail built to the packet (Q1 C is decided).'],verify:['Search on each page; a jump with a member switch; Undo; logout then login shows nothing from the first user.','The index on each of the seven tabs; only it sticks; the date strip and its “i”; the XIRR, rank and average still undated.'],rb:'Frontend alone: previous tag (the endpoint is harmless alone). No migration.'},
+ {t:'M4: final',contains:['I (PDF export, top-bar button, fallback)','H floating checklist and the final video','Contract cleanup'],backend:'Yes: the export route and the image with the browser and fonts.',db:'None.',recompute:'No.',pre:['Memory headroom checked; the deploy is outside the job windows.','FRONTEND_BASE_URL points at the redesign.','The export pass passed its security review.'],verify:['A full report for the large household; page count and look; the disclaimer line; a failed export offers the browser fallback; two exports at once.','The floating checklist in Chrome and Edge, and the in-page panel elsewhere; the final video plays.'],rb:'Frontend: previous tag. Backend: the previous image (the export route is unused alone).'}
+];
+function wave(v){var w=WV[+v];var h='<div class="xdoc"><h4 style="font:700 18px DM Sans;margin:0 0 4px">'+w.t+'</h4><p class="note" style="margin:0 0 8px">Who: '+w.who+'</p><ul class="tight">'+w.items.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul><div class="callout good" style="margin-bottom:0"><b>'+w.gate+'</b></div></div>';return h}
+function milestone(v){var m=MS[+v-1];function L(a){return '<ul class="tight">'+a.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>'}
+ return '<div class="xdoc"><h4 style="font:700 18px DM Sans;margin:0 0 8px">'+m.t+'</h4><div class="cols"><div class="doc"><h4>What is in it</h4>'+L(m.contains)+'<p class="note"><b>Backend:</b> '+m.backend+'<br><b>Database:</b> '+m.db+'<br><b>Stored numbers rebuilt:</b> '+m.recompute+'</p></div><div class="doc"><h4>Before the deploy</h4>'+L(m.pre)+'</div><div class="doc"><h4>After the deploy, check</h4>'+L(m.verify)+'</div><div class="doc"><h4>If it goes wrong</h4><p>'+m.rb+'</p></div></div></div>'}
+function timeline(){
+ var cols=['W1','W2','W3','W4','W5'],rows=[['B','#22C55E',[0,1]],['C','#22C55E',[0,1]],['A1–A3 investigations','#94A3B8',[0,1]],['A1–A3 fixes','#0EA5E9',[1,2]],['D charts','#0EA5E9',[1,2]],['H link and pop-up','#0EA5E9',[1,2]],['K search','#8B5CF6',[2,3]],['F section list','#8B5CF6',[2,3]],['E dates','#F59E0B',[3,4]],['F visible index','#F59E0B',[3,4]],['I export','#EF4444',[4,5]],['H checklist and final video','#EF4444',[4,5]]];
+ var ms=[[1,'M1'],[2,'M2'],[4,'M3'],[5,'M4']];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><div style="display:grid;grid-template-columns:200px repeat(5,1fr);gap:6px;align-items:center;font-size:12px">'+'<span></span>'+cols.map(function(c){return '<b style="text-align:center;color:#667085">'+c+'</b>'}).join('');
+ rows.forEach(function(r){h+='<span style="padding:3px 0">'+r[0]+'</span>';for(var i=0;i<5;i++){var on=i>=r[2][0]&&i<r[2][1];h+='<div style="height:20px;border-radius:6px;background:'+(on?r[1]:'#F2F4F2')+';opacity:'+(on?1:.6)+'"></div>'}});
+ h+='<span></span>'+[0,1,2,3,4].map(function(i){var m=ms.filter(function(x){return x[0]===i+1})[0];return '<div style="text-align:center">'+(m?'<span style="display:inline-block;background:#111;color:#fff;border-radius:99px;padding:2px 10px;font:700 11px Manrope">'+m[1]+' deploy</span>':'')+'</div>'}).join('');
+ h+='</div><p class="ap-mut" style="margin-top:10px">Production follows M4, once. Wave 3 and 4 share M3. The A investigations (grey) ship nothing; the fixes (blue) ship at M2.</p></div></div></div>';
+ return vp(h,1000,0);
+}
+function branchmap(){
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card" style="font-size:12.5px;line-height:1.5"><div style="display:grid;grid-template-columns:1fr 1fr;gap:18px"><div><b style="font:700 14px DM Sans">One integration branch, one branch per batch</b><div style="margin-top:10px;border-left:3px solid #22C55E;padding-left:12px"><div><span style="background:#22C55E;color:#0B1F12;border-radius:6px;padding:1px 8px;font-weight:700">leapswitch-redesign</span> the branch staging is built from</div><div style="margin:8px 0 8px 22px;border-left:2px dashed #94A3B8;padding-left:12px;color:#475467">batch/b-journey &nbsp; batch/c-hygiene &nbsp; batch/a-numbers<br>batch/d-charts &nbsp; batch/k-search &nbsp; batch/f-nav<br>batch/e-dates &nbsp; batch/h-tutorial &nbsp; batch/i-export</div><div style="margin-left:22px;color:#667085">each cut at its wave start, in its own worktree</div></div></div><div><b style="font:700 14px DM Sans">The path of a change</b><ol style="margin:8px 0;padding-left:18px"><li>Red tests, then code, on the batch branch.</li><li>Merge the integration branch into the batch; solve conflicts there.</li><li>Tests and review pass.</li><li>Merge into <b>leapswitch-redesign</b>.</li><li>At a milestone: tag <b>mN-rc</b>; deploy that tag; <b>pre-mN</b> is the rollback point.</li></ol></div></div></div></div></div>';
+ return vp(h,1000,0);
+}
+function sizechart(){
+ var d=[['K search',9,9,3],['B',11,7,1],['A1–A3',13,21,2],['I',4,10,2],['D',6,9,0],['F',4,7,2],['H',11,2,1],['C',6,7,0],['E',2,10,0]];
+ var w=function(r){return r[1]*0.5+r[2]*1.5+r[3]*3};
+ d.sort(function(a,b){return w(b)-w(a)});
+ var mx=Math.max.apply(null,d.map(w));
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Worker-days by batch (S half a day, M a day and a half, L three days)</h5><div class="wf" style="margin-top:10px">'+d.map(function(r){var x=w(r);return '<div class="r" style="grid-template-columns:130px 1fr 90px"><span>'+r[0]+'</span><div class="tr"><i style="left:0;width:'+Math.round(x/mx*100)+'%"></i></div><span class="n">'+x+' days</span></div>'}).join('')+'</div><p class="ap-mut" style="margin-top:10px">Total about '+d.reduce(function(a,r){return a+w(r)},0)+' worker-days. Estimates from each plan&rsquo;s own task sizes.</p></div></div></div>';
+ return vp(h,900,0);
+}
+
+var STATE={'i8':'today','i9':'summary','wv':'0','ms':'1'};
+function frame(n){switch(n){
+ case 'wave':return wave(STATE['wv']);
+ case 'milestone':return milestone(STATE['ms']);
+ case 'timeline':return timeline();
+ case 'branchmap':return branchmap();
+ case 'sizechart':return sizechart();
+ }return ''}
+function layout(){document.querySelectorAll('.vp').forEach(function(v){var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');inn.style.width=w+'px';inn.style.height=h?h+'px':'auto';var hh=h||inn.offsetHeight;var sc=Math.min(1,v.clientWidth/w);inn.style.transform='scale('+sc+')';v.style.height=Math.ceil(hh*sc)+'px'})}
+function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});layout()}
+document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){var sec=bar.getAttribute('data-sec');bar.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){STATE[sec]=b.getAttribute('data-v');bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});renderAll()})})});
+renderAll();window.addEventListener('resize',layout);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layout);setTimeout(layout,400);
+
+/* ================= questions ================= */
+var KEY="program-execution-plan-v1",S={};
+try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+var Q=[
+{id:"Q1",item:"order",title:"Is this the right order? (replaces Batch B, Q28)",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"This plan: five waves, four milestones, search in wave 3, the section list with search, E before F&rsquo;s visible index",rec:1,d:"Good: settles shared places early; honours search in one release; four small checks. Bad: search lands before E and F, so their pages are built on top of it."},
+ {k:"B",l:"Batch B&rsquo;s original table: search in two halves (waves 4 and 6), E before the second half, F with it",d:"Good: your earlier order. Bad: splits search against Q18; two QA rounds for one feature."},
+ {k:"C",l:"Search last, after the export",d:"Good: the smaller batches ship sooner. Bad: every page header is touched twice; the top bar changes after the export button is added."}],
+ why:"The shell and page headers are the most shared surface; changing them once, early, keeps later batches from rebasing over each other.",
+ commit:"A: sections 3 to 5 stand. B or C: I rewrite the waves, the shared-file order and the milestones accordingly."},
+{id:"Q2",item:"backend",title:"What happens to the old staging link (ls-staging) before M1?",ask:"Pick one.",
+ ctx:"It shares the backend and the database with the redesign link. Batch C&rsquo;s answer was to remove the old folio field in the same change, which would blank folios on the old link.",
+ opts:[
+ {k:"A",l:"Retire or redirect it to the redesign link before M1",rec:1,d:"Good: backend changes and removals are safe from then on; Batch C stays as decided. Bad: nobody can compare with the old look."},
+ {k:"B",l:"Keep it, and delay field removals to a cleanup step in wave 5",d:"Good: the old link keeps working. Bad: contradicts Batch C&rsquo;s note; a cleanup step and a second check."},
+ {k:"C",l:"Keep it and accept blanks or errors on it",d:"Good: no extra work. Bad: a half-working link that confuses testers."}],
+ why:"One link, one truth: the redesign is the product now.",
+ commit:"A: a one-line change to the web server config and a note to testers. B: an additive-only rule and a cleanup task. C: nothing, with the risk."},
+{id:"Q3",item:"capacity",title:"How many lanes can you review at once?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Three lanes at a time",rec:1,d:"About 12 to 13 working weeks of work (section 12)."},
+ {k:"B",l:"Two lanes at a time",d:"About 19 weeks; fewer merges to watch."},
+ {k:"C",l:"Four lanes at a time",d:"About 9 to 10 weeks; more conflicts and more to review."}],
+ why:"Three matches the number of independent lanes in waves 1 and 2.",
+ commit:"This sets how many worktrees run together and the pace I plan."},
+{id:"Q4",item:"M3",title:"Should M3 (search, navigation and dates) be one deploy or two?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"One deploy, as decided in Q26, with a release valve: split into search, then dates and navigation, only if QA is too large",rec:1,d:"Good: matches your decision; one announcement. Bad: the largest QA round."},
+ {k:"B",l:"Two deploys from the start: M3a search, M3b dates and navigation",d:"Good: smaller checks and an easier cause if something breaks. Bad: five staging deploys instead of four."}],
+ why:"You chose milestone deploys with a small number of checks; the valve keeps that choice without forcing a large round.",
+ commit:"A: one guide, split later if needed. B: an extra deploy guide and QA round."},
+{id:"Q5",item:"deploy",title:"Who runs the staging deploys, and when?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"The manager&rsquo;s Claude or you, from my written guide, in an evening window outside the job times",rec:1,d:"Good: matches how the search plan and the 16 Nov deploy worked; I never run a deploy. Bad: needs someone free in the evening."},
+ {k:"B",l:"A fixed weekly slot for all milestones",d:"Good: predictable. Bad: ties the order to the calendar."}],
+ why:"Deploys outside 05:40 to 06:35, 10:30 and 14:00 to 14:15 avoid the daily jobs.",
+ commit:"A: each guide names the window. B: milestones wait for the slot."}
+];
+
+var PRE={};
+var LOCK={};
+Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
+var cards=document.getElementById("cards");
+Q.forEach(function(q){
+ var c=document.createElement("div");c.className="card";c.id=q.id.toLowerCase();c.setAttribute("data-q",q.id);
+ var h='<header><span class="id">'+q.id+' &middot; item '+q.item+'</span><h3>'+q.title+'</h3><span class="status todo" data-st>unanswered</span></header><p class="ask"><b>'+q.ask+'</b></p>';
+ if(q.ctx)h+='<p class="ctx">'+q.ctx+'</p>';
+ if(q.opts){h+='<div class="opts">';
+  q.opts.forEach(function(o){h+='<label class="opt'+(o.rec?' isrec':'')+'"><input type="radio" name="'+q.id+'" value="'+o.k+'"'+(LOCK[q.id]?' disabled':'')+'><div><b>'+o.k+'. '+o.l+(o.rec?'<span class="tag me">my pick</span>':'')+'<span class="tag chosen" hidden>Chosen option</span></b><span class="d">'+o.d+'</span></div></label>'});
+  h+='</div>';}
+ if(q.why)h+='<div class="why"><b>Why my pick.</b> '+q.why+'</div>';
+ if(q.commit)h+='<div class="commit"><b>What this answer commits us to.</b> '+q.commit+'</div>';
+ if(q.type==="text")h+='<label class="nl" for="t-'+q.id+'">Your answer</label><textarea id="t-'+q.id+'" placeholder="'+(q.ph||"")+'"'+(LOCK[q.id]?' readonly':'')+'></textarea>';
+ h+='<label class="nl" for="n-'+q.id+'">Notes (optional)</label><textarea id="n-'+q.id+'" placeholder="Anything I should know"'+(LOCK[q.id]?' readonly':'')+'></textarea>';
+ c.innerHTML=h;cards.appendChild(c);
+});
+function answered(q){if(LOCK[q.id])return true;var a=S[q.id]||{};return q.type==="text"?!!(a.t&&a.t.trim()):!!a.k}
+function setSt(st,ok){st.textContent=ok?"answered":"unanswered";st.className=ok?"tag ok":"status todo"}
+function build(){
+ var L=["PROGRAM EXECUTION AND DEPLOYMENT PLAN: MY ANSWERS (17 Nov 2026)",""];
+ Q.forEach(function(q){
+  var a=S[q.id]||{},ln=q.id+" ("+q.item+") "+q.title.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")+"\n  Answer: ";
+  if(a.k){var o=q.opts.filter(function(x){return x.k===a.k})[0];ln+=a.k+". "+o.l.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")}
+  else if(!(a.t&&a.t.trim()))ln+="NOT ANSWERED";
+  if(a.t&&a.t.trim())ln+=(a.k?"\n  Details: ":"")+a.t.trim();
+  if(a.n&&a.n.trim())ln+="\n  Note: "+a.n.trim();
+  L.push(ln);L.push("");
+ });
+ return L.join("\n");
+}
+function paint(){
+ var n=0;
+ Q.forEach(function(q){
+  var c=document.getElementById(q.id.toLowerCase()),a=S[q.id]||{};
+  c.querySelectorAll(".opt").forEach(function(o){var r=o.querySelector("input");r.checked=(a.k===r.value);o.classList.toggle("on",r.checked);var b=o.querySelector(".chosen");if(b)b.hidden=!r.checked});
+  var t=document.getElementById("t-"+q.id);if(t&&document.activeElement!==t)t.value=a.t||"";
+  var nn=document.getElementById("n-"+q.id);if(nn&&document.activeElement!==nn)nn.value=a.n||"";
+  var ok=answered(q);if(ok)n++;setSt(c.querySelector("[data-st]"),ok);
+ });
+ document.getElementById("prog").textContent=n+" of "+Q.length+" answered";
+ document.getElementById("outTa").value=build();
+ document.querySelectorAll("#cards textarea[readonly]").forEach(function(x){x.style.height="auto";x.style.height=Math.min(x.scrollHeight+4,420)+"px"});
+}
+cards.addEventListener("change",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.type==="radio")S[q].k=e.target.value;save();paint()});
+cards.addEventListener("input",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};
+ if(e.target.id==="t-"+q)S[q].t=e.target.value;if(e.target.id==="n-"+q)S[q].n=e.target.value;save();
+ document.getElementById("outTa").value=build();
+ var qq=Q.filter(function(x){return x.id===q})[0];setSt(c.querySelector("[data-st]"),answered(qq));
+ var n=0;Q.forEach(function(x){if(answered(x))n++});document.getElementById("prog").textContent=n+" of "+Q.length+" answered";});
+function copy(){
+ var ta=document.getElementById("outTa"),m=document.getElementById("copyMsg");ta.value=build();
+ function fb(){ta.removeAttribute("readonly");ta.select();try{document.execCommand("copy");m.textContent="Copied (or select and copy the text below)"}catch(e){m.textContent="Select the text below and copy it"}ta.setAttribute("readonly","")}
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(function(){m.textContent="Copied. Paste it in chat."},fb)}else fb();
+}
+document.getElementById("copyBtn").addEventListener("click",copy);
+document.getElementById("copyTop").addEventListener("click",function(){copy();document.getElementById("copy").scrollIntoView()});
+document.getElementById("jump").addEventListener("click",function(){for(var i=0;i<Q.length;i++){if(!answered(Q[i])){document.getElementById(Q[i].id.toLowerCase()).scrollIntoView({behavior:"smooth"});return}}});
+paint();
+})();
+</script>
+</body>
+</html>

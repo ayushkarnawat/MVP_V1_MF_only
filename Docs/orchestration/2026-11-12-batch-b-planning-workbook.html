@@ -303,7 +303,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <div class="hero">
  <h1>Batch B Planning</h1>
  <div class="meta">Planning only &middot; nothing built &middot; 12 Nov 2026 &middot; updated with your answers &middot; branch leapswitch-redesign</div>
- <p>The journey quick wins: five changes in sign-up, login, import and the Head of Family emails. Screens are now drawn at real window sizes (laptop and phone) and scaled to fit the page, so it is best viewed on a laptop. 25 of 28 questions are answered. Three are open (Q24, Q25 and Q28), in section 12.</p>
+ <p>The journey quick wins: five changes in sign-up, login, import and the Head of Family emails. Screens are now drawn at real window sizes (laptop and phone) and scaled to fit the page, so it is best viewed on a laptop. 27 of 28 questions are answered (Q24 and Q25 on 17 Nov). One is open, Q28, the execution order, which the new program execution plan answers with a proposal (section 12).</p>
  <p>Every statement about the code comes from three read-only research passes made today, not from my own reading, so each is labelled &ldquo;reported&rdquo; until a spec re-checks it. Heights and timings are proposals, not measurements.</p>
 </div>
 
@@ -313,7 +313,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="stats">
   <div class="stat"><div class="n">5</div><div class="l">items in this batch</div></div>
   <div class="stat"><div class="n">0 or 1</div><div class="l">database migration (depends on Q23)</div></div>
-  <div class="stat"><div class="n">25 / 28</div><div class="l">questions answered</div></div>
+  <div class="stat"><div class="n">27 / 28</div><div class="l">questions answered</div></div>
   <div class="stat"><div class="n">19</div><div class="l">tasks in the list (section 10)</div></div>
  </div>
  <div class="scroll"><table>
@@ -492,7 +492,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <!-- ============ SECURITY EXPLANATION ============ -->
 <section id="sec">
  <h2>7. Security explanation for stakeholders (draft)</h2>
- <p class="lead">You asked for both versions now. Both assume Batch B is built as planned, including the per-IP limit and the countdown. Numbers in square brackets are placeholders until Q24 is decided. If a change is dropped, remove its line.</p>
+ <p class="lead">You asked for both versions now. Both assume Batch B is built as planned, including the per-IP limit and the countdown. The numbers are decided (Q24 A, 17 Nov). If a change is dropped, remove its line.</p>
  <div class="tabs"><button type="button" id="sv-a" aria-pressed="true">Version 1: what is in place</button><button type="button" id="sv-b" aria-pressed="false">Version 2: the full picture</button></div>
  <div class="doc" id="doc-a">
   <h4>How Unifolio protects sign-in codes</h4>
@@ -612,8 +612,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <p>Columns: id, address hash, identifier hash, route, outcome (code sent, unknown account, account exists, held by the 60 second rule), created at. An index on address hash and time. It is tiny: one row per request, deleted after 24 hours by a daily job.</p>
   <h4>Why scrambled values and a secret key</h4>
   <p>An internet address and an email are personal data. The guard only needs to know whether two requests came from the same source, so equality is enough. A keyed hash means a leaked database does not reveal either. The cost is that ranges of addresses cannot be blocked and raw addresses cannot be read in operations, which this guard does not need.</p>
-  <h4>Limits (your Q24 is open)</h4>
-  <p>Proposal: [10] different addresses per internet address in [10] minutes for code requests, and [30] for address checks. The rule counts different addresses, never one person retrying their own, which the 60 second rule already handles.</p>
+  <h4>Limits (decided, Q24 A)</h4>
+  <p>Decided: 10 different addresses per internet address in 10 minutes for code requests, and 30 for address checks. The rule counts different addresses, never one person retrying their own, which the 60 second rule already handles.</p>
   <h4>Edge cases</h4>
   <ul>
    <li><b>Shared networks</b> (an office, a phone network): generous limits, a clear message, watch after release.</li>
@@ -706,7 +706,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <!-- ============ PROGRAM STRATEGY ============ -->
 <section id="program">
  <h2>9. Program strategy: order, deploy, plans</h2>
- <p class="lead">You asked for this now so the next batches know what came before and what follows. Q26 and Q27 are decided; Q28 is still open.</p>
+ <p class="lead">You asked for this now so the next batches know what came before and what follows. Q26 and Q27 are decided; Q28 is still open and is answered by the program execution plan (its Q1).</p>
  <div class="callout good"><b>Decided.</b> Q26: milestone deploys to staging (after wave 1, after waves 2 and 3, after search and navigation, and a final one), with production once at the end. Q27: one plan per batch, written just before it is built, plus a short program index. <b>Still open:</b> Q28, the execution order below.</div>
  <h3 class="sub">A. Execution order</h3>
  <div class="scroll"><table>
@@ -773,17 +773,17 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">B-4</td><td>4</td><td>Design the countdown, the reason line and the reset on edit</td><td>Claude</td><td>S</td><td><span class="tag ok">Decided</span> (Q7 to Q9)</td></tr>
    <tr><td class="k">B-5a</td><td>4</td><td>Backend: structured 429 reply with seconds left; tests updated</td><td>Codex</td><td>S</td><td>Ready to spec</td></tr>
    <tr><td class="k">B-5b</td><td>4</td><td>Frontend: countdown button, red line, reset on edit</td><td>Codex</td><td>M</td><td>After B-5a</td></tr>
-   <tr><td class="k">B-5c (new)</td><td>4</td><td>Backend: per-IP limit and its tests (and a migration if Q23 B)</td><td>Codex</td><td>M</td><td>Waiting for Q24 (Q23 decided)</td></tr>
+   <tr><td class="k">B-5c (new)</td><td>4</td><td>Backend: per-IP limit and its tests (and a migration if Q23 B)</td><td>Codex</td><td>M</td><td>Ready to spec (Q23 and Q24 decided)</td></tr>
    <tr><td class="k">B-6</td><td>4</td><td>Security explanation for stakeholders</td><td>Claude</td><td>M</td><td>Drafted in section 7</td></tr>
    <tr><td class="k">B-7</td><td>6</td><td>Timer, tick pop, new copy (row, paragraph, heading), tests</td><td>Codex</td><td>S</td><td>Ready to spec</td></tr>
    <tr><td class="k">B-8</td><td>3</td><td>Onboarding layout mockups</td><td>Claude</td><td>M</td><td><span class="tag ok">Decided</span> (Q4 A)</td></tr>
-   <tr><td class="k">B-9</td><td>3</td><td>Build the chosen layout, green switch, tests, fit check at five window sizes</td><td>Gemini, Codex for tests</td><td>M</td><td>Waiting for Q25</td></tr>
+   <tr><td class="k">B-9</td><td>3</td><td>Build the chosen layout, green switch, tests, fit check at five window sizes</td><td>Gemini, Codex for tests</td><td>M</td><td>Ready to spec (Q25 A: all ten auth screens through the tokens)</td></tr>
    <tr><td class="k">B-10</td><td>18</td><td>Get the email designs</td><td>You</td><td>S</td><td><span class="tag ok">Done</span></td></tr>
    <tr><td class="k">B-11</td><td>18</td><td>Compare designs with current templates and settle the copy</td><td>Claude</td><td>S</td><td><span class="tag ok">Decided</span> (Q17)</td></tr>
    <tr><td class="k">B-12</td><td>18</td><td>Crop assets, build the layout and four emails with dark mode, preview script, two-inbox check</td><td>Gemini (HTML), Codex (logic and tests)</td><td>L</td><td>Ready to write packet</td></tr>
    <tr><td class="k">B-13 (new)</td><td>all</td><td>Whole-batch adversarial review, staging deploy</td><td>Claude</td><td>M</td><td>After all items</td></tr>
    <tr><td class="k">B-14 (new)</td><td>3, 18</td><td>Write the two Gemini packets (onboarding, emails)</td><td>Claude</td><td>M</td><td>Ready (Q4 decided)</td></tr>
-   <tr><td class="k">B-15 (new)</td><td>all</td><td>Program index document</td><td>Claude</td><td>S</td><td>After Q28 (Q26 and Q27 decided)</td></tr>
+   <tr><td class="k">B-15 (new)</td><td>all</td><td>Program index document</td><td>Claude</td><td>S</td><td>Done: the program execution plan (17 Nov)</td></tr>
    <tr><td class="k">B-16 (new)</td><td>18</td><td>Copy the six reference images into the repo for the packets</td><td>Claude</td><td>S</td><td>Ready</td></tr>
    <tr><td class="k">B-17 (new)</td><td>4, 18</td><td>Security change register: keep it current and verify each item as it is built</td><td>Claude</td><td>S</td><td>Drafted in section 7b</td></tr>
   </tbody>
@@ -827,7 +827,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <!-- ============ QUESTIONS ============ -->
 <section id="questions">
  <h2>12. Questions</h2>
- <p class="lead">28 questions. Your 25 answers are recorded and locked, with an &ldquo;answered&rdquo; badge and a &ldquo;Chosen&rdquo; badge on the picked option. Three are open: Q24, Q25 and Q28.</p>
+ <p class="lead">28 questions. Your 27 answers are recorded and locked, with an &ldquo;answered&rdquo; badge and a &ldquo;Chosen&rdquo; badge on the picked option. One is open: Q28, answered by the program execution plan.</p>
  <div class="bar"><span class="status" id="prog">0 of 28 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
  <div id="cards"></div>
 </section>
@@ -1164,9 +1164,9 @@ var Q=[
  why:"Search and the navigation index must be planned together, and charts and truth-finding both need the NAV fix.",
  ph:"What to change: ..."}
 ];
-var LOCK={Q1:1,Q2:1,Q3:1,Q4:1,Q5:1,Q6:1,Q7:1,Q8:1,Q9:1,Q10:1,Q11:1,Q12:1,Q13:1,Q14:1,Q15:1,Q16:1,Q17:1,Q18:1,Q19:1,Q20:1,Q21:1,Q22:1,Q23:1,Q26:1,Q27:1};
+var LOCK={Q1:1,Q2:1,Q3:1,Q4:1,Q5:1,Q6:1,Q7:1,Q8:1,Q9:1,Q10:1,Q11:1,Q12:1,Q13:1,Q14:1,Q15:1,Q16:1,Q17:1,Q18:1,Q19:1,Q20:1,Q21:1,Q22:1,Q23:1,Q24:1,Q25:1,Q26:1,Q27:1};
 var PRE={
- Q4:{k:"A",n:"option A from the mockups with the subtexts removed (the subtitle line and the small text under each option)"},Q23:{k:"B",n:"with more detailed explanation"},Q26:{k:"C"},Q27:{k:"B"},
+ Q24:{k:"A",n:"Updated 17 Nov: option A (10 different emails or phones per IP in 10 minutes for code requests, 30 for address checks)."},Q25:{k:"A",n:"Updated 17 Nov: option A (switch all ten sign-up and login screens through the shared tokens)."},Q4:{k:"A",n:"option A from the mockups with the subtexts removed (the subtitle line and the small text under each option)"},Q23:{k:"B",n:"with more detailed explanation"},Q26:{k:"C"},Q27:{k:"B"},
  Q1:{k:"A"},Q2:{k:"A"},Q3:{k:"A"},Q5:{k:"B"},
  Q6:{t:"different email, not registered. i just want you to check what happens and if it is currently what we want, then no need to change"},
  Q7:{k:"A",n:"if the user comes back and clicks get otp with the same email/phone number within a minute, the timer should come up with the one-line reason, as discussed in the first message"},
@@ -1185,7 +1185,9 @@ var FU={
  Q4:"<p><b>Built as you chose.</b> Option A is drawn in section 5 without the subtitle line and without the small text under each option. With both gone, rows are shorter and the screen has room to breathe. Options B and C are no longer drawn.</p>",
  Q23:"<p><b>More detail, as you asked (full design in section 7b, part C).</b></p><ul><li><b>The problem.</b> The 60 second rule only stops one address being hit again and again. It does not stop one source sending codes to many addresses, or checking many addresses to see which are registered.</li><li><b>What gets recorded.</b> For every sign-in or sign-up code request, one small row: a scrambled form of the visitor&rsquo;s internet address, a scrambled form of the email or phone, which route, what happened (code sent, unknown account, account already exists, held by the 60 second rule) and the time. Nothing readable is stored.</li><li><b>The rule.</b> Before the app answers, it counts how many different scrambled addresses this internet address has tried in the last [10] minutes. Past the limit, the request gets a polite wait message with the seconds left. Otherwise it records the row and carries on as today.</li><li><b>Why a new table.</b> A request for an unknown email creates no record today, so a count taken from the existing records would never see someone checking many addresses. Only a table that records every request sees that.</li><li><b>Housekeeping.</b> Rows are kept 24 hours and deleted by a daily job, on the staging server and on AWS.</li><li><b>Cost.</b> One migration (the next free number), one config secret for the scrambling, one scheduled cleanup, and a switch to turn the limit off without a redeploy.</li></ul>",
  Q26:"<p><b>Decided.</b> The program index (B-15) will list the milestones. The first staging milestone is after wave 1 (this batch, C, L and the GA4 foundation).</p>",
- Q27:"<p><b>Decided.</b> The next plans to write are one for this batch, once Q24, Q25 and Q28 are answered, and then one per batch, each just before it is built. Search and the emails get their own plans inside that pattern.</p>",
+ Q24:"<p><b>Decided: A.</b> Ten different addresses per IP in ten minutes for code requests, thirty for address checks, with the same countdown message. We start generous, watch real numbers after release, and tighten later. A bot check or firewall is the next layer if many IPs are ever used.</p>",
+ Q25:"<p><b>Decided: A.</b> The green switch goes through the shared tokens, so all ten sign-up and login screens change together. The screens outside Batch B that share the tokens are added to the batch’s check list (B-9, the five-window fit check).</p>",
+ Q27:"<p><b>Decided.</b> The next plans to write are one for this batch, now that Q24 and Q25 are answered (Q28 is answered by the program plan), and then one per batch, each just before it is built. Search and the emails get their own plans inside that pattern.</p>",
  Q2:"<p><b>Updated after your comment.</b> The line &ldquo;nothing is added for {selected person}&rdquo; is gone from the warning. The pop-up only appears when the chosen person is not found in the file, so the line was true, but it could be misread. The warning now says what the statement belongs to and what happens to it.</p>",
  Q6:"<p><b>What happens today (reported).</b> A different, unregistered email gets the answer &ldquo;No account found for that email, sign up instead.&rdquo; in the red box. No code is sent and there is no wait. It is not a countdown, so there is no change planned for it, only a test that an unregistered address never shows a wait.</p><p>The same message also lets anyone check whether an email is registered. You accepted that on 30 Sep. The IP limit (Q10, Q23) makes bulk checking harder but does not remove it.</p>",
  Q10:"<p><b>This widens the batch.</b> It adds backend work in lane 4, a possible migration (Q23), thresholds to decide (Q24) and a new line in the security note. The risk list now includes shared networks and the visible client address on staging.</p>",

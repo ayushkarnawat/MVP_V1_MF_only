@@ -446,8 +446,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h1>Batch F Planning</h1>
  <div class="meta">Planning only &middot; nothing built or run &middot; 13 Nov 2026 &middot; updated with your answers &middot; branch leapswitch-redesign</div>
  <p>Navigation: item 12, the <b>section index within tabs</b>. The Mutual Funds tabs have several sections each, and the long ones feel like a scrolling black hole. Your idea: when the user is on a tab, that tab expands to show its sections; a click jumps to one, and normal scrolling still works. You also said you are open to other ideas, so this workbook compares your idea with four alternatives, with mockups, and recommends one. The output is <b>one section index</b> that works on every Mutual Funds tab, driven by <b>one shared list of sections</b> that search and the PDF export reuse, on the seven Mutual Funds tabs (the fund page was dropped from this batch on 17 Nov).</p>
- <p><b>Updated 17 Nov (your review).</b> (1) <b>Q2 is now A:</b> the index is for the seven Mutual Funds tabs only; the fund page is out of this batch. (2) <b>Q3 is now C:</b> the tab bar does <b>not</b> stick; only the index sticks. (3) You like the <b>side rail</b>, so section 3b shows where it fits among the busy right-hand sides, with a frosted-glass box and three other placements you can try. <b>Q1 is not answered yet.</b> I have not recorded the rail as your choice; tell me when you have decided.</p>
- <p><b>Earlier (13 Nov).</b> Q2 and Q3 were answered as follows, now replaced: the index covers the seven Mutual Funds tabs <b>and the fund page&rsquo;s three tabs</b>, and the tab bar sticks on every tab. <b>Q1, the shape of the index, is still open.</b> The fund page turned out to be a separate frame with only three tabs, where your expanding-tab idea does fit, so section 3 now compares the two frames.</p>
+ <p><b>Updated 17 Nov (your review).</b> (1) <b>Q2 is now A:</b> the index is for the seven Mutual Funds tabs only; the fund page is out of this batch. (2) <b>Q3 is now C:</b> the tab bar does <b>not</b> stick; only the index sticks. (3) You like the <b>side rail</b>, so section 3b shows where it fits among the busy right-hand sides, with a frosted-glass box and three other placements you can try. <b>Q1 is now C (17 Nov): the side rail, as the frosted glass box</b> (placement 1 in section 3b; below about 1100 px it becomes the corner pill). Sections 3 to 8 are updated for the rail; the earlier row and the expanding tab are kept only as comparisons.</p>
+ <p><b>Earlier (13 Nov).</b> Q2 and Q3 were answered as follows, now replaced: the index covers the seven Mutual Funds tabs <b>and the fund page&rsquo;s three tabs</b>, and the tab bar sticks on every tab. The fund page turned out to be a separate frame with only three tabs, where your expanding-tab idea does fit, so section 3 now compares the two frames.</p>
  <p><b>How this was made.</b> I read the code, read-only: the seven tabs and every section on them, the page frame and tab bar, the layout that decides what scrolls, the route registry, and the existing scroll and anchor code. Every statement about the code is labelled <em>read in code</em>. Nothing was run and I did not look at the live app, so the width estimates are labelled estimates. Mockups are my reconstructions with made-up numbers and <b>show laptop views only</b>: the phone view is out of scope for every batch.</p>
 </div>
 
@@ -458,13 +458,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="stats">
   <div class="stat"><div class="n">1</div><div class="l">item (12)</div></div>
   <div class="stat"><div class="n">0</div><div class="l">backend or database changes</div></div>
-  <div class="stat"><div class="n">2 / 3</div><div class="l">questions answered</div></div>
+  <div class="stat"><div class="n">3 / 3</div><div class="l">questions answered</div></div>
   <div class="stat"><div class="n">13</div><div class="l">tasks in the list (section 8)</div></div>
  </div>
  <div class="scroll"><table>
   <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (read in code)</th><th>What changes</th><th>Layers</th></tr></thead>
   <tbody>
-   <tr><td class="k">12. Section index within tabs</td><td>Make long tabs easier to navigate: the tab shows its sections, a click jumps, scrolling still works. Open to other ideas.</td><td>Seven tabs, each a route; the tab bar is a card of plain links that scrolls away with the page. The sections have no stable ids, no scroll-spy and no jump links. Section counts range from 2 to 8.</td><td>A section index (shape: Q1, still open, you lean to the side rail) on the seven Mutual Funds tabs only (Q2 A), where only the index sticks and the tab bar scrolls away as today (Q3 C), driven by one shared list of sections per tab.</td><td><span class="tag fe">frontend</span> <span class="tag none">no backend</span></td></tr>
+   <tr><td class="k">12. Section index within tabs</td><td>Make long tabs easier to navigate: the tab shows its sections, a click jumps, scrolling still works. Open to other ideas.</td><td>Seven tabs, each a route; the tab bar is a card of plain links that scrolls away with the page. The sections have no stable ids, no scroll-spy and no jump links. Section counts range from 2 to 8.</td><td>A section index, as a side rail drawn as a frosted glass box (Q1 C), on the seven Mutual Funds tabs only (Q2 A), where only the index sticks and the tab bar scrolls away as today (Q3 C), driven by one shared list of sections per tab.</td><td><span class="tag fe">frontend</span> <span class="tag none">no backend</span></td></tr>
   </tbody>
  </table></div>
  <h3 class="sub">Six findings (read in code)</h3>
@@ -541,7 +541,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">4. Corner button</td><td>A glass &ldquo;On this page&rdquo; pill at the bottom-right corner opens a small list above it.</td><td>None.</td><td>Never covers the right side; works at any width.</td><td>One click to see the sections, so it feels closer to a menu than a map; the corner is also where help and chat buttons often live.</td></tr>
   </tbody>
  </table></div>
- <div class="callout good"><b>My recommendation: the frosted glass box, with the pill as its fallback.</b> At 1280 px the glass box fits with a 64 px reserved margin. Below about 1100 px the glass box turns into the corner pill automatically, so nothing is ever squeezed. This is a recommendation, not a recorded answer: Q1 stays open until you pick.</div>
+ <div class="callout good"><b>My recommendation: the frosted glass box, with the pill as its fallback.</b> At 1280 px the glass box fits with a 64 px reserved margin. Below about 1100 px the glass box turns into the corner pill automatically, so nothing is ever squeezed. <b>Recorded 17 Nov (Q1 C): this is the design.</b> The other three placements stay as the comparison.</div>
 
  <h3 class="sub">The options</h3>
  <div class="winbar" data-sec="opt"><span>Option</span><button type="button" data-v="a" aria-pressed="false">A. Your idea: the tab expands</button><button type="button" data-v="b" aria-pressed="true">B. A section row under the tabs</button><button type="button" data-v="c" aria-pressed="false">C. A side rail</button><button type="button" data-v="f" aria-pressed="false">B on the fund page</button></div>
@@ -557,32 +557,32 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">E. Collapsible sections</td><td>Each section becomes an accordion that can be folded, so a page can be shortened to its headings.</td><td>Solves length directly; the user controls it.</td><td>Hides data by default or by habit; a large redesign of every card; does not answer &ldquo;where is X&rdquo;.</td></tr>
   </tbody>
  </table></div>
- <div class="callout good"><b>My recommendation: B, on both frames.</b> It keeps your idea (the tab and its sections read as one group, and clicking jumps) and avoids the width problem. If you want your original shape, the closest honest version of A is B with the sections row connected to the active tab by a small notch, which is how I would draw it. D is a cheap addition that can sit beside B later if you want it.</div>
+ <div class="callout good"><b>Decided 17 Nov (Q1 C): the side rail, as the frosted glass box.</b> The earlier recommendation of a section row (B) is superseded; options A, B, D and E stay on this page only as the comparison that led here. The rest of the plan is written for the rail.</div>
 </section>
 
 <!-- ============ 4. BEHAVIOUR ============ -->
 <section id="behaviour">
  <h2>4. How it behaves</h2>
- <p class="lead">The details of option B (and most of them apply to any option). Defaults I will use unless you say otherwise.</p>
+ <p class="lead">The details of the side rail (Q1 C), drawn as the frosted glass box. Defaults I will use unless you say otherwise.</p>
  <div class="scroll"><table>
   <thead><tr><th>Behaviour</th><th>How it works</th></tr></thead>
   <tbody>
-   <tr><td class="k">Where it sticks</td><td><b>Q3 C (17 Nov): only the index sticks.</b> The tab row scrolls away as today. With a section row, that row stays at the top of the page area; with a side rail, the rail stays beside the content. The top bar (search, Import, family selector) is outside the scroll area and unaffected.</td></tr>
-   <tr><td class="k">Height budget</td><td>With Q3 C only one thing sticks. A section row costs about 40 px of height (an estimate); a side rail or a glass rail costs no height. The earlier hide-the-tab-row-on-scroll rule is no longer needed.</td></tr>
-   <tr><td class="k">Jump</td><td>Clicking a chip scrolls the page area so the section&rsquo;s heading lands just below the sticky rows (smooth scroll, instant for people who prefer reduced motion). Focus moves to the section&rsquo;s heading so keyboard and screen-reader users land there.</td></tr>
-   <tr><td class="k">Scroll-spy</td><td>The chip of the section nearest the top is highlighted as you scroll. It watches the page area, not the window. A section that is still loading keeps its place (see Risks).</td></tr>
+   <tr><td class="k">Where it sticks</td><td><b>Q3 C (17 Nov): only the index sticks.</b> The tab row scrolls away as today. The rail floats at the right edge of the page area and stays in view while the content scrolls beneath it. The top bar (search, Import, family selector) is outside the scroll area and unaffected.</td></tr>
+   <tr><td class="k">Height budget</td><td>With Q3 C only the rail stays in view, and it costs <b>no height</b>: the tab row scrolls away as today and nothing is stuck at the top. The earlier hide-the-tab-row-on-scroll rule is no longer needed.</td></tr>
+   <tr><td class="k">Jump</td><td>Clicking a section in the rail scrolls the page area so the section&rsquo;s heading lands near the top, with a small margin (smooth scroll, instant for people who prefer reduced motion). Focus moves to the section&rsquo;s heading so keyboard and screen-reader users land there.</td></tr>
+   <tr><td class="k">Scroll-spy</td><td>The rail highlights the section nearest the top as you scroll (the current tick is longer and green when the rail is closed). It watches the page area, not the window. A section that is still loading keeps its place (see Risks).</td></tr>
    <tr><td class="k">Address</td><td>The jump writes the section into the page address (<code>#allocation-market-cap</code>), so a link or a refresh returns to that section, and the Back button steps back through jumps. Opening a tab with no hash starts at the top, as today.</td></tr>
-   <tr><td class="k">Keyboard and screen readers</td><td>Each chip is a link to the section; the row is a labelled navigation region; the current section carries <code>aria-current</code>. Tab, Enter and Escape behave as on any link.</td></tr>
+   <tr><td class="k">Keyboard and screen readers</td><td>Each rail item is a real link to the section; the rail is a labelled navigation region; hover, focus or the Pin button opens it, and reduced-motion users get no animation; the current section carries <code>aria-current</code>. Tab, Enter and Escape behave as on any link.</td></tr>
    <tr><td class="k">On the fund page</td><td><b>Out of this batch (Q2 A, 17 Nov).</b> The fund page keeps its current layout. If you bring it in later, the same component is reused.</td></tr>
    <tr><td class="k">When the index shows</td><td>On tabs with 3 or more sections (a setting). On the others nothing is drawn. The tab bar never sticks (Q3 C).</td></tr>
    <tr><td class="k">Loading, empty and error</td><td>A section that is empty or failed still appears in the index so the list never jumps around; an empty tab (no funds yet) shows no index.</td></tr>
-   <tr><td class="k">With the other batches</td><td>Order of the stack, top to bottom: page title, tab row, section row, the data strip from Batch E, then the content. Search (K) uses the tab bar&rsquo;s right slot; the PDF button (I) is in the top bar, not in this stack (updated 17 Nov).</td></tr>
+   <tr><td class="k">With the other batches</td><td>Order of the page, top to bottom: page title, tab row, the data strip from Batch E, then the content, with the glass rail floating at the right edge (not part of the stack). The 44 px closed strip overlaps the edge of the cards by design; below about 1100 px it becomes the corner pill. Search (K) uses the tab bar&rsquo;s right slot; the PDF button (I) is in the top bar, not in this stack (updated 17 Nov).</td></tr>
   </tbody>
  </table></div>
  <h3 class="sub">Before and after</h3>
  <div class="flow">
   <div><h4>Before</h4><ol><li>The user opens Allocation or the Overview and scrolls a long page with no sense of what is below.</li><li>The tabs scroll away; to switch tab or jump to a lower card the user scrolls all the way up or down.</li><li>There is no link to a section.</li></ol></div>
-  <div><h4>After (option B)</h4><ol><li>A chip row names every section of the tab and highlights where you are.</li><li>The tabs and the chips stay at the top; a click jumps to the section.</li><li>Every section has a stable link that survives a refresh.</li></ol></div>
+  <div><h4>After (the side rail)</h4><ol><li>A frosted glass rail at the right edge shows a tick for every section, with the current one highlighted; it opens into the section names.</li><li>The rail stays in view while you scroll; a click jumps to the section.</li><li>Every section has a stable link that survives a refresh.</li></ol></div>
  </div>
 </section>
 
@@ -594,7 +594,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <thead><tr><th>Piece</th><th>What it is</th></tr></thead>
   <tbody>
    <tr><td class="k">The list</td><td>One configuration per tab for the <b>seven Mutual Funds tabs</b> (the fund page&rsquo;s three tabs are out of this batch since Q2 A): an ordered list of entries <code>{ id, title, anchor, tier }</code>, kept next to the tab definitions in <code>MutualFundsFrame.tsx</code> (where <code>TAB_DEFS</code> already lives) and <code>FundPageFrame.tsx</code>, or in the route registry. <code>tier</code> lets Standard hide Pro sections later (Batch C4); it is unused today.</td></tr>
-   <tr><td class="k">The anchor</td><td>Each section element gets <code>id</code> from the list, plus a <code>scroll-margin-top</code> that equals the sticky height. <code>SectionCard</code> gains an <code>anchor</code> property; the sections that are not cards (the Overview&rsquo;s strip and table, the Cash Flow strip) get a small wrapper.</td></tr>
+   <tr><td class="k">The anchor</td><td>Each section element gets <code>id</code> from the list, plus a small constant <code>scroll-margin-top</code> (nothing at the top is sticky). <code>SectionCard</code> gains an <code>anchor</code> property; the sections that are not cards (the Overview&rsquo;s strip and table, the Cash Flow strip) get a small wrapper.</td></tr>
    <tr><td class="k">Who reads it</td><td>The index (this batch); search&rsquo;s &ldquo;page sections&rdquo; results (K); the PDF export&rsquo;s section selection and order (I); Batch E&rsquo;s strip entries can reuse the same ids. Nothing else may hard-code a section list.</td></tr>
    <tr><td class="k">A guard test</td><td>A test checks that every id in the list exists on its page, and that every card on a page appears in the list or is marked as intentionally excluded.</td></tr>
   </tbody>
@@ -613,8 +613,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <thead><tr><th>Role</th><th>Who</th><th>What they do in Batch F</th></tr></thead>
   <tbody>
    <tr><td class="k">Orchestrator</td><td>Claude</td><td>Finishes the section audit (F-2); writes the section list and the anchor rules; decides the shared interface; writes the specs and the Gemini packet; checks every tab against the mockups at three laptop sizes, light and dark; runs the affected tests.</td></tr>
-   <tr><td class="k">Code worker</td><td>Codex</td><td>The section list, the anchors on every section, scroll-spy, the sticky rows, the address handling, focus and keyboard behaviour, and all tests.</td></tr>
-   <tr><td class="k">Visual worker</td><td>Antigravity (Gemini)</td><td>The section row and its notch from a packet (measurements, states, light and dark). The relay is manual, as in Batch B.</td></tr>
+   <tr><td class="k">Code worker</td><td>Codex</td><td>The section list, the anchors on every section, scroll-spy, the glass rail, the address handling, focus and keyboard behaviour, and all tests.</td></tr>
+   <tr><td class="k">Visual worker</td><td>Antigravity (Gemini)</td><td>The glass rail from a packet: measurements, the closed and open states, light and dark, the 1100 px pill, the no-blur fallback. The relay is manual, as in Batch B.</td></tr>
    <tr><td class="k">Reviewer</td><td>Codex adversarial review</td><td>One review per handoff, then one whole-batch review before staging.</td></tr>
   </tbody>
  </table></div>
@@ -622,7 +622,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h3 class="sub">Lanes that can run at the same time</h3>
  <div class="cols">
   <div class="doc"><h4>Lane 1: groundwork</h4><ul><li>The shared list, the anchors and <code>SectionCard</code>&rsquo;s anchor, the wrappers for non-card sections, the guard test.</li><li>Touches every tab&rsquo;s page and card files on both frames, by one small edit each.</li></ul></div>
-  <div class="doc"><h4>Lane 2: the index</h4><ul><li>The sticky index (row or rail, per Q1), scroll-spy, jump, address and focus, as one component.</li><li>Touches <code>MutualFundsFrame.tsx</code> and new files. Not <code>FundPageFrame.tsx</code> (Q2 A).</li></ul></div>
+  <div class="doc"><h4>Lane 2: the index</h4><ul><li>The glass rail (Q1 C), scroll-spy, jump, address and focus, as one component.</li><li>Touches <code>MutualFundsFrame.tsx</code> and new files. Not <code>FundPageFrame.tsx</code> (Q2 A).</li></ul></div>
  </div>
  <p>Lane 2 needs Lane 1&rsquo;s list but not its anchors for most of the work, so the two overlap.</p>
 </section>
@@ -634,7 +634,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <thead><tr><th>Other batch</th><th>Relationship</th></tr></thead>
   <tbody>
    <tr><td class="k">D (charts)</td><td>D adds the Overview graph, which becomes the second Overview section. Its lazy loading changes the page height as it loads, so scroll-spy and jumps must cope with sections that grow after the first paint.</td></tr>
-   <tr><td class="k">E (explainability and dates)</td><td>E&rsquo;s data strip sits directly under the section row. Both are part of the header stack in section 5. E&rsquo;s strip is not sticky; the section row is.</td></tr>
+   <tr><td class="k">E (explainability and dates)</td><td>E&rsquo;s data strip sits under the tab row. The glass rail floats at the right edge and is not part of the header stack, so the two never compete for space.</td></tr>
    <tr><td class="k">K (search)</td><td>Search&rsquo;s &ldquo;page sections&rdquo; result type reads this batch&rsquo;s list, and its page-local box takes the tab bar&rsquo;s right slot (today the Overview&rsquo;s page-local box is there). Plan the two together: one list, one slot rule.</td></tr>
    <tr><td class="k">I (PDF export)</td><td>The export button is in the top bar (Batch I, 17 Nov) and uses the list for which sections to print and in what order.</td></tr>
    <tr><td class="k">G (GA4)</td><td>A &ldquo;section jumped to&rdquo; event could carry the section id only. The tracking plan&rsquo;s section-view events (&ldquo;which sections do users skip&rdquo;) use the same ids, so this batch is what makes G&rsquo;s section questions answerable.</td></tr>
@@ -657,7 +657,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>F-2</td><td>Finish the section audit: every section on the seven tabs (the fund page is out since Q2 A), with its stable id, whether it is a card, and whether it can be empty</td><td>Claude</td><td>M</td><td>Now (read-only)</td></tr>
    <tr><td>F-3</td><td>The shared section list and its guard test, tests first</td><td>Codex</td><td>S</td><td>After F-2</td></tr>
    <tr><td>F-4</td><td>Anchors on the Mutual Funds tabs: <code>anchor</code> on <code>SectionCard</code>; wrappers for non-card sections; <code>scroll-margin-top</code></td><td>Codex</td><td>L</td><td>After F-3</td></tr>
-   <tr><td>F-5</td><td>The sticky index in <code>MutualFundsFrame</code> (row or rail, per Q1); the tab bar does not stick (Q3 C)</td><td>Codex, Gemini</td><td>L</td><td>After Q1</td></tr>
+   <tr><td>F-5</td><td>The glass rail in <code>MutualFundsFrame</code> (Q1 C): closed strip, open list, Pin, scroll-spy, the corner pill below 1100 px, the no-blur fallback; the tab bar does not stick (Q3 C)</td><td>Codex, Gemini</td><td>L</td><td>Ready (Q1 decided); after E merges</td></tr>
    <tr><td>F-6</td><td>Scroll-spy on the page area, with sections that load late</td><td>Codex</td><td>M</td><td>After F-4</td></tr>
    <tr><td>F-7</td><td>Jump, smooth scroll and reduced motion, focus to the heading, address handling and Back behaviour</td><td>Codex</td><td>M</td><td>After F-4</td></tr>
    <tr><td>F-8</td><td>Keyboard and screen-reader behaviour; the &ldquo;3 or more sections&rdquo; rule; empty and error cases</td><td>Codex</td><td>S</td><td>After F-5</td></tr>
@@ -677,11 +677,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>Risk</th><th>What we do</th></tr></thead>
   <tbody>
-   <tr><td>The sticky index eats too much of a short window</td><td>Only the index sticks (Q3 C). A row is about 40 px; a rail costs no height. Checked at 1280&times;600.</td></tr>
+   <tr><td>The sticky index eats too much of a short window</td><td>Only the rail stays in view (Q3 C) and it costs no height. Checked at 1280&times;600.</td></tr>
    <tr><td>Sticky and scroll-spy are wrong because the page area, not the window, scrolls</td><td>Both are built against the page area from the start; tests simulate scrolling inside it.</td></tr>
    <tr><td>Sections load late and shift the page, so the highlight or a jump lands in the wrong place</td><td>Jumps re-measure after loading settles; scroll-spy uses the section&rsquo;s own position, not a fixed height; Batch D&rsquo;s lazy graph is a named test case.</td></tr>
    <tr><td>The list and the page disagree (a section is added and the index misses it)</td><td>The guard test fails when a card on a page is not in the list or marked excluded.</td></tr>
-   <tr><td>The smooth scroll or the sticky rows bother some users</td><td>Reduced-motion users get an instant jump; the tab row&rsquo;s hide-on-scroll can be turned off by a setting.</td></tr>
+   <tr><td>The smooth scroll or the floating rail bother some users</td><td>Reduced-motion users get an instant jump and no rail animation; the rail can be closed or pinned.</td></tr>
    <tr><td>The two frames (seven tabs; three underline tabs) look or behave differently</td><td>One component with a frame-specific wrapper; both frames are in the same mockups and the same checks.</td></tr>
    <tr><td>The index and the Overview&rsquo;s page-local search fight for the right slot</td><td>They are placed in the stack in section 5; the slot rule is agreed with search&rsquo;s plan (K) before building.</td></tr>
    <tr><td>The Back button fills with jumps</td><td>A jump replaces the hash entry rather than adding one for repeated jumps within a tab (to be confirmed in the spec).</td></tr>
@@ -696,7 +696,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  </ul>
  <h3 class="sub">Staging check (draft; the real guide is F-11)</h3>
  <div class="steps5">
-  <div><b>Index</b>On Overview, Allocation, Overlap, Performance and Other Analytics a chip row lists the sections; Holdings and Transactions show none.</div>
+  <div><b>Index</b>On Overview, Allocation, Overlap, Performance and Other Analytics the glass rail lists the sections; Holdings and Transactions show none.</div>
   <div><b>Jump and spy</b>A click lands the section&rsquo;s heading just below the rows; scrolling moves the highlight; a refresh on <code>#section</code> returns to it.</div>
   <div><b>Sticky</b>Only the index stays in view while scrolling; the tab bar scrolls away as today; nothing covers a heading.</div>
   <div><b>All</b>Dark mode; keyboard only (Tab, Enter); reduced motion; a short window; the other batches&rsquo; items (the graph, the data strip) in place.</div>
@@ -706,7 +706,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <!-- ============ QUESTIONS ============ -->
 <section id="questions">
  <h2>10. Questions</h2>
- <p class="lead">Q2 (A) and Q3 (C) are answered and locked, both updated on 17 Nov; <b>Q1 is still open</b>. Everything else is a default below, or a decision I bring you later with evidence.</p>
+ <p class="lead">Q2 (A) and Q3 (C) are answered and locked, both updated on 17 Nov; <b>Q1 is now C</b> (17 Nov). All three questions are answered. Everything else is a default below, or a decision I bring you later with evidence.</p>
  <div class="bar"><span class="status" id="prog">0 of 3 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
  <div id="cards"></div>
  <h3 class="sub">Defaults I will use (tell me in chat if you want any changed)</h3>
@@ -714,9 +714,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <thead><tr><th>Topic</th><th>Default</th></tr></thead>
   <tbody>
    <tr><td class="k">When the index shows</td><td>On tabs with 3 or more sections, on the seven Mutual Funds tabs only (Q2 A). The tab bar does not stick (Q3 C). The fund page and the compare-two-funds page are untouched.</td></tr>
-   <tr><td class="k">Sticky height</td><td>Only the index sticks (Q3 C). A section row is about 40 px; a rail costs none.</td></tr>
+   <tr><td class="k">The rail</td><td>Closed: a slim 44 px strip of ticks at the right edge of the page area. Opens on hover, focus or the Pin button into the section names. Frosted glass in neutral tones; a near-solid white fallback where blur is not supported; no animation for reduced-motion users; the corner pill below about 1100 px.</td></tr>
+   <tr><td class="k">Sticky height</td><td>Only the rail stays in view (Q3 C) and it costs no height.</td></tr>
    <tr><td class="k">Other Analytics</td><td>The index lists its 4 groups, not the 6 cards.</td></tr>
-   <tr><td class="k">Numbers in titles</td><td>The Overlap numbering (&ldquo;1.&rdquo; to &ldquo;4.&rdquo;) is left out of the chips.</td></tr>
+   <tr><td class="k">Numbers in titles</td><td>The Overlap numbering (&ldquo;1.&rdquo; to &ldquo;4.&rdquo;) is left out of the rail.</td></tr>
    <tr><td class="k">Jump</td><td>Smooth scroll (instant under reduced motion); focus moves to the heading; the hash is written to the address.</td></tr>
    <tr><td class="k">The list</td><td>One configuration next to <code>TAB_DEFS</code>, with a <code>tier</code> field that is unused today; a guard test keeps it in step with the pages.</td></tr>
    <tr><td class="k">Search and PDF</td><td>Search uses the tab bar&rsquo;s right slot, not the index&rsquo;s space. The PDF button is in the top bar (Batch I, 17 Nov).</td></tr>
@@ -728,7 +729,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <thead><tr><th>Decision</th><th>When it comes up</th><th>What you will see</th></tr></thead>
   <tbody>
    <tr><td class="k">Whether the Summary strip and Sold funds count as sections</td><td>After the section audit (F-2)</td><td>The two blocks, why they have no heading, and my suggestion.</td></tr>
-   <tr><td class="k">The final chip labels (shortened titles)</td><td>With the Gemini mockups</td><td>The real titles against the width they need.</td></tr>
+   <tr><td class="k">The final rail labels (shortened titles)</td><td>With the Gemini mockups</td><td>The real titles against the width they need.</td></tr>
   </tbody>
  </table></div>
 </section>
@@ -902,13 +903,13 @@ try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 var Q=[
 {id:"Q1",item:"12",title:"Which shape does the section index take?",ask:"Pick one. Section 3 draws A to C at a 1280-pixel laptop.",
- ctx:"Your own idea is option A. By my estimate it does not fit on the longer Mutual Funds tabs at laptop width. On 17 Nov you said you like the side rail (C) but asked where it fits among the busy right-hand sides; section 3b answers that with four placements you can try. Still open: tell me which one you choose.",
+ ctx:"Your own idea is option A. By my estimate it does not fit on the longer Mutual Funds tabs at laptop width. On 17 Nov you said you like the side rail (C) but asked where it fits among the busy right-hand sides; section 3b answers that with four placements you can try. <b>Decided 17 Nov: option C</b>, drawn as the frosted glass box (placement 1).",
  opts:[
  {k:"A",l:"Your idea: the active tab expands inline into its sections (the other tabs fold into a &ldquo;More&rdquo; menu while open)",d:"Good: closest to what you described; no extra row. Bad: does not fit on the four longest tabs by my estimate, so the other tabs fold away; the tab row changes shape on every click; folding the tabs hides navigation."},
  {k:"B",l:"A section row directly under the tab bar, attached to the active tab; both rows stay stuck while scrolling",rec:1,d:"Good: always fits; the tabs never change; the same behaviour on every tab; keeps the tabs visible while scrolling. Bad: about 90 px of sticky height, reduced by hiding the tab row while scrolling down."},
  {k:"C",l:"A thin &ldquo;On this page&rdquo; rail down the right side",d:"Good: no height cost; shows every section at once. Bad: takes about 170 px of width from the cards and is crowded below about 1280 px; far from the tabs."}],
  why:"It keeps your idea (the tab and its sections read as one group, and a click jumps) and fits every tab. D (a &ldquo;Jump to&rdquo; menu) and E (collapsible sections) are drawn in the comparison but are weaker answers to the black-hole problem.",
- commit:"A: the tab row folds and reflows. B: a second sticky row and a hide-on-scroll rule for the tab row. C: a right-hand rail and a narrower content column."},
+ commit:"<b>Recorded 17 Nov: C</b>, the side rail, as the frosted glass box: a floating rail with a closed strip and an open list, no extra height, no narrower content column; below about 1100 px the corner pill. A: the tab row folds and reflows. B: a second sticky row. C (as first drawn): a docked column."},
 {id:"Q2",item:"12",title:"Which pages get the index in this batch?",ask:"Pick one.",
  ctx:"The Mutual Funds tabs are what you named. The fund page (a single fund) has three tabs with 5 or 6 sections each. Home, Portfolio and Planning are shorter.",
  opts:[
@@ -925,7 +926,7 @@ var Q=[
  why:"The tab bar scrolling away is half of what makes a long page hard to use, and it is cheap to fix once there is a sticky row anyway.",
  commit:"<b>Updated 17 Nov: option C</b> (changed from A): the tab bar does not stick; only the section index sticks. With a side rail the page loses no height at all. <b>Earlier recorded (13 Nov):</b> option A."}
 ];
-var PRE={Q2:{k:"A",n:"Updated 17 Nov: option A (the seven Mutual Funds tabs only). Earlier: option B."},Q3:{k:"C",n:"Updated 17 Nov: option C (only the section index sticks). Earlier: option A."}};
+var PRE={Q1:{k:"C",n:"Updated 17 Nov: option C, the side rail, as the frosted glass box (placement 1)."},Q2:{k:"A",n:"Updated 17 Nov: option A (the seven Mutual Funds tabs only). Earlier: option B."},Q3:{k:"C",n:"Updated 17 Nov: option C (only the section index sticks). Earlier: option A."}};
 var LOCK={};
 Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
 var cards=document.getElementById("cards");
