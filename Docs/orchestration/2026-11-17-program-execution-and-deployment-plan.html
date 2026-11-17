@@ -436,7 +436,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <ul class="tight">
   <li><b>Numbers before presentation.</b> The truth-finding fixes (A1 to A3) land before charts, dates and exports repeat those numbers.</li>
   <li><b>Settle shared places early.</b> The top bar, page headers and the section list change once, early, so later batches build on a stable frame.</li>
-  <li><b>Small, checkable releases.</b> Four staging milestones, each with a written checklist, instead of one large final round.</li>
+  <li><b>Small, checkable releases.</b> Four staging milestones, each deployed and quickly verified (it loads, the changed screens open, the rebuild ran). The full QA is done once, together, after the last milestone (17 Nov decision).</li>
   <li><b>Backend additive first.</b> A new field or route can go out at any time; an old one is removed only when nothing reads it.</li>
   <li><b>One owner per shared file at a time</b> (section 5).</li>
   <li><b>Production once</b>, only after the last milestone passes, with the recompute and a rollback written down.</li>
@@ -462,7 +462,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   </tbody>
  </table></div>
  <h3 class="sub">What runs in parallel: Codex and Gemini (Antigravity), wave by wave</h3>
- <p class="lead">At any moment at most one Codex task and one Gemini task run at the same time (Q3), with Claude orchestrating. This is how each wave splits between them, from each batch&rsquo;s own plan.</p>
+ <p class="lead">At any moment <b>one Codex task</b> and <b>up to three Gemini (frontend-only) tasks</b> run at the same time (Q3, updated 17 Nov), with Claude orchestrating. This is how each wave splits between them, from each batch&rsquo;s own plan.</p>
  <div class="scroll"><table>
   <thead><tr><th>Wave</th><th>Codex (backend and code-heavy, all tests)</th><th>Gemini / Antigravity (screens and visuals)</th><th>Claude (alongside)</th></tr></thead>
   <tbody>
@@ -474,7 +474,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">5. Export and the tutorial</td><td>I: the repaired pipeline, the export route, print mode, the security pass</td><td>I: the export dialog, the top-bar button, the browser fallback. H: the floating checklist and the final video swap</td><td>The M4 guide, the production gate, the evidence packs</td></tr>
   </tbody>
  </table></div>
- <div class="callout info"><b>How the hand-off works.</b> Gemini builds a screen from a packet (measurements, states, and red tests already written by Codex or me), so within a batch Codex or Claude goes first and Gemini follows, and the relay between them is manual. The two keep busy by working on <b>different batches</b> at the same time: for example, in wave 1 Codex is on C&rsquo;s backend while Gemini is on B&rsquo;s screens. When a batch has only backend or only frontend work, the other builder takes the next batch&rsquo;s task. If one queue runs dry, it waits rather than starting a second task, and Claude uses the gap for reviews.</div>
+ <div class="callout info"><b>How the hand-off works.</b> Gemini builds a screen from a packet (measurements, states, and red tests already written by Codex or me), so within a batch Codex or Claude goes first and Gemini follows, and the relay between them is manual. The two keep busy by working on <b>different batches</b> at the same time: for example, in wave 1 Codex is on C&rsquo;s backend while Gemini is on B&rsquo;s screens. When a batch has only backend or only frontend work, the other builder takes the next batch&rsquo;s task. If Codex has no task ready, Gemini keeps going on its frontend tasks (up to three); Codex never runs a second task, and Claude uses any gap for reviews.</div>
  <h3 class="sub">What changed against Batch B&rsquo;s wave table, and why</h3>
  <div class="scroll"><table>
   <thead><tr><th>Change</th><th>Reason</th></tr></thead>
@@ -486,7 +486,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">A runs as investigation first, fixes in wave 2</td><td>The recount, fixtures and Excel script need no prices, so they start now; every fix needs your approval first.</td></tr>
   </tbody>
  </table></div>
- <p class="note">Read the &ldquo;Parallel work&rdquo; column as: at most one Codex task and one Antigravity task at the same time (Q3). Claude&rsquo;s own work runs alongside. If you prefer Batch B&rsquo;s original order or search last, see Q1 (section 15).</p>
+ <p class="note">Read the &ldquo;Parallel work&rdquo; column as: one Codex task and up to three Antigravity (frontend-only) tasks at the same time (Q3). Claude&rsquo;s own work runs alongside. If you prefer Batch B&rsquo;s original order or search last, see Q1 (section 15).</p>
 </section>
 
 <section id="deps">
@@ -550,7 +550,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <tbody>
    <tr><td class="k">Integration branch</td><td><code>leapswitch-redesign</code> stays the one branch that staging is built from. Nothing is pushed to it that has not passed its batch gate. Hotfixes made on the old staging branch are merged into it first (the README&rsquo;s standing rule).</td></tr>
    <tr><td class="k">Batch branches</td><td>One per batch, cut from the integration branch at the start of its wave: <code>batch/b-journey</code>, <code>batch/c-hygiene</code>, <code>batch/a-numbers</code>, <code>batch/d-charts</code>, <code>batch/k-search</code>, <code>batch/f-nav</code>, <code>batch/e-dates</code>, <code>batch/h-tutorial</code>, <code>batch/i-export</code>.</td></tr>
-   <tr><td class="k">Worktrees and clones</td><td>Two builders work at once (Q3): Codex in its own Windows worktree, Antigravity in its own separate clone (the planning docs stay in this worktree), so neither can disturb the other. Each takes one task at a time from its own queue.</td></tr>
+   <tr><td class="k">Worktrees and clones</td><td>Codex works in one Windows worktree on one task at a time. Antigravity may run up to three frontend-only tasks at once, each in its own separate clone and branch (the planning docs stay in this worktree), so no two tasks share a checkout. <b>Three frontend tasks at once must touch different files</b>: the ownership rules in the table above decide which three can run together, and a task that needs a file another one is editing waits.</td></tr>
    <tr><td class="k">Merging in</td><td>A batch merges into the integration branch when its tests are green and its review is done. Before merging, it merges the integration branch into itself, so conflicts are solved on the batch side, with its tests.</td></tr>
    <tr><td class="k">Cadence</td><td>Each lane merges the integration branch into its own branch at least once a week and always before a merge in.</td></tr>
    <tr><td class="k">Milestone tags</td><td>A release candidate is tagged <code>m1-rc</code>, and the commit before it <code>pre-m1</code>; the same for each milestone. The deploy and the rollback both name a tag, not a branch tip.</td></tr>
@@ -593,7 +593,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <div><b>4. Check</b>Only the affected tests, then screenshots against the mockups for UI work.</div>
   <div><b>5. Review</b>An adversarial review per handoff, then one review of the whole batch.</div>
   <div><b>6. Merge</b>Into the integration branch, after merging it into the batch.</div>
-  <div><b>7. Batch QA</b>Your check on a local build or on staging at the milestone, against the batch&rsquo;s own checklist.</div>
+  <div><b>7. Batch check</b>The batch&rsquo;s tests, screenshots against its mockups and its review. Your full QA is later, once, after M4.</div>
  </div>
  <h3 class="sub">Roles and how the budget is spent</h3>
  <div class="scroll"><table>
@@ -602,7 +602,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">Claude (orchestrator)</td><td>Specs, packets, fix proposals, integration, reviews, deploy guides, QA checklists, evidence</td><td>Builds nothing in A until you approve each proposal; commits only on your word.</td></tr>
    <tr><td class="k">Codex</td><td>Backend and code-heavy frontend, all tests</td><td>Cannot commit; works in one lane&rsquo;s worktree.</td></tr>
    <tr><td class="k">Gemini (Antigravity)</td><td>UI from packets with red tests already written (search, glass rail, pop-ups)</td><td>Separate clone; screenshots next to the mockup before a task is done.</td></tr>
-   <tr><td class="k">You and your team</td><td>Decisions, the CAMS checks and recordings, email inbox tests, staging QA</td><td>Sign-off column in each checklist.</td></tr>
+   <tr><td class="k">You and your team</td><td>Decisions, the CAMS checks and recordings, and the single QA round after M4 (including the email inbox tests)</td><td>Sign-off column in the combined QA checklist.</td></tr>
    <tr><td class="k">Manager&rsquo;s Claude or you</td><td>Run the staging deploys from the written guide</td><td>Claude never runs a deploy.</td></tr>
   </tbody>
  </table></div>
@@ -628,8 +628,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">1. Freeze</td><td>The milestone is tagged <code>mN-rc</code>; nothing else merges into the integration branch until it is deployed and checked.</td><td>Claude</td></tr>
    <tr><td class="k">2. Pre-flight</td><td>Free disk on the VM (the 16 Nov deploy started at 7.6 GB and needed a prune to reach 12 GB); confirm a <code>:previous</code> backend image exists (the 16 Nov build removed it before it could be tagged, leaving no rollback image, so tag it first); an on-demand backup; the migration head; not inside the job windows (05:40 to 06:35, 10:30, 14:00 to 14:15); testers told.</td><td>Deployer, with my checklist</td></tr>
    <tr><td class="k">3. Deploy</td><td>On the VM, in the redesign worktree: fast-forward to the tag, then <code>deploy-redesign.sh</code> (frontend only), <code>--full</code> (backend and worker too) or <code>--rebuild-backend</code> as the guide says; migrations if any; backend before frontend when a route is new.</td><td>Manager&rsquo;s Claude or you</td></tr>
-   <tr><td class="k">4. Verify</td><td>Health and both domains answer; the post-deploy checks for that milestone; the stored-analytics rebuild where the milestone changes numbers.</td><td>You, with my checklist</td></tr>
-   <tr><td class="k">5. QA</td><td>Your manual QA against the checklist; each defect becomes a failing test first, then a fix, then a patch deploy.</td><td>You, Claude, Codex</td></tr>
+   <tr><td class="k">4. Quick verify</td><td>Health and both domains answer; the changed screens open; the stored-analytics rebuild ran where the milestone changes numbers. This is a smoke check, not the QA.</td><td>Whoever deploys, with the guide</td></tr>
+   <tr><td class="k">5. QA</td><td><b>Not here.</b> The full QA is done once after M4 (section 10). A defect noticed now is noted and goes to the QA list, unless it breaks the deploy itself.</td><td>&mdash;</td></tr>
    <tr><td class="k">6. Record</td><td>A deploy record (like the 16 Nov one): what changed, evidence, what is not as hoped, how to roll back.</td><td>Claude</td></tr>
   </tbody>
  </table></div>
@@ -643,11 +643,12 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <tbody>
    <tr><td class="k">Per task</td><td>Failing test, then green; only the affected tests.</td><td>While building</td></tr>
    <tr><td class="k">Per batch</td><td>The whole-batch review; screenshots against the mockups; the batch&rsquo;s own checklist from its workbook.</td><td>Before merging into the integration branch</td></tr>
-   <tr><td class="k">Per milestone</td><td>The milestone checklist (section 9), plus the cross-batch regression list below, on staging.</td><td>After each deploy</td></tr>
-   <tr><td class="k">Before production</td><td>One last pass over every milestone&rsquo;s checks on the final build, plus the production gate (section 11).</td><td>After M4</td></tr>
+   <tr><td class="k">Per milestone</td><td>A quick verify only (section 9): it loads, the changed screens open, the rebuild ran. No QA round.</td><td>After each deploy</td></tr>
+   <tr><td class="k">One QA round, together</td><td>Your full QA on staging against the combined checklist and the cross-batch list below, covering all four milestones at once. Each defect becomes a failing test first, then a fix, then a patch deploy.</td><td><b>After M4, before production</b></td></tr>
+   <tr><td class="k">Production gate</td><td>The QA passed with no open high defect, plus the gate in section 11.</td><td>After the QA round</td></tr>
   </tbody>
  </table></div>
- <h3 class="sub">Cross-batch regression list (checked at every milestone that could affect it)</h3>
+ <h3 class="sub">Cross-batch regression list (the combined QA checklist is built from this and each batch&rsquo;s own checklist)</h3>
  <div class="scroll"><table>
   <thead><tr><th>Area</th><th>Check</th><th>Why</th></tr></thead>
   <tbody>
@@ -670,7 +671,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>Gate</th><th>Must be true</th></tr></thead>
   <tbody>
-   <tr><td class="k">Every milestone passed</td><td>M1 to M4 checklists signed off on staging, with no open high defect.</td></tr>
+   <tr><td class="k">Every milestone passed</td><td>The single QA round after M4 signed off on staging, with no open high defect.</td></tr>
    <tr><td class="k">One migration at most</td><td>The ledger (section 7) matches what production has; the downgrade, if any, was tested.</td></tr>
    <tr><td class="k">Numbers rebuilt</td><td>The stored XIRR, rank and average were rebuilt after the last numbers change and after the production deploy.</td></tr>
    <tr><td class="k">Rollback ready</td><td>A <code>:previous</code> image, a database backup taken that day, the previous frontend tag.</td></tr>
@@ -684,7 +685,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <section id="size">
  <h2>12. Size and duration (estimates, not measurements)</h2>
  <div data-frame="sizechart"></div>
- <p>Counting each plan&rsquo;s own sizes with S as half a day, M as a day and a half, L as three days, the in-scope work is about <b>190 worker-days</b> (this includes reviews, writing and your own checks, not only code). <b>With your capacity model (Q3: Codex on backend and Antigravity on frontend, one task each at the same time, Claude orchestrating), the finish time is set by the busier of the two queues, not by the total.</b> I expect the frontend queue to be the busier one (search, the section rail, dates, charts, export dialog, tutorial), so the program is likely to run about <b>15 to 20 working weeks</b>. That range is a guess: it will be recomputed once each batch&rsquo;s own plan splits its tasks between the two builders, and again after M1 when we have a real pace. Claude&rsquo;s own work (plans, investigations, guides, reviews, evidence) runs alongside and is not on either queue.</p>
+ <p>Counting each plan&rsquo;s own sizes with S as half a day, M as a day and a half, L as three days, the in-scope work is about <b>190 worker-days</b> (this includes reviews, writing and your own checks, not only code). <b>With your capacity model (Q3, updated 17 Nov: one Codex task at a time, up to three Gemini frontend-only tasks at once, Claude orchestrating), the finish time is set by the Codex queue as much as the frontend one.</b> Codex does all the backend work <i>and</i> writes the tests Gemini builds against, so it is on the critical path: Gemini cannot start a screen until its red tests exist. My rough guess is about <b>10 to 14 working weeks</b>. That range is a guess: it will be recomputed once each batch&rsquo;s own plan splits its tasks between the two builders, and again after M1 when we have a real pace. Claude&rsquo;s own work (plans, investigations, guides, reviews, evidence) runs alongside and is on neither queue.</p>
  <div class="callout info"><b>Read this as a shape, not a promise.</b> The estimate leaves out GA4 and A4 (paused) and Batch L&rsquo;s approved fixes (the audit itself is about 8 to 10 worker-days and is not in the chart); each adds to it when scheduled. The sizes are each plan&rsquo;s rough estimate, search&rsquo;s are the largest, and I have not measured how fast the workers actually go. The first wave will show the real pace, and I will revise this after M1.</div>
 </section>
 
@@ -695,12 +696,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <tbody>
    <tr><td>The old staging link breaks when the backend changes</td><td>Section 7: additive-only backend while the old link stays (Q2); a response-shape test per change; the deploy guide lists what the old link would see.</td></tr>
    <tr><td>Merge conflicts in the shared frame and pages</td><td>Section 5 order rules; weekly merges; one owner per file at a time.</td></tr>
-   <tr><td>Search is too big to review or QA in one go</td><td>The plan keeps its four review gates and a whole-release review; M3 can be split in two (Q4) if QA is too large.</td></tr>
+   <tr><td>Search is too big to review or QA in one go</td><td>The plan keeps its four review gates and a whole-release review; M3 can be split in two (Q4) if the deploy is too large to verify.</td></tr>
    <tr><td>A deploy leaves no rollback image (it happened on 16 Nov)</td><td>Pre-flight checks the image and the disk before every build.</td></tr>
    <tr><td>PDF export strains the server (a browser per export) at the same time as the daily jobs</td><td>One browser on demand, at most two exports at once (Batch I); the deploy avoids the 05:40 to 06:35 window; memory is checked during the M4 test.</td></tr>
    <tr><td>The numbers change under users and stakeholders ask why</td><td>The deploy guide lists every user-visible change with before and after; the evidence packs go out only after M2 passes.</td></tr>
    <tr><td>Answers or inputs arrive late</td><td>Each wave lists its blockers; a blocked batch is skipped, not waited on; defaults are stated for small questions.</td></tr>
    <tr><td>Real data leaks into evidence or videos</td><td>Invented households only; a last check before anything is sent (the earlier tutorial video had to be re-cut for this).</td></tr>
+   <tr><td>QA only after M4 means a defect from M1 is found late</td><td>Every batch keeps its own tests and review before merging; each milestone gets a quick verify; defects noticed along the way are logged to the QA list; the QA round covers all milestones at once, so a late fix can be a patch deploy, not a rework.</td></tr>
    <tr><td>The program is paused halfway</td><td>Each milestone is a consistent, deployable state, so stopping after any milestone leaves staging working.</td></tr>
   </tbody>
  </table></div>
@@ -716,7 +718,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">Batch L (portfolio disclosures audit)</td><td><b>Planned.</b> Read-only, wave 1, no deploy. Its time depends on the fund houses, not the program: the first useful pass is once the by-hand imports are done (about day 10 to 12 of a month), the final after day 20. Approved fixes would touch only the <code>portfolio_disclosure_*</code> files.</td></tr>
    <tr><td class="k">Explore, Standard/Pro, stopped SIP, fact sheet fixes</td><td>Later, planned separately. Search, the section list and E&rsquo;s popover are built to be reused by them; the section list carries a tier field, unused for now.</td></tr>
    <tr><td class="k">How production differs from staging</td><td>I read the cutover outline in the runbook but not a finished production runbook; the production gate lists only what this program adds.</td></tr>
-   <tr><td class="k">Team capacity</td><td>Decided (Q3): two builders at once (Codex backend, Antigravity frontend), one task each, with Claude orchestrating. The estimate is a guess until tasks are split by builder.</td></tr>
+   <tr><td class="k">Team capacity</td><td>Decided (Q3): one Codex task at a time, up to three Gemini frontend-only tasks at once, Claude orchestrating. The estimate is a guess until tasks are split by builder.</td></tr>
   </tbody>
  </table></div>
 </section>
@@ -826,7 +828,7 @@ function xlsx(v){
 }
 
 var WV=[
- {t:'Wave 0: now (no code)',who:'You, Claude',items:['All five program decisions are answered (17 Nov).','The old staging link is left as it is (Q2); backend changes stay additive only.','Write each batch’s build plan just before its wave opens (Q27); wave 1’s plans first.','Take the baseline: green suites on the integration branch, screenshots of the key pages, the current migration head.','Prepare deploy: confirm the VM has disk and a rollback image path; write the M1 guide and checklist.','Produce the video and the sample files in parallel (done or in hand).'],gate:'Exit: wave 1 plans written; answers in; baseline green.'},
+ {t:'Wave 0: now (no code)',who:'You, Claude',items:['All five program decisions are answered (17 Nov).','The old staging link is left as it is (Q2); backend changes stay additive only.','Write each batch’s build plan just before its wave opens (Q27); wave 1’s plans first.','Take the baseline: green suites on the integration branch, screenshots of the key pages, the current migration head.','Prepare deploy: confirm the VM has disk and a rollback image path; write the M1 to M4 deploy guides and one combined QA checklist (the QA itself runs once, after M4).','Produce the video and the sample files in parallel (done or in hand).'],gate:'Exit: wave 1 plans written; answers in; baseline green.'},
  {t:'Wave 1: foundations',who:'Codex lanes, Gemini for UI',items:['B: wrong-person warning, OTP timer with the structured limit reply, spinner to tick, onboarding layout, Head of Family emails (after your screenshots).','C: merged categories (17a), manager line removed (17b), folio_number and the eye icon (17c), new member in the drop-down (17d).','A1, A2, A3 investigations, read-only: fixtures and the independent XIRR calculator, the AMFI recount and ledger, the workbook export scripts on synthetic data. These ship nothing.','L (portfolio disclosures audit): read-only queries on staging, the coverage report, the by-hand to-do list and fix proposals. No deploy; it needs no code unless you approve a fix.','GA4 foundation (paused): reserved slot, to be picked up later.'],gate:'Exit: B and C merged with tests and review; investigations report their findings; M1 tagged.'},
  {t:'Wave 2: numbers and charts',who:'Codex, Gemini for the pop-up',items:['A1 fixes (no-price fund, final-flow date, tile and column agree), A2 fixes (pool, common end date, Growth only, the disclaimer line), A3 fixes and the workbook, each only after you approve its proposal.','D: benchmark lines and colours, the Overview graph (shared component), the day’s-change pop-up with its backend switch. D’s chart end date follows A2’s common end date.','H: the “Watch how it works” link and the video pop-up (after C’s import change).'],gate:'Exit: official numbers from runs after 17 Nov; M2 tagged with the rebuild step.'},
  {t:'Wave 3: search and the section list',who:'Gemini for UI, Codex for the endpoint',items:['K: the household index endpoint, the shell (top bar, page header slot), the shared box and dropdown, the matcher, then every page (T00 to T20). One release.','F: the section audit, the one shared section list and the anchors on every Mutual Funds section. Search’s registry reads this list.','Four review gates inside search, plus one whole-release review.'],gate:'Exit: search and the section list merged; backend endpoint deployable ahead of the frontend.'},
@@ -841,7 +843,7 @@ var MS=[
 ];
 function wave(v){var w=WV[+v];var h='<div class="xdoc"><h4 style="font:700 18px DM Sans;margin:0 0 4px">'+w.t+'</h4><p class="note" style="margin:0 0 8px">Who: '+w.who+'</p><ul class="tight">'+w.items.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul><div class="callout good" style="margin-bottom:0"><b>'+w.gate+'</b></div></div>';return h}
 function milestone(v){var m=MS[+v-1];function L(a){return '<ul class="tight">'+a.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>'}
- return '<div class="xdoc"><h4 style="font:700 18px DM Sans;margin:0 0 8px">'+m.t+'</h4><div class="cols"><div class="doc"><h4>What is in it</h4>'+L(m.contains)+'<p class="note"><b>Backend:</b> '+m.backend+'<br><b>Database:</b> '+m.db+'<br><b>Stored numbers rebuilt:</b> '+m.recompute+'</p></div><div class="doc"><h4>Before the deploy</h4>'+L(m.pre)+'</div><div class="doc"><h4>After the deploy, check</h4>'+L(m.verify)+'</div><div class="doc"><h4>If it goes wrong</h4><p>'+m.rb+'</p></div></div></div>'}
+ return '<div class="xdoc"><h4 style="font:700 18px DM Sans;margin:0 0 8px">'+m.t+'</h4><div class="cols"><div class="doc"><h4>What is in it</h4>'+L(m.contains)+'<p class="note"><b>Backend:</b> '+m.backend+'<br><b>Database:</b> '+m.db+'<br><b>Stored numbers rebuilt:</b> '+m.recompute+'</p></div><div class="doc"><h4>Before the deploy</h4>'+L(m.pre)+'</div><div class="doc"><h4>After the deploy, quick check (full QA is after M4)</h4>'+L(m.verify)+'</div><div class="doc"><h4>If it goes wrong</h4><p>'+m.rb+'</p></div></div></div>'}
 function timeline(){
  var cols=['W1','W2','W3','W4','W5'],rows=[['B','#22C55E',[0,1]],['C','#22C55E',[0,1]],['A1–A3 investigations','#94A3B8',[0,1]],['A1–A3 fixes','#0EA5E9',[1,2]],['D charts','#0EA5E9',[1,2]],['H link and pop-up','#0EA5E9',[1,2]],['K search','#8B5CF6',[2,3]],['F section list','#8B5CF6',[2,3]],['E dates','#F59E0B',[3,4]],['F visible index','#F59E0B',[3,4]],['L disclosures audit (read-only)','#22C55E',[0,1]],['GA4 foundation (paused)','#E2E8F0',[0,1]],['A4 execution (paused, after A1)','#E2E8F0',[1,2]],['GA4 events (paused)','#E2E8F0',[4,5]],['I export','#EF4444',[4,5]],['H checklist and final video','#EF4444',[4,5]]];
  var ms=[[1,'M1'],[2,'M2'],[4,'M3'],[5,'M4']];
@@ -899,11 +901,11 @@ var Q=[
  commit:"Recorded 17 Nov: B. Backend changes are additive only; Batch C keeps the old folio field and adds the new one; no cleanup step is scheduled."},
 {id:"Q3",item:"capacity",title:"How much can be built at the same time?",ask:"Pick one.",
  opts:[
- {k:"A",l:"Two builders at once: Codex on backend and Antigravity on frontend, one task each, with Claude orchestrating",rec:1,d:"Your answer (17 Nov). Finish time is set by the busier queue, likely frontend: about 15 to 20 working weeks, a guess until tasks are split by builder."},
+ {k:"A",l:"Codex on backend, one task at a time; Antigravity (Gemini) on frontend only, up to three tasks at once; Claude orchestrating",rec:1,d:"Your answer (17 Nov, updated). The Codex queue (backend and the tests) is the likely bottleneck: about 10 to 14 working weeks, a guess until tasks are split by builder."},
  {k:"B",l:"Three batch lanes at a time (my earlier proposal)",d:"About 12 to 13 working weeks, but it assumed more builders than you have."},
  {k:"C",l:"One builder at a time",d:"About 19 weeks or more; the safest to review."}],
- why:"It matches the two builders you actually have.",
- commit:"Each wave’s tasks are queued per builder: a backend task for Codex and a frontend task for Antigravity at the same time, never two of the same kind. A batch with only backend work leaves the frontend builder free for another batch."},
+ why:"It matches the builders you actually have.",
+ commit:"Each wave’s tasks are queued per builder: one backend task for Codex and up to three frontend-only tasks for Antigravity at the same time, chosen so no two touch the same file. A batch with only backend work leaves the frontend builder free for another batch."},
 {id:"Q4",item:"M3",title:"Should M3 (search, navigation and dates) be one deploy or two?",ask:"Pick one.",
  opts:[
  {k:"A",l:"One deploy, as decided in Q26, with a release valve: split into search, then dates and navigation, only if QA is too large",rec:1,d:"Good: matches your decision; one announcement. Bad: the largest QA round."},
@@ -918,7 +920,7 @@ var Q=[
  commit:"A: each guide names the window. B: milestones wait for the slot."}
 ];
 
-var PRE={Q1:{k:"A",n:"Answered 17 Nov."},Q2:{k:"B",n:"Answered 17 Nov: keep it as is, do not touch it (interpreted as option B: additive-only backend, old fields stay)."},Q4:{k:"A",n:"Answered 17 Nov."},Q5:{k:"A",n:"Answered 17 Nov."},Q3:{k:"A",n:"Answered 17 Nov: Codex (backend) and Antigravity (frontend) can work at the same time, one task each; Claude orchestrates."}};
+var PRE={Q1:{k:"A",n:"Answered 17 Nov."},Q2:{k:"B",n:"Answered 17 Nov: keep it as is, do not touch it (interpreted as option B: additive-only backend, old fields stay)."},Q4:{k:"A",n:"Answered 17 Nov."},Q5:{k:"A",n:"Answered 17 Nov."},Q3:{k:"A",n:"Answered 17 Nov: Codex (backend) and Antigravity (frontend) can work at the same time, Codex one task at a time, Gemini up to three frontend-only tasks at once; Claude orchestrates. (Updated 17 Nov.)"}};
 var LOCK={};
 Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
 var cards=document.getElementById("cards");
