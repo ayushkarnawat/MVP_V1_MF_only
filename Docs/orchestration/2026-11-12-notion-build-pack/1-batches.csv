@@ -1,0 +1,15 @@
+﻿Batch code,Name,Items,Stage,Needs NAV fix,Goal,Depends on,Output,Status
+P0,Phase 0: planning and housekeeping,all,0,No,"Group the items, collect decisions, write one plan per batch, produce stakeholder documents.",none,"Plans, decisions list, stakeholder documents",In progress
+B,Journey quick wins,"2, 3, 4, 6, 18",1,No,"Small, visible fixes in the sign-up, onboarding, login and upload flow.",none (item 18 needs Head of Family email screenshots),"Front-end changes, one auth change, OTP security write-up",Not started
+C,Holdings data hygiene,"17a, 17b, 17c, 17d",1,No (17a needs batch A root cause),Fix data-display bugs in holdings and allocation.,17a fix needs A8; 17c needs a decision,Small fixes,Not started
+L,Portfolio disclosures AMC audit (NEW),22,1,No,"Do for the portfolio disclosures job what was done for fact sheets: check every AMC and find which are automatic, blocked, hand-import or missing.",none (read-only first),"Per-AMC status table, alerting gap list, long-term fix options",Not started
+G,Tracking (GA4) for website and web app,1,0-8,Foundation: No,Event tracking and Google Analytics across the website (separate repo) and the web app.,"Custom events wait for D, E, F, K","Tracking plan, GA4 foundation, custom events, GA4 reports",Next up
+A,Truth-finding,"7, 8, 9 (check), 10, 17a (root cause)",2,YES,"Find out whether our numbers are right: XIRR, ranks, category average, load times, duplicate categories.",NAV fix (manager),"Findings, stakeholder evidence pack, backend fixes",Waiting on manager
+D,Charts,"13, 14, 15",3,YES,"Benchmark line on Home graph, same graph on MF Overview, 'day's change' pop-up.",NAV fix (manager),Reusable chart component and pop-up,Waiting on manager
+K,Search bars on every page,21,4 and 6,No,"Page-wise search bars (the search plan). Own release, own staging check, own review gate.",Manager finishes and returns the search plan; Aditi approves,Search on every page,Waiting on manager
+E,Explainability and dates,"9, 11, 16",5,After A,"Make numbers readable and dates consistent: legends, 'i' icons, date policy, stakeholder Excel.","A, date decision, fact sheet fixes (for 16 labels)","Copy, UI, Excel",Not started
+F,Navigation (section index),12,6,No,Stop the scrolling black hole: an index of sections inside each tab.,"D, E; planned together with K's section list",Section index across tabs,Not started
+I,PDF export,19,7,After A,"One shared export button for a branded PDF, family or single member.","A, E, F, Standard/Pro plan",Shared export feature,Not started
+H,CAMS tutorial video and pop-up,5,8,No,Creative tutorial video opened from a link on the CAMS screen.,Stable CAMS screen before recording,Video and pop-up,Not started
+J,Simplified Explore document,20,0,No,Non-technical Explore overview for the stakeholder.,none,Downloadable HTML,Done
+X,Later and separate tracks,"Explore build, stopped SIP, Standard/Pro, fact sheet fixes, Mira AI",9,No,Planned separately.,See blockers,n/a,Not started

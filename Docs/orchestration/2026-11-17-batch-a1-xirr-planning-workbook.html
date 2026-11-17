@@ -374,7 +374,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="stats">
   <div class="stat"><div class="n">1</div><div class="l">investigation (item 8)</div></div>
   <div class="stat"><div class="n">0</div><div class="l">database migrations planned</div></div>
-  <div class="stat"><div class="n">2 / 3</div><div class="l">questions answered (Q5 is open)</div></div>
+  <div class="stat"><div class="n">3 / 3</div><div class="l">questions answered or settled</div></div>
   <div class="stat"><div class="n">10</div><div class="l">tasks in the list (section 7)</div></div>
  </div>
  <div class="callout good"><b>Why Batch A was split (17 Nov).</b> The four items have different owners of the problem and different timelines: XIRR (this workbook), the rank denominators (A2), the category average and its Excel (A3), and load times (A4, an investigation report only for now). Each now has its own plan, tasks, risks and questions. The shared facts (the NAV fix, the review gate) are repeated where they matter.</div>
@@ -391,7 +391,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>F1</td><td>A held fund with <b>no NAV</b> has <code>current_value=None</code>. The dashboard XIRR leaves its value out of the final amount but keeps its purchases in the cash flows.</td><td>The portfolio XIRR would be <b>understated</b> without any warning. The fund page guards against this; the dashboard does not.</td><td>T8-4 &rarr; fix FX-8a</td></tr>
    <tr><td>F2</td><td>The per-fund job (<code>analytics/benchmark.py</code>) sums <code>Decimal(h.current_value)</code> over every holding. For a no-NAV holding that value is <code>None</code>.</td><td>It would raise an error instead of giving a number, which could blank the per-fund XIRR column.</td><td>T8-5 &rarr; fix FX-8b</td></tr>
    <tr><td>F3</td><td>The headline XIRR tile is computed live; the per-fund XIRR in the table comes from a <b>stored</b> analytics result. The final cash flow is dated <code>date.today()</code> on the server, not the NAV date.</td><td>Two figures on one page can be computed at different times, and a weekend or holiday NAV is dated as if it were today.</td><td>T8-6, T8-7 &rarr; fixes FX-8c, FX-8d</td></tr>
-   <tr><td>F8</td><td>The price job runs at 06:00 and the analytics recompute at 06:30. The stored XIRR is built from the 06:00 prices and stays until the next 06:30 run or an import. <b>Update 16 Nov:</b> the 10:30 and 14:00 runs refresh held funds only and do not trigger a recompute. F8 stands with a smaller reach, because held funds now carry AMFI&rsquo;s newest price at 06:00.</td><td>A fund that only fills at 10:30 or 14:00 enters the stored figure the next morning (Q5).</td><td>T8-7 &rarr; FX-8d</td></tr>
+   <tr><td>F8</td><td>The price job runs at 06:00 and the analytics recompute at 06:30. The stored XIRR is built from the 06:00 prices and stays until the next 06:30 run or an import. <b>Update 16 Nov:</b> the 10:30 and 14:00 runs refresh held funds only and do not trigger a recompute. F8 stands with a smaller reach, because held funds now carry AMFI&rsquo;s newest price at 06:00.</td><td>A fund that only fills at 10:30 or 14:00 enters the stored figure the next morning; decided in Q5: no extra recompute run.</td><td>T8-7 &rarr; FX-8d</td></tr>
   </tbody>
  </table></div>
  <div class="callout info"><b>What the investigation ends in.</b> The root cause, then a <b>written fix proposal that you review</b>, then (only after you approve it) the fix and the proof. Nothing in the code changes before that approval. For a <b>bug</b> (a failing test shows it), the proposal says what is wrong, why, and exactly what would change. For a number that is <b>correct</b>, we write the evidence.</div>
@@ -414,7 +414,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <tbody>
    <tr><td class="k">The final amount</td><td>Held-fund values are fresher, so it mixes prices from different days less often. A fund missing from the AMFI file still keeps the old refresh and can still have no value (F1, F2).</td><td>FX-8a still gives every held fund a value.</td></tr>
    <tr><td class="k">The date of the final flow</td><td>Untouched by the fix: still the server&rsquo;s today, not the price date (F3).</td><td>FX-8c dates it with the price date; this matters on weekends and holidays whatever the job does.</td></tr>
-   <tr><td class="k">Stored per-fund figure</td><td>Built at 06:30 from the 06:00 prices. The later runs do not feed it (F8).</td><td>Q5 (open). Until you decide, the plan assumes no change.</td></tr>
+   <tr><td class="k">Stored per-fund figure</td><td>Built at 06:30 from the 06:00 prices. The later runs do not feed it (F8).</td><td>Decided (Q5, 17 Nov): rebuilt together with the rank and the average, in one pass, during staging; no extra run after the later price runs.</td></tr>
   </tbody>
  </table></div>
  <h3 class="sub">The rule for evidence and for timing</h3>
@@ -636,7 +636,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 
 <section id="questions">
  <h2>9. Questions</h2>
- <p class="lead">Three questions: two answered on 13 Nov (locked) and one new, Q5, about the stored result. Below: the defaults I will use and the decision I will bring you with evidence.</p>
+ <p class="lead">Three questions, all settled: Q3 is resolved by the NAV fix, Q4 is deferred to the execution and deployment plans, and Q5 is answered. Below: the defaults I will use and the decision I will bring you with evidence.</p>
  <div class="bar"><span class="status" id="prog">0 of 3 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
  <div id="cards"></div>
  <h3 class="sub">Defaults I will use (tell me in chat if you want any changed)</h3>
@@ -791,10 +791,10 @@ try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 var Q=[
 {id:"Q3",item:"all",title:"What is the NAV bug?",type:"text",ask:"Tell me where it is described, or paste a few lines: what it affects and what the fix will change.",
- ctx:"Answered on 13 Nov. Update 16 Nov: the fix is in, and its cause differs from this description (held funds were skipped by a 3-day rule, not only late fund houses). Section 2 says what it means for the XIRR. Your answer stays as given.",
+ ctx:"Answered on 13 Nov and <b>resolved by the NAV fix</b> (landed 16 Nov; its cause differs from this description: held funds were skipped by a 3-day rule, not only late fund houses). Section 2 says what it means for the XIRR. Your answer stays as given.",
  ph:"..."},
 {id:"Q4",item:"all",title:"When do stakeholders need this, and in what order?",type:"text",ask:"Tell me the date and which of the four matters most.",
- ctx:"Answered on 13 Nov: your default. The order of work follows it. The four items are now four plans: A1 to A4.",
+ ctx:"<b>Deferred on 17 Nov:</b> the execution plan and the deployment plan, to be written later, will settle the dates and the order, so nothing here waits on this question. The four items are now four plans: A1 to A4.",
  ph:"..."},
 {id:"Q5",item:"8",title:"Should the stored XIRR be recomputed after a later price run?",ask:"Pick one.",
  ctx:"New on 16 Nov. The stored per-fund XIRR is built once, at 06:30. The 10:30 and 14:00 price runs do not rebuild it (read in code). The same question applies to the rank and the category average, which share the stored-result job (A2, A3).",
@@ -803,12 +803,13 @@ var Q=[
  {k:"B",l:"Yes, one recompute after the 14:00 run, only when that run filled something",d:"Good: stored figures catch up the same day. Bad: one more job to build and watch; I have not measured how long a recompute takes."},
  {k:"C",l:"Yes, after every price run",d:"Good: always current. Bad: three recomputes a day and more load on the server."}],
  why:"The log is free and gives the answer with data. If retries fill funds often, we add B. This is the question for your manager.",
- commit:"<b>If you pick A:</b> no build, and the evidence adds a one-line check of the retry results. <b>If B or C:</b> a small job change is added to FX-8d and its test."}
+ commit:"<b>Recorded 17 Nov: A.</b> No build: no extra recompute job; the stored figures are rebuilt together, in one pass, during staging. The evidence adds a one-line check of the retry results. <b>If B or C had been chosen:</b> a small job change would have been added to FX-8d and its test."}
 ];
 
 var PRE={
  Q3:{t:"Okay, so basically, the nav bug is that for a few AMCs, like I think in Westco, I'm not sure, but a few AMCs, they send out or they disclose their nav a little later in the day, right? So our nav job runs at 6 a.m. in the morning, around 6 a.m. in the morning. So some of the AMCs, they release their nav later in the day, let's say at 10, 11, or maybe even later. So because of that, we get partial data, and most of our dashboards have warnings called partial nav, and it basically takes a 2 day back nav from 2 days back. So we were thinking of adding another small job that picks up the nav maybe somewhere later in the day. So that is basically the nav bug and how we were planning on fixing it."},
- Q4:{t:"your default"}
+ Q4:{t:"Deferred (17 Nov): the execution plan and the deployment plan will settle the dates and the order."},
+ Q5:{k:"A",n:"Updated 17 Nov, in your words: it will be recomputed at the same time, during staging. My reading: no extra recompute job after the 10:30 and 14:00 price runs; the stored XIRR, rank and average are rebuilt together in one pass, as in the staging deploy&rsquo;s one-time recompute and the existing daily run. Tell me if you meant something else."}
 };
 var LOCK={};
 Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});

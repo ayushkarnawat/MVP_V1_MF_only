@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trending Topics to Features</title>
+<style>
+:root{--bg:#fafaf7;--fg:#1d1d1b;--mute:#66665f;--line:#dcdcd2;--card:#fff;--acc:#1f5f4a;--warn:#9a5b00;--bad:#9b2c2c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#151614;--fg:#ecece6;--mute:#a2a29a;--line:#34352f;--card:#1d1e1b;--acc:#6fcaa8;--warn:#e0a84a;--bad:#e58a8a}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,Segoe UI,sans-serif}
+main{max-width:1040px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.7rem;margin:0 0 4px}h2{font-size:1.25rem;margin:36px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+h3{font-size:1.02rem;margin:18px 0 4px}
+p,li{max-width:80ch}.mute{color:var(--mute)}
+.box{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0}
+.box.warn{border-left:4px solid var(--warn)}.box.ok{border-left:4px solid var(--acc)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;background:var(--card)}
+th,td{border:1px solid var(--line);padding:7px 9px;vertical-align:top;text-align:left}
+th{font-size:.8rem;text-transform:uppercase;letter-spacing:.03em;color:var(--mute)}
+.scroll{overflow-x:auto}
+.tag{display:inline-block;font-size:.72rem;border:1px solid var(--line);border-radius:10px;padding:0 7px;margin-right:3px;color:var(--mute)}
+.t-hi{color:var(--acc);border-color:var(--acc)}.t-flag{color:var(--warn);border-color:var(--warn)}
+a{color:var(--acc)}
+.src{font-size:.82rem}
+</style>
+</head>
+<body>
+<main>
+<h1>Trending topics to Unifolio feature candidates</h1>
+<p class="mute">Research run of 16 Nov 2026. Research only: nothing built, committed or pushed. Four parallel research passes (investor pain points, finfluencer topics, competitor landscape, regulatory and tax triggers), merged and checked against <code>DEFERRED_FEATURES.md</code>.</p>
+
+<h2>1. Read this first: what this is and is not</h2>
+<div class="box warn">
+<p><b>Reddit, Instagram and X could not be read.</b> Reddit was blocked on every route (page fetch, search, built-in browser). Instagram and X sit behind logins. So there is <b>no raw social-media data here</b>. What you have is what Indian finance media, AMCs, brokers, forums such as Freefincal, Value Research and ValuePickr, and a few indexed posts say investors ask about. That is supply-side coverage, not measured demand.</p>
+<p>No per-video view counts for 2026 could be verified. "Rank" below is my judgment of how often a topic appears across independent sources, not a measured share of content. Nearly every regulatory item comes from secondary press, because no SEBI, AMFI or CBDT document could be opened. <b>Verify each against the primary circular before building.</b></p>
+<p>A real demand check still needs a person to read r/IndiaInvestments, r/IndianMutualFunds and r/personalfinanceindia by hand, or a logged-in browser pass (section 8).</p>
+</div>
+
+<h2>2. Ranked feature candidates</h2>
+<p>Ranking logic: how many of the four lenses back the topic (P pain points, F finfluencer talk, C competitor gap, R regulatory or seasonal trigger), then how well it fits data Unifolio already holds. "Status" is from the parts of <code>DEFERRED_FEATURES.md</code> I read; I did not re-read the PRDs or the code, so items marked "check" need a look before you rely on them.</p>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Trend</th><th>Lenses</th><th>Feature candidate</th><th>Unifolio status</th><th>Watch-outs</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><b>Too many funds and hidden overlap.</b> Investors hold 8-15 funds that own the same stocks. SEBI's Feb 2026 circular covers overlap only <i>within one AMC</i>.</td><td>P strong, F #6, C (paywalled at Value Research, Tickertape Pro), R</td><td>Cross-AMC, household-wide fund and stock overlap matrix, an "effective number of funds" figure, and what consolidating would change.</td><td>Planned, <b>data-gated</b> (needs fund holdings / look-through). Deferred as "stock-level fund overlap".</td><td>Overlap is a fact about holdings, so it is advice-safe. Sources disagree on how many funds is "too many" (3-6, 4-5 or 13-15): do not hard-code a number.</td></tr>
+<tr><td>2</td><td><b>Capital gains, the ₹1.25 lakh LTCG limit, harvesting, ITR schedule.</b> Seasonal: March window and Jul-Aug ITR season.</td><td>P strong, F, C (mProfit from about ₹18,000/yr; Kuvera historically paid), R</td><td>Gains report per PAN with remaining-exemption meter, loss carry-forward ledger, ITR schedule export. Harvest-room calculator that shows numbers only.</td><td>Deferred (#20), blocked on full-history statements.</td><td>Rates and section numbers moved with the Income-tax Act 2025 and sources conflict (10% vs 12.5%). Needs a tax reviewer. "Suggest lots to sell" reads as advice.</td></tr>
+<tr><td>3</td><td><b>Direct vs regular: commission leak and the cost of switching.</b> Peak in July 2026 (Zerodha vs Groww debate). SEBI made direct the default on AMC platforms from 1 Nov 2026 (announced 28 Oct).</td><td>P strong, F #3, C, R</td><td>Per-folio switch planner: tax triggered now, exit load, annual saving, breakeven year, split across financial years to stay under ₹1.25 lakh. A "plan type" badge per folio.</td><td>Direct-vs-regular and Distributor Comparison exist. This extends them. The ₹ total of TER savings is already a deferred item.</td><td>Use the user's actual holding history, not the "crores lost" framing. Say "this is what a switch triggers", never "switch". The 1 Nov default has no circular number found.</td></tr>
+<tr><td>4</td><td><b>SIP anxiety:</b> "why is my SIP negative", "should I stop". Record SIP inflows alongside very high stoppage ratios.</td><td>P strong, F #1, R</td><td>SIP health view (active, paused, ended, last instalment) and an SIP reality card: SIP XIRR vs FD vs Nifty on the same cash flows.</td><td>Check (a SIP view exists on the Dashboard; unsure of depth).</td><td>Stoppage figures conflict across sources (75-81%, 115.7%, "79 per 100"). The ratio compares flows, not abandonment. Do not quote one number.</td></tr>
+<tr><td>5</td><td><b>"Is my fund lagging?"</b> and when to exit. Even top funds lag 30-50% of the time.</td><td>P strong, F #5</td><td>Per-holding lag band: rolling excess return vs benchmark and category, labelled "normal range" or "unusual".</td><td>Scorer and benchmark comparison are built. Extension of existing work.</td><td>Experts disagree on how long to tolerate lag. Show the range, not a sell flag.</td></tr>
+<tr><td>6</td><td><b>XIRR vs CAGR confusion.</b> Every AMC publishes an explainer, which suggests recurring confusion. Trackers that see only their own orders show wrong XIRR.</td><td>P (explainers strong, complaints weak), C whitespace</td><td>"Why this number" drawer listing the cash flows behind each XIRR, a toggle between absolute, CAGR and XIRR, and a warning under one year.</td><td>Check. Cheap, and plays to your accuracy focus.</td><td>The whitespace claim is inferred, not a documented user request.</td></tr>
+<tr><td>7</td><td><b>Fund-manager changes.</b> "Should I exit when the manager leaves?" HDFC Flexi Cap is the live case.</td><td>P medium</td><td>Manager-change alert on held funds with before/after style drift.</td><td><b>Strong fit:</b> A04 already builds fund-manager data.</td><td>Depends on the factsheet access gaps in Priority 1.</td></tr>
+<tr><td>8</td><td><b>Allocation drift with gold and silver.</b> Metals rush and rebalancing FOMO.</td><td>P medium, F #4, R</td><td>Target vs actual allocation (equity, debt, gold, silver) across the household, plus a "premium to NAV" badge and a flag when an AMC pauses fresh subscriptions to a held fund.</td><td>Check. Allocation is shown; drift against a target may not be.</td><td>Premium-to-NAV data was not verified in any source.</td></tr>
+<tr><td>9</td><td><b>Retirement corpus and SWP.</b> "Is ₹5 crore enough?", 4% rule, SWP sustainability.</td><td>F #2 and #12, P medium</td><td>Readiness and SWP simulator on the household's real holdings, with a sequence-of-returns stress using historical NAVs.</td><td>Six life goals shipped on <code>ui-round-2</code>. Extension.</td><td>Closest to advice. Same compliance gate as the scenario simulator.</td></tr>
+<tr><td>10</td><td><b>Tracking friction and data freshness.</b> Missing folios after contact-detail mismatches; imports lag; RBI targets Account Aggregator interoperability and bank deposits in CAS by 31 Dec 2026.</td><td>P medium, R</td><td>Reconcile-on-import with a clear "folio missing or mismatch" diagnostic, a "last statement imported" indicator and a re-import reminder.</td><td>Import review exists. A diagnostic and an AA roadmap are new.</td><td>Strategic. Whether AMFI's 2025 block on MFCentral sharing data with third-party apps still holds is unconfirmed.</td></tr>
+<tr><td>11</td><td><b>Crash coaching.</b> "Don't panic" content peaked in the Sep 2026 rout (Nifty about -6% in September, per press).</td><td>F #7, R</td><td>Drawdown context card when the portfolio is down: category history and units accumulated by SIPs during the fall.</td><td>Builds on the scenario simulator.</td><td>Facts only. The market-figure sources conflict on causes and numbers.</td></tr>
+<tr><td>12</td><td><b>Scheme-change notifier.</b> Solution-oriented funds discontinued, categories reset (Feb 2026), merges and renames.</td><td>R</td><td>Alert on held funds that are merged, recategorised or renamed.</td><td>Not built (check).</td><td>Compliance dates for existing schemes may have passed.</td></tr>
+</tbody></table></div>
+
+<h3>Lower priority (thin or off-scope evidence)</h3>
+<ul>
+<li><b>Cost drag in ₹:</b> per fund and per household, plus a TER-change alert. TER restructuring took effect 1 Apr 2026, but Value Research says much of the "cut" is reclassification.</li>
+<li><b>Debt fund vs FD after-tax comparison:</b> frequent Value Research topic; slab-rate rule since 2023.</li>
+<li><b>SIF holdings:</b> support them in CAS parsing and tag them. Evidence for retail demand is weak; AUM figures conflict (₹27k, ₹38k and ₹42k crore).</li>
+<li><b>Checklists from CAS data:</b> nominee status, registered email and mobile match, PAN-Aadhaar and KYC, folio-lock status, dormant-folio prompt (MITRA). Low build cost, informational only.</li>
+<li><b>Days-to-liquidate badge</b> on small and mid-cap holdings from AMFI stress tests.</li>
+<li><b>NRI mode, insurance gap, emergency-fund tag:</b> off the MF-only scope or evidence is weak.</li>
+</ul>
+
+<h2>3. Whitespace: nothing found offering it</h2>
+<p>The competitor pass found no product marketing these. That is an absence of evidence, not proof, and demand for each is unvalidated.</p>
+<ul>
+<li>Scheduled WhatsApp or email portfolio digests (only on-demand AMC bots found).</li>
+<li>A read-only CA or advisor sharing link for retail users (mProfit targets CA firms but describes no sharing feature). Your Head of Family work is adjacent.</li>
+<li>Family-wide gain harvesting that includes external folios.</li>
+<li>An XIRR audit trail showing which transactions feed the number.</li>
+<li>NRI-aware tracking (NRE/NRO, FATCA flags).</li>
+<li>A verifiable privacy story for CAS parsing. Arthavi and NaviPlan claim local processing; nothing is independently audited.</li>
+</ul>
+<p><b>New 2026 competitors to look at directly:</b> Arthavi, FundSageAI and NaviPlan (Freefincal). All three combine CAS tracking, overlap, tax reports and AI chat, per their own pages. Paywalled elsewhere: overlap (Value Research, Tickertape Pro), family ITR-ready gains (mProfit).</p>
+<p><b>Where Unifolio already differs:</b> scorer, category ranking, scenario simulator, direct-vs-regular comparison and fund-manager data. No competitor documented at the same depth, but again, absence of evidence.</p>
+
+<h2>4. Seasonal calendar (recurring triggers)</h2>
+<div class="scroll"><table>
+<thead><tr><th>Month</th><th>Trigger</th><th>Feature hook</th></tr></thead>
+<tbody>
+<tr><td>Jan-Feb</td><td>Calendar-year recap; Union Budget on 1 Feb</td><td>Year-in-review card; tax-change explainer</td></tr>
+<tr><td>Mar</td><td>LTCG and loss harvesting window to 31 Mar; last advance-tax date 15 Mar</td><td>Harvest-room meter (peak traffic for tax content)</td></tr>
+<tr><td>Apr</td><td>New financial year; ₹1.25 lakh exemption resets; many SEBI rules start 1 Apr</td><td>Tracker restarts; "what changed" note</td></tr>
+<tr><td>Jul-Aug</td><td>ITR season (31 Jul for non-audit; reported move to 31 Aug for ITR-3/4, unconfirmed)</td><td>Capital-gains schedule export, documents checklist</td></tr>
+<tr><td>Sep, Dec</td><td>Advance tax 15 Sep and 15 Dec; 31 Dec regulatory targets</td><td>Reminders; AA / CAS data update</td></tr>
+<tr><td>Monthly</td><td>AMFI data in the first week; SIP numbers</td><td>SIP health, flows context</td></tr>
+</tbody></table></div>
+
+<h2>5. Compliance guardrails</h2>
+<ul>
+<li>Unifolio is not an RIA. Every feature above should show facts about the user's own portfolio and never say "switch", "sell" or "buy". The scenario simulator's existing release gates (markets review, SEBI disclaimer) are the model.</li>
+<li>SEBI rules for finfluencers (registration number on posts from 1 May 2026; regulated entities barred from tying up with unregistered influencers) matter if Unifolio ever works with creators for acquisition. Share-card features that go viral should avoid performance claims.</li>
+<li>Educational content from unregistered people may not include buy, sell or hold calls or return claims. A "claim checker" ("test this viral claim on your portfolio") is shareable but needs a compliance read before building.</li>
+</ul>
+
+<h2>6. Conflicts and unverified claims</h2>
+<ul>
+<li>SIP stoppage ratio: 75-81%, 115.7% for October, and "79 SIPs ended per 100 registered" for September. Different definitions.</li>
+<li>SIF AUM: ₹27,260 cr, ₹38k cr and ₹42,670 cr for end-Sept or end-Oct.</li>
+<li>LTCG rate on equity funds reported as both 10% and 12.5%. Budget 2026 coverage says 12.5% with ₹1.25 lakh exemption.</li>
+<li>Nominee rule "from 1 Sep 2026 for new folios": one blog only.</li>
+<li>ITR-3/4 due date moved to 31 Aug: reports conflict, no official notification found.</li>
+<li>SEBI "no LTCG on regular-to-direct switch" proposal: one blog (Nov 2026).</li>
+<li>Direct plan default from 1 Nov 2026: widely reported, no circular number found.</li>
+<li>mProfit pricing, Kuvera free vs paid, ET Money paywall and INDmoney overlap: not verified on official pages.</li>
+</ul>
+
+<h2>7. Sources by lens</h2>
+<p class="src"><b>Investor questions:</b>
+<a href="https://www.valueresearchonline.com/stories/228300/many-mutual-funds-same-amc-portfolio-overlap/">Value Research on overlap</a> ·
+<a href="https://freefincal.com/surcharge-and-pre-tax-corpus-the-two-illusions-keeping-you-in-regular-mutual-funds/">Freefincal on switching</a> ·
+<a href="https://www.valueresearchonline.com/stories/228539/switch-regular-direct-mutual-fund-tax-cost-breakeven/">Value Research switch breakeven</a> ·
+<a href="https://www.businesstoday.in/personal-finance/tax/story/itr-filing-2026-tax-free-ltcg-up-to-rs1-25-lakh-do-you-still-need-to-report-it-in-your-itr-540991-2026-07-04">Business Today ITR and LTCG</a> ·
+<a href="https://www.indmoney.com/blog/mutual-funds/sip-stoppage-ratio-explained">INDmoney SIP stoppage</a> ·
+<a href="https://www.sebi.gov.in/sebi_data/commondocs/jan-2026/Investor%20Survey%202025%20Main%20Report.pdf">SEBI Investor Survey 2025</a></p>
+<p class="src"><b>Finfluencer topics:</b>
+<a href="https://blogs.cfainstitute.org/marketintegrity/2026/08/24/indias-finfluencer-challenge-from-influence-to-accountability/">CFA Institute finfluencer study</a> ·
+<a href="https://www.businesstoday.in/mutual-funds/story/zerodha-vs-groww-debate-are-direct-mutual-funds-always-better-or-is-advice-worth-paying-for-542346-2026-07-10">Zerodha vs Groww debate</a> ·
+<a href="https://www.businesstoday.in/personal-finance/investment/story/golds-52-surge-vs-niftys-1-ankur-warikoo-decodes-267-gold-to-nifty-ratio-what-it-means-for-investors-500809-2025-11-04">Warikoo on gold to Nifty</a> ·
+<a href="https://www.capitalmind.in/podcasts/podcast-is-there-even-a-best-mutual-fund-to-invest-in-2026">Capitalmind podcast</a> ·
+<a href="https://www.businesstoday.in/bt-tv/market-today/video/are-too-many-mutual-funds-hurting-your-returns-the-hidden-cost-of-portfolio-overlap-explained-533583-2026-05-27">Business Today overlap video</a></p>
+<p class="src"><b>Competitors:</b>
+<a href="https://www.mprofit.in/investors">mProfit</a> ·
+<a href="https://www.indmoney.com/features/track-family-mutual-funds">INDmoney family tracking</a> ·
+<a href="https://tradingqna.com/t/zerodha-coin-is-minimalism-turning-into-neglect/193950">Zerodha Coin user thread</a> ·
+<a href="https://arthavi.com/">Arthavi</a> ·
+<a href="https://freefincal.com/naviplan-a-privacy-focused-multi-asset-tracker-and-goal-planner/">NaviPlan</a> ·
+<a href="https://www.fundsageai.com/blog/best-mutual-fund-portfolio-analyzer-india-2026">FundSageAI</a></p>
+<p class="src"><b>Regulatory and tax:</b>
+<a href="https://www.businesstoday.in/mutual-funds/story/bt-explainer-mutual-fund-direct-plans-to-become-default-on-amc-apps-from-november-1-what-investors-need-to-know-564461-2026-10-29">Direct plan default</a> ·
+<a href="https://www.angelone.in/news/mutual-funds/mf-rules-reset-sebi-cancels-solution-funds-launches-life-cycle-funds-and-tightens-thematic-rules">Feb 2026 category reset</a> ·
+<a href="https://www.businesstoday.in/markets/story/one-financial-dashboard-rbi-to-make-bank-demat-data-viewable-in-one-place-560149-2026-10-07">RBI Account Aggregator and CAS</a> ·
+<a href="https://www.valueresearchonline.com/stories/227233/sebis-ter-overhaul-what-mutual-fund-investors-must-know/">TER overhaul</a> ·
+<a href="https://www.medianama.com/2026/02/223-sebi-mandates-registration-number-on-social-media/">Finfluencer disclosure rule</a></p>
+
+<h2>8. Instagram spot check (added later, small sample)</h2>
+<div class="box warn">
+<p><b>Very thin evidence.</b> One read-only look at three hashtag grids (#mutualfunds, #sipinvestment, #personalfinanceindia) in a signed-in browser on 16 Nov 2026. The grids show thumbnails and on-image text only: no view counts, dates or captions, and the mix is algorithmic and personalised to that account. Treat this as colour, not ranking. Reddit was blocked in Chrome too, and X showed only its logged-out sign-in page, so neither was read.</p></div>
+<ul>
+<li><b>Beginner SIP content dominates.</b> On-image text included "My monthly ₹5,000 SIP", "Want to start SIP but don't know where to begin? (15 minutes)", "How to start?", "If I had to invest my first ₹10,000", "Financial mistakes in your 20s", "Mutual funds explained like you're 15", and a "Types of mutual funds" carousel. This matches the SIP and first-investment topics in the other lenses.</li>
+<li><b>Return-projection graphics.</b> One post showed a table of monthly SIPs across index, small-cap, mid-cap and gold funds ending in "5K monthly SIP grows to 3.73 Cr". This is a shareable format a tracker could offer as a calculator.</li>
+<li><b>Ranked best-fund tables.</b> One post listed top funds by category for July 2026 with 3- and 5-year returns. This format is closest to what SEBI's finfluencer rules restrict, so Unifolio should not copy it.</li>
+<li><b>Family framing.</b> "5 financial numbers every family should know" came from an AMFI-registered distributor account. It lines up with your household feature.</li>
+<li><b>Contrarian hooks.</b> "Stop buying mutual funds like this" and "But if I had to start all over again" are mistake-and-regret hooks, consistent with the regret and fear emotions noted in the finfluencer lens.</li>
+<li>Nothing in the sample covered overlap, capital-gains reporting or switching to direct plans. That could be the sample, or it could mean those topics live more on YouTube, X and forums than on Instagram. I can't tell which.</li>
+</ul>
+
+<h2>9. X spot check (small sample, 16 Nov 2026)</h2>
+<div class="box warn">
+<p><b>Thin evidence.</b> Read-only, in a signed-in browser, using two searches I could read: "mutual fund overlap india" and "regular to direct mutual fund tax switch". A third ("too many funds") loaded but my extraction returned nothing, so it is not counted. The overlap search returned only institutional posts (AMFI, ET Money, NDTV Profit, CNBC-TV18), and the switching search returned about five posts, several from 2023 and 2025. X engagement on these topics was low (tens to low thousands of views). Reddit stayed blocked, so there is still no Reddit evidence.</p></div>
+<ul>
+<li><b>Direct-plan default is live on X.</b> A 2 Nov post on the 1 Nov SEBI change, saying the expense-ratio gap is "mostly distributor commission", got about 4,000 views. This independently confirms the topic and the framing the other lenses found (commission, not fund quality). It does not confirm the circular, which I still haven't seen.</li>
+<li><b>"Why is there tax on a switch?" is a recurring confusion.</b> An AMFI-registered distributor explained on 9 Nov that a switch is a redemption plus a new purchase. A 2023 post asked for regular-to-direct switches to be tax-free. A 2025 thread on regular vs direct got about 1,600 views. This supports the switch-cost planner in section 2 (item 3), and shows distributors are already writing explainers on it.</li>
+<li><b>Institutional data posts get the reach.</b> CNBC-TV18's October AMFI-data post (equity inflow ₹32,994 cr vs ₹38,293 cr, small-cap inflow down to ₹6,408 cr from ₹9,039 cr) got about 25,700 views, far more than the creator and investor posts I saw. Monthly flow data is a cheap, reliable content trigger.</li>
+<li><b>Not found on X in this sample:</b> posts about portfolio overlap from individual investors, tracker complaints and XIRR confusion. The searches were few, so absence here proves nothing.</li>
+</ul>
+
+<h2>10. What would sharpen this</h2>
+<ul>
+<li><b>Logged-in browser pass</b> over Reddit, X and Instagram, read-only, to replace the supply-side evidence with real threads.</li>
+<li><b>YouTube channel pages sorted by popular</b> (or vidIQ / Social Blade top-video lists) for the top creators, to confirm what actually trends on their channels.</li>
+<li><b>Primary-source check</b> of the SEBI, AMFI and CBDT circulars behind the items in section 6.</li>
+<li><b>Your own data:</b> support tickets, onboarding drop-offs and staging QA questions would tell you more about demand than any of this.</li>
+</ul>
+</main>
+</body>
+</html>

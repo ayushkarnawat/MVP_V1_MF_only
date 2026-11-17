@@ -1,0 +1,9 @@
+﻿ID,Blocker,Owner,Group,Blocks,Status,Notes
+BL-1,Remaining search plan items to be solved,Manager,PENDING ON MANAGER (1 of 3),"K, G-7",Waiting,"Open questions Q4, Q7, Q8, Q19 and others in the search plan."
+BL-2,Review of the search plan returned to Aditi,Manager,PENDING ON MANAGER (2 of 3),K,Waiting,After BL-1.
+BL-3,Mira AI technical discussion,Manager + Aditi,PENDING ON MANAGER (3 of 3),"X-5, K-8 (Ask Mira row)",Waiting,Technical discussion still to be held.
+BL-4,NAV backend bug fix,Manager,Earlier dependency,"A, D, E, I",In progress,Execution of NAV-dependent batches waits for this. Branch from the code after the fix.
+BL-5,Fact sheet fixes (manual and automatic),Manager,Earlier dependency,"E-7, L-8",Waiting,We research and plan; the manager builds.
+BL-6,Head of Family email screenshots,Aditi,Aditi's side,"B-10, B-11, B-12",Open,Not received in the original message.
+BL-7,Aditi's decisions (see Decisions),Aditi,Aditi's side,several,Open,"Date policy, folio numbers, colours, Advisorkhoj, video, PDF approach."
+BL-8,Legal view on scores and rankings for Explore,Aditi + external,Later,X-1,Open,Needs a qualified person.

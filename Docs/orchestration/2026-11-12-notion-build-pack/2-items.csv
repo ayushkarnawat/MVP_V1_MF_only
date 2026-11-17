@@ -1,0 +1,23 @@
+﻿No,Item,Batch,Priority,Status,NAV gated,Summary
+1,Event tracking and Google Analytics (website and web app),G,P0 (top priority),Next up,No (foundation),"Use GA4 to learn where users come from, where they are, where they click, time per section, sections skipped. Website is a separate repo."
+2,Wrong-person warning on Add Data,B,P2,Not started,No,"When the uploaded file does not contain the selected person, highlight that data will be imported for the other person (e.g. Lalchand, not Prateek)."
+3,Onboarding 'How do you usually invest?' layout,B,P2,Not started,No,"Declutter the right panel with spacing, grouping and layout only. No copy change, same options. Needs a UI mockup."
+4,Login OTP timer,B,P1,Not started,No,Different email or phone gets an immediate OTP. Same one within a minute shows a countdown timer instead of 'try after N seconds'. Check what exists first. Write the cybersecurity rationale for stakeholders.
+5,CAMS tutorial video and pop-up,H,P2,Not started,No,"Hyperlink on the 'Request from CAMS' screen opens a pop-up with a creative tutorial video: CAMS site, fill details, download from inbox, upload in the app."
+6,'All set' screen: spinner to tick,B,P3,Not started,No,"Spinner rotates 2 to 3 seconds, becomes a tick with a small size pop, text changes to invite the user to go to the dashboard."
+7,"Slow Mutual Funds Overview load, and all other page load times",A,P1,Waiting on manager,Yes,Investigate why Overview is very slow on some laptops. Audit load times of all pages for a portfolio of about 40 lakh.
+8,XIRR formula check,A,P1,Waiting on manager,Yes,Verify the XIRR formula and what it shows.
+9,Category average comparison: explain and document,"A, E",P1,Waiting on manager,Yes,"Explain calculation and the three values, legend and 'i' icon in the app, detailed Excel for stakeholders. Check calculation correctness first."
+10,Performance ranking check ('7 of 33'),A,P1,Waiting on manager,Yes,"Check the 'out of' values against Advisorkhoj. Bring ours to top accuracy, or produce concrete evidence if Advisorkhoj is wrong."
+11,Date consistency across the app,E,P1,Not started,After A,"Make dates consistent, for example show only the month. Covers overlap, PE/PB, category average, ranking, daily updates, NAV, XIRR (portfolio and benchmark) and others."
+12,Section index within tabs,F,P2,Not started,No,"Horizontal expansion of the tab into its sections with jump links, or a better idea. Brainstorm and plan."
+13,Benchmark line on Home graph,D,P1,Waiting on manager,Yes,Bring back the Nifty comparison line from the UI redesign planning. Dropdown to choose a benchmark; each benchmark gets its own line colour.
+14,Same graph on Mutual Funds Overview,D,P2,Waiting on manager,Yes,Copy the Home graph to the MF Overview. Plan placement and mockups.
+15,'What moved today' pop-up,D,P2,Waiting on manager,Yes,"'View by day's change' becomes clickable and opens a pop-up with everything that changed today, not just the top four."
+16,PE/PB valuation: one 'i' icon instead of pills,E,P2,Not started,No,Remove NSE/BSE/factsheet pills; one 'i' icon next to the fund name explains the source and method.
+17,Assorted fixes (17a to 17d),C,P1,Not started,17a root cause after A,"17a duplicate categories (Scheme vs Schemes), 17b remove 'Assumed main manager' line, 17c full folio numbers, 17d new member missing in the dropdown until hard refresh."
+18,Head of Family email templates and copy,B,P2,Blocked (needs screenshots),No,Change the email templates and copy. The screenshots were not received; Aditi must re-attach them.
+19,Common PDF export,I,P2,Not started,After A,"Shared export button, branded cover page, user's name, family or single-member selector."
+20,Simplified Explore document,J,P2,Done,No,"Non-technical copy of the Explore decisions document, with mockups. Delivered; Aditi is sending it to the stakeholder."
+21,Search bars on every page (the search plan),K,P1,Waiting on manager,No,"Page-wise search bars, 21 tasks in 4 steps. Needs the manager to finish and return the plan."
+22,Portfolio disclosures AMC audit (NEW),L,P1,Not started,No,"Same per-AMC checks done earlier for fact sheets, now for the portfolio disclosures job."

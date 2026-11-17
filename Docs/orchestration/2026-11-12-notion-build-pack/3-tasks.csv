@@ -1,0 +1,89 @@
+﻿Task ID,Batch,Item,Task,Detail,Lane,Owner,Status,Depends on,Size,Deliverable
+P0-1,P0,all,Group the items into batches and order them,"Group by dependency: correctness first, then UI, then explanation, then navigation.",Planning,Aditi + Claude,Done,,S,Batch strategy
+P0-2,P0,"19, 20, 21","Add PDF export, Explore document and search plan to the batches",,Planning,Aditi + Claude,Done,P0-1,S,Updated batch table
+P0-3,P0,20,Build the simplified Explore document,See batch J.,Docs,Aditi + Claude,Done,,M,Downloadable HTML
+P0-4,P0,all,Write the planning handoff for the next account,Full context file and resume prompt.,Docs,Aditi + Claude,Done,P0-2,S,Handoff .md
+P0-5,P0,all,Write one plan per batch,"One short planning document per batch, written only when Aditi picks that batch.",Planning,Aditi + Claude,Not started,,L,Batch plans
+P0-6,P0,all,Collect Aditi's open decisions,See the Decisions database.,Planning,Aditi,Not started,,S,Decided list
+P0-7,P0,all,Build this Notion page from this pack,Manager's Claude creates the page from this file.,Docs,Manager,In progress,,M,Notion page
+G-1,G,1,Draft the GA4 tracking plan (NEXT),"Aditi gives instructions. Plan covers both repos, foundation versus custom events, consent, privacy, user_tier.",Planning,Aditi + Claude,Next up,,M,Tracking plan document
+G-2,G,1,Locate the website repo and audit its analytics and consent state (read-only),"Needs the repo location from Aditi. Check existing tags, cookie banner, hosting.",Research,Aditi + Claude,Not started,G-1,S,Website audit note
+G-3,G,1,Audit analytics and consent in the web app (read-only),Is there any analytics code? How do the existing append-only consent records (migrations 0021/0022) and sign-up consent interact with analytics? Is there a cookie banner?,Research,Aditi + Claude,Not started,G-1,S,Web app audit note
+G-4,G,1,Design cross-domain measurement and the event naming scheme,"One GA4 property or two? Link website to app sessions. Shared event names, parameters and user_tier property. Privacy rule: no PAN, folio, name, email or amounts in any event.",Planning,Aditi + Claude,Not started,"G-2, G-3",M,Event schema
+G-5,G,1,Build the foundation,"GA4 property, page views, traffic source and UTM capture, consent handling, in both repos.",Frontend,Aditi + Claude (worker TBD),Not started,G-4,M,Foundation live on staging
+G-6,G,1,"Custom events: clicks, scroll and section views, time per section, skipped sections","Attach to UI elements. Wait until batches D, E, F and K settle so the elements do not change again.",Frontend,Aditi + Claude,Not started,"D, E, F, K, G-5",L,Custom events
+G-7,G,"1, 21",Search events,"Query, result type clicked, zero-result searches. After search exists.",Frontend,Aditi + Claude,Not started,"K step 4, G-6",S,Search events
+G-8,G,1,GA4 reports that answer the five questions,"Where from, where now, where they click, time per section, skipped sections.",Research,Aditi + Claude,Not started,G-6,M,GA4 explorations or dashboard
+B-1,B,2,Design the wrong-person warning copy and look,"Highlighted note in the pop-up: this file is for [name]; data will be imported for [name], not [selected person]. Keep both buttons. Mockup.",Frontend,Aditi + Claude,Not started,,S,Copy and mockup
+B-2,B,2,Build and test the warning,"Show the other person's name from the file. Test with a mismatch, and with several people in one file.",Frontend,Aditi + Claude,Not started,B-1,S,Change on staging
+B-3,B,4,Check what the OTP resend behaviour is today (read-only),Frontend countdown and the backend limit for email and phone. Does a different identifier already get an OTP immediately? Report.,Research,Aditi + Claude,Not started,,S,Behaviour report
+B-4,B,4,Design the new behaviour,"Different identifier: immediate OTP. Same identifier within the minute: countdown timer like on the OTP screen, no 'try after N seconds' pop-up. Keep a server-side limit.",Planning,Aditi + Claude,Not started,B-3,S,Design note
+B-5,B,4,Build and test the OTP change,Frontend timer plus backend per-identifier rules. Confirm abuse protections still hold.,Frontend,Aditi + Claude,Not started,B-4,M,Change on staging
+B-6,B,4,Write the cybersecurity explanation for stakeholders,"Why cooldowns exist: abuse and cost of SMS and email, enumeration, brute force. Why a different identifier can be immediate only if other limits still apply. Must describe what the code really does after B-3.",Docs,Aditi + Claude,Not started,B-3,M,Stakeholder document
+B-7,B,6,'All set' tick animation,"Design timing (2 to 3 seconds), tick pop (grow a little, settle to the other ticks' size), new creative text; build; respect reduced-motion setting.",Frontend,Aditi + Claude,Not started,,S,Change on staging
+B-8,B,3,Onboarding step 4 layout mockups,"2 or 3 options for the right panel. No copy change, same options and chips. Improve spacing, grouping and placement.",Design,Aditi + Claude,Not started,,M,UI mockups
+B-9,B,3,Build the chosen onboarding layout,Leave room for a future Standard or Pro step.,Frontend,Aditi + Claude,Not started,B-8,M,Change on staging
+B-10,B,18,Get the Head of Family email screenshots,Aditi re-attaches them; they were not received.,Planning,Aditi,Blocked (needs screenshots),,S,Screenshots
+B-11,B,18,Review current templates and rewrite copy,,Docs,Aditi + Claude,Not started,B-10,S,New copy
+B-12,B,18,Update templates and test rendering,,Backend,Aditi + Claude,Not started,B-11,S,Templates updated
+C-1,C,17a,Normalise duplicate category names,Merge 'Equity Scheme - Flexi Cap Fund' and 'Equity Schemes - Flexi Cap Fund' (also Large Cap and any other). Fix at the source or in the allocation display.,Backend,Aditi + Claude,Not started,A-8,M,Fix and test
+C-2,C,17b,Remove the 'Assumed main manager' line,"Keep the assumption logic, remove only the line.",Frontend,Aditi + Claude,Not started,,S,Change on staging
+C-3,C,17c,Show full folio numbers,Confirm the decision first. Find every place that masks folios.,Frontend,Aditi + Claude,Not started,Decision: full folio,S,Change on staging
+C-4,C,17d,New household member appears in the dropdown without a hard refresh,Find the cached member list and refresh it after an import that creates a member.,Frontend,Aditi + Claude,Not started,,M,Fix and test
+L-1,L,22,Read the current portfolio disclosures job and the earlier AMC investigations,"Job: refresh_portfolio_disclosures_daily and its per-AMC resolvers. Earlier notes under Docs/analytics/investigations (spike consolidated, reconciliation passes, sub-project 2 capture log). Also the factsheet audit (a04 documents) as the model for this one.",Research,Aditi + Claude,Not started,,M,Summary of what exists
+L-2,L,22,List every AMC and how its disclosure is obtained today,"Automatic, manual, blocked, none. One row per AMC.",Research,Aditi + Claude,Not started,L-1,M,AMC list
+L-3,L,22,Run the real resolver code per AMC from the Indian-IP staging host (read-only),"A plain request is not enough: the earlier factsheet lesson was to re-run the real resolver. Record HTTP result, what was found, month of latest disclosure.",Research,Aditi + Claude,Not started,L-2,L,Per-AMC test results
+L-4,L,22,Classify each AMC,"Works automatically / blocked (403, 406 etc.) / needs a hand import / no disclosure published.",Research,Aditi + Claude,Not started,L-3,M,Classification table
+L-5,L,22,Check freshness and completeness,Latest disclosure month versus the month that should be available; funds covered versus live funds.,Research,Aditi + Claude,Not started,L-3,M,Freshness table
+L-6,L,22,Check alerting,Does anything warn when a month is skipped? Same gap as the factsheet job.,Research,Aditi + Claude,Not started,L-1,S,Alerting gap note
+L-7,L,22,Write the AMC status document,Same format as the fact sheet access gaps document.,Docs,Aditi + Claude,Not started,"L-4, L-5, L-6",M,HTML document
+L-8,L,22,Options for the long-term fix and decisions,"Ask AMCs, hand import process, license vendor data. Aditi and manager decide. Coordinate with the manager's fact sheet work.",Planning,Aditi + Manager,Not started,L-7,M,Decision note
+A-1,A,8,Audit the XIRR formula,"Read the implementation; compare with a reference (spreadsheet XIRR) on synthetic and the 40 lakh test portfolio; check cash-flow signs, dates, opening balance, lifetime versus current, benchmark XIRR.",Research,Aditi + Claude,Waiting on manager,NAV fix,M,Audit note and test cases
+A-2,A,10,Audit how the 'out of n' rank denominator is computed,"Peer pool, plan, category, minimum history, eligibility. Compare with Advisorkhoj for a sample of funds across categories.",Research,Aditi + Claude,Waiting on manager,NAV fix,M,Comparison table
+A-3,A,10,Advisorkhoj terms of use and data collection,"Aditi checks the terms. If scraping is not allowed, compare manually for about 30 funds.",Research,Aditi + Claude,Waiting on manager,Decision: Advisorkhoj,M,Sample data
+A-4,A,10,Stakeholder evidence pack for rankings,"If ours is right: concrete evidence (definitions, peer lists, screenshots). If wrong: fix list.",Docs,Aditi + Claude,Waiting on manager,"A-2, A-3",M,Evidence document
+A-5,A,9,Check the category average calculation (correctness only),Recompute the three values independently.,Research,Aditi + Claude,Waiting on manager,NAV fix,M,Check note
+A-6,A,7,Investigate slow Mutual Funds Overview on some laptops,"Profile with throttled CPU on a 40 lakh portfolio; network waterfall, payload sizes, render cost.",Research,Aditi + Claude,Waiting on manager,NAV fix,M,Findings
+A-7,A,7,Measure load time of every other page on a 40 lakh portfolio,Table per page.,Research,Aditi + Claude,Waiting on manager,A-6,M,Load-time table
+A-8,A,17a,Find the root cause of the duplicate categories,Trace the 'Scheme' versus 'Schemes' names to their source; list all affected categories.,Research,Aditi + Claude,Waiting on manager,NAV fix,S,Root cause note
+A-9,A,"7, 8, 9, 10",Consolidate findings and scope the backend fixes,,Planning,Aditi + Claude,Waiting on manager,A-1 to A-8,M,Fix list
+D-1,D,13,Find out why the benchmark line is missing on Home,Read the UI redesign artifact and its planning; compare with the current Home code.,Research,Aditi + Claude,Waiting on manager,NAV fix,S,Report
+D-2,D,13,Benchmark colours and legend,Decide colours per benchmark and what happens with many; mockups.,Design,Aditi + Claude,Waiting on manager,Decision: colours,S,Mockups
+D-3,D,13,Build the benchmark overlay with dropdown on Home,,Frontend,Aditi + Claude,Waiting on manager,"D-1, D-2, NAV fix",L,Change on staging
+D-4,D,14,Plan and build the same graph on MF Overview,Placement and mockups first; reuse the component.,Frontend,Aditi + Claude,Waiting on manager,D-3,M,Change on staging
+D-5,D,15,'View by day's change' pop-up,"Design (all movers, sorting, empty state), then build.",Frontend,Aditi + Claude,Waiting on manager,NAV fix,M,Change on staging
+K-1,K,21,Manager finishes the remaining items in the search plan (PENDING ON MANAGER),"Open questions Q4, Q7, Q8, Q19 and anything else outstanding.",Planning,Manager,Waiting on manager,,M,Updated search plan
+K-2,K,21,Manager reviews the search plan and gives it back to Aditi (PENDING ON MANAGER),,Planning,Manager,Waiting on manager,K-1,S,Reviewed plan
+K-3,K,21,Aditi approves and decisions L39 and L46 are written into decisions.md,,Docs,Aditi + Claude,Not started,K-2,S,decisions.md updated
+K-4,K,21,Review the 12 draft one-line term definitions,,Content,Aditi,Not started,K-2,S,Approved terms
+K-5,K,21,Step 1: foundation,"Shared search box, household index endpoint, fixed-items list, slots, tests. Overview switches to it.",Frontend and backend,Aditi + Claude (Codex for the endpoint),Not started,K-3,M,Step 1 on staging
+K-6,K,21,Step 2: Mutual Funds tabs,"Transactions, Holdings, Performance, Overlap, Other Analytics, Allocation.",Frontend,Aditi + Claude,Not started,K-5,M,Step 2 on staging
+K-7,K,21,Step 3: fund pages and the rest,"Fund page slot, holdings dialog search, compare list filter, Home, Portfolio, Planning, History, Import history.",Frontend,Aditi + Claude,Not started,"K-6, F-1",M,Step 3 on staging
+K-8,K,21,Step 4: the smart parts,"Sections, terms, actions, smart filters, managers and sectors, recent funds, Mira row. Sections use the shared section list from F-1.",Frontend,Aditi + Claude,Not started,"K-7, F-1",L,Step 4 on staging
+K-9,K,21,Whole-release review (gate G4) and staging check,,Review,Aditi + Claude,Not started,K-8,M,Review report
+E-1,E,11,Decide the date policy,"Month only everywhere, or exact dates for some such as NAV?",Planning,Aditi,Not started,,S,Decision
+E-2,E,11,Inventory every date shown in the app,"Overlap, PE/PB, category average, ranking, daily updates, NAV, XIRR (portfolio and benchmark), others.",Research,Aditi + Claude,Not started,A,M,Date inventory
+E-3,E,11,Implement consistent date labels,,Frontend,Aditi + Claude,Not started,"E-1, E-2",M,Change on staging
+E-4,E,9,Design the 'how to read' legend and 'i' icon for category average,"What the three values mean, how to read them, how they are calculated.",Design,Aditi + Claude,Not started,A-5,M,Mockups and copy
+E-5,E,9,Build the legend and 'i' icon,,Frontend,Aditi + Claude,Not started,E-4,M,Change on staging
+E-6,E,9,Stakeholder Excel: detailed explanation for every category,As much detail as possible.,Docs,Aditi + Claude,Not started,A-5,L,Excel file
+E-7,E,16,Replace PE/PB pills with one 'i' icon,"Content: source (NSE, BSE, factsheet), method (harmonic mean or other). Source labels depend on the manager's fact sheet fixes.",Frontend,Aditi + Claude,Not started,X-4,M,Change on staging
+F-1,F,"12, 21",Define one list of sections per tab (shared with search),One registry used by the tab index and by search's 'page sections'; must be configuration so Standard or Pro can hide sections.,Planning,Aditi + Claude,Not started,,S,Section registry
+F-2,F,12,Brainstorm options with mockups,"Horizontal expansion as Aditi suggested, plus alternatives such as a sticky index or a side rail.",Design,Aditi + Claude,Not started,F-1,M,Mockups
+F-3,F,12,Build the chosen section index,Shares the page header slot with search and the PDF export button.,Frontend,Aditi + Claude,Not started,"F-2, D, E, K-6",L,Change on staging
+I-1,I,19,Brainstorm the export,"Which sections go in, family versus one member, cover page content, server-side or client-side generation.",Planning,Aditi + Claude,Not started,,M,Plan
+I-2,I,19,Design the Unifolio cover page and template,,Design,Aditi + Claude,Not started,I-1,M,Template mockup
+I-3,I,19,Build the export button and the selector in the shared header slot,,Frontend,Aditi + Claude,Not started,"I-2, F-3",M,Change on staging
+I-4,I,19,Build the PDF generation,,Backend or Frontend,Aditi + Claude,Not started,"I-1, A",L,Working export
+I-5,I,19,QA: numbers in the PDF match the screen,,Review,Aditi + Claude,Not started,I-4,M,QA report
+H-1,H,5,Decide the video style,"Pure AI-generated, or stylised motion graphics over a real screen capture. CAMS is a third-party site, so AI footage may show wrong screens.",Planning,Aditi,Not started,,S,Decision
+H-2,H,5,Write the script and storyboard,"CAMS site, fill details, download from inbox, return, upload.",Content,Aditi + Claude,Not started,H-1,M,Script and storyboard
+H-3,H,5,Add the hyperlink and pop-up on the 'Request from CAMS' screen,Opens a pop-up on the same screen.,Frontend,Aditi + Claude,Not started,,S,Change on staging
+H-4,H,5,Produce the video,Only after the CAMS screen is stable.,Content,Aditi,Not started,H-2,L,Video
+H-5,H,5,Re-check the video whenever the CAMS flow changes,,Content,Aditi,Not started,H-4,S,Check
+J-1,J,20,Simplified Explore document,Delivered as a download. Aditi is sending it to the stakeholder.,Docs,Aditi + Claude,Done,,M,HTML document
+X-1,X,Explore,Explore build,"After Priority 1 and search step 1. Open questions: catalogue, scores and rankings (needs legal view), first slice, overlap timing.",Planning,Aditi + Claude,Not started,K-5,L,Plans per phase
+X-2,X,C2,Stopped SIP change,Later. Avoid designs that conflict with it.,Planning,Aditi + Manager,Not started,,M,Plan
+X-3,X,C4,Unifolio Standard versus Pro,Planning later. Do not hardcode section lists; add user_tier to tracking.,Planning,Aditi + Manager,Not started,,L,Plan
+X-4,X,C3,Fact sheet fixes (manual and automatic),Built by the manager. We do research and planning.,Backend,Manager,Waiting on manager,,L,Fixes
+X-5,X,Mira AI,Mira AI technical discussion (PENDING ON MANAGER),Technical discussion between Aditi and the manager. See the Mira AI planning workbook (commit 21eb911c). Also decides the 'Ask Mira' row in search.,Planning,Manager + Aditi,Waiting on manager,,M,Discussion notes

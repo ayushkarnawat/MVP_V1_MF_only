@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Unifolio staging QA, 9 Nov 2026</title>
+<style>
+@page { size: A4; margin: 16mm 14mm; }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 10.5pt; color: #1a1a1a; line-height: 1.4; }
+h1 { font-size: 20pt; margin: 0 0 4px; } h2 { font-size: 13.5pt; margin: 22px 0 6px; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+.sub { color: #555; margin-bottom: 14px; }
+table { border-collapse: collapse; width: 100%; margin: 6px 0 10px; page-break-inside: auto; }
+tr { page-break-inside: avoid; }
+th, td { border: 1px solid #bbb; padding: 5px 7px; vertical-align: top; text-align: left; font-size: 9.5pt; }
+th { background: #eef3ee; }
+.pass { color: #137a3a; font-weight: bold; } .note { color: #9a6700; font-weight: bold; } .nr { color: #a12; font-weight: bold; }
+img { max-width: 100%; border: 1px solid #bbb; }
+.cap { font-size: 9pt; color: #444; margin: 3px 0 14px; }
+.pend { background: #fff7e0; }
+</style></head><body>
+
+<h1>Staging QA report, 9 Nov 2026</h1>
+<div class="sub">The QA fixes release (checklist of 6 Nov 2026) on ls-redesign.unifolio.in</div>
+
+<table>
+<tr><th style="width:26%">Item</th><th>Detail</th></tr>
+<tr><td>Performed by</td><td>Aditi (intern)</td></tr>
+<tr><td>Date</td><td>9 November 2026 (screenshot taken 4:59 PM, local time)</td></tr>
+<tr><td>Site under test</td><td>https://ls-redesign.unifolio.in</td></tr>
+<tr><td>Browser and device</td><td>Google Chrome on a Windows desktop, 1920 x 1080 screen</td></tr>
+<tr><td>Code under test</td><td>Deploy confirmed by the tester. Alembic head is 0053, as expected (no migration in this release). <span style="background:#fff7e0">The deployed commit was not supplied; to be added from the manager's Claude deploy report.</span></td></tr>
+<tr><td>Sheet used</td><td>Staging QA checklist: the QA fixes (6 Nov 2026), sections A, B, D and R.</td></tr>
+</table>
+
+<h2>1. Result at a glance</h2>
+<p>No row failed. All 36 rows in sections A, B and D and all five regression rows (R1 to R5) were marked Pass. Four rows carry a note (a UI defect, two behaviour defects and a copy request), listed in section 3. Nothing is blocked or skipped.</p>
+<table>
+<tr><th>Measure</th><th>Count</th><th>Comment</th></tr>
+<tr><td>Rows reported Pass</td><td>41</td><td>A1.1 to A1.6, A2.1 to A2.3; B1.1 to B1.4, B2.1 to B2.3, B3.1 to B3.6; D1.1 to D1.5, D2.1, D3.1, D3.2, D4.1 to D4.3, D5.1 to D5.3; R1 to R5.</td></tr>
+<tr><td>Rows reported Fail</td><td>0</td><td>None.</td></tr>
+<tr><td>Passed with a note</td><td>4 notes</td><td>A1.2, D1.2, D2.1, D5.1 to D5.3. Two of them (A1.2 and D1.2) describe a visible defect in a new or changed screen.</td></tr>
+<tr><td>Not run</td><td>0</td><td>None.</td></tr>
+</table>
+
+<h2>2. Results by area</h2>
+<table>
+<tr><th>Area (checklist rows)</th><th>What was checked</th><th>Result</th><th>Notes</th></tr>
+<tr><td>Import complete card (A1.1 to A1.6)</td><td>Card layout, View new funds pop-up, skipped-line notes, repeated statement, dismiss, no auto-hide</td><td class="pass">Pass</td><td>A1.2 passed with a note: the fund rows overflow the pop-up (finding 1). After import from Home the user lands on the Investments page (finding 2).</td></tr>
+<tr><td>Home donut (A2.1 to A2.3)</td><td>Slice and legend hover highlight, click, keyboard</td><td class="pass">Pass</td><td></td></tr>
+<tr><td>Sign-up errors and log-in errors (B1.1 to B1.4)</td><td>Readable red error boxes, red outlines, wrong and expired code, dark mode</td><td class="pass">Pass</td><td></td></tr>
+<tr><td>Log out and return (B2.1 to B2.3)</td><td>Landing page after log-in, deep link, expired session</td><td class="pass">Pass</td><td>B2.2: opening a page link while signed out showed the sign-in page (the expected first step).</td></tr>
+<tr><td>All set, View details, Back (B3.1 to B3.6)</td><td>Import details dialog, Back, browser Back, Esc, reload, Go to my dashboard, Import History Back, new-funds Back</td><td class="pass">Pass</td><td></td></tr>
+<tr><td>Head of Family, member selection (D1.1 to D1.5)</td><td>Add details row, Complete profile dialog, Exit, greyed members, email warnings</td><td class="pass">Pass</td><td>D1.2 passed with a note: an "Import complete" pop-up with a Go to dashboard button appears (finding 3).</td></tr>
+<tr><td>Head of Family, review step (D2.1)</td><td>Headline, sign-in block, what changes, sign-out notice, Confirm disabled until loaded</td><td class="pass">Pass</td><td>Note: Enter does not submit the Verify or Continue buttons (finding 4).</td></tr>
+<tr><td>Head of Family, after confirm (D3.1, D3.2)</td><td>Signed out, masked card on the sign-in page, card not stored</td><td class="pass">Pass</td><td></td></tr>
+<tr><td>Deletion refusals (D4.1 to D4.3)</td><td>Member removal and account deletion refused with an IST date; ordinary delete still works</td><td class="pass">Pass</td><td></td></tr>
+<tr><td>Head of Family emails (D5.1 to D5.3)</td><td>Three emails, undo, dark mode</td><td class="pass">Pass</td><td>Note: all the wording needs to be rewritten (finding 5). Undo (D5.2) was reported as passing.</td></tr>
+<tr><td>Nothing else moved (R1 to R5)</td><td>Home, Overview, Holdings, Allocation, Profile, sign-up and log-in screens, import options, mobile</td><td class="pass">Pass</td><td></td></tr>
+</table>
+
+<h2>3. Findings and notes</h2>
+<p>All five items are the tester's own notes. The priority and owner columns are suggestions from the person who prepared this report, for the manager to confirm.</p>
+<table>
+<tr><th>#</th><th>Row</th><th>What was seen</th><th>Suggested priority</th><th>Suggested owner</th><th>Evidence</th></tr>
+<tr><td>1</td><td>A1.2</td><td>In the View new funds pop-up, the fund cards bleed out of the dialog. The dialog is narrower than the list inside it, so the right-hand part of every card (amount, date, arrow) sits outside the dialog border. The tester says the UI needs to be improved. The checklist expects a pop-up that holds the list.</td><td>Medium (new feature, clearly visible)</td><td>Front end (new-funds pop-up)</td><td>Screenshot 1</td></tr>
+<tr><td>2</td><td>A1.1</td><td>The tester added data from the Home page; after the import finished they landed on the Investments (Mutual Funds) page. The tester says this is fine.</td><td>Low (confirm whether intended)</td><td>Product</td><td>None</td></tr>
+<tr><td>3</td><td>D1.2</td><td>After saving the missing details for a member in the Change Head of Family flow, the "Details completed" dialog is followed by a second pop-up titled "Import complete" with a "Go to dashboard" button, visible for about one to two seconds. Clicking it takes the user straight to the dashboard and out of the Head of Family flow. Expected: only the "Details completed" pop-up, without a Go to dashboard button, when it opens from Family. The button belongs only to the sign-up finish screen.</td><td>Medium (can break the flow)</td><td>Front end (Complete profile dialog)</td><td>None; please add a screenshot or recording</td></tr>
+<tr><td>4</td><td>D2.1</td><td>On the code steps of the Head of Family change, the user has to click Verify or Continue each time. Pressing Enter does nothing. The tester wants Enter to work as well as clicking the button.</td><td>Low to medium (keyboard use, accessibility)</td><td>Front end (code step form)</td><td>None</td></tr>
+<tr><td>5</td><td>D5.1 to D5.3</td><td>The three Head of Family emails passed their checks. The tester says the wording is correct but all of it needs to be changed, and it should be discussed with Surve and then updated.</td><td>Low to medium (copy)</td><td>Product (copy), then back end (email templates)</td><td>None</td></tr>
+</table>
+
+<h2>4. Not run, skipped or pending</h2>
+<table>
+<tr><th>Item</th><th>Why</th><th>What is needed</th></tr>
+<tr><td>Deployed commit</td><td>The tester reports the deploy as confirmed and the Alembic head as 0053, but the commit was not given.</td><td>Add it from the manager's Claude deploy report.</td></tr>
+<tr><td>Checklist sign-off line</td><td>Not for the tester to sign.</td><td>The owner signs the checklist.</td></tr>
+</table>
+
+<h2>5. Screenshots</h2>
+<img src="2026-11-09-qa-report-assets/screenshot-1-new-funds-popup.png" alt="Screenshot 1">
+<div class="cap"><b>Screenshot 1 (row A1.2, 4:59 PM):</b> Mutual Funds page with the "New funds in this statement" pop-up open. Shows nine fund rows (HDFC Flexi Cap, ICICI Prudential Large Cap, HDFC Corporate Bond, Axis Midcap and others) that extend past the right edge of the dialog; the amounts, dates and arrows sit outside the dialog border (finding 1). The tab strip shows the tester's other tabs.</div>
+
+<h2>6. Recommendation</h2>
+<p>Functionally the release passed this QA run: no row failed. Sign-off by the owner should wait for the points below.</p>
+<ol>
+<li>Fix the View new funds pop-up overflow (finding 1) and the stray "Import complete / Go to dashboard" pop-up in the Head of Family flow (finding 3).</li>
+<li>Make Enter submit the code steps (finding 4).</li>
+<li>Agree the new wording for the three Head of Family emails with Surve and update the templates (finding 5).</li>
+<li>Confirm finding 2 is intended behaviour.</li>
+<li>Add the deployed commit from the manager's Claude deploy report.</li>
+</ol>
+<p style="color:#555;font-size:9pt">Prepared from the tester's results (Aditi, intern) and one screenshot. Priorities and owners in section 3 are suggestions, not decisions.</p>
+</body></html>

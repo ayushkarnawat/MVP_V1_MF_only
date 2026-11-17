@@ -1,0 +1,12 @@
+﻿ID,Decision,Item,Owner,Options,Suggestion,Status
+DEC-1,Date policy,11,Aditi,"Month only everywhere, or exact dates for some (NAV)",Decide after the date inventory,Open
+DEC-2,Show full folio numbers,17c,Aditi,Full / still masked,Privacy trade-off; confirm it is intended,Open
+DEC-3,Benchmark line colours,13,Aditi,One colour per benchmark; handling of many,"One colour each with a legend, limit simultaneous lines",Open
+DEC-4,Advisorkhoj scraping,10,Aditi,Scrape if the terms allow / manual sample of about 30 funds,Check terms first,Open
+DEC-5,CAMS video style,5,Aditi,Pure AI-generated / stylised motion graphics over a real screen capture,Stylised over real capture,Open
+DEC-6,PDF generation approach,19,Aditi,Server-side / client-side,Decide when planned,Open
+DEC-7,"Search open questions Q4, Q7, Q8, Q19",21,Manager,See the search plan,Plan's own recommendations,Waiting on manager
+DEC-8,Explore catalogue,Explore,Aditi,Direct Growth equity and hybrid first / both plans / all,Direct Growth equity and hybrid first,Open (later)
+DEC-9,Scores and rankings on funds not owned,Explore,Aditi,"Facts only / score on fund page, no default ranking / ranks everywhere","Score on fund page, no default ranking, after legal view",Open (later)
+DEC-10,Explore first release,Explore,Aditi,Search plus fund page / category pages / filter,Search plus fund page,Open (later)
+DEC-11,When 'fit with my portfolio' ships,Explore,Aditi,Third release / first / never,Third release,Open (later)

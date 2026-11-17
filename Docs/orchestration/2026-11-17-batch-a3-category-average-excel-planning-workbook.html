@@ -375,7 +375,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="stats">
   <div class="stat"><div class="n">1</div><div class="l">investigation (item 9) plus the Excel</div></div>
   <div class="stat"><div class="n">0</div><div class="l">database migrations planned</div></div>
-  <div class="stat"><div class="n">1 / 2</div><div class="l">questions answered (Q3 is open)</div></div>
+  <div class="stat"><div class="n">2 / 2</div><div class="l">questions answered</div></div>
   <div class="stat"><div class="n">12</div><div class="l">tasks in the list (section 7)</div></div>
  </div>
  <div class="callout good"><b>Decided 17 Nov.</b> (1) The category average gets <b>no &ldquo;i&rdquo; and no popover</b>; only the Excel explains it. (2) <b>IDCW options are not included</b> in the average (as in the rank), and the card, the Excel and the evidence say so. (3) The card shows no new date.</div>
@@ -404,7 +404,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <thead><tr><th>Part</th><th>What remains true</th><th>What we do</th></tr></thead>
   <tbody>
    <tr><td class="k">Mixed end dates inside the pool</td><td>The same peers-keep-the-3-day-rule effect as the rank (F7 in A2).</td><td>The common end date (A2: FX-10c) also fixes the average; the Excel states the end date used.</td></tr>
-   <tr><td class="k">The stored average</td><td>Built at 06:30; not rebuilt by the later runs.</td><td>Q3 (open).</td></tr>
+   <tr><td class="k">The stored average</td><td>Built at 06:30; not rebuilt by the later runs.</td><td>Decided (Q3, 17 Nov): rebuilt together with the XIRR and the rank, in one pass, during staging; no extra run.</td></tr>
    <tr><td class="k">Real-data runs and the Excel</td><td>Official figures only from runs after the first clean unattended run on 17 Nov, labelled with the time.</td><td>The Excel is built with synthetic data first, real data after.</td></tr>
   </tbody>
  </table></div>
@@ -450,7 +450,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 
  <h3 class="sub">The Excel for stakeholders (moved here from Batch E)</h3>
  <p>A single workbook that explains the category average <b>in as much detail as possible, for every category</b>, and lets a reader <b>check the arithmetic themselves</b>, because the averages are written as live Excel formulas over the listed funds, next to the value the app shows. It is built from the product&rsquo;s own functions, as the earlier chartered-accountant export is (<code>backend/scripts/export_ca_fund_metrics.py</code>, which calls <code>load_category_pool</code> and <code>category_rank_row</code> and contains no formula of its own), so it cannot drift from the screen.</p>
- <div class="winbar" data-sec="i9"><span>Sheet</span><button type="button" data-v="readme" aria-pressed="false">Read me</button><button type="button" data-v="summary" aria-pressed="true">Summary</button><button type="button" data-v="pool" aria-pressed="false">Pool</button><button type="button" data-v="excluded" aria-pressed="false">Excluded</button><button type="button" data-v="worked" aria-pressed="false">Worked example</button><button type="button" data-v="checks" aria-pressed="false">Checks</button><button type="button" data-v="glossary" aria-pressed="false">Glossary</button></div>
+ <div class="winbar" data-sec="i9"><span>Sheet</span><button type="button" data-v="contents" aria-pressed="false">Contents</button><button type="button" data-v="readme" aria-pressed="false">Read me</button><button type="button" data-v="summary" aria-pressed="true">Summary</button><button type="button" data-v="pool" aria-pressed="false">Pool</button><button type="button" data-v="weights" aria-pressed="false">Weights audit</button><button type="button" data-v="sizes" aria-pressed="false">Sizes</button><button type="button" data-v="legacy" aria-pressed="false">Legacy figure</button><button type="button" data-v="excluded" aria-pressed="false">Excluded</button><button type="button" data-v="worked" aria-pressed="false">Worked example</button><button type="button" data-v="checks" aria-pressed="false">Checks</button><button type="button" data-v="glossary" aria-pressed="false">Glossary</button></div>
  <div data-frame="xlsx"></div>
  <p class="note">Invented funds and numbers. The real workbook has about 80 categories in two plans; each Summary figure is a formula over that category&rsquo;s rows in the Pool sheet.</p>
  <div class="scroll"><table>
@@ -466,6 +466,66 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   </tbody>
  </table></div>
 
+
+ <h3 class="sub">The workbook, sheet by sheet: columns, formulas and checks</h3>
+ <p>Eleven sheets. For each: what every column holds, whether it is a typed value or a live formula, and where it comes from. Nothing in the workbook is a pasted result without a formula or a source.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Sheet</th><th>Column</th><th>Holds</th><th>Value or formula</th><th>Source</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Contents</td><td>Sheet, purpose, row count</td><td>A list of the sheets with a link to each and the number of rows</td><td>Values and links</td><td>The export script</td></tr>
+   <tr><td class="k">Read me</td><td>(text)</td><td>Plain-words method, how to read the card, dates, what is left out (including IDCW), how to check</td><td>Text</td><td>Written by me; the dates are filled by the script</td></tr>
+   <tr><td class="k" rowspan="9">Summary</td><td>A Category and plan</td><td>One row per category and plan</td><td>Value</td><td>The product&rsquo;s category list</td></tr>
+   <tr><td>B Funds in pool</td><td>How many funds are in the pool</td><td>Formula: COUNTIFS over Pool</td><td>Pool</td></tr>
+   <tr><td>C Covered 1Y / 3Y / 5Y</td><td>How many funds count in each period</td><td>Formula: COUNTIFS with the floor flag</td><td>Pool</td></tr>
+   <tr><td>D Size-weighted average 1Y, 3Y, 5Y</td><td>The category average the card uses</td><td>Formula: SUMPRODUCT of weight and return over SUM of weights</td><td>Pool</td></tr>
+   <tr><td>E Plain average</td><td>The simple mean, for comparison only</td><td>Formula: AVERAGEIFS</td><td>Pool</td></tr>
+   <tr><td>F Funds without a size</td><td>Counted but carrying no weight</td><td>Formula: COUNTIFS on empty size</td><td>Pool</td></tr>
+   <tr><td>G Weighting used</td><td>&ldquo;size&rdquo; or &ldquo;plain (no sizes)&rdquo;</td><td>Formula: IF over F and B</td><td>Summary</td></tr>
+   <tr><td>H Thin category</td><td>Fewer than 5 funds</td><td>Formula: IF(B&lt;5,&ldquo;yes&rdquo;,&ldquo;no&rdquo;)</td><td>Summary</td></tr>
+   <tr><td>I App shows, J Difference</td><td>The product&rsquo;s own value, and the gap to column D</td><td>Value, and a formula</td><td>The product&rsquo;s own function</td></tr>
+   <tr><td class="k" rowspan="6">Pool</td><td>A to E</td><td>Category, plan, fund, fund house, scheme code</td><td>Values</td><td>AMFI daily file and the product&rsquo;s pool</td></tr>
+   <tr><td>F Size (&#8377; crore) and month</td><td>The fund&rsquo;s latest average assets and the month they are for</td><td>Values</td><td>AAUM data</td></tr>
+   <tr><td>G 1Y, 3Y, 5Y returns</td><td>The returns the card uses</td><td>Values</td><td>The product&rsquo;s own function</td></tr>
+   <tr><td>H Counts (3Y floor)</td><td>Y or N</td><td>Formula: whether a 3Y return exists</td><td>Pool</td></tr>
+   <tr><td>I Weight</td><td>This fund&rsquo;s share of the category&rsquo;s counted size</td><td>Formula: SUMIFS</td><td>Pool</td></tr>
+   <tr><td>J Contribution</td><td>Weight times return, for each period</td><td>Formula</td><td>Pool</td></tr>
+   <tr><td class="k" rowspan="3">Weights audit</td><td>Category, sum of weights</td><td>Proof that the weights add to 100% in every pool</td><td>Formula: SUMIFS</td><td>Pool</td></tr>
+   <tr><td>Largest weight, fund</td><td>Which single fund moves the average most</td><td>Formula: MAXIFS, INDEX/MATCH</td><td>Pool</td></tr>
+   <tr><td>Share of top 3 funds</td><td>How concentrated the average is</td><td>Formula</td><td>Pool</td></tr>
+   <tr><td class="k" rowspan="2">Sizes</td><td>Fund, size, month, age in days</td><td>How old each size is</td><td>Values and a formula for age</td><td>AAUM data, export date</td></tr>
+   <tr><td>Flag</td><td>Older than 45 days, or missing</td><td>Formula</td><td>Sizes</td></tr>
+   <tr><td class="k" rowspan="2">Legacy figure</td><td>Category, 40/60 blend</td><td>The older blended figure still sent to older views (40% of 3Y, 60% of 5Y)</td><td>Formula over Summary</td><td>Summary</td></tr>
+   <tr><td>Difference from the period figures</td><td>Shows the two methods side by side</td><td>Formula</td><td>Summary</td></tr>
+   <tr><td class="k" rowspan="2">Excluded</td><td>Category, plan, scheme</td><td>Every scheme not counted</td><td>Values</td><td>AMFI daily file</td></tr>
+   <tr><td>Reason</td><td>Not live, IDCW (not included), other plan, second option of a fund, index fund, under 3 years, no size</td><td>Values</td><td>The product&rsquo;s pool steps</td></tr>
+   <tr><td class="k">Worked example</td><td>Three funds</td><td>Each number on the card reproduced step by step with cell references</td><td>Formulas</td><td>Pool, Summary</td></tr>
+   <tr><td class="k">Checks</td><td>Check, result, detail</td><td>The workbook&rsquo;s recalculation against the product, weights, exclusions, dates, IDCW</td><td>Formulas (PASS or FAIL)</td><td>Summary, Pool, Excluded</td></tr>
+   <tr><td class="k">Glossary</td><td>Term, meaning</td><td>AAUM, CAGR, category, plan, Growth and IDCW, thin category, eligibility floor</td><td>Text</td><td>Written by me</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">The formulas, in plain words</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Figure</th><th>Excel formula (shape)</th><th>In words</th></tr></thead>
+  <tbody>
+   <tr><td>Weight of a fund</td><td><code>=IF(H2="Y", F2/SUMIFS(F:F, A:A, A2, H:H, "Y"), 0)</code></td><td>This fund&rsquo;s size divided by the total size of the counted funds in its category and plan.</td></tr>
+   <tr><td>Size-weighted average</td><td><code>=SUMPRODUCT((A:A=A2)*(H:H="Y")*I:I*G:G)</code></td><td>Add up weight times return over the counted funds of the category.</td></tr>
+   <tr><td>Gap on the card</td><td><code>=fund_return - category_average</code></td><td>Your fund minus the category; positive is ahead.</td></tr>
+   <tr><td>Difference from the app</td><td><code>=ROUND(D2 - I2, 4)</code></td><td>Should be 0.0000; anything else is shown in red on Checks.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">How the file is built and protected</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Aspect</th><th>Plan</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Layout</td><td>Header row frozen; filters on every table; column widths set; percentages to two decimals; sizes with thousands separators; formula cells in a pale green, value cells white, so a reader sees which are which.</td></tr>
+   <tr><td class="k">Named ranges</td><td>Pool, Summary and Excluded tables named, so the formulas read in words.</td></tr>
+   <tr><td class="k">Protection</td><td>Sheets are not locked (readers should be able to experiment); the Read me says to work on a copy.</td></tr>
+   <tr><td class="k">Compatibility</td><td>Plain Excel formulas only (no macros, no add-ins); tested to recalculate in Excel and in LibreOffice.</td></tr>
+   <tr><td class="k">Size and speed</td><td>About 80 categories in two plans; roughly 2,500 pool rows and 3,000 excluded rows is my estimate, so a few megabytes and a few seconds to build (<em>not measured</em>; a decision in section 10 if it is bigger).</td></tr>
+   <tr><td class="k">Tests</td><td>A test opens the generated file, recalculates it and compares every Summary cell with the product&rsquo;s result; another checks that every Pool row appears in Summary counts and every excluded scheme has a reason; another checks no household or internal id is present.</td></tr>
+   <tr><td class="k">Versioning</td><td>The Read me carries the export date and the app version; each export is a new file, never edited by hand.</td></tr>
+  </tbody>
+ </table></div>
  <h3 class="sub">How the workbook is built, end to end</h3>
  <div class="steps5">
   <div><b>1. Read the pool</b>The export script calls the product&rsquo;s own pool function for every category and plan (read-only, from stored prices).</div>
@@ -505,7 +565,9 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <thead><tr><th>Part</th><th>What it contains</th></tr></thead>
   <tbody>
    <tr><td class="k">The note</td><td>How the average is calculated in four sentences; how to read the card (the fund dot, the category dot, the gap, the three periods); what is left out and why (including IDCW); what was fixed; how to check one number in the workbook.</td></tr>
-   <tr><td class="k">Format and home</td><td>Working notes as <code>.md</code> in <code>Docs/orchestration/</code>; the note as HTML or PDF; the workbook as a download, not committed (the script is). Nothing is published without your go.</td></tr>
+   <tr><td class="k">Format (the answer to &ldquo;in which format&rdquo;)</td><td><b>One A4 page, as a PDF</b>, made from HTML with the same template as the PDF export (Batch I): the Unifolio ring in the header, DM Sans and Manrope, brand green, a footer with the date. The page is shown above. It is also kept as an <code>.md</code> working copy in <code>Docs/orchestration/</code> and as the workbook&rsquo;s Read me sheet, so the wording is the same in all three.</td></tr>
+   <tr><td class="k">What goes on the page</td><td>Four blocks, about 250 words: how the average is worked out; how to read the card; what is not included (IDCW, index funds and ETFs, the other plan, funds under three years); how to check one number in the workbook. No figures that can go stale: the numbers live in the workbook.</td></tr>
+   <tr><td class="k">Home</td><td>The workbook is a download and is not committed (the script is); the PDF is a deliverable for stakeholders. Nothing is published or sent without your go.</td></tr>
   </tbody>
  </table></div>
 </section>
@@ -593,7 +655,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 
 <section id="questions">
  <h2>10. Questions</h2>
- <p class="lead">Two questions: Q2 is answered and locked; Q3 (the shared recompute question) is open.</p>
+ <p class="lead">Two questions, both answered: Q2 (13 Nov) and Q3, the shared recompute question (17 Nov).</p>
  <div class="bar"><span class="status" id="prog">0 of 2 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
  <div id="cards"></div>
  <h3 class="sub">Defaults I will use (tell me in chat if you want any changed)</h3>
@@ -711,23 +773,31 @@ function catCard2(v){
  return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/other')+h,1000,0);
 }
 function xlsx(v){
- var tabs=['Read me','Summary','Pool','Excluded','Worked example','Checks','Glossary'],on={readme:'Read me',summary:'Summary',pool:'Pool',excluded:'Excluded',worked:'Worked example',checks:'Checks',glossary:'Glossary'}[v];
+ var tabs=['Contents','Read me','Summary','Pool','Weights audit','Sizes','Legacy figure','Excluded','Worked example','Checks','Glossary'],names={contents:'Contents',readme:'Read me',summary:'Summary',pool:'Pool',weights:'Weights audit',sizes:'Sizes',legacy:'Legacy figure',excluded:'Excluded',worked:'Worked example',checks:'Checks',glossary:'Glossary'},on=names[v];
  var th='<div class="tabs2">'+tabs.map(function(x){return '<span'+(x===on?' class="on"':'')+'>'+x+'</span>'}).join('')+'</div>';
  var body='';
- if(v==='readme'){
-  body='<div style="padding:16px 22px;font-size:12.5px;line-height:1.65;color:#344054;max-width:780px"><b style="font:700 17px DM Sans;color:#111">Category average comparison: how to read this workbook</b><p>The category average is the return of the funds in the same category and plan, each weighted by its size. Your fund is compared with it for 1, 3 and 5 years.</p><b>The card</b><p>A filled dot is your fund; a hollow dot is the average. The number above the dots is the gap: your fund minus the average. The second line shows the two returns.</p><b>Method</b><ol style="margin:4px 0;padding-left:18px"><li>Take every live Growth scheme in the category and plan, one per fund.</li><li>Keep funds with a 3-year return.</li><li>Weight each by its latest size (AAUM). A fund with no size counts but carries no weight.</li><li>Add up weight &times; return.</li></ol><b>What is not included</b><p><span style="background:#FEF3E2;padding:1px 6px;border-radius:4px">IDCW (dividend) options are not included.</span> Index funds and ETFs, plans of another type, and funds without a 3-year return are not included either; each is listed on the Excluded sheet.</p><b>Dates</b><p>Prices as on 12 Nov 2026 &middot; sizes: October 2026 &middot; fund list: AMFI file of 12 Nov 2026 &middot; exported 20 Nov 2026 &middot; app version 5.4.</p><b>Check it yourself</b><p>See the Worked example sheet, and the Checks sheet for a pass or fail on every category.</p></div>';
+ if(v==='contents'){
+  body='<table class="g"><thead><tr><th>Sheet</th><th>What it is for</th><th>Rows</th></tr></thead><tbody><tr><td>Read me</td><td>What the average is, how to read the card, the method, dates, what is left out</td><td>&mdash;</td></tr><tr><td>Summary</td><td>One row per category and plan: the average for 1Y, 3Y and 5Y (formulas) beside the app&rsquo;s value</td><td>158</td></tr><tr><td>Pool</td><td>Every fund in every pool, with size, returns, weight and contribution</td><td>2,431</td></tr><tr><td>Weights audit</td><td>Proof the weights add to 100%; which funds move each average most</td><td>158</td></tr><tr><td>Sizes</td><td>How old each fund size is, and which are missing</td><td>2,431</td></tr><tr><td>Legacy figure</td><td>The older 40/60 blend, beside the period figures</td><td>158</td></tr><tr><td>Excluded</td><td>Every scheme not counted, with the reason</td><td>3,012</td></tr><tr><td>Worked example</td><td>Three funds, each card number reproduced step by step</td><td>3</td></tr><tr><td>Checks</td><td>PASS or FAIL for every category</td><td>158</td></tr><tr><td>Glossary</td><td>The terms in plain words</td><td>9</td></tr></tbody></table>';
+ } else if(v==='readme'){
+  body='<div style="padding:16px 22px;font-size:12.5px;line-height:1.65;color:#344054;max-width:780px"><b style="font:700 17px DM Sans;color:#111">Category average comparison: how to read this workbook</b><p>The category average is the return of the funds in the same category and plan, each weighted by its size. Your fund is compared with it for 1, 3 and 5 years.</p><b>The card</b><p>A filled dot is your fund; a hollow dot is the average. The number above the dots is the gap: your fund minus the average. The second line shows the two returns.</p><b>Method</b><ol style="margin:4px 0;padding-left:18px"><li>Take every live Growth scheme in the category and plan, one per fund.</li><li>Keep funds with a 3-year return.</li><li>Weight each by its latest size (AAUM). A fund with no size counts but carries no weight.</li><li>Add up weight &times; return.</li></ol><b>What is not included</b><p><span style="background:#FEF3E2;padding:1px 6px;border-radius:4px">IDCW (dividend) options are not included.</span> Index funds and ETFs, plans of another type, and funds without a 3-year return are not included either; each is listed on the Excluded sheet.</p><b>Dates</b><p>Prices as on 12 Nov 2026 &middot; sizes: October 2026 &middot; fund list: AMFI file of 12 Nov 2026 &middot; exported 20 Nov 2026 &middot; app version 5.4.</p><b>Check it yourself</b><p>See the Worked example sheet, and the Checks sheet for a pass or fail on every category. Work on a copy.</p></div>';
  } else if(v==='summary'){
-  body='<div class="fx"><b>fx</b> =SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$F:$F="Y")*Pool!$H:$H*Pool!$D:$D)/SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$F:$F="Y")*Pool!$D:$D)</div><table class="g"><thead><tr><th>Category and plan</th><th>Funds in pool</th><th>Covered 1Y / 3Y / 5Y</th><th>Size-weighted 3Y</th><th>Plain average (comparison only)</th><th>Funds without a size</th><th>Weighting</th><th>Thin</th><th>App shows</th><th>Difference</th></tr></thead><tbody>'
+  body='<div class="fx"><b>fx</b> =SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$H:$H="Y")*Pool!$I:$I*Pool!$G:$G)</div><table class="g"><thead><tr><th>Category and plan</th><th>Funds in pool</th><th>Covered 1Y / 3Y / 5Y</th><th>Size-weighted 3Y</th><th>Plain average (comparison only)</th><th>Funds without a size</th><th>Weighting</th><th>Thin</th><th>App shows</th><th>Difference</th></tr></thead><tbody>'
   +'<tr><td>Equity Scheme - Flexi Cap Fund, Direct</td><td>31</td><td>31 / 31 / 24</td><td class="f">14.82%</td><td>14.11%</td><td>1</td><td>size</td><td>no</td><td>14.82%</td><td class="ok">0.0000</td></tr>'
   +'<tr><td>Equity Scheme - Large Cap Fund, Direct</td><td>29</td><td>29 / 29 / 26</td><td class="f">13.40%</td><td>13.05%</td><td>0</td><td>size</td><td>no</td><td>13.40%</td><td class="ok">0.0000</td></tr>'
   +'<tr><td>Hybrid Scheme - Equity Savings, Regular</td><td>4</td><td>4 / 4 / 3</td><td class="f">8.90%</td><td>8.60%</td><td>0</td><td>size</td><td>yes</td><td>8.90%</td><td class="ok">0.0000</td></tr>'
   +'<tr><td>Debt Scheme - Gilt Fund, Direct</td><td>11</td><td>11 / 11 / 9</td><td class="f">7.21%</td><td>7.18%</td><td>11</td><td>plain (no sizes)</td><td>no</td><td>7.18%</td><td class="ok">0.0000</td></tr></tbody></table>';
  } else if(v==='pool'){
-  body='<div class="fx"><b>fx</b> =IF(F2="Y",D2/SUMIFS($D:$D,$A:$A,A2,$F:$F,"Y"),0)</div><table class="g"><thead><tr><th>Category and plan</th><th>Fund</th><th>Fund house</th><th>Size (&#8377; cr) and month</th><th>1Y / 3Y / 5Y return</th><th>Counts (3Y floor)</th><th>Weight</th><th>Contribution to 3Y</th></tr></thead><tbody>'
+  body='<div class="fx"><b>fx</b> =IF(H2="Y",F2/SUMIFS($F:$F,$A:$A,A2,$H:$H,"Y"),0)</div><table class="g"><thead><tr><th>Category and plan</th><th>Fund</th><th>Fund house</th><th>Size (&#8377; cr) and month</th><th>1Y / 3Y / 5Y return</th><th>Counts (3Y floor)</th><th>Weight</th><th>Contribution to 3Y</th></tr></thead><tbody>'
   +'<tr><td>Flexi Cap, Direct</td><td>Alpha Flexi Cap Fund</td><td>Alpha MF</td><td>18,400 &middot; Oct 2026</td><td>12.1% / 14.0% / 16.3%</td><td>Y</td><td class="f">0.1120</td><td class="f">1.57%</td></tr>'
   +'<tr><td>Flexi Cap, Direct</td><td>Beacon Flexi Cap Fund</td><td>Beacon MF</td><td>9,250 &middot; Oct 2026</td><td>9.8% / 15.2% / 15.4%</td><td>Y</td><td class="f">0.0563</td><td class="f">0.86%</td></tr>'
   +'<tr><td>Flexi Cap, Direct</td><td>Cedar Flexi Cap Fund</td><td>Cedar MF</td><td>no size on record</td><td>10.5% / 13.1% / &mdash;</td><td>Y</td><td class="f">0 (counted, no weight)</td><td class="f">&mdash;</td></tr>'
   +'<tr><td>Flexi Cap, Direct</td><td>Delta Flexi Cap Fund</td><td>Delta MF</td><td>2,100 &middot; Oct 2026</td><td>8.0% / &mdash; / &mdash;</td><td>N (under 3 years)</td><td class="f">0</td><td class="f">&mdash;</td></tr></tbody></table>';
+ } else if(v==='weights'){
+  body='<div class="fx"><b>fx</b> =SUMIFS(Pool!$I:$I,Pool!$A:$A,A2)</div><table class="g"><thead><tr><th>Category and plan</th><th>Sum of weights</th><th>Largest weight</th><th>Fund with the largest weight</th><th>Share of top 3 funds</th></tr></thead><tbody><tr><td>Flexi Cap, Direct</td><td class="ok">100.0000%</td><td>11.2%</td><td>Alpha Flexi Cap Fund</td><td>29.8%</td></tr><tr><td>Large Cap, Direct</td><td class="ok">100.0000%</td><td>14.6%</td><td>Echo Large Cap Fund</td><td>36.1%</td></tr><tr><td>Equity Savings, Regular</td><td class="ok">100.0000%</td><td>41.0%</td><td>Zulu Equity Savings Fund</td><td>92.4%</td></tr></tbody></table><p style="padding:8px 12px;font-size:12px;color:#667085">A high share for the top funds tells a reader that one or two funds drive the average (a thin category).</p>';
+ } else if(v==='sizes'){
+  body='<div class="fx"><b>fx</b> =Export_date - Size_month_end</div><table class="g"><thead><tr><th>Fund</th><th>Size (&#8377; cr)</th><th>Size month</th><th>Age (days)</th><th>Flag</th></tr></thead><tbody><tr><td>Alpha Flexi Cap Fund</td><td>18,400</td><td>Oct 2026</td><td>20</td><td class="ok">current</td></tr><tr><td>Beacon Flexi Cap Fund</td><td>9,250</td><td>Oct 2026</td><td>20</td><td class="ok">current</td></tr><tr><td>Kilo Gilt Fund</td><td>1,120</td><td>Aug 2026</td><td>81</td><td class="no">older than 45 days</td></tr><tr><td>Cedar Flexi Cap Fund</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="no">missing</td></tr></tbody></table>';
+ } else if(v==='legacy'){
+  body='<div class="fx"><b>fx</b> =0.4*Summary!D2 + 0.6*Summary!F2</div><table class="g"><thead><tr><th>Category and plan</th><th>Size-weighted 3Y</th><th>Size-weighted 5Y</th><th>Legacy blend (40% 3Y, 60% 5Y)</th><th>Where it is still used</th></tr></thead><tbody><tr><td>Flexi Cap, Direct</td><td>14.82%</td><td>16.05%</td><td class="f">15.56%</td><td>Older desktop, print and phone views</td></tr><tr><td>Large Cap, Direct</td><td>13.40%</td><td>14.22%</td><td class="f">13.89%</td><td>Older desktop, print and phone views</td></tr></tbody></table><p style="padding:8px 12px;font-size:12px;color:#667085">Shown beside the period figures so a reader can see the two methods agree in direction. It is not on the redesigned card.</p>';
  } else if(v==='excluded'){
   body='<table class="g"><thead><tr><th>Category and plan</th><th>Scheme</th><th>Why it is not counted</th></tr></thead><tbody>'
   +'<tr><td>Flexi Cap, Direct</td><td>Alpha Flexi Cap Fund - IDCW Payout</td><td>IDCW option (not included)</td></tr>'
@@ -744,10 +814,10 @@ function xlsx(v){
   +'<tr><td>Weights add to 100% in every pool</td><td class="ok">PASS</td><td>Smallest 100.0000%, largest 100.0000%</td></tr>'
   +'<tr><td>Every excluded scheme has a reason</td><td class="ok">PASS</td><td>0 without a reason</td></tr>'
   +'<tr><td>No IDCW series in any pool</td><td class="ok">PASS</td><td>0 found; 212 set aside, all listed on Excluded</td></tr>'
-  +'<tr><td>Size data newer than 45 days</td><td class="no">3 categories</td><td>Listed on the Excluded sheet; shown, not hidden</td></tr>'
+  +'<tr><td>Size data newer than 45 days</td><td class="no">3 categories</td><td>Listed on the Sizes sheet; shown, not hidden</td></tr>'
   +'<tr><td>Dates stated</td><td class="ok">PASS</td><td>Price date, size month, fund list date, export date, app version</td></tr></tbody></table>';
  } else {
-  body='<table class="g"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td>AAUM</td><td>Average assets under management: the fund&rsquo;s size, averaged over a month.</td></tr><tr><td>CAGR</td><td>The yearly rate that turns the start price into the end price over the period.</td></tr><tr><td>Category, plan</td><td>The SEBI category (for example Flexi Cap) and Direct or Regular.</td></tr><tr><td>Growth and IDCW</td><td>Growth keeps profits in the price; IDCW pays them out and the price falls. <b>IDCW options are not included here.</b></td></tr><tr><td>Thin category</td><td>Fewer than 5 funds: treat the average with care.</td></tr><tr><td>Eligibility floor</td><td>A fund needs a 3-year return to count in any period.</td></tr></tbody></table>';
+  body='<table class="g"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td>AAUM</td><td>Average assets under management: the fund&rsquo;s size, averaged over a month.</td></tr><tr><td>CAGR</td><td>The yearly rate that turns the start price into the end price over the period.</td></tr><tr><td>Category, plan</td><td>The SEBI category (for example Flexi Cap) and Direct or Regular.</td></tr><tr><td>Growth and IDCW</td><td>Growth keeps profits in the price; IDCW pays them out and the price falls. <b>IDCW options are not included here.</b></td></tr><tr><td>Thin category</td><td>Fewer than 5 funds: treat the average with care.</td></tr><tr><td>Eligibility floor</td><td>A fund needs a 3-year return to count in any period.</td></tr><tr><td>Weight</td><td>A fund&rsquo;s size divided by the total size of the counted funds in its category and plan.</td></tr></tbody></table>';
  }
  return vp('<div class="xl">'+th+body+'</div>',1000,0);
 }
@@ -756,7 +826,7 @@ function catNote(){
  return vp(h,640,0);
 }
 
-var STATE={'i8':'today','i9':'readme','ccard':'after','cnote':'n1'};
+var STATE={'i8':'today','i9':'contents','ccard':'after','cnote':'n1'};
 function frame(n){switch(n){
  case 'cat-card':return catCard();
  case 'cat-card2':return catCard2(STATE['ccard']);
@@ -787,11 +857,12 @@ var Q=[
  {k:"B",l:"Yes, one recompute after the 14:00 run, only when that run filled something",d:"Good: catches up the same day. Bad: one more job to build and watch."},
  {k:"C",l:"Yes, after every price run",d:"Good: always current. Bad: three recomputes a day."}],
  why:"The log is free and gives the answer with data. This is the question for your manager.",
- commit:"A: no build. B or C: a small job change, tested."}
+ commit:"<b>Recorded 17 Nov: A.</b> No build: the stored average is rebuilt together with the XIRR and the rank, in one pass, during staging. B or C would have added a small job change."}
 ];
 
 var PRE={
- Q2:{k:"B",n:"+1.2%\n4.6% vs 3.4%\n\n-1.1%\n12.8% vs 13.9%\n\n-4.8%\n6.4% vs 11.2%\n\nthese three values   (recorded as option B from your examples; see the note above)"}
+ Q2:{k:"B",n:"+1.2%\n4.6% vs 3.4%\n\n-1.1%\n12.8% vs 13.9%\n\n-4.8%\n6.4% vs 11.2%\n\nthese three values   (recorded as option B from your examples; see the note above)"},
+ Q3:{k:"A",n:"Updated 17 Nov: the same answer as in A1 (and A4 has no such question): it will be recomputed at the same time, during staging; no extra recompute job."}
 };
 var LOCK={};
 Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
