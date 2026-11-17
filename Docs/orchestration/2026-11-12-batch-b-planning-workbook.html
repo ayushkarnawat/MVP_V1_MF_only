@@ -303,7 +303,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <div class="hero">
  <h1>Batch B Planning</h1>
  <div class="meta">Planning only &middot; nothing built &middot; 12 Nov 2026 &middot; updated with your answers &middot; branch leapswitch-redesign</div>
- <p>The journey quick wins: five changes in sign-up, login, import and the Head of Family emails. Screens are now drawn at real window sizes (laptop and phone) and scaled to fit the page, so it is best viewed on a laptop. 27 of 28 questions are answered (Q24 and Q25 on 17 Nov). One is open, Q28, the execution order, which the new program execution plan answers with a proposal (section 12).</p>
+ <p>The journey quick wins: five changes in sign-up, login, import and the Head of Family emails. Screens are now drawn at real window sizes (laptop and phone) and scaled to fit the page, so it is best viewed on a laptop. All 28 questions are answered (Q24 and Q25 on 17 Nov; Q28, the execution order, is answered by the program execution plan, 17 Nov).</p>
  <p>Every statement about the code comes from three read-only research passes made today, not from my own reading, so each is labelled &ldquo;reported&rdquo; until a spec re-checks it. Heights and timings are proposals, not measurements.</p>
 </div>
 
@@ -313,7 +313,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="stats">
   <div class="stat"><div class="n">5</div><div class="l">items in this batch</div></div>
   <div class="stat"><div class="n">0 or 1</div><div class="l">database migration (depends on Q23)</div></div>
-  <div class="stat"><div class="n">27 / 28</div><div class="l">questions answered</div></div>
+  <div class="stat"><div class="n">28 / 28</div><div class="l">questions answered</div></div>
   <div class="stat"><div class="n">19</div><div class="l">tasks in the list (section 10)</div></div>
  </div>
  <div class="scroll"><table>
@@ -706,20 +706,18 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <!-- ============ PROGRAM STRATEGY ============ -->
 <section id="program">
  <h2>9. Program strategy: order, deploy, plans</h2>
- <p class="lead">You asked for this now so the next batches know what came before and what follows. Q26 and Q27 are decided; Q28 is still open and is answered by the program execution plan (its Q1).</p>
- <div class="callout good"><b>Decided.</b> Q26: milestone deploys to staging (after wave 1, after waves 2 and 3, after search and navigation, and a final one), with production once at the end. Q27: one plan per batch, written just before it is built, plus a short program index. <b>Still open:</b> Q28, the execution order below.</div>
+ <p class="lead">You asked for this now so the next batches know what came before and what follows. Q26, Q27 and Q28 are decided. The order below is the one in the program execution plan (17 Nov), which replaces the earlier eight-wave table.</p>
+ <div class="callout good"><b>Decided.</b> Q26: milestone deploys to staging (after wave 1, after waves 2 and 3, after search and navigation, and a final one), with production once at the end. Q27: one plan per batch, written just before it is built, plus a short program index. <b>Q28 (17 Nov):</b> the execution order is the program execution plan&rsquo;s five waves and four milestones, below.</div>
  <h3 class="sub">A. Execution order</h3>
  <div class="scroll"><table>
-  <thead><tr><th>Wave</th><th>Batches</th><th>Needs</th><th>Why here</th></tr></thead>
+  <thead><tr><th>Wave</th><th>Batches</th><th>Ships in</th><th>Why here</th></tr></thead>
   <tbody>
-   <tr><td class="k">1</td><td>B (this batch), C (holdings hygiene), L (portfolio disclosures audit), GA4 foundation</td><td>Nothing waits; 17a needs A</td><td>Independent of NAV and of each other. Different lanes, so they can run together.</td></tr>
-   <tr><td class="k">2</td><td>A (truth-finding)</td><td>Manager&rsquo;s NAV fix (landed 16 Nov)</td><td>Every check reads NAV. Unblocked; official numbers from the first clean run on 17 Nov.</td></tr>
-   <tr><td class="k">3</td><td>D (charts)</td><td>NAV fix (landed 16 Nov)</td><td>Benchmark series and day change.</td></tr>
-   <tr><td class="k">4</td><td>K steps 1 to 2 (search foundation, Mutual Funds tabs)</td><td>Manager returns the search plan</td><td>Settles page headers before later batches touch them.</td></tr>
-   <tr><td class="k">5</td><td>E (explainers and dates)</td><td>A, the date decision, fact sheet fixes</td><td>Needs correct numbers first.</td></tr>
-   <tr><td class="k">6</td><td>K steps 3 to 4, F (section index)</td><td>D, E, one shared section list</td><td>Planned together on one list of sections.</td></tr>
-   <tr><td class="k">7</td><td>I (PDF export)</td><td>A, E, F, Standard/Pro plan</td><td>Mirrors the final sections.</td></tr>
-   <tr><td class="k">8</td><td>GA4 custom events, H (video recording)</td><td>D, E, F, K stable; CAMS screen stable</td><td>Events attach to screens that must stop changing.</td></tr>
+   <tr><td class="k">1. Foundations</td><td>B (this batch), C, L (portfolio disclosures audit, read-only), the read-only A investigations</td><td><b>M1</b>: B and C</td><td>Independent of prices and of each other; Codex and Antigravity work at the same time, one task each.</td></tr>
+   <tr><td class="k">2. Numbers and charts</td><td>The A fixes (A1, A2, A3) you approve, then D; H&rsquo;s tutorial link and pop-up</td><td><b>M2</b></td><td>Official numbers need the first clean NAV runs (17 Nov); the stored results are rebuilt at M2.</td></tr>
+   <tr><td class="k">3. Search and the section list</td><td>K (all four steps, one release) and F&rsquo;s section list and anchors</td><td>part of <b>M3</b></td><td>Search settles the page headers; one shared section list.</td></tr>
+   <tr><td class="k">4. Dates and navigation</td><td>E, then F&rsquo;s visible index (the glass rail)</td><td><b>M3</b></td><td>Both edit the Mutual Funds frame; E first.</td></tr>
+   <tr><td class="k">5. Export and the tutorial</td><td>I (PDF export); H&rsquo;s floating checklist and final video</td><td><b>M4</b>, then production once</td><td>The PDF mirrors the final sections.</td></tr>
+   <tr><td class="k">Paused</td><td>GA4 (foundation and events) and A4 (load times)</td><td>Later</td><td>Not in this pass; all decisions unchanged. Reserved slots in the program plan.</td></tr>
   </tbody>
  </table></div>
  <h4 class="mini">What Batch B leaves behind for later waves</h4>
@@ -827,7 +825,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <!-- ============ QUESTIONS ============ -->
 <section id="questions">
  <h2>12. Questions</h2>
- <p class="lead">28 questions. Your 27 answers are recorded and locked, with an &ldquo;answered&rdquo; badge and a &ldquo;Chosen&rdquo; badge on the picked option. One is open: Q28, answered by the program execution plan.</p>
+ <p class="lead">28 questions. Your 28 answers are recorded and locked, with an &ldquo;answered&rdquo; badge and a &ldquo;Chosen&rdquo; badge on the picked option. One is open: Q28, answered by the program execution plan.</p>
  <div class="bar"><span class="status" id="prog">0 of 28 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
  <div id="cards"></div>
 </section>
@@ -1159,14 +1157,14 @@ var Q=[
  why:"Later batches depend on what earlier ones find, so their plans should be written when they start."},
 {id:"Q28",item:"Program",title:"Is the execution order right?",type:"mixed",ask:"Pick one. The order is in section 9 A.",
  opts:[
- {k:"A",l:"Yes: wave 1 (B, C, L, GA4 foundation), 2 (A), 3 (D), 4 (K steps 1 and 2), 5 (E), 6 (K steps 3 and 4 with F), 7 (I), 8 (GA4 events, H recording)",rec:1,d:"Good: follows the dependencies and the manager&rsquo;s fixes. Bad: search waits a long time."},
- {k:"B",l:"No, change it",d:"Say how in the box."}],
+ {k:"A",l:"Yes: wave 1 (B, C, L, GA4 foundation), 2 (A), 3 (D), 4 (K steps 1 and 2), 5 (E), 6 (K steps 3 and 4 with F), 7 (I), 8 (GA4 events, H recording)",d:"The eight-wave order proposed here on 12 Nov. Superseded."},
+ {k:"B",l:"The program execution plan&rsquo;s order: five waves, four milestones, search in wave 3 as one release, E before F&rsquo;s visible index; GA4 and A4 paused",rec:1,d:"Answered 17 Nov in the program plan (its Q1 A). Good: one release for search, shared places settled early."}],
  why:"Search and the navigation index must be planned together, and charts and truth-finding both need the NAV fix.",
  ph:"What to change: ..."}
 ];
-var LOCK={Q1:1,Q2:1,Q3:1,Q4:1,Q5:1,Q6:1,Q7:1,Q8:1,Q9:1,Q10:1,Q11:1,Q12:1,Q13:1,Q14:1,Q15:1,Q16:1,Q17:1,Q18:1,Q19:1,Q20:1,Q21:1,Q22:1,Q23:1,Q24:1,Q25:1,Q26:1,Q27:1};
+var LOCK={Q1:1,Q2:1,Q3:1,Q4:1,Q5:1,Q6:1,Q7:1,Q8:1,Q9:1,Q10:1,Q11:1,Q12:1,Q13:1,Q14:1,Q15:1,Q16:1,Q17:1,Q18:1,Q19:1,Q20:1,Q21:1,Q22:1,Q23:1,Q24:1,Q25:1,Q26:1,Q27:1,Q28:1};
 var PRE={
- Q24:{k:"A",n:"Updated 17 Nov: option A (10 different emails or phones per IP in 10 minutes for code requests, 30 for address checks)."},Q25:{k:"A",n:"Updated 17 Nov: option A (switch all ten sign-up and login screens through the shared tokens)."},Q4:{k:"A",n:"option A from the mockups with the subtexts removed (the subtitle line and the small text under each option)"},Q23:{k:"B",n:"with more detailed explanation"},Q26:{k:"C"},Q27:{k:"B"},
+ Q28:{k:"B",n:"Answered 17 Nov in the program execution plan (its Q1 A): five waves, four milestones; GA4 and A4 paused."},Q24:{k:"A",n:"Updated 17 Nov: option A (10 different emails or phones per IP in 10 minutes for code requests, 30 for address checks)."},Q25:{k:"A",n:"Updated 17 Nov: option A (switch all ten sign-up and login screens through the shared tokens)."},Q4:{k:"A",n:"option A from the mockups with the subtexts removed (the subtitle line and the small text under each option)"},Q23:{k:"B",n:"with more detailed explanation"},Q26:{k:"C"},Q27:{k:"B"},
  Q1:{k:"A"},Q2:{k:"A"},Q3:{k:"A"},Q5:{k:"B"},
  Q6:{t:"different email, not registered. i just want you to check what happens and if it is currently what we want, then no need to change"},
  Q7:{k:"A",n:"if the user comes back and clicks get otp with the same email/phone number within a minute, the timer should come up with the one-line reason, as discussed in the first message"},
@@ -1184,7 +1182,7 @@ var PRE={
 var FU={
  Q4:"<p><b>Built as you chose.</b> Option A is drawn in section 5 without the subtitle line and without the small text under each option. With both gone, rows are shorter and the screen has room to breathe. Options B and C are no longer drawn.</p>",
  Q23:"<p><b>More detail, as you asked (full design in section 7b, part C).</b></p><ul><li><b>The problem.</b> The 60 second rule only stops one address being hit again and again. It does not stop one source sending codes to many addresses, or checking many addresses to see which are registered.</li><li><b>What gets recorded.</b> For every sign-in or sign-up code request, one small row: a scrambled form of the visitor&rsquo;s internet address, a scrambled form of the email or phone, which route, what happened (code sent, unknown account, account already exists, held by the 60 second rule) and the time. Nothing readable is stored.</li><li><b>The rule.</b> Before the app answers, it counts how many different scrambled addresses this internet address has tried in the last [10] minutes. Past the limit, the request gets a polite wait message with the seconds left. Otherwise it records the row and carries on as today.</li><li><b>Why a new table.</b> A request for an unknown email creates no record today, so a count taken from the existing records would never see someone checking many addresses. Only a table that records every request sees that.</li><li><b>Housekeeping.</b> Rows are kept 24 hours and deleted by a daily job, on the staging server and on AWS.</li><li><b>Cost.</b> One migration (the next free number), one config secret for the scrambling, one scheduled cleanup, and a switch to turn the limit off without a redeploy.</li></ul>",
- Q26:"<p><b>Decided.</b> The program index (B-15) will list the milestones. The first staging milestone is after wave 1 (this batch, C, L and the GA4 foundation).</p>",
+ Q26:"<p><b>Decided.</b> The program index (B-15) will list the milestones. The first staging milestone is after wave 1 (this batch and C; L is a read-only audit and the GA4 foundation is paused).</p>",
  Q24:"<p><b>Decided: A.</b> Ten different addresses per IP in ten minutes for code requests, thirty for address checks, with the same countdown message. We start generous, watch real numbers after release, and tighten later. A bot check or firewall is the next layer if many IPs are ever used.</p>",
  Q25:"<p><b>Decided: A.</b> The green switch goes through the shared tokens, so all ten sign-up and login screens change together. The screens outside Batch B that share the tokens are added to the batch’s check list (B-9, the five-window fit check).</p>",
  Q27:"<p><b>Decided.</b> The next plans to write are one for this batch, now that Q24 and Q25 are answered (Q28 is answered by the program plan), and then one per batch, each just before it is built. Search and the emails get their own plans inside that pattern.</p>",
