@@ -359,6 +359,67 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 .place{display:grid;gap:6px;border:1px solid #D9DED9;border-radius:10px;background:#F6F8F6;padding:8px;font-size:11.5px}
 .place div{border-radius:6px;padding:6px 8px;background:#fff;border:1px solid #E5E7EB}
 .place div.g{background:#EAFBF0;border-color:#22C55E;font-weight:700;color:#15803D}
+
+/* ---- day's change pop-up (item 15), stage mockups ---- */
+.pp-bg{background:#E9EDE9;min-height:760px;position:relative;overflow:hidden}
+.pp-bg .dim{position:absolute;inset:0;background:rgba(17,24,19,.52);backdrop-filter:blur(2px)}
+.pp-dlg{position:relative;width:720px;margin:0 auto;top:22px;background:#fff;border-radius:22px;box-shadow:0 30px 80px rgba(0,0,0,.35);display:flex;flex-direction:column;margin-bottom:40px}
+.pp-h{display:flex;justify-content:space-between;align-items:flex-start;padding:20px 24px 12px}
+.pp-h h5{font:700 20px 'DM Sans',sans-serif;letter-spacing:-.01em}
+.pp-date{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:#667085;margin-top:3px}
+.pp-x{width:32px;height:32px;border-radius:50%;background:#F2F4F2;color:#475467;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;border:0}
+.pp-x:hover{background:#E4E8E4}
+.pp-sum{margin:0 24px;padding:14px 16px;border-radius:16px;background:linear-gradient(135deg,#F1FBF4,#F8FAF8);border:1px solid #DDF3E4}
+.pp-sum.neg{background:linear-gradient(135deg,#FEF3F2,#F8FAF8);border-color:#FAD9D5}
+.pp-sum.flat{background:#F6F8F6;border-color:#E5E7EB}
+.pp-net{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pp-net b{font:700 28px 'DM Sans',sans-serif;letter-spacing:-.02em;color:#15803D}
+.pp-net em{font-style:normal;color:#15803D;font-weight:600;font-size:13px}
+.pp-net .bg{margin-left:auto;display:flex;gap:6px}
+.pp-badge{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:2px 9px;font-size:11px;font-weight:600}
+.pp-badge.est{background:#EEF2FF;color:#4338CA}.pp-badge.part{background:#FEF3E2;color:#B45309}
+.pp-split{display:flex;height:8px;border-radius:5px;overflow:hidden;margin:10px 0 6px;background:#E5E7EB}
+.pp-split i{display:block;height:100%}
+.pp-gl{display:flex;justify-content:space-between;font-size:12px;color:#475467}
+.pp-gl b{color:#111}
+.pp-ctl{display:flex;align-items:center;gap:12px;padding:14px 24px 6px}
+.pp-seg{display:inline-flex;background:#F2F4F2;border-radius:10px;padding:3px}
+.pp-seg button{border:0;background:transparent;padding:6px 16px;border-radius:8px;font:600 12.5px 'Manrope',sans-serif;color:#667085;cursor:pointer}
+.pp-seg button.on{background:#fff;color:#111;box-shadow:0 1px 3px rgba(16,24,19,.14)}
+.pp-ctl .srt{margin-left:auto;font-size:12px;color:#667085}
+.pp-bd{padding:4px 24px 8px;overflow:auto;flex:1}
+.pp-gh{display:flex;align-items:center;gap:8px;position:sticky;top:0;background:#fff;padding:12px 0 6px;font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#667085}
+.pp-gh .t{margin-left:auto;letter-spacing:0;text-transform:none;font-size:12.5px}
+.pp-gh .t.p{color:#15803D}.pp-gh .t.m{color:#B42318}
+.pp-r{display:grid;grid-template-columns:34px minmax(0,1.2fr) minmax(150px,1fr) 96px;gap:12px;align-items:center;padding:9px 8px;border-radius:12px}
+.pp-r:hover{background:#F6F8F6}
+.pp-lg{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font:700 13px 'DM Sans',sans-serif}
+.pp-nm{font-weight:600;font-size:13.5px;line-height:1.25}.pp-sb{font-size:11.5px;color:#667085}
+.pp-ax{position:relative;height:10px}.pp-ax:before{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:#D0D5DD}
+.pp-ax i{position:absolute;top:0;height:10px;border-radius:5px}
+.pp-ax i.p{left:50%;background:#22C55E}.pp-ax i.m{right:50%;background:#EF4444}
+.pp-am{text-align:right;font-weight:700;font-size:13.5px}.pp-am small{display:block;font-weight:600;font-size:11px}
+.pp-am.p,.pp-am.p small{color:#15803D}.pp-am.m,.pp-am.m small{color:#B42318}.pp-am.z{color:#667085}
+.pp-chev{display:inline-block;transition:transform .15s;margin-right:4px;color:#98A2B3}.pp-chev.o{transform:rotate(90deg)}
+.pp-kid{padding-left:34px}.pp-kid .pp-r{grid-template-columns:28px minmax(0,1.2fr) minmax(150px,1fr) 96px;padding:5px 8px}
+.pp-kid .pp-lg{width:28px;height:28px;font-size:11px;border-radius:8px}
+.pp-wait{margin:8px 0;border:1px dashed #F0C27A;background:#FFFAF0;border-radius:14px;padding:4px 12px 8px}
+.pp-wait .pp-gh{background:transparent}
+.pp-wait .note{font-size:12px;color:#92400E;padding:2px 0 6px}
+.pp-wr{display:grid;grid-template-columns:34px minmax(0,1.2fr) 1fr 40px;gap:12px;align-items:center;padding:7px 0}
+.pp-clock{width:34px;height:34px;border-radius:10px;background:#FEF3E2;color:#B45309;display:flex;align-items:center;justify-content:center;font-size:15px}
+.pp-f{display:flex;align-items:center;gap:8px;padding:12px 24px 16px;border-top:1px solid #EEF0EE;font-size:12px;color:#475467}
+.pp-f .ck{width:18px;height:18px;border-radius:50%;background:#DCFCE7;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.pp-f .btn{margin-left:auto;border:1px solid #D0D5DD;background:#fff;border-radius:10px;padding:7px 16px;font:600 12.5px 'Manrope',sans-serif;cursor:pointer}
+.pp-sk{height:14px;border-radius:7px;background:linear-gradient(90deg,#EEF1EE 25%,#F7F9F7 50%,#EEF1EE 75%);background-size:200% 100%;animation:ppsh 1.3s infinite}
+@keyframes ppsh{to{background-position:-200% 0}}
+.pp-center{text-align:center;padding:42px 24px;color:#475467}
+.pp-center .ic{width:64px;height:64px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:26px;background:#F2F4F2}
+.pp-center h6{font:700 16px 'DM Sans',sans-serif;margin:0 0 4px;color:#111}
+.pp-center .btn{margin-top:14px;display:inline-block;border:0;background:#22C55E;color:#0B1F12;font:700 13px 'Manrope',sans-serif;border-radius:10px;padding:9px 20px;cursor:pointer}
+.pp-card{max-width:520px;margin:30px auto;background:#fff;border:1px solid #E5E7EB;border-radius:18px;padding:18px 20px;box-shadow:0 6px 22px rgba(16,24,19,.07)}
+.pp-link{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font:700 13px 'Manrope',sans-serif;color:#15803D;cursor:pointer;border-radius:10px;padding:6px 10px;margin-left:-10px;background:#EAFBF0;box-shadow:0 0 0 4px rgba(34,197,94,.18)}
+.pp-hide{letter-spacing:2px}
 </style>
 </head>
 <body>
@@ -634,9 +695,35 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <li>Badges say when the figures are &ldquo;Estimated&rdquo; (the sector view spreads each fund&rsquo;s change over its sectors) or &ldquo;Partial&rdquo; (some funds have no new price yet, with their names).</li>
  </ul>
 
- <h3 class="sub">The proposed pop-up</h3>
+ <h3 class="sub">The proposed pop-up, stage by stage (updated 17 Nov)</h3>
+ <div class="winbar" data-sec="i15"><span>Stage</span><button type="button" data-v="entry" aria-pressed="false">1 The card</button><button type="button" data-v="loading" aria-pressed="false">2 Loading</button><button type="button" data-v="fund" aria-pressed="true">3 Fund view</button><button type="button" data-v="category" aria-pressed="false">4 Category view</button><button type="button" data-v="expand" aria-pressed="false">5 A category opened</button><button type="button" data-v="sector" aria-pressed="false">6 Sector view</button><button type="button" data-v="waiting" aria-pressed="false">7 Prices missing</button><button type="button" data-v="nochange" aria-pressed="false">8 No-change group</button><button type="button" data-v="empty" aria-pressed="false">9 Markets closed</button><button type="button" data-v="failed" aria-pressed="false">10 Could not load</button><button type="button" data-v="hidden" aria-pressed="false">11 Values hidden</button></div>
  <div data-frame="popup"></div>
- <p class="note">Made-up funds and numbers. The real list is as long as the user&rsquo;s holdings and scrolls inside the pop-up. Laptop only; the phone version is planned later.</p>
+ <p class="note"><b>Try it:</b> pick a stage above, or click inside the mockup: the Fund, Category and Sector switch, a category row (to open its funds), &ldquo;No change&rdquo;, the cross or Close, &ldquo;View all by day&rsquo;s change&rdquo;, and &ldquo;Try again&rdquo; all work. Made-up funds and numbers. Laptop only; the phone version is planned later.</p>
+ <h3 class="sub">What I improved in the look</h3>
+ <ul class="tight">
+  <li><b>A summary band first.</b> The net change is large and tinted green, red or grey, with a gained-versus-lost bar and both totals, so the answer to &ldquo;how did my day go?&rdquo; comes before the list.</li>
+  <li><b>Rows you can compare at a glance.</b> A fund logo, the name and category, a bar that grows left (lost) or right (gained) from one centre line, and the rupee change with its percentage underneath.</li>
+  <li><b>Group headers with subtotals</b> (&ldquo;Lifted your portfolio &middot; 3 funds &middot; +&#8377;9,970&rdquo;) that stay at the top while the list scrolls.</li>
+  <li><b>A soft pill switch</b> for Fund, Category and Sector, and a footer that confirms the rows add up, with a Close button.</li>
+  <li><b>Calm states:</b> a placeholder list while loading (the summary is already there, copied from the card), a friendly closed-market message, and an error that says nothing was changed.</li>
+ </ul>
+ <h3 class="sub">Stage by stage</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>#</th><th>Stage</th><th>What the user sees</th><th>What the app does</th></tr></thead>
+  <tbody>
+   <tr><td>1</td><td>The card</td><td>&ldquo;View all by day&rsquo;s change&rdquo; is now a live link (today: greyed, &ldquo;Coming soon&rdquo;).</td><td>Nothing is fetched yet. The card&rsquo;s own request is unchanged.</td></tr>
+   <tr><td>2</td><td>Loading</td><td>The pop-up opens at once with the net change and totals taken from the card, and a placeholder list.</td><td>Requests every row in the grouping the card showed (the movers route with the all switch). Focus moves into the dialog.</td></tr>
+   <tr><td>3</td><td>Fund view</td><td>Everyone who gained, then everyone who lost, largest first, with a collapsed &ldquo;No change&rdquo; group.</td><td>Renders the rows. The footer says the rows add up.</td></tr>
+   <tr><td>4</td><td>Category view</td><td>The same list by SEBI category; each row has an arrow.</td><td>Reuses the rows already fetched; no new request for the switch.</td></tr>
+   <tr><td>5</td><td>A category opened</td><td>The funds inside that category appear under it, as the card&rsquo;s own row panel does.</td><td>Local only; the funds are already in the reply.</td></tr>
+   <tr><td>6</td><td>Sector view</td><td>An &ldquo;Estimated&rdquo; badge; sector rows; a footer that explains the estimate.</td><td>Uses the card&rsquo;s sector spread. The sector gained and lost totals can differ from the fund view, which is why the footer says so.</td></tr>
+   <tr><td>7</td><td>Prices missing</td><td>A &ldquo;Partial&rdquo; badge and an amber block listing funds still waiting, each with the clock mark, never as zero.</td><td>Those funds are left out of the net change and listed apart (section 5). Expected less often since the 16 Nov NAV fix.</td></tr>
+   <tr><td>8</td><td>No-change group</td><td>The group opens to list funds whose value did not move (liquid and overnight funds, for example).</td><td>Local only.</td></tr>
+   <tr><td>9</td><td>Markets closed</td><td>A grey summary and a short message with the date of the latest prices.</td><td>The route returns no changed rows; the pop-up shows the message, not an empty list.</td></tr>
+   <tr><td>10</td><td>Could not load</td><td>The summary stays; the list area says it could not load and offers Try again.</td><td>Failure is shown, never swallowed; the card behind is untouched; Try again repeats stage 2.</td></tr>
+   <tr><td>11</td><td>Values hidden</td><td>Rupee amounts become dots; percentages stay.</td><td>Follows Home&rsquo;s existing hide-values setting (the same rule as the graph).</td></tr>
+  </tbody>
+ </table></div>
  <div class="scroll"><table>
   <thead><tr><th>Part</th><th>What it shows</th></tr></thead>
   <tbody>
@@ -715,7 +802,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">A (truth-finding)</td><td>Batch A measures the Overview&rsquo;s requests and loading; this batch adds one request and one graph to it, so the two share a measurement. A&rsquo;s common end date for returns decides where the chart&rsquo;s last point stops.</td></tr>
    <tr><td class="k">C (holdings hygiene)</td><td>No shared files. C&rsquo;s member-list refresh helps the Overview&rsquo;s scope.</td></tr>
    <tr><td class="k">E (explainability and dates)</td><td>The date shown on the graph axis and the &ldquo;as of&rdquo; wording follow E&rsquo;s date policy. An &ldquo;i&rdquo; icon on the graph could explain the two scales; that is E&rsquo;s explainer, not built here.</td></tr>
-   <tr><td class="k">F, K, I (section index, search, PDF export)</td><td>The Overview&rsquo;s header slot is shared by those three. The graph sits in the page body and does not use that slot. The PDF export may want the graph later; the shared component makes that possible.</td></tr>
+   <tr><td class="k">F, K, I (section index, search, PDF export)</td><td>The Overview&rsquo;s header slot is shared by the section index and search; the PDF button moved to the top bar on 17 Nov (Batch I). The graph sits in the page body and does not use that slot. The PDF export may want the graph later; the shared component makes that possible.</td></tr>
    <tr><td class="k">G (GA4)</td><td>The Home tracking plan already names events for period chosen, benchmark chosen and a mover opened. The new component and the pop-up carry the same labels so those events keep working.</td></tr>
    <tr><td class="k">C4 (Standard vs Pro)</td><td>Comparing several benchmarks may be a Pro feature. Nothing is hard-coded: the limit of 3 is a setting.</td></tr>
   </tbody>
@@ -886,22 +973,60 @@ function overview(v){
  }
  return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds')+'<div class="ap"><div class="ap-body">'+strip+gr+rest+'</div></div>',1100,0);
 }
+var PP={nc:false,exp:{}};
+var CL=['#DCFCE7|#15803D','#E0F2FE|#0369A1','#FEF3C7|#B45309','#FCE7F3|#BE185D','#EDE9FE|#6D28D9','#FFEDD5|#C2410C'];
+function lg(n,k){var c=CL[k%CL.length].split('|');return '<div class="pp-lg" style="background:'+c[0]+';color:'+c[1]+'">'+n.charAt(0)+'</div>'}
+function amt(v,hide){return hide?'<span class="pp-hide">&bull;&bull;&bull;&bull;&bull;</span>':v}
+function ppRow(r,k,hide,kid){var pos=r.v>0,z=r.v===0;var w=Math.min(100,Math.abs(r.v)/45)*0.5;
+ var ax=z?'<div class="pp-ax"></div>':'<div class="pp-ax"><i class="'+(pos?'p':'m')+'" style="width:'+w+'%"></i></div>';
+ var a=z?'<span class="pp-am z">&mdash;</span>':'<div class="pp-am '+(pos?'p':'m')+'">'+amt((pos?'+':'&minus;')+'&#8377;'+Math.abs(r.v).toLocaleString('en-IN'),hide)+'<small>'+(pos?'+':'&minus;')+r.p+'%</small></div>';
+ var chev=r.kids?'<span class="pp-chev'+(PP.exp[r.n]?' o':'')+'">&#9656;</span>':'';
+ return '<div class="pp-r" '+(r.kids?'data-pp="exp:'+r.n+'" style="cursor:pointer"':'')+'>'+lg(r.n,k)+'<div><div class="pp-nm">'+chev+r.n+'</div><div class="pp-sb">'+r.s+'</div></div>'+ax+a+'</div>'}
+var FUNDS=[{n:'Alpha Flexi Cap Fund',s:'Flexi Cap · Direct',v:4210,p:'0.8'},{n:'Beacon Large Cap Fund',s:'Large Cap · Regular',v:3320,p:'0.6'},{n:'Cedar Mid Cap Fund',s:'Mid Cap · Direct',v:2440,p:'0.9'},{n:'Delta Small Cap Fund',s:'Small Cap · Direct',v:-2870,p:'0.7'},{n:'Echo Index Fund',s:'Index · Direct',v:-1540,p:'0.5'}];
+var CATS=[{n:'Flexi Cap',s:'1 fund',v:4210,p:'0.8',kids:[FUNDS[0]]},{n:'Large Cap',s:'1 fund',v:3320,p:'0.6',kids:[FUNDS[1]]},{n:'Mid Cap',s:'1 fund',v:2440,p:'0.9',kids:[FUNDS[2]]},{n:'Small Cap',s:'1 fund',v:-2870,p:'0.7',kids:[FUNDS[3]]},{n:'Index Fund',s:'1 fund',v:-1540,p:'0.5',kids:[FUNDS[4]]}];
+var SECT=[{n:'Financial Services',s:'across 6 funds',v:3980,p:'0.9'},{n:'Consumer',s:'across 4 funds',v:2110,p:'0.7'},{n:'Capital Goods',s:'across 3 funds',v:1640,p:'1.1'},{n:'Healthcare',s:'across 3 funds',v:620,p:'0.4'},{n:'Information Technology',s:'across 5 funds',v:-1860,p:'0.8'},{n:'Energy',s:'across 3 funds',v:-930,p:'0.6'}];
+function ppSum(v,hide,badges,g,l,net,pct,cls){var tot=g+l;
+ return '<div class="pp-sum '+(cls||'')+'"><div class="pp-net"><div><div class="ap-mut" style="margin-bottom:2px">Net change today</div><b'+(cls==='flat'?' style="color:#667085"':'')+'>'+amt(net,hide)+'</b></div><em>'+pct+'</em><span class="bg">'+badges+'</span></div>'
+ +(tot?'<div class="pp-split"><i style="width:'+(g/tot*100)+'%;background:#22C55E"></i><i style="width:'+(l/tot*100)+'%;background:#EF4444"></i></div><div class="pp-gl"><span>Gained <b>'+amt('&#8377;'+g.toLocaleString('en-IN'),hide)+'</b></span><span>Lost <b>'+amt('&#8377;'+l.toLocaleString('en-IN'),hide)+'</b></span></div>':'<div class="ap-mut" style="margin-top:6px">No fund changed in value.</div>')+'</div>'}
+function ppSeg(g){return '<div class="pp-ctl"><span class="pp-seg"><button data-pp="stage:sector" class="'+(g==='sector'?'on':'')+'">Sector</button><button data-pp="stage:category" class="'+(g==='category'?'on':'')+'">Category</button><button data-pp="stage:fund" class="'+(g==='fund'?'on':'')+'">Fund</button></span><span class="srt">Largest first</span></div>'}
+function ppHead(){return '<div class="pp-h"><div><h5>Everything that changed today</h5><div class="pp-date">Thursday 12 Nov 2026 &middot; prices as on 12 Nov</div></div><button class="pp-x" data-pp="stage:entry" aria-label="Close">&#10005;</button></div>'}
+function ppFoot(txt,ok){return '<div class="pp-f">'+(ok===false?'':'<span class="ck">&#10003;</span>')+'<span>'+txt+'</span><button class="btn" data-pp="stage:entry">Close</button></div>'}
+function ppGroups(rows,hide,gk){var up=rows.filter(function(r){return r.v>0}),dn=rows.filter(function(r){return r.v<0});var su=up.reduce(function(a,r){return a+r.v},0),sd=dn.reduce(function(a,r){return a+r.v},0);var out='';var idx=0;
+ function rowsHtml(list){return list.map(function(r){var h=ppRow(r,idx++,hide);if(r.kids&&PP.exp[r.n])h+='<div class="pp-kid">'+r.kids.map(function(k){return ppRow(k,idx++,hide)}).join('')+'</div>';return h}).join('')}
+ out+='<div class="pp-gh">Lifted your portfolio &middot; '+up.length+' '+gk+(up.length>1?'s':'')+'<span class="t p">'+amt('+&#8377;'+su.toLocaleString('en-IN'),hide)+'</span></div>'+rowsHtml(up);
+ out+='<div class="pp-gh">Pulled it down &middot; '+dn.length+' '+gk+(dn.length>1?'s':'')+'<span class="t m">'+amt('&minus;&#8377;'+Math.abs(sd).toLocaleString('en-IN'),hide)+'</span></div>'+rowsHtml(dn);return out}
+function ppNoChange(open){var z=[{n:'Foxtrot Liquid Fund',s:'Liquid · Direct',v:0},{n:'Gamma Gilt Fund',s:'Gilt · Direct',v:0},{n:'Hotel Overnight Fund',s:'Overnight · Direct',v:0}];
+ return '<div class="pp-gh" data-pp="nc" style="cursor:pointer"><span class="pp-chev'+(PP.nc?' o':'')+'">&#9656;</span>No change &middot; 3 funds<span class="t" style="color:#667085">'+(PP.nc?'Hide':'Show')+'</span></div>'+(PP.nc?z.map(function(r,k){return ppRow(r,k+3,false)}).join(''):'')}
+function ppWaiting(){var w=[['Foxtrot Debt Fund','Corporate Bond · Direct'],['Gamma Hybrid Fund','Hybrid · Regular']];
+ return '<div class="pp-wait"><div class="pp-gh" style="position:static;padding-bottom:2px;color:#B45309">Waiting for today&rsquo;s price &middot; 2 funds</div><div class="note">Not counted in the net change until the price arrives. They are never shown as zero.</div>'+w.map(function(r){return '<div class="pp-wr"><div class="pp-clock">&#9719;</div><div><div class="pp-nm">'+r[0]+'</div><div class="pp-sb">'+r[1]+'</div></div><span class="ap-mut">price expected later today</span><span class="ap-mut" style="text-align:right">&mdash;</span></div>'}).join('')+'</div>'}
+function homeCard(hot){
+ var rowsM=[['Alpha Flexi Cap Fund','+&#8377;4,210','p'],['Beacon Large Cap Fund','+&#8377;3,320','p'],['Delta Small Cap Fund','&minus;&#8377;2,870','m'],['Echo Index Fund','&minus;&#8377;1,540','m']];
+ return '<div class="pp-card"><div style="display:flex;justify-content:space-between;align-items:center"><h5 style="font:700 16px DM Sans,sans-serif">What moved today</h5><span class="seg"><span>Sector</span><span>Category</span><span class="on">Fund</span></span></div><div style="margin:10px 0 4px"><b style="font:700 22px DM Sans,sans-serif;color:#15803D">+&#8377;5,560</b> <span class="ap-mut">net change</span></div><div class="pp-split" style="margin:6px 0 10px"><i style="width:69%;background:#22C55E"></i><i style="width:31%;background:#EF4444"></i></div>'
+ +rowsM.map(function(r,k){return '<div class="mv" style="grid-template-columns:1fr 90px"><span>'+r[0]+'</span><b class="'+r[2]+'">'+r[1]+'</b></div>'}).join('')+'<div class="mv" style="grid-template-columns:1fr 90px"><span class="ap-mut">3 others</span><b class="p" style="color:#667085">+&#8377;2,440</b></div>'
+ +'<div class="pp-link" data-pp="stage:loading">View all by day&rsquo;s change &rarr;</div>'+(hot?'':'')+'<div class="ap-mut" style="margin-top:10px">Today it is greyed out and says &ldquo;Coming soon&rdquo;. After: it is live, as drawn.</div></div>'}
+function ppWrap(inner){return vp(chrome('ls-redesign.unifolio.in/home')+'<div class="pp-bg"><div class="dim"></div><div class="pp-dlg">'+inner+'</div></div>',1000,0)}
 function popup(v){
- var rows=[['Alpha Flexi Cap Fund',38,'+&#8377;4,210',0],['Beacon Large Cap Fund',30,'+&#8377;3,320',0],['Cedar Mid Cap Fund',22,'+&#8377;2,440',0],['Delta Small Cap Fund',-26,'&minus;&#8377;2,870',1],['Echo Index Fund',-14,'&minus;&#8377;1,540',1]];
- var list=rows.map(function(r){return '<div class="mv"><span>'+r[0]+'</span><span><div class="bar'+(r[3]?' n':'')+'" style="width:'+Math.abs(r[1])*2.4+'px"></div></span><b class="'+(r[3]?'m':'p')+'">'+r[2]+'</b></div>'});
- var inner='<div class="grp">Lifted your portfolio</div>'+list.slice(0,3).join('')+'<div class="grp">Pulled it down</div>'+list.slice(3).join('')+'<div class="grp">No change (3 funds)</div><div class="ap-mut" style="padding:4px 0">Show</div><div class="grp">Waiting for today&rsquo;s price (2 funds)</div><div class="mv"><span>Foxtrot Debt Fund</span><span class="ap-mut">price expected later today</span><b style="text-align:right;color:#667085">&mdash;</b></div><div class="mv"><span>Gamma Hybrid Fund</span><span class="ap-mut">price expected later today</span><b style="text-align:right;color:#667085">&mdash;</b></div>';
- var head='<header><div><h5>Everything that changed today</h5><div class="ap-mut">Thursday 12 Nov 2026</div></div><span style="font-size:18px;color:#667085">&#10005;</span></header>';
- var sub='<div style="padding:10px 20px 0"><div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap"><div><div class="ap-mut">Net change</div><b style="font:700 20px DM Sans,sans-serif;color:#15803D">+&#8377;5,560</b></div><div class="ap-mut">Gained &#8377;9,970 &middot; Lost &#8377;4,410</div><span class="seg" style="margin-left:auto"><span>Sector</span><span>Category</span><span class="on">Fund</span></span></div></div>';
- var foot='<div class="ap-mut" style="padding:8px 20px 14px;border-top:1px solid #EEF0EE">Rows add up to the net change.</div>';
- var card=head+sub+'<div class="bd">'+inner+'</div>'+foot;
- if(v==='phone'){
-  return vp('<div class="phs"><div class="scr" style="background:#111"><div class="sb"><b></b></div><div style="background:rgba(17,17,17,.55);min-height:700px;position:relative"><div class="dlgx" style="position:absolute;left:0;right:0;bottom:0;width:auto;max-height:640px;border-radius:18px 18px 0 0">'+card+'</div></div></div></div>',390,0);
- }
- return vp(chrome('ls-redesign.unifolio.in/home')+'<div style="background:#E9EDE9;min-height:720px;display:flex;align-items:center;justify-content:center;position:relative"><div style="position:absolute;inset:0;background:rgba(17,17,17,.5)"></div><div class="dlgx" style="position:relative">'+card+'</div></div>',1000,0);
+ var H=v==='hidden';if(v==='expand')PP.exp['Large Cap']=true;if(v==='nochange')PP.nc=true;
+ if(v==='entry')return vp(chrome('ls-redesign.unifolio.in/home')+'<div class="pp-bg" style="min-height:560px">'+homeCard()+'</div>',1000,0);
+ var net='+&#8377;5,560',pct='+0.14% of your portfolio';
+ if(v==='loading')return ppWrap(ppHead()+ppSum(v,false,'',9970,4410,net,pct)+ppSeg('fund')+'<div class="pp-bd">'+[1,2,3,4,5,6].map(function(){return '<div class="pp-r"><div class="pp-sk" style="width:34px;height:34px;border-radius:10px"></div><div><div class="pp-sk" style="width:70%"></div><div class="pp-sk" style="width:40%;margin-top:6px;height:10px"></div></div><div class="pp-sk"></div><div class="pp-sk" style="width:70px;margin-left:auto"></div></div>'}).join('')+'</div>'+ppFoot('Loading every fund&hellip; The summary above is already from the card.',false));
+ if(v==='failed')return ppWrap(ppHead()+ppSum(v,false,'',9970,4410,net,pct)+ppSeg('fund')+'<div class="pp-bd"><div class="pp-center"><div class="ic" style="background:#FEF3F2;color:#B42318">!</div><h6>We couldn&rsquo;t load the full list</h6><div>The card behind this window is unchanged. Try again in a moment.</div><button class="btn" data-pp="stage:loading">Try again</button></div></div>'+ppFoot('Nothing was changed.',false));
+ if(v==='empty')return ppWrap(ppHead()+ppSum(v,false,'',0,0,'&#8377;0','No price changes','flat')+ppSeg('fund')+'<div class="pp-bd"><div class="pp-center"><div class="ic">&#9790;</div><h6>Markets were closed today</h6><div>No fund had a new price. Latest prices are as on Friday 13 Nov 2026.</div></div></div>'+ppFoot('Nothing to add up.',false));
+ var g=v==='category'||v==='expand'?'category':(v==='sector'?'sector':'fund');
+ var badges=v==='sector'?'<span class="pp-badge est">Estimated</span>':(v==='waiting'?'<span class="pp-badge part">Partial &middot; 2 funds waiting</span>':'');
+ var body='',foot='Rows add up to the net change.';
+ if(g==='fund'){body=ppGroups(FUNDS,H,'fund')+ppNoChange()+(v==='waiting'?ppWaiting():'');}
+ if(g==='category'){body=ppGroups(CATS,H,'category')+ppNoChange();}
+ if(g==='sector'){body=ppGroups(SECT,H,'sector');foot='Estimated: each fund&rsquo;s change is spread over its sectors by its holdings, so the sector gained and lost totals differ from the fund view. Rows still add up to the net change.';}
+ var sumG=g==='sector'?8350:9970,sumL=g==='sector'?2790:4410;
+ if(v==='waiting'){foot='Rows add up to the net change. 2 funds are not counted yet.';}
+ return ppWrap(ppHead()+ppSum(v,H,badges,sumG,sumL,net,pct)+ppSeg(g)+'<div class="pp-bd">'+body+'</div>'+ppFoot(foot)+(H?'':''));
 }
-var STATE={'i13':'today','i14':'a','i15':'desk'};
+var STATE={'i13':'today','i14':'a','i15':'fund'};
 function frame(n){switch(n){case 'wealth':return wealth(STATE['i13']);case 'overview':return overview(STATE['i14']==='phone'?'phone':'a');case 'popup':return popup(STATE['i15']);}return ''}
+document.addEventListener('click',function(e){var t=e.target.closest('[data-pp]');if(!t)return;var a=t.getAttribute('data-pp');if(a.indexOf('stage:')===0){setStage(a.slice(6));return}if(a==='nc'){PP.nc=!PP.nc;if(STATE['i15']==='nochange')STATE['i15']='fund';renderAll();return}if(a.indexOf('exp:')===0){var k=a.slice(4);PP.exp[k]=!PP.exp[k];STATE['i15']='category';renderAll();return}});
 function layout(){document.querySelectorAll('.vp').forEach(function(v){var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');inn.style.width=w+'px';inn.style.height=h?h+'px':'auto';var hh=h||inn.offsetHeight;var sc=Math.min(1,v.clientWidth/w);inn.style.transform='scale('+sc+')';v.style.height=Math.ceil(hh*sc)+'px'})}
+function setStage(st){STATE['i15']=st;var bar=document.querySelector('.winbar[data-sec="i15"]');if(bar)bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x.getAttribute('data-v')===st?'true':'false')});renderAll();if(st==='loading'){clearTimeout(window.__ppt);window.__ppt=setTimeout(function(){if(STATE['i15']==='loading')setStage('fund')},1100)}}
 function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});layout()}
 document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){var sec=bar.getAttribute('data-sec');bar.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){STATE[sec]=b.getAttribute('data-v');bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});renderAll()})})});
 renderAll();window.addEventListener('resize',layout);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layout);setTimeout(layout,400);

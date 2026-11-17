@@ -360,9 +360,9 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <nav class="toc" aria-label="Contents">
  <h4>Start here</h4>
  <a href="#where">1. Where we stand</a>
- <h4>The three items</h4>
+ <h4>The items</h4>
  <a href="#i11">2. Dates across the app (11)</a>
- <a href="#i9">3. Category average legend (9)</a>
+ <a href="#i9">3. Category average (9): dropped</a>
  <a href="#i16">4. PE/PB source icon (16)</a>
  <a href="#info">5. One shared &ldquo;i&rdquo; component</a>
  <h4>How we build it</h4>
@@ -380,16 +380,17 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <div class="hero">
  <h1>Batch E Planning</h1>
  <div class="meta">Planning only &middot; nothing built or run &middot; 13 Nov 2026 &middot; updated with your answers &middot; branch leapswitch-redesign</div>
- <p>Explainability and dates: three changes that make the numbers easier to trust and read. A <b>single date policy</b> for the whole app, so different sections stop looking inconsistent (item 11); an <b>&ldquo;i&rdquo; icon with a legend and the calculation</b> on the category-average card (item 9, copy only; the stakeholder Excel moved to Batch A); and <b>one &ldquo;i&rdquo; icon per fund</b> that replaces the P/E and P/B source pills (item 16). The output is one date module, one shared &ldquo;i&rdquo; component, and two sets of plain-language copy.</p>
- <p><b>How this was made.</b> I read the code for all three items today, read-only: every place the app prints a date, the helpers behind them, where each date comes from on the server, the existing &ldquo;i&rdquo; components, and the P/E and P/B table. Every statement about the code is labelled <em>read in code</em>. Nothing was run, and I did not look at the live app. Mockups are my reconstructions with made-up numbers and <b>show laptop views only</b>: the phone view is out of scope for every batch. <b>Updated 13 Nov:</b> both questions are answered and recorded (two date tiers; one strip under the tabs with details in each card&rsquo;s &ldquo;i&rdquo;). This batch can be planned now; the wording of the category-average legend waits for Batch A&rsquo;s verdict on the calculation, and the source labels in item 16 wait for the fact-sheet fixes your manager is building.</p>
+ <p><b>Updated 17 Nov (your review).</b> Two changes. (1) <b>No new dates anywhere:</b> a place that shows no date today stays without one. That removes the planned date on the XIRR tile, the category average and the rank, and with it the small backend change. (2) <b>Item 9 is dropped from this batch:</b> the category average gets no &ldquo;i&rdquo;; the Excel in Batch A is the explanation. Everything else is as before.</p>
+ <p>Explainability and dates: two changes that make the numbers easier to trust and read. A <b>single date policy</b> for the dates the app already shows, so different sections stop looking inconsistent (item 11), and <b>one &ldquo;i&rdquo; icon per fund</b> that replaces the P/E and P/B source pills (item 16). Item 9 (category average) is now only the Excel, in Batch A. The output is one date module, one shared &ldquo;i&rdquo; component, and one set of plain-language copy.</p>
+ <p><b>How this was made.</b> I read the code for the three original items today, read-only: every place the app prints a date, the helpers behind them, where each date comes from on the server, the existing &ldquo;i&rdquo; components, and the P/E and P/B table. Every statement about the code is labelled <em>read in code</em>. Nothing was run, and I did not look at the live app. Mockups are my reconstructions with made-up numbers and <b>show laptop views only</b>: the phone view is out of scope for every batch. <b>Updated 13 Nov:</b> both questions are answered and recorded (two date tiers; one strip under the tabs with details in each card&rsquo;s &ldquo;i&rdquo;). This batch can be planned now; the wording of the category-average legend waits for Batch A&rsquo;s verdict on the calculation, and the source labels in item 16 wait for the fact-sheet fixes your manager is building.</p>
 </div>
 
 <!-- ============ 1. WHERE WE STAND ============ -->
 <section id="where">
  <h2>1. Where we stand</h2>
- <p class="lead">Three items, no database change, and seven findings. The inconsistency you saw is less about how dates are written and more about <b>which</b> dates are shown, what they mean, and the many different &ldquo;i&rdquo; patterns.</p>
+ <p class="lead">Two items (11 and 16; item 9 dropped), no database change and no backend change, and seven findings. The inconsistency you saw is less about how dates are written and more about <b>which</b> dates are shown, what they mean, and the many different &ldquo;i&rdquo; patterns.</p>
  <div class="stats">
-  <div class="stat"><div class="n">3</div><div class="l">items (11, 9, 16)</div></div>
+  <div class="stat"><div class="n">2</div><div class="l">items (11, 16); item 9 is only the Excel in Batch A</div></div>
   <div class="stat"><div class="n">0</div><div class="l">database migrations planned</div></div>
   <div class="stat"><div class="n">2 / 2</div><div class="l">questions answered</div></div>
   <div class="stat"><div class="n">14</div><div class="l">tasks in the list (section 8)</div></div>
@@ -397,8 +398,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (read in code)</th><th>What changes</th><th>Layers</th></tr></thead>
   <tbody>
-   <tr><td class="k">11. Date consistency</td><td>Make the dates consistent across sections (for example &ldquo;data acquired November 2026&rdquo;).</td><td>About 20 &ldquo;as on&rdquo; or &ldquo;as of&rdquo; labels in about 15 files, written with at least six helpers and a dozen different phrasings. The figures themselves are dated differently: daily prices, monthly disclosures, ratio dates, a monthly fee date. Several figures show <b>no date at all</b>: the XIRR tile, the category average and the rank.</td><td>One date policy (Q1), one date module and label component, one place where dates are shown (Q2), a price date on the three undated figures.</td><td><span class="tag fe">frontend</span> <span class="tag be">backend (small)</span></td></tr>
-   <tr><td class="k">9. Category average: legend and &ldquo;i&rdquo;</td><td>An &ldquo;i&rdquo; icon (hover or click) with a legend and the calculation. The Excel is separate.</td><td>The card has a one-sentence hover tooltip and a footer legend line. It cannot hold a legend plus a calculation.</td><td>A richer &ldquo;i&rdquo; popover for this card, with the legend and the calculation in plain words.</td><td><span class="tag fe">frontend</span> <span class="tag none">copy</span></td></tr>
+   <tr><td class="k">11. Date consistency</td><td>Make the dates consistent across sections (for example &ldquo;data acquired November 2026&rdquo;).</td><td>About 20 &ldquo;as on&rdquo; or &ldquo;as of&rdquo; labels in about 15 files, written with at least six helpers and a dozen different phrasings. The figures themselves are dated differently: daily prices, monthly disclosures, ratio dates, a monthly fee date. Several figures show <b>no date at all</b>: the XIRR tile, the category average and the rank.</td><td>One date policy (Q1), one date module and label component, one place where dates are shown (Q2). <b>Figures that show no date today stay without one</b> (decided 17 Nov).</td><td><span class="tag fe">frontend</span></td></tr>
+   <tr><td class="k">9. Category average: legend and &ldquo;i&rdquo;</td><td>An &ldquo;i&rdquo; icon with a legend and the calculation.</td><td>The card has a one-sentence hover tooltip and a footer legend line.</td><td><b>Dropped on 17 Nov.</b> No &ldquo;i&rdquo;: the card stays as it is, and the Excel in Batch A is the explanation.</td><td><span class="tag none">none</span></td></tr>
    <tr><td class="k">16. PE/PB source icon</td><td>Remove the source pills (NSE, BSE, factsheet); one &ldquo;i&rdquo; next to the fund name explains the source.</td><td>Each fund shows two pills (one for P/E, one for P/B), each reading &ldquo;Factsheet&rdquo;, &ldquo;Factsheet fwd&rdquo; or &ldquo;NSE/BSE&rdquo;, with a hover note, plus a footnote and an &ldquo;As on&rdquo; column.</td><td>Delete the pills; add one &ldquo;i&rdquo; per fund whose popover explains both figures; fold the footnote into it.</td><td><span class="tag fe">frontend</span> <span class="tag none">copy</span></td></tr>
   </tbody>
  </table></div>
@@ -409,14 +410,14 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <tbody>
    <tr><td>F1</td><td>Dates are written by <b>six helpers</b> with different results: <code>formatDate</code> &ldquo;12 Oct 2026&rdquo;; <code>formatExactDate</code> &ldquo;12 October 2026&rdquo;; <code>holdingsDate</code> (a browser formatter, which may print &ldquo;Sept&rdquo; for September; not checked); <code>formatDayMonth</code> &ldquo;12 Oct&rdquo;; <code>formatAsOf</code> &ldquo;as of 12 Oct&rdquo;; and two functions both named <code>formatMonthYear</code>, one printing &ldquo;October 2026&rdquo; and one &ldquo;Oct 2026&rdquo;.</td><td>The same kind of date can read three ways on three screens, and a developer cannot tell which helper is the standard.</td></tr>
    <tr><td>F2</td><td>The wording differs by area: the Mutual Funds tabs say <b>&ldquo;as on&rdquo;</b> (&ldquo;Values as on&rdquo;, &ldquo;Holdings as on&rdquo;, &ldquo;Fundamentals as on&rdquo;, an &ldquo;As on&rdquo; column), Home and the fund page say <b>&ldquo;as of&rdquo;</b>, and others use &ldquo;Ref:&rdquo;, &ldquo;Updated&rdquo;, &ldquo;Details as of&rdquo;, &ldquo;NAV as of&rdquo;, &ldquo;Disclosure as of&rdquo;.</td><td>Looks like different products on different pages.</td></tr>
-   <tr><td>F3</td><td>The XIRR tile, the category average and the rank show <b>no date</b> (no date helper is used in those components). The server&rsquo;s rank and average replies carry no price date either; only the stored section has a <code>computed_at</code> time.</td><td>These are the numbers stakeholders question most, and nothing says which prices they were computed on.</td></tr>
+   <tr><td>F3</td><td>The XIRR tile, the category average and the rank show <b>no date</b> (no date helper is used in those components). The server&rsquo;s rank and average replies carry no price date either; only the stored section has a <code>computed_at</code> time.</td><td>These are the numbers stakeholders question most, and nothing says which prices they were computed on. <b>Decided 17 Nov: they stay without a date.</b> Batch A&rsquo;s Excel carries the explanation instead.</td></tr>
    <tr><td>F4</td><td>The dates mean different things: <b>daily prices</b> (the NAV day); <b>monthly disclosures</b> (month-end, for example 30 Sep); a fund&rsquo;s P/E date is the <b>oldest</b> of its stocks&rsquo; ratio dates; the fee date is a month-end; the market-cap list has an <b>effective</b> date (1 Jul); a score has a <b>computed</b> time.</td><td>One rule such as &ldquo;show only the month&rdquo; fits some of these and hides what matters for others (a NAV day).</td></tr>
    <tr><td>F5</td><td>Home already has a rule for &ldquo;the price day&rdquo;: the latest recent day on which funds holding at least half of the portfolio have a price (<code>movers.py</code>). Other screens read their own <code>nav_as_of</code>.</td><td>Before the 16 Nov NAV fix, held funds lagged by days, so two screens could show two different &ldquo;prices as on&rdquo; dates for the same moment. That lag is gone for held funds, but a screen that reads its own <code>nav_as_of</code> can still differ from Home&rsquo;s rule, so the one-date rule stays.</td></tr>
    <tr><td>F6</td><td>The existing &ldquo;i&rdquo; (<code>InfoMark</code>, used by about 20 cards through <code>SectionCard</code>) is a <b>hover-only, one-sentence</b> tooltip with no click behaviour. At least <b>four other patterns</b> exist: a Radix tooltip pill (the source pills), an inline &ldquo;i &middot; How the portfolio average works&rdquo; button, a &ldquo;How is this calculated?&rdquo; button on Home, and a score explainer button.</td><td>Items 9 and 16 need something richer, and a fifth pattern would add to the mess. One shared component is the cleaner answer (section 5).</td></tr>
    <tr><td>F7</td><td>The installed Radix packages are <b>tooltip and dialog</b>; there is no popover package.</td><td>A proper popover (hover or click, keyboard and touch friendly) needs either one small new package from the same library or a workaround on the tooltip (section 5).</td></tr>
   </tbody>
  </table></div>
- <div class="callout good"><b>Moved out and moved in.</b> The detailed category-average Excel for stakeholders is in Batch A, as you decided. This batch only does the on-screen legend and &ldquo;i&rdquo;. The legend&rsquo;s final wording waits for Batch A&rsquo;s verdict on the calculation.</div>
+ <div class="callout good"><b>Moved out and dropped.</b> The detailed category-average Excel for stakeholders is in Batch A, as you decided. On 17 Nov you also dropped the on-screen &ldquo;i&rdquo; for the category average: the Excel is the only explanation, so this batch has no work on that card.</div>
 </section>
 
 <!-- ============ 2. ITEM 11 ============ -->
@@ -424,6 +425,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h2>2. Dates across the app (item 11)</h2>
  <p class="lead">Different sections show different dates, and that is not wrong: each shows when its own data was acquired. The goal is to make that obvious and consistent.</p>
 
+ <div class="callout"><b>Decided 17 Nov: no new dates.</b> Wherever the app shows no date today, it keeps showing none. This batch only makes the dates that are already shown consistent. The XIRR tile, the category average and the rank stay undated. The page strip lists only the data kinds that a tab already shows a date for; a tab with none gets no strip entry for it (the audit, task E-2, confirms this tab by tab).</div>
  <h3 class="sub">What each date means (read in code)</h3>
  <div class="scroll"><table>
   <thead><tr><th>Figure</th><th>What the date really is</th><th>How often it changes</th><th>What the screen says today</th></tr></thead>
@@ -433,8 +435,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">P/E and P/B</td><td>A fund&rsquo;s figure is either printed on its factsheet (month-end) or worked out from its stocks&rsquo; ratios, dated by the <b>oldest</b> of those</td><td>Daily for stocks; monthly for factsheets</td><td><span class="lbl">Fundamentals as on 12 Oct 2026</span> and an <span class="lbl">As on</span> column with a date per fund</td></tr>
    <tr><td class="k">Fund fee (TER)</td><td>The fee&rsquo;s reference month (stored as a month-end date)</td><td>Monthly</td><td><span class="lbl">Ref: 30 Sep 2026</span> (a month shown as an exact day)</td></tr>
    <tr><td class="k">Market-cap list</td><td>The AMFI list&rsquo;s effective date</td><td>Half-yearly</td><td><span class="lbl">AMFI classification effective from 1 Jul 2026</span></td></tr>
-   <tr><td class="k">Category average, rank</td><td>The latest prices at the time the stored result was built</td><td>Daily</td><td><span class="lbl none">no date shown</span></td></tr>
-   <tr><td class="k">XIRR (portfolio and per fund)</td><td>Today&rsquo;s value as the final cash flow</td><td>Daily</td><td><span class="lbl none">no date shown</span></td></tr>
+   <tr><td class="k">Category average, rank</td><td>The latest prices at the time the stored result was built</td><td>Daily</td><td><span class="lbl none">no date shown (stays that way)</span></td></tr>
+   <tr><td class="k">XIRR (portfolio and per fund)</td><td>Today&rsquo;s value as the final cash flow</td><td>Daily</td><td><span class="lbl none">no date shown (stays that way)</span></td></tr>
    <tr><td class="k">Benchmark returns</td><td>The start of the measured window</td><td>Daily</td><td><span class="lbl">Measured from 12 Oct 2025</span></td></tr>
    <tr><td class="k">Fund manager</td><td>A reference date of the details; a start date</td><td>Occasionally</td><td><span class="lbl">Details as of 30 Sep 2026</span>, <span class="lbl">Managing since 3 Mar 2019</span></td></tr>
    <tr><td class="k">Fund score</td><td>When the score was computed</td><td>Daily</td><td><span class="lbl">Updated 12 Nov 2026</span></td></tr>
@@ -459,7 +461,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h3 class="sub">Where the dates live (decided: Q2 B, one strip with details in the &ldquo;i&rdquo;)</h3>
  <div class="winbar" data-sec="i11b"><span>Layout</span><button type="button" data-v="cards" aria-pressed="false">A. On every card</button><button type="button" data-v="strip" aria-pressed="true">B. One strip, details in the &ldquo;i&rdquo; (chosen)</button><button type="button" data-v="hybrid" aria-pressed="false">C. Strip, plus a card line only when it differs</button></div>
  <div data-frame="layout"></div>
- <p class="note">Policy B (two tiers) is drawn in every layout. The strip sits <b>under the page header and tabs, above the cards</b>, so it does not use the header slot that search, the section index and the PDF button share. The older-data marker (right of the strip) is explained below.</p>
+ <p class="note">Policy B (two tiers) is drawn in every layout. The strip sits <b>under the page header and tabs, above the cards</b>, so it does not use the header slot that search and the section index share (the PDF button is in the top bar since 17 Nov). The older-data marker (right of the strip) is explained below.</p>
  <div class="scroll"><table>
   <thead><tr><th>Option</th><th>How it works</th><th>Strength</th><th>Weakness</th></tr></thead>
   <tbody>
@@ -470,7 +472,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  </table></div>
 
  <h3 class="sub">What the strip shows, and the older-data marker</h3>
- <p>The strip lists only the data kinds the tab actually uses, each as one short entry. My reading of which tab uses what (the audit, task E-2, confirms it):</p>
+ <p>The strip lists only the data kinds the tab actually uses <b>and already dates today</b>, each as one short entry. My reading of which tab uses what (the audit, task E-2, confirms it; an entry for a kind the tab does not date today is removed):</p>
  <div class="scroll"><table>
   <thead><tr><th>Tab</th><th>Strip entries</th></tr></thead>
   <tbody>
@@ -492,15 +494,15 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <ul class="tight">
   <li><b>One word:</b> &ldquo;as on&rdquo; everywhere. It is the Indian financial usage, how fund houses print their disclosures, and already on the Mutual Funds tabs. Tell me if you prefer &ldquo;as of&rdquo;.</li>
   <li><b>One price date:</b> every &ldquo;Prices as on&rdquo; uses Home&rsquo;s rule (the latest recent day on which funds holding at least half the portfolio have a price), so a late publisher does not drag the date back (a smaller effect since the 16 Nov NAV fix, but still the rule). Funds still waiting show the existing &ldquo;Partial&rdquo; badge. This follows Batch A&rsquo;s common end date for returns.</li>
-  <li><b>The three undated figures get a date:</b> the XIRR tile, the category average and the rank say &ldquo;Based on prices as on 12 Nov 2026&rdquo;. The server adds that one date to their replies (a small, additive backend change; see below).</li>
+  <li><b>The three undated figures stay undated</b> (decided 17 Nov): the XIRR tile, the category average and the rank keep showing no date, and the server&rsquo;s replies are not changed.</li>
   <li><b>Month-end dates become a month</b> under policy B (the fee&rsquo;s &ldquo;Ref: 30 Sep 2026&rdquo; becomes &ldquo;as on September 2026&rdquo;).</li>
   <li><b>Not changed:</b> transaction dates, SIP due dates, &ldquo;managing since&rdquo;, first and last investment, chart axis labels and tooltips (those are Batch D&rsquo;s chart). News keeps its relative &ldquo;Updated 3 hours ago&rdquo;.</li>
  </ul>
 
  <h3 class="sub">Before and after</h3>
  <div class="flow">
-  <div><h4>Before</h4><ol><li>The same kind of date reads &ldquo;12 Oct 2026&rdquo;, &ldquo;12 October 2026&rdquo;, &ldquo;as of 12 Oct&rdquo; or &ldquo;Oct 2026&rdquo; depending on the screen.</li><li>&ldquo;As on&rdquo; and &ldquo;as of&rdquo; are mixed.</li><li>The XIRR, the average and the rank carry no date.</li></ol></div>
-  <div><h4>After (your answers)</h4><ol><li>One module decides the words and the format for every data date.</li><li>Prices read &ldquo;Prices as on 12 Nov 2026&rdquo;; monthly data reads &ldquo;as on September 2026&rdquo;.</li><li>The page strip states the dates once; each card&rsquo;s &ldquo;i&rdquo; names its own; an older-data marker warns when something is behind.</li><li>The three undated figures say which prices they are based on.</li></ol></div>
+  <div><h4>Before</h4><ol><li>The same kind of date reads &ldquo;12 Oct 2026&rdquo;, &ldquo;12 October 2026&rdquo;, &ldquo;as of 12 Oct&rdquo; or &ldquo;Oct 2026&rdquo; depending on the screen.</li><li>&ldquo;As on&rdquo; and &ldquo;as of&rdquo; are mixed.</li><li>The XIRR, the average and the rank carry no date (and keep carrying none).</li></ol></div>
+  <div><h4>After (your answers)</h4><ol><li>One module decides the words and the format for every data date.</li><li>Prices read &ldquo;Prices as on 12 Nov 2026&rdquo;; monthly data reads &ldquo;as on September 2026&rdquo;.</li><li>The page strip states the dates once; each card&rsquo;s &ldquo;i&rdquo; names its own; an older-data marker warns when something is behind.</li><li>The three undated figures stay as they are, with no date.</li></ol></div>
  </div>
 
  <h3 class="sub">What changes, by layer</h3>
@@ -508,7 +510,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <thead><tr><th>Layer</th><th>Change</th></tr></thead>
   <tbody>
    <tr><td class="k"><span class="tag fe">frontend</span></td><td><b>New:</b> one date module (the kinds of date, the wording, the format, the older-data rule) and one small label component; the strip on the Mutual Funds frame (<code>mutual-funds/frame/MutualFundsFrame.tsx</code>). <b>Changed:</b> every as-of label (about 20, in the allocation, other-analytics, overlap, holdings and fund-page components, and Home) to use the module instead of calling a date helper directly. The six helpers stay for event dates; the duplicate <code>formatMonthYear</code> is merged. A test fails if a screen hard-codes &ldquo;as on&rdquo; or &ldquo;as of&rdquo; wording. The per-card footer lines are removed in favour of the strip and the cards&rsquo; &ldquo;i&rdquo;.</td></tr>
-   <tr><td class="k"><span class="tag be">backend</span></td><td>Small and additive: add one <code>prices_as_on</code> date to the category-average, rank and portfolio-summary (XIRR) replies, set from Batch A&rsquo;s common end date. Nothing existing is renamed or removed. No stored result is recomputed for this, but results stored before the deploy lack the new field until their next recompute (the screens show nothing extra for them until then).</td></tr>
+   <tr><td class="k"><span class="tag be">backend</span></td><td><b>None.</b> The planned <code>prices_as_on</code> field for the XIRR, category-average and rank replies is dropped with the decision to add no new dates (17 Nov).</td></tr>
    <tr><td class="k"><span class="tag db">database</span></td><td>None.</td></tr>
   </tbody>
  </table></div>
@@ -516,37 +518,15 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 
 <!-- ============ 3. ITEM 9 ============ -->
 <section id="i9">
- <h2>3. Category average: the legend and the &ldquo;i&rdquo; (item 9)</h2>
- <p class="lead">A popover on the category card that shows the legend and explains the calculation. The words are written now; the numbers in them are checked against Batch A&rsquo;s verdict before they ship.</p>
-
- <h3 class="sub">What the card has today (read in code)</h3>
- <ul class="tight">
-  <li>A one-sentence tooltip on the card title: &ldquo;The average of funds in the same category and plan type, weighted by fund size. Each fund needs at least 3 years of history.&rdquo;</li>
-  <li>Under the rows: &ldquo;Category average covers 31 funds (1Y), 31 (3Y), 24 (5Y).&rdquo; and the legend line &ldquo;Filled dot: your fund. Hollow dot: category average. Green means ahead; red means behind.&rdquo;</li>
-  <li>Each period row (1Y, 3Y, 5Y) shows a coloured gap such as <b>+1.2%</b> over <b>4.6% vs 3.4%</b>. Those are the &ldquo;three values&rdquo; you described in Batch A.</li>
- </ul>
-
- <h3 class="sub">The proposed &ldquo;i&rdquo; popover</h3>
- <div class="winbar" data-sec="i9"><span>State</span><button type="button" data-v="closed" aria-pressed="false">Closed</button><button type="button" data-v="open" aria-pressed="true">Open</button></div>
- <div data-frame="catpop"></div>
- <p class="note">Made-up fund and numbers; laptop view. The popover opens when the icon is hovered or focused and stays open when it is clicked; Escape or a click outside closes it.</p>
- <p><b>Draft copy</b> (plain words; final after Batch A&rsquo;s verdict):</p>
- <div class="doc">
-  <h4>How to read this</h4>
-  <ul><li><b>Filled dot</b> is your fund. <b>Hollow dot</b> is the category average.</li><li>The <b>number above the dots</b> is the gap: your fund&rsquo;s return minus the category average. Green means ahead, red means behind.</li><li>The <b>second line</b> shows the two returns: your fund against the category.</li><li>There is one row for each period: 1 year, 3 years and 5 years.</li></ul>
-  <h4>How the average is worked out</h4>
-  <ul><li>We take every fund in the same SEBI category and the same plan (Direct with Direct, Regular with Regular).</li><li>Only funds with at least 3 years of history count, in every period.</li><li>Each fund counts in proportion to its size (its average assets under management), so a large fund moves the average more than a small one. A fund with no size on record is left out of the weighting.</li><li>If no fund in the category has a size, we show a plain average and say so.</li></ul>
-  <h4>Good to know</h4>
-  <ul><li>Categories with fewer than 5 funds are marked as small, so treat the average with care.</li><li>Returns are based on prices as on 12 Nov 2026 (the date follows the policy: Q1 B).</li></ul>
- </div>
- <h3 class="sub">What changes, by layer</h3>
+ <h2>3. Category average (item 9): dropped from this batch</h2>
+ <p class="lead">Decided 17 Nov: the category average gets <b>no &ldquo;i&rdquo; icon and no popover</b>. The only explanation is the detailed Excel sheet, which is built in Batch A.</p>
  <div class="scroll"><table>
-  <thead><tr><th>Layer</th><th>Change</th></tr></thead>
+  <thead><tr><th>Part</th><th>What happens</th></tr></thead>
   <tbody>
-   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>mutual-funds/other/CategoryRankingGroup.tsx</code>: use the shared &ldquo;i&rdquo; popover (section 5) with the legend and the explanation; the footer legend line moves into it, so the card is shorter. The existing one-sentence tooltip is replaced, not duplicated.</td></tr>
-   <tr><td class="k"><span class="tag be">backend</span> <span class="tag db">database</span></td><td>None for this item (the date field is in item 11).</td></tr>
-   <tr><td class="k">Copy</td><td>The wording above, kept in one copy file (like the existing <code>mfCopy.ts</code>) so it changes in one place. Final wording after Batch A: if a fix changes the weighting, the 3-year floor or the fallback, the text follows.</td></tr>
-   <tr><td class="k">Tests</td><td>The popover shows both parts and the right date; it opens on hover, focus and click and closes on Escape; the legend text matches the card&rsquo;s own colours; a thin-category case adds the &ldquo;small category&rdquo; line.</td></tr>
+   <tr><td class="k">The card on screen</td><td>Unchanged: it keeps its one-sentence hover tooltip and its footer legend line (&ldquo;Filled dot: your fund. Hollow dot: category average&hellip;&rdquo;), exactly as today. No date is added (see the no-new-dates rule in section 2).</td></tr>
+   <tr><td class="k">The explanation</td><td>The Excel in Batch A (section 5 there): the calculation, the funds counted and the averages, for stakeholders.</td></tr>
+   <tr><td class="k">Work removed from this batch</td><td>The category popover with its mockup, draft copy and tests; the copy task for the card; and the backend date on the rank and average. Task numbers E-5 and E-8 are retired and not reused.</td></tr>
+   <tr><td class="k">Still true</td><td>If Batch A finds the calculation or the wording on the card is wrong, that fix is Batch A&rsquo;s, not this one&rsquo;s.</td></tr>
   </tbody>
  </table></div>
 </section>
@@ -599,7 +579,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <!-- ============ 5. INFO COMPONENT ============ -->
 <section id="info">
  <h2>5. One shared &ldquo;i&rdquo; component</h2>
- <p class="lead">Items 9 and 16 both need a richer &ldquo;i&rdquo;. Build it once, and let the existing cards keep working.</p>
+ <p class="lead">Item 16 (and the date strip&rsquo;s own &ldquo;i&rdquo;) need a richer &ldquo;i&rdquo;. Build it once, and let the existing cards keep working. Item 9 no longer needs it (dropped 17 Nov).</p>
  <div class="scroll"><table>
   <thead><tr><th>Behaviour</th><th>How it works</th></tr></thead>
   <tbody>
@@ -628,7 +608,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>Role</th><th>Who</th><th>What they do in Batch E</th></tr></thead>
   <tbody>
-   <tr><td class="k">Orchestrator</td><td>Claude</td><td>Finishes the date audit (E-2); writes the date rules, the legend and explainer copy, the source-to-sentence map; decides the date module&rsquo;s interface; writes the specs and the Gemini packet; checks every screen against the mockups at three laptop sizes, light and dark; runs the affected tests.</td></tr>
+   <tr><td class="k">Orchestrator</td><td>Claude</td><td>Finishes the date audit (E-2); writes the date rules, the source-to-sentence map; decides the date module&rsquo;s interface; writes the specs and the Gemini packet; checks every screen against the mockups at three laptop sizes, light and dark; runs the affected tests.</td></tr>
    <tr><td class="k">Code worker</td><td>Codex</td><td>The date module and label component, replacing the as-of labels, the small backend date field, the shared popover, the two card changes, and all tests.</td></tr>
    <tr><td class="k">Visual worker</td><td>Antigravity (Gemini)</td><td>The page strip and the popover, from a packet (measurements, copy, states). The relay is manual, as in Batch B.</td></tr>
    <tr><td class="k">Reviewer</td><td>Codex adversarial review</td><td>One review per handoff, then one whole-batch review before staging.</td></tr>
@@ -638,7 +618,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h3 class="sub">Lanes that can run at the same time</h3>
  <div class="cols">
   <div class="doc"><h4>Lane 1: dates (item 11)</h4><ul><li>The date module, the label component, the strip, the label replacements, the backend date field.</li><li>Touches about 15 frontend files and the three replies.</li></ul></div>
-  <div class="doc"><h4>Lane 2: the &ldquo;i&rdquo; (items 9 and 16)</h4><ul><li>The shared popover, the category card, the P/E and P/B table.</li><li>Touches <code>SectionCard.tsx</code>, <code>CategoryRankingGroup.tsx</code>, <code>ValuationByFund.tsx</code>.</li></ul></div>
+  <div class="doc"><h4>Lane 2: the &ldquo;i&rdquo; (item 16 and the strip)</h4><ul><li>The shared popover and the P/E and P/B table.</li><li>Touches <code>SectionCard.tsx</code> and <code>ValuationByFund.tsx</code>. Not the category card.</li></ul></div>
  </div>
  <p>The lanes share one file family: the card footers in <code>ValuationByFund.tsx</code> and <code>CategoryRankingGroup.tsx</code> are touched by both, so those two edits go in order.</p>
 </section>
@@ -649,10 +629,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>Other batch</th><th>Relationship</th></tr></thead>
   <tbody>
-   <tr><td class="k">A (truth-finding)</td><td>The category-average legend text and the date on the rank, average and XIRR follow A&rsquo;s verdicts: the verified calculation and the common end date (FX-10c). If A changes the weighting or the 3-year floor, the copy changes with it. The Excel for item 9 is built in A.</td></tr>
+   <tr><td class="k">A (truth-finding)</td><td>The strip&rsquo;s price date follows A&rsquo;s common end date (FX-10c). The rank, average and XIRR stay undated here. The Excel for item 9 (the only explanation of the category average) is built in A.</td></tr>
    <tr><td class="k">D (charts)</td><td>Chart axis dates and tooltips follow D and are not changed here; the graph&rsquo;s &ldquo;prices as on&rdquo; note uses this batch&rsquo;s date wording. An &ldquo;i&rdquo; explaining the two scales (rupees left, percent right) is a good first user of the shared component, but is not built here.</td></tr>
    <tr><td class="k">C (holdings hygiene)</td><td>No shared files.</td></tr>
-   <tr><td class="k">F, K, I (section index, search, PDF)</td><td>The strip sits below the header and tabs, not in the header slot those three share. The PDF export uses the same date wording and module so a printed page agrees with the screen. Search&rsquo;s &ldquo;terms&rdquo; results can reuse the explainer copy.</td></tr>
+   <tr><td class="k">F, K, I (section index, search, PDF)</td><td>The strip sits below the header and tabs, not in the header slot that search and the section index share (the PDF button is in the top bar since 17 Nov). The PDF export uses the same date wording and module so a printed page agrees with the screen. Search&rsquo;s &ldquo;terms&rdquo; results can reuse the explainer copy.</td></tr>
    <tr><td class="k">G (GA4)</td><td>An &ldquo;i opened&rdquo; event could carry only the label of the explainer, never a value; the shared component makes that one hook.</td></tr>
    <tr><td class="k">C3 (fact-sheet fixes, your manager)</td><td>Item 16&rsquo;s source sentences depend on the final list of sources.</td></tr>
    <tr><td class="k">C4 (Standard vs Pro)</td><td>Nothing hard-coded: the strip&rsquo;s entries and the popover content are data, so a tier can hide Pro ones.</td></tr>
@@ -673,12 +653,12 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>E-2</td><td>11</td><td>Finish the date audit: every date label on every screen (the seven Mutual Funds tabs, Home, the fund page, Portfolio), with the helper, the wording, the meaning</td><td>Claude</td><td>M</td><td>Now (read-only)</td></tr>
    <tr><td>E-3</td><td>11</td><td>Date module and label component (kinds, wording, format, the older-data rule), tests first</td><td>Codex</td><td>M</td><td>Ready: Q1 and Q2 are answered</td></tr>
    <tr><td>E-4</td><td>11</td><td>Replace the about 20 as-of labels; merge the duplicate month helper; add the test against hard-coded wording</td><td>Codex</td><td>M</td><td>After E-3</td></tr>
-   <tr><td>E-5</td><td>11</td><td>Backend: add the price date to the category-average, rank and portfolio-summary replies</td><td>Codex</td><td>S</td><td>After Batch A&rsquo;s common end date</td></tr>
+
    <tr><td>E-6</td><td>11</td><td>The page strip on the Mutual Funds frame, with its &ldquo;i&rdquo; and the older-data marker; remove the per-card footer lines</td><td>Gemini, Codex</td><td>M</td><td>After E-3</td></tr>
-   <tr><td>E-7</td><td>9, 16</td><td>The shared &ldquo;i&rdquo; popover; rebuild <code>InfoMark</code> on it; add the dependency if you agree</td><td>Codex, Gemini</td><td>M</td><td>Now (no data needed)</td></tr>
-   <tr><td>E-8</td><td>9</td><td>Write the legend and explainer copy; build it into the category card</td><td>Claude, Codex</td><td>S</td><td>After E-7 and Batch A&rsquo;s verdict</td></tr>
+   <tr><td>E-7</td><td>16</td><td>The shared &ldquo;i&rdquo; popover; rebuild <code>InfoMark</code> on it; add the dependency if you agree</td><td>Codex, Gemini</td><td>M</td><td>Now (no data needed)</td></tr>
+
    <tr><td>E-9</td><td>16</td><td>Replace the pills with one &ldquo;i&rdquo; per fund; source-to-sentence map; remove the footnote and the column</td><td>Codex, Claude</td><td>M</td><td>After E-7 and the fact-sheet fixes</td></tr>
-   <tr><td>E-10</td><td>all</td><td>Dark mode and three laptop sizes, keyboard and screen-reader checks, against the mockups</td><td>Claude</td><td>M</td><td>After E-6, E-8, E-9</td></tr>
+   <tr><td>E-10</td><td>all</td><td>Dark mode and three laptop sizes, keyboard and screen-reader checks, against the mockups</td><td>Claude</td><td>M</td><td>After E-6, E-9</td></tr>
    <tr><td>E-11</td><td>all</td><td>Adversarial review per handoff, then the whole batch</td><td>Codex, Claude</td><td>M</td><td>Before staging</td></tr>
    <tr><td>E-12</td><td>all</td><td>Staging deploy guide and QA checklist</td><td>Claude</td><td>M</td><td>After E-11</td></tr>
    <tr><td>E-13</td><td>all</td><td>Staging check</td><td>You</td><td>S</td><td>After E-12</td></tr>
@@ -698,10 +678,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>The strip hides a card whose data is old (the known weakness of a strip-only layout)</td><td>11</td><td>The older-data marker on the strip and the card&rsquo;s own &ldquo;i&rdquo;; one module decides both; the marker rule has its own tests.</td></tr>
    <tr><td>A late publisher makes the &ldquo;prices as on&rdquo; date jump back and forth</td><td>11</td><td>Home&rsquo;s at-least-half rule, the same as Batch A&rsquo;s common end date, and the &ldquo;Partial&rdquo; badge. Rarer since the 16 Nov NAV fix.</td></tr>
    <tr><td>A screen is missed in the date audit and keeps the old wording</td><td>11</td><td>E-2 lists every label; a test scans the screens for hard-coded &ldquo;as on&rdquo; and &ldquo;as of&rdquo;.</td></tr>
-   <tr><td>The legend says something Batch A later changes</td><td>9</td><td>The copy lives in one file; the wording is final only after A&rsquo;s verdict.</td></tr>
+
    <tr><td>A source in item 16 appears that the popover has no sentence for</td><td>16</td><td>One source-to-sentence map with a safe default sentence; a test fails on an unknown source; I check C3&rsquo;s final list.</td></tr>
-   <tr><td>The popover is not usable with a keyboard or screen reader, or covers content</td><td>9, 16</td><td>It is a button with the right attributes; focus is managed; placement flips at screen edges; tested at the three laptop sizes.</td></tr>
-   <tr><td>The new package conflicts with the stack rule</td><td>9, 16</td><td>Flagged here; the tooltip fallback exists if you say no.</td></tr>
+   <tr><td>The popover is not usable with a keyboard or screen reader, or covers content</td><td>16</td><td>It is a button with the right attributes; focus is managed; placement flips at screen edges; tested at the three laptop sizes.</td></tr>
+   <tr><td>The new package conflicts with the stack rule</td><td>16</td><td>Flagged here; the tooltip fallback exists if you say no.</td></tr>
    <tr><td>Changing about 20 labels breaks existing tests that read the old text</td><td>11</td><td>Those tests are updated in the same change; each old string is listed in the spec.</td></tr>
   </tbody>
  </table></div>
@@ -715,7 +695,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h3 class="sub">Staging check (draft; the real guide is E-12)</h3>
  <div class="steps5">
   <div><b>11</b>Open each Mutual Funds tab, Home and a fund page: dates follow the policy, one wording, no &ldquo;as of&rdquo; next to &ldquo;as on&rdquo;; the XIRR tile, the average and the rank say which prices they use.</div>
-  <div><b>9</b>The category card&rsquo;s &ldquo;i&rdquo; opens on hover and click with the legend and the calculation; the numbers in the text match the card.</div>
+
   <div><b>16</b>No source pill remains; each fund has one &ldquo;i&rdquo; whose popover names the source of P/E and P/B correctly.</div>
   <div><b>All</b>Dark mode; keyboard only (Tab to an &ldquo;i&rdquo;, Enter, Escape); the three laptop sizes.</div>
  </div>
@@ -733,13 +713,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <tbody>
    <tr><td class="k">Wording</td><td>&ldquo;as on&rdquo; everywhere (Indian financial usage), never a mix with &ldquo;as of&rdquo;.</td></tr>
    <tr><td class="k">The price date</td><td>Home&rsquo;s at-least-half rule for every &ldquo;Prices as on&rdquo;, the same as Batch A&rsquo;s common end date.</td></tr>
-   <tr><td class="k">Undated figures</td><td>The XIRR tile, the category average and the rank say &ldquo;Based on prices as on&hellip;&rdquo;; the server adds one date to their replies.</td></tr>
+   <tr><td class="k">Undated figures</td><td>Stay undated (17 Nov). No date is added anywhere that shows none today; no backend change.</td></tr>
    <tr><td class="k">Strip contents</td><td>Only the data kinds the tab uses (table in section 2); no strip on Transactions; an amber older-data marker when a kind is behind its usual cycle.</td></tr>
    <tr><td class="k">Event dates</td><td>Transactions, SIP due dates, &ldquo;managing since&rdquo;, first and last investment stay exact and unchanged.</td></tr>
    <tr><td class="k">News</td><td>Keeps its relative &ldquo;Updated 3 hours ago&rdquo;.</td></tr>
    <tr><td class="k">The &ldquo;i&rdquo; component</td><td>One shared popover (hover or focus opens, click pins, Escape closes); <code>InfoMark</code> rebuilt on it; the new Radix popover package added (the tooltip fallback if you say no); other bespoke explainers listed for later.</td></tr>
    <tr><td class="k">The P/E and P/B &ldquo;As on&rdquo; column</td><td>Removed; each fund&rsquo;s date moves into its &ldquo;i&rdquo; and the strip.</td></tr>
-   <tr><td class="k">Copy</td><td>The category legend and the source sentences are written in plain words by me and kept in one copy file; final after Batch A&rsquo;s verdict and the fact-sheet fixes.</td></tr>
+   <tr><td class="k">Copy</td><td>The source sentences (item 16) are written in plain words by me and kept in one copy file; final after the fact-sheet fixes. There is no category legend copy any more.</td></tr>
    <tr><td class="k">Phone view</td><td>Out of scope; planned later.</td></tr>
   </tbody>
  </table></div>
@@ -747,7 +727,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>Decision</th><th>When it comes up</th><th>What you will see</th></tr></thead>
   <tbody>
-   <tr><td class="k">The final legend wording</td><td>After Batch A&rsquo;s verdict on the calculation</td><td>The wording with the confirmed numbers, for your read.</td></tr>
+
    <tr><td class="k">The sentence for any new fact-sheet source</td><td>When the fact-sheet fixes land</td><td>The list of sources and one sentence each.</td></tr>
    <tr><td class="k">Any screen where the policy does not fit</td><td>After the date audit (E-2)</td><td>The screen, the figure, and my suggestion.</td></tr>
   </tbody>
@@ -781,8 +761,8 @@ var ROWS=[
  ['Allocation tab, asset-class card','Values as on 12 Nov 2026 &middot; Holdings as on 30 Sep 2026','Values: November 2026 &middot; Holdings: September 2026','Prices as on 12 Nov 2026 &middot; Holdings as on September 2026','Prices as on 12 Nov 2026 &middot; Holdings as on 30 Sep 2026'],
  ['Other tab, P/E and P/B','Fundamentals as on 12 Oct 2026 &middot; an &ldquo;As on&rdquo; column','Ratios: November 2026','Ratios as on 12 Nov 2026 (in the &ldquo;i&rdquo;)','Ratios as on 12 Nov 2026'],
  ['Other tab, fund fee (TER)','Ref: 30 Sep 2026','Fees: September 2026','Fees as on September 2026','Fees as on 30 Sep 2026'],
- ['Other tab, category average and rank','<span class="lbl none">no date</span>','Based on November 2026','Based on prices as on 12 Nov 2026','Based on prices as on 12 Nov 2026'],
- ['Overview, XIRR tile','<span class="lbl none">no date</span>','Based on November 2026','Based on prices as on 12 Nov 2026','Based on prices as on 12 Nov 2026'],
+ ['Other tab, category average and rank','<span class="lbl none">no date</span>','<span class="lbl none">no date (unchanged)</span>','<span class="lbl none">no date (unchanged)</span>','<span class="lbl none">no date (unchanged)</span>'],
+ ['Overview, XIRR tile','<span class="lbl none">no date</span>','<span class="lbl none">no date (unchanged)</span>','<span class="lbl none">no date (unchanged)</span>','<span class="lbl none">no date (unchanged)</span>'],
  ['Home, wealth card and movers','as of 12 Nov','Prices: November 2026','Prices as on 12 Nov 2026','Prices as on 12 Nov 2026'],
  ['Fund page, NAV and holdings','NAV as of 12 Nov 2026 &middot; Disclosure as of 30 Sep 2026','Prices: November 2026 &middot; Holdings: September 2026','Prices as on 12 Nov 2026 &middot; Holdings as on September 2026','Prices as on 12 Nov 2026 &middot; Holdings as on 30 Sep 2026']
 ];
@@ -797,22 +777,12 @@ function dates(v){
 function card(title,body,foot,wide){return '<div class="ap-card" style="'+(wide?'grid-column:span 2':'')+'"><h5>'+title+'</h5><div class="ap-mut" style="margin:6px 0">'+body+'</div>'+(foot?'<div class="ap-mut" style="border-top:1px solid #EEF0EE;padding-top:6px;margin-top:8px">'+foot+'</div>':'')+'</div>'}
 function layout(v){
  var strip='<div class="strip"><b>Data dates</b><span>Prices as on <b>12 Nov 2026</b></span><span>Holdings as on <b>September 2026</b></span><span>Ratios as on <b>12 Nov 2026</b></span><span class="i">i</span>'+(v==='strip'?'<span class="lbl none">2 funds have older holdings</span>':'')+'</div>';
- var f={cards:['Values as on 12 Nov 2026 &middot; Holdings as on September 2026','Fundamentals as on 12 Nov 2026','Fees as on September 2026','Based on prices as on 12 Nov 2026'],
+ var f={cards:['Values as on 12 Nov 2026 &middot; Holdings as on September 2026','Fundamentals as on 12 Nov 2026','Fees as on September 2026',''],
         strip:['','','',''],
         hybrid:['','','Holdings for 2 funds as on June 2026','']}[v];
- var body='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:'+(v==='cards'?0:10)+'px">'+card('Asset mix','Equity 72% &middot; Debt 21% &middot; Gold 4% &middot; Other 3%',f[0])+card('P/E and P/B','Portfolio P/E 24.1 &middot; P/B 3.4',f[1])+card('Fund fees (TER)','Weighted fee 0.82% a year',f[2])+card('Category average','3 of 5 funds ahead over 3 years',f[3])+'</div>';
+ var body='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:'+(v==='cards'?0:10)+'px">'+card('Asset mix','Equity 72% &middot; Debt 21% &middot; Gold 4% &middot; Other 3%',f[0])+card('P/E and P/B','Portfolio P/E 24.1 &middot; P/B 3.4',f[1])+card('Fund fees (TER)','Weighted fee 0.82% a year',f[2])+card('Category average','3 of 5 funds ahead over 3 years','')+'</div>';
  var tabs='<div class="ap-nav" style="display:flex;gap:6px;margin-bottom:12px"><span style="padding:6px 12px;border-radius:8px;color:#5C5C5C">Overview</span><span style="padding:6px 12px;border-radius:8px;color:#5C5C5C">Transactions</span><span style="padding:6px 12px;border-radius:8px;background:#EAFBF0;color:#15803D;font-weight:600">Other analytics</span><span style="padding:6px 12px;border-radius:8px;color:#5C5C5C">Allocation</span></div>';
  return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/other')+'<div class="ap"><div class="ap-body"><div class="ap-h">Mutual Funds</div>'+tabs+(v==='cards'?'':strip)+body+'</div></div>',1000,0);
-}
-/* ---- category average popover ---- */
-function catpop(v){
- var rows=[['1Y',58,50,'+1.2%','4.6% vs 3.4%',true],['3Y',44,50,'&minus;1.1%','12.8% vs 13.9%',false],['5Y',30,62,'&minus;4.8%','6.4% vs 11.2%',false]];
- var r='<div class="cmp" style="margin-top:12px">';
- rows.forEach(function(x){var c=x[5]?'#15803D':'#D92D20';r+='<div class="p"><b>'+x[0]+'</b><div class="trk"><span class="d c" style="left:'+x[2]+'%"></span><span class="d f" style="left:'+x[1]+'%;background:'+c+'"></span></div><span class="v" style="text-align:right"><b style="color:'+c+'">'+x[3]+'</b><br>'+x[4]+'</span></div>'});
- r+='</div>';
- var pop=v==='open'?'<div class="pop" style="left:150px;top:34px"><h6>Returns against the category average</h6><div class="sec"><b>How to read this</b><div class="legend"><div><span class="dot g"></span>Filled dot: your fund</div><div><span class="dot o"></span>Hollow dot: the category average</div><div><span class="dot g"></span><span class="dot r"></span>The number above is the gap: green when ahead, red when behind</div><div>One row each for 1 year, 3 years and 5 years</div></div></div><div class="sec"><b>How the average is worked out</b><ul><li>Funds in the same SEBI category and plan</li><li>Only funds with at least 3 years of history</li><li>Larger funds count for more (weighted by size)</li><li>No sizes on record: a plain average, and we say so</li></ul></div><div class="sec"><b>Good to know</b>Categories with fewer than 5 funds are marked small. Based on prices as on 12 Nov 2026.</div></div>':'';
- var h='<div class="ap"><div class="ap-body"><div class="ap-card rel" style="min-height:360px"><div style="display:flex;align-items:center;gap:8px"><h5 style="margin:0">Returns against the category average</h5><span class="i'+(v==='open'?' on':'')+'">i</span></div><div class="ap-fund" style="margin-top:12px"><span class="ap-logoc">A</span><div><b>Alpha Flexi Cap Fund</b><div class="ap-mut">Flexi Cap &middot; Direct plan</div></div></div>'+r+'<div class="ap-mut" style="margin-top:12px">Category average covers 31 funds (1Y), 31 (3Y), 24 (5Y). Based on prices as on 12 Nov 2026.</div>'+pop+'</div></div></div>';
- return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/other')+h,1000,0);
 }
 /* ---- PE/PB table ---- */
 function pepb(v){
@@ -830,8 +800,8 @@ function pepb(v){
  +'</tbody></table>'+(before?'<div class="ap-mut" style="margin-top:12px">Factsheet: printed by the fund house; fwd means forward earnings. NSE/BSE: calculated from published holdings. Indicators, not a recommendation.</div>':'')+'</div></div></div>';
  return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/other')+h,1000,0);
 }
-var STATE={'i11':'today','i11b':'strip','i9':'open','i16':'after'};
-function frame(n){switch(n){case 'dates':return dates(STATE['i11']);case 'layout':return layout(STATE['i11b']);case 'catpop':return catpop(STATE['i9']);case 'pepb':return pepb(STATE['i16']);}return ''}
+var STATE={'i11':'today','i11b':'strip','i16':'after'};
+function frame(n){switch(n){case 'dates':return dates(STATE['i11']);case 'layout':return layout(STATE['i11b']);case 'pepb':return pepb(STATE['i16']);}return ''}
 function layoutAll(){document.querySelectorAll('.vp').forEach(function(v){var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');inn.style.width=w+'px';inn.style.height=h?h+'px':'auto';var hh=h||inn.offsetHeight;var sc=Math.min(1,v.clientWidth/w);inn.style.transform='scale('+sc+')';v.style.height=Math.ceil(hh*sc)+'px'})}
 function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});layoutAll()}
 document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){var sec=bar.getAttribute('data-sec');bar.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){STATE[sec]=b.getAttribute('data-v');bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});renderAll()})})});

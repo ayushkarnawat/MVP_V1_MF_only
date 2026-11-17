@@ -160,6 +160,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 .o-sub{color:#667085;font-size:var(--body)}
 .o-opt{display:flex;align-items:center;gap:12px;min-height:var(--row-h);border:1px solid #E5E7EC;border-radius:16px;padding:0 16px;background:#fff}
 .o-opt.tt{min-height:min(var(--row-h),54px)}
+.o-stack.air{gap:calc(var(--gap) + 6px)}
+.air .o-sec{gap:calc(var(--gap-sm) + 3px)}
+.air .o-chips{gap:calc(var(--gap-sm) + 3px)}
+.air .o-grp .o-opt{padding:0 18px}
+.o-opt.ns{min-height:min(calc(var(--row-h) - 6px),48px)}
 .o-opt.sel{border-color:#22C55E;background:#F4FCF6;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
 .o-opt.quiet{border-color:transparent;background:#F6F8F6}
 .o-badge{flex:none;width:var(--badge);height:var(--badge);border-radius:50%;background:#EAFBF0;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:11px}
@@ -193,7 +198,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 .o-field{border:1px solid #D0D5DD;border-radius:12px;padding:11px 14px;font-size:14px}
 .o-lab{font-size:13px;font-weight:600;margin-bottom:5px}
 .o-alert{background:#FEF3F2;border:1px solid #FDA29B;color:#B42318;border-radius:12px;padding:10px 14px;font-size:13.5px}
-.o-red{color:#B42318;font-size:13px;margin-top:6px}
+.o-red{color:#B42318;font-size:13px;margin-top:6px;white-space:nowrap}
 .st{display:flex;gap:12px;align-items:flex-start;margin-top:var(--gap-sm)}
 .st i{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:13px;background:#22C55E;color:#0B1F12;margin-top:2px}
 .st i.spin{background:transparent;border:2.5px solid #E5E7EC;border-top-color:#22C55E}
@@ -214,6 +219,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 .dlg.ph .foot{flex-direction:column-reverse}
 .dbtn{font:700 13.5px 'Manrope',sans-serif;padding:10px 16px;border-radius:12px;border:1.5px solid #22C55E;background:#22C55E;color:#0B1F12;text-align:center}
 .dbtn.o{background:#fff;color:#15803D}
+.dlg.roomy{gap:20px}
+.dwarn2{display:flex;gap:10px;align-items:flex-start;background:#FEF3E2;border:1px solid rgba(245,158,11,.4);border-radius:12px;padding:10px 14px;font-size:13.5px}
+.dwarn2 b{display:block;font-weight:600}
+.dwarn2 span{display:block;color:#6B5B3E;font-size:12.5px;margin-top:2px}
+.dwarn2 i{flex:none;width:20px;height:20px;border-radius:50%;background:#F59E0B;color:#fff;font:700 12px 'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;font-style:normal;margin-top:1px}
 .dwarn{display:flex;gap:10px;align-items:flex-start;background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:14px;padding:12px 14px;font-size:13.5px}
 .dwarn b{display:block;margin-bottom:2px}
 .dwarn i{flex:none;width:22px;height:22px;border-radius:50%;background:#F59E0B;color:#fff;font:700 13px 'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;font-style:normal;margin-top:1px}
@@ -277,6 +287,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <a href="#i18">6. Head of Family emails</a>
  <h4>For stakeholders</h4>
  <a href="#sec">7. Security explanation</a>
+ <a href="#secreg">7b. Security change register</a>
  <h4>How we build it</h4>
  <a href="#strategy">8. Orchestrator and workers</a>
  <a href="#program">9. Program strategy</a>
@@ -292,7 +303,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <div class="hero">
  <h1>Batch B Planning</h1>
  <div class="meta">Planning only &middot; nothing built &middot; 12 Nov 2026 &middot; updated with your answers &middot; branch leapswitch-redesign</div>
- <p>The journey quick wins: five changes in sign-up, login, import and the Head of Family emails. Screens are now drawn at real window sizes (laptop and phone) and scaled to fit the page, so it is best viewed on a laptop. 21 of 28 questions are answered. Open ones are in section 12.</p>
+ <p>The journey quick wins: five changes in sign-up, login, import and the Head of Family emails. Screens are now drawn at real window sizes (laptop and phone) and scaled to fit the page, so it is best viewed on a laptop. 25 of 28 questions are answered. Three are open (Q24, Q25 and Q28), in section 12.</p>
  <p>Every statement about the code comes from three read-only research passes made today, not from my own reading, so each is labelled &ldquo;reported&rdquo; until a spec re-checks it. Heights and timings are proposals, not measurements.</p>
 </div>
 
@@ -302,8 +313,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="stats">
   <div class="stat"><div class="n">5</div><div class="l">items in this batch</div></div>
   <div class="stat"><div class="n">0 or 1</div><div class="l">database migration (depends on Q23)</div></div>
-  <div class="stat"><div class="n">21 / 28</div><div class="l">questions answered</div></div>
-  <div class="stat"><div class="n">18</div><div class="l">tasks in the list (section 10)</div></div>
+  <div class="stat"><div class="n">25 / 28</div><div class="l">questions answered</div></div>
+  <div class="stat"><div class="n">19</div><div class="l">tasks in the list (section 10)</div></div>
  </div>
  <div class="scroll"><table>
   <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (reported)</th><th>What changes</th><th>Layers</th></tr></thead>
@@ -311,18 +322,18 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">2. Wrong-person warning</td><td>Warn that the file belongs to someone else.</td><td>A pop-up already says the person is not in the statement and names who is. No warning about where the data goes.</td><td>Add an amber warning block to the pop-up. Copy only.</td><td><span class="tag fe">frontend</span></td></tr>
    <tr><td class="k">4. OTP timer</td><td>Different email or phone gets a code at once; the same one shows a countdown with a reason.</td><td>A different registered email or phone is not blocked today. An unregistered one gets &ldquo;No account found&rdquo;. The same one gets a red sentence, with no countdown.</td><td>Button counts down with a one-line red reason. Server sends the seconds. <b>New: a per-IP limit (Q10).</b></td><td><span class="tag fe">frontend</span> <span class="tag be">backend</span> <span class="tag db">database?</span></td></tr>
    <tr><td class="k">6. Spinner to tick</td><td>Spin 2 to 3 seconds, become a tick that pops, change the text.</td><td>The spinner is decoration and spins forever. The &ldquo;importing&rdquo; text is untrue because the import already finished.</td><td>A 2.5 second timer, a tick pop, new honest copy; the paragraph and right heading follow (Q13).</td><td><span class="tag fe">frontend</span></td></tr>
-   <tr><td class="k">3. Onboarding layout</td><td>Declutter the right panel, same copy, same options.</td><td>Four option cards, a crowded heading row, six two-line chips. Must fit 1280&times;600.</td><td>Spacing and grouping only. Pick a layout (Q4). Screens switch to the brand green (Q5).</td><td><span class="tag fe">frontend</span></td></tr>
+   <tr><td class="k">3. Onboarding layout</td><td>Declutter the right panel, same copy, same options.</td><td>Four option cards, a crowded heading row, six two-line chips. Must fit 1280&times;600.</td><td>Option A chosen (Q4), with the subtitle and the option subtexts removed. Screens switch to the brand green (Q5).</td><td><span class="tag fe">frontend</span></td></tr>
    <tr><td class="k">18. Head of Family emails</td><td>Your six designs, plus the &ldquo;changed back&rdquo; email, with dark mode.</td><td>All three emails exist in plain form. No logo, images or table layout.</td><td>Rebuild four emails: new layout, images cropped from your pictures, dark mode.</td><td><span class="tag be">backend</span> <span class="tag fe">assets</span></td></tr>
   </tbody>
  </table></div>
- <div class="callout"><b>Scope changed.</b> &ldquo;No database change&rdquo; is no longer certain: the per-IP limit may need one small table (Q23 option B). With Q10 the batch now also does security work, and the stakeholder security note (section 7) is written for the batch as planned.</div>
+ <div class="callout"><b>Scope changed.</b> &ldquo;No database change&rdquo; is no longer certain: the per-IP limit may need one small table (Q23 option B). With Q10 the batch now also does security work, and the stakeholder security note (section 7) is written for the batch as planned. Section 7b lists every security change, frontend and backend.</div>
 </section>
 
 <!-- ============ ITEM 2 ============ -->
 <section id="i2">
  <h2>2. Wrong-person warning</h2>
  <p class="lead">When the file does not contain the person you chose, the pop-up says whose data is about to be imported.</p>
- <div class="callout info"><b>About the line you asked me to remove.</b> The pop-up only appears when the chosen person is <i>not</i> found in the file (matched by PAN, or by name for people without one). If Lalchand&rsquo;s file did contain Prateek, there would be no pop-up and his funds would go to him. So the line was true, but it can read as if it also covers the other case, so I took it out. The warning now says only what the file belongs to and what happens to it.</div>
+ <div class="callout info"><b>About the line you asked me to remove.</b> The pop-up only appears when the chosen person is <i>not</i> found in the file (matched by PAN, or by name for people without one). If Lalchand&rsquo;s file did contain Prateek, there would be no pop-up and his funds would go to him. So the line was true, but it can read as if it also covers the other case, so I took it out. The warning now says only what happens to the file. <b>Cleaner version (your latest note):</b> the bold heading and the long paragraph are gone. The warning is one bold line naming who the funds are imported for and one muted line about the new family member, and the pop-up has more space between its parts.</div>
  <div class="flow">
   <div><h4>Before</h4><ol>
    <li>Prateek is selected. They upload Lalchand&rsquo;s statement.</li>
@@ -331,13 +342,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <li>Nothing warns where the funds go.</li></ol></div>
   <div><h4>After</h4><ol>
    <li>The same pop-up with an amber warning between the text and the buttons.</li>
-   <li>It says the statement belongs to Lalchand, not Prateek, and that the funds are added for Lalchand, with a new family member created if needed.</li>
+   <li>It says in one bold line who the funds are imported for (Lalchand), and in one muted line that a new family member is created if needed.</li>
    <li>Buttons and behaviour unchanged (Q3).</li>
    <li>Closing, Esc and an outside click still discard the file.</li></ol></div>
  </div>
  <h3 class="sub">Laptop (1280&times;720)</h3>
  <p class="cap"><b>Today</b></p><div data-frame="dlg-today"></div>
- <p class="cap"><b>Proposed</b> (draft wording)</p><div data-frame="dlg-new"></div>
+ <p class="cap"><b>Proposed</b> (cleaner: one bold line, one muted line, more space)</p><div data-frame="dlg-new"></div>
  <h3 class="sub">Phone (the same pop-up is used on the phone import)</h3>
  <div class="cols">
   <div><p class="cap"><b>Today</b></p><div data-frame="dlg-ph-today"></div></div>
@@ -379,14 +390,14 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <p class="cap"><b>Today:</b> the red box</p><div data-frame="otp-today"></div>
  <p class="cap"><b>Proposed:</b> button counts down, one red line says why</p><div data-frame="otp-count"></div>
  <p class="cap"><b>After editing the email:</b> the button is live again, no line</p><div data-frame="otp-edit"></div>
- <p class="note">The wording on these screens is illustrative; the app&rsquo;s own strings are kept. The red is the same error red the app uses today (#B42318). The line has no box. It tells the user why they are waiting.</p>
+ <p class="note">The wording on these screens is illustrative; the app&rsquo;s own strings are kept. The red is the same error red the app uses today (#B42318). The line has no box and fits on one line. It tells the user why they are waiting.</p>
  <h3 class="sub">What changes, by layer (reported)</h3>
  <div class="scroll"><table>
   <thead><tr><th>Layer</th><th>Change</th></tr></thead>
   <tbody>
    <tr><td class="k"><span class="tag be">backend</span></td><td><code>backend/app/services/auth/otp.py</code> and <code>backend/app/api/auth.py</code>: the 429 reply carries a structured body with the seconds left, next to the readable sentence (the Head of Family routes already do this with <code>otp_throttled</code>). <b>New:</b> a per-IP guard before any code is created, using the existing client-IP helper (it takes the last forwarded address because of the load balancer). The per-identifier 60 second rule, the 5 minute life and the 5 wrong guesses do not change. Tests that assert the plain sentence must be updated.</td></tr>
    <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>frontend/src/features/auth/api.ts</code> and <code>validation.ts</code> read the seconds. The login entry screen (<code>LoginEntry.tsx</code>, <code>AuthEntryFlow.tsx</code>) shows the countdown button and the red line, and resets as soon as the typed value differs from the one that was throttled. <code>useResendCountdown.ts</code> must start from a given number of seconds. Desktop split screens only (Q9); phone screens stay as they are, so they keep the plain message.</td></tr>
-   <tr><td class="k"><span class="tag db">database</span></td><td>The per-identifier wait reads the existing <code>otp_requests</code> table. The per-IP limit may need one small table, depending on Q23 (option B).</td></tr>
+   <tr><td class="k"><span class="tag db">database</span></td><td>The per-identifier wait reads the existing <code>otp_requests</code> table. The per-IP limit adds one small table (your Q23 choice, option B). Section 7b has the full design.</td></tr>
   </tbody>
  </table></div>
  <div class="callout"><b>Honest limit of a per-IP rule.</b> Many people can share one IP (an office, a phone network), so a strict limit can block real users; Q24 proposes limiting <i>different addresses per IP</i>, so one person retrying their own email is never hit by it. On the staging server the visible IP depends on how traffic reaches the app, which has to be checked when the spec is written.</div>
@@ -430,18 +441,16 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h2>5. Onboarding layout (your item 3)</h2>
  <p class="lead">&ldquo;How do you usually invest?&rdquo; with the same words, the same four options and six goals, arranged to breathe. These drawings use the app&rsquo;s own size rules for each window, so you can see which layouts fit.</p>
  <div class="callout info"><b>Hard limits (reported).</b> The screen must fit one window at 1280&times;600, where the app shrinks spacing and row heights. If the content is taller than the panel, the panel scrolls, and each drawing tells you by how much <i>in the drawing</i> (not measured in the app). Mobile uses a different flow. Two layout checks in the tests change with the layout. Goal labels are shared with Profile and cannot change. Your Q5 answer turns the buttons and ticks on this screen to #22C55E, as drawn.</div>
- <div class="callout good"><b>No scrolling in the three new options.</b> They leave out the line &ldquo;This helps us tailor your experience and insights.&rdquo; (you said that is fine) and use rows no taller than 54 px, a little shorter than today&rsquo;s 64 px on large windows. In my drawings none of them scrolls at 1280&times;600, 1440&times;810 or 1536&times;730. Today&rsquo;s layout is drawn as it is now, with the line. The build must keep the check at the five window sizes.</div>
+ <div class="callout good"><b>Chosen: option A, no scrolling.</b> It leaves out the line &ldquo;This helps us tailor your experience and insights.&rdquo; and the small text under each of the four options, and uses rows no taller than 48 px, with extra space between the title, the list, the goals and the button, a little more space between the goal chips and wider padding inside the list rows. The spare height is about 15 px at 1280&times;600 and 18 to 24 px at the larger windows. In my drawings it does not scroll at 1280&times;600, 1440&times;810 or 1536&times;730. &ldquo;Today&rdquo; is drawn as it is now, with both texts. The build must keep the check at the five window sizes.</div>
  <div class="winbar" data-sec="i3"><span>Laptop window</span><button type="button" data-win="w1280" aria-pressed="true">1280&times;600</button><button type="button" data-win="w1440" aria-pressed="false">1440&times;810</button><button type="button" data-win="w1536" aria-pressed="false">1536&times;730</button></div>
  <p class="cap"><b>Today</b></p><div data-frame="ob-today"></div>
- <p class="cap"><b>Option A (my pick):</b> one grouped list, two-column chips, helper text under the heading, subtitle line removed</p><div data-frame="ob-a"></div>
- <p class="cap"><b>Option B:</b> separate quiet cards, pill chips that flow, subtitle line removed</p><div data-frame="ob-b"></div>
- <p class="cap"><b>Option C:</b> each question in its own soft panel, subtitle line removed</p><div data-frame="ob-c"></div>
- <p class="note">Icons are shown as plain shapes. In the app they are the existing icons. Also check 1920&times;1080 and 1366&times;650 before building; one screen is known to scroll 22 px at 1024&times;600 today.</p>
+ <p class="cap"><b>Chosen: option A</b> with the subtitle line and the option subtexts removed</p><div data-frame="ob-a"></div>
+  <p class="note">Options B and C are no longer drawn after your choice. Icons are shown as plain shapes. In the app they are the existing icons. Also check 1920&times;1080 and 1366&times;650 before building; one screen is known to scroll 22 px at 1024&times;600 today.</p>
  <h3 class="sub">What changes, by layer (reported)</h3>
  <div class="scroll"><table>
   <thead><tr><th>Layer</th><th>Change</th></tr></thead>
   <tbody>
-   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>redesign/InvestorProfile.tsx</code>, possibly <code>OptionRow.tsx</code> and <code>ChipCheckbox.tsx</code>, and <code>auth-tokens.css</code>. The save on Continue and the validation do not change. The line &ldquo;This helps us tailor your experience and insights.&rdquo; is removed from this screen, so any test or other screen that reads it must be checked.</td></tr>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>redesign/InvestorProfile.tsx</code>, possibly <code>OptionRow.tsx</code> and <code>ChipCheckbox.tsx</code>, and <code>auth-tokens.css</code>. The save on Continue and the validation do not change. The line &ldquo;This helps us tailor your experience and insights.&rdquo; and the four option subtexts (for example &ldquo;I&rsquo;m new to investing or still building my portfolio.&rdquo;) are removed from this screen. The option texts live in <code>finishCopy.ts</code> and the tests read them; the goals list is shared with Profile and stays. Check whether Profile or the phone screens reuse the subtexts.</td></tr>
    <tr><td class="k"><span class="tag be">backend</span> <span class="tag db">database</span></td><td>None.</td></tr>
    <tr><td class="k">Tests</td><td>Update the two layout checks (three columns, no-wrap heading row). Keep the roles, names, option order and the <code>span.font-semibold</code> title class. Add a fit check at five window sizes.</td></tr>
    <tr><td class="k">Overlap</td><td>Item 6 (spinner) also edits <code>auth-tokens.css</code>, and Q5 changes the tokens, so these must not run at the same time on that file.</td></tr>
@@ -528,6 +537,133 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="callout"><b>Check before sending.</b> Both versions describe protections that exist only after Batch B is built (the per-IP cap and the countdown reason). The earlier go-live report already recommended the cap. Counsel or a security reviewer should read version 2 before it goes outside the team.</div>
 </section>
 
+<!-- ============ SECURITY REGISTER ============ -->
+<section id="secreg">
+ <h2>7b. Security change register (technical)</h2>
+ <p class="lead">Every security-relevant change in these plans, frontend and backend, in one place. Three states: <b>In place today</b> (built earlier, reported by research and not re-checked by me), <b>Planned in Batch B</b> (nothing is built yet) and <b>Recommended later</b> (not in this batch). Where a plan depends on an open question, it says so.</p>
+ <div class="callout info"><b>How to read it.</b> &ldquo;Verified by&rdquo; says how we will prove each planned change. The adversarial review of each handoff gets the matching list of things to attack (part F).</div>
+
+ <h3 class="sub">A. In place today (reported)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Area</th><th>What exists</th><th>Where</th></tr></thead>
+  <tbody>
+   <tr><td class="k">A1</td><td>Code strength</td><td>6-digit code from a secure random generator; only a SHA-256 hash is stored.</td><td><code>backend/app/services/auth/otp.py</code></td></tr>
+   <tr><td class="k">A2</td><td>Code life and tries</td><td>Valid 5 minutes; 5 wrong tries per code; a new code resets the counter.</td><td><code>otp.py</code></td></tr>
+   <tr><td class="k">A3</td><td>Resend wait</td><td>60 seconds per email or phone (and purpose), kept in <code>otp_requests</code>. A failed email send leaves no wait behind. Stale unverified rows are swept after 30 days.</td><td><code>otp.py</code>, <code>backend/app/models/auth.py</code></td></tr>
+   <tr><td class="k">A4</td><td>Unknown or existing addresses</td><td>Login for an unknown address returns 404 before any code; sign-up for an existing address returns 409. Verify steps have backstops (401 for login without an account, 409 on a collision, phone-first sign-up needs the email step).</td><td><code>backend/app/api/auth.py</code></td></tr>
+   <tr><td class="k">A5</td><td>Delivery guard</td><td>The test delivery mode is refused in production; email uses the amazon sending service through the server&rsquo;s role, with no stored keys; a failed send is a 502.</td><td><code>otp.py</code>, <code>email_provider.py</code></td></tr>
+   <tr><td class="k">A6</td><td>Request details</td><td>Each code row records IP, user agent and device id, for analytics only (not used by any limit).</td><td><code>otp.py</code>, <code>device_info.py</code></td></tr>
+   <tr><td class="k">A7</td><td>Undo link</td><td>Token from <code>secrets.token_urlsafe(32)</code>; only its SHA-256 is stored; the token sits after a <code>#</code> in the link so it stays out of server logs; valid 24 hours; refused if the old contact was taken, a later change exists or the account is pending deletion.</td><td><code>head_change.py</code></td></tr>
+   <tr><td class="k">A8</td><td>Head of Family change</td><td>Separate 10-minute codes for both people with their own wait (<code>otp_throttled</code>); another change is blocked for 7 days, also after a contact change; notices go out after the commit and a failed send never undoes the change.</td><td><code>head_change.py</code></td></tr>
+   <tr><td class="k">A9</td><td>Contact change</td><td>A reverse link, valid 7 days, sent to the old address (or the account email for a phone change).</td><td><code>contact_change_events.py</code></td></tr>
+   <tr><td class="k">A10</td><td>Consent records</td><td>An append-only record of consents gates sign-up, upload, CAMS import and reactivation.</td><td>consent code (project notes)</td></tr>
+   <tr><td class="k">A11</td><td>PAN</td><td>PAN is stored encrypted per household member; the raw statement is kept 30 days.</td><td>project notes</td></tr>
+   <tr><td class="k">A12</td><td>Email markup</td><td>Names in the notice emails are escaped.</td><td><code>email_templates.py</code>, its tests</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">B. Planned in Batch B: backend</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Change</th><th>Threat or purpose</th><th>Verified by</th><th>Depends on</th></tr></thead>
+  <tbody>
+   <tr><td class="k">SB1</td><td>Structured reply when a code is held: <code>{code, message, retry_after_seconds}</code> on the login and sign-up code routes, next to the existing sentence. <code>otp.py</code> and <code>auth.py</code>.</td><td>Lets the screen show the real time left. The rule itself does not relax.</td><td>Update the tests that assert the sentence; test that old clients still get the sentence.</td><td>Q8 (decided)</td></tr>
+   <tr><td class="k">SB2</td><td>Per-IP guard before any code is created or any &ldquo;No account found&rdquo; answer is given. See part C.</td><td>Sending codes to many addresses; checking which addresses are registered; guessing across accounts.</td><td>Tests in part C; forged-header test on both hosts.</td><td>Q10, Q23 (decided); Q24 numbers open</td></tr>
+   <tr><td class="k">SB3</td><td>New table for the guard and its migration (next free number).</td><td>The guard needs a record of every request, including ones that create no code.</td><td>Migration test on SQLite and Postgres.</td><td>Q23</td></tr>
+   <tr><td class="k">SB4</td><td>Daily cleanup of rows older than 24 hours, scheduled on the staging server and on AWS.</td><td>Keep personal data small and short-lived.</td><td>Test of the cleanup; a check that both schedules exist.</td><td>Q23</td></tr>
+   <tr><td class="k">SB5</td><td>Client address: reuse the existing helper (last forwarded address, because of the load balancer). Check how the address arrives on the staging server.</td><td>A forged header could dodge or frame an address.</td><td>Test with forged forwarded headers; a real request on each host.</td><td>Spec time</td></tr>
+   <tr><td class="k">SB6</td><td>If the guard&rsquo;s table cannot be read, let the request through and log it (my proposal), plus an on/off setting.</td><td>Sign-in must not go down because of the guard.</td><td>Test of the failure path and the switch.</td><td>Builder to confirm</td></tr>
+   <tr><td class="k">SB7</td><td>Log guard hits with a short prefix of the scrambled address only, never the email, phone or raw address (my proposal).</td><td>Operations need to see abuse without storing personal data in logs.</td><td>Log test.</td><td>Builder to confirm</td></tr>
+   <tr><td class="k">SB8</td><td>An unregistered address never shows a wait (a test only, no code change).</td><td>Your Q6.</td><td>New test.</td><td>Q6</td></tr>
+   <tr><td class="k">SB9</td><td>New email layouts keep escaping every name; images come from a static folder with no token or personal data in their addresses; the undo token stays after the <code>#</code>; the link box holds the full link as text; the changed-back email carries no token or link; dark mode uses styles only, no scripts.</td><td>Markup injection through a name; tokens leaking through images or logs; an unusable link.</td><td>Tests with hostile names; a test that the link text equals the real link; read of every image address.</td><td>Q14, Q17, Q18, Q19</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">B. Planned in Batch B: frontend</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>ID</th><th>Change</th><th>Security note</th><th>Verified by</th></tr></thead>
+  <tbody>
+   <tr><td class="k">SF1</td><td>Countdown button on the login entry screen, live again when the typed email or phone changes.</td><td>Only a display change. The server stays the authority: any send still passes the same rules. The button is disabled while a request is running.</td><td>Screen tests; a test that editing the field never bypasses a server refusal.</td></tr>
+   <tr><td class="k">SF2</td><td>One red line: &ldquo;For your security, a new code can be requested once a minute.&rdquo;</td><td>No personal data beyond what the screen already shows.</td><td>Copy test.</td></tr>
+   <tr><td class="k">SF3</td><td>A generic message when the per-IP limit is hit, with the seconds left.</td><td>Does not name the address or the other emails tried.</td><td>Copy test.</td></tr>
+   <tr><td class="k">SF4</td><td>Phone screens unchanged (Q9).</td><td>The backend limit still protects the routes they call, and they show the readable sentence.</td><td>Check that the per-IP reply includes a readable sentence.</td></tr>
+   <tr><td class="k">SF5</td><td>Wrong-person warning shows names from the file only.</td><td>No masked PAN of other people is added (Q2). Closing the pop-up still discards the file session.</td><td>Pop-up tests.</td></tr>
+   <tr><td class="k">SF6</td><td>All set timer, onboarding layout and green switch.</td><td>No security effect. The timer must not redirect (existing test). Dark text on the brand green improves contrast.</td><td>Existing tests plus the fit check.</td></tr>
+  </tbody>
+ </table></div>
+
+ <h3 class="sub">C. The per-IP limit in detail (your Q23, option B)</h3>
+ <div class="doc">
+  <h4>What it protects against</h4>
+  <ul>
+   <li><b>Spraying codes.</b> One source asking for codes for many different addresses: costs email quota, harms the sender&rsquo;s reputation, and bothers strangers.</li>
+   <li><b>Checking which addresses are registered.</b> The &ldquo;No account found&rdquo; and &ldquo;already exists&rdquo; answers reveal it. Today these come before the 60 second rule, so they are not limited at all.</li>
+   <li><b>Guessing across accounts.</b> The 5-tries rule is per code; one source can spread guesses over many accounts.</li>
+  </ul>
+  <h4>How it works, step by step</h4>
+  <ol>
+   <li>A sign-in or sign-up code request arrives.</li>
+   <li>The app takes the visitor&rsquo;s internet address with the existing helper. For IPv6 it uses the first 64 bits, so one household cannot rotate through its own range.</li>
+   <li>It makes two scrambled values with a keyed hash (HMAC-SHA256 with a secret from the config): one of the internet address, one of the normalised email or phone (lowercased and trimmed; phone in one standard form).</li>
+   <li>It counts how many <i>different</i> scrambled addresses this internet address tried in the last [10] minutes.</li>
+   <li>If the count is at the limit and this address is a new one, the app answers 429 with <code>{code, message, retry_after_seconds}</code> and the screen shows a wait message.</li>
+   <li>Otherwise it writes one row (address hash, identifier hash, route, what happened, time) and continues exactly as today: the 404 and 409 answers, then the 60 second rule, then the code.</li>
+  </ol>
+  <h4>The table</h4>
+  <p>Columns: id, address hash, identifier hash, route, outcome (code sent, unknown account, account exists, held by the 60 second rule), created at. An index on address hash and time. It is tiny: one row per request, deleted after 24 hours by a daily job.</p>
+  <h4>Why scrambled values and a secret key</h4>
+  <p>An internet address and an email are personal data. The guard only needs to know whether two requests came from the same source, so equality is enough. A keyed hash means a leaked database does not reveal either. The cost is that ranges of addresses cannot be blocked and raw addresses cannot be read in operations, which this guard does not need.</p>
+  <h4>Limits (your Q24 is open)</h4>
+  <p>Proposal: [10] different addresses per internet address in [10] minutes for code requests, and [30] for address checks. The rule counts different addresses, never one person retrying their own, which the 60 second rule already handles.</p>
+  <h4>Edge cases</h4>
+  <ul>
+   <li><b>Shared networks</b> (an office, a phone network): generous limits, a clear message, watch after release.</li>
+   <li><b>Forged forwarded-address header:</b> use the last address added by the trusted proxy, test with forged headers on both hosts.</li>
+   <li><b>Variants of one address</b> (upper case, spaces) count as one because of the normalising; plus-addressing counts as different, which is acceptable.</li>
+   <li><b>Two requests at the same moment</b> may both pass by one; the limit is a guard, not a precise counter.</li>
+   <li><b>Table unreadable:</b> let the request through, log it (SB6).</li>
+   <li><b>Rotating the secret key</b> resets the counters; acceptable.</li>
+  </ul>
+  <h4>Deploy and roll back</h4>
+  <p>One migration; the secret added to the staging server&rsquo;s settings and to AWS; the cleanup job on both schedules; an on/off setting. Rolling back is turning the setting off. The table can stay.</p>
+  <h4>Why not the other options</h4>
+  <ul>
+   <li><b>Count from the existing code records (Q23 A):</b> a request for an unknown email creates no record, so checking many addresses would never be counted.</li>
+   <li><b>Limit at the entrance (Q23 C):</b> different on the staging server and on AWS, coarse, and outside this batch.</li>
+  </ul>
+ </div>
+
+ <h3 class="sub">D. Related security items in other plans</h3>
+ <ul class="tight">
+  <li><b>GA4, website only:</b> the Google tag loads only after Accept; strict labels, no personal data; Google signals and ad personalisation off; internal-traffic filter; 14-month retention; counsel reviews the banner and the Cookie Policy before production.</li>
+  <li><b>Web app tracking:</b> parked, to be done in-house later. Its design must keep the same strict rule and add a notice or consent text.</li>
+  <li><b>Search plan:</b> adds a household search index endpoint. It must respect sign-in and household scoping, and the typed text in the address must never reach analytics.</li>
+  <li><b>Emails (Batch B):</b> covered in SB9.</li>
+ </ul>
+
+ <h3 class="sub">E. Recommended later (not in this batch)</h3>
+ <ul class="tight">
+  <li>A bot check (CAPTCHA or similar) on the code request.</li>
+  <li>A lockout or alert per account after repeated failures, and alerts when code requests spike.</li>
+  <li>A limit per internet address on the code <i>verify</i> routes as well.</li>
+  <li>A firewall rule at the entrance to the app as a second layer.</li>
+  <li>A text-message provider with its own limits and a spending cap before phone sign-in goes live (none is built).</li>
+  <li>A written procedure for rotating the hash secret and the other secrets.</li>
+  <li>Revisit the &ldquo;No account found&rdquo; messages if the risk view changes.</li>
+ </ul>
+
+ <h3 class="sub">F. What each adversarial review must try to break</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Handoff</th><th>The reviewer attacks</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Structured reply (SB1)</td><td>Does the seconds-left value leak anything new? Does an old client still work? Does a different address ever get a wait?</td></tr>
+   <tr><td class="k">Per-IP guard (SB2 to SB7)</td><td>Forged headers; identifier variants that dodge the count; a race that lets many through; the order of checks (are probes counted?); personal data in the table or logs; the failure path; the off switch.</td></tr>
+   <tr><td class="k">Login screen (SF1 to SF4)</td><td>Can editing the field or the tab bypass a server refusal? Does the phone screen show a readable message?</td></tr>
+   <tr><td class="k">Wrong-person pop-up (SF5)</td><td>Does any copy reveal another person&rsquo;s PAN? Does closing the pop-up still discard?</td></tr>
+   <tr><td class="k">Emails (SB9)</td><td>Hostile names; tokens in image addresses or logs; the link box; the changed-back email carrying nothing secret.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
 <!-- ============ STRATEGY ============ -->
 <section id="strategy">
  <h2>8. Orchestrator and workers</h2>
@@ -570,7 +706,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <!-- ============ PROGRAM STRATEGY ============ -->
 <section id="program">
  <h2>9. Program strategy: order, deploy, plans</h2>
- <p class="lead">You asked for this now so the next batches know what came before and what follows. All of it is a proposal for you to decide (Q26 to Q28).</p>
+ <p class="lead">You asked for this now so the next batches know what came before and what follows. Q26 and Q27 are decided; Q28 is still open.</p>
+ <div class="callout good"><b>Decided.</b> Q26: milestone deploys to staging (after wave 1, after waves 2 and 3, after search and navigation, and a final one), with production once at the end. Q27: one plan per batch, written just before it is built, plus a short program index. <b>Still open:</b> Q28, the execution order below.</div>
  <h3 class="sub">A. Execution order</h3>
  <div class="scroll"><table>
   <thead><tr><th>Wave</th><th>Batches</th><th>Needs</th><th>Why here</th></tr></thead>
@@ -626,7 +763,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 
 <section id="tasks">
  <h2>10. Task list</h2>
- <p class="lead">Same IDs as the Notion pack (B-1 to B-12), plus five new tasks. Item numbers are yours.</p>
+ <p class="lead">Same IDs as the Notion pack (B-1 to B-12), plus six new tasks. Item numbers are yours.</p>
  <div class="scroll"><table>
   <thead><tr><th>ID</th><th>Item</th><th>Task</th><th>Worker</th><th>Size</th><th>Status</th></tr></thead>
   <tbody>
@@ -636,18 +773,19 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">B-4</td><td>4</td><td>Design the countdown, the reason line and the reset on edit</td><td>Claude</td><td>S</td><td><span class="tag ok">Decided</span> (Q7 to Q9)</td></tr>
    <tr><td class="k">B-5a</td><td>4</td><td>Backend: structured 429 reply with seconds left; tests updated</td><td>Codex</td><td>S</td><td>Ready to spec</td></tr>
    <tr><td class="k">B-5b</td><td>4</td><td>Frontend: countdown button, red line, reset on edit</td><td>Codex</td><td>M</td><td>After B-5a</td></tr>
-   <tr><td class="k">B-5c (new)</td><td>4</td><td>Backend: per-IP limit and its tests (and a migration if Q23 B)</td><td>Codex</td><td>M</td><td>Waiting for Q23, Q24</td></tr>
+   <tr><td class="k">B-5c (new)</td><td>4</td><td>Backend: per-IP limit and its tests (and a migration if Q23 B)</td><td>Codex</td><td>M</td><td>Waiting for Q24 (Q23 decided)</td></tr>
    <tr><td class="k">B-6</td><td>4</td><td>Security explanation for stakeholders</td><td>Claude</td><td>M</td><td>Drafted in section 7</td></tr>
    <tr><td class="k">B-7</td><td>6</td><td>Timer, tick pop, new copy (row, paragraph, heading), tests</td><td>Codex</td><td>S</td><td>Ready to spec</td></tr>
-   <tr><td class="k">B-8</td><td>3</td><td>Onboarding layout mockups</td><td>Claude</td><td>M</td><td>Drawn; waiting for Q4</td></tr>
-   <tr><td class="k">B-9</td><td>3</td><td>Build the chosen layout, green switch, tests, fit check at five window sizes</td><td>Gemini, Codex for tests</td><td>M</td><td>Waiting for Q4, Q25</td></tr>
+   <tr><td class="k">B-8</td><td>3</td><td>Onboarding layout mockups</td><td>Claude</td><td>M</td><td><span class="tag ok">Decided</span> (Q4 A)</td></tr>
+   <tr><td class="k">B-9</td><td>3</td><td>Build the chosen layout, green switch, tests, fit check at five window sizes</td><td>Gemini, Codex for tests</td><td>M</td><td>Waiting for Q25</td></tr>
    <tr><td class="k">B-10</td><td>18</td><td>Get the email designs</td><td>You</td><td>S</td><td><span class="tag ok">Done</span></td></tr>
    <tr><td class="k">B-11</td><td>18</td><td>Compare designs with current templates and settle the copy</td><td>Claude</td><td>S</td><td><span class="tag ok">Decided</span> (Q17)</td></tr>
    <tr><td class="k">B-12</td><td>18</td><td>Crop assets, build the layout and four emails with dark mode, preview script, two-inbox check</td><td>Gemini (HTML), Codex (logic and tests)</td><td>L</td><td>Ready to write packet</td></tr>
    <tr><td class="k">B-13 (new)</td><td>all</td><td>Whole-batch adversarial review, staging deploy</td><td>Claude</td><td>M</td><td>After all items</td></tr>
-   <tr><td class="k">B-14 (new)</td><td>3, 18</td><td>Write the two Gemini packets (onboarding, emails)</td><td>Claude</td><td>M</td><td>After Q4</td></tr>
-   <tr><td class="k">B-15 (new)</td><td>all</td><td>Program index document</td><td>Claude</td><td>S</td><td>After Q26 to Q28</td></tr>
+   <tr><td class="k">B-14 (new)</td><td>3, 18</td><td>Write the two Gemini packets (onboarding, emails)</td><td>Claude</td><td>M</td><td>Ready (Q4 decided)</td></tr>
+   <tr><td class="k">B-15 (new)</td><td>all</td><td>Program index document</td><td>Claude</td><td>S</td><td>After Q28 (Q26 and Q27 decided)</td></tr>
    <tr><td class="k">B-16 (new)</td><td>18</td><td>Copy the six reference images into the repo for the packets</td><td>Claude</td><td>S</td><td>Ready</td></tr>
+   <tr><td class="k">B-17 (new)</td><td>4, 18</td><td>Security change register: keep it current and verify each item as it is built</td><td>Claude</td><td>S</td><td>Drafted in section 7b</td></tr>
   </tbody>
  </table></div>
 </section>
@@ -671,6 +809,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>Images blocked, fonts ignored, dark mode inconsistent across email apps</td><td>18</td><td>Alt text, facts in real text, system fallback, tables and inline styles, four-app check.</td></tr>
    <tr><td>Editing the shared email header breaks the OTP email test</td><td>18</td><td>New layout function; shared header untouched.</td></tr>
    <tr><td>A Gemini result drifts from the pictures</td><td>3, 18</td><td>Detailed packets; side-by-side check; fonts and colours are the only allowed differences.</td></tr>
+   <tr><td>The per-IP table holds personal data (IP, email, phone)</td><td>4</td><td>Store keyed hashes only, keep rows 24 hours, clean daily (section 7b, part C).</td></tr>
+   <tr><td>A forged forwarded-address header defeats the per-IP limit</td><td>4</td><td>Use the last address added by the trusted proxy; test with forged headers on both hosts.</td></tr>
+   <tr><td>A hostile name in a statement injects markup into an email</td><td>18</td><td>Keep escaping every name in the new layout; test with hostile names.</td></tr>
+   <tr><td>The undo link is cut off in the email&rsquo;s link box</td><td>18</td><td>The design shows a shortened link; the real text must hold the full link for copy and paste.</td></tr>
   </tbody>
  </table></div>
  <h3 class="sub">Tests, in short</h3>
@@ -685,7 +827,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <!-- ============ QUESTIONS ============ -->
 <section id="questions">
  <h2>12. Questions</h2>
- <p class="lead">28 questions. Your 21 answers are recorded and locked, with an &ldquo;answered&rdquo; badge and a &ldquo;Chosen&rdquo; badge on the picked option. Seven are open: Q4 and the new Q23 to Q28.</p>
+ <p class="lead">28 questions. Your 25 answers are recorded and locked, with an &ldquo;answered&rdquo; badge and a &ldquo;Chosen&rdquo; badge on the picked option. Three are open: Q24, Q25 and Q28.</p>
  <div class="bar"><span class="status" id="prog">0 of 28 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
  <div id="cards"></div>
 </section>
@@ -713,9 +855,9 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 function vp(inner,w,h,cls,attrs){return '<div class="vp '+(cls||'')+'" data-w="'+w+'"'+(h?' data-h="'+h+'"':'')+(attrs||'')+'><div class="vp-in">'+inner+'</div></div>'}
 function chrome(url){return '<div class="chrome"><i></i><i></i><i></i><span>'+url+'</span></div>'}
 var DLG_BODY='This statement doesn’t show PRATEEK BHUSHAN SANCHETI’s PAN (FS*******7M). It has Lalchand Sancheti.';
-var WARN='<div class="dwarn"><i>!</i><div><b>Check before you continue</b>This statement belongs to Lalchand Sancheti, not PRATEEK BHUSHAN SANCHETI. If you import it, the funds are added for Lalchand Sancheti, and a new family member is created if they are not already in your family.</div></div>';
+var WARN='<div class="dwarn2"><i>!</i><div><b>These funds will be imported for Lalchand Sancheti.</b><span>A new family member is created if they are not already in your family.</span></div></div>';
 function dlg(withWarn,phone){
- return '<div class="dlg'+(phone?' ph':'')+'"><h5>PRATEEK BHUSHAN SANCHETI isn’t in this statement</h5><div class="body">'+DLG_BODY+'</div>'+(withWarn?WARN:'')+'<div class="foot"><span class="dbtn o">Upload a different file</span><span class="dbtn">Import for these people</span></div></div>';
+ return '<div class="dlg'+(phone?' ph':'')+(withWarn?' roomy':'')+'"><h5>PRATEEK BHUSHAN SANCHETI isn’t in this statement</h5><div class="body">'+DLG_BODY+'</div>'+(withWarn?WARN:'')+'<div class="foot"><span class="dbtn o">Upload a different file</span><span class="dbtn">Import for these people</span></div></div>';
 }
 function dlgDesk(w){return vp(chrome('ls-redesign.unifolio.in/import')+'<div class="dlg-bg"><div class="fake"></div><div class="dim">'+dlg(w,false)+'</div></div>',1280,760)}
 function dlgPh(w){return vp('<div class="phs"><div class="scr"><div class="sb"><b></b></div><div style="position:relative;min-height:690px;background:#F4F6F4"><div style="position:absolute;inset:30px 16px;border:2px dashed #C8D3C8;border-radius:18px;background:#fff;filter:blur(2px)"></div><div style="position:absolute;inset:0;background:rgba(17,17,17,.5);display:flex;align-items:center;padding:16px">'+dlg(w,true)+'</div></div></div></div>',390,0)}
@@ -727,8 +869,8 @@ function auth(inner,attr){return '<div class="vp w1280" data-auth="1" data-w="12
 var LEFT_OB='<div class="d-logo">Unifolio</div><div class="d-sketch">person illustration</div><div class="d-h2">Help us personalise your <span>experience.</span></div><p class="d-p">Tell us a little about how you invest and what you’re working towards, so we can make your insights more relevant.</p><div class="d-bul"><i></i><div>More relevant insights</div></div><div class="d-bul"><i></i><div>A tailored experience</div></div><div class="d-bul"><i></i><div>You’re always in control</div></div>';
 var OPTS=[["I’m just getting started","I’m new to investing or still building my portfolio."],["I manage my own investments","I choose and manage investments myself."],["I work with a financial professional","I invest with help from an advisor, distributor or family office."],["A mix of both","I manage some investments myself and get professional guidance for others."]];
 var GOALS=["Build my wealth","Plan for retirement","Fund my children’s education","Buy a home","Achieve financial freedom","Plan my taxes"];
-function optRow(o,cls){return '<div class="o-opt '+(cls||'')+'"><span class="o-badge">●</span><div><b>'+o[0]+'</b><small>'+o[1]+'</small></div><span class="o-rad"></span></div>'}
-function opts(cls,grp){var h=OPTS.map(function(o,i){return optRow(o,(i===0&&cls==='quiet'?'sel':cls)+((grp||cls==='quiet')?' tt':''))}).join('');return grp?'<div class="o-grp">'+h+'</div>':'<div class="o-sec">'+h+'</div>'}
+function optRow(o,cls,ns){return '<div class="o-opt '+(cls||'')+'"><span class="o-badge">\u25CF</span><div><b>'+o[0]+'</b>'+(ns?'':'<small>'+o[1]+'</small>')+'</div><span class="o-rad"></span></div>'}
+function opts(cls,grp,ns){var h=OPTS.map(function(o,i){return optRow(o,(i===0&&cls==='quiet'?'sel':cls)+((grp||cls==='quiet')?' tt':'')+(ns?' ns':''),ns)}).join('');return grp?'<div class="o-grp">'+h+'</div>':'<div class="o-sec">'+h+'</div>'}
 function chips(c,sel){return '<div class="o-chips '+c+'">'+GOALS.map(function(g,i){return '<div class="o-chip'+(sel&&i===0?' sel':'')+'"><i></i><span>'+g+'</span><em></em></div>'}).join('')+'</div>'}
 function pills(){return '<div class="o-pills">'+GOALS.map(function(g,i){return '<span class="o-pill'+(i===0?' sel':'')+'"><i></i>'+g+'</span>'}).join('')+'</div>'}
 var H1='<div><div class="o-h1">How do you usually invest?</div><p class="o-sub">This helps us tailor your experience and insights.</p></div>';
@@ -736,7 +878,7 @@ var H1N='<div><div class="o-h1">How do you usually invest?</div></div>';
 var GO='<div class="o-go">Continue →</div>';
 function obRight(v){
  if(v==='today')return '<div class="o-stack">'+H1+opts('')+'<div class="o-sec"><div class="o-h2"><b>What are you working towards? <span>(Select all that apply)</span></b><a>Select all</a></div>'+chips('c3')+'</div>'+GO+'</div>';
- if(v==='a')return '<div class="o-stack">'+H1N+opts('',true)+'<div class="o-sec"><div class="o-h2"><b>What are you working towards?</b><a>Select all</a></div><p class="o-sub" style="font-size:12.5px;line-height:1.2">(Select all that apply)</p>'+chips('c2')+'</div>'+GO+'</div>';
+ if(v==='a')return '<div class="o-stack air">'+H1N+opts('',true,true)+'<div class="o-sec"><div class="o-h2"><b>What are you working towards?</b><a>Select all</a></div><p class="o-sub" style="font-size:12.5px;line-height:1.2">(Select all that apply)</p>'+chips('c2')+'</div>'+GO+'</div>';
  if(v==='b')return '<div class="o-stack">'+H1N+opts('quiet')+'<div class="o-sec"><div class="o-h2"><b>What are you working towards? <span>(Select all that apply)</span></b><a>Select all</a></div>'+pills()+'</div>'+GO+'</div>';
  return '<div class="o-stack"><div class="o-panel" style="padding:10px">'+H1N+'<div style="height:var(--gap-sm)"></div>'+opts('',true)+'</div><div class="o-panel" style="padding:10px"><div class="o-h2"><b>What are you working towards? <span>(Select all that apply)</span></b><a>Select all</a></div><div style="height:var(--gap-sm)"></div>'+chips('c2')+'</div>'+GO+'</div>';
 }
@@ -746,7 +888,7 @@ function loginRight(state){
  var em='prateek@example.com';
  var mid='<div class="o-stack"><div><div class="o-h1">Log in</div><p class="o-sub">Enter your email or mobile number.</p></div><div class="o-tabs"><span class="on">Email</span><span>Phone</span></div><div><div class="o-lab">Email address</div><div class="o-field">'+(state==='edit'?'rohan@example.com':em)+'</div></div>';
  if(state==='today')mid+='<div class="o-alert">Please wait 42s before requesting another code.</div><div class="o-go">Get OTP</div>';
- if(state==='count')mid+='<div><div class="o-go dis">Get OTP again in 00:42</div><div class="o-red">We just sent a code to this email. For your security, you can request another one once the timer ends.</div></div>';
+ if(state==='count')mid+='<div><div class="o-go dis">Get OTP again in 00:42</div><div class="o-red">For your security, a new code can be requested once a minute.</div></div>';
  if(state==='edit')mid+='<div class="o-go">Get OTP</div>';
  return mid+'</div>';
 }
@@ -801,7 +943,7 @@ var MAP={
  'dlg-ph-today':function(){return dlgPh(false)},'dlg-ph-new':function(){return dlgPh(true)},
  'otp-today':function(){return loginFrame('today')},'otp-count':function(){return loginFrame('count')},'otp-edit':function(){return loginFrame('edit')},
  'all-0':function(){return allSet(0)},'all-1':function(){return allSet(1)},'all-2':function(){return allSet(2)},
- 'ob-today':function(){return obFrame('today')},'ob-a':function(){return obFrame('a')},'ob-b':function(){return obFrame('b')},'ob-c':function(){return obFrame('c')}
+ 'ob-today':function(){return obFrame('today')},'ob-a':function(){return obFrame('a')}
 };
 document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=MAP[el.getAttribute('data-frame')]()});
 /* ================= scaling and fit ================= */
@@ -873,7 +1015,7 @@ var Q=[
  why:"The new warning does the explaining. Leave the buttons alone."},
 {id:"Q4",item:"Item 3",title:"Which onboarding layout?",ask:"Look at the four drawings in section 5, at each laptop window size. Pick one.",
  opts:[
- {k:"A",l:"One grouped list for the four options, two-column chips, the helper text under the heading, the line &ldquo;This helps us tailor your experience and insights.&rdquo; removed",rec:1,d:"Good: fewer boxes, no two-line chips, a clear gap between the two questions, no scrolling. Bad: the options lose their separate card look, and the subtitle line goes."},
+ {k:"A",l:"One grouped list for the four options, two-column chips, the helper text under the heading, the line &ldquo;This helps us tailor your experience and insights.&rdquo; removed, and the subtext under each option removed",rec:1,d:"Good: fewer boxes, no two-line chips, a clear gap between the two questions, no scrolling. Bad: the options lose their separate card look, and the subtitle line goes."},
  {k:"B",l:"Separate quiet cards and pill-shaped chips that flow, subtitle line removed",d:"Good: lightest and friendliest, no scrolling. Bad: chips have uneven widths, so the rows look less tidy; most change to the existing code."},
  {k:"C",l:"Each question in its own soft panel, subtitle line removed",d:"Good: the clearest grouping, no scrolling in my drawings. Bad: panels use all the space at 1280&times;600 (no room to spare), so any later change could bring the scroll back."}],
  why:"In my drawings none of the three scrolls at 1280&times;600, 1440&times;810 or 1536&times;730 (drawn, not measured in the app). At the tightest window, 1280&times;600, A has about 15 px to spare, B about 20 px and C none. A removes the most clutter and keeps a little room. Check the fit note on each drawing at each window size before choosing."},
@@ -1022,8 +1164,9 @@ var Q=[
  why:"Search and the navigation index must be planned together, and charts and truth-finding both need the NAV fix.",
  ph:"What to change: ..."}
 ];
-var LOCK={Q1:1,Q2:1,Q3:1,Q5:1,Q6:1,Q7:1,Q8:1,Q9:1,Q10:1,Q11:1,Q12:1,Q13:1,Q14:1,Q15:1,Q16:1,Q17:1,Q18:1,Q19:1,Q20:1,Q21:1,Q22:1};
+var LOCK={Q1:1,Q2:1,Q3:1,Q4:1,Q5:1,Q6:1,Q7:1,Q8:1,Q9:1,Q10:1,Q11:1,Q12:1,Q13:1,Q14:1,Q15:1,Q16:1,Q17:1,Q18:1,Q19:1,Q20:1,Q21:1,Q22:1,Q23:1,Q26:1,Q27:1};
 var PRE={
+ Q4:{k:"A",n:"option A from the mockups with the subtexts removed (the subtitle line and the small text under each option)"},Q23:{k:"B",n:"with more detailed explanation"},Q26:{k:"C"},Q27:{k:"B"},
  Q1:{k:"A"},Q2:{k:"A"},Q3:{k:"A"},Q5:{k:"B"},
  Q6:{t:"different email, not registered. i just want you to check what happens and if it is currently what we want, then no need to change"},
  Q7:{k:"A",n:"if the user comes back and clicks get otp with the same email/phone number within a minute, the timer should come up with the one-line reason, as discussed in the first message"},
@@ -1039,6 +1182,10 @@ var PRE={
  Q22:{k:"A",n:"for this also we need to brainstorm whether we deploy this batch first, or execute all batches and then deploy together. i recommend executing all first and then deploying. also, we need to come up with the batches execution strategy as well, which batch will be executed when and in what order. lets do that also now only so when we plan the next batches, they have this context of what has happened before them and what will happen after. we also need to come up with the execution plan. like, how are we going to write the implementation plans? are we going to write one whole implementation plan for all of the batches? or are we writing different implementation plans for all of the batches? we need to discuss or brainstorm the best option for that as well."}
 };
 var FU={
+ Q4:"<p><b>Built as you chose.</b> Option A is drawn in section 5 without the subtitle line and without the small text under each option. With both gone, rows are shorter and the screen has room to breathe. Options B and C are no longer drawn.</p>",
+ Q23:"<p><b>More detail, as you asked (full design in section 7b, part C).</b></p><ul><li><b>The problem.</b> The 60 second rule only stops one address being hit again and again. It does not stop one source sending codes to many addresses, or checking many addresses to see which are registered.</li><li><b>What gets recorded.</b> For every sign-in or sign-up code request, one small row: a scrambled form of the visitor&rsquo;s internet address, a scrambled form of the email or phone, which route, what happened (code sent, unknown account, account already exists, held by the 60 second rule) and the time. Nothing readable is stored.</li><li><b>The rule.</b> Before the app answers, it counts how many different scrambled addresses this internet address has tried in the last [10] minutes. Past the limit, the request gets a polite wait message with the seconds left. Otherwise it records the row and carries on as today.</li><li><b>Why a new table.</b> A request for an unknown email creates no record today, so a count taken from the existing records would never see someone checking many addresses. Only a table that records every request sees that.</li><li><b>Housekeeping.</b> Rows are kept 24 hours and deleted by a daily job, on the staging server and on AWS.</li><li><b>Cost.</b> One migration (the next free number), one config secret for the scrambling, one scheduled cleanup, and a switch to turn the limit off without a redeploy.</li></ul>",
+ Q26:"<p><b>Decided.</b> The program index (B-15) will list the milestones. The first staging milestone is after wave 1 (this batch, C, L and the GA4 foundation).</p>",
+ Q27:"<p><b>Decided.</b> The next plans to write are one for this batch, once Q24, Q25 and Q28 are answered, and then one per batch, each just before it is built. Search and the emails get their own plans inside that pattern.</p>",
  Q2:"<p><b>Updated after your comment.</b> The line &ldquo;nothing is added for {selected person}&rdquo; is gone from the warning. The pop-up only appears when the chosen person is not found in the file, so the line was true, but it could be misread. The warning now says what the statement belongs to and what happens to it.</p>",
  Q6:"<p><b>What happens today (reported).</b> A different, unregistered email gets the answer &ldquo;No account found for that email, sign up instead.&rdquo; in the red box. No code is sent and there is no wait. It is not a countdown, so there is no change planned for it, only a test that an unregistered address never shows a wait.</p><p>The same message also lets anyone check whether an email is registered. You accepted that on 30 Sep. The IP limit (Q10, Q23) makes bulk checking harder but does not remove it.</p>",
  Q10:"<p><b>This widens the batch.</b> It adds backend work in lane 4, a possible migration (Q23), thresholds to decide (Q24) and a new line in the security note. The risk list now includes shared networks and the visible client address on staging.</p>",
@@ -1051,8 +1198,12 @@ var FU={
  Q22:"<p><b>This answer asked for more.</b> Section 9 sets out the execution order, the deploy options and the plan options, with my view. Your decisions on it are Q26 (deploy), Q27 (plans) and Q28 (order).</p>"
 };
 var CM={
- Q1:"The warning is a separate block passed into the existing pop-up, so the existing title and body tests keep passing.",
- Q2:"No backend change. The wording is generic: it names the people and says a new family member is created if needed.",
+ Q4:"The onboarding screen is built as option A: grouped list, two-column chips, helper text under the heading. The subtitle line and the small text under each option are removed, so the option texts in <code>finishCopy.ts</code> and the tests change, and Profile and the phone screens must be checked for reuse of those texts.",
+ Q23:"One new small table and its migration (the next free number), a keyed-hash secret in the config, a daily cleanup on both hosts and an on/off setting. The guard runs before the &ldquo;No account found&rdquo; and &ldquo;already exists&rdquo; answers so that checking many addresses is counted.",
+ Q26:"One integration branch kept up to date with the base. Staging deploys at milestones, production once at the end.",
+ Q27:"One implementation plan per batch, written just before the batch is built, plus a program index that holds the order, the shared files, the migration numbers and the deploy milestones.",
+ Q1:"The warning is a separate amber block passed into the existing pop-up, so the existing title and body tests keep passing. It is now one bold line and one muted line.",
+ Q2:"No backend change. The wording is generic: it names the people the funds are imported for and says a new family member is created if needed.",
  Q3:"The buttons and their behaviour stay as they are today.",
  Q5:"The onboarding step 4 and All set screens use #22C55E. The sign-up and login screens share one set of green tokens, so how far this goes is Q25. Buttons need dark text on this green (white text is hard to read). This touches <code>auth-tokens.css</code>, which items 6 and 3 also edit.",
  Q6:"No change for an unregistered address. A test will make sure it never shows a wait.",

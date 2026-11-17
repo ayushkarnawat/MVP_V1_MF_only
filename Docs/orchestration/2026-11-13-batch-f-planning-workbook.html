@@ -349,6 +349,74 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 .strip{display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:8px 12px;font-size:12.5px;color:#344054}
 .strip b{font-weight:700}
 .i{display:inline-flex;width:16px;height:16px;border-radius:50%;border:1px solid #98A2B3;color:#667085;font:600 10px Manrope,sans-serif;align-items:center;justify-content:center;background:#fff}
+
+/* ---- 3b: where the rail fits (interactive) ---- */
+.rl-w{position:relative;flex:1;min-height:0}
+.rl-s{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:20px 24px 40px;scroll-behavior:smooth}
+/* glass placement: cards run full width so the floating rail sits over real chart content (frosting only reads when there is detail behind it) */
+.rl-s.rsv{padding-right:24px}.rl-s.rsv2{padding-right:44px}
+.rl-g2{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:22px;align-items:start}
+.rl-sec{background:#fff;border:1px solid #E5E7EB;border-radius:16px;padding:16px 18px;margin:0 0 14px}
+.rl-cv{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:26px;align-items:center}
+.rl-viz{position:relative;height:132px}
+.rl-viz svg{display:block;width:100%;height:100%;overflow:visible}
+.rl-viz .vl{position:absolute;left:0;top:0;font:600 10.5px Manrope,sans-serif;color:#667085;line-height:1.3}
+.rl-viz .vl b{display:block;font:700 17px 'DM Sans',sans-serif;color:#111;font-variant-numeric:tabular-nums}
+.rl-cols{display:flex;align-items:flex-end;gap:7px;height:100%}
+.rl-cols div{flex:1;display:flex;flex-direction:column-reverse;gap:2px}
+.rl-cols i{display:block;border-radius:3px}
+.rl-tm{display:grid;grid-template-columns:46fr 31fr 23fr;grid-template-rows:1fr 1fr;gap:4px;height:100%}
+.rl-tm div{border-radius:8px;padding:8px 9px;color:#fff;font:600 11px Manrope,sans-serif;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;white-space:nowrap}
+.rl-tm div b{font:700 15px 'DM Sans',sans-serif}
+.rl-sec .rh{font:700 15px 'DM Sans',sans-serif;margin-bottom:10px;display:flex;justify-content:space-between}
+.rl-sec .rh span{font:500 11.5px Manrope,sans-serif;color:#98A2B3}
+.rl-2c{display:grid;grid-template-columns:150px minmax(0,1fr) 120px;gap:18px;align-items:center}
+.rl-do{width:130px;height:130px;border-radius:50%;background:conic-gradient(#22C55E 0 72%,#0EA5E9 0 93%,#F59E0B 0 100%);position:relative}
+.rl-do:after{content:"";position:absolute;inset:30px;border-radius:50%;background:#fff}
+.rl-lg div{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;border-bottom:1px solid #F1F3F1}
+.rl-lg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+.rl-mini{font-size:12px;color:#475467;border-left:1px solid #EEF0EE;padding-left:14px}.rl-mini b{display:block;font:700 18px 'DM Sans',sans-serif;color:#111}
+.rl-bar{display:grid;grid-template-columns:150px 1fr 60px;gap:10px;align-items:center;font-size:12.5px;margin:7px 0}.rl-bar i{display:block;height:9px;border-radius:5px;background:#22C55E}
+.rl-nav a{display:block;color:#667085;text-decoration:none;padding:5px 0 5px 10px;font-size:12.5px;border-left:2px solid #E5E7EB;cursor:pointer}
+.rl-nav a.on{color:#15803D;font-weight:700;border-left-color:#22C55E}
+.rl-dock{position:sticky;top:0}
+.rl-dock h6{font:700 11px Manrope,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#98A2B3;margin:0 0 8px}
+.rl-gl{position:absolute;right:52px;top:74px;width:44px;border-radius:20px;padding:8px 7px;isolation:isolate;overflow:hidden;z-index:5;background:linear-gradient(160deg,rgba(255,255,255,.30) 0%,rgba(255,255,255,.14) 48%,rgba(250,250,251,.22) 100%);backdrop-filter:blur(34px) saturate(1.6) brightness(1.07);-webkit-backdrop-filter:blur(34px) saturate(1.6) brightness(1.07);border:1px solid rgba(16,24,40,.11);box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(255,255,255,.25),inset 0 0 0 .5px rgba(255,255,255,.35),0 1px 2px rgba(16,24,40,.06),0 8px 20px -6px rgba(16,24,40,.12),0 26px 52px -16px rgba(16,24,40,.22);transition:width .3s cubic-bezier(.32,.72,0,1),box-shadow .3s cubic-bezier(.32,.72,0,1),background .3s}
+.rl-gl:before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:radial-gradient(110% 55% at 0% 0%,rgba(255,255,255,.55) 0%,rgba(255,255,255,.12) 40%,rgba(255,255,255,0) 64%),linear-gradient(180deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,0) 22%)}
+.rl-gl:after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;padding:1px;background:linear-gradient(155deg,rgba(255,255,255,1) 0%,rgba(255,255,255,.35) 32%,rgba(255,255,255,.15) 62%,rgba(255,255,255,.6) 100%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+.rl-gl:hover,.rl-gl:has(:focus-visible),.rl-gl.pin{width:266px;box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(255,255,255,.25),inset 0 0 0 .5px rgba(255,255,255,.35),0 1px 2px rgba(16,24,40,.06),0 12px 28px -8px rgba(16,24,40,.14),0 36px 70px -20px rgba(16,24,40,.26)}
+.rl-gl .ti{display:flex;align-items:center;gap:6px;height:6px;margin:0;padding:0 2px 0 8px;white-space:nowrap;position:relative;overflow:hidden;transition:height .3s cubic-bezier(.32,.72,0,1),margin .3s cubic-bezier(.32,.72,0,1)}
+.rl-gl:hover .ti,.rl-gl:has(:focus-visible) .ti,.rl-gl.pin .ti{height:26px;margin-bottom:4px}
+.rl-gl .ti h6{margin:0;font:600 10px Manrope,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#475467;text-shadow:0 0 1px rgba(255,255,255,.9),0 1px 6px rgba(255,255,255,.5);opacity:0;transition:opacity .18s}
+.rl-gl .pb{margin-left:auto;font:600 10.5px Manrope,sans-serif;letter-spacing:.01em;border:1px solid rgba(16,24,40,.08);background:rgba(255,255,255,.6);border-radius:99px;padding:3px 10px;color:#667085;cursor:pointer;opacity:0;box-shadow:0 1px 1px rgba(16,24,40,.03);transition:opacity .18s,color .15s,background .15s,border-color .15s}
+.rl-gl .pb:hover{color:#111;background:#fff}
+.rl-gl.pin .pb{color:#15803D;background:rgba(234,251,240,.85);border-color:rgba(21,128,61,.18)}
+.rl-gl .pb:focus-visible{outline:none;box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(34,197,94,.55)}
+.rl-gl:hover .ti h6,.rl-gl:has(:focus-visible) .ti h6,.rl-gl.pin .ti h6,.rl-gl:hover .pb,.rl-gl:has(:focus-visible) .pb,.rl-gl.pin .pb{opacity:1;transition-delay:.08s}
+.rl-gl a{display:flex;align-items:center;gap:12px;height:32px;margin:1px 0;white-space:nowrap;font:500 12.5px Manrope,sans-serif;letter-spacing:-.003em;color:#1D2939;text-shadow:0 0 1px rgba(255,255,255,.9),0 1px 8px rgba(255,255,255,.55);border-radius:10px;padding:0 8px;cursor:pointer;text-decoration:none;position:relative;transition:background .18s,color .18s,box-shadow .18s}
+.rl-gl a:hover{color:#0B1220;background:rgba(255,255,255,.34)}
+.rl-gl a:focus-visible{outline:2px solid rgba(34,197,94,.55);outline-offset:-2px}
+.rl-gl a .tk{flex:none;width:14px;height:2px;border-radius:2px;background:rgba(52,64,84,.55);box-shadow:0 0 0 .5px rgba(255,255,255,.5);transition:width .25s cubic-bezier(.32,.72,0,1),background .2s,margin .25s cubic-bezier(.32,.72,0,1)}
+.rl-gl a:hover .tk{background:rgba(52,64,84,.8)}
+.rl-gl a .tx{opacity:0;transform:translateX(-4px);transition:opacity .16s,transform .16s}
+.rl-gl:hover a .tx,.rl-gl:has(:focus-visible) a .tx,.rl-gl.pin a .tx{opacity:1;transform:none;transition:opacity .22s .07s,transform .3s .07s cubic-bezier(.32,.72,0,1)}
+.rl-gl a.on .tk{background:#22C55E;width:20px;height:3px;margin-left:-3px;margin-right:-3px;box-shadow:0 0 0 1.5px rgba(255,255,255,.9),0 1px 3px rgba(16,24,40,.18)}
+.rl-gl a.on{color:#14532D;font-weight:600}
+.rl-gl:hover a.on,.rl-gl:has(:focus-visible) a.on,.rl-gl.pin a.on{background:rgba(255,255,255,.82);box-shadow:0 0 0 1px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.06),0 2px 6px -2px rgba(16,24,40,.06)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.rl-gl{background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(248,250,252,.94))}}
+@media (prefers-reduced-motion:reduce){.rl-gl,.rl-gl *,.rl-gl:before,.rl-gl:after{transition:none!important}}
+.rl-dots{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;z-index:5}
+.rl-dots a{position:relative;width:12px;height:12px;border-radius:50%;background:#C5CBC5;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer;display:block}
+.rl-dots a.on{background:#22C55E;transform:scale(1.25)}
+.rl-dots a span{position:absolute;right:20px;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:11.5px;background:rgba(17,24,19,.85);color:#fff;border-radius:7px;padding:3px 8px;opacity:0;pointer-events:none}
+.rl-dots a:hover span{opacity:1}
+.rl-fab{position:absolute;right:20px;bottom:18px;z-index:6;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.rl-fab .pill{display:inline-flex;align-items:center;gap:8px;border-radius:99px;padding:9px 16px;font:700 12.5px Manrope,sans-serif;color:#14532D;cursor:pointer;background:rgba(255,255,255,.6);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.8);box-shadow:0 8px 24px rgba(16,24,19,.18)}
+.rl-fab .pnl{display:none;width:230px;border-radius:16px;padding:10px;background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4);border:1px solid rgba(255,255,255,.8);box-shadow:0 12px 32px rgba(16,24,19,.2)}
+.rl-fab.open .pnl{display:block}
+.rl-fab .pnl a{display:block;padding:7px 10px;border-radius:9px;font-size:12.5px;color:#475467;cursor:pointer;text-decoration:none}
+.rl-fab .pnl a.on{background:rgba(234,251,240,.9);color:#15803D;font-weight:700}
+.rl-note{font-size:12px;color:#667085;margin:6px 0 0}
 </style>
 </head>
 <body>
@@ -359,6 +427,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h4>Item 12</h4>
  <a href="#sections">2. The sections on each tab</a>
  <a href="#options">3. How the index looks</a>
+ <a href="#rail3b">3b. Fitting the side rail</a>
  <a href="#behaviour">4. How it behaves</a>
  <a href="#config">5. One list, shared</a>
  <h4>How we build it</h4>
@@ -376,8 +445,9 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <div class="hero">
  <h1>Batch F Planning</h1>
  <div class="meta">Planning only &middot; nothing built or run &middot; 13 Nov 2026 &middot; updated with your answers &middot; branch leapswitch-redesign</div>
- <p>Navigation: item 12, the <b>section index within tabs</b>. The Mutual Funds tabs have several sections each, and the long ones feel like a scrolling black hole. Your idea: when the user is on a tab, that tab expands to show its sections; a click jumps to one, and normal scrolling still works. You also said you are open to other ideas, so this workbook compares your idea with four alternatives, with mockups, and recommends one. The output is <b>one section index</b> that works on every Mutual Funds tab, driven by <b>one shared list of sections</b> that search and the PDF export reuse, on the Mutual Funds tabs and the fund page.</p>
- <p><b>Updated 13 Nov.</b> Q2 and Q3 are answered and recorded: the index covers the seven Mutual Funds tabs <b>and the fund page&rsquo;s three tabs</b>, and the tab bar sticks on every tab. <b>Q1, the shape of the index, is still open.</b> The fund page turned out to be a separate frame with only three tabs, where your expanding-tab idea does fit, so section 3 now compares the two frames.</p>
+ <p>Navigation: item 12, the <b>section index within tabs</b>. The Mutual Funds tabs have several sections each, and the long ones feel like a scrolling black hole. Your idea: when the user is on a tab, that tab expands to show its sections; a click jumps to one, and normal scrolling still works. You also said you are open to other ideas, so this workbook compares your idea with four alternatives, with mockups, and recommends one. The output is <b>one section index</b> that works on every Mutual Funds tab, driven by <b>one shared list of sections</b> that search and the PDF export reuse, on the seven Mutual Funds tabs (the fund page was dropped from this batch on 17 Nov).</p>
+ <p><b>Updated 17 Nov (your review).</b> (1) <b>Q2 is now A:</b> the index is for the seven Mutual Funds tabs only; the fund page is out of this batch. (2) <b>Q3 is now C:</b> the tab bar does <b>not</b> stick; only the index sticks. (3) You like the <b>side rail</b>, so section 3b shows where it fits among the busy right-hand sides, with a frosted-glass box and three other placements you can try. <b>Q1 is not answered yet.</b> I have not recorded the rail as your choice; tell me when you have decided.</p>
+ <p><b>Earlier (13 Nov).</b> Q2 and Q3 were answered as follows, now replaced: the index covers the seven Mutual Funds tabs <b>and the fund page&rsquo;s three tabs</b>, and the tab bar sticks on every tab. <b>Q1, the shape of the index, is still open.</b> The fund page turned out to be a separate frame with only three tabs, where your expanding-tab idea does fit, so section 3 now compares the two frames.</p>
  <p><b>How this was made.</b> I read the code, read-only: the seven tabs and every section on them, the page frame and tab bar, the layout that decides what scrolls, the route registry, and the existing scroll and anchor code. Every statement about the code is labelled <em>read in code</em>. Nothing was run and I did not look at the live app, so the width estimates are labelled estimates. Mockups are my reconstructions with made-up numbers and <b>show laptop views only</b>: the phone view is out of scope for every batch.</p>
 </div>
 
@@ -394,7 +464,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (read in code)</th><th>What changes</th><th>Layers</th></tr></thead>
   <tbody>
-   <tr><td class="k">12. Section index within tabs</td><td>Make long tabs easier to navigate: the tab shows its sections, a click jumps, scrolling still works. Open to other ideas.</td><td>Seven tabs, each a route; the tab bar is a card of plain links that scrolls away with the page. The sections have no stable ids, no scroll-spy and no jump links. Section counts range from 2 to 8.</td><td>A section index (shape: Q1, still open) on the seven Mutual Funds tabs and the fund page&rsquo;s three tabs (Q2 B), with a sticky tab bar (Q3 A), driven by one shared list of sections per tab.</td><td><span class="tag fe">frontend</span> <span class="tag none">no backend</span></td></tr>
+   <tr><td class="k">12. Section index within tabs</td><td>Make long tabs easier to navigate: the tab shows its sections, a click jumps, scrolling still works. Open to other ideas.</td><td>Seven tabs, each a route; the tab bar is a card of plain links that scrolls away with the page. The sections have no stable ids, no scroll-spy and no jump links. Section counts range from 2 to 8.</td><td>A section index (shape: Q1, still open, you lean to the side rail) on the seven Mutual Funds tabs only (Q2 A), where only the index sticks and the tab bar scrolls away as today (Q3 C), driven by one shared list of sections per tab.</td><td><span class="tag fe">frontend</span> <span class="tag none">no backend</span></td></tr>
   </tbody>
  </table></div>
  <h3 class="sub">Six findings (read in code)</h3>
@@ -406,8 +476,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>F3</td><td>Section counts differ a lot: Overview 7 (8 with Batch D&rsquo;s graph), Allocation 4, Overlap 4, Other Analytics 4 groups holding 6 cards, Performance 3, Holdings 2, Transactions 2. The fund page&rsquo;s tabs have 5 to 6 sections each (section 2).</td><td>The long tabs need the index; the 2-section tabs barely need one. A rule (&ldquo;show when 3 or more&rdquo;) avoids clutter.</td></tr>
    <tr><td>F4</td><td>There is <b>no stable id</b> on most sections. <code>SectionCard</code> makes its heading id with <code>useId()</code> (a random value), and some sections are not cards at all (the Overview&rsquo;s summary strip, the holdings table, the Cash Flow strip). A few headings have fixed ids (<code>holdings-title</code>, <code>sip-title</code>).</td><td>Every section needs a stable anchor first; that is the real groundwork of this batch.</td></tr>
    <tr><td>F5</td><td>The sidebar is <b>224 px</b> wide and the page area has 24 px padding, so at 1280 px wide the content is about 1008 px. My estimate of the seven tab labels at the current size is about 620 px, leaving about 370 px.</td><td>Not enough to expand even a 4-section tab inline (about 430 px by estimate), let alone the Overview&rsquo;s 7 sections (about 730 px). Section 3 shows this.</td></tr>
-   <tr><td>F7</td><td><b>The fund page is a separate frame</b> (<code>FundPageFrame.tsx</code>): a breadcrumb, a fund header, a stat band above the tabs (Overview only), then <b>three</b> underline-style tabs (Overview, Overlap, Insights). The tab strip is a plain row of links and is not sticky.</td><td>With only three short tabs there is plenty of room, so your expanding-tab idea fits here (section 3). But the two frames look different, and one component should serve both (Q2 B).</td></tr>
-   <tr><td>F6</td><td>Search&rsquo;s plan and the PDF export (Batch I) both want a slot in the same header area, and Batch E adds a &ldquo;data dates&rdquo; strip under the tabs.</td><td>The layout has to be planned as one stack: header, tabs, section index, data strip, content (section 5).</td></tr>
+   <tr><td>F7</td><td><b>The fund page is a separate frame</b> (<code>FundPageFrame.tsx</code>): a breadcrumb, a fund header, a stat band above the tabs (Overview only), then <b>three</b> underline-style tabs (Overview, Overlap, Insights). The tab strip is a plain row of links and is not sticky.</td><td>With only three short tabs there is plenty of room, so your expanding-tab idea fits here (section 3). The two frames look different. Since Q2 A (17 Nov) the fund page is not in this batch; the component is still built so it could serve both later.</td></tr>
+   <tr><td>F6</td><td>Search&rsquo;s plan wants a slot in the header area (the PDF export no longer does: Batch I moved its button to the top bar on 17 Nov), and Batch E adds a &ldquo;data dates&rdquo; strip under the tabs.</td><td>The layout has to be planned as one stack: header, tabs, section index, data strip, content (section 5).</td></tr>
   </tbody>
  </table></div>
 </section>
@@ -429,7 +499,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   </tbody>
  </table></div>
  <p class="note">Titles are quoted from the code. Two things the audit settles: (1) whether the Summary strip and Sold funds count as sections (they have no heading of their own), and (2) for Other Analytics, whether the index lists the 4 groups or the 6 cards (the proposal: the 4 groups, because they are the page&rsquo;s own headings). The fund page&rsquo;s tabs are in Q2.</p>
- <h3 class="sub">The fund page tabs (added with Q2 B)</h3>
+ <h3 class="sub">The fund page tabs (out of this batch since Q2 A; kept as a record for a later follow-up)</h3>
  <div class="scroll"><table>
   <thead><tr><th>Tab</th><th>Sections in order (read in code)</th><th>Count</th><th>Index?</th></tr></thead>
   <tbody>
@@ -452,7 +522,26 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <p>Your idea: the active tab opens in place to show its sections, so the tab row reads <b>Overview &rsaquo; Summary &middot; Value over time &middot; SIPs &middot; Mutual Funds &middot; Sold funds &middot; AMC Allocation &middot; Family Members &middot; Quick Insights</b>, with the other six tabs still on the row. These are my estimates, not measurements, from the label lengths and the current tab size.</p>
  <div data-frame="fits"></div>
  <p class="note">Estimated widths in pixels. The row has about 1008 px of room at 1280 px wide (the page area), less the card&rsquo;s own padding and the search slot. Green fits, amber does not, grey is the room left.</p>
- <p><b>On the fund page your idea fits</b>: it has only three tabs (about 214 px by estimate), so even six sections fit on the row. <b>On the Mutual Funds tabs it does not</b>: your idea fits only on tabs with <b>three sections or fewer</b> (Performance; Holdings and Transactions would not show an index anyway). It does <b>not</b> fit on Allocation, Overlap, Other Analytics or the Overview, which are the tabs that most need it, unless the other tabs fold away while the active one is open (option A below). That is why I propose a variation, and one component that looks the same on both frames.</p>
+ <p><b>On the fund page your idea fits</b>: it has only three tabs (about 214 px by estimate), so even six sections fit on the row. <b>On the Mutual Funds tabs it does not</b>: your idea fits only on tabs with <b>three sections or fewer</b> (Performance; Holdings and Transactions would not show an index anyway). It does <b>not</b> fit on Allocation, Overlap, Other Analytics or the Overview, which are the tabs that most need it, unless the other tabs fold away while the active one is open (option A below). That is why I propose a variation. (The fund page is out of this batch since Q2 A; the line about it is kept for a later follow-up.)</p>
+
+
+ <h2 id="rail3b" style="margin-top:36px">3b. Fitting the side rail (new, 17 Nov)</h2>
+ <p class="lead">You like the rail, but the right-hand side of many sections is already busy. This is a working mockup: scroll the page inside it, hover and click the rail, and switch the placement, the tab and the window width.</p>
+ <div class="winbar" data-sec="rv"><span>Placement</span><button type="button" data-v="glass" aria-pressed="true">1. Frosted glass box (my pick)</button><button type="button" data-v="docked" aria-pressed="false">2. Docked column</button><button type="button" data-v="dots" aria-pressed="false">3. Dots only</button><button type="button" data-v="fab" aria-pressed="false">4. Corner button</button></div>
+ <div class="winbar" data-sec="rt"><span>Tab</span><button type="button" data-v="allocation" aria-pressed="true">Allocation (4 sections)</button><button type="button" data-v="overview" aria-pressed="false">Overview (8 sections)</button></div>
+ <div class="winbar" data-sec="rw"><span>Window</span><button type="button" data-v="1280" aria-pressed="true">1280 px</button><button type="button" data-v="1100" aria-pressed="false">1100 px</button></div>
+ <div data-frame="rail"></div>
+ <p class="rl-note"><b>Try it:</b> scroll inside the page; the current section lights up. Hover or click the glass box to open it; &ldquo;Pin&rdquo; keeps it open. Click a section to jump. Made-up numbers; laptop only.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Placement</th><th>How it fits</th><th>Width it takes</th><th>Strength</th><th>Weakness</th></tr></thead>
+  <tbody>
+   <tr><td class="k">1. Frosted glass box (my pick)</td><td>A small translucent box floats at the right edge of the page area. Closed it is a slim strip of ticks, one per section, with the current one longer and green. Hover, focus or click opens it into the full list over the content, with a blur behind so the cards stay readable.</td><td>About 48 px closed, set a little in from the edge (it overlays the right edge of the cards, which is where the frosting shows), nothing extra when open: it overlays. Refined on 17 Nov: moved inwards, more translucent and glassier, with a soft sheen and a green glow on the current section.</td><td>Almost no width taken, so the busy right-hand sides keep their room; shows every section on demand; looks like the rest of the redesign; no height cost.</td><td>When open it covers the right edge of the cards for a moment; it needs a clear &ldquo;pin&rdquo; and keyboard handling; the blur needs a fallback on old browsers.</td></tr>
+   <tr><td class="k">2. Docked column</td><td>A real column beside the content, sticky while scrolling (your option C as first drawn).</td><td>About 190 px.</td><td>Always open; nothing overlaps; simplest to build.</td><td>The cards lose about 190 px; at 1100 px the tables and charts get cramped.</td></tr>
+   <tr><td class="k">3. Dots only</td><td>Just a column of dots at the right edge; a label appears on hover.</td><td>About 28 px.</td><td>The lightest; fine on a very busy page.</td><td>Labels are hidden until hover, so it explains less; weak for keyboard and screen-reader users unless the dots carry real labels.</td></tr>
+   <tr><td class="k">4. Corner button</td><td>A glass &ldquo;On this page&rdquo; pill at the bottom-right corner opens a small list above it.</td><td>None.</td><td>Never covers the right side; works at any width.</td><td>One click to see the sections, so it feels closer to a menu than a map; the corner is also where help and chat buttons often live.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>My recommendation: the frosted glass box, with the pill as its fallback.</b> At 1280 px the glass box fits with a 64 px reserved margin. Below about 1100 px the glass box turns into the corner pill automatically, so nothing is ever squeezed. This is a recommendation, not a recorded answer: Q1 stays open until you pick.</div>
 
  <h3 class="sub">The options</h3>
  <div class="winbar" data-sec="opt"><span>Option</span><button type="button" data-v="a" aria-pressed="false">A. Your idea: the tab expands</button><button type="button" data-v="b" aria-pressed="true">B. A section row under the tabs</button><button type="button" data-v="c" aria-pressed="false">C. A side rail</button><button type="button" data-v="f" aria-pressed="false">B on the fund page</button></div>
@@ -478,16 +567,16 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>Behaviour</th><th>How it works</th></tr></thead>
   <tbody>
-   <tr><td class="k">Where it sticks</td><td>The tab row and the section row stay at the top of the page area while the content scrolls beneath them. The top bar (search, Import, family selector) is outside the scroll area and unaffected.</td></tr>
-   <tr><td class="k">Height budget</td><td>At a short window such as 1280&times;600, two sticky rows cost about 90 px (an estimate), leaving about 440 px for content. To protect short windows, <b>the tab row hides while scrolling down and returns when scrolling up</b>, leaving only the section row stuck (about 40 px) most of the time. Both stay visible at the top of the page.</td></tr>
+   <tr><td class="k">Where it sticks</td><td><b>Q3 C (17 Nov): only the index sticks.</b> The tab row scrolls away as today. With a section row, that row stays at the top of the page area; with a side rail, the rail stays beside the content. The top bar (search, Import, family selector) is outside the scroll area and unaffected.</td></tr>
+   <tr><td class="k">Height budget</td><td>With Q3 C only one thing sticks. A section row costs about 40 px of height (an estimate); a side rail or a glass rail costs no height. The earlier hide-the-tab-row-on-scroll rule is no longer needed.</td></tr>
    <tr><td class="k">Jump</td><td>Clicking a chip scrolls the page area so the section&rsquo;s heading lands just below the sticky rows (smooth scroll, instant for people who prefer reduced motion). Focus moves to the section&rsquo;s heading so keyboard and screen-reader users land there.</td></tr>
    <tr><td class="k">Scroll-spy</td><td>The chip of the section nearest the top is highlighted as you scroll. It watches the page area, not the window. A section that is still loading keeps its place (see Risks).</td></tr>
    <tr><td class="k">Address</td><td>The jump writes the section into the page address (<code>#allocation-market-cap</code>), so a link or a refresh returns to that section, and the Back button steps back through jumps. Opening a tab with no hash starts at the top, as today.</td></tr>
    <tr><td class="k">Keyboard and screen readers</td><td>Each chip is a link to the section; the row is a labelled navigation region; the current section carries <code>aria-current</code>. Tab, Enter and Escape behave as on any link.</td></tr>
-   <tr><td class="k">On the fund page</td><td>The fund header and the stat band scroll away as today; the tab strip (Overview, Overlap, Insights) sticks, with the section row directly under it. The chips take the same look as on the Mutual Funds frame, adapted to the underline tabs. Your answer to Q3 is read as covering the fund page&rsquo;s tab strip too.</td></tr>
-   <tr><td class="k">When the index shows</td><td>On tabs with 3 or more sections (a setting). On the others the row is simply not drawn, and the tab bar still sticks.</td></tr>
+   <tr><td class="k">On the fund page</td><td><b>Out of this batch (Q2 A, 17 Nov).</b> The fund page keeps its current layout. If you bring it in later, the same component is reused.</td></tr>
+   <tr><td class="k">When the index shows</td><td>On tabs with 3 or more sections (a setting). On the others nothing is drawn. The tab bar never sticks (Q3 C).</td></tr>
    <tr><td class="k">Loading, empty and error</td><td>A section that is empty or failed still appears in the index so the list never jumps around; an empty tab (no funds yet) shows no index.</td></tr>
-   <tr><td class="k">With the other batches</td><td>Order of the stack, top to bottom: page title, tab row, section row, the data strip from Batch E, then the content. Search (K) and the PDF button (I) use the tab bar&rsquo;s right slot (section 5).</td></tr>
+   <tr><td class="k">With the other batches</td><td>Order of the stack, top to bottom: page title, tab row, section row, the data strip from Batch E, then the content. Search (K) uses the tab bar&rsquo;s right slot; the PDF button (I) is in the top bar, not in this stack (updated 17 Nov).</td></tr>
   </tbody>
  </table></div>
  <h3 class="sub">Before and after</h3>
@@ -504,7 +593,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>Piece</th><th>What it is</th></tr></thead>
   <tbody>
-   <tr><td class="k">The list</td><td>One configuration per tab, for <b>both frames</b> (the seven Mutual Funds tabs and the fund page&rsquo;s three): an ordered list of entries <code>{ id, title, anchor, tier }</code>, kept next to the tab definitions in <code>MutualFundsFrame.tsx</code> (where <code>TAB_DEFS</code> already lives) and <code>FundPageFrame.tsx</code>, or in the route registry. <code>tier</code> lets Standard hide Pro sections later (Batch C4); it is unused today.</td></tr>
+   <tr><td class="k">The list</td><td>One configuration per tab for the <b>seven Mutual Funds tabs</b> (the fund page&rsquo;s three tabs are out of this batch since Q2 A): an ordered list of entries <code>{ id, title, anchor, tier }</code>, kept next to the tab definitions in <code>MutualFundsFrame.tsx</code> (where <code>TAB_DEFS</code> already lives) and <code>FundPageFrame.tsx</code>, or in the route registry. <code>tier</code> lets Standard hide Pro sections later (Batch C4); it is unused today.</td></tr>
    <tr><td class="k">The anchor</td><td>Each section element gets <code>id</code> from the list, plus a <code>scroll-margin-top</code> that equals the sticky height. <code>SectionCard</code> gains an <code>anchor</code> property; the sections that are not cards (the Overview&rsquo;s strip and table, the Cash Flow strip) get a small wrapper.</td></tr>
    <tr><td class="k">Who reads it</td><td>The index (this batch); search&rsquo;s &ldquo;page sections&rdquo; results (K); the PDF export&rsquo;s section selection and order (I); Batch E&rsquo;s strip entries can reuse the same ids. Nothing else may hard-code a section list.</td></tr>
    <tr><td class="k">A guard test</td><td>A test checks that every id in the list exists on its page, and that every card on a page appears in the list or is marked as intentionally excluded.</td></tr>
@@ -513,7 +602,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h3 class="sub">The header stack</h3>
  <div class="winbar" data-sec="stack"><span>Layout</span><button type="button" data-v="stack" aria-pressed="true">Top to bottom</button></div>
  <div data-frame="stack"></div>
- <p class="note">Laptop, made-up. The search box (K) and the PDF button (I) sit in the tab bar&rsquo;s right slot; the data strip (E) sits under the section row. Nothing uses the same space.</p>
+ <p class="note">Laptop, made-up. The search box (K) sits in the tab bar&rsquo;s right slot; the PDF button (I) now lives in the top bar (17 Nov), so it is not drawn here; the data strip (E) sits under the section row. Nothing uses the same space.</p>
 </section>
 
 <!-- ============ 6. STRATEGY ============ -->
@@ -533,7 +622,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h3 class="sub">Lanes that can run at the same time</h3>
  <div class="cols">
   <div class="doc"><h4>Lane 1: groundwork</h4><ul><li>The shared list, the anchors and <code>SectionCard</code>&rsquo;s anchor, the wrappers for non-card sections, the guard test.</li><li>Touches every tab&rsquo;s page and card files on both frames, by one small edit each.</li></ul></div>
-  <div class="doc"><h4>Lane 2: the index</h4><ul><li>The sticky rows, the chip row, scroll-spy, jump, address and focus, as one component.</li><li>Touches <code>MutualFundsFrame.tsx</code>, <code>FundPageFrame.tsx</code> and new files.</li></ul></div>
+  <div class="doc"><h4>Lane 2: the index</h4><ul><li>The sticky index (row or rail, per Q1), scroll-spy, jump, address and focus, as one component.</li><li>Touches <code>MutualFundsFrame.tsx</code> and new files. Not <code>FundPageFrame.tsx</code> (Q2 A).</li></ul></div>
  </div>
  <p>Lane 2 needs Lane 1&rsquo;s list but not its anchors for most of the work, so the two overlap.</p>
 </section>
@@ -547,7 +636,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">D (charts)</td><td>D adds the Overview graph, which becomes the second Overview section. Its lazy loading changes the page height as it loads, so scroll-spy and jumps must cope with sections that grow after the first paint.</td></tr>
    <tr><td class="k">E (explainability and dates)</td><td>E&rsquo;s data strip sits directly under the section row. Both are part of the header stack in section 5. E&rsquo;s strip is not sticky; the section row is.</td></tr>
    <tr><td class="k">K (search)</td><td>Search&rsquo;s &ldquo;page sections&rdquo; result type reads this batch&rsquo;s list, and its page-local box takes the tab bar&rsquo;s right slot (today the Overview&rsquo;s page-local box is there). Plan the two together: one list, one slot rule.</td></tr>
-   <tr><td class="k">I (PDF export)</td><td>The export button takes the same right slot and uses the list for which sections to print and in what order.</td></tr>
+   <tr><td class="k">I (PDF export)</td><td>The export button is in the top bar (Batch I, 17 Nov) and uses the list for which sections to print and in what order.</td></tr>
    <tr><td class="k">G (GA4)</td><td>A &ldquo;section jumped to&rdquo; event could carry the section id only. The tracking plan&rsquo;s section-view events (&ldquo;which sections do users skip&rdquo;) use the same ids, so this batch is what makes G&rsquo;s section questions answerable.</td></tr>
    <tr><td class="k">C4 (Standard vs Pro)</td><td>The list&rsquo;s <code>tier</code> field lets a tier hide a section, so the index, search and the PDF all follow.</td></tr>
    <tr><td class="k">A, B, C</td><td>No shared files.</td></tr>
@@ -565,10 +654,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <thead><tr><th>ID</th><th>Task</th><th>Worker</th><th>Size</th><th>When</th></tr></thead>
   <tbody>
    <tr><td>F-1</td><td>Re-check every &ldquo;read in code&rdquo; line; write the specs and the Gemini packet</td><td>Claude</td><td>M</td><td>After your answers</td></tr>
-   <tr><td>F-2</td><td>Finish the section audit: every section on the seven tabs and on the fund page&rsquo;s tabs, with its stable id, whether it is a card, and whether it can be empty</td><td>Claude</td><td>M</td><td>Now (read-only)</td></tr>
+   <tr><td>F-2</td><td>Finish the section audit: every section on the seven tabs (the fund page is out since Q2 A), with its stable id, whether it is a card, and whether it can be empty</td><td>Claude</td><td>M</td><td>Now (read-only)</td></tr>
    <tr><td>F-3</td><td>The shared section list and its guard test, tests first</td><td>Codex</td><td>S</td><td>After F-2</td></tr>
-   <tr><td>F-4</td><td>Anchors on both frames: <code>anchor</code> on <code>SectionCard</code> and on the fund page&rsquo;s own section blocks; wrappers for non-card sections; <code>scroll-margin-top</code></td><td>Codex</td><td>L</td><td>After F-3</td></tr>
-   <tr><td>F-5</td><td>The sticky tab row and section row in <code>MutualFundsFrame</code> and <code>FundPageFrame</code>; hide the Mutual Funds tab row on scroll down</td><td>Codex, Gemini</td><td>L</td><td>After Q1</td></tr>
+   <tr><td>F-4</td><td>Anchors on the Mutual Funds tabs: <code>anchor</code> on <code>SectionCard</code>; wrappers for non-card sections; <code>scroll-margin-top</code></td><td>Codex</td><td>L</td><td>After F-3</td></tr>
+   <tr><td>F-5</td><td>The sticky index in <code>MutualFundsFrame</code> (row or rail, per Q1); the tab bar does not stick (Q3 C)</td><td>Codex, Gemini</td><td>L</td><td>After Q1</td></tr>
    <tr><td>F-6</td><td>Scroll-spy on the page area, with sections that load late</td><td>Codex</td><td>M</td><td>After F-4</td></tr>
    <tr><td>F-7</td><td>Jump, smooth scroll and reduced motion, focus to the heading, address handling and Back behaviour</td><td>Codex</td><td>M</td><td>After F-4</td></tr>
    <tr><td>F-8</td><td>Keyboard and screen-reader behaviour; the &ldquo;3 or more sections&rdquo; rule; empty and error cases</td><td>Codex</td><td>S</td><td>After F-5</td></tr>
@@ -588,7 +677,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>Risk</th><th>What we do</th></tr></thead>
   <tbody>
-   <tr><td>Two sticky rows eat too much of a short window</td><td>The tab row hides while scrolling down and returns on scrolling up; both are checked at 1280&times;600; the section row is only about 40 px.</td></tr>
+   <tr><td>The sticky index eats too much of a short window</td><td>Only the index sticks (Q3 C). A row is about 40 px; a rail costs no height. Checked at 1280&times;600.</td></tr>
    <tr><td>Sticky and scroll-spy are wrong because the page area, not the window, scrolls</td><td>Both are built against the page area from the start; tests simulate scrolling inside it.</td></tr>
    <tr><td>Sections load late and shift the page, so the highlight or a jump lands in the wrong place</td><td>Jumps re-measure after loading settles; scroll-spy uses the section&rsquo;s own position, not a fixed height; Batch D&rsquo;s lazy graph is a named test case.</td></tr>
    <tr><td>The list and the page disagree (a section is added and the index misses it)</td><td>The guard test fails when a card on a page is not in the list or marked excluded.</td></tr>
@@ -596,7 +685,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>The two frames (seven tabs; three underline tabs) look or behave differently</td><td>One component with a frame-specific wrapper; both frames are in the same mockups and the same checks.</td></tr>
    <tr><td>The index and the Overview&rsquo;s page-local search fight for the right slot</td><td>They are placed in the stack in section 5; the slot rule is agreed with search&rsquo;s plan (K) before building.</td></tr>
    <tr><td>The Back button fills with jumps</td><td>A jump replaces the hash entry rather than adding one for repeated jumps within a tab (to be confirmed in the spec).</td></tr>
-   <tr><td>A rarely used tab (2 sections) looks inconsistent without the row</td><td>The tab bar still sticks on every tab; only the chip row is skipped, by the 3-section rule.</td></tr>
+   <tr><td>A rarely used tab (2 sections) looks inconsistent without the row</td><td>The index is skipped on tabs with fewer than three sections, by the 3-section rule; the tab bar never sticks (Q3 C).</td></tr>
   </tbody>
  </table></div>
  <h3 class="sub">Tests, in short</h3>
@@ -609,7 +698,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="steps5">
   <div><b>Index</b>On Overview, Allocation, Overlap, Performance and Other Analytics a chip row lists the sections; Holdings and Transactions show none.</div>
   <div><b>Jump and spy</b>A click lands the section&rsquo;s heading just below the rows; scrolling moves the highlight; a refresh on <code>#section</code> returns to it.</div>
-  <div><b>Sticky</b>Tabs and chips stay at the top; the tab row hides on scrolling down and returns on scrolling up; nothing covers a heading.</div>
+  <div><b>Sticky</b>Only the index stays in view while scrolling; the tab bar scrolls away as today; nothing covers a heading.</div>
   <div><b>All</b>Dark mode; keyboard only (Tab, Enter); reduced motion; a short window; the other batches&rsquo; items (the graph, the data strip) in place.</div>
  </div>
 </section>
@@ -617,20 +706,20 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <!-- ============ QUESTIONS ============ -->
 <section id="questions">
  <h2>10. Questions</h2>
- <p class="lead">Q2 and Q3 are answered and locked; <b>Q1 is still open</b>. Everything else is a default below, or a decision I bring you later with evidence.</p>
+ <p class="lead">Q2 (A) and Q3 (C) are answered and locked, both updated on 17 Nov; <b>Q1 is still open</b>. Everything else is a default below, or a decision I bring you later with evidence.</p>
  <div class="bar"><span class="status" id="prog">0 of 3 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
  <div id="cards"></div>
  <h3 class="sub">Defaults I will use (tell me in chat if you want any changed)</h3>
  <div class="scroll"><table>
   <thead><tr><th>Topic</th><th>Default</th></tr></thead>
   <tbody>
-   <tr><td class="k">When the index shows</td><td>On tabs with 3 or more sections, on both frames; the tab bar sticks on every tab. The compare-two-funds page (2 sections) has none.</td></tr>
-   <tr><td class="k">Sticky height</td><td>The tab row hides on scrolling down and returns on scrolling up; the section row stays.</td></tr>
+   <tr><td class="k">When the index shows</td><td>On tabs with 3 or more sections, on the seven Mutual Funds tabs only (Q2 A). The tab bar does not stick (Q3 C). The fund page and the compare-two-funds page are untouched.</td></tr>
+   <tr><td class="k">Sticky height</td><td>Only the index sticks (Q3 C). A section row is about 40 px; a rail costs none.</td></tr>
    <tr><td class="k">Other Analytics</td><td>The index lists its 4 groups, not the 6 cards.</td></tr>
    <tr><td class="k">Numbers in titles</td><td>The Overlap numbering (&ldquo;1.&rdquo; to &ldquo;4.&rdquo;) is left out of the chips.</td></tr>
    <tr><td class="k">Jump</td><td>Smooth scroll (instant under reduced motion); focus moves to the heading; the hash is written to the address.</td></tr>
    <tr><td class="k">The list</td><td>One configuration next to <code>TAB_DEFS</code>, with a <code>tier</code> field that is unused today; a guard test keeps it in step with the pages.</td></tr>
-   <tr><td class="k">Search and PDF</td><td>They share the tab bar&rsquo;s right slot with each other, not with the index.</td></tr>
+   <tr><td class="k">Search and PDF</td><td>Search uses the tab bar&rsquo;s right slot, not the index&rsquo;s space. The PDF button is in the top bar (Batch I, 17 Nov).</td></tr>
    <tr><td class="k">Phone view</td><td>Out of scope; planned later.</td></tr>
   </tbody>
  </table></div>
@@ -729,13 +818,81 @@ function stack(){
  var sec=['Summary','Value over time','SIPs','Mutual Funds','Sold funds','AMC Allocation','Family Members','Quick Insights'];
  var sub='<div class="subrow"><span class="lead">On this tab</span>'+sec.map(function(s,i){return '<span class="s'+(i===3?' on':'')+'">'+s+'</span>'}).join('')+'</div>';
  var strip='<div class="strip" style="margin-top:8px"><b>Data dates</b><span>Prices as on <b>12 Nov 2026</b></span><span class="i">i</span></div>';
- var h='<div class="ap-h" style="margin-bottom:10px">All Investments</div>'+tabrow('Overview',{util:'Search &nbsp;&middot;&nbsp; Export PDF'})+sub+strip+'<div class="blk"><b>Mutual Funds (12)</b>Holdings table</div>';
+ var h='<div class="ap-h" style="margin-bottom:10px">All Investments</div>'+tabrow('Overview',{util:'Search'})+sub+strip+'<div class="blk"><b>Mutual Funds (12)</b>Holdings table</div>';
  return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds')+shell(h,520),1280,0);
 }
-var STATE={'opt':'b','stack':'stack'};
-function frame(n){switch(n){case 'fits':return fits();case 'opt':return opt(STATE['opt']);case 'stack':return stack();}return ''}
+var STATE={'opt':'b','stack':'stack','rv':'glass','rt':'allocation','rw':'1280'};
+/* ---- 3b: interactive rail ---- */
+var RAILS={allocation:[['ra1','Look-Through Asset Allocation'],['ra2','Market-Cap Allocation'],['ra3','Portfolio Allocation'],['ra4','Fund Manager Allocation']],overview:[['ro1','Summary'],['ro2','Value over time'],['ro3','SIPs'],['ro4','Mutual Funds'],['ro5','Sold funds'],['ro6','AMC Allocation'],['ro7','Family Members'],['ro8','Quick Insights']]};
+/* right-hand charts for the mock cards: they sit under the glass rail's resting spot so its blur has colour to show */
+function rviz(id,k){
+ var v;
+ if(k===0){
+  /* stacked area: value by asset class over a year (debt on top, equity, gold at the base) */
+  var T=[74,66,70,56,58,46,48,32,22,26,8],E=T.map(function(y){return y+(132-y)*.27}),G=T.map(function(y){return 132-(132-y)*.09});
+  var pt=function(a){return a.map(function(y,i){return (i*25)+','+y.toFixed(1)}).join(' L')};
+  var band=function(t,b){return 'M'+pt(t)+' L'+pt(b.slice().reverse()).split(' L').map(function(q,n){var c=q.split(',');return (250-n*25)+','+c[1]}).join(' L')+'Z'};
+  var gr=function(n,c1,c2){return '<linearGradient id="'+id+n+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c1+'"/><stop offset="1" stop-color="'+c2+'"/></linearGradient>'};
+  v='<svg viewBox="0 0 250 132" aria-hidden="true"><defs>'+gr('d','#38BDF8','#0EA5E9')+gr('e','#4ADE80','#16A34A')+gr('g','#FCD34D','#F59E0B')+'</defs>'
+   +'<path d="'+band(T,E)+'" fill="url(#'+id+'d)" opacity=".9"/>'
+   +'<path d="'+band(E,G)+'" fill="url(#'+id+'e)"/>'
+   +'<path d="'+band(G,T.map(function(){return 132}))+'" fill="url(#'+id+'g)"/>'
+   +'<path d="M'+pt(T)+'" fill="none" stroke="#0284C7" stroke-width="2" stroke-linejoin="round"/>'
+   +'<circle cx="250" cy="8" r="4.5" fill="#0284C7" stroke="#fff" stroke-width="2"/></svg>'
+   +'<div class="vl"><b>+18.4%</b>Value, 1 year</div>';
+ }else if(k===1){
+  var q=[[46,24,14,6],[48,25,13,7],[50,25,14,6],[52,26,13,7],[53,27,14,6],[55,26,15,5],[56,27,15,4],[58,27,15,4]],c=['#22C55E','#0EA5E9','#F59E0B','#8B5CF6'];
+  v='<div class="rl-cols">'+q.map(function(s){return '<div>'+s.map(function(h,j){return '<i style="height:'+(h*1.15)+'px;background:'+c[j]+'"></i>'}).join('')+'</div>'}).join('')+'</div>';
+ }else if(k===2){
+  var r=[['Flexi',13.2,'#22C55E','#86EFAC'],['Large',9.1,'#0EA5E9','#7DD3FC'],['Index',10.2,'#8B5CF6','#C4B5FD'],['Mid',15.4,'#F59E0B','#FCD34D']];
+  v='<svg viewBox="0 0 250 132" aria-hidden="true"><defs>'+r.map(function(x,i){return '<linearGradient id="'+id+'g'+i+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+x[3]+'"/><stop offset="1" stop-color="'+x[2]+'"/></linearGradient>'}).join('')+'</defs>'
+   +r.map(function(x,i){var h=x[1]*6.6,X=8+i*62;return '<rect x="'+X+'" y="'+(116-h)+'" width="46" height="'+h+'" rx="6" fill="url(#'+id+'g'+i+')"/><text x="'+(X+23)+'" y="'+(110-h)+'" text-anchor="middle" font-family="DM Sans,sans-serif" font-weight="700" font-size="12" fill="#111">'+x[1]+'%</text><text x="'+(X+23)+'" y="130" text-anchor="middle" font-family="Manrope,sans-serif" font-size="10" fill="#667085">'+x[0]+'</text>'}).join('')+'</svg>';
+ }else{
+  v='<div class="rl-tm"><div style="grid-row:span 2;background:linear-gradient(150deg,#34D399,#16A34A)">Asha Rao<b>46%</b></div><div style="background:linear-gradient(150deg,#38BDF8,#0284C7)">V. Menon<b>31%</b></div><div style="grid-row:span 2;background:linear-gradient(150deg,#FBBF24,#EA580C)">P. Shah<b>23%</b></div><div style="background:linear-gradient(150deg,#A78BFA,#7C3AED)">Others<b>9%</b></div></div>';
+ }
+ return '<div class="rl-viz">'+v+'</div>';
+}
+function rsec(id,title,k){
+ var body;
+ if(k===0)body='<div class="rl-2c"><div class="rl-do"></div><div class="rl-lg"><div><span><i style="background:#22C55E"></i>Equity</span><b>72%</b></div><div><span><i style="background:#0EA5E9"></i>Debt</span><b>21%</b></div><div><span><i style="background:#F59E0B"></i>Gold and other</span><b>7%</b></div></div><div class="rl-mini"><b>&#8377;40.1L</b>Total value<br><br><b>9.4%</b>XIRR</div></div>';
+ else if(k===1)body='<div class="rl-bar"><span>Large cap</span><div><i style="width:58%"></i></div><b>58%</b></div><div class="rl-bar"><span>Mid cap</span><div><i style="width:27%;background:#0EA5E9"></i></div><b>27%</b></div><div class="rl-bar"><span>Small cap</span><div><i style="width:15%;background:#F59E0B"></i></div><b>15%</b></div><div class="rl-bar"><span>Other</span><div><i style="width:4%;background:#98A2B3"></i></div><b>4%</b></div>';
+ else if(k===2)body='<table class="ap-t" style="width:100%"><thead><tr><th>Category</th><th>Value</th><th>Share</th><th>XIRR</th></tr></thead><tbody><tr><td>Flexi Cap</td><td>&#8377;12.4L</td><td>31%</td><td>13.2%</td></tr><tr><td>Large Cap</td><td>&#8377;9.8L</td><td>24%</td><td>9.1%</td></tr><tr><td>Mid Cap</td><td>&#8377;8.2L</td><td>20%</td><td>15.4%</td></tr><tr><td>Index</td><td>&#8377;5.6L</td><td>14%</td><td>10.2%</td></tr></tbody></table>';
+ else body='<div class="rl-bar"><span>Asha Rao</span><div><i style="width:46%"></i></div><b>46%</b></div><div class="rl-bar"><span>V. Menon</span><div><i style="width:31%;background:#0EA5E9"></i></div><b>31%</b></div><div class="rl-bar"><span>P. Shah</span><div><i style="width:23%;background:#F59E0B"></i></div><b>23%</b></div>';
+ return '<section class="rl-sec" id="'+id+'"><div class="rh">'+title+'<span>as on 12 Nov 2026</span></div><div class="rl-cv"><div>'+body+'</div>'+rviz(id,k)+'</div></section>';
+}
+function railFrame(){
+ var v=STATE['rv'],tab=STATE['rt'],w=+STATE['rw'],list=RAILS[tab];
+ var secs=list.map(function(r,i){return rsec(r[0],r[1],i%4)}).join('');
+ var head='<div class="ap-h" style="margin-bottom:10px">'+(tab==='allocation'?'Allocation':'All Investments')+'</div>'+tabrow(tab==='allocation'?'Allocation':'Overview',{util:'Search'})+'<div style="height:12px"></div>';
+ var useGlass=(v==='glass'&&w<1100)?'fab':v;
+ var inner,extra='';
+ var navItems=list.map(function(r,i){return '<a data-rl="'+r[0]+'" class="'+(i===0?'on':'')+'">'+'@@'+r[1]+'</a>'});
+ if(useGlass==='docked'){
+  inner='<div class="rl-g2"><div>'+secs+'</div><aside class="rl-dock rl-nav"><h6>On this page</h6>'+list.map(function(r,i){return '<a data-rl="'+r[0]+'" class="'+(i===0?'on':'')+'">'+r[1]+'</a>'}).join('')+'</aside></div>';
+ }else inner=secs;
+ var cls=useGlass==='glass'?' rsv':(useGlass==='dots'?' rsv2':'');
+ if(useGlass==='glass')extra='<div class="rl-gl" role="navigation" aria-label="On this page"><div class="ti"><h6>On this page</h6><button class="pb" data-rlpin>Pin</button></div>'+list.map(function(r,i){return '<a href="#'+r[0]+'" data-rl="'+r[0]+'" class="'+(i===0?'on':'')+'"><span class="tk"></span><span class="tx">'+r[1]+'</span></a>'}).join('')+'</div>';
+ if(useGlass==='dots')extra='<div class="rl-dots" role="navigation" aria-label="On this page">'+list.map(function(r,i){return '<a data-rl="'+r[0]+'" class="'+(i===0?'on':'')+'"><span>'+r[1]+'</span></a>'}).join('')+'</div>';
+ if(useGlass==='fab')extra='<div class="rl-fab" data-fab><div class="pnl">'+list.map(function(r,i){return '<a data-rl="'+r[0]+'" class="'+(i===0?'on':'')+'">'+r[1]+'</a>'}).join('')+'</div><span class="pill" data-rlfab>&#9776; On this page</span></div>';
+ var main='<div class="rl-w"><div class="rl-s'+cls+'" data-rls>'+head+inner+'</div>'+extra+'</div>';
+ var side='<div style="width:224px;flex:none;background:#fff;border-right:1px solid #E5E7EB;padding:14px 12px;font-size:12px;color:#667085"><div style="font:700 18px DM Sans,sans-serif;color:#111;margin-bottom:14px">Unifolio</div><div style="padding:6px 8px">Home</div><div style="padding:6px 8px;background:#EAFBF0;color:#15803D;border-radius:8px;font-weight:600">Portfolio</div><div style="padding:6px 8px">Planning</div><div style="padding:6px 8px">History</div></div>';
+ var top='<div style="height:56px;flex:none;border-bottom:1px solid #E5E7EB;background:#fff;display:flex;align-items:center;gap:10px;padding:0 24px;font-size:12px;color:#98A2B3"><span style="border:1px solid #E5E7EB;border-radius:10px;padding:7px 12px;width:300px;margin-right:auto">Search</span><span style="border:1px solid #E5E7EB;border-radius:10px;padding:7px 12px">Export PDF</span><span style="border:1px solid #E5E7EB;border-radius:10px;padding:7px 12px">Import</span><span style="border:1px solid #E5E7EB;border-radius:10px;padding:7px 12px">Family Combined</span></div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/'+tab)+'<div style="display:flex;height:560px;background:#F6F8F6" class="ap">'+side+'<div style="flex:1;min-width:0;display:flex;flex-direction:column">'+top+main+'</div></div>',w,0);
+}
+function railInit(){
+ document.querySelectorAll('[data-rls]').forEach(function(sc){
+  var frame=sc.closest('.vp-in'),links=frame.querySelectorAll('[data-rl]');
+  function spy(){var top=sc.scrollTop+sc.clientHeight*0.4,cur=null;sc.querySelectorAll('.rl-sec').forEach(function(sec){if(sec.offsetTop<=top)cur=sec.id});if(!cur&&sc.querySelector('.rl-sec'))cur=sc.querySelector('.rl-sec').id;links.forEach(function(a){a.classList.toggle('on',a.getAttribute('data-rl')===cur)})}
+  sc.addEventListener('scroll',spy);spy();
+  links.forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();var t=sc.querySelector('#'+a.getAttribute('data-rl'));if(t)sc.scrollTo({top:t.offsetTop-12,behavior:'smooth'});var f=frame.querySelector('[data-fab]');if(f)f.classList.remove('open')})});
+  var pin=frame.querySelector('[data-rlpin]');if(pin)pin.addEventListener('click',function(){var g=pin.closest('.rl-gl');g.classList.toggle('pin');pin.textContent=g.classList.contains('pin')?'Unpin':'Pin'});
+  var fb=frame.querySelector('[data-rlfab]');if(fb)fb.addEventListener('click',function(){fb.closest('[data-fab]').classList.toggle('open')});
+ });
+}
+
+function frame(n){switch(n){case 'rail':return railFrame();case 'fits':return fits();case 'opt':return opt(STATE['opt']);case 'stack':return stack();}return ''}
 function layoutAll(){document.querySelectorAll('.vp').forEach(function(v){var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');inn.style.width=w+'px';inn.style.height=h?h+'px':'auto';var hh=h||inn.offsetHeight;var sc=Math.min(1,v.clientWidth/w);inn.style.transform='scale('+sc+')';v.style.height=Math.ceil(hh*sc)+'px'})}
-function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});layoutAll()}
+function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});layoutAll();railInit()}
 document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){var sec=bar.getAttribute('data-sec');bar.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){STATE[sec]=b.getAttribute('data-v');bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});renderAll()})})});
 renderAll();window.addEventListener('resize',layoutAll);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layoutAll);setTimeout(layoutAll,400);
 
@@ -745,7 +902,7 @@ try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 var Q=[
 {id:"Q1",item:"12",title:"Which shape does the section index take?",ask:"Pick one. Section 3 draws A to C at a 1280-pixel laptop.",
- ctx:"Your own idea is option A. By my estimate it does not fit on the longer Mutual Funds tabs at laptop width, but it does fit on the fund page (three tabs). Because the answer to Q2 puts both frames in scope and one component should look the same on both, I recommend B. Still open.",
+ ctx:"Your own idea is option A. By my estimate it does not fit on the longer Mutual Funds tabs at laptop width. On 17 Nov you said you like the side rail (C) but asked where it fits among the busy right-hand sides; section 3b answers that with four placements you can try. Still open: tell me which one you choose.",
  opts:[
  {k:"A",l:"Your idea: the active tab expands inline into its sections (the other tabs fold into a &ldquo;More&rdquo; menu while open)",d:"Good: closest to what you described; no extra row. Bad: does not fit on the four longest tabs by my estimate, so the other tabs fold away; the tab row changes shape on every click; folding the tabs hides navigation."},
  {k:"B",l:"A section row directly under the tab bar, attached to the active tab; both rows stay stuck while scrolling",rec:1,d:"Good: always fits; the tabs never change; the same behaviour on every tab; keeps the tabs visible while scrolling. Bad: about 90 px of sticky height, reduced by hiding the tab row while scrolling down."},
@@ -759,16 +916,16 @@ var Q=[
  {k:"B",l:"The Mutual Funds tabs and the fund page&rsquo;s tabs",d:"Good: both long areas are covered by one component. Bad: a larger batch; the fund page frame differs from the Mutual Funds frame and needs its own check."},
  {k:"C",l:"Only the long tabs (Overview, Allocation, Overlap, Other Analytics), whatever the page",d:"Good: no index where it adds little. Bad: users meet it on some tabs and not others, which the 3-section rule already handles."}],
  why:"You named the Mutual Funds tabs. The component is built to be reused, so adding the fund page later is a small follow-up that I would plan once this one is reviewed.",
- commit:"<b>Recorded:</b> option B. Two frames: the seven Mutual Funds tabs and the fund page&rsquo;s three tabs. The fund page&rsquo;s sections are inventoried in F-2 and its frame gets the sticky tab strip and the section row."},
+ commit:"<b>Updated 17 Nov: option A</b> (changed from B): the seven Mutual Funds tabs only. The fund page&rsquo;s three tabs are out of this batch; its section table stays in section 2 as a record for a later follow-up. <b>Earlier recorded (13 Nov):</b> option B."},
 {id:"Q3",item:"12",title:"Should the tab bar stick while the page scrolls, even on tabs without an index?",ask:"Pick one.",
  opts:[
  {k:"A",l:"Yes, the tab bar sticks on every Mutual Funds tab",rec:1,d:"Good: switching tab no longer needs a scroll to the top; consistent. Bad: a little height on every tab (reduced by hiding it while scrolling down)."},
  {k:"B",l:"Only on tabs that have the index",d:"Good: the short tabs are unchanged. Bad: inconsistent behaviour from tab to tab."},
  {k:"C",l:"No: only the section row sticks",d:"Good: the least height. Bad: the tabs scroll away on long pages, which is part of the black-hole feeling."}],
  why:"The tab bar scrolling away is half of what makes a long page hard to use, and it is cheap to fix once there is a sticky row anyway.",
- commit:"<b>Recorded:</b> option A. The tab bar sticks on every Mutual Funds tab, and (my reading, since Q2 B brings the fund page in) on the fund page&rsquo;s tab strip too. Tell me if you meant only the seven tabs."}
+ commit:"<b>Updated 17 Nov: option C</b> (changed from A): the tab bar does not stick; only the section index sticks. With a side rail the page loses no height at all. <b>Earlier recorded (13 Nov):</b> option A."}
 ];
-var PRE={Q2:{k:"B"},Q3:{k:"A"}};
+var PRE={Q2:{k:"A",n:"Updated 17 Nov: option A (the seven Mutual Funds tabs only). Earlier: option B."},Q3:{k:"C",n:"Updated 17 Nov: option C (only the section index sticks). Earlier: option A."}};
 var LOCK={};
 Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
 var cards=document.getElementById("cards");

@@ -302,6 +302,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 .ap-legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;background:var(--c)}
 .folio{font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11.5px;color:#667085;display:block;margin-top:3px;overflow-wrap:anywhere}
 .folio.new{color:#14532D;background:#EAFBF0;border-radius:5px;padding:1px 5px;display:inline-block}
+.fw{display:inline-flex;align-items:center;gap:6px;margin-top:3px}.eyeb{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;border:1px solid #D0D5DD;color:#475467;background:#fff}
 .circ{outline:2px solid #D92D20;outline-offset:2px;border-radius:8px}
 .hl{background:#FEF3E2;border-radius:6px;padding:1px 5px}
 .dn{display:grid;grid-template-columns:200px minmax(0,1fr);gap:22px;align-items:center}
@@ -359,6 +360,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h1>Batch C Planning</h1>
  <div class="meta">Planning only &middot; nothing built &middot; 12 Nov 2026 &middot; updated with your answers &middot; branch leapswitch-redesign</div>
  <p>Holdings hygiene: four small fixes on the Mutual Funds screens (your item 17, parts a to d). Each one has a before and after flow, the exact files that change, what the database does (nothing), drawings of the screens, who builds it, and the questions I need you to answer before I write the plans. Drawings are made at real window size and scaled to fit the page, so it is best viewed on a laptop.</p>
+ <p><b>Updated 17 Nov (your review).</b> (1) <b>17c:</b> every folio number now has a small eye icon to hide or show it; the number is shown by default. This changes the answer to Q3 (now option D, see section 4). (2) <b>17d:</b> Q12 is now B only when the household has grown, otherwise A, with a longer explanation (section 5); Q13 is now A (always wait for the refreshed list); Q16 is A and B together. Nothing else changed.</p>
  <p><b>Updated with your answers.</b> All 16 questions are answered and locked. The sections below now describe the decided plan, and each place where an answer changed the text says so. Your notes on Q5, Q10, Q12 and Q13 are recorded as you gave them, with the three points you confirmed about Q12 and Q13.</p>
  <p><b>Read this first.</b> I read the code today, read-only, to find the cause of each of the four problems. All four are now explained (section 1). Nothing was run: no app, no test, no query. Every statement about the code is labelled <em>read in code</em> until a spec re-checks it. <b>The screenshots you attached did not reach me in this session</b>, so I used the written descriptions of them in the handoff (section 3 of it). If a drawing here looks different from your screenshot, trust the screenshot and tell me.</p>
 </div>
@@ -498,7 +500,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 <!-- ============ 4. 17c ============ -->
 <section id="i17c">
  <h2>4. Show the full folio number (17c)</h2>
- <p class="lead">Decided: full numbers as printed (Q3 A). Today&rsquo;s masking is also inconsistent and, on the holdings table, shows nothing useful, and that goes away in the same change.</p>
+ <p class="lead">Decided: full numbers as printed, shown by default, with a small eye icon beside every number to hide or show it (Q3 D, updated 17 Nov). Today&rsquo;s masking is also inconsistent and, on the holdings table, shows nothing useful, and that goes away in the same change.</p>
 
  <h3 class="sub">What you saw</h3>
  <p>In the holdings table (Family Combined), expanded rows list folios as &ldquo;XXXX / 0&rdquo; under each member&rsquo;s name. You want the full number.</p>
@@ -516,7 +518,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  </table></div>
  <p>So even a user who is happy with masked numbers is badly served today: the holdings table cannot tell two folios of one fund apart.</p>
 
- <h3 class="sub">The privacy question (decided: Q3 A)</h3>
+ <h3 class="sub">The privacy question (decided: Q3 D)</h3>
  <div class="scroll"><table>
   <thead><tr><th>Consideration</th><th>What I found</th></tr></thead>
   <tbody>
@@ -526,7 +528,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">Where it must not travel</td><td>GA4 (already ruled out in the tracking plan: never folio, name, amounts); logs; and the new PDF export (item 19), which must follow whatever you choose here. I will write that into the item 19 plan.</td></tr>
   </tbody>
  </table></div>
- <p>You chose the full number as plain text, with no switch (Q3 A). The exposure in the table above is accepted. The last row still holds: never GA4, never logs, and the PDF export follows the same rule.</p>
+ <p>You first chose the full number as plain text (Q3 A). On 17 Nov you added a small eye icon beside every folio number, so a user can hide it before a demo or a screen share: <b>Q3 is now D</b> (shown by default, eye to hide). The exposure in the table above is reduced, not removed: the number is still shown by default. The last row still holds: never GA4, never logs, and the PDF export follows its own rule (Batch I, Q3).</p>
 
  <h3 class="sub">Before and after</h3>
  <div class="flow">
@@ -537,7 +539,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <li>To read the real number the user opens the fund page and uses Copy.</li>
   </ol></div>
   <div><h4>After (your answers)</h4><ol>
-   <li>The same expanded row shows &ldquo;10234567 / 0&rdquo;, as printed on the statement.</li>
+   <li>The same expanded row shows &ldquo;10234567 / 0&rdquo;, as printed on the statement, with a small eye icon beside it. One click hides it as &ldquo;XXXX4567 / 0&rdquo;.</li>
    <li>The fund page, the ledger, the coverage-gap dialog and any phone view that shows a folio show the same text (Q4 A).</li>
    <li>Long numbers wrap inside the cell (monospace, no cut-off).</li>
    <li>The fund page Copy button still works and copies the same number.</li>
@@ -545,16 +547,33 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  </div>
 
  <h3 class="sub">The screens</h3>
- <div class="winbar" data-sec="i17c"><span>Holdings table view</span><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="after" aria-pressed="false">After</button></div>
+ <div class="winbar" data-sec="i17c"><span>Folio numbers</span><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="after" aria-pressed="false">After: shown (default)</button><button type="button" data-v="hidden" aria-pressed="false">After: hidden with the eye</button></div>
  <div data-frame="folio-table"></div>
  <p class="note">Fund names and folio numbers are made up. In the real table the family row also shows units, average price, invested, value, unrealised and realised figures, drawn here in short.</p>
  <div class="pair">
-  <div><p class="cap"><b>Fund page, folio rows</b> (today / after)</p><div data-frame="folio-fund"></div></div>
+  <div><p class="cap"><b>Fund page, folio rows</b> (today / after; follows the buttons above)</p><div data-frame="folio-fund"></div></div>
   <div><p class="cap"><b>Transactions ledger, row detail</b> (today / after)</p><div data-frame="folio-ledger"></div></div>
  </div>
  <p class="cap"><b>Phone</b> (the holdings row; the phone width is the hardest place for a long number)</p>
  <div class="winbar" data-sec="i17c-ph"><span>Phone view</span><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="after" aria-pressed="false">After</button></div>
  <div data-frame="folio-phone" style="max-width:420px"></div>
+
+
+ <h3 class="sub">How the eye icon works (new, 17 Nov)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Question</th><th>Default I will use</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Where does it appear?</td><td>Beside every folio number, on every screen that shows one (Q4 A): holdings table member rows, fund page folio rows and dialog, ledger row detail, coverage-gap dialog, and the phone rows.</td></tr>
+   <tr><td class="k">What does one click do?</td><td>It hides or shows <b>all</b> folio numbers in the app at once, not only the one clicked. A user preparing a demo clicks once, not twelve times.</td></tr>
+   <tr><td class="k">What does the hidden form look like?</td><td>The one consistent rule from Q3 C: the last four digits of the folio part and the sub-folio, for example <code>XXXX4567 / 0</code>. Two folios that end the same way can still look alike; that is the price of hiding.</td></tr>
+   <tr><td class="k">Is the choice remembered?</td><td>Yes, in this browser (like the theme choice), so it stays hidden after a reload. It is <b>not</b> saved on the account, so a new laptop starts with the numbers shown. The default for everyone is shown.</td></tr>
+   <tr><td class="k">What about the Copy button?</td><td>While hidden, Copy is dimmed with the tip &ldquo;Show the number to copy it&rdquo;, so a hidden number cannot be copied by accident. This replaces the old rule that Copy fetched the full number from a separate endpoint (Q7): the full number is already in the page.</td></tr>
+   <tr><td class="k">Does hiding protect the data?</td><td>No. It only hides what is on the screen. The full number is still in the page&rsquo;s data for the signed-in owner (Q5). It protects against shoulder-surfers, screen shares and screenshots, not against someone using the owner&rsquo;s browser.</td></tr>
+   <tr><td class="k">Accessibility</td><td>A real button with the label &ldquo;Hide folio numbers&rdquo; or &ldquo;Show folio numbers&rdquo; and a pressed state; the icon changes between an open and a slashed eye.</td></tr>
+   <tr><td class="k">Analytics</td><td>None. No click event and never the number (Batch G rule).</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">An alternative I did not use: each eye hides only its own number. It is more precise and slower for a demo. Tell me if you prefer it.</p>
 
  <h3 class="sub">How the number travels (decided: Q5 A, with your note)</h3>
  <p><b>Your answer:</b> add a new field <code>folio_number</code>, and remove the old one <b>now</b>, in the same change, not in a later cleanup. Today the server sends <code>folio_masked</code> in two payloads (the holdings rows, <code>FolioSlice</code> in <code>dashboard/schemas.py</code>, and the fund page, <code>FolioOut</code> in <code>fund_page/schemas.py</code>) and a masked <code>folio</code> in the ledger entry (<code>analytics/schemas.py</code>). After the change all three carry <code>folio_number</code> and nothing masked. The four masking helpers become unused and are deleted: the inline one in <code>holdings.py</code>, <code>mask_folio</code> in <code>fund_page/folios.py</code>, <code>_mask_folio</code> in <code>investment_withdrawal.py</code> and <code>maskFolio</code> in <code>OpeningBalanceModal.tsx</code>. The screens use only the new field, with no fallback to a masked one.</p><div class="callout"><b>Consequence of removing the old field now.</b> A new front end talking to an old back end (or the other way round) would show empty folio rows. So the back end and the front end must be deployed together. The deploy guide will say so in its first lines, and a backend test asserts the old fields are gone.</div>
@@ -564,7 +583,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <thead><tr><th>Layer</th><th>Change</th></tr></thead>
   <tbody>
    <tr><td class="k"><span class="tag be">backend</span></td><td><b>Holdings:</b> <code>dashboard/holdings.py</code> (the <code>FolioSlice</code> built near line 268) and <code>dashboard/schemas.py</code>: replace <code>folio_masked</code> with <code>folio_number = folio.folio_number</code>. <b>Fund page:</b> <code>fund_page/summary.py</code>, <code>fund_page/schemas.py</code> and <code>fund_page/folios.py</code>: the same swap in <code>FolioOut</code>; delete <code>mask_folio</code>. The folio-number endpoint and its ownership check stay (Q7). <b>Ledger:</b> <code>analytics/investment_withdrawal.py</code> and <code>analytics/schemas.py</code>: the entry&rsquo;s <code>folio</code> field becomes <code>folio_number</code> with the full text; delete <code>_mask_folio</code>. The stored folio text is returned as first printed (the column is documented as &ldquo;as first printed; display only&rdquo;), so nothing is cleaned or reformatted (Q8 A). The member-only holdings route still leaves folios out of its reply (<code>response_model_exclude</code> in <code>api/dashboard.py</code>), so the member view is unchanged (Q6 A).</td></tr>
-   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>mutual-funds/overview/HoldingsTable.tsx</code> (two spots: the single-member line and the expanded member rows), <code>individual-fund/overview/InvestmentDetails.tsx</code> and <code>TileDialog.tsx</code> (fund page), <code>mutual-funds/transactions/transactionsLogic.ts</code> and <code>Ledger.tsx</code> (ledger), <code>components/mf/OpeningBalanceModal.tsx</code> (remove its own mask), and the types in <code>mutual-funds/types.ts</code> and <code>individual-fund/types.ts</code>. Show the number in the existing monospace style with wrapping. The Copy button&rsquo;s accessible label changes from &ldquo;Copy folio number XXXX...&rdquo; to the number.</td></tr>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>mutual-funds/overview/HoldingsTable.tsx</code> (two spots: the single-member line and the expanded member rows), <code>individual-fund/overview/InvestmentDetails.tsx</code> and <code>TileDialog.tsx</code> (fund page), <code>mutual-funds/transactions/transactionsLogic.ts</code> and <code>Ledger.tsx</code> (ledger), <code>components/mf/OpeningBalanceModal.tsx</code> (remove its own mask), and the types in <code>mutual-funds/types.ts</code> and <code>individual-fund/types.ts</code>. Show the number in the existing monospace style with wrapping, through one small shared component (the number plus its eye) and one remembered setting, so no screen builds its own mask. The mask itself is a single function in the browser: the server never sends a masked number. The Copy button&rsquo;s accessible label changes from &ldquo;Copy folio number XXXX...&rdquo; to the number.</td></tr>
    <tr><td class="k"><span class="tag db">database</span></td><td>None. The folio number is already stored in full.</td></tr>
    <tr><td class="k">Tests</td><td><b>Backend:</b> <code>tests/services/dashboard/test_holdings.py</code>, <code>tests/services/fund_page/test_summary.py</code>, <code>tests/services/analytics/test_investment_withdrawal.py</code> assert the masked text today; they change to assert the full number and that the old masked fields are gone, including a folio with a slash and a short folio. <b>Frontend:</b> <code>HoldingsTable.test.tsx</code>, <code>InvestmentDetails.test.tsx</code>, <code>StatBand.test.tsx</code>, <code>Ledger.asks.test.tsx</code>, <code>transactionsLogic.asks.test.ts</code>, <code>TransactionsPage.asks.test.tsx</code>, <code>OpeningBalanceModal.test.tsx</code> and the fixtures in <code>mfAsks.ts</code> and the fund page fixtures.</td></tr>
    <tr><td class="k">Phone app (in scope, Q4 A)</td><td>I do not yet know whether the older phone views (<code>frontend/src/mobile/...</code>) show a folio from these payloads: my search for the word also matched &ldquo;portfolio&rdquo;, so it proved nothing. The spec checks, and any phone screen that does show one is updated in the same change, so the phone does not become the one place still masked.</td></tr>
@@ -588,7 +607,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <li><code>refreshMembers()</code> is called by the Profile pages that change members (Family, Personal info, Import history). It is <b>not</b> called by the Add Data page: in <code>shell/wrappers/ImportWrapper.tsx</code> the <code>onDone</code> handler only navigates back with the notice.</li>
   <li>The members request (<code>listHouseholdMembers</code> in <code>features/auth/api.ts</code>) is a plain fetch, so there is no cache to blame. A hard refresh rebuilds the page state, which is why it &ldquo;fixed&rdquo; the problem.</li>
  </ol>
- <p>A second effect you did not mention: with one member the drop-down has no &ldquo;Family Combined&rdquo; row at all (<code>FamilySelector</code> hides it when there is a single member), and the page stays in &ldquo;member&rdquo; mode on Prateek. So even after a reload, the user lands on Prateek&rsquo;s numbers while the banner talks about 14 funds that belong to Lalchand. Your answer to Q12 keeps it that way for a normal import. The exception is the wrong-person case, described below.</p>
+ <p>A second effect you did not mention: with one member the drop-down has no &ldquo;Family Combined&rdquo; row at all (<code>FamilySelector</code> hides it when there is a single member), and the page stays in &ldquo;member&rdquo; mode on Prateek. So even after a reload, the user lands on Prateek&rsquo;s numbers while the banner talks about 14 funds that belong to Lalchand. Your updated Q12 changes this only when the household has grown (see &ldquo;Which view after an import&rdquo; below).</p>
 
  <h3 class="sub">Before and after</h3>
  <div class="flow">
@@ -598,11 +617,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <li>The drop-down still lists one member, no Family Combined.</li>
    <li>The user must reload the browser to see Lalchand.</li>
   </ol></div>
-  <div><h4>After (your answers: Q12 A with your exception, Q13 B)</h4><ol><li>Same upload. When the import finishes, the app goes back at once and reloads the member list in the background (small request, Q13).</li><li>The drop-down lists Family Combined, Prateek and Lalchand a moment later. No reload needed.</li><li>The view stays on the member the user was viewing (Q12 A).</li><li><b>Exception:</b> if the user chose &ldquo;Import for these people&rdquo; on the wrong-person pop-up, the page lands on the person the file belongs to, new or existing.</li></ol></div>
+  <div><h4>After (your answers, updated 17 Nov: Q12 B when the household grew, otherwise A; Q13 A)</h4><ol><li>Same upload. When the import finishes, the app asks the server for the member list once and waits for it (small request, Q13 A). If it fails, the app goes back anyway.</li><li>It compares the list with the one before. If a <b>new member</b> was created, the view switches to Family Combined, so the banner and the numbers agree (Q12 B).</li><li>If no new member was created, the view stays on the member the user was viewing (Q12 A).</li><li><b>Exception, kept from before:</b> if the user chose &ldquo;Import for these people&rdquo; on the wrong-person pop-up, the page lands on the person the file belongs to, new or existing.</li></ol></div>
  </div>
 
  <h3 class="sub">The screens</h3>
- <div class="winbar" data-sec="i17d"><span>After the import</span><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="a" aria-pressed="false">After, normal import</button><button type="button" data-v="b" aria-pressed="false">After, wrong-person import</button></div>
+ <div class="winbar" data-sec="i17d"><span>After the import</span><button type="button" data-v="today" aria-pressed="true">Today</button><button type="button" data-v="a" aria-pressed="false">After, import adds no member</button><button type="button" data-v="c" aria-pressed="false">After, household grew</button><button type="button" data-v="b" aria-pressed="false">After, wrong-person import</button></div>
  <div data-frame="member-flow"></div>
  <p class="note">The drawing opens the drop-down so you can see its list. Totals are illustrative, except the banner words, which are yours.</p>
 
@@ -618,6 +637,22 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   </tbody>
  </table></div>
 
+
+ <h3 class="sub">Which view after an import: every case (Q12, in detail)</h3>
+ <p>The rule is decided after the app has the fresh member list. &ldquo;The household grew&rdquo; means the list now has more members than it had before the import started.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>#</th><th>What the user did</th><th>Did the household grow?</th><th>Where the page lands</th><th>Why</th></tr></thead>
+  <tbody>
+   <tr><td>1</td><td>Viewing Prateek, uploads a family file that adds Lalchand as a new member</td><td>Yes</td><td><b>Family Combined</b></td><td>The banner counts Lalchand&rsquo;s funds, so the numbers shown should include them. This is the case in your screenshot.</td></tr>
+   <tr><td>2</td><td>Viewing Prateek, uploads a family file that only adds funds for members who already exist</td><td>No</td><td><b>Stays on Prateek</b></td><td>Nothing new appeared; the user keeps their place.</td></tr>
+   <tr><td>3</td><td>Viewing Family Combined, any import</td><td>Either</td><td>Stays on Family Combined</td><td>Already the widest view.</td></tr>
+   <tr><td>4</td><td>Viewing Prateek, uploads Prateek&rsquo;s own file</td><td>No</td><td>Stays on Prateek</td><td>Nothing to change.</td></tr>
+   <tr><td>5</td><td>Wrong-person import: aimed at Prateek, the file belongs to Lalchand, the user chose &ldquo;Import for these people&rdquo;</td><td>Maybe (new or existing)</td><td><b>Lalchand</b></td><td>Kept from your Batch B note: it is the one person whose funds were just added. <b>My assumption:</b> this exception wins over row 1 when Lalchand is new. Tell me if you want Family Combined there too.</td></tr>
+   <tr><td>6</td><td>The member list could not be refreshed</td><td>Unknown</td><td>Stays on the viewed member</td><td>The app cannot tell, so it does not move the user.</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">Why this needs the wait (Q13 A): to know whether the household grew, the app must see the new list first. A small request, waited for before the page appears, so the drop-down and the view are right at the first draw.</p>
+
  <h3 class="sub">The one exception: the wrong-person import (your Q12 note)</h3>
  <p>This is the case Batch B&rsquo;s item 2 covers. Prateek is selected, the user uploads a file that belongs to Lalchand, the pop-up says &ldquo;Prateek isn&rsquo;t in this statement&rdquo; and warns that the funds go to Lalchand, and the user clicks &ldquo;Import for these people&rdquo;.</p>
  <div class="scroll"><table>
@@ -626,7 +661,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">When does it apply?</td><td>Only when the import is aimed at one person and the file belongs to one other person. A normal family file with several people does not trigger it.</td></tr>
    <tr><td class="k">New or existing person?</td><td>Both. If Lalchand is already in the family, or is created by this import, the page lands on Lalchand, because that is whose funds were just added.</td></tr>
    <tr><td class="k">What does the page do?</td><td>It waits for the refreshed member list, selects that person, then goes back to the Mutual Funds page. The banner and the numbers agree.</td></tr>
-   <tr><td class="k">Why wait here only?</td><td>Landing on someone the screen does not know yet fails: the page would fall back to its default view. Every other import goes back at once (Q13 B). You accepted this single exception.</td></tr>
+   <tr><td class="k">Why wait here only?</td><td>Landing on someone the screen does not know yet fails: the page would fall back to its default view. Since Q13 became A on 17 Nov, every import waits for the list, so this is no longer an exception to the waiting; only the landing person is special.</td></tr>
    <tr><td class="k">How does the code know?</td><td>The import flow already has a prompt code <code>member_not_in_file</code> that the user acknowledges (<code>PromptHost.tsx</code>) and a list of the people in the file (the preview). The plan is to carry the person&rsquo;s id out through <code>onDone</code> when that prompt was acknowledged and exactly one person was imported. I have read where the prompt is handled; I have <b>not</b> read the whole flow, so the spec confirms the exact hook.</td></tr>
    <tr><td class="k">When it cannot apply</td><td>If the person in the file is on another Unifolio account and left out (<code>other_account</code>), nothing was imported for them, so the page stays on the viewed member.</td></tr>
   </tbody>
@@ -637,9 +672,9 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>Layer</th><th>Change</th></tr></thead>
   <tbody>
-   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>shell/wrappers/ImportWrapper.tsx</code>: read <code>refreshMembers</code> from <code>useScope()</code>. In the <code>onDone</code> handler: <b>normal import</b>, call <code>refreshMembers()</code> without waiting and navigate as today (Q13 B), keeping the viewed member (<code>refreshMembers</code> already keeps the old selection). <b>Wrong-person import</b>, wait for <code>refreshMembers()</code>, call <code>setMember(personId)</code>, then navigate. If the refresh fails, navigate and stay on the viewed member. <code>features/import/useImportOrchestration.tsx</code> (and the prompt host) passes <code>personId</code> out with the notice in the wrong-person case. The import notice and its navigation state are otherwise untouched. No change to <code>ScopeProvider.tsx</code> is expected, unless the reset rule above needs one.</td></tr>
+   <tr><td class="k"><span class="tag fe">frontend</span></td><td><code>shell/wrappers/ImportWrapper.tsx</code>: read <code>refreshMembers</code> from <code>useScope()</code>. In the <code>onDone</code> handler: <b>Every import</b> (Q13 A): wait for <code>refreshMembers()</code>, then decide. <b>Household grew</b> (the list is longer than before): switch to Family Combined (Q12 B). <b>Not grown</b>: keep the viewed member (<code>refreshMembers</code> already keeps the old selection). <b>Wrong-person import</b>: <code>setMember(personId)</code> instead. Then navigate. If the refresh fails, navigate and stay on the viewed member. <code>features/import/useImportOrchestration.tsx</code> (and the prompt host) passes <code>personId</code> out with the notice in the wrong-person case. The import notice and its navigation state are otherwise untouched. No change to <code>ScopeProvider.tsx</code> is expected, unless the reset rule above needs one.</td></tr>
    <tr><td class="k"><span class="tag be">backend</span> <span class="tag db">database</span></td><td>None. <code>GET /household-members</code> already returns the new member.</td></tr>
-   <tr><td class="k">Tests</td><td><code>ScopeProvider.test.tsx</code> and a new <code>ImportWrapper</code> test: a normal import triggers a second members request and navigates without waiting, and the new member appears in the drop-down without a remount; the view stays on the viewed member; a wrong-person import (new person) lands on that person; a wrong-person import for a member who already exists lands on that person; a family file with several people does not; a failed refresh does not block navigation; the reset rule does not undo the landing; a second import does not leave a stale list (the provider already ignores out-of-date answers).</td></tr>
+   <tr><td class="k">Tests</td><td><code>ScopeProvider.test.tsx</code> and a new <code>ImportWrapper</code> test: every import waits for the members request before navigating, and the new member appears in the drop-down without a remount; an import that adds a member lands on Family Combined; an import that adds none stays on the viewed member; a wrong-person import (new person) lands on that person; a wrong-person import for a member who already exists lands on that person; a family file with several people does not; a failed refresh does not block navigation; the reset rule does not undo the landing; a second import does not leave a stale list (the provider already ignores out-of-date answers).</td></tr>
   </tbody>
  </table></div>
 </section>
@@ -691,7 +726,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td class="k">D, E, F, I (charts, explainers and dates, section index, PDF)</td><td>17b and the manager explanation may meet in E; 17c&rsquo;s privacy rule must be applied by the PDF export (I). Both are written into those plans&rsquo; notes.</td></tr>
    <tr><td class="k">G (GA4)</td><td>The tracking plan already forbids sending folio numbers, names or amounts. Showing the full folio on screen does not change that. A future &ldquo;folio shown&rdquo; event would still carry no value.</td></tr>
    <tr><td class="k">C4 (Standard vs Pro)</td><td>Folios and fund managers are likely Pro-style detail. Nothing here hard-codes a section list, so a tier can hide them later.</td></tr>
-   <tr><td class="k">K (search)</td><td>The search plan lists &ldquo;folios&rdquo; and &ldquo;fund managers&rdquo; as result types. Folio search shows the full number, following Q3 A. I will note that in the search plan.</td></tr>
+   <tr><td class="k">K (search)</td><td>The search plan lists &ldquo;folios&rdquo; and &ldquo;fund managers&rdquo; as result types. Folio search shows the number as the eye setting says (Q3 D). I will note that in the search plan.</td></tr>
   </tbody>
  </table></div>
  <div class="callout good"><b>Migrations: none.</b> Batch B may take number 0054 (its Q23 option B), so Batch C takes no number and cannot clash. The 17a data refresh is a script, not a migration.</div>
@@ -712,7 +747,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>C-5</td><td>17a</td><td>Group the category donut by merged name; the two-spelling test written first</td><td>Codex</td><td>S</td><td>Ready to spec</td></tr>
    <tr><td>C-6</td><td>17a</td><td>Add the one-time recompute of all households to the staging deploy guide</td><td>Claude</td><td>S</td><td>Ready to spec</td></tr>
    <tr><td>C-7</td><td>17c</td><td>Backend: replace the masked folio fields with <code>folio_number</code> in the holdings, fund page and ledger payloads; delete the mask helpers</td><td>Codex</td><td>M</td><td>Ready to spec</td></tr>
-   <tr><td>C-8</td><td>17c</td><td>Frontend: show the full number on the agreed screens; drop the browser mask; phone views</td><td>Codex</td><td>M</td><td>After C-7</td></tr>
+   <tr><td>C-8</td><td>17c</td><td>Frontend: show the full number on the agreed screens with the shared number-plus-eye component and the remembered setting; drop the old browser masks; phone views</td><td>Codex</td><td>M</td><td>After C-7</td></tr>
    <tr><td>C-9</td><td>17c</td><td>Tests on both sides and the fixtures (list in section 4)</td><td>Codex</td><td>M</td><td>With C-7, C-8</td></tr>
    <tr><td>C-10</td><td>all</td><td>Write the handoff documents (one per lane)</td><td>Claude</td><td>S</td><td>After C-1</td></tr>
    <tr><td>C-11</td><td>all</td><td>Adversarial review per handoff, then the whole-batch review</td><td>Codex, then Claude</td><td>M</td><td>After the builds</td></tr>
@@ -732,11 +767,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>The donut stays duplicated after deploy because stored results are old</td><td>17a</td><td>One-time recompute during the staging deploy (Q10); the checklist verifies it with a two-fund household.</td></tr>
    <tr><td>A category the merge list does not know about stays duplicated</td><td>17a</td><td>The list is explicit by design (no fuzzy matching). The spec adds a test that scans stored categories for names that differ only by &ldquo;Scheme/Schemes&rdquo; and still survive; if any appear, the list is extended.</td></tr>
    <tr><td>Removing the sentence hides that a manager was guessed</td><td>17b</td><td>Decided (Q2 A). The rule and the data field are untouched.</td></tr>
-   <tr><td>Full folio numbers are exposed in a screenshot or a shared screen</td><td>17c</td><td>Accepted (Q3 A). Never sent to GA4 or logs; the PDF export follows the same rule; the ownership check on the endpoint stays.</td></tr>
+   <tr><td>Full folio numbers are exposed in a screenshot or a shared screen</td><td>17c</td><td>Reduced by the eye icon, not removed (Q3 D). Never sent to GA4 or logs; the PDF export follows the same rule; the ownership check on the endpoint stays.</td></tr>
    <tr><td>Front end and back end deployed one at a time: the folio rows would be empty</td><td>17c</td><td>The old fields are removed now (Q5 note), so the deploy guide says &ldquo;deploy both together&rdquo;, and a backend test asserts the old fields are gone. No fallback code.</td></tr>
    <tr><td>A long folio overflows a table cell or the phone width</td><td>17c</td><td>Wrap and monospace; checked at the phone width and at 1280 px.</td></tr>
    <tr><td>The phone views stay masked and look like a bug</td><td>17c</td><td>The spec finds any phone use of the payloads and updates it in the same change.</td></tr>
-   <tr><td>Refresh on import slows the return to the page, or fails</td><td>17d</td><td>Normal imports refresh in the background (Q13 B); a failure is swallowed. In the wrong-person case only we wait, and a failure falls back to staying on the viewed member.</td></tr>
+   <tr><td>Refresh on import slows the return to the page, or fails</td><td>17d</td><td>Every import waits for the small members request (Q13 A), so the return takes a moment longer on a very slow network; a failure is swallowed and the page stays on the viewed member.</td></tr>
    <tr><td>Landing on the other person after a wrong-person import surprises the user</td><td>17d</td><td>Only in that case, and the Batch B warning has already told them the funds go to that person. The banner names the funds added.</td></tr>
    <tr><td>The navigation reset rule undoes &ldquo;stay on the member&rdquo; or the landing</td><td>17d</td><td>The spec reads <code>resetRule.ts</code> and adds a test (see section 5).</td></tr>
   </tbody>
@@ -757,7 +792,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
   <div><b>17c</b>Family Combined, expand a fund held by two members: the full folio shows. Check the fund page rows, a ledger row detail, a coverage-gap dialog if one exists, and the phone width. Copy on the fund page copies the shown number.</div>
   <div><b>17d</b>With Prateek selected, import a normal file that adds a member: the drop-down lists them without a reload and the page stays on Prateek. Then upload a file that belongs to someone else, choose &ldquo;Import for these people&rdquo;: the page lands on that person. Repeat for a person who already exists.</div>
  </div>
- <p class="note">Test data: the screenshots show real-looking data on staging; for 17a the unit test uses made-up funds with both spellings, so the check does not depend on real uploads (Q16).</p>
+ <p class="note">Test data: the screenshots show real-looking data on staging; for 17a the unit test uses made-up funds with both spellings, and a synthetic statement with both spellings is also built, so the check does not depend on real uploads or on your household still showing it (Q16 A and B).</p>
 </section>
 
 <!-- ============ QUESTIONS ============ -->
@@ -825,8 +860,10 @@ function mgrFrame(after){
 }
 
 /* ---------- 17c: folios ---------- */
-var F1=['XXXX / 0','10234567 / 0'],F2=['XXXX / 12','9087654321 / 12'],F3=['XXXX / 0','4400918 / 3'];
-function fol(i,after){var f=[F1,F2,F3][i];return '<span class="folio'+(after?' new':'')+'">'+f[after?1:0]+'</span>'}
+var F1=['XXXX / 0','10234567 / 0','XXXX4567 / 0'],F2=['XXXX / 12','9087654321 / 12','XXXXXX4321 / 12'],F3=['XXXX / 0','4400918 / 3','XXX0918 / 3'];
+function nst(a){return a===true?'after':(a===false?'today':a)}
+function eyeb(h){return '<span class="eyeb" title="'+(h?'Show folio numbers':'Hide folio numbers')+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>'+(h?'<path d="M3 3l18 18"/>':'')+'</svg></span>'}
+function fol(i,after){var st=nst(after),f=[F1,F2,F3][i];if(st==='today')return '<span class="folio">'+f[0]+'</span>';return '<span class="fw"><span class="folio new">'+f[st==='hidden'?2:1]+'</span>'+eyeb(st==='hidden')+'</span>'}
 function folioTable(after){
  var kid=function(n,c,i,u,inv,val){return '<tr class="kid"><td style="padding-left:50px"><b>'+n+'</b>'+fol(i,after)+'</td><td>'+u+'</td><td></td><td>'+inv+'</td><td>'+val+'</td><td></td><td></td><td></td></tr>'};
  return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds')+'<div class="ap">'+top('Family Combined',false,'')+'<div class="ap-body"><div class="ap-h">Holdings</div><div class="ap-card" style="padding:0;overflow:hidden"><table class="ap-t"><thead><tr><th>Fund</th><th>Units</th><th>Avg price</th><th>Invested</th><th>Current value</th><th>Unrealised</th><th>Realised</th><th>XIRR</th></tr></thead><tbody>'
@@ -838,11 +875,11 @@ function folioTable(after){
  +'<tr class="tot"><td>Total</td><td></td><td></td><td>&#8377;2,08,400</td><td>&#8377;2,38,200</td><td></td><td></td><td></td></tr></tbody></table></div></div></div>',1100,0,'');
 }
 function folioFund(after){
- var f=function(l,i){return '<div class="fpr"><span class="ap-mut">'+l+'</span><b class="cp">'+(after?[F1,F2][i][1]:'XXXXX'+['5670','3212'][i])+' <span>&#10697;</span></b></div>'};
+ var st=nst(after);var f=function(l,i){return '<div class="fpr"><span class="ap-mut">'+l+'</span><b class="cp">'+(st==='today'?'XXXXX'+['5670','3212'][i]:[F1,F2][i][st==='hidden'?2:1]+' '+eyeb(st==='hidden'))+' <span style="'+(st==='hidden'?'opacity:.3':'')+'">&#10697;</span></b></div>'};
  return vp('<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Investment details</h5>'+f('Folio &middot; Prateek',0)+f('Folio &middot; Lalchand',1)+'</div></div></div>',560,0);
 }
 function folioLedger(after){
- return vp('<div class="ap"><div class="ap-body" style="padding:12px"><div class="ap-card" style="padding:0"><div class="ledrow"><span>12 Mar 2026</span><span><b>Alpha Flexi Cap Fund</b><br><span class="ap-mut">SIP instalment</span></span><span style="text-align:right"><b>&#8377;5,000</b></span></div><dl class="ledd" style="margin-bottom:12px"><div><dt>Units</dt><dd>41.208</dd></div><div><dt>NAV</dt><dd>&#8377;121.33</dd></div><div><dt>Folio</dt><dd style="font-family:ui-monospace,Consolas,monospace;font-size:11.5px">'+(after?'10234567 / 0':'XXXX5670')+'</dd></div></dl></div></div></div>',560,0);
+ return vp('<div class="ap"><div class="ap-body" style="padding:12px"><div class="ap-card" style="padding:0"><div class="ledrow"><span>12 Mar 2026</span><span><b>Alpha Flexi Cap Fund</b><br><span class="ap-mut">SIP instalment</span></span><span style="text-align:right"><b>&#8377;5,000</b></span></div><dl class="ledd" style="margin-bottom:12px"><div><dt>Units</dt><dd>41.208</dd></div><div><dt>NAV</dt><dd>&#8377;121.33</dd></div><div><dt>Folio</dt><dd style="font-family:ui-monospace,Consolas,monospace;font-size:11.5px">'+(nst(after)==='today'?'XXXX5670':(nst(after)==='hidden'?'XXXX4567 / 0':'10234567 / 0')+' ')+(nst(after)==='today'?'':eyeb(nst(after)==='hidden'))+'</dd></div></dl></div></div></div>',560,0);
 }
 function folioPhone(after){
  return vp('<div class="phs"><div class="scr" style="min-height:420px"><div class="sb"><b></b></div><div class="ap" style="min-height:300px"><div class="ap-body" style="padding:12px"><div class="ap-card"><div class="ap-fund"><span class="ap-logoc">A</span><div><a>Alpha Flexi Cap Fund</a><div class="ap-mut">Direct</div></div></div><div style="margin:10px 0 0 38px"><b>Lalchand</b>'+fol(1,after)+'</div><div style="margin:8px 0 0 38px"><b>Prateek</b>'+fol(0,after)+'</div><div class="ap-mut" style="margin-top:10px">Current value &#8377;1,71,300 &middot; XIRR 13.2%</div></div></div></div></div></div>',390,0);
@@ -850,13 +887,13 @@ function folioPhone(after){
 
 /* ---------- 17d: member flow ---------- */
 function memberFrame(v){
- var wp=v==='b',after=v!=='today';
+ var wp=v==='b',gr=v==='c',after=v!=='today';
  var banner='<div class="ap-banner"><div><b>Import complete</b> &middot; 14 new funds, 58 transactions added</div><span>&#10005;</span></div>';
- var sel=wp?'Lalchand':'Prateek';
- var menu=after?(mi('Family Combined',false)+mi('Prateek',!wp)+mi('Lalchand',wp)):mi('Prateek',true);
- var tiles=wp?['Total portfolio value|&#8377;26,43,057','Invested|&#8377;23,98,400','XIRR|9.9%','Funds|14']:['Total portfolio value|&#8377;44,97,253','Invested|&#8377;40,10,602','XIRR|8.6%','Funds|11'];
+ var sel=wp?'Lalchand':(gr?'Family Combined':'Prateek');
+ var menu=after?(mi('Family Combined',gr)+mi('Prateek',!wp&&!gr)+mi('Lalchand',wp)):mi('Prateek',true);
+ var tiles=gr?['Total portfolio value|&#8377;71,40,310','Invested|&#8377;64,09,002','XIRR|9.2%','Funds|25']:wp?['Total portfolio value|&#8377;26,43,057','Invested|&#8377;23,98,400','XIRR|9.9%','Funds|14']:['Total portfolio value|&#8377;44,97,253','Invested|&#8377;40,10,602','XIRR|8.6%','Funds|11'];
  var t=tiles.map(function(x){var p=x.split('|');return '<div class="ap-tile"><small>'+p[0]+'</small><b>'+p[1]+'</b></div>'}).join('');
- var note=v==='today'?'<p class="ap-mut" style="margin-top:10px">The drop-down has one member and no Family Combined row. Lalchand is missing until a hard refresh.</p>':(wp?'<p class="ap-mut" style="margin-top:10px">Prateek was selected, the file belonged to Lalchand and the user chose &ldquo;Import for these people&rdquo;, so the page lands on Lalchand. The numbers include the funds the banner mentions.</p>':'<p class="ap-mut" style="margin-top:10px">A normal import that adds a member: the new member is in the list and the page stays on Prateek, as you chose.</p>');
+ var note=v==='today'?'<p class="ap-mut" style="margin-top:10px">The drop-down has one member and no Family Combined row. Lalchand is missing until a hard refresh.</p>':(gr?'<p class="ap-mut" style="margin-top:10px">The import created a new member, so the household grew: the page lands on Family Combined and the numbers include the 14 new funds the banner mentions.</p>':wp?'<p class="ap-mut" style="margin-top:10px">Prateek was selected, the file belonged to Lalchand and the user chose &ldquo;Import for these people&rdquo;, so the page lands on Lalchand. The numbers include the funds the banner mentions.</p>':'<p class="ap-mut" style="margin-top:10px">An import that adds no new member: the page stays on Prateek.</p>');
  return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds')+'<div class="ap" style="min-height:430px">'+top(sel,true,menu)+'<div class="ap-body">'+banner+'<div class="ap-tiles">'+t+'</div>'+note+'</div></div>',1100,0);
 }
 
@@ -868,9 +905,9 @@ function frame(name){
   case 'cat-after':return catFrame(true);
   case 'mgr-today':return mgrFrame(false);
   case 'mgr-after':return mgrFrame(true);
-  case 'folio-table':return folioTable(STATE['i17c']==='after');
-  case 'folio-fund':return folioFund(STATE['i17c']==='after');
-  case 'folio-ledger':return folioLedger(STATE['i17c']==='after');
+  case 'folio-table':return folioTable(STATE['i17c']);
+  case 'folio-fund':return folioFund(STATE['i17c']);
+  case 'folio-ledger':return folioLedger(STATE['i17c']);
   case 'folio-phone':return folioPhone(STATE['i17c-ph']==='after');
   case 'member-flow':return memberFrame(STATE['i17d']);
  }
@@ -922,9 +959,10 @@ var Q=[
  opts:[
  {k:"A",l:"Full number, as plain text, everywhere",rec:1,d:"Good: what you asked; matches the statement; simplest. Bad: visible in demos and screenshots."},
  {k:"B",l:"Full number, but hidden behind one &ldquo;Show folio numbers&rdquo; switch per screen (hidden by default)",d:"Good: safe by default for demos. Bad: one more control and a remembered setting; an extra click to read the number."},
+ {k:"D",l:"Full number shown by default, with a small eye icon beside every folio number to hide it (and show it again)",d:"Good: what you asked, plus a one-click way to hide it before a demo or screen share; one shared setting for all folio numbers, remembered in this browser. Bad: a small new control on every folio; hidden numbers can still look alike (last four digits)."},
  {k:"C",l:"Keep masking, but fix it: one consistent rule that keeps the last four digits of the folio part (for example XXXX4567 / 0)",d:"Good: least exposure; also fixes the &ldquo;XXXX / 0&rdquo; problem. Bad: not what you asked; two folios ending in the same four digits still look alike."}],
  why:"You asked for the full number and the data already reaches the owner&rsquo;s browser. B is the quick fallback if your stakeholders raise a privacy concern in a demo.",
- commit:"A: backend sends the full number, screens print it. B: A plus a switch. C: one shared mask rule on the server and no new field."},
+ commit:"A: backend sends the full number, screens print it. B: A plus a switch hidden by default. C: one shared mask rule on the server and no new field. <b>Recorded 17 Nov: D</b> (changed from A): the backend sends the full number (Q5 A), the browser shows it by default and masks it with one shared rule when the user clicks any eye. The change to A is that every folio gets the eye and the remembered setting."},
 {id:"Q4",item:"17c",title:"Which screens show the full number?",ask:"Pick one. Applies to whichever option you picked in Q3.",
  opts:[
  {k:"A",l:"Every screen that shows a folio: holdings table, fund page, ledger row detail, coverage-gap dialog, and the phone views",rec:1,d:"Good: one rule everywhere; no screen looks like a bug. Bad: the largest change (about eight frontend files)."},
@@ -982,16 +1020,16 @@ var Q=[
  ctx:"With one member selected, a second member appears. Today the page keeps showing the first member while the banner counts the second member&rsquo;s funds.",
  opts:[
  {k:"A",l:"Stay on the member they were viewing; the new member is simply in the drop-down",d:"Good: no surprise; smallest change. Bad: the banner says 14 new funds but the numbers do not move."},
- {k:"B",l:"Switch to Family Combined, only when the household just grew",rec:1,d:"Good: the banner and the numbers agree; the user sees the new funds at once. Bad: a view change they did not click; someone who wanted to stay on a member must switch back."},
+ {k:"B",l:"Switch to Family Combined, only when the household just grew",rec:1,d:"Good: the banner and the numbers agree; the user sees the new funds at once. Bad: a view change they did not click; someone who wanted to stay on a member must switch back. <b>Updated 17 Nov, chosen with a condition:</b> B applies only when the import created a new member; otherwise A. Every case is in the table in section 5."},
  {k:"C",l:"Stay on the member, and add a &ldquo;View Lalchand&rdquo; link to the banner",d:"Good: user stays in control and has a one-click path. Bad: a new element on a shared banner; copy and tests to add."}],
  why:"The mismatch in your screenshot (banner about funds that are not in the numbers) is the real confusion, and B removes it with the least new UI.",
- commit:"<b>Recorded with your note:</b> option A, plus one exception. If the import was a wrong-person case (aimed at one person, file belongs to one other person), the page lands on that person, whether they are new or already in the family. A normal family file does not trigger it. In that case only, we wait for the member list before navigating (see Q13)."},
+ commit:"<b>Updated 17 Nov:</b> option B only when the household has grown (the import created a new member), otherwise option A; the wrong-person landing below is kept as my assumption. <b>Earlier recorded (12 Nov):</b> option A, plus one exception. If the import was a wrong-person case (aimed at one person, file belongs to one other person), the page lands on that person, whether they are new or already in the family. A normal family file does not trigger it. In that case only, we wait for the member list before navigating (see Q13)."},
 {id:"Q13",item:"17d",title:"Wait for the member list before leaving the import page?",ask:"Pick one.",
  opts:[
  {k:"A",l:"Wait for the refreshed list (one small request), then navigate; if it fails, navigate anyway",rec:1,d:"Good: the drop-down is right the moment the page appears. Bad: the return waits for that request; very slow networks feel it."},
  {k:"B",l:"Navigate at once and refresh in the background",d:"Good: instant return. Bad: the drop-down may be right a moment later, and Q12&rsquo;s view switch would flicker."}],
  why:"The request is tiny, and a switch of view should happen before the page draws, not after.",
- commit:"<b>Recorded:</b> option B for normal imports. For the wrong-person landing from Q12 we wait for the list, because the page cannot select someone it does not know yet. You accepted this single exception on 12 Nov."},
+ commit:"<b>Updated 17 Nov: option A.</b> Every import waits for the refreshed list (it is needed to see whether the household grew), then navigates; if the request fails, navigate anyway. <b>Earlier recorded (12 Nov):</b> option B for normal imports, with the wrong-person wait as the one exception."},
 {id:"Q14",item:"17d",title:"Other places that add members: what is in scope?",ask:"Pick one.",
  opts:[
  {k:"A",l:"Fix the desktop Add Data page; check the onboarding family upload and the phone import in the spec, and fix them only if they show the same bug",rec:1,d:"Good: finds out before building; no guesswork. Bad: the batch may grow slightly if the phone path has the bug."},
@@ -1007,17 +1045,18 @@ var Q=[
  opts:[
  {k:"A",l:"Unit tests use made-up funds with both spellings; the staging check uses your own household (it already shows both spellings)",rec:1,d:"Good: the proof lives in a repeatable test; staging confirms with real data. Bad: staging depends on your household still showing the problem."},
  {k:"B",l:"Also build a synthetic statement with both spellings for the staging check",d:"Good: repeatable on any account. Bad: extra work, and it must match AMFI headings that the synthetic files may not contain."}],
- why:"You have a household that reproduces it, and a unit test covers the rest."}
+ why:"You have a household that reproduces it, and a unit test covers the rest.",
+ commit:"<b>Updated 17 Nov: A and B together.</b> Unit tests with made-up funds, a staging check on your own household, and also a synthetic statement with both spellings (so the check works on any account). Task C-6 adds the synthetic statement."}
 ];
 var PRE={
- Q1:{k:"A"},Q2:{k:"A"},Q3:{k:"A"},Q4:{k:"A"},
+ Q1:{k:"A"},Q2:{k:"A"},Q3:{k:"D",n:"Updated 17 Nov: shown by default, plus a small eye icon at every folio number to hide or show it. This changes the earlier answer A."},Q4:{k:"A"},
  Q5:{k:"A",n:"option A but remove the old one now only, not later"},
  Q6:{k:"A"},Q7:{k:"A"},Q8:{k:"A"},Q9:{k:"A"},
  Q10:{k:"A",n:"this will not be an issue as will clean the whole database once while staging these changes (recorded as option A; see the note above)"},
  Q11:{k:"A"},
- Q12:{k:"A",n:"but if it is one of the wrong member warning cases we talked about in batch b, then it should land on the new member. Confirmed 12 Nov: applies only when the import is aimed at one person and the file belongs to another (a normal family file does not trigger it); lands on that person whether new or already a member."},
- Q13:{k:"B",n:"Accepted 12 Nov: in the wrong-person case only, wait for the member list before navigating."},
- Q14:{k:"A"},Q15:{k:"A"},Q16:{k:"A"}
+ Q12:{k:"B",n:"Updated 17 Nov: option B only if the family has grown (a new member was added), else option A; explain in more detail (section 5). Earlier note, kept as my assumption: but if it is one of the wrong member warning cases we talked about in batch b, then it should land on the new member. Confirmed 12 Nov: applies only when the import is aimed at one person and the file belongs to another (a normal family file does not trigger it); lands on that person whether new or already a member."},
+ Q13:{k:"A",n:"Updated 17 Nov: option A (always wait for the member list). Earlier: option B, with the wrong-person wait accepted on 12 Nov."},
+ Q14:{k:"A"},Q15:{k:"A"},Q16:{k:"A",ks:["A","B"],n:"Updated 17 Nov: A and B together (unit tests, your own household, and also a synthetic statement with both spellings)."}
 };
 var LOCK={};
 Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
@@ -1050,7 +1089,7 @@ function paint(){
  var n=0;
  Q.forEach(function(q){
   var c=document.getElementById(q.id.toLowerCase()),a=S[q.id]||{};
-  c.querySelectorAll(".opt").forEach(function(o){var r=o.querySelector("input");r.checked=(a.k===r.value);o.classList.toggle("on",r.checked);var b=o.querySelector(".chosen");if(b)b.hidden=!r.checked});
+  c.querySelectorAll(".opt").forEach(function(o){var r=o.querySelector("input");var on=(a.k===r.value)||!!(a.ks&&a.ks.indexOf(r.value)>-1);r.checked=on;o.classList.toggle("on",on);var b=o.querySelector(".chosen");if(b)b.hidden=!on});
   var nn=document.getElementById("n-"+q.id);if(nn&&document.activeElement!==nn)nn.value=a.n||"";
   var ok=answered(q);if(ok)n++;setSt(c.querySelector("[data-st]"),ok);
  });

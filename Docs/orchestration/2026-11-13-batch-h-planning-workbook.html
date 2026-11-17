@@ -448,31 +448,31 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 #vmodal .vf{display:none;justify-content:flex-end;gap:8px;margin-top:12px}#vmodal .vf.on{display:flex}
 .vlink{display:inline-flex;gap:6px;align-items:center;color:#15803D;font-weight:600;font-size:13px;border-bottom:1px solid #86EFAC;cursor:pointer;background:none;border-top:0;border-left:0;border-right:0;padding:0 0 1px}
 .hchip{border:1px solid #D0D5DD;border-radius:99px;padding:3px 12px;font-size:12px;color:#344054}.hchip.on{background:#EAFBF0;border-color:#22C55E;color:#15803D;font-weight:600}
-</style>
+.appx{border:1px dashed var(--line);border-radius:14px;padding:6px 18px;margin:26px 0;background:var(--surface)}.appx>summary{cursor:pointer;font:700 15px var(--f-display);padding:12px 0}.appx[open]>summary{border-bottom:1px solid var(--line);margin-bottom:12px}</style>
 </head>
 <body>
 <div class="wrap">
 <nav class="toc" aria-label="Contents">
  <h4>Start here</h4>
  <a href="#where">1. Where we stand</a>
- <h4>Item 5</h4>
- <a href="#style">2. What kind of video</a>
- <a href="#script">3. Script and storyboard</a>
- <a href="#popup">4. The link and the pop-up</a>
- <a href="#interactive">4b. Interactive alternatives</a>
- <a href="#placement">4c. Where each one lives</a>
- <a href="#floating">4d. Floating checklist in depth</a>
- <a href="#videos">4e. The two videos, playing</a>
- <a href="#rules">5. Accuracy and privacy rules</a>
+ <h4>The chosen design</h4>
+ <a href="#design">2. Look 2 video + floating checklist</a>
+ <a href="#script">3. The video: script and storyboard</a>
+ <a href="#videos">4. The refined video, playing</a>
+ <a href="#floating">5. The floating checklist in depth</a>
+ <a href="#popup">6. The link and the pop-up</a>
  <h4>How we build it</h4>
- <a href="#strategy">6. Who does what</a>
- <a href="#program">7. Fit with the other batches</a>
- <a href="#tasks">8. Task list</a>
- <a href="#risks">9. Risks and checks</a>
+ <a href="#rules">7. Accuracy and privacy rules</a>
+ <a href="#strategy">8. Who does what</a>
+ <a href="#program">9. Fit with the other batches</a>
+ <a href="#tasks">10. Task list</a>
+ <a href="#risks">11. Risks and checks</a>
  <h4>Your call</h4>
- <a href="#questions">10. Questions (4)</a>
- <a href="#copy">11. Copy my answers</a>
+ <a href="#questions">12. Questions (4)</a>
+ <a href="#copy">13. Copy my answers</a>
  <a href="#prov">What I checked</a>
+ <h4>Not chosen</h4>
+ <a href="#appx" data-open="appx">Appendix A to D</a>
 </nav>
 
 <main>
@@ -480,7 +480,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <h1>Batch H Planning</h1>
  <div class="meta">Planning only &middot; nothing built or run &middot; 13 Nov 2026 &middot; branch leapswitch-redesign</div>
  <p>Item 5: a short tutorial video for the &ldquo;Request from CAMS&rdquo; screen, opened from a link on that screen in a pop-up (the user stays on the page). It should cover: go to the CAMS website, fill the details, download the file from your inbox, come back and upload. You want it creative and unique, not a plain screen recording; AI-generated video is on the table. This batch is mostly <b>creative and production planning</b>: the script, the storyboard, and the choice of how to make it, plus a small piece of front-end work for the link and the pop-up.</p>
- <p><b>Updated 13 Nov (second round).</b> New sections 4b and 4c: <b>four interactive alternatives to a video</b> (a journey roadmap, a floating checklist, a practice mode and an annotated form), each drawn so you can click through it, then <b>where each one lives and how the user moves through it</b> (including the two video looks), plus a new question, <b>Q4</b>, on which format to use. The troubleshooter and the conversational guide were dropped at your request.</p>
+ <p><b>Updated 17 Nov (your review).</b> <b>The direction is chosen: Look 2 (the realistic, lightly animated video) combined with the floating checklist.</b> I reorganised the workbook around that choice (section 2 first, then the video, the checklist and the pop-up) and moved everything you did not choose into an Appendix at the end. <b>Second round on 17 Nov:</b> you sent a real screen recording of the CAMS form, and I re-cut Look 2 around it: <b>about 53 seconds (it was 84), at 30 frames a second</b>, with the CAMS part now your real recording, cropped to the page and sped up where nothing happens (section 4). You also said I make the video only: the floating checklist and the pop-up are built by the team, not by me. <b>No audio at all</b> (17 Nov): the video has no voice-over and no music, so Q2 is answered too. All four questions are now recorded.</p>
+ <p><b>Earlier (13 Nov, second round).</b> New sections Appendix C and 4c: <b>four interactive alternatives to a video</b> (a journey roadmap, a floating checklist, a practice mode and an annotated form), each drawn so you can click through it, then <b>where each one lives and how the user moves through it</b> (including the two video looks), plus a new question, <b>Q4</b>, on which format to use. The troubleshooter and the conversational guide were dropped at your request.</p>
  <p><b>Updated 13 Nov.</b> Section 3 now has a second look, <b>Look 2: a realistic screen recording</b> of the real CAMS form, lightly animated, below the first set of drawings (Look 1, unchanged). I also opened the live CAMS page you linked (read-only, nothing submitted) and found two places where the app&rsquo;s own text does not match the real form (finding F7). Q1 now asks you to choose between the two looks.</p>
  <p><b>How this was made.</b> I read the code, read-only: the Request from CAMS screen, the waiting screen that follows it, the existing pop-up component and what the app has for video. I also loaded the live CAMS form in a headless browser, read its labels and looked at it, without submitting anything. <b>Whether CAMS accepts a ten-year range, and the exact email it sends, are still unchecked</b> (task H-1). I cannot make video myself: what I can deliver is the script, captions, storyboard and prompts, and the pop-up. Mockups are my drawings with made-up names, laptop only: the phone view is out of scope for every batch.</p>
 </div>
@@ -491,8 +492,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="stats">
   <div class="stat"><div class="n">1</div><div class="l">item (5)</div></div>
   <div class="stat"><div class="n">0</div><div class="l">database migrations planned</div></div>
-  <div class="stat"><div class="n">0 / 4</div><div class="l">questions answered</div></div>
-  <div class="stat"><div class="n">14</div><div class="l">tasks in the list (section 8)</div></div>
+  <div class="stat"><div class="n">4 / 4</div><div class="l">questions answered</div></div>
+  <div class="stat"><div class="n">14</div><div class="l">tasks in the list (section 10)</div></div>
  </div>
  <div class="scroll"><table>
   <thead><tr><th>Item</th><th>What you asked</th><th>What the code does today (read in code)</th><th>What changes</th><th>Layers</th></tr></thead>
@@ -505,8 +506,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
    <tr><td>F1</td><td><b>The screen today</b> (<code>RequestCamsPath.tsx</code>): title &ldquo;Request from CAMS&rdquo;, one line about the free statement, a card &ldquo;On the CAMS form, select these three options&rdquo; (<i>Detailed statement</i>, <i>10-year duration</i>, <i>with zero folios</i>), three steps (the button opens CAMS in a new tab; select the three options; enter your email and set a password for your CAS file), and a green button &ldquo;Request Statement on CAMS&rdquo;.</td><td>The script must match these words exactly, so the video and the text never disagree.</td></tr>
    <tr><td>F2</td><td><b>What the screen does not say:</b> that the file arrives by email, that the user must download it, and that the same password is needed when uploading. The next screen (<code>WaitingForCasView</code>) says the email usually arrives in 5&ndash;10 minutes and offers &ldquo;Already got the email? Upload it now&rdquo;.</td><td>These are the gaps the video fills: the second half of your list (inbox, come back, upload).</td></tr>
    <tr><td>F3</td><td>Clicking the button opens CAMS in a new tab <b>and</b> moves the app to the waiting screen. A link that plays a video must not trigger either.</td><td>The link is a separate control, clearly not the main button.</td></tr>
-   <tr><td>F4</td><td>The app already has a pop-up component (<code>components/ui/dialog.tsx</code>, built on a library already installed) used for the import pop-ups. There is <b>no video player and no video file</b> anywhere; <code>public/</code> holds brand images only.</td><td>The pop-up is cheap to build. Hosting and playing the video are new, small decisions (section 4).</td></tr>
-   <tr><td>F5</td><td>CAMS is a third-party site. Its layout and wording can change without notice. I read the live form on 13 Nov 2026 (F7, F8), so what is drawn is current as of today only.</td><td>The video can go out of date for reasons outside our control (section 5).</td></tr>
+   <tr><td>F4</td><td>The app already has a pop-up component (<code>components/ui/dialog.tsx</code>, built on a library already installed) used for the import pop-ups. There is <b>no video player and no video file</b> anywhere; <code>public/</code> holds brand images only.</td><td>The pop-up is cheap to build. Hosting and playing the video are new, small decisions (section 6).</td></tr>
+   <tr><td>F5</td><td>CAMS is a third-party site. Its layout and wording can change without notice. I read the live form on 13 Nov 2026 (F7, F8), so what is drawn is current as of today only.</td><td>The video can go out of date for reasons outside our control (section 7).</td></tr>
    <tr><td>F6</td><td>Batch B&rsquo;s workbook does not cover this pop-up; the handoff only says the recording waits for a stable CAMS screen and the pop-up goes with Batch B&rsquo;s import screen work.</td><td>This batch plans the pop-up; it is built alongside Batch B so the import screen is touched once.</td></tr>
    <tr><td>F7</td><td><b>The live CAMS form does not match the app&rsquo;s text.</b> The app says &ldquo;10-year duration&rdquo; and &ldquo;with zero folios&rdquo;. The live form (CAS - CAMS+KFintech) has <i>Statement type</i> (Summary, Detailed); <i>Period</i> (Current Financial Year, Previous Financial Year, Specific Period, with From and To dates, shown only after choosing Detailed); <i>Folio listing</i> (With zero balance folios, Without zero balance folios, Transacted folios and folios with balance; the page pre-selects &ldquo;Without zero balance folios&rdquo;); then Email, PAN (optional), Password and Confirm password, with Submit and Reset.</td><td>A user following the screen cannot find &ldquo;10-year&rdquo;. They need &ldquo;Specific Period&rdquo; with a From date. This is a Batch B screen-copy matter, so I flag it for your review and do not change anything.</td></tr>
    <tr><td>F8</td><td><b>Other things the user meets on the real page:</b> a promotional or awareness banner pops up over the form on arrival (closed with a &times;); a chatbot bubble sits in the corner; the password has strict rules (8 to 15 characters, starts with a letter, at least one capital, one number and one of @ # $ * _); the email must be the one registered in the folios; the page says the statement is encrypted with that password and emailed only to the registered address.</td><td>These are exactly where users stall, so the video shows them: close the banner, the password rules, the registered email. Whether the banner appears for every visitor is unchecked.</td></tr>
@@ -514,41 +515,28 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  </table></div>
 </section>
 
-<section id="style">
- <h2>2. What kind of video</h2>
- <p class="lead">Your decision from the list: pure AI-generated, or stylised motion graphics over a real screen capture. There is one more option worth knowing about.</p>
+<section id="design">
+ <h2>2. The chosen design: Look 2 video plus the floating checklist</h2>
+ <p class="lead">Decided 17 Nov. Two helpers that work together: a short, realistic, lightly animated <b>video</b> the user can watch first, and a <b>floating checklist</b> that stays on top of the CAMS page while the user fills the form. The video explains the whole journey in about a minute; the checklist does the hand-holding in the moment.</p>
+ <div class="fmap"><div class="fn"><b>1. Import page: choose a path</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn on"><b>2. Request from CAMS screen</b><span>Link &ldquo;Watch how it works&rdquo; opens the video pop-up</span></div><i class="fa">&rarr;</i><div class="fn on ext"><b>3. CAMS website (new tab)</b><span>Floating checklist opens on top</span></div><i class="fa">&rarr;</i><div class="fn on"><b>4. Waiting for the email</b><span>The checklist moves on to &ldquo;wait&rdquo;; the video link is here too</span></div><i class="fa">&rarr;</i><div class="fn on"><b>5. Upload</b><span>The checklist ticks the last step and closes</span></div></div>
  <div class="scroll"><table>
-  <thead><tr><th>Approach</th><th>What it is</th><th>Strength</th><th>Weakness</th></tr></thead>
+  <thead><tr><th></th><th>Video (Look 2)</th><th>Floating checklist</th></tr></thead>
   <tbody>
-   <tr><td class="k">A. Realistic: a real CAMS capture with light animation (my pick; Look 2 in section 3)</td><td>A short real screen capture of the CAMS form (with dummy details), cleaned up and wrapped in Unifolio&rsquo;s look: highlights, zooms, callouts, a friendly cursor, branded intro and outro.</td><td>Shows what users will really see, so nobody is lost when the real form appears; creative and branded without inventing anything; easy to re-cut a single scene when CAMS changes.</td><td>Needs one clean capture of the real form; the CAMS form appears on screen.</td></tr>
-   <tr><td class="k">B. Stylised: fully illustrated, no real CAMS pixels (Look 1 in section 3)</td><td>The whole video is animated artwork, including a redrawn, simplified version of the CAMS form.</td><td>Most unique and fully ours; no third-party screen shown.</td><td>If the redrawn form differs from the real one, users hesitate at the real form; more design work.</td></tr>
-   <tr><td class="k">C. Fully AI-generated video</td><td>Scenes generated from prompts, including the form and the inbox.</td><td>Fast and eye-catching.</td><td>AI tools cannot reliably draw a specific real website; text on screens comes out wrong or garbled; a tutorial that shows the wrong thing is worse than none.</td></tr>
+   <tr><td class="k">Job</td><td>Show the whole journey once, so the user knows what to expect before they start.</td><td>Keep the next instruction in view while the user is on another site, and let them tick off steps.</td></tr>
+   <tr><td class="k">When</td><td>Before the green button, or any time the user wants to watch again.</td><td>From the green button until the file is uploaded.</td></tr>
+   <tr><td class="k">Where it lives</td><td>A pop-up over the Request from CAMS screen and the waiting screen; the Unifolio tab.</td><td>A small window above all windows, including the CAMS tab (a browser feature); a panel on the waiting screen when the browser does not offer it.</td></tr>
+   <tr><td class="k">What it cannot do</td><td>It is not in front of the user once they are on the CAMS tab.</td><td>It cannot see what the user does on CAMS, so ticks are the user&rsquo;s own. We cannot place it; the browser decides and remembers.</td></tr>
+   <tr><td class="k">If it is not available</td><td>It always plays (it is an ordinary video).</td><td>Chrome and Edge on a laptop or desktop get the floating version; other browsers get the in-page panel (section 5).</td></tr>
   </tbody>
  </table></div>
- <div class="callout good"><b>My recommendation: A, with AI used where it is safe.</b> Use AI tools for what does not have to be exact (an intro animation, background, a friendly illustrated transition, music, a voice-over if you choose one) and the real capture for the parts a user must recognise (the CAMS form and the inbox). This keeps the creativity you want without the risk of showing a screen that does not exist.</div>
- <div class="callout info"><b>Another route worth knowing: no video file.</b> The same story could be an <b>animated step-by-step walkthrough built in code</b> inside the pop-up (the same cards, highlights and cursor moves, drawn live). It never goes stale in the way a recording does, works in any language by changing text, and adds no file to host. It is less cinematic and cannot show the real CAMS site. It is offered as option C in Q3.</div>
+ <div class="callout good"><b>How they fit together.</b> The video is the &ldquo;why and what&rdquo; and the checklist is the &ldquo;now do this&rdquo;. They use the same wording (the live form&rsquo;s own words, F7), so they never disagree. Both are optional: the green button works without either.</div>
+ <div class="callout info"><b>What I did to the workbook (17 Nov).</b> I moved everything that you did not choose into an <b>Appendix</b> at the end: the other video look, the other interactive concepts and the placement notes for each. Nothing was deleted. The sections that describe the chosen design are numbered 2 to 6 and come first.</div>
 </section>
 
 <section id="script">
- <h2>3. Script and storyboard</h2>
- <p class="lead">About 80 seconds. Two possible looks are drawn below: <b>Look 1</b>, stylised illustrated frames, and <b>Look 2</b>, a realistic screen recording of the real CAMS form with light, playful animation. Both follow the same story.</p>
- <h3 class="sub">Look 1: stylised illustrated frames</h3>
- <div class="winbar" data-sec="sb"><span>Scene</span><button type="button" data-v="0" aria-pressed="true">1. Opening</button><button type="button" data-v="1" aria-pressed="false">2. Request</button><button type="button" data-v="2" aria-pressed="false">3. The form</button><button type="button" data-v="3" aria-pressed="false">4. The inbox</button><button type="button" data-v="4" aria-pressed="false">5. Upload</button><button type="button" data-v="5" aria-pressed="false">6. Done</button></div>
- <div data-frame="sb"></div>
- <p class="note">Stylised drawings with made-up names and a redrawn stand-in for the CAMS form. In this look no real CAMS pixels are shown.</p>
- <div class="scroll"><table>
-  <thead><tr><th>#</th><th>Time</th><th>What the viewer sees</th><th>On-screen text</th><th>Narration (English)</th></tr></thead>
-  <tbody>
-   <tr><td>1</td><td>0&ndash;6 s</td><td>Unifolio logo ring draws itself; four small step icons slide in.</td><td>Import your full history in 4 steps</td><td>&ldquo;Here is how to bring your full mutual fund history into Unifolio, in four steps.&rdquo;</td></tr>
-   <tr><td>2</td><td>6&ndash;18 s</td><td>The Request from CAMS screen; the cursor presses the green button; a new tab slides open.</td><td>Step 1: Request on CAMS</td><td>&ldquo;Press Request Statement on CAMS. The official CAMS website opens in a new tab.&rdquo;</td></tr>
-   <tr><td>3</td><td>18&ndash;42 s</td><td>The real CAMS form (dummy details). Highlights tick through the three options; the email field fills; the password field is circled with a small note.</td><td>Step 2: Fill the form. Detailed statement &middot; 10-year duration &middot; with zero folios. Remember your password.</td><td>&ldquo;Choose Detailed statement, a 10-year period and with zero folios. Enter your email and set a password for your file. Remember it, you will need it in a moment.&rdquo;</td></tr>
-   <tr><td>4</td><td>42&ndash;56 s</td><td>An email list; the email from CAMS arrives; its PDF attachment is opened and saved. A small clock reads 5&ndash;10 minutes.</td><td>Step 3: Download from your inbox. Usually 5&ndash;10 minutes</td><td>&ldquo;CAMS emails your statement, usually within five to ten minutes. Open the email and download the PDF.&rdquo;</td></tr>
-   <tr><td>5</td><td>56&ndash;70 s</td><td>Back in Unifolio: the file is dropped in the upload box; the same password is typed; Import is pressed.</td><td>Step 4: Come back and upload. Use the same password</td><td>&ldquo;Come back to Unifolio, add the file, and type the same password.&rdquo;</td></tr>
-   <tr><td>6</td><td>70&ndash;80 s</td><td>A short progress moment, then the Mutual Funds overview fills with funds; end card with the Unifolio logo.</td><td>Your funds are in</td><td>&ldquo;That is it. Your funds appear in your dashboard.&rdquo;</td></tr>
-  </tbody>
- </table></div>
- 
- <h3 class="sub">Look 2: realistic screen recording, lightly animated</h3>
+ <h2>3. The video: script and storyboard (Look 2)</h2>
+ <p class="lead">Chosen on 17 Nov: <b>Look 2</b>, a realistic screen recording of the real CAMS form with light, playful animation. The cut is now <b>about 53 seconds</b> (it was 84): faster, smoother, and the CAMS part is your real recording. The first-round stylised look (Look 1) is kept in Appendix B.</p>
+ <h3 class="sub">What it looks like and the scene list</h3>
  <p>The real CAMS form is recorded, then dressed in Unifolio&rsquo;s style so it feels fun but stays professional: a soft gradient backdrop, the browser floating with a shadow, a step badge (&ldquo;2 / 4&rdquo;), a friendly cursor, green rings that pulse on each field, short dark callouts that pop in, a quick zoom on the part being discussed, and a single caption line at the bottom. No bouncing, no cartoon characters, no sound effects beyond optional light music.</p>
  <div class="winbar" data-sec="rl"><span>Scene</span><button type="button" data-v="0" aria-pressed="true">1. Opening</button><button type="button" data-v="1" aria-pressed="false">2. Request</button><button type="button" data-v="2" aria-pressed="false">3. Pop-up</button><button type="button" data-v="3" aria-pressed="false">4. Options</button><button type="button" data-v="4" aria-pressed="false">5. Email, password</button><button type="button" data-v="5" aria-pressed="false">6. Inbox</button><button type="button" data-v="6" aria-pressed="false">7. Upload</button><button type="button" data-v="7" aria-pressed="false">8. Done</button></div>
  <div data-frame="rl"></div>
@@ -556,85 +544,64 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <div class="scroll"><table>
   <thead><tr><th>#</th><th>Time</th><th>What the viewer sees</th><th>Narration (English)</th></tr></thead>
   <tbody>
-   <tr><td>1</td><td>0&ndash;6 s</td><td>Ring logo draws itself, wordmark, the four step numbers.</td><td>&ldquo;Here is how to bring your full mutual fund history into Unifolio, in four steps.&rdquo;</td></tr>
-   <tr><td>2</td><td>6&ndash;16 s</td><td>The Unifolio screen; the cursor presses the green button; the CAMS site slides in as a new tab.</td><td>&ldquo;Press Request Statement on CAMS. The official CAMS website opens in a new tab.&rdquo;</td></tr>
-   <tr><td>3</td><td>16&ndash;22 s</td><td>A security banner covers the form; the cursor closes it with the &times;.</td><td>&ldquo;If a banner covers the form, close it first.&rdquo;</td></tr>
-   <tr><td>4</td><td>22&ndash;40 s</td><td>Zoom on the form. Rings pulse on <i>Detailed</i>, then <i>Specific Period</i> (the From date is set ten years back, the To date is today), then <i>With zero balance folios</i>.</td><td>&ldquo;Choose Detailed. For the period, choose Specific Period, from ten years ago to today. For folio listing, choose With zero balance folios.&rdquo;</td></tr>
-   <tr><td>5</td><td>40&ndash;56 s</td><td>The email is typed; PAN is skipped (optional); the password is typed twice with the password rules in a callout; Submit is pressed.</td><td>&ldquo;Enter the email registered with your funds. Set a password, and remember it. Then press Submit.&rdquo;</td></tr>
-   <tr><td>6</td><td>56&ndash;66 s</td><td>An inbox; the email from CAMS arrives; the PDF is downloaded. A clock reads 5&ndash;10 minutes.</td><td>&ldquo;CAMS emails your statement, usually within five to ten minutes. Download the PDF.&rdquo;</td></tr>
-   <tr><td>7</td><td>66&ndash;76 s</td><td>Back in Unifolio: the file is dropped in, the same password typed, Import pressed.</td><td>&ldquo;Come back to Unifolio, add the file, and type the same password.&rdquo;</td></tr>
-   <tr><td>8</td><td>76&ndash;84 s</td><td>The funds appear; end card with the logo.</td><td>&ldquo;That is it. Your funds appear in your dashboard.&rdquo;</td></tr>
+   <tr><td>1</td><td>0&ndash;4 s</td><td>Ring logo draws itself, wordmark, the four step numbers.</td><td>&ldquo;Here is how to bring your full mutual fund history into Unifolio, in four steps.&rdquo;</td></tr>
+   <tr><td>2</td><td>4&ndash;9 s</td><td>The Unifolio screen; the cursor presses the green button; the CAMS site slides in as a new tab.</td><td>&ldquo;Press Request Statement on CAMS. The official CAMS website opens in a new tab.&rdquo;</td></tr>
+   <tr><td>3</td><td>9&ndash;12 s</td><td>A security banner covers the form; the cursor closes it with the &times;.</td><td>&ldquo;If a banner covers the form, close it first.&rdquo;</td></tr>
+   <tr><td>4</td><td>12&ndash;23 s</td><td>Zoom on the form. Rings pulse on <i>Detailed</i>, then <i>Specific Period</i> (the From date is set ten years back, the To date is today), then <i>With zero balance folios</i>.</td><td>&ldquo;Choose Detailed. For the period, choose Specific Period, from ten years ago to today. For folio listing, choose With zero balance folios.&rdquo;</td></tr>
+   <tr><td>5</td><td>23&ndash;35 s</td><td>The email is typed; PAN is skipped (optional); the password is typed twice with the password rules in a callout; Submit is pressed.</td><td>&ldquo;Enter the email registered with your funds. Set a password, and remember it. Then press Submit.&rdquo;</td></tr>
+   <tr><td>6</td><td>35&ndash;41 s</td><td>An inbox; the email from CAMS arrives; the PDF is downloaded. A clock reads 5&ndash;10 minutes.</td><td>&ldquo;CAMS emails your statement, usually within five to ten minutes. Download the PDF.&rdquo;</td></tr>
+   <tr><td>7</td><td>41&ndash;47 s</td><td>Back in Unifolio: the file is dropped in, the same password typed, Import pressed.</td><td>&ldquo;Come back to Unifolio, add the file, and type the same password.&rdquo;</td></tr>
+   <tr><td>8</td><td>47&ndash;53 s</td><td>The funds appear; end card with the logo.</td><td>&ldquo;That is it. Your funds appear in your dashboard.&rdquo;</td></tr>
   </tbody>
  </table></div>
  <div class="callout bad"><b>The live form does not match the app&rsquo;s own text in two places.</b> The screen says <i>10-year duration</i> and <i>with zero folios</i>. The live form has no &ldquo;10-year&rdquo; option: its period choices are <i>Current Financial Year</i>, <i>Previous Financial Year</i> and <i>Specific Period</i> (a From and To date). Its folio choices are <i>With zero balance folios</i>, <i>Without zero balance folios</i> and <i>Transacted folios and folios with balance</i>. A user following the app&rsquo;s words would not find them. Look 2 uses the form&rsquo;s own words. I have <b>not</b> tested whether CAMS accepts a ten-year range, and the app&rsquo;s text is not changed by this plan; both are flagged for your review (F7).</div>
  <div class="callout info"><b>Details the script already settles.</b> No real names, emails, PAN or amounts appear anywhere: the capture uses a dummy email and a placeholder password that are never real. The password callout is deliberate: forgetting it is the most likely place a user gets stuck. The words &ldquo;usually within five to ten minutes&rdquo; are the app&rsquo;s own claim on the waiting screen; the video must not promise more.</div>
 </section>
 
-<section id="popup">
- <h2>4. The link and the pop-up</h2>
- <p class="lead">A quiet link under the screen&rsquo;s heading, a pop-up that plays the video, and the same link on the waiting screen.</p>
- <div class="winbar" data-sec="pp"><span>Screen</span><button type="button" data-v="a" aria-pressed="true">1. The link</button><button type="button" data-v="b" aria-pressed="false">2. Playing</button><button type="button" data-v="c" aria-pressed="false">3. Finished</button></div>
- <div data-frame="pp"></div>
- <p class="note">Made-up details; laptop view. The video is drawn as a still.</p>
+<section id="videos">
+ <h2>4. The refined Look 2 video, playing in the pop-up</h2>
+ <p class="lead">The link below is live: press it and the pop-up opens and plays the <b>refined Look 2 video (about 53 seconds, 30 frames a second, with your real CAMS recording)</b>. Look 1 is still in the pop-up for comparison only.</p>
+ <div class="callout info"><b>What these are, and what they are not.</b> They are <b>working previews</b>, not the final videos. They are silent, and the final video will also be silent: no voice-over and no music, decided on 17 Nov (Q2). The captions burned into the picture; the real build keeps captions as a separate file the user can switch off. They use the <b>real Unifolio logos</b>, the real labels and wording from the live CAMS form, and made-up data (a dummy email and password, made-up funds). The CAMS form in Look 2 is <b>my redrawing</b> of the live page, not a screen recording: the final Look 2 uses a real recording (task H-1). The cursor, rings, callouts and timing show the intended style. Each is 1280 by 720 at 24 frames a second (Look 1: 80 seconds, 1.7 MB; Look 2: 84 seconds, 2.2 MB).</div>
+ <div class="vtool"><button type="button" class="vbtn" id="vplay2">&#9654; Play Look 2 (the chosen one)</button><button type="button" class="vbtn o" id="vplay1">&#9654; Play Look 1 (not chosen)</button></div>
+ <p class="note">Or open the real screen first: press the link below, as a user would.</p>
+ <div data-frame="vs"></div>
+
+ <h3 class="sub">What I changed in this version (17 Nov, second round)</h3>
  <div class="scroll"><table>
-  <thead><tr><th>Part</th><th>What it does</th></tr></thead>
+  <thead><tr><th>You said</th><th>What I did</th></tr></thead>
   <tbody>
-   <tr><td class="k">The link</td><td>&ldquo;Watch how it works (1 min 20 s)&rdquo; with a small play icon, under the heading line on the Request from CAMS screen. It is plainly secondary to the green button. The same link also appears on the waiting screen, near &ldquo;Already got the email?&rdquo;, because that is where users get stuck on the later steps. Nothing downloads until the link is pressed.</td></tr>
-   <tr><td class="k">The pop-up</td><td>The app&rsquo;s existing dialog, wide enough for a 16:9 video. Title &ldquo;How to request your statement from CAMS&rdquo;, the video, a close button, and below it the four steps as chips that jump to that moment (chapters). The page behind stays where it is; pressing Escape or outside closes it.</td></tr>
-   <tr><td class="k">Controls</td><td>Play and pause, a seek bar, captions on by default (so it works with the sound off), mute, and full screen. All usable from the keyboard.</td></tr>
-   <tr><td class="k">When it ends</td><td>The pop-up offers the green &ldquo;Request Statement on CAMS&rdquo; action and &ldquo;Watch again&rdquo;. Pressing the action closes the pop-up and does exactly what the main button does today.</td></tr>
-   <tr><td class="k">Loading</td><td>The video file is fetched only when the pop-up opens; a still picture shows first. The pop-up never auto-plays with sound.</td></tr>
-   <tr><td class="k">Hosting (default)</td><td>A single video file (about 80 s at 720p, a few MB) kept with the front end&rsquo;s own files or in our own storage, with a captions file. This avoids a third-party player that would set its own cookies on a screen where the user is about to hand over a financial statement. If the file turns out to be too large for the front end bundle, it moves to our storage and the pop-up points to it.</td></tr>
-   <tr><td class="k">Reduced motion</td><td>If the user&rsquo;s device asks for less motion, the video does not start by itself and the pop-up shows the steps as text beside it.</td></tr>
+   <tr><td class="k">&ldquo;Still very slow&rdquo;</td><td>The cut is <b>53 seconds</b> (the first version was 84, the second 60, and the previous one 48.5, which you asked to ease off slightly). Your recording of the form took 58 seconds; the dead time is cut and the slow parts are sped up: the date picker about five times (it takes 16 seconds live), typing about twice, the rest about one and a half times. The banner and the first moment of each choice play at normal speed so the eye can follow.</td></tr>
+   <tr><td class="k">&ldquo;Refine it more&rdquo;</td><td>The CAMS scenes are now <b>your real recording</b>, not my redrawing: the real banner, the real date picker, the real red password rules. It is cropped to the CAMS page only, so no browser tabs, bookmarks, taskbar or other windows show. <b>Premium polish (third round):</b> no dimming and no boxes. Focus comes from smooth, eased camera zoom (never above about 1.3×, so the recording stays crisp) and one frosted-glass guide card that glides from field to field, with a thin line to the live field and a number that turns into a tick when the real click happens. A slim four-segment progress indicator replaces the black pill. One continuous browser window with real tabs, a calm light gradient background with a faint turning ring, glass captions, and redesigned Unifolio, inbox, upload and funds scenes.</td></tr>
+   <tr><td class="k">Slightly slower, new highlights (fourth round)</td><td>You asked for a teeny tiny bit slower, so it is now <b>53 seconds</b> (about 10% longer than 48.5); the extra time goes to reading moments (the password rules, the inbox, the request page) and nothing plays faster than before. The underlining is redesigned: <b>options</b> get a soft green halo under the radio and a tapered brush-stroke swash drawn under the label (green to mint); <b>fields</b> get a slim rounded gradient line that sweeps in under the field with a small spark at its tip. The thin connector line and dot on the CAMS page are gone.</td></tr>
+   <tr><td class="k">Smooth</td><td>30 frames a second; the cursor you see on the CAMS page is your own real cursor.</td></tr>
+   <tr><td class="k">One thing I removed on purpose</td><td>Your browser showed a saved-address suggestion while you clicked the email field. I cut those 1.6 seconds, and the latest cut also blocks those frames in code and was checked frame by frame, so no address appears anywhere in the video. (The earlier 48-second version showed a faint pop-up for about one frame at the edge of that cut; it has been deleted.) Please do not record with autofill on next time.</td></tr>
   </tbody>
  </table></div>
- <h3 class="sub">Before and after</h3>
- <div class="flow">
-  <div><h4>Before</h4><ol><li>The user reads three text steps and presses the green button.</li><li>CAMS opens in a new tab; the app moves to the waiting screen.</li><li>Nothing explains the inbox, the download or why the password matters.</li></ol></div>
-  <div><h4>After</h4><ol><li>The user can press &ldquo;Watch how it works&rdquo; and see all four steps first, without leaving the page.</li><li>Then the same green button as today.</li><li>The waiting screen offers the video again for the steps that come next.</li></ol></div>
- </div>
+ <h3 class="sub">What is still not real, and what I still need</h3>
+ <ul class="tight">
+  <li>The <b>Unifolio request, inbox and upload scenes are still my drawings</b> (the inbox email is invented). They can be replaced by recordings of the real app once the pop-up exists (task H-1b), and the inbox by a screenshot of the real CAMS email with details hidden.</li>
+  <li>Your recording shows the form accepting a <b>ten-year From date</b> (17 Nov 2016 to 17 Nov 2026) without an error before Submit. It stops before the form is submitted, so <b>whether CAMS accepts and answers a ten-year request is still unconfirmed</b> (task H-1).</li>
+  <li><b>The password in your recording was rejected by the form</b> (the red rules stay on screen, because the typed password was too short). The callout explains the rules, but a viewer may think the step failed. If you can, record just the password step again with a valid one (for example a made-up <code>Abcd@1234</code>) and I will swap it in.</li>
+  <li><b>The video has no audio at all</b> (decided 17 Nov, Q2): no voice-over, no music, no sound effects, and no audio track in the file. Because nothing is heard, the on-screen captions carry the whole message and are part of the picture.</li>
+ </ul>
+ <h3 class="sub">What the pop-up does</h3>
+ <ul class="tight">
+  <li><b>Opens over the screen</b> when the link is pressed; the page behind stays put. It closes with the &times; or the Escape key.</li>
+  <li><b>Chapter buttons</b> (Request, Fill the form, Inbox, Upload) jump to that part of the video.</li>
+  <li><b>When the video ends</b>, two buttons appear: <i>Watch again</i> and <i>Request Statement on CAMS</i>.</li>
+  <li><b>Look switcher</b> (this preview only): so you can compare the two without closing it. In the real product there would be one video.</li>
+  <li>Playback uses the browser&rsquo;s own controls here. The real pop-up has no volume or mute control and no captions switch, because the video has no sound and its captions are always on.</li>
+ </ul>
+ <h3 class="sub">How the previews were made</h3>
+ <p>Each video is an animation built in code from the real logos and the wording above, then recorded frame by frame and encoded to a standard MP4 that plays in every current browser. This shows the style and pacing without anyone filming a screen. For the final version, the realistic look would use a recording of the real CAMS form (H-1), dressed in the same way. The files are also saved on your computer next to the workbook (see my message), so you can send them to your manager.</p>
 </section>
 
-<section id="interactive">
- <h2>4b. Interactive alternatives to a video</h2>
- <p class="lead">You asked for something more interactive than a video: a roadmap or journey map that tells the user what to do at each step. Four concepts are drawn below, and each one <b>responds to clicks</b> so you can try it. Pick a concept, then click through it.</p>
- <div class="winbar" data-sec="cn"><span>Concept</span><button type="button" data-v="A" aria-pressed="true">A. Journey roadmap</button><button type="button" data-v="B" aria-pressed="false">B. Floating checklist</button><button type="button" data-v="C" aria-pressed="false">C. Practice mode</button><button type="button" data-v="D" aria-pressed="false">D. Annotated form</button></div>
- <div data-frame="cn"></div>
- <p class="note" id="cnnote"></p>
- <div class="scroll"><table>
-  <thead><tr><th>Concept</th><th>What the user experiences</th><th>What it needs</th><th>Strength</th><th>Weakness</th><th>Size</th></tr></thead>
-  <tbody>
-   <tr><td class="k">A. Journey roadmap</td><td>A persistent four-step tracker beside a card that shows only the current step. Steps done are ticked; the user can go back. Steps that happen outside Unifolio are confirmed with &ldquo;I have done this&rdquo;.</td><td>A new roadmap component on the import screens; the app already knows when the request was made, when the user is waiting and when a file is uploaded (read in code), and already remembers the resume point.</td><td>Always tells the user where they are and what is next; survives a page reload and coming back later; counts progress for analytics.</td><td>It cannot see what the user does on CAMS, so two steps rely on the user&rsquo;s word.</td><td>M</td></tr>
-   <tr><td class="k">B. Floating checklist</td><td>While the user is on the CAMS tab, a small checklist floats on top of it (&ldquo;choose Detailed, choose Specific Period&hellip;&rdquo;) with ticks the user can set. It stays visible while they work on the other site.</td><td>A browser feature (the Document Picture-in-Picture API) that puts a small always-on-top window above other windows; desktop Chrome and Edge 116 and later offer it, others fall back to concept A. Details in 4d.</td><td>Solves the real problem that the instructions are on one tab and the form on another.</td><td>Not available everywhere; the user may close it; more to test.</td><td>M</td></tr>
-   <tr><td class="k">C. Practice mode</td><td>A faithful replica of the CAMS form inside Unifolio. The user clicks the right options and gets instant feedback (&ldquo;Now choose Specific Period&rdquo;), so by the time they reach the real site they have done it once.</td><td>A drawn replica of the form (the live form&rsquo;s words, F7) and the feedback rules.</td><td>Hands-on; builds confidence; no need to leave the page to learn.</td><td>A replica goes stale when CAMS changes; it shows a recreation of a third-party page; the most work of the six.</td><td>L</td></tr>
-   <tr><td class="k">D. Annotated form</td><td>A picture of the real form with numbered pins. The user clicks a pin and reads what to choose and why, in a side panel.</td><td>One clean image of the form (dummy data) and short texts.</td><td>Lightest to build; always visible; easy to scan; works as a reference next to the real form.</td><td>Passive, not a guided journey; the picture goes stale when CAMS changes.</td><td>S</td></tr>
-        </tbody>
- </table></div>
- <h3 class="sub">What the app can and cannot see (read in code)</h3>
- <div class="scroll"><table>
-  <thead><tr><th>Step</th><th>Where it happens</th><th>Can Unifolio detect it?</th></tr></thead>
-  <tbody>
-   <tr><td>1. Request on CAMS</td><td>Unifolio, then a new tab</td><td>Yes: the app records that the request was made and remembers the resume point.</td></tr>
-   <tr><td>2. Fill the form</td><td>The CAMS website</td><td>No: a third-party page. The user confirms.</td></tr>
-   <tr><td>3. Get the email</td><td>The user&rsquo;s inbox</td><td>No. The user confirms. (The app does not read the inbox.)</td></tr>
-   <tr><td>4. Upload</td><td>Unifolio</td><td>Yes: the upload and the import are seen by the app.</td></tr>
-  </tbody>
- </table></div>
- <div class="callout good"><b>My recommendation: the journey roadmap (A) as the spine, with an optional short video behind a &ldquo;Watch how it works&rdquo; link.</b> The roadmap is the &ldquo;journey map&rdquo; you described: it always says where the user is and what is next. The video stays as a small, optional extra for people who prefer to watch. The floating checklist (B) is a good later enhancement where the browser allows it. Practice mode (C) is the most delightful but the most expensive and the most likely to go stale when CAMS changes, so I would leave it until the rest is live. The annotated form (D) is cheap and works well <i>inside</i> the roadmap&rsquo;s second step.</div>
- <div class="callout info"><b>What this means for the video questions.</b> If you choose a roadmap-led format, Q1 to Q3 (the look of the video, the sound, the production) shrink to a much smaller, optional clip, so you may not need to answer them in full. Q4 is the question that decides.</div>
- <p><b>Where it lives.</b> The roadmap replaces the plain three-step text on the Request from CAMS screen and carries on to the waiting and upload screens, so the user sees one continuous journey. It would use the same words as the live CAMS form (F7). With Batch G it can record only <b>which step a user reached</b> (counts and labels, never a value), which shows exactly where people drop off.</p>
-</section>
+<div id="vmodal" role="dialog" aria-modal="true" aria-label="How to request your statement from CAMS"><div class="vd"><div class="vh"><b>How to request your statement from CAMS</b><button type="button" class="vx" id="vclose" aria-label="Close">&times;</button></div><video id="vvid" controls playsinline preload="none" poster=""></video><div class="vc" id="vchap"></div><div class="vc" style="margin-top:8px"><button type="button" id="vl2">Look 2: realistic</button><button type="button" id="vl1">Look 1: stylised</button></div><div class="vf" id="vend"><button type="button" class="vbtn o" id="vagain">Watch again</button><button type="button" class="vbtn" id="vreq">Request Statement on CAMS</button></div></div></div>
 
-<section id="placement">
- <h2>4c. Where each option lives and how the user moves through it</h2>
- <p class="lead">For each option: which screens it appears on, what the user does in order, and what to watch for. The strip at the top of each option shows the user&rsquo;s whole journey in five screens, with the green boxes marking where this option appears. Phone is out of scope.</p>
- <div class="winbar" data-sec="pl"><span>Option</span><button type="button" data-v="V" aria-pressed="true">Video (Look 1 and 2)</button><button type="button" data-v="A" aria-pressed="false">A. Journey roadmap</button><button type="button" data-v="B" aria-pressed="false">B. Floating checklist</button><button type="button" data-v="C" aria-pressed="false">C. Practice mode</button><button type="button" data-v="D" aria-pressed="false">D. Annotated form</button></div>
- <div class="plb" data-plb="V"><h4 class="plh">Video (Look 1 or Look 2): a pop-up over the same screen</h4><div class="fmap"><div class="fn"><b>1. Import page: choose a path</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn on"><b>2. Request from CAMS screen</b><span>Link: &ldquo;Watch how it works&rdquo;; pop-up with the video</span></div><i class="fa">&rarr;</i><div class="fn ext"><b>3. CAMS website (new tab)</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn"><b>4. Back in Unifolio: upload</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn on"><b>5. Import complete</b><span>The same link near &ldquo;Already got the email?&rdquo;</span></div></div><h5 class="plh2">Where it is seen</h5><ul class="tight"><li><b>On the Request from CAMS screen</b>: a small text link under the heading, plainly secondary to the green button.</li><li><b>On the screen the user returns to</b> (the waiting and upload view): the same link, so they can replay the last two steps.</li><li><b>Not</b> on the import choice screen, on the CAMS website itself, or anywhere else in the app.</li><li>The video lives in the Unifolio tab. Once the user is on the CAMS tab, it is not in front of them.</li></ul><h5 class="plh2">The flow, step by step</h5><ol class="tight"><li>The user reaches the Import page (the Import button in the top bar, or the onboarding upload) and picks <i>Request from CAMS</i>.</li><li>On the Request from CAMS screen they press <i>Watch how it works</i>. A pop-up opens over the screen and plays the 1 min 20 s video, with captions on.</li><li>At the end, the pop-up offers <i>Request Statement on CAMS</i> (the same as the green button) and <i>Watch again</i>. Closing it leaves them on the screen.</li><li>They press the green button. CAMS opens in a new tab, and they follow what they remember from the video.</li><li>They come back to the Unifolio tab and upload. If they forget a step, they can open the video again from this screen.</li></ol><h5 class="plh2">Good to know</h5><ul class="tight"><li>The same placement for Look 1 and Look 2; they differ only in what the video shows.</li><li>The weak point: the user watches first, then must remember the steps while working on another tab.</li></ul></div><div class="plb" data-plb="A"><h4 class="plh">Concept A: the journey roadmap</h4><div class="fmap"><div class="fn"><b>1. Import page: choose a path</b><span class="no">nothing added (path choice only)</span></div><i class="fa">&rarr;</i><div class="fn on"><b>2. Request from CAMS screen</b><span>Roadmap step 1: Request on CAMS</span></div><i class="fa">&rarr;</i><div class="fn ext"><b>3. CAMS website (new tab)</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn on"><b>4. Back in Unifolio: upload</b><span>Roadmap steps 2, 3 and 4 (the user flips back to Unifolio)</span></div><i class="fa">&rarr;</i><div class="fn on"><b>5. Import complete</b><span>Roadmap complete</span></div></div><h5 class="plh2">Where it is seen</h5><ul class="tight"><li><b>On the import page</b> (the redesigned Add Data / Import page, and the onboarding upload screen, which use the same flow). On a laptop it is a vertical rail on the left with the current step&rsquo;s card on the right.</li><li>It appears <b>only</b> after the user picks <i>Request from CAMS</i>. The <i>Already have a file</i> path is unchanged and has no roadmap.</li><li>It replaces today&rsquo;s plain three-step text on the Request from CAMS screen and also takes over the waiting/upload screen, so the user sees one continuous journey.</li><li>It is not shown on the CAMS website itself (a third-party page).</li></ul><h5 class="plh2">The flow, step by step</h5><ol class="tight"><li>The user picks <i>Request from CAMS</i>. The roadmap appears at <b>step 1, Request on CAMS</b> with a short explanation and an <i>Open CAMS</i> button (and, if we keep it, a <i>Watch how it works</i> link).</li><li>Pressing <i>Open CAMS</i> opens the official CAMS site in a new tab. Back in the Unifolio tab, the roadmap has moved to <b>step 2, Fill the form</b>, with the list of what to choose (words from the live CAMS form) and the password rules.</li><li>The user fills the form on CAMS, comes back, and presses <i>I have submitted the form</i>. Step 3, <b>Wait for the email</b>, says it usually takes 5 to 10 minutes and that they can close the page.</li><li>When the email arrives they download the PDF and press <i>I have downloaded the file</i>. Step 4, <b>Upload</b>, shows the upload box and the password field, and reminds them it is the same password.</li><li>After Import, the existing parse and review screens run, then the roadmap shows all four steps ticked and a link to the portfolio.</li></ol><h5 class="plh2">Good to know</h5><ul class="tight"><li><b>It changes a behaviour that exists today (read in code, not tried in the app):</b> after the request, when the user comes back to the Unifolio tab, the app jumps straight to the upload screen. The roadmap would instead return them to the step they were on, so the jump is replaced, not added to.</li><li><b>Leaving and coming back:</b> the app already remembers the request in the browser. The roadmap would remember its step the same way, so a reload or a return the next day lands on the right step, with a <i>Start over</i> link. That memory is per browser, not per account, so it does not carry to another device.</li><li>Steps 2 and 3 happen outside Unifolio, so the user confirms them with a button. Steps 1 and 4 the app can see for itself.</li></ul></div><div class="plb" data-plb="B"><h4 class="plh">Concept B: the floating checklist</h4><div class="fmap"><div class="fn"><b>1. Import page: choose a path</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn on"><b>2. Request from CAMS screen</b><span>Press the button: CAMS opens and the checklist floats up</span></div><i class="fa">&rarr;</i><div class="fn on ext"><b>3. CAMS website (new tab)</b><span>The checklist floats above the CAMS tab</span></div><i class="fa">&rarr;</i><div class="fn on"><b>4. Back in Unifolio: upload</b><span>Closes; the user returns to the upload</span></div><i class="fa">&rarr;</i><div class="fn"><b>5. Import complete</b><span class="no">nothing added</span></div></div><h5 class="plh2">Where it is seen</h5><ul class="tight"><li><b>On top of the CAMS website</b>, in a small always-on-top window that floats above every browser window. <b>The website cannot choose where it appears</b>: the browser decides, the user can drag it, and the browser remembers where they left it.</li><li>It opens <b>only</b> when the user presses <i>Request Statement on CAMS</i> (browsers allow this kind of window only after a click).</li><li>It appears only in browsers that support it: desktop Chrome and Edge from version 116 (checked against MDN and Chrome&rsquo;s documentation; see 4d for the rest). Elsewhere the user sees concept A&rsquo;s step 2 inside the Unifolio tab instead.</li><li>It is not shown on the import page itself, and not on any phone.</li></ul><h5 class="plh2">The flow, step by step</h5><ol class="tight"><li>The user presses <i>Request Statement on CAMS</i> on the Request from CAMS screen.</li><li>CAMS opens in a new tab, and at the same moment a small <i>Unifolio checklist</i> window floats over it with five items: Detailed, Specific Period, With zero balance folios, the registered email, remember the password.</li><li>As the user works on the CAMS form, they tick the items in the floating window. The window stays visible when they switch tabs.</li><li>When all items are ticked, the window shows <i>I have submitted the form</i>. Pressing it moves the same window to the wait-for-the-email step. Section 4d shows every state.</li><li>The upload happens in Unifolio as in concept A.</li></ol><h5 class="plh2">Good to know</h5><ul class="tight"><li>The window is a Unifolio page, so it cannot see the CAMS page: the ticks are the user&rsquo;s own.</li><li>If the user closes the CAMS tab or the window, it disappears; reopening needs a click in Unifolio.</li><li>This is the only concept that puts the instructions <i>next to</i> the form while it is being filled, which is its whole value.</li></ul></div><div class="plb" data-plb="C"><h4 class="plh">Concept C: practice mode</h4><div class="fmap"><div class="fn"><b>1. Import page: choose a path</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn on"><b>2. Request from CAMS screen</b><span>Optional link: &ldquo;Practice the form first&rdquo;; the practice screen opens over it</span></div><i class="fa">&rarr;</i><div class="fn ext"><b>3. CAMS website (new tab)</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn"><b>4. Back in Unifolio: upload</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn"><b>5. Import complete</b><span class="no">nothing added</span></div></div><h5 class="plh2">Where it is seen</h5><ul class="tight"><li><b>On the Request from CAMS screen</b>, as a secondary link or button next to the green one: <i>Practice the form first (2 min)</i>. Inside the roadmap, it would be an optional action in step 1.</li><li>The practice opens as a large pop-up (or full-width panel) over the same screen. It is not part of the import itself.</li><li>It is not on the CAMS website, and not on the import choice screen.</li></ul><h5 class="plh2">The flow, step by step</h5><ol class="tight"><li>On the Request from CAMS screen the user presses <i>Practice the form first</i>.</li><li>A practice copy of the CAMS form opens. A coach bar at the bottom says <i>Step 1 of 3: choose Detailed</i>.</li><li>The user clicks the options. A right click moves to the next step; a wrong click gives a hint such as <i>Not this one: choose Specific Period</i>, never an error.</li><li>After the three choices the coach bar says what comes next on the real form: the registered email and a password to remember. A button, <i>Now do it for real</i>, closes the practice and opens CAMS.</li><li>The user returns to the normal screen (or the roadmap, if we build it) and continues.</li></ol><h5 class="plh2">Good to know</h5><ul class="tight"><li>Nothing is sent to CAMS: it is a drawn copy, built from the live form&rsquo;s words.</li><li>It is the highest-effort concept and the one most likely to go out of date when CAMS changes its form, so it is best left until the rest is live.</li></ul></div><div class="plb" data-plb="D"><h4 class="plh">Concept D: the annotated form</h4><div class="fmap"><div class="fn"><b>1. Import page: choose a path</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn on"><b>2. Request from CAMS screen</b><span>A picture of the form with numbered pins, beside the steps</span></div><i class="fa">&rarr;</i><div class="fn ext"><b>3. CAMS website (new tab)</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn"><b>4. Back in Unifolio: upload</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn"><b>5. Import complete</b><span class="no">nothing added</span></div></div><h5 class="plh2">Where it is seen</h5><ul class="tight"><li><b>On the Request from CAMS screen</b>, as a card next to the steps (in concept A, inside step 2 of the roadmap): a picture of the real form with dummy data and numbered pins.</li><li>On a laptop it sits side by side with the instructions, so the user can compare the picture with the form in the other tab.</li><li>It is a reference, not a step: the user can ignore it.</li><li>It is not shown on the CAMS website, or on the upload screen.</li></ul><h5 class="plh2">The flow, step by step</h5><ol class="tight"><li>The user opens the Request from CAMS screen and sees the picture of the form with pins 1 to 6 (Statement type, Period, Folio listing, Email, Password, Submit).</li><li>Clicking a pin shows what to choose there and why, in a panel beside the picture.</li><li>The user presses the green button; CAMS opens in a new tab.</li><li>On the CAMS form they match what they see to the picture, flipping back to the Unifolio tab if they are unsure.</li><li>Then the upload as usual.</li></ol><h5 class="plh2">Good to know</h5><ul class="tight"><li>The lightest of the four to build: one image and six short texts.</li><li>It can be combined with any other concept: it is also a natural content for concept B&rsquo;s floating window.</li><li>The picture goes stale if CAMS redesigns the page, so it is re-made when the live check (H-1) shows a change.</li></ul></div>
- <div class="callout info"><b>One fact that shapes all of them (read in code, not tried in the app).</b> Today the user reaches the CAMS flow through the import page (the Import button in the top bar and the onboarding upload both use the same flow): first a screen with two cards, <i>Request from CAMS</i> and <i>Already have a file</i>; then the Request from CAMS screen; then, after the green button, CAMS opens in a new tab. When the user comes back to the Unifolio tab, the app switches to the upload screen on its own and remembers that in the browser, not in the account. So the moment the user is looking at Unifolio again is the moment the upload box appears, even if the email has not arrived yet. Concepts A and B would make that moment step-aware; the video and the annotated form leave it as it is.</div>
-</section>
+
 
 <section id="floating">
- <h2>4d. The floating checklist in depth</h2>
+ <h2>5. The floating checklist in depth</h2>
  <p class="lead">You like this one, so here is everything: what the user sees on each screen, how it works underneath, what the browser decides and what we decide, what can go wrong, and how it would be built and checked. Nothing else in the workbook changed, apart from three sentences that I corrected after reading the browser documentation (listed at the end of this section).</p>
  <h3 class="sub">What it is, in plain words</h3>
  <ul class="tight">
@@ -753,28 +720,33 @@ window.open(request.cams_url, "_blank");                // as today</div>
  <p>While reading the browser documentation I found three sentences of mine that were wrong or too vague, and fixed them in 4b and 4c: the window <b>cannot be placed by us</b> (the browser decides and remembers where the user moved it, so I removed &ldquo;bottom-right by default&rdquo;); support is <b>desktop Chrome and Edge from version 116</b> (no longer &ldquo;as I understand it&rdquo;); and the window <b>cannot force the user back to the Unifolio tab</b> (the browser offers a <i>Back to tab</i> control), so the flow in 4c now moves the same window on to the wait step instead of promising to return the user.</p>
 </section>
 
-<section id="videos">
- <h2>4e. The two videos, playing in the pop-up</h2>
- <p class="lead">You asked to see how the videos would actually look. Below, the link on the Request from CAMS screen is live: press it and the pop-up opens and plays a real video. Two videos were made, one for Look 1 (stylised) and one for Look 2 (realistic), and you can switch between them inside the pop-up.</p>
- <div class="callout info"><b>What these are, and what they are not.</b> They are <b>working previews</b>, not the final videos. They are silent (no voice-over and no music, because Q2 is not answered yet), with the captions burned into the picture; the real build keeps captions as a separate file the user can switch off. They use the <b>real Unifolio logos</b>, the real labels and wording from the live CAMS form, and made-up data (a dummy email and password, made-up funds). The CAMS form in Look 2 is <b>my redrawing</b> of the live page, not a screen recording: the final Look 2 uses a real recording (task H-1). The cursor, rings, callouts and timing show the intended style. Each is 1280 by 720 at 24 frames a second (Look 1: 80 seconds, 1.7 MB; Look 2: 84 seconds, 2.2 MB).</div>
- <div class="vtool"><button type="button" class="vbtn" id="vplay2">&#9654; Play Look 2 (realistic)</button><button type="button" class="vbtn o" id="vplay1">&#9654; Play Look 1 (stylised)</button></div>
- <p class="note">Or open the real screen first: press the link below, as a user would.</p>
- <div data-frame="vs"></div>
- <h3 class="sub">What the pop-up does</h3>
- <ul class="tight">
-  <li><b>Opens over the screen</b> when the link is pressed; the page behind stays put. It closes with the &times; or the Escape key.</li>
-  <li><b>Chapter buttons</b> (Request, Fill the form, Inbox, Upload) jump to that part of the video.</li>
-  <li><b>When the video ends</b>, two buttons appear: <i>Watch again</i> and <i>Request Statement on CAMS</i>.</li>
-  <li><b>Look switcher</b> (this preview only): so you can compare the two without closing it. In the real product there would be one video.</li>
-  <li>Playback uses the browser&rsquo;s own controls here; the real pop-up would add a captions switch.</li>
- </ul>
- <h3 class="sub">How the previews were made</h3>
- <p>Each video is an animation built in code from the real logos and the wording above, then recorded frame by frame and encoded to a standard MP4 that plays in every current browser. This shows the style and pacing without anyone filming a screen. For the final version, the realistic look would use a recording of the real CAMS form (H-1), dressed in the same way. The two files are also saved on your computer next to the workbook (see my message), so you can send them to your manager.</p>
+<section id="popup">
+ <h2>6. The link and the pop-up</h2>
+ <p class="lead">A quiet link under the screen&rsquo;s heading, a pop-up that plays the video, and the same link on the waiting screen.</p>
+ <div class="winbar" data-sec="pp"><span>Screen</span><button type="button" data-v="a" aria-pressed="true">1. The link</button><button type="button" data-v="b" aria-pressed="false">2. Playing</button><button type="button" data-v="c" aria-pressed="false">3. Finished</button></div>
+ <div data-frame="pp"></div>
+ <p class="note">Made-up details; laptop view. The video is drawn as a still.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Part</th><th>What it does</th></tr></thead>
+  <tbody>
+   <tr><td class="k">The link</td><td>&ldquo;Watch how it works (1 min 20 s)&rdquo; with a small play icon, under the heading line on the Request from CAMS screen. It is plainly secondary to the green button. The same link also appears on the waiting screen, near &ldquo;Already got the email?&rdquo;, because that is where users get stuck on the later steps. Nothing downloads until the link is pressed.</td></tr>
+   <tr><td class="k">The pop-up</td><td>The app&rsquo;s existing dialog, wide enough for a 16:9 video. Title &ldquo;How to request your statement from CAMS&rdquo;, the video, a close button, and below it the four steps as chips that jump to that moment (chapters). The page behind stays where it is; pressing Escape or outside closes it.</td></tr>
+   <tr><td class="k">Controls</td><td>Play and pause, a seek bar, and full screen; no volume or mute (the video has no audio). The captions are part of the picture, so they cannot be switched off. All usable from the keyboard.</td></tr>
+   <tr><td class="k">When it ends</td><td>The pop-up offers the green &ldquo;Request Statement on CAMS&rdquo; action and &ldquo;Watch again&rdquo;. Pressing the action closes the pop-up and does exactly what the main button does today.</td></tr>
+   <tr><td class="k">Loading</td><td>The video file is fetched only when the pop-up opens; a still picture shows first. The video has no sound, so it may start playing when the pop-up opens, except for users who prefer reduced motion.</td></tr>
+   <tr><td class="k">Hosting (default)</td><td>A single video file (about 55 s at 720p, a few MB, no audio track) kept with the front end&rsquo;s own files or in our own storage; the captions are burned into the picture, with the same text kept as a transcript beside the player. This avoids a third-party player that would set its own cookies on a screen where the user is about to hand over a financial statement. If the file turns out to be too large for the front end bundle, it moves to our storage and the pop-up points to it.</td></tr>
+   <tr><td class="k">Reduced motion</td><td>If the user&rsquo;s device asks for less motion, the video does not start by itself and the pop-up shows the steps as text beside it.</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">Before and after</h3>
+ <div class="flow">
+  <div><h4>Before</h4><ol><li>The user reads three text steps and presses the green button.</li><li>CAMS opens in a new tab; the app moves to the waiting screen.</li><li>Nothing explains the inbox, the download or why the password matters.</li></ol></div>
+  <div><h4>After</h4><ol><li>The user can press &ldquo;Watch how it works&rdquo; and see all four steps first, without leaving the page.</li><li>Then the same green button as today.</li><li>The waiting screen offers the video again for the steps that come next.</li></ol></div>
+ </div>
 </section>
-<div id="vmodal" role="dialog" aria-modal="true" aria-label="How to request your statement from CAMS"><div class="vd"><div class="vh"><b>How to request your statement from CAMS</b><button type="button" class="vx" id="vclose" aria-label="Close">&times;</button></div><video id="vvid" controls playsinline preload="none" poster=""></video><div class="vc" id="vchap"></div><div class="vc" style="margin-top:8px"><button type="button" id="vl2">Look 2: realistic</button><button type="button" id="vl1">Look 1: stylised</button></div><div class="vf" id="vend"><button type="button" class="vbtn o" id="vagain">Watch again</button><button type="button" class="vbtn" id="vreq">Request Statement on CAMS</button></div></div></div>
 
 <section id="rules">
- <h2>5. Accuracy and privacy rules</h2>
+ <h2>7. Accuracy and privacy rules</h2>
  <p class="lead">The video is a promise about someone else&rsquo;s website, so it follows rules that keep it truthful and keep personal data out of it.</p>
  <div class="scroll"><table>
   <thead><tr><th>Rule</th><th>What we do</th></tr></thead>
@@ -785,13 +757,13 @@ window.open(request.cams_url, "_blank");                // as today</div>
    <tr><td class="k">Third-party site</td><td>CAMS&rsquo;s name and page appear because the tutorial is about using it. No claim of partnership is made; the narration says &ldquo;the official CAMS website&rdquo; because the app&rsquo;s own text says that. I would ask your manager to confirm this is acceptable before publishing; this is not a legal opinion.</td></tr>
    <tr><td class="k">When CAMS changes</td><td>The video is cut in scenes, so only the scene that changed is re-made. The screen&rsquo;s text steps stay the source of truth. A short check of the live form is added to the staging checklist for any release that touches the import screens.</td></tr>
    <tr><td class="k">No tracking beyond ours</td><td>No third-party player. The only measurement is Batch G&rsquo;s optional labelled events (opened, started, finished), with no user details.</td></tr>
-   <tr><td class="k">Accessibility</td><td>Captions on by default, a text version of the four steps beside the player, keyboard controls, and no auto-play with sound.</td></tr>
+   <tr><td class="k">Accessibility</td><td>Always-on captions in the picture, a text version of the four steps beside the player (also the transcript for screen readers), and keyboard controls.</td></tr>
   </tbody>
  </table></div>
 </section>
 
 <section id="strategy">
- <h2>6. Who does what</h2>
+ <h2>8. Who does what</h2>
  <p class="lead">Different from the other batches: most of the work is creative production, which no code worker does.</p>
  <div class="scroll"><table>
   <thead><tr><th>Role</th><th>Who</th><th>What they do in Batch H</th></tr></thead>
@@ -807,7 +779,7 @@ window.open(request.cams_url, "_blank");                // as today</div>
 </section>
 
 <section id="program">
- <h2>7. Fit with the other batches</h2>
+ <h2>9. Fit with the other batches</h2>
  <div class="scroll"><table>
   <thead><tr><th>Other batch</th><th>Relationship</th></tr></thead>
   <tbody>
@@ -823,45 +795,34 @@ window.open(request.cams_url, "_blank");                // as today</div>
 </section>
 
 <section id="tasks">
- <h2>8. Task list</h2>
+ <h2>10. Task list</h2>
  <p class="lead">Fourteen tasks. Sizes: S about half a day, M one to two days, L more.</p>
  <div class="scroll"><table>
   <thead><tr><th>ID</th><th>Task</th><th>Who</th><th>Size</th><th>When</th></tr></thead>
   <tbody>
-   <tr><td>H-1</td><td>Record the live CAMS form with dummy details (no real data); confirm that a ten-year Specific Period is accepted and what the email looks like; settle the wording in F7 and fix the script</td><td>You, Claude</td><td>S</td><td>Now</td></tr>
+   <tr><td>H-1</td><td><b>Your recording of the live CAMS form</b> (received 17 Nov and used); still to confirm: that CAMS accepts a ten-year request when submitted, and what the email looks like (a screenshot with details hidden); settle the wording in F7</td><td>You, Claude</td><td>S</td><td>Recording done; the two checks remain</td></tr>
    <tr><td>H-2</td><td>Final script and on-screen text, matched to the screen copy</td><td>Claude</td><td>S</td><td>After your answers</td></tr>
    <tr><td>H-3</td><td>Storyboard frames, shot list, and prompts for any AI-made scenes</td><td>Claude</td><td>M</td><td>After H-2</td></tr>
    <tr><td>H-4</td><td>Produce the video (route from Q3)</td><td>You, or outside designer</td><td>L</td><td>After H-3 and a stable CAMS screen</td></tr>
-   <tr><td>H-5</td><td>Captions file from the script, timed to the final cut</td><td>Claude</td><td>S</td><td>After H-4</td></tr>
-   <tr><td>H-6</td><td>Frame-by-frame review of the cut against section 5</td><td>Claude, you</td><td>S</td><td>After H-4</td></tr>
-   <tr><td>H-7</td><td>Encode: about 80 s, 720p, small file, plus a still picture</td><td>You</td><td>S</td><td>After H-6</td></tr>
+   <tr><td>H-5</td><td>Transcript text of the four steps, matched to the final captions (the captions themselves are burned into the video)</td><td>Claude</td><td>S</td><td>After H-4</td></tr>
+   <tr><td>H-6</td><td>Frame-by-frame review of the cut against section 7</td><td>Claude, you</td><td>S</td><td>After H-4</td></tr>
+   <tr><td>H-7</td><td>Encode: about 53 s, 720p, 30 frames a second, small file, plus a still picture</td><td>You</td><td>S</td><td>After H-6</td></tr>
    <tr><td>H-8</td><td>The pop-up: player, captions, chapters, close, keyboard, end action, reduced motion; tests first</td><td>Codex</td><td>M</td><td>With Batch B</td></tr>
    <tr><td>H-9</td><td>The link on the Request from CAMS screen and on the waiting screen</td><td>Codex</td><td>S</td><td>With H-8</td></tr>
-   <tr><td>H-10</td><td>Loading rules: nothing fetched until the pop-up opens; no auto-play with sound</td><td>Codex</td><td>S</td><td>With H-8</td></tr>
+   <tr><td>H-10</td><td>Loading rules: nothing fetched until the pop-up opens; auto-play only without reduced motion (the video has no sound)</td><td>Codex</td><td>S</td><td>With H-8</td></tr>
    <tr><td>H-11</td><td>Optional GA4 labels (with Batch G)</td><td>Codex</td><td>S</td><td>After Batch G</td></tr>
    <tr><td>H-12</td><td>Adversarial review of the pop-up work</td><td>Codex, Claude</td><td>S</td><td>Before staging</td></tr>
    <tr><td>H-13</td><td>Staging check</td><td>You</td><td>S</td><td>After H-12</td></tr>
    <tr><td>H-14</td><td>Update <code>decisions.md</code>, <code>session.md</code> and the Notion pack on your go</td><td>Claude</td><td>S</td><td>Last</td></tr>
   </tbody>
  </table></div>
- <h3 class="sub">If a roadmap-led format is chosen (Q4 B, C or D), these replace or sit beside the video tasks</h3>
- <div class="scroll"><table>
-  <thead><tr><th>ID</th><th>Task</th><th>Who</th><th>Size</th></tr></thead>
-  <tbody>
-   <tr><td>R-1</td><td>Spec the roadmap: the four steps, their words (from the live CAMS form, F7), which steps the app can see and which the user confirms</td><td>Claude</td><td>S</td></tr>
-   <tr><td>R-2</td><td>The roadmap component and its states (done, current, upcoming), going back to a done step; tests first</td><td>Codex</td><td>M</td></tr>
-   <tr><td>R-3</td><td>Connect it to the existing import screens and the saved resume point, so it survives a reload and a return later</td><td>Codex</td><td>M</td></tr>
-   <tr><td>R-4</td><td>Optional: the annotated form inside step 2 (a clean image of the form with dummy data and short texts)</td><td>Claude, Codex</td><td>S</td></tr>
-   <tr><td>R-5</td><td>Optional: the &ldquo;Watch how&rdquo; link and the short clip (the video tasks above, much smaller)</td><td>You, Codex</td><td>S</td></tr>
-   <tr><td>R-6</td><td>Optional GA4 labels: which step a user reached (with Batch G; counts only)</td><td>Codex</td><td>S</td></tr>
-   <tr><td>R-7</td><td>Adversarial review and the staging check</td><td>Codex, you</td><td>S</td></tr>
-  </tbody>
- </table></div>
+ <h3 class="sub">The floating checklist has its own build tasks</h3>
+ <p>The checklist work (P-1 to P-8) is listed in section 5, with its spike first. The roadmap tasks (R-1 to R-7) from the earlier round are dropped, because the roadmap was not chosen.</p>
  <p class="note">H-1 needs no code and can start before anything else. H-8 to H-10 can ship with a placeholder video so the pop-up is tested before the real one exists.</p>
 </section>
 
 <section id="risks">
- <h2>9. Risks and checks</h2>
+ <h2>11. Risks and checks</h2>
  <div class="scroll"><table>
   <thead><tr><th>Risk</th><th>What we do</th></tr></thead>
   <tbody>
@@ -869,7 +830,7 @@ window.open(request.cams_url, "_blank");                // as today</div>
    <tr><td>AI footage shows something that does not exist</td><td>AI is used only for the opening, transitions and ending; the form and inbox come from real capture (Q1 A).</td></tr>
    <tr><td>Personal data leaks into the capture</td><td>Dummy email and password; clean browser profile; frame-by-frame review (H-6).</td></tr>
    <tr><td>The video is too big and slows the screen</td><td>Not loaded until opened; one small file; a still picture first.</td></tr>
-   <tr><td>A user cannot hear it or cannot see it well</td><td>Captions on by default; a text version of the steps; keyboard controls.</td></tr>
+   <tr><td>A user cannot hear it or cannot see it well</td><td>Always-on captions in the picture; a text version of the steps; keyboard controls. There is nothing to hear, so nobody is missing anything.</td></tr>
    <tr><td>The link competes with the main button</td><td>It is a small text link; the green button stays the only filled action; the end of the video returns to it.</td></tr>
    <tr><td>The video and the screen text disagree later</td><td>The checklist for any change to the import screen includes re-reading the script.</td></tr>
   </tbody>
@@ -890,19 +851,19 @@ window.open(request.cams_url, "_blank");                // as today</div>
 </section>
 
 <section id="questions">
- <h2>10. Questions</h2>
- <p class="lead">Four questions, because they are creative and production choices only you can make. Q4 decides the format; Q1 to Q3 apply only if a video is part of it. Everything else is a default below.</p>
+ <h2>12. Questions</h2>
+ <p class="lead">All four questions are answered on 17 Nov and locked: Q1 (the look), Q2 (sound: none at all), Q3 (who makes the video) and Q4 (the format). Everything else is a default below.</p>
  <div class="bar"><span class="status" id="prog">0 of 3 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
  <div id="cards"></div>
  <h3 class="sub">Defaults I will use (tell me in chat if you want any changed)</h3>
  <div class="scroll"><table>
   <thead><tr><th>Topic</th><th>Default</th></tr></thead>
   <tbody>
-   <tr><td class="k">Length and shape</td><td>About 80 seconds, six scenes, four numbered steps.</td></tr>
+   <tr><td class="k">Length and shape</td><td>About 53 seconds, eight short scenes, four numbered steps (the cut of 17 Nov).</td></tr>
    <tr><td class="k">Where the link appears</td><td>On the Request from CAMS screen and on the waiting screen; not elsewhere.</td></tr>
    <tr><td class="k">Hosting</td><td>One video file and a captions file kept with our own files or storage; no third-party player.</td></tr>
-   <tr><td class="k">Captions</td><td>On by default, in English.</td></tr>
-   <tr><td class="k">Auto-play</td><td>Never with sound; with reduced motion, not at all.</td></tr>
+   <tr><td class="k">Captions</td><td>Always on, burned into the picture, in English. There is no audio of any kind.</td></tr>
+   <tr><td class="k">Auto-play</td><td>May start when the pop-up opens (no sound); with reduced motion, not at all.</td></tr>
    <tr><td class="k">Data in the video</td><td>Dummy only; frame-by-frame review before use.</td></tr>
    <tr><td class="k">When CAMS changes</td><td>Re-make only the affected scene; the text steps stay the source of truth.</td></tr>
    <tr><td class="k">Phone view</td><td>Out of scope; planned later.</td></tr>
@@ -913,14 +874,14 @@ window.open(request.cams_url, "_blank");                // as today</div>
   <thead><tr><th>Decision</th><th>When it comes up</th><th>What you will see</th></tr></thead>
   <tbody>
    <tr><td class="k">Whether CAMS&rsquo;s name and page can appear as shown</td><td>Before publishing</td><td>The frames that show CAMS, for your manager&rsquo;s sign-off.</td></tr>
-   <tr><td class="k">A Hindi version</td><td>After the English video is live</td><td>The captions file makes it a small follow-up; I would plan it then.</td></tr>
+   <tr><td class="k">A Hindi version</td><td>After the English video is live</td><td>The captions are part of the picture, so a Hindi version means re-rendering the video with Hindi captions: a small follow-up; I would plan it then.</td></tr>
    <tr><td class="k">Whether to reuse the video on the website or in emails</td><td>After the staging check</td><td>Where it would help, and the extra checks it needs.</td></tr>
   </tbody>
  </table></div>
 </section>
 
 <section id="copy">
- <h2>11. Copy my answers</h2>
+ <h2>13. Copy my answers</h2>
  <p class="lead">Press the button, then paste the text in chat. If it does nothing, select the text below and copy it yourself.</p>
  <button id="copyBtn" type="button">Copy my answers</button> <span class="status" id="copyMsg"></span>
  <label class="nl" for="outTa">Your answers as text</label>
@@ -931,10 +892,87 @@ window.open(request.cams_url, "_blank");                // as today</div>
  <h2>What I checked</h2>
  <p><b>Read today, read-only, by me:</b> the handoff&rsquo;s item 5 and its video-style note; <code>RequestCamsPath.tsx</code> (the screen&rsquo;s text, steps and button); the way <code>TwoPathImportContainer</code> and <code>WaitingForCasView</code> follow it (the waiting text and the upload disclosure); <code>components/ui/dialog.tsx</code> (the existing pop-up component); <code>public/</code> and the front end&rsquo;s dependencies (no video player or video file); the import pop-up wording in Batch B&rsquo;s workbook; and the backend route that returns the CAMS address.</p>
  <p><b>Also read, on 13 Nov:</b> the live CAMS form (the link you gave), loaded in a headless browser and read, with a screenshot of it before and after choosing Detailed. Nothing was typed into it or submitted.</p>
- <p><b>Also read for section 4d, on 13 Nov:</b> the MDN pages for the Document Picture-in-Picture API and its <code>requestWindow()</code> method, and Chrome&rsquo;s own article on the feature. Nothing about the feature was run or tried in a browser: the windows in 4d are my drawings, and the first build task is a spike to prove them (P-1). The browser support lines come from those pages and may have changed.</p>
+ <p><b>Also read for section 5, on 13 Nov:</b> the MDN pages for the Document Picture-in-Picture API and its <code>requestWindow()</code> method, and Chrome&rsquo;s own article on the feature. Nothing about the feature was run or tried in a browser: the windows in 4d are my drawings, and the first build task is a spike to prove them (P-1). The browser support lines come from those pages and may have changed.</p>
  <p><b>Not done:</b> I did not submit the form, so I do not know whether CAMS accepts a ten-year Specific Period, what the email looks like or how long it takes. The banner on arrival may be a campaign that changes. I did not check CAMS&rsquo;s terms of use. I did not look at the brand identity PDF for motion or colour rules. I cannot create or test video, so nothing about the file size or playback is measured. Whether the Request from CAMS screen is also used in the onboarding flow (not only the Add Data flow) is unchecked; the link would appear wherever the screen does.</p>
  <p><b>Drawn, not measured:</b> every mockup and frame is my drawing with invented details. Laptop only; the phone view is out of scope. Nothing was committed or deployed.</p>
 </section>
+
+<details id="appx" class="appx"><summary>Appendix: options not chosen (kept for reference, closed by default)</summary>
+<section id="style">
+ <h2>Appendix A. What kind of video (decided: Look 2)</h2>
+ <p class="lead">Your decision from the list: pure AI-generated, or stylised motion graphics over a real screen capture. There is one more option worth knowing about.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Approach</th><th>What it is</th><th>Strength</th><th>Weakness</th></tr></thead>
+  <tbody>
+   <tr><td class="k">A. Realistic: a real CAMS capture with light animation (my pick; Look 2 in section 3)</td><td>A short real screen capture of the CAMS form (with dummy details), cleaned up and wrapped in Unifolio&rsquo;s look: highlights, zooms, callouts, a friendly cursor, branded intro and outro.</td><td>Shows what users will really see, so nobody is lost when the real form appears; creative and branded without inventing anything; easy to re-cut a single scene when CAMS changes.</td><td>Needs one clean capture of the real form; the CAMS form appears on screen.</td></tr>
+   <tr><td class="k">B. Stylised: fully illustrated, no real CAMS pixels (Look 1 in Appendix B)</td><td>The whole video is animated artwork, including a redrawn, simplified version of the CAMS form.</td><td>Most unique and fully ours; no third-party screen shown.</td><td>If the redrawn form differs from the real one, users hesitate at the real form; more design work.</td></tr>
+   <tr><td class="k">C. Fully AI-generated video</td><td>Scenes generated from prompts, including the form and the inbox.</td><td>Fast and eye-catching.</td><td>AI tools cannot reliably draw a specific real website; text on screens comes out wrong or garbled; a tutorial that shows the wrong thing is worse than none.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>My recommendation: A, with AI used where it is safe.</b> Use AI tools for what does not have to be exact (an intro animation, background, a friendly illustrated transition, music, a voice-over if you choose one) and the real capture for the parts a user must recognise (the CAMS form and the inbox). This keeps the creativity you want without the risk of showing a screen that does not exist.</div>
+ <div class="callout info"><b>Another route worth knowing: no video file.</b> The same story could be an <b>animated step-by-step walkthrough built in code</b> inside the pop-up (the same cards, highlights and cursor moves, drawn live). It never goes stale in the way a recording does, works in any language by changing text, and adds no file to host. It is less cinematic and cannot show the real CAMS site. It is offered as option C in Q3.</div>
+</section>
+
+<section id="look1">
+ <h2>Appendix B. Look 1: stylised illustrated frames (not chosen)</h2>
+ <p class="lead">Kept for reference. You chose Look 2 on 17 Nov.</p>
+ <h3 class="sub">Look 1: stylised illustrated frames</h3>
+ <div class="winbar" data-sec="sb"><span>Scene</span><button type="button" data-v="0" aria-pressed="true">1. Opening</button><button type="button" data-v="1" aria-pressed="false">2. Request</button><button type="button" data-v="2" aria-pressed="false">3. The form</button><button type="button" data-v="3" aria-pressed="false">4. The inbox</button><button type="button" data-v="4" aria-pressed="false">5. Upload</button><button type="button" data-v="5" aria-pressed="false">6. Done</button></div>
+ <div data-frame="sb"></div>
+ <p class="note">Stylised drawings with made-up names and a redrawn stand-in for the CAMS form. In this look no real CAMS pixels are shown.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>#</th><th>Time</th><th>What the viewer sees</th><th>On-screen text</th><th>Narration (English)</th></tr></thead>
+  <tbody>
+   <tr><td>1</td><td>0&ndash;6 s</td><td>Unifolio logo ring draws itself; four small step icons slide in.</td><td>Import your full history in 4 steps</td><td>&ldquo;Here is how to bring your full mutual fund history into Unifolio, in four steps.&rdquo;</td></tr>
+   <tr><td>2</td><td>6&ndash;18 s</td><td>The Request from CAMS screen; the cursor presses the green button; a new tab slides open.</td><td>Step 1: Request on CAMS</td><td>&ldquo;Press Request Statement on CAMS. The official CAMS website opens in a new tab.&rdquo;</td></tr>
+   <tr><td>3</td><td>18&ndash;42 s</td><td>The real CAMS form (dummy details). Highlights tick through the three options; the email field fills; the password field is circled with a small note.</td><td>Step 2: Fill the form. Detailed statement &middot; 10-year duration &middot; with zero folios. Remember your password.</td><td>&ldquo;Choose Detailed statement, a 10-year period and with zero folios. Enter your email and set a password for your file. Remember it, you will need it in a moment.&rdquo;</td></tr>
+   <tr><td>4</td><td>42&ndash;56 s</td><td>An email list; the email from CAMS arrives; its PDF attachment is opened and saved. A small clock reads 5&ndash;10 minutes.</td><td>Step 3: Download from your inbox. Usually 5&ndash;10 minutes</td><td>&ldquo;CAMS emails your statement, usually within five to ten minutes. Open the email and download the PDF.&rdquo;</td></tr>
+   <tr><td>5</td><td>56&ndash;70 s</td><td>Back in Unifolio: the file is dropped in the upload box; the same password is typed; Import is pressed.</td><td>Step 4: Come back and upload. Use the same password</td><td>&ldquo;Come back to Unifolio, add the file, and type the same password.&rdquo;</td></tr>
+   <tr><td>6</td><td>70&ndash;80 s</td><td>A short progress moment, then the Mutual Funds overview fills with funds; end card with the Unifolio logo.</td><td>Your funds are in</td><td>&ldquo;That is it. Your funds appear in your dashboard.&rdquo;</td></tr>
+  </tbody>
+ </table></div>
+ 
+ 
+</section>
+
+<section id="interactive">
+ <h2>Appendix C. Interactive alternatives to a video (the floating checklist was chosen)</h2>
+ <p class="lead">You asked for something more interactive than a video: a roadmap or journey map that tells the user what to do at each step. Four concepts are drawn below, and each one <b>responds to clicks</b> so you can try it. Pick a concept, then click through it.</p>
+ <div class="winbar" data-sec="cn"><span>Concept</span><button type="button" data-v="A" aria-pressed="true">A. Journey roadmap</button><button type="button" data-v="B" aria-pressed="false">B. Floating checklist</button><button type="button" data-v="C" aria-pressed="false">C. Practice mode</button><button type="button" data-v="D" aria-pressed="false">D. Annotated form</button></div>
+ <div data-frame="cn"></div>
+ <p class="note" id="cnnote"></p>
+ <div class="scroll"><table>
+  <thead><tr><th>Concept</th><th>What the user experiences</th><th>What it needs</th><th>Strength</th><th>Weakness</th><th>Size</th></tr></thead>
+  <tbody>
+   <tr><td class="k">A. Journey roadmap</td><td>A persistent four-step tracker beside a card that shows only the current step. Steps done are ticked; the user can go back. Steps that happen outside Unifolio are confirmed with &ldquo;I have done this&rdquo;.</td><td>A new roadmap component on the import screens; the app already knows when the request was made, when the user is waiting and when a file is uploaded (read in code), and already remembers the resume point.</td><td>Always tells the user where they are and what is next; survives a page reload and coming back later; counts progress for analytics.</td><td>It cannot see what the user does on CAMS, so two steps rely on the user&rsquo;s word.</td><td>M</td></tr>
+   <tr><td class="k">B. Floating checklist</td><td>While the user is on the CAMS tab, a small checklist floats on top of it (&ldquo;choose Detailed, choose Specific Period&hellip;&rdquo;) with ticks the user can set. It stays visible while they work on the other site.</td><td>A browser feature (the Document Picture-in-Picture API) that puts a small always-on-top window above other windows; desktop Chrome and Edge 116 and later offer it, others fall back to concept A. Details in 4d.</td><td>Solves the real problem that the instructions are on one tab and the form on another.</td><td>Not available everywhere; the user may close it; more to test.</td><td>M</td></tr>
+   <tr><td class="k">C. Practice mode</td><td>A faithful replica of the CAMS form inside Unifolio. The user clicks the right options and gets instant feedback (&ldquo;Now choose Specific Period&rdquo;), so by the time they reach the real site they have done it once.</td><td>A drawn replica of the form (the live form&rsquo;s words, F7) and the feedback rules.</td><td>Hands-on; builds confidence; no need to leave the page to learn.</td><td>A replica goes stale when CAMS changes; it shows a recreation of a third-party page; the most work of the six.</td><td>L</td></tr>
+   <tr><td class="k">D. Annotated form</td><td>A picture of the real form with numbered pins. The user clicks a pin and reads what to choose and why, in a side panel.</td><td>One clean image of the form (dummy data) and short texts.</td><td>Lightest to build; always visible; easy to scan; works as a reference next to the real form.</td><td>Passive, not a guided journey; the picture goes stale when CAMS changes.</td><td>S</td></tr>
+        </tbody>
+ </table></div>
+ <h3 class="sub">What the app can and cannot see (read in code)</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Step</th><th>Where it happens</th><th>Can Unifolio detect it?</th></tr></thead>
+  <tbody>
+   <tr><td>1. Request on CAMS</td><td>Unifolio, then a new tab</td><td>Yes: the app records that the request was made and remembers the resume point.</td></tr>
+   <tr><td>2. Fill the form</td><td>The CAMS website</td><td>No: a third-party page. The user confirms.</td></tr>
+   <tr><td>3. Get the email</td><td>The user&rsquo;s inbox</td><td>No. The user confirms. (The app does not read the inbox.)</td></tr>
+   <tr><td>4. Upload</td><td>Unifolio</td><td>Yes: the upload and the import are seen by the app.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>My recommendation: the journey roadmap (A) as the spine, with an optional short video behind a &ldquo;Watch how it works&rdquo; link.</b> The roadmap is the &ldquo;journey map&rdquo; you described: it always says where the user is and what is next. The video stays as a small, optional extra for people who prefer to watch. The floating checklist (B) is a good later enhancement where the browser allows it. Practice mode (C) is the most delightful but the most expensive and the most likely to go stale when CAMS changes, so I would leave it until the rest is live. The annotated form (D) is cheap and works well <i>inside</i> the roadmap&rsquo;s second step.</div>
+ <div class="callout info"><b>What this means for the video questions.</b> If you choose a roadmap-led format, Q1 to Q3 (the look of the video, the sound, the production) shrink to a much smaller, optional clip, so you may not need to answer them in full. Q4 is the question that decides.</div>
+ <p><b>Where it lives.</b> The roadmap replaces the plain three-step text on the Request from CAMS screen and carries on to the waiting and upload screens, so the user sees one continuous journey. It would use the same words as the live CAMS form (F7). With Batch G it can record only <b>which step a user reached</b> (counts and labels, never a value), which shows exactly where people drop off.</p>
+</section>
+
+<section id="placement">
+ <h2>Appendix D. Where each option lives and how the user moves through it</h2>
+ <p class="lead">For each option: which screens it appears on, what the user does in order, and what to watch for. The strip at the top of each option shows the user&rsquo;s whole journey in five screens, with the green boxes marking where this option appears. Phone is out of scope.</p>
+ <div class="winbar" data-sec="pl"><span>Option</span><button type="button" data-v="V" aria-pressed="true">Video (Look 1 and 2)</button><button type="button" data-v="A" aria-pressed="false">A. Journey roadmap</button><button type="button" data-v="B" aria-pressed="false">B. Floating checklist</button><button type="button" data-v="C" aria-pressed="false">C. Practice mode</button><button type="button" data-v="D" aria-pressed="false">D. Annotated form</button></div>
+ <div class="plb" data-plb="V"><h4 class="plh">Video (Look 1 or Look 2): a pop-up over the same screen</h4><div class="fmap"><div class="fn"><b>1. Import page: choose a path</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn on"><b>2. Request from CAMS screen</b><span>Link: &ldquo;Watch how it works&rdquo;; pop-up with the video</span></div><i class="fa">&rarr;</i><div class="fn ext"><b>3. CAMS website (new tab)</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn"><b>4. Back in Unifolio: upload</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn on"><b>5. Import complete</b><span>The same link near &ldquo;Already got the email?&rdquo;</span></div></div><h5 class="plh2">Where it is seen</h5><ul class="tight"><li><b>On the Request from CAMS screen</b>: a small text link under the heading, plainly secondary to the green button.</li><li><b>On the screen the user returns to</b> (the waiting and upload view): the same link, so they can replay the last two steps.</li><li><b>Not</b> on the import choice screen, on the CAMS website itself, or anywhere else in the app.</li><li>The video lives in the Unifolio tab. Once the user is on the CAMS tab, it is not in front of them.</li></ul><h5 class="plh2">The flow, step by step</h5><ol class="tight"><li>The user reaches the Import page (the Import button in the top bar, or the onboarding upload) and picks <i>Request from CAMS</i>.</li><li>On the Request from CAMS screen they press <i>Watch how it works</i>. A pop-up opens over the screen and plays the 1 min 20 s video, with captions on.</li><li>At the end, the pop-up offers <i>Request Statement on CAMS</i> (the same as the green button) and <i>Watch again</i>. Closing it leaves them on the screen.</li><li>They press the green button. CAMS opens in a new tab, and they follow what they remember from the video.</li><li>They come back to the Unifolio tab and upload. If they forget a step, they can open the video again from this screen.</li></ol><h5 class="plh2">Good to know</h5><ul class="tight"><li>The same placement for Look 1 and Look 2; they differ only in what the video shows.</li><li>The weak point: the user watches first, then must remember the steps while working on another tab.</li></ul></div><div class="plb" data-plb="A"><h4 class="plh">Concept A: the journey roadmap</h4><div class="fmap"><div class="fn"><b>1. Import page: choose a path</b><span class="no">nothing added (path choice only)</span></div><i class="fa">&rarr;</i><div class="fn on"><b>2. Request from CAMS screen</b><span>Roadmap step 1: Request on CAMS</span></div><i class="fa">&rarr;</i><div class="fn ext"><b>3. CAMS website (new tab)</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn on"><b>4. Back in Unifolio: upload</b><span>Roadmap steps 2, 3 and 4 (the user flips back to Unifolio)</span></div><i class="fa">&rarr;</i><div class="fn on"><b>5. Import complete</b><span>Roadmap complete</span></div></div><h5 class="plh2">Where it is seen</h5><ul class="tight"><li><b>On the import page</b> (the redesigned Add Data / Import page, and the onboarding upload screen, which use the same flow). On a laptop it is a vertical rail on the left with the current step&rsquo;s card on the right.</li><li>It appears <b>only</b> after the user picks <i>Request from CAMS</i>. The <i>Already have a file</i> path is unchanged and has no roadmap.</li><li>It replaces today&rsquo;s plain three-step text on the Request from CAMS screen and also takes over the waiting/upload screen, so the user sees one continuous journey.</li><li>It is not shown on the CAMS website itself (a third-party page).</li></ul><h5 class="plh2">The flow, step by step</h5><ol class="tight"><li>The user picks <i>Request from CAMS</i>. The roadmap appears at <b>step 1, Request on CAMS</b> with a short explanation and an <i>Open CAMS</i> button (and, if we keep it, a <i>Watch how it works</i> link).</li><li>Pressing <i>Open CAMS</i> opens the official CAMS site in a new tab. Back in the Unifolio tab, the roadmap has moved to <b>step 2, Fill the form</b>, with the list of what to choose (words from the live CAMS form) and the password rules.</li><li>The user fills the form on CAMS, comes back, and presses <i>I have submitted the form</i>. Step 3, <b>Wait for the email</b>, says it usually takes 5 to 10 minutes and that they can close the page.</li><li>When the email arrives they download the PDF and press <i>I have downloaded the file</i>. Step 4, <b>Upload</b>, shows the upload box and the password field, and reminds them it is the same password.</li><li>After Import, the existing parse and review screens run, then the roadmap shows all four steps ticked and a link to the portfolio.</li></ol><h5 class="plh2">Good to know</h5><ul class="tight"><li><b>It changes a behaviour that exists today (read in code, not tried in the app):</b> after the request, when the user comes back to the Unifolio tab, the app jumps straight to the upload screen. The roadmap would instead return them to the step they were on, so the jump is replaced, not added to.</li><li><b>Leaving and coming back:</b> the app already remembers the request in the browser. The roadmap would remember its step the same way, so a reload or a return the next day lands on the right step, with a <i>Start over</i> link. That memory is per browser, not per account, so it does not carry to another device.</li><li>Steps 2 and 3 happen outside Unifolio, so the user confirms them with a button. Steps 1 and 4 the app can see for itself.</li></ul></div><div class="plb" data-plb="B"><h4 class="plh">Concept B: the floating checklist</h4><div class="fmap"><div class="fn"><b>1. Import page: choose a path</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn on"><b>2. Request from CAMS screen</b><span>Press the button: CAMS opens and the checklist floats up</span></div><i class="fa">&rarr;</i><div class="fn on ext"><b>3. CAMS website (new tab)</b><span>The checklist floats above the CAMS tab</span></div><i class="fa">&rarr;</i><div class="fn on"><b>4. Back in Unifolio: upload</b><span>Closes; the user returns to the upload</span></div><i class="fa">&rarr;</i><div class="fn"><b>5. Import complete</b><span class="no">nothing added</span></div></div><h5 class="plh2">Where it is seen</h5><ul class="tight"><li><b>On top of the CAMS website</b>, in a small always-on-top window that floats above every browser window. <b>The website cannot choose where it appears</b>: the browser decides, the user can drag it, and the browser remembers where they left it.</li><li>It opens <b>only</b> when the user presses <i>Request Statement on CAMS</i> (browsers allow this kind of window only after a click).</li><li>It appears only in browsers that support it: desktop Chrome and Edge from version 116 (checked against MDN and Chrome&rsquo;s documentation; see 4d for the rest). Elsewhere the user sees concept A&rsquo;s step 2 inside the Unifolio tab instead.</li><li>It is not shown on the import page itself, and not on any phone.</li></ul><h5 class="plh2">The flow, step by step</h5><ol class="tight"><li>The user presses <i>Request Statement on CAMS</i> on the Request from CAMS screen.</li><li>CAMS opens in a new tab, and at the same moment a small <i>Unifolio checklist</i> window floats over it with five items: Detailed, Specific Period, With zero balance folios, the registered email, remember the password.</li><li>As the user works on the CAMS form, they tick the items in the floating window. The window stays visible when they switch tabs.</li><li>When all items are ticked, the window shows <i>I have submitted the form</i>. Pressing it moves the same window to the wait-for-the-email step. Section 5 shows every state.</li><li>The upload happens in Unifolio as in concept A.</li></ol><h5 class="plh2">Good to know</h5><ul class="tight"><li>The window is a Unifolio page, so it cannot see the CAMS page: the ticks are the user&rsquo;s own.</li><li>If the user closes the CAMS tab or the window, it disappears; reopening needs a click in Unifolio.</li><li>This is the only concept that puts the instructions <i>next to</i> the form while it is being filled, which is its whole value.</li></ul></div><div class="plb" data-plb="C"><h4 class="plh">Concept C: practice mode</h4><div class="fmap"><div class="fn"><b>1. Import page: choose a path</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn on"><b>2. Request from CAMS screen</b><span>Optional link: &ldquo;Practice the form first&rdquo;; the practice screen opens over it</span></div><i class="fa">&rarr;</i><div class="fn ext"><b>3. CAMS website (new tab)</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn"><b>4. Back in Unifolio: upload</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn"><b>5. Import complete</b><span class="no">nothing added</span></div></div><h5 class="plh2">Where it is seen</h5><ul class="tight"><li><b>On the Request from CAMS screen</b>, as a secondary link or button next to the green one: <i>Practice the form first (2 min)</i>. Inside the roadmap, it would be an optional action in step 1.</li><li>The practice opens as a large pop-up (or full-width panel) over the same screen. It is not part of the import itself.</li><li>It is not on the CAMS website, and not on the import choice screen.</li></ul><h5 class="plh2">The flow, step by step</h5><ol class="tight"><li>On the Request from CAMS screen the user presses <i>Practice the form first</i>.</li><li>A practice copy of the CAMS form opens. A coach bar at the bottom says <i>Step 1 of 3: choose Detailed</i>.</li><li>The user clicks the options. A right click moves to the next step; a wrong click gives a hint such as <i>Not this one: choose Specific Period</i>, never an error.</li><li>After the three choices the coach bar says what comes next on the real form: the registered email and a password to remember. A button, <i>Now do it for real</i>, closes the practice and opens CAMS.</li><li>The user returns to the normal screen (or the roadmap, if we build it) and continues.</li></ol><h5 class="plh2">Good to know</h5><ul class="tight"><li>Nothing is sent to CAMS: it is a drawn copy, built from the live form&rsquo;s words.</li><li>It is the highest-effort concept and the one most likely to go out of date when CAMS changes its form, so it is best left until the rest is live.</li></ul></div><div class="plb" data-plb="D"><h4 class="plh">Concept D: the annotated form</h4><div class="fmap"><div class="fn"><b>1. Import page: choose a path</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn on"><b>2. Request from CAMS screen</b><span>A picture of the form with numbered pins, beside the steps</span></div><i class="fa">&rarr;</i><div class="fn ext"><b>3. CAMS website (new tab)</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn"><b>4. Back in Unifolio: upload</b><span class="no">nothing added</span></div><i class="fa">&rarr;</i><div class="fn"><b>5. Import complete</b><span class="no">nothing added</span></div></div><h5 class="plh2">Where it is seen</h5><ul class="tight"><li><b>On the Request from CAMS screen</b>, as a card next to the steps (in concept A, inside step 2 of the roadmap): a picture of the real form with dummy data and numbered pins.</li><li>On a laptop it sits side by side with the instructions, so the user can compare the picture with the form in the other tab.</li><li>It is a reference, not a step: the user can ignore it.</li><li>It is not shown on the CAMS website, or on the upload screen.</li></ul><h5 class="plh2">The flow, step by step</h5><ol class="tight"><li>The user opens the Request from CAMS screen and sees the picture of the form with pins 1 to 6 (Statement type, Period, Folio listing, Email, Password, Submit).</li><li>Clicking a pin shows what to choose there and why, in a panel beside the picture.</li><li>The user presses the green button; CAMS opens in a new tab.</li><li>On the CAMS form they match what they see to the picture, flipping back to the Unifolio tab if they are unsure.</li><li>Then the upload as usual.</li></ol><h5 class="plh2">Good to know</h5><ul class="tight"><li>The lightest of the four to build: one image and six short texts.</li><li>It can be combined with any other concept: it is also a natural content for concept B&rsquo;s floating window.</li><li>The picture goes stale if CAMS redesigns the page, so it is re-made when the live check (H-1) shows a change.</li></ul></div>
+ <div class="callout info"><b>One fact that shapes all of them (read in code, not tried in the app).</b> Today the user reaches the CAMS flow through the import page (the Import button in the top bar and the onboarding upload both use the same flow): first a screen with two cards, <i>Request from CAMS</i> and <i>Already have a file</i>; then the Request from CAMS screen; then, after the green button, CAMS opens in a new tab. When the user comes back to the Unifolio tab, the app switches to the upload screen on its own and remembers that in the browser, not in the account. So the moment the user is looking at Unifolio again is the moment the upload box appears, even if the email has not arrived yet. Concepts A and B would make that moment step-aware; the video and the annotated form leave it as it is.</div>
+</section>
+</details>
 </main>
 </div>
 <script>
@@ -1101,8 +1139,8 @@ renderAll();window.addEventListener('resize',layoutAll);if(document.fonts&&docum
 
 /* ---- live video pop-up preview ---- */
 function vscreen(){return vp(chrome('ls-redesign.unifolio.in/import')+'<div style="background:#F6F8F6;padding:30px 20px;min-height:430px">'+screenBack(false).replace('<div class="dbtn" style="display:block;text-align:center;margin-top:14px">Request Statement on CAMS</div>','<div class="dbtn" style="display:block;text-align:center;margin-top:14px">Request Statement on CAMS</div>').replace('Request from CAMS</div>','Request from CAMS</div><div style="margin:2px 0 6px"><button type="button" class="vlink" data-vopen="2">'+PLAY+' Watch how it works (1 min 20 s)</button></div>')+'</div>',1000,0)}
-var VCH={'1':[['1 Request',6],['2 Fill the form',18],['3 Inbox',42],['4 Upload',56]],'2':[['1 Request',6],['2 Fill the form',16],['3 Inbox',56],['4 Upload',66]]};
-var VLOOK='2',VSRC={'1':'video/look1.mp4','2':'video/look2.mp4'};
+var VCH={'1':[['1 Request',6],['2 Fill the form',18],['3 Inbox',42],['4 Upload',56]],'2':[['1 Request',3.8],['2 Fill the form',9.3],['3 Inbox',35.6],['4 Upload',41.2]]};
+var VLOOK='2',VSRC={'1':'video/look1.mp4','2':'video/look2-v5.mp4'};
 function vload(look,keepTime){
  var v=document.getElementById('vvid');VLOOK=look;var was=keepTime&&v.currentTime?v.currentTime:0;
  v.src=VSRC[look];v.load();if(was)v.addEventListener('loadedmetadata',function f(){v.currentTime=was;v.removeEventListener('loadedmetadata',f)});
@@ -1131,50 +1169,55 @@ var KEY="batch-h-planning-v1",S={};
 try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 var Q=[
-{id:"Q1",item:"5",title:"What should the video look like?",ask:"Pick one. Section 3 draws Look 1 (stylised) and Look 2 (realistic).",
+{id:"Q1",item:"5",title:"What should the video look like?",ask:"Pick one. Look 2 is in section 3; Look 1 is in Appendix B.",
  opts:[
  {k:"A",l:"Look 2, realistic: a real recording of the CAMS form with light, playful animation (AI only for the opening and ending)",rec:1,d:"Good: shows what users will really see, including the banner and the password rules; creative and branded without inventing screens; a changed scene can be re-made on its own. Bad: needs a clean recording of the real form; the CAMS page appears on screen."},
  {k:"B",l:"Look 1, stylised: fully illustrated frames with a redrawn simplified CAMS form (no real CAMS pixels)",d:"Good: the most unique, and no third-party screen is shown. Bad: if the redrawn form differs from the real one, users hesitate at the real form; more design work."},
  {k:"C",l:"Fully AI-generated video",d:"Good: fast and eye-catching. Bad: AI cannot reliably draw a specific real website, and garbled text on screen makes a tutorial wrong."}],
  why:"It keeps the creativity you asked for and puts the AI where being exact does not matter, so the parts a user must recognise are real.",
- commit:"A: a real recording with dummy data and a branded wrap, using the live form\'s own words. B: a redrawn form that must be kept in step with CAMS. C: a prompt-based production with a high chance of re-doing scenes."},
-{id:"Q2",item:"5",title:"Sound: voice-over or captions only?",ask:"Pick one. Captions are on by default in every case.",
+ commit:"<b>Recorded 17 Nov: A</b> (Look 2), combined with the floating checklist. A: a real recording with dummy data and a branded wrap, using the live form\'s own words. B: a redrawn form that must be kept in step with CAMS. C: a prompt-based production with a high chance of re-doing scenes."},
+{id:"Q2",item:"5",title:"Sound: voice-over or captions only?",ask:"Pick one. Updated 17 Nov: you chose no audio at all.",
  opts:[
+ {k:"D",l:"No audio at all: captions in the picture only, no voice, no music",d:"Good: nothing to record, license or re-record; works anywhere, including offices and with the sound off; the easiest to update. Bad: less personal; reading while watching a form takes attention, so the captions are kept short."},
  {k:"A",l:"Captions and light music, no voice",d:"Good: nothing to record or re-record; works in any setting; easiest to update. Bad: less personal; reading while watching a form is harder."},
  {k:"B",l:"English voice-over with captions",rec:1,d:"Good: easy to follow while looking at the form; more personal. Bad: a voice to produce (a recording or an AI voice) and to redo when a scene changes."},
  {k:"C",l:"English voice-over with Hindi captions",d:"Good: reaches users more comfortable in Hindi. Bad: a second set of captions to write, time and check; a translation to keep in step."}],
  why:"People follow a two-window task better when someone talks them through it, and the captions cover everyone who cannot hear it. Hindi can be added later from the same script.",
- commit:"A: no voice. B: a voice to produce and the captions file. C: two caption files, with the Hindi wording checked by a speaker."},
-{id:"Q3",item:"5",title:"How is it produced?",ask:"Pick one. I cannot produce video, so this decides who does.",
+ commit:"<b>Recorded 17 Nov: D</b>, no audio at all: no voice, no music, no audio track; the captions are burned into the video. A: no voice. B: a voice to produce and the captions file. C: two caption files, with the Hindi wording checked by a speaker."},
+{id:"Q3",item:"5",title:"How is it produced?",ask:"Pick one. Updated 17 Nov: you chose that I make the video.",
  opts:[
  {k:"A",l:"You and your team make it from my storyboard and prompts, using AI and animation tools",rec:1,d:"Good: fastest and cheapest; you keep control of the look. Bad: depends on someone on your side having the time and tools."},
  {k:"B",l:"An outside motion designer makes it from my storyboard",d:"Good: the most polished result. Bad: a cost and a lead time; every later change goes back to the designer."},
+ {k:"D",l:"I make the video itself from your real recording, and nothing else: the pop-up and the checklist are built by the team",d:"Good: you do not need a designer or tools; the video follows your recording and your notes. Bad: I cannot add a voice-over by myself; a voice would come from you or a voice tool."},
  {k:"C",l:"No video file: I build an animated step-by-step walkthrough in code inside the pop-up",d:"Good: never goes stale in the way a recording does, no file to host, easy to translate. Bad: cannot show the real CAMS site, less cinematic than video, and it is a bigger front-end job."}],
  why:"You already have the creative direction and I supply everything a producer needs, so the team route is quickest. Option C is the safest against CAMS changing, but it is not the video you described.",
  commit:"A: you produce, I supply script, captions, storyboard and prompts. B: a designer is briefed with the same pack. C: the video is replaced by a coded walkthrough, so Q1 and Q2 mostly no longer apply."}
 ,
-{id:"Q4",item:"5",title:"Which format should the help take?",ask:"Pick one. Section 4b draws four interactive concepts you can click through, and section 4c shows where each one lives and how the user moves through it.",
+{id:"Q4",item:"5",title:"Which format should the help take?",ask:"Pick one.",
  opts:[
  {k:"A",l:"A video only (Look 1 or Look 2), as planned in Q1 to Q3",d:"Good: the simplest to explain; the story is told the same way to everyone. Bad: passive; cannot show the user where they are; goes stale when CAMS changes."},
  {k:"B",l:"A journey roadmap, no video (concept A, with the annotated form inside step 2 if you like)",d:"Good: fully interactive; shows progress and what is next; survives coming back later. Bad: text-led, so less \u201cfun\u201d than video; two of the four steps rely on the user\u2019s word."},
  {k:"C",l:"A journey roadmap with a short optional video behind a \u201cWatch how it works\u201d link",rec:1,d:"Good: the journey you described, plus the video for people who prefer it; the video becomes small and optional, so it matters less when CAMS changes. Bad: two things to keep in step."},
  {k:"D",l:"Something else from section 4b (name it in the notes)",d:"For example the floating checklist (B), practice mode (C) or the annotated form (D), alone or combined."}],
  why:"A roadmap tells the user where they are and what is next, which a video cannot, and it fits a journey with two steps outside our app. A short clip keeps the video you wanted without depending on it.",
- commit:"A: Q1 to Q3 apply in full. B: no video; the roadmap tasks in section 8 apply; Q1 to Q3 fall away. C: the roadmap tasks, plus a much smaller video (a single look, captions only, no voice-over). D: I will plan the concept you name."}
+ commit:"<b>Recorded 17 Nov: D</b>, the combination of the Look 2 video and the floating checklist: Q1 to Q3 apply to the video, and the checklist tasks P-1 to P-8 (section 5) apply. A: Q1 to Q3 apply in full. B: no video; the roadmap tasks apply; Q1 to Q3 fall away. C: the roadmap tasks, plus a much smaller video (a single look, captions only, no voice-over). D: I will plan the concept you name."}
 ];
+var PRE={Q2:{k:"D",n:"Updated 17 Nov: the video will have no audio at all."},Q3:{k:"D",n:"Updated 17 Nov: you said I make the video only, not any other tool."},Q1:{k:"A",n:"Updated 17 Nov: Look 2 (the realistic, lightly animated video), combined with the floating checklist."},Q4:{k:"D",n:"Updated 17 Nov: a combined option. The Look 2 video plus the floating checklist (concept B of the interactive alternatives). Everything else is in the Appendix."}};
+var LOCK={};
+Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
 var cards=document.getElementById("cards");
 Q.forEach(function(q){
  var c=document.createElement("div");c.className="card";c.id=q.id.toLowerCase();c.setAttribute("data-q",q.id);
  var h='<header><span class="id">'+q.id+' &middot; item '+q.item+'</span><h3>'+q.title+'</h3><span class="status todo" data-st>unanswered</span></header><p class="ask"><b>'+q.ask+'</b></p>';
  h+='<div class="opts">';
- q.opts.forEach(function(o){h+='<label class="opt'+(o.rec?' isrec':'')+'"><input type="radio" name="'+q.id+'" value="'+o.k+'"><div><b>'+o.k+'. '+o.l+(o.rec?'<span class="tag me">my pick</span>':'')+'<span class="tag chosen" hidden>Chosen option</span></b><span class="d">'+o.d+'</span></div></label>'});
+ q.opts.forEach(function(o){h+='<label class="opt'+(o.rec?' isrec':'')+'"><input type="radio" name="'+q.id+'" value="'+o.k+'"'+(LOCK[q.id]?' disabled':'')+'><div><b>'+o.k+'. '+o.l+(o.rec?'<span class="tag me">my pick</span>':'')+'<span class="tag chosen" hidden>Chosen option</span></b><span class="d">'+o.d+'</span></div></label>'});
  h+='</div>';
  if(q.why)h+='<div class="why"><b>Why my pick.</b> '+q.why+'</div>';
  if(q.commit)h+='<div class="commit"><b>What this answer commits us to.</b> '+q.commit+'</div>';
- h+='<label class="nl" for="n-'+q.id+'">Notes (optional)</label><textarea id="n-'+q.id+'" placeholder="Anything I should know"></textarea>';
+ h+='<label class="nl" for="n-'+q.id+'">Notes (optional)</label><textarea id="n-'+q.id+'" placeholder="Anything I should know"'+(LOCK[q.id]?' readonly':'')+'></textarea>';
  c.innerHTML=h;cards.appendChild(c);
 });
-function answered(q){var a=S[q.id]||{};return !!a.k}
+function answered(q){if(LOCK[q.id])return true;var a=S[q.id]||{};return !!a.k}
 function setSt(st,ok){st.textContent=ok?"answered":"unanswered";st.className=ok?"tag ok":"status todo"}
 function build(){
  var L=["BATCH H PLANNING: MY ANSWERS (13 Nov 2026)",""];
@@ -1197,8 +1240,8 @@ function paint(){
  document.getElementById("prog").textContent=n+" of "+Q.length+" answered";
  document.getElementById("outTa").value=build();
 }
-cards.addEventListener("change",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");S[q]=S[q]||{};if(e.target.type==="radio")S[q].k=e.target.value;save();paint()});
-cards.addEventListener("input",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");S[q]=S[q]||{};if(e.target.id==="n-"+q)S[q].n=e.target.value;save();document.getElementById("outTa").value=build()});
+cards.addEventListener("change",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.type==="radio")S[q].k=e.target.value;save();paint()});
+cards.addEventListener("input",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.id==="n-"+q)S[q].n=e.target.value;save();document.getElementById("outTa").value=build()});
 function copy(){
  var ta=document.getElementById("outTa"),m=document.getElementById("copyMsg");ta.value=build();
  function fb(){ta.removeAttribute("readonly");ta.select();try{document.execCommand("copy");m.textContent="Copied (or select and copy the text below)"}catch(e){m.textContent="Select the text below and copy it"}ta.setAttribute("readonly","")}
@@ -1209,6 +1252,7 @@ document.getElementById("copyTop").addEventListener("click",function(){copy();do
 document.getElementById("jump").addEventListener("click",function(){for(var i=0;i<Q.length;i++){if(!answered(Q[i])){document.getElementById(Q[i].id.toLowerCase()).scrollIntoView({behavior:"smooth"});return}}});
 paint();
 })();
+document.querySelectorAll('[data-open]').forEach(function(a){a.addEventListener('click',function(){var d=document.getElementById(a.getAttribute('data-open'));if(d)d.open=true})});
 </script>
 </body>
 </html>
