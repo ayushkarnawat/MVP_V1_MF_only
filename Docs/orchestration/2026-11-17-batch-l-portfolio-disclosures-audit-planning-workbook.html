@@ -358,7 +358,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
  <a href="#fit">9. Where it fits in the program</a>
  <a href="#risks">10. Risks</a>
  <h4>Your call</h4>
- <a href="#questions">11. Decisions (3 of 4 answered)</a>
+ <a href="#questions">11. Decisions (4 of 4 answered)</a>
  <a href="#copy">12. Copy my answers</a>
 </nav>
 
@@ -586,7 +586,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 
 <section id="questions">
  <h2>11. Decisions</h2>
- <p class="lead">Three of four are answered (17 Nov): Q1 A, Q3 A, Q4 A. <b>Q2 is still open;</b> until you answer, I will use my pick (A: funds as the headline, money second, fund houses as a footnote).</p>
+ <p class="lead">All four are answered (17 Nov): Q1 A, Q2 A, Q3 A, Q4 A.</p>
  <div class="bar"><span class="status" id="prog">0 of 4 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
  <div id="cards"></div>
  <h3 class="sub">Defaults I will use</h3>
@@ -722,7 +722,7 @@ var Q=[
  commit:"A: tasks L-7 and L-9 stay. B: they are dropped from this batch."}
 ];
 
-var PRE={Q1:{k:"A",n:"Answered 17 Nov."},Q3:{k:"A",n:"Answered 17 Nov."},Q4:{k:"A",n:"Answered 17 Nov."}};
+var PRE={Q2:{k:"A",n:"Answered 17 Nov."},Q1:{k:"A",n:"Answered 17 Nov."},Q3:{k:"A",n:"Answered 17 Nov."},Q4:{k:"A",n:"Answered 17 Nov."}};
 var LOCK={};
 Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
 var cards=document.getElementById("cards");
