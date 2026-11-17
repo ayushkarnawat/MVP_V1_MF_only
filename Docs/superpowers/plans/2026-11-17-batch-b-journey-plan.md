@@ -201,8 +201,9 @@ Item numbers in the workbook map as: item 2 = B-5/B-6, item 4 = B-1 to B-4/B-8, 
 
 ### Task B-11: Email assets (Claude)
 
-- [ ] **Step 1:** Copy the six reference pictures into the repo for the packet (folder named in the packet), crop logo, illustrations and icons from the largest desktop picture as PNGs into `frontend/public/email/`, with a light circle behind each illustration for dark mode. No real people or data in any picture.
-- [ ] **Step 2:** List each file with its size and source crop in the B-9 handoff. Check that no filename or path carries personal data.
+- [ ] **Step 0 (design source, decided):** The email designs are **taken from Batch B's workbook itself**: section 6 (the mockups for the three emails and the fourth "changed back" email, light and dark, desktop 600 px and phone width), its copy, measurements and the image notes. No separate image files are needed or in the repo (the workbook has no embedded pictures). The workbook draws the illustrations and icons as plain round shapes; the packet reproduces them exactly as drawn (inline shapes or PNG renders of the workbook's own drawings placed in `frontend/public/email/`), with a light circle behind each in dark mode. Tell the user in the report that the final illustration art would need the original pictures or a designer's files. Real-inbox checks (Gmail web and app, Apple Mail, Outlook if available) belong to the single QA round after M4.
+- [ ] **Step 1:** Produce the logo (from `Logo/`), illustrations and icons as PNGs in `frontend/public/email/` from the workbook's section 6 drawings (see Step 0), with a light circle behind each illustration for dark mode. No real people or data in any picture.
+- [ ] **Step 2:** List each file with its size and its source drawing in the B-9 handoff. Check that no filename or path carries personal data.
 
 ### Task B-12: Onboarding layout and green switch (Antigravity, lane G-b, after B-10)
 

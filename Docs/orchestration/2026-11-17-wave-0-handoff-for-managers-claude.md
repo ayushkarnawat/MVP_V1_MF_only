@@ -51,7 +51,7 @@ Shared-file order (one owner at a time): `TopBar.tsx` K then I; `MutualFundsFram
 
 ## Open items and things needing the user (not blockers for starting wave 1)
 
-- **Batch B:** email screenshots for item 18; the deeper green `#15803D` to be checked against the palette PDF; the fourth ("changed back") email is a draft for the user's review; the workbook gave the email HTML to Antigravity, but Antigravity may not edit `backend/**` and the emails are Python there, so the plan gives them to Codex (flagged in the plan).
+- **Batch B:** the Head of Family email designs are taken from Batch B's workbook itself (section 6: mockups, copy, measurements, light and dark, desktop and phone width); no separate image files are needed. The workbook draws the illustrations and icons as plain round shapes, so the packet reproduces them as drawn and the user is told that final art would need the original pictures or a designer; real-inbox checks are part of the single QA round after M4; the deeper green `#15803D` to be checked against the palette PDF; the fourth ("changed back") email is a draft for the user's review; the workbook gave the email HTML to Antigravity, but Antigravity may not edit `backend/**` and the emails are Python there, so the plan gives them to Codex (flagged in the plan).
 - **Batch C:** none blocking; the phone check for folios (C-8) reports to the user before any phone file changes.
 - **Batch A:** every fix is proposed first and built only after approval; the fund-manager decision FX-8e (short-period figure) and FX-10b (definition differences) are the user's calls with evidence.
 - **Batch D:** the colour fix FX-13d needs the user's approval; keep or remove the unused `home-tokens.css`.
