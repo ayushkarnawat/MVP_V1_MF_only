@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Batch L Planning</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+
+<style>
+
+/* Layout: sticky contents rail + one reading column. Brand: DM Sans headings, Manrope body, #22C55E for actions, a deeper green for text and links. Mockups are drawn at real window sizes and scaled to fit the column. */
+:root{
+ --bg:#FCFCFC; --surface:#FFFFFF; --surface-2:#F3F5F3; --line:#E5E5E5;
+ --fg:#111111; --muted:#5C5C5C; --accent:#22C55E; --accent-deep:#15803D; --accent-soft:#EAFBF0;
+ --warn:#B45309; --warn-soft:#FEF3E2; --info:#2F5FB3; --info-soft:#E8EFFB;
+ --danger:#B3321F; --danger-soft:#FBE6E2; --on-accent:#0B1F12;
+ --f-display:'DM Sans','Segoe UI',system-ui,sans-serif;
+ --f-body:'Manrope','Segoe UI',system-ui,sans-serif;
+ --f-mono:ui-monospace,'SF Mono',Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#0F0F0F; --surface:#1A1A1A; --surface-2:#222622; --line:#2A2A2A;
+ --fg:#F5F5F5; --muted:#A3A3A3; --accent:#22C55E; --accent-deep:#34D399; --accent-soft:#12301D;
+ --warn:#F0B25A; --warn-soft:#3A2A12; --info:#8AB4F5; --info-soft:#1A2740; --danger:#F87171; --danger-soft:#3A1C17; color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+ padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4,h5{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--accent-deep)}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:32px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc h4{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+nav.toc a{display:block;padding:4px 0;color:var(--fg);text-decoration:none}
+nav.toc a:hover{color:var(--accent-deep)}
+main{min-width:0}
+.hero h1{font-size:clamp(30px,4.5vw,44px);font-weight:700;margin-bottom:10px}
+.hero p{color:var(--muted);max-width:70ch;margin:0 0 10px}
+.meta{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+section{margin-top:56px;scroll-margin-top:16px}
+section>h2{font-size:26px;margin-bottom:6px}
+section>p.lead{color:var(--muted);margin:0 0 18px;max-width:74ch}
+h3.sub{font-size:18px;margin:28px 0 8px}
+h4.mini{font-size:15px;margin:18px 0 6px}
+p{margin:8px 0}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700}
+.tag{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.fe{background:var(--info-soft);color:var(--info)}
+.tag.be{background:var(--warn-soft);color:var(--warn)}
+.tag.db{background:var(--danger-soft);color:var(--danger)}
+.tag.ok{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.none{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tag.me{background:var(--accent-soft);color:var(--accent-deep);margin-left:6px}
+.tag.chosen{background:var(--accent);color:var(--on-accent);margin-left:6px}
+.sumbox{border:2px solid var(--accent);border-radius:12px;background:var(--surface);padding:16px 18px;margin:14px 0}
+.sumbox h3{font-size:18px;margin-bottom:8px}
+.sumbox ul,ul.tight{margin:6px 0;padding-left:20px}
+.sumbox li,ul.tight li{margin:5px 0}
+.callout{background:var(--warn-soft);border-radius:10px;padding:12px 14px;margin:14px 0;font-size:14px}
+.callout.good{background:var(--accent-soft)}
+.callout.info{background:var(--info-soft)}
+.callout.bad{background:var(--danger-soft)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.cols>div{min-width:0}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:12px 0}
+.flow>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 16px;min-width:0}
+.flow h4{font-size:15px;margin-bottom:6px}
+.flow ol{margin:4px 0;padding-left:20px}.flow li{margin:5px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+.stat .n{font:700 26px var(--f-display)}.stat .l{font-size:12.5px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin:12px 0;align-items:start}
+@media (max-width:860px){.pair{grid-template-columns:minmax(0,1fr)}}
+.cap{margin:14px 0 6px;font-size:13px}
+.cap b{font-family:var(--f-display)}
+.note{color:var(--muted);font-size:12.5px}
+.winbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.winbar span{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.winbar button{padding:6px 12px;font-size:12.5px;background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.winbar button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+/* decision cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;margin-top:14px;scroll-margin-top:60px}
+.card header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.card .id{font:600 12px var(--f-body);color:var(--muted)}
+.card h3{font-size:18px;font-weight:700;flex:1;min-width:200px}
+.ctx{color:var(--muted);font-size:14px}
+.opts{display:grid;gap:8px;margin:12px 0}
+.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.opt:hover{border-color:var(--accent)}
+.opt.isrec{border-color:var(--accent)}
+.opt.on{background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt input:disabled{cursor:default}
+.opt b{display:block}
+.opt span.d{display:block;color:var(--muted);font-size:13.5px}
+.why{border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.why b{color:var(--accent-deep)}
+.reply{background:var(--info-soft);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:14px}
+.reply p{margin:6px 0}.reply ul{margin:6px 0;padding-left:20px}
+.commit{border-left:3px solid var(--info);padding:4px 0 4px 12px;margin:12px 0;font-size:14px}
+.commit b{color:var(--info)}
+textarea{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-height:56px;resize:vertical}
+label.nl{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin:10px 0 4px}
+button{font:inherit;font-size:14px;font-weight:600;padding:9px 16px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);cursor:pointer}
+button.ghost{background:transparent;color:var(--accent-deep)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.status{font:600 11px var(--f-body)}.status.todo{color:var(--warn)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.out{min-height:240px;font-family:var(--f-mono);font-size:12.5px}
+.tabs{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--accent-deep);border:1px solid var(--line)}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.doc{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:18px 20px;margin:12px 0}
+.doc h4{font-size:17px;margin-bottom:8px}
+.doc h5{font-size:14px;margin:14px 0 4px}
+.doc ul{margin:6px 0;padding-left:20px}.doc li{margin:4px 0}
+
+/* ---------- scaled real-size frames ---------- */
+.vp{position:relative;width:100%;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#fff}
+.vp-in{position:absolute;left:0;top:0;transform-origin:0 0;background:#fff;color:#111;font-family:'Manrope','Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}
+.vp-in *{box-sizing:border-box}
+.vp-in h5,.vp-in h4,.vp-in h3,.vp-in h2,.vp-in h1{font-family:'DM Sans','Segoe UI',system-ui,sans-serif;margin:0}
+.vp-in p{margin:0}
+.chrome{height:40px;background:#EEF1EE;border-bottom:1px solid #D9DED9;display:flex;align-items:center;gap:8px;padding:0 14px}
+.chrome i{width:11px;height:11px;border-radius:50%;background:#C8CFC8;display:block;flex:none}
+.chrome span{flex:1;max-width:520px;margin-left:12px;background:#fff;border:1px solid #D9DED9;border-radius:99px;padding:3px 14px;font-size:12px;color:#5C5C5C}
+.w1280{--vw:1280px;--vh:600px;--card-h:552px;--pad-y:14px;--gap:10px;--gap-sm:5px;--h1:26px;--btn-h:44px;--row-h:46px;--chip-h:34px;--badge:34px;--body:13.5px}
+.w1440{--vw:1440px;--vh:810px;--card-h:762px;--pad-y:36px;--gap:22px;--gap-sm:12px;--h1:34px;--btn-h:54px;--row-h:64px;--chip-h:48px;--badge:44px;--body:15px}
+.w1536{--vw:1536px;--vh:730px;--card-h:682px;--pad-y:28px;--gap:16px;--gap-sm:9px;--h1:30px;--btn-h:48px;--row-h:54px;--chip-h:42px;--badge:38px;--body:14px}
+.d-page{height:var(--vh);display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#EEF9F1,#F8FDF9)}
+.d-card{width:min(1240px,calc(var(--vw) - 64px));height:var(--card-h);background:#fff;border-radius:28px;box-shadow:0 18px 50px rgba(20,48,31,.13);display:grid;grid-template-columns:.95fr 1fr;overflow:hidden}
+.d-left{padding:var(--pad-y) 40px;display:flex;flex-direction:column;background:linear-gradient(160deg,#F2FCF6,#E7F7EC);min-height:0;overflow:hidden}
+.d-left.white{background:#fff}
+.d-logo{font:700 26px 'DM Sans',sans-serif;color:#111;flex:none}
+.d-sketch{margin:var(--gap) auto;flex:1;min-height:60px;max-height:230px;width:70%;max-width:330px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#D6F3DF,#EAFBF0);color:#15803D;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.d-h2{font:700 calc(var(--h1) + 2px) 'DM Sans',sans-serif;line-height:1.15;flex:none}
+.d-h2 span{color:#15803D}
+.d-p{color:#5C5C5C;font-size:var(--body);margin-top:var(--gap-sm);flex:none}
+.d-bul{display:flex;gap:10px;align-items:center;margin-top:var(--gap-sm);font-size:var(--body);flex:none}
+.d-bul i{flex:none;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #D2EEDB;display:block}
+.d-right{padding:var(--pad-y) 48px;display:flex;flex-direction:column;min-height:0}
+.d-top{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;color:#5C5C5C;font-size:13px}
+.d-steps{display:flex;gap:6px;align-items:center}.d-steps i{width:34px;height:5px;border-radius:3px;background:#22C55E;display:block}.d-steps i.off{background:#E5E7EC}
+.d-content{flex:1;min-height:0;overflow-y:auto;display:flex}
+.d-inner{margin:auto;width:100%;max-width:520px;padding:8px 0}
+.fitb{position:absolute;right:10px;bottom:10px;z-index:3;font:600 12px 'Manrope',sans-serif;padding:4px 10px;border-radius:99px;background:#EAFBF0;color:#15803D;border:1px solid #BFE9CC}
+.fitb.bad{background:#FBE6E2;color:#B3321F;border-color:#F3B8AE}
+.o-stack{display:flex;flex-direction:column;gap:var(--gap)}
+.o-sec{display:flex;flex-direction:column;gap:var(--gap-sm)}
+.o-h1{font:700 var(--h1) 'DM Sans',sans-serif;line-height:1.15}
+.o-sub{color:#667085;font-size:var(--body)}
+.o-opt{display:flex;align-items:center;gap:12px;min-height:var(--row-h);border:1px solid #E5E7EC;border-radius:16px;padding:0 16px;background:#fff}
+.o-opt.tt{min-height:min(var(--row-h),54px)}
+.o-opt.sel{border-color:#22C55E;background:#F4FCF6;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.o-opt.quiet{border-color:transparent;background:#F6F8F6}
+.o-badge{flex:none;width:var(--badge);height:var(--badge);border-radius:50%;background:#EAFBF0;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:11px}
+.o-opt b{display:block;font-size:var(--body);font-weight:600}
+.o-opt small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.o-rad{margin-left:auto;flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid #C5CBC5}
+.o-opt.sel .o-rad{background:#22C55E;border-color:#22C55E;box-shadow:inset 0 0 0 4px #fff}
+.o-grp{border:1px solid #E5E7EC;border-radius:16px;overflow:hidden}
+.o-grp .o-opt{border:0;border-radius:0;border-bottom:1px solid #EEF0EE}
+.o-grp .o-opt:last-child{border-bottom:0}
+.o-h2{display:flex;justify-content:space-between;align-items:baseline;gap:10px;white-space:nowrap}
+.o-h2 b{font:600 15px 'DM Sans',sans-serif}
+.o-h2 span{font-size:13px;color:#667085;font-weight:400}
+.o-h2 a{font-size:13px;color:#15803D;font-weight:600}
+.o-chips{display:grid;gap:var(--gap-sm)}
+.o-chips.c3{grid-template-columns:repeat(3,1fr)}.o-chips.c2{grid-template-columns:repeat(2,1fr)}
+.o-chip{display:flex;align-items:center;gap:8px;min-height:var(--chip-h);border:1px solid #E5E7EC;border-radius:14px;padding:0 10px;font-size:12.5px;line-height:1.25;background:#fff}
+.o-chip i{flex:none;width:20px;height:20px;border-radius:6px;background:#EAFBF0;display:block}
+.o-chip em{margin-left:auto;flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid #C5CBC5}
+.o-chip.sel{border-color:#22C55E;background:#F4FCF6}.o-chip.sel em{background:#22C55E;border-color:#22C55E}
+.o-pills{display:flex;flex-wrap:wrap;gap:var(--gap-sm)}
+.o-pill{display:flex;align-items:center;gap:8px;border:1px solid #E5E7EC;border-radius:99px;min-height:var(--chip-h);padding:0 14px;font-size:13px;background:#fff}
+.o-pill i{width:16px;height:16px;border-radius:50%;background:#EAFBF0;display:block}
+.o-pill.sel{background:#22C55E;border-color:#22C55E;color:#0B1F12;font-weight:600}.o-pill.sel i{background:rgba(11,31,18,.25)}
+.o-panel{background:#F6F9F6;border-radius:18px;padding:14px}
+.o-go{height:var(--btn-h);border-radius:99px;background:#22C55E;color:#0B1F12;font:700 15px 'Manrope',sans-serif;display:flex;align-items:center;justify-content:center}
+.o-go.dis{background:#E5E7EC;color:#6B7280}
+.o-tabs{display:flex;background:#F1F3F1;border-radius:99px;padding:3px;gap:3px}
+.o-tabs span{flex:1;text-align:center;padding:7px;border-radius:99px;font-size:13px;color:#667085}
+.o-tabs span.on{background:#fff;color:#111;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.o-field{border:1px solid #D0D5DD;border-radius:12px;padding:11px 14px;font-size:14px}
+.o-lab{font-size:13px;font-weight:600;margin-bottom:5px}
+.o-alert{background:#FEF3F2;border:1px solid #FDA29B;color:#B42318;border-radius:12px;padding:10px 14px;font-size:13.5px}
+.o-red{color:#B42318;font-size:13px;margin-top:6px}
+.st{display:flex;gap:12px;align-items:flex-start;margin-top:var(--gap-sm)}
+.st i{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:13px;background:#22C55E;color:#0B1F12;margin-top:2px}
+.st i.spin{background:transparent;border:2.5px solid #E5E7EC;border-top-color:#22C55E}
+.st i.big{transform:scale(1.28)}
+.st b{display:block;font-size:var(--body);font-weight:600}.st small{display:block;color:#667085;font-size:12.5px;line-height:1.3}
+.a-card{border:1px solid #E5E7EC;border-radius:16px;padding:12px 16px}
+.a-info{background:#F3F5F3;border-radius:16px;padding:12px 16px}
+.a-info b{display:block}
+/* dialogs */
+.dlg-bg{height:720px;position:relative;background:#F4F6F4;overflow:hidden}
+.dlg-bg .fake{position:absolute;inset:60px 90px;border:2px dashed #C8D3C8;border-radius:20px;filter:blur(2px);opacity:.9;background:#fff}
+.dlg-bg .dim{position:absolute;inset:0;background:rgba(17,17,17,.5);display:flex;align-items:center;justify-content:center}
+.dlg{background:#fff;border-radius:16px;padding:24px;width:448px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg h5{font-size:18px;font-weight:700;line-height:1.25}
+.dlg .body{color:#5C5C5C;font-size:14px}
+.dlg .foot{display:flex;gap:8px;justify-content:flex-end}
+.dlg.ph{width:100%}
+.dlg.ph .foot{flex-direction:column-reverse}
+.dbtn{font:700 13.5px 'Manrope',sans-serif;padding:10px 16px;border-radius:12px;border:1.5px solid #22C55E;background:#22C55E;color:#0B1F12;text-align:center}
+.dbtn.o{background:#fff;color:#15803D}
+.dwarn{display:flex;gap:10px;align-items:flex-start;background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:14px;padding:12px 14px;font-size:13.5px}
+.dwarn b{display:block;margin-bottom:2px}
+.dwarn i{flex:none;width:22px;height:22px;border-radius:50%;background:#F59E0B;color:#fff;font:700 13px 'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;font-style:normal;margin-top:1px}
+/* phone shell */
+.phs{width:390px;padding:14px;background:#111;border-radius:46px}
+.phs .scr{background:#fff;border-radius:34px;overflow:hidden;min-height:700px;position:relative}
+.phs .sb{height:34px;display:flex;justify-content:center;align-items:center}
+.phs .sb b{width:96px;height:22px;background:#111;border-radius:99px;display:block}
+.phs.dark .scr{background:#0F0F0F}
+/* email */
+.emx{--e-bg:#EEF6F0;--e-card:#fff;--e-ink:#111;--e-muted:#5C5C5C;--e-green:#15803D;--e-pale:#EEF8F0;--e-dark:#14301F;--e-line:#E5E5E5;--e-ic:#EAFBF0;--e-ill:#EAFBF0;--e-linkb:#D9E0D9;--e-small:#4ADE80;padding:20px 14px;background:var(--e-bg)}
+.emx.dark{--e-bg:#0F0F0F;--e-card:#1A1A1A;--e-ink:#F5F5F5;--e-muted:#A3A3A3;--e-green:#34D399;--e-pale:#17261C;--e-dark:#14301F;--e-line:#2A2A2A;--e-ic:#1F3B28;--e-ill:#F2FCF6;--e-linkb:#2F3A31;--e-small:#4ADE80}
+.emx.narrow{padding:12px 8px}
+.em-card{background:var(--e-card);color:var(--e-ink);border-radius:18px;padding:22px 22px 16px;width:100%}
+.narrow .em-card{padding:16px 14px 12px}
+.em-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.em-logo{font:700 24px 'DM Sans',sans-serif;color:var(--e-ink)}
+.em-tag{font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;color:var(--e-green)}
+.em-hd{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.em-hd>div:first-child{min-width:0}
+.em-h1{font:700 32px 'DM Sans',sans-serif;line-height:1.1}
+.em-h1 span{color:var(--e-green)}
+.narrow .em-h1{font-size:25px}
+.em-sub{color:var(--e-muted);margin-top:10px;font-size:15px}
+.narrow .em-sub{font-size:13.5px}
+.em-ill{flex:none;width:150px;height:118px;border-radius:50%;background:var(--e-ill);color:#15803D;font-size:11px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.narrow .em-ill{width:96px;height:78px;font-size:9px}
+.em-dark{background:var(--e-dark);color:#fff;border-radius:14px;padding:16px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:15px}
+.narrow .em-dark{padding:12px;gap:10px;font-size:13.5px}
+.em-dark>div{min-width:0}
+.em-dark small{display:block;color:var(--e-small);font:700 11px 'Manrope',sans-serif;letter-spacing:.07em;margin-bottom:2px}
+.em-dark b{display:block;font:700 19px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-ic{flex:none;width:44px;height:44px;border-radius:50%;background:var(--e-ic);color:#15803D;font-size:9.5px;display:flex;align-items:center;justify-content:center;text-align:center}
+.narrow .em-ic{width:34px;height:34px;font-size:8px}
+.em-pale{background:var(--e-pale);border-radius:14px;padding:14px 18px;margin:0 0 14px;display:flex;gap:16px;align-items:center;font-size:14.5px}
+.narrow .em-pale{padding:10px 12px;gap:10px;font-size:13px}
+.em-pale>div{min-width:0}
+.em-pale b{display:block;color:var(--e-green);font:700 17px 'DM Sans',sans-serif;margin-bottom:2px}
+.em-line{display:flex;gap:14px;align-items:center;margin:0 0 12px;font-size:14.5px}
+.narrow .em-line{gap:10px;font-size:13px}
+.em-line>div{min-width:0}
+.em-btn{display:block;text-align:center;background:#22C55E;color:#0B1F12;font:700 17px 'Manrope',sans-serif;padding:16px;border-radius:99px;margin:0 0 16px}
+.narrow .em-btn{font-size:15px;padding:13px}
+.em-link{border:1px solid var(--e-linkb);border-radius:12px;padding:9px 12px;font-size:12.5px;color:var(--e-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:8px;max-width:100%}
+.em-foot{border-top:1px solid var(--e-line);margin-top:14px;padding-top:12px;font-size:13px;color:var(--e-muted)}
+.em-foot a{color:var(--e-green)}
+.em-foot b{display:block;color:var(--e-ink);font:700 16px 'DM Sans',sans-serif;margin-top:10px}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}nav.toc{position:static;max-height:none}}
+
+/* ---------- Batch A additions: app-style mockups ---------- */
+.ap{background:#F6F8F6;font-size:13.5px;color:#111}
+.ap-body{padding:20px 24px}
+.ap-h{font:700 20px 'DM Sans',sans-serif;margin-bottom:12px}
+.ap-card{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:16px}
+.ap-card h5{font:700 16px 'DM Sans',sans-serif;margin-bottom:4px}
+.ap-mut{color:#667085;font-size:12px}
+.ap-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ap-tile{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:10px 12px}
+.ap-tile small{display:block;color:#667085;font-size:11.5px}
+.ap-tile b{font:700 20px 'DM Sans',sans-serif}
+.ap-tile .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.seg{display:inline-flex;border:1px solid #E5E7EB;border-radius:8px;padding:2px;font-size:11px}
+.seg span{padding:2px 8px;border-radius:6px;color:#667085}
+.seg span.on{background:#F1F3F1;color:#111;font-weight:600}
+.ap-t{width:100%;min-width:0;border-collapse:collapse;font-size:12.5px}
+.ap-t th{background:#fff;color:#667085;font:600 11.5px 'Manrope',sans-serif;letter-spacing:0;text-transform:none;text-align:left;padding:8px 10px;border-bottom:1px solid #E5E7EB}
+.ap-t td{padding:9px 10px;border-bottom:1px solid #EEF0EE;vertical-align:top}
+.ap-logoc{flex:none;width:28px;height:28px;border-radius:8px;background:#EAFBF0;color:#15803D;font:700 11px 'DM Sans';display:flex;align-items:center;justify-content:center}
+.ap-fund{display:flex;gap:10px;align-items:flex-start}
+.note-box{background:#FEF3E2;border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:8px 10px;font-size:12px;margin-top:8px}
+.circ{outline:2px solid #D92D20;outline-offset:2px;border-radius:8px}
+.rk{display:inline-block;font:700 13px 'DM Sans',sans-serif;background:#EAFBF0;color:#15803D;border-radius:99px;padding:2px 10px}
+.rk small{font:500 11px 'Manrope',sans-serif;color:#667085;margin-left:3px}
+.fn{display:grid;gap:6px}
+.fn .r{display:grid;grid-template-columns:230px 1fr 90px;gap:10px;align-items:center;font-size:12.5px}
+.fn .b{height:18px;border-radius:5px;background:#22C55E}
+.fn .b.x{background:#F59E0B}
+.fn .n{font-weight:700;text-align:right}
+.cmp{display:grid;gap:14px}
+.cmp .p{display:grid;grid-template-columns:44px 1fr 150px;gap:12px;align-items:center}
+.cmp .trk{position:relative;height:22px}
+.cmp .trk::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:#E5E7EB}
+.cmp .d{position:absolute;top:4px;width:14px;height:14px;border-radius:50%;transform:translateX(-7px)}
+.cmp .d.f{background:#22C55E}
+.cmp .d.c{border:2px solid #667085;background:#fff}
+.cmp .v{font-size:12px;color:#667085}
+.lab{font:600 11px 'Manrope',sans-serif;color:#B42318;background:#FDECEA;border-radius:99px;padding:1px 8px;margin-left:6px}
+.wf{display:grid;gap:7px}
+.wf .r{display:grid;grid-template-columns:210px 1fr 80px;gap:10px;align-items:center;font-size:12px}
+.wf .tr{position:relative;height:16px;background:#F1F3F1;border-radius:4px}
+.wf .tr i{position:absolute;top:0;bottom:0;border-radius:4px;background:#0EA5E9}
+.wf .tr i.s{background:#F59E0B}
+.wf .n{text-align:right;font-weight:600}
+.steps5{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+.steps5>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13.5px}
+.steps5 b{display:block;font-family:var(--f-display);margin-bottom:3px}
+.code2{font-family:var(--f-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow:auto;white-space:pre;margin:8px 0}
+.xl{background:#fff;font-size:12px}
+.xl .tabs2{display:flex;gap:2px;background:#E8ECE8;padding:6px 8px 0;font-size:12px}
+.xl .tabs2 span{padding:5px 12px;border-radius:6px 6px 0 0;background:#F3F5F3;color:#444}
+.xl .tabs2 span.on{background:#fff;font-weight:700;color:#107C41}
+.xl .fx{display:flex;gap:8px;align-items:center;border-bottom:1px solid #D9DED9;padding:4px 10px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#333;background:#fff}
+.xl .fx b{color:#107C41;font-family:Manrope,sans-serif}
+.xl table.g{border-collapse:collapse;width:100%;min-width:0;font-size:12px}
+.xl table.g th{background:#F3F5F3;border:1px solid #D9DED9;padding:4px 8px;text-align:left;font:600 11.5px Manrope,sans-serif;color:#333;text-transform:none;letter-spacing:0}
+.xl table.g td{border:1px solid #E6EAE6;padding:4px 8px;vertical-align:top}
+.xl td.f{font-family:ui-monospace,Consolas,monospace;background:#F1FAF4;color:#14532D}
+.xl td.ok{color:#14532D;font-weight:700}
+.xl td.no{color:#B42318;font-weight:700}
+.pend{display:inline-block;font:600 11px var(--f-body);padding:2px 8px;border-radius:99px;background:var(--warn-soft);color:var(--warn)}
+.a4{width:595px;height:842px;background:#fff;border:1px solid #D0D5DD;box-shadow:0 8px 30px rgba(0,0,0,.10);position:relative;font-family:'Manrope',sans-serif;color:#111;overflow:hidden;margin:0 auto}
+.a4 .hd{display:flex;justify-content:space-between;font-size:9px;color:#667085;padding:22px 36px 8px;border-bottom:1px solid #EEF0EE}
+.a4 .ft{position:absolute;left:36px;right:36px;bottom:20px;display:flex;justify-content:space-between;font-size:8.5px;color:#98A2B3;border-top:1px solid #EEF0EE;padding-top:6px}
+.a4 h1{font:700 30px 'DM Sans',sans-serif;line-height:1.1;margin:0}
+.a4 h2{font:700 17px 'DM Sans',sans-serif;margin:0 0 6px}
+.a4 .brand{font:700 22px 'DM Sans',sans-serif}
+.a4 .acc{height:10px;background:#22C55E}
+.a4 .meta2{font-size:11px;color:#475467;line-height:1.7}
+.a4 .toc div{display:flex;justify-content:space-between;font-size:10.5px;padding:3px 0;border-bottom:1px dotted #D0D5DD}
+.a4 .toc b{font:700 11px 'DM Sans',sans-serif;display:block;margin-top:10px;color:#15803D}
+.a4 table{width:100%!important;min-width:0!important;table-layout:fixed;border-collapse:collapse}.a4 th,.a4 td{background:none!important;text-transform:none!important;letter-spacing:0!important;font-size:inherit!important;font-weight:inherit;padding:5px 4px 5px 0!important;border-left:0;border-right:0}.a4 th{font-weight:600!important;color:#667085}.a4 td:first-child{font-weight:inherit}
+.xdoc{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:16px 18px;margin:12px 0}
+.dt{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:12px 0}.dt>div{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;font-size:13px}.dt b{display:block;font-family:var(--f-display);margin-bottom:3px}.dt .y{border-color:var(--accent);background:var(--accent-soft)}.dt .n{border-color:var(--danger);background:var(--danger-soft)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+ <h4>Start here</h4>
+ <a href="#what">1. What this batch is</a>
+ <a href="#known">2. What we already know (from the code)</a>
+ <h4>The audit</h4>
+ <a href="#measure">3. How coverage is measured</a>
+ <a href="#fail">4. Why the automatic job can fail</a>
+ <a href="#manual">5. The by-hand houses</a>
+ <a href="#evidence">6. How the evidence is gathered</a>
+ <h4>The output</h4>
+ <a href="#out">7. What you get</a>
+ <a href="#tasks">8. Tasks</a>
+ <a href="#fit">9. Where it fits in the program</a>
+ <a href="#risks">10. Risks</a>
+ <h4>Your call</h4>
+ <a href="#questions">11. Decisions (3 of 4 answered)</a>
+ <a href="#copy">12. Copy my answers</a>
+</nav>
+
+<main>
+<div class="hero">
+ <h1>Batch L: Portfolio Disclosures Audit</h1>
+ <div class="meta">Planning only &middot; nothing built or run &middot; 17 Nov 2026 &middot; the sister of the fund-manager factsheet audit &middot; branch leapswitch-redesign</div>
+ <p>Every month each fund house publishes the full list of stocks and bonds in each fund (the <b>portfolio disclosure</b>). A daily job collects these, and the look-through screens (stock overlap, large/mid/small cap, asset allocation, P/E and P/B) depend on them. This batch is a <b>check of that job for November</b>, the same way the factsheet job was checked: <b>how much is covered, a percentage we can quote, what is still done by hand, what the automatic job failed to get, and why (layout changes and the like).</b></p>
+ <div class="callout"><b>An honest starting point.</b> I have no access to staging, so <b>I have not measured November.</b> Everything below marked &ldquo;from the code&rdquo; is read from the repo; every November number comes from read-only queries you (or the manager&rsquo;s Claude) run on the server from a guide I write. No number in this workbook is invented, and the report layout in section 8 uses blanks, not figures.</div>
+ <p><b>What &ldquo;November&rdquo; means.</b> The job runs on days 1 to 20 of the month and looks for the <b>previous month-end</b> (read in the code: the target is the last day of the month before today). So the November round is the <b>31 October</b> disclosures, published in the first ten days of November. This is the default used below (Q1).</p>
+</div>
+<section id="what">
+ <h2>1. What this batch is</h2>
+ <p class="lead">An audit, not a build. It answers four questions about the November portfolio-disclosure round, and proposes fixes for you to approve.</p>
+ <div class="steps5">
+  <div><b>1. Coverage</b>How much of the November round is in, counting the by-hand imports too, as a percentage.</div>
+  <div><b>2. By hand</b>Which fund houses still need someone to download a file, and what is waiting.</div>
+  <div><b>3. Automatic misses</b>Which fund houses the job should have read but did not.</div>
+  <div><b>4. Why</b>For each miss: a layout change, a moved address, a block, a late publication, or our own matching.</div>
+  <div><b>5. Next steps</b>A short, ordered list, with fixes proposed only.</div>
+ </div>
+ <h3 class="sub">How it differs from the factsheet audit</h3>
+ <div class="scroll"><table>
+  <thead><tr><th></th><th>Fund-manager factsheets (done)</th><th>Portfolio disclosures (this batch)</th></tr></thead>
+  <tbody>
+   <tr><td class="k">What is collected</td><td>Who manages each fund</td><td>Every stock and bond each fund holds, with weights</td></tr>
+   <tr><td class="k">Job</td><td>Monthly job on the 10th</td><td>Daily job, 05:45, days 1 to 20 of the month</td></tr>
+   <tr><td class="k">Unit of coverage</td><td>Funds per fund house</td><td>Schemes with a stored, weight-checked batch per month</td></tr>
+   <tr><td class="k">Manual houses</td><td>10 (11 files)</td><td>7 by registry (section 5). Not the same ten</td></tr>
+   <tr><td class="k">Where failures are recorded</td><td>Job log only (discarded after each run)</td><td>Job log only (<code>PORTFOLIO_DISCLOSURE_ALERT</code> lines); the batch row keeps a status and a structured error list. See section 6</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="known">
+ <h2>2. What we already know (read from the code, not measured)</h2>
+ <div class="stats">
+  <div class="stat"><div class="n">52</div><div class="l">fund houses the job knows how to read (registry)</div></div>
+  <div class="stat"><div class="n">45</div><div class="l">automatic (27 JSON endpoints, 16 plain pages, 2 via the web archive)</div></div>
+  <div class="stat"><div class="n">7</div><div class="l">by hand</div></div>
+  <div class="stat"><div class="n">5</div><div class="l">expected to publish nothing</div></div>
+ </div>
+ <p class="note">The design notes count 57 fund houses: the 52 above plus five that publish no holdings file at all (ASK, IL&amp;FS, Lakshya, Carnelian, Nuvama). Counts are from the registry file and the design spec, not from staging.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Group</th><th>Fund houses (from the registry)</th><th>Why it matters to the audit</th></tr></thead>
+  <tbody>
+   <tr><td class="k">By hand (7)</td><td>Edelweiss, Mahindra Manulife, Invesco, ITI, JM Financial, HSBC, Bandhan</td><td>Blocked or encrypted sites. A person downloads the file; an import command stores it.</td></tr>
+   <tr><td class="k">Automatic, but fragile</td><td>HDFC and Canara Robeco (found through the web archive, not the live site); Kotak (a file address built from the date); Aditya Birla Sun Life (the endpoint returns a dead host that the code rewrites); Mirae (a missing file returns a normal-looking error page); Union (address built from the scheme name)</td><td>These break first when a site changes. Each has a known weak point in the design notes.</td></tr>
+   <tr><td class="k">Automatic, odd cadence</td><td>Taurus (half-yearly only); Monarch (fortnightly file used as its best available)</td><td>&ldquo;No November file&rdquo; is normal for Taurus, not a failure. The audit must say so, not count it as a miss.</td></tr>
+   <tr><td class="k">Automatic, everything else</td><td>The remaining fund houses (Nippon, SBI, Axis, ICICI Prudential, DSP, Tata, UTI, Mirae, WhiteOak, Trust and others)</td><td>Expected to work; the audit confirms each has a stored batch for the target month.</td></tr>
+   <tr><td class="k">Expected absent (5)</td><td>ASK, IL&amp;FS, Lakshya, Carnelian, Nuvama</td><td>Listed as &ldquo;no row is a normal state&rdquo;. Excluded from the percentage&rsquo;s denominator, and listed separately.</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout info"><b>Worth knowing.</b> The by-hand list here is <b>not</b> the factsheet audit&rsquo;s list. Kotak, ICICI Prudential, HDFC, Trust, WhiteOak and Axis were by hand for factsheets but are automatic for disclosures; Edelweiss, Mahindra Manulife and HSBC are by hand for disclosures only. The audit must not copy the factsheet table.</div>
+ <h3 class="sub">What the system already does when something is missing</h3>
+ <ul class="tight">
+  <li>Each scheme and month gets one batch row with a status: pending, fetched, parsed, <b>written</b>, <b>failed</b> or <b>awaiting manual upload</b>. Screens read only <b>written</b> batches.</li>
+  <li>A batch is kept only if its weights add up to between 90 and 101 percent; otherwise it is stored as <b>failed</b> and ignored by screens.</li>
+  <li>On days 10 and 20 an alert is logged naming by-hand houses still waiting; on day 20 another lists any fund house with no written batch for the target month.</li>
+  <li>If a month is missed, funds keep showing the last month and are tagged older than 60 days; the Analytics banner reads &ldquo;Based on X% of your portfolio&rdquo; and names the uncovered funds.</li>
+  <li>The manual import refuses a file older than 45 days unless told otherwise, and never guesses its date.</li>
+ </ul>
+</section>
+
+<section id="measure">
+ <h2>3. How coverage is measured</h2>
+ <p class="lead">&ldquo;How much is covered&rdquo; can mean three different things. The audit reports all three, in this order, so the headline cannot be misread.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Measure</th><th>Definition</th><th>Good for</th><th>Weakness</th></tr></thead>
+  <tbody>
+   <tr><td class="k">1. Fund houses</td><td>Fund houses with at least one written batch for the target month, out of the 52 in the registry (the five expected-absent houses excluded)</td><td>A quick health check; matches the &ldquo;45 automatic, 7 by hand&rdquo; story</td><td>A house with one fund in and 100 out counts as covered</td></tr>
+   <tr><td class="k">2. Funds</td><td>Schemes with a written batch for the target month, out of the live schemes at covered-or-expected fund houses</td><td>What most people mean by &ldquo;coverage&rdquo;</td><td>Treats a tiny fund like a huge one; the count of live funds needs one query (section 6)</td></tr>
+   <tr><td class="k">3. Money</td><td>The same, weighted by each fund&rsquo;s assets (from AMFI&rsquo;s average assets data already in the system)</td><td>The number closest to what a user&rsquo;s &ldquo;Based on X% of your portfolio&rdquo; banner shows</td><td>Needs assets data for the same month; approximate for the newest funds</td></tr>
+  </tbody>
+ </table></div>
+ <div class="callout good"><b>My pick:</b> report all three; quote <b>funds</b> as the headline (like the factsheet audit&rsquo;s 8,582 of about 8,776), and <b>money</b> as the number that explains what users see. Fund houses is a footnote. (Q2.)</div>
+ <h3 class="sub">Three more cuts the percentage needs</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Cut</th><th>Why</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Automatic versus by-hand</td><td>You asked &ldquo;including the manual hand imports&rdquo;. The report shows each separately and together, and also &ldquo;with by-hand houses assumed imported&rdquo; so you can see the ceiling.</td></tr>
+   <tr><td class="k">Fresh versus stale</td><td>Each batch carries the date written in the file itself. A fund whose newest batch is the previous month counts as <b>stale</b>, not covered. This avoids the factsheet audit&rsquo;s problem, where old files were stamped with the new month.</td></tr>
+   <tr><td class="k">Written versus failed or unmatched</td><td>A failed weight check or an unmatched scheme name is a different kind of gap from &ldquo;not published&rdquo;, and has a different fix.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="fail">
+ <h2>4. Why the automatic job can fail</h2>
+ <p class="lead">The job writes a labelled warning for every failure. These are the labels in the code and what each usually means, so each miss in the report gets a real cause, not a guess.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Label in the log</th><th>What it means</th><th>Likely cause</th><th>Layout change?</th></tr></thead>
+  <tbody>
+   <tr><td class="k"><code>no_file_found</code></td><td>The page or endpoint answered but no matching file was found</td><td>Page redesigned, link text changed, file naming changed</td><td><b>Yes, the classic sign</b></td></tr>
+   <tr><td class="k"><code>target_month_not_published</code></td><td>Files exist but the newest is older than the target month</td><td>The fund house is late</td><td>No: a delay</td></tr>
+   <tr><td class="k"><code>error</code></td><td>The download failed (blocked, redirect, timeout, not a real workbook)</td><td>A new block, a moved address, a redirect (as with the NSE book-value job)</td><td>Often</td></tr>
+   <tr><td class="k"><code>parse_error</code></td><td>The file opened but the sheet could not be read</td><td>Columns renamed or moved, a new header row, a changed sheet layout</td><td><b>Yes</b></td></tr>
+   <tr><td class="k"><code>failed_sum_check</code></td><td>Weights did not add up to 90 to 101 percent</td><td>Rows missing or split, a changed total line, a unit change</td><td>Often</td></tr>
+   <tr><td class="k"><code>unmatched_scheme</code></td><td>A sheet&rsquo;s fund name matched no known scheme</td><td>A renamed or new fund; our name matching</td><td>No: a naming issue on our side or a new fund</td></tr>
+   <tr><td class="k"><code>duplicate_match</code></td><td>Two sheets matched one scheme</td><td>A fund published twice, or a double ingest</td><td>Sometimes</td></tr>
+   <tr><td class="k"><code>zero_schemes_matched</code></td><td>The registry name matches no fund in our list</td><td>A rename, or the fund list loaded after the job ran</td><td>No</td></tr>
+   <tr><td class="k"><code>stale_fallback</code>, <code>stale_wayback_capture</code></td><td>Only an older file or an old archive copy was available</td><td>Live site not reachable or not updated</td><td>No</td></tr>
+   <tr><td class="k"><code>manual_upload_pending</code></td><td>A by-hand house is still waiting</td><td>Nobody has imported yet</td><td>No</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">How the audit tells a layout change from a delay</h3>
+ <ol class="tight">
+  <li>Compare each fund house&rsquo;s <b>October</b> and <b>November</b>: schemes written, rows per scheme, failed batches.</li>
+  <li>A house that worked last month and now logs <code>no_file_found</code>, <code>parse_error</code> or <code>failed_sum_check</code> has very likely changed layout or address. We then open the page or file once by hand and record what changed.</li>
+  <li>A house whose newest file is last month&rsquo;s is late; we check again on day 20.</li>
+  <li>A house with many <code>unmatched_scheme</code> lines has a naming problem; we list the names.</li>
+ </ol>
+ <div class="callout"><b>A known gap in the code (not changed by this audit).</b> The alerts are written to the job log only, and I have not confirmed how long the server keeps those logs; the factsheet job&rsquo;s were discarded after each run. If the November run&rsquo;s log is already gone, the causes have to be rebuilt by re-checking each house, and the audit says so. A fix (keep the reasons in the database) is proposed in section 8, not built.</div>
+</section>
+
+<section id="manual">
+ <h2>5. The by-hand houses</h2>
+ <p class="lead">Seven fund houses cannot be read by a script. State of each as last recorded in the repo (14 Oct); the audit replaces this with November&rsquo;s real state.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Fund house</th><th>Why a script cannot read it</th><th>What works</th><th>Open item recorded in October</th><th>November state</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Edelweiss</td><td>Bot protection; no file links</td><td>Browser download of one consolidated workbook</td><td>September file verified</td><td class="k">to be checked</td></tr>
+   <tr><td class="k">Mahindra Manulife</td><td>File list is an encrypted response</td><td>Browser download of the monthly workbook</td><td>The file received was an unusable XML; the real workbook was still to be found</td><td class="k">to be checked</td></tr>
+   <tr><td class="k">Invesco</td><td>A wall that stops even a real browser</td><td>A hand download</td><td>Only a PDF was offered; no PDF reader exists. <b>Needs a decision</b></td><td class="k">to be checked</td></tr>
+   <tr><td class="k">ITI</td><td>A challenge page that stops even a real browser</td><td>A hand download</td><td>The file on the site was August, not September</td><td class="k">to be checked</td></tr>
+   <tr><td class="k">JM Financial</td><td>The site&rsquo;s file list is encrypted</td><td>One download per scheme (about 17 funds)</td><td>2 of about 17 received</td><td class="k">to be checked</td></tr>
+   <tr><td class="k">HSBC</td><td>A firewall that passes browsers, not scripts</td><td>Per-scheme spreadsheets from the investor-resources page</td><td>The right page was still being located; the file count not taken</td><td class="k">to be checked</td></tr>
+   <tr><td class="k">Bandhan</td><td>The listing page makes an encrypted call</td><td>The workbook from the downloads page</td><td>Listed as the seventh by-hand house pending confirmation; only the debt workbook was listed in September</td><td class="k">to be checked</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">&ldquo;Recorded in October&rdquo; is from the gap page in the repo and may be out of date. Nothing here is a November fact.</p>
+ <h3 class="sub">What the audit produces for these seven</h3>
+ <ul class="tight">
+  <li>For each: the file needed, the page, the date inside the file, whether it is in hand, and its status in the database (imported, waiting, none).</li>
+  <li>A to-do list in import order, with the exact import command for each file (from the existing guide), and any date problem flagged before the import is run, as the Axis 45-day rule was for factsheets.</li>
+  <li>The two open decisions (Invesco PDF-only, Bandhan as a by-hand house) put to you with options.</li>
+ </ul>
+</section>
+
+<section id="evidence">
+ <h2>6. How the evidence is gathered</h2>
+ <p class="lead">Read-only, on the staging server, using the access you already have. I write the guide and the queries; you or the manager&rsquo;s Claude run them and send back the results. I never run anything on the server.</p>
+ <div class="scroll"><table>
+  <thead><tr><th>Step</th><th>What</th><th>Output</th></tr></thead>
+  <tbody>
+   <tr><td class="k">E1</td><td>One query: batches for the target month and the month before, per fund house and status (written, failed, awaiting upload).</td><td>The counts behind measures 1 and 2</td></tr>
+   <tr><td class="k">E2</td><td>One query: live schemes per fund house, from the fund list, to give the denominator.</td><td>&ldquo;Out of how many&rdquo;</td></tr>
+   <tr><td class="k">E3</td><td>One query: assets per scheme for the same month, joined to E1.</td><td>Measure 3 (money)</td></tr>
+   <tr><td class="k">E4</td><td>One query: the newest as-of date per fund house and per scheme.</td><td>Fresh versus stale</td></tr>
+   <tr><td class="k">E5</td><td>One query: the error list on each failed batch.</td><td>Structured reasons for failures</td></tr>
+   <tr><td class="k">E6</td><td>The job log lines labelled <code>PORTFOLIO_DISCLOSURE_ALERT</code> from 1 to 20 Nov, if the server still has them.</td><td>The cause per miss; the retention answer</td></tr>
+   <tr><td class="k">E7</td><td>For each house that regressed since October: open its page or file once by hand and record what changed.</td><td>The layout-change notes</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">All queries are SELECT only. The database holds no personal data in these tables. Nothing here needs a code change or a deploy.</p>
+ <div class="callout info"><b>Timing.</b> The round is complete by day 20, and the by-hand houses usually need until about day 10 to 12. A mid-month audit shows a lower percentage than the final one; the report is stamped with the date it was taken and can be re-run.</div>
+</section>
+
+<section id="out">
+ <h2>7. What you get</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Deliverable</th><th>Form</th><th>For</th></tr></thead>
+  <tbody>
+   <tr><td class="k">The November coverage report</td><td>A short message in plain text (like the factsheet one) plus the evidence tables, as a Markdown file</td><td>You and your manager</td></tr>
+   <tr><td class="k">The by-hand to-do list</td><td>A table with file, page, date, command and status</td><td>Whoever imports</td></tr>
+   <tr><td class="k">The failure notes</td><td>One line per missed house: the label, the cause, what changed, the fix</td><td>Engineering</td></tr>
+   <tr><td class="k">Fix proposals</td><td>Each with its failing test described first, effort, and risk. <b>Nothing is built until you approve each</b>, as in Batch A.</td><td>You</td></tr>
+   <tr><td class="k">The read-only queries and a re-run guide</td><td>A document, so next month&rsquo;s audit takes a short sitting</td><td>You and the manager&rsquo;s Claude</td></tr>
+  </tbody>
+ </table></div>
+ <h3 class="sub">The shape of the report (blanks, not figures)</h3>
+ <div class="xdoc"><div class="doc"><h4>November portfolio disclosures: coverage and what is still by hand</h4>
+  <p><b>1. What the round produced.</b> The job ran on days 1 to 20 for the 31 October disclosures. Written batches: ___ funds across ___ fund houses, out of ___ live funds (__%). By assets: __%. Fresh: ___. Stale: ___. Failed: ___.</p>
+  <p><b>2. By hand: 7 fund houses.</b> Table: house, file, data as on, in hand, imported, funds covered.</p>
+  <p><b>3. Automatic misses.</b> Table: house, label, cause (late, layout change, block, naming), evidence, fix.</p>
+  <p><b>4. Expected gaps.</b> The five houses that publish nothing; Taurus (half-yearly); Monarch (fortnightly).</p>
+  <p><b>5. What is left.</b> An ordered list. Not yet confirmed: anything not measured, stated plainly.</p></div></div>
+</section>
+
+<section id="tasks">
+ <h2>8. Tasks</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>#</th><th>Task</th><th>Who</th><th>Size</th><th>Waits for</th></tr></thead>
+  <tbody>
+   <tr><td>L-1</td><td>Write the read-only queries E1 to E5 and test them against a local database with invented rows</td><td>Claude</td><td>S</td><td>Q1, Q2 answered</td></tr>
+   <tr><td>L-2</td><td>Write the guide (tunnel, queries, log grab) in the usual step-per-terminal format</td><td>Claude</td><td>S</td><td>L-1</td></tr>
+   <tr><td>L-3</td><td>Run the queries and the log grab on staging; send the results</td><td>You or the manager&rsquo;s Claude</td><td>S</td><td>L-2</td></tr>
+   <tr><td>L-4</td><td>Compute the three coverage measures and the cuts; build the by-hand table</td><td>Claude</td><td>M</td><td>L-3</td></tr>
+   <tr><td>L-5</td><td>Check each regressed house by hand (E7) and write the layout-change notes</td><td>Claude, with you for blocked sites</td><td>M</td><td>L-4</td></tr>
+   <tr><td>L-6</td><td>Write the report, the to-do list and the failure notes</td><td>Claude</td><td>M</td><td>L-5</td></tr>
+   <tr><td>L-7</td><td>Fix proposals: one per distinct cause, with failing test, effort and risk</td><td>Claude</td><td>M</td><td>L-6</td></tr>
+   <tr><td>L-8</td><td>Import the by-hand files (your action; commands in the report) and re-run E1 and E4 to refresh the numbers</td><td>You</td><td>S</td><td>L-6</td></tr>
+   <tr><td>L-9</td><td>Approved fixes only, built test first (for example, keeping failure reasons in the database, a content-date check like the factsheet job&rsquo;s known limit, a changed endpoint)</td><td>Codex</td><td>Sized per fix</td><td>Your approval of each</td></tr>
+  </tbody>
+ </table></div>
+ <p class="note">Tasks L-1 to L-7: 5 small and 3 medium, about 8 to 10 worker-days for the audit itself. L-9 is not in that estimate.</p>
+</section>
+
+<section id="fit">
+ <h2>9. Where it fits in the program</h2>
+ <ul class="tight">
+  <li><b>Wave 1, independent of everything.</b> It touches no screens and shares no files with the other batches. Approved fixes would touch only the <code>portfolio_disclosure_*</code> files and the job script.</li>
+  <li><b>No deploy for the audit.</b> It is read-only. A fix that changes code ships at the next milestone that has a backend deploy, with the usual checks.</li>
+  <li><b>Timing matters, not order.</b> The audit is most useful once the by-hand imports are done (about day 10 to 12) and again after day 20; the program plan does not wait on it.</li>
+  <li><b>What it feeds.</b> The coverage banner wording and the evidence behind &ldquo;Based on X% of your portfolio&rdquo;; also Batch I (the PDF repeats that banner) and the later Explore and look-through work.</li>
+  <li><b>Not part of it:</b> the NSE book-value job failure found in the other session (the redirect to a new NSE address) belongs to the factsheet and valuation side. It is a real, separate failure; say the word and I add it here or plan it on its own.</li>
+ </ul>
+</section>
+
+<section id="risks">
+ <h2>10. Risks</h2>
+ <div class="scroll"><table>
+  <thead><tr><th>Risk</th><th>What we do</th></tr></thead>
+  <tbody>
+   <tr><td>The November log is already gone, so causes cannot be read</td><td>Say so in the report; re-check each house by hand; propose keeping reasons in the database.</td></tr>
+   <tr><td>The percentage is misread (a mid-month figure treated as final)</td><td>Stamp the date taken, show by-hand houses separately, re-run on day 20.</td></tr>
+   <tr><td>Expected gaps counted as misses (the five houses, Taurus, Monarch)</td><td>Listed separately and excluded from the denominator, with the reason.</td></tr>
+   <tr><td>Old files hiding as new ones</td><td>Use the date inside each file, never the import date.</td></tr>
+   <tr><td>A fix is built on a guess</td><td>Each fix is proposed with the evidence of the cause and approved first.</td></tr>
+   <tr><td>The by-hand list is copied from the factsheet audit</td><td>Section 2 keeps the two lists apart.</td></tr>
+   <tr><td>Real data in evidence</td><td>The tables hold fund-house and fund names only; no household or personal data is read.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="questions">
+ <h2>11. Decisions</h2>
+ <p class="lead">Three of four are answered (17 Nov): Q1 A, Q3 A, Q4 A. <b>Q2 is still open;</b> until you answer, I will use my pick (A: funds as the headline, money second, fund houses as a footnote).</p>
+ <div class="bar"><span class="status" id="prog">0 of 4 answered</span><button class="ghost" id="jump" type="button">Jump to next unanswered</button><button id="copyTop" type="button">Copy my answers</button></div>
+ <div id="cards"></div>
+ <h3 class="sub">Defaults I will use</h3>
+ <div class="scroll"><table>
+  <thead><tr><th>Topic</th><th>Default</th></tr></thead>
+  <tbody>
+   <tr><td class="k">Running the queries</td><td>You or the manager&rsquo;s Claude, from my guide; read-only; I never touch the server.</td></tr>
+   <tr><td class="k">When</td><td>First pass once the by-hand imports are done (about day 10 to 12), a final pass after day 20.</td></tr>
+   <tr><td class="k">Fixes</td><td>Proposed with evidence; nothing built until you approve each.</td></tr>
+   <tr><td class="k">Format of the report</td><td>A plain-text message you can forward, plus a Markdown evidence file in the repo.</td></tr>
+   <tr><td class="k">Commits</td><td>Only when you say.</td></tr>
+  </tbody>
+ </table></div>
+</section>
+
+<section id="copy">
+ <h2>12. Copy my answers</h2>
+ <p class="lead">Press the button, then paste the text in chat. If it does nothing, select the text below and copy it yourself.</p>
+ <button id="copyBtn" type="button">Copy my answers</button> <span class="status" id="copyMsg"></span>
+ <label class="nl" for="outTa">Your answers as text</label>
+ <textarea id="outTa" class="out" readonly></textarea>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+function vp(inner,w,h,cls,attrs){return '<div class="vp '+(cls||'')+'" data-w="'+w+'"'+(h?' data-h="'+h+'"':'')+(attrs||'')+'><div class="vp-in">'+inner+'</div></div>'}
+function chrome(url){return '<div class="chrome"><i></i><i></i><i></i><span>'+url+'</span></div>'}
+
+/* ---- item 8: XIRR tile ---- */
+function xirrTile(v){
+ var val=v==='f1'?'6.1%':'9.4%';
+ var extra=v==='f1'?'<div class="note-box circ" style="margin-top:10px">One fund has no price today. Its purchases are counted, its value is not, so the rate falls. <b>Nothing on screen says so.</b></div>':'';
+ var tiles='<div class="ap-tile"><small>Total portfolio value</small><b>&#8377;40,12,300</b></div><div class="ap-tile"><small>Invested</small><b>&#8377;31,40,000</b></div><div class="ap-tile"><small>Unrealised</small><b>+&#8377;8,72,300</b></div>';
+ var x='<div class="ap-tile"><div class="row"><small>XIRR</small><span class="seg"><span class="on">Lifetime</span><span>Current</span></span></div><b>'+val+'</b><small>Since inception</small>'+extra+'</div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds')+'<div class="ap"><div class="ap-body"><div class="ap-tiles">'+tiles+x+'</div></div></div>',1100,0);
+}
+/* ---- item 10: rank rows ---- */
+function rankRows(){
+ var f=function(n,c,a,b,d,hl){return '<tr><td><div class="ap-fund"><span class="ap-logoc">'+n.charAt(0)+'</span><div><b>'+n+'</b><div class="ap-mut">'+c+'</div></div></div></td><td><span class="rk'+(hl?' circ':'')+'">7<small>of 33</small></span></td><td><span class="rk'+(hl?' circ':'')+'">6<small>of 29</small></span></td><td><span class="rk'+(hl?' circ':'')+'">5<small>of 21</small></span></td></tr>'};
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/performance')+'<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Performance ranking</h5><p class="ap-mut" style="margin-bottom:10px">Rank within category and plan, for each period.</p><table class="ap-t"><thead><tr><th>Fund</th><th>1 year</th><th>3 years</th><th>5 years</th></tr></thead><tbody>'+f('Alpha Flexi Cap Fund','Flexi Cap &middot; Direct plan',0,0,0,true)+'</tbody></table></div></div></div>',1000,0);
+}
+/* ---- item 10: funnel ---- */
+function funnel(){
+ var rows=[['Every scheme in the category (AMFI file)',61,0],['Live: price within 30 days',55,0],['One series per fund, same plan (Direct), Growth',41,0],['Active and not an index fund or ETF',38,0],['Has a 1-year return  (the app&rsquo;s total for 1Y)',33,1],['Has a 5-year return  (the app&rsquo;s total for 5Y)',21,1]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Flexi Cap, Direct: how the total is counted</h5><p class="ap-mut" style="margin-bottom:12px">One page of the evidence pack. Numbers invented.</p><div class="fn">';
+ rows.forEach(function(r){h+='<div class="r"><span>'+r[0]+'</span><div><div class="b'+(r[2]?' x':'')+'" style="width:'+Math.round(r[1]/61*100)+'%"></div></div><span class="n">'+r[1]+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">Each step lists the funds that dropped out and why. The app&rsquo;s result must match every step; a gap is a finding.</p></div></div></div>';
+ return vp(h,900,0);
+}
+/* ---- item 9: category card ---- */
+function catCard(){
+ var rows=[['1Y',58,50,'+1.2%','4.6% vs 3.4%',true],['3Y',44,50,'&minus;1.1%','12.8% vs 13.9%',false],['5Y',30,62,'&minus;4.8%','6.4% vs 11.2%',false]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><div class="ap-fund"><span class="ap-logoc">A</span><div><b>Alpha Flexi Cap Fund</b><div class="ap-mut">Flexi Cap &middot; Direct plan</div></div></div><div class="cmp" style="margin-top:14px">';
+ rows.forEach(function(r){var c=r[5]?'#15803D':'#D92D20';h+='<div class="p"><b>'+r[0]+'</b><div class="trk"><span class="d c" style="left:'+r[2]+'%"></span><span class="d f" style="left:'+r[1]+'%;background:'+c+'"></span></div><span class="v" style="text-align:right"><b style="color:'+c+'">'+r[3]+'</b><br>'+r[4]+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">Category average covers 31 funds (1Y), 31 (3Y), 24 (5Y). Weighted by fund size.</p><p class="ap-mut" style="margin-top:6px">Filled dot: your fund. Hollow dot: category average. Green means ahead; red means behind.</p></div></div></div>';
+ return vp(chrome('ls-redesign.unifolio.in/portfolio/mutual-funds/other')+h,1000,0);
+}
+/* ---- item 7: waterfall ---- */
+function waterfall(){
+ var rs=[['holdings + XIRR bundle',0,62,1],['allocation',2,18,0],['coverage gaps',2,12,0],['history points',3,30,0],['SIPs',3,14,0],['stored per-fund analytics',4,22,0]];
+ var h='<div class="ap"><div class="ap-body"><div class="ap-card"><h5>Mutual Funds Overview: requests (illustrative)</h5><p class="ap-mut" style="margin-bottom:12px">Bar position is when the request starts; length is how long it takes.</p><div class="wf">';
+ rs.forEach(function(r){h+='<div class="r"><span>'+r[0]+'</span><div class="tr"><i class="'+(r[3]?'s':'')+'" style="left:'+r[1]+'%;width:'+r[2]+'%"></i></div><span class="n">'+(r[3]?'slowest':'')+'</span></div>'});
+ h+='</div><p class="ap-mut" style="margin-top:12px">What we read off the real version: which request ends last, which is large, and what the browser does after the last reply.</p></div></div></div>';
+ return vp(h,900,0);
+}
+function xlsx(v){
+ var tabs=['Read me','Summary','Pool','Excluded','Worked examples','Checks','Glossary'],on={summary:'Summary',pool:'Pool',checks:'Checks'}[v];
+ var th='<div class="tabs2">'+tabs.map(function(x){return '<span'+(x===on?' class="on"':'')+'>'+x+'</span>'}).join('')+'</div>';
+ var body='';
+ if(v==='summary'){
+  body='<div class="fx"><b>fx</b> =SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$F:$F="Y")*Pool!$H:$H*Pool!$D:$D)/SUMPRODUCT((Pool!$A:$A=A2)*(Pool!$F:$F="Y")*Pool!$D:$D)</div><table class="g"><thead><tr><th>Category and plan</th><th>Funds in pool</th><th>Covered 1Y / 3Y / 5Y</th><th>3Y average (formula)</th><th>3Y plain average</th><th>No size</th><th>Weighting</th><th>Thin?</th><th>App shows</th><th>Difference</th></tr></thead><tbody>'
+  +'<tr><td>Equity Scheme - Flexi Cap Fund, Direct</td><td>31</td><td>31 / 31 / 24</td><td class="f">14.82%</td><td>14.11%</td><td>1</td><td>size</td><td>no</td><td>14.82%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Equity Scheme - Large Cap Fund, Direct</td><td>29</td><td>29 / 29 / 26</td><td class="f">13.40%</td><td>13.05%</td><td>0</td><td>size</td><td>no</td><td>13.40%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Hybrid Scheme - Equity Savings, Regular</td><td>4</td><td>4 / 4 / 3</td><td class="f">8.90%</td><td>8.60%</td><td>0</td><td>size</td><td>yes</td><td>8.90%</td><td class="ok">0.0000</td></tr>'
+  +'<tr><td>Debt Scheme - Gilt Fund, Direct</td><td>11</td><td>11 / 11 / 9</td><td class="f">7.21%</td><td>7.18%</td><td>11</td><td>plain (no sizes)</td><td>no</td><td>7.18%</td><td class="ok">0.0000</td></tr></tbody></table>';
+ } else if(v==='pool'){
+  body='<div class="fx"><b>fx</b> =IF(F2="Y",D2/SUMIFS($D:$D,$A:$A,A2,$F:$F,"Y"),0)</div><table class="g"><thead><tr><th>Category and plan</th><th>Fund</th><th>Fund house</th><th>Size (&#8377; cr) and month</th><th>1Y / 3Y / 5Y return</th><th>Counts (3Y floor)</th><th>Weight</th><th>Contribution to 3Y</th></tr></thead><tbody>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Alpha Flexi Cap Fund</td><td>Alpha MF</td><td>18,400 &middot; Oct 2026</td><td>12.1% / 14.0% / 16.3%</td><td>Y</td><td class="f">0.1120</td><td class="f">1.57%</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Beacon Flexi Cap Fund</td><td>Beacon MF</td><td>9,250 &middot; Oct 2026</td><td>9.8% / 15.2% / 15.4%</td><td>Y</td><td class="f">0.0563</td><td class="f">0.86%</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Cedar Flexi Cap Fund</td><td>Cedar MF</td><td>no size on record</td><td>10.5% / 13.1% / &mdash;</td><td>Y</td><td class="f">0 (counted, no weight)</td><td class="f">&mdash;</td></tr>'
+  +'<tr><td>Flexi Cap, Direct</td><td>Delta Flexi Cap Fund</td><td>Delta MF</td><td>2,100 &middot; Oct 2026</td><td>8.0% / &mdash; / &mdash;</td><td>N (under 3 years)</td><td class="f">0</td><td class="f">&mdash;</td></tr></tbody></table>';
+ } else {
+  body='<table class="g"><thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead><tbody>'
+  +'<tr><td>Excel average equals the app&rsquo;s, every category</td><td class="ok">PASS</td><td>Largest difference 0.0000 across 158 category-and-plan rows</td></tr>'
+  +'<tr><td>Weights add to 100% in every pool</td><td class="ok">PASS</td><td>Smallest 100.0000%, largest 100.0000%</td></tr>'
+  +'<tr><td>Every excluded scheme has a reason</td><td class="ok">PASS</td><td>0 without a reason</td></tr>'
+  +'<tr><td>Size data newer than 45 days</td><td class="no">3 categories</td><td>Listed on the Excluded sheet; shown, not hidden</td></tr>'
+  +'<tr><td>Dates stated</td><td class="ok">PASS</td><td>Price date, size month, fund list date, export date, app version</td></tr></tbody></table>';
+ }
+ return vp('<div class="xl">'+th+body+'</div>',1000,0);
+}
+
+var STATE={};
+function frame(n){switch(n){
+ case 'none':return '';
+ }return ''}
+function layout(){document.querySelectorAll('.vp').forEach(function(v){var inn=v.querySelector('.vp-in'),w=+v.getAttribute('data-w'),h=+v.getAttribute('data-h');inn.style.width=w+'px';inn.style.height=h?h+'px':'auto';var hh=h||inn.offsetHeight;var sc=Math.min(1,v.clientWidth/w);inn.style.transform='scale('+sc+')';v.style.height=Math.ceil(hh*sc)+'px'})}
+function renderAll(){document.querySelectorAll('[data-frame]').forEach(function(el){el.innerHTML=frame(el.getAttribute('data-frame'))});layout()}
+document.querySelectorAll('.winbar[data-sec]').forEach(function(bar){var sec=bar.getAttribute('data-sec');bar.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){STATE[sec]=b.getAttribute('data-v');bar.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});renderAll()})})});
+renderAll();window.addEventListener('resize',layout);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layout);setTimeout(layout,400);
+
+/* ================= questions ================= */
+var KEY="batch-l-planning-v1",S={};
+try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+var Q=[
+{id:"Q1",item:"scope",title:"What does &ldquo;November&rdquo; mean for this audit?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"The round run in November: the 31 October disclosures, collected on days 1 to 20 of November",rec:1,d:"Good: it is what the job and the alerts call the target month; it matches the factsheet audit&rsquo;s &ldquo;the 10 Nov job&rdquo;. Bad: the data is dated 31 October."},
+ {k:"B",l:"Month-end November: the 30 November disclosures, collected in December",d:"Good: the literal month. Bad: not available until about 10 December."}],
+ why:"The job always looks for the previous month-end, so A is the November round.",
+ commit:"A: audit now and again after day 20. B: the audit waits for December."},
+{id:"Q2",item:"coverage",title:"Which percentage is the headline?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Funds as the headline, money (assets-weighted) as the second number, fund houses as a footnote",rec:1,d:"Good: easy to quote and explains what users see. Bad: needs assets data for the same month."},
+ {k:"B",l:"Fund houses only",d:"Good: simplest. Bad: hides a house with one fund in and many out."},
+ {k:"C",l:"Money only",d:"Good: closest to the user banner. Bad: harder to explain to non-technical readers."}],
+ why:"Funds is the figure used in the factsheet audit; money shows the user-facing effect.",
+ commit:"A: all three are computed and reported in that order. B or C: the same queries, a shorter report."},
+{id:"Q3",item:"stale",title:"How should an old file count?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Stale (last month&rsquo;s file) is not covered; it is reported as stale",rec:1,d:"Good: honest about freshness; avoids old files passing as new. Bad: a lower number."},
+ {k:"B",l:"Count any file from the last 60 days as covered",d:"Good: matches the app&rsquo;s own 60-day label. Bad: hides a missed month."}],
+ why:"The audit is about whether the job did its November work.",
+ commit:"A: fresh only in the headline, stale shown separately. B: a second, wider figure."},
+{id:"Q4",item:"fixes",title:"Do you want the audit to propose fixes, or only report?",ask:"Pick one.",
+ opts:[
+ {k:"A",l:"Propose fixes, one per cause, each approved by you before it is built",rec:1,d:"Good: same as Batch A and the factsheet audit. Bad: a longer report."},
+ {k:"B",l:"Report only; fixes are a later batch",d:"Good: shortest. Bad: the same findings reappear later."}],
+ why:"Findings are cheapest to turn into fixes while the evidence is fresh.",
+ commit:"A: tasks L-7 and L-9 stay. B: they are dropped from this batch."}
+];
+
+var PRE={Q1:{k:"A",n:"Answered 17 Nov."},Q3:{k:"A",n:"Answered 17 Nov."},Q4:{k:"A",n:"Answered 17 Nov."}};
+var LOCK={};
+Object.keys(PRE).forEach(function(k){LOCK[k]=1;S[k]=JSON.parse(JSON.stringify(PRE[k]))});
+var cards=document.getElementById("cards");
+Q.forEach(function(q){
+ var c=document.createElement("div");c.className="card";c.id=q.id.toLowerCase();c.setAttribute("data-q",q.id);
+ var h='<header><span class="id">'+q.id+' &middot; item '+q.item+'</span><h3>'+q.title+'</h3><span class="status todo" data-st>unanswered</span></header><p class="ask"><b>'+q.ask+'</b></p>';
+ if(q.ctx)h+='<p class="ctx">'+q.ctx+'</p>';
+ if(q.opts){h+='<div class="opts">';
+  q.opts.forEach(function(o){h+='<label class="opt'+(o.rec?' isrec':'')+'"><input type="radio" name="'+q.id+'" value="'+o.k+'"'+(LOCK[q.id]?' disabled':'')+'><div><b>'+o.k+'. '+o.l+(o.rec?'<span class="tag me">my pick</span>':'')+'<span class="tag chosen" hidden>Chosen option</span></b><span class="d">'+o.d+'</span></div></label>'});
+  h+='</div>';}
+ if(q.why)h+='<div class="why"><b>Why my pick.</b> '+q.why+'</div>';
+ if(q.commit)h+='<div class="commit"><b>What this answer commits us to.</b> '+q.commit+'</div>';
+ if(q.type==="text")h+='<label class="nl" for="t-'+q.id+'">Your answer</label><textarea id="t-'+q.id+'" placeholder="'+(q.ph||"")+'"'+(LOCK[q.id]?' readonly':'')+'></textarea>';
+ h+='<label class="nl" for="n-'+q.id+'">Notes (optional)</label><textarea id="n-'+q.id+'" placeholder="Anything I should know"'+(LOCK[q.id]?' readonly':'')+'></textarea>';
+ c.innerHTML=h;cards.appendChild(c);
+});
+function answered(q){if(LOCK[q.id])return true;var a=S[q.id]||{};return q.type==="text"?!!(a.t&&a.t.trim()):!!a.k}
+function setSt(st,ok){st.textContent=ok?"answered":"unanswered";st.className=ok?"tag ok":"status todo"}
+function build(){
+ var L=["BATCH L PORTFOLIO DISCLOSURES AUDIT: MY ANSWERS (17 Nov 2026)",""];
+ Q.forEach(function(q){
+  var a=S[q.id]||{},ln=q.id+" ("+q.item+") "+q.title.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")+"\n  Answer: ";
+  if(a.k){var o=q.opts.filter(function(x){return x.k===a.k})[0];ln+=a.k+". "+o.l.replace(/<[^>]*>/g,"").replace(/&[a-z]+;/g,"'")}
+  else if(!(a.t&&a.t.trim()))ln+="NOT ANSWERED";
+  if(a.t&&a.t.trim())ln+=(a.k?"\n  Details: ":"")+a.t.trim();
+  if(a.n&&a.n.trim())ln+="\n  Note: "+a.n.trim();
+  L.push(ln);L.push("");
+ });
+ return L.join("\n");
+}
+function paint(){
+ var n=0;
+ Q.forEach(function(q){
+  var c=document.getElementById(q.id.toLowerCase()),a=S[q.id]||{};
+  c.querySelectorAll(".opt").forEach(function(o){var r=o.querySelector("input");r.checked=(a.k===r.value);o.classList.toggle("on",r.checked);var b=o.querySelector(".chosen");if(b)b.hidden=!r.checked});
+  var t=document.getElementById("t-"+q.id);if(t&&document.activeElement!==t)t.value=a.t||"";
+  var nn=document.getElementById("n-"+q.id);if(nn&&document.activeElement!==nn)nn.value=a.n||"";
+  var ok=answered(q);if(ok)n++;setSt(c.querySelector("[data-st]"),ok);
+ });
+ document.getElementById("prog").textContent=n+" of "+Q.length+" answered";
+ document.getElementById("outTa").value=build();
+ document.querySelectorAll("#cards textarea[readonly]").forEach(function(x){x.style.height="auto";x.style.height=Math.min(x.scrollHeight+4,420)+"px"});
+}
+cards.addEventListener("change",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};if(e.target.type==="radio")S[q].k=e.target.value;save();paint()});
+cards.addEventListener("input",function(e){var c=e.target.closest(".card");if(!c)return;var q=c.getAttribute("data-q");if(LOCK[q])return;S[q]=S[q]||{};
+ if(e.target.id==="t-"+q)S[q].t=e.target.value;if(e.target.id==="n-"+q)S[q].n=e.target.value;save();
+ document.getElementById("outTa").value=build();
+ var qq=Q.filter(function(x){return x.id===q})[0];setSt(c.querySelector("[data-st]"),answered(qq));
+ var n=0;Q.forEach(function(x){if(answered(x))n++});document.getElementById("prog").textContent=n+" of "+Q.length+" answered";});
+function copy(){
+ var ta=document.getElementById("outTa"),m=document.getElementById("copyMsg");ta.value=build();
+ function fb(){ta.removeAttribute("readonly");ta.select();try{document.execCommand("copy");m.textContent="Copied (or select and copy the text below)"}catch(e){m.textContent="Select the text below and copy it"}ta.setAttribute("readonly","")}
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(function(){m.textContent="Copied. Paste it in chat."},fb)}else fb();
+}
+document.getElementById("copyBtn").addEventListener("click",copy);
+document.getElementById("copyTop").addEventListener("click",function(){copy();document.getElementById("copy").scrollIntoView()});
+document.getElementById("jump").addEventListener("click",function(){for(var i=0;i<Q.length;i++){if(!answered(Q[i])){document.getElementById(Q[i].id.toLowerCase()).scrollIntoView({behavior:"smooth"});return}}});
+paint();
+})();
+</script>
+</body>
+</html>
