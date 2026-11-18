@@ -1,6 +1,6 @@
 # Staging Deploy Guide M1: Batch B (sign-up and sign-in journey) and Batch C (holdings hygiene) to `ls-redesign.unifolio.in`
 
-**DRAFT, not frozen.** Written 18 Nov 2026 from the code on `batch/b-journey` and `batch/c-hygiene`. **Nothing here is run until the owner says go.** It becomes final when: Batch B's emails (B-9) are built and reviewed, both whole-batch reviews are done and their findings dealt with, both batches are merged into `leapswitch-redesign`, and the merge is tagged `m1-rc`. Every `<...>` and every "fill at freeze" is filled then. After the deploy there is **no QA round**: only the quick verify in step 9. The single combined QA happens once after M4.
+**FROZEN 19 Nov 2026.** Batch B (sign-up and sign-in), Batch C (holdings hygiene) and the Batch L audit script are merged into `leapswitch-redesign` (merge commits `9b28994a`, `69943b57`, `c933877e`; the last code commit is `c933877e`), verified as one tree (front end, back end, Postgres, build) and tagged `m1-rc` one docs-only commit later (the commit that fills in this guide). **Nothing here is run until the owner says go.** After the deploy there is **no QA round**: only the quick verify in step 9. The single combined QA happens once after M4. Read-only pre-flight on the VM on 19 Nov 2026 (02:05 IST): see "What the 19 Nov pre-flight found" below.
 
 ## What changes
 **Batch B (sign-up and sign-in)**
@@ -30,6 +30,14 @@
 - **One Batch L addition rides along (owner decision 18 Nov):** the read-only disclosure audit script `backend/scripts/audit_disclosures/` (and its tests and guide) is merged from `batch/l-audit` at the freeze, so the rebuilt image contains it and the audit can be run right after M1. It is not called by any route or cron; it changes no behaviour. After the deploy, `docker compose run --rm -T backend ls scripts/audit_disclosures` must list `queries.sql` and `run_audit.py`.
 - Phone code and Batch A are not part of M1 (A ships nothing).
 
+## What the 19 Nov pre-flight found (read-only, over ssh)
+- The VM worktree `/opt/unifolio-redesign` is on `leapswitch-redesign` at `b231b6f449891c0fa8933bddbea1ba7c4f60abcb`, clean, and that commit is an ancestor of `m1-rc`: the deploy is a plain fast-forward.
+- **Disk: 12 GB free of 29 GB (59% used).** The build guard wants 10 GB, so there is room, but only just; if the guard stops the build, `docker builder prune -f` first (it gave back 2.2 GB on 16 Nov), and no `--force` without the owner's yes.
+- **There is no `leapswitch-backend:previous` image today** (only `latest`, built two days ago). Step 4 creates it before anything is built; without it there is no rollback image.
+- Alembic is at `0053 (head)`. All four containers are up (backend and worker 2 days, caddy and postgres 9 days).
+- **`AUTH_GUARD_SECRET` is not set** (count `0`), and the guard's cleanup line is not in the root crontab (37 active lines).
+- **The real `.env` is `/opt/unifolio/deploy/leapswitch/.env`, owned by root, mode 600** (the redesign `.env` is a symlink to it): every read and write of it needs `sudo`. Step 5 is written that way. `openssl` is present.
+
 ## Prompt for the executing Claude
 ```
 You are deploying milestone M1 (Batch B and Batch C) to the LeapSwitch staging VM (ls-redesign.unifolio.in). Read Docs/orchestration/2026-11-18-staging-deploy-guide-m1.md and follow it step by step.
@@ -39,24 +47,24 @@ At the end fill in step 10 and give the owner the report.
 
 ## Section 1: steps
 
-### Step 0 (laptop): freeze. The owner's yes first
-Batch B and Batch C are merged into `leapswitch-redesign`, then:
+### Step 0 (laptop): publish the frozen candidate. The owner's yes first
+Done on 19 Nov (locally): B, C and the Batch L audit script are merged into `leapswitch-redesign` and the merge is tagged `m1-rc`. Publish, so the VM can fetch it:
 ```bash
-git tag m1-rc && git fetch origin && git push origin leapswitch-redesign m1-rc
+git fetch origin && git push origin leapswitch-redesign m1-rc
 ```
-**Never force-push.** Record the tagged head as `<FINAL-COMMIT>`. Nothing else merges into `leapswitch-redesign` until this deploy is checked.
+**Never force-push.** `<FINAL-COMMIT>` is whatever `git rev-parse m1-rc` prints (the guide-filling docs commit; the last code commit is `c933877e`). Nothing else merges into `leapswitch-redesign` until this deploy is checked.
 
 ### Step 1 (laptop): the release touches only what it should
 ```bash
-git diff --name-only <LAST-DEPLOYED-COMMIT> m1-rc | grep -vE "^Docs/|\.test\.tsx?$|^backend/tests/"
+git diff --name-only b231b6f449891c0fa8933bddbea1ba7c4f60abcb m1-rc | grep -vE "^Docs/|\.test\.tsx?$|^backend/tests/"
 ```
-Expected groups only: `backend/app/**` (auth, analytics allocation, dashboard, fund page, investment withdrawal, models, config, main, scripts), `backend/alembic/versions/0054_auth_request_guard.py`, `backend/scripts/preview_emails.py`, `backend/scripts/audit_disclosures/*` (Batch L, read-only audit), `deploy/leapswitch/{.env.example,crontab.leapswitch}`, `frontend/public/email/*.png` (22 files), `frontend/public/email/fonts/*` (2 font files and a licence note) and `frontend/src/**` outside `mobile/`. **STOP** on a second migration, a dependency file change, anything under `frontend/src/mobile/`, or anything in `app/` the list above does not explain.
+Expected groups only: `backend/app/**` (auth, analytics allocation, dashboard, fund page, investment withdrawal, models, config, main, scripts), `backend/alembic/versions/0054_auth_request_guard.py`, `backend/scripts/preview_emails.py`, `backend/scripts/audit_disclosures/*` (Batch L, read-only audit), `deploy/leapswitch/{.env.example,crontab.leapswitch}`, two diagnostic scripts that came in with an earlier docs commit and that nothing calls (`check_fund_managers_run.sh` at the repository root and `backend/scripts/diagnose_home_benchmark_line.py`), `backend/app/core/time_format.py`, `backend/app/scripts/clean_auth_guard.py`, `session.md`, `decisions.md`, `CLAUDE.md`, `frontend/public/email/*.png` (22 files), `frontend/public/email/fonts/*` (2 font files and a licence note) and `frontend/src/**` outside `mobile/`. On 19 Nov this command listed 46 front-end files, 25 under `frontend/public/email`, 18 under `backend/app`, 4 scripts, 2 deploy files and the documents above, one migration, no dependency file and nothing under `mobile/`. **STOP** on a second migration, a dependency file change, anything under `frontend/src/mobile/`, or anything in `app/` the list above does not explain.
 
 ### Step 2 (laptop): CI and evidence
 ```bash
 gh run list --branch leapswitch-redesign --limit 3
 ```
-Expected: green on `<FINAL-COMMIT>`. Local evidence to record at freeze: back end (guard, auth, analytics, migrations) `<N>` passed; Postgres run `<N>` passed; front end `<N>` passed (`<N>` files), types clean, lint 0 errors. **STOP** if the last code commit is red.
+Expected: green on `<FINAL-COMMIT>`. Evidence from the merged tree on 19 Nov (one throwaway worktree of `c933877e`): front end **6,187 passed (489 files)**, types clean, lint 0 errors, production build succeeds with all 22 pictures and the two font files in the bundle; back end, run with a throwaway Postgres 16 behind it, over every area this release touches (all services, the API, models, core, scripts, migrations and the Postgres tests): **5,059 passed**, 5 skipped. **19 tests fail, all 19 identically on the old deployed commit `b231b6f4`**, so none comes from this release: the 15 news-script tests that cannot run on Windows (`import resource`) and four older unrelated ones (`test_category_ranking` and `test_performance_ranking` module-import checks, `test_fund_valuation_layouts::test_absl_equity_snapshot_row`, `test_scorer` concurrent insert). One failure was caused by this release and is fixed in the freeze commit: the 0053 Postgres test downgraded "one step" from the head, which is now 0054; it now names 0052 (6 of 6 pass). The earlier whole-suite attempt was stopped (it would have taken hours); the focused runs are the evidence. **STOP** if the last code commit is red.
 
 ### Step 3 (VM): pre-flight, read-only
 ```bash
@@ -66,7 +74,7 @@ sudo docker image ls leapswitch-backend --format '{{.Tag}} {{.ID}} {{.CreatedSin
 sudo docker compose -f /opt/unifolio-redesign/deploy/leapswitch/docker-compose.yml run --rm -T backend alembic current
 date '+%H:%M IST'
 ```
-Expected: branch `leapswitch-redesign`; the last deployed commit (record it as `<LAST-DEPLOYED-COMMIT>`, the rollback target); no status lines; **at least 12 GB free** (the 16 Nov deploy began at 7.6 GB and needed `docker builder prune -f` and removing an old `:previous` to reach 12 GB: if short, ask the owner before pruning, and say which images are going); a `latest` image listed; `alembic current` ends `0053 (head)`; the time is **not** within 05:40 to 06:35, 10:30 to 10:40 or 14:00 to 14:15 IST. **STOP** on any miss.
+Expected: branch `leapswitch-redesign`; the last deployed commit, `b231b6f449891c0fa8933bddbea1ba7c4f60abcb` on 19 Nov (the rollback target, written below as `b231b6f449891c0fa8933bddbea1ba7c4f60abcb` in the rollback section: use this hash); no status lines; **at least 12 GB free** (the 16 Nov deploy began at 7.6 GB and needed `docker builder prune -f` and removing an old `:previous` to reach 12 GB: if short, ask the owner before pruning, and say which images are going); a `latest` image listed; `alembic current` ends `0053 (head)`; the time is **not** within 05:40 to 06:35, 10:30 to 10:40 or 14:00 to 14:15 IST. **STOP** on any miss.
 
 ### Step 4 (VM): rollback safety, before anything is built. GATE
 Tag the running image so a rollback image exists (the 16 Nov build lost it), then take an on-demand backup and save the crontab:
@@ -80,18 +88,18 @@ sudo crontab -l > /home/deploy/crontab.before-m1-2026-11
 Expected: `previous` and `latest` show the same image id; the backup script ends without an error email (check `tail -5 /var/log/unifolio-backup.log`); the crontab file is not empty. **STOP** if the backup failed: no deploy without a backup of that day.
 
 ### Step 5 (VM): the new setting. GATE (changes `.env`)
-The real file is `/opt/unifolio/deploy/leapswitch/.env` (the redesign `.env` is a symlink to it). **Never print the line.**
+The real file is `/opt/unifolio/deploy/leapswitch/.env` (the redesign `.env` is a symlink to it). It is **owned by root, mode 600**, so every command below uses `sudo`. **Never print the line.**
 ```bash
 cd /opt/unifolio/deploy/leapswitch
-grep -c '^AUTH_GUARD_SECRET=.' .env
+sudo grep -c '^AUTH_GUARD_SECRET=.' .env
 ```
-Expected: `0` (not set yet). If `1`, skip the rest of this step. Otherwise:
+Expected: `0` (not set yet; it was `0` on 19 Nov). If `1`, skip the rest of this step. Otherwise:
 ```bash
-cp -p .env .env.bak-2026-11-m1
-printf 'AUTH_GUARD_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
-grep -c '^AUTH_GUARD_SECRET=.' .env
+sudo cp -p .env .env.bak-2026-11-m1
+printf 'AUTH_GUARD_SECRET=%s\n' "$(openssl rand -hex 32)" | sudo tee -a .env > /dev/null
+sudo grep -c '^AUTH_GUARD_SECRET=.' .env
 ```
-Expected: `1`. A permission error means use `sudo tee -a .env > /dev/null` for the append. **STOP** if the count is not exactly 1 (a duplicate line is a defect; restore from the backup file and report).
+Expected: `1`. **STOP** if the count is not exactly 1 (a duplicate line is a defect; restore from the backup file and report).
 
 ### Step 6 (VM): switch to the tag
 ```bash
@@ -163,7 +171,7 @@ print('categories:',len(g)); [print(k,'<-',sorted(v)) for k,v in g.items() if le
 Deployed commit, last deployed commit, image ids before and after, build time, backup file name and size, migration result, the 31-request result, health codes, free disk before and after, anything that surprised. Write it as `Docs/orchestration/2026-11-<day>-staging-deploy-record-m1.md` in the 16 Nov record's shape, with an honest list of what is not as hoped.
 
 ## Section 2: rollback (only on the owner's yes)
-- **Front end:** `cd /opt/unifolio-redesign && git checkout -B leapswitch-redesign <LAST-DEPLOYED-COMMIT>` then `cd deploy/leapswitch && sudo sh ./scripts/deploy-redesign.sh`.
+- **Front end:** `cd /opt/unifolio-redesign && git checkout -B leapswitch-redesign b231b6f449891c0fa8933bddbea1ba7c4f60abcb` then `cd deploy/leapswitch && sudo sh ./scripts/deploy-redesign.sh`.
 - **Back end:** `cd /opt/unifolio-redesign/deploy/leapswitch && sudo sh ./scripts/rollback.sh` (points `latest` back at the `previous` image tagged in step 4, restarts the back end and worker). **Check the image id first**: `previous` must be the id recorded in step 4.
 - **Migration:** nothing to undo for a code rollback. The old code ignores `auth_request_guard`; leaving it costs nothing. Only on the owner's explicit yes: `sudo docker compose run --rm backend alembic downgrade 0053` (drops the table; the downgrade was tested up and down on 18 Nov). **Roll the back end back first, then downgrade**: dropping the table while the new code is still serving does not break sign-in (the guard fails open and logs a warning) but it switches the guard off until the code is rolled back.
 - **Cron and setting:** restore the crontab with `sudo crontab /home/deploy/crontab.before-m1-2026-11`; the extra `AUTH_GUARD_SECRET` line can stay (the old code does not read it).
