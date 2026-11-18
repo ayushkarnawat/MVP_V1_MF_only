@@ -176,3 +176,66 @@ def test_a_stuck_holder_makes_the_guard_fail_open_instead_of_hanging(pg_session_
         holder.rollback()
         holder.close()
     assert datetime.now(timezone.utc)  # keep the import used
+
+
+def test_a_route_style_commit_between_the_check_and_the_outcome_cannot_overshoot(pg_session_factory, monkeypatch):
+    """Independent Codex review of B-2, finding 1: the routes commit the OTP (or the pending verification) before they record the
+    outcome, which used to release the lock too early. The slot is now reserved and committed inside the lock."""
+    monkeypatch.setattr(settings, "auth_guard_check_limit", 100)
+    monkeypatch.setattr(settings, "auth_guard_code_limit", 3)
+    _slow_count(monkeypatch)
+
+    def attempt(number):
+        def work():
+            db = pg_session_factory()
+            try:
+                ticket = guard.begin(
+                    db, client_ip=CLIENT_ADDRESS, identifier=f"user{number}@example.com", channel="email", route="test",
+                )
+                guard.before_code(db, ticket)
+                db.commit()  # what the route's own commit does
+                time.sleep(0.2)  # the window the old code left open: committed, outcome not yet recorded
+                guard.record_outcome(db, ticket, "code_sent")
+                return "code"
+            except guard.RequestGuardLimited:
+                return "limited"
+            finally:
+                db.close()
+        return work
+
+    results = _run([attempt(number) for number in range(THREADS)])
+
+    assert results.count("code") == 3
+    assert results.count("limited") == THREADS - 3
+
+
+def test_the_lock_wait_cap_is_put_back_after_the_lock_is_taken(pg_session_factory):
+    from sqlalchemy import text
+
+    db = pg_session_factory()
+    try:
+        before = db.execute(text("SHOW lock_timeout")).scalar()
+        guard._lock_address(db, "f" * 64)
+        assert db.execute(text("SHOW lock_timeout")).scalar() == before
+    finally:
+        db.rollback()
+        db.close()
+
+
+def test_the_lock_is_not_held_while_the_code_is_being_sent(pg_session_factory, monkeypatch):
+    """Independent Codex review of B-2, finding 3: a slow send must not make other requests from the address wait for it."""
+    monkeypatch.setattr(settings, "auth_guard_check_limit", 100)
+    monkeypatch.setattr(settings, "auth_guard_code_limit", 100)
+    sending = pg_session_factory()
+    ticket = guard.begin(sending, client_ip=CLIENT_ADDRESS, identifier="slow@example.com", channel="email", route="test")
+    guard.before_code(sending, ticket)  # the route would now call the provider, still inside its request
+
+    other = pg_session_factory()
+    try:
+        started = time.monotonic()
+        guard.begin(other, client_ip=CLIENT_ADDRESS, identifier="quick@example.com", channel="email", route="test")
+        assert time.monotonic() - started < 1.0
+    finally:
+        other.close()
+        sending.rollback()
+        sending.close()

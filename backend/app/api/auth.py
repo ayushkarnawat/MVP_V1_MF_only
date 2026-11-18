@@ -225,6 +225,9 @@ def signup_email(body: SignupEmailBody, request: Request, db: DbSession = Depend
             request_guard.record_outcome(db, ticket, "held")
         return _throttled_response(exc)
     except EmailSendError as exc:
+        # The reserved code slot goes back: no code reached anyone.
+        db.rollback()
+        request_guard.record_outcome(db, ticket, "send_failed")
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     request_guard.record_outcome(db, ticket, "code_sent")
     return EmailOtpRequiredResponse(
@@ -282,6 +285,9 @@ def request_email_otp(body: EmailOtpRequestBody, request: Request, db: DbSession
             request_guard.record_outcome(db, ticket, "held")
         return _throttled_response(exc)
     except EmailSendError as exc:
+        # The reserved code slot goes back: no code reached anyone.
+        db.rollback()
+        request_guard.record_outcome(db, ticket, "send_failed")
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     request_guard.record_outcome(db, ticket, "code_sent")
     return OtpRequestResponse(message="OTP sent.", otp=raw_otp)

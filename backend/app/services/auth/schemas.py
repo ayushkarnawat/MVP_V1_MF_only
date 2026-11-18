@@ -35,6 +35,27 @@ def normalize_email(value: object) -> object:
 
 
 _INDIAN_MOBILE = re.compile(r"(?:\+91|0091|91|0)?([6-9][0-9]{9})")
+# The whitespace of JavaScript's `\s`, exactly (not Python's, which also counts \x1c to \x1f and \x85 and omits \ufeff), so a number the
+# browser folds is folded here and a number the browser rejects is not (independent Codex review of B-2, finding 8).
+_JS_WHITESPACE = "\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
+_PHONE_NOISE = re.compile("[" + _JS_WHITESPACE + r"()\-]")
+
+
+def strip_phone_noise(value: str) -> str:
+    """Removes spaces (the browser's set), dashes and brackets from a phone number as typed."""
+    return _PHONE_NOISE.sub("", value)
+
+# One mailbox: no whitespace, comma, semicolon, angle bracket, bracket, backslash, quote or second `@`.
+_MAILBOX = re.compile(r"[^\s,;<>()\[\]\\\":@]+@[^\s,;<>()\[\]\\\":@]+")
+
+
+def single_mailbox(value: object) -> object:
+    """Rejects anything that is not exactly one mailbox. The shared SES sender splits its address on commas (that is how the ops
+    alert list works), so `a@example.com,b@example.org` used to count as ONE recipient for the address guard and the 60-second rule
+    and still reach two inboxes (independent Codex review of B-2, finding 2). Non-text input passes through for Pydantic's own error."""
+    if isinstance(value, str) and not _MAILBOX.fullmatch(value):
+        raise ValueError("Enter one email address.")
+    return value
 
 
 def normalize_phone(value: object) -> object:
@@ -51,7 +72,7 @@ def normalize_phone(value: object) -> object:
     """
     if not isinstance(value, str):
         return value
-    match = _INDIAN_MOBILE.fullmatch(re.sub(r"[\s()-]", "", value))
+    match = _INDIAN_MOBILE.fullmatch(strip_phone_noise(value))
     return f"+91{match[1]}" if match else value
 
 
@@ -106,7 +127,7 @@ class SignupEmailBody(BaseModel):
     @field_validator("email", mode="before")
     @classmethod
     def _normalize_email(cls, value: object) -> object:
-        return normalize_email(value)
+        return single_mailbox(normalize_email(value))
 
 
 class OtpVerifyResponse(BaseModel):
@@ -167,7 +188,7 @@ class EmailOtpRequestBody(BaseModel):
     @field_validator("email", mode="before")
     @classmethod
     def _normalize_email(cls, value: object) -> object:
-        return normalize_email(value)
+        return single_mailbox(normalize_email(value))
 
 
 class EmailOtpVerifyBody(BaseModel):
@@ -181,7 +202,7 @@ class EmailOtpVerifyBody(BaseModel):
     @field_validator("email", mode="before")
     @classmethod
     def _normalize_email(cls, value: object) -> object:
-        return normalize_email(value)
+        return single_mailbox(normalize_email(value))
 
 
 class GoogleAuthBody(BaseModel):
@@ -266,7 +287,7 @@ class ContactChangeRequestBody(BaseModel):
     @classmethod
     def _normalize_identifier(cls, value: object, info) -> object:
         if info.data.get("channel") == "email":
-            return normalize_email(value)
+            return single_mailbox(normalize_email(value))
         # Phone: the same canonical form the sign-in side stores, so a changed number is found again by any spelling.
         return normalize_phone(value.strip() if isinstance(value, str) else value)
 

@@ -23,6 +23,8 @@ def upgrade() -> None:
         sa.Column("route", sa.String(), nullable=False),
         sa.Column("outcome", sa.String(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("code_at", sa.DateTime(timezone=True), nullable=True),
+        sa.UniqueConstraint("ip_hash", "identifier_hash", name="uq_auth_request_guard_ip_identifier"),
     )
     op.create_index(
         "ix_auth_request_guard_ip_hash_created_at", "auth_request_guard", ["ip_hash", "created_at"]

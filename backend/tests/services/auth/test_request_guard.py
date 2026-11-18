@@ -297,8 +297,10 @@ def test_auth_request_guard_migration_upgrade_and_downgrade(dialect):
                 migration.upgrade()
                 table = "auth_request_guard"
                 assert {column["name"] for column in inspect(connection).get_columns(table)} == {
-                    "id", "ip_hash", "identifier_hash", "route", "outcome", "created_at",
+                    "id", "ip_hash", "identifier_hash", "route", "outcome", "created_at", "code_at",
                 }
+                assert any(set(unique["column_names"]) == {"ip_hash", "identifier_hash"}
+                           for unique in inspect(connection).get_unique_constraints(table))
                 assert inspect(connection).get_pk_constraint(table)["constrained_columns"] == ["id"]
                 assert any(index["column_names"] == ["ip_hash", "created_at"]
                            for index in inspect(connection).get_indexes(table))
@@ -364,3 +366,89 @@ def test_a_held_repeat_still_counts_towards_the_code_quota(db_session, monkeypat
     ticket = _begin(db_session, "other@example.com", now=NOW + timedelta(minutes=1))
     with pytest.raises(guard.RequestGuardLimited):
         guard.before_code(db_session, ticket, now=NOW + timedelta(minutes=1))
+
+
+# ---- Independent Codex review of B-2 (18 Nov 2026): findings 1, 3, 4, 6 and 7
+def test_before_code_reserves_the_slot_at_once_so_the_next_check_sees_it(db_session, monkeypatch):
+    monkeypatch.setattr(settings, "auth_guard_code_limit", 1)
+    first = _begin(db_session, "first@example.com")
+    guard.before_code(db_session, first)  # nothing recorded yet: the route is still sending
+    second = _begin(db_session, "second@example.com")
+
+    with pytest.raises(guard.RequestGuardLimited):
+        guard.before_code(db_session, second)
+
+
+def test_before_code_commits_the_reservation_so_it_survives_the_routes_own_rollback(db_session, monkeypatch):
+    monkeypatch.setattr(settings, "auth_guard_code_limit", 1)
+    first = _begin(db_session, "first@example.com")
+    guard.before_code(db_session, first)
+    db_session.rollback()  # the route's held path rolls back; the reservation was already committed
+
+    second = _begin(db_session, "second@example.com")
+    with pytest.raises(guard.RequestGuardLimited):
+        guard.before_code(db_session, second)
+
+
+def test_a_failed_send_releases_the_reserved_slot(db_session, monkeypatch):
+    monkeypatch.setattr(settings, "auth_guard_code_limit", 1)
+    first = _begin(db_session, "first@example.com")
+    guard.before_code(db_session, first)
+    guard.record_outcome(db_session, first, "send_failed")
+
+    second = _begin(db_session, "second@example.com")
+    assert guard.before_code(db_session, second) is second
+
+
+def test_a_check_only_repeat_neither_erases_nor_revives_a_code_charge(db_session, monkeypatch):
+    monkeypatch.setattr(settings, "auth_guard_code_limit", 1)
+    _code(db_session, "a@example.com", now=NOW)
+    again = _begin(db_session, "a@example.com", now=NOW + timedelta(minutes=9))
+    guard.record_outcome(db_session, again, "account_exists")
+
+    # Still charged until ten minutes after the CODE, not after the later check.
+    early = NOW + timedelta(minutes=9, seconds=59)
+    ticket = _begin(db_session, "b@example.com", now=early)
+    with pytest.raises(guard.RequestGuardLimited):
+        guard.before_code(db_session, ticket, now=early)
+
+    # An expired code charge is not revived by a check-only repeat.
+    late = NOW + timedelta(minutes=11)
+    revived = _begin(db_session, "a@example.com", now=late)
+    guard.record_outcome(db_session, revived, "account_exists")
+    ticket = _begin(db_session, "b@example.com", now=late + timedelta(seconds=1))
+    assert guard.before_code(db_session, ticket, now=late + timedelta(seconds=1)) is ticket
+
+
+def test_a_refresh_after_the_row_was_purged_inserts_a_fresh_row_and_counts(db_session):
+    _begin(db_session, "purged@example.com", now=NOW)
+    db_session.query(AuthRequestGuard).delete()
+    db_session.commit()
+
+    ticket = _begin(db_session, "purged@example.com", now=NOW + timedelta(seconds=1))
+
+    rows = _rows(db_session)
+    assert [row.id for row in rows] == [ticket.row_id]
+
+
+def test_retry_seconds_never_exceed_the_window_even_with_a_row_stamped_in_the_future(db_session, monkeypatch):
+    monkeypatch.setattr(settings, "auth_guard_check_limit", 1)
+    _begin(db_session, "a@example.com", now=NOW + timedelta(seconds=3))  # clock skew, or sampled before waiting on the lock
+
+    with pytest.raises(guard.RequestGuardLimited) as limited:
+        _begin(db_session, "b@example.com", now=NOW)
+
+    assert 1 <= limited.value.retry_after_seconds <= 600
+
+
+def test_one_row_per_address_and_identifier_is_enforced_by_the_table(db_session):
+    from sqlalchemy.exc import IntegrityError
+
+    ticket = _begin(db_session, "unique@example.com")
+    row = db_session.get(AuthRequestGuard, ticket.row_id)
+    db_session.add(AuthRequestGuard(
+        ip_hash=row.ip_hash, identifier_hash=row.identifier_hash, route="again", outcome="pending", created_at=NOW,
+    ))
+    with pytest.raises(IntegrityError):
+        db_session.commit()
+    db_session.rollback()

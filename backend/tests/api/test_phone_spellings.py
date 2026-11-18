@@ -94,3 +94,15 @@ def test_any_spelling_signs_in_to_the_same_account(client):
 
     assert second["user_id"] == created["user_id"]
     assert [u.phone_number for u in db_session.query(User).all()] == ["+919000000001"]
+
+
+# ---- Independent Codex review of B-2, finding 8: the same whitespace as the browser's `\s`, no more and no less.
+@pytest.mark.parametrize("space", ["\u00a0", "\ufeff", "\u2003", "\u3000", "\n", "\t"])
+def test_whitespace_the_browser_folds_is_folded_here_too(space):
+    assert normalize_phone(f"90000{space}00001") == "+919000000001"
+
+
+@pytest.mark.parametrize("not_a_space", ["\u0085", "\u001c", "\u001f"])
+def test_characters_the_browser_rejects_are_not_folded_here(not_a_space):
+    value = f"90000{not_a_space}00001"
+    assert normalize_phone(value) == value
