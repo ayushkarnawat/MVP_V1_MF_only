@@ -168,13 +168,14 @@ export interface LedgerDetail {
 
 const present = (value: string | null | undefined): value is string => typeof value === "string" && value.trim() !== "";
 
-/** The optional units, NAV and folio of one ledger entry (backend C160), ready to show; null when the entry has none of
- * them (an old payload), so the row keeps its "not part of this data yet" sentence. Units are shown as sent (they carry
- * three places), the NAV in rupees to two places, the folio as the backend masked it. */
+/** The optional units, NAV and folio of one ledger entry (backend C160, updated Batch C 17c), ready to show; null when
+ * the entry has none of them (an old payload), so the row keeps its "not part of this data yet" sentence. Units are shown
+ * as sent (they carry three places), the NAV in rupees to two places, the folio as the full folio_number (ignoring the
+ * legacy masked folio field). */
 export function ledgerDetail(entry: InvestmentWithdrawalEntry): LedgerDetail | null {
   const units = present(entry.units) ? entry.units : null;
   const nav = present(entry.nav) ? `₹${formatDecimal(entry.nav)}` : null;
-  const folio = present(entry.folio) ? entry.folio : null;
+  const folio = present(entry.folio_number) ? entry.folio_number : null;
   return units === null && nav === null && folio === null ? null : { units, nav, folio };
 }
 

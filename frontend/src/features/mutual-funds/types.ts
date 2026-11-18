@@ -13,6 +13,8 @@ export type PlanType = "direct" | "regular" | "unclassified";
 export interface FolioSlice {
   folio_id: string;
   folio_masked: string;
+  /** Batch C 17c: the full folio number as first printed. Screens show this (through FolioNumber); folio_masked stays for the old link. */
+  folio_number: string;
   units: string;
   invested: string;
   value: string | null;
@@ -431,6 +433,8 @@ export interface InvestmentWithdrawalEntry {
   nav?: string | null;
   /** Masked by the backend: "XXXX" plus the last four letters or digits of the folio. */
   folio?: string | null;
+  /** Batch C 17c: the full folio number as first printed, optional like its siblings; the screens read this one. */
+  folio_number?: string | null;
   /** Fund link (IF-E BE1), optional: absent on payloads stored before it. */
   scheme_id?: string | null;
 }

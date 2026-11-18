@@ -1188,7 +1188,8 @@ def test_child_units_prices_and_folio_units_are_plain_text_never_exponent_form()
     from app.services.dashboard.schemas import FolioSlice
     rows = _consolidation_rows()
     rows[0].units_held, rows[0].current_nav = "1E+1", "2E+1"
-    rows[0].folios = [FolioSlice(folio_id="f1", folio_masked="XXXX1234", units="1E+1", invested="100.02", value="200.01")]
+    rows[0].folios = [FolioSlice(folio_id="f1", folio_masked="XXXX1234", folio_number="1234",
+                               units="1E+1", invested="100.02", value="200.01")]
     [parent] = _consolidate(rows)
     assert parent.children[0].units_held == "10" and parent.children[0].current_nav == "20"
     assert parent.children[0].folios[0].units == "10"
@@ -1206,18 +1207,56 @@ def test_fund_held_by_one_member_is_a_parent_with_one_child():
     assert parent.amount_invested == parent.children[0].amount_invested
 
 
-def test_folio_numbers_are_masked_only_and_never_full():
+def _holding_with_folio_number(folio_number):
     import asyncio
-    db = _session(); member = _household_member(db); folio = _folio(db, member, _scheme(db), folio_number="123456789012")
+
+    db = _session()
+    member = _household_member(db)
+    folio = _folio(db, member, _scheme(db), folio_number=folio_number)
     _persisted_txn(db, folio, TransactionType.PURCHASE, date(2024, 1, 1), Decimal("100"), Decimal("10"), Decimal("10"))
     with patch("app.services.dashboard.holdings.get_navs_on_or_before", new=_mock_nav_batch((Decimal("20"), date.today()))):
         [row] = asyncio.run(compute_holdings(db, [member.id]))
+    return row, str(folio.id)
+
+
+def test_long_numeric_folio_keeps_legacy_mask_and_amounts():
+    row, _ = _holding_with_folio_number("123456789012")
     assert row.folios[0].folio_masked == "XXXX9012"
     assert Decimal(row.folios[0].units) == Decimal("10")
     assert Decimal(row.folios[0].invested) == Decimal("100")
     assert Decimal(row.folios[0].value) == Decimal("200")
-    assert "123456789012" not in row.model_dump_json()
-    assert "123456789012" not in _consolidate([row])[0].model_dump_json()
+
+
+def test_family_row_has_full_folio_number_and_old_masked_field():
+    row, folio_id = _holding_with_folio_number("10234567 / 0")
+    [slice_] = row.model_dump(mode="json")["folios"]
+    assert slice_["folio_masked"] == "XXXX / 0"
+    assert slice_["folio_number"] == "10234567 / 0"
+    assert set(slice_) == {"folio_id", "folio_masked", "units", "invested", "value", "folio_number"}
+    assert slice_["folio_id"] == folio_id
+    assert Decimal(slice_["units"]) == Decimal("10")
+    assert Decimal(slice_["invested"]) == Decimal("100")
+    assert Decimal(slice_["value"]) == Decimal("200")
+
+    [parent] = _consolidate([row])
+    [combined_slice] = parent.model_dump(mode="json")["children"][0]["folios"]
+    assert combined_slice["folio_number"] == slice_["folio_number"]
+    assert combined_slice["folio_masked"] == slice_["folio_masked"]
+
+
+def test_short_folio_and_slash_folio():
+    for number, masked in (("123", "XXXX123"), ("123/45", "XXXX3/45")):
+        row, _ = _holding_with_folio_number(number)
+        [folio] = row.folios
+        assert folio.folio_masked == masked
+        assert folio.folio_number == number
+
+
+def test_folio_with_letters_is_returned_whole():
+    row, _ = _holding_with_folio_number("AB123cdE")
+    [folio] = row.folios
+    assert folio.folio_masked == "XXXX3cdE"
+    assert folio.folio_number == "AB123cdE"
 
 
 def test_stale_and_nav_unavailable_flags_carry_to_parent_and_child():

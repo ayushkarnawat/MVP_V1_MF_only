@@ -55,6 +55,8 @@ class XirrDisclaimerOut(BaseModel):
 class FolioSlice(BaseModel):
     folio_id: str
     folio_masked: str
+    # Batch C 17c: the full folio number as first printed (additive; folio_masked stays for the old staging link).
+    folio_number: str
     units: str
     invested: str
     value: str | None

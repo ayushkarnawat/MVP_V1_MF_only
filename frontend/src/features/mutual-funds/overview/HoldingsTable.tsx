@@ -1,5 +1,6 @@
-import { useState, type MouseEvent } from "react";
+import { Fragment, useState, type MouseEvent } from "react";
 import { Button } from "../../../components/ui/button";
+import { FolioNumber } from "../../../components/mf/FolioNumber";
 import { compareDecimalStrings, formatDecimal, sumDecimalStrings } from "../../../lib/decimal";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { Skeleton } from "../../../components/ui/skeleton";
@@ -401,7 +402,17 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, onAnalyse, onCompareDi
                     <FundLink schemeId={parent.scheme_id}>{parent.scheme_name}</FundLink>
                     <span className="mt-1 block text-xs text-[var(--ui-text-muted)]">{parent.plan_type === "direct" ? "Direct" : parent.plan_type === "regular" ? "Regular" : ""}</span>
                     <FamilyHoldingStatus row={parent} />
-                    {!multiple && parent.children[0] && <span className="mt-1 block text-xs text-[var(--ui-text-muted)]">{parent.children[0].household_member_name}{parent.children[0].folios?.map(f => ` · ${f.folio_masked}`).join("")}</span>}
+                    {!multiple && parent.children[0] && (
+                      <span className="mt-1 block text-xs text-[var(--ui-text-muted)]">
+                        {parent.children[0].household_member_name}
+                        {parent.children[0].folios?.map(f => (
+                          <Fragment key={f.folio_id}>
+                            {" · "}
+                            <FolioNumber value={f.folio_number} />
+                          </Fragment>
+                        ))}
+                      </span>
+                    )}
                   </div>
                   {multiple && <Button type="button" variant="outline" size="sm" aria-label={`${open ? "Collapse" : "Expand"} ${parent.scheme_name}`}
                     aria-expanded={open} data-clickable="" data-effect="expand" onClick={toggle}>{open ? "−" : "+"}</Button>}
@@ -425,7 +436,7 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, onAnalyse, onCompareDi
               className="grid grid-cols-2 border-b border-[var(--ui-divider)] bg-[var(--ui-hover)] sm:table-row">
               <td className="col-span-2 px-6 py-4 sm:pl-12">
                 <span className="block font-medium">{c.household_member_name}</span>
-                {c.folios?.map(f => <span key={f.folio_id} className="mt-1 block text-xs text-[var(--ui-text-muted)]">{f.folio_masked}</span>)}
+                {c.folios?.map(f => <span key={f.folio_id} className="mt-1 block text-xs text-[var(--ui-text-muted)]"><FolioNumber value={f.folio_number} /></span>)}
                 <FamilyHoldingStatus row={c} />
               </td>
               <FamilyFigures row={c} child />

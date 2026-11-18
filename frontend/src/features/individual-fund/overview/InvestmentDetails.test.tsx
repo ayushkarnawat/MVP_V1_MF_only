@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resetFolioVisibilityForTests } from "@/lib/folioVisibility";
 import { renderInShell } from "@/shell/testing";
 import { IDS, fixture } from "../fixtures";
 import type { FolioNumberResponse, SummaryResponse } from "../types";
@@ -23,6 +24,7 @@ function setClipboard(value: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  resetFolioVisibilityForTests();
   writeText.mockResolvedValue(undefined);
   setClipboard({ writeText });
   api.folioNumber.mockImplementation((_scheme: string, folio: string): Promise<FolioNumberResponse> =>
@@ -97,30 +99,30 @@ describe("InvestmentDetails", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("test_folio_masked_until_copy: the masked number is shown, nothing is requested until the click, then the full number goes to the clipboard and is never rendered", async () => {
+  // Batch C 17c: the fund page shows the full number (already in the payload) with an eye and a Copy button.
+  // Nothing is requested from the folio-number endpoint any more; Copy copies exactly what is shown.
+  it("test_folio_full_number_with_eye_and_copy: the full number is shown, nothing is requested, and Copy copies what is shown", async () => {
     mount();
-    const folio = screen.getByRole("button", { name: "Copy folio number XXXXX9183" });
-    expect(folio).toHaveTextContent("XXXXX9183");
-    expect(screen.getByTestId(`folio-${IDS.folioAsha}`)).toHaveTextContent("Folio · ASHA RAO");
-    expect(api.folioNumber).not.toHaveBeenCalled();
-    expect(document.body.textContent).not.toContain(FULL_NUMBER);
-    fireEvent.mouseEnter(folio);
-    fireEvent.focus(folio);
-    expect(api.folioNumber).not.toHaveBeenCalled();
-    fireEvent.click(folio);
+    const row = screen.getByTestId(`folio-${IDS.folioAsha}`);
+    expect(row).toHaveTextContent("Folio · ASHA RAO");
+    expect(row).toHaveTextContent(FULL_NUMBER);
+    expect(row).not.toHaveTextContent("XXXXX9183");
+    expect(within(row).getByRole("button", { name: "Hide folio numbers" })).toHaveAttribute("aria-pressed", "false");
+    const copy = within(row).getByRole("button", { name: `Copy folio number ${FULL_NUMBER}` });
+    fireEvent.mouseEnter(copy);
+    fireEvent.focus(copy);
+    fireEvent.click(copy);
     expect(await screen.findByText("Copied")).toBeInTheDocument();
-    expect(api.folioNumber).toHaveBeenCalledTimes(1);
-    expect(api.folioNumber).toHaveBeenCalledWith(IDS.scheme, IDS.folioAsha);
     expect(writeText).toHaveBeenCalledTimes(1);
     expect(writeText).toHaveBeenCalledWith(FULL_NUMBER);
-    expect(document.body.textContent).not.toContain(FULL_NUMBER);
+    expect(api.folioNumber).not.toHaveBeenCalled();
   });
 
   it("the Copied note goes away again after a moment", async () => {
     vi.useFakeTimers();
     try {
       mount();
-      fireEvent.click(screen.getByRole("button", { name: "Copy folio number XXXXX9183" }));
+      fireEvent.click(screen.getByRole("button", { name: `Copy folio number ${FULL_NUMBER}` }));
       await act(async () => { await vi.advanceTimersByTimeAsync(10); });
       expect(screen.getByText("Copied")).toBeInTheDocument();
       await act(async () => { await vi.advanceTimersByTimeAsync(2500); });
@@ -130,37 +132,48 @@ describe("InvestmentDetails", () => {
     }
   });
 
-  it("a failed request for the number says so and copies nothing", async () => {
-    api.folioNumber.mockRejectedValue(new Error("down"));
-    mount();
-    fireEvent.click(screen.getByRole("button", { name: "Copy folio number XXXXX9183" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't copy the folio number.");
-    expect(writeText).not.toHaveBeenCalled();
-  });
-
-  it("a clipboard that refuses, or is missing, says so too", async () => {
+  it("a clipboard that refuses, or is missing, says so", async () => {
     writeText.mockRejectedValue(new Error("denied"));
     mount();
-    fireEvent.click(screen.getByRole("button", { name: "Copy folio number XXXXX9183" }));
+    fireEvent.click(screen.getByRole("button", { name: `Copy folio number ${FULL_NUMBER}` }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't copy the folio number.");
     setClipboard(undefined);
-    fireEvent.click(screen.getByRole("button", { name: "Copy folio number XXXXX9183" }));
+    fireEvent.click(screen.getByRole("button", { name: `Copy folio number ${FULL_NUMBER}` }));
     await act(async () => {});
     expect(screen.getByRole("alert")).toHaveTextContent("Couldn't copy the folio number.");
-    expect(document.body.textContent).not.toContain(FULL_NUMBER);
+    expect(api.folioNumber).not.toHaveBeenCalled();
   });
 
-  it("test_family_scope_lists_each_folio_with_member: one row per folio, named by member, each copying its own number", async () => {
+  it("while hidden the number is masked everywhere on the page, Copy is dimmed with its tip and copies nothing, and showing again restores both", async () => {
+    mount();
+    const row = screen.getByTestId(`folio-${IDS.folioAsha}`);
+    fireEvent.click(within(row).getByRole("button", { name: "Hide folio numbers" }));
+    expect(row).toHaveTextContent("XXXX0918/3");
+    expect(document.body.textContent).not.toContain(FULL_NUMBER);
+    const copy = within(row).getByRole("button", { name: "Copy folio number XXXX0918/3" });
+    expect(copy).toHaveAttribute("aria-disabled", "true");
+    expect(copy).toHaveAttribute("title", "Show the number to copy it");
+    fireEvent.click(copy);
+    await act(async () => {});
+    expect(writeText).not.toHaveBeenCalled();
+    expect(screen.queryByText("Copied")).toBeNull();
+    fireEvent.click(within(row).getByRole("button", { name: "Show folio numbers" }));
+    expect(row).toHaveTextContent(FULL_NUMBER);
+    expect(within(row).getByRole("button", { name: `Copy folio number ${FULL_NUMBER}` })).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("test_family_scope_lists_each_folio_with_member: one row per folio, named by member, each copying its own shown number", async () => {
     mount();
     const first = screen.getByTestId(`folio-${IDS.folioAsha}`);
     const second = screen.getByTestId(`folio-${FOLIO_ID_2}`);
     expect(first).toHaveTextContent("Folio · ASHA RAO");
-    expect(first).toHaveTextContent("XXXXX9183");
+    expect(first).toHaveTextContent(FULL_NUMBER);
     expect(second).toHaveTextContent("Folio · Dev Rao");
-    expect(second).toHaveTextContent("XXXXX5678");
-    fireEvent.click(within(second).getByRole("button", { name: "Copy folio number XXXXX5678" }));
+    expect(second).toHaveTextContent("A12345678");
+    fireEvent.click(within(second).getByRole("button", { name: "Copy folio number A12345678" }));
     await screen.findByText("Copied");
-    expect(api.folioNumber).toHaveBeenCalledWith(IDS.scheme, FOLIO_ID_2);
+    expect(writeText).toHaveBeenCalledWith("A12345678");
+    expect(api.folioNumber).not.toHaveBeenCalled();
   });
 
   it("a member view lists only that member's own folio and figures (the real member golden is Dev Rao's)", () => {
@@ -171,9 +184,9 @@ describe("InvestmentDetails", () => {
     expect(screen.getByTestId("detail-value-value")).toHaveTextContent("₹750");
     expect(screen.getByTestId("detail-gain-value")).toHaveTextContent("+₹150 (+25.0%)");
     expect(screen.getByTestId("detail-xirr-value")).toHaveTextContent("17.4%");
-    expect(screen.getByTestId(`folio-${IDS.folioDev}`)).toHaveTextContent("XXXXX5678");
+    expect(screen.getByTestId(`folio-${IDS.folioDev}`)).toHaveTextContent("A12345678");
     expect(screen.queryByTestId(`folio-${IDS.folioAsha}`)).toBeNull();
-    expect(screen.queryByRole("button", { name: "Copy folio number XXXXX9183" })).toBeNull();
+    expect(screen.queryByRole("button", { name: `Copy folio number ${FULL_NUMBER}` })).toBeNull();
   });
 
   it("test_rows_open_matching_drilldown: each row opens the dialog of its tile, with click, Enter and Space, and Escape closes it", () => {

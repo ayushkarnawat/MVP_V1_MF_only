@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { MemoryRouter, useNavigate } from "react-router";
 import { beforeEach, expect, it, vi } from "vitest";
 import { getHouseholdMembers } from "../../features/auth/api";
@@ -250,4 +251,138 @@ it("keeps a navigation queued during loading when me changes before the fetch fi
   auth.me = { user_id: "account-a" };
   view.rerender(<MemoryRouter initialEntries={["/home"]}><ScopeProvider><Probe /></ScopeProvider></MemoryRouter>);
   await loaded(); expectPick("aggregate", "a");
+});
+
+// ---- Batch C 17d (C-9): refreshMembers hands back the fresh list; the import-done navigation keeps the pick ----
+function RefreshCapture() {
+  const scope = useScope();
+  const [out, setOut] = useState("pending");
+  return <>
+    <button onClick={() => { void Promise.resolve(scope.refreshMembers()).then(result => { const text = result === undefined ? "void" : result === null ? "null" : result.map(value => value.name).join(","); setOut(previous => previous === "pending" ? text : `${previous}|${text}`); }); }}>Refresh and capture</button>
+    <output data-testid="captured">{out}</output>
+  </>;
+}
+function ImportNav() {
+  const navigate = useNavigate();
+  return <>
+    <button onClick={() => { void navigate("/portfolio/mutual-funds", { replace: true, state: { importNotice: null, importNoticeUser: "account-a" } }); }}>Import-done navigation</button>
+    <button onClick={() => { void navigate("/portfolio/mutual-funds", { state: { origin: "/home" } }); }}>Navigation with other state</button>
+  </>;
+}
+function mountImport() {
+  return render(<MemoryRouter initialEntries={["/import"]}><ScopeProvider><Probe /><RefreshCapture /><ImportNav /></ScopeProvider></MemoryRouter>);
+}
+
+it("refreshMembers resolves with the fresh list so a caller can tell whether the household grew", async () => {
+  mountImport(); await loaded();
+  vi.mocked(getHouseholdMembers).mockResolvedValueOnce([...family, member("c", "Carol")]);
+  fireEvent.click(screen.getByRole("button", { name: "Refresh and capture" }));
+  await waitFor(() => expect(screen.getByTestId("captured").textContent).toBe("Alice,Bob,Carol"));
+  expect(screen.getByTestId("members").textContent).toBe("Alice,Bob,Carol");
+});
+
+it("refreshMembers resolves with null when the refresh fails, and keeps the list and the pick", async () => {
+  mountImport(); await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
+  vi.mocked(getHouseholdMembers).mockRejectedValueOnce(new Error("offline"));
+  fireEvent.click(screen.getByRole("button", { name: "Refresh and capture" }));
+  await waitFor(() => expect(screen.getByTestId("captured").textContent).toBe("null"));
+  expect(screen.getByTestId("members").textContent).toBe("Alice,Bob");
+  expectPick("member", "b");
+});
+
+it("a refresh that a newer refresh replaced resolves with the newer list, never its own stale answer (independent review of C-9, finding 1)", async () => {
+  mountImport(); await loaded();
+  let releaseFirst!: (list: HouseholdMember[]) => void;
+  vi.mocked(getHouseholdMembers)
+    .mockImplementationOnce(() => new Promise<HouseholdMember[]>(resolve => { releaseFirst = resolve; }))
+    .mockResolvedValueOnce([...family, member("c", "Carol")]);
+  fireEvent.click(screen.getByRole("button", { name: "Refresh and capture" }));
+  fireEvent.click(screen.getByRole("button", { name: "Refresh and capture" }));
+  await waitFor(() => expect(screen.getByTestId("captured").textContent).toBe("Alice,Bob,Carol"));
+  await act(async () => { releaseFirst(family); });
+  await waitFor(() => expect(screen.getByTestId("captured").textContent).toBe("Alice,Bob,Carol|Alice,Bob,Carol"));
+  expect(screen.getByTestId("members").textContent).toBe("Alice,Bob,Carol"); // the old answer never overwrote the newer list
+});
+
+it("when the newer refresh fails, the replaced one resolves with null (nothing is known)", async () => {
+  mountImport(); await loaded();
+  let releaseFirst!: (list: HouseholdMember[]) => void;
+  vi.mocked(getHouseholdMembers)
+    .mockImplementationOnce(() => new Promise<HouseholdMember[]>(resolve => { releaseFirst = resolve; }))
+    .mockRejectedValueOnce(new Error("offline"));
+  fireEvent.click(screen.getByRole("button", { name: "Refresh and capture" }));
+  fireEvent.click(screen.getByRole("button", { name: "Refresh and capture" }));
+  await waitFor(() => expect(screen.getByTestId("captured").textContent).toBe("null"));
+  await act(async () => { releaseFirst(family); });
+  await waitFor(() => expect(screen.getByTestId("captured").textContent).toBe("null|null"));
+  expect(screen.getByTestId("members").textContent).toBe("Alice,Bob");
+});
+
+it("the import-done navigation does not reset the pick: leaving Add data after an import keeps the member the user was viewing", async () => {
+  mountImport(); await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
+  fireEvent.click(screen.getByRole("button", { name: "Import-done navigation" }));
+  await act(async () => {});
+  expectPick("member", "b");
+});
+
+it("any other way of leaving Add data still resets a household of two or more to Family Combined (the existing rule)", async () => {
+  mountImport(); await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
+  fireEvent.click(screen.getByRole("button", { name: "/portfolio/mutual-funds" }));
+  await act(async () => {});
+  expectPick("aggregate", "a");
+});
+
+it("a navigation with some other state is not the import-done navigation and still resets", async () => {
+  mountImport(); await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
+  fireEvent.click(screen.getByRole("button", { name: "Navigation with other state" }));
+  await act(async () => {});
+  expectPick("aggregate", "a");
+});
+
+it("the exemption is for that one navigation only: the next move between rows resets as usual", async () => {
+  mountImport(); await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
+  fireEvent.click(screen.getByRole("button", { name: "Import-done navigation" }));
+  await act(async () => {});
+  expectPick("member", "b");
+  fireEvent.click(screen.getByRole("button", { name: "/portfolio/debt" }));
+  await act(async () => {});
+  expectPick("aggregate", "a");
+});
+
+// Orchestrator review of C-9: the exemption is for the import-done navigation itself (a replace), not for every later visit to that history entry.
+function BrowserBack() {
+  const navigate = useNavigate();
+  return <button onClick={() => { void navigate(-1); }}>Browser Back</button>;
+}
+
+it("pressing Back onto the import-done history entry is an ordinary move: a household of two or more still resets to Family Combined", async () => {
+  render(
+    <MemoryRouter
+      initialEntries={["/import", { pathname: "/portfolio/mutual-funds", state: { importNotice: null, importNoticeUser: "account-a" } }, "/portfolio/debt"]}
+      initialIndex={2}
+    >
+      <ScopeProvider><Probe /><BrowserBack /></ScopeProvider>
+    </MemoryRouter>,
+  );
+  await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
+  expectPick("member", "b");
+  fireEvent.click(screen.getByRole("button", { name: "Browser Back" }));
+  await act(async () => {});
+  expectPick("aggregate", "a");
+});
+
+it("the exemption is only for leaving Add data: an import-shaped navigation from another page still resets (independent review of C-9, finding 4)", async () => {
+  render(<MemoryRouter initialEntries={["/portfolio/debt"]}><ScopeProvider><Probe /><ImportNav /></ScopeProvider></MemoryRouter>);
+  await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
+  expectPick("member", "b");
+  fireEvent.click(screen.getByRole("button", { name: "Import-done navigation" }));
+  await act(async () => {});
+  expectPick("aggregate", "a");
 });

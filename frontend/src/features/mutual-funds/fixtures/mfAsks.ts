@@ -21,10 +21,10 @@ import { analyticsMfC, overlapSummary } from "./mfC";
 // units = amount / NAV, both exact here: 16244.00 / 81.2200 = 200.000 and 22000.00 / 88.0000 = 250.000.
 // Folio "1234567/89" is masked by the backend to "XXXX" + its last four letters or digits: the digits are
 // 123456789, the last four 6789, so "XXXX6789". t-0029 carries a folio only (units and NAV null), t-0046 nothing.
-const LEDGER_DETAIL: Record<string, Pick<InvestmentWithdrawalEntry, "units" | "nav" | "folio">> = {
-  "t-0067": { units: "200.000", nav: "81.2200", folio: "XXXX7890" },
-  "t-0028": { units: "250.000", nav: "88.0000", folio: "XXXX6789" },
-  "t-0029": { units: null, nav: null, folio: "XXXX6789" },
+const LEDGER_DETAIL: Record<string, Pick<InvestmentWithdrawalEntry, "units" | "nav" | "folio" | "folio_number">> = {
+  "t-0067": { units: "200.000", nav: "81.2200", folio: "XXXX7890", folio_number: "1234567890" },
+  "t-0028": { units: "250.000", nav: "88.0000", folio: "XXXX6789", folio_number: "1234567/89" },
+  "t-0029": { units: null, nav: null, folio: "XXXX6789", folio_number: "1234567/89" },
 };
 
 /** The ledger payload of the Transactions page with the optional detail on three entries (monthly and yearly buckets alike)

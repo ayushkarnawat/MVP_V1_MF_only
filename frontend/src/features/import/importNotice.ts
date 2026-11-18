@@ -1,5 +1,9 @@
 import type { ImportConfirmResponse, NewFund } from "./types";
 
+export interface ImportOutcome {
+  landOnPersonId?: string;
+}
+
 export interface ImportNotice {
   text: string;
   details?: string[];

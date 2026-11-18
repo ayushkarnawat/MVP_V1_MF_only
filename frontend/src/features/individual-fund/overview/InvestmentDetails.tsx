@@ -1,13 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { useState } from "react";
+import { FolioNumber } from "@/components/mf/FolioNumber";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CLICK_ROW, DISABLED } from "@/lib/clickable";
 import { formatDate, formatRupees } from "@/lib/format";
 import { useScope } from "@/shell/scope/ScopeContext";
-import { fundPageApi } from "../api";
 import {
   COMING_SOON,
-  COPY_FOLIO_FAILED,
   type TileId,
 } from "../fundCopy";
 import {
@@ -27,42 +25,10 @@ export interface InvestmentDetailsProps {
 
 interface FolioRowProps {
   folio: FolioInfo;
-  schemeId: string;
   scope: string;
 }
 
-function FolioRow({ folio, schemeId, scope }: FolioRowProps) {
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, []);
-
-  const handleCopy = async () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    try {
-      if (!navigator.clipboard?.writeText) {
-        throw new Error("Clipboard unavailable");
-      }
-      const res = await fundPageApi.folioNumber(schemeId, folio.folio_id);
-      await navigator.clipboard.writeText(res.folio_number);
-      setCopyState("copied");
-      timerRef.current = setTimeout(() => {
-        setCopyState("idle");
-      }, 2000);
-    } catch {
-      setCopyState("failed");
-    }
-  };
-
+function FolioRow({ folio, scope }: FolioRowProps) {
   const label =
     scope === "combined"
       ? `Folio · ${folio.member_name}`
@@ -74,31 +40,8 @@ function FolioRow({ folio, schemeId, scope }: FolioRowProps) {
       className="flex items-center justify-between py-2 text-sm"
     >
       <span className="text-[var(--ui-text-muted)]">{label}</span>
-      <div className="flex items-center gap-2">
-        {copyState === "copied" && (
-          <span role="status" className="text-xs text-[var(--pos-text)]">
-            Copied
-          </span>
-        )}
-        {copyState === "failed" && (
-          <span role="alert" className="text-xs text-[var(--neg-text)]">
-            {COPY_FOLIO_FAILED}
-          </span>
-        )}
-        <button
-          type="button"
-          aria-label={`Copy folio number ${folio.folio_masked}`}
-          title="Copies the full number"
-          onClick={handleCopy}
-          className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-[var(--ui-text)] hover:text-[var(--c4)]"
-        >
-          <span>{folio.folio_masked}</span>
-          {copyState === "copied" ? (
-            <Check className="h-3.5 w-3.5" aria-hidden="true" />
-          ) : (
-            <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-          )}
-        </button>
+      <div className="text-xs font-semibold text-[var(--ui-text)]">
+        <FolioNumber value={folio.folio_number} showCopy />
       </div>
     </li>
   );
@@ -275,7 +218,6 @@ export function InvestmentDetails({
             <FolioRow
               key={folio.folio_id}
               folio={folio}
-              schemeId={summary.scheme.id}
               scope={summary.scope}
             />
           ))}
