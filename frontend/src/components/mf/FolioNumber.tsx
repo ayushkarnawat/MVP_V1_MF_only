@@ -25,7 +25,7 @@ export function FolioNumber({ value, showCopy = false }: FolioNumberProps) {
     };
   }, []);
 
-  const shown = hidden ? maskFolio(value) : value;
+  const shown = typeof value !== "string" ? "" : hidden ? maskFolio(value) : value;
 
   const handleCopy = async () => {
     if (hidden) return;
@@ -47,6 +47,9 @@ export function FolioNumber({ value, showCopy = false }: FolioNumberProps) {
       setCopyState("failed");
     }
   };
+
+  // A response without folio_number (a newer front end on an older back end) shows nothing instead of crashing the page.
+  if (typeof value !== "string") return null;
 
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5">

@@ -74,3 +74,19 @@ describe("useFolioVisibility: one shared, remembered setting", () => {
     expect(result.current.hidden).toBe(true);
   });
 });
+
+// Independent review of Batch C: tests that pin what the earlier ones only implied.
+describe("folioVisibility: pinned details", () => {
+  it("splits at the FIRST slash: everything from it on is the sub-folio, kept as printed", () => {
+    expect(maskFolio("12345678/9/10")).toBe("XXXX5678/9/10");
+  });
+
+  it("saves the hidden choice under the one documented key, and removes it when shown again", () => {
+    resetFolioVisibilityForTests();
+    const { result } = renderHook(() => useFolioVisibility());
+    act(() => result.current.toggle());
+    expect(window.localStorage.getItem("unifolio.folioNumbersHidden")).toBe("1");
+    act(() => result.current.toggle());
+    expect(window.localStorage.getItem("unifolio.folioNumbersHidden")).toBeNull();
+  });
+});

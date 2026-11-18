@@ -10,10 +10,10 @@ import { useScope } from "../scope/ScopeContext";
 import { ImportHeaderContext } from "../nav/ImportProvider";
 import { importDoneTarget } from "../nav/importDoneTarget";
 
+const MEMBER_LIST_WAIT_MS = 5000;
+
 export default function ImportWrapper() {
   const { members, memberId, viewMode, refreshMembers, setMember, setAggregate } = useScope();
-  const membersRef = useRef(members);
-  membersRef.current = members;
   // The household as it was when Add data opened (the first non-empty list this page saw). "Did the household grow?" is asked
   // against this, not against the count at the moment the import finishes: another refresh can load the new member before that
   // moment (independent review of C-9, finding 3), and a count taken then would not see it.
@@ -77,7 +77,14 @@ export default function ImportWrapper() {
     const startMode = viewModeRef.current;
     const startMember = memberIdRef.current;
     // Promise.resolve().then(...) so a refresh that throws at once is caught too, and the page still navigates.
-    const fresh = await Promise.resolve().then(() => refreshMembers()).catch(() => null);
+    // Waits for the fresh list, but not for ever: a request that never answers must not hold the person on this screen
+    // (independent review of Batch C, M3). After 5 seconds it counts as "no list": navigate, stay on the viewed member.
+    let giveUp: ReturnType<typeof setTimeout> | undefined;
+    const fresh = await Promise.race([
+      Promise.resolve().then(() => refreshMembers()).catch(() => null),
+      new Promise<null>(resolve => { giveUp = setTimeout(() => resolve(null), MEMBER_LIST_WAIT_MS); }),
+    ]);
+    clearTimeout(giveUp);
     // The person left Add data while the list was loading: do not pull them back or move their view.
     if (!mounted.current) return;
     // A view the person chose themselves while the list was loading wins over our own move (independent review of C-9, finding 2).

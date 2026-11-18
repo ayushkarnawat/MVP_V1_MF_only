@@ -133,4 +133,11 @@ describe("FolioNumber", () => {
     vi.unstubAllGlobals();
     log.mockRestore();
   });
+
+  // Independent review of Batch C: a response without folio_number (a newer front end on an older back end) must not crash the page.
+  it("renders nothing, and does not throw, when the folio number is missing from the data", () => {
+    const { container } = render(<FolioNumber value={undefined as unknown as string} />);
+    expect(container.textContent).toBe("");
+    expect(screen.queryByRole("button", { name: /folio numbers/i })).not.toBeInTheDocument();
+  });
 });

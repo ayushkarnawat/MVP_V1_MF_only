@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { maskFolio, useFolioVisibility } from "../../lib/folioVisibility";
 import { PromptDialog } from "./prompts/PromptDialog";
 import { PRIMARY_BTN, SECONDARY_BTN } from "./prompts/copy";
 import type { SchemeConfirmation, SchemeMatchPreview } from "./types";
@@ -22,6 +23,8 @@ interface UnidentifiedFundsDialogProps {
 export function UnidentifiedFundsDialog({ schemes, onContinue, onCancel }: UnidentifiedFundsDialogProps) {
   const asking = useMemo(() => schemes.filter((s) => s.identification === "ask"), [schemes]);
   const [picks, setPicks] = useState<Record<string, string>>({});
+  // The folio follows the app-wide "hide folio numbers" choice (no control of its own here).
+  const { hidden } = useFolioVisibility();
   const complete = asking.every((s) => picks[s.temp_id]);
 
   const submit = () => onContinue(asking.map((s) =>
@@ -44,7 +47,7 @@ export function UnidentifiedFundsDialog({ schemes, onContinue, onCancel }: Unide
         {asking.map((s) => (
           <li key={s.temp_id} className="space-y-1">
             <p className="text-sm font-medium text-[var(--color-ink)]">{s.name}</p>
-            <p className="text-xs text-[var(--color-text-secondary)]">Folio {s.folio}</p>
+            <p className="text-xs text-[var(--color-text-secondary)]">Folio {hidden ? maskFolio(s.folio) : s.folio}</p>
             <select
               aria-label={`Fund for ${s.name}`}
               className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-2 text-sm"

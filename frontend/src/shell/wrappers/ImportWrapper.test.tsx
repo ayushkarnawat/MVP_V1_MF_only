@@ -280,4 +280,23 @@ describe("ImportWrapper: the member list and the view after an import (Batch C 1
     finish(); await landed();
     expectPick("member", "b"); // the only person left is the one to look at; nothing to combine
   });
+
+  // ---- independent review of Batch C, finding M3: a member-list request that never answers must not hold the person here.
+  it("goes back to Mutual Funds after 5 seconds if the member list has not answered, staying on the viewed member", async () => {
+    vi.mocked(getHouseholdMembers).mockResolvedValueOnce([A, B]).mockImplementationOnce(() => new Promise<HouseholdMember[]>(() => {}));
+    mount(); await loaded("Alice,Bob");
+    fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
+    expectPick("member", "b");
+    vi.useFakeTimers();
+    try {
+      finish();
+      await act(async () => { await vi.advanceTimersByTimeAsync(4900); });
+      expect(screen.queryByTestId("landing")).toBeNull();
+      await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+      expect(screen.getByTestId("landing")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+    expectPick("member", "b");
+  });
 });
