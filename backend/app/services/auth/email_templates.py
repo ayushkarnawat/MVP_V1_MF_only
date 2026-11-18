@@ -460,7 +460,7 @@ def _undo_content(undo_url: str, valid_until: datetime) -> _BrandedEmail:
             _Button("Undo Head of Family Change", undo_url),
             _IconBlock(
                 "line", "date", "This link is valid until ",
-                bold_suffix=f"{format_ist_datetime(valid_until)}.",
+                bold_suffix=f"{format_ist_datetime(valid_until, full_month=True)}.",
             ),
             _IconBlock(
                 "line", "warn",

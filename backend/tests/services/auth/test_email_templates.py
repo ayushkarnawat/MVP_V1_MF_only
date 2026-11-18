@@ -263,7 +263,9 @@ def test_shared_header_unchanged():
 
 def test_valid_until_line_uses_the_existing_ist_formatter(emails):
     _, plain, html = emails[1]
-    ist = format_ist_datetime(_VALID_UNTIL)
+    ist = format_ist_datetime(_VALID_UNTIL, full_month=True)
+    # The workbook's own sample (section 6): the month is spelled in full.
+    assert ist == "10 November 2026, 5:07 PM IST"
     assert f"This link is valid until <b>{ist}.</b>" in html
     assert f"This link is valid until {ist}." in plain
 
@@ -278,7 +280,7 @@ def test_plain_text_part_carries_the_same_facts(emails):
         ),
         (
             "Undo Head of Family Change",
-            f"This link is valid until {format_ist_datetime(_VALID_UNTIL)}.",
+            f"This link is valid until {format_ist_datetime(_VALID_UNTIL, full_month=True)}.",
             "Please note: The link will expire earlier if the previous phone number or "
             "email address is used for another account in the meantime.",
             "Having trouble with the button?",
