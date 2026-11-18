@@ -124,17 +124,25 @@ describe("AllSet: the spinner turns into a tick after 2.5 seconds (Batch B, item
     tick(1);
     expect(states()).toEqual(["done", "done", "done"]);
   });
-  it("after the tick the third row, the left paragraph and the right heading say the work is done", () => {
+  it("at 2.5 s the third row says the work is done; the paragraph and the right heading still have their old words", () => {
     mount();
     tick(2500);
     expect(within(left()).getByText(READY_TITLE)).toBeInTheDocument();
     expect(within(left()).getByText(READY_LINE)).toBeInTheDocument();
+    expect(within(left()).getByText(OLD_PARAGRAPH)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Getting your accounts ready" })).toBeInTheDocument();
+  });
+  it("at about 3 s, after the tick, the left paragraph and the right heading change to match", () => {
+    mount();
+    tick(2999);
+    expect(within(left()).getByText(OLD_PARAGRAPH)).toBeInTheDocument();
+    tick(1);
     expect(within(left()).getByText(READY_PARAGRAPH)).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Your accounts are ready" })).toBeInTheDocument();
   });
-  it("after the tick none of the old texts is left", () => {
+  it("once settled none of the old texts is left", () => {
     mount();
-    tick(2500);
+    tick(3000);
     expect(screen.queryByText(OLD_TITLE)).toBeNull();
     expect(screen.queryByText(OLD_LINE)).toBeNull();
     expect(screen.queryByText(OLD_PARAGRAPH)).toBeNull();
@@ -187,14 +195,14 @@ describe("AllSet: the spinner turns into a tick after 2.5 seconds (Batch B, item
     tick(2500);
     expect(screen.getByRole("button", { name: "Go to my dashboard" })).toBeEnabled();
   });
-  it("the timer runs once and never flips back", () => {
+  it("the timers run once and never flip back", () => {
     mount();
     tick(2500);
     tick(30 * 1000);
     expect(states()).toEqual(["done", "done", "done"]);
     expect(within(left()).getByText(READY_TITLE)).toBeInTheDocument();
   });
-  it("starts one 2500 ms timer and clears that same timer when the screen closes", () => {
+  it("starts a 2500 ms and a 3000 ms timer and clears both when the screen closes", () => {
     vi.useFakeTimers();
     const setSpy = vi.spyOn(globalThis, "setTimeout");
     const clearSpy = vi.spyOn(globalThis, "clearTimeout");
@@ -202,10 +210,26 @@ describe("AllSet: the spinner turns into a tick after 2.5 seconds (Batch B, item
     const index = setSpy.mock.calls.findIndex(([, delay]) => delay === 2500);
     expect(index, "no 2500 ms timer was started").toBeGreaterThan(-1);
     expect(setSpy.mock.calls.filter(([, delay]) => delay === 2500)).toHaveLength(1);
+    const settleIndex = setSpy.mock.calls.findIndex(([, delay]) => delay === 3000);
+    expect(settleIndex, "no 3000 ms timer was started").toBeGreaterThan(-1);
     const id = setSpy.mock.results[index].value;
+    const settleId = setSpy.mock.results[settleIndex].value;
     view.unmount();
     expect(clearSpy).toHaveBeenCalledWith(id);
+    expect(clearSpy).toHaveBeenCalledWith(settleId);
     setSpy.mockRestore();
     clearSpy.mockRestore();
+  });
+});
+
+
+describe("AllSet: spacing while the retry message is showing (Codex review of B, finding 6)", () => {
+  it("is dense only after a failed finish", async () => {
+    const onFinish = vi.fn().mockRejectedValue(new Error("offline"));
+    render(<AllSet onFinish={onFinish} onViewDetails={vi.fn()} />);
+    expect(screen.getByTestId("auth-card")).not.toHaveAttribute("data-dense");
+    fireEvent.click(screen.getByRole("button", { name: "Go to my dashboard" }));
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(screen.getByTestId("auth-card")).toHaveAttribute("data-dense", "true");
   });
 });

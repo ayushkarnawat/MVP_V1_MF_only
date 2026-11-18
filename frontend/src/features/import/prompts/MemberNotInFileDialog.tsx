@@ -49,7 +49,7 @@ export function MemberNotInFileDialog({
       <div
         data-testid="import-for-warning"
         role="note"
-        className="flex items-start gap-2.5 rounded-xl border border-[#FCE0B0] bg-[var(--warn-bg)] px-3.5 py-2.5 text-[13.5px]"
+        className="flex items-start gap-2.5 rounded-xl border border-[#FCE0B0] dark:border-[rgba(251,191,36,0.35)] bg-[var(--warn-bg)] px-3.5 py-2.5 text-[13.5px]"
       >
         <span
           aria-hidden="true"

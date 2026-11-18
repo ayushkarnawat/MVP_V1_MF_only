@@ -4,6 +4,8 @@
   --auth-mint-from: #F2FCF6;
   --auth-mint-to: #F8FDF9;
   --auth-green: #22C55E;
+  /* Focus indicators and the focused field's border: the palette's deep green, 5.02:1 on white (the button green is 2.28:1). */
+  --auth-focus: #15803D;
   --auth-green-ink: #15803D;
   --auth-step-on: #22C55E;
   --auth-step-off: #E6E8EE;
@@ -160,6 +162,47 @@
   z-index: 1;
 }
 
+/* Dense spacing (owner decision 19 Nov 2026, Codex whole-batch review of B, finding 6): while a message is showing (a validation
+   notice or an error panel) the card steps every vertical size to the next tighter tier, and the message boxes slim down, so the
+   message does not push the right pane into scrolling. Each rule block mirrors one of the window-height tiers above. */
+.auth-card[data-dense="true"] {
+  --auth-gap: 16px;
+  --auth-gap-sm: 9px;
+  --auth-btn-h: 48px;
+  --auth-field-h: 48px;
+  --auth-row-h: 54px;
+  --auth-chip-h: 42px;
+  --auth-h1: 30px;
+  --auth-option-h: min(calc(var(--auth-row-h) - 6px), 48px);
+}
+@media (max-height: 759px), (max-width: 1199px) {
+  .auth-card[data-dense="true"] {
+    --auth-gap: 10px;
+    --auth-gap-sm: 5px;
+    --auth-btn-h: 44px;
+    --auth-field-h: 44px;
+    --auth-row-h: 46px;
+    --auth-chip-h: 34px;
+    --auth-h1: 26px;
+    --auth-option-h: min(calc(var(--auth-row-h) - 6px), 48px);
+  }
+}
+@media (max-height: 679px) {
+  .auth-card[data-dense="true"] {
+    --auth-gap: 6px;
+    --auth-gap-sm: 4px;
+    --auth-btn-h: 40px;
+    --auth-field-h: 40px;
+    --auth-row-h: 42px;
+    --auth-chip-h: 30px;
+    --auth-h1: 24px;
+    --auth-option-h: min(calc(var(--auth-row-h) - 6px), 48px);
+  }
+}
+.auth-card[data-dense="true"] .auth-inline-error { margin-top: 4px; padding: 3px 8px; font-size: 13px; line-height: 1.25; }
+.auth-card[data-dense="true"] .auth-alert { padding: 8px 12px; }
+.auth-card[data-dense="true"] [data-testid="auth-block"] { padding-block: 2px; }
+
 /* Shared controls. */
 .auth-btn {
   display: inline-flex;
@@ -183,6 +226,7 @@
 
 .auth-btn:active:not(:disabled) {
   background: #15803D;
+  color: #FFFFFF; /* 5.02:1; the dark label would be 3.76:1 on this green */
   transform: scale(0.99);
 }
 
@@ -203,7 +247,7 @@
 }
 
 .auth-btn:focus-visible {
-  outline: 2px solid var(--auth-green);
+  outline: 2px solid var(--auth-focus);
   outline-offset: 3px;
 }
 
@@ -235,7 +279,7 @@
 }
 
 .auth-field:focus-within {
-  border-color: var(--auth-green);
+  border-color: var(--auth-focus);
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16);
   color: var(--auth-ink);
 }
@@ -428,7 +472,7 @@
 }
 
 .auth-choice:focus-visible {
-  outline: 2px solid var(--auth-green);
+  outline: 2px solid var(--auth-focus);
   outline-offset: 2px;
 }
 
@@ -436,7 +480,7 @@
 .auth-option-group[data-invalid="true"] { border-color: var(--auth-error-line); }
 .auth-option { background: #FFFFFF; border-color: var(--auth-option-divider); transition: background-color 150ms ease; }
 .auth-option[aria-checked="true"] { background: var(--auth-sel-bg); }
-.auth-option:focus-visible { outline: 2px solid var(--auth-green); outline-offset: -2px; }
+.auth-option:focus-visible { outline: 2px solid var(--auth-focus); outline-offset: -2px; }
 
 /* The one-time-code cells. A class (not Tailwind utilities) because the shared OtpInput already sets its own border and ring
    colours; this selector is more specific, so the cell is a white rounded square that turns green when focused, as drawn. */
@@ -457,6 +501,6 @@
    border transparent with !important; the code cells are such inputs and would show no focus at all. Scoped to the auth page. */
 .auth-page div > input.auth-otp-cell:focus,
 .auth-page div > input.auth-otp-cell:focus-visible {
-  border-color: var(--auth-green) !important;
+  border-color: var(--auth-focus) !important;
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16) !important;
 }

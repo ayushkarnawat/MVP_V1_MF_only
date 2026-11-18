@@ -32,7 +32,7 @@ export function StatusRow({ label, description, state }: StatusRowProps) {
       <span aria-hidden="true" className="mt-0.5 flex shrink-0 items-center justify-center">
         {state === "done" ? (
           <span
-            className={`flex h-6 w-6 items-center justify-center rounded-full bg-[var(--auth-green)] text-white${shouldPop ? " auth-tick-pop" : ""}`}
+            className={`flex h-6 w-6 items-center justify-center rounded-full bg-[var(--auth-green)] text-[#111111]${shouldPop ? " auth-tick-pop" : ""}`}
           >
             <Check size={14} strokeWidth={3} />
           </span>

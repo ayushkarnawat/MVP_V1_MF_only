@@ -212,8 +212,12 @@ export function LoginEntry({
               ) : null}
               <p aria-live="polite" aria-atomic="true" data-testid="hold-announcement" className="sr-only">{announcement}</p>
             </div>
-            <div className="auth-or" role="separator"><span>OR</span></div>
-            {showGoogle && onGoogleCredential ? <GoogleButton onCredential={onGoogleCredential} /> : null}
+            {showGoogle && onGoogleCredential ? (
+              <>
+                <div className="auth-or" role="separator"><span>OR</span></div>
+                <GoogleButton onCredential={onGoogleCredential} />
+              </>
+            ) : null}
           </form>
         }
         bottom={

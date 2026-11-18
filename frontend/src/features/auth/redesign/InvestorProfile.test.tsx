@@ -8,7 +8,7 @@ function mount(over: Partial<Parameters<typeof InvestorProfile>[0]> = {}) {
   render(<InvestorProfile {...handlers} {...over} />);
   return handlers;
 }
-const SIX = ["Build my wealth", "Plan for retirement", "Fund my children's education", "Buy a home", "Achieve financial freedom", "Plan my taxes"];
+const SIX = ["Build my wealth", "Plan for retirement", "Fund my children’s education", "Buy a home", "Achieve financial freedom", "Plan my taxes"];
 const goalBoxes = () => within(screen.getByRole("group", { name: "What are you working towards?" })).getAllByRole("checkbox");
 const options = () => within(screen.getByRole("radiogroup", { name: "How do you usually invest?" })).getAllByRole("radio");
 const next = () => fireEvent.click(screen.getByRole("button", { name: "Continue" }));
@@ -27,7 +27,7 @@ describe("InvestorProfile, sign-up screen 4 (task 6.12)", () => {
     mount();
     expect(screen.getByRole("heading", { level: 1, name: "How do you usually invest?" })).toBeInTheDocument();
     expect(options().map((option) => within(option).getByText(/./, { selector: "span.font-semibold" }).textContent)).toEqual([
-      "I'm just getting started", "I manage my own investments", "I work with a financial professional", "A mix of both",
+      "I’m just getting started", "I manage my own investments", "I work with a financial professional", "A mix of both",
     ]);
     expect(screen.getByRole("heading", { level: 2, name: "What are you working towards?" })).toBeInTheDocument();
     expect(goalBoxes().map((box) => box.textContent)).toEqual(SIX);
@@ -187,7 +187,7 @@ describe("InvestorProfile: the decluttered layout (Batch B, item 3, option A)", 
   it("roles, names, option order and the title class are unchanged (the tests and the Profile screen rely on them)", () => {
     mount();
     expect(options().map((row) => within(row).getByText(/./, { selector: "span.font-semibold" }).textContent)).toEqual([
-      "I'm just getting started", "I manage my own investments", "I work with a financial professional", "A mix of both",
+      "I’m just getting started", "I manage my own investments", "I work with a financial professional", "A mix of both",
     ]);
     expect(options().every((row) => row.getAttribute("role") === "radio")).toBe(true);
     expect(goalBoxes().map((box) => box.textContent)).toEqual(SIX);
@@ -247,5 +247,22 @@ describe("InvestorProfile: the decluttered layout (Batch B, item 3, option A)", 
     fireEvent.click(goalBoxes()[0]);
     next();
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ investorType: "self_directed", goals: ["wealth_creation"] }));
+  });
+});
+
+
+describe("InvestorProfile: spacing while a message is showing (Codex review of B, finding 6)", () => {
+  it("is dense only while a validation message or a save error is showing", async () => {
+    mount();
+    expect(screen.getByTestId("auth-card")).not.toHaveAttribute("data-dense");
+    next();
+    expect(screen.getByTestId("auth-card")).toHaveAttribute("data-dense", "true");
+  });
+  it("goes back to the normal spacing once the answers are given", async () => {
+    mount();
+    next();
+    fireEvent.click(options()[0]);
+    for (const box of goalBoxes().slice(0, 1)) fireEvent.click(box);
+    await waitFor(() => expect(screen.getByTestId("auth-card")).not.toHaveAttribute("data-dense"));
   });
 });

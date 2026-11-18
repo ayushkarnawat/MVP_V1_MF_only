@@ -212,6 +212,12 @@ describe("U5 MemberNotInFileDialog warning (Batch B, item 2)", () => {
     expect(muted).toHaveClass("dark:text-[#A3A3A3]");
   });
 
+  it("the warning's border is not a fixed light tint in dark mode", () => {
+    mount(["Aditi Sharma"]);
+    expect(warning()).toHaveClass("border-[#FCE0B0]");
+    expect(warning().className).toContain("dark:border-[rgba(251,191,36,0.35)]");
+  });
+
   it("the muted line says a new family member is created if needed, and is a separate element from the bold line", () => {
     mount(["Aditi Sharma"]);
     const muted = within(warning()).getByText(MUTED);

@@ -22,6 +22,7 @@ import { AuthSplitCard } from "./AuthSplitCard";
 import { PROFILE_ROW_ICONS } from "./authRowIcons";
 import { ChipCheckbox } from "./ChipCheckbox";
 import {
+  INVESTOR_GOAL_TITLE_OVERRIDES,
   INVESTOR_PROFILE_OPTIONS,
   PROFILE_HEADLINE_ACCENT,
   PROFILE_HEADLINE_BEFORE,
@@ -114,6 +115,7 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
     <AuthPage>
       <AuthSplitCard
         step={4}
+        dense={typeError || goalsError || saveError !== null}
         onBack={onBack}
         left={
           <AuthLeftPanel
@@ -176,7 +178,7 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
                   <ChipCheckbox
                     key={option.value}
                     ref={index === 0 ? firstChip : undefined}
-                    label={option.title}
+                    label={INVESTOR_GOAL_TITLE_OVERRIDES[option.value] ?? option.title}
                     checked={goals.includes(option.value)}
                     icon={GOAL_ICONS[option.value]}
                     invalid={goalsError}

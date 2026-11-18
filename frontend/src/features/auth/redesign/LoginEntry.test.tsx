@@ -30,7 +30,7 @@ describe("LoginEntry: the right panel", () => {
     expect(tab("Mobile number")).toHaveAttribute("aria-selected", "false");
     expect(email()).toHaveAttribute("placeholder", "you@example.com");
     expect(getOtp()).toBeInTheDocument();
-    expect(screen.getByText("OR")).toBeInTheDocument();
+    expect(screen.queryByText("OR")).toBeNull(); // Google is off: no separator with nothing under it
     expect(screen.getByRole("button", { name: /Sign up →/ })).toBeInTheDocument();
   });
   it("has no step bar (login has none)", () => {
@@ -126,8 +126,11 @@ describe("LoginEntry: the right panel", () => {
     expect(tab("Email").querySelector("svg")).toBeInTheDocument();
     expect(tab("Mobile number").querySelector("svg")).toBeInTheDocument();
   });
-  it("renders one auth-or separator", () => {
-    mount();
+  it("renders the auth-or separator only when the Google button is under it", () => {
+    const { unmount } = render(<LoginEntry error={null} submitting={false} onSubmitEmail={vi.fn()} onSubmitPhone={vi.fn()} onSignUp={vi.fn()} />);
+    expect(document.querySelectorAll(".auth-or")).toHaveLength(0);
+    unmount();
+    mount({ showGoogle: true, onGoogleCredential: vi.fn() });
     const orElements = document.querySelectorAll(".auth-or");
     expect(orElements).toHaveLength(1);
     expect(orElements[0]).toHaveAttribute("role", "separator");

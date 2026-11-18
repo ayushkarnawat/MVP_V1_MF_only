@@ -13,11 +13,17 @@ export const PROFILE_ROWS = [
 // The sign-up wording for the four investor types. Profile and the mobile screens keep the wording in
 // profile-v2/lib/onboardingOptions.ts; only desktop sign-up uses this list.
 export const INVESTOR_PROFILE_OPTIONS: ReadonlyArray<{ value: InvestorType; title: string }> = [
-  { value: "beginner", title: "I'm just getting started" },
+  { value: "beginner", title: "I’m just getting started" },
   { value: "self_directed", title: "I manage my own investments" },
   { value: "advisor_assisted", title: "I work with a financial professional" },
   { value: "mixed", title: "A mix of both" },
 ];
+
+// Sign-up wording that differs from the shared goal list (Profile and the phone screens keep "children's"): the workbook's own
+// typographic apostrophe, for this screen only.
+export const INVESTOR_GOAL_TITLE_OVERRIDES: Partial<Record<string, string>> = {
+  childrens_education: "Fund my children’s education",
+};
 
 export const CONNECT_HEADLINE_BEFORE = "Bring your investments ";
 export const CONNECT_HEADLINE_ACCENT = "together.";

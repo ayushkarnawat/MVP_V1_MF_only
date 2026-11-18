@@ -32,13 +32,22 @@ export function AllSet({ onFinish, onViewDetails }: AllSetProps) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
+  const [settled, setSettled] = useState(false);
   const inFlight = useRef(false);
 
   useEffect(() => {
-    const id = setTimeout(() => {
+    // Two moments, as the design shows them: the tick (the third row), then, about half a second later, the paragraph and the right
+    // heading change to match ("after the tick").
+    const tickId = setTimeout(() => {
       setReady(true);
     }, 2500);
-    return () => clearTimeout(id);
+    const settleId = setTimeout(() => {
+      setSettled(true);
+    }, 3000);
+    return () => {
+      clearTimeout(tickId);
+      clearTimeout(settleId);
+    };
   }, []);
 
   const finish = async (target: "home") => {
@@ -64,13 +73,14 @@ export function AllSet({ onFinish, onViewDetails }: AllSetProps) {
     <AuthPage>
       <AuthSplitCard
         step={5}
+        dense={failed}
         tone="white"
         done
         left={
           <AuthLeftPanel
             sketch="wallet"
             headline={ALL_SET_HEADLINE}
-            paragraph={ready ? ALL_SET_PARAGRAPH_READY : ALL_SET_PARAGRAPH}
+            paragraph={settled ? ALL_SET_PARAGRAPH_READY : ALL_SET_PARAGRAPH}
             status={rows.map((row, index) => (
               <StatusRow key={index} label={row.label} description={row.description} state={row.state} />
             ))}
@@ -86,7 +96,7 @@ export function AllSet({ onFinish, onViewDetails }: AllSetProps) {
               data-motion="float"
               style={tickVars}
             />
-            <h1 className="auth-h1 text-center">{ready ? ALL_SET_RIGHT_HEADING_READY : ALL_SET_RIGHT_HEADING}</h1>
+            <h1 className="auth-h1 text-center">{settled ? ALL_SET_RIGHT_HEADING_READY : ALL_SET_RIGHT_HEADING}</h1>
             <section aria-labelledby="all-set-list" className="rounded-2xl border border-[var(--auth-hairline)] bg-white p-4 text-left">
               <div className="flex items-center justify-between gap-3">
                 <h2 id="all-set-list" className="text-[15px] font-semibold text-[var(--auth-ink)]">Accounts being imported</h2>

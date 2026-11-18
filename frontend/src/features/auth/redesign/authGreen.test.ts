@@ -44,9 +44,11 @@ describe("auth-tokens.css: the brand green switch (palette values only)", () => 
     expect(rule(".auth-btn")).toMatch(/color:\s*#111111/i);
     expect(rule(".auth-btn:hover:not(:disabled)")).toMatch(/background:\s*#16A34A/i);
     expect(rule(".auth-btn:active:not(:disabled)")).toMatch(/background:\s*#15803D/i);
+    // Pressed: a white label (5.02:1 on #15803D); the dark label would be 3.76:1 (Codex whole-batch review of B, finding 4).
+    expect(rule(".auth-btn:active:not(:disabled)")).toMatch(/color:\s*#FFFFFF/i);
     expect(rule(".auth-btn:disabled")).toMatch(/background:\s*#DFDFDF/i);
     expect(rule(".auth-btn:disabled")).toMatch(/color:\s*#717171/i);
-    expect(rule(".auth-btn:focus-visible")).toMatch(/outline:\s*2px solid var\(--auth-green\)/);
+    expect(rule(".auth-btn:focus-visible")).toMatch(/outline:\s*2px solid var\(--auth-focus\)/);
   });
   it("the countdown button keeps its own grey (B-8) and still wins over the general disabled rule", () => {
     expect(rule(".auth-btn.auth-btn-count:disabled")).toMatch(/background:\s*#DFDFDF/i);
@@ -66,9 +68,33 @@ describe("auth-tokens.css: the brand green switch (palette values only)", () => 
     expect(rule(".auth-option")).toMatch(/background:\s*#FFFFFF/i);
     expect(rule(".auth-option[aria-checked=\"true\"]")).toMatch(/background:\s*var\(--auth-sel-bg\)/);
     expect(rule(".auth-option[aria-checked=\"true\"]")).not.toMatch(/box-shadow:\s*0 0 0 3px/);
-    expect(rule(".auth-option:focus-visible")).toMatch(/outline:\s*2px solid var\(--auth-green\)/);
+    expect(rule(".auth-option:focus-visible")).toMatch(/outline:\s*2px solid var\(--auth-focus\)/);
   });
   it("the row divider is the palette's divider colour", () => {
     expect(css).toMatch(/--auth-option-divider:\s*#ECECEC/i);
+  });
+
+  // Owner decision 19 Nov 2026 (Codex whole-batch review of B, finding 4): the control states reach the WCAG minimums.
+  it("focus indicators use the palette's deep green, 3:1 or better on white", () => {
+    expect(token("--auth-focus")).toBe("#15803D");
+    expect(contrast("#15803D", "#FFFFFF")).toBeGreaterThanOrEqual(3);
+    expect(rule(".auth-choice:focus-visible")).toMatch(/outline:\s*2px solid var\(--auth-focus\)/);
+    expect(rule(".auth-field:focus-within")).toMatch(/border-color:\s*var\(--auth-focus\)/);
+    expect(css).toMatch(/input\.auth-otp-cell:focus-visible\s*\{[^}]*border-color:\s*var\(--auth-focus\)/);
+  });
+  it("the pressed button label and the marks on green meet the contrast minimums", () => {
+    expect(contrast("#FFFFFF", "#15803D")).toBeGreaterThanOrEqual(4.5);
+    expect(contrast("#111111", "#22C55E")).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+
+describe("auth-tokens.css: dense spacing (Codex review of B, finding 6)", () => {
+  it("steps every vertical size to the next tier down while a message shows, and slims the message boxes", () => {
+    expect(css).toMatch(/\.auth-card\[data-dense="true"\]\s*\{[^}]*--auth-gap:\s*16px/);
+    expect(css).toMatch(/\.auth-card\[data-dense="true"\]\s*\{[^}]*--auth-option-h:\s*min\(calc\(var\(--auth-row-h\) - 6px\), 48px\)/);
+    expect(css).toMatch(/\.auth-card\[data-dense="true"\] \.auth-inline-error\s*\{[^}]*padding:\s*3px 8px/);
+    expect(css).toMatch(/\.auth-card\[data-dense="true"\] \.auth-alert\s*\{[^}]*padding:\s*8px 12px/);
+    expect(css).toMatch(/\.auth-card\[data-dense="true"\] \[data-testid="auth-block"\]\s*\{[^}]*padding-block:\s*2px/);
   });
 });
