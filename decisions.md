@@ -872,3 +872,13 @@ The owner authorised fixing the detached public network end to end. Decisions: (
 - The skipped-duplicates count goes in the existing Import complete summary line ("· N duplicates skipped", only when N > 0), not in a new line and not in the pop-up.
 - Enter submits the Head of Family code steps (Continue on step 1, Verify on the box in focus on step 2).
 - Not changed for now: the Head of Family email wording (to agree with Surve), the stray "Import complete / Go to dashboard" pop-up after Add details, the landing page after an import from Home.
+
+## 2026-11-18 - Release program, wave 1 (owner decisions, one line each)
+- B-2 address guard, phone spellings: fixed completely now. One stored form `+91XXXXXXXXXX` for every accepted spelling, on the OTP request, OTP verify and phone contact-change bodies, so the account lookup, the 60-second resend rule and the guard all see one number. Not postponed until a real text-message provider exists.
+- B-2 address guard, simultaneous requests: fixed completely before deploy (not left for the production gate). A Postgres advisory lock per address covers the count and the write, and the code quota's check through to its stored outcome; proven on real Postgres.
+- C-9 finding 3 (growth the end-of-import count could not see): fixed, not left as a known limit.
+- Batch C review M1: a wrong-person import started from Family Combined lands on that person (workbook row 5 wins over row 3), because they are the one whose funds were just added. Pinned by tests.
+- Second-opinion reviews: Codex gets the B-2 guard review and the whole-batch reviews as a different-model check, in addition to the independent Claude reviewers.
+- Batch L: the audit script (`backend/scripts/audit_disclosures/`) rides the M1 backend rebuild (a deviation from the Batch L plan's "no deploy", approved); L-3 runs right after M1. E3's money measure uses the newest older assets period when the target month has none, labelled as such.
+- QA stays one round, together, after M4; each milestone gets only a quick verify.
+

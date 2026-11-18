@@ -25,7 +25,8 @@
 - **The email images live in the front end bundle** (`frontend/public/email/`, 22 files). They go live with the front end build in the same deploy. Emails sent before that would show broken pictures, so no Head of Family action should be tried until step 8 passes.
 - **Postgres was exercised on 18 Nov**: the guard tests, migration 0054 up and down, and a concurrency test (12 simultaneous requests at a limit of 4 let exactly 4 through) ran on a throwaway Postgres 16 container.
 - **Stored numbers:** the category merge changes labels in the stored analytics, and the ledger rows read the new `folio_number` from the stored ledger section (the Folio line in a ledger row's detail is empty until that section is rebuilt: Batch C review, finding M4). `analytics-recompute-all` rebuilds **every** stored section, not only the donut. The cron already runs it at 06:30 every day; step 8 runs it once now, straight after the migration, so the donut and the ledger are right at once. Not inside the job windows (05:40 to 06:35, 10:30, 14:00 to 14:15).
-- Phone code, Batch A and Batch L are not part of M1 (A and L ship nothing).
+- **One Batch L addition rides along (owner decision 18 Nov):** the read-only disclosure audit script `backend/scripts/audit_disclosures/` (and its tests and guide) is merged from `batch/l-audit` at the freeze, so the rebuilt image contains it and the audit can be run right after M1. It is not called by any route or cron; it changes no behaviour. After the deploy, `docker compose run --rm -T backend ls scripts/audit_disclosures` must list `queries.sql` and `run_audit.py`.
+- Phone code and Batch A are not part of M1 (A ships nothing).
 
 ## Prompt for the executing Claude
 ```
@@ -47,7 +48,7 @@ git tag m1-rc && git fetch origin && git push origin leapswitch-redesign m1-rc
 ```bash
 git diff --name-only <LAST-DEPLOYED-COMMIT> m1-rc | grep -vE "^Docs/|\.test\.tsx?$|^backend/tests/"
 ```
-Expected groups only: `backend/app/**` (auth, analytics allocation, dashboard, fund page, investment withdrawal, models, config, main, scripts), `backend/alembic/versions/0054_auth_request_guard.py`, `backend/scripts/preview_emails.py`, `deploy/leapswitch/{.env.example,crontab.leapswitch}`, `frontend/public/email/*.png` (22 files) and `frontend/src/**` outside `mobile/`. **STOP** on a second migration, a dependency file change, anything under `frontend/src/mobile/`, or anything in `app/` the list above does not explain.
+Expected groups only: `backend/app/**` (auth, analytics allocation, dashboard, fund page, investment withdrawal, models, config, main, scripts), `backend/alembic/versions/0054_auth_request_guard.py`, `backend/scripts/preview_emails.py`, `backend/scripts/audit_disclosures/*` (Batch L, read-only audit), `deploy/leapswitch/{.env.example,crontab.leapswitch}`, `frontend/public/email/*.png` (22 files) and `frontend/src/**` outside `mobile/`. **STOP** on a second migration, a dependency file change, anything under `frontend/src/mobile/`, or anything in `app/` the list above does not explain.
 
 ### Step 2 (laptop): CI and evidence
 ```bash
