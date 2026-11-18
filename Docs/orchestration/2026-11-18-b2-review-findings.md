@@ -45,3 +45,30 @@ Reviewer: Codex, read-only, on a copy of `batch/b-journey` at `9dbc5bc7`. Verdic
 
 Codex's verdict after the fixes is not re-asked; the production gate repeats the Postgres run against the production database version.
 
+## Complete accounting of the Codex report (every section, 18 Nov 2026)
+Nothing in the report was left unconsidered. The eight numbered findings are in the table above; this adds the rest.
+
+**"Other checks" (four bullets)**
+| Item | Status |
+|---|---|
+| Forwarded-header handling: last entry is the load balancer's peer or Caddy's single value; empty falls back to the socket peer; IPv4-mapped joins the IPv4 bucket; native IPv6 shares the first 64 bits | Matches the design and the 18 Nov client-address verification. Verified for the staging VM; the live forged-header check is step 9 of the M1 guide. |
+| "The source accepts unspecified IPs" (`0.0.0.0`, `::`) | Accepted: such a value cannot come out of Caddy's replace behaviour or the socket peer; at worst one bucket for an impossible address. No change. |
+| ALB in append mode with client-port preservation on would add a port the parser rejects, so the guard skips | **Production gate** (written into the findings table and the carried-forward list): check the load balancer's port-preservation setting and the live Caddy topology at cut-over. Not applicable to the staging VM. |
+| No permanent lock leak or self-deadlock; commit, rollback or teardown releases transaction locks; a synchronous send could delay teardown after a client disconnect | The disconnect delay is gone: the lock is now released at the reservation commit, before the send. Live disconnect behaviour and live logs were not testable offline: the M1 guide's step 9 greps the log for "guard skipped" and "table unavailable". |
+| `lock_timeout` restored on the happy path and on a savepoint rollback; guard logs omit raw addresses, identifiers and database text | A Postgres test now asserts the restore (and a mutant that drops it is killed). The log rule is unchanged. |
+| 429 bodies keep a string `detail`; two additive fields; at the check limit a new identifier gets 429 before lookup, below it the 404/409 distinctions still reveal account state "by design"; no new account-existence signal found; legacy bundle and timing unverified | Accepted as designed (pre-existing 404/409 behaviour, unchanged). The old front end is now checked live in step 9 of the M1 guide (open the old link, request a code). Timing was not measured. |
+| A crash before delivery leaves `pending` (charged to checks only); the 24-hour purge clears stale rows independently of the 10-minute window; migration 0054's raw DDL assumes one execution per direction; downgrading while serving removes enforcement through the fail-open path | The first two are by design. The third is how Alembic runs. The fourth is now written into the guide's rollback: **roll the back end back first, then downgrade**. |
+
+**Mutation coverage.** The reviewer's table was predictions from reading (no pytest). I measured it: 12 mutants applied one at a time to `request_guard.py` and run against the guard, concurrency (real Postgres) and route tests.
+| Mutant | Result |
+|---|---|
+| cutoff made inclusive; window one minute longer; retry seconds truncated; retry clamp removed | killed |
+| advisory lock removed (real Postgres); reservation not committed; `lock_timeout` not restored (the reviewer's predicted survivor) | killed |
+| IPv4-mapped fix removed; code limit counted on the check clock; `send_failed` does not release the slot | killed |
+| held no longer starts a code charge | **survived** the first set of tests (a safety-net path: every route reserves first). Now killed by `test_recording_held_without_a_reservation_still_starts_a_code_charge`. |
+| a check-only repeat refreshes the code charge | **survived** (my revive test passed by accident: the mutant also charged the second recipient through its own check, and a charged recipient is always allowed). Now killed by `test_a_repeated_check_only_request_does_not_charge_the_code_limit`. |
+| the reviewer's other predicted survivor, "oldest row per identifier instead of newest" | moot: the table now allows one row per address and recipient. |
+All 12 are killed after the two added tests.
+
+**Verification limits the reviewer named.** It could not run pytest (no module, no network) and had no Postgres. I ran the guard, device-info, phone, route and Postgres tests (the guard and migration tests on Postgres 16), the wider auth suite (651 tests) and the Alembic round trip. The reviewer's executable checks (the phone and retry excerpts) are covered by the new tests.
+
