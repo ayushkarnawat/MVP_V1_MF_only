@@ -49,6 +49,9 @@ Return the ticket (or `None` when the guard is off or skipped) from `begin`; the
 `backend/tests/test_main_startup.py` (or the existing startup test file): production with the guard enabled and an empty secret refuses to start; staging and development start.
 Run each new test, see it fail for the stated reason **before** implementing.
 
+## Test environment limit (found on B-1, 18 Nov)
+Your sandbox cannot run any test that uses `TestClient` (the API tests): the run stalls in `asyncio` waiting for a loopback socket (`socket.accept` in `_fallback_socketpair`). Service-level and pure-function tests run fine. So: **write the API tests anyway** (they are part of the task), run the service-level ones and watch them go red then green, and in your report list every test you could not run and why. Claude runs the API tests after you; do not edit configs or add timeouts to get round it. If a service-level test also stalls, report BLOCKED with the exact output and stop.
+
 ## Run these only
 ```
 cd backend

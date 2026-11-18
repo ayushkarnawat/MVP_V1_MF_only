@@ -31,6 +31,9 @@ The value is **the stored text exactly as first printed** (the column is documen
 - A response-shape test per payload: the set of old keys is still present and unchanged, and `folio_number` is new.
 Run each new test and see it fail for the stated reason (missing field) **before** implementing.
 
+## Test environment limit (found on B-1, 18 Nov)
+Your sandbox cannot run any test that uses `TestClient` (the API tests): the run stalls in `asyncio` waiting for a loopback socket (`socket.accept` in `_fallback_socketpair`). Service-level and pure-function tests run fine. So: **write the API tests anyway** (they are part of the task), run the service-level ones and watch them go red then green, and in your report list every test you could not run and why. Claude runs the API tests after you; do not edit configs or add timeouts to get round it. If a service-level test also stalls, report BLOCKED with the exact output and stop.
+
 ## Run these only
 ```
 cd backend
