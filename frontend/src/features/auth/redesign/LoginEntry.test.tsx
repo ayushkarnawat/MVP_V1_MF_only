@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { validateEmail, validateIndianPhone } from "../validation";
 import { LoginEntry } from "./LoginEntry";
+import type { LoginThrottle } from "./loginThrottle";
 
 vi.mock("../GoogleButton", () => ({
   GoogleButton: ({ onCredential }: { onCredential: (token: string) => void }) => (
@@ -158,5 +160,128 @@ describe("LoginEntry: the left panel (login 1 copy slide)", () => {
   it("draws the laptop sketch", () => {
     mount();
     expect(screen.getByTestId("auth-sketch")).toHaveAttribute("src", "/illustrations/auth/laptop.svg");
+  });
+});
+
+// Batch B item 4 (B-8): the Get OTP button counts down while the typed address is the one the server is holding, with one
+// red line (no box) saying why. Design: Docs/orchestration/2026-11-12-batch-b-planning-workbook.html, section 3 ("Proposed:
+// button counts down, one red line says why" and "After editing the email: the button is live again, no line").
+// Red until B-8 adds the `throttle` prop.
+describe("LoginEntry: countdown while the same address is held (Batch B, item 4)", () => {
+  const HELD = "For your security, a new code can be requested once a minute.";
+  const heldEmail = (over: Partial<LoginThrottle> = {}): LoginThrottle =>
+    ({ channel: "email", value: "asha@example.com", seconds: 42, stamp: 1, ...over });
+  const heldPhone = (over: Partial<LoginThrottle> = {}): LoginThrottle =>
+    ({ channel: "phone", value: validateIndianPhone("98765 43210").normalized, seconds: 42, stamp: 1, ...over });
+  const countdownButton = (text = "Get OTP again in 00:42") => screen.getByRole("button", { name: text });
+
+  afterEach(() => vi.useRealTimers());
+
+  it("shows a disabled countdown button and the one red line when the typed email is the held one", () => {
+    mount({ initialValue: "asha@example.com", throttle: heldEmail() });
+    expect(countdownButton()).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Get OTP" })).toBeNull();
+    expect(screen.getByText(HELD)).toBeInTheDocument();
+  });
+  it("the red line has no box (it is not an alert panel), stays on one line, uses the app's error red and is tied to the button", () => {
+    mount({ initialValue: "asha@example.com", throttle: heldEmail() });
+    const line = screen.getByText(HELD);
+    expect(line.closest("[role='alert']")).toBeNull();
+    expect(line).toHaveClass("whitespace-nowrap");
+    expect(line).toHaveClass("text-[var(--auth-error)]");
+    expect(line.id).not.toBe("");
+    expect(countdownButton()).toHaveAttribute("aria-describedby", line.id);
+  });
+  it("the same holds for the phone number, compared after normalising (98765 43210 is +919876543210)", () => {
+    mount({ initialTab: "phone", initialValue: "98765 43210", throttle: heldPhone() });
+    expect(countdownButton()).toBeDisabled();
+    expect(screen.getByText(HELD)).toBeInTheDocument();
+  });
+  it("counts down every second and shows minutes and seconds", () => {
+    vi.useFakeTimers();
+    mount({ initialValue: "asha@example.com", throttle: heldEmail({ seconds: 62 }) });
+    expect(countdownButton("Get OTP again in 01:02")).toBeDisabled();
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(countdownButton("Get OTP again in 01:01")).toBeDisabled();
+  });
+  it("at zero the button is live again and the red line is gone", () => {
+    vi.useFakeTimers();
+    mount({ initialValue: "asha@example.com", throttle: heldEmail({ seconds: 2 }) });
+    act(() => { vi.advanceTimersByTime(2000); });
+    expect(getOtp()).toBeEnabled();
+    expect(screen.queryByText(HELD)).toBeNull();
+  });
+  it("is live again, with no line, as soon as the typed email differs from the held one", () => {
+    mount({ initialValue: "asha@example.com", throttle: heldEmail() });
+    fireEvent.change(email(), { target: { value: "rohan@example.com" } });
+    expect(getOtp()).toBeEnabled();
+    expect(screen.queryByText(HELD)).toBeNull();
+    expect(screen.queryByRole("button", { name: /Get OTP again/ })).toBeNull();
+  });
+  it("counts as the same address when only case or spaces differ, and returns to the countdown when typed back", () => {
+    mount({ initialValue: "asha@example.com", throttle: heldEmail() });
+    fireEvent.change(email(), { target: { value: "rohan@example.com" } });
+    expect(getOtp()).toBeEnabled();
+    fireEvent.change(email(), { target: { value: "  ASHA@Example.com " } });
+    expect(countdownButton()).toBeDisabled();
+    expect(screen.getByText(HELD)).toBeInTheDocument();
+  });
+  it("is live again when the typed phone differs from the held one", () => {
+    mount({ initialTab: "phone", initialValue: "98765 43210", throttle: heldPhone() });
+    fireEvent.change(phone(), { target: { value: "98765 43211" } });
+    expect(getOtp()).toBeEnabled();
+    expect(screen.queryByText(HELD)).toBeNull();
+  });
+  it("a hold on the email does not stop a different phone number on the other tab", () => {
+    mount({ initialValue: "asha@example.com", throttle: heldEmail() });
+    fireEvent.click(tab("Mobile number"));
+    expect(getOtp()).toBeEnabled();
+    expect(screen.queryByText(HELD)).toBeNull();
+  });
+  it("while counting, neither the button nor Enter in the form sends anything", () => {
+    const { onSubmitEmail } = mount({ initialValue: "asha@example.com", throttle: heldEmail() });
+    fireEvent.click(countdownButton());
+    fireEvent.submit(email().closest("form") as HTMLFormElement);
+    expect(onSubmitEmail).not.toHaveBeenCalled();
+  });
+  it("editing the field never skips a later server answer: a new hold for the new address shows its own countdown", () => {
+    const handlers = { onSubmitEmail: vi.fn(), onSubmitPhone: vi.fn(), onSignUp: vi.fn() };
+    const { rerender } = render(<LoginEntry error={null} submitting={false} {...handlers} initialValue="asha@example.com" throttle={heldEmail()} />);
+    fireEvent.change(email(), { target: { value: "rohan@example.com" } });
+    fireEvent.click(getOtp());
+    expect(handlers.onSubmitEmail).toHaveBeenCalledWith("rohan@example.com");
+    rerender(<LoginEntry error={null} submitting={false} {...handlers} initialValue="asha@example.com"
+      throttle={heldEmail({ value: "rohan@example.com", seconds: 30, stamp: 2 })} />);
+    expect(countdownButton("Get OTP again in 00:30")).toBeDisabled();
+  });
+  it("the same address held again (a new stamp) restarts the countdown from the new seconds", () => {
+    vi.useFakeTimers();
+    const handlers = { onSubmitEmail: vi.fn(), onSubmitPhone: vi.fn(), onSignUp: vi.fn() };
+    const { rerender } = render(<LoginEntry error={null} submitting={false} {...handlers} initialValue="asha@example.com" throttle={heldEmail({ seconds: 5 })} />);
+    act(() => { vi.advanceTimersByTime(3000); });
+    expect(countdownButton("Get OTP again in 00:02")).toBeDisabled();
+    rerender(<LoginEntry error={null} submitting={false} {...handlers} initialValue="asha@example.com" throttle={heldEmail({ seconds: 40, stamp: 2 })} />);
+    expect(countdownButton("Get OTP again in 00:40")).toBeDisabled();
+  });
+  it("an unregistered address shows the no-account error with Sign up, and no countdown", () => {
+    mount({ initialValue: "new@example.com", error: "No account found for this email. Sign up instead.", throttle: null });
+    expect(screen.getByRole("alert")).toHaveTextContent(/No account found/);
+    expect(getOtp()).toBeEnabled();
+    expect(screen.queryByText(HELD)).toBeNull();
+  });
+  it("the per-network limit is a plain error with the server's sentence and seconds, and the button stays live", () => {
+    mount({ initialValue: "asha@example.com", error: "Too many attempts from this network. Try again in 4 minutes.", throttle: null });
+    expect(screen.getByRole("alert")).toHaveTextContent("Too many attempts from this network. Try again in 4 minutes.");
+    expect(getOtp()).toBeEnabled();
+    expect(screen.queryByText(HELD)).toBeNull();
+  });
+  it("the button is disabled while a request runs, with or without a hold", () => {
+    mount({ initialValue: "rohan@example.com", submitting: true, throttle: heldEmail() });
+    expect(screen.getByRole("button", { name: "Sending..." })).toBeDisabled();
+  });
+  it("with no hold at all the screen is exactly today's: Get OTP, no red line", () => {
+    mount({ initialValue: "asha@example.com" });
+    expect(getOtp()).toBeEnabled();
+    expect(screen.queryByText(HELD)).toBeNull();
   });
 });
