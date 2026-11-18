@@ -299,4 +299,21 @@ describe("ImportWrapper: the member list and the view after an import (Batch C 1
     }
     expectPick("member", "b");
   });
+
+  // Owner decision 18 Nov 2026 (Batch C review M1): workbook row 3 (Family Combined stays) and row 5 (wrong-person lands on that person)
+  // overlap; row 5 wins, because that person is the one whose funds were just added.
+  it("started from Family Combined, a wrong-person import still lands on that person (new or existing)", async () => {
+    serve([A, B], [A, B, C]);
+    mount(); await loaded("Alice,Bob");
+    expectPick("aggregate", "a");
+    finish("Finish wrong-person import for Chandra"); await landed();
+    expectPick("member", "c");
+  });
+
+  it("started from Family Combined, an ordinary import that adds a member stays on Family Combined", async () => {
+    serve([A, B], [A, B, C]);
+    mount(); await loaded("Alice,Bob");
+    finish(); await landed();
+    expectPick("aggregate", "a");
+  });
 });
