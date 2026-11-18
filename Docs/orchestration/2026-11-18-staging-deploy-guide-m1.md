@@ -131,14 +131,17 @@ Health, both domains, and the old link:
 cd /opt/unifolio-redesign/deploy/leapswitch && sudo docker compose ps
 for u in https://ls-staging-api.unifolio.in/health https://ls-redesign.unifolio.in/ https://ls-staging.unifolio.in/ https://ls-redesign.unifolio.in/email/logo-light.png; do curl -s -o /dev/null -w "%{http_code} %{content_type}\n" "$u"; done
 sudo docker compose logs backend --since 15m | grep -c "Auth request guard skipped"
+sudo docker compose logs backend --since 15m | grep -c "Auth request guard table unavailable"
 ```
-Expected: postgres, backend, worker, caddy running and healthy; `200`, `200`, `200`, `200 image/png`; the last count is `0`.
+Expected: postgres, backend, worker, caddy running and healthy; `200`, `200`, `200`, `200 image/png`; both counts are `0` (the second would mean the migration did not run or the guard is failing open).
 
 The guard cannot be tricked with a forged header (from the laptop's WSL; 31 requests for recipients that do not exist, so **no email or text is sent**; each carries a different made-up forwarded address):
 ```bash
 for n in $(seq 1 31); do curl -s -o /dev/null -w "%{http_code} " -X POST https://ls-staging-api.unifolio.in/auth/email-otp/request -H 'Content-Type: application/json' -H "X-Forwarded-For: 203.0.113.$n" -d "{\"email\":\"m1check$n@example.com\",\"flow\":\"login\"}"; done; echo
 ```
 Expected: thirty `404` then one `429` (the real address is counted, not the forged ones). If all 31 are `404` the forged header was believed: **STOP and report**, the guard is not protecting. Wait 10 minutes before any real sign-in test from the same network (the 31 attempts count against it), or run them from another network.
+
+The old link still works (the new back end is shared with it): in a private window open `https://ls-staging.unifolio.in/`, go to sign-in and request a code for a test account; the code arrives (or, in stub mode, shows), and nothing on that page looks different. This is the check Codex could not make, because it had no copy of the old front end.
 
 Then the owner opens, in a private window, `https://ls-redesign.unifolio.in/`: sign-up and log-in screens open; onboarding fits without scrolling; Mutual Funds holdings shows the full folio with the eye; Analytics shows the category donut with no two labels differing only by "Scheme"/"Schemes". **Defects noticed here go on the QA list; they do not stop the deploy unless the deploy itself is broken.**
 
@@ -160,7 +163,7 @@ Deployed commit, last deployed commit, image ids before and after, build time, b
 ## Section 2: rollback (only on the owner's yes)
 - **Front end:** `cd /opt/unifolio-redesign && git checkout -B leapswitch-redesign <LAST-DEPLOYED-COMMIT>` then `cd deploy/leapswitch && sudo sh ./scripts/deploy-redesign.sh`.
 - **Back end:** `cd /opt/unifolio-redesign/deploy/leapswitch && sudo sh ./scripts/rollback.sh` (points `latest` back at the `previous` image tagged in step 4, restarts the back end and worker). **Check the image id first**: `previous` must be the id recorded in step 4.
-- **Migration:** nothing to undo for a code rollback. The old code ignores `auth_request_guard`; leaving it costs nothing. Only on the owner's explicit yes: `sudo docker compose run --rm backend alembic downgrade 0053` (drops the table; the downgrade was tested up and down on 18 Nov).
+- **Migration:** nothing to undo for a code rollback. The old code ignores `auth_request_guard`; leaving it costs nothing. Only on the owner's explicit yes: `sudo docker compose run --rm backend alembic downgrade 0053` (drops the table; the downgrade was tested up and down on 18 Nov). **Roll the back end back first, then downgrade**: dropping the table while the new code is still serving does not break sign-in (the guard fails open and logs a warning) but it switches the guard off until the code is rolled back.
 - **Cron and setting:** restore the crontab with `sudo crontab /home/deploy/crontab.before-m1-2026-11`; the extra `AUTH_GUARD_SECRET` line can stay (the old code does not read it).
 - **Stored results:** run the step 8 rebuild again after a rollback (names may revert).
 - No `clean-db.sh`, no `restore.sh` unless the owner decides the database itself is damaged (it is not expected to be: the migration only adds a table).
