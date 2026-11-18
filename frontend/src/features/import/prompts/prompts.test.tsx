@@ -198,6 +198,20 @@ describe("U5 MemberNotInFileDialog warning (Batch B, item 2)", () => {
     expect(warning().textContent).not.toMatch(/undefined|null|\s{2,}/);
   });
 
+  // Codex whole-batch review of B, findings 5 and 9.
+  it("with no names the body does not end in 'It has .'", () => {
+    mount([]);
+    expect(screen.getByText("This statement doesn’t show Ramesh Sharma’s PAN (BX******8L).")).toBeInTheDocument();
+    expect(screen.queryByText(/It has/)).toBeNull();
+  });
+
+  it("the muted line is readable in dark mode: a light grey there, the palette body grey in light mode", () => {
+    mount(["Aditi Sharma"]);
+    const muted = within(warning()).getByText(MUTED);
+    expect(muted).toHaveClass("text-[#4B4B4B]");
+    expect(muted).toHaveClass("dark:text-[#A3A3A3]");
+  });
+
   it("the muted line says a new family member is created if needed, and is a separate element from the bold line", () => {
     mount(["Aditi Sharma"]);
     const muted = within(warning()).getByText(MUTED);

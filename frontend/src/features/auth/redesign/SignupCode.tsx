@@ -3,6 +3,7 @@ import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
 import { OtpPanel } from "./OtpPanel";
+import type { ResendResult } from "./OtpPanel";
 import { formatPhoneSpaced, SIGNUP_CODE_DESCRIPTION, SIGNUP_CODE_HEADLINE, SIGNUP_CODE_LEAD, SIGNUP_CODE_TITLE } from "./signupCopy";
 
 export interface SignupCodeProps {
@@ -12,7 +13,7 @@ export interface SignupCodeProps {
   error: string | null;
   submitting: boolean;
   onSubmit: (code: string) => void;
-  onResend: () => void;
+  onResend: () => void | Promise<ResendResult | void>;
   /** Back and Edit number both return to screen 1 with the number kept. */
   onBack: () => void;
   onEditNumber: () => void;

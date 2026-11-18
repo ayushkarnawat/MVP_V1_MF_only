@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useAuth } from "../AuthContext";
 import { listHouseholdMembers, updateMemberProfile } from "../api";
-import { formatAuthErrorMessage } from "../validation";
+import { formatAuthErrorMessage, isSameAddressThrottle, retryAfterSeconds } from "../validation";
 import { AccountDetails } from "./AccountDetails";
 import { EmailCode } from "./EmailCode";
+import type { ResendResult } from "./OtpPanel";
 
 export interface DetailsEditorProps {
   /** What is saved now. */
@@ -74,9 +75,15 @@ export function DetailsEditor({ initialName, initialEmail, onDone, onBack }: Det
         onEditEmail={() => setPendingEmail(null)}
         onResend={() => {
           setCodeError(null);
-          requestContactChange("email", pendingEmail).then(
-            (result) => setDevOtp(result.otp ?? null),
-            (err) => setCodeError(formatAuthErrorMessage(err, "Couldn't resend the code. Try again.")),
+          return requestContactChange("email", pendingEmail).then(
+            (result): ResendResult => {
+              setDevOtp(result.otp ?? null);
+              return { ok: true };
+            },
+            (err): ResendResult => {
+              setCodeError(formatAuthErrorMessage(err, "Couldn't resend the code. Try again."));
+              return { ok: false, waitSeconds: isSameAddressThrottle(err) ? retryAfterSeconds(err) ?? undefined : undefined };
+            },
           );
         }}
         onSubmit={(code) => {

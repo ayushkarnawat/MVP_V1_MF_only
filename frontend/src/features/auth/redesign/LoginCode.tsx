@@ -5,6 +5,7 @@ import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
 import { CODE_SCREEN_PARAGRAPH } from "./loginCopy";
 import { OtpPanel } from "./OtpPanel";
+import type { ResendResult } from "./OtpPanel";
 
 export interface LoginCodeProps {
   channel: "phone" | "email";
@@ -14,7 +15,7 @@ export interface LoginCodeProps {
   error: string | null;
   submitting: boolean;
   onSubmit: (code: string) => void;
-  onResend: () => void;
+  onResend: () => void | Promise<ResendResult | void>;
   /** Back and Edit both return to login 1 with the typed value kept. */
   onBack: () => void;
   onEditIdentity: () => void;

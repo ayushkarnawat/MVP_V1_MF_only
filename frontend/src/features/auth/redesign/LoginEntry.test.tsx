@@ -285,3 +285,40 @@ describe("LoginEntry: countdown while the same address is held (Batch B, item 4)
     expect(screen.queryByText(HELD)).toBeNull();
   });
 });
+
+
+// Codex whole-batch review of B, finding 3: the hold is announced politely, once, and the tab panel is named.
+describe("LoginEntry: what a screen reader hears while a code is held", () => {
+  const held = (seconds: number): LoginThrottle => ({ channel: "email", value: "asha@example.com", seconds, stamp: 1 });
+  afterEach(() => vi.useRealTimers());
+
+  it("says once, in a polite status, how long the button is unavailable and why, and again when it is available", () => {
+    vi.useFakeTimers();
+    mount({ initialValue: "asha@example.com", throttle: held(3) });
+    const status = screen.getByTestId("hold-announcement");
+    expect(status).toHaveAttribute("aria-live", "polite");
+    expect(status).toHaveClass("sr-only");
+    expect(status).toHaveTextContent("Get OTP is unavailable for 3 seconds. For your security, a new code can be requested once a minute.");
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(status).toHaveTextContent("Get OTP is unavailable for 3 seconds."); // not re-read every second
+    act(() => { vi.advanceTimersByTime(2000); });
+    expect(status).toHaveTextContent("You can request a new code now.");
+  });
+
+  it("speaks minutes and seconds in words, and the singular", () => {
+    mount({ initialValue: "asha@example.com", throttle: held(62) });
+    expect(screen.getByTestId("hold-announcement")).toHaveTextContent("Get OTP is unavailable for 1 minute 2 seconds.");
+  });
+
+  it("is silent when nothing is held", () => {
+    mount();
+    expect(screen.getByTestId("hold-announcement")).toBeEmptyDOMElement();
+  });
+
+  it("names the login panel after the active tab", () => {
+    mount();
+    expect(screen.getByRole("tabpanel", { name: "Log in with email" })).toBeInTheDocument();
+    fireEvent.click(tab("Mobile number"));
+    expect(screen.getByRole("tabpanel", { name: "Log in with mobile number" })).toBeInTheDocument();
+  });
+});

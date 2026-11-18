@@ -33,7 +33,7 @@ export function MemberNotInFileDialog({
       isOpen={isOpen}
       roomy
       title={`${memberName} isn’t in this statement`}
-      body={`This statement doesn’t show ${memberName}’s PAN (${panOrPlaceholder(memberPanMasked)}). It has ${names}.`}
+      body={`This statement doesn’t show ${memberName}’s PAN (${panOrPlaceholder(memberPanMasked)}).${names ? ` It has ${names}.` : ""}`}
       onClose={onUploadDifferent}
       footer={
         <>
@@ -59,7 +59,7 @@ export function MemberNotInFileDialog({
         </span>
         <div>
           <p className="font-semibold text-[var(--ui-text)]">{importTargetText}</p>
-          <p className="mt-0.5 text-[12.5px] text-[#4B4B4B]">{NEW_FAMILY_MEMBER_NOTE}</p>
+          <p className="mt-0.5 text-[12.5px] text-[#4B4B4B] dark:text-[#A3A3A3]">{NEW_FAMILY_MEMBER_NOTE}</p>
         </div>
       </div>
     </PromptDialog>

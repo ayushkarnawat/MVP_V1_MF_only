@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { ArrowRight, Mail, Phone } from "lucide-react";
 import { GoogleButton } from "../GoogleButton";
@@ -52,6 +52,17 @@ function matchesHeldAddress(
   return phoneResult.isValid && phoneResult.normalized === throttle.value;
 }
 
+const HOLD_REASON = "For your security, a new code can be requested once a minute.";
+
+function spokenWait(total: number): string {
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  const parts = [];
+  if (minutes > 0) parts.push(`${minutes} ${minutes === 1 ? "minute" : "minutes"}`);
+  if (seconds > 0 || minutes === 0) parts.push(`${seconds} ${seconds === 1 ? "second" : "seconds"}`);
+  return parts.join(" ");
+}
+
 export function LoginEntry({
   onSubmitEmail, onSubmitPhone, onSignUp, error, submitting, notice, throttle, initialTab = "email", initialValue = "",
   showGoogle = AUTH_SHOW_GOOGLE, onGoogleCredential,
@@ -71,6 +82,21 @@ export function LoginEntry({
 
   const holding = countdownRunning && matchesHeldAddress(throttle, tab, emailValue, phoneValue);
   const showHold = holding && !submitting;
+
+  // A polite status, said once when the hold starts (how long, and why) and once when it ends, never every second.
+  const [announcement, setAnnouncement] = useState("");
+  const secondsNow = useRef(seconds);
+  secondsNow.current = seconds;
+  const wasHolding = useRef(false);
+  useEffect(() => {
+    if (showHold) {
+      wasHolding.current = true;
+      setAnnouncement(`Get OTP is unavailable for ${spokenWait(secondsNow.current)}. ${HOLD_REASON}`);
+    } else if (wasHolding.current && !submitting) {
+      wasHolding.current = false;
+      setAnnouncement("You can request a new code now.");
+    }
+  }, [showHold, submitting]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -134,7 +160,7 @@ export function LoginEntry({
                 setFieldError(null);
               }}
             />
-            <div id="login-panel" role="tabpanel">
+            <div id="login-panel" role="tabpanel" aria-label={tab === "email" ? "Log in with email" : "Log in with mobile number"}>
               {tab === "email" ? (
                 <AuthField
                   id="login-email"
@@ -181,9 +207,10 @@ export function LoginEntry({
               </AuthButton>
               {showHold ? (
                 <p id={holdId} className="mt-1.5 text-[13px] text-[var(--auth-error)] whitespace-nowrap">
-                  For your security, a new code can be requested once a minute.
+                  {HOLD_REASON}
                 </p>
               ) : null}
+              <p aria-live="polite" aria-atomic="true" data-testid="hold-announcement" className="sr-only">{announcement}</p>
             </div>
             <div className="auth-or" role="separator"><span>OR</span></div>
             {showGoogle && onGoogleCredential ? <GoogleButton onCredential={onGoogleCredential} /> : null}
