@@ -88,3 +88,85 @@ def test_get_aggregate_category_allocation_lists_member_status_with_no_data():
     assert result.members[0].has_data is False
     assert result.allocation.by_category == []
     assert Decimal(result.allocation.total_value) == Decimal("0")
+
+
+# ---- Batch C 17a (C-3): the category donut groups by the merged name, as the rankings already do.
+def _allocate(db, member, held):
+    """`held` is a list of (sebi_category, value); each fund is one purchase priced at NAV 10 so its value is its amount."""
+    schemes = []
+    for category, value in held:
+        scheme = _scheme(db, amc_name="HDFC AMC", sebi_category=category)
+        _folio_with_purchase(db, member, scheme, Decimal(value), Decimal(value) / 10, Decimal("10.0000"))
+        schemes.append(scheme)
+    with patch(
+        "app.services.dashboard.holdings.get_nav_on_or_before",
+        new=AsyncMock(return_value=(Decimal("10.0000"), date(2024, 6, 1))),
+    ), patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None):
+        return asyncio.run(compute_category_allocation(db, [member.id]))
+
+
+def test_two_spellings_of_one_category_become_one_bucket():
+    db = _session()
+    member = _household_member(db)
+    summary = _allocate(db, member, [
+        ("Equity Scheme - Flexi Cap Fund", "1520.00"),
+        ("Equity Schemes - Flexi Cap Fund", "280.00"),
+        ("Equity Scheme - Large Cap Fund", "8200.00"),
+    ])
+
+    by_label = {b.label: b for b in summary.by_category}
+    assert set(by_label) == {"Equity Scheme - Flexi Cap Fund", "Equity Scheme - Large Cap Fund"}
+    assert Decimal(by_label["Equity Scheme - Flexi Cap Fund"].current_value) == Decimal("1800.00")
+    assert by_label["Equity Scheme - Flexi Cap Fund"].percentage == "18.00"
+
+
+def test_sectoral_and_thematic_become_one_bucket():
+    db = _session()
+    member = _household_member(db)
+    summary = _allocate(db, member, [
+        ("Equity Scheme - Sectoral Fund", "3000.00"),
+        ("Equity Scheme - Thematic Fund", "2000.00"),
+        ("Equity Scheme - Large Cap Fund", "5000.00"),
+    ])
+
+    by_label = {b.label: Decimal(b.current_value) for b in summary.by_category}
+    assert by_label == {
+        "Equity Scheme - Sectoral/ Thematic": Decimal("5000.00"),
+        "Equity Scheme - Large Cap Fund": Decimal("5000.00"),
+    }
+
+
+def test_buckets_still_sum_to_total_and_100_percent():
+    db = _session()
+    member = _household_member(db)
+    summary = _allocate(db, member, [
+        ("Equity Scheme - Flexi Cap Fund", "2500.00"),
+        ("Equity Schemes - Flexi Cap Fund", "2500.00"),
+        ("Equity Scheme - Sectoral Fund", "2500.00"),
+        ("Equity Scheme - Thematic Fund", "2500.00"),
+    ])
+
+    assert sum(Decimal(b.current_value) for b in summary.by_category) == Decimal(summary.total_value) == Decimal("10000.00")
+    assert sum(Decimal(b.percentage) for b in summary.by_category) == Decimal("100.00")
+
+
+def test_unclassified_passes_through_unchanged():
+    db = _session()
+    member = _household_member(db)
+    summary = _allocate(db, member, [
+        ("Equity Scheme - Large Cap Fund", "6000.00"),
+        ("A category no alias knows - Whatever", "4000.00"),
+    ])
+
+    assert {b.label for b in summary.by_category} == {"Equity Scheme - Large Cap Fund", "A category no alias knows - Whatever"}
+    assert "Unclassified" not in {b.label for b in summary.by_category}
+
+
+def test_no_surviving_scheme_schemes_pair():
+    from app.services.analytics.scheme_universe import _CATEGORY_ALIASES, _PREFIX_ALIASES, canonical_category
+
+    outputs = {canonical_category(key) for key in _CATEGORY_ALIASES}
+    outputs |= {canonical_category(f"{prefix} - Flexi Cap Fund") for prefix in _PREFIX_ALIASES}
+    outputs |= {canonical_category(f"{prefix} - Flexi Cap Fund") for prefix in ("Equity Scheme", "Hybrid Scheme")}
+
+    assert len({o.replace("Schemes", "Scheme") for o in outputs}) == len(outputs)

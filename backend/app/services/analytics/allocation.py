@@ -12,6 +12,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.models.reference import Scheme
+from app.services.analytics.scheme_universe import canonical_category
 from app.services.analytics.schemas import AggregateAnalyticsAllocationResponse, AnalyticsAllocationSummary
 from app.services.dashboard.aggregate import get_member_statuses
 from app.services.dashboard.holdings import compute_holdings
@@ -54,8 +55,10 @@ async def compute_category_allocation(
     for holding in holdings:
         value = Decimal(holding.current_value)
         by_amc[holding.amc_name] += value
-        category = categories.get(uuid.UUID(holding.scheme_id), "Unclassified")
-        by_category[category] += value
+        category = categories.get(uuid.UUID(holding.scheme_id))
+        # The same merged name the rankings use (AMFI spells one category several ways: "Schemes" vs "Scheme", Sectoral and
+        # Thematic). Read time only: schemes.sebi_category is stored as AMFI gave it. No category stays "Unclassified".
+        by_category[canonical_category(category) if category else "Unclassified"] += value
 
     return AnalyticsAllocationSummary(
         by_category=_to_buckets(by_category, total_value),
