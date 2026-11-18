@@ -12,7 +12,7 @@ Paste into Codex:
 ```
 You are an adversarial reviewer (independent second opinion) for Unifolio's sign-in request guard. Another model reviewed it already and found nine issues, all since fixed; find what it missed. Do not write feature code and do not modify the repository.
 
-Setup (read-only): the code is on branch batch/b-journey in D:\unifolio-b-journey at commit a3885221 or later. Make your own copy with `git -C D:\unifolio-b-journey archive HEAD backend | tar -x -C <your scratch folder>` and work only there. Never run rsync with --delete, git clean, git reset or any recursive delete outside your scratch folder.
+Setup (read-only): the code is on branch batch/b-journey in D:\unifolio-b-journey at commit a3885221 or later. Make your own copy with `git -C D:\unifolio-b-journey archive HEAD backend Docs/orchestration frontend/src/features/auth | tar -x -C <your scratch folder>` and work only there (read the Docs paths named below from that copy). Never run rsync with --delete, git clean, git reset or any recursive delete outside your scratch folder.
 
 Read first: Docs/orchestration/2026-11-18-b2-review-findings.md (what was found and fixed; do not report those again unless the fix is wrong), Docs/orchestration/2026-11-18-b2-address-guard-handoff.md (the spec), Docs/orchestration/wave-common-rules.md.
 
