@@ -31,7 +31,9 @@ G-a and G-d may run in parallel with G-b and G-c: no shared file. If a task need
 
 ## 4. How a Gemini task runs (mechanics)
 - One clone per lane under `C:\Users\Ayush\ag-<lane>` made with `git clone --local "D:\Unifolio code"`, on a lane branch cut from the batch branch (for example `ag/b6-warning` from `batch/b-journey`). Gemini never touches `D:\Unifolio code` or the batch worktrees.
-- Checks run in WSL on the lane's own mirror: `CR6_SRC=/mnt/c/Users/Ayush/ag-<lane>/frontend CR6_DST=$HOME/cr6-fe-<lane> wsl.exe -d Ubuntu -- bash "/mnt/d/Unifolio code/Docs/orchestration/cr-r6-fe-check.sh" test <paths>` (also `types`, `lint`). The node_modules for each mirror is hard-linked once from `~/cr6-fe`.
+- Clones are made with `git clone --no-hardlinks "D:\Unifolio code" C:\Users\Ayush\ag-<name>` (hardlinks cannot cross drives), then a lane branch cut from the batch branch. Packets are copied into the clone as untracked files.
+- Checks run in WSL on the lane's own mirror through one script that gives every lane its own copy, so four lanes never collide: `wsl.exe -d Ubuntu -- bash "/mnt/d/Unifolio code/Docs/orchestration/wave-fe-check.sh" ag-<name> test <paths>` (also `types`, `lint <paths>`, `build`). Lane `b`, `c`, `a`, `l` check the orchestrator's batch worktrees. The node_modules of each mirror is hard-linked once from `~/cr6-fe` (no extra disk).
+- Started 18 Nov: G-a `ag-b6` (B-6), G-b `ag-b8` (B-8), G-d `ag-c2` (C-2). G-c waits for the C-6 red tests.
 - Result comes back as a diff: I apply it to the batch worktree as a patch, rerun the named tests, screenshot against the workbook drawing, and commit on your word. Workers never commit.
 
 ## 5. Commit and merge strategy (decided by the orchestrator, 18 Nov)
