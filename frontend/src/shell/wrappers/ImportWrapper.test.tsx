@@ -56,6 +56,7 @@ function Probe() {
     <button onClick={() => { void navigate("/portfolio/mutual-funds"); }}>Go to Mutual Funds without importing</button>
     <button onClick={() => { void navigate("/import"); }}>Open Add data</button>
     <button onClick={() => { void navigate("/elsewhere"); }}>Go somewhere else</button>
+    <button onClick={() => { void scope.refreshMembers(); }}>Refresh elsewhere</button>
   </>;
 }
 
@@ -206,5 +207,48 @@ describe("ImportWrapper: the member list and the view after an import (Batch C 1
     await act(async () => { release([A, B, C]); });
     expect(screen.queryByTestId("landing")).toBeNull();
     expect(screen.getByTestId("elsewhere")).toBeInTheDocument();
+  });
+
+  // ---- independent review of C-9
+  it("a second refresh issued while the import waits does not cost the landing (finding 1)", async () => {
+    let releaseImport!: (list: HouseholdMember[]) => void;
+    let releaseElsewhere!: (list: HouseholdMember[]) => void;
+    vi.mocked(getHouseholdMembers)
+      .mockResolvedValueOnce([A])
+      .mockImplementationOnce(() => new Promise<HouseholdMember[]>(resolve => { releaseImport = resolve; }))
+      .mockImplementationOnce(() => new Promise<HouseholdMember[]>(resolve => { releaseElsewhere = resolve; }));
+    mount(); await loaded("Alice");
+    finish("Finish wrong-person import for Chandra");
+    await act(async () => {});
+    fireEvent.click(screen.getByRole("button", { name: "Refresh elsewhere" }));
+    await act(async () => {});
+    await act(async () => { releaseElsewhere([A, C]); });
+    await act(async () => { releaseImport([A, C]); });
+    await landed();
+    expectPick("member", "c");
+  });
+
+  it("a member the person picks while the import waits is kept, not overwritten (finding 2)", async () => {
+    let release!: (list: HouseholdMember[]) => void;
+    vi.mocked(getHouseholdMembers).mockResolvedValueOnce([A, B]).mockImplementationOnce(() => new Promise<HouseholdMember[]>(resolve => { release = resolve; }));
+    mount(); await loaded("Alice,Bob");
+    expectPick("aggregate", "a");
+    finish("Finish wrong-person import for Chandra");
+    await act(async () => {});
+    fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
+    await act(async () => { release([A, B, C]); });
+    await landed();
+    expectPick("member", "b");
+  });
+
+  it("a household that grew does not override a member the person picked while waiting (finding 2)", async () => {
+    let release!: (list: HouseholdMember[]) => void;
+    vi.mocked(getHouseholdMembers).mockResolvedValueOnce([A]).mockImplementationOnce(() => new Promise<HouseholdMember[]>(resolve => { release = resolve; }));
+    mount(); await loaded("Alice");
+    finish();
+    await act(async () => {});
+    await act(async () => { release([A, B]); });
+    await landed();
+    expectPick("aggregate", "a"); // nobody touched the view: the growth rule applies as before
   });
 });

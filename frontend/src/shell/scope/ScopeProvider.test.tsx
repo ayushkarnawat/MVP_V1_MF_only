@@ -291,7 +291,7 @@ it("refreshMembers resolves with null when the refresh fails, and keeps the list
   expectPick("member", "b");
 });
 
-it("refreshMembers resolves with null when a newer refresh replaced it (a stale answer is never handed back)", async () => {
+it("a refresh that a newer refresh replaced resolves with the newer list, never its own stale answer (independent review of C-9, finding 1)", async () => {
   mountImport(); await loaded();
   let releaseFirst!: (list: HouseholdMember[]) => void;
   vi.mocked(getHouseholdMembers)
@@ -301,8 +301,22 @@ it("refreshMembers resolves with null when a newer refresh replaced it (a stale 
   fireEvent.click(screen.getByRole("button", { name: "Refresh and capture" }));
   await waitFor(() => expect(screen.getByTestId("captured").textContent).toBe("Alice,Bob,Carol"));
   await act(async () => { releaseFirst(family); });
-  await waitFor(() => expect(screen.getByTestId("captured").textContent).toBe("Alice,Bob,Carol|null"));
+  await waitFor(() => expect(screen.getByTestId("captured").textContent).toBe("Alice,Bob,Carol|Alice,Bob,Carol"));
   expect(screen.getByTestId("members").textContent).toBe("Alice,Bob,Carol"); // the old answer never overwrote the newer list
+});
+
+it("when the newer refresh fails, the replaced one resolves with null (nothing is known)", async () => {
+  mountImport(); await loaded();
+  let releaseFirst!: (list: HouseholdMember[]) => void;
+  vi.mocked(getHouseholdMembers)
+    .mockImplementationOnce(() => new Promise<HouseholdMember[]>(resolve => { releaseFirst = resolve; }))
+    .mockRejectedValueOnce(new Error("offline"));
+  fireEvent.click(screen.getByRole("button", { name: "Refresh and capture" }));
+  fireEvent.click(screen.getByRole("button", { name: "Refresh and capture" }));
+  await waitFor(() => expect(screen.getByTestId("captured").textContent).toBe("null"));
+  await act(async () => { releaseFirst(family); });
+  await waitFor(() => expect(screen.getByTestId("captured").textContent).toBe("null|null"));
+  expect(screen.getByTestId("members").textContent).toBe("Alice,Bob");
 });
 
 it("the import-done navigation does not reset the pick: leaving Add data after an import keeps the member the user was viewing", async () => {
@@ -359,6 +373,16 @@ it("pressing Back onto the import-done history entry is an ordinary move: a hous
   fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
   expectPick("member", "b");
   fireEvent.click(screen.getByRole("button", { name: "Browser Back" }));
+  await act(async () => {});
+  expectPick("aggregate", "a");
+});
+
+it("the exemption is only for leaving Add data: an import-shaped navigation from another page still resets (independent review of C-9, finding 4)", async () => {
+  render(<MemoryRouter initialEntries={["/portfolio/debt"]}><ScopeProvider><Probe /><ImportNav /></ScopeProvider></MemoryRouter>);
+  await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
+  expectPick("member", "b");
+  fireEvent.click(screen.getByRole("button", { name: "Import-done navigation" }));
   await act(async () => {});
   expectPick("aggregate", "a");
 });

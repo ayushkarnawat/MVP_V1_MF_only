@@ -16,6 +16,8 @@ export default function ImportWrapper() {
   membersRef.current = members;
   const viewModeRef = useRef(viewMode);
   viewModeRef.current = viewMode;
+  const memberIdRef = useRef(memberId);
+  memberIdRef.current = memberId;
   const { me } = useAuth();
   const [search] = useSearchParams();
   const { state } = useLocation();
@@ -67,10 +69,15 @@ export default function ImportWrapper() {
 
   const handleImportDone = async (notice?: ImportNotice, outcome?: ImportOutcome) => {
     const before = membersRef.current.length;
-    const fresh = await Promise.resolve(refreshMembers()).catch(() => null);
+    const startMode = viewModeRef.current;
+    const startMember = memberIdRef.current;
+    // Promise.resolve().then(...) so a refresh that throws at once is caught too, and the page still navigates.
+    const fresh = await Promise.resolve().then(() => refreshMembers()).catch(() => null);
     // The person left Add data while the list was loading: do not pull them back or move their view.
     if (!mounted.current) return;
-    if (Array.isArray(fresh)) {
+    // A view the person chose themselves while the list was loading wins over our own move (independent review of C-9, finding 2).
+    const personMovedTheView = viewModeRef.current !== startMode || memberIdRef.current !== startMember;
+    if (Array.isArray(fresh) && !personMovedTheView) {
       const targetId = outcome?.landOnPersonId;
       if (targetId && fresh.some(member => member.id === targetId)) {
         setMember(targetId);

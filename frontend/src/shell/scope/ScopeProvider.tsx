@@ -32,6 +32,8 @@ interface MemberRequest {
   version: number;
   loading: boolean;
   moves: [string, string][];
+  /** The newest member request, so a request that a newer one replaced can hand back that result instead of nothing. */
+  latest?: Promise<ScopeMember[] | null>;
 }
 
 export function ScopeProvider({ children }: { children: ReactNode }) {
@@ -43,11 +45,15 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
   const requests = useRef<MemberRequest>({ active: false, version: 0, loading: true, moves: [] });
   const previousPath = useRef(pathname);
 
-  const loadMembers = useCallback(async (lifecycle: MemberRequest, keepPick: boolean): Promise<ScopeMember[] | null> => {
+  const loadMembers = useCallback((lifecycle: MemberRequest, keepPick: boolean): Promise<ScopeMember[] | null> => {
     const request = ++lifecycle.version;
+    const run = (async (): Promise<ScopeMember[] | null> => {
     try {
       const data = await getHouseholdMembers();
-      if (!lifecycle.active || request !== lifecycle.version) return null;
+      if (!lifecycle.active) return null;
+      // A newer request replaced this one: its answer is the fresh one. Hand that back (never this request's own stale answer),
+      // so a caller that waited for the list still learns who is in the household (independent review of C-9, finding 1).
+      if (request !== lifecycle.version) return lifecycle.latest ?? null;
       const members = data.map(toMemberOption);
       const saved = readScope();
       const stored: StoredScope | null = saved && { mode: saved.mode, memberId: saved.memberId };
@@ -70,6 +76,9 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
       /* Initial failure leaves an empty list; refresh failure keeps the list we have. */
       return null;
     }
+    })();
+    lifecycle.latest = run;
+    return run;
   }, [routes]);
 
   useEffect(() => {
@@ -103,7 +112,8 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
     const from = previousPath.current;
     previousPath.current = pathname;
     // Only the import-done navigation itself (a replace or push), never a later Back onto its history entry: that is an ordinary move.
-    if (navigationType !== "POP" && isImportDoneState(locationState)) return;
+    // ... and only when leaving Add data (an import-shaped state arriving from any other page is an ordinary move).
+    if (navigationType !== "POP" && from === "/import" && isImportDoneState(locationState)) return;
     if (requests.current.loading && from !== pathname) requests.current.moves.push([from, pathname]);
     setState(previous => shouldResetScope(from, pathname, routes, previous.members.length)
       ? { ...previous, pick: { mode: "aggregate", memberId: previous.members[0]?.id ?? null } }
