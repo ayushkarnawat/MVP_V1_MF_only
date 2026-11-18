@@ -35,6 +35,11 @@ NET_ZERO_FINDING = pytest.mark.xfail(
 )
 
 
+def _marked_fixture(fixture):
+    return pytest.param(fixture, id=fixture.name, marks=NET_ZERO_FINDING) if fixture.name == "same_day_net_zero" \
+        else pytest.param(fixture, id=fixture.name)
+
+
 def _marked(name):
     return pytest.param(name, id=name, marks=NET_ZERO_FINDING) if name == "same_day_net_zero" else pytest.param(name, id=name)
 
@@ -111,9 +116,16 @@ def test_excel_convention_including_leap_year():
         assert_rate(independent_xirr(fixture.flows), fixture.expected, fixture.name,
                     tolerance=REFERENCE_TOLERANCE)
 
-    if any(fixture.excel_value is None for fixture in FIXTURES):
-        pytest.skip("excel_value not filled")
-    for fixture in FIXTURES:
+
+@pytest.mark.parametrize("fixture", [_marked_fixture(f) for f in FIXTURES])
+def test_spreadsheet_xirr_agrees_for_every_fixture(fixture):
+    """The spreadsheet's XIRR on the same flows (LibreOffice Calc, same convention as Excel; values filled 18 Nov 2026)."""
+    if fixture.excel_error:
+        assert fixture.excel_value is None
+        assert_rate(independent_xirr(fixture.flows), None, fixture.name)
+        assert_rate(xirr(fixture.flows), None, fixture.name)  # the spreadsheet errors; so must the app, or it is a finding
+    else:
+        assert fixture.excel_value is not None, fixture.name
         assert_rate(xirr(fixture.flows), fixture.excel_value, fixture.name)
         assert_rate(independent_xirr(fixture.flows), fixture.excel_value, fixture.name)
 

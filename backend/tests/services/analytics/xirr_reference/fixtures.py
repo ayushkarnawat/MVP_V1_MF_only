@@ -1,6 +1,6 @@
 """Invented cash flows for the actual-days/365 XIRR comparison."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal, localcontext
 
@@ -11,6 +11,8 @@ class XirrFixture:
     flows: list[tuple[date, Decimal]]
     expected: Decimal | None
     excel_value: Decimal | None
+    # True when the spreadsheet's XIRR gives an error (no money in, no money out, one flow, flows on one day): excel_value stays None.
+    excel_error: bool = False
 
 
 def _cash_flows(
@@ -99,3 +101,41 @@ FIXTURES: list[XirrFixture] = [
     ),
     _lump_sum("unchanged_value_over_one_year", "2022-01-01", "2023-01-01", "-1000", "1000"),
 ]
+
+# The spreadsheet's own XIRR on these same flows: LibreOffice Calc 26.8.3 (the XIRR function, actual days over 365, the same
+# convention as Excel), run by the orchestrator on 18 Nov 2026. Where the spreadsheet returns an error there is no value.
+_SPREADSHEET_XIRR = {
+    "lump_sum_365_days": "0.25",
+    "lump_sum_366_days_across_feb_29": "0.249238129980015",
+    "lump_sum_two_years": "0.2",
+    "lump_sum_three_years_negative": "-0.1",
+    "monthly_sip_12_months": "0.164709787478325",
+    "monthly_sip_36_months": "0.116965352812072",
+    "sip_with_partial_redemption": "0.173113201509904",
+    "sip_then_full_redemption": "0.117666101895959",
+    "three_months_up": "1.09471017507956",
+    "three_months_down": "-0.482685642364269",
+    "one_month": "2.1886804769053",
+    "steep_fall_60_percent_one_year": "-0.6",
+    "steep_fall_90_percent_two_years": "-0.683772233983162",
+    "tenfold_gain_in_five_years": "0.584094411567585",
+    "opening_balance_before_first_transaction": "0.0902082243585119",
+    "quarterly_top_ups": "0.162672120599807",
+    "purchase_reversed_same_day": "0.181818181818182",
+    "fund_fully_sold_then_bought_again": "0.145597850183192",
+    "gift_received_then_gift_given": "0.143810998379353",
+    "unchanged_value_over_one_year": "-4.96340594488482e-17",
+}
+_SPREADSHEET_ERRORS = {
+    "no_money_in",
+    "no_money_out",
+    "same_day_buy_and_sell",
+    "same_day_net_zero",
+    "single_flow",
+}
+FIXTURES = [
+    replace(f, excel_value=Decimal(_SPREADSHEET_XIRR[f.name]), excel_error=False) if f.name in _SPREADSHEET_XIRR
+    else replace(f, excel_error=True)
+    for f in FIXTURES
+]
+assert set(_SPREADSHEET_XIRR) | _SPREADSHEET_ERRORS == {f.name for f in FIXTURES}
