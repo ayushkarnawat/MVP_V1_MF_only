@@ -9,7 +9,8 @@ export function useResendCountdown(start = 60) {
     const id = setInterval(() => setSeconds((value) => Math.max(0, value - 1)), 1000);
     return () => clearInterval(id);
   }, [running]);
-  const restart = useCallback(() => setSeconds(start), [start]);
+  /** Starts again from `next` (the seconds the server said are left) or, with no argument, from the starting value. */
+  const restart = useCallback((next?: number) => setSeconds(typeof next === "number" ? Math.max(0, next) : start), [start]);
   return { seconds, active: running, restart };
 }
 

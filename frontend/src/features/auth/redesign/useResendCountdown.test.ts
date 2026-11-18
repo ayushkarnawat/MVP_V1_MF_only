@@ -2,38 +2,55 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { formatMmSs, useResendCountdown } from "./useResendCountdown";
 
-beforeEach(() => { vi.useFakeTimers(); });
-afterEach(() => { vi.useRealTimers(); });
-
 describe("useResendCountdown", () => {
-  it("starts at 60 and is active", () => {
-    const { result } = renderHook(() => useResendCountdown());
-    expect(result.current).toMatchObject({ seconds: 60, active: true });
-  });
-  it("counts down each second and stops active at 0", () => {
-    const { result } = renderHook(() => useResendCountdown());
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("starts from the given seconds and counts down once a second, stopping at zero", () => {
+    const { result } = renderHook(() => useResendCountdown(3));
+    expect(result.current).toMatchObject({ seconds: 3, active: true });
     act(() => { vi.advanceTimersByTime(1000); });
-    expect(result.current.seconds).toBe(59);
-    act(() => { vi.advanceTimersByTime(59_000); });
+    expect(result.current.seconds).toBe(2);
+    act(() => { vi.advanceTimersByTime(5000); });
     expect(result.current).toMatchObject({ seconds: 0, active: false });
-    act(() => { vi.advanceTimersByTime(5_000); });
+  });
+
+  it("restart() with no argument goes back to the starting value", () => {
+    const { result } = renderHook(() => useResendCountdown(60));
+    act(() => { vi.advanceTimersByTime(10000); });
+    expect(result.current.seconds).toBe(50);
+    act(() => result.current.restart());
+    expect(result.current.seconds).toBe(60);
+  });
+
+  it("restart(next) starts from the number the server gave, and runs again after reaching zero", () => {
+    const { result } = renderHook(() => useResendCountdown(2));
+    act(() => { vi.advanceTimersByTime(3000); });
+    expect(result.current.active).toBe(false);
+    act(() => result.current.restart(42));
+    expect(result.current).toMatchObject({ seconds: 42, active: true });
+    act(() => { vi.advanceTimersByTime(2000); });
+    expect(result.current.seconds).toBe(40);
+  });
+
+  it("restart(0) leaves it stopped and never goes below zero", () => {
+    const { result } = renderHook(() => useResendCountdown(5));
+    act(() => result.current.restart(0));
+    expect(result.current).toMatchObject({ seconds: 0, active: false });
+    act(() => { vi.advanceTimersByTime(3000); });
     expect(result.current.seconds).toBe(0);
   });
-  it("restart goes back to 60", () => {
-    const { result } = renderHook(() => useResendCountdown());
-    act(() => { vi.advanceTimersByTime(60_000); });
-    expect(result.current.active).toBe(false);
-    act(() => { result.current.restart(); });
-    expect(result.current).toMatchObject({ seconds: 60, active: true });
+
+  it("clears its timer when the screen closes", () => {
+    const clear = vi.spyOn(globalThis, "clearInterval");
+    const { unmount } = renderHook(() => useResendCountdown(30));
+    unmount();
+    expect(clear).toHaveBeenCalled();
   });
-  it("takes its own start", () => {
-    const { result } = renderHook(() => useResendCountdown(10));
-    expect(result.current.seconds).toBe(10);
-  });
-  it("formats mm:ss", () => {
+
+  it("formatMmSs shows minutes and seconds with two digits", () => {
+    expect(formatMmSs(42)).toBe("00:42");
     expect(formatMmSs(60)).toBe("01:00");
-    expect(formatMmSs(59)).toBe("00:59");
     expect(formatMmSs(5)).toBe("00:05");
-    expect(formatMmSs(0)).toBe("00:00");
   });
 });

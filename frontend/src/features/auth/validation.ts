@@ -362,6 +362,22 @@ export function isExpiredVerificationError(message: string | null): boolean {
 }
 
 /**
+ * Batch B item 4: the seconds the server says are left before the same address can ask for a code again. Set on the
+ * error by `throwIfError` in api.ts when a 429 body carries `retry_after_seconds` (the plain sentence stays the payload, so no
+ * other screen's wording changes). Null for any other error and for a value that is not a whole number from 1 up.
+ */
+export function retryAfterSeconds(err: unknown): number | null {
+  if (!(err instanceof ApiError) || err.status !== 429) return null;
+  const value = (err as { retryAfterSeconds?: unknown }).retryAfterSeconds;
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 ? value : null;
+}
+
+/** True when a 429 is the hold on this address (code `otp_throttled`), not the per-network limit (`request_limited`). */
+export function isSameAddressThrottle(err: unknown): boolean {
+  return retryAfterSeconds(err) !== null && (err as { code?: unknown }).code === "otp_throttled";
+}
+
+/**
  * Formats API and authentication errors into clear, human-friendly messages.
  */
 export function formatAuthErrorMessage(err: unknown, fallback: string): string {
