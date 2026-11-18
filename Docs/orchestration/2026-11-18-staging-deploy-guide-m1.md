@@ -24,7 +24,7 @@
 - **Deploy mode is `--full`.** The back end changed, so `deploy-redesign.sh --full` rebuilds the back end and worker image (about 2 GB each; the script wants 10 GB free) and builds the front end. Caddy and Postgres are not restarted.
 - **The email images live in the front end bundle** (`frontend/public/email/`, 22 files). They go live with the front end build in the same deploy. Emails sent before that would show broken pictures, so no Head of Family action should be tried until step 8 passes.
 - **Postgres was exercised on 18 Nov**: the guard tests, migration 0054 up and down, and a concurrency test (12 simultaneous requests at a limit of 4 let exactly 4 through) ran on a throwaway Postgres 16 container.
-- **Stored numbers:** the category merge changes labels in the stored analytics. The cron already runs `analytics-recompute-all` at 06:30 every day; step 8 runs it once now so the donut is right at once. Not inside the job windows (05:40 to 06:35, 10:30, 14:00 to 14:15).
+- **Stored numbers:** the category merge changes labels in the stored analytics, and the ledger rows read the new `folio_number` from the stored ledger section (the Folio line in a ledger row's detail is empty until that section is rebuilt: Batch C review, finding M4). `analytics-recompute-all` rebuilds **every** stored section, not only the donut. The cron already runs it at 06:30 every day; step 8 runs it once now, straight after the migration, so the donut and the ledger are right at once. Not inside the job windows (05:40 to 06:35, 10:30, 14:00 to 14:15).
 - Phone code, Batch A and Batch L are not part of M1 (A and L ship nothing).
 
 ## Prompt for the executing Claude
