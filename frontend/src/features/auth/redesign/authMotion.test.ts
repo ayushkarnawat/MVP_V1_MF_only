@@ -42,3 +42,33 @@ describe("auth-tokens.css", () => {
     expect(reduced).toMatch(/animation:\s*none/);
   });
 });
+
+// Batch B item 6 (B-10): one keyframe for the tick pop, and the reduced-motion rule that switches it off.
+const allBlocks = (start: string) => {
+  const found: string[] = [];
+  let from = 0;
+  for (let at = css.indexOf(start, from); at > -1; at = css.indexOf(start, from)) {
+    found.push(block(css.slice(at)));
+    from = at + start.length;
+  }
+  return found;
+};
+
+describe("auth-tokens.css: the tick pop (Batch B, item 6)", () => {
+  it("defines authTickPop: it grows about 25 percent, then settles to the size of the other ticks, with transform only", () => {
+    const frames = block("@keyframes authTickPop");
+    expect(frames).toMatch(/scale\(1\.25\)/);
+    expect(frames).toMatch(/scale\(1\)/);
+    expect(frames).not.toMatch(/\b(top|left|margin|width|height)\s*:/);
+  });
+  it("applies it through .auth-tick-pop, once (it does not repeat)", () => {
+    const rule = block(".auth-tick-pop");
+    expect(rule).toMatch(/animation:[^;]*authTickPop/);
+    expect(rule).not.toMatch(/infinite/);
+  });
+  it("switches it off under prefers-reduced-motion, next to the sketch rule", () => {
+    const reduced = allBlocks("@media (prefers-reduced-motion: reduce)").join("\n");
+    expect(reduced).toMatch(/\.auth-tick-pop\s*\{[^}]*animation:\s*none/);
+    expect(reduced).toMatch(/\.auth-sketch\s*\{[^}]*animation:\s*none/);
+  });
+});
