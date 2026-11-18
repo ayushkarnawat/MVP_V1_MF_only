@@ -11,7 +11,7 @@ from math import ceil
 from threading import Lock
 from typing import Literal, cast
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -61,6 +61,32 @@ def _canonical_identifier(identifier: str, channel: Channel) -> str:
 
 def _digest(secret: str, namespace: str, value: str) -> str:
     return hmac.digest(secret.encode(), f"{namespace}:{value}".encode(), "sha256").hex()
+
+
+# First key of this guard's advisory locks (the letters AGRD). A fixed class keeps them clear of any other use of advisory locks.
+LOCK_CLASS = 1096041028
+# How long one request waits for another request from the same address. Past this the guard fails open, like every other guard
+# failure, rather than hold a sign-in hostage to a stuck sender.
+LOCK_WAIT = "5s"
+
+
+def _lock_address(db: Session, ip_hash: str) -> None:
+    """Serialise the count and the write for one client address (independent review of B-2, finding 2).
+
+    Two simultaneous requests used to count before either had written, so 12 of 12 got through at a limit of 4. The lock is held
+    to the end of the transaction, which is the commit that stores the attempt (`begin`) or the commit that stores the code
+    outcome (`record_outcome`, after the code is sent), so the next request from this address always counts what this one did.
+    Different addresses use different keys and never wait for each other.
+
+    Postgres only. SQLite (local development and tests) has a single writer and no concurrent sign-ins to protect. The lock
+    wait is capped for this statement alone, then put back, so the route's own queries keep the database's setting.
+    """
+    if db.get_bind().dialect.name != "postgresql":
+        return
+    previous = db.execute(text("SHOW lock_timeout")).scalar()
+    db.execute(text("SELECT set_config('lock_timeout', :wait, true)"), {"wait": LOCK_WAIT})
+    db.execute(text("SELECT pg_advisory_xact_lock(:cls, hashtext(:key))"), {"cls": LOCK_CLASS, "key": ip_hash})
+    db.execute(text("SELECT set_config('lock_timeout', :previous, true)"), {"previous": previous})
 
 
 def _limit_wait(
@@ -137,6 +163,7 @@ def begin(
     )
     now = now or datetime.now(timezone.utc)
     try:
+        _lock_address(db, ticket.ip_hash)
         wait = _limit_wait(db, ticket, now)
         if wait is None:
             # One row per address and identifier: a repeat refreshes the row's time and keeps its last outcome until the route
@@ -177,6 +204,9 @@ def before_code(db: Session, ticket: GuardTicket | None, *, now: datetime | None
         return None
     try:
         with db.begin_nested():
+            # Taken here and kept until the route's commit, so no other request from this address counts the code quota
+            # between this check and the moment this request's outcome is stored.
+            _lock_address(db, ticket.ip_hash)
             wait = _limit_wait(db, ticket, now or datetime.now(timezone.utc), codes_only=True)
     except SQLAlchemyError:
         _log_table_failure(ticket.route)
