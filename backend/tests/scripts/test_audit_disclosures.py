@@ -14,7 +14,9 @@ that carry no batch. Target month end is 31 Oct 2026, the month before is 30 Sep
 """
 import csv
 import importlib
+import os
 import re
+import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -50,9 +52,33 @@ def _batch(db, scheme, as_of, status, *, errors=None, imported=None):
                            parse_errors=errors, fetched_at=imported, written_at=imported))
 
 
-@pytest.fixture()
-def database_url(tmp_path):
-    url = f"sqlite:///{(tmp_path / 'audit.db').as_posix()}"
+@pytest.fixture(params=["sqlite", "postgres"])
+def database_url(request, tmp_path):
+    """The same invented rows on SQLite and, when TEST_DATABASE_URL is set, on real PostgreSQL (its own schema, dropped after):
+    the staging database is PostgreSQL, so the queries must be proven there too (18 Nov 2026)."""
+    schema = None
+    if request.param == "sqlite":
+        url = f"sqlite:///{(tmp_path / 'audit.db').as_posix()}"
+    else:
+        base = os.environ.get("TEST_DATABASE_URL")
+        if not base:
+            pytest.skip("TEST_DATABASE_URL unset; Postgres unavailable")
+        schema = "audit_" + uuid.uuid4().hex
+        admin = create_engine(base)
+        with admin.begin() as conn:
+            conn.execute(text(f'CREATE SCHEMA "{schema}"'))
+        admin.dispose()
+        url = base + ("&" if "?" in base else "?") + f"options=-csearch_path%3D{schema}"
+    _seed(url)
+    yield url
+    if schema is not None:
+        admin = create_engine(base)
+        with admin.begin() as conn:
+            conn.execute(text(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE'))
+        admin.dispose()
+
+
+def _seed(url):
     engine = create_engine(url)
     Base.metadata.create_all(engine)
     with Session(engine) as db:
@@ -90,7 +116,6 @@ def database_url(tmp_path):
         ])
         db.commit()
     engine.dispose()
-    return url
 
 
 def _read(path):
@@ -179,7 +204,10 @@ def test_run_is_read_only(database_url, tmp_path):
     module = audit()
     conn = module.open_read_only(database_url)
     try:
-        assert conn.exec_driver_sql("PRAGMA query_only").scalar() == 1
+        if database_url.startswith("sqlite"):
+            assert conn.exec_driver_sql("PRAGMA query_only").scalar() == 1
+        else:
+            assert str(conn.exec_driver_sql("SHOW transaction_read_only").scalar()).lower() == "on"
         with pytest.raises(DBAPIError):
             conn.execute(text("DELETE FROM disclosure_batches"))
     finally:
