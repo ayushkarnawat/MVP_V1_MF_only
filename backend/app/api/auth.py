@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session as DbSession
 
 from app.api.legal import CONSENT_CONTINUE_MESSAGE
@@ -125,6 +126,16 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 _SIGNUP_CONSENT_MESSAGE = "Agree to the Terms & Conditions and Privacy Policy to create your account."
 
 
+def _throttled_response(exc: OtpRequestThrottledError) -> JSONResponse:
+    """The 429 for a held code (Batch B item 4): `detail` stays the plain sentence old clients and the phone screens read,
+    and `code` and `retry_after_seconds` sit beside it for the login screen's countdown. A JSONResponse, not an
+    HTTPException: an HTTPException can only produce {"detail": ...}. The Head of Family routes keep their own nested body."""
+    return JSONResponse(
+        status_code=429,
+        content={"detail": str(exc), "code": "otp_throttled", "retry_after_seconds": exc.retry_after_seconds},
+    )
+
+
 def _consent_http(exc: ConsentRequiredError, message: str = _SIGNUP_CONSENT_MESSAGE) -> HTTPException:
     # Sign-up paths use the sign-up wording (the default) rather than the
     # generic "latest version of: ..." text ConsentRequiredError carries;
@@ -181,7 +192,7 @@ def signup_email(body: SignupEmailBody, request: Request, db: DbSession = Depend
     try:
         _, raw_otp = create_otp_request(db, body.email, channel="email", purpose="login")
     except OtpRequestThrottledError as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
+        return _throttled_response(exc)
     except EmailSendError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return EmailOtpRequiredResponse(
@@ -222,7 +233,7 @@ def request_email_otp(body: EmailOtpRequestBody, request: Request, db: DbSession
             purpose="login",
         )
     except OtpRequestThrottledError as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
+        return _throttled_response(exc)
     except EmailSendError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return OtpRequestResponse(message="OTP sent.", otp=raw_otp)
@@ -372,7 +383,7 @@ def request_otp(body: OtpRequestBody, request: Request, db: DbSession = Depends(
             purpose="login",
         )
     except OtpRequestThrottledError as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
+        return _throttled_response(exc)
     return OtpRequestResponse(message="OTP sent.", otp=raw_otp)
 
 
@@ -737,7 +748,7 @@ def request_contact_change(
             db, body.identifier, channel=otp_channel, purpose="login"
         )
     except OtpRequestThrottledError as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
+        return _throttled_response(exc)
     except EmailSendError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return OtpRequestResponse(message="OTP sent.", otp=raw_otp)

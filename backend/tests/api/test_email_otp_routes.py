@@ -4,6 +4,10 @@ inline email-OTP confirmation step that replaces the link-based
 spec §3). Mirrors the shape of the deleted test_email_confirmation_routes.py.
 """
 
+import re
+from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
+
 from app.models.auth import AuthIdentity, PendingIdentityVerification
 from app.models.enums import AuthIdentityProvider
 from app.models.enums import ConsentDocumentType as T
@@ -292,6 +296,57 @@ def test_signup_email_resend_returns_429_not_500(client):
     assert response.status_code == 429
 
 
+def _assert_structured_throttle_response(response):
+    assert response.status_code == 429
+    body = response.json()
+    assert body.keys() == {"detail", "code", "retry_after_seconds"}
+    assert body["code"] == "otp_throttled"
+    assert type(body["retry_after_seconds"]) is int
+    assert 1 <= body["retry_after_seconds"] <= 60
+    assert re.fullmatch(r"Please wait \d+s before requesting another code\.", body["detail"])
+
+
+def test_request_email_otp_429_has_structured_body(client):
+    origin = "http://localhost:5173"
+    email = "structured-resend@example.com"
+    now = datetime(2026, 11, 17, tzinfo=timezone.utc)
+    with patch("app.services.auth.otp.datetime", wraps=datetime) as clock:
+        clock.now.side_effect = [now, now + timedelta(seconds=18)]
+        assert _signup(client, email).status_code == 200
+        response = client.post(
+            "/auth/email-otp/request", json={"email": email}, headers={"Origin": origin}
+        )
+
+    assert response.headers["access-control-allow-origin"] == origin
+    _assert_structured_throttle_response(response)
+    assert response.json() == {
+        "detail": "Please wait 42s before requesting another code.",
+        "code": "otp_throttled",
+        "retry_after_seconds": 42,
+    }
+
+
+def test_signup_email_429_has_structured_body(client):
+    email = "structured-signup@example.com"
+    assert _signup(client, email).status_code == 200
+
+    response = _signup(client, email)
+
+    _assert_structured_throttle_response(response)
+
+
+def test_old_clients_still_read_a_plain_string_detail(client):
+    email = "legacy-detail@example.com"
+    assert _signup(client, email).status_code == 200
+
+    response = _signup(client, email)
+
+    assert response.status_code == 429
+    body = response.json()
+    assert isinstance(body["detail"], str)
+    assert body["detail"] == f"Please wait {body['retry_after_seconds']}s before requesting another code."
+
+
 def test_request_email_otp_returns_502_not_500_when_send_fails(client, monkeypatch):
     import app.api.auth as auth_module
     from app.services.auth.email_provider import EmailSendError
@@ -348,6 +403,24 @@ def test_request_contact_change_returns_502_not_500_when_send_fails(client, monk
 
     assert response.status_code == 502
     assert response.json()["detail"]
+
+
+def test_request_contact_change_429_has_structured_body(client):
+    phone = "+919300000098"
+    otp_response = client.post("/auth/otp/request", json={"phone_number": phone})
+    assert otp_response.status_code == 200
+    signup = client.post(
+        "/auth/otp/verify", json={"phone_number": phone, "otp": otp_response.json()["otp"]}
+    )
+    assert signup.status_code == 200
+    headers = {"Authorization": f"Bearer {signup.json()['session_token']}"}
+    path = "/auth/contact-change/request"
+    payload = {"channel": "email", "identifier": "structured-contact-change@example.com"}
+    assert client.post(path, json=payload, headers=headers).status_code == 200
+
+    response = client.post(path, json=payload, headers=headers)
+
+    _assert_structured_throttle_response(response)
 
 
 def test_full_signup_flow_email_otp_then_phone_otp_creates_a_session(client):
@@ -654,6 +727,16 @@ def test_email_login_request_with_an_unknown_email_is_404(client):
     r = client.post("/auth/email-otp/request", json={"email": "nobody@example.com", "flow": "login"})
     assert r.status_code == 404
     assert r.json()["detail"] == "No account found for that email — sign up instead."
+
+
+def test_unregistered_login_email_returns_404_never_429(client):
+    payload = {"email": "unregistered-login@example.com", "flow": "login"}
+
+    for _ in range(2):
+        response = client.post("/auth/email-otp/request", json=payload)
+
+        assert response.status_code == 404
+        assert "retry_after_seconds" not in response.json()
 
 
 def test_email_request_without_flow_is_unchanged(client):

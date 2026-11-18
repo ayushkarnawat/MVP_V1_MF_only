@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from inspect import signature
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy import create_engine
@@ -243,6 +244,27 @@ def test_create_otp_request_throttles_rapid_repeat_requests(monkeypatch):
 
     with pytest.raises(otp_module.OtpRequestThrottledError, match="wait"):
         create_otp_request(db, "+919999999999")
+
+
+@pytest.mark.parametrize(
+    ("elapsed", "message_seconds", "retry_seconds"),
+    [(timedelta(0), 60, 60), (timedelta(seconds=18), 42, 42),
+     (timedelta(seconds=59, milliseconds=500), 0, 1)],
+)
+def test_throttle_error_carries_seconds_left(elapsed, message_seconds, retry_seconds):
+    import app.services.auth.otp as otp_module
+
+    now = datetime(2026, 11, 17, tzinfo=timezone.utc)
+    db = _session()
+    with patch.object(otp_module, "datetime", wraps=datetime) as clock:
+        clock.now.side_effect = [now, now + elapsed]
+        create_otp_request(db, "+919999999999")
+        with pytest.raises(otp_module.OtpRequestThrottledError) as caught:
+            create_otp_request(db, "+919999999999")
+
+    assert str(caught.value) == f"Please wait {message_seconds}s before requesting another code."
+    assert type(caught.value.retry_after_seconds) is int
+    assert caught.value.retry_after_seconds == retry_seconds
 
 
 def test_create_otp_request_allows_repeat_after_throttle_window_passes(monkeypatch):

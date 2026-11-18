@@ -1,6 +1,7 @@
 """Auth routes. `_consent()` is the T&C + Privacy acceptance every fresh
 sign-up must now send (Task 8, consent core B2)."""
 
+import re
 import uuid
 
 from app.models.consent import ConsentRecord
@@ -29,6 +30,21 @@ def test_otp_request_returns_429_when_throttled(client):
     response = client.post("/auth/otp/request", json={"phone_number": "+919000011111"})
 
     assert response.status_code == 429
+
+
+def test_request_otp_429_has_structured_body(client):
+    payload = {"phone_number": "+919000011112"}
+    assert client.post("/auth/otp/request", json=payload).status_code == 200
+
+    response = client.post("/auth/otp/request", json=payload)
+
+    assert response.status_code == 429
+    body = response.json()
+    assert body.keys() == {"detail", "code", "retry_after_seconds"}
+    assert body["code"] == "otp_throttled"
+    assert type(body["retry_after_seconds"]) is int
+    assert 1 <= body["retry_after_seconds"] <= 60
+    assert re.fullmatch(r"Please wait \d+s before requesting another code\.", body["detail"])
 
 
 def test_otp_verify_creates_user_and_session_for_new_phone(client):
