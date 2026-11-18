@@ -882,3 +882,12 @@ The owner authorised fixing the detached public network end to end. Decisions: (
 - Batch L: the audit script (`backend/scripts/audit_disclosures/`) rides the M1 backend rebuild (a deviation from the Batch L plan's "no deploy", approved); L-3 runs right after M1. E3's money measure uses the newest older assets period when the target month has none, labelled as such.
 - QA stays one round, together, after M4; each milestone gets only a quick verify.
 - Codex second-opinion review of the address guard (18 Nov): eight of nine findings fixed before deploy (slot reserved inside the lock, one mailbox per email field, separate code clock, unique pair, retry clamp, browser whitespace set), one accepted (a code issued before the deploy under a non-canonical phone spelling), one carried to the production gate (load balancer client-port preservation).
+
+## 2026-11-19 - Batch B review, owner decisions (one line each)
+- Contrast of the green switch: fixed as recommended. Pressed button label white; focus rings and focused-field borders in the palette's deep green `#15803D`; dark marks (`#111111`) on the brand green (chip check, finished-row tick).
+- Onboarding and the other error states: fixed properly, not accepted. A dense spacing mode while a message shows; measured 0 px overflow on onboarding, sign-up details and the All set retry at all five window sizes.
+- The lone OR on the login screen with Google off: removed.
+- Email fonts: tried and done without a third party: DM Sans and Manrope declared in the emails and hosted on our own domain next to the pictures (SIL Open Font License).
+- Two low items fixed instead of left: typographic apostrophes in the two onboarding labels the workbook draws that way (that screen only), and the All set screen changes in two moments (the tick, then the paragraph and heading).
+- Rule going forward: a review finding is closed only when it is fixed or the owner has explicitly accepted it; nothing is "accepted" by the orchestrator alone.
+

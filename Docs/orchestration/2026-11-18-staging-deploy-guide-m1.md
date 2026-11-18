@@ -8,13 +8,14 @@
 2. A new guard on the three code-request routes (phone OTP, email OTP, sign-up email): one network address may try at most **30 different recipients** and ask for at most **10 different codes** in any 10 minutes (a code slot is reserved the moment the request is allowed, so a slow send cannot let a second request slip through; a send that fails gives the slot back). Every email field now takes exactly one address: two addresses in one field (for example separated by a comma) are refused with `422`. Over the limit the answer is `429` with the sentence "Too many attempts from this network. Try again in N minutes." (singular "minute" for 1). Addresses and recipients are stored only as keyed hashes; one row per address and recipient; rows older than 24 hours are purged nightly at 03:15 IST.
 3. One stored form for a phone number (`+91XXXXXXXXXX`): any accepted spelling is turned into it before the account lookup, the 60-second resend rule and the guard.
 4. The wrong-person warning block on the import screen; the "You're all set" spinner that becomes a tick; onboarding option A (grouped list, two-column goals, green switch); the palette greens.
-5. The four Head of Family emails in the new branded layout (light and dark), with the new images under `/email/`.
+5. The four Head of Family emails in the new branded layout (light and dark), with the new images and the two brand fonts under `/email/` (the fonts load in Apple Mail and iOS Mail; other programs use their usual fonts).
+6. Sign-up and sign-in polish from the reviews: the green switch's pressed, focus and check colours reach the contrast minimums; spacing tightens while an error message is showing so the screens never scroll; no stray "OR" on the login screen; the All set screen changes in two moments; a screen-reader announcement for the login wait.
 
 **Batch C (holdings hygiene)**
-6. The "Assumed main manager" line is gone from the fund-manager card.
-7. The category donut merges spellings of one category (for example "Scheme" and "Schemes", Sectoral and Thematic). Needs the stored-results rebuild in step 8.
-8. The full folio number everywhere a folio is shown, with one eye icon that hides or shows all of them (remembered per browser, default shown), and a Copy button that is dimmed while hidden. The old masked fields stay in the responses.
-9. After an import: Family Combined when the household grew, the chosen person for a wrong-person import, no stale member list. Add data waits for the fresh member list.
+7. The "Assumed main manager" line is gone from the fund-manager card.
+8. The category donut merges spellings of one category (for example "Scheme" and "Schemes", Sectoral and Thematic). Needs the stored-results rebuild in step 8.
+9. The full folio number everywhere a folio is shown, with one eye icon that hides or shows all of them (remembered per browser, default shown), and a Copy button that is dimmed while hidden. The old masked fields stay in the responses.
+10. After an import: Family Combined when the household grew, the chosen person for a wrong-person import, no stale member list. Add data waits for the fresh member list.
 
 **Not in this release:** the phone (mobile) screens are untouched (no phone screen shows a folio number; checked 18 Nov), no analytics events, no speed work, no number fixes (those are M2).
 
@@ -49,7 +50,7 @@ git tag m1-rc && git fetch origin && git push origin leapswitch-redesign m1-rc
 ```bash
 git diff --name-only <LAST-DEPLOYED-COMMIT> m1-rc | grep -vE "^Docs/|\.test\.tsx?$|^backend/tests/"
 ```
-Expected groups only: `backend/app/**` (auth, analytics allocation, dashboard, fund page, investment withdrawal, models, config, main, scripts), `backend/alembic/versions/0054_auth_request_guard.py`, `backend/scripts/preview_emails.py`, `backend/scripts/audit_disclosures/*` (Batch L, read-only audit), `deploy/leapswitch/{.env.example,crontab.leapswitch}`, `frontend/public/email/*.png` (22 files) and `frontend/src/**` outside `mobile/`. **STOP** on a second migration, a dependency file change, anything under `frontend/src/mobile/`, or anything in `app/` the list above does not explain.
+Expected groups only: `backend/app/**` (auth, analytics allocation, dashboard, fund page, investment withdrawal, models, config, main, scripts), `backend/alembic/versions/0054_auth_request_guard.py`, `backend/scripts/preview_emails.py`, `backend/scripts/audit_disclosures/*` (Batch L, read-only audit), `deploy/leapswitch/{.env.example,crontab.leapswitch}`, `frontend/public/email/*.png` (22 files), `frontend/public/email/fonts/*` (2 font files and a licence note) and `frontend/src/**` outside `mobile/`. **STOP** on a second migration, a dependency file change, anything under `frontend/src/mobile/`, or anything in `app/` the list above does not explain.
 
 ### Step 2 (laptop): CI and evidence
 ```bash
@@ -130,6 +131,7 @@ Health, both domains, and the old link:
 ```bash
 cd /opt/unifolio-redesign/deploy/leapswitch && sudo docker compose ps
 for u in https://ls-staging-api.unifolio.in/health https://ls-redesign.unifolio.in/ https://ls-staging.unifolio.in/ https://ls-redesign.unifolio.in/email/logo-light.png; do curl -s -o /dev/null -w "%{http_code} %{content_type}\n" "$u"; done
+curl -s -o /dev/null -w "%{http_code} %{content_type}\n" https://ls-redesign.unifolio.in/email/fonts/Manrope-latin.woff2
 sudo docker compose logs backend --since 15m | grep -c "Auth request guard skipped"
 sudo docker compose logs backend --since 15m | grep -c "Auth request guard table unavailable"
 ```
