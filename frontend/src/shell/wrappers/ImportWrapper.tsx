@@ -14,6 +14,11 @@ export default function ImportWrapper() {
   const { members, memberId, viewMode, refreshMembers, setMember, setAggregate } = useScope();
   const membersRef = useRef(members);
   membersRef.current = members;
+  // The household as it was when Add data opened (the first non-empty list this page saw). "Did the household grow?" is asked
+  // against this, not against the count at the moment the import finishes: another refresh can load the new member before that
+  // moment (independent review of C-9, finding 3), and a count taken then would not see it.
+  const openingIds = useRef<Set<string> | null>(null);
+  if (openingIds.current === null && members.length > 0) openingIds.current = new Set(members.map(member => member.id));
   const viewModeRef = useRef(viewMode);
   viewModeRef.current = viewMode;
   const memberIdRef = useRef(memberId);
@@ -68,7 +73,7 @@ export default function ImportWrapper() {
   }, [memberChip, setMemberChip]);
 
   const handleImportDone = async (notice?: ImportNotice, outcome?: ImportOutcome) => {
-    const before = membersRef.current.length;
+    const opening = openingIds.current;
     const startMode = viewModeRef.current;
     const startMember = memberIdRef.current;
     // Promise.resolve().then(...) so a refresh that throws at once is caught too, and the page still navigates.
@@ -81,7 +86,7 @@ export default function ImportWrapper() {
       const targetId = outcome?.landOnPersonId;
       if (targetId && fresh.some(member => member.id === targetId)) {
         setMember(targetId);
-      } else if (before > 0 && fresh.length > before && viewModeRef.current === "member") {
+      } else if (opening && fresh.some(member => !opening.has(member.id)) && viewModeRef.current === "member") {
         setAggregate();
       }
     }

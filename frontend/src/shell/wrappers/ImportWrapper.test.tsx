@@ -251,4 +251,33 @@ describe("ImportWrapper: the member list and the view after an import (Batch C 1
     await landed();
     expectPick("aggregate", "a"); // nobody touched the view: the growth rule applies as before
   });
+
+  // ---- independent review of C-9, finding 3 (owner decision 18 Nov 2026: fix it, do not leave it as a limit)
+  it("growth that another refresh already loaded before the import finished still lands on Family Combined", async () => {
+    serve([A], [A, B], [A, B]);
+    mount(); await loaded("Alice");
+    expectPick("member", "a");
+    fireEvent.click(screen.getByRole("button", { name: "Refresh elsewhere" }));
+    await loaded("Alice,Bob");
+    expectPick("member", "a");
+    finish(); await landed();
+    expectPick("aggregate", "a");
+  });
+
+  it("a household that did not change during the import keeps the view the person had", async () => {
+    serve([A, B], [A, B], [A, B]);
+    mount(); await loaded("Alice,Bob");
+    fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh elsewhere" }));
+    await act(async () => {});
+    finish(); await landed();
+    expectPick("member", "b");
+  });
+
+  it("one member replaced by another during the import counts as a changed household", async () => {
+    serve([A], [B]);
+    mount(); await loaded("Alice");
+    finish(); await landed();
+    expectPick("member", "b"); // the only person left is the one to look at; nothing to combine
+  });
 });
