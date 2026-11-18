@@ -4,7 +4,7 @@
 **Worker:** Codex, backend only. **Reviewer and committer:** Claude (orchestrator).
 **Work in:** `D:\unifolio-b-journey` (git worktree, branch `batch/b-journey`, base `08619380`). Never in `D:\Unifolio code`.
 
-Read first, in order: `Docs/orchestration/ui-common-rules-codex.md`, then `Docs/orchestration/wave-common-rules.md` (it wins where they differ). Those rule files live in the main checkout, `D:\Unifolio code\Docs\orchestration\`; the worktree has them too (same base commit), but this handoff file exists only in the main checkout, so read it from there (read-only).
+Read first, in order: `Docs/orchestration/ui-common-rules-codex.md`, then `Docs/orchestration/wave-common-rules.md` (it wins where they differ), then this file. All three are inside your worktree (paths relative to `D:\unifolio-b-journey`).
 
 ## Task
 Make every "please wait" answer to a code request carry the seconds left, in a machine-readable form, **without changing the sentence old clients read**.
@@ -76,7 +76,8 @@ One fenced block `CODEX REPORT: b1-structured-429`: status (DONE, PARTIAL, BLOCK
 Backend worker for Unifolio (Codex). Read, in order:
 1. Docs/orchestration/ui-common-rules-codex.md
 2. Docs/orchestration/wave-common-rules.md (wins where they differ)
-3. D:\Unifolio code\Docs\orchestration\2026-11-17-b1-structured-429-handoff.md (your task: B-1 and B-3; read-only copy in the main checkout)
+3. Docs/orchestration/2026-11-17-b1-structured-429-handoff.md (your task: B-1 and B-3)
 Work only in D:\unifolio-b-journey on branch batch/b-journey. Tests first. Git is read-only. Do not touch frontend/**.
+Run tests with: cd backend; "D:\Unifolio code\backend\.venv-win\Scripts\python.exe" -m pytest <files>   (if the sandbox cannot run it, reply BLOCKED with the exact error, do not change any config)
 Reply with the CODEX REPORT block from the handoff, nothing else.
 ```
