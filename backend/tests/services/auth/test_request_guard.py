@@ -475,3 +475,16 @@ def test_recording_held_without_a_reservation_still_starts_a_code_charge(db_sess
     with pytest.raises(guard.RequestGuardLimited):
         guard.before_code(db_session, other, now=NOW + timedelta(seconds=1))
 
+
+@pytest.mark.parametrize(("seconds", "sentence"), [
+    (1, "Too many attempts from this network. Try again in 1 minute."),
+    (59, "Too many attempts from this network. Try again in 1 minute."),
+    (60, "Too many attempts from this network. Try again in 1 minute."),
+    (61, "Too many attempts from this network. Try again in 2 minutes."),
+    (600, "Too many attempts from this network. Try again in 10 minutes."),
+])
+def test_the_per_network_sentence_uses_the_singular_only_for_one_minute(seconds, sentence):
+    body = json.loads(auth._limited_response(guard.RequestGuardLimited(seconds)).body)
+    assert body["detail"] == sentence
+    assert body["retry_after_seconds"] == seconds
+

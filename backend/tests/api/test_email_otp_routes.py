@@ -370,7 +370,10 @@ def test_old_clients_still_read_a_plain_string_detail(client):
     assert response.status_code == 429
     body = response.json()
     assert isinstance(body["detail"], str)
-    assert body["detail"] == f"Please wait {body['retry_after_seconds']}s before requesting another code."
+    # The sentence keeps its old rounding down; the structured number rounds up, so a countdown never unlocks early. They differ
+    # by at most one second.
+    match = re.fullmatch(r"Please wait (\d+)s before requesting another code\.", body["detail"])
+    assert match and int(match[1]) in (body["retry_after_seconds"], body["retry_after_seconds"] - 1)
 
 
 def test_request_email_otp_returns_502_not_500_when_send_fails(client, monkeypatch):

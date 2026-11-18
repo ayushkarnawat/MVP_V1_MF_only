@@ -428,3 +428,32 @@ def test_points_to_support_instead_of_ignore_this_email():
     html = otp_email_html(otp="743820", ttl_minutes=5)
     assert "safely ignore" not in html
     assert "support@unifolio.in" in html
+
+
+# ---- Codex whole-batch review of B, finding 7: directional override characters in a name must not reorder the fixed sentences.
+_BIDI_CONTROLS = "\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069\u200e\u200f\u061c"
+
+
+@pytest.mark.parametrize("builder,kwargs", [
+    (email_templates.head_changed_for_old_head_email, dict(new_head_name="\u202eRohan\u2069 Shanbhag", old_head_name="Ad\u200fiti")),
+    (email_templates.head_change_reversed_email, dict(restored_head_name="\u202eRohan\u2069 Shanbhag", other_head_name="Ad\u200fiti")),
+])
+def test_directional_controls_are_removed_from_names_but_the_text_stays(builder, kwargs):
+    _, plain, html = builder(**kwargs)
+    for part in (plain, html):
+        assert not any(char in part for char in _BIDI_CONTROLS)
+    assert "Rohan Shanbhag" in plain and "Rohan Shanbhag" in html
+    assert "Aditi" in plain and "Aditi" in html
+
+
+def test_a_name_with_right_to_left_letters_survives_untouched():
+    arabic = "\u0645\u062d\u0645\u062f"
+    _, plain, html = email_templates.head_change_reversed_email(restored_head_name=arabic, other_head_name="Aditi")
+    assert arabic in plain and arabic in html
+
+
+def test_the_changed_back_email_keeps_the_support_address_in_the_accent_colour_without_a_link():
+    _, _, html = email_templates.head_change_reversed_email(restored_head_name="Rohan", other_head_name="Aditi")
+    assert '<span class="email-accent" style="color:#15803D">support@unifolio.in</span>' in html
+    assert "mailto:" not in html
+

@@ -479,7 +479,17 @@ def _undo_content(undo_url: str, valid_until: datetime) -> _BrandedEmail:
     )
 
 
+# Directional embeddings, overrides, isolates and marks: no real name needs them, and an unclosed override reverses the fixed
+# sentence around the name (Codex whole-batch review of B, finding 7). Right-to-left LETTERS are untouched.
+_BIDI_CONTROLS = dict.fromkeys(map(ord, "\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069\u200e\u200f\u061c"))
+
+
+def _clean_name(name: str) -> str:
+    return name.translate(_BIDI_CONTROLS)
+
+
 def _old_head_content(new_head_name: str, old_head_name: str) -> _BrandedEmail:
+    new_head_name, old_head_name = _clean_name(new_head_name), _clean_name(old_head_name)
     return _BrandedEmail(
         headline=("Your family’s account has been ", "updated.", ""),
         subtitle="The Head of Family for your Unifolio account has changed.",
@@ -507,6 +517,7 @@ def _old_head_content(new_head_name: str, old_head_name: str) -> _BrandedEmail:
 
 
 def _reversed_content(restored_head_name: str, other_head_name: str) -> _BrandedEmail:
+    restored_head_name, other_head_name = _clean_name(restored_head_name), _clean_name(other_head_name)
     return _BrandedEmail(
         tag="ACCOUNT UPDATE",
         headline=("The change has been ", "reversed.", ""),

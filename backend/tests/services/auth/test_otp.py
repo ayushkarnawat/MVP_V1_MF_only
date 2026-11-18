@@ -249,7 +249,9 @@ def test_create_otp_request_throttles_rapid_repeat_requests(monkeypatch):
 @pytest.mark.parametrize(
     ("elapsed", "message_seconds", "retry_seconds"),
     [(timedelta(0), 60, 60), (timedelta(seconds=18), 42, 42),
-     (timedelta(seconds=59, milliseconds=500), 0, 1)],
+     (timedelta(seconds=59, milliseconds=500), 0, 1),
+     # 41.75 s are left: the old sentence keeps its own rounding down (41s) but the number must not unlock the button early.
+     (timedelta(seconds=18, milliseconds=250), 41, 42)],
 )
 def test_throttle_error_carries_seconds_left(elapsed, message_seconds, retry_seconds):
     import app.services.auth.otp as otp_module
