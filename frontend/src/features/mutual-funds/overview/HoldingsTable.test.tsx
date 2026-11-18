@@ -1,6 +1,7 @@
 import { fireEvent, screen, within } from "@testing-library/react";
 import { useLocation } from "react-router";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { resetFolioVisibilityForTests } from "@/lib/folioVisibility";
 import { buildRegistry } from "@/shell/registry/buildRegistry";
 import { renderInShell } from "@/shell/testing";
 import * as fx from "../fixtures";
@@ -239,9 +240,9 @@ function familyParents() {
   const first = fx.holdings()[0];
   const children = [
     { ...first, household_member_id: "m1", household_member_name: "Asha", units_held: "10", amount_invested: "100.00", average_nav: "10", current_value: "200.00", realized_gain: "1.00", unrealized_gain: "100.00", xirr: "0.10",
-      folios: [{ folio_id: "fa", folio_masked: "XXXX9012", units: "10", invested: "100.00", value: "200.00" }] },
+      folios: [{ folio_id: "fa", folio_masked: "XXXX9012", folio_number: "10234567 / 0", units: "10", invested: "100.00", value: "200.00" }] },
     { ...first, household_member_id: "m2", household_member_name: "Dev", units_held: "30", amount_invested: "450.00", average_nav: "15", current_value: "600.00", realized_gain: "2.00", unrealized_gain: "150.00", xirr: null,
-      folios: [{ folio_id: "fb", folio_masked: "XXXX3456", units: "30", invested: "450.00", value: "600.00" }] },
+      folios: [{ folio_id: "fb", folio_masked: "XXXX3456", folio_number: "55501234 / 1", units: "30", invested: "450.00", value: "600.00" }] },
   ];
   return [{ ...first, amc_name: first.amc_name ?? "", asset_class: first.asset_class ?? "Other", plan_verified: true,
     sebi_category: first.sebi_category ?? null, stale_nav: false, nav_unavailable: false, price_from_statement: false,
@@ -260,13 +261,15 @@ describe("consolidated family holdings", () => {
     expect(within(parent).getByTestId("share-m1")).toHaveStyle({ width: "25.00%" });
     expect(within(parent).getByTestId("share-m2")).toHaveStyle({ width: "75.00%" });
   });
-  it("expand_opens_one_row_per_member_with_the_masked_folio", () => {
+  it("expand_opens_one_row_per_member_with_the_full_folio_number", () => {
     table({ consolidated: familyParents() });
     fireEvent.click(screen.getByRole("button", { name: "Expand Kotak Multi Cap Fund" }));
     const a = screen.getByTestId("member-S-KOTAK:direct:m1");
     const b = screen.getByTestId("member-S-KOTAK:direct:m2");
-    expect(a).toHaveTextContent("Asha"); expect(a).toHaveTextContent("XXXX9012");
-    expect(b).toHaveTextContent("Dev"); expect(b).toHaveTextContent("XXXX3456");
+    expect(a).toHaveTextContent("Asha"); expect(a).toHaveTextContent("10234567 / 0");
+    expect(b).toHaveTextContent("Dev"); expect(b).toHaveTextContent("55501234 / 1");
+    expect(a).not.toHaveTextContent("XXXX9012"); // the old masked field is never shown (Batch C 17c)
+    expect(b).not.toHaveTextContent("XXXX3456");
     expect(within(a).getByTestId("child-xirr")).toHaveTextContent("10.0%");
     expect(within(b).getByTestId("child-xirr")).toHaveTextContent("—");
     expect(screen.getByTestId("family-phone-cards")).toBeInTheDocument();
@@ -343,5 +346,44 @@ describe("Category column (UI round 2, change 2)", () => {
     table({ holdings: loaded(rows) });
     const byFund = Object.fromEntries(screen.getAllByTestId(/^row-/).map(tr => [tr.getAttribute("data-testid")!.slice(4).split(":")[0], within(tr).getByTestId("category").textContent]));
     expect(byFund).toEqual({ "S-KOTAK": "Flexi Cap Fund", "S-JM": "Mid Cap Fund", "S-HDFC": "Liquid Fund", "S-SBI": "Large Cap Fund", "S-AXIS": "—" });
+  });
+});
+
+// Batch C 17c (C-7): full folio numbers with an eye beside each. Design: workbook Batch C section 4.
+describe("holdings folio numbers: full, with one eye that hides them all", () => {
+  beforeEach(() => resetFolioVisibilityForTests());
+  const expandKotak = () => {
+    table({ consolidated: familyParents() });
+    fireEvent.click(screen.getByRole("button", { name: "Expand Kotak Multi Cap Fund" }));
+    return { a: screen.getByTestId("member-S-KOTAK:direct:m1"), b: screen.getByTestId("member-S-KOTAK:direct:m2") };
+  };
+  it("each expanded member row has its own eye beside the number", () => {
+    const { a, b } = expandKotak();
+    expect(within(a).getByRole("button", { name: "Hide folio numbers" })).toHaveAttribute("aria-pressed", "false");
+    expect(within(b).getByRole("button", { name: "Hide folio numbers" })).toHaveAttribute("aria-pressed", "false");
+  });
+  it("one click hides every folio number on the page as XXXX plus the last four of the folio part and the sub-folio", () => {
+    const { a, b } = expandKotak();
+    fireEvent.click(within(a).getByRole("button", { name: "Hide folio numbers" }));
+    expect(a).toHaveTextContent("XXXX4567 / 0");
+    expect(b).toHaveTextContent("XXXX1234 / 1");
+    expect(a).not.toHaveTextContent("10234567");
+    expect(within(b).getByRole("button", { name: "Show folio numbers" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(within(b).getByRole("button", { name: "Show folio numbers" }));
+    expect(a).toHaveTextContent("10234567 / 0");
+  });
+  it("a fund held by one member shows the number after the member's name on the parent row, with the eye", () => {
+    const parents = familyParents(); parents[0].children = parents[0].children.slice(0, 1);
+    table({ consolidated: parents });
+    const parent = screen.getByTestId("parent-S-KOTAK:direct");
+    expect(parent).toHaveTextContent("Asha");
+    expect(parent).toHaveTextContent("10234567 / 0");
+    expect(within(parent).getByRole("button", { name: "Hide folio numbers" })).toBeInTheDocument();
+  });
+  it("a long number wraps inside its cell instead of being cut off (monospace, overflow-wrap anywhere)", () => {
+    const { a } = expandKotak();
+    const number = within(a).getByText("10234567 / 0");
+    expect(number).toHaveClass("font-mono");
+    expect(number).toHaveClass("[overflow-wrap:anywhere]");
   });
 });

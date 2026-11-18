@@ -48,7 +48,8 @@
         "folio_id": "e562b2b9-d43a-5957-bee6-8b1eb24de5df",
         "member_id": "c4083fcb-1e9f-50d6-b023-a1a17a1972d1",
         "member_name": "Dev Rao",
-        "folio_masked": "XXXXX5678"
+        "folio_masked": "XXXXX5678",
+        "folio_number": "82345678"
       }
     ]
   }

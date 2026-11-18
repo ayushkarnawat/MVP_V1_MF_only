@@ -19,7 +19,7 @@ const unavailable: Schema<Unavailable> = obj<Unavailable>({ status: lit("unavail
 const tone = nullable(lit("pos", "warn", "neg", "info", "neu"));
 const point: Schema<SeriesPoint> = obj<SeriesPoint>({ date: str, pct: str });
 const memberRef: Schema<MemberRef> = obj<MemberRef>({ id: str, name: str });
-const folio: Schema<FolioInfo> = obj<FolioInfo>({ folio_id: str, member_id: str, member_name: str, folio_masked: str });
+const folio: Schema<FolioInfo> = obj<FolioInfo>({ folio_id: str, member_id: str, member_name: str, folio_masked: str, folio_number: str });
 const expense: Schema<ExpenseRatio> = obj<ExpenseRatio>({ value: str, reference_period: str, plan: str });
 const scheme: Schema<SchemeInfo> = obj<SchemeInfo>({ id: str, name: str, plan: str, category: str, amc_name: str });
 const tiles: Schema<SummaryTiles> = obj<SummaryTiles>({
@@ -240,6 +240,7 @@ describe("Individual Fund golden fixtures", () => {
     });
     expect(body.details).toMatchObject({ units: "150.000", average_nav: "10.6667", current_nav: "15.0000", first_investment: "2025-01-01", last_investment: "2025-06-01" });
     expect(body.details.folios.map(f => [f.member_name, f.folio_masked])).toEqual([["ASHA RAO", "XXXXX9183"], ["Dev Rao", "XXXXX5678"]]);
+    expect(body.details.folios.map(f => f.folio_number)).toEqual(["4400918/3", "82345678"]); // Batch C 17c: full numbers beside the old masks
     // 1,600 / 150 units = 10.6667 average NAV; 2,250 / 150 = 15.0000 current NAV; 650 / 1,600 = 40.6250 percent.
     const member = fixture<SummaryResponse>("summary_member");
     expect(member.scope).toBe(IDS.dev);
@@ -256,6 +257,7 @@ describe("Individual Fund golden fixtures", () => {
     expect(body.tiles.expense_ratio).toBeNull();
     expect(body.nav_as_of).toBe("2026-10-15");
     expect(body.details.folios[0].folio_masked).toBe("XXXXXNLY1");
+    expect(body.details.folios[0].folio_number).toBe("KFNNLY1");
     expect(body.tiles).toMatchObject({ current_value: "1060.00", invested: "1000.00", total_gain: "60.00", total_gain_pct: "6.0000", xirr: "0.1292258326537757773518355219" });
   });
 
