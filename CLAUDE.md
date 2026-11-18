@@ -60,7 +60,7 @@ instead. See `docs/agents/domain.md`.
 
 ## Session State
 
-*(Updated 2026-11-03. This section is a one-line current-status pointer, not a log —
+*(Updated 2026-11-18. This section is a one-line current-status pointer, not a log —
 do not append session narrative here again. Full current status: `session.md` at repo
 root, overwritten each session. Full permanent history: `log.md` (append-only, never
 trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.md`
@@ -68,7 +68,9 @@ trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.m
 `Docs/orchestration/delegation-log.md`. Deferred/not-yet-built features:
 `DEFERRED_FEATURES.md`.)*
 
-**⚠ PRIORITY 1 — open, deadline 10 Nov 2026 06:00 IST (the next `fund-managers-monthly` run):** fund-manager factsheet access gaps. 10 fund houses (689 live funds) need a monthly hand import and 5 (33 funds) have no factsheet; no alert exists for a skipped month; AWS-blocking of the 40 "automatic" ones is only partly answered (the 28 Oct run from the LeapSwitch VM processed 34 of 40; HDFC 403 and JM 406 still blocked); HDFC's passive file is untested; the long-term fix (ask AMCs / license vendor data) is undecided. **When asked what's left, start here:** `DEFERRED_FEATURES.md`'s top section (to-do list in order) and `Docs/orchestration/subproject1-execution/a04-factsheet-access-gaps.html`.
+**Latest (2026-11-18):** the 17 Nov release program (waves 1 to 5, milestones M1 to M4, then one QA round and production; plans in `Docs/superpowers/plans/2026-11-17-batch-*.md`, map in `Docs/orchestration/2026-11-17-wave-0-handoff-for-managers-claude.md`) is under way: wave 1 lanes set up on `batch/b-journey`, `batch/c-hygiene`, `batch/a-numbers`, `batch/l-audit` (worktrees `D:\unifolio-<lane>`), first Codex handoff written (B-1 and B-3), nothing built or deployed. The workbooks are the design; the colour palette PDF is the colour source (`Docs/orchestration/2026-11-18-palette-reference-for-workers.md`). Detail: `session.md`'s top section and `Docs/orchestration/2026-11-18-wave-1-lane-plan.md`.
+
+**⚠ PRIORITY 1 — status not confirmed since the 10 Nov 2026 06:00 IST run date passed (outcome of that `fund-managers-monthly` run is not recorded in this checkout; ask the owner before calling it open or closed):** fund-manager factsheet access gaps. 10 fund houses (689 live funds) need a monthly hand import and 5 (33 funds) have no factsheet; no alert exists for a skipped month; AWS-blocking of the 40 "automatic" ones is only partly answered (the 28 Oct run from the LeapSwitch VM processed 34 of 40; HDFC 403 and JM 406 still blocked); HDFC's passive file is untested; the long-term fix (ask AMCs / license vendor data) is undecided. **When asked what's left, start here:** `DEFERRED_FEATURES.md`'s top section (to-do list in order) and `Docs/orchestration/subproject1-execution/a04-factsheet-access-gaps.html`.
 
 **Latest (2026-11-03, evening):** the 13 change requests release (Runs 1 to 7, Head of Family with contact-change safeguard, 79-index benchmark registry, 60 percent valuation rule, book value from NSE filings) is **DEPLOYED to staging** from `release/change-requests` (pushed to origin; worktree `D:/unifolio-release`; commit `0dfd1261`; Alembic head 0052 on the VM; `FRONTEND_BASE_URL` is now `https://ls-redesign.unifolio.in`). `leapswitch-redesign` is frozen shared history; UI round 2 continues on `ui-round-2` and merges the release in (`Docs/orchestration/2026-11-03-prompt-for-ui-round-2-after-release.md`). Open: the manual QA (`2026-11-03-manual-qa-checklist.md`), the CA Excel, the owner's O6 and O7 confirmation, the ten hand-import houses, Priority 1 (10 Nov). Evidence and the honest list of slips: `Docs/orchestration/2026-11-03-staging-deploy-record-change-requests.md`; open items: `2026-11-03-post-staging-work.md`; detail: `session.md`, ADR-007, `decisions.md` 3 Nov.
 
