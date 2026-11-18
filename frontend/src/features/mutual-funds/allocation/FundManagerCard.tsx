@@ -13,7 +13,6 @@ const VIEW_OPTIONS = [
   { id: "cards" as const, label: "Cards", icon: LayoutGrid },
   { id: "table" as const, label: "Table", icon: Table2 },
 ];
-const ASSUMED = "Assumed main manager: none was marked for at least one fund.";
 
 export interface FundManagerCardProps extends AnalyticsCardProps<FundManagerAllocationSummary> {
   xirrByScheme: Record<string, string | null | undefined>;
@@ -36,8 +35,6 @@ export function FundManagerCard({ state, data, onRetry, xirrByScheme }: FundMana
       <span>{group.manager_name}</span>
     </button>;
   };
-  const marker = (group: ManagerGroup) => group.main_source === "assumed"
-    ? <p className="mt-1 text-xs text-[var(--ui-text-muted)]">{ASSUMED}</p> : null;
   const funds = (group: ManagerGroup) => <ul aria-label={`${group.manager_name} funds`} className="flex flex-col gap-1.5">
     {group.funds.map(fund => <li key={fund.scheme_id} data-testid={`manager-fund-${managerKey(group)}-${fund.scheme_id}`}
       className="flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -70,7 +67,6 @@ export function FundManagerCard({ state, data, onRetry, xirrByScheme }: FundMana
                     <div className="min-w-0 flex-1">
                       {toggle(group)}
                       <p className="mt-1 text-xs text-[var(--ui-text-muted)]">{group.amc_name || "—"}</p>
-                      {marker(group)}
                     </div>
                   </div>
                   <p className="mt-3 text-base font-semibold text-[var(--ui-text)]">{formatRupees(group.total_household_value)}</p>
@@ -92,7 +88,7 @@ export function FundManagerCard({ state, data, onRetry, xirrByScheme }: FundMana
                   const key = managerKey(group);
                   return <Fragment key={key}>
                     <tr data-testid={`manager-row-${key}`}>
-                      <th scope="row" className="py-2.5 font-normal text-[var(--ui-text)]">{toggle(group)}{marker(group)}</th>
+                      <th scope="row" className="py-2.5 font-normal text-[var(--ui-text)]">{toggle(group)}</th>
                       <td className="py-2.5 text-[var(--ui-text-muted)]">
                         <div className="flex items-center gap-2">
                           <SchemeLogo amcName={group.amc_name} size="sm" />

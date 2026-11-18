@@ -1,3 +1,4 @@
+import { FolioNumber } from "@/components/mf/FolioNumber";
 import { Modal } from "@/components/Modal";
 import { formatDate, formatPercent, formatRupees } from "@/lib/format";
 import { formatNav, formatSignedPercent, formatSignedRupees, formatXirr } from "../fundFormat";
@@ -53,7 +54,7 @@ export function TileDialog({ tile, summary, onClose }: TileDialogProps) {
                   {folio.member_name}
                 </dt>
                 <dd className="font-semibold text-[var(--ui-text)]">
-                  {folio.folio_masked}
+                  <FolioNumber value={folio.folio_number} />
                 </dd>
               </div>
             ))}

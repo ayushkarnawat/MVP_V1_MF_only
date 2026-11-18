@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SchemeLogo } from "../../../components/SchemeLogo";
+import { FolioNumber } from "../../../components/mf/FolioNumber";
 import { transactionLabel } from "../../../components/mf/periodBreakdown";
 import { formatDate, formatRupees } from "../../../lib/format";
 import type { InvestmentWithdrawalBucket } from "../types";
@@ -234,7 +235,9 @@ export function Ledger({ buckets, filter, onFilter }: LedgerProps) {
                           {extra?.folio != null && (
                             <div>
                               <dt className="text-[var(--ui-text-muted)]">Folio</dt>
-                              <dd className="font-mono text-[11px] text-[var(--ui-text)]">{extra.folio}</dd>
+                              <dd className="font-mono text-[11px] text-[var(--ui-text)]">
+                                <FolioNumber value={extra.folio} />
+                              </dd>
                             </div>
                           )}
                         </dl>
