@@ -37,7 +37,23 @@ function authHeaders(): HeadersInit {
 
 async function throwIfError(response: Response): Promise<void> {
   if (!response.ok) {
-    throw new ApiError(response.status, await parseErrorDetail(response));
+    // A held code answers 429 with the seconds left beside the old sentence (Batch B item 4). The sentence stays the
+    // payload exactly as before; the seconds and the code ride on the error so only the login screen reads them.
+    const extra = response.status === 429 ? await readThrottleExtra(response) : null;
+    const error = new ApiError(response.status, await parseErrorDetail(response));
+    if (extra) Object.assign(error, extra);
+    throw error;
+  }
+}
+
+async function readThrottleExtra(response: Response): Promise<{ retryAfterSeconds: number; code: string } | null> {
+  try {
+    const body = await response.clone().json();
+    const seconds = body?.retry_after_seconds;
+    if (typeof seconds !== "number" || typeof body?.code !== "string") return null;
+    return { retryAfterSeconds: seconds, code: body.code };
+  } catch {
+    return null;
   }
 }
 

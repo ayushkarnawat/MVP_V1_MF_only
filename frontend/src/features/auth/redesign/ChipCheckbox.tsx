@@ -40,7 +40,7 @@ export const ChipCheckbox = forwardRef<HTMLButtonElement, ChipCheckboxProps>(fun
           checked ? "border-[var(--auth-green)] bg-[var(--auth-green)]" : "border-[#C9CED6]"
         }`}
       >
-        {checked ? <Check size={14} strokeWidth={3} className="text-white" aria-hidden="true" /> : null}
+        {checked ? <Check size={14} strokeWidth={3} className="text-[#111111]" aria-hidden="true" /> : null}
       </span>
     </button>
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { ArrowRight, Mail, Phone } from "lucide-react";
 import { GoogleButton } from "../GoogleButton";
@@ -13,7 +13,9 @@ import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
 import { LOGIN_ROW_ICONS } from "./authRowIcons";
 import { LOGIN_HEADLINE_ACCENT, LOGIN_HEADLINE_BEFORE, LOGIN_PARAGRAPH, LOGIN_ROWS } from "./loginCopy";
+import type { LoginThrottle } from "./loginThrottle";
 import { SegmentedTabs } from "./SegmentedTabs";
+import { formatMmSs, useResendCountdown } from "./useResendCountdown";
 
 export interface LoginEntryProps {
   onSubmitEmail: (email: string) => void;
@@ -24,6 +26,7 @@ export interface LoginEntryProps {
   error: string | null;
   submitting: boolean;
   notice?: string | SignInNotice | null;
+  throttle?: LoginThrottle | null;
   initialTab?: "email" | "phone";
   initialValue?: string;
   showGoogle?: boolean;
@@ -35,17 +38,69 @@ const TABS = [
   { value: "phone", label: "Mobile number", icon: <Phone size={18} aria-hidden="true" /> },
 ] as const;
 
+function matchesHeldAddress(
+  throttle: LoginThrottle | null | undefined,
+  tab: "email" | "phone",
+  emailValue: string,
+  phoneValue: string,
+): boolean {
+  if (!throttle || throttle.channel !== tab) return false;
+  if (tab === "email") {
+    return emailValue.trim().toLowerCase() === throttle.value.trim().toLowerCase();
+  }
+  const phoneResult = validateIndianPhone(phoneValue);
+  return phoneResult.isValid && phoneResult.normalized === throttle.value;
+}
+
+const HOLD_REASON = "For your security, a new code can be requested once a minute.";
+
+function spokenWait(total: number): string {
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  const parts = [];
+  if (minutes > 0) parts.push(`${minutes} ${minutes === 1 ? "minute" : "minutes"}`);
+  if (seconds > 0 || minutes === 0) parts.push(`${seconds} ${seconds === 1 ? "second" : "seconds"}`);
+  return parts.join(" ");
+}
+
 export function LoginEntry({
-  onSubmitEmail, onSubmitPhone, onSignUp, error, submitting, notice, initialTab = "email", initialValue = "",
+  onSubmitEmail, onSubmitPhone, onSignUp, error, submitting, notice, throttle, initialTab = "email", initialValue = "",
   showGoogle = AUTH_SHOW_GOOGLE, onGoogleCredential,
 }: LoginEntryProps) {
   const [tab, setTab] = useState<"email" | "phone">(initialTab);
   const [emailValue, setEmailValue] = useState(initialTab === "email" ? initialValue : "");
   const [phoneValue, setPhoneValue] = useState(initialTab === "phone" ? initialValue : "");
   const [fieldError, setFieldError] = useState<string | null>(null);
+  const holdId = useId();
+
+  const { seconds, active: countdownRunning, restart } = useResendCountdown(throttle?.seconds ?? 0);
+  const throttleStamp = throttle?.stamp ?? null;
+  const throttleSeconds = throttle?.seconds ?? 0;
+  useEffect(() => {
+    restart(throttleStamp !== null ? throttleSeconds : 0);
+  }, [throttleStamp, throttleSeconds, restart]);
+
+  const holding = countdownRunning && matchesHeldAddress(throttle, tab, emailValue, phoneValue);
+  const showHold = holding && !submitting;
+
+  // A polite status, said once when the hold starts (how long, and why) and once when it ends, never every second.
+  const [announcement, setAnnouncement] = useState("");
+  const secondsNow = useRef(seconds);
+  secondsNow.current = seconds;
+  const wasHolding = useRef(false);
+  useEffect(() => {
+    if (showHold) {
+      wasHolding.current = true;
+      setAnnouncement(`Get OTP is unavailable for ${spokenWait(secondsNow.current)}. ${HOLD_REASON}`);
+    } else if (wasHolding.current && !submitting) {
+      wasHolding.current = false;
+      setAnnouncement("You can request a new code now.");
+    }
+  }, [showHold, submitting]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (submitting || showHold) return;
     if (tab === "email") {
       const result = validateEmail(emailValue.trim());
       if (!result.isValid) {
@@ -105,7 +160,7 @@ export function LoginEntry({
                 setFieldError(null);
               }}
             />
-            <div id="login-panel" role="tabpanel">
+            <div id="login-panel" role="tabpanel" aria-label={tab === "email" ? "Log in with email" : "Log in with mobile number"}>
               {tab === "email" ? (
                 <AuthField
                   id="login-email"
@@ -140,11 +195,29 @@ export function LoginEntry({
                 <AuthAlert tone="error">{error}</AuthAlert>
               )
             ) : null}
-            <AuthButton type="submit" disabled={submitting}>
-              {submitting ? "Sending..." : "Get OTP"}
-            </AuthButton>
-            <div className="auth-or" role="separator"><span>OR</span></div>
-            {showGoogle && onGoogleCredential ? <GoogleButton onCredential={onGoogleCredential} /> : null}
+            <div>
+              <AuthButton
+                type="submit"
+                disabled={submitting || showHold}
+                arrow={!showHold}
+                className={showHold ? "auth-btn-count" : ""}
+                aria-describedby={showHold ? holdId : undefined}
+              >
+                {submitting ? "Sending..." : showHold ? `Get OTP again in ${formatMmSs(seconds)}` : "Get OTP"}
+              </AuthButton>
+              {showHold ? (
+                <p id={holdId} className="mt-1.5 text-[13px] text-[var(--auth-error)] whitespace-nowrap">
+                  {HOLD_REASON}
+                </p>
+              ) : null}
+              <p aria-live="polite" aria-atomic="true" data-testid="hold-announcement" className="sr-only">{announcement}</p>
+            </div>
+            {showGoogle && onGoogleCredential ? (
+              <>
+                <div className="auth-or" role="separator"><span>OR</span></div>
+                <GoogleButton onCredential={onGoogleCredential} />
+              </>
+            ) : null}
           </form>
         }
         bottom={

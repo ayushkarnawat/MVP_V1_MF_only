@@ -64,6 +64,7 @@ export function AccountDetails({ initialName = "", initialEmail = "", emailLocke
     <AuthPage>
       <AuthSplitCard
         step={3}
+        dense={Boolean(nameError || emailError || shownError)}
         tone="white"
         bottomRule={false}
         onBack={onBack}

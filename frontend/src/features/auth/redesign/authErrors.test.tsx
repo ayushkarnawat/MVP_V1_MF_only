@@ -14,6 +14,7 @@ import { AuthInlineError } from "./AuthInlineError";
 import { InvestorProfile } from "./InvestorProfile";
 
 const options = () => within(screen.getByRole("radiogroup", { name: "How do you usually invest?" })).getAllByRole("radio");
+const optionsGroup = () => screen.getByRole("radiogroup", { name: "How do you usually invest?" });
 const goalBoxes = () => within(screen.getByRole("group", { name: "What are you working towards?" })).getAllByRole("checkbox");
 const next = () => fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 const mount = () => render(<InvestorProfile onSubmit={vi.fn()} onBack={vi.fn()} />);
@@ -88,14 +89,18 @@ describe("InvestorProfile errors (QA fixes, B1)", () => {
   it("outlines every answer of a group that is missing an answer, and only that group", () => {
     mount();
     expect(invalid(options())).toEqual([null, null, null, null]);
+    expect(optionsGroup()).not.toHaveAttribute("data-invalid");
     next();
-    expect(invalid(options())).toEqual(["true", "true", "true", "true"]);
+    // Batch B option A: the four answers are one grouped list, so the outline is on the group, and no row carries its own mark.
+    expect(optionsGroup()).toHaveAttribute("data-invalid", "true");
+    expect(invalid(options())).toEqual([null, null, null, null]);
     expect(invalid(goalBoxes())).toEqual(["true", "true", "true", "true", "true", "true"]);
   });
   it("a group that is answered is not outlined", () => {
     mount();
     fireEvent.click(options()[1]);
     next();
+    expect(optionsGroup()).not.toHaveAttribute("data-invalid");
     expect(invalid(options())).toEqual([null, null, null, null]);
     expect(invalid(goalBoxes())).toEqual(["true", "true", "true", "true", "true", "true"]);
     expect(document.activeElement).toBe(goalBoxes()[0]);

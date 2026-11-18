@@ -44,6 +44,26 @@ class OtpRequest(Base):
     purpose: Mapped[str | None] = mapped_column(String)
 
 
+class AuthRequestGuard(Base):
+    __tablename__ = "auth_request_guard"
+    __table_args__ = (
+        Index("ix_auth_request_guard_ip_hash_created_at", "ip_hash", "created_at"),
+        # One row per address and recipient (independent Codex review of B-2, finding 6): the table, not only the code, keeps it so.
+        UniqueConstraint("ip_hash", "identifier_hash", name="uq_auth_request_guard_ip_identifier"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    ip_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    identifier_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    route: Mapped[str] = mapped_column(String, nullable=False)
+    outcome: Mapped[str] = mapped_column(String, nullable=False)
+    # The last time a request from this address touched this recipient (every kind of request refreshes it): the check limit's clock.
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # The time the code slot was reserved for this recipient: the code limit's own clock (independent Codex review of B-2, finding 4).
+    # A check-only repeat neither erases it nor revives an expired one; NULL means no code charge. Cleared when the send fails.
+    code_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class HeadChangeRequest(Base):
     __tablename__ = "head_change_requests"
     __table_args__ = (

@@ -99,4 +99,62 @@ describe("OtpPanel", () => {
     const resendContainer = screen.getByText(/Didn't receive the code\?/).parentElement;
     expect(resendContainer).toHaveTextContent("Didn't receive the code? Resend code in 01:00");
   });
+
+  // ---- Codex whole-batch review of B, finding 1: the wait after Resend follows what the send really did.
+  describe("what Resend does with the answer to the send", () => {
+    const resend = () => screen.getByRole("button", { name: /resend/i });
+    const readyToResend = (onResend: Parameters<typeof OtpPanel>[0]["onResend"]) => {
+      mount({ onResend });
+      act(() => { vi.advanceTimersByTime(60_000); });
+    };
+
+    it("a held resend uses the server's wait, not a fresh minute", async () => {
+      readyToResend(vi.fn().mockResolvedValue({ ok: false, waitSeconds: 7 }));
+      fireEvent.click(resend());
+      await act(async () => {});
+      expect(screen.getByRole("button", { name: "Resend code in 00:07" })).toBeDisabled();
+    });
+
+    it("a send that failed with no wait given adds no cooldown at all", async () => {
+      readyToResend(vi.fn().mockResolvedValue({ ok: false }));
+      fireEvent.click(resend());
+      await act(async () => {});
+      expect(screen.getByRole("button", { name: "Resend code" })).toBeEnabled();
+    });
+
+    it("a send that threw adds no cooldown either", async () => {
+      readyToResend(vi.fn().mockRejectedValue(new Error("offline")));
+      fireEvent.click(resend());
+      await act(async () => {});
+      expect(screen.getByRole("button", { name: "Resend code" })).toBeEnabled();
+    });
+
+    it("a successful send starts the normal minute", async () => {
+      readyToResend(vi.fn().mockResolvedValue({ ok: true }));
+      fireEvent.click(resend());
+      await act(async () => {});
+      expect(screen.getByRole("button", { name: "Resend code in 01:00" })).toBeDisabled();
+    });
+
+    it("while the send is under way the button cannot be pressed again", async () => {
+      let finish!: (value: { ok: boolean }) => void;
+      const onResend = vi.fn(() => new Promise<{ ok: boolean }>((resolve) => { finish = resolve; }));
+      readyToResend(onResend);
+      fireEvent.click(resend());
+      expect(resend()).toBeDisabled();
+      fireEvent.click(resend());
+      expect(onResend).toHaveBeenCalledTimes(1);
+      await act(async () => { finish({ ok: true }); });
+      expect(screen.getByRole("button", { name: "Resend code in 01:00" })).toBeDisabled();
+    });
+  });
+
+  it("the latest server message replaces an earlier 'enter all six digits' notice", () => {
+    const { rerender } = render(<OtpPanel channel="phone" identity="x" submitLabel="Go" devOtp={null} error={null} onSubmit={() => {}} onResend={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Go" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Please enter the complete 6-digit verification code.");
+    rerender(<OtpPanel channel="phone" identity="x" submitLabel="Go" devOtp={null} error="Too many attempts from this network. Try again in 3 minutes." onSubmit={() => {}} onResend={() => {}} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Too many attempts from this network. Try again in 3 minutes.");
+  });
 });
+

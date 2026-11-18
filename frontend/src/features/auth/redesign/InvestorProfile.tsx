@@ -22,6 +22,7 @@ import { AuthSplitCard } from "./AuthSplitCard";
 import { PROFILE_ROW_ICONS } from "./authRowIcons";
 import { ChipCheckbox } from "./ChipCheckbox";
 import {
+  INVESTOR_GOAL_TITLE_OVERRIDES,
   INVESTOR_PROFILE_OPTIONS,
   PROFILE_HEADLINE_ACCENT,
   PROFILE_HEADLINE_BEFORE,
@@ -114,6 +115,7 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
     <AuthPage>
       <AuthSplitCard
         step={4}
+        dense={typeError || goalsError || saveError !== null}
         onBack={onBack}
         left={
           <AuthLeftPanel
@@ -125,13 +127,15 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
           />
         }
         right={
-          <div className="flex flex-col gap-[var(--auth-gap)] text-left">
-            <section className="flex flex-col gap-[var(--auth-gap-sm)]">
-              <div className="flex flex-col gap-1">
-                <h1 className="auth-h1">How do you usually invest?</h1>
-                <p className="auth-sub">This helps us tailor your experience and insights.</p>
-              </div>
-              <div role="radiogroup" aria-label="How do you usually invest?" className="flex flex-col gap-[var(--auth-gap-sm)]">
+          <div className="flex flex-col gap-[calc(var(--auth-gap)+6px)] text-left">
+            <section className="flex flex-col gap-[calc(var(--auth-gap-sm)+3px)]">
+              <h1 className="auth-h1">How do you usually invest?</h1>
+              <div
+                role="radiogroup"
+                aria-label="How do you usually invest?"
+                data-invalid={typeError ? "true" : undefined}
+                className="auth-option-group flex flex-col overflow-hidden"
+              >
                 {INVESTOR_PROFILE_OPTIONS.map((option, index) => (
                   <OptionRow
                     key={option.value}
@@ -142,10 +146,9 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
                     tabStop={index === stopIndex}
                     onKeyDown={(event) => moveOption(event, index)}
                     title={option.title}
-                    subtitle={option.subtitle}
                     selected={investorType === option.value}
                     icon={INVESTOR_ICONS[option.value]}
-                    invalid={typeError}
+                    divider={index < INVESTOR_PROFILE_OPTIONS.length - 1}
                     onSelect={() => {
                       setInvestorType(option.value);
                       setTypeError(false);
@@ -155,11 +158,9 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
               </div>
               {typeError ? <AuthInlineError>Choose how you usually invest.</AuthInlineError> : null}
             </section>
-            <section className="flex flex-col gap-[var(--auth-gap-sm)]">
+            <section className="flex flex-col gap-[calc(var(--auth-gap-sm)+3px)]">
               <div className="flex items-center justify-between gap-3 whitespace-nowrap">
-                <h2 className="text-[15px] font-semibold text-[var(--auth-ink)]">
-                  What are you working towards? <span className="ml-1 text-[13px] font-normal text-[var(--auth-muted)]">(Select all that apply)</span>
-                </h2>
+                <h2 className="text-[15px] font-semibold text-[var(--auth-ink)]">What are you working towards?</h2>
                 <button
                   type="button"
                   onClick={() => {
@@ -171,12 +172,13 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
                   {allChosen ? "Clear all" : "Select all"}
                 </button>
               </div>
-              <div role="group" aria-label="What are you working towards?" className="grid grid-cols-3 gap-[var(--auth-gap-sm)]">
+              <p className="text-[12.5px] leading-[1.2] text-[var(--auth-muted)]">(Select all that apply)</p>
+              <div role="group" aria-label="What are you working towards?" className="grid grid-cols-2 gap-[calc(var(--auth-gap-sm)+3px)]">
                 {GOAL_OPTIONS.map((option, index) => (
                   <ChipCheckbox
                     key={option.value}
                     ref={index === 0 ? firstChip : undefined}
-                    label={option.title}
+                    label={INVESTOR_GOAL_TITLE_OVERRIDES[option.value] ?? option.title}
                     checked={goals.includes(option.value)}
                     icon={GOAL_ICONS[option.value]}
                     invalid={goalsError}

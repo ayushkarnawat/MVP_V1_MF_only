@@ -20,13 +20,13 @@ WINDOWS_CHROME_UA = (
 )
 
 
-def test_get_client_ip_prefers_x_forwarded_for():
+def test_get_client_ip_uses_the_single_value_from_caddy():
     request = _request({"x-forwarded-for": "203.0.113.5"}, client_host="10.0.0.1")
 
     assert get_client_ip(request) == "203.0.113.5"
 
 
-def test_get_client_ip_uses_the_last_entry_not_the_first(monkeypatch):
+def test_get_client_ip_uses_the_last_entry_not_the_first():
     """I4 fix (final review, 2026-09-28): AWS ALB's default X-Forwarded-For
     mode is APPEND, not replace -- if the client sends its own
     X-Forwarded-For, the ALB keeps it and appends the real client IP at the
@@ -34,7 +34,9 @@ def test_get_client_ip_uses_the_last_entry_not_the_first(monkeypatch):
     client wrote, not the real IP. The last entry is the one the ALB
     itself appended (single-hop deployment -- ECS tasks aren't reachable
     directly, see this module's own docstring)."""
-    request = _request({"x-forwarded-for": "9.9.9.9, 203.0.113.5"}, client_host="10.0.0.1")
+    request = _request(
+        {"x-forwarded-for": "198.51.100.9, 192.0.2.4, 203.0.113.5"}, client_host="10.0.0.1"
+    )
 
     assert get_client_ip(request) == "203.0.113.5"
 
@@ -111,3 +113,24 @@ def test_capture_request_metadata_reads_device_id_header():
     meta = capture_request_metadata(request)
 
     assert meta.device_id == "a1b2c3d4-0000-0000-0000-000000000000"
+
+
+def test_get_client_ip_reads_the_last_forwarded_header_line_when_there_are_two():
+    """Independent review of B-2, finding 7: Starlette's headers.get returns the FIRST of two X-Forwarded-For lines. A proxy
+    that keeps separate lines appends its own line last, so the last line is the trustworthy one."""
+    from starlette.requests import Request
+
+    request = Request({
+        "type": "http", "client": ("10.0.0.5", 1),
+        "headers": [(b"x-forwarded-for", b"6.6.6.6"), (b"x-forwarded-for", b"203.0.113.9")],
+    })
+
+    assert get_client_ip(request) == "203.0.113.9"
+
+
+def test_get_client_ip_with_one_forwarded_line_is_unchanged():
+    from starlette.requests import Request
+
+    request = Request({"type": "http", "client": ("10.0.0.5", 1), "headers": [(b"x-forwarded-for", b"6.6.6.6, 203.0.113.9")]})
+
+    assert get_client_ip(request) == "203.0.113.9"

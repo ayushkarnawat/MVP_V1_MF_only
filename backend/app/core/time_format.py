@@ -24,8 +24,10 @@ def format_ist_date(value: datetime) -> str:
     return f"{ist.day} {ist:%b %Y}"
 
 
-def format_ist_datetime(value: datetime) -> str:
-    """`6 Nov 2026, 3:33 PM IST` (12-hour clock, no zero-padded hour)."""
+def format_ist_datetime(value: datetime, *, full_month: bool = False) -> str:
+    """`6 Nov 2026, 3:33 PM IST` (12-hour clock, no zero-padded hour); `6 November 2026, 3:33 PM IST` with `full_month=True`
+    (the Head of Family undo email spells the month out, as its design does)."""
     ist = _to_ist(value)
     hour = ist.hour % 12 or 12
-    return f"{ist.day} {ist:%b %Y}, {hour}:{ist:%M} {'AM' if ist.hour < 12 else 'PM'} IST"
+    month_year = f"{ist:%B %Y}" if full_month else f"{ist:%b %Y}"
+    return f"{ist.day} {month_year}, {hour}:{ist:%M} {'AM' if ist.hour < 12 else 'PM'} IST"

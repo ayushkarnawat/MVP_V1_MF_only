@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { CancelImportDialog } from "./CancelImportDialog";
 import { ConfirmFailedDialog } from "./ConfirmFailedDialog";
@@ -165,6 +165,120 @@ describe("U5 MemberNotInFileDialog", () => {
     expect(onImport).toHaveBeenCalledTimes(1);
     click("Upload a different file");
     expect(onUpload).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Batch B item 2 (B-5): the amber "wrong person" warning. Design source: Docs/orchestration/2026-11-12-batch-b-planning-workbook.html,
+// section 2 (the drawn strings, not the plan's placeholders). Red until B-6 builds the block.
+describe("U5 MemberNotInFileDialog warning (Batch B, item 2)", () => {
+  const MUTED = "A new family member is created if they are not already in your family.";
+  const mount = (people: string[], handlers: { onImport?: () => void; onUpload?: () => void } = {}) =>
+    render(<MemberNotInFileDialog isOpen memberName="Ramesh Sharma" memberPanMasked="BX******8L" people={people}
+      onImportForThese={handlers.onImport ?? vi.fn()} onUploadDifferent={handlers.onUpload ?? vi.fn()} />);
+  const warning = () => screen.getByTestId("import-for-warning");
+
+  it("shows an amber warning with one bold line naming who the funds are imported for (one person)", () => {
+    mount(["Aditi Sharma"]);
+    const line = within(warning()).getByText("These funds will be imported for Aditi Sharma.");
+    expect(line).toHaveClass("font-semibold");
+  });
+
+  it("names several people the same way the body does (two, then three)", () => {
+    const { unmount } = mount(["Aditi Sharma", "Sunita Sharma"]);
+    expect(within(warning()).getByText("These funds will be imported for Aditi Sharma and Sunita Sharma.")).toBeInTheDocument();
+    unmount();
+    mount(["Aditi Sharma", "Sunita Sharma", "Mohan Sharma"]);
+    expect(within(warning()).getByText("These funds will be imported for Aditi Sharma, Sunita Sharma and Mohan Sharma.")).toBeInTheDocument();
+  });
+
+  it("with no names the warning still shows, with a fixed bold line and no blanks (the one string the workbook does not draw)", () => {
+    mount([]);
+    expect(within(warning()).getByText("These funds will be imported for the people in this statement.")).toBeInTheDocument();
+    expect(within(warning()).getByText(MUTED)).toBeInTheDocument();
+    expect(warning().textContent).not.toMatch(/undefined|null|\s{2,}/);
+  });
+
+  // Codex whole-batch review of B, findings 5 and 9.
+  it("with no names the body does not end in 'It has .'", () => {
+    mount([]);
+    expect(screen.getByText("This statement doesn’t show Ramesh Sharma’s PAN (BX******8L).")).toBeInTheDocument();
+    expect(screen.queryByText(/It has/)).toBeNull();
+  });
+
+  it("the muted line is readable in dark mode: a light grey there, the palette body grey in light mode", () => {
+    mount(["Aditi Sharma"]);
+    const muted = within(warning()).getByText(MUTED);
+    expect(muted).toHaveClass("text-[#4B4B4B]");
+    expect(muted).toHaveClass("dark:text-[#A3A3A3]");
+  });
+
+  it("the warning's border is not a fixed light tint in dark mode", () => {
+    mount(["Aditi Sharma"]);
+    expect(warning()).toHaveClass("border-[#FCE0B0]");
+    expect(warning().className).toContain("dark:border-[rgba(251,191,36,0.35)]");
+  });
+
+  it("the muted line says a new family member is created if needed, and is a separate element from the bold line", () => {
+    mount(["Aditi Sharma"]);
+    const muted = within(warning()).getByText(MUTED);
+    const bold = within(warning()).getByText("These funds will be imported for Aditi Sharma.");
+    expect(muted).not.toBe(bold);
+    expect(muted).not.toHaveClass("font-semibold");
+    expect(muted.parentElement).toBe(bold.parentElement);
+  });
+
+  it("the warning is its own element: the dialog body stays one exact text and does not contain it", () => {
+    mount(["Aditi Sharma"]);
+    const body = screen.getByText(
+      "This statement doesn’t show Ramesh Sharma’s PAN (BX******8L). It has Aditi Sharma.",
+    );
+    expect(body.contains(warning())).toBe(false);
+    expect(warning().contains(body)).toBe(false);
+  });
+
+  it("sits between the body text and the buttons, in that order", () => {
+    mount(["Aditi Sharma"]);
+    const body = screen.getByText(/This statement doesn’t show/);
+    const upload = screen.getByRole("button", { name: "Upload a different file" });
+    expect(body.compareDocumentPosition(warning()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(warning().compareDocumentPosition(upload) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("names only people from the file: never the selected member or anyone's PAN", () => {
+    mount(["Aditi Sharma"]);
+    expect(warning()).not.toHaveTextContent("Ramesh Sharma");
+    expect(warning()).not.toHaveTextContent("BX******8L");
+  });
+
+  it("the warning icon is decorative (hidden from screen readers) and the text is read as a note", () => {
+    mount(["Aditi Sharma"]);
+    expect(warning().querySelector("[aria-hidden='true']")).not.toBeNull();
+    expect(warning()).toHaveAttribute("role", "note");
+  });
+
+  it("the dialog uses the roomier 20 px spacing (gap-5) only for this dialog", () => {
+    mount(["Aditi Sharma"]);
+    expect(screen.getByRole("dialog")).toHaveClass("gap-5");
+    expect(screen.getByRole("dialog")).not.toHaveClass("gap-4");
+  });
+
+  it("closing, Escape and the buttons behave as before (the file is discarded or imported as today)", () => {
+    const onUpload = vi.fn();
+    const onImport = vi.fn();
+    mount(["Aditi Sharma"], { onUpload, onImport });
+    close();
+    expect(onUpload).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(onUpload.mock.calls.length).toBeGreaterThanOrEqual(2);
+    click("Import for these people");
+    expect(onImport).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("other prompts keep their spacing", () => {
+  it("a dialog that does not ask for the roomy layout keeps gap-4", () => {
+    render(<SessionExpiredDialog isOpen onUploadAgain={vi.fn()} />);
+    expect(screen.getByRole("dialog")).toHaveClass("gap-4");
   });
 });
 

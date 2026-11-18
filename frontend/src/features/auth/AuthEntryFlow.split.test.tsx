@@ -136,3 +136,85 @@ describe("AuthEntryFlow, split variant, login (UI round 2, S6 tasks 6.6 and 6.7)
     expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeInTheDocument();
   });
 });
+
+// Batch B item 4 (B-8): the flow turns a server hold (429 with the seconds) into the login screen's countdown.
+// Red until B-8 wires it. The error is built the way features/auth/api.ts builds it (see api.test.ts).
+describe("AuthEntryFlow, split variant, login: a held code (Batch B, item 4)", () => {
+  const HELD = "For your security, a new code can be requested once a minute.";
+  const held = (seconds: number, code = "otp_throttled", message = `Please wait ${seconds}s before requesting another code.`) =>
+    Object.assign(new ApiError(429, message), { retryAfterSeconds: seconds, code });
+  const typeEmail = async (value: string) =>
+    fireEvent.change(await screen.findByLabelText("Email address"), { target: { value } });
+  // Queued answers (mockRejectedValueOnce) survive clearAllMocks, so a test that stops early would feed the next one.
+  beforeEach(() => {
+    vi.mocked(api.requestEmailOtp).mockReset();
+    vi.mocked(api.requestOtp).mockReset();
+  });
+
+  it("a hold on the email shows the countdown button and the red line, and no red box", async () => {
+    vi.mocked(api.requestEmailOtp).mockRejectedValue(held(42));
+    renderSplit();
+    await typeEmail("asha@example.com");
+    fireEvent.click(screen.getByRole("button", { name: "Get OTP" }));
+    expect(await screen.findByRole("button", { name: "Get OTP again in 00:42" })).toBeDisabled();
+    expect(screen.getByText(HELD)).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+  it("editing the email makes the button live and a send goes to the server again (the server stays the authority)", async () => {
+    vi.mocked(api.requestEmailOtp).mockRejectedValueOnce(held(42)).mockResolvedValueOnce({ message: "sent", otp: null } as never);
+    renderSplit();
+    await typeEmail("asha@example.com");
+    fireEvent.click(screen.getByRole("button", { name: "Get OTP" }));
+    await screen.findByRole("button", { name: "Get OTP again in 00:42" });
+    await typeEmail("rohan@example.com");
+    fireEvent.click(screen.getByRole("button", { name: "Get OTP" }));
+    expect(await screen.findByRole("heading", { name: "Verify your email address" })).toBeInTheDocument();
+    expect(api.requestEmailOtp).toHaveBeenLastCalledWith("rohan@example.com", undefined, "login");
+  });
+  it("a hold on a different address after editing shows that address's own countdown", async () => {
+    vi.mocked(api.requestEmailOtp).mockRejectedValueOnce(held(42)).mockRejectedValueOnce(held(30));
+    renderSplit();
+    await typeEmail("asha@example.com");
+    fireEvent.click(screen.getByRole("button", { name: "Get OTP" }));
+    await screen.findByRole("button", { name: "Get OTP again in 00:42" });
+    await typeEmail("rohan@example.com");
+    fireEvent.click(screen.getByRole("button", { name: "Get OTP" }));
+    expect(await screen.findByRole("button", { name: "Get OTP again in 00:30" })).toBeDisabled();
+  });
+  it("a hold on the phone number shows the countdown on the Mobile number tab", async () => {
+    vi.mocked(api.requestOtp).mockRejectedValue(held(42));
+    renderSplit();
+    fireEvent.click(await screen.findByRole("tab", { name: "Mobile number" }));
+    fireEvent.change(screen.getByLabelText("Mobile number"), { target: { value: "98765 43210" } });
+    fireEvent.click(screen.getByRole("button", { name: "Get OTP" }));
+    expect(await screen.findByRole("button", { name: "Get OTP again in 00:42" })).toBeDisabled();
+    expect(screen.getByText(HELD)).toBeInTheDocument();
+  });
+  it("the per-network limit is a red alert with the server's sentence, and the button stays live", async () => {
+    const message = "Too many attempts from this network. Try again in 4 minutes.";
+    vi.mocked(api.requestEmailOtp).mockRejectedValue(held(240, "request_limited", message));
+    renderSplit();
+    await typeEmail("asha@example.com");
+    fireEvent.click(screen.getByRole("button", { name: "Get OTP" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    expect(screen.getByRole("button", { name: "Get OTP" })).toBeEnabled();
+    expect(screen.queryByText(HELD)).toBeNull();
+  });
+  it("an old-style 429 (the sentence only, no seconds) shows the sentence in the red box as today", async () => {
+    vi.mocked(api.requestEmailOtp).mockRejectedValue(new ApiError(429, "Please wait 42s before requesting another code."));
+    renderSplit();
+    await typeEmail("asha@example.com");
+    fireEvent.click(screen.getByRole("button", { name: "Get OTP" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Please wait 42s before requesting another code.");
+    expect(screen.queryByText(HELD)).toBeNull();
+  });
+  it("an unregistered email still shows No account found with the Sign up shortcut and never a countdown", async () => {
+    vi.mocked(api.requestEmailOtp).mockRejectedValue(new ApiError(404, "No account found for this email. Sign up instead."));
+    renderSplit();
+    await typeEmail("new@example.com");
+    fireEvent.click(screen.getByRole("button", { name: "Get OTP" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/No account found/);
+    expect(screen.queryByText(HELD)).toBeNull();
+    expect(screen.getByRole("button", { name: "Get OTP" })).toBeEnabled();
+  });
+});

@@ -121,3 +121,15 @@ describe("AccountDetails, sign-up screen 3 (task 6.10)", () => {
     expect(screen.getByTestId("auth-btn-arrow")).toBeInTheDocument();
   });
 });
+
+
+describe("AccountDetails: spacing while a message is showing (Codex review of B, finding 6)", () => {
+  it("is dense only while a field message or a server message is showing", () => {
+    const { rerender } = render(<AccountDetails onSubmit={vi.fn()} />);
+    expect(screen.getByTestId("auth-card")).not.toHaveAttribute("data-dense");
+    fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
+    expect(screen.getByTestId("auth-card")).toHaveAttribute("data-dense", "true");
+    rerender(<AccountDetails onSubmit={vi.fn()} initialName="Asha Rao" initialEmail="asha@example.com" error="We couldn't save." />);
+    expect(screen.getByTestId("auth-card")).toHaveAttribute("data-dense", "true");
+  });
+});

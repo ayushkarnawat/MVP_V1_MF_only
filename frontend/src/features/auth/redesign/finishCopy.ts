@@ -12,12 +12,18 @@ export const PROFILE_ROWS = [
 
 // The sign-up wording for the four investor types. Profile and the mobile screens keep the wording in
 // profile-v2/lib/onboardingOptions.ts; only desktop sign-up uses this list.
-export const INVESTOR_PROFILE_OPTIONS: ReadonlyArray<{ value: InvestorType; title: string; subtitle: string }> = [
-  { value: "beginner", title: "I'm just getting started", subtitle: "I'm new to investing or still building my portfolio." },
-  { value: "self_directed", title: "I manage my own investments", subtitle: "I choose and manage investments myself." },
-  { value: "advisor_assisted", title: "I work with a financial professional", subtitle: "I invest with help from an advisor, distributor or family office." },
-  { value: "mixed", title: "A mix of both", subtitle: "I manage some investments myself and get professional guidance for others." },
+export const INVESTOR_PROFILE_OPTIONS: ReadonlyArray<{ value: InvestorType; title: string }> = [
+  { value: "beginner", title: "I’m just getting started" },
+  { value: "self_directed", title: "I manage my own investments" },
+  { value: "advisor_assisted", title: "I work with a financial professional" },
+  { value: "mixed", title: "A mix of both" },
 ];
+
+// Sign-up wording that differs from the shared goal list (Profile and the phone screens keep "children's"): the workbook's own
+// typographic apostrophe, for this screen only.
+export const INVESTOR_GOAL_TITLE_OVERRIDES: Partial<Record<string, string>> = {
+  childrens_education: "Fund my children’s education",
+};
 
 export const CONNECT_HEADLINE_BEFORE = "Bring your investments ";
 export const CONNECT_HEADLINE_ACCENT = "together.";
@@ -38,9 +44,17 @@ export const CONNECT_SOURCES: ReadonlyArray<{ title: string; description: string
 
 export const ALL_SET_HEADLINE = "You're all set!";
 export const ALL_SET_PARAGRAPH = "We're importing your investment data and getting your dashboard ready. This may take a few minutes.";
+export const ALL_SET_PARAGRAPH_READY = "Your investment data is in and your dashboard is ready.";
+export const ALL_SET_RIGHT_HEADING = "Getting your accounts ready";
+export const ALL_SET_RIGHT_HEADING_READY = "Your accounts are ready";
 export const ALL_SET_STATUS = [
   { label: "Accounts connected", description: "Your account connections have been initiated.", state: "done" as const },
   { label: "Importing your investment data", description: "We're retrieving your holdings from the connected accounts.", state: "done" as const },
   { label: "Preparing your dashboard", description: "Your investments will come together in one view as your data becomes available.", state: "active" as const },
 ];
+export const ALL_SET_STATUS_READY = {
+  label: "Your dashboard is ready",
+  description: "Go to my dashboard to start your journey.",
+  state: "done" as const,
+};
 export const ALL_SET_FINISH_ERROR = "Your statement is saved, but we couldn't finish setting up your account. Try again.";

@@ -533,18 +533,20 @@ def test_undo_link_appears_only_in_the_previous_heads_emails(db_session, monkeyp
         and "/undo-head-change#token=" in item["body"]
     } == old_addresses
     # The three messages are worded for their own reader, and the sign-in notices carry no button.
-    assert "You are now Head of Family." in new_messages[0]["body"]
+    assert "You’re now the Head of Family." in new_messages[0]["body"]
     old_notices = [
         item for item in old_messages if item["subject"] == "The Head of Family on Unifolio has changed."
     ]
     assert old_notices and all(
-        "The Head of Family on your account has changed." in item["body"]
-        and "second email" in item["body"]
-        and "<a " not in item["html"]
+        "The Head of Family for your Unifolio account has changed." in item["body"]
+        and "separate email" in item["body"]
+        # The B-9 layout: the notice carries no button and no link of its own (the support address is the only mailto).
+        and "undo-head-change" not in item["html"]
+        and "Undo Head of Family Change" not in item["html"]
         for item in old_notices
     )
     assert all(
-        "Valid until" in item["body"] and "IST" in item["body"]
+        "valid until" in item["body"] and "IST" in item["body"]
         for item in old_messages
         if item["subject"] == "Undo the Head of Family change."
     )

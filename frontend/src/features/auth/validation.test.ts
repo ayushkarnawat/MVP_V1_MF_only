@@ -8,6 +8,8 @@ import {
   validatePersonName,
   maskPhone,
   maskEmail,
+  retryAfterSeconds,
+  isSameAddressThrottle,
 } from "./validation";
 import { ApiError } from "@/lib/apiClient";
 
@@ -286,5 +288,33 @@ describe("maskPhone and maskEmail (UI round 2, S6 task 6.4)", () => {
     expect(maskEmail("a@gmail.com")).toBe("a@gmail.com");
     expect(maskEmail("not an email")).toBe("not an email");
     expect(maskEmail("")).toBe("");
+  });
+});
+
+// Batch B item 4 (B-4): the seconds the server says are left. The sentence stays the plain payload so every other screen's
+// message is unchanged; the seconds ride on the error as a property set by features/auth/api.ts (see api.test.ts).
+describe("retryAfterSeconds and isSameAddressThrottle", () => {
+  const held = (seconds: unknown, code = "otp_throttled") =>
+    Object.assign(new ApiError(429, "Please wait 42s before requesting another code."), { retryAfterSeconds: seconds, code });
+
+  it("reads the seconds from a 429 that carries them", () => {
+    expect(retryAfterSeconds(held(42))).toBe(42);
+  });
+  it("is null for a 429 without them (an old-style body), for other statuses and for non-errors", () => {
+    expect(retryAfterSeconds(new ApiError(429, "Please wait 42s before requesting another code."))).toBeNull();
+    expect(retryAfterSeconds(Object.assign(new ApiError(404, "No account found"), { retryAfterSeconds: 42 }))).toBeNull();
+    expect(retryAfterSeconds(new Error("boom"))).toBeNull();
+    expect(retryAfterSeconds(null)).toBeNull();
+  });
+  it("ignores values that are not a whole number of seconds from 1 up (never a negative or fractional countdown)", () => {
+    for (const bad of [0, -3, 4.5, "42", Number.NaN, null, undefined]) expect(retryAfterSeconds(held(bad))).toBeNull();
+  });
+  it("only the same-address hold (code otp_throttled) is a same-address throttle; the per-network limit is not", () => {
+    expect(isSameAddressThrottle(held(42))).toBe(true);
+    expect(isSameAddressThrottle(held(240, "request_limited"))).toBe(false);
+    expect(isSameAddressThrottle(new ApiError(429, "Please wait 42s before requesting another code."))).toBe(false);
+  });
+  it("the sentence for a held code is still the plain server sentence (no screen's wording changes)", () => {
+    expect(formatAuthErrorMessage(held(42), "fallback")).toBe("Please wait 42s before requesting another code.");
   });
 });

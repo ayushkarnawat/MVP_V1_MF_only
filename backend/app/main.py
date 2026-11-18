@@ -75,6 +75,8 @@ def _warn_if_local_file_storage_in_non_dev() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if settings.environment == "production" and settings.auth_guard_enabled and not settings.auth_guard_secret:
+        raise RuntimeError("Refusing to start in production: AUTH_GUARD_SECRET is required when the auth guard is enabled.")
     if settings.environment != "development":
         _assert_pan_keys_configured()
         _warn_if_local_file_storage_in_non_dev()
