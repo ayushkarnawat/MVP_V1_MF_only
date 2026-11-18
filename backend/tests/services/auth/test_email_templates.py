@@ -127,7 +127,8 @@ def test_undo_email_is_the_only_one_with_a_link_or_button(emails):
         assert [href for href in hrefs if href != _SUPPORT] == ([_UNDO_URL] if index == 1 else [])
         if index != 1:
             assert "https://" not in plain
-            assert "https://" not in re.sub(r'<img\b[^>]*>', "", html)
+            # Picture addresses and the font files (both on our own domain) are the only web addresses.
+            assert "https://" not in re.sub(r"@font-face\s*\{[^}]*\}", "", re.sub(r'<img\b[^>]*>', "", html))
     assert _SUPPORT in [attrs.get("href") for attrs in _Markup(emails[0][2]).attributes("a")]
 
 
@@ -456,4 +457,25 @@ def test_the_changed_back_email_keeps_the_support_address_in_the_accent_colour_w
     _, _, html = email_templates.head_change_reversed_email(restored_head_name="Rohan", other_head_name="Aditi")
     assert '<span class="email-accent" style="color:#15803D">support@unifolio.in</span>' in html
     assert "mailto:" not in html
+
+
+# ---- Owner decision 19 Nov 2026 (Codex whole-batch review of B, finding 12): the brand fonts are declared, served from our own domain.
+def test_the_brand_fonts_are_declared_from_our_own_domain_and_nowhere_else(emails):
+    for _, _, html in emails:
+        faces = re.findall(r"@font-face\s*\{([^}]*)\}", html)
+        assert len(faces) == 2
+        joined = " ".join(faces)
+        assert "font-family: 'DM Sans'" in joined and "font-weight: 700" in joined
+        assert "font-family: 'Manrope'" in joined and "font-weight: 400 700" in joined
+        urls = re.findall(r"url\(([^)]*)\)", joined)
+        assert sorted(urls) == sorted([f"{_BASE}/email/fonts/DMSans-700-latin.woff2", f"{_BASE}/email/fonts/Manrope-latin.woff2"])
+        assert "googleapis" not in html and "gstatic" not in html
+        assert "@import" not in html
+
+
+def test_the_font_files_the_emails_name_exist_in_the_front_end_public_folder():
+    folder = Path(__file__).resolve().parents[4] / "frontend" / "public" / "email" / "fonts"
+    for name in ("DMSans-700-latin.woff2", "Manrope-latin.woff2"):
+        assert (folder / name).read_bytes()[:4] == b"wOF2", name
+    assert "Open Font License" in (folder / "README.txt").read_text(encoding="utf-8")
 

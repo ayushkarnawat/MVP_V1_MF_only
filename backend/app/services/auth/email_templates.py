@@ -142,6 +142,15 @@ _NOTICE_FOOTER = (
     "This is an automated notification. Please do not reply to this email.",
 )
 
+def _font_faces(base: str) -> str:
+    """The brand fonts, served from our own domain next to the pictures (never from a font service, so opening an email contacts
+    nobody else). Apple Mail and iOS Mail load them; most other programs ignore web fonts and use the fallback stack."""
+    return f"""\
+@font-face {{ font-family: 'DM Sans'; font-style: normal; font-weight: 700; src: url({base}/email/fonts/DMSans-700-latin.woff2) format('woff2'); }}
+@font-face {{ font-family: 'Manrope'; font-style: normal; font-weight: 400 700; src: url({base}/email/fonts/Manrope-latin.woff2) format('woff2'); }}
+"""
+
+
 _PHONE_STYLES = """\
 @media (max-width: 480px) {
   .email-backdrop { padding: 12px 8px !important; }
@@ -381,7 +390,7 @@ def _branded_layout(email: _BrandedEmail, *, scheme: _Scheme = "auto") -> str:
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark">
 <style>
-{_PHONE_STYLES}{dark_styles}</style>
+{_font_faces(base)}{_PHONE_STYLES}{dark_styles}</style>
 </head>
 <body style="margin:0;background:{palette.backdrop};font-family:{_BODY_FONT};line-height:1.5">
 <table {_TABLE} width="100%">
