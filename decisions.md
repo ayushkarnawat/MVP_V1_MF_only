@@ -881,4 +881,4 @@ The owner authorised fixing the detached public network end to end. Decisions: (
 - Second-opinion reviews: Codex gets the B-2 guard review and the whole-batch reviews as a different-model check, in addition to the independent Claude reviewers.
 - Batch L: the audit script (`backend/scripts/audit_disclosures/`) rides the M1 backend rebuild (a deviation from the Batch L plan's "no deploy", approved); L-3 runs right after M1. E3's money measure uses the newest older assets period when the target month has none, labelled as such.
 - QA stays one round, together, after M4; each milestone gets only a quick verify.
-
+- Codex second-opinion review of the address guard (18 Nov): eight of nine findings fixed before deploy (slot reserved inside the lock, one mailbox per email field, separate code clock, unique pair, retry clamp, browser whitespace set), one accepted (a code issued before the deploy under a non-canonical phone spelling), one carried to the production gate (load balancer client-port preservation).
