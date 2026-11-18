@@ -189,6 +189,14 @@
   cursor: not-allowed;
 }
 
+.auth-btn.auth-btn-count:disabled {
+  background: #DFDFDF;
+  color: #717171;
+  opacity: 1;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 .auth-btn:focus-visible {
   outline: 2px solid var(--auth-green);
   outline-offset: 3px;

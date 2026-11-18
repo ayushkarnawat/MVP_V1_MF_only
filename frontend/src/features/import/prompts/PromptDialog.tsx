@@ -19,13 +19,24 @@ interface PromptDialogProps {
   footer: ReactNode;
   /** Hide the × for blocking dialogs where closing must not be offered. Default false. */
   hideClose?: boolean;
+  /** Use roomier 20px (gap-5) spacing between dialog parts instead of the default 16px (gap-4). Default false. */
+  roomy?: boolean;
 }
 
 // Shared shell for the upload-time and review dialogs (U1-U7, U12, U13, C1-C3).
-export function PromptDialog({ isOpen, title, body, onClose, children, footer, hideClose = false }: PromptDialogProps) {
+export function PromptDialog({
+  isOpen,
+  title,
+  body,
+  onClose,
+  children,
+  footer,
+  hideClose = false,
+  roomy = false,
+}: PromptDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md" hideClose={hideClose}>
+      <DialogContent className={roomy ? "sm:max-w-md gap-5" : "sm:max-w-md"} hideClose={hideClose}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {body !== undefined && <DialogDescription>{body}</DialogDescription>}

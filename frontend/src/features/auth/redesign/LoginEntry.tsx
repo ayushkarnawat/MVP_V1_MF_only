@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { FormEvent } from "react";
 import { ArrowRight, Mail, Phone } from "lucide-react";
 import { GoogleButton } from "../GoogleButton";
@@ -13,7 +13,9 @@ import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
 import { LOGIN_ROW_ICONS } from "./authRowIcons";
 import { LOGIN_HEADLINE_ACCENT, LOGIN_HEADLINE_BEFORE, LOGIN_PARAGRAPH, LOGIN_ROWS } from "./loginCopy";
+import type { LoginThrottle } from "./loginThrottle";
 import { SegmentedTabs } from "./SegmentedTabs";
+import { formatMmSs, useResendCountdown } from "./useResendCountdown";
 
 export interface LoginEntryProps {
   onSubmitEmail: (email: string) => void;
@@ -24,6 +26,7 @@ export interface LoginEntryProps {
   error: string | null;
   submitting: boolean;
   notice?: string | SignInNotice | null;
+  throttle?: LoginThrottle | null;
   initialTab?: "email" | "phone";
   initialValue?: string;
   showGoogle?: boolean;
@@ -35,17 +38,43 @@ const TABS = [
   { value: "phone", label: "Mobile number", icon: <Phone size={18} aria-hidden="true" /> },
 ] as const;
 
+function matchesHeldAddress(
+  throttle: LoginThrottle | null | undefined,
+  tab: "email" | "phone",
+  emailValue: string,
+  phoneValue: string,
+): boolean {
+  if (!throttle || throttle.channel !== tab) return false;
+  if (tab === "email") {
+    return emailValue.trim().toLowerCase() === throttle.value.trim().toLowerCase();
+  }
+  const phoneResult = validateIndianPhone(phoneValue);
+  return phoneResult.isValid && phoneResult.normalized === throttle.value;
+}
+
 export function LoginEntry({
-  onSubmitEmail, onSubmitPhone, onSignUp, error, submitting, notice, initialTab = "email", initialValue = "",
+  onSubmitEmail, onSubmitPhone, onSignUp, error, submitting, notice, throttle, initialTab = "email", initialValue = "",
   showGoogle = AUTH_SHOW_GOOGLE, onGoogleCredential,
 }: LoginEntryProps) {
   const [tab, setTab] = useState<"email" | "phone">(initialTab);
   const [emailValue, setEmailValue] = useState(initialTab === "email" ? initialValue : "");
   const [phoneValue, setPhoneValue] = useState(initialTab === "phone" ? initialValue : "");
   const [fieldError, setFieldError] = useState<string | null>(null);
+  const holdId = useId();
+
+  const { seconds, active: countdownRunning, restart } = useResendCountdown(throttle?.seconds ?? 0);
+  const throttleStamp = throttle?.stamp ?? null;
+  const throttleSeconds = throttle?.seconds ?? 0;
+  useEffect(() => {
+    restart(throttleStamp !== null ? throttleSeconds : 0);
+  }, [throttleStamp, throttleSeconds, restart]);
+
+  const holding = countdownRunning && matchesHeldAddress(throttle, tab, emailValue, phoneValue);
+  const showHold = holding && !submitting;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (submitting || showHold) return;
     if (tab === "email") {
       const result = validateEmail(emailValue.trim());
       if (!result.isValid) {
@@ -140,9 +169,22 @@ export function LoginEntry({
                 <AuthAlert tone="error">{error}</AuthAlert>
               )
             ) : null}
-            <AuthButton type="submit" disabled={submitting}>
-              {submitting ? "Sending..." : "Get OTP"}
-            </AuthButton>
+            <div>
+              <AuthButton
+                type="submit"
+                disabled={submitting || showHold}
+                arrow={!showHold}
+                className={showHold ? "auth-btn-count" : ""}
+                aria-describedby={showHold ? holdId : undefined}
+              >
+                {submitting ? "Sending..." : showHold ? `Get OTP again in ${formatMmSs(seconds)}` : "Get OTP"}
+              </AuthButton>
+              {showHold ? (
+                <p id={holdId} className="mt-1.5 text-[13px] text-[var(--auth-error)] whitespace-nowrap">
+                  For your security, a new code can be requested once a minute.
+                </p>
+              ) : null}
+            </div>
             <div className="auth-or" role="separator"><span>OR</span></div>
             {showGoogle && onGoogleCredential ? <GoogleButton onCredential={onGoogleCredential} /> : null}
           </form>
