@@ -452,3 +452,26 @@ def test_one_row_per_address_and_identifier_is_enforced_by_the_table(db_session)
     with pytest.raises(IntegrityError):
         db_session.commit()
     db_session.rollback()
+
+
+# ---- Measured mutation pass on the guard (18 Nov): two mutants survived the first set of tests; these kill them.
+def test_a_repeated_check_only_request_does_not_charge_the_code_limit(db_session, monkeypatch):
+    monkeypatch.setattr(settings, "auth_guard_code_limit", 1)
+    _begin(db_session, "probe@example.com", now=NOW)
+    again = _begin(db_session, "probe@example.com", now=NOW + timedelta(seconds=5))
+    guard.record_outcome(db_session, again, "unknown_account")
+
+    other = _begin(db_session, "real@example.com", now=NOW + timedelta(seconds=10))
+    assert guard.before_code(db_session, other, now=NOW + timedelta(seconds=10)) is other
+
+
+def test_recording_held_without_a_reservation_still_starts_a_code_charge(db_session, monkeypatch):
+    # Every route reserves first, so this path is a safety net: a held outcome is a code charge even if the reservation step was skipped.
+    monkeypatch.setattr(settings, "auth_guard_code_limit", 1)
+    first = _begin(db_session, "held@example.com", now=NOW)
+    guard.record_outcome(db_session, first, "held", now=NOW)
+
+    other = _begin(db_session, "other@example.com", now=NOW + timedelta(seconds=1))
+    with pytest.raises(guard.RequestGuardLimited):
+        guard.before_code(db_session, other, now=NOW + timedelta(seconds=1))
+
