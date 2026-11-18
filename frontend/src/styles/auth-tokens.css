@@ -314,8 +314,27 @@
   animation-name: authBreathe;
 }
 
+@keyframes authTickPop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.auth-tick-pop {
+  animation: authTickPop 450ms ease-out 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .auth-sketch {
+    animation: none;
+  }
+  .auth-tick-pop {
     animation: none;
   }
 }

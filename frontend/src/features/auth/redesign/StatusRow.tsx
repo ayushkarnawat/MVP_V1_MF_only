@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Check } from "lucide-react";
 
 export interface StatusRowProps {
@@ -9,11 +10,30 @@ export interface StatusRowProps {
 const STATE_WORDS = { done: "Done", active: "In progress", pending: "Not started" } as const;
 
 export function StatusRow({ label, description, state }: StatusRowProps) {
+  const prevState = useRef(state);
+  const popped = useRef(false);
+
+  const reducedMotion =
+    typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+  const shouldPop =
+    state === "done" && (popped.current || prevState.current !== "done") && !reducedMotion;
+
+  useEffect(() => {
+    if (state === "done" && prevState.current !== "done") {
+      popped.current = true;
+    } else if (state !== "done") {
+      popped.current = false;
+    }
+    prevState.current = state;
+  }, [state]);
+
   return (
     <div data-testid="status-row" data-state={state} className="flex items-start gap-3.5 text-left">
       <span aria-hidden="true" className="mt-0.5 flex shrink-0 items-center justify-center">
         {state === "done" ? (
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--auth-green)] text-white">
+          <span
+            className={`flex h-6 w-6 items-center justify-center rounded-full bg-[var(--auth-green)] text-white${shouldPop ? " auth-tick-pop" : ""}`}
+          >
             <Check size={14} strokeWidth={3} />
           </span>
         ) : state === "active" ? (

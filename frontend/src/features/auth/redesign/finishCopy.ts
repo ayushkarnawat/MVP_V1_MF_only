@@ -38,9 +38,17 @@ export const CONNECT_SOURCES: ReadonlyArray<{ title: string; description: string
 
 export const ALL_SET_HEADLINE = "You're all set!";
 export const ALL_SET_PARAGRAPH = "We're importing your investment data and getting your dashboard ready. This may take a few minutes.";
+export const ALL_SET_PARAGRAPH_READY = "Your investment data is in and your dashboard is ready.";
+export const ALL_SET_RIGHT_HEADING = "Getting your accounts ready";
+export const ALL_SET_RIGHT_HEADING_READY = "Your accounts are ready";
 export const ALL_SET_STATUS = [
   { label: "Accounts connected", description: "Your account connections have been initiated.", state: "done" as const },
   { label: "Importing your investment data", description: "We're retrieving your holdings from the connected accounts.", state: "done" as const },
   { label: "Preparing your dashboard", description: "Your investments will come together in one view as your data becomes available.", state: "active" as const },
 ];
+export const ALL_SET_STATUS_READY = {
+  label: "Your dashboard is ready",
+  description: "Go to my dashboard to start your journey.",
+  state: "done" as const,
+};
 export const ALL_SET_FINISH_ERROR = "Your statement is saved, but we couldn't finish setting up your account. Try again.";

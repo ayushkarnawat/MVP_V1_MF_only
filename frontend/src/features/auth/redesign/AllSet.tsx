@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { Check, ChevronRight, Coins, Lightbulb } from "lucide-react";
 import { AuthAlert } from "./AuthAlert";
@@ -7,7 +7,16 @@ import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
 import { IconBadge } from "./IconBadge";
-import { ALL_SET_FINISH_ERROR, ALL_SET_HEADLINE, ALL_SET_PARAGRAPH, ALL_SET_STATUS } from "./finishCopy";
+import {
+  ALL_SET_FINISH_ERROR,
+  ALL_SET_HEADLINE,
+  ALL_SET_PARAGRAPH,
+  ALL_SET_PARAGRAPH_READY,
+  ALL_SET_RIGHT_HEADING,
+  ALL_SET_RIGHT_HEADING_READY,
+  ALL_SET_STATUS,
+  ALL_SET_STATUS_READY,
+} from "./finishCopy";
 import { sketchSrc, SKETCH_MOTION } from "./sketches";
 import { StatusRow } from "./StatusRow";
 
@@ -22,7 +31,15 @@ export interface AllSetProps {
 export function AllSet({ onFinish, onViewDetails }: AllSetProps) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState(false);
   const inFlight = useRef(false);
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setReady(true);
+    }, 2500);
+    return () => clearTimeout(id);
+  }, []);
 
   const finish = async (target: "home") => {
     if (inFlight.current) return;
@@ -41,6 +58,7 @@ export function AllSet({ onFinish, onViewDetails }: AllSetProps) {
 
   const tickMotion = SKETCH_MOTION["tick"];
   const tickVars = { "--auth-float-distance": `${tickMotion.distance}px`, "--auth-float-duration": `${tickMotion.duration}s` } as CSSProperties;
+  const rows = ready ? [...ALL_SET_STATUS.slice(0, 2), ALL_SET_STATUS_READY] : ALL_SET_STATUS;
 
   return (
     <AuthPage>
@@ -52,8 +70,10 @@ export function AllSet({ onFinish, onViewDetails }: AllSetProps) {
           <AuthLeftPanel
             sketch="wallet"
             headline={ALL_SET_HEADLINE}
-            paragraph={ALL_SET_PARAGRAPH}
-            status={ALL_SET_STATUS.map((row) => <StatusRow key={row.label} label={row.label} description={row.description} state={row.state} />)}
+            paragraph={ready ? ALL_SET_PARAGRAPH_READY : ALL_SET_PARAGRAPH}
+            status={rows.map((row, index) => (
+              <StatusRow key={index} label={row.label} description={row.description} state={row.state} />
+            ))}
           />
         }
         right={
@@ -66,7 +86,7 @@ export function AllSet({ onFinish, onViewDetails }: AllSetProps) {
               data-motion="float"
               style={tickVars}
             />
-            <h1 className="auth-h1 text-center">Getting your accounts ready</h1>
+            <h1 className="auth-h1 text-center">{ready ? ALL_SET_RIGHT_HEADING_READY : ALL_SET_RIGHT_HEADING}</h1>
             <section aria-labelledby="all-set-list" className="rounded-2xl border border-[var(--auth-hairline)] bg-white p-4 text-left">
               <div className="flex items-center justify-between gap-3">
                 <h2 id="all-set-list" className="text-[15px] font-semibold text-[var(--auth-ink)]">Accounts being imported</h2>
@@ -108,6 +128,9 @@ export function AllSet({ onFinish, onViewDetails }: AllSetProps) {
           </div>
         }
       />
+      <p role="status" aria-live="polite" className="sr-only">
+        {ready ? ALL_SET_STATUS_READY.label : ""}
+      </p>
     </AuthPage>
   );
 }
