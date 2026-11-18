@@ -4,19 +4,18 @@ import { IconBadge } from "./IconBadge";
 
 export interface OptionRowProps {
   title: string;
-  subtitle: string;
   selected: boolean;
   onSelect: () => void;
   icon?: ReactNode;
   /** Roving tab stop: only one answer of the group is reachable with Tab. */
   tabStop?: boolean;
   onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
-  invalid?: boolean;
+  divider?: boolean;
 }
 
-/** One answer of a single-choice question: a radio button drawn as a card. */
+/** One answer of a single-choice question: a radio button drawn as a list row. */
 export const OptionRow = forwardRef<HTMLButtonElement, OptionRowProps>(function OptionRow(
-  { title, subtitle, selected, onSelect, icon, tabStop = true, onKeyDown, invalid },
+  { title, selected, onSelect, icon, tabStop = true, onKeyDown, divider },
   ref,
 ) {
   return (
@@ -28,13 +27,13 @@ export const OptionRow = forwardRef<HTMLButtonElement, OptionRowProps>(function 
       tabIndex={tabStop ? 0 : -1}
       onKeyDown={onKeyDown}
       onClick={onSelect}
-      data-invalid={invalid ? "true" : undefined}
-      className="flex w-full items-center gap-3.5 rounded-2xl px-4 text-left min-h-[var(--auth-row-h)] auth-choice"
+      className={`auth-option flex w-full items-center gap-3 px-[18px] text-left min-h-[var(--auth-option-h)]${
+        divider ? " border-b" : ""
+      }`}
     >
       {icon ? <IconBadge icon={icon} tone="strong" /> : null}
       <span className="min-w-0 flex-1 block">
         <span className="block text-[15px] font-semibold text-[var(--auth-ink)]">{title}</span>
-        <span className="block text-[13px] leading-[1.3] text-[var(--auth-muted)]">{subtitle}</span>
       </span>
       <span
         aria-hidden="true"

@@ -12,11 +12,11 @@ export const PROFILE_ROWS = [
 
 // The sign-up wording for the four investor types. Profile and the mobile screens keep the wording in
 // profile-v2/lib/onboardingOptions.ts; only desktop sign-up uses this list.
-export const INVESTOR_PROFILE_OPTIONS: ReadonlyArray<{ value: InvestorType; title: string; subtitle: string }> = [
-  { value: "beginner", title: "I'm just getting started", subtitle: "I'm new to investing or still building my portfolio." },
-  { value: "self_directed", title: "I manage my own investments", subtitle: "I choose and manage investments myself." },
-  { value: "advisor_assisted", title: "I work with a financial professional", subtitle: "I invest with help from an advisor, distributor or family office." },
-  { value: "mixed", title: "A mix of both", subtitle: "I manage some investments myself and get professional guidance for others." },
+export const INVESTOR_PROFILE_OPTIONS: ReadonlyArray<{ value: InvestorType; title: string }> = [
+  { value: "beginner", title: "I'm just getting started" },
+  { value: "self_directed", title: "I manage my own investments" },
+  { value: "advisor_assisted", title: "I work with a financial professional" },
+  { value: "mixed", title: "A mix of both" },
 ];
 
 export const CONNECT_HEADLINE_BEFORE = "Bring your investments ";

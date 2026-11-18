@@ -3,20 +3,20 @@
 :root {
   --auth-mint-from: #F2FCF6;
   --auth-mint-to: #F8FDF9;
-  --auth-green: #09B158;
-  --auth-green-ink: #067A3D;
-  --auth-step-on: #07B659;
+  --auth-green: #22C55E;
+  --auth-green-ink: #15803D;
+  --auth-step-on: #22C55E;
   --auth-step-off: #E6E8EE;
   --auth-ink: #0B1220;
   --auth-muted: #667085;
   --auth-line: #E5E7EC;
   --auth-hairline: #E9EBF0;
-  --auth-badge: #E8F9EE;
+  --auth-badge: #EAFBF0;
   --auth-badge-strong: #DEF8E7;
-  --auth-sel-bg: #F4FCF6;
-  --auth-sel-border: #40CD7B;
+  --auth-sel-bg: #E9F9EF;
+  --auth-sel-border: #22C55E;
   --auth-card-shadow: 0 30px 70px -30px rgba(16, 24, 40, 0.16), 0 2px 8px rgba(16, 24, 40, 0.05);
-  --auth-btn-shadow: 0 10px 22px -10px rgba(9, 177, 88, 0.55);
+  --auth-btn-shadow: 0 10px 22px -10px rgba(34, 197, 94, 0.55);
   --auth-error: #B42318;
   --auth-error-bg: #FEF3F2;
   --auth-error-line: #FDA29B;
@@ -36,6 +36,8 @@
   --auth-btn-h: 54px;
   --auth-field-h: 54px;
   --auth-row-h: 64px;
+  --auth-option-h: min(calc(var(--auth-row-h) - 6px), 48px);
+  --auth-option-divider: #ECECEC;
   --auth-chip-h: 48px;
   --auth-badge-size: 44px;
   --auth-logo-h: 34px;
@@ -168,23 +170,26 @@
   gap: 10px;
   border-radius: 9999px;
   background: var(--auth-green);
-  color: #fff;
+  color: #111111;
   font-size: 16px;
   font-weight: 600;
   box-shadow: var(--auth-btn-shadow);
-  transition: filter 150ms ease, transform 150ms ease;
+  transition: background-color 150ms ease, transform 150ms ease;
 }
 
 .auth-btn:hover:not(:disabled) {
-  filter: brightness(1.06);
+  background: #16A34A;
 }
 
 .auth-btn:active:not(:disabled) {
+  background: #15803D;
   transform: scale(0.99);
 }
 
 .auth-btn:disabled {
-  opacity: 0.55;
+  background: #DFDFDF;
+  color: #717171;
+  opacity: 1;
   box-shadow: none;
   cursor: not-allowed;
 }
@@ -231,7 +236,7 @@
 
 .auth-field:focus-within {
   border-color: var(--auth-green);
-  box-shadow: 0 0 0 3px rgba(9, 177, 88, 0.16);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16);
   color: var(--auth-ink);
 }
 
@@ -341,7 +346,7 @@
 
 /* The green second half of a headline. Slightly deeper than the button green so large text keeps 3:1 on near-white. */
 :root {
-  --auth-accent: #0A9F50;
+  --auth-accent: #15803D;
 }
 
 .auth-left-panel h2 > span,
@@ -410,7 +415,7 @@
 .auth-choice[aria-checked="true"] {
   border-color: var(--auth-sel-border);
   background: var(--auth-sel-bg);
-  box-shadow: 0 0 0 3px rgba(9, 177, 88, 0.1);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
 }
 
 .auth-choice[data-invalid="true"] { border-color: var(--auth-error-line); }
@@ -426,6 +431,12 @@
   outline: 2px solid var(--auth-green);
   outline-offset: 2px;
 }
+
+.auth-option-group { border: 1px solid #DFDFDF; border-radius: 16px; overflow: hidden; background: #FFFFFF; }
+.auth-option-group[data-invalid="true"] { border-color: var(--auth-error-line); }
+.auth-option { background: #FFFFFF; border-color: var(--auth-option-divider); transition: background-color 150ms ease; }
+.auth-option[aria-checked="true"] { background: var(--auth-sel-bg); }
+.auth-option:focus-visible { outline: 2px solid var(--auth-green); outline-offset: -2px; }
 
 /* The one-time-code cells. A class (not Tailwind utilities) because the shared OtpInput already sets its own border and ring
    colours; this selector is more specific, so the cell is a white rounded square that turns green when focused, as drawn. */
@@ -447,5 +458,5 @@
 .auth-page div > input.auth-otp-cell:focus,
 .auth-page div > input.auth-otp-cell:focus-visible {
   border-color: var(--auth-green) !important;
-  box-shadow: 0 0 0 3px rgba(9, 177, 88, 0.16) !important;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16) !important;
 }

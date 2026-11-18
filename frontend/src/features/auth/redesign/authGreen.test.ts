@@ -28,6 +28,11 @@ describe("auth-tokens.css: the brand green switch (palette values only)", () => 
     expect(token("--auth-sel-bg")).toBe("#E9F9EF");
     expect(token("--auth-sel-border")).toBe("#22C55E");
   });
+  it("the headline's green second half is the palette's deep green, and the light badge disc is the palette's positive tint", () => {
+    expect(token("--auth-accent")).toBe("#15803D");
+    expect(token("--auth-badge")).toBe("#EAFBF0");
+    expect(css.toUpperCase()).not.toContain("#0A9F50");
+  });
   it("no old green is left anywhere in the file", () => {
     for (const old of ["#09B158", "#067A3D", "#07B659", "#40CD7B", "#F4FCF6", "rgba(9, 177, 88"]) expect(css.toUpperCase()).not.toContain(old.toUpperCase());
   });
