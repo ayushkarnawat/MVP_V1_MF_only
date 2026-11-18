@@ -4,6 +4,7 @@ sign-up must now send (Task 8, consent core B2)."""
 import re
 import uuid
 
+from app.config import settings
 from app.models.consent import ConsentRecord
 from app.models.enums import ConsentDocumentType as T
 from app.services.legal.registry import current_document
@@ -45,6 +46,29 @@ def test_request_otp_429_has_structured_body(client):
     assert type(body["retry_after_seconds"]) is int
     assert 1 <= body["retry_after_seconds"] <= 60
     assert re.fullmatch(r"Please wait \d+s before requesting another code\.", body["detail"])
+
+
+def test_phone_otp_request_429_for_distinct_recipients(client, monkeypatch):
+    monkeypatch.setattr(settings, "auth_guard_enabled", True)
+    monkeypatch.setattr(settings, "auth_guard_secret", "synthetic-test-key")
+    monkeypatch.setattr(settings, "auth_guard_code_limit", 1)
+    headers = {"X-Forwarded-For": "192.0.2.7"}
+    first = {"phone_number": "+919000000011"}
+    second = {"phone_number": "+919000000012"}
+    assert client.post("/auth/otp/request", json=first, headers=headers).status_code == 200
+
+    response = client.post("/auth/otp/request", json=second, headers=headers)
+
+    assert response.status_code == 429
+    body = response.json()
+    assert body.keys() == {"detail", "code", "retry_after_seconds"}
+    assert body["code"] == "request_limited"
+    assert type(body["retry_after_seconds"]) is int
+    assert 1 <= body["retry_after_seconds"] <= 600
+    assert body["detail"] == "Too many attempts from this network. Try again in 10 minutes."
+    repeat = client.post("/auth/otp/request", json=first, headers=headers)
+    assert repeat.status_code == 429
+    assert repeat.json()["code"] == "otp_throttled"
 
 
 def test_otp_verify_creates_user_and_session_for_new_phone(client):

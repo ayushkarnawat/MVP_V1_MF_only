@@ -44,6 +44,18 @@ class OtpRequest(Base):
     purpose: Mapped[str | None] = mapped_column(String)
 
 
+class AuthRequestGuard(Base):
+    __tablename__ = "auth_request_guard"
+    __table_args__ = (Index("ix_auth_request_guard_ip_hash_created_at", "ip_hash", "created_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    ip_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    identifier_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    route: Mapped[str] = mapped_column(String, nullable=False)
+    outcome: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class HeadChangeRequest(Base):
     __tablename__ = "head_change_requests"
     __table_args__ = (

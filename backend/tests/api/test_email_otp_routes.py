@@ -8,6 +8,9 @@ import re
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
+import pytest
+
+from app.config import settings
 from app.models.auth import AuthIdentity, PendingIdentityVerification
 from app.models.enums import AuthIdentityProvider
 from app.models.enums import ConsentDocumentType as T
@@ -333,6 +336,29 @@ def test_signup_email_429_has_structured_body(client):
     response = _signup(client, email)
 
     _assert_structured_throttle_response(response)
+
+
+@pytest.mark.parametrize("path", ["/auth/signup/email", "/auth/email-otp/request"])
+def test_email_code_requests_return_guard_429_with_plain_detail(client, monkeypatch, path):
+    monkeypatch.setattr(settings, "auth_guard_enabled", True)
+    monkeypatch.setattr(settings, "auth_guard_secret", "synthetic-test-key")
+    monkeypatch.setattr(settings, "auth_guard_code_limit", 1)
+    origin = "http://localhost:5173"
+    headers = {"X-Forwarded-For": "192.0.2.8", "Origin": origin}
+    accepted = _consent()
+    first = client.post(path, json={"email": "first@example.com", "accepted_documents": accepted}, headers=headers)
+    assert first.status_code == 200
+
+    response = client.post(path, json={"email": "second@example.com", "accepted_documents": accepted}, headers=headers)
+
+    assert response.status_code == 429
+    assert response.headers["access-control-allow-origin"] == origin
+    body = response.json()
+    assert body.keys() == {"detail", "code", "retry_after_seconds"}
+    assert body["code"] == "request_limited"
+    assert type(body["retry_after_seconds"]) is int
+    assert 1 <= body["retry_after_seconds"] <= 600
+    assert body["detail"] == "Too many attempts from this network. Try again in 10 minutes."
 
 
 def test_old_clients_still_read_a_plain_string_detail(client):
@@ -729,11 +755,15 @@ def test_email_login_request_with_an_unknown_email_is_404(client):
     assert r.json()["detail"] == "No account found for that email — sign up instead."
 
 
-def test_unregistered_login_email_returns_404_never_429(client):
+def test_unregistered_login_email_returns_404_never_429(client, monkeypatch):
+    monkeypatch.setattr(settings, "auth_guard_enabled", True)
+    monkeypatch.setattr(settings, "auth_guard_secret", "synthetic-test-key")
+    monkeypatch.setattr(settings, "auth_guard_check_limit", 1)
     payload = {"email": "unregistered-login@example.com", "flow": "login"}
+    headers = {"X-Forwarded-For": "192.0.2.8"}
 
     for _ in range(2):
-        response = client.post("/auth/email-otp/request", json=payload)
+        response = client.post("/auth/email-otp/request", json=payload, headers=headers)
 
         assert response.status_code == 404
         assert "retry_after_seconds" not in response.json()
@@ -788,4 +818,24 @@ def test_email_signup_records_consent_on_completion(client):
     assert len(rows) == 3
     assert {r.surface for r in rows} == {"signup_email"}
     assert {r.device_id for r in rows} == {"dev-email"}
+    db.close()
+
+
+def test_a_sign_up_stopped_by_the_code_limit_leaves_no_pending_verification(client, monkeypatch):
+    """Independent review of B-2, finding 5: the 429 must not leave an orphan pending verification (with its consent snapshot)."""
+    monkeypatch.setattr(settings, "auth_guard_enabled", True)
+    monkeypatch.setattr(settings, "auth_guard_secret", "synthetic-test-key")
+    monkeypatch.setattr(settings, "auth_guard_code_limit", 1)
+    headers = {"X-Forwarded-For": "192.0.2.77"}
+    accepted = _consent()
+    assert client.post("/auth/signup/email", json={"email": "kept@example.com", "accepted_documents": accepted}, headers=headers).status_code == 200
+
+    limited = client.post("/auth/signup/email", json={"email": "refused@example.com", "accepted_documents": accepted}, headers=headers)
+
+    assert limited.status_code == 429
+    from app.db.session import get_db
+
+    db = next(client.app.dependency_overrides[get_db]())
+    assert db.query(PendingIdentityVerification).filter_by(provider_subject="kept@example.com").count() == 1
+    assert db.query(PendingIdentityVerification).filter_by(provider_subject="refused@example.com").count() == 0
     db.close()
