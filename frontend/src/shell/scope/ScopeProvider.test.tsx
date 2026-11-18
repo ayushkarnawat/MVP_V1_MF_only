@@ -339,3 +339,26 @@ it("the exemption is for that one navigation only: the next move between rows re
   await act(async () => {});
   expectPick("aggregate", "a");
 });
+
+// Orchestrator review of C-9: the exemption is for the import-done navigation itself (a replace), not for every later visit to that history entry.
+function BrowserBack() {
+  const navigate = useNavigate();
+  return <button onClick={() => { void navigate(-1); }}>Browser Back</button>;
+}
+
+it("pressing Back onto the import-done history entry is an ordinary move: a household of two or more still resets to Family Combined", async () => {
+  render(
+    <MemoryRouter
+      initialEntries={["/import", { pathname: "/portfolio/mutual-funds", state: { importNotice: null, importNoticeUser: "account-a" } }, "/portfolio/debt"]}
+      initialIndex={2}
+    >
+      <ScopeProvider><Probe /><BrowserBack /></ScopeProvider>
+    </MemoryRouter>,
+  );
+  await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
+  expectPick("member", "b");
+  fireEvent.click(screen.getByRole("button", { name: "Browser Back" }));
+  await act(async () => {});
+  expectPick("aggregate", "a");
+});

@@ -55,6 +55,7 @@ function Probe() {
     <button onClick={() => scope.setMember("b")}>Pick Bob</button>
     <button onClick={() => { void navigate("/portfolio/mutual-funds"); }}>Go to Mutual Funds without importing</button>
     <button onClick={() => { void navigate("/import"); }}>Open Add data</button>
+    <button onClick={() => { void navigate("/elsewhere"); }}>Go somewhere else</button>
   </>;
 }
 
@@ -66,6 +67,7 @@ function mount() {
         <Routes>
           <Route path="/import" element={<ImportWrapper />} />
           <Route path="/portfolio/mutual-funds" element={<Landing />} />
+          <Route path="/elsewhere" element={<output data-testid="elsewhere">elsewhere</output>} />
         </Routes>
       </ScopeProvider>
     </MemoryRouter>,
@@ -190,5 +192,19 @@ describe("ImportWrapper: the member list and the view after an import (Batch C 1
     await landed();
     expectPick("aggregate", "a");
     expect(getHouseholdMembers).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaving Add data while the member list is still loading does not pull the person back to Mutual Funds", async () => {
+    let release!: (list: HouseholdMember[]) => void;
+    vi.mocked(getHouseholdMembers).mockResolvedValueOnce([A, B]).mockImplementationOnce(() => new Promise<HouseholdMember[]>(resolve => { release = resolve; }));
+    mount(); await loaded("Alice,Bob");
+    fireEvent.click(screen.getByRole("button", { name: "Pick Bob" }));
+    finish();
+    await act(async () => {});
+    fireEvent.click(screen.getByRole("button", { name: "Go somewhere else" }));
+    expect(await screen.findByTestId("elsewhere")).toBeInTheDocument();
+    await act(async () => { release([A, B, C]); });
+    expect(screen.queryByTestId("landing")).toBeNull();
+    expect(screen.getByTestId("elsewhere")).toBeInTheDocument();
   });
 });

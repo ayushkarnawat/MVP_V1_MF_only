@@ -2,6 +2,7 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { ShieldCheck, User } from "lucide-react";
 import { ImportFlow } from "../../features/import/ImportFlow";
+import type { ImportNotice, ImportOutcome } from "../../features/import/importNotice";
 import { clearCasResumeStep2 } from "../../features/import/casResumeState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { useAuth } from "../../features/auth/AuthContext";
@@ -10,7 +11,11 @@ import { ImportHeaderContext } from "../nav/ImportProvider";
 import { importDoneTarget } from "../nav/importDoneTarget";
 
 export default function ImportWrapper() {
-  const { members, memberId, viewMode } = useScope();
+  const { members, memberId, viewMode, refreshMembers, setMember, setAggregate } = useScope();
+  const membersRef = useRef(members);
+  membersRef.current = members;
+  const viewModeRef = useRef(viewMode);
+  viewModeRef.current = viewMode;
   const { me } = useAuth();
   const [search] = useSearchParams();
   const { state } = useLocation();
@@ -60,13 +65,29 @@ export default function ImportWrapper() {
     return () => setMemberChip?.(null);
   }, [memberChip, setMemberChip]);
 
+  const handleImportDone = async (notice?: ImportNotice, outcome?: ImportOutcome) => {
+    const before = membersRef.current.length;
+    const fresh = await Promise.resolve(refreshMembers()).catch(() => null);
+    // The person left Add data while the list was loading: do not pull them back or move their view.
+    if (!mounted.current) return;
+    if (Array.isArray(fresh)) {
+      const targetId = outcome?.landOnPersonId;
+      if (targetId && fresh.some(member => member.id === targetId)) {
+        setMember(targetId);
+      } else if (before > 0 && fresh.length > before && viewModeRef.current === "member") {
+        setAggregate();
+      }
+    }
+    // The notice names family members and lives in history state, which outlives a logout in the same tab:
+    // it carries the user it was written for so another user's Back press never shows it.
+    void navigate(importDoneTarget(typeof origin === "string" ? origin : undefined), { replace: true, state: { importNotice: notice ?? null, importNoticeUser: me?.user_id ?? null } });
+  };
+
   return <>
     <h1 className="sr-only">Add data</h1>
     <div className="space-y-8">
-      {targetAddMemberId && <ImportFlow key={targetAddMemberId} householdMemberId={targetAddMemberId} onDone={notice => {
-        // The notice names family members and lives in history state, which outlives a logout in the same tab:
-        // it carries the user it was written for so another user's Back press never shows it.
-        void navigate(importDoneTarget(typeof origin === "string" ? origin : undefined), { replace: true, state: { importNotice: notice ?? null, importNoticeUser: me?.user_id ?? null } });
+      {targetAddMemberId && <ImportFlow key={targetAddMemberId} householdMemberId={targetAddMemberId} onDone={(notice, outcome) => {
+        void handleImportDone(notice, outcome);
       }} />}
       <div className="flex items-center justify-center gap-2 text-[11px] text-[var(--color-text-secondary)] pt-4 border-t border-[var(--color-border)]/60">
         <ShieldCheck className="h-4 w-4 text-[var(--color-positive)]" />
