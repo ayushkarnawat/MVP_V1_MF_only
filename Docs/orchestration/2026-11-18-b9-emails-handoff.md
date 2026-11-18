@@ -1,5 +1,5 @@
 # Handoff: b9-emails (Batch B, task B-9)
-**Status:** OPEN (written 2026-11-18; relay to Codex after B-2 is committed and C-5 is done or skipped)
+**Status:** READY TO RELAY (written 2026-11-18; B-2 and C-5 are committed on `batch/b-journey`, image assets are in `frontend/public/email/`)
 **Parent plan:** `Docs/superpowers/plans/2026-11-17-batch-b-journey-plan.md` (Task B-9, B-11). **Design source: `Docs/orchestration/2026-11-12-batch-b-planning-workbook.html`, section 6** ("Head of Family emails": four emails, light and dark, desktop 600 px and phone widths). The workbook is the design: copy, order and measurements below are read from it; a deviation is a defect; if something here and the code disagree, stop and say so.
 **Worker:** Codex, backend only. **Reviewer and committer:** Claude. **Adversarial review: yes** (hostile names, links, tokens in images and logs).
 **Work in:** `D:\unifolio-b-journey` (branch `batch/b-journey`). Never in `D:\Unifolio code`.
