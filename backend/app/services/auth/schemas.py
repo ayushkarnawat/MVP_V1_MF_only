@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import datetime
 from typing import Literal
@@ -33,6 +34,27 @@ def normalize_email(value: object) -> object:
     return value
 
 
+_INDIAN_MOBILE = re.compile(r"(?:\+91|0091|91|0)?([6-9][0-9]{9})")
+
+
+def normalize_phone(value: object) -> object:
+    """Canonicalizes an Indian mobile number to `+91XXXXXXXXXX`.
+
+    Same reason as `normalize_email`: the phone number is an identity key (`users.phone_number`, the `phone_otp` identity's
+    subject, `otp_requests.phone_number`, the 60-second resend rule and the per-address guard) and all of them compare plain
+    strings, so `9000000001`, `09000000001` and `+91 90000 00001` would otherwise be three different people. The browser already
+    sends `+91XXXXXXXXXX` (`validateIndianPhone`); this makes every other caller land on the same form.
+
+    Anything that is not an Indian mobile in one of the browser's accepted spellings (spaces, dashes, brackets, then `+91`,
+    `0091`, `91` or a leading `0`) is returned exactly as sent, so no existing answer changes for it. Because the prefix
+    alternatives are tried in order and the number part is exactly ten digits, `9123456789` stays a ten-digit number.
+    """
+    if not isinstance(value, str):
+        return value
+    match = _INDIAN_MOBILE.fullmatch(re.sub(r"[\s()-]", "", value))
+    return f"+91{match[1]}" if match else value
+
+
 class OtpRequestBody(BaseModel):
     phone_number: str
     pending_token: str | None = None
@@ -43,6 +65,11 @@ class OtpRequestBody(BaseModel):
     # 2026-10-07: a phone sign-up's T&C + Privacy agreement, made by clicking
     # "Get OTP". Captured on the OTP row (0030); ignored for login / pending_token.
     accepted_documents: list[AcceptedDocument] | None = None
+
+    @field_validator("phone_number", mode="before")
+    @classmethod
+    def _normalize_phone(cls, value: object) -> object:
+        return normalize_phone(value)
 
 
 class OtpRequestResponse(BaseModel):
@@ -64,6 +91,11 @@ class OtpVerifyBody(BaseModel):
     # Consent core (Task 8): T&C + Privacy agreed on the sign-up screen.
     # Required (current versions) only for flow="signup"; ignored otherwise.
     accepted_documents: list[AcceptedDocument] | None = None
+
+    @field_validator("phone_number", mode="before")
+    @classmethod
+    def _normalize_phone(cls, value: object) -> object:
+        return normalize_phone(value)
 
 
 class SignupEmailBody(BaseModel):
@@ -235,9 +267,8 @@ class ContactChangeRequestBody(BaseModel):
     def _normalize_identifier(cls, value: object, info) -> object:
         if info.data.get("channel") == "email":
             return normalize_email(value)
-        if isinstance(value, str):
-            return value.strip()
-        return value
+        # Phone: the same canonical form the sign-in side stores, so a changed number is found again by any spelling.
+        return normalize_phone(value.strip() if isinstance(value, str) else value)
 
 
 class ContactChangeVerifyBody(ContactChangeRequestBody):

@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.auth import AuthRequestGuard
-from app.services.auth.schemas import normalize_email
+from app.services.auth.schemas import normalize_email, normalize_phone
 
 logger = logging.getLogger(__name__)
 _empty_secret_lock = Lock()
@@ -53,11 +53,10 @@ def _canonical_identifier(identifier: str, channel: Channel) -> str:
     if channel == "email":
         return cast(str, normalize_email(identifier))
 
-    compact = re.sub(r"[\s()-]", "", identifier)
-    # Match the Indian mobile formats accepted by the client. This key is
-    # only for the guard. The OTP and identity lookups keep their input.
-    indian_mobile = re.fullmatch(r"(?:\+91|0091|91|0)?([0-9]{10})", compact)
-    return f"+91{indian_mobile[1]}" if indian_mobile else compact
+    # The same canonical form the request bodies now store. Bodies are already canonical by the time they reach here; this keeps
+    # the guard right for any other caller. A value that is not an Indian mobile keeps the old behaviour: spaces, dashes and
+    # brackets removed, nothing else changed.
+    return cast(str, normalize_phone(re.sub(r"[\s()-]", "", identifier)))
 
 
 def _digest(secret: str, namespace: str, value: str) -> str:
