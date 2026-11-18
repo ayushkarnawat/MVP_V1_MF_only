@@ -265,7 +265,7 @@ async def compute_holdings(
         for index, (folio, units, cost) in enumerate(details):
             invested = invested_slices[index]
             value = value_slices[index] if value_slices is not None else None
-            slices.append(FolioSlice(folio_id=str(folio.id), folio_masked="XXXX" + folio.folio_number[-4:],
+            slices.append(FolioSlice(folio_id=str(folio.id), folio_masked="XXXX" + folio.folio_number[-4:], folio_number=folio.folio_number,
                 units=str(units), invested=str(invested), value=str(value) if value is not None else None))
         if nav_result is None:
             rows.append(

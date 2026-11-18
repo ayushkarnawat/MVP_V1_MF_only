@@ -60,6 +60,8 @@ class FolioOut(FundModel):
     member_id: str
     member_name: str
     folio_masked: str
+    # Batch C 17c: the full folio number as first printed (additive; folio_masked stays for the old staging link).
+    folio_number: str
 
 
 class DetailsOut(FundModel):

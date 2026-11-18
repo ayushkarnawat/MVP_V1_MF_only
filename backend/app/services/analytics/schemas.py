@@ -371,6 +371,8 @@ class InvestmentWithdrawalEntry(BaseModel):
     units: str | None = None
     nav: str | None = None
     folio: str | None = None  # masked: "XXXX" + last four alphanumerics
+    # Batch C 17c: the full folio number as first printed; absent on payloads stored before it (recompute fills it).
+    folio_number: str | None = None
     # Fund link (IF-E BE1); absent on payloads stored before it, no recompute needed.
     scheme_id: str | None = None
 

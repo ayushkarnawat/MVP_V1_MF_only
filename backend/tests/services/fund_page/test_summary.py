@@ -22,6 +22,7 @@ from app.models.user import HouseholdMember
 from app.services.dashboard import holdings as holdings_module
 from app.services.dashboard import nav as nav_module
 from app.services.fund_page import summary as summary_module
+from app.services.fund_page.folios import mask_folio
 from app.services.fund_page.scope import ScopeContext
 from app.services.fund_page.summary import build_summary, ensure_recent_nav
 from tests.services.fund_page.factories import (
@@ -218,7 +219,7 @@ def test_nav_stale_flag_true_past_ten_days():
     assert response.nav_stale is True
 
 
-def test_folio_numbers_are_masked_in_summary():
+def test_family_row_has_full_folio_number_and_old_masked_field():
     db = make_session()
     household = add_user_household(db)
     hold = fx_hold(db, household)
@@ -228,6 +229,47 @@ def test_folio_numbers_are_masked_in_summary():
     masked = {folio.folio_masked for folio in response.details.folios}
     assert masked == {"XXXXX9183", "XXXXX5678"}
     assert all("4400918" not in m and "A1234" not in m for m in masked)
+    folios = {folio["folio_id"]: folio for folio in response.model_dump(mode="json")["details"]["folios"]}
+    assert folios[str(hold.asha_folio.id)] == {
+        "folio_id": str(hold.asha_folio.id),
+        "member_id": str(household.asha_id),
+        "member_name": "ASHA RAO",
+        "folio_masked": "XXXXX9183",
+        "folio_number": "4400918/3",
+    }
+    assert folios[str(hold.dev_folio.id)]["folio_number"] == "A12345678"
+
+
+@pytest.mark.parametrize(
+    ("number", "masked"), (("123", "XXXXX"), ("10234567 / 0", "XXXXX5670")),
+    ids=("short", "slash"),
+)
+def test_short_folio_and_slash_folio(number, masked):
+    db = make_session()
+    household = add_user_household(db)
+    hold = fx_hold(db, household)
+    hold.asha_folio.folio_number = number
+    db.flush()
+
+    result = asyncio.run(build_summary(db, hold.scheme, _member_ctx(household.asha_id), household.user_id, TODAY))
+
+    [folio] = result.details.folios
+    assert folio.folio_masked == mask_folio(number) == masked
+    assert folio.folio_number == number
+
+
+def test_folio_with_letters_is_returned_whole():
+    db = make_session()
+    household = add_user_household(db)
+    hold = fx_hold(db, household)
+    hold.dev_folio.folio_number = "AB123cdE"
+    db.flush()
+
+    result = asyncio.run(build_summary(db, hold.scheme, _member_ctx(household.dev_id), household.user_id, TODAY))
+
+    [folio] = result.details.folios
+    assert folio.folio_masked == mask_folio("AB123cdE") == "XXXXX3cdE"
+    assert folio.folio_number == "AB123cdE"
 
 
 def test_first_and_last_investment_dates():

@@ -169,10 +169,10 @@ describe("InvestmentDetails", () => {
     expect(first).toHaveTextContent("Folio · ASHA RAO");
     expect(first).toHaveTextContent(FULL_NUMBER);
     expect(second).toHaveTextContent("Folio · Dev Rao");
-    expect(second).toHaveTextContent("82345678");
-    fireEvent.click(within(second).getByRole("button", { name: "Copy folio number 82345678" }));
+    expect(second).toHaveTextContent("A12345678");
+    fireEvent.click(within(second).getByRole("button", { name: "Copy folio number A12345678" }));
     await screen.findByText("Copied");
-    expect(writeText).toHaveBeenCalledWith("82345678");
+    expect(writeText).toHaveBeenCalledWith("A12345678");
     expect(api.folioNumber).not.toHaveBeenCalled();
   });
 
@@ -184,7 +184,7 @@ describe("InvestmentDetails", () => {
     expect(screen.getByTestId("detail-value-value")).toHaveTextContent("₹750");
     expect(screen.getByTestId("detail-gain-value")).toHaveTextContent("+₹150 (+25.0%)");
     expect(screen.getByTestId("detail-xirr-value")).toHaveTextContent("17.4%");
-    expect(screen.getByTestId(`folio-${IDS.folioDev}`)).toHaveTextContent("82345678");
+    expect(screen.getByTestId(`folio-${IDS.folioDev}`)).toHaveTextContent("A12345678");
     expect(screen.queryByTestId(`folio-${IDS.folioAsha}`)).toBeNull();
     expect(screen.queryByRole("button", { name: `Copy folio number ${FULL_NUMBER}` })).toBeNull();
   });

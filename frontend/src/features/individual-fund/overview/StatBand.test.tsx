@@ -129,7 +129,7 @@ describe("StatBand", () => {
     expect(row(dialog, "Current NAV")).toBe("₹15.00");
     expect(row(dialog, "NAV as of")).toBe("23 Oct 2026");
     expect(row(dialog, "ASHA RAO")).toBe("4400918/3");
-    expect(row(dialog, "Dev Rao")).toBe("82345678");
+    expect(row(dialog, "Dev Rao")).toBe("A12345678");
     expect(dialog).not.toHaveTextContent("XXXXX9183"); // the old masked field is never shown (Batch C 17c)
     expect(within(dialog).getAllByRole("button", { name: "Hide folio numbers" })).toHaveLength(2); // one eye beside each number
   });
