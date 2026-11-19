@@ -185,3 +185,30 @@ def test_short_history_mode_keeps_default_output_and_cache_key_unchanged_without
     assert set(short) == {old.id, young.id} and short[young.id][1:] == (None, None, None)
     warm.assert_awaited_once()
     assert lookup.call_count == 1
+
+
+def test_ranked_pool_contains_the_direct_series_of_a_fund_whose_unknown_plan_series_has_a_lower_code(
+    db_session, monkeypatch,
+):
+    from app.services.analytics.performance_ranking import load_ranking_pools
+    from app.services.analytics.scheme_universe import UniverseRow, scheme_universe_client
+
+    base_name = "Storybook Comet Fund"
+    unknown = _seed(db_session, 0, plan=None, name=f"{base_name} - Growth")
+    direct = _seed(db_session, 1, name=f"{base_name} - Direct Plan - Growth")
+    unknown.amfi_code = "900001"
+    direct.amfi_code = "900002"
+    unknown.amc_name = direct.amc_name = "Storybook Mutual Fund"
+    db_session.commit()
+    monkeypatch.setattr(scheme_universe_client, "_rows", [
+        UniverseRow(unknown.amfi_code, None, unknown.name, "Storybook Mutual Fund", CATEGORY,
+                    base_name=base_name, option="Growth"),
+        UniverseRow(direct.amfi_code, None, direct.name, "Storybook Mutual Fund", CATEGORY,
+                    base_name=base_name, plan="Direct Plan", option="Growth"),
+    ])
+    monkeypatch.setattr(category, "warm_nav_history", AsyncMock())
+
+    ranking = asyncio.run(load_ranking_pools(db_session, direct, date.today()))
+
+    assert set(ranking.pools) == {"1Y", "3Y", "5Y"}
+    assert all(set(pool) == {direct.id} for pool in ranking.pools.values())

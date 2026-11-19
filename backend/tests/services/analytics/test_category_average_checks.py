@@ -181,7 +181,6 @@ def test_thin_category_flag_under_five():
     assert actual == [(4, True), (5, False)]
 
 
-@pytest.mark.xfail(strict=True, reason='CA-3 finding for FX-9a: the app blends per fund (a fund with no 5Y return counts at 100% of its 3Y); the workbook blends the displayed 3Y and 5Y averages. With one 3Y-only fund: app 0.2650 vs workbook 0.2200. Owner decision: which legacy formula.')
 def test_legacy_blend_is_40_30_60_50_consistent():
     old, newer = uuid.UUID(int=301), uuid.UUID(int=302)
     sizes = {old: Decimal("100"), newer: Decimal("300")}
@@ -262,7 +261,7 @@ def seed_pool(db_session, monkeypatch):
     return seed
 
 
-def test_rank_pool_and_average_pool_same_funds_except_index_rule(db_session, seed_pool):
+def test_rank_pool_and_average_pool_hold_the_same_funds(db_session, seed_pool):  # was ...except_index_rule; FX-10b, owner-approved 19 Nov
     today = date.today()
     category = "CA3 Rank Comparison Category"
     held, active_peer, index_fund, etf = seed_pool(category, today, (
@@ -284,21 +283,17 @@ def test_rank_pool_and_average_pool_same_funds_except_index_rule(db_session, see
     assert {peer.id for peer in averages.peers.schemes} == shared_peers
     assert {peer.id for peer in ranks.peers.schemes} == shared_peers
 
-    # Observed asymmetry in this complete-history pool: the index fund and ETF
-    # contribute to the app's average and are dropped from its rank denominators.
+    # FX-10b: the average counts the funds the rank counts. The index fund and the ETF are in neither.
     for column, period in enumerate(PERIODS):
         average_members = {scheme_id for scheme_id, values in averages.detailed.items() if values[column] is not None}
         rank_members = set(ranks.pools[period.upper()])
         average = averages.averages[period]
-        assert average_members == shared_peers
-        assert rank_members == {held.id, active_peer.id}
-        assert average_members - rank_members == {index_fund.id, etf.id}
-        assert average.peers == 4
+        assert average_members == rank_members == {held.id, active_peer.id}
+        assert average.peers == 2
         assert average.value is not None
-        assert average.value.quantize(FOUR_PLACES) == Decimal("0.2750")
+        assert average.value.quantize(FOUR_PLACES) == Decimal("0.1500")
 
 
-@pytest.mark.xfail(strict=True, reason='CA-3 finding (also RK-4 T10-6): the average pool keeps IDCW and Dividend series when a fund has no eligible Growth option; the rank pool drops them. Fixed only after the owner approves the fix proposal.')
 def test_no_idcw_in_any_average_pool(db_session, seed_pool):
     today = date.today()
     growth, *_ = seed_pool("CA3 Option Comparison Category", today, (
@@ -325,3 +320,101 @@ def test_no_idcw_in_any_average_pool(db_session, seed_pool):
     assert (disallowed_names, actual) == (
         set(), {period: (1, Decimal("0.1000")) for period in (*PERIODS, "legacy")},
     )
+
+
+def test_average_pool_equals_ranked_pool_when_an_index_series_is_in_the_category(db_session, seed_pool):
+    today = date.today()
+    held, peer, index, etf = seed_pool("CA3 Mixed Category", today, (
+        ("Paper Moon Comet Fund", "Growth", "0.10"),
+        ("Paper Moon Cloud Fund", "Growth", "0.20"),
+        ("Paper Moon Trail Index Fund", "Growth", "0.30"),
+        ("Paper Moon Lantern ETF", "Growth", "0.50"),
+    ))
+
+    async def load_pools():
+        return (
+            await load_category_pool(db_session, held, today),
+            await load_ranking_pools(db_session, held, today),
+        )
+
+    average, rank = asyncio.run(load_pools())
+    assert {scheme.id for scheme in average.peers.schemes} == {held.id, peer.id, index.id, etf.id}
+    assert average.peers.fund_count == 4
+    assert set(average.detailed) == {held.id, peer.id}
+    for period in PERIODS:
+        assert set(rank.pools[period.upper()]) == {held.id, peer.id}
+        assert average.averages[period].peers == 2
+        assert average.averages[period].value.quantize(FOUR_PLACES) == Decimal("0.1500")
+    assert average.legacy_average.peers == 2
+    assert average.legacy_average.value.quantize(FOUR_PLACES) == Decimal("0.1500")
+
+
+def test_index_category_average_keeps_its_own_funds(db_session, seed_pool):
+    today = date.today()
+    held, peer = seed_pool("Other Scheme - Index Funds", today, (
+        ("Paper Moon Trail Index Fund", "Growth", "0.20"),
+        ("Paper Moon Horizon Fund", "Growth", "0.40"),
+    ))
+
+    pool = asyncio.run(load_category_pool(db_session, held, today))
+
+    assert set(pool.detailed) == {held.id, peer.id}
+    for average in (*pool.averages.values(), pool.legacy_average):
+        assert average.peers == 2
+        assert average.value.quantize(FOUR_PLACES) == Decimal("0.3000")
+
+
+def test_inactive_series_is_in_neither_pool(db_session, seed_pool):
+    today = date.today()
+    held, inactive = seed_pool("CA3 Inactive Peer Category", today, (
+        ("Paper Moon Comet Fund", "Growth", "0.10"),
+        ("Paper Moon Cloud Fund", "Growth", "0.50"),
+    ))
+    inactive.is_active = False
+    db_session.commit()
+
+    async def load_pools():
+        return (
+            await load_category_pool(db_session, held, today),
+            await load_ranking_pools(db_session, held, today),
+        )
+
+    average, rank = asyncio.run(load_pools())
+    assert {scheme.id for scheme in average.peers.schemes} == {held.id, inactive.id}
+    assert set(average.detailed) == {held.id}
+    assert all(set(members) == {held.id} for members in rank.pools.values())
+    assert all(result.peers == 1 for result in (*average.averages.values(), average.legacy_average))
+
+
+@pytest.mark.parametrize("rank_first", [True, False], ids=["rank-first", "average-first"])
+def test_pool_cache_is_not_poisoned_by_the_average_filter(db_session, seed_pool, monkeypatch, rank_first):
+    today = date.today()
+    held, index = seed_pool("CA3 Shared Return Cache Category", today, (
+        ("Paper Moon Comet Fund", "Growth", "0.10"),
+        ("Paper Moon Trail Index Fund", "Growth", "0.30"),
+    ))
+    original_compute = category_ranking._compute_category_returns_detailed
+    computed_for = []
+
+    async def record_compute(db, schemes, today, *, include_short_history):
+        computed_for.append({scheme.id for scheme in schemes})
+        return await original_compute(db, schemes, today, include_short_history=include_short_history)
+
+    monkeypatch.setattr(category_ranking, "_compute_category_returns_detailed", record_compute)
+
+    async def load_pools():
+        if rank_first:
+            rank = await load_ranking_pools(db_session, held, today)
+            average = await load_category_pool(db_session, held, today)
+        else:
+            average = await load_category_pool(db_session, held, today)
+            rank = await load_ranking_pools(db_session, held, today)
+        index_average = await load_category_pool(db_session, index, today)
+        return average, rank, index_average
+
+    average, rank, index_average = asyncio.run(load_pools())
+
+    assert computed_for == [{held.id, index.id}]
+    assert all(set(members) == {held.id} for members in rank.pools.values())
+    assert set(average.detailed) == {held.id}
+    assert set(index_average.detailed) == {index.id}

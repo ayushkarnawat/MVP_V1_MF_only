@@ -283,3 +283,112 @@ def test_matured_and_closed_schemes_are_not_peers(tmp_path):
     db = _session()
     universe = asyncio.run(client.get_category_universe(db, "Income"))
     assert sorted(s.amfi_code for s in universe) == ["1", "4"]
+
+
+def test_unknown_plan_series_with_lower_code_does_not_hide_the_direct_series(tmp_path):
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    client._rows = [
+        _row("1", "Storybook Comet Fund", None, "Growth"),
+        _row("2", "Storybook Comet Fund", "Direct Plan", "Growth"),
+    ]
+
+    peers = asyncio.run(client.get_category_peers(_session(), "Equity Scheme - Contra Fund", SchemePlanType.DIRECT))
+
+    assert [scheme.amfi_code for scheme in peers.schemes] == ["2"]
+
+
+def test_fund_with_only_unknown_plan_series_is_not_in_a_direct_pool(tmp_path):
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    client._rows = [_row("1", "Storybook Comet Fund", None, "Growth")]
+
+    peers = asyncio.run(client.get_category_peers(_session(), "Equity Scheme - Contra Fund", SchemePlanType.DIRECT))
+
+    assert peers.schemes == []
+    assert peers.fund_count == 1
+    assert peers.representative_of == {}
+
+
+def test_unknown_plan_request_still_accepts_any_plan(tmp_path):
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    client._rows = [
+        _row("1", "Storybook Comet Fund", None, "Growth"),
+        _row("2", "Storybook Lantern Fund", "Direct Plan", "Growth"),
+        _row("3", "Storybook Reed Fund", "Regular Plan", "Growth"),
+    ]
+
+    peers = asyncio.run(client.get_category_peers(_session(), "Equity Scheme - Contra Fund", None))
+
+    assert [scheme.amfi_code for scheme in peers.schemes] == ["1", "2", "3"]
+
+
+@pytest.mark.parametrize("has_option_field", [True, False], ids=["option-field", "name-suffix"])
+def test_growth_in_the_fund_name_does_not_make_a_bonus_series_growth(tmp_path, has_option_field):
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    client._rows = [
+        _row("1", "Storybook Growth Mid Cap Fund", "Direct Plan", "Bonus Option"),
+        _row("2", "Storybook Growth Mid Cap Fund", "Direct Plan", "Growth Option"),
+    ]
+    if not has_option_field:
+        for row in client._rows:
+            row.option = None
+
+    peers = asyncio.run(client.get_category_peers(_session(), "Equity Scheme - Contra Fund", SchemePlanType.DIRECT))
+
+    assert [scheme.amfi_code for scheme in peers.schemes] == ["2"]
+
+
+@pytest.mark.parametrize("option", ["Income Distribution cum capital withdrawal", "IDWC Option"])
+def test_spelled_out_income_options_are_never_the_representative(tmp_path, option):
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    client._rows = [
+        _row("1", "Storybook Growth Mid Cap Fund", "Direct Plan", option),
+        _row("2", "Storybook Growth Mid Cap Fund", "Direct Plan", "Growth"),
+    ]
+
+    peers = asyncio.run(client.get_category_peers(_session(), "Equity Scheme - Contra Fund", SchemePlanType.DIRECT))
+
+    assert [scheme.amfi_code for scheme in peers.schemes] == ["2"]
+
+
+def test_fund_with_no_growth_series_is_left_out_and_listed_with_the_reason(tmp_path):
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    client._rows = [_row("1", "Storybook Comet Fund", "Direct Plan", "IDCW")]
+
+    peers = asyncio.run(client.get_category_peers(_session(), "Equity Scheme - Contra Fund", SchemePlanType.DIRECT))
+
+    assert peers.schemes == []
+    assert peers.fund_count == 1
+    assert peers.representative_of == {}
+    assert peers.excluded_funds == [("Storybook Comet Fund", "no_growth_series")]
+
+
+def test_held_idcw_series_still_maps_to_its_growth_representative(tmp_path):
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    client._rows = [
+        _row("1", "Storybook Comet Fund", "Direct Plan", "IDCW"),
+        _row("2", "Storybook Comet Fund", "Direct Plan", "Growth"),
+    ]
+    db = _session()
+
+    peers = asyncio.run(client.get_category_peers(db, "Equity Scheme - Contra Fund", SchemePlanType.DIRECT))
+
+    growth, = peers.schemes
+    held = db.query(Scheme).filter_by(amfi_code="1").one()
+    assert growth.amfi_code == "2"
+    assert peers.representative_of[held.id] == growth.id
+
+
+def test_cumulative_is_the_growth_option_for_a_house_that_calls_it_that(tmp_path):
+    # Found on the 19 Nov staging reconciliation: ICICI Prudential names its Growth option "Cumulative"
+    # (14 live AMFI rows). Such a fund must be represented by that series, not dropped for having no
+    # "Growth" word; an IDCW series next to it must still lose.
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    client._rows = [
+        _row("1", "Storybook Heron Fund", "Direct Plan", "IDCW"),
+        _row("2", "Storybook Heron Fund", "Direct Plan", "Cumulative"),
+    ]
+
+    peers = asyncio.run(client.get_category_peers(_session(), "Equity Scheme - Contra Fund", SchemePlanType.DIRECT))
+
+    assert [scheme.amfi_code for scheme in peers.schemes] == ["2"]
+    assert peers.excluded_funds == []
