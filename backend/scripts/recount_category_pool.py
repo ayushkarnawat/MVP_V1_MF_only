@@ -38,8 +38,9 @@ _CATEGORY_LABELS = {
 }
 _CATEGORY_HEADING = re.compile(r"(?:Open Ended|Closed? Ended|Interval Fund) Schemes\s*\((.+)\)")
 _PLAN_WORDS = re.compile(r"\b(direct|dir|regular|reg)\b", re.IGNORECASE)
-_OPTION_WORDS = re.compile(r"\b(growth|idcw|dividend|payout|reinvestment|bonus)\b", re.IGNORECASE)
-_INCOME_WORDS = {"idcw", "dividend", "payout", "reinvestment"}
+# AMFI also spells the income option out ("Income Distribution cum capital withdrawal") and once as "IDWC".
+_OPTION_WORDS = re.compile(r"\b(growth|idcw|idwc|income distribution|dividend|payout|reinvestment|bonus)\b", re.IGNORECASE)
+_INCOME_WORDS = {"idcw", "idwc", "income distribution", "dividend", "payout", "reinvestment"}
 _DISTRIBUTION_WORDS = {"payout", "reinvestment"}
 _LEGACY_SUFFIX = re.compile(
     r"(?:\s*[-(]\s*|\s+\(?)"

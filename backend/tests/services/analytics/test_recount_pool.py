@@ -304,3 +304,21 @@ def test_ledger_header_states_the_database_inactive_gap():
 
     header = output.split("category_match", 1)[0]
     assert "database" in header.lower() and "inactive" in header.lower()
+
+
+def test_spelled_out_and_misspelled_income_options_are_set_aside_as_idcw():
+    # Found on the 19 Nov staging reconciliation (RK-4): AMFI also writes the income option as
+    # "Income Distribution cum capital withdrawal" and, once, "IDWC Option". Both must leave the pool
+    # for the same reason as an "IDCW" row, so a fund's Growth series is the one that is counted.
+    text = "".join([
+        _section("Equity Scheme - Flexi Cap Fund"),
+        _row("910001", "Storybook Elm Fund", option="Growth"),
+        _row("910002", "Storybook Elm Fund", option="Income Distribution cum capital withdrawal"),
+        _row("910003", "Storybook Oak Fund", option="Growth Option"),
+        _row("910004", "Storybook Oak Fund", option="IDWC Option"),
+        _row("910005", "Storybook Ash Fund", option="Payout of Income Distribution cum capital withdrawal option"),
+    ])
+    result = recount_pool(parse_navall(text), CATEGORY, "direct", TODAY)
+    idcw = {entry.scheme_code for step in result.steps if step.name == "idcw" for entry in step.set_aside}
+    assert idcw == {"910002", "910004", "910005"}
+    assert set(result.final_pool) == {"910001", "910003"}
