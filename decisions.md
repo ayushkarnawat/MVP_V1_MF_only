@@ -891,3 +891,9 @@ The owner authorised fixing the detached public network end to end. Decisions: (
 - Two low items fixed instead of left: typographic apostrophes in the two onboarding labels the workbook draws that way (that screen only), and the All set screen changes in two moments (the tick, then the paragraph and heading).
 - Rule going forward: a review finding is closed only when it is fixed or the owner has explicitly accepted it; nothing is "accepted" by the orchestrator alone.
 
+
+## 2026-11-19 - Batch L first pass, owner decisions (one line each)
+- ETF scope in the disclosure coverage figure: report both numbers. The headline is the open-ended plan and option series (about 66%); exchange-traded funds, fixed-maturity plans and funds of funds are listed separately with their own figure. (Owner took the recommendation.)
+- L-5: check all eight regressed automatic houses (Franklin Templeton, Bajaj Finserv, WhiteOak, Trust, Samco, Zerodha and Zerodha CASE, Angel One, AlphaGrep), plus ICICI Prudential's 59 failed batches and the large falls (LIC, Motilal Oswal, Canara Robeco). No ordering by size; everything is checked.
+- L-8 by-hand imports (seven houses): the owner runs them with their intern, from `Docs/orchestration/2026-11-19-by-hand-imports-runbook.md`. The orchestrator re-runs E1 and E4 after they are done and on the final pass after day 20.
+- The owner's step-9 private-window checks of M1 are carried into the single QA round: `Docs/orchestration/2026-11-19-combined-qa-checklist.md` (rows M1-01 to M1-05).

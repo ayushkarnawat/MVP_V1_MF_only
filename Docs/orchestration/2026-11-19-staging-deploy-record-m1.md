@@ -34,3 +34,6 @@ Rollback (only on the owner's yes): back end `sudo sh ./scripts/rollback.sh` fro
 
 ## What is next
 The owner's step 9 browser checks (a few minutes in a private window) and the first Batch L run (E1 to E5, `2026-11-18-disclosures-audit-guide.md`, now possible: the script is in the image). Milestone M2 (the numbers and charts) waits for the owner's review of the Batch A fix proposals; Batch A part 1 continues with Codex (RK-3 reported, CA-3 next).
+
+## Update, 19 Nov 2026, 10:03 IST (re-check after the deploy)
+Nothing was left undone in steps 8 and 9: the stored-results rebuild finished with exit 0 and zero errors, the crontab has its one `auth-guard-cleanup` line, and the verify results above stand. Re-checked read-only about 25 minutes later: VM at `75c3ef23`, Alembic `0054 (head)`, all four containers up (postgres healthy), API health, `ls-redesign` and `ls-staging` answering 200, zero backend ERROR lines since the deploy, 30 guard rows in the table (my forged-header test plus normal traffic, purged after 24 hours by the cleanup job), 12 GB free. The owner's step-9 browser checks and the old link's real-code sign-in are now rows M1-01 to M1-05 of `2026-11-19-combined-qa-checklist.md` (checked once, after M4).
