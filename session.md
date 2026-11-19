@@ -8,7 +8,7 @@ permanent, append-only record is `log.md` (session-by-session),
 Older "Latest"/"Previous" sections were dropped from here on 2026-11-03; their full detail lives in `log.md` and, for the UI
 redesign, in `Docs/orchestration/ui-redesign-decisions-register.md`.
 
-## Latest (2026-11-19): M1 FROZEN locally (`m1-rc`), not yet deployed
+## Latest (2026-11-19): M1 DEPLOYED to staging (`m1-rc` = `75c3ef23`, Alembic 0054; record: `Docs/orchestration/2026-11-19-staging-deploy-record-m1.md`)
 Batch B, Batch C and the Batch L audit script are merged into `leapswitch-redesign` and verified as one tree: front end 6,187 tests, types, lint and production build clean; back end 5,059 passed with Postgres, the 19 failures identical on the old deployed commit; one new failure (a 0053 Postgres test assuming 0053 was the head) fixed. The M1 deploy guide is final: `Docs/orchestration/2026-11-18-staging-deploy-guide-m1.md` (the VM pre-flight of 19 Nov found: 12 GB free, no `:previous` image yet, `AUTH_GUARD_SECRET` unset, `.env` root-owned so every step uses sudo). The deploy is run from that guide by the deployer; I never run it. Open: Codex RK-3 (re-sent with its addendum), then CA-3; Batch A fixes wait for the owner's review gate; Batch L's first run (E1 to E5) after the deploy. Earlier detail follows.
 
 ## Earlier (2026-11-18, evening): wave 1 mostly built; M1 guide drafted; nothing pushed or deployed
