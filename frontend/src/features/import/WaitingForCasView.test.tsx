@@ -22,6 +22,39 @@ describe("WaitingForCasView", () => {
     vi.restoreAllMocks();
   });
 
+  it("the same link opens the same dialog from the waiting screen, and the waiting screen does not navigate", async () => {
+    const openTab = vi.spyOn(window, "open").mockReturnValue(null);
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {});
+    const onCancelled = vi.fn();
+    const onUploadSubmit = vi.fn();
+    const initialUrl = window.location.href;
+    render(<WaitingForCasView importId="imp-tutorial" onCancelled={onCancelled} onUploadSubmit={onUploadSubmit} />);
+
+    const name = "Watch how it works, 53 seconds";
+    const link = screen.queryByRole("link", { name }) ?? screen.getByRole("button", { name });
+    const upload = screen.getByRole("button", { name: /already got the email\? upload it now/i });
+    const uploadCard = upload.parentElement;
+    expect(link).toBeVisible();
+    expect(link.className).not.toMatch(/(?:^|\s)bg-(?!transparent(?:\s|$))\S+/);
+    expect(
+      uploadCard?.contains(link) ||
+      uploadCard?.previousElementSibling?.contains(link) ||
+      uploadCard?.nextElementSibling?.contains(link)
+    ).toBe(true);
+
+    fireEvent.click(link);
+
+    const dialog = await screen.findByRole("dialog", { name: "How to request your statement from CAMS" });
+    expect(dialog).toBeVisible();
+    expect(dialog.querySelector("video")).toBeInTheDocument();
+    expect(openTab).not.toHaveBeenCalled();
+    expect(onCancelled).not.toHaveBeenCalled();
+    expect(onUploadSubmit).not.toHaveBeenCalled();
+    expect(window.location.href).toBe(initialUrl);
+  });
+
   it("renders waiting state and triggers cancellation", async () => {
     vi.spyOn(api, "cancelImportRequest").mockResolvedValue({
       import_id: "imp-req-1",
