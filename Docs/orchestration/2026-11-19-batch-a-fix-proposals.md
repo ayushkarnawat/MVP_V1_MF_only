@@ -29,7 +29,7 @@ Recommended order to read them: FX-10a, FX-10d, FX-10b (the rank and average fam
 | FX-8d | **Approved with FX-8c** | Its test T8-7 comes from XR-3 |
 | FX-8e | **Approved as recommended: option 1** (return since purchase, labelled "not annualised", for holdings under a year) **plus a dash for flows that net to zero** | Options restated under FX-8e |
 | FX-10c | **Parked** (not approved) | Plain meaning under FX-10c |
-| FX-8a, FX-8b | **Wait for XR-3** | Handoff ready; not run yet |
+| FX-8a, FX-8b | **Proposals written after XR-3 (run 19 Nov)**; waiting for your decision | See the last section |
 
 **How these map to the plan's IDs (so nothing is hidden).** The plan lists FX-8a to FX-8e, FX-9a and FX-10a to FX-10d. What I wrote differs in three places. (1) The plan's **FX-10a** also says "retry and complete the price history for every peer before a total is shown" and "replace the 30-day rule only if the ledger shows it drops live funds". The real-data ledger showed **neither** happening today, so by the plan's own condition those two parts are not triggered and are not in the fix. What I wrote as FX-10a is the plan's "correct the grouping of schemes into funds". (2) What I labelled **FX-10b** is really the plan's **FX-9a** ("anything CA-3 shows wrong"): CA-3 found that the average pool and the rank pool differ. The plan's own **FX-10b** (a difference from an official reference only by definition: you decide) belongs to RK-5, the cross-check against AMFI and SEBI, **which has not been done**, so it is still open. (3) FX-10d, FX-10c, FX-8c, FX-8d and FX-8e match the plan.
 
@@ -99,3 +99,10 @@ All 46 held staging funds are priced today, so neither can be shown on real data
 ---
 ## What happens after your decisions
 Each approved proposal becomes one fix task (failing test first, one Codex task at a time, my review), then the stored-result rebuild and before-and-after check at M2. Rejected ones are closed with your reason. Nothing is deployed before the whole-plan review (XR-7, RK-11, CA-10) and the M2 guide.
+
+---
+## FX-8a and FX-8b: a held fund with no price (written after XR-3, 19 Nov)
+**Evidence (XR-3, run by me, `1d61abb2` on `batch/a-numbers`).** On an invented two-fund household, one fund unpriced: the headline XIRR reads **-45%** (the unpriced fund's purchases stay in the flows, its value is left out) where the household is **+15%** with both funds valued, or **+10%** if the unpriced fund were left out whole (flows and value together). The per-fund job raises `TypeError: conversion from NoneType to Decimal is not supported` at `analytics/benchmark.py:169` for the same holding, which could blank the per-fund column. On staging today all 46 held funds are priced, so neither can happen to a real household right now; it is the rarer case of a fund with no price at all.
+**FX-8a change (workbook).** Give every held fund a value, in order: the stored price on or before today (kept with its date); if none, retry the live source; then the latest stored price of any age, marked stale as the screens already do; then the statement's own closing price. Only a fund that has never had a price anywhere is left out, and then **both its flows and its value are left out together**. **FX-8b change.** The per-fund job skips a fund without a value and keeps every other fund's figure.
+**Before and after.** -45% becomes +15% (a stale or statement price) or +10% (never priced, left out whole). **Risk and reach.** Only households with an unpriced fund; no change for any household whose funds are all priced (all staging households today). **Failing tests first:** `test_fund_without_nav_is_not_silently_dropped` and `test_per_fund_job_with_no_nav_holding_does_not_raise` (both written, held as strict expected failures).
+**Decision FX-8a:** approve / change / reject: ________   **Decision FX-8b:** approve / change / reject: ________
