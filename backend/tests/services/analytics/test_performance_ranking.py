@@ -217,7 +217,7 @@ def test_ranked_pool_contains_the_direct_series_of_a_fund_whose_unknown_plan_ser
 def _ranking_pools_without_representative(scheme):
     from app.services.analytics.performance_ranking import RankingPools
     return RankingPools(
-        peers=CategoryPeers(schemes=[], fund_count=1, representative_of={}),
+        peers=CategoryPeers(schemes=[], fund_count=1, representative_of={}, excluded_scheme_ids={scheme.id}),
         pools={period: {uuid.uuid4(): Decimal("0.10"), uuid.uuid4(): Decimal("0.20")} for period in ("1Y", "3Y", "5Y")},
         names={},
     )
@@ -250,3 +250,23 @@ def test_a_fund_that_is_ranked_or_only_short_of_history_gets_no_such_key():
 
     assert row.disclaimer_key is None
     assert all(period.status == "not_enough_history" for period in row.periods.values())
+
+
+def test_held_fund_gets_no_growth_key_only_when_its_fund_was_excluded_for_it():
+    # Review finding 1 (20 Nov): the key must not appear when the peers came back empty (a failed AMFI fetch)
+    # or the fund is not in the universe: that is not "no Growth option".
+    from app.services.analytics.performance_ranking import RankingPools, apply_ranks, new_ranking_row
+    scheme = Scheme(id=uuid.uuid4(), name="Storybook Comet Fund - Direct Plan - Growth", amc_name="A",
+                    sebi_category=CATEGORY, plan_type=SchemePlanType.DIRECT, is_active=True)
+    empty = RankingPools(peers=CategoryPeers(schemes=[], fund_count=0, representative_of={}),
+                         pools={period: {} for period in ("1Y", "3Y", "5Y")}, names={})
+    row = new_ranking_row(scheme)
+    apply_ranks(row, scheme, empty)
+    assert row.disclaimer_key is None
+
+    excluded = RankingPools(
+        peers=CategoryPeers(schemes=[], fund_count=1, representative_of={}, excluded_scheme_ids={scheme.id}),
+        pools={period: {} for period in ("1Y", "3Y", "5Y")}, names={})
+    row = new_ranking_row(scheme)
+    apply_ranks(row, scheme, excluded)
+    assert row.disclaimer_key == "no_growth_series_not_ranked"

@@ -12,7 +12,7 @@ from app.models.reference import Scheme
 from app.services.analytics.category_ranking import _category_returns_detailed
 from app.services.analytics.schemas import PeriodRank, PerformanceRankingFund, PerformanceRankingResult
 from app.services.analytics.scheme_universe import (
-    CategoryPeers, canonical_category, get_category_peers, is_index_fund,
+    CategoryPeers, canonical_category, get_category_peers, is_index_fund, plan_matches,
 )
 from app.services.dashboard.holdings import compute_holdings
 
@@ -65,7 +65,7 @@ async def load_ranking_pools(db: Session, scheme: Scheme, today: date) -> Rankin
         db, peers.schemes, today, cache_key=("peers", *key), include_short_history=True,
     )
     eligible = {s.id for s in peers.schemes if s.is_active and not _is_index(s)
-                and canonical_category(s.sebi_category) == key[0] and s.plan_type == key[1]}
+                and canonical_category(s.sebi_category) == key[0] and plan_matches(s.plan_type, key[1])}
     pools = {period: {sid: values[position] for sid, values in detailed.items()
                       if sid in eligible and values[position] is not None}
              for period, position in _PERIODS}
@@ -76,7 +76,8 @@ def apply_ranks(row: PerformanceRankingFund, scheme: Scheme, ranking: RankingPoo
     representative = ranking.peers.representative_of.get(scheme.id) if scheme.is_active else None
     if representative is not None and representative != scheme.id:
         row.ranked_as = ranking.names.get(representative)
-    if representative is None and scheme.is_active and row.disclaimer_key is None:
+    if (representative is None and scheme.is_active and row.disclaimer_key is None
+            and scheme.id in ranking.peers.excluded_scheme_ids):
         row.disclaimer_key = NO_GROWTH_DISCLAIMER_KEY
     for period, _ in _PERIODS:
         pool = ranking.pools[period]

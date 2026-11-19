@@ -143,7 +143,9 @@ def test_stored_column_uses_display_metadata_without_changing_its_window(
     expected_window = "0" if legacy_rate == 0 else format(legacy_rate, "f")
     fund = result.funds[0]
     assert next(window for window in fund.windows if window.window == "SI").fund_xirr == expected_window
-    assert fund.fund_xirr == expected_window
+    # Review finding 5 (20 Nov): the per-fund figure is the display rate, so flows that net to zero on one day
+    # give no figure here too (a dash on every screen); the SI window keeps the raw solve for its own callers.
+    assert fund.fund_xirr == (None if days == 0 else expected_window)
     assert fund.xirr_basis == basis
     assert fund.since_purchase_return == absolute
 

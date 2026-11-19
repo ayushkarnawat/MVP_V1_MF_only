@@ -418,3 +418,21 @@ def test_pool_cache_is_not_poisoned_by_the_average_filter(db_session, seed_pool,
     assert all(set(members) == {held.id} for members in rank.pools.values())
     assert set(average.detailed) == {held.id}
     assert set(index_average.detailed) == {index.id}
+
+
+def test_held_fund_with_an_unknown_plan_still_has_its_own_return_and_an_average(db_session, seed_pool):
+    # Review finding 4 (20 Nov): get_category_peers(None) accepts any plan, but the average filter kept only
+    # peers whose stored plan was also None, dropping the fund's own representative and emptying the average.
+    today = date.today()
+    held, *_ = seed_pool("CA3 Unknown Plan Category", today, (
+        ("Paper Moon Alder Fund", "Growth", "0.10"),
+        ("Paper Moon Birch Fund", "Growth", "0.20"),
+        ("Paper Moon Cedar Fund", "Growth", "0.30"),
+    ))
+    held.plan_type = None
+    db_session.commit()
+
+    pool = asyncio.run(load_category_pool(db_session, held, today))
+
+    assert held.id in pool.detailed
+    assert pool.averages["3y"].peers == 3

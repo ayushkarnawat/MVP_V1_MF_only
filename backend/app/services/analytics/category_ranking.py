@@ -32,7 +32,7 @@ from app.services.analytics.schemas import (
 )
 from app.services.analytics.risk_metrics import years_ago
 from app.services.analytics.scheme_universe import (
-    CategoryPeers, canonical_category, get_category_peers, is_index_fund,
+    CategoryPeers, canonical_category, get_category_peers, is_index_fund, plan_matches,
 )
 from app.services.dashboard.aggregate import get_member_statuses
 from app.services.dashboard.holdings import compute_holdings
@@ -331,7 +331,7 @@ async def load_category_pool(db: Session, scheme: Scheme, today: date) -> Catego
         peer.id for peer in peers.schemes
         if peer.is_active
         and canonical_category(peer.sebi_category) == key[0]
-        and peer.plan_type == key[1]
+        and plan_matches(peer.plan_type, key[1])
         and is_index_fund(peer.name, peer.sebi_category) == held_is_index
     }
     detailed = {sid: values for sid, values in detailed.items() if sid in eligible}

@@ -412,7 +412,9 @@ async def compute_fund_vs_benchmark(
                 scheme_id=str(scheme_id),
                 scheme_name=scheme.name,
                 benchmark_index=index,
-                fund_xirr=_xirr_str(fund_rate),
+                # The display rate: flows that net to zero on one day give no figure here (a dash on every screen);
+                # the since-inception window keeps the raw solve for its own callers.
+                fund_xirr=_xirr_str(display.rate),
                 benchmark_xirr=_xirr_str(benchmark_rate),
                 xirr_as_of=end_date.isoformat() if end_date and (price_date or fund_rate is not None) else None,
                 xirr_basis=display.basis,

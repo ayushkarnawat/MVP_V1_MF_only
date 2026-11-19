@@ -392,3 +392,46 @@ def test_cumulative_is_the_growth_option_for_a_house_that_calls_it_that(tmp_path
 
     assert [scheme.amfi_code for scheme in peers.schemes] == ["2"]
     assert peers.excluded_funds == []
+
+
+# --- review findings of 20 Nov 2026 (whole-plan review of the Batch A candidate) ---
+
+def test_blank_option_series_is_growth_when_its_name_says_growth(tmp_path):
+    # An AMFI row can have a blank option field; the option is then in the name after the fund's base name.
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    client._rows = [UniverseRow(
+        amfi_code="1", isin=None, name="Storybook Comet Fund - Direct Plan - Growth", amc_name="A",
+        sebi_category="Equity Scheme - Contra Fund", base_name="Storybook Comet Fund", plan="Direct Plan", option="",
+    )]
+    peers = asyncio.run(client.get_category_peers(_session(), "Equity Scheme - Contra Fund", SchemePlanType.DIRECT))
+    assert [scheme.amfi_code for scheme in peers.schemes] == ["1"]
+
+
+def test_legacy_row_without_a_base_name_still_finds_the_option_in_the_name(tmp_path):
+    # The older 6-field NAVAll layout has no base name, no plan and no option field.
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    client._rows = [
+        UniverseRow(amfi_code="1", isin=None, name="Storybook Comet Fund - Direct Plan - Growth", amc_name="A",
+                    sebi_category="Equity Scheme - Contra Fund"),
+        UniverseRow(amfi_code="2", isin=None, name="Storybook Comet Fund - Direct Plan - IDCW", amc_name="A",
+                    sebi_category="Equity Scheme - Contra Fund"),
+    ]
+    peers = asyncio.run(client.get_category_peers(_session(), "Equity Scheme - Contra Fund", None))
+    assert [scheme.amfi_code for scheme in peers.schemes] == ["1"]
+
+
+def test_excluded_fund_records_the_scheme_ids_of_all_its_series(tmp_path):
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    client._rows = [_row("1", "Storybook Comet Fund", "Direct Plan", "IDCW"),
+                    _row("2", "Storybook Comet Fund", "Direct Plan", "Payout")]
+    peers = asyncio.run(client.get_category_peers(_session(), "Equity Scheme - Contra Fund", SchemePlanType.DIRECT))
+    assert peers.excluded_funds == [("Storybook Comet Fund", "no_growth_series")]
+    assert len(peers.excluded_scheme_ids) == 2
+
+
+def test_plan_matches_trusts_a_stored_unknown_plan_and_an_unknown_request():
+    from app.services.analytics.scheme_universe import plan_matches
+    assert plan_matches(SchemePlanType.DIRECT, SchemePlanType.DIRECT)
+    assert not plan_matches(SchemePlanType.REGULAR, SchemePlanType.DIRECT)
+    assert plan_matches(None, SchemePlanType.DIRECT)  # peers already checked the plan against AMFI's data
+    assert plan_matches(SchemePlanType.REGULAR, None)  # an unknown request accepts any plan

@@ -201,17 +201,28 @@ class CategoryPeers:
     fund_count: int                            # funds in the category, any plan ("N in category")
     representative_of: dict[uuid.UUID, uuid.UUID]  # scheme ids of represented funds -> the Growth series
     excluded_funds: list[tuple[str, str]] = field(default_factory=list)
+    # Every series of a fund that was left out for having no Growth series. A held fund is labelled "no Growth
+    # option" only when it is in here, never merely because peers came back empty or the fund is not in the universe.
+    excluded_scheme_ids: set[uuid.UUID] = field(default_factory=set)
+
+
+def plan_matches(scheme_plan: SchemePlanType | None, wanted: SchemePlanType | None) -> bool:
+    """Whether a peer series belongs in a pool for `wanted`. `get_category_peers` already checked each peer's plan
+    against its stored plan or AMFI's own data, so a stored unknown plan passes here; an unknown request takes any plan."""
+    return wanted is None or scheme_plan is None or scheme_plan == wanted
 
 
 def _is_growth_option(scheme: Scheme, row: UniverseRow | None, normalized_base_name: str) -> bool:
     option_words = (row.option or "").strip().lower() if row else ""
     if not option_words:
         name = " ".join(scheme.name.lower().split())
-        if not name.startswith(normalized_base_name):
-            return False
-        option_words = name[len(normalized_base_name):]
-        if option_words[:1].isalnum():
-            return False
+        suffix = name[len(normalized_base_name):] if normalized_base_name and name.startswith(normalized_base_name) else ""
+        if suffix and not suffix[:1].isalnum():
+            option_words = suffix
+        else:
+            # The older NAVAll layout has no base name: the option words sit after the fund's name, after " - ".
+            parts = name.split(" - ", 1)
+            option_words = parts[1] if len(parts) == 2 else ""
     found = set(_OPTION_WORDS.findall(option_words))
     return bool(found) and found <= _GROWTH_WORDS
 
@@ -329,6 +340,7 @@ class SchemeUniverseClient:
         peers: list[Scheme] = []
         representative_of: dict[uuid.UUID, uuid.UUID] = {}
         excluded_funds: list[tuple[str, str]] = []
+        excluded_scheme_ids: set[uuid.UUID] = set()
         for (_, base_name), members in funds.items():
             candidates = [s for s in members if plan_type is None or scheme_plan(s) == plan_type]
             if not candidates:
@@ -336,6 +348,7 @@ class SchemeUniverseClient:
             growth = [s for s in candidates if _is_growth_option(s, rows.get(s.amfi_code), base_name)]
             if not growth:
                 excluded_funds.append((fund_base_name(members[0]), "no_growth_series"))
+                excluded_scheme_ids.update(s.id for s in members)
                 continue
             representative = min(growth, key=lambda s: s.amfi_code or "")
             peers.append(representative)
@@ -343,7 +356,7 @@ class SchemeUniverseClient:
                 representative_of[s.id] = representative.id
         return CategoryPeers(
             schemes=peers, fund_count=len(funds), representative_of=representative_of,
-            excluded_funds=excluded_funds,
+            excluded_funds=excluded_funds, excluded_scheme_ids=excluded_scheme_ids,
         )
 
 
