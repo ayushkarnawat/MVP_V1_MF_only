@@ -24,3 +24,14 @@ RK-5 (cross-checks against AMFI and SEBI; the plan's own FX-10b "differences by 
 
 ## Parked on purpose
 FX-10c (one common end date for a pool; no pool mixes end dates today; re-check after a weekend and a holiday). The FX-8a price fallback chain (large radius, rare case). The L audits and the factsheet work (parked, not dropped).
+
+
+## Batches D and H part 1 opened (20 Nov, owner approved on 19 Nov: "approval with Batch D and H part 1")
+| Piece | State |
+|---|---|
+| Branches and worktrees | `batch/d-charts` at `D:\unifolio-d-charts`, `batch/h-tutorial` at `D:\unifolio-h-tutorial`, both cut from `leapswitch-redesign` (after M1). Front-end check lanes `d` and `h` added to `wave-fe-check.sh`. Wave-start checks D-1 and H-1 done: no drift. |
+| D-2 colour fix (FX-13d) and D-3 shared graph | Handoff `2026-11-20-d2-d3-colour-and-shared-graph-handoff.md` (Codex). The owner's approval of Batch D covers the colour fix. `home-tokens.css` and its test are **left untouched** for now (the keep-or-remove decision stays open). |
+| H-2 script and copy | Done: `2026-11-20-h2-tutorial-script-and-copy.md` (the live CAMS form's words; flags the two mismatches with the app's screen text for the owner). |
+| H-3 red tests | Handoff `2026-11-20-h3-tutorial-red-tests-handoff.md` (Codex). Then H-4 (Antigravity look) and H-6 (Codex logic and wiring). |
+| Still to write | D-4 and D-8 (backend, Codex; they share `services/home/schemas.py` and `api/home.py`, so D-8 gets its own worktree and D-4 follows or merges), D-5 (red tests), D-6 and D-10 (Antigravity packets), D-7, D-9, D-11, D-12 (waits for the common-end-date rule; FX-10c is parked), H-4 packet, H-6 handoff. |
+| Needs the owner (for H-5, the final video; not blocking part 1) | A fresh recording of the password step with a valid made-up password; a real recording of the Unifolio request, upload and funds scenes once the pop-up exists; a screenshot of the real CAMS email with details hidden; confirmation that CAMS accepts a ten-year range; clean browser profile, autofill off. Part 1 ships first with a placeholder; `look2-v5.mp4` (4.5 MB) exists and gets a frame-by-frame privacy review before it goes live even as a placeholder. |

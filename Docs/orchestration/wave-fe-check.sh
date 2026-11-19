@@ -26,6 +26,8 @@ case "$lane" in
   af) SRC=/mnt/d/unifolio-a-fixes/frontend ;;
   ax) SRC=/mnt/d/unifolio-a-xirr/frontend ;;
   aw) SRC=/mnt/d/unifolio-a-wording/frontend ;;
+  d) SRC=/mnt/d/unifolio-d-charts/frontend ;;
+  h) SRC=/mnt/d/unifolio-h-tutorial/frontend ;;
   l) SRC=/mnt/d/unifolio-l-audit/frontend ;;
   m1) SRC=/mnt/d/unifolio-m1/frontend ;;   # the merged M1 candidate (a throwaway worktree)
   ag-*) SRC="/mnt/c/Users/Ayush/${lane}/frontend" ;;
