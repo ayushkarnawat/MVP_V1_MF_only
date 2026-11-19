@@ -14,7 +14,7 @@ Window definition (decision C20, the page design leaves the start open):
   statement's start, not when the money went in, so inside a window it would be counted as new money
   (the Dashboard's Root Cause B disclaimer is the same idea). "SI" still includes it, as the legacy number.
 
-"today" for the window start and end is the Indian date (`ist_today`), not the host's UTC date.
+The window start and end use the closing holding price date, with the Indian date as a fallback.
 """
 
 from calendar import monthrange
@@ -94,6 +94,7 @@ class WindowContext:
 class SinceInceptionRates:
     portfolio: Decimal | None
     indices: Mapping[BenchmarkIndex, Decimal | None]
+    price_date: date | None = None
 
 
 def window_start(window: str, today: date) -> date | None:
@@ -111,12 +112,13 @@ async def build_window_context(
     db: Session,
     member_ids: list[uuid.UUID],
     today: date,
+    excluded_scheme_ids: frozenset[str] = frozenset(),
 ) -> WindowContext:
     starts = {window: window_start(window, today) for window in WINDOWS}
-    snapshot_rows = await get_snapshots(db, member_ids)
     snapshots_by_member = {}
-    for row in snapshot_rows:
-        snapshots_by_member.setdefault(uuid.UUID(row.household_member_id), []).append(row)
+    if not excluded_scheme_ids:
+        for row in await get_snapshots(db, member_ids):
+            snapshots_by_member.setdefault(uuid.UUID(row.household_member_id), []).append(row)
 
     portfolio_start_values: dict[str, Decimal | None] = {"SI": None}
     fund_start_values: dict[str, dict[uuid.UUID, Decimal]] = {"SI": {}}
@@ -152,6 +154,11 @@ async def build_window_context(
             if detail is None:
                 fund_start_values[window] = {}
                 continue
+            if excluded_scheme_ids:
+                included_rows = [row for row in detail.funds if row.scheme_id not in excluded_scheme_ids]
+                if all(row.priced and row.value is not None for row in included_rows):
+                    total = sum((Decimal(row.value) for row in included_rows), Decimal("0"))
+                    portfolio_start_values[window] = total if total > 0 else None
             rows_by_scheme = {}
             for row in detail.funds:
                 rows_by_scheme.setdefault(uuid.UUID(row.scheme_id), []).append(row)
@@ -321,13 +328,8 @@ def compute_window_rows(
     for window in WINDOWS:
         if window == "SI":
             flows = [(txn.date, _signed_amount(txn)) for txn in transactions]
-            # The portfolio rate must end at ctx.today like the index replay. The legacy solver
-            # (`_portfolio_xirr`) ends at the real date.today(), so a supplied rate is reused only when
-            # the two agree (always, in production outside 00:00-05:30 IST); otherwise it is re-solved
-            # from the same flows with the same solver, so the two are still digit for digit equal.
-            # The index rates follow the same rule (register L1 follow-up / C155): legacy values are reused
-            # only when ctx.today is the real date, else they are re-solved to ctx.today.
-            reuse_legacy = since_inception is not None and ctx.today == date.today()
+            # Reuse the supplied pair only if it was solved at this window's end date.
+            reuse_legacy = since_inception is not None and ctx.today == (since_inception.price_date or date.today())
             if reuse_legacy:
                 portfolio_rate = since_inception.portfolio
             else:
@@ -416,11 +418,15 @@ def compute_fund_window_rows(
     ctx: WindowContext,
     scheme_id: uuid.UUID,
     fund_transactions: Sequence[Transaction],
-    fund_current_value: Decimal,
+    fund_current_value: Decimal | None,
     index: BenchmarkIndex,
     levels: Mapping[BenchmarkIndex, IndexLevels],
     since_inception: tuple[Decimal | None, Decimal | None] | None = None,
+    *,
+    since_inception_price_date: date | None = None,
 ) -> list[FundWindowXirr]:
+    if fund_current_value is None:
+        return [FundWindowXirr(window=window, fund_xirr=None, benchmark_xirr=None) for window in WINDOWS]
     rows = []
     extra_debits = frozenset({TransactionType.SWITCH_IN})
     index_levels = levels.get(index, IndexLevels([], []))
@@ -430,10 +436,9 @@ def compute_fund_window_rows(
                 (txn.date, _signed_amount(txn, extra_debits))
                 for txn in fund_transactions
             ]
-            if since_inception is not None and ctx.today == date.today():
+            if since_inception is not None and ctx.today == (since_inception_price_date or date.today()):
                 fund_rate, benchmark_rate = since_inception
             elif since_inception is not None:
-                # The legacy pair ends at the real date.today(); re-solve to ctx.today from the same flows.
                 fund_rate = xirr([*flows, (ctx.today, fund_current_value)])
                 benchmark_rate = index_window_xirr(index_levels, flows, None, None, ctx.today)
             else:
@@ -441,6 +446,7 @@ def compute_fund_window_rows(
                     list(fund_transactions),
                     fund_current_value,
                     extra_debit_types=extra_debits,
+                    price_date=ctx.today,
                 )
                 benchmark_rate = index_window_xirr(
                     index_levels, flows, None, None, ctx.today

@@ -85,7 +85,6 @@ async def _recompute_fund_column(db, user_id, monkeypatch):
         await recompute.recompute_household_analytics(db, user_id)
 
 
-@pytest.mark.xfail(strict=True, reason='XR-3 finding F1 (FX-8a): a held fund with no price is dropped from the final value but its flows stay; the tile reads -45% where the household is +15% (or +10% with the fund left out whole).')
 def test_fund_without_nav_is_not_silently_dropped(db_session):
     today = date.today()
     purchase_date = today - timedelta(days=365)
@@ -112,7 +111,6 @@ def test_fund_without_nav_is_not_silently_dropped(db_session):
         )
 
 
-@pytest.mark.xfail(strict=True, reason='XR-3 finding F2 (FX-8b): the per-fund job raises TypeError (Decimal(None)) at analytics/benchmark.py _current_value_by_scheme for a no-NAV holding.')
 def test_per_fund_job_with_no_nav_holding_does_not_raise(db_session):
     today = date.today()
     purchase_date = today - timedelta(days=365)
@@ -134,7 +132,6 @@ def test_per_fund_job_with_no_nav_holding_does_not_raise(db_session):
         pytest.param(datetime(2026, 11, 17, 0, 30, tzinfo=_IST), id="0030-ist-previous-day-in-utc"),
     ],
 )
-@pytest.mark.xfail(strict=True, reason='XR-3 finding F3 (FX-8c): the final flow is dated with the server date (Sunday 15 Nov, Monday 16 Nov), not the Friday 13 Nov price date.')
 def test_final_flow_is_dated_with_the_price_date_not_the_server_clock(db_session, monkeypatch, server_time):
     reference = next(fixture for fixture in FIXTURES if fixture.name == "lump_sum_365_days")
     start, end = reference.flows[0][0], reference.flows[-1][0]
@@ -207,5 +204,9 @@ def test_same_household_morning_and_evening(db_session, monkeypatch):
     evening_rows = {row.scheme_id: row for row in evening.consolidated}
     late_id = str(late.scheme_id)
     assert evening_rows[late_id].current_nav_date == today
-    _assert_rate(morning_rows[late_id].xirr, Decimal("0.10"), "late publisher's morning column")
-    _assert_rate(evening_rows[late_id].xirr, Decimal("0.10"), "late publisher's evening column before recompute")
+    # FX-8c (owner-approved 19 Nov): the late publisher's own column now ends on its own price date (yesterday),
+    # so its 10% gain runs over 364 days, not 365: (1.10) ** (365 / 364) - 1 = 0.100288. The column stays at
+    # that stored value after the evening price until the recompute (the stale column this test documents).
+    late_morning_rate = Decimal("1.10") ** (Decimal(365) / Decimal(364)) - Decimal(1)
+    _assert_rate(morning_rows[late_id].xirr, late_morning_rate, "late publisher's morning column")
+    _assert_rate(evening_rows[late_id].xirr, late_morning_rate, "late publisher's evening column before recompute")

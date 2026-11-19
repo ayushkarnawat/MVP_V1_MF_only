@@ -77,6 +77,8 @@ def portfolio_xirr(
     current_value: Decimal,
     extra_debit_types: frozenset[TransactionType] = frozenset(),
     dated_share: dict[int, Decimal] | None = None,
+    *,
+    price_date: date | None = None,
 ) -> Decimal | None:
     """`dated_share` (keyed by id(transaction)) scales a row's cash flow to the
     part that is NOT opening-lineage; only the disclaimer's alt_xirr passes it,
@@ -89,8 +91,23 @@ def portfolio_xirr(
             if amount == 0:
                 continue
         flows.append((transaction.date, amount))
-    flows.append((date.today(), current_value))
+    flows.append((price_date or date.today(), current_value))
     return xirr(flows)
+
+
+def latest_holding_price_date(holdings: list[HoldingRow]) -> date | None:
+    return max(
+        (
+            price_date for row in holdings
+            if (price_date := getattr(row, "current_nav_date", None)) is not None
+            and row.current_value is not None and Decimal(row.units_held) != 0
+        ),
+        default=None,
+    )
+
+
+def unpriced_holding_scheme_ids(holdings: list[HoldingRow]) -> set[str]:
+    return {row.scheme_id for row in holdings if row.current_value is None and Decimal(row.units_held) != 0}
 
 
 def xirr_string(rate: Decimal | None) -> str | None:
@@ -162,6 +179,7 @@ def _build_disclaimer(
     scheme_totals: dict[uuid.UUID, tuple[Decimal, Decimal]],
     in_scope_schemes: set[uuid.UUID] | None,
     opening_sold_share: dict[int, Decimal],
+    price_date: date | None,
 ) -> XirrDisclaimer | None:
     # 2026-10-19: condition (b) used to be opening_cost_share >= 25% -- a proxy
     # for "would removing the undated opening lineage actually explain this
@@ -205,7 +223,10 @@ def _build_disclaimer(
     # dated share stays in (PR review). Dividend payouts are not scaled -- they
     # would need the holding at each payout date. dated_share = 1 - opening share.
     dated_share = {key: Decimal("1") - share for key, share in opening_sold_share.items()}
-    alt_rate = portfolio_xirr(alt_flows, current_value - opening_value_remaining, extra_debit_types, dated_share)
+    alt_rate = portfolio_xirr(
+        alt_flows, current_value - opening_value_remaining, extra_debit_types, dated_share,
+        price_date=price_date,
+    )
     # The actual gate: fire only if excluding the undated piece would bring
     # the number back under the ceiling (or leave nothing to compute). If
     # alt_rate is ALSO implausible, the opening-balance dating isn't what's
@@ -225,6 +246,9 @@ def calculate_dashboard_xirr(
     if not household_member_ids:
         return DashboardXirrSummary(None, None)
 
+    unpriced = unpriced_holding_scheme_ids(holdings)
+    holdings = [holding for holding in holdings if holding.scheme_id not in unpriced]
+    price_date = latest_holding_price_date(holdings)
     transaction_rows = (
         db.query(Transaction, Folio.scheme_id)
         .join(Folio, Folio.id == Transaction.folio_id)
@@ -235,6 +259,7 @@ def calculate_dashboard_xirr(
         .order_by(Transaction.date, Transaction.id)
         .all()
     )
+    transaction_rows = [(txn, scheme_id) for txn, scheme_id in transaction_rows if str(scheme_id) not in unpriced]
     # transaction_rows also carries the lot-adding non-cash rows (see
     # _LINEAGE_QUERY_TYPES); only the lineage replay may see those.
     transactions = [t for t, _scheme_id in transaction_rows if t.type in _FUND_RELEVANT_TYPES]
@@ -263,8 +288,12 @@ def calculate_dashboard_xirr(
         ),
         Decimal("0"),
     )
-    lifetime_rate = portfolio_xirr([t for t in transactions if t.type in _RELEVANT_TYPES], lifetime_value)
-    current_rate = portfolio_xirr(current_transactions, current_value, frozenset({TransactionType.SWITCH_IN})) if current_transactions else None
+    lifetime_rate = portfolio_xirr(
+        [t for t in transactions if t.type in _RELEVANT_TYPES], lifetime_value, price_date=price_date,
+    )
+    current_rate = portfolio_xirr(
+        current_transactions, current_value, frozenset({TransactionType.SWITCH_IN}), price_date=price_date,
+    ) if current_transactions else None
 
     scheme_totals: dict[uuid.UUID, tuple[Decimal, Decimal]] = defaultdict(lambda: (Decimal("0"), Decimal("0")))
     for holding in holdings:
@@ -278,10 +307,10 @@ def calculate_dashboard_xirr(
         current_holdings_xirr=xirr_string(current_rate),
         lifetime_xirr_disclaimer=_build_disclaimer(
             transactions, _RELEVANT_TYPES, frozenset(), lifetime_value, lifetime_rate,
-            lineage_by_scheme, scheme_totals, None, opening_sold_share,
+            lineage_by_scheme, scheme_totals, None, opening_sold_share, price_date,
         ),
         current_holdings_xirr_disclaimer=_build_disclaimer(
             current_transactions, _FUND_RELEVANT_TYPES, frozenset({TransactionType.SWITCH_IN}), current_value, current_rate,
-            lineage_by_scheme, scheme_totals, current_scheme_ids, opening_sold_share,
+            lineage_by_scheme, scheme_totals, current_scheme_ids, opening_sold_share, price_date,
         ) if current_transactions else None,
     )
