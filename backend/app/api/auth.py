@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
+from math import ceil
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session as DbSession
 
 from app.api.legal import CONSENT_CONTINUE_MESSAGE
@@ -10,7 +12,8 @@ from app.db.session import get_db #dependency for database session
 from app.models.auth import AuthIdentity, Session as SessionModel
 from app.models.enums import AuthIdentityProvider, ConsentAction, ConsentDocumentType, Relationship
 from app.models.user import HouseholdMember, User
-from app.services.auth.device_info import capture_request_metadata
+from app.services.auth import request_guard
+from app.services.auth.device_info import capture_request_metadata, get_client_ip
 from app.config import settings
 from app.services.auth.identity import (
     EmailCollisionError,
@@ -125,6 +128,29 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 _SIGNUP_CONSENT_MESSAGE = "Agree to the Terms & Conditions and Privacy Policy to create your account."
 
 
+def _throttled_response(exc: OtpRequestThrottledError) -> JSONResponse:
+    """The 429 for a held code (Batch B item 4): `detail` stays the plain sentence old clients and the phone screens read,
+    and `code` and `retry_after_seconds` sit beside it for the login screen's countdown. A JSONResponse, not an
+    HTTPException: an HTTPException can only produce {"detail": ...}. The Head of Family routes keep their own nested body."""
+    return JSONResponse(
+        status_code=429,
+        content={"detail": str(exc), "code": "otp_throttled", "retry_after_seconds": exc.retry_after_seconds},
+    )
+
+
+def _limited_response(exc: request_guard.RequestGuardLimited) -> JSONResponse:
+    minutes = ceil(exc.retry_after_seconds / 60)
+    unit = "minute" if minutes == 1 else "minutes"
+    return JSONResponse(
+        status_code=429,
+        content={
+            "detail": f"Too many attempts from this network. Try again in {minutes} {unit}.",
+            "code": "request_limited",
+            "retry_after_seconds": exc.retry_after_seconds,
+        },
+    )
+
+
 def _consent_http(exc: ConsentRequiredError, message: str = _SIGNUP_CONSENT_MESSAGE) -> HTTPException:
     # Sign-up paths use the sign-up wording (the default) rather than the
     # generic "latest version of: ..." text ConsentRequiredError carries;
@@ -158,8 +184,15 @@ def _session_response(
 
 @router.post("/signup/email", response_model=EmailOtpRequiredResponse)
 def signup_email(body: SignupEmailBody, request: Request, db: DbSession = Depends(get_db)):
+    try:
+        ticket = request_guard.begin(
+            db, client_ip=get_client_ip(request), identifier=body.email, channel="email", route="signup_email"
+        )
+    except request_guard.RequestGuardLimited as exc:
+        return _limited_response(exc)
     existing = find_identity_by_subject(db, AuthIdentityProvider.EMAIL_OTP, body.email)
     if existing is not None:
+        request_guard.record_outcome(db, ticket, "account_exists")
         raise HTTPException(status_code=409, detail="An account with this email already exists.")
 
     try:
@@ -169,6 +202,11 @@ def signup_email(body: SignupEmailBody, request: Request, db: DbSession = Depend
     except ConsentRequiredError as exc:
         raise _consent_http(exc) from exc
 
+    try:
+        # Before anything is stored: a request the code limit stops must not leave a pending verification behind.
+        ticket = request_guard.before_code(db, ticket)
+    except request_guard.RequestGuardLimited as exc:
+        return _limited_response(exc)
     _, raw_token = create_pending_verification(
         db,
         AuthIdentityProvider.EMAIL_OTP,
@@ -181,9 +219,17 @@ def signup_email(body: SignupEmailBody, request: Request, db: DbSession = Depend
     try:
         _, raw_otp = create_otp_request(db, body.email, channel="email", purpose="login")
     except OtpRequestThrottledError as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
+        if ticket is not None:
+            # Keep the OTP sweep's existing rollback on a held request.
+            db.rollback()
+            request_guard.record_outcome(db, ticket, "held")
+        return _throttled_response(exc)
     except EmailSendError as exc:
+        # The reserved code slot goes back: no code reached anyone.
+        db.rollback()
+        request_guard.record_outcome(db, ticket, "send_failed")
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    request_guard.record_outcome(db, ticket, "code_sent")
     return EmailOtpRequiredResponse(
         email_otp_required=EmailOtpRequiredDetail(token=raw_token, prefill_email=body.email, otp=raw_otp)
     )
@@ -194,6 +240,13 @@ def signup_email(body: SignupEmailBody, request: Request, db: DbSession = Depend
 # /auth/login/email, not alongside either.
 @router.post("/email-otp/request", response_model=OtpRequestResponse)
 def request_email_otp(body: EmailOtpRequestBody, request: Request, db: DbSession = Depends(get_db)):
+    try:
+        ticket = request_guard.begin(
+            db, client_ip=get_client_ip(request), identifier=body.email,
+            channel="email", route="request_email_otp",
+        )
+    except request_guard.RequestGuardLimited as exc:
+        return _limited_response(exc)
     if body.pending_token:
         # C2 fix (final review, 2026-09-28): same collision check
         # signup_email/request_otp already run for their own directions --
@@ -202,6 +255,7 @@ def request_email_otp(body: EmailOtpRequestBody, request: Request, db: DbSession
         # instead of only surfacing at verify time via complete_gated_signup's
         # own defensive check.
         if resolve_email_collision(db, body.email).kind != "none":
+            request_guard.record_outcome(db, ticket, "account_exists")
             raise HTTPException(status_code=409, detail="An account with this email already exists.")
         # FR-4: this is the email step of a phone-first signup -- attach the
         # email to the already-phone-verified pending record before sending
@@ -211,9 +265,11 @@ def request_email_otp(body: EmailOtpRequestBody, request: Request, db: DbSession
         except PendingVerificationError as exc:
             raise HTTPException(status_code=401, detail=str(exc)) from exc
     elif body.flow == "login" and find_identity_by_subject(db, AuthIdentityProvider.EMAIL_OTP, body.email) is None:
+        request_guard.record_outcome(db, ticket, "unknown_account")
         raise HTTPException(status_code=404, detail="No account found for that email — sign up instead.")
 
     try:
+        ticket = request_guard.before_code(db, ticket)
         _, raw_otp = create_otp_request(
             db,
             body.email,
@@ -221,10 +277,19 @@ def request_email_otp(body: EmailOtpRequestBody, request: Request, db: DbSession
             metadata=capture_request_metadata(request),
             purpose="login",
         )
+    except request_guard.RequestGuardLimited as exc:
+        return _limited_response(exc)
     except OtpRequestThrottledError as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
+        if ticket is not None:
+            db.rollback()
+            request_guard.record_outcome(db, ticket, "held")
+        return _throttled_response(exc)
     except EmailSendError as exc:
+        # The reserved code slot goes back: no code reached anyone.
+        db.rollback()
+        request_guard.record_outcome(db, ticket, "send_failed")
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    request_guard.record_outcome(db, ticket, "code_sent")
     return OtpRequestResponse(message="OTP sent.", otp=raw_otp)
 
 
@@ -312,6 +377,13 @@ def verify_email_otp(body: EmailOtpVerifyBody, db: DbSession = Depends(get_db)):
 #otp authentication
 @router.post("/otp/request", response_model=OtpRequestResponse)
 def request_otp(body: OtpRequestBody, request: Request, db: DbSession = Depends(get_db)):
+    try:
+        ticket = request_guard.begin(
+            db, client_ip=get_client_ip(request), identifier=body.phone_number,
+            channel="phone", route="request_otp",
+        )
+    except request_guard.RequestGuardLimited as exc:
+        return _limited_response(exc)
     # Same collision this route's own verify step already rejects (see
     # verify_otp_route below) -- checked here too, before an OTP is even sent,
     # so a fresh email signup's phone gate matches signup_email's own UX: the
@@ -336,6 +408,7 @@ def request_otp(body: OtpRequestBody, request: Request, db: DbSession = Depends(
         if link_info.provider == AuthIdentityProvider.EMAIL_OTP:
             existing = find_or_backfill_phone_identity(db, body.phone_number)
             if existing is not None:
+                request_guard.record_outcome(db, ticket, "account_exists")
                 raise HTTPException(
                     status_code=409,
                     detail="An account with this phone number already exists.",
@@ -343,8 +416,10 @@ def request_otp(body: OtpRequestBody, request: Request, db: DbSession = Depends(
     elif body.flow is not None:
         existing = find_or_backfill_phone_identity(db, body.phone_number)
         if body.flow == "signup" and existing is not None:
+            request_guard.record_outcome(db, ticket, "account_exists")
             raise HTTPException(status_code=409, detail="An account with this phone number already exists.")
         if body.flow == "login" and existing is None:
+            request_guard.record_outcome(db, ticket, "unknown_account")
             raise HTTPException(
                 status_code=404, detail="No account found for that phone number — sign up instead."
             )
@@ -364,6 +439,7 @@ def request_otp(body: OtpRequestBody, request: Request, db: DbSession = Depends(
             raise _consent_http(exc) from exc
 
     try:
+        ticket = request_guard.before_code(db, ticket)
         _, raw_otp = create_otp_request(
             db,
             body.phone_number,
@@ -371,8 +447,14 @@ def request_otp(body: OtpRequestBody, request: Request, db: DbSession = Depends(
             consent_snapshot=consent_snapshot,
             purpose="login",
         )
+    except request_guard.RequestGuardLimited as exc:
+        return _limited_response(exc)
     except OtpRequestThrottledError as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
+        if ticket is not None:
+            db.rollback()
+            request_guard.record_outcome(db, ticket, "held")
+        return _throttled_response(exc)
+    request_guard.record_outcome(db, ticket, "code_sent")
     return OtpRequestResponse(message="OTP sent.", otp=raw_otp)
 
 
@@ -737,7 +819,7 @@ def request_contact_change(
             db, body.identifier, channel=otp_channel, purpose="login"
         )
     except OtpRequestThrottledError as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
+        return _throttled_response(exc)
     except EmailSendError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return OtpRequestResponse(message="OTP sent.", otp=raw_otp)

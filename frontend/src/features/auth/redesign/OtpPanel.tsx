@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Phone } from "lucide-react";
 import { OtpInput } from "@/components/ui/otp-input";
@@ -6,6 +6,12 @@ import { OtpStubBanner } from "@/components/OtpStubBanner";
 import { AuthAlert } from "./AuthAlert";
 import { AuthButton } from "./AuthButton";
 import { formatMmSs, useResendCountdown } from "./useResendCountdown";
+
+/** What a resend really did. `waitSeconds` is the server's own answer when it is holding a code for this address. */
+export interface ResendResult {
+  ok: boolean;
+  waitSeconds?: number;
+}
 
 export interface OtpPanelProps {
   channel: "phone" | "email";
@@ -15,7 +21,11 @@ export interface OtpPanelProps {
   devOtp: string | null;
   error: string | null;
   onSubmit: (code: string) => void;
-  onResend: () => void;
+  /**
+   * Called when Resend is pressed. It may return (or resolve to) what happened: a failed send adds no cooldown, a held send
+   * uses the server's wait, a successful one starts the normal minute. Returning nothing keeps the old behaviour (a minute).
+   */
+  onResend: () => void | Promise<ResendResult | void>;
   onBack?: () => void;
   onEditIdentity?: () => void;
   editLabel?: string;
@@ -37,7 +47,28 @@ export function OtpPanel({
   const [code, setCode] = useState("");
   const [local, setLocal] = useState<string | null>(null);
   const countdown = useResendCountdown(60);
+  const [resending, setResending] = useState(false);
   const shown = local ?? error;
+  // A newer message from the server replaces an older "enter all six digits" notice (Codex review of B, finding 1).
+  useEffect(() => {
+    if (error) setLocal(null);
+  }, [error]);
+
+  const applyResend = (result: ResendResult | void) => {
+    if (result && result.ok === false) countdown.restart(result.waitSeconds ?? 0);
+    else countdown.restart();
+  };
+  const resend = () => {
+    const outcome = onResend();
+    if (outcome && typeof (outcome as Promise<ResendResult | void>).then === "function") {
+      setResending(true);
+      (outcome as Promise<ResendResult | void>)
+        .then(applyResend, () => applyResend({ ok: false }))
+        .finally(() => setResending(false));
+    } else {
+      countdown.restart();
+    }
+  };
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -88,11 +119,8 @@ export function OtpPanel({
         <span>Didn&apos;t receive the code?</span>{" "}
         <button
           type="button"
-          disabled={countdown.active}
-          onClick={() => {
-            onResend();
-            countdown.restart();
-          }}
+          disabled={countdown.active || resending}
+          onClick={resend}
           className="font-semibold text-[var(--auth-green-ink)] disabled:text-[var(--auth-green-ink)] cursor-pointer disabled:cursor-default"
         >
           {countdown.active ? `Resend code in ${formatMmSs(countdown.seconds)}` : "Resend code"}

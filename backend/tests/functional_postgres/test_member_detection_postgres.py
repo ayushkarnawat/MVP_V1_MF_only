@@ -211,7 +211,8 @@ def test_0053_postgres_up_down_up_restores_old_shape_and_clears_goals(postgres_u
     try:
         with engine.begin() as conn:
             conn.execute(text(_GOAL_INSERT), {"phone": "+919800005391", "goals": '["retirement"]'})
-        assert _alembic("downgrade", "-1").returncode == 0
+        # Name the target: "-1" means "one step from the head", and the head is no longer 0053 (0054 adds the sign-in guard table).
+        assert _alembic("downgrade", "0052").returncode == 0
         with engine.connect() as conn:
             cols = {r[0] for r in conn.execute(text(
                 "SELECT column_name FROM information_schema.columns WHERE table_name = 'users'"))}

@@ -2,6 +2,7 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { ShieldCheck, User } from "lucide-react";
 import { ImportFlow } from "../../features/import/ImportFlow";
+import type { ImportNotice, ImportOutcome } from "../../features/import/importNotice";
 import { clearCasResumeStep2 } from "../../features/import/casResumeState";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { useAuth } from "../../features/auth/AuthContext";
@@ -9,8 +10,19 @@ import { useScope } from "../scope/ScopeContext";
 import { ImportHeaderContext } from "../nav/ImportProvider";
 import { importDoneTarget } from "../nav/importDoneTarget";
 
+const MEMBER_LIST_WAIT_MS = 5000;
+
 export default function ImportWrapper() {
-  const { members, memberId, viewMode } = useScope();
+  const { members, memberId, viewMode, refreshMembers, setMember, setAggregate } = useScope();
+  // The household as it was when Add data opened (the first non-empty list this page saw). "Did the household grow?" is asked
+  // against this, not against the count at the moment the import finishes: another refresh can load the new member before that
+  // moment (independent review of C-9, finding 3), and a count taken then would not see it.
+  const openingIds = useRef<Set<string> | null>(null);
+  if (openingIds.current === null && members.length > 0) openingIds.current = new Set(members.map(member => member.id));
+  const viewModeRef = useRef(viewMode);
+  viewModeRef.current = viewMode;
+  const memberIdRef = useRef(memberId);
+  memberIdRef.current = memberId;
   const { me } = useAuth();
   const [search] = useSearchParams();
   const { state } = useLocation();
@@ -60,13 +72,41 @@ export default function ImportWrapper() {
     return () => setMemberChip?.(null);
   }, [memberChip, setMemberChip]);
 
+  const handleImportDone = async (notice?: ImportNotice, outcome?: ImportOutcome) => {
+    const opening = openingIds.current;
+    const startMode = viewModeRef.current;
+    const startMember = memberIdRef.current;
+    // Promise.resolve().then(...) so a refresh that throws at once is caught too, and the page still navigates.
+    // Waits for the fresh list, but not for ever: a request that never answers must not hold the person on this screen
+    // (independent review of Batch C, M3). After 5 seconds it counts as "no list": navigate, stay on the viewed member.
+    let giveUp: ReturnType<typeof setTimeout> | undefined;
+    const fresh = await Promise.race([
+      Promise.resolve().then(() => refreshMembers()).catch(() => null),
+      new Promise<null>(resolve => { giveUp = setTimeout(() => resolve(null), MEMBER_LIST_WAIT_MS); }),
+    ]);
+    clearTimeout(giveUp);
+    // The person left Add data while the list was loading: do not pull them back or move their view.
+    if (!mounted.current) return;
+    // A view the person chose themselves while the list was loading wins over our own move (independent review of C-9, finding 2).
+    const personMovedTheView = viewModeRef.current !== startMode || memberIdRef.current !== startMember;
+    if (Array.isArray(fresh) && !personMovedTheView) {
+      const targetId = outcome?.landOnPersonId;
+      if (targetId && fresh.some(member => member.id === targetId)) {
+        setMember(targetId);
+      } else if (opening && fresh.some(member => !opening.has(member.id)) && viewModeRef.current === "member") {
+        setAggregate();
+      }
+    }
+    // The notice names family members and lives in history state, which outlives a logout in the same tab:
+    // it carries the user it was written for so another user's Back press never shows it.
+    void navigate(importDoneTarget(typeof origin === "string" ? origin : undefined), { replace: true, state: { importNotice: notice ?? null, importNoticeUser: me?.user_id ?? null } });
+  };
+
   return <>
     <h1 className="sr-only">Add data</h1>
     <div className="space-y-8">
-      {targetAddMemberId && <ImportFlow key={targetAddMemberId} householdMemberId={targetAddMemberId} onDone={notice => {
-        // The notice names family members and lives in history state, which outlives a logout in the same tab:
-        // it carries the user it was written for so another user's Back press never shows it.
-        void navigate(importDoneTarget(typeof origin === "string" ? origin : undefined), { replace: true, state: { importNotice: notice ?? null, importNoticeUser: me?.user_id ?? null } });
+      {targetAddMemberId && <ImportFlow key={targetAddMemberId} householdMemberId={targetAddMemberId} onDone={(notice, outcome) => {
+        void handleImportDone(notice, outcome);
       }} />}
       <div className="flex items-center justify-center gap-2 text-[11px] text-[var(--color-text-secondary)] pt-4 border-t border-[var(--color-border)]/60">
         <ShieldCheck className="h-4 w-4 text-[var(--color-positive)]" />

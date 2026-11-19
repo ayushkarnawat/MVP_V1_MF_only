@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { useLocation } from "react-router";
+import { useLocation, useNavigationType } from "react-router";
 import { useAuth } from "../../features/auth/AuthContext";
 import { getHouseholdMembers } from "../../features/auth/api";
 import type { HouseholdMember } from "../../features/auth/types";
 import { buildRegistry } from "../registry/buildRegistry";
+import { isImportDoneState } from "../nav/importDoneTarget";
 import { ScopeContext } from "./ScopeContext";
 import type { ScopeMember, ScopeValue } from "./scopeTypes";
 import { shouldResetScope } from "./resetRule";
@@ -31,21 +32,28 @@ interface MemberRequest {
   version: number;
   loading: boolean;
   moves: [string, string][];
+  /** The newest member request, so a request that a newer one replaced can hand back that result instead of nothing. */
+  latest?: Promise<ScopeMember[] | null>;
 }
 
 export function ScopeProvider({ children }: { children: ReactNode }) {
   const { me } = useAuth();
-  const { pathname } = useLocation();
+  const { pathname, state: locationState } = useLocation();
+  const navigationType = useNavigationType();
   const routes = useMemo(() => buildRegistry(), []);
   const [state, setState] = useState(initialState);
   const requests = useRef<MemberRequest>({ active: false, version: 0, loading: true, moves: [] });
   const previousPath = useRef(pathname);
 
-  const loadMembers = useCallback(async (lifecycle: MemberRequest, keepPick: boolean) => {
+  const loadMembers = useCallback((lifecycle: MemberRequest, keepPick: boolean): Promise<ScopeMember[] | null> => {
     const request = ++lifecycle.version;
+    const run = (async (): Promise<ScopeMember[] | null> => {
     try {
       const data = await getHouseholdMembers();
-      if (!lifecycle.active || request !== lifecycle.version) return;
+      if (!lifecycle.active) return null;
+      // A newer request replaced this one: its answer is the fresh one. Hand that back (never this request's own stale answer),
+      // so a caller that waited for the list still learns who is in the household (independent review of C-9, finding 1).
+      if (request !== lifecycle.version) return lifecycle.latest ?? null;
       const members = data.map(toMemberOption);
       const saved = readScope();
       const stored: StoredScope | null = saved && { mode: saved.mode, memberId: saved.memberId };
@@ -63,7 +71,14 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
         pick: reset || fromOtherRow ? defaultPick(members) : validPick(keepPick && previous.ready ? previous.pick : stored, members),
         ready: true,
       }));
-    } catch { /* Initial failure leaves an empty list; refresh failure keeps the list we have. */ }
+      return members;
+    } catch {
+      /* Initial failure leaves an empty list; refresh failure keeps the list we have. */
+      return null;
+    }
+    })();
+    lifecycle.latest = run;
+    return run;
   }, [routes]);
 
   useEffect(() => {
@@ -80,7 +95,7 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
   // onMembersChanged callers invalidateApiCache() BEFORE refreshMembers().
   // This method only refetches, preserving that existing responsibility split.
   const refreshMembers = useCallback(async () => {
-    await loadMembers(requests.current, true);
+    return loadMembers(requests.current, true);
   }, [loadMembers]);
 
   const setMember = useCallback((id: string) => {
@@ -96,11 +111,14 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const from = previousPath.current;
     previousPath.current = pathname;
+    // Only the import-done navigation itself (a replace or push), never a later Back onto its history entry: that is an ordinary move.
+    // ... and only when leaving Add data (an import-shaped state arriving from any other page is an ordinary move).
+    if (navigationType !== "POP" && from === "/import" && isImportDoneState(locationState)) return;
     if (requests.current.loading && from !== pathname) requests.current.moves.push([from, pathname]);
     setState(previous => shouldResetScope(from, pathname, routes, previous.members.length)
       ? { ...previous, pick: { mode: "aggregate", memberId: previous.members[0]?.id ?? null } }
       : previous);
-  }, [pathname, routes]);
+  }, [pathname, locationState, navigationType, routes]);
 
   useEffect(() => {
     if (state.ready) writeScope(state.pick, pathname);

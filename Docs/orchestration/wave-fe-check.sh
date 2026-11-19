@@ -7,7 +7,7 @@
 #   ... <lane> build
 #
 # <lane> is one of:
-#   b | c | a | l           -> the orchestrator's batch worktrees (/mnt/d/unifolio-b-journey, -c-hygiene, ...)
+#   b | c | a | l | m1     -> the orchestrator's batch worktrees (m1: the merged M1 candidate) (/mnt/d/unifolio-b-journey, -c-hygiene, ...)
 #   ag-<name>               -> a Gemini clone at C:\Users\Ayush\ag-<name>  (/mnt/c/Users/Ayush/ag-<name>)
 #
 # Why a mirror: the Windows folders have no usable node_modules (installed ones carry Linux binaries) and running
@@ -24,6 +24,7 @@ case "$lane" in
   c) SRC=/mnt/d/unifolio-c-hygiene/frontend ;;
   a) SRC=/mnt/d/unifolio-a-numbers/frontend ;;
   l) SRC=/mnt/d/unifolio-l-audit/frontend ;;
+  m1) SRC=/mnt/d/unifolio-m1/frontend ;;   # the merged M1 candidate (a throwaway worktree)
   ag-*) SRC="/mnt/c/Users/Ayush/${lane}/frontend" ;;
   *) echo "unknown lane $lane" >&2; exit 2 ;;
 esac

@@ -31,27 +31,20 @@ class RequestMetadata(NamedTuple):
 
 
 def get_client_ip(request: Request) -> str | None:
-    """The backend sits behind an ALB (ADR-005) -- request.client.host is
-    the ALB's own internal IP, not the caller's. AWS ALB's default
-    X-Forwarded-For mode is APPEND, not replace: if the client sends its
-    own X-Forwarded-For, the ALB keeps it and appends the real client IP at
-    the end (format: client-or-spoofed-value, ..., alb-appended-real-ip).
-    The LAST entry is the only one trustworthy here, and only because ECS
-    tasks aren't reachable directly (all traffic is forced through the
-    ALB) -- don't reuse this helper in a deployment where the app is
-    directly internet-facing, or behind more than one trusted hop, without
-    re-checking that assumption (final review fix, 2026-09-28; the
-    original version took the FIRST entry, which is exactly the one the
-    client controls).
+    """Read the last X-Forwarded-For entry and validate it as an IP address.
 
-    Validated via ipaddress.ip_address() and returns None for anything that
-    isn't a real IP -- both because a client-controlled header should never
-    be trusted as-is, and because ip_address is String(45): an unvalidated
-    value that's merely long enough (a hostname, an injected fragment)
-    would raise a Postgres DataError and 500 the whole request on
-    staging/production (SQLite doesn't enforce the column length, which is
-    why this went unnoticed in tests)."""
-    forwarded = request.headers.get("x-forwarded-for")
+    The AWS load balancer appends the real address after any caller-supplied
+    entries. Caddy on LeapSwitch replaces the header with the real address.
+    The last entry is trustworthy only when the app is never reachable
+    except through one of these proxies with that header handling in place.
+    Without a forwarded header, use the socket address. Return None if the
+    selected address is missing or malformed.
+    """
+    getlist = getattr(request.headers, "getlist", None)
+    # Two separate header lines: a proxy that keeps them separate appends its own line last, so the last line is the one to read
+    # (Starlette's headers.get returns the first, which the caller controls).
+    lines = getlist("x-forwarded-for") if getlist else [request.headers.get("x-forwarded-for")]
+    forwarded = lines[-1] if lines else None
     candidate = forwarded.split(",")[-1].strip() if forwarded else (request.client.host if request.client else None)
     if candidate is None:
         return None

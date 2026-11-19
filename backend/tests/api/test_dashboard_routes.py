@@ -204,6 +204,32 @@ def _calculation_folio(db, member, name, plan):
     return scheme
 
 
+def test_member_only_route_still_omits_folios(client, monkeypatch):
+    import uuid
+    from datetime import date
+    from decimal import Decimal
+
+    from app.models.user import HouseholdMember
+    from .import_helpers import _test_db
+
+    headers = _authed_headers(client)
+    member = client.post("/household-members", json={"name": "Self", "relationship": "self"}, headers=headers).json()
+    with _test_db() as db:
+        scheme = _calculation_folio(db, db.get(HouseholdMember, uuid.UUID(member["id"])), "Test Direct", "direct")
+        scheme_id = scheme.id
+    monkeypatch.setattr(
+        "app.services.dashboard.holdings.get_navs_on_or_before",
+        AsyncMock(return_value={scheme_id: (Decimal("100.0000"), date.today())}),
+    )
+
+    response = client.get(f"/household-members/{member['id']}/holdings", headers=headers)
+
+    assert response.status_code == 200
+    [holding] = response.json()["holdings"]
+    assert holding["scheme_id"] == str(scheme_id)
+    assert "folios" not in holding
+
+
 def test_sip_routes_include_stopped_only_on_request_and_keep_twins(client):
     import uuid
     from app.models.user import HouseholdMember

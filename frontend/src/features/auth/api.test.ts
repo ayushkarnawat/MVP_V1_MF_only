@@ -15,12 +15,67 @@ import {
   reactivateAccount,
   parseHeadChangeError,
 } from "./api";
+import { isSameAddressThrottle, retryAfterSeconds } from "./validation";
+import { ApiError } from "../../lib/apiClient";
 import { clearToken, setToken } from "./session";
 
 describe("auth api", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     clearToken();
+  });
+
+  // Batch B item 4 (B-4): a held code answers 429 with the seconds left next to the old sentence.
+  describe("a 429 with the seconds left", () => {
+    const answer429 = (body: unknown) =>
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 429 })));
+    const caught = async (call: () => Promise<unknown>) => {
+      try { await call(); } catch (err) { return err; }
+      throw new Error("expected a rejection");
+    };
+
+    it("requestEmailOtp: the error keeps the plain sentence and carries the seconds and the code", async () => {
+      answer429({ detail: "Please wait 42s before requesting another code.", code: "otp_throttled", retry_after_seconds: 42 });
+      const err = await caught(() => requestEmailOtp("asha@example.com", undefined, "login"));
+      expect(err).toBeInstanceOf(ApiError);
+      expect((err as ApiError).status).toBe(429);
+      expect((err as ApiError).payload).toBe("Please wait 42s before requesting another code.");
+      expect((err as ApiError).message).toBe("Please wait 42s before requesting another code.");
+      expect(retryAfterSeconds(err)).toBe(42);
+      expect(isSameAddressThrottle(err)).toBe(true);
+    });
+    it("requestOtp: the same for the phone request", async () => {
+      answer429({ detail: "Please wait 7s before requesting another code.", code: "otp_throttled", retry_after_seconds: 7 });
+      const err = await caught(() => requestOtp("+919876543210"));
+      expect(retryAfterSeconds(err)).toBe(7);
+      expect((err as ApiError).payload).toBe("Please wait 7s before requesting another code.");
+    });
+    it("the per-network limit keeps its own code and seconds", async () => {
+      answer429({ detail: "Too many attempts from this network. Try again in 4 minutes.", code: "request_limited", retry_after_seconds: 240 });
+      const err = await caught(() => requestEmailOtp("asha@example.com"));
+      expect(retryAfterSeconds(err)).toBe(240);
+      expect(isSameAddressThrottle(err)).toBe(false);
+    });
+    it("an old-style body (only detail) still gives the plain sentence and no seconds", async () => {
+      answer429({ detail: "Please wait 42s before requesting another code." });
+      const err = await caught(() => requestEmailOtp("asha@example.com"));
+      expect((err as ApiError).payload).toBe("Please wait 42s before requesting another code.");
+      expect(retryAfterSeconds(err)).toBeNull();
+    });
+    it("a 429 whose body is not JSON still rejects as an ApiError, with no seconds", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("slow down", { status: 429 })));
+      const err = await caught(() => requestEmailOtp("asha@example.com"));
+      expect(err).toBeInstanceOf(ApiError);
+      expect(retryAfterSeconds(err)).toBeNull();
+    });
+    it("other statuses are not touched: a 404 keeps its sentence and carries no seconds", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ detail: "No account found for this email. Sign up instead." }), { status: 404 }),
+      ));
+      const err = await caught(() => requestEmailOtp("new@example.com", undefined, "login"));
+      expect((err as ApiError).payload).toBe("No account found for this email. Sign up instead.");
+      expect(retryAfterSeconds(err)).toBeNull();
+    });
   });
 
   it("requestOtp posts phone_number as JSON", async () => {

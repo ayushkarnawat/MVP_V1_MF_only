@@ -49,6 +49,8 @@ export interface FolioInfo {
   member_id: string;
   member_name: string;
   folio_masked: string;
+  /** Batch C 17c: the full folio number as first printed. Screens show this (through FolioNumber). */
+  folio_number: string;
 }
 
 export interface ExpenseRatio {

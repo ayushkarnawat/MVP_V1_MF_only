@@ -12,16 +12,17 @@ const sip = (over: Partial<InvestmentWithdrawalResult["sip_summary"]> = {}): Inv
 describe("ledgerDetail", () => {
   it("returns null when the entry has none of units, NAV and folio (an old payload, nulls and empty strings alike)", () => {
     expect(ledgerDetail(entry())).toBeNull();
-    expect(ledgerDetail(entry({ units: null, nav: null, folio: null }))).toBeNull();
-    expect(ledgerDetail(entry({ units: "", nav: "", folio: "" }))).toBeNull();
+    expect(ledgerDetail(entry({ units: null, nav: null, folio: null, folio_number: null }))).toBeNull();
+    expect(ledgerDetail(entry({ units: "", nav: "", folio: "", folio_number: "" }))).toBeNull();
+    expect(ledgerDetail(entry({ folio: "XXXX7890" }))).toBeNull(); // the old masked field alone is no longer shown (Batch C 17c)
   });
-  it("shows the units as the backend sent them, the NAV in rupees to two places and the folio as masked", () => {
-    expect(ledgerDetail(entry({ units: "200.000", nav: "81.2200", folio: "XXXX7890" }))).toEqual({ units: "200.000", nav: "₹81.22", folio: "XXXX7890" });
-    expect(ledgerDetail(entry({ units: "412.605", nav: "43.6250", folio: "XXXX6789" }))).toEqual({ units: "412.605", nav: "₹43.63", folio: "XXXX6789" });
-    expect(ledgerDetail(entry({ units: "0.500", nav: "43.6249", folio: "XXXX0001" }))).toEqual({ units: "0.500", nav: "₹43.62", folio: "XXXX0001" });
+  it("shows the units as the backend sent them, the NAV in rupees to two places and the full folio number (Batch C 17c)", () => {
+    expect(ledgerDetail(entry({ units: "200.000", nav: "81.2200", folio: "XXXX7890", folio_number: "1234567890" }))).toEqual({ units: "200.000", nav: "₹81.22", folio: "1234567890" });
+    expect(ledgerDetail(entry({ units: "412.605", nav: "43.6250", folio: "XXXX6789", folio_number: "1234567/89" }))).toEqual({ units: "412.605", nav: "₹43.63", folio: "1234567/89" });
+    expect(ledgerDetail(entry({ units: "0.500", nav: "43.6249", folio: "XXXX0001", folio_number: "10000001 / 0" }))).toEqual({ units: "0.500", nav: "₹43.62", folio: "10000001 / 0" });
   });
   it("keeps the parts that exist and nulls the others", () => {
-    expect(ledgerDetail(entry({ folio: "XXXX6789" }))).toEqual({ units: null, nav: null, folio: "XXXX6789" });
+    expect(ledgerDetail(entry({ folio: "XXXX6789", folio_number: "1234567/89" }))).toEqual({ units: null, nav: null, folio: "1234567/89" });
     expect(ledgerDetail(entry({ units: "10.000", nav: null }))).toEqual({ units: "10.000", nav: null, folio: null });
     expect(ledgerDetail(entry({ nav: "88.0000" }))).toEqual({ units: null, nav: "₹88.00", folio: null });
   });

@@ -179,7 +179,7 @@ async def build_summary(db: Session, scheme: Scheme, ctx: ScopeContext, user_id:
         .all()
     )
     folios = [
-        FolioOut(folio_id=str(folio.id), member_id=str(folio.household_member_id), member_name=name, folio_masked=mask_folio(folio.folio_number))
+        FolioOut(folio_id=str(folio.id), member_id=str(folio.household_member_id), member_name=name, folio_masked=mask_folio(folio.folio_number), folio_number=folio.folio_number)
         for folio, name in folio_rows
     ]
 

@@ -36,7 +36,8 @@ describe("the page with the additive ledger fields", () => {
     const detail = screen.getByTestId("ledger-detail-t-0067");
     expect(detail).toHaveTextContent("200.000");
     expect(detail).toHaveTextContent("₹81.22");
-    expect(detail).toHaveTextContent("XXXX7890");
+    expect(detail).toHaveTextContent("1234567890");
+    expect(detail).not.toHaveTextContent("XXXX7890");
     expect(mocks.getAnalyticsScope).toHaveBeenCalledTimes(1);
   });
 });

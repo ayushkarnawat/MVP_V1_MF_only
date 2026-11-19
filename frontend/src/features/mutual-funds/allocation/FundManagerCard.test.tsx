@@ -130,12 +130,29 @@ describe("T1.3 main manager", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Table" }));
     expect(screen.queryByText(/divided equally/i)).not.toBeInTheDocument();
   });
-  it("shows an assumed marker on assumed managers", () => {
+  // Batch C item 17b (C-2): the "Assumed main manager" sentence is removed everywhere. Workbook: Batch C, 17b.
+  it("never shows the assumed sentence, even for an assumed group (Cards view)", () => {
     const data = mainManagers();
     Object.assign(data.manager_groups[1], { main_source: "marked" });
     mount(data);
-    expect(within(screen.getByTestId(`manager-row-${KOTAK}`)).getByText(/Assumed main manager/)).toBeInTheDocument();
-    expect(within(screen.getByTestId(`manager-row-${HDFC}`)).queryByText(/Assumed main manager/)).not.toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Fund manager cards" })).toBeInTheDocument();
+    expect(screen.queryAllByText(/Assumed main manager/)).toHaveLength(0);
+    expect(screen.queryAllByText(/none was marked/i)).toHaveLength(0);
+  });
+  it("never shows the assumed sentence, even for an assumed group (Table view)", () => {
+    mount(mainManagers());
+    fireEvent.click(screen.getByRole("radio", { name: "Table" }));
+    expect(screen.getByRole("table", { name: "Fund manager allocation" })).toBeInTheDocument();
+    expect(screen.queryAllByText(/Assumed main manager/)).toHaveLength(0);
+    expect(screen.queryAllByText(/none was marked/i)).toHaveLength(0);
+  });
+  it("removing the line leaves the manager rows, names and the updating message as they were", () => {
+    const data = mainManagers();
+    mount(data);
+    for (const group of data.manager_groups) expect(screen.getAllByText(group.manager_name).length).toBeGreaterThan(0);
+    expect(screen.getByTestId(`manager-row-${KOTAK}`)).toBeInTheDocument();
+    expect(screen.getByTestId(`manager-row-${HDFC}`)).toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
   it("no LinkedIn icon renders", () => {
     const { container } = mount(mainManagers());

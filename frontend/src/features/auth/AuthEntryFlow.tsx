@@ -1,5 +1,5 @@
 import type { AuthVariant } from "./redesign/variant";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Landing } from "./Landing";
 import { EmailEntry } from "./EmailEntry";
@@ -22,7 +22,9 @@ import { AccountDetails } from "./redesign/AccountDetails";
 import { AUTH_SHOW_GOOGLE } from "./redesign/authConfig";
 import { EmailCode } from "./redesign/EmailCode";
 import { LoginCode } from "./redesign/LoginCode";
+import type { ResendResult } from "./redesign/OtpPanel";
 import { LoginEntry } from "./redesign/LoginEntry";
+import type { LoginThrottle } from "./redesign/loginThrottle";
 import { savePendingSignup } from "./redesign/pendingSignup";
 import { SignupCode } from "./redesign/SignupCode";
 import { SignupPhoneEntry } from "./redesign/SignupPhoneEntry";
@@ -32,7 +34,12 @@ import { getSignInNotice, setSignInNotice, type SignInNotice } from "./session";
 import { acceptedFor, isConsentRequired } from "../legal/api";
 import { ConsentNotice } from "../legal/ConsentNotice";
 import { useLegalDocuments } from "../legal/useLegalDocuments";
-import { formatAuthErrorMessage, isExpiredVerificationError } from "./validation";
+import {
+  formatAuthErrorMessage,
+  isExpiredVerificationError,
+  isSameAddressThrottle,
+  retryAfterSeconds,
+} from "./validation";
 
 type Step = AuthStep;
 
@@ -79,6 +86,8 @@ export function AuthEntryFlow({
   // The split login screen keeps what was typed so Edit and Back from the code screens return to it filled.
   const [loginTab, setLoginTab] = useState<"email" | "phone">("email");
   const [loginValue, setLoginValue] = useState("");
+  const [loginThrottle, setLoginThrottle] = useState<LoginThrottle | null>(null);
+  const throttleStampRef = useRef(0);
   // The split sign-up screen 3 keeps what was typed so Back and Edit from the email code return to it filled.
   const [signupName, setSignupName] = useState("");
   const [signupEmailInput, setSignupEmailInput] = useState("");
@@ -160,6 +169,8 @@ export function AuthEntryFlow({
 
   // "Sign up instead" shortcut from a login-time "no account found" error.
   const handleGoToSignup = () => {
+    // A hold on a login address belongs to the login screen: leaving it must not bring a stale countdown back later.
+    setLoginThrottle(null);
     setAuthMode("signup");
     setEmailOtpToken(null);
     setEmailOtpEmail("");
@@ -201,7 +212,7 @@ export function AuthEntryFlow({
     setError(STALE_TERMS_MESSAGE);
   };
 
-  const handlePhoneSubmit = async (phone: string) => {
+  const handlePhoneSubmit = async (phone: string): Promise<ResendResult> => {
     setSubmitting(true);
     setError(null);
     try {
@@ -215,17 +226,32 @@ export function AuthEntryFlow({
         phoneGateToken ? undefined : authMode,
         signupConsent,
       );
+      setLoginThrottle(null);
       setIdentifier(phone);
       goToStep("otp");
       setDevOtp(result.otp);
+      return { ok: true };
     } catch (err) {
       if (isConsentRequired(err)) {
         // The terms changed since the page loaded: reload them and ask again.
         await refetch();
         setError(STALE_TERMS_MESSAGE);
-        return;
+        return { ok: false };
+      }
+      if (variant === "split" && authMode === "login" && !phoneGateToken && isSameAddressThrottle(err)) {
+        throttleStampRef.current += 1;
+        setLoginThrottle({
+          channel: "phone",
+          value: phone,
+          seconds: retryAfterSeconds(err)!,
+          stamp: throttleStampRef.current,
+        });
+        // A resend from the code screen: that screen has no countdown of its own to show the hold, so it also shows the message.
+        if (step === "otp") setError(errorMessage(err, "Couldn't send the code. Try again."));
+        return { ok: false, waitSeconds: retryAfterSeconds(err) ?? undefined };
       }
       setError(errorMessage(err, "Couldn't send the code. Try again."));
+      return { ok: false, waitSeconds: isSameAddressThrottle(err) ? retryAfterSeconds(err) ?? undefined : undefined };
     } finally {
       setSubmitting(false);
     }
@@ -275,6 +301,7 @@ export function AuthEntryFlow({
     setError(null);
     try {
       const result = await requestEmailOtp(email, undefined, "login");
+      setLoginThrottle(null);
       setAuthMode("login");
       // No pending record at all for a login attempt -- verify below is
       // told which flow this is via emailOtpFlow, not by token presence.
@@ -284,6 +311,16 @@ export function AuthEntryFlow({
       goToStep("email_otp");
       setDevOtp(result.otp);
     } catch (err) {
+      if (variant === "split" && isSameAddressThrottle(err)) {
+        throttleStampRef.current += 1;
+        setLoginThrottle({
+          channel: "email",
+          value: email,
+          seconds: retryAfterSeconds(err)!,
+          stamp: throttleStampRef.current,
+        });
+        return;
+      }
       setError(errorMessage(err, "Couldn't send the code. Try again."));
     } finally {
       setSubmitting(false);
@@ -349,7 +386,9 @@ export function AuthEntryFlow({
     }
   };
 
-  const handleEmailOtpResend = async () => {
+  // What the resend really did, so the code screen can set its wait from it (Codex whole-batch review of B, finding 1): a held send
+  // uses the server's seconds, a failed one adds no cooldown, a sent one starts the normal minute.
+  const handleEmailOtpResend = async (): Promise<ResendResult> => {
     setSubmitting(true);
     setError(null);
     try {
@@ -359,8 +398,10 @@ export function AuthEntryFlow({
         emailOtpFlow === "login" ? "login" : undefined,
       );
       setDevOtp(result.otp);
+      return { ok: true };
     } catch (err) {
       setError(errorMessage(err, "Couldn't resend the code. Try again."));
+      return { ok: false, waitSeconds: isSameAddressThrottle(err) ? retryAfterSeconds(err) ?? undefined : undefined };
     } finally {
       setSubmitting(false);
     }
@@ -674,6 +715,7 @@ export function AuthEntryFlow({
         error={error}
         notice={notice}
         submitting={submitting}
+        throttle={loginThrottle}
         initialTab={loginTab}
         initialValue={loginValue}
         showGoogle={AUTH_SHOW_GOOGLE}
@@ -701,7 +743,7 @@ export function AuthEntryFlow({
         error={error}
         submitting={submitting}
         onSubmit={(code) => void handleEmailOtpSubmit(code)}
-        onResend={() => void handleEmailOtpResend()}
+        onResend={() => handleEmailOtpResend()}
         onBack={() => goToStep("landing")}
         onEditIdentity={() => goToStep("landing")}
       />
@@ -716,7 +758,7 @@ export function AuthEntryFlow({
         error={error}
         submitting={submitting}
         onSubmit={(code) => void handlePhoneOtpSubmit(code)}
-        onResend={() => void handlePhoneSubmit(identifier)}
+        onResend={() => handlePhoneSubmit(identifier)}
         onBack={() => goToStep("landing")}
         onEditIdentity={() => goToStep("landing")}
       />
@@ -748,7 +790,7 @@ export function AuthEntryFlow({
         error={error}
         submitting={submitting}
         onSubmit={(code) => void handlePhoneOtpSubmit(code)}
-        onResend={() => void handlePhoneSubmit(identifier)}
+        onResend={() => handlePhoneSubmit(identifier)}
         onBack={() => goToStep("landing")}
         onEditNumber={() => goToStep("landing")}
         onLogin={handleGoToLogin}
@@ -781,7 +823,7 @@ export function AuthEntryFlow({
         error={error}
         submitting={submitting}
         onSubmit={(code) => void handleEmailOtpSubmit(code)}
-        onResend={() => void handleEmailOtpResend()}
+        onResend={() => handleEmailOtpResend()}
         onBack={() => goToStep("email")}
         onEditEmail={() => goToStep("email")}
       />

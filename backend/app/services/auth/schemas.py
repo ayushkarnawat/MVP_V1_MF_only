@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import datetime
 from typing import Literal
@@ -33,6 +34,48 @@ def normalize_email(value: object) -> object:
     return value
 
 
+_INDIAN_MOBILE = re.compile(r"(?:\+91|0091|91|0)?([6-9][0-9]{9})")
+# The whitespace of JavaScript's `\s`, exactly (not Python's, which also counts \x1c to \x1f and \x85 and omits \ufeff), so a number the
+# browser folds is folded here and a number the browser rejects is not (independent Codex review of B-2, finding 8).
+_JS_WHITESPACE = "\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
+_PHONE_NOISE = re.compile("[" + _JS_WHITESPACE + r"()\-]")
+
+
+def strip_phone_noise(value: str) -> str:
+    """Removes spaces (the browser's set), dashes and brackets from a phone number as typed."""
+    return _PHONE_NOISE.sub("", value)
+
+# One mailbox: no whitespace, comma, semicolon, angle bracket, bracket, backslash, quote or second `@`.
+_MAILBOX = re.compile(r"[^\s,;<>()\[\]\\\":@]+@[^\s,;<>()\[\]\\\":@]+")
+
+
+def single_mailbox(value: object) -> object:
+    """Rejects anything that is not exactly one mailbox. The shared SES sender splits its address on commas (that is how the ops
+    alert list works), so `a@example.com,b@example.org` used to count as ONE recipient for the address guard and the 60-second rule
+    and still reach two inboxes (independent Codex review of B-2, finding 2). Non-text input passes through for Pydantic's own error."""
+    if isinstance(value, str) and not _MAILBOX.fullmatch(value):
+        raise ValueError("Enter one email address.")
+    return value
+
+
+def normalize_phone(value: object) -> object:
+    """Canonicalizes an Indian mobile number to `+91XXXXXXXXXX`.
+
+    Same reason as `normalize_email`: the phone number is an identity key (`users.phone_number`, the `phone_otp` identity's
+    subject, `otp_requests.phone_number`, the 60-second resend rule and the per-address guard) and all of them compare plain
+    strings, so `9000000001`, `09000000001` and `+91 90000 00001` would otherwise be three different people. The browser already
+    sends `+91XXXXXXXXXX` (`validateIndianPhone`); this makes every other caller land on the same form.
+
+    Anything that is not an Indian mobile in one of the browser's accepted spellings (spaces, dashes, brackets, then `+91`,
+    `0091`, `91` or a leading `0`) is returned exactly as sent, so no existing answer changes for it. Because the prefix
+    alternatives are tried in order and the number part is exactly ten digits, `9123456789` stays a ten-digit number.
+    """
+    if not isinstance(value, str):
+        return value
+    match = _INDIAN_MOBILE.fullmatch(strip_phone_noise(value))
+    return f"+91{match[1]}" if match else value
+
+
 class OtpRequestBody(BaseModel):
     phone_number: str
     pending_token: str | None = None
@@ -43,6 +86,11 @@ class OtpRequestBody(BaseModel):
     # 2026-10-07: a phone sign-up's T&C + Privacy agreement, made by clicking
     # "Get OTP". Captured on the OTP row (0030); ignored for login / pending_token.
     accepted_documents: list[AcceptedDocument] | None = None
+
+    @field_validator("phone_number", mode="before")
+    @classmethod
+    def _normalize_phone(cls, value: object) -> object:
+        return normalize_phone(value)
 
 
 class OtpRequestResponse(BaseModel):
@@ -65,6 +113,11 @@ class OtpVerifyBody(BaseModel):
     # Required (current versions) only for flow="signup"; ignored otherwise.
     accepted_documents: list[AcceptedDocument] | None = None
 
+    @field_validator("phone_number", mode="before")
+    @classmethod
+    def _normalize_phone(cls, value: object) -> object:
+        return normalize_phone(value)
+
 
 class SignupEmailBody(BaseModel):
     email: str
@@ -74,7 +127,7 @@ class SignupEmailBody(BaseModel):
     @field_validator("email", mode="before")
     @classmethod
     def _normalize_email(cls, value: object) -> object:
-        return normalize_email(value)
+        return single_mailbox(normalize_email(value))
 
 
 class OtpVerifyResponse(BaseModel):
@@ -135,7 +188,7 @@ class EmailOtpRequestBody(BaseModel):
     @field_validator("email", mode="before")
     @classmethod
     def _normalize_email(cls, value: object) -> object:
-        return normalize_email(value)
+        return single_mailbox(normalize_email(value))
 
 
 class EmailOtpVerifyBody(BaseModel):
@@ -149,7 +202,7 @@ class EmailOtpVerifyBody(BaseModel):
     @field_validator("email", mode="before")
     @classmethod
     def _normalize_email(cls, value: object) -> object:
-        return normalize_email(value)
+        return single_mailbox(normalize_email(value))
 
 
 class GoogleAuthBody(BaseModel):
@@ -234,10 +287,9 @@ class ContactChangeRequestBody(BaseModel):
     @classmethod
     def _normalize_identifier(cls, value: object, info) -> object:
         if info.data.get("channel") == "email":
-            return normalize_email(value)
-        if isinstance(value, str):
-            return value.strip()
-        return value
+            return single_mailbox(normalize_email(value))
+        # Phone: the same canonical form the sign-in side stores, so a changed number is found again by any spelling.
+        return normalize_phone(value.strip() if isinstance(value, str) else value)
 
 
 class ContactChangeVerifyBody(ContactChangeRequestBody):

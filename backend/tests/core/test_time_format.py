@@ -26,3 +26,13 @@ def test_format_ist_date_rolls_to_the_next_india_day():
 def test_a_naive_datetime_is_read_as_utc():
     assert format_ist_date(datetime(2026, 11, 11, 19, 0)) == "12 Nov 2026"
     assert format_ist_datetime(datetime(2026, 11, 6, 10, 3)) == "6 Nov 2026, 3:33 PM IST"
+
+
+def test_format_ist_datetime_can_spell_the_month_in_full_and_the_default_is_unchanged():
+    value = datetime(2026, 11, 6, 10, 3, tzinfo=timezone.utc)
+
+    assert format_ist_datetime(value, full_month=True) == "6 November 2026, 3:33 PM IST"
+    assert format_ist_datetime(value) == "6 Nov 2026, 3:33 PM IST"
+    # A month whose short and long names are the same word.
+    assert format_ist_datetime(datetime(2026, 5, 6, 10, 3, tzinfo=timezone.utc), full_month=True) == "6 May 2026, 3:33 PM IST"
+

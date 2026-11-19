@@ -19,6 +19,9 @@ export interface AuthSplitCardProps {
   layout?: AuthLayout;
   /** "mint" is the very light green panel; "white" is a white panel with a short hairline on its right edge. */
   tone?: "mint" | "white";
+  /** True while a message (a validation notice or an error panel) is showing: spacing steps to the next tighter size so the message
+   *  does not push the right pane into scrolling (see "dense" in auth-tokens.css). */
+  dense?: boolean;
 }
 
 const COLUMNS: Record<AuthLayout, string> = {
@@ -29,13 +32,14 @@ const COLUMNS: Record<AuthLayout, string> = {
 // A card as tall as the window allows (the --auth-card-h budget in auth-tokens.css), so a whole screen fits one window
 // on any desktop. The right panel is three rows: a top bar that is identical on every screen, one block centred both
 // ways, and an optional bottom row. Below 1024 px the panels stack and the page may scroll.
-export function AuthSplitCard({ left, right, step, done, onBack, bottom, bottomRule = true, layout = "stacked", tone = "mint" }: AuthSplitCardProps) {
+export function AuthSplitCard({ left, right, step, done, onBack, bottom, bottomRule = true, layout = "stacked", tone = "mint", dense = false }: AuthSplitCardProps) {
   return (
     <AuthLayoutContext.Provider value={layout}>
       <div
         data-testid="auth-card"
         data-layout={layout}
         data-tone={tone}
+        data-dense={dense ? "true" : undefined}
         className={`auth-card mx-auto grid w-full max-w-[var(--auth-card-w)] grid-cols-1 overflow-hidden rounded-[28px] bg-white lg:h-[var(--auth-card-h)] lg:min-h-[520px] ${COLUMNS[layout]}`}
         style={{ boxShadow: "var(--auth-card-shadow)" }}
       >

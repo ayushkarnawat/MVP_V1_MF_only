@@ -6,7 +6,7 @@ import { CancelImportDialog } from "./prompts/CancelImportDialog";
 import { useImportFlow } from "./useImportFlow";
 import { clearCasResumeStep2 } from "./casResumeState";
 import { buildConfirmBody } from "./confirmBody";
-import { buildImportNotice, type ImportNotice } from "./importNotice";
+import { buildImportNotice, type ImportNotice, type ImportOutcome } from "./importNotice";
 import { UnidentifiedFundsDialog } from "./UnidentifiedFundsDialog";
 import type { ImportPreviewResponse, PersonConfirmation, PersonPreview, SchemeConfirmation } from "./types";
 
@@ -32,7 +32,7 @@ function otherAccountIncludes(people: PersonPreview[]): Record<string, boolean> 
  */
 export function useImportOrchestration(
   householdMemberId: string,
-  onDone?: (notice: ImportNotice) => void,
+  onDone?: (notice: ImportNotice, outcome?: ImportOutcome) => void,
 ) {
   const flow = useImportFlow(householdMemberId);
   const { stage, preview, prompt, error } = flow;
@@ -49,6 +49,7 @@ export function useImportOrchestration(
 
   const autoAttempt = useRef<ImportPreviewResponse | null>(null);
   const completionSent = useRef(false);
+  const memberNotInFileAnswered = useRef(false);
   // Deliberately no "Complete profile" dialog here. A new member (detected from the CAS or
   // added through "Add X as a family member") is completed later, inside the app, from the
   // "N% complete" pill or Profile > Family. Asking during onboarding or an import makes the
@@ -64,7 +65,12 @@ export function useImportOrchestration(
       return;
     }
     if (!result) return;
-    onDone?.(buildImportNotice(result));
+    const notice = buildImportNotice(result);
+    if (memberNotInFileAnswered.current && result.people.length === 1) {
+      onDone?.(notice, { landOnPersonId: result.people[0].member_id });
+    } else {
+      onDone?.(notice);
+    }
   }, [flow.confirmResult, flow.errorCode, householdMemberId, onDone]);
 
   useEffect(() => {
@@ -81,6 +87,7 @@ export function useImportOrchestration(
     lastConfirm.current = null;
     autoAttempt.current = null;
     completionSent.current = false;
+    memberNotInFileAnswered.current = false;
     await flow.cancel();
   };
 
@@ -93,6 +100,7 @@ export function useImportOrchestration(
     lastConfirm.current = null;
     autoAttempt.current = null;
     completionSent.current = false;
+    memberNotInFileAnswered.current = false;
     await flow.upload(file, password);
   };
 
@@ -112,6 +120,7 @@ export function useImportOrchestration(
         return;
       default:
         if (action.kind === "acknowledge" && action.code === "cross_account_pan_blocked") setU7Included(true);
+        if (action.kind === "acknowledge" && action.code === "member_not_in_file") memberNotInFileAnswered.current = true;
         void flow.resolve(action);
     }
   };

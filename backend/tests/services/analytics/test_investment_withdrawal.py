@@ -16,6 +16,7 @@ from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
 from app.services.analytics.investment_withdrawal import compute_investment_withdrawal
+from app.services.analytics.schemas import InvestmentWithdrawalEntry, InvestmentWithdrawalResult
 from app.services.dashboard.schemas import SipRow
 
 _MODULE = "app.services.analytics.investment_withdrawal"
@@ -411,6 +412,59 @@ def test_ledger_entries_carry_units_nav_and_masked_folio():
     assert dumped["units"] == "48.123" and dumped["nav"] == "51.9500" and dumped["folio"] == "XXXX6789"
 
 
+def test_ledger_entry_has_full_folio_number_and_old_masked_field():
+    db = _session()
+    member = _member(db)
+    folio = _folio(db, member)
+    folio.folio_number = "10234567 / 0"
+    _txn(db, folio, TransactionType.PURCHASE, date(2024, 3, 1), "50.00")
+    [entry] = _run(db, [member.id]).monthly[0].entries
+
+    assert entry.model_dump(mode="json") == {
+        "transaction_id": str(db.query(Transaction).one().id),
+        "date": "2024-03-01",
+        "type": "purchase",
+        "amount": "50.00",
+        "direction": "invested",
+        "scheme_name": db.get(Scheme, folio.scheme_id).name,
+        "household_member_id": str(member.id),
+        "household_member_name": member.name,
+        "units": "1.000",
+        "nav": "50.0000",
+        "folio": "XXXX5670",
+        "scheme_id": str(folio.scheme_id),
+        "folio_number": "10234567 / 0",
+    }
+
+
+def test_entry_without_folio_has_no_full_folio_number():
+    entry = InvestmentWithdrawalEntry(
+        transaction_id="t", date=date(2024, 3, 1), type=TransactionType.PURCHASE,
+        amount="1.00", direction="invested", scheme_name="Test Fund",
+        household_member_id="m", household_member_name="Test Member",
+    )
+
+    assert entry.folio is None
+    assert entry.folio_number is None
+
+
+def test_old_stored_ledger_payload_defaults_full_folio_number_to_none():
+    db = _session()
+    member = _member(db)
+    folio = _folio(db, member)
+    folio.folio_number = "10234567 / 0"
+    _txn(db, folio, TransactionType.PURCHASE, date(2024, 3, 1), "50.00")
+    stored = _run(db, [member.id]).model_dump(mode="json")
+    for bucket in (stored["monthly"][0], stored["yearly"][0]):
+        bucket["entries"][0].pop("folio_number", None)
+
+    result = InvestmentWithdrawalResult.model_validate(stored)
+
+    for entry in (result.monthly[0].entries[0], result.yearly[0].entries[0]):
+        assert entry.folio == "XXXX5670"
+        assert entry.folio_number is None
+
+
 def _two_folios(db, member):
     return _folio(db, member), _folio(db, member)
 
@@ -490,7 +544,6 @@ def test_entries_carry_the_funds_scheme_id():
 
 
 def test_entry_parses_without_scheme_id():
-    from app.services.analytics.schemas import InvestmentWithdrawalEntry
     entry = InvestmentWithdrawalEntry.model_validate({
         "transaction_id": "t", "date": "2024-03-01", "type": "purchase", "amount": "1.00",
         "direction": "invested", "scheme_name": "F", "household_member_id": "m", "household_member_name": "M",

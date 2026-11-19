@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     google_oauth_client_id: str = ""
     allowed_origins: str = ""
 
+    auth_guard_enabled: bool = True
+    auth_guard_secret: str = ""
+    auth_guard_code_limit: int = 10
+    auth_guard_check_limit: int = 30
+    auth_guard_window_minutes: int = 10
+
     # PAN encryption (ADR-004 reopened 2026-09-18). Dev/demo key source —
     # production maps this to a Secrets Manager secret encrypted by the
     # already-staged KMS key (infra/modules/security), injected the same

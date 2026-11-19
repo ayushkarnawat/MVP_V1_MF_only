@@ -39,7 +39,8 @@
         "folio_id": "444d5ba7-9f9c-55dd-af88-73c6779dd8f0",
         "member_id": "80008f0b-4cf4-5e83-b15a-b3122e6abbf2",
         "member_name": "ASHA RAO",
-        "folio_masked": "XXXXXNLY1"
+        "folio_masked": "XXXXXNLY1",
+        "folio_number": "CAS-ONLY-1"
       }
     ]
   }

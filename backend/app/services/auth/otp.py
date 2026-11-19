@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import secrets
 from dataclasses import dataclass
+from math import ceil
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
@@ -144,7 +145,11 @@ def create_otp_request(
         seconds_since = (now - created_at).total_seconds()
         if seconds_since < RESEND_THROTTLE_SECONDS:
             raise OtpRequestThrottledError(
-                f"Please wait {int(RESEND_THROTTLE_SECONDS - seconds_since)}s before requesting another code."
+                f"Please wait {int(RESEND_THROTTLE_SECONDS - seconds_since)}s before requesting another code.",
+                # The sentence's own int() can print 0s at the very end of the window; the number never does, and it rounds
+                # UP so a countdown built on it never unlocks the button before the server will accept the request
+                # (Codex whole-batch review of B, finding 8: 41.75 s left is 42, not 41).
+                retry_after_seconds=max(1, ceil(RESEND_THROTTLE_SECONDS - seconds_since)),
             )
 
     otp = generate_otp()
@@ -245,7 +250,15 @@ def delete_otp_requests_for_identifiers(
 
 class OtpRequestThrottledError(Exception):
     """Raised when a new OTP is requested for an identifier that already
-    has an unexpired, unverified request under 60 seconds old."""
+    has an unexpired, unverified request under 60 seconds old.
+
+    `str(exc)` is the plain sentence old clients read; `retry_after_seconds`
+    (at least 1) is the same wait as a number, for the login screen's countdown
+    (Batch B item 4)."""
+
+    def __init__(self, message: str, retry_after_seconds: int) -> None:
+        super().__init__(message)
+        self.retry_after_seconds = retry_after_seconds
 
 
 class OtpVerificationError(Exception):

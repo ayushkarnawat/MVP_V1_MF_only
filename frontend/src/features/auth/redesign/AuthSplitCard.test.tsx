@@ -74,3 +74,15 @@ describe("AuthSplitCard", () => {
     expect(screen.getByTestId("auth-left-slot").className).toContain("auth-left-white");
   });
 });
+
+
+// Owner decision 19 Nov 2026 (Codex whole-batch review of B, finding 6): while a message is showing, the card steps to the next
+// tighter spacing so the message does not push the pane into scrolling.
+describe("AuthSplitCard: dense spacing while a message is showing", () => {
+  it("marks the card dense only when asked", () => {
+    const { rerender } = render(<AuthSplitCard left={<p>left</p>} right={<p>right</p>} />);
+    expect(screen.getByTestId("auth-card")).not.toHaveAttribute("data-dense");
+    rerender(<AuthSplitCard left={<p>left</p>} right={<p>right</p>} dense />);
+    expect(screen.getByTestId("auth-card")).toHaveAttribute("data-dense", "true");
+  });
+});

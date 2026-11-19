@@ -4,6 +4,7 @@ import { AuthLeftPanel } from "./AuthLeftPanel";
 import { AuthPage } from "./AuthPage";
 import { AuthSplitCard } from "./AuthSplitCard";
 import { OtpPanel } from "./OtpPanel";
+import type { ResendResult } from "./OtpPanel";
 import { EMAIL_CODE_HEADLINE, EMAIL_CODE_PARAGRAPH } from "./signupCopy";
 
 export interface EmailCodeProps {
@@ -13,7 +14,7 @@ export interface EmailCodeProps {
   error: string | null;
   submitting: boolean;
   onSubmit: (code: string) => void;
-  onResend: () => void;
+  onResend: () => void | Promise<ResendResult | void>;
   /** Back and Edit email address both return to screen 3 with the typed values kept. */
   onBack: () => void;
   onEditEmail: () => void;

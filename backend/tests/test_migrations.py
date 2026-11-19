@@ -11,7 +11,7 @@ def test_0045_is_in_the_chain_and_sqlite_upgrade_then_downgrade_to_0043(tmp_path
 
     heads = _alembic("heads")
     assert heads.returncode == 0, heads.stderr
-    assert heads.stdout.strip() == "0053 (head)"
+    assert heads.stdout.strip() == "0054 (head)"
 
     up = _alembic("upgrade", "head")
     assert up.returncode == 0, up.stderr
@@ -1777,11 +1777,11 @@ def test_0048_downgrade_recreates_exact_0034_tables_empty(tmp_path, monkeypatch)
         engine.dispose()
 
 
-def test_head_is_the_goals_migration(tmp_path, monkeypatch):
+def test_head_is_the_request_guard_migration(tmp_path, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'h.db'}")
     heads = _alembic("heads")
     assert heads.returncode == 0, heads.stderr
-    assert heads.stdout.strip() == "0053 (head)"
+    assert heads.stdout.strip() == "0054 (head)"
 
 
 def test_0053_upgrade_downgrade_upgrade_round_trip(tmp_path, monkeypatch):

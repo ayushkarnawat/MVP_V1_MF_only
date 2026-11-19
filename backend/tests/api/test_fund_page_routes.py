@@ -119,7 +119,7 @@ def test_folio_number_route_404s_for_foreign_household():
     assert response.status_code == 404
 
 
-def test_summary_response_never_contains_the_full_folio_number():
+def test_summary_response_contains_full_and_masked_folio_numbers_for_own_household():
     db = make_session()
     household = add_user_household(db)
     hold = fx_hold(db, household)
@@ -127,8 +127,11 @@ def test_summary_response_never_contains_the_full_folio_number():
 
     response = _authed_client(db, user).get(f"/fund-page/{hold.scheme.id}/summary")
 
-    assert "4400918/3" not in response.text
-    assert "A12345678" not in response.text
+    assert response.status_code == 200
+    assert {
+        (folio["folio_number"], folio["folio_masked"])
+        for folio in response.json()["details"]["folios"]
+    } == {("4400918/3", "XXXXX9183"), ("A12345678", "XXXXX5678")}
 
 
 def test_performance_route_returns_appendix_a_contract():

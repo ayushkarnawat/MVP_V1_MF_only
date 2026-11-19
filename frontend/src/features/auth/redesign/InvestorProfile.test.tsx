@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { INVESTOR_PROFILE_OPTIONS } from "./finishCopy";
 import { InvestorProfile } from "./InvestorProfile";
 
 function mount(over: Partial<Parameters<typeof InvestorProfile>[0]> = {}) {
@@ -7,7 +8,7 @@ function mount(over: Partial<Parameters<typeof InvestorProfile>[0]> = {}) {
   render(<InvestorProfile {...handlers} {...over} />);
   return handlers;
 }
-const SIX = ["Build my wealth", "Plan for retirement", "Fund my children's education", "Buy a home", "Achieve financial freedom", "Plan my taxes"];
+const SIX = ["Build my wealth", "Plan for retirement", "Fund my children’s education", "Buy a home", "Achieve financial freedom", "Plan my taxes"];
 const goalBoxes = () => within(screen.getByRole("group", { name: "What are you working towards?" })).getAllByRole("checkbox");
 const options = () => within(screen.getByRole("radiogroup", { name: "How do you usually invest?" })).getAllByRole("radio");
 const next = () => fireEvent.click(screen.getByRole("button", { name: "Continue" }));
@@ -26,10 +27,9 @@ describe("InvestorProfile, sign-up screen 4 (task 6.12)", () => {
     mount();
     expect(screen.getByRole("heading", { level: 1, name: "How do you usually invest?" })).toBeInTheDocument();
     expect(options().map((option) => within(option).getByText(/./, { selector: "span.font-semibold" }).textContent)).toEqual([
-      "I'm just getting started", "I manage my own investments", "I work with a financial professional", "A mix of both",
+      "I’m just getting started", "I manage my own investments", "I work with a financial professional", "A mix of both",
     ]);
-    expect(screen.getByText("I'm new to investing or still building my portfolio.")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: /What are you working towards\?/ })).toHaveTextContent("(Select all that apply)");
+    expect(screen.getByRole("heading", { level: 2, name: "What are you working towards?" })).toBeInTheDocument();
     expect(goalBoxes().map((box) => box.textContent)).toEqual(SIX);
   });
   it("pre-selects nothing and has no Skip", () => {
@@ -138,7 +138,7 @@ describe("InvestorProfile, sign-up screen 4 (task 6.12)", () => {
     expect(dot).toBeInTheDocument();
     expect(dot?.className).toContain("rounded-full");
   });
-  it("renders six chips with icon and chip-box, inside a grid-cols-3 container", () => {
+  it("renders six chips with icon and chip-box, inside a two-column grid (Batch B option A)", () => {
     mount();
     const boxes = goalBoxes();
     expect(boxes).toHaveLength(6);
@@ -147,12 +147,122 @@ describe("InvestorProfile, sign-up screen 4 (task 6.12)", () => {
       expect(within(box).getByTestId("chip-box")).toBeInTheDocument();
     });
     const grid = screen.getByRole("group", { name: "What are you working towards?" });
-    expect(grid).toHaveClass("grid-cols-3");
+    expect(grid).toHaveClass("grid-cols-2");
+    expect(grid).not.toHaveClass("grid-cols-3");
+    expect(grid).toHaveClass("gap-[calc(var(--auth-gap-sm)+3px)]");
   });
-  it("goals heading is a flex row with whitespace-nowrap and Select all / Clear all button", () => {
+  it("goals heading is a flex row with whitespace-nowrap and the Select all / Clear all button (the hint moved out of it)", () => {
     mount();
-    const headingRow = screen.getByRole("heading", { level: 2, name: /What are you working towards\?/ }).parentElement;
+    const heading = screen.getByRole("heading", { level: 2, name: "What are you working towards?" });
+    const headingRow = heading.parentElement;
     expect(headingRow).toHaveClass("flex");
     expect(headingRow).toHaveClass("whitespace-nowrap");
+    expect(within(headingRow as HTMLElement).getByRole("button", { name: "Select all" })).toBeInTheDocument();
+    expect(within(headingRow as HTMLElement).queryByText("(Select all that apply)")).toBeNull();
+  });
+});
+
+// Batch B item 3 (B-12): the onboarding screen in the workbook's option A, section 5: no subtitle line, no subtext in the four
+// rows, the rows as one grouped list (a bordered group with hairline dividers) no taller than 48 px, the "(Select all that apply)"
+// hint on its own muted line, two-column goal chips and a little more air. Red until B-12 builds it. The fit at five window sizes
+// cannot be measured in jsdom; the orchestrator measures it in a browser (1280x600, 1366x650, 1440x810, 1536x730, 1920x1080).
+describe("InvestorProfile: the decluttered layout (Batch B, item 3, option A)", () => {
+  const radiogroup = () => screen.getByRole("radiogroup", { name: "How do you usually invest?" });
+  const SUBTEXTS = [
+    "I'm new to investing or still building my portfolio.",
+    "I choose and manage investments myself.",
+    "I invest with help from an advisor, distributor or family office.",
+    "I manage some investments myself and get professional guidance for others.",
+  ];
+
+  it('the line "This helps us tailor your experience and insights." is gone', () => {
+    mount();
+    expect(screen.queryByText("This helps us tailor your experience and insights.")).toBeNull();
+  });
+  it("the four rows have no subtext, and the shared copy list no longer carries a subtitle for them", () => {
+    mount();
+    for (const text of SUBTEXTS) expect(screen.queryByText(text)).toBeNull();
+    for (const option of INVESTOR_PROFILE_OPTIONS) expect(Object.keys(option).sort()).toEqual(["title", "value"]);
+  });
+  it("roles, names, option order and the title class are unchanged (the tests and the Profile screen rely on them)", () => {
+    mount();
+    expect(options().map((row) => within(row).getByText(/./, { selector: "span.font-semibold" }).textContent)).toEqual([
+      "I’m just getting started", "I manage my own investments", "I work with a financial professional", "A mix of both",
+    ]);
+    expect(options().every((row) => row.getAttribute("role") === "radio")).toBe(true);
+    expect(goalBoxes().map((box) => box.textContent)).toEqual(SIX);
+  });
+  it("the four rows are one grouped list: a bordered, rounded group that clips its rows", () => {
+    mount();
+    expect(radiogroup()).toHaveClass("auth-option-group", "overflow-hidden");
+  });
+  it("each row is a plain list row (not a card), with the wider padding, and a hairline divider on all but the last", () => {
+    mount();
+    const rows = options();
+    rows.forEach((row) => {
+      expect(row).toHaveClass("auth-option", "px-[18px]", "min-h-[var(--auth-option-h)]");
+      expect(row).not.toHaveClass("auth-choice");
+      expect(row).not.toHaveClass("rounded-2xl");
+    });
+    expect(rows[0]).toHaveClass("border-b");
+    expect(rows[2]).toHaveClass("border-b");
+    expect(rows[3]).not.toHaveClass("border-b");
+  });
+  it("a row still shows its icon badge, its title and the radio, and no second line of text", () => {
+    mount();
+    for (const row of options()) {
+      expect(within(row).getByTestId("icon-badge")).toBeInTheDocument();
+      expect(within(row).getByTestId("option-radio")).toBeInTheDocument();
+      expect(row.querySelectorAll("span.flex-1 > span.block")).toHaveLength(1);
+    }
+  });
+  it('the hint "(Select all that apply)" is its own muted line under the goals heading, small and tight', () => {
+    mount();
+    const hint = screen.getByText("(Select all that apply)");
+    expect(hint.tagName).toBe("P");
+    expect(hint).toHaveClass("text-[12.5px]", "leading-[1.2]", "text-[var(--auth-muted)]");
+    const heading = screen.getByRole("heading", { level: 2, name: "What are you working towards?" });
+    expect(heading.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(hint.compareDocumentPosition(screen.getByRole("group", { name: "What are you working towards?" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+  it("there is more air: the page stack is 6 px looser and each section 3 px looser than before", () => {
+    mount();
+    const stack = screen.getByRole("heading", { level: 1, name: "How do you usually invest?" }).closest("div.flex.flex-col.text-left");
+    expect(stack).toHaveClass("gap-[calc(var(--auth-gap)+6px)]");
+    expect(radiogroup().parentElement).toHaveClass("gap-[calc(var(--auth-gap-sm)+3px)]");
+    expect(screen.getByRole("group", { name: "What are you working towards?" }).parentElement).toHaveClass("gap-[calc(var(--auth-gap-sm)+3px)]");
+  });
+  it("Continue with nothing chosen marks the group (not each row) as invalid, and the message and focus behave as before", () => {
+    mount();
+    next();
+    expect(radiogroup()).toHaveAttribute("data-invalid", "true");
+    expect(screen.getByText("Choose how you usually invest.")).toBeInTheDocument();
+    expect(options()[0]).toHaveFocus();
+  });
+  it("choosing a row clears the invalid mark; Save on Continue and the answers sent are unchanged", async () => {
+    const { onSubmit } = mount();
+    next();
+    fireEvent.click(options()[1]);
+    expect(radiogroup()).not.toHaveAttribute("data-invalid");
+    fireEvent.click(goalBoxes()[0]);
+    next();
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ investorType: "self_directed", goals: ["wealth_creation"] }));
+  });
+});
+
+
+describe("InvestorProfile: spacing while a message is showing (Codex review of B, finding 6)", () => {
+  it("is dense only while a validation message or a save error is showing", async () => {
+    mount();
+    expect(screen.getByTestId("auth-card")).not.toHaveAttribute("data-dense");
+    next();
+    expect(screen.getByTestId("auth-card")).toHaveAttribute("data-dense", "true");
+  });
+  it("goes back to the normal spacing once the answers are given", async () => {
+    mount();
+    next();
+    fireEvent.click(options()[0]);
+    for (const box of goalBoxes().slice(0, 1)) fireEvent.click(box);
+    await waitFor(() => expect(screen.getByTestId("auth-card")).not.toHaveAttribute("data-dense"));
   });
 });

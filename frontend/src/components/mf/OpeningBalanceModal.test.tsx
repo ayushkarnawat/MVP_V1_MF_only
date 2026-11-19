@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { OpeningBalanceModal } from "./OpeningBalanceModal";
 import * as api from "@/features/import/api";
+import { resetFolioVisibilityForTests } from "@/lib/folioVisibility";
 
 describe("OpeningBalanceModal", () => {
   afterEach(() => {
@@ -64,9 +65,15 @@ describe("OpeningBalanceModal", () => {
     });
   });
 
-  it("masks the folio number to its last four characters", () => {
+  // Batch C 17c: the dialog's own private mask is gone; it shows the full number through the shared FolioNumber.
+  it("shows the folio number in full with an eye beside it (no private mask)", () => {
+    resetFolioVisibilityForTests();
     render(<OpeningBalanceModal isOpen gap={{ ...gapItem, folio_number: "1234567/89" }} onClose={vi.fn()} onResolved={vi.fn()} />);
-    expect(screen.getByText(/Folio: XXXX7\/89/)).toBeInTheDocument();
+    expect(screen.getByText("1234567/89")).toBeInTheDocument();
+    expect(screen.queryByText(/XXXX7\/89/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Hide folio numbers" }));
+    expect(screen.getByText("XXXX4567/89")).toBeInTheDocument();
+    expect(screen.queryByText("1234567/89")).toBeNull();
     expect(screen.queryByText(/1234567/)).not.toBeInTheDocument();
   });
 });
