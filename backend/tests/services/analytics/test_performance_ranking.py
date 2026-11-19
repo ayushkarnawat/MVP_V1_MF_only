@@ -212,3 +212,41 @@ def test_ranked_pool_contains_the_direct_series_of_a_fund_whose_unknown_plan_ser
 
     assert set(ranking.pools) == {"1Y", "3Y", "5Y"}
     assert all(set(pool) == {direct.id} for pool in ranking.pools.values())
+
+
+def _ranking_pools_without_representative(scheme):
+    from app.services.analytics.performance_ranking import RankingPools
+    return RankingPools(
+        peers=CategoryPeers(schemes=[], fund_count=1, representative_of={}),
+        pools={period: {uuid.uuid4(): Decimal("0.10"), uuid.uuid4(): Decimal("0.20")} for period in ("1Y", "3Y", "5Y")},
+        names={},
+    )
+
+
+def test_held_fund_with_no_growth_series_says_so_instead_of_not_enough_history():
+    # A held fund whose only series is an IDCW option has no Growth series to be ranked by (the 17 Nov rule:
+    # Growth options only). The row must give that reason through its row-level key, so the screen no longer
+    # says "Not enough history" (which is false for it). The period status stays "not_enough_history" so a
+    # client that does not know the key shows exactly what it showed before (additive change).
+    from app.services.analytics.performance_ranking import apply_ranks, new_ranking_row
+    scheme = Scheme(id=uuid.uuid4(), name="Storybook Comet Fund - Direct Plan - IDCW", amc_name="A",
+                    sebi_category=CATEGORY, plan_type=SchemePlanType.DIRECT, is_active=True)
+    row = new_ranking_row(scheme)
+    apply_ranks(row, scheme, _ranking_pools_without_representative(scheme))
+
+    assert row.disclaimer_key == "no_growth_series_not_ranked"
+    assert row.ranked_as is None
+    assert all(period.rank is None and period.status == "not_enough_history" for period in row.periods.values())
+
+
+def test_a_fund_that_is_ranked_or_only_short_of_history_gets_no_such_key():
+    from app.services.analytics.performance_ranking import RankingPools, apply_ranks, new_ranking_row
+    scheme = Scheme(id=uuid.uuid4(), name="Storybook Comet Fund - Direct Plan - Growth", amc_name="A",
+                    sebi_category=CATEGORY, plan_type=SchemePlanType.DIRECT, is_active=True)
+    peers = CategoryPeers(schemes=[scheme], fund_count=1, representative_of={scheme.id: scheme.id})
+    short = RankingPools(peers=peers, pools={period: {} for period in ("1Y", "3Y", "5Y")}, names={scheme.id: scheme.name})
+    row = new_ranking_row(scheme)
+    apply_ranks(row, scheme, short)
+
+    assert row.disclaimer_key is None
+    assert all(period.status == "not_enough_history" for period in row.periods.values())
