@@ -161,8 +161,11 @@ def test_final_flow_is_dated_with_the_price_date_not_the_server_clock(db_session
     _assert_rate(summary.current_holdings_xirr, reference.expected, "Friday-priced tile")
 
 
-@pytest.mark.xfail(strict=True, reason='XR-3 finding F3/F8 (FX-8d): after a new price the tile moves to 20% while the stored column stays at 10% until the next recompute.')
 def test_tile_and_stored_column_agree_for_the_same_household_and_day(db_session, monkeypatch):
+    from app.services.analytics.scheme_universe import UniverseRow
+    from app.services.dashboard import held_nav_refresh
+    from scripts.jobs import refresh_nav_daily as job
+
     today = date.today()
     folio = _household(db_session, today - timedelta(days=365))
     user_id = _user_id(db_session, folio)
@@ -171,16 +174,25 @@ def test_tile_and_stored_column_agree_for_the_same_household_and_day(db_session,
 
     before = asyncio.run(get_aggregate_holdings(db_session, user_id))
     # One fund held by one member makes the whole tile comparable to the column.
-    _assert_rate(before.current_holdings_xirr, Decimal("0.10"), "tile before NAV publication")
-    _assert_rate(before.consolidated[0].xirr, Decimal("0.10"), "stored column before NAV publication")
+    previous_rate = Decimal("1.10") ** (Decimal(365) / Decimal(364)) - 1
+    _assert_rate(before.current_holdings_xirr, previous_rate, "tile before NAV publication")
+    _assert_rate(before.consolidated[0].xirr, previous_rate, "stored column before NAV publication")
 
-    _store_nav(db_session, folio, today, Decimal("12"))
+    scheme = db_session.get(Scheme, folio.scheme_id)
+    amfi_row = UniverseRow(amfi_code=scheme.amfi_code, isin=None, name=scheme.name, amc_name=scheme.amc_name,
+                           sebi_category=scheme.sebi_category, nav=Decimal("12"), nav_date=today)
+    section = next(section for section in recompute._SECTIONS if section.name == "benchmark_funds")
+    monkeypatch.setattr(recompute, "_SECTIONS", [section])
+    monkeypatch.setattr(job, "fetch_amfi_rows", AsyncMock(return_value=[amfi_row]))
+    monkeypatch.setattr(held_nav_refresh, "_fetch_nav_history", AsyncMock(return_value=[]))
+    outcome = asyncio.run(job.main_async(db_session, held_only=True))
     after = asyncio.run(get_aggregate_holdings(db_session, user_id))
     assert after.consolidated[0].current_nav_date == today
     # Both should use 1200 / 1000 - 1 after today's NAV is available.
     updated_rate = Decimal("0.20")
     _assert_rate(after.current_holdings_xirr, updated_rate, "live tile after NAV publication")
     _assert_rate(after.consolidated[0].xirr, updated_rate, "stored column after NAV publication")
+    assert outcome.result.filled_scheme_ids == [folio.scheme_id]
 
 
 def test_same_household_morning_and_evening(db_session, monkeypatch):

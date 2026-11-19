@@ -60,7 +60,13 @@ from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.household_members import list_household_members
 from app.services.dashboard.schemas import HoldingRow
 from app.services.dashboard.xirr import _RELEVANT_TYPES as _XIRR_RELEVANT_TYPES, _XIRR_DEBIT_TYPES, _FUND_RELEVANT_TYPES
-from app.services.dashboard.xirr import latest_holding_price_date, unpriced_holding_scheme_ids
+from app.services.dashboard.xirr import (
+    PortfolioXirrDisplay,
+    latest_holding_price_date,
+    portfolio_cash_flows,
+    portfolio_xirr_display,
+    unpriced_holding_scheme_ids,
+)
 from app.services.dashboard.xirr import portfolio_xirr as _portfolio_xirr
 from app.services.lot_rules import paid_amount
 
@@ -379,18 +385,24 @@ async def compute_fund_vs_benchmark(
     window_jobs: list[
         tuple[FundBenchmarkRow, uuid.UUID, list[Transaction], BenchmarkIndex, Decimal | None, Decimal | None]
     ] = []
+    switch_debits = frozenset({TransactionType.SWITCH_IN})
     for scheme_id, scheme_txns in grouped.items():
         scheme = schemes[scheme_id]
         index = _benchmark_index_for_category(scheme.sebi_category)
 
         sid = str(scheme_id)
         fund_rate = benchmark_rate = None
+        display = PortfolioXirrDisplay()
+        price_date = price_dates.get(sid)
+        end_date = None
         if sid not in unpriced:
-            price_date = price_dates.get(sid)
+            end_date = price_date or date.today()
+            value = current_values.get(sid, Decimal("0"))
+            cash_flows = portfolio_cash_flows(scheme_txns, value, switch_debits, price_date=end_date)
             fund_rate = _portfolio_xirr(
-                scheme_txns, current_values.get(sid, Decimal("0")),
-                extra_debit_types={TransactionType.SWITCH_IN}, price_date=price_date,
+                scheme_txns, value, extra_debit_types=switch_debits, price_date=end_date, cash_flows=cash_flows,
             )
+            display = portfolio_xirr_display(fund_rate, cash_flows)
             benchmark_rate = await _benchmark_xirr_for_transactions(
                 db, scheme_txns, index, extra_debit_types={TransactionType.SWITCH_IN}, price_date=price_date,
             )
@@ -402,6 +414,9 @@ async def compute_fund_vs_benchmark(
                 benchmark_index=index,
                 fund_xirr=_xirr_str(fund_rate),
                 benchmark_xirr=_xirr_str(benchmark_rate),
+                xirr_as_of=end_date.isoformat() if end_date and (price_date or fund_rate is not None) else None,
+                xirr_basis=display.basis,
+                since_purchase_return=_xirr_str(display.since_purchase_return),
             )
         )
         window_jobs.append((fund_rows[-1], scheme_id, scheme_txns, index, fund_rate, benchmark_rate))

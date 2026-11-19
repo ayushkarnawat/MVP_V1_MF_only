@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.models.folio import Folio
 from app.models.reference import Scenario, Scheme
+from app.services.analytics.recompute import recompute_households_holding
 from app.services.analytics.scenario_engine import compute_scenario_results
 from app.services.analytics.scheme_universe import (
     SchemeUniverseClient,
@@ -127,6 +128,13 @@ async def main_async(db: Session, *, held_only: bool = False) -> RunOutcome:
     if not held_only:
         await refresh_peers(db, held)
         recompute_ongoing_scenarios(db)
+    elif result is not None and result.filled_scheme_ids:
+        households = completed = 0
+        try:
+            households, completed = await recompute_households_holding(db, result.filled_scheme_ids)
+        except Exception:
+            logger.exception("refresh_nav_daily: could not recompute households after NAV refresh")
+        print(f"NAV_RECOMPUTE households={households} ok={completed}", flush=True)
     return RunOutcome(problems=problems, summary=summary, result=result)
 
 

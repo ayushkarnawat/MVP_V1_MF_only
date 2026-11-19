@@ -13,7 +13,7 @@ from app.models.transaction import Transaction
 from app.models.enums import TransactionOrigin, TransactionType
 from app.services.analytics.xirr import xirr
 from app.services.dashboard.cash_flow import _CREDIT_TYPES, _DEBIT_TYPES
-from app.services.dashboard.schemas import HoldingRow, XirrDisclaimerOut
+from app.services.dashboard.schemas import HoldingRow, XirrBasis, XirrDisclaimerOut
 from app.services.lot_rules import LOT_CONSUMING_TYPES, apply_lot_rules, cost_per_unit, paid_amount
 
 # #3: a gift isn't cash, but for returns a gift received is money put in at
@@ -63,6 +63,18 @@ class DashboardXirrSummary:
     current_holdings_xirr: str | None
     lifetime_xirr_disclaimer: XirrDisclaimer | None = None
     current_holdings_xirr_disclaimer: XirrDisclaimer | None = None
+    as_of: date | None = None
+    lifetime_xirr_basis: XirrBasis | None = None
+    current_holdings_xirr_basis: XirrBasis | None = None
+    lifetime_since_purchase: str | None = None
+    current_holdings_since_purchase: str | None = None
+
+
+@dataclass(frozen=True)
+class PortfolioXirrDisplay:
+    rate: Decimal | None = None
+    basis: XirrBasis | None = None
+    since_purchase_return: Decimal | None = None
 
 
 def _signed_amount(
@@ -72,17 +84,15 @@ def _signed_amount(
     return -paid_amount(transaction) if transaction.type in (_XIRR_DEBIT_TYPES | extra_debit_types) else paid_amount(transaction)
 
 
-def portfolio_xirr(
+def portfolio_cash_flows(
     transactions: list[Transaction],
     current_value: Decimal,
     extra_debit_types: frozenset[TransactionType] = frozenset(),
     dated_share: dict[int, Decimal] | None = None,
     *,
     price_date: date | None = None,
-) -> Decimal | None:
-    """`dated_share` (keyed by id(transaction)) scales a row's cash flow to the
-    part that is NOT opening-lineage; only the disclaimer's alt_xirr passes it,
-    so the headline numbers are computed exactly as before."""
+) -> list[tuple[date, Decimal]]:
+    """Build signed flows, optionally counting only each row's dated share for the disclaimer."""
     flows = []
     for transaction in transactions:
         amount = _signed_amount(transaction, extra_debit_types)
@@ -92,7 +102,38 @@ def portfolio_xirr(
                 continue
         flows.append((transaction.date, amount))
     flows.append((price_date or date.today(), current_value))
-    return xirr(flows)
+    return flows
+
+
+def portfolio_xirr(
+    transactions: list[Transaction],
+    current_value: Decimal,
+    extra_debit_types: frozenset[TransactionType] = frozenset(),
+    dated_share: dict[int, Decimal] | None = None,
+    *,
+    price_date: date | None = None,
+    cash_flows: list[tuple[date, Decimal]] | None = None,
+) -> Decimal | None:
+    if cash_flows is None:
+        cash_flows = portfolio_cash_flows(transactions, current_value, extra_debit_types, dated_share, price_date=price_date)
+    return xirr(cash_flows)
+
+
+def portfolio_xirr_display(rate: Decimal | None, cash_flows: list[tuple[date, Decimal]]) -> PortfolioXirrDisplay:
+    """Choose the tile or fund-column display using the exact flows passed to the solver."""
+    end = cash_flows[-1][0]
+    if all(day == end for day, _ in cash_flows):
+        # A same-day balance of zero fits every rate. Keep the raw solve for window callers.
+        return PortfolioXirrDisplay(rate if sum(amount for _, amount in cash_flows) else None)
+    if (end - min(day for day, _ in cash_flows)).days >= 365:
+        return PortfolioXirrDisplay(rate, "annualised" if rate is not None else None)
+    paid = sum((-amount for _, amount in cash_flows if amount < 0), Decimal("0"))
+    if not paid:
+        return PortfolioXirrDisplay(rate)
+    received = sum((amount for _, amount in cash_flows if amount > 0), Decimal("0"))
+    # No trailing zeros (0.2, not 0.20000), so the tile and the fund column write the same figure the same way.
+    absolute = (received / paid - 1).normalize()
+    return PortfolioXirrDisplay(rate, "since_purchase", Decimal(format(absolute, "f")))
 
 
 def latest_holding_price_date(holdings: list[HoldingRow]) -> date | None:
@@ -264,7 +305,7 @@ def calculate_dashboard_xirr(
     # _LINEAGE_QUERY_TYPES); only the lineage replay may see those.
     transactions = [t for t, _scheme_id in transaction_rows if t.type in _FUND_RELEVANT_TYPES]
     if not transactions:
-        return DashboardXirrSummary(None, None)
+        return DashboardXirrSummary(None, None, as_of=price_date)
 
     lifetime_value = sum(
         (Decimal(holding.current_value) for holding in holdings if holding.current_value is not None),
@@ -288,12 +329,20 @@ def calculate_dashboard_xirr(
         ),
         Decimal("0"),
     )
-    lifetime_rate = portfolio_xirr(
-        [t for t in transactions if t.type in _RELEVANT_TYPES], lifetime_value, price_date=price_date,
+    lifetime_transactions = [t for t in transactions if t.type in _RELEVANT_TYPES]
+    lifetime_flows = portfolio_cash_flows(lifetime_transactions, lifetime_value, price_date=price_date)
+    lifetime = portfolio_xirr_display(
+        portfolio_xirr(lifetime_transactions, lifetime_value, price_date=price_date, cash_flows=lifetime_flows),
+        lifetime_flows,
     )
-    current_rate = portfolio_xirr(
-        current_transactions, current_value, frozenset({TransactionType.SWITCH_IN}), price_date=price_date,
-    ) if current_transactions else None
+    current = PortfolioXirrDisplay()
+    if current_transactions:
+        switch_debits = frozenset({TransactionType.SWITCH_IN})
+        current_flows = portfolio_cash_flows(current_transactions, current_value, switch_debits, price_date=price_date)
+        current = portfolio_xirr_display(
+            portfolio_xirr(current_transactions, current_value, switch_debits, price_date=price_date, cash_flows=current_flows),
+            current_flows,
+        )
 
     scheme_totals: dict[uuid.UUID, tuple[Decimal, Decimal]] = defaultdict(lambda: (Decimal("0"), Decimal("0")))
     for holding in holdings:
@@ -303,14 +352,19 @@ def calculate_dashboard_xirr(
     lineage_by_scheme, opening_sold_share = _opening_lineage_by_scheme(transaction_rows)
 
     return DashboardXirrSummary(
-        lifetime_xirr=xirr_string(lifetime_rate),
-        current_holdings_xirr=xirr_string(current_rate),
+        lifetime_xirr=xirr_string(lifetime.rate),
+        current_holdings_xirr=xirr_string(current.rate),
+        as_of=price_date,
+        lifetime_xirr_basis=lifetime.basis,
+        current_holdings_xirr_basis=current.basis,
+        lifetime_since_purchase=xirr_string(lifetime.since_purchase_return),
+        current_holdings_since_purchase=xirr_string(current.since_purchase_return),
         lifetime_xirr_disclaimer=_build_disclaimer(
-            transactions, _RELEVANT_TYPES, frozenset(), lifetime_value, lifetime_rate,
+            transactions, _RELEVANT_TYPES, frozenset(), lifetime_value, lifetime.rate,
             lineage_by_scheme, scheme_totals, None, opening_sold_share, price_date,
         ),
         current_holdings_xirr_disclaimer=_build_disclaimer(
-            current_transactions, _FUND_RELEVANT_TYPES, frozenset({TransactionType.SWITCH_IN}), current_value, current_rate,
+            current_transactions, _FUND_RELEVANT_TYPES, frozenset({TransactionType.SWITCH_IN}), current_value, current.rate,
             lineage_by_scheme, scheme_totals, current_scheme_ids, opening_sold_share, price_date,
         ) if current_transactions else None,
     )
