@@ -123,8 +123,8 @@ describe("TutorialDialog from Request from CAMS", () => {
     const video = getVideo(dialog);
     const chapters = [
       { name: "Request", seconds: 4 },
-      { name: "Fill the form", seconds: 9 },
-      { name: "Inbox", seconds: 35 },
+      { name: "Fill the form", seconds: 13 },
+      { name: "Inbox", seconds: 37 },
       { name: "Upload", seconds: 41 },
     ];
 
