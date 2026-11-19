@@ -298,7 +298,6 @@ def test_rank_pool_and_average_pool_same_funds_except_index_rule(db_session, see
         assert average.value.quantize(FOUR_PLACES) == Decimal("0.2750")
 
 
-@pytest.mark.xfail(strict=True, reason='CA-3 finding (also RK-4 T10-6): the average pool keeps IDCW and Dividend series when a fund has no eligible Growth option; the rank pool drops them. Fixed only after the owner approves the fix proposal.')
 def test_no_idcw_in_any_average_pool(db_session, seed_pool):
     today = date.today()
     growth, *_ = seed_pool("CA3 Option Comparison Category", today, (
