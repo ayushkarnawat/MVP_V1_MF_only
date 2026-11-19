@@ -224,7 +224,12 @@ def _is_growth_option(scheme: Scheme, row: UniverseRow | None, normalized_base_n
             parts = name.split(" - ", 1)
             option_words = parts[1] if len(parts) == 2 else ""
     found = set(_OPTION_WORDS.findall(option_words))
-    return bool(found) and found <= _GROWTH_WORDS
+    if found:
+        return found <= _GROWTH_WORDS
+    # No option word anywhere. With a blank option field there is no evidence of an income option (older funds
+    # are named without one), so the series stays; a filled option that names no Growth word ("Quarterly
+    # Option", "Monthly Payment Plan") is an income option and does not.
+    return not ((row.option or "").strip() if row else "")
 
 
 class SchemeUniverseClient:

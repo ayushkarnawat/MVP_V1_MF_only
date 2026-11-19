@@ -435,3 +435,19 @@ def test_plan_matches_trusts_a_stored_unknown_plan_and_an_unknown_request():
     assert not plan_matches(SchemePlanType.REGULAR, SchemePlanType.DIRECT)
     assert plan_matches(None, SchemePlanType.DIRECT)  # peers already checked the plan against AMFI's data
     assert plan_matches(SchemePlanType.REGULAR, None)  # an unknown request accepts any plan
+
+
+def test_series_with_no_option_words_at_all_is_kept_as_growth(tmp_path):
+    # Found on staging (20 Nov): AMFI names some older funds with no plan or option word ("Motilal Oswal Midcap
+    # Fund"). With a blank option field there is no evidence of an income option, so the series stays (the
+    # independent recount already keeps it); a filled option that names no Growth word ("Quarterly Option") does not.
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    client._rows = [
+        UniverseRow(amfi_code="1", isin=None, name="Storybook Bare Fund", amc_name="A",
+                    sebi_category="Equity Scheme - Contra Fund", base_name="Storybook Bare Fund", plan="", option=""),
+        UniverseRow(amfi_code="2", isin=None, name="Storybook Payout Fund - Quarterly Option", amc_name="A",
+                    sebi_category="Equity Scheme - Contra Fund", base_name="Storybook Payout Fund", plan="", option="Quarterly Option"),
+    ]
+    peers = asyncio.run(client.get_category_peers(_session(), "Equity Scheme - Contra Fund", None))
+    assert [scheme.amfi_code for scheme in peers.schemes] == ["1"]
+    assert [name for name, _ in peers.excluded_funds] == ["Storybook Payout Fund"]
