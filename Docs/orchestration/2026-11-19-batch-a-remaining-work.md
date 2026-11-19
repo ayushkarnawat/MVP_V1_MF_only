@@ -13,6 +13,9 @@ This list exists so nothing is forgotten. Update it whenever a task finishes. Ap
 ## Done since this list was first written (continued)
 XFIX-2 (FX-8d, FX-8e backend; `batch/a-xirr-fixes` 384ba2d1) and RK-9 (the rank reference workbook, first cut; `batch/a-fixes` ef850d01), both verified; RK-9's formulas recalculated in LibreOffice.
 
+## Done since (night of 19 Nov)
+M2 candidate built (`m2-candidate`, worktree `D:\unifolio-m2`, pushed): the four Batch A branches merge cleanly, wide run 3669 passed, only the 8 known pre-existing failures. XR-5 written. RK-5 part 1 (T10-2) done. CA-6 relayed a second time after its drift answers. FE-1a handoff written, to be relayed. All Batch A branches are backed up on the remote.
+
 ## Next (backend of XFIX-2 has reported)
 FE-1 (front end, Antigravity): the "as on <date>" label on the tile and column, the "not annualised" label and the dash, from the new fields; red tests first. FX-8e is **narrowed** to the two portfolio tile figures and the per-fund column (the owner's small-radius rule); the fund page, benchmark and window figures are listed as a follow-up the owner can widen.
 
