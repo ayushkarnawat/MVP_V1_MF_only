@@ -891,3 +891,19 @@ The owner authorised fixing the detached public network end to end. Decisions: (
 - Two low items fixed instead of left: typographic apostrophes in the two onboarding labels the workbook draws that way (that screen only), and the All set screen changes in two moments (the tick, then the paragraph and heading).
 - Rule going forward: a review finding is closed only when it is fixed or the owner has explicitly accepted it; nothing is "accepted" by the orchestrator alone.
 
+
+## 2026-11-19 - Batch L first pass, owner decisions (one line each)
+- ETF scope in the disclosure coverage figure: report both numbers. The headline is the open-ended plan and option series (about 66%); exchange-traded funds, fixed-maturity plans and funds of funds are listed separately with their own figure. (Owner took the recommendation.)
+- L-5: check all eight regressed automatic houses (Franklin Templeton, Bajaj Finserv, WhiteOak, Trust, Samco, Zerodha and Zerodha CASE, Angel One, AlphaGrep), plus ICICI Prudential's 59 failed batches and the large falls (LIC, Motilal Oswal, Canara Robeco). No ordering by size; everything is checked.
+- L-8 by-hand imports (seven houses): the owner runs them with their intern, from `Docs/orchestration/2026-11-19-by-hand-imports-runbook.md`. The orchestrator re-runs E1 and E4 after they are done and on the final pass after day 20.
+- The owner's step-9 private-window checks of M1 are carried into the single QA round: `Docs/orchestration/2026-11-19-combined-qa-checklist.md` (rows M1-01 to M1-05).
+
+## 2026-11-19 (evening) - Disclosure findings, owner direction
+- The detailed documentation of the portfolio disclosure findings (L-5 causes, fixes FX-L1 to FX-L4, the remaining L audits) is written later, together with the fund-manager factsheet work, once staging is complete. Not now.
+- The 20 Nov 05:45 run is the last automatic run of this cycle; it is left as it is. The intern runs the by-hand imports from the runbook.
+- CA-3 accepted after the orchestrator's own run; its two findings are strict expected failures, and their fixes go through the review gate.
+
+## 2026-11-19 (late) - Batch A fix decisions and Codex capacity
+- Approved (owner, one at a time): FX-10a (a real Direct fund missing from its category ranking), FX-10d (Growth only; a fund with no Growth series is left out and listed), FX-10b (the category average counts the same funds as the rank; plan ID FX-9a part 1), FX-9a legacy blend exactly as the workbook designed (Option A), FX-8c (one end date; on the condition the effect is small, which the formula and the fixture show for normal holdings), FX-8d (with FX-8c), FX-8e option 1 (return since purchase under a year, labelled not annualised) plus a dash for flows that net to zero. FX-10c parked. FX-8a and FX-8b wait for XR-3.
+- Codex capacity: up to two Codex tasks at the same time (the owner's change from one at a time), each in its own worktree and on disjoint files; the orchestrator commits and merges. Worktrees: D:/unifolio-a-numbers (tests and investigation) and D:/unifolio-a-fixes (approved fixes, branch batch/a-fixes).
+- Standing clarification: an audit is an audit. Batch L's audit findings are not fixes; the L-7 proposals and L-9 fixes in the Batch L plan are built only if the owner approves each. The L audits and the factsheet work are parked, not dropped.
