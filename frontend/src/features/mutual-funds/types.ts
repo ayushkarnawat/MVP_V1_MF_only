@@ -710,7 +710,7 @@ export interface PerformanceRankingFund {
   sebi_category?: string | null;
   plan_type?: string | null;
   periods?: Partial<Record<PerformancePeriod, PeriodRank>>;
-  disclaimer_key?: "index_fund_not_ranked" | null;
+  disclaimer_key?: "index_fund_not_ranked" | "no_growth_series_not_ranked" | null;
   ranked_as?: string | null;
 }
 export interface PerformanceRankingResult { funds: PerformanceRankingFund[] }

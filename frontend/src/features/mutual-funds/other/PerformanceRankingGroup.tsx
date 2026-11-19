@@ -41,6 +41,7 @@ export function PerformanceRankingContent({ data }: { data: PerformanceRankingRe
           <tr><th scope="col" className="w-2/5 px-4 py-3">Fund</th>{PERFORMANCE_PERIODS.map(period => <th key={period} scope="col" className="px-4 py-3">{PERIOD_LABELS[period]}</th>)}</tr>
         </thead>
         <tbody>{data.funds.map(fund => {
+          const noGrowth = fund.disclaimer_key === "no_growth_series_not_ranked";
           const index = fund.disclaimer_key === "index_fund_not_ranked" || PERFORMANCE_PERIODS.every(period => fund.periods?.[period]?.status === "not_ranked_index_fund");
           return <tr key={fund.scheme_id} data-testid={`performance-row-${fund.scheme_id}`} className="border-b border-[var(--ui-divider)]">
             <th scope="row" className="px-4 py-5 align-top font-normal">
@@ -54,7 +55,8 @@ export function PerformanceRankingContent({ data }: { data: PerformanceRankingRe
                 </div>
               </div>
             </th>
-            {index ? <td colSpan={3} className="px-4 py-5 text-xs text-[var(--ui-text-muted)]">Index funds are not ranked here. Their comparison with the index they track is shown in the benchmark comparison.</td>
+            {noGrowth ? <td colSpan={3} data-testid={`rank-no-growth-${fund.scheme_id}`} className="px-4 py-5 text-xs text-[var(--ui-text-muted)]">This fund has no Growth option, and ranks compare Growth options only, so it is not ranked here.</td>
+              : index ? <td colSpan={3} className="px-4 py-5 text-xs text-[var(--ui-text-muted)]">Index funds are not ranked here. Their comparison with the index they track is shown in the benchmark comparison.</td>
               : PERFORMANCE_PERIODS.map(period => <RankCell key={period} fund={fund} period={period} value={fund.periods?.[period]} />)}
           </tr>;
         })}</tbody>
