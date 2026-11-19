@@ -253,10 +253,40 @@ describe("WealthCard: what the chart is given", () => {
     setup();
     const second = chart.props!.secondSeries!;
     expect(second.name).toBe("Nifty 50");
-    expect(second.color).toBe("var(--home-bench)");
+    expect(second.color).toBe("var(--c3)"); // FX-13d: the mapped colour of the default benchmark (Nifty 50), no longer the never-defined --home-bench
     expect(second.values).toHaveLength(31);
     expect(second.values[0]).toBe(0);
     expect(second.values[1]).toBe(0.0098);
+  });
+
+  it.each([
+    ["nifty_50", "var(--c3)"],
+    ["nifty_500", "var(--c5)"],
+    ["nifty_largemidcap_250", "var(--c6)"],
+    ["nifty_midcap_150", "var(--c4)"],
+    ["nifty_smallcap_250", "var(--c2)"],
+  ])("uses the mapped colour for the %s stroke and text", (index, color) => {
+    const data = monthly();
+    const option = options().find(option => option.index === index)!;
+    data.benchmark = { ...data.benchmark!, index, label: option.label };
+    setup({ data, benchmark: index });
+
+    expect(screen.getByTestId("benchmark-line")).toHaveTextContent(option.label);
+    expect(chart.props?.secondSeries?.color).toBe(color);
+    expect(screen.getByTestId("benchmark-line")).toHaveStyle({ color });
+  });
+
+  it("uses a distinct colour for each benchmark", () => {
+    const colors = options().map(({ index, label }) => {
+      const data = monthly();
+      data.benchmark = { ...data.benchmark!, index, label };
+      const view = setup({ data, benchmark: index });
+      const color = chart.props!.secondSeries!.color;
+      view.unmount();
+      return color;
+    });
+
+    expect(new Set(colors).size).toBe(5);
   });
 
   it("formats axis values as rupees and percentages without floating point formatting", () => {
