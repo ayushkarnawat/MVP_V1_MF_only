@@ -38,3 +38,21 @@
 - **FX-L2 (Zerodha):** register "Zerodha CASE Mutual Fund" as the house name; one test.
 - **FX-L3 (all houses):** keep the failure reason in the database for every failed batch (the obvious first fix named in the first pass), and write a plain log line per house per run to a file, so a quiet month is never a mystery again.
 - **FX-L4:** an alert when a house that wrote last month has nothing by day 10 (today the alert only covers the by-hand houses).
+
+## Follow-up the same evening (what was run, and what changed in the picture above)
+**The four refused sites open normally in a browser (checked in the built-in browser on the orchestrator's machine, read only):**
+| House | In a normal browser |
+|---|---|
+| WhiteOak | The scheme-portfolios page opens and lists the October 2026 monthly files ("Monthly Portfolio Disclosure - 31st October2026" for Liquid, Mid Cap, Multi Asset, Multi Cap, Pharma, Quality Equity, Special Opportunities, Ultra Short Term; 1,146 results in all). |
+| Bajaj Finserv | The downloads page opens; the Monthly Portfolio filter offers year 2026-27 and, for it, months April to **October**. (The files themselves were not opened.) |
+| Angel One | The downloads page opens and lists **Monthly-Portfolio-October-2026** workbooks (176 portfolio links on the page). |
+| Trust | The site opens. Its Statutory Disclosure page lists a portfolio report "as on 31.10.2026" (the page calls the series Fortnightly Portfolio Report). Whether a separate monthly list exists was **not established**; the job's data source for Trust (a POST to its API) is the part that answers 406. |
+
+So the four are **published and open to people, and refused only to our server** (Bajaj, WhiteOak, Angel One: 403; Trust's API: 406), the same class as Priority 1. The earlier row "whether the site changed or only blocks this address" is answered for the first three: the pages are fine, the server is refused.
+
+**Dry run of the two houses with our own code problem (in memory, nothing written):**
+- **Zerodha**, under its new name "Zerodha CASE Mutual Fund": 24 workbooks found; **21 of 24 sheets match** (21 of 25 families); the 3 that do not match are ETFs (ZSLVR, ZGOLD, ZEN50). No parse errors.
+- **Franklin**, files dated 30 Oct 2026: 32 workbooks found; **32 of 32 sheets match** (32 of 45 families; the other 13 are not in the monthly set); no parse errors.
+So once the two code fixes (FX-L1, FX-L2) exist, both houses read cleanly. **Nothing was written** to staging: writing them now would be a hand import dated 30 Oct for Franklin (the file's real date, with `--allow-any-date`), which the audit's strict 31 Oct count would not see; that is a decision for the owner, and the importer has no undo. Left for the later pass.
+
+**Left for the later, deeper pass (the owner's call, 19 Nov):** the detailed write-up of the disclosure findings, the fix proposals FX-L1 to FX-L4 and the remaining L audits, to be done together with the fund-manager factsheet work once staging is complete. This file and the first-pass file are the record until then.

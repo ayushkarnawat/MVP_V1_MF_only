@@ -897,3 +897,8 @@ The owner authorised fixing the detached public network end to end. Decisions: (
 - L-5: check all eight regressed automatic houses (Franklin Templeton, Bajaj Finserv, WhiteOak, Trust, Samco, Zerodha and Zerodha CASE, Angel One, AlphaGrep), plus ICICI Prudential's 59 failed batches and the large falls (LIC, Motilal Oswal, Canara Robeco). No ordering by size; everything is checked.
 - L-8 by-hand imports (seven houses): the owner runs them with their intern, from `Docs/orchestration/2026-11-19-by-hand-imports-runbook.md`. The orchestrator re-runs E1 and E4 after they are done and on the final pass after day 20.
 - The owner's step-9 private-window checks of M1 are carried into the single QA round: `Docs/orchestration/2026-11-19-combined-qa-checklist.md` (rows M1-01 to M1-05).
+
+## 2026-11-19 (evening) - Disclosure findings, owner direction
+- The detailed documentation of the portfolio disclosure findings (L-5 causes, fixes FX-L1 to FX-L4, the remaining L audits) is written later, together with the fund-manager factsheet work, once staging is complete. Not now.
+- The 20 Nov 05:45 run is the last automatic run of this cycle; it is left as it is. The intern runs the by-hand imports from the runbook.
+- CA-3 accepted after the orchestrator's own run; its two findings are strict expected failures, and their fixes go through the review gate.
