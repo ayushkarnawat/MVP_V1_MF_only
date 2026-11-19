@@ -8,7 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.models.enums import AssetType, BenchmarkIndex, TransactionType
-from app.services.dashboard.schemas import AllocationBucket, MemberStatus
+from app.services.dashboard.schemas import AllocationBucket, MemberStatus, XirrBasis
 
 
 class CoverageFund(BaseModel):
@@ -226,6 +226,9 @@ class FundBenchmarkRow(BaseModel):
     fund_xirr: str | None
     benchmark_xirr: str | None
     windows: list[FundWindowXirr] = []
+    xirr_as_of: str | None = None
+    xirr_basis: XirrBasis | None = None
+    since_purchase_return: str | None = None
 
 
 class DeclaredFundWindowXirr(FundWindowXirr):

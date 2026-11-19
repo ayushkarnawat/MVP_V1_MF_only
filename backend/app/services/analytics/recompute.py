@@ -29,6 +29,8 @@ from sqlalchemy.orm import Session
 
 from app.db.session import commit_off_loop
 from app.models.analytics import AnalyticsRecomputeStatus, AnalyticsSection
+from app.models.folio import Folio
+from app.models.user import HouseholdMember
 from app.services.analytics.allocation import compute_category_allocation
 from app.services.analytics.benchmark import compute_fund_vs_benchmark, compute_portfolio_vs_benchmarks
 from app.services.analytics.category_ranking import compute_category_ranking
@@ -61,6 +63,7 @@ from app.services.analytics.scorer import compute_portfolio_score
 from app.services.analytics.ter import compute_direct_regular_ter_comparison, compute_weighted_ter
 from app.services.dashboard.aggregate import get_member_statuses
 from app.services.dashboard.household_members import list_household_members
+from app.services.dashboard.holdings import invalidate_holdings_cache
 from app.services.dashboard.schemas import MemberStatus
 
 logger = logging.getLogger(__name__)
@@ -288,3 +291,31 @@ async def recompute_household_analytics(db: Session, user_id: uuid.UUID) -> None
             synchronize_session=False,
         )
         await commit_off_loop(db)
+
+
+async def recompute_households_holding(db: Session, scheme_ids: list[uuid.UUID]) -> tuple[int, int]:
+    """Return the number of affected households and the number recomputed."""
+    members = (
+        db.query(HouseholdMember.id, HouseholdMember.user_id)
+        .join(Folio, Folio.household_member_id == HouseholdMember.id)
+        .filter(Folio.scheme_id.in_(scheme_ids))
+        .distinct()
+        .all()
+    )
+    for member_id, _ in members:
+        invalidate_holdings_cache(member_id)
+
+    user_ids = sorted({user_id for _, user_id in members})
+    completed = 0
+    for user_id in user_ids:
+        try:
+            if not try_claim_recompute(db, user_id):
+                logger.info("NAV refresh: skipping user %s, recompute already in flight", user_id)
+                continue
+            await recompute_household_analytics(db, user_id)
+        except Exception:
+            logger.exception("NAV refresh: recompute failed for user %s", user_id)
+            db.rollback()
+        else:
+            completed += 1
+    return len(user_ids), completed
