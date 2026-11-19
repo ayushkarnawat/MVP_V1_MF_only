@@ -49,7 +49,13 @@ export interface HoldingRow {
   price_from_statement?: boolean;
 }
 
-export interface ConsolidatedHoldingChild extends Omit<HoldingRow, "average_nav"> { average_nav: string | null; xirr: string | null }
+export interface ConsolidatedHoldingChild extends Omit<HoldingRow, "average_nav"> {
+  average_nav: string | null;
+  xirr: string | null;
+  xirr_as_of?: string | null;
+  xirr_basis?: XirrBasis | null;
+  since_purchase_return?: string | null;
+}
 export interface ConsolidatedHolding {
   scheme_id: string;
   scheme_name: string;
@@ -73,6 +79,9 @@ export interface ConsolidatedHolding {
   price_from_statement: boolean;
   opening_lot: OpeningLotInfo | null;
   xirr: string | null;
+  xirr_as_of?: string | null;
+  xirr_basis?: XirrBasis | null;
+  since_purchase_return?: string | null;
   children: ConsolidatedHoldingChild[];
 }
 
@@ -127,6 +136,11 @@ export interface AggregateHoldingsResponse {
   holdings: HoldingRow[];
   lifetime_xirr?: string | null;
   current_holdings_xirr?: string | null;
+  xirr_as_of?: string | null;
+  lifetime_xirr_basis?: XirrBasis | null;
+  current_holdings_xirr_basis?: XirrBasis | null;
+  lifetime_since_purchase?: string | null;
+  current_holdings_since_purchase?: string | null;
   lifetime_xirr_disclaimer?: XirrDisclaimer | null;
   current_holdings_xirr_disclaimer?: XirrDisclaimer | null;
   realized_summary?: RealizedSummary;
@@ -135,6 +149,11 @@ export interface MemberHoldingsResponse {
   holdings: HoldingRow[];
   lifetime_xirr: string | null;
   current_holdings_xirr: string | null;
+  xirr_as_of?: string | null;
+  lifetime_xirr_basis?: XirrBasis | null;
+  current_holdings_xirr_basis?: XirrBasis | null;
+  lifetime_since_purchase?: string | null;
+  current_holdings_since_purchase?: string | null;
   lifetime_xirr_disclaimer?: XirrDisclaimer | null;
   current_holdings_xirr_disclaimer?: XirrDisclaimer | null;
   realized_summary?: RealizedSummary;
@@ -235,6 +254,9 @@ export interface FundBenchmarkRow {
   scheme_name: string;
   benchmark_index: string;
   fund_xirr: string | null;
+  xirr_as_of?: string | null;
+  xirr_basis?: XirrBasis | null;
+  since_purchase_return?: string | null;
   benchmark_xirr: string | null;
   /** Added by the MB backend; a payload stored before it has none (the page then shows since-inception only). */
   windows?: FundWindowXirr[];
@@ -744,6 +766,11 @@ export interface Load<T> { status: "loading" | "data" | "error"; data: T | null;
 export interface XirrBundle {
   lifetime: string | null;
   current: string | null;
+  xirr_as_of?: string | null;
+  lifetime_xirr_basis?: XirrBasis | null;
+  current_holdings_xirr_basis?: XirrBasis | null;
+  lifetime_since_purchase?: string | null;
+  current_holdings_since_purchase?: string | null;
   disclaimers: { lifetime: XirrDisclaimer | null; current: XirrDisclaimer | null };
 }
 export interface Slice { key: string; label: string; value: string; pct: string; color: string }
