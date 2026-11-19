@@ -14,7 +14,7 @@ Source: `Docs/orchestration/2026-11-13-batch-h-planning-workbook.html` (section 
 | Reduced-motion line (shown above the steps instead of playing) | `Your device is set to reduce motion, so the video does not play by itself. The steps are below.` |
 
 ## Chapters (start times, seconds, from the script table)
-`Request` 4, `Fill the form` 9, `Inbox` 35, `Upload` 41. (Scene 1, the opening, 0 to 4 s; scene 8, the end card, 47 to 53 s.)
+`Request` 4, `Fill the form` 13, `Inbox` 37, `Upload` 41 (read from the finished video's own step labels on 20 Nov: Step 2 of 4 appears at about 13 s, Step 3 of 4 at about 37 s, Step 4 of 4 at about 41 s). (Scene 1, the opening, 0 to 4 s; scene 8, the end card, 47 to 53 s.)
 
 ## The four steps (the transcript, in the live form's words; each is also the chapter's text)
 1. **Request.** Press Request Statement on CAMS. The official CAMS website opens in a new tab.
