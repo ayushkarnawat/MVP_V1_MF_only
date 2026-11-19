@@ -322,3 +322,23 @@ def test_spelled_out_and_misspelled_income_options_are_set_aside_as_idcw():
     idcw = {entry.scheme_code for step in result.steps if step.name == "idcw" for entry in step.set_aside}
     assert idcw == {"910002", "910004", "910005"}
     assert set(result.final_pool) == {"910001", "910003"}
+
+
+def test_growth_is_decided_from_the_option_only_never_from_the_fund_name():
+    # Found by the real-data run of the rank workbook on 20 Nov: the recount read the fund's own name, so
+    # "Dividend Yield Fund" (a Growth option) was set aside as IDCW; a "Reinvest" option was kept; "Quarterly
+    # Option" and "Monthly Payment Plan" (income options without an IDCW word) were kept as if Growth.
+    text = "".join([
+        _section("Equity Schemes - Dividend Yield Fund"),
+        _row("920001", "Storybook Dividend Yield Fund", option="Growth"),
+        _row("920002", "Storybook Dividend Yield Fund", option="Income Distribution cum capital withdrawal"),
+        _row("920003", "Storybook Gilt Fund", option="Automatic Annual Reinvest Option"),
+        _row("920004", "Storybook Gilt Fund", option="Growth Option"),
+        _row("920005", "Storybook Hybrid Fund", option="Quarterly Option"),
+        _row("920006", "Storybook Hybrid Fund", option="Growth"),
+        _row("920007", "Storybook Cumulative Fund", option="Cumulative"),
+    ])
+    result = recount_pool(parse_navall(text), "Equity Scheme - Dividend Yield Fund", "direct", TODAY)
+    assert set(result.final_pool) == {"920001", "920004", "920006", "920007"}
+    idcw = {entry.scheme_code for step in result.steps if step.name == "idcw" for entry in step.set_aside}
+    assert idcw == {"920002", "920003", "920005"}

@@ -39,8 +39,9 @@ _CATEGORY_LABELS = {
 _CATEGORY_HEADING = re.compile(r"(?:Open Ended|Closed? Ended|Interval Fund) Schemes\s*\((.+)\)")
 _PLAN_WORDS = re.compile(r"\b(direct|dir|regular|reg)\b", re.IGNORECASE)
 # AMFI also spells the income option out ("Income Distribution cum capital withdrawal") and once as "IDWC".
-_OPTION_WORDS = re.compile(r"\b(growth|idcw|idwc|income distribution|dividend|payout|reinvestment|bonus)\b", re.IGNORECASE)
-_INCOME_WORDS = {"idcw", "idwc", "income distribution", "dividend", "payout", "reinvestment"}
+_OPTION_WORDS = re.compile(r"\b(growth|cumulative|idcw|idwc|income distribution|dividend|payout|reinvest(?:ment)?|bonus)\b", re.IGNORECASE)
+_INCOME_WORDS = {"idcw", "idwc", "income distribution", "dividend", "payout", "reinvestment", "reinvest"}
+_GROWTH_WORDS = {"growth", "cumulative"}
 _DISTRIBUTION_WORDS = {"payout", "reinvestment"}
 _LEGACY_SUFFIX = re.compile(
     r"(?:\s*[-(]\s*|\s+\(?)"
@@ -176,8 +177,23 @@ def _options(text: str) -> set[str]:
     return set(_OPTION_WORDS.findall(text.lower()))
 
 
+def _row_option_words(row: AmfiRow) -> set[str]:
+    """The option words of a series: the option field when AMFI gives one, otherwise the part of the name after
+    the fund's base name. Never the fund's own name ("Dividend Yield Fund" is a fund, not an option)."""
+    if (row.option or "").strip():
+        return _options(row.option)
+    base = (row.base_name or "").strip()
+    suffix = row.name[len(base):] if base and row.name.lower().startswith(base.lower()) else ""
+    return _options(suffix)
+
+
 def _not_growth(row: AmfiRow) -> bool:
-    return bool(_options(f"{row.name} {row.option}") & (_INCOME_WORDS | {"bonus"}))
+    words = _row_option_words(row)
+    if words & (_INCOME_WORDS | {"bonus"}):
+        return True
+    # A filled option field that names no Growth word ("Quarterly Option", "Monthly Payment Plan") is an income
+    # option too. A blank option stays kept (the documented RK-3 difference from the app).
+    return bool((row.option or "").strip()) and not (words & _GROWTH_WORDS)
 
 
 def _option_kinds(words: set[str]) -> set[str]:
@@ -237,7 +253,7 @@ def _review_flags(rows: list[AmfiRow], plans: dict[str, str | None]) -> list[Fla
         if _mis_named(row):
             flags.append(FlagEntry(row.scheme_code, row.name, "mis_named"))
     for series in funds.values():
-        if all(_options(f"{row.name} {row.option}") & _INCOME_WORDS for row in series):
+        if all(_row_option_words(row) & _INCOME_WORDS for row in series):
             first = series[0]
             flags.append(FlagEntry(first.scheme_code, first.name, "idcw_only_fund"))
     return flags
