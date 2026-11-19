@@ -916,3 +916,7 @@ The owner authorised fixing the detached public network end to end. Decisions: (
 ## 2026-11-19 (night, later) - FX-8d and FX-8e handoff scope
 - FX-8d and FX-8e are one backend task (XFIX-2, two parts) because they edit the same response objects and files. FX-8d: the 10:30 and 14:00 price retries recompute the households that hold a fund they filled (the 06:00 run is followed by the 06:30 recompute), plus an additive "as on" price date on the tile and the column. FX-8e: narrowed to the two portfolio tile figures and the per-fund column, as additive fields (basis and since-purchase return) beside the unchanged rates; a dash for flows that net to zero on one day; the fund page, benchmark and window figures are not changed (a follow-up for the owner to widen). Reason: the owner's rule, small radius.
 - RK-9 (the rank reference workbook script, first cut on invented data) is the second parallel Codex task; its Cross-checks sheet waits on RK-5 and it has no common-end-date logic (FX-10c is parked).
+
+## 2026-11-20 - Batches D and H part 1 opened
+- The owner approved Batch D (charts) and Batch H part 1 (the tutorial link and pop-up) on 19 Nov. Branches `batch/d-charts` and `batch/h-tutorial` were cut from `leapswitch-redesign` on 20 Nov. The D-2 colour fix (FX-13d) is covered by that approval; `home-tokens.css` and its test stay untouched until the owner decides.
+- Two Codex tasks at a time (the owner's 19 Nov change), so the first pair is D-2 plus D-3 and H-3; the Antigravity packets (D-6, D-10, H-4) wait for their red tests.

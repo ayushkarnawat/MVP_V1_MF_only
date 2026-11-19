@@ -1,3 +1,4 @@
+import { benchmarkColor } from "@/components/wealth-graph/benchmarkColors";
 import { useEffect, useRef, useState } from "react";
 import { Calendar, Info } from "lucide-react";
 import { LineAreaChart } from "@/components/ui/charts";
@@ -257,7 +258,7 @@ export function WealthCard({
     hasSecondSeries && data.benchmark
       ? {
           name: data.benchmark.label,
-          color: "var(--home-bench)",
+          color: benchmarkColor(data.benchmark.index),
           values: data.benchmark.points.map(point => Number(point.pct)),
         }
       : undefined;
@@ -341,7 +342,8 @@ export function WealthCard({
       {showBenchmarkLine && data.benchmark && (
         <div
           data-testid="benchmark-line"
-          className="text-xs font-medium text-[var(--home-bench)]"
+          className="text-xs font-medium"
+          style={{ color: benchmarkColor(data.benchmark.index) }}
         >
           {`${data.benchmark.label} ${formatSignedPercent(data.benchmark.pct)}`}
           {data.benchmark.clipped && data.benchmark.effective_start
