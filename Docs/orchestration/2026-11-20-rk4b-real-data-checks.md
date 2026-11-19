@@ -1,0 +1,22 @@
+# RK-4, second part: stored rank, returns and end dates on staging data (19 to 20 Nov 2026)
+
+**Label:** runs 20 Nov 2026 between 00:07 and 00:40 IST on the staging database and the deployed code (M1), read-only inside a transaction that is always rolled back, nothing written. AMFI newest price date 18 Nov; 46 of 46 held funds had that day's price. 19 category-and-plan groups are held (invented households). Two things in here change what I told the owner earlier; they are marked **Reopened**.
+
+## T10-5: the stored rank against a fresh computation
+The 15 stored `ranking` sections were built at 06:30 (14.3 hours earlier). Fresh computation now: **67 of 76 fund rows identical, 9 different**; the 9 are two funds repeated across scopes: Parag Parikh Flexi Cap Direct 3Y moved from 20 to 21 of 37, and WhiteOak Capital Multi Asset Allocation 1Y from 8 to 11 of 31. The ranks moved by one to three places because prices arrived after 06:30 (the 10:30 retry filled two held funds that day). This is finding F8 on real data; the approved FX-8d (the retries recompute the households that hold a filled fund) addresses the held-fund case.
+
+## T10-3: the returns recomputed independently from the stored prices
+270 returns (5 funds per period in each of 19 groups, 1Y, 3Y and 5Y) recomputed from the stored price history with a separate formula. **All 270 equal the app's to 2 decimals of a percent when the window starts one period before today's date and ends on the fund's own latest price date. So the app is internally consistent.** If instead the window starts one period before the latest price date (the usual way to quote a return "as at" a date), only 58 of 270 agree. The difference between the two conventions: **1Y median 0.35 of a point, largest 1.77; 3Y median 0.06, largest 1.73; 5Y median 0.17, largest 0.62.** The app's "1 year" return is a window of one year minus the one to two days between the latest price and today. Within one pool the shortening is the same for every fund that ends on the same date, so it mainly matters when end dates differ (next section).
+
+## T10-4 on stored prices: how old is each pool fund's last stored price?
+In 17 of 19 groups every pool fund's last stored price is current. In **Equity Scheme - Sectoral/ Thematic (Direct), 74 of the 142 funds in the 3Y pool end 5 or more days before today** (44 stop at 2 Nov, 14 at 13 Nov, 9 at 11 Nov, 7 at 6 Nov): their returns are measured to those dates while the held fund and the rest of the pool end on 18 or 19 Nov. One fund in the Children's group (UTI Children's Hybrid, last price 23 Oct) is also behind. **Reopened: this is the plan's R6 ("a peer whose price history did not load, our bug") and the earlier RK-4 check missed it,** because it compared pool membership and the AMFI file's dates, not the dates of the stored price history. For **all** the stale sectoral funds AMFI's own file already has a newer price (up to 19 Nov).
+
+## Root cause
+The nightly job refreshes peers' history from the third-party history service (mfapi.in), all at once (`warm_nav_history`, about 450 requests in the 06:00 run, 9 seconds). Repeating the fetch for the stale sectoral funds on 20 Nov: a burst of 71 concurrent requests returned **4 HTTP 429 (too many requests)**; the same 71 fetched ten at a time straight afterwards returned **64 HTTP 429 and only 7 successes**. The code treats a failed fetch as "best-effort, left unwarmed" and logs nothing, so a refused peer keeps its old history and nobody is told. The held funds do not have this problem since the 16 Nov fix (they take AMFI's own file); the peers still depend on the history service.
+
+## What this reopens (new proposals in `2026-11-19-batch-a-fix-proposals.md`)
+- **FX-10a, second part (the plan's "retry and complete the price history for every peer before a total is shown"): now triggered by the evidence.** I told the owner on 19 Nov that this part was not triggered; on that day I had checked pool membership only. It is triggered on real data.
+- **FX-10c (one common end date, anchored on that date): reopened.** I parked it on 19 Nov because no pool mixed AMFI dates; the stored-price check shows a real mixed-date pool and a systematic start-date anchor.
+
+## Not done
+RK-5's T10-7 (AMFI monthly category counts), T10-8 and S4 (SEBI categories), S5 (fund-house pages); real-data verification of the two workbooks (CA-6 and RK-9 are built; both need a run on the deployed data after the fixes).
