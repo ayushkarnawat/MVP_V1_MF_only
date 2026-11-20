@@ -8,6 +8,8 @@ import { renderInShell } from "../../shell/testing";
 const mocks = vi.hoisted(() => ({
   getAnalyticsScope: vi.fn(), retryAnalyticsScope: vi.fn(), getHoldingsBundle: vi.fn(), getAllocation: vi.fn(), getSips: vi.fn(),
   getSipsMonthly: vi.fn(), getCoverageGaps: vi.fn(), getHistoryPoints: vi.fn(), getMonthDetail: vi.fn(),
+  // The Overview now loads its wealth graph (D-7); this route test is about the page, so an empty graph is enough.
+  getWealthBenchmarks: vi.fn(), getWealthSeries: vi.fn(),
 }));
 vi.mock("../auth/session", () => ({ getToken: () => "t1" }));
 vi.mock("./api", () => mocks);
@@ -32,6 +34,8 @@ beforeEach(() => {
   mocks.getCoverageGaps.mockResolvedValue([]);
   mocks.getHistoryPoints.mockResolvedValue([]);
   mocks.getAnalyticsScope.mockResolvedValue(fc.analyticsMfC());
+  mocks.getWealthBenchmarks.mockResolvedValue({ options: [], recommended_index: "" });
+  mocks.getWealthSeries.mockResolvedValue({ empty: true, points: [], benchmark: null });
 });
 
 describe("Mutual Funds routes", () => {
