@@ -56,7 +56,7 @@ Note on the guard (M1): the per-network limit counts the network you test from. 
 
 ---
 ## M2 part 1 (deployed 20 Nov 2026 from `2026-11-20-staging-deploy-guide-m2.md`, tag `m2-rc`, Alembic 0054): the numbers (Batch A), shared Home graph, movers backend, tutorial pop-up
-Part 2 of Batch D (benchmark checklist and legend, the day's-change pop-up, the Overview graph, the chart end-date rule) is added to this list when it ships.
+Part 2 of Batch D (benchmark checklist and legend, the day's-change pop-up, the Overview graph) is in the next table (M2-15 to M2-28). The chart end-date rule needed no change (guard tests only).
 
 | # | Step | Expected | Result |
 |---|---|---|---|
@@ -74,6 +74,24 @@ Part 2 of Batch D (benchmark checklist and legend, the day's-change pop-up, the 
 | M2-12 | The CAMS name and page and a promotional banner photo appear in the video | **Manager's sign-off needed** (not legal advice): keep, blur or reshoot | |
 | M2-13 | The next morning's 14:10 digest mail | Lists a `PEER_HISTORY failed=<n> of <m>` line from the 06:00 run, with a small n | |
 | M2-14 | Old link `https://ls-staging.unifolio.in/` | Works; shows the same new numbers; nothing else different | |
+
+### M2 part 2: charts and the day's-change pop-up (Batch D, second part)
+| # | Step | Expected | Result |
+|---|---|---|---|
+| M2-15 | Home graph: open the benchmark control | A checklist (not a drop-down); at most **3** boxes can be ticked, a fourth shows "Choose up to 3"; the last ticked box cannot be unticked; the recommended one says "(recommended)"; the choice survives a reload and is the same on the Mutual Funds Overview | |
+| M2-16 | Home graph with 1 benchmark chosen | Reads exactly as before the release (the line, "Nifty 500 +12.3%" under the value, the notes), plus one legend chip | |
+| M2-17 | Home graph with 2 and 3 benchmarks | One line per benchmark in its own colour (Nifty 50 blue, Nifty 500 violet, LargeMidcap 250 amber, Midcap 150 indigo, Smallcap 250 teal); an end label names each line and the labels do not overlap; hovering names the benchmarks; teal against green and indigo against violet are told apart by their labels | |
+| M2-18 | Legend chips | Clicking a chip hides or shows that line and its end label; nothing is remembered after a reload | |
+| M2-19 | A period that starts before a benchmark's history | That line starts where its data begins, with the note "<name> history starts on <date>."; it is never dropped | |
+| M2-20 | Mutual Funds Overview | The same graph sits directly under the summary strip and above the SIP timeline; the strip and table appear first, the graph loads after; switching Family and a member changes the graph; a graph error leaves the page working; amounts show like the rest of the Overview | |
+| M2-21 | Home, "What moved today" card | Unchanged; "View all by day's change" is now a live link (green, with the arrow) | |
+| M2-22 | The pop-up: Fund view | Opens at once with the card's net change and totals and a "Loading every fund" placeholder; then gainers (largest first), losers, a collapsed "No change" group; the footer says the rows add up | |
+| M2-23 | The pop-up: Category and Sector views | Category rows open to their funds; the sector view shows "Estimated" and the estimate footer; a view you already opened does not fetch again | |
+| M2-24 | A fund whose price is late, and a fund priced only from a statement | The late fund is under "Waiting for today's price" with the clock mark and the Partial badge, never as zero; a statement-only fund is in its own block "Priced from your statement only" and is not named in Partial | |
+| M2-25 | Open the pop-up on a weekend, a holiday or a morning before prices publish | It lists the last trading day's rows and the net change equals the card's, with the line "Latest prices are from <weekday date>" | |
+| M2-26 | The pop-up with the network off, then on | Keeps the summary, says it could not load, "Try again" repeats the fetch | |
+| M2-27 | The pop-up with values hidden | Rupee amounts become dots; percentages stay | |
+| M2-28 | Pop-up keyboard and focus | Escape, the cross, "Close" and a click outside close it; focus stays inside while open and returns to the link; light and dark; at 1280x600, 1440x810 and 1536x730 | |
 
 Known open owner decisions from this release: whether Sectoral and Thematic funds should rank in one pool (AMFI's October report counts them as two categories; `2026-11-20-rk5-cross-checks-part-2.md`); keep or remove `home-tokens.css` and the four undefined Home variables (`decisions.md`, 20 Nov).
 
