@@ -1,6 +1,6 @@
 # Staging Deploy Guide M2 part 2: the benchmark checklist and legend, the graph on the Mutual Funds Overview, the "View all by day's change" pop-up (Batch D, second part) to `ls-redesign.unifolio.in`
 
-**FROZEN 20 Nov 2026.** `batch/d-part2` (worktree `D:\unifolio-d-int`) is merged into `leapswitch-redesign` and tagged `m2b-rc` at the freeze (the tag's commit is `<FINAL-COMMIT>`, filled in after the tag). It follows `2026-11-20-staging-deploy-guide-m2.md` (part 1, deployed 20 Nov, tag `m2-rc` = `f1f7e5d47e796ef64105fc196ee77cf84e8d2f09`). **Nothing here is run until the owner's go (the owner's "deploy guide + direct deployment" for M2, 20 Nov, covers M2 part 2).** No QA round after it: only the quick verify in step 9; the owner's checks are rows M2-15 to M2-28 of `2026-11-19-combined-qa-checklist.md`, run once after M4. After this deploy M2 is complete, and the owner sends **one** combined stakeholder message (`2026-11-20-m2-stakeholder-message-draft.md`, to be updated first).
+**FROZEN 20 Nov 2026.** `batch/d-part2` (worktree `D:\unifolio-d-int`) is merged into `leapswitch-redesign` and tagged `m2b-rc` at the freeze (the tag's commit is `a4a948cbf7d0f9e3a6ae8986a48f47bf294f07af`, filled in after the tag). It follows `2026-11-20-staging-deploy-guide-m2.md` (part 1, deployed 20 Nov, tag `m2-rc` = `f1f7e5d47e796ef64105fc196ee77cf84e8d2f09`). **Nothing here is run until the owner's go (the owner's "deploy guide + direct deployment" for M2, 20 Nov, covers M2 part 2).** No QA round after it: only the quick verify in step 9; the owner's checks are rows M2-15 to M2-28 of `2026-11-19-combined-qa-checklist.md`, run once after M4. After this deploy M2 is complete, and the owner sends **one** combined stakeholder message (`2026-11-20-m2-stakeholder-message-draft.md`, to be updated first).
 
 ## What changes
 1. **Up to three benchmarks on the Home graph** (a checklist instead of the drop-down; a fourth box shows "Choose up to 3"; the last ticked box cannot be unticked; the choice is remembered per browser as a list, and an old single remembered value still loads). One line per benchmark in its own colour (Nifty 50 blue, Nifty 500 violet, LargeMidcap 250 amber, Midcap 150 indigo, Smallcap 250 teal), an end label naming each line, hover names the benchmarks, legend chips that hide or show a line (not remembered). A benchmark whose history starts later is drawn from where its data begins, with a note naming it. With one benchmark chosen Home reads as before, plus the checklist and one chip.
@@ -36,7 +36,7 @@ git diff --name-only f1f7e5d47e796ef64105fc196ee77cf84e8d2f09 m2b-rc | grep -vE 
 Expected groups only: `backend/app/api/home.py`, `backend/app/services/home/{movers.py,schemas.py,wealth.py}`, `backend/scripts/jobs/refresh_news.py`, `deploy/leapswitch/scripts/nav-digest.sh`, `frontend/src/components/{PartialDataBadge.tsx,ui/charts/*,wealth-graph/*}`, `frontend/src/features/home/**`, `frontend/src/features/mutual-funds/{api.ts,overview/OverviewPage.tsx}`, `frontend/src/lib/homeToday.ts`, `session.md`, `decisions.md`, `CLAUDE.md`. **STOP** on a migration, a dependency file, anything under `frontend/src/mobile/`, or anything in `backend/app` outside those files.
 
 ### Step 2 (laptop): evidence (no CI run exists for this branch)
-**FILL-IN-AT-FREEZE** (the full front-end run, types, lint and build; the wide back-end run). Reviews: `2026-11-20-batch-d-backend-review.md` and `2026-11-20-batch-d-whole-batch-review.md`, both with every finding closed or accepted.
+Local verification of the merged tree on 20 Nov (the integration worktree): front end **6,316 passed (496 files)**, 2 skipped, types clean, lint 0 errors (30 warnings), production build succeeds. Back end, over every area the release touches (all services, the API, scripts, core, models, config, deployment and startup tests; no Postgres): **6,078 passed**, 22 skipped, 3 expected failures, **0 failed** (the 25 failures of the part 1 run were fixed on 20 Nov: see the M2 part 1 deploy record). Reviews: `2026-11-20-batch-d-backend-review.md` and `2026-11-20-batch-d-whole-batch-review.md`, both with every finding closed or accepted.
 
 ### Step 3 (VM): pre-flight, read-only
 ```bash
@@ -61,7 +61,7 @@ Expected: `previous` and `latest` show the same id (`7de6c3d9f52e`); `backup_exi
 ### Step 5: no new setting. Nothing to add to `.env`.
 
 ### Step 6 (VM): switch to the tag
-`cd /opt/unifolio-redesign && git fetch origin && git checkout -B leapswitch-redesign m2b-rc && git rev-parse HEAD`. Expected: the full hash equals `<FINAL-COMMIT>`. **STOP** if not.
+`cd /opt/unifolio-redesign && git fetch origin && git checkout -B leapswitch-redesign m2b-rc && git rev-parse HEAD`. Expected: the full hash equals `a4a948cbf7d0f9e3a6ae8986a48f47bf294f07af`. **STOP** if not.
 
 ### Step 7 (VM): deploy. GATE: the owner's yes first
 ```bash
