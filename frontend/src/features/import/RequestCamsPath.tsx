@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "motion/react";
 import { requestCamsStatement } from "./api";
 import { setCasResumeStep2 } from "./casResumeState";
@@ -10,6 +10,9 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
+import { TutorialDialog } from "./tutorial/TutorialDialog";
+import { TutorialLink } from "./tutorial/TutorialLink";
+import { useTutorialPlayer } from "./tutorial/useTutorialPlayer";
 
 export interface RequestCamsPathProps {
   memberId: string;
@@ -24,6 +27,8 @@ export function RequestCamsPath({
 }: RequestCamsPathProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const tutorialLinkRef = useRef<HTMLButtonElement | null>(null);
+  const tutorial = useTutorialPlayer();
 
   const handleRequest = async () => {
     setIsLoading(true);
@@ -38,6 +43,11 @@ export function RequestCamsPath({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRequestFromTutorial = async () => {
+    await handleRequest();
+    tutorial.hide();
   };
 
   return (
@@ -159,7 +169,7 @@ export function RequestCamsPath({
       </motion.div>
 
       {/* Action Button */}
-      <motion.div variants={staggerItemVariants} className="pt-1">
+      <motion.div variants={staggerItemVariants} className="pt-1 space-y-2.5">
         <Button
           onClick={handleRequest}
           disabled={isLoading}
@@ -178,7 +188,21 @@ export function RequestCamsPath({
             </>
           )}
         </Button>
+
+        <div className="flex justify-center">
+          <TutorialLink ref={tutorialLinkRef} onOpen={tutorial.show} />
+        </div>
       </motion.div>
+
+      <TutorialDialog
+        open={tutorial.open}
+        onOpenChange={(next) => (next ? tutorial.show() : tutorial.hide())}
+        autoPlay={tutorial.autoPlay}
+        src={tutorial.src}
+        onRequestStatement={handleRequestFromTutorial}
+        isRequesting={isLoading}
+        returnFocusRef={tutorialLinkRef}
+      />
     </motion.div>
   );
 }
