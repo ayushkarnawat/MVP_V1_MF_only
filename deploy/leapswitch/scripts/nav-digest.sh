@@ -19,9 +19,12 @@ today=$(TZ=Asia/Kolkata date +%F)
 
 # NAV_PROBLEM / NAV_NOTE lines carry no date of their own, so take everything from today's first
 # summary line onward (older days sit above it) and keep only the NAV_* lines.
+# The 06:00 run prints its "PEER_HISTORY failed=<n> of <m>" line (peer price histories the price
+# service refused or did not answer) just BEFORE its own summary, so the last one seen before today's
+# first summary is carried in. Listed for a glance; it does not change the OK or ATTENTION verdict.
 today_block=$(cat "$log.1" "$log" 2>/dev/null \
-	| awk -v d="NAV_SUMMARY ts=${today}T" 'index($0,d)==1{on=1} on' \
-	| grep -E '^(NAV_SUMMARY |NAV_PROBLEM |NAV_NOTE )' || true)
+	| awk -v d="NAV_SUMMARY ts=${today}T" '/^PEER_HISTORY /{peer=$0} index($0,d)==1 && !on{on=1; if (peer != "") print peer} on' \
+	| grep -E '^(NAV_SUMMARY |NAV_PROBLEM |NAV_NOTE |PEER_HISTORY )' || true)
 
 runs=$(printf '%s\n' "$today_block" | grep -c '^NAV_SUMMARY ' || true)
 any_problem=$(printf '%s\n' "$today_block" | grep -c -E '^NAV_PROBLEM |^NAV_SUMMARY .*(amfi|held_refresh)=FAILED' || true)
