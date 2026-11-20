@@ -145,15 +145,16 @@ describe("Movers: the net change and the rows", () => {
     expect(screen.queryByTestId("movers-others")).toBeNull();
   });
 
-  it("shows a different footnote for the sector view and the others, and a greyed link to all funds", () => {
+  it("shows a different footnote for the sector view and the others, and a live button to all funds", () => {
     const first = setup();
     expect(screen.getByText("Sector figures are estimates and add up to the exact change.")).toBeInTheDocument();
     first.unmount();
-    setup({ data: fixture<MoversResponse>("movers_fund"), view: "fund" });
+    setup({ data: fixture<MoversResponse>("movers_fund"), view: "fund", loadAll: vi.fn() });
     expect(screen.getByText("Rows add up to the net change.")).toBeInTheDocument();
-    const link = screen.getByText("View all by day's change").closest("[aria-disabled]") as HTMLElement;
-    expect(link.getAttribute("aria-disabled")).toBe("true");
-    expect(link.getAttribute("title")).toBe("Coming soon");
+    const button = screen.getByRole("button", { name: "View all by day's change" });
+    expect(button).toBeEnabled();
+    expect(button).not.toHaveAttribute("aria-disabled");
+    expect(button).not.toHaveAttribute("title");
   });
 });
 

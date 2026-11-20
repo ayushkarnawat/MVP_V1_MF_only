@@ -1,11 +1,11 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { benchmarkColor } from "@/components/wealth-graph/benchmarkColors";
-import type { BenchmarkOptionOut } from "../types";
+import { benchmarkColor } from "./benchmarkColors";
+import type { WealthBenchmarkOption } from "./types";
 import { MAX_BENCHMARKS } from "./benchmarkChoice";
 
 export interface BenchmarkChecklistProps {
-  options: BenchmarkOptionOut[];
+  options: readonly WealthBenchmarkOption[];
   values: string[];
   onChange: (values: string[]) => void;
   disabled?: boolean;

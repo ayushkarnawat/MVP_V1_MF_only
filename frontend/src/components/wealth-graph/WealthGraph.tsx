@@ -1,9 +1,11 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-import { LineAreaChart } from "@/components/ui/charts";
+import { LineAreaChart, type ChartBenchmarkLine } from "@/components/ui/charts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCompactRupees, formatDate, formatPercent } from "@/lib/format";
+import { BenchmarkChecklist } from "./BenchmarkChecklist";
 import { benchmarkColor } from "./benchmarkColors";
+import { BenchmarkLegend } from "./BenchmarkLegend";
 import type {
   WealthBenchmarkOption,
   WealthDateRange,
@@ -21,8 +23,8 @@ export interface WealthGraphProps {
   onCustomRangeChange: (range: WealthDateRange) => void;
   today: string;
   benchmarkOptions: readonly WealthBenchmarkOption[];
-  benchmark: string | null;
-  onBenchmarkChange: (index: string) => void;
+  benchmarks: string[];
+  onBenchmarksChange: (values: string[]) => void;
   hideValues?: boolean;
   refreshing?: boolean;
   onRetry?: () => void;
@@ -131,36 +133,6 @@ function isAriaPressed(iso: string, from: string | null, to: string | null): boo
   if (!from) return false;
   const end = to ?? from;
   return iso >= from && iso <= end;
-}
-
-function GraphBenchmarkSelect({
-  options,
-  value,
-  onChange,
-  disabled = false,
-}: {
-  options: readonly WealthBenchmarkOption[];
-  value: string | null;
-  onChange: (index: string) => void;
-  disabled?: boolean;
-}) {
-  const isDisabled = disabled || options.length === 0;
-
-  return (
-    <select
-      aria-label="Benchmark"
-      value={value ?? ""}
-      disabled={isDisabled}
-      onChange={e => onChange(e.target.value)}
-      className="rounded-md border border-[var(--ui-divider)] bg-[var(--ui-elevated)] px-2 py-1 text-sm text-[var(--ui-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ui-focus)] disabled:cursor-not-allowed disabled:text-[var(--ui-disabled-text)]"
-    >
-      {options.map(option => (
-        <option key={option.index} value={option.index}>
-          {option.recommended ? `${option.label} (recommended)` : option.label}
-        </option>
-      ))}
-    </select>
-  );
 }
 
 function GraphPeriodSelector({
@@ -406,8 +378,8 @@ export function WealthGraph({
   onCustomRangeChange,
   today,
   benchmarkOptions,
-  benchmark,
-  onBenchmarkChange,
+  benchmarks,
+  onBenchmarksChange,
   hideValues = false,
   refreshing = false,
   onRetry,
@@ -417,6 +389,19 @@ export function WealthGraph({
   headline,
 }: WealthGraphProps) {
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [hiddenBenchmarks, setHiddenBenchmarks] = useState<Set<string>>(() => new Set());
+
+  const toggleBenchmarkHidden = (id: string) => {
+    setHiddenBenchmarks(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (period !== "custom") {
@@ -549,16 +534,38 @@ export function WealthGraph({
     );
   }
 
+  const labelFor = (index: string): string => {
+    const option = benchmarkOptions.find(opt => opt.index === index);
+    if (option) return option.label;
+    if (data.benchmark && data.benchmark.index === index) return data.benchmark.label;
+    return index;
+  };
+
   const showBenchmarkLine = Boolean(
     data.benchmark &&
     data.benchmark.available &&
     data.benchmark.pct != null,
   );
 
+  const hasBenchmarkSeries = Array.isArray(data.benchmark_series);
+
+  const benchmarkLines: ChartBenchmarkLine[] | undefined = hasBenchmarkSeries
+    ? data.benchmark_series!
+        .filter(entry => entry.available && !hiddenBenchmarks.has(entry.benchmark))
+        .map(entry => ({
+          id: entry.benchmark,
+          label: labelFor(entry.benchmark),
+          color: benchmarkColor(entry.benchmark),
+          points: entry.points,
+        }))
+    : undefined;
+
   const hasSecondSeries = Boolean(
+    !hasBenchmarkSeries &&
     data.benchmark &&
     data.benchmark.available &&
     !data.benchmark.clipped &&
+    !hiddenBenchmarks.has(data.benchmark.index) &&
     data.benchmark.points.length === data.points.length,
   );
 
@@ -571,19 +578,33 @@ export function WealthGraph({
         }
       : undefined;
 
+  const legendItems = benchmarks.map(id => ({
+    id,
+    label: labelFor(id),
+    color: benchmarkColor(id),
+  }));
+
   const notes: string[] = [];
   const pNote = periodNote(period, data);
   if (pNote) {
     notes.push(pNote);
   }
-  if (data.benchmark) {
+  if (hasBenchmarkSeries && data.benchmark_series!.length > 0) {
+    for (const entry of data.benchmark_series!) {
+      const name = labelFor(entry.benchmark);
+      if (!entry.available) {
+        notes.push(`${name} data is not available for this period.`);
+      } else if (entry.clipped && entry.effective_start) {
+        notes.push(`${name} history starts on ${formatDate(entry.effective_start)}.`);
+      }
+    }
+  } else if (data.benchmark) {
     if (!data.benchmark.available) {
       notes.push("Benchmark data is not available for this period.");
     } else if (data.benchmark.clipped && data.benchmark.effective_start) {
       notes.push(`Benchmark history starts on ${formatDate(data.benchmark.effective_start)}.`);
     }
   }
-  const noteText = notes.join(" ");
 
   return (
     <div
@@ -596,10 +617,10 @@ export function WealthGraph({
 
         <div className="flex items-center gap-2">
           {headerRightExtra}
-          <GraphBenchmarkSelect
+          <BenchmarkChecklist
             options={benchmarkOptions}
-            value={benchmark}
-            onChange={onBenchmarkChange}
+            values={benchmarks}
+            onChange={onBenchmarksChange}
           />
         </div>
       </div>
@@ -633,7 +654,12 @@ export function WealthGraph({
               area: true,
             },
           ]}
-          {...(secondSeries ? { secondSeries } : {})}
+          dates={data.points.map(point => point.date)}
+          {...(benchmarkLines !== undefined
+            ? { benchmarkLines }
+            : secondSeries
+              ? { secondSeries }
+              : {})}
           labels={index => formatDayMonth(data.points[index].date)}
           tooltipLabel={index => formatDate(data.points[index].date)}
           formatValue={
@@ -646,9 +672,21 @@ export function WealthGraph({
         />
       </div>
 
+      {/* Benchmark legend */}
+      <BenchmarkLegend
+        items={legendItems}
+        hidden={hiddenBenchmarks}
+        onToggle={toggleBenchmarkHidden}
+      />
+
       {/* Note */}
       <p data-testid="wealth-note" className="text-xs text-[var(--ui-text-muted)]">
-        {noteText}
+        {notes.map((line, idx) => (
+          <span key={idx} className="block">
+            {idx > 0 ? " " : ""}
+            {line}
+          </span>
+        ))}
       </p>
 
       {/* Controls row */}

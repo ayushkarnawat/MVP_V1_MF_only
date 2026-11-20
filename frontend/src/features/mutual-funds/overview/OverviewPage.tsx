@@ -10,7 +10,7 @@ import type { WealthDateRange, WealthPeriod } from "../../../components/wealth-g
 import { useWealthSeries } from "../../../components/wealth-graph/useWealthSeries";
 import { useImport, useScope } from "../../../shell/scope/ScopeContext";
 import { getBenchmarks, getWealthSeries } from "../../home/api";
-import { pickBenchmark, readStoredBenchmark, writeStoredBenchmark } from "../../home/components/benchmarkChoice";
+import { pickBenchmarks, readStoredBenchmarks, writeStoredBenchmarks } from "../../../components/wealth-graph/benchmarkChoice";
 import { PartialDataBadge } from "../../home/components/PartialDataBadge";
 import { istToday } from "../../home/homeToday";
 import { useMfAnalytics } from "../data/analyticsStore";
@@ -42,16 +42,16 @@ function OverviewWealthGraph({ holdingsReady }: { holdingsReady: boolean }) {
   const [period, setPeriod] = useState<WealthPeriod>("1Y");
   const [draftRange, setDraftRange] = useState<WealthDateRange>({ from: null, to: null });
   const [appliedRange, setAppliedRange] = useState<WealthDateRange | null>(null);
-  const [chosenBenchmark, setChosenBenchmark] = useState(readStoredBenchmark);
+  const [chosenBenchmarks, setChosenBenchmarks] = useState<string[]>(() => readStoredBenchmarks());
 
   const benchmarks = useMfSection(
     signal => enabled ? getBenchmarks(scope, signal) : Promise.resolve(null),
     [scopeKey, enabled],
   );
-  const benchmark = benchmarks.data
-    ? pickBenchmark(benchmarks.data.options, chosenBenchmark, benchmarks.data.recommended_index)
-    : null;
-  const wealth = useWealthSeries(scope, period, appliedRange, benchmark ? [benchmark] : [], {
+  const selectedBenchmarks = benchmarks.data
+    ? pickBenchmarks(benchmarks.data.options, chosenBenchmarks, benchmarks.data.recommended_index)
+    : [];
+  const wealth = useWealthSeries(scope, period, appliedRange, selectedBenchmarks, {
     loadSeries: getWealthSeries,
     enabled: enabled && benchmarks.status !== "loading",
   });
@@ -80,10 +80,10 @@ function OverviewWealthGraph({ holdingsReady }: { holdingsReady: boolean }) {
           }}
           today={istToday()}
           benchmarkOptions={benchmarks.data?.options ?? []}
-          benchmark={benchmark}
-          onBenchmarkChange={index => {
-            setChosenBenchmark(index);
-            writeStoredBenchmark(index);
+          benchmarks={selectedBenchmarks}
+          onBenchmarksChange={indices => {
+            setChosenBenchmarks(indices);
+            writeStoredBenchmarks(indices);
           }}
           hideValues={false}
           refreshing={wealth.refreshing}

@@ -88,25 +88,28 @@ describe("HomePage: benchmark", () => {
     const api = mockHomeApi();
     renderHome();
     await ready();
-    fireEvent.change(screen.getByRole("combobox", { name: "Benchmark" }), { target: { value: "nifty_500" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Benchmark:\s*Nifty LargeMidcap 250$/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Nifty 500" }));
     await waitFor(() => expect(api.callsFor("wealth-series")).toHaveLength(2));
-    expect(api.callsFor("wealth-series")[1].query.get("benchmark")).toBe("nifty_500");
+    expect(api.callsFor("wealth-series")[1].query.get("benchmark")).toBe("nifty_largemidcap_250");
+    expect(api.callsFor("wealth-series")[1].query.getAll("benchmarks")).toEqual(["nifty_largemidcap_250", "nifty_500"]);
     expect(api.callsFor("benchmarks")).toHaveLength(1);
-    expect(localStorage.getItem("home.benchmark")).toBe("nifty_500");
+    expect(localStorage.getItem("home.benchmark")).toBe(JSON.stringify(["nifty_largemidcap_250", "nifty_500"]));
   });
 
   it("starts from the remembered benchmark on the next visit", async () => {
     const firstApi = mockHomeApi();
     const first = renderHome();
     await ready();
-    fireEvent.change(screen.getByRole("combobox", { name: "Benchmark" }), { target: { value: "nifty_midcap_150" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Benchmark:\s*Nifty LargeMidcap 250$/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Nifty Midcap 150" }));
     await waitFor(() => expect(firstApi.callsFor("wealth-series")).toHaveLength(2));
     await ready();
     first.unmount();
     const api = mockHomeApi();
     renderHome();
     await ready();
-    expect(api.callsFor("wealth-series")[0].query.get("benchmark")).toBe("nifty_midcap_150");
+    expect(api.callsFor("wealth-series")[0].query.getAll("benchmarks")).toEqual(["nifty_largemidcap_250", "nifty_midcap_150"]);
   });
 
   it("works when the browser blocks local storage", async () => {
@@ -115,11 +118,22 @@ describe("HomePage: benchmark", () => {
     const get = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("blocked"); });
     renderHome();
     await ready();
-    fireEvent.change(screen.getByRole("combobox", { name: "Benchmark" }), { target: { value: "nifty_50" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Benchmark:\s*Nifty LargeMidcap 250$/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Nifty 50" }));
     await waitFor(() => expect(api.callsFor("wealth-series")).toHaveLength(2));
-    expect(api.callsFor("wealth-series")[1].query.get("benchmark")).toBe("nifty_50");
+    expect(api.callsFor("wealth-series")[1].query.getAll("benchmarks")).toEqual(["nifty_largemidcap_250", "nifty_50"]);
     set.mockRestore();
     get.mockRestore();
+  });
+
+  it("Home sends benchmark and benchmarks together", async () => {
+    localStorage.setItem("home.benchmark", JSON.stringify(["nifty_50", "nifty_500"]));
+    const api = mockHomeApi();
+    renderHome();
+    await ready();
+    const query = api.callsFor("wealth-series")[0].query;
+    expect(query.get("benchmark")).toBe("nifty_50");
+    expect(query.getAll("benchmarks")).toEqual(["nifty_50", "nifty_500"]);
   });
 });
 
