@@ -271,7 +271,7 @@ function TutorialDialogBody({
                   onClick={onRequestStatement}
                   disabled={isRequesting}
                   data-testid="tutorial-end-request"
-                  className="h-10 gap-2 rounded-xl bg-[var(--pos)] px-4 text-xs sm:text-sm font-semibold text-white hover:brightness-95 active:brightness-90 focus-visible:ring-[var(--ui-focus)] motion-reduce:transition-none"
+                  className="h-10 gap-2 rounded-xl bg-[var(--pos)] px-4 text-xs sm:text-sm font-semibold text-[#111111] hover:brightness-95 active:brightness-90 focus-visible:ring-[var(--ui-focus)] motion-reduce:transition-none"
                 >
                   {isRequesting ? (
                     <Loader2
@@ -379,7 +379,7 @@ function TutorialDialogBody({
                 className={cn(
                   "tnum inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold",
                   isActive
-                    ? "bg-[var(--pos)] text-white"
+                    ? "bg-[var(--pos)] text-[#111111]"
                     : "bg-[var(--ui-card)] text-[var(--ui-text-muted)]"
                 )}
               >
