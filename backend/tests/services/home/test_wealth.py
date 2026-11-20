@@ -1,9 +1,13 @@
 from datetime import date
 from decimal import Decimal
+import json
+from pathlib import Path
 from types import SimpleNamespace
 import uuid
 
+import pytest
 from sqlalchemy import event
+from sqlalchemy.orm import Session
 
 from app.models.enums import BenchmarkIndex, BenchmarkReturnType
 from app.models.reference import BenchmarkIndexHistory
@@ -12,6 +16,7 @@ from app.services.home.movers import FundInput
 from app.services.home.movers import Movers, MoversView
 from app.services.home.series import ValueSeries, SeriesPoint
 from app.services.home.wealth import assemble_wealth_series, build_wealth_series
+from tests.api.home_fixture import build_home_fixture
 
 
 def _movers(*, change="5.00", pct="0.5000", previous=date(2026, 10, 22)):
@@ -137,3 +142,176 @@ def test_benchmark_query_has_ten_day_lower_bound_and_clips(db_session):
     assert result.benchmark.clipped is True
     assert result.benchmark.effective_start == date(2026, 10, 1)
     assert result.benchmark.pct == Decimal("10.0000")
+
+
+def test_requested_benchmarks_keep_their_dates_and_values_in_the_service(db_session):
+    start = date(2026, 10, 22)
+    end = date(2026, 10, 24)
+    db_session.add_all([
+        BenchmarkIndexHistory(
+            index_name=index, date=day, return_type=BenchmarkReturnType.TRI, value=Decimal(level),
+        )
+        for index, day, level in (
+            (BenchmarkIndex.NIFTY_50, start, "120"),
+            (BenchmarkIndex.NIFTY_50, end, "121"),
+            (BenchmarkIndex.NIFTY_500, date(2026, 10, 23), "200"),
+            (BenchmarkIndex.NIFTY_500, end, "220"),
+        )
+    ])
+    db_session.flush()
+    fund = FundInput(
+        scheme_id=uuid.uuid4(), name="Fund", category="Equity",
+        units_timeline=[(start, Decimal("1"))], navs=[(start, Decimal("100"))],
+    )
+    inputs = HomeInputs(
+        holdings=(), funds=(fund,), movers=_movers(), series=ValueSeries((), False, ()),
+        nav_as_of=end, partial=False, missing_funds=(),
+    )
+
+    result = build_wealth_series(
+        db_session, ScopeContext("aggregate", None, (), (), None), inputs,
+        today=end, period="custom", custom=(start, end), benchmark=BenchmarkIndex.NIFTY_50,
+        benchmarks=(BenchmarkIndex.NIFTY_50, BenchmarkIndex.NIFTY_500, BenchmarkIndex.NIFTY_MIDCAP_150),
+    )
+
+    full, clipped, missing = result.benchmark_series
+    assert full == result.benchmark
+    assert full.points == (
+        (start, Decimal("0.0000")),
+        (date(2026, 10, 23), Decimal("0.0000")),
+        (end, Decimal("0.8333")),
+    )
+    assert clipped.clipped and clipped.effective_start == date(2026, 10, 23)
+    assert clipped.points == ((date(2026, 10, 23), Decimal("0.0000")), (end, Decimal("10.0000")))
+    assert not missing.available and missing.points == ()
+
+
+WEALTH_PATH = "/household/aggregate/home/wealth-series"
+
+
+@pytest.fixture
+def wealth_home():
+    runtime = build_home_fixture()
+    try:
+        yield runtime
+    finally:
+        runtime.close()
+
+
+def test_old_single_benchmark_reply_unchanged(wealth_home):
+    fixture = Path(__file__).resolve().parents[2] / "fixtures/home/wealth_1m_family_benchmark.json"
+    response = wealth_home.client.get(f"{WEALTH_PATH}?period=1M&benchmark=nifty_50")
+
+    assert response.status_code == 200
+    assert response.json() == json.loads(fixture.read_text(encoding="utf-8"))
+
+
+def test_three_benchmarks_return_three_series(wealth_home):
+    with Session(wealth_home.engine) as db:
+        db.add_all([
+            BenchmarkIndexHistory(
+                index_name=BenchmarkIndex.NIFTY_500, date=day,
+                return_type=BenchmarkReturnType.TRI, value=level,
+            )
+            for day, level in (
+                (date(2026, 10, 22), Decimal("120")),
+                (date(2026, 10, 23), Decimal("121")),
+            )
+        ])
+        db.commit()
+    response = wealth_home.client.get(
+        f"{WEALTH_PATH}?period=1D&benchmark=nifty_midcap_150"
+        "&benchmarks=nifty_500&benchmarks=nifty_50&benchmarks=nifty_smallcap_250"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["benchmark"]["index"] == "nifty_midcap_150"
+    series = body.get("benchmark_series", [])
+    assert [item["benchmark"] for item in series] == ["nifty_500", "nifty_50", "nifty_smallcap_250"]
+    assert all(item["available"] and len(item["points"]) == 2 for item in series)
+    assert series[0] == {
+        "benchmark": "nifty_500",
+        "points": [
+            {"date": "2026-10-22", "pct": "0.0000"},
+            {"date": "2026-10-23", "pct": "0.8333"},
+        ],
+        "clipped": False,
+        "effective_start": "2026-10-22",
+        "available": True,
+    }
+
+
+@pytest.mark.parametrize("fourth", ["nifty_smallcap_250", "nifty_50"])
+def test_fourth_benchmark_rejected(wealth_home, fourth):
+    response = wealth_home.client.get(
+        f"{WEALTH_PATH}?benchmarks=nifty_50&benchmarks=nifty_500"
+        f"&benchmarks=nifty_midcap_150&benchmarks={fourth}"
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Choose up to 3 benchmarks."
+
+
+def test_unavailable_benchmark_reports_available_false_and_keeps_the_others(wealth_home):
+    response = wealth_home.client.get(f"{WEALTH_PATH}?benchmarks=nifty_500&benchmarks=nifty_50")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["benchmark"] is None
+    series = body.get("benchmark_series", [])
+    assert len(series) == 2
+    assert series[0] == {
+        "benchmark": "nifty_500", "points": [], "clipped": False,
+        "effective_start": None, "available": False,
+    }
+    assert series[1]["benchmark"] == "nifty_50"
+    assert series[1]["available"] is True
+    assert series[1]["points"]
+
+
+def test_duplicates_collapsed_and_order_kept(wealth_home):
+    response = wealth_home.client.get(
+        f"{WEALTH_PATH}?benchmarks=nifty_smallcap_250&benchmarks=nifty_50&benchmarks=nifty_smallcap_250"
+    )
+
+    assert response.status_code == 200
+    assert [item["benchmark"] for item in response.json().get("benchmark_series", [])] == [
+        "nifty_smallcap_250", "nifty_50",
+    ]
+
+
+def test_single_benchmark_equals_first_of_list(wealth_home):
+    url = f"{WEALTH_PATH}?period=1M&benchmark=nifty_50"
+    single = wealth_home.client.get(url)
+    both = wealth_home.client.get(f"{url}&benchmarks=nifty_50")
+
+    assert single.status_code == both.status_code == 200
+    body = both.json()
+    series = body.pop("benchmark_series", [])
+    assert len(series) == 1
+    assert body == single.json()
+    legacy = body["benchmark"]
+    assert series[0] == {
+        "benchmark": legacy["index"],
+        "points": legacy["points"],
+        "clipped": legacy["clipped"],
+        "effective_start": legacy["effective_start"],
+        "available": legacy["available"],
+    }
+
+
+def test_member_route_accepts_benchmarks_too(wealth_home):
+    member_id = wealth_home.household.dev_id
+    response = wealth_home.client.get(
+        f"/household-members/{member_id}/home/wealth-series?benchmarks=nifty_smallcap_250"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["member_id"] == str(member_id)
+    series = body.get("benchmark_series", [])
+    assert len(series) == 1
+    assert series[0]["benchmark"] == "nifty_smallcap_250"
+    assert series[0]["available"] is True
+    assert series[0]["points"]

@@ -11,6 +11,10 @@ PlainDecimal = Annotated[
     Decimal,
     PlainSerializer(lambda value: format(value, "f"), return_type=str, when_used="json"),
 ]
+HomeBenchmark = Literal[
+    "nifty_50", "nifty_500", "nifty_largemidcap_250", "nifty_midcap_150",
+    "nifty_smallcap_250",
+]
 
 
 class HomeModel(BaseModel):
@@ -67,7 +71,7 @@ class BenchmarkPointOut(HomeModel):
     pct: PlainDecimal
 
 
-class BenchmarkSeriesOut(HomeModel):
+class LegacyBenchmarkSeriesOut(HomeModel):
     index: str
     label: str
     available: bool
@@ -75,6 +79,14 @@ class BenchmarkSeriesOut(HomeModel):
     effective_start: date | None
     clipped: bool
     points: list[BenchmarkPointOut]
+
+
+class BenchmarkSeriesOut(HomeModel):
+    benchmark: HomeBenchmark
+    points: list[BenchmarkPointOut]
+    clipped: bool
+    effective_start: date | None
+    available: bool
 
 
 class WealthSeriesResponse(Envelope):
@@ -90,7 +102,8 @@ class WealthSeriesResponse(Envelope):
     change_amount: PlainDecimal
     change_pct: PlainDecimal | None
     change_method: Literal["price_only", "modified_dietz"]
-    benchmark: BenchmarkSeriesOut | None
+    benchmark: LegacyBenchmarkSeriesOut | None
+    benchmark_series: list[BenchmarkSeriesOut] = Field(default_factory=list)
 
 
 class ClassFundOut(HomeModel):
