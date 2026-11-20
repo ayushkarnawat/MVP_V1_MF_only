@@ -941,3 +941,6 @@ The Overview has no hide-values control, and Home's setting is local React state
 
 ## 2026-11-20 (late) - Markets-closed pop-up and funds priced only from statements
 **Owner decisions on the independent review of the Batch D backend** (`Docs/orchestration/2026-11-20-batch-d-backend-review.md`): (1) option B: on a day with no new price (weekend, holiday, a morning before prices publish) the "view all by day's change" pop-up lists the last price day's rows, the same as the card, with one line "Latest prices are from <weekday date>"; the workbook's stage 9 message is kept only for the case of no price day at all. (2) a fund priced only from statements stays listed apart and never as zero, but is worded as "Priced from your statement only" (new additive `reason` on the waiting entry) and is not a reason for the Partial badge.
+
+## 2026-11-20 (late) - Overview benchmark-list failure accepted; M2 complete
+Owner ("whatever you recommend") accepted the Low finding that a failed benchmark-list load on the Overview cannot be retried on its own (the graph then loads without benchmarks; the list loads again on a scope change or reload). **M2 is complete on staging** (part 1 `m2-rc`, part 2 `m2b-rc`).
