@@ -17,7 +17,7 @@ import {
   writeStoredBenchmarks,
 } from "@/components/wealth-graph/benchmarkChoice";
 import type { DateRange } from "./components/DateRangeCalendar";
-import { istToday } from "./homeToday";
+import { istToday } from "../../lib/homeToday";
 import { Allocation } from "./sections/Allocation";
 import { Glance } from "./sections/Glance";
 import { Greeting } from "./sections/Greeting";

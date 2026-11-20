@@ -471,17 +471,19 @@ def test_funds_without_new_price_are_listed_apart_and_not_zero():
     assert sum((row.change for row in result.rows), Decimal("0")) == Decimal("170.00")
 
 
-def test_markets_closed_returns_no_rows_and_latest_price_date():
+def test_markets_closed_shows_the_last_price_days_rows_and_its_date():
+    # Owner decision B, 20 Nov: on a weekend, a holiday or a morning before prices publish, the all-rows reply is for
+    # the last price day, exactly like the card ("Latest prices are from Friday"), not an empty list.
     funds = _hand_fixture()[:-1]
     saturday = AS_OF + timedelta(days=1)
     card = compute_movers(funds, saturday, "fund")
 
     result = mover_service.compute_all_mover_rows(card, funds, saturday)
 
-    assert result.rows == ()
-    assert result.waiting_for_price == ()
+    assert result.rows
     assert result.nav_as_of == AS_OF
-    assert result.net_change == Decimal("0.00")
+    assert result.net_change == card.net_change
+    assert sum((row.change for row in result.rows), Decimal("0")) == card.net_change
 
 
 def test_sector_view_marked_estimated():

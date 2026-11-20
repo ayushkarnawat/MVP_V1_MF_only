@@ -207,6 +207,16 @@ def test_old_single_benchmark_reply_unchanged(wealth_home):
 
 
 NEXT_PRICE_DAY = FIXED_NOW.replace(day=26)
+SATURDAY = FIXED_NOW.replace(day=24)
+
+
+@pytest.fixture
+def wealth_home_saturday():
+    runtime = build_home_fixture(now=SATURDAY)
+    try:
+        yield runtime
+    finally:
+        runtime.close()
 
 
 @pytest.fixture
@@ -290,6 +300,33 @@ def test_all_rows_route_lists_an_unpriced_fund_apart_and_marks_the_reply_partial
     assert body["partial"] is True
     assert str(uid("scheme-flexi")) not in {row["key"] for row in body["rows"]}   # listed apart, never as a zero row
     assert sum(Decimal(row["change"]) for row in body["rows"]) == Decimal(body["net_change"])
+
+
+def test_a_statement_priced_fund_is_listed_with_its_own_reason():
+    # Owner decision, 20 Nov: a fund priced only from statements never has a daily price. It stays listed apart
+    # (never as zero) but says why, so the screen can word it differently from a fund whose price is just late.
+    runtime = build_home_fixture(variant="cas_only", now=NEXT_PRICE_DAY)
+    try:
+        _add_next_day_navs(runtime, {"large": "12.11", "debt": "10.02", "gold": "101.10"})   # flexi is late
+
+        body = runtime.client.get(f"{MOVERS_PATH}?by=fund&all=true").json()
+    finally:
+        runtime.close()
+
+    reasons = {item["fund_id"]: item["reason"] for item in body["waiting_for_price"]}
+    assert reasons == {str(uid("scheme-flexi")): "no_new_price", str(uid("scheme-casonly")): "statement_priced"}
+
+
+def test_all_rows_on_a_weekend_match_the_card(wealth_home_saturday):
+    # Owner decision B, 20 Nov: the pop-up's reply is for the last price day, the same one the card shows.
+    runtime = wealth_home_saturday
+    card = runtime.client.get(f"{MOVERS_PATH}?by=fund").json()
+    everything = runtime.client.get(f"{MOVERS_PATH}?by=fund&all=true").json()
+
+    assert everything["nav_as_of"] == "2026-10-23"
+    assert everything["net_change"] == card["net_change"] != "0.00"
+    assert everything["net_pct"] == card["net_pct"]
+    assert sum(Decimal(row["change"]) for row in everything["rows"]) == Decimal(everything["net_change"])
 
 
 def test_all_rows_sector_view_adds_up_to_the_net_change(wealth_home):

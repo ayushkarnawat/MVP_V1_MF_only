@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { AlertCircle, Check, ChevronRight, Clock, Factory, Layers, Moon, X } from "lucide-react";
+import { AlertCircle, Check, ChevronRight, Clock, Factory, FileText, Layers, Moon, X } from "lucide-react";
 import { SchemeLogo } from "@/components/SchemeLogo";
 import {
   Dialog,
@@ -32,7 +32,8 @@ import type {
   MoversView,
 } from "../types";
 import { FundLink } from "./FundLink";
-import { PartialDataBadge } from "./PartialDataBadge";
+import { PartialDataBadge } from "../../../components/PartialDataBadge";
+import { istToday } from "../../../lib/homeToday";
 import {
   formatDialogDateLine,
   formatWeekdayDate,
@@ -242,6 +243,14 @@ export function DayChangeDialog({
   const activeData: MoversResponse = loaded ?? card;
   const displayView: MoversView = loaded ? loaded.view : view;
   const waitingForPrice = loaded?.waiting_for_price ?? [];
+  // A fund priced only from a statement never has a daily price: listed apart, worded differently, and never a reason for Partial.
+  const lateFunds = waitingForPrice.filter(fund => fund.reason !== "statement_priced");
+  const statementFunds = waitingForPrice.filter(fund => fund.reason === "statement_priced");
+  // Owner decision B (20 Nov): on a day with no new price the list is the last price day's, with one line saying so.
+  const priceDayNote =
+    loaded && activeData.nav_as_of && activeData.nav_as_of < istToday()
+      ? `Latest prices are from ${formatWeekdayDate(activeData.nav_as_of)}.`
+      : null;
 
   const { gainers, losers, noChange } = loaded
     ? partitionMoverRows(loaded.rows)
@@ -278,8 +287,8 @@ export function DayChangeDialog({
   const partialFunds: MissingFund[] =
     activeData.missing_funds.length > 0
       ? activeData.missing_funds
-      : waitingForPrice.map(fund => ({ scheme_id: fund.fund_id, name: fund.name }));
-  const showPartial = activeData.partial || waitingForPrice.length > 0;
+      : lateFunds.map(fund => ({ scheme_id: fund.fund_id, name: fund.name }));
+  const showPartial = activeData.partial || lateFunds.length > 0;
 
   const changedRows = [...gainers, ...losers];
   const maxAbs = Math.max(
@@ -735,6 +744,11 @@ export function DayChangeDialog({
             </div>
           ) : (
             <div>
+              {priceDayNote ? (
+                <p data-testid="price-day-note" className="pt-3 text-xs text-[var(--ui-text-muted)]">
+                  {priceDayNote}
+                </p>
+              ) : null}
               {gainers.length > 0 ? (
                 <div>
                   <div className="sticky top-0 z-10 flex items-center gap-2 bg-[var(--ui-elevated)] pt-3 pb-1.5 text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--ui-text-muted)]">
@@ -801,17 +815,17 @@ export function DayChangeDialog({
                 </div>
               ) : null}
 
-              {waitingForPrice.length > 0 ? (
+              {lateFunds.length > 0 ? (
                 <div className="my-2 rounded-[14px] border border-dashed border-[var(--warn)] bg-[var(--warn-bg)] px-3 pt-2.5 pb-2">
                   <div className="text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--warn-text)]">
                     Waiting for today&apos;s price ·{" "}
-                    {groupUnitLabel("fund", waitingForPrice.length)}
+                    {groupUnitLabel("fund", lateFunds.length)}
                   </div>
                   <p className="pt-0.5 pb-1.5 text-xs text-[var(--warn-text)]">
                     Not counted in the net change until the price arrives. They are never shown as zero.
                   </p>
                   <ul className="divide-y divide-[color-mix(in_srgb,var(--warn)_22%,transparent)]">
-                    {waitingForPrice.map(fund => (
+                    {lateFunds.map(fund => (
                       <li
                         key={fund.fund_id}
                         className="grid grid-cols-[34px_minmax(0,1.2fr)_1fr_40px] items-center gap-3 py-1.5"
@@ -843,6 +857,39 @@ export function DayChangeDialog({
                         <span className="text-right text-xs text-[var(--ui-text-muted)]">
                           —
                         </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {statementFunds.length > 0 ? (
+                <div data-testid="statement-priced-block" className="my-2 rounded-[14px] border border-dashed border-[var(--ui-divider)] bg-[var(--ui-card)] px-3 pt-2.5 pb-2">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--ui-text-muted)]">
+                    Priced from your statement only · {groupUnitLabel("fund", statementFunds.length)}
+                  </div>
+                  <p className="pt-0.5 pb-1.5 text-xs text-[var(--ui-text-muted)]">
+                    These funds have no daily price, so they are not part of today&apos;s change. They are never shown as zero.
+                  </p>
+                  <ul className="divide-y divide-[var(--ui-divider)]">
+                    {statementFunds.map(fund => (
+                      <li key={fund.fund_id} className="flex items-center gap-3 py-1.5">
+                        <span aria-hidden="true" className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-[var(--ui-elevated)] text-[var(--ui-text-muted)]">
+                          <FileText className="h-4 w-4" aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0">
+                          <div className="truncate text-[13.5px] font-semibold leading-snug text-[var(--ui-text)]">
+                            <FundLink
+                              schemeId={fund.fund_id}
+                              className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-focus)] focus-visible:ring-offset-1 rounded"
+                            >
+                              {fund.name}
+                            </FundLink>
+                          </div>
+                          {fund.category ? (
+                            <div className="truncate text-[11.5px] text-[var(--ui-text-muted)]">{fund.category}</div>
+                          ) : null}
+                        </div>
                       </li>
                     ))}
                   </ul>

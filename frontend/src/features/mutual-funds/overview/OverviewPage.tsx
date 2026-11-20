@@ -9,10 +9,10 @@ import { WealthGraph } from "../../../components/wealth-graph/WealthGraph";
 import type { WealthDateRange, WealthPeriod } from "../../../components/wealth-graph/types";
 import { useWealthSeries } from "../../../components/wealth-graph/useWealthSeries";
 import { useImport, useScope } from "../../../shell/scope/ScopeContext";
-import { getBenchmarks, getWealthSeries } from "../../home/api";
+import { getWealthBenchmarks, getWealthSeries } from "../api";
 import { pickBenchmarks, readStoredBenchmarks, writeStoredBenchmarks } from "../../../components/wealth-graph/benchmarkChoice";
-import { PartialDataBadge } from "../../home/components/PartialDataBadge";
-import { istToday } from "../../home/homeToday";
+import { PartialDataBadge } from "../../../components/PartialDataBadge";
+import { istToday } from "../../../lib/homeToday";
 import { useMfAnalytics } from "../data/analyticsStore";
 import { useMfDashboard, useMfSection } from "../data/useMfDashboard";
 import { MutualFundsFrame, useMfFrame } from "../frame/MutualFundsFrame";
@@ -45,7 +45,7 @@ function OverviewWealthGraph({ holdingsReady }: { holdingsReady: boolean }) {
   const [chosenBenchmarks, setChosenBenchmarks] = useState<string[]>(() => readStoredBenchmarks());
 
   const benchmarks = useMfSection(
-    signal => enabled ? getBenchmarks(scope, signal) : Promise.resolve(null),
+    signal => enabled ? getWealthBenchmarks(scope, signal) : Promise.resolve(null),
     [scopeKey, enabled],
   );
   const selectedBenchmarks = benchmarks.data
@@ -94,7 +94,7 @@ function OverviewWealthGraph({ holdingsReady }: { holdingsReady: boolean }) {
               <p className="text-xs text-[var(--ui-text-muted)]">{scopeName}</p>
             </div>
           }
-          headerRightExtra={wealth.data?.partial ? <PartialDataBadge missingFunds={wealth.data.missing_funds} /> : undefined}
+          headerRightExtra={wealth.data?.partial ? <PartialDataBadge missingFunds={wealth.data.missing_funds ?? []} /> : undefined}
         />
       </section>
     </div>

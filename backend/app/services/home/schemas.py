@@ -176,6 +176,9 @@ class MoverWaitingOut(HomeModel):
     fund_id: str
     name: str
     category: str
+    # "statement_priced": the fund is priced only from statements and never has a daily price (the screen words it
+    # differently); "no_new_price": a daily price is late. Additive, so an old client ignores it.
+    reason: Literal["no_new_price", "statement_priced"] = "no_new_price"
 
 
 class MoversAllResponse(MoversResponse):

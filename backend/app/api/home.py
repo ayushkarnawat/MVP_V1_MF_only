@@ -189,9 +189,8 @@ async def _movers(
     net_pct = movers.net_pct
     if details is not None:
         envelope["nav_as_of"] = details.nav_as_of
-        envelope["partial"] = inputs.partial or bool(details.waiting_for_price)
-        if details.nav_as_of != now_ist.date() and net_pct is not None:
-            net_pct = Decimal("0.0000")
+        # A fund priced only from a statement is listed apart but is not a reason to call the data partial.
+        envelope["partial"] = inputs.partial or any(not fund.statement_priced for fund in details.waiting_for_price)
 
     payload = dict(
         **envelope,
@@ -218,7 +217,10 @@ async def _movers(
             for bar in _mover_bars(inputs, details.rows)
         ],
         waiting_for_price=[
-            MoverWaitingOut(fund_id=str(fund.scheme_id), name=fund.name, category=fund.category or "Other")
+            MoverWaitingOut(
+                fund_id=str(fund.scheme_id), name=fund.name, category=fund.category or "Other",
+                reason="statement_priced" if fund.statement_priced else "no_new_price",
+            )
             for fund in details.waiting_for_price
         ],
     )

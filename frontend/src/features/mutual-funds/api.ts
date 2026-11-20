@@ -1,5 +1,7 @@
 import { API_BASE_URL, ApiError, cachedFetch, parseErrorDetail } from "../../lib/apiClient";
 import { sumDecimalStrings } from "../../lib/decimal";
+import { wealthSeriesPath } from "../../components/wealth-graph/useWealthSeries";
+import type { WealthBenchmarkOption, WealthSeriesData, WealthSeriesQuery } from "../../components/wealth-graph/types";
 import { getToken } from "../auth/session";
 import type {
   AllocationSummary,
@@ -172,4 +174,24 @@ export async function getAnalyticsScope(scope: string, signal?: AbortSignal): Pr
 export async function retryAnalyticsScope(scope: string): Promise<unknown> {
   const res = await authFetch(`/analytics/${encodeURIComponent(scope)}/retry`, { method: "POST" });
   return await res.json();
+}
+
+// The Overview's wealth graph (Batch D, D-7). Mutual Funds keeps its own loaders so it does not import the Home feature.
+export interface WealthBenchmarksReply {
+  options: WealthBenchmarkOption[];
+  recommended_index: string;
+}
+
+export async function getWealthBenchmarks(scope: MfScopeArg, signal?: AbortSignal): Promise<WealthBenchmarksReply> {
+  const res = await authFetch(mfPath(scope, "home/benchmarks"), { signal });
+  return res.json();
+}
+
+export async function getWealthSeries<T extends WealthSeriesData = WealthSeriesData>(
+  scope: MfScopeArg,
+  query: WealthSeriesQuery,
+  signal?: AbortSignal,
+): Promise<T> {
+  const res = await authFetch(wealthSeriesPath(scope, query), { signal });
+  return res.json() as Promise<T>;
 }

@@ -16,7 +16,7 @@ const legacy = vi.hoisted(() => ({
 const auth = vi.hoisted(() => ({ me: { user_id: "u-1" } as { user_id: string } | null }));
 vi.mock("../../auth/session", () => ({ getToken: () => "t1" }));
 vi.mock("../../auth/AuthContext", () => ({ useAuth: () => auth }));
-vi.mock("../api", () => mocks);
+vi.mock("../api", () => ({ ...mocks, ...wealthApi }));
 // The moved legacy parts call these old API modules themselves (they live in components/mf, outside the feature).
 vi.mock("../../import/api", () => ({ postOpeningBalance: legacy.postOpeningBalance }));
 vi.mock("../../dashboard/api", () => ({
@@ -421,10 +421,9 @@ it("ignores consolidated data in single-member view", async () => {
 });
 
 const wealthApi = vi.hoisted(() => ({
-  getBenchmarks: vi.fn<typeof import("../../home/api").getBenchmarks>(),
-  getWealthSeries: vi.fn<typeof import("../../home/api").getWealthSeries>(),
+  getWealthBenchmarks: vi.fn<typeof import("../api").getWealthBenchmarks>(),
+  getWealthSeries: vi.fn<typeof import("../api").getWealthSeries>(),
 }));
-vi.mock("../../home/api", () => wealthApi);
 
 // Give the real chart a layout width in jsdom so its axis labels render.
 vi.mock("@visx/responsive", async importOriginal => ({
@@ -468,7 +467,7 @@ const overviewSeries: WealthSeriesResponse = {
 };
 
 beforeEach(() => {
-  wealthApi.getBenchmarks.mockReset().mockResolvedValue(overviewBenchmarks);
+  wealthApi.getWealthBenchmarks.mockReset().mockResolvedValue(overviewBenchmarks);
   wealthApi.getWealthSeries.mockReset().mockResolvedValue(overviewSeries);
 });
 
@@ -510,7 +509,7 @@ describe("OverviewPage wealth graph (D-7)", () => {
     }));
 
     mount();
-    expect(wealthApi.getBenchmarks).not.toHaveBeenCalled();
+    expect(wealthApi.getWealthBenchmarks).not.toHaveBeenCalled();
     expect(wealthApi.getWealthSeries).not.toHaveBeenCalled();
     await act(async () => resolveHoldings());
 

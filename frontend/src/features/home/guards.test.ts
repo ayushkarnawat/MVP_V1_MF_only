@@ -21,8 +21,7 @@ describe("Home front-end guards", () => {
     const names = FILES.map(name).sort();
     for (const expected of [
       "api.ts", "homeFormat.ts", "types.ts", "useHomeSection.ts",
-      "components/BenchmarkSelect.tsx", "components/DateRangeCalendar.tsx", "components/PeriodSelector.tsx",
-      "components/benchmarkChoice.ts", "components/calendarMath.ts",
+      "components/DateRangeCalendar.tsx", "components/PeriodSelector.tsx", "components/calendarMath.ts",
     ]) {
       expect(names).toContain(expected);
     }

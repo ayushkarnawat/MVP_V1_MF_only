@@ -3,7 +3,7 @@ import { WealthGraph } from "@/components/wealth-graph/WealthGraph";
 import { ChangeBadge } from "../components/ChangeBadge";
 import type { DateRange } from "../components/DateRangeCalendar";
 import { HideValuesButton } from "../components/HideValuesButton";
-import { PartialDataBadge } from "../components/PartialDataBadge";
+import { PartialDataBadge } from "../../../components/PartialDataBadge";
 import { periodLabel, wealthCaption } from "../homeCopy";
 import { formatRupees } from "../homeFormat";
 import type {

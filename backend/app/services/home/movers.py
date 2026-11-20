@@ -367,24 +367,26 @@ def compute_all_mover_rows(
     funds: Sequence[FundInput],
     as_of: date,
 ) -> AllMoverRows:
-    current_price_day = movers.as_of_nav_date == as_of
+    # Owner decision B (20 Nov): the rows are always for the last price day, the same day the card shows, so on a
+    # weekend, a holiday or a morning before prices publish the pop-up lists Friday's movers instead of saying that
+    # nothing moved; the caller says which day it is (`nav_as_of`). `as_of` (today) is kept for the callers' signature.
+    price_day = movers.as_of_nav_date
     waiting_ids = set(movers.stale_scheme_ids) | set(movers.missing_scheme_ids)
     bars: list[MoverBar] = []
-    if current_price_day:
+    if price_day is not None:
         # Statement-priced funds contribute zero to the card by rule, but an older
         # statement price cannot establish that this day's price stayed flat.
         waiting_ids.update(
             fund.scheme_id for fund in funds
             if fund.statement_priced
-            and _value_at(fund.units_timeline, as_of) > 0
-            and not any(day == as_of for day, _ in fund.navs)
+            and _value_at(fund.units_timeline, price_day) > 0
+            and not any(day == price_day for day, _ in fund.navs)
         )
         changes = {fund.scheme_id: fund.change for fund in movers.funds if fund.scheme_id not in waiting_ids}
         bars = _bars_for_view(
             movers.view, [fund for fund in funds if fund.scheme_id in changes], changes,
             include_unchanged_funds=True,
         )
-    # Keep the last measured date on days with no new portfolio price day.
     rows = tuple(sorted(bars, key=lambda bar: (
         bar.change.is_zero(), bar.change < 0, -abs(bar.change), bar.label, bar.key,
     )))

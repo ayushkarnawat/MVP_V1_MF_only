@@ -119,7 +119,7 @@ export interface MoversResponse extends Envelope {
 }
 
 export interface MoverAllBarOut extends MoverBarOut { no_change: boolean }
-export interface MoverWaitingOut { fund_id: string; name: string; category: string }
+export interface MoverWaitingOut { fund_id: string; name: string; category: string; reason?: "no_new_price" | "statement_priced" }
 export interface MoversAllResponse extends MoversResponse {
   rows: MoverAllBarOut[];
   waiting_for_price: MoverWaitingOut[];

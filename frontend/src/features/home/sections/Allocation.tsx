@@ -10,7 +10,7 @@ import { AllocationClassDialog } from "../components/AllocationClassDialog";
 import { AllocationDonut } from "../components/AllocationDonut";
 import { AllocationLegendRow } from "../components/AllocationLegendRow";
 import { FamilyCards } from "../components/FamilyCards";
-import { PartialDataBadge } from "../components/PartialDataBadge";
+import { PartialDataBadge } from "../../../components/PartialDataBadge";
 import { formatCompactRupees } from "../homeFormat";
 import type { AllocationResponse } from "../types";
 import { useHeldActive } from "../useHeldActive";

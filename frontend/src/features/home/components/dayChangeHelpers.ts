@@ -1,5 +1,5 @@
 import { changeDirection, formatDate, formatDayMonth } from "../homeFormat";
-import { istToday } from "../homeToday";
+import { istToday } from "../../../lib/homeToday";
 import type { MoverAllBarOut, MoversView } from "../types";
 
 const WEEKDAYS = [

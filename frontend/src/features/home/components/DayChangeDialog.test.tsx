@@ -210,6 +210,40 @@ describe("DayChangeDialog", () => {
     expect(contents.queryByText(fern.label)).toBeNull();
   });
 
+  it("a fund priced only from a statement is worded as that, not as a late price, and is not a Partial reason", async () => {
+    const waiting = [
+      { fund_id: "00000000-0000-4000-8000-000000000007", name: "Grove Debt Fund", category: "Corporate Bond", reason: "no_new_price" as const },
+      { fund_id: "00000000-0000-4000-8000-000000000009", name: "Ivy Unlisted Fund", category: "Other", reason: "statement_priced" as const },
+    ];
+    const loadAll = vi.fn<DayChangeDialogProps["loadAll"]>().mockResolvedValue({ ...fundAll, partial: false, waiting_for_price: waiting });
+    show({ loadAll });
+
+    const contents = within(getDialog());
+    const late = await contents.findByText(/Waiting for today.s price/i);
+    expect(late).toHaveTextContent(/1 fund\b/);
+    const statement = contents.getByTestId("statement-priced-block");
+    expect(statement).toHaveTextContent(/Priced from your statement only/i);
+    expect(statement).toHaveTextContent(/no daily price/i);
+    expect(within(statement).getByText("Ivy Unlisted Fund")).toBeVisible();
+    expect(statement).not.toHaveTextContent(/price expected later today/i);
+    // Partial names only the late fund; the statement-priced fund is never a reason for it.
+    expect(contents.getByLabelText(/^Partial data\. Missing: Grove Debt Fund$/)).toBeVisible();
+  });
+
+  it("on a day with no new price it lists the last price day's rows with a one-line note, not an empty list", async () => {
+    const loadAll = vi.fn<DayChangeDialogProps["loadAll"]>().mockResolvedValue({
+      ...fundAll,
+      computed_at: "2026-10-24T13:00:00Z",
+      nav_as_of: "2026-10-23",
+    });
+    show({ card: { ...fundCard, computed_at: "2026-10-24T13:00:00Z" }, loadAll });
+
+    const contents = within(getDialog());
+    expect(await contents.findByText(aster.label)).toBeVisible();
+    expect(contents.getByTestId("price-day-note")).toHaveTextContent(/Latest prices are from Friday,? 23 Oct/);
+    expect(contents.queryByText(/Markets were closed today/i)).toBeNull();
+  });
+
   it("the no-change group opens", async () => {
     const loadAll = show();
     const dialog = within(getDialog());

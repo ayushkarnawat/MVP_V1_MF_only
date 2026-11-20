@@ -51,6 +51,9 @@ export interface WealthSeriesData {
   points: readonly WealthSeriesPoint[];
   benchmark: WealthBenchmarkSeries | null;
   benchmark_series?: BenchmarkSeriesEntry[];
+  // Present on Home's reply: the data-completeness flag and the funds still waiting for a price.
+  partial?: boolean;
+  missing_funds?: { name: string; scheme_id?: string }[];
 }
 
 export interface WealthSeriesQuery {

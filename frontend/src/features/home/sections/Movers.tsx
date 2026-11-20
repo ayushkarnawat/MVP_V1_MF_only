@@ -6,7 +6,7 @@ import { ChangeBadge } from "../components/ChangeBadge";
 import { DayChangeDialog } from "../components/DayChangeDialog";
 import { FundLink } from "../components/FundLink";
 import { MoverRow } from "../components/MoverRow";
-import { PartialDataBadge } from "../components/PartialDataBadge";
+import { PartialDataBadge } from "../../../components/PartialDataBadge";
 import { changeDirection, formatRupees, formatSignedRupees } from "../homeFormat";
 import { groupLabel, othersLabel, splitShares } from "../moversCopy";
 import type { MoverBarOut, MoversAllResponse, MoversResponse, MoversView } from "../types";
