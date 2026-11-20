@@ -935,3 +935,6 @@ The owner authorised fixing the detached public network end to end. Decisions: (
 
 ## 2026-11-20 (late) - Benchmark checklist decisions where the workbook is silent
 At least one benchmark always stays chosen (the last checked box cannot be unchecked, as the old drop-down always had one); a fourth box cannot be checked and the message "Choose up to 3" shows; the "(recommended)" suffix stays; the choice is remembered per browser as a JSON list under the same key `home.benchmark`, and an old stored single value still loads. Recorded in `2026-11-20-d5-benchmark-checklist-red-tests-handoff.md`.
+
+## 2026-11-20 (late) - D-7: the Overview graph and hide-values
+The Overview has no hide-values control, and Home's setting is local React state in `HomePage.tsx` (not shared or stored), so the Overview cannot follow it without a Home change. **Decision (smallest radius): the Overview graph shows amounts exactly like the rest of the Overview does today** (the strip and the table always show rupees); it passes `hideValues` false. No Home change. If the owner wants one shared, stored hide-values setting for Home and the Overview, that is a separate, larger task. The D-7 test "hide-values rule matches Home" becomes "the graph shows amounts like the rest of the Overview (there is no hide control there)".

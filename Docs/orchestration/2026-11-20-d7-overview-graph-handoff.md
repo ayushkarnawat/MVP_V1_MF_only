@@ -17,7 +17,7 @@ Read first, in order: `Docs/orchestration/ui-common-rules-codex.md`, `Docs/orche
 - **Old link:** no backend change; the request is the existing wealth-series route.
 
 ## Tests first (`frontend/src/features/mutual-funds/overview/OverviewPage.test.tsx`: append; existing assertions untouched; invented data; written before the change; red for the stated reason)
-`graph appears directly under the summary strip and above the SIP timeline`; `graph follows the family or member selector` (the wealth request is made for the selected scope and is repeated when the selector changes); `loads after the strip and the table (does not block them)` (while the wealth request is pending, the strip and table are present; an error in the graph does not remove them); `hide-values rule matches Home`; `monthly sparkline in the strip stays`; `the benchmark choice is the one Home stores`.
+`graph appears directly under the summary strip and above the SIP timeline`; `graph follows the family or member selector` (the wealth request is made for the selected scope and is repeated when the selector changes); `loads after the strip and the table (does not block them)` (while the wealth request is pending, the strip and table are present; an error in the graph does not remove them); `the graph shows amounts like the rest of the Overview (no hide control there)`; `monthly sparkline in the strip stays`; `the benchmark choice is the one Home stores`.
 
 ## Run these only (Claude runs them; Codex cannot)
 `wave-fe-check.sh do test src/features/mutual-funds src/features/home src/components` (lane `do` is added by Claude). Codex: write the tests and the change, run nothing, report BLOCKED on running.
@@ -40,3 +40,6 @@ Front-end worker for Unifolio (Codex). Read, in order:
 Open Docs/orchestration/2026-11-13-batch-d-planning-workbook.html, section 3, for the placement. Work only in D:\unifolio-d-overview on branch batch/d-overview. Git is read-only. No deletion flags or recursive deletes. Write the failing tests first, then make the change in the files the handoff names only. You cannot run the front-end checks: do not try, report BLOCKED on running. Do not touch components/wealth-graph/**, features/home/** or any existing assertion. If something cannot be done within the files named, stop and say so.
 Reply with the CODEX REPORT block from the handoff, nothing else.
 ```
+
+## Decision on your open question (orchestrator, 20 Nov, after your first report)
+**No Home change.** The Overview has no hide-values control and Home's setting is local React state, so the Overview graph shows amounts exactly as the rest of the Overview does (pass `hideValues={false}`). Replace the test `hide-values rule matches Home` with `the graph shows amounts like the rest of the Overview (there is no hide control there)`. Everything else in the handoff stands. Your branch now also holds the handoff file and the rest of this release's documents (merged by the orchestrator).
