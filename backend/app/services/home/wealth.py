@@ -275,7 +275,7 @@ def build_wealth_series(
         levels = db.execute(
             select(BenchmarkIndexHistory.index_name, BenchmarkIndexHistory.date, BenchmarkIndexHistory.value)
             .where(
-                BenchmarkIndexHistory.index_name.in_(levels_by_index),
+                BenchmarkIndexHistory.index_name.in_(list(levels_by_index)),
                 BenchmarkIndexHistory.return_type == BenchmarkReturnType.TRI,
                 BenchmarkIndexHistory.date >= start_effective - timedelta(days=10),
                 BenchmarkIndexHistory.date <= end,

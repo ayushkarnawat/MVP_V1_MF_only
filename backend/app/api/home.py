@@ -218,7 +218,7 @@ async def _movers(
             for bar in _mover_bars(inputs, details.rows)
         ],
         waiting_for_price=[
-            MoverWaitingOut(fund_id=str(fund.scheme_id), name=fund.name, category=fund.category)
+            MoverWaitingOut(fund_id=str(fund.scheme_id), name=fund.name, category=fund.category or "Other")
             for fund in details.waiting_for_price
         ],
     )
@@ -308,8 +308,11 @@ async def _wealth(
     benchmark: HomeBenchmark | None,
     benchmarks: list[HomeBenchmark] | None = None,
 ):
-    if benchmarks is not None and len(benchmarks) > MAX_BENCHMARKS:
-        raise HTTPException(status_code=422, detail=f"Choose up to {MAX_BENCHMARKS} benchmarks.")
+    if benchmarks is not None:
+        # The limit counts distinct indices: the same index sent twice is one benchmark (review, 20 Nov).
+        benchmarks = list(dict.fromkeys(benchmarks))
+        if len(benchmarks) > MAX_BENCHMARKS:
+            raise HTTPException(status_code=422, detail=f"Choose up to {MAX_BENCHMARKS} benchmarks.")
     custom = None
     if period == "custom":
         if date_from is None or date_to is None:
@@ -392,7 +395,9 @@ async def member_summary(member_id: uuid.UUID, user: User = Depends(get_data_use
     return await _summary(db, user, member_id, now)
 
 
-# Omitting the default empty list keeps the legacy JSON payload identical.
+# Omitting the default empty list keeps the legacy JSON payload identical. `exclude_defaults` is route-wide and safe
+# only because `benchmark_series` is the one defaulted field of the reply: a new defaulted field (False, 0, [], None)
+# would silently vanish from the old JSON. The golden-file test `test_old_single_benchmark_reply_unchanged` guards it.
 @router.get(
     "/household/aggregate/home/wealth-series",
     response_model=WealthSeriesResponse,

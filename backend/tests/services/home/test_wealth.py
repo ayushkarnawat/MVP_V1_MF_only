@@ -273,6 +273,34 @@ def test_majority_missing_does_not_end_on_the_partial_day(wealth_home_next_price
     assert wealth["end_value"] == "5212.00"
 
 
+MOVERS_PATH = "/household/aggregate/home/movers"
+
+
+def test_all_rows_route_lists_an_unpriced_fund_apart_and_marks_the_reply_partial(wealth_home_next_price_day):
+    # Review, 20 Nov (route-level cover for D-8): the smallest holding has no price on the price day.
+    runtime = wealth_home_next_price_day
+    _add_next_day_navs(runtime, {"large": "12.11", "debt": "10.02", "gold": "101.10"})
+
+    response = runtime.client.get(f"{MOVERS_PATH}?by=fund&all=true")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [item["fund_id"] for item in body["waiting_for_price"]] == [str(uid("scheme-flexi"))]
+    assert body["waiting_for_price"][0]["category"]          # never empty
+    assert body["partial"] is True
+    assert str(uid("scheme-flexi")) not in {row["key"] for row in body["rows"]}   # listed apart, never as a zero row
+    assert sum(Decimal(row["change"]) for row in body["rows"]) == Decimal(body["net_change"])
+
+
+def test_all_rows_sector_view_adds_up_to_the_net_change(wealth_home):
+    response = wealth_home.client.get(f"{MOVERS_PATH}?by=sector&all=true")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["estimated"] is True and body["rows"]
+    assert sum(Decimal(row["change"]) for row in body["rows"]) == Decimal(body["net_change"])
+
+
 def test_three_benchmarks_return_three_series(wealth_home):
     with Session(wealth_home.engine) as db:
         db.add_all([
@@ -309,7 +337,7 @@ def test_three_benchmarks_return_three_series(wealth_home):
     }
 
 
-@pytest.mark.parametrize("fourth", ["nifty_smallcap_250", "nifty_50"])
+@pytest.mark.parametrize("fourth", ["nifty_smallcap_250", "nifty_largemidcap_250"])
 def test_fourth_benchmark_rejected(wealth_home, fourth):
     response = wealth_home.client.get(
         f"{WEALTH_PATH}?benchmarks=nifty_50&benchmarks=nifty_500"
@@ -318,6 +346,14 @@ def test_fourth_benchmark_rejected(wealth_home, fourth):
 
     assert response.status_code == 422
     assert response.json()["detail"] == "Choose up to 3 benchmarks."
+
+
+def test_the_same_index_repeated_is_one_benchmark_not_a_fourth(wealth_home):
+    # Review, 20 Nov: the limit of three counts distinct indices; four copies of one index are one benchmark.
+    response = wealth_home.client.get(f"{WEALTH_PATH}?period=1D" + "&benchmarks=nifty_50" * 4)
+
+    assert response.status_code == 200
+    assert [item["benchmark"] for item in response.json()["benchmark_series"]] == ["nifty_50"]
 
 
 def test_unavailable_benchmark_reports_available_false_and_keeps_the_others(wealth_home):
