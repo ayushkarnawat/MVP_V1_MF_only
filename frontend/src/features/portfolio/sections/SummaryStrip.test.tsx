@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { formatDate } from "@/lib/format";
 import { fixture } from "../fixtures";
 import { sparkPoints, sparkTrend } from "../portfolioCopy";
+import { formatXirr } from "../portfolioFormat";
 import type { PortfolioSummaryResponse, PortfolioValueSeriesResponse } from "../types";
 import { SummaryStrip, type SummaryStripProps } from "./SummaryStrip";
 
@@ -265,5 +267,68 @@ describe("SummaryStrip: the XIRR basis and its disclaimer", () => {
     expect(screen.getByText("Shown Current XIRR")).toBeInTheDocument();
     expect(screen.getByTestId("disclaimer-shown")).toHaveTextContent("21.0%");
     expect(screen.getByTestId("disclaimer-alt")).toHaveTextContent("19.0%");
+  });
+});
+
+describe("SummaryStrip: XIRR return basis and price date", () => {
+  const sincePurchaseCaption = "Return since purchase, not annualised";
+
+  it("shows the Lifetime return since purchase with its caption", () => {
+    const data: PortfolioSummaryResponse = {
+      ...fixture<PortfolioSummaryResponse>("summary_family"),
+      lifetime_xirr: "0.8",
+      lifetime_xirr_basis: "since_purchase",
+      lifetime_since_purchase: "0.2",
+    };
+    setup({ data });
+    expect.soft(text("value-xirr")).toBe(formatXirr("0.2"));
+    expect(text("xirr-caption")).toBe(sincePurchaseCaption);
+  });
+
+  it.each([
+    ["annualised", { lifetime_xirr_basis: "annualised", lifetime_since_purchase: "0.2" }],
+    ["absent", {}],
+  ] as const)("keeps the Lifetime value and caption when the return basis is %s", (_, fields) => {
+    setup({ data: { ...fixture<PortfolioSummaryResponse>("summary_family"), ...fields } });
+    expect(text("value-xirr")).toBe("34.9%");
+    expect(text("xirr-caption")).toBe("Since inception");
+  });
+
+  it("shows the XIRR price date on its own line in the tile", () => {
+    const date = "2026-11-18";
+    setup({ data: { ...fixture<PortfolioSummaryResponse>("summary_family"), xirr_as_of: date } });
+    expect(within(screen.getByTestId("metric-xirr")).getByTestId("xirr-as-of").textContent).toBe(
+      `As on ${formatDate(date)}`,
+    );
+  });
+
+  it.each([
+    ["absent", {}],
+    ["null", { xirr_as_of: null }],
+  ] as const)("omits the XIRR price date line when the date is %s", (_, fields) => {
+    setup({ data: { ...fixture<PortfolioSummaryResponse>("summary_family"), ...fields } });
+    expect(screen.queryByTestId("xirr-as-of")).not.toBeInTheDocument();
+  });
+
+  it("switches to the Current return basis and restores the Lifetime basis", () => {
+    const data: PortfolioSummaryResponse = {
+      ...fixture<PortfolioSummaryResponse>("summary_family"),
+      lifetime_xirr: "0.148",
+      lifetime_xirr_basis: "annualised",
+      current_holdings_xirr: "0.8",
+      current_holdings_xirr_basis: "since_purchase",
+      current_holdings_since_purchase: "0.2",
+    };
+    setup({ data });
+    expect(text("value-xirr")).toBe("14.8%");
+    expect(text("xirr-caption")).toBe("Since inception");
+
+    fireEvent.click(screen.getByRole("button", { name: "Current" }));
+    expect.soft(text("value-xirr")).toBe(formatXirr("0.2"));
+    expect.soft(text("xirr-caption")).toBe(sincePurchaseCaption);
+
+    fireEvent.click(screen.getByRole("button", { name: "Lifetime" }));
+    expect(text("value-xirr")).toBe("14.8%");
+    expect(text("xirr-caption")).toBe("Since inception");
   });
 });

@@ -19,6 +19,7 @@ publish on weekends, equity funds do not), and fill what is behind:
 from __future__ import annotations
 
 import asyncio
+import uuid
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
@@ -70,6 +71,7 @@ class HeldNavResult:
     amfi_newest: date | None = None
     # The schemes behind `missing_from_amfi`: the job still gives them the old (mfapi.in) refresh.
     missing_schemes: list[Scheme] = field(default_factory=list)
+    filled_scheme_ids: list[uuid.UUID] = field(default_factory=list)
 
     def summary_line(self, *, mode: str, stamp: str) -> str:
         """One greppable line per run; the daily digest and the log both rely on this exact shape."""
@@ -167,6 +169,7 @@ async def refresh_held_navs(
         held=len(held), behind=len(behind), filled_amfi=filled_amfi, filled_mfapi=filled_mfapi,
         still_behind=still_behind, missing_from_amfi=missing, very_stale=very_stale, amfi_newest=amfi_newest,
         missing_schemes=not_in_file,
+        filled_scheme_ids=[scheme.id for scheme, _, _, _ in behind],
     )
 
 

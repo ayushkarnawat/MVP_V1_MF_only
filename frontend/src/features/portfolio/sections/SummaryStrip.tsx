@@ -2,8 +2,9 @@ import { useState } from "react";
 import { TriangleAlert } from "lucide-react";
 import { Modal } from "@/components/Modal";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatPercent, formatRupees } from "@/lib/format";
+import { formatDate, formatPercent, formatRupees } from "@/lib/format";
 import { toPercentString } from "@/lib/decimal";
+import { resolveXirrDisplay, SINCE_PURCHASE_CAPTION } from "@/lib/xirrDisplay";
 import {
   changeDirection,
   formatSignedPercent,
@@ -91,13 +92,32 @@ export function SummaryStrip({
     );
   }
 
-  const caption = basis === "Lifetime" ? "Since inception" : "Current holdings";
+  const xirrDisplay =
+    basis === "Lifetime"
+      ? resolveXirrDisplay(
+          data.lifetime_xirr,
+          data.lifetime_xirr_basis,
+          data.lifetime_since_purchase,
+        )
+      : resolveXirrDisplay(
+          data.current_holdings_xirr,
+          data.current_holdings_xirr_basis,
+          data.current_holdings_since_purchase,
+        );
+  const shownXirr = xirrDisplay.value;
+  const caption = xirrDisplay.isSincePurchase
+    ? SINCE_PURCHASE_CAPTION
+    : basis === "Lifetime"
+      ? "Since inception"
+      : "Current holdings";
   const disclaimer =
     basis === "Lifetime"
       ? data.lifetime_xirr_disclaimer
       : data.current_holdings_xirr_disclaimer;
-  const shownXirr =
-    basis === "Lifetime" ? data.lifetime_xirr : data.current_holdings_xirr;
+  const xirrAsOf =
+    typeof data.xirr_as_of === "string" && data.xirr_as_of.trim() !== ""
+      ? data.xirr_as_of
+      : null;
 
   return (
     <section
@@ -327,22 +347,32 @@ export function SummaryStrip({
         >
           {formatXirr(shownXirr)}
         </span>
-        {disclaimer !== null ? (
-          <button
-            type="button"
-            onClick={() => setShowExplanation(true)}
-            className="text-xs text-[var(--ui-text-muted)] underline cursor-pointer hover:text-[var(--ui-text-default)] text-left"
-          >
-            {`${caption} — opening-balance disclaimer may apply ›`}
-          </button>
-        ) : (
-          <div
-            data-testid="xirr-caption"
-            className="text-xs text-[var(--ui-text-muted)]"
-          >
-            {caption}
-          </div>
-        )}
+        <div className="flex flex-col gap-0.5">
+          {disclaimer !== null ? (
+            <button
+              type="button"
+              onClick={() => setShowExplanation(true)}
+              className="text-xs text-[var(--ui-text-muted)] underline cursor-pointer hover:text-[var(--ui-text-default)] text-left"
+            >
+              {`${caption} — opening-balance disclaimer may apply ›`}
+            </button>
+          ) : (
+            <div
+              data-testid="xirr-caption"
+              className="text-xs text-[var(--ui-text-muted)]"
+            >
+              {caption}
+            </div>
+          )}
+          {xirrAsOf !== null && (
+            <div
+              data-testid="xirr-as-of"
+              className="text-xs text-[var(--ui-text-muted)]"
+            >
+              {`As on ${formatDate(xirrAsOf)}`}
+            </div>
+          )}
+        </div>
       </div>
 
       {disclaimer !== null && (

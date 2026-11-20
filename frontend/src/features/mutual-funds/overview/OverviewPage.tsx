@@ -17,7 +17,7 @@ import {
   type SortState,
 } from "../mfCopy";
 import { CoverageGapGate } from "./CoverageGapGate";
-import { HoldingsTable } from "./HoldingsTable";
+import { HoldingsTable, type SchemeXirrMeta } from "./HoldingsTable";
 import { soldFundsScope } from "./legacyLogic";
 import {
   AmcAllocationCard,
@@ -50,14 +50,20 @@ function OverviewBody({ query }: { query: string }) {
     [params, setParams]
   );
 
-  const xirrByScheme: Record<string, string | null | undefined> = useMemo(() => {
-    const map: Record<string, string | null | undefined> = {};
+  const { xirrByScheme, xirrMetaByScheme } = useMemo(() => {
+    const rates: Record<string, string | null | undefined> = {};
+    const meta: Partial<Record<string, SchemeXirrMeta>> = {};
     if (bench.data?.funds) {
       for (const fund of bench.data.funds) {
-        map[fund.scheme_id] = fund.fund_xirr;
+        rates[fund.scheme_id] = fund.fund_xirr;
+        meta[fund.scheme_id] = {
+          xirr_as_of: fund.xirr_as_of,
+          xirr_basis: fund.xirr_basis,
+          since_purchase_return: fund.since_purchase_return,
+        };
       }
     }
-    return map;
+    return { xirrByScheme: rates, xirrMetaByScheme: meta };
   }, [bench.data]);
 
   // An opening balance changes the holdings, the XIRR, the allocation and the stored analytics, so all of them reload.
@@ -156,6 +162,7 @@ function OverviewBody({ query }: { query: string }) {
         holdings={dash.holdings}
         consolidated={viewMode === "aggregate" && dash.consolidated.status === "data" ? dash.consolidated.data : null}
         xirrByScheme={xirrByScheme}
+        xirrMetaByScheme={xirrMetaByScheme}
         sort={sort}
         onSort={onSort}
         query={query}

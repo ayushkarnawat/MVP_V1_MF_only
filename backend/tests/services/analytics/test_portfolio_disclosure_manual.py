@@ -11,6 +11,15 @@ from app.models.reference import DisclosureBatch, Scheme, SchemeHolding
 from app.services.analytics import portfolio_disclosure_manual as manual
 
 
+def _cached_navall_text():
+    """The real AMFI NAVAll file kept by hand under backend/.cache (git-ignored). A clean checkout or CI has none:
+    skip these real-data checks there instead of failing (found 20 Nov: five tests failed in every fresh worktree)."""
+    path = Path(__file__).parents[3] / ".cache/amfi_navall/nav_all.txt"
+    if not path.exists():
+        pytest.skip(f"needs the saved AMFI file {path} (not in git)")
+    return path.read_text(encoding="utf-8")
+
+
 def seed(db, base='ITI Flexi Cap Fund', amc='ITI Mutual Fund'):
     scheme = Scheme(id=uuid.uuid4(), name=base+' - Direct Growth', base_name=base,
                     amc_name=amc, sebi_category='Equity Scheme - Flexi Cap Fund')
@@ -139,7 +148,7 @@ def test_manual_parse_failure_in_second_file_leaves_existing_queue(db_session):
 def test_run4c_bandhan_titles_no_contra_and_inactive_queue(db_session):
     from app.services.analytics.scheme_master import refresh_scheme_master
     import asyncio
-    text=(Path(__file__).parents[3]/'.cache/amfi_navall/nav_all.txt').read_text(encoding='utf-8')
+    text=_cached_navall_text()
     asyncio.run(refresh_scheme_master(db_session,text=text))
     path=Path(__file__).parents[2]/'fixtures/portfolio_disclosures/bandhan-debt-funds_asof_2026-09-30.xlsx'
     result=manual.import_manual_files(db_session,'Bandhan Mutual Fund',[(path.name,path.read_bytes())],

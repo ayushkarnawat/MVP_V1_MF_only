@@ -363,9 +363,12 @@ async def build_export(db: Session, schemes: list[Scheme], holdings_as_of: date,
         key = (canonical_category(scheme.sebi_category), scheme.plan_type) if scheme.sebi_category else None
         pool = None
         if key is not None:
-            if key not in category_pools:
-                category_pools[key] = await load_category_pool(db, scheme, export_date)
-            pool = category_pools[key]
+            # The average of an index fund is over index funds, any other fund's over the ranked pool (FX-10b),
+            # so the cached pool also depends on whether this fund is an index fund.
+            pool_key = (*key, is_index_fund(scheme.name, scheme.sebi_category))
+            if pool_key not in category_pools:
+                category_pools[pool_key] = await load_category_pool(db, scheme, export_date)
+            pool = category_pools[pool_key]
         fund["category_comparison"] = _category_block(scheme, pool)
         pools = None
         if is_rankable(scheme):

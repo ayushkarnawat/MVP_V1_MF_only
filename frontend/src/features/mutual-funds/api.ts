@@ -66,6 +66,19 @@ export async function getHoldingsBundle(scope: MfScopeArg, signal?: AbortSignal)
     xirr: {
       lifetime: body.lifetime_xirr ?? null,
       current: body.current_holdings_xirr ?? null,
+      ...(body.xirr_as_of !== undefined ? { xirr_as_of: body.xirr_as_of ?? null } : {}),
+      ...(body.lifetime_xirr_basis !== undefined
+        ? { lifetime_xirr_basis: body.lifetime_xirr_basis ?? null }
+        : {}),
+      ...(body.current_holdings_xirr_basis !== undefined
+        ? { current_holdings_xirr_basis: body.current_holdings_xirr_basis ?? null }
+        : {}),
+      ...(body.lifetime_since_purchase !== undefined
+        ? { lifetime_since_purchase: body.lifetime_since_purchase ?? null }
+        : {}),
+      ...(body.current_holdings_since_purchase !== undefined
+        ? { current_holdings_since_purchase: body.current_holdings_since_purchase ?? null }
+        : {}),
       disclaimers: {
         lifetime: body.lifetime_xirr_disclaimer ?? null,
         current: body.current_holdings_xirr_disclaimer ?? null,

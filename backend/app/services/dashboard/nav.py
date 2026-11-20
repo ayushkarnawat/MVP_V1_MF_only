@@ -16,8 +16,9 @@ import threading
 import time
 import uuid
 from collections.abc import Iterable
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+from email.utils import parsedate_to_datetime
 
 import httpx
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
@@ -47,6 +48,8 @@ logger = logging.getLogger(__name__)
 # failure — bounded to at most one wasted retry per household per day, not
 # worth a dedicated attempts-tracking table at this call frequency.
 _NAV_FRESHNESS_WINDOW_DAYS = 3
+_NAV_HISTORY_CONCURRENCY = 8
+_NAV_HISTORY_RETRY_DELAY_SECONDS = 1
 
 _NAV_UPSERT_INSERT_BUILDERS = {"sqlite": sqlite_insert, "postgresql": postgresql_insert}
 
@@ -190,7 +193,9 @@ def _fresh_scheme_ids(db: Session, scheme_ids: Iterable[uuid.UUID]) -> set[uuid.
     return {row[0] for row in rows}
 
 
-async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
+async def warm_nav_history(
+    db: Session, schemes: Iterable[Scheme], *, fresh_ids: set[uuid.UUID] | None = None,
+) -> tuple[int, int]:
     """Concurrently fetch and cache full NAV history for a batch of
     schemes, deduplicated by scheme id. Lets a subsequent sequential
     per-scheme, per-window lookup loop (category-ranking/scorer's 3yr+5yr
@@ -201,24 +206,43 @@ async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
     effort: a scheme whose fetch fails is simply left unwarmed, same
     degrade-gracefully posture as `get_nav_on_or_before`.
 
-    Skips any scheme with a nav_history row within `_NAV_FRESHNESS_WINDOW_DAYS`
-    of today — without this, repeat calls (e.g. two scopes in the same
-    household recompute, or two households' recomputes minutes apart)
-    re-fetch the entire category universe's NAV history from the network
-    every time."""
+    Skips schemes with a row within `_NAV_FRESHNESS_WINDOW_DAYS` of today.
+    Pass `fresh_ids` from before a latest-price update so the new row does
+    not mask a stale history. Returns (schemes attempted, failed fetches)."""
     unique = {scheme.id: scheme for scheme in schemes if scheme.amfi_code is not None}
 
-    fresh_ids = _fresh_scheme_ids(db, unique.keys())
+    if fresh_ids is None:
+        fresh_ids = _fresh_scheme_ids(db, unique)
     to_fetch = {scheme_id: scheme for scheme_id, scheme in unique.items() if scheme_id not in fresh_ids}
+    slots = asyncio.Semaphore(_NAV_HISTORY_CONCURRENCY)
+
+    def retry_delay(retry_after: str | None) -> float:
+        if retry_after:
+            try:
+                return max(0, int(retry_after))
+            except ValueError:
+                try:
+                    retry_at = parsedate_to_datetime(retry_after)
+                except ValueError:
+                    return _NAV_HISTORY_RETRY_DELAY_SECONDS
+                if retry_at.tzinfo is None:
+                    retry_at = retry_at.replace(tzinfo=timezone.utc)
+                return max(0, (retry_at - datetime.now(timezone.utc)).total_seconds())
+        return _NAV_HISTORY_RETRY_DELAY_SECONDS
 
     async def fetch(scheme: Scheme) -> tuple[Scheme, list[tuple[date, Decimal]] | None]:
-        try:
-            return scheme, await _fetch_nav_history(scheme.amfi_code)
-        # ValueError/KeyError/ArithmeticError: an unreadable response (bad
-        # JSON, a NAV Decimal can't parse). One bad scheme must not abort the
-        # batch: the morning job warms ~1,500 peers (final review, 8 Oct).
-        except (httpx.HTTPError, ValueError, KeyError, ArithmeticError):
-            return scheme, None
+        async with slots:
+            try:
+                try:
+                    return scheme, await _fetch_nav_history(scheme.amfi_code)
+                except httpx.HTTPStatusError as exc:
+                    if exc.response.status_code != 429:
+                        raise
+                    await asyncio.sleep(retry_delay(exc.response.headers.get("Retry-After")))
+                    return scheme, await _fetch_nav_history(scheme.amfi_code)
+            except (httpx.HTTPError, ValueError, KeyError, ArithmeticError, TypeError, AttributeError):
+                # A failed request or unreadable payload leaves this scheme unwarmed.
+                return scheme, None
 
     # Instrumented 2026-08-20 to root-cause a reported regression (Category
     # Ranking/Scorer got slower, not faster, after the commit-batching and
@@ -249,6 +273,7 @@ async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
         "fetch=%.2fs commit=%.2fs",
         len(unique), len(to_fetch), fetch_elapsed, commit_elapsed,
     )
+    return len(to_fetch), sum(rows is None for _, rows in fetched)
 
 
 async def get_navs_on_or_before(

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Modal } from "../../../components/Modal";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { toPercentString } from "../../../lib/decimal";
-import { formatPercent, formatRupees } from "../../../lib/format";
+import { formatDate, formatPercent, formatRupees } from "../../../lib/format";
+import { resolveXirrDisplay, SINCE_PURCHASE_CAPTION } from "../../../lib/xirrDisplay";
 import { InfoMark } from "../common/SectionCard";
 import {
   changeDirection,
@@ -87,12 +88,22 @@ export function SummaryStrip({
     return "text-[var(--ui-text-muted)]";
   };
 
-  const currentXirrValue =
+  const xirrDisplay =
     xirr.data !== null
       ? basis === "lifetime"
-        ? xirr.data.lifetime
-        : xirr.data.current
-      : null;
+        ? resolveXirrDisplay(
+            xirr.data.lifetime,
+            xirr.data.lifetime_xirr_basis,
+            xirr.data.lifetime_since_purchase,
+          )
+        : resolveXirrDisplay(
+            xirr.data.current,
+            xirr.data.current_holdings_xirr_basis,
+            xirr.data.current_holdings_since_purchase,
+          )
+      : { value: null, isSincePurchase: false };
+
+  const currentXirrValue = xirrDisplay.value;
 
   const currentDisclaimer =
     xirr.data !== null
@@ -101,7 +112,19 @@ export function SummaryStrip({
         : xirr.data.disclaimers.current
       : null;
 
-  const caption = basis === "lifetime" ? "Since inception" : "Current holdings";
+  const caption = xirrDisplay.isSincePurchase
+    ? SINCE_PURCHASE_CAPTION
+    : basis === "lifetime"
+      ? "Since inception"
+      : "Current holdings";
+
+  const xirrAsOf =
+    xirr.status === "data" &&
+    xirr.data !== null &&
+    typeof xirr.data.xirr_as_of === "string" &&
+    xirr.data.xirr_as_of.trim() !== ""
+      ? xirr.data.xirr_as_of
+      : null;
 
   const renderSparkline = () => {
     if (history.status === "loading") {
@@ -357,6 +380,12 @@ export function SummaryStrip({
             ) : (
               <div data-testid="xirr-caption" className="text-xs text-[var(--ui-text-muted)]">
                 {caption}
+              </div>
+            )}
+
+            {xirrAsOf !== null && (
+              <div data-testid="xirr-as-of" className="text-xs text-[var(--ui-text-muted)]">
+                {`As on ${formatDate(xirrAsOf)}`}
               </div>
             )}
           </div>

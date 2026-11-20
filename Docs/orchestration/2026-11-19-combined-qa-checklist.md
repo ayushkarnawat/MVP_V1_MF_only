@@ -55,8 +55,27 @@ Note on the guard (M1): the per-network limit counts the network you test from. 
 - The undo email's picture and the round shapes are placeholders until the owner's own pictures replace them (same file names).
 
 ---
-## M2 (numbers and charts): to be added when M2 is frozen
-Known so far: the XIRR tile and the per-fund column agree for the same household and day; a rank and its "out of N"; the category average card; the same household before and after the rebuild; charts with up to three benchmarks, the colours, the Overview graph, the day's-change pop-up in each state (Batch D); the day-count and date wording where the numbers change.
+## M2 part 1 (deployed 20 Nov 2026 from `2026-11-20-staging-deploy-guide-m2.md`, tag `m2-rc`, Alembic 0054): the numbers (Batch A), shared Home graph, movers backend, tutorial pop-up
+Part 2 of Batch D (benchmark checklist and legend, the day's-change pop-up, the Overview graph, the chart end-date rule) is added to this list when it ships.
+
+| # | Step | Expected | Result |
+|---|---|---|---|
+| M2-01 | Analytics, Category Ranking and Performance Ranking for a household with Growth funds | Every held Direct Growth fund shows "rank of N"; the N is the same in the ranking and in the category average card for the same category and plan | |
+| M2-02 | Large & Mid Cap (Direct) and Corporate Bond (Direct) | "out of" 33 and 21 (they were 32 and 20) | |
+| M2-03 | A held IDCW or Bonus plan whose fund has a Growth plan | The row says it is ranked as the Growth plan (RK-8 label); a held fund with **no** Growth series reads that it has no Growth option and is not ranked (not "Not enough history") | |
+| M2-04 | Category average: Sectoral/Thematic (Direct), Liquid (Direct) | About 0.27 (1Y) and 13.80 (3Y) for Sectoral/Thematic; about 2.13 (1Y) and 4.28 (3Y) for Liquid (the before and after table in the M2 guide); fund counts equal the rank's counts | |
+| M2-05 | Home tile and Mutual Funds holdings column for the same household | The two XIRR figures agree and both show the as-on date; the same household's figure does not jump between a weekday and the weekend | |
+| M2-06 | A fund held under a year | Shows the return since purchase labelled "not annualised", not a three-digit percentage; the holdings table's column says the same | |
+| M2-07 | A fund whose flows net to zero on one day (invented test data) | A dash, not 0% | |
+| M2-08 | The fund score and the fund page peer list and charts for a Growth fund | A score is shown; peers are Growth funds of the same plan only (no IDCW or index series in the lists) | |
+| M2-09 | Home: the wealth graph at all period buttons, custom dates, the benchmark drop-down, hide values, light and dark | **Looks and behaves exactly as before the release** (D-3 moved the graph without changing it); each benchmark line and its text is visible in its own colour: Nifty 50 blue, Nifty 500 violet, LargeMidcap 250 amber, Midcap 150 indigo, Smallcap 250 teal | |
+| M2-10 | Both import screens (Request from CAMS, and the waiting screen): the "Watch how it works, 53 seconds" link | The pop-up opens, the video plays muted, the four chapter chips jump to 4, 13, 37 and 41 s, "Watch again" and "Request Statement on CAMS" appear at the end (dark label on the bright green); Escape, the cross and an outside click close it; focus is trapped and returns to the link; phone width and dark mode readable; with the system's reduced-motion setting the video does not start by itself | |
+| M2-11 | Tutorial wording against the CAMS screen | The tutorial says "from ten years ago to today" and "With zero balance folios"; the live CAMS form's wording may differ: **owner to check and tell the designer** | |
+| M2-12 | The CAMS name and page and a promotional banner photo appear in the video | **Manager's sign-off needed** (not legal advice): keep, blur or reshoot | |
+| M2-13 | The next morning's 14:10 digest mail | Lists a `PEER_HISTORY failed=<n> of <m>` line from the 06:00 run, with a small n | |
+| M2-14 | Old link `https://ls-staging.unifolio.in/` | Works; shows the same new numbers; nothing else different | |
+
+Known open owner decisions from this release: whether Sectoral and Thematic funds should rank in one pool (AMFI's October report counts them as two categories; `2026-11-20-rk5-cross-checks-part-2.md`); keep or remove `home-tokens.css` and the four undefined Home variables (`decisions.md`, 20 Nov).
 
 ## M3 (search and navigation): to be added when M3 is frozen
 Known so far: the search box on every page; scope switching and Undo; logout clears the search; the section index on each tab and the strip; no new dates where none existed (Batches K, F, E).

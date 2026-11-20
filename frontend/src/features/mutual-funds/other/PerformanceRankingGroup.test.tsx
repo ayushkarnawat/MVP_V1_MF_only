@@ -68,6 +68,17 @@ describe("Performance Ranking", () => {
     expect(row).toHaveTextContent("Index funds are not ranked here. Their comparison with the index they track is shown in the benchmark comparison.");
     expect(within(row).queryByTestId("rank-dot-C-1Y")).not.toBeInTheDocument();
   });
+  it("fund_with_no_growth_option_says_so_and_not_not_enough_history", async () => {
+    const old = sample().funds[1];
+    mount({ funds: [{ ...old, scheme_id: "D", scheme_name: "Storybook Comet Fund", plan_type: "direct",
+      periods: { "1Y": rank(null, 12, "not_enough_history"), "3Y": rank(null, 9, "not_enough_history"), "5Y": rank(null, 6, "not_enough_history") },
+      ranked_as: null, disclaimer_key: "no_growth_series_not_ranked" }] });
+    await ready();
+    const row = screen.getByTestId("performance-row-D");
+    expect(row).toHaveTextContent("This fund has no Growth option, and ranks compare Growth options only, so it is not ranked here.");
+    expect(row).not.toHaveTextContent("Not enough history");
+    expect(within(row).queryByTestId("rank-cell-D-1Y")).not.toBeInTheDocument();
+  });
   it.each([true, false])("old_composite_payload_renders_the_updating_state (aggregate=%s)", async aggregate => {
     const old = { funds: [{ scheme_id: "OLD", scheme_name: "Old Composite Fund", composite_score: "90", components: {}, neighbors: [] }] };
     const previous = { ...fo.fundRanking().funds[0] };

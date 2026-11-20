@@ -14,7 +14,7 @@ from app.models.reference import BenchmarkIndexHistory, NavHistory, Scheme
 from app.services.analytics.nse_indices_client import get_index_level_on_or_before
 from app.services.analytics.xirr import xirr
 from app.services.dashboard.holdings import FifoState, _load_folio_transactions, compute_holdings
-from app.services.dashboard.xirr import _FUND_DEBIT_TYPES, _signed_amount
+from app.services.dashboard.xirr import _FUND_DEBIT_TYPES, _signed_amount, latest_holding_price_date
 from app.services.fund_page.benchmark_select import BENCHMARK_LABELS, benchmark_for_scheme
 from app.services.fund_page.performance import latest_nav_date, period_start
 from app.services.fund_page.schemas import ReturnsResponse, Unavailable, plain
@@ -292,12 +292,12 @@ async def current_returns(
     )
     if not holding_rows:
         return Unavailable(reason="not_held")
-    end = latest_nav_date(db, scheme, today)
-    if scheme.amfi_code is None or end is None:
+    if scheme.amfi_code is None:
         return Unavailable(reason="no_history")
     if all(row.current_value is None for row in holding_rows):
         # No priced row: a zero closing flow would read as a spurious -100% XIRR.
         return Unavailable(reason="no_history")
+    end = latest_holding_price_date(holding_rows) or today
     current_value = quantize_amount(
         sum(
             (

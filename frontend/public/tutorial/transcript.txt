@@ -1,0 +1,10 @@
+How to request your statement from CAMS (about 53 seconds, no sound)
+
+Here is how to bring your full mutual fund history into Unifolio, in four steps.
+
+1. Request. Press Request Statement on CAMS. The official CAMS website opens in a new tab.
+2. Fill the form. If a banner covers the form, close it first. Choose Detailed. For the period, choose Specific Period, from ten years ago to today. For folio listing, choose With zero balance folios. Enter the email registered with your funds. Set a password, and remember it. Then press Submit.
+3. Inbox. CAMS emails your statement, usually within five to ten minutes. Download the PDF.
+4. Upload. Come back to Unifolio, add the file, and type the same password.
+
+That is it. Your funds appear in your dashboard.

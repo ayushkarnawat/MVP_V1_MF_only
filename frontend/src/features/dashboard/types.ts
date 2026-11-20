@@ -159,6 +159,11 @@ export interface AggregateHoldingsResponse {
   holdings: HoldingRow[];
   lifetime_xirr?: string | null;
   current_holdings_xirr?: string | null;
+  xirr_as_of?: string | null;
+  lifetime_xirr_basis?: XirrBasis | null;
+  current_holdings_xirr_basis?: XirrBasis | null;
+  lifetime_since_purchase?: string | null;
+  current_holdings_since_purchase?: string | null;
   lifetime_xirr_disclaimer?: XirrDisclaimer | null;
   current_holdings_xirr_disclaimer?: XirrDisclaimer | null;
   realized_summary?: RealizedSummary;
@@ -168,6 +173,11 @@ export interface MemberHoldingsResponse {
   holdings: HoldingRow[];
   lifetime_xirr: string | null;
   current_holdings_xirr: string | null;
+  xirr_as_of?: string | null;
+  lifetime_xirr_basis?: XirrBasis | null;
+  current_holdings_xirr_basis?: XirrBasis | null;
+  lifetime_since_purchase?: string | null;
+  current_holdings_since_purchase?: string | null;
   lifetime_xirr_disclaimer?: XirrDisclaimer | null;
   current_holdings_xirr_disclaimer?: XirrDisclaimer | null;
   realized_summary?: RealizedSummary;
