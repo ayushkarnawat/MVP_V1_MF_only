@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { LineAreaChart, type LineAreaChartProps } from "./line-area-chart";
+import { LineAreaChart, type ChartBenchmarkLine, type LineAreaChartProps } from "./line-area-chart";
 
 const labels = (i: number) => `D${i + 1}`;
 const base: LineAreaChartProps = {
@@ -147,5 +147,295 @@ describe("LineAreaChart", () => {
     render(<LineAreaChart {...base} />);
     fireEvent.pointerMove(screen.getByTestId("chart-overlay"), { clientX: 56 });
     expect(screen.getByTestId("tooltip-title")).toHaveTextContent("D1");
+  });
+
+  it("chart draws more than one second line, each in the colour it is given", () => {
+    const dates = ["2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04"];
+    const benchmarkLines: ChartBenchmarkLine[] = [
+      {
+        id: "nifty_50",
+        label: "Nifty 50",
+        color: "var(--c3)",
+        points: [
+          { date: "2026-10-01", pct: "0" },
+          { date: "2026-10-02", pct: "2" },
+          { date: "2026-10-03", pct: "4" },
+          { date: "2026-10-04", pct: "6" },
+        ],
+      },
+      {
+        id: "nifty_500",
+        label: "Nifty 500",
+        color: "var(--c5)",
+        points: [
+          { date: "2026-10-01", pct: "0" },
+          { date: "2026-10-02", pct: "3" },
+          { date: "2026-10-03", pct: "5" },
+          { date: "2026-10-04", pct: "9" },
+        ],
+      },
+      {
+        id: "nifty_largemidcap_250",
+        label: "Nifty LargeMidcap 250",
+        color: "var(--c6)",
+        points: [
+          { date: "2026-10-01", pct: "0" },
+          { date: "2026-10-02", pct: "1" },
+          { date: "2026-10-03", pct: "7" },
+          { date: "2026-10-04", pct: "11" },
+        ],
+      },
+    ];
+
+    render(
+      <LineAreaChart
+        {...base}
+        dates={dates}
+        benchmarkLines={benchmarkLines}
+        formatPercent={v => `${v}%`}
+      />,
+    );
+
+    const l1 = screen.getByTestId("benchmark-line-nifty_50");
+    const l2 = screen.getByTestId("benchmark-line-nifty_500");
+    const l3 = screen.getByTestId("benchmark-line-nifty_largemidcap_250");
+    expect(l1.getAttribute("d")).toMatch(/^M/);
+    expect(l2.getAttribute("d")).toMatch(/^M/);
+    expect(l3.getAttribute("d")).toMatch(/^M/);
+    expect(l1.getAttribute("stroke")).toBe("var(--c3)");
+    expect(l2.getAttribute("stroke")).toBe("var(--c5)");
+    expect(l3.getAttribute("stroke")).toBe("var(--c6)");
+
+    const rightTicks = screen.getAllByTestId("y2-tick").map(node => node.textContent);
+    expect(rightTicks.length).toBeGreaterThan(0);
+    expect(rightTicks.every(text => text?.endsWith("%"))).toBe(true);
+    const nums = rightTicks.map(text => Number((text ?? "").replace("%", "")));
+    expect(Math.min(...nums)).toBeLessThanOrEqual(0);
+    expect(Math.max(...nums)).toBeGreaterThanOrEqual(11);
+  });
+
+  it("end label names each line", () => {
+    const dates = ["2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04"];
+    const benchmarkLines: ChartBenchmarkLine[] = [
+      {
+        id: "nifty_50",
+        label: "Nifty 50",
+        color: "var(--c3)",
+        points: [
+          { date: "2026-10-01", pct: "0" },
+          { date: "2026-10-04", pct: "4" },
+        ],
+      },
+      {
+        id: "nifty_500",
+        label: "Nifty 500",
+        color: "var(--c5)",
+        points: [
+          { date: "2026-10-01", pct: "0" },
+          { date: "2026-10-04", pct: "12" },
+        ],
+      },
+    ];
+
+    render(
+      <LineAreaChart
+        {...base}
+        dates={dates}
+        benchmarkLines={benchmarkLines}
+        formatPercent={v => `${v}%`}
+      />,
+    );
+
+    const img = screen.getByRole("img", { name: "Portfolio value" });
+    const label50 = screen.getByTestId("end-label-nifty_50");
+    const label500 = screen.getByTestId("end-label-nifty_500");
+    expect(label50).toHaveTextContent("Nifty 50");
+    expect(label500).toHaveTextContent("Nifty 500");
+    expect(label50.style.color).toBe("var(--c3)");
+    expect(label500.style.color).toBe("var(--c5)");
+    expect(img.contains(label50)).toBe(false);
+    expect(img.contains(label500)).toBe(false);
+  });
+
+  it("end labels of lines that finish close together do not overlap", () => {
+    const dates = ["2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04"];
+    const benchmarkLines: ChartBenchmarkLine[] = [
+      {
+        id: "nifty_50",
+        label: "Nifty 50",
+        color: "var(--c3)",
+        points: [
+          { date: "2026-10-01", pct: "0" },
+          { date: "2026-10-04", pct: "10.0" },
+        ],
+      },
+      {
+        id: "nifty_500",
+        label: "Nifty 500",
+        color: "var(--c5)",
+        points: [
+          { date: "2026-10-01", pct: "0" },
+          { date: "2026-10-04", pct: "10.1" },
+        ],
+      },
+      {
+        id: "nifty_largemidcap_250",
+        label: "Nifty LargeMidcap 250",
+        color: "var(--c6)",
+        points: [
+          { date: "2026-10-01", pct: "0" },
+          { date: "2026-10-04", pct: "10.2" },
+        ],
+      },
+    ];
+
+    render(
+      <LineAreaChart
+        {...base}
+        dates={dates}
+        benchmarkLines={benchmarkLines}
+        formatPercent={v => `${v}%`}
+      />,
+    );
+
+    const ys = [
+      parseFloat(screen.getByTestId("end-label-nifty_50").style.top),
+      parseFloat(screen.getByTestId("end-label-nifty_500").style.top),
+      parseFloat(screen.getByTestId("end-label-nifty_largemidcap_250").style.top),
+    ].sort((a, b) => a - b);
+
+    expect(ys.every(Number.isFinite)).toBe(true);
+    expect(ys[0]).toBeGreaterThan(0);
+    expect(ys[2]).toBeLessThan(240);
+    expect(ys[1] - ys[0]).toBeGreaterThanOrEqual(18);
+    expect(ys[2] - ys[1]).toBeGreaterThanOrEqual(18);
+  });
+
+  it("tooltip names the benchmark", () => {
+    const dates = ["2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04"];
+    const benchmarkLines: ChartBenchmarkLine[] = [
+      {
+        id: "nifty_50",
+        label: "Nifty 50",
+        color: "var(--c3)",
+        points: [
+          { date: "2026-10-01", pct: "0" },
+          { date: "2026-10-02", pct: "2" },
+          { date: "2026-10-03", pct: "4" },
+          { date: "2026-10-04", pct: "6" },
+        ],
+      },
+      {
+        id: "nifty_500",
+        label: "Nifty 500",
+        color: "var(--c5)",
+        points: [
+          { date: "2026-10-01", pct: "0" },
+          { date: "2026-10-02", pct: "3" },
+          { date: "2026-10-03", pct: "5" },
+          { date: "2026-10-04", pct: "8.5" },
+        ],
+      },
+    ];
+
+    render(
+      <LineAreaChart
+        {...base}
+        dates={dates}
+        benchmarkLines={benchmarkLines}
+        formatPercent={v => `${v}%`}
+      />,
+    );
+
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({
+      left: 56, width: 488, top: 0, height: 204, right: 544, bottom: 204, x: 56, y: 0, toJSON: () => ({}),
+    } as DOMRect);
+
+    fireEvent.pointerMove(screen.getByTestId("chart-overlay"), { clientX: 56 + 488 });
+    const rows = within(screen.getByRole("tooltip")).getAllByTestId("tooltip-row").map(row => row.textContent);
+    expect(rows).toEqual(["Portfolio: ₹180", "Nifty 50: 6%", "Nifty 500: 8.5%"]);
+  });
+
+  it("a line that starts later than the chart is drawn from its own first date, not dropped", () => {
+    const dates = ["2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04"];
+    const benchmarkLines: ChartBenchmarkLine[] = [
+      {
+        id: "nifty_50",
+        label: "Nifty 50",
+        color: "var(--c3)",
+        points: [
+          { date: "2026-10-01", pct: "0" },
+          { date: "2026-10-02", pct: "2" },
+          { date: "2026-10-03", pct: "4" },
+          { date: "2026-10-04", pct: "6" },
+        ],
+      },
+      {
+        id: "nifty_500",
+        label: "Nifty 500",
+        color: "var(--c5)",
+        points: [
+          { date: "2026-10-03", pct: "0" },
+          { date: "2026-10-04", pct: "3" },
+        ],
+      },
+    ];
+
+    render(
+      <LineAreaChart
+        {...base}
+        dates={dates}
+        benchmarkLines={benchmarkLines}
+        formatPercent={v => `${v}%`}
+      />,
+    );
+
+    const fullPath = screen.getByTestId("benchmark-line-nifty_50").getAttribute("d") ?? "";
+    const latePath = screen.getByTestId("benchmark-line-nifty_500").getAttribute("d") ?? "";
+    expect(latePath).toMatch(/^M/);
+
+    const fullStartX = Number(/^M([\d.]+)/.exec(fullPath)?.[1]);
+    const lateStartX = Number(/^M([\d.]+)/.exec(latePath)?.[1]);
+    expect(fullStartX).toBeCloseTo(56, 1);
+    expect(lateStartX).toBeGreaterThan(fullStartX + 100);
+    expect(screen.getByTestId("end-label-nifty_500")).toHaveTextContent("Nifty 500");
+
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({
+      left: 56, width: 488, top: 0, height: 204, right: 544, bottom: 204, x: 56, y: 0, toJSON: () => ({}),
+    } as DOMRect);
+
+    // At the first date, only the full line has a value in the tooltip
+    fireEvent.pointerMove(screen.getByTestId("chart-overlay"), { clientX: 56 });
+    const firstRows = within(screen.getByRole("tooltip")).getAllByTestId("tooltip-row").map(row => row.textContent);
+    expect(firstRows).toEqual(["Portfolio: ₹100", "Nifty 50: 0%"]);
+
+    // At the last date, both benchmarks appear in the tooltip
+    fireEvent.pointerMove(screen.getByTestId("chart-overlay"), { clientX: 56 + 488 });
+    const lastRows = within(screen.getByRole("tooltip")).getAllByTestId("tooltip-row").map(row => row.textContent);
+    expect(lastRows).toEqual(["Portfolio: ₹180", "Nifty 50: 6%", "Nifty 500: 3%"]);
+  });
+
+  it("the old single second line still draws unchanged", () => {
+    const { container } = render(
+      <LineAreaChart
+        {...base}
+        width={620}
+        secondSeries={{ name: "Nifty 50", color: "var(--c3)", values: [0, 2, 1, 6] }}
+        formatPercent={v => `${v}%`}
+      />,
+    );
+
+    const line = screen.getByTestId("series-line-second");
+    expect(line).toBeInTheDocument();
+    expect(line.getAttribute("stroke")).toBe("var(--c3)");
+    expect(screen.getAllByTestId("y2-tick").length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('[data-testid^="end-label-"]')).toHaveLength(0);
+
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({
+      left: 56, width: 512, top: 0, height: 204, right: 568, bottom: 204, x: 56, y: 0, toJSON: () => ({}),
+    } as DOMRect);
+    fireEvent.pointerMove(screen.getByTestId("chart-overlay"), { clientX: 56 + 512 });
+    const rows = within(screen.getByRole("tooltip")).getAllByTestId("tooltip-row").map(row => row.textContent);
+    expect(rows).toEqual(["Portfolio: ₹180", "Nifty 50: 6%"]);
   });
 });
