@@ -56,6 +56,13 @@ export interface BenchmarkSeriesOut {
   clipped: boolean;
   points: BenchmarkPointOut[];
 }
+export interface BenchmarkSeriesEntry {
+  benchmark: string;
+  points: BenchmarkPointOut[];
+  clipped: boolean;
+  effective_start: string | null;
+  available: boolean;
+}
 export interface WealthSeriesResponse extends Envelope {
   period: HomePeriod;
   start: string;
@@ -70,6 +77,7 @@ export interface WealthSeriesResponse extends Envelope {
   change_pct: string | null;
   change_method: "price_only" | "modified_dietz";
   benchmark: BenchmarkSeriesOut | null;
+  benchmark_series?: BenchmarkSeriesEntry[];
 }
 
 export interface ClassFundOut { scheme_id: string; name: string; value: string; share_of_class: string }
@@ -135,6 +143,7 @@ export interface WealthSeriesQuery {
   from?: string;
   to?: string;
   benchmark?: string;
+  benchmarks?: string[];
 }
 
 // News (backend/app/services/news/schemas.py, merged on leapswitch-redesign). Copy for the card comes from `texts`.

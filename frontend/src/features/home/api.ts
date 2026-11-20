@@ -37,7 +37,7 @@ async function authFetch(path: string, options: RequestInit = {}): Promise<Respo
 export function homePath(
   scope: HomeScopeArg,
   section: HomeSectionName,
-  query?: Record<string, string | undefined>
+  query?: Record<string, string | readonly string[] | undefined>
 ): string {
   let base: string;
   if (scope.viewMode === "aggregate") {
@@ -52,8 +52,16 @@ export function homePath(
   if (query) {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(query)) {
-      if (typeof value === "string" && value.length > 0) {
-        params.append(key, value);
+      if (typeof value === "string") {
+        if (value.length > 0) {
+          params.append(key, value);
+        }
+      } else if (Array.isArray(value)) {
+        for (const item of value) {
+          if (typeof item === "string" && item.length > 0) {
+            params.append(key, item);
+          }
+        }
       }
     }
     const qs = params.toString();
@@ -108,6 +116,7 @@ export async function getWealthSeries(
       from: query.from,
       to: query.to,
       benchmark: query.benchmark,
+      benchmarks: query.benchmarks,
     }),
     { signal }
   );

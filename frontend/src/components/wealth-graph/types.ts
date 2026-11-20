@@ -38,10 +38,19 @@ export interface WealthBenchmarkSeries {
   points: readonly WealthBenchmarkPoint[];
 }
 
+export interface BenchmarkSeriesEntry {
+  benchmark: string;
+  points: WealthBenchmarkPoint[];
+  clipped: boolean;
+  effective_start: string | null;
+  available: boolean;
+}
+
 export interface WealthSeriesData {
   empty: boolean;
   points: readonly WealthSeriesPoint[];
   benchmark: WealthBenchmarkSeries | null;
+  benchmark_series?: BenchmarkSeriesEntry[];
 }
 
 export interface WealthSeriesQuery {
@@ -49,6 +58,7 @@ export interface WealthSeriesQuery {
   from?: string;
   to?: string;
   benchmark?: string;
+  benchmarks?: string[];
 }
 
 export type WealthSeriesStatus = "loading" | "data" | "error";
