@@ -1,0 +1,35 @@
+# Staging deploy record: milestone M2 part 1 (20 Nov 2026)
+
+Tag `m2-rc` = commit `f1f7e5d47e796ef64105fc196ee77cf84e8d2f09` on `leapswitch-redesign` (pushed; the VM worktree `/opt/unifolio-redesign` went from `75c3ef2327764a11936de315e67be0a34fde242c` to it by a plain checkout of the tag). Back end and worker rebuilt and recreated, front end rebuilt, **no migration** (Alembic stays `0054 (head)`). Run by the orchestrator from `2026-11-20-staging-deploy-guide-m2.md`, with the owner's go ("you have my go, do it", 20 Nov). Times are the VM's, IST.
+
+## What this release contains
+Batch A (the approved number fixes: one Growth series per fund and plan, no IDCW, Bonus or unknown-plan series in a pool; the category average counts the ranked pool; the older blended figure 40% of the 3Y plus 60% of the 5Y average; one end date for every XIRR figure; the tile and the per-fund column from the same inputs; a holding under a year shows its return since purchase "not annualised"; a dash for flows that net to zero; an unpriced held fund left out whole; every peer gets AMFI's latest price, history fetches limited to 8 at a time with one retry after HTTP 429), D-2 (one colour per benchmark), D-3 (the Home graph as a shared component, no visible change), D-8 (the movers route's `all=true` switch, called by no screen yet), H-4 and H-6 (the "Watch how it works" link and the 53-second tutorial pop-up on both import screens). Review trail: `2026-11-20-whole-plan-review-batch-a.md`, `decisions.md`.
+
+## Steps as run (09:32 to about 09:45 IST)
+| Step | Result |
+|---|---|
+| 3 pre-flight | Clean worktree on `75c3ef23`; 12 GB free (59% used); `latest` `518b172eb440`, `previous` `92d05a00b429`; Alembic `0054 (head)`; four containers up (postgres healthy); 09:32 IST, clear of the 10:30 window. |
+| 4 rollback safety | `leapswitch-backend:previous` tagged to `518b172eb440` (the M1 image; same id as `latest`, no extra disk). On-demand backup: `backup.sh` exit 0 (the script exits nonzero on either a failed dump or a failed upload, and went on to prune the oldest dumps); the local dump file is removed by the script after upload, and **I did not repeat the bucket listing I did for M1**. Crontab copy: `/home/deploy/crontab.before-m2-2026-11` (73 lines). |
+| 5 setting | None needed. |
+| 6 tag | VM `HEAD` = `f1f7e5d4...` exactly; clean. |
+| 7 deploy | `deploy-redesign.sh --full`: exit 0; front end `built in 5.43s`; backend and worker recreated; **caddy and postgres untouched this time**; recorded backend commit `f1f7e5d4`. New image `7de6c3d9f52e` in backend and worker; `previous` is `518b172eb440`. `alembic current` = `0054 (head)`. Disk after: still 12 GB free. |
+| 8a price job | `run-job.sh nav-daily-m2 scripts/jobs/refresh_nav_daily.py`: exit 0 in about two minutes. `NAV_SUMMARY ... held=46 behind=2 filled_amfi=2 still_behind=0 missing_from_amfi=0`. `warm_nav_history: 1041 schemes total, 393 fetched over network`. **`PEER_HISTORY failed=124 of 393`** (see the list below). Three ongoing scenarios recomputed. |
+| 8b rebuild | `run_analytics_recompute.py --all` (started 09:39): exit 0 in about a minute, 115 log lines (the price-service requests, all `200`), zero error or traceback lines. |
+| 9 verify | `200` on the API health, `ls-redesign`, `ls-staging`, `/tutorial/poster.jpg` (`image/jpeg`); the video answers a range request with `206 video/mp4` (seeking works); zero ERROR lines in the backend log since the deploy; the running image has the new code (`plan_matches` present, `no_growth_series_not_ranked`). |
+
+## Honest list of what differed from the guide or is not done
+- **`PEER_HISTORY failed=124 of 393` is about a third, far above "single digits".** The retry after a 429 did not clear it: the price service (mfapi.in) is still refusing a share of the requests. What it does and does not mean: the failed ones are peers whose price history was not complete enough to skip; **every peer, failed or not, now has AMFI's latest price written**, which is the part that makes returns end on the right date, and no figure on screen waits on the failed fetches. The history that failed to refresh is the same history that was stale before. Tomorrow's 06:00 run and the 14:10 digest (which now lists this line) show whether it is steady; if it stays near a third, the next step is to lower the concurrency from 8 to 4 and widen the pause, a small change. **Not changed now.**
+- The VM-side `curl` loop printed `000` for the first four URLs because the remote shell never received the loop's variable (the Windows-to-WSL command layer expanded it locally); the same URLs return `200` from the laptop and from the VM with the address written out. Not a service problem.
+- **The owner's browser checks are not done**: rows M2-01 to M2-14 of the combined QA checklist, run once after M4. The pages load and the assets are served; I cannot sign in, so I have not seen a rank or an XIRR figure on screen after the deploy.
+- **Backup bucket listing not repeated** (above).
+- **Extra files left on the VM** in `/home/deploy`: `deploy-m2.log`, `deploy-m2.exit`, `navdaily-m2.log`, `navdaily-m2.exit`, `recompute-m2.log`, `recompute-m2.exit`, `backup-m2.log` (small, safe to delete), and `crontab.before-m2-2026-11`.
+- **Tests that do not pass on the merged tree, identical on the old deployed commit:** 23 (15 Windows-only news-script tests and 8 older ones, listed in the guide's step 2); the 2 caused by this release were fixed before the tag.
+
+## How to read it, and how to roll back
+```
+ssh deploy@ls-redesign.unifolio.in 'cd /opt/unifolio-redesign && git log -1 --format=%H && sudo docker image ls leapswitch-backend --format "{{.Tag}} {{.ID}}"'
+```
+Rollback (only on the owner's yes): back end `sudo sh ./scripts/rollback.sh` from `deploy/leapswitch` (points `latest` back at `previous` = `518b172eb440`); front end `git checkout -B leapswitch-redesign 75c3ef2327764a11936de315e67be0a34fde242c` then `deploy-redesign.sh`; no migration to undo; run the stored-results rebuild again after a rollback. No `clean-db.sh`, no `restore.sh`.
+
+## What is next
+The next 06:00 run (and the 14:10 digest) shows whether the peer-history failures are steady. M2 part 2 (the rest of Batch D): D-4 and D-9 are with Codex; then the Antigravity packets D-6 and D-10, D-7, D-11, D-12, D-13 and D-14. The owner's M2 QA rows (M2-01 to M2-14) run once after M4.

@@ -1,6 +1,6 @@
 # Staging Deploy Guide M2 (part 1): the numbers (Batch A), the shared Home graph and the movers backend (Batch D, first part), the tutorial pop-up (Batch H, first part) to `ls-redesign.unifolio.in`
 
-**FROZEN 20 Nov 2026.** The merged candidate is branch `m2-candidate` (worktree `D:\unifolio-m2`), merged into `leapswitch-redesign` and tagged `m2-rc` at the freeze (the tag's hash is `<FINAL-COMMIT>` below, filled in when it is made). **Nothing here is run until the owner's go; the owner gave it on 20 Nov 2026 ("M2 guide: the deploy guide ... deploy guide + direct deployment").** After the deploy there is **no QA round**: only the quick verify in step 9. The single combined QA happens once after M4 (rows M2-01 to M2-14 of `2026-11-19-combined-qa-checklist.md`).
+**FROZEN 20 Nov 2026.** The merged candidate is branch `m2-candidate` (worktree `D:\unifolio-m2`), merged into `leapswitch-redesign` and tagged `m2-rc` at the freeze (the tag points at `f1f7e5d47e796ef64105fc196ee77cf84e8d2f09`). **Nothing here is run until the owner's go; the owner gave it on 20 Nov 2026 ("M2 guide: the deploy guide ... deploy guide + direct deployment").** After the deploy there is **no QA round**: only the quick verify in step 9. The single combined QA happens once after M4 (rows M2-01 to M2-14 of `2026-11-19-combined-qa-checklist.md`).
 
 **Why "part 1".** The plan puts all of Batch D (the benchmark checklist and legend, the "View all by day's change" pop-up, the Overview graph, the chart end-date rule) into M2. Only D-2 (colours), D-3 (the shared graph component, Home unchanged) and D-8 (the movers backend switch) are built and verified; D-4 to D-7 and D-9 to D-14 are not (D-4 and D-9 are handed to Codex on 20 Nov). Batch A, the numbers, is the part the owner approved line by line and is complete, so it ships now; the rest of Batch D ships as a later staging deploy of the same kind, **not** held back for it. Nothing in this release depends on the unfinished D tasks: the new graph component renders exactly what the Home card rendered before, and the new movers switch is called by no screen yet.
 
@@ -94,7 +94,7 @@ Nothing to add to `.env`. (`AUTH_GUARD_SECRET` was set for M1 and stays.)
 ```bash
 cd /opt/unifolio-redesign && git fetch origin && git checkout -B leapswitch-redesign m2-rc && git rev-parse HEAD
 ```
-Expected: the full hash equals `<FINAL-COMMIT>`. **STOP** if not.
+Expected: the full hash equals `f1f7e5d47e796ef64105fc196ee77cf84e8d2f09`. **STOP** if not.
 
 ### Step 7 (VM): deploy. GATE: the owner's yes first
 ```bash
