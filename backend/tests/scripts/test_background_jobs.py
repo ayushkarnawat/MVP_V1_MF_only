@@ -56,9 +56,11 @@ def test_refresh_nav_daily_warms_held_funds_then_their_category_peers(db_session
     warmed: list[set] = []
     categories: list[str] = []
 
-    async def fake_warm_nav_history(db, schemes):
+    async def fake_warm_nav_history(db, schemes, fresh_ids=None):
         assert asyncio.get_running_loop().is_running()
+        schemes = list(schemes)
         warmed.append({scheme.id for scheme in schemes})
+        return len(schemes), 0   # (attempted, failed): the job now reports PEER_HISTORY from this pair (20 Nov)
 
     async def fake_peers(db, sebi_category, plan_type):
         # One series per fund (9 Oct): `unheld` is another plan row of a peer fund, so it's
@@ -227,8 +229,10 @@ def test_refresh_nav_daily_keeps_going_when_one_category_fails(db_session, monke
     db_session.flush()
     warmed: list[set] = []
 
-    async def fake_warm(db, schemes):
+    async def fake_warm(db, schemes, fresh_ids=None):
+        schemes = list(schemes)
         warmed.append({s.id for s in schemes})
+        return len(schemes), 0   # (attempted, failed), see the first test above
 
     rollbacks = []
     monkeypatch.setattr(db_session, "rollback", lambda: rollbacks.append(1))

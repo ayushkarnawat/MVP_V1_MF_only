@@ -1,6 +1,6 @@
 # RK-5: cross-checks against AMFI and SEBI references (19 Nov 2026), part 1
 
-Follows `2026-11-18-rank-verification-protocol.md`. Official public data only. Run from the staging VM, in memory, nothing written. **Done: T10-2. Not done: T10-7, T10-8, S4 and S5 (below).**
+Follows `2026-11-18-rank-verification-protocol.md`. Official public data only. Run from the staging VM, in memory, nothing written. **Done: T10-2 (this file); T10-7, T10-8, S4 and S5 are done in `2026-11-20-rk5-cross-checks-part-2.md`.**
 
 ## T10-2: the app's category and plan against AMFI's own scheme data (S2)
 **Label:** 19 Nov 2026, about 18:30 IST. S2 = `DownloadSchemeData_Po.aspx?mf=0` (16,528 schemes, columns AMC, Code, Scheme Name, Scheme Type, Scheme Category, Scheme NAV Name, launch and closure dates). The app's side = the NAVAll file the app reads (14,478 schemes, all of them also in S2). Compared for the **9,082** schemes that have a price dated 2026 (the live ones).

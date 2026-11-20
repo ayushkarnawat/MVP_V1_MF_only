@@ -5,16 +5,22 @@ import { resetFolioVisibilityForTests } from "@/lib/folioVisibility";
 import { buildRegistry } from "@/shell/registry/buildRegistry";
 import { renderInShell } from "@/shell/testing";
 import * as fx from "../fixtures";
+import { formatXirr, type SortState } from "../mfCopy";
 import { expectInteractivity, failedLoad, loaded, loadingLoad } from "../testing";
 import { HoldingsTable } from "./HoldingsTable";
-import type { SortState } from "../mfCopy";
-import type { HoldingRow } from "../types";
+import type { ConsolidatedHolding, FundBenchmarkRow, HoldingRow } from "../types";
 
 function Probe() { const l = useLocation(); return <output data-testid="loc">{l.pathname}</output>; }
 const NOT_LIVE = buildRegistry().map(route => (route.id === "portfolio-mutual-funds-fund" ? { ...route, status: "placeholder" as const } : route));
 const XIRR = { "S-KOTAK": "0.1420", "S-JM": "0.1860", "S-HDFC": "0.2130" };
 
-function table(over: Partial<Parameters<typeof HoldingsTable>[0]> = {}, routes = buildRegistry()) {
+// FE-1b contract: OverviewPage builds xirrMetaByScheme from bench.data.funds in the
+// same mapping as xirrByScheme. Keys are scheme_id and metadata keeps the API names.
+// The optional prop is declared here so these tests type-check before the table accepts it.
+type XirrMetaByScheme = Partial<Record<string, Pick<FundBenchmarkRow, "xirr_as_of" | "xirr_basis" | "since_purchase_return">>>;
+type TableOverrides = Partial<Parameters<typeof HoldingsTable>[0]> & { xirrMetaByScheme?: XirrMetaByScheme };
+
+function table(over: TableOverrides = {}, routes = buildRegistry()) {
   const props = { holdings: loaded(fx.holdings()), xirrByScheme: XIRR, sort: null as SortState | null, onSort: vi.fn(), query: "", onAnalyse: vi.fn(), onCompareDistributors: vi.fn(), ...over };
   const view = (p: typeof props) => <><HoldingsTable {...p} /><Probe /></>;
   const utils = renderInShell(view(props), { path: "/portfolio/mutual-funds", routes });
@@ -248,6 +254,82 @@ function familyParents() {
     sebi_category: first.sebi_category ?? null, stale_nav: false, nav_unavailable: false, price_from_statement: false,
     current_nav_date: first.current_nav_date ?? null, units_held: "40", average_price: "13.75", amount_invested: "550.00", current_value: "800.00", unrealized_gain: "250.00", realized_gain: "3.00", xirr: "0.12", opening_lot: null, children }];
 }
+
+describe("HoldingsTable: per-fund return basis", () => {
+  const shortReturn = { xirr_basis: "since_purchase", since_purchase_return: "0.2" } as const;
+  const shortLabel = "since purchase";
+  const shortAccessibleName = "Return since purchase, not annualised";
+
+  it("shows the main row's return since purchase with a visible and accessible label", () => {
+    table({
+      xirrByScheme: { "S-KOTAK": "0.8" },
+      xirrMetaByScheme: { "S-KOTAK": shortReturn },
+    });
+    const cell = within(row("S-KOTAK:m1")).getByTestId("xirr");
+    expect.soft(within(cell).queryByText(formatXirr("0.2"))).toBeInTheDocument();
+    expect(within(cell).getByText(shortLabel)).toHaveAccessibleName(shortAccessibleName);
+  });
+
+  it.each(["annualised", "absent"] as const)("keeps the main-row value when the return basis is %s", basis => {
+    table(basis === "absent" ? {} : {
+      xirrMetaByScheme: { "S-KOTAK": { xirr_basis: "annualised", since_purchase_return: "0.2" } },
+    });
+    const cell = within(row("S-KOTAK:m1")).getByTestId("xirr");
+    expect(cell).toHaveTextContent(/^14\.2%$/);
+    expect(within(cell).queryByText(shortLabel)).not.toBeInTheDocument();
+  });
+
+  it("shows the existing dash when same-day flows have null XIRR", () => {
+    table({
+      xirrByScheme: { "S-KOTAK": null },
+      xirrMetaByScheme: { "S-KOTAK": { xirr_basis: null, since_purchase_return: null } },
+    });
+    expect(within(row("S-KOTAK:m1")).getByTestId("xirr")).toHaveTextContent(/^—$/);
+  });
+
+  it("sorts main rows by the displayed returns in both directions", () => {
+    const { props, rerender } = table({
+      holdings: loaded(fx.holdings().slice(0, 3)),
+      xirrByScheme: { ...XIRR, "S-KOTAK": "0.8" },
+      xirrMetaByScheme: { "S-KOTAK": shortReturn, "S-HDFC": { xirr_basis: "annualised" } },
+      sort: { key: "xirr", dir: "desc" },
+    });
+    expect.soft(rowIds()).toEqual(["S-HDFC:m3", "S-KOTAK:m1", "S-JM:m2"]);
+    rerender({ ...props, sort: { key: "xirr", dir: "asc" } });
+    expect(rowIds()).toEqual(["S-JM:m2", "S-KOTAK:m1", "S-HDFC:m3"]);
+  });
+
+  it("shows a consolidated parent row's own return since purchase and label", () => {
+    const parent: ConsolidatedHolding = { ...familyParents()[0], xirr: "0.8", ...shortReturn };
+    table({ consolidated: [parent] });
+    const cells = within(screen.getByTestId("parent-S-KOTAK:direct")).getAllByRole("cell");
+    const xirr = cells[cells.length - 1];
+    expect.soft(within(xirr).queryByText(formatXirr("0.2"))).toBeInTheDocument();
+    expect(within(xirr).getByText(shortLabel)).toHaveAccessibleName(shortAccessibleName);
+  });
+
+  it("sorts consolidated parents by the displayed returns", () => {
+    const short: ConsolidatedHolding = { ...familyParents()[0], xirr: "0.8", ...shortReturn };
+    const annualised: ConsolidatedHolding = {
+      ...familyParents()[0], scheme_id: "S-FABLE", scheme_name: "Fable Equity Fund", xirr: "0.21", xirr_basis: "annualised",
+    };
+    table({ consolidated: [short, annualised], sort: { key: "xirr", dir: "desc" } });
+    expect(screen.getAllByTestId(/^parent-/).map(parent => parent.getAttribute("data-testid"))).toEqual([
+      "parent-S-FABLE:direct", "parent-S-KOTAK:direct",
+    ]);
+  });
+
+  it("uses the expanded child's own return since purchase and label", () => {
+    const parent: ConsolidatedHolding = familyParents()[0];
+    parent.children[0] = { ...parent.children[0], xirr: "0.8", ...shortReturn };
+    table({ consolidated: [parent] });
+    fireEvent.click(screen.getByRole("button", { name: "Expand Kotak Multi Cap Fund" }));
+    const child = screen.getByTestId("member-S-KOTAK:direct:m1");
+    const cell = within(child).getByTestId("child-xirr");
+    expect.soft(within(cell).queryByText(formatXirr("0.2"))).toBeInTheDocument();
+    expect(within(cell).getByText(shortLabel)).toHaveAccessibleName(shortAccessibleName);
+  });
+});
 
 describe("consolidated family holdings", () => {
   it("parent_row_shows_all_requirement_2_2_columns_and_a_split_bar", () => {

@@ -443,11 +443,11 @@ def test_compute_fund_vs_benchmark_includes_switches_only_in_fund_level_xirr():
     portfolio_calls = []
     benchmark_calls = []
 
-    def capture_portfolio(transactions, current_value, extra_debit_types=frozenset()):
+    def capture_portfolio(transactions, current_value, extra_debit_types=frozenset(), **_price_date):
         portfolio_calls.append((list(transactions), extra_debit_types))
         return Decimal("0.10")
 
-    async def capture_benchmark(db_, transactions, index, extra_debit_types=frozenset()):
+    async def capture_benchmark(db_, transactions, index, extra_debit_types=frozenset(), **_price_date):
         benchmark_calls.append((list(transactions), extra_debit_types))
         return Decimal("0.10")
 
