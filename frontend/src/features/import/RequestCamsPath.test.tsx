@@ -14,6 +14,88 @@ describe("RequestCamsPath", () => {
     vi.restoreAllMocks();
   });
 
+  it("shows Watch how it works as a secondary text link on the Request from CAMS screen", async () => {
+    render(<RequestCamsPath memberId="m-1" onBack={vi.fn()} onRequestInitiated={vi.fn()} />);
+
+    const name = "Watch how it works, 53 seconds";
+    const link = screen.queryByRole("link", { name }) ?? screen.getByRole("button", { name });
+    const request = screen.getByRole("button", { name: "Request Statement on CAMS" });
+    const actions = [...screen.queryAllByRole("button"), ...screen.queryAllByRole("link")];
+    const filledActions = actions.filter((action) =>
+      /(?:^|\s)bg-(?!transparent(?:\s|$))\S+/.test(action.className)
+    );
+
+    await waitFor(() => expect(link).toBeVisible());
+    expect(filledActions).toEqual([request]);
+  });
+
+  it("pressing the link opens the dialog and does not call the CAMS request, open a tab or navigate", async () => {
+    const request = vi.spyOn(api, "requestCamsStatement").mockResolvedValue({
+      import_id: "imp-tutorial",
+      household_member_id: "m-1",
+      status: "waiting_for_user",
+      cams_url: "https://cams.example.test/statement",
+      expires_at: "2026-12-01T12:00:00Z",
+    });
+    const openTab = vi.spyOn(window, "open").mockReturnValue(null);
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {});
+    const onRequestInitiated = vi.fn();
+    const onBack = vi.fn();
+    const initialUrl = window.location.href;
+    render(<RequestCamsPath memberId="m-1" onBack={onBack} onRequestInitiated={onRequestInitiated} />);
+
+    const name = "Watch how it works, 53 seconds";
+    fireEvent.click(screen.queryByRole("link", { name }) ?? screen.getByRole("button", { name }));
+
+    expect(await screen.findByRole("dialog", { name: "How to request your statement from CAMS" })).toBeVisible();
+    expect(request).not.toHaveBeenCalled();
+    expect(openTab).not.toHaveBeenCalled();
+    expect(onRequestInitiated).not.toHaveBeenCalled();
+    expect(onBack).not.toHaveBeenCalled();
+    expect(window.location.href).toBe(initialUrl);
+  });
+
+  it("at the end the green action behaves like the main button and closes the pop-up", async () => {
+    const request = vi.spyOn(api, "requestCamsStatement").mockResolvedValue({
+      import_id: "imp-tutorial",
+      household_member_id: "m-1",
+      status: "waiting_for_user",
+      cams_url: "https://cams.example.test/statement",
+      expires_at: "2026-12-01T12:00:00Z",
+    });
+    const openTab = vi.spyOn(window, "open").mockReturnValue(null);
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {});
+    const onRequestInitiated = vi.fn();
+    render(<RequestCamsPath memberId="m-1" onRequestInitiated={onRequestInitiated} />);
+
+    const name = "Watch how it works, 53 seconds";
+    fireEvent.click(screen.queryByRole("link", { name }) ?? screen.getByRole("button", { name }));
+
+    const dialog = await screen.findByRole("dialog", { name: "How to request your statement from CAMS" });
+    const video = dialog.querySelector("video");
+    if (!video) throw new Error("The tutorial dialog has no video player");
+
+    const actionName = "Request Statement on CAMS";
+    expect(screen.queryAllByRole("button", { name: actionName }).filter((button) => dialog.contains(button))).toHaveLength(0);
+    video.currentTime = 53;
+    vi.spyOn(video, "ended", "get").mockReturnValue(true);
+    fireEvent.ended(video);
+    const endAction = screen.getAllByRole("button", { name: actionName }).find((button) => dialog.contains(button));
+    if (!endAction) throw new Error("The tutorial dialog has no end-of-video CAMS action");
+    fireEvent.click(endAction);
+
+    await waitFor(() => {
+      expect(request).toHaveBeenCalledExactlyOnceWith("m-1");
+      expect(openTab).toHaveBeenCalledExactlyOnceWith("https://cams.example.test/statement", "_blank");
+      expect(onRequestInitiated).toHaveBeenCalledExactlyOnceWith("imp-tutorial", "2026-12-01T12:00:00Z");
+      expect(dialog).not.toBeInTheDocument();
+    });
+  });
+
   it("request is disabled until ticked and sends the version; renders steps, reference card, back button, and initiates CAMS request on button click", async () => {
     const mockOpen = vi.fn();
     vi.stubGlobal("open", mockOpen);
