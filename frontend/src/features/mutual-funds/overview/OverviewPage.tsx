@@ -5,9 +5,16 @@ import { PostImportNotice } from "../../../components/mf/PostImportNotice";
 import { SoldFundsSection } from "../../../components/mf/SoldFundsSection";
 import { Button } from "../../../components/ui/button";
 import { Skeleton } from "../../../components/ui/skeleton";
+import { WealthGraph } from "../../../components/wealth-graph/WealthGraph";
+import type { WealthDateRange, WealthPeriod } from "../../../components/wealth-graph/types";
+import { useWealthSeries } from "../../../components/wealth-graph/useWealthSeries";
 import { useImport, useScope } from "../../../shell/scope/ScopeContext";
+import { getBenchmarks, getWealthSeries } from "../../home/api";
+import { pickBenchmark, readStoredBenchmark, writeStoredBenchmark } from "../../home/components/benchmarkChoice";
+import { PartialDataBadge } from "../../home/components/PartialDataBadge";
+import { istToday } from "../../home/homeToday";
 import { useMfAnalytics } from "../data/analyticsStore";
-import { useMfDashboard } from "../data/useMfDashboard";
+import { useMfDashboard, useMfSection } from "../data/useMfDashboard";
 import { MutualFundsFrame, useMfFrame } from "../frame/MutualFundsFrame";
 import {
   buildOverviewInsights,
@@ -26,6 +33,73 @@ import {
 } from "./OverviewCards";
 import { SipTimeline } from "./SipTimeline";
 import { SummaryStrip } from "./SummaryStrip";
+
+function OverviewWealthGraph({ holdingsReady }: { holdingsReady: boolean }) {
+  const { viewMode, memberId, scopeKey, selectedMember } = useScope();
+  const scope = { viewMode, memberId };
+  const enabled = holdingsReady && (viewMode === "aggregate" || memberId !== null);
+
+  const [period, setPeriod] = useState<WealthPeriod>("1Y");
+  const [draftRange, setDraftRange] = useState<WealthDateRange>({ from: null, to: null });
+  const [appliedRange, setAppliedRange] = useState<WealthDateRange | null>(null);
+  const [chosenBenchmark, setChosenBenchmark] = useState(readStoredBenchmark);
+
+  const benchmarks = useMfSection(
+    signal => enabled ? getBenchmarks(scope, signal) : Promise.resolve(null),
+    [scopeKey, enabled],
+  );
+  const benchmark = benchmarks.data
+    ? pickBenchmark(benchmarks.data.options, chosenBenchmark, benchmarks.data.recommended_index)
+    : null;
+  const wealth = useWealthSeries(scope, period, appliedRange, benchmark ? [benchmark] : [], {
+    loadSeries: getWealthSeries,
+    enabled: enabled && benchmarks.status !== "loading",
+  });
+
+  if (!enabled) return null;
+
+  const scopeName = viewMode === "aggregate" ? "Family Combined" : selectedMember?.name;
+
+  return (
+    <div data-legacy="wealth-graph" className="contents">
+      <section aria-label="Value over time">
+        <WealthGraph
+          status={wealth.status}
+          data={wealth.data}
+          period={period}
+          onPeriodChange={next => {
+            if (next !== "custom" || appliedRange) setPeriod(next);
+          }}
+          customRange={draftRange}
+          onCustomRangeChange={range => {
+            setDraftRange(range);
+            if (range.from && range.to) {
+              setAppliedRange(range);
+              setPeriod("custom");
+            }
+          }}
+          today={istToday()}
+          benchmarkOptions={benchmarks.data?.options ?? []}
+          benchmark={benchmark}
+          onBenchmarkChange={index => {
+            setChosenBenchmark(index);
+            writeStoredBenchmark(index);
+          }}
+          hideValues={false}
+          refreshing={wealth.refreshing}
+          onRetry={wealth.retry}
+          headerLeft={
+            <div>
+              <h3 className="text-[15px] font-bold text-[var(--ui-text)]">Value over time</h3>
+              <p className="text-xs text-[var(--ui-text-muted)]">{scopeName}</p>
+            </div>
+          }
+          headerRightExtra={wealth.data?.partial ? <PartialDataBadge missingFunds={wealth.data.missing_funds} /> : undefined}
+        />
+      </section>
+    </div>
+  );
+}
 
 function OverviewBody({ query }: { query: string }) {
   const { viewMode, memberId } = useScope();
@@ -157,6 +231,7 @@ function OverviewBody({ query }: { query: string }) {
         history={dash.history}
         synopsis={synopsis}
       />
+      <OverviewWealthGraph holdingsReady={dash.holdings.status === "data" && dash.holdings.data !== null} />
       <SipTimeline sips={dash.sips} />
       <HoldingsTable
         holdings={dash.holdings}
