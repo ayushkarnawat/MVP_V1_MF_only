@@ -146,4 +146,41 @@ describe("fetchers", () => {
     expect(new Headers(lastCall(fetchMock).init.headers).has("Authorization")).toBe(false);
     vi.doUnmock("../auth/session");
   });
+
+  it("benchmarks are sent as repeated parameters in order", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json({}));
+    vi.stubGlobal("fetch", fetchMock);
+    await getWealthSeries(AGGREGATE, {
+      period: "1M",
+      benchmarks: ["nifty_500", "nifty_50", "nifty_largemidcap_250"],
+    });
+    expect(lastCall(fetchMock).url).toBe(
+      `${API_BASE_URL}/household/aggregate/home/wealth-series?period=1M&benchmarks=nifty_500&benchmarks=nifty_50&benchmarks=nifty_largemidcap_250`,
+    );
+  });
+
+  it("no benchmarks parameter when the list is empty or absent", async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(json({})));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getWealthSeries(AGGREGATE, { period: "1M", benchmarks: [] });
+    expect(lastCall(fetchMock).url).toBe(
+      `${API_BASE_URL}/household/aggregate/home/wealth-series?period=1M`,
+    );
+
+    invalidateApiCache();
+    await getWealthSeries(AGGREGATE, { period: "1W" });
+    expect(lastCall(fetchMock).url).toBe(
+      `${API_BASE_URL}/household/aggregate/home/wealth-series?period=1W`,
+    );
+  });
+
+  it("the old benchmark parameter is unchanged", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json({}));
+    vi.stubGlobal("fetch", fetchMock);
+    await getWealthSeries(MEMBER, { period: "1Y", benchmark: "nifty_midcap_150" });
+    expect(lastCall(fetchMock).url).toBe(
+      `${API_BASE_URL}/household-members/m-1/home/wealth-series?period=1Y&benchmark=nifty_midcap_150`,
+    );
+  });
 });

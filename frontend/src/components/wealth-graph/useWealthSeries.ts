@@ -53,6 +53,13 @@ export function wealthSeriesPath(scope: WealthScope, query: WealthSeriesQuery): 
   if (query.from) params.append("from", query.from);
   if (query.to) params.append("to", query.to);
   if (query.benchmark) params.append("benchmark", query.benchmark);
+  if (query.benchmarks) {
+    for (const item of query.benchmarks) {
+      if (item.length > 0) {
+        params.append("benchmarks", item);
+      }
+    }
+  }
 
   const qs = params.toString();
   return qs.length > 0 ? `${base}?${qs}` : base;
