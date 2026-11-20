@@ -239,8 +239,11 @@ def test_compute_category_ranking_blends_3yr_and_5yr_when_both_available():
     row = summary.funds[0]
     r3 = _cagr(Decimal("13"), Decimal("20"), 3)
     r5 = _cagr(Decimal("10"), Decimal("20"), 5)
-    expected = Decimal("0.4") * r3 + Decimal("0.6") * r5
-    assert Decimal(row.category_avg_return) == (expected + 4 * _cagr(Decimal("10"), Decimal("11"), 3)) / 5
+    # FX-9a (owner-approved 19 Nov): the legacy figure is 40% of the displayed 3Y average plus 60% of the
+    # displayed 5Y average. Only the held fund has a 5Y return here, so the 5Y average is its own r5.
+    peer_r3 = _cagr(Decimal("10"), Decimal("11"), 3)
+    average_3y = (r3 + 4 * peer_r3) / 5
+    assert Decimal(row.category_avg_return) == Decimal("0.4") * average_3y + Decimal("0.6") * r5
 
 
 def test_compute_category_ranking_insufficient_history_for_held_scheme():
@@ -591,6 +594,9 @@ def _period_category_row(*, held_has_5y=True, plan_type=None, representative=Fal
     _folio_with_purchase(db, member, held, Decimal("1000"), Decimal("100"), Decimal("10"), _START_3Y)
     peer = _scheme(db, "Peer Fund")
     rep = _scheme(db, "Held Growth") if representative else held
+    # Real peers always carry the plan they were chosen for (get_category_peers); the average keeps only that plan.
+    peer.plan_type = held.plan_type
+    rep.plan_type = held.plan_type
     detailed = {rep.id: (Decimal("0.10"), Decimal("0.12"), Decimal("0.14") if held_has_5y else None, Decimal("0.132")),
                 peer.id: (Decimal("0.20"), Decimal("0.22"), Decimal("0.24"), Decimal("0.232"))}
     db.add_all([SchemeAaum(scheme_id=rep.id, reference_period=_TODAY, aaum_value=Decimal("300")),
@@ -728,9 +734,10 @@ def test_fund_size_weighted_golden_on_a_five_fund_category():
 
 
 def test_legacy_category_average_is_the_blended_figure_weighted_by_fund_size():
-    # Changed from the simple blended mean .2176. Blends .168, .236, .304, .18 with sizes 900, 30, 20, 10.
+    # FX-9a (owner-approved 19 Nov): 40% of the displayed 3Y average (117.2 / 960) plus 60% of the displayed
+    # 5Y average (197 / 950), each size-weighted. The weighting metadata is the 3Y average's.
     row, _ = _five_fund_comparison()
-    assert Decimal(row.category_avg_return) == Decimal("166.16") / Decimal("960")
+    assert Decimal(row.category_avg_return) == Decimal("0.4") * (Decimal("117.2") / Decimal("960")) + Decimal("0.6") * (Decimal("197") / Decimal("950"))
     assert row.category_avg_weighting == "fund_size" and row.category_avg_funds_without_size == 1
 
 
@@ -892,3 +899,22 @@ def test_payloads_stored_before_weighting_still_load_with_neutral_defaults():
     new_row = CategoryRankRow.model_validate(_period_category_row().model_dump())
     assert set(old_row) <= set(new_row.model_dump())
     assert set(old_period) <= set(new_row.periods["3y"].model_dump())
+
+
+def test_legacy_is_the_three_year_average_when_no_fund_has_a_five_year_return():
+    from app.services.analytics.category_ranking import category_blended_weighted_average, category_period_weighted_averages
+
+    first, second, unsized = uuid.UUID(int=901), uuid.UUID(int=902), uuid.UUID(int=903)
+    detailed = {
+        first: (None, Decimal("0.10"), None, Decimal("0.10")),
+        second: (None, Decimal("0.30"), None, Decimal("0.30")),
+        unsized: (None, Decimal("0.90"), None, Decimal("0.90")),
+    }
+    sizes = {first: Decimal("100"), second: Decimal("300")}
+
+    periods = category_period_weighted_averages(detailed, sizes)
+
+    assert periods["5y"].value is None
+    assert category_blended_weighted_average(detailed, sizes) == periods["3y"] == (
+        Decimal("0.25"), 3, "fund_size", 1,
+    )

@@ -17,6 +17,7 @@ from app.services.auth.session import get_data_user
 from app.services.home.allocation import load_allocation
 from app.services.home.benchmarks import HOME_BENCHMARKS, load_cap_mix, recommend_benchmark
 from app.services.home.context import HomeInputs, ScopeContext, load_home_inputs, resolve_scope
+from app.services.home.movers import compute_all_mover_rows
 from app.services.home.series import MAX_CUSTOM_YEARS
 from app.services.home.schemas import (
     AllocationResponse,
@@ -25,8 +26,11 @@ from app.services.home.schemas import (
     BenchmarkSeriesOut,
     BenchmarksResponse,
     ClassRowOut,
+    MoverAllBarOut,
     MoverBarOut,
     MoverFundOut,
+    MoverWaitingOut,
+    MoversAllResponse,
     MoversResponse,
     PointOut,
     SummaryResponse,
@@ -174,26 +178,50 @@ def _mover_bars(inputs: HomeInputs, bars) -> list[MoverBarOut]:
 
 
 async def _movers(
-    db: Session, user: User, member_id: uuid.UUID | None, now_ist: datetime, by: MoverView
-):
+    db: Session, user: User, member_id: uuid.UUID | None, now_ist: datetime, by: MoverView,
+    include_all: bool = False,
+) -> MoversResponse | MoversAllResponse:
     ctx = resolve_scope(db, user, member_id)
     inputs = await _inputs(db, ctx, now_ist, view=by)
     movers = inputs.movers
-    return MoversResponse(
-        **_envelope(ctx, inputs, now_ist),
+    details = compute_all_mover_rows(movers, inputs.funds, now_ist.date()) if include_all else None
+    preview = details.preview if details is not None else movers.result
+    envelope = _envelope(ctx, inputs, now_ist)
+    net_pct = movers.net_pct
+    if details is not None:
+        envelope["nav_as_of"] = details.nav_as_of
+        envelope["partial"] = inputs.partial or bool(details.waiting_for_price)
+        if details.nav_as_of != now_ist.date() and net_pct is not None:
+            net_pct = Decimal("0.0000")
+
+    payload = dict(
+        **envelope,
         requested_view=movers.requested_view,
         view=movers.view,
         fell_back=movers.fell_back,
         estimated=movers.estimated,
         coverage_pct=movers.coverage_pct,
-        net_change=movers.net_change,
-        net_pct=movers.net_pct,
+        net_change=details.net_change if details is not None else movers.net_change,
+        net_pct=net_pct,
         previous_value=_money(movers.previous_value),
         previous_nav_date=movers.previous_nav_date,
-        gains=_mover_bars(inputs, movers.result.gains),
-        losses=_mover_bars(inputs, movers.result.losses),
-        others_count=movers.result.others_count,
-        others_change=movers.result.others_change,
+        gains=_mover_bars(inputs, preview.gains),
+        losses=_mover_bars(inputs, preview.losses),
+        others_count=preview.others_count,
+        others_change=preview.others_change,
+    )
+    if details is None:
+        return MoversResponse(**payload)
+    return MoversAllResponse(
+        **payload,
+        rows=[
+            MoverAllBarOut(**bar.model_dump(), no_change=bar.change.is_zero())
+            for bar in _mover_bars(inputs, details.rows)
+        ],
+        waiting_for_price=[
+            MoverWaitingOut(fund_id=str(fund.scheme_id), name=fund.name, category=fund.category)
+            for fund in details.waiting_for_price
+        ],
     )
 
 
@@ -370,14 +398,14 @@ async def member_allocation(member_id: uuid.UUID, user: User = Depends(get_data_
     return await _allocation(db, user, member_id, now)
 
 
-@router.get("/household/aggregate/home/movers", response_model=MoversResponse)
-async def aggregate_movers(by: MoverView = "sector", user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
-    return await _movers(db, user, None, now, by)
+@router.get("/household/aggregate/home/movers", response_model=MoversResponse | MoversAllResponse)
+async def aggregate_movers(by: MoverView = "sector", user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist), all: bool = False):
+    return await _movers(db, user, None, now, by, include_all=all)
 
 
-@router.get("/household-members/{member_id}/home/movers", response_model=MoversResponse)
-async def member_movers(member_id: uuid.UUID, by: MoverView = "sector", user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
-    return await _movers(db, user, member_id, now, by)
+@router.get("/household-members/{member_id}/home/movers", response_model=MoversResponse | MoversAllResponse)
+async def member_movers(member_id: uuid.UUID, by: MoverView = "sector", user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist), all: bool = False):
+    return await _movers(db, user, member_id, now, by, include_all=all)
 
 
 @router.get("/household/aggregate/home/worth-a-look", response_model=WorthResponse)

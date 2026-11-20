@@ -38,6 +38,12 @@ def test_holdings_route_returns_empty_list_for_member_with_no_folios(client):
         "current_holdings_xirr": None,
         "lifetime_xirr_disclaimer": None,
         "current_holdings_xirr_disclaimer": None,
+        # Additive XIRR metadata (FX-8d, FX-8e): the price date and how to show a figure.
+        "xirr_as_of": None,
+        "lifetime_xirr_basis": None,
+        "current_holdings_xirr_basis": None,
+        "lifetime_since_purchase": None,
+        "current_holdings_since_purchase": None,
     }
 
 

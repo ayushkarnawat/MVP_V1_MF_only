@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useWealthSeries } from "@/components/wealth-graph/useWealthSeries";
 import { useImport, useScope } from "../../shell/scope/ScopeContext";
 import { MiraComingSoonDialog } from "../../shell/mira/MiraComingSoonDialog";
 import {
@@ -27,18 +28,10 @@ import type {
   HomePeriod,
   HomeScopeArg,
   MoversView,
-  WealthSeriesResponse,
 } from "./types";
 import { useHomeSection } from "./useHomeSection";
 import { useNews } from "./useNews";
 import { useStaleWhileLoading } from "./useStaleWhileLoading";
-
-// A request that waits until the page cancels it: used while the wealth series is not ready to be asked for.
-function idleUntilAborted<T>(signal: AbortSignal): Promise<T> {
-  return new Promise<T>((_, reject) => {
-    signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
-  });
-}
 
 export function HomePage({ today }: { today?: string } = {}) {
   const todayIso = today ?? istToday();
@@ -66,18 +59,13 @@ export function HomePage({ today }: { today?: string } = {}) {
     ? pickBenchmark(benchmarks.data.options, chosenBenchmark, benchmarks.data.recommended_index)
     : null;
 
-  const wealthRaw = useHomeSection<WealthSeriesResponse>(
-    signal => {
-      if (!benchmarkSettled) return idleUntilAborted(signal);
-      if (period === "custom") {
-        if (!appliedRange) return idleUntilAborted(signal);
-        return getWealthSeries(scope, { period, from: appliedRange.from, to: appliedRange.to, benchmark: benchmark ?? undefined }, signal);
-      }
-      return getWealthSeries(scope, { period, benchmark: benchmark ?? undefined }, signal);
-    },
-    [scopeKey, period, appliedRange?.from ?? null, appliedRange?.to ?? null, benchmarkSettled, benchmark],
+  const wealth = useWealthSeries(
+    scope,
+    period,
+    appliedRange,
+    benchmark ? [benchmark] : [],
+    { loadSeries: getWealthSeries, enabled: benchmarkSettled },
   );
-  const wealth = useStaleWhileLoading(wealthRaw, scopeKey);
 
   const moversRaw = useHomeSection(signal => getMovers(scope, moversView, signal), [scopeKey, moversView]);
   const movers = useStaleWhileLoading(moversRaw, scopeKey);

@@ -6,6 +6,11 @@ import { SchemeLogo } from "../../../components/SchemeLogo";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { categoryLabel } from "@/lib/categoryLabel";
 import { formatRupees } from "../../../lib/format";
+import {
+  resolveXirrDisplay,
+  SINCE_PURCHASE_CAPTION,
+  SINCE_PURCHASE_SHORT_LABEL,
+} from "../../../lib/xirrDisplay";
 import { paths } from "../../../shell/nav/paths";
 import { useAppNavigate } from "../../../shell/nav/useAppNavigate";
 import { FundLink } from "../common/FundLink";
@@ -23,10 +28,17 @@ import {
 } from "../mfCopy";
 import type { ConsolidatedHolding, ConsolidatedHoldingChild, HoldingRow, Load } from "../types";
 
+export interface SchemeXirrMeta {
+  xirr_as_of?: string | null;
+  xirr_basis?: XirrBasis | null;
+  since_purchase_return?: string | null;
+}
+
 export interface HoldingsTableProps {
   holdings: Load<HoldingRow[]>;
   consolidated?: ConsolidatedHolding[] | null;
   xirrByScheme: Record<string, string | null | undefined>;
+  xirrMetaByScheme?: Partial<Record<string, SchemeXirrMeta>>;
   sort: SortState | null;
   onSort: (next: SortState) => void;
   query: string;
@@ -34,10 +46,38 @@ export interface HoldingsTableProps {
   onCompareDistributors: () => void;
 }
 
+function XirrCellContent({
+  annualised,
+  basis,
+  sincePurchase,
+}: {
+  annualised: string | null | undefined;
+  basis: XirrBasis | null | undefined;
+  sincePurchase: string | null | undefined;
+}) {
+  const display = resolveXirrDisplay(annualised, basis, sincePurchase);
+  if (!display.isSincePurchase) {
+    return <>{formatXirr(display.value)}</>;
+  }
+  return (
+    <div className="flex flex-col">
+      <span>{formatXirr(display.value)}</span>
+      <span
+        aria-label={SINCE_PURCHASE_CAPTION}
+        title={SINCE_PURCHASE_CAPTION}
+        className="text-[11px] font-normal text-[var(--ui-text-muted)]"
+      >
+        {SINCE_PURCHASE_SHORT_LABEL}
+      </span>
+    </div>
+  );
+}
+
 export function HoldingsTable({
   holdings,
   consolidated,
   xirrByScheme,
+  xirrMetaByScheme,
   sort,
   onSort,
   query,
@@ -100,7 +140,17 @@ export function HoldingsTable({
     return nameMatch || amcMatch;
   });
 
-  const sortedRows = sortHoldings(filteredRows, sort, xirrByScheme);
+  const displayedXirrByScheme: Record<string, string | null | undefined> = {};
+  for (const row of filteredRows) {
+    const meta = xirrMetaByScheme?.[row.scheme_id];
+    displayedXirrByScheme[row.scheme_id] = resolveXirrDisplay(
+      xirrByScheme[row.scheme_id],
+      meta?.xirr_basis,
+      meta?.since_purchase_return,
+    ).value;
+  }
+
+  const sortedRows = sortHoldings(filteredRows, sort, displayedXirrByScheme);
   const totals = holdingTotals(filteredRows);
 
   const sortColumns: Array<{ key: SortKey; label: string }> = [
@@ -254,7 +304,11 @@ export function HoldingsTable({
                         : formatSignedRupees(row.unrealized_gain)}
                     </td>
                     <td data-testid="xirr" className="py-3 px-4 font-medium text-[var(--ui-text)]">
-                      {formatXirr(xirrByScheme[row.scheme_id])}
+                      <XirrCellContent
+                        annualised={xirrByScheme[row.scheme_id]}
+                        basis={xirrMetaByScheme?.[row.scheme_id]?.xirr_basis}
+                        sincePurchase={xirrMetaByScheme?.[row.scheme_id]?.since_purchase_return}
+                      />
                     </td>
                     <td
                       data-testid="today"
@@ -328,13 +382,19 @@ function FamilyFigures({ row, child = false }: { row: ConsolidatedHolding | Cons
   const figures = [row.units_held, average == null ? "—" : formatDecimal(average), formatRupees(row.amount_invested),
     row.nav_unavailable || row.current_value == null ? "—" : formatRupees(row.current_value),
     row.nav_unavailable || row.unrealized_gain == null ? "—" : formatSignedRupees(row.unrealized_gain),
-    formatSignedRupees(row.realized_gain), formatXirr(row.xirr)];
-  return figures.map((figure, index) => <td key={FAMILY_COLUMNS[index + 1].label}
-    data-testid={child && index === 6 ? "child-xirr" : undefined}
-    className="px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap">
-    <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[index + 1].label}</span>
-    {figure}
-  </td>);
+    formatSignedRupees(row.realized_gain)];
+  return <>
+    {figures.map((figure, index) => <td key={FAMILY_COLUMNS[index + 1].label}
+      className="px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap">
+      <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[index + 1].label}</span>
+      {figure}
+    </td>)}
+    <td data-testid={child ? "child-xirr" : undefined}
+      className="px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap">
+      <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[7].label}</span>
+      <XirrCellContent annualised={row.xirr} basis={row.xirr_basis} sincePurchase={row.since_purchase_return} />
+    </td>
+  </>;
 }
 
 function FamilyHoldingStatus({ row }: { row: ConsolidatedHolding | ConsolidatedHoldingChild }) {
@@ -357,7 +417,9 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, onAnalyse, onCompareDi
     if (sort?.key === "invested") return r.amount_invested;
     if (sort?.key === "value") return r.nav_unavailable ? null : r.current_value;
     if (sort?.key === "gain") return r.nav_unavailable ? null : r.unrealized_gain;
-    if (sort?.key === "xirr") return r.xirr;
+    if (sort?.key === "xirr") {
+      return resolveXirrDisplay(r.xirr, r.xirr_basis, r.since_purchase_return).value ?? null;
+    }
     return null;
   };
   const shown = sort ? [...filtered].sort((a, b) => {

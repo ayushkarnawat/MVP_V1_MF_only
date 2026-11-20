@@ -313,8 +313,9 @@ def test_category_comparison_equals_the_screen(db_session, world, peers, monkeyp
             assert got["weighting"] == shown.weighting
             assert got["funds_without_size"] == shown.funds_without_size
     direct = _fund(out, world.a)["category_comparison"]["periods"]["3y"]
-    assert direct["funds_in_average"] == 3 and direct["weighting"] == "fund_size"
-    assert direct["funds_without_size"] == 1  # the index fund has no size on record
+    # FX-10b (owner-approved 19 Nov): the index fund (Gamma) is no longer in the active funds' average.
+    assert direct["funds_in_average"] == 2 and direct["weighting"] == "fund_size"
+    assert direct["funds_without_size"] == 0  # the only fund with no size on record was the index fund
     regular = _fund(out, world.reg)["category_comparison"]["periods"]["3y"]
     assert regular["funds_in_average"] == 1 and regular["weighting"] == "equal"
 

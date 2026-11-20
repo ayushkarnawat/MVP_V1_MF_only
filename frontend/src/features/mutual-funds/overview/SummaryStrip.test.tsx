@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { formatDate } from "@/lib/format";
 import * as fx from "../fixtures";
 import { expectInteractivity, failedLoad, loaded, loadingLoad, points } from "../testing";
-import { sparkPoints } from "../mfCopy";
+import { formatXirr, sparkPoints } from "../mfCopy";
 import { SummaryStrip } from "./SummaryStrip";
 import type { XirrBundle } from "../types";
 
@@ -15,6 +16,66 @@ function strip(over: Partial<Parameters<typeof SummaryStrip>[0]> = {}) {
   return { props, ...render(<SummaryStrip {...props} />) };
 }
 const metric = (id: string) => screen.getByTestId(`metric-${id}`);
+
+describe("SummaryStrip: XIRR return basis and price date", () => {
+  const sincePurchaseCaption = "Return since purchase, not annualised";
+  const xirr: XirrBundle = { ...XIRR, disclaimers: { lifetime: null, current: null } };
+
+  // getHoldingsBundle carries the five API metadata keys through to XirrBundle as named.
+  it("shows the Lifetime return since purchase with its caption", () => {
+    strip({ xirr: loaded<XirrBundle>({
+      ...xirr,
+      lifetime: "0.8",
+      lifetime_xirr_basis: "since_purchase",
+      lifetime_since_purchase: "0.2",
+    }) });
+    expect.soft(screen.getByTestId("value-xirr").textContent).toBe(formatXirr("0.2"));
+    expect(screen.getByTestId("xirr-caption").textContent).toBe(sincePurchaseCaption);
+  });
+
+  it.each([
+    ["annualised", { lifetime_xirr_basis: "annualised", lifetime_since_purchase: "0.2" }],
+    ["absent", {}],
+  ] as const)("keeps the Lifetime value and caption when the return basis is %s", (_, fields) => {
+    strip({ xirr: loaded({ ...xirr, ...fields }) });
+    expect(screen.getByTestId("value-xirr").textContent).toBe("16.1%");
+    expect(screen.getByTestId("xirr-caption").textContent).toBe("Since inception");
+  });
+
+  it("shows the XIRR price date on its own line in the tile", () => {
+    const date = "2026-11-18";
+    strip({ xirr: loaded<XirrBundle>({ ...xirr, xirr_as_of: date }) });
+    expect(within(metric("xirr")).getByTestId("xirr-as-of").textContent).toBe(`As on ${formatDate(date)}`);
+  });
+
+  it.each([
+    ["absent", {}],
+    ["null", { xirr_as_of: null }],
+  ] as const)("omits the XIRR price date line when the date is %s", (_, fields) => {
+    strip({ xirr: loaded({ ...xirr, ...fields }) });
+    expect(screen.queryByTestId("xirr-as-of")).not.toBeInTheDocument();
+  });
+
+  it("switches to the Current return basis and restores the Lifetime basis", () => {
+    strip({ xirr: loaded<XirrBundle>({
+      ...xirr,
+      lifetime_xirr_basis: "annualised",
+      current: "0.8",
+      current_holdings_xirr_basis: "since_purchase",
+      current_holdings_since_purchase: "0.2",
+    }) });
+    expect(screen.getByTestId("value-xirr").textContent).toBe("16.1%");
+    expect(screen.getByTestId("xirr-caption").textContent).toBe("Since inception");
+
+    fireEvent.click(screen.getByRole("button", { name: "Current" }));
+    expect.soft(screen.getByTestId("value-xirr").textContent).toBe(formatXirr("0.2"));
+    expect.soft(screen.getByTestId("xirr-caption").textContent).toBe(sincePurchaseCaption);
+
+    fireEvent.click(screen.getByRole("button", { name: "Lifetime" }));
+    expect(screen.getByTestId("value-xirr").textContent).toBe("16.1%");
+    expect(screen.getByTestId("xirr-caption").textContent).toBe("Since inception");
+  });
+});
 
 describe("SummaryStrip", () => {
   it("shows the five metrics with exact figures from the holdings", () => {

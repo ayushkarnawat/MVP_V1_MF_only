@@ -17,5 +17,10 @@
   "lifetime_xirr": "0.02500388494063320481590854151",
   "current_holdings_xirr": "0.02500388494063320481590854151",
   "lifetime_xirr_disclaimer": null,
-  "current_holdings_xirr_disclaimer": null
+  "current_holdings_xirr_disclaimer": null,
+  "xirr_as_of": "2026-10-23",
+  "lifetime_xirr_basis": "since_purchase",
+  "current_holdings_xirr_basis": "since_purchase",
+  "lifetime_since_purchase": "0.004",
+  "current_holdings_since_purchase": "0.004"
 }
