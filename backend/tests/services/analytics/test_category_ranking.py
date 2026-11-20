@@ -786,7 +786,7 @@ def test_no_module_imports_rank_and_percentile():
     from pathlib import Path
     assert not hasattr(category_ranking_module, "_rank_and_percentile")
     for path in (Path(__file__).resolve().parents[3] / "app").rglob("*.py"):
-        for node in ast.walk(ast.parse(path.read_text())):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if isinstance(node, ast.ImportFrom) and node.module and node.module.endswith("category_ranking"):
                 assert all(alias.name != "_rank_and_percentile" for alias in node.names), str(path)
 

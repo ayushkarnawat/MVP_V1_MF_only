@@ -143,7 +143,7 @@ def test_no_module_imports_fund_ranking_or_the_dropped_models():
     assert not (root / "services/analytics/fund_ranking.py").exists()
     offenders = []
     for path in root.rglob("*.py"):
-        for node in ast.walk(ast.parse(path.read_text())):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if isinstance(node, ast.ImportFrom):
                 if (node.module or "").endswith("fund_ranking") or any(
                     alias.name in {"SchemeRanking", "RankingWeight", "FundRankingSummary", "AggregateFundRankingResponse"}
