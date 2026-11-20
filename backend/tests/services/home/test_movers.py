@@ -1,13 +1,17 @@
+import json
 import random
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
+from pydantic import TypeAdapter
 from sqlalchemy import event
 
 from app.models.enums import AssetType, DisclosureBatchStatus
 from app.models.reference import DisclosureBatch, Scheme, SchemeHolding, StockMaster
+from app.services.home import movers as mover_service, schemas as home_schemas
 from app.services.home.movers import (
     FundInput,
     compute_movers,
@@ -15,6 +19,7 @@ from app.services.home.movers import (
     load_sector_weights,
     spread_cents,
 )
+from tests.api.home_fixture import build_home_fixture
 
 
 AS_OF = date(2026, 10, 23)
@@ -424,3 +429,117 @@ def test_previous_nav_date_is_the_latest_previous_date_among_included_funds():
     long_gap = _fund("Long gap", "Equity", units, [(date(2026, 10, 20), Decimal("10")), (AS_OF, Decimal("11"))])
 
     assert compute_movers([short_gap, long_gap], AS_OF, "fund").previous_nav_date == date(2026, 10, 22)
+
+
+MOVERS_PATH = "/household/aggregate/home/movers"
+
+
+@pytest.fixture
+def movers_home():
+    runtime = build_home_fixture()
+    try:
+        yield runtime
+    finally:
+        runtime.close()
+
+
+@pytest.mark.parametrize("view, expected", [
+    ("fund", ["100.00", "90.00", "5.00", "-20.00", "0.00"]),
+    ("category", ["190.00", "5.00", "-20.00", "0.00"]),
+])
+def test_all_rows_sum_to_net_change_for_fund_and_category(view, expected):
+    extra = _fund("Extra", "Overnight", [(AS_OF - timedelta(days=1), Decimal("10"))],
+                  [(AS_OF - timedelta(days=1), Decimal("10")), (AS_OF, Decimal("10.50"))])
+    funds = (*_hand_fixture(), extra)
+    card = compute_movers(funds, AS_OF, view)
+
+    result = mover_service.compute_all_mover_rows(card, funds, AS_OF)
+
+    assert [row.change for row in result.rows] == [Decimal(value) for value in expected]
+    assert sum((row.change for row in result.rows), Decimal("0")) == card.net_change == Decimal("175.00")
+
+
+def test_funds_without_new_price_are_listed_apart_and_not_zero():
+    funds = _hand_fixture()
+    card = compute_movers(funds, AS_OF, "fund")
+
+    result = mover_service.compute_all_mover_rows(card, funds, AS_OF)
+
+    assert [(fund.name, fund.category) for fund in result.waiting_for_price] == [("Epsilon", "Large Cap")]
+    assert [row.label for row in result.rows] == ["Alpha Equity", "Delta Mid", "Beta Debt", "Gamma Small"]
+    assert [row.label for row in result.rows if row.change.is_zero()] == ["Gamma Small"]
+    assert sum((row.change for row in result.rows), Decimal("0")) == Decimal("170.00")
+
+
+def test_markets_closed_returns_no_rows_and_latest_price_date():
+    funds = _hand_fixture()[:-1]
+    saturday = AS_OF + timedelta(days=1)
+    card = compute_movers(funds, saturday, "fund")
+
+    result = mover_service.compute_all_mover_rows(card, funds, saturday)
+
+    assert result.rows == ()
+    assert result.waiting_for_price == ()
+    assert result.nav_as_of == AS_OF
+    assert result.net_change == Decimal("0.00")
+
+
+def test_sector_view_marked_estimated():
+    funds = _hand_fixture()
+    card = compute_movers(funds, AS_OF, "sector")
+
+    result = mover_service.compute_all_mover_rows(card, funds, AS_OF)
+
+    assert (card.view, card.estimated, card.fell_back) == ("sector", True, False)
+    assert [row.label for row in result.rows] == ["Banks", "IT", "Autos", "Other"]
+
+
+def _card_fixture():
+    fixture_path = Path(__file__).resolve().parents[2] / "fixtures/home/movers_fund.json"
+    return json.loads(fixture_path.read_text(encoding="utf-8"))
+
+
+def test_decimals_are_strings_exact():
+    row = {"key": "overnight", "label": "Overnight", "change": Decimal("0.01"), "funds": []}
+    legacy = home_schemas.MoversResponse.model_validate(_card_fixture())
+    response = home_schemas.MoversAllResponse(**legacy.model_dump(), rows=[row])
+    adapter = TypeAdapter(home_schemas.MoversResponse | home_schemas.MoversAllResponse)
+
+    body = adapter.dump_python(response, mode="json")
+
+    assert adapter.dump_python(legacy, mode="json") == _card_fixture()
+    assert body["net_change"] == "12.00"
+    assert body["net_pct"] == "0.2308"
+    assert body["previous_value"] == "5200.00"
+    assert body["rows"] == [{**row, "change": "0.01", "no_change": False}]
+    assert body["waiting_for_price"] == []
+
+
+def test_default_reply_unchanged(movers_home):
+    expected = _card_fixture()
+
+    for query in ("by=fund", "by=fund&all=false"):
+        response = movers_home.client.get(f"{MOVERS_PATH}?{query}")
+
+        assert response.status_code == 200
+        assert response.json() == expected
+
+
+def test_all_query_returns_extended_payload_for_aggregate_and_member(movers_home):
+    response = movers_home.client.get(f"{MOVERS_PATH}?by=fund&all=true")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["net_change"] == "12.00"
+    assert [row["change"] for row in body["rows"]] == ["10.00", "10.00", "2.00", "-10.00"]
+    assert body["waiting_for_price"] == []
+
+    path = f"/household-members/{movers_home.household.dev_id}/home/movers"
+    response = movers_home.client.get(f"{path}?by=category&all=true")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["net_change"] == "12.00"
+    assert body["previous_value"] == "3000.00"
+    assert body["net_pct"] == "0.4000"
+    assert [row["change"] for row in body["rows"]] == ["10.00", "2.00"]
+    assert [row["funds"][0]["change"] for row in body["rows"]] == ["10.00", "2.00"]

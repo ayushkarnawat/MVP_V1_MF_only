@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, PlainSerializer
+from pydantic import BaseModel, ConfigDict, Field, PlainSerializer
 
 
 PlainDecimal = Annotated[
@@ -153,6 +153,21 @@ class MoversResponse(Envelope):
     losses: list[MoverBarOut]
     others_count: int
     others_change: PlainDecimal
+
+
+class MoverAllBarOut(MoverBarOut):
+    no_change: bool = False
+
+
+class MoverWaitingOut(HomeModel):
+    fund_id: str
+    name: str
+    category: str
+
+
+class MoversAllResponse(MoversResponse):
+    rows: list[MoverAllBarOut] = Field(default_factory=list)
+    waiting_for_price: list[MoverWaitingOut] = Field(default_factory=list)
 
 
 class WorthCardOut(HomeModel):

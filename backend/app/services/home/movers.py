@@ -76,6 +76,15 @@ class Movers:
     result: MoversView
 
 
+@dataclass(frozen=True)
+class AllMoverRows:
+    rows: tuple[MoverBar, ...]
+    waiting_for_price: tuple[FundInput, ...]
+    nav_as_of: date | None
+    net_change: Decimal
+    preview: MoversView
+
+
 def _money(value: Decimal) -> Decimal:
     value = value.quantize(CENT)
     return Decimal("0.00") if value.is_zero() else value
@@ -159,6 +168,8 @@ def _bars_for_view(
     view: Literal["fund", "category", "sector"],
     included: Sequence[FundInput],
     changes: Mapping[uuid.UUID, Decimal],
+    *,
+    include_unchanged_funds: bool = False,
 ) -> list[MoverBar]:
     if view == "fund":
         return [
@@ -176,7 +187,7 @@ def _bars_for_view(
             label = fund.category or "Other"
             amount = changes[fund.scheme_id]
             amounts[label] += amount
-            if amount:
+            if amount or include_unchanged_funds:
                 contributors[label].add(fund.scheme_id)
     else:
         for fund in included:
@@ -348,6 +359,44 @@ def compute_movers(
         missing_scheme_ids=missing,
         funds=fund_changes,
         result=_make_view(bars),
+    )
+
+
+def compute_all_mover_rows(
+    movers: Movers,
+    funds: Sequence[FundInput],
+    as_of: date,
+) -> AllMoverRows:
+    current_price_day = movers.as_of_nav_date == as_of
+    waiting_ids = set(movers.stale_scheme_ids) | set(movers.missing_scheme_ids)
+    bars: list[MoverBar] = []
+    if current_price_day:
+        # Statement-priced funds contribute zero to the card by rule, but an older
+        # statement price cannot establish that this day's price stayed flat.
+        waiting_ids.update(
+            fund.scheme_id for fund in funds
+            if fund.statement_priced
+            and _value_at(fund.units_timeline, as_of) > 0
+            and not any(day == as_of for day, _ in fund.navs)
+        )
+        changes = {fund.scheme_id: fund.change for fund in movers.funds if fund.scheme_id not in waiting_ids}
+        bars = _bars_for_view(
+            movers.view, [fund for fund in funds if fund.scheme_id in changes], changes,
+            include_unchanged_funds=True,
+        )
+    # Keep the last measured date on days with no new portfolio price day.
+    rows = tuple(sorted(bars, key=lambda bar: (
+        bar.change.is_zero(), bar.change < 0, -abs(bar.change), bar.label, bar.key,
+    )))
+    return AllMoverRows(
+        rows=rows,
+        waiting_for_price=tuple(sorted(
+            (fund for fund in funds if fund.scheme_id in waiting_ids),
+            key=lambda fund: (fund.name, str(fund.scheme_id)),
+        )),
+        nav_as_of=movers.as_of_nav_date,
+        net_change=_money(sum((bar.change for bar in bars), Decimal("0"))),
+        preview=_make_view(bars),
     )
 
 
