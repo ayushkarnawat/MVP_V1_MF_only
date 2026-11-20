@@ -110,6 +110,13 @@ export interface MoversResponse extends Envelope {
   others_change: string;
 }
 
+export interface MoverAllBarOut extends MoverBarOut { no_change: boolean }
+export interface MoverWaitingOut { fund_id: string; name: string; category: string }
+export interface MoversAllResponse extends MoversResponse {
+  rows: MoverAllBarOut[];
+  waiting_for_price: MoverWaitingOut[];
+}
+
 export interface WorthCardOut {
   kind: "weak_fund" | "underperforming" | "high_expense" | "concentration";
   rank: number;
