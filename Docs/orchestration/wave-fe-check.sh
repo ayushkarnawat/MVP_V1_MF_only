@@ -32,6 +32,7 @@ case "$lane" in
   m1) SRC=/mnt/d/unifolio-m1/frontend ;;   # the merged M1 candidate (a throwaway worktree)
   dp) SRC=/mnt/d/unifolio-d-popup/frontend ;;   # D-9 and D-10 (pop-up tests and component)
   do) SRC=/mnt/d/unifolio-d-overview/frontend ;;   # D-7 (Overview graph)
+  di) SRC=/mnt/d/unifolio-d-int/frontend ;;   # integration of the Batch D part 2 lanes
   m2) SRC=/mnt/d/unifolio-m2/frontend ;;   # the merged M2 candidate (branch m2-candidate)
   ag-*) SRC="/mnt/c/Users/Ayush/${lane}/frontend" ;;
   *) echo "unknown lane $lane" >&2; exit 2 ;;
