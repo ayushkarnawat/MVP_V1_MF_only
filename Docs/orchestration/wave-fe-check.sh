@@ -34,6 +34,9 @@ case "$lane" in
   do) SRC=/mnt/d/unifolio-d-overview/frontend ;;   # D-7 (Overview graph)
   di) SRC=/mnt/d/unifolio-d-int/frontend ;;   # integration of the Batch D part 2 lanes
   m2) SRC=/mnt/d/unifolio-m2/frontend ;;   # the merged M2 candidate (branch m2-candidate)
+  ks) SRC=/mnt/d/unifolio-k-search/frontend ;;   # Batch K integration (search)
+  ed) SRC=/mnt/d/unifolio-e-dates/frontend ;;   # Batch E (dates)
+  fn) SRC=/mnt/d/unifolio-f-nav/frontend ;;   # Batch F (section index)
   ag-*) SRC="/mnt/c/Users/Ayush/${lane}/frontend" ;;
   *) echo "unknown lane $lane" >&2; exit 2 ;;
 esac
