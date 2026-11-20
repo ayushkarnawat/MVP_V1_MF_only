@@ -16,7 +16,7 @@ from app.services.analytics.ter import _latest_ter_for_scheme
 from app.services.dashboard.holdings import compute_holdings, invalidate_holdings_cache, peek_cached_holdings
 from app.services.dashboard.household_members import list_household_members
 from app.services.dashboard.nav import _fresh_scheme_ids, warm_nav_history
-from app.services.dashboard.xirr import _FUND_DEBIT_TYPES, portfolio_xirr, xirr_string
+from app.services.dashboard.xirr import _FUND_DEBIT_TYPES, latest_holding_price_date, portfolio_xirr, xirr_string
 from app.services.fund_page.folios import mask_folio
 from app.services.fund_page.schemas import (
     DetailsOut,
@@ -168,7 +168,10 @@ async def build_summary(db: Session, scheme: Scheme, ctx: ScopeContext, user_id:
         if match is not None:
             fund_xirr = match.get("fund_xirr")
     if fund_xirr is None and current_value is not None:
-        rate = portfolio_xirr(flows, current_value, extra_debit_types={TransactionType.SWITCH_IN})
+        rate = portfolio_xirr(
+            flows, current_value, extra_debit_types={TransactionType.SWITCH_IN},
+            price_date=latest_holding_price_date(ctx_rows),
+        )
         fund_xirr = xirr_string(rate)
 
     folio_rows = (

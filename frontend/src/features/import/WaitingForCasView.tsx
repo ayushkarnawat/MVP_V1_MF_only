@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { UploadForm } from "./UploadForm";
@@ -6,6 +6,9 @@ import type { UploadSurface } from "@/features/legal/panDisclaimerStore";
 import { cancelImportRequest } from "./api";
 import { Clock, AlertTriangle, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TutorialDialog } from "./tutorial/TutorialDialog";
+import { TutorialLink } from "./tutorial/TutorialLink";
+import { useTutorialPlayer } from "./tutorial/useTutorialPlayer";
 
 interface WaitingForCasViewProps {
   passwordError?: string;
@@ -28,6 +31,8 @@ export function WaitingForCasView({
   const [error, setError] = useState<string | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const shouldReduceMotion = useReducedMotion();
+  const tutorialLinkRef = useRef<HTMLButtonElement | null>(null);
+  const tutorial = useTutorialPlayer();
 
   const handleCancel = async () => {
     setIsCancelling(true);
@@ -130,6 +135,18 @@ export function WaitingForCasView({
           )}
         </AnimatePresence>
       </div>
+
+      <div className="flex items-center justify-start px-1">
+        <TutorialLink ref={tutorialLinkRef} onOpen={tutorial.show} />
+      </div>
+
+      <TutorialDialog
+        open={tutorial.open}
+        onOpenChange={(next) => (next ? tutorial.show() : tutorial.hide())}
+        autoPlay={tutorial.autoPlay}
+        src={tutorial.src}
+        returnFocusRef={tutorialLinkRef}
+      />
     </div>
   );
 }

@@ -18,7 +18,7 @@ from app.models.analytics import AnalyticsSection
 from app.services.dashboard.allocation import compute_allocation
 from app.services.dashboard.cash_flow import compute_cash_flow
 from app.services.dashboard.distributor_comparison import compute_distributor_comparison
-from app.services.dashboard.holdings import compute_holdings, compute_realized_summary, consolidate_holdings
+from app.services.dashboard.holdings import HoldingXirrFields, compute_holdings, compute_realized_summary, consolidate_holdings
 from app.services.dashboard.xirr import calculate_dashboard_xirr
 from app.services.dashboard.household_members import list_household_members
 from app.services.dashboard.schemas import (
@@ -55,7 +55,9 @@ async def get_aggregate_holdings(db: Session, user_id: uuid.UUID) -> AggregateHo
     holdings = await compute_holdings(db, [m.id for m in members])
     xirr_summary = calculate_dashboard_xirr(db, [m.id for m in members], holdings)
     # Stored analytics only: one household-scoped read, with no per-member solve.
-    rates = {"combined": {}, **{str(m.id): {} for m in members}}
+    rates: dict[str, dict[uuid.UUID, HoldingXirrFields | str | None]] = {
+        "combined": {}, **{str(m.id): {} for m in members}
+    }
     scope_keys = list(rates) if len(members) <= 4 else ["combined"]
     sections = db.query(AnalyticsSection).filter(AnalyticsSection.user_id == user_id,
         AnalyticsSection.section == "benchmark_funds", AnalyticsSection.scope_key.in_(scope_keys)).all()
@@ -68,7 +70,19 @@ async def get_aggregate_holdings(db: Session, user_id: uuid.UUID) -> AggregateHo
             except (ValueError, KeyError, TypeError):
                 continue
             rate = fund.get("fund_xirr")
-            rates[section.scope_key][sid] = rate if isinstance(rate, str) else None
+            as_of = fund.get("xirr_as_of")
+            basis = fund.get("xirr_basis")
+            absolute = fund.get("since_purchase_return")
+            # A newly computed zero with no basis is an indeterminate same-day result.
+            # Keep the raw rate in the analytics payload for the benchmark and fund page.
+            if rate == "0" and isinstance(as_of, str) and "xirr_basis" in fund and basis is None:
+                rate = None
+            rates[section.scope_key][sid] = {
+                "xirr": rate if isinstance(rate, str) else None,
+                "xirr_as_of": as_of if isinstance(as_of, str) else None,
+                "xirr_basis": basis if basis in ("annualised", "since_purchase") else None,
+                "since_purchase_return": absolute if isinstance(absolute, str) else None,
+            }
     return AggregateHoldingsResponse(
         consolidated=consolidate_holdings(holdings, rates),
         realized_summary=compute_realized_summary(db, [m.id for m in members]),
@@ -76,6 +90,11 @@ async def get_aggregate_holdings(db: Session, user_id: uuid.UUID) -> AggregateHo
         holdings=holdings,
         lifetime_xirr=xirr_summary.lifetime_xirr,
         current_holdings_xirr=xirr_summary.current_holdings_xirr,
+        xirr_as_of=xirr_summary.as_of.isoformat() if xirr_summary.as_of else None,
+        lifetime_xirr_basis=xirr_summary.lifetime_xirr_basis,
+        current_holdings_xirr_basis=xirr_summary.current_holdings_xirr_basis,
+        lifetime_since_purchase=xirr_summary.lifetime_since_purchase,
+        current_holdings_since_purchase=xirr_summary.current_holdings_since_purchase,
         lifetime_xirr_disclaimer=xirr_summary.lifetime_xirr_disclaimer and xirr_summary.lifetime_xirr_disclaimer.to_schema(),
         current_holdings_xirr_disclaimer=xirr_summary.current_holdings_xirr_disclaimer and xirr_summary.current_holdings_xirr_disclaimer.to_schema(),
     )

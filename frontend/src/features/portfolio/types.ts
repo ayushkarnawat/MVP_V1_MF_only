@@ -23,6 +23,11 @@ export interface Envelope {
   computed_at: string;
 }
 
+// Shared by the three XIRR contracts without importing across features.
+declare global {
+  type XirrBasis = "annualised" | "since_purchase";
+}
+
 export interface XirrDisclaimerOut {
   alt_xirr: string | null;
   opening_cost_share: string;
@@ -57,6 +62,11 @@ export interface PortfolioSummaryResponse extends Envelope {
   /** Decimal fractions, like InstrumentBucket.xirr. */
   lifetime_xirr: string | null;
   current_holdings_xirr: string | null;
+  xirr_as_of?: string | null;
+  lifetime_xirr_basis?: XirrBasis | null;
+  current_holdings_xirr_basis?: XirrBasis | null;
+  lifetime_since_purchase?: string | null;
+  current_holdings_since_purchase?: string | null;
   lifetime_xirr_disclaimer: XirrDisclaimerOut | null;
   current_holdings_xirr_disclaimer: XirrDisclaimerOut | null;
 }

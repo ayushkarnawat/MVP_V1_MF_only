@@ -18,9 +18,9 @@ PERIOD = date(2026, 10, 1)
 
 
 def _pages(house):
-    texts = (ROOT / f"{house}_valuation.txt").read_text().split("\f")
+    texts = (ROOT / f"{house}_valuation.txt").read_text(encoding="utf-8").split("\f")
     path = ROOT / f"{house}_valuation_boxes.json"
-    boxes = json.loads(path.read_text()) if path.exists() else [[] for _ in texts]
+    boxes = json.loads(path.read_text(encoding="utf-8")) if path.exists() else [[] for _ in texts]
     pages = fc.FactsheetPages(texts, boxes)
     pages.source_files = [f"{house}.pdf"] * len(texts)
     pages.page_numbers = [int(re.search(r"source page index (\d+)", text)[1]) + 1 for text in texts]

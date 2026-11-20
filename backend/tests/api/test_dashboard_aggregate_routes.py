@@ -41,6 +41,12 @@ def test_member_holdings_response_includes_xirr_summary(client):
         "current_holdings_xirr": None,
         "lifetime_xirr_disclaimer": None,
         "current_holdings_xirr_disclaimer": None,
+        # Additive XIRR metadata (FX-8d, FX-8e): the price date and how to show a figure.
+        "xirr_as_of": None,
+        "lifetime_xirr_basis": None,
+        "current_holdings_xirr_basis": None,
+        "lifetime_since_purchase": None,
+        "current_holdings_since_purchase": None,
     }
 
 

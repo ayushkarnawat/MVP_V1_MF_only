@@ -19,7 +19,7 @@
     "invested": "1000.00",
     "total_gain": "60.00",
     "total_gain_pct": "6.0000",
-    "xirr": "0.1292258326537757773518355219",
+    "xirr": "0.1358192541647577711224357441",
     "expense_ratio": null
   },
   "details": {
@@ -30,7 +30,7 @@
     "current_value": "1060.00",
     "gain": "60.00",
     "gain_pct": "6.0000",
-    "xirr": "0.1292258326537757773518355219",
+    "xirr": "0.1358192541647577711224357441",
     "first_investment": "2026-05-01",
     "last_investment": "2026-05-01",
     "opening_lot": null,
