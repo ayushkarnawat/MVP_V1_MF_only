@@ -490,12 +490,12 @@ describe("OverviewPage wealth graph (D-7)", () => {
     );
     mount();
     await waitFor(() => expect(wealthApi.getWealthSeries).toHaveBeenCalledWith(
-      { viewMode: "aggregate", memberId: null }, { period: "1Y", benchmark: "nifty_50" }, expect.any(AbortSignal),
+      { viewMode: "aggregate", memberId: null }, { period: "1Y", benchmark: "nifty_50", benchmarks: ["nifty_50"] }, expect.any(AbortSignal),
     ));
 
     fireEvent.click(await screen.findByTestId("family-row-m1"));
     await waitFor(() => expect(wealthApi.getWealthSeries).toHaveBeenLastCalledWith(
-      { viewMode: "member", memberId: "m1" }, { period: "1Y", benchmark: "nifty_50" }, expect.any(AbortSignal),
+      { viewMode: "member", memberId: "m1" }, { period: "1Y", benchmark: "nifty_50", benchmarks: ["nifty_50"] }, expect.any(AbortSignal),
     ));
   });
 
@@ -556,17 +556,30 @@ describe("OverviewPage wealth graph (D-7)", () => {
   it("reads and updates the benchmark choice Home stores", async () => {
     localStorage.setItem("home.benchmark", "nifty_500");
     mount();
-    const select = await screen.findByRole("combobox", { name: "Benchmark" });
+    const trigger = await screen.findByRole("button", { name: /^Benchmark:\s*Nifty 500$/ });
 
-    expect(select).toHaveValue("nifty_500");
     expect(wealthApi.getWealthSeries).toHaveBeenLastCalledWith(
-      { viewMode: "aggregate", memberId: null }, { period: "1Y", benchmark: "nifty_500" }, expect.any(AbortSignal),
+      { viewMode: "aggregate", memberId: null }, { period: "1Y", benchmark: "nifty_500", benchmarks: ["nifty_500"] }, expect.any(AbortSignal),
     );
 
-    fireEvent.change(select, { target: { value: "nifty_50" } });
-    expect(localStorage.getItem("home.benchmark")).toBe("nifty_50");
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Nifty 50 (recommended)" }));
+    expect(localStorage.getItem("home.benchmark")).toBe(JSON.stringify(["nifty_500", "nifty_50"]));
     await waitFor(() => expect(wealthApi.getWealthSeries).toHaveBeenLastCalledWith(
-      { viewMode: "aggregate", memberId: null }, { period: "1Y", benchmark: "nifty_50" }, expect.any(AbortSignal),
+      { viewMode: "aggregate", memberId: null }, { period: "1Y", benchmark: "nifty_500", benchmarks: ["nifty_500", "nifty_50"] }, expect.any(AbortSignal),
     ));
+  });
+
+  it("the Overview uses the same stored list", async () => {
+    localStorage.setItem("home.benchmark", JSON.stringify(["nifty_500", "nifty_50"]));
+    mount();
+    await waitFor(() => expect(wealthApi.getWealthSeries).toHaveBeenLastCalledWith(
+      { viewMode: "aggregate", memberId: null },
+      { period: "1Y", benchmark: "nifty_500", benchmarks: ["nifty_500", "nifty_50"] },
+      expect.any(AbortSignal),
+    ));
+    expect(await screen.findByRole("button", { name: /2 benchmarks/i })).toBeInTheDocument();
+    expect(screen.getByTestId("legend-chip-nifty_500")).toBeInTheDocument();
+    expect(screen.getByTestId("legend-chip-nifty_50")).toBeInTheDocument();
   });
 });

@@ -30,7 +30,7 @@ function setup(overrides: Partial<WealthCardProps> = {}) {
   const handlers = {
     onPeriodChange: vi.fn(),
     onCustomRangeChange: vi.fn(),
-    onBenchmarkChange: vi.fn(),
+    onBenchmarksChange: vi.fn(),
     onToggleHidden: vi.fn(),
     onRetry: vi.fn(),
     onImport: vi.fn(),
@@ -44,7 +44,7 @@ function setup(overrides: Partial<WealthCardProps> = {}) {
     customRange: { from: null, to: null },
     today: "2026-10-23",
     benchmarkOptions: options(),
-    benchmark: "nifty_50",
+    benchmarks: ["nifty_50"],
     hidden: false,
     ...handlers,
     ...overrides,
@@ -106,7 +106,7 @@ describe("WealthCard: the headline", () => {
   });
 
   it("uses the period's label for the change line", () => {
-    setup({ data: fixture<WealthSeriesResponse>("wealth_1d_family"), period: "1D", benchmark: null });
+    setup({ data: fixture<WealthSeriesResponse>("wealth_1d_family"), period: "1D", benchmarks: [] });
     expect(screen.getByText("Portfolio change today")).toBeInTheDocument();
     expect(screen.getByTestId("change-badge").textContent).toBe("▲ +₹12 (+0.23%)");
   });
@@ -150,11 +150,11 @@ describe("WealthCard: the headline", () => {
 describe("WealthCard: the controls", () => {
   it("lists the benchmarks, selects the current one and reports a change", () => {
     const { handlers } = setup();
-    const select = screen.getByRole("combobox", { name: "Benchmark" }) as HTMLSelectElement;
-    expect(select.querySelectorAll("option")).toHaveLength(5);
-    expect(select.value).toBe("nifty_50");
-    fireEvent.change(select, { target: { value: "nifty_500" } });
-    expect(handlers.onBenchmarkChange).toHaveBeenCalledWith("nifty_500");
+    fireEvent.click(screen.getByRole("button", { name: /^Benchmark:\s*Nifty 50$/ }));
+    expect(screen.getAllByRole("checkbox")).toHaveLength(5);
+    expect(screen.getByRole("checkbox", { name: "Nifty 50" })).toBeChecked();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Nifty 500" }));
+    expect(handlers.onBenchmarksChange).toHaveBeenCalledWith(["nifty_50", "nifty_500"]);
   });
 
   it("shows the period buttons with the current one checked and reports a change", () => {
@@ -269,7 +269,7 @@ describe("WealthCard: what the chart is given", () => {
     const data = monthly();
     const option = options().find(option => option.index === index)!;
     data.benchmark = { ...data.benchmark!, index, label: option.label };
-    setup({ data, benchmark: index });
+    setup({ data, benchmarks: [index] });
 
     expect(screen.getByTestId("benchmark-line")).toHaveTextContent(option.label);
     expect(chart.props?.secondSeries?.color).toBe(color);
@@ -280,7 +280,7 @@ describe("WealthCard: what the chart is given", () => {
     const colors = options().map(({ index, label }) => {
       const data = monthly();
       data.benchmark = { ...data.benchmark!, index, label };
-      const view = setup({ data, benchmark: index });
+      const view = setup({ data, benchmarks: [index] });
       const color = chart.props!.secondSeries!.color;
       view.unmount();
       return color;
@@ -303,7 +303,7 @@ describe("WealthCard: what the chart is given", () => {
   it("leaves the benchmark off the chart when its history starts after the period (clipped) and says so", () => {
     setup({
       data: fixture<WealthSeriesResponse>("wealth_1y_member_clipped"), scope: "member", memberName: "Dev Rao",
-      period: "1Y", benchmark: "nifty_smallcap_250",
+      period: "1Y", benchmarks: ["nifty_smallcap_250"],
     });
     expect(chart.props!.secondSeries).toBeUndefined();
     expect(screen.getByTestId("benchmark-line").textContent).toContain("Nifty Smallcap 250 +0.76% since 01 Sep");
@@ -320,20 +320,20 @@ describe("WealthCard: what the chart is given", () => {
   });
 
   it("shows no benchmark line and no benchmark series when none was requested", () => {
-    setup({ data: fixture<WealthSeriesResponse>("wealth_1d_family"), period: "1D", benchmark: null });
+    setup({ data: fixture<WealthSeriesResponse>("wealth_1d_family"), period: "1D", benchmarks: [] });
     expect(screen.queryByTestId("benchmark-line")).toBeNull();
     expect(chart.props!.secondSeries).toBeUndefined();
   });
 
   it("explains the two NAV days of a 1D view under the chart", () => {
-    setup({ data: fixture<WealthSeriesResponse>("wealth_1d_family"), period: "1D", benchmark: null });
+    setup({ data: fixture<WealthSeriesResponse>("wealth_1d_family"), period: "1D", benchmarks: [] });
     expect(screen.getByTestId("wealth-note").textContent).toContain("1D compares two NAV days (22 Oct and 23 Oct).");
   });
 
   it("still draws a one-point series", () => {
     const data = fixture<WealthSeriesResponse>("wealth_1d_family");
     data.points = data.points.slice(0, 1);
-    setup({ data, period: "1D", benchmark: null });
+    setup({ data, period: "1D", benchmarks: [] });
     expect(chart.props!.series[0].values).toHaveLength(1);
   });
 

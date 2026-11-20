@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { benchmarkColor } from "@/components/wealth-graph/benchmarkColors";
-import type { BenchmarkOptionOut } from "../types";
+import { benchmarkColor } from "./benchmarkColors";
+import type { WealthBenchmarkOption } from "./types";
 import { MAX_BENCHMARKS } from "./benchmarkChoice";
 import { BenchmarkChecklist } from "./BenchmarkChecklist";
 
-const OPTIONS: BenchmarkOptionOut[] = [
+const OPTIONS: WealthBenchmarkOption[] = [
   { index: "nifty_50", label: "Nifty 50", recommended: false },
   { index: "nifty_500", label: "Nifty 500", recommended: true },
   { index: "nifty_largemidcap_250", label: "Nifty LargeMidcap 250", recommended: false },

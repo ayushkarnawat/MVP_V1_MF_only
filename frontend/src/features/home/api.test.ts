@@ -5,6 +5,7 @@ import {
   getBenchmarks,
   getHomeSummary,
   getMovers,
+  getMoversAll,
   getWealthSeries,
   getWorthALook,
   homePath,
@@ -100,6 +101,15 @@ describe("fetchers", () => {
     vi.stubGlobal("fetch", fetchMock);
     await getMovers(AGGREGATE, "category");
     expect(lastCall(fetchMock).url).toBe(`${API_BASE_URL}/household/aggregate/home/movers?by=category`);
+  });
+
+  it("getMoversAll sends all=true", async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(json({})));
+    vi.stubGlobal("fetch", fetchMock);
+    await getMoversAll(AGGREGATE, "fund");
+    expect(lastCall(fetchMock).url).toBe(`${API_BASE_URL}/household/aggregate/home/movers?by=fund&all=true`);
+    await getMoversAll(MEMBER, "sector");
+    expect(lastCall(fetchMock).url).toBe(`${API_BASE_URL}/household-members/m-1/home/movers?by=sector&all=true`);
   });
 
   it.each([

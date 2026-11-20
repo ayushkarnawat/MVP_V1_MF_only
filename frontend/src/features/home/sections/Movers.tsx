@@ -3,12 +3,13 @@ import { ArrowRight, X } from "lucide-react";
 import { SchemeLogo } from "@/components/SchemeLogo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChangeBadge } from "../components/ChangeBadge";
+import { DayChangeDialog } from "../components/DayChangeDialog";
 import { FundLink } from "../components/FundLink";
 import { MoverRow } from "../components/MoverRow";
 import { PartialDataBadge } from "../components/PartialDataBadge";
 import { changeDirection, formatRupees, formatSignedRupees } from "../homeFormat";
 import { groupLabel, othersLabel, splitShares } from "../moversCopy";
-import type { MoverBarOut, MoversResponse, MoversView } from "../types";
+import type { MoverBarOut, MoversAllResponse, MoversResponse, MoversView } from "../types";
 
 export interface MoversProps {
   status: "loading" | "error" | "data";
@@ -20,6 +21,8 @@ export interface MoversProps {
   refreshing?: boolean;
   // Set by the greeting's top-mover link: open the popup of the row with this label once the fund rows are showing.
   openRequest?: { name: string; schemeId?: string | null; token: number } | null;
+  loadAll?: (view: MoversView) => Promise<MoversAllResponse>;
+  hideValues?: boolean;
 }
 
 const roundOne = (x: number) => Math.round(x * 10) / 10;
@@ -32,13 +35,22 @@ export function Movers({
   onRetry,
   refreshing = false,
   openRequest = null,
+  loadAll,
+  hideValues = false,
 }: MoversProps) {
   const [opened, setOpened] = useState<{
     bar: MoverBarOut;
     view: MoversView;
   } | null>(null);
+  const [allOpen, setAllOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+  const viewAllButtonRef = useRef<HTMLButtonElement>(null);
+
+  const closeAllDialog = () => {
+    setAllOpen(false);
+    viewAllButtonRef.current?.focus();
+  };
 
   // Closing the popup would otherwise drop focus to the page body: hand it back to the row that opened it.
   const closeDialog = () => {
@@ -361,24 +373,47 @@ export function Movers({
       ) : null}
 
       <div className="mt-5 flex flex-col gap-2 border-t border-[var(--ui-divider)] pt-3 text-xs text-[var(--ui-text-muted)] sm:flex-row sm:items-center sm:justify-between">
-        <span
-          aria-disabled="true"
-          title="Coming soon"
-          className="inline-flex cursor-not-allowed items-center gap-1 text-[var(--ui-disabled-text)]"
-        >
-          <span>View all by day's change</span>
-          <ArrowRight
-            size={14}
-            className="text-[var(--ui-text-muted)]"
-            aria-hidden="true"
-          />
-        </span>
+        {loadAll ? (
+          <button
+            ref={viewAllButtonRef}
+            type="button"
+            onClick={() => setAllOpen(true)}
+            className="inline-flex cursor-pointer items-center gap-1 rounded-md font-semibold text-[var(--pos-text)] transition-colors hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)] motion-reduce:transition-none"
+          >
+            <span>View all by day's change</span>
+            <ArrowRight size={14} aria-hidden="true" />
+          </button>
+        ) : (
+          <span
+            aria-disabled="true"
+            title="Coming soon"
+            className="inline-flex cursor-not-allowed items-center gap-1 text-[var(--ui-disabled-text)]"
+          >
+            <span>View all by day's change</span>
+            <ArrowRight
+              size={14}
+              className="text-[var(--ui-text-muted)]"
+              aria-hidden="true"
+            />
+          </span>
+        )}
         <span>
           {data.estimated
             ? "Sector figures are estimates and add up to the exact change."
             : "Rows add up to the net change."}
         </span>
       </div>
+
+      {loadAll ? (
+        <DayChangeDialog
+          open={allOpen}
+          onClose={closeAllDialog}
+          initialView={view}
+          card={data}
+          loadAll={loadAll}
+          hideValues={hideValues}
+        />
+      ) : null}
     </section>
   );
 }

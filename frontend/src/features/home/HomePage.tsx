@@ -7,14 +7,15 @@ import {
   getBenchmarks,
   getHomeSummary,
   getMovers,
+  getMoversAll,
   getWealthSeries,
   getWorthALook,
 } from "./api";
 import {
-  pickBenchmark,
-  readStoredBenchmark,
-  writeStoredBenchmark,
-} from "./components/benchmarkChoice";
+  pickBenchmarks,
+  readStoredBenchmarks,
+  writeStoredBenchmarks,
+} from "@/components/wealth-graph/benchmarkChoice";
 import type { DateRange } from "./components/DateRangeCalendar";
 import { istToday } from "./homeToday";
 import { Allocation } from "./sections/Allocation";
@@ -42,7 +43,7 @@ export function HomePage({ today }: { today?: string } = {}) {
   const [period, setPeriod] = useState<HomePeriod>("1M");
   const [appliedRange, setAppliedRange] = useState<{ from: string; to: string } | null>(null);
   const [draftRange, setDraftRange] = useState<DateRange>({ from: null, to: null });
-  const [chosenBenchmark, setChosenBenchmark] = useState<string | null>(() => readStoredBenchmark());
+  const [chosenBenchmarks, setChosenBenchmarks] = useState<string[]>(() => readStoredBenchmarks());
   const [hidden, setHidden] = useState<boolean>(false);
   const [moversView, setMoversView] = useState<MoversView>("sector");
   const [miraOpen, setMiraOpen] = useState<boolean>(false);
@@ -55,15 +56,15 @@ export function HomePage({ today }: { today?: string } = {}) {
 
   const benchmarkOptions = benchmarks.data?.options ?? [];
   const benchmarkSettled = benchmarks.status !== "loading";
-  const benchmark = benchmarks.data
-    ? pickBenchmark(benchmarks.data.options, chosenBenchmark, benchmarks.data.recommended_index)
-    : null;
+  const selectedBenchmarks = benchmarks.data
+    ? pickBenchmarks(benchmarks.data.options, chosenBenchmarks, benchmarks.data.recommended_index)
+    : [];
 
   const wealth = useWealthSeries(
     scope,
     period,
     appliedRange,
-    benchmark ? [benchmark] : [],
+    selectedBenchmarks,
     { loadSeries: getWealthSeries, enabled: benchmarkSettled },
   );
 
@@ -97,9 +98,9 @@ export function HomePage({ today }: { today?: string } = {}) {
     setTopMoverRequest(previous => ({ name, schemeId, token: (previous?.token ?? 0) + 1 }));
   };
 
-  const handleBenchmarkChange = (index: string) => {
-    setChosenBenchmark(index);
-    writeStoredBenchmark(index);
+  const handleBenchmarksChange = (indices: string[]) => {
+    setChosenBenchmarks(indices);
+    writeStoredBenchmarks(indices);
   };
 
   const importForScope = () => {
@@ -142,8 +143,8 @@ export function HomePage({ today }: { today?: string } = {}) {
           onCustomRangeChange={handleRangeChange}
           today={todayIso}
           benchmarkOptions={benchmarkOptions}
-          benchmark={benchmark}
-          onBenchmarkChange={handleBenchmarkChange}
+          benchmarks={selectedBenchmarks}
+          onBenchmarksChange={handleBenchmarksChange}
           hidden={hidden}
           onToggleHidden={() => setHidden(value => !value)}
           onRetry={wealth.retry}
@@ -184,6 +185,8 @@ export function HomePage({ today }: { today?: string } = {}) {
                 onRetry={movers.retry}
                 refreshing={movers.refreshing}
                 openRequest={topMoverRequest}
+                loadAll={nextView => getMoversAll(scope, nextView)}
+                hideValues={hidden}
               />
             </div>
           </div>

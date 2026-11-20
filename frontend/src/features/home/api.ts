@@ -5,6 +5,7 @@ import type {
   BenchmarksResponse,
   HomeScopeArg,
   HomeSectionName,
+  MoversAllResponse,
   MoversResponse,
   MoversView,
   NewsResponse,
@@ -129,6 +130,15 @@ export async function getMovers(
   signal?: AbortSignal
 ): Promise<MoversResponse> {
   const res = await authFetch(homePath(scope, "movers", { by }), { signal });
+  return res.json();
+}
+
+export async function getMoversAll(
+  scope: HomeScopeArg,
+  by: MoversView,
+  signal?: AbortSignal
+): Promise<MoversAllResponse> {
+  const res = await authFetch(homePath(scope, "movers", { by, all: "true" }), { signal });
   return res.json();
 }
 

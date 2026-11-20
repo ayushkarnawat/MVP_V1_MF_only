@@ -11,6 +11,7 @@ import type {
   WealthSeriesQuery,
   WealthScope,
 } from "./types";
+import { benchmarkColor } from "./benchmarkColors";
 import { useWealthSeries } from "./useWealthSeries";
 import { WealthGraph, type WealthGraphProps } from "./WealthGraph";
 
@@ -19,6 +20,8 @@ import { WealthGraph, type WealthGraphProps } from "./WealthGraph";
 interface StubProps {
   series: { key: string; color: string; area?: boolean; values: number[] }[];
   secondSeries?: { name: string; color: string; values: number[] };
+  benchmarkLines?: { id: string; label: string; color: string; points: { date: string; pct: string }[] }[];
+  dates?: string[];
   labels: (index: number) => string;
   tooltipLabel: (index: number) => string;
   formatValue: (value: number) => string;
@@ -132,7 +135,7 @@ function setupGraph(overrides: Partial<WealthGraphProps> = {}) {
   const handlers = {
     onPeriodChange: vi.fn(),
     onCustomRangeChange: vi.fn(),
-    onBenchmarkChange: vi.fn(),
+    onBenchmarksChange: vi.fn(),
     onRetry: vi.fn(),
     onImport: vi.fn(),
   };
@@ -143,7 +146,7 @@ function setupGraph(overrides: Partial<WealthGraphProps> = {}) {
     customRange: { from: null, to: null },
     today: "2026-10-23",
     benchmarkOptions: BENCHMARK_OPTIONS,
-    benchmark: "nifty_50",
+    benchmarks: ["nifty_50"],
     hideValues: false,
     ...handlers,
     ...overrides,
@@ -189,8 +192,8 @@ describe("WealthGraph", () => {
     expect(screen.getByRole("radiogroup", { name: "Period" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "1M" })).toHaveAttribute("aria-checked", "true");
 
-    const select = screen.getByRole("combobox", { name: "Benchmark" }) as HTMLSelectElement;
-    expect(select.value).toBe("nifty_50");
+    const trigger = screen.getByRole("button", { name: /^Benchmark:\s*Nifty 50$/ });
+    expect(trigger).toBeInTheDocument();
     expect(screen.getByTestId("benchmark-line")).toHaveTextContent("Nifty 50 +0.21%");
     expect(screen.getByTestId("wealth-note")).toBeInTheDocument();
     expect(screen.getByText("Change excludes new money")).toBeInTheDocument();
@@ -203,11 +206,11 @@ describe("WealthGraph", () => {
   describe("controls", () => {
     it("lists the benchmarks, selects the current one and reports a change", () => {
       const { handlers } = setupGraph();
-      const select = screen.getByRole("combobox", { name: "Benchmark" }) as HTMLSelectElement;
-      expect(select.querySelectorAll("option")).toHaveLength(5);
-      expect(select.value).toBe("nifty_50");
-      fireEvent.change(select, { target: { value: "nifty_500" } });
-      expect(handlers.onBenchmarkChange).toHaveBeenCalledWith("nifty_500");
+      fireEvent.click(screen.getByRole("button", { name: /^Benchmark:\s*Nifty 50$/ }));
+      expect(screen.getAllByRole("checkbox")).toHaveLength(5);
+      expect(screen.getByRole("checkbox", { name: "Nifty 50" })).toBeChecked();
+      fireEvent.click(screen.getByRole("checkbox", { name: "Nifty 500" }));
+      expect(handlers.onBenchmarksChange).toHaveBeenCalledWith(["nifty_50", "nifty_500"]);
     });
 
     it("shows the period buttons with the current one checked and reports a change", () => {
@@ -333,7 +336,7 @@ describe("WealthGraph", () => {
       const data = buildMonthlySeries();
       const option = BENCHMARK_OPTIONS.find(opt => opt.index === index)!;
       data.benchmark = { ...data.benchmark!, index, label: option.label };
-      setupGraph({ data, benchmark: index });
+      setupGraph({ data, benchmarks: [index] });
 
       expect(screen.getByTestId("benchmark-line")).toHaveTextContent(option.label);
       expect(chart.props?.secondSeries?.color).toBe(color);
@@ -344,7 +347,7 @@ describe("WealthGraph", () => {
       const colors = BENCHMARK_OPTIONS.map(({ index, label }) => {
         const data = buildMonthlySeries();
         data.benchmark = { ...data.benchmark!, index, label };
-        const view = setupGraph({ data, benchmark: index });
+        const view = setupGraph({ data, benchmarks: [index] });
         const color = chart.props!.secondSeries!.color;
         view.unmount();
         return color;
@@ -373,7 +376,7 @@ describe("WealthGraph", () => {
       setupGraph({
         data: buildClippedSeries(),
         period: "1Y",
-        benchmark: "nifty_smallcap_250",
+        benchmarks: ["nifty_smallcap_250"],
       });
       expect(chart.props!.secondSeries).toBeUndefined();
       expect(screen.getByTestId("benchmark-line").textContent).toContain("Nifty Smallcap 250 +0.76% since 01 Sep");
@@ -400,13 +403,13 @@ describe("WealthGraph", () => {
     });
 
     it("shows no benchmark line and no benchmark series when none was requested", () => {
-      setupGraph({ data: buildOneDaySeries(), period: "1D", benchmark: null });
+      setupGraph({ data: buildOneDaySeries(), period: "1D", benchmarks: [] });
       expect(screen.queryByTestId("benchmark-line")).toBeNull();
       expect(chart.props!.secondSeries).toBeUndefined();
     });
 
     it("explains the two NAV days of a 1D view under the chart", () => {
-      setupGraph({ data: buildOneDaySeries(), period: "1D", benchmark: null });
+      setupGraph({ data: buildOneDaySeries(), period: "1D", benchmarks: [] });
       expect(screen.getByTestId("wealth-note").textContent).toContain(
         "1D compares two NAV days (22 Oct and 23 Oct).",
       );
@@ -415,8 +418,132 @@ describe("WealthGraph", () => {
     it("still draws a one-point series", () => {
       const data = buildOneDaySeries();
       data.points = data.points.slice(0, 1);
-      setupGraph({ data, period: "1D", benchmark: null });
+      setupGraph({ data, period: "1D", benchmarks: [] });
       expect(chart.props!.series[0].values).toHaveLength(1);
+    });
+  });
+
+  describe("multi-benchmark wiring (D-6d)", () => {
+    function buildMultiSeriesData(): WealthSeriesData {
+      const base = buildMonthlySeries();
+      return {
+        ...base,
+        benchmark_series: [
+          {
+            benchmark: "nifty_50",
+            points: base.benchmark!.points,
+            clipped: false,
+            effective_start: "2026-09-23",
+            available: true,
+          },
+          {
+            benchmark: "nifty_500",
+            points: [
+              { date: "2026-10-01", pct: "0.0000" },
+              { date: "2026-10-23", pct: "1.4500" },
+            ],
+            clipped: true,
+            effective_start: "2026-10-01",
+            available: true,
+          },
+          {
+            benchmark: "nifty_smallcap_250",
+            points: [],
+            clipped: false,
+            effective_start: null,
+            available: false,
+          },
+        ],
+      };
+    }
+
+    it("the checklist replaces the drop-down", () => {
+      const onBenchmarksChange = vi.fn();
+      setupGraph({
+        benchmarks: ["nifty_50"],
+        onBenchmarksChange,
+      });
+
+      expect(screen.queryByRole("combobox", { name: "Benchmark" })).toBeNull();
+      const trigger = screen.getByRole("button", { name: /^Benchmark:\s*Nifty 50$/ });
+      fireEvent.click(trigger);
+
+      fireEvent.click(screen.getByRole("checkbox", { name: "Nifty 500" }));
+      expect(onBenchmarksChange).toHaveBeenCalledWith(["nifty_50", "nifty_500"]);
+    });
+
+    it("legend chips follow the chosen list and hiding does not store anything", () => {
+      localStorage.clear();
+      const data = buildMultiSeriesData();
+      setupGraph({
+        data,
+        benchmarks: ["nifty_50", "nifty_500"],
+      });
+
+      const chip50 = screen.getByTestId("legend-chip-nifty_50");
+      const chip500 = screen.getByTestId("legend-chip-nifty_500");
+      expect(chip50).toHaveAttribute("aria-pressed", "true");
+      expect(chip500).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByTestId("legend-swatch-nifty_50")).toHaveStyle({
+        backgroundColor: benchmarkColor("nifty_50"),
+      });
+      expect(screen.getByTestId("legend-swatch-nifty_500")).toHaveStyle({
+        backgroundColor: benchmarkColor("nifty_500"),
+      });
+      expect(chart.props?.benchmarkLines?.map(line => line.id)).toEqual(["nifty_50", "nifty_500"]);
+
+      fireEvent.click(chip500);
+      expect(chip500).toHaveAttribute("aria-pressed", "false");
+      expect(chart.props?.benchmarkLines?.map(line => line.id)).toEqual(["nifty_50"]);
+      expect(localStorage.length).toBe(0);
+
+      fireEvent.click(chip500);
+      expect(chip500).toHaveAttribute("aria-pressed", "true");
+      expect(chart.props?.benchmarkLines?.map(line => line.id)).toEqual(["nifty_50", "nifty_500"]);
+    });
+
+    it("the chart gets one line per available benchmark_series entry", () => {
+      const data = buildMultiSeriesData();
+      setupGraph({
+        data,
+        benchmarks: ["nifty_50", "nifty_500", "nifty_smallcap_250"],
+      });
+
+      expect(chart.props?.secondSeries).toBeUndefined();
+      expect(chart.props?.dates).toEqual(data.points.map(point => point.date));
+      expect(chart.props?.benchmarkLines).toEqual([
+        {
+          id: "nifty_50",
+          label: "Nifty 50",
+          color: benchmarkColor("nifty_50"),
+          points: data.benchmark_series![0].points,
+        },
+        {
+          id: "nifty_500",
+          label: "Nifty 500",
+          color: benchmarkColor("nifty_500"),
+          points: data.benchmark_series![1].points,
+        },
+      ]);
+
+      const note = screen.getByTestId("wealth-note").textContent ?? "";
+      expect(note).toContain("Nifty 500 history starts on 01 Oct 2026.");
+      expect(note).toContain("Nifty Smallcap 250 data is not available for this period.");
+    });
+
+    it("an old reply without benchmark_series still draws the single line", () => {
+      const data = buildMonthlySeries();
+      expect(data.benchmark_series).toBeUndefined();
+      setupGraph({
+        data,
+        benchmarks: ["nifty_50"],
+      });
+
+      expect(chart.props?.benchmarkLines).toBeUndefined();
+      expect(chart.props?.dates).toEqual(data.points.map(point => point.date));
+      expect(chart.props?.secondSeries?.name).toBe("Nifty 50");
+      expect(chart.props?.secondSeries?.color).toBe(benchmarkColor("nifty_50"));
+      expect(chart.props?.secondSeries?.values).toHaveLength(31);
     });
   });
 
@@ -433,8 +560,8 @@ describe("WealthGraph", () => {
       onCustomRangeChange: vi.fn(),
       today: "2026-10-23",
       benchmarkOptions: BENCHMARK_OPTIONS,
-      benchmark: "nifty_50",
-      onBenchmarkChange: vi.fn(),
+      benchmarks: ["nifty_50"],
+      onBenchmarksChange: vi.fn(),
       hidden: false,
       onToggleHidden,
       onRetry: vi.fn(),
@@ -463,7 +590,7 @@ describe("useWealthSeries", () => {
   const AGGREGATE: WealthScope = { viewMode: "aggregate", memberId: null };
   const MEMBER: WealthScope = { viewMode: "member", memberId: "m-1" };
 
-  it("fetches the wealth-series route sending only the first benchmark until D-4 lands", async () => {
+  it("fetches the wealth-series route sending both benchmark and benchmarks in order", async () => {
     const data = buildMonthlySeries();
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(data), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
@@ -477,7 +604,7 @@ describe("useWealthSeries", () => {
     expect(result.current.data).toEqual(data);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe(
-      `${API_BASE_URL}/household/aggregate/home/wealth-series?period=1M&benchmark=nifty_50`,
+      `${API_BASE_URL}/household/aggregate/home/wealth-series?period=1M&benchmark=nifty_50&benchmarks=nifty_50&benchmarks=nifty_500`,
     );
   });
 
@@ -503,6 +630,7 @@ describe("useWealthSeries", () => {
       from: "2026-10-01",
       to: "2026-10-10",
       benchmark: "nifty_midcap_150",
+      benchmarks: ["nifty_midcap_150"],
     });
     expect(calls[0].signal).toBeInstanceOf(AbortSignal);
   });
