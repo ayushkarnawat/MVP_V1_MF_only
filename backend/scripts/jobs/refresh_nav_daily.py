@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import logging
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -11,13 +12,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from sqlalchemy import distinct
 from sqlalchemy.orm import Session
 
-from app.db.session import SessionLocal
+from app.db.session import SessionLocal, commit_off_loop
 from app.models.folio import Folio
 from app.models.reference import Scenario, Scheme
 from app.services.analytics.recompute import recompute_households_holding
 from app.services.analytics.scenario_engine import compute_scenario_results
 from app.services.analytics.scheme_universe import (
     SchemeUniverseClient,
+    UniverseRow,
     _parse_nav_all,
     canonical_category,
     get_category_peers,
@@ -25,11 +27,12 @@ from app.services.analytics.scheme_universe import (
 from app.services.dashboard.held_nav_refresh import (
     HeldNavResult,
     _IST,
+    _stored_stats,
     alert_problems,
     refresh_held_navs,
     today_ist,
 )
-from app.services.dashboard.nav import warm_nav_history
+from app.services.dashboard.nav import _fresh_scheme_ids, _upsert_nav_history, warm_nav_history
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +63,10 @@ async def fetch_amfi_rows():
     return rows
 
 
-async def refresh_peers(db: Session, schemes: list[Scheme]) -> None:
-    """Category peers of the held funds, on the 3-day freshness rule (ranking does not need a daily price)."""
+async def refresh_peers(
+    db: Session, schemes: list[Scheme], amfi_rows: Sequence[UniverseRow] = (),
+) -> None:
+    """Save AMFI's latest peer prices, then warm history for previously stale peers."""
     # Fix D (7 Oct): also every peer in the held funds' SEBI categories, so
     # category ranking and the quality score find them fresh at 06:30 and the
     # Analytics run downloads nothing. Its own warm-up stays as a safety net
@@ -85,7 +90,32 @@ async def refresh_peers(db: Session, schemes: list[Scheme]) -> None:
         for peer in universe:
             if peer.id not in held_ids:
                 peers[peer.id] = peer
-    await warm_nav_history(db, peers.values())
+
+    today = today_ist()
+    amfi_prices = {
+        row.amfi_code: (row.nav_date, row.nav)
+        for row in amfi_rows
+        if row.nav is not None and row.nav.is_finite() and row.nav > 0
+        and row.nav_date is not None and row.nav_date <= today
+    }
+    fresh_ids = None
+    if amfi_prices and peers:
+        stored = _stored_stats(db, peers)
+        updates = []
+        for peer_id, peer in peers.items():
+            price = amfi_prices.get(peer.amfi_code)
+            latest, _ = stored.get(peer_id, (None, 0))
+            if price is not None and (latest is None or price[0] > latest):
+                updates.append((peer_id, price))
+        if updates:
+            # A new AMFI row must not make an originally stale history look fresh this run.
+            fresh_ids = _fresh_scheme_ids(db, peers)
+            for peer_id, price in updates:
+                await _upsert_nav_history(db, peer_id, [price], commit=False)
+            await commit_off_loop(db)
+
+    attempted, failed = await warm_nav_history(db, peers.values(), fresh_ids=fresh_ids)
+    print(f"PEER_HISTORY failed={failed} of {attempted}", flush=True)
     logger.info(
         "refresh_nav_daily: held_schemes=%d categories=%d peer_schemes=%d success=True",
         len(schemes), len(groups), len(peers),
@@ -101,6 +131,7 @@ async def main_async(db: Session, *, held_only: bool = False) -> RunOutcome:
         rows = await fetch_amfi_rows()
     except Exception as exc:  # download, HTTP or parse failure: fall back to the old refresh, and say so
         logger.exception("refresh_nav_daily: AMFI NAVAll could not be read")
+        rows = []
         problems = [f"AMFI file could not be read ({type(exc).__name__}); held-fund prices were refreshed the old way and may be behind"]
         summary = f"NAV_SUMMARY ts={stamp} mode={mode} amfi=FAILED held={len(held)}"
         await warm_nav_history(db, held)
@@ -126,7 +157,7 @@ async def main_async(db: Session, *, held_only: bool = False) -> RunOutcome:
         print(f"NAV_NOTE not in AMFI file: {name}", flush=True)
 
     if not held_only:
-        await refresh_peers(db, held)
+        await refresh_peers(db, held, rows)
         recompute_ongoing_scenarios(db)
     elif result is not None and result.filled_scheme_ids:
         households = completed = 0

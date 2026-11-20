@@ -108,3 +108,65 @@ def test_main_returns_the_exit_code_for_the_flags(db_session):
         session_cls.return_value.__enter__.return_value = db_session
         assert job.main(["--held-only", "--alert-if-behind"]) == 1
         assert job.main(["--held-only"]) == 0
+
+
+def test_peer_history_line_is_printed_and_nav_summary_is_unchanged(db_session, capsys):
+    from datetime import datetime
+
+    stamp = datetime(2026, 11, 20, 6, 0, tzinfo=job._IST)
+    with patch.object(job, "datetime") as clock, \
+         patch.object(job, "load_held_schemes", return_value=[]), \
+         patch.object(job, "fetch_amfi_rows", new=AsyncMock(return_value=[])), \
+         patch.object(job, "refresh_held_navs", new=AsyncMock(return_value=_result())), \
+         patch.object(job, "alert_problems", return_value=[]):
+        clock.now.return_value = stamp
+        outcome = asyncio.run(job.main_async(db_session))
+
+    expected = (
+        "NAV_SUMMARY ts=2026-11-20T06:00:00+05:30 mode=full held=2 behind=1 "
+        "filled_amfi=1 filled_mfapi=0 still_behind=0 missing_from_amfi=0 "
+        "very_stale=0 amfi_newest=2026-11-13"
+    )
+    assert outcome.summary == expected
+    assert capsys.readouterr().out == expected + "\nPEER_HISTORY failed=0 of 0\n"
+    assert job.exit_code(outcome, alert_if_behind=True) == 0
+
+
+def test_full_run_writes_peer_prices_and_held_only_run_does_not_touch_peers(db_session, capsys):
+    from datetime import timedelta
+
+    from app.services.analytics.scheme_universe import CategoryPeers, UniverseRow
+    from app.services.dashboard import nav
+
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    category = "Equity Scheme - Flexi Cap Fund"
+    held = Scheme(amfi_code="900101", name="Example Held Fund", amc_name="Example AMC", sebi_category=category)
+    peer = Scheme(amfi_code="900102", name="Example Peer Fund", amc_name="Example AMC", sebi_category=category)
+    db_session.add_all([held, peer])
+    db_session.flush()
+    db_session.add_all([
+        NavHistory(scheme_id=held.id, date=today, nav=Decimal("20")),
+        NavHistory(scheme_id=peer.id, date=yesterday, nav=Decimal("30")),
+    ])
+    db_session.commit()
+
+    rows = [
+        UniverseRow(held.amfi_code, None, held.name, held.amc_name, category, nav=Decimal("20"), nav_date=today),
+        UniverseRow(peer.amfi_code, None, peer.name, peer.amc_name, category, nav=Decimal("31"), nav_date=today),
+    ]
+    with patch.object(job, "load_held_schemes", return_value=[held]), \
+         patch.object(job, "fetch_amfi_rows", new=AsyncMock(return_value=rows)) as amfi, \
+         patch.object(job, "get_category_peers", new=AsyncMock(return_value=CategoryPeers([peer], 1, {}))) as peers, \
+         patch.object(nav, "_fetch_nav_history", new=AsyncMock(side_effect=AssertionError("History is already fresh"))) as history:
+        asyncio.run(job.main_async(db_session, held_only=True))
+        assert db_session.get(NavHistory, (peer.id, today)) is None
+        assert "PEER_HISTORY " not in capsys.readouterr().out
+        peers.assert_not_awaited()
+
+        asyncio.run(job.main_async(db_session))
+        assert db_session.get(NavHistory, (peer.id, today)).nav == Decimal("31")
+        assert "PEER_HISTORY failed=0 of 0" in capsys.readouterr().out.splitlines()
+        peers.assert_awaited_once()
+        history.assert_not_awaited()
+        assert amfi.await_count == 2
