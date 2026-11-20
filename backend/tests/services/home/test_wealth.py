@@ -10,13 +10,13 @@ from sqlalchemy import event
 from sqlalchemy.orm import Session
 
 from app.models.enums import BenchmarkIndex, BenchmarkReturnType
-from app.models.reference import BenchmarkIndexHistory
+from app.models.reference import BenchmarkIndexHistory, NavHistory
 from app.services.home.context import HomeInputs, ScopeContext
 from app.services.home.movers import FundInput
 from app.services.home.movers import Movers, MoversView
 from app.services.home.series import ValueSeries, SeriesPoint
 from app.services.home.wealth import assemble_wealth_series, build_wealth_series
-from tests.api.home_fixture import build_home_fixture
+from tests.api.home_fixture import FIXED_NOW, build_home_fixture, uid
 
 
 def _movers(*, change="5.00", pct="0.5000", previous=date(2026, 10, 22)):
@@ -204,6 +204,73 @@ def test_old_single_benchmark_reply_unchanged(wealth_home):
 
     assert response.status_code == 200
     assert response.json() == json.loads(fixture.read_text(encoding="utf-8"))
+
+
+NEXT_PRICE_DAY = FIXED_NOW.replace(day=26)
+
+
+@pytest.fixture
+def wealth_home_next_price_day():
+    runtime = build_home_fixture(now=NEXT_PRICE_DAY)
+    try:
+        yield runtime
+    finally:
+        runtime.close()
+
+
+def _add_next_day_navs(runtime, prices: dict[str, str]) -> None:
+    with Session(runtime.engine) as db:
+        db.add_all(
+            NavHistory(scheme_id=uid(f"scheme-{fund}"), date=NEXT_PRICE_DAY.date(), nav=Decimal(price))
+            for fund, price in prices.items()
+        )
+        db.commit()
+
+
+def test_series_stops_at_latest_date_with_complete_enough_prices_and_says_so(wealth_home_next_price_day):
+    runtime = wealth_home_next_price_day
+    # The smallest holding (flexi) is waiting for Monday's price. The rest cover over half the value.
+    _add_next_day_navs(runtime, {"large": "12.11", "debt": "10.02", "gold": "101.10"})
+
+    response = runtime.client.get(f"{WEALTH_PATH}?period=1D")
+    summary_response = runtime.client.get("/household/aggregate/home/summary")
+
+    assert response.status_code == summary_response.status_code == 200
+    wealth = response.json()
+    assert wealth["end"] == wealth["nav_as_of"] == "2026-10-26"
+    assert wealth["partial"] is True
+    assert [fund["scheme_id"] for fund in wealth["missing_funds"]] == [str(uid("scheme-flexi"))]
+    assert wealth["points"][-2]["value"] == "5212.00"
+    assert wealth["points"][-1] == {"date": "2026-10-26", "value": "5216.00"}
+    assert wealth["end_value"] == summary_response.json()["total_value"] == "5216.00"
+
+
+def test_series_with_every_fund_priced_is_unchanged(wealth_home_next_price_day):
+    runtime = wealth_home_next_price_day
+    _add_next_day_navs(runtime, {"large": "12.11", "flexi": "19.82", "debt": "10.02", "gold": "101.10"})
+
+    response = runtime.client.get(f"{WEALTH_PATH}?period=1D")
+
+    assert response.status_code == 200
+    wealth = response.json()
+    assert wealth["end"] == wealth["nav_as_of"] == "2026-10-26"
+    assert wealth["partial"] is False
+    assert wealth["points"][-1] == {"date": "2026-10-26", "value": "5217.00"}
+    assert wealth["end_value"] == "5217.00"
+
+
+def test_majority_missing_does_not_end_on_the_partial_day(wealth_home_next_price_day):
+    runtime = wealth_home_next_price_day
+    # Monday's only price would pull the series down if mixed with Friday's prices.
+    _add_next_day_navs(runtime, {"flexi": "19.00"})
+
+    response = runtime.client.get(f"{WEALTH_PATH}?period=1D")
+
+    assert response.status_code == 200
+    wealth = response.json()
+    assert wealth["end"] == wealth["nav_as_of"] == "2026-10-23"
+    assert wealth["points"][-1] == {"date": "2026-10-23", "value": "5212.00"}
+    assert wealth["end_value"] == "5212.00"
 
 
 def test_three_benchmarks_return_three_series(wealth_home):
