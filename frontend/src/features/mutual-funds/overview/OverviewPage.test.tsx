@@ -1,6 +1,7 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useLocation } from "react-router";
+import type { BenchmarksResponse, WealthSeriesResponse } from "../../home/types";
 import * as fx from "../fixtures";
 import { renderInShell } from "../../../shell/testing";
 import { expectInteractivity } from "../testing";
@@ -15,7 +16,7 @@ const legacy = vi.hoisted(() => ({
 const auth = vi.hoisted(() => ({ me: { user_id: "u-1" } as { user_id: string } | null }));
 vi.mock("../../auth/session", () => ({ getToken: () => "t1" }));
 vi.mock("../../auth/AuthContext", () => ({ useAuth: () => auth }));
-vi.mock("../api", () => mocks);
+vi.mock("../api", () => ({ ...mocks, ...wealthApi }));
 // The moved legacy parts call these old API modules themselves (they live in components/mf, outside the feature).
 vi.mock("../../import/api", () => ({ postOpeningBalance: legacy.postOpeningBalance }));
 vi.mock("../../dashboard/api", () => ({
@@ -417,4 +418,167 @@ it("ignores consolidated data in single-member view", async () => {
   memberMount();
   expect(await screen.findByTestId("row-S-KOTAK:m1")).toBeInTheDocument();
   expect(screen.queryByTestId("family-phone-cards")).not.toBeInTheDocument();
+});
+
+const wealthApi = vi.hoisted(() => ({
+  getWealthBenchmarks: vi.fn<typeof import("../api").getWealthBenchmarks>(),
+  getWealthSeries: vi.fn<typeof import("../api").getWealthSeries>(),
+}));
+
+// Give the real chart a layout width in jsdom so its axis labels render.
+vi.mock("@visx/responsive", async importOriginal => ({
+  ...await importOriginal<typeof import("@visx/responsive")>(),
+  ParentSize: ({ children }: { children: (size: { width: number; height: number }) => React.ReactNode }) =>
+    children({ width: 900, height: 240 }),
+}));
+
+const wealthEnvelope = {
+  scope: "aggregate" as const,
+  member_id: null,
+  nav_as_of: "2026-11-18",
+  partial: false,
+  missing_funds: [],
+  computed_at: "2026-11-19T00:00:00Z",
+};
+const overviewBenchmarks: BenchmarksResponse = {
+  ...wealthEnvelope,
+  options: [
+    { index: "nifty_50", label: "Nifty 50", recommended: true },
+    { index: "nifty_500", label: "Nifty 500", recommended: false },
+  ],
+  recommended_index: "nifty_50",
+  reason: "Portfolio benchmark",
+};
+const overviewSeries: WealthSeriesResponse = {
+  ...wealthEnvelope,
+  period: "1Y",
+  start: "2025-11-18",
+  end: "2026-11-18",
+  clamped: false,
+  empty: false,
+  points: [{ date: "2025-11-18", value: "400000.00" }, { date: "2026-11-18", value: "450000.00" }],
+  start_value: "400000.00",
+  end_value: "450000.00",
+  net_contributions: "0.00",
+  change_amount: "50000.00",
+  change_pct: "12.50",
+  change_method: "modified_dietz",
+  benchmark: null,
+};
+
+beforeEach(() => {
+  wealthApi.getWealthBenchmarks.mockReset().mockResolvedValue(overviewBenchmarks);
+  wealthApi.getWealthSeries.mockReset().mockResolvedValue(overviewSeries);
+});
+
+describe("OverviewPage wealth graph (D-7)", () => {
+  it("places the graph directly under the summary strip and above the SIP timeline", async () => {
+    mount();
+    const graph = await screen.findByRole("region", { name: "Value over time" });
+    const strip = screen.getByRole("region", { name: "Portfolio summary" });
+    const sips = await screen.findByRole("heading", { name: "SIPs" });
+
+    const graphSlot = graph.parentElement;
+    expect(graphSlot?.previousElementSibling).toContainElement(strip);
+    expect(graphSlot?.nextElementSibling).toContainElement(sips);
+  });
+
+  it("requests the family series and switches to the selected member's series", async () => {
+    mocks.getHoldingsBundle.mockImplementation(async (scope: { viewMode: "aggregate" | "member" }) =>
+      scope.viewMode === "member" ? memberBundle() : bundle(),
+    );
+    mount();
+    await waitFor(() => expect(wealthApi.getWealthSeries).toHaveBeenCalledWith(
+      { viewMode: "aggregate", memberId: null }, { period: "1Y", benchmark: "nifty_50", benchmarks: ["nifty_50"] }, expect.any(AbortSignal),
+    ));
+
+    fireEvent.click(await screen.findByTestId("family-row-m1"));
+    await waitFor(() => expect(wealthApi.getWealthSeries).toHaveBeenLastCalledWith(
+      { viewMode: "member", memberId: "m1" }, { period: "1Y", benchmark: "nifty_50", benchmarks: ["nifty_50"] }, expect.any(AbortSignal),
+    ));
+  });
+
+  it("loads after the strip and table and keeps both visible during a graph failure and retry", async () => {
+    let resolveHoldings!: () => void;
+    mocks.getHoldingsBundle.mockReturnValueOnce(new Promise(resolve => {
+      resolveHoldings = () => resolve(bundle());
+    }));
+    let rejectSeries!: (reason: Error) => void;
+    wealthApi.getWealthSeries.mockReturnValueOnce(new Promise((_, reject) => {
+      rejectSeries = reject;
+    }));
+
+    mount();
+    expect(wealthApi.getWealthBenchmarks).not.toHaveBeenCalled();
+    expect(wealthApi.getWealthSeries).not.toHaveBeenCalled();
+    await act(async () => resolveHoldings());
+
+    await waitFor(() => expect(wealthApi.getWealthSeries).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole("status", { name: "Loading wealth graph" })).toBeInTheDocument();
+    expect(screen.getByTestId("value-total")).toBeInTheDocument();
+    expect(screen.getByTestId("row-S-KOTAK:m1")).toBeInTheDocument();
+
+    await act(async () => rejectSeries(new Error("Series unavailable")));
+    const graph = screen.getByRole("region", { name: "Value over time" });
+    expect(within(graph).getByText("Could not load your wealth graph.")).toBeInTheDocument();
+    expect(screen.getByTestId("value-total")).toBeInTheDocument();
+    expect(screen.getByTestId("row-S-KOTAK:m1")).toBeInTheDocument();
+
+    fireEvent.click(within(graph).getByRole("button", { name: "Try again" }));
+    expect(await within(graph).findByRole("img", { name: "Portfolio value over time" })).toBeInTheDocument();
+    expect(wealthApi.getWealthSeries).toHaveBeenCalledTimes(2);
+    expect(mocks.getHoldingsBundle).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows rupee amounts on the graph like the rest of the Overview", async () => {
+    mount();
+    const chart = await screen.findByRole("img", { name: "Portfolio value over time" });
+
+    expect(within(chart).getAllByTestId("y-tick").map(tick => tick.textContent))
+      .toEqual(expect.arrayContaining([expect.stringMatching(/^₹/)]));
+    expect(chart).not.toHaveTextContent("••••••");
+    expect(screen.getByTestId("value-total")).toHaveTextContent("₹46,49,340");
+  });
+
+  it("keeps the monthly sparkline in the strip when the wealth graph is present", async () => {
+    mocks.getHistoryPoints.mockResolvedValue([
+      { month: "2026-09-30", value: 400000, invested: 350000, valueText: "400000.00", investedText: "350000.00", partial: false, missing: [] },
+      { month: "2026-10-31", value: 450000, invested: 350000, valueText: "450000.00", investedText: "350000.00", partial: false, missing: [] },
+    ]);
+    mount();
+
+    expect(await screen.findByRole("img", { name: "Portfolio value over time" })).toBeInTheDocument();
+    expect(await within(screen.getByRole("region", { name: "Portfolio summary" }))
+      .findByRole("img", { name: "Portfolio value, last 2 months" })).toBeInTheDocument();
+  });
+
+  it("reads and updates the benchmark choice Home stores", async () => {
+    localStorage.setItem("home.benchmark", "nifty_500");
+    mount();
+    const trigger = await screen.findByRole("button", { name: /^Benchmark:\s*Nifty 500$/ });
+
+    expect(wealthApi.getWealthSeries).toHaveBeenLastCalledWith(
+      { viewMode: "aggregate", memberId: null }, { period: "1Y", benchmark: "nifty_500", benchmarks: ["nifty_500"] }, expect.any(AbortSignal),
+    );
+
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Nifty 50 (recommended)" }));
+    expect(localStorage.getItem("home.benchmark")).toBe(JSON.stringify(["nifty_500", "nifty_50"]));
+    await waitFor(() => expect(wealthApi.getWealthSeries).toHaveBeenLastCalledWith(
+      { viewMode: "aggregate", memberId: null }, { period: "1Y", benchmark: "nifty_500", benchmarks: ["nifty_500", "nifty_50"] }, expect.any(AbortSignal),
+    ));
+  });
+
+  it("the Overview uses the same stored list", async () => {
+    localStorage.setItem("home.benchmark", JSON.stringify(["nifty_500", "nifty_50"]));
+    mount();
+    await waitFor(() => expect(wealthApi.getWealthSeries).toHaveBeenLastCalledWith(
+      { viewMode: "aggregate", memberId: null },
+      { period: "1Y", benchmark: "nifty_500", benchmarks: ["nifty_500", "nifty_50"] },
+      expect.any(AbortSignal),
+    ));
+    expect(await screen.findByRole("button", { name: /2 benchmarks/i })).toBeInTheDocument();
+    expect(screen.getByTestId("legend-chip-nifty_500")).toBeInTheDocument();
+    expect(screen.getByTestId("legend-chip-nifty_50")).toBeInTheDocument();
+  });
 });

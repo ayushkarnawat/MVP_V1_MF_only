@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Literal
+from typing import Annotated, Literal
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -26,6 +26,8 @@ from app.services.home.schemas import (
     BenchmarkSeriesOut,
     BenchmarksResponse,
     ClassRowOut,
+    HomeBenchmark,
+    LegacyBenchmarkSeriesOut,
     MoverAllBarOut,
     MoverBarOut,
     MoverFundOut,
@@ -46,10 +48,7 @@ from app.services.home.worth import STORED_SECTION_NAMES, build_worth_cards, loa
 router = APIRouter(tags=["home"])
 CENT = Decimal("0.01")
 HOME_BENCHMARK_VALUES = tuple(option.index.value for option in HOME_BENCHMARKS)
-HomeBenchmark = Literal[
-    "nifty_50", "nifty_500", "nifty_largemidcap_250", "nifty_midcap_150",
-    "nifty_smallcap_250",
-]
+MAX_BENCHMARKS = 3
 Period = Literal["1D", "1W", "1M", "1Y", "custom"]
 MoverView = Literal["sector", "category", "fund"]
 
@@ -190,9 +189,8 @@ async def _movers(
     net_pct = movers.net_pct
     if details is not None:
         envelope["nav_as_of"] = details.nav_as_of
-        envelope["partial"] = inputs.partial or bool(details.waiting_for_price)
-        if details.nav_as_of != now_ist.date() and net_pct is not None:
-            net_pct = Decimal("0.0000")
+        # A fund priced only from a statement is listed apart but is not a reason to call the data partial.
+        envelope["partial"] = inputs.partial or any(not fund.statement_priced for fund in details.waiting_for_price)
 
     payload = dict(
         **envelope,
@@ -219,7 +217,10 @@ async def _movers(
             for bar in _mover_bars(inputs, details.rows)
         ],
         waiting_for_price=[
-            MoverWaitingOut(fund_id=str(fund.scheme_id), name=fund.name, category=fund.category)
+            MoverWaitingOut(
+                fund_id=str(fund.scheme_id), name=fund.name, category=fund.category or "Other",
+                reason="statement_priced" if fund.statement_priced else "no_new_price",
+            )
             for fund in details.waiting_for_price
         ],
     )
@@ -307,7 +308,13 @@ async def _wealth(
     date_from: date | None,
     date_to: date | None,
     benchmark: HomeBenchmark | None,
+    benchmarks: list[HomeBenchmark] | None = None,
 ):
+    if benchmarks is not None:
+        # The limit counts distinct indices: the same index sent twice is one benchmark (review, 20 Nov).
+        benchmarks = list(dict.fromkeys(benchmarks))
+        if len(benchmarks) > MAX_BENCHMARKS:
+            raise HTTPException(status_code=422, detail=f"Choose up to {MAX_BENCHMARKS} benchmarks.")
     custom = None
     if period == "custom":
         if date_from is None or date_to is None:
@@ -335,13 +342,14 @@ async def _wealth(
             period=period,
             custom=custom,
             benchmark=None if benchmark is None else BenchmarkIndex(benchmark),
+            benchmarks=tuple(BenchmarkIndex(index) for index in (benchmarks or ())),
         )
     except (ValueError, OverflowError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     benchmark_out = None
     if wealth.benchmark is not None:
         label = next(option.label for option in HOME_BENCHMARKS if option.index == wealth.benchmark.index)
-        benchmark_out = BenchmarkSeriesOut(
+        benchmark_out = LegacyBenchmarkSeriesOut(
             index=wealth.benchmark.index.value,
             label=label,
             available=wealth.benchmark.available,
@@ -365,6 +373,17 @@ async def _wealth(
         change_pct=wealth.change_pct,
         change_method=wealth.change_method,
         benchmark=benchmark_out,
+        benchmark_series=[
+            BenchmarkSeriesOut(
+                benchmark=series.index.value,
+                points=[BenchmarkPointOut(date=day, pct=pct) for day, pct in series.points],
+                clipped=series.clipped,
+                effective_start=series.effective_start,
+                # The legacy flag also treats a non-positive starting level as available.
+                available=series.pct is not None,
+            )
+            for series in wealth.benchmark_series
+        ],
     )
 
 
@@ -378,14 +397,44 @@ async def member_summary(member_id: uuid.UUID, user: User = Depends(get_data_use
     return await _summary(db, user, member_id, now)
 
 
-@router.get("/household/aggregate/home/wealth-series", response_model=WealthSeriesResponse)
-async def aggregate_wealth(period: Period = "1M", date_from: date | None = Query(None, alias="from"), date_to: date | None = Query(None, alias="to"), benchmark: HomeBenchmark | None = None, user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
-    return await _wealth(db, user, None, now, period, date_from, date_to, benchmark)
+# Omitting the default empty list keeps the legacy JSON payload identical. `exclude_defaults` is route-wide and safe
+# only because `benchmark_series` is the one defaulted field of the reply: a new defaulted field (False, 0, [], None)
+# would silently vanish from the old JSON. The golden-file test `test_old_single_benchmark_reply_unchanged` guards it.
+@router.get(
+    "/household/aggregate/home/wealth-series",
+    response_model=WealthSeriesResponse,
+    response_model_exclude_defaults=True,
+)
+async def aggregate_wealth(
+    period: Period = "1M",
+    date_from: date | None = Query(None, alias="from"),
+    date_to: date | None = Query(None, alias="to"),
+    benchmark: HomeBenchmark | None = None,
+    user: User = Depends(get_data_user),
+    db: Session = Depends(get_db),
+    now: datetime = Depends(get_now_ist),
+    benchmarks: Annotated[list[HomeBenchmark] | None, Query()] = None,
+):
+    return await _wealth(db, user, None, now, period, date_from, date_to, benchmark, benchmarks)
 
 
-@router.get("/household-members/{member_id}/home/wealth-series", response_model=WealthSeriesResponse)
-async def member_wealth(member_id: uuid.UUID, period: Period = "1M", date_from: date | None = Query(None, alias="from"), date_to: date | None = Query(None, alias="to"), benchmark: HomeBenchmark | None = None, user: User = Depends(get_data_user), db: Session = Depends(get_db), now: datetime = Depends(get_now_ist)):
-    return await _wealth(db, user, member_id, now, period, date_from, date_to, benchmark)
+@router.get(
+    "/household-members/{member_id}/home/wealth-series",
+    response_model=WealthSeriesResponse,
+    response_model_exclude_defaults=True,
+)
+async def member_wealth(
+    member_id: uuid.UUID,
+    period: Period = "1M",
+    date_from: date | None = Query(None, alias="from"),
+    date_to: date | None = Query(None, alias="to"),
+    benchmark: HomeBenchmark | None = None,
+    user: User = Depends(get_data_user),
+    db: Session = Depends(get_db),
+    now: datetime = Depends(get_now_ist),
+    benchmarks: Annotated[list[HomeBenchmark] | None, Query()] = None,
+):
+    return await _wealth(db, user, member_id, now, period, date_from, date_to, benchmark, benchmarks)
 
 
 @router.get("/household/aggregate/home/allocation", response_model=AllocationResponse)

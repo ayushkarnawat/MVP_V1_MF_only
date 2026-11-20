@@ -53,6 +53,13 @@ export function wealthSeriesPath(scope: WealthScope, query: WealthSeriesQuery): 
   if (query.from) params.append("from", query.from);
   if (query.to) params.append("to", query.to);
   if (query.benchmark) params.append("benchmark", query.benchmark);
+  if (query.benchmarks) {
+    for (const item of query.benchmarks) {
+      if (item.length > 0) {
+        params.append("benchmarks", item);
+      }
+    }
+  }
 
   const qs = params.toString();
   return qs.length > 0 ? `${base}?${qs}` : base;
@@ -83,8 +90,9 @@ export function useWealthSeries<T extends WealthSeriesData = WealthSeriesData>(
   loaderRef.current = options?.loadSeries ?? defaultLoadSeries;
 
   const scopeKey = scope.viewMode === "aggregate" ? "aggregate" : `member:${scope.memberId ?? ""}`;
-  // Until backend task D-4 lands, the wealth-series route accepts a single benchmark only.
-  const firstBenchmark = benchmarks.length > 0 && benchmarks[0] ? benchmarks[0] : undefined;
+  const cleanBenchmarks = benchmarks.filter(item => item.length > 0);
+  const firstBenchmark = cleanBenchmarks.length > 0 ? cleanBenchmarks[0] : undefined;
+  const benchmarksKey = cleanBenchmarks.join(",");
   const from = period === "custom" ? (range?.from ?? undefined) : undefined;
   const to = period === "custom" ? (range?.to ?? undefined) : undefined;
   const ready = enabled && (period !== "custom" || Boolean(from && to));
@@ -93,7 +101,7 @@ export function useWealthSeries<T extends WealthSeriesData = WealthSeriesData>(
   scopeRef.current = scope;
 
   const [attempt, setAttempt] = useState(0);
-  const requestKey = JSON.stringify([scopeKey, period, from ?? null, to ?? null, firstBenchmark ?? null, ready]);
+  const requestKey = JSON.stringify([scopeKey, period, from ?? null, to ?? null, benchmarksKey, ready]);
   const renderKey = `${requestKey}#${attempt}`;
 
   const [prevRenderKey, setPrevRenderKey] = useState(renderKey);
@@ -120,11 +128,13 @@ export function useWealthSeries<T extends WealthSeriesData = WealthSeriesData>(
     if (!ready) return;
 
     const controller = new AbortController();
+    const list = benchmarksKey.length > 0 ? benchmarksKey.split(",") : [];
     const query: WealthSeriesQuery = {
       period,
       ...(from ? { from } : {}),
       ...(to ? { to } : {}),
       ...(firstBenchmark ? { benchmark: firstBenchmark } : {}),
+      ...(list.length > 0 ? { benchmarks: list } : {}),
     };
 
     loaderRef.current(scopeRef.current, query, controller.signal)
@@ -142,7 +152,7 @@ export function useWealthSeries<T extends WealthSeriesData = WealthSeriesData>(
     return () => {
       controller.abort();
     };
-  }, [requestKey, attempt, ready, period, from, to, firstBenchmark]);
+  }, [requestKey, attempt, ready, period, from, to, firstBenchmark, benchmarksKey]);
 
   const currentStatus: WealthSeriesStatus = renderKey !== prevRenderKey ? "loading" : state.status;
   const currentData = renderKey !== prevRenderKey ? null : state.data;

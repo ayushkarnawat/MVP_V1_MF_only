@@ -1,8 +1,11 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { fixture } from "../fixtures";
-import type { MoversResponse } from "../types";
+import { HomePage } from "../HomePage";
+import { mockHomeApi, type HomeCall } from "../testing/homeApi";
+import type { MoversAllResponse, MoversResponse, MoversView } from "../types";
 import { Movers, type MoversProps } from "./Movers";
+import { API_BASE_URL } from "@/lib/apiClient";
 import { renderInShell as render } from "@/shell/testing";
 
 function setup(overrides: Partial<MoversProps> = {}) {
@@ -142,15 +145,16 @@ describe("Movers: the net change and the rows", () => {
     expect(screen.queryByTestId("movers-others")).toBeNull();
   });
 
-  it("shows a different footnote for the sector view and the others, and a greyed link to all funds", () => {
+  it("shows a different footnote for the sector view and the others, and a live button to all funds", () => {
     const first = setup();
     expect(screen.getByText("Sector figures are estimates and add up to the exact change.")).toBeInTheDocument();
     first.unmount();
-    setup({ data: fixture<MoversResponse>("movers_fund"), view: "fund" });
+    setup({ data: fixture<MoversResponse>("movers_fund"), view: "fund", loadAll: vi.fn() });
     expect(screen.getByText("Rows add up to the net change.")).toBeInTheDocument();
-    const link = screen.getByText("View all by day's change").closest("[aria-disabled]") as HTMLElement;
-    expect(link.getAttribute("aria-disabled")).toBe("true");
-    expect(link.getAttribute("title")).toBe("Coming soon");
+    const button = screen.getByRole("button", { name: "View all by day's change" });
+    expect(button).toBeEnabled();
+    expect(button).not.toHaveAttribute("aria-disabled");
+    expect(button).not.toHaveAttribute("title");
   });
 });
 
@@ -208,5 +212,102 @@ describe("Movers: the funds behind a row", () => {
     fireEvent.click(screen.getByTestId(`mover-${data.gains[0].key}`));
     const dialog = screen.getByRole("dialog");
     expect(dialog.querySelectorAll('[data-testid="scheme-logo"], div.shadow-2xs').length).toBeGreaterThan(0);
+  });
+});
+
+describe("Movers: view all by day's change", () => {
+  const linkName = "View all by day's change";
+  const dialogName = "Everything that changed today";
+
+  function sectorResponses() {
+    const card = fixture<MoversResponse>("movers_sector");
+    const allRows: MoversAllResponse = {
+      ...card,
+      rows: card.gains.map(row => ({ ...row, no_change: false })),
+      waiting_for_price: [],
+    };
+    return { card, allRows };
+  }
+
+  function setupWithLoader() {
+    const { card, allRows } = sectorResponses();
+    const loadAll = vi.fn<(view: MoversView) => Promise<MoversAllResponse>>().mockResolvedValue(allRows);
+    const props = { data: card, loadAll, hideValues: false };
+    setup(props);
+    return { card, loadAll };
+  }
+
+  function getViewAll() {
+    return screen.queryByRole("button", { name: linkName }) ?? screen.getByRole("link", { name: linkName });
+  }
+
+  it("the existing one-row panel is untouched", () => {
+    const { card, loadAll } = setupWithLoader();
+    const row = card.gains[0];
+    fireEvent.click(screen.getByTestId(`mover-${row.key}`));
+
+    const panel = screen.getByRole("dialog", { name: `${row.label} funds` });
+    const funds = within(panel).getAllByRole("listitem");
+    expect(funds).toHaveLength(row.funds.length);
+    for (const fund of row.funds) {
+      expect(within(panel).getByText(fund.name)).toBeVisible();
+    }
+    expect(screen.queryByRole("dialog", { name: dialogName })).toBeNull();
+    expect(loadAll).not.toHaveBeenCalled();
+
+    fireEvent.click(within(panel).getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog", { name: `${row.label} funds` })).toBeNull();
+  });
+
+  // D-11 replaces the old disabled-link assertion in this file's net-change tests.
+  it("the link is live", async () => {
+    setupWithLoader();
+    const link = getViewAll();
+    expect(link).toBeEnabled();
+    expect(link).not.toHaveAttribute("aria-disabled", "true");
+    expect(link).not.toHaveAttribute("title", "Coming soon");
+
+    act(() => link.focus());
+    fireEvent.click(link);
+    const dialog = screen.getByRole("dialog", { name: dialogName });
+    expect(dialog).toBeVisible();
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    await waitFor(() => expect(link).toHaveFocus());
+  });
+
+  it("all rows are fetched only when the dialog opens", async () => {
+    const { loadAll } = setupWithLoader();
+    expect(screen.queryByRole("dialog", { name: dialogName })).toBeNull();
+    expect(loadAll).not.toHaveBeenCalled();
+
+    fireEvent.click(getViewAll());
+
+    await waitFor(() => expect(loadAll).toHaveBeenCalledExactlyOnceWith("sector"));
+  });
+
+  it("the card request is unchanged", async () => {
+    const { card, allRows } = sectorResponses();
+    const api = mockHomeApi({ movers: (call: HomeCall) => call.query.get("all") === "true" ? allRows : card });
+    try {
+      render(<HomePage today="2026-10-23" />);
+      await screen.findByTestId("movers-split");
+
+      const requests = () => api.callsFor("movers").map(call => {
+        const url = new URL(call.url, "http://localhost");
+        return { path: url.pathname, query: Object.fromEntries(url.searchParams) };
+      });
+      const path = new URL(`${API_BASE_URL}/household/aggregate/home/movers`, "http://localhost").pathname;
+      expect(requests()).toEqual([{ path, query: { by: "sector" } }]);
+
+      fireEvent.click(getViewAll());
+
+      await waitFor(() => expect(requests()).toEqual([
+        { path, query: { by: "sector" } },
+        { path, query: { by: "sector", all: "true" } },
+      ]));
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

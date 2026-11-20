@@ -138,7 +138,7 @@ describe("HomePage: loading", () => {
     await screen.findByTestId("wealth-total");
     expect(api.callsFor("wealth-series")).toHaveLength(1);
     expect(api.callsFor("wealth-series")[0].query.has("benchmark")).toBe(false);
-    expect(screen.getByRole("combobox", { name: "Benchmark" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Benchmarks" })).toBeDisabled();
   });
 
   it("uses the benchmark remembered on this device when it is one of the options", async () => {
@@ -147,7 +147,7 @@ describe("HomePage: loading", () => {
     renderHome();
     await screen.findByTestId("wealth-total");
     expect(api.callsFor("wealth-series")[0].query.get("benchmark")).toBe("nifty_50");
-    expect(screen.getByRole("combobox", { name: "Benchmark" })).toHaveValue("nifty_50");
+    expect(screen.getByRole("button", { name: /^Benchmark:\s*Nifty 50$/ })).toBeInTheDocument();
   });
 
   it("ignores a remembered benchmark that is not offered and falls back to the recommended one", async () => {

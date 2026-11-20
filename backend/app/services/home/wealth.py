@@ -28,6 +28,7 @@ from app.services.home.series import (
 
 CENT = Decimal("0.01")
 PCT = Decimal("0.0001")
+BenchmarkLevels = tuple[BenchmarkIndex, Sequence[tuple[date, Decimal]]]
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,7 @@ class WealthSeries:
     change_method: Literal["price_only", "modified_dietz"]
     benchmark: BenchmarkSeries | None
     start_effective: date
+    benchmark_series: tuple[BenchmarkSeries, ...] = ()
 
 
 def _money(value: Decimal) -> Decimal:
@@ -64,14 +66,14 @@ def _money(value: Decimal) -> Decimal:
 
 
 def _benchmark_series(
-    benchmark: tuple[BenchmarkIndex, Sequence[tuple[date, Decimal]]] | None,
+    index: BenchmarkIndex,
+    levels: Sequence[tuple[date, Decimal]],
     points: Sequence[SeriesPoint],
     start_effective: date,
     end: date,
-) -> BenchmarkSeries | None:
-    if benchmark is None:
-        return None
-    index, levels = benchmark
+) -> BenchmarkSeries:
+    if start_effective > end:
+        return BenchmarkSeries(index, False, None, None, False, ())
     scalar = benchmark_return(levels, start_effective, end)
     if not levels or scalar.effective_start is None:
         return BenchmarkSeries(index, False, None, None, False, ())
@@ -118,28 +120,38 @@ def assemble_wealth_series(
     value_series: ValueSeries,
     movers,
     flows: Sequence[tuple[date, Decimal]],
-    benchmark: tuple[BenchmarkIndex, Sequence[tuple[date, Decimal]]] | None,
+    benchmark: BenchmarkLevels | None,
     headline_value: Decimal | None = None,
+    benchmarks: Sequence[BenchmarkLevels] = (),
 ) -> WealthSeries:
     points = tuple(SeriesPoint(point.date, _money(point.value)) for point in value_series.points)
     if points and points[-1].date == end and headline_value is not None:
         # Exact units times NAV can differ by paise from the sum of displayed rows.
         # The chart endpoint agrees with the headline, donut and holdings table.
         points = (*points[:-1], SeriesPoint(end, _money(headline_value)))
+    start_effective = (
+        points[0].date - timedelta(days=1) if points and points[0].date > requested_start else requested_start
+    )
+    series_by_index = {
+        index: _benchmark_series(index, levels, points, start_effective, end)
+        for index, levels in benchmarks
+    }
+    legacy_benchmark = None
+    # A range after the latest price keeps the old empty reply even when a benchmark was requested.
+    if benchmark is not None and requested_start <= end:
+        index, levels = benchmark
+        legacy_benchmark = series_by_index.get(index)
+        if legacy_benchmark is None:
+            legacy_benchmark = _benchmark_series(index, levels, points, start_effective, end)
+    benchmark_series = tuple(series_by_index.values())
     if not points:
         return WealthSeries(
             period, requested_start, end, clamped, True, (), Decimal("0.00"),
             Decimal("0.00"), Decimal("0.00"), Decimal("0.00"), None,
             "price_only" if period == "1D" else "modified_dietz",
-            # A range that starts after the latest price date has no series and no index return to compute;
-            # it is the same empty body with or without a benchmark (review N4).
-            None if requested_start > end else _benchmark_series(benchmark, (), requested_start, end),
-            requested_start,
+            legacy_benchmark, start_effective, benchmark_series,
         )
     first_date = points[0].date
-    start_effective = (
-        first_date - timedelta(days=1) if first_date > requested_start else requested_start
-    )
     start_value = Decimal("0") if first_date > requested_start else points[0].value
     end_value = points[-1].value
     counted_flows = [
@@ -170,8 +182,9 @@ def assemble_wealth_series(
         change_amount=_money(change_amount),
         change_pct=change_pct,
         change_method=method,
-        benchmark=_benchmark_series(benchmark, points, start_effective, end),
+        benchmark=legacy_benchmark,
         start_effective=start_effective,
+        benchmark_series=benchmark_series,
     )
 
 
@@ -197,6 +210,7 @@ def build_wealth_series(
     period: Literal["1D", "1W", "1M", "1Y", "custom"],
     custom: tuple[date, date] | None = None,
     benchmark: BenchmarkIndex | None = None,
+    benchmarks: Sequence[BenchmarkIndex] = (),
 ) -> WealthSeries:
     end_anchor = inputs.nav_as_of or today
     if period == "custom":
@@ -251,19 +265,25 @@ def build_wealth_series(
                 continue
         flows.append((transaction.date, -_signed_amount(transaction, extra_debits)))
 
-    benchmark_data = None
+    requested_benchmarks = tuple(dict.fromkeys(benchmarks))
+    levels_by_index: dict[BenchmarkIndex, list[tuple[date, Decimal]]] = {
+        index: [] for index in requested_benchmarks
+    }
     if benchmark is not None:
+        levels_by_index.setdefault(benchmark, [])
+    if levels_by_index:
         levels = db.execute(
-            select(BenchmarkIndexHistory.date, BenchmarkIndexHistory.value)
+            select(BenchmarkIndexHistory.index_name, BenchmarkIndexHistory.date, BenchmarkIndexHistory.value)
             .where(
-                BenchmarkIndexHistory.index_name == benchmark,
+                BenchmarkIndexHistory.index_name.in_(list(levels_by_index)),
                 BenchmarkIndexHistory.return_type == BenchmarkReturnType.TRI,
                 BenchmarkIndexHistory.date >= start_effective - timedelta(days=10),
                 BenchmarkIndexHistory.date <= end,
             )
             .order_by(BenchmarkIndexHistory.date)
         ).all()
-        benchmark_data = (benchmark, levels)
+        for index_name, day, value in levels:
+            levels_by_index[BenchmarkIndex(index_name)].append((day, value))
     return assemble_wealth_series(
         period=period,
         requested_start=start,
@@ -272,7 +292,8 @@ def build_wealth_series(
         value_series=value_series,
         movers=inputs.movers,
         flows=flows,
-        benchmark=benchmark_data,
+        benchmark=None if benchmark is None else (benchmark, levels_by_index[benchmark]),
+        benchmarks=[(index, levels_by_index[index]) for index in requested_benchmarks],
         # The portfolio's value today replaces the last point only when the series really ends on the latest
         # price date; a past custom range ends with that day's own value (review F2). The as-of date is the day
         # half the value is priced on, not the newest price: when a held fund already has a later (weekend)

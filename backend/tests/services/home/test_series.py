@@ -18,6 +18,7 @@ from app.services.home.series import (
     modified_dietz,
     period_range,
 )
+from tests.api.home_fixture import build_home_fixture
 
 
 SCHEME_A = uuid.UUID(int=1)
@@ -513,3 +514,50 @@ def test_period_range_custom_requires_dates():
 def test_period_range_rejects_unknown_period():
     with pytest.raises(ValueError):
         period_range("ALL", date(2026, 10, 25))
+
+
+@pytest.fixture
+def benchmark_home():
+    runtime = build_home_fixture()
+    try:
+        yield runtime
+    finally:
+        runtime.close()
+
+
+def test_points_matched_by_date_with_last_level_carried_over_a_gap(benchmark_home):
+    response = benchmark_home.client.get(
+        "/household/aggregate/home/wealth-series?period=custom"
+        "&from=2026-10-16&to=2026-10-19&benchmarks=nifty_50&benchmarks=nifty_smallcap_250"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    series = body.get("benchmark_series", [])
+    assert len(series) == 2
+    for item, monday_pct in zip(series, ("0.0097", "0.0199"), strict=True):
+        assert [point["date"] for point in item["points"]] == [point["date"] for point in body["points"]]
+        assert [point["pct"] for point in item["points"]] == ["0.0000", "0.0000", "0.0000", monday_pct]
+
+
+def test_period_starting_before_history_is_clipped_not_dropped(benchmark_home):
+    member_id = benchmark_home.household.dev_id
+    response = benchmark_home.client.get(
+        f"/household-members/{member_id}/home/wealth-series?period=1Y"
+        "&benchmarks=nifty_smallcap_250&benchmarks=nifty_50"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    series = body.get("benchmark_series", [])
+    assert len(series) == 2
+    clipped, full = series
+    assert clipped["available"] is True
+    assert clipped["clipped"] is True
+    assert clipped["effective_start"] == "2026-09-01"
+    assert clipped["points"][0] == {"date": "2026-09-01", "pct": "0.0000"}
+    assert [point["date"] for point in clipped["points"]] == [
+        point["date"] for point in body["points"] if point["date"] >= "2026-09-01"
+    ]
+    assert full["clipped"] is False
+    assert full["points"][0]["date"] == body["points"][0]["date"] == "2026-08-25"

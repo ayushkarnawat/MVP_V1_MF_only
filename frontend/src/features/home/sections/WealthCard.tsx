@@ -3,7 +3,7 @@ import { WealthGraph } from "@/components/wealth-graph/WealthGraph";
 import { ChangeBadge } from "../components/ChangeBadge";
 import type { DateRange } from "../components/DateRangeCalendar";
 import { HideValuesButton } from "../components/HideValuesButton";
-import { PartialDataBadge } from "../components/PartialDataBadge";
+import { PartialDataBadge } from "../../../components/PartialDataBadge";
 import { periodLabel, wealthCaption } from "../homeCopy";
 import { formatRupees } from "../homeFormat";
 import type {
@@ -23,8 +23,8 @@ export interface WealthCardProps {
   onCustomRangeChange: (range: DateRange) => void;
   today: string;
   benchmarkOptions: BenchmarkOptionOut[];
-  benchmark: string | null;
-  onBenchmarkChange: (index: string) => void;
+  benchmarks: string[];
+  onBenchmarksChange: (values: string[]) => void;
   hidden: boolean;
   onToggleHidden: () => void;
   onRetry: () => void;
@@ -45,8 +45,8 @@ export function WealthCard({
   onCustomRangeChange,
   today,
   benchmarkOptions,
-  benchmark,
-  onBenchmarkChange,
+  benchmarks,
+  onBenchmarksChange,
   hidden,
   onToggleHidden,
   onRetry,
@@ -121,8 +121,8 @@ export function WealthCard({
       onCustomRangeChange={onCustomRangeChange}
       today={today}
       benchmarkOptions={benchmarkOptions}
-      benchmark={benchmark}
-      onBenchmarkChange={onBenchmarkChange}
+      benchmarks={benchmarks}
+      onBenchmarksChange={onBenchmarksChange}
       hideValues={hidden}
       refreshing={refreshing}
       onRetry={onRetry}

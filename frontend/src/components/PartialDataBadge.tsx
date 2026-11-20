@@ -1,8 +1,7 @@
 import { TriangleAlert } from "lucide-react";
-import type { MissingFund } from "../types";
 
 export interface PartialDataBadgeProps {
-  missingFunds: MissingFund[];
+  missingFunds: readonly { name: string; scheme_id?: string }[];
 }
 
 export function PartialDataBadge({ missingFunds }: PartialDataBadgeProps) {

@@ -1,17 +1,22 @@
 from datetime import date
 from decimal import Decimal
+import json
+from pathlib import Path
 from types import SimpleNamespace
 import uuid
 
+import pytest
 from sqlalchemy import event
+from sqlalchemy.orm import Session
 
 from app.models.enums import BenchmarkIndex, BenchmarkReturnType
-from app.models.reference import BenchmarkIndexHistory
+from app.models.reference import BenchmarkIndexHistory, NavHistory
 from app.services.home.context import HomeInputs, ScopeContext
 from app.services.home.movers import FundInput
 from app.services.home.movers import Movers, MoversView
 from app.services.home.series import ValueSeries, SeriesPoint
 from app.services.home.wealth import assemble_wealth_series, build_wealth_series
+from tests.api.home_fixture import FIXED_NOW, build_home_fixture, uid
 
 
 def _movers(*, change="5.00", pct="0.5000", previous=date(2026, 10, 22)):
@@ -137,3 +142,316 @@ def test_benchmark_query_has_ten_day_lower_bound_and_clips(db_session):
     assert result.benchmark.clipped is True
     assert result.benchmark.effective_start == date(2026, 10, 1)
     assert result.benchmark.pct == Decimal("10.0000")
+
+
+def test_requested_benchmarks_keep_their_dates_and_values_in_the_service(db_session):
+    start = date(2026, 10, 22)
+    end = date(2026, 10, 24)
+    db_session.add_all([
+        BenchmarkIndexHistory(
+            index_name=index, date=day, return_type=BenchmarkReturnType.TRI, value=Decimal(level),
+        )
+        for index, day, level in (
+            (BenchmarkIndex.NIFTY_50, start, "120"),
+            (BenchmarkIndex.NIFTY_50, end, "121"),
+            (BenchmarkIndex.NIFTY_500, date(2026, 10, 23), "200"),
+            (BenchmarkIndex.NIFTY_500, end, "220"),
+        )
+    ])
+    db_session.flush()
+    fund = FundInput(
+        scheme_id=uuid.uuid4(), name="Fund", category="Equity",
+        units_timeline=[(start, Decimal("1"))], navs=[(start, Decimal("100"))],
+    )
+    inputs = HomeInputs(
+        holdings=(), funds=(fund,), movers=_movers(), series=ValueSeries((), False, ()),
+        nav_as_of=end, partial=False, missing_funds=(),
+    )
+
+    result = build_wealth_series(
+        db_session, ScopeContext("aggregate", None, (), (), None), inputs,
+        today=end, period="custom", custom=(start, end), benchmark=BenchmarkIndex.NIFTY_50,
+        benchmarks=(BenchmarkIndex.NIFTY_50, BenchmarkIndex.NIFTY_500, BenchmarkIndex.NIFTY_MIDCAP_150),
+    )
+
+    full, clipped, missing = result.benchmark_series
+    assert full == result.benchmark
+    assert full.points == (
+        (start, Decimal("0.0000")),
+        (date(2026, 10, 23), Decimal("0.0000")),
+        (end, Decimal("0.8333")),
+    )
+    assert clipped.clipped and clipped.effective_start == date(2026, 10, 23)
+    assert clipped.points == ((date(2026, 10, 23), Decimal("0.0000")), (end, Decimal("10.0000")))
+    assert not missing.available and missing.points == ()
+
+
+WEALTH_PATH = "/household/aggregate/home/wealth-series"
+
+
+@pytest.fixture
+def wealth_home():
+    runtime = build_home_fixture()
+    try:
+        yield runtime
+    finally:
+        runtime.close()
+
+
+def test_old_single_benchmark_reply_unchanged(wealth_home):
+    fixture = Path(__file__).resolve().parents[2] / "fixtures/home/wealth_1m_family_benchmark.json"
+    response = wealth_home.client.get(f"{WEALTH_PATH}?period=1M&benchmark=nifty_50")
+
+    assert response.status_code == 200
+    assert response.json() == json.loads(fixture.read_text(encoding="utf-8"))
+
+
+NEXT_PRICE_DAY = FIXED_NOW.replace(day=26)
+SATURDAY = FIXED_NOW.replace(day=24)
+
+
+@pytest.fixture
+def wealth_home_saturday():
+    runtime = build_home_fixture(now=SATURDAY)
+    try:
+        yield runtime
+    finally:
+        runtime.close()
+
+
+@pytest.fixture
+def wealth_home_next_price_day():
+    runtime = build_home_fixture(now=NEXT_PRICE_DAY)
+    try:
+        yield runtime
+    finally:
+        runtime.close()
+
+
+def _add_next_day_navs(runtime, prices: dict[str, str]) -> None:
+    with Session(runtime.engine) as db:
+        db.add_all(
+            NavHistory(scheme_id=uid(f"scheme-{fund}"), date=NEXT_PRICE_DAY.date(), nav=Decimal(price))
+            for fund, price in prices.items()
+        )
+        db.commit()
+
+
+def test_series_stops_at_latest_date_with_complete_enough_prices_and_says_so(wealth_home_next_price_day):
+    runtime = wealth_home_next_price_day
+    # The smallest holding (flexi) is waiting for Monday's price. The rest cover over half the value.
+    _add_next_day_navs(runtime, {"large": "12.11", "debt": "10.02", "gold": "101.10"})
+
+    response = runtime.client.get(f"{WEALTH_PATH}?period=1D")
+    summary_response = runtime.client.get("/household/aggregate/home/summary")
+
+    assert response.status_code == summary_response.status_code == 200
+    wealth = response.json()
+    assert wealth["end"] == wealth["nav_as_of"] == "2026-10-26"
+    assert wealth["partial"] is True
+    assert [fund["scheme_id"] for fund in wealth["missing_funds"]] == [str(uid("scheme-flexi"))]
+    assert wealth["points"][-2]["value"] == "5212.00"
+    assert wealth["points"][-1] == {"date": "2026-10-26", "value": "5216.00"}
+    assert wealth["end_value"] == summary_response.json()["total_value"] == "5216.00"
+
+
+def test_series_with_every_fund_priced_is_unchanged(wealth_home_next_price_day):
+    runtime = wealth_home_next_price_day
+    _add_next_day_navs(runtime, {"large": "12.11", "flexi": "19.82", "debt": "10.02", "gold": "101.10"})
+
+    response = runtime.client.get(f"{WEALTH_PATH}?period=1D")
+
+    assert response.status_code == 200
+    wealth = response.json()
+    assert wealth["end"] == wealth["nav_as_of"] == "2026-10-26"
+    assert wealth["partial"] is False
+    assert wealth["points"][-1] == {"date": "2026-10-26", "value": "5217.00"}
+    assert wealth["end_value"] == "5217.00"
+
+
+def test_majority_missing_does_not_end_on_the_partial_day(wealth_home_next_price_day):
+    runtime = wealth_home_next_price_day
+    # Monday's only price would pull the series down if mixed with Friday's prices.
+    _add_next_day_navs(runtime, {"flexi": "19.00"})
+
+    response = runtime.client.get(f"{WEALTH_PATH}?period=1D")
+
+    assert response.status_code == 200
+    wealth = response.json()
+    assert wealth["end"] == wealth["nav_as_of"] == "2026-10-23"
+    assert wealth["points"][-1] == {"date": "2026-10-23", "value": "5212.00"}
+    assert wealth["end_value"] == "5212.00"
+
+
+MOVERS_PATH = "/household/aggregate/home/movers"
+
+
+def test_all_rows_route_lists_an_unpriced_fund_apart_and_marks_the_reply_partial(wealth_home_next_price_day):
+    # Review, 20 Nov (route-level cover for D-8): the smallest holding has no price on the price day.
+    runtime = wealth_home_next_price_day
+    _add_next_day_navs(runtime, {"large": "12.11", "debt": "10.02", "gold": "101.10"})
+
+    response = runtime.client.get(f"{MOVERS_PATH}?by=fund&all=true")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [item["fund_id"] for item in body["waiting_for_price"]] == [str(uid("scheme-flexi"))]
+    assert body["waiting_for_price"][0]["category"]          # never empty
+    assert body["partial"] is True
+    assert str(uid("scheme-flexi")) not in {row["key"] for row in body["rows"]}   # listed apart, never as a zero row
+    assert sum(Decimal(row["change"]) for row in body["rows"]) == Decimal(body["net_change"])
+
+
+def test_a_statement_priced_fund_is_listed_with_its_own_reason():
+    # Owner decision, 20 Nov: a fund priced only from statements never has a daily price. It stays listed apart
+    # (never as zero) but says why, so the screen can word it differently from a fund whose price is just late.
+    runtime = build_home_fixture(variant="cas_only", now=NEXT_PRICE_DAY)
+    try:
+        _add_next_day_navs(runtime, {"large": "12.11", "debt": "10.02", "gold": "101.10"})   # flexi is late
+
+        body = runtime.client.get(f"{MOVERS_PATH}?by=fund&all=true").json()
+    finally:
+        runtime.close()
+
+    reasons = {item["fund_id"]: item["reason"] for item in body["waiting_for_price"]}
+    assert reasons == {str(uid("scheme-flexi")): "no_new_price", str(uid("scheme-casonly")): "statement_priced"}
+
+
+def test_all_rows_on_a_weekend_match_the_card(wealth_home_saturday):
+    # Owner decision B, 20 Nov: the pop-up's reply is for the last price day, the same one the card shows.
+    runtime = wealth_home_saturday
+    card = runtime.client.get(f"{MOVERS_PATH}?by=fund").json()
+    everything = runtime.client.get(f"{MOVERS_PATH}?by=fund&all=true").json()
+
+    assert everything["nav_as_of"] == "2026-10-23"
+    assert everything["net_change"] == card["net_change"] != "0.00"
+    assert everything["net_pct"] == card["net_pct"]
+    assert sum(Decimal(row["change"]) for row in everything["rows"]) == Decimal(everything["net_change"])
+
+
+def test_all_rows_sector_view_adds_up_to_the_net_change(wealth_home):
+    response = wealth_home.client.get(f"{MOVERS_PATH}?by=sector&all=true")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["estimated"] is True and body["rows"]
+    assert sum(Decimal(row["change"]) for row in body["rows"]) == Decimal(body["net_change"])
+
+
+def test_three_benchmarks_return_three_series(wealth_home):
+    with Session(wealth_home.engine) as db:
+        db.add_all([
+            BenchmarkIndexHistory(
+                index_name=BenchmarkIndex.NIFTY_500, date=day,
+                return_type=BenchmarkReturnType.TRI, value=level,
+            )
+            for day, level in (
+                (date(2026, 10, 22), Decimal("120")),
+                (date(2026, 10, 23), Decimal("121")),
+            )
+        ])
+        db.commit()
+    response = wealth_home.client.get(
+        f"{WEALTH_PATH}?period=1D&benchmark=nifty_midcap_150"
+        "&benchmarks=nifty_500&benchmarks=nifty_50&benchmarks=nifty_smallcap_250"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["benchmark"]["index"] == "nifty_midcap_150"
+    series = body.get("benchmark_series", [])
+    assert [item["benchmark"] for item in series] == ["nifty_500", "nifty_50", "nifty_smallcap_250"]
+    assert all(item["available"] and len(item["points"]) == 2 for item in series)
+    assert series[0] == {
+        "benchmark": "nifty_500",
+        "points": [
+            {"date": "2026-10-22", "pct": "0.0000"},
+            {"date": "2026-10-23", "pct": "0.8333"},
+        ],
+        "clipped": False,
+        "effective_start": "2026-10-22",
+        "available": True,
+    }
+
+
+@pytest.mark.parametrize("fourth", ["nifty_smallcap_250", "nifty_largemidcap_250"])
+def test_fourth_benchmark_rejected(wealth_home, fourth):
+    response = wealth_home.client.get(
+        f"{WEALTH_PATH}?benchmarks=nifty_50&benchmarks=nifty_500"
+        f"&benchmarks=nifty_midcap_150&benchmarks={fourth}"
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Choose up to 3 benchmarks."
+
+
+def test_the_same_index_repeated_is_one_benchmark_not_a_fourth(wealth_home):
+    # Review, 20 Nov: the limit of three counts distinct indices; four copies of one index are one benchmark.
+    response = wealth_home.client.get(f"{WEALTH_PATH}?period=1D" + "&benchmarks=nifty_50" * 4)
+
+    assert response.status_code == 200
+    assert [item["benchmark"] for item in response.json()["benchmark_series"]] == ["nifty_50"]
+
+
+def test_unavailable_benchmark_reports_available_false_and_keeps_the_others(wealth_home):
+    response = wealth_home.client.get(f"{WEALTH_PATH}?benchmarks=nifty_500&benchmarks=nifty_50")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["benchmark"] is None
+    series = body.get("benchmark_series", [])
+    assert len(series) == 2
+    assert series[0] == {
+        "benchmark": "nifty_500", "points": [], "clipped": False,
+        "effective_start": None, "available": False,
+    }
+    assert series[1]["benchmark"] == "nifty_50"
+    assert series[1]["available"] is True
+    assert series[1]["points"]
+
+
+def test_duplicates_collapsed_and_order_kept(wealth_home):
+    response = wealth_home.client.get(
+        f"{WEALTH_PATH}?benchmarks=nifty_smallcap_250&benchmarks=nifty_50&benchmarks=nifty_smallcap_250"
+    )
+
+    assert response.status_code == 200
+    assert [item["benchmark"] for item in response.json().get("benchmark_series", [])] == [
+        "nifty_smallcap_250", "nifty_50",
+    ]
+
+
+def test_single_benchmark_equals_first_of_list(wealth_home):
+    url = f"{WEALTH_PATH}?period=1M&benchmark=nifty_50"
+    single = wealth_home.client.get(url)
+    both = wealth_home.client.get(f"{url}&benchmarks=nifty_50")
+
+    assert single.status_code == both.status_code == 200
+    body = both.json()
+    series = body.pop("benchmark_series", [])
+    assert len(series) == 1
+    assert body == single.json()
+    legacy = body["benchmark"]
+    assert series[0] == {
+        "benchmark": legacy["index"],
+        "points": legacy["points"],
+        "clipped": legacy["clipped"],
+        "effective_start": legacy["effective_start"],
+        "available": legacy["available"],
+    }
+
+
+def test_member_route_accepts_benchmarks_too(wealth_home):
+    member_id = wealth_home.household.dev_id
+    response = wealth_home.client.get(
+        f"/household-members/{member_id}/home/wealth-series?benchmarks=nifty_smallcap_250"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["member_id"] == str(member_id)
+    series = body.get("benchmark_series", [])
+    assert len(series) == 1
+    assert series[0]["benchmark"] == "nifty_smallcap_250"
+    assert series[0]["available"] is True
+    assert series[0]["points"]

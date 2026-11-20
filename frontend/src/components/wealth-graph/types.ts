@@ -38,10 +38,22 @@ export interface WealthBenchmarkSeries {
   points: readonly WealthBenchmarkPoint[];
 }
 
+export interface BenchmarkSeriesEntry {
+  benchmark: string;
+  points: WealthBenchmarkPoint[];
+  clipped: boolean;
+  effective_start: string | null;
+  available: boolean;
+}
+
 export interface WealthSeriesData {
   empty: boolean;
   points: readonly WealthSeriesPoint[];
   benchmark: WealthBenchmarkSeries | null;
+  benchmark_series?: BenchmarkSeriesEntry[];
+  // Present on Home's reply: the data-completeness flag and the funds still waiting for a price.
+  partial?: boolean;
+  missing_funds?: { name: string; scheme_id?: string }[];
 }
 
 export interface WealthSeriesQuery {
@@ -49,6 +61,7 @@ export interface WealthSeriesQuery {
   from?: string;
   to?: string;
   benchmark?: string;
+  benchmarks?: string[];
 }
 
 export type WealthSeriesStatus = "loading" | "data" | "error";
