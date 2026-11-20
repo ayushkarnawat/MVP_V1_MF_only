@@ -531,6 +531,27 @@ describe("WealthGraph", () => {
       expect(note).toContain("Nifty Smallcap 250 data is not available for this period.");
     });
 
+    it("with one benchmark chosen the live Home path draws it from where its data begins, even when clipped, and names it in the note", () => {
+      // Review, 20 Nov: Home always sends `benchmarks`, so a one-benchmark Home takes this path, not the old single line.
+      const base = buildMonthlySeries();
+      const data: WealthSeriesData = {
+        ...base,
+        benchmark_series: [{
+          benchmark: "nifty_50",
+          points: [{ date: "2026-10-01", pct: "0.0000" }, { date: "2026-10-23", pct: "2.1000" }],
+          clipped: true,
+          effective_start: "2026-10-01",
+          available: true,
+        }],
+      };
+      setupGraph({ data, benchmarks: ["nifty_50"] });
+
+      expect(chart.props?.secondSeries).toBeUndefined();
+      expect(chart.props?.benchmarkLines?.map(line => line.id)).toEqual(["nifty_50"]);
+      expect(screen.getByTestId("legend-chip-nifty_50")).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByTestId("wealth-note").textContent ?? "").toContain("Nifty 50 history starts on 01 Oct 2026.");
+    });
+
     it("an old reply without benchmark_series still draws the single line", () => {
       const data = buildMonthlySeries();
       expect(data.benchmark_series).toBeUndefined();

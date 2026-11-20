@@ -350,7 +350,7 @@ function GraphDateRangeCalendar({
                           : cell.rangeAttr === "start" ||
                               cell.rangeAttr === "end" ||
                               cell.rangeAttr === "single"
-                            ? "bg-[var(--pos)] text-[var(--ui-elevated)]"
+                            ? "bg-[var(--pos)] text-[var(--tier-1-fg)]"
                             : cell.rangeAttr === "middle"
                               ? "bg-[var(--pos-bg)] text-[var(--pos-text)] hover:bg-[var(--ui-row-hover)]"
                               : "text-[var(--ui-text)] hover:bg-[var(--ui-row-hover)]"

@@ -35,6 +35,7 @@ import { FundLink } from "./FundLink";
 import { PartialDataBadge } from "../../../components/PartialDataBadge";
 import { istToday } from "../../../lib/homeToday";
 import {
+  extractIstYmd,
   formatDialogDateLine,
   formatWeekdayDate,
   groupUnitLabel,
@@ -247,10 +248,13 @@ export function DayChangeDialog({
   const lateFunds = waitingForPrice.filter(fund => fund.reason !== "statement_priced");
   const statementFunds = waitingForPrice.filter(fund => fund.reason === "statement_priced");
   // Owner decision B (20 Nov): on a day with no new price the list is the last price day's, with one line saying so.
+  // "Today" is the server's day (the reply's computed_at, in IST), the same one the date line uses, not the device clock.
+  const serverDay = extractIstYmd(activeData.computed_at) ?? istToday();
   const priceDayNote =
-    loaded && activeData.nav_as_of && activeData.nav_as_of < istToday()
+    loaded && activeData.nav_as_of && activeData.nav_as_of < serverDay
       ? `Latest prices are from ${formatWeekdayDate(activeData.nav_as_of)}.`
       : null;
+  const isPriceDayToday = priceDayNote === null;
 
   const { gainers, losers, noChange } = loaded
     ? partitionMoverRows(loaded.rows)
@@ -259,6 +263,7 @@ export function DayChangeDialog({
   const isMarketsClosed =
     loaded !== null &&
     loaded.rows.length === 0 &&
+    waitingForPrice.length === 0 &&
     changeDirection(loaded.net_change) === "flat";
 
   const split = loaded
@@ -818,7 +823,7 @@ export function DayChangeDialog({
               {lateFunds.length > 0 ? (
                 <div className="my-2 rounded-[14px] border border-dashed border-[var(--warn)] bg-[var(--warn-bg)] px-3 pt-2.5 pb-2">
                   <div className="text-[11px] font-bold uppercase tracking-[0.07em] text-[var(--warn-text)]">
-                    Waiting for today&apos;s price ·{" "}
+                    {isPriceDayToday ? "Waiting for today\u2019s price" : "Waiting for a price"} ·{" "}
                     {groupUnitLabel("fund", lateFunds.length)}
                   </div>
                   <p className="pt-0.5 pb-1.5 text-xs text-[var(--warn-text)]">
@@ -852,7 +857,7 @@ export function DayChangeDialog({
                           ) : null}
                         </div>
                         <span className="text-xs text-[var(--ui-text-muted)]">
-                          price expected later today
+                          {isPriceDayToday ? "price expected later today" : "no price on that day"}
                         </span>
                         <span className="text-right text-xs text-[var(--ui-text-muted)]">
                           —

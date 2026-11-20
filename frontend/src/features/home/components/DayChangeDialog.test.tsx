@@ -244,6 +244,59 @@ describe("DayChangeDialog", () => {
     expect(contents.queryByText(/Markets were closed today/i)).toBeNull();
   });
 
+  it("when every fund is waiting for a price the waiting funds are listed, not a markets-closed message", async () => {
+    // Review, 20 Nov: empty rows with a flat net change used to read as "markets were closed" and hide the waiting list.
+    const loadAll = vi.fn<DayChangeDialogProps["loadAll"]>().mockResolvedValue({
+      ...fundAll,
+      net_change: "0.00",
+      net_pct: "0.0000",
+      rows: [],
+      waiting_for_price: [
+        { fund_id: "00000000-0000-4000-8000-000000000007", name: "Grove Debt Fund", category: "Corporate Bond", reason: "no_new_price" as const },
+        { fund_id: "00000000-0000-4000-8000-000000000009", name: "Ivy Unlisted Fund", category: "Other", reason: "statement_priced" as const },
+      ],
+    });
+    show({ loadAll });
+
+    const contents = within(getDialog());
+    expect(await contents.findByText("Grove Debt Fund")).toBeVisible();
+    expect(contents.getByText("Ivy Unlisted Fund")).toBeVisible();
+    expect(contents.queryByText(/Markets were closed today/i)).toBeNull();
+  });
+
+  it("the price-day note follows the server's date, and is absent when the prices are from that day", async () => {
+    // 05:00 UTC on 24 Oct is 10:30 IST on 24 Oct: prices dated 24 Oct are from today, so no note.
+    const loadAll = vi.fn<DayChangeDialogProps["loadAll"]>().mockResolvedValue({
+      ...fundAll,
+      computed_at: "2026-10-24T05:00:00Z",
+      nav_as_of: "2026-10-24",
+    });
+    show({ card: { ...fundCard, computed_at: "2026-10-24T05:00:00Z" }, loadAll });
+
+    const contents = within(getDialog());
+    expect(await contents.findByText(aster.label)).toBeVisible();
+    expect(contents.queryByTestId("price-day-note")).toBeNull();
+  });
+
+  it("on an earlier price day a late fund is not described as expected later today", async () => {
+    const loadAll = vi.fn<DayChangeDialogProps["loadAll"]>().mockResolvedValue({
+      ...fundAll,
+      computed_at: "2026-10-24T13:00:00Z",
+      nav_as_of: "2026-10-23",
+      partial: true,
+      waiting_for_price: [
+        { fund_id: "00000000-0000-4000-8000-000000000007", name: "Grove Debt Fund", category: "Corporate Bond", reason: "no_new_price" as const },
+      ],
+    });
+    show({ card: { ...fundCard, computed_at: "2026-10-24T13:00:00Z" }, loadAll });
+
+    const contents = within(getDialog());
+    expect(await contents.findByText("Grove Debt Fund")).toBeVisible();
+    expect(contents.getByText(/^Waiting for a price/i)).toBeVisible();
+    expect(contents.queryByText(/today.s price/i)).toBeNull();
+    expect(contents.queryByText(/expected later today/i)).toBeNull();
+  });
+
   it("the no-change group opens", async () => {
     const loadAll = show();
     const dialog = within(getDialog());
