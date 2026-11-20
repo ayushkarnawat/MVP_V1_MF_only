@@ -21,6 +21,15 @@ from app.services.analytics.portfolio_disclosure_resolvers import (
 )
 
 
+def _cached_navall_text():
+    """The real AMFI NAVAll file kept by hand under backend/.cache (git-ignored). A clean checkout or CI has none:
+    skip these real-data checks there instead of failing (found 20 Nov: five tests failed in every fresh worktree)."""
+    path = Path(__file__).parents[3] / ".cache/amfi_navall/nav_all.txt"
+    if not path.exists():
+        pytest.skip(f"needs the saved AMFI file {path} (not in git)")
+    return path.read_text(encoding="utf-8")
+
+
 @pytest.fixture
 def mock_http(monkeypatch):
     """Every refresh request must go through MockTransport; unexpected URLs fail."""
@@ -1556,7 +1565,7 @@ def test_run4b_month_first_filename(filename,expected):
 def test_run4b_real_fixtures_match_cached_master(db_session):
     from app.services.analytics.scheme_master import refresh_scheme_master
     from app.services.analytics.amfi_factsheet_client import build_families
-    text=(Path(__file__).parents[3]/'.cache/amfi_navall/nav_all.txt').read_text(encoding='utf-8')
+    text=_cached_navall_text()
     asyncio.run(refresh_scheme_master(db_session,text=text))
     cases=[
         ('Nippon India Mutual Fund','nippon-india_asof_2026-09-30.xls','GF','Nippon India Growth Mid Cap Fund'),
@@ -1816,7 +1825,7 @@ def _run4c_inventory(prefixes=None):
     from app.services.analytics.scheme_universe import _parse_nav_all
     from app.services.analytics.amfi_factsheet_client import build_families
     root=Path(__file__).parents[2]/'fixtures/portfolio_disclosures'
-    text=(Path(__file__).parents[3]/'.cache/amfi_navall/nav_all.txt').read_text(encoding='utf-8')
+    text=_cached_navall_text()
     groups={}
     for row in _parse_nav_all(text):
         groups.setdefault(row.amc_name,[]).append(Scheme(name=row.name,base_name=row.base_name,
@@ -1879,7 +1888,7 @@ def test_run4c_missing_true_families_do_not_match_codes():
         assert client._match_sheet(sheet,file,member,index,reduced,amc) is None,(name,sheet.sheet_name)
 def test_run4c_bandhan_refresh_matches_manual_policy(db_session,monkeypatch,mock_http):
     from app.services.analytics.scheme_master import refresh_scheme_master
-    text=(Path(__file__).parents[3]/'.cache/amfi_navall/nav_all.txt').read_text(encoding='utf-8')
+    text=_cached_navall_text()
     asyncio.run(refresh_scheme_master(db_session,text=text))
     amc='Bandhan Mutual Fund'
     url='https://example.test/portfolio-30-Sep-26.xlsx'

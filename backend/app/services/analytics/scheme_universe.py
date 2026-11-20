@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -36,6 +36,9 @@ NAV_ALL_TTL = timedelta(hours=24)
 # A scheme with no NAV in this window has matured or closed: not a peer.
 _LIVE_WITHIN = timedelta(days=30)
 _CATEGORY_HEADER_RE = re.compile(r"^(?:Open Ended|Close Ended|Interval Fund) Schemes\((.+)\)$")
+# "cumulative" is how some houses (ICICI Prudential) spell the Growth option.
+_OPTION_WORDS = re.compile(r"\b(growth|cumulative|idcw|idwc|income\s+distribution|dividend|payout|reinvestment|bonus)\b")
+_GROWTH_WORDS = {"growth", "cumulative"}
 
 
 @dataclass
@@ -196,7 +199,37 @@ def is_index_fund(name: str | None, sebi_category: str | None) -> bool:
 class CategoryPeers:
     schemes: list[Scheme]                      # one series per fund: the ranked set
     fund_count: int                            # funds in the category, any plan ("N in category")
-    representative_of: dict[uuid.UUID, uuid.UUID]  # every scheme id in the category -> its fund's series
+    representative_of: dict[uuid.UUID, uuid.UUID]  # scheme ids of represented funds -> the Growth series
+    excluded_funds: list[tuple[str, str]] = field(default_factory=list)
+    # Every series of a fund that was left out for having no Growth series. A held fund is labelled "no Growth
+    # option" only when it is in here, never merely because peers came back empty or the fund is not in the universe.
+    excluded_scheme_ids: set[uuid.UUID] = field(default_factory=set)
+
+
+def plan_matches(scheme_plan: SchemePlanType | None, wanted: SchemePlanType | None) -> bool:
+    """Whether a peer series belongs in a pool for `wanted`. `get_category_peers` already checked each peer's plan
+    against its stored plan or AMFI's own data, so a stored unknown plan passes here; an unknown request takes any plan."""
+    return wanted is None or scheme_plan is None or scheme_plan == wanted
+
+
+def _is_growth_option(scheme: Scheme, row: UniverseRow | None, normalized_base_name: str) -> bool:
+    option_words = (row.option or "").strip().lower() if row else ""
+    if not option_words:
+        name = " ".join(scheme.name.lower().split())
+        suffix = name[len(normalized_base_name):] if normalized_base_name and name.startswith(normalized_base_name) else ""
+        if suffix and not suffix[:1].isalnum():
+            option_words = suffix
+        else:
+            # The older NAVAll layout has no base name: the option words sit after the fund's name, after " - ".
+            parts = name.split(" - ", 1)
+            option_words = parts[1] if len(parts) == 2 else ""
+    found = set(_OPTION_WORDS.findall(option_words))
+    if found:
+        return found <= _GROWTH_WORDS
+    # No option word anywhere. With a blank option field there is no evidence of an income option (older funds
+    # are named without one), so the series stays; a filled option that names no Growth word ("Quarterly
+    # Option", "Monthly Payment Plan") is an income option and does not.
+    return not ((row.option or "").strip() if row else "")
 
 
 class SchemeUniverseClient:
@@ -295,33 +328,41 @@ class SchemeUniverseClient:
             # into []; don't fetch again here and raise instead.
             return CategoryPeers(schemes=[], fund_count=0, representative_of={})
         rows = {r.amfi_code: r for r in await self._get_rows()}
+
+        def fund_base_name(scheme: Scheme) -> str:
+            row = rows.get(scheme.amfi_code)
+            return (row.base_name if row else None) or scheme.base_name or scheme.name
+
+        def scheme_plan(scheme: Scheme) -> SchemePlanType | None:
+            row = rows.get(scheme.amfi_code)
+            return scheme.plan_type or (plan_type_for(row) if row else None)
+
         funds: dict[tuple[str, str], list[Scheme]] = {}
         for scheme in universe:
-            row = rows.get(scheme.amfi_code)
-            base = (row.base_name if row and row.base_name else None) or scheme.base_name or scheme.name
+            base = fund_base_name(scheme)
             funds.setdefault((scheme.amc_name, " ".join(base.lower().split())), []).append(scheme)
-
-        def rank_key(scheme: Scheme) -> tuple[int, str]:
-            row = rows.get(scheme.amfi_code)
-            text = f"{row.option if row else ''} {scheme.name}".lower()
-            growth = "growth" in text and "idcw" not in text and "dividend" not in text
-            return (0 if growth else 1, scheme.amfi_code or "")
 
         peers: list[Scheme] = []
         representative_of: dict[uuid.UUID, uuid.UUID] = {}
-        for members in funds.values():
-            candidates = [
-                s for s in members
-                if plan_type is None
-                or (s.plan_type or (plan_type_for(rows[s.amfi_code]) if s.amfi_code in rows else None)) in (plan_type, None)
-            ]
+        excluded_funds: list[tuple[str, str]] = []
+        excluded_scheme_ids: set[uuid.UUID] = set()
+        for (_, base_name), members in funds.items():
+            candidates = [s for s in members if plan_type is None or scheme_plan(s) == plan_type]
             if not candidates:
                 continue  # the fund has no series of this plan type
-            representative = min(candidates, key=rank_key)
+            growth = [s for s in candidates if _is_growth_option(s, rows.get(s.amfi_code), base_name)]
+            if not growth:
+                excluded_funds.append((fund_base_name(members[0]), "no_growth_series"))
+                excluded_scheme_ids.update(s.id for s in members)
+                continue
+            representative = min(growth, key=lambda s: s.amfi_code or "")
             peers.append(representative)
             for s in members:
                 representative_of[s.id] = representative.id
-        return CategoryPeers(schemes=peers, fund_count=len(funds), representative_of=representative_of)
+        return CategoryPeers(
+            schemes=peers, fund_count=len(funds), representative_of=representative_of,
+            excluded_funds=excluded_funds, excluded_scheme_ids=excluded_scheme_ids,
+        )
 
 
 scheme_universe_client = SchemeUniverseClient()

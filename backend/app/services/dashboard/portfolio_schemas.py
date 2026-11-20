@@ -6,7 +6,7 @@ from typing import Annotated, Literal
 
 from pydantic import PlainSerializer
 
-from app.services.dashboard.schemas import XirrDisclaimerOut
+from app.services.dashboard.schemas import XirrBasis, XirrDisclaimerOut
 from app.services.home.schemas import Envelope, HomeModel, MemberOut, PointOut
 
 
@@ -55,6 +55,11 @@ class PortfolioSummaryResponse(Envelope):
     current_holdings_xirr: str | None
     lifetime_xirr_disclaimer: XirrDisclaimerOut | None
     current_holdings_xirr_disclaimer: XirrDisclaimerOut | None
+    xirr_as_of: str | None = None
+    lifetime_xirr_basis: XirrBasis | None = None
+    current_holdings_xirr_basis: XirrBasis | None = None
+    lifetime_since_purchase: str | None = None
+    current_holdings_since_purchase: str | None = None
 
 
 class PortfolioValueSeriesResponse(Envelope):

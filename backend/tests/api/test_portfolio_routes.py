@@ -77,6 +77,9 @@ def test_portfolio_summary_response_has_exact_contract_and_plain_decimal_json():
         "realized_gain", "today_gain", "today_pct", "previous_nav_date",
         "lifetime_xirr", "current_holdings_xirr",
         "lifetime_xirr_disclaimer", "current_holdings_xirr_disclaimer",
+        # Additive XIRR metadata (FX-8d, FX-8e).
+        "xirr_as_of", "lifetime_xirr_basis", "current_holdings_xirr_basis",
+        "lifetime_since_purchase", "current_holdings_since_purchase",
     ]
     dumped = response.model_dump(mode="json")
     assert dumped["members"] is None

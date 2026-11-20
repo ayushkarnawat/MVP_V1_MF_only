@@ -13,6 +13,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_FLOOR
+from typing import TypedDict
 
 from sqlalchemy import case
 from sqlalchemy.orm import Session
@@ -25,7 +26,7 @@ from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
 from app.services.dashboard.nav import get_nav_on_or_before, get_navs_on_or_before, get_previous_nav_from_cache
-from app.services.dashboard.schemas import HoldingRow, OpeningLotInfo, RealizedFund, RealizedSummary, FolioSlice, ConsolidatedHolding, ConsolidatedHoldingChild
+from app.services.dashboard.schemas import HoldingRow, OpeningLotInfo, RealizedFund, RealizedSummary, FolioSlice, ConsolidatedHolding, ConsolidatedHoldingChild, XirrBasis
 from app.services.dashboard.allocation_labels import asset_class_bucket
 
 # Single source of the lot rules (Phase 3 review): see app/services/lot_rules.py.
@@ -364,8 +365,15 @@ def _allocate_paisa(values: list[Decimal]) -> list[Decimal]:
 _MONEY_FIELDS = ("amount_invested", "current_value", "realized_gain", "unrealized_gain", "current_profit_total", "today_gain")
 
 
+class HoldingXirrFields(TypedDict, total=False):
+    xirr: str | None
+    xirr_as_of: str | None
+    xirr_basis: XirrBasis | None
+    since_purchase_return: str | None
+
+
 def consolidate_holdings(
-    rows: list[HoldingRow], xirr_by_scope: dict[str, dict[uuid.UUID, str | None]],
+    rows: list[HoldingRow], xirr_by_scope: dict[str, dict[uuid.UUID, HoldingXirrFields | str | None]],
 ) -> list[ConsolidatedHolding]:
     """Pure view over the existing cached rows; no NAV reads or XIRR calculation.
 
@@ -375,11 +383,17 @@ def consolidate_holdings(
     """
     member_ids = {r.household_member_id for r in rows} | (set(xirr_by_scope) - {"combined"})
     member_rates_available = len(member_ids) <= 4
+
+    def xirr_fields(scope: str, scheme_id: uuid.UUID) -> HoldingXirrFields:
+        rate = xirr_by_scope.get(scope, {}).get(scheme_id)
+        return rate if isinstance(rate, dict) else {"xirr": rate}
+
     grouped = defaultdict(list)
     for row in rows:
         grouped[(row.scheme_id, row.plan_type)].append(row)
     result = []
     for (sid, plan), group in grouped.items():
+        scheme_id = uuid.UUID(sid)
         children = []
         for row in group:
             data = row.model_dump()
@@ -393,8 +407,8 @@ def consolidate_holdings(
                 data["current_nav"] = format(Decimal(data["current_nav"]), "f")
             data["folios"] = [{**folio, "units": format(Decimal(folio["units"]), "f")} for folio in data["folios"]]
             data["average_nav"] = format(Decimal(data["amount_invested"]) / units, "f") if units else None
-            rate = xirr_by_scope.get(row.household_member_id, {}).get(uuid.UUID(sid)) if member_rates_available else None
-            children.append(ConsolidatedHoldingChild(**data, xirr=rate))
+            fields = xirr_fields(row.household_member_id, scheme_id) if member_rates_available else {}
+            children.append(ConsolidatedHoldingChild(**data, **fields))
         def summed(field):
             values = [getattr(child, field) for child in children]
             return None if any(v is None for v in values) else str(sum((Decimal(v) for v in values), Decimal("0")))
@@ -418,6 +432,6 @@ def consolidate_holdings(
             current_nav_date=min(dates) if len(dates) == len(children) else None,
             stale_nav=any(c.stale_nav for c in children), nav_unavailable=any(c.nav_unavailable for c in children),
             price_from_statement=any(c.price_from_statement for c in children), opening_lot=opening,
-            xirr=xirr_by_scope.get("combined", {}).get(uuid.UUID(sid)), children=children,
+            children=children, **xirr_fields("combined", scheme_id),
         ))
     return result

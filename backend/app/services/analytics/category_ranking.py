@@ -31,7 +31,9 @@ from app.services.analytics.schemas import (
     PeriodReturn,
 )
 from app.services.analytics.risk_metrics import years_ago
-from app.services.analytics.scheme_universe import CategoryPeers, canonical_category, get_category_peers
+from app.services.analytics.scheme_universe import (
+    CategoryPeers, canonical_category, get_category_peers, is_index_fund, plan_matches,
+)
 from app.services.dashboard.aggregate import get_member_statuses
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.household_members import list_household_members
@@ -293,12 +295,18 @@ def category_blended_weighted_average(
     detailed: dict[uuid.UUID, tuple[Decimal | None, Decimal | None, Decimal | None, Decimal | None]],
     aaum_by_scheme: dict[uuid.UUID, Decimal],
 ) -> CategoryAverage:
-    """The legacy 40/60 blended average, weighted the same way (and over the same
-    pool) as the period averages, so every screen shows one method."""
-    return _fund_size_average(
-        {sid: values[3] for sid, values in detailed.items() if values[1] is not None and values[3] is not None},
-        aaum_by_scheme,
-    )
+    """Blend the displayed 3Y and 5Y averages, carrying the 3Y weighting metadata."""
+    averages = category_period_weighted_averages(detailed, aaum_by_scheme)
+    return _legacy_average_from_periods(averages)
+
+
+def _legacy_average_from_periods(averages: dict[str, CategoryAverage]) -> CategoryAverage:
+    three_year = averages["3y"]
+    if three_year.value is None:
+        return three_year
+    blended = _blend_returns(three_year.value, averages["5y"].value)
+    # Same text form as before the change (no trailing zeros: 0.157, not 0.1570), as the old link reads the string.
+    return three_year._replace(value=Decimal(format(blended.normalize(), "f")))
 
 
 class CategoryPool(NamedTuple):
@@ -317,15 +325,25 @@ async def load_category_pool(db: Session, scheme: Scheme, today: date) -> Catego
     key = (canonical_category(scheme.sebi_category), scheme.plan_type)
     peers = await get_category_peers(db, scheme.sebi_category, scheme.plan_type)
     detailed = await _category_returns_detailed(db, peers.schemes, today, cache_key=("peers", *key))
+    # Ranking shares the cached returns for the full peer set.
+    held_is_index = is_index_fund(scheme.name, scheme.sebi_category)
+    eligible = {
+        peer.id for peer in peers.schemes
+        if peer.is_active
+        and canonical_category(peer.sebi_category) == key[0]
+        and plan_matches(peer.plan_type, key[1])
+        and is_index_fund(peer.name, peer.sebi_category) == held_is_index
+    }
+    detailed = {sid: values for sid, values in detailed.items() if sid in eligible}
     # One size lookup per category and plan, for the funds that have a return.
     aaum = _latest_aaum_by_scheme(db, list(detailed))
+    averages = category_period_weighted_averages(detailed, aaum)
     return CategoryPool(
         peers=peers,
         detailed=detailed,
-        averages=category_period_weighted_averages(detailed, aaum),
+        averages=averages,
         # Legacy: kept for desktop/print/phone views until the cleanup release.
-        # Same eligible category-and-plan pool and the same weighting as the period averages.
-        legacy_average=category_blended_weighted_average(detailed, aaum),
+        legacy_average=_legacy_average_from_periods(averages),
     )
 
 
@@ -396,7 +414,11 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
             rows.append(category_rank_row(scheme, None))
             continue
 
-        key = (canonical_category(scheme.sebi_category), scheme.plan_type)
+        key = (
+            canonical_category(scheme.sebi_category),
+            scheme.plan_type,
+            is_index_fund(scheme.name, scheme.sebi_category),
+        )
         if key not in pools:
             pools[key] = await load_category_pool(db, scheme, today)
         rows.append(category_rank_row(scheme, pools[key]))

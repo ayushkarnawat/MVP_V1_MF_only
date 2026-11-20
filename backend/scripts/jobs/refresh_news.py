@@ -12,11 +12,15 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
-import resource
 import sys
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+try:
+    import resource
+except ImportError:  # Windows has no `resource` module; the job runs on Linux, this only keeps it importable (and testable) on a laptop
+    resource = None  # type: ignore[assignment]
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
@@ -42,6 +46,8 @@ def _ping(url: str) -> None:
 
 
 def _peak_mb() -> float | None:
+    if resource is None:
+        return None
     try:
         usage = resource.getrusage(resource.RUSAGE_SELF)
     except (AttributeError, ValueError):

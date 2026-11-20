@@ -10,7 +10,9 @@ from app.config import settings
 from app.models.news import NewsItem
 from app.services.news.ingest import IngestStats, RawArticle
 
-NOW = datetime(2026, 10, 27, 12, 0, tzinfo=timezone.utc)
+# The job reads the real clock (retention is 14 days), so the test articles must be dated from it: a fixed date
+# (27 Oct 2026) made three tests fail from 10 Nov on, once their article fell outside the retention window.
+NOW = datetime.now(timezone.utc).replace(microsecond=0)
 
 
 def _article(title: str = "Sensex ends flat as investors await RBI policy", *, url: str = "https://www.moneycontrol.com/a") -> RawArticle:
