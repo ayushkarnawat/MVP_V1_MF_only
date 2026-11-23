@@ -1,10 +1,14 @@
 import React from "react";
+import { PageSearch } from "../../../components/search/PageSearch";
+import { usePageSearchState } from "../../../components/search/usePageSearchState";
+import { useScope } from "../../../shell/scope/ScopeContext";
 import { useMfAnalytics } from "../data/analyticsStore";
 import { MutualFundsFrame } from "../frame/MutualFundsFrame";
 import { CategoryRankingGroup } from "./CategoryRankingGroup";
 import { CostValuationGroup } from "./CostValuationGroup";
 import { PerformanceRankingGroup } from "./PerformanceRankingGroup";
 import { GROUP_TITLES, SHOW_FUND_QUALITY_SCORES } from "./otherLogic";
+import { filterFundRows } from "./otherSearch";
 import { ScorerGroup } from "./ScorerGroup";
 
 interface GroupProps {
@@ -41,7 +45,7 @@ function Group({ id, anchor, index, title, description, children }: GroupProps) 
   );
 }
 
-function OtherAnalyticsBody() {
+function OtherAnalyticsBody({ query }: { query: string }) {
   const ter = useMfAnalytics("ter");
 
   if (ter.status === "error") {
@@ -78,7 +82,7 @@ function OtherAnalyticsBody() {
         title={GROUP_TITLES.cost}
         description="How expensive your funds are to hold, and how richly their holdings are priced."
       >
-        <CostValuationGroup />
+        <CostValuationGroup query={query} />
       </Group>
 
       {SHOW_FUND_QUALITY_SCORES && (
@@ -99,7 +103,7 @@ function OtherAnalyticsBody() {
         title={GROUP_TITLES.category}
         description="Your fund returns compared with the average of funds in the same category and plan type, weighted by fund size."
       >
-        <CategoryRankingGroup />
+        <CategoryRankingGroup query={query} />
       </Group>
 
       <Group
@@ -109,16 +113,34 @@ function OtherAnalyticsBody() {
         title={GROUP_TITLES.ranking}
         description="Each period compares funds in the same SEBI category and plan type."
       >
-        <PerformanceRankingGroup />
+        <PerformanceRankingGroup query={query} />
       </Group>
     </div>
   );
 }
 
 export default function OtherAnalyticsPage() {
+  const { userId } = useScope();
+  const { text } = usePageSearchState("analytics");
+  const ter = useMfAnalytics("ter");
+  const costFunds = ter.data?.funds ?? [];
+  const matched = filterFundRows(costFunds, text).length;
+
   return (
-    <MutualFundsFrame tab="analytics">
-      <OtherAnalyticsBody />
+    <MutualFundsFrame
+      tab="analytics"
+      utility={
+        <PageSearch
+          pageKey="analytics"
+          noun="funds"
+          total={costFunds.length}
+          matched={matched}
+          chipsAllowed={[]}
+          userId={userId ?? null}
+        />
+      }
+    >
+      <OtherAnalyticsBody query={text} />
     </MutualFundsFrame>
   );
 }
