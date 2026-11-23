@@ -103,3 +103,12 @@ export function parseQuery(text: string): ParsedQuery {
   if (amount !== undefined) result.amount = amount;
   return result;
 }
+
+/**
+ * Every word of the text, normalised, with nothing taken out. For pages that filter a list of funds or stocks by name:
+ * a number in a name ("Nifty 500", "Target 2030") must stay a word, where `parseQuery` reads it as an amount or a year.
+ */
+export function plainWords(text: string): string[] {
+  const normalised = normalise(text);
+  return normalised ? normalised.split(" ") : [];
+}

@@ -3,9 +3,11 @@ import { ChevronRight, Ellipsis, Plus } from "lucide-react";
 import { ApiError } from "@/lib/apiClient";
 import { DISABLED } from "@/lib/clickable";
 import { SchemeLogo } from "@/components/SchemeLogo";
+import { PageSearch } from "@/components/search/PageSearch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppLink } from "@/shell/nav/AppLink";
 import { paths } from "@/shell/nav/paths";
+import { useScope } from "@/shell/scope/ScopeContext";
 import { fundPageApi } from "./api";
 import { useFundPageScope, useFundSection } from "./useFundSection";
 import { COMING_SOON } from "./fundCopy";
@@ -35,6 +37,7 @@ export function FundPageFrame({
   children,
 }: FundPageFrameProps) {
   const scope = useFundPageScope();
+  const { userId } = useScope();
 
   const summary = useFundSection<SummaryResponse>(
     (signal) => fundPageApi.summary(schemeId, scope, signal),
@@ -236,6 +239,15 @@ export function FundPageFrame({
         </div>
 
         <div className="flex items-center gap-2">
+          <PageSearch
+            pageKey="fund"
+            noun="funds"
+            total={0}
+            matched={0}
+            chipsAllowed={[]}
+            jumpOnly
+            userId={userId ?? null}
+          />
           <button
             type="button"
             aria-disabled="true"
