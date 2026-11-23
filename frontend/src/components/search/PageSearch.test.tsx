@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import type { NavigateOptions, To } from "react-router-dom";
+import type { NavigateOptions, To } from "react-router";
 import type { ResultGroup, ResultRow, PageFilterSource } from "./searchResultTypes";
 import type { SearchFund, SearchIndexResponse } from "./searchTypes";
 import { parseQuery } from "./queryParser";
