@@ -955,3 +955,6 @@ Answered by the owner after the M3 lane plan (`Docs/orchestration/2026-11-20-m3-
 
 ## 2026-11-23 - search-be-1: main manager picker
 - Codex stopped at the wave-start check: the Allocation page picks the manager with `_pick_for_fund` (equity or debt orientation), not `pick_main_manager`. Orchestrator decision (small, keeps parity, no edit to the Allocation file): the search index imports `_pick_for_fund` and feeds it a stand-in with `sebi_category` and `asset_class`. Handoff corrected (commit 7d7052cb). If the owner vetoes: search would show a different manager than Allocation for mixed-role funds.
+
+## 2026-11-23 - G1 review of the search endpoint (Sonnet, read-only): PASS, five Lows
+- Fixed: Low 5 (`in_` got a dict; now a list). Accepted, no change: Low 2 (a member with only non-lot rows shows as "sold": matches the spec rule "zero units with at least one transaction"), Low 3 (folios of two plan types merge into one holder: intended), Low 4 (correct as built). Open for the owner, recommend accept: Low 1 (search uses the IST date for the two-month manager window, Allocation uses the server date; they differ for about 5 hours on the 1st of a month, search may show no manager where Allocation shows one). If you want exact parity, one line changes later.
