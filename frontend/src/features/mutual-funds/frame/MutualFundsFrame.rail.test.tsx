@@ -170,11 +170,11 @@ describe("MutualFundsFrame section rail", () => {
     const hrefs = within(rail()).getAllByRole("link").map(link => link.getAttribute("href"));
     fireEvent.click(screen.getByRole("button", { name: "Select Sample B" }));
     expect(screen.getByLabelText("Selected sample")).toHaveTextContent("member-b");
-    expect(screen.getAllByRole("status")).toHaveLength(3);
+    expect(screen.getAllByText("Loading sample")).toHaveLength(3);
     expect(within(rail()).getAllByRole("link").map(link => link.getAttribute("href"))).toEqual(hrefs);
     expectHistoryActive();
     fireEvent.click(screen.getByRole("button", { name: "Finish sample reload" }));
-    await waitFor(() => expect(screen.queryAllByRole("status")).toHaveLength(0));
+    await waitFor(() => expect(screen.queryAllByText("Loading sample")).toHaveLength(0));
     expectHistoryActive();
   });
 

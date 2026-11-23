@@ -38,7 +38,7 @@ export function useSectionJump(
         frame = requestAnimationFrame(() => align("instant"));
       }, delay);
     };
-    const resize = new ResizeObserver(() => settle());
+    const resize = typeof ResizeObserver === "undefined" ? { observe: () => undefined, disconnect: () => undefined } : new ResizeObserver(() => settle());
     const observe = () => {
       resize.disconnect();
       resize.observe(root);
@@ -60,7 +60,7 @@ export function useSectionJump(
       heading ??= element;
       if (!heading.hasAttribute("tabindex")) heading.tabIndex = -1;
       heading.focus({ preventScroll: true });
-      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       align(reduced ? "instant" : "smooth");
       window.history.replaceState(window.history.state, "", `#${section.anchor}`);
       settle(reduced ? 0 : 500);

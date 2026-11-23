@@ -34,7 +34,7 @@ export function useSectionSpy(
       }
       setActiveId(active);
     };
-    const resize = new ResizeObserver(measure);
+    const resize = typeof ResizeObserver === "undefined" ? { observe: () => undefined, disconnect: () => undefined } : new ResizeObserver(measure);
     const observe = () => {
       resize.disconnect();
       resize.observe(root);

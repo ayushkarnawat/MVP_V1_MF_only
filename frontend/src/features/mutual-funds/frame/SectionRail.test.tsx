@@ -96,7 +96,7 @@ describe("SectionRail", () => {
 
   it("Pin keeps it open", () => {
     mount(); open();
-    fireEvent.click(within(nav()).getByRole("button", { name: "Pin", exact: true }));
+    fireEvent.click(within(nav()).getByRole("button", { name: "Pin" }));
     fireEvent.mouseLeave(nav());
     expect(nav()).toHaveAttribute("data-state", "open");
     const pin = within(nav()).getByRole("button", { name: /unpin/i });
@@ -121,7 +121,7 @@ describe("SectionRail", () => {
     width = 1099;
     const view = mount();
     expect(nav()).toHaveAttribute("data-layout", "pill");
-    const trigger = within(nav()).getByRole("button", { name: "On this page", exact: true });
+    const trigger = within(nav()).getByRole("button", { name: "On this page" });
     expect(trigger).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(trigger);
     expect(trigger).toHaveAttribute("aria-expanded", "true");
@@ -157,7 +157,7 @@ describe("SectionRail", () => {
   it("Overlap names omit the literal card numbering", () => {
     mount(sectionsForTab("overlap")); open();
     for (const title of ["Common Holdings", "Overlap Heatmap", "Top Overlapping Fund Pairs", "Overlap Impact"]) {
-      expect(within(nav()).getByRole("link", { name: title, exact: true })).toBeInTheDocument();
+      expect(within(nav()).getByRole("link", { name: title })).toBeInTheDocument();
     }
   });
 });

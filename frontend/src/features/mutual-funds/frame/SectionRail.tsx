@@ -45,7 +45,7 @@ export function SectionRail({ sections, activeId, onJump }: SectionRailProps) {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
     const pillMql = window.matchMedia(PILL_QUERY);
     const motionMql = window.matchMedia(REDUCED_MOTION_QUERY);
-    const onPillChange = () => setIsPill(pillMql.matches || window.innerWidth < 1100);
+    const onPillChange = () => setIsPill(pillMql.matches);
     const onMotionChange = () => setReducedMotion(motionMql.matches);
     onPillChange();
     onMotionChange();
