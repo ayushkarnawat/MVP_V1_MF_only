@@ -22,7 +22,7 @@ export function TopBar() {
     <div className="ml-auto flex flex-wrap items-center gap-3">
       <FamilySelector />
       <Button variant="outline" onClick={() => openImport()} className="rounded-xl border-[var(--shell-border-input)] text-[var(--shell-text)] hover:bg-[var(--shell-page)] focus-visible:ring-[var(--shell-accent)]">+ Add data</Button>
-      <span role="separator" aria-orientation="vertical" className="h-6 w-px bg-[var(--shell-divider)]" />
+      <span role="separator" aria-orientation="vertical" className="h-6 w-px bg-[var(--shell-border-input)]" />
       <ThemeToggle />
     </div>
     <MiraComingSoonDialog open={miraOpen} onOpenChange={setMiraOpen} />
