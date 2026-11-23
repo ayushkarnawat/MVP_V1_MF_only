@@ -2,8 +2,8 @@ import { Activity, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import { CoverageBanner } from "../../../components/mf/CoverageBanner";
 import { formatPercent as formatLookthroughPercent } from "../../../components/mf/lookthroughDisplay";
+import { formatDataDate } from "../../../lib/dataDates";
 import { compareDecimalStrings } from "../../../lib/decimal";
-import { formatDate } from "../../../lib/format";
 import { ChartTypeToggle } from "../common/charts";
 import type { ValuationSummary } from "../types";
 import {
@@ -53,7 +53,12 @@ function Panel({ data, kind, view }: PanelProps) {
           {label} · {basis}
         </h4>
         <p data-testid={`coverage-${kind}`} className="text-xs text-[var(--ui-text-muted)]">
-          Ratio data cover {formatLookthroughPercent(metric.coverage_pct, 1)}% of equity exposure · Fundamentals as on {formatDate(metric.as_of_date)}
+          {[
+            `Ratio data cover ${formatLookthroughPercent(metric.coverage_pct, 1)}% of equity exposure`,
+            formatDataDate("ratios", metric.as_of_date),
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
       </div>
 
@@ -150,11 +155,17 @@ export function ValuationSpectrum({ data }: ValuationSpectrumProps) {
   const [view, setView] = useState<"spectrum" | "bars">("spectrum");
 
   const hasNoEquity = compareDecimalStrings(data.total_equity_value, "0") === 0;
+  const datesLine = [
+    formatDataDate("prices", data.nav_as_of),
+    formatDataDate("holdings", data.holdings_as_of),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div data-testid="valuation-body" className="space-y-5">
       <p data-testid="valuation-dates" className="text-xs text-[var(--ui-text-muted)]">
-        Values as on {formatDate(data.nav_as_of)} · Holdings as on {formatDate(data.holdings_as_of)}.
+        {datesLine ? `${datesLine}.` : null}
       </p>
 
       <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { TriangleAlert } from "lucide-react";
 import { Modal } from "@/components/Modal";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatDate, formatPercent, formatRupees } from "@/lib/format";
+import { formatDataDate } from "@/lib/dataDates";
+import { formatPercent, formatRupees } from "@/lib/format";
 import { toPercentString } from "@/lib/decimal";
 import { resolveXirrDisplay, SINCE_PURCHASE_CAPTION } from "@/lib/xirrDisplay";
 import {
@@ -369,7 +370,7 @@ export function SummaryStrip({
               data-testid="xirr-as-of"
               className="text-xs text-[var(--ui-text-muted)]"
             >
-              {`As on ${formatDate(xirrAsOf)}`}
+              {formatDataDate("prices", xirrAsOf)}
             </div>
           )}
         </div>

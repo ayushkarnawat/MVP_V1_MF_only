@@ -12,7 +12,7 @@ const radio = (name: string) => screen.getByRole("radio", { name });
 describe("the card's frame", () => {
   it("states the dates, the full coverage banner and both thresholds", () => {
     mount();
-    expect(screen.getByTestId("valuation-dates")).toHaveTextContent("Values as on 24 Oct 2026 · Holdings as on 30 Sep 2026.");
+    expect(screen.getByTestId("valuation-dates")).toHaveTextContent("Prices as on 24 Oct 2026 · Holdings as on September 2026.");
     const banner = screen.getByRole("complementary", { name: "Portfolio disclosure coverage" });
     expect(banner).toHaveTextContent("Based on 91.4% of your portfolio");
     expect(banner).toHaveTextContent("HDFC Overnight Fund");
@@ -28,8 +28,8 @@ describe("the card's frame", () => {
     expect(screen.getByRole("group", { name: "P/B valuation" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "P/E · earnings" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "P/B · book value" })).toBeInTheDocument();
-    expect(screen.getByTestId("coverage-pe")).toHaveTextContent("Ratio data cover 86.4% of equity exposure · Fundamentals as on 23 Oct 2026");
-    expect(screen.getByTestId("coverage-pb")).toHaveTextContent("Ratio data cover 84.2% of equity exposure · Fundamentals as on 22 Oct 2026");
+    expect(screen.getByTestId("coverage-pe")).toHaveTextContent("Ratio data cover 86.4% of equity exposure · Ratios as on 23 Oct 2026");
+    expect(screen.getByTestId("coverage-pb")).toHaveTextContent("Ratio data cover 84.2% of equity exposure · Ratios as on 22 Oct 2026");
   });
 });
 
