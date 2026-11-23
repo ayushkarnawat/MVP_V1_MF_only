@@ -3,8 +3,9 @@ import { useMemo, useState } from "react";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { CoverageBanner, fundAgeText } from "../../../components/mf/CoverageBanner";
 import { formatPercent as lookthroughPercent, percentageProduct } from "../../../components/mf/lookthroughDisplay";
+import { formatDataDate } from "../../../lib/dataDates";
 import { compareDecimalStrings, diffDecimalStrings } from "../../../lib/decimal";
-import { formatCompactRupees, formatDate, formatPercent, formatRupees } from "../../../lib/format";
+import { formatCompactRupees, formatPercent, formatRupees } from "../../../lib/format";
 import { SlicedDonut, useSelectedSlice } from "../common/charts";
 import { FundLink } from "../common/FundLink";
 import { SectionCard } from "../common/SectionCard";
@@ -169,10 +170,15 @@ export function MarketCapCard({
       ) : (
         <div className="flex flex-col gap-4">
           <p data-testid="as-on" className="text-xs text-[var(--ui-text-muted)]">
-            Values as on {formatDate(data.nav_as_of)} · Holdings as on {formatDate(data.holdings_as_of)} ·{" "}
-            {data.classification_as_of
-              ? `AMFI classification effective from ${formatDate(data.classification_as_of)}.`
-              : "No applicable AMFI classifications for these holdings."}
+            {[
+              formatDataDate("prices", data.nav_as_of),
+              formatDataDate("holdings", data.holdings_as_of),
+              data.classification_as_of
+                ? `${formatDataDate("marketCapList", data.classification_as_of)}.`
+                : "No applicable AMFI classifications for these holdings.",
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
 
           <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />
