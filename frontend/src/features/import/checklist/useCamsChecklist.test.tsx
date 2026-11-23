@@ -3,10 +3,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCamsChecklist } from "./useCamsChecklist";
 import { getChecklistState, setChecklistState, clearChecklistState, setCasResumeStep2, hasCasResumeStep2 } from "../casResumeState";
 
+// The floating window's document must have a window (testing-library needs one to compute roles and styles), so it is the
+// document of a hidden iframe, not a bare document made with createHTMLDocument.
+function floatingDocument(): Document {
+  const frame = document.createElement("iframe");
+  frame.style.display = "none";
+  document.body.append(frame);
+  const doc = frame.contentDocument as Document;
+  doc.title = "Unifolio checklist";
+  return doc;
+}
+
+
 function floatingWindow() {
   const events = new EventTarget();
   const floating = {
-    document: document.implementation.createHTMLDocument("Unifolio checklist"),
+    document: floatingDocument(),
     closed: false,
     focus: vi.fn(),
     close: vi.fn(() => {

@@ -4,6 +4,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RequestCamsPath } from "../RequestCamsPath";
 import * as api from "../api";
 
+// The floating window's document must have a window (testing-library needs one to compute roles and styles), so it is the
+// document of a hidden iframe, not a bare document made with createHTMLDocument.
+function floatingDocument(): Document {
+  const frame = document.createElement("iframe");
+  frame.style.display = "none";
+  document.body.append(frame);
+  const doc = frame.contentDocument as Document;
+  doc.title = "Unifolio checklist";
+  return doc;
+}
+
+
 vi.mock("../../legal/api", async () => {
   const actual = await vi.importActual<typeof import("../../legal/api")>("../../legal/api");
   const { DOCS } = await import("../../legal/testFixtures");
@@ -18,7 +30,7 @@ const response = {
 function setup() {
   const events = new EventTarget();
   const floating = {
-    document: document.implementation.createHTMLDocument("Unifolio checklist"),
+    document: floatingDocument(),
     closed: false, focus: vi.fn(),
     close: vi.fn(() => {
       floating.closed = true;
@@ -57,7 +69,7 @@ describe("CamsChecklist through the request screen (no invented component props)
     ];
     expect(boxes).toHaveLength(5);
     boxes.forEach((box, index) => {
-      expect(box).toBeInstanceOf(HTMLInputElement);
+      expect(box.tagName).toBe("INPUT"); // not instanceof: the floating window's document is another realm
       expect(box).toHaveAttribute("type", "checkbox");
       expect(box).toHaveAccessibleName(labels[index]);
       expect(checklist.getByLabelText(labels[index])).toBe(box);

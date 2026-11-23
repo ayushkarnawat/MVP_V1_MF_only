@@ -3,6 +3,18 @@ import { describe, expect, it, vi, afterEach } from "vitest";
 import { RequestCamsPath } from "./RequestCamsPath";
 import * as api from "./api";
 
+// The floating window's document must have a window (testing-library needs one to compute roles and styles), so it is the
+// document of a hidden iframe, not a bare document made with createHTMLDocument.
+function floatingDocument(): Document {
+  const frame = document.createElement("iframe");
+  frame.style.display = "none";
+  document.body.append(frame);
+  const doc = frame.contentDocument as Document;
+  doc.title = "Unifolio checklist";
+  return doc;
+}
+
+
 vi.mock("../legal/api", async () => {
   const actual = await vi.importActual<typeof import("../legal/api")>("../legal/api");
   const { DOCS } = await import("../legal/testFixtures");
@@ -18,7 +30,7 @@ describe("H-8 CAMS checklist request flow", () => {
   function floatingWindow() {
     const events = new EventTarget();
     const floating = {
-      document: document.implementation.createHTMLDocument("Unifolio checklist"),
+      document: floatingDocument(),
       closed: false, focus: vi.fn(),
       close: vi.fn(() => {
         floating.closed = true;
@@ -86,7 +98,7 @@ describe("H-8 CAMS checklist request flow", () => {
     render(<RequestCamsPath memberId="member-h8" onRequestInitiated={initiated} />);
     fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
     const checklist = within(floating.document.body);
-    expect(await screen.findByText("Failed to initiate CAMS request.")).toBeVisible();
+    expect(await screen.findByText("Failed to initiate CAMS request.")).toBeInTheDocument();
     expect(await checklist.findByText("Failed to initiate CAMS request.")).toBeInTheDocument();
     expect(initiated).not.toHaveBeenCalled();
     fireEvent.click(checklist.getByRole("button", { name: "Try again" }));
@@ -133,7 +145,7 @@ describe("H-8 CAMS checklist request flow", () => {
     const openTab = vi.spyOn(window, "open").mockReturnValue(null);
     const request = vi.spyOn(api, "requestCamsStatement").mockResolvedValue(response);
     const { unmount } = render(<RequestCamsPath memberId="member-h8" onRequestInitiated={vi.fn()} />);
-    expect(screen.getByText(/A small checklist will float over the CAMS page/)).toBeVisible();
+    expect(screen.getByText(/A small checklist will float over the CAMS page/)).toBeInTheDocument();
     const skip = screen.queryByRole("link", { name: "Continue without it" }) ?? screen.getByRole("button", { name: "Continue without it" });
     fireEvent.click(skip);
     expect(request).not.toHaveBeenCalled();

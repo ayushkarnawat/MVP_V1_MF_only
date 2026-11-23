@@ -12,6 +12,9 @@ import {
 import { cn } from "@/lib/utils";
 import { History, ArrowLeft } from "lucide-react";
 import type { UploadSurface } from "@/features/legal/panDisclaimerStore";
+import { useCamsChecklist } from "./checklist/useCamsChecklist";
+import { getChecklistStore } from "./checklist/checklistStore";
+import { CamsChecklistHost, CamsChecklistHostedContext } from "./checklist/CamsChecklistHost";
 
 export type ImportView = "choice" | "request" | "waiting" | "upload" | "history";
 
@@ -26,13 +29,20 @@ export interface TwoPathImportContainerProps {
   surface?: UploadSurface;
 }
 
-export function TwoPathImportContainer({
+export function TwoPathImportContainer(props: TwoPathImportContainerProps) {
+  return <MemberImportContainer key={props.memberId} {...props} />;
+}
+
+function MemberImportContainer({
   error, errorCode, requestCasVersion = 0,
   memberId,
   defaultTab,
   onUploadSubmit,
   surface,
 }: TwoPathImportContainerProps) {
+  const checklist = useCamsChecklist(memberId);
+  const checklistStore = getChecklistStore(memberId);
+  const checklistOpen = checklist.mode !== "closed" && checklist.step !== "ready";
   const [view, setView] = useState<ImportView>(() => {
     if (defaultTab === "history") return "history";
     if (defaultTab === "upload") return "upload";
@@ -43,20 +53,26 @@ export function TwoPathImportContainer({
   const [pendingImportId, setPendingImportId] = useState<string | null>(null);
 
   useEffect(() => {
-    if ((!defaultTab || defaultTab === "choice" || defaultTab === "request") && hasCasResumeStep2(memberId)) {
+    if (!checklistOpen && !checklistStore.isOpening() && (!defaultTab || defaultTab === "choice" || defaultTab === "request") && hasCasResumeStep2(memberId)) {
       setView("upload");
     }
-  }, [memberId, defaultTab]);
+  }, [memberId, defaultTab, checklistOpen, checklistStore]);
 
   useEffect(() => {
     const handleFocus = () => {
+      const current = checklistStore.getSnapshot();
+      if (checklistStore.isOpening() || (current.mode !== "closed" && current.step !== "ready")) return;
       if (hasCasResumeStep2(memberId)) {
         setView("upload");
       }
     };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [memberId]);
+  }, [memberId, checklistStore]);
+
+  useEffect(() => {
+    if (checklist.step === "ready") setView("upload");
+  }, [checklist.step]);
 
   useEffect(() => {
     if (requestCasVersion > 0) setView("request");
@@ -69,11 +85,13 @@ export function TwoPathImportContainer({
   };
 
   const handleUploadSubmit = (file: File, password: string, sourceTab: string) => {
+    checklist.startOver();
     clearCasResumeStep2(memberId);
     onUploadSubmit(file, password, sourceTab);
   };
 
   return (
+    <CamsChecklistHostedContext.Provider value={true}>
     <div
       className={cn(
         "flex flex-col w-full max-w-3xl mx-auto box-border flex-1",
@@ -89,6 +107,7 @@ export function TwoPathImportContainer({
         {/* Secondary Import History Action Button */}
         <button
           type="button"
+          data-clickable="" data-effect="switch"
           onClick={() => setView((prev) => (prev === "history" ? "choice" : "history"))}
           aria-label="Import History"
           className={cn(
@@ -104,6 +123,7 @@ export function TwoPathImportContainer({
       </div>
 
       {/* Main View Container */}
+      <CamsChecklistHost memberId={memberId} />
       <div
         className={cn(
           "animate-in fade-in duration-200 w-full",
@@ -119,6 +139,7 @@ export function TwoPathImportContainer({
 
         {view === "request" && (
           <RequestCamsPath
+            key={memberId}
             memberId={memberId}
             onBack={() => setView("choice")}
             onRequestInitiated={handleRequestInitiated}
@@ -131,6 +152,7 @@ export function TwoPathImportContainer({
             serverFileError={errorCode && ["file_too_large", "unsupported_file", "invalid_file"].includes(errorCode) ? error ?? undefined : undefined}
             importId={pendingImportId || "pending-import"}
             onCancelled={() => {
+              checklist.startOver();
               clearCasResumeStep2(memberId);
               setPendingImportId(null);
               setView("choice");
@@ -164,6 +186,7 @@ export function TwoPathImportContainer({
 
               <button
                 type="button"
+                data-clickable="" data-effect="navigate"
                 onClick={() => setView("choice")}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] transition-colors cursor-pointer py-1 min-h-[36px]"
               >
@@ -176,5 +199,6 @@ export function TwoPathImportContainer({
         )}
       </div>
     </div>
+    </CamsChecklistHostedContext.Provider>
   );
 }

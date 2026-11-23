@@ -3,6 +3,18 @@ import { describe, expect, it, vi, afterEach } from "vitest";
 import { WaitingForCasView } from "./WaitingForCasView";
 import * as api from "./api";
 
+// The floating window's document must have a window (testing-library needs one to compute roles and styles), so it is the
+// document of a hidden iframe, not a bare document made with createHTMLDocument.
+function floatingDocument(): Document {
+  const frame = document.createElement("iframe");
+  frame.style.display = "none";
+  document.body.append(frame);
+  const doc = frame.contentDocument as Document;
+  doc.title = "Unifolio checklist";
+  return doc;
+}
+
+
 vi.mock("../legal/api", async () => {
   const actual = await vi.importActual<typeof import("../legal/api")>("../legal/api");
   const { DOCS } = await import("../legal/testFixtures");
@@ -18,7 +30,7 @@ describe("H-8 waiting screen checklist integration", () => {
   function floatingWindow() {
     const events = new EventTarget();
     const floating = {
-      document: document.implementation.createHTMLDocument("Unifolio checklist"),
+      document: floatingDocument(),
       closed: false, focus: vi.fn(),
       close: vi.fn(() => {
         floating.closed = true;
@@ -64,7 +76,8 @@ describe("H-8 waiting screen checklist integration", () => {
     expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
     fireEvent.click(checklist.getByRole("button", { name: "I have the file" }));
     expect(await screen.findByLabelText(/CAS PDF/i)).toBeVisible();
-    expect(getChecklistState("member-h8")?.step).toBe("ready");
+    // "I have the file" closes the checklist and clears its saved state (H-9 decision 5); ready is only a moment in memory.
+    expect(getChecklistState("member-h8")).toBeFalsy();
     expect(floating.close).toHaveBeenCalledTimes(1);
     expect(floating.closed).toBe(true);
   });

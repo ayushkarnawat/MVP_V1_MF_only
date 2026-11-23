@@ -67,6 +67,7 @@ export function WaitingForCasView({
           </div>
 
           <Button
+            data-clickable="" data-effect="close"
             variant="ghost"
             size="sm"
             onClick={handleCancel}
@@ -104,6 +105,7 @@ export function WaitingForCasView({
       <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xs overflow-hidden">
         <button
           type="button"
+          data-clickable="" data-effect="expand"
           onClick={() => setIsUploadOpen((prev) => !prev)}
           aria-expanded={isUploadOpen}
           className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 text-left hover:bg-[var(--color-bg)]/50 transition-colors cursor-pointer min-h-[44px]"
