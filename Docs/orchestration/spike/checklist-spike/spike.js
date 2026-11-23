@@ -68,7 +68,13 @@ advance.addEventListener("click", () => {
   save();
   log(`Step changed: ${state.step}`);
 });
-checklist.append(title, progress, list, advance);
+const openCams = document.createElement("button");
+openCams.textContent = "Open CAMS stand-in (button inside the checklist)";
+openCams.addEventListener("click", () => {
+  const tab = window.open("cams-stand-in.html", "_blank");
+  log(`Q3b click inside the checklist (${checklist.ownerDocument === document ? "main" : "floating"}): window.open returned ${tab ? "window" : "null (blocked)"}`);
+});
+checklist.append(title, progress, list, advance, openCams);
 byId("checklist-home").append(checklist);
 
 function render() {
@@ -171,9 +177,14 @@ async function run(order) {
   busy = true;
   try {
     if (order === "request-first") await fakeRequest(delay, tag);
+    if (order === "cams-first") {
+      // window.open runs on the click stack, before any await.
+      const tab = window.open("cams-stand-in.html", "_blank");
+      log(`${tag} window.open (first) returned ${tab ? "window" : "null (blocked)"}`);
+    }
     await openChecklist(tag, simulateRefusal);
-    if (order === "checklist-first") await fakeRequest(delay, tag);
-    if (order !== "checklist-only") {
+    if (order === "checklist-first" || order === "cams-first") await fakeRequest(delay, tag);
+    if (order !== "checklist-only" && order !== "cams-first") {
       try {
         const tab = window.open("cams-stand-in.html", "_blank");
         log(`${tag} window.open returned ${tab ? "window" : "null (blocked)"}`);
@@ -187,6 +198,7 @@ async function run(order) {
 }
 
 byId("checklist-first").addEventListener("click", () => { void run("checklist-first"); });
+byId("cams-first").addEventListener("click", () => { void run("cams-first"); });
 byId("request-first").addEventListener("click", () => { void run("request-first"); });
 byId("checklist-only").addEventListener("click", () => { void run("checklist-only"); });
 byId("close").addEventListener("click", () => {
