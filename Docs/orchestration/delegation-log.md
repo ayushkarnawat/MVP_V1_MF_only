@@ -828,3 +828,4 @@ fix" rule.
 - 2026-11-23 | T08 box red tests | Codex | DONE (blocked on running); I ran lane ks: both files red (components missing); 38 cases; fixed the router mock and type import to react-router (the repo does not have react-router-dom); committed on batch/k-search | orchestrator
 - 2026-11-23 | T09 hooks red tests | Codex | DONE (blocked on running); I ran lane ks: 4 files red (modules missing), 37 cases; committed on batch/k-search | orchestrator
 - 2026-11-23 | T09 hooks build | Antigravity ag-t09 | packet written, relay pending | orchestrator
+- 2026-11-23 | T11 page search red tests (Overview, Transactions, Holdings) | Codex (unifolio-k-search) | handoff written, relay pending | orchestrator
