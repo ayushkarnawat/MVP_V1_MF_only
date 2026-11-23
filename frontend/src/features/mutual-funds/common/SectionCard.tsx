@@ -5,9 +5,11 @@ import { Skeleton } from "../../../components/ui/skeleton";
 export interface InfoMarkProps {
   text: string;
   testId?: string;
+  /** Richer popover content (for example one paragraph per line). The name and tooltip attribute stay `text`. */
+  content?: ReactNode;
 }
 
-export function InfoMark({ text, testId }: InfoMarkProps) {
+export function InfoMark({ text, testId, content }: InfoMarkProps) {
   return (
     <InfoPopover
       label={text}
@@ -25,7 +27,7 @@ export function InfoMark({ text, testId }: InfoMarkProps) {
         </span>
       }
     >
-      {text}
+      {content ?? text}
     </InfoPopover>
   );
 }

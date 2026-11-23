@@ -25,7 +25,11 @@ export function DateStrip({ entries, olderMarkers }: DateStripProps) {
       <span data-testid="date-strip-line" className="font-medium text-[var(--ui-text-muted)]">
         {line}
       </span>
-      <InfoMark testId="date-strip-info" text={explainText} />
+      <InfoMark
+        testId="date-strip-info"
+        text={explainText}
+        content={entries.map(entry => <p key={entry.kind} className="mt-2 first:mt-0">{entry.explain}</p>)}
+      />
       {olderMarkers.map((marker, index) => (
         <span
           key={`${marker.label}-${index}`}
