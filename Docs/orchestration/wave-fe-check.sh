@@ -15,29 +15,35 @@
 # ~/cr6-fe (no extra disk). Edit in the lane's own folder only; this script just mirrors it and runs the tool.
 set -euo pipefail
 
+# Where the lane worktrees and the Antigravity clones live, as WSL paths. Defaults are the first laptop's
+# (D:\unifolio-* and C:\Users\Ayush\ag-*); on another machine export these before calling the script, e.g.
+#   export UNIFOLIO_WT_ROOT=/mnt/d  UNIFOLIO_AG_ROOT=/mnt/c/Users/<windows-user>
+WT="${UNIFOLIO_WT_ROOT:-/mnt/d}"
+AG="${UNIFOLIO_AG_ROOT:-/mnt/c/Users/Ayush}"
+
 lane="${1:?lane (b, c, a, l or ag-<name>)}"
 mode="${2:?mode (test, types, lint, build)}"
 shift 2 || true
 
 case "$lane" in
-  b) SRC=/mnt/d/unifolio-b-journey/frontend ;;
-  c) SRC=/mnt/d/unifolio-c-hygiene/frontend ;;
-  a) SRC=/mnt/d/unifolio-a-numbers/frontend ;;
-  af) SRC=/mnt/d/unifolio-a-fixes/frontend ;;
-  ax) SRC=/mnt/d/unifolio-a-xirr/frontend ;;
-  aw) SRC=/mnt/d/unifolio-a-wording/frontend ;;
-  d) SRC=/mnt/d/unifolio-d-charts/frontend ;;
-  h) SRC=/mnt/d/unifolio-h-tutorial/frontend ;;
-  l) SRC=/mnt/d/unifolio-l-audit/frontend ;;
-  m1) SRC=/mnt/d/unifolio-m1/frontend ;;   # the merged M1 candidate (a throwaway worktree)
-  dp) SRC=/mnt/d/unifolio-d-popup/frontend ;;   # D-9 and D-10 (pop-up tests and component)
-  do) SRC=/mnt/d/unifolio-d-overview/frontend ;;   # D-7 (Overview graph)
-  di) SRC=/mnt/d/unifolio-d-int/frontend ;;   # integration of the Batch D part 2 lanes
-  m2) SRC=/mnt/d/unifolio-m2/frontend ;;   # the merged M2 candidate (branch m2-candidate)
-  ks) SRC=/mnt/d/unifolio-k-search/frontend ;;   # Batch K integration (search)
-  ed) SRC=/mnt/d/unifolio-e-dates/frontend ;;   # Batch E (dates)
-  fn) SRC=/mnt/d/unifolio-f-nav/frontend ;;   # Batch F (section index)
-  ag-*) SRC="/mnt/c/Users/Ayush/${lane}/frontend" ;;
+  b) SRC="$WT/unifolio-b-journey/frontend" ;;
+  c) SRC="$WT/unifolio-c-hygiene/frontend" ;;
+  a) SRC="$WT/unifolio-a-numbers/frontend" ;;
+  af) SRC="$WT/unifolio-a-fixes/frontend" ;;
+  ax) SRC="$WT/unifolio-a-xirr/frontend" ;;
+  aw) SRC="$WT/unifolio-a-wording/frontend" ;;
+  d) SRC="$WT/unifolio-d-charts/frontend" ;;
+  h) SRC="$WT/unifolio-h-tutorial/frontend" ;;
+  l) SRC="$WT/unifolio-l-audit/frontend" ;;
+  m1) SRC="$WT/unifolio-m1/frontend" ;;   # the merged M1 candidate (a throwaway worktree)
+  dp) SRC="$WT/unifolio-d-popup/frontend" ;;   # D-9 and D-10 (pop-up tests and component)
+  do) SRC="$WT/unifolio-d-overview/frontend" ;;   # D-7 (Overview graph)
+  di) SRC="$WT/unifolio-d-int/frontend" ;;   # integration of the Batch D part 2 lanes
+  m2) SRC="$WT/unifolio-m2/frontend" ;;   # the merged M2 candidate (branch m2-candidate)
+  ks) SRC="$WT/unifolio-k-search/frontend" ;;   # Batch K integration (search)
+  ed) SRC="$WT/unifolio-e-dates/frontend" ;;   # Batch E (dates)
+  fn) SRC="$WT/unifolio-f-nav/frontend" ;;   # Batch F (section index)
+  ag-*) SRC="$AG/${lane}/frontend" ;;
   *) echo "unknown lane $lane" >&2; exit 2 ;;
 esac
 [ -d "$SRC" ] || { echo "Missing $SRC" >&2; exit 2; }

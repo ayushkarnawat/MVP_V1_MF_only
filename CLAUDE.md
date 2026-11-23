@@ -68,7 +68,9 @@ trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.m
 `Docs/orchestration/delegation-log.md`. Deferred/not-yet-built features:
 `DEFERRED_FEATURES.md`.)*
 
-**Latest (2026-11-20, late):** **M2 is complete on staging**: part 2 (Batch D: benchmark checklist and legend, the graph on the Mutual Funds Overview, the day's-change pop-up) is deployed (tag `m2b-rc` = `a4a948cb`; Alembic stays 0054; record `Docs/orchestration/2026-11-20-staging-deploy-record-m2b.md`). The owner sends one combined M2 stakeholder message (draft `Docs/orchestration/2026-11-20-m2-stakeholder-message-draft.md`). Next: M3 (Batches K, F, E).
+**Latest (2026-11-23):** orchestration moves to a second Claude account (same strategy: Claude orchestrates, Codex backend, Gemini in Antigravity frontend). **Start from `Docs/orchestration/2026-11-23-orchestrator-handoff-new-claude-account.md`.** M3 (search K, section index F, dates E) round 1 is written (lane plan `Docs/orchestration/2026-11-20-m3-lane-plan.md`) but not yet relayed to the workers; prompts in `2026-11-23-round1-relay-prompts.md`.
+
+**Earlier (2026-11-20, late):** **M2 is complete on staging**: part 2 (Batch D: benchmark checklist and legend, the graph on the Mutual Funds Overview, the day's-change pop-up) is deployed (tag `m2b-rc` = `a4a948cb`; Alembic stays 0054; record `Docs/orchestration/2026-11-20-staging-deploy-record-m2b.md`). The owner sends one combined M2 stakeholder message (draft `Docs/orchestration/2026-11-20-m2-stakeholder-message-draft.md`). Next: M3 (Batches K, F, E).
 
 **Earlier (2026-11-20):** **M2 part 1 is DEPLOYED to staging** (tag `m2-rc` = `f1f7e5d4` on `leapswitch-redesign`; Alembic stays 0054; Batch A's approved number fixes, D-2, D-3, D-8 and the tutorial pop-up; stored results rebuilt after a one-off price job). Guide `Docs/orchestration/2026-11-20-staging-deploy-guide-m2.md`, record `2026-11-20-staging-deploy-record-m2.md`. M2 part 2 (the rest of Batch D: D-4 to D-7, D-9 to D-14) is next: D-4 and D-9 handoffs wait for Codex; detail in `session.md`.
 
