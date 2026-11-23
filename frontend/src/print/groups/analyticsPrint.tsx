@@ -1,5 +1,9 @@
 import type { ReactNode } from "react";
+import { AnalyticsCategoryPrint, AnalyticsCostPrint, AnalyticsRankingPrint } from "./analytics/AnalyticsSections";
 
-// Print versions of the analytics sections: one entry per section id, `() => ReactNode`. Empty until that group's task fills it;
-// every id not listed here keeps the placeholder in sectionRegistry.ts. Each group edits only its own file.
-export const analyticsPrintSections: Record<string, () => ReactNode> = {};
+// Only this group's entries replace placeholders in the shared registry.
+export const analyticsPrintSections: Record<string, () => ReactNode> = {
+  "analytics-cost": () => <AnalyticsCostPrint />,
+  "analytics-category": () => <AnalyticsCategoryPrint />,
+  "analytics-ranking": () => <AnalyticsRankingPrint />,
+};

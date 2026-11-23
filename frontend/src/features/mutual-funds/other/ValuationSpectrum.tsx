@@ -5,6 +5,7 @@ import { formatPercent as formatLookthroughPercent } from "../../../components/m
 import { compareDecimalStrings } from "../../../lib/decimal";
 import { ChartTypeToggle } from "../common/charts";
 import type { ValuationSummary } from "../types";
+import { usePrintMode } from "../../../lib/printMode";
 import {
   barWidths,
   deltaSentence,
@@ -27,6 +28,7 @@ interface PanelProps {
 }
 
 function Panel({ data, kind, view }: PanelProps) {
+  const printMode = usePrintMode();
   const { label, basis } = KIND_TEXT[kind];
   const metric = data[kind];
   // New payloads carry backend-approved fund-figure availability. The old
@@ -78,9 +80,9 @@ function Panel({ data, kind, view }: PanelProps) {
                 data-series={row.key}
                 data-color={row.color}
                 data-x={pos}
-                tabIndex={0}
-                title={tip}
-                data-tooltip={tip}
+                tabIndex={printMode ? undefined : 0}
+                title={printMode ? undefined : tip}
+                data-tooltip={printMode ? undefined : tip}
                 style={{ left: `${pos}%`, color: row.color }}
                 className="absolute top-1 -translate-x-1/2 flex flex-col items-center gap-1 text-[11px] font-semibold"
               >
@@ -121,6 +123,10 @@ function Panel({ data, kind, view }: PanelProps) {
         </ul>
       )}
 
+      {printMode && <ul className="space-y-1 text-xs text-[var(--ui-text-muted)]">
+        {rows.map(row => <li key={row.key}>{row.label} {ratioText(row.ratio)}</li>)}
+      </ul>}
+
       {delta && (
         <p data-testid={`delta-${kind}`} className="text-xs text-[var(--ui-text-muted)] pt-1">
           {delta}
@@ -147,6 +153,7 @@ function Panel({ data, kind, view }: PanelProps) {
 
 export function ValuationSpectrum({ data }: ValuationSpectrumProps) {
   const [view, setView] = useState<"spectrum" | "bars">("spectrum");
+  const printMode = usePrintMode();
 
   const hasNoEquity = compareDecimalStrings(data.total_equity_value, "0") === 0;
 
@@ -166,7 +173,7 @@ export function ValuationSpectrum({ data }: ValuationSpectrumProps) {
         </p>
       ) : (
         <>
-          <div className="flex items-center justify-end">
+          {!printMode && <div className="flex items-center justify-end">
             <ChartTypeToggle
               label="Valuation view"
               value={view}
@@ -176,11 +183,11 @@ export function ValuationSpectrum({ data }: ValuationSpectrumProps) {
                 { id: "bars", label: "Bar Chart", icon: BarChart3 },
               ]}
             />
-          </div>
+          </div>}
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Panel data={data} kind="pe" view={view} />
-            <Panel data={data} kind="pb" view={view} />
+          <div className={printMode ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 gap-4 md:grid-cols-2"}>
+            <Panel data={data} kind="pe" view={printMode ? "spectrum" : view} />
+            <Panel data={data} kind="pb" view={printMode ? "spectrum" : view} />
           </div>
         </>
       )}
