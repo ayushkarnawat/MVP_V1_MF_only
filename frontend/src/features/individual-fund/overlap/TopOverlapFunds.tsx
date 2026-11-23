@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SchemeLogo } from "@/components/SchemeLogo";
 import { formatPercent } from "@/lib/format";
 import type { OverlapTopFund } from "../types";
+import { filterOverlapFunds } from "./fundListSearch";
 import { stocks } from "./overlapLogic";
 
 export interface TopOverlapFundsProps {
@@ -17,9 +18,15 @@ export function TopOverlapFunds({
   onCompare,
   restoreFocusId = null,
 }: TopOverlapFundsProps) {
+  const [search, setSearch] = useState("");
+  const filteredFunds = useMemo(
+    () => filterOverlapFunds(funds, search),
+    [funds, search]
+  );
+
   const [active, setActive] = useState<number>(() => {
     if (!restoreFocusId) return 0;
-    const idx = funds.findIndex((f) => f.scheme_id === restoreFocusId);
+    const idx = filteredFunds.findIndex((f) => f.scheme_id === restoreFocusId);
     return idx >= 0 ? idx : 0;
   });
 
@@ -27,11 +34,11 @@ export function TopOverlapFunds({
 
   useEffect(() => {
     if (!restoreFocusId) return;
-    const idx = funds.findIndex((f) => f.scheme_id === restoreFocusId);
+    const idx = filteredFunds.findIndex((f) => f.scheme_id === restoreFocusId);
     if (idx >= 0 && optionRefs.current[idx]) {
       optionRefs.current[idx]?.focus();
     }
-  }, [funds, restoreFocusId]);
+  }, [filteredFunds, restoreFocusId]);
 
   if (funds.length === 0) {
     return (
@@ -49,7 +56,7 @@ export function TopOverlapFunds({
     let nextIndex = index;
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      nextIndex = Math.min(funds.length - 1, index + 1);
+      nextIndex = Math.min(filteredFunds.length - 1, index + 1);
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
       nextIndex = Math.max(0, index - 1);
@@ -58,7 +65,7 @@ export function TopOverlapFunds({
       nextIndex = 0;
     } else if (event.key === "End") {
       event.preventDefault();
-      nextIndex = funds.length - 1;
+      nextIndex = filteredFunds.length - 1;
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       onCompare(schemeId);
@@ -77,6 +84,18 @@ export function TopOverlapFunds({
         {`Choose a fund to see a full side-by-side comparison with ${fundName}.`}
       </p>
 
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setActive(0);
+        }}
+        aria-label="Search funds"
+        placeholder="Search funds"
+        className="h-8 w-full rounded-lg border border-[var(--ui-divider)] bg-[var(--ui-card)] px-3 text-xs text-[var(--ui-text)] placeholder:text-[var(--ui-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--pos)]"
+      />
+
       <div
         aria-hidden="true"
         className="flex items-center justify-between border-b border-[var(--ui-divider)] pb-2 text-xs font-medium text-[var(--ui-text-muted)]"
@@ -85,39 +104,45 @@ export function TopOverlapFunds({
         <span>Overlap % · Common stocks</span>
       </div>
 
-      <div
-        role="listbox"
-        aria-label="Funds to compare"
-        className="max-h-96 space-y-1 overflow-auto"
-      >
-        {funds.map((fund, index) => {
-          const isActive = index === active;
-          return (
-            <div
-              key={fund.scheme_id}
-              ref={(el) => {
-                optionRefs.current[index] = el;
-              }}
-              role="option"
-              data-testid={`top-fund-${fund.scheme_id}`}
-              aria-selected={isActive}
-              tabIndex={isActive ? 0 : -1}
-              onClick={() => onCompare(fund.scheme_id)}
-              onFocus={() => setActive(index)}
-              onKeyDown={(e) => handleKeyDown(e, index, fund.scheme_id)}
-              className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-xs text-[var(--ui-text)] transition-colors hover:bg-[var(--ui-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ui-focus)]"
-            >
-              <span className="inline-flex items-center gap-2 font-medium">
-                <SchemeLogo schemeName={fund.scheme_name} size="sm" />
-                <span>{fund.scheme_name}</span>
-              </span>{" "}
-              <span className="text-[var(--ui-text-muted)]">
-                {`${formatPercent(fund.overlap_pct, { digits: 1 })} overlap · ${stocks(fund.common_stock_count)} in common`}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      {filteredFunds.length === 0 ? (
+        <p className="py-4 text-center text-xs text-[var(--ui-text-muted)]">
+          {`No funds match "${search}".`}
+        </p>
+      ) : (
+        <div
+          role="listbox"
+          aria-label="Funds to compare"
+          className="max-h-96 space-y-1 overflow-auto"
+        >
+          {filteredFunds.map((fund, index) => {
+            const isActive = index === active;
+            return (
+              <div
+                key={fund.scheme_id}
+                ref={(el) => {
+                  optionRefs.current[index] = el;
+                }}
+                role="option"
+                data-testid={`top-fund-${fund.scheme_id}`}
+                aria-selected={isActive}
+                tabIndex={isActive ? 0 : -1}
+                onClick={() => onCompare(fund.scheme_id)}
+                onFocus={() => setActive(index)}
+                onKeyDown={(e) => handleKeyDown(e, index, fund.scheme_id)}
+                className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-xs text-[var(--ui-text)] transition-colors hover:bg-[var(--ui-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ui-focus)]"
+              >
+                <span className="inline-flex items-center gap-2 font-medium">
+                  <SchemeLogo schemeName={fund.scheme_name} size="sm" />
+                  <span>{fund.scheme_name}</span>
+                </span>{" "}
+                <span className="text-[var(--ui-text-muted)]">
+                  {`${formatPercent(fund.overlap_pct, { digits: 1 })} overlap · ${stocks(fund.common_stock_count)} in common`}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

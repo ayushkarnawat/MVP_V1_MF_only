@@ -1,18 +1,24 @@
 import { useMemo, useState } from "react";
+import { PageSearch } from "../../../components/search/PageSearch";
+import { usePageSearchState } from "../../../components/search/usePageSearchState";
 import { Button } from "../../../components/ui/button";
 import { SchemeLogo } from "../../../components/SchemeLogo";
-import { CategoryTabs } from "./CategoryTabs";
 import { CoverageBanner } from "../../../components/mf/CoverageBanner";
+import { useScope } from "../../../shell/scope/ScopeContext";
 import { useMfAnalytics } from "../data/analyticsStore";
 import { MutualFundsFrame } from "../frame/MutualFundsFrame";
+import { CategoryTabs } from "./CategoryTabs";
 import { CommonHoldings } from "./CommonHoldings";
 import { Heatmap } from "./Heatmap";
 import { ImpactDonut } from "./ImpactDonut";
-import { equityStockHoldings, findPair, highestPair, pairKeyOf } from "./overlapLogic";
+import { equityStockHoldings, findPair, highestPair, inclusivePairs, pairKeyOf } from "./overlapLogic";
+import { filterOverlapPairs } from "./overlapSearch";
 import { StatStrip } from "./StatStrip";
 import { TopPairs } from "./TopPairs";
 
 function OverlapBody() {
+  const { userId } = useScope();
+  const { text } = usePageSearchState("overlap");
   const overlap = useMfAnalytics("overlap");
   const stockHoldings = useMfAnalytics("stock_holdings");
   const [pickedKey, setPickedKey] = useState<string | null>(null);
@@ -26,6 +32,15 @@ function OverlapBody() {
   const commonData = equityStockHoldings(stockHoldings.data, selectedData);
   const chooseCategory = (next: string) => { setCategory(next); setPickedKey(null); };
 
+  const allPairs = useMemo(
+    () => (selectedData ? inclusivePairs(selectedData) : []),
+    [selectedData],
+  );
+  const matchedPairs = useMemo(
+    () => filterOverlapPairs(allPairs, text),
+    [allPairs, text],
+  );
+
   const selectedKey = useMemo(() => {
     if (!selectedData) return null;
     if (pickedKey && findPair(selectedData, pickedKey) !== null) {
@@ -35,29 +50,43 @@ function OverlapBody() {
     return top ? pairKeyOf(top) : null;
   }, [selectedData, pickedKey]);
 
+  const utility = (
+    <PageSearch
+      pageKey="overlap"
+      noun="pairs"
+      total={allPairs.length}
+      matched={matchedPairs.length}
+      chipsAllowed={[]}
+      userId={userId ?? null}
+    />
+  );
+
   if (overlap.status === "error") {
     return (
-      <div role="alert" className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-6 text-center space-y-3">
-        <h3 className="text-base font-semibold text-[var(--ui-text)]">Couldn't load overlap analysis</h3>
-        <p className="text-sm text-[var(--ui-text-muted)]">
-          There was a problem reaching our servers. Your data is safe — this is just a connection issue.
-        </p>
-        <button
-          type="button"
-          data-clickable=""
-          data-effect="retry"
-          onClick={overlap.retry}
-          className="inline-flex items-center justify-center rounded-xl bg-[var(--pos-bg)] px-4 py-2 text-xs font-semibold text-[var(--pos-text)] hover:opacity-90"
-        >
-          Retry
-        </button>
-      </div>
+      <MutualFundsFrame tab="overlap" utility={utility}>
+        <div role="alert" className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-6 text-center space-y-3">
+          <h3 className="text-base font-semibold text-[var(--ui-text)]">Couldn't load overlap analysis</h3>
+          <p className="text-sm text-[var(--ui-text-muted)]">
+            There was a problem reaching our servers. Your data is safe — this is just a connection issue.
+          </p>
+          <button
+            type="button"
+            data-clickable=""
+            data-effect="retry"
+            onClick={overlap.retry}
+            className="inline-flex items-center justify-center rounded-xl bg-[var(--pos-bg)] px-4 py-2 text-xs font-semibold text-[var(--pos-text)] hover:opacity-90"
+          >
+            Retry
+          </button>
+        </div>
+      </MutualFundsFrame>
     );
   }
 
   const fewerThanTwoFunds = Boolean(selectedData && selectedData.matrix_funds.length < 2);
 
   return (
+    <MutualFundsFrame tab="overlap" utility={utility}>
     <div className="space-y-4">
       {overlap.data && <div role="tablist" aria-label="Overlap views" className="flex gap-2">
         <Button type="button" role="tab" aria-selected={!categoryView} variant={!categoryView ? "default" : "ghost"}
@@ -144,6 +173,7 @@ function OverlapBody() {
               onRetry={overlap.retry}
               selectedKey={selectedKey}
               onSelect={setPickedKey}
+              query={text}
             />
           </div>
 
@@ -155,6 +185,7 @@ function OverlapBody() {
               onRetry={overlap.retry}
               selectedKey={selectedKey}
               onSelect={setPickedKey}
+              query={text}
             />
           </div>
 
@@ -171,13 +202,10 @@ function OverlapBody() {
       )}
     </div>
     </div>
+    </MutualFundsFrame>
   );
 }
 
 export default function OverlapPage() {
-  return (
-    <MutualFundsFrame tab="overlap">
-      <OverlapBody />
-    </MutualFundsFrame>
-  );
+  return <OverlapBody />;
 }

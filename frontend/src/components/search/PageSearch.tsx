@@ -19,6 +19,7 @@ export interface PageSearchProps {
   chipsAllowed: Array<"period" | "member" | "category">;
   extraResults?: ResultRow[];
   userId: string | null;
+  jumpOnly?: boolean;
 }
 
 type FlatOption =
@@ -48,6 +49,7 @@ export function PageSearch({
   chipsAllowed,
   extraResults,
   userId,
+  jumpOnly = false,
 }: PageSearchProps) {
   const { text, chips, setText, addChip, removeChip } = usePageSearchState(pageKey);
   const { status, data, retry, load } = useSearchIndex();
@@ -130,7 +132,7 @@ export function PageSearch({
   const flatOptions: FlatOption[] = useMemo(() => {
     if (!open) return [];
     const items: FlatOption[] = [];
-    if (hasDraft) {
+    if (hasDraft && !jumpOnly) {
       items.push({ kind: "page-match", id: `${listboxId}-opt-page-match` });
     }
     for (const group of groups) {
@@ -144,7 +146,7 @@ export function PageSearch({
       });
     }
     return items;
-  }, [open, hasDraft, groups, recents.searches, listboxId]);
+  }, [open, hasDraft, jumpOnly, groups, recents.searches, listboxId]);
 
   const optionIndexById = useMemo(() => {
     const map = new Map<string, number>();
@@ -210,14 +212,16 @@ export function PageSearch({
         applyDraftFilter();
       } else if (option.kind === "recent-search") {
         setDraft(option.term);
-        setText(option.term);
-        setOpen(false);
+        if (!jumpOnly) {
+          setText(option.term);
+          setOpen(false);
+        }
         setActiveIndex(-1);
       } else {
         runRowAction(option.row);
       }
     },
-    [applyDraftFilter, setText, runRowAction],
+    [applyDraftFilter, jumpOnly, setText, runRowAction],
   );
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -244,7 +248,7 @@ export function PageSearch({
       event.preventDefault();
       if (activeOption) {
         activateOption(activeOption);
-      } else {
+      } else if (!jumpOnly) {
         applyDraftFilter();
       }
       return;
@@ -254,7 +258,7 @@ export function PageSearch({
       if (draft.length > 0 || text.length > 0) {
         event.preventDefault();
         setDraft("");
-        if (text.length > 0) {
+        if (text.length > 0 && !jumpOnly) {
           setText("");
         }
         setActiveIndex(-1);
@@ -364,7 +368,7 @@ export function PageSearch({
             role="listbox"
             className="absolute left-0 top-full z-40 mt-2 max-h-[70vh] w-[min(32rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-2 shadow-lg"
           >
-            {hasDraft && (() => {
+            {hasDraft && !jumpOnly && (() => {
               const pageMatchId = `${listboxId}-opt-page-match`;
               const isSelected = activeOption?.id === pageMatchId;
               return (
@@ -489,8 +493,10 @@ export function PageSearch({
                       aria-selected={isSelected}
                       onClick={() => {
                         setDraft(term);
-                        setText(term);
-                        setOpen(false);
+                        if (!jumpOnly) {
+                          setText(term);
+                          setOpen(false);
+                        }
                         setActiveIndex(-1);
                       }}
                       className={`flex min-h-9 cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 text-sm ${

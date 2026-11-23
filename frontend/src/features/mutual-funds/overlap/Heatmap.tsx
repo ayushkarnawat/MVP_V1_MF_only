@@ -21,6 +21,7 @@ export interface HeatmapProps extends AnalyticsCardProps<OverlapSummary> {
   selectedKey: string | null;
   onSelect: (key: string) => void;
   anchor?: string;
+  query?: string;
 }
 
 export function Heatmap({
@@ -30,6 +31,7 @@ export function Heatmap({
   selectedKey,
   onSelect,
   anchor,
+  query,
 }: HeatmapProps) {
   const pairMap = useMemo(() => {
     const map = new Map<string, OverlapPair>();
@@ -223,6 +225,7 @@ export function Heatmap({
               <PairDetail
                 pair={selectedPair}
                 band={bandOf(selectedPair.overlap_pct, data.bands)}
+                query={query}
               />
             )}
           </div>
