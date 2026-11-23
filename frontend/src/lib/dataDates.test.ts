@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { formatDataDate, olderDataMarker, type DataDateKind } from "./dataDates";
+import { formatDataDate, formatDataDateTail, olderDataMarker, type DataDateKind } from "./dataDates";
 
 function collectSourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -80,6 +80,25 @@ describe("formatDataDate", () => {
     expect(formatDataDate("prices", "2026-13-01")).toBe("");
     expect(formatDataDate("prices", null as unknown as string)).toBe("");
     expect(formatDataDate("prices", undefined as unknown as string)).toBe("");
+  });
+});
+
+describe("formatDataDateTail", () => {
+  it("formats the date phrase without its leading noun", () => {
+    expect(formatDataDateTail("prices", "2026-10-23")).toBe("as on 23 Oct 2026");
+    expect(formatDataDateTail("ratios", "2026-10-23")).toBe("as on 23 Oct 2026");
+    expect(formatDataDateTail("holdings", "2026-09-30")).toBe("as on September 2026");
+    expect(formatDataDateTail("fees", "2026-09-30")).toBe("as on September 2026");
+    expect(formatDataDateTail("factsheet", "2026-09-30")).toBe("as on September 2026");
+    expect(formatDataDateTail("managerDetails", "2026-09-30")).toBe("as on September 2026");
+    expect(formatDataDateTail("marketCapList", "2026-07-01")).toBe("effective 1 Jul 2026");
+  });
+
+  it("returns an empty string for invalid, empty, or null input", () => {
+    expect(formatDataDateTail("prices", "")).toBe("");
+    expect(formatDataDateTail("prices", "invalid")).toBe("");
+    expect(formatDataDateTail("prices", null)).toBe("");
+    expect(formatDataDateTail("prices", undefined)).toBe("");
   });
 });
 

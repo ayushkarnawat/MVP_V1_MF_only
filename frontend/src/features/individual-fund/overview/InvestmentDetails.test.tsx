@@ -50,7 +50,7 @@ describe("InvestmentDetails", () => {
     expect(screen.getByTestId("detail-average-nav")).toHaveTextContent("Average NAV (invested)");
     expect(screen.getByTestId("detail-average-nav-value")).toHaveTextContent("₹10.67");
     expect(screen.getByTestId("detail-current-nav-value")).toHaveTextContent("₹15.00");
-    expect(screen.getByTestId("detail-current-nav-asof")).toHaveTextContent("as of 23 Oct 2026");
+    expect(screen.getByTestId("detail-current-nav-asof")).toHaveTextContent("Prices as on 23 Oct 2026");
     expect(screen.getByTestId("detail-invested")).toHaveTextContent("Invested amount");
     expect(screen.getByTestId("detail-invested-value")).toHaveTextContent("₹1,600");
     expect(screen.getByTestId("detail-value")).toHaveTextContent("Current value");

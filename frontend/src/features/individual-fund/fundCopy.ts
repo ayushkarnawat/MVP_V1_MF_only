@@ -1,3 +1,4 @@
+import { formatDataDateTail } from "@/lib/dataDates";
 import type {
   PerformancePeriod,
   PeriodReturnsResponse,
@@ -184,19 +185,20 @@ export function marketCapLabel(label: string): string {
 
 export function allocationNote(
   tab: AllocationTab,
-  asOf: string,
+  iso: string,
   unclassified: string | null
 ): string {
+  const tail = formatDataDateTail("holdings", iso);
   if (tab === "market_cap") {
     if (unclassified !== null) {
-      return `Share of the classified equity part. Not shown: ${unclassified} of the fund (cash, debt, unlisted). Disclosure as of ${asOf}.`;
+      return `Share of the classified equity part. Not shown: ${unclassified} of the fund (cash, debt, unlisted). Disclosure ${tail}.`;
     }
-    return `Share of the classified equity part. Disclosure as of ${asOf}.`;
+    return `Share of the classified equity part. Disclosure ${tail}.`;
   }
   if (tab === "sector") {
-    return `Sector from the fund's disclosure, as of ${asOf}.`;
+    return `Sector from the fund's disclosure, ${tail}.`;
   }
-  return `Share of the fund's portfolio, as of ${asOf}.`;
+  return `Share of the fund's portfolio, ${tail}.`;
 }
 
 export const NO_INSIGHTS_TEXT = "Not enough data to draw insights yet";

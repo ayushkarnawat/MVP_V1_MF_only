@@ -41,7 +41,7 @@ describe("TopHoldings", () => {
     expect(screen.getByTestId("top-row-10")).toHaveTextContent("Golden Stock 1");
     expect(screen.getByTestId("top-row-10")).toHaveTextContent("Financial Services");
     expect(screen.getByTestId("top-row-10")).toHaveTextContent("5.0%");
-    expect(screen.getByTestId("top-asof")).toHaveTextContent("Disclosure as of 30 Sep 2026.");
+    expect(screen.getByTestId("top-asof")).toHaveTextContent("Holdings as on September 2026.");
     expect(screen.queryByTestId("top-age-note")).toBeNull();
   });
 
@@ -125,7 +125,7 @@ describe("TopHoldings", () => {
     mount();
     expect(api.holdings).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "View all holdings" }));
-    expect(await screen.findByRole("dialog", { name: "All holdings, as of 30 Sep 2026" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "All holdings, as on September 2026" })).toBeInTheDocument();
     expect(api.holdings).toHaveBeenCalledTimes(1);
     expect(api.holdings).toHaveBeenCalledWith(IDS.scheme, expect.any(AbortSignal));
     // holdings_all: 14 rows (12 stocks, a government bond line and the cash line).
@@ -133,7 +133,7 @@ describe("TopHoldings", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "View all holdings" }));
-    expect(await screen.findByRole("dialog", { name: "All holdings, as of 30 Sep 2026" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "All holdings, as on September 2026" })).toBeInTheDocument();
     expect(api.holdings).toHaveBeenCalledTimes(1);
   });
 

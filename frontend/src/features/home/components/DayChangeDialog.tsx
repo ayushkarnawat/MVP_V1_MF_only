@@ -252,7 +252,7 @@ export function DayChangeDialog({
   const serverDay = extractIstYmd(activeData.computed_at) ?? istToday();
   const priceDayNote =
     loaded && activeData.nav_as_of && activeData.nav_as_of < serverDay
-      ? `Latest prices are from ${formatWeekdayDate(activeData.nav_as_of)}.`
+      ? `Prices as on ${formatWeekdayDate(activeData.nav_as_of)}.`
       : null;
   const isPriceDayToday = priceDayNote === null;
 
@@ -743,7 +743,7 @@ export function DayChangeDialog({
               </h3>
               <p className="mt-1 text-sm text-[var(--ui-text-muted)]">
                 {activeData.nav_as_of
-                  ? `No fund had a new price. Latest prices are as on ${formatWeekdayDate(activeData.nav_as_of)}.`
+                  ? `No fund had a new price. Prices as on ${formatWeekdayDate(activeData.nav_as_of)}.`
                   : "No fund had a new price."}
               </p>
             </div>

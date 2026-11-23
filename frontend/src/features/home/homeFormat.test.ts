@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import * as kit from "../../lib/format";
 import {
   changeDirection,
-  formatAsOf,
   formatCompactRupees,
   formatDate,
   formatDayMonth,
@@ -106,7 +105,7 @@ describe("formatSignedPercent", () => {
   });
 });
 
-describe("formatDayMonth and formatAsOf", () => {
+describe("formatDayMonth", () => {
   it("shows the day with two digits and the month name", () => {
     expect(formatDayMonth("2026-10-23")).toBe("23 Oct");
     expect(formatDayMonth("2026-01-05")).toBe("05 Jan");
@@ -118,12 +117,6 @@ describe("formatDayMonth and formatAsOf", () => {
     expect(formatDayMonth("")).toBe("—");
     expect(formatDayMonth("not-a-date")).toBe("—");
     expect(formatDayMonth("2026-13-01")).toBe("—");
-  });
-
-  it("builds the as-of caption, or nothing when there is no date", () => {
-    expect(formatAsOf("2026-10-23")).toBe("as of 23 Oct");
-    expect(formatAsOf(null)).toBeNull();
-    expect(formatAsOf("bad")).toBeNull();
   });
 });
 
