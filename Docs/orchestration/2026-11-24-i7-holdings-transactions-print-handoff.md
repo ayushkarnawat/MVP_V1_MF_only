@@ -1,0 +1,26 @@
+# Handoff: i7-holdings-transactions-print (Batch I, task I-7 step 2: print versions of the Holdings and Transactions group sections, Codex)
+**Status:** READY TO RELAY after the print foundation is committed (written 2026-11-24). Milestone M4. **Common rules for all six print group tasks: `Docs/orchestration/2026-11-24-print-groups-common.md` (read it first, fully).** Findings and decisions: `Docs/orchestration/2026-11-24-print-audit.md` (option C).
+**Worker:** Codex, front end only. **Reviewer, test runner and committer:** Claude.
+**Work in:** `C:\Users\Dell\lanes\unifolio-i7-holdings-transactions-print` (a new worktree, branch `batch/i7-holdings-transactions-print`, cut from the foundation branch `batch/i-fe`). **Open it in Codex as a NEW project.** Never in the main project folder.
+**Section ids in this task:** holdings-top-by-fund, holdings-all-stocks, transactions-cash-flow, transactions-ledger.
+
+## The sections (audit: "Holdings, Transactions, Overlap"; sample pages 16 to 32)
+1. **holdings-top-by-fund (LIGHT).** `holdings/TopHoldingsByFund.tsx`: a chip picker shows **one fund at a time** (the first by default), 10 rows each. Print: **one block per fund** (fund name with its category, the top 10 rows with weight bars), no chips or helper text, the truncation caption kept; a fund block does not split across pages when it fits (`break-inside: avoid` on the block).
+2. **holdings-all-stocks (LIGHT).** `holdings/AllStocksTable.tsx`: sort buttons, search, per-row expand to a "held in" detail, a bottom link to Allocation. Print: default order (by weight), **every row's "held in" detail opened** (funds with weights) or listed inline, no sort/search/expand, links as plain text, repeated header; rows do not split. **No row cap in this task** (the back end may truncate: print what the data holds and keep its truncation note).
+3. **transactions-cash-flow (HEAVY bars + LIGHT rest).** `TransactionsPage.tsx` lines about 112 to 172 contain `CashFlowStrip` (filter-button tiles), `CashFlowBars` (monthly flex-div bars, about 144 columns, no value labels), `SipBanner`, `PeriodDrill`, `SwitchesControl`. Print: **yearly** bars (use the data's yearly granularity) as a static chart **with value labels** on each bar plus **a yearly table** (year, money in, money out, net, and a total row), the strip tiles as **static boxes**, the SIP banner as is, the **"Excluded" switches state** (default) with the screen's own explanatory line printed (`TransactionsPage.tsx` about lines 126 to 134), no drill, no toggles.
+4. **transactions-ledger (LIGHT).** `transactions/Ledger.tsx`: pages at 50 with "Show all", type filter, per-row expand, page search. Print: **all rows**, newest first, **no** filter/expand/search/"Show all", repeated header, rows do not split; columns **Date, Fund, Folio, Type, Units, NAV, Amount** (Units, NAV and Folio are in the row's detail data today; Folio follows the print folio option and the column is **omitted** when the option is `none`); the member name under the fund only when the screen shows it. Ignore saved page-search state and chips.
+
+## Files you may touch
+`frontend/src/print/groups/holdingsPrint.tsx` and `frontend/src/print/groups/transactionsPrint.tsx`, new folders `frontend/src/print/groups/holdings/` and `.../transactions/` (components and **all your tests there**: `holdings.print.test.tsx`, `transactions.print.test.tsx`), edits inside `frontend/src/features/mutual-funds/holdings/*.tsx` and `transactions/*.tsx` (not tests) only to add `usePrintMode()` branches. **Do not touch** shared charts, other groups, the registry.
+
+## Paste-ready prompt
+```
+Front-end worker for Unifolio (Codex). Read, in order:
+1. Docs/orchestration/ui-common-rules-codex.md
+2. Docs/orchestration/wave-common-rules.md (wins where they differ)
+3. Docs/orchestration/2026-11-24-print-audit.md (the findings per section)
+4. Docs/orchestration/2026-11-24-print-groups-common.md (rules common to all print group tasks: read it fully)
+5. Docs/orchestration/2026-11-24-i7-holdings-transactions-print-handoff.md (your task: Holdings and Transactions group)
+Open this folder in Codex as a NEW project: C:\Users\Dell\lanes\unifolio-i7-holdings-transactions-print (branch batch/i7-holdings-transactions-print, already created from the foundation branch). Git is read-only. No deletion flags or recursive deletes. Write the tests first, then the code; touch only the files the task lists; register only your group's sections in your own group file; do not change shared chart components. Screens must behave exactly as today outside print mode, and every existing test must pass untouched. You cannot run the tests; do not try, and do not change any config. Re-read your code against the tests.
+Reply with the CODEX REPORT block from the common rules, nothing else.
+```

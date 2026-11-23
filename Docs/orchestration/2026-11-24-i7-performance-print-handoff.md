@@ -1,0 +1,25 @@
+# Handoff: i7-performance-print (Batch I, task I-7 step 2: print versions of the Performance group sections, Codex)
+**Status:** READY TO RELAY after the print foundation is committed (written 2026-11-24). Milestone M4. **Common rules for all six print group tasks: `Docs/orchestration/2026-11-24-print-groups-common.md` (read it first, fully).** Findings and decisions: `Docs/orchestration/2026-11-24-print-audit.md` (option C).
+**Worker:** Codex, front end only. **Reviewer, test runner and committer:** Claude.
+**Work in:** `C:\Users\Dell\lanes\unifolio-i7-performance-print` (a new worktree, branch `batch/i7-performance-print`, cut from the foundation branch `batch/i-fe`). **Open it in Codex as a NEW project.** Never in the main project folder.
+**Section ids in this task:** performance-returns, performance-portfolio-history, performance-benchmark-comparison.
+
+## The sections (audit: "Performance", sample pages 9 to 11)
+1. **performance-returns (LIGHT).** `ReturnsBlock` in `performance/PerformancePage.tsx` (about lines 251 to 523): headline XIRR with a **Lifetime / Current holdings** toggle, four absolute tiles, the "Fund XIRR at a glance" table, a collapsed disclaimer ("Tap to see why"). Print: no toggle, no Retry; show the **lifetime** XIRR as the headline **and a second, labelled "Current holdings" XIRR line** (today only after toggling; use the screen's own labels and values for both bases); the disclaimer panel **expanded** (it says "above" in two sentences: reword with the screen's neighbouring wording only if a sentence would be wrong in print, and flag it); the fund-XIRR table may split across pages.
+2. **performance-portfolio-history (HEAVY).** `HistoryBlock` (about lines 527 to 763): a hand-made SVG with **no axes** and values only in a hover card; range buttons 1Y/3Y/5Y/All; a "See details" modal. Print: a new print-only component: **static chart with a y-axis (rupee ticks in the app's compact format) and year labels on the x-axis**, the value line and the dashed invested line, a printed two-item legend, **range "All"**, no dots or handlers, and a **year-by-year table** (year end, invested, value, gain, gain percent) **derived from the history points' December values** (no new endpoint; if a year has no December point use that year's last point). Numbers from the same `HistoryPoint` data the screen uses (`useMfHistory()`).
+3. **performance-benchmark-comparison (HEAVY).** `BenchmarkBlock.tsx`: race track, Portfolio vs Broad Market tabs, window buttons 1Y/3Y/5Y/Since inception, index chips (React state only, default Nifty 500), per-fund list (5 shown + "Show more", rows open to show detail). Print: two **static tables**: (a) **the portfolio and all eight indices as columns of XIRR by window** (1Y, 3Y, 5Y, SI) with the **portfolio versus index difference** (decision: all eight indices; use `INDEX_DEFS`/`WINDOW_DEFS` from `benchmarkLogic.ts` and the analytics `benchmark` payload's window views; the "recomputing"/missing-window states print their own sentence), (b) **every held fund versus its declared benchmark** for the **Since inception** window: fund XIRR, benchmark name, benchmark XIRR, difference; **all funds, no "Show more"**, details reduced to the benchmark name; the `BenchmarkInfoNote` text printed once below. Reuse `benchmarkLogic.ts` functions for every figure.
+
+## Files you may touch
+`frontend/src/print/groups/performancePrint.tsx`, a new folder `frontend/src/print/groups/performance/` (the two HEAVY components and **all your tests: `performance.print.test.tsx` there**), and edits inside `frontend/src/features/mutual-funds/performance/PerformancePage.tsx` and `BenchmarkBlock.tsx` **only** to add `usePrintMode()` branches or to export helpers you need (export, do not move). **Do not touch** shared charts, other groups, the registry, `lib/pageSections.ts`.
+
+## Paste-ready prompt
+```
+Front-end worker for Unifolio (Codex). Read, in order:
+1. Docs/orchestration/ui-common-rules-codex.md
+2. Docs/orchestration/wave-common-rules.md (wins where they differ)
+3. Docs/orchestration/2026-11-24-print-audit.md (the findings per section)
+4. Docs/orchestration/2026-11-24-print-groups-common.md (rules common to all print group tasks: read it fully)
+5. Docs/orchestration/2026-11-24-i7-performance-print-handoff.md (your task: Performance group)
+Open this folder in Codex as a NEW project: C:\Users\Dell\lanes\unifolio-i7-performance-print (branch batch/i7-performance-print, already created from the foundation branch). Git is read-only. No deletion flags or recursive deletes. Write the tests first, then the code; touch only the files the task lists; register only your group's sections in your own group file; do not change shared chart components. Screens must behave exactly as today outside print mode, and every existing test must pass untouched. You cannot run the tests; do not try, and do not change any config. Re-read your code against the tests.
+Reply with the CODEX REPORT block from the common rules, nothing else.
+```

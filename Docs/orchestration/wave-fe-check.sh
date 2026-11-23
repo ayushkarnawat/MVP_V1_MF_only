@@ -41,6 +41,7 @@ case "$lane" in
   di) SRC="$WT/unifolio-d-int/frontend" ;;   # integration of the Batch D part 2 lanes
   m2) SRC="$WT/unifolio-m2/frontend" ;;   # the merged M2 candidate (branch m2-candidate)
   h8) SRC="$WT/unifolio-h8/frontend" ;;   # Batch H part 2 (CAMS checklist)
+  ifx) SRC="$WT/unifolio-i-fe/frontend" ;;   # Batch I front end (print route and print mode)
   ie) SRC="$WT/unifolio-i-export/frontend" ;;   # Batch I (PDF export) base
   m3) SRC="$WT/unifolio-m3/frontend" ;;   # the merged M3 candidate (branch m3-candidate)
   ks) SRC="$WT/unifolio-k-search/frontend" ;;   # Batch K integration (search)
