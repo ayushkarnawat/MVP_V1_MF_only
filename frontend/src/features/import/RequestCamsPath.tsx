@@ -17,6 +17,7 @@ import { useCamsChecklist } from "./checklist/useCamsChecklist";
 import { getChecklistStore } from "./checklist/checklistStore";
 import { CamsChecklistHost, CamsChecklistHostedContext } from "./checklist/CamsChecklistHost";
 import { checklistCopy } from "./checklist/checklistCopy";
+import "./checklist/checklist-tokens.css";
 
 export interface RequestCamsPathProps {
   memberId: string;
@@ -201,10 +202,10 @@ export function RequestCamsPath({
         {!checklistHosted && <CamsChecklistHost memberId={memberId} />}
         <div className="space-y-1.5">
         {checklist.supported && !withoutChecklist && (
-          <p className="hidden md:block rounded-lg border border-[var(--color-positive)] bg-[color-mix(in_srgb,var(--color-positive)_8%,transparent)] p-3 text-xs text-[var(--color-ink)]">
+          <p className="hidden md:block ccp-s2-note">
             {checklistCopy.introduction}{" "}
             <a href="#" data-clickable="" data-effect="close"
-              className="underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
+              className="ccp-clink"
               onClick={(event) => { event.preventDefault(); setWithoutChecklist(true); }}>
               {checklistCopy.skip}
             </a>

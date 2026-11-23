@@ -138,7 +138,8 @@ describe("H-8 waiting screen checklist integration", () => {
 
   it("reload on ready shows the closed card naming step 4 and reopens W3 on a click", async () => {
     const { requestWindow, checklist } = await renderReadyChecklist();
-    expect(screen.getByText("Your checklist closed when this page reloaded. You were on step 4: You have the file.")).toBeInTheDocument();
+    // The step name is set in bold inside the sentence (H-10), so the sentence is read from the banner's whole text.
+    expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent === "Your checklist closed when this page reloaded. You were on step 4: You have the file.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Request from CAMS" })).toBeInTheDocument();
     expect(requestWindow).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Reopen checklist" }));

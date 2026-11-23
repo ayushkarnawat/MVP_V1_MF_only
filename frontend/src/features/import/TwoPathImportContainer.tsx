@@ -17,6 +17,7 @@ import { useCamsChecklist } from "./checklist/useCamsChecklist";
 import { getChecklistStore } from "./checklist/checklistStore";
 import { CamsChecklistHost, CamsChecklistHostedContext } from "./checklist/CamsChecklistHost";
 import { checklistCopy } from "./checklist/checklistCopy";
+import "./checklist/checklist-tokens.css";
 
 export type ImportView = "choice" | "request" | "waiting" | "upload" | "history";
 
@@ -177,7 +178,7 @@ function MemberImportContainer({
         {view === "upload" && (
           <>
           {checklist.finishedFromChecklist && (
-            <p role="status" className="hidden md:block mb-3 rounded-lg border border-[var(--color-positive)] bg-[color-mix(in_srgb,var(--color-positive)_8%,transparent)] p-3 text-[var(--color-ink)]">{checklistCopy.uploadBanner}</p>
+            <p role="status" className="hidden md:block ccp-banner">{checklistCopy.uploadBanner}</p>
           )}
           <UploadForm
             passwordError={errorCode === "wrong_password" ? error ?? undefined : undefined}
