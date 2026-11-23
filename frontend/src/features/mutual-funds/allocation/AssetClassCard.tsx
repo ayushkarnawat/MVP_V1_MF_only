@@ -2,7 +2,6 @@ import { BarChart3, PieChart } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { CoverageBanner } from "../../../components/mf/CoverageBanner";
-import { formatDataDate } from "../../../lib/dataDates";
 import { compareDecimalStrings } from "../../../lib/decimal";
 import { formatCompactRupees, formatPercent, formatRupees } from "../../../lib/format";
 import { BarList, ChartTypeToggle } from "../common/charts";
@@ -86,12 +85,6 @@ export function AssetClassCard({
         </p>
       ) : (
         <div className="flex flex-col gap-4">
-          <p data-testid="as-on" className="text-xs text-[var(--ui-text-muted)]">
-            {[formatDataDate("prices", data.nav_as_of), formatDataDate("holdings", data.holdings_as_of)]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-
           <p className="text-xs text-[var(--ui-text-muted)]">
             Percentages describe the five asset classes in your published fund holdings.
           </p>

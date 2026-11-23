@@ -13,6 +13,7 @@ import { AppLink } from "../../../shell/nav/AppLink";
 import { paths } from "../../../shell/nav/paths";
 import { useImport, useScope } from "../../../shell/scope/ScopeContext";
 import type { MfTabId } from "../types";
+import { TabDateStrip } from "./TabDateStrip";
 
 export interface TabDef {
   id: MfTabId;
@@ -120,7 +121,7 @@ export function MutualFundsFrame({ tab, children, utility }: MutualFundsFramePro
       </Button>
     ) : undefined;
 
-  const tabs = (
+  const tabBar = (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-2">
       <nav aria-label="Mutual Funds sections">
         <ul className="flex flex-wrap items-center gap-1">
@@ -150,6 +151,13 @@ export function MutualFundsFrame({ tab, children, utility }: MutualFundsFramePro
       </nav>
       {utility && <div className="flex items-center">{utility}</div>}
     </div>
+  );
+
+  const tabs = (
+    <>
+      {tabBar}
+      <TabDateStrip tab={tab} />
+    </>
   );
 
   return (
