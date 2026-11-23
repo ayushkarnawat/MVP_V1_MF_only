@@ -829,3 +829,5 @@ fix" rule.
 - 2026-11-23 | T09 hooks red tests | Codex | DONE (blocked on running); I ran lane ks: 4 files red (modules missing), 37 cases; committed on batch/k-search | orchestrator
 - 2026-11-23 | T09 hooks build | Antigravity ag-t09 | packet written, relay pending | orchestrator
 - 2026-11-23 | T11 page search red tests (Overview, Transactions, Holdings) | Codex (unifolio-k-search) | handoff written, relay pending | orchestrator
+- 2026-11-23 | T09 hooks build | Antigravity ag-t09 | DONE but could not run (its session blocked WSL: a hook in its own settings); I ran lane ag-t09: 37/37 green first time; I added an integration test (real scope provider plus the intent hook) that exposed a double scroll (both tidy the same history entry), fixed with a 3 second echo guard; merged into batch/k-search, search + shell + auth 122 files green except the T08 red files | orchestrator
+- 2026-11-23 | T08 box build | Antigravity ag-t08 | packet written (look fixed by me), relay pending | orchestrator
