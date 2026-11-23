@@ -40,6 +40,7 @@ case "$lane" in
   do) SRC="$WT/unifolio-d-overview/frontend" ;;   # D-7 (Overview graph)
   di) SRC="$WT/unifolio-d-int/frontend" ;;   # integration of the Batch D part 2 lanes
   m2) SRC="$WT/unifolio-m2/frontend" ;;   # the merged M2 candidate (branch m2-candidate)
+  m3) SRC="$WT/unifolio-m3/frontend" ;;   # the merged M3 candidate (branch m3-candidate)
   ks) SRC="$WT/unifolio-k-search/frontend" ;;   # Batch K integration (search)
   ed) SRC="$WT/unifolio-e-dates/frontend" ;;   # Batch E (dates)
   fn) SRC="$WT/unifolio-f-nav/frontend" ;;   # Batch F (section index)
