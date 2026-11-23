@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { CoverageBanner, fundAgeText } from "../../../components/mf/CoverageBanner";
 import { formatPercent as lookthroughPercent, percentageProduct } from "../../../components/mf/lookthroughDisplay";
-import { formatDataDate } from "../../../lib/dataDates";
 import { compareDecimalStrings, diffDecimalStrings } from "../../../lib/decimal";
 import { formatCompactRupees, formatPercent, formatRupees } from "../../../lib/format";
 import { SlicedDonut, useSelectedSlice } from "../common/charts";
@@ -169,17 +168,11 @@ export function MarketCapCard({
         <p role="status" className="text-xs text-[var(--ui-text-muted)]">Market-cap allocation is updating.</p>
       ) : (
         <div className="flex flex-col gap-4">
-          <p data-testid="as-on" className="text-xs text-[var(--ui-text-muted)]">
-            {[
-              formatDataDate("prices", data.nav_as_of),
-              formatDataDate("holdings", data.holdings_as_of),
-              data.classification_as_of
-                ? `${formatDataDate("marketCapList", data.classification_as_of)}.`
-                : "No applicable AMFI classifications for these holdings.",
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
+          {!data.classification_as_of && (
+            <p data-testid="as-on" className="text-xs text-[var(--ui-text-muted)]">
+              No applicable AMFI classifications for these holdings.
+            </p>
+          )}
 
           <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />
 

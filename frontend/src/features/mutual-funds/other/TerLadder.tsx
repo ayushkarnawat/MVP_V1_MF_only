@@ -1,7 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { SchemeLogo } from "../../../components/SchemeLogo";
-import { formatDataDate } from "../../../lib/dataDates";
 import { formatCompactRupees, formatRupees } from "../../../lib/format";
 import type { CategoryRankingSummary, DirectRegularTerComparison, WeightedTerSummary } from "../types";
 import {
@@ -49,11 +48,6 @@ export function TerLadder({ ter, comparison, ranking }: TerLadderProps) {
     <div data-testid="ter-body" className="space-y-6">
       <p className="text-xs text-[var(--ui-text-muted)]">
         Projected annual cost if your value and each fund's TER stay as they are today — not a forecast of returns.
-        {ter.reference_period && (
-          <span data-testid="ter-ref" className="ml-2 font-medium text-[var(--ui-text)]">
-            {formatDataDate("fees", ter.reference_period)}
-          </span>
-        )}
       </p>
 
       {/* Hero and Spectrum */}
