@@ -200,15 +200,18 @@ export function CashFlowYearlyPrint({ years }: CashFlowYearlyPrintProps) {
                     fill="var(--neg)"
                   />
                 )}
-                <text
-                  x={outX + barW / 2}
-                  y={Math.max(10, outY - 4)}
-                  textAnchor="middle"
-                  fontSize={7.5}
-                  fill="var(--ui-text-muted)"
-                >
-                  {formatCompactRupees(y.withdrawn)}
-                </text>
+                {outH > 0 && (
+                  // A label only on a drawn bar: a "₹0" over every empty withdrawn bar is noise on paper.
+                  <text
+                    x={outX + barW / 2}
+                    y={Math.max(10, outY - 4)}
+                    textAnchor="middle"
+                    fontSize={7.5}
+                    fill="var(--ui-text-muted)"
+                  >
+                    {formatCompactRupees(y.withdrawn)}
+                  </text>
+                )}
 
                 <text
                   x={groupCenter}
