@@ -15,6 +15,7 @@ import { AppLink } from "../../../shell/nav/AppLink";
 import { paths } from "../../../shell/nav/paths";
 import { useImport, useScope } from "../../../shell/scope/ScopeContext";
 import type { MfTabId } from "../types";
+import { useSearchIntent } from "../../../components/search/useSearchIntent";
 import { sectionsForTab } from "../../../lib/pageSections";
 import { SectionRail } from "./SectionRail";
 import { TabDateStrip } from "./TabDateStrip";
@@ -117,6 +118,8 @@ export function MutualFundsFrame({ tab, children, utility }: MutualFundsFramePro
   // The section index follows what is actually on the page (a lazy or failed section keeps its anchor), not the static list alone.
   const renderedSections = useRenderedSections(scrollRoot, sectionsForTab(tab));
   const { activeId } = useSectionSpy(scrollRoot, renderedSections);
+  // A search result that goes to a section arrives as router state; the frame is shared by all seven tabs, so it carries the jump out.
+  useSearchIntent();
   const { jumpTo } = useSectionJump(scrollRoot, renderedSections);
 
   const { viewMode, memberId } = useScope();

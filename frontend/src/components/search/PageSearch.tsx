@@ -41,6 +41,9 @@ function getRowHint(row: ResultRow): string {
   }
 }
 
+// Option ids go into aria-activedescendant, a list of ids split on spaces: a row id such as "category:Flexi Cap" must become one token.
+const optionSlug = (id: string) => id.replace(/[^A-Za-z0-9_-]/g, "_");
+
 export function PageSearch({
   pageKey,
   noun,
@@ -137,7 +140,7 @@ export function PageSearch({
     }
     for (const group of groups) {
       for (const row of group.rows) {
-        items.push({ kind: "result", id: `${listboxId}-opt-${row.id}`, row });
+        items.push({ kind: "result", id: `${listboxId}-opt-${optionSlug(row.id)}`, row });
       }
     }
     if (!hasDraft) {
@@ -155,6 +158,12 @@ export function PageSearch({
   }, [flatOptions]);
 
   const activeOption = activeIndex >= 0 && activeIndex < flatOptions.length ? flatOptions[activeIndex] : null;
+
+  // The highlighted row stays visible as the arrow keys walk a list longer than the dropdown.
+  const activeOptionId = activeOption?.id;
+  useEffect(() => {
+    if (activeOptionId) document.getElementById(activeOptionId)?.scrollIntoView?.({ block: "nearest" });
+  }, [activeOptionId]);
 
   const applyDraftFilter = useCallback(() => {
     setText(draft);
@@ -271,6 +280,8 @@ export function PageSearch({
     }
 
     if (event.key === "Tab") {
+      // With the index failed, the list stays open so Tab can reach "Try again" (a keyboard user has no other way to retry).
+      if (status === "error") return;
       setOpen(false);
       setActiveIndex(-1);
       return;
@@ -292,6 +303,7 @@ export function PageSearch({
       ref={inputRef}
       type="text"
       role="combobox"
+      aria-autocomplete="list"
       aria-label={labelText}
       aria-expanded={open}
       aria-controls={open ? listboxId : undefined}
@@ -357,17 +369,15 @@ export function PageSearch({
         {shortcutLabel}
       </kbd>
 
+      {/* Mounted before the box opens, so a screen reader has already registered it when the first count arrives. */}
+      <div role="status" aria-live="polite" data-testid="search-live" className="sr-only">
+        {open ? (totalCount === 1 ? "1 result" : `${totalCount} results`) : ""}
+      </div>
+
       {open && (
         <>
-          <div role="status" aria-live="polite" data-testid="search-live" className="sr-only">
-            {totalCount === 1 ? "1 result" : `${totalCount} results`}
-          </div>
-
-          <div
-            id={listboxId}
-            role="listbox"
-            className="absolute left-0 top-full z-40 mt-2 max-h-[70vh] w-[min(32rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-2 shadow-lg"
-          >
+          <div className="absolute left-0 top-full z-40 mt-2 max-h-[70vh] w-[min(32rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-2 shadow-lg">
+          <div id={listboxId} role="listbox" aria-label="Search results">
             {hasDraft && !jumpOnly && (() => {
               const pageMatchId = `${listboxId}-opt-page-match`;
               const isSelected = activeOption?.id === pageMatchId;
@@ -393,34 +403,13 @@ export function PageSearch({
               );
             })()}
 
-            {status === "error" && (
-              <div className="flex items-center justify-between gap-2 px-2 py-2 text-xs text-[var(--ui-text-muted)]">
-                <span>Some results are unavailable right now.</span>
-                <button
-                  type="button"
-                  onClick={retry}
-                  data-clickable=""
-                  data-effect="retry"
-                  className="rounded-lg border border-[var(--ui-divider)] px-3 py-1 text-xs text-[var(--ui-text)] focus:outline-none focus:ring-1 focus:ring-[var(--pos)]"
-                >
-                  Try again
-                </button>
-              </div>
-            )}
-
-            {hasDraft && groups.length === 0 && status !== "error" && (
-              <div className="px-2 py-2 text-xs text-[var(--ui-text-muted)]">
-                Nothing found for &quot;{draft}&quot;.
-              </div>
-            )}
-
             {groups.map((group) => (
-              <div key={group.kind}>
+              <div key={group.kind} role="group" aria-label={group.label}>
                 <div className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--ui-text-muted)]">
                   {group.label}
                 </div>
                 {group.rows.map((row) => {
-                  const optId = `${listboxId}-opt-${row.id}`;
+                  const optId = `${listboxId}-opt-${optionSlug(row.id)}`;
                   const isSelected = activeOption?.id === optId;
                   const showHint = isSelected || hoveredId === row.id;
                   const isDisabled = Boolean(row.disabled);
@@ -478,7 +467,7 @@ export function PageSearch({
             ))}
 
             {!hasDraft && recents.searches.length > 0 && (
-              <div>
+              <div role="group" aria-label="Recent searches">
                 <div className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--ui-text-muted)]">
                   Recent searches
                 </div>
@@ -509,6 +498,28 @@ export function PageSearch({
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+            {status === "error" && (
+              <div className="flex items-center justify-between gap-2 px-2 py-2 text-xs text-[var(--ui-text-muted)]">
+                <span>Some results are unavailable right now.</span>
+                <button
+                  type="button"
+                  onClick={retry}
+                  data-clickable=""
+                  data-effect="retry"
+                  className="rounded-lg border border-[var(--ui-divider)] px-3 py-1 text-xs text-[var(--ui-text)] focus:outline-none focus:ring-1 focus:ring-[var(--pos)]"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+
+            {hasDraft && groups.length === 0 && status !== "error" && (
+              <div className="px-2 py-2 text-xs text-[var(--ui-text-muted)]">
+                Nothing found for &quot;{draft}&quot;.
               </div>
             )}
           </div>

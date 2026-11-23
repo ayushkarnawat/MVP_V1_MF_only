@@ -1,3 +1,4 @@
+import { onApiCacheInvalidated } from "../../lib/apiClient";
 import { clearRecents } from "./recentSearches";
 import { fetchSearchIndex } from "./searchApi";
 import type { SearchIndexResponse } from "./searchTypes";
@@ -129,3 +130,7 @@ export function clearSearchState(): void {
   clearRecents();
   notify();
 }
+
+// The GET cache is cleared after every data change (an import, a delete, a profile edit): the index is a copy of the
+// household's data and goes stale with it. The next load refetches.
+onApiCacheInvalidated(invalidateSearchIndex);

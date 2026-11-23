@@ -1,0 +1,13 @@
+/* The outline a section gets for about a second and a half after a search result jumped to it (useSearchIntent sets the attribute). */
+[data-search-highlight="true"] {
+  outline: 2px solid var(--pos);
+  outline-offset: 3px;
+  border-radius: 1rem;
+  transition: outline-color 300ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-search-highlight="true"] {
+    transition: none;
+  }
+}

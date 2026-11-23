@@ -322,7 +322,7 @@ describe("7. No match, error and hand-off rows", () => {
     type("missing");
     const list = screen.getByRole("listbox");
     const page = within(list).getByTestId("row-page-match");
-    const message = within(list).getByText('Nothing found for "missing".');
+    const message = screen.getByText('Nothing found for "missing".'); // outside the listbox (it is not an option)
     expect(page).toHaveTextContent("6 of 41 transactions");
     expect(page.compareDocumentPosition(message) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
@@ -423,7 +423,7 @@ describe("10. Existing screens unchanged", () => {
     expect(container.textContent).toBe(screen.getByTestId("search-hint").textContent);
     expect(container.querySelectorAll("input")).toHaveLength(1);
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeEmptyDOMElement(); // the announcement region is mounted before the box opens (G2)
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 });

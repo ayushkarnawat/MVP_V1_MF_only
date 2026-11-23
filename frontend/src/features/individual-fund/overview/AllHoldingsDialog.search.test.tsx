@@ -66,7 +66,7 @@ describe("all holdings dialog search", () => {
   it("with the field empty the dialog renders exactly as before", async () => {
     const { onClose } = await mount();
     expect(screen.getByRole("textbox", { name: "Search holdings" })).toHaveValue("");
-    expect(screen.getByRole("dialog", { name: "All holdings, as of 30 Sep 2026" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "All holdings, as on September 2026" })).toBeInTheDocument();
     expect(screen.getByTestId("all-count")).toHaveTextContent(/^3 holdings$/);
     expect(screen.getAllByTestId("all-row").map((row) => within(row).getAllByRole("cell").map((cell) => cell.textContent))).toEqual([
       ["1", "Example Bank", "Financial Services", "30.00%"],

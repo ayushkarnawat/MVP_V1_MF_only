@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
+import "./searchHighlight.css";
 
 const SEARCH_INTENT_KEY = "searchIntent";
 const HIGHLIGHT_ATTR = "data-search-highlight";

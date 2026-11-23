@@ -80,6 +80,9 @@ function matchWordInField(word: string, fieldNorm: string, fieldKind: Searchable
 
   if (!isName) return null;
 
+  // Forgiveness is for spelling a word: a number one digit away (2031 for 2030) is another fund, not a typo.
+  if (/\d/.test(word)) return null;
+
   const maxEdits = allowedEdits(word.length);
   if (maxEdits === 0) return null;
 
