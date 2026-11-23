@@ -958,3 +958,4 @@ Answered by the owner after the M3 lane plan (`Docs/orchestration/2026-11-20-m3-
 
 ## 2026-11-23 - G1 review of the search endpoint (Sonnet, read-only): PASS, five Lows
 - Fixed: Low 5 (`in_` got a dict; now a list). Accepted, no change: Low 2 (a member with only non-lot rows shows as "sold": matches the spec rule "zero units with at least one transaction"), Low 3 (folios of two plan types merge into one holder: intended), Low 4 (correct as built). Open for the owner, recommend accept: Low 1 (search uses the IST date for the two-month manager window, Allocation uses the server date; they differ for about 5 hours on the 1st of a month, search may show no manager where Allocation shows one). If you want exact parity, one line changes later.
+- Owner decision 2026-11-23: G1 Low 1 (IST date versus server date for the manager window) ACCEPTED, no change.
