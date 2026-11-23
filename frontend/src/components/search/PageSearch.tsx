@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Search, X } from "lucide-react";
 import { useScope } from "../../shell/scope/ScopeContext";
@@ -160,6 +160,14 @@ export function PageSearch({
   const activeOption = activeIndex >= 0 && activeIndex < flatOptions.length ? flatOptions[activeIndex] : null;
 
   // The highlighted row stays visible as the arrow keys walk a list longer than the dropdown.
+  // The box can sit at the right end of a page's top row: when a 32 rem dropdown would run past the window edge it opens leftwards.
+  const [alignRight, setAlignRight] = useState(false);
+  useLayoutEffect(() => {
+    if (!open) return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    setAlignRight(rect ? rect.left + 512 > window.innerWidth - 16 : false);
+  }, [open]);
+
   const activeOptionId = activeOption?.id;
   useEffect(() => {
     if (activeOptionId) document.getElementById(activeOptionId)?.scrollIntoView?.({ block: "nearest" });
@@ -376,7 +384,7 @@ export function PageSearch({
 
       {open && (
         <>
-          <div className="absolute left-0 top-full z-40 mt-2 max-h-[70vh] w-[min(32rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-2 shadow-lg">
+          <div data-testid="search-dropdown" className={`absolute ${alignRight ? "right-0" : "left-0"} top-full z-40 mt-2 max-h-[70vh] w-[min(32rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-2 shadow-lg`}>
           <div id={listboxId} role="listbox" aria-label="Search results">
             {hasDraft && !jumpOnly && (() => {
               const pageMatchId = `${listboxId}-opt-page-match`;

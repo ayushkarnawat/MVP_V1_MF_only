@@ -157,3 +157,31 @@ describe("G2 accessibility", () => {
     spy.mockRestore();
   });
 });
+
+// Found in the browser check of the merged candidate: the box sits at the right end of the tab bar, and a dropdown that
+// always opened to the right of the box ran past the window edge and made the page scroll sideways.
+describe("dropdown placement", () => {
+  const near = (left: number) => vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+    const box = { left, right: left + 300, top: 100, bottom: 136, width: 300, height: 36, x: left, y: 100, toJSON: () => ({}) };
+    void this;
+    return box as DOMRect;
+  });
+  it("opens leftwards (right edges aligned) when it would run past the right edge of the window", () => {
+    vi.stubGlobal("innerWidth", 1280);
+    const spy = near(960); // 960 + 512 > 1280 - 16
+    render(<PageSearch {...props} />);
+    type("flexi");
+    expect(screen.getByTestId("search-dropdown")).toHaveClass("right-0");
+    expect(screen.getByTestId("search-dropdown")).not.toHaveClass("left-0");
+    spy.mockRestore(); vi.unstubAllGlobals();
+  });
+  it("opens rightwards (left edges aligned) when there is room", () => {
+    vi.stubGlobal("innerWidth", 1280);
+    const spy = near(40);
+    render(<PageSearch {...props} />);
+    type("flexi");
+    expect(screen.getByTestId("search-dropdown")).toHaveClass("left-0");
+    expect(screen.getByTestId("search-dropdown")).not.toHaveClass("right-0");
+    spy.mockRestore(); vi.unstubAllGlobals();
+  });
+});
