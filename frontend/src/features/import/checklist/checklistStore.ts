@@ -21,6 +21,7 @@ interface ChecklistSnapshot extends ChecklistState {
   mode: ChecklistMode;
   camsLink: CamsLink;
   pipWindow: ChecklistWindow | null;
+  finishedFromChecklist: boolean;
 }
 
 function initialState(memberId: string): ChecklistSnapshot {
@@ -29,6 +30,7 @@ function initialState(memberId: string): ChecklistSnapshot {
     ticks: saved?.ticks ?? [false, false, false, false, false],
     step: saved?.step ?? "form",
     mode: "closed", pipWindow: null,
+    finishedFromChecklist: false,
     camsLink: { state: "preparing", error: null, url: null },
   };
 }
@@ -72,6 +74,17 @@ function createStore(memberId: string) {
     }
   }
 
+  function finish() {
+    dismissWindow();
+    clearChecklistState(memberId);
+    update({ ...initialState(memberId), step: "ready", finishedFromChecklist: true });
+  }
+
+  function onOpenerPagehide() {
+    dismissWindow();
+    update({ mode: "closed", pipWindow: null });
+  }
+
   function open(): void {
     if (snapshot.mode === "window" && snapshot.pipWindow && !snapshot.pipWindow.closed) {
       focus();
@@ -104,6 +117,10 @@ function createStore(memberId: string) {
           target.documentElement.style.colorScheme = "light";
           target.title = checklistCopy.title;
           const onPagehide = () => {
+            if (snapshot.step === "ready") {
+              finish();
+              return;
+            }
             generation++;
             opening = null;
             removePagehide?.();
@@ -135,10 +152,12 @@ function createStore(memberId: string) {
   const store = {
     getSnapshot: () => snapshot,
     subscribe(listener: () => void) {
+      if (listeners.size === 0 && typeof window !== "undefined") window.addEventListener("pagehide", onOpenerPagehide);
       listeners.add(listener);
       return () => {
         listeners.delete(listener);
         if (listeners.size === 0) {
+          if (typeof window !== "undefined") window.removeEventListener("pagehide", onOpenerPagehide);
           dismissWindow();
           retryRequest = null;
           snapshot = initialState(memberId);
@@ -152,6 +171,10 @@ function createStore(memberId: string) {
     reopen: open,
     focus,
     close() {
+      if (snapshot.step === "ready") {
+        finish();
+        return;
+      }
       dismissWindow();
       update({ mode: "closed", pipWindow: null });
     },
@@ -166,9 +189,11 @@ function createStore(memberId: string) {
       if (snapshot.ticks.every(Boolean)) update({ step: "waiting" }, true);
     },
     markFileReady() {
-      dismissWindow();
-      clearChecklistState(memberId);
-      update({ ...initialState(memberId), step: "ready" });
+      update({ step: "ready" }, true);
+    },
+    finish,
+    clearFinishedFromChecklist() {
+      if (snapshot.finishedFromChecklist) update({ finishedFromChecklist: false });
     },
     startOver() {
       dismissWindow();

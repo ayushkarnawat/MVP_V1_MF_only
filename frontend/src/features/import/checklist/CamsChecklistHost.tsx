@@ -24,7 +24,7 @@ export function CamsChecklistHost({ memberId }: { memberId: string }) {
   if (api.mode === "panel") return <div className={cardClass}>{body}</div>;
   if (api.mode === "closed" && !store.isOpening() && getChecklistState(memberId)) {
     return <section className={cardClass}>
-      <p>{copy.closed}</p>
+      <p role="status" className="rounded-lg border border-[var(--color-positive)] bg-[color-mix(in_srgb,var(--color-positive)_8%,transparent)] p-3">{copy.closedNote(copy.closedStepNames[api.step])}</p>
       <button type="button" data-clickable="" data-effect="open" className={actionClass} onClick={api.reopen}>{copy.reopen}</button>
       <button type="button" data-clickable="" data-effect="retry" className={actionClass} onClick={api.startOver}>{copy.startOver}</button>
     </section>;

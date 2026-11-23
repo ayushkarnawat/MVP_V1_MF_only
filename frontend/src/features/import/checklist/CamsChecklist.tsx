@@ -10,7 +10,10 @@ export function CamsChecklist({ api }: { api: CamsChecklistApi }) {
   const retry = useContext(CamsChecklistRetryContext);
   return (
     <section className="space-y-3 text-[var(--color-ink)]">
-      <h2>{copy[api.step]}</h2>
+      <h2>{api.mode === "panel" ? (api.step === "form" ? copy.panelTitle : copy.panelStepTitles[api.step]) : copy[api.step]}</h2>
+      {api.mode === "panel" && (
+        <p className="rounded-lg border border-[var(--color-warning)] bg-[color-mix(in_srgb,var(--color-warning)_10%,transparent)] p-3">{copy.panelNote}</p>
+      )}
       {api.camsLink.state === "failed" && (
         <div className="space-y-2">
           <p role="alert">{api.camsLink.error}</p>
@@ -40,7 +43,29 @@ export function CamsChecklist({ api }: { api: CamsChecklistApi }) {
         </>
       )}
       {api.step === "waiting" && (
-        <button type="button" data-clickable="" data-effect="switch" className={actionClass} onClick={api.markFileReady}>{copy.fileReady}</button>
+        <>
+          <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
+            <span aria-hidden="true" className="absolute inset-0 rounded-full border-4 border-[var(--color-border)]" />
+            <span>{copy.ringLabel}</span>
+          </div>
+          <p>{copy.waitingNote}</p>
+          <ul className="space-y-2">
+            {copy.waitRows.map((row, index) => (
+              <li key={row} className="flex items-start gap-2 rounded-lg border border-[var(--color-border)] p-2">
+                <span aria-hidden="true" className={index === 0 ? "h-4 w-4 shrink-0 rounded border border-[var(--color-positive)] bg-[var(--color-positive)]" : "h-4 w-4 shrink-0 rounded border border-[var(--color-border)]"}>{index === 0 ? "✓" : ""}</span>
+                <span>{row}</span>
+              </li>
+            ))}
+          </ul>
+          <button type="button" data-clickable="" data-effect="switch" className={actionClass} onClick={api.markFileReady}>{copy.fileReady}</button>
+        </>
+      )}
+      {api.step === "ready" && (
+        <>
+          <p>{copy.readyNote}</p>
+          <p className="rounded-lg border border-[var(--color-warning)] bg-[color-mix(in_srgb,var(--color-warning)_10%,transparent)] p-3">{copy.passwordNote}</p>
+          <button type="button" data-clickable="" data-effect="close" className={actionClass} onClick={api.finish}>{copy.finish}</button>
+        </>
       )}
     </section>
   );

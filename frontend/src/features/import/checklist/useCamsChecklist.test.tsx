@@ -86,7 +86,7 @@ describe("useCamsChecklist", () => {
     expect(floating.focus).toHaveBeenCalledTimes(1);
   });
 
-  it("steps move form to waiting to ready and ticks and step restore beside the resume marker", () => {
+  it("steps move form to waiting to ready, keep the window open, and finish clears saved state", async () => {
     setCasResumeStep2("member-h8");
     const { result, unmount } = renderHook(() => useCamsChecklist("member-h8"));
     expect(result.current.step).toBe("form");
@@ -106,8 +106,34 @@ describe("useCamsChecklist", () => {
     expect(restored.result.current.mode).toBe("closed");
     expect(restored.result.current.step).toBe("waiting");
     expect(restored.result.current.ticks).toEqual([true, true, true, true, true]);
+    const floating = floatingWindow();
+    vi.stubGlobal("documentPictureInPicture", { requestWindow: vi.fn().mockResolvedValue(floating) });
+    act(() => restored.result.current.open());
+    await waitFor(() => expect(restored.result.current.mode).toBe("window"));
     act(() => restored.result.current.markFileReady());
     expect(restored.result.current.step).toBe("ready");
+    expect(restored.result.current.mode).toBe("window");
+    expect(getChecklistState("member-h8")).toEqual({ ticks: [true, true, true, true, true], step: "ready" });
+    expect(floating.close).not.toHaveBeenCalled();
+    expect(restored.result.current.finishedFromChecklist).toBe(false);
+    act(() => restored.result.current.finish());
+    expect(restored.result.current.mode).toBe("closed");
+    expect(restored.result.current.finishedFromChecklist).toBe(true);
+    expect(getChecklistState("member-h8")).toBeNull();
+    expect(floating.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("opener pagehide preserves ready for reload instead of finishing the checklist", async () => {
+    setChecklistState("member-h9b", { ticks: [true, true, true, true, true], step: "ready" });
+    const floating = floatingWindow();
+    vi.stubGlobal("documentPictureInPicture", { requestWindow: vi.fn().mockResolvedValue(floating) });
+    const { result } = renderHook(() => useCamsChecklist("member-h9b"));
+    act(() => result.current.reopen());
+    await waitFor(() => expect(result.current.mode).toBe("window"));
+    act(() => window.dispatchEvent(new Event("pagehide")));
+    expect(result.current.mode).toBe("closed");
+    expect(result.current.finishedFromChecklist).toBe(false);
+    expect(getChecklistState("member-h9b")).toEqual({ ticks: [true, true, true, true, true], step: "ready" });
   });
 
   it("storage holds only ticks and step, clear preserves the separate resume marker", () => {

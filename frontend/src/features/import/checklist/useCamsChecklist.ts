@@ -15,6 +15,7 @@ export function useCamsChecklist(memberId: string) {
     open: store.open, close: store.close, focus: store.focus, reopen: store.reopen,
     startOver: store.startOver, toggle: store.toggle, setCamsLink: store.setCamsLink,
     markSubmitted: store.markSubmitted, markFileReady: store.markFileReady,
+    finish: store.finish, finishedFromChecklist: snapshot.finishedFromChecklist,
   };
 }
 

@@ -88,6 +88,45 @@ describe("CamsChecklist through the request screen (no invented component props)
     expect(checklist.getByText("4 of 5 done")).toBeInTheDocument();
   });
 
+  it("W2 shows the ring text, the line and the three rows, with Form submitted done and the other two not clickable", async () => {
+    const { checklist } = setup();
+    const { getChecklistState } = await import("../casResumeState");
+    for (const box of await checklist.findAllByRole("checkbox")) fireEvent.click(box);
+    fireEvent.click(checklist.getByRole("button", { name: "I have submitted the form" }));
+    expect(checklist.getByRole("heading", { name: "Wait for the email" })).toBeInTheDocument();
+    const ringLabel = checklist.getByText("5–10 min");
+    expect(ringLabel).not.toHaveAttribute("aria-hidden");
+    expect(ringLabel.parentElement?.querySelector('[aria-hidden="true"]')).not.toBeNull();
+    expect(checklist.getByText("CAMS usually sends it within 5 to 10 minutes.")).toBeInTheDocument();
+    const rows = within(checklist.getByRole("list")).getAllByRole("listitem");
+    expect(rows.map((row) => row.textContent?.replace("✓", "").trim())).toEqual([
+      "Form submitted", "Open your inbox and find the email from CAMS", "Download the PDF attached to it",
+    ]);
+    expect(rows[0].querySelector('[aria-hidden="true"]')?.textContent).toBe("✓");
+    rows.forEach((row, index) => {
+      expect(row.querySelector("input, button, a, [tabindex]")).toBeNull();
+      if (index > 0) expect(row.querySelector('[aria-hidden="true"]')?.textContent).toBe("");
+      fireEvent.click(row);
+    });
+    expect(getChecklistState("member-h8")).toEqual({ ticks: [true, true, true, true, true], step: "waiting" });
+    expect(checklist.queryByRole("button", { name: "Open the CAMS form" })).not.toBeInTheDocument();
+  });
+
+  it("W3 shows the note and the password note and the Close this checklist button", async () => {
+    const { checklist, floating } = setup();
+    for (const box of await checklist.findAllByRole("checkbox")) fireEvent.click(box);
+    fireEvent.click(checklist.getByRole("button", { name: "I have submitted the form" }));
+    fireEvent.click(checklist.getByRole("button", { name: "I have the file" }));
+    expect(checklist.getByRole("heading", { name: "You have the file" })).toBeInTheDocument();
+    expect(checklist.getByText("Now go back to Unifolio to upload it. Press Back to tab in the bar above, or click the Unifolio tab.")).toBeInTheDocument();
+    expect(checklist.getByText("Remember: you need the same password you set on CAMS.")).toBeInTheDocument();
+    const finish = checklist.getByRole("button", { name: "Close this checklist" });
+    expect(finish).toHaveAttribute("data-clickable", "");
+    expect(finish).toHaveAttribute("data-effect", "close");
+    expect(floating.close).not.toHaveBeenCalled();
+    expect(checklist.queryByRole("button", { name: "Open the CAMS form" })).not.toBeInTheDocument();
+  });
+
   it("the checklist Open the CAMS form button opens the returned cams_url in a new tab", async () => {
     const { checklist, openTab } = setup();
     const open = await checklist.findByRole("button", { name: "Open the CAMS form" });

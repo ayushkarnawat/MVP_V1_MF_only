@@ -84,6 +84,36 @@ describe("H-8 CAMS checklist request flow", () => {
     expect(checklist.getByRole("button", { name: "Open the CAMS form" })).toBeEnabled();
   });
 
+  it("the panel shows its title and the amber note", async () => {
+    localStorage.clear();
+    Reflect.deleteProperty(window, "documentPictureInPicture");
+    vi.spyOn(window, "open").mockReturnValue(null);
+    vi.spyOn(api, "requestCamsStatement").mockResolvedValue(response);
+    render(<RequestCamsPath memberId="member-h9b" onRequestInitiated={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
+    expect(await screen.findByRole("heading", { name: "Step 2: Fill the CAMS form" })).toBeInTheDocument();
+    expect(screen.getByText("Your browser cannot float the checklist over other tabs, so it stays here. Tick items as you go, and switch between this tab and CAMS.")).toBeInTheDocument();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(5);
+  });
+
+  it("the request screen's line is the full sentence", () => {
+    localStorage.clear();
+    vi.stubGlobal("documentPictureInPicture", { requestWindow: vi.fn() });
+    render(<RequestCamsPath memberId="member-h9b" onRequestInitiated={vi.fn()} />);
+    expect(screen.getByText("A small checklist will float over the CAMS page to guide you. You can close it any time.")).toBeInTheDocument();
+  });
+
+  it("Continue without it is still an inline link next to the sentence", () => {
+    localStorage.clear();
+    vi.stubGlobal("documentPictureInPicture", { requestWindow: vi.fn() });
+    render(<RequestCamsPath memberId="member-h9b" onRequestInitiated={vi.fn()} />);
+    const sentence = screen.getByText("A small checklist will float over the CAMS page to guide you. You can close it any time.");
+    const link = screen.getByRole("link", { name: "Continue without it" });
+    expect(sentence.tagName).toBe("P");
+    expect(link.closest("p")).toBe(sentence);
+    expect(link).toHaveAttribute("data-effect", "close");
+  });
+
   it("a failed request keeps the screen error and offers the same error and Try again in the checklist without reopening", async () => {
     localStorage.clear();
     const floating = floatingWindow();

@@ -199,15 +199,16 @@ export function RequestCamsPath({
       {/* Action Button */}
       <motion.div variants={staggerItemVariants} className="pt-1 space-y-2.5">
         {!checklistHosted && <CamsChecklistHost memberId={memberId} />}
+        <div className="space-y-1.5">
         {checklist.supported && !withoutChecklist && (
-          <div className="hidden md:block space-y-1 text-xs text-[var(--color-text-secondary)]">
-            <p>{checklistCopy.introduction}</p>
+          <p className="hidden md:block rounded-lg border border-[var(--color-positive)] bg-[color-mix(in_srgb,var(--color-positive)_8%,transparent)] p-3 text-xs text-[var(--color-ink)]">
+            {checklistCopy.introduction}{" "}
             <a href="#" data-clickable="" data-effect="close"
               className="underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
               onClick={(event) => { event.preventDefault(); setWithoutChecklist(true); }}>
               {checklistCopy.skip}
             </a>
-          </div>
+          </p>
         )}
         <Button
           onClick={handleRequest}
@@ -228,6 +229,7 @@ export function RequestCamsPath({
             </>
           )}
         </Button>
+        </div>
 
         <div className="flex justify-center">
           <TutorialLink ref={tutorialLinkRef} onOpen={tutorial.show} />

@@ -50,7 +50,7 @@ describe("H-8 waiting screen checklist integration", () => {
     localStorage.clear();
   });
 
-  it("request completion moves to waiting and keeps the window; early focus holds upload until I have the file closes the checklist", async () => {
+  it("request completion keeps the window; ready allows focus to show upload and Close this checklist finishes", async () => {
     localStorage.clear();
     const floating = floatingWindow();
     vi.stubGlobal("documentPictureInPicture", { requestWindow: vi.fn().mockResolvedValue(floating) });
@@ -75,14 +75,22 @@ describe("H-8 waiting screen checklist integration", () => {
     act(() => window.dispatchEvent(new Event("focus")));
     expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
     fireEvent.click(checklist.getByRole("button", { name: "I have the file" }));
+    expect(getChecklistState("member-h8")).toEqual({ ticks: [true, true, true, true, true], step: "ready" });
+    expect(checklist.getByRole("heading", { name: "You have the file" })).toBeInTheDocument();
+    expect(floating.close).not.toHaveBeenCalled();
+    expect(floating.closed).toBe(false);
+    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    act(() => window.dispatchEvent(new Event("focus")));
     expect(await screen.findByLabelText(/CAS PDF/i)).toBeVisible();
-    // "I have the file" closes the checklist and clears its saved state (H-9 decision 5); ready is only a moment in memory.
+    expect(floating.close).not.toHaveBeenCalled();
+    fireEvent.click(checklist.getByRole("button", { name: "Close this checklist" }));
     expect(getChecklistState("member-h8")).toBeFalsy();
     expect(floating.close).toHaveBeenCalledTimes(1);
     expect(floating.closed).toBe(true);
+    expect(screen.getByText("Your checklist is closed. Add the file and type the password you set on CAMS.")).toBeInTheDocument();
   });
 
-  it("panel mode also holds the early return until I have the file shows upload", async () => {
+  it("panel mode holds early return, keeps ready until Close this checklist, and shows the upload banner", async () => {
     localStorage.clear();
     Reflect.deleteProperty(window, "documentPictureInPicture");
     vi.spyOn(window, "open").mockReturnValue(null);
@@ -90,6 +98,7 @@ describe("H-8 waiting screen checklist integration", () => {
     const { MemoryRouter } = await import("react-router");
     const { TwoPathImportContainer } = await import("./TwoPathImportContainer");
     const { act } = await import("@testing-library/react");
+    const { getChecklistState } = await import("./casResumeState");
     render(<MemoryRouter><TwoPathImportContainer memberId="member-h8" defaultTab="request" onUploadSubmit={vi.fn()} /></MemoryRouter>);
     fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
     await screen.findByText("Waiting for CAMS email");
@@ -100,8 +109,84 @@ describe("H-8 waiting screen checklist integration", () => {
     boxes.forEach((box) => fireEvent.click(box));
     fireEvent.click(screen.getByRole("button", { name: "I have submitted the form" }));
     fireEvent.click(screen.getByRole("button", { name: "I have the file" }));
+    expect(screen.getByRole("heading", { name: "Step 4: You have the file" })).toBeInTheDocument();
+    expect(getChecklistState("member-h8")).toEqual({ ticks: [true, true, true, true, true], step: "ready" });
+    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    act(() => window.dispatchEvent(new Event("focus")));
     expect(await screen.findByLabelText(/CAS PDF/i)).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Close this checklist" }));
+    expect(getChecklistState("member-h8")).toBeNull();
+    expect(screen.getByText("Your checklist is closed. Add the file and type the password you set on CAMS.")).toBeInTheDocument();
     expect(screen.queryByText(/of 5 done/)).not.toBeInTheDocument();
+  });
+
+  async function renderReadyChecklist() {
+    localStorage.clear();
+    const { setChecklistState, setCasResumeStep2 } = await import("./casResumeState");
+    setCasResumeStep2("member-h9b");
+    setChecklistState("member-h9b", { ticks: [true, true, true, true, true], step: "ready" });
+    const floating = floatingWindow();
+    const requestWindow = vi.fn().mockResolvedValue(floating);
+    vi.stubGlobal("documentPictureInPicture", { requestWindow });
+    const { MemoryRouter } = await import("react-router");
+    const { TwoPathImportContainer } = await import("./TwoPathImportContainer");
+    const { within } = await import("@testing-library/react");
+    const onUploadSubmit = vi.fn();
+    render(<MemoryRouter><TwoPathImportContainer memberId="member-h9b" onUploadSubmit={onUploadSubmit} /></MemoryRouter>);
+    return { floating, requestWindow, checklist: within(floating.document.body), onUploadSubmit };
+  }
+
+  it("reload on ready shows the closed card naming step 4 and reopens W3 on a click", async () => {
+    const { requestWindow, checklist } = await renderReadyChecklist();
+    expect(screen.getByText("Your checklist closed when this page reloaded. You were on step 4: You have the file.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Request from CAMS" })).toBeInTheDocument();
+    expect(requestWindow).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Reopen checklist" }));
+    expect(requestWindow).toHaveBeenCalledExactlyOnceWith({ width: 320, height: 440 });
+    expect(await checklist.findByRole("heading", { name: "You have the file" })).toBeInTheDocument();
+    expect(checklist.queryByRole("button", { name: "Open the CAMS form" })).not.toBeInTheDocument();
+  });
+
+  it("finish clears the saved state and the banner disappears after Import", async () => {
+    const { checklist, onUploadSubmit } = await renderReadyChecklist();
+    const { getChecklistState } = await import("./casResumeState");
+    fireEvent.click(screen.getByRole("button", { name: "Reopen checklist" }));
+    fireEvent.click(await checklist.findByRole("button", { name: "Close this checklist" }));
+    expect(getChecklistState("member-h9b")).toBeNull();
+    const banner = "Your checklist is closed. Add the file and type the password you set on CAMS.";
+    expect(screen.getByText(banner)).toBeInTheDocument();
+    const file = new File(["synthetic pdf"], "synthetic-h9b.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText(/CAS PDF/i), { target: { files: [file] } });
+    fireEvent.change(screen.getByLabelText(/PDF Password/i), { target: { value: "MF@123" } });
+    await tickDisclaimer();
+    fireEvent.click(screen.getByRole("button", { name: "Upload Statement" }));
+    expect(onUploadSubmit).toHaveBeenCalledWith(file, "MF@123", "upload");
+    expect(screen.queryByText(banner)).not.toBeInTheDocument();
+  });
+
+  it("closing the floating window on ready finishes and shows the upload banner", async () => {
+    const { floating, checklist } = await renderReadyChecklist();
+    const { act } = await import("@testing-library/react");
+    const { getChecklistState } = await import("./casResumeState");
+    fireEvent.click(screen.getByRole("button", { name: "Reopen checklist" }));
+    await checklist.findByRole("heading", { name: "You have the file" });
+    act(() => floating.close());
+    expect(getChecklistState("member-h9b")).toBeNull();
+    expect(screen.getByText("Your checklist is closed. Add the file and type the password you set on CAMS.")).toBeInTheDocument();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
+  });
+
+  it("leaving the upload screen clears the checklist banner before returning", async () => {
+    const { checklist } = await renderReadyChecklist();
+    fireEvent.click(screen.getByRole("button", { name: "Reopen checklist" }));
+    fireEvent.click(await checklist.findByRole("button", { name: "Close this checklist" }));
+    const banner = "Your checklist is closed. Add the file and type the password you set on CAMS.";
+    expect(screen.getByText(banner)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Back to import options" }));
+    expect(screen.queryByText(banner)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /already have a statement/i }));
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
+    expect(screen.queryByText(banner)).not.toBeInTheDocument();
   });
 
   it("reload shows Your checklist closed, Reopen checklist requires a click, and Start over clears ticks and step", async () => {

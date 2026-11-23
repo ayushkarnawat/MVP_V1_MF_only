@@ -8,6 +8,7 @@ import {
   hasCasResumeStep2,
   setCasResumeStep2,
   clearCasResumeStep2,
+  getChecklistState,
 } from "./casResumeState";
 import { cn } from "@/lib/utils";
 import { History, ArrowLeft } from "lucide-react";
@@ -15,6 +16,7 @@ import type { UploadSurface } from "@/features/legal/panDisclaimerStore";
 import { useCamsChecklist } from "./checklist/useCamsChecklist";
 import { getChecklistStore } from "./checklist/checklistStore";
 import { CamsChecklistHost, CamsChecklistHostedContext } from "./checklist/CamsChecklistHost";
+import { checklistCopy } from "./checklist/checklistCopy";
 
 export type ImportView = "choice" | "request" | "waiting" | "upload" | "history";
 
@@ -42,21 +44,23 @@ function MemberImportContainer({
 }: TwoPathImportContainerProps) {
   const checklist = useCamsChecklist(memberId);
   const checklistStore = getChecklistStore(memberId);
-  const checklistOpen = checklist.mode !== "closed" && checklist.step !== "ready";
   const [view, setView] = useState<ImportView>(() => {
     if (defaultTab === "history") return "history";
     if (defaultTab === "upload") return "upload";
     if (defaultTab === "waiting") return "waiting";
     if (defaultTab === "request") return "request";
+    if (getChecklistState(memberId)) return "request";
     return hasCasResumeStep2(memberId) ? "upload" : "choice";
   });
   const [pendingImportId, setPendingImportId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!checklistOpen && !checklistStore.isOpening() && (!defaultTab || defaultTab === "choice" || defaultTab === "request") && hasCasResumeStep2(memberId)) {
+    const current = checklistStore.getSnapshot();
+    const checklistOpen = current.mode !== "closed" && current.step !== "ready";
+    if (!checklistOpen && !checklistStore.isOpening() && !getChecklistState(memberId) && (!defaultTab || defaultTab === "choice" || defaultTab === "request") && hasCasResumeStep2(memberId)) {
       setView("upload");
     }
-  }, [memberId, defaultTab, checklistOpen, checklistStore]);
+  }, [memberId, defaultTab, checklistStore]);
 
   useEffect(() => {
     const handleFocus = () => {
@@ -71,12 +75,20 @@ function MemberImportContainer({
   }, [memberId, checklistStore]);
 
   useEffect(() => {
-    if (checklist.step === "ready") setView("upload");
-  }, [checklist.step]);
+    if (checklist.finishedFromChecklist) setView("upload");
+  }, [checklist.finishedFromChecklist]);
 
   useEffect(() => {
-    if (requestCasVersion > 0) setView("request");
-  }, [requestCasVersion]);
+    if (requestCasVersion > 0) {
+      checklistStore.clearFinishedFromChecklist();
+      setView("request");
+    }
+  }, [requestCasVersion, checklistStore]);
+
+  const showView = (next: ImportView) => {
+    if (next !== "upload") checklistStore.clearFinishedFromChecklist();
+    setView(next);
+  };
 
   const handleRequestInitiated = (id: string) => {
     setPendingImportId(id);
@@ -108,7 +120,7 @@ function MemberImportContainer({
         <button
           type="button"
           data-clickable="" data-effect="switch"
-          onClick={() => setView((prev) => (prev === "history" ? "choice" : "history"))}
+          onClick={() => showView(view === "history" ? "choice" : "history")}
           aria-label="Import History"
           className={cn(
             "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer min-h-[36px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
@@ -132,8 +144,8 @@ function MemberImportContainer({
       >
         {view === "choice" && (
           <ImportPathChoice
-            onSelectRequest={() => setView("request")}
-            onSelectUpload={() => setView("upload")}
+            onSelectRequest={() => showView("request")}
+            onSelectUpload={() => showView("upload")}
           />
         )}
 
@@ -141,7 +153,7 @@ function MemberImportContainer({
           <RequestCamsPath
             key={memberId}
             memberId={memberId}
-            onBack={() => setView("choice")}
+            onBack={() => showView("choice")}
             onRequestInitiated={handleRequestInitiated}
           />
         )}
@@ -163,13 +175,18 @@ function MemberImportContainer({
         )}
 
         {view === "upload" && (
+          <>
+          {checklist.finishedFromChecklist && (
+            <p role="status" className="hidden md:block mb-3 rounded-lg border border-[var(--color-positive)] bg-[color-mix(in_srgb,var(--color-positive)_8%,transparent)] p-3 text-[var(--color-ink)]">{checklistCopy.uploadBanner}</p>
+          )}
           <UploadForm
             passwordError={errorCode === "wrong_password" ? error ?? undefined : undefined}
             serverFileError={errorCode && ["file_too_large", "unsupported_file", "invalid_file"].includes(errorCode) ? error ?? undefined : undefined}
             surface={surface}
-            onBack={() => setView("choice")}
+            onBack={() => showView("choice")}
             onSubmit={(file, password) => handleUploadSubmit(file, password, "upload")}
           />
+          </>
         )}
 
         {view === "history" && (
@@ -187,7 +204,7 @@ function MemberImportContainer({
               <button
                 type="button"
                 data-clickable="" data-effect="navigate"
-                onClick={() => setView("choice")}
+                onClick={() => showView("choice")}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] transition-colors cursor-pointer py-1 min-h-[36px]"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
