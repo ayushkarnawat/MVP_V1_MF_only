@@ -24,7 +24,7 @@ describe("content", () => {
     mount();
     expect(screen.getByRole("heading", { name: "Look-Through Asset Allocation" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "What your money is really in once mutual fund holdings are looked through to equity, debt, gold, real estate and other holdings." })).toBeInTheDocument();
-    expect(screen.getByTestId("as-on")).toHaveTextContent("Values as on 24 Oct 2026 · Holdings as on 30 Sep 2026");
+    expect(screen.queryByTestId("as-on")).not.toBeInTheDocument();
     expect(screen.getByText("Cash is included under Debt")).toBeInTheDocument();
     expect(screen.getByTestId("donut-centre-label")).toHaveTextContent("Covered value");
     expect(screen.getByTestId("donut-centre-value")).toHaveTextContent("₹42.50 L");

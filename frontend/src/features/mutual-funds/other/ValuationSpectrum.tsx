@@ -3,7 +3,6 @@ import { useState } from "react";
 import { CoverageBanner } from "../../../components/mf/CoverageBanner";
 import { formatPercent as formatLookthroughPercent } from "../../../components/mf/lookthroughDisplay";
 import { compareDecimalStrings } from "../../../lib/decimal";
-import { formatDate } from "../../../lib/format";
 import { ChartTypeToggle } from "../common/charts";
 import type { ValuationSummary } from "../types";
 import {
@@ -53,7 +52,7 @@ function Panel({ data, kind, view }: PanelProps) {
           {label} · {basis}
         </h4>
         <p data-testid={`coverage-${kind}`} className="text-xs text-[var(--ui-text-muted)]">
-          Ratio data cover {formatLookthroughPercent(metric.coverage_pct, 1)}% of equity exposure · Fundamentals as on {formatDate(metric.as_of_date)}
+          {`Ratio data cover ${formatLookthroughPercent(metric.coverage_pct, 1)}% of equity exposure`}
         </p>
       </div>
 
@@ -153,10 +152,6 @@ export function ValuationSpectrum({ data }: ValuationSpectrumProps) {
 
   return (
     <div data-testid="valuation-body" className="space-y-5">
-      <p data-testid="valuation-dates" className="text-xs text-[var(--ui-text-muted)]">
-        Values as on {formatDate(data.nav_as_of)} · Holdings as on {formatDate(data.holdings_as_of)}.
-      </p>
-
       <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />
 
       <p data-testid="valuation-thresholds" className="text-xs text-[var(--ui-text-muted)]">

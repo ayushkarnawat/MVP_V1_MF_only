@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { SchemeLogo } from "../../../components/SchemeLogo";
-import { formatCompactRupees, formatDate, formatRupees } from "../../../lib/format";
+import { formatCompactRupees, formatRupees } from "../../../lib/format";
 import type { CategoryRankingSummary, DirectRegularTerComparison, WeightedTerSummary } from "../types";
 import {
   noTerNote,
@@ -16,21 +16,29 @@ import {
   terText,
   terTotals,
 } from "./otherLogic";
+import { filterFundRows } from "./otherSearch";
 
 export interface TerLadderProps {
   ter: WeightedTerSummary;
   comparison: DirectRegularTerComparison | null;
   ranking: CategoryRankingSummary | null;
+  query?: string;
 }
 
 function round2(x: number): number {
   return Math.round(x * 100) / 100;
 }
 
-export function TerLadder({ ter, comparison, ranking }: TerLadderProps) {
+export function TerLadder({ ter, comparison, ranking, query = "" }: TerLadderProps) {
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const rows = terLadderRows(ter);
+  const allRows = terLadderRows(ter);
+  const rows = query
+    ? (() => {
+        const matchedFunds = new Set(filterFundRows(allRows.map(r => r.fund), query));
+        return allRows.filter(r => matchedFunds.has(r.fund));
+      })()
+    : allRows;
   const max = terScaleMax(ter, comparison);
 
   const circumference = 2 * Math.PI * 38;
@@ -48,11 +56,6 @@ export function TerLadder({ ter, comparison, ranking }: TerLadderProps) {
     <div data-testid="ter-body" className="space-y-6">
       <p className="text-xs text-[var(--ui-text-muted)]">
         Projected annual cost if your value and each fund's TER stay as they are today — not a forecast of returns.
-        {ter.reference_period && (
-          <span data-testid="ter-ref" className="ml-2 font-medium text-[var(--ui-text)]">
-            Ref: {formatDate(ter.reference_period)}
-          </span>
-        )}
       </p>
 
       {/* Hero and Spectrum */}

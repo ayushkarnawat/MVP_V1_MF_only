@@ -1,6 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { formatDate } from "@/lib/format";
 import * as fx from "../fixtures";
 import { expectInteractivity, failedLoad, loaded, loadingLoad, points } from "../testing";
 import { formatXirr, sparkPoints } from "../mfCopy";
@@ -45,7 +44,7 @@ describe("SummaryStrip: XIRR return basis and price date", () => {
   it("shows the XIRR price date on its own line in the tile", () => {
     const date = "2026-11-18";
     strip({ xirr: loaded<XirrBundle>({ ...xirr, xirr_as_of: date }) });
-    expect(within(metric("xirr")).getByTestId("xirr-as-of").textContent).toBe(`As on ${formatDate(date)}`);
+    expect(within(metric("xirr")).getByTestId("xirr-as-of").textContent).toBe("Prices as on 18 Nov 2026");
   });
 
   it.each([

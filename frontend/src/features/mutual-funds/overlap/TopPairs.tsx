@@ -13,10 +13,13 @@ import {
   PAIR_LIMIT,
   pairKeyOf,
 } from "./overlapLogic";
+import { filterOverlapPairs } from "./overlapSearch";
 
 export interface TopPairsProps extends AnalyticsCardProps<OverlapSummary> {
   selectedKey: string | null;
   onSelect: (key: string) => void;
+  anchor?: string;
+  query?: string;
 }
 
 export function TopPairs({
@@ -25,10 +28,13 @@ export function TopPairs({
   onRetry,
   selectedKey,
   onSelect,
+  anchor,
+  query,
 }: TopPairsProps) {
   const [showAll, setShowAll] = useState(false);
 
-  const pairs = data ? inclusivePairs(data) : [];
+  const allPairs = data ? inclusivePairs(data) : [];
+  const pairs = query ? filterOverlapPairs(allPairs, query) : allPairs;
   const displayed = showAll ? pairs : pairs.slice(0, PAIR_LIMIT);
   const insights = data ? buildOverlapInsights(data) : [];
 
@@ -36,6 +42,7 @@ export function TopPairs({
     <SectionCard
       title="3. Top Overlapping Fund Pairs"
       info="The pairs of your funds that share the most stock holdings, largest first. Click a pair to see its shared stocks beside the heatmap."
+      anchor={anchor}
       state={state}
       onRetry={onRetry}
     >

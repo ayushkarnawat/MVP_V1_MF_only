@@ -1,8 +1,10 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { DistributorComparisonModal } from "../../../components/mf/DistributorComparisonModal";
 import { PostImportNotice } from "../../../components/mf/PostImportNotice";
 import { SoldFundsSection } from "../../../components/mf/SoldFundsSection";
+import { PageSearch } from "../../../components/search/PageSearch";
+import { usePageSearchState, type SearchChip } from "../../../components/search/usePageSearchState";
 import { Button } from "../../../components/ui/button";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { WealthGraph } from "../../../components/wealth-graph/WealthGraph";
@@ -26,6 +28,7 @@ import {
 import { CoverageGapGate } from "./CoverageGapGate";
 import { HoldingsTable, type SchemeXirrMeta } from "./HoldingsTable";
 import { soldFundsScope } from "./legacyLogic";
+import { filterHoldingRows } from "./overviewSearch";
 import {
   AmcAllocationCard,
   FamilyMembersCard,
@@ -62,7 +65,7 @@ function OverviewWealthGraph({ holdingsReady }: { holdingsReady: boolean }) {
 
   return (
     <div data-legacy="wealth-graph" className="contents">
-      <section aria-label="Value over time">
+      <section id="overview-value-over-time" aria-label="Value over time" className="scroll-mt-6">
         <WealthGraph
           status={wealth.status}
           data={wealth.data}
@@ -101,7 +104,15 @@ function OverviewWealthGraph({ holdingsReady }: { holdingsReady: boolean }) {
   );
 }
 
-function OverviewBody({ query }: { query: string }) {
+function OverviewBody({
+  query,
+  chips,
+  onCounts,
+}: {
+  query: string;
+  chips: SearchChip[];
+  onCounts: (total: number, matched: number) => void;
+}) {
   const { viewMode, memberId } = useScope();
   const { openImport } = useImport();
   const { openMira } = useMfFrame();
@@ -111,6 +122,29 @@ function OverviewBody({ query }: { query: string }) {
   const dash = useMfDashboard();
   const bench = useMfAnalytics("benchmark_funds");
   const importFor = viewMode === "member" ? memberId ?? undefined : undefined;
+
+  const consolidated =
+    viewMode === "aggregate" && dash.consolidated.status === "data" ? dash.consolidated.data : null;
+
+  const { totalCount, matchedCount } = useMemo(() => {
+    if (dash.holdings.status !== "data" || dash.holdings.data === null) {
+      return { totalCount: 0, matchedCount: 0 };
+    }
+    if (consolidated != null) {
+      return {
+        totalCount: consolidated.length,
+        matchedCount: filterHoldingRows(consolidated, query, chips).length,
+      };
+    }
+    return {
+      totalCount: dash.holdings.data.length,
+      matchedCount: filterHoldingRows(dash.holdings.data, query, chips).length,
+    };
+  }, [dash.holdings.status, dash.holdings.data, consolidated, query, chips]);
+
+  useEffect(() => {
+    onCounts(totalCount, matchedCount);
+  }, [onCounts, totalCount, matchedCount]);
 
   const sort = parseSortParams(params.toString());
 
@@ -232,15 +266,16 @@ function OverviewBody({ query }: { query: string }) {
         synopsis={synopsis}
       />
       <OverviewWealthGraph holdingsReady={dash.holdings.status === "data" && dash.holdings.data !== null} />
-      <SipTimeline sips={dash.sips} />
+      <SipTimeline sips={dash.sips} query={query} chips={chips} />
       <HoldingsTable
         holdings={dash.holdings}
-        consolidated={viewMode === "aggregate" && dash.consolidated.status === "data" ? dash.consolidated.data : null}
+        consolidated={consolidated}
         xirrByScheme={xirrByScheme}
         xirrMetaByScheme={xirrMetaByScheme}
         sort={sort}
         onSort={onSort}
         query={query}
+        chips={chips}
         onAnalyse={openMira}
         onCompareDistributors={() => setDistributorsOpen(true)}
       />
@@ -275,25 +310,31 @@ function OverviewBody({ query }: { query: string }) {
 }
 
 export default function OverviewPage() {
-  const [query, setQuery] = useState("");
+  const { userId } = useScope();
+  const { text, chips } = usePageSearchState("overview");
+  const [counts, setCounts] = useState({ total: 0, matched: 0 });
+  const handleCounts = useCallback((total: number, matched: number) => {
+    setCounts(prev => (prev.total === total && prev.matched === matched ? prev : { total, matched }));
+  }, []);
 
   return (
     <MutualFundsFrame
       tab="overview"
       utility={
-        <input
-          aria-label="Search investments"
-          placeholder="Search investments..."
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] px-3 py-1.5 text-xs text-[var(--ui-text)] placeholder:text-[var(--ui-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--pos)]"
+        <PageSearch
+          pageKey="overview"
+          noun="funds"
+          total={counts.total}
+          matched={counts.matched}
+          chipsAllowed={["category", "member"]}
+          userId={userId ?? null}
         />
       }
     >
       <div data-legacy="import-notice" className="contents">
         <PostImportNotice />
       </div>
-      <OverviewBody query={query} />
+      <OverviewBody query={text} chips={chips} onCounts={handleCounts} />
     </MutualFundsFrame>
   );
 }

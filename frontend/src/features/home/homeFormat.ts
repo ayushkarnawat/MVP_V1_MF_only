@@ -55,12 +55,6 @@ export function formatDayMonth(iso: string | null | undefined): string {
   return `${parts[0]} ${parts[1]}`;
 }
 
-export function formatAsOf(iso: string | null | undefined): string | null {
-  const dm = formatDayMonth(iso);
-  if (dm === "—") return null;
-  return `as of ${dm}`;
-}
-
 export function greetingLine(greeting: "morning" | "afternoon" | "evening", name: string): string {
   const trimmed = name.trim();
   if (!trimmed) return `Good ${greeting}`;

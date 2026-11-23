@@ -1,4 +1,6 @@
 import { formatPercent as formatLookthroughPercent } from "../../../components/mf/lookthroughDisplay";
+import { formatDataDate } from "../../../lib/dataDates";
+import { formatMonthYear } from "../../../lib/dateRange";
 import { compareDecimalStrings, diffDecimalStrings, sumDecimalStrings, toPercentString } from "../../../lib/decimal";
 import { formatPercent, formatRupees } from "../../../lib/format";
 import type {
@@ -288,6 +290,60 @@ export const KIND_TEXT: Record<ValuationKind, { label: string; basis: string }> 
   pe: { label: "P/E", basis: "earnings" },
   pb: { label: "P/B", basis: "book value" },
 };
+
+export const KNOWN_VALUE_SOURCES = ["factsheet", "computed", "none"] as const;
+
+function roundWholePercent(value: string): string {
+  const [wholeRaw, fraction = ""] = value.trim().split(".");
+  let whole = parseInt(wholeRaw || "0", 10) || 0;
+  if (fraction.length > 0 && fraction[0] >= "5") {
+    whole += 1;
+  }
+  return String(whole);
+}
+
+export function sourceSentence(
+  value: {
+    source: string;
+    basis: string | null;
+    method: string | null;
+    coverage_pct: string | null;
+    as_of: string | null;
+    reason?: string | null;
+    unavailable_reason?: string | null;
+  },
+  kind: ValuationKind,
+): string {
+  if (value.source === "factsheet") {
+    const monthYear = formatMonthYear(value.as_of);
+    const prefix = monthYear ? `Printed on the fund's factsheet for ${monthYear}` : "Printed on the fund's factsheet";
+    if (value.basis === "forward") {
+      return `${prefix}, based on forward earnings.`;
+    }
+    if (value.basis === "trailing") {
+      return `${prefix}, based on trailing ${KIND_TEXT[kind].basis}.`;
+    }
+    return `${prefix}.`;
+  }
+  if (value.source === "computed") {
+    const methodClause =
+      value.method === "harmonic"
+        ? "combined as a harmonic mean"
+        : value.method === "weighted_average"
+          ? "combined as a weighted average"
+          : "combined into one figure";
+    const coverageClause = value.coverage_pct != null ? ` Covers ${roundWholePercent(value.coverage_pct)}% of the fund's equity.` : "";
+    const ratiosDate = formatDataDate("ratios", value.as_of);
+    const dateClause = ratiosDate ? ` ${ratiosDate}.` : "";
+    return `Worked out from the fund's published holdings. Stock ratios come from NSE and BSE daily data, ${methodClause}.${coverageClause}${dateClause}`;
+  }
+  if (value.source === "none") {
+    if (value.unavailable_reason) return value.unavailable_reason;
+    if (value.reason) return `Not enough data. ${value.reason}`;
+    return "Not enough data.";
+  }
+  return "We could not tell where this figure comes from.";
+}
 
 export function ratioState(data: ValuationSummary, kind: ValuationKind): "hidden" | "not_enough" | "ok" {
   if (data.hide_headlines) return "hidden";

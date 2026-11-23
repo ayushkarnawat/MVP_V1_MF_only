@@ -1,8 +1,9 @@
 import { ArrowRight, ChartColumn, ChevronLeft, Sprout } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
+import { PageSearch } from "@/components/search/PageSearch";
 import { PageLayout } from "@/shell/layout/PageLayout";
 import { MiraComingSoonDialog } from "@/shell/mira/MiraComingSoonDialog";
-import { useImport } from "@/shell/scope/ScopeContext";
+import { useImport, useScope } from "@/shell/scope/ScopeContext";
 import {
   BACK_LABEL,
   COMING_SOON_LINE,
@@ -67,6 +68,18 @@ export default function PlanningPage() {
   const [state, setState] = useState<PlanningHistoryState>(LANDING);
   const [miraOpen, setMiraOpen] = useState(false);
   const { openImport } = useImport();
+  const { userId } = useScope();
+  const search = (
+    <PageSearch
+      pageKey="planning"
+      noun="scenarios"
+      total={0}
+      matched={0}
+      chipsAllowed={[]}
+      jumpOnly
+      userId={userId ?? null}
+    />
+  );
 
   useEffect(() => {
     replacePlanningState(LANDING);
@@ -96,7 +109,7 @@ export default function PlanningPage() {
     return (
       <div className="space-y-2">
         {back}
-        <PageLayout title={PLAN_FUTURE_TITLE} subtitle={PLAN_FUTURE_LINE}>
+        <PageLayout title={PLAN_FUTURE_TITLE} subtitle={PLAN_FUTURE_LINE} search={search}>
           <div
             data-testid="coming-soon"
             className="flex items-start gap-2.5 rounded-[10px] border border-[var(--ui-divider)] bg-[var(--ui-elevated)] px-3.5 py-3 text-sm text-[var(--ui-text-muted)]"
@@ -121,7 +134,7 @@ export default function PlanningPage() {
     return (
       <div className="space-y-2">
         {back}
-        <PageLayout title={EXPLORE_TITLE} subtitle={MARKET_SUBTITLE}>
+        <PageLayout title={EXPLORE_TITLE} subtitle={MARKET_SUBTITLE} search={search}>
           <PlanningScenarios
             selectedId={state.scenarioId}
             onSelect={id => go({ planning: "market", scenarioId: id })}
@@ -135,7 +148,7 @@ export default function PlanningPage() {
   }
 
   return (
-    <PageLayout title={TITLE} subtitle={SUBTITLE}>
+    <PageLayout title={TITLE} subtitle={SUBTITLE} search={search}>
       <div data-testid="planning-landing" className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <ChoiceCard
           title={PLAN_FUTURE_TITLE}

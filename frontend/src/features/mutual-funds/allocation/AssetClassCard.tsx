@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { CoverageBanner } from "../../../components/mf/CoverageBanner";
 import { compareDecimalStrings } from "../../../lib/decimal";
-import { formatCompactRupees, formatDate, formatPercent, formatRupees } from "../../../lib/format";
+import { formatCompactRupees, formatPercent, formatRupees } from "../../../lib/format";
 import { BarList, ChartTypeToggle } from "../common/charts";
 import { FundLink } from "../common/FundLink";
 import { SectionCard } from "../common/SectionCard";
@@ -27,7 +27,8 @@ export function AssetClassCard({
   state,
   data,
   onRetry,
-}: AnalyticsCardProps<AssetAllocationSummary>) {
+  anchor,
+}: AnalyticsCardProps<AssetAllocationSummary> & { anchor?: string }) {
   const [asCash, setAsCash] = useState(false);
   const [chartType, setChartType] = useState<"donut" | "bar">("donut");
   const [selected, setSelected] = useState<AssetClassKey | null>(null);
@@ -74,6 +75,7 @@ export function AssetClassCard({
     <SectionCard
       title="Look-Through Asset Allocation"
       info="What your money is really in once mutual fund holdings are looked through to equity, debt, gold, real estate and other holdings."
+      anchor={anchor}
       state={state}
       onRetry={onRetry}
     >
@@ -85,10 +87,6 @@ export function AssetClassCard({
         </p>
       ) : (
         <div className="flex flex-col gap-4">
-          <p data-testid="as-on" className="text-xs text-[var(--ui-text-muted)]">
-            Values as on {formatDate(data.nav_as_of)} · Holdings as on {formatDate(data.holdings_as_of)}
-          </p>
-
           <p className="text-xs text-[var(--ui-text-muted)]">
             Percentages describe the five asset classes in your published fund holdings.
           </p>

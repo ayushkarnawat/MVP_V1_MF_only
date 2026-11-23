@@ -1,6 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { formatDate } from "@/lib/format";
 import { fixture } from "../fixtures";
 import { sparkPoints, sparkTrend } from "../portfolioCopy";
 import { formatXirr } from "../portfolioFormat";
@@ -298,7 +297,7 @@ describe("SummaryStrip: XIRR return basis and price date", () => {
     const date = "2026-11-18";
     setup({ data: { ...fixture<PortfolioSummaryResponse>("summary_family"), xirr_as_of: date } });
     expect(within(screen.getByTestId("metric-xirr")).getByTestId("xirr-as-of").textContent).toBe(
-      `As on ${formatDate(date)}`,
+      "Prices as on 18 Nov 2026",
     );
   });
 

@@ -113,7 +113,7 @@ describe("News: the card", () => {
     setup();
     const lines = items().map(item => within(item).getByTestId("news-exposure").textContent);
     expect(lines).toEqual([
-      "About 5% of your portfolio (holdings as of Sep 2026) · Why this?",
+      "About 5% of your portfolio (holdings as on September 2026) · Why this?",
       "About 100% of your portfolio · Why this?",
       "About 19.4% of your portfolio · Why this?",
     ]);

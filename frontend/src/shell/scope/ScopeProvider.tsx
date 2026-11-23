@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { useLocation, useNavigationType } from "react-router";
+import { useLocation, useNavigate, useNavigationType } from "react-router";
 import { useAuth } from "../../features/auth/AuthContext";
 import { getHouseholdMembers } from "../../features/auth/api";
 import type { HouseholdMember } from "../../features/auth/types";
@@ -9,6 +9,7 @@ import { isImportDoneState } from "../nav/importDoneTarget";
 import { ScopeContext } from "./ScopeContext";
 import type { ScopeMember, ScopeValue } from "./scopeTypes";
 import { shouldResetScope } from "./resetRule";
+import { readScopeIntent, stateWithoutScopeIntent } from "./scopeIntent";
 import { readScope, writeScope } from "./scopeStorage";
 import type { StoredScope } from "./scopeStorage";
 
@@ -38,12 +39,16 @@ interface MemberRequest {
 
 export function ScopeProvider({ children }: { children: ReactNode }) {
   const { me } = useAuth();
-  const { pathname, state: locationState } = useLocation();
+  const { pathname, search, hash, key: locationKey, state: locationState } = useLocation();
+  const navigate = useNavigate();
   const navigationType = useNavigationType();
   const routes = useMemo(() => buildRegistry(), []);
   const [state, setState] = useState(initialState);
   const requests = useRef<MemberRequest>({ active: false, version: 0, loading: true, moves: [] });
   const previousPath = useRef(pathname);
+  // A search jump's undo: the selector before the jump, and the page the jump landed on.
+  const [jump, setJump] = useState<{ label: string; previous: StoredScope; path: string } | null>(null);
+  const handledIntent = useRef<string | null>(null);
 
   const loadMembers = useCallback((lifecycle: MemberRequest, keepPick: boolean): Promise<ScopeMember[] | null> => {
     const request = ++lifecycle.version;
@@ -98,11 +103,14 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
     return loadMembers(requests.current, true);
   }, [loadMembers]);
 
+  // A manual selector change always drops the search jump's undo.
   const setMember = useCallback((id: string) => {
+    setJump(null);
     setState(previous => ({ ...previous, pick: { mode: "member", memberId: id } }));
   }, []);
 
   const setAggregate = useCallback(() => {
+    setJump(null);
     // Aggregate transitions keep the first member preselected, rather than
     // clearing memberId. A single-member household remains in member mode.
     setState(previous => ({ ...previous, pick: defaultPick(previous.members) }));
@@ -120,6 +128,34 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
       : previous);
   }, [pathname, locationState, navigationType, routes]);
 
+  // The search jump's scope intent. Declared AFTER the reset-rule effect above, so within one commit the reset runs first and the
+  // intent has the last word. It waits for the household to load, applies once per history entry, then removes only its own scope
+  // part from the entry (the page keys `section` and `open`, and keys such as `importNotice`, stay for the page).
+  useEffect(() => {
+    const intent = readScopeIntent(locationState);
+    if (!intent || !state.ready || handledIntent.current === locationKey) return;
+    handledIntent.current = locationKey;
+    const target = intent.scope === "family"
+      ? defaultPick(state.members)
+      : state.members.some(member => member.id === intent.scope.memberId) ? { mode: "member" as const, memberId: intent.scope.memberId } : null;
+    if (target) {
+      const label = target.mode === "aggregate" ? "Family" : state.members.find(member => member.id === target.memberId)?.name ?? "Family";
+      setJump({ label, previous: state.pick, path: pathname });
+      setState(previous => ({ ...previous, pick: target }));
+    }
+    void navigate({ pathname, search, hash }, { replace: true, state: stateWithoutScopeIntent(locationState) });
+  }, [locationState, locationKey, state.ready, state.members, state.pick, pathname, search, hash, navigate]);
+
+  // Moving to another page ends the undo.
+  useEffect(() => {
+    setJump(previous => previous && previous.path !== pathname ? null : previous);
+  }, [pathname]);
+
+  const undoJump = useMemo(() => jump && {
+    label: jump.label,
+    undo: () => { setState(previous => ({ ...previous, pick: jump.previous })); setJump(null); },
+  }, [jump]);
+
   useEffect(() => {
     if (state.ready) writeScope(state.pick, pathname);
   }, [state.ready, state.pick, pathname]);
@@ -131,6 +167,8 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
     selectedMember: state.members.find(member => member.id === state.pick.memberId),
     scopeKey: state.pick.mode === "aggregate" ? "aggregate" : `member:${state.pick.memberId}`,
     setMember, setAggregate, refreshMembers,
+    scopeJump: undoJump,
+    userId: me?.user_id ?? null,
   };
   return <ScopeContext.Provider value={value}>{children}</ScopeContext.Provider>;
 }

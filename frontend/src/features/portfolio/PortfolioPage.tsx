@@ -1,4 +1,5 @@
 import { ChevronDown, Plus, TriangleAlert } from "lucide-react";
+import { PageSearch } from "@/components/search/PageSearch";
 import { PageLayout } from "@/shell/layout/PageLayout";
 import { useImport, useScope } from "@/shell/scope/ScopeContext";
 import {
@@ -25,6 +26,7 @@ export default function PortfolioPage() {
     members,
     selectedMember,
     scopeKey,
+    userId,
     setMember,
     setAggregate,
   } = useScope();
@@ -93,6 +95,17 @@ export default function PortfolioPage() {
     <PageLayout
       title="All Investments"
       subtitle={subtitle}
+      search={
+        <PageSearch
+          pageKey="portfolio"
+          noun="investments"
+          total={0}
+          matched={0}
+          chipsAllowed={[]}
+          jumpOnly
+          userId={userId ?? null}
+        />
+      }
       actions={
         <button
           type="button"

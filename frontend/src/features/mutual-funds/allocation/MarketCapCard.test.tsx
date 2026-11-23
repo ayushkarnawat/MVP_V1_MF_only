@@ -25,7 +25,7 @@ describe("content", () => {
     mount();
     expect(screen.getByRole("heading", { name: "Market-Cap Allocation" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Equity holdings classified by AMFI market-cap size, looked through every fund you own." })).toBeInTheDocument();
-    expect(screen.getByTestId("as-on")).toHaveTextContent("Values as on 24 Oct 2026 · Holdings as on 30 Sep 2026 · AMFI classification effective from 01 Jul 2026.");
+    expect(screen.queryByTestId("as-on")).not.toBeInTheDocument();
     expect(legend().getAllByRole("button").map(button => button.textContent)).toEqual(["Large Cap61.8%", "Mid Cap29.4%", "Small Cap8.8%"]);
     expect(screen.getByTestId("largest-allocation")).toHaveTextContent("Largest allocation: Large Cap (61.8%)");
     expect(screen.getByTestId("donut-centre-label")).toHaveTextContent("Total portfolio");

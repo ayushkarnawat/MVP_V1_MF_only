@@ -137,10 +137,9 @@ describe("OverviewPage", () => {
     expect(screen.getByTestId("loc")).toHaveTextContent("/portfolio/mutual-funds?sort=value&dir=asc");
     expect(screen.getAllByTestId(/^row-/)[0]).toHaveAttribute("data-testid", "row-S-SBI:m3");
   });
-  it("filters the table from the search box in the utility row", async () => {
-    mount();
+  it("filters the table from ?q= (the old Search investments input is now the shared search box, which keeps its text in the address)", async () => {
+    mount({}, "/portfolio/mutual-funds?q=kotak");
     await page();
-    fireEvent.change(screen.getByRole("textbox", { name: "Search investments" }), { target: { value: "kotak" } });
     expect(screen.getAllByTestId(/^row-/)).toHaveLength(1);
     expect(screen.getByRole("heading", { name: "Mutual Funds (1)" })).toBeInTheDocument();
   });

@@ -105,7 +105,7 @@ describe("FundManagerCard", () => {
     const dialog = screen.getByRole("dialog", { name: "Fund manager" });
     const rows = within(dialog).getAllByTestId("manager-popup-row").map(row => [within(row).getByRole("term").textContent, within(row).getByRole("definition").textContent]);
     expect(rows).toEqual([
-      ["Name", "Vikram Iyer"], ["Role", "Co-Fund Manager"], ["Managing since", "01 Jul 2021"], ["Tenure", "5.3 years"], ["Details as of", "30 Sep 2026"],
+      ["Name", "Vikram Iyer"], ["Role", "Co-Fund Manager"], ["Managing since", "01 Jul 2021"], ["Tenure", "5.3 years"], ["Manager details", "as on September 2026"],
     ]);
     expect(within(dialog).getByTestId("manager-note")).toHaveTextContent("Photo, biography and strategy are coming soon.");
     fireEvent.click(within(dialog).getByRole("button", { name: "Close modal" }));

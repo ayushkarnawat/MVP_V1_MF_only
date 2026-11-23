@@ -1,4 +1,4 @@
-import { formatDate, formatPercent, scoreBand } from "./homeFormat";
+import { formatPercent, scoreBand } from "./homeFormat";
 import { sumDecimals } from "./moversCopy";
 import type { WorthCardOut } from "./types";
 
@@ -11,14 +11,6 @@ function str(value: unknown): string | null {
     return String(value);
   }
   return null;
-}
-
-export function formatMonthYear(iso: string | null | undefined): string {
-  const formatted = formatDate(iso);
-  if (formatted === "—") return "—";
-  const parts = formatted.trim().split(/\s+/);
-  if (parts.length < 3) return "—";
-  return `${parts[1]} ${parts[2]}`;
 }
 
 export function percentPointDifference(a: string, b: string): string {

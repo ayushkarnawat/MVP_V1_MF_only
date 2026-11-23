@@ -1,24 +1,40 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { PageSearch } from "../../../components/search/PageSearch";
+import { parseQuery } from "../../../components/search/queryParser";
+import { usePageSearchState, type SearchChip } from "../../../components/search/usePageSearchState";
 import { Button } from "../../../components/ui/button";
 import { formatRupees } from "../../../lib/format";
+import { useScope } from "../../../shell/scope/ScopeContext";
 import { SectionCard } from "../common/SectionCard";
 import { useMfAnalytics } from "../data/analyticsStore";
 import { MutualFundsFrame } from "../frame/MutualFundsFrame";
 import { CashFlowBars } from "./CashFlowBars";
 import { CashFlowStrip } from "./CashFlowStrip";
 import { Ledger } from "./Ledger";
+import { searchLedgerRows, typeWordToFilter } from "./ledgerSearch";
 import { PeriodDrill } from "./PeriodDrill";
 import { SwitchesControl } from "./SwitchesControl";
 import { SipBanner } from "./SipBanner";
-import type { Granularity, LedgerFilter } from "./transactionsLogic";
+import { ledgerRows, type Granularity, type LedgerFilter } from "./transactionsLogic";
 
-function TransactionsBody() {
-  const money = useMfAnalytics("investment_withdrawal");
+interface TransactionsBodyProps {
+  money: ReturnType<typeof useMfAnalytics<"investment_withdrawal">>;
+  filter: LedgerFilter;
+  effectiveFilter: LedgerFilter;
+  onFilter: (filter: LedgerFilter) => void;
+  search: { text: string; chips: SearchChip[] };
+}
 
+function TransactionsBody({
+  money,
+  filter,
+  effectiveFilter,
+  onFilter,
+  search,
+}: TransactionsBodyProps) {
   const [includeSwitches, setIncludeSwitches] = useState(false);
   const [granularity, setGranularity] = useState<Granularity>("monthly");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-  const [filter, setFilter] = useState<LedgerFilter>("all");
 
   if (money.status === "error") {
     return (
@@ -50,7 +66,7 @@ function TransactionsBody() {
   const switchesIncluded = switchCount > 0 && includeSwitches;
 
   const handleTileFilter = (nextFilter: LedgerFilter) => {
-    setFilter(nextFilter);
+    onFilter(nextFilter);
     const target = document.querySelector('[data-testid="card-ledger"]');
     if (target && typeof target.scrollIntoView === "function") {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -95,6 +111,7 @@ function TransactionsBody() {
       <div data-testid="card-cash-flow">
         <SectionCard
           title="Cash Flow Over Time"
+          anchor="transactions-cash-flow"
           state={money.status}
           onRetry={money.retry}
         >
@@ -159,14 +176,16 @@ function TransactionsBody() {
       <div data-testid="card-ledger">
         <SectionCard
           title="All Transactions"
+          anchor="transactions-ledger"
           state={money.status}
           onRetry={money.retry}
         >
           {data && (
             <Ledger
               buckets={data.monthly}
-              filter={filter}
-              onFilter={setFilter}
+              filter={effectiveFilter}
+              onFilter={onFilter}
+              search={search}
             />
           )}
         </SectionCard>
@@ -176,9 +195,41 @@ function TransactionsBody() {
 }
 
 export default function TransactionsPage() {
+  const money = useMfAnalytics("investment_withdrawal");
+  const { userId } = useScope();
+  const { text, chips } = usePageSearchState("transactions");
+  const [filter, setFilter] = useState<LedgerFilter>("all");
+
+  const effectiveFilter = typeWordToFilter(parseQuery(text).typeWord) ?? filter;
+  const search = useMemo(() => ({ text, chips }), [text, chips]);
+
+  const data = money.data;
+  const total = useMemo(() => (data ? ledgerRows(data.monthly, "all").length : 0), [data]);
+  const matched = useMemo(() => {
+    if (!data) return 0;
+    return searchLedgerRows(ledgerRows(data.monthly, effectiveFilter), text, chips).length;
+  }, [data, effectiveFilter, text, chips]);
+
+  const utility = (
+    <PageSearch
+      pageKey="transactions"
+      noun="transactions"
+      total={total}
+      matched={matched}
+      chipsAllowed={["period", "member"]}
+      userId={userId ?? null}
+    />
+  );
+
   return (
-    <MutualFundsFrame tab="transactions">
-      <TransactionsBody />
+    <MutualFundsFrame tab="transactions" utility={utility}>
+      <TransactionsBody
+        money={money}
+        filter={filter}
+        effectiveFilter={effectiveFilter}
+        onFilter={setFilter}
+        search={search}
+      />
     </MutualFundsFrame>
   );
 }

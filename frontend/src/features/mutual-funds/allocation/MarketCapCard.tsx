@@ -4,7 +4,7 @@ import { SchemeLogo } from "../../../components/SchemeLogo";
 import { CoverageBanner, fundAgeText } from "../../../components/mf/CoverageBanner";
 import { formatPercent as lookthroughPercent, percentageProduct } from "../../../components/mf/lookthroughDisplay";
 import { compareDecimalStrings, diffDecimalStrings } from "../../../lib/decimal";
-import { formatCompactRupees, formatDate, formatPercent, formatRupees } from "../../../lib/format";
+import { formatCompactRupees, formatPercent, formatRupees } from "../../../lib/format";
 import { SlicedDonut, useSelectedSlice } from "../common/charts";
 import { FundLink } from "../common/FundLink";
 import { SectionCard } from "../common/SectionCard";
@@ -125,7 +125,8 @@ export function MarketCapCard({
   state,
   data,
   onRetry,
-}: AnalyticsCardProps<CapAllocationSummary>) {
+  anchor,
+}: AnalyticsCardProps<CapAllocationSummary> & { anchor?: string }) {
   const hasClassifiedFields = !!data?.unclassified_share_pct && data.buckets.every(
     bucket => typeof bucket.percentage_classified === "string" && bucket.percentage_classified !== ""
   );
@@ -157,6 +158,7 @@ export function MarketCapCard({
     <SectionCard
       title="Market-Cap Allocation"
       info="Equity holdings classified by AMFI market-cap size, looked through every fund you own."
+      anchor={anchor}
       state={state}
       onRetry={onRetry}
     >
@@ -168,12 +170,11 @@ export function MarketCapCard({
         <p role="status" className="text-xs text-[var(--ui-text-muted)]">Market-cap allocation is updating.</p>
       ) : (
         <div className="flex flex-col gap-4">
-          <p data-testid="as-on" className="text-xs text-[var(--ui-text-muted)]">
-            Values as on {formatDate(data.nav_as_of)} · Holdings as on {formatDate(data.holdings_as_of)} ·{" "}
-            {data.classification_as_of
-              ? `AMFI classification effective from ${formatDate(data.classification_as_of)}.`
-              : "No applicable AMFI classifications for these holdings."}
-          </p>
+          {!data.classification_as_of && (
+            <p data-testid="as-on" className="text-xs text-[var(--ui-text-muted)]">
+              No applicable AMFI classifications for these holdings.
+            </p>
+          )}
 
           <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />
 

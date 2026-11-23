@@ -9,6 +9,7 @@ import {
   categoryGapText, categoryLinePositions, filterCategoryFunds, normalizeFraction, rawPercent, shortCategory,
 } from "./otherLogic";
 import type { CategoryFilter, CategoryPeriod } from "./otherLogic";
+import { filterFundRows } from "./otherSearch";
 
 function ComparisonRow({ fund, period, scale }: { fund: CategoryRankRow; period: CategoryPeriod; scale: [number, number] }) {
   const row = fund.periods?.[period];
@@ -30,9 +31,9 @@ function ComparisonRow({ fund, period, scale }: { fund: CategoryRankRow; period:
   </div>;
 }
 
-export function CategoryRankingBody({ data }: { data: CategoryRankingSummary }) {
+export function CategoryRankingBody({ data, query = "" }: { data: CategoryRankingSummary; query?: string }) {
   const [filter, setFilter] = useState<CategoryFilter>("all");
-  const funds = filterCategoryFunds(data, filter);
+  const funds = filterFundRows(filterCategoryFunds(data, filter), query);
   // Keep one scale and the portfolio summary stable while the chips filter cards.
   const scale = categoryComparisonScale(data);
   return <div data-testid="category-body" className="space-y-4">
@@ -67,10 +68,10 @@ export function CategoryRankingBody({ data }: { data: CategoryRankingSummary }) 
   </div>;
 }
 
-export function CategoryRankingGroup() {
+export function CategoryRankingGroup({ query = "" }: { query?: string }) {
   const ranking = useMfAnalytics("category_ranking");
   return <SectionCard title={CARD_TITLES.category[0]} info="The average of funds in the same category and plan type, weighted by fund size. Each fund needs at least 3 years of history."
     state={ranking.status} onRetry={ranking.retry}>
-    {ranking.data && <CategoryRankingBody data={ranking.data} />}
+    {ranking.data && <CategoryRankingBody data={ranking.data} query={query} />}
   </SectionCard>;
 }

@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { Modal } from "@/components/Modal";
 import { compareDecimalStrings } from "@/lib/decimal";
-import { formatDate, formatPercent } from "@/lib/format";
+import { formatDataDateTail } from "@/lib/dataDates";
+import { formatPercent } from "@/lib/format";
 import { fundPageApi } from "../api";
 import { SectionState } from "../components/SectionState";
 import { ageTagText } from "../fundCopy";
 import type { HoldingsListResponse } from "../types";
 import { useFundSection } from "../useFundSection";
+import { filterHoldingRows } from "./holdingsSearch";
 
 export interface AllHoldingsDialogProps {
   schemeId: string;
@@ -30,6 +32,8 @@ export function AllHoldingsDialog({
     { enabled: requested }
   );
 
+  const [search, setSearch] = useState("");
+
   const [sort, setSort] = useState<{
     key: "weight" | "name";
     dir: "asc" | "desc";
@@ -52,9 +56,13 @@ export function AllHoldingsDialog({
     }
   };
 
-  const sortedRows = useMemo(() => {
+  const filteredRows = useMemo(() => {
     if (!holdings.data?.rows) return [];
-    const copy = [...holdings.data.rows];
+    return filterHoldingRows(holdings.data.rows, search);
+  }, [holdings.data?.rows, search]);
+
+  const sortedRows = useMemo(() => {
+    const copy = [...filteredRows];
     const mult = sort.dir === "asc" ? 1 : -1;
     return copy.sort((a, b) => {
       if (sort.key === "weight") {
@@ -62,12 +70,12 @@ export function AllHoldingsDialog({
       }
       return a.name.localeCompare(b.name) * mult;
     });
-  }, [holdings.data?.rows, sort]);
+  }, [filteredRows, sort]);
 
   if (!isOpen) return null;
 
   const title = holdings.data
-    ? `All holdings, as of ${formatDate(holdings.data.holdings_as_of)}`
+    ? `All holdings, ${formatDataDateTail("holdings", holdings.data.holdings_as_of)}`
     : "All holdings";
 
   return (
@@ -92,6 +100,17 @@ export function AllHoldingsDialog({
                 {ageTagText(holdings.data.age_tag)}
               </p>
             ) : null}
+
+            <div className="mb-2">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Search holdings"
+                placeholder="Search holdings"
+                className="h-8 w-full rounded-lg border border-[var(--ui-divider)] bg-[var(--ui-card)] px-3 text-xs text-[var(--ui-text)] placeholder:text-[var(--ui-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--pos)]"
+              />
+            </div>
 
             <div className="max-h-[55vh] overflow-auto">
               <table className="w-full text-left">
@@ -173,6 +192,11 @@ export function AllHoldingsDialog({
                   ))}
                 </tbody>
               </table>
+              {sortedRows.length === 0 && search.trim() ? (
+                <p className="py-4 text-center text-xs text-[var(--ui-text-muted)]">
+                  {`No holdings match "${search}".`}
+                </p>
+              ) : null}
             </div>
           </div>
         ) : null}

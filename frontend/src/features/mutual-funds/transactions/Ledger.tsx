@@ -10,7 +10,9 @@ import { SchemeLogo } from "../../../components/SchemeLogo";
 import { FolioNumber } from "../../../components/mf/FolioNumber";
 import { transactionLabel } from "../../../components/mf/periodBreakdown";
 import { formatDate, formatRupees } from "../../../lib/format";
+import type { SearchChip } from "../../../components/search/usePageSearchState";
 import type { InvestmentWithdrawalBucket } from "../types";
+import { searchLedgerRows } from "./ledgerSearch";
 import {
   LEDGER_FILTERS,
   LEDGER_PAGE,
@@ -24,6 +26,7 @@ export interface LedgerProps {
   buckets: InvestmentWithdrawalBucket[];
   filter: LedgerFilter;
   onFilter: (filter: LedgerFilter) => void;
+  search?: { text: string; chips: SearchChip[] };
 }
 
 function KindIcon({ kind }: { kind: LedgerKind }) {
@@ -52,11 +55,15 @@ function kindBgClass(kind: LedgerKind): string {
   }
 }
 
-export function Ledger({ buckets, filter, onFilter }: LedgerProps) {
+export function Ledger({ buckets, filter, onFilter, search }: LedgerProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
 
-  const rows = useMemo(() => ledgerRows(buckets, filter), [buckets, filter]);
+  const baseRows = useMemo(() => ledgerRows(buckets, filter), [buckets, filter]);
+  const rows = useMemo(
+    () => (search ? searchLedgerRows(baseRows, search.text, search.chips) : baseRows),
+    [baseRows, search]
+  );
 
   // If currently open row leaves the filtered list, forget it
   if (openId !== null && !rows.some(r => r.entry.transaction_id === openId)) {

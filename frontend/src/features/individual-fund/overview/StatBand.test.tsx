@@ -127,7 +127,7 @@ describe("StatBand", () => {
     expect(row(dialog, "Current value")).toBe("₹2,250");
     expect(row(dialog, "Units")).toBe("150.000");
     expect(row(dialog, "Current NAV")).toBe("₹15.00");
-    expect(row(dialog, "NAV as of")).toBe("23 Oct 2026");
+    expect(row(dialog, "NAV")).toBe("as on 23 Oct 2026");
     expect(row(dialog, "ASHA RAO")).toBe("4400918/3");
     expect(row(dialog, "Dev Rao")).toBe("A12345678");
     expect(dialog).not.toHaveTextContent("XXXXX9183"); // the old masked field is never shown (Batch C 17c)
@@ -154,7 +154,7 @@ describe("StatBand", () => {
     dialog = screen.getByRole("dialog");
     expect(row(dialog, "This plan")).toBe("0.70%");
     expect(row(dialog, "Plan")).toBe("Direct");
-    expect(row(dialog, "As of")).toBe("30 Sep 2026");
+    expect(row(dialog, "Expense ratio")).toBe("as on September 2026");
   });
 
   it("the XIRR drill-down gives the rate, the period and the explanation", () => {

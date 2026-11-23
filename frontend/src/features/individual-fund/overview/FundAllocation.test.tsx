@@ -73,7 +73,7 @@ describe("FundAllocation", () => {
     expect(rowText()).toEqual(["Large Cap33.3%", "Mid Cap33.3%", "Small Cap33.3%"]);
     expect(rowText().some(text => /other/i.test(text ?? ""))).toBe(false);
     expect(screen.getByTestId("alloc-note")).toHaveTextContent(
-      "Share of the classified equity part. Not shown: 16.0% of the fund (cash, debt, unlisted). Disclosure as of 30 Sep 2026."
+      "Share of the classified equity part. Not shown: 16.0% of the fund (cash, debt, unlisted). Disclosure as on September 2026."
     );
     for (const color of pie.props!.data.map(d => d.color)) expect(color).toMatch(/^var\(--c\d\)$/);
   });
@@ -82,12 +82,12 @@ describe("FundAllocation", () => {
     const data = fixture<CompositionResponse>("composition");
     data.unclassified_pct = "0.0000";
     mount(section({ data }));
-    expect(screen.getByTestId("alloc-note")).toHaveTextContent("Share of the classified equity part. Disclosure as of 30 Sep 2026.");
+    expect(screen.getByTestId("alloc-note")).toHaveTextContent("Share of the classified equity part. Disclosure as on September 2026.");
     expect(screen.getByTestId("alloc-note").textContent).not.toContain("Not shown");
     tab("Sector");
-    expect(screen.getByTestId("alloc-note")).toHaveTextContent("Sector from the fund's disclosure, as of 30 Sep 2026.");
+    expect(screen.getByTestId("alloc-note")).toHaveTextContent("Sector from the fund's disclosure, as on September 2026.");
     tab("Asset Type");
-    expect(screen.getByTestId("alloc-note")).toHaveTextContent("Share of the fund's portfolio, as of 30 Sep 2026.");
+    expect(screen.getByTestId("alloc-note")).toHaveTextContent("Share of the fund's portfolio, as on September 2026.");
   });
 
   it("a slice with a zero share is not drawn and has no legend row", () => {

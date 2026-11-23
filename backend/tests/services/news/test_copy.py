@@ -92,7 +92,7 @@ def test_exposure_text_lookthrough_adds_coverage_caveat_only_below_full_coverage
         Decimal("5.00"), chip="lookthrough", coverage_pct=Decimal("100.00"),
         holdings_as_of=date(2026, 9, 30),
     )
-    assert with_date == "About 5% of your portfolio (holdings as of Sep 2026)"
+    assert with_date == "About 5% of your portfolio (holdings as on September 2026)"
 
 
 def test_every_news_string_lives_only_in_copy_py():

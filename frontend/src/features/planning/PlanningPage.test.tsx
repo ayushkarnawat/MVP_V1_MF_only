@@ -81,7 +81,8 @@ describe("PlanningPage: Plan your future", () => {
     expect(note).toHaveTextContent("Goal planning is on its way: retirement, your child's education, a home purchase and wealth goals.");
     expect(screen.getAllByRole("button")).toHaveLength(1);
     expect(screen.queryByRole("textbox")).toBeNull();
-    expect(screen.queryByRole("combobox")).toBeNull();
+    // The only added control is the shared page search box (a combobox); no other input appears on this view.
+    expect(screen.getAllByRole("combobox")).toHaveLength(1);
   });
 
   it("has a Back to Planning button, with a chevron, above the heading, that returns to the landing", () => {

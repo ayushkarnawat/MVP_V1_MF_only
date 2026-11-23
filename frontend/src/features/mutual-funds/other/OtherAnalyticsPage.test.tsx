@@ -145,7 +145,8 @@ describe("failure, loading and retry", () => {
     mocks.getAnalyticsScope.mockResolvedValue(response);
     mount();
     await screen.findByRole("status", { name: "Loading Rank in your fund's category" });
-    expect(screen.getAllByRole("status").map(status => status.getAttribute("aria-label"))).toEqual([
+    // The search box keeps its own unnamed live region mounted (it announces result counts); only the named loading statuses are the cards'.
+    expect(screen.getAllByRole("status").map(status => status.getAttribute("aria-label")).filter(Boolean)).toEqual([
       "Loading Total Expense Ratio (TER) & Cost Analysis", "Loading Portfolio Valuation vs. Benchmarks", "Loading Fund Quality Scores", "Loading Returns against the category average", "Loading Rank in your fund's category",
     ]);
     expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(4);
@@ -183,7 +184,8 @@ describe("every control on the page", () => {
     expect(screen.getByTestId("comparison-S-JM-3y")).toBeInTheDocument();
     expect(screen.getByTestId("performance-row-S-JM")).toBeInTheDocument();
     expectInteractivity(container, 15);
-    expect(container.querySelectorAll("[data-clickable]")).toHaveLength(15);
+    // 15 buttons plus the "i" marks, which are clickable since E-7 (they open a popover): 4 on the cards and 1 on the date strip (E-5b).
+    expect(container.querySelectorAll("[data-clickable]")).toHaveLength(20);
   });
 });
 

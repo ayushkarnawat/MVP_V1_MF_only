@@ -3,6 +3,7 @@ import { SectionCard } from "../common/SectionCard";
 import { useMfAnalytics } from "../data/analyticsStore";
 import type { PeriodRank, PerformancePeriod, PerformanceRankingFund, PerformanceRankingResult } from "../types";
 import { CARD_TITLES, PERFORMANCE_PERIODS, isPerformanceRanking, performanceRankBanner, performanceRankColor, performanceRankPosition, shortCategory } from "./otherLogic";
+import { filterFundRows } from "./otherSearch";
 
 const PERIOD_LABELS: Record<PerformancePeriod, string> = { "1Y": "1 year", "3Y": "3 years", "5Y": "5 years" };
 
@@ -32,15 +33,16 @@ function RankCell({ fund, period, value }: { fund: PerformanceRankingFund; perio
   </td>;
 }
 
-export function PerformanceRankingContent({ data }: { data: PerformanceRankingResult }) {
+export function PerformanceRankingContent({ data, query = "" }: { data: PerformanceRankingResult; query?: string }) {
+  const funds = filterFundRows(data.funds, query);
   return <div className="space-y-4">
     <p className="rounded-xl bg-[var(--pos-bg)] p-4 text-sm text-[var(--ui-text)]">{performanceRankBanner(data)}</p>
-    {data.funds.length === 0 ? <p className="text-sm text-[var(--ui-text-muted)]">No funds to rank for this selection.</p> :
+    {funds.length === 0 ? <p className="text-sm text-[var(--ui-text-muted)]">No funds to rank for this selection.</p> :
       <div className="overflow-x-auto"><table aria-label="Performance rankings" className="w-full min-w-[640px] table-fixed text-left">
         <thead className="border-b border-[var(--ui-divider)] text-xs text-[var(--ui-text-muted)]">
           <tr><th scope="col" className="w-2/5 px-4 py-3">Fund</th>{PERFORMANCE_PERIODS.map(period => <th key={period} scope="col" className="px-4 py-3">{PERIOD_LABELS[period]}</th>)}</tr>
         </thead>
-        <tbody>{data.funds.map(fund => {
+        <tbody>{funds.map(fund => {
           const noGrowth = fund.disclaimer_key === "no_growth_series_not_ranked";
           const index = fund.disclaimer_key === "index_fund_not_ranked" || PERFORMANCE_PERIODS.every(period => fund.periods?.[period]?.status === "not_ranked_index_fund");
           return <tr key={fund.scheme_id} data-testid={`performance-row-${fund.scheme_id}`} className="border-b border-[var(--ui-divider)]">
@@ -65,11 +67,11 @@ export function PerformanceRankingContent({ data }: { data: PerformanceRankingRe
   </div>;
 }
 
-export function PerformanceRankingGroup() {
+export function PerformanceRankingGroup({ query = "" }: { query?: string }) {
   const { data, status, retry, updating } = useMfAnalytics("ranking");
   const old = updating || (data !== null && !isPerformanceRanking(data));
   return <SectionCard title={CARD_TITLES.ranking[0]} state={status} onRetry={retry}>
     {old ? <p role="status" aria-label="Updating Performance Ranking" className="text-sm text-[var(--ui-text-muted)]">Performance rankings are updating.</p>
-      : data ? <PerformanceRankingContent data={data} /> : <p className="text-sm text-[var(--ui-text-muted)]">No performance ranking data available.</p>}
+      : data ? <PerformanceRankingContent data={data} query={query} /> : <p className="text-sm text-[var(--ui-text-muted)]">No performance ranking data available.</p>}
   </SectionCard>;
 }

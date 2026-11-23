@@ -1,4 +1,5 @@
-import { changeDirection, formatDate, formatDayMonth } from "../homeFormat";
+import { changeDirection, formatDate } from "../homeFormat";
+import { formatDataDate } from "../../../lib/dataDates";
 import { istToday } from "../../../lib/homeToday";
 import type { MoverAllBarOut, MoversView } from "../types";
 
@@ -112,16 +113,16 @@ export function formatDialogDateLine(
 ): string {
   const computedYmd = extractIstYmd(computedAt) ?? parseIsoCalendarDate(navAsOf)?.ymd ?? null;
   const datePart = computedYmd ? formatWeekdayDate(computedYmd) : null;
-  const pricesDayMonth = formatDayMonth(navAsOf);
+  const pricesLabel = formatDataDate("prices", navAsOf);
 
-  if (datePart && datePart !== "—" && pricesDayMonth !== "—") {
-    return `${datePart} · prices as on ${pricesDayMonth}`;
+  if (datePart && datePart !== "—" && pricesLabel) {
+    return `${datePart} · ${pricesLabel}`;
   }
   if (datePart && datePart !== "—") {
     return datePart;
   }
-  if (pricesDayMonth !== "—") {
-    return `Prices as on ${pricesDayMonth}`;
+  if (pricesLabel) {
+    return pricesLabel;
   }
   return "Today";
 }

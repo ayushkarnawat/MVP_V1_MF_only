@@ -3,8 +3,10 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { Button } from "../../../components/ui/button";
 import { PageLayout } from "../../../shell/layout/PageLayout";
@@ -13,6 +15,13 @@ import { AppLink } from "../../../shell/nav/AppLink";
 import { paths } from "../../../shell/nav/paths";
 import { useImport, useScope } from "../../../shell/scope/ScopeContext";
 import type { MfTabId } from "../types";
+import { useSearchIntent } from "../../../components/search/useSearchIntent";
+import { sectionsForTab } from "../../../lib/pageSections";
+import { SectionRail } from "./SectionRail";
+import { TabDateStrip } from "./TabDateStrip";
+import { useRenderedSections } from "./useRenderedSections";
+import { useSectionJump } from "./useSectionJump";
+import { useSectionSpy } from "./useSectionSpy";
 
 export interface TabDef {
   id: MfTabId;
@@ -77,6 +86,7 @@ export const TAB_DEFS: ReadonlyArray<TabDef> = [
 
 interface MfFrameContextValue {
   openMira: () => void;
+  scrollRoot: RefObject<HTMLElement | null>;
 }
 
 const MfFrameContext = createContext<MfFrameContextValue | null>(null);
@@ -99,7 +109,18 @@ export interface MutualFundsFrameProps {
 export function MutualFundsFrame({ tab, children, utility }: MutualFundsFrameProps) {
   const [miraOpen, setMiraOpen] = useState(false);
   const openMira = useCallback(() => setMiraOpen(true), []);
-  const contextValue = useMemo(() => ({ openMira }), [openMira]);
+  const scrollRoot = useRef<HTMLElement | null>(null);
+  const frameRef = useCallback((element: HTMLDivElement | null) => {
+    scrollRoot.current = element?.closest("main") ?? null;
+  }, []);
+  const contextValue = useMemo(() => ({ openMira, scrollRoot }), [openMira]);
+
+  // The section index follows what is actually on the page (a lazy or failed section keeps its anchor), not the static list alone.
+  const renderedSections = useRenderedSections(scrollRoot, sectionsForTab(tab));
+  const { activeId } = useSectionSpy(scrollRoot, renderedSections);
+  // A search result that goes to a section arrives as router state; the frame is shared by all seven tabs, so it carries the jump out.
+  useSearchIntent();
+  const { jumpTo } = useSectionJump(scrollRoot, renderedSections);
 
   const { viewMode, memberId } = useScope();
   const { openImport } = useImport();
@@ -120,7 +141,7 @@ export function MutualFundsFrame({ tab, children, utility }: MutualFundsFramePro
       </Button>
     ) : undefined;
 
-  const tabs = (
+  const tabBar = (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-2">
       <nav aria-label="Mutual Funds sections">
         <ul className="flex flex-wrap items-center gap-1">
@@ -152,16 +173,26 @@ export function MutualFundsFrame({ tab, children, utility }: MutualFundsFramePro
     </div>
   );
 
+  const tabs = (
+    <>
+      {tabBar}
+      <TabDateStrip tab={tab} />
+    </>
+  );
+
   return (
     <MfFrameContext.Provider value={contextValue}>
-      <PageLayout
-        title={currentTab.title}
-        subtitle={currentTab.subtitle}
-        actions={actions}
-        tabs={tabs}
-      >
-        {children}
-      </PageLayout>
+      <div ref={frameRef} className="contents">
+        <PageLayout
+          title={currentTab.title}
+          subtitle={currentTab.subtitle}
+          actions={actions}
+          tabs={tabs}
+        >
+          {children}
+        </PageLayout>
+        <SectionRail sections={renderedSections} activeId={activeId} onJump={jumpTo} />
+      </div>
       <MiraComingSoonDialog open={miraOpen} onOpenChange={setMiraOpen} />
     </MfFrameContext.Provider>
   );

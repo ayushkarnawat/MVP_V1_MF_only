@@ -48,8 +48,17 @@ function responseFromCache(cached: CachedResponse): Response {
   });
 }
 
+const _cacheClearedListeners = new Set<() => void>();
+
+/** For copies of household data kept elsewhere (the search index): told whenever the GET cache is cleared by a data change. */
+export function onApiCacheInvalidated(listener: () => void): () => void {
+  _cacheClearedListeners.add(listener);
+  return () => { _cacheClearedListeners.delete(listener); };
+}
+
 export function invalidateApiCache(): void {
   _getCache.clear();
+  for (const listener of _cacheClearedListeners) listener();
 }
 
 export async function cachedFetch(url: string, options: RequestInit = {}): Promise<Response> {

@@ -26,7 +26,9 @@ import {
   type SortKey,
   type SortState,
 } from "../mfCopy";
+import type { SearchChip } from "../../../components/search/usePageSearchState";
 import type { ConsolidatedHolding, ConsolidatedHoldingChild, HoldingRow, Load } from "../types";
+import { filterHoldingRows } from "./overviewSearch";
 
 export interface SchemeXirrMeta {
   xirr_as_of?: string | null;
@@ -42,6 +44,7 @@ export interface HoldingsTableProps {
   sort: SortState | null;
   onSort: (next: SortState) => void;
   query: string;
+  chips?: SearchChip[];
   onAnalyse: () => void;
   onCompareDistributors: () => void;
 }
@@ -81,6 +84,7 @@ export function HoldingsTable({
   sort,
   onSort,
   query,
+  chips = [],
   onAnalyse,
   onCompareDistributors,
 }: HoldingsTableProps) {
@@ -130,15 +134,9 @@ export function HoldingsTable({
   }
 
   if (consolidated != null) return <FamilyHoldingsTable rows={consolidated} sort={sort} onSort={onSort}
-    query={query} onAnalyse={onAnalyse} onCompareDistributors={onCompareDistributors} />;
+    query={query} chips={chips} onAnalyse={onAnalyse} onCompareDistributors={onCompareDistributors} />;
 
-  const trimmedQuery = query.trim().toLowerCase();
-  const filteredRows = holdings.data.filter(h => {
-    if (!trimmedQuery) return true;
-    const nameMatch = h.scheme_name.toLowerCase().includes(trimmedQuery);
-    const amcMatch = h.amc_name ? h.amc_name.toLowerCase().includes(trimmedQuery) : false;
-    return nameMatch || amcMatch;
-  });
+  const filteredRows = filterHoldingRows(holdings.data, query, chips);
 
   const displayedXirrByScheme: Record<string, string | null | undefined> = {};
   for (const row of filteredRows) {
@@ -162,7 +160,7 @@ export function HoldingsTable({
   ];
 
   return (
-    <section className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
+    <section id="overview-mutual-funds" className="scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
         <h3 id="holdings-title" className="text-base font-semibold text-[var(--ui-text)]">
           Mutual Funds ({filteredRows.length})
@@ -406,13 +404,12 @@ function FamilyHoldingStatus({ row }: { row: ConsolidatedHolding | ConsolidatedH
   </>;
 }
 
-function FamilyHoldingsTable({ rows, sort, onSort, query, onAnalyse, onCompareDistributors }: {
+function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse, onCompareDistributors }: {
   rows: ConsolidatedHolding[]; sort: SortState | null; onSort: (next: SortState) => void;
-  query: string; onAnalyse: () => void; onCompareDistributors: () => void;
+  query: string; chips?: SearchChip[]; onAnalyse: () => void; onCompareDistributors: () => void;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
-  const term = query.trim().toLowerCase();
-  const filtered = rows.filter(r => `${r.scheme_name} ${r.amc_name}`.toLowerCase().includes(term));
+  const filtered = filterHoldingRows(rows, query, chips);
   const valueFor = (r: ConsolidatedHolding): string | null => {
     if (sort?.key === "invested") return r.amount_invested;
     if (sort?.key === "value") return r.nav_unavailable ? null : r.current_value;
@@ -433,7 +430,7 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, onAnalyse, onCompareDi
     const values = filtered.map(row => row[field]);
     return values.some(value => value == null) ? null : sumDecimalStrings(values.map(value => value ?? "0"));
   };
-  return <section className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
+  return <section id="overview-mutual-funds" className="scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
     <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
       <h3 id="holdings-title" className="text-base font-semibold text-[var(--ui-text)]">Mutual Funds ({shown.length})</h3>
       <div className="flex gap-2">
