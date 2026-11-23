@@ -9,6 +9,145 @@ vi.mock("../legal/api", async () => {
   return { ...actual, getLegalDocuments: vi.fn(async () => DOCS) };
 });
 
+describe("H-8 CAMS checklist request flow", () => {
+  const response = {
+    import_id: "import-h8", household_member_id: "member-h8", status: "waiting_for_user",
+    cams_url: "https://cams.example.test/statement", expires_at: "2026-12-01T12:00:00Z",
+  };
+
+  function floatingWindow() {
+    const events = new EventTarget();
+    const floating = {
+      document: document.implementation.createHTMLDocument("Unifolio checklist"),
+      closed: false, focus: vi.fn(),
+      close: vi.fn(() => {
+        floating.closed = true;
+        events.dispatchEvent(new Event("pagehide"));
+      }),
+      addEventListener: events.addEventListener.bind(events),
+      removeEventListener: events.removeEventListener.bind(events),
+    };
+    return floating;
+  }
+
+  afterEach(async () => {
+    const { cleanup } = await import("@testing-library/react");
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
+  it("opens the window synchronously in the click before the request starts or is awaited; the green button opens no CAMS tab", async () => {
+    localStorage.clear();
+    const floating = floatingWindow();
+    let resolveWindow!: (value: typeof floating) => void;
+    let resolveRequest!: (value: typeof response) => void;
+    const requestWindow = vi.fn(() => new Promise<typeof floating>((resolve) => { resolveWindow = resolve; }));
+    vi.stubGlobal("documentPictureInPicture", { requestWindow });
+    const request = vi.spyOn(api, "requestCamsStatement").mockImplementation(() => {
+      expect(requestWindow).toHaveBeenCalledExactlyOnceWith({ width: 320, height: 440 });
+      return new Promise<typeof response>((resolve) => { resolveRequest = resolve; });
+    });
+    const openTab = vi.spyOn(window, "open").mockReturnValue(null);
+    const initiated = vi.fn();
+    const { within, act } = await import("@testing-library/react");
+    render(<RequestCamsPath memberId="member-h8" onRequestInitiated={initiated} />);
+    fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
+    expect(requestWindow).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledExactlyOnceWith("member-h8");
+    expect(requestWindow.mock.invocationCallOrder[0]).toBeLessThan(request.mock.invocationCallOrder[0]);
+    await act(async () => resolveWindow(floating));
+    const checklist = within(floating.document.body);
+    const preparing = await checklist.findByRole("button", { name: "Getting your link ready" });
+    expect(preparing).toBeDisabled();
+    expect(initiated).not.toHaveBeenCalled();
+    expect(openTab).not.toHaveBeenCalled();
+    await act(async () => resolveRequest(response));
+    await waitFor(() => expect(initiated).toHaveBeenCalledExactlyOnceWith(response.import_id, response.expires_at));
+    const { hasCasResumeStep2 } = await import("./casResumeState");
+    expect(hasCasResumeStep2("member-h8")).toBe(true);
+    expect(openTab).not.toHaveBeenCalled();
+    expect(floating.close).not.toHaveBeenCalled();
+    expect(checklist.getByRole("button", { name: "Open the CAMS form" })).toBeEnabled();
+  });
+
+  it("a failed request keeps the screen error and offers the same error and Try again in the checklist without reopening", async () => {
+    localStorage.clear();
+    const floating = floatingWindow();
+    const requestWindow = vi.fn().mockResolvedValue(floating);
+    vi.stubGlobal("documentPictureInPicture", { requestWindow });
+    const request = vi.spyOn(api, "requestCamsStatement")
+      .mockRejectedValueOnce(new Error("Failed to initiate CAMS request."))
+      .mockResolvedValueOnce(response);
+    const openTab = vi.spyOn(window, "open").mockReturnValue(null);
+    const initiated = vi.fn();
+    const { within } = await import("@testing-library/react");
+    render(<RequestCamsPath memberId="member-h8" onRequestInitiated={initiated} />);
+    fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
+    const checklist = within(floating.document.body);
+    expect(await screen.findByText("Failed to initiate CAMS request.")).toBeVisible();
+    expect(await checklist.findByText("Failed to initiate CAMS request.")).toBeInTheDocument();
+    expect(initiated).not.toHaveBeenCalled();
+    fireEvent.click(checklist.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(initiated).toHaveBeenCalledWith(response.import_id, response.expires_at));
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(requestWindow).toHaveBeenCalledTimes(1);
+    expect(openTab).not.toHaveBeenCalled();
+  });
+
+  it.each(["no support", "throws", "rejects"])("%s: the panel shows and the green button requests then opens CAMS as today", async (failure) => {
+    localStorage.clear();
+    if (failure === "no support") {
+      Reflect.deleteProperty(window, "documentPictureInPicture");
+    } else {
+      vi.stubGlobal("documentPictureInPicture", {
+        requestWindow: vi.fn(() => {
+          const error = new DOMException("Not allowed", "NotAllowedError");
+          if (failure === "throws") throw error;
+          return Promise.reject(error);
+        }),
+      });
+    }
+    let resolveRequest!: (value: typeof response) => void;
+    const request = vi.spyOn(api, "requestCamsStatement").mockImplementation(() => new Promise<typeof response>((resolve) => { resolveRequest = resolve; }));
+    const openTab = vi.spyOn(window, "open").mockReturnValue(null);
+    const initiated = vi.fn();
+    const { act } = await import("@testing-library/react");
+    render(<RequestCamsPath memberId="member-h8" onRequestInitiated={initiated} />);
+    fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
+    await screen.findByText("0 of 5 done");
+    expect(screen.getAllByRole("checkbox")).toHaveLength(5);
+    expect(openTab).not.toHaveBeenCalled();
+    expect(initiated).not.toHaveBeenCalled();
+    await act(async () => resolveRequest(response));
+    await waitFor(() => expect(openTab).toHaveBeenCalledExactlyOnceWith(response.cams_url, "_blank"));
+    expect(request.mock.invocationCallOrder[0]).toBeLessThan(openTab.mock.invocationCallOrder[0]);
+    expect(initiated).toHaveBeenCalledExactlyOnceWith(response.import_id, response.expires_at);
+  });
+
+  it("Continue without it is offered only with the API and bypasses the floating window for this request", async () => {
+    localStorage.clear();
+    const requestWindow = vi.fn().mockResolvedValue(floatingWindow());
+    vi.stubGlobal("documentPictureInPicture", { requestWindow });
+    const openTab = vi.spyOn(window, "open").mockReturnValue(null);
+    const request = vi.spyOn(api, "requestCamsStatement").mockResolvedValue(response);
+    const { unmount } = render(<RequestCamsPath memberId="member-h8" onRequestInitiated={vi.fn()} />);
+    expect(screen.getByText(/A small checklist will float over the CAMS page/)).toBeVisible();
+    const skip = screen.queryByRole("link", { name: "Continue without it" }) ?? screen.getByRole("button", { name: "Continue without it" });
+    fireEvent.click(skip);
+    expect(request).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
+    await waitFor(() => expect(openTab).toHaveBeenCalledExactlyOnceWith(response.cams_url, "_blank"));
+    expect(requestWindow).not.toHaveBeenCalled();
+    unmount();
+    Reflect.deleteProperty(window, "documentPictureInPicture");
+    render(<RequestCamsPath memberId="member-h8-next" onRequestInitiated={vi.fn()} />);
+    expect(screen.queryByText("Continue without it")).not.toBeInTheDocument();
+    expect(screen.queryByText(/A small checklist will float over the CAMS page/)).not.toBeInTheDocument();
+  });
+});
+
 describe("RequestCamsPath", () => {
   afterEach(() => {
     vi.restoreAllMocks();
