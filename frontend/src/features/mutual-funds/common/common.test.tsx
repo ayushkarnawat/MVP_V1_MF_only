@@ -2,6 +2,7 @@ import { useState } from "react";
 import { act, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Layers, PieChart } from "lucide-react";
+import { PrintModeProvider } from "../../../lib/printMode";
 import { SectionCard } from "./SectionCard";
 import { BarList, ChartTypeToggle, SlicedDonut, useSelectedSlice } from "./charts";
 import type { Slice } from "../types";
@@ -174,5 +175,24 @@ describe("useSelectedSlice", () => {
     render(<Harness />);
     fireEvent.click(screen.getByRole("button"));
     expect(screen.getByRole("button")).toHaveTextContent("1:a");
+  });
+});
+
+describe("SlicedDonut in print mode", () => {
+  it("draws slices as pictures: no button role, no focus, no handlers, nothing pops on hover", () => {
+    render(
+      <PrintModeProvider value={{ folios: "full", dataDates: true }}>
+        <SlicedDonut slices={SLICES} selectedKey={null} onSelect={() => { throw new Error("clicked"); }} activeKey={null}
+          onActiveChange={() => { throw new Error("hovered"); }} centre={{ label: "Total", value: "₹28.50 L" }} />
+      </PrintModeProvider>,
+    );
+    const slice = screen.getByTestId("slice-a");
+    expect(slice).not.toHaveAttribute("role", "button");
+    expect(slice).not.toHaveAttribute("tabindex");
+    expect(slice).not.toHaveAttribute("data-clickable");
+    fireEvent.mouseEnter(slice);
+    fireEvent.click(slice);
+    expect(slice).toHaveAttribute("data-popped", "false");
+    expect(document.querySelector("[role='button']")).toBeNull();
   });
 });
