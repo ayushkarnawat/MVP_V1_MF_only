@@ -31,7 +31,7 @@ def build_search_index(db: Session, user_id: uuid.UUID, today: date) -> SearchIn
     member_ids = [member.id for member in members]
     folios = db.query(Folio).filter(Folio.household_member_id.in_(member_ids)).all() if member_ids else []
     folios_by_id = {folio.id: folio for folio in folios}
-    transactions = db.query(Transaction).filter(Transaction.folio_id.in_(folios_by_id)).all() if folios else []
+    transactions = db.query(Transaction).filter(Transaction.folio_id.in_(list(folios_by_id))).all() if folios else []
     grouped: dict[tuple[uuid.UUID, uuid.UUID], list[Transaction]] = defaultdict(list)
     for txn in transactions:
         folio = folios_by_id[txn.folio_id]
