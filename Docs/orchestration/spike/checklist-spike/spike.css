@@ -1,0 +1,24 @@
+:root { color-scheme: light; font: 14px/1.45 system-ui, sans-serif; }
+body { margin: 0; background: white; color: #17251d; }
+main { max-width: 850px; padding: 20px; margin: auto; }
+h1 { font-size: 24px; }
+h2 { font-size: 18px; }
+button, select, input { font: inherit; }
+button, select { padding: 8px; }
+button { cursor: pointer; border: 1px solid #506858; border-radius: 5px; background: #f1f7f3; color: #17251d; }
+button:hover { background: #e0eee5; }
+button:active { background: #c8dfd0; }
+button:disabled { opacity: .5; cursor: default; }
+:focus-visible { outline: 3px solid #215fca; outline-offset: 3px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+#checklist-first { background: #176d3c; color: white; }
+#checklist-first:hover { background: #10512c; }
+.checklist { padding: 16px; border: 1px solid #a9bbae; border-radius: 8px; background: white; color: #17251d; }
+.checklist ol { padding: 0; list-style: none; }
+.checklist li { margin: 12px 0; }
+.checklist label { display: flex; gap: 8px; align-items: flex-start; }
+.checklist input { flex: none; margin-top: 4px; }
+section { margin-top: 24px; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f1f7f3; padding: 12px; }
+.pip-page { color-scheme: light; background: white; color: #17251d; }
+.pip-page .checklist { border: 0; }
