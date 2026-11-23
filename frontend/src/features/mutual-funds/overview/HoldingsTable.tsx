@@ -162,7 +162,7 @@ export function HoldingsTable({
   ];
 
   return (
-    <section className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
+    <section id="overview-mutual-funds" className="scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
         <h3 id="holdings-title" className="text-base font-semibold text-[var(--ui-text)]">
           Mutual Funds ({filteredRows.length})
@@ -433,7 +433,7 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, onAnalyse, onCompareDi
     const values = filtered.map(row => row[field]);
     return values.some(value => value == null) ? null : sumDecimalStrings(values.map(value => value ?? "0"));
   };
-  return <section className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
+  return <section id="overview-mutual-funds" className="scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
     <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
       <h3 id="holdings-title" className="text-base font-semibold text-[var(--ui-text)]">Mutual Funds ({shown.length})</h3>
       <div className="flex gap-2">

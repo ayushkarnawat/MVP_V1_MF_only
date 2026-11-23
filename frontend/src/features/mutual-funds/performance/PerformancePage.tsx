@@ -274,8 +274,9 @@ function ReturnsBlock({
 
   return (
     <section
+      id="performance-returns"
       data-testid="block-returns"
-      className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5 flex flex-col gap-6"
+      className="scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5 flex flex-col gap-6"
     >
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-2">
@@ -542,8 +543,9 @@ function HistoryBlock({ history }: { history: ReturnType<typeof useMfHistory> })
 
   return (
     <section
+      id="performance-portfolio-history"
       data-testid="block-history"
-      className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5 flex flex-col gap-4"
+      className="scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5 flex flex-col gap-4"
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">

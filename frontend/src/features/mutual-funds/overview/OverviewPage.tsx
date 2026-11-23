@@ -62,7 +62,7 @@ function OverviewWealthGraph({ holdingsReady }: { holdingsReady: boolean }) {
 
   return (
     <div data-legacy="wealth-graph" className="contents">
-      <section aria-label="Value over time">
+      <section id="overview-value-over-time" aria-label="Value over time" className="scroll-mt-6">
         <WealthGraph
           status={wealth.status}
           data={wealth.data}

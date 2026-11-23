@@ -20,6 +20,7 @@ import { PairDetail } from "./PairDetail";
 export interface HeatmapProps extends AnalyticsCardProps<OverlapSummary> {
   selectedKey: string | null;
   onSelect: (key: string) => void;
+  anchor?: string;
 }
 
 export function Heatmap({
@@ -28,6 +29,7 @@ export function Heatmap({
   onRetry,
   selectedKey,
   onSelect,
+  anchor,
 }: HeatmapProps) {
   const pairMap = useMemo(() => {
     const map = new Map<string, OverlapPair>();
@@ -50,6 +52,7 @@ export function Heatmap({
     <SectionCard
       title="2. Overlap Heatmap"
       info="Every fund pair's overlap %, based on shared stock weight. Click a cell for its shared-stock list."
+      anchor={anchor}
       state={state}
       onRetry={onRetry}
     >

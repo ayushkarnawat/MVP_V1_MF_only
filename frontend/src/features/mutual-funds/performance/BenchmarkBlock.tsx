@@ -111,8 +111,9 @@ export function BenchmarkBlock() {
 
   return (
     <section
+      id="performance-benchmark-comparison"
       data-testid="block-benchmark"
-      className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5"
+      className="scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5"
     >
       <div className="flex items-center gap-2 mb-2">
         <h3 className="text-base font-semibold text-[var(--ui-text)]">

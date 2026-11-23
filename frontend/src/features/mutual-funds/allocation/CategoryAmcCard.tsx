@@ -27,6 +27,7 @@ const CHART_OPTIONS = [
 
 export interface CategoryAmcCardProps extends AnalyticsCardProps<AnalyticsAllocationSummary> {
   holdings: Load<HoldingRow[]>;
+  anchor?: string;
 }
 
 export function CategoryAmcCard({
@@ -34,6 +35,7 @@ export function CategoryAmcCard({
   data,
   onRetry,
   holdings,
+  anchor,
 }: CategoryAmcCardProps) {
   const [tab, setTab] = useState<"category" | "amc">("category");
   const [order, setOrder] = useState<SortOrder>("desc");
@@ -68,6 +70,7 @@ export function CategoryAmcCard({
     <SectionCard
       title="Portfolio Allocation"
       info="Asset distribution across SEBI categories and fund houses (AMCs)."
+      anchor={anchor}
       state={state}
       onRetry={onRetry}
     >

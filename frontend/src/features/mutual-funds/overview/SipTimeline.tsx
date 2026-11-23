@@ -102,7 +102,7 @@ export function SipTimeline({ sips }: SipTimelineProps) {
   const sipsForDate = effectiveDate ? activeSips.filter(s => s.next_due_date === effectiveDate) : [];
 
   return (
-    <section className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
+    <section id="overview-sips" className="scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-2">
           <h3 id="sip-title" className="text-base font-semibold text-[var(--ui-text)]">

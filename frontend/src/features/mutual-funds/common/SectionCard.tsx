@@ -25,6 +25,7 @@ export function InfoMark({ text, testId }: InfoMarkProps) {
 export interface SectionCardProps {
   title: string;
   info?: string;
+  anchor?: string;
   state: "loading" | "ready" | "failed" | "error";
   onRetry?: () => void;
   skeleton?: ReactNode;
@@ -34,6 +35,7 @@ export interface SectionCardProps {
 export function SectionCard({
   title,
   info,
+  anchor,
   state,
   onRetry,
   skeleton,
@@ -43,8 +45,13 @@ export function SectionCard({
 
   return (
     <section
+      id={anchor}
       aria-labelledby={headingId}
-      className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5"
+      className={
+        anchor
+          ? "scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5"
+          : "rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5"
+      }
     >
       <div className="flex items-center gap-2 mb-4">
         <h3 id={headingId} className="text-base font-semibold text-[var(--ui-text)]">

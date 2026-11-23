@@ -9,18 +9,20 @@ import { ScorerGroup } from "./ScorerGroup";
 
 interface GroupProps {
   id: string;
+  anchor?: string;
   index: number;
   title: string;
   description: string;
   children: React.ReactNode;
 }
 
-function Group({ id, index, title, description, children }: GroupProps) {
+function Group({ id, anchor, index, title, description, children }: GroupProps) {
   return (
     <section
+      id={anchor}
       data-testid={`group-${id}`}
       aria-labelledby={`heading-${id}`}
-      className="space-y-3"
+      className={anchor ? "scroll-mt-6 space-y-3" : "space-y-3"}
     >
       <div className="space-y-1">
         <h2 id={`heading-${id}`} className="flex items-center gap-2 text-base font-semibold text-[var(--ui-text)]">
@@ -71,6 +73,7 @@ function OtherAnalyticsBody() {
     <div data-testid="analytics-groups" className="flex flex-col gap-6">
       <Group
         id="cost"
+        anchor="analytics-cost"
         index={0}
         title={GROUP_TITLES.cost}
         description="How expensive your funds are to hold, and how richly their holdings are priced."
@@ -91,6 +94,7 @@ function OtherAnalyticsBody() {
 
       <Group
         id="category"
+        anchor="analytics-category"
         index={SHOW_FUND_QUALITY_SCORES ? 2 : 1}
         title={GROUP_TITLES.category}
         description="Your fund returns compared with the average of funds in the same category and plan type, weighted by fund size."
@@ -100,6 +104,7 @@ function OtherAnalyticsBody() {
 
       <Group
         id="ranking"
+        anchor="analytics-ranking"
         index={SHOW_FUND_QUALITY_SCORES ? 3 : 2}
         title={GROUP_TITLES.ranking}
         description="Each period compares funds in the same SEBI category and plan type."

@@ -16,9 +16,10 @@ const VIEW_OPTIONS = [
 
 export interface FundManagerCardProps extends AnalyticsCardProps<FundManagerAllocationSummary> {
   xirrByScheme: Record<string, string | null | undefined>;
+  anchor?: string;
 }
 
-export function FundManagerCard({ state, data, onRetry, xirrByScheme }: FundManagerCardProps) {
+export function FundManagerCard({ state, data, onRetry, xirrByScheme, anchor }: FundManagerCardProps) {
   const [view, setView] = useState<"cards" | "table">("cards");
   const [openKey, setOpenKey] = useState<string | null>(null);
   const groups = data?.manager_groups ?? [];
@@ -48,7 +49,7 @@ export function FundManagerCard({ state, data, onRetry, xirrByScheme }: FundMana
     </li>)}
   </ul>;
 
-  return <SectionCard title="Fund Manager Allocation" state={state} onRetry={onRetry}>
+  return <SectionCard title="Fund Manager Allocation" anchor={anchor} state={state} onRetry={onRetry}>
     <div className="flex flex-col gap-4">
       <p className="text-xs text-[var(--ui-text-muted)]">Who is actually running your money, aggregated across your whole portfolio.</p>
       {updating ? <p role="status" className="text-xs text-[var(--ui-text-muted)]">Fund manager allocation is updating.</p>

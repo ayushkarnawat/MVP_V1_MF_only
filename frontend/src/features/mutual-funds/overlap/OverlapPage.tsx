@@ -129,6 +129,7 @@ function OverlapBody() {
         <>
           <div data-testid="card-common-holdings">
             <CommonHoldings
+              anchor="overlap-common-holdings"
               state={stockHoldings.status}
               data={commonData}
               onRetry={stockHoldings.retry}
@@ -137,6 +138,7 @@ function OverlapBody() {
 
           <div data-testid="card-heatmap">
             <Heatmap
+              anchor="overlap-heatmap"
               state={overlap.status}
               data={selectedData}
               onRetry={overlap.retry}
@@ -147,6 +149,7 @@ function OverlapBody() {
 
           <div data-testid="card-top-pairs">
             <TopPairs
+              anchor="overlap-top-pairs"
               state={overlap.status}
               data={selectedData}
               onRetry={overlap.retry}
@@ -157,6 +160,7 @@ function OverlapBody() {
 
           <div data-testid="card-impact">
             <ImpactDonut
+              anchor="overlap-impact"
               state={overlap.status}
               data={selectedData}
               onRetry={overlap.retry}

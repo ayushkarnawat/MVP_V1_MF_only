@@ -71,8 +71,9 @@ export function AmcAllocationCard({ allocation, holdings }: AmcAllocationCardPro
 
   return (
     <section
+      id="overview-amc-allocation"
       aria-labelledby={headingId}
-      className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5"
+      className="scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5"
     >
       <div className="flex items-center gap-2 mb-4">
         <h3 id={headingId} className="text-base font-semibold text-[var(--ui-text)]">
@@ -234,8 +235,9 @@ export function FamilyMembersCard({ holdings, members }: FamilyMembersCardProps)
   if (members.data.length < 2) {
     return (
       <section
+        id="overview-family-members"
         aria-labelledby={headingId}
-        className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5"
+        className="scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5"
       >
         <div className="flex items-center gap-2 mb-2">
           <h3 id={headingId} className="text-base font-semibold text-[var(--ui-text)]">
@@ -273,8 +275,9 @@ export function FamilyMembersCard({ holdings, members }: FamilyMembersCardProps)
 
   return (
     <section
+      id="overview-family-members"
       aria-labelledby={headingId}
-      className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5"
+      className="scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5"
     >
       <div className="flex items-center gap-2 mb-1">
         <h3 id={headingId} className="text-base font-semibold text-[var(--ui-text)]">
@@ -361,8 +364,9 @@ export function QuickInsightsCard({ lines }: QuickInsightsCardProps) {
 
   return (
     <section
+      id="overview-quick-insights"
       aria-labelledby={headingId}
-      className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5"
+      className="scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5"
     >
       <h3 id={headingId} className="text-base font-semibold text-[var(--ui-text)]">
         Quick Insights
