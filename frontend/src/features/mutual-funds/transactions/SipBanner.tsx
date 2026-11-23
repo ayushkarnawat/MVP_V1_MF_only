@@ -1,6 +1,7 @@
 import { formatRupees } from "../../../lib/format";
 import type { InvestmentWithdrawalResult } from "../types";
 import { missedSipTooltip } from "./transactionsLogic";
+import { usePrintMode } from "../../../lib/printMode";
 
 export interface SipBannerProps {
   summary: InvestmentWithdrawalResult["sip_summary"];
@@ -8,6 +9,7 @@ export interface SipBannerProps {
 
 export function SipBanner({ summary }: SipBannerProps) {
   const missedTooltip = missedSipTooltip(summary);
+  const printMode = usePrintMode();
   if (summary.active_count === 0) {
     return (
       <div
@@ -41,14 +43,15 @@ export function SipBanner({ summary }: SipBannerProps) {
       {summary.missed_count > 0 && (
         <span
           role="note"
-          tabIndex={0}
+          tabIndex={printMode ? undefined : 0}
           data-testid="sip-missed"
-          title={missedTooltip}
-          data-tooltip={missedTooltip}
+          title={printMode ? undefined : missedTooltip}
+          data-tooltip={printMode ? undefined : missedTooltip}
           className="rounded-full bg-[var(--warn-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--warn-text)] cursor-help"
         >
           {summary.missed_count} missed{" "}
           {summary.missed_count === 1 ? "instalment" : "instalments"}
+          {printMode && <span className="block mt-1">{missedTooltip}</span>}
         </span>
       )}
     </div>

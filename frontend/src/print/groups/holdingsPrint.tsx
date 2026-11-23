@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
+import { HoldingsSectionPrint } from "./holdings/HoldingsSections";
 
-// Print versions of the holdings sections: one entry per section id, `() => ReactNode`. Empty until that group's task fills it;
-// every id not listed here keeps the placeholder in sectionRegistry.ts. Each group edits only its own file.
-export const holdingsPrintSections: Record<string, () => ReactNode> = {};
+// Only this group's entries replace placeholders in the shared registry.
+export const holdingsPrintSections: Record<string, () => ReactNode> = {
+  "holdings-top-by-fund": () => <HoldingsSectionPrint id="holdings-top-by-fund" />,
+  "holdings-all-stocks": () => <HoldingsSectionPrint id="holdings-all-stocks" />,
+};

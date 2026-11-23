@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatPercent } from "../../../lib/format";
+import { usePrintMode } from "../../../lib/printMode";
 import type { AnalyticsCardProps } from "../allocation/allocationLogic";
 import { SectionCard } from "../common/SectionCard";
 import { memberInitials } from "../mfCopy";
@@ -19,6 +20,7 @@ export function TopHoldingsByFund({
   onRetry,
   anchor,
 }: AnalyticsCardProps<StockHoldingsSummary> & { anchor?: string }) {
+  const printMode = usePrintMode();
   const rows = useMemo(() => equityRows(data), [data]);
   const chips = useMemo(() => fundChips(rows), [rows]);
 
@@ -34,6 +36,30 @@ export function TopHoldingsByFund({
   const top = useMemo(() => {
     return pickedSchemeId ? topStocksForFund(rows, pickedSchemeId) : { stocks: [], total: "0" };
   }, [rows, pickedSchemeId]);
+
+  if (printMode) return <SectionCard title="Top Holdings by Fund" anchor={anchor} state={state}>
+    {!data || chips.length === 0 ? <p className="text-xs text-[var(--ui-text-muted)]">No stock holdings to show yet</p> : <div className="space-y-4">
+      {chips.map(fund => {
+        const holdings = topStocksForFund(rows, fund.schemeId);
+        return <div key={fund.schemeId} data-testid={`print-fund-${fund.schemeId}`} style={{ breakInside: "avoid" }} className="space-y-3">
+          <h4 className="text-sm font-semibold text-[var(--ui-text)]">{fund.name}</h4>
+          <p className="text-xs text-[var(--ui-text-muted)]">{formatPercent(holdings.total, { digits: 1 })} in these {holdings.stocks.length} names</p>
+          <ol aria-label={`${fund.name} top holdings`} className="space-y-2">
+            {holdings.stocks.map(stock => <li key={stock.key} data-testid={`top-row-${stock.rank}`} className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-3 text-xs space-y-2">
+              <div className="flex justify-between gap-3">
+                <span className="font-medium text-[var(--ui-text)]">{stock.rank}. {stock.name}</span>
+                <span className="shrink-0 font-semibold text-[var(--ui-text)]">{formatPercent(stock.weight, { digits: 2 })}</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-[var(--ui-divider)]">
+                <span data-testid={`top-bar-${stock.rank}`} className="block h-full rounded-full" style={{ width: `${relativeWidth(stock.weight, holdings.stocks)}%`, backgroundColor: fund.color }} />
+              </div>
+            </li>)}
+          </ol>
+        </div>;
+      })}
+      {data.truncated && <p data-testid="top-note" className="text-xs text-[var(--ui-text-muted)]">Based on the largest {rows.length} of {data.total_stock_count} stocks held across your portfolio.</p>}
+    </div>}
+  </SectionCard>;
 
   return (
     <SectionCard
