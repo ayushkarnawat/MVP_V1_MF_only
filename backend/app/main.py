@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import analytics, auth, cas_imports, dashboard, fund_page, home, home_news, imports, legal, portfolio, portfolio_insights, scenarios, search
 from app.config import settings
 from app.services.analytics.pdf_export import start_browser, stop_browser
+from app.services.export.browser_pool import close_pool
 from app.services.import_.crypto import decode_key
 from app.services.import_.file_storage import LocalFileStorage, default_file_storage
 
@@ -83,6 +84,7 @@ async def lifespan(app: FastAPI):
     await start_browser()
     yield
     await stop_browser()
+    await close_pool()
 
 
 app = FastAPI(title="Unifolio API", lifespan=lifespan)
