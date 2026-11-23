@@ -62,17 +62,17 @@ function parseCalendarDate(iso: string | null | undefined): CalendarDate | null 
 }
 
 type KindFormat =
-  | { tier: "day"; prefix: string }
-  | { tier: "month"; prefix: string };
+  | { tier: "day"; noun: string; prep: string }
+  | { tier: "month"; noun: string; prep: string };
 
 const KIND_FORMAT: Record<DataDateKind, KindFormat> = {
-  prices: { tier: "day", prefix: "Prices as on" },
-  ratios: { tier: "day", prefix: "Ratios as on" },
-  holdings: { tier: "month", prefix: "Holdings as on" },
-  fees: { tier: "month", prefix: "Fees as on" },
-  factsheet: { tier: "month", prefix: "Factsheet as on" },
-  managerDetails: { tier: "month", prefix: "Manager details as on" },
-  marketCapList: { tier: "day", prefix: "Market-cap list effective" },
+  prices: { tier: "day", noun: "Prices", prep: "as on" },
+  ratios: { tier: "day", noun: "Ratios", prep: "as on" },
+  holdings: { tier: "month", noun: "Holdings", prep: "as on" },
+  fees: { tier: "month", noun: "Fees", prep: "as on" },
+  factsheet: { tier: "month", noun: "Factsheet", prep: "as on" },
+  managerDetails: { tier: "month", noun: "Manager details", prep: "as on" },
+  marketCapList: { tier: "day", noun: "Market-cap list", prep: "effective" },
 };
 
 const OLDER_THRESHOLD_DAYS: Partial<Record<DataDateKind, number>> = {
@@ -84,18 +84,28 @@ const OLDER_THRESHOLD_DAYS: Partial<Record<DataDateKind, number>> = {
 const MS_PER_DAY = 86_400_000;
 
 /**
- * Formats an ISO date or date-time string according to the Batch E data-date policy.
+ * Formats an ISO date or date-time string without its leading noun (e.g. "as on 23 Oct 2026").
  * Returns an empty string for invalid, empty, or null inputs.
  */
-export function formatDataDate(kind: DataDateKind, iso: string | null | undefined): string {
+export function formatDataDateTail(kind: DataDateKind, iso: string | null | undefined): string {
   const parsed = parseCalendarDate(iso);
   if (!parsed) return "";
 
   const spec = KIND_FORMAT[kind];
   if (spec.tier === "day") {
-    return `${spec.prefix} ${parsed.day} ${SHORT_MONTHS[parsed.month - 1]} ${parsed.year}`;
+    return `${spec.prep} ${parsed.day} ${SHORT_MONTHS[parsed.month - 1]} ${parsed.year}`;
   }
-  return `${spec.prefix} ${FULL_MONTHS[parsed.month - 1]} ${parsed.year}`;
+  return `${spec.prep} ${FULL_MONTHS[parsed.month - 1]} ${parsed.year}`;
+}
+
+/**
+ * Formats an ISO date or date-time string according to the Batch E data-date policy.
+ * Returns an empty string for invalid, empty, or null inputs.
+ */
+export function formatDataDate(kind: DataDateKind, iso: string | null | undefined): string {
+  const tail = formatDataDateTail(kind, iso);
+  if (!tail) return "";
+  return `${KIND_FORMAT[kind].noun} ${tail}`;
 }
 
 /**

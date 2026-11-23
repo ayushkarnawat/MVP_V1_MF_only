@@ -88,7 +88,7 @@ describe("WorthALook: the three cards of the golden fixture", () => {
     setup();
     const card = screen.getByTestId("worth-card-concentration");
     expect(within(card).getByText("Concentration")).toBeInTheDocument();
-    expect(card.textContent).toContain("Approximate · holdings as of Sep 2026");
+    expect(card.textContent).toContain("Approximate · Holdings as on September 2026");
     expect(within(card).getByRole("heading", { name: "A large share of your portfolio sits in a few stocks" })).toBeInTheDocument();
     expect(within(card).getByTestId("concentration-pct").textContent).toBe("25%");
     expect(card.textContent).toContain("of your portfolio value sits in just 5 stocks");

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { CLICK_ROW } from "@/lib/clickable";
-import { formatDate, formatPercent } from "@/lib/format";
+import { formatDataDate } from "@/lib/dataDates";
+import { formatPercent } from "@/lib/format";
 import { SectionState } from "../components/SectionState";
 import { ageTagText, stockCountText } from "../fundCopy";
 import type { CompositionResponse, TopHolding } from "../types";
@@ -158,7 +159,7 @@ export function TopHoldings({ schemeId, composition }: TopHoldingsProps) {
                   data-testid="top-asof"
                   className="text-xs text-[var(--ui-text-muted)]"
                 >
-                  {`Disclosure as of ${formatDate(data.holdings_as_of)}.`}
+                  {`${formatDataDate("holdings", data.holdings_as_of)}.`}
                 </p>
                 {ageTagText(data.age_tag) ? (
                   <p

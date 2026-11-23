@@ -240,7 +240,7 @@ describe("DayChangeDialog", () => {
 
     const contents = within(getDialog());
     expect(await contents.findByText(aster.label)).toBeVisible();
-    expect(contents.getByTestId("price-day-note")).toHaveTextContent(/Latest prices are from Friday,? 23 Oct/);
+    expect(contents.getByTestId("price-day-note")).toHaveTextContent(/Prices as on Friday,? 23 Oct 2026\./);
     expect(contents.queryByText(/Markets were closed today/i)).toBeNull();
   });
 
@@ -327,7 +327,7 @@ describe("DayChangeDialog", () => {
 
     const dialog = within(getDialog());
     expect(await dialog.findByText("Markets were closed today")).toBeVisible();
-    expect(dialog.getByText(/Latest prices.*\b23 Oct(?:ober)?[ ,]+2026\b/i)).toBeVisible();
+    expect(dialog.getByText(/No fund had a new price\. Prices as on Friday,? 23 Oct 2026\./)).toBeVisible();
   });
 
   it("an error keeps the summary and offers Try again, which repeats the fetch", async () => {

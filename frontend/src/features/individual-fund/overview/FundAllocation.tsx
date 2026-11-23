@@ -2,7 +2,6 @@ import { useState } from "react";
 import { PieChart, PieSlice, type PieData } from "@/components/ui/charts";
 import {
   formatCompactRupees,
-  formatDate,
   formatPercent,
 } from "@/lib/format";
 import { SectionState } from "../components/SectionState";
@@ -150,7 +149,7 @@ export function FundAllocation({
               >
                 {allocationNote(
                   tab,
-                  formatDate(data.holdings_as_of),
+                  data.holdings_as_of,
                   unclassified
                 )}
               </p>
@@ -260,7 +259,7 @@ export function FundAllocation({
               >
                 {allocationNote(
                   tab,
-                  formatDate(data.holdings_as_of),
+                  data.holdings_as_of,
                   unclassified
                 )}
               </p>

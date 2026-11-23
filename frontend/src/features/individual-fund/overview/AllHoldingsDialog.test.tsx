@@ -29,7 +29,7 @@ describe("AllHoldingsDialog", () => {
 
   it("fetches the list when it first opens, and titles the dialog with the disclosure date and the count", async () => {
     mount();
-    expect(await screen.findByRole("dialog", { name: "All holdings, as of 30 Sep 2026" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "All holdings, as on September 2026" })).toBeInTheDocument();
     expect(api.holdings).toHaveBeenCalledTimes(1);
     expect(api.holdings).toHaveBeenCalledWith(IDS.scheme, expect.any(AbortSignal));
     expect(screen.getByTestId("all-count")).toHaveTextContent("14 holdings");

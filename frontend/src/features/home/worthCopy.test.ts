@@ -5,7 +5,6 @@ import {
   comparisonBars,
   concentrationTrend,
   costScale,
-  formatMonthYear,
   percentPointDifference,
   scoreChip,
   worthChip,
@@ -19,20 +18,6 @@ const expense: WorthCardOut = {
   kind: "high_expense", rank: 1, scheme_id: "s", scheme_name: "Summit Small Cap Fund",
   evidence: { ter: "0.95", category_avg_ter: "0.25", gap_pp: "0.70", plan_type: "direct", share_pct: "5.00" },
 };
-
-describe("formatMonthYear", () => {
-  it("writes the month name and the year", () => {
-    expect(formatMonthYear("2026-09-30")).toBe("Sep 2026");
-    expect(formatMonthYear("2026-01-05")).toBe("Jan 2026");
-    expect(formatMonthYear("2026-12-31T10:00:00Z")).toBe("Dec 2026");
-  });
-
-  it("shows a dash when there is no usable date", () => {
-    expect(formatMonthYear(null)).toBe("—");
-    expect(formatMonthYear("bad")).toBe("—");
-    expect(formatMonthYear("2026-13-01")).toBe("—");
-  });
-});
 
 describe("percentPointDifference", () => {
   it.each([
