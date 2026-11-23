@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     frontend_base_url: str = "http://localhost:5173"
     export_lock_dir: str = "/tmp/unifolio-export"
+    export_pass_secret: str = ""
     google_oauth_client_id: str = ""
     allowed_origins: str = ""
 

@@ -57,6 +57,18 @@ def _assert_pan_keys_configured() -> None:
         ) from exc
 
 
+def _assert_export_pass_secret_configured() -> None:
+    if settings.environment != "production":
+        return
+    secret = settings.export_pass_secret
+    other_values = (
+        getattr(settings, name) for name in type(settings).model_fields
+        if name != "export_pass_secret"
+    )
+    if len(secret) < 32 or any(secret == value for value in other_values if isinstance(value, str)):
+        raise RuntimeError("Refusing to start: EXPORT_PASS_SECRET must have at least 32 random characters and differ from every other secret.")
+
+
 def _warn_if_local_file_storage_in_non_dev() -> None:
     """Non-blocking warning (not a startup failure): outside development, the
     30-day CAS file retention should be backed by durable storage (S3 +
@@ -78,6 +90,7 @@ def _warn_if_local_file_storage_in_non_dev() -> None:
 async def lifespan(app: FastAPI):
     if settings.environment == "production" and settings.auth_guard_enabled and not settings.auth_guard_secret:
         raise RuntimeError("Refusing to start in production: AUTH_GUARD_SECRET is required when the auth guard is enabled.")
+    _assert_export_pass_secret_configured()
     if settings.environment != "development":
         _assert_pan_keys_configured()
         _warn_if_local_file_storage_in_non_dev()
