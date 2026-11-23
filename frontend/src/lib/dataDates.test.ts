@@ -29,8 +29,6 @@ const SCAN_ALLOWLIST = new Set<string>([
   "features/analytics/OverlapSection.tsx",
   "features/analytics/StockHoldingsSection.tsx",
   "features/analytics/ValuationSection.tsx",
-  // Temporary: E-9 removes the "As on" column and the footnote; delete this line then.
-  "features/mutual-funds/other/ValuationByFund.tsx",
 ]);
 
 describe("formatDataDate", () => {
