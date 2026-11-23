@@ -813,3 +813,4 @@ fix" rule.
 - 2026-11-23 | E-5 strip logic and look | Antigravity ag-e5 | packet written, relay pending | orchestrator
 - 2026-11-23 | F-6 spy/jump hooks | Codex | DONE (blocked on running, as expected); I ran lane fn: all 14 hook tests green, rail-frame tests that need the rail (4) and SectionRail.test (missing module) still red, guard count bumped 57 to 60 by me; types fail only on the missing SectionRail module; committed on batch/f-nav | orchestrator
 - 2026-11-23 | F-7 section rail component | Antigravity ag-f7 | packet written, relay pending | orchestrator
+- 2026-11-23 | E-7 shared info popover and InfoMark rebuild | Codex (unifolio-e-dates) | handoff written, relay pending; dependency added by Claude (fb6bdca9, lock additions only) | orchestrator
