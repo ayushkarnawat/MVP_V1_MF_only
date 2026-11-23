@@ -233,7 +233,8 @@ def main() -> int:
 
     print("== 1. Configuration")
     print(f"frontend_base_url_is_expected_host: {'yes' if host_matches(settings.frontend_base_url, args.expect_host) else 'NO'}")
-    print(f"uvicorn_processes_seen: {process_count('uvicorn')}")
+    # The parent is `uvicorn`; its workers start under Python's multiprocessing name, so both are counted.
+    print(f"backend_processes_seen: {process_count('uvicorn') + process_count('multiprocessing.spawn')}")
     cur, ceiling = cgroup_memory_mb()
     print(f"container_memory_mb_now: {None if cur is None else round(cur)}  ceiling_mb: {None if ceiling is None else round(ceiling)}")
 

@@ -38,7 +38,7 @@ Today's export keeps its one-time token in a plain dictionary inside one backend
 ## How the review runs
 A fresh reviewer with no part in the build reads this file, the diff of I-4 and I-5, and `backend/app/services/auth/session.py`; it **runs** the tests, tries each attack above against the code (writing throw-away tests, not changing the repo), and reports findings as: severity, the exact request or input, what it reads or writes, the fix suggested. The orchestrator verifies each finding himself before telling the owner (a reviewer is often wrong, and sometimes right about something the tests missed). Whole-batch reviews are Opus only (owner rule); **this is a named security gate, so the orchestrator recommends Opus for it and asks the owner first**.
 
-## Open questions for the owner (decide before I-4 starts)
-1. TTL 300 s as the plan says, or 180 s if the measurements allow it (recommended: 180)?
-2. If the reviewer wants revocation, is a first migration (a small table) acceptable, or must the pass stay stateless?
-3. Should the folio option be enforced on the server (the pass carries a `folios` claim and the routes mask accordingly), or stay a dialog default as the workbook says? (Recommended: dialog default only, as decided 17 Nov, with the PAN-never rule enforced everywhere.)
+## Owner decisions (23 Nov 2026: the owner accepted the orchestrator's recommendations)
+1. **TTL: 180 seconds** (`EXPORT_PASS_TTL_SECONDS = 180`; raise to 300 only if I-13's measurement shows a typical report needs it).
+2. **Stateless.** No table and no migration. If the fresh reviewer decides expiry alone is too weak, that is a finding for the owner, not something to add silently.
+3. **Folio masking stays a dialog default only** (as decided 17 Nov); PAN-never is enforced everywhere.
