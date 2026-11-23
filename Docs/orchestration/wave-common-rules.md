@@ -43,3 +43,12 @@ Read this **after** `ui-common-rules-codex.md` (backend) or `ui-common-rules-ant
 
 ## Report (one block, as in your lane's rules file)
 Add to it: the lane letter, the files you changed (must be inside the task's list), `git status --short`, anything you could not check (visual), and Open questions. No narration.
+
+## Token economy (owner rule, 23 Nov 2026; applies to Claude, Codex and Antigravity)
+Spend as few tokens as possible without lowering quality. Tests first and verification are never traded away.
+- Read only what the task needs: search first (grep or the editor's search), then open the lines that matter. Do not open a file twice, and do not re-read a file you just edited.
+- Do not paste file contents, long diffs or full test output into your report or your thinking: give counts, names and the one line that shows a failure.
+- Run only the tests, types and lint the task names, on the touched folders (never the full suites unless the packet says so).
+- No narration, no plan restating, no summary of the packet back to the orchestrator. The report block is the whole reply.
+- Keep new files and tests as small as the contract allows: no extra helpers, comments or cases the packet did not ask for.
+- If something is unclear, stop and put it under Open questions instead of exploring widely.
